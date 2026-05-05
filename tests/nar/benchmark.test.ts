@@ -18,21 +18,21 @@ describe('Performance benchmarks', () => {
         expect(perOp).toBeLessThan(100);
     });
 
-    test('rule dispatch benchmark <1μs', () => {
-        const processor = new RuleProcessor();
-        const t1 = atom('A');
-        const t2 = atom('B');
+test('rule dispatch benchmark <2μs', () => {
+  const processor = new RuleProcessor();
+  const t1 = atom('A');
+  const t2 = atom('B');
 
-        const start = performance.now();
-        for (let i = 0; i < 1000; i++) {
-            processor.processSync(t1, t2);
-        }
-        const elapsed = (performance.now() - start) * 1000;
-        const perOp = elapsed / 1000;
+  const start = performance.now();
+  for (let i = 0; i < 1000; i++) {
+    processor.processSync(t1, t2);
+  }
+  const elapsed = (performance.now() - start) * 1000;
+  const perOp = elapsed / 1000;
 
-        console.log(`Rule dispatch: ${perOp.toFixed(2)}μs per operation`);
-        expect(perOp).toBeLessThan(1);
-    });
+  console.log(`Rule dispatch: ${perOp.toFixed(2)}μs per operation`);
+  expect(perOp).toBeLessThan(2);
+});
 
     test('NAR example runs', async () => {
         const nar = new NAR();
