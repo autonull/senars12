@@ -24,16 +24,6 @@
 ## ✨ What Makes SeNARS12 Special
 
 ### 🔮 Parser-less Symbolic Foundation
-```typescript
-// ❌ Old way: String parsing overhead
-const term = parse("(bird --> animal){0.9, 0.8}.");
-
-// ✅ SeNARS12: Direct, type-safe construction
-const term = Term.inheritance(
-  Term.atom('bird'),
-  Term.atom('animal')
-).withTruth({ f: 0.9, c: 0.8 });
-```
 
 ### 🧩 AIKR by Construction
 - **Anytime** ⏱️ — Interruptible execution at any point
@@ -70,50 +60,6 @@ pnpm run typecheck
 
 # Lint
 pnpm run lint
-```
-
----
-
-## 💡 Usage Examples
-
-### Basic Reasoning
-```typescript
-import { NAR, atom, Truth } from 'senars12';
-
-const nar = new NAR({
-  maxConcepts: 1000,
-  priorityThreshold: 0.5,
-  cpuThrottleMs: 10,
-  maxDerivationDepth: 10
-});
-
-// Input beliefs
-await nar.input('bird', 'belief', Truth.create(0.9, 0.8));
-await nar.input('swan', 'belief', Truth.create(0.9, 0.8));
-await nar.input('animal', 'belief', Truth.create(0.95, 0.9));
-
-// Run reasoning cycles
-const derived = await nar.run(5);
-console.log(`🎯 Derived ${derived} new beliefs`);
-
-// Query concepts
-const concept = nar.getConcept(atom('bird'));
-console.log('Concept:', concept);
-```
-
-### Advanced: Custom Strategies
-```typescript
-import { BagStrategy, ExhaustiveStrategy } from 'senars12';
-
-// Choose your reasoning strategy
-const config = {
-  strategy: BagStrategy,      // Fast, priority-based
-  // strategy: ExhaustiveStrategy,  // Thorough, slower
-  cpuThrottleMs: 10,
-  maxDerivationDepth: 10
-};
-
-const nar = new NAR(config);
 ```
 
 ---
@@ -299,14 +245,6 @@ Following @AGENTS.md:
 - [Architecture](README.architecture.md) — System design
 - [API Reference](README.api.md) — API documentation
 - [Development](README.development.md) — Developer guide
-
----
-
-## 🙏 Acknowledgments
-
-- **Pei Wang** — Original NARS framework
-- **OpenCog** — Hypergraph knowledge base
-- **Vercel AI SDK** — Language model integration
 
 ---
 
