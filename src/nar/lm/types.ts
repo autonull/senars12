@@ -1,4 +1,3 @@
-import type { Term } from '../terms/index.js';
 import type { Task } from '../task/task.js';
 
 export interface LMConfig {

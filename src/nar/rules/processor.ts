@@ -1,5 +1,4 @@
 import type { Term } from '../terms/index.js';
-import type { RegisteredRule } from './types.js';
 import { RuleRegistry, RuleIndex } from './types.js';
 import { Truth } from '../terms/truth.js';
 import { Stamp } from '../terms/stamp.js';

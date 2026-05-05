@@ -43,7 +43,6 @@ export async function *createPipeline(
     yield task;
     queueSize--;
 
-    const secondaryTasks = strategy.selectSecondary(task, memory);
     derivationsCount++;
 
     if (derivationsCount >= config.maxDerivationsPerStep) {
