@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Build artifacts
+/dist
+/build
+/coverage.vscode
+.vscode/
+.kilocode/
+.idea
+benchmark-results-*
+agent.json
+package-lock.json
+
+# Test artifacts
+ui/playwright-report/
+ui/test-results/
+ui/test-results.json
+coverage
+performance-results
+
+*storybook.log
+storybook-static
+test-results/
+
+# RLFP artifacts
+*.jsonl
+trajectory_*.json
+preferences.json
+browser-bundle.js
+ui/dist/
+verification/
+
+# Leftover/debug files
+*.bak
+*.debug.js
+memory
