@@ -1,4 +1,4 @@
-export { MemoryIndex, memoryIndex } from './index.js';
+export { MemoryIndex, memoryIndex } from './memory-index.js';
 export { Focus, focus } from './focus.js';
 export { MemoryScorer, memoryScorer } from './scorer.js';
 export { MemoryConsolidation, memoryConsolidation } from './consolidation.js';

@@ -1,6 +1,13 @@
+export * from './bag.js';
+export * from './bounded-bag.js';
+export * from './concept.js';
+export * from './memory.js';
+export * from './gc.js';
+export * from './forgetting.js';
 export { MemoryIndex, memoryIndex } from './memory-index.js';
 export { Focus, focus } from './focus.js';
 export { MemoryScorer, memoryScorer } from './scorer.js';
 export { MemoryConsolidation, memoryConsolidation } from './consolidation.js';
 export { Archive, archive } from './archive.js';
 export { MemoryStatistics, memoryStatistics } from './statistics.js';
+export * from './modules.js';
