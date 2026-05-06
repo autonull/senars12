@@ -17,13 +17,16 @@ export class Throttle {
     }
 
     async acquire(): Promise<void> {
-        this.refill();
-        if (this.tokens > 0) {
-            this.tokens--;
-            return;
+        // Loop until a token is available. Refill before each check to avoid negative tokens.
+        while (true) {
+            this.refill();
+            if (this.tokens > 0) {
+                this.tokens--;
+                return;
+            }
+            // Wait a single interval then retry.
+            await new Promise(r => setTimeout(r, this.config.intervalMs));
         }
-        await new Promise(r => setTimeout(r, this.config.intervalMs));
-        this.tokens--;
     }
 
     private refill(): void {

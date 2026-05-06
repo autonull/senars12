@@ -5,7 +5,7 @@ interface CacheEntry<T> {
 }
 
 export class WeakCache<K extends object, V> {
-    private weak = new WeakMap<K, V>();
+    private weak = new WeakMap<K, CacheEntry<V>>();
     private lru = new Map<K, CacheEntry<V>>();
     private maxSize: number;
     private ttl: number;
@@ -16,20 +16,27 @@ export class WeakCache<K extends object, V> {
     }
 
     get(key: K): V | undefined {
-        if (this.weak.has(key)) {
-            return this.weak.get(key);
+        const entryFromWeak = this.weak.get(key);
+        if (entryFromWeak) {
+            // Promote into LRU map if missing
+            if (!this.lru.has(key)) this.lru.set(key, entryFromWeak);
+            entryFromWeak.accesses++;
+            entryFromWeak.lastAccess = Date.now();
+            return entryFromWeak.value;
         }
+
         const entry = this.lru.get(key);
         if (!entry) return undefined;
 
         if (Date.now() - entry.lastAccess > this.ttl) {
             this.lru.delete(key);
+            this.weak.delete(key);
             return undefined;
         }
 
         entry.accesses++;
         entry.lastAccess = Date.now();
-        this.weak.set(key, entry.value);
+        this.weak.set(key, entry);
         return entry.value;
     }
 
@@ -38,13 +45,13 @@ export class WeakCache<K extends object, V> {
             this.evictLRU();
         }
 
-        this.weak.set(key, value);
-        this.lru.set(key, { value, accesses: 1, lastAccess: Date.now() });
+        const entry: CacheEntry<V> = { value, accesses: 1, lastAccess: Date.now() };
+        this.lru.set(key, entry);
+        this.weak.set(key, entry);
     }
 
     has(key: K): boolean {
-        if (this.weak.has(key)) return true;
-        const entry = this.lru.get(key);
+        const entry = this.weak.get(key) ?? this.lru.get(key);
         if (!entry) return false;
         return Date.now() - entry.lastAccess <= this.ttl;
     }
@@ -59,7 +66,7 @@ export class WeakCache<K extends object, V> {
         this.lru.clear();
     }
 
-    size(): number {
+    get size(): number {
         return this.lru.size;
     }
 

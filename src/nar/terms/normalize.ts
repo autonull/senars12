@@ -1,22 +1,26 @@
 import type { Term, CompoundTerm, AtomicTerm } from './types.js';
 import { computeHash } from './types.js';
 
-function isCompound(term: Term): term is CompoundTerm {
-    return term.kind === 'conjunction' || term.kind === 'disjunction' ||
-           term.kind === 'inheritance' || term.kind === 'similarity' ||
-           term.kind === 'negation' || term.kind === 'implication' || term.kind === 'equivalence';
-}
-
 function hasArgs(term: Term): term is CompoundTerm {
-    return isCompound(term);
+    return (
+        term.kind === 'conjunction' ||
+        term.kind === 'disjunction' ||
+        term.kind === 'inheritance' ||
+        term.kind === 'similarity' ||
+        term.kind === 'negation' ||
+        term.kind === 'implication' ||
+        term.kind === 'equivalence'
+    );
 }
 
 export function normalize(term: Term): Term {
-    if (term.kind !== 'atom' && (term.kind === 'conjunction' || term.kind === 'disjunction')) {
-        const sortedArgs = [...term.args].sort((a, b) => a.hash - b.hash);
-        const allSorted = sortedArgs.every((arg, i) => arg.hash === term.args[i]?.hash);
+    // Only conjunction and disjunction are commutative and need ordering.
+    if (term.kind === 'conjunction' || term.kind === 'disjunction') {
+        const args = term.args ?? [];
+        if (args.length <= 1) return term;
+        const sortedArgs = [...args].sort((a, b) => a.hash - b.hash);
+        const allSorted = sortedArgs.every((arg, i) => arg.hash === args[i]?.hash);
         if (!allSorted) {
-            // Recompute hash when arguments are reordered so the canonical form stays consistent.
             const newHash = computeHash(term.kind, sortedArgs.map(t => t.hash));
             return Object.freeze({ ...term, args: sortedArgs, hash: newHash } as Term);
         }
