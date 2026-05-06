@@ -30,7 +30,7 @@ export const PROFILES = {
   minimal: {
     profile: 'minimal' as const,
     nick: 'SeNARchy',
-    embodiments: { irc: { enabled: false }, cli: { enabled: true }, demo: { enabled: false } },
+    embodiments: { irc: { enabled: true, port: 6670, channel: '#test' }, cli: { enabled: true }, demo: { enabled: false } },
     lm: { provider: 'transformers', modelName: 'HuggingFaceTB/SmolLM2-360M-Instruct', temperature: 0.7, maxTokens: 128 },
     loop: { budget: 10, sleepMs: 1000 },
     capabilities: { contextBudgets: false, semanticMemory: false, auditLog: false, persistentHistory: false, goalPursuit: false }

@@ -69,7 +69,9 @@ export class RuleProcessor {
 
   processSync(p1: Term, p2: Term): RuleResult[] {
     const results: RuleResult[] = [];
-    for (const rule of this.ruleIndex.match(p1, p2).filter(r => r.sync)) {
+    const matchedRules = this.ruleIndex.match(p1, p2);
+    for (const rule of matchedRules) {
+      if (!rule.sync) continue;
       const result = rule.apply([p1, p2]);
       if (result) {
         results.push({

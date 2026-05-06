@@ -6,3 +6,5 @@ export * from './normalize.js';
 export * from './cache.js';
 export * from './unifier.js';
 export * from './parser.js';
+export * from './accessors.js';
+export { TermBuilder, freeze } from './builder.js';

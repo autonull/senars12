@@ -26,7 +26,7 @@ const FALSE_ATOM = cache(
   } as AtomicTerm)
 );
 
-export const TermFactory = {
+export const TermBuilder = {
   atom: (symbol: string): Term => {
     if (symbol === 'TRUE') return TRUE_ATOM;
     if (symbol === 'FALSE') return FALSE_ATOM;
@@ -44,7 +44,7 @@ export const TermFactory = {
   },
 
   inheritance: (s: Term | undefined, p: Term | undefined): Term => {
-    if (!s || !p) return TermFactory.atom('TRUE');
+    if (!s || !p) return TermBuilder.atom('TRUE');
     const hash = computeHash('inheritance', [s.hash, p.hash]);
     const cached = termCache.get(hash);
     if (cached) return cached;
@@ -58,7 +58,7 @@ export const TermFactory = {
   },
 
   similarity: (s: Term | undefined, p: Term | undefined): Term => {
-    if (!s || !p) return TermFactory.atom('TRUE');
+    if (!s || !p) return TermBuilder.atom('TRUE');
     const hash = computeHash('similarity', [s.hash, p.hash]);
     const cached = termCache.get(hash);
     if (cached) return cached;
@@ -73,7 +73,7 @@ export const TermFactory = {
 
   conjunction: (...terms: (Term | undefined)[]): Term => {
     const valid = terms.filter((t): t is Term => t !== undefined);
-    if (valid.length === 0) return TermFactory.atom('TRUE');
+    if (valid.length === 0) return TermBuilder.atom('TRUE');
     const sorted = [...valid].sort((a, b) => a.hash - b.hash);
     const hash = computeHash('conjunction', sorted.map(t => t.hash));
     const cached = termCache.get(hash);
@@ -89,7 +89,7 @@ export const TermFactory = {
 
   disjunction: (...terms: (Term | undefined)[]): Term => {
     const valid = terms.filter((t): t is Term => t !== undefined);
-    if (valid.length === 0) return TermFactory.atom('FALSE');
+    if (valid.length === 0) return TermBuilder.atom('FALSE');
     const sorted = [...valid].sort((a, b) => a.hash - b.hash);
     const hash = computeHash('disjunction', sorted.map(t => t.hash));
     const cached = termCache.get(hash);
@@ -104,7 +104,7 @@ export const TermFactory = {
   },
 
   negation: (term: Term | undefined): Term => {
-    if (!term) return TermFactory.atom('TRUE');
+    if (!term) return TermBuilder.atom('TRUE');
     const hash = computeHash('negation', [term.hash]);
     const cached = termCache.get(hash);
     if (cached) return cached;
@@ -118,7 +118,7 @@ export const TermFactory = {
   },
 
   implication: (ant: Term | undefined, cons: Term | undefined): Term => {
-    if (!ant || !cons) return TermFactory.atom('TRUE');
+    if (!ant || !cons) return TermBuilder.atom('TRUE');
     const hash = computeHash('implication', [ant.hash, cons.hash]);
     const cached = termCache.get(hash);
     if (cached) return cached;
@@ -132,7 +132,7 @@ export const TermFactory = {
   },
 
   equivalence: (a: Term | undefined, c: Term | undefined): Term => {
-    if (!a || !c) return TermFactory.atom('TRUE');
+    if (!a || !c) return TermBuilder.atom('TRUE');
     const hash = computeHash('equivalence', [a.hash, c.hash]);
     const cached = termCache.get(hash);
     if (cached) return cached;

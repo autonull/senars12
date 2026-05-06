@@ -48,6 +48,7 @@ class TrieNode<V> {
 
 export class RuleIndex {
   private trie = new TrieNode<RegisteredRule>();
+  private cache = new Map<string, RegisteredRule[]>();
 
   register(rule: RegisteredRule): void {
     const path = encodePattern(rule.pattern);
@@ -56,43 +57,51 @@ export class RuleIndex {
       node = node.getOrCreate(key);
     }
     node.values.push(rule);
+    this.cache.clear();
   }
 
   match(term1: Term, term2: Term): RegisteredRule[] {
-    const keys1 = term1.kind === 'atom' ? ['*', 'atom'] : ['*', term1.kind];
-    const keys2 = term2.kind === 'atom' ? ['*', 'atom'] : ['*', term2.kind];
+    const cacheKey = `${term1.kind}:${term2.kind}`;
+    const cached = this.cache.get(cacheKey);
+    if (cached) return cached;
+
+    const k1 = term1.kind === 'atom' ? '*' : term1.kind;
+    const k2 = term2.kind === 'atom' ? '*' : term2.kind;
     const results: RegisteredRule[] = [];
     const seen = new Set<string>();
 
-    for (const k1 of keys1) {
-      for (const k2 of keys2) {
-        const key = `${k1}-${k2}`;
-        if (seen.has(key)) continue;
-
-        let node: TrieNode<RegisteredRule> = this.trie;
-        let found = true;
-
-        for (const keyPart of [k1, k2]) {
-          const nextNode = node.getNode(keyPart) ?? node.getNode('*');
-          if (!nextNode) { found = false; break; }
-          node = nextNode;
+    for (const first of [k1, '*']) {
+      for (const second of [k2, '*']) {
+        let node: TrieNode<RegisteredRule> | undefined = this.trie;
+        let nextNode = node.getNode(first);
+        if (nextNode) {
+          nextNode = nextNode.getNode(second) ?? node.getNode('*');
+          if (nextNode) {
+            node = nextNode;
+          }
+        } else {
+          nextNode = node.getNode('*');
+          if (!nextNode) continue;
+          node = nextNode.getNode(second) ?? nextNode.getNode('*');
+          if (!node) continue;
         }
 
-        if (found) {
-          for (const rule of node.values) {
-            if (!seen.has(rule.id)) {
-              seen.add(rule.id);
-              results.push(rule);
-            }
+        for (const rule of node.values) {
+          if (!seen.has(rule.id)) {
+            seen.add(rule.id);
+            results.push(rule);
           }
         }
       }
     }
 
-    return results.sort((a, b) => b.priority - a.priority);
+    const sorted = results.sort((a, b) => b.priority - a.priority);
+    this.cache.set(cacheKey, sorted);
+    return sorted;
   }
 
   clear(): void {
     this.trie = new TrieNode<RegisteredRule>();
+    this.cache.clear();
   }
 }

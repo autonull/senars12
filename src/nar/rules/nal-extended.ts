@@ -1,103 +1,63 @@
 import type { Term } from '../terms/index.js';
 import { RuleRegistry, createRulePattern } from './types.js';
 import { TermFactory } from '../terms/factory.js';
-// import { Truth } from '../terms/truth.js';
-
-function getSubject(term: Term): Term | undefined {
-    if (term.kind === 'inheritance' || term.kind === 'similarity') {
-        return term.args[0];
-    }
-    return undefined;
-}
-
-function getPredicate(term: Term): Term | undefined {
-    if (term.kind === 'inheritance' || term.kind === 'similarity') {
-        return term.args[1];
-    }
-    return undefined;
-}
+import { getSubject, getPredicate, sameHash } from '../terms/accessors.js';
 
 export const NALExtendedRules = {
-    modusPonens(premises: [Term, Term]): Term | undefined {
-        const [imp, antecedent] = premises;
-        if (imp.kind !== 'implication') return undefined;
-        if (antecedent.kind !== 'atom') return undefined;
-        const impAnte = imp.args[0];
-        const impCons = imp.args[1];
-        if (!impAnte || !impCons) return undefined;
-        if (impAnte.hash !== antecedent.hash) return undefined;
-        return impCons;
-    },
+  modusPonens: ([imp, antecedent]: [Term, Term]): Term | undefined => {
+    if (imp.kind !== 'implication' || antecedent.kind !== 'atom') return undefined;
+    const [impAnte, impCons] = imp.args;
+    return impAnte && impCons && sameHash(impAnte, antecedent) ? impCons : undefined;
+  },
 
-    modusTollens(premises: [Term, Term]): Term | undefined {
-        const [imp, negConsequent] = premises;
-        if (imp.kind !== 'implication') return undefined;
-        if (negConsequent.kind !== 'negation') return undefined;
-        const impCons = imp.args[1];
-        const negArg = negConsequent.args[0];
-        if (!impCons || !negArg) return undefined;
-        if (impCons.hash !== negArg.hash) return undefined;
-        const impAnte = imp.args[0];
-        if (!impAnte) return undefined;
-        return TermFactory.negation(impAnte);
-    },
+  modusTollens: ([imp, negConsequent]: [Term, Term]): Term | undefined => {
+    if (imp.kind !== 'implication' || negConsequent.kind !== 'negation') return undefined;
+    const impCons = imp.args[1];
+    const negArg = negConsequent.args[0];
+    if (!impCons || !negArg || !sameHash(impCons, negArg)) return undefined;
+    const impAnte = imp.args[0];
+    return impAnte ? TermFactory.negation(impAnte) : undefined;
+  },
 
-    conversion(premises: [Term, Term]): Term | undefined {
-        const [inh] = premises;
-        if (inh.kind !== 'inheritance') return undefined;
-        const s = getSubject(inh);
-        const p = getPredicate(inh);
-        if (!s || !p) return undefined;
-        return TermFactory.inheritance(p, s);
-    },
+  conversion: ([inh]: [Term, Term]): Term | undefined => {
+    if (inh.kind !== 'inheritance') return undefined;
+    const s = getSubject(inh), p = getPredicate(inh);
+    return s && p ? TermFactory.inheritance(p, s) : undefined;
+  },
 
-    structuralInheritance(premises: [Term, Term]): Term | undefined {
-        const [compound, component] = premises;
-        if (compound.kind !== 'conjunction') return undefined;
-        const found = compound.args.find(a => a.hash === component.hash);
-        if (!found) return undefined;
-        return TermFactory.inheritance(component, compound);
-    },
+  structuralInheritance: ([compound, component]: [Term, Term]): Term | undefined => {
+    if (compound.kind !== 'conjunction') return undefined;
+    const found = compound.args.find(a => sameHash(a, component));
+    return found ? TermFactory.inheritance(component, compound) : undefined;
+  },
 
-    structuralReduction(premises: [Term, Term]): Term | undefined {
-        const [inh] = premises;
-        if (inh.kind !== 'inheritance') return undefined;
-        const pred = getPredicate(inh);
-        if (!pred || pred.kind !== 'conjunction') return undefined;
-        const sub = getSubject(inh);
-        if (!sub) return undefined;
-        return TermFactory.inheritance(sub, pred.args[0] ?? pred);
-    },
+  structuralReduction: ([inh]: [Term, Term]): Term | undefined => {
+    if (inh.kind !== 'inheritance') return undefined;
+    const pred = getPredicate(inh);
+    if (!pred || pred.kind !== 'conjunction') return undefined;
+    const sub = getSubject(inh);
+    return sub ? TermFactory.inheritance(sub, pred.args[0] ?? pred) : undefined;
+  },
 
-    intersectionComposition(premises: [Term, Term]): Term | undefined {
-        const [inh1, inh2] = premises;
-        if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
-        const sub1 = getSubject(inh1);
-        const sub2 = getSubject(inh2);
-        if (!sub1 || !sub2 || sub1.hash !== sub2.hash) return undefined;
-        const pred1 = getPredicate(inh1);
-        const pred2 = getPredicate(inh2);
-        if (!pred1 || !pred2) return undefined;
-        return TermFactory.inheritance(sub1, TermFactory.conjunction(pred1, pred2));
-    },
+  intersectionComposition: ([inh1, inh2]: [Term, Term]): Term | undefined => {
+    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
+    const sub1 = getSubject(inh1), sub2 = getSubject(inh2);
+    if (!sub1 || !sub2 || !sameHash(sub1, sub2)) return undefined;
+    const pred1 = getPredicate(inh1), pred2 = getPredicate(inh2);
+    return pred1 && pred2 ? TermFactory.inheritance(sub1, TermFactory.conjunction(pred1, pred2)) : undefined;
+  },
 
-    unionComposition(premises: [Term, Term]): Term | undefined {
-        const [inh1, inh2] = premises;
-        if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
-        const pred1 = getPredicate(inh1);
-        const pred2 = getPredicate(inh2);
-        if (!pred1 || !pred2 || pred1.hash !== pred2.hash) return undefined;
-        const sub1 = getSubject(inh1);
-        const sub2 = getSubject(inh2);
-        if (!sub1 || !sub2) return undefined;
-        return TermFactory.inheritance(TermFactory.disjunction(sub1, sub2), pred1);
-    },
+  unionComposition: ([inh1, inh2]: [Term, Term]): Term | undefined => {
+    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
+    const pred1 = getPredicate(inh1), pred2 = getPredicate(inh2);
+    if (!pred1 || !pred2 || !sameHash(pred1, pred2)) return undefined;
+    const sub1 = getSubject(inh1), sub2 = getSubject(inh2);
+    return sub1 && sub2 ? TermFactory.inheritance(TermFactory.disjunction(sub1, sub2), pred1) : undefined;
+  },
 
-    difference(premises: [Term, Term]): Term | undefined {
-        const [inh1, inh2] = premises;
-        if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
-        const sub1 = getSubject(inh1);
-        const sub2 = getSubject(inh2);
+  difference: ([inh1, inh2]: [Term, Term]): Term | undefined => {
+    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
+    const sub1 = getSubject(inh1), sub2 = getSubject(inh2);
         if (!sub1 || !sub2 || sub1.hash !== sub2.hash) return undefined;
         const pred1 = getPredicate(inh1);
         const pred2 = getPredicate(inh2);

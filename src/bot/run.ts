@@ -5,7 +5,7 @@ import { createBot } from './index.js';
 (async () => {
   const args = process.argv.slice(2);
   const profileArg = args.find(a => a.startsWith('--profile='));
-  const profile = profileArg ? profileArg.split('=')[1] : 'minimal';
+  const profile = (profileArg ? profileArg.split('=')[1] : 'minimal') as 'minimal' | 'standard' | 'full';
 
   const fileConfig = loadConfig(args.find(a => a.startsWith('--config='))?.split('=')[1]);
   const config = mergeConfig(fileConfig, { profile });

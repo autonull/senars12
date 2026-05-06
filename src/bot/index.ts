@@ -23,14 +23,29 @@ export async function createBot(config: BotConfig): Promise<Bot> {
   const ircCfg = config.embodiments?.irc;
   let ircServer: EmbeddedIRCServer | undefined;
 
-  if (ircCfg?.enabled && !ircCfg.port) {
-    ircServer = new EmbeddedIRCServer({ port: 6667, hostname: '127.0.0.1', channel: ircCfg.channel });
+  if (ircCfg?.enabled) {
+    ircServer = new EmbeddedIRCServer({ port: ircCfg.port ?? 6667, hostname: '127.0.0.1', channel: ircCfg.channel });
+    ircServer.on('message', ({ message }) => {
+      if (message.command === 'PRIVMSG') {
+        const text = message.params.slice(message.params[0]?.startsWith('#') ? 1 : 0).join(' ');
+        if (text.includes('http://') || text.includes('https://')) {
+          return;
+        }
+        nar.believe(text);
+        ircServer?.send(message.params[0] || '#test', `Echo: ${text}`);
+      }
+    });
     await ircServer.start();
   }
 
   return {
     start: async () => {
       console.log('[Bot] Starting SeNARS Bot...');
+      if (ircServer) {
+        console.log('[Bot] Ready - IRC server active');
+      } else {
+        console.log('[Bot] Ready - minimal mode');
+      }
       await nar.run(1);
     },
     shutdown: async () => {
