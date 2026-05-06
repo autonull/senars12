@@ -24,9 +24,8 @@ export class TermParser {
 
   parseWithTruth(input: string): { term: Term; truth?: Truth } {
     const trimmed = input.trim();
-    // Parse truth value in format %f;c%
     const truthMatch = trimmed.match(/%\s*([0-9.]+)\s*;\s*([0-9.]+)\s*%\s*$/);
-    const truth = truthMatch ? new Truth(parseFloat(truthMatch[1]), parseFloat(truthMatch[2])) : undefined;
+    const truth = truthMatch ? Truth.create(parseFloat(truthMatch[1] ?? '0.5'), parseFloat(truthMatch[2] ?? '0.9')) : undefined;
     const termStr = truthMatch ? trimmed.slice(0, -truthMatch[0].length).trim() : trimmed;
     return { term: this.parse(termStr), truth };
   }

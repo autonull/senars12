@@ -93,6 +93,18 @@ export class NAR {
     }
   }
 
+  async believe(input: string | Term, truth?: TruthType): Promise<void> {
+    return this.input(input, 'belief', truth);
+  }
+
+  async goal(input: string | Term, truth?: TruthType): Promise<void> {
+    return this.input(input, 'goal', truth);
+  }
+
+  async question(input: string | Term): Promise<void> {
+    return this.input(input, 'question', undefined);
+  }
+
   async run(steps = 1): Promise<number> {
     let derived = 0;
     for (let i = 0; i < steps; i++) {

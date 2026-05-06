@@ -51,7 +51,10 @@ export class RLFPLearner {
       .filter(s => s.type !== 'llm_prompt')
       .map(s => {
         if (s.type === 'tool_call') {
-          return `<tool_call>${(s.data as any)?.name}(${JSON.stringify((s.data as any)?.args)})        return `Response: ${JSON.stringify((s.data as any)?.content || s.data)}`;
+          const data = s.data as any;
+          return `<tool_call>${data?.name}(${JSON.stringify(data?.args)})\nResponse: ${JSON.stringify(data?.content ?? data)}`;
+        }
+        return '';
       })
       .join('\n');
   }

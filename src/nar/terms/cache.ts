@@ -21,13 +21,13 @@ export class TermCache<T = unknown> {
         return undefined;
     }
 
-    set(term: { hash: number }): void {
-        if (this.cache.size >= this.maxSize) {
-            const firstKey = this.cache.keys().next().value;
-            if (firstKey !== undefined) this.cache.delete(firstKey);
-        }
-        this.cache.set(term.hash, term);
+  set(term: T & { hash: number }): void {
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey !== undefined) this.cache.delete(firstKey);
     }
+    this.cache.set(term.hash, term);
+  }
 
     get hitRate(): number {
         const total = this.hits + this.misses;

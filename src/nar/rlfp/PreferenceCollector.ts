@@ -46,17 +46,18 @@ export class PreferenceCollector {
 
   private async promptUser(): Promise<'A' | 'B' | 'SKIP'> {
     return new Promise((resolve) => {
-      const readline = await import('readline');
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-      });
+      void import('readline').then((readline) => {
+        const rl = readline.createInterface({
+          input: process.stdin,
+          output: process.stdout
+        });
 
-      rl.question('Which trajectory do you prefer? (A/B/Skip): ', (answer) => {
-        rl.close();
-        const choice = answer.toUpperCase().trim();
-        if (choice === 'A' || choice === 'B') resolve(choice as 'A' | 'B');
-        else resolve('SKIP');
+        rl.question('Which trajectory do you prefer? (A/B/Skip): ', (answer) => {
+          rl.close();
+          const choice = answer.toUpperCase().trim();
+          if (choice === 'A' || choice === 'B') resolve(choice as 'A' | 'B');
+          else resolve('SKIP');
+        });
       });
     });
   }
@@ -74,17 +75,17 @@ export class PreferenceCollector {
     if (!Array.isArray(traj)) return 'Invalid trajectory';
 
     return traj.map(step => {
-      const ts = step.timestamp ? new Date(step.timestamp).toISOString().split('T')[1].split('.')[0] : '';
+      const ts = step.timestamp ? new Date(step.timestamp).toISOString().split('T')?.[1]?.split('.')?.[0] : '';
       let content = JSON.stringify(step);
 
       if (step.type === 'llm_prompt') {
-        const msg = (step.data as any)?.messages || step.data || '';
+        const msg = (step.data as any)?.messages ?? step.data ?? '';
         const txt = typeof msg === 'string' ? msg.slice(0, 100) : JSON.stringify(msg);
         content = `LLM Prompt: "${txt.replace(/\n/g, ' ')}..."`;
       } else if (step.type === 'tool_call') {
         content = `Tool: ${(step.data as any)?.name}(${JSON.stringify((step.data as any)?.args)})`;
       } else if (step.type === 'lm_response') {
-        content = `Response: ${JSON.stringify((step.data as any)?.content || step.data)}`;
+        content = `Response: ${JSON.stringify((step.data as any)?.content ?? step.data)}`;
       }
       return `${ts} [${step.type}] ${content}`;
     }).join('\n');
