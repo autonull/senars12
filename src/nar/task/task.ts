@@ -5,11 +5,11 @@ import type { Stamp } from '../terms/stamp.js';
 export type TaskType = 'belief' | 'goal' | 'question' | 'command';
 
 export interface Budget {
-  priority: number;
-  durability: number;
-  quality: number;
-  cycles: number;
-  depth: number;
+  readonly priority: number;
+  readonly durability: number;
+  readonly quality: number;
+  readonly cycles: number;
+  readonly depth: number;
 }
 
 export interface Task {
@@ -18,17 +18,31 @@ export interface Task {
   readonly truth: Truth;
   readonly budget: Budget | number;
   readonly stamp: Stamp;
-  occurrenceTime: number;
-  derived: boolean;
+  readonly occurrenceTime: number;
+  readonly derived: boolean;
 }
 
-export function createTask(
+export const createBudget = (
+  priority: number,
+  durability = 0.8,
+  quality = 0.9,
+  cycles = 0,
+  depth = 0
+): Budget => Object.freeze({ priority, durability, quality, cycles, depth });
+
+export const isBudget = (b: Budget | number): b is Budget =>
+  typeof b === 'object' && 'priority' in b;
+
+export const getBudgetValue = (b: Budget | number): number =>
+  typeof b === 'number' ? b : b.priority;
+
+export const createTask = (
   term: Term,
   type: TaskType,
   truth: Truth,
   budget: Budget | number = 0.9,
   derivations: readonly string[] = []
-): Task {
+): Task => {
   const now = Date.now();
   return {
     term,
@@ -45,22 +59,4 @@ export function createTask(
     occurrenceTime: now,
     derived: false
   };
-}
-
-export function isBudget(b: Budget | number): b is Budget {
-  return typeof b === 'object' && 'priority' in b;
-}
-
-export function getBudgetValue(b: Budget | number): number {
-  return typeof b === 'number' ? b : b.priority;
-}
-
-export function createBudget(
-  priority: number,
-  durability = 0.8,
-  quality = 0.9,
-  cycles = 0,
-  depth = 0
-): Budget {
-  return { priority, durability, quality, cycles, depth };
-}
+};

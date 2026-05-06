@@ -6,67 +6,67 @@ import type { Budget } from '../task/task.js';
 export type ConceptTaskType = 'belief' | 'goal' | 'question' | 'command';
 
 interface TaskData {
-  term: Term;
-  truth?: Truth;
-  budget: number;
+  readonly term: Term;
+  readonly truth?: Truth;
+  readonly budget: number;
 }
 
 interface ConceptConfig {
-    maxBeliefs?: number;
-    maxGoals?: number;
-    maxQuestions?: number;
+  maxBeliefs?: number;
+  maxGoals?: number;
+  maxQuestions?: number;
 }
 
 export class Concept {
-    readonly term: Term;
-    readonly beliefBag: Bag<TaskData>;
-    readonly goalBag: Bag<TaskData>;
-    readonly questionBag: Bag<TaskData>;
+  readonly term: Term;
+  readonly beliefBag: Bag<TaskData>;
+  readonly goalBag: Bag<TaskData>;
+  readonly questionBag: Bag<TaskData>;
 
-    private activation = 0;
-    private useCount = 0;
-    readonly createdAt: number;
-    private lastAccessed: number;
+  private activation = 0;
+  private useCount = 0;
+  readonly createdAt: number;
+  private lastAccessed: number;
 
-    constructor(term: Term, config: ConceptConfig = {}) {
-        this.term = term;
-        this.beliefBag = new Bag(config.maxBeliefs ?? 100);
-        this.goalBag = new Bag(config.maxGoals ?? 50);
-        this.questionBag = new Bag(config.maxQuestions ?? 20);
-        this.createdAt = Date.now();
-        this.lastAccessed = Date.now();
+  constructor(term: Term, config: ConceptConfig = {}) {
+    this.term = term;
+    this.beliefBag = new Bag(config.maxBeliefs ?? 100);
+    this.goalBag = new Bag(config.maxGoals ?? 50);
+    this.questionBag = new Bag(config.maxQuestions ?? 20);
+    this.createdAt = Date.now();
+    this.lastAccessed = Date.now();
+  }
+
+  get key(): number {
+    return this.term.hash;
+  }
+
+  get priority(): number {
+    return this.activation;
+  }
+
+  addTask(type: ConceptTaskType, data: TaskData): boolean {
+    const bag = type === 'belief' ? this.beliefBag
+      : type === 'goal' ? this.goalBag
+      : this.questionBag;
+    const added = bag.add(data, data.budget);
+    if (added) {
+      this.useCount++;
+      this.lastAccessed = Date.now();
+      this.activation += 0.1;
     }
+    return added;
+  }
 
-    get key(): number {
-        return this.term.hash;
-    }
+  boost(amount: number): void {
+    this.activation = Math.min(1, this.activation + amount);
+  }
 
-    get priority(): number {
-        return this.activation;
-    }
+  decay(rate: number): void {
+    this.activation *= (1 - rate);
+  }
 
-    addTask(type: ConceptTaskType, data: TaskData): boolean {
-        const bag = type === 'belief' ? this.beliefBag
-            : type === 'goal' ? this.goalBag
-            : this.questionBag;
-        const added = bag.add(data, data.budget);
-        if (added) {
-            this.useCount++;
-            this.lastAccessed = Date.now();
-            this.activation += 0.1;
-        }
-        return added;
-    }
-
-    boost(amount: number): void {
-        this.activation = Math.min(1, this.activation + amount);
-    }
-
-    decay(rate: number): void {
-        this.activation *= (1 - rate);
-    }
-
-    get totalTasks(): number {
-        return this.beliefBag.size + this.goalBag.size + this.questionBag.size;
-    }
+  get totalTasks(): number {
+    return this.beliefBag.size + this.goalBag.size + this.questionBag.size;
+  }
 }

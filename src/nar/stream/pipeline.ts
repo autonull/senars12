@@ -1,6 +1,7 @@
 import type { Task } from '../task/task.js';
 import type { Memory } from '../memory/memory.js';
 import type { Strategy } from '../reason/strategy.js';
+import { Stamp } from '../terms/stamp.js';
 
 export type PremiseSource = AsyncGenerator<Task, void, void>;
 
@@ -45,9 +46,7 @@ export async function *createPipeline(
 
     derivationsCount++;
 
-    if (derivationsCount >= config.maxDerivationsPerStep) {
-      break;
-    }
+    if (derivationsCount >= config.maxDerivationsPerStep) break;
   }
 }
 
@@ -60,7 +59,6 @@ export async function *throttled<T>(
 
   for await (const value of gen) {
     if (shouldStop?.()) break;
-
     yield value;
 
     if (Date.now() - lastYield > intervalMs) {
@@ -108,44 +106,30 @@ export async function *derive(
   config: PipelineConfig = DEFAULT_CONFIG
 ): AsyncGenerator<Task> {
   let lastYield = Date.now();
-  let derivationsCount = 0;
-  const concepts = memory.sample(100);
+  let count = 0;
 
-  for (const concept of concepts) {
+  for (const concept of memory.sample(100)) {
     if (Date.now() - lastYield > config.cpuThrottleMs) {
       await new Promise(r => setTimeout(r, 0));
       lastYield = Date.now();
     }
 
-    if (derivationsCount >= config.maxDerivationsPerStep!) {
-      break;
-    }
+    if (count >= config.maxDerivationsPerStep) break;
 
+    const belief = concept.beliefBag.peek();
     const task: Task = {
       term: concept.term,
       type: 'belief',
-      truth: (concept.beliefBag.peek() as any)?.truth ?? { f: 0.5, c: 0.9 },
+      truth: belief?.truth ?? { f: 0.5, c: 0.9 },
       budget: { priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
-      stamp: Object.freeze({
-        id: '',
-        creationTime: 0,
-        source: 'INPUT' as const,
-        derivations: [],
-        depth: 0
-      }),
+      stamp: Stamp.createInput(),
       occurrenceTime: 0,
       derived: false
     };
 
-    const secondaryTasks = strategy.selectSecondary(task, memory);
-
-    for (const secondary of secondaryTasks) {
-      derivationsCount++;
+    for (const secondary of strategy.selectSecondary(task, memory)) {
+      if (++count >= config.maxDerivationsPerStep) break;
       yield secondary;
-
-      if (derivationsCount >= config.maxDerivationsPerStep!) {
-        break;
-      }
     }
   }
 }
