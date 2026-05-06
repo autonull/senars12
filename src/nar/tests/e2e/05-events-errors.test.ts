@@ -1,0 +1,114 @@
+/**
+ * Event System & Error Handling Tests
+ */
+import { NAR } from '../../nar.js';
+import { TermFactory } from '../../terms/factory.js';
+import { Truth } from '../../terms/truth.js';
+
+describe('Event System', () => {
+  let nar: NAR;
+
+  beforeEach(() => {
+    nar = new NAR({
+      maxConcepts: 100,
+      priorityThreshold: 0.1,
+      activationDecayRate: 0.01,
+      consolidationInterval: 5,
+      cpuThrottleMs: 10,
+      maxDerivationDepth: 10,
+      maxDerivationsPerStep: 100,
+      enableLMRules: false
+    });
+  });
+
+  it('emits events for rule results', async () => {
+    let ruleFired = false;
+
+    nar.eventBus.on('rule.result', () => {
+      ruleFired = true;
+    });
+
+    await nar.input('(A --> B)', 'belief');
+    await nar.input('(B --> C)', 'belief');
+    await nar.run(1);
+
+    expect(ruleFired).toBe(true);
+  });
+
+  it('supports multiple event listeners', async () => {
+    const events: string[] = [];
+
+    nar.eventBus.on('memory.consolidate', () => events.push('consolidate'));
+    nar.eventBus.on('task.add', () => events.push('task'));
+
+    await nar.input('test', 'belief');
+    await nar.run(1);
+
+    expect(events.length).toBeGreaterThan(0);
+  });
+
+  it('allows unsubscribing from events', async () => {
+    let count = 0;
+
+    const unsubscribe = nar.eventBus.on('task.add', () => count++);
+
+    await nar.input('test1', 'belief');
+    unsubscribe();
+    await nar.input('test2', 'belief');
+
+    expect(count).toBe(1);
+  });
+});
+
+describe('Error Handling', () => {
+  let nar: NAR;
+
+  beforeEach(() => {
+    nar = new NAR({
+      maxConcepts: 100,
+      priorityThreshold: 0.1,
+      activationDecayRate: 0.01,
+      consolidationInterval: 5,
+      cpuThrottleMs: 10,
+      maxDerivationDepth: 10,
+      maxDerivationsPerStep: 100,
+      enableLMRules: false
+    });
+  });
+
+  it('handles empty input gracefully', async () => {
+    await expect(nar.input('', 'belief')).rejects.toThrow();
+  });
+
+  it('handles malformed terms gracefully', async () => {
+    await expect(nar.input('((()', 'belief')).rejects.toThrow();
+  });
+
+  it('recovers from invalid truth values', async () => {
+    await nar.input('test', 'belief', Truth.create(1.5, -0.5));
+    const concept = nar.memory.getConcept(TermFactory.atom('test'));
+    expect(concept).toBeDefined();
+  });
+
+  it('handles high-volume input without crashing', async () => {
+    const promises: Promise<void>[] = [];
+    for (let i = 0; i < 50; i++) {
+      promises.push(nar.input(`item_${i}`, 'belief') as Promise<void>);
+    }
+
+    await Promise.all(promises);
+
+    expect(nar.memory.size).toBeGreaterThan(0);
+    expect(nar.memory.size).toBeLessThanOrEqual(100);
+  });
+
+  it('handles concurrent operations safely', async () => {
+    await Promise.all([
+      nar.input('a', 'belief'),
+      nar.input('b', 'belief'),
+      nar.input('c', 'belief')
+    ]);
+
+    expect(nar.memory.size).toBeGreaterThanOrEqual(1);
+  });
+});
