@@ -3,12 +3,13 @@ import { Reasoner, type ReasonerConfig } from './reason/reasoner.js';
 import { TaskManager } from './task/manager.js';
 import { RuleProcessor } from './rules/processor.js';
 import { BagStrategy } from './reason/strategy.js';
-import { createTask, type TaskType } from './task/task.js';
+import { createTask, createBudget, getBudgetValue, type TaskType } from './task/task.js';
 import { atom, type Term } from './terms/types.js';
 import { Truth, type Truth as TruthType } from './terms/truth.js';
 import { EventBus } from './types/events.js';
 import type { LMClient } from './lm/types.js';
 import { LMRules } from './lm/rules.js';
+import { termParser } from './terms/parser.js';
 
 export interface NARConfig extends MemoryConfig, ReasonerConfig {
   lmClient?: LMClient;
@@ -78,12 +79,18 @@ export class NAR {
   }
 
   async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
-    const term = typeof input === 'string' ? atom(input) : input;
-
-    const taskTruth = truth ?? Truth.NEUTRAL;
-    const task = createTask(term, type, taskTruth, taskTruth.f * taskTruth.c);
-    this.taskManager.addTask(task);
-    this.memory.addTask(term, type, taskTruth, task.budget);
+    if (typeof input === 'string') {
+      const { term: parsedTerm, truth: parsedTruth } = termParser.parseWithTruth(input);
+      const taskTruth = truth ?? parsedTruth ?? Truth.NEUTRAL;
+      const task = createTask(parsedTerm, type, taskTruth, createBudget(taskTruth.f * taskTruth.c));
+      this.taskManager.addTask(task);
+      this.memory.addTask(parsedTerm, type, taskTruth, task.budget);
+    } else {
+      const taskTruth = truth ?? Truth.NEUTRAL;
+      const task = createTask(input, type, taskTruth, createBudget(taskTruth.f * taskTruth.c));
+      this.taskManager.addTask(task);
+      this.memory.addTask(input, type, taskTruth, task.budget);
+    }
   }
 
   async run(steps = 1): Promise<number> {
@@ -93,7 +100,7 @@ export class NAR {
       derived += results.length;
 
       for (const task of results) {
-        this.memory.addTask(task.term, task.type, task.truth, task.budget);
+        this.memory.addTask(task.term, task.type, task.truth, getBudgetValue(task.budget));
         this.taskManager.addTask(task);
       }
     }

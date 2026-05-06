@@ -3,7 +3,7 @@ import type { LMClient, LMRuleConfig } from './types.js';
 import type { Term } from '../terms/index.js';
 import type { Task } from '../task/task.js';
 import { Truth } from '../terms/truth.js';
-import { createTask } from '../task/task.js';
+import { createTask, createBudget } from '../task/task.js';
 
 function createTermFromNarsese(termStr: string, termFactory?: any): Term {
   if (!termFactory) {
@@ -25,7 +25,7 @@ export function createNarseseTranslationRule(lm: LMClient | null, config: Partia
       try {
         const termStr = response.includes('-->') ? response.trim() : response.trim();
         const term = { kind: 'atom' as const, symbol: termStr, hash: 0 };
-        return [createTask(term, 'belief', Truth.NEUTRAL, 0.9)];
+        return [createTask(term, 'belief', Truth.NEUTRAL, createBudget(0.9))];
       } catch {
         return [];
       }
@@ -42,7 +42,7 @@ export function createBeliefRevisionRule(lm: LMClient | null, config: Partial<LM
     promptTemplate: 'Given the belief "{{primaryTerm}}", should its confidence be revised? Consider context and evidence.',
     taskGenerator: (response: string, primary: Term) => {
       if (!response) return [];
-      return [createTask(primary, 'belief', Truth.NEUTRAL, 0.7)];
+      return [createTask(primary, 'belief', Truth.NEUTRAL, createBudget(0.7))];
     }
   });
 }
@@ -57,7 +57,7 @@ export function createGoalDecompositionRule(lm: LMClient | null, config: Partial
     taskGenerator: (response: string, primary: Term) => {
       if (!response) return [];
       const subgoals = response.split('\n').filter(line => line.trim());
-      return subgoals.map(subgoal => createTask({ kind: 'atom' as const, symbol: subgoal.trim(), hash: 0 }, 'goal', Truth.NEUTRAL, 0.8));
+      return subgoals.map(subgoal => createTask({ kind: 'atom' as const, symbol: subgoal.trim(), hash: 0 }, 'goal', Truth.NEUTRAL, createBudget(0.8)));
     }
   });
 }
@@ -71,7 +71,7 @@ export function createHypothesisGenerationRule(lm: LMClient | null, config: Part
     promptTemplate: 'Given the observation "{{primaryTerm}}", what are possible explanations or hypotheses?',
     taskGenerator: (response: string, primary: Term) => {
       if (!response) return [];
-      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, 0.6)];
+      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, createBudget(0.6))];
     }
   });
 }
@@ -85,7 +85,7 @@ export function createExplanationGenerationRule(lm: LMClient | null, config: Par
     promptTemplate: 'Explain why "{{primaryTerm}}" might be true. Provide reasoning.',
     taskGenerator: (response: string, primary: Term) => {
       if (!response) return [];
-      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, 0.65)];
+      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, createBudget(0.65))];
     }
   });
 }
@@ -99,7 +99,7 @@ export function createAnalogicalReasoningRule(lm: LMClient | null, config: Parti
     promptTemplate: 'What is analogous to "{{primaryTerm}}"? Find similar patterns or structures.',
     taskGenerator: (response: string, primary: Term) => {
       if (!response) return [];
-      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, 0.7)];
+      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, createBudget(0.7))];
     }
   });
 }
@@ -113,7 +113,7 @@ export function createMetaReasoningGuidanceRule(lm: LMClient | null, config: Par
     promptTemplate: 'What reasoning strategy should be used for "{{primaryTerm}}"? Suggest approach.',
     taskGenerator: (response: string, primary: Term) => {
       if (!response) return [];
-      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, 0.65)];
+      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, createBudget(0.65))];
     }
   });
 }
@@ -127,7 +127,7 @@ export function createUncertaintyCalibrationRule(lm: LMClient | null, config: Pa
     promptTemplate: 'Assess the uncertainty in "{{primaryTerm}}". How confident should we be?',
     taskGenerator: (response: string, primary: Term) => {
       if (!response) return [];
-      return [createTask(primary, 'belief', Truth.NEUTRAL, 0.6)];
+      return [createTask(primary, 'belief', Truth.NEUTRAL, createBudget(0.6))];
     }
   });
 }
@@ -141,7 +141,7 @@ export function createSchemaInductionRule(lm: LMClient | null, config: Partial<L
     promptTemplate: 'What general schema or pattern can be induced from "{{primaryTerm}}"?',
     taskGenerator: (response: string, primary: Term) => {
       if (!response) return [];
-      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, 0.65)];
+      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, createBudget(0.65))];
     }
   });
 }
@@ -155,7 +155,7 @@ export function createTemporalCausalModelingRule(lm: LMClient | null, config: Pa
     promptTemplate: 'What is the causal or temporal relationship in "{{primaryTerm}}"?',
     taskGenerator: (response: string, primary: Term) => {
       if (!response) return [];
-      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, 0.7)];
+      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, createBudget(0.7))];
     }
   });
 }
@@ -169,7 +169,7 @@ export function createVariableGroundingRule(lm: LMClient | null, config: Partial
     promptTemplate: 'Ground the variables in "{{primaryTerm}}" to specific instances.',
     taskGenerator: (response: string, primary: Term) => {
       if (!response) return [];
-      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, 0.65)];
+      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, createBudget(0.65))];
     }
   });
 }
@@ -183,7 +183,7 @@ export function createConceptElaborationRule(lm: LMClient | null, config: Partia
     promptTemplate: 'Elaborate on the concept "{{primaryTerm}}". Provide more details.',
     taskGenerator: (response: string, primary: Term) => {
       if (!response) return [];
-      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, 0.6)];
+      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'belief', Truth.NEUTRAL, createBudget(0.6))];
     }
   });
 }
@@ -197,7 +197,7 @@ export function createInteractiveClarificationRule(lm: LMClient | null, config: 
     promptTemplate: 'What clarification is needed for "{{primaryTerm}}"?',
     taskGenerator: (response: string, primary: Term) => {
       if (!response) return [];
-      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'question', Truth.NEUTRAL, 0.5)];
+      return [createTask({ kind: 'atom' as const, symbol: response.trim(), hash: 0 }, 'question', Truth.NEUTRAL, createBudget(0.5))];
     }
   });
 }

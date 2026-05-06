@@ -40,7 +40,7 @@ export class Reasoner {
                 term: concept.term,
                 type: 'belief',
                 truth: (concept.beliefBag.peek() as any)?.truth ?? { f: 0.5, c: 0.9 },
-                budget: concept.priority,
+                budget: { priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
                 stamp: Object.freeze({
                     id: '',
                     creationTime: 0,
@@ -71,7 +71,7 @@ export class Reasoner {
                         term: d.term,
                         type: 'belief',
                         truth: d.truth,
-                        budget: d.priority,
+                        budget: { priority: d.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
                         stamp: newStamp,
                         occurrenceTime: Date.now(),
                         derived: true

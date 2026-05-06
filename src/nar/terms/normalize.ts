@@ -1,4 +1,14 @@
-import type { Term } from './types.js';
+import type { Term, CompoundTerm, AtomicTerm } from './types.js';
+
+function isCompound(term: Term): term is CompoundTerm {
+    return term.kind === 'conjunction' || term.kind === 'disjunction' ||
+           term.kind === 'inheritance' || term.kind === 'similarity' ||
+           term.kind === 'negation' || term.kind === 'implication' || term.kind === 'equivalence';
+}
+
+function hasArgs(term: Term): term is CompoundTerm {
+    return isCompound(term);
+}
 
 export function normalize(term: Term): Term {
     if (term.kind !== 'atom' && (term.kind === 'conjunction' || term.kind === 'disjunction')) {
@@ -20,7 +30,7 @@ export function visit<T>(term: Term, visitor: TermVisitorFn<T>, order: 'pre-orde
         visitor(term);
     }
 
-    if (term.kind !== 'atom' && term.args) {
+    if (hasArgs(term)) {
         for (const arg of term.args) {
             visit(arg, visitor, order);
         }
@@ -38,7 +48,7 @@ export interface TermReducerFn<T> {
 export function reduce<T>(term: Term, fn: TermReducerFn<T>, initial: T): T {
     let acc = fn(initial, term);
 
-    if (term.kind !== 'atom' && term.args) {
+    if (hasArgs(term)) {
         for (const arg of term.args) {
             acc = reduce(arg, fn, acc);
         }
@@ -48,7 +58,7 @@ export function reduce<T>(term: Term, fn: TermReducerFn<T>, initial: T): T {
 }
 
 export function getTermDepth(term: Term): number {
-    if (term.kind === 'atom' || !term.args) return 0;
+    if (term.kind === 'atom' || !hasArgs(term)) return 0;
     const depths = term.args.map((arg: Term) => getTermDepth(arg));
     return 1 + Math.max(0, ...depths);
 }

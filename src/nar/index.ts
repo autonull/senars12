@@ -12,7 +12,7 @@ export * from './memory/concept.js';
 export * from './memory/memory.js';
 export * from './memory/gc.js';
 export * from './memory/forgetting.js';
-export { createTask, type Task as NARTask } from './task/task.js';
+export { createTask, createBudget, getBudgetValue, isBudget, type Task as NARTask, type Budget } from './task/task.js';
 export { TaskManager } from './task/manager.js';
 export { BagStrategy, ExhaustiveStrategy, type Strategy } from './reason/strategy.js';
 export { Reasoner, type ReasonerConfig } from './reason/reasoner.js';

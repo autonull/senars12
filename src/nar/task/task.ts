@@ -2,39 +2,65 @@ import type { Term } from '../terms/types.js';
 import type { Truth } from '../terms/truth.js';
 import type { Stamp } from '../terms/stamp.js';
 
-export type TaskType = 'belief' | 'goal' | 'question';
+export type TaskType = 'belief' | 'goal' | 'question' | 'command';
+
+export interface Budget {
+  priority: number;
+  durability: number;
+  quality: number;
+  cycles: number;
+  depth: number;
+}
 
 export interface Task {
-    readonly term: Term;
-    readonly type: TaskType;
-    readonly truth: Truth;
-    readonly budget: number;
-    readonly stamp: Stamp;
-    occurrenceTime: number;
-    derived: boolean;
+  readonly term: Term;
+  readonly type: TaskType;
+  readonly truth: Truth;
+  readonly budget: Budget | number;
+  readonly stamp: Stamp;
+  occurrenceTime: number;
+  derived: boolean;
 }
 
 export function createTask(
-    term: Term,
-    type: TaskType,
-    truth: Truth,
-    budget = 0.9,
-    derivations: readonly string[] = []
+  term: Term,
+  type: TaskType,
+  truth: Truth,
+  budget: Budget | number = 0.9,
+  derivations: readonly string[] = []
 ): Task {
-    const now = Date.now();
-    return {
-        term,
-        type,
-        truth,
-        budget,
-        stamp: Object.freeze({
-            id: `${now}-${Math.random().toString(36).slice(2, 9)}`,
-            creationTime: now,
-            source: 'INPUT' as const,
-            derivations,
-            depth: 0
-        }),
-        occurrenceTime: now,
-        derived: false
-    };
+  const now = Date.now();
+  return {
+    term,
+    type,
+    truth,
+    budget,
+    stamp: Object.freeze({
+      id: `${now}-${Math.random().toString(36).slice(2, 9)}`,
+      creationTime: now,
+      source: 'INPUT' as const,
+      derivations,
+      depth: 0
+    }),
+    occurrenceTime: now,
+    derived: false
+  };
+}
+
+export function isBudget(b: Budget | number): b is Budget {
+  return typeof b === 'object' && 'priority' in b;
+}
+
+export function getBudgetValue(b: Budget | number): number {
+  return typeof b === 'number' ? b : b.priority;
+}
+
+export function createBudget(
+  priority: number,
+  durability = 0.8,
+  quality = 0.9,
+  cycles = 0,
+  depth = 0
+): Budget {
+  return { priority, durability, quality, cycles, depth };
 }

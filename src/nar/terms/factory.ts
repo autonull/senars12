@@ -13,64 +13,71 @@ function addToCache<T extends Term>(term: T): T {
 }
 
 export const TermFactory = {
-    atom(symbol: string) {
-        const h = fnv1a(symbol);
-        const cached = getFromCache(h);
-        if (cached) return cached;
-        return addToCache({ kind: 'atom' as const, symbol, hash: h });
-    },
+  atom(symbol: string) {
+    const h = fnv1a(symbol);
+    const cached = getFromCache(h);
+    if (cached) return cached;
+    return addToCache({ kind: 'atom' as const, symbol, hash: h, isVariable: symbol.startsWith('$') });
+  },
 
-    inheritance(s: Term, p: Term) {
+    inheritance(s: Term | undefined, p: Term | undefined) {
+        if (!s || !p) return this.atom('TRUE');
         const h = computeHash('inheritance', [s.hash, p.hash]);
         const cached = getFromCache(h);
         if (cached) return cached;
         return addToCache({ kind: 'inheritance' as const, args: [s, p], hash: h });
     },
 
-    similarity(s: Term, p: Term) {
+    similarity(s: Term | undefined, p: Term | undefined) {
+        if (!s || !p) return this.atom('TRUE');
         const h = computeHash('similarity', [s.hash, p.hash]);
         const cached = getFromCache(h);
         if (cached) return cached;
         return addToCache({ kind: 'similarity' as const, args: [s, p], hash: h });
     },
 
-    conjunction(...terms: Term[]) {
-        if (terms.length === 0) {
+    conjunction(...terms: (Term | undefined)[]) {
+        const valid = terms.filter((t): t is Term => t !== undefined);
+        if (valid.length === 0) {
             return this.atom('TRUE');
         }
-        const sorted = [...terms].sort((a, b) => a.hash - b.hash);
+        const sorted = [...valid].sort((a, b) => a.hash - b.hash);
         const h = computeHash('conjunction', sorted.map(t => t.hash));
         const cached = getFromCache(h);
         if (cached) return cached;
         return addToCache({ kind: 'conjunction' as const, args: sorted, hash: h });
     },
 
-    disjunction(...terms: Term[]) {
-        if (terms.length === 0) {
+    disjunction(...terms: (Term | undefined)[]) {
+        const valid = terms.filter((t): t is Term => t !== undefined);
+        if (valid.length === 0) {
             return this.atom('FALSE');
         }
-        const sorted = [...terms].sort((a, b) => a.hash - b.hash);
+        const sorted = [...valid].sort((a, b) => a.hash - b.hash);
         const h = computeHash('disjunction', sorted.map(t => t.hash));
         const cached = getFromCache(h);
         if (cached) return cached;
         return addToCache({ kind: 'disjunction' as const, args: sorted, hash: h });
     },
 
-    negation(term: Term) {
+    negation(term: Term | undefined) {
+        if (!term) return this.atom('TRUE');
         const h = computeHash('negation', [term.hash]);
         const cached = getFromCache(h);
         if (cached) return cached;
         return addToCache({ kind: 'negation' as const, args: [term], hash: h });
     },
 
-    implication(antecedent: Term, consequent: Term) {
+    implication(antecedent: Term | undefined, consequent: Term | undefined) {
+        if (!antecedent || !consequent) return this.atom('TRUE');
         const h = computeHash('implication', [antecedent.hash, consequent.hash]);
         const cached = getFromCache(h);
         if (cached) return cached;
         return addToCache({ kind: 'implication' as const, args: [antecedent, consequent], hash: h });
     },
 
-    equivalence(a: Term, c: Term) {
+    equivalence(a: Term | undefined, c: Term | undefined) {
+        if (!a || !c) return this.atom('TRUE');
         const h = computeHash('equivalence', [a.hash, c.hash]);
         const cached = getFromCache(h);
         if (cached) return cached;

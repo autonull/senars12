@@ -1,5 +1,6 @@
 import type { Task } from './task.js';
 import { Memory } from '../memory/memory.js';
+import { getBudgetValue } from './task.js';
 
 export class TaskManager {
     private pending = new Map<string, Task>();
@@ -13,17 +14,17 @@ export class TaskManager {
         this.pending.set(task.stamp.id, task);
     }
 
-    processPending(): Task[] {
-        const processed: Task[] = [];
-        for (const [, task] of this.pending) {
-            const added = this.memory.addTask(
-                task.term, task.type, task.truth, task.budget
-            );
-            if (added) processed.push(task);
-        }
-        this.pending.clear();
-        return processed;
+  processPending(): Task[] {
+    const processed: Task[] = [];
+    for (const [, task] of this.pending) {
+      const added = this.memory.addTask(
+        task.term, task.type, task.truth, getBudgetValue(task.budget)
+      );
+      if (added) processed.push(task);
     }
+    this.pending.clear();
+    return processed;
+  }
 
     get size(): number {
         return this.pending.size;

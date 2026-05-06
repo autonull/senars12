@@ -1,0 +1,21 @@
+{
+  "name": "@senars12/bot",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "index.ts",
+  "bin": {
+    "senars12-bot": "run.js"
+  },
+  "scripts": {
+    "start": "node run.js",
+    "test": "vitest run tests/",
+    "test:e2e": "vitest run tests/e2e/"
+  },
+  "dependencies": {
+    "@senars12/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "vitest": "^1.0.0"
+  }
+}

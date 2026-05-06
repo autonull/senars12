@@ -1,13 +1,13 @@
 export type OperatorKey = 'inheritance' | 'similarity' | 'conjunction' | 'disjunction' | 'negation' | 'implication' | 'equivalence';
 
 export const OPERATORS = {
-    inheritance: '-->',
-    similarity: '<->',
-    conjunction: '&',
-    disjunction: '|',
-    negation: '~',
-    implication: '=>',
-    equivalence: '<=>'
+  inheritance: '-->',
+  similarity: '<->',
+  conjunction: '&',
+  disjunction: '|',
+  negation: '--',
+  implication: '=>',
+  equivalence: '<=>'
 } as const;
 
 export type Operator = keyof typeof OPERATORS;
@@ -30,9 +30,10 @@ function fnv1aCombine(acc: number, val: number): number {
 export { fnv1a, fnv1aCombine };
 
 export interface AtomicTerm {
-    readonly kind: 'atom';
-    readonly symbol: string;
-    readonly hash: number;
+  readonly kind: 'atom';
+  readonly symbol: string;
+  readonly hash: number;
+  readonly isVariable?: boolean;
 }
 
 export interface CompoundTerm {
@@ -79,30 +80,35 @@ function serializeTermInternal(term: Term): string {
         case 'inheritance': {
             const sub = term.args[0];
             const pred = term.args[1];
-            return sub && pred ? `(${serializeTermInternal(sub)} --> ${serializeTermInternal(pred)})` : '';
+            if (!sub || !pred) return '';
+            return `(${serializeTermInternal(sub)} --> ${serializeTermInternal(pred)})`;
         }
         case 'similarity': {
             const sub = term.args[0];
             const pred = term.args[1];
-            return sub && pred ? `(${serializeTermInternal(sub)} <-> ${serializeTermInternal(pred)})` : '';
+            if (!sub || !pred) return '';
+            return `(${serializeTermInternal(sub)} <-> ${serializeTermInternal(pred)})`;
         }
         case 'conjunction':
             return term.args.length === 0 ? 'TRUE' : `(${term.args.map(serializeTermInternal).join(' & ')})`;
         case 'disjunction':
             return `(${term.args.map(serializeTermInternal).join(' | ')})`;
-        case 'negation': {
-            const arg = term.args[0];
-            return arg ? `~${serializeTermInternal(arg)}` : '';
-        }
+case 'negation': {
+  const arg = term.args[0];
+  if (!arg) return '';
+  return `(--${serializeTermInternal(arg)})`;
+}
         case 'implication': {
             const ant = term.args[0];
             const cons = term.args[1];
-            return ant && cons ? `(${serializeTermInternal(ant)} => ${serializeTermInternal(cons)})` : '';
+            if (!ant || !cons) return '';
+            return `(${serializeTermInternal(ant)} => ${serializeTermInternal(cons)})`;
         }
         case 'equivalence': {
             const a = term.args[0];
             const c = term.args[1];
-            return a && c ? `(${serializeTermInternal(a)} <=> ${serializeTermInternal(c)})` : '';
+            if (!a || !c) return '';
+            return `(${serializeTermInternal(a)} <=> ${serializeTermInternal(c)})`;
         }
     }
 }

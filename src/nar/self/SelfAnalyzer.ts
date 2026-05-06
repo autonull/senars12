@@ -1,0 +1,149 @@
+import type { NAR } from '../nar.js';
+import { MetacognitiveMonitor } from './MetacognitiveMonitor.js';
+
+export interface SelfAnalyzerConfig {
+  selfCorrectionEnabled?: boolean;
+}
+
+interface PatternAnalysis {
+  frequentPatterns: any[];
+  inefficientChains: any[];
+  successfulStrategies: any[];
+  performancePatterns: any;
+  resourceUsage: any;
+  taskProcessingPatterns: any;
+}
+
+interface Optimizations {
+  rulePriorities: any[];
+  strategyAdjustments: any[];
+  resourceAllocations: any[];
+  performanceImprovements: any[];
+}
+
+interface MetaCognitiveResult {
+  success: boolean;
+  patterns?: PatternAnalysis;
+  optimizations?: Optimizations;
+  tasksProcessed?: number;
+  timestamp?: number;
+  error?: string;
+  monitorState?: any;
+}
+
+export class SelfAnalyzer {
+  private nar: NAR | null;
+  private monitor: MetacognitiveMonitor;
+  private config: Required<SelfAnalyzerConfig>;
+
+  constructor(nar: NAR | null, monitor: MetacognitiveMonitor, config: SelfAnalyzerConfig = {}) {
+    this.nar = nar;
+    this.monitor = monitor;
+    this.config = {
+      selfCorrectionEnabled: config.selfCorrectionEnabled ?? true
+    };
+  }
+
+  async performMetaCognitiveReasoning(): Promise<MetaCognitiveResult> {
+    try {
+      const patterns = await this.analyzeReasoningPatterns();
+      const optimizations = await this.identifyOptimizations(patterns);
+      await this.applyOptimizations(optimizations);
+
+      return {
+        success: true,
+        patterns,
+        optimizations,
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: Date.now()
+      };
+    }
+  }
+
+  private async analyzeReasoningPatterns(): Promise<PatternAnalysis> {
+    return {
+      frequentPatterns: [],
+      inefficientChains: [],
+      successfulStrategies: [],
+      performancePatterns: {},
+      resourceUsage: {},
+      taskProcessingPatterns: {}
+    };
+  }
+
+  private async identifyOptimizations(patterns: PatternAnalysis): Promise<Optimizations> {
+    return {
+      rulePriorities: [],
+      strategyAdjustments: [],
+      resourceAllocations: [],
+      performanceImprovements: []
+    };
+  }
+
+  private async applyOptimizations(optimizations: Optimizations): Promise<void> {
+    for (const improvement of optimizations.performanceImprovements) {
+      switch (improvement.type) {
+        case 'memory_cleanup':
+          await this.performMemoryCleanup();
+          break;
+        case 'performance_optimization':
+          await this.applyPerformanceOptimizations();
+          break;
+      }
+    }
+  }
+
+  private async performMemoryCleanup(): Promise<void> {
+    if (this.nar?.memory && 'consolidate' in this.nar.memory) {
+      (this.nar.memory as any).consolidate?.();
+    }
+  }
+
+  private async applyPerformanceOptimizations(): Promise<void> {}
+
+  async performSelfCorrection(): Promise<MetaCognitiveResult> {
+    try {
+      const issues = this.identifyIssues();
+      const corrections = await this.applyCorrections(issues);
+      return {
+        success: true,
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: Date.now()
+      };
+    }
+  }
+
+  private identifyIssues(): any {
+    return {
+      contradictions: [],
+      inefficiencies: [],
+      resourceIssues: [],
+      performanceIssues: []
+    };
+  }
+
+  private async applyCorrections(issues: any): Promise<any> {
+    return { appliedCorrections: [], pendingCorrections: [] };
+  }
+
+  async getSystemAnalysis(): Promise<any> {
+    return {
+      metaCognition: this.monitor.getMonitorState(),
+      performance: {},
+      resourceUsage: {},
+      patterns: await this.analyzeReasoningPatterns()
+    };
+  }
+
+  shutdown(): void {}
+}

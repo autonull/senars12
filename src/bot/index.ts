@@ -1,0 +1,39 @@
+import { NAR } from '../nar/nar.js';
+import { EmbeddedIRCServer } from './EmbeddedIRCServer.js';
+import type { BotConfig } from './config.js';
+
+export interface Bot {
+  start: () => Promise<void>;
+  shutdown: () => Promise<void>;
+  status: any;
+}
+
+export async function createBot(config: BotConfig): Promise<Bot> {
+  const nar = new NAR({ enableLMRules: false });
+
+  const ircCfg = config.embodiments?.irc;
+  let ircServer: EmbeddedIRCServer | undefined;
+
+  if (ircCfg?.enabled && !ircCfg.port) {
+    ircServer = new EmbeddedIRCServer({ port: 6667, hostname: '127.0.0.1', channel: ircCfg.channel });
+    await ircServer.start();
+  }
+
+  return {
+    start: async () => {
+      console.log('[Bot] Starting SeNARS Bot...');
+      await nar.run(1);
+    },
+    shutdown: async () => {
+      console.log('[Bot] Shutting down...');
+      await ircServer?.stop();
+    },
+    status: {
+      running: true,
+      embodiments: {
+        irc: ircCfg?.enabled ?? false,
+        cli: config.embodiments?.cli?.enabled ?? false,
+      },
+    },
+  };
+}

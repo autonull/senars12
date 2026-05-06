@@ -4,6 +4,7 @@ import { Truth } from '../terms/truth.js';
 import { Stamp } from '../terms/stamp.js';
 import type { LMRule } from '../lm/LMRule.js';
 import { EventBus } from '../types/events.js';
+import './nal.js';
 
 export interface RuleResult {
   term: Term;
