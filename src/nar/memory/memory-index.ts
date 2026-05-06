@@ -1,5 +1,4 @@
 import type { Concept } from './concept.js';
-import type { Term } from '../terms/types.js';
 
 export interface MemoryIndexConfig {
     enableAtomicIndex: boolean;

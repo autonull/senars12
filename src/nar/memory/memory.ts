@@ -1,8 +1,12 @@
+/**
+ * Memory system for storing and managing concepts
+ */
+
 import { Concept, type ConceptTaskType as TaskType } from './concept.js';
 import type { Term } from '../terms/types.js';
 import type { Truth } from '../terms/truth.js';
 import type { Budget } from '../task/task.js';
-import { getBudgetValue } from '../task/task.js';
+import { getBudgetValue } from '../types/core.js';
 
 export interface MemoryConfig {
   maxConcepts: number;
@@ -57,11 +61,15 @@ export class Memory {
   }
 
   getFocusConcepts(): Concept[] {
-    return Array.from(this.focusConcepts).map(h => this.concepts.get(h)).filter((c): c is Concept => c !== undefined);
+    return Array.from(this.focusConcepts)
+      .map(h => this.concepts.get(h))
+      .filter((c): c is Concept => c !== undefined);
   }
 
   sample(limit: number): Concept[] {
-    return Array.from(this.concepts.values()).sort((a, b) => b.priority - a.priority).slice(0, limit);
+    return Array.from(this.concepts.values())
+      .sort((a, b) => b.priority - a.priority)
+      .slice(0, limit);
   }
 
   consolidate(): void {

@@ -1,15 +1,16 @@
+/**
+ * Truth value system
+ * Handles frequency, confidence, and truth operations
+ */
+
+import { clamp, safeDiv } from '../utils/helpers.js';
+
 export interface Truth {
-  readonly f: number;
-  readonly c: number;
+  readonly f: number; // frequency
+  readonly c: number; // confidence
 }
 
-const clamp = (v: number, min: number, max: number): number =>
-  Math.max(min, Math.min(max, v));
-
 const WEAKENING_FACTOR = 10;
-
-const safeDiv = (num: number, den: number): number =>
-  den === 0 ? 0 : clamp(num / den, 0, 1);
 
 const binary = (
   t1: Truth | null,
@@ -24,47 +25,73 @@ const unary = (
 
 export const Truth = {
   create: (f: number, c: number): Truth =>
-    Object.freeze({ f: Math.max(0, Math.min(1, isNaN(f) ? 0.5 : f)), c: Math.max(0, Math.min(1, isNaN(c) ? 0.9 : c)) }),
+    Object.freeze({
+      f: Math.max(0, Math.min(1, isNaN(f) ? 0.5 : f)),
+      c: Math.max(0, Math.min(1, isNaN(c) ? 0.9 : c))
+    }),
 
   TRUE: Object.freeze({ f: 1.0, c: 0.9 }) as Truth,
   FALSE: Object.freeze({ f: 0.0, c: 0.9 }) as Truth,
   NEUTRAL: Object.freeze({ f: 0.5, c: 0.9 }) as Truth,
 
   safeDiv,
+
   negation: (t: Truth): Truth => Truth.create(1 - t.f, t.c),
+
   conversion: (t: Truth): Truth => Truth.create(t.f, t.f * t.c),
+
   expectation: (t: Truth): number => t.c * (t.f - 0.5) + 0.5,
 
   comparison: (t1: Truth, t2: Truth): Truth =>
-    binary(t1, t2, (a, b) => {
-      const fProd = a.f * b.f;
-      return Truth.create(safeDiv(fProd, fProd + (1 - a.f) * (1 - b.f)), a.c * b.c);
-    })!,
+    binary(
+      t1,
+      t2,
+      (a, b) => {
+        const fProd = a.f * b.f;
+        return Truth.create(safeDiv(fProd, fProd + (1 - a.f) * (1 - b.f)), a.c * b.c);
+      }
+    )!,
 
-  analogy: (t1: Truth, t2: Truth): Truth => binary(t1, t2, (a, b) => Truth.create(a.f * b.f, a.c * b.c * b.f))!,
-  resemblance: (t1: Truth, t2: Truth): Truth => binary(t1, t2, (a, b) => Truth.create((a.f + b.f) / 2, a.c * b.c))!,
+  analogy: (t1: Truth, t2: Truth): Truth =>
+    binary(t1, t2, (a, b) => Truth.create(a.f * b.f, a.c * b.c * b.f))!,
+
+  resemblance: (t1: Truth, t2: Truth): Truth =>
+    binary(t1, t2, (a, b) => Truth.create((a.f + b.f) / 2, a.c * b.c))!,
 
   contraposition: (t1: Truth, t2: Truth): Truth =>
-    binary(t1, t2, (a, b) => {
-      const contraFreq = b.f * (1 - a.f);
-      return Truth.create(safeDiv(contraFreq, contraFreq + (1 - b.f) * a.f), a.c * b.c);
-    })!,
+    binary(
+      t1,
+      t2,
+      (a, b) => {
+        const contraFreq = b.f * (1 - a.f);
+        return Truth.create(safeDiv(contraFreq, contraFreq + (1 - b.f) * a.f), a.c * b.c);
+      }
+    )!,
 
-  intersection: (t1: Truth, t2: Truth): Truth => binary(t1, t2, (a, b) => Truth.create(a.f * b.f, a.c * b.c))!,
+  intersection: (t1: Truth, t2: Truth): Truth =>
+    binary(t1, t2, (a, b) => Truth.create(a.f * b.f, a.c * b.c))!,
 
   union: (t1: Truth, t2: Truth): Truth =>
     binary(t1, t2, (a, b) => Truth.create(1 - (1 - a.f) * (1 - b.f), a.c * b.c))!,
 
-  subtract: (t1: Truth, t2: Truth): Truth => binary(t1, t2, (a, b) => Truth.create(Math.max(0, a.f - b.f), a.c * b.c))!,
-  diff: (t1: Truth, t2: Truth): Truth => binary(t1, t2, (a, b) => Truth.create(Math.abs(a.f - b.f), a.c * b.c))!,
+  subtract: (t1: Truth, t2: Truth): Truth =>
+    binary(t1, t2, (a, b) => Truth.create(Math.max(0, a.f - b.f), a.c * b.c))!,
+
+  diff: (t1: Truth, t2: Truth): Truth =>
+    binary(t1, t2, (a, b) => Truth.create(Math.abs(a.f - b.f), a.c * b.c))!,
 
   exemplification: (t1: Truth, t2: Truth): Truth =>
-    binary(t1, t2, (a, b) => {
-      const w = a.c / (a.c + 1);
-      return Truth.create(a.f * b.f, w * a.c * b.c * a.f * b.f);
-    })!,
+    binary(
+      t1,
+      t2,
+      (a, b) => {
+        const w = a.c / (a.c + 1);
+        return Truth.create(a.f * b.f, w * a.c * b.c * a.f * b.f);
+      }
+    )!,
 
-  sameness: (t1: Truth, t2: Truth): Truth => binary(t1, t2, (a, b) => Truth.create(1 - Math.abs(a.f - b.f), a.c * b.c))!,
+  sameness: (t1: Truth, t2: Truth): Truth =>
+    binary(t1, t2, (a, b) => Truth.create(1 - Math.abs(a.f - b.f), a.c * b.c))!,
 
   deduction: (t1: Truth, t2: Truth): Truth => Truth.create(t1.f * t2.f, t1.c * t2.c),
 
@@ -102,8 +129,11 @@ export const Truth = {
     unary(t, truth => Truth.create(truth.f, truth.c / (truth.c + WEAKENING_FACTOR)))!,
 
   isStronger: (t1: Truth, t2: Truth): boolean => Truth.expectation(t1) > Truth.expectation(t2),
+
   weak: (c: number): number => clamp(c / (c + WEAKENING_FACTOR), 0, 1),
-  c2w: (c: number): number => c === 1 ? 1e10 : c / (1 - c),
+
+  c2w: (c: number): number => (c === 1 ? 1e10 : c / (1 - c)),
+
   w2c: (w: number): number => w / (w + 1)
 };
 

@@ -22,12 +22,12 @@ describe('Memory Operations', () => {
   });
 
   describe('Concept Formation', () => {
-    it('creates and retrieves concepts', async () => {
-      await nar.input('knowledge', 'belief');
-      const concept = nar.memory.getConcept(TermFactory.atom('knowledge'));
-      expect(concept).toBeDefined();
-      expect(concept.term.kind).toBe('atom');
-    });
+  it('creates and retrieves concepts', async () => {
+    await nar.input('knowledge', 'belief');
+    const concept = nar.memory.getConcept(TermFactory.atom('knowledge'));
+    expect(concept).toBeDefined();
+    if (concept) expect(concept.term.kind).toBe('atom');
+  });
 
     it('stores compound term concepts', async () => {
       await nar.input('(bird --> animal)', 'belief');
@@ -39,16 +39,16 @@ describe('Memory Operations', () => {
   });
 
   describe('Activation and Decay', () => {
-    it('manages concept activation', async () => {
-      await nar.input('important', 'belief', Truth.create(0.9, 0.9));
-      const concept1 = nar.memory.getConcept(TermFactory.atom('important'));
-      expect(concept1.priority).toBeGreaterThan(0);
-    });
+  it('manages concept activation', async () => {
+    await nar.input('important', 'belief', Truth.create(0.9, 0.9));
+    const concept1 = nar.memory.getConcept(TermFactory.atom('important'));
+    if (concept1) expect(concept1.priority).toBeGreaterThan(0);
+  });
 
-    it('applies decay over cycles', async () => {
-      await nar.input('temporary', 'belief', Truth.create(0.9, 0.9));
-      const concept1 = nar.memory.getConcept(TermFactory.atom('temporary'));
-      const initialPriority = concept1.priority;
+  it('applies decay over cycles', async () => {
+    await nar.input('temporary', 'belief', Truth.create(0.9, 0.9));
+    const concept1 = nar.memory.getConcept(TermFactory.atom('temporary'));
+    const initialPriority = concept1?.priority ?? 0;
 
       for (let i = 0; i < 10; i++) {
         await nar.run(1);

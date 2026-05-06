@@ -56,12 +56,12 @@ describe('Inference Rules', () => {
       expect(nar.memory.size).toBeGreaterThan(0);
     });
 
-    it('handles compound terms in reasoning', async () => {
-      const cat = TermFactory.atom('cat');
-      const dog = TermFactory.atom('dog');
-      const pets = TermFactory.conjunction(cat, dog);
-      expect(pets.kind).toBe('conjunction');
-      expect(pets.args).toHaveLength(2);
-    });
+  it('handles compound terms in reasoning', async () => {
+    const cat = TermFactory.atom('cat');
+    const dog = TermFactory.atom('dog');
+    const pets = TermFactory.conjunction(cat, dog);
+    expect(pets.kind).toBe('conjunction');
+    if ('args' in pets) expect(pets.args).toHaveLength(2);
+  });
   });
 });

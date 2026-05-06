@@ -51,7 +51,7 @@ export class MemoryScorer {
         return Math.min(1, related / 10);
     }
 
-    scoreForRetrieval(concept: Concept, query?: any): number {
+    scoreForRetrieval(concept: Concept, _query?: any): number {
         return this.score(concept, {
             activation: concept.priority,
             recency: 1

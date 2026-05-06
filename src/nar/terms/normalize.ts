@@ -1,4 +1,4 @@
-import type { Term, CompoundTerm, AtomicTerm } from './types.js';
+import type { Term, CompoundTerm } from './types.js';
 import { computeHash } from './types.js';
 
 const hasArgs = (term: Term): term is CompoundTerm =>

@@ -68,15 +68,15 @@ export class EmbeddedIRCServer extends EventEmitter {
     }
   }
 
-  private parseMessage(raw: string): IRCMessage {
-    const parts = raw.split(' ');
-    let prefix: string | undefined;
-    let cursor = 0;
+private parseMessage(raw: string): IRCMessage {
+  const parts = raw.split(' ');
+  let prefix: string | undefined;
+  let cursor = 0;
 
-    if (parts[0].startsWith(':')) {
-      prefix = parts.shift();
-      cursor = 1;
-    }
+  if (parts[0]?.startsWith(':')) {
+    prefix = parts.shift();
+    cursor = 1;
+  }
 
     const command = parts[cursor++] || '';
     const params: string[] = [];

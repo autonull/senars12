@@ -1,10 +1,15 @@
+/**
+ * NAR - Neural Associative Reasoner
+ * Main entry point for the reasoning system
+ */
+
 import { Memory, type MemoryConfig } from './memory/memory.js';
 import { Reasoner, type ReasonerConfig } from './reason/reasoner.js';
 import { TaskManager } from './task/manager.js';
 import { RuleProcessor } from './rules/processor.js';
 import { BagStrategy } from './reason/strategy.js';
 import { createTask, createBudget, getBudgetValue, type TaskType } from './task/task.js';
-import { atom, type Term } from './terms/types.js';
+import { type Term } from './terms/types.js';
 import { Truth, type Truth as TruthType } from './terms/truth.js';
 import { EventBus } from './types/events.js';
 import type { LMClient } from './lm/types.js';

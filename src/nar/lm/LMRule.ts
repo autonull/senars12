@@ -1,6 +1,6 @@
 import type { Term } from '../terms/index.js';
 import type { Task } from '../task/task.js';
-import type { LMClient, LMRuleConfig, LMExecutionStats, LMRuleStats, LMResponseProcessor, LMTaskGenerator } from './types.js';
+import type { LMClient, LMRuleConfig, LMExecutionStats, LMRuleStats } from './types.js';
 import { CircuitBreaker } from '../utils/circuit-breaker.js';
 import { EventBus } from '../types/events.js';
 import { createTask } from '../task/task.js';
@@ -56,45 +56,24 @@ export class LMRule {
   }
 
   private emitEvent(eventName: string, data: any): void {
-    if (this.eventBus) {
-      this.eventBus.emit(eventName as any, data);
-    }
+    if (this.eventBus) this.eventBus.emit(eventName as any, data);
   }
 
-  canApply(primary: Term, secondary?: Term, context?: any): boolean {
-    if (!this.enabled) return false;
-    if (this.circuitBreaker.getState() === 'open') return false;
-    if (!this.lm) return false;
-    if (!primary) return false;
-    if (!this.config.singlePremise && !secondary) return false;
-    return true;
-  }
+canApply(primary: Term, secondary?: Term, _context?: any): boolean {
+  return this.enabled && this.circuitBreaker.getState() !== 'open' && !!this.lm && !!primary && (!this.config.singlePremise || !!secondary);
+}
 
   async apply(primary: Term, secondary?: Term, context?: any): Promise<Task[]> {
-    if (!this.canApply(primary, secondary, context)) {
-      return [];
-    }
+    if (!this.canApply(primary, secondary, context)) return [];
 
     const startTime = Date.now();
 
     try {
       const prompt = this.generatePrompt(primary, secondary, context);
-
-      this.emitEvent('lm.prompt', {
-        ruleId: this.id,
-        prompt,
-        timestamp: Date.now()
-      });
+      this.emitEvent('lm.prompt', { ruleId: this.id, prompt, timestamp: Date.now() });
 
       const response = await this.executeLM(prompt);
-
-      this.emitEvent('lm.response', {
-        ruleId: this.id,
-        prompt,
-        response,
-        duration: Date.now() - startTime,
-        timestamp: Date.now()
-      });
+      this.emitEvent('lm.response', { ruleId: this.id, prompt, response, duration: Date.now() - startTime, timestamp: Date.now() });
 
       if (!response) {
         this.recordExecution(false, Date.now() - startTime);
@@ -103,9 +82,7 @@ export class LMRule {
 
       const processed = this.processResponse(response, primary, secondary, context);
       const tasks = this.generateTasks(processed, primary, secondary, context);
-
       this.recordExecution(true, Date.now() - startTime, prompt.length + response.length);
-
       return tasks;
     } catch (error) {
       this.emitEvent('lm.failure', {
@@ -114,81 +91,45 @@ export class LMRule {
         duration: Date.now() - startTime,
         timestamp: Date.now()
       });
-
       this.recordExecution(false, Date.now() - startTime);
       return [];
     }
   }
 
-  private async executeLM(prompt: string): Promise<string> {
-    if (!this.lm) {
-      throw new Error(`LM unavailable for rule ${this.id}`);
-    }
-
-    const startTime = Date.now();
-    const response = await this.circuitBreaker.execute(async () => {
-      return await this.lm!.generateText(prompt, this.config.lmOptions);
-    });
-
-    const duration = Date.now() - startTime;
-    return response;
-  }
+private async executeLM(prompt: string): Promise<string> {
+  if (!this.lm) throw new Error(`LM unavailable for rule ${this.id}`);
+  return await this.circuitBreaker.execute(async () => await this.lm!.generateText(prompt, this.config.lmOptions));
+}
 
   private generatePrompt(primary: Term, secondary: Term | undefined, context?: any): string {
     const template = this.config.promptTemplate;
-    if (typeof template === 'string') {
-      return this.fillTemplate(template, primary, secondary);
-    }
-    if (typeof template === 'function') {
-      return (template as any)(primary, secondary, context);
-    }
+    if (typeof template === 'string') return this.fillTemplate(template, primary, secondary);
+    if (typeof template === 'function') return (template as any)(primary, secondary, context);
     return `Reason about: ${primary.toString()}`;
   }
 
   private fillTemplate(template: string, primary: Term, secondary?: Term): string {
-    let result = template;
-    result = result.replace('{{primaryTerm}}', primary.toString());
-    if (secondary) {
-      result = result.replace('{{secondaryTerm}}', secondary.toString());
-    }
-    return result;
+    return template.replace('{{primaryTerm}}', primary.toString()).replace('{{secondaryTerm}}', secondary?.toString() ?? '');
   }
 
   private processResponse(response: string, primary: Term, secondary: Term | undefined, context?: any): any {
-    if (this.config.responseProcessor) {
-      return (this.config.responseProcessor as any)(response, primary, secondary, context);
-    }
-    return response;
+    return this.config.responseProcessor ? (this.config.responseProcessor as any)(response, primary, secondary, context) : response;
   }
 
   private generateTasks(processed: any, primary: Term, secondary: Term | undefined, context?: any): Task[] {
-    if (this.config.taskGenerator) {
-      return (this.config.taskGenerator as any)(processed, primary, secondary, context);
-    }
-
-    if (Array.isArray(processed)) {
-      return processed.map(p => this.taskFromProcessed(p, primary));
-    }
-
+    if (this.config.taskGenerator) return (this.config.taskGenerator as any)(processed, primary, secondary, context);
+    if (Array.isArray(processed)) return processed.map(p => this.taskFromProcessed(p, primary));
     return [this.taskFromProcessed(processed, primary)];
   }
 
   private taskFromProcessed(processed: any, primary: Term): Task {
-    const term = processed.term ?? primary;
-    const type = processed.type ?? 'belief';
-    const truth = processed.truth ?? Truth.NEUTRAL;
-    const budget = processed.budget ?? truth.f * truth.c;
-
-    return createTask(term, type as any, truth, budget);
+    return createTask(processed.term ?? primary, processed.type ?? 'belief', processed.truth ?? Truth.NEUTRAL, processed.budget ?? Truth.NEUTRAL.f * Truth.NEUTRAL.c);
   }
 
   private recordExecution(success: boolean, duration: number, tokens?: number): void {
     this.stats.totalCalls++;
-    if (success) {
-      this.stats.successfulCalls++;
-    } else {
-      this.stats.failedCalls++;
-    }
+    this.stats.successfulCalls += success ? 1 : 0;
+    this.stats.failedCalls += success ? 0 : 1;
     this.stats.totalDuration += duration;
     this.stats.totalTokens += tokens ?? 0;
     this.stats.averageDuration = this.stats.totalDuration / this.stats.totalCalls;

@@ -1,8 +1,13 @@
-import type { Task } from '../task/task.js';
+/**
+ * Reasoner for performing inference steps
+ */
+
+import type { Task, Budget } from '../task/task.js';
 import { Memory } from '../memory/memory.js';
 import { RuleProcessor } from '../rules/processor.js';
 import type { Strategy } from './strategy.js';
 import { Stamp } from '../terms/stamp.js';
+import { Truth } from '../terms/truth.js';
 
 export interface ReasonerConfig {
   cpuThrottleMs: number;
@@ -16,7 +21,12 @@ export class Reasoner {
   private strategy: Strategy;
   private config: ReasonerConfig;
 
-  constructor(memory: Memory, processor: RuleProcessor, strategy: Strategy, config: ReasonerConfig) {
+  constructor(
+    memory: Memory,
+    processor: RuleProcessor,
+    strategy: Strategy,
+    config: ReasonerConfig
+  ) {
     this.memory = memory;
     this.processor = processor;
     this.strategy = strategy;
@@ -34,8 +44,14 @@ export class Reasoner {
       const task: Task = {
         term: concept.term,
         type: 'belief',
-        truth: belief?.truth ?? { f: 0.5, c: 0.9 },
-        budget: { priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+        truth: belief?.truth ?? Truth.NEUTRAL,
+        budget: {
+          priority: concept.priority,
+          durability: 0.8,
+          quality: 0.9,
+          cycles: 0,
+          depth: 0
+        } as Budget,
         stamp: Stamp.createInput(),
         occurrenceTime: 0,
         derived: false
@@ -57,7 +73,13 @@ export class Reasoner {
       term: d.term,
       type: 'belief',
       truth: d.truth,
-      budget: { priority: d.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+      budget: {
+        priority: d.priority,
+        durability: 0.8,
+        quality: 0.9,
+        cycles: 0,
+        depth: 0
+      } as Budget,
       stamp: Object.freeze({
         id: `${now}-${Math.random().toString(36).slice(2, 9)}`,
         creationTime: now,

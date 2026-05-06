@@ -1,7 +1,6 @@
 import { atom, termsEqual } from '../terms/types.js';
 import { TermFactory } from '../terms/factory.js';
 import { RuleProcessor } from '../rules/processor.js';
-import { NAR } from '../nar.js';
 
 describe('Performance benchmarks', () => {
     test('term comparison benchmark <100ns', () => {

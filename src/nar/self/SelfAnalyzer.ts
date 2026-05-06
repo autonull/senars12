@@ -76,7 +76,7 @@ export class SelfAnalyzer {
     };
   }
 
-  private async identifyOptimizations(patterns: PatternAnalysis): Promise<Optimizations> {
+  private async identifyOptimizations(_patterns: PatternAnalysis): Promise<Optimizations> {
     return {
       rulePriorities: [],
       strategyAdjustments: [],
@@ -108,8 +108,8 @@ export class SelfAnalyzer {
 
   async performSelfCorrection(): Promise<MetaCognitiveResult> {
     try {
-      const issues = this.identifyIssues();
-      const corrections = await this.applyCorrections(issues);
+      // const issues = this.identifyIssues();
+      // const _corrections = await this.applyCorrections(issues);
       return {
         success: true,
         timestamp: Date.now()
@@ -132,7 +132,7 @@ export class SelfAnalyzer {
     };
   }
 
-  private async applyCorrections(issues: any): Promise<any> {
+  private async applyCorrections(_issues: any): Promise<any> {
     return { appliedCorrections: [], pendingCorrections: [] };
   }
 
@@ -141,7 +141,7 @@ export class SelfAnalyzer {
       metaCognition: this.monitor.getMonitorState(),
       performance: {},
       resourceUsage: {},
-      patterns: await this.analyzeReasoningPatterns()
+      _patterns: await this.analyzeReasoningPatterns()
     };
   }
 

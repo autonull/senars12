@@ -40,10 +40,10 @@ export class BotHarness {
     }
   }
 
-  discoverPort(): number | null {
-    const match = this.output.match(/listening on .*:(\d+)/i);
-    return match ? parseInt(match[1]) : null;
-  }
+discoverPort(): number | null {
+  const match = this.output.match(/listening on .*:(\d+)/i);
+  return match?.[1] ? parseInt(match[1]) : null;
+}
 
   getOutput(): string {
     return this.output;

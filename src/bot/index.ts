@@ -9,7 +9,16 @@ export interface Bot {
 }
 
 export async function createBot(config: BotConfig): Promise<Bot> {
-  const nar = new NAR({ enableLMRules: false });
+  const nar = new NAR({
+    maxConcepts: 1000,
+    priorityThreshold: 0.5,
+    activationDecayRate: 0.01,
+    consolidationInterval: 10,
+    cpuThrottleMs: 10,
+    maxDerivationDepth: 10,
+    maxDerivationsPerStep: 1000,
+    enableLMRules: false
+  });
 
   const ircCfg = config.embodiments?.irc;
   let ircServer: EmbeddedIRCServer | undefined;

@@ -1,14 +1,9 @@
-import type { Term, AtomicTerm, CompoundTerm } from './types.js';
-import { computeHash } from './types.js';
+/**
+ * Term factory for creating and caching terms
+ */
 
-const fnv1a = (str: string): number => {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    hash ^= str.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return hash >>> 0;
-};
+import type { Term, AtomicTerm, CompoundTerm } from './types.js';
+import { computeHash, fnv1a } from '../utils/hash.js';
 
 const termCache = new Map<number, Term>();
 
@@ -17,19 +12,23 @@ const cache = <T extends Term>(term: T): T => {
   return term;
 };
 
-const TRUE_ATOM = cache(Object.freeze({
-  kind: 'atom' as const,
-  symbol: 'TRUE',
-  hash: fnv1a('TRUE'),
-  isVariable: false
-} as AtomicTerm));
+const TRUE_ATOM = cache(
+  Object.freeze({
+    kind: 'atom' as const,
+    symbol: 'TRUE',
+    hash: fnv1a('TRUE'),
+    isVariable: false
+  } as AtomicTerm)
+);
 
-const FALSE_ATOM = cache(Object.freeze({
-  kind: 'atom' as const,
-  symbol: 'FALSE',
-  hash: fnv1a('FALSE'),
-  isVariable: false
-} as AtomicTerm));
+const FALSE_ATOM = cache(
+  Object.freeze({
+    kind: 'atom' as const,
+    symbol: 'FALSE',
+    hash: fnv1a('FALSE'),
+    isVariable: false
+  } as AtomicTerm)
+);
 
 export const TermFactory = {
   atom: (symbol: string): Term => {
@@ -38,12 +37,14 @@ export const TermFactory = {
     const hash = fnv1a(symbol);
     const cached = termCache.get(hash);
     if (cached) return cached;
-    return cache(Object.freeze({
-      kind: 'atom' as const,
-      symbol,
-      hash,
-      isVariable: symbol.startsWith('$')
-    } as AtomicTerm));
+    return cache(
+      Object.freeze({
+        kind: 'atom' as const,
+        symbol,
+        hash,
+        isVariable: symbol.startsWith('$')
+      } as AtomicTerm)
+    );
   },
 
   inheritance: (s: Term | undefined, p: Term | undefined): Term => {
@@ -51,11 +52,13 @@ export const TermFactory = {
     const hash = computeHash('inheritance', [s.hash, p.hash]);
     const cached = termCache.get(hash);
     if (cached) return cached;
-    return cache(Object.freeze({
-      kind: 'inheritance' as const,
-      args: [s, p],
-      hash
-    } as CompoundTerm));
+    return cache(
+      Object.freeze({
+        kind: 'inheritance' as const,
+        args: [s, p],
+        hash
+      } as CompoundTerm)
+    );
   },
 
   similarity: (s: Term | undefined, p: Term | undefined): Term => {
@@ -63,11 +66,13 @@ export const TermFactory = {
     const hash = computeHash('similarity', [s.hash, p.hash]);
     const cached = termCache.get(hash);
     if (cached) return cached;
-    return cache(Object.freeze({
-      kind: 'similarity' as const,
-      args: [s, p],
-      hash
-    } as CompoundTerm));
+    return cache(
+      Object.freeze({
+        kind: 'similarity' as const,
+        args: [s, p],
+        hash
+      } as CompoundTerm)
+    );
   },
 
   conjunction: (...terms: (Term | undefined)[]): Term => {
@@ -77,11 +82,13 @@ export const TermFactory = {
     const hash = computeHash('conjunction', sorted.map(t => t.hash));
     const cached = termCache.get(hash);
     if (cached) return cached;
-    return cache(Object.freeze({
-      kind: 'conjunction' as const,
-      args: sorted,
-      hash
-    } as CompoundTerm));
+    return cache(
+      Object.freeze({
+        kind: 'conjunction' as const,
+        args: sorted,
+        hash
+      } as CompoundTerm)
+    );
   },
 
   disjunction: (...terms: (Term | undefined)[]): Term => {
@@ -91,11 +98,13 @@ export const TermFactory = {
     const hash = computeHash('disjunction', sorted.map(t => t.hash));
     const cached = termCache.get(hash);
     if (cached) return cached;
-    return cache(Object.freeze({
-      kind: 'disjunction' as const,
-      args: sorted,
-      hash
-    } as CompoundTerm));
+    return cache(
+      Object.freeze({
+        kind: 'disjunction' as const,
+        args: sorted,
+        hash
+      } as CompoundTerm)
+    );
   },
 
   negation: (term: Term | undefined): Term => {
@@ -103,11 +112,13 @@ export const TermFactory = {
     const hash = computeHash('negation', [term.hash]);
     const cached = termCache.get(hash);
     if (cached) return cached;
-    return cache(Object.freeze({
-      kind: 'negation' as const,
-      args: [term],
-      hash
-    } as CompoundTerm));
+    return cache(
+      Object.freeze({
+        kind: 'negation' as const,
+        args: [term],
+        hash
+      } as CompoundTerm)
+    );
   },
 
   implication: (ant: Term | undefined, cons: Term | undefined): Term => {
@@ -115,11 +126,13 @@ export const TermFactory = {
     const hash = computeHash('implication', [ant.hash, cons.hash]);
     const cached = termCache.get(hash);
     if (cached) return cached;
-    return cache(Object.freeze({
-      kind: 'implication' as const,
-      args: [ant, cons],
-      hash
-    } as CompoundTerm));
+    return cache(
+      Object.freeze({
+        kind: 'implication' as const,
+        args: [ant, cons],
+        hash
+      } as CompoundTerm)
+    );
   },
 
   equivalence: (a: Term | undefined, c: Term | undefined): Term => {
@@ -127,14 +140,20 @@ export const TermFactory = {
     const hash = computeHash('equivalence', [a.hash, c.hash]);
     const cached = termCache.get(hash);
     if (cached) return cached;
-    return cache(Object.freeze({
-      kind: 'equivalence' as const,
-      args: [a, c],
-      hash
-    } as CompoundTerm));
+    return cache(
+      Object.freeze({
+        kind: 'equivalence' as const,
+        args: [a, c],
+        hash
+      } as CompoundTerm)
+    );
   },
 
   evict: (hash: number): boolean => termCache.delete(hash),
+
   clear: (): void => termCache.clear(),
-  get size(): number { return termCache.size; }
+
+  get size(): number {
+    return termCache.size;
+  }
 };

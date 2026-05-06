@@ -39,7 +39,7 @@ export class ReasoningAboutReasoning {
       this.periodicAnalysisInterval = setInterval(async () => {
         try {
           await this.performMetaCognitiveReasoning();
-        } catch (error) {
+        } catch {
           // Silently handle periodic analysis errors
         }
       }, this.config.reasoningInterval);
@@ -56,7 +56,7 @@ export class ReasoningAboutReasoning {
     return this.analyzer.performSelfCorrection();
   }
 
-  querySystemState(query: any): any {
+  querySystemState(_query: any): any {
     return {
       reasoningTrace: this.monitor.getReasoningTrace().slice(-10),
       performanceTrend: this.monitor.getPerformanceTrend(),

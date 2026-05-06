@@ -1,4 +1,4 @@
-import type { NAR } from '../nar.js';
+
 
 interface PerformanceData {
   throughput?: number;

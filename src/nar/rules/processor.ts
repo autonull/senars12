@@ -1,4 +1,8 @@
-import type { Term } from '../terms/index.js';
+/**
+ * Rule processor for applying inference rules
+ */
+
+import type { Term } from '../terms/types.js';
 import { RuleRegistry, RuleIndex } from './types.js';
 import { Truth } from '../terms/truth.js';
 import { Stamp } from '../terms/stamp.js';
@@ -38,7 +42,12 @@ export class RuleProcessor {
       for (const rule of this.ruleIndex.match(p1, p2).filter(r => r.sync)) {
         const result = rule.apply([p1, p2]);
         if (result) {
-          yield { term: result as Term, truth: Truth.NEUTRAL, stamp: Stamp.createInput(), priority: rule.priority };
+          yield {
+            term: result as Term,
+            truth: Truth.NEUTRAL,
+            stamp: Stamp.createInput(),
+            priority: rule.priority
+          };
         }
       }
 
@@ -63,7 +72,12 @@ export class RuleProcessor {
     for (const rule of this.ruleIndex.match(p1, p2).filter(r => r.sync)) {
       const result = rule.apply([p1, p2]);
       if (result) {
-        results.push({ term: result as Term, truth: Truth.NEUTRAL, stamp: Stamp.createInput(), priority: rule.priority });
+        results.push({
+          term: result as Term,
+          truth: Truth.NEUTRAL,
+          stamp: Stamp.createInput(),
+          priority: rule.priority
+        });
       }
     }
     return results;

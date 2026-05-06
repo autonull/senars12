@@ -1,20 +1,30 @@
-export type Stamp = {
-    readonly id: string;
-    readonly creationTime: number;
-    readonly source: Source;
-    readonly derivations: readonly string[];
-    readonly depth: number;
-};
+/**
+ * Stamp system for tracking derivation history
+ */
+
+import { makeId } from '../utils/helpers.js';
 
 export type Source = 'INPUT' | 'DERIVED';
 
-const MAX_DEPTH = 10;
+export interface Stamp {
+  readonly id: string;
+  readonly creationTime: number;
+  readonly source: Source;
+  readonly derivations: readonly string[];
+  readonly depth: number;
+}
 
-const makeId = (): string => crypto.randomUUID();
+const MAX_DEPTH = 10;
 
 export const Stamp = {
   createInput(): Stamp {
-    return Object.freeze({ id: makeId(), creationTime: Date.now(), source: 'INPUT', derivations: [], depth: 0 });
+    return Object.freeze({
+      id: makeId(),
+      creationTime: Date.now(),
+      source: 'INPUT' as const,
+      derivations: [],
+      depth: 0
+    });
   },
 
   derive(parentStamps: readonly Stamp[], source: Source = 'DERIVED'): Stamp | undefined {
@@ -33,12 +43,15 @@ export const Stamp = {
 
   getDepth: (stamp: Stamp): number => stamp.depth,
 
-  getMaxDepth: (stamps: readonly Stamp[]): number => stamps.reduce((max, s) => Math.max(max, s.depth), 0),
+  getMaxDepth: (stamps: readonly Stamp[]): number =>
+    stamps.reduce((max, s) => Math.max(max, s.depth), 0),
 
-  canDerive: (stamps: readonly Stamp[]): boolean => Stamp.getMaxDepth(stamps) < MAX_DEPTH
+  canDerive: (stamps: readonly Stamp[]): boolean =>
+    Stamp.getMaxDepth(stamps) < MAX_DEPTH
 };
 
 export { MAX_DEPTH };
 
+// Legacy exports for backwards compatibility
 export const getStampId = (stamp: Stamp): string => stamp.id;
 export const getStampSource = (stamp: Stamp): Source => stamp.source;

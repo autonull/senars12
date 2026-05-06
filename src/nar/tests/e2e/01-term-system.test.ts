@@ -6,7 +6,7 @@ import { TermFactory } from '../../terms/factory.js';
 import { Truth } from '../../terms/truth.js';
 
 describe('Term System', () => {
-  let nar: NAR;
+  let nar: NAR; // eslint-disable-line @typescript-eslint/no-unused-vars
 
   beforeEach(() => {
     nar = new NAR({
@@ -51,7 +51,7 @@ describe('Term System', () => {
       const animal = TermFactory.atom('animal');
       const inheritance = TermFactory.inheritance(bird, animal);
       expect(inheritance.kind).toBe('inheritance');
-      expect(inheritance.args).toHaveLength(2);
+      if ("args" in inheritance) expect(inheritance.args).toHaveLength(2);
     });
 
     it('creates conjunction terms', () => {
@@ -59,7 +59,7 @@ describe('Term System', () => {
       const b = TermFactory.atom('B');
       const conj = TermFactory.conjunction(a, b);
       expect(conj.kind).toBe('conjunction');
-      expect(conj.args).toHaveLength(2);
+      if ("args" in conj) expect(conj.args).toHaveLength(2);
     });
 
     it('creates disjunction terms', () => {

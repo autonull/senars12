@@ -1,4 +1,4 @@
-import type { Term, CompoundTerm, AtomicTerm } from '../terms/index.js';
+import type { Term, CompoundTerm } from '../terms/index.js';
 
 export type Guard<T extends Term = Term> = (term: T) => boolean;
 

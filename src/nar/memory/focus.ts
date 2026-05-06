@@ -1,5 +1,4 @@
 import type { Concept } from './concept.js';
-import { BoundedBag } from './bounded-bag.js';
 
 export interface FocusConfig {
     maxConcepts: number;

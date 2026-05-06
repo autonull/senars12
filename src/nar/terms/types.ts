@@ -1,3 +1,10 @@
+/**
+ * Term types and operators
+ * Defines the structure of terms in NARS12
+ */
+
+import { fnv1a, computeHash } from '../utils/hash.js';
+
 export const OPERATORS = {
   inheritance: '-->',
   similarity: '<->',
@@ -10,18 +17,6 @@ export const OPERATORS = {
 
 export type OperatorKey = keyof typeof OPERATORS;
 export type OperatorSymbol = typeof OPERATORS[OperatorKey];
-
-const fnv1a = (str: string): number => {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) {
-    hash ^= str.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return hash >>> 0;
-};
-
-const fnv1aCombine = (acc: number, val: number): number =>
-  Math.imul(acc ^ val, 0x01000193) >>> 0;
 
 export interface AtomicTerm {
   readonly kind: 'atom';
@@ -39,23 +34,34 @@ export interface CompoundTerm {
 export type Term = AtomicTerm | CompoundTerm;
 export type TermMap = Map<number, Term>;
 
-export const computeHash = (kind: string, argHashes: number[]): number => {
-  const sorted = [...argHashes].sort((a, b) => a - b);
-  return sorted.reduce((acc, h) => fnv1aCombine(acc, h), fnv1a(kind));
-};
+// Re-export hash utilities
+export { computeHash };
 
+// Term type guards
 export const isVariableSymbol = (symbol: string): boolean => symbol.startsWith('$');
 export const isAtomic = (term: Term): term is AtomicTerm => term.kind === 'atom';
-export const getTermArgs = (term: Term): Term[] => term.kind === 'atom' ? [] : term.args;
+export const isCompound = (term: Term): term is CompoundTerm => term.kind !== 'atom';
+
+// Term accessors
+export const getTermArgs = (term: Term): Term[] =>
+  term.kind === 'atom' ? [] : term.args;
+
 export const getTermArg = (term: Term, index: number): Term | undefined =>
   term.kind === 'atom' ? undefined : term.args[index];
+
+// Term equality
 export const termsEqual = (a: Term, b: Term): boolean => a.hash === b.hash;
 
+// Atom constructor
 export const atom = (symbol: string): AtomicTerm =>
-  Object.freeze({ kind: 'atom' as const, symbol, hash: fnv1a(symbol) });
+  Object.freeze({
+    kind: 'atom' as const,
+    symbol,
+    hash: fnv1a(symbol),
+    isVariable: symbol.startsWith('$')
+  });
 
-export { fnv1a, fnv1aCombine };
-
+// Term serialization
 const serialize = (term: Term): string => {
   switch (term.kind) {
     case 'atom':

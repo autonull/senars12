@@ -1,7 +1,10 @@
+/**
+ * Concept class for memory storage
+ */
+
 import type { Term } from '../terms/types.js';
 import type { Truth } from '../terms/truth.js';
 import { Bag } from './bag.js';
-import type { Budget } from '../task/task.js';
 
 export type ConceptTaskType = 'belief' | 'goal' | 'question' | 'command';
 
@@ -46,9 +49,7 @@ export class Concept {
   }
 
   addTask(type: ConceptTaskType, data: TaskData): boolean {
-    const bag = type === 'belief' ? this.beliefBag
-      : type === 'goal' ? this.goalBag
-        : this.questionBag;
+    const bag = type === 'belief' ? this.beliefBag : type === 'goal' ? this.goalBag : this.questionBag;
     const added = bag.add(data, data.budget);
     if (added) {
       this.useCount++;

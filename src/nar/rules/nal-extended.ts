@@ -1,7 +1,7 @@
 import type { Term } from '../terms/index.js';
 import { RuleRegistry, createRulePattern } from './types.js';
 import { TermFactory } from '../terms/factory.js';
-import { Truth } from '../terms/truth.js';
+// import { Truth } from '../terms/truth.js';
 
 function getSubject(term: Term): Term | undefined {
     if (term.kind === 'inheritance' || term.kind === 'similarity') {
@@ -151,7 +151,7 @@ export const NALExtendedRules = {
         return results[0] ?? conj;
     },
 
-    variableDependency(premises: [Term, Term]): Term | undefined {
+    variableDependency(_premises: [Term, Term]): Term | undefined {
         return undefined;
     },
 

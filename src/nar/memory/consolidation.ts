@@ -1,4 +1,4 @@
-import type { Concept } from './concept.js';
+
 import { Memory } from './memory.js';
 
 export interface ConsolidationConfig {
@@ -32,9 +32,9 @@ export class MemoryConsolidation {
         }
     }
 
-    consolidate(memory: Memory): void {
-        this.consolidationCount++;
-    }
+consolidate(_memory: Memory): void {
+  this.consolidationCount++;
+}
 
     get stats(): {
         consolidationCount: number;
