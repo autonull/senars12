@@ -19,46 +19,39 @@ export const RuleRegistry = {
   rules: new Map<string, RegisteredRule>(),
 
   register(rule: RegisteredRule): void {
-    this.rules.set(rule.id, rule);
+    RuleRegistry.rules.set(rule.id, rule);
   },
 
   get(id: string): RegisteredRule | undefined {
-    return this.rules.get(id);
+    return RuleRegistry.rules.get(id);
   },
 
   getAll(): RegisteredRule[] {
-    return Array.from(this.rules.values());
+    return Array.from(RuleRegistry.rules.values());
   },
 
   clear(): void {
-    this.rules.clear();
+    RuleRegistry.rules.clear();
   }
 };
 
-export function createRulePattern(leftOp?: string, rightOp?: string): RulePattern {
-  return {
-    left: { op: leftOp },
-    right: { op: rightOp }
-  };
-}
+export const createRulePattern = (leftOp?: string, rightOp?: string): RulePattern => ({
+  left: { op: leftOp },
+  right: { op: rightOp }
+});
 
-export function encodePattern(pattern: RulePattern): string[] {
-  return [
-    pattern.left.op ?? '*',
-    pattern.right.op ?? '*'
-  ];
-}
+export const encodePattern = (pattern: RulePattern): string[] => [
+  pattern.left.op ?? '*',
+  pattern.right.op ?? '*'
+];
 
 class TrieNode<V> {
   children = new Map<string, TrieNode<V>>();
   values: V[] = [];
 
   getOrCreate(key: string): TrieNode<V> {
-    let child = this.children.get(key);
-    if (!child) {
-      child = new TrieNode<V>();
-      this.children.set(key, child);
-    }
+    const child = this.children.get(key) ?? new TrieNode<V>();
+    if (!this.children.has(key)) this.children.set(key, child);
     return child;
   }
 
@@ -82,7 +75,6 @@ export class RuleIndex {
   match(term1: Term, term2: Term): RegisteredRule[] {
     const keys1 = term1.kind === 'atom' ? ['*', 'atom'] : ['*', term1.kind];
     const keys2 = term2.kind === 'atom' ? ['*', 'atom'] : ['*', term2.kind];
-
     const results: RegisteredRule[] = [];
     const seen = new Set<string>();
 
@@ -103,7 +95,7 @@ export class RuleIndex {
           node = nextNode;
         }
 
-        if (found && node.values.length > 0) {
+        if (found) {
           for (const rule of node.values) {
             if (!seen.has(rule.id)) {
               seen.add(rule.id);

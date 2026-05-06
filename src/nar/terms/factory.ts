@@ -1,115 +1,140 @@
-import { fnv1a, computeHash } from './types.js';
-import type { Term } from './types.js';
+import type { Term, AtomicTerm, CompoundTerm } from './types.js';
+import { computeHash } from './types.js';
+
+const fnv1a = (str: string): number => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+};
 
 const termCache = new Map<number, Term>();
 
-// Pre-create canonical TRUE/FALSE atoms to avoid duplicates
-const TRUE_ATOM = ((): Term => {
-  const h = fnv1a('TRUE');
-  const t = { kind: 'atom' as const, symbol: 'TRUE', hash: h, isVariable: false } as Term;
-  termCache.set(h, t);
-  return t;
-})();
+const cache = <T extends Term>(term: T): T => {
+  termCache.set(term.hash, term);
+  return term;
+};
 
-const FALSE_ATOM = ((): Term => {
-  const h = fnv1a('FALSE');
-  const t = { kind: 'atom' as const, symbol: 'FALSE', hash: h, isVariable: false } as Term;
-  termCache.set(h, t);
-  return t;
-})();
+const TRUE_ATOM = cache(Object.freeze({
+  kind: 'atom' as const,
+  symbol: 'TRUE',
+  hash: fnv1a('TRUE'),
+  isVariable: false
+} as AtomicTerm));
 
-function getFromCache<T extends Term>(hash: number): T | undefined {
-    return termCache.get(hash) as T | undefined;
-}
-
-function addToCache<T extends Term>(term: T): T {
-    termCache.set(term.hash, term);
-    return term;
-}
+const FALSE_ATOM = cache(Object.freeze({
+  kind: 'atom' as const,
+  symbol: 'FALSE',
+  hash: fnv1a('FALSE'),
+  isVariable: false
+} as AtomicTerm));
 
 export const TermFactory = {
-  atom(symbol: string) {
+  atom: (symbol: string): Term => {
     if (symbol === 'TRUE') return TRUE_ATOM;
     if (symbol === 'FALSE') return FALSE_ATOM;
-    const h = fnv1a(symbol);
-    const cached = getFromCache(h);
+    const hash = fnv1a(symbol);
+    const cached = termCache.get(hash);
     if (cached) return cached;
-    return addToCache(Object.freeze({ kind: 'atom' as const, symbol, hash: h, isVariable: symbol.startsWith('$') } as Term));
+    return cache(Object.freeze({
+      kind: 'atom' as const,
+      symbol,
+      hash,
+      isVariable: symbol.startsWith('$')
+    } as AtomicTerm));
   },
 
-    inheritance(s: Term | undefined, p: Term | undefined) {
-        if (!s || !p) return this.atom('TRUE');
-        const h = computeHash('inheritance', [s.hash, p.hash]);
-        const cached = getFromCache(h);
-        if (cached) return cached;
-        return addToCache({ kind: 'inheritance' as const, args: [s, p], hash: h });
-    },
+  inheritance: (s: Term | undefined, p: Term | undefined): Term => {
+    if (!s || !p) return TermFactory.atom('TRUE');
+    const hash = computeHash('inheritance', [s.hash, p.hash]);
+    const cached = termCache.get(hash);
+    if (cached) return cached;
+    return cache(Object.freeze({
+      kind: 'inheritance' as const,
+      args: [s, p],
+      hash
+    } as CompoundTerm));
+  },
 
-    similarity(s: Term | undefined, p: Term | undefined) {
-        if (!s || !p) return this.atom('TRUE');
-        const h = computeHash('similarity', [s.hash, p.hash]);
-        const cached = getFromCache(h);
-        if (cached) return cached;
-        return addToCache({ kind: 'similarity' as const, args: [s, p], hash: h });
-    },
+  similarity: (s: Term | undefined, p: Term | undefined): Term => {
+    if (!s || !p) return TermFactory.atom('TRUE');
+    const hash = computeHash('similarity', [s.hash, p.hash]);
+    const cached = termCache.get(hash);
+    if (cached) return cached;
+    return cache(Object.freeze({
+      kind: 'similarity' as const,
+      args: [s, p],
+      hash
+    } as CompoundTerm));
+  },
 
-    conjunction(...terms: (Term | undefined)[]) {
-        const valid = terms.filter((t): t is Term => t !== undefined);
-        if (valid.length === 0) {
-            return this.atom('TRUE');
-        }
-        const sorted = [...valid].sort((a, b) => a.hash - b.hash);
-        const h = computeHash('conjunction', sorted.map(t => t.hash));
-        const cached = getFromCache(h);
-        if (cached) return cached;
-        return addToCache({ kind: 'conjunction' as const, args: sorted, hash: h });
-    },
+  conjunction: (...terms: (Term | undefined)[]): Term => {
+    const valid = terms.filter((t): t is Term => t !== undefined);
+    if (valid.length === 0) return TermFactory.atom('TRUE');
+    const sorted = [...valid].sort((a, b) => a.hash - b.hash);
+    const hash = computeHash('conjunction', sorted.map(t => t.hash));
+    const cached = termCache.get(hash);
+    if (cached) return cached;
+    return cache(Object.freeze({
+      kind: 'conjunction' as const,
+      args: sorted,
+      hash
+    } as CompoundTerm));
+  },
 
-    disjunction(...terms: (Term | undefined)[]) {
-        const valid = terms.filter((t): t is Term => t !== undefined);
-        if (valid.length === 0) {
-            return this.atom('FALSE');
-        }
-        const sorted = [...valid].sort((a, b) => a.hash - b.hash);
-        const h = computeHash('disjunction', sorted.map(t => t.hash));
-        const cached = getFromCache(h);
-        if (cached) return cached;
-        return addToCache({ kind: 'disjunction' as const, args: sorted, hash: h });
-    },
+  disjunction: (...terms: (Term | undefined)[]): Term => {
+    const valid = terms.filter((t): t is Term => t !== undefined);
+    if (valid.length === 0) return TermFactory.atom('FALSE');
+    const sorted = [...valid].sort((a, b) => a.hash - b.hash);
+    const hash = computeHash('disjunction', sorted.map(t => t.hash));
+    const cached = termCache.get(hash);
+    if (cached) return cached;
+    return cache(Object.freeze({
+      kind: 'disjunction' as const,
+      args: sorted,
+      hash
+    } as CompoundTerm));
+  },
 
-    negation(term: Term | undefined) {
-        if (!term) return this.atom('TRUE');
-        const h = computeHash('negation', [term.hash]);
-        const cached = getFromCache(h);
-        if (cached) return cached;
-        return addToCache({ kind: 'negation' as const, args: [term], hash: h });
-    },
+  negation: (term: Term | undefined): Term => {
+    if (!term) return TermFactory.atom('TRUE');
+    const hash = computeHash('negation', [term.hash]);
+    const cached = termCache.get(hash);
+    if (cached) return cached;
+    return cache(Object.freeze({
+      kind: 'negation' as const,
+      args: [term],
+      hash
+    } as CompoundTerm));
+  },
 
-    implication(antecedent: Term | undefined, consequent: Term | undefined) {
-        if (!antecedent || !consequent) return this.atom('TRUE');
-        const h = computeHash('implication', [antecedent.hash, consequent.hash]);
-        const cached = getFromCache(h);
-        if (cached) return cached;
-        return addToCache({ kind: 'implication' as const, args: [antecedent, consequent], hash: h });
-    },
+  implication: (ant: Term | undefined, cons: Term | undefined): Term => {
+    if (!ant || !cons) return TermFactory.atom('TRUE');
+    const hash = computeHash('implication', [ant.hash, cons.hash]);
+    const cached = termCache.get(hash);
+    if (cached) return cached;
+    return cache(Object.freeze({
+      kind: 'implication' as const,
+      args: [ant, cons],
+      hash
+    } as CompoundTerm));
+  },
 
-    equivalence(a: Term | undefined, c: Term | undefined) {
-        if (!a || !c) return this.atom('TRUE');
-        const h = computeHash('equivalence', [a.hash, c.hash]);
-        const cached = getFromCache(h);
-        if (cached) return cached;
-        return addToCache({ kind: 'equivalence' as const, args: [a, c], hash: h });
-    },
+  equivalence: (a: Term | undefined, c: Term | undefined): Term => {
+    if (!a || !c) return TermFactory.atom('TRUE');
+    const hash = computeHash('equivalence', [a.hash, c.hash]);
+    const cached = termCache.get(hash);
+    if (cached) return cached;
+    return cache(Object.freeze({
+      kind: 'equivalence' as const,
+      args: [a, c],
+      hash
+    } as CompoundTerm));
+  },
 
-    evict(hash: number): boolean {
-        return termCache.delete(hash);
-    },
-
-    clear(): void {
-        termCache.clear();
-    },
-
-    get size(): number {
-        return termCache.size;
-    }
+  evict: (hash: number): boolean => termCache.delete(hash),
+  clear: (): void => termCache.clear(),
+  get size(): number { return termCache.size; }
 };

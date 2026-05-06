@@ -17,7 +17,7 @@ export const PrologStrategy: Strategy = {
             results.push({
                 term: concept.term,
                 type: 'belief' as const,
-                truth: (belief as any).truth ?? { f: 0.5, c: 0.9 },
+                truth: belief.truth ?? { f: 0.5, c: 0.9 },
                 budget: { priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
                 stamp: Object.freeze({
                     id: '',
@@ -52,7 +52,7 @@ export const ResolutionStrategy: Strategy = {
             results.push({
                 term: concept.term,
                 type: 'belief' as const,
-                truth: (belief as any).truth ?? { f: 0.5, c: 0.9 },
+                truth: belief.truth ?? { f: 0.5, c: 0.9 },
                 budget: { priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
                 stamp: Object.freeze({
                     id: '',
@@ -82,7 +82,7 @@ export const GoalDrivenStrategy: Strategy = {
             const belief = concept.beliefBag.peek();
             if (!belief) continue;
             
-            const truth = (belief as any).truth;
+            const truth = belief.truth;
             if (truth && truth.f > 0.7) {
                 results.push({
                     term: concept.term,
@@ -123,7 +123,7 @@ export const AnalogicalStrategy: Strategy = {
             results.push({
                 term: concept.term,
                 type: 'belief' as const,
-                truth: (belief as any).truth ?? { f: 0.5, c: 0.9 },
+                truth: belief.truth ?? { f: 0.5, c: 0.9 },
                 budget: { priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
                 stamp: Object.freeze({
                     id: '',
@@ -159,7 +159,7 @@ export const TermLinkStrategy: Strategy = {
             results.push({
                 term: concept.term,
                 type: 'belief' as const,
-                truth: (belief as any).truth ?? { f: 0.5, c: 0.9 },
+                truth: belief.truth ?? { f: 0.5, c: 0.9 },
                 budget: { priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
                 stamp: Object.freeze({
                     id: '',
@@ -194,7 +194,7 @@ export const TaskMatchStrategy: Strategy = {
             results.push({
                 term: concept.term,
                 type: task.type as any,
-                truth: (belief as any).truth ?? { f: 0.5, c: 0.9 },
+                truth: belief.truth ?? { f: 0.5, c: 0.9 },
                 budget: { priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
                 stamp: Object.freeze({
                     id: '',
@@ -230,7 +230,7 @@ export const DecompositionStrategy: Strategy = {
                 results.push({
                     term: arg,
                     type: 'belief' as const,
-                    truth: (belief as any).truth ?? { f: 0.5, c: 0.9 },
+                    truth: belief.truth ?? { f: 0.5, c: 0.9 },
                     budget: { priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
                     stamp: Object.freeze({
                         id: '',
@@ -262,7 +262,7 @@ export const DefaultFormationStrategy: Strategy = {
             results.push({
                 term: concept.term,
                 type: 'belief' as const,
-                truth: (belief as any).truth ?? { f: 0.5, c: 0.9 },
+                truth: belief.truth ?? { f: 0.5, c: 0.9 },
                 budget: { priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
                 stamp: Object.freeze({
                     id: '',

@@ -20,81 +20,62 @@ export class RuleProcessor {
 
   constructor() {
     this.ruleIndex = new RuleIndex();
-    this.registerAllRules();
-  }
-
-  private registerAllRules(): void {
-    const rules = RuleRegistry.getAll();
-    for (const rule of rules) {
-      this.ruleIndex.register(rule);
-    }
+    RuleRegistry.getAll().forEach(rule => this.ruleIndex.register(rule));
   }
 
   setEventBus(eventBus: EventBus): void {
     this.eventBus = eventBus;
-    for (const lmRule of this.lmRules) {
-      lmRule.setEventBus(eventBus);
-    }
+    this.lmRules.forEach(lmRule => lmRule.setEventBus(eventBus));
   }
 
   registerLMRule(lmRule: LMRule): void {
     this.lmRules.push(lmRule);
-    if (this.eventBus) {
-      lmRule.setEventBus(this.eventBus);
-    }
+    if (this.eventBus) lmRule.setEventBus(this.eventBus);
   }
 
   async *process(premises: AsyncIterable<[Term, Term]>): AsyncGenerator<RuleResult> {
     for await (const [p1, p2] of premises) {
-      const rules = this.ruleIndex.match(p1, p2);
-
-      for (const rule of rules.filter(r => r.sync)) {
+      for (const rule of this.ruleIndex.match(p1, p2).filter(r => r.sync)) {
         const result = rule.apply([p1, p2]);
         if (result) {
-          const truth = Truth.NEUTRAL;
-          const stamp = Stamp.createInput();
           yield {
             term: result as Term,
-            truth,
-            stamp,
+            truth: Truth.NEUTRAL,
+            stamp: Stamp.createInput(),
             priority: rule.priority
           };
         }
       }
 
-      for (const lmRule of this.lmRules) {
+      this.lmRules.forEach(lmRule => {
         lmRule.apply(p1, p2).then(tasks => {
-          for (const task of tasks) {
-            const truth = task.truth ?? Truth.NEUTRAL;
-            const stamp = Stamp.createInput();
+          tasks.forEach(task => {
             this.eventBus?.emit('rule.result', {
               term: task.term,
-              truth,
-              stamp,
+              truth: task.truth ?? Truth.NEUTRAL,
+              stamp: Stamp.createInput(),
               priority: lmRule.priority,
               source: 'lm'
             });
-          }
-        }).catch((err: Error) => {
-          console.warn('LM rule failed:', err);
-        });
-      }
+          });
+        }).catch((err: Error) => console.warn('LM rule failed:', err));
+      });
     }
   }
 
   processSync(p1: Term, p2: Term): RuleResult[] {
-    const rules = this.ruleIndex.match(p1, p2);
     const results: RuleResult[] = [];
-
-    for (const rule of rules.filter(r => r.sync)) {
+    for (const rule of this.ruleIndex.match(p1, p2).filter(r => r.sync)) {
       const result = rule.apply([p1, p2]);
       if (result) {
-        const truth = Truth.NEUTRAL;
-        const stamp = Stamp.createInput();
-        results.push({ term: result as Term, truth, stamp, priority: rule.priority });
+        results.push({
+          term: result as Term,
+          truth: Truth.NEUTRAL,
+          stamp: Stamp.createInput(),
+          priority: rule.priority
+        });
       }
     }
-
     return results;
   }
 }
