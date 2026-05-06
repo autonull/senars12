@@ -5,7 +5,9 @@ export class BotHarness {
   private output = '';
 
   async spawn(args: string[] = []): Promise<void> {
-    this.process = spawn('node', ['run.js', ...args], {
+    // Execute the runner script from the project tree so the
+    // child process can be launched regardless of the test cwd.
+    this.process = spawn('node', ['src/bot/run.js', ...args], {
       env: { ...process.env, NODE_ENV: 'test' },
     });
 

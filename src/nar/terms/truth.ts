@@ -22,11 +22,13 @@ export const Truth = {
     },
 
     _binary(t1: Truth | null, t2: Truth | null, op: (a: Truth, b: Truth) => Truth): Truth | null {
-        return t1 && t2 ? op(t1, t2) : null;
+        if (!t1 || !t2) return null;
+        return op(t1, t2);
     },
 
     _unary(t: Truth | null, op: (truth: Truth) => Truth): Truth | null {
-        return t ? op(t) : null;
+        if (!t) return null;
+        return op(t);
     },
 
     negation(t: Truth): Truth {
@@ -118,7 +120,8 @@ export const Truth = {
     },
 
     structuralReduction(t: Truth): Truth {
-        return Truth._unary(t, (truth) => Truth.create(t.f, Truth.weak(t.c)))!;
+        // Use the passed truth for computations (previously referenced outer name incorrectly).
+        return Truth._unary(t, (truth) => Truth.create(truth.f, Truth.weak(truth.c)))!;
     },
 
     isStronger(t1: Truth, t2: Truth): boolean {

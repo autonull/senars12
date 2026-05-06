@@ -1,6 +1,6 @@
-import { atom, serializeTerm } from '../../src/nar/terms/types.js';
-import { TermFactory } from '../../src/nar/terms/factory.js';
-import { Truth } from '../../src/nar/terms/truth.js';
+import { atom, serializeTerm } from '../terms/types.js';
+import { TermFactory } from '../terms/factory.js';
+import { Truth } from '../terms/truth.js';
 
 describe('Term', () => {
     test('atom creates term with hash', () => {

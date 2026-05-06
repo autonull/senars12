@@ -1,5 +1,5 @@
-export class TermCache {
-    private cache = new Map<number, unknown>();
+export class TermCache<T = unknown> {
+    private cache = new Map<number, T>();
     private maxSize: number;
     private hits = 0;
     private misses = 0;
@@ -8,10 +8,17 @@ export class TermCache {
         this.maxSize = maxSize;
     }
 
-    get(hash: number): unknown | undefined {
+    get(hash: number): T | undefined {
         const term = this.cache.get(hash);
-        term ? this.hits++ : this.misses++;
-        return term;
+        if (term !== undefined) {
+            // promote to recent: delete then set to move insertion order
+            this.cache.delete(hash);
+            this.cache.set(hash, term);
+            this.hits++;
+            return term;
+        }
+        this.misses++;
+        return undefined;
     }
 
     set(term: { hash: number }): void {

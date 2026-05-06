@@ -52,6 +52,10 @@ export function computeHash(kind: string, argHashes: number[]): number {
     return sorted.reduce((acc, h) => fnv1aCombine(acc, h), opHash);
 }
 
+export function isVariableSymbol(symbol: string): boolean {
+    return symbol.startsWith('$');
+}
+
 export function atom(symbol: string): AtomicTerm {
     return Object.freeze({ kind: 'atom' as const, symbol, hash: fnv1a(symbol) });
 }
@@ -110,6 +114,10 @@ case 'negation': {
             if (!a || !c) return '';
             return `(${serializeTermInternal(a)} <=> ${serializeTermInternal(c)})`;
         }
+        default:
+            // Fallback for any future operators
+            if ((term as any).args) return `(${(term as any).args.map(serializeTermInternal).join(',')})`;
+            return '';
     }
 }
 

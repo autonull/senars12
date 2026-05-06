@@ -3,6 +3,21 @@ import type { Term } from './types.js';
 
 const termCache = new Map<number, Term>();
 
+// Pre-create canonical TRUE/FALSE atoms to avoid duplicates
+const TRUE_ATOM = ((): Term => {
+  const h = fnv1a('TRUE');
+  const t = { kind: 'atom' as const, symbol: 'TRUE', hash: h, isVariable: false } as Term;
+  termCache.set(h, t);
+  return t;
+})();
+
+const FALSE_ATOM = ((): Term => {
+  const h = fnv1a('FALSE');
+  const t = { kind: 'atom' as const, symbol: 'FALSE', hash: h, isVariable: false } as Term;
+  termCache.set(h, t);
+  return t;
+})();
+
 function getFromCache<T extends Term>(hash: number): T | undefined {
     return termCache.get(hash) as T | undefined;
 }
@@ -14,10 +29,12 @@ function addToCache<T extends Term>(term: T): T {
 
 export const TermFactory = {
   atom(symbol: string) {
+    if (symbol === 'TRUE') return TRUE_ATOM;
+    if (symbol === 'FALSE') return FALSE_ATOM;
     const h = fnv1a(symbol);
     const cached = getFromCache(h);
     if (cached) return cached;
-    return addToCache({ kind: 'atom' as const, symbol, hash: h, isVariable: symbol.startsWith('$') });
+    return addToCache(Object.freeze({ kind: 'atom' as const, symbol, hash: h, isVariable: symbol.startsWith('$') } as Term));
   },
 
     inheritance(s: Term | undefined, p: Term | undefined) {

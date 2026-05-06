@@ -1,4 +1,5 @@
 import type { Term, CompoundTerm, AtomicTerm } from './types.js';
+import { computeHash } from './types.js';
 
 function isCompound(term: Term): term is CompoundTerm {
     return term.kind === 'conjunction' || term.kind === 'disjunction' ||
@@ -15,7 +16,9 @@ export function normalize(term: Term): Term {
         const sortedArgs = [...term.args].sort((a, b) => a.hash - b.hash);
         const allSorted = sortedArgs.every((arg, i) => arg.hash === term.args[i]?.hash);
         if (!allSorted) {
-            return { ...term, args: sortedArgs };
+            // Recompute hash when arguments are reordered so the canonical form stays consistent.
+            const newHash = computeHash(term.kind, sortedArgs.map(t => t.hash));
+            return Object.freeze({ ...term, args: sortedArgs, hash: newHash } as Term);
         }
     }
     return term;
