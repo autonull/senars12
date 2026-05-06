@@ -57,15 +57,11 @@ export class Memory {
   }
 
   getFocusConcepts(): Concept[] {
-    return Array.from(this.focusConcepts)
-      .map(h => this.concepts.get(h))
-      .filter((c): c is Concept => c !== undefined);
+    return Array.from(this.focusConcepts).map(h => this.concepts.get(h)).filter((c): c is Concept => c !== undefined);
   }
 
   sample(limit: number): Concept[] {
-    return Array.from(this.concepts.values())
-      .sort((a, b) => b.priority - a.priority)
-      .slice(0, limit);
+    return Array.from(this.concepts.values()).sort((a, b) => b.priority - a.priority).slice(0, limit);
   }
 
   consolidate(): void {
@@ -86,17 +82,14 @@ export class Memory {
   }
 
   private applyForgetting(): void {
-    const lowest = Array.from(this.concepts.values())
-      .sort((a, b) => a.priority - b.priority)[0];
+    const lowest = Array.from(this.concepts.values()).sort((a, b) => a.priority - b.priority)[0];
     if (lowest) this.removeConcept(lowest.term);
   }
 
   private updateFocus(): void {
     this.focusConcepts.clear();
     for (const [hash, concept] of this.concepts) {
-      if (concept.priority >= this.config.priorityThreshold) {
-        this.focusConcepts.add(hash);
-      }
+      if (concept.priority >= this.config.priorityThreshold) this.focusConcepts.add(hash);
     }
   }
 

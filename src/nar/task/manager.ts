@@ -6,13 +6,9 @@ export class TaskManager {
   private pending = new Map<string, Task>();
   private memory: Memory;
 
-  constructor(memory: Memory) {
-    this.memory = memory;
-  }
+  constructor(memory: Memory) { this.memory = memory; }
 
-  addTask(task: Task): void {
-    this.pending.set(task.stamp.id, task);
-  }
+  addTask(task: Task): void { this.pending.set(task.stamp.id, task); }
 
   processPending(): Task[] {
     const processed: Task[] = [];
@@ -25,7 +21,5 @@ export class TaskManager {
     return processed;
   }
 
-  get size(): number {
-    return this.pending.size;
-  }
+  get size(): number { return this.pending.size; }
 }

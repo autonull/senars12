@@ -8,18 +8,17 @@ export class TermCache<T = unknown> {
         this.maxSize = maxSize;
     }
 
-    get(hash: number): T | undefined {
-        const term = this.cache.get(hash);
-        if (term !== undefined) {
-            // promote to recent: delete then set to move insertion order
-            this.cache.delete(hash);
-            this.cache.set(hash, term);
-            this.hits++;
-            return term;
-        }
-        this.misses++;
-        return undefined;
+  get(hash: number): T | undefined {
+    const term = this.cache.get(hash);
+    if (term !== undefined) {
+      this.cache.delete(hash);
+      this.cache.set(hash, term);
+      this.hits++;
+      return term;
     }
+    this.misses++;
+    return undefined;
+  }
 
   set(term: T & { hash: number }): void {
     if (this.cache.size >= this.maxSize) {
@@ -29,10 +28,10 @@ export class TermCache<T = unknown> {
     this.cache.set(term.hash, term);
   }
 
-    get hitRate(): number {
-        const total = this.hits + this.misses;
-        return total > 0 ? this.hits / total : 0;
-    }
+  get hitRate(): number {
+    const total = this.hits + this.misses;
+    return total > 0 ? this.hits / total : 0;
+  }
 
     get size(): number {
         return this.cache.size;

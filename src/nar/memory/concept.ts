@@ -48,7 +48,7 @@ export class Concept {
   addTask(type: ConceptTaskType, data: TaskData): boolean {
     const bag = type === 'belief' ? this.beliefBag
       : type === 'goal' ? this.goalBag
-      : this.questionBag;
+        : this.questionBag;
     const added = bag.add(data, data.budget);
     if (added) {
       this.useCount++;

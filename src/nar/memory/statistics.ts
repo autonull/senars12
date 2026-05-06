@@ -27,22 +27,16 @@ export class MemoryStatistics {
         this.typeCounts = new Map();
     }
 
-    recordConcept(concept: Concept): void {
-        this.conceptCount++;
-        const priority = concept.priority;
-        
-        this.prioritySum += priority;
-        if (priority > this.maxPriority) {
-            this.maxPriority = priority;
-        }
-        if (priority < this.minPriority) {
-            this.minPriority = priority;
-        }
+  recordConcept(concept: Concept): void {
+    this.conceptCount++;
+    const priority = concept.priority;
+    this.prioritySum += priority;
+    if (priority > this.maxPriority) this.maxPriority = priority;
+    if (priority < this.minPriority) this.minPriority = priority;
 
-        const typeKey = concept.term.kind;
-        const current = this.typeCounts.get(typeKey) ?? 0;
-        this.typeCounts.set(typeKey, current + 1);
-    }
+    const typeKey = concept.term.kind;
+    this.typeCounts.set(typeKey, (this.typeCounts.get(typeKey) ?? 0) + 1);
+  }
 
     recordTask(): void {
         this.taskCount++;
@@ -57,33 +51,21 @@ export class MemoryStatistics {
         this.typeCounts.clear();
     }
 
-    getStatistics(memory: Memory): StatisticsData {
-        const concepts = memory.sample(1000);
-        const priorities = concepts.map(c => c.priority);
-        
-        const avgPriority = priorities.length > 0 
-            ? priorities.reduce((sum, p) => sum + p, 0) / priorities.length 
-            : 0;
-        
-        const maxPriority = priorities.length > 0 ? Math.max(...priorities) : 0;
-        const minPriority = priorities.length > 0 ? Math.min(...priorities) : 1;
+  getStatistics(memory: Memory): StatisticsData {
+    const concepts = memory.sample(1000);
+    const priorities = concepts.map(c => c.priority);
+    const avgPriority = priorities.length > 0 ? priorities.reduce((sum, p) => sum + p, 0) / priorities.length : 0;
+    const maxPriority = priorities.length > 0 ? Math.max(...priorities) : 0;
+    const minPriority = priorities.length > 0 ? Math.min(...priorities) : 1;
 
-        const conceptsByType = new Map<string, number>();
-        for (const concept of concepts) {
-            const key = concept.term.kind;
-            const current = conceptsByType.get(key) ?? 0;
-            conceptsByType.set(key, current + 1);
-        }
-
-        return {
-            totalConcepts: this.conceptCount,
-            totalTasks: this.taskCount,
-            avgPriority,
-            maxPriority,
-            minPriority,
-            conceptsByType
-        };
+    const conceptsByType = new Map<string, number>();
+    for (const concept of concepts) {
+      const key = concept.term.kind;
+      conceptsByType.set(key, (conceptsByType.get(key) ?? 0) + 1);
     }
+
+    return { totalConcepts: this.conceptCount, totalTasks: this.taskCount, avgPriority, maxPriority, minPriority, conceptsByType };
+  }
 
     get stats(): {
         conceptCount: number;

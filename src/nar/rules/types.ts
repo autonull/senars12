@@ -17,22 +17,10 @@ export interface RegisteredRule {
 
 export const RuleRegistry = {
   rules: new Map<string, RegisteredRule>(),
-
-  register(rule: RegisteredRule): void {
-    RuleRegistry.rules.set(rule.id, rule);
-  },
-
-  get(id: string): RegisteredRule | undefined {
-    return RuleRegistry.rules.get(id);
-  },
-
-  getAll(): RegisteredRule[] {
-    return Array.from(RuleRegistry.rules.values());
-  },
-
-  clear(): void {
-    RuleRegistry.rules.clear();
-  }
+  register(rule: RegisteredRule): void { RuleRegistry.rules.set(rule.id, rule); },
+  get(id: string): RegisteredRule | undefined { return RuleRegistry.rules.get(id); },
+  getAll(): RegisteredRule[] { return Array.from(RuleRegistry.rules.values()); },
+  clear(): void { RuleRegistry.rules.clear(); }
 };
 
 export const createRulePattern = (leftOp?: string, rightOp?: string): RulePattern => ({
@@ -48,13 +36,11 @@ export const encodePattern = (pattern: RulePattern): string[] => [
 class TrieNode<V> {
   children = new Map<string, TrieNode<V>>();
   values: V[] = [];
-
   getOrCreate(key: string): TrieNode<V> {
     const child = this.children.get(key) ?? new TrieNode<V>();
     if (!this.children.has(key)) this.children.set(key, child);
     return child;
   }
-
   getNode(key: string): TrieNode<V> | undefined {
     return this.children.get(key);
   }
@@ -88,10 +74,7 @@ export class RuleIndex {
 
         for (const keyPart of [k1, k2]) {
           const nextNode = node.getNode(keyPart) ?? node.getNode('*');
-          if (!nextNode) {
-            found = false;
-            break;
-          }
+          if (!nextNode) { found = false; break; }
           node = nextNode;
         }
 

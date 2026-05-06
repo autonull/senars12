@@ -40,15 +40,13 @@ export type Term = AtomicTerm | CompoundTerm;
 export type TermMap = Map<number, Term>;
 
 export const computeHash = (kind: string, argHashes: number[]): number => {
-  const opHash = fnv1a(kind);
   const sorted = [...argHashes].sort((a, b) => a - b);
-  return sorted.reduce((acc, h) => fnv1aCombine(acc, h), opHash);
+  return sorted.reduce((acc, h) => fnv1aCombine(acc, h), fnv1a(kind));
 };
 
 export const isVariableSymbol = (symbol: string): boolean => symbol.startsWith('$');
 export const isAtomic = (term: Term): term is AtomicTerm => term.kind === 'atom';
-export const getTermArgs = (term: Term): Term[] =>
-  term.kind === 'atom' ? [] : term.args;
+export const getTermArgs = (term: Term): Term[] => term.kind === 'atom' ? [] : term.args;
 export const getTermArg = (term: Term, index: number): Term | undefined =>
   term.kind === 'atom' ? undefined : term.args[index];
 export const termsEqual = (a: Term, b: Term): boolean => a.hash === b.hash;

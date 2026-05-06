@@ -19,53 +19,46 @@ export class BoundedBag<T> {
         this._capacity = capacity;
     }
 
-    add(item: T, priority: number): boolean {
-        if (this.heap.length >= this._capacity) {
-            const minP = this.findMinPriority();
-            if (priority <= minP) return false;
-            this.heap.shift();
-        }
-
-        const entry: BagItem<T> = { item, priority, lastAccess: Date.now() };
-        this.accessLog.set(item, entry.lastAccess);
-        this.heap.push(entry);
-        this.heap.sort((a, b) => b.priority - a.priority);
-
-        return true;
+  add(item: T, priority: number): boolean {
+    if (this.heap.length >= this._capacity) {
+      const minP = this.findMinPriority();
+      if (priority <= minP) return false;
+      this.heap.shift();
     }
 
-    sample(objective: SamplingObjective): T | undefined {
-        switch (objective.type) {
-            case 'priority': {
-                const found = this.heap.find(h => (h as any).priority >= objective.threshold);
-                if (found) return found.item;
-                return undefined;
-            }
-            case 'recency': {
-                const cutoff = Date.now() - objective.windowMs;
-                const found = this.heap.find(h => h.lastAccess >= cutoff);
-                return found ? found.item : undefined;
-            }
-            case 'novelty': {
-                const first = this.heap[0];
-                if (first) return first.item;
-                return undefined;
-            }
-            case 'composite': {
-                const scored = this.heap.map(h => {
-                    const ps = (h as any).priority * objective.weights.priority;
-                    const rs = (Date.now() - (h as any).lastAccess) / 1000 * objective.weights.recency;
-                    return { item: h.item, score: ps - rs };
-                });
-                if (scored.length > 0) {
-                    scored.sort((a, b) => b.score - a.score);
-                    const top = scored[0];
-                    if (top) return top.item;
-                }
-                return undefined;
-            }
+    const entry: BagItem<T> = { item, priority, lastAccess: Date.now() };
+    this.accessLog.set(item, entry.lastAccess);
+    this.heap.push(entry);
+    this.heap.sort((a, b) => b.priority - a.priority);
+    return true;
+  }
+
+  sample(objective: SamplingObjective): T | undefined {
+    switch (objective.type) {
+      case 'priority': {
+        const found = this.heap.find(h => (h as any).priority >= objective.threshold);
+        return found?.item;
+      }
+      case 'recency': {
+        const cutoff = Date.now() - objective.windowMs;
+        const found = this.heap.find(h => h.lastAccess >= cutoff);
+        return found?.item;
+      }
+      case 'novelty':
+        return this.heap[0]?.item;
+      case 'composite': {
+        const scored = this.heap.map(h => ({
+          item: h.item,
+          score: (h as any).priority * objective.weights.priority - (Date.now() - (h as any).lastAccess) / 1000 * objective.weights.recency
+        }));
+        if (scored.length > 0) {
+          scored.sort((a, b) => b.score - a.score);
+          return scored[0]?.item;
         }
+        return undefined;
+      }
     }
+  }
 
     consolidate(currentTime: number, ttl: number): void {
         const toRemove: number[] = [];

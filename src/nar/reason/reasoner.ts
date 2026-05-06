@@ -16,12 +16,7 @@ export class Reasoner {
   private strategy: Strategy;
   private config: ReasonerConfig;
 
-  constructor(
-    memory: Memory,
-    processor: RuleProcessor,
-    strategy: Strategy,
-    config: ReasonerConfig
-  ) {
+  constructor(memory: Memory, processor: RuleProcessor, strategy: Strategy, config: ReasonerConfig) {
     this.memory = memory;
     this.processor = processor;
     this.strategy = strategy;
@@ -48,25 +43,30 @@ export class Reasoner {
 
       for (const secondary of this.strategy.selectSecondary(task, this.memory)) {
         for (const d of this.processor.processSync(task.term, secondary.term)) {
-          results.push({
-            term: d.term,
-            type: 'belief',
-            truth: d.truth,
-            budget: { priority: d.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
-            stamp: Object.freeze({
-              id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-              creationTime: Date.now(),
-              source: 'DERIVED' as const,
-              derivations: [...d.stamp.derivations, d.stamp.id],
-              depth: d.stamp.depth + 1
-            }),
-            occurrenceTime: Date.now(),
-            derived: true
-          });
+          results.push(this.createDerivedTask(d));
         }
       }
     }
 
     return results;
+  }
+
+  private createDerivedTask(d: any): Task {
+    const now = Date.now();
+    return {
+      term: d.term,
+      type: 'belief',
+      truth: d.truth,
+      budget: { priority: d.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+      stamp: Object.freeze({
+        id: `${now}-${Math.random().toString(36).slice(2, 9)}`,
+        creationTime: now,
+        source: 'DERIVED' as const,
+        derivations: [...d.stamp.derivations, d.stamp.id],
+        depth: d.stamp.depth + 1
+      }),
+      occurrenceTime: now,
+      derived: true
+    };
   }
 }

@@ -25,10 +25,7 @@ export class Bag<T> {
 
   remove(item: T): boolean {
     const idx = this.items.findIndex(i => i.item === item);
-    if (idx >= 0) {
-      this.items.splice(idx, 1);
-      return true;
-    }
+    if (idx >= 0) { this.items.splice(idx, 1); return true; }
     return false;
   }
 

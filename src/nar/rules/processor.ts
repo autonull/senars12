@@ -38,12 +38,7 @@ export class RuleProcessor {
       for (const rule of this.ruleIndex.match(p1, p2).filter(r => r.sync)) {
         const result = rule.apply([p1, p2]);
         if (result) {
-          yield {
-            term: result as Term,
-            truth: Truth.NEUTRAL,
-            stamp: Stamp.createInput(),
-            priority: rule.priority
-          };
+          yield { term: result as Term, truth: Truth.NEUTRAL, stamp: Stamp.createInput(), priority: rule.priority };
         }
       }
 
@@ -68,12 +63,7 @@ export class RuleProcessor {
     for (const rule of this.ruleIndex.match(p1, p2).filter(r => r.sync)) {
       const result = rule.apply([p1, p2]);
       if (result) {
-        results.push({
-          term: result as Term,
-          truth: Truth.NEUTRAL,
-          stamp: Stamp.createInput(),
-          priority: rule.priority
-        });
+        results.push({ term: result as Term, truth: Truth.NEUTRAL, stamp: Stamp.createInput(), priority: rule.priority });
       }
     }
     return results;

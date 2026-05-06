@@ -286,154 +286,25 @@ export const NALRules = {
     }
 };
 
-RuleRegistry.register({
-    id: 'nal.deduction',
-    pattern: createRulePattern('inheritance', 'inheritance'),
-    apply: NALRules.deduction as any,
-    sync: true,
-    priority: 1.0
-});
+const registerRule = (id: string, left: string, right: string, fn: any, priority: number) =>
+  RuleRegistry.register({ id, pattern: createRulePattern(left, right), apply: fn as any, sync: true, priority });
 
-RuleRegistry.register({
-    id: 'nal.induction',
-    pattern: createRulePattern('inheritance', 'inheritance'),
-    apply: NALRules.induction as any,
-    sync: true,
-    priority: 0.9
-});
-
-RuleRegistry.register({
-    id: 'nal.abduction',
-    pattern: createRulePattern('inheritance', 'inheritance'),
-    apply: NALRules.abduction as any,
-    sync: true,
-    priority: 0.8
-});
-
-RuleRegistry.register({
-    id: 'nal.similarity',
-    pattern: createRulePattern('inheritance', 'inheritance'),
-    apply: NALRules.similarity as any,
-    sync: true,
-    priority: 0.95
-});
-
-RuleRegistry.register({
-    id: 'nal.contrapositive',
-    pattern: createRulePattern('implication', 'inheritance'),
-    apply: NALRules.contrapositive as any,
-    sync: true,
-    priority: 0.7
-});
-
-RuleRegistry.register({
-    id: 'nal.intersection',
-    pattern: createRulePattern('conjunction', 'conjunction'),
-    apply: NALRules.intersection as any,
-    sync: true,
-    priority: 0.85
-});
-
-RuleRegistry.register({
-    id: 'nal.union',
-    pattern: createRulePattern('disjunction', 'disjunction'),
-    apply: NALRules.union as any,
-    sync: true,
-    priority: 0.8
-});
-
-RuleRegistry.register({
-    id: 'nal.conjunctionIntro',
-    pattern: createRulePattern('inheritance', 'inheritance'),
-    apply: NALRules.conjunctionIntro as any,
-    sync: true,
-    priority: 0.75
-});
-
-RuleRegistry.register({
-    id: 'nal.disjunctionIntro',
-    pattern: createRulePattern('atom', 'atom'),
-    apply: NALRules.disjunctionIntro as any,
-    sync: true,
-    priority: 0.7
-});
-
-RuleRegistry.register({
-    id: 'nal.implicationIntro',
-    pattern: createRulePattern('inheritance', 'negation'),
-    apply: NALRules.implicationIntro as any,
-    sync: true,
-    priority: 0.8
-});
-
-RuleRegistry.register({
-    id: 'nal.implicationElim',
-    pattern: createRulePattern('implication', 'atom'),
-    apply: NALRules.implicationElim as any,
-    sync: true,
-    priority: 0.9
-});
-
-RuleRegistry.register({
-    id: 'nal.equivalenceIntro',
-    pattern: createRulePattern('implication', 'implication'),
-    apply: NALRules.equivalenceIntro as any,
-    sync: true,
-    priority: 0.85
-});
-
-RuleRegistry.register({
-    id: 'nal.equivalenceElim',
-    pattern: createRulePattern('equivalence', 'atom'),
-    apply: NALRules.equivalenceElim as any,
-    sync: true,
-    priority: 0.9
-});
-
-RuleRegistry.register({
-    id: 'nal.negationIntro',
-    pattern: createRulePattern('implication', 'implication'),
-    apply: NALRules.negationIntro as any,
-    sync: true,
-    priority: 0.75
-});
-
-RuleRegistry.register({
-    id: 'nal.negationElim',
-    pattern: createRulePattern('negation', 'negation'),
-    apply: NALRules.negationElim as any,
-    sync: true,
-    priority: 0.8
-});
-
-RuleRegistry.register({
-    id: 'nal.destruct',
-    pattern: createRulePattern('conjunction', 'atom'),
-    apply: NALRules.destruct as any,
-    sync: true,
-    priority: 0.85
-});
-
-RuleRegistry.register({
-    id: 'nal.compose',
-    pattern: createRulePattern('inheritance', 'inheritance'),
-    apply: NALRules.compose as any,
-    sync: true,
-    priority: 0.7
-});
-
-RuleRegistry.register({
-    id: 'nal.decompose',
-    pattern: createRulePattern('conjunction', 'conjunction'),
-    apply: NALRules.decompose as any,
-    sync: true,
-    priority: 0.8
-});
-
-RuleRegistry.register({
-    id: 'nal.revision',
-    pattern: createRulePattern('inheritance', 'inheritance'),
-    apply: NALRules.revision as any,
-    sync: true,
-    priority: 0.6
-});
+registerRule('nal.deduction', 'inheritance', 'inheritance', NALRules.deduction, 1.0);
+registerRule('nal.induction', 'inheritance', 'inheritance', NALRules.induction, 0.9);
+registerRule('nal.abduction', 'inheritance', 'inheritance', NALRules.abduction, 0.8);
+registerRule('nal.similarity', 'inheritance', 'inheritance', NALRules.similarity, 0.95);
+registerRule('nal.contrapositive', 'implication', 'inheritance', NALRules.contrapositive, 0.7);
+registerRule('nal.intersection', 'conjunction', 'conjunction', NALRules.intersection, 0.85);
+registerRule('nal.union', 'disjunction', 'disjunction', NALRules.union, 0.8);
+registerRule('nal.conjunctionIntro', 'inheritance', 'inheritance', NALRules.conjunctionIntro, 0.75);
+registerRule('nal.disjunctionIntro', 'atom', 'atom', NALRules.disjunctionIntro, 0.7);
+registerRule('nal.implicationIntro', 'inheritance', 'negation', NALRules.implicationIntro, 0.8);
+registerRule('nal.implicationElim', 'implication', 'atom', NALRules.implicationElim, 0.9);
+registerRule('nal.equivalenceIntro', 'implication', 'implication', NALRules.equivalenceIntro, 0.85);
+registerRule('nal.equivalenceElim', 'equivalence', 'atom', NALRules.equivalenceElim, 0.9);
+registerRule('nal.negationIntro', 'implication', 'implication', NALRules.negationIntro, 0.75);
+registerRule('nal.negationElim', 'negation', 'negation', NALRules.negationElim, 0.8);
+registerRule('nal.destruct', 'conjunction', 'atom', NALRules.destruct, 0.85);
+registerRule('nal.compose', 'inheritance', 'inheritance', NALRules.compose, 0.7);
+registerRule('nal.decompose', 'conjunction', 'conjunction', NALRules.decompose, 0.8);
+registerRule('nal.revision', 'inheritance', 'inheritance', NALRules.revision, 0.6);

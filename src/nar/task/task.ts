@@ -22,19 +22,12 @@ export interface Task {
   readonly derived: boolean;
 }
 
-export const createBudget = (
-  priority: number,
-  durability = 0.8,
-  quality = 0.9,
-  cycles = 0,
-  depth = 0
-): Budget => Object.freeze({ priority, durability, quality, cycles, depth });
+export const createBudget = (priority: number, durability = 0.8, quality = 0.9, cycles = 0, depth = 0): Budget =>
+  Object.freeze({ priority, durability, quality, cycles, depth });
 
-export const isBudget = (b: Budget | number): b is Budget =>
-  typeof b === 'object' && 'priority' in b;
+export const isBudget = (b: Budget | number): b is Budget => typeof b === 'object' && 'priority' in b;
 
-export const getBudgetValue = (b: Budget | number): number =>
-  typeof b === 'number' ? b : b.priority;
+export const getBudgetValue = (b: Budget | number): number => typeof b === 'number' ? b : b.priority;
 
 export const createTask = (
   term: Term,

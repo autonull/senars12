@@ -43,12 +43,7 @@ export class NAR {
     this.memory = new Memory(config);
     this.processor = new RuleProcessor();
     this.processor.setEventBus(this.eventBus);
-    this.reasoner = new Reasoner(
-      this.memory,
-      this.processor,
-      BagStrategy,
-      config
-    );
+    this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, config);
     this.taskManager = new TaskManager(this.memory);
 
     if (config.enableLMRules && config.lmClient) {
@@ -78,18 +73,20 @@ export class NAR {
     }
   }
 
+  private addTask(term: Term, type: TaskType, truth: TruthType): void {
+    const taskTruth = truth ?? Truth.NEUTRAL;
+    const budget = createBudget(taskTruth.f * taskTruth.c);
+    const task = createTask(term, type, taskTruth, budget);
+    this.taskManager.addTask(task);
+    this.memory.addTask(term, type, taskTruth, task.budget);
+  }
+
   async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
     if (typeof input === 'string') {
       const { term: parsedTerm, truth: parsedTruth } = termParser.parseWithTruth(input);
-      const taskTruth = truth ?? parsedTruth ?? Truth.NEUTRAL;
-      const task = createTask(parsedTerm, type, taskTruth, createBudget(taskTruth.f * taskTruth.c));
-      this.taskManager.addTask(task);
-      this.memory.addTask(parsedTerm, type, taskTruth, task.budget);
+      this.addTask(parsedTerm, type, truth ?? parsedTruth ?? Truth.NEUTRAL);
     } else {
-      const taskTruth = truth ?? Truth.NEUTRAL;
-      const task = createTask(input, type, taskTruth, createBudget(taskTruth.f * taskTruth.c));
-      this.taskManager.addTask(task);
-      this.memory.addTask(input, type, taskTruth, task.budget);
+      this.addTask(input, type, truth ?? Truth.NEUTRAL);
     }
   }
 
@@ -110,7 +107,6 @@ export class NAR {
     for (let i = 0; i < steps; i++) {
       const results = await this.reasoner.step();
       derived += results.length;
-
       for (const task of results) {
         this.memory.addTask(task.term, task.type, task.truth, getBudgetValue(task.budget));
         this.taskManager.addTask(task);

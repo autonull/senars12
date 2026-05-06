@@ -1,17 +1,8 @@
 import type { Term, CompoundTerm, AtomicTerm } from './types.js';
 import { computeHash } from './types.js';
 
-function hasArgs(term: Term): term is CompoundTerm {
-    return (
-        term.kind === 'conjunction' ||
-        term.kind === 'disjunction' ||
-        term.kind === 'inheritance' ||
-        term.kind === 'similarity' ||
-        term.kind === 'negation' ||
-        term.kind === 'implication' ||
-        term.kind === 'equivalence'
-    );
-}
+const hasArgs = (term: Term): term is CompoundTerm =>
+  ['conjunction', 'disjunction', 'inheritance', 'similarity', 'negation', 'implication', 'equivalence'].includes(term.kind);
 
 export function normalize(term: Term): Term {
     // Only conjunction and disjunction are commutative and need ordering.
@@ -33,19 +24,11 @@ export interface TermVisitorFn<T> {
 }
 
 export function visit<T>(term: Term, visitor: TermVisitorFn<T>, order: 'pre-order' | 'post-order' = 'pre-order'): void {
-    if (order === 'pre-order') {
-        visitor(term);
-    }
-
-    if (hasArgs(term)) {
-        for (const arg of term.args) {
-            visit(arg, visitor, order);
-        }
-    }
-
-    if (order === 'post-order') {
-        visitor(term);
-    }
+  if (order === 'pre-order') visitor(term);
+  if (hasArgs(term)) {
+    for (const arg of term.args) visit(arg, visitor, order);
+  }
+  if (order === 'post-order') visitor(term);
 }
 
 export interface TermReducerFn<T> {
@@ -53,25 +36,19 @@ export interface TermReducerFn<T> {
 }
 
 export function reduce<T>(term: Term, fn: TermReducerFn<T>, initial: T): T {
-    let acc = fn(initial, term);
-
-    if (hasArgs(term)) {
-        for (const arg of term.args) {
-            acc = reduce(arg, fn, acc);
-        }
-    }
-
-    return acc;
+  let acc = fn(initial, term);
+  if (hasArgs(term)) {
+    for (const arg of term.args) acc = reduce(arg, fn, acc);
+  }
+  return acc;
 }
 
-export function getTermDepth(term: Term): number {
-    if (term.kind === 'atom' || !hasArgs(term)) return 0;
-    const depths = term.args.map((arg: Term) => getTermDepth(arg));
-    return 1 + Math.max(0, ...depths);
-}
+export const getTermDepth = (term: Term): number => {
+  if (term.kind === 'atom' || !hasArgs(term)) return 0;
+  return 1 + Math.max(0, ...term.args.map(getTermDepth));
+};
 
-export function getTermSize(term: Term): number {
-    if (term.kind === 'atom') return 1;
-    const args = term.args ?? [];
-    return 1 + args.reduce((sum: number, arg: Term) => sum + getTermSize(arg), 0);
-}
+export const getTermSize = (term: Term): number => {
+  if (term.kind === 'atom') return 1;
+  return 1 + term.args.reduce((sum, arg) => sum + getTermSize(arg), 0);
+};
