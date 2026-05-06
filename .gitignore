@@ -44,4 +44,3 @@ verification/
 # Leftover/debug files
 *.bak
 *.debug.js
-memory
