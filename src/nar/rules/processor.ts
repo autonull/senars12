@@ -3,18 +3,23 @@
  */
 
 import type {Term} from '../terms';
-import {RuleIndex, RuleRegistry} from './types.js';
+import {RuleIndex, RuleRegistry, type TruthFn} from './types.js';
 import {Truth, type Truth as TruthType} from '../terms/truth.js';
 import {Stamp} from '../terms';
 import type {LMRule} from '../lm';
 import {EventBus} from '../types';
 import './nal.js';
 
+export interface RuleInput {
+  term: Term;
+  truth: TruthType;
+}
+
 export interface RuleResult {
-    term: Term;
-    truth: TruthType;
-    stamp: ReturnType<typeof Stamp.createInput>;
-    priority: number;
+  term: Term;
+  truth: TruthType;
+  stamp: ReturnType<typeof Stamp.createInput>;
+  priority: number;
 }
 
 export class RuleProcessor {
@@ -37,75 +42,85 @@ export class RuleProcessor {
         if (this.eventBus) lmRule.setEventBus(this.eventBus);
     }
 
-    async* process(premises: AsyncIterable<[Term, Term]>): AsyncGenerator<RuleResult> {
-        for await (const [p1, p2] of premises) {
-            for (const rule of this.ruleIndex.match(p1, p2)) {
-                if (!rule.sync) continue;
+  async* process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
+    for await (const [p1, p2] of premises) {
+      for (const rule of this.ruleIndex.match(p1.term, p2.term)) {
+        if (!rule.sync) continue;
 
-                try {
-                    const result = rule.apply([p1, p2]);
-                    if (result) {
-                        yield {
-                            term: result as Term,
-                            truth: Truth.NEUTRAL,
-                            stamp: Stamp.createInput(),
-                            priority: rule.priority
-                        };
-                    }
-                } catch (error) {
-                    this.handleRuleError(error, rule.id);
-                }
-            }
-
-            this.processLMRules(p1, p2);
+        try {
+          const result = rule.apply([p1.term, p2.term]);
+          if (result) {
+            const truthFn = rule.truthFn ?? (() => Truth.NEUTRAL);
+            const truth = truthFn(p1.truth, p2.truth);
+            yield {
+              term: result as Term,
+              truth,
+              stamp: Stamp.createInput(),
+              priority: rule.priority
+            };
+          }
+        } catch (error) {
+          this.handleRuleError(error, rule.id);
         }
+      }
+
+      for await (const lmResult of this.processLMRules(p1, p2)) {
+        yield lmResult;
+      }
     }
+  }
 
-    processSync(p1: Term, p2: Term): RuleResult[] {
-        const results: RuleResult[] = [];
-        const matchedRules = this.ruleIndex.match(p1, p2);
+  processSync(p1: RuleInput, p2: RuleInput): RuleResult[] {
+    const results: RuleResult[] = [];
+    const matchedRules = this.ruleIndex.match(p1.term, p2.term);
 
-        for (const rule of matchedRules) {
-            if (!rule.sync) continue;
+    for (const rule of matchedRules) {
+      if (!rule.sync) continue;
 
-            try {
-                const result = rule.apply([p1, p2]);
-                if (result) {
-                    results.push({
-                        term: result as Term,
-                        truth: Truth.NEUTRAL,
-                        stamp: Stamp.createInput(),
-                        priority: rule.priority
-                    });
-                }
-            } catch (error) {
-                this.handleRuleError(error, rule.id);
-            }
+      try {
+        const result = rule.apply([p1.term, p2.term]);
+        if (result) {
+          const truthFn = rule.truthFn ?? (() => Truth.NEUTRAL);
+          const truth = truthFn(p1.truth, p2.truth);
+          results.push({
+            term: result as Term,
+            truth,
+            stamp: Stamp.createInput(),
+            priority: rule.priority
+          });
         }
-
-        return results;
+      } catch (error) {
+        this.handleRuleError(error, rule.id);
+      }
     }
 
-    private processLMRules(p1: Term, p2: Term): void {
-        for (const lmRule of this.lmRules) {
-            lmRule.apply(p1, p2)
-                .then(tasks => {
-                    tasks.forEach(task => {
-                        this.eventBus?.emit('rule.result', {
-                            term: task.term,
-                            truth: task.truth ?? Truth.NEUTRAL,
-                            stamp: Stamp.createInput(),
-                            priority: lmRule.priority,
-                            source: 'lm'
-                        });
-                    });
-                })
-                .catch(error => this.handleRuleError(error, lmRule.id));
-        }
-    }
+    return results;
+  }
 
-    private handleRuleError(error: unknown, ruleId: string): void {
-        const err = error instanceof Error ? error : new Error(String(error));
-        this.eventBus?.emit('error', {error: err, context: {ruleId}});
+  private async* processLMRules(p1: RuleInput, p2: RuleInput): AsyncGenerator<RuleResult> {
+    const promises = this.lmRules.map(async (lmRule) => {
+      try {
+        const tasks = await lmRule.apply(p1.term, p2.term);
+        return tasks.map(task => ({
+          term: task.term,
+          truth: task.truth ?? Truth.NEUTRAL,
+          stamp: Stamp.createInput(),
+          priority: lmRule.priority
+        } as RuleResult));
+      } catch (error) {
+        this.handleRuleError(error, lmRule.id);
+        return [];
+      }
+    });
+
+    const results = await Promise.all(promises);
+    for (const result of results.flat()) {
+      yield result;
     }
+  }
+
+  private handleRuleError(error: unknown, ruleId: string): void {
+    const err = error instanceof Error ? error : new Error(String(error));
+    this.eventBus?.emit('error', {error: err, context: {ruleId}});
+  }
 }

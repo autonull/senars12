@@ -6,15 +6,13 @@ export {Bag} from './bag.js';
 export {BoundedBag} from './bounded-bag.js';
 
 export {Memory} from './memory.js';
-export type {MemoryConfig} from './memory.js';
+export type {MemoryConfig, MemoryStatistics} from './memory.js';
 
-// Memory modules
-export {MemoryIndex, memoryIndex} from './memory-index.js';
-export {Focus, focus} from './focus.js';
-export {MemoryScorer, memoryScorer} from './scorer.js';
-export {MemoryConsolidation, memoryConsolidation} from './consolidation.js';
-export {Archive, archive} from './archive.js';
-export {MemoryStatistics, memoryStatistics} from './statistics.js';
+// Memory modules - internal to Memory class now
+export {MemoryIndex} from './memory-index.js';
+export {Focus} from './focus.js';
+export {MemoryScorer} from './scorer.js';
+export {Archive} from './archive.js';
 
 // Memory utilities
 export type {TermMeta} from './gc.js';

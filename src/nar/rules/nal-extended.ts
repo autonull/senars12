@@ -1,7 +1,8 @@
 import type {Term} from '../terms';
-import {createRulePattern, RuleRegistry} from './types.js';
+import {createRulePattern, RuleRegistry, type TruthFn} from './types.js';
 import {TermBuilder} from '../terms';
 import {getPredicate, getSubject, sameHash} from '../terms';
+import {Truth} from '../terms/truth.js';
 
 export const NALExtendedRules = {
     modusPonens: ([imp, antecedent]: [Term, Term]): Term | undefined => {
@@ -188,50 +189,39 @@ export const NALExtendedRules = {
     }
 };
 
-RuleRegistry.register({
-    id: 'nal.modusPonens',
-    pattern: createRulePattern('implication', 'atom'),
-    apply: NALExtendedRules.modusPonens as any,
+const registerExtendedRule = (
+  id: string,
+  left: string,
+  right: string,
+  fn: any,
+  truthFn: TruthFn,
+  priority: number
+) =>
+  RuleRegistry.register({
+    id,
+    pattern: createRulePattern(left, right),
+    apply: fn as any,
     sync: true,
-    priority: 0.95
-});
+    priority,
+    truthFn
+  });
 
-RuleRegistry.register({
-    id: 'nal.modusTollens',
-    pattern: createRulePattern('implication', 'negation'),
-    apply: NALExtendedRules.modusTollens as any,
-    sync: true,
-    priority: 0.9
-});
-
-RuleRegistry.register({
-    id: 'nal.conversion',
-    pattern: createRulePattern('inheritance', 'inheritance'),
-    apply: NALExtendedRules.conversion as any,
-    sync: true,
-    priority: 0.7
-});
-
-RuleRegistry.register({
-    id: 'nal.analogy',
-    pattern: createRulePattern('inheritance', 'inheritance'),
-    apply: NALExtendedRules.analogy as any,
-    sync: true,
-    priority: 0.8
-});
-
-RuleRegistry.register({
-    id: 'nal.comparison',
-    pattern: createRulePattern('inheritance', 'inheritance'),
-    apply: NALExtendedRules.comparison as any,
-    sync: true,
-    priority: 0.75
-});
-
-RuleRegistry.register({
-    id: 'nal.contrapositionRule',
-    pattern: createRulePattern('implication', 'implication'),
-    apply: NALExtendedRules.contrapositionRule as any,
-    sync: true,
-    priority: 0.7
-});
+registerExtendedRule('nal.modusPonens', 'implication', 'atom', NALExtendedRules.modusPonens, Truth.deduction, 0.95);
+registerExtendedRule('nal.modusTollens', 'implication', 'negation', NALExtendedRules.modusTollens, Truth.contraposition, 0.9);
+registerExtendedRule('nal.conversion', 'inheritance', 'inheritance', NALExtendedRules.conversion, Truth.conversion, 0.7);
+registerExtendedRule('nal.analogy', 'inheritance', 'inheritance', NALExtendedRules.analogy, Truth.analogy, 0.8);
+registerExtendedRule('nal.comparison', 'inheritance', 'inheritance', NALExtendedRules.comparison, Truth.resemblance, 0.75);
+registerExtendedRule('nal.contrapositionRule', 'implication', 'implication', NALExtendedRules.contrapositionRule, Truth.contraposition, 0.7);
+registerExtendedRule('nal.structuralInheritance', 'conjunction', 'inheritance', NALExtendedRules.structuralInheritance, Truth.deduction, 0.75);
+registerExtendedRule('nal.structuralReduction', 'inheritance', 'inheritance', NALExtendedRules.structuralReduction, Truth.structuralReduction, 0.7);
+registerExtendedRule('nal.intersectionComposition', 'inheritance', 'inheritance', NALExtendedRules.intersectionComposition, Truth.intersection, 0.8);
+registerExtendedRule('nal.unionComposition', 'inheritance', 'inheritance', NALExtendedRules.unionComposition, Truth.union, 0.75);
+registerExtendedRule('nal.difference', 'inheritance', 'inheritance', NALExtendedRules.difference, Truth.deduction, 0.7);
+registerExtendedRule('nal.implicationDeduction', 'implication', 'implication', NALExtendedRules.implicationDeduction, Truth.deduction, 0.85);
+registerExtendedRule('nal.equivalence', 'implication', 'implication', NALExtendedRules.equivalence, Truth.intersection, 0.8);
+registerExtendedRule('nal.variableIntroduction', 'inheritance', 'inheritance', NALExtendedRules.variableIntroduction, Truth.deduction, 0.6);
+registerExtendedRule('nal.decomposition', 'conjunction', 'conjunction', NALExtendedRules.decomposition, Truth.deduction, 0.75);
+registerExtendedRule('nal.variableDependency', 'inheritance', 'inheritance', NALExtendedRules.variableDependency, Truth.deduction, 0.5);
+registerExtendedRule('nal.sameness', 'inheritance', 'inheritance', NALExtendedRules.sameness, Truth.sameness, 0.85);
+registerExtendedRule('nal.revisionWeak', 'inheritance', 'inheritance', NALExtendedRules.revisionWeak, Truth.revision, 0.65);
+registerExtendedRule('nal.exemplification', 'inheritance', 'inheritance', NALExtendedRules.exemplification, Truth.exemplification, 0.8);

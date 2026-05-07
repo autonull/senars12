@@ -94,25 +94,57 @@ export class SelfAnalyzer {
     shutdown(): void {
     }
 
-    private async analyzeReasoningPatterns(): Promise<PatternAnalysis> {
-        return {
-            frequentPatterns: [],
-            inefficientChains: [],
-            successfulStrategies: [],
-            performancePatterns: {},
-            resourceUsage: {},
-            taskProcessingPatterns: {}
-        };
+  private async analyzeReasoningPatterns(): Promise<PatternAnalysis> {
+    if (!this.nar) {
+      return {
+        frequentPatterns: [],
+        inefficientChains: [],
+        successfulStrategies: [],
+        performancePatterns: {},
+        resourceUsage: {},
+        taskProcessingPatterns: {}
+      };
     }
 
-    private async identifyOptimizations(_patterns: PatternAnalysis): Promise<Optimizations> {
-        return {
-            rulePriorities: [],
-            strategyAdjustments: [],
-            resourceAllocations: [],
-            performanceImprovements: []
-        };
+    const stats = this.nar.getStatistics();
+    const concepts = this.nar.listConcepts();
+    
+    const frequentPatterns = concepts
+      .slice(0, 10)
+      .map(c => ({term: c.term, priority: c.priority}));
+
+    const resourceUsage = {
+      conceptCount: concepts.length,
+      memoryUsage: process.memoryUsage ? process.memoryUsage() : {}
+    };
+
+    return {
+      frequentPatterns,
+      inefficientChains: [],
+      successfulStrategies: [],
+      performancePatterns: stats,
+      resourceUsage,
+      taskProcessingPatterns: {}
+    };
+  }
+
+  private async identifyOptimizations(patterns: PatternAnalysis): Promise<Optimizations> {
+    const optimizations: Optimizations = {
+      rulePriorities: [],
+      strategyAdjustments: [],
+      resourceAllocations: [],
+      performanceImprovements: []
+    };
+
+    if (patterns.resourceUsage.conceptCount && patterns.resourceUsage.conceptCount > 80) {
+      optimizations.performanceImprovements.push({
+        type: 'memory_cleanup',
+        reason: 'Concept count high'
+      });
     }
+
+    return optimizations;
+  }
 
     private async applyOptimizations(optimizations: Optimizations): Promise<void> {
         for (const improvement of optimizations.performanceImprovements) {

@@ -1,18 +1,21 @@
 import type {Term} from '../terms';
+import type {Truth} from '../terms/truth';
 
 export type RulePattern = {
-    left: { op?: string; subject?: string };
-    right: { op?: string; subject?: string };
+  left: { op?: string; subject?: string };
+  right: { op?: string; subject?: string };
 };
 
 export type RuleFn = (premises: any[]) => any;
+export type TruthFn = (p1: Truth, p2: Truth) => Truth;
 
 export interface RegisteredRule {
-    id: string;
-    pattern: RulePattern;
-    apply: RuleFn;
-    sync: boolean;
-    priority: number;
+  id: string;
+  pattern: RulePattern;
+  apply: RuleFn;
+  sync: boolean;
+  priority: number;
+  truthFn?: TruthFn;
 }
 
 export const RuleRegistry = {

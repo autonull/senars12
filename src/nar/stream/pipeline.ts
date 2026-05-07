@@ -2,52 +2,140 @@ import type {Task} from '../types';
 import type {Memory} from '../memory';
 import type {Strategy} from '../reason';
 import {Stamp} from '../terms';
+import {Truth} from '../terms/truth.js';
+import {createBudget, createTask} from '../types/core.js';
 
 export type PremiseSource = AsyncGenerator<Task, void, void>;
 
 export type PipelineConfig = Readonly<{
-    cpuThrottleMs: number;
-    maxDepth: number;
-    maxQueueSize: number;
-    maxDerivationsPerStep: number;
+  cpuThrottleMs: number;
+  maxDepth: number;
+  maxQueueSize: number;
+  maxDerivationsPerStep: number;
 }>;
 
 const DEFAULT_CONFIG: PipelineConfig = Object.freeze({
-    cpuThrottleMs: 10,
-    maxDepth: 10,
-    maxQueueSize: 1000,
-    maxDerivationsPerStep: 100
+  cpuThrottleMs: 10,
+  maxDepth: 10,
+  maxQueueSize: 1000,
+  maxDerivationsPerStep: 100
 });
 
-export async function* createPipeline(
-    source: PremiseSource,
-    memory: Memory,
-    strategy: Strategy,
-    config: PipelineConfig = DEFAULT_CONFIG
-): AsyncGenerator<Task> {
-    let lastYield = Date.now();
-    let queueSize = 0;
-    let derivationsCount = 0;
+export abstract class PremiseSourceBase {
+  abstract stream(signal?: AbortSignal): AsyncIterable<Task>;
+}
 
-    for await (const task of source) {
-        if (Date.now() - lastYield > config.cpuThrottleMs) {
-            await new Promise(r => setTimeout(r, 0));
-            lastYield = Date.now();
+export class MemoryPremiseSource extends PremiseSourceBase {
+  constructor(
+    private memory: Memory,
+    private sampling: 'priority-weighted' | 'recency' | 'novelty' | 'fair' = 'priority-weighted'
+  ) {
+    super();
+  }
+
+  async* stream(signal?: AbortSignal): AsyncIterable<Task> {
+    while (!signal?.aborted) {
+      const concepts = this.memory.sample(100);
+      for (const concept of concepts) {
+        const topBelief = concept.beliefBag.peek();
+        if (topBelief) {
+          yield createTask(
+            concept.term,
+            'belief',
+            topBelief.truth ?? Truth.NEUTRAL,
+            createBudget(concept.priority)
+          );
         }
-
-        if (queueSize > config.maxQueueSize) {
-            await new Promise(r => setTimeout(r, 0));
-            continue;
-        }
-
-        queueSize++;
-        yield task;
-        queueSize--;
-
-        derivationsCount++;
-
-        if (derivationsCount >= config.maxDerivationsPerStep) break;
+      }
+      await new Promise(r => setTimeout(r, 0));
     }
+  }
+}
+
+export class FocusPremiseSource extends PremiseSourceBase {
+  constructor(private memory: Memory) {
+    super();
+  }
+
+  async* stream(signal?: AbortSignal): AsyncIterable<Task> {
+    while (!signal?.aborted) {
+      const concepts = this.memory.listConcepts().filter(c => c.priority > 0.7);
+      for (const concept of concepts) {
+        const topBelief = concept.beliefBag.peek();
+        if (topBelief) {
+          yield createTask(
+            concept.term,
+            'belief',
+            topBelief.truth ?? Truth.NEUTRAL,
+            createBudget(concept.priority)
+          );
+        }
+      }
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+}
+
+export class CompositePremiseSource extends PremiseSourceBase {
+  constructor(
+    private sources: Array<{source: PremiseSourceBase; weight: number}>
+  ) {
+    super();
+  }
+
+  async* stream(signal?: AbortSignal): AsyncGenerator<Task> {
+    const iterators = this.sources.map(s => s.source.stream(signal));
+    const tasks: Task[] = [];
+
+    while (!signal?.aborted) {
+      for await (const taskIter of iterators) {
+        for await (const task of taskIter) {
+          tasks.push(task);
+        }
+      }
+
+      if (tasks.length > 0) {
+        yield tasks.shift()!;
+      } else {
+        await new Promise(r => setTimeout(r, 1));
+      }
+    }
+  }
+}
+
+export async function* createPipeline(
+  source: PremiseSource | PremiseSourceBase,
+  memory: Memory,
+  strategy: Strategy,
+  config: PipelineConfig = DEFAULT_CONFIG
+): AsyncGenerator<Task> {
+  let lastYield = Date.now();
+  let queueSize = 0;
+  let derivationsCount = 0;
+
+  const stream = 'stream' in source && typeof source.stream === 'function' 
+    ? source.stream() 
+    : source;
+
+  for await (const task of stream as AsyncIterable<Task>) {
+    if (Date.now() - lastYield > config.cpuThrottleMs) {
+      await new Promise(r => setTimeout(r, 0));
+      lastYield = Date.now();
+    }
+
+    if (queueSize > config.maxQueueSize) {
+      await new Promise(r => setTimeout(r, 0));
+      continue;
+    }
+
+    queueSize++;
+    yield task;
+    queueSize--;
+
+    derivationsCount++;
+
+    if (derivationsCount >= config.maxDerivationsPerStep) break;
+  }
 }
 
 export async function* throttled<T>(

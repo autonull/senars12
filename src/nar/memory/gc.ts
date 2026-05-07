@@ -1,77 +1,70 @@
 import type {Term} from '../terms';
 
 export interface TermMeta {
-    lastAccess: number;
-    derivationCount: number;
+  lastAccess: number;
+  derivationCount: number;
 }
 
-interface TrackedTerm {
-    ref: Term;
-    meta: TermMeta;
-}
-
-const termRefs = new Set<TrackedTerm>();
-const termMetaMap = new Map<Term, TermMeta>();
+const termMetaMap = new Map<number, {term: Term; meta: TermMeta}>();
 
 export function trackTerm(term: Term): void {
-    const existing = termMetaMap.get(term);
-    const meta: TermMeta = {
-        lastAccess: Date.now(),
-        derivationCount: (existing?.derivationCount ?? 0) + 1
-    };
-    termMetaMap.set(term, meta);
-    termRefs.add({ref: term, meta});
+  const hash = term.hash;
+  const existing = termMetaMap.get(hash);
+  const meta: TermMeta = {
+    lastAccess: Date.now(),
+    derivationCount: (existing?.meta.derivationCount ?? 0) + 1
+  };
+  termMetaMap.set(hash, {term, meta});
 }
 
 export function untrackTerm(term: Term): void {
-    const existing = termMetaMap.get(term);
-    if (!existing) return;
+  const hash = term.hash;
+  const existing = termMetaMap.get(hash);
+  if (!existing) return;
 
-    const meta: TermMeta = {
-        ...existing,
-        derivationCount: existing.derivationCount - 1
-    };
+  const meta: TermMeta = {
+    ...existing.meta,
+    derivationCount: existing.meta.derivationCount - 1
+  };
 
-    if (meta.derivationCount <= 0) {
-        termMetaMap.delete(term);
-        termRefs.delete({ref: term, meta: existing});
-    } else {
-        termMetaMap.set(term, meta);
-    }
+  if (meta.derivationCount <= 0) {
+    termMetaMap.delete(hash);
+  } else {
+    termMetaMap.set(hash, {term, meta});
+  }
 }
 
 export function updateAccessTime(term: Term): void {
-    const existing = termMetaMap.get(term);
+  const hash = term.hash;
+  const existing = termMetaMap.get(hash);
+  if (existing) {
     const meta: TermMeta = {
-        lastAccess: Date.now(),
-        derivationCount: existing?.derivationCount ?? 0
+      lastAccess: Date.now(),
+      derivationCount: existing.meta.derivationCount
     };
-    termMetaMap.set(term, meta);
+    termMetaMap.set(hash, {term, meta});
+  }
 }
 
 export function getTermMeta(term: Term): TermMeta | undefined {
-    return termMetaMap.get(term);
+  return termMetaMap.get(term.hash)?.meta;
 }
 
 export function structuralGC(ttl: number): number {
-    const currentTime = Date.now();
-    let cleaned = 0;
+  const currentTime = Date.now();
+  let cleaned = 0;
 
-    const deadTerms: Term[] = [];
-    for (const [term, meta] of termMetaMap) {
-        if (currentTime - meta.lastAccess > ttl && meta.derivationCount === 0) {
-            deadTerms.push(term);
-        }
+  const deadHashes: number[] = [];
+  for (const [hash, {term, meta}] of termMetaMap) {
+    if (currentTime - meta.lastAccess > ttl && meta.derivationCount === 0) {
+      deadHashes.push(hash);
     }
+  }
 
-    for (const term of deadTerms) {
-        const meta = termMetaMap.get(term);
-        if (meta) {
-            termMetaMap.delete(term);
-            termRefs.delete({ref: term, meta});
-            cleaned++;
-        }
-    }
+  for (const hash of deadHashes) {
+    termMetaMap.delete(hash);
+    cleaned++;
+  }
 
-    return cleaned;
+  return cleaned;
 }

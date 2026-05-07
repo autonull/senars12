@@ -102,10 +102,16 @@ describe('hash', () => {
             expect(h1).toBe(h2);
         });
 
-        test('same kind produces same hash regardless of order', () => {
-            const h = computeHash('compound', [1, 5, 3]);
-            const h2 = computeHash('compound', [5, 3, 1]);
-            expect(h).toBe(h2);
-        });
+test('conjunction (commutative) produces same hash regardless of order', () => {
+  const h = computeHash('conjunction', [1, 5, 3]);
+  const h2 = computeHash('conjunction', [5, 3, 1]);
+  expect(h).toBe(h2);
+});
+
+test('inheritance (non-commutative) produces different hash for different order', () => {
+  const h = computeHash('inheritance', [1, 5, 3]);
+  const h2 = computeHash('inheritance', [5, 3, 1]);
+  expect(h).not.toBe(h2);
+});
     });
 });

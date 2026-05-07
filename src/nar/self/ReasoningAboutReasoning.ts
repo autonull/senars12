@@ -11,28 +11,37 @@ export interface ReasoningAboutReasoningConfig {
 }
 
 export class ReasoningAboutReasoning {
-    private nar: NAR | null;
-    private readonly config: Required<ReasoningAboutReasoningConfig>;
-    private readonly monitor: MetacognitiveMonitor;
-    private analyzer: SelfAnalyzer;
-    private periodicAnalysisInterval: NodeJS.Timeout | null;
+  private nar: NAR | null;
+  private readonly config: Required<ReasoningAboutReasoningConfig>;
+  private readonly monitor: MetacognitiveMonitor;
+  private analyzer: SelfAnalyzer;
+  private periodicAnalysisInterval: NodeJS.Timeout | null;
 
-    constructor(nar: NAR | null, config: ReasoningAboutReasoningConfig = {}) {
-        this.nar = nar;
-        this.config = {
-            maxTraceSize: config.maxTraceSize ?? 1000,
-            maxPerformanceHistory: config.maxPerformanceHistory ?? 100,
-            monitoringInterval: config.monitoringInterval ?? 1000,
-            reasoningInterval: config.reasoningInterval ?? 30000,
-            selfCorrectionEnabled: config.selfCorrectionEnabled ?? true
-        };
+  constructor(nar: NAR | null, config: ReasoningAboutReasoningConfig = {}) {
+    this.nar = nar;
+    this.config = {
+      maxTraceSize: config.maxTraceSize ?? 1000,
+      maxPerformanceHistory: config.maxPerformanceHistory ?? 100,
+      monitoringInterval: config.monitoringInterval ?? 1000,
+      reasoningInterval: config.reasoningInterval ?? 30000,
+      selfCorrectionEnabled: config.selfCorrectionEnabled ?? true
+    };
 
-        this.monitor = new MetacognitiveMonitor(nar, this.config);
-        this.analyzer = new SelfAnalyzer(nar, this.monitor, this.config);
-        this.periodicAnalysisInterval = null;
+    this.monitor = new MetacognitiveMonitor(nar, this.config);
+    this.analyzer = new SelfAnalyzer(nar, this.monitor, this.config);
+    this.periodicAnalysisInterval = null;
+  }
 
-        this.startPeriodicSelfAnalysis();
+  start(): void {
+    this.startPeriodicSelfAnalysis();
+  }
+
+  stop(): void {
+    if (this.periodicAnalysisInterval) {
+      clearInterval(this.periodicAnalysisInterval);
+      this.periodicAnalysisInterval = null;
     }
+  }
 
     async performMetaCognitiveReasoning(): Promise<any> {
         const result = await this.analyzer.performMetaCognitiveReasoning();

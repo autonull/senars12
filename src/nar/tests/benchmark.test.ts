@@ -1,6 +1,6 @@
-import {atom, termsEqual} from '../terms';
-import {TermBuilder} from '../terms';
+import {atom, termsEqual, TermBuilder} from '../terms';
 import {RuleProcessor} from '../rules';
+import {Truth} from '../terms/truth.js';
 
 describe('Performance benchmarks', () => {
     test('term comparison benchmark <100ns', () => {
@@ -18,19 +18,19 @@ describe('Performance benchmarks', () => {
         expect(perOp).toBeLessThan(100);
     });
 
-    test('rule dispatch benchmark <20μs', () => {
-        const processor = new RuleProcessor();
-        const t1 = TermBuilder.inheritance(atom('A'), atom('B'));
-        const t2 = TermBuilder.inheritance(atom('B'), atom('C'));
+test('rule dispatch benchmark <20μs', () => {
+  const processor = new RuleProcessor();
+  const t1 = {term: TermBuilder.inheritance(atom('A'), atom('B')), truth: Truth.TRUE};
+  const t2 = {term: TermBuilder.inheritance(atom('B'), atom('C')), truth: Truth.TRUE};
 
-        const start = performance.now();
-        for (let i = 0; i < 1000; i++) {
-            processor.processSync(t1, t2);
-        }
-        const elapsed = (performance.now() - start) * 1000;
-        const perOp = elapsed / 1000;
+  const start = performance.now();
+  for (let i = 0; i < 1000; i++) {
+    processor.processSync(t1, t2);
+  }
+  const elapsed = (performance.now() - start) * 1000;
+  const perOp = elapsed / 1000;
 
-        console.log(`Rule dispatch: ${perOp.toFixed(2)}μs per operation`);
-        expect(perOp).toBeLessThan(20);
-    });
+  console.log(`Rule dispatch: ${perOp.toFixed(2)}μs per operation`);
+  expect(perOp).toBeLessThan(20);
+});
 });

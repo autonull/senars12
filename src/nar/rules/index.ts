@@ -8,7 +8,7 @@ export {RuleRegistry, RuleIndex, createRulePattern, encodePattern} from './types
 
 // Rule processor
 export {RuleProcessor} from './processor.js';
-export type {RuleResult} from './processor.js';
+export type {RuleResult, RuleInput} from './processor.js';
 
 // Rule sets
 export {NALRules} from './nal.js';

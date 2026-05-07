@@ -8,7 +8,7 @@ import {Reasoner} from './reason';
 import {TaskManager} from './task';
 import {RuleProcessor} from './rules';
 import {BagStrategy} from './reason';
-import {createBudget, createTask, getBudgetValue, type TaskType} from './types';
+import {createBudget, createTask, getBudgetValue, type TaskType, type Task} from './types';
 import type {Term} from './terms';
 import type {Truth as TruthType} from './terms/truth.js';
 import {Truth} from './terms';
@@ -67,22 +67,33 @@ export class NAR {
         return this.input(input, 'question');
     }
 
-    async run(steps = 1): Promise<number> {
-        let derived = 0;
+  async run(steps = 1): Promise<number> {
+    let derived = 0;
 
-        for (let i = 0; i < steps; i++) {
-            const results = await this.reasoner.step();
-            derived += results.length;
+    for (let i = 0; i < steps; i++) {
+      const results = await this.reasoner.step();
+      derived += results.length;
 
-            for (const task of results) {
-                this.memory.addTask(task.term, task.type, task.truth, getBudgetValue(task.budget));
-                this.taskManager.addTask(task);
-            }
-        }
-
-        this.memory.consolidate();
-        return derived;
+      for (const task of results) {
+        this.memory.addTask(task.term, task.type, task.truth, getBudgetValue(task.budget));
+        this.taskManager.addTask(task);
+      }
     }
+
+    this.memory.consolidate();
+    return derived;
+  }
+
+  async* runStream(steps = 1, maxResults = 100): AsyncGenerator<Task> {
+    for (let i = 0; i < steps; i++) {
+      for await (const task of this.reasoner.run(undefined, maxResults)) {
+        yield task;
+        this.memory.addTask(task.term, task.type, task.truth, getBudgetValue(task.budget));
+        this.taskManager.addTask(task);
+      }
+      this.memory.consolidate();
+    }
+  }
 
   getConcept(term: Term) {
     return this.memory.getConcept(term);

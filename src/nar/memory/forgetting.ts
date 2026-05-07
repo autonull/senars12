@@ -1,49 +1,87 @@
+import type {Concept} from './concept.js';
+import type {MemoryScorer} from './scorer.js';
+
 export type ForgettingPolicy =
-    | { type: 'priority'; threshold: number }
-    | { type: 'age'; maxAgeMs: number }
-    | { type: 'composite'; weights: { priority: number; age: number } };
+  | 'fifo'
+  | { type: 'priority'; threshold: number }
+  | { type: 'age'; maxAgeMs: number }
+  | { type: 'composite'; weights: { priority: number; age: number } };
 
 export class Forgetting {
-    static priority(policy: ForgettingPolicy, priority: number): boolean {
-        if (policy.type === 'priority') {
-            return priority < policy.threshold;
+  private policy: ForgettingPolicy;
+
+  constructor(policy: ForgettingPolicy = 'fifo') {
+    this.policy = policy;
+  }
+
+  selectVictim(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
+    if (concepts.length === 0) return undefined;
+
+    if (this.policy === 'fifo') {
+      let oldest: Concept | undefined;
+      let oldestTime = Infinity;
+      for (const concept of concepts) {
+        const lastAccess = (concept as any).lastAccessTime ?? 0;
+        if (lastAccess < oldestTime) {
+          oldestTime = lastAccess;
+          oldest = concept;
         }
-        return false;
+      }
+      return oldest;
     }
 
-    static age(policy: ForgettingPolicy, lastAccess: number): boolean {
-        if (policy.type === 'age') {
-            return Date.now() - lastAccess > policy.maxAgeMs;
-        }
-        return false;
+    if (typeof this.policy === 'object' && 'type' in this.policy) {
+      switch (this.policy.type) {
+        case 'priority':
+          return this.selectByPriority(concepts);
+        case 'age':
+          return this.selectByAge(concepts);
+        case 'composite':
+          return this.selectByComposite(concepts, scorer);
+      }
     }
 
-    static composite(
-        policy: ForgettingPolicy,
-        priority: number,
-        lastAccess: number
-    ): boolean {
-        if (policy.type !== 'composite') return false;
+    return concepts[0];
+  }
 
-        const pScore = priority * policy.weights.priority;
-        const aScore = (Date.now() - lastAccess) / 1000 * policy.weights.age;
-        return (pScore + aScore) > 1;
+  private selectByPriority(concepts: Concept[]): Concept | undefined {
+    const policy = this.policy as { type: 'priority'; threshold: number };
+    for (const concept of concepts) {
+      if (concept.priority < policy.threshold) {
+        return concept;
+      }
     }
+    return concepts.reduce((min, c) => (min && c.priority < min.priority) ? c : min, concepts[0]);
+  }
 
-    static shouldForget(
-        policy: ForgettingPolicy,
-        priority: number,
-        lastAccess: number
-    ): boolean {
-        switch (policy.type) {
-            case 'priority':
-                return Forgetting.priority(policy, priority);
-            case 'age':
-                return Forgetting.age(policy, lastAccess);
-            case 'composite':
-                return Forgetting.composite(policy, priority, lastAccess);
-            default:
-                return false;
-        }
+  private selectByAge(concepts: Concept[]): Concept | undefined {
+    const policy = this.policy as { type: 'age'; maxAgeMs: number };
+    const now = Date.now();
+    for (const concept of concepts) {
+      const lastAccess = (concept as any).lastAccessTime ?? 0;
+      if (now - lastAccess > policy.maxAgeMs) {
+        return concept;
+      }
     }
+    return concepts.reduce((oldest, c) => {
+      const t = (c as any).lastAccessTime ?? 0;
+      const ot = (oldest as any).lastAccessTime ?? 0;
+      return t < ot ? c : oldest;
+    }, concepts[0]);
+  }
+
+  private selectByComposite(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
+    const policy = this.policy as { type: 'composite'; weights: { priority: number; age: number } };
+    let worst: Concept | undefined;
+    let worstScore = Infinity;
+    for (const concept of concepts) {
+      const score = scorer.score(concept);
+      const compositeScore = score * policy.weights.priority + (Date.now() - ((concept as any).lastAccessTime ?? 0)) * policy.weights.age;
+      if (compositeScore > worstScore) {
+        worstScore = compositeScore;
+        worst = concept;
+      }
+    }
+    return worst;
+  }
 }

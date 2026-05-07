@@ -95,8 +95,8 @@ const DEFAULT_APP_CONFIG: ValidatedConfig = {
 
 export class ConfigLoader {
   static async loadFromFile(filePath?: string): Promise<ValidatedConfig> {
-    const path = filePath ?? this.findConfigFile();
-    
+    const path = filePath ?? await this.findConfigFile();
+
     try {
       const content = await fs.readFile(path, 'utf-8');
       const raw = JSON.parse(content) as AppConfig;
@@ -167,7 +167,7 @@ export class ConfigLoader {
     return Math.max(min, Math.min(max, value));
   }
 
-  private static findConfigFile(): string {
+  private static async findConfigFile(): Promise<string> {
     const paths = [
       join(process.cwd(), 'senars.config.json'),
       join(__dirname, '..', '..', 'senars.config.json'),
@@ -177,7 +177,7 @@ export class ConfigLoader {
 
     for (const path of paths) {
       try {
-        fs.access(path);
+        await fs.access(path);
         return path;
       } catch {
         continue;
