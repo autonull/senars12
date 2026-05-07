@@ -62,9 +62,7 @@ export class Memory {
   }
 
   sample(limit: number): Concept[] {
-    return Array.from(this.concepts.values())
-      .sort((a, b) => b.priority - a.priority)
-      .slice(0, limit);
+    return [...this.concepts.values()].toSorted((a, b) => b.priority - a.priority).slice(0, limit);
   }
 
   consolidate(): void {
@@ -85,7 +83,14 @@ export class Memory {
   }
 
   private applyForgetting(): void {
-    const lowest = Array.from(this.concepts.values()).sort((a, b) => a.priority - b.priority)[0];
+    let lowest: Concept | undefined;
+    let lowestPriority = Infinity;
+    for (const concept of this.concepts.values()) {
+      if (concept.priority < lowestPriority) {
+        lowestPriority = concept.priority;
+        lowest = concept;
+      }
+    }
     if (lowest) this.removeConcept(lowest.term);
   }
 

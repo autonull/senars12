@@ -74,7 +74,7 @@ export const TermBuilder = {
   conjunction: (...terms: (Term | undefined)[]): Term => {
     const valid = terms.filter((t): t is Term => t !== undefined);
     if (valid.length === 0) return TermFactory.atom('TRUE');
-    const sorted = [...valid].sort((a, b) => a.hash - b.hash);
+    const sorted = valid.toSorted((a, b) => a.hash - b.hash);
     const hash = computeHash('conjunction', sorted.map(t => t.hash));
     const cached = termCache.get(hash);
     if (cached) return cached;
@@ -90,7 +90,7 @@ export const TermBuilder = {
   disjunction: (...terms: (Term | undefined)[]): Term => {
     const valid = terms.filter((t): t is Term => t !== undefined);
     if (valid.length === 0) return TermFactory.atom('FALSE');
-    const sorted = [...valid].sort((a, b) => a.hash - b.hash);
+    const sorted = valid.toSorted((a, b) => a.hash - b.hash);
     const hash = computeHash('disjunction', sorted.map(t => t.hash));
     const cached = termCache.get(hash);
     if (cached) return cached;

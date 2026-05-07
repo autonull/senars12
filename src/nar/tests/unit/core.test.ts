@@ -1,0 +1,139 @@
+import {
+  createBudget,
+  createTask,
+  isBudget,
+  getBudgetValue,
+  success,
+  failure,
+  isSuccess,
+  isFailure,
+  NARError,
+  ValidationError,
+  ConfigurationError,
+  OperationError,
+  DEFAULT_CONFIG
+} from '../../types/core.js';
+import { atom } from '../../terms/types.js';
+import { Truth } from '../../terms/truth.js';
+
+describe('Budget', () => {
+  test('createBudget creates frozen object', () => {
+    const budget = createBudget(0.8, 0.9, 0.7, 5, 3);
+    expect(budget.priority).toBe(0.8);
+    expect(budget.durability).toBe(0.9);
+    expect(budget.quality).toBe(0.7);
+    expect(budget.cycles).toBe(5);
+    expect(budget.depth).toBe(3);
+    expect(Object.isFrozen(budget)).toBe(true);
+  });
+
+  test('createBudget uses defaults', () => {
+    const budget = createBudget(0.5);
+    expect(budget.priority).toBe(0.5);
+    expect(budget.durability).toBe(0.8);
+    expect(budget.quality).toBe(0.9);
+    expect(budget.cycles).toBe(0);
+    expect(budget.depth).toBe(0);
+  });
+
+  test('isBudget detects budget objects', () => {
+    const b1 = createBudget(0.5);
+    const b2 = 0.5;
+    expect(isBudget(b1)).toBe(true);
+    expect(isBudget(b2)).toBe(false);
+  });
+
+  test('getBudgetValue extracts number', () => {
+    const b1 = createBudget(0.5);
+    const b2 = 0.8;
+    expect(getBudgetValue(b1)).toBe(0.5);
+    expect(getBudgetValue(b2)).toBe(0.8);
+  });
+});
+
+describe('Task', () => {
+  test('createTask creates task with defaults', () => {
+    const term = atom('test');
+    const truth = Truth.create(0.9, 0.8);
+    const task = createTask(term, 'belief', truth);
+    expect(task.term).toBe(term);
+    expect(task.type).toBe('belief');
+    expect(task.truth).toBe(truth);
+    expect(task.derived).toBe(false);
+    expect(task.stamp.id).toBeDefined();
+    expect(task.occurrenceTime).toBeDefined();
+  });
+
+  test('createTask accepts numeric budget', () => {
+    const term = atom('test');
+    const task = createTask(term, 'goal', Truth.NEUTRAL, 0.7);
+    expect(typeof task.budget).toBe('number');
+    expect(getBudgetValue(task.budget)).toBe(0.7);
+  });
+});
+
+describe('Result types', () => {
+  test('success creates success result', () => {
+    const result = success(42);
+    expect(result.success).toBe(true);
+    expect(result.data).toBe(42);
+  });
+
+  test('failure creates failure result', () => {
+    const err = new Error('test');
+    const result = failure(err);
+    expect(result.success).toBe(false);
+    expect(result.error).toBe(err);
+  });
+
+  test('isSuccess detects success', () => {
+    expect(isSuccess(success(1))).toBe(true);
+    expect(isSuccess(failure(new Error()))).toBe(false);
+  });
+
+  test('isFailure detects failure', () => {
+    expect(isFailure(failure(new Error()))).toBe(true);
+    expect(isFailure(success(1))).toBe(false);
+  });
+});
+
+describe('Error types', () => {
+  test('NARError includes code and context', () => {
+    const err = new NARError('msg', 'CODE', { key: 'val' });
+    expect(err.name).toBe('NARError');
+    expect(err.code).toBe('CODE');
+    expect(err.context).toEqual({ key: 'val' });
+  });
+
+  test('ValidationError has correct code', () => {
+    const err = new ValidationError('invalid', { field: 'x' });
+    expect(err.code).toBe('VALIDATION_ERROR');
+    expect(err.name).toBe('ValidationError');
+  });
+
+  test('ConfigurationError has correct code', () => {
+    const err = new ConfigurationError('bad config');
+    expect(err.code).toBe('CONFIGURATION_ERROR');
+  });
+
+  test('OperationError has correct code', () => {
+    const err = new OperationError('failed');
+    expect(err.code).toBe('OPERATION_ERROR');
+  });
+});
+
+describe('DEFAULT_CONFIG', () => {
+  test('has expected values', () => {
+    expect(DEFAULT_CONFIG.maxConcepts).toBe(1000);
+    expect(DEFAULT_CONFIG.priorityThreshold).toBe(0.5);
+    expect(DEFAULT_CONFIG.activationDecayRate).toBe(0.01);
+    expect(DEFAULT_CONFIG.consolidationInterval).toBe(10);
+    expect(DEFAULT_CONFIG.cpuThrottleMs).toBe(10);
+    expect(DEFAULT_CONFIG.maxDerivationDepth).toBe(10);
+    expect(DEFAULT_CONFIG.maxDerivationsPerStep).toBe(1000);
+  });
+
+  test('is frozen', () => {
+    expect(Object.isFrozen(DEFAULT_CONFIG)).toBe(true);
+  });
+});

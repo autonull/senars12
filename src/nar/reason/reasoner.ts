@@ -2,7 +2,8 @@
  * Reasoner for performing inference steps
  */
 
-import type { Task, Budget } from '../task/task.js';
+import type { Task } from '../task/task.js';
+import { createBudget } from '../types/core.js';
 import { Memory } from '../memory/memory.js';
 import { RuleProcessor } from '../rules/processor.js';
 import type { Strategy } from './strategy.js';
@@ -42,7 +43,7 @@ export class Reasoner {
         term: concept.term,
         type: 'belief',
         truth: belief?.truth ?? Truth.NEUTRAL,
-        budget: this.createBudget(concept.priority),
+        budget: createBudget(concept.priority),
         stamp: Stamp.createInput(),
         occurrenceTime: 0,
         derived: false
@@ -58,23 +59,14 @@ export class Reasoner {
     return results;
   }
 
-  private createBudget(priority: number): Budget {
-    return { priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 } as Budget;
-  }
-
   private createDerivedTask(d: any, now: number): Task {
+    const derivedStamp = Stamp.derive([d.stamp], 'DERIVED');
     return {
       term: d.term,
       type: 'belief',
       truth: d.truth,
-      budget: this.createBudget(d.priority),
-      stamp: Object.freeze({
-        id: `${now}-${Math.random().toString(36).slice(2, 9)}`,
-        creationTime: now,
-        source: 'DERIVED' as const,
-        derivations: [...d.stamp.derivations, d.stamp.id],
-        depth: d.stamp.depth + 1
-      }),
+      budget: createBudget(d.priority),
+      stamp: derivedStamp ?? Stamp.createInput(),
       occurrenceTime: now,
       derived: true
     };

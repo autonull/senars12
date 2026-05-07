@@ -16,7 +16,6 @@ export const getArgs = (term: Term): readonly Term[] =>
   term.kind === 'atom' ? [] : term.args;
 
 export const isAtom = (term: Term): term is AtomicTerm => term.kind === 'atom';
-export const isCompound = (term: Term): term is CompoundTerm => term.kind !== 'atom';
 
 export const isInheritance = (term: Term): term is CompoundTerm & { kind: 'inheritance' } =>
   term.kind === 'inheritance';

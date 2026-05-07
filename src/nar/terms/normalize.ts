@@ -9,7 +9,7 @@ export function normalize(term: Term): Term {
     if (term.kind === 'conjunction' || term.kind === 'disjunction') {
         const args = term.args ?? [];
         if (args.length <= 1) return term;
-        const sortedArgs = [...args].sort((a, b) => a.hash - b.hash);
+        const sortedArgs = args.toSorted((a, b) => a.hash - b.hash);
         const allSorted = sortedArgs.every((arg, i) => arg.hash === args[i]?.hash);
         if (!allSorted) {
             const newHash = computeHash(term.kind, sortedArgs.map(t => t.hash));

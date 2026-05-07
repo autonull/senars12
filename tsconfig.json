@@ -3,10 +3,12 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022"],
+    "lib": ["ES2023"],
     "strict": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noEmit": true,
@@ -15,7 +17,8 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
+    "verbatimModuleSyntax": false
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]

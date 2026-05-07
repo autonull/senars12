@@ -14,12 +14,16 @@ export class Bag<T> {
 
   add(item: T, priority: number): boolean {
     if (this.items.length >= this.maxSize) {
-      const minP = Math.min(...this.items.map(i => i.priority));
+      let minP = Infinity;
+      for (const { priority: p } of this.items) if (p < minP) minP = p;
       if (priority <= minP) return false;
-      this.items.pop();
+      const minIdx = this.items.findIndex(i => i.priority === minP);
+      this.items.splice(minIdx, 1);
     }
-    this.items.push({ item, priority, addedAt: Date.now() });
-    this.items.sort((a, b) => b.priority - a.priority);
+    const idx = this.items.findIndex(i => i.priority < priority);
+    idx === -1
+      ? this.items.push({ item, priority, addedAt: Date.now() })
+      : this.items.splice(idx, 0, { item, priority, addedAt: Date.now() });
     return true;
   }
 

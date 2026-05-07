@@ -95,7 +95,7 @@ export class RuleIndex {
       }
     }
 
-    const sorted = results.sort((a, b) => b.priority - a.priority);
+    const sorted = results.toSorted((a, b) => b.priority - a.priority);
     this.cache.set(cacheKey, sorted);
     return sorted;
   }

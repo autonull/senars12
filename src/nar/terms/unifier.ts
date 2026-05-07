@@ -1,17 +1,17 @@
 import type { Term, CompoundTerm } from './types.js';
+import { isVariableSymbol } from './types.js';
 
 export type Substitution = Record<string, Term>;
 
-const isVariable = (symbol: string): boolean => symbol.startsWith('$');
 const isCompound = (term: Term): term is CompoundTerm => term.kind !== 'atom';
 
 export function unify(a: Term, b: Term, subst: Substitution = {}): Substitution | undefined {
-  if (a.kind === 'atom' && isVariable(a.symbol)) {
+  if (a.kind === 'atom' && isVariableSymbol(a.symbol)) {
     const bound = subst[a.symbol];
     if (!bound) return { ...subst, [a.symbol]: b };
     return bound.hash === b.hash ? subst : undefined;
   }
-  if (b.kind === 'atom' && isVariable(b.symbol)) {
+  if (b.kind === 'atom' && isVariableSymbol(b.symbol)) {
     const bound = subst[b.symbol];
     if (!bound) return { ...subst, [b.symbol]: a };
     return bound.hash === a.hash ? subst : undefined;

@@ -1,6 +1,6 @@
 import { TaskManager } from '../../task/manager.js';
 import { Memory } from '../../memory/memory.js';
-import { createTask, type Task } from '../../task/task.js';
+import { createTask } from '../../task/task.js';
 import { TermBuilder } from '../../terms/factory.js';
 import { Truth } from '../../terms/truth.js';
 

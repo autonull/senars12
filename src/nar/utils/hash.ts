@@ -20,10 +20,5 @@ export const fnv1a = (str: string): number => {
 export const fnv1aCombine = (acc: number, val: number): number =>
   Math.imul(acc ^ val, 0x01000193) >>> 0;
 
-/**
- * Compute hash for compound terms with sorted argument hashes
- */
-export const computeHash = (kind: string, argHashes: number[]): number => {
-  const sorted = [...argHashes].sort((a, b) => a - b);
-  return sorted.reduce((acc, h) => fnv1aCombine(acc, h), fnv1a(kind));
-};
+export const computeHash = (kind: string, argHashes: number[]): number =>
+  argHashes.toSorted((a, b) => a - b).reduce((acc, h) => fnv1aCombine(acc, h), fnv1a(kind));

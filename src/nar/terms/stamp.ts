@@ -28,6 +28,15 @@ export const Stamp = {
   },
 
   derive(parentStamps: readonly Stamp[], source: Source = 'DERIVED'): Stamp | undefined {
+    if (parentStamps.length === 0) {
+      return Object.freeze({
+        id: makeId(),
+        creationTime: Date.now(),
+        source,
+        derivations: [],
+        depth: 0
+      });
+    }
     const maxDepth = parentStamps.reduce((max, s) => Math.max(max, s.depth), 0);
     if (maxDepth >= MAX_DEPTH) return undefined;
 
