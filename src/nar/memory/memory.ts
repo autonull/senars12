@@ -113,14 +113,34 @@ export class Memory {
         if (lowest) this.removeConcept(lowest.term);
     }
 
-    private updateFocus(): void {
-        this.focusConcepts.clear();
-        const {priorityThreshold} = this.config;
+  private updateFocus(): void {
+    this.focusConcepts.clear();
+    const {priorityThreshold} = this.config;
 
-        for (const [hash, concept] of this.concepts) {
-            if (concept.priority >= priorityThreshold) {
-                this.focusConcepts.add(hash);
-            }
-        }
+    for (const [hash, concept] of this.concepts) {
+      if (concept.priority >= priorityThreshold) {
+        this.focusConcepts.add(hash);
+      }
     }
+  }
+
+  listConcepts(): Concept[] {
+    return Array.from(this.concepts.values());
+  }
+
+  clear(): void {
+    this.concepts.clear();
+    this.focusConcepts.clear();
+  }
+
+  getStatistics(): { totalConcepts: number; totalTasks: number } {
+    let totalTasks = 0;
+    for (const concept of this.concepts.values()) {
+      totalTasks += concept.totalTasks;
+    }
+    return {
+      totalConcepts: this.concepts.size,
+      totalTasks
+    };
+  }
 }

@@ -1,0 +1,33 @@
+{
+  "name": "senars12",
+  "version": "1.0.0",
+  "configVersion": "1.0",
+  "lm": {
+    "provider": "transformers",
+    "model": "Xenova/Llama-3.2-1B-Instruct",
+    "quantized": true,
+    "cacheDir": ".cache/models"
+  },
+  "memory": {
+    "maxConcepts": 100,
+    "bagSize": 50,
+    "derivationDepth": 5
+  },
+  "inference": {
+    "maxDerivationDepth": 10,
+    "maxDerivationsPerStep": 100,
+    "cpuThrottleMs": 10
+  },
+  "production": {
+    "provider": "vercel",
+    "model": "anthropic/claude-3.5-sonnet",
+    "apiKeyEnv": "ANTHROPIC_API_KEY"
+  },
+  "irc": {
+    "server": "irc.libera.chat",
+    "port": 6697,
+    "useTLS": true,
+    "nick": "senars12",
+    "channels": ["#nars"]
+  }
+}

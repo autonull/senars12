@@ -26,7 +26,8 @@
     "verbatimModuleSyntax": false
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "src/lm/adapters/**/*.ts"
   ],
   "exclude": [
     "node_modules",

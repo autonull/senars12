@@ -1,6 +1,6 @@
 /**
  * NAR - Neural Associative Reasoner
- * Main entry point for the reasoning system
+ * Core reasoning engine with pluggable capabilities
  */
 
 import {Memory} from './memory';
@@ -19,32 +19,33 @@ import {termParser} from './terms';
 import {ConfigurationError, type CoreConfig, DEFAULT_CONFIG} from './types';
 
 export interface NARConfig extends CoreConfig {
-    lmClient?: LMClient;
-    enableLMRules?: boolean;
+  lmClient?: LMClient;
+  enableLMRules?: boolean;
 }
 
 export class NAR {
-    readonly memory: Memory;
-    readonly taskManager: TaskManager;
-    readonly reasoner: Reasoner;
-    readonly eventBus: EventBus;
+  readonly memory: Memory;
+  readonly taskManager: TaskManager;
+  readonly reasoner: Reasoner;
+  readonly eventBus: EventBus;
 
-    private readonly processor: RuleProcessor;
-    private readonly config: NARConfig;
+  private readonly processor: RuleProcessor;
+  private readonly config: NARConfig;
+  private _lmInitialized: boolean = false;
 
-    constructor(config: NARConfig = DEFAULT_CONFIG) {
-        this.config = this.validateConfig(config);
-        this.eventBus = new EventBus();
-        this.memory = new Memory(this.config);
-        this.processor = new RuleProcessor();
-        this.processor.setEventBus(this.eventBus);
-        this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
-        this.taskManager = new TaskManager(this.memory);
+  constructor(config: NARConfig = DEFAULT_CONFIG) {
+    this.config = this.validateConfig(config);
+    this.eventBus = new EventBus();
+    this.memory = new Memory(this.config);
+    this.processor = new RuleProcessor();
+    this.processor.setEventBus(this.eventBus);
+    this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
+    this.taskManager = new TaskManager(this.memory);
 
-        if (this.config.enableLMRules && this.config.lmClient) {
-            this.initializeLMRules(this.config.lmClient);
-        }
+    if (this.config.enableLMRules && this.config.lmClient) {
+      this.initializeLMRules(this.config.lmClient);
     }
+  }
 
     async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
         const {term: parsedTerm, truth: parsedTruth} = typeof input === 'string'
@@ -83,46 +84,104 @@ export class NAR {
         return derived;
     }
 
-    getConcept(term: Term) {
-        return this.memory.getConcept(term);
+  getConcept(term: Term) {
+    return this.memory.getConcept(term);
+  }
+
+  listConcepts() {
+    return this.memory.listConcepts();
+  }
+
+  clearMemory() {
+    this.memory.clear();
+  }
+
+  getStatistics() {
+    return this.memory.getStatistics();
+  }
+
+  private validateConfig(config: NARConfig): NARConfig {
+    if (config.maxConcepts <= 0) {
+      throw new ConfigurationError('maxConcepts must be positive', {maxConcepts: config.maxConcepts});
+    }
+    if (config.priorityThreshold < 0 || config.priorityThreshold > 1) {
+      throw new ConfigurationError('priorityThreshold must be between 0 and 1', {priorityThreshold: config.priorityThreshold});
+    }
+    return config;
+  }
+
+  enableLMRules(lmClient: LMClient): void {
+    if (this._lmInitialized) {
+      return;
+    }
+    
+    const lmRules = [
+      LMRules.createNarseseTranslationRule(lmClient),
+      LMRules.createBeliefRevisionRule(lmClient),
+      LMRules.createGoalDecompositionRule(lmClient),
+      LMRules.createHypothesisGenerationRule(lmClient),
+      LMRules.createExplanationGenerationRule(lmClient),
+      LMRules.createAnalogicalReasoningRule(lmClient),
+      LMRules.createMetaReasoningGuidanceRule(lmClient),
+      LMRules.createUncertaintyCalibrationRule(lmClient),
+      LMRules.createSchemaInductionRule(lmClient),
+      LMRules.createTemporalCausalModelingRule(lmClient),
+      LMRules.createVariableGroundingRule(lmClient),
+      LMRules.createConceptElaborationRule(lmClient),
+      LMRules.createInteractiveClarificationRule(lmClient)
+    ];
+
+    for (const rule of lmRules) {
+      this.processor.registerLMRule(rule);
+    }
+    
+    this._lmInitialized = true;
+  }
+  
+  private initializeLMRules(lmClient: LMClient): void {
+    this.enableLMRules(lmClient);
+  }
+
+  private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void {
+    const budget = createBudget(truth.f * truth.c);
+    const task = createTask(term, type, truth, budget);
+    this.taskManager.addTask(task);
+    this.memory.addTask(term, type, truth, budget);
+  }
+
+  export(): Record<string, any> {
+    return {
+      concepts: this.memory.listConcepts().map(c => ({
+        term: c.term.toString(),
+        priority: c.priority
+      })),
+      config: this.config,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  import(data: Record<string, any>): void {
+    if (!data.concepts || !Array.isArray(data.concepts)) {
+      throw new Error('Invalid import data');
     }
 
-    private validateConfig(config: NARConfig): NARConfig {
-        if (config.maxConcepts <= 0) {
-            throw new ConfigurationError('maxConcepts must be positive', {maxConcepts: config.maxConcepts});
-        }
-        if (config.priorityThreshold < 0 || config.priorityThreshold > 1) {
-            throw new ConfigurationError('priorityThreshold must be between 0 and 1', {priorityThreshold: config.priorityThreshold});
-        }
-        return config;
+    for (const concept of data.concepts) {
+      if (concept.term) {
+        this.input(concept.term);
+      }
     }
+  }
 
-    private initializeLMRules(lmClient: LMClient): void {
-        const lmRules = [
-            LMRules.createNarseseTranslationRule(lmClient),
-            LMRules.createBeliefRevisionRule(lmClient),
-            LMRules.createGoalDecompositionRule(lmClient),
-            LMRules.createHypothesisGenerationRule(lmClient),
-            LMRules.createExplanationGenerationRule(lmClient),
-            LMRules.createAnalogicalReasoningRule(lmClient),
-            LMRules.createMetaReasoningGuidanceRule(lmClient),
-            LMRules.createUncertaintyCalibrationRule(lmClient),
-            LMRules.createSchemaInductionRule(lmClient),
-            LMRules.createTemporalCausalModelingRule(lmClient),
-            LMRules.createVariableGroundingRule(lmClient),
-            LMRules.createConceptElaborationRule(lmClient),
-            LMRules.createInteractiveClarificationRule(lmClient)
-        ];
+  async saveToFile(filename: string): Promise<void> {
+    const { promises: fs } = await import('fs');
+    const data = this.export();
+    await fs.writeFile(filename, JSON.stringify(data, null, 2));
+  }
 
-        for (const rule of lmRules) {
-            this.processor.registerLMRule(rule);
-        }
-    }
-
-    private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void {
-        const budget = createBudget(truth.f * truth.c);
-        const task = createTask(term, type, truth, budget);
-        this.taskManager.addTask(task);
-        this.memory.addTask(term, type, truth, budget);
-    }
+  async loadFromFile(filename: string): Promise<void> {
+    const { promises: fs } = await import('fs');
+    const content = await fs.readFile(filename, 'utf-8');
+    const data = JSON.parse(content);
+    this.import(data);
+  }
 }
