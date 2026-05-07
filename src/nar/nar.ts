@@ -3,8 +3,8 @@
  * Main entry point for the reasoning system
  */
 
-import { Memory, type MemoryConfig } from './memory/memory.js';
-import { Reasoner, type ReasonerConfig } from './reason/reasoner.js';
+import { Memory } from './memory/memory.js';
+import { Reasoner } from './reason/reasoner.js';
 import { TaskManager } from './task/manager.js';
 import { RuleProcessor } from './rules/processor.js';
 import { BagStrategy } from './reason/strategy.js';
@@ -15,23 +15,12 @@ import { EventBus } from './types/events.js';
 import type { LMClient } from './lm/types.js';
 import { LMRules } from './lm/rules.js';
 import { termParser } from './terms/parser.js';
+import { DEFAULT_CONFIG, type CoreConfig, ConfigurationError } from './types/core.js';
 
-export interface NARConfig extends MemoryConfig, ReasonerConfig {
+export interface NARConfig extends CoreConfig {
   lmClient?: LMClient;
   enableLMRules?: boolean;
 }
-
-const DEFAULT_CONFIG: NARConfig = {
-  maxConcepts: 1000,
-  priorityThreshold: 0.5,
-  activationDecayRate: 0.01,
-  consolidationInterval: 10,
-  cpuThrottleMs: 10,
-  maxDerivationDepth: 10,
-  maxDerivationsPerStep: 1000,
-  lmClient: undefined,
-  enableLMRules: false
-};
 
 export class NAR {
   readonly memory: Memory;
@@ -43,17 +32,27 @@ export class NAR {
   private config: NARConfig;
 
   constructor(config: NARConfig = DEFAULT_CONFIG) {
-    this.config = config;
+    this.config = this.validateConfig(config);
     this.eventBus = new EventBus();
-    this.memory = new Memory(config);
+    this.memory = new Memory(this.config);
     this.processor = new RuleProcessor();
     this.processor.setEventBus(this.eventBus);
-    this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, config);
+    this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
     this.taskManager = new TaskManager(this.memory);
 
-    if (config.enableLMRules && config.lmClient) {
-      this.initializeLMRules(config.lmClient);
+    if (this.config.enableLMRules && this.config.lmClient) {
+      this.initializeLMRules(this.config.lmClient);
     }
+  }
+
+  private validateConfig(config: NARConfig): NARConfig {
+    if (config.maxConcepts <= 0) {
+      throw new ConfigurationError('maxConcepts must be positive', { maxConcepts: config.maxConcepts });
+    }
+    if (config.priorityThreshold < 0 || config.priorityThreshold > 1) {
+      throw new ConfigurationError('priorityThreshold must be between 0 and 1', { priorityThreshold: config.priorityThreshold });
+    }
+    return config;
   }
 
   private initializeLMRules(lmClient: LMClient): void {
@@ -78,21 +77,16 @@ export class NAR {
     }
   }
 
-  private addTask(term: Term, type: TaskType, truth: TruthType): void {
-    const taskTruth = truth ?? Truth.NEUTRAL;
-    const budget = createBudget(taskTruth.f * taskTruth.c);
-    const task = createTask(term, type, taskTruth, budget);
+  private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void {
+    const budget = createBudget(truth.f * truth.c);
+    const task = createTask(term, type, truth, budget);
     this.taskManager.addTask(task);
-    this.memory.addTask(term, type, taskTruth, task.budget);
+    this.memory.addTask(term, type, truth, task.budget);
   }
 
   async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
-    if (typeof input === 'string') {
-      const { term: parsedTerm, truth: parsedTruth } = termParser.parseWithTruth(input);
-      this.addTask(parsedTerm, type, truth ?? parsedTruth ?? Truth.NEUTRAL);
-    } else {
-      this.addTask(input, type, truth ?? Truth.NEUTRAL);
-    }
+    const { term: parsedTerm, truth: parsedTruth } = typeof input === 'string' ? termParser.parseWithTruth(input) : { term: input, truth: undefined };
+    this.addTask(parsedTerm, type, truth ?? parsedTruth ?? Truth.NEUTRAL);
   }
 
   async believe(input: string | Term, truth?: TruthType): Promise<void> {
@@ -112,10 +106,10 @@ export class NAR {
     for (let i = 0; i < steps; i++) {
       const results = await this.reasoner.step();
       derived += results.length;
-      for (const task of results) {
+      results.forEach(task => {
         this.memory.addTask(task.term, task.type, task.truth, getBudgetValue(task.budget));
         this.taskManager.addTask(task);
-      }
+      });
     }
     this.memory.consolidate();
     return derived;

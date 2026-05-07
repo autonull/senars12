@@ -8,12 +8,9 @@ import { RuleProcessor } from '../rules/processor.js';
 import type { Strategy } from './strategy.js';
 import { Stamp } from '../terms/stamp.js';
 import { Truth } from '../terms/truth.js';
+import type { CoreConfig } from '../types/core.js';
 
-export interface ReasonerConfig {
-  cpuThrottleMs: number;
-  maxDerivationDepth: number;
-  maxDerivationsPerStep: number;
-}
+export interface ReasonerConfig extends Pick<CoreConfig, 'cpuThrottleMs' | 'maxDerivationDepth' | 'maxDerivationsPerStep'> {}
 
 export class Reasoner {
   private memory: Memory;
@@ -45,13 +42,7 @@ export class Reasoner {
         term: concept.term,
         type: 'belief',
         truth: belief?.truth ?? Truth.NEUTRAL,
-        budget: {
-          priority: concept.priority,
-          durability: 0.8,
-          quality: 0.9,
-          cycles: 0,
-          depth: 0
-        } as Budget,
+        budget: this.createBudget(concept.priority),
         stamp: Stamp.createInput(),
         occurrenceTime: 0,
         derived: false
@@ -59,7 +50,7 @@ export class Reasoner {
 
       for (const secondary of this.strategy.selectSecondary(task, this.memory)) {
         for (const d of this.processor.processSync(task.term, secondary.term)) {
-          results.push(this.createDerivedTask(d));
+          results.push(this.createDerivedTask(d, now()));
         }
       }
     }
@@ -67,19 +58,16 @@ export class Reasoner {
     return results;
   }
 
-  private createDerivedTask(d: any): Task {
-    const now = Date.now();
+  private createBudget(priority: number): Budget {
+    return { priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 } as Budget;
+  }
+
+  private createDerivedTask(d: any, now: number): Task {
     return {
       term: d.term,
       type: 'belief',
       truth: d.truth,
-      budget: {
-        priority: d.priority,
-        durability: 0.8,
-        quality: 0.9,
-        cycles: 0,
-        depth: 0
-      } as Budget,
+      budget: this.createBudget(d.priority),
       stamp: Object.freeze({
         id: `${now}-${Math.random().toString(36).slice(2, 9)}`,
         creationTime: now,
@@ -92,3 +80,5 @@ export class Reasoner {
     };
   }
 }
+
+const now = () => Date.now();

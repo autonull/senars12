@@ -6,14 +6,9 @@ import { Concept, type ConceptTaskType as TaskType } from './concept.js';
 import type { Term } from '../terms/types.js';
 import type { Truth } from '../terms/truth.js';
 import type { Budget } from '../task/task.js';
-import { getBudgetValue } from '../types/core.js';
+import { getBudgetValue, type CoreConfig } from '../types/core.js';
 
-export interface MemoryConfig {
-  maxConcepts: number;
-  priorityThreshold: number;
-  activationDecayRate: number;
-  consolidationInterval: number;
-}
+export interface MemoryConfig extends Pick<CoreConfig, 'maxConcepts' | 'priorityThreshold' | 'activationDecayRate' | 'consolidationInterval'> {}
 
 const DEFAULT_CONFIG: MemoryConfig = {
   maxConcepts: 1000,

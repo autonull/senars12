@@ -4,12 +4,12 @@
  */
 
 import type { Term } from '../terms/types.js';
-import type { Truth } from '../terms/truth.js';
+import type { Truth as TruthType } from '../terms/truth.js';
 import { Stamp } from '../terms/stamp.js';
 
 // Re-export domain types
 export type { Term, AtomicTerm, CompoundTerm } from '../terms/types.js';
-export type { Truth } from '../terms/truth.js';
+export type { Truth as TruthType } from '../terms/truth.js';
 export type { Stamp as StampType, Source } from '../terms/stamp.js';
 
 // Core identity and hashing
@@ -32,7 +32,7 @@ export type TaskType = 'belief' | 'goal' | 'question' | 'command';
 export interface Task {
   readonly term: Term;
   readonly type: TaskType;
-  readonly truth: Truth;
+  readonly truth: TruthType;
   readonly budget: Budget | number;
   readonly stamp: ReturnType<typeof Stamp.createInput>;
   readonly occurrenceTime: number;
@@ -110,7 +110,7 @@ export const createBudget = (
 export const createTask = (
   term: Term,
   type: TaskType,
-  truth: Truth,
+  truth: TruthType,
   budget: Budget | number = 0.9
 ): Task => {
   const now = Date.now();
@@ -124,3 +124,43 @@ export const createTask = (
     derived: false
   };
 };
+
+// Error types for better error handling
+export class NARError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly context?: Record<string, unknown>
+  ) {
+    super(message);
+    this.name = 'NARError';
+  }
+}
+
+export class ValidationError extends NARError {
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, 'VALIDATION_ERROR', context);
+    this.name = 'ValidationError';
+  }
+}
+
+export class ConfigurationError extends NARError {
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, 'CONFIGURATION_ERROR', context);
+    this.name = 'ConfigurationError';
+  }
+}
+
+export class OperationError extends NARError {
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, 'OPERATION_ERROR', context);
+    this.name = 'OperationError';
+  }
+}
+
+// Type guards
+export const isSuccess = <T>(result: Result<T>): result is Success<T> =>
+  result.success === true;
+
+export const isFailure = <T>(result: Result<T>): result is Failure =>
+  result.success === false;

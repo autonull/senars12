@@ -40,31 +40,42 @@ export class RuleProcessor {
   async *process(premises: AsyncIterable<[Term, Term]>): AsyncGenerator<RuleResult> {
     for await (const [p1, p2] of premises) {
       for (const rule of this.ruleIndex.match(p1, p2).filter(r => r.sync)) {
-        const result = rule.apply([p1, p2]);
-        if (result) {
-          yield {
-            term: result as Term,
-            truth: Truth.NEUTRAL,
-            stamp: Stamp.createInput(),
-            priority: rule.priority
-          };
+        try {
+          const result = rule.apply([p1, p2]);
+          if (result) {
+            yield {
+              term: result as Term,
+              truth: Truth.NEUTRAL,
+              stamp: Stamp.createInput(),
+              priority: rule.priority
+            };
+          }
+        } catch (error) {
+          this.handleRuleError(error, rule.id);
         }
       }
 
       this.lmRules.forEach(lmRule => {
-        lmRule.apply(p1, p2).then(tasks => {
-          tasks.forEach(task => {
-            this.eventBus?.emit('rule.result', {
-              term: task.term,
-              truth: task.truth ?? Truth.NEUTRAL,
-              stamp: Stamp.createInput(),
-              priority: lmRule.priority,
-              source: 'lm'
+        lmRule.apply(p1, p2)
+          .then(tasks => {
+            tasks.forEach(task => {
+              this.eventBus?.emit('rule.result', {
+                term: task.term,
+                truth: task.truth ?? Truth.NEUTRAL,
+                stamp: Stamp.createInput(),
+                priority: lmRule.priority,
+                source: 'lm'
+              });
             });
-          });
-        }).catch((err: Error) => console.warn('LM rule failed:', err));
+          })
+          .catch(error => this.handleRuleError(error, lmRule.id));
       });
     }
+  }
+
+  private handleRuleError(error: unknown, ruleId: string): void {
+    const err = error instanceof Error ? error : new Error(String(error));
+    this.eventBus?.emit('error', { error: err, context: { ruleId } });
   }
 
   processSync(p1: Term, p2: Term): RuleResult[] {
