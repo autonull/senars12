@@ -1,10 +1,10 @@
-import { TermFactory } from '../terms/factory.js';
+import { TermBuilder } from '../terms/factory.js';
 import { normalize } from '../terms/normalize.js';
 import { computeHash } from '../terms/types.js';
 
 test('normalize sorts conjunction args and recomputes hash', () => {
-  const a = TermFactory.atom('A');
-  const b = TermFactory.atom('B');
+  const a = TermBuilder.atom('A');
+  const b = TermBuilder.atom('B');
 
   const badHash = computeHash('conjunction', [b.hash, a.hash]);
   const malformed: any = { kind: 'conjunction', args: [b, a], hash: badHash };

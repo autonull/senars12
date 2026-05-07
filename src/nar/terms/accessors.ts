@@ -15,8 +15,8 @@ export const getConsequent = (term: Term): Term | undefined =>
 export const getArgs = (term: Term): readonly Term[] =>
   term.kind === 'atom' ? [] : term.args;
 
-export const isAtomType = (term: Term): term is AtomicTerm => term.kind === 'atom';
-export const isCompoundType = (term: Term): term is CompoundTerm => term.kind !== 'atom';
+export const isAtom = (term: Term): term is AtomicTerm => term.kind === 'atom';
+export const isCompound = (term: Term): term is CompoundTerm => term.kind !== 'atom';
 
 export const isInheritance = (term: Term): term is CompoundTerm & { kind: 'inheritance' } =>
   term.kind === 'inheritance';
@@ -39,5 +39,5 @@ export const isDisjunction = (term: Term): term is CompoundTerm & { kind: 'disju
 export const isNegation = (term: Term): term is CompoundTerm & { kind: 'negation' } =>
   term.kind === 'negation';
 
-export const matchKinds = (a: Term, b: Term): boolean => a.kind === b.kind;
+export const sameKind = (a: Term, b: Term): boolean => a.kind === b.kind;
 export const sameHash = (a: Term, b: Term): boolean => a.hash === b.hash;

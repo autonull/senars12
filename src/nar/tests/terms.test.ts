@@ -1,5 +1,5 @@
 import { atom, serializeTerm } from '../terms/types.js';
-import { TermFactory } from '../terms/factory.js';
+import { TermBuilder } from '../terms/factory.js';
 import { Truth } from '../terms/truth.js';
 
 describe('Term', () => {
@@ -21,9 +21,9 @@ describe('Term', () => {
         expect(t1.hash).toBe(t2.hash);
     });
 
-    test('TermFactory memoizes terms', () => {
-        const t1 = TermFactory.atom('bird');
-        const t2 = TermFactory.atom('bird');
+    test('TermBuilder memoizes terms', () => {
+        const t1 = TermBuilder.atom('bird');
+        const t2 = TermBuilder.atom('bird');
         expect(t1).toBe(t2);
     });
 });

@@ -2,7 +2,7 @@
  * Event System & Error Handling Tests
  */
 import { NAR } from '../../nar.js';
-import { TermFactory } from '../../terms/factory.js';
+import { TermBuilder } from '../../terms/factory.js';
 import { Truth } from '../../terms/truth.js';
 
 describe('Event System', () => {
@@ -86,7 +86,7 @@ describe('Error Handling', () => {
 
   it('recovers from invalid truth values', async () => {
     await nar.input('test', 'belief', Truth.create(1.5, -0.5));
-    const concept = nar.memory.getConcept(TermFactory.atom('test'));
+    const concept = nar.memory.getConcept(TermBuilder.atom('test'));
     expect(concept).toBeDefined();
   });
 

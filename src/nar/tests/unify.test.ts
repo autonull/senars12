@@ -1,10 +1,10 @@
-import { TermFactory } from '../terms/factory.js';
+import { TermBuilder } from '../terms/factory.js';
 import { unify } from '../terms/unifier.js';
 
 test('unify binds variable and enforces consistency', () => {
-  const A = TermFactory.atom('A');
-  const B = TermFactory.atom('B');
-  const x = TermFactory.atom('$x');
+  const A = TermBuilder.atom('A');
+  const B = TermBuilder.atom('B');
+  const x = TermBuilder.atom('$x');
 
   const s1 = unify(x, A);
   expect(s1).toBeDefined();

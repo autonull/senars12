@@ -2,7 +2,7 @@
  * Term System Tests - Canonicalization, Hashing, and Structural Sharing
  */
 import { NAR } from '../../nar.js';
-import { TermFactory } from '../../terms/factory.js';
+import { TermBuilder } from '../../terms/factory.js';
 import { Truth } from '../../terms/truth.js';
 
 describe('Term System', () => {
@@ -23,17 +23,17 @@ describe('Term System', () => {
 
   describe('Canonicalization', () => {
     it('creates canonical terms with structural sharing', () => {
-      const bird1 = TermFactory.atom('bird');
-      const bird2 = TermFactory.atom('bird');
+      const bird1 = TermBuilder.atom('bird');
+      const bird2 = TermBuilder.atom('bird');
       expect(bird1).toBe(bird2);
       expect(bird1.hash).toBe(bird2.hash);
     });
 
     it('normalizes conjunctions for canonical form', () => {
-      const a = TermFactory.atom('A');
-      const b = TermFactory.atom('B');
-      const conj1 = TermFactory.conjunction(a, b);
-      const conj2 = TermFactory.conjunction(b, a);
+      const a = TermBuilder.atom('A');
+      const b = TermBuilder.atom('B');
+      const conj1 = TermBuilder.conjunction(a, b);
+      const conj2 = TermBuilder.conjunction(b, a);
       expect(conj1.hash).toBe(conj2.hash);
     });
 
@@ -47,32 +47,32 @@ describe('Term System', () => {
 
   describe('Compound Terms', () => {
     it('creates inheritance terms', () => {
-      const bird = TermFactory.atom('bird');
-      const animal = TermFactory.atom('animal');
-      const inheritance = TermFactory.inheritance(bird, animal);
+      const bird = TermBuilder.atom('bird');
+      const animal = TermBuilder.atom('animal');
+      const inheritance = TermBuilder.inheritance(bird, animal);
       expect(inheritance.kind).toBe('inheritance');
       if ("args" in inheritance) expect(inheritance.args).toHaveLength(2);
     });
 
     it('creates conjunction terms', () => {
-      const a = TermFactory.atom('A');
-      const b = TermFactory.atom('B');
-      const conj = TermFactory.conjunction(a, b);
+      const a = TermBuilder.atom('A');
+      const b = TermBuilder.atom('B');
+      const conj = TermBuilder.conjunction(a, b);
       expect(conj.kind).toBe('conjunction');
       if ("args" in conj) expect(conj.args).toHaveLength(2);
     });
 
     it('creates disjunction terms', () => {
-      const a = TermFactory.atom('A');
-      const b = TermFactory.atom('B');
-      const disj = TermFactory.disjunction(a, b);
+      const a = TermBuilder.atom('A');
+      const b = TermBuilder.atom('B');
+      const disj = TermBuilder.disjunction(a, b);
       expect(disj.kind).toBe('disjunction');
     });
 
     it('creates implication terms', () => {
-      const a = TermFactory.atom('A');
-      const b = TermFactory.atom('B');
-      const imp = TermFactory.implication(a, b);
+      const a = TermBuilder.atom('A');
+      const b = TermBuilder.atom('B');
+      const imp = TermBuilder.implication(a, b);
       expect(imp.kind).toBe('implication');
     });
   });

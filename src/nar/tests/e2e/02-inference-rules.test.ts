@@ -2,7 +2,7 @@
  * Inference Rules Tests - Deduction, Induction, Abduction
  */
 import { NAR } from '../../nar.js';
-import { TermFactory } from '../../terms/factory.js';
+import { TermBuilder } from '../../terms/factory.js';
 import { Truth } from '../../terms/truth.js';
 
 describe('Inference Rules', () => {
@@ -26,7 +26,7 @@ describe('Inference Rules', () => {
       await nar.input('(bird --> animal)', 'belief', Truth.create(0.9, 0.9));
       await nar.input('(animal --> living)', 'belief', Truth.create(0.9, 0.9));
       await nar.run(1);
-      const birdConcept = nar.memory.getConcept(TermFactory.atom('bird'));
+      const birdConcept = nar.memory.getConcept(TermBuilder.atom('bird'));
       expect(birdConcept).toBeDefined();
     });
 
@@ -34,7 +34,7 @@ describe('Inference Rules', () => {
       await nar.input('(mammal --> animal)', 'belief', Truth.create(0.95, 0.9));
       await nar.input('(dog --> mammal)', 'belief', Truth.create(0.95, 0.9));
       await nar.run(2);
-      const dogConcept = nar.memory.getConcept(TermFactory.atom('dog'));
+      const dogConcept = nar.memory.getConcept(TermBuilder.atom('dog'));
       expect(dogConcept).toBeDefined();
     });
   });
@@ -43,7 +43,7 @@ describe('Inference Rules', () => {
     it('handles similarity reasoning', async () => {
       await nar.input('(cat <-> feline)', 'belief', Truth.create(0.95, 0.9));
       await nar.run(1);
-      const catConcept = nar.memory.getConcept(TermFactory.atom('cat'));
+      const catConcept = nar.memory.getConcept(TermBuilder.atom('cat'));
       expect(catConcept).toBeDefined();
     });
   });
@@ -57,9 +57,9 @@ describe('Inference Rules', () => {
     });
 
   it('handles compound terms in reasoning', async () => {
-    const cat = TermFactory.atom('cat');
-    const dog = TermFactory.atom('dog');
-    const pets = TermFactory.conjunction(cat, dog);
+    const cat = TermBuilder.atom('cat');
+    const dog = TermBuilder.atom('dog');
+    const pets = TermBuilder.conjunction(cat, dog);
     expect(pets.kind).toBe('conjunction');
     if ('args' in pets) expect(pets.args).toHaveLength(2);
   });

@@ -2,7 +2,7 @@
  * Resource Bounds & AIKR Compliance Tests
  */
 import { NAR } from '../../nar.js';
-import { TermFactory } from '../../terms/factory.js';
+import { TermBuilder } from '../../terms/factory.js';
 import { Truth } from '../../terms/truth.js';
 
 describe('AIKR Compliance', () => {
@@ -90,7 +90,7 @@ describe('AIKR Compliance', () => {
       await nar.input('(socrates --> human)', 'belief', Truth.create(0.99, 0.99));
       await nar.run(1);
 
-      const socrates = nar.memory.getConcept(TermFactory.atom('socrates'));
+      const socrates = nar.memory.getConcept(TermBuilder.atom('socrates'));
       expect(socrates).toBeDefined();
     });
 
@@ -100,7 +100,7 @@ describe('AIKR Compliance', () => {
 
       await nar.run(2);
 
-      const bird = nar.memory.getConcept(TermFactory.atom('bird'));
+      const bird = nar.memory.getConcept(TermBuilder.atom('bird'));
       expect(bird).toBeDefined();
     });
   });
@@ -142,7 +142,7 @@ describe('AIKR Compliance', () => {
 
       expect(nar.memory.size).toBeGreaterThanOrEqual(initialSize);
 
-      const birdConcept = nar.memory.getConcept(TermFactory.atom('bird'));
+      const birdConcept = nar.memory.getConcept(TermBuilder.atom('bird'));
       if (birdConcept) {
         expect(birdConcept.totalTasks).toBeGreaterThanOrEqual(0);
       }

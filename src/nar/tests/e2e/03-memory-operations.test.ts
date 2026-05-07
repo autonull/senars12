@@ -2,7 +2,7 @@
  * Memory Operations Tests - Concept formation, activation, decay, consolidation
  */
 import { NAR } from '../../nar.js';
-import { TermFactory } from '../../terms/factory.js';
+import { TermBuilder } from '../../terms/factory.js';
 import { Truth } from '../../terms/truth.js';
 
 describe('Memory Operations', () => {
@@ -24,7 +24,7 @@ describe('Memory Operations', () => {
   describe('Concept Formation', () => {
   it('creates and retrieves concepts', async () => {
     await nar.input('knowledge', 'belief');
-    const concept = nar.memory.getConcept(TermFactory.atom('knowledge'));
+    const concept = nar.memory.getConcept(TermBuilder.atom('knowledge'));
     expect(concept).toBeDefined();
     if (concept) expect(concept.term.kind).toBe('atom');
   });
@@ -32,7 +32,7 @@ describe('Memory Operations', () => {
     it('stores compound term concepts', async () => {
       await nar.input('(bird --> animal)', 'belief');
       const concept = nar.memory.getConcept(
-        TermFactory.inheritance(TermFactory.atom('bird'), TermFactory.atom('animal'))
+        TermBuilder.inheritance(TermBuilder.atom('bird'), TermBuilder.atom('animal'))
       );
       expect(concept).toBeDefined();
     });
@@ -41,20 +41,20 @@ describe('Memory Operations', () => {
   describe('Activation and Decay', () => {
   it('manages concept activation', async () => {
     await nar.input('important', 'belief', Truth.create(0.9, 0.9));
-    const concept1 = nar.memory.getConcept(TermFactory.atom('important'));
+    const concept1 = nar.memory.getConcept(TermBuilder.atom('important'));
     if (concept1) expect(concept1.priority).toBeGreaterThan(0);
   });
 
   it('applies decay over cycles', async () => {
     await nar.input('temporary', 'belief', Truth.create(0.9, 0.9));
-    const concept1 = nar.memory.getConcept(TermFactory.atom('temporary'));
+    const concept1 = nar.memory.getConcept(TermBuilder.atom('temporary'));
     const initialPriority = concept1?.priority ?? 0;
 
       for (let i = 0; i < 10; i++) {
         await nar.run(1);
       }
 
-      const concept2 = nar.memory.getConcept(TermFactory.atom('temporary'));
+      const concept2 = nar.memory.getConcept(TermBuilder.atom('temporary'));
       if (concept2) {
         expect(concept2.priority).toBeLessThanOrEqual(initialPriority);
       }
@@ -88,7 +88,7 @@ describe('Memory Operations', () => {
   describe('Budget Management', () => {
     it('propagates budget through derivations', async () => {
       await nar.input('(premise --> conclusion)', 'belief', Truth.create(0.8, 0.8));
-      const concept = nar.memory.getConcept(TermFactory.atom('premise'));
+      const concept = nar.memory.getConcept(TermBuilder.atom('premise'));
       expect(concept).toBeDefined();
     });
 
@@ -96,8 +96,8 @@ describe('Memory Operations', () => {
       await nar.input('urgent', 'belief', Truth.create(0.9, 0.9));
       await nar.input('normal', 'belief', Truth.create(0.5, 0.5));
 
-      const urgent = nar.memory.getConcept(TermFactory.atom('urgent'));
-      const normal = nar.memory.getConcept(TermFactory.atom('normal'));
+      const urgent = nar.memory.getConcept(TermBuilder.atom('urgent'));
+      const normal = nar.memory.getConcept(TermBuilder.atom('normal'));
 
       if (urgent && normal) {
         expect(urgent.priority).toBeGreaterThanOrEqual(normal.priority);

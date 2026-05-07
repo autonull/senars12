@@ -1,5 +1,5 @@
 import { atom, termsEqual } from '../terms/types.js';
-import { TermFactory } from '../terms/factory.js';
+import { TermBuilder } from '../terms/factory.js';
 import { RuleProcessor } from '../rules/processor.js';
 
 describe('Performance benchmarks', () => {
@@ -20,8 +20,8 @@ describe('Performance benchmarks', () => {
 
     test('rule dispatch benchmark <20μs', () => {
         const processor = new RuleProcessor();
-        const t1 = TermFactory.inheritance(atom('A'), atom('B'));
-        const t2 = TermFactory.inheritance(atom('B'), atom('C'));
+        const t1 = TermBuilder.inheritance(atom('A'), atom('B'));
+        const t2 = TermBuilder.inheritance(atom('B'), atom('C'));
 
         const start = performance.now();
         for (let i = 0; i < 1000; i++) {

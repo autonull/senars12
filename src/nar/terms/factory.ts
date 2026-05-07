@@ -26,7 +26,7 @@ const FALSE_ATOM = cache(
   } as AtomicTerm)
 );
 
-export const TermFactory = {
+export const TermBuilder = {
   atom: (symbol: string): Term => {
     if (symbol === 'TRUE') return TRUE_ATOM;
     if (symbol === 'FALSE') return FALSE_ATOM;
@@ -166,3 +166,5 @@ export const TermFactory = {
 };
 
 export const freeze = <T extends object>(obj: T): Readonly<T> => Object.freeze(obj);
+
+export const TermFactory = TermBuilder;

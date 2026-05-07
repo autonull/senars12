@@ -51,6 +51,7 @@ export const getTermArg = (term: Term, index: number): Term | undefined =>
 
 // Term equality
 export const termsEqual = (a: Term, b: Term): boolean => a.hash === b.hash;
+export const TermsEqual = termsEqual;
 
 // Atom constructor
 export const atom = (symbol: string): AtomicTerm =>
