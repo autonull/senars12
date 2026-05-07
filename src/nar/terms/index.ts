@@ -1,9 +1,52 @@
-export * from './types.js';
-export { TermBuilder, freeze } from './factory.js';
-export * from './truth.js';
-export * from './stamp.js';
-export * from './normalize.js';
-export * from './cache.js';
-export * from './unifier.js';
-export * from './parser.js';
-export { isInheritance, isSimilarity, isImplication, isEquivalence, isConjunction, isDisjunction, isNegation, getSubject, getPredicate, getAntecedent, getConsequent, getArgs, sameHash, sameKind } from './accessors.js';
+// Core types
+export type {Term, AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol} from './types.js';
+export {
+    OPERATORS,
+    isVariableSymbol,
+    isAtomic,
+    isCompound,
+    getTermArgs,
+    getTermArg,
+    termsEqual,
+    atom,
+    serializeTerm
+} from './types.js';
+
+// Builder and factory
+export {TermBuilder, freeze} from './factory.js';
+
+// Truth and stamp systems
+export {Truth, isTruthEqual} from './truth.js';
+export type {Truth as TruthType} from './truth.js';
+export {Stamp, MAX_DEPTH} from './stamp.js';
+export type {Stamp as StampType, Source} from './stamp.js';
+
+// Normalization
+export {normalize, visit, reduce, getTermDepth, getTermSize} from './normalize.js';
+export type {TermVisitorFn} from './normalize.js';
+
+// Caching
+export {TermCache} from './cache.js';
+
+// Unification
+export {unify} from './unifier.js';
+export type {Substitution} from './unifier.js';
+export {termParser, TermParser} from './parser.js';
+
+// Accessors - named exports only
+export {
+    isInheritance,
+    isSimilarity,
+    isImplication,
+    isEquivalence,
+    isConjunction,
+    isDisjunction,
+    isNegation,
+    getSubject,
+    getPredicate,
+    getAntecedent,
+    getConsequent,
+    getArgs,
+    sameHash,
+    sameKind
+} from './accessors.js';

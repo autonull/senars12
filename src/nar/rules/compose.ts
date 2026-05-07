@@ -1,5 +1,5 @@
-import type { Term } from '../terms/index.js';
-import type { RuleFn } from './types.js';
+import type {Term} from '../terms';
+import type {RuleFn} from './types.js';
 
 export function composeRules(
     r1: RuleFn,
@@ -8,8 +8,7 @@ export function composeRules(
     return (premises: [Term, Term]): Term | undefined => {
         const intermediate = r1(premises);
         if (!intermediate) return undefined;
-        const result = r2([intermediate as Term, premises[1]]);
-        return result;
+        return r2([intermediate as Term, premises[1]]);
     };
 }
 

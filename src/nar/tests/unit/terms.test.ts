@@ -1,7 +1,7 @@
-import { fnv1a, computeHash } from '../../utils/hash.js';
-import { isCompound, isAtomic } from '../../terms/types.js';
-import { TermBuilder } from '../../terms/factory.js';
-import { Truth } from '../../terms/truth.js';
+import {computeHash, fnv1a} from '../../utils';
+import {isAtomic, isCompound} from '../../terms';
+import {TermBuilder} from '../../terms';
+import {Truth} from '../../terms';
 
 describe('Hash', () => {
     test('fnv1a is deterministic', () => {

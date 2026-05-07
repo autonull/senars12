@@ -1,4 +1,4 @@
-import type { Concept } from './concept.js';
+import type {Concept} from './concept.js';
 
 export interface MemoryIndexConfig {
     enableAtomicIndex: boolean;
@@ -18,11 +18,23 @@ export class MemoryIndex {
     private activationIndex: Map<Concept, number>;
     private config: MemoryIndexConfig;
 
-    constructor(config: MemoryIndexConfig = { enableAtomicIndex: true, enableTemporalIndex: true, enableActivationIndex: true }) {
+    constructor(config: MemoryIndexConfig = {
+        enableAtomicIndex: true,
+        enableTemporalIndex: true,
+        enableActivationIndex: true
+    }) {
         this.config = config;
         this.atomicIndex = new Map();
         this.temporalIndex = new Map();
         this.activationIndex = new Map();
+    }
+
+    get stats(): { atomic: number; temporal: number; activation: number } {
+        return {
+            atomic: this.atomicIndex.size,
+            temporal: this.temporalIndex.size,
+            activation: this.activationIndex.size
+        };
     }
 
     index(concept: Concept, timestamp: number = Date.now()): void {
@@ -39,29 +51,6 @@ export class MemoryIndex {
         }
     }
 
-    private indexByAtomic(concept: Concept): void {
-        const term = concept.term;
-        const key = term.kind === 'atom' ? term.symbol : `${term.kind}-${term.hash}`;
-        
-        let set = this.atomicIndex.get(key);
-        if (!set) {
-            set = new Set();
-            this.atomicIndex.set(key, set);
-        }
-        set.add(concept);
-    }
-
-    private indexByTemporal(concept: Concept, timestamp: number): void {
-        const timeKey = Math.floor(timestamp / 1000);
-        
-        let set = this.temporalIndex.get(timeKey);
-        if (!set) {
-            set = new Set();
-            this.temporalIndex.set(timeKey, set);
-        }
-        set.add(concept);
-    }
-
     getByAtomic(symbol: string): Concept[] {
         const set = this.atomicIndex.get(symbol);
         return set ? Array.from(set) : [];
@@ -70,14 +59,14 @@ export class MemoryIndex {
     getByTemporal(timeRange: [number, number]): Concept[] {
         const [start, end] = timeRange;
         const results: Concept[] = [];
-        
+
         for (let t = start; t <= end; t++) {
             const set = this.temporalIndex.get(Math.floor(t / 1000));
             if (set) {
                 results.push(...Array.from(set));
             }
         }
-        
+
         return results;
     }
 
@@ -93,11 +82,11 @@ export class MemoryIndex {
         for (const set of this.atomicIndex.values()) {
             set.delete(concept);
         }
-        
+
         for (const set of this.temporalIndex.values()) {
             set.delete(concept);
         }
-        
+
         this.activationIndex.delete(concept);
     }
 
@@ -107,12 +96,27 @@ export class MemoryIndex {
         this.activationIndex.clear();
     }
 
-    get stats(): { atomic: number; temporal: number; activation: number } {
-        return {
-            atomic: this.atomicIndex.size,
-            temporal: this.temporalIndex.size,
-            activation: this.activationIndex.size
-        };
+    private indexByAtomic(concept: Concept): void {
+        const term = concept.term;
+        const key = term.kind === 'atom' ? term.symbol : `${term.kind}-${term.hash}`;
+
+        let set = this.atomicIndex.get(key);
+        if (!set) {
+            set = new Set();
+            this.atomicIndex.set(key, set);
+        }
+        set.add(concept);
+    }
+
+    private indexByTemporal(concept: Concept, timestamp: number): void {
+        const timeKey = Math.floor(timestamp / 1000);
+
+        let set = this.temporalIndex.get(timeKey);
+        if (!set) {
+            set = new Set();
+            this.temporalIndex.set(timeKey, set);
+        }
+        set.add(concept);
     }
 }
 

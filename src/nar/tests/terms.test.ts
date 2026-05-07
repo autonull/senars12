@@ -1,6 +1,6 @@
-import { atom, serializeTerm } from '../terms/types.js';
-import { TermBuilder } from '../terms/factory.js';
-import { Truth } from '../terms/truth.js';
+import {atom, serializeTerm} from '../terms/types.js';
+import {TermBuilder} from '../terms';
+import {Truth} from '../terms';
 
 describe('Term', () => {
     test('atom creates term with hash', () => {

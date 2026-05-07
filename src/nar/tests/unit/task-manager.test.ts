@@ -1,8 +1,8 @@
-import { TaskManager } from '../../task/manager.js';
-import { Memory } from '../../memory/memory.js';
-import { createTask } from '../../task/task.js';
-import { TermBuilder } from '../../terms/factory.js';
-import { Truth } from '../../terms/truth.js';
+import {TaskManager} from '../../task';
+import {Memory} from '../../memory';
+import {createTask} from '../../types';
+import {TermBuilder} from '../../terms';
+import {Truth} from '../../terms';
 
 describe('TaskManager', () => {
     let mem: Memory;

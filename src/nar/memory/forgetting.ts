@@ -1,4 +1,4 @@
-export type ForgettingPolicy = 
+export type ForgettingPolicy =
     | { type: 'priority'; threshold: number }
     | { type: 'age'; maxAgeMs: number }
     | { type: 'composite'; weights: { priority: number; age: number } };

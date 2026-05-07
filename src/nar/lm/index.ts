@@ -1,3 +1,3 @@
-export * from './types.js';
-export * from './LMRule.js';
-export * from './rules.js';
+export type {LMClient, LMConfig} from './types.js';
+export {LMRule} from './LMRule.js';
+export {LMRules} from './rules.js';

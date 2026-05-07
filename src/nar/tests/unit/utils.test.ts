@@ -1,5 +1,5 @@
-import { clamp, safeDiv, makeId, isNil, ensureArray } from '../../utils/helpers.js';
-import { fnv1a, computeHash } from '../../utils/hash.js';
+import {clamp, ensureArray, isNil, makeId, safeDiv} from '../../utils';
+import {computeHash, fnv1a} from '../../utils';
 
 describe('helpers', () => {
     describe('clamp', () => {

@@ -1,5 +1,4 @@
-
-import { Memory } from './memory.js';
+import {Memory} from './memory.js';
 
 export interface ConsolidationConfig {
     healthCheckInterval: number;
@@ -24,18 +23,6 @@ export class MemoryConsolidation {
         this.consolidationCount = 0;
     }
 
-    checkHealth(memory: Memory): void {
-        const now = Date.now();
-        if (now - this.lastHealthCheck >= this.config.healthCheckInterval * 1000) {
-            this.consolidate(memory);
-            this.lastHealthCheck = now;
-        }
-    }
-
-consolidate(_memory: Memory): void {
-  this.consolidationCount++;
-}
-
     get stats(): {
         consolidationCount: number;
         lastHealthCheck: number;
@@ -44,6 +31,18 @@ consolidate(_memory: Memory): void {
             consolidationCount: this.consolidationCount,
             lastHealthCheck: this.lastHealthCheck
         };
+    }
+
+    checkHealth(memory: Memory): void {
+        const now = Date.now();
+        if (now - this.lastHealthCheck >= this.config.healthCheckInterval * 1000) {
+            this.consolidate(memory);
+            this.lastHealthCheck = now;
+        }
+    }
+
+    consolidate(_memory: Memory): void {
+        this.consolidationCount++;
     }
 
     reset(): void {

@@ -1,4 +1,4 @@
-import type { Concept } from './concept.js';
+import type {Concept} from './concept.js';
 
 export interface FocusConfig {
     maxConcepts: number;
@@ -24,6 +24,14 @@ export class Focus {
         this.concepts = [];
     }
 
+    get size(): number {
+        return this.concepts.length;
+    }
+
+    get capacity(): number {
+        return this.config.maxConcepts;
+    }
+
     addToFocus(concept: Concept): void {
         const priority = concept.priority;
         if (priority >= this.config.attentionThreshold) {
@@ -34,7 +42,7 @@ export class Focus {
                 if (this.concepts.length >= this.config.maxConcepts) {
                     this.concepts.shift();
                 }
-                this.concepts.push({ concept, priority });
+                this.concepts.push({concept, priority});
             }
         }
     }
@@ -64,14 +72,6 @@ export class Focus {
                 this.removeFromFocus(concept);
             }
         }
-    }
-
-    get size(): number {
-        return this.concepts.length;
-    }
-
-    get capacity(): number {
-        return this.config.maxConcepts;
     }
 }
 

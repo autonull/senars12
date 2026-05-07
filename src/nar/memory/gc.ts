@@ -1,4 +1,4 @@
-import type { Term } from '../terms/index.js';
+import type {Term} from '../terms';
 
 export interface TermMeta {
     lastAccess: number;
@@ -20,7 +20,7 @@ export function trackTerm(term: Term): void {
         derivationCount: (existing?.derivationCount ?? 0) + 1
     };
     termMetaMap.set(term, meta);
-    termRefs.add({ ref: term, meta });
+    termRefs.add({ref: term, meta});
 }
 
 export function untrackTerm(term: Term): void {
@@ -34,7 +34,7 @@ export function untrackTerm(term: Term): void {
 
     if (meta.derivationCount <= 0) {
         termMetaMap.delete(term);
-        termRefs.delete({ ref: term, meta: existing });
+        termRefs.delete({ref: term, meta: existing});
     } else {
         termMetaMap.set(term, meta);
     }
@@ -68,7 +68,7 @@ export function structuralGC(ttl: number): number {
         const meta = termMetaMap.get(term);
         if (meta) {
             termMetaMap.delete(term);
-            termRefs.delete({ ref: term, meta });
+            termRefs.delete({ref: term, meta});
             cleaned++;
         }
     }

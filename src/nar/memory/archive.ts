@@ -1,4 +1,4 @@
-import type { Concept } from './concept.js';
+import type {Concept} from './concept.js';
 
 export interface ArchiveConfig {
     maxArchivedConcepts: number;
@@ -17,6 +17,26 @@ export class Archive {
     constructor(config: ArchiveConfig = DEFAULT_CONFIG) {
         this.config = config;
         this.archived = new Map();
+    }
+
+    get size(): number {
+        return this.archived.size;
+    }
+
+    get capacity(): number {
+        return this.config.maxArchivedConcepts;
+    }
+
+    get stats(): {
+        size: number;
+        capacity: number;
+        utilization: number;
+    } {
+        return {
+            size: this.size,
+            capacity: this.capacity,
+            utilization: this.size / this.capacity
+        };
     }
 
     archive(concept: Concept): void {
@@ -55,26 +75,6 @@ export class Archive {
 
     clear(): void {
         this.archived.clear();
-    }
-
-    get size(): number {
-        return this.archived.size;
-    }
-
-    get capacity(): number {
-        return this.config.maxArchivedConcepts;
-    }
-
-    get stats(): {
-        size: number;
-        capacity: number;
-        utilization: number;
-    } {
-        return {
-            size: this.size,
-            capacity: this.capacity,
-            utilization: this.size / this.capacity
-        };
     }
 }
 

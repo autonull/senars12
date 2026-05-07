@@ -10,42 +10,36 @@ export class CircuitBreaker {
     private lastFailureTime = 0;
     private config: CircuitBreakerConfig;
 
-  constructor(config: Partial<CircuitBreakerConfig> = {}) {
-    this.config = {
-      failureThreshold: config.failureThreshold ?? 5,
-      resetTimeoutMs: config.resetTimeoutMs ?? 30000,
-      halfOpenRequests: config.halfOpenRequests ?? 3
-    };
-  }
-
-  async execute<T>(fn: () => Promise<T>): Promise<T> {
-    if (this.state === 'open') {
-      if (Date.now() - this.lastFailureTime >= this.config.resetTimeoutMs) {
-        this.state = 'half-open';
-        this.failures = 0;
-      } else {
-        throw new Error('Circuit breaker is open');
-      }
+    constructor(config: Partial<CircuitBreakerConfig> = {}) {
+        this.config = {
+            failureThreshold: config.failureThreshold ?? 5,
+            resetTimeoutMs: config.resetTimeoutMs ?? 30000,
+            halfOpenRequests: config.halfOpenRequests ?? 3
+        };
     }
 
-    try {
-      const result = await fn();
-      if (this.state === 'half-open') {
-        this.state = 'closed';
-        this.failures = 0;
-      }
-      return result;
-    } catch (err) {
-      this.recordFailure();
-      throw err;
-    }
-  }
+    async execute<T>(fn: () => Promise<T>): Promise<T> {
+        if (this.state === 'open') {
+            if (Date.now() - this.lastFailureTime >= this.config.resetTimeoutMs) {
+                this.state = 'half-open';
+                this.failures = 0;
+            } else {
+                throw new Error('Circuit breaker is open');
+            }
+        }
 
-  private recordFailure(): void {
-    this.failures++;
-    this.lastFailureTime = Date.now();
-    if (this.failures >= this.config.failureThreshold) this.state = 'open';
-  }
+        try {
+            const result = await fn();
+            if (this.state === 'half-open') {
+                this.state = 'closed';
+                this.failures = 0;
+            }
+            return result;
+        } catch (err) {
+            this.recordFailure();
+            throw err;
+        }
+    }
 
     getState(): string {
         return this.state;
@@ -54,5 +48,11 @@ export class CircuitBreaker {
     reset(): void {
         this.state = 'closed';
         this.failures = 0;
+    }
+
+    private recordFailure(): void {
+        this.failures++;
+        this.lastFailureTime = Date.now();
+        if (this.failures >= this.config.failureThreshold) this.state = 'open';
     }
 }

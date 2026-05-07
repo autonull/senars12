@@ -1,169 +1,175 @@
-import type { Term } from '../terms/index.js';
-import type { Task } from '../task/task.js';
-import type { LMClient, LMRuleConfig, LMExecutionStats, LMRuleStats } from './types.js';
-import { CircuitBreaker } from '../utils/circuit-breaker.js';
-import { EventBus } from '../types/events.js';
-import { createTask } from '../task/task.js';
-import { Truth } from '../terms/truth.js';
+import type {Term} from '../terms';
+import type {Task} from '../types';
+import {createTask} from '../types';
+import type {LMClient, LMExecutionStats, LMRuleConfig, LMRuleStats} from './types.js';
+import {CircuitBreaker} from '../utils';
+import {EventBus} from '../types';
+import {Truth} from '../terms';
 
 export class LMRule {
-  readonly id: string;
-  readonly name: string;
-  readonly description: string;
-  readonly priority: number;
-  readonly sync = false as const;
+    readonly id: string;
+    readonly name: string;
+    readonly description: string;
+    readonly priority: number;
+    readonly sync = false as const;
 
-  private enabled: boolean;
-  private lm: LMClient | null;
-  private config: LMRuleConfig;
-  private circuitBreaker: CircuitBreaker;
-  private eventBus: EventBus | null;
+    private enabled: boolean;
+    private readonly lm: LMClient | null;
+    private config: LMRuleConfig;
+    private circuitBreaker: CircuitBreaker;
+    private eventBus: EventBus | null;
 
-  private stats: LMExecutionStats = {
-    totalCalls: 0,
-    successfulCalls: 0,
-    failedCalls: 0,
-    totalDuration: 0,
-    totalTokens: 0,
-    averageDuration: 0,
-    successRate: 0
-  };
+    private stats: LMExecutionStats = {
+        totalCalls: 0,
+        successfulCalls: 0,
+        failedCalls: 0,
+        totalDuration: 0,
+        totalTokens: 0,
+        averageDuration: 0,
+        successRate: 0
+    };
 
-  constructor(
-    id: string,
-    lm: LMClient | null,
-    config: LMRuleConfig
-  ) {
-    this.id = id;
-    this.name = config.name ?? id;
-    this.description = config.description ?? 'LM-based inference rule';
-    this.priority = config.priority ?? 1.0;
-    this.enabled = config.enabled ?? true;
-    this.lm = lm;
-    this.config = config;
+    constructor(
+        id: string,
+        lm: LMClient | null,
+        config: LMRuleConfig
+    ) {
+        this.id = id;
+        this.name = config.name ?? id;
+        this.description = config.description ?? 'LM-based inference rule';
+        this.priority = config.priority ?? 1.0;
+        this.enabled = config.enabled ?? true;
+        this.lm = lm;
+        this.config = config;
 
-    this.circuitBreaker = new CircuitBreaker({
-      failureThreshold: 5,
-      resetTimeoutMs: 60000,
-      halfOpenRequests: 3
-    });
+        this.circuitBreaker = new CircuitBreaker({
+            failureThreshold: 5,
+            resetTimeoutMs: 60000,
+            halfOpenRequests: 3
+        });
 
-    this.eventBus = null;
-  }
-
-  setEventBus(eventBus: EventBus): void {
-    this.eventBus = eventBus;
-  }
-
-  private emitEvent(eventName: string, data: any): void {
-    if (this.eventBus) this.eventBus.emit(eventName as any, data);
-  }
-
-canApply(primary: Term, secondary?: Term, _context?: any): boolean {
-  return this.enabled && this.circuitBreaker.getState() !== 'open' && !!this.lm && !!primary && (!this.config.singlePremise || !!secondary);
-}
-
-  async apply(primary: Term, secondary?: Term, context?: any): Promise<Task[]> {
-    if (!this.canApply(primary, secondary, context)) return [];
-
-    const startTime = Date.now();
-
-    try {
-      const prompt = this.generatePrompt(primary, secondary, context);
-      this.emitEvent('lm.prompt', { ruleId: this.id, prompt, timestamp: Date.now() });
-
-      const response = await this.executeLM(prompt);
-      this.emitEvent('lm.response', { ruleId: this.id, prompt, response, duration: Date.now() - startTime, timestamp: Date.now() });
-
-      if (!response) {
-        this.recordExecution(false, Date.now() - startTime);
-        return [];
-      }
-
-      const processed = this.processResponse(response, primary, secondary, context);
-      const tasks = this.generateTasks(processed, primary, secondary, context);
-      this.recordExecution(true, Date.now() - startTime, prompt.length + response.length);
-      return tasks;
-    } catch (error) {
-      this.emitEvent('lm.failure', {
-        ruleId: this.id,
-        error: error instanceof Error ? error.message : String(error),
-        duration: Date.now() - startTime,
-        timestamp: Date.now()
-      });
-      this.recordExecution(false, Date.now() - startTime);
-      return [];
+        this.eventBus = null;
     }
-  }
 
-private async executeLM(prompt: string): Promise<string> {
-  if (!this.lm) throw new Error(`LM unavailable for rule ${this.id}`);
-  return await this.circuitBreaker.execute(async () => await this.lm!.generateText(prompt, this.config.lmOptions));
-}
+    setEventBus(eventBus: EventBus): void {
+        this.eventBus = eventBus;
+    }
 
-  private generatePrompt(primary: Term, secondary: Term | undefined, context?: any): string {
-    const template = this.config.promptTemplate;
-    if (typeof template === 'string') return this.fillTemplate(template, primary, secondary);
-    if (typeof template === 'function') return (template as any)(primary, secondary, context);
-    return `Reason about: ${primary.toString()}`;
-  }
+    canApply(primary: Term, secondary?: Term, _context?: any): boolean {
+        return this.enabled && this.circuitBreaker.getState() !== 'open' && !!this.lm && !!primary && (!this.config.singlePremise || !!secondary);
+    }
 
-  private fillTemplate(template: string, primary: Term, secondary?: Term): string {
-    return template.replace('{{primaryTerm}}', primary.toString()).replace('{{secondaryTerm}}', secondary?.toString() ?? '');
-  }
+    async apply(primary: Term, secondary?: Term, context?: any): Promise<Task[]> {
+        if (!this.canApply(primary, secondary, context)) return [];
 
-  private processResponse(response: string, primary: Term, secondary: Term | undefined, context?: any): any {
-    return this.config.responseProcessor ? (this.config.responseProcessor as any)(response, primary, secondary, context) : response;
-  }
+        const startTime = Date.now();
 
-  private generateTasks(processed: any, primary: Term, secondary: Term | undefined, context?: any): Task[] {
-    if (this.config.taskGenerator) return (this.config.taskGenerator as any)(processed, primary, secondary, context);
-    if (Array.isArray(processed)) return processed.map(p => this.taskFromProcessed(p, primary));
-    return [this.taskFromProcessed(processed, primary)];
-  }
+        try {
+            const prompt = this.generatePrompt(primary, secondary, context);
+            this.emitEvent('lm.prompt', {ruleId: this.id, prompt, timestamp: Date.now()});
 
-  private taskFromProcessed(processed: any, primary: Term): Task {
-    return createTask(processed.term ?? primary, processed.type ?? 'belief', processed.truth ?? Truth.NEUTRAL, processed.budget ?? Truth.NEUTRAL.f * Truth.NEUTRAL.c);
-  }
+            const response = await this.executeLM(prompt);
+            this.emitEvent('lm.response', {
+                ruleId: this.id,
+                prompt,
+                response,
+                duration: Date.now() - startTime,
+                timestamp: Date.now()
+            });
 
-  private recordExecution(success: boolean, duration: number, tokens?: number): void {
-    this.stats.totalCalls++;
-    this.stats.successfulCalls += success ? 1 : 0;
-    this.stats.failedCalls += success ? 0 : 1;
-    this.stats.totalDuration += duration;
-    this.stats.totalTokens += tokens ?? 0;
-    this.stats.averageDuration = this.stats.totalDuration / this.stats.totalCalls;
-    this.stats.successRate = this.stats.successfulCalls / this.stats.totalCalls;
-  }
+            if (!response) {
+                this.recordExecution(false, Date.now() - startTime);
+                return [];
+            }
 
-  getStats(): LMRuleStats {
-    return {
-      id: this.id,
-      name: this.name,
-      enabled: this.enabled,
-      stats: this.stats,
-      circuitState: this.circuitBreaker.getState() as 'closed' | 'open' | 'half-open'
-    };
-  }
+            const processed = this.processResponse(response, primary, secondary, context);
+            const tasks = this.generateTasks(processed, primary, secondary, context);
+            this.recordExecution(true, Date.now() - startTime, prompt.length + response.length);
+            return tasks;
+        } catch (error) {
+            this.emitEvent('lm.failure', {
+                ruleId: this.id,
+                error: error instanceof Error ? error.message : String(error),
+                duration: Date.now() - startTime,
+                timestamp: Date.now()
+            });
+            this.recordExecution(false, Date.now() - startTime);
+            return [];
+        }
+    }
 
-  enable(): void {
-    this.enabled = true;
-  }
+    getStats(): LMRuleStats {
+        return {
+            id: this.id,
+            name: this.name,
+            enabled: this.enabled,
+            stats: this.stats,
+            circuitState: this.circuitBreaker.getState() as 'closed' | 'open' | 'half-open'
+        };
+    }
 
-  disable(): void {
-    this.enabled = false;
-  }
+    enable(): void {
+        this.enabled = true;
+    }
 
-  reset(): void {
-    this.circuitBreaker.reset();
-    this.stats = {
-      totalCalls: 0,
-      successfulCalls: 0,
-      failedCalls: 0,
-      totalDuration: 0,
-      totalTokens: 0,
-      averageDuration: 0,
-      successRate: 0
-    };
-  }
+    disable(): void {
+        this.enabled = false;
+    }
+
+    reset(): void {
+        this.circuitBreaker.reset();
+        this.stats = {
+            totalCalls: 0,
+            successfulCalls: 0,
+            failedCalls: 0,
+            totalDuration: 0,
+            totalTokens: 0,
+            averageDuration: 0,
+            successRate: 0
+        };
+    }
+
+    private emitEvent(eventName: string, data: any): void {
+        if (this.eventBus) this.eventBus.emit(eventName as any, data);
+    }
+
+    private async executeLM(prompt: string): Promise<string> {
+        if (!this.lm) throw new Error(`LM unavailable for rule ${this.id}`);
+        return await this.circuitBreaker.execute(async () => await this.lm!.generateText(prompt, this.config.lmOptions));
+    }
+
+    private generatePrompt(primary: Term, secondary: Term | undefined, context?: any): string {
+        const template = this.config.promptTemplate;
+        if (typeof template === 'string') return this.fillTemplate(template, primary, secondary);
+        if (typeof template === 'function') return (template as any)(primary, secondary, context);
+        return `Reason about: ${primary.toString()}`;
+    }
+
+    private fillTemplate(template: string, primary: Term, secondary?: Term): string {
+        return template.replace('{{primaryTerm}}', primary.toString()).replace('{{secondaryTerm}}', secondary?.toString() ?? '');
+    }
+
+    private processResponse(response: string, primary: Term, secondary: Term | undefined, context?: any): any {
+        return this.config.responseProcessor ? (this.config.responseProcessor as any)(response, primary, secondary, context) : response;
+    }
+
+    private generateTasks(processed: any, primary: Term, secondary: Term | undefined, context?: any): Task[] {
+        if (this.config.taskGenerator) return (this.config.taskGenerator as any)(processed, primary, secondary, context);
+        if (Array.isArray(processed)) return processed.map(p => this.taskFromProcessed(p, primary));
+        return [this.taskFromProcessed(processed, primary)];
+    }
+
+    private taskFromProcessed(processed: any, primary: Term): Task {
+        return createTask(processed.term ?? primary, processed.type ?? 'belief', processed.truth ?? Truth.NEUTRAL, processed.budget ?? Truth.NEUTRAL.f * Truth.NEUTRAL.c);
+    }
+
+    private recordExecution(success: boolean, duration: number, tokens?: number): void {
+        this.stats.totalCalls++;
+        this.stats.successfulCalls += success ? 1 : 0;
+        this.stats.failedCalls += success ? 0 : 1;
+        this.stats.totalDuration += duration;
+        this.stats.totalTokens += tokens ?? 0;
+        this.stats.averageDuration = this.stats.totalDuration / this.stats.totalCalls;
+        this.stats.successRate = this.stats.successfulCalls / this.stats.totalCalls;
+    }
 }

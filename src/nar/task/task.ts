@@ -5,14 +5,14 @@
 
 // Re-export from core to maintain single source of truth
 export type {
-  Task,
-  TaskType,
-  Budget
+    Task,
+    TaskType,
+    Budget
 } from '../types/core.js';
 
 export {
-  createBudget,
-  createTask,
-  isBudget,
-  getBudgetValue
+    createBudget,
+    createTask,
+    isBudget,
+    getBudgetValue
 } from '../types/core.js';

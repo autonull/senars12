@@ -1,20 +1,20 @@
-import type { Term } from '../terms/index.js';
-import type { RegisteredRule } from './types.js';
-import { RuleRegistry, RuleIndex } from './types.js';
-import { NALRules } from './nal.js';
-import { NALExtendedRules } from './nal-extended.js';
-import { RuleProcessor } from './processor.js';
+// Rule types and registry
+export type {
+    RegisteredRule,
+    RulePattern,
+    RuleFn
+} from './types.js';
+export {RuleRegistry, RuleIndex, createRulePattern, encodePattern} from './types.js';
 
-export const ruleIndex = new RuleIndex();
+// Rule processor
+export {RuleProcessor} from './processor.js';
+export type {RuleResult} from './processor.js';
 
-export function matchRules(term1: Term, term2: Term): RegisteredRule[] {
-  return ruleIndex.match(term1, term2);
-}
+// Rule sets
+export {NALRules} from './nal.js';
+export {NALExtendedRules} from './nal-extended.js';
 
-export * from './types.js';
-export * from './guards.js';
-export * from './nal.js';
-export * from './nal-extended.js';
-export * from './processor.js';
-export * from './compose.js';
-export { RuleRegistry, RuleIndex, NALRules, NALExtendedRules, RuleProcessor };
+// Rule utilities
+export type {Guard} from './guards.js';
+export {composeGuards, andGuards, orGuards, notGuard, Guards} from './guards.js';
+export {composeRules, sequenceRules} from './compose.js';

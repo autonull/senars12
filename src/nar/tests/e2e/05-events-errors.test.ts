@@ -1,114 +1,114 @@
 /**
  * Event System & Error Handling Tests
  */
-import { NAR } from '../../nar.js';
-import { TermBuilder } from '../../terms/factory.js';
-import { Truth } from '../../terms/truth.js';
+import {NAR} from '../../nar.js';
+import {TermBuilder} from '../../terms';
+import {Truth} from '../../terms';
 
 describe('Event System', () => {
-  let nar: NAR;
+    let nar: NAR;
 
-  beforeEach(() => {
-    nar = new NAR({
-      maxConcepts: 100,
-      priorityThreshold: 0.1,
-      activationDecayRate: 0.01,
-      consolidationInterval: 5,
-      cpuThrottleMs: 10,
-      maxDerivationDepth: 10,
-      maxDerivationsPerStep: 100,
-      enableLMRules: false
-    });
-  });
-
-  it('emits events for rule results', async () => {
-    let ruleFired = false;
-
-    nar.eventBus.on('rule.result', () => {
-      ruleFired = true;
+    beforeEach(() => {
+        nar = new NAR({
+            maxConcepts: 100,
+            priorityThreshold: 0.1,
+            activationDecayRate: 0.01,
+            consolidationInterval: 5,
+            cpuThrottleMs: 10,
+            maxDerivationDepth: 10,
+            maxDerivationsPerStep: 100,
+            enableLMRules: false
+        });
     });
 
-    await nar.input('(A --> B)', 'belief');
-    await nar.input('(B --> C)', 'belief');
-    await nar.run(1);
+    it('emits events for rule results', async () => {
+        let ruleFired = false;
 
-    expect(ruleFired).toBe(true);
-  });
+        nar.eventBus.on('rule.result', () => {
+            ruleFired = true;
+        });
 
-  it('supports multiple event listeners', async () => {
-    const events: string[] = [];
+        await nar.input('(A --> B)', 'belief');
+        await nar.input('(B --> C)', 'belief');
+        await nar.run(1);
 
-    nar.eventBus.on('memory.consolidate', () => events.push('consolidate'));
-    nar.eventBus.on('task.add', () => events.push('task'));
+        expect(ruleFired).toBe(true);
+    });
 
-    await nar.input('test', 'belief');
-    await nar.run(1);
+    it('supports multiple event listeners', async () => {
+        const events: string[] = [];
 
-    expect(events.length).toBeGreaterThan(0);
-  });
+        nar.eventBus.on('memory.consolidate', () => events.push('consolidate'));
+        nar.eventBus.on('task.add', () => events.push('task'));
 
-  it('allows unsubscribing from events', async () => {
-    let count = 0;
+        await nar.input('test', 'belief');
+        await nar.run(1);
 
-    const unsubscribe = nar.eventBus.on('task.add', () => count++);
+        expect(events.length).toBeGreaterThan(0);
+    });
 
-    await nar.input('test1', 'belief');
-    unsubscribe();
-    await nar.input('test2', 'belief');
+    it('allows unsubscribing from events', async () => {
+        let count = 0;
 
-    expect(count).toBe(1);
-  });
+        const unsubscribe = nar.eventBus.on('task.add', () => count++);
+
+        await nar.input('test1', 'belief');
+        unsubscribe();
+        await nar.input('test2', 'belief');
+
+        expect(count).toBe(1);
+    });
 });
 
 describe('Error Handling', () => {
-  let nar: NAR;
+    let nar: NAR;
 
-  beforeEach(() => {
-    nar = new NAR({
-      maxConcepts: 100,
-      priorityThreshold: 0.1,
-      activationDecayRate: 0.01,
-      consolidationInterval: 5,
-      cpuThrottleMs: 10,
-      maxDerivationDepth: 10,
-      maxDerivationsPerStep: 100,
-      enableLMRules: false
+    beforeEach(() => {
+        nar = new NAR({
+            maxConcepts: 100,
+            priorityThreshold: 0.1,
+            activationDecayRate: 0.01,
+            consolidationInterval: 5,
+            cpuThrottleMs: 10,
+            maxDerivationDepth: 10,
+            maxDerivationsPerStep: 100,
+            enableLMRules: false
+        });
     });
-  });
 
-  it('handles empty input gracefully', async () => {
-    await expect(nar.input('', 'belief')).rejects.toThrow();
-  });
+    it('handles empty input gracefully', async () => {
+        await expect(nar.input('', 'belief')).rejects.toThrow();
+    });
 
-  it('handles malformed terms gracefully', async () => {
-    await expect(nar.input('((()', 'belief')).rejects.toThrow();
-  });
+    it('handles malformed terms gracefully', async () => {
+        await expect(nar.input('((()', 'belief')).rejects.toThrow();
+    });
 
-  it('recovers from invalid truth values', async () => {
-    await nar.input('test', 'belief', Truth.create(1.5, -0.5));
-    const concept = nar.memory.getConcept(TermBuilder.atom('test'));
-    expect(concept).toBeDefined();
-  });
+    it('recovers from invalid truth values', async () => {
+        await nar.input('test', 'belief', Truth.create(1.5, -0.5));
+        const concept = nar.memory.getConcept(TermBuilder.atom('test'));
+        expect(concept).toBeDefined();
+    });
 
-  it('handles high-volume input without crashing', async () => {
-    const promises: Promise<void>[] = [];
-    for (let i = 0; i < 50; i++) {
-      promises.push(nar.input(`item_${i}`, 'belief') as Promise<void>);
-    }
+    it('handles high-volume input without crashing', async () => {
+        const promises: Promise<void>[] = [];
+        for (let i = 0; i < 50; i++) {
+            promises.push(await nar.input(`item_${i}`, 'belief') as Promise<void>);
+        }
 
-    await Promise.all(promises);
+        await Promise.all(promises);
 
-    expect(nar.memory.size).toBeGreaterThan(0);
-    expect(nar.memory.size).toBeLessThanOrEqual(100);
-  });
+        expect(nar.memory.size).toBeGreaterThan(0);
+        expect(nar.memory.size).toBeLessThanOrEqual(100);
+    });
 
-  it('handles concurrent operations safely', async () => {
-    await Promise.all([
-      nar.input('a', 'belief'),
-      nar.input('b', 'belief'),
-      nar.input('c', 'belief')
-    ]);
+    it('handles concurrent operations safely', async () => {
+        await Promise.all([
+            nar.input('a', 'belief'),
+            nar.input('b', 'belief'),
+            nar.input('c', 'belief')
+        ]);
 
-    expect(nar.memory.size).toBeGreaterThanOrEqual(1);
-  });
+        expect(nar.memory.size).toBeGreaterThanOrEqual(1);
+    });
 });

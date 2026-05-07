@@ -1,11 +1,11 @@
-import type { Term, CompoundTerm } from '../terms/index.js';
+import type {CompoundTerm, Term} from '../terms';
 
 export type Guard<T extends Term = Term> = (term: T) => boolean;
 
 function hasArgs(term: Term): term is CompoundTerm {
     return term.kind === 'conjunction' || term.kind === 'disjunction' ||
-           term.kind === 'inheritance' || term.kind === 'similarity' ||
-           term.kind === 'negation' || term.kind === 'implication' || term.kind === 'equivalence';
+        term.kind === 'inheritance' || term.kind === 'similarity' ||
+        term.kind === 'negation' || term.kind === 'implication' || term.kind === 'equivalence';
 }
 
 export function composeGuards<T extends Term>(...guards: Guard<T>[]): Guard<T> {
@@ -31,6 +31,6 @@ export const Guards = {
 
     hasOperator: (op: string) => (term: Term): boolean => term.kind === op,
 
-    hasArity: (arity: number) => (term: Term): boolean => 
+    hasArity: (arity: number) => (term: Term): boolean =>
         term.kind === 'atom' ? arity === 0 : hasArgs(term) && term.args.length === arity
 };

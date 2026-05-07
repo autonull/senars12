@@ -7,9 +7,11 @@ This document describes the comprehensive end-to-end testing strategy for the NA
 The e2e tests are organized into modular, focused test files:
 
 ### ✅ 01-term-system.test.ts (IMPLEMENTED)
+
 **Purpose**: Validate term creation, canonicalization, and structural sharing
 
 **Coverage**:
+
 - Canonical term creation with structural sharing
 - Conjunction normalization
 - Truth value consistency
@@ -18,9 +20,11 @@ The e2e tests are organized into modular, focused test files:
 **Status**: ✅ Passing
 
 ### 📋 02-inference-rules.test.ts (DESIGN)
+
 **Purpose**: Test NAL inference rules (deduction, induction, abduction)
 
 **Coverage**:
+
 - Deduction: (A --> B), (B --> C) |- (A --> C)
 - Multi-step deduction chains
 - Similarity reasoning
@@ -30,9 +34,11 @@ The e2e tests are organized into modular, focused test files:
 **Design Rationale**: Decomposed from epic test to isolate inference rule testing
 
 ### 📋 03-memory-operations.test.ts (DESIGN)
+
 **Purpose**: Test memory management, concept formation, and budget propagation
 
 **Coverage**:
+
 - Concept creation and retrieval
 - Activation and decay over cycles
 - Consolidation and forgetting
@@ -42,9 +48,11 @@ The e2e tests are organized into modular, focused test files:
 **Design Rationale**: Isolates memory system testing from reasoning
 
 ### 📋 04-aikr-compliance.test.ts (DESIGN)
+
 **Purpose**: Validate AIKR compliance (Anytime, Bounded, Knowledge-grounded, Resource-aware)
 
 **Coverage**:
+
 - Anytime: Interruptible execution
 - Bounded: Memory and derivation limits
 - Knowledge-grounded: Uses existing beliefs
@@ -55,9 +63,11 @@ The e2e tests are organized into modular, focused test files:
 **Design Rationale**: Tests system-level cognitive properties
 
 ### 📋 05-events-errors.test.ts (DESIGN)
+
 **Purpose**: Test event system and error handling
 
 **Coverage**:
+
 - Event emission and subscription
 - Multiple event listeners
 - Error recovery
@@ -69,26 +79,31 @@ The e2e tests are organized into modular, focused test files:
 ## Implementation Strategy
 
 ### Phase 1: Foundation Tests ✅
+
 - [x] Term system tests (01-term-system.test.ts)
 - Validates core term operations
 - Ensures structural sharing works correctly
 
 ### Phase 2: Inference Tests (PENDING)
+
 - [ ] Implement 02-inference-rules.test.ts
 - Test each NAL rule independently
 - Verify truth value propagation
 
 ### Phase 3: Memory Tests (PENDING)
+
 - [ ] Implement 03-memory-operations.test.ts
 - Test concept lifecycle
 - Verify budget management
 
 ### Phase 4: System Properties (PENDING)
+
 - [ ] Implement 04-aikr-compliance.test.ts
 - Validate AIKR properties
 - Test complete reasoning cycles
 
 ### Phase 5: Infrastructure (PENDING)
+
 - [ ] Implement 05-events-errors.test.ts
 - Test event system
 - Verify error handling
@@ -118,6 +133,7 @@ pnpm run test:unit -- 05-events-errors
 ## Integration with senars11 Approach
 
 Following the senars11 pattern of comprehensive e2e testing:
+
 - Full pipeline testing (input → reasoning → output)
 - Capability validation
 - Resource management verification

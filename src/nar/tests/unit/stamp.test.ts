@@ -1,4 +1,4 @@
-import { Stamp, MAX_DEPTH, getStampId, getStampSource } from '../../terms/stamp.js';
+import {MAX_DEPTH, Stamp} from '../../terms';
 
 describe('Stamp', () => {
     describe('createInput', () => {
@@ -28,7 +28,7 @@ describe('Stamp', () => {
         });
 
         test('returns undefined when parent at max depth', () => {
-            const deepParent = { ...Stamp.createInput(), depth: MAX_DEPTH };
+            const deepParent = {...Stamp.createInput(), depth: MAX_DEPTH};
             const derived = Stamp.derive([deepParent]);
             expect(derived).toBeUndefined();
         });
@@ -49,7 +49,7 @@ describe('Stamp', () => {
         });
 
         test('depth increases from max parent', () => {
-            const deepParent = { ...Stamp.createInput(), depth: 5 };
+            const deepParent = {...Stamp.createInput(), depth: 5};
             const derived = Stamp.derive([deepParent]);
             expect(derived!.depth).toBe(6);
         });
@@ -70,7 +70,7 @@ describe('Stamp', () => {
         test('getMaxDepth finds max depth', () => {
             const stamps = [
                 Stamp.createInput(),
-                { ...Stamp.createInput(), depth: 3 }
+                {...Stamp.createInput(), depth: 3}
             ];
             expect(Stamp.getMaxDepth(stamps)).toBe(3);
         });
@@ -79,7 +79,7 @@ describe('Stamp', () => {
             const shallow = [Stamp.createInput()];
             expect(Stamp.canDerive(shallow)).toBe(true);
 
-            const deepParent = { ...Stamp.createInput(), depth: MAX_DEPTH };
+            const deepParent = {...Stamp.createInput(), depth: MAX_DEPTH};
             expect(Stamp.canDerive([deepParent])).toBe(false);
         });
 
@@ -88,15 +88,4 @@ describe('Stamp', () => {
         });
     });
 
-    describe('legacy exports', () => {
-        test('getStampId extracts id', () => {
-            const stamp = Stamp.createInput();
-            expect(getStampId(stamp)).toBe(stamp.id);
-        });
-
-        test('getStampSource extracts source', () => {
-            const stamp = Stamp.createInput();
-            expect(getStampSource(stamp)).toBe('INPUT');
-        });
-    });
 });

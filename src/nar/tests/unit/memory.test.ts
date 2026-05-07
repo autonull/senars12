@@ -1,7 +1,7 @@
-import { Memory } from '../../memory/memory.js';
-import { TermBuilder } from '../../terms/factory.js';
-import { Truth } from '../../terms/truth.js';
-import { isAtomic, type Term } from '../../terms/types.js';
+import {Memory} from '../../memory';
+import {TermBuilder} from '../../terms';
+import {Truth} from '../../terms';
+import {isAtomic, type Term} from '../../terms';
 
 describe('Memory', () => {
     let mem: Memory;

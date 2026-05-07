@@ -1,6 +1,6 @@
-import { atom, termsEqual } from '../terms/types.js';
-import { TermBuilder } from '../terms/factory.js';
-import { RuleProcessor } from '../rules/processor.js';
+import {atom, termsEqual} from '../terms';
+import {TermBuilder} from '../terms';
+import {RuleProcessor} from '../rules';
 
 describe('Performance benchmarks', () => {
     test('term comparison benchmark <100ns', () => {

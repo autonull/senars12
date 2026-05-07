@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "ai": "^4.1.0"
+    "ai": "^6.0.175"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

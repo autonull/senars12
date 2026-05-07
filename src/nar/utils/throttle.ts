@@ -8,28 +8,21 @@ export class Throttle {
     private lastRefill = Date.now();
     private config: ThrottleConfig;
 
-  constructor(config: Partial<ThrottleConfig> = {}) {
-    this.config = { intervalMs: config.intervalMs ?? 10, burst: config.burst ?? 1 };
-    this.tokens = this.config.burst;
-  }
-
-  async acquire(): Promise<void> {
-    while (true) {
-      this.refill();
-      if (this.tokens > 0) { this.tokens--; return; }
-      await new Promise(r => setTimeout(r, this.config.intervalMs));
+    constructor(config: Partial<ThrottleConfig> = {}) {
+        this.config = {intervalMs: config.intervalMs ?? 10, burst: config.burst ?? 1};
+        this.tokens = this.config.burst;
     }
-  }
 
-  private refill(): void {
-    const now = Date.now();
-    const elapsed = now - this.lastRefill;
-    const refills = Math.floor(elapsed / this.config.intervalMs);
-    if (refills > 0) {
-      this.tokens = Math.min(this.config.burst, this.tokens + refills);
-      this.lastRefill = now;
+    async acquire(): Promise<void> {
+        while (true) {
+            this.refill();
+            if (this.tokens > 0) {
+                this.tokens--;
+                return;
+            }
+            await new Promise(r => setTimeout(r, this.config.intervalMs));
+        }
     }
-  }
 
     getAvailable(): number {
         this.refill();
@@ -39,6 +32,16 @@ export class Throttle {
     reset(): void {
         this.tokens = this.config.burst;
         this.lastRefill = Date.now();
+    }
+
+    private refill(): void {
+        const now = Date.now();
+        const elapsed = now - this.lastRefill;
+        const refills = Math.floor(elapsed / this.config.intervalMs);
+        if (refills > 0) {
+            this.tokens = Math.min(this.config.burst, this.tokens + refills);
+            this.lastRefill = now;
+        }
     }
 }
 
