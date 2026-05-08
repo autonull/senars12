@@ -177,13 +177,13 @@ export class Memory {
     this.updateAllFocus();
   }
 
-  private archiveConcept(concept: Concept): void {
+  archiveConcept(concept: Concept): boolean {
     if (this.config.enableArchive) {
       this.archive.archive(concept);
-    }
-    if (this.config.enableIndexing) {
       this.index.remove(concept);
+      return true;
     }
+    return false;
   }
 
   private applyForgetting(): void {

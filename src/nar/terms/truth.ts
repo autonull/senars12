@@ -125,10 +125,17 @@ export const Truth = {
     structuralDeduction: (t: Truth): Truth =>
         unary(t, truth => Truth.create(truth.f * truth.f, truth.c / (truth.c + 1) * truth.c))!,
 
-    structuralReduction: (t: Truth): Truth =>
-        unary(t, truth => Truth.create(truth.f, truth.c / (truth.c + WEAKENING_FACTOR)))!,
+  structuralReduction: (t: Truth): Truth =>
+  unary(t, truth => Truth.create(truth.f, truth.c / (truth.c + WEAKENING_FACTOR)))!,
 
-    isStronger: (t1: Truth, t2: Truth): boolean => Truth.expectation(t1) > Truth.expectation(t2),
+  revisionWeak: (t1: Truth, t2: Truth): Truth => {
+    const w1 = Truth.c2w(t1.c) / WEAKENING_FACTOR;
+    const w2 = Truth.c2w(t2.c) / WEAKENING_FACTOR;
+    const w = w1 + w2;
+    return Truth.create((t1.f * w1 + t2.f * w2) / w, Truth.w2c(w));
+  },
+
+  isStronger: (t1: Truth, t2: Truth): boolean => Truth.expectation(t1) > Truth.expectation(t2),
 
     weak: (c: number): number => clamp(c / (c + WEAKENING_FACTOR), 0, 1),
 
