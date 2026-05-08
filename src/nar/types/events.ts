@@ -11,21 +11,21 @@ interface Listener<T = unknown> {
 }
 
 export class EventBus<T extends EventMap = EventMap> {
-    private listeners = new Map<string, Listener<any>[]>();
+  private listeners = new Map<string, Listener<any>[]>();
 
-    on<K extends keyof T>(eventName: K & string, fn: EventReceiver<T[K]>): EventUnsubscribe {
-        const listeners = this.listeners.get(eventName as string) ?? [];
-        listeners.push({fn: fn as any, once: false});
-        this.listeners.set(eventName as string, listeners);
-        return () => this.off(eventName as string, fn as EventReceiver<unknown>);
-    }
+  on<K extends keyof T>(eventName: K & string, fn: EventReceiver<T[K]>): EventUnsubscribe {
+    const listeners = this.listeners.get(eventName as string) ?? [];
+    listeners.push({fn: fn as unknown as EventReceiver<any>, once: false});
+    this.listeners.set(eventName as string, listeners);
+    return () => this.off(eventName as string, fn as EventReceiver<unknown>);
+  }
 
-    once<K extends keyof T>(eventName: K & string, fn: EventReceiver<T[K]>): EventUnsubscribe {
-        const listeners = this.listeners.get(eventName as string) ?? [];
-        listeners.push({fn: fn as any, once: true});
-        this.listeners.set(eventName as string, listeners);
-        return () => this.off(eventName as string, fn as EventReceiver<unknown>);
-    }
+  once<K extends keyof T>(eventName: K & string, fn: EventReceiver<T[K]>): EventUnsubscribe {
+    const listeners = this.listeners.get(eventName as string) ?? [];
+    listeners.push({fn: fn as unknown as EventReceiver<any>, once: true});
+    this.listeners.set(eventName as string, listeners);
+    return () => this.off(eventName as string, fn as EventReceiver<unknown>);
+  }
 
     off(eventName: string, fn: EventReceiver<unknown>): void {
         const listeners = this.listeners.get(eventName);

@@ -39,15 +39,15 @@ export class BoundedBag<T> {
         return true;
     }
 
-    sample(objective: SamplingObjective): T | undefined {
-        switch (objective.type) {
-            case 'priority': {
-                const found = this.heap.find(h => (h as any).priority >= objective.threshold);
-                return found?.item;
-            }
-            case 'recency': {
-                const cutoff = Date.now() - objective.windowMs;
-                const found = this.heap.find(h => h.lastAccess >= cutoff);
+  sample(objective: SamplingObjective): T | undefined {
+    switch (objective.type) {
+      case 'priority': {
+        const found = this.heap.find(h => h.priority >= objective.threshold);
+        return found?.item;
+      }
+      case 'recency': {
+        const cutoff = Date.now() - objective.windowMs;
+        const found = this.heap.find(h => h.lastAccess >= cutoff);
                 return found?.item;
             }
             case 'novelty':

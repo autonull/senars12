@@ -6,7 +6,7 @@ import {Concept, type ConceptTaskType} from './concept.js';
 import type {Term} from '../terms';
 import type {Truth} from '../terms';
 import type {Budget} from '../types';
-import {type CoreConfig, getBudgetValue} from '../types';
+import {getBudgetValue} from '../types';
 import {MemoryIndex} from './memory-index.js';
 import {Focus} from './focus.js';
 import {Archive} from './archive.js';
@@ -15,7 +15,11 @@ import {MemoryConsolidation} from './consolidation.js';
 import {Forgetting} from './forgetting.js';
 import type {ForgettingPolicy} from './forgetting.js';
 
-export interface MemoryConfig extends Pick<CoreConfig, 'maxConcepts' | 'priorityThreshold' | 'activationDecayRate' | 'consolidationInterval'> {
+export interface MemoryConfig {
+  maxConcepts?: number;
+  priorityThreshold?: number;
+  activationDecayRate?: number;
+  consolidationInterval?: number;
   focusMaxConcepts?: number;
   focusThreshold?: number;
   archiveThreshold?: number;

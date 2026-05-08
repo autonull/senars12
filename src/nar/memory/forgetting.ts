@@ -21,7 +21,7 @@ export class Forgetting {
       let oldest: Concept | undefined;
       let oldestTime = Infinity;
       for (const concept of concepts) {
-        const lastAccess = (concept as any).lastAccessTime ?? 0;
+        const lastAccess = 'lastAccessTime' in concept ? concept.lastAccessTime ?? 0 : 0;
         if (lastAccess < oldestTime) {
           oldestTime = lastAccess;
           oldest = concept;
@@ -58,14 +58,14 @@ export class Forgetting {
     const policy = this.policy as { type: 'age'; maxAgeMs: number };
     const now = Date.now();
     for (const concept of concepts) {
-      const lastAccess = (concept as any).lastAccessTime ?? 0;
+      const lastAccess = 'lastAccessTime' in concept ? concept.lastAccessTime ?? 0 : 0;
       if (now - lastAccess > policy.maxAgeMs) {
         return concept;
       }
     }
     return concepts.reduce((oldest, c) => {
-      const t = (c as any).lastAccessTime ?? 0;
-      const ot = (oldest as any).lastAccessTime ?? 0;
+      const t = 'lastAccessTime' in c ? c.lastAccessTime ?? 0 : 0;
+      const ot = 'lastAccessTime' in oldest ? oldest.lastAccessTime ?? 0 : 0;
       return t < ot ? c : oldest;
     }, concepts[0]);
   }
@@ -76,7 +76,8 @@ export class Forgetting {
     let worstScore = Infinity;
     for (const concept of concepts) {
       const score = scorer.score(concept);
-      const compositeScore = score * policy.weights.priority + (Date.now() - ((concept as any).lastAccessTime ?? 0)) * policy.weights.age;
+      const lastAccess = 'lastAccessTime' in concept ? concept.lastAccessTime ?? 0 : 0;
+      const compositeScore = score * policy.weights.priority + (Date.now() - lastAccess) * policy.weights.age;
       if (compositeScore > worstScore) {
         worstScore = compositeScore;
         worst = concept;

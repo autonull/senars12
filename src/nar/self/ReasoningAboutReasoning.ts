@@ -28,7 +28,7 @@ export class ReasoningAboutReasoning {
     };
 
     this.monitor = new MetacognitiveMonitor(nar, this.config);
-    this.analyzer = new SelfAnalyzer(nar, this.monitor, this.config);
+    this.analyzer = new SelfAnalyzer(nar, this.monitor, null, this.config);
     this.periodicAnalysisInterval = null;
   }
 

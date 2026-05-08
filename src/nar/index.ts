@@ -62,7 +62,7 @@ export {
 
 // Rules
 export type {RegisteredRule, RulePattern, RuleFn, RuleResult} from './rules/index.js';
-export {RuleRegistry, RuleIndex, createRulePattern, encodePattern} from './rules/index.js';
+export {RuleRegistry, RuleIndex, createRulePattern} from './rules/index.js';
 export {RuleProcessor} from './rules/index.js';
 export {NALRules} from './rules/index.js';
 export {NALExtendedRules} from './rules/index.js';

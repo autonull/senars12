@@ -166,8 +166,9 @@ export class HTTPServer {
     };
 
     const route = routes[url?.split('/')[1] || ''];
-    if (route && route[method || 'GET']) {
-      return await route[method || 'GET'](req);
+    const handler = route?.[method || 'GET'];
+    if (route && handler) {
+      return await handler(req);
     }
 
     return { statusCode: 404, body: { error: 'Not found' } };
@@ -318,8 +319,8 @@ export class HTTPServer {
       body: {
         totalConcepts: stats.totalConcepts,
         totalTasks: stats.totalTasks,
-        rulesFired: stats.rulesFired || 0,
-        derivations: stats.derivations || 0
+        rulesFired: (stats as any).rulesFired || 0,
+        derivations: (stats as any).derivations || 0
       }
     };
   }

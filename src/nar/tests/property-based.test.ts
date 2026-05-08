@@ -11,7 +11,7 @@ describe('Property-Based Tests', () => {
           const term1 = TermBuilder.atom(name);
           const term2 = TermBuilder.atom(name);
           expect(term1.hash).toBe(term2.hash);
-          expect(term1.name).toBe(term2.name);
+          expect(term1.symbol).toBe(term2.symbol);
         })
       );
     });

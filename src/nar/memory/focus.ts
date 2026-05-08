@@ -75,4 +75,4 @@ export class Focus {
     }
 }
 
-export const focus = new Focus();
+

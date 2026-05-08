@@ -120,4 +120,4 @@ export class MemoryIndex {
     }
 }
 
-export const memoryIndex = new MemoryIndex();
+

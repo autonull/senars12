@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import {describe, it, expect} from '@jest/globals';
 import { Memory } from '../../memory/memory.js';
 import { TermBuilder } from '../../terms/index.js';
 import { Truth } from '../../terms/truth.js';

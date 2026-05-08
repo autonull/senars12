@@ -20,7 +20,7 @@ export const safeDiv = (num: number, den: number): number =>
 export const deepFreeze = <T>(obj: T): Readonly<T> => {
     Object.freeze(obj);
     Object.getOwnPropertyNames(obj).forEach(prop => {
-        const value = (obj as any)[prop];
+        const value = (obj as Record<string, unknown>)[prop];
         if (value && typeof value === 'object' && !Object.isFrozen(value)) {
             deepFreeze(value);
         }

@@ -2,7 +2,7 @@ import type { ToolManager } from './manager';
 import type { Memory } from '../memory';
 import { termParser } from '../terms';
 import { Truth } from '../terms';
-import { createTask, createBudget } from '../types';
+import { createBudget } from '../types';
 
 export class ToolGuidedReasoning {
   constructor(
@@ -20,7 +20,7 @@ export class ToolGuidedReasoning {
       try {
         const term = termParser.parse(belief);
         this.memory.addTask(term, 'belief', Truth.NEUTRAL, createBudget(0.5));
-      } catch (error) {
+} catch {
         const atomTerm = termParser.parse(`tool_result_${event.name}`);
         this.memory.addTask(atomTerm, 'belief', Truth.NEUTRAL, createBudget(0.5));
       }
@@ -31,7 +31,7 @@ export class ToolGuidedReasoning {
     try {
       const result = await this.toolManager.execute(toolName, args);
       return result.success;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

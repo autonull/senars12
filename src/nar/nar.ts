@@ -71,22 +71,22 @@ export class NAR extends BaseComponent {
     }
   }
 
-  async initialize(): Promise<void> {
+  override async initialize(): Promise<void> {
     await super.initialize();
     this.logger.info('NAR initialized');
   }
 
-  async start(): Promise<void> {
+  override async start(): Promise<void> {
     await super.start();
     this.logger.info('NAR started');
   }
 
-  async stop(): Promise<void> {
+  override async stop(): Promise<void> {
     await super.stop();
     this.logger.info('NAR stopped');
   }
 
-  async dispose(): Promise<void> {
+  override async dispose(): Promise<void> {
     await super.dispose();
     this.logger.info('NAR disposed');
   }

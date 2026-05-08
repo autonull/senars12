@@ -92,4 +92,4 @@ export class MemoryStatistics {
     }
 }
 
-export const memoryStatistics = new MemoryStatistics();
+

@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import {describe, it, expect} from '@jest/globals';
 import { RuleRegistry } from '../rules/types.js';
 import '../rules/nal.js';
 import '../rules/nal-extended.js';

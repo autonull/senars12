@@ -8,7 +8,6 @@
 
 import { loadConfig, loadConfigFromEnv } from './config/loader.js';
 import { SeNARSFactory } from './nar/factory.js';
-import { NAR } from './nar/nar.js';
 
 async function main() {
   const mode = process.argv[2] || 'demo';
@@ -44,23 +43,6 @@ async function runCLI() {
 async function runBot() {
   console.log('Starting Bot mode...');
   const config = await loadConfig();
-  const nar = SeNARSFactory.fromConfig({
-    name: config.name,
-    version: config.version,
-    nar: {
-      maxConcepts: config.core.maxConcepts,
-      priorityThreshold: config.core.priorityThreshold,
-      activationDecayRate: config.core.activationDecayRate,
-      consolidationInterval: config.core.consolidationInterval,
-      cpuThrottleMs: config.core.cpuThrottleMs,
-      maxDerivationDepth: config.core.maxDerivationDepth,
-      maxDerivationsPerStep: config.core.maxDerivationsPerStep
-    },
-    lm: {
-      enabled: config.lm.enabled,
-      provider: config.lm.provider
-    }
-  });
 
   const { createBot } = await import('./bot/index.js');
   const { PROFILES } = await import('./bot/config.js');

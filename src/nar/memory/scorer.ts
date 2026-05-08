@@ -73,4 +73,4 @@ export class MemoryScorer {
     }
 }
 
-export const memoryScorer = new MemoryScorer();
+

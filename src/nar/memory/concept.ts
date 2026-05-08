@@ -7,12 +7,14 @@ import type {Truth} from '../terms';
 import {Bag} from './bag.js';
 import {Truth as TruthOps} from '../terms/truth.js';
 
-interface TaskData {
+export interface TaskData {
   readonly term: Term;
   readonly truth?: Truth;
   readonly budget: number;
   readonly timestamp?: number;
 }
+
+export type ConceptTaskType = 'belief' | 'goal' | 'question' | 'command';
 
 interface ConceptConfig {
   maxBeliefs?: number;
@@ -26,9 +28,11 @@ export class Concept {
   readonly goalBag: Bag<TaskData>;
   readonly questionBag: Bag<TaskData>;
   readonly createdAt: number;
+  private _priority = 0;
   private activation = 0;
   private useCount = 0;
   private lastAccessed: number;
+  readonly lastAccessTime: number;
 
   constructor(term: Term, config: ConceptConfig = {}) {
     this.term = term;
@@ -37,6 +41,7 @@ export class Concept {
     this.questionBag = new Bag(config.maxQuestions ?? 20);
     this.createdAt = Date.now();
     this.lastAccessed = Date.now();
+    this.lastAccessTime = Date.now();
   }
 
   get key(): number {
@@ -44,7 +49,11 @@ export class Concept {
   }
 
   get priority(): number {
-    return this.activation;
+    return this._priority;
+  }
+
+  set priority(value: number) {
+    this._priority = Math.max(0, Math.min(1, value));
   }
 
   get activationValue(): number {
@@ -59,20 +68,20 @@ export class Concept {
     if (type === 'belief') {
       return this.addBeliefWithRevision(data);
     }
-    
+
     const bag = type === 'goal' ? this.goalBag : this.questionBag;
     const added = bag.add(data, data.budget);
     if (added) {
       this.useCount++;
       this.lastAccessed = Date.now();
-      this.activation += 0.1;
+      this._priority = Math.min(1, this._priority + 0.1);
     }
     return added;
   }
 
   private addBeliefWithRevision(data: TaskData): boolean {
     const existing = this.findMatchingBelief(data.term);
-    
+
     if (existing) {
       if (data.truth && existing.truth) {
         const revisedTruth = TruthOps.revision(data.truth, existing.truth);
@@ -82,18 +91,18 @@ export class Concept {
         if (added) {
           this.useCount++;
           this.lastAccessed = Date.now();
-          this.activation += 0.1;
+          this._priority = Math.min(1, this._priority + 0.1);
         }
         return added;
       }
       return false;
     }
-    
+
     const added = this.beliefBag.add(data, data.budget);
     if (added) {
       this.useCount++;
       this.lastAccessed = Date.now();
-      this.activation += 0.1;
+      this._priority = Math.min(1, this._priority + 0.1);
     }
     return added;
   }
@@ -129,6 +138,10 @@ export class Concept {
   }
 
   decay(rate: number): void {
-    this.activation *= (1 - rate);
+    this._priority *= (1 - rate);
+  }
+
+  boost(amount: number): void {
+    this._priority = Math.min(1, this._priority + amount);
   }
 }

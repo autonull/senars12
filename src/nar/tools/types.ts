@@ -1,6 +1,3 @@
-import type { Term } from '../terms';
-import type { Truth } from '../terms';
-
 export interface Tool {
   readonly name: string;
   readonly description: string;

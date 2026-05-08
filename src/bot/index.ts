@@ -1,4 +1,3 @@
-import {NAR} from '../nar';
 import {EmbeddedIRCServer} from './EmbeddedIRCServer.js';
 import type {BotConfig} from './config.js';
 import {SeNARSFactory} from '../nar/factory.js';

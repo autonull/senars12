@@ -89,7 +89,7 @@ export class MemoryConsolidation {
           const neighbors = this.getRelatedConcepts(concept, concepts);
           for (const neighbor of neighbors) {
             const boost = activation * 0.1;
-            (neighbor as any).priority = Math.min(1.0, (neighbor.priority || 0) + boost);
+            neighbor.priority = Math.min(1.0, neighbor.priority + boost);
           }
         }
       }
@@ -99,14 +99,16 @@ export class MemoryConsolidation {
   private getRelatedConcepts(concept: Concept, allConcepts: Concept[]): Concept[] {
     const term = concept.term;
     const related: Concept[] = [];
-    const subject = (term as any).args?.[0];
-    const predicate = (term as any).args?.[1];
+    const termArgs = 'args' in term ? term.args as readonly any[] : undefined;
+    const subject = termArgs?.[0];
+    const predicate = termArgs?.[1];
 
     for (const c of allConcepts) {
       if (c === concept) continue;
       const cTerm = c.term;
-      const cSubject = (cTerm as any).args?.[0];
-      const cPredicate = (cTerm as any).args?.[1];
+      const cTermArgs = 'args' in cTerm ? cTerm.args as readonly any[] : undefined;
+      const cSubject = cTermArgs?.[0];
+      const cPredicate = cTermArgs?.[1];
 
       if (subject && cSubject && subject.hash === cSubject.hash) {
         related.push(c);
@@ -141,7 +143,7 @@ export class MemoryConsolidation {
 
     let archived = 0;
     for (const concept of toArchive) {
-      if ((memory as any).archiveConcept?.(concept)) {
+      if (memory.archiveConcept(concept)) {
         archived++;
       }
     }
@@ -165,4 +167,4 @@ export class MemoryConsolidation {
   }
 }
 
-export const memoryConsolidation = new MemoryConsolidation();
+

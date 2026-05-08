@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import {describe, it, expect, beforeEach, afterEach} from '@jest/globals';
 import { BaseComponent } from '../../lifecycle/BaseComponent.js';
 import { Container } from '../../lifecycle/Container.js';
 import { createLogger } from '../../logger/index.js';
@@ -11,22 +11,22 @@ class TestComponent extends BaseComponent {
   public stopCount = 0;
   public disposeCount = 0;
 
-  async initialize(): Promise<void> {
+  override async initialize(): Promise<void> {
     await super.initialize();
     this.initializeCount++;
   }
 
-  async start(): Promise<void> {
+  override async start(): Promise<void> {
     await super.start();
     this.startCount++;
   }
 
-  async stop(): Promise<void> {
+  override async stop(): Promise<void> {
     await super.stop();
     this.stopCount++;
   }
 
-  async dispose(): Promise<void> {
+  override async dispose(): Promise<void> {
     await super.dispose();
     this.disposeCount++;
   }

@@ -69,13 +69,17 @@ export function deduplicateTasks(tasks: TaskData[]): TaskData[] {
  */
 export function mergeBeliefs(tasks: TaskData[]): Truth | undefined {
   if (tasks.length === 0) return undefined;
-  if (tasks.length === 1) return tasks[0].truth ?? undefined;
   
-  let result = tasks[0].truth ?? TruthOps.NEUTRAL;
+  const firstTruth = tasks[0]?.truth;
+  if (!firstTruth) return undefined;
+  
+  let result = firstTruth;
   
   for (let i = 1; i < tasks.length; i++) {
-    const t2 = tasks[i].truth ?? TruthOps.NEUTRAL;
-    result = TruthOps.revision(result, t2);
+    const current = tasks[i]?.truth;
+    if (current) {
+      result = TruthOps.revision(result, current);
+    }
   }
   
   return result;

@@ -33,16 +33,16 @@ export class HTTPTool implements Tool {
       });
 
       const text = await response.text();
-      const headers: Record<string, string> = {};
+      const responseHeaders: Record<string, string> = {};
       response.headers.forEach((value, key) => {
-        headers[key] = value;
+        responseHeaders[key] = value;
       });
       
       return {
         success: true,
         content: {
           status: response.status,
-          headers,
+          headers: responseHeaders,
           body: text
         }
       };

@@ -224,7 +224,7 @@ export class SelfAnalyzer {
   private detectInefficientChains(): InferenceChain[] {
     const inefficient: InferenceChain[] = [];
 
-    const monitorState = this.monitor.getMonitorState();
+    const monitorState = this.monitor.getMonitorState() as any;
     if (monitorState?.reasoningTrace) {
       for (const entry of monitorState.reasoningTrace.slice(-100)) {
         if (entry.duration > 1000) {
@@ -360,7 +360,7 @@ export class SelfAnalyzer {
     const concepts = this.nar.listConcepts();
     for (const concept of concepts) {
       if (concept.priority < 0.1 && concept.totalTasks === 0) {
-        concept.priority = Math.min(concept.priority + 0.05, 0.15);
+        (concept as any).priority = Math.min(concept.priority + 0.05, 0.15);
       }
     }
   }
@@ -430,12 +430,13 @@ export class SelfAnalyzer {
   private determineThroughputTrend(): 'increasing' | 'decreasing' | 'stable' {
     if (this.patternHistory.size < 2) return 'stable';
 
-    const recent = Array.from(this.patternHistory.values()).slice(-5);
+    const recent = Array.from(this.patternHistory.values()).slice(-5).flat();
     if (recent.length < 2) return 'stable';
 
     const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
-    const trend = recent[recent.length - 1] > avg * 1.1 ? 'increasing' :
-                  recent[recent.length - 1] < avg * 0.9 ? 'decreasing' : 'stable';
+    const last = recent[recent.length - 1] ?? avg;
+    const trend = last > avg * 1.1 ? 'increasing' :
+                  last < avg * 0.9 ? 'decreasing' : 'stable';
 
     return trend;
   }

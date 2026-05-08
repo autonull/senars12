@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import {describe, it, expect, beforeEach} from '@jest/globals';
 import { Memory, serialize, deserialize, validate, repair } from '../../memory/memory.js';
 import { TermBuilder } from '../../terms/index.js';
 import { Truth } from '../../terms/truth.js';
@@ -68,7 +68,8 @@ describe('Phase 5.4: Memory Serialization', () => {
     
     const data = serialize(memory);
     const concept = data.concepts[0];
-    expect(concept.beliefs.length).toBeGreaterThan(0);
-    expect(concept.beliefs[0].truth).toBeDefined();
+    expect(concept).toBeDefined();
+    expect(concept?.beliefs.length).toBeGreaterThan(0);
+    expect(concept?.beliefs[0]?.truth).toBeDefined();
   });
 });

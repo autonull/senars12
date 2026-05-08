@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@jest/globals';
+import {describe, it, expect} from '@jest/globals';
 import { Memory } from '../../memory/memory.js';
 import { TermBuilder } from '../../terms/index.js';
 
@@ -11,7 +11,7 @@ describe('Phase 5: Memory Integration', () => {
       
       const results = memory.queryBySymbol('test');
       expect(results.length).toBe(1);
-      expect(results[0].term.hash).toBe(term.hash);
+      expect(results[0]?.term.hash).toBe(term.hash);
     });
 
     it('should return empty array when indexing disabled', () => {
