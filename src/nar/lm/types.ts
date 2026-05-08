@@ -1,5 +1,5 @@
 import type {Task} from '../types';
-import type {ModelCapability, ModelRegistry} from './model-registry.js';
+import type {ModelCapability} from './model-registry.js';
 
 export interface LMConfig {
   temperature?: number;

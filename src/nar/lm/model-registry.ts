@@ -1,4 +1,4 @@
-import type {LMClient, LMConfig} from './types.js';
+import type {LMClient} from './types.js';
 
 export type ModelProvider = 'anthropic' | 'openai' | 'ollama' | 'mock';
 

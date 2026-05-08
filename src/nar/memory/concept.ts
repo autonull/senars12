@@ -133,15 +133,12 @@ export class Concept {
     return this.questionBag.getItems();
   }
 
-  boost(amount: number): void {
-    this.activation = Math.min(1, this.activation + amount);
-  }
+boost(amount: number): void {
+  this.activation = Math.min(1, this.activation + amount);
+  this._priority = Math.min(1, this._priority + amount);
+}
 
-  decay(rate: number): void {
-    this._priority *= (1 - rate);
-  }
-
-  boost(amount: number): void {
-    this._priority = Math.min(1, this._priority + amount);
-  }
+decay(rate: number): void {
+  this._priority *= (1 - rate);
+}
 }

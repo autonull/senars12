@@ -63,11 +63,13 @@ export class Forgetting {
         return concept;
       }
     }
-    return concepts.reduce((oldest, c) => {
-      const t = 'lastAccessTime' in c ? c.lastAccessTime ?? 0 : 0;
-      const ot = 'lastAccessTime' in oldest ? oldest.lastAccessTime ?? 0 : 0;
-      return t < ot ? c : oldest;
-    }, concepts[0]);
+const first = concepts[0];
+if (!first) return undefined;
+return concepts.reduce((oldest, c) => {
+  const t = 'lastAccessTime' in c ? c.lastAccessTime ?? 0 : 0;
+  const ot = 'lastAccessTime' in oldest ? oldest.lastAccessTime ?? 0 : 0;
+  return t < ot ? c : oldest;
+}, first);
   }
 
   private selectByComposite(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
