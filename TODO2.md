@@ -192,9 +192,9 @@ subst = result;
 
 **File**: `src/nar/terms/types.ts:99`
 
-**Issue**: Uses `const { termParser } = require('./parser.js')` inside `deserializeTerm()`. This is CJS and incompatible with strict ESM. Also creates a lazy circular dependency risk.
+**Issue**: Uses `const { termParser } = require('./parser.js')` inside `deserializeTerm()`. This is CJS and incompatible with strict ESM.
 
-**Fix**: Import `termParser` at top of file with ESM `import` (it's already exported from parser.ts). Remove the dynamic `require()`.
+**Fix**: Import `termParser` at top of file with ESM `import`. Remove the dynamic `require()`.
 
 ---
 
@@ -220,73 +220,74 @@ subst = result;
 
 ## Section B: ESLint Errors — Unused Variables/Imports
 
-### B1 — Unused imports (prefix with `_` or remove)
+> **Auto-fix**: Run `eslint --fix` first — it will auto-remove many unused imports.
+> **Manual**: Items below marked `_` require human judgment to prefix with `_` (signals intentional non-use).
 
 | File | Line | Unused Name | Fix |
 |---|---|---|---|
-| `src/agent/http-server.ts` | 9 | `createHash` | Remove |
-| `src/agent/http-server.ts` | 402 | `req` param | Prefix with `_` |
-| `src/agent/irc-bot.ts` | 167 | `handler` param | Prefix with `_` |
-| `src/agent/websocket-server.ts` | 131 | `error` | Prefix with `_` |
-| `src/agent/websocket-server.ts` | 209 | `termStr` param | Prefix with `_` |
-| `src/app.ts` | 45 | `config` | Remove or prefix with `_` |
-| `src/cli/repl.ts` | 10 | `createRequire` | Remove |
-| `src/cli/repl.ts` | 133, 142 | `e` | Prefix with `_` |
-| `src/cli/repl.ts` | 292 | `filter` param | Prefix with `_` |
-| `src/cli/repl.ts` | 337 | `config` | Remove or prefix with `_` |
-| `src/cli/rlfp.ts` | 1 | `NAR` | Remove |
-| `src/nar/lifecycle/Container.ts` | 23 | `T` | Remove or prefix with `_` |
-| `src/nar/lm/dynamic-rules.ts` | 3 | `termParser` | Remove |
-| `src/nar/lm/dynamic-rules.ts` | 4 | `Truth` | Remove |
-| `src/nar/lm/model-discovery.ts` | 1 | `LMConfig` | Remove |
-| `src/nar/lm/model-discovery.ts` | 191 | `client` | Remove |
-| `src/nar/lm/router.ts` | 1 | `LMConfig` | Remove |
-| `src/nar/lm/router.ts` | 62 | `context` param | Prefix with `_` |
-| `src/nar/memory/gc.ts` | 58 | `term` destructure | Remove destructured name |
-| `src/nar/memory/memory-index.ts` | 169 | `clusterHash` | Prefix with `_` |
-| `src/nar/memory/memory.ts` | 192 | `hash` | Remove |
-| `src/nar/memory/memory.ts` | 193 | `score` | Remove |
-| `src/nar/memory/serialization.ts` | 6 | `Truth` type import | Remove |
-| `src/nar/nar.ts` | 19 | `TermFilter`, `TruthFilter`, `QueryOptions` | Remove |
-| `src/nar/nar.ts` | 23 | `Logger` | Remove |
-| `src/nar/query/api.ts` | 2 | `QueryOptions` | Remove |
-| `src/nar/query/api.ts` | 60 | `questionTasks` | Remove |
-| `src/nar/query/trace.ts` | 3 | `Stamp` | Remove |
-| `src/nar/reason/premise/formation.ts` | 3 | `Truth` | Remove |
-| `src/nar/reason/reasoner.ts` | 5 | `Budget` | Remove |
-| `src/nar/reason/reasoner.ts` | 10 | `Stamp` | Remove |
-| `src/nar/reason/reasoner.ts` | 92-93 | `timeoutMs`/`startTime` | Use `timeoutMs` or prefix; remove `startTime` |
-| `src/nar/reason/strategies/index.ts` | 183 | `weight` | Remove |
-| `src/nar/rlfp/PolicyOptimizer.ts` | 71 | `context` param | Prefix with `_` |
-| `src/nar/rlfp/PolicyOptimizer.ts` | 158 | `commonFeatures` | Remove |
-| `src/nar/self/SelfAnalyzer.ts` | 118 | `corrections` | Remove |
-| `src/nar/self/SelfAnalyzer.ts` | 260 | `metricsSummary` param | Prefix with `_` |
-| `src/nar/self/SelfAnalyzer.ts` | 272 | `stats` param | Prefix with `_` |
-| `src/nar/self/SelfAnalyzer.ts` | 376 | `monitorState` | Remove |
-| `src/nar/self/SelfAnalyzer.ts` | 430 | `stats` | Remove |
-| `src/nar/self/SelfAnalyzer.ts` | 431 | `memoryUsage` | Remove |
-| `src/nar/self/MetacognitiveMonitor.ts` | 204 | `startTime` | Remove |
-| `src/nar/rules/processor.ts` | 6 | `TruthFn` | Remove |
-| `src/nar/terms/parser.ts` | 89 | `startPos` | Remove |
-| `src/nar/tools/ExplainTool.ts` | 21 | `context` param | Prefix with `_` |
-| `src/nar/tools/ExplainTool.ts` | 29 | `term` | Remove |
-| `src/nar/tools/ExplainTool.ts` | 113,119 | `concept` params | Prefix with `_` |
-| `src/nar/tools/FileTools.ts` | 3 | `join` | Remove |
-| `src/nar/tools/LearnTool.ts` | 24 | `context` param | Prefix with `_` |
-| `src/nar/tools/ProcessTool.ts` | 22 | `context` param | Prefix with `_` |
-| `src/nar/tools/ReasonTool.ts` | 2 | `Memory` | Remove |
-| `src/nar/tools/ReasonTool.ts` | 6 | `createBudget` | Remove |
-| `src/nar/tools/ReasonTool.ts` | 24 | `context` param | Prefix with `_` |
-| `src/nar/tools/SearchTool.ts` | 19 | `context` param | Prefix with `_` |
-| `src/nar/tools/TimerTool.ts` | 21 | `context` param | Prefix with `_` |
-| `src/nar/tools/registry.ts` | 22 | `filter` param | Prefix with `_` |
-| `src/nar/tools/registry.ts` | 90 | `tool` param | Prefix with `_` |
-| Test: `lifecycle.test.ts` | 1 | `beforeEach`, `afterEach` | Remove |
-| Test: `lifecycle.test.ts` | 172 | `initOrder` | Remove |
-| Test: `memory-serialization.test.ts` | 1 | `beforeEach` | Remove |
-| Test: `property-based.test.ts` | 131 | `depth` param | Prefix with `_` |
-| Test: `rlfp.test.ts` | 56 | `collector` | Remove |
-| Test: `tools.test.ts` | 2 | `HTTPTool` | Remove |
+| `src/agent/http-server.ts` | 9 | `createHash` | Auto-fix |
+| `src/agent/http-server.ts` | 402 | `req` param | `_` (interface compat) |
+| `src/agent/irc-bot.ts` | 167 | `handler` param | `_` |
+| `src/agent/websocket-server.ts` | 131 | `error` | `_` |
+| `src/agent/websocket-server.ts` | 209 | `termStr` param | `_` |
+| `src/app.ts` | 45 | `config` | Auto-fix |
+| `src/cli/repl.ts` | 10 | `createRequire` | Auto-fix |
+| `src/cli/repl.ts` | 133, 142 | `e` | `_` |
+| `src/cli/repl.ts` | 292 | `filter` param | `_` |
+| `src/cli/repl.ts` | 337 | `config` | Auto-fix |
+| `src/cli/rlfp.ts` | 1 | `NAR` | Auto-fix |
+| `src/nar/lifecycle/Container.ts` | 23 | `T` | Auto-fix |
+| `src/nar/lm/dynamic-rules.ts` | 3 | `termParser` | Auto-fix |
+| `src/nar/lm/dynamic-rules.ts` | 4 | `Truth` | Auto-fix |
+| `src/nar/lm/model-discovery.ts` | 1 | `LMConfig` | Auto-fix |
+| `src/nar/lm/model-discovery.ts` | 191 | `client` | Auto-fix |
+| `src/nar/lm/router.ts` | 1 | `LMConfig` | Auto-fix |
+| `src/nar/lm/router.ts` | 62 | `context` param | `_` |
+| `src/nar/memory/gc.ts` | 58 | `term` destructure | Auto-fix |
+| `src/nar/memory/memory-index.ts` | 169 | `clusterHash` | `_` |
+| `src/nar/memory/memory.ts` | 192 | `hash` | Auto-fix |
+| `src/nar/memory/memory.ts` | 193 | `score` | Auto-fix |
+| `src/nar/memory/serialization.ts` | 6 | `Truth` type import | Auto-fix |
+| `src/nar/nar.ts` | 19 | `TermFilter`, `TruthFilter`, `QueryOptions` | Auto-fix |
+| `src/nar/nar.ts` | 23 | `Logger` | Auto-fix |
+| `src/nar/query/api.ts` | 2 | `QueryOptions` | Auto-fix |
+| `src/nar/query/api.ts` | 60 | `questionTasks` | Auto-fix |
+| `src/nar/query/trace.ts` | 3 | `Stamp` | Auto-fix |
+| `src/nar/reason/premise/formation.ts` | 3 | `Truth` | Auto-fix |
+| `src/nar/reason/reasoner.ts` | 5 | `Budget` | Auto-fix |
+| `src/nar/reason/reasoner.ts` | 10 | `Stamp` | Auto-fix |
+| `src/nar/reason/reasoner.ts` | 92-93 | `timeoutMs`/`startTime` | `_` / Auto-fix |
+| `src/nar/reason/strategies/index.ts` | 183 | `weight` | Auto-fix |
+| `src/nar/rlfp/PolicyOptimizer.ts` | 71 | `context` param | `_` |
+| `src/nar/rlfp/PolicyOptimizer.ts` | 158 | `commonFeatures` | Auto-fix |
+| `src/nar/self/SelfAnalyzer.ts` | 118 | `corrections` | Auto-fix |
+| `src/nar/self/SelfAnalyzer.ts` | 260 | `metricsSummary` param | `_` |
+| `src/nar/self/SelfAnalyzer.ts` | 272 | `stats` param | `_` |
+| `src/nar/self/SelfAnalyzer.ts` | 376 | `monitorState` | Auto-fix |
+| `src/nar/self/SelfAnalyzer.ts` | 430 | `stats` | Auto-fix |
+| `src/nar/self/SelfAnalyzer.ts` | 431 | `memoryUsage` | Auto-fix |
+| `src/nar/self/MetacognitiveMonitor.ts` | 204 | `startTime` | Auto-fix |
+| `src/nar/rules/processor.ts` | 6 | `TruthFn` | Auto-fix |
+| `src/nar/terms/parser.ts` | 89 | `startPos` | Auto-fix |
+| `src/nar/tools/ExplainTool.ts` | 21 | `context` param | `_` |
+| `src/nar/tools/ExplainTool.ts` | 29 | `term` | Auto-fix |
+| `src/nar/tools/ExplainTool.ts` | 113,119 | `concept` params | `_` |
+| `src/nar/tools/FileTools.ts` | 3 | `join` | Auto-fix |
+| `src/nar/tools/LearnTool.ts` | 24 | `context` param | `_` |
+| `src/nar/tools/ProcessTool.ts` | 22 | `context` param | `_` |
+| `src/nar/tools/ReasonTool.ts` | 2 | `Memory` | Auto-fix |
+| `src/nar/tools/ReasonTool.ts` | 6 | `createBudget` | Auto-fix |
+| `src/nar/tools/ReasonTool.ts` | 24 | `context` param | `_` |
+| `src/nar/tools/SearchTool.ts` | 19 | `context` param | `_` |
+| `src/nar/tools/TimerTool.ts` | 21 | `context` param | `_` |
+| `src/nar/tools/registry.ts` | 22 | `filter` param | `_` |
+| `src/nar/tools/registry.ts` | 90 | `tool` param | `_` |
+| Test: `lifecycle.test.ts` | 1 | `beforeEach`, `afterEach` | Auto-fix |
+| Test: `lifecycle.test.ts` | 172 | `initOrder` | Auto-fix |
+| Test: `memory-serialization.test.ts` | 1 | `beforeEach` | Auto-fix |
+| Test: `property-based.test.ts` | 131 | `depth` param | `_` |
+| Test: `rlfp.test.ts` | 56 | `collector` | Auto-fix |
+| Test: `tools.test.ts` | 2 | `HTTPTool` | Auto-fix |
 
 ---
 
@@ -294,10 +295,10 @@ subst = result;
 
 ### High-value targets (proper types available):
 
-| File | Lines | What to replace `any` with |
+| File | Lines | Replace `any` with |
 |---|---|---|
 | `src/nar/types/events.ts:14` | 14,18,25 | `unknown` |
-| `src/nar/lm/types.ts:34-69` | All | Use defined types: `Term` for primary/secondary, `Record<string,unknown>` for context |
+| `src/nar/lm/types.ts:34-69` | All | `Term` for primary/secondary, `Record<string,unknown>` for context |
 | `src/nar/lm/router.ts:62,179` | 62,179 | `Record<string, unknown>` |
 | `src/nar/lm/dynamic-rules.ts:167,182` | 167,182 | `Record<string, unknown>` |
 | `src/nar/rlfp/PolicyOptimizer.ts:197` | 197 | `Record<string, unknown>` |
@@ -307,7 +308,7 @@ subst = result;
 | `src/nar/rules/nal.ts:327,334` | `fn` | `(premises: Term[]) => Term \| null` |
 | `src/nar/rules/nal-extended.ts:196,203` | `fn` | `(premises: Term[]) => Term \| null` |
 | `src/nar/nar.ts:282,293` | 282,293 | Define serialized state interfaces |
-| `src/nar/nar.ts:167-171` | 167-171 | `TermFilter`, `TruthFilter`, etc. are defined in core.ts |
+| `src/nar/nar.ts:167-171` | 167-171 | `TermFilter`, `TruthFilter`, etc. (from core.ts) |
 
 ### Medium-value targets:
 
@@ -344,12 +345,6 @@ subst = result;
 **File**: `src/nar/self/SelfAnalyzer.ts`
 
 Pervasive `as any` casts. Define proper `MonitorState` interface in `MetacognitiveMonitor.ts` and export it. Use proper accessor methods on `NAR`/`Memory`.
-
-### E2 — Remove ParseError interface (duplicate with class)
-
-**File**: `src/nar/terms/parser.ts:13-19`
-
-Delete the unused `ParseError` interface.
 
 ### E3 — Arrow function class properties vs methods
 
@@ -405,12 +400,6 @@ Both files repeatedly construct task objects from concepts with identical boiler
 
 **Fix**: Extract shared Jaccard similarity computation to utils.
 
-### F4 — Consolidate `itemsMatch` into utility
-
-**File**: `bounded-bag.ts:259-267`
-
-**Fix**: Move to `src/nar/utils/helpers.ts`.
-
 ### F5 — Standardize error response pattern in tools
 
 **Files**: All `src/nar/tools/*.ts`
@@ -445,37 +434,7 @@ Both files repeatedly construct task objects from concepts with identical boiler
 
 **Issue**: The `Term` type doesn't define a `toString()` method. Calls like `primary.toString()` fall through to `Object.prototype.toString()` returning `[object Object]` — a runtime bug.
 
-**Fix**: Either add `toString()` to the `Term` type union, or use `serializeTerm(primary)` instead.
-
----
-
-## Section G: ESM Import Consistency
-
-### G1 — Eliminate CJS `require()` call
-
-**File**: `src/nar/terms/types.ts:99`
-
-**Issue**: Dynamic `require()` inside `deserializeTerm` is incompatible with strict ESM.
-
-**Fix**: Replace with top-level ESM `import` of `termParser`.
-
-### G2 — Standardize `.js` extensions on all imports
-
-**Issue**: ~80+ imports across the codebase mix bare module paths (`from '../memory'`) with explicit `.js` extensions (`from '../terms/truth.js'`). With `moduleResolution: "bundler"` both work, but inconsistency is a code quality issue.
-
-**Files affected**: All sub-modules under `src/nar/` — see detailed list in analysis.
-
-**Fix**: Choose one convention (prefer explicit `.js` for ESM compatibility) and apply consistently. High-priority files:
-- `src/nar/nar.ts` (mixes both styles in same file)
-- `src/nar/tools/index.ts` (all 14 re-exports missing `.js`)
-- All tool files (use bare paths for `from './types'`)
-- `src/nar/memory/memory.ts`, `src/nar/memory/concept.ts`
-
-### G3 — Fix `src/nar/tools/index.ts` exports
-
-**File**: `src/nar/tools/index.ts:1-14`
-
-All 14 `export * from './...'` statements lack `.js` extensions.
+**Fix**: Either add `toString()` method to `AtomicTerm` and `CompoundTerm` interfaces, or use `serializeTerm(primary)` consistently.
 
 ---
 
@@ -563,7 +522,7 @@ Remove the following exported functions that are never imported anywhere:
 
 **Issue**: `Throttle`, `createThrottle` are exported but never imported anywhere.
 
-**Fix**: Either remove or mark as available-for-future-use with an `@internal` annotation.
+**Fix**: Remove file.
 
 ### J3 — `src/nar/utils/weak-cache.ts` — entire file unused
 
@@ -571,7 +530,7 @@ Remove the following exported functions that are never imported anywhere:
 
 **Issue**: `WeakCache`, `createWeakCache` never imported.
 
-**Fix**: Same as J2.
+**Fix**: Remove file.
 
 ---
 
@@ -594,12 +553,6 @@ Identical type guards with different names. Keep `isAtomic` (used more widely), 
 **Files**: `types.ts:47` vs `accessors.ts:15`
 
 Same functionality, different name. Consolidate.
-
-### K4 — `focusMaxConcepts` vs `maxConcepts` config naming
-
-**File**: `src/nar/memory/memory.ts:19,23`
-
-Inconsistent prefix pattern. Rename `focusMaxConcepts` → `maxFocusConcepts` for consistency.
 
 ---
 
@@ -643,13 +596,13 @@ Inconsistent prefix pattern. Rename `focusMaxConcepts` → `maxFocusConcepts` fo
 
 **Fix**: Add `toString()` method to both `AtomicTerm` and `CompoundTerm` interfaces, or add to the `TermBuilder` factory. Callers should use `serializeTerm(term)` consistently.
 
-### M2 — `nar.ts` is a hub with high coupling
+### M2 — `nar.ts` is a hub with high coupling (documentation only)
 
 **File**: `src/nar/nar.ts`
 
-**Issue**: Imports from nearly every module (memory, reason, task, rules, types, terms, lm, query, metrics, logger, tools, lifecycle). Any change in any sub-module may require changes here.
+**Note**: Imports from nearly every module (memory, reason, task, rules, types, terms, lm, query, metrics, logger, tools, lifecycle). Any change in any sub-module may require changes here.
 
-**Fix**: Consider extracting LM initialization, tool initialization, and query/trace setup into separate methods that could be overridden or injected. Not a high-priority fix but worth noting.
+**Action**: Document this architectural observation. Do not refactor now — future work could extract LM/tool/query initialization into separate methods.
 
 ---
 
@@ -657,21 +610,19 @@ Inconsistent prefix pattern. Rename `focusMaxConcepts` → `maxFocusConcepts` fo
 
 | Phase | Sections | Verification | Risk |
 |---|---|---|---|
-| 1 | **A1-A22** (all TypeScript errors) | `pnpm run typecheck` | High — compilation must pass |
+| 1 | **A1-A23** (all TypeScript errors) | `pnpm run typecheck` | High — compilation must pass |
 | 2 | **E3** (arrow→method in nar.ts) | `pnpm run typecheck` | Medium — affects nar.ts |
-| 3 | **G1** (remove require()) | `pnpm run typecheck` + tests | Medium — affects deserializeTerm |
-| 4 | **M1** (add toString to Term) | `pnpm run typecheck` | Medium — type change |
-| 5 | **B1** (all unused imports) | `pnpm run lint` | Low |
-| 6 | **G2-G3** (fix .js extensions) | `pnpm run typecheck` | Low — bundler resolves either way |
-| 7 | **C** (any → proper types) | `pnpm run lint` | Low-Medium |
-| 8 | **D** (non-null assertions) | `pnpm run lint` | Low |
+| 3 | **M1** (add toString to Term) | `pnpm run typecheck` | Medium — type change |
+| 4 | **B** (all unused imports) | `pnpm run lint` | Low — mostly auto-fix |
+| 5 | **C** (any → proper types) | `pnpm run lint` | Low-Medium |
+| 6 | **D** (non-null assertions) | `pnpm run lint` | Low |
+| 7 | **E1, E4, E5** (quality patterns) | Manual review | Medium |
+| 8 | **F1-F3, F5-F9** (DRY refactoring) | `pnpm run test:unit` | Medium — behavioral equivalence |
 | 9 | **H1-H5** (missing re-exports) | `pnpm run typecheck` | Low — just adding exports |
-| 10 | **E1, E2, E4, E5** (quality patterns) | Manual review | Medium |
-| 11 | **F1-F9** (DRY refactoring) | `pnpm run test:unit` | Medium — behavioral equivalence |
-| 12 | **I1** (typed errors) | `pnpm run typecheck` | Low |
-| 13 | **J1-J3** (remove unused utils) | `pnpm run typecheck` | Low |
-| 14 | **K1-K4** (naming consistency) | Manual review | Low |
-| 15 | **L1-L4** (build/config) | Manual verification | Low |
-| 16 | **I2** (console→Logger) | Manual review | Low — optional |
+| 10 | **I1** (typed errors) | `pnpm run typecheck` | Low |
+| 11 | **J1-J3** (remove unused utils) | `pnpm run typecheck` | Low |
+| 12 | **K1-K3** (naming consistency) | Manual review | Low |
+| 13 | **L1-L4** (build/config) | Manual verification | Low |
+| 14 | **I2** (console→Logger) | Manual review | Low — optional |
 
 > **Final verification**: `pnpm run typecheck && pnpm run lint && pnpm run test:unit`
