@@ -17,19 +17,95 @@ export const ResolutionStrategy: Strategy = createStrategy({
   limit: 5
 });
 
-export const GoalDrivenStrategy: Strategy = createStrategy({
+export const GoalDrivenStrategy: Strategy = {
   name: 'goal-driven',
-  sampleSize: 20,
-  truthFilter: (t) => t?.f > 0.7,
-  limit: 5
-});
+  selectSecondary(task, memory) {
+    const results: Task[] = [];
+    const concepts = memory.sample(20);
 
-export const AnalogicalStrategy: Strategy = createStrategy({
+    for (const concept of concepts) {
+      if (concept.term.hash === task.term.hash) continue;
+
+      const belief = concept.beliefBag.peek();
+      if (!belief?.truth) continue;
+
+      if (belief.truth.f <= 0.7) continue;
+
+      results.push({
+        term: concept.term,
+        type: 'belief' as const,
+        truth: belief.truth,
+        budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+        stamp: Object.freeze({
+          id: '',
+          creationTime: 0,
+          source: 'INPUT' as const,
+          derivations: [],
+          depth: 0
+        }),
+        occurrenceTime: 0,
+        derived: false
+      });
+
+      if (results.length >= 5) break;
+    }
+
+    return results;
+  }
+};
+
+export const AnalogicalStrategy: Strategy = {
   name: 'analogical',
-  sampleSize: 15,
-  filter: (c) => c.term.kind === 'inheritance',
-  limit: 3
-});
+  selectSecondary(task, memory) {
+    const results: Task[] = [];
+    const concepts = memory.sample(15);
+
+    for (const concept of concepts) {
+      if (concept.term.hash === task.term.hash) continue;
+      if (concept.term.kind !== 'inheritance') continue;
+
+      const belief = concept.beliefBag.peek();
+      if (!belief?.truth) continue;
+
+      const taskTerm = task.term;
+      const conceptTerm = concept.term;
+
+      if (taskTerm.kind === 'inheritance' && conceptTerm.kind === 'inheritance') {
+        const taskSub = taskTerm.subterms?.[0];
+        const taskPred = taskTerm.subterms?.[1];
+        const conceptSub = conceptTerm.subterms?.[0];
+        const conceptPred = conceptTerm.subterms?.[1];
+
+        const hasOverlap = taskSub?.hash === conceptSub ||
+          taskSub?.hash === conceptPred ||
+          taskPred?.hash === conceptSub ||
+          taskPred?.hash === conceptPred;
+
+        if (!hasOverlap) continue;
+      }
+
+      results.push({
+        term: concept.term,
+        type: 'belief' as const,
+        truth: belief.truth,
+        budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+        stamp: Object.freeze({
+          id: '',
+          creationTime: 0,
+          source: 'INPUT' as const,
+          derivations: [],
+          depth: 0
+        }),
+        occurrenceTime: 0,
+        derived: false
+      });
+
+      if (results.length >= 3) break;
+    }
+
+    return results;
+  }
+};
 
 export const TermLinkStrategy: Strategy = createStrategy({
   name: 'term-link',
@@ -160,7 +236,7 @@ export class AdaptiveStrategy implements Strategy {
     if (!bestStrategy) return [];
 
     const results = bestStrategy.selectSecondary(task, memory);
-    
+
     const currentStats = this.stats.get(bestStrategy.name)!;
     currentStats.pairsGenerated += results.length;
     currentStats.successfulDerivations += results.filter(r => r.derived).length;
@@ -174,5 +250,40 @@ export class AdaptiveStrategy implements Strategy {
 
   getStats(): Map<string, StrategyStats> {
     return new Map(this.stats);
+  }
+}
+
+export class SwitchingStrategy implements Strategy {
+  readonly name = 'switching';
+  private currentIndex = 0;
+  private switchInterval: number;
+  private callCount = 0;
+
+  constructor(
+    private strategies: Strategy[],
+    switchInterval = 10
+  ) {
+    this.switchInterval = switchInterval;
+  }
+
+  selectSecondary(task: Task, memory: Memory): Task[] {
+    const strategy = this.strategies[this.currentIndex];
+    if (!strategy) return [];
+
+    this.callCount++;
+    if (this.callCount % this.switchInterval === 0) {
+      this.currentIndex = (this.currentIndex + 1) % this.strategies.length;
+    }
+
+    return strategy.selectSecondary(task, memory);
+  }
+
+  reset(): void {
+    this.currentIndex = 0;
+    this.callCount = 0;
+  }
+
+  getCurrentStrategy(): Strategy | undefined {
+    return this.strategies[this.currentIndex];
   }
 }

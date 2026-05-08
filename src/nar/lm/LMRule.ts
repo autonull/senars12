@@ -20,15 +20,17 @@ export class LMRule {
     private circuitBreaker: CircuitBreaker;
     private eventBus: EventBus | null;
 
-    private stats: LMExecutionStats = {
-        totalCalls: 0,
-        successfulCalls: 0,
-        failedCalls: 0,
-        totalDuration: 0,
-        totalTokens: 0,
-        averageDuration: 0,
-        successRate: 0
-    };
+private stats: LMExecutionStats = {
+    totalCalls: 0,
+    successfulCalls: 0,
+    failedCalls: 0,
+    totalDuration: 0,
+    totalTokens: 0,
+    averageDuration: 0,
+    successRate: 0,
+    totalCost: 0,
+    averageCost: 0
+  };
 
     constructor(
         id: string,
@@ -117,18 +119,20 @@ export class LMRule {
         this.enabled = false;
     }
 
-    reset(): void {
-        this.circuitBreaker.reset();
-        this.stats = {
-            totalCalls: 0,
-            successfulCalls: 0,
-            failedCalls: 0,
-            totalDuration: 0,
-            totalTokens: 0,
-            averageDuration: 0,
-            successRate: 0
-        };
-    }
+reset(): void {
+    this.circuitBreaker.reset();
+    this.stats = {
+      totalCalls: 0,
+      successfulCalls: 0,
+      failedCalls: 0,
+      totalDuration: 0,
+      totalTokens: 0,
+      averageDuration: 0,
+      successRate: 0,
+      totalCost: 0,
+      averageCost: 0
+    };
+  }
 
     private emitEvent(eventName: string, data: any): void {
         if (this.eventBus) this.eventBus.emit(eventName as any, data);

@@ -22,6 +22,17 @@ interface ConceptConfig {
   maxQuestions?: number;
 }
 
+export interface ConceptLink {
+  concept: Concept;
+  strength: number;
+  lastUpdated: number;
+}
+
+export interface ConceptMergeResult {
+  merged: Concept;
+  discarded: Concept[];
+}
+
 export class Concept {
   readonly term: Term;
   readonly beliefBag: Bag<TaskData>;
@@ -33,6 +44,10 @@ export class Concept {
   private useCount = 0;
   private lastAccessed: number;
   readonly lastAccessTime: number;
+  private lastDecayTime: number;
+  private linkedConcepts = new Map<number, ConceptLink>();
+  private subConcepts = new Set<Concept>();
+  private parentConcepts = new Set<Concept>();
 
   constructor(term: Term, config: ConceptConfig = {}) {
     this.term = term;
@@ -42,6 +57,7 @@ export class Concept {
     this.createdAt = Date.now();
     this.lastAccessed = Date.now();
     this.lastAccessTime = Date.now();
+    this.lastDecayTime = Date.now();
   }
 
   get key(): number {
@@ -133,12 +149,203 @@ export class Concept {
     return this.questionBag.getItems();
   }
 
-boost(amount: number): void {
-  this.activation = Math.min(1, this.activation + amount);
-  this._priority = Math.min(1, this._priority + amount);
-}
+  boost(amount: number): void {
+    this.activation = Math.min(1, this.activation + amount);
+    this._priority = Math.min(1, this._priority + amount);
+  }
 
-decay(rate: number): void {
-  this._priority *= (1 - rate);
-}
+  decay(rate: number): void {
+    this._priority *= 1 - rate;
+  }
+
+  applyTimeDecay(baseRate = 0.01): void {
+    const now = Date.now();
+    const elapsed = now - this.lastDecayTime;
+    const decayFactor = Math.exp(-baseRate * elapsed / 60000);
+    this.activation *= decayFactor;
+    this._priority *= decayFactor;
+    this.lastDecayTime = now;
+  }
+
+  addLink(concept: Concept, strength: number = 0.5): void {
+    if (concept === this) return;
+
+    const existing = this.linkedConcepts.get(concept.key);
+    if (existing) {
+      existing.strength = Math.min(1, existing.strength + strength * 0.1);
+      existing.lastUpdated = Date.now();
+    } else {
+      this.linkedConcepts.set(concept.key, {
+        concept,
+        strength,
+        lastUpdated: Date.now(),
+      });
+    }
+
+    const reverseLink = concept.linkedConcepts.get(this.key);
+    if (reverseLink) {
+      reverseLink.strength = Math.min(1, reverseLink.strength + strength * 0.1);
+      reverseLink.lastUpdated = Date.now();
+    } else {
+      concept.linkedConcepts.set(this.key, {
+        concept: this,
+        strength,
+        lastUpdated: Date.now(),
+      });
+    }
+  }
+
+  removeLink(concept: Concept): void {
+    this.linkedConcepts.delete(concept.key);
+    concept.linkedConcepts.delete(this.key);
+  }
+
+  getLinks(): ConceptLink[] {
+    return Array.from(this.linkedConcepts.values());
+  }
+
+  getLinkedConcepts(): Concept[] {
+    return Array.from(this.linkedConcepts.values()).map(link => link.concept);
+  }
+
+  updateLinks(): void {
+    const now = Date.now();
+    const decayRate = 0.001;
+
+    for (const [key, link] of this.linkedConcepts) {
+      const elapsed = now - link.lastUpdated;
+      link.strength *= Math.exp(-decayRate * elapsed / 60000);
+      if (link.strength < 0.01) {
+        this.linkedConcepts.delete(key);
+      }
+    }
+  }
+
+  canMergeWith(other: Concept, threshold = 0.85): boolean {
+    if (this === other) return false;
+
+    const termSimilarity = this.calculateTermSimilarity(other.term);
+    const taskOverlap = this.calculateTaskOverlap(other);
+
+    return termSimilarity >= threshold || taskOverlap >= threshold;
+  }
+
+  mergeWith(others: Concept[]): ConceptMergeResult {
+    const allConcepts = [this, ...others];
+    const allBeliefs: TaskData[] = [];
+    const allGoals: TaskData[] = [];
+    const allQuestions: TaskData[] = [];
+
+    for (const concept of allConcepts) {
+      allBeliefs.push(...concept.getBeliefs());
+      allGoals.push(...concept.getGoals());
+      allQuestions.push(...concept.getQuestions());
+    }
+
+    for (const belief of allBeliefs) {
+      this.beliefBag.add(belief, belief.budget);
+    }
+    for (const goal of allGoals) {
+      this.goalBag.add(goal, goal.budget);
+    }
+    for (const question of allQuestions) {
+      this.questionBag.add(question, question.budget);
+    }
+
+    for (const other of others) {
+      for (const link of other.getLinks()) {
+        if (link.concept !== this) {
+          this.addLink(link.concept, link.strength);
+        }
+      }
+    }
+
+    const maxPriority = Math.max(this.priority, ...others.map(c => c.priority));
+    this.priority = maxPriority;
+
+    return {
+      merged: this,
+      discarded: others,
+    };
+  }
+
+  split(): Concept[] {
+    if (this.subConcepts.size === 0) {
+      return [this];
+    }
+
+    const result: Concept[] = [];
+    const processed = new Set<Concept>();
+
+    for (const sub of this.subConcepts) {
+      if (!processed.has(sub)) {
+        result.push(sub);
+        processed.add(sub);
+      }
+    }
+
+    if (result.length === 0) {
+      return [this];
+    }
+
+    return result;
+  }
+
+  addChildConcept(concept: Concept): void {
+    this.subConcepts.add(concept);
+    concept.parentConcepts.add(this);
+  }
+
+  removeChildConcept(concept: Concept): void {
+    this.subConcepts.delete(concept);
+    concept.parentConcepts.delete(this);
+  }
+
+  getChildConcepts(): Concept[] {
+    return Array.from(this.subConcepts);
+  }
+
+  getParentConcepts(): Concept[] {
+    return Array.from(this.parentConcepts);
+  }
+
+  private calculateTermSimilarity(other: Term): number {
+    if (this.term.hash === other.hash) return 1;
+
+    const thisSymbols = this.extractSymbols(this.term);
+    const otherSymbols = this.extractSymbols(other);
+
+    const intersection = new Set([...thisSymbols].filter(s => otherSymbols.has(s)));
+    const union = new Set([...thisSymbols, ...otherSymbols]);
+
+    return union.size > 0 ? intersection.size / union.size : 0;
+  }
+
+  private calculateTaskOverlap(other: Concept): number {
+    const thisBeliefs = new Set(this.getBeliefs().map(b => b.term.hash));
+    const otherBeliefs = new Set(other.getBeliefs().map(b => b.term.hash));
+
+    if (thisBeliefs.size === 0 && otherBeliefs.size === 0) return 0;
+
+    const intersection = new Set([...thisBeliefs].filter(h => otherBeliefs.has(h)));
+    const union = new Set([...thisBeliefs, ...otherBeliefs]);
+
+    return union.size > 0 ? intersection.size / union.size : 0;
+  }
+
+  private extractSymbols(term: Term, symbols = new Set<string>()): Set<string> {
+    if ('symbol' in term && typeof term.symbol === 'string') {
+      symbols.add(term.symbol as string);
+    }
+
+    if ('args' in term && Array.isArray(term.args)) {
+      for (const arg of term.args) {
+        if (typeof arg === 'object' && arg !== null) {
+          this.extractSymbols(arg as Term, symbols);
+        }
+      }
+    }
+
+    return symbols;
+  }
 }

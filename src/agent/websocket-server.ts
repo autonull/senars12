@@ -6,6 +6,7 @@
 import { Agent, Embodiment } from '../agent/Agent.js';
 import { WebSocket, WebSocketServer } from 'ws';
 import { EventEmitter } from 'events';
+import { createHash } from 'crypto';
 
 interface WSMessage {
   type: 'belief' | 'goal' | 'question' | 'query' | 'subscribe' | 'unsubscribe';
@@ -19,14 +20,25 @@ interface WSEvent {
   timestamp: number;
 }
 
+interface WSClient {
+  ws: WebSocket;
+  id: string;
+  subscriptions: Set<string>;
+  heartbeat: NodeJS.Timeout;
+  lastSeen: number;
+}
+
 export class WebSocketEmbodiment implements Embodiment {
   readonly name = 'websocket';
   private server: WebSocketServer | null = null;
-  private clients: Set<WebSocket> = new Set();
+  private clients: Map<string, WSClient> = new Map();
   private agent: Agent | null = null;
   private port: number;
   private eventEmitter = new EventEmitter();
-  private subscribedTypes: Set<string> = new Set();
+  private globalSubscriptions: Set<string> = new Set();
+  private maxClients: number = 100;
+  private heartbeatInterval: number = 30000;
+  private idleTimeout: number = 60000;
 
   constructor(port: number = 8765) {
     this.port = port;
@@ -50,8 +62,16 @@ export class WebSocketEmbodiment implements Embodiment {
         });
 
         this.server.on('connection', (ws) => {
+          if (this.clients.size >= this.maxClients) {
+            ws.close(1013, 'Server full');
+            return;
+          }
           this.handleConnection(ws);
         });
+
+        setInterval(() => {
+          this.checkHeartbeat();
+        }, this.heartbeatInterval);
       } catch (error) {
         reject(error);
       }
@@ -65,10 +85,10 @@ export class WebSocketEmbodiment implements Embodiment {
         return;
       }
 
-      for (const client of this.clients) {
-        client.close();
-      }
-      this.clients.clear();
+    for (const [, client] of this.clients) {
+      client.ws.close();
+    }
+    this.clients.clear();
 
       this.server.close(() => {
         console.log('WebSocket server closed');
@@ -91,30 +111,62 @@ export class WebSocketEmbodiment implements Embodiment {
   }
 
   private handleConnection(ws: WebSocket): void {
-    this.clients.add(ws);
-    console.log(`Client connected. Total clients: ${this.clients.size}`);
+    const id = createHash('sha256').update(Math.random().toString()).digest('hex').slice(0, 16);
+    const client: WSClient = {
+      ws,
+      id,
+      subscriptions: new Set(),
+      heartbeat: setInterval(() => this.sendHeartbeat(ws), this.heartbeatInterval),
+      lastSeen: Date.now()
+    };
+
+    this.clients.set(id, client);
+    console.log(`Client ${id} connected. Total clients: ${this.clients.size}`);
 
     ws.on('message', (data) => {
+      client.lastSeen = Date.now();
       try {
         const message = JSON.parse(data.toString()) as WSMessage;
-        this.handleMessage(ws, message);
+        this.handleMessage(ws, message, client);
       } catch (error) {
         this.sendError(ws, 'Invalid message format');
       }
     });
 
     ws.on('close', () => {
-      this.clients.delete(ws);
-      console.log(`Client disconnected. Total clients: ${this.clients.size}`);
+      clearInterval(client.heartbeat);
+      this.clients.delete(id);
+      console.log(`Client ${id} disconnected. Total clients: ${this.clients.size}`);
     });
 
     ws.on('error', (error) => {
       console.error('WebSocket client error:', error);
-      this.clients.delete(ws);
+      clearInterval(client.heartbeat);
+      this.clients.delete(id);
     });
+
+    ws.send(JSON.stringify({ type: 'connected', id }));
   }
 
-  private handleMessage(ws: WebSocket, message: WSMessage): void {
+  private sendHeartbeat(ws: WebSocket): void {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'heartbeat', timestamp: Date.now() }));
+    }
+  }
+
+  private checkHeartbeat(): void {
+    const now = Date.now();
+    for (const [id, client] of this.clients) {
+      if (now - client.lastSeen > this.idleTimeout) {
+        client.ws.close(1000, 'Idle timeout');
+        clearInterval(client.heartbeat);
+        this.clients.delete(id);
+        console.log(`Client ${id} idle timeout`);
+      }
+    }
+  }
+
+  private handleMessage(ws: WebSocket, message: WSMessage, client: WSClient): void {
     if (!this.agent) {
       this.sendError(ws, 'Agent not initialized');
       return;
@@ -122,12 +174,14 @@ export class WebSocketEmbodiment implements Embodiment {
 
     switch (message.type) {
       case 'subscribe':
-        this.subscribedTypes.add(message.data);
+        this.globalSubscriptions.add(message.data);
+        client.subscriptions.add(message.data);
         ws.send(JSON.stringify({ type: 'subscribed', data: message.data }));
         break;
 
       case 'unsubscribe':
-        this.subscribedTypes.delete(message.data);
+        this.globalSubscriptions.delete(message.data);
+        client.subscriptions.delete(message.data);
         ws.send(JSON.stringify({ type: 'unsubscribed', data: message.data }));
         break;
 
@@ -162,18 +216,35 @@ export class WebSocketEmbodiment implements Embodiment {
 
   private broadcastToClients(message: string): void {
     const data = JSON.parse(message);
-    if (this.subscribedTypes.size > 0 && !this.subscribedTypes.has(data.type)) {
+    const shouldBroadcast = this.globalSubscriptions.size === 0 || this.globalSubscriptions.has(data.type);
+
+    if (!shouldBroadcast) {
       return;
     }
 
-    for (const client of this.clients) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
+    for (const [, client] of this.clients) {
+      if (client.ws.readyState === WebSocket.OPEN) {
+        const clientWantsEvent = client.subscriptions.size === 0 || client.subscriptions.has(data.type);
+        if (clientWantsEvent) {
+          client.ws.send(message);
+        }
       }
     }
   }
 
   public getConnectedClients(): number {
     return this.clients.size;
+  }
+
+  public broadcastToSubscribers(event: WSEvent): void {
+    const message = JSON.stringify(event);
+    this.broadcastToClients(message);
+  }
+
+  public sendToClient(clientId: string, event: WSEvent): void {
+    const client = this.clients.get(clientId);
+    if (client && client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(JSON.stringify(event));
+    }
   }
 }

@@ -7,41 +7,150 @@ export type ForgettingPolicy =
   | { type: 'age'; maxAgeMs: number }
   | { type: 'composite'; weights: { priority: number; age: number } };
 
+export interface ForgettingHooks {
+  beforeForget?: (concept: Concept) => boolean;
+  afterForget?: (concept: Concept) => void;
+  shouldForgetAdaptive?: (concept: Concept, load: number) => number;
+}
+
+export interface ForgettingConfig {
+  policy: ForgettingPolicy;
+  enableAdaptive?: boolean;
+  enableSemantic?: boolean;
+  hooks?: ForgettingHooks;
+  systemLoad?: () => number;
+}
+
 export class Forgetting {
   private policy: ForgettingPolicy;
+  private enableAdaptive: boolean;
+  private enableSemantic: boolean;
+  private hooks?: ForgettingHooks;
+  private systemLoadFn?: () => number;
+  private currentLoad = 0;
 
-  constructor(policy: ForgettingPolicy = 'fifo') {
-    this.policy = policy;
+  constructor(config: ForgettingConfig | ForgettingPolicy = 'fifo') {
+    if (typeof config === 'string' || typeof config === 'object' && 'policy' in config === false) {
+      this.policy = config as ForgettingPolicy;
+      this.enableAdaptive = false;
+      this.enableSemantic = false;
+    } else {
+      const cfg = config as ForgettingConfig;
+      this.policy = cfg.policy;
+      this.enableAdaptive = cfg.enableAdaptive ?? false;
+      this.enableSemantic = cfg.enableSemantic ?? false;
+      this.hooks = cfg.hooks;
+      this.systemLoadFn = cfg.systemLoad;
+    }
+  }
+
+  setSystemLoad(load: number): void {
+    this.currentLoad = load;
   }
 
   selectVictim(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
     if (concepts.length === 0) return undefined;
 
-    if (this.policy === 'fifo') {
-      let oldest: Concept | undefined;
-      let oldestTime = Infinity;
-      for (const concept of concepts) {
-        const lastAccess = 'lastAccessTime' in concept ? concept.lastAccessTime ?? 0 : 0;
-        if (lastAccess < oldestTime) {
-          oldestTime = lastAccess;
-          oldest = concept;
-        }
-      }
-      return oldest;
+    const load = this.systemLoadFn?.() ?? this.currentLoad;
+    const adaptiveFactor = this.enableAdaptive ? load : 0;
+
+    let candidates = [...concepts];
+
+    if (this.hooks?.beforeForget) {
+      candidates = candidates.filter(concept => {
+        const shouldForget = this.hooks.beforeForget!(concept);
+        return shouldForget !== false;
+      });
     }
 
-    if (typeof this.policy === 'object' && 'type' in this.policy) {
+    if (this.enableSemantic && candidates.length > 1) {
+      candidates = this.filterBySemanticConnectivity(candidates);
+    }
+
+    let victim: Concept | undefined;
+
+    if (this.enableAdaptive && adaptiveFactor > 0.5) {
+      victim = this.selectAdaptive(candidates, scorer, adaptiveFactor);
+    } else if (this.policy === 'fifo') {
+      victim = this.selectFifo(candidates);
+    } else if (typeof this.policy === 'object' && 'type' in this.policy) {
       switch (this.policy.type) {
         case 'priority':
-          return this.selectByPriority(concepts);
+          victim = this.selectByPriority(candidates);
+          break;
         case 'age':
-          return this.selectByAge(concepts);
+          victim = this.selectByAge(candidates);
+          break;
         case 'composite':
-          return this.selectByComposite(concepts, scorer);
+          victim = this.selectByComposite(candidates, scorer);
+          break;
       }
     }
 
-    return concepts[0];
+    if (victim && this.hooks?.afterForget) {
+      this.hooks.afterForget(victim);
+    }
+
+    return victim;
+  }
+
+  private selectAdaptive(concepts: Concept[], scorer: MemoryScorer, load: number): Concept | undefined {
+    const scored = concepts.map(concept => {
+      const baseScore = scorer.score(concept);
+      const connectivity = this.getConnectivity(concept);
+      const timeDecay = Math.exp(-0.001 * (Date.now() - concept.createdAt));
+      const loadFactor = 1 + load * 0.5;
+
+      const adaptiveScore = baseScore * (1 - connectivity) * timeDecay * loadFactor;
+      return { concept, score: adaptiveScore };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored[0]?.concept;
+  }
+
+  private filterBySemanticConnectivity(concepts: Concept[]): Concept[] {
+    const connectivity = concepts.map(concept => ({
+      concept,
+      connectivity: this.getConnectivity(concept),
+    }));
+
+    const avgConnectivity =
+      connectivity.reduce((sum, c) => sum + c.connectivity, 0) / connectivity.length;
+
+    const lowConnectivity = connectivity.filter(c => c.connectivity < avgConnectivity);
+
+    if (lowConnectivity.length > 0) {
+      return lowConnectivity.map(c => c.concept);
+    }
+
+    return concepts;
+  }
+
+  private getConnectivity(concept: Concept): number {
+    const links = concept.getLinks();
+    const parents = concept.getParentConcepts();
+    const children = concept.getChildConcepts();
+
+    const totalConnections = links.length + parents.length + children.length;
+
+    if (totalConnections === 0) return 0;
+
+    const linkStrength = links.reduce((sum, link) => sum + link.strength, 0);
+    return Math.min(1, (totalConnections + linkStrength) / 10);
+  }
+
+  private selectFifo(concepts: Concept[]): Concept | undefined {
+    let oldest: Concept | undefined;
+    let oldestTime = Infinity;
+    for (const concept of concepts) {
+      const lastAccess = 'lastAccessTime' in concept ? concept.lastAccessTime ?? 0 : 0;
+      if (lastAccess < oldestTime) {
+        oldestTime = lastAccess;
+        oldest = concept;
+      }
+    }
+    return oldest;
   }
 
   private selectByPriority(concepts: Concept[]): Concept | undefined {
@@ -51,7 +160,9 @@ export class Forgetting {
         return concept;
       }
     }
-    return concepts.reduce((min, c) => (min && c.priority < min.priority) ? c : min, concepts[0]);
+    return concepts.reduce((min, c) =>
+      min && c.priority < min.priority ? c : min, concepts[0]
+    );
   }
 
   private selectByAge(concepts: Concept[]): Concept | undefined {
@@ -63,13 +174,13 @@ export class Forgetting {
         return concept;
       }
     }
-const first = concepts[0];
-if (!first) return undefined;
-return concepts.reduce((oldest, c) => {
-  const t = 'lastAccessTime' in c ? c.lastAccessTime ?? 0 : 0;
-  const ot = 'lastAccessTime' in oldest ? oldest.lastAccessTime ?? 0 : 0;
-  return t < ot ? c : oldest;
-}, first);
+    const first = concepts[0];
+    if (!first) return undefined;
+    return concepts.reduce((oldest, c) => {
+      const t = 'lastAccessTime' in c ? c.lastAccessTime ?? 0 : 0;
+      const ot = 'lastAccessTime' in oldest ? oldest.lastAccessTime ?? 0 : 0;
+      return t < ot ? c : oldest;
+    }, first);
   }
 
   private selectByComposite(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {

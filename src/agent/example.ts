@@ -15,7 +15,7 @@ async function runAgentExample(): Promise<void> {
   const nar = SeNARSFactory.createDefault();
 
   const wsEmbodiment = new WebSocketEmbodiment(8765);
-  const httpServer = new HTTPServer(8080);
+  const httpServer = new HTTPServer({ port: 8080 });
 
   const agent = new Agent(nar, [wsEmbodiment, httpServer as any]);
 

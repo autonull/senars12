@@ -165,9 +165,32 @@ export class ToolError extends NARError {
   }
 }
 
+// Query filter types
+export interface TermFilter {
+  contains?: string;
+  startsWith?: string;
+  endsWith?: string;
+  pattern?: RegExp;
+}
+
+export interface TruthFilter {
+  minFrequency?: number;
+  maxFrequency?: number;
+  minConfidence?: number;
+  maxConfidence?: number;
+}
+
+export interface QueryOptions {
+  limit?: number;
+  sortBy?: 'priority' | 'recency' | 'truth';
+  order?: 'asc' | 'desc';
+  termFilter?: TermFilter;
+  truthFilter?: TruthFilter;
+}
+
 // Type guards
 export const isSuccess = <T>(result: Result<T>): result is Success<T> =>
-    result.success;
+  result.success;
 
 export const isFailure = <T>(result: Result<T>): result is Failure =>
-    !result.success;
+  !result.success;

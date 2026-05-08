@@ -10,7 +10,8 @@ export interface PreferenceData {
 }
 
 export class PreferenceCollector {
-    private preferences: PreferenceData[] = [];
+  private preferences: PreferenceData[] = [];
+  private implicitWeight = 0.3;
 
     async collectPreference(pathA: string, pathB: string): Promise<PreferenceData | null> {
         let trajectoryA: TrajectoryStep[], trajectoryB: TrajectoryStep[];
@@ -77,9 +78,97 @@ export class PreferenceCollector {
         await fs.writeFile(path, JSON.stringify(this.preferences, null, 2));
     }
 
-    getPreferences(): PreferenceData[] {
-        return this.preferences;
+  getPreferences(): PreferenceData[] {
+    return this.preferences;
+  }
+
+  detectImplicitPreference(trajectoryA: TrajectoryStep[], trajectoryB: TrajectoryStep[]): 'A' | 'B' | 'SKIP' {
+    const scoreA = this.computeImplicitScore(trajectoryA);
+    const scoreB = this.computeImplicitScore(trajectoryB);
+
+    const threshold = 0.1;
+    const diff = scoreA - scoreB;
+
+    if (Math.abs(diff) < threshold) return 'SKIP';
+    return diff > 0 ? 'A' : 'B';
+  }
+
+  private computeImplicitScore(trajectory: TrajectoryStep[]): number {
+    let score = 0;
+
+    const toolCalls = trajectory.filter(s => s.type === 'tool_call');
+    const lmResponses = trajectory.filter(s => s.type === 'lm_response');
+    const errors = trajectory.filter(s => s.type === 'lm_failure');
+
+    score += toolCalls.length * 0.2;
+    score += lmResponses.length * 0.3;
+    score -= errors.length * 0.5;
+
+    const uniqueTools = new Set(toolCalls.map(t => (t.data as any)?.name || 'unknown'));
+    score += uniqueTools.size * 0.1;
+
+    if (trajectory.length > 0) {
+      const lastStep = trajectory[trajectory.length - 1];
+      if (lastStep.type === 'lm_response') {
+        const content = (lastStep.data as any)?.content || '';
+        const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
+        score += Math.min(contentStr.length / 1000, 1) * 0.3;
+      }
     }
+
+    return score;
+  }
+
+  aggregatePreferences(
+    prefs: Array<{ preference: 'A' | 'B' | 'SKIP'; weight?: number }>
+  ): { result: 'A' | 'B' | 'SKIP'; confidence: number; distribution: Record<'A' | 'B' | 'SKIP', number> } {
+    if (prefs.length === 0) {
+      return { result: 'SKIP', confidence: 0, distribution: { A: 0, B: 0, SKIP: 0 } };
+    }
+
+    let scoreA = 0;
+    let scoreB = 0;
+    let scoreSkip = 0;
+    let totalWeight = 0;
+
+    for (const pref of prefs) {
+      const weight = pref.weight ?? 1;
+      totalWeight += weight;
+
+      if (pref.preference === 'A') scoreA += weight;
+      else if (pref.preference === 'B') scoreB += weight;
+      else scoreSkip += weight;
+    }
+
+    const normalizedA = scoreA / totalWeight;
+    const normalizedB = scoreB / totalWeight;
+    const normalizedSkip = scoreSkip / totalWeight;
+
+    const maxScore = Math.max(normalizedA, normalizedB, normalizedSkip);
+    const threshold = 0.4;
+
+    if (maxScore < threshold || normalizedSkip > 0.5) {
+      return {
+        result: 'SKIP',
+        confidence: normalizedSkip,
+        distribution: { A: normalizedA, B: normalizedB, SKIP: normalizedSkip }
+      };
+    }
+
+    return {
+      result: normalizedA > normalizedB ? 'A' : 'B',
+      confidence: maxScore,
+      distribution: { A: normalizedA, B: normalizedB, SKIP: normalizedSkip }
+    };
+  }
+
+  setImplicitWeight(weight: number): void {
+    this.implicitWeight = Math.max(0, Math.min(1, weight));
+  }
+
+  getImplicitWeight(): number {
+    return this.implicitWeight;
+  }
 
     private async promptUser(): Promise<'A' | 'B' | 'SKIP'> {
         return new Promise((resolve) => {

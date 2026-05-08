@@ -13,6 +13,7 @@ import './nal.js';
 export interface RuleInput {
   term: Term;
   truth: TruthType;
+  stamp: ReturnType<typeof Stamp.createInput>;
 }
 
 export interface RuleResult {
@@ -54,10 +55,11 @@ export class RuleProcessor {
           const result = rule.apply([p1.term, p2.term]);
           if (result) {
             const truthFn = rule.truthFn ?? NEUTRAL_FN;
+            const derivedStamp = Stamp.derive([p1.stamp, p2.stamp], rule.id) ?? Stamp.createInput();
             yield {
               term: result as Term,
               truth: truthFn(p1.truth, p2.truth),
-              stamp: Stamp.createInput(),
+              stamp: derivedStamp,
               priority: rule.priority
             };
           }
@@ -83,10 +85,11 @@ export class RuleProcessor {
         const result = rule.apply([p1.term, p2.term]);
         if (result) {
           const truthFn = rule.truthFn ?? NEUTRAL_FN;
+          const derivedStamp = Stamp.derive([p1.stamp, p2.stamp], rule.id) ?? Stamp.createInput();
           this.resultBuffer.push({
             term: result as Term,
             truth: truthFn(p1.truth, p2.truth),
-            stamp: Stamp.createInput(),
+            stamp: derivedStamp,
             priority: rule.priority
           });
         }
@@ -100,16 +103,19 @@ export class RuleProcessor {
 
   private async* processLMRules(p1: RuleInput, p2: RuleInput): AsyncGenerator<RuleResult> {
     if (this.lmRules.length === 0) return;
-    
+
     const promises = this.lmRules.map(async (lmRule) => {
       try {
         const tasks = await lmRule.apply(p1.term, p2.term);
-        return tasks.map(task => ({
-          term: task.term,
-          truth: task.truth ?? Truth.NEUTRAL,
-          stamp: Stamp.createInput(),
-          priority: lmRule.priority
-        } as RuleResult));
+        return tasks.map(task => {
+          const derivedStamp = Stamp.derive([p1.stamp, p2.stamp], lmRule.id) ?? Stamp.createInput();
+          return {
+            term: task.term,
+            truth: task.truth ?? Truth.NEUTRAL,
+            stamp: derivedStamp,
+            priority: lmRule.priority
+          } as RuleResult;
+        });
       } catch (error) {
         this.handleRuleError(error, lmRule.id);
         return [];

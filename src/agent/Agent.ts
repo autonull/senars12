@@ -69,6 +69,23 @@ export interface InputProcessor {
   process(input: string): Promise<Task | null>;
 }
 
+export interface AgentProfile {
+  id: string;
+  name: string;
+  description: string;
+  config: Record<string, unknown>;
+  capabilities: string[];
+}
+
+export interface AgentCapabilities {
+  reasoning: boolean;
+  learning: boolean;
+  toolUse: boolean;
+  embodiment: string[];
+  persistence: boolean;
+  metacognition: boolean;
+}
+
 export class Agent {
   private narInstance: NAR;
   private embodiments: Embodiment[] = [];
@@ -76,6 +93,8 @@ export class Agent {
   private commands: Map<string, Command> = new Map();
   private messageHandlers: Array<(message: string) => void> = [];
   private running = false;
+  private profile: AgentProfile | null = null;
+  private statePath: string | null = null;
 
   constructor(
     nar: NAR,
@@ -186,5 +205,62 @@ export class Agent {
     } catch (error) {
       return `✗ Error: ${error instanceof Error ? error.message : String(error)}`;
     }
+  }
+
+  setProfile(profile: AgentProfile): void {
+    this.profile = profile;
+  }
+
+  getProfile(): AgentProfile | null {
+    return this.profile;
+  }
+
+  getCapabilities(): AgentCapabilities {
+    return {
+      reasoning: true,
+      learning: true,
+      toolUse: this.tools.size > 0,
+      embodiment: this.embodiments.map(e => e.name),
+      persistence: !!this.statePath,
+      metacognition: true
+    };
+  }
+
+  getSelfDescription(): string {
+    const caps = this.getCapabilities();
+    const profile = this.profile ? this.profile.name : 'default';
+    return `SeNARS Agent v12 - Profile: ${profile}
+Capabilities:
+  - Reasoning: ${caps.reasoning ? '✓' : '✗'}
+  - Learning: ${caps.learning ? '✓' : '✗'}
+  - Tool Use: ${caps.toolUse ? '✓' : '✗'}
+  - Embodiments: ${caps.embodiment.join(', ') || 'none'}
+  - Persistence: ${caps.persistence ? '✓' : '✗'}
+  - Metacognition: ${caps.metacognition ? '✓' : '✗'}`;
+  }
+
+  async saveState(path?: string): Promise<void> {
+    const fs = await import('fs/promises');
+    const statePath = path || this.statePath || 'agent-state.json';
+    const state = {
+      profile: this.profile,
+      memory: await this.narInstance.getMemoryState(),
+      timestamp: Date.now()
+    };
+    await fs.writeFile(statePath, JSON.stringify(state, null, 2));
+    this.statePath = statePath;
+  }
+
+  async loadState(path?: string): Promise<void> {
+    const fs = await import('fs/promises');
+    const statePath = path || this.statePath || 'agent-state.json';
+    const state = JSON.parse(await fs.readFile(statePath, 'utf-8'));
+    if (state.profile) {
+      this.profile = state.profile;
+    }
+    if (state.memory) {
+      await this.narInstance.loadMemoryState(state.memory);
+    }
+    this.statePath = statePath;
   }
 }

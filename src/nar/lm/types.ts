@@ -37,17 +37,23 @@ export interface LMRuleConfigInternal extends LMRuleConfig {
 }
 
 export interface LMClient {
-    generateText(prompt: string, options?: LMConfig): Promise<string>;
+  generateText(prompt: string, options?: LMConfig): Promise<string>;
+  generateTextWithCache?(prompt: string, options?: LMConfig): Promise<string>;
+  getCachedResponse?(prompt: string): string | undefined;
+  clearCache?(): void;
+  getCost?(): {tokens: number; cost: number};
 }
 
 export interface LMExecutionStats {
-    totalCalls: number;
-    successfulCalls: number;
-    failedCalls: number;
-    totalDuration: number;
-    totalTokens: number;
-    averageDuration: number;
-    successRate: number;
+  totalCalls: number;
+  successfulCalls: number;
+  failedCalls: number;
+  totalDuration: number;
+  totalTokens: number;
+  averageDuration: number;
+  successRate: number;
+  totalCost: number;
+  averageCost: number;
 }
 
 export interface LMRuleStats {

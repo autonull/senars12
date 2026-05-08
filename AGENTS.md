@@ -17,7 +17,7 @@
     - Don't arbitrarily change method functions to arrow functions. Keep the original function declaration style unless
       there's a specific technical reason related to 'this' binding. Use arrow functions for callbacks and utility
       functions only.
-    - Consider modern JavaScript language syntax
+    - Consider latest language version: syntax, tools, configuration, etc...
 
 - Few comments: rely on self-documenting code. Do not remove JSDocs containing essential Type details
 

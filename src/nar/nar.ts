@@ -16,7 +16,7 @@ import {EventBus} from './types';
 import type {LMClient} from './lm';
 import {LMRules} from './lm';
 import {termParser} from './terms';
-import {ConfigurationError, type CoreConfig, DEFAULT_CONFIG} from './types';
+import {ConfigurationError, type CoreConfig, DEFAULT_CONFIG, type TermFilter, type TruthFilter, type QueryOptions} from './types';
 import {QueryAPI} from './query/api.js';
 import {ReasoningTrace} from './query/trace.js';
 import {MetricsCollector} from './metrics/index.js';
@@ -155,11 +155,20 @@ export class NAR extends BaseComponent {
     return this.memory.getStatistics();
   }
 
-  getBeliefs = (filter?: any) => this.query.getBeliefs(filter);
-  getGoals = (filter?: any) => this.query.getGoals(filter);
-  getQuestions = (filter?: any) => this.query.getQuestions(filter);
-  queryTerm = (term: Term, filter?: any) => this.query.query(term, filter);
-  ask = (question: string | Term) => this.query.ask(question);
+  getConfig() {
+    return {...this.config};
+  }
+
+  setConfig(updates: Partial<NARConfig>): void {
+    Object.assign(this.config, updates);
+    this.memory.setConfig(updates);
+  }
+
+getBeliefs = (filter?: any) => this.query.getBeliefs(filter);
+getGoals = (filter?: any) => this.query.getGoals(filter);
+getQuestions = (filter?: any) => this.query.getQuestions(filter);
+queryTerm = (term: Term, filter?: any) => this.query.query(term, filter);
+ask = (question: string | Term) => this.query.ask(question);
 
   getDerivationHistory = (task: Task) => this.traceAPI.getDerivationHistory(task);
   traceTerm = (term: Term) => this.traceAPI.trace(term);
@@ -304,5 +313,15 @@ export class NAR extends BaseComponent {
     const content = await fs.readFile(filename, 'utf-8');
     const data = JSON.parse(content);
     this.import(data);
+  }
+
+  async getMemoryState(): Promise<Record<string, unknown>> {
+    return this.export();
+  }
+
+  async loadMemoryState(state: Record<string, unknown>): Promise<void> {
+    if (state.concepts) {
+      this.import(state as any);
+    }
   }
 }

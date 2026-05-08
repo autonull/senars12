@@ -6,6 +6,7 @@
 import { Agent } from '../agent/Agent.js';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { URL } from 'url';
+import { createHash, randomBytes } from 'crypto';
 
 interface HTTPRequest {
   method: string;
@@ -19,14 +20,98 @@ interface HTTPResponse {
   headers?: Record<string, string>;
 }
 
+interface RateLimitState {
+  count: number;
+  resetTime: number;
+}
+
+export interface HTTPServerConfig {
+  port?: number;
+  apiKey?: string;
+  rateLimit?: {
+    windowMs: number;
+    maxRequests: number;
+  };
+  enableCors?: boolean;
+}
+
 export class HTTPServer {
   private server: ReturnType<typeof createServer> | null = null;
   private agent: Agent | null = null;
-  private port: number;
+  private config: Required<HTTPServerConfig>;
+  private rateLimitState: Map<string, RateLimitState> = new Map();
+  private apiKeys: Set<string> = new Set();
   private clients: Set<ServerResponse> = new Set();
 
-  constructor(port: number = 8080) {
-    this.port = port;
+  constructor(config: HTTPServerConfig = {}) {
+    this.config = {
+      port: config.port ?? 8080,
+      apiKey: config.apiKey ?? randomBytes(32).toString('hex'),
+      rateLimit: config.rateLimit ?? { windowMs: 60000, maxRequests: 100 },
+      enableCors: config.enableCors ?? true
+    };
+    if (this.config.apiKey) {
+      this.apiKeys.add(this.config.apiKey);
+    }
+  }
+
+  addApiKey(key: string): void {
+    this.apiKeys.add(key);
+  }
+
+  removeApiKey(key: string): void {
+    this.apiKeys.delete(key);
+  }
+
+  getOpenAPISpec(): Record<string, unknown> {
+    return {
+      openapi: '3.0.0',
+      info: {
+        title: 'SeNARS API',
+        version: '1.0.0',
+        description: 'RESTful API for SeNARS reasoning engine'
+      },
+      servers: [{ url: `http://localhost:${this.config.port}` }],
+      paths: {
+        '/beliefs': {
+          get: { summary: 'List all beliefs', responses: { '200': { description: 'List of beliefs' } } },
+          post: { summary: 'Add a new belief', requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { term: { type: 'string' }, truth: { type: 'object' } } } } } }, responses: { '200': { description: 'Belief added' } } }
+        },
+        '/goals': {
+          get: { summary: 'List all goals', responses: { '200': { description: 'List of goals' } } },
+          post: { summary: 'Add a new goal', requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { term: { type: 'string' } } } } } }, responses: { '200': { description: 'Goal added' } } }
+        },
+        '/questions': {
+          get: { summary: 'List all questions', responses: { '200': { description: 'List of questions' } } },
+          post: { summary: 'Add a new question', requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { term: { type: 'string' } } } } } }, responses: { '200': { description: 'Question added' } } }
+        },
+        '/query': {
+          post: { summary: 'Query memory', requestBody: { content: { 'application/json': { schema: { type: 'object' } } } }, responses: { '200': { description: 'Query results' } } }
+        },
+        '/ask': {
+          post: { summary: 'Ask a question', requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { question: { type: 'string' } } } } } }, responses: { '200': { description: 'Answer' } } }
+        },
+        '/stats': {
+          get: { summary: 'Get system statistics', responses: { '200': { description: 'Statistics' } } }
+        },
+        '/health': {
+          get: { summary: 'Health check', responses: { '200': { description: 'Health status' } } }
+        },
+        '/events': {
+          get: { summary: 'Stream events (SSE)', responses: { '200': { description: 'Event stream' } } }
+        }
+      },
+      components: {
+        securitySchemes: {
+          ApiKeyAuth: {
+            type: 'apiKey',
+            in: 'header',
+            name: 'X-API-Key'
+          }
+        }
+      },
+      security: [{ ApiKeyAuth: [] }]
+    };
   }
 
   async start(agent: Agent): Promise<void> {
@@ -42,10 +127,10 @@ export class HTTPServer {
           });
         });
 
-        this.server.listen(this.port, () => {
-          console.log(`HTTP server listening on port ${this.port}`);
-          resolve();
-        });
+    this.server.listen(this.config.port, () => {
+      console.log(`HTTP server listening on port ${this.config.port}`);
+      resolve();
+    });
 
         this.server.on('error', (error) => {
           console.error('HTTP server error:', error);
@@ -84,21 +169,35 @@ export class HTTPServer {
     const url = new URL(req.url || '/', 'http://localhost');
     const method = req.method || 'GET';
 
-    const headers = {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    };
-
-    for (const [key, value] of Object.entries(headers)) {
-      res.setHeader(key, value);
+    if (this.config.enableCors) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
     }
+    res.setHeader('Content-Type', 'application/json');
 
     if (method === 'OPTIONS') {
       res.statusCode = 204;
       res.end();
       return;
+    }
+
+    if (url.pathname !== '/health' && !url.pathname.startsWith('/openapi')) {
+      const apiKey = req.headers['x-api-key'] as string;
+      if (!this.authenticate(apiKey)) {
+        res.statusCode = 401;
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+
+      if (this.config.rateLimit) {
+        const limited = this.checkRateLimit(apiKey || 'anonymous');
+        if (limited) {
+          res.statusCode = 429;
+          res.end(JSON.stringify({ error: 'Rate limit exceeded' }));
+          return;
+        }
+      }
     }
 
     try {
@@ -109,6 +208,29 @@ export class HTTPServer {
       res.statusCode = 500;
       res.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }));
     }
+  }
+
+  private authenticate(apiKey: string | undefined): boolean {
+    if (!apiKey) return false;
+    return this.apiKeys.has(apiKey);
+  }
+
+  private checkRateLimit(key: string): boolean {
+    const now = Date.now();
+    const state = this.rateLimitState.get(key);
+    const { windowMs, maxRequests } = this.config.rateLimit!;
+
+    if (!state || now > state.resetTime) {
+      this.rateLimitState.set(key, { count: 1, resetTime: now + windowMs });
+      return false;
+    }
+
+    if (state.count >= maxRequests) {
+      return true;
+    }
+
+    state.count++;
+    return false;
   }
 
   private async parseBody(req: IncomingMessage): Promise<unknown> {
@@ -134,6 +256,10 @@ export class HTTPServer {
 
   private async routeRequest(req: HTTPRequest): Promise<HTTPResponse> {
     const { method, url } = req;
+
+    if (url === '/openapi') {
+      return { statusCode: 200, body: this.getOpenAPISpec() };
+    }
 
     const routes: Record<string, Record<string, (req: HTTPRequest) => Promise<HTTPResponse>>> = {
       '/beliefs': {

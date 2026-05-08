@@ -2,7 +2,7 @@
  * Enhanced Memory system with integrated indexing, focus, archive, scoring, and consolidation
  */
 
-import {Concept, type ConceptTaskType} from './concept.js';
+import {Concept, type ConceptTaskType, type ConceptMergeResult} from './concept.js';
 import type {Term} from '../terms';
 import type {Truth} from '../terms';
 import type {Budget} from '../types';
@@ -27,6 +27,9 @@ export interface MemoryConfig {
   enableIndexing?: boolean;
   enableArchive?: boolean;
   forgettingPolicy?: ForgettingPolicy;
+  healthCheckInterval?: number;
+  enablePressureDetection?: boolean;
+  pressureThreshold?: number;
 }
 
 const DEFAULT_CONFIG: Required<MemoryConfig> = {
@@ -40,7 +43,10 @@ const DEFAULT_CONFIG: Required<MemoryConfig> = {
   archiveMaxConcepts: 1000,
   enableIndexing: true,
   enableArchive: true,
-  forgettingPolicy: 'fifo'
+  forgettingPolicy: 'fifo',
+  healthCheckInterval: 1000,
+  enablePressureDetection: true,
+  pressureThreshold: 0.9,
 };
 
 export interface MemoryStatistics {
@@ -50,6 +56,21 @@ export interface MemoryStatistics {
   archivedConcepts: number;
   indexStats?: { atomic: number; temporal: number; activation: number };
   archiveStats?: { size: number; capacity: number; utilization: number };
+  memoryPressure: number;
+  utilization: number;
+  conceptDistribution: {
+    lowPriority: number;
+    mediumPriority: number;
+    highPriority: number;
+  };
+}
+
+export interface MemoryHealth {
+  isHealthy: boolean;
+  pressureLevel: number;
+  consolidationNeeded: boolean;
+  forgettingNeeded: boolean;
+  recommendations: string[];
 }
 
 export class Memory {
@@ -63,21 +84,30 @@ export class Memory {
   private readonly forgetting: Forgetting;
   private cyclesSinceConsolidation = 0;
   private lastTimestamp = Date.now();
+  private healthCheckInterval: number;
+  private lastHealthCheck = 0;
+  private pressureLevel = 0;
+  private onMemoryPressure?: (level: number, memory: Memory) => void;
 
-  constructor(config: MemoryConfig = DEFAULT_CONFIG) {
+  constructor(
+    config: MemoryConfig = DEFAULT_CONFIG,
+    options?: { onMemoryPressure?: (level: number, memory: Memory) => void }
+  ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.healthCheckInterval = this.config.healthCheckInterval;
+    this.onMemoryPressure = options?.onMemoryPressure;
     this.index = new MemoryIndex({
       enableAtomicIndex: this.config.enableIndexing,
       enableTemporalIndex: this.config.enableIndexing,
-      enableActivationIndex: true
+      enableActivationIndex: true,
     });
     this.focus = new Focus({
       maxConcepts: this.config.focusMaxConcepts,
-      attentionThreshold: this.config.focusThreshold
+      attentionThreshold: this.config.focusThreshold,
     });
     this.archive = new Archive({
       maxArchivedConcepts: this.config.archiveMaxConcepts,
-      archiveThreshold: this.config.archiveThreshold
+      archiveThreshold: this.config.archiveThreshold,
     });
     this.scorer = new MemoryScorer();
     this.consolidation = new MemoryConsolidation();
@@ -100,6 +130,8 @@ export class Memory {
       this.applyForgetting();
     }
 
+    this.checkMemoryPressure();
+
     const concept = new Concept(term);
     this.concepts.set(term.hash, concept);
 
@@ -114,7 +146,7 @@ export class Memory {
 
   addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget | number = 0.9): boolean {
     const concept = this.getConcept(term) ?? this.addConcept(term);
-    return concept.addTask(type, {term, truth, budget: getBudgetValue(budget)});
+    return concept.addTask(type, { term, truth, budget: getBudgetValue(budget) });
   }
 
   removeConcept(term: Term): boolean {
@@ -138,7 +170,7 @@ export class Memory {
     const allConcepts = Array.from(this.concepts.values());
     const scored = allConcepts.map(concept => ({
       concept,
-      score: this.scorer.scoreForRetrieval(concept)
+      score: this.scorer.scoreForRetrieval(concept),
     }));
     scored.sort((a, b) => b.score - a.score);
     return scored.slice(0, limit).map(s => s.concept);
@@ -148,7 +180,7 @@ export class Memory {
     if (++this.cyclesSinceConsolidation < this.config.consolidationInterval) return;
     this.cyclesSinceConsolidation = 0;
 
-    const {activationDecayRate, priorityThreshold} = this.config;
+    const { activationDecayRate, priorityThreshold } = this.config;
 
     for (const concept of this.concepts.values()) {
       concept.decay(activationDecayRate);
@@ -230,15 +262,33 @@ export class Memory {
 
   getStatistics(): MemoryStatistics {
     let totalTasks = 0;
+    let lowPriority = 0;
+    let mediumPriority = 0;
+    let highPriority = 0;
+
     for (const concept of this.concepts.values()) {
       totalTasks += concept.totalTasks;
+      if (concept.priority < 0.3) {
+        lowPriority++;
+      } else if (concept.priority < 0.7) {
+        mediumPriority++;
+      } else {
+        highPriority++;
+      }
     }
 
     const stats: MemoryStatistics = {
       totalConcepts: this.concepts.size,
       totalTasks,
       focusedConcepts: this.focus.size,
-      archivedConcepts: this.config.enableArchive ? this.archive.size : 0
+      archivedConcepts: this.config.enableArchive ? this.archive.size : 0,
+      memoryPressure: this.pressureLevel,
+      utilization: this.concepts.size / this.config.maxConcepts,
+      conceptDistribution: {
+        lowPriority,
+        mediumPriority,
+        highPriority,
+      },
     };
 
     if (this.config.enableIndexing) {
@@ -250,6 +300,10 @@ export class Memory {
     }
 
     return stats;
+  }
+
+  setConfig(updates: Partial<MemoryConfig>): void {
+    Object.assign(this.config, updates);
   }
 
   retrieveFromArchive(term: Term): Concept | undefined {
@@ -271,7 +325,173 @@ export class Memory {
     if (!this.config.enableIndexing) return [];
     return this.index.getByTemporal([start, end]);
   }
+
+  checkHealth(): MemoryHealth {
+    const now = Date.now();
+    if (now - this.lastHealthCheck < this.healthCheckInterval) {
+      return this.getLastHealth();
+    }
+    this.lastHealthCheck = now;
+
+    const recommendations: string[] = [];
+    const utilization = this.concepts.size / this.config.maxConcepts;
+    const consolidationNeeded = this.cyclesSinceConsolidation >= this.config.consolidationInterval;
+    const forgettingNeeded = utilization > 0.8;
+
+    if (utilization > 0.9) {
+      recommendations.push('Memory utilization above 90% - consider increasing capacity or reducing concept count');
+    }
+
+    if (consolidationNeeded) {
+      recommendations.push('Consolidation overdue - run consolidate() to apply decay and cleanup');
+    }
+
+    if (forgettingNeeded) {
+      recommendations.push('High memory pressure - forgetting will be triggered on next concept addition');
+    }
+
+    const health: MemoryHealth = {
+      isHealthy: utilization < 0.9 && !consolidationNeeded,
+      pressureLevel: utilization,
+      consolidationNeeded,
+      forgettingNeeded,
+      recommendations,
+    };
+
+    return health;
+  }
+
+  private getLastHealth(): MemoryHealth {
+    const utilization = this.concepts.size / this.config.maxConcepts;
+    const consolidationNeeded = this.cyclesSinceConsolidation >= this.config.consolidationInterval;
+    const forgettingNeeded = utilization > 0.8;
+
+    return {
+      isHealthy: utilization < 0.9 && !consolidationNeeded,
+      pressureLevel: utilization,
+      consolidationNeeded,
+      forgettingNeeded,
+      recommendations: [],
+    };
+  }
+
+  private checkMemoryPressure(): void {
+    if (!this.config.enablePressureDetection) return;
+
+    const utilization = this.concepts.size / this.config.maxConcepts;
+    this.pressureLevel = utilization;
+
+    if (utilization >= this.config.pressureThreshold) {
+      this.onMemoryPressure?.(utilization, this);
+
+      for (const concept of this.concepts.values()) {
+        concept.applyTimeDecay(this.config.activationDecayRate);
+      }
+
+      this.compact();
+    }
+  }
+
+  compact(): void {
+    const toRemove: Concept[] = [];
+
+    for (const concept of this.concepts.values()) {
+      if (concept.priority < 0.1 && concept.totalTasks === 0) {
+        toRemove.push(concept);
+      }
+    }
+
+    toRemove.sort((a, b) => a.priority - b.priority);
+    const orphanedLinks = this.findOrphanedLinks();
+    toRemove.push(...orphanedLinks);
+
+    for (const concept of toRemove.slice(0, Math.ceil(this.concepts.size * 0.1))) {
+      this.removeConcept(concept.term);
+    }
+
+    this.updateAllFocus();
+  }
+
+  private findOrphanedLinks(): Concept[] {
+    const orphaned: Concept[] = [];
+
+    for (const concept of this.concepts.values()) {
+      const links = concept.getLinks();
+      for (const link of links) {
+        if (!this.concepts.has(link.concept.key)) {
+          orphaned.push(concept);
+          break;
+        }
+      }
+    }
+
+    return orphaned;
+  }
+
+  getMemoryPressure(): number {
+    return this.pressureLevel;
+  }
+
+  mergeConcepts(concepts: Concept[]): ConceptMergeResult | null {
+    if (concepts.length < 2) return null;
+
+    const primary = concepts[0];
+    const others = concepts.slice(1);
+
+    for (const other of others) {
+      if (!primary.canMergeWith(other, 0.85)) {
+        return null;
+      }
+    }
+
+    return primary.mergeWith(others);
+  }
+
+  findSimilarConcepts(term: Term, limit = 10): Concept[] {
+    const allConcepts = Array.from(this.concepts.values());
+    const scored = allConcepts.map(concept => ({
+      concept,
+      similarity: this.calculateSimilarity(concept, term),
+    }));
+
+    scored.sort((a, b) => b.similarity - a.similarity);
+    return scored.slice(0, limit).map(s => s.concept);
+  }
+
+  private calculateSimilarity(concept: Concept, term: Term): number {
+    if (concept.term.hash === term.hash) return 1;
+
+    const thisSymbols = this.extractSymbols(concept.term);
+    const otherSymbols = this.extractSymbols(term);
+
+    const intersection = new Set([...thisSymbols].filter(s => otherSymbols.has(s)));
+    const union = new Set([...thisSymbols, ...otherSymbols]);
+
+    return union.size > 0 ? intersection.size / union.size : 0;
+  }
+
+  private extractSymbols(term: Term, symbols = new Set<string>()): Set<string> {
+    if ('symbol' in term && typeof term.symbol === 'string') {
+      symbols.add(term.symbol as string);
+    }
+
+    if ('args' in term && Array.isArray(term.args)) {
+      for (const arg of term.args) {
+        if (typeof arg === 'object' && arg !== null) {
+          this.extractSymbols(arg as Term, symbols);
+        }
+      }
+    }
+
+    return symbols;
+  }
 }
 
 // Serialization
-export { serialize, deserialize, validate, repair, type SerializedMemory } from './serialization.js';
+export {
+  serialize,
+  deserialize,
+  validate,
+  repair,
+  type SerializedMemory,
+} from './serialization.js';

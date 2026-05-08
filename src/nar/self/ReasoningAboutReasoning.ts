@@ -53,31 +53,64 @@ export class ReasoningAboutReasoning {
         return this.analyzer.performSelfCorrection();
     }
 
-    querySystemState(_query: any): any {
-        return {
-            reasoningTrace: this.monitor.getReasoningTrace().slice(-10),
-            performanceTrend: this.monitor.getPerformanceTrend(),
-            currentContext: {},
-            performanceMonitors: {},
-            activeMetaTasks: 0
-        };
+  querySystemState(_query: any): any {
+    if (!this.nar) {
+      return {
+        reasoningTrace: [],
+        performanceTrend: 'unknown',
+        currentContext: {},
+        performanceMonitors: {},
+        activeMetaTasks: 0,
+        isRunning: false
+      };
     }
+
+    const memory = this.nar.memory;
+    const config = this.nar.getConfig?.() ?? {};
+    const stats = this.nar.getStatistics?.() ?? {};
+    const monitorState = this.monitor.getMonitorState();
+    const isRunning = 'isRunning' in this.nar && typeof this.nar.isRunning === 'function' 
+      ? this.nar.isRunning()
+      : ('state' in this.nar ? this.nar.state === 'started' : false);
+
+    return {
+      reasoningTrace: this.monitor.getReasoningTrace().slice(-10),
+      performanceTrend: this.monitor.getPerformanceTrend(),
+      currentContext: {
+        memorySize: memory ? (memory as any).size ?? 0 : 0,
+        conceptCount: this.nar.listConcepts().length,
+        timestamp: Date.now()
+      },
+      performanceMonitors: {
+        throughput: (monitorState as any).throughput ?? 0,
+        memoryUsage: process.memoryUsage ? process.memoryUsage() : undefined
+      },
+      activeMetaTasks: 0,
+      isRunning,
+      config,
+      stats
+    };
+  }
 
     getReasoningTrace(): any[] {
         return this.monitor.getReasoningTrace();
     }
 
-    getReasoningState(): any {
-        const monitorState = this.monitor.getMonitorState();
-        return {
-            active: (this.nar as any)?.isRunning ?? false,
-            reasoningSteps: monitorState.reasoningSteps,
-            performance: monitorState.performance,
-            lastUpdate: Date.now(),
-            monitorsActive: monitorState.monitorsActive,
-            pendingMetaTasks: 0
-        };
-    }
+  getReasoningState(): any {
+    const monitorState = this.monitor.getMonitorState();
+    const isRunning = this.nar && 'isRunning' in this.nar && typeof this.nar.isRunning === 'function'
+      ? this.nar.isRunning()
+      : (this.nar && 'state' in this.nar ? this.nar.state === 'started' : false);
+
+    return {
+      active: isRunning,
+      reasoningSteps: monitorState.reasoningSteps,
+      performance: monitorState.performance,
+      lastUpdate: Date.now(),
+      monitorsActive: monitorState.monitorsActive,
+      pendingMetaTasks: 0
+    };
+  }
 
     async getSystemAnalysis(): Promise<any> {
         return this.analyzer.getSystemAnalysis();

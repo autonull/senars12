@@ -1,8 +1,11 @@
 import type {Term} from '../terms/types.js';
-import type {Task, TaskType} from '../types/core.js';
+import type {Task, TaskType, QueryOptions} from '../types/core.js';
 import type {Concept} from '../memory/concept.js';
 
 export interface TermFilter {
+  contains?: string;
+  startsWith?: string;
+  endsWith?: string;
   pattern?: Term;
   truthRange?: [number, number];
   recency?: number;

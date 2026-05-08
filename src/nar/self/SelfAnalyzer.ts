@@ -284,10 +284,27 @@ export class SelfAnalyzer {
   }
 
   private analyzeTaskPatterns(): any {
+    if (!this.nar || !this.metrics) {
+      return {
+        avgProcessingTime: 0,
+        queueDepth: 0,
+        dropRate: 0
+      };
+    }
+
+    const metricsSummary = this.metrics.getSummary();
+    const stats = this.nar.getStatistics();
+
+    const avgProcessingTime = metricsSummary.throughput?.averageStepDuration ?? 0;
+    const queueDepth = 0;
+    const totalTasks = stats?.totalTasks ?? 0;
+    const droppedTasks = 0;
+    const dropRate = totalTasks > 0 ? droppedTasks / totalTasks : 0;
+
     return {
-      avgProcessingTime: 0,
-      queueDepth: 0,
-      dropRate: 0
+      avgProcessingTime,
+      queueDepth,
+      dropRate
     };
   }
 
@@ -352,6 +369,40 @@ export class SelfAnalyzer {
   }
 
   private async applyPerformanceOptimizations(): Promise<void> {
+    if (!this.nar) return;
+
+    const metrics = this.metrics?.getSummary();
+    const config = this.nar.getConfig();
+    const monitorState = this.monitor.getMonitorState() as any;
+
+    const throughput = metrics.throughput?.derivationsPerSecond ?? 0;
+    const errorRate = metrics.system.errors > 0 ? metrics.system.errors / (metrics.system.totalDerivations || 1) : 0;
+    const memoryUsage = process.memoryUsage ? process.memoryUsage().heapUsed : 0;
+    const conceptCount = this.nar.listConcepts().length;
+
+    if (throughput < 10 && config.maxDerivationsPerStep > 50) {
+      const newConfig = { ...config, maxDerivationsPerStep: Math.max(50, config.maxDerivationsPerStep - 10) };
+      this.nar.setConfig(newConfig);
+    }
+
+    if (errorRate > 0.1 && config.priorityThreshold < 0.7) {
+      const newConfig = { ...config, priorityThreshold: Math.min(0.7, config.priorityThreshold + 0.05) };
+      this.nar.setConfig(newConfig);
+    }
+
+    if (memoryUsage > 100000000 || conceptCount > config.maxConcepts! * 0.9) {
+      if (this.nar.memory && 'consolidate' in this.nar.memory) {
+        (this.nar.memory as any).consolidate?.();
+      }
+    }
+
+    const lowPriorityThreshold = 0.2;
+    const concepts = this.nar.listConcepts();
+    const lowPriorityConcepts = concepts.filter(c => c.priority < lowPriorityThreshold);
+    if (lowPriorityConcepts.length > concepts.length * 0.5) {
+      const newConfig = { ...config, priorityThreshold: Math.max(0.1, config.priorityThreshold! - 0.05) };
+      this.nar.setConfig(newConfig);
+    }
   }
 
   private async rebalancePriorities(): Promise<void> {
@@ -366,16 +417,125 @@ export class SelfAnalyzer {
   }
 
   private async identifyIssues(): Promise<any> {
-    return {
-      contradictions: [],
-      inefficiencies: [],
-      resourceIssues: [],
-      performanceIssues: []
+    const issues = {
+      contradictions: [] as any[],
+      inefficiencies: [] as any[],
+      resourceIssues: [] as any[],
+      performanceIssues: [] as any[]
     };
+
+    if (!this.nar) return issues;
+
+    const concepts = this.nar.listConcepts();
+    const stats = this.nar.getStatistics();
+    const memoryUsage = process.memoryUsage ? process.memoryUsage() : null;
+
+    const lowPriorityRatio = concepts.filter(c => c.priority < 0.2).length / (concepts.length || 1);
+    if (lowPriorityRatio > 0.5) {
+      issues.resourceIssues.push({
+        type: 'high_low_priority_ratio',
+        severity: 'medium',
+        value: lowPriorityRatio,
+        threshold: 0.5,
+        description: 'Over 50% of concepts have low priority'
+      });
+    }
+
+    if (concepts.length > 100) {
+      issues.resourceIssues.push({
+        type: 'high_concept_count',
+        severity: 'high',
+        value: concepts.length,
+        threshold: 100,
+        description: 'Concept count exceeds recommended limit'
+      });
+    }
+
+    const inefficientChains = this.detectInefficientChains();
+    if (inefficientChains.length > 0) {
+      issues.inefficiencies.push(...inefficientChains.map(chain => ({
+        type: 'slow_inference_chain',
+        severity: 'medium',
+        ...chain
+      })));
+    }
+
+    const monitorState = this.monitor.getMonitorState() as any;
+    if (monitorState.performance === 'declining') {
+      issues.performanceIssues.push({
+        type: 'declining_performance',
+        severity: 'high',
+        description: 'System performance is declining over time'
+      });
+    }
+
+    const taskPatterns = this.analyzeTaskPatterns();
+    if (taskPatterns.dropRate > 0.1) {
+      issues.performanceIssues.push({
+        type: 'high_task_drop_rate',
+        severity: 'high',
+        value: taskPatterns.dropRate,
+        threshold: 0.1,
+        description: 'More than 10% of tasks are being dropped'
+      });
+    }
+
+    return issues;
   }
 
   private async applyCorrections(issues: any): Promise<any> {
-    return { appliedCorrections: [], pendingCorrections: [] };
+    const appliedCorrections: any[] = [];
+    const pendingCorrections: any[] = [];
+
+    if (!this.nar) return { appliedCorrections, pendingCorrections };
+
+    for (const issue of issues.resourceIssues || []) {
+      switch (issue.type) {
+        case 'high_low_priority_ratio':
+          await this.rebalancePriorities();
+          appliedCorrections.push({ type: 'priority_rebalancing', issue: issue.type });
+          break;
+
+        case 'high_concept_count':
+          if (this.nar.memory && 'consolidate' in this.nar.memory) {
+            (this.nar.memory as any).consolidate?.();
+            appliedCorrections.push({ type: 'memory_consolidation', issue: issue.type });
+          } else {
+            pendingCorrections.push({ type: 'memory_consolidation', issue: issue.type, reason: 'consolidation not available' });
+          }
+          break;
+      }
+    }
+
+    for (const issue of issues.performanceIssues || []) {
+      switch (issue.type) {
+        case 'declining_performance':
+          await this.applyPerformanceOptimizations();
+          appliedCorrections.push({ type: 'performance_optimization', issue: issue.type });
+          break;
+
+        case 'high_task_drop_rate':
+          if (this.nar.getConfig) {
+            const config = this.nar.getConfig();
+            const newConfig = { ...config, maxDerivationsPerStep: Math.max(50, (config.maxDerivationsPerStep || 100) - 20) };
+            this.nar.setConfig(newConfig);
+            appliedCorrections.push({ type: 'throttle_reduction', issue: issue.type });
+          }
+          break;
+      }
+    }
+
+    for (const issue of issues.inefficiencies || []) {
+      if (issue.type === 'slow_inference_chain') {
+        pendingCorrections.push({
+          type: 'chain_optimization',
+          issue: issue.type,
+          reason: 'Requires manual review of inference chain'
+        });
+      }
+    }
+
+    return { appliedCorrections, pendingCorrections };
   }
 
   private trackOptimization(optimizations: Optimizations): void {
