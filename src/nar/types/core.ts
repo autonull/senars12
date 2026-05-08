@@ -152,10 +152,17 @@ export class ConfigurationError extends NARError {
 }
 
 export class OperationError extends NARError {
-    constructor(message: string, context?: Record<string, unknown>) {
-        super(message, 'OPERATION_ERROR', context);
-        this.name = 'OperationError';
-    }
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, 'OPERATION_ERROR', context);
+    this.name = 'OperationError';
+  }
+}
+
+export class ToolError extends NARError {
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, 'TOOL_ERROR', context);
+    this.name = 'ToolError';
+  }
 }
 
 // Type guards

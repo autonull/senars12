@@ -4,7 +4,7 @@ export type {
     RulePattern,
     RuleFn
 } from './types.js';
-export {RuleRegistry, RuleIndex, createRulePattern, encodePattern} from './types.js';
+export {RuleRegistry, RuleIndex, createRulePattern} from './types.js';
 
 // Rule processor
 export {RuleProcessor} from './processor.js';

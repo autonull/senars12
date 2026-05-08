@@ -90,3 +90,9 @@ export type {NARConfig} from './nar.js';
 // Factory for creating NAR instances
 export {SeNARSFactory, createNAR, createMinimalNAR} from './factory.js';
 export type {SeNARSOptions, SeNARSConfig} from './factory.js';
+
+// Lifecycle
+export {BaseComponent} from './lifecycle/BaseComponent.js';
+export type {ComponentState, ComponentContext} from './lifecycle/BaseComponent.js';
+export {Container} from './lifecycle/Container.js';
+export type {ComponentDefinition, ValueDefinition, Definition} from './lifecycle/Container.js';

@@ -1,10 +1,20 @@
 import type {Task} from '../types';
+import type {ModelCapability, ModelRegistry} from './model-registry.js';
 
 export interface LMConfig {
-    temperature?: number;
-    maxTokens?: number;
-    model?: string;
-    apiKey?: string;
+  temperature?: number;
+  maxTokens?: number;
+  model?: string;
+  apiKey?: string;
+  provider?: string;
+}
+
+export interface ModelConfig {
+  id: string;
+  provider: 'anthropic' | 'openai' | 'ollama' | 'mock';
+  model: string;
+  capabilities: Omit<ModelCapability, 'provider' | 'model'>;
+  config?: LMConfig;
 }
 
 export interface LMRuleConfig {

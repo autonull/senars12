@@ -1,10 +1,11 @@
 import type {Term} from '../terms';
 import type {Task} from '../types';
 import {createTask} from '../types';
-import type {LMClient, LMExecutionStats, LMRuleConfig, LMRuleStats} from './types.js';
+import type {LMClient, LMRuleConfig, LMRuleStats, LMExecutionStats} from './types.js';
 import {CircuitBreaker} from '../utils';
 import {EventBus} from '../types';
 import {Truth} from '../terms';
+import {LMResponseParser} from './parser.js';
 
 export class LMRule {
     readonly id: string;
@@ -159,9 +160,26 @@ export class LMRule {
         return [this.taskFromProcessed(processed, primary)];
     }
 
-    private taskFromProcessed(processed: any, primary: Term): Task {
-        return createTask(processed.term ?? primary, processed.type ?? 'belief', processed.truth ?? Truth.NEUTRAL, processed.budget ?? Truth.NEUTRAL.f * Truth.NEUTRAL.c);
+  private taskFromProcessed(processed: any, primary: Term): Task {
+    if (typeof processed === 'string') {
+      const parsed = LMResponseParser.parse(processed);
+      if (parsed.valid && parsed.term) {
+        return createTask(
+          parsed.term,
+          'belief',
+          parsed.truth ?? Truth.NEUTRAL,
+          parsed.confidence ?? 0.5
+        );
+      }
     }
+    
+    return createTask(
+      processed.term ?? primary,
+      processed.type ?? 'belief',
+      processed.truth ?? Truth.NEUTRAL,
+      processed.budget ?? 0.5
+    );
+  }
 
     private recordExecution(success: boolean, duration: number, tokens?: number): void {
         this.stats.totalCalls++;

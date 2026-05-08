@@ -22,25 +22,28 @@ export interface RuleResult {
   priority: number;
 }
 
+const NEUTRAL_FN = (): TruthType => Truth.NEUTRAL;
+
 export class RuleProcessor {
-    private readonly ruleIndex: RuleIndex;
-    private readonly lmRules: LMRule[] = [];
-    private eventBus: EventBus | null = null;
+  private readonly ruleIndex: RuleIndex;
+  private readonly lmRules: LMRule[] = [];
+  private eventBus: EventBus | null = null;
+  private resultBuffer: RuleResult[] = [];
 
-    constructor() {
-        this.ruleIndex = new RuleIndex();
-        RuleRegistry.getAll().forEach(rule => this.ruleIndex.register(rule));
-    }
+  constructor() {
+    this.ruleIndex = new RuleIndex();
+    RuleRegistry.getAll().forEach(rule => this.ruleIndex.register(rule));
+  }
 
-    setEventBus(eventBus: EventBus): void {
-        this.eventBus = eventBus;
-        this.lmRules.forEach(lmRule => lmRule.setEventBus(eventBus));
-    }
+  setEventBus(eventBus: EventBus): void {
+    this.eventBus = eventBus;
+    this.lmRules.forEach(lmRule => lmRule.setEventBus(eventBus));
+  }
 
-    registerLMRule(lmRule: LMRule): void {
-        this.lmRules.push(lmRule);
-        if (this.eventBus) lmRule.setEventBus(this.eventBus);
-    }
+  registerLMRule(lmRule: LMRule): void {
+    this.lmRules.push(lmRule);
+    if (this.eventBus) lmRule.setEventBus(this.eventBus);
+  }
 
   async* process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
     for await (const [p1, p2] of premises) {
@@ -50,11 +53,10 @@ export class RuleProcessor {
         try {
           const result = rule.apply([p1.term, p2.term]);
           if (result) {
-            const truthFn = rule.truthFn ?? (() => Truth.NEUTRAL);
-            const truth = truthFn(p1.truth, p2.truth);
+            const truthFn = rule.truthFn ?? NEUTRAL_FN;
             yield {
               term: result as Term,
-              truth,
+              truth: truthFn(p1.truth, p2.truth),
               stamp: Stamp.createInput(),
               priority: rule.priority
             };
@@ -71,7 +73,7 @@ export class RuleProcessor {
   }
 
   processSync(p1: RuleInput, p2: RuleInput): RuleResult[] {
-    const results: RuleResult[] = [];
+    this.resultBuffer = [];
     const matchedRules = this.ruleIndex.match(p1.term, p2.term);
 
     for (const rule of matchedRules) {
@@ -80,11 +82,10 @@ export class RuleProcessor {
       try {
         const result = rule.apply([p1.term, p2.term]);
         if (result) {
-          const truthFn = rule.truthFn ?? (() => Truth.NEUTRAL);
-          const truth = truthFn(p1.truth, p2.truth);
-          results.push({
+          const truthFn = rule.truthFn ?? NEUTRAL_FN;
+          this.resultBuffer.push({
             term: result as Term,
-            truth,
+            truth: truthFn(p1.truth, p2.truth),
             stamp: Stamp.createInput(),
             priority: rule.priority
           });
@@ -94,10 +95,12 @@ export class RuleProcessor {
       }
     }
 
-    return results;
+    return this.resultBuffer;
   }
 
   private async* processLMRules(p1: RuleInput, p2: RuleInput): AsyncGenerator<RuleResult> {
+    if (this.lmRules.length === 0) return;
+    
     const promises = this.lmRules.map(async (lmRule) => {
       try {
         const tasks = await lmRule.apply(p1.term, p2.term);

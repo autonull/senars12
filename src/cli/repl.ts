@@ -82,6 +82,9 @@ class SeNARSCLI {
       '.clear': () => this.clearMemory(),
       '.load': () => this.loadFile(args[0]),
       '.save': () => this.saveMemory(args[0]),
+      '.query': () => this.queryTerm(args.join(' ')),
+      '.trace': () => this.traceTerm(args.join(' ')),
+      '.explain': () => this.explainTerm(args.join(' ')),
       '.quit': () => {
         console.log('Goodbye!');
         process.exit(0);
@@ -131,12 +134,12 @@ class SeNARSCLI {
 
   private showStats(): void {
     const stats = this.nar.getStatistics();
-    console.log('\n╔════════════════════════════════╗');
-    console.log('║ Memory Statistics              ║');
-    console.log('╠════════════════════════════════╣');
-    console.log(`║ Concepts: ${String(stats.totalConcepts).padEnd(28)}║`);
-    console.log(`║ Tasks: ${String(stats.totalTasks).padEnd(31)}║`);
-    console.log('╚════════════════════════════════╝\n');
+    console.log('\n╔════════════════════════════════════════════════════════╗');
+    console.log('║ SeNARS Statistics ║');
+    console.log('╠════════════════════════════════════════════════════════╣');
+    console.log(`║ Concepts: ${String(stats.totalConcepts).padEnd(48)}║`);
+    console.log(`║ Tasks: ${String(stats.totalTasks).padEnd(49)}║`);
+    console.log('╚════════════════════════════════════════════════════════╝\n');
   }
 
   private listConcepts(): void {
@@ -197,34 +200,54 @@ class SeNARSCLI {
     console.log(`✓ Saved to ${filename}`);
   }
 
+  private async queryTerm(termStr: string): Promise<void> {
+    console.log('Query functionality pending full integration');
+    console.log(`Would query for: ${termStr}`);
+  }
+
+  private async traceTerm(termStr: string): Promise<void> {
+    console.log('Trace functionality pending full integration');
+    console.log(`Would trace: ${termStr}`);
+  }
+
+  private async explainTerm(termStr: string): Promise<void> {
+    console.log('Explain functionality pending full integration');
+    console.log(`Would explain: ${termStr}`);
+  }
+
   private showHelp(): void {
     console.log(`
 ╔══════════════════════════════════════════════════╗
-║ SeNARS CLI Commands                               ║
+║ SeNARS CLI Commands ║
 ╠══════════════════════════════════════════════════╣
-║ (term).        Add belief                        ║
-║ (term)?        Ask question                      ║
-║ .run [n]       Run n inference steps             ║
-║ .stats         Show memory statistics            ║
-║ .list          List all concepts                 ║
-║ .clear         Clear memory                      ║
-║ .load <file>   Load Narsese file                 ║
-║ .save <file>   Save memory to JSON               ║
-║ .help          Show this help                    ║
-║ .quit          Exit                              ║
+║ (term). Add belief ║
+║ (term)? Ask question ║
+║ .run [n] Run n inference steps ║
+║ .stats Show detailed statistics ║
+║ .list List all concepts ║
+║ .query <term> Query memory for term ║
+║ .trace <term> Show derivation history ║
+║ .explain <term> Explain why derived ║
+║ .clear Clear memory ║
+║ .load <file> Load Narsese file ║
+║ .save <file> Save memory to JSON ║
+║ .help Show this help ║
+║ .quit Exit ║
 ╚══════════════════════════════════════════════════╝
 `);
   }
 
   start(): void {
     console.log('\n╔══════════════════════════════════════════════════╗');
-    console.log('║ SeNARS CLI REPL v1.0                              ║');
-    console.log('║ Neuro-Symbolic Reasoning System                   ║');
+    console.log('║ SeNARS CLI REPL v1.0 ║');
+    console.log('║ Neuro-Symbolic Reasoning System ║');
     console.log('╚══════════════════════════════════════════════════╝');
     console.log('\nType .help for commands, .quit to exit\n');
     this.rl.prompt();
   }
 }
+
+export type { SeNARSCLI };
 
 const cli = new SeNARSCLI();
 cli.start();

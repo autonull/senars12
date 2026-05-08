@@ -17,55 +17,99 @@ import type {LMClient} from './lm';
 import {LMRules} from './lm';
 import {termParser} from './terms';
 import {ConfigurationError, type CoreConfig, DEFAULT_CONFIG} from './types';
+import {QueryAPI} from './query/api.js';
+import {ReasoningTrace} from './query/trace.js';
+import {MetricsCollector} from './metrics/index.js';
+import {Logger, createLogger} from './logger/index.js';
+import {ToolManager} from './tools/manager.js';
+import type { Tool, ToolResult } from './tools/types.js';
+import { CalculateTool, SleepTool, ReadFileTool, WriteFileTool, HTTPTool } from './tools/index.js';
+import { BaseComponent } from './lifecycle/BaseComponent.js';
 
 export interface NARConfig extends CoreConfig {
   lmClient?: LMClient;
   enableLMRules?: boolean;
+  enableTools?: boolean;
 }
 
-export class NAR {
+export class NAR extends BaseComponent {
   readonly memory: Memory;
   readonly taskManager: TaskManager;
   readonly reasoner: Reasoner;
-  readonly eventBus: EventBus;
+  readonly query: QueryAPI;
+  readonly traceAPI: ReasoningTrace;
+  readonly tools: ToolManager;
 
   private readonly processor: RuleProcessor;
   private readonly config: NARConfig;
   private _lmInitialized: boolean = false;
+  private _toolsInitialized: boolean = false;
 
   constructor(config: NARConfig = DEFAULT_CONFIG) {
+    const eventBus = new EventBus();
+    const logger = createLogger({ scope: 'NAR' });
+    const metrics = new MetricsCollector();
+
+    super({ logger, metrics, eventBus });
+
     this.config = this.validateConfig(config);
-    this.eventBus = new EventBus();
     this.memory = new Memory(this.config);
     this.processor = new RuleProcessor();
-    this.processor.setEventBus(this.eventBus);
+    this.processor.setEventBus(eventBus);
     this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
     this.taskManager = new TaskManager(this.memory);
+    this.query = new QueryAPI(this.memory);
+    this.traceAPI = new ReasoningTrace(this.memory);
+    this.tools = new ToolManager();
 
     if (this.config.enableLMRules && this.config.lmClient) {
       this.initializeLMRules(this.config.lmClient);
     }
+
+    if (this.config.enableTools) {
+      this.initializeTools();
+    }
   }
 
-    async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
-        const {term: parsedTerm, truth: parsedTruth} = typeof input === 'string'
-            ? termParser.parseWithTruth(input)
-            : {term: input, truth: undefined};
+  async initialize(): Promise<void> {
+    await super.initialize();
+    this.logger.info('NAR initialized');
+  }
 
-        this.addTask(parsedTerm, type, truth ?? parsedTruth ?? Truth.NEUTRAL);
-    }
+  async start(): Promise<void> {
+    await super.start();
+    this.logger.info('NAR started');
+  }
 
-    async believe(input: string | Term, truth?: TruthType): Promise<void> {
-        return this.input(input, 'belief', truth);
-    }
+  async stop(): Promise<void> {
+    await super.stop();
+    this.logger.info('NAR stopped');
+  }
 
-    async goal(input: string | Term, truth?: TruthType): Promise<void> {
-        return this.input(input, 'goal', truth);
-    }
+  async dispose(): Promise<void> {
+    await super.dispose();
+    this.logger.info('NAR disposed');
+  }
 
-    async question(input: string | Term): Promise<void> {
-        return this.input(input, 'question');
-    }
+  async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
+    const {term: parsedTerm, truth: parsedTruth} = typeof input === 'string'
+      ? termParser.parseWithTruth(input)
+      : {term: input, truth: undefined};
+
+    this.addTask(parsedTerm, type, truth ?? parsedTruth ?? Truth.NEUTRAL);
+  }
+
+  async believe(input: string | Term, truth?: TruthType): Promise<void> {
+    return this.input(input, 'belief', truth);
+  }
+
+  async goal(input: string | Term, truth?: TruthType): Promise<void> {
+    return this.input(input, 'goal', truth);
+  }
+
+  async question(input: string | Term): Promise<void> {
+    return this.input(input, 'question');
+  }
 
   async run(steps = 1): Promise<number> {
     let derived = 0;
@@ -111,6 +155,30 @@ export class NAR {
     return this.memory.getStatistics();
   }
 
+  getBeliefs = (filter?: any) => this.query.getBeliefs(filter);
+  getGoals = (filter?: any) => this.query.getGoals(filter);
+  getQuestions = (filter?: any) => this.query.getQuestions(filter);
+  queryTerm = (term: Term, filter?: any) => this.query.query(term, filter);
+  ask = (question: string | Term) => this.query.ask(question);
+
+  getDerivationHistory = (task: Task) => this.traceAPI.getDerivationHistory(task);
+  traceTerm = (term: Term) => this.traceAPI.trace(term);
+  explain = (conclusion: Task) => this.traceAPI.explain(conclusion);
+
+  recordRuleExecution = (ruleId: string, success: boolean, duration: number) => {
+    this.metrics.recordRuleExecution(ruleId, success, duration);
+  };
+
+  incrementDerivations = (count?: number) => {
+    this.metrics.incrementDerivations(count);
+  };
+
+  incrementSteps = (count?: number) => {
+    this.metrics.incrementSteps(count);
+  };
+
+  getMetrics = () => this.metrics.getSummary();
+
   private validateConfig(config: NARConfig): NARConfig {
     if (config.maxConcepts <= 0) {
       throw new ConfigurationError('maxConcepts must be positive', {maxConcepts: config.maxConcepts});
@@ -121,11 +189,35 @@ export class NAR {
     return config;
   }
 
-  enableLMRules(lmClient: LMClient): void {
-    if (this._lmInitialized) {
+  async initializeLM(): Promise<void> {
+    if (this._lmInitialized || !this.config.lmClient) {
       return;
     }
-    
+
+    const lmRules = [
+      LMRules.createNarseseTranslationRule(this.config.lmClient),
+      LMRules.createBeliefRevisionRule(this.config.lmClient),
+      LMRules.createGoalDecompositionRule(this.config.lmClient),
+      LMRules.createHypothesisGenerationRule(this.config.lmClient),
+      LMRules.createExplanationGenerationRule(this.config.lmClient),
+      LMRules.createAnalogicalReasoningRule(this.config.lmClient),
+      LMRules.createMetaReasoningGuidanceRule(this.config.lmClient),
+      LMRules.createUncertaintyCalibrationRule(this.config.lmClient),
+      LMRules.createSchemaInductionRule(this.config.lmClient),
+      LMRules.createTemporalCausalModelingRule(this.config.lmClient),
+      LMRules.createVariableGroundingRule(this.config.lmClient),
+      LMRules.createConceptElaborationRule(this.config.lmClient),
+      LMRules.createInteractiveClarificationRule(this.config.lmClient)
+    ];
+
+    for (const rule of lmRules) {
+      this.processor.registerLMRule(rule);
+    }
+
+    this._lmInitialized = true;
+  }
+
+  private initializeLMRules(lmClient: LMClient): void {
     const lmRules = [
       LMRules.createNarseseTranslationRule(lmClient),
       LMRules.createBeliefRevisionRule(lmClient),
@@ -145,12 +237,30 @@ export class NAR {
     for (const rule of lmRules) {
       this.processor.registerLMRule(rule);
     }
-    
+
     this._lmInitialized = true;
   }
-  
-  private initializeLMRules(lmClient: LMClient): void {
-    this.enableLMRules(lmClient);
+
+  private initializeTools(): void {
+    if (this._toolsInitialized) {
+      return;
+    }
+
+    this.tools.register(new CalculateTool());
+    this.tools.register(new SleepTool());
+    this.tools.register(new ReadFileTool());
+    this.tools.register(new WriteFileTool());
+    this.tools.register(new HTTPTool());
+
+    this._toolsInitialized = true;
+  }
+
+  async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
+    return this.tools.execute(name, args);
+  }
+
+  listTools(): Tool[] {
+    return this.tools.list();
   }
 
   private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void {
