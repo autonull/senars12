@@ -5,7 +5,7 @@
 
 import type {Concept} from './memory';
 import {Memory, type MemoryStatistics} from './memory';
-import {BagStrategy, Reasoner} from './reason';
+import {BagStrategy, Reasoner, type Strategy} from './reason';
 import {TaskManager} from './task';
 import {RuleProcessor} from './rules';
 import {
@@ -46,6 +46,7 @@ import {
 import {BaseComponent} from './lifecycle';
 import {ReasoningAboutReasoning} from './self';
 import {RLFPLearner} from './rlfp';
+import {createPipeline, MemoryPremiseSource} from './stream';
 
 interface SerializedNARState {
     concepts: Array<{ term: string; priority: number }>;
@@ -185,16 +186,22 @@ export class NAR extends BaseComponent {
     return derived;
   }
 
-    async* runStream(steps = 1, maxResults = 100): AsyncGenerator<Task> {
-        for (let i = 0; i < steps; i++) {
-            for await (const task of this.reasoner.run(undefined, maxResults)) {
-                yield task;
-                this.memory.addTask(task.term, task.type, task.truth, getBudgetValue(task.budget));
-                this.taskManager.addTask(task);
-            }
-            this.memory.consolidate();
-        }
+  async* runStream(steps = 1, maxResults = 100): AsyncGenerator<Task> {
+    const source = new MemoryPremiseSource(this.memory, 'priority-weighted');
+    const pipeline = createPipeline(source, this.memory, BagStrategy, {
+      maxDepth: this.config.maxDerivationDepth,
+      maxQueueSize: 1000,
+      maxDerivationsPerStep: maxResults,
+      cpuThrottleMs: this.config.cpuThrottleMs
+    });
+
+    let count = 0;
+    for await (const task of pipeline) {
+      yield task;
+      this.taskManager.addTask(task);
+      if (++count >= steps) break;
     }
+  }
 
     getConcept(term: Term): Concept | undefined {
         return this.memory.getConcept(term);

@@ -5,76 +5,26 @@
 
 import {NAR, Task} from '../nar';
 
+import type {Tool, ToolResult} from '../nar/tools/types';
+
 export interface Embodiment {
-    readonly name: string;
+  readonly name: string;
 
-    start(agent: Agent): Promise<void>;
+  start(agent: Agent): Promise<void>;
 
-    stop(): Promise<void>;
+  stop(): Promise<void>;
 
-    send(message: string): Promise<void>;
+  send(message: string): Promise<void>;
 
-    onMessage(handler: (message: string) => void): void;
-}
-
-export interface ToolRegistry {
-    register(tool: Tool): void;
-
-    get(name: string): Tool | undefined;
-
-    list(): Tool[];
-
-    execute(name: string, args: Record<string, unknown>): Promise<ToolResult>;
-}
-
-export interface Tool {
-    readonly name: string;
-    readonly description: string;
-    readonly parameters: Schema;
-
-    execute(args: Record<string, unknown>): Promise<ToolResult>;
-}
-
-export interface ToolResult {
-    success: boolean;
-    data?: unknown;
-    error?: string;
-}
-
-export interface Schema {
-    type: 'object';
-    properties: Record<string, SchemaProperty>;
-    required?: string[];
-}
-
-export interface SchemaProperty {
-    type: 'string' | 'number' | 'boolean' | 'object' | 'array';
-    description?: string;
-
-    [key: string]: unknown;
-}
-
-export interface CommandRegistry {
-    register(command: Command): void;
-
-    get(name: string): Command | undefined;
-
-    list(): Command[];
-
-    execute(name: string, args: string[]): Promise<string>;
+  onMessage(handler: (message: string) => void): void;
 }
 
 export interface Command {
-    readonly name: string;
-    readonly description: string;
-    readonly usage: string;
+  readonly name: string;
+  readonly description: string;
+  readonly usage: string;
 
-    execute(args: string[], context: CommandContext): Promise<string>;
-}
-
-export interface CommandContext {
-    nar: NAR;
-    agent: Agent;
+  execute(args: string[], context: {nar: NAR; agent: Agent}): Promise<string>;
 }
 
 export interface InputProcessor {
@@ -99,36 +49,21 @@ export interface AgentCapabilities {
 }
 
 export class Agent {
-    private readonly narInstance: NAR;
-    private readonly embodiments: Embodiment[] = [];
-    private tools: Map<string, Tool> = new Map();
-    private commands: Map<string, Command> = new Map();
-    private messageHandlers: Array<(message: string) => void> = [];
-    private running = false;
-    private profile: AgentProfile | null = null;
-    private statePath: string | null = null;
+  private readonly narInstance: NAR;
+  private readonly embodiments: Embodiment[] = [];
+  private commands: Map<string, Command> = new Map();
+  private messageHandlers: Array<(message: string) => void> = [];
+  private running = false;
+  private profile: AgentProfile | null = null;
+  private statePath: string | null = null;
 
-    constructor(
-        nar: NAR,
-        embodiments: Embodiment[] = [],
-        tools: ToolRegistry | null = null,
-        commands: CommandRegistry | null = null
-    ) {
-        this.narInstance = nar;
-        this.embodiments = embodiments;
-
-        if (tools) {
-            for (const tool of tools.list()) {
-                this.tools.set(tool.name, tool);
-            }
-        }
-
-        if (commands) {
-            for (const command of commands.list()) {
-                this.commands.set(command.name, command);
-            }
-        }
-    }
+  constructor(
+    nar: NAR,
+    embodiments: Embodiment[] = []
+  ) {
+    this.narInstance = nar;
+    this.embodiments = embodiments;
+  }
 
     getNAR(): NAR {
         return this.narInstance;
@@ -138,17 +73,13 @@ export class Agent {
         return this.embodiments;
     }
 
-    addEmbodiment(embodiment: Embodiment): void {
-        this.embodiments.push(embodiment);
-    }
+  addEmbodiment(embodiment: Embodiment): void {
+    this.embodiments.push(embodiment);
+  }
 
-    registerTool(tool: Tool): void {
-        this.tools.set(tool.name, tool);
-    }
-
-    registerCommand(command: Command): void {
-        this.commands.set(command.name, command);
-    }
+  registerCommand(command: Command): void {
+    this.commands.set(command.name, command);
+  }
 
     async start(): Promise<void> {
         if (this.running) {
@@ -227,16 +158,16 @@ export class Agent {
         return this.profile;
     }
 
-    getCapabilities(): AgentCapabilities {
-        return {
-            reasoning: true,
-            learning: true,
-            toolUse: this.tools.size > 0,
-            embodiment: this.embodiments.map(e => e.name),
-            persistence: !!this.statePath,
-            metacognition: true
-        };
-    }
+  getCapabilities(): AgentCapabilities {
+    return {
+      reasoning: true,
+      learning: true,
+      toolUse: this.narInstance.tools.list().length > 0,
+      embodiment: this.embodiments.map(e => e.name),
+      persistence: !!this.statePath,
+      metacognition: true
+    };
+  }
 
     getSelfDescription(): string {
         const caps = this.getCapabilities();
