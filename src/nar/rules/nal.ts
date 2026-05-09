@@ -1,7 +1,8 @@
 import type {Term} from '../terms';
-import {getPredicate, getSubject, sameHash, TermBuilder} from '../terms';
+import {termsEqual, TermBuilder} from '../terms';
 import {createRulePattern, RuleRegistry, type RuleFn, type TruthFn} from './types.js';
 import {Truth} from '../terms';
+import {matchInh, matchImp, matchConj, matchDisj, matchNeg, matchSim, matchEq, matchAtom, validInh, validImp, extractInh, extractImp} from './shared.js';
 
 export interface NALRuleMetadata {
     id: string;
@@ -10,39 +11,6 @@ export interface NALRuleMetadata {
     nalLevel: number;
     category: 'inference' | 'transformation' | 'comparison' | 'revision';
 }
-
-const matchInh = (t: Term) => t.kind === 'inheritance';
-const matchImp = (t: Term) => t.kind === 'implication';
-const matchConj = (t: Term) => t.kind === 'conjunction';
-const matchDisj = (t: Term) => t.kind === 'disjunction';
-const matchNeg = (t: Term) => t.kind === 'negation';
-const matchSim = (t: Term) => t.kind === 'similarity';
-const matchEq = (t: Term) => t.kind === 'equivalence';
-const matchAtom = (t: Term) => t.kind === 'atom';
-
-const validInh = (t: Term): boolean => {
-    if (!matchInh(t)) return false;
-    const s = getSubject(t), p = getPredicate(t);
-    return !!(s && p);
-};
-
-const validImp = (t: Term): boolean => {
-    if (!matchImp(t)) return false;
-    if (!('args' in t)) return false;
-    const [a, c] = t.args;
-    return !!(a && c);
-};
-
-const extractInh = (t: Term) => {
-    const s = getSubject(t), p = getPredicate(t);
-    return {s, p};
-};
-
-const extractImp = (t: Term) => {
-    if (!('args' in t)) return {a: undefined, c: undefined};
-    const [a, c] = t.args;
-    return {a, c};
-};
 
 const syllogism = (
     left: Term,
@@ -58,7 +26,7 @@ const syllogism = (
     const mid1 = middle === 'subject' ? s1 : p1;
     const mid2 = middle === 'subject' ? s2 : p2;
 
-    if (!mid1 || !mid2 || !sameHash(mid1, mid2)) return undefined;
+    if (!mid1 || !mid2 || !termsEqual(mid1, mid2)) return undefined;
     return result(mid1, mid2);
 };
 
@@ -123,7 +91,7 @@ export const NALRules = {
         const {s: s1, p: p1} = extractInh(aToB);
         const {s: s2, p: p2} = extractInh(bToA);
         if (!s1 || !p1 || !s2 || !p2) return undefined;
-        const sim = (sameHash(s1, s2) && sameHash(p1, p2)) || (sameHash(s1, p2) && sameHash(p1, s2));
+        const sim = (termsEqual(s1, s2) && termsEqual(p1, p2)) || (termsEqual(s1, p2) && termsEqual(p1, s2));
         return sim ? TermBuilder.similarity(s1, p1) : undefined;
     },
 
@@ -132,7 +100,7 @@ export const NALRules = {
         if (!matchImp(imp) || !matchInh(inh)) return undefined;
         const {a: ante, c: cons} = extractImp(imp);
         const p = getSubject(inh);
-        if (!ante || !cons || !p || !sameHash(ante, p)) return undefined;
+        if (!ante || !cons || !p || !termsEqual(ante, p)) return undefined;
         return cons ? TermBuilder.implication(cons, cons) : undefined;
     },
 
@@ -141,7 +109,7 @@ export const NALRules = {
         if (!matchConj(c1) || !matchConj(c2)) return undefined;
         const args1 = 'args' in c1 ? c1.args : [];
         const args2 = 'args' in c2 ? c2.args : [];
-        const shared = args1.filter((a1: Term) => args2.some((a2: Term) => sameHash(a1, a2)));
+        const shared = args1.filter((a1: Term) => args2.some((a2: Term) => termsEqual(a1, a2)));
         return shared.length > 0 ? TermBuilder.conjunction(...shared) : undefined;
     },
 
@@ -150,7 +118,7 @@ export const NALRules = {
         if (!matchDisj(d1) || !matchDisj(d2)) return undefined;
         const args1 = 'args' in d1 ? d1.args : [];
         const args2 = 'args' in d2 ? d2.args : [];
-        const unique = [...args1, ...args2].filter((a: Term, i: number, arr: Term[]) => arr.findIndex((b: Term) => sameHash(a, b)) === i);
+        const unique = [...args1, ...args2].filter((a: Term, i: number, arr: Term[]) => arr.findIndex((b: Term) => termsEqual(a, b)) === i);
         return TermBuilder.disjunction(...unique);
     },
 
@@ -159,7 +127,7 @@ export const NALRules = {
         if (!validInh(i1) || !validInh(i2)) return undefined;
         const {s: s1, p: p1} = extractInh(i1);
         const {s: s2, p: p2} = extractInh(i2);
-        if (!s1 || !p1 || !s2 || !p2 || !sameHash(s1, s2)) return undefined;
+        if (!s1 || !p1 || !s2 || !p2 || !termsEqual(s1, s2)) return undefined;
         return TermBuilder.conjunction(p1, p2);
     },
 
@@ -179,7 +147,7 @@ export const NALRules = {
         const [imp, atm] = premises as [Term, Term];
         if (!matchImp(imp) || !matchAtom(atm)) return undefined;
         const {a: ante, c: cons} = extractImp(imp);
-        return ante && sameHash(ante, atm) ? cons : undefined;
+        return ante && termsEqual(ante, atm) ? cons : undefined;
     },
 
     equivalenceIntro: (premises: Term[]): Term | undefined => {
@@ -188,7 +156,7 @@ export const NALRules = {
         const {a: a1, c: c1} = extractImp(imp1);
         const {a: a2, c: c2} = extractImp(imp2);
         if (!a1 || !c1 || !a2 || !c2) return undefined;
-        const ok = (sameHash(a1, a2) && sameHash(c1, c2)) || (sameHash(a1, c2) && sameHash(c1, a2));
+        const ok = (termsEqual(a1, a2) && termsEqual(c1, c2)) || (termsEqual(a1, c2) && termsEqual(c1, a2));
         return ok ? TermBuilder.equivalence(a1, c1) : undefined;
     },
 
@@ -198,7 +166,7 @@ export const NALRules = {
         if (!('args' in eq)) return undefined;
         const [a, c] = eq.args;
         if (!a || !c) return undefined;
-        return sameHash(a, atm) || sameHash(c, atm) ? c : undefined;
+        return termsEqual(a, atm) || termsEqual(c, atm) ? c : undefined;
     },
 
     negationIntro: (premises: Term[]): Term | undefined => {
@@ -207,7 +175,7 @@ export const NALRules = {
         const {a: a1, c: c1} = extractImp(imp1);
         const {a: a2, c: c2} = extractImp(imp2);
         if (!a1 || !c1 || !a2 || !c2) return undefined;
-        const isContra = sameHash(a1, a2) && matchAtom(c1) && matchAtom(c2) &&
+        const isContra = termsEqual(a1, a2) && matchAtom(c1) && matchAtom(c2) &&
             c1.symbol === 'TRUE' && c2.symbol === 'FALSE';
         return isContra ? TermBuilder.negation(a1) : undefined;
     },
@@ -218,14 +186,14 @@ export const NALRules = {
         const args1 = 'args' in n1 ? n1.args : [];
         const args2 = 'args' in n2 ? n2.args : [];
         const a1 = args1[0], a2 = args2[0];
-        return a1 && a2 && sameHash(a1, a2) ? TermBuilder.atom('FALSE') : undefined;
+        return a1 && a2 && termsEqual(a1, a2) ? TermBuilder.atom('FALSE') : undefined;
     },
 
     destruct: (premises: Term[]): Term | undefined => {
         const [conj, atm] = premises as [Term, Term];
         if (!matchConj(conj) || !matchAtom(atm)) return undefined;
         const args = 'args' in conj ? conj.args : [];
-        return args.find(a => sameHash(a, atm));
+        return args.find(a => termsEqual(a, atm));
     },
 
     compose: (premises: Term[]): Term | undefined => {
@@ -233,7 +201,7 @@ export const NALRules = {
         if (!validInh(i1) || !validInh(i2)) return undefined;
         const {p: p1} = extractInh(i1);
         const {s: s2} = extractInh(i2);
-        if (!p1 || !s2 || !sameHash(p1, s2)) return undefined;
+        if (!p1 || !s2 || !termsEqual(p1, s2)) return undefined;
         const {s} = extractInh(i1);
         const {p} = extractInh(i2);
         return s && p ? TermBuilder.inheritance(s, p) : undefined;
@@ -244,7 +212,7 @@ export const NALRules = {
         if (!matchConj(c1) || !matchConj(c2)) return undefined;
         const args1 = 'args' in c1 ? c1.args : [];
         const args2 = 'args' in c2 ? c2.args : [];
-        return args1.find(a1 => args2.some(a2 => sameHash(a1, a2)));
+        return args1.find(a1 => args2.some(a2 => termsEqual(a1, a2)));
     },
 
     revision: (premises: Term[]): Term | undefined => {
@@ -252,7 +220,7 @@ export const NALRules = {
         if (!validInh(i1) || !validInh(i2)) return undefined;
         const {s: s1, p: p1} = extractInh(i1);
         const {s: s2, p: p2} = extractInh(i2);
-        return s1 && p1 && s2 && p2 && sameHash(s1, s2) && sameHash(p1, p2) ? i1 : undefined;
+        return s1 && p1 && s2 && p2 && termsEqual(s1, s2) && termsEqual(p1, p2) ? i1 : undefined;
     },
 
     analogy: (premises: Term[]): Term | undefined => {
@@ -260,7 +228,7 @@ export const NALRules = {
         if (!validInh(inh) || !matchSim(sim)) return undefined;
         const {s: s1, p: p1} = extractInh(inh);
         const {a: s2, c: p2} = extractImp(sim);
-        if (!s1 || !p1 || !s2 || !p2 || !sameHash(p1, s2)) return undefined;
+        if (!s1 || !p1 || !s2 || !p2 || !termsEqual(p1, s2)) return undefined;
         return TermBuilder.inheritance(s1, p2);
     },
 
@@ -269,7 +237,7 @@ export const NALRules = {
         if (!validInh(inh1) || !validInh(inh2)) return undefined;
         const {s: s1, p: p1} = extractInh(inh1);
         const {s: s2, p: p2} = extractInh(inh2);
-        return s1 && p1 && s2 && p2 && sameHash(s1, s2) ? TermBuilder.similarity(p1, p2) : undefined;
+        return s1 && p1 && s2 && p2 && termsEqual(s1, s2) ? TermBuilder.similarity(p1, p2) : undefined;
     },
 
     instantiation: (premises: Term[]): Term | undefined => {
@@ -277,7 +245,7 @@ export const NALRules = {
         if (!validInh(inh) || !matchSim(sim)) return undefined;
         const {s: s1, p: p1} = extractInh(inh);
         const {a: s2, c: p2} = extractImp(sim);
-        return s1 && p1 && s2 && p2 && sameHash(p1, p2) ? TermBuilder.inheritance(s1, s2) : undefined;
+        return s1 && p1 && s2 && p2 && termsEqual(p1, p2) ? TermBuilder.inheritance(s1, s2) : undefined;
     },
 
     exemplification: (premises: Term[]): Term | undefined => {
@@ -285,22 +253,22 @@ export const NALRules = {
         if (!validInh(inh1) || !validInh(inh2)) return undefined;
         const {s: s1, p: p1} = extractInh(inh1);
         const {s: s2, p: p2} = extractInh(inh2);
-        return s1 && p1 && s2 && p2 && sameHash(p1, s2) ? TermBuilder.inheritance(s1, p2) : undefined;
+        return s1 && p1 && s2 && p2 && termsEqual(p1, s2) ? TermBuilder.inheritance(s1, p2) : undefined;
     },
 
     higherOrderDeduction: (premises: Term[]): Term | undefined => {
         const [imp1, imp2] = premises as [Term, Term];
-        return chainRule([imp1, imp2], (a, c) => TermBuilder.implication(a, c), (_, c) => c, (c, a) => sameHash(c, a));
+        return chainRule([imp1, imp2], (a, c) => TermBuilder.implication(a, c), (_, c) => c, (c, a) => termsEqual(c, a));
     },
 
     higherOrderAbduction: (premises: Term[]): Term | undefined => {
         const [imp1, imp2] = premises as [Term, Term];
-        return chainRule([imp1, imp2], (a, _) => a, (_, a) => a, (c1, a2) => sameHash(c1, a2));
+        return chainRule([imp1, imp2], (a, _) => a, (_, a) => a, (c1, a2) => termsEqual(c1, a2));
     },
 
     higherOrderInduction: (premises: Term[]): Term | undefined => {
         const [imp1, imp2] = premises as [Term, Term];
-        return chainRule([imp1, imp2], (_, c) => c, (a, c) => TermBuilder.implication(a, c), (a1, a2) => sameHash(a1, a2));
+        return chainRule([imp1, imp2], (_, c) => c, (a, c) => TermBuilder.implication(a, c), (a1, a2) => termsEqual(a1, a2));
     },
 
     conditionalDeduction: (premises: Term[]): Term | undefined => {
@@ -308,7 +276,7 @@ export const NALRules = {
         if (!validImp(imp) || !validInh(inh)) return undefined;
         const {a: ante, c: cons} = extractImp(imp);
         const {s, p} = extractInh(inh);
-        if (!ante || !cons || !s || !p || !sameHash(cons, s)) return undefined;
+        if (!ante || !cons || !s || !p || !termsEqual(cons, s)) return undefined;
         return TermBuilder.implication(ante, p);
     },
 
@@ -317,7 +285,7 @@ export const NALRules = {
         if (!validImp(imp1) || !validImp(imp2)) return undefined;
         const {a: a1, c: c1} = extractImp(imp1);
         const {a: a2, c: c2} = extractImp(imp2);
-        if (!a1 || !c1 || !a2 || !c2 || !sameHash(c1, c2)) return undefined;
+        if (!a1 || !c1 || !a2 || !c2 || !termsEqual(c1, c2)) return undefined;
         return TermBuilder.implication(a1, a2);
     },
 
@@ -325,7 +293,7 @@ export const NALRules = {
         const [imp, atm] = premises as [Term, Term];
         if (!validImp(imp) || !matchAtom(atm)) return undefined;
         const {a: ante, c: cons} = extractImp(imp);
-        return ante && sameHash(ante, atm) ? cons : undefined;
+        return ante && termsEqual(ante, atm) ? cons : undefined;
     },
 
     anchor: (premises: Term[]): Term | undefined => {
@@ -334,8 +302,8 @@ export const NALRules = {
         if (!('args' in sim)) return undefined;
         const [a, c] = sim.args;
         if (!a || !c) return undefined;
-        return sameHash(atm, a) || sameHash(atm, c)
-            ? TermBuilder.inheritance(atm, sameHash(atm, a) ? c : a)
+        return termsEqual(atm, a) || termsEqual(atm, c)
+            ? TermBuilder.inheritance(atm, termsEqual(atm, a) ? c : a)
             : undefined;
     },
 
@@ -345,8 +313,8 @@ export const NALRules = {
         const {s: s1, p: p1} = extractInh(i1);
         const {s: s2, p: p2} = extractInh(i2);
         if (s1 && p1 && s2 && p2) {
-            if (sameHash(s1, s2) && sameHash(p1, p2)) return i1;
-            if (sameHash(s1, p2) && sameHash(p1, s2)) return TermBuilder.similarity(s1, p1);
+            if (termsEqual(s1, s2) && termsEqual(p1, p2)) return i1;
+            if (termsEqual(s1, p2) && termsEqual(p1, s2)) return TermBuilder.similarity(s1, p1);
         }
         return undefined;
     }

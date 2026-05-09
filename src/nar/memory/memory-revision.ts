@@ -3,7 +3,8 @@
  */
 
 import type {TaskData} from './concept.js';
-import type {Truth} from '../terms';
+import type {Term, Truth} from '../terms';
+import {termsEqual} from '../terms';
 import {Truth as TruthOps} from '../terms/truth.js';
 
 export interface RevisionResult {
@@ -33,7 +34,7 @@ export function reviseTruths(t1: Truth, t2: Truth): RevisionResult {
  * Check if two tasks are duplicates (same term hash)
  */
 export function isDuplicate(task1: TaskData, task2: TaskData): boolean {
-    return task1.term.hash === task2.term.hash;
+    return termsEqual(task1.term, task2.term);
 }
 
 /**

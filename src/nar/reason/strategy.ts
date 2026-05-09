@@ -1,6 +1,6 @@
 import type {Task} from '../types';
 import {Memory} from '../memory';
-import {Stamp} from '../terms';
+import {Stamp, termsEqual} from '../terms';
 
 export interface Strategy {
     readonly name: string;
@@ -16,7 +16,7 @@ const createSecondaryTask = (term: Task['term'], budget: number): Task => ({
 export const BagStrategy: Strategy = {
     name: 'bag',
     selectSecondary: (task: Task, memory: Memory): Task[] =>
-        memory.sample(10).filter(c => c.term.hash !== task.term.hash).map(c => createSecondaryTask(c.term, c.priority))
+        memory.sample(10).filter(c => !termsEqual(c.term, task.term)).map(c => createSecondaryTask(c.term, c.priority))
 };
 
 export const ExhaustiveStrategy: Strategy = {

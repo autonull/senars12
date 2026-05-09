@@ -55,8 +55,6 @@ export const getTermArgs = (term: Term): Term[] =>
 export const getTermArg = (term: Term, index: number): Term | undefined =>
     term.kind === 'atom' ? undefined : term.args[index];
 
-// Term equality
-export const termsEqual = (a: Term, b: Term): boolean => a.hash === b.hash;
 // Atom constructor (re-export from factory for caching)
 export const atom = TermBuilder.atom;
 

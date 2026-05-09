@@ -48,6 +48,12 @@ export class Forgetting {
         this.currentLoad = load;
     }
 
+    private policySelectors: Record<string, (concepts: Concept[], scorer: MemoryScorer) => Concept | undefined> = {
+        priority: (concepts) => this.selectByPriority(concepts),
+        age: (concepts) => this.selectByAge(concepts),
+        composite: (concepts, scorer) => this.selectByComposite(concepts, scorer)
+    };
+
     selectVictim(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
         if (concepts.length === 0) return undefined;
 
@@ -75,17 +81,7 @@ export class Forgetting {
         } else if (this.policy === 'fifo') {
             victim = this.selectFifo(candidates);
         } else if (typeof this.policy === 'object' && 'type' in this.policy) {
-            switch (this.policy.type) {
-                case 'priority':
-                    victim = this.selectByPriority(candidates);
-                    break;
-                case 'age':
-                    victim = this.selectByAge(candidates);
-                    break;
-                case 'composite':
-                    victim = this.selectByComposite(candidates, scorer);
-                    break;
-            }
+            victim = this.policySelectors[this.policy.type]?.(candidates, scorer);
         }
 
         if (victim && this.hooks?.afterForget) {

@@ -1,9 +1,10 @@
-import type {Task} from '../types';
+import type {Task, Term} from '../types';
 import type {Memory} from '../memory';
 import type {Strategy} from '../reason';
-import {Stamp} from '../terms';
 import {Truth} from '../terms';
 import {createBudget, createTask} from '../types';
+import type {Concept} from '../memory/concept.js';
+import {throttleGenerator} from '../utils/throttle.js';
 
 export type PremiseSource = AsyncGenerator<Task, void, void>;
 
@@ -25,6 +26,16 @@ export abstract class PremiseSourceBase {
     abstract stream(signal?: AbortSignal): AsyncIterable<Task>;
 }
 
+export const createBeliefTask = (concept: Concept) => {
+    const topBelief = concept.beliefBag.peek();
+    return createTask(
+        concept.term,
+        'belief',
+        topBelief?.truth ?? Truth.NEUTRAL,
+        createBudget(concept.priority)
+    );
+};
+
 export class MemoryPremiseSource extends PremiseSourceBase {
     constructor(
         private memory: Memory,
@@ -37,15 +48,7 @@ export class MemoryPremiseSource extends PremiseSourceBase {
         while (!signal?.aborted) {
             const concepts = this.memory.sample(100);
             for (const concept of concepts) {
-                const topBelief = concept.beliefBag.peek();
-                if (topBelief) {
-                    yield createTask(
-                        concept.term,
-                        'belief',
-                        topBelief.truth ?? Truth.NEUTRAL,
-                        createBudget(concept.priority)
-                    );
-                }
+                yield createBeliefTask(concept);
             }
             await new Promise(r => setTimeout(r, 0));
         }
@@ -61,15 +64,7 @@ export class FocusPremiseSource extends PremiseSourceBase {
         while (!signal?.aborted) {
             const concepts = this.memory.listConcepts().filter(c => c.priority > 0.7);
             for (const concept of concepts) {
-                const topBelief = concept.beliefBag.peek();
-                if (topBelief) {
-                    yield createTask(
-                        concept.term,
-                        'belief',
-                        topBelief.truth ?? Truth.NEUTRAL,
-                        createBudget(concept.priority)
-                    );
-                }
+                yield createBeliefTask(concept);
             }
             await new Promise(r => setTimeout(r, 0));
         }
@@ -109,7 +104,6 @@ export async function* createPipeline(
     strategy: Strategy,
     config: PipelineConfig = DEFAULT_CONFIG
 ): AsyncGenerator<Task> {
-    let lastYield = Date.now();
     let queueSize = 0;
     let derivationsCount = 0;
 
@@ -117,12 +111,7 @@ export async function* createPipeline(
         ? source.stream()
         : source;
 
-    for await (const task of stream as AsyncIterable<Task>) {
-        if (Date.now() - lastYield > config.cpuThrottleMs) {
-            await new Promise(r => setTimeout(r, 0));
-            lastYield = Date.now();
-        }
-
+    for await (const task of throttleGenerator(stream as AsyncIterable<Task>, config.cpuThrottleMs)) {
         if (queueSize > config.maxQueueSize) {
             await new Promise(r => setTimeout(r, 0));
             continue;
@@ -143,16 +132,9 @@ export async function* throttled<T>(
     intervalMs: number,
     shouldStop?: () => boolean
 ): AsyncGenerator<T> {
-    let lastYield = Date.now();
-
-    for await (const value of gen) {
+    for await (const value of throttleGenerator(gen, intervalMs)) {
         if (shouldStop?.()) break;
         yield value;
-
-        if (Date.now() - lastYield > intervalMs) {
-            await new Promise(r => setTimeout(r, 0));
-            lastYield = Date.now();
-        }
     }
 }
 
@@ -193,27 +175,18 @@ export async function* derive(
     strategy: Strategy,
     config: PipelineConfig = DEFAULT_CONFIG
 ): AsyncGenerator<Task> {
-    let lastYield = Date.now();
     let count = 0;
 
-    for (const concept of memory.sample(100)) {
-        if (Date.now() - lastYield > config.cpuThrottleMs) {
-            await new Promise(r => setTimeout(r, 0));
-            lastYield = Date.now();
+    async function* sampled() {
+        for (const concept of memory.sample(100)) {
+            yield concept;
         }
+    }
 
+    for await (const concept of throttleGenerator(sampled(), config.cpuThrottleMs)) {
         if (count >= config.maxDerivationsPerStep) break;
 
-        const belief = concept.beliefBag.peek();
-        const task: Task = {
-            term: concept.term,
-            type: 'belief',
-            truth: belief?.truth ?? {f: 0.5, c: 0.9},
-            budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-            stamp: Stamp.createInput(),
-            occurrenceTime: 0,
-            derived: false
-        };
+        const task = createBeliefTask(concept);
 
         for (const secondary of strategy.selectSecondary(task, memory)) {
             if (++count >= config.maxDerivationsPerStep) break;

@@ -196,12 +196,11 @@ export class SelfAnalyzer {
 
         const patterns: TermPattern[] = [];
         for (const [term, data] of termFreq.entries()) {
-            const avgPriority = data.priorities.reduce((a, b) => a + b, 0) / data.priorities.length;
             patterns.push({
                 term,
                 frequency: data.count,
                 coOccurrences: data.coOccurrences,
-                avgPriority,
+                avgPriority: this.calculateAvgPriority(data.priorities),
                 lastSeen: Date.now()
             });
         }
@@ -272,12 +271,11 @@ export class SelfAnalyzer {
     private analyzeResourceUsage(concepts: any[], _stats: any): any {
         const conceptCount = concepts.length;
         const priorities = concepts.map(c => c.priority);
-        const avgPriority = priorities.reduce((a, b) => a + b, 0) / (priorities.length || 1);
 
         return {
             conceptCount,
             memoryUsage: process.memoryUsage ? process.memoryUsage() : {} as NodeJS.MemoryUsage,
-            avgConceptPriority: avgPriority,
+            avgConceptPriority: this.calculateAvgPriority(priorities),
             highPriorityConcepts: concepts.filter(c => c.priority > 0.7).length,
             lowPriorityConcepts: concepts.filter(c => c.priority < 0.3).length
         };
@@ -621,10 +619,15 @@ export class SelfAnalyzer {
         if (!this.nar) return {};
 
         const concepts = this.nar.listConcepts();
+        const priorities = concepts.map(c => c.priority);
         return {
             conceptCount: concepts.length,
-            avgPriority: concepts.reduce((sum, c) => sum + c.priority, 0) / (concepts.length || 1),
+            avgPriority: this.calculateAvgPriority(priorities),
             memoryUsage: process.memoryUsage ? process.memoryUsage() : {}
         };
+    }
+
+    private calculateAvgPriority(priorities: number[]): number {
+        return priorities.reduce((a, b) => a + b, 0) / (priorities.length || 1);
     }
 }

@@ -39,4 +39,22 @@ export const isNegation = (term: Term): term is CompoundTerm & { kind: 'negation
     term.kind === 'negation';
 
 export const sameKind = (a: Term, b: Term): boolean => a.kind === b.kind;
-export const sameHash = (a: Term, b: Term): boolean => a.hash === b.hash;
+
+const eqAtom = (a: AtomicTerm, b: Term): boolean =>
+    b.kind === 'atom' && a.symbol === b.symbol;
+
+const eqCompound = (a: CompoundTerm, b: Term): boolean => {
+    if (b.kind !== a.kind) return false;
+    if (!('args' in b)) return false;
+    if (a.args.length !== b.args.length) return false;
+    for (let i = 0; i < a.args.length; i++) {
+        if (!termsEqual(a.args[i]!, b.args[i]!)) return false;
+    }
+    return true;
+};
+
+export const termsEqual = (a: Term, b: Term): boolean => {
+    if (a === b) return true;
+    if (a.hash !== b.hash) return false;
+    return a.kind === 'atom' ? eqAtom(a, b) : eqCompound(a, b);
+};

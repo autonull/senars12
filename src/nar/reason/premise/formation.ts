@@ -1,5 +1,6 @@
 import type {ConceptLike, Task} from '../../types';
 import type {Memory} from '../../memory';
+import {termsEqual} from '../../terms';
 
 export interface PremiseSelector {
     readonly name: string;
@@ -77,7 +78,7 @@ export class TermMatchingSelector implements PremiseSelector {
         const concepts = memory.sample(this.sampleSize);
 
         for (const concept of concepts) {
-            if (concept.term.hash === task.term.hash) continue;
+            if (termsEqual(concept.term, task.term)) continue;
 
             const belief = concept.beliefBag.peek();
             if (!belief?.truth) continue;
@@ -159,7 +160,7 @@ export class AnalogySelector implements PremiseSelector {
         const concepts = memory.sample(this.sampleSize);
 
         for (const concept of concepts) {
-            if (concept.term.hash === task.term.hash) continue;
+            if (termsEqual(concept.term, task.term)) continue;
             if (concept.term.kind !== 'inheritance') continue;
 
             const belief = concept.beliefBag.peek();
@@ -171,10 +172,10 @@ export class AnalogySelector implements PremiseSelector {
                 const conceptSub = concept.term.args?.[0];
                 const conceptPred = concept.term.args?.[1];
 
-                const hasOverlap = taskSub?.hash === conceptSub ||
-                    taskSub?.hash === conceptPred ||
-                    taskPred?.hash === conceptSub ||
-                    taskPred?.hash === conceptPred;
+                const hasOverlap = (taskSub && conceptSub && termsEqual(taskSub, conceptSub)) ||
+                    (taskSub && conceptPred && termsEqual(taskSub, conceptPred)) ||
+                    (taskPred && conceptSub && termsEqual(taskPred, conceptSub)) ||
+                    (taskPred && conceptPred && termsEqual(taskPred, conceptPred));
 
                 if (!hasOverlap) continue;
             }

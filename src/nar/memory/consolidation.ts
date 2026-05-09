@@ -1,5 +1,6 @@
 import {Memory} from './memory.js';
 import type {Concept} from './concept.js';
+import {termsEqual} from '../terms';
 
 export interface ConsolidationConfig {
     healthCheckInterval: number;
@@ -107,35 +108,24 @@ export class MemoryConsolidation {
     private getRelatedConcepts(concept: Concept, allConcepts: Concept[]): Concept[] {
         const term = concept.term;
         const related: Concept[] = [];
-        const termArgs = 'args' in term ? term.args as readonly unknown[] : undefined;
-        const subject = termArgs?.[0];
-        const predicate = termArgs?.[1];
 
         for (const c of allConcepts) {
             if (c === concept) continue;
             const cTerm = c.term;
-            const cTermArgs = 'args' in cTerm ? cTerm.args as readonly unknown[] : undefined;
+
+            const termArgs = 'args' in term ? term.args : undefined;
+            const cTermArgs = 'args' in cTerm ? cTerm.args : undefined;
+
+            const subject = termArgs?.[0];
+            const predicate = termArgs?.[1];
             const cSubject = cTermArgs?.[0];
             const cPredicate = cTermArgs?.[1];
 
-            const subjectHash = subject && typeof subject === 'object' && 'hash' in subject ? (subject as {
-                hash: number
-            }).hash : undefined;
-            const cSubjectHash = cSubject && typeof cSubject === 'object' && 'hash' in cSubject ? (cSubject as {
-                hash: number
-            }).hash : undefined;
-            const predicateHash = predicate && typeof predicate === 'object' && 'hash' in predicate ? (predicate as {
-                hash: number
-            }).hash : undefined;
-            const cPredicateHash = cPredicate && typeof cPredicate === 'object' && 'hash' in cPredicate ? (cPredicate as {
-                hash: number
-            }).hash : undefined;
-
-            if (subjectHash && cSubjectHash && subjectHash === cSubjectHash) {
+            if (subject && cSubject && termsEqual(subject as any, cSubject as any)) {
                 related.push(c);
-            } else if (predicateHash && cPredicateHash && predicateHash === cPredicateHash) {
+            } else if (predicate && cPredicate && termsEqual(predicate as any, cPredicate as any)) {
                 related.push(c);
-            } else if (cTerm.hash === term.hash) {
+            } else if (termsEqual(cTerm, term)) {
                 related.push(c);
             }
         }
@@ -179,5 +169,3 @@ export class MemoryConsolidation {
         return {archived, forgotten};
     }
 }
-
-

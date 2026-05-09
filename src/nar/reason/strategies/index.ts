@@ -2,7 +2,7 @@ import type {Strategy} from '../strategy.js';
 import type {Task} from '../../types';
 import type {Memory} from '../../memory';
 import {createStrategy} from './base.js';
-import {Truth} from '../../terms';
+import {Truth, termsEqual} from '../../terms';
 
 export const PrologStrategy: Strategy = createStrategy({
     name: 'prolog',
@@ -24,7 +24,7 @@ export const GoalDrivenStrategy: Strategy = {
         const concepts = memory.sample(20);
 
         for (const concept of concepts) {
-            if (concept.term.hash === task.term.hash) continue;
+            if (termsEqual(concept.term, task.term)) continue;
 
             const belief = concept.beliefBag.peek();
             if (!belief?.truth) continue;
@@ -61,7 +61,7 @@ export const AnalogicalStrategy: Strategy = {
         const concepts = memory.sample(15);
 
         for (const concept of concepts) {
-            if (concept.term.hash === task.term.hash) continue;
+            if (termsEqual(concept.term, task.term)) continue;
             if (concept.term.kind !== 'inheritance') continue;
 
             const belief = concept.beliefBag.peek();
@@ -76,10 +76,10 @@ export const AnalogicalStrategy: Strategy = {
                 const conceptSub = conceptTerm.args?.[0];
                 const conceptPred = conceptTerm.args?.[1];
 
-                const hasOverlap = taskSub?.hash === conceptSub ||
-                    taskSub?.hash === conceptPred ||
-                    taskPred?.hash === conceptSub ||
-                    taskPred?.hash === conceptPred;
+                const hasOverlap = (taskSub && conceptSub && termsEqual(taskSub, conceptSub)) ||
+                    (taskSub && conceptPred && termsEqual(taskSub, conceptPred)) ||
+                    (taskPred && conceptSub && termsEqual(taskPred, conceptSub)) ||
+                    (taskPred && conceptPred && termsEqual(taskPred, conceptPred));
 
                 if (!hasOverlap) continue;
             }

@@ -10,7 +10,8 @@ import {MemoryConsolidation} from './consolidation.js';
 import type {ForgettingPolicy} from './forgetting.js';
 import {Forgetting} from './forgetting.js';
 import {jaccard} from '../utils/similarity.js';
-import {extractSymbols} from '../terms/utils.js';
+import {extractSymbols, termsEqual} from '../terms';
+import {calculatePriorityDistribution} from '../utils/index.js';
 
 export interface MemoryConfig {
     maxConcepts?: number;
@@ -48,15 +49,6 @@ export interface MemoryHealth {
     isHealthy: boolean; pressureLevel: number; consolidationNeeded: boolean;
     forgettingNeeded: boolean; recommendations: string[];
 }
-
-const distribution = (concepts: Iterable<Concept>) => {
-    let total = 0, low = 0, med = 0, high = 0;
-    for (const c of concepts) {
-        total += c.totalTasks;
-        if (c.priority < 0.3) low++; else if (c.priority < 0.7) med++; else high++;
-    }
-    return {totalTasks: total, lowPriority: low, mediumPriority: med, highPriority: high};
-};
 
 export class Memory {
     private readonly concepts = new Map<number, Concept>();
@@ -152,7 +144,7 @@ export class Memory {
     }
 
     getStatistics(): MemoryStatistics {
-        const dist = distribution(this.concepts.values());
+        const dist = calculatePriorityDistribution([...this.concepts.values()]);
         const stats: MemoryStatistics = {
             totalConcepts: this.concepts.size, totalTasks: dist.totalTasks, focusedConcepts: this.focus.size,
             archivedConcepts: this.config.enableArchive ? this.archive.size : 0,
@@ -212,7 +204,7 @@ export class Memory {
 
     findSimilarConcepts(term: Term, limit = 10): Concept[] {
         return [...this.concepts.values()]
-            .map(c => ({concept: c, similarity: c.term.hash === term.hash ? 1 : jaccard(extractSymbols(c.term), extractSymbols(term))}))
+            .map(c => ({concept: c, similarity: termsEqual(c.term, term) ? 1 : jaccard(extractSymbols(c.term), extractSymbols(term))}))
             .sort((a, b) => b.similarity - a.similarity)
             .slice(0, limit)
             .map(s => s.concept);

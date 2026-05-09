@@ -7,7 +7,6 @@ export {
     isCompound,
     getTermArgs,
     getTermArg,
-    termsEqual,
     atom,
     serializeTerm
 } from './types.js';
@@ -47,7 +46,7 @@ export {
     getAntecedent,
     getConsequent,
     getArgs,
-    sameHash,
+    termsEqual,
     sameKind
 } from './accessors.js';
 

@@ -56,7 +56,7 @@ export {
     getAntecedent,
     getConsequent,
     getArgs,
-    sameHash,
+    
     sameKind
 } from './terms/index.js';
 

@@ -48,3 +48,17 @@ export class Throttle {
 export function createThrottle(config?: Partial<ThrottleConfig>): Throttle {
     return new Throttle(config);
 }
+
+export async function* throttleGenerator<T>(
+    gen: AsyncGenerator<T>,
+    intervalMs: number
+): AsyncGenerator<T> {
+    let lastYield = Date.now();
+    for await (const value of gen) {
+        yield value;
+        if (Date.now() - lastYield > intervalMs) {
+            await new Promise(r => setTimeout(r, 0));
+            lastYield = Date.now();
+        }
+    }
+}

@@ -180,48 +180,49 @@ export class BoundedBag<T> {
         };
     }
 
-    sample(objective: SamplingObjective): T | undefined {
-        switch (objective.type) {
-            case 'priority': {
-                const found = this.heap.find(h => h.priority >= objective.threshold);
-                if (found) {
-                    this.stats.hits++;
-                    return found.item;
-                }
-                this.stats.misses++;
-                return undefined;
-            }
-            case 'recency': {
-                const cutoff = Date.now() - objective.windowMs;
-                const found = this.heap.find(h => h.lastAccess >= cutoff);
-                if (found) {
-                    this.stats.hits++;
-                    return found.item;
-                }
-                this.stats.misses++;
-                return undefined;
-            }
-            case 'novelty':
+    private sampleStrategies: Record<string, (objective: any) => T | undefined> = {
+        priority: (objective) => {
+            const found = this.heap.find(h => h.priority >= objective.threshold);
+            if (found) {
                 this.stats.hits++;
-                return this.heap[0]?.item;
-            case 'composite': {
-                const scored = this.heap.map(h => ({
-                    item: h.item,
-                    score:
-                        h.priority * objective.weights.priority -
-                        ((Date.now() - h.lastAccess) / 1000) * objective.weights.recency,
-                }));
-                if (scored.length > 0) {
-                    const best = [...scored].sort((a, b) => b.score - a.score)[0];
-                    if (best) {
-                        this.stats.hits++;
-                        return best.item;
-                    }
-                }
-                this.stats.misses++;
-                return undefined;
+                return found.item;
             }
+            this.stats.misses++;
+            return undefined;
+        },
+        recency: (objective) => {
+            const cutoff = Date.now() - objective.windowMs;
+            const found = this.heap.find(h => h.lastAccess >= cutoff);
+            if (found) {
+                this.stats.hits++;
+                return found.item;
+            }
+            this.stats.misses++;
+            return undefined;
+        },
+        novelty: () => {
+            this.stats.hits++;
+            return this.heap[0]?.item;
+        },
+        composite: (objective) => {
+            const scored = this.heap.map(h => ({
+                item: h.item,
+                score: h.priority * objective.weights.priority - ((Date.now() - h.lastAccess) / 1000) * objective.weights.recency,
+            }));
+            if (scored.length > 0) {
+                const best = [...scored].sort((a, b) => b.score - a.score)[0];
+                if (best) {
+                    this.stats.hits++;
+                    return best.item;
+                }
+            }
+            this.stats.misses++;
+            return undefined;
         }
+    };
+
+    sample(objective: SamplingObjective): T | undefined {
+        return this.sampleStrategies[objective.type]?.(objective);
     }
 
     consolidate(currentTime: number, ttl: number): void {

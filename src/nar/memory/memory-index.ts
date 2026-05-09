@@ -1,6 +1,7 @@
 import type {Concept} from './concept.js';
 import type {Term} from '../terms';
-import {extractSymbols} from '../terms/utils.js';
+import {extractSymbols, termsEqual} from '../terms';
+import {THRESHOLDS} from '../constants.js';
 
 export interface MemoryIndexConfig {
     enableAtomicIndex: boolean;
@@ -34,7 +35,7 @@ export class MemoryIndex {
     private inverseIndex: Map<number, InverseIndexEntry>;
     private readonly similarityIndex: Map<number, SimilarityCluster>;
     private config: Required<MemoryIndexConfig>;
-    private temporalResolution = 1000;
+    private readonly temporalResolution = THRESHOLDS.TEMPORAL_RESOLUTION;
 
     constructor(
         config: MemoryIndexConfig = {
@@ -311,7 +312,7 @@ export class MemoryIndex {
     }
 
     private calculateClusterSimilarity(cluster: SimilarityCluster, term: Term): number {
-        if (cluster.hash === term.hash) return 1;
+        if (termsEqual(cluster.representative.term, term)) return 1;
 
         const representative = cluster.representative.term;
         const thisSymbols = extractSymbols(representative);

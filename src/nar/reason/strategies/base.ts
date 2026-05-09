@@ -1,6 +1,7 @@
 import type {Task} from '../../types';
 import type {Strategy} from '../strategy.js';
 import type {Concept} from '../../memory';
+import {termsEqual} from '../../terms';
 
 interface StrategyConfig {
     name: string;
@@ -42,7 +43,7 @@ export const createStrategy = (config: StrategyConfig): Strategy => {
 
             for (const concept of concepts) {
                 if (filter && !filter(concept, task)) continue;
-                if (concept.term.hash === task.term.hash) continue;
+                if (termsEqual(concept.term, task.term)) continue;
 
                 const belief = concept.beliefBag.peek();
                 if (!belief) continue;

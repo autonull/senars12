@@ -1,4 +1,5 @@
 export type {LMClient, LMConfig, ModelConfig} from './types.js';
+export {BaseLMClient} from './base-client.js';
 export {LMRule} from './LMRule.js';
 export {LMRules} from './rules.js';
 export {MockLMClient, createMockLMClient, RuleBasedLMClient, createRuleBasedLMClient} from './mock-client.js';

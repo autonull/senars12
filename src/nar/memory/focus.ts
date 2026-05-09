@@ -1,4 +1,5 @@
 import type {Concept} from './concept.js';
+import {termsEqual} from '../terms';
 
 export interface FocusConfig {
     maxConcepts: number;
@@ -48,7 +49,7 @@ export class Focus {
     }
 
     removeFromFocus(concept: Concept): boolean {
-        const index = this.concepts.findIndex(c => c.concept.term.hash === concept.term.hash);
+        const index = this.concepts.findIndex(c => termsEqual(c.concept.term, concept.term));
         if (index !== -1) {
             this.concepts.splice(index, 1);
             return true;
@@ -75,7 +76,7 @@ export class Focus {
     }
 
     private findEntry(concept: Concept): FocusEntry | undefined {
-        return this.concepts.find(c => c.concept.term.hash === concept.term.hash);
+        return this.concepts.find(c => termsEqual(c.concept.term, concept.term));
     }
 }
 

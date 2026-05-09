@@ -1,4 +1,5 @@
 import type {Term, Truth} from '../terms';
+import {termsEqual} from '../terms';
 import {Bag} from './bag.js';
 import {Truth as TruthOps} from '../terms/truth.js';
 import {jaccard} from '../utils/similarity.js';
@@ -154,6 +155,6 @@ export class Concept {
     }
 
     private findMatchingBelief(term: Term): TaskData | undefined {
-        return this.beliefBag.getItems().find(b => b.term.hash === term.hash);
+        return this.beliefBag.getItems().find(b => termsEqual(b.term, term));
     }
 }

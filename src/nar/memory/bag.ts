@@ -1,19 +1,13 @@
-export interface BagItem<T> {
-    readonly item: T;
-    readonly priority: number;
-    readonly addedAt: number;
-}
+import {AbstractBag, type BagItem} from './bag-base.js';
 
-export class Bag<T> {
-    private items: BagItem<T>[] = [];
+export {BagItem};
+
+export class Bag<T> extends AbstractBag<T> {
     private readonly maxSize: number;
 
     constructor(maxSize: number) {
+        super();
         this.maxSize = maxSize;
-    }
-
-    get size(): number {
-        return this.items.length;
     }
 
     add(item: T, priority: number): boolean {
@@ -31,19 +25,6 @@ export class Bag<T> {
         return true;
     }
 
-    remove(item: T): boolean {
-        const idx = this.items.findIndex(i => i.item === item);
-        if (idx >= 0) {
-            this.items.splice(idx, 1);
-            return true;
-        }
-        return false;
-    }
-
-    peek(): T | undefined {
-        return this.items[0]?.item;
-    }
-
     pruneTo(maxSize: number): void {
         this.items = this.items.slice(0, maxSize);
     }
@@ -58,7 +39,7 @@ export class Bag<T> {
         return this.items.map(i => i.item);
     }
 
-    toArray(): T[] {
+    override toArray(): T[] {
         return this.items.map(i => i.item);
     }
 }
