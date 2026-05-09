@@ -1,14 +1,23 @@
 /**
  * Event System & Error Handling Tests
  */
+import {NAR} from '../../nar.js';
 import {TermBuilder, Truth} from '../../terms';
-import {createTestNAR} from '../fixtures';
 
 describe('Event System', () => {
-    let nar: ReturnType<typeof createTestNAR>;
+    let nar: NAR;
 
     beforeEach(() => {
-        nar = createTestNAR();
+        nar = new NAR({
+            maxConcepts: 100,
+            priorityThreshold: 0.1,
+            activationDecayRate: 0.01,
+            consolidationInterval: 5,
+            cpuThrottleMs: 10,
+            maxDerivationDepth: 10,
+            maxDerivationsPerStep: 100,
+            enableLMRules: false
+        });
     });
 
     it('emits events for rule results', async () => {
@@ -51,10 +60,19 @@ describe('Event System', () => {
 });
 
 describe('Error Handling', () => {
-    let nar: ReturnType<typeof createTestNAR>;
+    let nar: NAR;
 
     beforeEach(() => {
-        nar = createTestNAR();
+        nar = new NAR({
+            maxConcepts: 100,
+            priorityThreshold: 0.1,
+            activationDecayRate: 0.01,
+            consolidationInterval: 5,
+            cpuThrottleMs: 10,
+            maxDerivationDepth: 10,
+            maxDerivationsPerStep: 100,
+            enableLMRules: false
+        });
     });
 
     it('handles empty input gracefully', async () => {

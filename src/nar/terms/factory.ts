@@ -18,7 +18,9 @@ const createAtom = (symbol: string): AtomicTerm => {
         symbol,
         hash,
         isVariable: symbol.startsWith('$'),
-        toString() { return symbol; }
+        toString() {
+            return symbol;
+        }
     } as AtomicTerm));
 };
 
@@ -33,7 +35,9 @@ const createCompound = (kind: CompoundTerm['kind'], args: Term[], sort?: boolean
         kind,
         args: sorted,
         hash,
-        toString() { return serializeTerm(this as CompoundTerm); }
+        toString() {
+            return serializeTerm(this as CompoundTerm);
+        }
     } as CompoundTerm));
 };
 
@@ -65,7 +69,9 @@ export const TermBuilder = {
 
     evict: (hash: number): boolean => termCache.delete(hash),
     clear: (): void => termCache.clear(),
-    get size(): number { return termCache.size; }
+    get size(): number {
+        return termCache.size;
+    }
 };
 
 export const freeze = <T extends object>(obj: T): Readonly<T> => Object.freeze(obj);

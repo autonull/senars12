@@ -1,6 +1,5 @@
-import {atom, Stamp, TermBuilder, termsEqual} from '../terms';
+import {atom, Stamp, TermBuilder, termsEqual, Truth} from '../terms';
 import {RuleProcessor} from '../rules';
-import {Truth} from '../terms';
 
 describe('Performance benchmarks', () => {
     test('term comparison benchmark <100ns', () => {

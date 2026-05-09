@@ -138,17 +138,27 @@ export class Registry implements ToolRegistry {
             object: () => typeof value === 'object' && value !== null && !Array.isArray(value)
         };
 
-        const typeCheck = prop.type ? typeChecks[prop.type] : undefined;
-        if (prop.type && typeCheck && !typeCheck()) {
-            throw new ToolError(`Invalid type for ${key}: expected ${prop.type}`, {parameter: key, expected: prop.type, actual: typeof value});
+        const check = typeChecks[prop.type];
+        if (check && !check()) {
+            throw new ToolError(`Invalid type for ${key}: expected ${prop.type}`, {
+                parameter: key,
+                expected: prop.type,
+                actual: typeof value
+            });
         }
 
         if (prop.type === 'number') {
             if (prop.minimum !== undefined && (value as number) < prop.minimum) {
-                throw new ToolError(`Value for ${key} is below minimum: ${prop.minimum}`, {parameter: key, minimum: prop.minimum});
+                throw new ToolError(`Value for ${key} is below minimum: ${prop.minimum}`, {
+                    parameter: key,
+                    minimum: prop.minimum
+                });
             }
             if (prop.maximum !== undefined && (value as number) > prop.maximum) {
-                throw new ToolError(`Value for ${key} exceeds maximum: ${prop.maximum}`, {parameter: key, maximum: prop.maximum});
+                throw new ToolError(`Value for ${key} exceeds maximum: ${prop.maximum}`, {
+                    parameter: key,
+                    maximum: prop.maximum
+                });
             }
         }
 
@@ -159,8 +169,14 @@ export class Registry implements ToolRegistry {
             if (prop.maxLength !== undefined && value.length > prop.maxLength) {
                 throw new ToolError(`String ${key} is too long`, {parameter: key, maxLength: prop.maxLength});
             }
-            if (prop.pattern && !new RegExp(prop.pattern).test(value)) {
-                throw new ToolError(`String ${key} does not match pattern: ${prop.pattern}`, {parameter: key, pattern: prop.pattern});
+            if (prop.pattern) {
+                const regex = new RegExp(prop.pattern);
+                if (!regex.test(value)) {
+                    throw new ToolError(`String ${key} does not match pattern: ${prop.pattern}`, {
+                        parameter: key,
+                        pattern: prop.pattern
+                    });
+                }
             }
             if (prop.enum && !prop.enum.includes(value)) {
                 throw new ToolError(`String ${key} is not in allowed values`, {parameter: key, allowed: prop.enum});

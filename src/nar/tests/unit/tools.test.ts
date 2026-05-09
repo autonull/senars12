@@ -1,6 +1,4 @@
-import {Registry} from '../../tools';
-import {CalculateTool, ReadFileTool, SleepTool, WriteFileTool} from '../../tools';
-import {ToolManager} from '../../tools';
+import {CalculateTool, ReadFileTool, Registry, SleepTool, ToolManager, WriteFileTool} from '../../tools';
 
 describe('Tool Framework', () => {
     describe('Registry', () => {

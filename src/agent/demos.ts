@@ -3,8 +3,7 @@
  * End-to-end demonstration scripts
  */
 
-import {NAR} from '../nar';
-import {SeNARSFactory} from '../nar';
+import {NAR, SeNARSFactory} from '../nar';
 
 export interface DemoScenario {
     name: string;

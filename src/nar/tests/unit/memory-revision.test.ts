@@ -1,8 +1,6 @@
 import {describe, expect, it} from '@jest/globals';
-import {Memory} from '../../memory';
-import {TermBuilder} from '../../terms';
-import {Truth} from '../../terms';
-import {Concept} from '../../memory';
+import {Concept, Memory} from '../../memory';
+import {TermBuilder, Truth} from '../../terms';
 
 describe('Phase 5.5: Belief Revision and Deduplication', () => {
     it('should add belief to concept', () => {

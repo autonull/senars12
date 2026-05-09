@@ -4,14 +4,13 @@
  */
 
 import type {Term} from '../terms';
-import {Stamp, Truth} from '../terms';
+import {Stamp} from '../terms';
 import type {Truth as TruthType} from '../terms/truth.js';
 
 // Re-export domain types
 export type {Term, AtomicTerm, CompoundTerm} from '../terms/types.js';
 export type {Truth as TruthType} from '../terms/truth.js';
 export type {Stamp, Source} from '../terms/stamp.js';
-export {Truth};
 
 // Core identity and hashing
 export type Hash = number;
@@ -72,20 +71,6 @@ export const DEFAULT_CONFIG: CoreConfig = Object.freeze({
 // Utility types
 export type Nullable<T> = T | null;
 export type Optional<T> = T | undefined;
-
-// Shared metric types for cross-module consistency
-export type PerformanceMetric = {
-    type: string;
-    value: number;
-    severity?: 'low' | 'medium' | 'high';
-    threshold?: number;
-    belief?: string;
-};
-
-export interface BaseStats {
-    uptime?: number;
-    [key: string]: unknown;
-}
 
 // Result types for operations
 export interface Success<T> {
@@ -151,31 +136,41 @@ export class NARError extends Error {
         this.name = 'NARError';
     }
 }
-// Small factory to avoid repeating nearly-identical error classes.
-// Returns a class (constructor) that extends NARError with a fixed code and name.
-const createNARErrorClass = (name: string, code: string) =>
-    class extends NARError {
-        constructor(message: string, context?: Record<string, unknown>) {
-            super(message, code, context);
-            this.name = name;
-        }
-    };
 
-export const ValidationError = createNARErrorClass('ValidationError', 'VALIDATION_ERROR');
-export const ConfigurationError = createNARErrorClass('ConfigurationError', 'CONFIGURATION_ERROR');
-export const OperationError = createNARErrorClass('OperationError', 'OPERATION_ERROR');
-export const ToolError = createNARErrorClass('ToolError', 'TOOL_ERROR');
+export class ValidationError extends NARError {
+    constructor(message: string, context?: Record<string, unknown>) {
+        super(message, 'VALIDATION_ERROR', context);
+        this.name = 'ValidationError';
+    }
+}
+
+export class ConfigurationError extends NARError {
+    constructor(message: string, context?: Record<string, unknown>) {
+        super(message, 'CONFIGURATION_ERROR', context);
+        this.name = 'ConfigurationError';
+    }
+}
+
+export class OperationError extends NARError {
+    constructor(message: string, context?: Record<string, unknown>) {
+        super(message, 'OPERATION_ERROR', context);
+        this.name = 'OperationError';
+    }
+}
+
+export class ToolError extends NARError {
+    constructor(message: string, context?: Record<string, unknown>) {
+        super(message, 'TOOL_ERROR', context);
+        this.name = 'ToolError';
+    }
+}
 
 // Query filter types
 export interface TermFilter {
     contains?: string;
     startsWith?: string;
     endsWith?: string;
-    pattern?: RegExp | { toString(): string };
-    truthRange?: [number, number];
-    recency?: number;
-    type?: import('./core.js').TaskType;
-    limit?: number;
+    pattern?: RegExp;
 }
 
 export interface TruthFilter {

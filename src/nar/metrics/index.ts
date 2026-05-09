@@ -1,4 +1,6 @@
-export interface RuleStats {
+// Internal: rule-level statistics shape (not part of public API)
+// Marked with leading underscore to indicate internal use only
+interface _RuleStats {
     id: string;
     executions: number;
     successes: number;
@@ -7,7 +9,8 @@ export interface RuleStats {
     lastExecution: number;
 }
 
-export interface MemoryStats {
+// Internal: memory statistics shape
+interface MemoryStats {
     conceptCount: number;
     beliefCount: number;
     goalCount: number;
@@ -20,7 +23,8 @@ export interface MemoryStats {
     forgettingRate: number;
 }
 
-export interface LMStats {
+// Internal: LM / LLM statistics shape
+interface LMStats {
     totalCalls: number;
     successfulCalls: number;
     failedCalls: number;
@@ -33,7 +37,8 @@ export interface LMStats {
     costEstimate: number;
 }
 
-export interface ThroughputStats {
+// Internal: throughput statistics
+interface ThroughputStats {
     derivationsPerSecond: number;
     tasksProcessed: number;
     averageStepDuration: number;
@@ -41,7 +46,8 @@ export interface ThroughputStats {
 
 import type {BaseStats} from '../types/core.js';
 
-export interface SystemMetrics extends BaseStats {
+// Internal: aggregated system metrics
+interface SystemMetrics extends BaseStats {
     uptime: number;
     totalDerivations: number;
     totalSteps: number;
@@ -50,8 +56,8 @@ export interface SystemMetrics extends BaseStats {
 }
 
 export class MetricsCollector {
-    private readonly startTime: number = Date.now();
-    private ruleStats: Map<string, RuleStats> = new Map();
+  private readonly startTime: number = Date.now();
+  private ruleStats: Map<string, _RuleStats> = new Map();
     private memoryStats: MemoryStats | null = null;
     private lmStats: LMStats | null = null;
     private throughputStats: ThroughputStats | null = null;
@@ -63,29 +69,29 @@ export class MetricsCollector {
         warnings: 0
     };
 
-    recordRuleExecution(ruleId: string, success: boolean, duration: number): void {
-        const existing = this.ruleStats.get(ruleId);
+  recordRuleExecution(ruleId: string, success: boolean, duration: number): void {
+    const existing = this.ruleStats.get(ruleId);
 
-        if (existing) {
-            existing.executions++;
-            if (success) {
-                existing.successes++;
-            } else {
-                existing.failures++;
-            }
-            existing.averageDuration = (existing.averageDuration * (existing.executions - 1) + duration) / existing.executions;
-            existing.lastExecution = Date.now();
-        } else {
-            this.ruleStats.set(ruleId, {
-                id: ruleId,
-                executions: 1,
-                successes: success ? 1 : 0,
-                failures: success ? 0 : 1,
-                averageDuration: duration,
-                lastExecution: Date.now()
-            });
-        }
+    if (existing) {
+      existing.executions++;
+      if (success) {
+        existing.successes++;
+      } else {
+        existing.failures++;
+      }
+      existing.averageDuration = (existing.averageDuration * (existing.executions - 1) + duration) / existing.executions;
+      existing.lastExecution = Date.now();
+    } else {
+      this.ruleStats.set(ruleId, {
+        id: ruleId,
+        executions: 1,
+        successes: success ? 1 : 0,
+        failures: success ? 0 : 1,
+        averageDuration: duration,
+        lastExecution: Date.now()
+      } satisfies _RuleStats);
     }
+  }
 
     updateMemoryStats(stats: MemoryStats): void {
         this.memoryStats = stats;
@@ -142,12 +148,12 @@ export class MetricsCollector {
         this.systemMetrics.warnings++;
     }
 
-    getRuleStats(ruleId?: string): RuleStats | RuleStats[] | null {
-        if (ruleId) {
-            return this.ruleStats.get(ruleId) || null;
-        }
-        return Array.from(this.ruleStats.values());
+  getRuleStats(ruleId?: string): _RuleStats | _RuleStats[] | null {
+    if (ruleId) {
+      return this.ruleStats.get(ruleId) || null;
     }
+    return Array.from(this.ruleStats.values());
+  }
 
     getMemoryStats(): MemoryStats | null {
         return this.memoryStats;
@@ -168,21 +174,21 @@ export class MetricsCollector {
         };
     }
 
-    getSummary(): {
-        rules: RuleStats[];
-        memory: MemoryStats | null;
-        lm: LMStats | null;
-        throughput: ThroughputStats | null;
-        system: SystemMetrics;
-    } {
-        return {
-            rules: this.getRuleStats() as RuleStats[],
-            memory: this.getMemoryStats(),
-            lm: this.getLMStats(),
-            throughput: this.getThroughputStats(),
-            system: this.getSystemMetrics()
-        };
-    }
+  getSummary(): {
+    rules: _RuleStats[];
+    memory: MemoryStats | null;
+    lm: LMStats | null;
+    throughput: ThroughputStats | null;
+    system: SystemMetrics;
+  } {
+    return {
+      rules: this.getRuleStats() as _RuleStats[],
+      memory: this.getMemoryStats(),
+      lm: this.getLMStats(),
+      throughput: this.getThroughputStats(),
+      system: this.getSystemMetrics()
+    };
+  }
 
     reset(): void {
         this.ruleStats.clear();

@@ -1,6 +1,4 @@
-import {VercelLMClient} from '../src/nar/lm';
-import {OllamaLMClient} from '../src/nar/lm';
-import {MockLMClient} from '../src/nar/lm';
+import {MockLMClient, OllamaLMClient, VercelLMClient} from '../src/nar/lm';
 
 async function testWithMock() {
     console.log('\n=== Testing with Mock LM Client ===\n');

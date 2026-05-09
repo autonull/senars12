@@ -1,7 +1,6 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
 import type {Memory} from '../memory';
-import {termParser} from '../terms';
-import {Truth} from '../terms';
+import {termParser, Truth} from '../terms';
 import {createBudget} from '../types';
 
 export class LearnTool implements Tool {

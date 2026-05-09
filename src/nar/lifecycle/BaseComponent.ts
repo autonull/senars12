@@ -19,6 +19,10 @@ const VALID_TRANSITIONS: Record<ComponentState, ComponentState[]> = {
 };
 
 export abstract class BaseComponent {
+    private readonly _logger: Logger;
+    private readonly _metrics: MetricsCollector;
+    private readonly _eventBus: EventBus;
+
     constructor(context?: Partial<ComponentContext>) {
         this._logger = context?.logger ?? createLogger({scope: this.constructor.name});
         this._metrics = context?.metrics ?? new MetricsCollector();
@@ -31,19 +35,13 @@ export abstract class BaseComponent {
         return this._state;
     }
 
-    private readonly _logger: Logger;
-
     get logger(): Logger {
         return this._logger;
     }
 
-    private readonly _metrics: MetricsCollector;
-
     get metrics(): MetricsCollector {
         return this._metrics;
     }
-
-    private readonly _eventBus: EventBus;
 
     get eventBus(): EventBus {
         return this._eventBus;

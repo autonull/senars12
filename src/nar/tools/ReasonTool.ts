@@ -1,7 +1,6 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
 import type {NAR} from '../nar';
-import {termParser} from '../terms';
-import {Truth} from '../terms';
+import {termParser, Truth} from '../terms';
 
 export class ReasonTool implements Tool {
     readonly name = 'reason';

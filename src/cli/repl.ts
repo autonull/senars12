@@ -3,10 +3,9 @@
  * Interactive terminal interface for neuro-symbolic reasoning
  */
 
-import {NAR} from '../nar';
+import {NAR, SeNARSFactory} from '../nar';
 import * as readline from 'readline';
 import {existsSync, promises as fs} from 'fs';
-import {SeNARSFactory} from '../nar';
 
 const HISTFILE = process.env.SENARS_HISTFILE || '/tmp/senars_history';
 const MAX_HISTORY = 1000;

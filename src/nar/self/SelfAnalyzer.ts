@@ -1,6 +1,8 @@
 import type {NAR} from '../nar.js';
 import {MetacognitiveMonitor} from './MetacognitiveMonitor.js';
 import type {MetricsCollector} from '../metrics';
+import type {Term} from '../terms';
+import {isCompound} from '../terms';
 
 export interface SelfAnalyzerConfig {
     selfCorrectionEnabled?: boolean;
@@ -208,17 +210,20 @@ export class SelfAnalyzer {
         return patterns.sort((a, b) => b.frequency - a.frequency).slice(0, 20);
     }
 
-    private getNeighboringTerms(concept: any): any[] {
-        const neighbors: any[] = [];
-        const term = concept.term;
-        const subject = (term as any).args?.[0];
-        const predicate = (term as any).args?.[1];
+  private getNeighboringTerms(concept: any): any[] {
+    const neighbors: any[] = [];
+    const term = concept.term as Term;
+    
+    if (isCompound(term)) {
+      const subject = term.args?.[0];
+      const predicate = term.args?.[1];
 
-        if (subject) neighbors.push(subject);
-        if (predicate) neighbors.push(predicate);
-
-        return neighbors;
+      if (subject) neighbors.push(subject);
+      if (predicate) neighbors.push(predicate);
     }
+
+    return neighbors;
+  }
 
     private detectInefficientChains(): InferenceChain[] {
         const inefficient: InferenceChain[] = [];

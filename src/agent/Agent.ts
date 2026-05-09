@@ -3,8 +3,7 @@
  * High-level interface for end-user interaction
  */
 
-import {NAR} from '../nar';
-import {Task} from '../nar';
+import {NAR, Task} from '../nar';
 
 export interface Embodiment {
     readonly name: string;

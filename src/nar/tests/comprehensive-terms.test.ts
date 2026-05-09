@@ -1,5 +1,4 @@
-import {TermBuilder} from '../terms';
-import {Truth} from '../terms';
+import {TermBuilder, Truth} from '../terms';
 
 describe('Term Builder Comprehensive Tests', () => {
     describe('Atom Creation', () => {

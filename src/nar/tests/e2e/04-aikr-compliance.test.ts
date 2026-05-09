@@ -1,14 +1,23 @@
 /**
  * Resource Bounds & AIKR Compliance Tests
  */
+import {NAR} from '../../nar.js';
 import {TermBuilder, Truth} from '../../terms';
-import {createTestNAR} from '../fixtures';
 
 describe('AIKR Compliance', () => {
-    let nar: ReturnType<typeof createTestNAR>;
+    let nar: NAR;
 
     beforeEach(() => {
-        nar = createTestNAR();
+        nar = new NAR({
+            maxConcepts: 100,
+            priorityThreshold: 0.1,
+            activationDecayRate: 0.01,
+            consolidationInterval: 5,
+            cpuThrottleMs: 10,
+            maxDerivationDepth: 10,
+            maxDerivationsPerStep: 100,
+            enableLMRules: false
+        });
     });
 
     describe('Anytime Execution', () => {

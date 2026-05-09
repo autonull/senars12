@@ -1,5 +1,4 @@
-import {PolicyOptimizer, PreferenceCollector, RewardModel, RLFPLearner} from '../nar/rlfp';
-import {TrajectoryStep} from '../nar/rlfp';
+import {PolicyOptimizer, PreferenceCollector, RewardModel, RLFPLearner, TrajectoryStep} from '../nar/rlfp';
 
 export class RLFPCLI {
     private collector: PreferenceCollector;

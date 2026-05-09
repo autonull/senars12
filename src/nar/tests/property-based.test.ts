@@ -1,7 +1,5 @@
 import fc from 'fast-check';
-import {TermBuilder} from '../terms';
-import {Truth} from '../terms';
-import {Stamp} from '../terms';
+import {Stamp, TermBuilder, Truth} from '../terms';
 
 describe('Property-Based Tests', () => {
     describe('Term Invariants', () => {

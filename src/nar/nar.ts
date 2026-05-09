@@ -25,13 +25,11 @@ import {termParser, Truth} from './terms';
 import type {Truth as TruthType} from './terms/truth.js';
 import type {LMClient} from './lm';
 import {LMRules} from './lm';
-import {type Answer, QueryAPI, type QueryResult} from './query';
-import {ReasoningTrace} from './query';
+import {type Answer, QueryAPI, type QueryResult, ReasoningTrace} from './query';
 import {MetricsCollector} from './metrics';
 import {createLogger} from './logger';
-import {ToolManager} from './tools';
 import type {Tool, ToolResult} from './tools';
-import {CalculateTool, HTTPTool, ReadFileTool, SleepTool, WriteFileTool} from './tools';
+import {CalculateTool, HTTPTool, ReadFileTool, SleepTool, ToolManager, WriteFileTool} from './tools';
 import {BaseComponent} from './lifecycle';
 
 interface SerializedNARState {
@@ -77,15 +75,11 @@ export class NAR extends BaseComponent {
         this.tools = new ToolManager();
 
         if (this.config.enableLMRules && this.config.lmClient) {
-            this.initializeLM();
+            this.initializeLMRules(this.config.lmClient);
         }
 
         if (this.config.enableTools) {
-            this.tools.register(new CalculateTool());
-            this.tools.register(new SleepTool());
-            this.tools.register(new ReadFileTool());
-            this.tools.register(new WriteFileTool());
-            this.tools.register(new HTTPTool());
+            this.initializeTools();
         }
     }
 
@@ -310,6 +304,44 @@ export class NAR extends BaseComponent {
             throw new ConfigurationError('priorityThreshold must be between 0 and 1', {priorityThreshold: config.priorityThreshold});
         }
         return config;
+    }
+
+    private initializeLMRules(lmClient: LMClient): void {
+        const lmRules = [
+            LMRules.createNarseseTranslationRule(lmClient),
+            LMRules.createBeliefRevisionRule(lmClient),
+            LMRules.createGoalDecompositionRule(lmClient),
+            LMRules.createHypothesisGenerationRule(lmClient),
+            LMRules.createExplanationGenerationRule(lmClient),
+            LMRules.createAnalogicalReasoningRule(lmClient),
+            LMRules.createMetaReasoningGuidanceRule(lmClient),
+            LMRules.createUncertaintyCalibrationRule(lmClient),
+            LMRules.createSchemaInductionRule(lmClient),
+            LMRules.createTemporalCausalModelingRule(lmClient),
+            LMRules.createVariableGroundingRule(lmClient),
+            LMRules.createConceptElaborationRule(lmClient),
+            LMRules.createInteractiveClarificationRule(lmClient)
+        ];
+
+        for (const rule of lmRules) {
+            this.processor.registerLMRule(rule);
+        }
+
+        this._lmInitialized = true;
+    }
+
+    private initializeTools(): void {
+        if (this._toolsInitialized) {
+            return;
+        }
+
+        this.tools.register(new CalculateTool());
+        this.tools.register(new SleepTool());
+        this.tools.register(new ReadFileTool());
+        this.tools.register(new WriteFileTool());
+        this.tools.register(new HTTPTool());
+
+        this._toolsInitialized = true;
     }
 
     private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void {

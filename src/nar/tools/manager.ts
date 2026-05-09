@@ -10,7 +10,6 @@ import type {
     ToolStatistics
 } from './types';
 import {Registry} from './registry';
-import {getOrInsert} from '../utils/collections.js';
 import {EventEmitter} from 'events';
 
 export interface ToolDescriptor {
@@ -26,7 +25,7 @@ export class ToolManager extends EventEmitter {
     private executionHistory: ToolEvent[] = [];
     private maxHistory = 100;
     private statistics: Map<string, ToolStatistics> = new Map();
-    private readonly sandboxMode: boolean = false;
+    private readonly sandboxMode = false;
     private allowedPermissions: Set<string> = new Set();
     private toolDescriptors: Map<string, ToolDescriptor> = new Map();
     private lifecycleState: Map<string, 'initialized' | 'running' | 'stopped' | 'disposed'> = new Map();
@@ -362,14 +361,16 @@ export class ToolManager extends EventEmitter {
     }
 
     private initializeStatistics(name: string): void {
-        getOrInsert(this.statistics, name, () => ({
-            name,
-            totalCalls: 0,
-            successfulCalls: 0,
-            failedCalls: 0,
-            totalDuration: 0,
-            averageDuration: 0
-        }));
+        if (!this.statistics.has(name)) {
+            this.statistics.set(name, {
+                name,
+                totalCalls: 0,
+                successfulCalls: 0,
+                failedCalls: 0,
+                totalDuration: 0,
+                averageDuration: 0
+            });
+        }
     }
 
     private updateStatistics(name: string, result: ToolResult, duration: number): void {

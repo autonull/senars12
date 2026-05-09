@@ -1,7 +1,7 @@
 import type {Concept} from './concept.js';
 import type {Term} from '../terms';
 import {extractSymbols, termsEqual} from '../terms';
-import {getOrInsert, addToSet} from '../utils/collections.js';
+import {addToSet} from '../utils/collections.js';
 import {THRESHOLDS} from '../constants.js';
 
 export interface MemoryIndexConfig {
@@ -30,8 +30,8 @@ export interface SimilarityCluster {
 }
 
 export class MemoryIndex {
-    private atomicIndex: Map<string, Set<Concept>>;
-    private temporalIndex: Map<number, Set<Concept>>;
+    private readonly atomicIndex: Map<string, Set<Concept>>;
+    private readonly temporalIndex: Map<number, Set<Concept>>;
     private activationIndex: Map<Concept, number>;
     private inverseIndex: Map<number, InverseIndexEntry>;
     private readonly similarityIndex: Map<number, SimilarityCluster>;

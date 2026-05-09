@@ -1,6 +1,5 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
-import type {Memory} from '../memory';
-import type {Concept} from '../memory';
+import type {Concept, Memory} from '../memory';
 
 export class SearchTool implements Tool {
     readonly name = 'search';

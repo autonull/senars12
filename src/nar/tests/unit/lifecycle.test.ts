@@ -1,6 +1,5 @@
 import {describe, expect, it} from '@jest/globals';
-import {BaseComponent} from '../../lifecycle';
-import {Container} from '../../lifecycle';
+import {BaseComponent, Container} from '../../lifecycle';
 import {createLogger} from '../../logger';
 import {MetricsCollector} from '../../metrics';
 import {EventBus} from '../../types';

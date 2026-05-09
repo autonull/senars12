@@ -1,14 +1,23 @@
 /**
  * Inference Rules Tests - Deduction, Induction, Abduction
  */
+import {NAR} from '../../nar.js';
 import {TermBuilder, Truth} from '../../terms';
-import {createTestNAR} from '../fixtures';
 
 describe('Inference Rules', () => {
-    let nar: ReturnType<typeof createTestNAR>;
+    let nar: NAR;
 
     beforeEach(() => {
-        nar = createTestNAR();
+        nar = new NAR({
+            maxConcepts: 100,
+            priorityThreshold: 0.1,
+            activationDecayRate: 0.01,
+            consolidationInterval: 5,
+            cpuThrottleMs: 10,
+            maxDerivationDepth: 10,
+            maxDerivationsPerStep: 100,
+            enableLMRules: false
+        });
     });
 
     describe('Deduction', () => {

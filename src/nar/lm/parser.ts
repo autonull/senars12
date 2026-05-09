@@ -1,6 +1,5 @@
-import {termParser} from '../terms';
 import type {Term} from '../terms';
-import {Truth} from '../terms';
+import {termParser, Truth} from '../terms';
 
 export interface ParsedLMResponse {
     term: Term;
