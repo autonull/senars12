@@ -27,16 +27,16 @@ const occursCheck = (variable: string, term: Term, subst: Substitution): boolean
     return false;
 };
 
-const _applySubstitution = (term: Term, subst: Substitution): Term => {
-    if (term.kind === 'atom') {
-        if (term.symbol in subst) {
-            return subst[term.symbol]!;
-        }
-        return term;
-    }
+const applySubstitution = (term: Term, subst: Substitution): Term => {
+	if (term.kind === 'atom') {
+		if (term.symbol in subst) {
+			return subst[term.symbol]!;
+		}
+		return term;
+	}
 
-    const newArgs = term.args.map(arg => applySubstitution(arg, subst));
-    return {...term, args: newArgs} as Term;
+	const newArgs = term.args.map(arg => applySubstitution(arg, subst));
+	return {...term, args: newArgs} as Term;
 };
 
 export function unify(a: Term, b: Term, subst: Substitution = {}, enableOccursCheck = true): Substitution | undefined {

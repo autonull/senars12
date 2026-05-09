@@ -4,13 +4,14 @@
  */
 
 import type {Term} from '../terms';
-import {Stamp} from '../terms';
+import {Stamp, Truth} from '../terms';
 import type {Truth as TruthType} from '../terms/truth.js';
 
 // Re-export domain types
 export type {Term, AtomicTerm, CompoundTerm} from '../terms/types.js';
 export type {Truth as TruthType} from '../terms/truth.js';
 export type {Stamp, Source} from '../terms/stamp.js';
+export {Truth};
 
 // Core identity and hashing
 export type Hash = number;

@@ -3,7 +3,7 @@
  */
 
 import type {CoreConfig, Task} from '../types';
-import {createBudget, createTask} from '../types';
+import {Truth, createBudget, createTask} from '../types';
 import type {Memory} from '../memory';
 import type {RuleInput, RuleProcessor, RuleResult} from '../rules';
 import type {Strategy} from './strategy.js';

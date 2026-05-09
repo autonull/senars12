@@ -95,10 +95,10 @@ export class ExplainTool implements Tool {
         return explanation;
     }
 
-    private generateSummary(_concept: Concept): string {
-        const priority = concept.priority;
+	private generateSummary(concept: Concept): string {
+		const priority = concept.priority;
 
-        let summary = `The concept "${concept.term.toString()}" has priority ${priority.toFixed(2)}`;
+		let summary = `The concept "${concept.term.toString()}" has priority ${priority.toFixed(2)}`;
 
         if (priority > 0.8) {
             summary += ' (high priority)';
