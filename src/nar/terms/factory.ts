@@ -9,196 +9,64 @@ const cache = <T extends Term>(term: T): T => {
     return term;
 };
 
-const TRUE_ATOM = cache(
-    Object.freeze({
+const createAtom = (symbol: string): AtomicTerm => {
+    const hash = fnv1a(symbol);
+    const cached = termCache.get(hash);
+    if (cached) return cached as AtomicTerm;
+    return cache(Object.freeze({
         kind: 'atom' as const,
-        symbol: 'TRUE',
-        hash: fnv1a('TRUE'),
-        isVariable: false,
-        toString() {
-            return 'TRUE';
-        }
-    } as AtomicTerm)
-);
+        symbol,
+        hash,
+        isVariable: symbol.startsWith('$'),
+        toString() { return symbol; }
+    } as AtomicTerm));
+};
 
-const FALSE_ATOM = cache(
-    Object.freeze({
-        kind: 'atom' as const,
-        symbol: 'FALSE',
-        hash: fnv1a('FALSE'),
-        isVariable: false,
-        toString() {
-            return 'FALSE';
-        }
-    } as AtomicTerm)
-);
+const createCompound = (kind: CompoundTerm['kind'], args: Term[], sort?: boolean): Term => {
+    const valid = args.filter(Boolean);
+    if (valid.length === 0) return kind === 'disjunction' ? createAtom('FALSE') : createAtom('TRUE');
+    const sorted = sort ? valid.toSorted((a, b) => a.hash - b.hash) : valid;
+    const hash = computeHash(kind, sorted.map(t => t.hash));
+    const cached = termCache.get(hash);
+    if (cached) return cached;
+    return cache(Object.freeze({
+        kind,
+        args: sorted,
+        hash,
+        toString() { return serializeTerm(this as CompoundTerm); }
+    } as CompoundTerm));
+};
+
+const TRUE_ATOM = createAtom('TRUE');
+const FALSE_ATOM = createAtom('FALSE');
 
 export const TermBuilder = {
-    atom: (symbol: string): AtomicTerm => {
-        if (symbol === 'TRUE') return TRUE_ATOM;
-        if (symbol === 'FALSE') return FALSE_ATOM;
-        const hash = fnv1a(symbol);
-        const cached = termCache.get(hash);
-        if (cached) return cached as AtomicTerm;
-        return cache(
-            Object.freeze({
-                kind: 'atom' as const,
-                symbol,
-                hash,
-                isVariable: symbol.startsWith('$'),
-                toString() {
-                    return symbol;
-                }
-            } as AtomicTerm)
-        );
-    },
+    atom: (symbol: string): AtomicTerm => symbol === 'TRUE' ? TRUE_ATOM : symbol === 'FALSE' ? FALSE_ATOM : createAtom(symbol),
 
-    inheritance: (s: Term | undefined, p: Term | undefined): Term => {
-        if (!s || !p) return TermFactory.atom('TRUE');
-        const hash = computeHash('inheritance', [s.hash, p.hash]);
-        const cached = termCache.get(hash);
-        if (cached) return cached;
-        return cache(
-            Object.freeze({
-                kind: 'inheritance' as const,
-                args: [s, p],
-                hash,
-                toString() {
-                    return serializeTerm(this as CompoundTerm);
-                }
-            } as CompoundTerm)
-        );
-    },
+    inheritance: (s: Term | undefined, p: Term | undefined): Term =>
+        s && p ? createCompound('inheritance', [s, p]) : createAtom('TRUE'),
 
-    similarity: (s: Term | undefined, p: Term | undefined): Term => {
-        if (!s || !p) return TermFactory.atom('TRUE');
-        const hash = computeHash('similarity', [s.hash, p.hash]);
-        const cached = termCache.get(hash);
-        if (cached) return cached;
-        return cache(
-            Object.freeze({
-                kind: 'similarity' as const,
-                args: [s, p],
-                hash,
-                toString() {
-                    return serializeTerm(this as CompoundTerm);
-                }
-            } as CompoundTerm)
-        );
-    },
+    similarity: (s: Term | undefined, p: Term | undefined): Term =>
+        s && p ? createCompound('similarity', [s, p]) : createAtom('TRUE'),
 
-    conjunction: (...terms: (Term | undefined)[]): Term => {
-        const valid = terms.filter((t): t is Term => t !== undefined);
-        if (valid.length === 0) return TermFactory.atom('TRUE');
-        const sorted = valid.toSorted((a, b) => a.hash - b.hash);
-        const hash = computeHash('conjunction', sorted.map(t => t.hash));
-        const cached = termCache.get(hash);
-        if (cached) return cached;
-        return cache(
-            Object.freeze({
-                kind: 'conjunction' as const,
-                args: sorted,
-                hash,
-                toString() {
-                    return serializeTerm(this as CompoundTerm);
-                }
-            } as CompoundTerm)
-        );
-    },
+    conjunction: (...terms: (Term | undefined)[]): Term => createCompound('conjunction', terms, true),
 
-    disjunction: (...terms: (Term | undefined)[]): Term => {
-        const valid = terms.filter((t): t is Term => t !== undefined);
-        if (valid.length === 0) return TermFactory.atom('FALSE');
-        const sorted = valid.toSorted((a, b) => a.hash - b.hash);
-        const hash = computeHash('disjunction', sorted.map(t => t.hash));
-        const cached = termCache.get(hash);
-        if (cached) return cached;
-        return cache(
-            Object.freeze({
-                kind: 'disjunction' as const,
-                args: sorted,
-                hash,
-                toString() {
-                    return serializeTerm(this as CompoundTerm);
-                }
-            } as CompoundTerm)
-        );
-    },
+    disjunction: (...terms: (Term | undefined)[]): Term => createCompound('disjunction', terms, true),
 
-    negation: (term: Term | undefined): Term => {
-        if (!term) return TermFactory.atom('TRUE');
-        const hash = computeHash('negation', [term.hash]);
-        const cached = termCache.get(hash);
-        if (cached) return cached;
-        return cache(
-            Object.freeze({
-                kind: 'negation' as const,
-                args: [term],
-                hash,
-                toString() {
-                    return serializeTerm(this as CompoundTerm);
-                }
-            } as CompoundTerm)
-        );
-    },
+    negation: (term: Term | undefined): Term => term ? createCompound('negation', [term]) : createAtom('TRUE'),
 
-    implication: (ant: Term | undefined, cons: Term | undefined): Term => {
-        if (!ant || !cons) return TermFactory.atom('TRUE');
-        const hash = computeHash('implication', [ant.hash, cons.hash]);
-        const cached = termCache.get(hash);
-        if (cached) return cached;
-        return cache(
-            Object.freeze({
-                kind: 'implication' as const,
-                args: [ant, cons],
-                hash,
-                toString() {
-                    return serializeTerm(this as CompoundTerm);
-                }
-            } as CompoundTerm)
-        );
-    },
+    implication: (ant: Term | undefined, cons: Term | undefined): Term =>
+        ant && cons ? createCompound('implication', [ant, cons]) : createAtom('TRUE'),
 
-    equivalence: (a: Term | undefined, c: Term | undefined): Term => {
-        if (!a || !c) return TermFactory.atom('TRUE');
-        const hash = computeHash('equivalence', [a.hash, c.hash]);
-        const cached = termCache.get(hash);
-        if (cached) return cached;
-        return cache(
-            Object.freeze({
-                kind: 'equivalence' as const,
-                args: [a, c],
-                hash,
-                toString() {
-                    return serializeTerm(this as CompoundTerm);
-                }
-            } as CompoundTerm)
-        );
-    },
+    equivalence: (a: Term | undefined, c: Term | undefined): Term =>
+        a && c ? createCompound('equivalence', [a, c]) : createAtom('TRUE'),
 
-    compound: (kind: CompoundTerm['kind'], args: Term[]): Term => {
-        const hash = computeHash(kind, args.map(t => t.hash));
-        const cached = termCache.get(hash);
-        if (cached) return cached;
-        return cache(
-            Object.freeze({
-                kind,
-                args,
-                hash,
-                toString() {
-                    return serializeTerm(this as CompoundTerm);
-                }
-            } as CompoundTerm)
-        );
-    },
+    compound: (kind: CompoundTerm['kind'], args: Term[]): Term => createCompound(kind, args),
 
     evict: (hash: number): boolean => termCache.delete(hash),
     clear: (): void => termCache.clear(),
-    get size(): number {
-        return termCache.size;
-    }
+    get size(): number { return termCache.size; }
 };
 
 export const freeze = <T extends object>(obj: T): Readonly<T> => Object.freeze(obj);
-
 export const TermFactory = TermBuilder;

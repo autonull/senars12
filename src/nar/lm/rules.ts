@@ -9,17 +9,18 @@ interface LMRuleDefinition {
     id: string;
     name: string;
     description: string;
-    promptTemplate: string;
     priority: number;
-    taskGenerator: (response: string, primary: Term) => Task[];
     singlePremise?: boolean;
+    taskType?: TaskType;
+    budget?: number;
+    multiline?: boolean;
 }
 
 const NARSESE_INSTRUCTIONS = `
 You are a reasoning assistant that responds in Narsese format.
 Use these Narsese operators:
 - inheritance: (A --> B) means "A is a kind of B"
-- similarity: (A <-> B) means "A is similar to B"  
+- similarity: (A <-> B) means "A is similar to B"
 - implication: (A => B) means "if A then B"
 - equivalence: (A <=> B) means "A if and only if B"
 - conjunction: (A & B) means "both A and B"
@@ -29,164 +30,71 @@ Respond with a single Narsese statement or JSON:
 {"narsese": "(A --> B)", "truth": {"f": 0.8, "c": 0.9}}
 `.trim();
 
-const createRule = (lm: LMClient | null, def: LMRuleDefinition | undefined, config: Partial<LMRuleConfig> = {}): LMRule => {
-    if (!def) {
-        throw new Error('LMRuleDefinition is required');
-    }
-    return new LMRule(def.id, lm, {
-        ...config,
-        name: def.name,
-        description: def.description,
-        singlePremise: def.singlePremise ?? true,
-        priority: def.priority,
-        promptTemplate: def.promptTemplate,
-        taskGenerator: def.taskGenerator
+const parseResponse = (response: string, type: TaskType, budget: number): Task[] => {
+    if (!response) return [];
+    return response.split('\n').filter(l => l.trim()).map(line => {
+        const parsed = LMResponseParser.parse(line);
+        const term = parsed.valid && parsed.term ? parsed.term : {kind: 'atom' as const, symbol: line.trim(), hash: 0};
+        return createTask(term, type, parsed.truth ?? Truth.NEUTRAL, createBudget(budget));
     });
 };
 
-const createTaskGenerator = (type: TaskType = 'belief', budget = 0.6) => {
-    return (response: string, _primary: Term) => {
-        if (!response) return [];
-
-        const parsed = LMResponseParser.parse(response);
-        if (parsed.valid && parsed.term) {
-            return [createTask(parsed.term, type, parsed.truth ?? Truth.NEUTRAL, createBudget(budget))];
-        }
-
-        return [createTask({
-            kind: 'atom' as const,
-            symbol: response.trim(),
-            hash: 0
-        }, type, Truth.NEUTRAL, createBudget(budget))];
-    };
+const createTaskGen = (type: TaskType, budget: number) => (_r: string, _p: Term) => {
+    const parsed = LMResponseParser.parse(_r);
+    return parsed.valid && parsed.term
+        ? [createTask(parsed.term, type, parsed.truth ?? Truth.NEUTRAL, createBudget(budget))]
+        : [createTask({kind: 'atom' as const, symbol: _r.trim(), hash: 0}, type, Truth.NEUTRAL, createBudget(budget))];
 };
+
+const define = (
+    id: string, name: string, desc: string, priority: number,
+    taskType: TaskType = 'belief', budget = 0.7, multiline = false
+): LMRuleDefinition => ({id, name, description: desc, priority, taskType, budget, multiline});
 
 const ruleDefs: LMRuleDefinition[] = [
-    {
-        id: 'lm-narsese-translation',
-        name: 'LMNarseseTranslationRule',
-        description: 'Translates natural language to Narsese',
-        priority: 0.9,
-        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\nTranslate the following sentence into Narsese logic (NARS format). Sentence: "{{taskTerm}}"`,
-        taskGenerator: createTaskGenerator('belief', 0.9)
-    },
-    {
-        id: 'lm-belief-revision',
-        name: 'LMBeliefRevisionRule',
-        description: 'Revises belief confidence based on context',
-        priority: 0.8,
-        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\nGiven the belief "{{primaryTerm}}", should its confidence be revised? Consider context and evidence. Respond in Narsese format.`,
-        taskGenerator: createTaskGenerator('belief', 0.7)
-    },
-    {
-        id: 'lm-goal-decomposition',
-        name: 'LMGoalDecompositionRule',
-        description: 'Decomposes complex goals into subgoals',
-        priority: 0.85,
-        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\nDecompose the goal "{{primaryTerm}}" into simpler subgoals. List them step by step in Narsese format.`,
-        taskGenerator: (response) => {
-            if (!response) return [];
-            return response.split('\n').filter(l => l.trim()).map(line => {
-                const parsed = LMResponseParser.parse(line);
-                return parsed.valid && parsed.term
-                    ? createTask(parsed.term, 'goal', parsed.truth ?? Truth.NEUTRAL, createBudget(0.8))
-                    : createTask({
-                        kind: 'atom' as const,
-                        symbol: line.trim(),
-                        hash: 0
-                    }, 'goal', Truth.NEUTRAL, createBudget(0.8));
-            });
-        }
-    },
-    {
-        id: 'lm-hypothesis-generation',
-        name: 'LMHypothesisGenerationRule',
-        description: 'Generates hypotheses from observations',
-        priority: 0.75,
-        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\nGiven the observation "{{primaryTerm}}", what are possible explanations or hypotheses? Respond in Narsese format.`,
-        taskGenerator: createTaskGenerator('belief', 0.6)
-    },
-    {
-        id: 'lm-explanation-generation',
-        name: 'LMExplanationGenerationRule',
-        description: 'Generates explanations for beliefs',
-        priority: 0.7,
-        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\nExplain why "{{primaryTerm}}" might be true. Provide reasoning in Narsese format.`,
-        taskGenerator: createTaskGenerator('belief', 0.65)
-    },
-    {
-        id: 'lm-analogical-reasoning',
-        name: 'LMAnalogicalReasoningRule',
-        description: 'Performs analogical reasoning between concepts',
-        priority: 0.8,
-        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\nWhat is analogous to "{{primaryTerm}}"? Find similar patterns or structures. Respond in Narsese format.`,
-        taskGenerator: createTaskGenerator('belief', 0.7)
-    },
-    {
-        id: 'lm-meta-reasoning',
-        name: 'LMMetaReasoningGuidanceRule',
-        description: 'Provides meta-level reasoning guidance',
-        priority: 0.75,
-        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\nAnalyze the reasoning process for "{{primaryTerm}}". What meta-level guidance can improve reasoning? Respond in Narsese format.`,
-        taskGenerator: createTaskGenerator('belief', 0.65)
-    },
-    {
-        id: 'lm-uncertainty-calibration',
-        name: 'LMUncertaintyCalibrationRule',
-        description: 'Calibrates uncertainty in beliefs',
-        priority: 0.7,
-        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\nFor the belief "{{primaryTerm}}", what is the appropriate confidence level? Consider evidence quality. Respond in Narsese format.`,
-        taskGenerator: createTaskGenerator('belief', 0.6)
-    },
-    {
-        id: 'lm-schema-induction',
-        name: 'LMSchemaInductionRule',
-        description: 'Induces schemas from examples',
-        priority: 0.75,
-        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\nFrom the example "{{primaryTerm}}", what general schema or pattern can be induced? Respond in Narsese format.`,
-        taskGenerator: createTaskGenerator('belief', 0.65)
-    },
-    {
-        id: 'lm-temporal-causal',
-        name: 'LMTemporalCausalModelingRule',
-        description: 'Models temporal and causal relationships',
-        priority: 0.8,
-        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\nWhat are the temporal or causal relationships involving "{{primaryTerm}}"? Respond in Narsese format.`,
-        taskGenerator: createTaskGenerator('belief', 0.7)
-    },
-    {
-        id: 'lm-variable-grounding',
-        name: 'LMVariableGroundingRule',
-        description: 'Grounds variables in concrete instances',
-        priority: 0.7,
-        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\nWhat concrete instances ground the variable concepts in "{{primaryTerm}}"? Respond in Narsese format.`,
-        taskGenerator: createTaskGenerator('belief', 0.65)
-    },
-    {
-        id: 'lm-concept-elaboration',
-        name: 'LMConceptElaborationRule',
-        description: 'Elaborates on concept properties',
-        priority: 0.75,
-        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\nElaborate on the concept "{{primaryTerm}}". What are its key properties and relationships? Respond in Narsese format.`,
-        taskGenerator: createTaskGenerator('belief', 0.7)
-    },
-    {
-        id: 'lm-interactive-clarification',
-        name: 'LMInteractiveClarificationRule',
-        description: 'Seeks clarification for ambiguous inputs',
-        priority: 0.7,
-        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\nWhat clarification is needed for "{{primaryTerm}}"? Generate questions to resolve ambiguity. Respond in Narsese format.`,
-        taskGenerator: createTaskGenerator('question', 0.65)
-    }
+    define('lm-narsese-translation', 'LMNarseseTranslationRule', 'Translates natural language to Narsese', 0.9, 'belief', 0.9),
+    define('lm-belief-revision', 'LMBeliefRevisionRule', 'Revises belief confidence based on context', 0.8, 'belief', 0.7),
+    define('lm-goal-decomposition', 'LMGoalDecompositionRule', 'Decomposes complex goals into subgoals', 0.85, 'goal', 0.8, true),
+    define('lm-hypothesis-generation', 'LMHypothesisGenerationRule', 'Generates hypotheses from observations', 0.75, 'belief', 0.6),
+    define('lm-explanation-generation', 'LMExplanationGenerationRule', 'Generates explanations for beliefs', 0.7, 'belief', 0.65),
+    define('lm-analogical-reasoning', 'LMAnalogicalReasoningRule', 'Performs analogical reasoning between concepts', 0.8, 'belief', 0.7),
+    define('lm-meta-reasoning', 'LMMetaReasoningGuidanceRule', 'Provides meta-level reasoning guidance', 0.75, 'belief', 0.65),
+    define('lm-uncertainty-calibration', 'LMUncertaintyCalibrationRule', 'Calibrates uncertainty in beliefs', 0.7, 'belief', 0.6),
+    define('lm-schema-induction', 'LMSchemaInductionRule', 'Induces schemas from examples', 0.75, 'belief', 0.65),
+    define('lm-temporal-causal', 'LMTemporalCausalModelingRule', 'Models temporal and causal relationships', 0.8, 'belief', 0.7),
+    define('lm-variable-grounding', 'LMVariableGroundingRule', 'Grounds variables in concrete instances', 0.7, 'belief', 0.65),
+    define('lm-concept-elaboration', 'LMConceptElaborationRule', 'Elaborates on concept properties', 0.75, 'belief', 0.7),
+    define('lm-interactive-clarification', 'LMInteractiveClarificationRule', 'Seeks clarification for ambiguous inputs', 0.7, 'question', 0.65),
 ];
 
-export const createLMRule = (id: string, lm: LMClient | null, config: Partial<LMRuleConfig> = {}): LMRule | undefined => {
-    const def = ruleDefs.find(d => d.id === id);
-    return def ? createRule(lm, def, config) : undefined;
+const prompts: Record<string, string> = {
+    'lm-narsese-translation': 'Translate the following sentence into Narsese logic. Sentence: "{{taskTerm}}"',
+    'lm-belief-revision': 'Given "{{primaryTerm}}", should its confidence be revised?',
+    'lm-goal-decomposition': 'Decompose the goal "{{primaryTerm}}" into simpler subgoals.',
+    'lm-hypothesis-generation': 'Given "{{primaryTerm}}", what are possible explanations?',
+    'lm-explanation-generation': 'Explain why "{{primaryTerm}}" might be true.',
+    'lm-analogical-reasoning': 'What is analogous to "{{primaryTerm}}"?',
+    'lm-meta-reasoning': 'Analyze the reasoning for "{{primaryTerm}}".',
+    'lm-uncertainty-calibration': 'For "{{primaryTerm}}", what confidence level is appropriate?',
+    'lm-schema-induction': 'From "{{primaryTerm}}", what schema can be induced?',
+    'lm-temporal-causal': 'What temporal/causal relationships involve "{{primaryTerm}}"?',
+    'lm-variable-grounding': 'What concrete instances ground "{{primaryTerm}}"?',
+    'lm-concept-elaboration': 'Elaborate on "{{primaryTerm}}". What are its properties?',
+    'lm-interactive-clarification': 'What clarification is needed for "{{primaryTerm}}"?',
 };
 
-export const createAllLMRules = (lm: LMClient | null, config: Partial<LMRuleConfig> = {}): LMRule[] =>
-    ruleDefs.map(def => createRule(lm, def, config));
+const createRule = (lm: LMClient | null, def: LMRuleDefinition, config: Partial<LMRuleConfig> = {}): LMRule =>
+    new LMRule(def.id, lm, {
+        ...config,
+        name: def.name,
+        description: def.description,
+        priority: def.priority,
+        singlePremise: def.singlePremise ?? true,
+        promptTemplate: `${NARSESE_INSTRUCTIONS}\n\n${prompts[def.id]}`,
+        taskGenerator: def.multiline
+            ? (r) => parseResponse(r, def.taskType!, def.budget!)
+            : createTaskGen(def.taskType!, def.budget!)
+    });
 
 export const LMRules = {
     createNarseseTranslationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[0], config),
@@ -202,5 +110,9 @@ export const LMRules = {
     createVariableGroundingRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[10], config),
     createConceptElaborationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[11], config),
     createInteractiveClarificationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[12], config),
-    createAll: createAllLMRules
+    createAll: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => ruleDefs.map(d => createRule(lm, d, config)),
+    create: (id: string, lm: LMClient | null, config?: Partial<LMRuleConfig>) => {
+        const def = ruleDefs.find(d => d.id === id);
+        return def ? createRule(lm, def, config) : undefined;
+    }
 };
