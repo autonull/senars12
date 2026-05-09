@@ -137,18 +137,18 @@ export class Forgetting {
         return Math.min(1, (totalConnections + linkStrength) / 10);
     }
 
-    private selectFifo(concepts: Concept[]): Concept | undefined {
-        let oldest: Concept | undefined;
-        let oldestTime = Infinity;
-        for (const concept of concepts) {
-            const lastAccess = 'lastAccessTime' in concept ? concept.lastAccessTime ?? 0 : 0;
-            if (lastAccess < oldestTime) {
-                oldestTime = lastAccess;
-                oldest = concept;
-            }
-        }
-        return oldest;
+  private selectFifo(concepts: Concept[]): Concept | undefined {
+    let oldest: Concept | undefined;
+    let oldestTime = Infinity;
+    for (const concept of concepts) {
+      const lastAccess = 'lastAccessedAt' in concept ? concept.lastAccessedAt ?? 0 : 0;
+      if (lastAccess < oldestTime) {
+        oldestTime = lastAccess;
+        oldest = concept;
+      }
     }
+    return oldest;
+  }
 
     private selectByPriority(concepts: Concept[]): Concept | undefined {
         const policy = this.policy as { type: 'priority'; threshold: number };
@@ -162,36 +162,36 @@ export class Forgetting {
         );
     }
 
-    private selectByAge(concepts: Concept[]): Concept | undefined {
-        const policy = this.policy as { type: 'age'; maxAgeMs: number };
-        const now = Date.now();
-        for (const concept of concepts) {
-            const lastAccess = 'lastAccessTime' in concept ? concept.lastAccessTime ?? 0 : 0;
-            if (now - lastAccess > policy.maxAgeMs) {
-                return concept;
-            }
-        }
-        const first = concepts[0];
-        if (!first) return undefined;
-        return concepts.reduce((oldest, c) => {
-            const t = 'lastAccessTime' in c ? c.lastAccessTime ?? 0 : 0;
-            const ot = 'lastAccessTime' in oldest ? oldest.lastAccessTime ?? 0 : 0;
-            return t < ot ? c : oldest;
-        }, first);
+  private selectByAge(concepts: Concept[]): Concept | undefined {
+    const policy = this.policy as { type: 'age'; maxAgeMs: number };
+    const now = Date.now();
+    for (const concept of concepts) {
+      const lastAccess = 'lastAccessedAt' in concept ? concept.lastAccessedAt ?? 0 : 0;
+      if (now - lastAccess > policy.maxAgeMs) {
+        return concept;
+      }
     }
+    const first = concepts[0];
+    if (!first) return undefined;
+    return concepts.reduce((oldest, c) => {
+      const t = 'lastAccessedAt' in c ? c.lastAccessedAt ?? 0 : 0;
+      const ot = 'lastAccessedAt' in oldest ? oldest.lastAccessedAt ?? 0 : 0;
+      return t < ot ? c : oldest;
+    }, first);
+  }
 
-    private selectByComposite(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
-        const policy = this.policy as { type: 'composite'; weights: { priority: number; age: number } };
-        let worst: Concept | undefined;
-        let worstScore = Infinity;
-        for (const concept of concepts) {
-            const score = scorer.score(concept);
-            const lastAccess = 'lastAccessTime' in concept ? concept.lastAccessTime ?? 0 : 0;
-            const compositeScore = score * policy.weights.priority + (Date.now() - lastAccess) * policy.weights.age;
-            if (compositeScore > worstScore) {
-                worstScore = compositeScore;
-                worst = concept;
-            }
+  private selectByComposite(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
+    const policy = this.policy as { type: 'composite'; weights: { priority: number; age: number } };
+    let worst: Concept | undefined;
+    let worstScore = Infinity;
+    for (const concept of concepts) {
+      const score = scorer.score(concept);
+      const lastAccess = 'lastAccessedAt' in concept ? concept.lastAccessedAt ?? 0 : 0;
+      const compositeScore = score * policy.weights.priority + (Date.now() - lastAccess) * policy.weights.age;
+      if (compositeScore > worstScore) {
+        worstScore = compositeScore;
+        worst = concept;
+      }
         }
         return worst;
     }

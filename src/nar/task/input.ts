@@ -1,6 +1,6 @@
 import type {Term} from '../terms';
 import {termParser, Truth} from '../terms';
-import {createBudget, createTask, type Task, type TaskType} from './task.js';
+import {createBudget, createTask, type Task, type TaskType} from '../types/core.js';
 
 export interface InputProcessorConfig {
     defaultType: TaskType;

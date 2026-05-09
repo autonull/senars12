@@ -259,33 +259,13 @@ export class NAR extends BaseComponent {
 
     getMetrics = () => this.metrics.getSummary();
 
-    async initializeLM(): Promise<void> {
-        if (this._lmInitialized || !this.config.lmClient) {
-            return;
-        }
-
-        const lmRules = [
-            LMRules.createNarseseTranslationRule(this.config.lmClient),
-            LMRules.createBeliefRevisionRule(this.config.lmClient),
-            LMRules.createGoalDecompositionRule(this.config.lmClient),
-            LMRules.createHypothesisGenerationRule(this.config.lmClient),
-            LMRules.createExplanationGenerationRule(this.config.lmClient),
-            LMRules.createAnalogicalReasoningRule(this.config.lmClient),
-            LMRules.createMetaReasoningGuidanceRule(this.config.lmClient),
-            LMRules.createUncertaintyCalibrationRule(this.config.lmClient),
-            LMRules.createSchemaInductionRule(this.config.lmClient),
-            LMRules.createTemporalCausalModelingRule(this.config.lmClient),
-            LMRules.createVariableGroundingRule(this.config.lmClient),
-            LMRules.createConceptElaborationRule(this.config.lmClient),
-            LMRules.createInteractiveClarificationRule(this.config.lmClient)
-        ];
-
-        for (const rule of lmRules) {
-            this.processor.registerLMRule(rule);
-        }
-
-        this._lmInitialized = true;
+  async initializeLM(): Promise<void> {
+    if (this._lmInitialized || !this.config.lmClient) {
+      return;
     }
+
+    this.initializeLMRules(this.config.lmClient);
+  }
 
     async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
         return this.tools.execute(name, args);

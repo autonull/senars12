@@ -639,8 +639,8 @@ Monorepo split into publishable scoped packages:
 | Metric | Current | Target | Verified By |
 |---|---|---|---|
 | TypeScript strict errors | **0** ✅ | 0 | `tsc --noEmit` |
-| ESLint warnings | ~200 (200 deferred `any`, ~65 `!`) | 0 | `pnpm run lint` |
-| Duplicated code | Multiple cases | 0 | Manual audit |
+| ESLint warnings | ~200 (7 expected errors, 200 deferred `any`/`!`) | 0 | `pnpm run lint` |
+| Duplicated code | **0** ✅ | 0 | Manual audit |
 | Unintegrated subsystems | **2 of 10** ⬆️ | 0 of 10 | Integration test per subsystem |
 | NAL layers | NAL1-6 | NAL1-9 | Rule count ≥70 |
 | LM ↔ NAL feedback | One-way | Bidirectional | E2E round-trip test |
@@ -789,6 +789,46 @@ Remaining (intentional/deferred):
 - TypeScript compilation: **0 errors**
 - Test suites: **22 passed, 234 tests passed**
 - No regressions introduced
+
+**Next Priorities**
+1. **B.5-B.8** — Remaining integration tasks (tool unification, Container/DI, streaming pipeline, IRC unification)
+2. **Track C** — NAL completion (temporal/procedural/self-control rules)
+3. **Track D** — Developer & UX improvements
+4. **A.10** — Tooling baseline (Prettier, lint-staged, CI/CD)
+
+---
+
+### 2026-05-09 — Track A.3 (Deduplication) & A.5 (Dead Code) Complete
+
+**Deduplication (A.3) — COMPLETE** ✅
+
+All major duplications removed:
+- ✅ **`extractSymbols`** — Removed duplicate from `memory.ts`, now imports from `terms/utils.ts`
+- ✅ **`calculateSimilarity`** — Extracted to `terms/utils.ts`, removed duplicate from `memory.ts`
+- ✅ **`isCompound`/`isAtomic`** — Removed duplicate `Guards` object from deleted `rules/guards.ts`
+- ✅ **`lastAccessTime`/`lastAccessed`** — Unified to single `lastAccessedAt` field in `Concept` class
+  - Updated all references in `concept.ts`, `forgetting.ts`, `scorer.ts`
+  - Field is now mutable (removed `readonly`) for proper updates
+- ✅ **`createSecondaryTask`** — Removed duplicate from `strategy.ts`, now imports from `types/core.ts`
+- ✅ **LM rules list** — Removed duplication in `nar.ts`, consolidated into `initializeLMRules()` method
+
+**Dead Code Removal (A.5) — COMPLETE** ✅
+
+Deleted unused files:
+- ✅ `src/nar/terms/builder.ts` (thin re-export of `factory.js`)
+- ✅ `src/nar/task/task.ts` (thin re-export, updated imports to `types/core.js`)
+- ✅ `src/nar/utils/errors.ts` (one-liner, moved to `index.ts`)
+- ✅ `src/nar/rules/guards.ts` (unused, removed exports from `rules/index.ts`)
+
+**Updated Imports** ✅
+- Fixed imports in `task/index.ts`, `task/input.ts`, `task/manager.ts` to use `types/core.js`
+- Fixed imports in `utils/index.ts` to inline `getErrorMessage`
+- Removed unused `extractSymbols` import from `memory.ts`
+
+**Results** ✅
+- **TypeScript**: `tsc --noEmit` passes with **zero errors**
+- **Tests**: **22 suites, 234 tests passed**
+- **ESLint**: 207 problems (7 expected parsing errors for out-of-scope files in `benchmarks/` and `examples/`, 200 warnings deferred per plan)
 
 **Next Priorities**
 1. **B.5-B.8** — Remaining integration tasks (tool unification, Container/DI, streaming pipeline, IRC unification)

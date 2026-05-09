@@ -21,12 +21,13 @@ export class MemoryScorer {
         this.config = config;
     }
 
-    score(concept: Concept, context: {
-        lastAccessTime?: number;
-        relatedConcepts?: number;
-        activation?: number;
-        recency?: number;
-    } = {}): number {
+  score(concept: Concept, context: {
+    lastAccessTime?: number;
+    lastAccessedAt?: number;
+    relatedConcepts?: number;
+    activation?: number;
+    recency?: number;
+  } = {}): number {
         const novelty = this.computeNovelty(concept, context);
         const relevance = this.computeRelevance(concept, context);
         const activation = context.activation ?? concept.priority;

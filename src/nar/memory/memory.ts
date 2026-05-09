@@ -13,6 +13,7 @@ import {MemoryScorer} from './scorer.js';
 import {MemoryConsolidation} from './consolidation.js';
 import type {ForgettingPolicy} from './forgetting.js';
 import {Forgetting} from './forgetting.js';
+import {calculateSimilarity} from '../terms/utils.js';
 
 export interface MemoryConfig {
     maxConcepts?: number;
@@ -377,12 +378,12 @@ export class Memory {
         return primary.mergeWith(others);
     }
 
-    findSimilarConcepts(term: Term, limit = 10): Concept[] {
-        const allConcepts = Array.from(this.concepts.values());
-        const scored = allConcepts.map(concept => ({
-            concept,
-            similarity: this.calculateSimilarity(concept, term),
-        }));
+  findSimilarConcepts(term: Term, limit = 10): Concept[] {
+    const allConcepts = Array.from(this.concepts.values());
+    const scored = allConcepts.map(concept => ({
+      concept,
+      similarity: calculateSimilarity(concept, term),
+    }));
 
         scored.sort((a, b) => b.similarity - a.similarity);
         return scored.slice(0, limit).map(s => s.concept);
@@ -455,36 +456,8 @@ export class Memory {
             }
         }
 
-        return orphaned;
-    }
-
-    private calculateSimilarity(concept: Concept, term: Term): number {
-        if (concept.term.hash === term.hash) return 1;
-
-        const thisSymbols = this.extractSymbols(concept.term);
-        const otherSymbols = this.extractSymbols(term);
-
-        const intersection = new Set([...thisSymbols].filter(s => otherSymbols.has(s)));
-        const union = new Set([...thisSymbols, ...otherSymbols]);
-
-        return union.size > 0 ? intersection.size / union.size : 0;
-    }
-
-    private extractSymbols(term: Term, symbols = new Set<string>()): Set<string> {
-        if ('symbol' in term && typeof term.symbol === 'string') {
-            symbols.add(term.symbol as string);
-        }
-
-        if ('args' in term && Array.isArray(term.args)) {
-            for (const arg of term.args) {
-                if (typeof arg === 'object' && arg !== null) {
-                    this.extractSymbols(arg as Term, symbols);
-                }
-            }
-        }
-
-        return symbols;
-    }
+  return orphaned;
+  }
 }
 
 // Serialization

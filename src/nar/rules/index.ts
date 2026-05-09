@@ -15,6 +15,4 @@ export {NALRules} from './nal.js';
 export {NALExtendedRules} from './nal-extended.js';
 
 // Rule utilities
-export type {Guard} from './guards.js';
-export {composeGuards, andGuards, orGuards, notGuard, Guards} from './guards.js';
 export {composeRules, sequenceRules} from './compose.js';
