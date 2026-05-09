@@ -57,41 +57,90 @@ export class QueryAPI {
         };
     }
 
-    async ask(question: string | Term): Promise<Answer> {
-        const questionStr = typeof question === 'string' ? question : question.toString();
+  async ask(question: string | Term): Promise<Answer> {
+    const questionStr = typeof question === 'string' ? question : question.toString();
+    const questionTerm = typeof question === 'string' ? this.parseQuestion(question) : question;
 
-        const matchingBeliefs = this.getBeliefs({
-            limit: 10,
-            truthRange: [0.5, 1.0]
-        });
-
-        if (matchingBeliefs.length === 0) {
-            return {
-                question: questionStr,
-                confidence: 0,
-                evidence: []
-            };
-        }
-
-        const topBelief = matchingBeliefs[0];
-        if (!topBelief) {
-            return {
-                question: questionStr,
-                confidence: 0,
-                evidence: []
-            };
-        }
-
-        const confidence = topBelief.truth.f * topBelief.truth.c;
-
-        return {
-            question: questionStr,
-            answer: topBelief.term.toString(),
-            confidence,
-            evidence: [topBelief],
-            derivationPath: this.extractDerivationPath(topBelief)
-        };
+    if (!questionTerm) {
+      return {
+        question: questionStr,
+        confidence: 0,
+        evidence: []
+      };
     }
+
+    const concept = this.memory.getConcept(questionTerm);
+    if (concept) {
+      const belief = concept.beliefBag.peek();
+      if (belief?.truth) {
+        const confidence = belief.truth.f * belief.truth.c;
+        if (confidence >= 0.5) {
+          const task: Task = {
+            term: questionTerm,
+            type: 'belief',
+            truth: belief.truth,
+            budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+            stamp: (belief as any).stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
+            occurrenceTime: 0,
+            derived: false
+          };
+
+          return {
+            question: questionStr,
+            answer: questionTerm.toString(),
+            confidence,
+            evidence: [task],
+            derivationPath: this.extractDerivationPath(task)
+          };
+        }
+      }
+    }
+
+    const relatedConcepts = this.memory.getRelatedConcepts(questionTerm);
+    for (const related of relatedConcepts.slice(0, 5)) {
+      const belief = related.beliefBag.peek();
+      if (belief?.truth) {
+        const confidence = belief.truth.f * belief.truth.c;
+        if (confidence >= 0.5) {
+          const task: Task = {
+            term: related.term,
+            type: 'belief',
+            truth: belief.truth,
+            budget: {priority: related.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+            stamp: (belief as any).stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
+            occurrenceTime: 0,
+            derived: false
+          };
+
+          return {
+            question: questionStr,
+            answer: related.term.toString(),
+            confidence,
+            evidence: [task],
+            derivationPath: this.extractDerivationPath(task)
+          };
+        }
+      }
+    }
+
+    return {
+      question: questionStr,
+      confidence: 0,
+      evidence: []
+    };
+  }
+
+  private parseQuestion(question: string): Term | null {
+    try {
+      if (question.includes('-->') || question.includes('<->') || question.includes('=>')) {
+        const {termParser} = require('../terms/parser.js');
+        return termParser.parse(question);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
 
     private queryByType(type: TaskType, filter?: TermFilter): Task[] {
         const tasks: Task[] = [];

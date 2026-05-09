@@ -1,28 +1,6 @@
 import type {ConceptLike, Task} from '../../types';
+import {createSecondaryTask, termsEqual} from '../../types';
 import type {Memory} from '../../memory';
-import {termsEqual} from '../../terms';
-
-const DEFAULT_STAMP = Object.freeze({
-    id: '',
-    creationTime: 0,
-    source: 'INPUT' as const,
-    derivations: [],
-    depth: 0
-});
-
-const DEFAULT_BUDGET = (priority: number) => ({priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0});
-
-function createTaskFromBelief(term: ConceptLike['term'], truth: {f: number; c: number}, priority: number): Task {
-    return {
-        term,
-        type: 'belief' as const,
-        truth,
-        budget: DEFAULT_BUDGET(priority),
-        stamp: DEFAULT_STAMP,
-        occurrenceTime: 0,
-        derived: false
-    };
-}
 
 export interface PremiseSelector {
     readonly name: string;
@@ -112,9 +90,9 @@ export class TermMatchingSelector implements PremiseSelector {
         return results;
     }
 
-    private createTask(concept: ConceptLike, truth: { f: number; c: number }): Task {
-        return createTaskFromBelief(concept.term, truth, concept.priority);
-    }
+  private createTask(concept: ConceptLike, truth: { f: number; c: number }): Task {
+    return createSecondaryTask(concept.term, concept.priority, truth);
+  }
 }
 
 export class DecompositionSelector implements PremiseSelector {
@@ -134,7 +112,7 @@ export class DecompositionSelector implements PremiseSelector {
             const belief = concept.beliefBag.peek();
             if (!belief?.truth) continue;
 
-        results.push(createTaskFromBelief(arg, belief.truth, concept.priority));
+        results.push(createSecondaryTask(arg, concept.priority, belief.truth));
 
             if (results.length >= limit) break;
         }
@@ -174,9 +152,9 @@ export class AnalogySelector implements PremiseSelector {
                 if (!hasOverlap) continue;
             }
 
-        results.push(createTaskFromBelief(concept.term, belief.truth, concept.priority));
+    results.push(createSecondaryTask(concept.term, concept.priority, belief.truth));
 
-            if (results.length >= limit) break;
+    if (results.length >= limit) break;
         }
 
         return results;

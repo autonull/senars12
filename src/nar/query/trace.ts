@@ -78,48 +78,87 @@ export class ReasoningTrace {
         };
     }
 
-    explain(conclusion: Task): ExplainResult {
-        const premises: Task[] = [];
-        const rules: string[] = [];
-        const confidence = conclusion.truth.f * conclusion.truth.c;
+  explain(conclusion: Task): ExplainResult {
+    const premises: Task[] = [];
+    const rules: string[] = [];
+    const confidence = conclusion.truth.f * conclusion.truth.c;
 
-        return {
-            conclusion,
-            premises,
-            rules,
-            confidence,
-            why: this.generateExplanation(conclusion, premises, confidence)
-        };
+    const history = this.getDerivationHistory(conclusion);
+    premises.push(...history.filter(t => t.stamp.id !== conclusion.stamp.id));
+
+    if (conclusion.stamp.derivations) {
+      for (const deriv of conclusion.stamp.derivations) {
+        if (deriv.rule) rules.push(deriv.rule);
+      }
     }
 
-    buildDerivationTree(task: Task): DerivationTree {
-        const root = this.buildNode(task);
-        const depth = this.calculateDepth(root);
-        const nodeCount = this.countNodes(root);
+    return {
+      conclusion,
+      premises,
+      rules,
+      confidence,
+      why: this.generateExplanation(conclusion, premises, confidence)
+    };
+  }
 
-        return {
-            root,
-            depth,
-            nodeCount
-        };
+  recordDerivation(task: Task, rule?: string): void {
+    const node: DerivationNode = {
+      task,
+      children: [],
+      rule,
+      timestamp: Date.now()
+    };
+    this.derivationHistory.set(task.stamp.id, node);
+  }
+
+  buildDerivationTree(task: Task): DerivationTree {
+    const root = this.buildNode(task);
+    this.populateChildren(root, new Set());
+    const depth = this.calculateDepth(root);
+    const nodeCount = this.countNodes(root);
+
+    return {
+      root,
+      depth,
+      nodeCount
+    };
+  }
+
+  private populateChildren(node: DerivationNode, visited: Set<string>): void {
+    const stampId = node.task.stamp.id;
+    if (visited.has(stampId)) return;
+    visited.add(stampId);
+
+    const derivationIds = node.task.stamp.derivations || [];
+    if (derivationIds.length === 0) return;
+
+    for (const derivId of derivationIds) {
+      const parent = this.derivationHistory.get(derivId);
+      if (parent && !visited.has(derivId)) {
+        node.children.push(parent);
+        this.populateChildren(parent, visited);
+      }
+    }
+  }
+
+  getDerivationPath(task: Task): string[] {
+    const path: string[] = [];
+    let currentStamp = task.stamp;
+
+    while (currentStamp && path.length < 20) {
+      path.push(currentStamp.id);
+
+      if (!currentStamp.derivations || currentStamp.derivations.length === 0) {
+        break;
+      }
+
+      const parentStamp = currentStamp.derivations[0]?.parent;
+      if (!parentStamp) break;
+      currentStamp = parentStamp;
     }
 
-    getDerivationPath(task: Task): string[] {
-        const path: string[] = [];
-        let currentStamp = task.stamp;
-
-        while (currentStamp && path.length < 20) {
-            path.push(currentStamp.id);
-
-            if (!currentStamp.derivations || currentStamp.derivations.length === 0) {
-                break;
-            }
-
-            break;
-        }
-
-        return path.reverse();
-    }
+    return path.reverse();
+  }
 
     private buildNode(task: Task): DerivationNode {
         return {

@@ -271,10 +271,12 @@ export class HTTPServer {
         return this.apiKeys.has(apiKey);
     }
 
-    private checkRateLimit(key: string): boolean {
-        const now = Date.now();
-        const state = this.rateLimitState.get(key);
-        const {windowMs, maxRequests} = this.config.rateLimit!;
+private checkRateLimit(key: string): boolean {
+    const now = Date.now();
+    const state = this.rateLimitState.get(key);
+    const rateLimit = this.config.rateLimit;
+    if (!rateLimit) return false;
+    const {windowMs, maxRequests} = rateLimit;
 
         if (!state || now > state.resetTime) {
             this.rateLimitState.set(key, {count: 1, resetTime: now + windowMs});
@@ -489,10 +491,20 @@ export class HTTPServer {
         }
     }
 
-    private async getStats(): Promise<HTTPResponse> {
-        if (!this.agent) {
-            return {statusCode: 503, body: {error: 'Agent not initialized'}};
-        }
+  private async getStats(): Promise<HTTPResponse> {
+    const nar = this.nar;
+    const stats = nar.getStatistics();
+    const metrics = nar.getMetrics();
+    return {
+      statusCode: 200,
+      body: {
+        totalConcepts: stats.totalConcepts,
+        totalTasks: stats.totalTasks,
+        rulesFired: metrics.system.totalSteps || 0,
+        derivations: metrics.system.totalDerivations || 0
+      }
+    };
+  }
 
         const nar = this.agent.getNAR();
         const stats = nar.getStatistics();

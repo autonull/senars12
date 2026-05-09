@@ -641,13 +641,15 @@ Monorepo split into publishable scoped packages:
 | TypeScript strict errors | **0** ✅ | 0 | `tsc --noEmit` |
 | ESLint warnings | ~200 | 0 | `pnpm run lint` |
 | Duplicated code | Multiple cases | 0 | Manual audit |
-| Unintegrated subsystems | **4 of 10** | 0 of 10 | Integration test per subsystem |
+| Unintegrated subsystems | **2 of 10** ⬆️ | 0 of 10 | Integration test per subsystem |
 | NAL layers | NAL1-6 | NAL1-9 | Rule count ≥70 |
 | LM ↔ NAL feedback | One-way | Bidirectional | E2E round-trip test |
 | NL chat | None | NL→reason→NL | E2E bot test |
 | CLI self/RLFP commands | 0 | 8 | Manual exploration |
 | Task processing | **Full lifecycle** ✅ | Full lifecycle | `processPending()` called in `run()` |
 | Tool registration | **12/12** ✅ | 12/12 | `initializeTools()` |
+| Self/Metacognition | **WIRED** ✅ | Wired | `self.getSystemAnalysis()` works |
+| RLFP | **WIRED** ✅ | Wired | `rlfp.optimize()` works |
 | Missing docs | 6 files | 0 missing | File existence |
 | HTTP API | Basic | Full + Swagger + SSE + pagination | Integration tests |
 | Coverage | Unknown | ≥80% lines | `vitest --coverage` |
@@ -676,7 +678,7 @@ Monorepo split into publishable scoped packages:
 
 ## Progress Log
 
-### 2026-05-09 — Track A.1 Complete + B.1 & B.4 Integration
+### 2026-05-09 — Track A.1, B.1, B.2, B.3, B.4 Complete
 
 **Type Safety Audit (A.1) — COMPLETE** ✅
 - Fixed `extractSymbols` import in `concept.ts` (imported from `../terms/utils.js`)
@@ -693,28 +695,76 @@ Monorepo split into publishable scoped packages:
 - Tasks now flow through proper lifecycle: pending → running → completed
 - Location: `nar.ts:126-141`
 
+**Self/Metacognition Integration (B.2) — COMPLETE** ✅
+- Added `enableSelf` config flag to NARConfig
+- Instantiated `ReasoningAboutReasoning` in NAR constructor when enabled
+- Wired `self.start()` in `NAR.start()`, `self.stop()` in `NAR.stop()`
+- Wired `self.shutdown()` in `NAR.dispose()`
+- Location: `nar.ts:72, 106-111, 117-122`
+
+**RLFP Integration (B.3) — COMPLETE** ✅
+- Added `enableRLFP` config flag and `RLFPConfig` interface to NARConfig
+- Instantiated `RLFPLearner` in NAR constructor when enabled
+- Added periodic optimization call in `NAR.run()` (every `optimizeInterval` cycles)
+- Added `_cycleCount` tracker for RLFP optimization intervals
+- Location: `nar.ts:57-60, 72, 106-111, 117-122, 147-151`
+
 **Tool Registration (B.4) — COMPLETE** ✅
 - Registered all 12 tools in `NAR.initializeTools()`:
-  1. CalculateTool ✓
-  2. SleepTool ✓
-  3. ReadFileTool ✓
-  4. WriteFileTool ✓
-  5. HTTPTool ✓
-  6. SearchTool ✓ (newly added, requires `memory`)
-  7. ReasonTool ✓ (newly added, requires `nar`)
-  8. ExplainTool ✓ (newly added, requires `memory`)
-  9. LearnTool ✓ (newly added, requires `memory`)
-  10. TimerTool ✓ (newly added)
-  11. ProcessTool ✓ (newly added, shell access - consider sandbox config)
-  12. GuidedReasoningPipeline (available via `nar.runGuided()`)
+1. CalculateTool ✓
+2. SleepTool ✓
+3. ReadFileTool ✓
+4. WriteFileTool ✓
+5. HTTPTool ✓
+6. SearchTool ✓ (newly added, requires `memory`)
+7. ReasonTool ✓ (newly added, requires `nar`)
+8. ExplainTool ✓ (newly added, requires `memory`)
+9. LearnTool ✓ (newly added, requires `memory`)
+10. TimerTool ✓ (newly added)
+11. ProcessTool ✓ (newly added, shell access - consider sandbox config)
+12. GuidedReasoningPipeline (available via `nar.runGuided()`)
 
 **ESLint Status** ⚠️
 - ~131 `no-explicit-any` warnings (mostly in LM, RLFP, self modules)
 - ~71 `no-non-null-assertion` warnings
 - Deferred to Track A.2 (lower priority than integration)
 
+**Test Results** ✅
+- TypeScript compilation: **0 errors**
+- Test suites: **22 passed, 234 tests passed**
+- Integration test: **PASSED** (Self and RLFP modules instantiated and functional)
+
+### 2026-05-09 — Track A.6 Complete + ESLint Progress
+
+**Broken Implementations (A.6) — COMPLETE** ✅
+
+All A.6 items completed:
+- ✅ **A.6.3 `ask()` function** — Enhanced with proper concept lookup, related concept search, and confidence-based answer selection (`src/nar/query/api.ts:60-158`)
+- ✅ **A.6.4 `explain()` function** — Now populates premises from derivation history and extracts rules from stamp derivations (`src/nar/query/trace.ts:81-103`)
+- ✅ **A.6.5 `extractDerivationPath()` function** — Fixed to walk full stamp chain to root instead of breaking after 1 step (`src/nar/query/trace.ts:117-133`)
+- ✅ **A.6.6 `buildDerivationTree()` function** — Added `recordDerivation()` method and `populateChildren()` to build complete derivation trees from linked history (`src/nar/query/trace.ts:135-158`)
+- ✅ **A.6.7 `variableDependency()` rule** — Implemented variable dependency derivation that finds shared variables between terms (`src/nar/rules/nal-extended.ts:123-137`)
+- ✅ **A.6.8 Task creation unification** — Created `createSecondaryTask()` in `src/nar/types/core.ts:128-138` and replaced both `createTaskFromBelief` and `createTaskFromConcept` with unified function
+
+**ESLint Audit (A.2) — IN PROGRESS** ⏳
+
+Fixed:
+- ✅ Removed non-null assertions in `bounded-bag.ts` (lines 85, 250, 252, 253)
+- ✅ Fixed `rateLimit` non-null assertion in `http-server.ts` (line 277)
+- ✅ Fixed stats type casting in `http-server.ts` (lines 506-507) using proper metrics API
+
+Remaining:
+- ~130 `no-explicit-any` warnings (mostly in LM, RLFP, self, logger modules - many are intentional for flexible context/logging)
+- ~65 `no-non-null-assertion` warnings (scattered across agent, CLI, and LM modules)
+
+**Test Results** ✅
+- TypeScript compilation: **0 errors**
+- Test suites: **22 passed, 234 tests passed**
+- No regressions introduced
+
 **Next Priorities**
-1. **B.2** — Wire Self/Metacognition (`ReasoningAboutReasoning`, `MetacognitiveMonitor`, `SelfAnalyzer`)
-2. **B.3** — Wire RLFP (`RLFPLearner`, `PolicyOptimizer`, `RewardModel`)
-3. **A.6** — Fix remaining broken implementations (`Term.toString()`, `ask()`, `explain()`, etc.)
+1. **A.2** — Complete ESLint audit (focus on critical path files, use eslint-disable for intentional anys in logging/config)
+2. **B.5-B.8** — Remaining integration tasks (tool unification, Container/DI, streaming pipeline, IRC unification)
+3. **Track C** — NAL completion (temporal/procedural/self-control rules)
+4. **Track D** — Developer & UX improvements
 12. **Zero-cost abstractions** — Type-level metaprogramming erased at runtime; O(1) structural hash comparison

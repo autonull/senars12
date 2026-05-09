@@ -111,18 +111,34 @@ const NEUTRAL_BUDGET = createBudget(0.5);
 
 // Create Task object - optimized
 export const createTask = (
-    term: Term,
-    type: TaskType,
-    truth: TruthType,
-    budget: Budget | number = NEUTRAL_BUDGET
+  term: Term,
+  type: TaskType,
+  truth: TruthType,
+  budget: Budget | number = NEUTRAL_BUDGET
 ): Task => ({
-    term,
-    type,
-    truth,
-    budget,
-    stamp: Stamp.createInput(),
-    occurrenceTime: Date.now(),
-    derived: false
+  term,
+  type,
+  truth,
+  budget,
+  stamp: Stamp.createInput(),
+  occurrenceTime: Date.now(),
+  derived: false
+});
+
+// Create secondary task from concept or belief - unified replacement for createTaskFromBelief/createTaskFromConcept
+export const createSecondaryTask = (
+  term: Term,
+  priority: number,
+  truth?: {f: number; c: number},
+  type: TaskType = 'belief'
+): Task => ({
+  term,
+  type,
+  truth: truth ?? {f: 0.5, c: 0.9},
+  budget: {priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+  stamp: Stamp.createInput(),
+  occurrenceTime: 0,
+  derived: false
 });
 
 // Error types for better error handling

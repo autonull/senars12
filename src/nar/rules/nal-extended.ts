@@ -1,6 +1,19 @@
 import type {Term} from '../terms';
-import {getPredicate, getSubject, sameHash, TermBuilder, Truth} from '../terms';
+import {getPredicate, getSubject, sameHash, TermBuilder, Truth, isVariableSymbol} from '../terms';
 import {createRulePattern, type RuleFn, RuleRegistry, type TruthFn} from './types.js';
+
+const getVariables = (term: Term): Term[] => {
+  const vars: Term[] = [];
+  const collect = (t: Term): void => {
+    if (t.kind === 'atom' && t.isVariable) {
+      vars.push(t);
+    } else if ('args' in t) {
+      t.args.forEach(collect);
+    }
+  };
+  collect(term);
+  return vars;
+};
 
 export const NALExtendedRules = {
     modusPonens: ([imp, antecedent]: [Term, Term]): Term | undefined => {
@@ -110,9 +123,19 @@ export const NALExtendedRules = {
         return results[0] ?? conj;
     },
 
-    variableDependency(_premises: [Term, Term]): Term | undefined {
-        return undefined;
-    },
+  variableDependency(premises: [Term, Term]): Term | undefined {
+    const [t1, t2] = premises;
+    const vars1 = getVariables(t1);
+    const vars2 = getVariables(t2);
+    
+    if (vars1.length === 0 || vars2.length === 0) return undefined;
+    
+    const shared = vars1.filter(v1 => vars2.some(v2 => v2.hash === v1.hash));
+    if (shared.length === 0) return undefined;
+    
+    const depTerm = TermBuilder.conjunction(...shared);
+    return depTerm;
+  },
 
     comparison(premises: [Term, Term]): Term | undefined {
         const [inh1, inh2] = premises;

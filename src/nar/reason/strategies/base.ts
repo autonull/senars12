@@ -1,36 +1,16 @@
 import type {Task} from '../../types';
+import {createSecondaryTask} from '../../types';
 import type {Strategy} from '../strategy.js';
 import type {Concept} from '../../memory';
 import {termsEqual} from '../../terms';
 
 interface StrategyConfig {
-    name: string;
-    sampleSize: number;
-    filter?: (concept: Concept, task: Task) => boolean;
-    truthFilter?: (truth: any) => boolean;
-    limit?: number;
+  name: string;
+  sampleSize: number;
+  filter?: (concept: Concept, task: Task) => boolean;
+  truthFilter?: (truth: any) => boolean;
+  limit?: number;
 }
-
-const createTaskFromConcept = (concept: Concept, priority: number): Task => {
-    const belief = concept.beliefBag.peek();
-    const truth = belief?.truth ?? {f: 0.5, c: 0.9};
-
-    return {
-        term: concept.term,
-        type: 'belief' as const,
-        truth,
-        budget: {priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-        stamp: Object.freeze({
-            id: '',
-            creationTime: 0,
-            source: 'INPUT' as const,
-            derivations: [],
-            depth: 0
-        }),
-        occurrenceTime: 0,
-        derived: false
-    };
-};
 
 export const createStrategy = (config: StrategyConfig): Strategy => {
     const {name, sampleSize, filter, truthFilter, limit = 5} = config;
@@ -50,8 +30,8 @@ export const createStrategy = (config: StrategyConfig): Strategy => {
 
                 if (truthFilter && !truthFilter(belief.truth)) continue;
 
-                results.push(createTaskFromConcept(concept, concept.priority));
-                if (results.length >= limit) break;
+    results.push(createSecondaryTask(concept, concept.priority));
+    if (results.length >= limit) break;
             }
 
             return results;

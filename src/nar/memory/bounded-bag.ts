@@ -80,13 +80,13 @@ export class BoundedBag<T> {
                 const minP = this.findMinPriority();
                 if (priority <= minP) return false;
                 this.heap.shift();
-            } else if (this.overflowBehavior === 'replace-lowest') {
-                const minIdx = this.findMinIndex();
-                if (minIdx >= 0 && priority > this.heap[minIdx]!.priority) {
-                    this.heap.splice(minIdx, 1);
-                } else {
-                    return false;
-                }
+    } else if (this.overflowBehavior === 'replace-lowest') {
+      const minIdx = this.findMinIndex();
+      if (minIdx >= 0 && priority > this.heap[minIdx].priority) {
+        this.heap.splice(minIdx, 1);
+      } else {
+        return false;
+      }
             } else if (this.overflowBehavior === 'merge') {
                 const existing = this.heap.find(h => this.itemsMatch(h.item, item));
                 if (existing) {
@@ -244,18 +244,18 @@ export class BoundedBag<T> {
         return minP;
     }
 
-    private findMinIndex(): number {
-        if (this.heap.length === 0) return -1;
-        let minIdx = 0;
-        let minP = this.heap[0]!.priority;
-        for (let i = 1; i < this.heap.length; i++) {
-            if (this.heap[i]!.priority < minP) {
-                minP = this.heap[i]!.priority;
-                minIdx = i;
-            }
-        }
-        return minIdx;
+  private findMinIndex(): number {
+    if (this.heap.length === 0) return -1;
+    let minIdx = 0;
+    let minP = this.heap[0].priority;
+    for (let i = 1; i < this.heap.length; i++) {
+      if (this.heap[i].priority < minP) {
+        minP = this.heap[i].priority;
+        minIdx = i;
+      }
     }
+    return minIdx;
+  }
 
     private itemsMatch(a: T, b: T): boolean {
         if (a == null || b == null) return a === b;
