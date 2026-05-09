@@ -190,7 +190,13 @@ export interface QueryOptions {
 
 // Type guards
 export const isSuccess = <T>(result: Result<T>): result is Success<T> =>
-    result.success;
+  result.success;
 
 export const isFailure = <T>(result: Result<T>): result is Failure =>
-    !result.success;
+  !result.success;
+
+// Internal: base stats interface for metrics aggregation
+export interface BaseStats {
+  uptime?: number;
+  [key: string]: unknown;
+}

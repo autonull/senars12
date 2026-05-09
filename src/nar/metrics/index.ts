@@ -1,73 +1,96 @@
-// Internal: rule-level statistics shape (not part of public API)
-// Marked with leading underscore to indicate internal use only
+import type {BaseStats as CoreBaseStats} from '../types/core.js';
+
+// Public: performance metric type for external consumers
+export type PerformanceMetric = {
+  type: string;
+  value: number;
+  severity?: 'low' | 'medium' | 'high';
+  threshold?: number;
+  belief?: string;
+};
+
+// Internal: base stats interface with optional uptime
+interface BaseStats extends CoreBaseStats {
+  uptime?: number;
+  [key: string]: unknown;
+}
+
+// Internal: aggregated system metrics
+interface SystemMetrics extends BaseStats {
+  uptime: number;
+  totalDerivations: number;
+  totalSteps: number;
+  errors: number;
+  warnings: number;
+}
+
+// Internal: rule-level statistics shape
 interface _RuleStats {
-    id: string;
-    executions: number;
-    successes: number;
-    failures: number;
-    averageDuration: number;
-    lastExecution: number;
+  id: string;
+  executions: number;
+  successes: number;
+  failures: number;
+  averageDuration: number;
+  lastExecution: number;
 }
 
 // Internal: memory statistics shape
 interface MemoryStats {
-    conceptCount: number;
-    beliefCount: number;
-    goalCount: number;
-    questionCount: number;
-    activationDistribution: {
-        min: number;
-        max: number;
-        average: number;
-    };
-    forgettingRate: number;
+  conceptCount: number;
+  beliefCount: number;
+  goalCount: number;
+  questionCount: number;
+  activationDistribution: {
+    min: number;
+    max: number;
+    average: number;
+  };
+  forgettingRate: number;
 }
 
 // Internal: LM / LLM statistics shape
 interface LMStats {
-    totalCalls: number;
-    successfulCalls: number;
-    failedCalls: number;
-    tokenUsage: {
-        input: number;
-        output: number;
-        total: number;
-    };
-    averageLatency: number;
-    costEstimate: number;
+  totalCalls: number;
+  successfulCalls: number;
+  failedCalls: number;
+  tokenUsage: {
+    input: number;
+    output: number;
+    total: number;
+  };
+  averageLatency: number;
+  costEstimate: number;
 }
 
 // Internal: throughput statistics
 interface ThroughputStats {
-    derivationsPerSecond: number;
-    tasksProcessed: number;
-    averageStepDuration: number;
+  derivationsPerSecond: number;
+  tasksProcessed: number;
+  averageStepDuration: number;
 }
 
-import type {BaseStats} from '../types/core.js';
-
-// Internal: aggregated system metrics
-interface SystemMetrics extends BaseStats {
-    uptime: number;
-    totalDerivations: number;
-    totalSteps: number;
-    errors: number;
-    warnings: number;
+// Internal: helper for aggregating numeric stats with running average
+function aggregateStats(
+  currentAvg: number,
+  count: number,
+  value: number
+): number {
+  return count > 0 ? (currentAvg * (count - 1) + value) / count : value;
 }
 
 export class MetricsCollector {
   private readonly startTime: number = Date.now();
   private ruleStats: Map<string, _RuleStats> = new Map();
-    private memoryStats: MemoryStats | null = null;
-    private lmStats: LMStats | null = null;
-    private throughputStats: ThroughputStats | null = null;
-    private systemMetrics: SystemMetrics = {
-        uptime: 0,
-        totalDerivations: 0,
-        totalSteps: 0,
-        errors: 0,
-        warnings: 0
-    };
+  private memoryStats: MemoryStats | null = null;
+  private lmStats: LMStats | null = null;
+  private throughputStats: ThroughputStats | null = null;
+  private systemMetrics: SystemMetrics = {
+    uptime: 0,
+    totalDerivations: 0,
+    totalSteps: 0,
+    errors: 0,
+    warnings: 0
+  };
 
   recordRuleExecution(ruleId: string, success: boolean, duration: number): void {
     const existing = this.ruleStats.get(ruleId);
@@ -79,7 +102,7 @@ export class MetricsCollector {
       } else {
         existing.failures++;
       }
-      existing.averageDuration = (existing.averageDuration * (existing.executions - 1) + duration) / existing.executions;
+      existing.averageDuration = aggregateStats(existing.averageDuration, existing.executions, duration);
       existing.lastExecution = Date.now();
     } else {
       this.ruleStats.set(ruleId, {

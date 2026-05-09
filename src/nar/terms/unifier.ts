@@ -1,5 +1,6 @@
 import type {CompoundTerm, Term} from './types.js';
 import {isVariableSymbol} from './types.js';
+import {termsEqual} from './accessors.js';
 
 export type Substitution = Record<string, Term>;
 
@@ -51,25 +52,25 @@ export function unify(a: Term, b: Term, subst: Substitution = {}, enableOccursCh
     if (a.kind === 'atom' && isVariableSymbol(a.symbol)) {
         if (enableOccursCheck && occursCheck(a.symbol, b, subst)) {
             result = undefined;
-        } else {
-            const bound = subst[a.symbol];
-            if (!bound) {
-                result = {...subst, [a.symbol]: b};
-            } else {
-                result = bound.hash === b.hash ? subst : undefined;
-            }
-        }
-    } else if (b.kind === 'atom' && isVariableSymbol(b.symbol)) {
-        if (enableOccursCheck && occursCheck(b.symbol, a, subst)) {
-            result = undefined;
-        } else {
-            const bound = subst[b.symbol];
-            if (!bound) {
-                result = {...subst, [b.symbol]: a};
-            } else {
-                result = bound.hash === a.hash ? subst : undefined;
-            }
-        }
+    } else {
+      const bound = subst[a.symbol];
+      if (!bound) {
+        result = {...subst, [a.symbol]: b};
+      } else {
+        result = termsEqual(bound, b) ? subst : undefined;
+      }
+    }
+  } else if (b.kind === 'atom' && isVariableSymbol(b.symbol)) {
+    if (enableOccursCheck && occursCheck(b.symbol, a, subst)) {
+      result = undefined;
+    } else {
+      const bound = subst[b.symbol];
+      if (!bound) {
+        result = {...subst, [b.symbol]: a};
+      } else {
+        result = termsEqual(bound, a) ? subst : undefined;
+      }
+    }
     } else if (a.kind === 'atom' && b.kind === 'atom') {
         result = a.symbol === b.symbol ? subst : undefined;
     } else if (!isCompound(a) || !isCompound(b) || a.kind !== b.kind || a.args.length !== b.args.length) {
@@ -117,22 +118,22 @@ export function unifyMultiple(terms: Term[], initialSubst: Substitution = {}): S
 }
 
 export function composeBindings(s1: Substitution, s2: Substitution): Substitution | undefined {
-    const result = {...s1};
+  const result = {...s1};
 
-    for (const [varName, term] of Object.entries(s2)) {
-        if (varName in s1) {
-            const existing = s1[varName]!;
-            if (existing.hash !== term.hash) {
-                const unified = unify(existing, term, s1);
-                if (!unified) return undefined;
-                result[varName] = unified[varName] || term;
-            }
-        } else {
-            result[varName] = term;
-        }
+  for (const [varName, term] of Object.entries(s2)) {
+    if (varName in s1) {
+      const existing = s1[varName]!;
+      if (!termsEqual(existing, term)) {
+        const unified = unify(existing, term, s1);
+        if (!unified) return undefined;
+        result[varName] = unified[varName] || term;
+      }
+    } else {
+      result[varName] = term;
     }
+  }
 
-    return result;
+  return result;
 }
 
 export function clearUnificationCache(): void {
