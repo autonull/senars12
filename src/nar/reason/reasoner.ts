@@ -72,7 +72,7 @@ export class Reasoner {
     }
 
     async* run(_timeoutMs = 5000, maxResults = 100): AsyncGenerator<Task> {
-        const endTime = Date.now() + _timeoutMs;
+        const _endTime = Date.now() + _timeoutMs;
         let count = 0;
         this.derivationCount = 0;
 

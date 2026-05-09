@@ -11,7 +11,6 @@ import type {ForgettingPolicy} from './forgetting.js';
 import {Forgetting} from './forgetting.js';
 import {jaccard} from '../utils/similarity.js';
 import {extractSymbols} from '../terms/utils.js';
-import {THRESHOLDS} from '../constants.js';
 
 export interface MemoryConfig {
     maxConcepts?: number;

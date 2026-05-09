@@ -4,13 +4,15 @@ import {createRulePattern, type RuleFn, RuleRegistry, type TruthFn} from './type
 import {Truth} from '../terms';
 
 export const NALExtendedRules = {
-    modusPonens: ([imp, antecedent]: [Term, Term]): Term | undefined => {
+    modusPonens: (premises: Term[]): Term | undefined => {
+        const [imp, antecedent] = premises as [Term, Term];
         if (imp.kind !== 'implication' || antecedent.kind !== 'atom') return undefined;
         const [impAnte, impCons] = imp.args;
         return impAnte && impCons && sameHash(impAnte, antecedent) ? impCons : undefined;
     },
 
-    modusTollens: ([imp, negConsequent]: [Term, Term]): Term | undefined => {
+    modusTollens: (premises: Term[]): Term | undefined => {
+        const [imp, negConsequent] = premises as [Term, Term];
         if (imp.kind !== 'implication' || negConsequent.kind !== 'negation') return undefined;
         const impCons = imp.args[1];
         const negArg = negConsequent.args[0];
@@ -19,19 +21,22 @@ export const NALExtendedRules = {
         return impAnte ? TermBuilder.negation(impAnte) : undefined;
     },
 
-    conversion: ([inh]: [Term, Term]): Term | undefined => {
+    conversion: (premises: Term[]): Term | undefined => {
+        const [inh] = premises as [Term, Term];
         if (inh.kind !== 'inheritance') return undefined;
         const s = getSubject(inh), p = getPredicate(inh);
         return s && p ? TermBuilder.inheritance(p, s) : undefined;
     },
 
-    structuralInheritance: ([compound, component]: [Term, Term]): Term | undefined => {
+    structuralInheritance: (premises: Term[]): Term | undefined => {
+        const [compound, component] = premises as [Term, Term];
         if (compound.kind !== 'conjunction') return undefined;
         const found = compound.args.find(a => sameHash(a, component));
         return found ? TermBuilder.inheritance(component, compound) : undefined;
     },
 
-    structuralReduction: ([inh]: [Term, Term]): Term | undefined => {
+    structuralReduction: (premises: Term[]): Term | undefined => {
+        const [inh] = premises as [Term, Term];
         if (inh.kind !== 'inheritance') return undefined;
         const pred = getPredicate(inh);
         if (!pred || pred.kind !== 'conjunction') return undefined;
@@ -39,7 +44,8 @@ export const NALExtendedRules = {
         return sub ? TermBuilder.inheritance(sub, pred.args[0] ?? pred) : undefined;
     },
 
-    intersectionComposition: ([inh1, inh2]: [Term, Term]): Term | undefined => {
+    intersectionComposition: (premises: Term[]): Term | undefined => {
+        const [inh1, inh2] = premises as [Term, Term];
         if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
         const sub1 = getSubject(inh1), sub2 = getSubject(inh2);
         if (!sub1 || !sub2 || !sameHash(sub1, sub2)) return undefined;
@@ -47,7 +53,8 @@ export const NALExtendedRules = {
         return pred1 && pred2 ? TermBuilder.inheritance(sub1, TermBuilder.conjunction(pred1, pred2)) : undefined;
     },
 
-    unionComposition: ([inh1, inh2]: [Term, Term]): Term | undefined => {
+    unionComposition: (premises: Term[]): Term | undefined => {
+        const [inh1, inh2] = premises as [Term, Term];
         if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
         const pred1 = getPredicate(inh1), pred2 = getPredicate(inh2);
         if (!pred1 || !pred2 || !sameHash(pred1, pred2)) return undefined;
@@ -55,7 +62,8 @@ export const NALExtendedRules = {
         return sub1 && sub2 ? TermBuilder.inheritance(TermBuilder.disjunction(sub1, sub2), pred1) : undefined;
     },
 
-    difference: ([inh1, inh2]: [Term, Term]): Term | undefined => {
+    difference: (premises: Term[]): Term | undefined => {
+        const [inh1, inh2] = premises as [Term, Term];
         if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
         const sub1 = getSubject(inh1), sub2 = getSubject(inh2);
         if (!sub1 || !sub2 || sub1.hash !== sub2.hash) return undefined;
@@ -65,8 +73,8 @@ export const NALExtendedRules = {
         return TermBuilder.inheritance(sub1, TermBuilder.conjunction(pred1, TermBuilder.negation(pred2)));
     },
 
-    implicationDeduction(premises: [Term, Term]): Term | undefined {
-        const [imp1, imp2] = premises;
+    implicationDeduction(premises: Term[]): Term | undefined {
+        const [imp1, imp2] = premises as [Term, Term];
         if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
         const cons1 = imp1.args[1];
         const ante2 = imp2.args[0];
@@ -77,8 +85,8 @@ export const NALExtendedRules = {
         return TermBuilder.implication(ante1, cons2);
     },
 
-    equivalence(premises: [Term, Term]): Term | undefined {
-        const [imp1, imp2] = premises;
+    equivalence(premises: Term[]): Term | undefined {
+        const [imp1, imp2] = premises as [Term, Term];
         if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
         const a1 = imp1.args[0];
         const c1 = imp1.args[1];
@@ -91,8 +99,8 @@ export const NALExtendedRules = {
         return TermBuilder.equivalence(a1, c1);
     },
 
-    variableIntroduction(premises: [Term, Term]): Term | undefined {
-        const [inh] = premises;
+    variableIntroduction(premises: Term[]): Term | undefined {
+        const [inh] = premises as [Term, Term];
         if (inh.kind !== 'inheritance') return undefined;
         const sub = getSubject(inh);
         const pred = getPredicate(inh);
@@ -100,8 +108,8 @@ export const NALExtendedRules = {
         return TermBuilder.inheritance(sub, pred);
     },
 
-    decomposition(premises: [Term, Term]): Term | undefined {
-        const [conj] = premises;
+    decomposition(premises: Term[]): Term | undefined {
+        const [conj] = premises as [Term, Term];
         if (conj.kind !== 'conjunction') return undefined;
         if (conj.args.length < 2) return undefined;
         const results: Term[] = [];
@@ -111,12 +119,12 @@ export const NALExtendedRules = {
         return results[0] ?? conj;
     },
 
-    variableDependency(_premises: [Term, Term]): Term | undefined {
+    variableDependency(_premises: Term[]): Term | undefined {
         return undefined;
     },
 
-    comparison(premises: [Term, Term]): Term | undefined {
-        const [inh1, inh2] = premises;
+    comparison(premises: Term[]): Term | undefined {
+        const [inh1, inh2] = premises as [Term, Term];
         if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
         const s1 = getSubject(inh1);
         const p1 = getPredicate(inh1);
@@ -129,8 +137,8 @@ export const NALExtendedRules = {
         return undefined;
     },
 
-    analogy(premises: [Term, Term]): Term | undefined {
-        const [inh1, inh2] = premises;
+    analogy(premises: Term[]): Term | undefined {
+        const [inh1, inh2] = premises as [Term, Term];
         if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
         const pred1 = getPredicate(inh1);
         const sub2 = getSubject(inh2);
@@ -141,8 +149,8 @@ export const NALExtendedRules = {
         return TermBuilder.inheritance(sub1, pred2);
     },
 
-    contrapositionRule(premises: [Term, Term]): Term | undefined {
-        const [imp] = premises;
+    contrapositionRule(premises: Term[]): Term | undefined {
+        const [imp] = premises as [Term, Term];
         if (imp.kind !== 'implication') return undefined;
         const ante = imp.args[0];
         const cons = imp.args[1];
@@ -150,8 +158,8 @@ export const NALExtendedRules = {
         return TermBuilder.implication(TermBuilder.negation(cons), TermBuilder.negation(ante));
     },
 
-    exemplification(premises: [Term, Term]): Term | undefined {
-        const [inh1, inh2] = premises;
+    exemplification(premises: Term[]): Term | undefined {
+        const [inh1, inh2] = premises as [Term, Term];
         if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
         const sub1 = getSubject(inh1);
         const pred2 = getPredicate(inh2);
@@ -159,8 +167,8 @@ export const NALExtendedRules = {
         return TermBuilder.inheritance(sub1, pred2);
     },
 
-    sameness(premises: [Term, Term]): Term | undefined {
-        const [inh1, inh2] = premises;
+    sameness(premises: Term[]): Term | undefined {
+        const [inh1, inh2] = premises as [Term, Term];
         if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
         const s1 = getSubject(inh1);
         const p1 = getPredicate(inh1);
@@ -173,8 +181,8 @@ export const NALExtendedRules = {
         return undefined;
     },
 
-    revisionWeak(premises: [Term, Term]): Term | undefined {
-        const [inh1, inh2] = premises;
+    revisionWeak(premises: Term[]): Term | undefined {
+        const [inh1, inh2] = premises as [Term, Term];
         if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
         const s1 = getSubject(inh1);
         const p1 = getPredicate(inh1);

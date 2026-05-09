@@ -27,7 +27,7 @@ const occursCheck = (variable: string, term: Term, subst: Substitution): boolean
     return false;
 };
 
-const applySubstitution = (term: Term, subst: Substitution): Term => {
+const _applySubstitution = (term: Term, subst: Substitution): Term => {
 	if (term.kind === 'atom') {
 		if (term.symbol in subst) {
 			return subst[term.symbol]!;
@@ -35,7 +35,7 @@ const applySubstitution = (term: Term, subst: Substitution): Term => {
 		return term;
 	}
 
-	const newArgs = term.args.map(arg => applySubstitution(arg, subst));
+	const newArgs = term.args.map(arg => _applySubstitution(arg, subst));
 	return {...term, args: newArgs} as Term;
 };
 

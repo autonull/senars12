@@ -5,10 +5,10 @@ import {TermBuilder, Truth} from '../../terms';
 import {createTestNAR} from '../fixtures';
 
 describe('Term System', () => {
-    let nar: ReturnType<typeof createTestNAR>;
+    let _nar: ReturnType<typeof createTestNAR>;
 
     beforeEach(() => {
-        nar = createTestNAR();
+        _nar = createTestNAR();
     });
 
     describe('Canonicalization', () => {
