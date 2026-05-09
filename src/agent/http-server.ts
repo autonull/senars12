@@ -492,7 +492,10 @@ private checkRateLimit(key: string): boolean {
     }
 
   private async getStats(): Promise<HTTPResponse> {
-    const nar = this.nar;
+    if (!this.agent) {
+      return {statusCode: 503, body: {error: 'Agent not initialized'}};
+    }
+    const nar = this.agent.getNAR();
     const stats = nar.getStatistics();
     const metrics = nar.getMetrics();
     return {
@@ -505,19 +508,6 @@ private checkRateLimit(key: string): boolean {
       }
     };
   }
-
-        const nar = this.agent.getNAR();
-        const stats = nar.getStatistics();
-        return {
-            statusCode: 200,
-            body: {
-                totalConcepts: stats.totalConcepts,
-                totalTasks: stats.totalTasks,
-                rulesFired: (stats as any).rulesFired || 0,
-                derivations: (stats as any).derivations || 0
-            }
-        };
-    }
 
     private async getHealth(): Promise<HTTPResponse> {
         return {

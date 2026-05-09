@@ -82,7 +82,8 @@ export class BoundedBag<T> {
                 this.heap.shift();
     } else if (this.overflowBehavior === 'replace-lowest') {
       const minIdx = this.findMinIndex();
-      if (minIdx >= 0 && priority > this.heap[minIdx].priority) {
+      const minItem = this.heap[minIdx];
+      if (minIdx >= 0 && minItem && priority > minItem.priority) {
         this.heap.splice(minIdx, 1);
       } else {
         return false;
@@ -247,10 +248,11 @@ export class BoundedBag<T> {
   private findMinIndex(): number {
     if (this.heap.length === 0) return -1;
     let minIdx = 0;
-    let minP = this.heap[0].priority;
+    let minP = this.heap[0]!.priority;
     for (let i = 1; i < this.heap.length; i++) {
-      if (this.heap[i].priority < minP) {
-        minP = this.heap[i].priority;
+      const item = this.heap[i];
+      if (item && item.priority < minP) {
+        minP = item.priority;
         minIdx = i;
       }
     }

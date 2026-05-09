@@ -30,7 +30,7 @@ export const createStrategy = (config: StrategyConfig): Strategy => {
 
                 if (truthFilter && !truthFilter(belief.truth)) continue;
 
-    results.push(createSecondaryTask(concept, concept.priority));
+    results.push(createSecondaryTask(concept.term, concept.priority));
     if (results.length >= limit) break;
             }
 

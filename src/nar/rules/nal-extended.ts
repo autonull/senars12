@@ -1,5 +1,5 @@
 import type {Term} from '../terms';
-import {getPredicate, getSubject, sameHash, TermBuilder, Truth, isVariableSymbol} from '../terms';
+import {getPredicate, getSubject, sameHash, TermBuilder, Truth} from '../terms';
 import {createRulePattern, type RuleFn, RuleRegistry, type TruthFn} from './types.js';
 
 const getVariables = (term: Term): Term[] => {

@@ -1,4 +1,4 @@
-import type {AtomicTerm, CompoundTerm, Term} from './types.js';
+import type {Term} from './types.js';
 import {termsEqual as checkTermsEqual} from './accessors.js';
 
 // Re-export type guards from types.ts

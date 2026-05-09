@@ -1,5 +1,6 @@
 import type {ConceptLike, Task} from '../../types';
-import {createSecondaryTask, termsEqual} from '../../types';
+import {createSecondaryTask} from '../../types';
+import {termsEqual} from '../../terms/accessors.js';
 import type {Memory} from '../../memory';
 
 export interface PremiseSelector {

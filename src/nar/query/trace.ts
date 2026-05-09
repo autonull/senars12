@@ -86,16 +86,18 @@ export class ReasoningTrace {
     const history = this.getDerivationHistory(conclusion);
     premises.push(...history.filter(t => t.stamp.id !== conclusion.stamp.id));
 
-    if (conclusion.stamp.derivations) {
-      for (const deriv of conclusion.stamp.derivations) {
-        if (deriv.rule) rules.push(deriv.rule);
+    // Extract rules from derivation history
+    for (const task of history) {
+      const node = this.derivationHistory.get(task.stamp.id);
+      if (node?.rule) {
+        rules.push(node.rule);
       }
     }
 
     return {
       conclusion,
       premises,
-      rules,
+      rules: [...new Set(rules)],
       confidence,
       why: this.generateExplanation(conclusion, premises, confidence)
     };
@@ -148,13 +150,17 @@ export class ReasoningTrace {
     while (currentStamp && path.length < 20) {
       path.push(currentStamp.id);
 
-      if (!currentStamp.derivations || currentStamp.derivations.length === 0) {
+      // Find parent from derivation history
+      const node = this.derivationHistory.get(currentStamp.id);
+      if (!node || !node.children || node.children.length === 0) {
         break;
       }
 
-      const parentStamp = currentStamp.derivations[0]?.parent;
-      if (!parentStamp) break;
-      currentStamp = parentStamp;
+    // Get first child as parent in derivation chain
+    const parentNode = node.children[0];
+    if (!parentNode) break;
+    
+    currentStamp = parentNode.task.stamp;
     }
 
     return path.reverse();
