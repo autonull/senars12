@@ -1,5 +1,5 @@
 import type {Term} from '../terms';
-import {getPredicate, getSubject, sameHash, TermBuilder, Truth} from '../terms';
+import {getPredicate, getSubject, sameHash, termsEqual, TermBuilder, Truth} from '../terms';
 import {createRulePattern, type RuleFn, RuleRegistry, type TruthFn} from './types.js';
 
 const getVariables = (term: Term): Term[] => {
@@ -195,19 +195,223 @@ export const NALExtendedRules = {
         return undefined;
     },
 
-    revisionWeak(premises: [Term, Term]): Term | undefined {
-        const [inh1, inh2] = premises;
-        if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
-        const s1 = getSubject(inh1);
-        const p1 = getPredicate(inh1);
-        const s2 = getSubject(inh2);
-        const p2 = getPredicate(inh2);
-        if (!s1 || !p1 || !s2 || !p2) return undefined;
-        if (s1.hash === s2.hash && p1.hash === p2.hash) {
-            return inh1;
-        }
-        return undefined;
+  revisionWeak(premises: [Term, Term]): Term | undefined {
+    const [inh1, inh2] = premises;
+    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
+    const s1 = getSubject(inh1);
+    const p1 = getPredicate(inh1);
+    const s2 = getSubject(inh2);
+    const p2 = getPredicate(inh2);
+    if (!s1 || !p1 || !s2 || !p2) return undefined;
+    if (s1.hash === s2.hash && p1.hash === p2.hash) {
+      return inh1;
     }
+    return undefined;
+  },
+
+  instanceConversion: ([inh]: [Term, Term]): Term | undefined => {
+    if (inh.kind !== 'inheritance') return undefined;
+    const s = getSubject(inh);
+    const p = getPredicate(inh);
+    if (!s || !p) return undefined;
+    return TermBuilder.inheritance(TermBuilder.instance(s), TermBuilder.instance(p));
+  },
+
+  propertyConversion: ([inh]: [Term, Term]): Term | undefined => {
+    if (inh.kind !== 'inheritance') return undefined;
+    const s = getSubject(inh);
+    const p = getPredicate(inh);
+    if (!s || !p) return undefined;
+    return TermBuilder.inheritance(TermBuilder.property(s), TermBuilder.property(p));
+  },
+
+  instanceDeduction: ([inh, inst]: [Term, Term]): Term | undefined => {
+    if (inh.kind !== 'inheritance') return undefined;
+    if (inst.kind !== 'instance') return undefined;
+    const s = getSubject(inh);
+    const p = getPredicate(inh);
+    const instArg = inst.args[0];
+    if (!s || !p || !instArg) return undefined;
+    if (sameHash(s, instArg)) {
+      return TermBuilder.inheritance(instArg, p);
+    }
+    return undefined;
+  },
+
+  propertyInduction: ([inh, prop]: [Term, Term]): Term | undefined => {
+    if (inh.kind !== 'inheritance') return undefined;
+    if (prop.kind !== 'property') return undefined;
+    const s = getSubject(inh);
+    const p = getPredicate(inh);
+    const propArg = prop.args[0];
+    if (!s || !p || !propArg) return undefined;
+    if (sameHash(p, propArg)) {
+      return TermBuilder.inheritance(s, propArg);
+    }
+    return undefined;
+  },
+
+  sequenceIntroduction: ([inh1, inh2]: [Term, Term]): Term | undefined => {
+    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
+    const s1 = getSubject(inh1);
+    const p1 = getPredicate(inh1);
+    const s2 = getSubject(inh2);
+    const p2 = getPredicate(inh2);
+    if (!s1 || !p1 || !s2 || !p2) return undefined;
+    if (termsEqual(s1, s2)) {
+      return TermBuilder.inheritance(s1, TermBuilder.sequence(p1, p2));
+    }
+    return undefined;
+  },
+
+  parallelIntroduction: ([inh1, inh2]: [Term, Term]): Term | undefined => {
+    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
+    const s1 = getSubject(inh1);
+    const p1 = getPredicate(inh1);
+    const s2 = getSubject(inh2);
+    const p2 = getPredicate(inh2);
+    if (!s1 || !p1 || !s2 || !p2) return undefined;
+    if (termsEqual(s1, s2)) {
+      return TermBuilder.inheritance(s1, TermBuilder.parallel(p1, p2));
+    }
+    return undefined;
+  },
+
+  predictiveImplication: ([seq, inh]: [Term, Term]): Term | undefined => {
+    if (seq.kind !== 'sequence') return undefined;
+    if (inh.kind !== 'inheritance') return undefined;
+    const [seqA, seqB] = seq.args;
+    const s = getSubject(inh);
+    const p = getPredicate(inh);
+    if (!seqA || !seqB || !s || !p) return undefined;
+    if (termsEqual(seqA, s) && termsEqual(seqB, p)) {
+      return TermBuilder.predictive(s, p);
+    }
+    return undefined;
+  },
+
+  temporalDeduction: ([pred, seq]: [Term, Term]): Term | undefined => {
+    if (pred.kind !== 'predictive') return undefined;
+    if (seq.kind !== 'sequence') return undefined;
+    const [predA, predB] = pred.args;
+    const [seqA, seqB] = seq.args;
+    if (!predA || !predB || !seqA || !seqB) return undefined;
+    if (termsEqual(predA, seqA) && termsEqual(predB, seqB)) {
+      return TermBuilder.inheritance(seqA, seqB);
+    }
+    return undefined;
+  },
+
+  operationExecution: ([op, input]: [Term, Term]): Term | undefined => {
+    if (op.kind !== 'inheritance') return undefined;
+    const inputTerm = input.kind === 'inheritance' ? input : input;
+    return TermBuilder.operation(op, inputTerm);
+  },
+
+  goalExecution: ([goal, op]: [Term, Term]): Term | undefined => {
+    if (op.kind !== 'operation') return undefined;
+    const [opTerm, input] = op.args;
+    if (!opTerm || !input) return undefined;
+    return TermBuilder.inheritance(goal, opTerm);
+  },
+
+  proceduralDecomposition: ([seq, op]: [Term, Term]): Term | undefined => {
+    if (seq.kind !== 'sequence') return undefined;
+    if (op.kind !== 'operation') return undefined;
+    const [seqA, seqB] = seq.args;
+    const [opTerm, input] = op.args;
+    if (!seqA || !seqB || !opTerm || !input) return undefined;
+    return TermBuilder.sequence(seqA, TermBuilder.operation(opTerm, input));
+  },
+
+  proceduralChaining: ([op1, op2]: [Term, Term]): Term | undefined => {
+    if (op1.kind !== 'operation' || op2.kind !== 'operation') return undefined;
+    const [op1Term, input1] = op1.args;
+    const [op2Term, input2] = op2.args;
+    if (!op1Term || !input1 || !op2Term || !input2) return undefined;
+    if (termsEqual(input1, op2Term)) {
+      return TermBuilder.sequence(op1Term, input2);
+    }
+    return undefined;
+  },
+
+  operationToPredictive: ([op, seq]: [Term, Term]): Term | undefined => {
+    if (op.kind !== 'operation') return undefined;
+    if (seq.kind !== 'sequence') return undefined;
+    const [opTerm, input] = op.args;
+    const [seqA, seqB] = seq.args;
+    if (!opTerm || !input || !seqA || !seqB) return undefined;
+    if (termsEqual(opTerm, seqA) && termsEqual(input, seqB)) {
+      return TermBuilder.predictive(seqA, seqB);
+    }
+    return undefined;
+  },
+
+  strategyEffectiveness: ([strategy, result]: [Term, Term]): Term | undefined => {
+    if (strategy.kind !== 'inheritance') return undefined;
+    if (result.kind !== 'inheritance') return undefined;
+    const s = getSubject(strategy);
+    const p = getPredicate(strategy);
+    if (!s || !p) return undefined;
+    return TermBuilder.inheritance(TermBuilder.operation(s, p), result);
+  },
+
+  resourceAllocation: ([task, resource]: [Term, Term]): Term | undefined => {
+    if (task.kind !== 'inheritance') return undefined;
+    if (resource.kind !== 'inheritance') return undefined;
+    const t = getSubject(task);
+    const r = getSubject(resource);
+    if (!t || !r) return undefined;
+    return TermBuilder.inheritance(t, TermBuilder.operation(TermBuilder.atom('allocate'), r));
+  },
+
+  errorPatternDetection: ([error, context]: [Term, Term]): Term | undefined => {
+    if (error.kind !== 'inheritance') return undefined;
+    if (context.kind !== 'inheritance') return undefined;
+    const e = getPredicate(error);
+    const c = getSubject(context);
+    if (!e || !c) return undefined;
+    return TermBuilder.predictive(c, TermBuilder.negation(e));
+  },
+
+  utilityEstimation: ([concept, utility]: [Term, Term]): Term | undefined => {
+    if (concept.kind !== 'inheritance') return undefined;
+    if (utility.kind !== 'inheritance') return undefined;
+    const c = getSubject(concept);
+    const u = getPredicate(utility);
+    if (!c || !u) return undefined;
+    return TermBuilder.inheritance(c, TermBuilder.operation(TermBuilder.atom('utility'), u));
+  },
+
+  metacognitiveRevision: ([belief1, belief2]: [Term, Term]): Term | undefined => {
+    if (belief1.kind !== 'inheritance' || belief2.kind !== 'inheritance') return undefined;
+    const s1 = getSubject(belief1);
+    const p1 = getPredicate(belief1);
+    const s2 = getSubject(belief2);
+    const p2 = getPredicate(belief2);
+    if (!s1 || !p1 || !s2 || !p2) return undefined;
+    if (termsEqual(s1, s2) && termsEqual(p1, p2)) {
+      return TermBuilder.inheritance(
+        TermBuilder.operation(TermBuilder.atom('meta'), s1),
+        TermBuilder.operation(TermBuilder.atom('revise'), p1)
+      );
+    }
+    return undefined;
+  },
+
+  selfModelConsistency: ([model1, model2]: [Term, Term]): Term | undefined => {
+    if (model1.kind !== 'inheritance' || model2.kind !== 'inheritance') return undefined;
+    const s1 = getSubject(model1);
+    const s2 = getSubject(model2);
+    if (!s1 || !s2) return undefined;
+    if (termsEqual(s1, s2)) {
+      return TermBuilder.similarity(
+        TermBuilder.operation(TermBuilder.atom('self'), s1),
+        TermBuilder.operation(TermBuilder.atom('model'), s2)
+      );
+    }
+    return undefined;
+  }
 };
 
 const registerExtendedRule = (
@@ -246,3 +450,22 @@ registerExtendedRule('nal.variableDependency', 'inheritance', 'inheritance', NAL
 registerExtendedRule('nal.sameness', 'inheritance', 'inheritance', NALExtendedRules.sameness, Truth.sameness, 0.85);
 registerExtendedRule('nal.revisionWeak', 'inheritance', 'inheritance', NALExtendedRules.revisionWeak, Truth.revision, 0.65);
 registerExtendedRule('nal.exemplification', 'inheritance', 'inheritance', NALExtendedRules.exemplification, Truth.exemplification, 0.8);
+registerExtendedRule('nal.instanceConversion', 'inheritance', 'instance', NALExtendedRules.instanceConversion, Truth.conversion, 0.7);
+registerExtendedRule('nal.propertyConversion', 'inheritance', 'property', NALExtendedRules.propertyConversion, Truth.conversion, 0.7);
+registerExtendedRule('nal.instanceDeduction', 'inheritance', 'instance', NALExtendedRules.instanceDeduction, Truth.deduction, 0.85);
+registerExtendedRule('nal.propertyInduction', 'inheritance', 'property', NALExtendedRules.propertyInduction, Truth.induction, 0.75);
+registerExtendedRule('nal.sequenceIntroduction', 'inheritance', 'inheritance', NALExtendedRules.sequenceIntroduction, Truth.deduction, 0.75);
+registerExtendedRule('nal.parallelIntroduction', 'inheritance', 'inheritance', NALExtendedRules.parallelIntroduction, Truth.deduction, 0.7);
+registerExtendedRule('nal.predictiveImplication', 'sequence', 'inheritance', NALExtendedRules.predictiveImplication, Truth.deduction, 0.8);
+registerExtendedRule('nal.temporalDeduction', 'predictive', 'sequence', NALExtendedRules.temporalDeduction, Truth.deduction, 0.85);
+registerExtendedRule('nal.operationExecution', 'inheritance', 'inheritance', NALExtendedRules.operationExecution, Truth.deduction, 0.8);
+registerExtendedRule('nal.goalExecution', 'inheritance', 'operation', NALExtendedRules.goalExecution, Truth.deduction, 0.85);
+registerExtendedRule('nal.proceduralDecomposition', 'sequence', 'operation', NALExtendedRules.proceduralDecomposition, Truth.deduction, 0.75);
+registerExtendedRule('nal.proceduralChaining', 'operation', 'operation', NALExtendedRules.proceduralChaining, Truth.deduction, 0.8);
+registerExtendedRule('nal.operationToPredictive', 'operation', 'sequence', NALExtendedRules.operationToPredictive, Truth.deduction, 0.75);
+registerExtendedRule('nal.strategyEffectiveness', 'inheritance', 'inheritance', NALExtendedRules.strategyEffectiveness, Truth.deduction, 0.8);
+registerExtendedRule('nal.resourceAllocation', 'inheritance', 'inheritance', NALExtendedRules.resourceAllocation, Truth.deduction, 0.75);
+registerExtendedRule('nal.errorPatternDetection', 'inheritance', 'inheritance', NALExtendedRules.errorPatternDetection, Truth.deduction, 0.7);
+registerExtendedRule('nal.utilityEstimation', 'inheritance', 'inheritance', NALExtendedRules.utilityEstimation, Truth.deduction, 0.8);
+registerExtendedRule('nal.metacognitiveRevision', 'inheritance', 'inheritance', NALExtendedRules.metacognitiveRevision, Truth.revision, 0.85);
+registerExtendedRule('nal.selfModelConsistency', 'inheritance', 'inheritance', NALExtendedRules.selfModelConsistency, Truth.sameness, 0.9);

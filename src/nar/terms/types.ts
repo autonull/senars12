@@ -8,13 +8,20 @@ import {TermBuilder} from './factory.js';
 import {termParser} from './parser.js';
 
 export const OPERATORS = {
-    inheritance: '-->',
-    similarity: '<->',
-    conjunction: '&',
-    disjunction: '|',
-    negation: '--',
-    implication: '=>',
-    equivalence: '<=>'
+  inheritance: '-->',
+  similarity: '<->',
+  conjunction: '&',
+  disjunction: '|',
+  negation: '--',
+  implication: '=>',
+  equivalence: '<=>',
+  instance: '{',
+  property: '[',
+  sequence: ',/',
+  parallel: '||',
+  predictive: '/>',
+  retrospective: '/<',
+  operation: '^'
 } as const;
 
 export type OperatorKey = keyof typeof OPERATORS;
@@ -57,8 +64,9 @@ export const getTermArg = (term: Term, index: number): Term | undefined =>
 
 // Term equality
 export const termsEqual = (a: Term, b: Term): boolean => a.hash === b.hash;
-// Atom constructor (re-export from factory for caching)
-export const atom = TermBuilder.atom;
+
+// Lazy getter for atom to avoid circular dependency
+export const atom = (symbol: string): AtomicTerm => TermBuilder.atom(symbol);
 
 // Term serialization
 const serialize = (term: Term): string => {
@@ -83,17 +91,52 @@ const serialize = (term: Term): string => {
             if (!arg) return '';
             return `(--${serialize(arg)})`;
         }
-        case 'implication':
-        case 'equivalence': {
-            const [a, c] = term.args;
-            if (!a || !c) return '';
-            const op = OPERATORS[term.kind];
-            return `(${serialize(a)} ${op} ${serialize(c)})`;
-        }
-        default:
-            return 'args' in term && Array.isArray((term as any).args)
-                ? `(${(term as any).args.map(serialize).join(', ')})`
-                : '';
+      case 'implication':
+      case 'equivalence': {
+        const [a, c] = term.args;
+        if (!a || !c) return '';
+        const op = OPERATORS[term.kind];
+        return `(${serialize(a)} ${op} ${serialize(c)})`;
+      }
+      case 'instance': {
+        const arg = term.args[0];
+        if (!arg) return '';
+        return `{${serialize(arg)}}`;
+      }
+      case 'property': {
+        const arg = term.args[0];
+        if (!arg) return '';
+        return `[${serialize(arg)}]`;
+      }
+      case 'sequence': {
+        const [a, b] = term.args;
+        if (!a || !b) return '';
+        return `(${serialize(a)} ,/ ${serialize(b)})`;
+      }
+      case 'parallel': {
+        const [a, b] = term.args;
+        if (!a || !b) return '';
+        return `(${serialize(a)} || ${serialize(b)})`;
+      }
+      case 'predictive': {
+        const [a, b] = term.args;
+        if (!a || !b) return '';
+        return `(${serialize(a)} /> ${serialize(b)})`;
+      }
+      case 'retrospective': {
+        const [a, b] = term.args;
+        if (!a || !b) return '';
+        return `(${serialize(a)} /< ${serialize(b)})`;
+      }
+      case 'operation': {
+        const [op, input] = term.args;
+        if (!op || !input) return '';
+        return `(${serialize(op)} ^ ${serialize(input)})`;
+      }
+      default:
+        return 'args' in term && Array.isArray((term as any).args)
+          ? `(${(term as any).args.map(serialize).join(', ')})`
+          : '';
     }
 };
 

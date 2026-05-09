@@ -36,7 +36,28 @@ export const isDisjunction = (term: Term): term is CompoundTerm & { kind: 'disju
     term.kind === 'disjunction';
 
 export const isNegation = (term: Term): term is CompoundTerm & { kind: 'negation' } =>
-    term.kind === 'negation';
+  term.kind === 'negation';
+
+export const isInstance = (term: Term): term is CompoundTerm & { kind: 'instance' } =>
+  term.kind === 'instance';
+
+export const isProperty = (term: Term): term is CompoundTerm & { kind: 'property' } =>
+  term.kind === 'property';
+
+export const isSequence = (term: Term): term is CompoundTerm & { kind: 'sequence' } =>
+  term.kind === 'sequence';
+
+export const isParallel = (term: Term): term is CompoundTerm & { kind: 'parallel' } =>
+  term.kind === 'parallel';
+
+export const isPredictive = (term: Term): term is CompoundTerm & { kind: 'predictive' } =>
+  term.kind === 'predictive';
+
+export const isRetrospective = (term: Term): term is CompoundTerm & { kind: 'retrospective' } =>
+  term.kind === 'retrospective';
+
+export const isOperation = (term: Term): term is CompoundTerm & { kind: 'operation' } =>
+  term.kind === 'operation';
 
 export const sameKind = (a: Term, b: Term): boolean => a.kind === b.kind;
 

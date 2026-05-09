@@ -62,10 +62,31 @@ export const TermBuilder = {
     implication: (ant: Term | undefined, cons: Term | undefined): Term =>
         ant && cons ? createCompound('implication', [ant, cons]) : createAtom('TRUE'),
 
-    equivalence: (a: Term | undefined, c: Term | undefined): Term =>
-        a && c ? createCompound('equivalence', [a, c]) : createAtom('TRUE'),
+  equivalence: (a: Term | undefined, c: Term | undefined): Term =>
+    a && c ? createCompound('equivalence', [a, c]) : createAtom('TRUE'),
 
-    compound: (kind: CompoundTerm['kind'], args: Term[]): Term => createCompound(kind, args),
+  instance: (term: Term | undefined): Term =>
+    term ? createCompound('instance', [term]) : createAtom('TRUE'),
+
+  property: (term: Term | undefined): Term =>
+    term ? createCompound('property', [term]) : createAtom('TRUE'),
+
+  sequence: (a: Term | undefined, b: Term | undefined): Term =>
+    a && b ? createCompound('sequence', [a, b]) : createAtom('TRUE'),
+
+  parallel: (a: Term | undefined, b: Term | undefined): Term =>
+    a && b ? createCompound('parallel', [a, b]) : createAtom('TRUE'),
+
+  predictive: (a: Term | undefined, b: Term | undefined): Term =>
+    a && b ? createCompound('predictive', [a, b]) : createAtom('TRUE'),
+
+  retrospective: (a: Term | undefined, b: Term | undefined): Term =>
+    a && b ? createCompound('retrospective', [a, b]) : createAtom('TRUE'),
+
+  operation: (op: Term | undefined, input: Term | undefined): Term =>
+    op && input ? createCompound('operation', [op, input]) : createAtom('TRUE'),
+
+  compound: (kind: CompoundTerm['kind'], args: Term[]): Term => createCompound(kind, args),
 
     evict: (hash: number): boolean => termCache.delete(hash),
     clear: (): void => termCache.clear(),
