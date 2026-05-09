@@ -5,6 +5,7 @@
 import type {Term, Truth} from '../terms';
 import {Bag} from './bag.js';
 import {Truth as TruthOps} from '../terms/truth.js';
+import {extractSymbols} from '../terms/utils.js';
 
 export interface TaskData {
     readonly term: Term;
@@ -309,11 +310,11 @@ export class Concept {
         return undefined;
     }
 
-    private calculateTermSimilarity(other: Term): number {
-        if (this.term.hash === other.hash) return 1;
+private calculateTermSimilarity(other: Term): number {
+  if (this.term.hash === other.hash) return 1;
 
-        const thisSymbols = this.extractSymbols(this.term);
-        const otherSymbols = this.extractSymbols(other);
+  const thisSymbols = extractSymbols(this.term);
+  const otherSymbols = extractSymbols(other);
 
         const intersection = new Set([...thisSymbols].filter(s => otherSymbols.has(s)));
         const union = new Set([...thisSymbols, ...otherSymbols]);

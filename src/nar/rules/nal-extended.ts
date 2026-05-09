@@ -188,21 +188,21 @@ export const NALExtendedRules = {
 };
 
 const registerExtendedRule = (
-    id: string,
-    left: string,
-    right: string,
-    fn: (premises: Term[]) => Term | null | undefined,
-    truthFn: TruthFn,
-    priority: number
+  id: string,
+  left: string,
+  right: string,
+  fn: RuleFn,
+  truthFn: TruthFn,
+  priority: number
 ) =>
-    RuleRegistry.register({
-        id,
-        pattern: createRulePattern(left, right),
-        apply: fn as unknown as RuleFn,
-        sync: true,
-        priority,
-        truthFn
-    });
+  RuleRegistry.register({
+    id,
+    pattern: createRulePattern(left, right),
+    apply: fn,
+    sync: true,
+    priority,
+    truthFn
+  });
 
 registerExtendedRule('nal.modusPonens', 'implication', 'atom', NALExtendedRules.modusPonens, Truth.deduction, 0.95);
 registerExtendedRule('nal.modusTollens', 'implication', 'negation', NALExtendedRules.modusTollens, Truth.contraposition, 0.9);

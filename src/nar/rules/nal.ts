@@ -1,6 +1,6 @@
 import type {Term} from '../terms';
 import {getPredicate, getSubject, sameHash, TermBuilder, Truth} from '../terms';
-import {createRulePattern, RuleRegistry, type TruthFn} from './types.js';
+import {createRulePattern, RuleRegistry, type TruthFn, type RuleFn} from './types.js';
 
 export interface NALRuleMetadata {
     id: string;
@@ -323,14 +323,14 @@ const registerRule = (
     id: string,
     left: string,
     right: string,
-    fn: (premises: Term[]) => Term | null | undefined,
+    fn: RuleFn,
     truthFn: TruthFn,
     priority: number
 ) =>
     RuleRegistry.register({
         id,
         pattern: createRulePattern(left, right),
-        apply: fn as unknown as RuleFn,
+        apply: fn as any as RuleFn,
         sync: true,
         priority,
         truthFn

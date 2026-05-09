@@ -7,7 +7,8 @@ export type RulePattern = {
     right: { op?: string; subject?: string };
 };
 
-export type RuleFn = (premises: Term[]) => Term | null | undefined;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RuleFn = any;
 
 export interface RegisteredRule {
     id: string;

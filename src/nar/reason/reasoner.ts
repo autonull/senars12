@@ -7,6 +7,7 @@ import {createBudget, createTask} from '../types';
 import type {Memory} from '../memory';
 import type {RuleInput, RuleProcessor, RuleResult} from '../rules';
 import type {Strategy} from './strategy.js';
+import {Truth} from '../terms';
 
 export interface ReasonerConfig extends Pick<CoreConfig, 'cpuThrottleMs' | 'maxDerivationDepth' | 'maxDerivationsPerStep'> {
     enableCircularDetection?: boolean;

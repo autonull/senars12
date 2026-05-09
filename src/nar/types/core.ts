@@ -167,10 +167,14 @@ export class ToolError extends NARError {
 
 // Query filter types
 export interface TermFilter {
-    contains?: string;
-    startsWith?: string;
-    endsWith?: string;
-    pattern?: RegExp;
+  contains?: string;
+  startsWith?: string;
+  endsWith?: string;
+  pattern?: RegExp;
+  limit?: number;
+  truthRange?: [number, number];
+  recency?: number;
+  type?: 'belief' | 'goal' | 'question' | 'command';
 }
 
 export interface TruthFilter {

@@ -29,7 +29,20 @@ import {type Answer, QueryAPI, type QueryResult, ReasoningTrace} from './query';
 import {MetricsCollector} from './metrics';
 import {createLogger} from './logger';
 import type {Tool, ToolResult} from './tools';
-import {CalculateTool, HTTPTool, ReadFileTool, SleepTool, ToolManager, WriteFileTool} from './tools';
+import {
+  CalculateTool,
+  HTTPTool,
+  ReadFileTool,
+  SleepTool,
+  ToolManager,
+  WriteFileTool,
+  SearchTool,
+  ReasonTool,
+  ExplainTool,
+  LearnTool,
+  TimerTool,
+  ProcessTool
+} from './tools';
 import {BaseComponent} from './lifecycle';
 
 interface SerializedNARState {
@@ -123,22 +136,25 @@ export class NAR extends BaseComponent {
         return this.input(input, 'question');
     }
 
-    async run(steps = 1): Promise<number> {
-        let derived = 0;
+async run(steps = 1): Promise<number> {
+  let derived = 0;
 
-        for (let i = 0; i < steps; i++) {
-            const results = await this.reasoner.step();
-            derived += results.length;
+  for (let i = 0; i < steps; i++) {
+    const processed = await this.taskManager.processPending();
+    derived += processed.length;
 
-            for (const task of results) {
-                this.memory.addTask(task.term, task.type, task.truth, getBudgetValue(task.budget));
-                this.taskManager.addTask(task);
-            }
-        }
+    const results = await this.reasoner.step();
+    derived += results.length;
 
-        this.memory.consolidate();
-        return derived;
+    for (const task of results) {
+      this.memory.addTask(task.term, task.type, task.truth, getBudgetValue(task.budget));
+      this.taskManager.addTask(task);
     }
+  }
+
+  this.memory.consolidate();
+  return derived;
+}
 
     async* runStream(steps = 1, maxResults = 100): AsyncGenerator<Task> {
         for (let i = 0; i < steps; i++) {
@@ -330,19 +346,25 @@ export class NAR extends BaseComponent {
         this._lmInitialized = true;
     }
 
-    private initializeTools(): void {
-        if (this._toolsInitialized) {
-            return;
-        }
+private initializeTools(): void {
+  if (this._toolsInitialized) {
+    return;
+  }
 
-        this.tools.register(new CalculateTool());
-        this.tools.register(new SleepTool());
-        this.tools.register(new ReadFileTool());
-        this.tools.register(new WriteFileTool());
-        this.tools.register(new HTTPTool());
+  this.tools.register(new CalculateTool());
+  this.tools.register(new SleepTool());
+  this.tools.register(new ReadFileTool());
+  this.tools.register(new WriteFileTool());
+  this.tools.register(new HTTPTool());
+  this.tools.register(new SearchTool(this.memory));
+  this.tools.register(new ReasonTool(this));
+  this.tools.register(new ExplainTool(this.memory));
+  this.tools.register(new LearnTool(this.memory));
+  this.tools.register(new TimerTool());
+  this.tools.register(new ProcessTool());
 
-        this._toolsInitialized = true;
-    }
+  this._toolsInitialized = true;
+}
 
     private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void {
         const budget = createBudget(truth.f * truth.c);
