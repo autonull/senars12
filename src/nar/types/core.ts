@@ -4,8 +4,8 @@
  */
 
 import type {Term} from '../terms';
-import type {Truth as TruthType} from '../terms/truth.js';
 import {Stamp} from '../terms';
+import type {Truth as TruthType} from '../terms/truth.js';
 
 // Re-export domain types
 export type {Term, AtomicTerm, CompoundTerm} from '../terms/types.js';
@@ -152,45 +152,45 @@ export class ConfigurationError extends NARError {
 }
 
 export class OperationError extends NARError {
-  constructor(message: string, context?: Record<string, unknown>) {
-    super(message, 'OPERATION_ERROR', context);
-    this.name = 'OperationError';
-  }
+    constructor(message: string, context?: Record<string, unknown>) {
+        super(message, 'OPERATION_ERROR', context);
+        this.name = 'OperationError';
+    }
 }
 
 export class ToolError extends NARError {
-  constructor(message: string, context?: Record<string, unknown>) {
-    super(message, 'TOOL_ERROR', context);
-    this.name = 'ToolError';
-  }
+    constructor(message: string, context?: Record<string, unknown>) {
+        super(message, 'TOOL_ERROR', context);
+        this.name = 'ToolError';
+    }
 }
 
 // Query filter types
 export interface TermFilter {
-  contains?: string;
-  startsWith?: string;
-  endsWith?: string;
-  pattern?: RegExp;
+    contains?: string;
+    startsWith?: string;
+    endsWith?: string;
+    pattern?: RegExp;
 }
 
 export interface TruthFilter {
-  minFrequency?: number;
-  maxFrequency?: number;
-  minConfidence?: number;
-  maxConfidence?: number;
+    minFrequency?: number;
+    maxFrequency?: number;
+    minConfidence?: number;
+    maxConfidence?: number;
 }
 
 export interface QueryOptions {
-  limit?: number;
-  sortBy?: 'priority' | 'recency' | 'truth';
-  order?: 'asc' | 'desc';
-  termFilter?: TermFilter;
-  truthFilter?: TruthFilter;
+    limit?: number;
+    sortBy?: 'priority' | 'recency' | 'truth';
+    order?: 'asc' | 'desc';
+    termFilter?: TermFilter;
+    truthFilter?: TruthFilter;
 }
 
 // Type guards
 export const isSuccess = <T>(result: Result<T>): result is Success<T> =>
-  result.success;
+    result.success;
 
 export const isFailure = <T>(result: Result<T>): result is Failure =>
-  !result.success;
+    !result.success;

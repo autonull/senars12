@@ -1,268 +1,269 @@
 export type SamplingObjective =
-  | { type: 'priority'; threshold: number }
-  | { type: 'recency'; windowMs: number }
-  | { type: 'novelty'; maxDepth: number }
-  | { type: 'composite'; weights: { priority: number; recency: number; novelty: number } };
+    | { type: 'priority'; threshold: number }
+    | { type: 'recency'; windowMs: number }
+    | { type: 'novelty'; maxDepth: number }
+    | { type: 'composite'; weights: { priority: number; recency: number; novelty: number } };
 
 export type OverflowBehavior = 'reject' | 'replace-lowest' | 'merge';
 
 export interface BagStatistics {
-  size: number;
-  capacity: number;
-  utilization: number;
-  priorityDistribution: { min: number; max: number; avg: number; median: number };
-  ageHistogram: { buckets: { min: number; max: number; count: number }[] };
-  throughput: { additions: number; removals: number; hits: number; misses: number };
+    size: number;
+    capacity: number;
+    utilization: number;
+    priorityDistribution: { min: number; max: number; avg: number; median: number };
+    ageHistogram: { buckets: { min: number; max: number; count: number }[] };
+    throughput: { additions: number; removals: number; hits: number; misses: number };
 }
 
 export interface BoundedBagState<T> {
-  items: { item: T; priority: number; lastAccess: number; createdAt: number }[];
-  capacity: number;
-  overflowBehavior: OverflowBehavior;
-  stats: { additions: number; removals: number; hits: number; misses: number };
+    items: { item: T; priority: number; lastAccess: number; createdAt: number }[];
+    capacity: number;
+    overflowBehavior: OverflowBehavior;
+    stats: { additions: number; removals: number; hits: number; misses: number };
 }
 
 interface BagItem<T> {
-  item: T;
-  priority: number;
-  lastAccess: number;
-  createdAt: number;
+    item: T;
+    priority: number;
+    lastAccess: number;
+    createdAt: number;
 }
 
 export class BoundedBag<T> {
-  private heap: BagItem<T>[] = [];
-  private accessLog = new Map<T, number>();
-  private readonly _capacity: number;
-  private overflowBehavior: OverflowBehavior = 'reject';
-  private stats = { additions: 0, removals: 0, hits: 0, misses: 0 };
-  private onOverflow?: (item: T, priority: number, bag: BoundedBag<T>) => void;
+    private heap: BagItem<T>[] = [];
+    private accessLog = new Map<T, number>();
+    private readonly _capacity: number;
+    private readonly overflowBehavior: OverflowBehavior = 'reject';
+    private stats = {additions: 0, removals: 0, hits: 0, misses: 0};
+    private onOverflow?: (item: T, priority: number, bag: BoundedBag<T>) => void;
 
-  constructor(
-    capacity: number,
-    options?: {
-      overflowBehavior?: OverflowBehavior;
-      onOverflow?: (item: T, priority: number, bag: BoundedBag<T>) => void;
+    constructor(
+        capacity: number,
+        options?: {
+            overflowBehavior?: OverflowBehavior;
+            onOverflow?: (item: T, priority: number, bag: BoundedBag<T>) => void;
+        }
+    ) {
+        this._capacity = capacity;
+        if (options?.overflowBehavior) {
+            this.overflowBehavior = options.overflowBehavior;
+        }
+        if (options?.onOverflow) {
+            this.onOverflow = options.onOverflow;
+        }
     }
-  ) {
-    this._capacity = capacity;
-    if (options?.overflowBehavior) {
-      this.overflowBehavior = options.overflowBehavior;
+
+    get size(): number {
+        return this.heap.length;
     }
-    if (options?.onOverflow) {
-      this.onOverflow = options.onOverflow;
+
+    get capacity(): number {
+        return this._capacity;
     }
-  }
 
-  get size(): number {
-    return this.heap.length;
-  }
+    static deserialize<T>(state: BoundedBagState<T>): BoundedBag<T> {
+        const bag = new BoundedBag<T>(state.capacity, {overflowBehavior: state.overflowBehavior});
+        for (const {item, priority, lastAccess, createdAt} of state.items) {
+            bag.heap.push({item, priority, lastAccess, createdAt});
+            bag.accessLog.set(item, lastAccess);
+        }
+        bag.stats = {...state.stats};
+        return bag;
+    }
 
-  get capacity(): number {
-    return this._capacity;
-  }
+    add(item: T, priority: number): boolean {
+        const entry: BagItem<T> = {item, priority, lastAccess: Date.now(), createdAt: Date.now()};
 
-  add(item: T, priority: number): boolean {
-    const entry: BagItem<T> = { item, priority, lastAccess: Date.now(), createdAt: Date.now() };
-
-    if (this.heap.length >= this._capacity) {
-      this.stats.misses++;
-      if (this.overflowBehavior === 'reject') {
-        const minP = this.findMinPriority();
-        if (priority <= minP) return false;
-        this.heap.shift();
-      } else if (this.overflowBehavior === 'replace-lowest') {
-        const minIdx = this.findMinIndex();
-        if (minIdx >= 0 && priority > this.heap[minIdx]!.priority) {
-          this.heap.splice(minIdx, 1);
+        if (this.heap.length >= this._capacity) {
+            this.stats.misses++;
+            if (this.overflowBehavior === 'reject') {
+                const minP = this.findMinPriority();
+                if (priority <= minP) return false;
+                this.heap.shift();
+            } else if (this.overflowBehavior === 'replace-lowest') {
+                const minIdx = this.findMinIndex();
+                if (minIdx >= 0 && priority > this.heap[minIdx]!.priority) {
+                    this.heap.splice(minIdx, 1);
+                } else {
+                    return false;
+                }
+            } else if (this.overflowBehavior === 'merge') {
+                const existing = this.heap.find(h => this.itemsMatch(h.item, item));
+                if (existing) {
+                    existing.priority = Math.max(existing.priority, priority);
+                    existing.lastAccess = Date.now();
+                    this.stats.additions++;
+                    return true;
+                }
+                const minP = this.findMinPriority();
+                if (priority <= minP) return false;
+                this.heap.shift();
+            }
         } else {
-          return false;
+            this.stats.additions++;
         }
-      } else if (this.overflowBehavior === 'merge') {
-        const existing = this.heap.find(h => this.itemsMatch(h.item, item));
-        if (existing) {
-          existing.priority = Math.max(existing.priority, priority);
-          existing.lastAccess = Date.now();
-          this.stats.additions++;
-          return true;
+
+        this.accessLog.set(item, entry.lastAccess);
+        const idx = this.heap.findIndex(h => h.priority < priority);
+        idx === -1 ? this.heap.push(entry) : this.heap.splice(idx, 0, entry);
+        return true;
+    }
+
+    addMany(items: Array<[T, number]>): number {
+        let added = 0;
+        for (const [item, priority] of items) {
+            if (this.add(item, priority)) added++;
         }
-        const minP = this.findMinPriority();
-        if (priority <= minP) return false;
-        this.heap.shift();
-      }
-    } else {
-      this.stats.additions++;
+        return added;
     }
 
-    this.accessLog.set(item, entry.lastAccess);
-    const idx = this.heap.findIndex(h => h.priority < priority);
-    idx === -1 ? this.heap.push(entry) : this.heap.splice(idx, 0, entry);
-    return true;
-  }
-
-  addMany(items: Array<[T, number]>): number {
-    let added = 0;
-    for (const [item, priority] of items) {
-      if (this.add(item, priority)) added++;
-    }
-    return added;
-  }
-
-  removeMany(predicate: (item: T) => boolean): number {
-    let removed = 0;
-    this.heap = this.heap.filter(entry => {
-      if (predicate(entry.item)) {
-        removed++;
-        this.stats.removals++;
-        return false;
-      }
-      return true;
-    });
-    return removed;
-  }
-
-  getStatistics(): BagStatistics {
-    const priorities = this.heap.map(h => h.priority);
-    const ages = this.heap.map(h => Date.now() - h.createdAt);
-
-    const priorityDist = {
-      min: priorities.length > 0 ? Math.min(...priorities) : 0,
-      max: priorities.length > 0 ? Math.max(...priorities) : 0,
-      avg: priorities.length > 0 ? priorities.reduce((a, b) => a + b, 0) / priorities.length : 0,
-      median:
-        priorities.length > 0
-          ? [...priorities].sort((a, b) => a - b)[Math.floor(priorities.length / 2)]
-          : 0,
-    };
-
-    const ageBuckets = [
-      { min: 0, max: 60_000, count: 0 },
-      { min: 60_000, max: 300_000, count: 0 },
-      { min: 300_000, max: 900_000, count: 0 },
-      { min: 900_000, max: Infinity, count: 0 },
-    ];
-
-    for (const age of ages) {
-      const bucket = ageBuckets.find(b => age >= b.min && age < b.max);
-      if (bucket) bucket.count++;
+    removeMany(predicate: (item: T) => boolean): number {
+        let removed = 0;
+        this.heap = this.heap.filter(entry => {
+            if (predicate(entry.item)) {
+                removed++;
+                this.stats.removals++;
+                return false;
+            }
+            return true;
+        });
+        return removed;
     }
 
-    return {
-      size: this.heap.length,
-      capacity: this._capacity,
-      utilization: this.heap.length / this._capacity,
-      priorityDistribution: priorityDist,
-      ageHistogram: { buckets: ageBuckets },
-      throughput: { ...this.stats },
-    };
-  }
+    getStatistics(): BagStatistics {
+        const priorities = this.heap.map(h => h.priority);
+        const ages = this.heap.map(h => Date.now() - h.createdAt);
 
-  serialize(): BoundedBagState<T> {
-    return {
-      items: this.heap.map(({ item, priority, lastAccess, createdAt }) => ({
-        item,
-        priority,
-        lastAccess,
-        createdAt,
-      })),
-      capacity: this._capacity,
-      overflowBehavior: this.overflowBehavior,
-      stats: { ...this.stats },
-    };
-  }
+        const priorityDist = {
+            min: priorities.length > 0 ? Math.min(...priorities) : 0,
+            max: priorities.length > 0 ? Math.max(...priorities) : 0,
+            avg: priorities.length > 0 ? priorities.reduce((a, b) => a + b, 0) / priorities.length : 0,
+            median:
+                priorities.length > 0
+                    ? [...priorities].sort((a, b) => a - b)[Math.floor(priorities.length / 2)] ?? 0
+                    : 0,
+        };
 
-  static deserialize<T>(state: BoundedBagState<T>): BoundedBag<T> {
-    const bag = new BoundedBag<T>(state.capacity, { overflowBehavior: state.overflowBehavior });
-    for (const { item, priority, lastAccess, createdAt } of state.items) {
-      bag.heap.push({ item, priority, lastAccess, createdAt });
-      bag.accessLog.set(item, lastAccess);
-    }
-    bag.stats = { ...state.stats };
-    return bag;
-  }
+        const ageBuckets = [
+            {min: 0, max: 60_000, count: 0},
+            {min: 60_000, max: 300_000, count: 0},
+            {min: 300_000, max: 900_000, count: 0},
+            {min: 900_000, max: Infinity, count: 0},
+        ];
 
-  sample(objective: SamplingObjective): T | undefined {
-    switch (objective.type) {
-      case 'priority': {
-        const found = this.heap.find(h => h.priority >= objective.threshold);
-        if (found) {
-          this.stats.hits++;
-          return found.item;
+        for (const age of ages) {
+            const bucket = ageBuckets.find(b => age >= b.min && age < b.max);
+            if (bucket) bucket.count++;
         }
-        this.stats.misses++;
-        return undefined;
-      }
-      case 'recency': {
-        const cutoff = Date.now() - objective.windowMs;
-        const found = this.heap.find(h => h.lastAccess >= cutoff);
-        if (found) {
-          this.stats.hits++;
-          return found.item;
+
+        return {
+            size: this.heap.length,
+            capacity: this._capacity,
+            utilization: this.heap.length / this._capacity,
+            priorityDistribution: priorityDist,
+            ageHistogram: {buckets: ageBuckets},
+            throughput: {...this.stats},
+        };
+    }
+
+    serialize(): BoundedBagState<T> {
+        return {
+            items: this.heap.map(({item, priority, lastAccess, createdAt}) => ({
+                item,
+                priority,
+                lastAccess,
+                createdAt,
+            })),
+            capacity: this._capacity,
+            overflowBehavior: this.overflowBehavior,
+            stats: {...this.stats},
+        };
+    }
+
+    sample(objective: SamplingObjective): T | undefined {
+        switch (objective.type) {
+            case 'priority': {
+                const found = this.heap.find(h => h.priority >= objective.threshold);
+                if (found) {
+                    this.stats.hits++;
+                    return found.item;
+                }
+                this.stats.misses++;
+                return undefined;
+            }
+            case 'recency': {
+                const cutoff = Date.now() - objective.windowMs;
+                const found = this.heap.find(h => h.lastAccess >= cutoff);
+                if (found) {
+                    this.stats.hits++;
+                    return found.item;
+                }
+                this.stats.misses++;
+                return undefined;
+            }
+            case 'novelty':
+                this.stats.hits++;
+                return this.heap[0]?.item;
+            case 'composite': {
+                const scored = this.heap.map(h => ({
+                    item: h.item,
+                    score:
+                        h.priority * objective.weights.priority -
+                        ((Date.now() - h.lastAccess) / 1000) * objective.weights.recency,
+                }));
+                if (scored.length > 0) {
+                    const best = [...scored].sort((a, b) => b.score - a.score)[0];
+                    if (best) {
+                        this.stats.hits++;
+                        return best.item;
+                    }
+                }
+                this.stats.misses++;
+                return undefined;
+            }
         }
-        this.stats.misses++;
-        return undefined;
-      }
-      case 'novelty':
-        this.stats.hits++;
-        return this.heap[0]?.item;
-      case 'composite': {
-        const scored = this.heap.map(h => ({
-          item: h.item,
-          score:
-            h.priority * objective.weights.priority -
-            ((Date.now() - h.lastAccess) / 1000) * objective.weights.recency,
-        }));
-        if (scored.length > 0) {
-          const best = [...scored].sort((a, b) => b.score - a.score)[0];
-          if (best) {
-            this.stats.hits++;
-            return best.item;
-          }
+    }
+
+    consolidate(currentTime: number, ttl: number): void {
+        this.heap = this.heap.filter(entry => currentTime - entry.lastAccess <= ttl);
+    }
+
+    clear(): void {
+        this.heap = [];
+        this.accessLog.clear();
+        this.stats = {additions: 0, removals: 0, hits: 0, misses: 0};
+    }
+
+    private findMinPriority(): number {
+        if (this.heap.length === 0) return 0;
+        let minP = Infinity;
+        for (const {priority} of this.heap) {
+            if (priority < minP) minP = priority;
         }
-        this.stats.misses++;
-        return undefined;
-      }
+        return minP;
     }
-  }
 
-  consolidate(currentTime: number, ttl: number): void {
-    this.heap = this.heap.filter(entry => currentTime - entry.lastAccess <= ttl);
-  }
-
-  clear(): void {
-    this.heap = [];
-    this.accessLog.clear();
-    this.stats = { additions: 0, removals: 0, hits: 0, misses: 0 };
-  }
-
-  private findMinPriority(): number {
-    if (this.heap.length === 0) return 0;
-    let minP = Infinity;
-    for (const { priority } of this.heap) {
-      if (priority < minP) minP = priority;
+    private findMinIndex(): number {
+        if (this.heap.length === 0) return -1;
+        let minIdx = 0;
+        let minP = this.heap[0]!.priority;
+        for (let i = 1; i < this.heap.length; i++) {
+            if (this.heap[i]!.priority < minP) {
+                minP = this.heap[i]!.priority;
+                minIdx = i;
+            }
+        }
+        return minIdx;
     }
-    return minP;
-  }
 
-  private findMinIndex(): number {
-    if (this.heap.length === 0) return -1;
-    let minIdx = 0;
-    let minP = this.heap[0]!.priority;
-    for (let i = 1; i < this.heap.length; i++) {
-      if (this.heap[i]!.priority < minP) {
-        minP = this.heap[i]!.priority;
-        minIdx = i;
-      }
+    private itemsMatch(a: T, b: T): boolean {
+        if (a == null || b == null) return a === b;
+        if (typeof a === 'object' && typeof b === 'object') {
+            if ('hash' in a && 'hash' in b) {
+                return (a as Record<string, unknown>).hash === (b as Record<string, unknown>).hash;
+            }
+            return JSON.stringify(a) === JSON.stringify(b);
+        }
+        return a === b;
     }
-    return minIdx;
-  }
-
-  private itemsMatch(a: T, b: T): boolean {
-    if (typeof a === 'object' && typeof b === 'object') {
-      if ('hash' in a && 'hash' in b) {
-        return (a as any).hash === (b as any).hash;
-      }
-      return JSON.stringify(a) === JSON.stringify(b);
-    }
-    return a === b;
-  }
 }

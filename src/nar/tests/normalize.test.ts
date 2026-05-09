@@ -1,5 +1,4 @@
-import {TermBuilder} from '../terms';
-import {normalize} from '../terms';
+import {normalize, TermBuilder} from '../terms';
 import {computeHash} from '../utils';
 
 test('normalize sorts conjunction args and recomputes hash', () => {

@@ -1,8 +1,7 @@
 import type {Term} from '../terms';
-import {createRulePattern, RuleRegistry, type TruthFn} from './types.js';
-import {TermBuilder} from '../terms';
-import {getPredicate, getSubject, sameHash} from '../terms';
-import {Truth} from '../terms/truth.js';
+import {getPredicate, getSubject, sameHash, TermBuilder} from '../terms';
+import {createRulePattern, type RuleFn, RuleRegistry, type TruthFn} from './types.js';
+import {Truth} from '../terms';
 
 export const NALExtendedRules = {
     modusPonens: ([imp, antecedent]: [Term, Term]): Term | undefined => {
@@ -190,21 +189,21 @@ export const NALExtendedRules = {
 };
 
 const registerExtendedRule = (
-  id: string,
-  left: string,
-  right: string,
-  fn: any,
-  truthFn: TruthFn,
-  priority: number
+    id: string,
+    left: string,
+    right: string,
+    fn: (premises: Term[]) => Term | null | undefined,
+    truthFn: TruthFn,
+    priority: number
 ) =>
-  RuleRegistry.register({
-    id,
-    pattern: createRulePattern(left, right),
-    apply: fn as any,
-    sync: true,
-    priority,
-    truthFn
-  });
+    RuleRegistry.register({
+        id,
+        pattern: createRulePattern(left, right),
+        apply: fn as unknown as RuleFn,
+        sync: true,
+        priority,
+        truthFn
+    });
 
 registerExtendedRule('nal.modusPonens', 'implication', 'atom', NALExtendedRules.modusPonens, Truth.deduction, 0.95);
 registerExtendedRule('nal.modusTollens', 'implication', 'negation', NALExtendedRules.modusTollens, Truth.contraposition, 0.9);

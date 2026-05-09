@@ -1,5 +1,4 @@
-import {TermBuilder} from '../terms';
-import {unify} from '../terms';
+import {TermBuilder, unify} from '../terms';
 
 test('unify binds variable and enforces consistency', () => {
     const A = TermBuilder.atom('A');

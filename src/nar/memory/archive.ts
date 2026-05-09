@@ -55,13 +55,13 @@ export class Archive {
         return this.archived.get(hash);
     }
 
-  unarchive(hash: number): Concept | undefined {
-    const concept = this.archived.get(hash);
-    if (concept) {
-      this.archived.delete(hash);
+    unarchive(hash: number): Concept | undefined {
+        const concept = this.archived.get(hash);
+        if (concept) {
+            this.archived.delete(hash);
+        }
+        return concept;
     }
-    return concept;
-  }
 
     removeFromArchive(hash: number): boolean {
         return this.archived.delete(hash);

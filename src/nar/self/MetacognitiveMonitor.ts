@@ -163,68 +163,68 @@ export class MetacognitiveMonitor {
         this.performanceMonitors.clear();
     }
 
-  private setupMonitoring(): void {
-    if (!this.nar?.eventBus) return;
+    private setupMonitoring(): void {
+        if (!this.nar?.eventBus) return;
 
-    const eventBus = this.nar.eventBus;
+        const eventBus = this.nar.eventBus;
 
-    eventBus.on('task:processed', (task: any) => {
-      this.recordReasoningStep({
-        type: 'task_processed',
-        task: task,
-        timestamp: Date.now()
-      });
-    });
+        eventBus.on('task:processed', (task: any) => {
+            this.recordReasoningStep({
+                type: 'task_processed',
+                task: task,
+                timestamp: Date.now()
+            });
+        });
 
-    eventBus.on('task:derived', (task: any) => {
-      this.recordReasoningStep({
-        type: 'task_derived',
-        task: task,
-        timestamp: Date.now()
-      });
-    });
+        eventBus.on('task:derived', (task: any) => {
+            this.recordReasoningStep({
+                type: 'task_derived',
+                task: task,
+                timestamp: Date.now()
+            });
+        });
 
-    eventBus.on('rule:fired', (data: any) => {
-      this.recordReasoningStep({
-        type: 'rule_fired',
-        ruleId: data.ruleId,
-        result: data.result,
-        timestamp: Date.now()
-      });
-    });
+        eventBus.on('rule:fired', (data: any) => {
+            this.recordReasoningStep({
+                type: 'rule_fired',
+                ruleId: data.ruleId,
+                result: data.result,
+                timestamp: Date.now()
+            });
+        });
 
-    eventBus.on('error', (error: any) => {
-      this.recordError({
-        type: 'error',
-        error: error,
-        timestamp: Date.now()
-      });
-    });
+        eventBus.on('error', (error: any) => {
+            this.recordError({
+                type: 'error',
+                error: error,
+                timestamp: Date.now()
+            });
+        });
 
-    const startTime = Date.now();
-    let lastThroughput = 0;
-    let lastThroughputTime = Date.now();
-    let processedCount = 0;
+        const _startTime = Date.now();
+        let lastThroughput = 0;
+        let lastThroughputTime = Date.now();
+        let processedCount = 0;
 
-    eventBus.on('task:processed', () => {
-      processedCount++;
-      const now = Date.now();
-      if (now - lastThroughputTime > 1000) {
-        lastThroughput = processedCount / ((now - lastThroughputTime) / 1000);
-        processedCount = 0;
-        lastThroughputTime = now;
-      }
-    });
+        eventBus.on('task:processed', () => {
+            processedCount++;
+            const now = Date.now();
+            if (now - lastThroughputTime > 1000) {
+                lastThroughput = processedCount / ((now - lastThroughputTime) / 1000);
+                processedCount = 0;
+                lastThroughputTime = now;
+            }
+        });
 
-    setInterval(() => {
-      const memoryUsage = process.memoryUsage ? process.memoryUsage().heapUsed : 0;
-      this.analyzePerformance({
-        throughput: lastThroughput,
-        memoryUsage,
-        timestamp: Date.now()
-      });
-    }, 5000);
-  }
+        setInterval(() => {
+            const memoryUsage = process.memoryUsage ? process.memoryUsage().heapUsed : 0;
+            this.analyzePerformance({
+                throughput: lastThroughput,
+                memoryUsage,
+                timestamp: Date.now()
+            });
+        }, 5000);
+    }
 
     private updatePerformanceMonitors(metrics: Partial<PerformanceData>): void {
         const metricNames = ['throughput', 'avgProcessingTime', 'memoryUsage', 'cpuThrottleCount'] as const;

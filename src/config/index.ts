@@ -4,16 +4,16 @@
  */
 
 export {
-  loadConfig,
-  loadConfigFromEnv,
-  ConfigLoader
+    loadConfig,
+    loadConfigFromEnv,
+    ConfigLoader
 } from './loader.js';
 
 export type {
-  AppConfig,
-  ValidatedConfig,
-  LMConfig,
-  MemoryConfig,
-  InferenceConfig,
-  IRCConfig
+    AppConfig,
+    ValidatedConfig,
+    LMConfig,
+    MemoryConfig,
+    InferenceConfig,
+    IRCConfig
 } from './loader.js';

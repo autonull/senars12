@@ -1,26 +1,24 @@
 import {computeHash, fnv1a} from '../../utils';
-import {isAtomic, isCompound} from '../../terms';
-import {TermBuilder} from '../../terms';
-import {Truth} from '../../terms';
+import {isAtomic, isCompound, TermBuilder, Truth} from '../../terms';
 
 describe('Hash', () => {
-  test('fnv1a is deterministic', () => {
-    const h1 = fnv1a('test');
-    const h2 = fnv1a('test');
-    expect(h1).toBe(h2);
-  });
+    test('fnv1a is deterministic', () => {
+        const h1 = fnv1a('test');
+        const h2 = fnv1a('test');
+        expect(h1).toBe(h2);
+    });
 
-  test('computeHash sorts args for commutative operators', () => {
-    const h1 = computeHash('similarity', [1, 2, 3]);
-    const h2 = computeHash('similarity', [3, 2, 1]);
-    expect(h1).toBe(h2);
-  });
+    test('computeHash sorts args for commutative operators', () => {
+        const h1 = computeHash('similarity', [1, 2, 3]);
+        const h2 = computeHash('similarity', [3, 2, 1]);
+        expect(h1).toBe(h2);
+    });
 
-  test('computeHash preserves order for non-commutative operators', () => {
-    const h1 = computeHash('inheritance', [1, 2, 3]);
-    const h2 = computeHash('inheritance', [3, 2, 1]);
-    expect(h1).not.toBe(h2);
-  });
+    test('computeHash preserves order for non-commutative operators', () => {
+        const h1 = computeHash('inheritance', [1, 2, 3]);
+        const h2 = computeHash('inheritance', [3, 2, 1]);
+        expect(h1).not.toBe(h2);
+    });
 });
 
 describe('TermBuilder', () => {

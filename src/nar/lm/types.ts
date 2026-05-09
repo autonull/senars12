@@ -1,20 +1,21 @@
 import type {Task} from '../types';
 import type {ModelCapability} from './model-registry.js';
+import type {Term} from '../terms';
 
 export interface LMConfig {
-  temperature?: number;
-  maxTokens?: number;
-  model?: string;
-  apiKey?: string;
-  provider?: string;
+    temperature?: number;
+    maxTokens?: number;
+    model?: string;
+    apiKey?: string;
+    provider?: string;
 }
 
 export interface ModelConfig {
-  id: string;
-  provider: 'anthropic' | 'openai' | 'ollama' | 'mock';
-  model: string;
-  capabilities: Omit<ModelCapability, 'provider' | 'model'>;
-  config?: LMConfig;
+    id: string;
+    provider: 'anthropic' | 'openai' | 'ollama' | 'mock';
+    model: string;
+    capabilities: Omit<ModelCapability, 'provider' | 'model'>;
+    config?: LMConfig;
 }
 
 export interface LMRuleConfig {
@@ -31,29 +32,33 @@ export interface LMRuleConfig {
 }
 
 export interface LMRuleConfigInternal extends LMRuleConfig {
-    promptTemplate?: string | ((primary: any, secondary?: any, context?: any) => string);
-    responseProcessor?: (response: any, primary: any, secondary?: any, context?: any) => any;
-    taskGenerator?: (processed: any, primary: any, secondary?: any, context?: any) => Task[];
+    promptTemplate?: string | ((primary: Term, secondary?: Term, context?: Record<string, unknown>) => string);
+    responseProcessor?: (response: unknown, primary: Term, secondary?: Term, context?: Record<string, unknown>) => unknown;
+    taskGenerator?: (processed: unknown, primary: Term, secondary?: Term, context?: Record<string, unknown>) => Task[];
 }
 
 export interface LMClient {
-  generateText(prompt: string, options?: LMConfig): Promise<string>;
-  generateTextWithCache?(prompt: string, options?: LMConfig): Promise<string>;
-  getCachedResponse?(prompt: string): string | undefined;
-  clearCache?(): void;
-  getCost?(): {tokens: number; cost: number};
+    generateText(prompt: string, options?: LMConfig): Promise<string>;
+
+    generateTextWithCache?(prompt: string, options?: LMConfig): Promise<string>;
+
+    getCachedResponse?(prompt: string): string | undefined;
+
+    clearCache?(): void;
+
+    getCost?(): { tokens: number; cost: number };
 }
 
 export interface LMExecutionStats {
-  totalCalls: number;
-  successfulCalls: number;
-  failedCalls: number;
-  totalDuration: number;
-  totalTokens: number;
-  averageDuration: number;
-  successRate: number;
-  totalCost: number;
-  averageCost: number;
+    totalCalls: number;
+    successfulCalls: number;
+    failedCalls: number;
+    totalDuration: number;
+    totalTokens: number;
+    averageDuration: number;
+    successRate: number;
+    totalCost: number;
+    averageCost: number;
 }
 
 export interface LMRuleStats {
@@ -64,6 +69,6 @@ export interface LMRuleStats {
     circuitState: 'closed' | 'open' | 'half-open';
 }
 
-export type LMPromptGenerator = (primary: any, secondary?: any, context?: any) => string;
-export type LMResponseProcessor = (response: any, primary: any, secondary?: any, context?: any) => any;
-export type LMTaskGenerator = (processed: any, primary: any, secondary?: any, context?: any) => Task[];
+export type LMPromptGenerator = (primary: Term, secondary?: Term, context?: Record<string, unknown>) => string;
+export type LMResponseProcessor = (response: unknown, primary: Term, secondary?: Term, context?: Record<string, unknown>) => unknown;
+export type LMTaskGenerator = (processed: unknown, primary: Term, secondary?: Term, context?: Record<string, unknown>) => Task[];

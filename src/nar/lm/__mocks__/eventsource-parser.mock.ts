@@ -1,5 +1,5 @@
 export function parseEventSource() {
-  return [];
+    return [];
 }
 
-export default { parseEventSource };
+export default {parseEventSource};

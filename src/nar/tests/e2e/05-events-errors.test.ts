@@ -2,8 +2,7 @@
  * Event System & Error Handling Tests
  */
 import {NAR} from '../../nar.js';
-import {TermBuilder} from '../../terms';
-import {Truth} from '../../terms';
+import {TermBuilder, Truth} from '../../terms';
 
 describe('Event System', () => {
     let nar: NAR;
@@ -90,17 +89,17 @@ describe('Error Handling', () => {
         expect(concept).toBeDefined();
     });
 
-it('handles high-volume input without crashing', async () => {
-    const promises: Promise<void>[] = [];
-    for (let i = 0; i < 50; i++) {
-      promises.push(nar.input(`item_${i}`, 'belief'));
-    }
+    it('handles high-volume input without crashing', async () => {
+        const promises: Promise<void>[] = [];
+        for (let i = 0; i < 50; i++) {
+            promises.push(nar.input(`item_${i}`, 'belief'));
+        }
 
-    await Promise.all(promises);
+        await Promise.all(promises);
 
-    expect(nar.memory.size).toBeGreaterThan(0);
-    expect(nar.memory.size).toBeLessThanOrEqual(100);
-  });
+        expect(nar.memory.size).toBeGreaterThan(0);
+        expect(nar.memory.size).toBeLessThanOrEqual(100);
+    });
 
     it('handles concurrent operations safely', async () => {
         await Promise.all([

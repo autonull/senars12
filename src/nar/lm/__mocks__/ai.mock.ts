@@ -1,12 +1,12 @@
 export async function generateText() {
-  return { text: 'Mock response' };
+    return {text: 'Mock response'};
 }
 
 export async function streamText() {
-  return {
-    text: Promise.resolve('Mock response'),
-    fullStream: [],
-  };
+    return {
+        text: Promise.resolve('Mock response'),
+        fullStream: [],
+    };
 }
 
-export default { generateText, streamText };
+export default {generateText, streamText};

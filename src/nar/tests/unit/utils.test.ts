@@ -1,5 +1,4 @@
-import {clamp, ensureArray, isNil, makeId, safeDiv} from '../../utils';
-import {computeHash, fnv1a} from '../../utils';
+import {clamp, computeHash, ensureArray, fnv1a, isNil, makeId, safeDiv} from '../../utils';
 
 describe('helpers', () => {
     describe('clamp', () => {
@@ -102,16 +101,16 @@ describe('hash', () => {
             expect(h1).toBe(h2);
         });
 
-test('conjunction (commutative) produces same hash regardless of order', () => {
-  const h = computeHash('conjunction', [1, 5, 3]);
-  const h2 = computeHash('conjunction', [5, 3, 1]);
-  expect(h).toBe(h2);
-});
+        test('conjunction (commutative) produces same hash regardless of order', () => {
+            const h = computeHash('conjunction', [1, 5, 3]);
+            const h2 = computeHash('conjunction', [5, 3, 1]);
+            expect(h).toBe(h2);
+        });
 
-test('inheritance (non-commutative) produces different hash for different order', () => {
-  const h = computeHash('inheritance', [1, 5, 3]);
-  const h2 = computeHash('inheritance', [5, 3, 1]);
-  expect(h).not.toBe(h2);
-});
+        test('inheritance (non-commutative) produces different hash for different order', () => {
+            const h = computeHash('inheritance', [1, 5, 3]);
+            const h2 = computeHash('inheritance', [5, 3, 1]);
+            expect(h).not.toBe(h2);
+        });
     });
 });

@@ -2,8 +2,7 @@
  * Resource Bounds & AIKR Compliance Tests
  */
 import {NAR} from '../../nar.js';
-import {TermBuilder} from '../../terms';
-import {Truth} from '../../terms';
+import {TermBuilder, Truth} from '../../terms';
 
 describe('AIKR Compliance', () => {
     let nar: NAR;

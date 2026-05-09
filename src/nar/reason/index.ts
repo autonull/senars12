@@ -9,17 +9,17 @@ export type {ReasonerConfig, ReasoningTrace} from './reasoner.js';
 // Strategy implementations
 export {createStrategy} from './strategies/base.js';
 export {
-  PrologStrategy,
-  ResolutionStrategy,
-  GoalDrivenStrategy,
-  AnalogicalStrategy,
-  TermLinkStrategy,
-  TaskMatchStrategy,
-  DecompositionStrategy,
-  DefaultFormationStrategy,
-  CompositeStrategy,
-  AdaptiveStrategy,
-  SwitchingStrategy
+    PrologStrategy,
+    ResolutionStrategy,
+    GoalDrivenStrategy,
+    AnalogicalStrategy,
+    TermLinkStrategy,
+    TaskMatchStrategy,
+    DecompositionStrategy,
+    DefaultFormationStrategy,
+    CompositeStrategy,
+    AdaptiveStrategy,
+    SwitchingStrategy
 } from './strategies/index.js';
 
 // Premise formation

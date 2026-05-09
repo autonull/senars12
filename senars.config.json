@@ -28,6 +28,8 @@
     "port": 6697,
     "useTLS": true,
     "nick": "senars12",
-    "channels": ["#nars"]
+    "channels": [
+      "#nars"
+    ]
   }
 }

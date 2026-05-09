@@ -1,182 +1,182 @@
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface LogEntry {
-  level: LogLevel;
-  message: string;
-  timestamp: number;
-  scope: string;
-  context?: Record<string, any>;
-  error?: Error;
+    level: LogLevel;
+    message: string;
+    timestamp: number;
+    scope: string;
+    context?: Record<string, any>;
+    error?: Error;
 }
 
 export interface LoggerConfig {
-  level: LogLevel;
-  format: 'json' | 'text';
-  scope: string;
-  samplingRate?: number;
+    level: LogLevel;
+    format: 'json' | 'text';
+    scope: string;
+    samplingRate?: number;
 }
 
 const LOG_LEVELS: LogLevel[] = ['debug', 'info', 'warn', 'error'];
 
 export class Logger {
-  private readonly config: LoggerConfig;
-  private readonly parent?: Logger;
-  private readonly children: Map<string, Logger> = new Map();
+    private readonly config: LoggerConfig;
+    private readonly parent?: Logger;
+    private readonly children: Map<string, Logger> = new Map();
 
-  constructor(config: Partial<LoggerConfig> = {}) {
-    this.config = {
-      level: config.level ?? 'info',
-      format: config.format ?? 'text',
-      scope: config.scope ?? 'root',
-      samplingRate: config.samplingRate ?? 1.0
-    };
-  }
-
-  child(scope: string): Logger {
-    const existing = this.children.get(scope);
-    if (existing) {
-      return existing;
+    constructor(config: Partial<LoggerConfig> = {}) {
+        this.config = {
+            level: config.level ?? 'info',
+            format: config.format ?? 'text',
+            scope: config.scope ?? 'root',
+            samplingRate: config.samplingRate ?? 1.0
+        };
     }
 
-    const childLogger = new Logger({
-      ...this.config,
-      scope: this.config.scope ? `${this.config.scope}:${scope}` : scope
-    });
+    child(scope: string): Logger {
+        const existing = this.children.get(scope);
+        if (existing) {
+            return existing;
+        }
 
-    this.children.set(scope, childLogger);
-    return childLogger;
-  }
+        const childLogger = new Logger({
+            ...this.config,
+            scope: this.config.scope ? `${this.config.scope}:${scope}` : scope
+        });
 
-  debug(message: string, context?: Record<string, any>): void {
-    this.log('debug', message, context);
-  }
-
-  info(message: string, context?: Record<string, any>): void {
-    this.log('info', message, context);
-  }
-
-  warn(message: string, context?: Record<string, any>): void {
-    this.log('warn', message, context);
-  }
-
-  error(message: string, error?: Error, context?: Record<string, any>): void {
-    this.log('error', message, context, error);
-  }
-
-  private log(level: LogLevel, message: string, context?: Record<string, any>, error?: Error): void {
-    if (LOG_LEVELS.indexOf(level) < LOG_LEVELS.indexOf(this.config.level)) {
-      return;
+        this.children.set(scope, childLogger);
+        return childLogger;
     }
 
-    if (this.config.samplingRate && Math.random() > this.config.samplingRate) {
-      return;
+    debug(message: string, context?: Record<string, any>): void {
+        this.log('debug', message, context);
     }
 
-    const entry: LogEntry = {
-      level,
-      message,
-      timestamp: Date.now(),
-      scope: this.config.scope,
-      context,
-      error
-    };
-
-    this.emit(entry);
-  }
-
-  private emit(entry: LogEntry): void {
-    const output = this.config.format === 'json'
-      ? JSON.stringify(this.serialize(entry))
-      : this.formatText(entry);
-
-    if (entry.level === 'error') {
-      console.error(output);
-    } else if (entry.level === 'warn') {
-      console.warn(output);
-    } else {
-      console.log(output);
+    info(message: string, context?: Record<string, any>): void {
+        this.log('info', message, context);
     }
 
-    if (this.parent) {
-      const parentEntry = { ...entry, scope: this.parent.config.scope };
-      (this.parent as any).emit(parentEntry);
-    }
-  }
-
-  private serialize(entry: LogEntry): any {
-    return {
-      ...entry,
-      timestamp: new Date(entry.timestamp).toISOString()
-    };
-  }
-
-  private formatText(entry: LogEntry): string {
-    const timestamp = new Date(entry.timestamp).toISOString();
-    const level = entry.level.toUpperCase().padEnd(5);
-    const scope = `[${entry.scope}]`;
-    
-    let message = `${timestamp} ${level} ${scope} ${entry.message}`;
-    
-    if (entry.context) {
-      message += ' ' + JSON.stringify(entry.context);
-    }
-    
-    if (entry.error) {
-      message += '\n' + entry.error.stack;
+    warn(message: string, context?: Record<string, any>): void {
+        this.log('warn', message, context);
     }
 
-    return message;
-  }
+    error(message: string, error?: Error, context?: Record<string, any>): void {
+        this.log('error', message, context, error);
+    }
 
-  setLevel(level: LogLevel): void {
-    this.config.level = level;
-  }
+    setLevel(level: LogLevel): void {
+        this.config.level = level;
+    }
 
-  getLevel(): LogLevel {
-    return this.config.level;
-  }
+    getLevel(): LogLevel {
+        return this.config.level;
+    }
 
-  getScope(): string {
-    return this.config.scope;
-  }
+    getScope(): string {
+        return this.config.scope;
+    }
+
+    private log(level: LogLevel, message: string, context?: Record<string, any>, error?: Error): void {
+        if (LOG_LEVELS.indexOf(level) < LOG_LEVELS.indexOf(this.config.level)) {
+            return;
+        }
+
+        if (this.config.samplingRate && Math.random() > this.config.samplingRate) {
+            return;
+        }
+
+        const entry: LogEntry = {
+            level,
+            message,
+            timestamp: Date.now(),
+            scope: this.config.scope,
+            context,
+            error
+        };
+
+        this.emit(entry);
+    }
+
+    private emit(entry: LogEntry): void {
+        const output = this.config.format === 'json'
+            ? JSON.stringify(this.serialize(entry))
+            : this.formatText(entry);
+
+        if (entry.level === 'error') {
+            console.error(output);
+        } else if (entry.level === 'warn') {
+            console.warn(output);
+        } else {
+            console.log(output);
+        }
+
+        if (this.parent) {
+            const parentEntry = {...entry, scope: this.parent.config.scope};
+            (this.parent as any).emit(parentEntry);
+        }
+    }
+
+    private serialize(entry: LogEntry): any {
+        return {
+            ...entry,
+            timestamp: new Date(entry.timestamp).toISOString()
+        };
+    }
+
+    private formatText(entry: LogEntry): string {
+        const timestamp = new Date(entry.timestamp).toISOString();
+        const level = entry.level.toUpperCase().padEnd(5);
+        const scope = `[${entry.scope}]`;
+
+        let message = `${timestamp} ${level} ${scope} ${entry.message}`;
+
+        if (entry.context) {
+            message += ' ' + JSON.stringify(entry.context);
+        }
+
+        if (entry.error) {
+            message += '\n' + entry.error.stack;
+        }
+
+        return message;
+    }
 }
 
 export class LoggerFactory {
-  private static instance: Logger;
-  private readonly loggers: Map<string, Logger> = new Map();
+    private static instance: Logger;
+    private readonly loggers: Map<string, Logger> = new Map();
 
-  static getInstance(): Logger {
-    if (!LoggerFactory.instance) {
-      LoggerFactory.instance = new Logger({
-        level: 'info',
-        format: 'text'
-      });
-    }
-    return LoggerFactory.instance;
-  }
-
-  static create(config: Partial<LoggerConfig> = {}): Logger {
-    return new Logger(config);
-  }
-
-  get(scope: string): Logger {
-    const existing = this.loggers.get(scope);
-    if (existing) {
-      return existing;
+    static getInstance(): Logger {
+        if (!LoggerFactory.instance) {
+            LoggerFactory.instance = new Logger({
+                level: 'info',
+                format: 'text'
+            });
+        }
+        return LoggerFactory.instance;
     }
 
-    const logger = new Logger({
-      scope,
-      format: 'json'
-    });
+    static create(config: Partial<LoggerConfig> = {}): Logger {
+        return new Logger(config);
+    }
 
-    this.loggers.set(scope, logger);
-    return logger;
-  }
+    get(scope: string): Logger {
+        const existing = this.loggers.get(scope);
+        if (existing) {
+            return existing;
+        }
+
+        const logger = new Logger({
+            scope,
+            format: 'json'
+        });
+
+        this.loggers.set(scope, logger);
+        return logger;
+    }
 }
 
 export const createLogger = (config?: Partial<LoggerConfig>): Logger => {
-  return new Logger(config);
+    return new Logger(config);
 };
 
 export const defaultLogger = LoggerFactory.getInstance();

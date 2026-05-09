@@ -23,8 +23,8 @@ export const fnv1aCombine = (acc: number, val: number): number =>
 const COMMUTATIVE_OPS = new Set(['similarity', 'conjunction', 'disjunction', 'equivalence']);
 
 export const computeHash = (kind: string, argHashes: number[]): number => {
-  const hashes = COMMUTATIVE_OPS.has(kind)
-    ? [...argHashes].sort((a, b) => a - b)
-    : argHashes;
-  return hashes.reduce((acc, h) => fnv1aCombine(acc, h), fnv1a(kind));
+    const hashes = COMMUTATIVE_OPS.has(kind)
+        ? [...argHashes].sort((a, b) => a - b)
+        : argHashes;
+    return hashes.reduce((acc, h) => fnv1aCombine(acc, h), fnv1a(kind));
 };

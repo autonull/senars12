@@ -1,622 +1,630 @@
 import type {NAR} from '../nar.js';
 import {MetacognitiveMonitor} from './MetacognitiveMonitor.js';
-import type {MetricsCollector} from '../metrics/index.js';
+import type {MetricsCollector} from '../metrics';
 
 export interface SelfAnalyzerConfig {
-  selfCorrectionEnabled?: boolean;
-  patternDetectionEnabled?: boolean;
-  optimizationEnabled?: boolean;
+    selfCorrectionEnabled?: boolean;
+    patternDetectionEnabled?: boolean;
+    optimizationEnabled?: boolean;
 }
 
 export interface TermPattern {
-  term: string;
-  frequency: number;
-  coOccurrences: Map<string, number>;
-  avgPriority: number;
-  lastSeen: number;
+    term: string;
+    frequency: number;
+    coOccurrences: Map<string, number>;
+    avgPriority: number;
+    lastSeen: number;
 }
 
 export interface InferenceChain {
-  startTerm: string;
-  endTerm: string;
-  length: number;
-  success: boolean;
-  duration: number;
+    startTerm: string;
+    endTerm: string;
+    length: number;
+    success: boolean;
+    duration: number;
 }
 
 export interface PatternAnalysis {
-  frequentPatterns: TermPattern[];
-  inefficientChains: InferenceChain[];
-  successfulStrategies: string[];
-  performancePatterns: {
-    avgRuleExecutionTime: number;
-    avgMemoryUsage: number;
-    throughputTrend: 'increasing' | 'decreasing' | 'stable';
-  };
-  resourceUsage: {
-    conceptCount: number;
-    memoryUsage: NodeJS.MemoryUsage;
-    avgConceptPriority: number;
-    highPriorityConcepts: number;
-    lowPriorityConcepts: number;
-  };
-  taskProcessingPatterns: {
-    avgProcessingTime: number;
-    queueDepth: number;
-    dropRate: number;
-  };
+    frequentPatterns: TermPattern[];
+    inefficientChains: InferenceChain[];
+    successfulStrategies: string[];
+    performancePatterns: {
+        avgRuleExecutionTime: number;
+        avgMemoryUsage: number;
+        throughputTrend: 'increasing' | 'decreasing' | 'stable';
+    };
+    resourceUsage: {
+        conceptCount: number;
+        memoryUsage: NodeJS.MemoryUsage;
+        avgConceptPriority: number;
+        highPriorityConcepts: number;
+        lowPriorityConcepts: number;
+    };
+    taskProcessingPatterns: {
+        avgProcessingTime: number;
+        queueDepth: number;
+        dropRate: number;
+    };
 }
 
 export interface Optimizations {
-  rulePriorities: Array<{ ruleId: string; currentPriority: number; suggestedPriority: number; reason: string }>;
-  strategyAdjustments: Array<{ strategy: string; adjustment: string; reason: string }>;
-  resourceAllocations: Array<{ resource: string; current: number; suggested: number; reason: string }>;
-  performanceImprovements: Array<{ type: string; impact: 'high' | 'medium' | 'low'; action: string; reason: string }>;
+    rulePriorities: Array<{ ruleId: string; currentPriority: number; suggestedPriority: number; reason: string }>;
+    strategyAdjustments: Array<{ strategy: string; adjustment: string; reason: string }>;
+    resourceAllocations: Array<{ resource: string; current: number; suggested: number; reason: string }>;
+    performanceImprovements: Array<{ type: string; impact: 'high' | 'medium' | 'low'; action: string; reason: string }>;
 }
 
 export interface MetaCognitiveResult {
-  success: boolean;
-  patterns?: PatternAnalysis;
-  optimizations?: Optimizations;
-  tasksProcessed?: number;
-  timestamp?: number;
-  error?: string;
-  monitorState?: any;
+    success: boolean;
+    patterns?: PatternAnalysis;
+    optimizations?: Optimizations;
+    tasksProcessed?: number;
+    timestamp?: number;
+    error?: string;
+    monitorState?: any;
 }
 
 export class SelfAnalyzer {
-  private nar: NAR | null;
-  private monitor: MetacognitiveMonitor;
-  private metrics: MetricsCollector | null;
-  private config: Required<SelfAnalyzerConfig>;
-  private patternHistory: Map<string, number[]> = new Map();
-  private optimizationHistory: Optimizations = {
-    rulePriorities: [],
-    strategyAdjustments: [],
-    resourceAllocations: [],
-    performanceImprovements: []
-  };
-
-  constructor(nar: NAR | null, monitor: MetacognitiveMonitor, metrics: MetricsCollector | null, config: SelfAnalyzerConfig = {}) {
-    this.nar = nar;
-    this.monitor = monitor;
-    this.metrics = metrics;
-    this.config = {
-      selfCorrectionEnabled: config.selfCorrectionEnabled ?? true,
-      patternDetectionEnabled: config.patternDetectionEnabled ?? true,
-      optimizationEnabled: config.optimizationEnabled ?? true
+    private readonly nar: NAR | null;
+    private monitor: MetacognitiveMonitor;
+    private readonly metrics: MetricsCollector | null;
+    private config: Required<SelfAnalyzerConfig>;
+    private patternHistory: Map<string, number[]> = new Map();
+    private optimizationHistory: Optimizations = {
+        rulePriorities: [],
+        strategyAdjustments: [],
+        resourceAllocations: [],
+        performanceImprovements: []
     };
-  }
 
-  async performMetaCognitiveReasoning(): Promise<MetaCognitiveResult> {
-    try {
-      const patterns = await this.analyzeReasoningPatterns();
-      const optimizations = await this.identifyOptimizations(patterns);
-      await this.applyOptimizations(optimizations);
-      this.trackOptimization(optimizations);
-
-      return {
-        success: true,
-        patterns,
-        optimizations,
-        timestamp: Date.now(),
-        monitorState: this.monitor.getMonitorState()
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: Date.now(),
-        monitorState: this.monitor.getMonitorState()
-      };
-    }
-  }
-
-  async performSelfCorrection(): Promise<MetaCognitiveResult> {
-    try {
-      const issues = await this.identifyIssues();
-      const corrections = await this.applyCorrections(issues);
-
-      return {
-        success: true,
-        timestamp: Date.now(),
-        monitorState: this.monitor.getMonitorState()
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: Date.now()
-      };
-    }
-  }
-
-  async getSystemAnalysis(): Promise<any> {
-    return {
-      metaCognition: this.monitor.getMonitorState(),
-      performance: this.getPerformanceAnalysis(),
-      resourceUsage: this.getResourceAnalysis(),
-      patterns: await this.analyzeReasoningPatterns()
-    };
-  }
-
-  shutdown(): void {
-    this.patternHistory.clear();
-    this.optimizationHistory.rulePriorities = [];
-    this.optimizationHistory.strategyAdjustments = [];
-    this.optimizationHistory.resourceAllocations = [];
-    this.optimizationHistory.performanceImprovements = [];
-  }
-
-  private async analyzeReasoningPatterns(): Promise<PatternAnalysis> {
-    if (!this.nar) {
-      return this.emptyPatternAnalysis();
+    constructor(nar: NAR | null, monitor: MetacognitiveMonitor, metrics: MetricsCollector | null, config: SelfAnalyzerConfig = {}) {
+        this.nar = nar;
+        this.monitor = monitor;
+        this.metrics = metrics;
+        this.config = {
+            selfCorrectionEnabled: config.selfCorrectionEnabled ?? true,
+            patternDetectionEnabled: config.patternDetectionEnabled ?? true,
+            optimizationEnabled: config.optimizationEnabled ?? true
+        };
     }
 
-    const concepts = this.nar.listConcepts();
-    const stats = this.nar.getStatistics();
-    const metricsSummary = this.metrics?.getSummary();
+    async performMetaCognitiveReasoning(): Promise<MetaCognitiveResult> {
+        try {
+            const patterns = await this.analyzeReasoningPatterns();
+            const optimizations = await this.identifyOptimizations(patterns);
+            await this.applyOptimizations(optimizations);
+            this.trackOptimization(optimizations);
 
-    const termPatterns = this.analyzeTermPatterns(concepts);
-    const inferenceChains = this.detectInefficientChains();
-    const performancePatterns = this.analyzePerformancePatterns(metricsSummary);
-    const resourceUsage = this.analyzeResourceUsage(concepts, stats);
-    const taskPatterns = this.analyzeTaskPatterns();
-
-    return {
-      frequentPatterns: termPatterns,
-      inefficientChains: inferenceChains,
-      successfulStrategies: this.identifySuccessfulStrategies(),
-      performancePatterns,
-      resourceUsage,
-      taskProcessingPatterns: taskPatterns
-    };
-  }
-
-  private analyzeTermPatterns(concepts: any[]): TermPattern[] {
-    const termFreq = new Map<string, { count: number; priorities: number[]; coOccurrences: Map<string, number> }>();
-
-    for (const concept of concepts) {
-      const termStr = concept.term.toString();
-      if (!termFreq.has(termStr)) {
-        termFreq.set(termStr, { count: 0, priorities: [], coOccurrences: new Map() });
-      }
-      const data = termFreq.get(termStr)!;
-      data.count++;
-      data.priorities.push(concept.priority);
-
-      const neighbors = this.getNeighboringTerms(concept);
-      for (const neighbor of neighbors) {
-        const coKey = neighbor.toString();
-        if (coKey !== termStr) {
-          data.coOccurrences.set(coKey, (data.coOccurrences.get(coKey) || 0) + 1);
+            return {
+                success: true,
+                patterns,
+                optimizations,
+                timestamp: Date.now(),
+                monitorState: this.monitor.getMonitorState()
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: Date.now(),
+                monitorState: this.monitor.getMonitorState()
+            };
         }
-      }
     }
 
-    const patterns: TermPattern[] = [];
-    for (const [term, data] of termFreq.entries()) {
-      const avgPriority = data.priorities.reduce((a, b) => a + b, 0) / data.priorities.length;
-      patterns.push({
-        term,
-        frequency: data.count,
-        coOccurrences: data.coOccurrences,
-        avgPriority,
-        lastSeen: Date.now()
-      });
-    }
+    async performSelfCorrection(): Promise<MetaCognitiveResult> {
+        try {
+            const issues = await this.identifyIssues();
+            const _corrections = await this.applyCorrections(issues);
 
-    return patterns.sort((a, b) => b.frequency - a.frequency).slice(0, 20);
-  }
-
-  private getNeighboringTerms(concept: any): any[] {
-    const neighbors: any[] = [];
-    const term = concept.term;
-    const subject = (term as any).args?.[0];
-    const predicate = (term as any).args?.[1];
-
-    if (subject) neighbors.push(subject);
-    if (predicate) neighbors.push(predicate);
-
-    return neighbors;
-  }
-
-  private detectInefficientChains(): InferenceChain[] {
-    const inefficient: InferenceChain[] = [];
-
-    const monitorState = this.monitor.getMonitorState() as any;
-    if (monitorState?.reasoningTrace) {
-      for (const entry of monitorState.reasoningTrace.slice(-100)) {
-        if (entry.duration > 1000) {
-          inefficient.push({
-            startTerm: entry.startTerm || 'unknown',
-            endTerm: entry.endTerm || 'unknown',
-            length: 1,
-            success: entry.success ?? false,
-            duration: entry.duration
-          });
+            return {
+                success: true,
+                timestamp: Date.now(),
+                monitorState: this.monitor.getMonitorState()
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: Date.now()
+            };
         }
-      }
     }
 
-    return inefficient;
-  }
-
-  private identifySuccessfulStrategies(): string[] {
-    const strategies: string[] = [];
-
-    if (this.metrics) {
-      const ruleStats = this.metrics.getRuleStats() as any[];
-      if (ruleStats) {
-        const successful = ruleStats.filter(s => s.successes > 0 && s.executions > 0);
-        successful.sort((a, b) => (b.successes / b.executions) - (a.successes / a.executions));
-        strategies.push(...successful.slice(0, 5).map(s => s.id));
-      }
+    async getSystemAnalysis(): Promise<any> {
+        return {
+            metaCognition: this.monitor.getMonitorState(),
+            performance: this.getPerformanceAnalysis(),
+            resourceUsage: this.getResourceAnalysis(),
+            patterns: await this.analyzeReasoningPatterns()
+        };
     }
 
-    return strategies;
-  }
-
-  private analyzePerformancePatterns(metricsSummary: any): any {
-    const avgRuleExecutionTime = this.calculateAverageRuleExecutionTime();
-    const avgMemoryUsage = this.calculateAverageMemoryUsage();
-    const throughputTrend = this.determineThroughputTrend();
-
-    return {
-      avgRuleExecutionTime,
-      avgMemoryUsage,
-      throughputTrend
-    };
-  }
-
-  private analyzeResourceUsage(concepts: any[], stats: any): any {
-    const conceptCount = concepts.length;
-    const priorities = concepts.map(c => c.priority);
-    const avgPriority = priorities.reduce((a, b) => a + b, 0) / (priorities.length || 1);
-
-    return {
-      conceptCount,
-      memoryUsage: process.memoryUsage ? process.memoryUsage() : {} as NodeJS.MemoryUsage,
-      avgConceptPriority: avgPriority,
-      highPriorityConcepts: concepts.filter(c => c.priority > 0.7).length,
-      lowPriorityConcepts: concepts.filter(c => c.priority < 0.3).length
-    };
-  }
-
-  private analyzeTaskPatterns(): any {
-    if (!this.nar || !this.metrics) {
-      return {
-        avgProcessingTime: 0,
-        queueDepth: 0,
-        dropRate: 0
-      };
+    shutdown(): void {
+        this.patternHistory.clear();
+        this.optimizationHistory.rulePriorities = [];
+        this.optimizationHistory.strategyAdjustments = [];
+        this.optimizationHistory.resourceAllocations = [];
+        this.optimizationHistory.performanceImprovements = [];
     }
 
-    const metricsSummary = this.metrics.getSummary();
-    const stats = this.nar.getStatistics();
+    private async analyzeReasoningPatterns(): Promise<PatternAnalysis> {
+        if (!this.nar) {
+            return this.emptyPatternAnalysis();
+        }
 
-    const avgProcessingTime = metricsSummary.throughput?.averageStepDuration ?? 0;
-    const queueDepth = 0;
-    const totalTasks = stats?.totalTasks ?? 0;
-    const droppedTasks = 0;
-    const dropRate = totalTasks > 0 ? droppedTasks / totalTasks : 0;
+        const concepts = this.nar.listConcepts();
+        const stats = this.nar.getStatistics();
+        const metricsSummary = this.metrics?.getSummary();
 
-    return {
-      avgProcessingTime,
-      queueDepth,
-      dropRate
-    };
-  }
+        const termPatterns = this.analyzeTermPatterns(concepts);
+        const inferenceChains = this.detectInefficientChains();
+        const performancePatterns = this.analyzePerformancePatterns(metricsSummary);
+        const resourceUsage = this.analyzeResourceUsage(concepts, stats);
+        const taskPatterns = this.analyzeTaskPatterns();
 
-  private async identifyOptimizations(patterns: PatternAnalysis): Promise<Optimizations> {
-    const optimizations: Optimizations = {
-      rulePriorities: [],
-      strategyAdjustments: [],
-      resourceAllocations: [],
-      performanceImprovements: []
-    };
-
-    if (patterns.resourceUsage.conceptCount > 80) {
-      optimizations.performanceImprovements.push({
-        type: 'memory_cleanup',
-        impact: 'high',
-        action: 'trigger_consolidation',
-        reason: `Concept count (${patterns.resourceUsage.conceptCount}) exceeds threshold (80)`
-      });
+        return {
+            frequentPatterns: termPatterns,
+            inefficientChains: inferenceChains,
+            successfulStrategies: this.identifySuccessfulStrategies(),
+            performancePatterns,
+            resourceUsage,
+            taskProcessingPatterns: taskPatterns
+        };
     }
 
-    if (patterns.resourceUsage.lowPriorityConcepts > patterns.resourceUsage.highPriorityConcepts * 2) {
-      optimizations.performanceImprovements.push({
-        type: 'priority_rebalancing',
-        impact: 'medium',
-        action: 'adjust_priorities',
-        reason: 'Too many low-priority concepts relative to high-priority'
-      });
+    private analyzeTermPatterns(concepts: any[]): TermPattern[] {
+        const termFreq = new Map<string, { count: number; priorities: number[]; coOccurrences: Map<string, number> }>();
+
+        for (const concept of concepts) {
+            const termStr = concept.term.toString();
+            if (!termFreq.has(termStr)) {
+                termFreq.set(termStr, {count: 0, priorities: [], coOccurrences: new Map()});
+            }
+            const data = termFreq.get(termStr)!;
+            data.count++;
+            data.priorities.push(concept.priority);
+
+            const neighbors = this.getNeighboringTerms(concept);
+            for (const neighbor of neighbors) {
+                const coKey = neighbor.toString();
+                if (coKey !== termStr) {
+                    data.coOccurrences.set(coKey, (data.coOccurrences.get(coKey) || 0) + 1);
+                }
+            }
+        }
+
+        const patterns: TermPattern[] = [];
+        for (const [term, data] of termFreq.entries()) {
+            const avgPriority = data.priorities.reduce((a, b) => a + b, 0) / data.priorities.length;
+            patterns.push({
+                term,
+                frequency: data.count,
+                coOccurrences: data.coOccurrences,
+                avgPriority,
+                lastSeen: Date.now()
+            });
+        }
+
+        return patterns.sort((a, b) => b.frequency - a.frequency).slice(0, 20);
     }
 
-    if (patterns.performancePatterns.avgRuleExecutionTime > 50) {
-      optimizations.performanceImprovements.push({
-        type: 'rule_optimization',
-        impact: 'medium',
-        action: 'optimize_slow_rules',
-        reason: `Average rule execution time (${patterns.performancePatterns.avgRuleExecutionTime}ms) is high`
-      });
+    private getNeighboringTerms(concept: any): any[] {
+        const neighbors: any[] = [];
+        const term = concept.term;
+        const subject = (term as any).args?.[0];
+        const predicate = (term as any).args?.[1];
+
+        if (subject) neighbors.push(subject);
+        if (predicate) neighbors.push(predicate);
+
+        return neighbors;
     }
 
-    return optimizations;
-  }
+    private detectInefficientChains(): InferenceChain[] {
+        const inefficient: InferenceChain[] = [];
 
-  private async applyOptimizations(optimizations: Optimizations): Promise<void> {
-    for (const improvement of optimizations.performanceImprovements) {
-      switch (improvement.type) {
-        case 'memory_cleanup':
-          await this.performMemoryCleanup();
-          break;
-        case 'performance_optimization':
-          await this.applyPerformanceOptimizations();
-          break;
-        case 'priority_rebalancing':
-          await this.rebalancePriorities();
-          break;
-      }
-    }
-  }
+        const monitorState = this.monitor.getMonitorState() as any;
+        if (monitorState?.reasoningTrace) {
+            for (const entry of monitorState.reasoningTrace.slice(-100)) {
+                if (entry.duration > 1000) {
+                    inefficient.push({
+                        startTerm: entry.startTerm || 'unknown',
+                        endTerm: entry.endTerm || 'unknown',
+                        length: 1,
+                        success: entry.success ?? false,
+                        duration: entry.duration
+                    });
+                }
+            }
+        }
 
-  private async performMemoryCleanup(): Promise<void> {
-    if (this.nar?.memory && 'consolidate' in this.nar.memory) {
-      (this.nar.memory as any).consolidate?.();
-    }
-  }
-
-  private async applyPerformanceOptimizations(): Promise<void> {
-    if (!this.nar) return;
-
-    const metrics = this.metrics?.getSummary();
-    const config = this.nar.getConfig();
-    const monitorState = this.monitor.getMonitorState() as any;
-
-    const throughput = metrics.throughput?.derivationsPerSecond ?? 0;
-    const errorRate = metrics.system.errors > 0 ? metrics.system.errors / (metrics.system.totalDerivations || 1) : 0;
-    const memoryUsage = process.memoryUsage ? process.memoryUsage().heapUsed : 0;
-    const conceptCount = this.nar.listConcepts().length;
-
-    if (throughput < 10 && config.maxDerivationsPerStep > 50) {
-      const newConfig = { ...config, maxDerivationsPerStep: Math.max(50, config.maxDerivationsPerStep - 10) };
-      this.nar.setConfig(newConfig);
+        return inefficient;
     }
 
-    if (errorRate > 0.1 && config.priorityThreshold < 0.7) {
-      const newConfig = { ...config, priorityThreshold: Math.min(0.7, config.priorityThreshold + 0.05) };
-      this.nar.setConfig(newConfig);
+    private identifySuccessfulStrategies(): string[] {
+        const strategies: string[] = [];
+
+        if (this.metrics) {
+            const ruleStats = this.metrics.getRuleStats() as any[];
+            if (ruleStats) {
+                const successful = ruleStats.filter(s => s.successes > 0 && s.executions > 0);
+                successful.sort((a, b) => (b.successes / b.executions) - (a.successes / a.executions));
+                strategies.push(...successful.slice(0, 5).map(s => s.id));
+            }
+        }
+
+        return strategies;
     }
 
-    if (memoryUsage > 100000000 || conceptCount > config.maxConcepts! * 0.9) {
-      if (this.nar.memory && 'consolidate' in this.nar.memory) {
-        (this.nar.memory as any).consolidate?.();
-      }
+    private analyzePerformancePatterns(_metricsSummary: any): any {
+        const avgRuleExecutionTime = this.calculateAverageRuleExecutionTime();
+        const avgMemoryUsage = this.calculateAverageMemoryUsage();
+        const throughputTrend = this.determineThroughputTrend();
+
+        return {
+            avgRuleExecutionTime,
+            avgMemoryUsage,
+            throughputTrend
+        };
     }
 
-    const lowPriorityThreshold = 0.2;
-    const concepts = this.nar.listConcepts();
-    const lowPriorityConcepts = concepts.filter(c => c.priority < lowPriorityThreshold);
-    if (lowPriorityConcepts.length > concepts.length * 0.5) {
-      const newConfig = { ...config, priorityThreshold: Math.max(0.1, config.priorityThreshold! - 0.05) };
-      this.nar.setConfig(newConfig);
-    }
-  }
+    private analyzeResourceUsage(concepts: any[], _stats: any): any {
+        const conceptCount = concepts.length;
+        const priorities = concepts.map(c => c.priority);
+        const avgPriority = priorities.reduce((a, b) => a + b, 0) / (priorities.length || 1);
 
-  private async rebalancePriorities(): Promise<void> {
-    if (!this.nar) return;
-
-    const concepts = this.nar.listConcepts();
-    for (const concept of concepts) {
-      if (concept.priority < 0.1 && concept.totalTasks === 0) {
-        (concept as any).priority = Math.min(concept.priority + 0.05, 0.15);
-      }
-    }
-  }
-
-  private async identifyIssues(): Promise<any> {
-    const issues = {
-      contradictions: [] as any[],
-      inefficiencies: [] as any[],
-      resourceIssues: [] as any[],
-      performanceIssues: [] as any[]
-    };
-
-    if (!this.nar) return issues;
-
-    const concepts = this.nar.listConcepts();
-    const stats = this.nar.getStatistics();
-    const memoryUsage = process.memoryUsage ? process.memoryUsage() : null;
-
-    const lowPriorityRatio = concepts.filter(c => c.priority < 0.2).length / (concepts.length || 1);
-    if (lowPriorityRatio > 0.5) {
-      issues.resourceIssues.push({
-        type: 'high_low_priority_ratio',
-        severity: 'medium',
-        value: lowPriorityRatio,
-        threshold: 0.5,
-        description: 'Over 50% of concepts have low priority'
-      });
+        return {
+            conceptCount,
+            memoryUsage: process.memoryUsage ? process.memoryUsage() : {} as NodeJS.MemoryUsage,
+            avgConceptPriority: avgPriority,
+            highPriorityConcepts: concepts.filter(c => c.priority > 0.7).length,
+            lowPriorityConcepts: concepts.filter(c => c.priority < 0.3).length
+        };
     }
 
-    if (concepts.length > 100) {
-      issues.resourceIssues.push({
-        type: 'high_concept_count',
-        severity: 'high',
-        value: concepts.length,
-        threshold: 100,
-        description: 'Concept count exceeds recommended limit'
-      });
+    private analyzeTaskPatterns(): any {
+        if (!this.nar || !this.metrics) {
+            return {
+                avgProcessingTime: 0,
+                queueDepth: 0,
+                dropRate: 0
+            };
+        }
+
+        const metricsSummary = this.metrics.getSummary();
+        const stats = this.nar.getStatistics();
+
+        const avgProcessingTime = metricsSummary.throughput?.averageStepDuration ?? 0;
+        const queueDepth = 0;
+        const totalTasks = stats?.totalTasks ?? 0;
+        const droppedTasks = 0;
+        const dropRate = totalTasks > 0 ? droppedTasks / totalTasks : 0;
+
+        return {
+            avgProcessingTime,
+            queueDepth,
+            dropRate
+        };
     }
 
-    const inefficientChains = this.detectInefficientChains();
-    if (inefficientChains.length > 0) {
-      issues.inefficiencies.push(...inefficientChains.map(chain => ({
-        type: 'slow_inference_chain',
-        severity: 'medium',
-        ...chain
-      })));
+    private async identifyOptimizations(patterns: PatternAnalysis): Promise<Optimizations> {
+        const optimizations: Optimizations = {
+            rulePriorities: [],
+            strategyAdjustments: [],
+            resourceAllocations: [],
+            performanceImprovements: []
+        };
+
+        if (patterns.resourceUsage.conceptCount > 80) {
+            optimizations.performanceImprovements.push({
+                type: 'memory_cleanup',
+                impact: 'high',
+                action: 'trigger_consolidation',
+                reason: `Concept count (${patterns.resourceUsage.conceptCount}) exceeds threshold (80)`
+            });
+        }
+
+        if (patterns.resourceUsage.lowPriorityConcepts > patterns.resourceUsage.highPriorityConcepts * 2) {
+            optimizations.performanceImprovements.push({
+                type: 'priority_rebalancing',
+                impact: 'medium',
+                action: 'adjust_priorities',
+                reason: 'Too many low-priority concepts relative to high-priority'
+            });
+        }
+
+        if (patterns.performancePatterns.avgRuleExecutionTime > 50) {
+            optimizations.performanceImprovements.push({
+                type: 'rule_optimization',
+                impact: 'medium',
+                action: 'optimize_slow_rules',
+                reason: `Average rule execution time (${patterns.performancePatterns.avgRuleExecutionTime}ms) is high`
+            });
+        }
+
+        return optimizations;
     }
 
-    const monitorState = this.monitor.getMonitorState() as any;
-    if (monitorState.performance === 'declining') {
-      issues.performanceIssues.push({
-        type: 'declining_performance',
-        severity: 'high',
-        description: 'System performance is declining over time'
-      });
+    private async applyOptimizations(optimizations: Optimizations): Promise<void> {
+        for (const improvement of optimizations.performanceImprovements) {
+            switch (improvement.type) {
+                case 'memory_cleanup':
+                    await this.performMemoryCleanup();
+                    break;
+                case 'performance_optimization':
+                    await this.applyPerformanceOptimizations();
+                    break;
+                case 'priority_rebalancing':
+                    await this.rebalancePriorities();
+                    break;
+            }
+        }
     }
 
-    const taskPatterns = this.analyzeTaskPatterns();
-    if (taskPatterns.dropRate > 0.1) {
-      issues.performanceIssues.push({
-        type: 'high_task_drop_rate',
-        severity: 'high',
-        value: taskPatterns.dropRate,
-        threshold: 0.1,
-        description: 'More than 10% of tasks are being dropped'
-      });
-    }
-
-    return issues;
-  }
-
-  private async applyCorrections(issues: any): Promise<any> {
-    const appliedCorrections: any[] = [];
-    const pendingCorrections: any[] = [];
-
-    if (!this.nar) return { appliedCorrections, pendingCorrections };
-
-    for (const issue of issues.resourceIssues || []) {
-      switch (issue.type) {
-        case 'high_low_priority_ratio':
-          await this.rebalancePriorities();
-          appliedCorrections.push({ type: 'priority_rebalancing', issue: issue.type });
-          break;
-
-        case 'high_concept_count':
-          if (this.nar.memory && 'consolidate' in this.nar.memory) {
+    private async performMemoryCleanup(): Promise<void> {
+        if (this.nar?.memory && 'consolidate' in this.nar.memory) {
             (this.nar.memory as any).consolidate?.();
-            appliedCorrections.push({ type: 'memory_consolidation', issue: issue.type });
-          } else {
-            pendingCorrections.push({ type: 'memory_consolidation', issue: issue.type, reason: 'consolidation not available' });
-          }
-          break;
-      }
+        }
     }
 
-    for (const issue of issues.performanceIssues || []) {
-      switch (issue.type) {
-        case 'declining_performance':
-          await this.applyPerformanceOptimizations();
-          appliedCorrections.push({ type: 'performance_optimization', issue: issue.type });
-          break;
+    private async applyPerformanceOptimizations(): Promise<void> {
+        if (!this.nar) return;
 
-        case 'high_task_drop_rate':
-          if (this.nar.getConfig) {
-            const config = this.nar.getConfig();
-            const newConfig = { ...config, maxDerivationsPerStep: Math.max(50, (config.maxDerivationsPerStep || 100) - 20) };
+        const metrics = this.metrics?.getSummary();
+        if (!metrics) return;
+        const config = this.nar.getConfig();
+        const _monitorState = this.monitor.getMonitorState() as any;
+
+        const throughput = metrics.throughput?.derivationsPerSecond ?? 0;
+        const errorRate = metrics.system.errors > 0 ? metrics.system.errors / (metrics.system.totalDerivations || 1) : 0;
+        const memoryUsage = process.memoryUsage ? process.memoryUsage().heapUsed : 0;
+        const conceptCount = this.nar.listConcepts().length;
+
+        if (throughput < 10 && config.maxDerivationsPerStep > 50) {
+            const newConfig = {...config, maxDerivationsPerStep: Math.max(50, config.maxDerivationsPerStep - 10)};
             this.nar.setConfig(newConfig);
-            appliedCorrections.push({ type: 'throttle_reduction', issue: issue.type });
-          }
-          break;
-      }
+        }
+
+        if (errorRate > 0.1 && config.priorityThreshold < 0.7) {
+            const newConfig = {...config, priorityThreshold: Math.min(0.7, config.priorityThreshold + 0.05)};
+            this.nar.setConfig(newConfig);
+        }
+
+        if (memoryUsage > 100000000 || conceptCount > config.maxConcepts! * 0.9) {
+            if (this.nar.memory && 'consolidate' in this.nar.memory) {
+                (this.nar.memory as any).consolidate?.();
+            }
+        }
+
+        const lowPriorityThreshold = 0.2;
+        const concepts = this.nar.listConcepts();
+        const lowPriorityConcepts = concepts.filter(c => c.priority < lowPriorityThreshold);
+        if (lowPriorityConcepts.length > concepts.length * 0.5) {
+            const newConfig = {...config, priorityThreshold: Math.max(0.1, config.priorityThreshold! - 0.05)};
+            this.nar.setConfig(newConfig);
+        }
     }
 
-    for (const issue of issues.inefficiencies || []) {
-      if (issue.type === 'slow_inference_chain') {
-        pendingCorrections.push({
-          type: 'chain_optimization',
-          issue: issue.type,
-          reason: 'Requires manual review of inference chain'
-        });
-      }
+    private async rebalancePriorities(): Promise<void> {
+        if (!this.nar) return;
+
+        const concepts = this.nar.listConcepts();
+        for (const concept of concepts) {
+            if (concept.priority < 0.1 && concept.totalTasks === 0) {
+                (concept as any).priority = Math.min(concept.priority + 0.05, 0.15);
+            }
+        }
     }
 
-    return { appliedCorrections, pendingCorrections };
-  }
+    private async identifyIssues(): Promise<any> {
+        const issues = {
+            contradictions: [] as any[],
+            inefficiencies: [] as any[],
+            resourceIssues: [] as any[],
+            performanceIssues: [] as any[]
+        };
 
-  private trackOptimization(optimizations: Optimizations): void {
-    this.optimizationHistory.performanceImprovements.push(...optimizations.performanceImprovements);
-    this.optimizationHistory.performanceImprovements =
-      this.optimizationHistory.performanceImprovements.slice(-100);
-  }
+        if (!this.nar) return issues;
 
-  private emptyPatternAnalysis(): PatternAnalysis {
-    return {
-      frequentPatterns: [],
-      inefficientChains: [],
-      successfulStrategies: [],
-      performancePatterns: {
-        avgRuleExecutionTime: 0,
-        avgMemoryUsage: 0,
-        throughputTrend: 'stable'
-      },
-      resourceUsage: {
-        conceptCount: 0,
-        memoryUsage: process.memoryUsage ? process.memoryUsage() : {} as NodeJS.MemoryUsage,
-        avgConceptPriority: 0,
-        highPriorityConcepts: 0,
-        lowPriorityConcepts: 0
-      },
-      taskProcessingPatterns: {
-        avgProcessingTime: 0,
-        queueDepth: 0,
-        dropRate: 0
-      }
-    };
-  }
+        const concepts = this.nar.listConcepts();
+        const _stats = this.nar.getStatistics();
+        const _memoryUsage = process.memoryUsage ? process.memoryUsage() : null;
 
-  private calculateAverageRuleExecutionTime(): number {
-    if (!this.metrics) return 0;
-    const ruleStats = this.metrics.getRuleStats() as any[];
-    if (!ruleStats || ruleStats.length === 0) return 0;
+        const lowPriorityRatio = concepts.filter(c => c.priority < 0.2).length / (concepts.length || 1);
+        if (lowPriorityRatio > 0.5) {
+            issues.resourceIssues.push({
+                type: 'high_low_priority_ratio',
+                severity: 'medium',
+                value: lowPriorityRatio,
+                threshold: 0.5,
+                description: 'Over 50% of concepts have low priority'
+            });
+        }
 
-    const total = ruleStats.reduce((sum, s) => sum + s.averageDuration, 0);
-    return total / ruleStats.length;
-  }
+        if (concepts.length > 100) {
+            issues.resourceIssues.push({
+                type: 'high_concept_count',
+                severity: 'high',
+                value: concepts.length,
+                threshold: 100,
+                description: 'Concept count exceeds recommended limit'
+            });
+        }
 
-  private calculateAverageMemoryUsage(): number {
-    try {
-      const usage = process.memoryUsage();
-      return (usage.heapUsed + usage.heapTotal) / 2;
-    } catch {
-      return 0;
+        const inefficientChains = this.detectInefficientChains();
+        if (inefficientChains.length > 0) {
+            issues.inefficiencies.push(...inefficientChains.map(chain => ({
+                type: 'slow_inference_chain',
+                severity: 'medium',
+                ...chain
+            })));
+        }
+
+        const monitorState = this.monitor.getMonitorState() as any;
+        if (monitorState.performance === 'declining') {
+            issues.performanceIssues.push({
+                type: 'declining_performance',
+                severity: 'high',
+                description: 'System performance is declining over time'
+            });
+        }
+
+        const taskPatterns = this.analyzeTaskPatterns();
+        if (taskPatterns.dropRate > 0.1) {
+            issues.performanceIssues.push({
+                type: 'high_task_drop_rate',
+                severity: 'high',
+                value: taskPatterns.dropRate,
+                threshold: 0.1,
+                description: 'More than 10% of tasks are being dropped'
+            });
+        }
+
+        return issues;
     }
-  }
 
-  private determineThroughputTrend(): 'increasing' | 'decreasing' | 'stable' {
-    if (this.patternHistory.size < 2) return 'stable';
+    private async applyCorrections(issues: any): Promise<any> {
+        const appliedCorrections: any[] = [];
+        const pendingCorrections: any[] = [];
 
-    const recent = Array.from(this.patternHistory.values()).slice(-5).flat();
-    if (recent.length < 2) return 'stable';
+        if (!this.nar) return {appliedCorrections, pendingCorrections};
 
-    const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
-    const last = recent[recent.length - 1] ?? avg;
-    const trend = last > avg * 1.1 ? 'increasing' :
-                  last < avg * 0.9 ? 'decreasing' : 'stable';
+        for (const issue of issues.resourceIssues || []) {
+            switch (issue.type) {
+                case 'high_low_priority_ratio':
+                    await this.rebalancePriorities();
+                    appliedCorrections.push({type: 'priority_rebalancing', issue: issue.type});
+                    break;
 
-    return trend;
-  }
+                case 'high_concept_count':
+                    if (this.nar.memory && 'consolidate' in this.nar.memory) {
+                        (this.nar.memory as any).consolidate?.();
+                        appliedCorrections.push({type: 'memory_consolidation', issue: issue.type});
+                    } else {
+                        pendingCorrections.push({
+                            type: 'memory_consolidation',
+                            issue: issue.type,
+                            reason: 'consolidation not available'
+                        });
+                    }
+                    break;
+            }
+        }
 
-  private getPerformanceAnalysis(): any {
-    return {
-      ruleExecution: this.calculateAverageRuleExecutionTime(),
-      memoryUsage: this.calculateAverageMemoryUsage(),
-      throughput: this.determineThroughputTrend()
-    };
-  }
+        for (const issue of issues.performanceIssues || []) {
+            switch (issue.type) {
+                case 'declining_performance':
+                    await this.applyPerformanceOptimizations();
+                    appliedCorrections.push({type: 'performance_optimization', issue: issue.type});
+                    break;
 
-  private getResourceAnalysis(): any {
-    if (!this.nar) return {};
+                case 'high_task_drop_rate':
+                    if (this.nar.getConfig) {
+                        const config = this.nar.getConfig();
+                        const newConfig = {
+                            ...config,
+                            maxDerivationsPerStep: Math.max(50, (config.maxDerivationsPerStep || 100) - 20)
+                        };
+                        this.nar.setConfig(newConfig);
+                        appliedCorrections.push({type: 'throttle_reduction', issue: issue.type});
+                    }
+                    break;
+            }
+        }
 
-    const concepts = this.nar.listConcepts();
-    return {
-      conceptCount: concepts.length,
-      avgPriority: concepts.reduce((sum, c) => sum + c.priority, 0) / (concepts.length || 1),
-      memoryUsage: process.memoryUsage ? process.memoryUsage() : {}
-    };
-  }
+        for (const issue of issues.inefficiencies || []) {
+            if (issue.type === 'slow_inference_chain') {
+                pendingCorrections.push({
+                    type: 'chain_optimization',
+                    issue: issue.type,
+                    reason: 'Requires manual review of inference chain'
+                });
+            }
+        }
+
+        return {appliedCorrections, pendingCorrections};
+    }
+
+    private trackOptimization(optimizations: Optimizations): void {
+        this.optimizationHistory.performanceImprovements.push(...optimizations.performanceImprovements);
+        this.optimizationHistory.performanceImprovements =
+            this.optimizationHistory.performanceImprovements.slice(-100);
+    }
+
+    private emptyPatternAnalysis(): PatternAnalysis {
+        return {
+            frequentPatterns: [],
+            inefficientChains: [],
+            successfulStrategies: [],
+            performancePatterns: {
+                avgRuleExecutionTime: 0,
+                avgMemoryUsage: 0,
+                throughputTrend: 'stable'
+            },
+            resourceUsage: {
+                conceptCount: 0,
+                memoryUsage: process.memoryUsage ? process.memoryUsage() : {} as NodeJS.MemoryUsage,
+                avgConceptPriority: 0,
+                highPriorityConcepts: 0,
+                lowPriorityConcepts: 0
+            },
+            taskProcessingPatterns: {
+                avgProcessingTime: 0,
+                queueDepth: 0,
+                dropRate: 0
+            }
+        };
+    }
+
+    private calculateAverageRuleExecutionTime(): number {
+        if (!this.metrics) return 0;
+        const ruleStats = this.metrics.getRuleStats() as any[];
+        if (!ruleStats || ruleStats.length === 0) return 0;
+
+        const total = ruleStats.reduce((sum, s) => sum + s.averageDuration, 0);
+        return total / ruleStats.length;
+    }
+
+    private calculateAverageMemoryUsage(): number {
+        try {
+            const usage = process.memoryUsage();
+            return (usage.heapUsed + usage.heapTotal) / 2;
+        } catch {
+            return 0;
+        }
+    }
+
+    private determineThroughputTrend(): 'increasing' | 'decreasing' | 'stable' {
+        if (this.patternHistory.size < 2) return 'stable';
+
+        const recent = Array.from(this.patternHistory.values()).slice(-5).flat();
+        if (recent.length < 2) return 'stable';
+
+        const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
+        const last = recent[recent.length - 1] ?? avg;
+        const trend = last > avg * 1.1 ? 'increasing' :
+            last < avg * 0.9 ? 'decreasing' : 'stable';
+
+        return trend;
+    }
+
+    private getPerformanceAnalysis(): any {
+        return {
+            ruleExecution: this.calculateAverageRuleExecutionTime(),
+            memoryUsage: this.calculateAverageMemoryUsage(),
+            throughput: this.determineThroughputTrend()
+        };
+    }
+
+    private getResourceAnalysis(): any {
+        if (!this.nar) return {};
+
+        const concepts = this.nar.listConcepts();
+        return {
+            conceptCount: concepts.length,
+            avgPriority: concepts.reduce((sum, c) => sum + c.priority, 0) / (concepts.length || 1),
+            memoryUsage: process.memoryUsage ? process.memoryUsage() : {}
+        };
+    }
 }

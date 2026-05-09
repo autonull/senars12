@@ -3,7 +3,7 @@
  * Provides predictable, configurable responses
  */
 
-import type { LMClient, LMConfig } from './types.js';
+import type {LMClient, LMConfig} from './types.js';
 
 interface MockResponse {
     text: string;
@@ -20,19 +20,19 @@ const DEFAULT_RESPONSES: Record<string, string> = {
 
 export class MockLMClient implements LMClient {
     private responses: Map<string, MockResponse> = new Map();
-    private callLog: Array<{prompt: string; response: string}> = [];
+    private callLog: Array<{ prompt: string; response: string }> = [];
     private shouldFail = false;
     private failMessage = 'Mock LM failure';
 
     constructor(responses?: Record<string, string>) {
         if (responses) {
             for (const [key, value] of Object.entries(responses)) {
-                this.responses.set(key, { text: value, confidence: 0.9 });
+                this.responses.set(key, {text: value, confidence: 0.9});
             }
         }
         for (const [key, text] of Object.entries(DEFAULT_RESPONSES)) {
             if (!this.responses.has(key)) {
-                this.responses.set(key, { text, confidence: 0.9 });
+                this.responses.set(key, {text, confidence: 0.9});
             }
         }
     }
@@ -52,7 +52,7 @@ export class MockLMClient implements LMClient {
             }
         }
 
-        this.callLog.push({ prompt, response: response.text });
+        this.callLog.push({prompt, response: response.text});
         return response.text;
     }
 
@@ -70,7 +70,7 @@ export class MockLMClient implements LMClient {
     }
 
     setResponse(key: string, text: string, confidence = 0.9) {
-        this.responses.set(key, { text, confidence });
+        this.responses.set(key, {text, confidence});
     }
 
     getLastCall(): { prompt: string; response: string } | null {
@@ -98,7 +98,7 @@ export class RuleBasedLMClient implements LMClient {
 
     async generateText(prompt: string, _options?: LMConfig): Promise<string> {
         const lower = prompt.toLowerCase();
-        
+
         for (const [concept, info] of this.knowledge) {
             if (lower.includes(concept)) {
                 return info;

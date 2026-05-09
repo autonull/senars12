@@ -3,6 +3,6 @@
  */
 
 export * from './Agent.js';
-export { WebSocketEmbodiment } from './websocket-server.js';
-export { HTTPServer } from './http-server.js';
-export { IRCBotEmbodiment } from './irc-bot.js';
+export {WebSocketEmbodiment} from './websocket-server.js';
+export {HTTPServer} from './http-server.js';
+export {IRCBotEmbodiment} from './irc-bot.js';

@@ -2,8 +2,7 @@
  * Term System Tests - Canonicalization, Hashing, and Structural Sharing
  */
 import {NAR} from '../../nar.js';
-import {TermBuilder} from '../../terms';
-import {Truth} from '../../terms';
+import {TermBuilder, Truth} from '../../terms';
 
 describe('Term System', () => {
     let nar: NAR; // eslint-disable-line @typescript-eslint/no-unused-vars

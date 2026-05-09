@@ -1,4 +1,5 @@
 import type {AtomicTerm, CompoundTerm, Term} from './types.js';
+import {serializeTerm} from './types.js';
 import {computeHash, fnv1a} from '../utils';
 
 const termCache = new Map<number, Term>();
@@ -13,7 +14,10 @@ const TRUE_ATOM = cache(
         kind: 'atom' as const,
         symbol: 'TRUE',
         hash: fnv1a('TRUE'),
-        isVariable: false
+        isVariable: false,
+        toString() {
+            return 'TRUE';
+        }
     } as AtomicTerm)
 );
 
@@ -22,7 +26,10 @@ const FALSE_ATOM = cache(
         kind: 'atom' as const,
         symbol: 'FALSE',
         hash: fnv1a('FALSE'),
-        isVariable: false
+        isVariable: false,
+        toString() {
+            return 'FALSE';
+        }
     } as AtomicTerm)
 );
 
@@ -38,7 +45,10 @@ export const TermBuilder = {
                 kind: 'atom' as const,
                 symbol,
                 hash,
-                isVariable: symbol.startsWith('$')
+                isVariable: symbol.startsWith('$'),
+                toString() {
+                    return symbol;
+                }
             } as AtomicTerm)
         );
     },
@@ -52,7 +62,10 @@ export const TermBuilder = {
             Object.freeze({
                 kind: 'inheritance' as const,
                 args: [s, p],
-                hash
+                hash,
+                toString() {
+                    return serializeTerm(this as CompoundTerm);
+                }
             } as CompoundTerm)
         );
     },
@@ -66,7 +79,10 @@ export const TermBuilder = {
             Object.freeze({
                 kind: 'similarity' as const,
                 args: [s, p],
-                hash
+                hash,
+                toString() {
+                    return serializeTerm(this as CompoundTerm);
+                }
             } as CompoundTerm)
         );
     },
@@ -82,7 +98,10 @@ export const TermBuilder = {
             Object.freeze({
                 kind: 'conjunction' as const,
                 args: sorted,
-                hash
+                hash,
+                toString() {
+                    return serializeTerm(this as CompoundTerm);
+                }
             } as CompoundTerm)
         );
     },
@@ -98,7 +117,10 @@ export const TermBuilder = {
             Object.freeze({
                 kind: 'disjunction' as const,
                 args: sorted,
-                hash
+                hash,
+                toString() {
+                    return serializeTerm(this as CompoundTerm);
+                }
             } as CompoundTerm)
         );
     },
@@ -112,7 +134,10 @@ export const TermBuilder = {
             Object.freeze({
                 kind: 'negation' as const,
                 args: [term],
-                hash
+                hash,
+                toString() {
+                    return serializeTerm(this as CompoundTerm);
+                }
             } as CompoundTerm)
         );
     },
@@ -126,7 +151,10 @@ export const TermBuilder = {
             Object.freeze({
                 kind: 'implication' as const,
                 args: [ant, cons],
-                hash
+                hash,
+                toString() {
+                    return serializeTerm(this as CompoundTerm);
+                }
             } as CompoundTerm)
         );
     },
@@ -140,7 +168,10 @@ export const TermBuilder = {
             Object.freeze({
                 kind: 'equivalence' as const,
                 args: [a, c],
-                hash
+                hash,
+                toString() {
+                    return serializeTerm(this as CompoundTerm);
+                }
             } as CompoundTerm)
         );
     },
@@ -153,7 +184,10 @@ export const TermBuilder = {
             Object.freeze({
                 kind,
                 args,
-                hash
+                hash,
+                toString() {
+                    return serializeTerm(this as CompoundTerm);
+                }
             } as CompoundTerm)
         );
     },

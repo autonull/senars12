@@ -1,7 +1,5 @@
 import {Memory} from '../../memory';
-import {TermBuilder} from '../../terms';
-import {Truth} from '../../terms';
-import {isAtomic, type Term} from '../../terms';
+import {isAtomic, type Term, TermBuilder, Truth} from '../../terms';
 
 describe('Memory', () => {
     let mem: Memory;

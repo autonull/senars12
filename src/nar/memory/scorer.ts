@@ -41,7 +41,7 @@ export class MemoryScorer {
         return Math.max(0, Math.min(1, score));
     }
 
-    scoreForRetrieval(concept: Concept, _query?: any): number {
+    scoreForRetrieval(concept: Concept, _query?: Record<string, unknown>): number {
         return this.score(concept, {
             activation: concept.priority,
             recency: 1

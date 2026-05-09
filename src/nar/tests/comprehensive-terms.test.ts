@@ -1,325 +1,325 @@
-import { TermBuilder } from '../terms/index.js';
-import { Truth } from '../terms/truth.js';
+import {TermBuilder} from '../terms';
+import {Truth} from '../terms';
 
 describe('Term Builder Comprehensive Tests', () => {
-  describe('Atom Creation', () => {
-    it('creates unique atoms for different names', () => {
-      const a = TermBuilder.atom('A');
-      const b = TermBuilder.atom('B');
-      expect(a.hash).not.toBe(b.hash);
+    describe('Atom Creation', () => {
+        it('creates unique atoms for different names', () => {
+            const a = TermBuilder.atom('A');
+            const b = TermBuilder.atom('B');
+            expect(a.hash).not.toBe(b.hash);
+        });
+
+        it('reuses atoms with same name', () => {
+            const a1 = TermBuilder.atom('X');
+            const a2 = TermBuilder.atom('X');
+            expect(a1).toBe(a2);
+        });
+
+        it('handles special characters in atom names', () => {
+            const term1 = TermBuilder.atom('test-term_123');
+            const term2 = TermBuilder.atom('test-term_123');
+            expect(term1.hash).toBe(term2.hash);
+        });
+
+        it('handles unicode in atom names', () => {
+            const term1 = TermBuilder.atom('测试');
+            const term2 = TermBuilder.atom('测试');
+            expect(term1.hash).toBe(term2.hash);
+        });
     });
 
-    it('reuses atoms with same name', () => {
-      const a1 = TermBuilder.atom('X');
-      const a2 = TermBuilder.atom('X');
-      expect(a1).toBe(a2);
+    describe('Inheritance Terms', () => {
+        it('creates inheritance terms', () => {
+            const subj = TermBuilder.atom('bird');
+            const pred = TermBuilder.atom('animal');
+            const inh = TermBuilder.inheritance(subj, pred);
+
+            expect(inh).toBeDefined();
+            expect(inh.hash).toBeGreaterThan(0);
+        });
+
+        it('preserves argument order in inheritance', () => {
+            const a = TermBuilder.atom('A');
+            const b = TermBuilder.atom('B');
+            const ab = TermBuilder.inheritance(a, b);
+            const ba = TermBuilder.inheritance(b, a);
+
+            expect(ab.hash).not.toBe(ba.hash);
+        });
     });
 
-    it('handles special characters in atom names', () => {
-      const term1 = TermBuilder.atom('test-term_123');
-      const term2 = TermBuilder.atom('test-term_123');
-      expect(term1.hash).toBe(term2.hash);
+    describe('Similarity Terms', () => {
+        it('creates similarity terms', () => {
+            const a = TermBuilder.atom('cat');
+            const b = TermBuilder.atom('feline');
+            const sim = TermBuilder.similarity(a, b);
+
+            expect(sim).toBeDefined();
+            expect(sim.hash).toBeGreaterThan(0);
+        });
+
+        it('is commutative', () => {
+            const a = TermBuilder.atom('A');
+            const b = TermBuilder.atom('B');
+            const ab = TermBuilder.similarity(a, b);
+            const ba = TermBuilder.similarity(b, a);
+
+            expect(ab.hash).toBe(ba.hash);
+        });
     });
 
-    it('handles unicode in atom names', () => {
-      const term1 = TermBuilder.atom('测试');
-      const term2 = TermBuilder.atom('测试');
-      expect(term1.hash).toBe(term2.hash);
-    });
-  });
+    describe('Implication Terms', () => {
+        it('creates implication terms', () => {
+            const a = TermBuilder.atom('rain');
+            const b = TermBuilder.atom('wet');
+            const imp = TermBuilder.implication(a, b);
 
-  describe('Inheritance Terms', () => {
-    it('creates inheritance terms', () => {
-      const subj = TermBuilder.atom('bird');
-      const pred = TermBuilder.atom('animal');
-      const inh = TermBuilder.inheritance(subj, pred);
-      
-      expect(inh).toBeDefined();
-      expect(inh.hash).toBeGreaterThan(0);
-    });
+            expect(imp).toBeDefined();
+            expect(imp.hash).toBeGreaterThan(0);
+        });
 
-    it('preserves argument order in inheritance', () => {
-      const a = TermBuilder.atom('A');
-      const b = TermBuilder.atom('B');
-      const ab = TermBuilder.inheritance(a, b);
-      const ba = TermBuilder.inheritance(b, a);
-      
-      expect(ab.hash).not.toBe(ba.hash);
-    });
-  });
+        it('preserves argument order', () => {
+            const a = TermBuilder.atom('A');
+            const b = TermBuilder.atom('B');
+            const ab = TermBuilder.implication(a, b);
+            const ba = TermBuilder.implication(b, a);
 
-  describe('Similarity Terms', () => {
-    it('creates similarity terms', () => {
-      const a = TermBuilder.atom('cat');
-      const b = TermBuilder.atom('feline');
-      const sim = TermBuilder.similarity(a, b);
-      
-      expect(sim).toBeDefined();
-      expect(sim.hash).toBeGreaterThan(0);
+            expect(ab.hash).not.toBe(ba.hash);
+        });
     });
 
-    it('is commutative', () => {
-      const a = TermBuilder.atom('A');
-      const b = TermBuilder.atom('B');
-      const ab = TermBuilder.similarity(a, b);
-      const ba = TermBuilder.similarity(b, a);
-      
-      expect(ab.hash).toBe(ba.hash);
-    });
-  });
+    describe('Equivalence Terms', () => {
+        it('creates equivalence terms', () => {
+            const a = TermBuilder.atom('triangle');
+            const b = TermBuilder.atom('three-sided');
+            const equiv = TermBuilder.equivalence(a, b);
 
-  describe('Implication Terms', () => {
-    it('creates implication terms', () => {
-      const a = TermBuilder.atom('rain');
-      const b = TermBuilder.atom('wet');
-      const imp = TermBuilder.implication(a, b);
-      
-      expect(imp).toBeDefined();
-      expect(imp.hash).toBeGreaterThan(0);
-    });
+            expect(equiv).toBeDefined();
+            expect(equiv.hash).toBeGreaterThan(0);
+        });
 
-    it('preserves argument order', () => {
-      const a = TermBuilder.atom('A');
-      const b = TermBuilder.atom('B');
-      const ab = TermBuilder.implication(a, b);
-      const ba = TermBuilder.implication(b, a);
-      
-      expect(ab.hash).not.toBe(ba.hash);
-    });
-  });
+        it('is commutative', () => {
+            const a = TermBuilder.atom('A');
+            const b = TermBuilder.atom('B');
+            const ab = TermBuilder.equivalence(a, b);
+            const ba = TermBuilder.equivalence(b, a);
 
-  describe('Equivalence Terms', () => {
-    it('creates equivalence terms', () => {
-      const a = TermBuilder.atom('triangle');
-      const b = TermBuilder.atom('three-sided');
-      const equiv = TermBuilder.equivalence(a, b);
-      
-      expect(equiv).toBeDefined();
-      expect(equiv.hash).toBeGreaterThan(0);
+            expect(ab.hash).toBe(ba.hash);
+        });
     });
 
-    it('is commutative', () => {
-      const a = TermBuilder.atom('A');
-      const b = TermBuilder.atom('B');
-      const ab = TermBuilder.equivalence(a, b);
-      const ba = TermBuilder.equivalence(b, a);
-      
-      expect(ab.hash).toBe(ba.hash);
-    });
-  });
+    describe('Conjunction Terms', () => {
+        it('creates conjunction terms', () => {
+            const a = TermBuilder.atom('A');
+            const b = TermBuilder.atom('B');
+            const conj = TermBuilder.conjunction(a, b);
 
-  describe('Conjunction Terms', () => {
-    it('creates conjunction terms', () => {
-      const a = TermBuilder.atom('A');
-      const b = TermBuilder.atom('B');
-      const conj = TermBuilder.conjunction(a, b);
-      
-      expect(conj).toBeDefined();
-      expect(conj.hash).toBeGreaterThan(0);
-    });
+            expect(conj).toBeDefined();
+            expect(conj.hash).toBeGreaterThan(0);
+        });
 
-    it('is commutative', () => {
-      const a = TermBuilder.atom('A');
-      const b = TermBuilder.atom('B');
-      const ab = TermBuilder.conjunction(a, b);
-      const ba = TermBuilder.conjunction(b, a);
-      
-      expect(ab.hash).toBe(ba.hash);
-    });
+        it('is commutative', () => {
+            const a = TermBuilder.atom('A');
+            const b = TermBuilder.atom('B');
+            const ab = TermBuilder.conjunction(a, b);
+            const ba = TermBuilder.conjunction(b, a);
 
-    it('handles multiple arguments', () => {
-      const a = TermBuilder.atom('A');
-      const b = TermBuilder.atom('B');
-      const c = TermBuilder.atom('C');
-      const abc = TermBuilder.conjunction(a, b, c);
-      
-      expect(abc).toBeDefined();
-    });
-  });
+            expect(ab.hash).toBe(ba.hash);
+        });
 
-  describe('Disjunction Terms', () => {
-    it('creates disjunction terms', () => {
-      const a = TermBuilder.atom('A');
-      const b = TermBuilder.atom('B');
-      const disj = TermBuilder.disjunction(a, b);
-      
-      expect(disj).toBeDefined();
-      expect(disj.hash).toBeGreaterThan(0);
+        it('handles multiple arguments', () => {
+            const a = TermBuilder.atom('A');
+            const b = TermBuilder.atom('B');
+            const c = TermBuilder.atom('C');
+            const abc = TermBuilder.conjunction(a, b, c);
+
+            expect(abc).toBeDefined();
+        });
     });
 
-    it('is commutative', () => {
-      const a = TermBuilder.atom('A');
-      const b = TermBuilder.atom('B');
-      const ab = TermBuilder.disjunction(a, b);
-      const ba = TermBuilder.disjunction(b, a);
-      
-      expect(ab.hash).toBe(ba.hash);
-    });
-  });
+    describe('Disjunction Terms', () => {
+        it('creates disjunction terms', () => {
+            const a = TermBuilder.atom('A');
+            const b = TermBuilder.atom('B');
+            const disj = TermBuilder.disjunction(a, b);
 
-  describe('Negation Terms', () => {
-    it('creates negation terms', () => {
-      const a = TermBuilder.atom('A');
-      const neg = TermBuilder.negation(a);
-      
-      expect(neg).toBeDefined();
-      expect(neg.hash).toBeGreaterThan(0);
-    });
+            expect(disj).toBeDefined();
+            expect(disj.hash).toBeGreaterThan(0);
+        });
 
-    it('preserves argument', () => {
-      const a = TermBuilder.atom('A');
-      const neg = TermBuilder.negation(a);
-      
-      expect(neg).toBeDefined();
-    });
-  });
+        it('is commutative', () => {
+            const a = TermBuilder.atom('A');
+            const b = TermBuilder.atom('B');
+            const ab = TermBuilder.disjunction(a, b);
+            const ba = TermBuilder.disjunction(b, a);
 
-  describe('Compound Term Hashing', () => {
-    it('computes consistent hashes for compound terms', () => {
-      const a = TermBuilder.atom('A');
-      const b = TermBuilder.atom('B');
-      
-      const inh1 = TermBuilder.inheritance(a, b);
-      const inh2 = TermBuilder.inheritance(a, b);
-      
-      expect(inh1.hash).toBe(inh2.hash);
+            expect(ab.hash).toBe(ba.hash);
+        });
     });
 
-    it('distinguishes different compound structures', () => {
-      const a = TermBuilder.atom('A');
-      const b = TermBuilder.atom('B');
-      const c = TermBuilder.atom('C');
-      
-      const inh1 = TermBuilder.inheritance(a, b);
-      const inh2 = TermBuilder.inheritance(b, c);
-      
-      expect(inh1.hash).not.toBe(inh2.hash);
+    describe('Negation Terms', () => {
+        it('creates negation terms', () => {
+            const a = TermBuilder.atom('A');
+            const neg = TermBuilder.negation(a);
+
+            expect(neg).toBeDefined();
+            expect(neg.hash).toBeGreaterThan(0);
+        });
+
+        it('preserves argument', () => {
+            const a = TermBuilder.atom('A');
+            const neg = TermBuilder.negation(a);
+
+            expect(neg).toBeDefined();
+        });
     });
-  });
+
+    describe('Compound Term Hashing', () => {
+        it('computes consistent hashes for compound terms', () => {
+            const a = TermBuilder.atom('A');
+            const b = TermBuilder.atom('B');
+
+            const inh1 = TermBuilder.inheritance(a, b);
+            const inh2 = TermBuilder.inheritance(a, b);
+
+            expect(inh1.hash).toBe(inh2.hash);
+        });
+
+        it('distinguishes different compound structures', () => {
+            const a = TermBuilder.atom('A');
+            const b = TermBuilder.atom('B');
+            const c = TermBuilder.atom('C');
+
+            const inh1 = TermBuilder.inheritance(a, b);
+            const inh2 = TermBuilder.inheritance(b, c);
+
+            expect(inh1.hash).not.toBe(inh2.hash);
+        });
+    });
 });
 
 describe('Truth Value Operations', () => {
-  describe('Basic Operations', () => {
-    it('creates truth values', () => {
-      const t = Truth.create(0.8, 0.9);
-      expect(t.f).toBe(0.8);
-      expect(t.c).toBe(0.9);
+    describe('Basic Operations', () => {
+        it('creates truth values', () => {
+            const t = Truth.create(0.8, 0.9);
+            expect(t.f).toBe(0.8);
+            expect(t.c).toBe(0.9);
+        });
+
+        it('clamps frequency to [0, 1]', () => {
+            expect(Truth.create(1.5, 0.9).f).toBe(1.0);
+            expect(Truth.create(-0.5, 0.9).f).toBe(0.0);
+        });
+
+        it('clamps confidence to [0, 1]', () => {
+            expect(Truth.create(0.5, 1.5).c).toBe(1.0);
+            expect(Truth.create(0.5, -0.5).c).toBe(0.0);
+        });
+
+        it('handles NaN inputs', () => {
+            const t = Truth.create(NaN, NaN);
+            expect(t.f).toBeGreaterThanOrEqual(0);
+            expect(t.f).toBeLessThanOrEqual(1);
+        });
     });
 
-    it('clamps frequency to [0, 1]', () => {
-      expect(Truth.create(1.5, 0.9).f).toBe(1.0);
-      expect(Truth.create(-0.5, 0.9).f).toBe(0.0);
+    describe('Negation', () => {
+        it('negates frequency', () => {
+            const t = Truth.create(0.7, 0.9);
+            const neg = Truth.negation(t);
+            expect(neg.f).toBeCloseTo(0.3, 5);
+            expect(neg.c).toBe(0.9);
+        });
+
+        it('preserves confidence', () => {
+            const t = Truth.create(0.5, 0.8);
+            const neg = Truth.negation(t);
+            expect(neg.c).toBe(0.8);
+        });
     });
 
-    it('clamps confidence to [0, 1]', () => {
-      expect(Truth.create(0.5, 1.5).c).toBe(1.0);
-      expect(Truth.create(0.5, -0.5).c).toBe(0.0);
+    describe('Deduction', () => {
+        it('computes deduction', () => {
+            const t1 = Truth.create(0.9, 0.9);
+            const t2 = Truth.create(0.8, 0.8);
+            const result = Truth.deduction(t1, t2);
+
+            expect(result.f).toBeCloseTo(0.72, 5);
+            expect(result.c).toBeCloseTo(0.72, 5);
+        });
     });
 
-    it('handles NaN inputs', () => {
-      const t = Truth.create(NaN, NaN);
-      expect(t.f).toBeGreaterThanOrEqual(0);
-      expect(t.f).toBeLessThanOrEqual(1);
-    });
-  });
+    describe('Revision', () => {
+        it('combines truth values', () => {
+            const t1 = Truth.create(0.6, 0.5);
+            const t2 = Truth.create(0.8, 0.5);
+            const result = Truth.deduction(t1, t2);
 
-  describe('Negation', () => {
-    it('negates frequency', () => {
-      const t = Truth.create(0.7, 0.9);
-      const neg = Truth.negation(t);
-      expect(neg.f).toBeCloseTo(0.3, 5);
-      expect(neg.c).toBe(0.9);
+            expect(result).toBeDefined();
+        });
     });
 
-    it('preserves confidence', () => {
-      const t = Truth.create(0.5, 0.8);
-      const neg = Truth.negation(t);
-      expect(neg.c).toBe(0.8);
-    });
-  });
+    describe('Expectation', () => {
+        it('computes expectation value', () => {
+            const t = Truth.create(0.8, 0.9);
+            const exp = Truth.expectation(t);
 
-  describe('Deduction', () => {
-    it('computes deduction', () => {
-      const t1 = Truth.create(0.9, 0.9);
-      const t2 = Truth.create(0.8, 0.8);
-      const result = Truth.deduction(t1, t2);
-      
-      expect(result.f).toBeCloseTo(0.72, 5);
-      expect(result.c).toBeCloseTo(0.72, 5);
-    });
-  });
+            expect(exp).toBeGreaterThan(0.5);
+        });
 
-  describe('Revision', () => {
-    it('combines truth values', () => {
-      const t1 = Truth.create(0.6, 0.5);
-      const t2 = Truth.create(0.8, 0.5);
-      const result = Truth.deduction(t1, t2);
-      
-      expect(result).toBeDefined();
-    });
-  });
+        it('handles neutral truth', () => {
+            const t = Truth.create(0.5, 0.9);
+            const exp = Truth.expectation(t);
 
-  describe('Expectation', () => {
-    it('computes expectation value', () => {
-      const t = Truth.create(0.8, 0.9);
-      const exp = Truth.expectation(t);
-      
-      expect(exp).toBeGreaterThan(0.5);
+            expect(exp).toBeCloseTo(0.5, 5);
+        });
     });
 
-    it('handles neutral truth', () => {
-      const t = Truth.create(0.5, 0.9);
-      const exp = Truth.expectation(t);
-      
-      expect(exp).toBeCloseTo(0.5, 5);
-    });
-  });
+    describe('Comparison Operations', () => {
+        it('computes analogy', () => {
+            const t1 = Truth.create(0.8, 0.9);
+            const t2 = Truth.create(0.7, 0.8);
+            const result = Truth.analogy(t1, t2);
 
-  describe('Comparison Operations', () => {
-    it('computes analogy', () => {
-      const t1 = Truth.create(0.8, 0.9);
-      const t2 = Truth.create(0.7, 0.8);
-      const result = Truth.analogy(t1, t2);
-      
-      expect(result).toBeDefined();
-    });
+            expect(result).toBeDefined();
+        });
 
-    it('computes resemblance', () => {
-      const t1 = Truth.create(0.8, 0.9);
-      const t2 = Truth.create(0.7, 0.8);
-      const result = Truth.resemblance(t1, t2);
-      
-      expect(result).toBeDefined();
-    });
+        it('computes resemblance', () => {
+            const t1 = Truth.create(0.8, 0.9);
+            const t2 = Truth.create(0.7, 0.8);
+            const result = Truth.resemblance(t1, t2);
 
-    it('computes intersection', () => {
-      const t1 = Truth.create(0.8, 0.9);
-      const t2 = Truth.create(0.7, 0.8);
-      const result = Truth.intersection(t1, t2);
-      
-      expect(result).toBeDefined();
-    });
+            expect(result).toBeDefined();
+        });
 
-    it('computes union', () => {
-      const t1 = Truth.create(0.8, 0.9);
-      const t2 = Truth.create(0.7, 0.8);
-      const result = Truth.union(t1, t2);
-      
-      expect(result).toBeDefined();
-    });
-  });
+        it('computes intersection', () => {
+            const t1 = Truth.create(0.8, 0.9);
+            const t2 = Truth.create(0.7, 0.8);
+            const result = Truth.intersection(t1, t2);
 
-  describe('Constants', () => {
-    it('TRUE has high frequency', () => {
-      expect(Truth.TRUE.f).toBe(1.0);
+            expect(result).toBeDefined();
+        });
+
+        it('computes union', () => {
+            const t1 = Truth.create(0.8, 0.9);
+            const t2 = Truth.create(0.7, 0.8);
+            const result = Truth.union(t1, t2);
+
+            expect(result).toBeDefined();
+        });
     });
 
-    it('FALSE has zero frequency', () => {
-      expect(Truth.FALSE.f).toBe(0.0);
-    });
+    describe('Constants', () => {
+        it('TRUE has high frequency', () => {
+            expect(Truth.TRUE.f).toBe(1.0);
+        });
 
-    it('NEUTRAL has 0.5 frequency', () => {
-      expect(Truth.NEUTRAL.f).toBe(0.5);
+        it('FALSE has zero frequency', () => {
+            expect(Truth.FALSE.f).toBe(0.0);
+        });
+
+        it('NEUTRAL has 0.5 frequency', () => {
+            expect(Truth.NEUTRAL.f).toBe(0.5);
+        });
     });
-  });
 });

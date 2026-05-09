@@ -1,8 +1,7 @@
 import {TaskManager} from '../../task';
 import {Memory} from '../../memory';
 import {createTask} from '../../types';
-import {TermBuilder} from '../../terms';
-import {Truth} from '../../terms';
+import {TermBuilder, Truth} from '../../terms';
 
 describe('TaskManager', () => {
     let mem: Memory;

@@ -13,8 +13,7 @@ import {
     success,
     ValidationError
 } from '../../types';
-import {atom} from '../../terms';
-import {Truth} from '../../terms';
+import {atom, Truth} from '../../terms';
 
 describe('Budget', () => {
     test('createBudget creates frozen object', () => {
