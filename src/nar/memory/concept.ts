@@ -1,6 +1,8 @@
 import type {Term, Truth} from '../terms';
 import {Bag} from './bag.js';
 import {Truth as TruthOps} from '../terms/truth.js';
+import {jaccard} from '../utils/similarity.js';
+import {extractSymbols} from '../terms/utils.js';
 
 export interface TaskData {
     readonly term: Term;
@@ -28,28 +30,6 @@ export interface ConceptMergeResult {
     discarded: Concept[];
 }
 
-const jaccard = <T>(a: Set<T>, b: Set<T>): number => {
-    if (a.size === 0 && b.size === 0) return 0;
-    const inter = [...a].filter(x => b.has(x)).length;
-    return inter / (a.size + b.size - inter || 1);
-};
-
-const extractSymbols = (term: Term, symbols = new Set<string>()): Set<string> => {
-    if ('symbol' in term && typeof term.symbol === 'string') symbols.add(term.symbol);
-    if ('args' in term && Array.isArray(term.args)) {
-        for (const arg of term.args) {
-            if (arg && typeof arg === 'object') extractSymbols(arg as Term, symbols);
-        }
-    }
-    return symbols;
-};
-
-const onAdd = (c: Concept): void => {
-    c.useCount++;
-    c.lastAccessed = Date.now();
-    c._priority = Math.min(1, c._priority + 0.1);
-};
-
 export class Concept {
     readonly term: Term;
     readonly beliefBag: Bag<TaskData>;
@@ -58,12 +38,18 @@ export class Concept {
     readonly createdAt: number;
     readonly lastAccessTime: number;
     private activation = 0;
-    private useCount = 0;
-    private lastAccessed: number;
+    private _useCount = 0;
+    private _lastAccessed: number;
     private lastDecayTime: number;
     private linkedConcepts = new Map<number, ConceptLink>();
     private subConcepts = new Set<Concept>();
     private parentConcepts = new Set<Concept>();
+
+    private onAdd(): void {
+        this._useCount++;
+        this._lastAccessed = Date.now();
+        this._priority = Math.min(1, this._priority + 0.1);
+    }
 
     constructor(term: Term, config: ConceptConfig = {}) {
         this.term = term;
@@ -71,7 +57,7 @@ export class Concept {
         this.goalBag = new Bag(config.maxGoals ?? 50);
         this.questionBag = new Bag(config.maxQuestions ?? 20);
         this.createdAt = Date.now();
-        this.lastAccessed = Date.now();
+        this._lastAccessed = Date.now();
         this.lastAccessTime = Date.now();
         this.lastDecayTime = Date.now();
     }
@@ -86,7 +72,7 @@ export class Concept {
     addTask(type: ConceptTaskType, data: TaskData): boolean {
         if (type === 'belief') return this.addBeliefWithRevision(data);
         const bag = type === 'goal' ? this.goalBag : this.questionBag;
-        return bag.add(data, data.budget) ? (onAdd(this), true) : false;
+        return bag.add(data, data.budget) ? (this.onAdd(), true) : false;
     }
 
     hasMatchingBelief(term: Term): boolean { return !!this.findMatchingBelief(term); }
@@ -162,9 +148,9 @@ export class Concept {
         if (existing?.truth && data.truth) {
             const revised = {...data, truth: TruthOps.revision(data.truth, existing.truth), timestamp: Date.now()};
             this.beliefBag.remove(existing);
-            return this.beliefBag.add(revised, revised.budget) ? (onAdd(this), true) : false;
+            return this.beliefBag.add(revised, revised.budget) ? (this.onAdd(), true) : false;
         }
-        return this.beliefBag.add(data, data.budget) ? (onAdd(this), true) : false;
+        return this.beliefBag.add(data, data.budget) ? (this.onAdd(), true) : false;
     }
 
     private findMatchingBelief(term: Term): TaskData | undefined {

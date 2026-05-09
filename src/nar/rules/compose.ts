@@ -8,7 +8,8 @@ export function composeRules(
     return (premises: [Term, Term]): Term | undefined => {
         const intermediate = r1(premises);
         if (!intermediate) return undefined;
-        return r2([intermediate as Term, premises[1]]);
+        const result = r2([intermediate as Term, premises[1]]);
+        return result ?? undefined;
     };
 }
 

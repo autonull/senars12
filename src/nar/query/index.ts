@@ -1,5 +1,6 @@
 export {QueryAPI, createQueryAPI} from './api.js';
-export type {TermFilter, QueryResult, Answer} from './api.js';
+export type {QueryResult, Answer} from './api.js';
+export type {TermFilter} from '../types/index.js';
 
 export {ReasoningTrace, createReasoningTrace} from './trace.js';
 export type {DerivationTree, DerivationNode, TraceResult, ExplainResult} from './trace.js';

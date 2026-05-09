@@ -9,6 +9,9 @@ import {MemoryScorer} from './scorer.js';
 import {MemoryConsolidation} from './consolidation.js';
 import type {ForgettingPolicy} from './forgetting.js';
 import {Forgetting} from './forgetting.js';
+import {jaccard} from '../utils/similarity.js';
+import {extractSymbols} from '../terms/utils.js';
+import {THRESHOLDS} from '../constants.js';
 
 export interface MemoryConfig {
     maxConcepts?: number;
@@ -46,20 +49,6 @@ export interface MemoryHealth {
     isHealthy: boolean; pressureLevel: number; consolidationNeeded: boolean;
     forgettingNeeded: boolean; recommendations: string[];
 }
-
-const extractSymbols = (term: Term, symbols = new Set<string>()): Set<string> => {
-    if ('symbol' in term && typeof term.symbol === 'string') symbols.add(term.symbol);
-    if ('args' in term && Array.isArray(term.args)) {
-        for (const arg of term.args) { if (arg && typeof arg === 'object') extractSymbols(arg as Term, symbols); }
-    }
-    return symbols;
-};
-
-const jaccard = (a: Set<string>, b: Set<string>): number => {
-    if (a.size === 0 && b.size === 0) return 0;
-    const inter = [...a].filter(x => b.has(x)).length;
-    return inter / (a.size + b.size - inter || 1);
-};
 
 const distribution = (concepts: Iterable<Concept>) => {
     let total = 0, low = 0, med = 0, high = 0;

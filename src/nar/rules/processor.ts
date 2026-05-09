@@ -56,9 +56,10 @@ export class RuleProcessor {
                     if (result) {
                         const truthFn = rule.truthFn ?? NEUTRAL_FN;
                         const derivedStamp = Stamp.derive([p1.stamp, p2.stamp]) ?? Stamp.createInput();
+                        const truth = truthFn(p1.truth, p2.truth) ?? Truth.NEUTRAL;
                         yield {
                             term: result as Term,
-                            truth: truthFn(p1.truth, p2.truth),
+                            truth,
                             stamp: derivedStamp,
                             priority: rule.priority
                         };
@@ -86,9 +87,10 @@ export class RuleProcessor {
                 if (result) {
                     const truthFn = rule.truthFn ?? NEUTRAL_FN;
                     const derivedStamp = Stamp.derive([p1.stamp, p2.stamp]) ?? Stamp.createInput();
+                    const truth = truthFn(p1.truth, p2.truth) ?? Truth.NEUTRAL;
                     this.resultBuffer.push({
                         term: result as Term,
-                        truth: truthFn(p1.truth, p2.truth),
+                        truth,
                         stamp: derivedStamp,
                         priority: rule.priority
                     });

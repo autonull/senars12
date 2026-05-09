@@ -35,7 +35,7 @@ export class Focus {
     addToFocus(concept: Concept): void {
         const priority = concept.priority;
         if (priority >= this.config.attentionThreshold) {
-            const existing = this.concepts.find(c => c.concept.term.hash === concept.term.hash);
+            const existing = this.findEntry(concept);
             if (existing) {
                 existing.priority = priority;
             } else {
@@ -65,13 +65,17 @@ export class Focus {
     }
 
     adjustAttention(concept: Concept, delta: number): void {
-        const entry = this.concepts.find(c => c.concept.term.hash === concept.term.hash);
+        const entry = this.findEntry(concept);
         if (entry) {
             entry.priority = Math.max(0, Math.min(1, entry.priority + delta));
             if (entry.priority < this.config.attentionThreshold) {
                 this.removeFromFocus(concept);
             }
         }
+    }
+
+    private findEntry(concept: Concept): FocusEntry | undefined {
+        return this.concepts.find(c => c.concept.term.hash === concept.term.hash);
     }
 }
 

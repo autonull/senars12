@@ -25,7 +25,7 @@ export class ToolManager extends EventEmitter {
     private executionHistory: ToolEvent[] = [];
     private maxHistory = 100;
     private statistics: Map<string, ToolStatistics> = new Map();
-    private readonly sandboxMode = false;
+    private readonly sandboxMode: boolean = false;
     private allowedPermissions: Set<string> = new Set();
     private toolDescriptors: Map<string, ToolDescriptor> = new Map();
     private lifecycleState: Map<string, 'initialized' | 'running' | 'stopped' | 'disposed'> = new Map();

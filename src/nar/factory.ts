@@ -26,74 +26,42 @@ export interface SeNARSConfig {
     };
 }
 
+const PRESETS = {
+    minimal: { maxConcepts: 100, priorityThreshold: 0.1, activationDecayRate: 0.01, consolidationInterval: 10, cpuThrottleMs: 0, maxDerivationDepth: 10, maxDerivationsPerStep: 100 },
+    cli: { maxConcepts: 200, priorityThreshold: 0.1, activationDecayRate: 0.01, consolidationInterval: 10, cpuThrottleMs: 0, maxDerivationDepth: 10, maxDerivationsPerStep: 100 },
+    bot: { maxConcepts: 1000, priorityThreshold: 0.5, activationDecayRate: 0.01, consolidationInterval: 10, cpuThrottleMs: 10, maxDerivationDepth: 10, maxDerivationsPerStep: 1000 },
+    test: { maxConcepts: 100, priorityThreshold: 0.0, activationDecayRate: 0.0, consolidationInterval: 1000, cpuThrottleMs: 0, maxDerivationDepth: 20, maxDerivationsPerStep: 1000 }
+} as const;
+
+type PresetName = keyof typeof PRESETS;
+
+function createFromPreset<T extends Partial<CoreConfig>>(name: PresetName, options?: T): NAR {
+    return new NAR({ ...PRESETS[name], ...options });
+}
+
 export class SeNARSFactory {
     static createDefault(options: SeNARSOptions = {}): NAR {
-        const config: NARConfig = {
-            ...DEFAULT_CONFIG,
-            ...options.core,
-            enableLMRules: options.enableLMRules ?? false,
-            lmClient: options.lmClient ?? undefined
-        };
-
-        return new NAR(config);
+        return new NAR({ ...DEFAULT_CONFIG, ...options.core, enableLMRules: options.enableLMRules ?? false, lmClient: options.lmClient ?? undefined });
     }
 
     static fromConfig(config: SeNARSConfig, lmClient?: LMClient | null): NAR {
-        const narConfig: NARConfig = {
-            ...config.nar,
-            enableLMRules: config.lm?.enabled ?? false,
-            lmClient: config.lm?.enabled ? lmClient ?? undefined : undefined
-        };
-
-        return new NAR(narConfig);
+        return new NAR({ ...config.nar, enableLMRules: config.lm?.enabled ?? false, lmClient: config.lm?.enabled ? lmClient ?? undefined : undefined });
     }
 
     static createMinimal(): NAR {
-        return new NAR({
-            maxConcepts: 100,
-            priorityThreshold: 0.1,
-            activationDecayRate: 0.01,
-            consolidationInterval: 10,
-            cpuThrottleMs: 0,
-            maxDerivationDepth: 10,
-            maxDerivationsPerStep: 100
-        });
+        return createFromPreset('minimal');
     }
 
     static createForCLI(options?: { maxConcepts?: number; maxDerivationDepth?: number }): NAR {
-        return new NAR({
-            maxConcepts: options?.maxConcepts ?? 200,
-            priorityThreshold: 0.1,
-            activationDecayRate: 0.01,
-            consolidationInterval: 10,
-            cpuThrottleMs: 0,
-            maxDerivationDepth: options?.maxDerivationDepth ?? 10,
-            maxDerivationsPerStep: 100
-        });
+        return createFromPreset('cli', options);
     }
 
     static createForBot(options?: { maxConcepts?: number }): NAR {
-        return new NAR({
-            maxConcepts: options?.maxConcepts ?? 1000,
-            priorityThreshold: 0.5,
-            activationDecayRate: 0.01,
-            consolidationInterval: 10,
-            cpuThrottleMs: 10,
-            maxDerivationDepth: 10,
-            maxDerivationsPerStep: 1000
-        });
+        return createFromPreset('bot', options);
     }
 
     static createForTesting(options?: { maxConcepts?: number }): NAR {
-        return new NAR({
-            maxConcepts: options?.maxConcepts ?? 100,
-            priorityThreshold: 0.0,
-            activationDecayRate: 0.0,
-            consolidationInterval: 1000,
-            cpuThrottleMs: 0,
-            maxDerivationDepth: 20,
-            maxDerivationsPerStep: 1000
-        });
+        return createFromPreset('test', options);
     }
 }
 

@@ -77,11 +77,15 @@ export class NAR extends BaseComponent {
         this.tools = new ToolManager();
 
         if (this.config.enableLMRules && this.config.lmClient) {
-            this.initializeLMRules(this.config.lmClient);
+            this.initializeLM();
         }
 
         if (this.config.enableTools) {
-            this.initializeTools();
+            this.tools.register(new CalculateTool());
+            this.tools.register(new SleepTool());
+            this.tools.register(new ReadFileTool());
+            this.tools.register(new WriteFileTool());
+            this.tools.register(new HTTPTool());
         }
     }
 
@@ -306,44 +310,6 @@ export class NAR extends BaseComponent {
             throw new ConfigurationError('priorityThreshold must be between 0 and 1', {priorityThreshold: config.priorityThreshold});
         }
         return config;
-    }
-
-    private initializeLMRules(lmClient: LMClient): void {
-        const lmRules = [
-            LMRules.createNarseseTranslationRule(lmClient),
-            LMRules.createBeliefRevisionRule(lmClient),
-            LMRules.createGoalDecompositionRule(lmClient),
-            LMRules.createHypothesisGenerationRule(lmClient),
-            LMRules.createExplanationGenerationRule(lmClient),
-            LMRules.createAnalogicalReasoningRule(lmClient),
-            LMRules.createMetaReasoningGuidanceRule(lmClient),
-            LMRules.createUncertaintyCalibrationRule(lmClient),
-            LMRules.createSchemaInductionRule(lmClient),
-            LMRules.createTemporalCausalModelingRule(lmClient),
-            LMRules.createVariableGroundingRule(lmClient),
-            LMRules.createConceptElaborationRule(lmClient),
-            LMRules.createInteractiveClarificationRule(lmClient)
-        ];
-
-        for (const rule of lmRules) {
-            this.processor.registerLMRule(rule);
-        }
-
-        this._lmInitialized = true;
-    }
-
-    private initializeTools(): void {
-        if (this._toolsInitialized) {
-            return;
-        }
-
-        this.tools.register(new CalculateTool());
-        this.tools.register(new SleepTool());
-        this.tools.register(new ReadFileTool());
-        this.tools.register(new WriteFileTool());
-        this.tools.register(new HTTPTool());
-
-        this._toolsInitialized = true;
     }
 
     private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void {

@@ -39,11 +39,12 @@ const parseResponse = (response: string, type: TaskType, budget: number): Task[]
     });
 };
 
-const createTaskGen = (type: TaskType, budget: number) => (_r: string, _p: Term) => {
-    const parsed = LMResponseParser.parse(_r);
+const createTaskGen = (type: TaskType, budget: number) => (_r: unknown, _p: Term) => {
+    const response = typeof _r === 'string' ? _r : String(_r);
+    const parsed = LMResponseParser.parse(response);
     return parsed.valid && parsed.term
         ? [createTask(parsed.term, type, parsed.truth ?? Truth.NEUTRAL, createBudget(budget))]
-        : [createTask({kind: 'atom' as const, symbol: _r.trim(), hash: 0}, type, Truth.NEUTRAL, createBudget(budget))];
+        : [createTask({kind: 'atom' as const, symbol: response.trim(), hash: 0}, type, Truth.NEUTRAL, createBudget(budget))];
 };
 
 const define = (
@@ -83,8 +84,10 @@ const prompts: Record<string, string> = {
     'lm-interactive-clarification': 'What clarification is needed for "{{primaryTerm}}"?',
 };
 
-const createRule = (lm: LMClient | null, def: LMRuleDefinition, config: Partial<LMRuleConfig> = {}): LMRule =>
-    new LMRule(def.id, lm, {
+const createRule = (lm: LMClient | null, def: LMRuleDefinition, config: Partial<LMRuleConfig> = {}): LMRule => {
+    const taskType = def.taskType ?? 'belief';
+    const budget = def.budget ?? 0.7;
+    return new LMRule(def.id, lm, {
         ...config,
         name: def.name,
         description: def.description,
@@ -92,24 +95,31 @@ const createRule = (lm: LMClient | null, def: LMRuleDefinition, config: Partial<
         singlePremise: def.singlePremise ?? true,
         promptTemplate: `${NARSESE_INSTRUCTIONS}\n\n${prompts[def.id]}`,
         taskGenerator: def.multiline
-            ? (r) => parseResponse(r, def.taskType!, def.budget!)
-            : createTaskGen(def.taskType!, def.budget!)
+            ? (r: unknown) => parseResponse(String(r), taskType, budget)
+            : createTaskGen(taskType, budget)
     });
+};
+
+const getRuleDef = (index: number): LMRuleDefinition => {
+    const def = ruleDefs[index];
+    if (!def) throw new Error(`Rule definition at index ${index} not found`);
+    return def;
+};
 
 export const LMRules = {
-    createNarseseTranslationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[0], config),
-    createBeliefRevisionRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[1], config),
-    createGoalDecompositionRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[2], config),
-    createHypothesisGenerationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[3], config),
-    createExplanationGenerationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[4], config),
-    createAnalogicalReasoningRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[5], config),
-    createMetaReasoningGuidanceRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[6], config),
-    createUncertaintyCalibrationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[7], config),
-    createSchemaInductionRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[8], config),
-    createTemporalCausalModelingRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[9], config),
-    createVariableGroundingRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[10], config),
-    createConceptElaborationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[11], config),
-    createInteractiveClarificationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, ruleDefs[12], config),
+    createNarseseTranslationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(0), config),
+    createBeliefRevisionRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(1), config),
+    createGoalDecompositionRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(2), config),
+    createHypothesisGenerationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(3), config),
+    createExplanationGenerationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(4), config),
+    createAnalogicalReasoningRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(5), config),
+    createMetaReasoningGuidanceRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(6), config),
+    createUncertaintyCalibrationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(7), config),
+    createSchemaInductionRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(8), config),
+    createTemporalCausalModelingRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(9), config),
+    createVariableGroundingRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(10), config),
+    createConceptElaborationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(11), config),
+    createInteractiveClarificationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(12), config),
     createAll: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => ruleDefs.map(d => createRule(lm, d, config)),
     create: (id: string, lm: LMClient | null, config?: Partial<LMRuleConfig>) => {
         const def = ruleDefs.find(d => d.id === id);

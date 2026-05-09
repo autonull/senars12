@@ -1,17 +1,6 @@
 import type {Term} from '../terms';
-import type {Task, TaskType} from '../types';
+import type {Task, TaskType, TermFilter} from '../types';
 import type {Concept} from '../memory';
-
-export interface TermFilter {
-    contains?: string;
-    startsWith?: string;
-    endsWith?: string;
-    pattern?: Term;
-    truthRange?: [number, number];
-    recency?: number;
-    type?: TaskType;
-    limit?: number;
-}
 
 export interface QueryResult {
     beliefs: Task[];
@@ -57,7 +46,6 @@ export class QueryAPI {
                 beliefs.push(...this.applyFilters(beliefTasks, filter));
             }
             if (concept.questionBag && concept.questionBag.size > 0) {
-                const _questionTasks = this.extractTasks(concept, 'question');
                 questions.push(...this.extractTasks(concept, 'question'));
             }
         }
@@ -144,7 +132,7 @@ export class QueryAPI {
         if (!filter) return tasks;
 
         return tasks.filter(task => {
-            if (filter.pattern && !this.matchesPattern(task, filter.pattern)) {
+            if (filter.pattern && !this.matchesPattern(task, filter.pattern.toString())) {
                 return false;
             }
 
@@ -171,8 +159,8 @@ export class QueryAPI {
         });
     }
 
-    private matchesPattern(task: Task, pattern: Term): boolean {
-        return task.term.toString() === pattern.toString();
+    private matchesPattern(task: Task, pattern: string): boolean {
+        return task.term.toString() === pattern;
     }
 
     private limitResults(tasks: Task[], limit?: number): Task[] {

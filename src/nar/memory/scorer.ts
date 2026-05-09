@@ -42,23 +42,26 @@ export class MemoryScorer {
     }
 
     scoreForRetrieval(concept: Concept, _query?: Record<string, unknown>): number {
-        return this.score(concept, {
-            activation: concept.priority,
-            recency: 1
-        });
+        return this.scoreFor('retrieval', concept);
     }
 
     scoreForConsolidation(concept: Concept): number {
-        return this.score(concept, {
-            activation: concept.priority * 0.5,
-            recency: 0.5
-        });
+        return this.scoreFor('consolidation', concept);
     }
 
     scoreForForgetting(concept: Concept): number {
+        return this.scoreFor('forgetting', concept);
+    }
+
+    private scoreFor(type: 'retrieval' | 'consolidation' | 'forgetting', concept: Concept): number {
+        const factors = {
+            retrieval: {a: 1, r: 1},
+            consolidation: {a: 0.5, r: 0.5},
+            forgetting: {a: 0.3, r: 0.3}
+        }[type];
         return this.score(concept, {
-            activation: concept.priority * 0.3,
-            recency: 0.3
+            activation: concept.priority * factors.a,
+            recency: factors.r
         });
     }
 

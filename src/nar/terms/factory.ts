@@ -49,9 +49,9 @@ export const TermBuilder = {
     similarity: (s: Term | undefined, p: Term | undefined): Term =>
         s && p ? createCompound('similarity', [s, p]) : createAtom('TRUE'),
 
-    conjunction: (...terms: (Term | undefined)[]): Term => createCompound('conjunction', terms, true),
+    conjunction: (...terms: (Term | undefined)[]): Term => createCompound('conjunction', terms.filter((t): t is Term => t !== undefined), true),
 
-    disjunction: (...terms: (Term | undefined)[]): Term => createCompound('disjunction', terms, true),
+    disjunction: (...terms: (Term | undefined)[]): Term => createCompound('disjunction', terms.filter((t): t is Term => t !== undefined), true),
 
     negation: (term: Term | undefined): Term => term ? createCompound('negation', [term]) : createAtom('TRUE'),
 

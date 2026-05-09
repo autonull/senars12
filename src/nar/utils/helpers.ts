@@ -9,6 +9,12 @@ export const clamp = (v: number, min: number, max: number): number =>
     Math.max(min, Math.min(max, v));
 
 /**
+ * Calculate average of numbers, returns 0 for empty array
+ */
+export const average = (values: number[]): number =>
+    values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+
+/**
  * Safe division that returns 0 when denominator is 0
  */
 export const safeDiv = (num: number, den: number): number =>

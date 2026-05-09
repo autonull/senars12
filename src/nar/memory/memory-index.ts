@@ -1,5 +1,6 @@
 import type {Concept} from './concept.js';
 import type {Term} from '../terms';
+import {extractSymbols} from '../terms/utils.js';
 
 export interface MemoryIndexConfig {
     enableAtomicIndex: boolean;
@@ -313,28 +314,12 @@ export class MemoryIndex {
         if (cluster.hash === term.hash) return 1;
 
         const representative = cluster.representative.term;
-        const thisSymbols = this.extractSymbols(representative);
-        const otherSymbols = this.extractSymbols(term);
+        const thisSymbols = extractSymbols(representative);
+        const otherSymbols = extractSymbols(term);
 
         const intersection = new Set([...thisSymbols].filter(s => otherSymbols.has(s)));
         const union = new Set([...thisSymbols, ...otherSymbols]);
 
         return union.size > 0 ? intersection.size / union.size : 0;
-    }
-
-    private extractSymbols(term: Term, symbols = new Set<string>()): Set<string> {
-        if ('symbol' in term && typeof term.symbol === 'string') {
-            symbols.add(term.symbol as string);
-        }
-
-        if ('args' in term && Array.isArray(term.args)) {
-            for (const arg of term.args) {
-                if (typeof arg === 'object' && arg !== null) {
-                    this.extractSymbols(arg as Term, symbols);
-                }
-            }
-        }
-
-        return symbols;
     }
 }

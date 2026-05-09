@@ -1,23 +1,14 @@
 /**
  * Term System Tests - Canonicalization, Hashing, and Structural Sharing
  */
-import {NAR} from '../../nar.js';
 import {TermBuilder, Truth} from '../../terms';
+import {createTestNAR} from '../fixtures';
 
 describe('Term System', () => {
-    let nar: NAR; // eslint-disable-line @typescript-eslint/no-unused-vars
+    let nar: ReturnType<typeof createTestNAR>;
 
     beforeEach(() => {
-        nar = new NAR({
-            maxConcepts: 100,
-            priorityThreshold: 0.1,
-            activationDecayRate: 0.01,
-            consolidationInterval: 5,
-            cpuThrottleMs: 10,
-            maxDerivationDepth: 10,
-            maxDerivationsPerStep: 100,
-            enableLMRules: false
-        });
+        nar = createTestNAR();
     });
 
     describe('Canonicalization', () => {

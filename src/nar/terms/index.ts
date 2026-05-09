@@ -50,3 +50,6 @@ export {
     sameHash,
     sameKind
 } from './accessors.js';
+
+// Utilities
+export {extractSymbols, getTermHash} from './utils.js';

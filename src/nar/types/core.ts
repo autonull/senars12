@@ -171,7 +171,11 @@ export interface TermFilter {
     contains?: string;
     startsWith?: string;
     endsWith?: string;
-    pattern?: RegExp;
+    pattern?: RegExp | { toString(): string };
+    truthRange?: [number, number];
+    recency?: number;
+    type?: import('./core.js').TaskType;
+    limit?: number;
 }
 
 export interface TruthFilter {
