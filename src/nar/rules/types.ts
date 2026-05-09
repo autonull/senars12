@@ -1,5 +1,6 @@
 import type {Term} from '../terms';
 import type {Truth} from '../terms';
+import {getOrInsert} from '../utils/collections.js';
 
 export type TruthFn = (t1: Truth, t2: Truth) => Truth | null;
 
@@ -66,9 +67,8 @@ export class RuleIndex {
 
     register(rule: RegisteredRule): void {
         const key = encodePattern(rule.pattern.left.op, rule.pattern.right.op);
-        const existing = this.rulesByType.get(key) ?? [];
+        const existing = getOrInsert(this.rulesByType, key, () => []);
         existing.push(rule);
-        this.rulesByType.set(key, existing);
         this.cache.clear();
 
         this.hitStats.set(rule.id, {
@@ -95,8 +95,7 @@ export class RuleIndex {
         stats.successRate = (stats.successRate * (stats.hitCount - 1) + (success ? 1 : 0)) / stats.hitCount;
         stats.avgDuration = (stats.avgDuration * (stats.hitCount - 1) + duration) / stats.hitCount;
 
-        this.hitStats.set(ruleId, stats);
-
+        // stats mutated in-place; update recent rules
         this.recentRules.set(ruleId, now);
         const cutoff = now - this.temporalWindow;
         for (const [id, time] of this.recentRules.entries()) {

@@ -2,6 +2,28 @@ import type {ConceptLike, Task} from '../../types';
 import type {Memory} from '../../memory';
 import {termsEqual} from '../../terms';
 
+const DEFAULT_STAMP = Object.freeze({
+    id: '',
+    creationTime: 0,
+    source: 'INPUT' as const,
+    derivations: [],
+    depth: 0
+});
+
+const DEFAULT_BUDGET = (priority: number) => ({priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0});
+
+function createTaskFromBelief(term: ConceptLike['term'], truth: {f: number; c: number}, priority: number): Task {
+    return {
+        term,
+        type: 'belief' as const,
+        truth,
+        budget: DEFAULT_BUDGET(priority),
+        stamp: DEFAULT_STAMP,
+        occurrenceTime: 0,
+        derived: false
+    };
+}
+
 export interface PremiseSelector {
     readonly name: string;
 
@@ -91,21 +113,7 @@ export class TermMatchingSelector implements PremiseSelector {
     }
 
     private createTask(concept: ConceptLike, truth: { f: number; c: number }): Task {
-        return {
-            term: concept.term,
-            type: 'belief' as const,
-            truth,
-            budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-            stamp: Object.freeze({
-                id: '',
-                creationTime: 0,
-                source: 'INPUT' as const,
-                derivations: [],
-                depth: 0
-            }),
-            occurrenceTime: 0,
-            derived: false
-        };
+        return createTaskFromBelief(concept.term, truth, concept.priority);
     }
 }
 
@@ -126,21 +134,7 @@ export class DecompositionSelector implements PremiseSelector {
             const belief = concept.beliefBag.peek();
             if (!belief?.truth) continue;
 
-            results.push({
-                term: arg,
-                type: 'belief' as const,
-                truth: belief.truth,
-                budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-                stamp: Object.freeze({
-                    id: '',
-                    creationTime: 0,
-                    source: 'INPUT' as const,
-                    derivations: [],
-                    depth: 0
-                }),
-                occurrenceTime: 0,
-                derived: false
-            });
+        results.push(createTaskFromBelief(arg, belief.truth, concept.priority));
 
             if (results.length >= limit) break;
         }
@@ -180,21 +174,7 @@ export class AnalogySelector implements PremiseSelector {
                 if (!hasOverlap) continue;
             }
 
-            results.push({
-                term: concept.term,
-                type: 'belief' as const,
-                truth: belief.truth,
-                budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-                stamp: Object.freeze({
-                    id: '',
-                    creationTime: 0,
-                    source: 'INPUT' as const,
-                    derivations: [],
-                    depth: 0
-                }),
-                occurrenceTime: 0,
-                derived: false
-            });
+        results.push(createTaskFromBelief(concept.term, belief.truth, concept.priority));
 
             if (results.length >= limit) break;
         }

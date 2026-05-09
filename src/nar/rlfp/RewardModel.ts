@@ -1,5 +1,6 @@
 import {PreferenceData} from './PreferenceCollector.js';
 import {TrajectoryStep} from './ReasoningTrajectoryLogger.js';
+import {extractTrajectoryFeatures} from './utils.js';
 
 export interface RewardFeatures {
     trajectoryLength: number;
@@ -66,10 +67,7 @@ export class RewardModel {
     }
 
     extractFeatures(trajectory: TrajectoryStep[]): RewardFeatures {
-        const toolCalls = trajectory.filter(s => s.type === 'tool_call');
-        const lmResponses = trajectory.filter(s => s.type === 'lm_response');
-        const errors = trajectory.filter(s => s.type === 'lm_failure');
-        const uniqueTools = new Set(toolCalls.map(t => (t.data as Record<string, unknown>)?.name || 'unknown'));
+        const {toolCalls, lmResponses, errors, uniqueTools} = extractTrajectoryFeatures(trajectory);
 
         let completionLength = 0;
         let totalToolResponseLength = 0;

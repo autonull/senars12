@@ -12,6 +12,8 @@ import {Forgetting} from './forgetting.js';
 import {jaccard} from '../utils/similarity.js';
 import {extractSymbols, termsEqual} from '../terms';
 import {calculatePriorityDistribution} from '../utils/index.js';
+import {getOrInsert} from '../utils/collections.js';
+import {getConceptFromMap, addConceptToMap} from './accessors.js';
 
 export interface MemoryConfig {
     maxConcepts?: number;
@@ -77,15 +79,15 @@ export class Memory {
     }
 
     get size(): number { return this.concepts.size; }
-    getConcept(term: Term): Concept | undefined { return this.concepts.get(term.hash); }
+    getConcept(term: Term): Concept | undefined { return getConceptFromMap(this.concepts, term); }
 
     addConcept(term: Term): Concept {
-        const existing = this.concepts.get(term.hash);
-        if (existing) return existing;
+        // Use getOrInsert to avoid double lookup patterns and centralize creation logic
         if (this.concepts.size >= this.config.maxConcepts) this.applyForgetting();
         this.checkMemoryPressure();
-        const concept = new Concept(term);
-        this.concepts.set(term.hash, concept);
+        const existing = getConceptFromMap(this.concepts, term);
+        if (existing) return existing;
+        const concept = addConceptToMap(this.concepts, term, () => new Concept(term));
         if (this.config.enableIndexing) this.index.index(concept, this.lastTimestamp);
         this.focus.addToFocus(concept);
         return concept;

@@ -1,5 +1,5 @@
 import type {Term} from '../terms';
-import {termsEqual, TermBuilder} from '../terms';
+import {termsEqual, TermBuilder, getSubject, getPredicate} from '../terms';
 import {createRulePattern, RuleRegistry, type RuleFn, type TruthFn} from './types.js';
 import {Truth} from '../terms';
 import {matchInh, matchImp, matchConj, matchDisj, matchNeg, matchSim, matchEq, matchAtom, validInh, validImp, extractInh, extractImp} from './shared.js';

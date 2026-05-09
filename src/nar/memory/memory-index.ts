@@ -1,6 +1,7 @@
 import type {Concept} from './concept.js';
 import type {Term} from '../terms';
 import {extractSymbols, termsEqual} from '../terms';
+import {getOrInsert, addToSet} from '../utils/collections.js';
 import {THRESHOLDS} from '../constants.js';
 
 export interface MemoryIndexConfig {
@@ -223,23 +224,13 @@ export class MemoryIndex {
         const term = concept.term;
         const key = term.kind === 'atom' ? term.symbol : `${term.kind}-${term.hash}`;
 
-        let set = this.atomicIndex.get(key);
-        if (!set) {
-            set = new Set();
-            this.atomicIndex.set(key, set);
-        }
-        set.add(concept);
+        addToSet(this.atomicIndex, key, concept);
     }
 
     private indexByTemporal(concept: Concept, timestamp: number): void {
         const timeKey = Math.floor(timestamp / this.temporalResolution);
 
-        let set = this.temporalIndex.get(timeKey);
-        if (!set) {
-            set = new Set();
-            this.temporalIndex.set(timeKey, set);
-        }
-        set.add(concept);
+        addToSet(this.temporalIndex, timeKey, concept);
     }
 
     private indexByInverse(concept: Concept): void {
@@ -270,12 +261,7 @@ export class MemoryIndex {
             if (typeof arg === 'object' && arg !== null) {
                 const argHash = (arg as { hash?: number }).hash;
                 if (argHash) {
-                    let subtermSet = entry.subtermIndices.get(argHash);
-                    if (!subtermSet) {
-                        subtermSet = new Set();
-                        entry.subtermIndices.set(argHash, subtermSet);
-                    }
-                    subtermSet.add(concept);
+                    addToSet(entry.subtermIndices, argHash, concept);
 
                     const argArgs = (arg as { args?: readonly unknown[] }).args;
                     if (argArgs && Array.isArray(argArgs)) {

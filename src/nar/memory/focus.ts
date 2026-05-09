@@ -49,10 +49,13 @@ export class Focus {
     }
 
     removeFromFocus(concept: Concept): boolean {
-        const index = this.concepts.findIndex(c => termsEqual(c.concept.term, concept.term));
-        if (index !== -1) {
-            this.concepts.splice(index, 1);
-            return true;
+        const entry = this.findEntry(concept);
+        if (entry) {
+            const index = this.concepts.indexOf(entry);
+            if (index !== -1) {
+                this.concepts.splice(index, 1);
+                return true;
+            }
         }
         return false;
     }

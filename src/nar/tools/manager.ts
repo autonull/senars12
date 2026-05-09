@@ -10,6 +10,7 @@ import type {
     ToolStatistics
 } from './types';
 import {Registry} from './registry';
+import {getOrInsert} from '../utils/collections.js';
 import {EventEmitter} from 'events';
 
 export interface ToolDescriptor {
@@ -361,16 +362,14 @@ export class ToolManager extends EventEmitter {
     }
 
     private initializeStatistics(name: string): void {
-        if (!this.statistics.has(name)) {
-            this.statistics.set(name, {
-                name,
-                totalCalls: 0,
-                successfulCalls: 0,
-                failedCalls: 0,
-                totalDuration: 0,
-                averageDuration: 0
-            });
-        }
+        getOrInsert(this.statistics, name, () => ({
+            name,
+            totalCalls: 0,
+            successfulCalls: 0,
+            failedCalls: 0,
+            totalDuration: 0,
+            averageDuration: 0
+        }));
     }
 
     private updateStatistics(name: string, result: ToolResult, duration: number): void {

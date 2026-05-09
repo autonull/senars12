@@ -6,7 +6,7 @@ import {createBudget, createTask} from '../types';
 import type {Concept} from '../memory/concept.js';
 import {throttleGenerator} from '../utils/throttle.js';
 
-export type PremiseSource = AsyncGenerator<Task, void, void>;
+
 
 export type PipelineConfig = Readonly<{
     cpuThrottleMs: number;
@@ -22,10 +22,6 @@ const DEFAULT_CONFIG: PipelineConfig = Object.freeze({
     maxDerivationsPerStep: 100
 });
 
-export abstract class PremiseSourceBase {
-    abstract stream(signal?: AbortSignal): AsyncIterable<Task>;
-}
-
 export const createBeliefTask = (concept: Concept) => {
     const topBelief = concept.beliefBag.peek();
     return createTask(
@@ -36,53 +32,38 @@ export const createBeliefTask = (concept: Concept) => {
     );
 };
 
-export class MemoryPremiseSource extends PremiseSourceBase {
-    constructor(
-        private memory: Memory,
-        private sampling: 'priority-weighted' | 'recency' | 'novelty' | 'fair' = 'priority-weighted'
-    ) {
-        super();
-    }
+export type PremiseSource = AsyncIterable<Task> | AsyncGenerator<Task, void, unknown>;
 
-    async* stream(signal?: AbortSignal): AsyncIterable<Task> {
-        while (!signal?.aborted) {
-            const concepts = this.memory.sample(100);
+export function createMemoryPremiseSource(memory: Memory): AsyncGenerator<Task, void, unknown> {
+    return (async function* () {
+        while (true) {
+            const concepts = memory.sample(100);
             for (const concept of concepts) {
                 yield createBeliefTask(concept);
             }
             await new Promise(r => setTimeout(r, 0));
         }
-    }
+    })();
 }
 
-export class FocusPremiseSource extends PremiseSourceBase {
-    constructor(private memory: Memory) {
-        super();
-    }
-
-    async* stream(signal?: AbortSignal): AsyncIterable<Task> {
-        while (!signal?.aborted) {
-            const concepts = this.memory.listConcepts().filter(c => c.priority > 0.7);
+export function createFocusPremiseSource(memory: Memory): AsyncGenerator<Task, void, unknown> {
+    return (async function* () {
+        while (true) {
+            const concepts = memory.listConcepts().filter(c => c.priority > 0.7);
             for (const concept of concepts) {
                 yield createBeliefTask(concept);
             }
             await new Promise(r => setTimeout(r, 0));
         }
-    }
+    })();
 }
 
-export class CompositePremiseSource extends PremiseSourceBase {
-    constructor(
-        private sources: Array<{ source: PremiseSourceBase; weight: number }>
-    ) {
-        super();
-    }
-
-    async* stream(signal?: AbortSignal): AsyncGenerator<Task> {
-        const iterators = this.sources.map(s => s.source.stream(signal));
+export function createCompositePremiseSource(sources: Array<{ source: any; weight: number }>): AsyncGenerator<Task, void, unknown> {
+    return (async function* () {
+        const iterators = sources.map(s => s.source);
         const tasks: Task[] = [];
 
-        while (!signal?.aborted) {
+        while (true) {
             for await (const taskIter of iterators) {
                 for await (const task of taskIter) {
                     tasks.push(task);
@@ -95,11 +76,11 @@ export class CompositePremiseSource extends PremiseSourceBase {
                 await new Promise(r => setTimeout(r, 1));
             }
         }
-    }
+    })();
 }
 
 export async function* createPipeline(
-    source: PremiseSource | PremiseSourceBase,
+    source: PremiseSource,
     memory: Memory,
     strategy: Strategy,
     config: PipelineConfig = DEFAULT_CONFIG
@@ -107,11 +88,16 @@ export async function* createPipeline(
     let queueSize = 0;
     let derivationsCount = 0;
 
-    const stream = 'stream' in source && typeof source.stream === 'function'
-        ? source.stream()
-        : source;
+    // Ensure we have an AsyncGenerator to feed the throttle helper
+    const asAsyncGenerator = async function* (it: AsyncIterable<Task>): AsyncGenerator<Task, void, unknown> {
+        for await (const v of it) yield v;
+    };
 
-    for await (const task of throttleGenerator(stream as AsyncIterable<Task>, config.cpuThrottleMs)) {
+    const streamGen: AsyncGenerator<Task, void, unknown> = 'next' in (source as any)
+        ? (source as AsyncGenerator<Task, void, unknown>)
+        : asAsyncGenerator(source as AsyncIterable<Task>);
+
+    for await (const task of throttleGenerator(streamGen, config.cpuThrottleMs)) {
         if (queueSize > config.maxQueueSize) {
             await new Promise(r => setTimeout(r, 0));
             continue;

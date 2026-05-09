@@ -8,17 +8,20 @@ export const NALExtendedRules = {
     modusPonens: (premises: Term[]): Term | undefined => {
         const [imp, antecedent] = premises as [Term, Term];
         if (!matchImp(imp) || !matchAtom(antecedent)) return undefined;
-        const [impAnte, impCons] = imp.args;
+        const impArgs = (imp as any).args as Term[];
+        const [impAnte, impCons] = [impArgs[0], impArgs[1]];
         return impAnte && impCons && termsEqual(impAnte, antecedent) ? impCons : undefined;
     },
 
     modusTollens: (premises: Term[]): Term | undefined => {
         const [imp, negConsequent] = premises as [Term, Term];
         if (!matchImp(imp) || !matchNeg(negConsequent)) return undefined;
-        const impCons = imp.args[1];
-        const negArg = negConsequent.args[0];
+        const impArgs = (imp as any).args as Term[];
+        const negArgs = (negConsequent as any).args as Term[];
+        const impCons = impArgs[1];
+        const negArg = negArgs[0];
         if (!impCons || !negArg || !termsEqual(impCons, negArg)) return undefined;
-        const impAnte = imp.args[0];
+        const impAnte = impArgs[0];
         return impAnte ? TermBuilder.negation(impAnte) : undefined;
     },
 
@@ -32,7 +35,8 @@ export const NALExtendedRules = {
     structuralInheritance: (premises: Term[]): Term | undefined => {
         const [compound, component] = premises as [Term, Term];
         if (!matchConj(compound)) return undefined;
-        const found = compound.args.find(a => termsEqual(a, component));
+        const compoundArgs = (compound as any).args as Term[];
+        const found = compoundArgs.find((a: Term) => termsEqual(a, component));
         return found ? TermBuilder.inheritance(component, compound) : undefined;
     },
 
@@ -42,7 +46,8 @@ export const NALExtendedRules = {
         const pred = getPredicate(inh);
         if (!pred || pred.kind !== 'conjunction') return undefined;
         const sub = getSubject(inh);
-        return sub ? TermBuilder.inheritance(sub, pred.args[0] ?? pred) : undefined;
+        const predArgs = ('args' in pred) ? (pred as any).args as Term[] : [];
+        return sub ? TermBuilder.inheritance(sub, predArgs[0] ?? pred) : undefined;
     },
 
     intersectionComposition: (premises: Term[]): Term | undefined => {
@@ -77,11 +82,13 @@ export const NALExtendedRules = {
     implicationDeduction: (premises: Term[]): Term | undefined => {
         const [imp1, imp2] = premises as [Term, Term];
         if (!matchImp(imp1) || !matchImp(imp2)) return undefined;
-        const cons1 = imp1.args[1];
-        const ante2 = imp2.args[0];
+        const imp1Args = (imp1 as any).args as Term[];
+        const imp2Args = (imp2 as any).args as Term[];
+        const cons1 = imp1Args[1];
+        const ante2 = imp2Args[0];
         if (!cons1 || !ante2 || !termsEqual(cons1, ante2)) return undefined;
-        const ante1 = imp1.args[0];
-        const cons2 = imp2.args[1];
+        const ante1 = imp1Args[0];
+        const cons2 = imp2Args[1];
         if (!ante1 || !cons2) return undefined;
         return TermBuilder.implication(ante1, cons2);
     },
@@ -89,10 +96,12 @@ export const NALExtendedRules = {
     equivalence: (premises: Term[]): Term | undefined => {
         const [imp1, imp2] = premises as [Term, Term];
         if (!matchImp(imp1) || !matchImp(imp2)) return undefined;
-        const a1 = imp1.args[0];
-        const c1 = imp1.args[1];
-        const a2 = imp2.args[0];
-        const c2 = imp2.args[1];
+        const imp1Args = (imp1 as any).args as Term[];
+        const imp2Args = (imp2 as any).args as Term[];
+        const a1 = imp1Args[0];
+        const c1 = imp1Args[1];
+        const a2 = imp2Args[0];
+        const c2 = imp2Args[1];
         if (!a1 || !c1 || !a2 || !c2) return undefined;
         const forward = termsEqual(a1, a2) && termsEqual(c1, c2);
         const backward = termsEqual(a1, c2) && termsEqual(c1, a2);
@@ -112,9 +121,10 @@ export const NALExtendedRules = {
     decomposition: (premises: Term[]): Term | undefined => {
         const [conj] = premises as [Term, Term];
         if (!matchConj(conj)) return undefined;
-        if (conj.args.length < 2) return undefined;
+        const conjArgs = (conj as any).args as Term[];
+        if (conjArgs.length < 2) return undefined;
         const results: Term[] = [];
-        for (const arg of conj.args) {
+        for (const arg of conjArgs) {
             results.push(arg);
         }
         return results[0] ?? conj;
@@ -153,8 +163,9 @@ export const NALExtendedRules = {
     contrapositionRule: (premises: Term[]): Term | undefined => {
         const [imp] = premises as [Term, Term];
         if (!matchImp(imp)) return undefined;
-        const ante = imp.args[0];
-        const cons = imp.args[1];
+        const impArgs2 = (imp as any).args as Term[];
+        const ante = impArgs2[0];
+        const cons = impArgs2[1];
         if (!ante || !cons) return undefined;
         return TermBuilder.implication(TermBuilder.negation(cons), TermBuilder.negation(ante));
     },
@@ -197,39 +208,22 @@ export const NALExtendedRules = {
     }
 };
 
-const registerExtendedRule = (
-    id: string,
-    left: string,
-    right: string,
-    fn: (premises: Term[]) => Term | null | undefined,
-    truthFn: TruthFn,
-    priority: number
-) =>
-    RuleRegistry.register({
-        id,
-        pattern: createRulePattern(left, right),
-        apply: fn as unknown as RuleFn,
-        sync: true,
-        priority,
-        truthFn
-    });
-
-registerExtendedRule('nal.modusPonens', 'implication', 'atom', NALExtendedRules.modusPonens, Truth.deduction, 0.95);
-registerExtendedRule('nal.modusTollens', 'implication', 'negation', NALExtendedRules.modusTollens, Truth.contraposition, 0.9);
-registerExtendedRule('nal.conversion', 'inheritance', 'inheritance', NALExtendedRules.conversion, Truth.conversion, 0.7);
-registerExtendedRule('nal.analogy', 'inheritance', 'inheritance', NALExtendedRules.analogy, Truth.analogy, 0.8);
-registerExtendedRule('nal.comparison', 'inheritance', 'inheritance', NALExtendedRules.comparison, Truth.resemblance, 0.75);
-registerExtendedRule('nal.contrapositionRule', 'implication', 'implication', NALExtendedRules.contrapositionRule, Truth.contraposition, 0.7);
-registerExtendedRule('nal.structuralInheritance', 'conjunction', 'inheritance', NALExtendedRules.structuralInheritance, Truth.deduction, 0.75);
-registerExtendedRule('nal.structuralReduction', 'inheritance', 'inheritance', NALExtendedRules.structuralReduction, Truth.structuralReduction, 0.7);
-registerExtendedRule('nal.intersectionComposition', 'inheritance', 'inheritance', NALExtendedRules.intersectionComposition, Truth.intersection, 0.8);
-registerExtendedRule('nal.unionComposition', 'inheritance', 'inheritance', NALExtendedRules.unionComposition, Truth.union, 0.75);
-registerExtendedRule('nal.difference', 'inheritance', 'inheritance', NALExtendedRules.difference, Truth.deduction, 0.7);
-registerExtendedRule('nal.implicationDeduction', 'implication', 'implication', NALExtendedRules.implicationDeduction, Truth.deduction, 0.85);
-registerExtendedRule('nal.equivalence', 'implication', 'implication', NALExtendedRules.equivalence, Truth.intersection, 0.8);
-registerExtendedRule('nal.variableIntroduction', 'inheritance', 'inheritance', NALExtendedRules.variableIntroduction, Truth.deduction, 0.6);
-registerExtendedRule('nal.decomposition', 'conjunction', 'conjunction', NALExtendedRules.decomposition, Truth.deduction, 0.75);
-registerExtendedRule('nal.variableDependency', 'inheritance', 'inheritance', NALExtendedRules.variableDependency, Truth.deduction, 0.5);
-registerExtendedRule('nal.sameness', 'inheritance', 'inheritance', NALExtendedRules.sameness, Truth.sameness, 0.85);
-registerExtendedRule('nal.revisionWeak', 'inheritance', 'inheritance', NALExtendedRules.revisionWeak, Truth.revision, 0.65);
-registerExtendedRule('nal.exemplification', 'inheritance', 'inheritance', NALExtendedRules.exemplification, Truth.exemplification, 0.8);
+RuleRegistry.register({id: 'nal.modusPonens', pattern: createRulePattern('implication', 'atom'), apply: NALExtendedRules.modusPonens as unknown as RuleFn, sync: true, priority: 0.95, truthFn: Truth.deduction});
+RuleRegistry.register({id: 'nal.modusTollens', pattern: createRulePattern('implication', 'negation'), apply: NALExtendedRules.modusTollens as unknown as RuleFn, sync: true, priority: 0.9, truthFn: Truth.contraposition});
+RuleRegistry.register({id: 'nal.conversion', pattern: createRulePattern('inheritance', 'inheritance'), apply: NALExtendedRules.conversion as unknown as RuleFn, sync: true, priority: 0.7, truthFn: Truth.conversion});
+RuleRegistry.register({id: 'nal.analogy', pattern: createRulePattern('inheritance', 'inheritance'), apply: NALExtendedRules.analogy as unknown as RuleFn, sync: true, priority: 0.8, truthFn: Truth.analogy});
+RuleRegistry.register({id: 'nal.comparison', pattern: createRulePattern('inheritance', 'inheritance'), apply: NALExtendedRules.comparison as unknown as RuleFn, sync: true, priority: 0.75, truthFn: Truth.resemblance});
+RuleRegistry.register({id: 'nal.contrapositionRule', pattern: createRulePattern('implication', 'implication'), apply: NALExtendedRules.contrapositionRule as unknown as RuleFn, sync: true, priority: 0.7, truthFn: Truth.contraposition});
+RuleRegistry.register({id: 'nal.structuralInheritance', pattern: createRulePattern('conjunction', 'inheritance'), apply: NALExtendedRules.structuralInheritance as unknown as RuleFn, sync: true, priority: 0.75, truthFn: Truth.deduction});
+RuleRegistry.register({id: 'nal.structuralReduction', pattern: createRulePattern('inheritance', 'inheritance'), apply: NALExtendedRules.structuralReduction as unknown as RuleFn, sync: true, priority: 0.7, truthFn: Truth.structuralReduction});
+RuleRegistry.register({id: 'nal.intersectionComposition', pattern: createRulePattern('inheritance', 'inheritance'), apply: NALExtendedRules.intersectionComposition as unknown as RuleFn, sync: true, priority: 0.8, truthFn: Truth.intersection});
+RuleRegistry.register({id: 'nal.unionComposition', pattern: createRulePattern('inheritance', 'inheritance'), apply: NALExtendedRules.unionComposition as unknown as RuleFn, sync: true, priority: 0.75, truthFn: Truth.union});
+RuleRegistry.register({id: 'nal.difference', pattern: createRulePattern('inheritance', 'inheritance'), apply: NALExtendedRules.difference as unknown as RuleFn, sync: true, priority: 0.7, truthFn: Truth.deduction});
+RuleRegistry.register({id: 'nal.implicationDeduction', pattern: createRulePattern('implication', 'implication'), apply: NALExtendedRules.implicationDeduction as unknown as RuleFn, sync: true, priority: 0.85, truthFn: Truth.deduction});
+RuleRegistry.register({id: 'nal.equivalence', pattern: createRulePattern('implication', 'implication'), apply: NALExtendedRules.equivalence as unknown as RuleFn, sync: true, priority: 0.8, truthFn: Truth.intersection});
+RuleRegistry.register({id: 'nal.variableIntroduction', pattern: createRulePattern('inheritance', 'inheritance'), apply: NALExtendedRules.variableIntroduction as unknown as RuleFn, sync: true, priority: 0.6, truthFn: Truth.deduction});
+RuleRegistry.register({id: 'nal.decomposition', pattern: createRulePattern('conjunction', 'conjunction'), apply: NALExtendedRules.decomposition as unknown as RuleFn, sync: true, priority: 0.75, truthFn: Truth.deduction});
+RuleRegistry.register({id: 'nal.variableDependency', pattern: createRulePattern('inheritance', 'inheritance'), apply: NALExtendedRules.variableDependency as unknown as RuleFn, sync: true, priority: 0.5, truthFn: Truth.deduction});
+RuleRegistry.register({id: 'nal.sameness', pattern: createRulePattern('inheritance', 'inheritance'), apply: NALExtendedRules.sameness as unknown as RuleFn, sync: true, priority: 0.85, truthFn: Truth.sameness});
+RuleRegistry.register({id: 'nal.revisionWeak', pattern: createRulePattern('inheritance', 'inheritance'), apply: NALExtendedRules.revisionWeak as unknown as RuleFn, sync: true, priority: 0.65, truthFn: Truth.revision});
+RuleRegistry.register({id: 'nal.exemplification', pattern: createRulePattern('inheritance', 'inheritance'), apply: NALExtendedRules.exemplification as unknown as RuleFn, sync: true, priority: 0.8, truthFn: Truth.exemplification});

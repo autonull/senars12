@@ -39,7 +39,9 @@ export interface ThroughputStats {
     averageStepDuration: number;
 }
 
-export interface SystemMetrics {
+import type {BaseStats} from '../types/core.js';
+
+export interface SystemMetrics extends BaseStats {
     uptime: number;
     totalDerivations: number;
     totalSteps: number;

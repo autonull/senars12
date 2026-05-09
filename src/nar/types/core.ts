@@ -73,6 +73,20 @@ export const DEFAULT_CONFIG: CoreConfig = Object.freeze({
 export type Nullable<T> = T | null;
 export type Optional<T> = T | undefined;
 
+// Shared metric types for cross-module consistency
+export type PerformanceMetric = {
+    type: string;
+    value: number;
+    severity?: 'low' | 'medium' | 'high';
+    threshold?: number;
+    belief?: string;
+};
+
+export interface BaseStats {
+    uptime?: number;
+    [key: string]: unknown;
+}
+
 // Result types for operations
 export interface Success<T> {
     readonly success: true;
@@ -137,34 +151,20 @@ export class NARError extends Error {
         this.name = 'NARError';
     }
 }
+// Small factory to avoid repeating nearly-identical error classes.
+// Returns a class (constructor) that extends NARError with a fixed code and name.
+const createNARErrorClass = (name: string, code: string) =>
+    class extends NARError {
+        constructor(message: string, context?: Record<string, unknown>) {
+            super(message, code, context);
+            this.name = name;
+        }
+    };
 
-export class ValidationError extends NARError {
-    constructor(message: string, context?: Record<string, unknown>) {
-        super(message, 'VALIDATION_ERROR', context);
-        this.name = 'ValidationError';
-    }
-}
-
-export class ConfigurationError extends NARError {
-    constructor(message: string, context?: Record<string, unknown>) {
-        super(message, 'CONFIGURATION_ERROR', context);
-        this.name = 'ConfigurationError';
-    }
-}
-
-export class OperationError extends NARError {
-    constructor(message: string, context?: Record<string, unknown>) {
-        super(message, 'OPERATION_ERROR', context);
-        this.name = 'OperationError';
-    }
-}
-
-export class ToolError extends NARError {
-    constructor(message: string, context?: Record<string, unknown>) {
-        super(message, 'TOOL_ERROR', context);
-        this.name = 'ToolError';
-    }
-}
+export const ValidationError = createNARErrorClass('ValidationError', 'VALIDATION_ERROR');
+export const ConfigurationError = createNARErrorClass('ConfigurationError', 'CONFIGURATION_ERROR');
+export const OperationError = createNARErrorClass('OperationError', 'OPERATION_ERROR');
+export const ToolError = createNARErrorClass('ToolError', 'TOOL_ERROR');
 
 // Query filter types
 export interface TermFilter {

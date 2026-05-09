@@ -1,5 +1,6 @@
 import {promises as fs} from 'fs';
 import {TrajectoryStep} from './ReasoningTrajectoryLogger.js';
+import {extractTrajectoryFeatures} from './utils.js';
 
 export interface PreferenceData {
     trajectoryA: TrajectoryStep[];
@@ -147,15 +148,11 @@ export class PreferenceCollector {
     private computeImplicitScore(trajectory: TrajectoryStep[]): number {
         let score = 0;
 
-        const toolCalls = trajectory.filter(s => s.type === 'tool_call');
-        const lmResponses = trajectory.filter(s => s.type === 'lm_response');
-        const errors = trajectory.filter(s => s.type === 'lm_failure');
+        const {toolCalls, lmResponses, errors, uniqueTools} = extractTrajectoryFeatures(trajectory);
 
         score += toolCalls.length * 0.2;
         score += lmResponses.length * 0.3;
         score -= errors.length * 0.5;
-
-        const uniqueTools = new Set(toolCalls.map(t => (t.data as Record<string, unknown>)?.name || 'unknown'));
         score += uniqueTools.size * 0.1;
 
         if (trajectory.length > 0) {
