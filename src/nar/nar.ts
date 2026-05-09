@@ -44,6 +44,8 @@ import {
   ProcessTool
 } from './tools';
 import {BaseComponent} from './lifecycle';
+import {ReasoningAboutReasoning} from './self';
+import {RLFPLearner} from './rlfp';
 
 interface SerializedNARState {
     concepts: Array<{ term: string; priority: number }>;
@@ -51,70 +53,91 @@ interface SerializedNARState {
     timestamp: string;
 }
 
+export interface RLFPConfig {
+  optimizeInterval?: number;
+}
+
 export interface NARConfig extends CoreConfig {
-    lmClient?: LMClient;
-    enableLMRules?: boolean;
-    enableTools?: boolean;
+  lmClient?: LMClient;
+  enableLMRules?: boolean;
+  enableTools?: boolean;
+  enableSelf?: boolean;
+  enableRLFP?: boolean;
+  rlfp?: RLFPConfig;
 }
 
 export class NAR extends BaseComponent {
-    readonly memory: Memory;
-    readonly taskManager: TaskManager;
-    readonly reasoner: Reasoner;
-    readonly query: QueryAPI;
-    readonly traceAPI: ReasoningTrace;
-    readonly tools: ToolManager;
+  readonly memory: Memory;
+  readonly taskManager: TaskManager;
+  readonly reasoner: Reasoner;
+  readonly query: QueryAPI;
+  readonly traceAPI: ReasoningTrace;
+  readonly tools: ToolManager;
+  readonly self?: ReasoningAboutReasoning;
+  readonly rlfp?: RLFPLearner;
 
-    private readonly processor: RuleProcessor;
-    private readonly config: NARConfig;
-    private _lmInitialized: boolean = false;
-    private _toolsInitialized: boolean = false;
+  private readonly processor: RuleProcessor;
+  private readonly config: NARConfig;
+  private _lmInitialized: boolean = false;
+  private _toolsInitialized: boolean = false;
+  private _cycleCount: number = 0;
 
-    constructor(config: NARConfig = DEFAULT_CONFIG) {
-        const eventBus = new EventBus();
-        const logger = createLogger({scope: 'NAR'});
-        const metrics = new MetricsCollector();
+  constructor(config: NARConfig = DEFAULT_CONFIG) {
+    const eventBus = new EventBus();
+    const logger = createLogger({scope: 'NAR'});
+    const metrics = new MetricsCollector();
 
-        super({logger, metrics, eventBus});
+    super({logger, metrics, eventBus});
 
-        this.config = this.validateConfig(config);
-        this.memory = new Memory(this.config);
-        this.processor = new RuleProcessor();
-        this.processor.setEventBus(eventBus);
-        this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
-        this.taskManager = new TaskManager(this.memory);
-        this.query = new QueryAPI(this.memory);
-        this.traceAPI = new ReasoningTrace(this.memory);
-        this.tools = new ToolManager();
+    this.config = this.validateConfig(config);
+    this.memory = new Memory(this.config);
+    this.processor = new RuleProcessor();
+    this.processor.setEventBus(eventBus);
+    this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
+    this.taskManager = new TaskManager(this.memory);
+    this.query = new QueryAPI(this.memory);
+    this.traceAPI = new ReasoningTrace(this.memory);
+    this.tools = new ToolManager();
 
-        if (this.config.enableLMRules && this.config.lmClient) {
-            this.initializeLMRules(this.config.lmClient);
-        }
-
-        if (this.config.enableTools) {
-            this.initializeTools();
-        }
+    if (this.config.enableLMRules && this.config.lmClient) {
+      this.initializeLMRules(this.config.lmClient);
     }
 
-    override async initialize(): Promise<void> {
-        await super.initialize();
-        this.logger.info('NAR initialized');
+    if (this.config.enableTools) {
+      this.initializeTools();
     }
 
-    override async start(): Promise<void> {
-        await super.start();
-        this.logger.info('NAR started');
+    if (this.config.enableSelf) {
+      this.self = new ReasoningAboutReasoning(this, {});
     }
 
-    override async stop(): Promise<void> {
-        await super.stop();
-        this.logger.info('NAR stopped');
+    if (this.config.enableRLFP) {
+      this.rlfp = new RLFPLearner({});
     }
+  }
 
-    override async dispose(): Promise<void> {
-        await super.dispose();
-        this.logger.info('NAR disposed');
-    }
+  override async initialize(): Promise<void> {
+    await super.initialize();
+    this.logger.info('NAR initialized');
+  }
+
+  override async start(): Promise<void> {
+    await super.start();
+    this.self?.start();
+    this.logger.info('NAR started');
+  }
+
+  override async stop(): Promise<void> {
+    this.self?.stop();
+    await super.stop();
+    this.logger.info('NAR stopped');
+  }
+
+  override async dispose(): Promise<void> {
+    this.self?.shutdown();
+    await super.dispose();
+    this.logger.info('NAR disposed');
+  }
 
     async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
         const {term: parsedTerm, truth: parsedTruth} = typeof input === 'string'
@@ -136,25 +159,31 @@ export class NAR extends BaseComponent {
         return this.input(input, 'question');
     }
 
-async run(steps = 1): Promise<number> {
-  let derived = 0;
+  async run(steps = 1): Promise<number> {
+    let derived = 0;
 
-  for (let i = 0; i < steps; i++) {
-    const processed = await this.taskManager.processPending();
-    derived += processed.length;
+    for (let i = 0; i < steps; i++) {
+      this._cycleCount++;
+      const processed = await this.taskManager.processPending();
+      derived += processed.length;
 
-    const results = await this.reasoner.step();
-    derived += results.length;
+      const results = await this.reasoner.step();
+      derived += results.length;
 
-    for (const task of results) {
-      this.memory.addTask(task.term, task.type, task.truth, getBudgetValue(task.budget));
-      this.taskManager.addTask(task);
+      for (const task of results) {
+        this.memory.addTask(task.term, task.type, task.truth, getBudgetValue(task.budget));
+        this.taskManager.addTask(task);
+      }
+
+      if (this.rlfp && this._cycleCount % (this.config.rlfp?.optimizeInterval ?? 100) === 0) {
+        this.rlfp.optimize();
+        this.rlfp.updateModel([]);
+      }
     }
-  }
 
-  this.memory.consolidate();
-  return derived;
-}
+    this.memory.consolidate();
+    return derived;
+  }
 
     async* runStream(steps = 1, maxResults = 100): AsyncGenerator<Task> {
         for (let i = 0; i < steps; i++) {
