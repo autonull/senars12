@@ -73,7 +73,7 @@ export const getTermArg = (term: Term, index: number): Term | undefined =>
     term.kind === 'atom' ? undefined : term.args[index];
 
 // Term equality
-export const termsEqual = (a: Term, b: Term): boolean => a.hash === b.hash;
+export {termsEqual} from './accessors.js';
 
 // Lazy getter for atom to avoid circular dependency
 export const atom = (symbol: string): AtomicTerm => TermBuilder.atom(symbol);

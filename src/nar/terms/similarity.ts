@@ -1,9 +1,10 @@
 import type {Term} from './types.js';
+import {termsEqual} from './accessors.js';
 import {getTermComplexity} from './complexity.js';
 import {serializeTerm} from './serialize.js';
 
 export const getTermSimilarity = (t1: Term, t2: Term): number => {
-if (t1.hash === t2.hash) return 1.0;
+if (termsEqual(t1, t2)) return 1.0;
 
 const complexity1 = getTermComplexity(t1);
 const complexity2 = getTermComplexity(t2);

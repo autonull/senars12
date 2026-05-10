@@ -1,5 +1,4 @@
 import type {Term} from './types.js';
-import {termsEqual as checkTermsEqual} from './accessors.js';
 
 // Re-export type guards from types.ts
 export {
@@ -40,34 +39,7 @@ export const isCanonical = (term: Term): boolean => {
 };
 
 /**
- * Safe argument accessor - returns empty array for atoms
- * This is a convenience wrapper that ensures consistent behavior
+ * Get compound args with type narrowing
  */
-export const getArgsSafe = (term: Term): readonly Term[] => {
-  return term.kind === 'atom' ? [] : term.args;
-};
-
-/**
- * Get term arguments with type narrowing
- * Returns undefined for atoms, args for compounds
- */
-export const getCompoundArgs = (term: Term): readonly Term[] | undefined => {
-  return term.kind === 'atom' ? undefined : term.args;
-};
-
-/**
- * Check if two terms have the same hash (for storage key comparisons)
- * This is a performance optimization - use termsEqual() for logical comparisons
- */
-export const sameHash = (a: Term, b: Term): boolean => a.hash === b.hash;
-
-/**
- * Check if two terms are structurally equal
- * Delegates to the more comprehensive termsEqual implementation
- */
-export const sameTerm = (a: Term, b: Term): boolean => checkTermsEqual(a, b);
-
-/**
- * Get a unique key for a term (alias for termHashKey for backwards compatibility)
- */
-export const termKey = termHashKey;
+export const getCompoundArgs = (term: Term): readonly Term[] | undefined =>
+    term.kind === 'atom' ? undefined : term.args;

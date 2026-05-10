@@ -72,10 +72,6 @@ export {extractSymbols, getTermHash} from './utils.js';
 // Type guards and helpers
 export {
   termHashKey,
-  termKey,
   isCanonical,
-  getArgsSafe,
-  getCompoundArgs,
-  sameHash,
-  sameTerm
+  getCompoundArgs
 } from './guards.js';

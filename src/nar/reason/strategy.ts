@@ -5,7 +5,6 @@ import {createSecondaryTask} from '../types/core.js';
 
 export interface Strategy {
   readonly name: string;
-
   selectSecondary(task: Task, memory: Memory): Task[];
 }
 
@@ -21,4 +20,5 @@ export const ExhaustiveStrategy: Strategy = {
     memory.sample(100).map(c => createSecondaryTask(c.term, c.priority, undefined, 'belief'))
 };
 
-export * from './strategies/index.js';
+export {createStrategy, CompositeStrategy, AdaptiveStrategy, SwitchingStrategy} from './strategies/index.js';
+export {createStrategy as createStrategyBase} from './strategies/base.js';

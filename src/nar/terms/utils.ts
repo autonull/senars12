@@ -1,5 +1,6 @@
 import type {Term} from './types.js';
 import type {Concept} from '../memory/concept.js';
+import {termsEqual} from './accessors.js';
 
 export const extractSymbols = (term: Term, symbols = new Set<string>()): Set<string> => {
   if ('symbol' in term && typeof term.symbol === 'string') symbols.add(term.symbol);
@@ -19,7 +20,7 @@ export const getTermHash = (term: unknown): number | undefined => {
 };
 
 export const calculateSimilarity = (concept: Concept, term: Term): number => {
-  if (concept.term.hash === term.hash) return 1;
+  if (termsEqual(concept.term, term)) return 1;
 
   const thisSymbols = extractSymbols(concept.term);
   const otherSymbols = extractSymbols(term);

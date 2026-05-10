@@ -1,8 +1,10 @@
 import type {Strategy} from '../strategy.js';
 import type {Task} from '../../types';
 import type {Memory} from '../../memory';
-import {createStrategy} from './base.js';
+import {createStrategy, createStrategy as createStrategyBase} from './base.js';
 import {Truth, termsEqual} from '../../terms';
+
+export {createStrategy, createStrategyBase};
 
 export const PrologStrategy: Strategy = createStrategy({
     name: 'prolog',

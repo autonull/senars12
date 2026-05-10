@@ -3,6 +3,7 @@
  */
 
 import type {Term, Truth} from '../terms';
+import {termsEqual} from '../terms/accessors.js';
 import {Bag} from './bag.js';
 import {Truth as TruthOps} from '../terms/truth.js';
 import {extractSymbols} from '../terms/utils.js';
@@ -301,7 +302,7 @@ export class Concept {
     private findMatchingBelief(term: Term): TaskData | undefined {
         const items = this.beliefBag.getItems();
         for (const item of items) {
-            if (item.term.hash === term.hash) {
+            if (termsEqual(item.term, term)) {
                 return item;
             }
         }
@@ -309,7 +310,7 @@ export class Concept {
     }
 
 private calculateTermSimilarity(other: Term): number {
-  if (this.term.hash === other.hash) return 1;
+  if (termsEqual(this.term, other)) return 1;
 
   const thisSymbols = extractSymbols(this.term);
   const otherSymbols = extractSymbols(other);

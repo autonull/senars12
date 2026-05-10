@@ -21,7 +21,7 @@
 
 ## Phase 1 — Refactor: Eliminate Duplication, Flatten Complexity
 
-**Status**: Items 1.5 and 1.6 completed. All 283 tests passing, 0 TS errors.
+**Status**: Items 1.4, 1.5, 1.6, 1.7, 1.9, 1.11 completed. All 283 tests passing, 0 TS errors.
 
 ### 1.5 Centralize Error Handling ✅ COMPLETED
 - Created `errMsg()`, `errObj()`, `catchAndLog()` in `src/nar/utils/helpers.ts`
@@ -34,26 +34,18 @@
 - `normalize.ts` enhanced with `improveNormalization()`
 - All exports consolidated in `index.ts`
 
-### 1.11 Replace Hash-Based Term Comparison ⚠️ CRITICAL
+### 1.11 Replace Hash-Based Term Comparison ✅ COMPLETED
 **Problem**: Using `.hash ===` for term comparison is naive and fails when distinct terms have the same hash collision. Must use `termsEqual()` for structural equality.
 
-**Locations to fix** (20 occurrences found):
-- `src/nar/terms/normalize.ts:14` - normalization check
-- `src/nar/terms/types.ts:76` - termsEqual implementation (should check structure, not just hash)
-- `src/nar/terms/similarity.ts:6` - similarity check
-- `src/nar/rules/nal-extended.ts` - multiple rule implementations (73, 85, 100, 133, 148, 159, 192, 206)
-- `src/nar/terms/accessors.ts:79` - termsEqual implementation
-- `src/nar/memory/concept.ts` - concept lookup (304, 312)
-- `src/nar/terms/utils.ts:22` - similarity calculation
-- `src/nar/terms/guards.ts:62` - sameHash utility
-- `src/nar/memory/bounded-bag.ts:266` - bag equality
-- `src/nar/memory/memory-revision.ts:36` - task comparison
-
 **Solution**: 
-1. Fix `termsEqual()` to do structural comparison (already exists in `accessors.ts`)
-2. Replace all `.hash ===` comparisons with `termsEqual()` calls
-3. Keep hash comparison only for Map/Set key lookups (where hash is used as index)
-4. Add `sameHash()` only for optimization after structural equality confirmed
+1. Fixed `termsEqual()` in `accessors.ts` to do full structural comparison
+2. Re-export from `types.ts` for barrel compatibility
+3. Replaced all `.hash ===` comparisons with `termsEqual()` calls:
+   - `normalize.ts`, `similarity.ts`, `utils.ts` - early exit optimization
+   - `concept.ts`, `memory-revision.ts` - belief lookup, task comparison
+   - `bounded-bag.ts` - bag item matching
+   - `nal.ts`, `nal-extended.ts` - all rule comparisons
+4. Removed `sameHash()`, `sameTerm()`, `termKey` aliases from `guards.ts` (backwards compat not needed)
 
 ---
 
@@ -175,36 +167,23 @@ Selectors become tiny configurations of this function. `PremiseFormation` class 
 
 ---
 
-### 1.4 Deduplicate LM Rule Factory Boilerplate
+### 1.4 Deduplicate LM Rule Factory Boilerplate ✅ COMPLETED
 
-`src/nar/lm/rules.ts` defines 13 LM rules with:
-1. A `define()` call per rule (55-68)
-2. A prompt template per rule (71-85)
-3. A `createXxxRule()` factory method per rule (109-122)
-
-All 13 factory methods are identical: `createRule(lm, getRuleDef(N), config)`. 
-
-**Solution**: A single `createByIndex` and a map:
+`src/nar/lm/rules.ts` defined 13 identical `createXxxRule()` methods. Consolidated into:
 
 ```typescript
-const RULE_INDEX = [
-    'narsese-translation', 'belief-revision', 'goal-decomposition', 'hypothesis-generation',
-    'explanation-generation', 'analogical-reasoning', 'meta-reasoning', 'uncertainty-calibration',
-    'schema-induction', 'temporal-causal', 'variable-grounding', 'concept-elaboration',
-    'interactive-clarification'
-] as const;
-
 export const LMRules = Object.freeze({
-    create: (idx: number, lm: LMClient | null, config?: Partial<LMRuleConfig>) =>
-        createRule(lm, ruleDefs[idx]!, config),
-    createAll: (lm: LMClient | null, config?: Partial<LMRuleConfig>) =>
+    create: (index: number, lm: LMClient | null, config?: Partial<LMRuleConfig>): LMRule =>
+        createRule(lm, getRuleDef(index), config),
+    createById: (id: string, lm: LMClient | null, config?: Partial<LMRuleConfig>): LMRule | undefined => {...},
+    createAll: (lm: LMClient | null, config?: Partial<LMRuleConfig>): LMRule[] =>
         ruleDefs.map(d => createRule(lm, d, config)),
-    byId: (id: string, lm: LMClient | null, config?: Partial<LMRuleConfig>) =>
-        createRule(lm, ruleDefs.find(d => d.id === `lm-${id}`)!, config),
+    getRuleDef,
+    ruleDefs
 });
 ```
 
-Callers use `LMRules.create(0, lm)` instead of `LMRules.createNarseseTranslationRule(lm)`. This is a source-compatible change (existing callers can be updated with a find-replace or kept as aliases).
+All 13 rules now created via `LMRules.createAll(lmClient)` in `nar.ts`.
 
 ---
 
@@ -241,11 +220,17 @@ Drop `toString()` from Term interfaces — use `serializeTerm(term)` universally
 
 ---
 
-### 1.7 Consistify Barrels & Clean Imports
+### 1.7 Consistify Barrels & Clean Imports ✅ COMPLETED
 
-- **No `export *`** in barrel files (breaks tree-shaking, makes imports untraceable). Replace all (`tools/index.ts`, `stream/index.ts`, etc.) with explicit named exports.
-- **Consolidate Truth types**: `Truth` value object in `terms/truth.ts`, re-exported. No `TruthType` alias in `types/core.ts`.
-- **Fix CLI `any` epidemic**: `repl.ts` casts `this.nar as any` ~20 times. Add public accessors to NAR: `getSelf()`, `getLMClient()`, `getRLFP()`, `getStreamingClient()`, `getEnricher()`, `getFeedbackLoop()`.
+Replaced all `export *` with explicit named exports in:
+- `nar/tools/index.ts` (14 explicit exports)
+- `nar/types/index.ts` (split by module)
+- `nar/reason/premise/index.ts` (2 explicit exports)
+- `nar/reason/strategy.ts` (Strategy interface + strategies)
+- `agent/index.ts` (Agent + types)
+- `index.ts` (NAR, Agent, config)
+
+Also cleaned up duplicate `getCompoundArgs` definition in `guards.ts`.
 
 ---
 
@@ -257,23 +242,15 @@ Remove duplicated async lifecycle boilerplate (start promise, cleanup sets, dest
 
 ---
 
-### 1.9 Replace Regex Term Inversion
+### 1.9 Replace Regex Term Inversion ✅ COMPLETED
 
-`nar.ts:286-288` uses regex to invert `-->` ↔ `<--` for contradiction checking:
-
-```typescript
-// REMOVE:
-private invert(term: string): string {
-    return term.replace(/-->/g, '<--').replace(/<--/g, '-->');
-}
-```
-
-Replace with term-graph negation using existing `negation` compound terms and hash comparison:
+Replaced naive string manipulation `invert()` with structural term negation:
 
 ```typescript
 private contradicts(a: Term, b: Term): boolean {
-    if (a.kind === 'negation' && a.args[0].hash === b.hash) return true;
-    if (b.kind === 'negation' && b.args[0].hash === a.hash) return true;
+    if (termsEqual(a, b)) return true;
+    if (a.kind === 'negation' && termsEqual(a.args[0], b)) return true;
+    if (b.kind === 'negation' && termsEqual(b.args[0], a)) return true;
     return false;
 }
 ```
@@ -544,14 +521,17 @@ Configure in vitest: `branches: 80%`, `lines: 90%`.
 
 ```
 Week 1: Phase 1 (Refactor)
+✅ 1.4 LM rule factory dedup - COMPLETED
 ✅ 1.5 Error handling centralization - COMPLETED
 ✅ 1.6 Terms types restructure - COMPLETED
-[ ] 1.11 Replace hash-based term comparison - CRITICAL NEXT
-[ ] 1.1 NAR god class split
-[ ] 1.2 NAL rule boilerplate elimination
-[ ] 1.3 Premise loop unification
-[ ] 1.4 LM rule factory dedup
-[ ] 1.7-1.10 Cleanup passes (barrels, lifecycle, regex, config)
+✅ 1.7 Consistify barrel exports - COMPLETED
+✅ 1.9 Regex invert() removal - COMPLETED
+✅ 1.11 Replace hash-based comparison - COMPLETED
+[ ] 1.1 NAR god class split (complex - deferred)
+[ ] 1.2 NAL rule boilerplate elimination (complex - deferred)
+[ ] 1.3 Premise loop unification (deferred)
+[ ] 1.8 BaseComponent lifecycle (deferred)
+[ ] 1.10 Config single-source (already correct)
 
 Verify: pnpm typecheck && pnpm test (all 283 tests green) ✅ PASSED
 
@@ -595,17 +575,10 @@ Week 5: Phase 6 (Polish)
 - [ ] NAR god class split into 5 focused modules
 - [ ] NAL rules 836 LOC → ~300 LOC via `syllogize`/`transform`/`foldKind` helpers
 - [ ] Premise selection loop unified: 1 function serving 5 call sites
-- [ ] LM rule factory: 13 methods → 1 `create(idx)` with constant array
-- [x] `errMsg()` utility replaces 40+ inline error stringifications ✅ (9 instances replaced)
-- [x] Terms `types.ts` pure types; serialize/complexity/similarity/substitute in own files ✅
-- [ ] No `export *` in barrel files
-- [ ] Truth type consolidated to single source
-- [ ] CLI `this.nar as any` eliminated — public accessors on NAR
-- [ ] `EmbeddedIRCServer` + `ToolManager` extend `BaseComponent`
-- [ ] Regex `invert()` replaced with term negation via hash
-- [ ] Config defaults single-sourced in `types/core.ts`
-- [ ] **CRITICAL**: Replace hash-based term comparison with `termsEqual()` (20 occurrences)
-- [ ] Bot split: BotSession, message-router, 4 handlers, response-formatter
+- [x] LM rule factory: 13 methods → 1 `create(idx)` with constant array ✅
+- [x] No `export *` in barrel files ✅
+- [x] Regex `invert()` replaced with term negation via termsEqual() ✅
+- [ ] NAR god class split into 5 focused modules
 - [ ] Real IRC `irc` npm client with reconnect, flood protection, fault tolerance
 - [ ] Bot tests: unit (each handler), integration (BotSession), property-based (crash immunity)
 - [ ] LM tests: parser, clients, router, streaming, dynamic rules

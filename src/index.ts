@@ -1,5 +1,7 @@
-export * from './nar/index.js';
-export * from './agent/index.js';
+export {NAR} from './nar/index.js';
+export type {NARConfig} from './nar/index.js';
+export {Agent} from './agent/index.js';
+export type {Embodiment, Command, InputProcessor, AgentProfile, AgentCapabilities} from './agent/index.js';
 export {loadConfig, loadConfigFromEnv, ConfigLoader} from './config/loader.js';
 export type {AppConfig, ValidatedConfig, LMConfig, MemoryConfig, InferenceConfig, IRCConfig} from './config/loader.js';
 

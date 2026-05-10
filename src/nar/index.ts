@@ -85,7 +85,7 @@ export type {ReasonerConfig} from './reason/index.js';
 
 // Main NAR class
 export {NAR} from './nar.js';
-export type {NARConfig} from './nar.js';
+export type {NARConfig, RLFPConfig} from './nar.js';
 
 // Factory for creating NAR instances
 export {SeNARSFactory, createNAR, createMinimalNAR} from './factory.js';

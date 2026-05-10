@@ -1,5 +1,5 @@
 import type {Term} from '../terms';
-import {getPredicate, getSubject, sameHash, TermBuilder, Truth} from '../terms';
+import {getPredicate, getSubject, termsEqual, TermBuilder, Truth} from '../terms';
 import {createRulePattern, RuleRegistry, type TruthFn, type RuleFn} from './types.js';
 
 export interface NALRuleMetadata {
@@ -15,7 +15,7 @@ export const NALRules = {
         if (aToM.kind !== 'inheritance' || mToB.kind !== 'inheritance') return undefined;
         const middleA = getSubject(mToB);
         const middleB = getPredicate(aToM);
-        if (!middleA || !middleB || !sameHash(middleA, middleB)) return undefined;
+        if (!middleA || !middleB || !termsEqual(middleA, middleB)) return undefined;
         const s = getSubject(aToM);
         const p = getPredicate(mToB);
         return s && p ? TermBuilder.inheritance(s, p) : undefined;
@@ -32,7 +32,7 @@ export const NALRules = {
         if (sToM.kind !== 'inheritance' || mToB.kind !== 'inheritance') return undefined;
         const middleS = getPredicate(sToM);
         const middleM = getSubject(mToB);
-        if (!middleS || !middleM || !sameHash(middleS, middleM)) return undefined;
+        if (!middleS || !middleM || !termsEqual(middleS, middleM)) return undefined;
         const s = getSubject(sToM);
         const p = getPredicate(mToB);
         return s && p ? TermBuilder.inheritance(s, p) : undefined;
@@ -49,7 +49,7 @@ export const NALRules = {
         if (aToM.kind !== 'inheritance' || sToB.kind !== 'inheritance') return undefined;
         const middleA = getSubject(aToM);
         const middleS = getSubject(sToB);
-        if (!middleA || !middleS || !sameHash(middleA, middleS)) return undefined;
+        if (!middleA || !middleS || !termsEqual(middleA, middleS)) return undefined;
         const p = getPredicate(aToM);
         const s = getSubject(sToB);
         return p && s ? TermBuilder.inheritance(s, p) : undefined;
@@ -67,7 +67,7 @@ export const NALRules = {
         const s1 = getSubject(aToB), p1 = getPredicate(aToB);
         const s2 = getSubject(bToA), p2 = getPredicate(bToA);
         if (!s1 || !p1 || !s2 || !p2) return undefined;
-        const sim = (sameHash(s1, s2) && sameHash(p1, p2)) || (sameHash(s1, p2) && sameHash(p1, s2));
+        const sim = (termsEqual(s1, s2) && termsEqual(p1, p2)) || (termsEqual(s1, p2) && termsEqual(p1, s2));
         return sim ? TermBuilder.similarity(s1, p1) : undefined;
     },
     similarityMeta: {
@@ -82,7 +82,7 @@ export const NALRules = {
         if (imp.kind !== 'implication' || inh.kind !== 'inheritance') return undefined;
         const [ante, cons] = imp.args;
         const sub = getSubject(inh);
-        if (!ante || !cons || !sub || !sameHash(ante, sub)) return undefined;
+        if (!ante || !cons || !sub || !termsEqual(ante, sub)) return undefined;
         const consequent = inh.args[1];
         return consequent ? TermBuilder.implication(consequent, cons) : undefined;
     },
@@ -96,14 +96,14 @@ export const NALRules = {
 
     intersection: ([c1, c2]: [Term, Term]): Term | undefined => {
         if (c1.kind !== 'conjunction' || c2.kind !== 'conjunction') return undefined;
-        const shared = c1.args.filter(a1 => c2.args.some(a2 => sameHash(a1, a2)));
+        const shared = c1.args.filter(a1 => c2.args.some(a2 => termsEqual(a1, a2)));
         return shared.length > 0 ? TermBuilder.conjunction(...shared) : undefined;
     },
 
     union: ([d1, d2]: [Term, Term]): Term | undefined => {
         if (d1.kind !== 'disjunction' || d2.kind !== 'disjunction') return undefined;
         const unique = [...d1.args, ...d2.args].filter((a, i, arr) =>
-            arr.findIndex(b => sameHash(a, b)) === i
+            arr.findIndex(b => termsEqual(a, b)) === i
         );
         return TermBuilder.disjunction(...unique);
     },
@@ -112,7 +112,7 @@ export const NALRules = {
         if (i1.kind !== 'inheritance' || i2.kind !== 'inheritance') return undefined;
         const s1 = getSubject(i1), p1 = getPredicate(i1);
         const s2 = getSubject(i2), p2 = getPredicate(i2);
-        if (!s1 || !p1 || !s2 || !p2 || !sameHash(s1, s2)) return undefined;
+        if (!s1 || !p1 || !s2 || !p2 || !termsEqual(s1, s2)) return undefined;
         return TermBuilder.conjunction(p1, p2);
     },
 
@@ -130,7 +130,7 @@ export const NALRules = {
     implicationElim: ([imp, atm]: [Term, Term]): Term | undefined => {
         if (imp.kind !== 'implication' || atm.kind !== 'atom') return undefined;
         const [ante, cons] = imp.args;
-        return ante && sameHash(ante, atm) ? cons : undefined;
+        return ante && termsEqual(ante, atm) ? cons : undefined;
     },
 
     equivalenceIntro: ([imp1, imp2]: [Term, Term]): Term | undefined => {
@@ -138,8 +138,8 @@ export const NALRules = {
         const [a1, c1] = imp1.args;
         const [a2, c2] = imp2.args;
         if (!a1 || !c1 || !a2 || !c2) return undefined;
-        const forward = sameHash(a1, a2) && sameHash(c1, c2);
-        const back = sameHash(a1, c2) && sameHash(c1, a2);
+        const forward = termsEqual(a1, a2) && termsEqual(c1, c2);
+        const back = termsEqual(a1, c2) && termsEqual(c1, a2);
         return forward || back ? TermBuilder.equivalence(a1, c1) : undefined;
     },
 
@@ -147,7 +147,7 @@ export const NALRules = {
         if (eq.kind !== 'equivalence' || atm.kind !== 'atom') return undefined;
         const [a, c] = eq.args;
         if (!a || !c) return undefined;
-        return sameHash(a, atm) || sameHash(c, atm) ? c : undefined;
+        return termsEqual(a, atm) || termsEqual(c, atm) ? c : undefined;
     },
 
     negationIntro: ([imp1, imp2]: [Term, Term]): Term | undefined => {
@@ -156,7 +156,7 @@ export const NALRules = {
         const [a2, c2] = imp2.args;
         if (!a1 || !c1 || !a2 || !c2) return undefined;
         const isContradiction =
-            sameHash(a1, a2) &&
+            termsEqual(a1, a2) &&
             c1.kind === 'atom' &&
             c2.kind === 'atom' &&
             c1.symbol === 'TRUE' &&
@@ -168,26 +168,26 @@ export const NALRules = {
         if (n1.kind !== 'negation' || n2.kind !== 'negation') return undefined;
         const [a1] = n1.args;
         const [a2] = n2.args;
-        if (!a1 || !a2 || !sameHash(a1, a2)) return undefined;
+        if (!a1 || !a2 || !termsEqual(a1, a2)) return undefined;
         return TermBuilder.atom('FALSE');
     },
 
     destruct: ([conj, atm]: [Term, Term]): Term | undefined =>
         conj.kind === 'conjunction' && atm.kind === 'atom'
-            ? conj.args.find(a => sameHash(a, atm))
+            ? conj.args.find(a => termsEqual(a, atm))
             : undefined,
 
     compose: ([i1, i2]: [Term, Term]): Term | undefined => {
         if (i1.kind !== 'inheritance' || i2.kind !== 'inheritance') return undefined;
         const p1 = getPredicate(i1), s2 = getSubject(i2);
-        if (!p1 || !s2 || !sameHash(p1, s2)) return undefined;
+        if (!p1 || !s2 || !termsEqual(p1, s2)) return undefined;
         const s = getSubject(i1), p = getPredicate(i2);
         return s && p ? TermBuilder.inheritance(s, p) : undefined;
     },
 
     decompose: ([c1, c2]: [Term, Term]): Term | undefined => {
         if (c1.kind !== 'conjunction' || c2.kind !== 'conjunction') return undefined;
-        const shared = c1.args.filter(a1 => c2.args.some(a2 => sameHash(a1, a2)));
+        const shared = c1.args.filter(a1 => c2.args.some(a2 => termsEqual(a1, a2)));
         return shared[0];
     },
 
@@ -196,7 +196,7 @@ export const NALRules = {
         const s1 = getSubject(i1), p1 = getPredicate(i1);
         const s2 = getSubject(i2), p2 = getPredicate(i2);
         if (!s1 || !p1 || !s2 || !p2) return undefined;
-        return sameHash(s1, s2) && sameHash(p1, p2) ? i1 : undefined;
+        return termsEqual(s1, s2) && termsEqual(p1, p2) ? i1 : undefined;
     },
     revisionMeta: {
         id: 'nal.revision',
@@ -211,7 +211,7 @@ export const NALRules = {
         const s1 = getSubject(inh), p1 = getPredicate(inh);
         const s2 = getSubject(sim), p2 = getPredicate(sim);
         if (!s1 || !p1 || !s2 || !p2) return undefined;
-        if (!sameHash(p1, s2)) return undefined;
+        if (!termsEqual(p1, s2)) return undefined;
         return TermBuilder.inheritance(s1, p2);
     },
     analogyMeta: {
@@ -227,7 +227,7 @@ export const NALRules = {
         const s1 = getSubject(inh1), p1 = getPredicate(inh1);
         const s2 = getSubject(inh2), p2 = getPredicate(inh2);
         if (!s1 || !p1 || !s2 || !p2) return undefined;
-        if (!sameHash(s1, s2)) return undefined;
+        if (!termsEqual(s1, s2)) return undefined;
         return TermBuilder.similarity(p1, p2);
     },
     comparisonMeta: {
@@ -243,7 +243,7 @@ export const NALRules = {
         const s1 = getSubject(inh), p1 = getPredicate(inh);
         const s2 = getSubject(sim), p2 = getPredicate(sim);
         if (!s1 || !p1 || !s2 || !p2) return undefined;
-        if (!sameHash(p1, p2)) return undefined;
+        if (!termsEqual(p1, p2)) return undefined;
         return TermBuilder.inheritance(s1, s2);
     },
     instantiationMeta: {
@@ -259,7 +259,7 @@ export const NALRules = {
         const s1 = getSubject(inh1), p1 = getPredicate(inh1);
         const s2 = getSubject(inh2), p2 = getPredicate(inh2);
         if (!s1 || !p1 || !s2 || !p2) return undefined;
-        if (!sameHash(p1, s2)) return undefined;
+        if (!termsEqual(p1, s2)) return undefined;
         return TermBuilder.inheritance(s1, p2);
     },
     exemplificationMeta: {
@@ -275,7 +275,7 @@ export const NALRules = {
         const [a1, c1] = imp1.args;
         const [a2, c2] = imp2.args;
         if (!a1 || !c1 || !a2 || !c2) return undefined;
-        if (!sameHash(c1, a2)) return undefined;
+        if (!termsEqual(c1, a2)) return undefined;
         return TermBuilder.implication(a1, c2);
     },
     higherOrderDeductionMeta: {
@@ -291,7 +291,7 @@ export const NALRules = {
         const [a1, c1] = imp1.args;
         const [a2, c2] = imp2.args;
         if (!a1 || !c1 || !a2 || !c2) return undefined;
-        if (!sameHash(c1, c2)) return undefined;
+        if (!termsEqual(c1, c2)) return undefined;
         return TermBuilder.implication(a1, a2);
     },
     higherOrderAbductionMeta: {
@@ -307,7 +307,7 @@ export const NALRules = {
         const [a1, c1] = imp1.args;
         const [a2, c2] = imp2.args;
         if (!a1 || !c1 || !a2 || !c2) return undefined;
-        if (!sameHash(a1, a2)) return undefined;
+        if (!termsEqual(a1, a2)) return undefined;
         return TermBuilder.implication(c1, c2);
     },
     higherOrderInductionMeta: {

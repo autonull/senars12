@@ -106,23 +106,15 @@ const getRuleDef = (index: number): LMRuleDefinition => {
     return def;
 };
 
-export const LMRules = {
-    createNarseseTranslationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(0), config),
-    createBeliefRevisionRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(1), config),
-    createGoalDecompositionRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(2), config),
-    createHypothesisGenerationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(3), config),
-    createExplanationGenerationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(4), config),
-    createAnalogicalReasoningRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(5), config),
-    createMetaReasoningGuidanceRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(6), config),
-    createUncertaintyCalibrationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(7), config),
-    createSchemaInductionRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(8), config),
-    createTemporalCausalModelingRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(9), config),
-    createVariableGroundingRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(10), config),
-    createConceptElaborationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(11), config),
-    createInteractiveClarificationRule: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => createRule(lm, getRuleDef(12), config),
-    createAll: (lm: LMClient | null, config?: Partial<LMRuleConfig>) => ruleDefs.map(d => createRule(lm, d, config)),
-    create: (id: string, lm: LMClient | null, config?: Partial<LMRuleConfig>) => {
+export const LMRules = Object.freeze({
+    create: (index: number, lm: LMClient | null, config?: Partial<LMRuleConfig>): LMRule =>
+        createRule(lm, getRuleDef(index), config),
+    createById: (id: string, lm: LMClient | null, config?: Partial<LMRuleConfig>): LMRule | undefined => {
         const def = ruleDefs.find(d => d.id === id);
         return def ? createRule(lm, def, config) : undefined;
-    }
-};
+    },
+    createAll: (lm: LMClient | null, config?: Partial<LMRuleConfig>): LMRule[] =>
+        ruleDefs.map(d => createRule(lm, d, config)),
+    getRuleDef,
+    ruleDefs
+});

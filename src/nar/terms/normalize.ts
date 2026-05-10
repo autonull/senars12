@@ -1,5 +1,6 @@
 import type {CompoundTerm, Term} from './types.js';
 import {computeHash} from './types.js';
+import {termsEqual} from './accessors.js';
 import {TermBuilder} from './factory.js';
 
 const hasArgs = (term: Term): term is CompoundTerm =>
@@ -11,7 +12,7 @@ export function normalize(term: Term): Term {
         const args = term.args ?? [];
         if (args.length <= 1) return term;
         const sortedArgs = args.toSorted((a, b) => a.hash - b.hash);
-        const allSorted = sortedArgs.every((arg, i) => arg.hash === args[i]?.hash);
+        const allSorted = sortedArgs.every((arg, i) => termsEqual(arg, args[i]!));
         if (!allSorted) {
             const newHash = computeHash(term.kind, sortedArgs.map(t => t.hash));
             return Object.freeze({...term, args: sortedArgs, hash: newHash} as Term);
