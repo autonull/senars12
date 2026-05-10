@@ -9,23 +9,18 @@ export interface SyllogismConfig {
   build: (left: Term, right: Term) => Term | undefined;
 }
 
-export const syllogize = (cfg: SyllogismConfig): RuleFn => (terms: [Term, Term]) => {
-  const [left, right] = terms;
-  if (left.kind !== cfg.leftKind || right.kind !== cfg.rightKind) return undefined;
-  return cfg.link(left, right) ? cfg.build(left, right) : undefined;
+export const syllogize = (cfg: SyllogismConfig): RuleFn => {
+  return ([left, right]) => {
+    if (left.kind !== cfg.leftKind || right.kind !== cfg.rightKind) return undefined;
+    return cfg.link(left, right) ? cfg.build(left, right) : undefined;
+  };
 };
 
 export const transform = (kind: Term['kind'], fn: (term: Term) => Term | undefined): RuleFn =>
-  (terms: [Term, Term]) => {
-    const [term] = terms;
-    return term.kind === kind ? fn(term) : undefined;
-  };
+  ([term]) => term.kind === kind ? fn(term) : undefined;
 
 export const foldKind = <T extends Term>(kind: T['kind'], fn: (left: T, right: T) => Term | undefined): RuleFn =>
-  (terms: [Term, Term]) => {
-    const [left, right] = terms;
-    return left.kind === kind && right.kind === kind ? fn(left as T, right as T) : undefined;
-  };
+  ([left, right]) => left.kind === kind && right.kind === kind ? fn(left as T, right as T) : undefined;
 
 export const deductionLink = (left: Term, right: Term): boolean => {
   const pred = getPredicate(left);

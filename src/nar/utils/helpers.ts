@@ -76,3 +76,19 @@ export const catchAndLog = (
   logger.warn(ctx, msg);
   return msg;
 };
+
+/**
+ * Wrap a promise with a timeout
+ */
+export function withTimeout<T>(promise: Promise<T>, ms: number, signal?: AbortSignal): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      const timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms);
+      signal?.addEventListener('abort', () => {
+        clearTimeout(timer);
+        reject(new Error('Aborted'));
+      });
+    })
+  ]);
+}

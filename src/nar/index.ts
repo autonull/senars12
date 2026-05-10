@@ -16,18 +16,16 @@ export type {
 
 
 export {
-    DEFAULT_CONFIG,
-    createBudget,
-    createTask,
-    isBudget,
-    getBudgetValue,
-    success,
-    failure,
-    isSuccess,
-    isFailure,
-    NARError,
-    ValidationError,
-    ConfigurationError,
+  DEFAULT_CONFIG,
+  createBudget,
+  createTask,
+  success,
+  failure,
+  isSuccess,
+  isFailure,
+  NARError,
+  ValidationError,
+  ConfigurationError,
     OperationError
 } from './types/core.js';
 
@@ -35,7 +33,6 @@ export {
 // Terms
 export {TermBuilder, freeze, atom, serializeTerm} from './terms/index.js';
 export {Truth, isTruthEqual} from './terms/truth.js';
-export {MAX_DEPTH} from './terms/stamp.js';
 export {termParser, TermParser} from './terms/index.js';
 export {
     isVariableSymbol,

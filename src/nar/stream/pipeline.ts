@@ -103,24 +103,26 @@ export class CompositePremiseSource extends PremiseSourceBase {
 }
 
 export async function* createPipeline(
-    source: PremiseSource | PremiseSourceBase,
-    memory: Memory,
-    strategy: Strategy,
-    config: PipelineConfig = DEFAULT_CONFIG
+  source: PremiseSource | PremiseSourceBase,
+  memory: Memory,
+  strategy: Strategy,
+  config: PipelineConfig = DEFAULT_CONFIG,
+  signal?: AbortSignal
 ): AsyncGenerator<Task> {
-    let lastYield = Date.now();
-    let queueSize = 0;
-    let derivationsCount = 0;
+  let lastYield = Date.now();
+  let queueSize = 0;
+  let derivationsCount = 0;
 
-    const stream = 'stream' in source && typeof source.stream === 'function'
-        ? source.stream()
-        : source;
+  const stream = 'stream' in source && typeof source.stream === 'function'
+    ? source.stream(signal)
+    : source;
 
-    for await (const task of stream as AsyncIterable<Task>) {
-        if (Date.now() - lastYield > config.cpuThrottleMs) {
-            await new Promise(r => setTimeout(r, 0));
-            lastYield = Date.now();
-        }
+  for await (const task of stream as AsyncIterable<Task>) {
+    if (signal?.aborted) break;
+    if (Date.now() - lastYield > config.cpuThrottleMs) {
+      await new Promise(r => setTimeout(r, 0));
+      lastYield = Date.now();
+    }
 
         if (queueSize > config.maxQueueSize) {
             await new Promise(r => setTimeout(r, 0));

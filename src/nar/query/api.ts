@@ -160,18 +160,18 @@ export class QueryAPI {
             type === 'goal' ? concept.goalBag :
                 type === 'question' ? concept.questionBag : null;
 
-        if (bag) {
-            for (const item of bag.toArray()) {
-                tasks.push({
-                    term: concept.term,
-                    type,
-                    truth: item.truth,
-                    budget: item.budget,
-                    stamp: (item as any).stamp,
-                    occurrenceTime: (item as any).occurrenceTime || Date.now(),
-                    derived: (item as any).derived || false
-                } as Task);
-            }
+if (bag) {
+  for (const item of bag.toArray()) {
+    tasks.push({
+      term: concept.term,
+      type,
+      truth: item.truth,
+      budget: typeof item.budget === 'number' ? {priority: item.budget, durability: 0.8, quality: 0.9, cycles: 0, depth: 0} : item.budget,
+      stamp: (item as any).stamp,
+      occurrenceTime: (item as any).occurrenceTime || Date.now(),
+      derived: (item as any).derived || false
+    } as Task);
+  }
         }
 
         return tasks;

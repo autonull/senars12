@@ -30,13 +30,13 @@ export type TaskType = 'belief' | 'goal' | 'question' | 'command';
 
 // Core Task interface
 export interface Task {
-    readonly term: Term;
-    readonly type: TaskType;
-    readonly truth: TruthType;
-    readonly budget: Budget | number;
-    readonly stamp: Stamp;
-    readonly occurrenceTime: number;
-    readonly derived: boolean;
+  readonly term: Term;
+  readonly type: TaskType;
+  readonly truth: TruthType;
+  readonly budget: Budget;
+  readonly stamp: Stamp;
+  readonly occurrenceTime: number;
+  readonly derived: boolean;
 }
 
 // Memory concepts
@@ -89,22 +89,15 @@ export type Result<T> = Success<T> | Failure;
 export const success = <T>(data: T): Success<T> => ({success: true, data});
 export const failure = (error: Error): Failure => ({success: false, error});
 
-// Budget helpers
-export const isBudget = (b: Budget | number): b is Budget =>
-    typeof b === 'object' && 'priority' in b;
-
-export const getBudgetValue = (b: Budget | number): number =>
-    typeof b === 'number' ? b : b.priority;
-
 // Create Budget object - optimized with defaults
 export const createBudget = (
-    priority: number,
-    durability = 0.8,
-    quality = 0.9,
-    cycles = 0,
-    depth = 0
+  priority: number,
+  durability = 0.8,
+  quality = 0.9,
+  cycles = 0,
+  depth = 0
 ): Budget =>
-    Object.freeze({priority, durability, quality, cycles, depth});
+  Object.freeze({priority, durability, quality, cycles, depth});
 
 // Pre-allocated neutral budget for performance
 const NEUTRAL_BUDGET = createBudget(0.5);
@@ -114,7 +107,7 @@ export const createTask = (
   term: Term,
   type: TaskType,
   truth: TruthType,
-  budget: Budget | number = NEUTRAL_BUDGET
+  budget: Budget = NEUTRAL_BUDGET
 ): Task => ({
   term,
   type,
@@ -135,7 +128,7 @@ export const createSecondaryTask = (
   term,
   type,
   truth: truth ?? {f: 0.5, c: 0.9},
-  budget: {priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+  budget: createBudget(priority),
   stamp: Stamp.createInput(),
   occurrenceTime: 0,
   derived: false

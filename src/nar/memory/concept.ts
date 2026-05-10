@@ -8,11 +8,13 @@ import {Bag} from './bag.js';
 import {Truth as TruthOps} from '../terms/truth.js';
 import {extractSymbols} from '../terms/utils.js';
 
+import type {Budget} from '../types';
+
 export interface TaskData {
-    readonly term: Term;
-    readonly truth?: Truth;
-    readonly budget: number;
-    readonly timestamp?: number;
+  readonly term: Term;
+  readonly truth?: Truth;
+  readonly budget: Budget;
+  readonly timestamp?: number;
 }
 
 export type ConceptTaskType = 'belief' | 'goal' | 'question' | 'command';
@@ -86,7 +88,7 @@ export class Concept {
         }
 
         const bag = type === 'goal' ? this.goalBag : this.questionBag;
-    const added = bag.add(data, data.budget);
+    const added = bag.add(data, data.budget.priority);
     if (added) {
       this.useCount++;
       this.lastAccessedAt = Date.now();
@@ -205,13 +207,13 @@ export class Concept {
         }
 
         for (const belief of allBeliefs) {
-            this.beliefBag.add(belief, belief.budget);
+            this.beliefBag.add(belief, belief.budget.priority);
         }
         for (const goal of allGoals) {
-            this.goalBag.add(goal, goal.budget);
+            this.goalBag.add(goal, goal.budget.priority);
         }
         for (const question of allQuestions) {
-            this.questionBag.add(question, question.budget);
+            this.questionBag.add(question, question.budget.priority);
         }
 
         for (const other of others) {
@@ -279,7 +281,7 @@ export class Concept {
                 const revisedTruth = TruthOps.revision(data.truth, existing.truth);
                 const revisedData = {...data, truth: revisedTruth, timestamp: Date.now()};
     this.beliefBag.remove(existing);
-    const added = this.beliefBag.add(revisedData, revisedData.budget);
+    const added = this.beliefBag.add(revisedData, revisedData.budget.priority);
     if (added) {
       this.useCount++;
       this.lastAccessedAt = Date.now();
@@ -290,7 +292,7 @@ export class Concept {
             return false;
         }
 
-    const added = this.beliefBag.add(data, data.budget);
+    const added = this.beliefBag.add(data, data.budget.priority);
     if (added) {
       this.useCount++;
       this.lastAccessedAt = Date.now();

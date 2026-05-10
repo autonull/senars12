@@ -1,5 +1,5 @@
 import type {Task} from '../types/core.js';
-import {getBudgetValue} from '../types/core.js';
+import type {Budget} from '../types/core.js';
 import {Memory} from '../memory';
 
 export type TaskLifecycle = 'pending' | 'running' | 'completed' | 'failed' | 'expired';
@@ -92,7 +92,7 @@ export class TaskManager {
             wrapper.lifecycle = 'running';
             wrapper.startedAt = Date.now();
 
-            const added = this.memory.addTask(wrapper.task.term, wrapper.task.type, wrapper.task.truth, getBudgetValue(wrapper.task.budget));
+            const added = this.memory.addTask(wrapper.task.term, wrapper.task.type, wrapper.task.truth, wrapper.task.budget as Budget);
 
             if (added) {
                 wrapper.lifecycle = 'completed';

@@ -1,17 +1,16 @@
 import {
-    ConfigurationError,
-    createBudget,
-    createTask,
-    DEFAULT_CONFIG,
-    failure,
-    getBudgetValue,
-    isBudget,
-    isFailure,
-    isSuccess,
-    NARError,
-    OperationError,
-    success,
-    ValidationError
+  ConfigurationError,
+  createBudget,
+  createTask,
+  DEFAULT_CONFIG,
+  failure,
+  isFailure,
+  isSuccess,
+  NARError,
+  OperationError,
+  success,
+  ValidationError,
+  Budget
 } from '../../types';
 import {atom, Truth} from '../../terms';
 
@@ -35,19 +34,7 @@ describe('Budget', () => {
         expect(budget.depth).toBe(0);
     });
 
-    test('isBudget detects budget objects', () => {
-        const b1 = createBudget(0.5);
-        const b2 = 0.5;
-        expect(isBudget(b1)).toBe(true);
-        expect(isBudget(b2)).toBe(false);
-    });
 
-    test('getBudgetValue extracts number', () => {
-        const b1 = createBudget(0.5);
-        const b2 = 0.8;
-        expect(getBudgetValue(b1)).toBe(0.5);
-        expect(getBudgetValue(b2)).toBe(0.8);
-    });
 });
 
 describe('Task', () => {
@@ -63,12 +50,13 @@ describe('Task', () => {
         expect(task.occurrenceTime).toBeDefined();
     });
 
-    test('createTask accepts numeric budget', () => {
-        const term = atom('test');
-        const task = createTask(term, 'goal', Truth.NEUTRAL, 0.7);
-        expect(typeof task.budget).toBe('number');
-        expect(getBudgetValue(task.budget)).toBe(0.7);
-    });
+  test('createTask accepts budget object', () => {
+    const term = atom('test');
+    const budget: Budget = createBudget(0.7);
+    const task = createTask(term, 'goal', Truth.NEUTRAL, budget);
+    expect(task.budget).toBe(budget);
+    expect(task.budget.priority).toBe(0.7);
+  });
 });
 
 describe('Result types', () => {

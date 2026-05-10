@@ -7,7 +7,6 @@ import {
   ConfigurationError,
   DEFAULT_CONFIG,
   EventBus,
-  getBudgetValue,
   type CoreConfig,
   type Task,
   type TaskType,

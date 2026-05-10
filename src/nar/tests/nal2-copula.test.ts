@@ -108,12 +108,12 @@ describe('NAL2 Instance and Property Copula Rules', () => {
       expect(animalProp.toString()).toBe('[animal]');
     });
 
-    test('handles undefined input gracefully', () => {
-      const birdInst = instance(undefined);
-      const animalProp = property(undefined);
+test('handles undefined input gracefully', () => {
+  const birdInst = instance(undefined!);
+  const animalProp = property(undefined!);
 
-      expect(birdInst.toString()).toBe('TRUE');
-      expect(animalProp.toString()).toBe('TRUE');
-    });
+  expect(birdInst.toString()).toBe('TRUE');
+  expect(animalProp.toString()).toBe('TRUE');
+});
   });
 });

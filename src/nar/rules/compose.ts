@@ -5,18 +5,18 @@ export function composeRules(
   r1: RuleFn,
   r2: RuleFn
 ): RuleFn {
-  return ((premises: Term[]): Term | undefined => {
-    const intermediate = r1(premises);
+  return (([t1, t2]: [Term, Term]): Term | undefined => {
+    const intermediate = r1([t1, t2]);
     if (!intermediate) return undefined;
-    const result = r2([intermediate, ...(premises.slice(1) || [premises[1]])]);
+    const result = r2([intermediate, t2]);
     return result ?? undefined;
   });
 }
 
 export function sequenceRules(...rules: RuleFn[]): RuleFn {
-  return (premises: Term[]): Term | undefined => {
+  return ([t1, t2]: [Term, Term]): Term | undefined => {
     for (const rule of rules) {
-      const result = rule(premises);
+      const result = rule([t1, t2]);
       if (result) return result;
     }
     return undefined;

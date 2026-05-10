@@ -2,7 +2,7 @@ import type {LMClient} from './types.js';
 import type {Memory} from '../memory/index.js';
 import type {Term} from '../terms/index.js';
 import {Truth} from '../terms/index.js';
-import {createTask, type Task, getBudgetValue} from '../types/index.js';
+import {createTask, type Task} from '../types/index.js';
 import {createBudget} from '../types/core.js';
 import {LMResponseParser} from './parser.js';
 
@@ -80,9 +80,9 @@ export class BidirectionalFeedbackLoop {
         const response = await this.lmClient.generateText(enrichmentPrompt);
         const bridgingHypotheses = await this.parseEnrichmentResponse(response, concept.term);
         
-    for (const hyp of bridgingHypotheses) {
-      this.memory.addTask(hyp.term, hyp.type, hyp.truth, getBudgetValue(hyp.budget));
-    }
+for (const hyp of bridgingHypotheses) {
+  this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget);
+}
       } catch (error) {
         console.warn('Failed to enrich context for concept:', concept.term, error);
       }

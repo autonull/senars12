@@ -1,63 +1,46 @@
-import type {AtomicTerm, CompoundTerm, Term} from './types.js';
+import type {AtomicTerm, CompoundTerm, Term, OperatorKey} from './types.js';
+import {OPERATORS} from './types.js';
 
 export const getSubject = (term: Term): Term | undefined =>
-    term.kind === 'inheritance' || term.kind === 'similarity' ? term.args[0] : undefined;
+  term.kind === 'inheritance' || term.kind === 'similarity' ? term.args[0] : undefined;
 
 export const getPredicate = (term: Term): Term | undefined =>
-    term.kind === 'inheritance' || term.kind === 'similarity' ? term.args[1] : undefined;
+  term.kind === 'inheritance' || term.kind === 'similarity' ? term.args[1] : undefined;
 
 export const getAntecedent = (term: Term): Term | undefined =>
-    term.kind === 'implication' || term.kind === 'equivalence' ? term.args[0] : undefined;
+  term.kind === 'implication' || term.kind === 'equivalence' ? term.args[0] : undefined;
 
 export const getConsequent = (term: Term): Term | undefined =>
-    term.kind === 'implication' || term.kind === 'equivalence' ? term.args[1] : undefined;
+  term.kind === 'implication' || term.kind === 'equivalence' ? term.args[1] : undefined;
 
 export const getArgs = (term: Term): readonly Term[] =>
-    term.kind === 'atom' ? [] : term.args;
+  term.kind === 'atom' ? [] : term.args;
 
 export const isAtom = (term: Term): term is AtomicTerm => term.kind === 'atom';
 
-export const isInheritance = (term: Term): term is CompoundTerm & { kind: 'inheritance' } =>
-    term.kind === 'inheritance';
+type IsGuard<K extends OperatorKey> = (t: Term) => t is CompoundTerm<K> & { kind: K };
 
-export const isSimilarity = (term: Term): term is CompoundTerm & { kind: 'similarity' } =>
-    term.kind === 'similarity';
+export const isType = Object.fromEntries(
+  (Object.keys(OPERATORS) as OperatorKey[]).map(key => [
+    key,
+    ((k: OperatorKey) => (t: Term): t is CompoundTerm<typeof k> => t.kind === k)(key)
+  ])
+) as Record<OperatorKey, IsGuard<OperatorKey>>;
 
-export const isImplication = (term: Term): term is CompoundTerm & { kind: 'implication' } =>
-    term.kind === 'implication';
-
-export const isEquivalence = (term: Term): term is CompoundTerm & { kind: 'equivalence' } =>
-    term.kind === 'equivalence';
-
-export const isConjunction = (term: Term): term is CompoundTerm & { kind: 'conjunction' } =>
-    term.kind === 'conjunction';
-
-export const isDisjunction = (term: Term): term is CompoundTerm & { kind: 'disjunction' } =>
-    term.kind === 'disjunction';
-
-export const isNegation = (term: Term): term is CompoundTerm & { kind: 'negation' } =>
-  term.kind === 'negation';
-
-export const isInstance = (term: Term): term is CompoundTerm & { kind: 'instance' } =>
-  term.kind === 'instance';
-
-export const isProperty = (term: Term): term is CompoundTerm & { kind: 'property' } =>
-  term.kind === 'property';
-
-export const isSequence = (term: Term): term is CompoundTerm & { kind: 'sequence' } =>
-  term.kind === 'sequence';
-
-export const isParallel = (term: Term): term is CompoundTerm & { kind: 'parallel' } =>
-  term.kind === 'parallel';
-
-export const isPredictive = (term: Term): term is CompoundTerm & { kind: 'predictive' } =>
-  term.kind === 'predictive';
-
-export const isRetrospective = (term: Term): term is CompoundTerm & { kind: 'retrospective' } =>
-  term.kind === 'retrospective';
-
-export const isOperation = (term: Term): term is CompoundTerm & { kind: 'operation' } =>
-  term.kind === 'operation';
+export const isInheritance = isType.inheritance;
+export const isSimilarity = isType.similarity;
+export const isImplication = isType.implication;
+export const isEquivalence = isType.equivalence;
+export const isConjunction = isType.conjunction;
+export const isDisjunction = isType.disjunction;
+export const isNegation = isType.negation;
+export const isInstance = isType.instance;
+export const isProperty = isType.property;
+export const isSequence = isType.sequence;
+export const isParallel = isType.parallel;
+export const isPredictive = isType.predictive;
+export const isRetrospective = isType.retrospective;
+export const isOperation = isType.operation;
 
 export const sameKind = (a: Term, b: Term): boolean => a.kind === b.kind;
 

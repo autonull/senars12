@@ -5,7 +5,6 @@
 import {Concept, type ConceptMergeResult, type ConceptTaskType} from './concept.js';
 import type {Term, Truth} from '../terms';
 import type {Budget} from '../types';
-import {getBudgetValue} from '../types';
 import {MemoryIndex} from './memory-index.js';
 import {Focus} from './focus.js';
 import {Archive} from './archive.js';
@@ -144,10 +143,10 @@ export class Memory {
         return concept;
     }
 
-    addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget | number = 0.9): boolean {
-        const concept = this.getConcept(term) ?? this.addConcept(term);
-        return concept.addTask(type, {term, truth, budget: getBudgetValue(budget)});
-    }
+addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget = {priority: 0.9, durability: 0.8, quality: 0.9, cycles: 0, depth: 0}): boolean {
+  const concept = this.getConcept(term) ?? this.addConcept(term);
+  return concept.addTask(type, {term, truth, budget});
+}
 
     removeConcept(term: Term): boolean {
         const concept = this.concepts.get(term.hash);

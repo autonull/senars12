@@ -133,9 +133,9 @@ describe('NAL8 Procedural Rules', () => {
       expect(fx.toString()).toBe('(f ^ x)');
     });
 
-    test('handles undefined input gracefully', () => {
-      const op = operation(undefined, undefined);
-      expect(op.toString()).toBe('TRUE');
-    });
+test('handles undefined input gracefully', () => {
+  const op = operation(undefined!, undefined!);
+  expect(op.toString()).toBe('TRUE');
+});
   });
 });

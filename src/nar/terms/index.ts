@@ -26,7 +26,7 @@ export {substituteVariables} from './substitute.js';
 // Truth and stamp systems
 export {Truth, isTruthEqual} from './truth.js';
 export type {Truth as TruthType} from './truth.js';
-export {Stamp, MAX_DEPTH} from './stamp.js';
+export {Stamp} from './stamp.js';
 export type {Stamp as StampType, Source} from './stamp.js';
 
 // Normalization

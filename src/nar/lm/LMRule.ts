@@ -166,24 +166,24 @@ return [];
     }
 
     private taskFromProcessed(processed: unknown, primary: Term): Task {
-        if (typeof processed === 'string') {
-            const parsed = LMResponseParser.parse(processed);
-            if (parsed.valid && parsed.term) {
-                return createTask(
-                    parsed.term,
-                    'belief',
-                    parsed.truth ?? Truth.NEUTRAL,
-                    parsed.confidence ?? 0.5
-                );
-            }
-        }
+if (typeof processed === 'string') {
+  const parsed = LMResponseParser.parse(processed);
+  if (parsed.valid && parsed.term) {
+    return createTask(
+      parsed.term,
+      'belief',
+      parsed.truth ?? Truth.NEUTRAL,
+      parsed.confidence != null ? {priority: parsed.confidence, durability: 0.8, quality: 0.9, cycles: 0, depth: 0} : undefined
+    );
+  }
+}
 
-        const term = (processed as Partial<Task> & { term?: Term }).term ?? primary;
-        const type = (processed as Partial<Task> & { type?: TaskType }).type ?? 'belief';
-        const truth = (processed as Partial<Task> & { truth?: TruthType }).truth ?? Truth.NEUTRAL;
-        const budget = (processed as Partial<Task> & { budget?: Budget }).budget ?? 0.5;
+const term = (processed as Partial<Task> & { term?: Term }).term ?? primary;
+const type = (processed as Partial<Task> & { type?: TaskType }).type ?? 'belief';
+const truth = (processed as Partial<Task> & { truth?: TruthType }).truth ?? Truth.NEUTRAL;
+const budget = (processed as Partial<Task> & { budget?: Budget }).budget;
 
-        return createTask(term, type, truth, budget);
+return createTask(term, type, truth, budget ?? undefined);
     }
 
     private recordExecution(success: boolean, duration: number, tokens?: number): void {

@@ -3,24 +3,24 @@
  */
 
 import type {Term} from '../terms';
-import {Stamp} from '../terms';
+import type {Stamp, StampType} from '../terms';
+import {Stamp as StampFactory} from '../terms';
 import {RuleIndex, RuleRegistry} from './types.js';
 import {Truth, type Truth as TruthType} from '../terms/truth.js';
 import type {LMRule} from '../lm';
 import {EventBus} from '../types';
-import './nal.js';
 
 export interface RuleInput {
-    term: Term;
-    truth: TruthType;
-    stamp: ReturnType<typeof Stamp.createInput>;
+  term: Term;
+  truth: TruthType;
+  stamp: StampType;
 }
 
 export interface RuleResult {
-    term: Term;
-    truth: TruthType;
-    stamp: ReturnType<typeof Stamp.createInput>;
-    priority: number;
+  term: Term;
+  truth: TruthType;
+  stamp: StampType;
+  priority: number;
 }
 
 const NEUTRAL_FN = (): TruthType => Truth.NEUTRAL;
@@ -55,7 +55,7 @@ export class RuleProcessor {
                     const result = rule.apply([p1.term, p2.term]);
                     if (result) {
                         const truthFn = rule.truthFn ?? NEUTRAL_FN;
-                        const derivedStamp = Stamp.derive([p1.stamp, p2.stamp]) ?? Stamp.createInput();
+const derivedStamp = (StampFactory.derive([p1.stamp, p2.stamp]) ?? StampFactory.createInput()) as unknown as StampType;
                         const truth = truthFn(p1.truth, p2.truth) ?? Truth.NEUTRAL;
                         yield {
                             term: result as Term,
@@ -82,22 +82,22 @@ export class RuleProcessor {
         for (const rule of matchedRules) {
             if (!rule.sync) continue;
 
-            try {
-                const result = rule.apply([p1.term, p2.term]);
-                if (result) {
-                    const truthFn = rule.truthFn ?? NEUTRAL_FN;
-                    const derivedStamp = Stamp.derive([p1.stamp, p2.stamp]) ?? Stamp.createInput();
-                    const truth = truthFn(p1.truth, p2.truth) ?? Truth.NEUTRAL;
-                    this.resultBuffer.push({
-                        term: result as Term,
-                        truth,
-                        stamp: derivedStamp,
-                        priority: rule.priority
-                    });
-                }
-            } catch (error) {
-                this.handleRuleError(error, rule.id);
-            }
+  try {
+    const result = rule.apply([p1.term, p2.term]);
+    if (result) {
+      const truthFn = rule.truthFn ?? NEUTRAL_FN;
+      const derivedStamp = (StampFactory.derive([p1.stamp, p2.stamp]) ?? StampFactory.createInput()) as unknown as StampType;
+      const truth = truthFn(p1.truth, p2.truth) ?? Truth.NEUTRAL;
+      this.resultBuffer.push({
+        term: result as Term,
+        truth,
+        stamp: derivedStamp,
+        priority: rule.priority
+      });
+    }
+  } catch (error) {
+    this.handleRuleError(error, rule.id);
+  }
         }
 
         return this.resultBuffer;
@@ -109,15 +109,15 @@ export class RuleProcessor {
         const promises = this.lmRules.map(async (lmRule) => {
             try {
                 const tasks = await lmRule.apply(p1.term, p2.term);
-                return tasks.map(task => {
-                    const derivedStamp = Stamp.derive([p1.stamp, p2.stamp]) ?? Stamp.createInput();
-                    return {
-                        term: task.term,
-                        truth: task.truth ?? Truth.NEUTRAL,
-                        stamp: derivedStamp,
-                        priority: lmRule.priority
-                    } as RuleResult;
-                });
+    return tasks.map(task => {
+      const derivedStamp = (StampFactory.derive([p1.stamp, p2.stamp]) ?? StampFactory.createInput()) as unknown as StampType;
+      return {
+        term: task.term,
+        truth: task.truth ?? Truth.NEUTRAL,
+        stamp: derivedStamp,
+        priority: lmRule.priority
+      } as RuleResult;
+    });
             } catch (error) {
                 this.handleRuleError(error, lmRule.id);
                 return [];

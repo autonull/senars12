@@ -132,14 +132,14 @@ describe('NAL7 Temporal Rules', () => {
       expect(pred.toString()).toBe('(bird /> animal)');
     });
 
-    test('handles undefined input gracefully', () => {
-      const seq = sequence(undefined, undefined);
-      const par = parallel(undefined, undefined);
-      const pred = predictive(undefined, undefined);
+test('handles undefined input gracefully', () => {
+  const seq = sequence(undefined!, undefined!);
+  const par = parallel(undefined!, undefined!);
+  const pred = predictive(undefined!, undefined!);
 
-      expect(seq.toString()).toBe('TRUE');
-      expect(par.toString()).toBe('TRUE');
-      expect(pred.toString()).toBe('TRUE');
-    });
+  expect(seq.toString()).toBe('TRUE');
+  expect(par.toString()).toBe('TRUE');
+  expect(pred.toString()).toBe('TRUE');
+});
   });
 });

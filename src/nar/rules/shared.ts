@@ -45,7 +45,7 @@ export const registerRule = (
   RuleRegistry.register({
     id,
     pattern: createRulePattern(left, right),
-    apply: fn as any as RuleFn,
+    apply: fn,
     sync: true,
     priority,
     truthFn

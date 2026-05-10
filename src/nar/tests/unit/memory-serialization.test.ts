@@ -1,6 +1,7 @@
 import {describe, expect, it} from '@jest/globals';
 import {deserialize, Memory, repair, serialize, validate} from '../../memory/memory.js';
 import {TermBuilder, Truth} from '../../terms';
+import {createBudget} from '../../types';
 
 describe('Phase 5.4: Memory Serialization', () => {
     it('should serialize empty memory', () => {
@@ -63,7 +64,7 @@ describe('Phase 5.4: Memory Serialization', () => {
     it('should preserve truth values during serialization', async () => {
         const memory = new Memory();
         const term = TermBuilder.atom('withTruth');
-        memory.addTask(term, 'belief', Truth.TRUE, 0.9);
+        memory.addTask(term, 'belief', Truth.TRUE, createBudget(0.9));
 
         const data = serialize(memory);
         const concept = data.concepts[0];

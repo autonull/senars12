@@ -45,14 +45,14 @@ export class Reasoner {
         this.config = config;
     }
 
-    async step(_timeoutMs = 5000, maxResults = 100): Promise<Task[]> {
-        const results: Task[] = [];
-        const startTime = Date.now();
-        const endTime = startTime + _timeoutMs;
-        this.derivationCount = 0;
+  async step(_timeoutMs = 5000, maxResults = 100, signal?: AbortSignal): Promise<Task[]> {
+    const results: Task[] = [];
+    const startTime = Date.now();
+    const endTime = startTime + _timeoutMs;
+    this.derivationCount = 0;
 
-        for (const concept of this.memory.sample(100)) {
-            if (Date.now() > endTime || results.length >= maxResults) break;
+    for (const concept of this.memory.sample(100)) {
+      if (signal?.aborted || Date.now() > endTime || results.length >= maxResults) break;
 
             const belief = concept.beliefBag.peek();
             const task: Task = createTask(
@@ -92,12 +92,13 @@ export class Reasoner {
         return results;
     }
 
-    async* run(_timeoutMs = 5000, maxResults = 100): AsyncGenerator<Task> {
-        const _startTime = Date.now();
-        let resultCount = 0;
-        this.derivationCount = 0;
+  async* run(_timeoutMs = 5000, maxResults = 100, signal?: AbortSignal): AsyncGenerator<Task> {
+    const _startTime = Date.now();
+    let resultCount = 0;
+    this.derivationCount = 0;
 
-        for (const concept of this.memory.sample(100)) {
+    for (const concept of this.memory.sample(100)) {
+      if (signal?.aborted) break;
             if (resultCount >= maxResults) break;
 
             const belief = concept.beliefBag.peek();

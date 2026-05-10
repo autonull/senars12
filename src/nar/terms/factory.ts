@@ -1,98 +1,81 @@
-import type {AtomicTerm, CompoundTerm, Term} from './types.js';
-import {serializeTerm} from './types.js';
+import type {AtomicTerm, CompoundTerm, Term, OperatorKey} from './types.js';
+import {serializeTerm, OPERATORS, COMMUTATIVE_OPS} from './types.js';
 import {computeHash, fnv1a} from '../utils';
+import {trackTerm} from '../memory/gc.js';
 
 const termCache = new Map<number, Term>();
 
 const cache = <T extends Term>(term: T): T => {
-    termCache.set(term.hash, term);
-    return term;
+  termCache.set(term.hash, term);
+  trackTerm(term);
+  return term;
 };
 
 const createAtom = (symbol: string): AtomicTerm => {
-    const hash = fnv1a(symbol);
-    const cached = termCache.get(hash);
-    if (cached) return cached as AtomicTerm;
-    return cache(Object.freeze({
-        kind: 'atom' as const,
-        symbol,
-        hash,
-        isVariable: symbol.startsWith('$'),
-        toString() {
-            return symbol;
-        }
-    } as AtomicTerm));
-};
-
-const createCompound = (kind: CompoundTerm['kind'], args: Term[], sort?: boolean): Term => {
-    const valid = args.filter(Boolean);
-    if (valid.length === 0) return kind === 'disjunction' ? createAtom('FALSE') : createAtom('TRUE');
-    const sorted = sort ? valid.toSorted((a, b) => a.hash - b.hash) : valid;
-    const hash = computeHash(kind, sorted.map(t => t.hash));
-    const cached = termCache.get(hash);
-    if (cached) return cached;
-    return cache(Object.freeze({
-        kind,
-        args: sorted,
-        hash,
-        toString() {
-            return serializeTerm(this as CompoundTerm);
-        }
-    } as CompoundTerm));
+  const hash = fnv1a(symbol);
+  const cached = termCache.get(hash);
+  if (cached) return cached as AtomicTerm;
+  return cache(Object.freeze({
+    kind: 'atom' as const,
+    symbol,
+    hash,
+    isVariable: symbol.startsWith('$'),
+    toString() {
+      return symbol;
+    }
+  } as AtomicTerm));
 };
 
 const TRUE_ATOM = createAtom('TRUE');
 const FALSE_ATOM = createAtom('FALSE');
 
-export const TermBuilder = {
-    atom: (symbol: string): AtomicTerm => symbol === 'TRUE' ? TRUE_ATOM : symbol === 'FALSE' ? FALSE_ATOM : createAtom(symbol),
-
-    inheritance: (s: Term | undefined, p: Term | undefined): Term =>
-        s && p ? createCompound('inheritance', [s, p]) : createAtom('TRUE'),
-
-    similarity: (s: Term | undefined, p: Term | undefined): Term =>
-        s && p ? createCompound('similarity', [s, p]) : createAtom('TRUE'),
-
-    conjunction: (...terms: (Term | undefined)[]): Term => createCompound('conjunction', terms.filter((t): t is Term => t !== undefined), true),
-
-    disjunction: (...terms: (Term | undefined)[]): Term => createCompound('disjunction', terms.filter((t): t is Term => t !== undefined), true),
-
-    negation: (term: Term | undefined): Term => term ? createCompound('negation', [term]) : createAtom('TRUE'),
-
-    implication: (ant: Term | undefined, cons: Term | undefined): Term =>
-        ant && cons ? createCompound('implication', [ant, cons]) : createAtom('TRUE'),
-
-  equivalence: (a: Term | undefined, c: Term | undefined): Term =>
-    a && c ? createCompound('equivalence', [a, c]) : createAtom('TRUE'),
-
-  instance: (term: Term | undefined): Term =>
-    term ? createCompound('instance', [term]) : createAtom('TRUE'),
-
-  property: (term: Term | undefined): Term =>
-    term ? createCompound('property', [term]) : createAtom('TRUE'),
-
-  sequence: (a: Term | undefined, b: Term | undefined): Term =>
-    a && b ? createCompound('sequence', [a, b]) : createAtom('TRUE'),
-
-  parallel: (a: Term | undefined, b: Term | undefined): Term =>
-    a && b ? createCompound('parallel', [a, b]) : createAtom('TRUE'),
-
-  predictive: (a: Term | undefined, b: Term | undefined): Term =>
-    a && b ? createCompound('predictive', [a, b]) : createAtom('TRUE'),
-
-  retrospective: (a: Term | undefined, b: Term | undefined): Term =>
-    a && b ? createCompound('retrospective', [a, b]) : createAtom('TRUE'),
-
-  operation: (op: Term | undefined, input: Term | undefined): Term =>
-    op && input ? createCompound('operation', [op, input]) : createAtom('TRUE'),
-
-  compound: (kind: CompoundTerm['kind'], args: Term[]): Term => createCompound(kind, args),
-
-    evict: (hash: number): boolean => termCache.delete(hash),
-    clear: (): void => termCache.clear(),
-    get size(): number {
-        return termCache.size;
+const createCompound = (kind: OperatorKey, args: Term[]): Term => {
+  const valid = args.filter(Boolean);
+  if (valid.length === 0) return kind === 'disjunction' ? FALSE_ATOM : TRUE_ATOM;
+  const sorted = COMMUTATIVE_OPS.has(kind) ? valid.toSorted((a, b) => a.hash - b.hash) : valid;
+  const hash = computeHash(kind, sorted.map(t => t.hash));
+  const cached = termCache.get(hash);
+  if (cached) return cached;
+  return cache(Object.freeze({
+    kind,
+    args: sorted as readonly Term[],
+    hash,
+    toString() {
+      return serializeTerm(this as CompoundTerm);
     }
+  } as CompoundTerm));
+};
+
+const compoundCtors = {} as Record<OperatorKey, (...args: Term[]) => Term>;
+for (const key of Object.keys(OPERATORS) as OperatorKey[]) {
+  compoundCtors[key] = (...args: Term[]) => createCompound(key, args);
+}
+
+export const TermBuilder = {
+  atom: (symbol: string): AtomicTerm => symbol === 'TRUE' ? TRUE_ATOM : symbol === 'FALSE' ? FALSE_ATOM : createAtom(symbol),
+
+  ...compoundCtors as Record<OperatorKey, (...args: Term[]) => Term>,
+
+  inheritance: (s: Term, p: Term): Term => createCompound('inheritance', [s, p]),
+  similarity: (s: Term, p: Term): Term => createCompound('similarity', [s, p]),
+  implication: (a: Term, c: Term): Term => createCompound('implication', [a, c]),
+  equivalence: (a: Term, c: Term): Term => createCompound('equivalence', [a, c]),
+  negation: (t: Term): Term => createCompound('negation', [t]),
+  instance: (t: Term): Term => createCompound('instance', [t]),
+  property: (t: Term): Term => createCompound('property', [t]),
+  sequence: (a: Term, b: Term): Term => createCompound('sequence', [a, b]),
+  parallel: (a: Term, b: Term): Term => createCompound('parallel', [a, b]),
+  predictive: (a: Term, b: Term): Term => createCompound('predictive', [a, b]),
+  retrospective: (a: Term, b: Term): Term => createCompound('retrospective', [a, b]),
+  operation: (op: Term, input: Term): Term => createCompound('operation', [op, input]),
+
+  compound: (kind: OperatorKey, args: Term[]): Term => createCompound(kind, args),
+
+  evict: (hash: number): boolean => termCache.delete(hash),
+  clear: (): void => termCache.clear(),
+  get size(): number {
+    return termCache.size;
+  }
 };
 
 export const freeze = <T extends object>(obj: T): Readonly<T> => Object.freeze(obj);

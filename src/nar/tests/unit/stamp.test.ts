@@ -1,4 +1,5 @@
-import {MAX_DEPTH, Stamp} from '../../terms';
+import {Stamp} from '../../terms';
+import {DEPTH_MAX} from '../../types/depth.js';
 
 describe('Stamp', () => {
     describe('createInput', () => {
@@ -27,11 +28,11 @@ describe('Stamp', () => {
             expect(derived!.derivations).toContain(parent.id);
         });
 
-        test('returns undefined when parent at max depth', () => {
-            const deepParent = {...Stamp.createInput(), depth: MAX_DEPTH};
-            const derived = Stamp.derive([deepParent]);
-            expect(derived).toBeUndefined();
-        });
+test('returns undefined when parent at max depth', () => {
+  const deepParent = {...Stamp.createInput(), depth: DEPTH_MAX};
+  const derived = Stamp.derive([deepParent]);
+  expect(derived).toBeUndefined();
+});
 
         test('deduplicates derivations', () => {
             const parent1 = Stamp.createInput();
@@ -48,11 +49,11 @@ describe('Stamp', () => {
             expect(derived!.depth).toBe(1);
         });
 
-        test('depth increases from max parent', () => {
-            const deepParent = {...Stamp.createInput(), depth: 5};
-            const derived = Stamp.derive([deepParent]);
-            expect(derived!.depth).toBe(6);
-        });
+test('depth increases from max parent', () => {
+  const deepParent = {...Stamp.createInput(), depth: 5 as const};
+  const derived = Stamp.derive([deepParent]);
+  expect(derived!.depth).toBe(6);
+});
 
         test('handles empty parent array', () => {
             const derived = Stamp.derive([], 'DERIVED');
@@ -67,20 +68,20 @@ describe('Stamp', () => {
             expect(Stamp.getDepth(stamp)).toBe(0);
         });
 
-        test('getMaxDepth finds max depth', () => {
-            const stamps = [
-                Stamp.createInput(),
-                {...Stamp.createInput(), depth: 3}
-            ];
-            expect(Stamp.getMaxDepth(stamps)).toBe(3);
-        });
+test('getMaxDepth finds max depth', () => {
+  const stamps = [
+    Stamp.createInput(),
+    {...Stamp.createInput(), depth: 3 as const} as any
+  ];
+  expect(Stamp.getMaxDepth(stamps)).toBe(3);
+});
 
         test('canDerive checks depth', () => {
             const shallow = [Stamp.createInput()];
             expect(Stamp.canDerive(shallow)).toBe(true);
 
-            const deepParent = {...Stamp.createInput(), depth: MAX_DEPTH};
-            expect(Stamp.canDerive([deepParent])).toBe(false);
+const deepParent = {...Stamp.createInput(), depth: DEPTH_MAX} as any;
+expect(Stamp.canDerive([deepParent])).toBe(false);
         });
 
         test('getMaxDepth handles empty array', () => {

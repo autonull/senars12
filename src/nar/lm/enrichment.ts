@@ -2,7 +2,7 @@ import type {LMClient} from './types.js';
 import type {Memory} from '../memory/index.js';
 import type {Term} from '../terms/index.js';
 import {Truth} from '../terms/index.js';
-import {createTask, type Task, getBudgetValue} from '../types/index.js';
+import {createTask, type Task} from '../types/index.js';
 import {createBudget} from '../types/core.js';
 import {LMResponseParser} from './parser.js';
 
@@ -187,11 +187,11 @@ Answer the question based on the available knowledge. If the answer cannot be de
     }
 
     for (const hyp of hypotheses) {
-      this.memory.addTask(hyp.term, hyp.type, hyp.truth, getBudgetValue(hyp.budget));
+      this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget);
     }
 
     for (const bridge of bridges) {
-      this.memory.addTask(bridge.term, bridge.type, bridge.truth, getBudgetValue(bridge.budget));
+      this.memory.addTask(bridge.term, bridge.type, bridge.truth, bridge.budget);
     }
 
     return {
