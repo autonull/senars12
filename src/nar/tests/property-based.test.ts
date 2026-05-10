@@ -1,5 +1,7 @@
 import fc from 'fast-check';
-import {Stamp, TermBuilder, Truth} from '../terms';
+import {TermBuilder, Truth, serializeTerm, Stamp} from '../terms';
+import {normalize} from '../terms/normalize.js';
+import {Bag} from '../memory/bag.js';
 
 describe('Property-Based Tests', () => {
     describe('Term Invariants', () => {
@@ -119,6 +121,80 @@ describe('Property-Based Tests', () => {
                         expect(negated.c).toBeLessThanOrEqual(1);
                     }
                 )
+            );
+        });
+    });
+
+    describe('Normalization Invariants', () => {
+        it('normalize(normalize(t)) produces same hash as normalize(t)', () => {
+            fc.assert(
+                fc.property(fc.string(), (name) => {
+                    const term = TermBuilder.atom(name);
+                    const norm1 = normalize(term);
+                    const norm2 = normalize(norm1);
+                    expect(norm1.hash).toBe(norm2.hash);
+                })
+            );
+        });
+
+        it('normalize is idempotent for conjunctions', () => {
+            fc.assert(
+                fc.property(fc.string(), fc.string(), (a, b) => {
+                    const t1 = TermBuilder.atom(a);
+                    const t2 = TermBuilder.atom(b);
+                    const conj = TermBuilder.conjunction(t1, t2);
+                    const norm1 = normalize(conj);
+                    const norm2 = normalize(norm1);
+                    expect(norm1.hash).toBe(norm2.hash);
+                })
+            );
+        });
+
+        it('serializeTerm(parse(s)) round-trips for valid Narsese atoms', () => {
+            fc.assert(
+                fc.property(fc.string({minLength: 1, maxLength: 20}), (name) => {
+                    const parsed = TermBuilder.atom(name);
+                    const serialized = serializeTerm(parsed);
+                    expect(serialized).toBe(name);
+                })
+            );
+        });
+    });
+
+    describe('Bag Invariants', () => {
+        it('bag never exceeds capacity after N insertions', () => {
+            fc.assert(
+                fc.property(fc.integer({min: 1, max: 50}), (capacity) => {
+                    const items = new Bag(capacity);
+                    for (let v = 0; v < 100; v++) {
+                        items.add(v, v);
+                    }
+                    expect(items.getItems().length).toBeLessThanOrEqual(capacity);
+                })
+            );
+        });
+
+        it('higher priority items survive when bag is at capacity', () => {
+            const items = new Bag(3);
+            items.add('low', 0.1);
+            items.add('mid', 0.5);
+            items.add('high', 0.9);
+            items.add('incoming', 0.3);
+            const kept = items.getItems();
+            expect(kept).not.toContain('low');
+            expect(kept).toContain('high');
+        });
+    });
+
+    describe('Rule Idempotence', () => {
+        it('atom terms never mutate on normalization', () => {
+            fc.assert(
+                fc.property(fc.string(), (name) => {
+                    const atom = TermBuilder.atom(name);
+                    const before = atom.hash;
+                    normalize(atom);
+                    expect(atom.hash).toBe(before);
+                })
             );
         });
     });

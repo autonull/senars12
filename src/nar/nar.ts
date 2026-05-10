@@ -21,7 +21,7 @@ import {
     type TruthFilter
 } from './types';
 import type {Term} from './terms';
-import {termParser, Truth} from './terms';
+import {termParser, termsEqual, Truth} from './terms';
 import type {Truth as TruthType} from './terms/truth.js';
 import type {LMClient} from './lm';
 import {LMRules} from './lm';
@@ -278,13 +278,10 @@ export class NAR extends BaseComponent {
     }
 
     private contradicts(a: Term, b: Term): boolean {
-        const aStr = a.toString();
-        const bStr = b.toString();
-        return aStr === bStr || aStr === this.invert(bStr);
-    }
-
-    private invert(term: string): string {
-        return term.replace(/-->/g, '<--').replace(/<--/g, '-->');
+        if (termsEqual(a, b)) return true;
+        if (a.kind === 'negation' && a.args[0] && termsEqual(a.args[0], b)) return true;
+        if (b.kind === 'negation' && b.args[0] && termsEqual(b.args[0], a)) return true;
+        return false;
     }
 
     attentionReport(): {concepts: Array<{term: string; priority: number}>; total: number} {

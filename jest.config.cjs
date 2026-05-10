@@ -10,7 +10,7 @@ module.exports = {
         '^.+\.tsx?$': ['ts-jest', {useESM: true}]
     },
     testMatch: ['**/tests/**/*.test.ts'],
-    testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
+    testPathIgnorePatterns: ['/node_modules/'],
     collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
     transformIgnorePatterns: ['/node_modules/']
