@@ -1,24 +1,25 @@
 import type {LMClient, LMConfig} from './types.js';
-import {errMsg} from '../utils/helpers.js';
+import {errMsg, withTimeout} from '../utils/helpers.js';
 
 type CallLogEntry = {prompt: string; response: string; duration: number};
 
 export abstract class BaseLMClient implements LMClient {
-    protected callLog: CallLogEntry[] = [];
+  protected callLog: CallLogEntry[] = [];
 
-    async generateText(prompt: string, options?: LMConfig): Promise<string> {
-        const startTime = Date.now();
-        try {
-            const response = await this.executeGenerate(prompt, options);
-            this.logCall(prompt, response, Date.now() - startTime);
-            return response;
-        } catch (error) {
-            this.handleError(error, prompt, startTime);
-            throw error;
-        }
+  async generateText(prompt: string, options?: LMConfig & {timeoutMs?: number}): Promise<string> {
+    const startTime = Date.now();
+    const timeoutMs = options?.timeoutMs ?? 30000;
+    try {
+      const response = await withTimeout(this.executeGenerate(prompt, options), timeoutMs);
+      this.logCall(prompt, response, Date.now() - startTime);
+      return response;
+    } catch (error) {
+      this.handleError(error, prompt, startTime);
+      throw error;
     }
+  }
 
-    protected abstract executeGenerate(prompt: string, options?: LMConfig): Promise<string>;
+  protected abstract executeGenerate(prompt: string, options?: LMConfig): Promise<string>;
 
     protected logCall(prompt: string, response: string, duration: number): void {
         this.callLog.push({prompt, response, duration});

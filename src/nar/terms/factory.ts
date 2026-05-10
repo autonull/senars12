@@ -1,5 +1,6 @@
 import type {AtomicTerm, CompoundTerm, Term, OperatorKey} from './types.js';
-import {serializeTerm, OPERATORS, COMMUTATIVE_OPS} from './types.js';
+import {serializeTerm} from './serialize.js';
+import {OPERATORS, COMMUTATIVE_OPS} from './operators.js';
 import {computeHash, fnv1a} from '../utils';
 import {trackTerm} from '../memory/gc.js';
 

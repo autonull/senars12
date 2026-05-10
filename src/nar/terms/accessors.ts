@@ -1,5 +1,5 @@
 import type {AtomicTerm, CompoundTerm, Term, OperatorKey} from './types.js';
-import {OPERATORS} from './types.js';
+import {OPERATORS} from './operators.js';
 
 export const getSubject = (term: Term): Term | undefined =>
   term.kind === 'inheritance' || term.kind === 'similarity' ? term.args[0] : undefined;

@@ -5,7 +5,7 @@
 import type {Term} from '../terms';
 import type {Stamp, StampType} from '../terms';
 import {Stamp as StampFactory} from '../terms';
-import {RuleIndex, RuleRegistry} from './types.js';
+import {RuleIndex, RuleRegistry, type RegisteredRule} from './types.js';
 import {Truth, type Truth as TruthType} from '../terms/truth.js';
 import type {LMRule} from '../lm';
 import {EventBus} from '../types';
@@ -26,15 +26,15 @@ export interface RuleResult {
 const NEUTRAL_FN = (): TruthType => Truth.NEUTRAL;
 
 export class RuleProcessor {
-    private readonly ruleIndex: RuleIndex;
-    private readonly lmRules: LMRule[] = [];
-    private eventBus: EventBus | null = null;
-    private resultBuffer: RuleResult[] = [];
+  private readonly ruleIndex: RuleIndex;
+  private readonly lmRules: LMRule[] = [];
+  private eventBus: EventBus | null = null;
+  private resultBuffer: RuleResult[] = [];
 
-    constructor() {
-        this.ruleIndex = new RuleIndex();
-        RuleRegistry.getAll().forEach(rule => this.ruleIndex.register(rule));
-    }
+  constructor(rules?: RegisteredRule[]) {
+    this.ruleIndex = new RuleIndex();
+    (rules ?? RuleRegistry.getAll()).forEach(rule => this.ruleIndex.register(rule));
+  }
 
     setEventBus(eventBus: EventBus): void {
         this.eventBus = eventBus;

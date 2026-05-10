@@ -1,17 +1,12 @@
 // Core types
 export type {Term, AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol} from './types.js';
-export {
-OPERATORS,
-isVariableSymbol,
-isAtomic,
-isCompound,
-getTermArgs,
-getTermArg,
-atom
-} from './types.js';
+export { OPERATORS, isVariableSymbol, isAtomic, isCompound, getTermArgs, getTermArg } from './types.js';
 
 // Builder and factory
-export {TermBuilder, freeze} from './factory.js';
+import {TermBuilder} from './factory.js';
+export {TermBuilder, freeze, TermFactory} from './factory.js';
+// Convenience export for atom function
+export const atom = TermBuilder.atom;
 
 // Serialization
 export {serializeTerm, deserializeTerm} from './serialize.js';
