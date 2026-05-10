@@ -47,6 +47,7 @@ import {BaseComponent} from './lifecycle';
 import {ReasoningAboutReasoning} from './self';
 import {RLFPLearner} from './rlfp';
 import {createPipeline, MemoryPremiseSource} from './stream';
+import {BidirectionalFeedbackLoop, ProactiveEnricher, StreamingLMClient} from './lm';
 
 interface SerializedNARState {
     concepts: Array<{ term: string; priority: number }>;
@@ -65,6 +66,9 @@ export interface NARConfig extends CoreConfig {
   enableSelf?: boolean;
   enableRLFP?: boolean;
   rlfp?: RLFPConfig;
+  enableBidirectionalFeedback?: boolean;
+  enableProactiveEnrichment?: boolean;
+  enableLMStreaming?: boolean;
 }
 
 export class NAR extends BaseComponent {
@@ -76,9 +80,13 @@ export class NAR extends BaseComponent {
   readonly tools: ToolManager;
   readonly self?: ReasoningAboutReasoning;
   readonly rlfp?: RLFPLearner;
+  readonly feedbackLoop?: BidirectionalFeedbackLoop;
+  readonly enricher?: ProactiveEnricher;
+  readonly streamingClient?: StreamingLMClient;
 
   private readonly processor: RuleProcessor;
   private readonly config: NARConfig;
+  private _lmClient?: LMClient;
   private _lmInitialized: boolean = false;
   private _toolsInitialized: boolean = false;
   private _cycleCount: number = 0;
@@ -99,6 +107,7 @@ export class NAR extends BaseComponent {
     this.query = new QueryAPI(this.memory);
     this.traceAPI = new ReasoningTrace(this.memory);
     this.tools = new ToolManager();
+    this._lmClient = this.config.lmClient;
 
     if (this.config.enableLMRules && this.config.lmClient) {
       this.initializeLMRules(this.config.lmClient);
@@ -115,6 +124,18 @@ export class NAR extends BaseComponent {
     if (this.config.enableRLFP) {
       this.rlfp = new RLFPLearner({});
     }
+
+    if (this.config.lmClient) {
+      if (this.config.enableBidirectionalFeedback) {
+        this.feedbackLoop = new BidirectionalFeedbackLoop(this.memory, this.config.lmClient);
+      }
+      if (this.config.enableProactiveEnrichment) {
+        this.enricher = new ProactiveEnricher(this.memory, this.config.lmClient);
+      }
+      if (this.config.enableLMStreaming) {
+        this.streamingClient = new StreamingLMClient(this.config.lmClient);
+      }
+    }
   }
 
   override async initialize(): Promise<void> {
@@ -125,17 +146,22 @@ export class NAR extends BaseComponent {
   override async start(): Promise<void> {
     await super.start();
     this.self?.start();
+    this.enricher?.start();
     this.logger.info('NAR started');
   }
 
   override async stop(): Promise<void> {
     this.self?.stop();
+    this.enricher?.stop();
+    this.streamingClient?.cancelAllStreams();
     await super.stop();
     this.logger.info('NAR stopped');
   }
 
   override async dispose(): Promise<void> {
     this.self?.shutdown();
+    this.enricher?.stop();
+    this.streamingClient?.cancelAllStreams();
     await super.dispose();
     this.logger.info('NAR disposed');
   }
@@ -226,6 +252,91 @@ export class NAR extends BaseComponent {
     setConfig(updates: Partial<NARConfig>): void {
         Object.assign(this.config, updates);
         this.memory.setConfig(updates);
+    }
+
+    getLMClient(): LMClient | undefined {
+        return this._lmClient;
+    }
+
+    private _constitution: Task[] = [];
+
+    setConstitution(beliefs: Task[]): void {
+        this._constitution = beliefs.map(b => ({
+            ...b,
+            stamp: {...b.stamp, source: 'CONSTITUTION' as const}
+        }));
+    }
+
+    getConstitution(): Task[] {
+        return [...this._constitution];
+    }
+
+    checkConstitutionViolation(belief: Task): boolean {
+        return this._constitution.some(c => 
+            this.contradicts(belief.term, c.term)
+        );
+    }
+
+    private contradicts(a: Term, b: Term): boolean {
+        const aStr = a.toString();
+        const bStr = b.toString();
+        return aStr === bStr || aStr === this.invert(bStr);
+    }
+
+    private invert(term: string): string {
+        return term.replace(/-->/g, '<--').replace(/<--/g, '-->');
+    }
+
+    attentionReport(): {concepts: Array<{term: string; priority: number}>; total: number} {
+        const concepts = this.memory.listConcepts();
+        const sorted = concepts
+            .map(c => ({term: c.term.toString(), priority: c.priority}))
+            .sort((a, b) => b.priority - a.priority)
+            .slice(0, 20);
+        return {concepts: sorted, total: concepts.length};
+    }
+
+    loadDomain(domain: {name: string; beliefs: string[]}): void {
+        for (const belief of domain.beliefs) {
+            this.input(belief);
+        }
+    }
+
+    async askNaturalLanguage(question: string): Promise<string> {
+        const lm = this._lmClient;
+        if (!lm) {
+            return 'LM client not configured';
+        }
+
+        const translatePrompt = `Convert this natural language question to Narsese query format. 
+Only output the Narsese, nothing else.
+Question: "${question}"`;
+
+        const narsese = await lm.generateText(translatePrompt);
+        const cleaned = narsese.trim().replace(/^<|>$/g, '').trim();
+
+        await this.input(cleaned + '?');
+        await this.run(5);
+
+        const beliefs = this.getBeliefs();
+        const relevant = beliefs.filter(b => 
+            b.term.toString().toLowerCase().includes(cleaned.split('-->')[0]?.trim() || '')
+        );
+
+        if (relevant.length === 0) {
+            return "I don't have enough knowledge to answer that.";
+        }
+
+        const best = relevant[0]!;
+        const result = `${best.term.toString()} (f=${best.truth.f.toFixed(2)}, c=${best.truth.c.toFixed(2)})`;
+
+        const explainPrompt = `Convert this Narsese result to a natural language answer.
+Narsese: ${result}
+Question: "${question}"
+Only output the answer, nothing else.`;
+
+        const nlAnswer = await lm.generateText(explainPrompt);
+        return nlAnswer.trim();
     }
 
     getBeliefs(filter?: Record<string, unknown>): Task[] {
@@ -322,13 +433,75 @@ export class NAR extends BaseComponent {
         return this.export();
     }
 
-    async loadMemoryState(state: SerializedNARState): Promise<void> {
-        if (state.concepts) {
-            this.import(state);
-        }
+  async loadMemoryState(state: SerializedNARState): Promise<void> {
+    if (state.concepts) {
+      this.import(state);
     }
+  }
 
-    private validateConfig(config: NARConfig): NARConfig {
+  async processHypothesisWithFeedback(hypothesis: Task): Promise<boolean> {
+    if (!this.feedbackLoop) {
+      return false;
+    }
+    const result = await this.feedbackLoop.processHypothesis(hypothesis);
+    return result !== null;
+  }
+
+  async enrichMemoryWithLM(): Promise<void> {
+    if (!this.enricher) {
+      return;
+    }
+    await this.enricher.runEnrichmentCycle();
+  }
+
+  async streamResponse(prompt: string, onToken: (token: string) => void): Promise<string> {
+    if (!this.streamingClient || !this.config.lmClient) {
+      const lm = this.config.lmClient;
+      if (!lm) {
+        throw new Error('LM client not configured');
+      }
+      return lm.generateText(prompt);
+    }
+    return this.streamingClient.streamGenerateText(prompt, onToken);
+  }
+
+  cancelLMStream(streamId: string): boolean {
+    if (!this.streamingClient) {
+      return false;
+    }
+    return this.streamingClient.cancelStream(streamId);
+  }
+
+  getEnrichmentStats(): { cycles: number; conceptsEnriched: number; hypothesesGenerated: number } | null {
+    if (!this.enricher) {
+      return null;
+    }
+    const stats = this.enricher.getStats();
+    return {
+      cycles: stats.enrichmentCycles,
+      conceptsEnriched: stats.totalConceptsEnriched,
+      hypothesesGenerated: stats.totalHypothesesGenerated
+    };
+  }
+
+  getFeedbackStats(): { pendingValidations: number } | null {
+    if (!this.feedbackLoop) {
+      return null;
+    }
+    return {
+      pendingValidations: this.feedbackLoop.getPendingValidations().length
+    };
+  }
+
+  getLMStreamingStats(): { activeStreams: number; totalStreams: number } | null {
+    if (!this.streamingClient) {
+      return null;
+    }
+    const manager = this.streamingClient.getStreamManager();
+    return manager.getStats();
+  }
+
+  private validateConfig(config: NARConfig): NARConfig {
         if (config.maxConcepts <= 0) {
             throw new ConfigurationError('maxConcepts must be positive', {maxConcepts: config.maxConcepts});
         }

@@ -315,8 +315,12 @@ private checkRateLimit(key: string): boolean {
     private async routeRequest(req: HTTPRequest): Promise<HTTPResponse> {
         const {method, url} = req;
 
-        if (url === '/openapi') {
+        if (url === '/openapi' || url === '/openapi.json') {
             return {statusCode: 200, body: this.getOpenAPISpec()};
+        }
+
+        if (url === '/docs' || url === '/docs/') {
+            return this.getSwaggerUI();
         }
 
         const routes: Record<string, Record<string, (req: HTTPRequest) => Promise<HTTPResponse>>> = {
@@ -349,7 +353,35 @@ private checkRateLimit(key: string): boolean {
             }
         };
 
-        const route = routes[url?.split('/')[1] || ''];
+        const v1Routes: Record<string, Record<string, (req: HTTPRequest) => Promise<HTTPResponse>>> = {
+            '/v1/beliefs': {
+                GET: () => this.getBeliefs(req),
+                POST: () => this.addBelief(req)
+            },
+            '/v1/goals': {
+                GET: () => this.getGoals(req),
+                POST: () => this.addGoal(req)
+            },
+            '/v1/questions': {
+                GET: () => this.getQuestions(req),
+                POST: () => this.addQuestion(req)
+            },
+            '/v1/query': {
+                POST: () => this.query(req)
+            },
+            '/v1/ask': {
+                POST: () => this.ask(req)
+            },
+            '/v1/stats': {
+                GET: () => this.getStats()
+            },
+            '/v1/health': {
+                GET: () => this.getHealth()
+            }
+        };
+
+        const path = url || '/';
+        const route = v1Routes[path] || routes[path.split('/')[1] || ''];
         const handler = route?.[method || 'GET'];
         if (route && handler) {
             return await handler(req);
@@ -358,17 +390,32 @@ private checkRateLimit(key: string): boolean {
         return {statusCode: 404, body: {error: 'Not found'}};
     }
 
-    private async getBeliefs(): Promise<HTTPResponse> {
+    private async getBeliefs(req?: HTTPRequest): Promise<HTTPResponse> {
         if (!this.agent) {
             return {statusCode: 503, body: {error: 'Agent not initialized'}};
         }
 
         const nar = this.agent.getNAR();
         const beliefs = nar.getBeliefs();
-        return {
+        const url = req?.url ? new URL(req.url, 'http://localhost') : null;
+        const page = parseInt(url?.searchParams.get('page') || '1', 10);
+        const limit = Math.min(parseInt(url?.searchParams.get('limit') || '20', 10), 100);
+        const start = (page - 1) * limit;
+        const paginated = beliefs.slice(start, start + limit);
+        const baseUrl = url?.pathname || '/beliefs';
+
+        const response: HTTPResponse = {
             statusCode: 200,
-            body: {beliefs: beliefs.map(b => b.term.toString())}
+            body: {
+                beliefs: paginated.map(b => b.term.toString()),
+                pagination: {page, limit, total: beliefs.length, totalPages: Math.ceil(beliefs.length / limit)}
+            }
         };
+
+        if (page < Math.ceil(beliefs.length / limit)) {
+            response.headers = {'Link': `<${baseUrl}?page=${page + 1}&limit=${limit}>; rel="next"`};
+        }
+        return response;
     }
 
     private async addBelief(req: HTTPRequest): Promise<HTTPResponse> {
@@ -391,17 +438,32 @@ private checkRateLimit(key: string): boolean {
         }
     }
 
-    private async getGoals(): Promise<HTTPResponse> {
+    private async getGoals(req?: HTTPRequest): Promise<HTTPResponse> {
         if (!this.agent) {
             return {statusCode: 503, body: {error: 'Agent not initialized'}};
         }
 
         const nar = this.agent.getNAR();
         const goals = nar.getGoals();
-        return {
+        const url = req?.url ? new URL(req.url, 'http://localhost') : null;
+        const page = parseInt(url?.searchParams.get('page') || '1', 10);
+        const limit = Math.min(parseInt(url?.searchParams.get('limit') || '20', 10), 100);
+        const start = (page - 1) * limit;
+        const paginated = goals.slice(start, start + limit);
+        const baseUrl = url?.pathname || '/goals';
+
+        const response: HTTPResponse = {
             statusCode: 200,
-            body: {goals: goals.map(g => g.term.toString())}
+            body: {
+                goals: paginated.map(g => g.term.toString()),
+                pagination: {page, limit, total: goals.length, totalPages: Math.ceil(goals.length / limit)}
+            }
         };
+
+        if (page < Math.ceil(goals.length / limit)) {
+            response.headers = {'Link': `<${baseUrl}?page=${page + 1}&limit=${limit}>; rel="next"`};
+        }
+        return response;
     }
 
     private async addGoal(req: HTTPRequest): Promise<HTTPResponse> {
@@ -424,17 +486,32 @@ private checkRateLimit(key: string): boolean {
         }
     }
 
-    private async getQuestions(): Promise<HTTPResponse> {
+    private async getQuestions(req?: HTTPRequest): Promise<HTTPResponse> {
         if (!this.agent) {
             return {statusCode: 503, body: {error: 'Agent not initialized'}};
         }
 
         const nar = this.agent.getNAR();
         const questions = nar.getQuestions();
-        return {
+        const url = req?.url ? new URL(req.url, 'http://localhost') : null;
+        const page = parseInt(url?.searchParams.get('page') || '1', 10);
+        const limit = Math.min(parseInt(url?.searchParams.get('limit') || '20', 10), 100);
+        const start = (page - 1) * limit;
+        const paginated = questions.slice(start, start + limit);
+        const baseUrl = url?.pathname || '/questions';
+
+        const response: HTTPResponse = {
             statusCode: 200,
-            body: {questions: questions.map(q => q.term.toString())}
+            body: {
+                questions: paginated.map(q => q.term.toString()),
+                pagination: {page, limit, total: questions.length, totalPages: Math.ceil(questions.length / limit)}
+            }
         };
+
+        if (page < Math.ceil(questions.length / limit)) {
+            response.headers = {'Link': `<${baseUrl}?page=${page + 1}&limit=${limit}>; rel="next"`};
+        }
+        return response;
     }
 
     private async addQuestion(req: HTTPRequest): Promise<HTTPResponse> {
@@ -510,11 +587,26 @@ private checkRateLimit(key: string): boolean {
   }
 
     private async getHealth(): Promise<HTTPResponse> {
+        const nar = this.agent?.getNAR();
+        const stats = nar?.getStatistics();
+        const metrics = nar?.getMetrics();
+        const lm = nar?.getLMClient?.();
+
         return {
             statusCode: 200,
             body: {
                 status: 'healthy',
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                uptime: process.uptime(),
+                memory: {
+                    concepts: stats?.totalConcepts ?? 0,
+                    tasks: stats?.totalTasks ?? 0
+                },
+                lm: lm ? {
+                    available: true,
+                    provider: (lm as any).provider ?? 'unknown',
+                    model: (lm as any).model ?? 'unknown'
+                } : { available: false }
             }
         };
     }
@@ -523,6 +615,35 @@ private checkRateLimit(key: string): boolean {
         return {
             statusCode: 200,
             body: {message: 'SSE not implemented in this version'}
+        };
+    }
+
+    private getSwaggerUI(): HTTPResponse {
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+    <title>SeNARS API - Swagger UI</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+    <style>body { margin: 0; }</style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script>
+        window.onload = () => {
+            window.SwaggerUIBundle({
+                url: '/openapi.json',
+                dom_id: '#swagger-ui',
+                presets: [window.SwaggerUIBundle.presets.apis]
+            });
+        };
+    </script>
+</body>
+</html>`;
+        return {
+            statusCode: 200,
+            body: html,
+            headers: {'Content-Type': 'text/html'}
         };
     }
 }

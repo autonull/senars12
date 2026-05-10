@@ -103,7 +103,9 @@ class SeNARSCLI {
     private completer(line: string): [string[], string] {
         const commands = ['.help', '.run', '.stats', '.list', '.concepts', '.rules', '.tools',
             '.query', '.trace', '.explain', '.clear', '.reset', '.load', '.save',
-            '.config', '.profile', '.quit'];
+            '.config', '.profile', '.quit', '.self', '.meta', '.optimize',
+            '.prefer', '.reward', '.rlfp-stats', '.lm-status', '.lm-switch', '.ask-nl',
+            '.constitution', '.attention', '.load-domain'];
 
         const parts = line.split(/\s+/);
         const lastPart = parts[parts.length - 1] || '';
@@ -185,6 +187,18 @@ class SeNARSCLI {
             '.trace': () => this.traceTerm(args.join(' ')),
             '.explain': () => this.explainTerm(args.join(' ')),
             '.profile': () => this.handleProfile(args),
+            '.self': () => this.showSelfStatus(),
+            '.meta': () => this.showMetaAnalysis(),
+            '.optimize': () => this.runOptimization(),
+            '.prefer': () => this.handlePrefer(args),
+            '.reward': () => this.showRewardStatus(),
+            '.rlfp-stats': () => this.showRLFPStats(),
+            '.lm-status': () => this.showLMStatus(),
+            '.lm-switch': () => this.switchLMModel(args[0]),
+            '.ask-nl': () => this.askNaturalLanguage(args.join(' ')),
+            '.constitution': () => this.showConstitution(args),
+            '.attention': () => this.showAttention(),
+            '.load-domain': () => this.loadDomain(args),
             '.quit': () => {
                 console.log('Goodbye!');
                 process.exit(0);
@@ -511,14 +525,14 @@ class SeNARSCLI {
     }
 
     private showHelp(command?: string): void {
-        if (command) {
+if (command) {
             const helpText: Record<string, string> = {
                 '.help': 'Show help for a command',
                 '.run': 'Run inference steps: .run [steps]',
                 '.stats': 'Show statistics: .stats [detail]',
                 '.concepts': 'List concepts: .concepts [filter]',
                 '.rules': 'List registered rules: .rules',
-                '.tools': 'List available tools: .tools',
+                '.tools': 'List available tools: .tools [filter]',
                 '.query': 'Query memory: .query <term>',
                 '.trace': 'Show derivation: .trace <term>',
                 '.explain': 'Explain belief: .explain <term>',
@@ -528,6 +542,14 @@ class SeNARSCLI {
                 '.reset': 'Clear memory and restart',
                 '.profile': 'Start/stop profiling: .profile [start|stop]',
                 '.clear': 'Clear memory',
+                '.self': 'Show self/metacognition status',
+                '.meta': 'Show meta-analysis report',
+                '.optimize': 'Apply metacognitive and RLFP optimizations',
+                '.prefer': 'Record preference: .prefer <preferred> <rejected>',
+                '.reward': 'Show RLFP reward status',
+                '.rlfp-stats': 'Show RLFP statistics',
+                '.lm-status': 'Show LM connection status',
+                '.lm-switch': 'Switch LM model: .lm-switch <model>',
                 '.quit': 'Exit'
             };
 
@@ -536,7 +558,7 @@ class SeNARSCLI {
             return;
         }
 
-        console.log(`
+console.log(`
 ╔══════════════════════════════════════════════════╗
 ║ SeNARS CLI Commands                              ║
 ╠══════════════════════════════════════════════════╣
@@ -555,8 +577,23 @@ class SeNARSCLI {
 ║ .clear          Clear memory                     ║
 ║ .reset          Clear and restart                ║
 ║ .load <file>    Load Narsese file                ║
-║ .save <file>    Save memory to JSON              ║
+║ .save <file>    Save memory to JSON             ║
 ║ .profile [cmd]  Performance profiling            ║
+╠══════════════════════════════════════════════════╣
+║ Self/Metacognition:                              ║
+║ .self           Show self status                 ║
+║ .meta           Show meta-analysis               ║
+║ .optimize       Apply optimizations now          ║
+╠══════════════════════════════════════════════════╣
+║ RLFP:                                            ║
+║ .prefer A B      Record A > B preference        ║
+║ .reward          Show reward status              ║
+║ .rlfp-stats      Show RLFP statistics           ║
+╠══════════════════════════════════════════════════╣
+║ LM:                                              ║
+║ .lm-status       Show LM status                 ║
+║ .lm-switch <m>   Switch LM model                ║
+╠══════════════════════════════════════════════════╣
 ║ .help [cmd]     Show help                        ║
 ║ .quit           Exit                             ║
 ╚══════════════════════════════════════════════════╝
@@ -590,6 +627,216 @@ class SeNARSCLI {
             this.profileSession = null;
             console.log();
         }
+    }
+
+    private showSelfStatus(): void {
+        const self = (this.nar as any).self;
+        if (!self) {
+            console.log('Self/Metacognition is not enabled');
+            return;
+        }
+        console.log('\n╔══════════════════════════════════════════════════╗');
+        console.log('║ Self/Metacognition Status                        ║');
+        console.log('╠══════════════════════════════════════════════════╣');
+        console.log(`║ Running: ${self.isRunning ? 'Yes' : 'No'.padEnd(44)}║`);
+        const analysis = self.getSystemAnalysis?.();
+        if (analysis) {
+            console.log(`║ Cycles: ${String(analysis.cycleCount ?? 'N/A').padEnd(45)}║`);
+            console.log(`║ Strategies: ${String(analysis.strategies?.length ?? 0).padEnd(42)}║`);
+        }
+        console.log('╚══════════════════════════════════════════════════╝\n');
+    }
+
+    private showMetaAnalysis(): void {
+        const self = (this.nar as any).self;
+        if (!self) {
+            console.log('Self/Metacognition is not enabled');
+            return;
+        }
+        const analysis = self.getSystemAnalysis?.();
+        if (!analysis) {
+            console.log('No analysis available yet');
+            return;
+        }
+        console.log('\n╔══════════════════════════════════════════════════╗');
+        console.log('║ Meta-Analysis Report                             ║');
+        console.log('╠══════════════════════════════════════════════════╣');
+        console.log(`║ Cycle Count: ${String(analysis.cycleCount ?? 0).padEnd(40)}║`);
+        if (analysis.reasoningQuality) {
+            console.log(`║ Reasoning Quality: ${analysis.reasoningQuality.toFixed(2).padEnd(38)}║`);
+        }
+        if (analysis.strategies?.length) {
+            console.log('║ Strategy Performance:');
+            for (const s of analysis.strategies.slice(0, 3)) {
+                console.log(`║   - ${s.name || 'unknown'}: ${s.efficiency?.toFixed(2) ?? 'N/A'}`);
+            }
+        }
+        console.log('╚══════════════════════════════════════════════════╝\n');
+    }
+
+    private async runOptimization(): Promise<void> {
+        const self = (this.nar as any).self;
+        if (self?.applyOptimizations) {
+            self.applyOptimizations();
+            console.log('✓ Applied metacognitive optimizations');
+        } else {
+            console.log('Self optimization not available');
+        }
+        const rlfp = (this.nar as any).rlfp;
+        if (rlfp?.optimize) {
+            rlfp.optimize();
+            console.log('✓ RLFP policy optimized');
+        }
+    }
+
+    private handlePrefer(args: string[]): void {
+        if (args.length < 2) {
+            console.log('Usage: .prefer <prefered> <rejected>');
+            return;
+        }
+        const rlfp = (this.nar as any).rlfp;
+        if (!rlfp?.addPreference) {
+            console.log('RLFP not enabled');
+            return;
+        }
+        rlfp.addPreference(args[0], args[1]);
+        console.log(`✓ Preference recorded: ${args[0]} > ${args[1]}`);
+    }
+
+    private showRewardStatus(): void {
+        const rlfp = (this.nar as any).rlfp;
+        if (!rlfp) {
+            console.log('RLFP not enabled');
+            return;
+        }
+        console.log('\n╔══════════════════════════════════════════════════╗');
+        console.log('║ RLFP Reward Status                               ║');
+        console.log('╠══════════════════════════════════════════════════╣');
+        const prefs = rlfp.preferences?.length ?? 0;
+        console.log(`║ Preferences: ${String(prefs).padEnd(43)}║`);
+        console.log('╚══════════════════════════════════════════════════╝\n');
+    }
+
+    private showRLFPStats(): void {
+        const rlfp = (this.nar as any).rlfp;
+        if (!rlfp) {
+            console.log('RLFP not enabled');
+            return;
+        }
+        console.log('\n╔══════════════════════════════════════════════════╗');
+        console.log('║ RLFP Statistics                                  ║');
+        console.log('╠══════════════════════════════════════════════════╣');
+        console.log(`║ Preferences: ${String(rlfp.preferences?.length ?? 0).padEnd(43)}║`);
+        console.log(`║ Trajectories: ${String(rlfp.trajectoryCount ?? 0).padEnd(41)}║`);
+        console.log(`║ Last Optimization: ${rlfp.lastOptimizeTime ? new Date(rlfp.lastOptimizeTime).toLocaleTimeString() : 'Never'.padEnd(26)}║`);
+        console.log('╚══════════════════════════════════════════════════╝\n');
+    }
+
+    private showLMStatus(): void {
+        const lm = (this.nar as any).lmClient;
+        if (!lm) {
+            console.log('LM client not configured');
+            return;
+        }
+        console.log('\n╔══════════════════════════════════════════════════╗');
+        console.log('║ LM Status                                        ║');
+        console.log('╠══════════════════════════════════════════════════╣');
+        console.log(`║ Provider: ${String(lm.provider ?? 'unknown').padEnd(43)}║`);
+        console.log(`║ Model: ${String(lm.model ?? 'unknown').padEnd(45)}║`);
+        console.log(`║ Available: ${String(lm.available ? 'Yes' : 'No').padEnd(41)}║`);
+        console.log('╚══════════════════════════════════════════════════╝\n');
+    }
+
+    private switchLMModel(model: string | undefined): void {
+        if (!model) {
+            console.log('Usage: .lm-switch <model-name>');
+            return;
+        }
+        const lm = (this.nar as any).lmClient;
+        if (!lm) {
+            console.log('LM client not configured');
+            return;
+        }
+        if (lm.setModel) {
+            lm.setModel(model);
+            console.log(`✓ Switched to model: ${model}`);
+        } else {
+            console.log('Model switching not supported by this LM client');
+        }
+    }
+
+    private async askNaturalLanguage(question: string): Promise<void> {
+        if (!question) {
+            console.log('Usage: .ask-nl <natural language question>');
+            console.log('Example: .ask-nl Is a bird an animal?');
+            return;
+        }
+        try {
+            console.log(`Asking: "${question}"`);
+            const answer = await (this.nar as any).askNaturalLanguage(question);
+            console.log(`\n→ ${answer}`);
+        } catch (error) {
+            console.log(`Error: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    private showConstitution(args: string[]): void {
+        const nar = this.nar as any;
+        if (args[0] === 'add' && args[1]) {
+            nar.setConstitution([{term: args.slice(1).join(' '), type: 'belief' as const, truth: {f: 1, c: 1}, budget: 1, stamp: {id: '', creationTime: Date.now(), source: 'CONSTITUTION', derivations: [], depth: 0}}]);
+            console.log(`✓ Added to constitution: ${args.slice(1).join(' ')}`);
+            return;
+        }
+        const constitution = nar.getConstitution?.() || [];
+        console.log('\n╔══════════════════════════════════════════════════╗');
+        console.log('║ Constitution (Immutable Beliefs)                ║');
+        console.log('╠══════════════════════════════════════════════════╣');
+        if (constitution.length === 0) {
+            console.log('║ No constitution set.                             ║');
+        } else {
+            for (const belief of constitution.slice(0, 10)) {
+                console.log(`║ ${belief.term.toString().padEnd(48)}║`);
+            }
+        }
+        console.log('╚══════════════════════════════════════════════════╝\n');
+        console.log('Usage: .constitution add <narsese-belief>');
+    }
+
+    private showAttention(): void {
+        const report = (this.nar as any).attentionReport?.();
+        if (!report) {
+            console.log('Attention report not available');
+            return;
+        }
+        console.log('\n╔══════════════════════════════════════════════════╗');
+        console.log('║ Attention Allocation                             ║');
+        console.log('╠══════════════════════════════════════════════════╣');
+        console.log(`║ Total Concepts: ${String(report.total).padEnd(37)}║`);
+        console.log('╠══════════════════════════════════════════════════╣');
+        for (const c of report.concepts.slice(0, 10)) {
+            console.log(`║ ${c.term.substring(0, 40).padEnd(40)} ${c.priority.toFixed(3)}║`);
+        }
+        console.log('╚══════════════════════════════════════════════════╝\n');
+    }
+
+    private loadDomain(args: string[]): void {
+        const domains: Record<string, string[]> = {
+            biology: ['<cell --> unit>.', '<organelle --> cell>.', '<DNA --> molecule>.', '<protein --> molecule>.'],
+            physics: ['<force --> interaction>.', '<mass --> property>.', '<energy --> property>.', '<velocity --> rate>.'],
+            mathematics: ['<number --> quantity>.', '<set --> collection>.', '<function --> mapping>.', '<proof --> reasoning>.'],
+            programming: ['<function --> code>.', '<variable --> storage>.', '<algorithm --> procedure>.', '<compiler --> tool>.'],
+            finance: ['<money --> value>.', '<investment --> allocation>.', '<risk --> uncertainty>.', '<profit --> gain>.']
+        };
+
+        const domain = args[0]?.toLowerCase();
+        if (!domain || !domains[domain]) {
+            console.log('Usage: .load-domain <domain>');
+            console.log('Available domains: biology, physics, mathematics, programming, finance');
+            return;
+        }
+
+        (this.nar as any).loadDomain({name: domain, beliefs: domains[domain]});
+        console.log(`✓ Loaded ${domain} domain with ${domains[domain].length} beliefs`);
     }
 }
 

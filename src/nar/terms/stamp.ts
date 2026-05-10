@@ -4,7 +4,7 @@
 
 import {makeId} from '../utils';
 
-export type Source = 'INPUT' | 'DERIVED';
+export type Source = 'INPUT' | 'DERIVED' | 'CONSTITUTION' | 'LM' | 'EXTERNAL_MCP';
 
 export interface Stamp {
     readonly id: string;
