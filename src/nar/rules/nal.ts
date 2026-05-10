@@ -1,340 +1,236 @@
 import type {Term} from '../terms';
 import {getPredicate, getSubject, termsEqual, TermBuilder, Truth} from '../terms';
-import {createRulePattern, RuleRegistry, type TruthFn, type RuleFn} from './types.js';
+import {type TruthFn, type RuleFn} from './types.js';
+import {syllogize, transform, foldKind, deductionLink, inductionLink, abductionLink, buildDeduction, buildInduction, buildAbduction} from './nal-helpers.js';
+import {registerRule} from './shared.js';
 
 export interface NALRuleMetadata {
-    id: string;
-    name: string;
-    description: string;
-    nalLevel: number;
-    category: 'inference' | 'transformation' | 'comparison' | 'revision';
+  id: string;
+  name: string;
+  description: string;
+  nalLevel: number;
+  category: 'inference' | 'transformation' | 'comparison' | 'revision';
 }
 
 export const NALRules = {
-    deduction: ([aToM, mToB]: [Term, Term]): Term | undefined => {
-        if (aToM.kind !== 'inheritance' || mToB.kind !== 'inheritance') return undefined;
-        const middleA = getSubject(mToB);
-        const middleB = getPredicate(aToM);
-        if (!middleA || !middleB || !termsEqual(middleA, middleB)) return undefined;
-        const s = getSubject(aToM);
-        const p = getPredicate(mToB);
-        return s && p ? TermBuilder.inheritance(s, p) : undefined;
+  deduction: syllogize({
+    leftKind: 'inheritance',
+    rightKind: 'inheritance',
+    link: deductionLink,
+    build: buildDeduction
+  }),
+
+  induction: syllogize({
+    leftKind: 'inheritance',
+    rightKind: 'inheritance',
+    link: inductionLink,
+    build: buildInduction
+  }),
+
+  abduction: syllogize({
+    leftKind: 'inheritance',
+    rightKind: 'inheritance',
+    link: abductionLink,
+    build: buildAbduction
+  }),
+
+  similarity: syllogize({
+    leftKind: 'inheritance',
+    rightKind: 'inheritance',
+    link: (l, r) => {
+      const s1 = getSubject(l), p1 = getPredicate(l);
+      const s2 = getSubject(r), p2 = getPredicate(r);
+      if (!s1 || !p1 || !s2 || !p2) return false;
+      return (termsEqual(s1, s2) && termsEqual(p1, p2)) || (termsEqual(s1, p2) && termsEqual(p1, s2));
     },
-    deductionMeta: {
-        id: 'nal.deduction',
-        name: 'Deduction',
-        description: 'S M --> P, M P --> S |- S P --> P (Syllogism)',
-        nalLevel: 1,
-        category: 'inference'
-    } as NALRuleMetadata,
+    build: (l, r) => {
+      const s1 = getSubject(l), p1 = getPredicate(l);
+      return s1 && p1 ? TermBuilder.similarity(s1, p1) : undefined;
+    }
+  }),
 
-    induction: ([sToM, mToB]: [Term, Term]): Term | undefined => {
-        if (sToM.kind !== 'inheritance' || mToB.kind !== 'inheritance') return undefined;
-        const middleS = getPredicate(sToM);
-        const middleM = getSubject(mToB);
-        if (!middleS || !middleM || !termsEqual(middleS, middleM)) return undefined;
-        const s = getSubject(sToM);
-        const p = getPredicate(mToB);
-        return s && p ? TermBuilder.inheritance(s, p) : undefined;
+  contrapositive: ([imp, inh]: [Term, Term]): Term | undefined => {
+    if (imp.kind !== 'implication' || inh.kind !== 'inheritance') return undefined;
+    const [ante, cons] = imp.args;
+    const sub = getSubject(inh);
+    if (!ante || !cons || !sub || !termsEqual(ante, sub)) return undefined;
+    const consequent = inh.args[1];
+    return consequent ? TermBuilder.implication(consequent, cons) : undefined;
+  },
+
+  intersection: ([c1, c2]: [Term, Term]): Term | undefined => {
+    if (c1.kind !== 'conjunction' || c2.kind !== 'conjunction') return undefined;
+    const shared = c1.args.filter(a1 => c2.args.some(a2 => termsEqual(a1, a2)));
+    return shared.length > 0 ? TermBuilder.conjunction(...shared) : undefined;
+  },
+
+  union: ([d1, d2]: [Term, Term]): Term | undefined => {
+    if (d1.kind !== 'disjunction' || d2.kind !== 'disjunction') return undefined;
+    const unique = [...d1.args, ...d2.args].filter((a, i, arr) =>
+      arr.findIndex(b => termsEqual(a, b)) === i
+    );
+    return TermBuilder.disjunction(...unique);
+  },
+
+  conjunctionIntro: ([i1, i2]: [Term, Term]): Term | undefined => {
+    if (i1.kind !== 'inheritance' || i2.kind !== 'inheritance') return undefined;
+    const s1 = getSubject(i1), p1 = getPredicate(i1);
+    const s2 = getSubject(i2), p2 = getPredicate(i2);
+    if (!s1 || !p1 || !s2 || !p2 || !termsEqual(s1, s2)) return undefined;
+    return TermBuilder.conjunction(p1, p2);
+  },
+
+  disjunctionIntro: ([a1, a2]: [Term, Term]): Term | undefined =>
+    a1.kind === 'atom' && a2.kind === 'atom'
+      ? TermBuilder.disjunction(a1, a2)
+      : undefined,
+
+  implicationIntro: ([inh, neg]: [Term, Term]): Term | undefined => {
+    if (inh.kind !== 'inheritance' || neg.kind !== 'negation') return undefined;
+    const sub = getSubject(inh), pred = getPredicate(inh);
+    return sub && pred ? TermBuilder.implication(sub, pred) : undefined;
+  },
+
+  implicationElim: ([imp, atm]: [Term, Term]): Term | undefined => {
+    if (imp.kind !== 'implication' || atm.kind !== 'atom') return undefined;
+    const [ante, cons] = imp.args;
+    return ante && termsEqual(ante, atm) ? cons : undefined;
+  },
+
+  equivalenceIntro: ([imp1, imp2]: [Term, Term]): Term | undefined => {
+    if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
+    const [a1, c1] = imp1.args;
+    const [a2, c2] = imp2.args;
+    if (!a1 || !c1 || !a2 || !c2) return undefined;
+    const forward = termsEqual(a1, a2) && termsEqual(c1, c2);
+    const back = termsEqual(a1, c2) && termsEqual(c1, a2);
+    return forward || back ? TermBuilder.equivalence(a1, c1) : undefined;
+  },
+
+  equivalenceElim: ([eq, atm]: [Term, Term]): Term | undefined => {
+    if (eq.kind !== 'equivalence' || atm.kind !== 'atom') return undefined;
+    const [a, c] = eq.args;
+    if (!a || !c) return undefined;
+    return termsEqual(a, atm) || termsEqual(c, atm) ? c : undefined;
+  },
+
+  negationIntro: ([imp1, imp2]: [Term, Term]): Term | undefined => {
+    if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
+    const [a1, c1] = imp1.args;
+    const [a2, c2] = imp2.args;
+    if (!a1 || !c1 || !a2 || !c2) return undefined;
+    const isContradiction =
+      termsEqual(a1, a2) &&
+      c1.kind === 'atom' &&
+      c2.kind === 'atom' &&
+      c1.symbol === 'TRUE' &&
+      c2.symbol === 'FALSE';
+    return isContradiction ? TermBuilder.negation(a1) : undefined;
+  },
+
+  negationElim: ([n1, n2]: [Term, Term]): Term | undefined => {
+    if (n1.kind !== 'negation' || n2.kind !== 'negation') return undefined;
+    const [a1] = n1.args;
+    const [a2] = n2.args;
+    if (!a1 || !a2 || !termsEqual(a1, a2)) return undefined;
+    return TermBuilder.atom('FALSE');
+  },
+
+  destruct: ([conj, atm]: [Term, Term]): Term | undefined =>
+    conj.kind === 'conjunction' && atm.kind === 'atom'
+      ? conj.args.find(a => termsEqual(a, atm))
+      : undefined,
+
+  compose: syllogize({
+    leftKind: 'inheritance',
+    rightKind: 'inheritance',
+    link: (l, r) => {
+      const p1 = getPredicate(l), s2 = getSubject(r);
+      return !!(p1 && s2 && termsEqual(p1, s2));
     },
-    inductionMeta: {
-        id: 'nal.induction',
-        name: 'Induction',
-        description: 'S M --> P, S M --> S |- S M --> P (Generalization)',
-        nalLevel: 1,
-        category: 'inference'
-    } as NALRuleMetadata,
+    build: (l, r) => {
+      const s = getSubject(l), p = getPredicate(r);
+      return s && p ? TermBuilder.inheritance(s, p) : undefined;
+    }
+  }),
 
-    abduction: ([aToM, sToB]: [Term, Term]): Term | undefined => {
-        if (aToM.kind !== 'inheritance' || sToB.kind !== 'inheritance') return undefined;
-        const middleA = getSubject(aToM);
-        const middleS = getSubject(sToB);
-        if (!middleA || !middleS || !termsEqual(middleA, middleS)) return undefined;
-        const p = getPredicate(aToM);
-        const s = getSubject(sToB);
-        return p && s ? TermBuilder.inheritance(s, p) : undefined;
-    },
-    abductionMeta: {
-        id: 'nal.abduction',
-        name: 'Abduction',
-        description: 'P M --> S, P M --> P |- S P --> P (Hypothesis)',
-        nalLevel: 1,
-        category: 'inference'
-    } as NALRuleMetadata,
+  decompose: ([c1, c2]: [Term, Term]): Term | undefined => {
+    if (c1.kind !== 'conjunction' || c2.kind !== 'conjunction') return undefined;
+    const shared = c1.args.filter(a1 => c2.args.some((a2: any) => termsEqual(a1, a2)));
+    return shared[0];
+  },
 
-    similarity: ([aToB, bToA]: [Term, Term]): Term | undefined => {
-        if (aToB.kind !== 'inheritance' || bToA.kind !== 'inheritance') return undefined;
-        const s1 = getSubject(aToB), p1 = getPredicate(aToB);
-        const s2 = getSubject(bToA), p2 = getPredicate(bToA);
-        if (!s1 || !p1 || !s2 || !p2) return undefined;
-        const sim = (termsEqual(s1, s2) && termsEqual(p1, p2)) || (termsEqual(s1, p2) && termsEqual(p1, s2));
-        return sim ? TermBuilder.similarity(s1, p1) : undefined;
-    },
-    similarityMeta: {
-        id: 'nal.similarity',
-        name: 'Similarity',
-        description: 'S --> P, P --> S |- S <-> P (Symmetric inheritance)',
-        nalLevel: 1,
-        category: 'comparison'
-    } as NALRuleMetadata,
+  revision: ([i1, i2]: [Term, Term]): Term | undefined => {
+    if (i1.kind !== 'inheritance' || i2.kind !== 'inheritance') return undefined;
+    const s1 = getSubject(i1), p1 = getPredicate(i1);
+    const s2 = getSubject(i2), p2 = getPredicate(i2);
+    if (!s1 || !p1 || !s2 || !p2) return undefined;
+    return termsEqual(s1, s2) && termsEqual(p1, p2) ? i1 : undefined;
+  },
 
-    contrapositive: ([imp, inh]: [Term, Term]): Term | undefined => {
-        if (imp.kind !== 'implication' || inh.kind !== 'inheritance') return undefined;
-        const [ante, cons] = imp.args;
-        const sub = getSubject(inh);
-        if (!ante || !cons || !sub || !termsEqual(ante, sub)) return undefined;
-        const consequent = inh.args[1];
-        return consequent ? TermBuilder.implication(consequent, cons) : undefined;
-    },
-    contrapositiveMeta: {
-        id: 'nal.contrapositive',
-        name: 'Contraposition',
-        description: 'S => P, S --> M |- ~P --> ~M (Contrapositive inference)',
-        nalLevel: 2,
-        category: 'transformation'
-    } as NALRuleMetadata,
+  analogy: ([inh, sim]: [Term, Term]): Term | undefined => {
+    if (inh.kind !== 'inheritance' || sim.kind !== 'similarity') return undefined;
+    const s1 = getSubject(inh), p1 = getPredicate(inh);
+    const s2 = getSubject(sim), p2 = getPredicate(sim);
+    if (!s1 || !p1 || !s2 || !p2) return undefined;
+    if (!termsEqual(p1, s2)) return undefined;
+    return TermBuilder.inheritance(s1, p2);
+  },
 
-    intersection: ([c1, c2]: [Term, Term]): Term | undefined => {
-        if (c1.kind !== 'conjunction' || c2.kind !== 'conjunction') return undefined;
-        const shared = c1.args.filter(a1 => c2.args.some(a2 => termsEqual(a1, a2)));
-        return shared.length > 0 ? TermBuilder.conjunction(...shared) : undefined;
-    },
+  comparison: ([inh1, inh2]: [Term, Term]): Term | undefined => {
+    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
+    const s1 = getSubject(inh1), p1 = getPredicate(inh1);
+    const s2 = getSubject(inh2), p2 = getPredicate(inh2);
+    if (!s1 || !p1 || !s2 || !p2) return undefined;
+    if (!termsEqual(s1, s2)) return undefined;
+    return TermBuilder.similarity(p1, p2);
+  },
 
-    union: ([d1, d2]: [Term, Term]): Term | undefined => {
-        if (d1.kind !== 'disjunction' || d2.kind !== 'disjunction') return undefined;
-        const unique = [...d1.args, ...d2.args].filter((a, i, arr) =>
-            arr.findIndex(b => termsEqual(a, b)) === i
-        );
-        return TermBuilder.disjunction(...unique);
-    },
+  instantiation: ([inh, sim]: [Term, Term]): Term | undefined => {
+    if (inh.kind !== 'inheritance' || sim.kind !== 'similarity') return undefined;
+    const s1 = getSubject(inh), p1 = getPredicate(inh);
+    const s2 = getSubject(sim), p2 = getPredicate(sim);
+    if (!s1 || !p1 || !s2 || !p2) return undefined;
+    if (!termsEqual(p1, p2)) return undefined;
+    return TermBuilder.inheritance(s1, s2);
+  },
 
-    conjunctionIntro: ([i1, i2]: [Term, Term]): Term | undefined => {
-        if (i1.kind !== 'inheritance' || i2.kind !== 'inheritance') return undefined;
-        const s1 = getSubject(i1), p1 = getPredicate(i1);
-        const s2 = getSubject(i2), p2 = getPredicate(i2);
-        if (!s1 || !p1 || !s2 || !p2 || !termsEqual(s1, s2)) return undefined;
-        return TermBuilder.conjunction(p1, p2);
-    },
+  exemplification: ([inh1, inh2]: [Term, Term]): Term | undefined => {
+    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
+    const s1 = getSubject(inh1), p1 = getPredicate(inh1);
+    const s2 = getSubject(inh2), p2 = getPredicate(inh2);
+    if (!s1 || !p1 || !s2 || !p2) return undefined;
+    if (!termsEqual(p1, s2)) return undefined;
+    return TermBuilder.inheritance(s1, p2);
+  },
 
-    disjunctionIntro: ([a1, a2]: [Term, Term]): Term | undefined =>
-        a1.kind === 'atom' && a2.kind === 'atom'
-            ? TermBuilder.disjunction(a1, a2)
-            : undefined,
+  higherOrderDeduction: ([imp1, imp2]: [Term, Term]): Term | undefined => {
+    if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
+    const [a1, c1] = imp1.args;
+    const [a2, c2] = imp2.args;
+    if (!a1 || !c1 || !a2 || !c2) return undefined;
+    if (!termsEqual(c1, a2)) return undefined;
+    return TermBuilder.implication(a1, c2);
+  },
 
-    implicationIntro: ([inh, neg]: [Term, Term]): Term | undefined => {
-        if (inh.kind !== 'inheritance' || neg.kind !== 'negation') return undefined;
-        const sub = getSubject(inh), pred = getPredicate(inh);
-        return sub && pred ? TermBuilder.implication(sub, pred) : undefined;
-    },
+  higherOrderAbduction: ([imp1, imp2]: [Term, Term]): Term | undefined => {
+    if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
+    const [a1, c1] = imp1.args;
+    const [a2, c2] = imp2.args;
+    if (!a1 || !c1 || !a2 || !c2) return undefined;
+    if (!termsEqual(c1, c2)) return undefined;
+    return TermBuilder.implication(a1, a2);
+  },
 
-    implicationElim: ([imp, atm]: [Term, Term]): Term | undefined => {
-        if (imp.kind !== 'implication' || atm.kind !== 'atom') return undefined;
-        const [ante, cons] = imp.args;
-        return ante && termsEqual(ante, atm) ? cons : undefined;
-    },
-
-    equivalenceIntro: ([imp1, imp2]: [Term, Term]): Term | undefined => {
-        if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
-        const [a1, c1] = imp1.args;
-        const [a2, c2] = imp2.args;
-        if (!a1 || !c1 || !a2 || !c2) return undefined;
-        const forward = termsEqual(a1, a2) && termsEqual(c1, c2);
-        const back = termsEqual(a1, c2) && termsEqual(c1, a2);
-        return forward || back ? TermBuilder.equivalence(a1, c1) : undefined;
-    },
-
-    equivalenceElim: ([eq, atm]: [Term, Term]): Term | undefined => {
-        if (eq.kind !== 'equivalence' || atm.kind !== 'atom') return undefined;
-        const [a, c] = eq.args;
-        if (!a || !c) return undefined;
-        return termsEqual(a, atm) || termsEqual(c, atm) ? c : undefined;
-    },
-
-    negationIntro: ([imp1, imp2]: [Term, Term]): Term | undefined => {
-        if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
-        const [a1, c1] = imp1.args;
-        const [a2, c2] = imp2.args;
-        if (!a1 || !c1 || !a2 || !c2) return undefined;
-        const isContradiction =
-            termsEqual(a1, a2) &&
-            c1.kind === 'atom' &&
-            c2.kind === 'atom' &&
-            c1.symbol === 'TRUE' &&
-            c2.symbol === 'FALSE';
-        return isContradiction ? TermBuilder.negation(a1) : undefined;
-    },
-
-    negationElim: ([n1, n2]: [Term, Term]): Term | undefined => {
-        if (n1.kind !== 'negation' || n2.kind !== 'negation') return undefined;
-        const [a1] = n1.args;
-        const [a2] = n2.args;
-        if (!a1 || !a2 || !termsEqual(a1, a2)) return undefined;
-        return TermBuilder.atom('FALSE');
-    },
-
-    destruct: ([conj, atm]: [Term, Term]): Term | undefined =>
-        conj.kind === 'conjunction' && atm.kind === 'atom'
-            ? conj.args.find(a => termsEqual(a, atm))
-            : undefined,
-
-    compose: ([i1, i2]: [Term, Term]): Term | undefined => {
-        if (i1.kind !== 'inheritance' || i2.kind !== 'inheritance') return undefined;
-        const p1 = getPredicate(i1), s2 = getSubject(i2);
-        if (!p1 || !s2 || !termsEqual(p1, s2)) return undefined;
-        const s = getSubject(i1), p = getPredicate(i2);
-        return s && p ? TermBuilder.inheritance(s, p) : undefined;
-    },
-
-    decompose: ([c1, c2]: [Term, Term]): Term | undefined => {
-        if (c1.kind !== 'conjunction' || c2.kind !== 'conjunction') return undefined;
-        const shared = c1.args.filter(a1 => c2.args.some(a2 => termsEqual(a1, a2)));
-        return shared[0];
-    },
-
-    revision: ([i1, i2]: [Term, Term]): Term | undefined => {
-        if (i1.kind !== 'inheritance' || i2.kind !== 'inheritance') return undefined;
-        const s1 = getSubject(i1), p1 = getPredicate(i1);
-        const s2 = getSubject(i2), p2 = getPredicate(i2);
-        if (!s1 || !p1 || !s2 || !p2) return undefined;
-        return termsEqual(s1, s2) && termsEqual(p1, p2) ? i1 : undefined;
-    },
-    revisionMeta: {
-        id: 'nal.revision',
-        name: 'Revision',
-        description: 'S --> P, S --> P |- S --> P (Truth revision)',
-        nalLevel: 1,
-        category: 'revision'
-    } as NALRuleMetadata,
-
-    analogy: ([inh, sim]: [Term, Term]): Term | undefined => {
-        if (inh.kind !== 'inheritance' || sim.kind !== 'similarity') return undefined;
-        const s1 = getSubject(inh), p1 = getPredicate(inh);
-        const s2 = getSubject(sim), p2 = getPredicate(sim);
-        if (!s1 || !p1 || !s2 || !p2) return undefined;
-        if (!termsEqual(p1, s2)) return undefined;
-        return TermBuilder.inheritance(s1, p2);
-    },
-    analogyMeta: {
-        id: 'nal.analogy',
-        name: 'Analogy',
-        description: 'S --> M, M <-> P |- S --> P (Analogical reasoning)',
-        nalLevel: 3,
-        category: 'inference'
-    } as NALRuleMetadata,
-
-    comparison: ([inh1, inh2]: [Term, Term]): Term | undefined => {
-        if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
-        const s1 = getSubject(inh1), p1 = getPredicate(inh1);
-        const s2 = getSubject(inh2), p2 = getPredicate(inh2);
-        if (!s1 || !p1 || !s2 || !p2) return undefined;
-        if (!termsEqual(s1, s2)) return undefined;
-        return TermBuilder.similarity(p1, p2);
-    },
-    comparisonMeta: {
-        id: 'nal.comparison',
-        name: 'Comparison',
-        description: 'S --> P1, S --> P2 |- P1 <-> P2 (Compare predicates)',
-        nalLevel: 2,
-        category: 'comparison'
-    } as NALRuleMetadata,
-
-    instantiation: ([inh, sim]: [Term, Term]): Term | undefined => {
-        if (inh.kind !== 'inheritance' || sim.kind !== 'similarity') return undefined;
-        const s1 = getSubject(inh), p1 = getPredicate(inh);
-        const s2 = getSubject(sim), p2 = getPredicate(sim);
-        if (!s1 || !p1 || !s2 || !p2) return undefined;
-        if (!termsEqual(p1, p2)) return undefined;
-        return TermBuilder.inheritance(s1, s2);
-    },
-    instantiationMeta: {
-        id: 'nal.instantiation',
-        name: 'Instantiation',
-        description: 'S --> P, P <-> M |- S --> M (Specialization)',
-        nalLevel: 2,
-        category: 'inference'
-    } as NALRuleMetadata,
-
-    exemplification: ([inh1, inh2]: [Term, Term]): Term | undefined => {
-        if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
-        const s1 = getSubject(inh1), p1 = getPredicate(inh1);
-        const s2 = getSubject(inh2), p2 = getPredicate(inh2);
-        if (!s1 || !p1 || !s2 || !p2) return undefined;
-        if (!termsEqual(p1, s2)) return undefined;
-        return TermBuilder.inheritance(s1, p2);
-    },
-    exemplificationMeta: {
-        id: 'nal.exemplification',
-        name: 'Exemplification',
-        description: 'M1 --> P, S --> M1 |- S --> P (Exemplification)',
-        nalLevel: 2,
-        category: 'inference'
-    } as NALRuleMetadata,
-
-    higherOrderDeduction: ([imp1, imp2]: [Term, Term]): Term | undefined => {
-        if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
-        const [a1, c1] = imp1.args;
-        const [a2, c2] = imp2.args;
-        if (!a1 || !c1 || !a2 || !c2) return undefined;
-        if (!termsEqual(c1, a2)) return undefined;
-        return TermBuilder.implication(a1, c2);
-    },
-    higherOrderDeductionMeta: {
-        id: 'nal.higherOrderDeduction',
-        name: 'Higher-Order Deduction',
-        description: 'A => B, B => C |- A => C (Chain deduction)',
-        nalLevel: 4,
-        category: 'inference'
-    } as NALRuleMetadata,
-
-    higherOrderAbduction: ([imp1, imp2]: [Term, Term]): Term | undefined => {
-        if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
-        const [a1, c1] = imp1.args;
-        const [a2, c2] = imp2.args;
-        if (!a1 || !c1 || !a2 || !c2) return undefined;
-        if (!termsEqual(c1, c2)) return undefined;
-        return TermBuilder.implication(a1, a2);
-    },
-    higherOrderAbductionMeta: {
-        id: 'nal.higherOrderAbduction',
-        name: 'Higher-Order Abduction',
-        description: 'A => C, B => C |- A => B (Common consequence)',
-        nalLevel: 4,
-        category: 'inference'
-    } as NALRuleMetadata,
-
-    higherOrderInduction: ([imp1, imp2]: [Term, Term]): Term | undefined => {
-        if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
-        const [a1, c1] = imp1.args;
-        const [a2, c2] = imp2.args;
-        if (!a1 || !c1 || !a2 || !c2) return undefined;
-        if (!termsEqual(a1, a2)) return undefined;
-        return TermBuilder.implication(c1, c2);
-    },
-    higherOrderInductionMeta: {
-        id: 'nal.higherOrderInduction',
-        name: 'Higher-Order Induction',
-        description: 'A => C, A => D |- C => D (Common antecedent)',
-        nalLevel: 4,
-        category: 'inference'
-    } as NALRuleMetadata
+  higherOrderInduction: ([imp1, imp2]: [Term, Term]): Term | undefined => {
+    if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
+    const [a1, c1] = imp1.args;
+    const [a2, c2] = imp2.args;
+    if (!a1 || !c1 || !a2 || !c2) return undefined;
+    if (!termsEqual(a1, a2)) return undefined;
+    return TermBuilder.implication(c1, c2);
+  }
 };
-
-const registerRule = (
-    id: string,
-    left: string,
-    right: string,
-    fn: RuleFn,
-    truthFn: TruthFn,
-    priority: number
-) =>
-    RuleRegistry.register({
-        id,
-        pattern: createRulePattern(left, right),
-        apply: fn as any as RuleFn,
-        sync: true,
-        priority,
-        truthFn
-    });
 
 registerRule('nal.deduction', 'inheritance', 'inheritance', NALRules.deduction, Truth.deduction, 1.0);
 registerRule('nal.induction', 'inheritance', 'inheritance', NALRules.induction, Truth.induction, 0.9);
@@ -355,7 +251,6 @@ registerRule('nal.destruct', 'conjunction', 'atom', NALRules.destruct, Truth.ded
 registerRule('nal.compose', 'inheritance', 'inheritance', NALRules.compose, Truth.deduction, 0.7);
 registerRule('nal.decompose', 'conjunction', 'conjunction', NALRules.decompose, Truth.deduction, 0.8);
 registerRule('nal.revision', 'inheritance', 'inheritance', NALRules.revision, Truth.revision, 0.6);
-
 registerRule('nal.analogy', 'inheritance', 'similarity', NALRules.analogy, Truth.analogy, 0.75);
 registerRule('nal.comparison', 'inheritance', 'inheritance', NALRules.comparison, Truth.sameness, 0.8);
 registerRule('nal.instantiation', 'inheritance', 'similarity', NALRules.instantiation, Truth.deduction, 0.85);
