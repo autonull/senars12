@@ -512,26 +512,10 @@ Only output the answer, nothing else.`;
     }
 
     private initializeLMRules(lmClient: LMClient): void {
-        const lmRules = [
-            LMRules.createNarseseTranslationRule(lmClient),
-            LMRules.createBeliefRevisionRule(lmClient),
-            LMRules.createGoalDecompositionRule(lmClient),
-            LMRules.createHypothesisGenerationRule(lmClient),
-            LMRules.createExplanationGenerationRule(lmClient),
-            LMRules.createAnalogicalReasoningRule(lmClient),
-            LMRules.createMetaReasoningGuidanceRule(lmClient),
-            LMRules.createUncertaintyCalibrationRule(lmClient),
-            LMRules.createSchemaInductionRule(lmClient),
-            LMRules.createTemporalCausalModelingRule(lmClient),
-            LMRules.createVariableGroundingRule(lmClient),
-            LMRules.createConceptElaborationRule(lmClient),
-            LMRules.createInteractiveClarificationRule(lmClient)
-        ];
-
+        const lmRules = LMRules.createAll(lmClient);
         for (const rule of lmRules) {
             this.processor.registerLMRule(rule);
         }
-
         this._lmInitialized = true;
     }
 

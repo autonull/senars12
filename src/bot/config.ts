@@ -2,20 +2,12 @@ export interface BotConfig {
     profile: 'minimal' | 'standard' | 'full';
     nick: string;
     embodiments: {
-        irc?: { enabled: boolean; channel?: string; port?: number; tls?: boolean };
-        cli?: { enabled: boolean };
-        demo?: { enabled: boolean };
+        irc?: {enabled: boolean; channel?: string; port?: number; tls?: boolean};
+        cli?: {enabled: boolean};
+        demo?: {enabled: boolean};
     };
-    lm?: {
-        provider: string;
-        modelName: string;
-        temperature: number;
-        maxTokens: number;
-    };
-    loop?: {
-        budget: number;
-        sleepMs: number;
-    };
+    lm?: {provider: string; modelName: string; temperature: number; maxTokens: number};
+    loop?: {budget: number; sleepMs: number};
     capabilities?: {
         contextBudgets: boolean;
         semanticMemory: boolean;
@@ -26,73 +18,38 @@ export interface BotConfig {
     debug?: boolean;
 }
 
-export const PROFILES = {
+export const PROFILES: Record<'minimal' | 'standard' | 'full', BotConfig> = {
     minimal: {
-        profile: 'minimal' as const,
+        profile: 'minimal',
         nick: 'SeNARchy',
         embodiments: {irc: {enabled: true, port: 6670, channel: '#test'}, cli: {enabled: true}, demo: {enabled: false}},
-        lm: {
-            provider: 'transformers',
-            modelName: 'HuggingFaceTB/SmolLM2-360M-Instruct',
-            temperature: 0.7,
-            maxTokens: 128
-        },
+        lm: {provider: 'transformers', modelName: 'HuggingFaceTB/SmolLM2-360M-Instruct', temperature: 0.7, maxTokens: 128},
         loop: {budget: 10, sleepMs: 1000},
         capabilities: {
-            contextBudgets: false,
-            semanticMemory: false,
-            auditLog: false,
-            persistentHistory: false,
-            goalPursuit: false
-        }
+            contextBudgets: false, semanticMemory: false, auditLog: false, persistentHistory: false, goalPursuit: false
+        },
     },
     standard: {
-        profile: 'standard' as const,
+        profile: 'standard',
         nick: 'SeNARchy',
-        embodiments: {
-            irc: {enabled: true, channel: '#senars', port: 6667},
-            cli: {enabled: true},
-            demo: {enabled: false}
-        },
-        lm: {
-            provider: 'transformers',
-            modelName: 'HuggingFaceTB/SmolLM2-360M-Instruct',
-            temperature: 0.7,
-            maxTokens: 256
-        },
+        embodiments: {irc: {enabled: true, channel: '#senars', port: 6667}, cli: {enabled: true}, demo: {enabled: false}},
+        lm: {provider: 'transformers', modelName: 'HuggingFaceTB/SmolLM2-360M-Instruct', temperature: 0.7, maxTokens: 256},
         loop: {budget: 50, sleepMs: 500},
         capabilities: {
-            contextBudgets: true,
-            semanticMemory: true,
-            auditLog: false,
-            persistentHistory: true,
-            goalPursuit: false
-        }
+            contextBudgets: true, semanticMemory: true, auditLog: false, persistentHistory: true, goalPursuit: false
+        },
     },
     full: {
-        profile: 'full' as const,
+        profile: 'full',
         nick: 'SeNARchy',
-        embodiments: {
-            irc: {enabled: true, channel: '#senars', port: 6667},
-            cli: {enabled: true},
-            demo: {enabled: true}
-        },
-        lm: {
-            provider: 'transformers',
-            modelName: 'HuggingFaceTB/SmolLM2-360M-Instruct',
-            temperature: 0.7,
-            maxTokens: 512
-        },
+        embodiments: {irc: {enabled: true, channel: '#senars', port: 6667}, cli: {enabled: true}, demo: {enabled: true}},
+        lm: {provider: 'transformers', modelName: 'HuggingFaceTB/SmolLM2-360M-Instruct', temperature: 0.7, maxTokens: 512},
         loop: {budget: 100, sleepMs: 200},
         capabilities: {
-            contextBudgets: true,
-            semanticMemory: true,
-            auditLog: true,
-            persistentHistory: true,
-            goalPursuit: true
-        }
-    }
-} as const satisfies Record<string, BotConfig>;
+            contextBudgets: true, semanticMemory: true, auditLog: true, persistentHistory: true, goalPursuit: true
+        },
+    },
+};
 
 export function loadConfig(configPath?: string): BotConfig {
     if (!configPath) return PROFILES.minimal;

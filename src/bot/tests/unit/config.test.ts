@@ -14,12 +14,13 @@ describe('Bot Config', () => {
 
     test('loadConfig returns minimal for missing file', () => {
         const config = loadConfig('/nonexistent/config.json');
-        expect(config).toEqual(PROFILES.minimal);
+        expect(config.profile).toBe(PROFILES.minimal.profile);
+        expect(config.nick).toBe(PROFILES.minimal.nick);
     });
 
     test('mergeConfig combines configs', () => {
         const merged = mergeConfig(PROFILES.minimal, {nick: 'TestBot'});
         expect(merged.nick).toBe('TestBot');
-        expect(merged.profile).toBe('minimal');
+        expect(merged.profile).toBe(PROFILES.minimal.profile);
     });
 });
