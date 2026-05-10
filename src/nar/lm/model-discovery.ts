@@ -1,5 +1,6 @@
 import type {LMClient} from './types.js';
 import type {ModelCapability, ModelRegistry, ModelRegistryEntry} from './model-registry.js';
+import {errMsg} from '../utils/helpers.js';
 
 export interface ModelBenchmarkResult {
     modelId: string;
@@ -174,15 +175,15 @@ export class ModelBenchmark {
                 tokens,
                 score: Math.max(0, score)
             };
-        } catch (error) {
-            return {
-                taskId: task.id,
-                success: false,
-                duration: Date.now() - startTime,
-                tokens: 0,
-                score: 0,
-                error: error instanceof Error ? error.message : String(error)
-            };
+} catch (error) {
+return {
+taskId: task.id,
+success: false,
+duration: Date.now() - startTime,
+tokens: 0,
+score: 0,
+error: errMsg(error)
+};
         }
     }
 
@@ -209,15 +210,15 @@ export class ModelBenchmark {
                     tokens,
                     score
                 });
-            } catch (error) {
-                results.push({
-                    taskId: task.id,
-                    success: false,
-                    duration: 0,
-                    tokens: 0,
-                    score: 0,
-                    error: error instanceof Error ? error.message : String(error)
-                });
+} catch (error) {
+results.push({
+taskId: task.id,
+success: false,
+duration: 0,
+tokens: 0,
+score: 0,
+error: errMsg(error)
+});
             }
         }
 

@@ -1,5 +1,6 @@
 import type {CompoundTerm, Term} from './types.js';
 import {computeHash} from './types.js';
+import {TermBuilder} from './factory.js';
 
 const hasArgs = (term: Term): term is CompoundTerm =>
     ['conjunction', 'disjunction', 'inheritance', 'similarity', 'negation', 'implication', 'equivalence'].includes(term.kind);
@@ -49,6 +50,28 @@ export const getTermDepth = (term: Term): number => {
 };
 
 export const getTermSize = (term: Term): number => {
-    if (term.kind === 'atom') return 1;
-    return 1 + term.args.reduce((sum, arg) => sum + getTermSize(arg), 0);
+if (term.kind === 'atom') return 1;
+return 1 + term.args.reduce((sum, arg) => sum + getTermSize(arg), 0);
+};
+
+export const improveNormalization = (term: Term): Term => {
+if (term.kind === 'atom') {
+return term;
+}
+
+if (term.kind === 'conjunction' || term.kind === 'disjunction') {
+const sortedArgs = [...term.args].sort((a, b) => {
+const hashA = a.kind === 'atom' ? a.symbol : String(a.kind);
+const hashB = b.kind === 'atom' ? b.symbol : String(b.kind);
+return hashA.localeCompare(hashB);
+});
+
+let result = TermBuilder.compound(term.kind, sortedArgs);
+for (let i = 0; i < sortedArgs.length - 1; i++) {
+result = TermBuilder.compound(term.kind, [result, sortedArgs[i + 1]!]);
+}
+return result;
+}
+
+return term;
 };

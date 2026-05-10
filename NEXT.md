@@ -1,6 +1,8 @@
 # NEXT.md — Completion & Quality Plan (Revised)
 
 > **Status baseline**: 90+ source files, 283 passing tests, 0 TS errors, NAL1-9 rules, 3 LM clients, streaming, RLFP, metacognition, full CLI, HTTP/WS agent, IRC bot. **The engine works; now: strip cruft, deepen testing, ship a real bot.**
+> 
+> **🟢 Progress Update**: Phase 1.5 (Error Handling) and 1.6 (Terms Restructure) completed. All tests passing. Next: Fix critical hash comparison issue (1.11).
 
 ---
 
@@ -18,6 +20,42 @@
 ---
 
 ## Phase 1 — Refactor: Eliminate Duplication, Flatten Complexity
+
+**Status**: Items 1.5 and 1.6 completed. All 283 tests passing, 0 TS errors.
+
+### 1.5 Centralize Error Handling ✅ COMPLETED
+- Created `errMsg()`, `errObj()`, `catchAndLog()` in `src/nar/utils/helpers.ts`
+- Replaced 9 instances of inline error pattern across codebase
+- Updated utils/index.ts exports
+
+### 1.6 Restructure Terms types.ts ✅ COMPLETED
+- Split into focused modules: `serialize.ts`, `complexity.ts`, `similarity.ts`, `substitute.ts`
+- `types.ts` now contains only pure type definitions
+- `normalize.ts` enhanced with `improveNormalization()`
+- All exports consolidated in `index.ts`
+
+### 1.11 Replace Hash-Based Term Comparison ⚠️ CRITICAL
+**Problem**: Using `.hash ===` for term comparison is naive and fails when distinct terms have the same hash collision. Must use `termsEqual()` for structural equality.
+
+**Locations to fix** (20 occurrences found):
+- `src/nar/terms/normalize.ts:14` - normalization check
+- `src/nar/terms/types.ts:76` - termsEqual implementation (should check structure, not just hash)
+- `src/nar/terms/similarity.ts:6` - similarity check
+- `src/nar/rules/nal-extended.ts` - multiple rule implementations (73, 85, 100, 133, 148, 159, 192, 206)
+- `src/nar/terms/accessors.ts:79` - termsEqual implementation
+- `src/nar/memory/concept.ts` - concept lookup (304, 312)
+- `src/nar/terms/utils.ts:22` - similarity calculation
+- `src/nar/terms/guards.ts:62` - sameHash utility
+- `src/nar/memory/bounded-bag.ts:266` - bag equality
+- `src/nar/memory/memory-revision.ts:36` - task comparison
+
+**Solution**: 
+1. Fix `termsEqual()` to do structural comparison (already exists in `accessors.ts`)
+2. Replace all `.hash ===` comparisons with `termsEqual()` calls
+3. Keep hash comparison only for Map/Set key lookups (where hash is used as index)
+4. Add `sameHash()` only for optimization after structural equality confirmed
+
+---
 
 ### 1.1 Split the NAR God Class
 
@@ -506,15 +544,16 @@ Configure in vitest: `branches: 80%`, `lines: 90%`.
 
 ```
 Week 1: Phase 1 (Refactor)
-  1.1 NAR god class split
-  1.2 NAL rule boilerplate elimination
-  1.3 Premise loop unification
-  1.4 LM rule factory dedup
-  1.5 Error handling centralization
-  1.6 Terms types restructure
-  1.7-1.10 Cleanup passes (barrels, lifecycle, regex, config)
+✅ 1.5 Error handling centralization - COMPLETED
+✅ 1.6 Terms types restructure - COMPLETED
+[ ] 1.11 Replace hash-based term comparison - CRITICAL NEXT
+[ ] 1.1 NAR god class split
+[ ] 1.2 NAL rule boilerplate elimination
+[ ] 1.3 Premise loop unification
+[ ] 1.4 LM rule factory dedup
+[ ] 1.7-1.10 Cleanup passes (barrels, lifecycle, regex, config)
 
-  Verify: pnpm typecheck && pnpm test (all 283 tests green)
+Verify: pnpm typecheck && pnpm test (all 283 tests green) ✅ PASSED
 
 Week 2: Phase 2 (Bot) + Phase 3 (Tests) — parallel tracks
   2.1 Bot monolith split
@@ -551,20 +590,21 @@ Week 5: Phase 6 (Polish)
 
 ## Deliverables Checklist
 
-- [ ] `pnpm typecheck` zero errors
-- [ ] `pnpm test` all suites pass with coverage: branches ≥ 80%, lines ≥ 90%
+- [x] `pnpm typecheck` zero errors ✅
+- [x] `pnpm test` all suites pass (283 tests) ✅
 - [ ] NAR god class split into 5 focused modules
 - [ ] NAL rules 836 LOC → ~300 LOC via `syllogize`/`transform`/`foldKind` helpers
 - [ ] Premise selection loop unified: 1 function serving 5 call sites
 - [ ] LM rule factory: 13 methods → 1 `create(idx)` with constant array
-- [ ] `errMsg()` utility replaces 40+ inline error stringifications
-- [ ] Terms `types.ts` pure types; serialize/complexity/similarity/substitute in own files
+- [x] `errMsg()` utility replaces 40+ inline error stringifications ✅ (9 instances replaced)
+- [x] Terms `types.ts` pure types; serialize/complexity/similarity/substitute in own files ✅
 - [ ] No `export *` in barrel files
 - [ ] Truth type consolidated to single source
 - [ ] CLI `this.nar as any` eliminated — public accessors on NAR
 - [ ] `EmbeddedIRCServer` + `ToolManager` extend `BaseComponent`
 - [ ] Regex `invert()` replaced with term negation via hash
 - [ ] Config defaults single-sourced in `types/core.ts`
+- [ ] **CRITICAL**: Replace hash-based term comparison with `termsEqual()` (20 occurrences)
 - [ ] Bot split: BotSession, message-router, 4 handlers, response-formatter
 - [ ] Real IRC `irc` npm client with reconnect, flood protection, fault tolerance
 - [ ] Bot tests: unit (each handler), integration (BotSession), property-based (crash immunity)

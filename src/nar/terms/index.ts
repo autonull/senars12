@@ -1,18 +1,27 @@
 // Core types
 export type {Term, AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol} from './types.js';
 export {
-    OPERATORS,
-    isVariableSymbol,
-    isAtomic,
-    isCompound,
-    getTermArgs,
-    getTermArg,
-    atom,
-    serializeTerm
+OPERATORS,
+isVariableSymbol,
+isAtomic,
+isCompound,
+getTermArgs,
+getTermArg,
+atom
 } from './types.js';
 
 // Builder and factory
 export {TermBuilder, freeze} from './factory.js';
+
+// Serialization
+export {serializeTerm, deserializeTerm} from './serialize.js';
+
+// Complexity and similarity
+export {getTermComplexity} from './complexity.js';
+export {getTermSimilarity} from './similarity.js';
+
+// Variable substitution
+export {substituteVariables} from './substitute.js';
 
 // Truth and stamp systems
 export {Truth, isTruthEqual} from './truth.js';

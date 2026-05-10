@@ -1,5 +1,6 @@
 import type {LMClient} from './types.js';
 import {EventEmitter} from 'events';
+import {errMsg} from '../utils/helpers.js';
 
 export interface StreamConfig {
   enableStreaming: boolean;
@@ -55,13 +56,12 @@ export class LMStreamManager extends EventEmitter {
 
       this.emit('complete', { id, data: response });
       return response;
-    } catch (error) {
-      if (abortController.signal.aborted) {
-        return '';
-      }
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.emit('error', { id, error: errorMessage });
-      throw error;
+} catch (error) {
+if (abortController.signal.aborted) {
+return '';
+}
+this.emit('error', { id, error: errMsg(error) });
+throw error;
     } finally {
       this.activeStreams.delete(String(id));
     }

@@ -6,6 +6,7 @@ import type {LMClient, LMExecutionStats, LMRuleConfig, LMRuleStats} from './type
 import {CircuitBreaker} from '../utils';
 import type {Truth as TruthType} from '../terms/truth.js';
 import {LMResponseParser} from './parser.js';
+import {errMsg} from '../utils/helpers.js';
 
 export class LMRule {
     readonly id: string;
@@ -89,15 +90,15 @@ export class LMRule {
             const tasks = this.generateTasks(processed, primary, secondary, context);
             this.recordExecution(true, Date.now() - startTime, prompt.length + response.length);
             return tasks;
-        } catch (error) {
-            this.emitEvent('lm.failure', {
-                ruleId: this.id,
-                error: error instanceof Error ? error.message : String(error),
-                duration: Date.now() - startTime,
-                timestamp: Date.now()
-            });
-            this.recordExecution(false, Date.now() - startTime);
-            return [];
+} catch (error) {
+this.emitEvent('lm.failure', {
+ruleId: this.id,
+error: errMsg(error),
+duration: Date.now() - startTime,
+timestamp: Date.now()
+});
+this.recordExecution(false, Date.now() - startTime);
+return [];
         }
     }
 

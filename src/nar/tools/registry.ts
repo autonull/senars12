@@ -1,15 +1,16 @@
 import type {
-    Schema,
-    Tool,
-    ToolCapabilities,
-    ToolChainResult,
-    ToolChainStep,
-    ToolContext,
-    ToolFilter,
-    ToolRegistry,
-    ToolResult
+Schema,
+Tool,
+ToolCapabilities,
+ToolChainResult,
+ToolChainStep,
+ToolContext,
+ToolFilter,
+ToolRegistry,
+ToolResult
 } from './types';
 import {ToolError} from '../types';
+import {errMsg} from '../utils/helpers.js';
 
 export class Registry implements ToolRegistry {
     private tools: Map<string, Tool> = new Map();
@@ -43,13 +44,12 @@ export class Registry implements ToolRegistry {
             this.validateArgs(tool.parameters, args);
             const result = await tool.execute(args, context);
             return this.validateResult(result, tool);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            return {
-                success: false,
-                content: null,
-                error: message
-            };
+} catch (error) {
+return {
+success: false,
+content: null,
+error: errMsg(error)
+};
         }
     }
 

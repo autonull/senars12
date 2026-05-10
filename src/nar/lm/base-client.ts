@@ -1,4 +1,5 @@
 import type {LMClient, LMConfig} from './types.js';
+import {errMsg} from '../utils/helpers.js';
 
 type CallLogEntry = {prompt: string; response: string; duration: number};
 
@@ -23,15 +24,15 @@ export abstract class BaseLMClient implements LMClient {
         this.callLog.push({prompt, response, duration});
     }
 
-    protected handleError(error: unknown, prompt: string, startTime: number): never {
-        const duration = Date.now() - startTime;
-        this.callLog.push({
-            prompt,
-            response: `ERROR: ${error instanceof Error ? error.message : String(error)}`,
-            duration,
-        });
-        throw error;
-    }
+protected handleError(error: unknown, prompt: string, startTime: number): never {
+const duration = Date.now() - startTime;
+this.callLog.push({
+prompt,
+response: `ERROR: ${errMsg(error)}`,
+duration,
+});
+throw error;
+}
 
     getCallLog(): CallLogEntry[] {
         return [...this.callLog];
