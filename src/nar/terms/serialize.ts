@@ -1,5 +1,5 @@
 import type {Term} from './types.js';
-import {OPERATORS} from './types.js';
+import {OPERATORS} from './operators.js';
 import {termParser} from './parser.js';
 
 const serialize = (term: Term): string => {
@@ -7,12 +7,12 @@ switch (term.kind) {
 case 'atom':
 return term.symbol;
 case 'inheritance':
-case 'similarity': {
-const [sub, pred] = term.args;
-if (!sub || !pred) return '';
-const op = OPERATORS[term.kind];
-return `(${serialize(sub)} ${op} ${serialize(pred)})`;
-}
+  case 'similarity': {
+    const [sub, pred] = term.args;
+    if (!sub || !pred) return '';
+    const op = OPERATORS[term.kind].symbol;
+    return `(${serialize(sub)} ${op} ${serialize(pred)})`;
+  }
 case 'conjunction':
 return term.args.length === 0
 ? 'TRUE'
@@ -25,12 +25,12 @@ if (!arg) return '';
 return `(--${serialize(arg)})`;
 }
 case 'implication':
-case 'equivalence': {
-const [a, c] = term.args;
-if (!a || !c) return '';
-const op = OPERATORS[term.kind];
-return `(${serialize(a)} ${op} ${serialize(c)})`;
-}
+  case 'equivalence': {
+    const [a, c] = term.args;
+    if (!a || !c) return '';
+    const op = OPERATORS[term.kind].symbol;
+    return `(${serialize(a)} ${op} ${serialize(c)})`;
+  }
 case 'instance': {
 const arg = term.args[0];
 if (!arg) return '';

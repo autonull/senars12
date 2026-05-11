@@ -1,4 +1,4 @@
-import {atom, serializeTerm} from '../terms/types.js';
+import {atom, serializeTerm} from '../terms/index.js';
 import {TermBuilder, Truth} from '../terms';
 
 describe('Term', () => {

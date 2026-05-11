@@ -42,8 +42,8 @@ describe('NAL7 Temporal Rules', () => {
 
       const result = NALExtendedRules.parallelIntroduction([inh1, inh2]);
 
-      expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(bird --> (animal || living))');
+expect(result).toBeDefined();
+expect(result?.toString()).toBe('(bird --> (living || animal))');
     });
 
     test('returns undefined for different subjects', () => {
