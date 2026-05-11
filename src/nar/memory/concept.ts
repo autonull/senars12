@@ -15,6 +15,9 @@ export interface TaskData {
   readonly truth?: Truth;
   readonly budget: Budget;
   readonly timestamp?: number;
+  readonly stamp?: import('../terms/stamp.js').Stamp;
+  readonly occurrenceTime?: number;
+  readonly derived?: boolean;
 }
 
 export type ConceptTaskType = 'belief' | 'goal' | 'question' | 'command';

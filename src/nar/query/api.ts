@@ -1,6 +1,7 @@
 import type {Term} from '../terms';
 import type {Task, TaskType, TermFilter} from '../types';
 import type {Concept} from '../memory';
+import type {TaskData} from '../memory/concept.js';
 
 export interface QueryResult {
     beliefs: Task[];
@@ -17,9 +18,9 @@ export interface Answer {
 }
 
 export class QueryAPI {
-    private readonly memory: any;
+    private readonly memory: { getConcept: (term: Term) => Concept | undefined; findSimilarConcepts: (term: Term, limit?: number) => Concept[]; listConcepts: () => Concept[] };
 
-    constructor(memory: any) {
+    constructor(memory: { getConcept: (term: Term) => Concept | undefined; findSimilarConcepts: (term: Term, limit?: number) => Concept[]; listConcepts: () => Concept[] }) {
         this.memory = memory;
     }
 
@@ -36,7 +37,7 @@ export class QueryAPI {
     }
 
     query(term: Term, filter?: Omit<TermFilter, 'pattern'>): QueryResult {
-        const concepts = this.memory.getRelatedConcepts(term);
+        const concepts = this.memory.findSimilarConcepts(term);
         const beliefs: Task[] = [];
         const questions: Task[] = [];
 
@@ -80,7 +81,7 @@ export class QueryAPI {
             type: 'belief',
             truth: belief.truth,
             budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-            stamp: (belief as any).stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
+            stamp: (belief as TaskData).stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
             occurrenceTime: 0,
             derived: false
           };
@@ -96,8 +97,8 @@ export class QueryAPI {
       }
     }
 
-    const relatedConcepts = this.memory.getRelatedConcepts(questionTerm);
-    for (const related of relatedConcepts.slice(0, 5)) {
+    const relatedConcepts = this.memory.findSimilarConcepts(questionTerm, 5);
+    for (const related of relatedConcepts) {
       const belief = related.beliefBag.peek();
       if (belief?.truth) {
         const confidence = belief.truth.f * belief.truth.c;
@@ -107,7 +108,7 @@ export class QueryAPI {
             type: 'belief',
             truth: belief.truth,
             budget: {priority: related.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-            stamp: (belief as any).stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
+            stamp: (belief as TaskData).stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
             occurrenceTime: 0,
             derived: false
           };
@@ -167,9 +168,9 @@ if (bag) {
       type,
       truth: item.truth,
       budget: typeof item.budget === 'number' ? {priority: item.budget, durability: 0.8, quality: 0.9, cycles: 0, depth: 0} : item.budget,
-      stamp: (item as any).stamp,
-      occurrenceTime: (item as any).occurrenceTime || Date.now(),
-      derived: (item as any).derived || false
+      stamp: item.stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
+      occurrenceTime: item.occurrenceTime || Date.now(),
+      derived: item.derived || false
     } as Task);
   }
         }

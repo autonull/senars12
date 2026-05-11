@@ -25,7 +25,7 @@ interface SystemMetrics extends BaseStats {
 }
 
 // Internal: rule-level statistics shape
-interface _RuleStats {
+export interface RuleStats {
   id: string;
   executions: number;
   successes: number;
@@ -80,7 +80,7 @@ function aggregateStats(
 
 export class MetricsCollector {
   private readonly startTime: number = Date.now();
-  private ruleStats: Map<string, _RuleStats> = new Map();
+  private ruleStats: Map<string, RuleStats> = new Map();
   private memoryStats: MemoryStats | null = null;
   private lmStats: LMStats | null = null;
   private throughputStats: ThroughputStats | null = null;
@@ -112,7 +112,7 @@ export class MetricsCollector {
         failures: success ? 0 : 1,
         averageDuration: duration,
         lastExecution: Date.now()
-      } satisfies _RuleStats);
+      } satisfies RuleStats);
     }
   }
 
@@ -171,7 +171,7 @@ export class MetricsCollector {
         this.systemMetrics.warnings++;
     }
 
-  getRuleStats(ruleId?: string): _RuleStats | _RuleStats[] | null {
+  getRuleStats(ruleId?: string): RuleStats | RuleStats[] | null {
     if (ruleId) {
       return this.ruleStats.get(ruleId) || null;
     }
@@ -198,14 +198,14 @@ export class MetricsCollector {
     }
 
   getSummary(): {
-    rules: _RuleStats[];
+    rules: RuleStats[];
     memory: MemoryStats | null;
     lm: LMStats | null;
     throughput: ThroughputStats | null;
     system: SystemMetrics;
   } {
     return {
-      rules: this.getRuleStats() as _RuleStats[],
+      rules: this.getRuleStats() as RuleStats[],
       memory: this.getMemoryStats(),
       lm: this.getLMStats(),
       throughput: this.getThroughputStats(),

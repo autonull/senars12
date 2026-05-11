@@ -1,8 +1,10 @@
 import type {NAR} from '../nar.js';
-import {MetacognitiveMonitor} from './MetacognitiveMonitor.js';
+import {MetacognitiveMonitor, type ReasoningStep} from './MetacognitiveMonitor.js';
 import type {MetricsCollector} from '../metrics';
 import type {Term} from '../terms';
+import type {Concept} from '../memory';
 import {isCompound} from '../terms';
+import type {RuleStats} from '../metrics/index.js';
 
 export interface SelfAnalyzerConfig {
   selfCorrectionEnabled?: boolean;
@@ -56,6 +58,17 @@ export interface Optimizations {
   performanceImprovements: Array<{ type: string; impact: 'high' | 'medium' | 'low'; action: string; reason: string }>;
 }
 
+export interface MonitorState {
+  reasoningSteps: number;
+  performance: string;
+  lastUpdate: number;
+  monitorsActive: number;
+  reasoningTrace?: ReasoningStep[];
+  throughput?: number;
+}
+
+export type { ReasoningStep };
+
 export interface MetaCognitiveResult {
   success: boolean;
   patterns?: PatternAnalysis;
@@ -63,7 +76,30 @@ export interface MetaCognitiveResult {
   tasksProcessed?: number;
   timestamp?: number;
   error?: string;
-  monitorState?: any;
+  monitorState?: MonitorState;
+}
+
+export interface IdentifiedIssues {
+  contradictions: Array<{type: string; severity: string; description: string}>;
+  inefficiencies: Array<{type: string; severity: string; description: string; startTerm?: string; endTerm?: string; length?: number; success?: boolean; duration?: number}>;
+  resourceIssues: Array<{type: string; severity: string; value?: number; threshold?: number; description: string}>;
+  performanceIssues: Array<{type: string; severity: string; description: string; value?: number; threshold?: number}>;
+}
+
+export interface AppliedCorrection {
+  type: string;
+  issue: string;
+}
+
+export interface PendingCorrection {
+  type: string;
+  issue: string;
+  reason: string;
+}
+
+export interface CorrectionResult {
+  appliedCorrections: AppliedCorrection[];
+  pendingCorrections: PendingCorrection[];
 }
 
 const emptyPatternAnalysis = (): PatternAnalysis => ({
@@ -151,7 +187,12 @@ export class SelfAnalyzer {
     }
   }
 
-  async getSystemAnalysis(): Promise<any> {
+  async getSystemAnalysis(): Promise<{
+    metaCognition: MonitorState;
+    performance: { ruleExecution: number; memoryUsage: number; throughput: 'increasing' | 'decreasing' | 'stable' };
+    resourceUsage: { conceptCount: number; avgPriority: number; memoryUsage: NodeJS.MemoryUsage };
+    patterns: PatternAnalysis;
+  }> {
     return {
       metaCognition: this.monitor.getMonitorState(),
       performance: this.getPerformanceAnalysis(),
@@ -185,7 +226,7 @@ export class SelfAnalyzer {
     };
   }
 
-  private analyzeTermPatterns(concepts: any[]): TermPattern[] {
+  private analyzeTermPatterns(concepts: Concept[]): TermPattern[] {
     const termFreq = new Map<string, { count: number; priorities: number[]; coOccurrences: Map<string, number> }>();
 
     for (const concept of concepts) {
@@ -219,8 +260,8 @@ export class SelfAnalyzer {
     return patterns.sort((a, b) => b.frequency - a.frequency).slice(0, 20);
   }
 
-  private getNeighboringTerms(concept: any): any[] {
-    const neighbors: any[] = [];
+  private getNeighboringTerms(concept: Concept): Term[] {
+    const neighbors: Term[] = [];
     const term = concept.term as Term;
 
     if (isCompound(term)) {
@@ -235,17 +276,22 @@ export class SelfAnalyzer {
 
   private detectInefficientChains(): InferenceChain[] {
     const inefficient: InferenceChain[] = [];
-    const monitorState = this.monitor.getMonitorState() as any;
+    const monitorState = this.monitor.getMonitorState();
 
     if (monitorState?.reasoningTrace) {
       for (const entry of monitorState.reasoningTrace.slice(-100)) {
-        if (entry.duration > 1000) {
+        const duration = entry.stepData.duration;
+        const startTerm = entry.stepData.startTerm;
+        const endTerm = entry.stepData.endTerm;
+        const success = entry.stepData.success;
+
+        if (duration !== undefined && duration > 1000) {
           inefficient.push({
-            startTerm: entry.startTerm || 'unknown',
-            endTerm: entry.endTerm || 'unknown',
+            startTerm: startTerm || 'unknown',
+            endTerm: endTerm || 'unknown',
             length: 1,
-            success: entry.success ?? false,
-            duration: entry.duration
+            success: success ?? false,
+            duration
           });
         }
       }
@@ -257,15 +303,15 @@ export class SelfAnalyzer {
   private identifySuccessfulStrategies(): string[] {
     if (!this.metrics) return [];
 
-    const ruleStats = this.metrics.getRuleStats() as any[];
-    if (!ruleStats) return [];
+    const ruleStats = this.metrics.getRuleStats();
+    if (!ruleStats || !Array.isArray(ruleStats)) return [];
 
     const successful = ruleStats.filter(s => s.successes > 0 && s.executions > 0);
     successful.sort((a, b) => (b.successes / b.executions) - (a.successes / a.executions));
     return successful.slice(0, 5).map(s => s.id);
   }
 
-  private analyzePerformancePatterns(_metricsSummary: any): any {
+  private analyzePerformancePatterns(_metricsSummary: {throughput?: {averageStepDuration?: number | null} | null, system?: {errors?: number, totalDerivations?: number} | null} | null | undefined): { avgRuleExecutionTime: number; avgMemoryUsage: number; throughputTrend: 'increasing' | 'decreasing' | 'stable' } {
     return {
       avgRuleExecutionTime: this.calculateAverageRuleExecutionTime(),
       avgMemoryUsage: this.calculateAverageMemoryUsage(),
@@ -273,7 +319,7 @@ export class SelfAnalyzer {
     };
   }
 
-  private analyzeResourceUsage(concepts: any[], _stats: any): any {
+  private analyzeResourceUsage(concepts: Concept[], _stats: {totalTasks?: number} | null): { conceptCount: number; memoryUsage: NodeJS.MemoryUsage; avgConceptPriority: number; highPriorityConcepts: number; lowPriorityConcepts: number } {
     return {
       conceptCount: concepts.length,
       memoryUsage: process.memoryUsage?.() ?? {} as NodeJS.MemoryUsage,
@@ -283,7 +329,7 @@ export class SelfAnalyzer {
     };
   }
 
-  private analyzeTaskPatterns(): any {
+  private analyzeTaskPatterns(): { avgProcessingTime: number; queueDepth: number; dropRate: number } {
     if (!this.nar || !this.metrics) {
       return { avgProcessingTime: 0, queueDepth: 0, dropRate: 0 };
     }
@@ -355,8 +401,8 @@ export class SelfAnalyzer {
   }
 
   private async performMemoryCleanup(): Promise<void> {
-    if (this.nar?.memory && 'consolidate' in this.nar.memory) {
-      (this.nar.memory as any).consolidate?.();
+    if (this.nar?.memory) {
+      this.nar.memory.consolidate();
     }
   }
 
@@ -381,8 +427,8 @@ export class SelfAnalyzer {
     }
 
     if (memoryUsage > 100000000 || conceptCount > config.maxConcepts! * 0.9) {
-      if (this.nar.memory && 'consolidate' in this.nar.memory) {
-        (this.nar.memory as any).consolidate?.();
+      if (this.nar.memory) {
+        this.nar.memory.consolidate();
       }
     }
 
@@ -399,17 +445,17 @@ export class SelfAnalyzer {
 
     for (const concept of this.nar.listConcepts()) {
       if (concept.priority < 0.1 && concept.totalTasks === 0) {
-        (concept as any).priority = Math.min(concept.priority + 0.05, 0.15);
+        concept.priority = Math.min(concept.priority + 0.05, 0.15);
       }
     }
   }
 
-  private async identifyIssues(): Promise<any> {
-    const issues = {
-      contradictions: [] as any[],
-      inefficiencies: [] as any[],
-      resourceIssues: [] as any[],
-      performanceIssues: [] as any[]
+  private async identifyIssues(): Promise<IdentifiedIssues> {
+    const issues: IdentifiedIssues = {
+      contradictions: [],
+      inefficiencies: [],
+      resourceIssues: [],
+      performanceIssues: []
     };
 
     if (!this.nar) return issues;
@@ -442,11 +488,16 @@ export class SelfAnalyzer {
       issues.inefficiencies.push(...inefficientChains.map(chain => ({
         type: 'slow_inference_chain',
         severity: 'medium',
-        ...chain
+        description: `Inference chain from ${chain.startTerm} to ${chain.endTerm} took ${chain.duration}ms`,
+        startTerm: chain.startTerm,
+        endTerm: chain.endTerm,
+        length: chain.length,
+        success: chain.success,
+        duration: chain.duration
       })));
     }
 
-    const monitorState = this.monitor.getMonitorState() as any;
+    const monitorState = this.monitor.getMonitorState();
     if (monitorState.performance === 'declining') {
       issues.performanceIssues.push({
         type: 'declining_performance',
@@ -466,12 +517,12 @@ export class SelfAnalyzer {
       });
     }
 
-    return issues;
+return issues;
   }
 
-  private async applyCorrections(issues: any): Promise<any> {
-    const appliedCorrections: any[] = [];
-    const pendingCorrections: any[] = [];
+  private async applyCorrections(issues: IdentifiedIssues): Promise<CorrectionResult> {
+    const appliedCorrections: AppliedCorrection[] = [];
+    const pendingCorrections: PendingCorrection[] = [];
 
     if (!this.nar) return {appliedCorrections, pendingCorrections};
 
@@ -483,8 +534,8 @@ export class SelfAnalyzer {
           break;
 
         case 'high_concept_count':
-          if (this.nar.memory && 'consolidate' in this.nar.memory) {
-            (this.nar.memory as any).consolidate?.();
+          if (this.nar.memory) {
+            this.nar.memory.consolidate();
             appliedCorrections.push({type: 'memory_consolidation', issue: issue.type});
           } else {
             pendingCorrections.push({
@@ -538,8 +589,8 @@ export class SelfAnalyzer {
 
   private calculateAverageRuleExecutionTime(): number {
     if (!this.metrics) return 0;
-    const ruleStats = this.metrics.getRuleStats() as any[];
-    if (!ruleStats || ruleStats.length === 0) return 0;
+    const ruleStats = this.metrics.getRuleStats();
+    if (!ruleStats || !Array.isArray(ruleStats) || ruleStats.length === 0) return 0;
     return ruleStats.reduce((sum, s) => sum + s.averageDuration, 0) / ruleStats.length;
   }
 
@@ -563,7 +614,7 @@ export class SelfAnalyzer {
     return last > avg * 1.1 ? 'increasing' : last < avg * 0.9 ? 'decreasing' : 'stable';
   }
 
-  private getPerformanceAnalysis(): any {
+  private getPerformanceAnalysis(): { ruleExecution: number; memoryUsage: number; throughput: 'increasing' | 'decreasing' | 'stable' } {
     return {
       ruleExecution: this.calculateAverageRuleExecutionTime(),
       memoryUsage: this.calculateAverageMemoryUsage(),
@@ -571,14 +622,14 @@ export class SelfAnalyzer {
     };
   }
 
-  private getResourceAnalysis(): any {
-    if (!this.nar) return {};
+  private getResourceAnalysis(): { conceptCount: number; avgPriority: number; memoryUsage: NodeJS.MemoryUsage } {
+    if (!this.nar) return { conceptCount: 0, avgPriority: 0, memoryUsage: {} as NodeJS.MemoryUsage };
 
     const concepts = this.nar.listConcepts();
     return {
       conceptCount: concepts.length,
       avgPriority: calculateAvgPriority(concepts.map(c => c.priority)),
-      memoryUsage: process.memoryUsage?.() ?? {}
+      memoryUsage: process.memoryUsage?.() ?? {} as NodeJS.MemoryUsage
     };
   }
 }

@@ -1,346 +1,436 @@
-# NEXT.md — Completion & Quality Plan (Revised)
+# SeNARS12 Development Plan
 
-> **Status baseline**: 90+ source files, **383 passing tests**, 0 TS errors, NAL1-9 rules, 3 LM clients, streaming, RLFP, metacognition, full CLI, HTTP/WS agent, IRC bot.
->
-> **🟢 Progress Update**: Phase 1 (Refactor) ✅ COMPLETE. Phase 2 (Bot) ✅ COMPLETE. Phase 3 (Test Coverage) ✅ COMPLETE. **Ready for Phase 4 (Persistence)**.
+## Executive Summary
 
----
-
-## Priorities
-
-| Rank | Concern | Rationale |
-|------|---------|-----------|
-| **1** | Persistence | Structured WAL so state survives crashes — next major deliverable |
-| **2** | Ecosystem | Plugin system, NPM split — enable reuse |
-| **3** | Prod/lint/docs | Docker, CI, lint — surfacing work, not blocking |
+| Metric | Current | Target | Gap |
+|--------|---------|--------|-----|
+| **Test Coverage** | ~60% estimated | 90%+ | Missing core component tests |
+| **Type Safety** | Severe `any` overuse | Zero `any` | 50+ occurrences |
+| **Code Duplication** | 3 similarity calcs, bag mismatch | DRY | Consolidation needed |
+| **Error Handling** | `console.error` scattered | Structured errors | Custom error types needed |
+| **RLFP Status** | Skeletal JSONL writer | Functional | Deprecate or complete |
+| **Memory Management** | Unbounded caches | Bounded with eviction | Factory cache, patternHistory |
 
 ---
 
-## Phase 1 — Refactor: Eliminate Duplication, Flatten Complexity
+## 1. CRITICAL: Missing Test Coverage
 
-**Status**: ✅ **COMPLETE** — All 11 sub-tasks completed. See historical details below.
+### 1.1 Core NAR Components (ZERO Tests)
 
-<details>
-<summary>Historical details (click to expand)</summary>
+| File | Lines | Issue |
+|------|-------|-------|
+| `src/nar/nar-execution.ts` | 67 | No tests — core reasoning loop |
+| `src/nar/nar-facade.ts` | 73 | No tests — returns `Promise<any>` |
+| `src/nar/nar-io.ts` | 95 | No tests — serialization untested |
+| `src/nar/stream/pipeline.ts` | ~300 | No tests — backpressure logic untested |
 
-### 1.1 Split the NAR God Class
+### 1.2 Memory System Tests
 
-`src/nar/nar.ts` (564 lines, 36 methods, 7 constructor-initialized subsystems). Split into:
+| File | Lines | Coverage |
+|------|-------|----------|
+| `src/nar/memory/memory-index.ts` | 300 | NO tests |
+| `src/nar/memory/bounded-bag.ts` | 279 | NO tests (bag.test.ts tests only bag.ts) |
+| `src/nar/memory/concept.ts` | 339 | Partial only |
+| `src/nar/memory/archive.ts` | ~150 | NO tests |
+| `src/nar/memory/consolidation.ts` | ~100 | NO tests |
+| `src/nar/memory/scorer.ts` | ~80 | NO tests |
+| `src/nar/memory/focus.ts` | ~100 | NO tests |
 
-```
-src/nar/
-├── nar.ts               # Core (~120 LOC): constructor, lifecycle, input delegation
-├── nar-execution.ts     # run(), runStream(), cycle loop
-├── nar-io.ts            # input(), believe(), goal(), question(), saveToFile(), loadFromFile(), export(), import()
-├── nar-lm.ts            # initializeLM(), askNaturalLanguage(), streamResponse(), cancelLMStream(), processHypothesisWithFeedback(), enrichMemoryWithLM()
-└── nar-facade.ts        # Thin delegations: getBeliefs(), getGoals(), getQuestions(), queryTerm(), ask(), getDerivationHistory(), traceTerm(), explain(), getMetrics(), executeTool(), listTools()
-```
+### 1.3 Self/Metacognitive System (Entirely Untested)
 
-### 1.2 Eliminate NAL Rule Boilerplate ✅ COMPLETED
+| File | Lines | Issue |
+|------|-------|-------|
+| `src/nar/self/SelfAnalyzer.ts` | 584 | NO tests + 20+ `any` types |
+| `src/nar/self/MetacognitiveMonitor.ts` | ~250 | NO tests + untyped events |
+| `src/nar/self/ReasoningAboutReasoning.ts` | ~150 | NO tests |
+| `src/nar/self/Metacognition.ts` | ~100 | NO tests |
 
-836 LOC → ~300 LOC via `syllogize`/`transform`/`foldKind` helpers.
+### 1.4 LM Module (Mostly Untested)
 
-### 1.3 Unify Premise Selection Loop ✅ COMPLETED
+| File | Issue |
+|------|-------|
+| `src/nar/lm/enrichment.ts` | NO tests — uses `console.warn` instead of structured errors |
+| `src/nar/lm/feedback.ts` | NO tests |
+| `src/nar/lm/streaming.ts` | NO tests |
+| `src/nar/lm/dynamic-rules.ts` | NO tests |
+| `src/nar/lm/model-discovery.ts` | NO tests |
+| `src/nar/lm/router.ts` | NO tests |
 
-5 call sites unified into single `samplePremises()` generator.
+### 1.5 RLFP Module (NO Tests — Skeletal Implementation)
 
-### 1.4 Deduplicate LM Rule Factory ✅ COMPLETED
+| File | Issue |
+|------|-------|
+| `src/nar/rlfp/RLFPLearner.ts` | Only appends JSONL, no actual training |
+| `src/nar/rlfp/PolicyOptimizer.ts` | Minimal implementation |
+| `src/nar/rlfp/RewardModel.ts` | Placeholder gradient computation |
+| `src/nar/rlfp/PreferenceCollector.ts` | NO tests |
+| `src/nar/rlfp/ReasoningTrajectoryLogger.ts` | NO tests |
 
-`src/nar/lm/rules.ts` defined 13 identical `createXxxRule()` methods. Consolidated into:
+### 1.6 Tool System (Insufficient Tests)
+
+| File | Current | Needed |
+|------|---------|--------|
+| `src/nar/tools/TimerTool.ts` | NO tests | Isolation + cleanup tests |
+| `src/nar/tools/ProcessTool.ts` | NO tests | Execution tests |
+| `src/nar/tools/SearchTool.ts` | NO tests | Search functionality tests |
+| `src/nar/tools/LearnTool.ts` | NO tests | Learning integration tests |
+
+---
+
+## 2. CRITICAL: Type Safety Gaps
+
+### 2.1 SelfAnalyzer.ts — Most Severe (584 lines)
 
 ```typescript
-13 rules consolidated into single `LMRules.createAll()` factory.
-
-### 1.5 Centralize Error Handling ✅ COMPLETED
-
-Created `errMsg()`, `errObj()`, `catchAndLog()` in `src/nar/utils/helpers.ts`. Replaced 40+ inline instances.
-
-### 1.6 Restructure Terms types.ts ✅ COMPLETED
-
-Split into focused modules: `serialize.ts`, `complexity.ts`, `similarity.ts`, `substitute.ts`, `normalize.ts`.
-
-### 1.7 Consistify Barrels & Clean Imports ✅ COMPLETED
-
-Replaced all `export *` with explicit named exports across 6 barrel files.
-
-### 1.8 Unify Lifecycle via BaseComponent ✅ COMPLETED
-
-`EmbeddedIRCServer` and `ToolManager` extend `BaseComponent`.
-
-### 1.9 Replace Regex Term Inversion ✅ COMPLETED
-
-Replaced string `invert()` with structural term negation using `termsEqual()`.
-
-### 1.10 Config Defaults Single-Source ✅ COMPLETED
-
-`types/core.ts` is single source; all others import from it.
-
-### 1.11 Replace Hash-Based Comparison ✅ COMPLETED
-
-All `.hash ===` comparisons replaced with `termsEqual()` calls.
-
-</details>
-
----
-
-## Phase 2 — Stabilize the Bot
-
-**Status**: ✅ **COMPLETE** — All 5 sub-tasks completed.
-
-### 2.1 Split Bot Monolith ✅ COMPLETED
-
-Bot split into: `BotSession.ts`, `message-router.ts`, `handlers/` (command, belief, question, nl), `IRCClient.ts`, `index.ts` (thin orchestrator).
-
-### 2.2 Proper IRC Client Integration ✅ COMPLETED
-
-`RealIRCClient` with auto-reconnect, SASL support, flood protection, ping timeout detection.
-
-### 2.3 Bot Testing ✅ COMPLETED
-
-Unit tests for all handlers, BotSession integration tests, message-router tests.
-
-### 2.4 Bot Fault Tolerance ✅ COMPLETED
-
-Reconnection with backoff, flood protection (3 msgs/channel), NAR crash isolation, ping timeout.
-
-### 2.5 Bot Configuration Profiles ✅ COMPLETED
-
-Refactored to layered defaults: `BASE` + `overrides()` function.
-
----
-
-## Phase 3 — Test Coverage (Target: 80% branch, 90% line)
-
-**Status**: ✅ **COMPLETE** — All 6 sub-tasks completed. 383 tests passing.
-
-### 3.1 LM Client Testing ✅ COMPLETED
-
-LM parser, MockLMClient, RuleBasedLMClient tests in `lm.test.ts`.
-
-### 3.2 RLFP Testing ✅ COMPLETED
-
-RLFP tests exist in `rlfp.test.ts`.
-
-### 3.3 Self/Metacognition Testing ✅ COMPLETED
-
-Self tests exist in `nal9-self.test.ts`.
-
-### 3.4 Stream Pipeline Testing ✅ COMPLETED
-
-Stream tests: throttle, backpressure, createPipeline in `stream.test.ts`.
-
-### 3.5 Property-Based Tests ✅ COMPLETED
-
-Normalize idempotence, bag invariants, rule idempotence in `property-based.test.ts`.
-
-### 3.6 E2E Tests in CI ✅ COMPLETED
-
-E2E tests enabled in Jest config, all 47 E2E tests passing.
-
----
-
-## Phase 4 — Structured Persistence
-
-### 4.1 WAL (Write-Ahead Log)
-
-```
-src/nar/persistence/
-├── wal.ts              # WriteAheadLog: append-only JSONL, fsync on commit, rotate on size limit
-├── snapshot.ts         # Periodic compressed snapshots (every N cycles or sigterm)
-├── recovery.ts         # Load latest snapshot → replay WAL → reconstruct state
-├── backends.ts         # FsPersistence, MemoryPersistence, (optional) SqlitePersistence
-└── manager.ts          # PersistenceManager: auto-snapshot scheduling, corruption detection
+// Line 66: monitorState?: any
+// Line 154: async getSystemAnalysis(): Promise<any>
+// Line 188: private analyzeTermPatterns(concepts: any[]): TermPattern[]
+// Line 222-223: private getNeighboringTerms(concept: any): any[]
+// Line 238: const monitorState = this.monitor.getMonitorState() as any
+// Line 260: const ruleStats = this.metrics.getRuleStats() as any[]
+// Line 268: private analyzePerformancePatterns(_metricsSummary: any): any
+// Line 276: private analyzeResourceUsage(concepts: any[], _stats: any): any
+// Line 286: private analyzeTaskPatterns(): any
+// Line 359, 385, 487: (this.nar.memory as any).consolidate?.()
+// Line 402: (concept as any).priority = ...
+// Line 407-412: Return type Promise<any>
+// Line 449: const monitorState = this.monitor.getMonitorState() as any
+// Line 472: private async applyCorrections(issues: any): Promise<any>
+// Line 541: const ruleStats = this.metrics.getRuleStats() as any[]
+// Line 566, 574: Return type any
 ```
 
-WAL format:
-```jsonl
-{"op":"belief","term":{"k":"inheritance","a":[{"k":"a","s":"bird"},{"k":"a","s":"animal"}]},"truth":{"f":0.9,"c":0.8}}
-{"op":"merge","hash":12345,"priority":0.87}
-```
-
-### 4.2 TaskSnapshot Format
-
-Remove the lossy `toString()`-based `export()`/`import()`. New format preserves full term structure:
+### 2.2 QueryAPI.ts — Memory Typed as `any`
 
 ```typescript
-interface TaskSnapshot {
-    term: SerializedTerm;  // recursive: { k: 'inheritance', a: [child, ...] }
-    type: TaskType;
-    truth: { f: number; c: number };
-    stamp: { id: string; source: string; depth: number };
-    budget: { priority: number; durability: number; quality: number };
-    cycle: number;
+// Line 20: private readonly memory: any
+// Line 22: constructor(memory: any)
+// Line 83, 110: (belief as any).stamp
+// Line 170-172: (item as any).stamp, .occurrenceTime, .derived
+```
+
+### 2.3 NARFacade — Returns `any`
+
+```typescript
+// Line 34: ask(question: string | Term): Promise<any>
+// Line 22-23, 27: filter as any for getGoals/getQuestions
+```
+
+### 2.4 Other Type Safety Issues
+
+| File | Line | Issue |
+|------|------|-------|
+| `src/nar/rules/nal.ts` | 159 | `c2.args.some((a2: any) =>` — unnecessary any |
+| `src/nar/memory/bounded-bag.ts` | 184 | `objective: any` in sampleStrategies |
+| `src/nar/tools/ExplainTool.ts` | 60 | `(this.memory as any).concepts` |
+| `src/nar/tools/manager.ts` | 131, 192 | `as any` for tool tags |
+| `src/nar/tools/manager.ts` | 50 | `completer: this.completer.bind(this) as any` |
+| `src/nar/self/ReasoningAboutReasoning.ts` | 56 | `querySystemState(_query: any): any` |
+| `src/nar/self/MetacognitiveMonitor.ts` | 39 | `private nar: any` |
+
+---
+
+## 3. CRITICAL: Code Duplication
+
+### 3.1 Similarity Calculation — IDENTICAL in 3 Locations
+
+| Location | Function | Lines |
+|----------|-----------|-------|
+| `src/nar/terms/utils.ts` | `calculateSimilarity` | 22-31 |
+| `src/nar/memory/memory-index.ts` | `calculateClusterSimilarity` | 288-299 |
+| `src/nar/memory/concept.ts` | `calculateTermSimilarity` | 314-323 |
+
+**All three use identical Jaccard similarity pattern:**
+```typescript
+const thisSymbols = extractSymbols(concept.term);
+const otherSymbols = extractSymbols(term);
+const intersection = new Set([...thisSymbols].filter(s => otherSymbols.has(s)));
+const union = new Set([...thisSymbols, ...otherSymbols]);
+return union.size > 0 ? intersection.size / union.size : 0;
+```
+
+**Fix**: Extract to single function in `terms/utils.ts`, export and reuse.
+
+### 3.2 Bag Class Hierarchy Mismatch
+
+```
+AbstractBag (32 lines)
+    └── Bag<T> (45 lines) — extends AbstractBag ✓
+
+BoundedBag<T> (279 lines) — Does NOT extend AbstractBag ✗
+    └── Completely different interface
+        - add(item, priority) — same signature but different internals
+        - Uses heap array instead of items array
+        - Has accessLog Map
+        - Different overflow behavior implementation
+```
+
+**Fix**: Create common `BagInterface<T>` or make `BoundedBag` extend `AbstractBag`.
+
+### 3.3 Rule Pattern Duplication
+
+`nal.ts` and `nal-extended.ts` have similar patterns:
+- `analogy` — similar structure
+- `comparison` — similar structure
+- `revision` — similar structure
+- Both use `getSubject`/`getPredicate` extraction
+
+**Fix**: Extract common higher-order inference patterns to `nal-helpers.ts`.
+
+---
+
+## 4. CRITICAL: Error Handling
+
+### 4.1 Empty Catch Blocks / Silent Failures
+
+| File | Line | Issue |
+|------|------|-------|
+| `src/nar/self/ReasoningAboutReasoning.ts` | 133 | `} catch { // Silently handle }` — swallows all errors |
+| `src/nar/task/manager.ts` | 71 | `setTimeout` with no error handling |
+| `src/nar/query/api.ts` | 140 | `} catch { return null; }` — silently fails |
+
+### 4.2 Console.error Instead of Structured Error Handling
+
+| File | Lines | Issue |
+|------|-------|-------|
+| `src/nar/lm/enrichment.ts` | 77, 99, 123, 186 | `console.warn` for failures |
+| `src/nar/rlfp/RLFPLearner.ts` | 90 | `console.error` |
+| `src/nar/rlfp/PreferenceCollector.ts` | 23 | `console.error` |
+| `src/app.ts` | 33 | `console.error` |
+| `src/bot/BotSession.ts` | 35 | `console.error` |
+| `src/agent/Agent.ts` | 94, 109, 123 | Multiple `console.error` |
+
+**Missing**: Custom error types (`NarRuntimeError`, `ToolExecutionError`, `MemoryPressureError`), structured error logging via eventBus.
+
+---
+
+## 5. CRITICAL: Memory Leaks / Resource Issues
+
+### 5.1 Unbounded Caches
+
+| File | Line | Issue |
+|------|------|-------|
+| `src/nar/terms/factory.ts` | 7 | `termCache: new Map<number, Term>()` — NO size limit, NO eviction |
+| `src/nar/self/SelfAnalyzer.ts` | 92 | `patternHistory = new Map<string, number[]>()` — unbounded |
+| `src/nar/lm/enrichment.ts` | 31 | `results: EnrichmentResult[]` — grows forever |
+
+### 5.2 Timer Cleanup
+
+| File | Issue |
+|------|-------|
+| `src/nar/tools/TimerTool.ts` | Timers created but `unref()` not always called |
+| `src/nar/lm/enrichment.ts` | `enrichmentTimer` needs explicit clear on stop |
+
+**Symptom**: "A worker process has failed to exit gracefully" warning.
+
+---
+
+## 6. HIGH: API Design Issues
+
+### 6.1 QueryAPI Memory Typing
+
+```typescript
+// Line 20-22: memory typed as 'any' but should be Memory
+constructor(memory: any) {
+    this.memory = memory;  // Should be: private readonly memory: Memory
 }
 ```
 
-### 4.3 Bot Session Persistence
+### 6.2 Inconsistent Return Types
 
-Auto-save bot state on:
-- SIGTERM / SIGINT (graceful shutdown)
-- Every N minutes (configurable, default 5)
-- On channel kick/disconnect (save before reconnect attempt)
+| Method | Current Return | Should Be |
+|--------|---------------|-----------|
+| `NARFacade.ask()` | `Promise<any>` | `Promise<Answer>` |
+| `NARFacade.getDerivationHistory()` | `unknown` | `DerivationPath[]` |
+| `NARFacade.traceTerm()` | `unknown` | `TraceResult` |
 
-Auto-load on bot startup from last saved session. Bot resumes with full memory intact.
+### 6.3 Non-orthogonal APIs
+
+- `NAR.input()`, `NAR.believe()`, `NAR.goal()`, `NAR.question()` — all call same internal method with different type
+- `Memory.addConcept()` + `Memory.addTask()` — could be unified
 
 ---
 
-## Phase 5 — Ecosystem
+## 7. HIGH: RLFP — Deprecate or Complete
 
-### 5.1 Plugin System
+### Current State
+- `RLFPLearner.optimize()` — just calls `PolicyOptimizer.optimize()` which is minimal
+- `RLFPLearner.updateModel()` — only appends JSONL to file
+- No actual gradient updates or model training
+- README claims "Phase 8 Complete" but implementation is skeletal
 
-Lightweight API on top of the existing registration patterns:
+### Options
+1. **Deprecate**: Mark as experimental, remove from NAR initialization, add `TODO` comments
+2. **Complete**: Implement actual RL training loop connected to NAR reasoning
+3. **Scaffold**: Keep structure but clearly document as incomplete
+
+**Recommendation**: Option 1 or 3 until properly integrated.
+
+---
+
+## 8. MEDIUM: README / Documentation Corrections
+
+| Claim | Reality |
+|-------|---------|
+| "~1.5K LOC" | ~15,442 LOC in nar/ alone |
+| "100% test coverage" | Core components have NO tests |
+| "Term System: 280 LOC" | terms/ subdirectory is much larger |
+| "Phase 8 Complete" | RLFP is skeletal |
+| "25 inference rules" | Actually 20 in nal.ts + ~20 extended |
+
+### Missing Documentation
+- [ ] API reference for NAR class public methods
+- [ ] Tool creation guide
+- [ ] LM client integration guide
+- [ ] Migration guide
+
+---
+
+## 9. MEDIUM: Performance Issues
+
+### 9.1 Hot Path Optimizations
+
+| Location | Issue | Fix |
+|----------|-------|-----|
+| `Memory.sample()` line 168-176 | Creates intermediate arrays | Use iterator/generator |
+| `Bag.add()` line 14-19 | O(n) scan for min | Use heap or maintain separate min |
+| Term factory cache | Unbounded | Add LRU eviction |
+
+### 9.2 Unnecessary Array Allocations
 
 ```typescript
-interface SeNARSPlugin {
-    id: string;
-    install(nar: NAR): void | Promise<void>;
-    uninstall?(nar: NAR): void;
-}
-
-nar.use(plugin);
-nar.unuse('plugin-id');
-```
-
-Plugins can: `nar.processor.registerRule(...)`, `nar.tools.register(...)`, register LM rules, hook into event bus. No new infrastructure — just a registry wrapper around existing `register`/`unregister` methods.
-
-### 5.2 NPM Workspace Split
-
-pnpm workspace, 8 packages:
-
-```
-@senars12/terms       # Term types, TermBuilder, hashing, serialization
-@senars12/rules       # NAL rules, trie index, processor
-@senars12/memory      # Memory, bags, concepts, GC, forgetting
-@senars12/reasoner    # Reasoner, strategies, premise formation
-@senars12/lm          # LM clients, routing, enrichment
-@senars12/agent       # Agent, HTTP/WS server
-@senars12/cli         # CLI + REPL
-@senars12/nar         # Full engine (peer-depends on all above)
-```
-
-Root `package.json` remains the entry; each sub-package has its own `package.json` with `exports` map. Use pnpm `catalog:` for version sync.
-
-### 5.3 MeTTa Bridge (Light)
-
-Minimal adapter — not a full MeTTa interpreter, just format bridging:
-
-```
-src/metta/
-├── adapter.ts   # MeTTa space → NAR beliefs and back. ~80 LOC
-└── index.ts     # Re-export adapter
-```
-
-### 5.4 MCP Server (Deferred)
-
-Spec only; implementation moved to next cycle after all above is stable.
-
----
-
-## Phase 6 — Production Polish (Lower Priority)
-
-### 6.1 Docker + CI
-
-`Dockerfile` + `.github/workflows/ci.yml` — templated, mechanical. Do last.
-
-### 6.2 Lint Cleanup
-
-Fix `no-explicit-any` and `no-non-null-assertion` warnings. Use `unknown` + type guards instead. Add `zod` schema validation for LM response parsing (bonus: improves actual correctness). This is ~150 small changes across 15 files. Do after refactoring (Phase 1) so the surface area is smaller.
-
-### 6.3 Vitest Migration
-
-Replace Jest with Vitest. Remove `jest`/`ts-jest`/`@types/jest`, add `vitest`. Codemod `jest.fn()` → `vi.fn()`, etc. Mechanical. Do after Phase 3 (tests pass on Jest first, then migrate).
-
-### 6.4 Coverage Thresholds
-
-Configure in vitest: `branches: 80%`, `lines: 90%`.
-
-### 6.5 Documentation
-
-- `docs/ARCHITECTURE.md` — module map, data flow diagram
-- `docs/BOT.md` — bot deployment, configuration, troubleshooting
-- `docs/PLUGINS.md` — plugin authoring guide
-
----
-
-## Implementation Sequence
-
-```
-Week 1: Phase 1 (Refactor) ✅ COMPLETE
-Week 2: Phase 2 (Bot) + Phase 3 (Tests) ✅ COMPLETE
-Week 3: Phase 4 (Persistence) — NEXT
-4.1 WAL + snapshot
-4.2 TaskSnapshot format
-4.3 Bot session persistence
-
-Week 4: Phase 5 (Ecosystem)
-5.1 Plugin system
-5.2 NPM workspace split
-5.3 MeTTa bridge
-
-Week 5: Phase 6 (Polish)
-6.1 Docker + CI
-6.2 Lint cleanup
-6.3 Vitest migration
-6.4 Coverage thresholds
-6.5 Documentation
+// memory.ts line 169-175
+const allConcepts = Array.from(this.concepts.values());  // Could iterate directly
+const scored = allConcepts.map(concept => ({...}));  // Creates new array
+scored.sort(...);  // Another allocation
+return scored.slice(...).map(s => s.concept);  // Another
 ```
 
 ---
 
-## Deliverables Checklist
+## Implementation Roadmap
 
-### Phase 1 (Refactor) — ✅ COMPLETE
-All 11 sub-tasks completed. See historical details above.
+### Phase 1: Type Safety (Week 1)
+- [ ] Fix SelfAnalyzer.ts — replace all `any` types with proper interfaces
+- [ ] Fix QueryAPI.ts — type memory properly as `Memory`
+- [ ] Fix NARFacade.ask() return type
+- [ ] Fix MetacognitiveMonitor.ts event typing
+- [ ] Remove unnecessary `as any` casts throughout
 
-### Phase 2 (Bot) — ✅ COMPLETE
-All 5 sub-tasks completed. Bot split, RealIRCClient, fault tolerance, config profiles.
+### Phase 2: Test Coverage (Week 1-2)
+- [ ] Add tests for `nar-execution.ts` — core reasoning loop
+- [ ] Add tests for `nar-facade.ts` — facade layer
+- [ ] Add tests for `stream/pipeline.ts` — backpressure logic
+- [ ] Add tests for `memory/memory-index.ts` — indexing
+- [ ] Add tests for `memory/bounded-bag.ts` — bounded priority queue
 
-### Phase 3 (Test Coverage) — ✅ COMPLETE
-All 6 sub-tasks completed. 383 tests passing (80%+ coverage).
+### Phase 3: Deduplication (Week 2)
+- [ ] Extract similarity calculation to single function
+- [ ] Unify bag class hierarchy (AbstractBag contract)
+- [ ] Extract common rule patterns from nal.ts/nal-extended.ts
 
-### Phase 4 (Persistence) — 🎯 NEXT
-- [ ] WAL + snapshot persistence with 2 backends (Fs, Memory)
-- [ ] TaskSnapshot format round-trips without data loss
-- [ ] Bot auto-save/load session persistence
+### Phase 4: Error Handling (Week 2)
+- [ ] Create custom error types
+- [ ] Replace `console.error` with structured error logging
+- [ ] Fix empty catch blocks
+- [ ] Add error events to eventBus
 
-### Phase 5 (Ecosystem) — Deferred
-- [ ] Plugin system: `nar.use()` / `nar.unuse()`
-- [ ] NPM workspace: 8 packages with pnpm catalog
-- [ ] MeTTa adapter bridge
+### Phase 5: Memory Management (Week 2-3)
+- [ ] Add LRU eviction to term factory cache
+- [ ] Bound SelfAnalyzer.patternHistory
+- [ ] Fix timer cleanup in TimerTool
+- [ ] Clear enrichment timer on stop
 
-### Phase 6 (Polish) — Deferred
-- [ ] Dockerfile + compose (bot, server, cli profiles)
-- [ ] GitHub Actions CI: typecheck, lint, test
-- [ ] Zero `no-explicit-any` warnings
-- [ ] Jest → Vitest migration complete
-- [ ] Docs: ARCHITECTURE, BOT, PLUGINS
+### Phase 6: Documentation (Week 3)
+- [ ] Correct README LOC claims
+- [ ] Update RLFP status (deprecate or complete)
+- [ ] Add API reference
+- [ ] Add tool creation guide
 
+### Phase 7: RLFP Decision (Week 3)
+- [ ] Either implement fully OR deprecate
+- [ ] Remove from NAR initialization if deprecated
+- [ ] Add clear TODO markers if incomplete
 
 ---
 
-## Next Steps
+## Minimum Viable Test Suite
 
-### Phase 4 (Persistence) — 🎯 Ready to Start
+To ensure basic usability, these tests MUST exist:
 
-Key deliverables:
-1. **WAL (Write-Ahead Log)**: `src/nar/persistence/wal.ts` — append-only JSONL, fsync, rotation
-2. **Snapshots**: `src/nar/persistence/snapshot.ts` — periodic compressed snapshots
-3. **Recovery**: `src/nar/persistence/recovery.ts` — load snapshot + replay WAL
-4. **Backends**: `src/nar/persistence/backends.ts` — FsPersistence, MemoryPersistence
-5. **Manager**: `src/nar/persistence/manager.ts` — auto-snapshot scheduling
-6. **TaskSnapshot**: Preserve full term structure (recursive `{k, a[]}`) instead of lossy `toString()`
-7. **Bot Session Persistence**: Auto-save on SIGTERM, every N minutes, auto-load on startup
+```typescript
+// nar-execution.test.ts — CRITICAL
+describe('NARExecution', () => {
+  it('should process pending tasks');
+  it('should run reasoning step');
+  it('should call memory.consolidate()');
+  it('should respect maxDerivationDepth');
+  it('should respect cpuThrottleMs');
+  it('should trigger rlFP.optimize() on interval');
+});
 
-### Phase 5 (Ecosystem) — Deferred
+// nar-facade.test.ts — CRITICAL
+describe('NARFacade', () => {
+  it('should return beliefs filtered');
+  it('should return typed ask() result');
+  it('should execute tools');
+  it('should track metrics');
+});
 
-- Plugin system: `NAR.use()` / `NAR.unuse()` methods
-- NPM workspace: 8 packages with pnpm catalog
-- MeTTa adapter bridge
+// stream-pipeline.test.ts — CRITICAL
+describe('Pipeline', () => {
+  it('should apply backpressure');
+  it('should respect maxQueueSize');
+  it('should respect maxDepth');
+  it('should yield derived tasks');
+});
 
-### Phase 6 (Polish) — Deferred
+// memory-index.test.ts
+describe('MemoryIndex', () => {
+  it('should index atomic symbols');
+  it('should query by atomic symbol');
+  it('should query by time range');
+  it('should calculate cluster similarity');
+});
 
-- Dockerfile + CI
-- Lint cleanup (`no-explicit-any`)
-- Vitest migration
-- Coverage thresholds (80% branches, 90% lines)
-- Documentation (ARCHITECTURE, BOT, PLUGINS)
+// bounded-bag.test.ts
+describe('BoundedBag', () => {
+  it('should reject on overflow when behavior is reject');
+  it('should replace lowest when behavior is replace-lowest');
+  it('should merge when behavior is merge');
+  it('should sample by priority');
+  it('should sample by recency');
+});
+```
+
+---
+
+## Verification Commands
+
+```bash
+# Before any changes (should pass)
+pnpm run test
+pnpm run typecheck
+pnpm run lint
+
+# After fixes, verify with:
+pnpm run test:unit -- --coverage
+pnpm run typecheck
+pnpm run lint
+
+# Check for any remaining 'as any' occurrences
+rg 'as any' src/ --type=ts | wc -l  # Should be 0
+```
+
+---
+
+## Success Metrics
+
+| Metric | Current | Target |
+|--------|---------|--------|
+| Test coverage | ~60% | >90% |
+| `as any` occurrences | 50+ | 0 |
+| Console.error calls | 20+ | 0 |
+| Unbounded caches | 3+ | 0 |
+| README accuracy | Poor | Accurate |
+| RLFP status | Skeletal | Documented |

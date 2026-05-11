@@ -1,7 +1,7 @@
 import type {Term} from './terms';
 import type {Task, TruthFilter} from './types';
 import type {Memory} from './memory';
-import type {QueryAPI, QueryResult} from './query';
+import type {QueryAPI, QueryResult, Answer} from './query';
 import type {ReasoningTrace} from './query';
 import type {Tool, ToolManager, ToolResult} from './tools';
 import type {MetricsCollector} from './metrics';
@@ -19,11 +19,11 @@ export class NARFacade {
     return this.query.getBeliefs(filter);
   }
 
-  getGoals(filter?: TruthFilter): Task[] {
+  getGoals(filter?: Record<string, unknown>): Task[] {
     return this.query.getGoals(filter as any);
   }
 
-  getQuestions(filter?: TruthFilter): Task[] {
+  getQuestions(filter?: Record<string, unknown>): Task[] {
     return this.query.getQuestions(filter as any);
   }
 
@@ -31,7 +31,7 @@ export class NARFacade {
     return this.query.query(term, filter);
   }
 
-  ask(question: string | Term): Promise<any> {
+  ask(question: string | Term): Promise<Answer> {
     return this.query.ask(question);
   }
 

@@ -14,10 +14,25 @@ interface PerformanceMonitor {
     alerts: any[];
 }
 
-interface ReasoningStep {
+export interface ReasoningStep {
     timestamp: number;
-    stepData: any;
-    context: any;
+    stepData: {
+        type?: string;
+        task?: unknown;
+        ruleId?: string;
+        result?: unknown;
+        duration?: number;
+        startTerm?: string;
+        endTerm?: string;
+        success?: boolean;
+        error?: unknown;
+        [key: string]: unknown;
+    };
+    context: {
+        memorySize?: number;
+        timestamp?: number;
+        [key: string]: unknown;
+    };
 }
 
 interface PerformanceIssue {
@@ -144,12 +159,13 @@ export class MetacognitiveMonitor {
         return avgThroughput > avgEarlierThroughput ? 'improving' : avgThroughput < avgEarlierThroughput ? 'declining' : 'stable';
     }
 
-    getMonitorState(): { reasoningSteps: number; performance: string; lastUpdate: number; monitorsActive: number } {
+    getMonitorState(): { reasoningSteps: number; performance: string; lastUpdate: number; monitorsActive: number; reasoningTrace: ReasoningStep[] } {
         return {
             reasoningSteps: this.reasoningTrace.length,
             performance: this.getPerformanceTrend(),
             lastUpdate: Date.now(),
-            monitorsActive: this.performanceMonitors.size
+            monitorsActive: this.performanceMonitors.size,
+            reasoningTrace: this.reasoningTrace
         };
     }
 

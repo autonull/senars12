@@ -282,11 +282,11 @@ Only output the answer, nothing else.`;
     return this.facade.getBeliefs(filter);
   }
 
-  getGoals(filter?: TruthFilter): Task[] {
+  getGoals(filter?: Record<string, unknown>): Task[] {
     return this.facade.getGoals(filter);
   }
 
-  getQuestions(filter?: TruthFilter): Task[] {
+  getQuestions(filter?: Record<string, unknown>): Task[] {
     return this.facade.getQuestions(filter);
   }
 
