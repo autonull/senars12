@@ -19,14 +19,14 @@ export const getTermHash = (term: unknown): number | undefined => {
   return undefined;
 };
 
+export const jaccardSimilarity = (setA: Set<string>, setB: Set<string>): number => {
+  if (setA.size === 0 && setB.size === 0) return 0;
+  const intersection = new Set([...setA].filter(s => setB.has(s)));
+  const union = new Set([...setA, ...setB]);
+  return intersection.size / union.size;
+};
+
 export const calculateSimilarity = (concept: Concept, term: Term): number => {
   if (termsEqual(concept.term, term)) return 1;
-
-  const thisSymbols = extractSymbols(concept.term);
-  const otherSymbols = extractSymbols(term);
-
-  const intersection = new Set([...thisSymbols].filter(s => otherSymbols.has(s)));
-  const union = new Set([...thisSymbols, ...otherSymbols]);
-
-  return union.size > 0 ? intersection.size / union.size : 0;
+  return jaccardSimilarity(extractSymbols(concept.term), extractSymbols(term));
 };

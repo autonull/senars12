@@ -1,5 +1,6 @@
 import {EventBus} from '../types';
 import {promises as fs} from 'fs';
+import {OperationError} from '../types/core.js';
 
 export interface TrajectoryStep {
     timestamp: number;
@@ -39,7 +40,7 @@ export class ReasoningTrajectoryLogger {
         try {
             await fs.writeFile(filePath, JSON.stringify(this.trajectory, null, 2));
         } catch (error) {
-            console.error(`Failed to write trajectory to ${filePath}:`, error);
+            throw new OperationError(`Failed to write trajectory to ${filePath}: ${(error as Error).message}`, {filePath});
         }
         return this.trajectory;
     }

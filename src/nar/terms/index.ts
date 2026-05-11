@@ -62,7 +62,7 @@ export {
 } from './accessors.js';
 
 // Utilities
-export {extractSymbols, getTermHash} from './utils.js';
+export {extractSymbols, getTermHash, jaccardSimilarity, calculateSimilarity} from './utils.js';
 
 // Type guards and helpers
 export {

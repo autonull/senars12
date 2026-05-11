@@ -86,7 +86,8 @@ export class ToolManager extends EventEmitter {
             this.lifecycleState.set(name, 'running');
             this.emit('tool:init', {name, state: 'running'});
             return true;
-        } catch {
+        } catch (error) {
+            console.warn(`Tool initialization failed for ${name}:`, error);
             return false;
         }
     }
@@ -99,7 +100,8 @@ export class ToolManager extends EventEmitter {
             this.lifecycleState.set(name, 'stopped');
             this.emit('tool:stop', {name, state: 'stopped'});
             return true;
-        } catch {
+        } catch (error) {
+            console.warn(`Tool stop failed for ${name}:`, error);
             return false;
         }
     }
@@ -112,7 +114,8 @@ export class ToolManager extends EventEmitter {
             this.lifecycleState.set(name, 'disposed');
             this.emit('tool:dispose', {name, state: 'disposed'});
             return true;
-        } catch {
+        } catch (error) {
+            console.warn(`Tool disposal failed for ${name}:`, error);
             return false;
         }
     }

@@ -4,10 +4,20 @@ import {OPERATORS, COMMUTATIVE_OPS} from './operators.js';
 import {computeHash, fnv1a} from '../utils';
 import {trackTerm} from '../memory/gc.js';
 
+const TERM_CACHE_MAX_SIZE = 10000;
+
 const termCache = new Map<number, Term>();
+let cacheOrder: number[] = [];
 
 const cache = <T extends Term>(term: T): T => {
+  if (termCache.size >= TERM_CACHE_MAX_SIZE && !termCache.has(term.hash)) {
+    const oldestHash = cacheOrder.shift();
+    if (oldestHash !== undefined) {
+      termCache.delete(oldestHash);
+    }
+  }
   termCache.set(term.hash, term);
+  cacheOrder.push(term.hash);
   trackTerm(term);
   return term;
 };
@@ -72,8 +82,15 @@ export const TermBuilder = {
 
   compound: (kind: OperatorKey, args: Term[]): Term => createCompound(kind, args),
 
-  evict: (hash: number): boolean => termCache.delete(hash),
-  clear: (): void => termCache.clear(),
+  evict: (hash: number): boolean => {
+    const index = cacheOrder.indexOf(hash);
+    if (index !== -1) cacheOrder.splice(index, 1);
+    return termCache.delete(hash);
+  },
+  clear: (): void => {
+    termCache.clear();
+    cacheOrder = [];
+  },
   get size(): number {
     return termCache.size;
   }

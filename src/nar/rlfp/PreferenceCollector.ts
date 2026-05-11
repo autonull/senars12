@@ -1,6 +1,7 @@
 import {promises as fs} from 'fs';
 import {TrajectoryStep} from './ReasoningTrajectoryLogger.js';
 import {extractTrajectoryFeatures} from './utils.js';
+import {OperationError} from '../types/core.js';
 
 export interface PreferenceData {
     trajectoryA: TrajectoryStep[];
@@ -20,8 +21,7 @@ export class PreferenceCollector {
             trajectoryA = await this.loadTrajectory(pathA);
             trajectoryB = await this.loadTrajectory(pathB);
         } catch (error) {
-            console.error('Error loading trajectories:', (error as Error).message);
-            return null;
+            throw new OperationError(`Error loading trajectories: ${(error as Error).message}`, {pathA, pathB});
         }
 
         console.log('\n==========================================');
@@ -51,8 +51,12 @@ export class PreferenceCollector {
     }
 
     async loadTrajectory(path: string): Promise<TrajectoryStep[]> {
-        const data = await fs.readFile(path, 'utf-8');
-        return JSON.parse(data) as TrajectoryStep[];
+        try {
+            const data = await fs.readFile(path, 'utf-8');
+            return JSON.parse(data) as TrajectoryStep[];
+        } catch (error) {
+            throw new OperationError(`Failed to load trajectory from ${path}: ${(error as Error).message}`, {path});
+        }
     }
 
     formatTrajectory(traj: TrajectoryStep[]): string {

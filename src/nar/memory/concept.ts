@@ -3,10 +3,9 @@
  */
 
 import type {Term, Truth} from '../terms';
-import {termsEqual} from '../terms/accessors.js';
+import {termsEqual, extractSymbols, jaccardSimilarity} from '../terms';
 import {Bag} from './bag.js';
 import {Truth as TruthOps} from '../terms/truth.js';
-import {extractSymbols} from '../terms/utils.js';
 
 import type {Budget} from '../types';
 
@@ -316,15 +315,8 @@ export class Concept {
 
 private calculateTermSimilarity(other: Term): number {
   if (termsEqual(this.term, other)) return 1;
-
-  const thisSymbols = extractSymbols(this.term);
-  const otherSymbols = extractSymbols(other);
-
-        const intersection = new Set([...thisSymbols].filter(s => otherSymbols.has(s)));
-        const union = new Set([...thisSymbols, ...otherSymbols]);
-
-        return union.size > 0 ? intersection.size / union.size : 0;
-    }
+  return jaccardSimilarity(extractSymbols(this.term), extractSymbols(other));
+}
 
     private calculateTaskOverlap(other: Concept): number {
         const thisBeliefs = new Set(this.getBeliefs().map(b => b.term.hash));

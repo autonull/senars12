@@ -125,6 +125,7 @@ export class SelfAnalyzer {
   private monitor: MetacognitiveMonitor;
   private readonly metrics: MetricsCollector | null;
   private config: Required<SelfAnalyzerConfig>;
+  private readonly MAX_PATTERN_HISTORY_SIZE = 100;
   private patternHistory = new Map<string, number[]>();
   private optimizationHistory: Optimizations = {
     rulePriorities: [],
@@ -585,6 +586,18 @@ return issues;
     this.optimizationHistory.performanceImprovements.push(...optimizations.performanceImprovements);
     this.optimizationHistory.performanceImprovements =
       this.optimizationHistory.performanceImprovements.slice(-100);
+
+    for (const value of this.patternHistory.values()) {
+      if (value.length > this.MAX_PATTERN_HISTORY_SIZE) {
+        value.splice(0, value.length - this.MAX_PATTERN_HISTORY_SIZE);
+      }
+    }
+    if (this.patternHistory.size > this.MAX_PATTERN_HISTORY_SIZE) {
+      const keysToDelete = Array.from(this.patternHistory.keys()).slice(0, this.patternHistory.size - this.MAX_PATTERN_HISTORY_SIZE);
+      for (const key of keysToDelete) {
+        this.patternHistory.delete(key);
+      }
+    }
   }
 
   private calculateAverageRuleExecutionTime(): number {

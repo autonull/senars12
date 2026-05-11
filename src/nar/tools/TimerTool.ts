@@ -86,11 +86,13 @@ export class TimerTool implements Tool {
 
             if (repeat === 0 || config.count < repeat) {
                 timeout = setTimeout(executeCallback, delay);
+                timeout.unref();
                 this.timers.set(name, timeout);
             }
         };
 
         timeout = setTimeout(executeCallback, delay);
+        timeout.unref();
         this.timers.set(name, timeout);
 
         return {

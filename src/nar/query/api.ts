@@ -138,7 +138,8 @@ export class QueryAPI {
         return termParser.parse(question);
       }
       return null;
-    } catch {
+    } catch (error) {
+      console.warn('Failed to parse question:', question, error);
       return null;
     }
   }

@@ -130,8 +130,8 @@ export class ReasoningAboutReasoning {
             this.periodicAnalysisInterval = setInterval(async () => {
                 try {
                     await this.performMetaCognitiveReasoning();
-                } catch {
-                    // Silently handle periodic analysis errors
+                } catch (error) {
+                    console.warn('Periodic self-analysis error:', error);
                 }
             }, this.config.reasoningInterval);
         }

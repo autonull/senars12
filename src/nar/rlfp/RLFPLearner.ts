@@ -3,6 +3,7 @@ import {PreferenceData} from './PreferenceCollector.js';
 import {TrajectoryStep} from './ReasoningTrajectoryLogger.js';
 import {RewardModel} from './RewardModel.js';
 import {PolicyOptimizer} from './PolicyOptimizer.js';
+import {OperationError} from '../types/core.js';
 
 export interface TrainingEntry {
   timestamp: number;
@@ -38,20 +39,26 @@ export class RLFPLearner {
     this.policyOptimizer.optimize();
   }
 
-  updateModel(preferences: PreferenceData[] | PreferenceData): void {
+  updateModel(preferences: PreferenceData[] | PreferenceData): {success: boolean; count: number; error?: string} {
     const prefs = Array.isArray(preferences) ? preferences : [preferences];
     const validPrefs = prefs.filter(p => p?.preference && p.preference !== 'SKIP');
-    if (!validPrefs.length) return;
+    if (!validPrefs.length) return {success: true, count: 0};
     console.info(`RLFPLearner: Processing ${validPrefs.length} preference(s)...`);
     let count = 0;
+    let lastError: string | undefined;
     for (const pref of validPrefs) {
       const entry = this.prepareTrainingEntry(pref);
       if (entry) {
-        this.appendToFile(entry);
-        count++;
+        try {
+          this.appendToFile(entry);
+          count++;
+        } catch (e) {
+          lastError = (e as Error).message;
+        }
       }
     }
     console.info(`RLFPLearner: Appended ${count} examples to ${this.outputFile}`);
+    return lastError ? {success: false, count, error: lastError} : {success: true, count};
   }
 
   private prepareTrainingEntry(pref: PreferenceData): TrainingEntry | null {
@@ -87,7 +94,7 @@ export class RLFPLearner {
     try {
       appendFileSync(this.outputFile, JSON.stringify(entry) + '\n');
     } catch (error) {
-      console.error(`RLFPLearner write error: ${(error as Error).message}`);
+      throw new OperationError(`RLFPLearner write error: ${(error as Error).message}`, {file: this.outputFile});
     }
   }
 }
