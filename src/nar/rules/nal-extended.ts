@@ -391,10 +391,10 @@ export const NALExtendedRules = {
 const getVariables = (term: Term): Term[] => {
   const vars: Term[] = [];
   const collect = (t: Term): void => {
-    if (t.kind === 'atom' && t.isVariable) {
+    if (t.kind === 'atom' && (t as any).isVariable) {
       vars.push(t);
-    } else if ('args' in t) {
-      t.args.forEach(collect);
+    } else if (t.kind !== 'atom') {
+      (t.args ?? []).forEach(collect);
     }
   };
   collect(term);

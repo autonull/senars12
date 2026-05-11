@@ -291,44 +291,8 @@ export class ToolManager extends EventEmitter {
         }
     }
 
-    async executeChain(chain: ToolChainStep[]): Promise<ToolChainResult> {
-        const results: ToolResult[] = [];
-        const outputVars: Record<string, unknown> = {};
-
-        for (const step of chain) {
-            const args = {...step.args};
-
-            for (const [key, value] of Object.entries(args)) {
-                if (typeof value === 'string' && value.startsWith('$')) {
-                    const varName = value.slice(1);
-                    if (outputVars[varName]) {
-                        args[key] = outputVars[varName];
-                    }
-                }
-            }
-
-            const result = await this.registry.execute(step.tool, args);
-            results.push(result);
-
-            if (!result.success) {
-                return {
-                    success: false,
-                    results,
-                    error: result.error
-                };
-            }
-
-            if (step.outputAs) {
-                outputVars[step.outputAs] = result.content;
-            }
-        }
-
-        return {
-            success: true,
-            results,
-            finalContent: results[results.length - 1]?.content
-        };
-    }
+    executeChain = (chain: ToolChainStep[]): Promise<ToolChainResult> =>
+        this.registry.executeChain(chain);
 
     getStatistics(name: string): ToolStatistics | undefined {
         return this.statistics.get(name);

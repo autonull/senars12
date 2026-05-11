@@ -2,19 +2,19 @@ import type {AtomicTerm, CompoundTerm, Term, OperatorKey} from './types.js';
 import {OPERATORS} from './operators.js';
 
 export const getSubject = (term: Term): Term | undefined =>
-  term.kind === 'inheritance' || term.kind === 'similarity' ? term.args[0] : undefined;
+  term.kind === 'inheritance' || term.kind === 'similarity' ? term.args![0] : undefined;
 
 export const getPredicate = (term: Term): Term | undefined =>
-  term.kind === 'inheritance' || term.kind === 'similarity' ? term.args[1] : undefined;
+  term.kind === 'inheritance' || term.kind === 'similarity' ? term.args![1] : undefined;
 
 export const getAntecedent = (term: Term): Term | undefined =>
-  term.kind === 'implication' || term.kind === 'equivalence' ? term.args[0] : undefined;
+  term.kind === 'implication' || term.kind === 'equivalence' ? term.args![0] : undefined;
 
 export const getConsequent = (term: Term): Term | undefined =>
-  term.kind === 'implication' || term.kind === 'equivalence' ? term.args[1] : undefined;
+  term.kind === 'implication' || term.kind === 'equivalence' ? term.args![1] : undefined;
 
 export const getArgs = (term: Term): readonly Term[] =>
-  term.kind === 'atom' ? [] : term.args;
+  term.kind === 'atom' ? [] : term.args ?? [];
 
 export const isAtom = (term: Term): term is AtomicTerm => term.kind === 'atom';
 
@@ -49,10 +49,10 @@ const eqAtom = (a: AtomicTerm, b: Term): boolean =>
 
 const eqCompound = (a: CompoundTerm, b: Term): boolean => {
     if (b.kind !== a.kind) return false;
-    if (!('args' in b)) return false;
-    if (a.args.length !== b.args.length) return false;
+    const bArgs = b.args ?? [];
+    if (a.args.length !== bArgs.length) return false;
     for (let i = 0; i < a.args.length; i++) {
-        if (!termsEqual(a.args[i]!, b.args[i]!)) return false;
+        if (!termsEqual(a.args[i]!, bArgs[i]!)) return false;
     }
     return true;
 };

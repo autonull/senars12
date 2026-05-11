@@ -11,75 +11,42 @@ const DEFAULT_CONFIG: FocusConfig = {
     attentionThreshold: 0.3
 };
 
-interface FocusEntry {
-    concept: Concept;
-    priority: number;
-}
-
 export class Focus {
-    private concepts: FocusEntry[];
+    private concepts: Map<string, {concept: Concept; priority: number}> = new Map();
     private config: FocusConfig;
 
     constructor(config: FocusConfig = DEFAULT_CONFIG) {
         this.config = config;
-        this.concepts = [];
     }
 
-    get size(): number {
-        return this.concepts.length;
-    }
-
-    get capacity(): number {
-        return this.config.maxConcepts;
-    }
+    get size(): number { return this.concepts.size; }
+    get capacity(): number { return this.config.maxConcepts; }
 
     addToFocus(concept: Concept): void {
-        const priority = concept.priority;
-        if (priority >= this.config.attentionThreshold) {
-            const existing = this.findEntry(concept);
-            if (existing) {
-                existing.priority = priority;
-            } else {
-                if (this.concepts.length >= this.config.maxConcepts) {
-                    this.concepts.shift();
-                }
-                this.concepts.push({concept, priority});
-            }
+        if (concept.priority < this.config.attentionThreshold) return;
+
+        const key = concept.term.hash?.toString() ?? concept.term.toString();
+        if (this.concepts.size >= this.config.maxConcepts && !this.concepts.has(key)) {
+            this.concepts.delete(this.concepts.keys().next().value!);
         }
+        this.concepts.set(key, {concept, priority: concept.priority});
     }
 
     removeFromFocus(concept: Concept): boolean {
-        const entry = this.findEntry(concept);
-        if (entry) {
-            const index = this.concepts.indexOf(entry);
-            if (index !== -1) {
-                this.concepts.splice(index, 1);
-                return true;
-            }
-        }
-        return false;
+        const key = concept.term.hash?.toString() ?? concept.term.toString();
+        return this.concepts.delete(key);
     }
 
-    getFocusSet(): Concept[] {
-        return this.concepts.map(c => c.concept);
-    }
-
-    clearFocus(): void {
-        this.concepts = [];
-    }
+    getFocusSet(): Concept[] { return [...this.concepts.values()].map(c => c.concept); }
+    clearFocus(): void { this.concepts.clear(); }
 
     adjustAttention(concept: Concept, delta: number): void {
-        const entry = this.findEntry(concept);
-        if (entry) {
-            entry.priority = Math.max(0, Math.min(1, entry.priority + delta));
-            if (entry.priority < this.config.attentionThreshold) {
-                this.removeFromFocus(concept);
-            }
-        }
-    }
+        const key = concept.term.hash?.toString() ?? concept.term.toString();
+        const entry = this.concepts.get(key);
+        if (!entry) return;
 
-    private findEntry(concept: Concept): FocusEntry | undefined {
-        return this.concepts.find(c => termsEqual(c.concept.term, concept.term));
+        entry.priority = Math.max(0, Math.min(1, entry.priority + delta));
+        if (entry.priority < this.config.attentionThreshold) this.removeFromFocus(concept);
     }
 }
 

@@ -41,16 +41,11 @@ export const abductionLink = (left: Term, right: Term): boolean => {
 };
 
 export const buildDeduction = (left: Term, right: Term): Term | undefined => {
-  const s = getSubject(left);
-  const p = getPredicate(right);
+  const s = getSubject(left), p = getPredicate(right);
   return s && p ? TermBuilder.inheritance(s, p) : undefined;
 };
 
-export const buildInduction = (left: Term, right: Term): Term | undefined => {
-  const s = getSubject(left);
-  const p = getPredicate(right);
-  return s && p ? TermBuilder.inheritance(s, p) : undefined;
-};
+export const buildInduction = buildDeduction;
 
 export const buildAbduction = (left: Term, right: Term): Term | undefined => {
   const p = getPredicate(left);

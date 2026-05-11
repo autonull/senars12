@@ -12,19 +12,17 @@ describe('TermParser', () => {
         it('parses variables in inheritance', () => {
             const term = termParser.parse('($x --> animal)');
             expect(term.kind).toBe('inheritance');
-            if ('args' in term) {
-                expect(term.args[0]).toBeDefined();
-                expect((term.args[0] as any).symbol).toBe('$x');
-            }
+            const args = (term as any).args ?? [];
+            expect(args[0]).toBeDefined();
+            expect(args[0].symbol).toBe('$x');
         });
 
         it('parses multiple variables', () => {
             const term = termParser.parse('($x --> $y)');
             expect(term.kind).toBe('inheritance');
-            if ('args' in term) {
-                expect((term.args[0] as any).symbol).toBe('$x');
-                expect((term.args[1] as any).symbol).toBe('$y');
-            }
+            const args = (term as any).args ?? [];
+            expect(args[0].symbol).toBe('$x');
+            expect(args[1].symbol).toBe('$y');
         });
     });
 

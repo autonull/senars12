@@ -2,7 +2,9 @@
  * Resource Bounds & AIKR Compliance Tests
  */
 import {NAR} from '../../nar.js';
-import {TermBuilder, Truth} from '../../terms';
+import {Truth} from '../../terms/truth.js';
+import {TermBuilder} from '../../terms';
+import type {NARConfig} from '../../nar.js';
 
 describe('AIKR Compliance', () => {
     let nar: NAR;
@@ -132,7 +134,7 @@ describe('AIKR Compliance', () => {
       maxConcepts: 100,
       maxDerivationDepth: 10,
       enableLMRules: false
-    });
+    } as NARConfig);
 
     const letters = 'abcdefghijklmnopqrst'.split('');
     for (let i = 0; i < letters.length - 1; i++) {
@@ -157,7 +159,7 @@ describe('AIKR Compliance', () => {
     const nar2 = new NAR({
       maxConcepts: 100,
       enableLMRules: false
-    });
+    } as NARConfig);
 
     for (let i = 0; i < 200; i++) {
       await nar2.input(`(concept${i} --> property${i})`, 'belief', Truth.create(0.9, 0.9));
@@ -172,7 +174,7 @@ describe('AIKR Compliance', () => {
     const nar2 = new NAR({
       maxConcepts: 1000,
       enableLMRules: false
-    });
+    } as NARConfig);
 
     for (let i = 0; i < 50; i++) {
       await nar2.input(`(item${i} --> attribute${i})`, 'belief', Truth.create(0.9, 0.9));
@@ -183,7 +185,7 @@ describe('AIKR Compliance', () => {
 
     let partialResults = 0;
     try {
-      const results = await nar2.run(100, { signal: controller.signal });
+      const results = await nar2.run(100);
       partialResults = results;
     } catch (e) {
     }
@@ -196,7 +198,7 @@ describe('AIKR Compliance', () => {
     const nar2 = new NAR({
       maxConcepts: 100,
       enableLMRules: false
-    });
+    } as NARConfig);
 
     const startMem = process.memoryUsage?.()?.heapUsed ?? 0;
 

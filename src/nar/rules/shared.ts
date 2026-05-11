@@ -18,8 +18,8 @@ export const validInh = (t: Term): boolean => {
 
 export const validImp = (t: Term): boolean => {
   if (!matchImp(t)) return false;
-  if (!('args' in t)) return false;
-  const [a, c] = t.args;
+  const args = t.args ?? [];
+  const [a, c] = args;
   return !!(a && c);
 };
 
@@ -29,8 +29,8 @@ export const extractInh = (t: Term) => {
 };
 
 export const extractImp = (t: Term) => {
-  if (!('args' in t)) return {a: undefined, c: undefined};
-  const [a, c] = t.args;
+  const args = t.args ?? [];
+  const [a, c] = args;
   return {a, c};
 };
 

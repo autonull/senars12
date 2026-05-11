@@ -1,4 +1,4 @@
-import type {Term} from './types.js';
+import type {Term, AtomicTerm} from './types.js';
 import {serializeTerm} from './serialize.js';
 
 export const getTermComplexity = (term: Term): {
@@ -15,11 +15,11 @@ let variableCount = 0;
 const traverse = (t: Term, depth: number): void => {
 maxDepth = Math.max(maxDepth, depth);
 if (t.kind === 'atom') {
-if (t.isVariable) variableCount++;
+if ((t as AtomicTerm).isVariable) variableCount++;
 } else {
 operatorCount++;
-breadth = Math.max(breadth, t.args.length);
-for (const arg of t.args) {
+breadth = Math.max(breadth, t.args?.length ?? 0);
+for (const arg of t.args ?? []) {
 traverse(arg, depth + 1);
 }
 }

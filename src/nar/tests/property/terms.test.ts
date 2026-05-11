@@ -1,4 +1,5 @@
 import fc from 'fast-check';
+import type {Term} from '../../terms/index.js';
 import { TermBuilder, termsEqual } from '../../terms/index.js';
 import { normalize } from '../../terms/normalize.js';
 

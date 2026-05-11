@@ -15,14 +15,13 @@ const CACHE_MAX_SIZE = 1000;
 
 const isCompound = (term: Term): term is CompoundTerm => term.kind !== 'atom';
 
-const occursCheck = (variable: string, term: Term, subst: Substitution): boolean => {
+const occursCheck = (variable: string, term: Term, _subst: Substitution): boolean => {
     if (term.kind === 'atom') {
-        if (term.symbol === variable) return true;
-        return false;
+        return term.symbol === variable;
     }
 
-    for (const arg of term.args) {
-        if (occursCheck(variable, arg, subst)) return true;
+    for (const arg of term.args ?? []) {
+        if (occursCheck(variable, arg, _subst)) return true;
     }
 
     return false;
@@ -36,7 +35,7 @@ const _applySubstitution = (term: Term, subst: Substitution): Term => {
 		return term;
 	}
 
-	const newArgs = term.args.map(arg => _applySubstitution(arg, subst));
+	const newArgs = (term.args ?? []).map(arg => _applySubstitution(arg, subst));
 	return {...term, args: newArgs} as Term;
 };
 
@@ -52,34 +51,36 @@ export function unify(a: Term, b: Term, subst: Substitution = {}, enableOccursCh
     if (a.kind === 'atom' && isVariableSymbol(a.symbol)) {
         if (enableOccursCheck && occursCheck(a.symbol, b, subst)) {
             result = undefined;
-    } else {
-      const bound = subst[a.symbol];
-      if (!bound) {
-        result = {...subst, [a.symbol]: b};
-      } else {
-        result = termsEqual(bound, b) ? subst : undefined;
-      }
-    }
-  } else if (b.kind === 'atom' && isVariableSymbol(b.symbol)) {
-    if (enableOccursCheck && occursCheck(b.symbol, a, subst)) {
-      result = undefined;
-    } else {
-      const bound = subst[b.symbol];
-      if (!bound) {
-        result = {...subst, [b.symbol]: a};
-      } else {
-        result = termsEqual(bound, a) ? subst : undefined;
-      }
-    }
+        } else {
+            const bound = subst[a.symbol];
+            if (!bound) {
+                result = {...subst, [a.symbol]: b};
+            } else {
+                result = termsEqual(bound, b) ? subst : undefined;
+            }
+        }
+    } else if (b.kind === 'atom' && isVariableSymbol(b.symbol)) {
+        if (enableOccursCheck && occursCheck(b.symbol, a, subst)) {
+            result = undefined;
+        } else {
+            const bound = subst[b.symbol];
+            if (!bound) {
+                result = {...subst, [b.symbol]: a};
+            } else {
+                result = termsEqual(bound, a) ? subst : undefined;
+            }
+        }
     } else if (a.kind === 'atom' && b.kind === 'atom') {
         result = a.symbol === b.symbol ? subst : undefined;
-    } else if (!isCompound(a) || !isCompound(b) || a.kind !== b.kind || a.args.length !== b.args.length) {
+    } else if (!isCompound(a) || !isCompound(b) || a.kind !== b.kind || (a.args?.length ?? 0) !== (b.args?.length ?? 0)) {
         result = undefined;
     } else {
         let s: Substitution | undefined = subst;
-        for (let i = 0; i < a.args.length; i++) {
-            const next = a.args[i];
-            const nextB = b.args[i];
+        const aArgs = a.args ?? [];
+        const bArgs = b.args ?? [];
+        for (let i = 0; i < aArgs.length; i++) {
+            const next = aArgs[i];
+            const nextB = bArgs[i];
             if (!next || !nextB) {
                 result = undefined;
                 break;
