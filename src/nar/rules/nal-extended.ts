@@ -3,6 +3,29 @@ import {getPredicate, getSubject, termsEqual, TermBuilder, Truth} from '../terms
 import {type RuleFn, type TruthFn} from './types.js';
 import {registerRule} from './shared.js';
 
+const getVariables = (term: Term): Term[] => {
+  const vars: Term[] = [];
+  const collect = (t: Term): void => {
+    if (t.kind === 'atom' && (t as any).isVariable) {
+      vars.push(t);
+    } else if (t.kind !== 'atom') {
+      (t.args ?? []).forEach(collect);
+    }
+  };
+  collect(term);
+  return vars;
+};
+
+const inhRule = (fn: (inh: Term) => Term | undefined): RuleFn => ([t1, _t2]) => {
+  if (t1.kind !== 'inheritance') return undefined;
+  return fn(t1);
+};
+
+const binaryInhRule = (fn: (inh1: Term, inh2: Term) => Term | undefined): RuleFn => ([t1, t2]) => {
+  if (t1.kind !== 'inheritance' || t2.kind !== 'inheritance') return undefined;
+  return fn(t1, t2);
+};
+
 export const NALExtendedRules = {
   modusPonens: ([imp, antecedent]: [Term, Term]): Term | undefined => {
     if (imp.kind !== 'implication' || antecedent.kind !== 'atom') return undefined;
@@ -39,31 +62,28 @@ export const NALExtendedRules = {
     return sub ? TermBuilder.inheritance(sub, pred.args[0] ?? pred) : undefined;
   },
 
-  intersectionComposition: ([inh1, inh2]: [Term, Term]): Term | undefined => {
-    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
+  intersectionComposition: binaryInhRule((inh1, inh2) => {
     const sub1 = getSubject(inh1), sub2 = getSubject(inh2);
     if (!sub1 || !sub2 || !termsEqual(sub1, sub2)) return undefined;
     const pred1 = getPredicate(inh1), pred2 = getPredicate(inh2);
     return pred1 && pred2 ? TermBuilder.inheritance(sub1, TermBuilder.conjunction(pred1, pred2)) : undefined;
-  },
+  }),
 
-  unionComposition: ([inh1, inh2]: [Term, Term]): Term | undefined => {
-    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
+  unionComposition: binaryInhRule((inh1, inh2) => {
     const pred1 = getPredicate(inh1), pred2 = getPredicate(inh2);
     if (!pred1 || !pred2 || !termsEqual(pred1, pred2)) return undefined;
     const sub1 = getSubject(inh1), sub2 = getSubject(inh2);
     return sub1 && sub2 ? TermBuilder.inheritance(TermBuilder.disjunction(sub1, sub2), pred1) : undefined;
-  },
+  }),
 
-  difference: ([inh1, inh2]: [Term, Term]): Term | undefined => {
-    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
+  difference: binaryInhRule((inh1, inh2) => {
     const sub1 = getSubject(inh1), sub2 = getSubject(inh2);
     if (!sub1 || !sub2 || !termsEqual(sub1, sub2)) return undefined;
     const pred1 = getPredicate(inh1);
     const pred2 = getPredicate(inh2);
     if (!pred1 || !pred2) return undefined;
     return TermBuilder.inheritance(sub1, TermBuilder.conjunction(pred1, TermBuilder.negation(pred2)));
-  },
+  }),
 
   implicationDeduction: ([imp1, imp2]: [Term, Term]): Term | undefined => {
     if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
@@ -78,10 +98,8 @@ export const NALExtendedRules = {
 
   equivalence: ([imp1, imp2]: [Term, Term]): Term | undefined => {
     if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
-    const a1 = imp1.args[0];
-    const c1 = imp1.args[1];
-    const a2 = imp2.args[0];
-    const c2 = imp2.args[1];
+    const a1 = imp1.args[0], c1 = imp1.args[1];
+    const a2 = imp2.args[0], c2 = imp2.args[1];
     if (!a1 || !c1 || !a2 || !c2) return undefined;
     const forward = termsEqual(a1, a2) && termsEqual(c1, c2);
     const backward = termsEqual(a1, c2) && termsEqual(c1, a2);
@@ -89,22 +107,16 @@ export const NALExtendedRules = {
     return TermBuilder.equivalence(a1, c1);
   },
 
-  variableIntroduction: ([inh]: [Term, Term]): Term | undefined => {
-    if (inh.kind !== 'inheritance') return undefined;
-    const sub = getSubject(inh);
-    const pred = getPredicate(inh);
+  variableIntroduction: inhRule((inh) => {
+    const sub = getSubject(inh), pred = getPredicate(inh);
     if (!sub || !pred) return undefined;
     return TermBuilder.inheritance(sub, pred);
-  },
+  }),
 
   decomposition: ([conj]: [Term, Term]): Term | undefined => {
     if (conj.kind !== 'conjunction') return undefined;
     if (conj.args.length < 2) return undefined;
-    const results: Term[] = [];
-    for (const arg of conj.args) {
-      results.push(arg);
-    }
-    return results[0] ?? conj;
+    return conj.args[0] ?? conj;
   },
 
   variableDependency: ([t1, t2]: [Term, Term]): Term | undefined => {
@@ -113,25 +125,20 @@ export const NALExtendedRules = {
     if (vars1.length === 0 || vars2.length === 0) return undefined;
     const shared = vars1.filter(v1 => vars2.some(v2 => termsEqual(v2, v1)));
     if (shared.length === 0) return undefined;
-    const depTerm = TermBuilder.conjunction(...shared);
-    return depTerm;
+    return TermBuilder.conjunction(...shared);
   },
 
-  comparison: ([inh1, inh2]: [Term, Term]): Term | undefined => {
-    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
-    const s1 = getSubject(inh1);
-    const p1 = getPredicate(inh1);
-    const s2 = getSubject(inh2);
-    const p2 = getPredicate(inh2);
+  comparison: binaryInhRule((inh1, inh2) => {
+    const s1 = getSubject(inh1), p1 = getPredicate(inh1);
+    const s2 = getSubject(inh2), p2 = getPredicate(inh2);
     if (!s1 || !p1 || !s2 || !p2) return undefined;
     if (termsEqual(s1, s2) && termsEqual(p1, p2)) {
       return TermBuilder.similarity(s1, p1);
     }
     return undefined;
-  },
+  }),
 
-  analogy: ([inh1, inh2]: [Term, Term]): Term | undefined => {
-    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
+  analogy: binaryInhRule((inh1, inh2) => {
     const pred1 = getPredicate(inh1);
     const sub2 = getSubject(inh2);
     if (!pred1 || !sub2 || !termsEqual(pred1, sub2)) return undefined;
@@ -139,71 +146,58 @@ export const NALExtendedRules = {
     const pred2 = getPredicate(inh2);
     if (!sub1 || !pred2) return undefined;
     return TermBuilder.inheritance(sub1, pred2);
-  },
+  }),
 
   contrapositionRule: ([imp]: [Term, Term]): Term | undefined => {
     if (imp.kind !== 'implication') return undefined;
-    const ante = imp.args[0];
-    const cons = imp.args[1];
+    const ante = imp.args[0], cons = imp.args[1];
     if (!ante || !cons) return undefined;
     return TermBuilder.implication(TermBuilder.negation(cons), TermBuilder.negation(ante));
   },
 
-  exemplification: ([inh1, inh2]: [Term, Term]): Term | undefined => {
-    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
+  exemplification: binaryInhRule((inh1, inh2) => {
     const sub1 = getSubject(inh1);
     const pred2 = getPredicate(inh2);
     if (!sub1 || !pred2) return undefined;
     return TermBuilder.inheritance(sub1, pred2);
-  },
+  }),
 
-  sameness: ([inh1, inh2]: [Term, Term]): Term | undefined => {
-    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
-    const s1 = getSubject(inh1);
-    const p1 = getPredicate(inh1);
-    const s2 = getSubject(inh2);
-    const p2 = getPredicate(inh2);
+  sameness: binaryInhRule((inh1, inh2) => {
+    const s1 = getSubject(inh1), p1 = getPredicate(inh1);
+    const s2 = getSubject(inh2), p2 = getPredicate(inh2);
     if (!s1 || !p1 || !s2 || !p2) return undefined;
     if (termsEqual(s1, s2) && termsEqual(p1, p2)) {
       return TermBuilder.similarity(s1, p1);
     }
     return undefined;
-  },
+  }),
 
-  revisionWeak: ([inh1, inh2]: [Term, Term]): Term | undefined => {
-    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
-    const s1 = getSubject(inh1);
-    const p1 = getPredicate(inh1);
-    const s2 = getSubject(inh2);
-    const p2 = getPredicate(inh2);
+  revisionWeak: binaryInhRule((inh1, inh2) => {
+    const s1 = getSubject(inh1), p1 = getPredicate(inh1);
+    const s2 = getSubject(inh2), p2 = getPredicate(inh2);
     if (!s1 || !p1 || !s2 || !p2) return undefined;
     if (termsEqual(s1, s2) && termsEqual(p1, p2)) {
       return inh1;
     }
     return undefined;
-  },
+  }),
 
-  instanceConversion: ([inh]: [Term, Term]): Term | undefined => {
-    if (inh.kind !== 'inheritance') return undefined;
-    const s = getSubject(inh);
-    const p = getPredicate(inh);
+  instanceConversion: inhRule((inh) => {
+    const s = getSubject(inh), p = getPredicate(inh);
     if (!s || !p) return undefined;
     return TermBuilder.inheritance(TermBuilder.instance(s), TermBuilder.instance(p));
-  },
+  }),
 
-  propertyConversion: ([inh]: [Term, Term]): Term | undefined => {
-    if (inh.kind !== 'inheritance') return undefined;
-    const s = getSubject(inh);
-    const p = getPredicate(inh);
+  propertyConversion: inhRule((inh) => {
+    const s = getSubject(inh), p = getPredicate(inh);
     if (!s || !p) return undefined;
     return TermBuilder.inheritance(TermBuilder.property(s), TermBuilder.property(p));
-  },
+  }),
 
   instanceDeduction: ([inh, inst]: [Term, Term]): Term | undefined => {
     if (inh.kind !== 'inheritance') return undefined;
     if (inst.kind !== 'instance') return undefined;
-    const s = getSubject(inh);
-    const p = getPredicate(inh);
+    const s = getSubject(inh), p = getPredicate(inh);
     const instArg = inst.args[0];
     if (!s || !p || !instArg) return undefined;
     if (termsEqual(s, instArg)) {
@@ -215,8 +209,7 @@ export const NALExtendedRules = {
   propertyInduction: ([inh, prop]: [Term, Term]): Term | undefined => {
     if (inh.kind !== 'inheritance') return undefined;
     if (prop.kind !== 'property') return undefined;
-    const s = getSubject(inh);
-    const p = getPredicate(inh);
+    const s = getSubject(inh), p = getPredicate(inh);
     const propArg = prop.args[0];
     if (!s || !p || !propArg) return undefined;
     if (termsEqual(p, propArg)) {
@@ -225,38 +218,31 @@ export const NALExtendedRules = {
     return undefined;
   },
 
-  sequenceIntroduction: ([inh1, inh2]: [Term, Term]): Term | undefined => {
-    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
-    const s1 = getSubject(inh1);
-    const p1 = getPredicate(inh1);
-    const s2 = getSubject(inh2);
-    const p2 = getPredicate(inh2);
+  sequenceIntroduction: binaryInhRule((inh1, inh2) => {
+    const s1 = getSubject(inh1), p1 = getPredicate(inh1);
+    const s2 = getSubject(inh2), p2 = getPredicate(inh2);
     if (!s1 || !p1 || !s2 || !p2) return undefined;
     if (termsEqual(s1, s2)) {
       return TermBuilder.inheritance(s1, TermBuilder.sequence(p1, p2));
     }
     return undefined;
-  },
+  }),
 
-  parallelIntroduction: ([inh1, inh2]: [Term, Term]): Term | undefined => {
-    if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
-    const s1 = getSubject(inh1);
-    const p1 = getPredicate(inh1);
-    const s2 = getSubject(inh2);
-    const p2 = getPredicate(inh2);
+  parallelIntroduction: binaryInhRule((inh1, inh2) => {
+    const s1 = getSubject(inh1), p1 = getPredicate(inh1);
+    const s2 = getSubject(inh2), p2 = getPredicate(inh2);
     if (!s1 || !p1 || !s2 || !p2) return undefined;
     if (termsEqual(s1, s2)) {
       return TermBuilder.inheritance(s1, TermBuilder.parallel(p1, p2));
     }
     return undefined;
-  },
+  }),
 
   predictiveImplication: ([seq, inh]: [Term, Term]): Term | undefined => {
     if (seq.kind !== 'sequence') return undefined;
     if (inh.kind !== 'inheritance') return undefined;
     const [seqA, seqB] = seq.args;
-    const s = getSubject(inh);
-    const p = getPredicate(inh);
+    const s = getSubject(inh), p = getPredicate(inh);
     if (!seqA || !seqB || !s || !p) return undefined;
     if (termsEqual(seqA, s) && termsEqual(seqB, p)) {
       return TermBuilder.predictive(s, p);
@@ -324,8 +310,7 @@ export const NALExtendedRules = {
   strategyEffectiveness: ([strategy, result]: [Term, Term]): Term | undefined => {
     if (strategy.kind !== 'inheritance') return undefined;
     if (result.kind !== 'inheritance') return undefined;
-    const s = getSubject(strategy);
-    const p = getPredicate(strategy);
+    const s = getSubject(strategy), p = getPredicate(strategy);
     if (!s || !p) return undefined;
     return TermBuilder.inheritance(TermBuilder.operation(s, p), result);
   },
@@ -333,8 +318,7 @@ export const NALExtendedRules = {
   resourceAllocation: ([task, resource]: [Term, Term]): Term | undefined => {
     if (task.kind !== 'inheritance') return undefined;
     if (resource.kind !== 'inheritance') return undefined;
-    const t = getSubject(task);
-    const r = getSubject(resource);
+    const t = getSubject(task), r = getSubject(resource);
     if (!t || !r) return undefined;
     return TermBuilder.inheritance(t, TermBuilder.operation(TermBuilder.atom('allocate'), r));
   },
@@ -342,8 +326,7 @@ export const NALExtendedRules = {
   errorPatternDetection: ([error, context]: [Term, Term]): Term | undefined => {
     if (error.kind !== 'inheritance') return undefined;
     if (context.kind !== 'inheritance') return undefined;
-    const e = getPredicate(error);
-    const c = getSubject(context);
+    const e = getPredicate(error), c = getSubject(context);
     if (!e || !c) return undefined;
     return TermBuilder.predictive(c, TermBuilder.negation(e));
   },
@@ -351,18 +334,14 @@ export const NALExtendedRules = {
   utilityEstimation: ([concept, utility]: [Term, Term]): Term | undefined => {
     if (concept.kind !== 'inheritance') return undefined;
     if (utility.kind !== 'inheritance') return undefined;
-    const c = getSubject(concept);
-    const u = getPredicate(utility);
+    const c = getSubject(concept), u = getPredicate(utility);
     if (!c || !u) return undefined;
     return TermBuilder.inheritance(c, TermBuilder.operation(TermBuilder.atom('utility'), u));
   },
 
-  metacognitiveRevision: ([belief1, belief2]: [Term, Term]): Term | undefined => {
-    if (belief1.kind !== 'inheritance' || belief2.kind !== 'inheritance') return undefined;
-    const s1 = getSubject(belief1);
-    const p1 = getPredicate(belief1);
-    const s2 = getSubject(belief2);
-    const p2 = getPredicate(belief2);
+  metacognitiveRevision: binaryInhRule((belief1, belief2) => {
+    const s1 = getSubject(belief1), p1 = getPredicate(belief1);
+    const s2 = getSubject(belief2), p2 = getPredicate(belief2);
     if (!s1 || !p1 || !s2 || !p2) return undefined;
     if (termsEqual(s1, s2) && termsEqual(p1, p2)) {
       return TermBuilder.inheritance(
@@ -371,10 +350,9 @@ export const NALExtendedRules = {
       );
     }
     return undefined;
-  },
+  }),
 
-  selfModelConsistency: ([model1, model2]: [Term, Term]): Term | undefined => {
-    if (model1.kind !== 'inheritance' || model2.kind !== 'inheritance') return undefined;
+  selfModelConsistency: binaryInhRule((model1, model2) => {
     const s1 = getSubject(model1);
     const s2 = getSubject(model2);
     if (!s1 || !s2) return undefined;
@@ -385,20 +363,7 @@ export const NALExtendedRules = {
       );
     }
     return undefined;
-  }
-};
-
-const getVariables = (term: Term): Term[] => {
-  const vars: Term[] = [];
-  const collect = (t: Term): void => {
-    if (t.kind === 'atom' && (t as any).isVariable) {
-      vars.push(t);
-    } else if (t.kind !== 'atom') {
-      (t.args ?? []).forEach(collect);
-    }
-  };
-  collect(term);
-  return vars;
+  })
 };
 
 registerRule('nal.modusPonens', 'implication', 'atom', NALExtendedRules.modusPonens, Truth.deduction, 0.95);

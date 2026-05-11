@@ -157,12 +157,12 @@ private getConnectivity(concept: Concept): number {
         return concepts.reduce((oldest, c) => this.getLastAccess(c) < this.getLastAccess(oldest) ? c : oldest, concepts[0]!);
     }
 
-    private selectByComposite(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
-        const policy = this.policy as { type: 'composite'; weights: { priority: number; age: number } };
-        return concepts.reduce((worst, c) => {
-            const score = scorer.score(c) * policy.weights.priority + (Date.now() - this.getLastAccess(c)) * policy.weights.age;
-            const worstScore = worst && scorer.score(worst) * policy.weights.priority + (Date.now() - this.getLastAccess(worst)) * policy.weights.age;
-            return score > worstScore ? c : worst;
-        }, undefined as Concept | undefined);
-    }
+private selectByComposite(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
+  const policy = this.policy as { type: 'composite'; weights: { priority: number; age: number } };
+  return concepts.reduce((worst, c) => {
+    const score = scorer.score(c) * policy.weights.priority + (Date.now() - this.getLastAccess(c)) * policy.weights.age;
+    const worstScore = worst ? scorer.score(worst) * policy.weights.priority + (Date.now() - this.getLastAccess(worst)) * policy.weights.age : -Infinity;
+    return score > worstScore ? c : worst;
+  }, undefined as Concept | undefined);
+}
 }
