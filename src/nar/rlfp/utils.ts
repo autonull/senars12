@@ -8,12 +8,19 @@ export interface TrajectoryFeatures {
 }
 
 export function extractTrajectoryFeatures(trajectory: TrajectoryStep[]): TrajectoryFeatures {
-    const toolCalls = trajectory.filter(s => s.type === 'tool_call');
-    const lmResponses = trajectory.filter(s => s.type === 'lm_response');
-    const errors = trajectory.filter(s => s.type === 'lm_failure');
-    const uniqueTools = new Set<string>(toolCalls.map(t => String((t.data as Record<string, unknown>)?.name || 'unknown')));
-
-    return {toolCalls, lmResponses, errors, uniqueTools};
+  const toolCalls: TrajectoryStep[] = [], lmResponses: TrajectoryStep[] = [], errors: TrajectoryStep[] = [];
+  const uniqueTools = new Set<string>();
+  for (const s of trajectory) {
+    if (s.type === 'tool_call') {
+      toolCalls.push(s);
+      uniqueTools.add(String((s.data as Record<string, unknown>)?.name || 'unknown'));
+    } else if (s.type === 'lm_response') {
+      lmResponses.push(s);
+    } else if (s.type === 'lm_failure') {
+      errors.push(s);
+    }
+  }
+  return {toolCalls, lmResponses, errors, uniqueTools};
 }
 
 // Identify common features across multiple trajectories. Returns feature -> normalized frequency.

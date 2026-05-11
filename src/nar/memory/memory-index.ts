@@ -126,20 +126,8 @@ export class MemoryIndex {
     getBySubterm(termHash: number): Concept[] {
         const entry = this.inverseIndex.get(termHash);
         if (!entry) return [];
-
-        const results = new Set<Concept>();
-
-        for (const concept of entry.concepts) {
-            results.add(concept);
-        }
-
-        const subtermSet = entry.subtermIndices.get(termHash);
-        if (subtermSet) {
-            for (const concept of subtermSet) {
-                results.add(concept);
-            }
-        }
-
+        const results = new Set(entry.concepts);
+        entry.subtermIndices.get(termHash)?.forEach(c => results.add(c));
         return Array.from(results);
     }
 

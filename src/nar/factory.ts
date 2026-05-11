@@ -26,74 +26,41 @@ export interface SeNARSConfig {
     };
 }
 
+const BASE_CONFIG = {
+    activationDecayRate: 0.01,
+    consolidationInterval: 10,
+} as const;
+
+const MINIMAL_CONFIG = { ...BASE_CONFIG, maxConcepts: 100, priorityThreshold: 0.1, cpuThrottleMs: 0, maxDerivationDepth: 10, maxDerivationsPerStep: 100 } as const;
+const CLI_CONFIG = { ...BASE_CONFIG, maxConcepts: 200, priorityThreshold: 0.1, cpuThrottleMs: 0, maxDerivationDepth: 10, maxDerivationsPerStep: 100 } as const;
+const BOT_CONFIG = { ...BASE_CONFIG, maxConcepts: 1000, priorityThreshold: 0.5, cpuThrottleMs: 10, maxDerivationDepth: 10, maxDerivationsPerStep: 1000 } as const;
+const TEST_CONFIG = { ...BASE_CONFIG, maxConcepts: 100, priorityThreshold: 0.0, activationDecayRate: 0.0, consolidationInterval: 1000, cpuThrottleMs: 0, maxDerivationDepth: 20, maxDerivationsPerStep: 1000 } as const;
+
 export class SeNARSFactory {
     static createDefault(options: SeNARSOptions = {}): NAR {
-        const config: NARConfig = {
-            ...DEFAULT_CONFIG,
-            ...options.core,
-            enableLMRules: options.enableLMRules ?? false,
-            lmClient: options.lmClient ?? undefined
-        };
-
+        const config: NARConfig = { ...DEFAULT_CONFIG, ...options.core, enableLMRules: options.enableLMRules ?? false, lmClient: options.lmClient ?? undefined };
         return new NAR(config);
     }
 
     static fromConfig(config: SeNARSConfig, lmClient?: LMClient | null): NAR {
-        const narConfig: NARConfig = {
-            ...config.nar,
-            enableLMRules: config.lm?.enabled ?? false,
-            lmClient: config.lm?.enabled ? lmClient ?? undefined : undefined
-        };
-
+        const narConfig: NARConfig = { ...config.nar, enableLMRules: config.lm?.enabled ?? false, lmClient: config.lm?.enabled ? lmClient ?? undefined : undefined };
         return new NAR(narConfig);
     }
 
     static createMinimal(): NAR {
-        return new NAR({
-            maxConcepts: 100,
-            priorityThreshold: 0.1,
-            activationDecayRate: 0.01,
-            consolidationInterval: 10,
-            cpuThrottleMs: 0,
-            maxDerivationDepth: 10,
-            maxDerivationsPerStep: 100
-        });
+        return new NAR(MINIMAL_CONFIG);
     }
 
     static createForCLI(options?: { maxConcepts?: number; maxDerivationDepth?: number }): NAR {
-        return new NAR({
-            maxConcepts: options?.maxConcepts ?? 200,
-            priorityThreshold: 0.1,
-            activationDecayRate: 0.01,
-            consolidationInterval: 10,
-            cpuThrottleMs: 0,
-            maxDerivationDepth: options?.maxDerivationDepth ?? 10,
-            maxDerivationsPerStep: 100
-        });
+        return new NAR({ ...CLI_CONFIG, maxConcepts: options?.maxConcepts ?? CLI_CONFIG.maxConcepts, maxDerivationDepth: options?.maxDerivationDepth ?? CLI_CONFIG.maxDerivationDepth });
     }
 
     static createForBot(options?: { maxConcepts?: number }): NAR {
-        return new NAR({
-            maxConcepts: options?.maxConcepts ?? 1000,
-            priorityThreshold: 0.5,
-            activationDecayRate: 0.01,
-            consolidationInterval: 10,
-            cpuThrottleMs: 10,
-            maxDerivationDepth: 10,
-            maxDerivationsPerStep: 1000
-        });
+        return new NAR({ ...BOT_CONFIG, maxConcepts: options?.maxConcepts ?? BOT_CONFIG.maxConcepts });
     }
 
     static createForTesting(options?: { maxConcepts?: number }): NAR {
-        return new NAR({
-            maxConcepts: options?.maxConcepts ?? 100,
-            priorityThreshold: 0.0,
-            activationDecayRate: 0.0,
-            consolidationInterval: 1000,
-            cpuThrottleMs: 0,
-            maxDerivationDepth: 20,
-            maxDerivationsPerStep: 1000
-        });
+        return new NAR({ ...TEST_CONFIG, maxConcepts: options?.maxConcepts ?? TEST_CONFIG.maxConcepts });
     }
 }
 

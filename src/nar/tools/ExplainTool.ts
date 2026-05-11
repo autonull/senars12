@@ -59,19 +59,10 @@ export class ExplainTool implements Tool {
     private findConcept(termStr: string): Concept | undefined {
         const conceptMap = (this.memory as any).concepts as Map<string, Concept>;
         if (!conceptMap) return undefined;
-
-        for (const _concept of conceptMap.values()) {
-            if (_concept.term.toString() === termStr) {
-                return _concept;
-            }
+        for (const concept of conceptMap.values()) {
+            const termStr2 = concept.term.toString();
+            if (termStr2 === termStr || termStr2.includes(termStr)) return concept;
         }
-
-        for (const _concept of conceptMap.values()) {
-            if (_concept.term.toString().includes(termStr)) {
-                return _concept;
-            }
-        }
-
         return undefined;
     }
 

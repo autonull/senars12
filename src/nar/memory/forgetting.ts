@@ -124,75 +124,45 @@ export class Forgetting {
         return concepts;
     }
 
-    private getConnectivity(concept: Concept): number {
+private getConnectivity(concept: Concept): number {
         const links = concept.getLinks();
         const parents = concept.getParentConcepts();
         const children = concept.getChildConcepts();
-
         const totalConnections = links.length + parents.length + children.length;
-
         if (totalConnections === 0) return 0;
-
         const linkStrength = links.reduce((sum, link) => sum + link.strength, 0);
         return Math.min(1, (totalConnections + linkStrength) / 10);
     }
 
-  private selectFifo(concepts: Concept[]): Concept | undefined {
-    let oldest: Concept | undefined;
-    let oldestTime = Infinity;
-    for (const concept of concepts) {
-      const lastAccess = 'lastAccessedAt' in concept ? concept.lastAccessedAt ?? 0 : 0;
-      if (lastAccess < oldestTime) {
-        oldestTime = lastAccess;
-        oldest = concept;
-      }
+    private getLastAccess(concept: Concept): number {
+        return 'lastAccessedAt' in concept ? (concept.lastAccessedAt ?? 0) : 0;
     }
-    return oldest;
-  }
+
+    private selectFifo(concepts: Concept[]): Concept | undefined {
+        if (concepts.length === 0) return undefined;
+        return concepts.reduce((oldest, c) => this.getLastAccess(c) < this.getLastAccess(oldest) ? c : oldest, concepts[0]!);
+    }
 
     private selectByPriority(concepts: Concept[]): Concept | undefined {
         const policy = this.policy as { type: 'priority'; threshold: number };
-        for (const concept of concepts) {
-            if (concept.priority < policy.threshold) {
-                return concept;
-            }
-        }
-        return concepts.reduce((min, c) =>
-            min && c.priority < min.priority ? c : min, concepts[0]
-        );
+        return concepts.find(c => c.priority < policy.threshold) ?? concepts.reduce((min, c) => min && c.priority < min.priority ? c : min, concepts[0]);
     }
 
-  private selectByAge(concepts: Concept[]): Concept | undefined {
-    const policy = this.policy as { type: 'age'; maxAgeMs: number };
-    const now = Date.now();
-    for (const concept of concepts) {
-      const lastAccess = 'lastAccessedAt' in concept ? concept.lastAccessedAt ?? 0 : 0;
-      if (now - lastAccess > policy.maxAgeMs) {
-        return concept;
-      }
+    private selectByAge(concepts: Concept[]): Concept | undefined {
+        const policy = this.policy as { type: 'age'; maxAgeMs: number };
+        const now = Date.now();
+        const found = concepts.find(c => now - this.getLastAccess(c) > policy.maxAgeMs);
+        if (found) return found;
+        if (concepts.length === 0) return undefined;
+        return concepts.reduce((oldest, c) => this.getLastAccess(c) < this.getLastAccess(oldest) ? c : oldest, concepts[0]!);
     }
-    const first = concepts[0];
-    if (!first) return undefined;
-    return concepts.reduce((oldest, c) => {
-      const t = 'lastAccessedAt' in c ? c.lastAccessedAt ?? 0 : 0;
-      const ot = 'lastAccessedAt' in oldest ? oldest.lastAccessedAt ?? 0 : 0;
-      return t < ot ? c : oldest;
-    }, first);
-  }
 
-  private selectByComposite(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
-    const policy = this.policy as { type: 'composite'; weights: { priority: number; age: number } };
-    let worst: Concept | undefined;
-    let worstScore = Infinity;
-    for (const concept of concepts) {
-      const score = scorer.score(concept);
-      const lastAccess = 'lastAccessedAt' in concept ? concept.lastAccessedAt ?? 0 : 0;
-      const compositeScore = score * policy.weights.priority + (Date.now() - lastAccess) * policy.weights.age;
-      if (compositeScore > worstScore) {
-        worstScore = compositeScore;
-        worst = concept;
-      }
-        }
-        return worst;
+    private selectByComposite(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
+        const policy = this.policy as { type: 'composite'; weights: { priority: number; age: number } };
+        return concepts.reduce((worst, c) => {
+            const score = scorer.score(c) * policy.weights.priority + (Date.now() - this.getLastAccess(c)) * policy.weights.age;
+            const worstScore = worst && scorer.score(worst) * policy.weights.priority + (Date.now() - this.getLastAccess(worst)) * policy.weights.age;
+            return score > worstScore ? c : worst;
+        }, undefined as Concept | undefined);
     }
 }
