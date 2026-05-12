@@ -2,8 +2,7 @@ import type {LMClient} from './types.js';
 import type {Memory} from '../memory';
 import type {Term} from '../terms';
 import {Truth} from '../terms';
-import {createTask, type Task} from '../types';
-import {createBudget} from '../types';
+import {createBudget, createTask, type Task} from '../types';
 import {LMResponseParser} from './parser.js';
 
 export interface FeedbackConfig {

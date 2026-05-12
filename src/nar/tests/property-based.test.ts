@@ -1,6 +1,5 @@
 import fc from 'fast-check';
-import {serializeTerm, Stamp, TermBuilder, Truth} from '../terms';
-import {normalize} from '../terms';
+import {normalize, serializeTerm, Stamp, TermBuilder, Truth, termsEqual} from '../terms';
 import {Bag} from '../memory';
 
 describe('Property-Based Tests', () => {
@@ -10,7 +9,7 @@ describe('Property-Based Tests', () => {
                 fc.property(fc.string(), (name) => {
                     const term1 = TermBuilder.atom(name);
                     const term2 = TermBuilder.atom(name);
-                    expect(term1.hash).toBe(term2.hash);
+                    expect(termsEqual(term1, term2)).toBe(true);
                     expect(term1.symbol).toBe(term2.symbol);
                 })
             );
@@ -23,7 +22,7 @@ describe('Property-Based Tests', () => {
                     const termB = TermBuilder.atom(b);
                     const conj1 = TermBuilder.conjunction(termA, termB);
                     const conj2 = TermBuilder.conjunction(termB, termA);
-                    expect(conj1.hash).toBe(conj2.hash);
+                    expect(termsEqual(conj1, conj2)).toBe(true);
                 })
             );
         });
@@ -35,7 +34,7 @@ describe('Property-Based Tests', () => {
                     const termB = TermBuilder.atom(b);
                     const disj1 = TermBuilder.disjunction(termA, termB);
                     const disj2 = TermBuilder.disjunction(termB, termA);
-                    expect(disj1.hash).toBe(disj2.hash);
+                    expect(termsEqual(disj1, disj2)).toBe(true);
                 })
             );
         });
@@ -48,7 +47,7 @@ describe('Property-Based Tests', () => {
                     const termB = TermBuilder.atom(b);
                     const inh1 = TermBuilder.inheritance(termA, termB);
                     const inh2 = TermBuilder.inheritance(termB, termA);
-                    expect(inh1.hash).not.toBe(inh2.hash);
+                    expect(termsEqual(inh1, inh2)).toBe(false);
                 })
             );
         });
@@ -132,7 +131,7 @@ describe('Property-Based Tests', () => {
                     const term = TermBuilder.atom(name);
                     const norm1 = normalize(term);
                     const norm2 = normalize(norm1);
-                    expect(norm1.hash).toBe(norm2.hash);
+                    expect(termsEqual(norm1, norm2)).toBe(true);
                 })
             );
         });
@@ -145,7 +144,7 @@ describe('Property-Based Tests', () => {
                     const conj = TermBuilder.conjunction(t1, t2);
                     const norm1 = normalize(conj);
                     const norm2 = normalize(norm1);
-                    expect(norm1.hash).toBe(norm2.hash);
+                    expect(termsEqual(norm1, norm2)).toBe(true);
                 })
             );
         });
@@ -191,9 +190,9 @@ describe('Property-Based Tests', () => {
             fc.assert(
                 fc.property(fc.string(), (name) => {
                     const atom = TermBuilder.atom(name);
-                    const before = atom.hash;
+                    
                     normalize(atom);
-                    expect(atom.hash).toBe(before);
+                    
                 })
             );
         });

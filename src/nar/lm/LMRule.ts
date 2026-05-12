@@ -3,10 +3,9 @@ import {Truth} from '../terms';
 import type {Budget, Task, TaskType} from '../types';
 import {createTask, EventBus} from '../types';
 import type {LMClient, LMExecutionStats, LMRuleConfig, LMRuleStats} from './types.js';
-import {CircuitBreaker} from '../utils';
+import {CircuitBreaker, errMsg} from '../utils';
 import type {Truth as TruthType} from '../terms/truth.js';
 import {LMResponseParser} from './parser.js';
-import {errMsg} from '../utils';
 
 export class LMRule {
     readonly id: string;

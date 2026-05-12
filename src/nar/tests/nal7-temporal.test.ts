@@ -43,7 +43,7 @@ describe('NAL7 Temporal Rules', () => {
             const result = NALExtendedRules.parallelIntroduction([inh1, inh2]);
 
             expect(result).toBeDefined();
-            expect(result?.toString()).toBe('(bird --> (living || animal))');
+            expect(result?.toString()).toBe('(bird --> (animal || living))');
         });
 
         test('returns undefined for different subjects', () => {
@@ -121,7 +121,7 @@ describe('NAL7 Temporal Rules', () => {
             const animal = atom('animal');
             const par = parallel(bird, animal);
 
-            expect(par.toString()).toBe('(bird || animal)');
+            expect(par.toString()).toBe('(animal || bird)');
         });
 
         test('creates predictive terms', () => {

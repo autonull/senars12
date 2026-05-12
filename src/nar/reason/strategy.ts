@@ -1,7 +1,7 @@
 import type {Task} from '../types';
+import {createSecondaryTask} from '../types';
 import {Memory} from '../memory';
 import {termsEqual} from '../terms';
-import {createSecondaryTask} from '../types';
 
 export interface Strategy {
     readonly name: string;

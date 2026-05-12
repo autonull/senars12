@@ -3,8 +3,11 @@ import type {Task} from '../../types';
 import type {Memory} from '../../memory';
 import {createStrategy, createStrategy as createStrategyBase} from './base.js';
 import {termsEqual, Truth} from '../../terms';
+import {createTermLinkStrategy, TermLinkStrategy as TermLinkStrategyImpl} from './term-link.js';
+import {createSemanticStrategy, SemanticStrategy as SemanticStrategyImpl} from './semantic.js';
 
 export {createStrategy, createStrategyBase};
+export {TermLinkStrategyImpl, createTermLinkStrategy, SemanticStrategyImpl, createSemanticStrategy};
 
 export const PrologStrategy: Strategy = createStrategy({
     name: 'prolog',
@@ -186,12 +189,12 @@ export class CompositeStrategy implements Strategy {
             const _weight = this.weights?.[weightIndex] ?? 1;
             const results = strategy.selectSecondary(task, memory);
 
-            for (const result of results) {
-                const key = `${result.term.hash}`;
-                if (!weightedResults.has(key)) {
-                    weightedResults.set(key, result);
-                }
-            }
+for (const result of results) {
+  const key = result.term.kind === 'atom' ? result.term.symbol : `${result.term.kind}-${Date.now()}`;
+  if (!weightedResults.has(key)) {
+    weightedResults.set(key, result);
+  }
+}
 
             weightIndex++;
         }

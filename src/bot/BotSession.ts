@@ -21,22 +21,8 @@ export class BotSession {
 
         if (deps.ircConfig?.port) {
             this.ircServer = new EmbeddedIRCServer(deps.ircConfig);
-            const router = createMessageRouter({
-                nar: this.nar,
-                send: (ch, u, msg) => this.ircServer!.send(ch, `[${u}] ${msg}`),
-            });
-            this.ircServer.on('message', async ({message}) => {
-                if (message.command === 'PRIVMSG') {
-                    const text = message.params.slice(0).join(' ');
-                    const user = message.prefix?.split('!')[0] ?? 'unknown';
-                    try {
-                        await router(channel, user, text);
-                    } catch (e) {
-                        if (deps.debug) console.error('[Bot] Handler error:', e);
-                    }
-                }
-            });
-            this.sendFn = (ch: string, _u: string, msg: string) => this.ircServer?.send(ch, msg);
+            this.setupMessageHandler(deps, channel);
+            this.sendFn = (ch, _u, msg) => this.ircServer?.send(ch, msg);
         } else {
             this.sendFn = () => {
             };
@@ -56,5 +42,28 @@ export class BotSession {
 
     getNar(): NAR {
         return this.nar;
+    }
+
+    private setupMessageHandler(deps: BotSessionDeps, channel: string): void {
+        const ircServer = this.ircServer;
+        if (!ircServer) return;
+
+        const router = createMessageRouter({
+            nar: this.nar,
+            send: (ch, u, msg) => ircServer.send(ch, `[${u}] ${msg}`),
+        });
+
+        ircServer.on('message', async ({message}) => {
+            if (message.command !== 'PRIVMSG') return;
+
+            const text = message.params?.join(' ') ?? '';
+            const user = message.prefix?.split('!')?.[0] ?? 'unknown';
+
+            try {
+                await router(channel, user, text);
+            } catch (error) {
+                if (deps.debug) console.error('[Bot] Handler error:', error);
+            }
+        });
     }
 }

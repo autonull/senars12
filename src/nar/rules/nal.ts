@@ -50,10 +50,10 @@ export const NALRules = {
             if (!s1 || !p1 || !s2 || !p2) return false;
             return (termsEqual(s1, s2) && termsEqual(p1, p2)) || (termsEqual(s1, p2) && termsEqual(p1, s2));
         },
-build: (l, _r) => {
-const s1 = getSubject(l), p1 = getPredicate(l);
-return s1 && p1 ? TermBuilder.similarity(s1, p1) : undefined;
-}
+        build: (l, _r) => {
+            const s1 = getSubject(l), p1 = getPredicate(l);
+            return s1 && p1 ? TermBuilder.similarity(s1, p1) : undefined;
+        }
     }),
 
     contrapositive: ([imp, inh]: [Term, Term]): Term | undefined => {

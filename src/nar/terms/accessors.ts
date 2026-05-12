@@ -58,7 +58,16 @@ const eqCompound = (a: CompoundTerm, b: Term): boolean => {
 };
 
 export const termsEqual = (a: Term, b: Term): boolean => {
-    if (a === b) return true;
-    if (a.hash !== b.hash) return false;
-    return a.kind === 'atom' ? eqAtom(a, b) : eqCompound(a, b);
+  if (a === b) return true;
+  if (a.kind !== b.kind) return false;
+  if (a.kind === 'atom') {
+    return a.symbol === b.symbol;
+  }
+  const aArgs = a.args ?? [];
+  const bArgs = b.args ?? [];
+  if (aArgs.length !== bArgs.length) return false;
+  for (let i = 0; i < aArgs.length; i++) {
+    if (!termsEqual(aArgs[i]!, bArgs[i]!)) return false;
+  }
+  return true;
 };

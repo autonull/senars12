@@ -4,12 +4,13 @@
 
 import type {TaskData} from './concept.js';
 import type {Truth} from '../terms';
-import {Truth as TruthOps} from '../terms/truth.js';
 import {termsEqual} from '../terms';
+import {Truth as TruthOps} from '../terms/truth.js';
+import {TermMap} from '../terms/term-map.js';
 
 export interface RevisionResult {
-    revised: Truth;
-    evidenceCount: number;
+  revised: Truth;
+  evidenceCount: number;
 }
 
 /**
@@ -17,24 +18,24 @@ export interface RevisionResult {
  * Combines evidence from multiple sources
  */
 export function reviseTruths(t1: Truth, t2: Truth): RevisionResult {
-    const revised = TruthOps.revision(t1, t2);
+  const revised = TruthOps.revision(t1, t2);
 
-    // Estimate evidence count based on confidence
-    // Higher confidence = more evidence
-    const evidence1 = Math.round(t1.c * 10);
-    const evidence2 = Math.round(t2.c * 10);
+  // Estimate evidence count based on confidence
+  // Higher confidence = more evidence
+  const evidence1 = Math.round(t1.c * 10);
+  const evidence2 = Math.round(t2.c * 10);
 
-    return {
-        revised,
-        evidenceCount: evidence1 + evidence2
-    };
+  return {
+    revised,
+    evidenceCount: evidence1 + evidence2
+  };
 }
 
 /**
- * Check if two tasks are duplicates (same term hash)
+ * Check if two tasks are duplicates (same term)
  */
 export function isDuplicate(task1: TaskData, task2: TaskData): boolean {
-    return termsEqual(task1.term, task2.term);
+  return termsEqual(task1.term, task2.term);
 }
 
 /**
@@ -42,46 +43,23 @@ export function isDuplicate(task1: TaskData, task2: TaskData): boolean {
  * Keeps the most recent or highest confidence task
  */
 export function deduplicateTasks(tasks: TaskData[]): TaskData[] {
-    const map = new Map<number, TaskData>();
+  const map = new TermMap<TaskData>();
 
-    for (const task of tasks) {
-        const hash = task.term.hash;
-        const existing = map.get(hash);
+  for (const task of tasks) {
+    const existing = map.get(task.term);
 
-        if (!existing) {
-            map.set(hash, task);
-        } else {
-            // Keep task with higher confidence or more recent
-            const existingConf = existing.truth?.c ?? 0;
-            const newConf = task.truth?.c ?? 0;
+    if (!existing) {
+      map.set(task.term, task);
+    } else {
+      // Keep task with higher confidence or more recent
+      const existingConf = existing.truth?.c ?? 0;
+      const newConf = task.truth?.c ?? 0;
 
-            if (newConf > existingConf) {
-                map.set(hash, task);
-            }
-        }
+      if (newConf > existingConf) {
+        map.set(task.term, task);
+      }
     }
+  }
 
-    return Array.from(map.values());
-}
-
-/**
- * Merge multiple belief tasks about the same term
- * Returns revised truth value
- */
-export function mergeBeliefs(tasks: TaskData[]): Truth | undefined {
-    if (tasks.length === 0) return undefined;
-
-    const firstTruth = tasks[0]?.truth;
-    if (!firstTruth) return undefined;
-
-    let result = firstTruth;
-
-    for (let i = 1; i < tasks.length; i++) {
-        const current = tasks[i]?.truth;
-        if (current) {
-            result = TruthOps.revision(result, current);
-        }
-    }
-
-    return result;
+  return Array.from(map.values());
 }

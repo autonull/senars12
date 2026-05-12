@@ -227,10 +227,8 @@ export class RealIRCClient extends EventEmitter {
     }
 
     private stopQueueDrain(): void {
-        if (this.queueTimer) {
-            clearInterval(this.queueTimer);
-            this.queueTimer = null;
-        }
+        this.queueTimer && clearInterval(this.queueTimer);
+        this.queueTimer = null;
     }
 
     private scheduleJoin(): void {
@@ -245,41 +243,38 @@ export class RealIRCClient extends EventEmitter {
 
     private startPingTimer(): void {
         this.pingTimer = setInterval(() => {
-            if (!this.connected) return;
-            if (this.lastPingTime > 0 && Date.now() - this.lastPingTime > this.config.pingTimeout * 1000) {
+            if (!this.connected || this.lastPingTime <= 0) return;
+
+            const elapsed = Date.now() - this.lastPingTime;
+            if (elapsed > this.config.pingTimeout * 1000) {
                 this.emit('error', new Error('Ping timeout'));
                 this.client?.disconnect('Ping timeout', () => {
                 });
                 this.scheduleReconnect();
-                return;
             }
             this.lastPingTime = Date.now();
         }, this.config.pingTimeout * 1000);
     }
 
     private stopPingTimer(): void {
-        if (this.pingTimer) {
-            clearInterval(this.pingTimer);
-            this.pingTimer = null;
-        }
+        this.pingTimer && clearInterval(this.pingTimer);
+        this.pingTimer = null;
         this.lastPingTime = 0;
     }
 
     private scheduleReconnect(): void {
-        if (!this.config.autoReconnect || this.disposed) return;
-        if (this.reconnectAttempt >= this.config.autoReconnectMaxRetries) {
+        if (!this.config.autoReconnect || this.disposed || this.reconnectAttempt >= this.config.autoReconnectMaxRetries) {
+            this.reconnectAttempt >= this.config.autoReconnectMaxRetries &&
             this.emit('error', new Error('Max reconnect retries exceeded'));
             return;
         }
 
-        const delay = Math.min(16000, 1000 * Math.pow(2, this.reconnectAttempt));
+        const delay = Math.min(16000, 1000 * 2 ** this.reconnectAttempt);
         const jitter = delay * 0.1 * Math.random();
         this.reconnectAttempt++;
 
         this.reconnectTimer = setTimeout(() => {
-            this.connect().catch((e) => {
-                this.emit('error', e instanceof Error ? e : new Error(String(e)));
-            });
+            this.connect().catch((e) => this.emit('error', e instanceof Error ? e : new Error(String(e))));
         }, delay + jitter);
     }
 }

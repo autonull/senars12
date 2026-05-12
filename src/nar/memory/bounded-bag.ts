@@ -258,21 +258,19 @@ export class BoundedBag<T> {
         return minIdx;
     }
 
-    private itemsMatch(a: T, b: T): boolean {
-        if (a == null || b == null) return a === b;
-        if (typeof a === 'object' && typeof b === 'object') {
-            if ('hash' in a && 'hash' in b) {
-                const aObj = a as Record<string, unknown>;
-                const bObj = b as Record<string, unknown>;
-                if (aObj.hash !== bObj.hash) return false;
-                const aKind = aObj['kind'], bKind = bObj['kind'];
-                if (aKind !== undefined && bKind !== undefined && aKind !== bKind) return false;
-                const aArgs = aObj['args'], bArgs = bObj['args'];
-                if (Array.isArray(aArgs) && Array.isArray(bArgs) && aArgs.length !== bArgs.length) return false;
-                return true;
-            }
-            return JSON.stringify(a) === JSON.stringify(b);
-        }
-        return a === b;
+private itemsMatch(a: T, b: T): boolean {
+  if (a == null || b == null) return a === b;
+  if (typeof a === 'object' && typeof b === 'object') {
+    if ('kind' in a && 'kind' in b) {
+      const aObj = a as {kind?: string; args?: unknown[]};
+      const bObj = b as {kind?: string; args?: unknown[]};
+      if (aObj.kind !== bObj.kind) return false;
+      const aArgs = aObj.args, bArgs = bObj.args;
+      if (Array.isArray(aArgs) && Array.isArray(bArgs) && aArgs.length !== bArgs.length) return false;
+      return true;
     }
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+  return a === b;
+}
 }

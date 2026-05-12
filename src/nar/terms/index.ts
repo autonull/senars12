@@ -3,7 +3,8 @@ export type {Term, AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol} from '
 export {OPERATORS, isVariableSymbol, isAtomic, isCompound, getTermArgs, getTermArg} from './types.js';
 
 // Utilities
-import {trackTerm} from '../memory/gc.js';
+import {trackTerm} from '../memory';
+
 export {trackTerm};
 
 export {TermBuilder, freeze, TermFactory} from './factory.js';
@@ -40,35 +41,38 @@ export {termParser, TermParser} from './parser.js';
 
 // Accessors - named exports only
 export {
-    isInheritance,
-    isSimilarity,
-    isImplication,
-    isEquivalence,
-    isConjunction,
-    isDisjunction,
-    isNegation,
-    isInstance,
-    isProperty,
-    isSequence,
-    isParallel,
-    isPredictive,
-    isRetrospective,
-    isOperation,
-    getSubject,
-    getPredicate,
-    getAntecedent,
-    getConsequent,
-    getArgs,
-    termsEqual,
-    sameKind
+  isInheritance,
+  isSimilarity,
+  isImplication,
+  isEquivalence,
+  isConjunction,
+  isDisjunction,
+  isNegation,
+  isInstance,
+  isProperty,
+  isSequence,
+  isParallel,
+  isPredictive,
+  isRetrospective,
+  isOperation,
+  getSubject,
+  getPredicate,
+  getAntecedent,
+  getConsequent,
+  getArgs,
+  termsEqual,
+  sameKind
 } from './accessors.js';
 
 // Utilities
-export {extractSymbols, getTermHash, jaccardSimilarity, calculateSimilarity} from './utils.js';
+export {extractSymbols, jaccardSimilarity, calculateSimilarity} from './utils.js';
 
 // Type guards and helpers
 export {
-    termHashKey,
-    isCanonical,
-    getCompoundArgs
+  isCanonical,
+  getCompoundArgs
 } from './guards.js';
+
+// Term-based collections
+export {TermMap} from './term-map.js';
+export {TermSet} from './term-set.js';

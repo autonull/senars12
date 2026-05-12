@@ -52,8 +52,8 @@ export interface NARConfig extends CoreConfig {
 }
 
 interface _MemoryConfig {
-maxConcepts?: number;
-priorityThreshold?: number;
+    maxConcepts?: number;
+    priorityThreshold?: number;
 }
 
 interface SerializedNARState {

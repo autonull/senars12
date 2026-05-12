@@ -1,11 +1,5 @@
 import {afterEach, beforeEach, describe, expect, test} from '@jest/globals';
-import {
-    backpressureAware,
-    createPipeline,
-    FocusPremiseSource,
-    MemoryPremiseSource,
-    throttled
-} from '../stream';
+import {backpressureAware, createPipeline, FocusPremiseSource, MemoryPremiseSource, throttled} from '../stream';
 import type {Memory} from '../memory';
 import {SeNARSFactory} from '../index.js';
 import {BagStrategy} from '../reason';

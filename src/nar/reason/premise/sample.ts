@@ -1,8 +1,8 @@
 import type {Concept, Memory} from '../../memory';
 import type {Task} from '../../types';
 import {createSecondaryTask} from '../../types';
-import {termsEqual} from '../../terms';
 import type {Term} from '../../terms';
+import {termsEqual} from '../../terms';
 
 export interface PremiseFilter {
     (concept: Concept, task: Task): boolean;

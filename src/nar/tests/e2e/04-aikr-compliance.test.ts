@@ -3,8 +3,7 @@
  */
 import type {NARConfig} from '../../nar.js';
 import {NAR} from '../../nar.js';
-import {Truth} from '../../terms';
-import {TermBuilder} from '../../terms';
+import {TermBuilder, Truth} from '../../terms';
 
 describe('AIKR Compliance', () => {
     let nar: NAR;
@@ -187,8 +186,8 @@ describe('AIKR Compliance', () => {
             try {
                 const results = await nar2.run(100);
                 partialResults = results;
-} catch {
-}
+            } catch {
+            }
 
             clearTimeout(timeout);
             expect(partialResults).toBeGreaterThanOrEqual(0);

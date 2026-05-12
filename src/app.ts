@@ -9,26 +9,21 @@
 import {loadConfigFromEnv} from './config';
 import {SeNARSFactory} from './nar';
 
+const MODES = {
+    cli: runCLI,
+    bot: runBot,
+    demo: runDemo,
+} as const;
+
 async function main() {
     const mode = process.argv[2] || 'demo';
 
     console.log('╔══════════════════════════════════════════════════╗');
-    console.log('║ SeNARS12 - Neuro-Symbolic Reasoning System      ║');
+    console.log('║ SeNARS12 - Neuro-Symbolic Reasoning System ║');
     console.log('╚══════════════════════════════════════════════════╝\n');
 
     try {
-        switch (mode) {
-            case 'cli':
-                await runCLI();
-                break;
-            case 'bot':
-                await runBot();
-                break;
-            case 'demo':
-            default:
-                await runDemo();
-                break;
-        }
+        await MODES[mode as keyof typeof MODES]?.() ?? await runDemo();
     } catch (error) {
         console.error('Error:', error);
         process.exit(1);
@@ -42,12 +37,9 @@ async function runCLI() {
 
 async function runBot() {
     console.log('Starting Bot mode...');
-
     const {createBot} = await import('./bot/index.js');
     const {PROFILES} = await import('./bot/config.js');
-    const bot = await createBot(PROFILES.minimal);
-
-    await bot.start();
+    await (await createBot(PROFILES.minimal)).start();
 }
 
 async function runDemo() {
@@ -55,8 +47,8 @@ async function runDemo() {
 
     const config = await loadConfigFromEnv();
     console.log(`Configuration loaded: ${config.name} v${config.version}`);
-    console.log(`  LM Provider: ${config.lm.provider}`);
-    console.log(`  Max Concepts: ${config.core.maxConcepts}\n`);
+    console.log(` LM Provider: ${config.lm.provider}`);
+    console.log(` Max Concepts: ${config.core.maxConcepts}\n`);
 
     const nar = SeNARSFactory.createDefault({
         core: {
@@ -66,8 +58,8 @@ async function runDemo() {
             consolidationInterval: config.core.consolidationInterval,
             cpuThrottleMs: config.core.cpuThrottleMs,
             maxDerivationDepth: config.core.maxDerivationDepth,
-            maxDerivationsPerStep: config.core.maxDerivationsPerStep
-        }
+            maxDerivationsPerStep: config.core.maxDerivationsPerStep,
+        },
     });
 
     console.log('Demo: Basic reasoning');

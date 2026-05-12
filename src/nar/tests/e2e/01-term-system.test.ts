@@ -2,7 +2,7 @@
  * Term System Tests - Canonicalization, Hashing, and Structural Sharing
  */
 import {NAR} from '../../nar.js';
-import {TermBuilder, Truth} from '../../terms';
+import {TermBuilder, Truth, termsEqual} from '../../terms';
 
 describe('Term System', () => {
     let nar: NAR; // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -25,7 +25,7 @@ describe('Term System', () => {
             const bird1 = TermBuilder.atom('bird');
             const bird2 = TermBuilder.atom('bird');
             expect(bird1).toBe(bird2);
-            expect(bird1.hash).toBe(bird2.hash);
+            expect(termsEqual(bird1, bird2)).toBe(true);
         });
 
         it('normalizes conjunctions for canonical form', () => {
@@ -33,7 +33,7 @@ describe('Term System', () => {
             const b = TermBuilder.atom('B');
             const conj1 = TermBuilder.conjunction(a, b);
             const conj2 = TermBuilder.conjunction(b, a);
-            expect(conj1.hash).toBe(conj2.hash);
+            expect(termsEqual(conj1, conj2)).toBe(true);
         });
 
         it('maintains truth value consistency', () => {

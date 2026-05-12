@@ -4,6 +4,8 @@
 
 import {Concept, type ConceptMergeResult, type ConceptTaskType} from './concept.js';
 import type {Term, Truth} from '../terms';
+import {calculateSimilarity} from '../terms';
+import {TermMap} from '../terms/term-map.js';
 import type {Budget} from '../types';
 import {MemoryIndex} from './memory-index.js';
 import {Focus} from './focus.js';
@@ -12,7 +14,8 @@ import {MemoryScorer} from './scorer.js';
 import {MemoryConsolidation} from './consolidation.js';
 import type {ForgettingPolicy} from './forgetting.js';
 import {Forgetting} from './forgetting.js';
-import {calculateSimilarity} from '../terms';
+import {LinkManager} from './links';
+import {LINK} from '../constants.js';
 
 export interface MemoryConfig {
     maxConcepts?: number;
@@ -29,6 +32,11 @@ export interface MemoryConfig {
     healthCheckInterval?: number;
     enablePressureDetection?: boolean;
     pressureThreshold?: number;
+    linkCapacity?: number;
+    termLinkCapacity?: number;
+    semanticLinkCapacity?: number;
+    linkForgetPolicy?: 'priority' | 'lru' | 'fifo' | 'random';
+    linkDecayRate?: number;
 }
 
 const DEFAULT_CONFIG: Required<MemoryConfig> = {
@@ -46,6 +54,11 @@ const DEFAULT_CONFIG: Required<MemoryConfig> = {
     healthCheckInterval: 1000,
     enablePressureDetection: true,
     pressureThreshold: 0.9,
+    linkCapacity: 1000,
+    termLinkCapacity: 1000,
+    semanticLinkCapacity: 500,
+    linkForgetPolicy: 'priority',
+    linkDecayRate: 0.001,
 };
 
 export interface MemoryStatistics {
@@ -73,7 +86,7 @@ export interface MemoryHealth {
 }
 
 export class Memory {
-    private readonly concepts = new Map<number, Concept>();
+  private readonly concepts = new TermMap<Concept>();
     private readonly config: Required<MemoryConfig>;
     private readonly index: MemoryIndex;
     private readonly focus: Focus;
@@ -81,6 +94,7 @@ export class Memory {
     private readonly scorer: MemoryScorer;
     private readonly consolidation: MemoryConsolidation;
     private readonly forgetting: Forgetting;
+    private readonly linkManager: LinkManager;
     private cyclesSinceConsolidation = 0;
     private lastTimestamp = Date.now();
     private readonly healthCheckInterval: number;
@@ -111,37 +125,50 @@ export class Memory {
         this.scorer = new MemoryScorer();
         this.consolidation = new MemoryConsolidation();
         this.forgetting = new Forgetting(this.config.forgettingPolicy);
+        this.linkManager = new LinkManager({
+            defaultCapacity: config.linkCapacity ?? LINK.DEFAULT_CAPACITY,
+            layers: {
+                term: config.termLinkCapacity ?? LINK.TERM_LAYER_CAPACITY,
+                semantic: config.semanticLinkCapacity ?? LINK.SEMANTIC_LAYER_CAPACITY,
+            },
+            forgetPolicy: config.linkForgetPolicy ?? LINK.FORGET_POLICY,
+            globalDecayRate: config.linkDecayRate ?? LINK.DECAY_RATE,
+        });
     }
 
     get size(): number {
         return this.concepts.size;
     }
 
-    getConcept(term: Term): Concept | undefined {
-        return this.concepts.get(term.hash);
+  getConcept(term: Term): Concept | undefined {
+    return this.concepts.get(term);
+  }
+
+    getLinkManager(): LinkManager {
+        return this.linkManager;
     }
 
-    addConcept(term: Term): Concept {
-        const existing = this.concepts.get(term.hash);
-        if (existing) return existing;
+  addConcept(term: Term): Concept {
+    const existing = this.concepts.get(term);
+    if (existing) return existing;
 
-        if (this.concepts.size >= this.config.maxConcepts) {
-            this.applyForgetting();
-        }
-
-        this.checkMemoryPressure();
-
-        const concept = new Concept(term);
-        this.concepts.set(term.hash, concept);
-
-        if (this.config.enableIndexing) {
-            this.index.index(concept, this.lastTimestamp);
-        }
-
-        this.updateFocus(concept);
-
-        return concept;
+    if (this.concepts.size >= this.config.maxConcepts) {
+      this.applyForgetting();
     }
+
+    this.checkMemoryPressure();
+
+    const concept = new Concept(term);
+    this.concepts.set(term, concept);
+
+    if (this.config.enableIndexing) {
+      this.index.index(concept, this.lastTimestamp);
+    }
+
+    this.updateFocus(concept);
+
+    return concept;
+  }
 
     addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget = {
         priority: 0.9,
@@ -154,18 +181,22 @@ export class Memory {
         return concept.addTask(type, {term, truth, budget});
     }
 
-    removeConcept(term: Term): boolean {
-        const concept = this.concepts.get(term.hash);
-        if (concept) {
-            this.focus.removeFromFocus(concept);
-            if (this.config.enableIndexing) {
-                this.index.remove(concept);
-            }
-            this.concepts.delete(term.hash);
-            return true;
-        }
-        return false;
+  removeConcept(term: Term): boolean {
+    const concept = this.concepts.get(term);
+    if (concept) {
+      this.focus.removeFromFocus(concept);
+      if (this.config.enableIndexing) {
+        this.index.remove(concept);
+      }
+      const termLayer = this.linkManager.getLayer('term');
+      if (termLayer && 'removeAllLinksForTerm' in termLayer) {
+        (termLayer as any).removeAllLinksForTerm(term);
+      }
+      this.concepts.delete(term);
+      return true;
     }
+    return false;
+  }
 
     getFocusConcepts(): Concept[] {
         return this.focus.getFocusSet();
@@ -185,35 +216,26 @@ export class Memory {
         if (++this.cyclesSinceConsolidation < this.config.consolidationInterval) return;
         this.cyclesSinceConsolidation = 0;
 
-        const {activationDecayRate, priorityThreshold} = this.config;
+        const {activationDecayRate, priorityThreshold, archiveThreshold, enableArchive, linkDecayRate} = this.config;
 
         for (const concept of this.concepts.values()) {
             concept.decay(activationDecayRate);
         }
 
+  this.linkManager.applyDecay(linkDecayRate);
+
         const toArchive: Concept[] = [];
         const toRemove: Concept[] = [];
 
-        for (const [, concept] of this.concepts) {
-            const _score = this.scorer.scoreForConsolidation(concept);
+        for (const concept of this.concepts.values()) {
             if (concept.priority < priorityThreshold && concept.totalTasks === 0) {
-                if (this.config.enableArchive && concept.priority < this.config.archiveThreshold) {
-                    toArchive.push(concept);
-                } else {
-                    toRemove.push(concept);
-                }
+                if (enableArchive && concept.priority < archiveThreshold) toArchive.push(concept);
+                else toRemove.push(concept);
             }
         }
 
-        if (this.config.enableArchive) {
-            for (const concept of toArchive) {
-                this.archiveConcept(concept);
-            }
-        }
-
-        for (const concept of toRemove) {
-            this.removeConcept(concept.term);
-        }
+        if (enableArchive) toArchive.forEach(concept => this.archiveConcept(concept));
+        toRemove.forEach(concept => this.removeConcept(concept.term));
 
         this.updateAllFocus();
     }
@@ -240,63 +262,59 @@ export class Memory {
         if (this.config.enableArchive) {
             this.archive.clear();
         }
+        this.linkManager.applyDecay(1);
     }
 
     getStatistics(): MemoryStatistics {
-        let totalTasks = 0;
-        let lowPriority = 0;
-        let mediumPriority = 0;
-        let highPriority = 0;
+        const stats = {
+            totalConcepts: 0,
+            totalTasks: 0,
+            lowPriority: 0,
+            mediumPriority: 0,
+            highPriority: 0,
+        };
 
         for (const concept of this.concepts.values()) {
-            totalTasks += concept.totalTasks;
-            if (concept.priority < 0.3) {
-                lowPriority++;
-            } else if (concept.priority < 0.7) {
-                mediumPriority++;
-            } else {
-                highPriority++;
-            }
+            stats.totalConcepts++;
+            stats.totalTasks += concept.totalTasks;
+            if (concept.priority < 0.3) stats.lowPriority++;
+            else if (concept.priority < 0.7) stats.mediumPriority++;
+            else stats.highPriority++;
         }
 
-        const stats: MemoryStatistics = {
-            totalConcepts: this.concepts.size,
-            totalTasks,
+        const result: MemoryStatistics = {
+            totalConcepts: stats.totalConcepts,
+            totalTasks: stats.totalTasks,
             focusedConcepts: this.focus.size,
             archivedConcepts: this.config.enableArchive ? this.archive.size : 0,
             memoryPressure: this.pressureLevel,
             utilization: this.concepts.size / this.config.maxConcepts,
             conceptDistribution: {
-                lowPriority,
-                mediumPriority,
-                highPriority,
+                lowPriority: stats.lowPriority,
+                mediumPriority: stats.mediumPriority,
+                highPriority: stats.highPriority,
             },
         };
 
-        if (this.config.enableIndexing) {
-            stats.indexStats = this.index.stats;
-        }
+        if (this.config.enableIndexing) result.indexStats = this.index.stats;
+        if (this.config.enableArchive) result.archiveStats = this.archive.stats;
 
-        if (this.config.enableArchive) {
-            stats.archiveStats = this.archive.stats;
-        }
-
-        return stats;
+        return result;
     }
 
     setConfig(updates: Partial<MemoryConfig>): void {
         Object.assign(this.config, updates);
     }
 
-    retrieveFromArchive(term: Term): Concept | undefined {
-        if (!this.config.enableArchive) return undefined;
-        const concept = this.archive.retrieve(term.hash);
-        if (concept) {
-            this.archive.unarchive(term.hash);
-            this.addConcept(term);
-        }
-        return concept;
+  retrieveFromArchive(term: Term): Concept | undefined {
+    if (!this.config.enableArchive) return undefined;
+    const concept = this.archive.retrieve(term);
+    if (concept) {
+      this.archive.unarchive(term);
+      this.addConcept(term);
     }
+    return concept;
+  }
 
     queryBySymbol(symbol: string): Concept[] {
         if (!this.config.enableIndexing) return [];
@@ -310,9 +328,7 @@ export class Memory {
 
     checkHealth(): MemoryHealth {
         const now = Date.now();
-        if (now - this.lastHealthCheck < this.healthCheckInterval) {
-            return this.getLastHealth();
-        }
+        if (now - this.lastHealthCheck < this.healthCheckInterval) return this.getLastHealth();
         this.lastHealthCheck = now;
 
         const recommendations: string[] = [];
@@ -320,27 +336,17 @@ export class Memory {
         const consolidationNeeded = this.cyclesSinceConsolidation >= this.config.consolidationInterval;
         const forgettingNeeded = utilization > 0.8;
 
-        if (utilization > 0.9) {
-            recommendations.push('Memory utilization above 90% - consider increasing capacity or reducing concept count');
-        }
+        if (utilization > 0.9) recommendations.push('Memory utilization above 90% - consider increasing capacity or reducing concept count');
+        if (consolidationNeeded) recommendations.push('Consolidation overdue - run consolidate() to apply decay and cleanup');
+        if (forgettingNeeded) recommendations.push('High memory pressure - forgetting will be triggered on next concept addition');
 
-        if (consolidationNeeded) {
-            recommendations.push('Consolidation overdue - run consolidate() to apply decay and cleanup');
-        }
-
-        if (forgettingNeeded) {
-            recommendations.push('High memory pressure - forgetting will be triggered on next concept addition');
-        }
-
-        const health: MemoryHealth = {
+        return {
             isHealthy: utilization < 0.9 && !consolidationNeeded,
             pressureLevel: utilization,
             consolidationNeeded,
             forgettingNeeded,
             recommendations,
         };
-
-        return health;
     }
 
     compact(): void {
@@ -420,13 +426,11 @@ export class Memory {
     private getLastHealth(): MemoryHealth {
         const utilization = this.concepts.size / this.config.maxConcepts;
         const consolidationNeeded = this.cyclesSinceConsolidation >= this.config.consolidationInterval;
-        const forgettingNeeded = utilization > 0.8;
-
         return {
             isHealthy: utilization < 0.9 && !consolidationNeeded,
             pressureLevel: utilization,
             consolidationNeeded,
-            forgettingNeeded,
+            forgettingNeeded: utilization > 0.8,
             recommendations: [],
         };
     }
@@ -439,11 +443,7 @@ export class Memory {
 
         if (utilization >= this.config.pressureThreshold) {
             this.onMemoryPressure?.(utilization, this);
-
-            for (const concept of this.concepts.values()) {
-                concept.applyTimeDecay(this.config.activationDecayRate);
-            }
-
+            for (const concept of this.concepts.values()) concept.applyTimeDecay(this.config.activationDecayRate);
             this.compact();
         }
     }

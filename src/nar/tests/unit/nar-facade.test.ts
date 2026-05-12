@@ -2,14 +2,13 @@ import {describe, expect, test} from '@jest/globals';
 import {NARFacade} from '../../nar-facade';
 import {Memory} from '../../memory';
 import {QueryAPI} from '../../query';
-import {Reasoner} from '../../reason';
-import {BagStrategy} from '../../reason';
+import {BagStrategy, Reasoner} from '../../reason';
+import type {Tool} from '../../tools';
 import {ToolManager} from '../../tools';
 import type {RuleStats} from '../../metrics';
 import {MetricsCollector} from '../../metrics';
 import {createBudget, createTask} from '../../types';
 import {atom, TermBuilder, Truth} from '../../terms';
-import type {Tool} from '../../tools';
 
 const createMockTool = (name: string, executeFn?: (args: Record<string, unknown>) => Promise<any>): Tool => ({
     name,

@@ -586,11 +586,11 @@ export class HTTPServer {
         };
     }
 
-private async getHealth(): Promise<HTTPResponse> {
-const nar = this.agent?.getNAR();
-const stats = nar?.getStatistics();
-const _metrics = nar?.getMetrics();
-const lm = nar?.getLMClient?.();
+    private async getHealth(): Promise<HTTPResponse> {
+        const nar = this.agent?.getNAR();
+        const stats = nar?.getStatistics();
+        const _metrics = nar?.getMetrics();
+        const lm = nar?.getLMClient?.();
 
         return {
             statusCode: 200,

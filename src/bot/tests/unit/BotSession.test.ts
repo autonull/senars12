@@ -3,9 +3,9 @@ import {SeNARSFactory} from '../../../nar';
 import {EmbeddedIRCServer} from '../../EmbeddedIRCServer.js';
 
 describe('BotSession', () => {
-let nar: ReturnType<typeof SeNARSFactory.createForBot>;
-let _server: EmbeddedIRCServer;
-let session: BotSession;
+    let nar: ReturnType<typeof SeNARSFactory.createForBot>;
+    let _server: EmbeddedIRCServer;
+    let session: BotSession;
 
     beforeEach(async () => {
         nar = SeNARSFactory.createForBot({maxConcepts: 100});

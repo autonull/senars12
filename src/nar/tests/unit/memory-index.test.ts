@@ -1,7 +1,6 @@
-import {MemoryIndex} from '../../memory';
+import {Concept, MemoryIndex} from '../../memory';
 import type {Concept as ConceptType} from '../../memory/concept';
-import {Concept} from '../../memory';
-import {TermBuilder, Truth} from '../../terms';
+import {TermBuilder, Truth, termsEqual} from '../../terms';
 
 function createTestConcept(symbol: string, priority = 0.5): ConceptType {
     const concept = new Concept(TermBuilder.atom(symbol));
@@ -50,7 +49,7 @@ describe('MemoryIndex', () => {
             const concept = createTestConcept('TestConcept');
             index.index(concept);
 
-            const results = index.getByInverse(concept.term.hash);
+            const results = index.getByInverse(concept.term);
             expect(results).toBeDefined();
         });
 
@@ -102,12 +101,12 @@ describe('MemoryIndex', () => {
             const concept = createTestConcept('HighPriority', 0.9);
             index.index(concept);
 
-            const results = index.getBySimilarity(concept.term.hash, 0.5);
+            const results = index.getBySimilarity(concept.term, 0.5);
             expect(results.length).toBeGreaterThan(0);
         });
 
         test('returns empty for unknown hash', () => {
-            const results = index.getBySimilarity(99999, 0.5);
+            const results = index.getBySimilarity(TermBuilder.atom("nonexistent"), 0.5);
             expect(results).toEqual([]);
         });
     });
@@ -227,7 +226,7 @@ describe('MemoryIndex', () => {
             });
             index.index(concept);
 
-            const results = index.getBySubterm(compound.hash);
+            const results = index.getBySubterm(compound);
             expect(results).toBeDefined();
         });
     });
@@ -239,7 +238,7 @@ describe('MemoryIndex', () => {
             index.index(c1);
             index.index(c2);
 
-            const cluster = (index as any).similarityIndex.get(c1.term.hash);
+            const cluster = (index as any).similarityIndex.get(c1.term);
             if (cluster) {
                 const similarity = (index as any).calculateClusterSimilarity(cluster, TermBuilder.atom('Cat'));
                 expect(similarity).toBe(1);
@@ -252,7 +251,7 @@ describe('MemoryIndex', () => {
             index.index(c1);
             index.index(c2);
 
-            const cluster = (index as any).similarityIndex.get(c1.term.hash);
+            const cluster = (index as any).similarityIndex.get(c1.term);
             if (cluster) {
                 const similarity = (index as any).calculateClusterSimilarity(cluster, TermBuilder.atom('Z'));
                 expect(similarity).toBe(0);

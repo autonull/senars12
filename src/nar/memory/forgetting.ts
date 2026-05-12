@@ -90,6 +90,11 @@ export class Forgetting {
         return victim;
     }
 
+    getConnectivityFromLinks(linkCount: number): number {
+        if (linkCount === 0) return 0;
+        return Math.min(1, linkCount / 10);
+    }
+
     private selectAdaptive(concepts: Concept[], scorer: MemoryScorer, load: number): Concept | undefined {
         const scored = concepts.map(concept => {
             const baseScore = scorer.score(concept);
