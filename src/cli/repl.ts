@@ -5,9 +5,10 @@
 
 import {NAR, SeNARSFactory} from '../nar';
 import * as readline from 'readline';
-import {existsSync, promises as fs} from 'fs';
+import {HistoryManager} from './history';
+import {ProfileManager} from './profile';
+import {showHelp, showStats, listConcepts} from './display';
 
-const HISTFILE = process.env.SENARS_HISTFILE || '/tmp/senars_history';
 const MAX_HISTORY = 1000;
 
 interface CLIConfig {
@@ -16,18 +17,12 @@ interface CLIConfig {
     showDerivations: boolean;
 }
 
-interface ProfileSession {
-    startTime: number;
-    startStats: any;
-}
-
 class SeNARSCLI {
     private readonly nar: NAR;
     private config: CLIConfig;
     private rl: readline.Interface;
-    private history: string[] = [];
-    private historyIndex = -1;
-    private profileSession: ProfileSession | null = null;
+    private history: HistoryManager;
+    private profile: ProfileManager;
     private multiLineBuffer: string[] = [];
     private inMultiLine = false;
 
@@ -43,6 +38,9 @@ class SeNARSCLI {
             maxDerivationDepth: this.config.maxDerivationDepth
         });
 
+        this.history = new HistoryManager();
+        this.profile = new ProfileManager();
+
         this.rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout,
@@ -50,14 +48,13 @@ class SeNARSCLI {
             completer: this.completer.bind(this) as any
         });
 
-        this.loadHistory();
         this.setupHandlers();
     }
 
     start(): void {
         console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ SeNARS CLI REPL v1.0                               ║');
-        console.log('║ Neuro-Symbolic Reasoning System                    ║');
+        console.log('║ SeNARS CLI REPL v1.0                             ║');
+        console.log('║ Neuro-Symbolic Reasoning System                  ║');
         console.log('╚══════════════════════════════════════════════════╝');
         console.log('\nType .help for commands, .quit to exit\n');
         this.rl.prompt();
@@ -70,7 +67,7 @@ class SeNARSCLI {
                     this.inMultiLine = false;
                     const input = this.multiLineBuffer.join('\n');
                     this.multiLineBuffer = [];
-                    this.addToHistory(input);
+                    this.history.add(input);
                     await this.processInput(input);
                 } else {
                     this.multiLineBuffer.push(line);
@@ -87,25 +84,25 @@ class SeNARSCLI {
                     this.rl.prompt();
                     return;
                 }
-                this.addToHistory(trimmed);
+                this.history.add(trimmed);
                 await this.processInput(trimmed);
             }
             this.rl.prompt();
         });
 
         this.rl.on('close', () => {
-            this.saveHistory();
+            this.history.saveHistory();
             console.log('\nGoodbye!');
             process.exit(0);
         });
     }
 
     private completer(line: string): [string[], string] {
-    const commands = ['.help', '.run', '.stats', '.list', '.concepts', '.rules', '.tools',
-      '.query', '.trace', '.explain', '.clear', '.load', '.save',
-      '.config', '.profile', '.quit', '.self', '.meta', '.optimize',
-      '.prefer', '.reward', '.rlfp-stats', '.lm-status', '.lm-switch', '.ask-nl',
-      '.constitution', '.attention', '.load-domain'];
+        const commands = ['.help', '.run', '.stats', '.list', '.concepts', '.rules', '.tools',
+            '.query', '.trace', '.explain', '.clear', '.load', '.save',
+            '.config', '.profile', '.quit', '.self', '.meta', '.optimize',
+            '.prefer', '.reward', '.rlfp-stats', '.lm-status', '.lm-switch', '.ask-nl',
+            '.constitution', '.attention', '.load-domain'];
 
         const parts = line.split(/\s+/);
         const lastPart = parts[parts.length - 1] || '';
@@ -120,37 +117,6 @@ class SeNARSCLI {
         const matches = conceptTerms.filter(term => term.startsWith(lastPart));
 
         return [matches.length ? matches : [line], lastPart];
-    }
-
-    private addToHistory(input: string): void {
-        if (this.history[this.history.length - 1] !== input) {
-            this.history.push(input);
-            if (this.history.length > MAX_HISTORY) {
-                this.history.shift();
-            }
-        }
-        this.historyIndex = this.history.length;
-    }
-
-    private async loadHistory(): Promise<void> {
-        try {
-            if (existsSync(HISTFILE)) {
-                const content = await fs.readFile(HISTFILE, 'utf-8');
-                this.history = content.split('\n').filter(line => line.trim()).slice(-MAX_HISTORY);
-                this.historyIndex = this.history.length;
-            }
-        } catch {
-            this.history = [];
-            this.historyIndex = 0;
-        }
-    }
-
-    private async saveHistory(): Promise<void> {
-        try {
-            await fs.writeFile(HISTFILE, this.history.join('\n'), 'utf-8');
-        } catch {
-            // Ignore history save errors
-        }
     }
 
     private async processInput(input: string): Promise<void> {
@@ -171,16 +137,16 @@ class SeNARSCLI {
         const args = parts.slice(1);
 
         const handlers: Record<string, () => void | Promise<void>> = {
-            '.help': () => this.showHelp(args[0]),
+            '.help': () => showHelp(),
             '.run': () => this.runInference(args[0] ? parseInt(args[0]) : 5),
-            '.stats': () => this.showStats(args[0]),
-            '.list': () => this.listConcepts(),
+            '.stats': () => showStats(this.nar, args[0]),
+            '.list': () => listConcepts(this.nar),
             '.concepts': () => this.showConcepts(args.join(' ')),
             '.rules': () => this.showRules(args.join(' ')),
             '.tools': () => this.showTools(args.join(' ')),
             '.config': () => this.handleConfig(args),
-    '.clear': () => this.clearMemory(),
-    '.load': () => this.loadFile(args[0]),
+            '.clear': () => this.clearMemory(),
+            '.load': () => this.loadFile(args[0]),
             '.save': () => this.saveMemory(args[0]),
             '.query': () => this.queryTerm(args.join(' ')),
             '.trace': () => this.traceTerm(args.join(' ')),
@@ -245,45 +211,6 @@ class SeNARSCLI {
         console.log(`✓ Ran ${steps} step(s), derived ${derived} belief(s)`);
     }
 
-    private showStats(detail?: string): void {
-        const stats = this.nar.getStatistics();
-        const metrics = this.nar.getMetrics();
-
-        console.log('\n╔════════════════════════════════════════════════════════╗');
-        console.log('║ SeNARS Statistics                                      ║');
-        console.log('╠════════════════════════════════════════════════════════╣');
-        console.log(`║ Concepts: ${String(stats.totalConcepts).padEnd(48)}║`);
-        console.log(`║ Tasks: ${String(stats.totalTasks).padEnd(49)}║`);
-
-        if (detail === 'detail' || detail === 'all') {
-            const ruleExecs = (metrics as any).ruleExecutions?.total || 0;
-            const derivs = (metrics as any).derivations || 0;
-            const steps = (metrics as any).steps || 0;
-            console.log(`║ Rule Executions: ${String(ruleExecs).padEnd(41)}║`);
-            console.log(`║ Derivations: ${String(derivs).padEnd(45)}║`);
-            console.log(`║ Steps: ${String(steps).padEnd(51)}║`);
-        }
-
-        console.log('╚════════════════════════════════════════════════════════╝\n');
-    }
-
-    private listConcepts(): void {
-        const concepts = this.nar.listConcepts();
-        if (concepts.length === 0) {
-            console.log('Memory is empty');
-            return;
-        }
-
-        console.log('\nConcepts:');
-        for (const concept of concepts.slice(0, 20)) {
-            console.log(` - ${concept.term.toString()}`);
-        }
-        if (concepts.length > 20) {
-            console.log(` ... and ${concepts.length - 20} more`);
-        }
-        console.log();
-    }
-
     private showConcepts(filter?: string): void {
         const concepts = this.nar.listConcepts();
         let filtered = concepts;
@@ -301,10 +228,10 @@ class SeNARSCLI {
 
         console.log(`\nConcepts (${filtered.length} total):`);
         for (const concept of filtered.slice(0, 50)) {
-            console.log(`  ${concept.term.toString()}`);
+            console.log(` ${concept.term.toString()}`);
         }
         if (filtered.length > 50) {
-            console.log(`  ... and ${filtered.length - 50} more`);
+            console.log(` ... and ${filtered.length - 50} more`);
         }
         console.log();
     }
@@ -313,23 +240,23 @@ class SeNARSCLI {
         console.log('\nRegistered Rules:');
         console.log(' (Rules are defined in RuleProcessor)');
         console.log(' - deduction: (A --> B), (B --> C) => (A --> C)');
-        console.log('  - induction: (A --> B), (A --> C) => (C --> B)');
-        console.log('  - abduction: (A --> C), (B --> C) => (A --> B)');
-        console.log('  - revision: Merge conflicting beliefs');
-        console.log('  - LM rules: Dynamic language model inference');
+        console.log(' - induction: (A --> B), (A --> C) => (C --> B)');
+        console.log(' - abduction: (A --> C), (B --> C) => (A --> B)');
+        console.log(' - revision: Merge conflicting beliefs');
+        console.log(' - LM rules: Dynamic language model inference');
         console.log();
     }
 
     private showTools(filter?: string): void {
         console.log('\nAvailable Tools:');
-        const tools = ['calculate', 'sleep', 'readFile', 'writeFile', 'http'];
+        const tools = this.nar.listTools();
 
         const filtered = filter
             ? tools.filter(t => t.toLowerCase().includes(filter.toLowerCase()))
             : tools;
 
         for (const tool of filtered) {
-            console.log(`  - ${tool}`);
+            console.log(` - ${tool}`);
         }
         console.log();
     }
@@ -339,7 +266,7 @@ class SeNARSCLI {
             const config = this.nar.getConfig();
             console.log('\nCurrent Configuration:');
             for (const [key, value] of Object.entries(config)) {
-                console.log(`  ${key}: ${String(value)}`);
+                console.log(` ${key}: ${String(value)}`);
             }
             console.log();
             return;
@@ -360,10 +287,10 @@ class SeNARSCLI {
         }
     }
 
-  private clearMemory(): void {
-    this.nar.clearMemory();
-    console.log('✓ Memory cleared');
-  }
+    private clearMemory(): void {
+        this.nar.clearMemory();
+        console.log('✓ Memory cleared');
+    }
 
     private async loadFile(filename: string | undefined): Promise<void> {
         if (!filename) {
@@ -371,7 +298,7 @@ class SeNARSCLI {
             return;
         }
 
-        const content = await fs.readFile(filename, 'utf-8');
+        const content = await import('fs').then(fs => fs.promises.readFile(filename, 'utf-8'));
         const lines = content.split('\n');
         let loaded = 0;
 
@@ -404,7 +331,8 @@ class SeNARSCLI {
             statistics: this.nar.getStatistics()
         };
 
-        await fs.writeFile(filename, JSON.stringify(data, null, 2));
+        const fs = await import('fs');
+        await fs.promises.writeFile(filename, JSON.stringify(data, null, 2));
         console.log(`✓ Saved ${concepts.length} concept(s) to ${filename}`);
     }
 
@@ -429,10 +357,10 @@ class SeNARSCLI {
                 console.log('\nMatches:');
                 all.slice(0, 10).forEach(item => {
                     const truthStr = item.truth ? ` f=${item.truth.f.toFixed(2)} c=${item.truth.c.toFixed(2)}` : '';
-                    console.log(`  ${item.term.toString()} [${item.type}]${truthStr}`);
+                    console.log(` ${item.term.toString()} [${item.type}]${truthStr}`);
                 });
                 if (all.length > 10) {
-                    console.log(`  ... and ${all.length - 10} more`);
+                    console.log(` ... and ${all.length - 10} more`);
                 }
             }
         } catch (error) {
@@ -471,7 +399,7 @@ class SeNARSCLI {
             });
 
             if (traceArray.length > 10) {
-                console.log(`  ... and ${traceArray.length - 10} more steps`);
+                console.log(` ... and ${traceArray.length - 10} more steps`);
             }
         } catch (error) {
             console.log(`Trace error: ${error instanceof Error ? error.message : String(error)}`);
@@ -505,133 +433,40 @@ class SeNARSCLI {
                 console.log('\nDerivation path:');
                 if (Array.isArray(explanation)) {
                     explanation.slice(-5).forEach((step: any, i: number) => {
-                        console.log(`  ${i + 1}. ${typeof step === 'string' ? step : step.toString()}`);
+                        console.log(` ${i + 1}. ${typeof step === 'string' ? step : step.toString()}`);
                     });
                 } else {
-                    console.log(`  ${explanation}`);
+                    console.log(` ${explanation}`);
                 }
             } else {
-                console.log('  (No derivation path available)');
+                console.log(' (No derivation path available)');
             }
         } catch (error) {
             console.log(`Explain error: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
-    private showHelp(command?: string): void {
-        if (command) {
-            const helpText: Record<string, string> = {
-                '.help': 'Show help for a command',
-                '.run': 'Run inference steps: .run [steps]',
-                '.stats': 'Show statistics: .stats [detail]',
-                '.concepts': 'List concepts: .concepts [filter]',
-                '.rules': 'List registered rules: .rules',
-                '.tools': 'List available tools: .tools [filter]',
-                '.query': 'Query memory: .query <term>',
-                '.trace': 'Show derivation: .trace <term>',
-                '.explain': 'Explain belief: .explain <term>',
-                '.config': 'View/set config: .config [key] [value]',
-    '.save': 'Save memory: .save <file>',
-    '.load': 'Load file: .load <file>',
-    '.profile': 'Start/stop profiling: .profile [start|stop]',
-                '.clear': 'Clear memory',
-                '.self': 'Show self/metacognition status',
-                '.meta': 'Show meta-analysis report',
-                '.optimize': 'Apply metacognitive and RLFP optimizations',
-                '.prefer': 'Record preference: .prefer <preferred> <rejected>',
-                '.reward': 'Show RLFP reward status',
-                '.rlfp-stats': 'Show RLFP statistics',
-                '.lm-status': 'Show LM connection status',
-                '.lm-switch': 'Switch LM model: .lm-switch <model>',
-                '.quit': 'Exit'
-            };
-
-            const text = helpText[command] || 'Unknown command';
-            console.log(`\n${command}: ${text}\n`);
-            return;
-        }
-
-        console.log(`
-╔══════════════════════════════════════════════════╗
-║ SeNARS CLI Commands                              ║
-╠══════════════════════════════════════════════════╣
-║ (term).         Add belief                       ║
-║ (term)?         Ask question                     ║
-║ { ... }.        Multi-line input                 ║
-║ .run [n]        Run n inference steps            ║
-║ .stats [detail] Show statistics                  ║
-║ .concepts [f]   List concepts (filter)           ║
-║ .rules          List registered rules            ║
-║ .tools [f]      List available tools             ║
-║ .query <term>   Query memory                     ║
-║ .trace <term>   Show derivation history          ║
-║ .explain <term> Explain why derived              ║
-║ .config [k] [v] View/set config ║
-║ .clear Clear memory ║
-║ .load <file> Load Narsese file ║
-║ .save <file>    Save memory to JSON             ║
-║ .profile [cmd]  Performance profiling            ║
-╠══════════════════════════════════════════════════╣
-║ Self/Metacognition:                              ║
-║ .self           Show self status                 ║
-║ .meta           Show meta-analysis               ║
-║ .optimize       Apply optimizations now          ║
-╠══════════════════════════════════════════════════╣
-║ RLFP:                                            ║
-║ .prefer A B      Record A > B preference        ║
-║ .reward          Show reward status              ║
-║ .rlfp-stats      Show RLFP statistics           ║
-╠══════════════════════════════════════════════════╣
-║ LM:                                              ║
-║ .lm-status       Show LM status                 ║
-║ .lm-switch <m>   Switch LM model                ║
-╠══════════════════════════════════════════════════╣
-║ .help [cmd]     Show help                        ║
-║ .quit           Exit                             ║
-╚══════════════════════════════════════════════════╝
-`);
-    }
-
     private handleProfile(args: string[]): void {
         const cmd = args[0];
 
         if (cmd === 'start' || !cmd) {
-            if (this.profileSession) {
-                console.log('Profile session already running');
-                return;
-            }
-            this.profileSession = {
-                startTime: Date.now(),
-                startStats: this.nar.getStatistics()
-            };
-            console.log('✓ Profile started');
+            this.profile.start(this.nar);
         } else if (cmd === 'stop') {
-            if (!this.profileSession) {
-                console.log('No profile session running');
-                return;
-            }
-            const duration = Date.now() - this.profileSession.startTime;
-            const endStats = this.nar.getStatistics();
-            console.log('\nProfile Results:');
-            console.log(`  Duration: ${duration}ms`);
-            console.log(`  Concepts: ${endStats.totalConcepts - (this.profileSession.startStats.totalConcepts || 0)}`);
-            console.log(`  Tasks: ${endStats.totalTasks - (this.profileSession.startStats.totalTasks || 0)}`);
-            this.profileSession = null;
-            console.log();
+            this.profile.stop(this.nar);
         }
     }
 
     private showSelfStatus(): void {
-        const self = (this.nar as any).self;
+        const self = this.nar.getSelfAnalyzer();
         if (!self) {
             console.log('Self/Metacognition is not enabled');
             return;
         }
         console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ Self/Metacognition Status                        ║');
+        console.log('║ Self/Metacognition Status                         ║');
         console.log('╠══════════════════════════════════════════════════╣');
-        console.log(`║ Running: ${self.isRunning ? 'Yes' : 'No'.padEnd(44)}║`);
-        const analysis = self.getSystemAnalysis?.();
+        console.log(`║ Running: ${((self as any).isRunning ? 'Yes' : 'No').padEnd(44)}║`);
+        const analysis = (self as any).getSystemAnalysis?.();
         if (analysis) {
             console.log(`║ Cycles: ${String(analysis.cycleCount ?? 'N/A').padEnd(45)}║`);
             console.log(`║ Strategies: ${String(analysis.strategies?.length ?? 0).padEnd(42)}║`);
@@ -640,18 +475,18 @@ class SeNARSCLI {
     }
 
     private showMetaAnalysis(): void {
-        const self = (this.nar as any).self;
+        const self = this.nar.getSelfAnalyzer();
         if (!self) {
             console.log('Self/Metacognition is not enabled');
             return;
         }
-        const analysis = self.getSystemAnalysis?.();
+        const analysis = (self as any).getSystemAnalysis?.();
         if (!analysis) {
             console.log('No analysis available yet');
             return;
         }
         console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ Meta-Analysis Report                             ║');
+        console.log('║ Meta-Analysis Report                              ║');
         console.log('╠══════════════════════════════════════════════════╣');
         console.log(`║ Cycle Count: ${String(analysis.cycleCount ?? 0).padEnd(40)}║`);
         if (analysis.reasoningQuality) {
@@ -660,23 +495,23 @@ class SeNARSCLI {
         if (analysis.strategies?.length) {
             console.log('║ Strategy Performance:');
             for (const s of analysis.strategies.slice(0, 3)) {
-                console.log(`║   - ${s.name || 'unknown'}: ${s.efficiency?.toFixed(2) ?? 'N/A'}`);
+                console.log(`║ - ${s.name || 'unknown'}: ${s.efficiency?.toFixed(2) ?? 'N/A'}`);
             }
         }
         console.log('╚══════════════════════════════════════════════════╝\n');
     }
 
     private async runOptimization(): Promise<void> {
-        const self = (this.nar as any).self;
-        if (self?.applyOptimizations) {
-            self.applyOptimizations();
+        const self = this.nar.getSelfAnalyzer();
+        if (self && (self as any).applyOptimizations) {
+            (self as any).applyOptimizations();
             console.log('✓ Applied metacognitive optimizations');
         } else {
             console.log('Self optimization not available');
         }
-        const rlfp = (this.nar as any).rlfp;
-        if (rlfp?.optimize) {
-            rlfp.optimize();
+        const rlfp = this.nar.getRLFP();
+        if (rlfp && (rlfp as any).optimize) {
+            (rlfp as any).optimize();
             console.log('✓ RLFP policy optimized');
         }
     }
@@ -686,56 +521,56 @@ class SeNARSCLI {
             console.log('Usage: .prefer <prefered> <rejected>');
             return;
         }
-        const rlfp = (this.nar as any).rlfp;
-        if (!rlfp?.addPreference) {
+        const rlfp = this.nar.getRLFP();
+        if (!rlfp) {
             console.log('RLFP not enabled');
             return;
         }
-        rlfp.addPreference(args[0], args[1]);
+        (rlfp as any).addPreference(args[0], args[1]);
         console.log(`✓ Preference recorded: ${args[0]} > ${args[1]}`);
     }
 
     private showRewardStatus(): void {
-        const rlfp = (this.nar as any).rlfp;
+        const rlfp = this.nar.getRLFP();
         if (!rlfp) {
             console.log('RLFP not enabled');
             return;
         }
         console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ RLFP Reward Status                               ║');
+        console.log('║ RLFP Reward Status                                ║');
         console.log('╠══════════════════════════════════════════════════╣');
-        const prefs = rlfp.preferences?.length ?? 0;
+        const prefs = (rlfp as any).preferences?.length ?? 0;
         console.log(`║ Preferences: ${String(prefs).padEnd(43)}║`);
         console.log('╚══════════════════════════════════════════════════╝\n');
     }
 
     private showRLFPStats(): void {
-        const rlfp = (this.nar as any).rlfp;
+        const rlfp = this.nar.getRLFP();
         if (!rlfp) {
             console.log('RLFP not enabled');
             return;
         }
         console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ RLFP Statistics                                  ║');
+        console.log('║ RLFP Statistics                                   ║');
         console.log('╠══════════════════════════════════════════════════╣');
-        console.log(`║ Preferences: ${String(rlfp.preferences?.length ?? 0).padEnd(43)}║`);
-        console.log(`║ Trajectories: ${String(rlfp.trajectoryCount ?? 0).padEnd(41)}║`);
-        console.log(`║ Last Optimization: ${rlfp.lastOptimizeTime ? new Date(rlfp.lastOptimizeTime).toLocaleTimeString() : 'Never'.padEnd(26)}║`);
+        console.log(`║ Preferences: ${String((rlfp as any).preferences?.length ?? 0).padEnd(43)}║`);
+        console.log(`║ Trajectories: ${String((rlfp as any).trajectoryCount ?? 0).padEnd(41)}║`);
+        console.log(`║ Last Optimization: ${((rlfp as any).lastOptimizeTime ? new Date((rlfp as any).lastOptimizeTime).toLocaleTimeString() : 'Never').padEnd(26)}║`);
         console.log('╚══════════════════════════════════════════════════╝\n');
     }
 
     private showLMStatus(): void {
-        const lm = (this.nar as any).lmClient;
+        const lm = this.nar.getLMClient();
         if (!lm) {
             console.log('LM client not configured');
             return;
         }
         console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ LM Status                                        ║');
+        console.log('║ LM Status                                         ║');
         console.log('╠══════════════════════════════════════════════════╣');
-        console.log(`║ Provider: ${String(lm.provider ?? 'unknown').padEnd(43)}║`);
-        console.log(`║ Model: ${String(lm.model ?? 'unknown').padEnd(45)}║`);
-        console.log(`║ Available: ${String(lm.available ? 'Yes' : 'No').padEnd(41)}║`);
+        console.log(`║ Provider: ${String((lm as any).provider ?? 'unknown').padEnd(43)}║`);
+        console.log(`║ Model: ${String((lm as any).model ?? 'unknown').padEnd(45)}║`);
+        console.log(`║ Available: ${String((lm as any).available ? 'Yes' : 'No').padEnd(41)}║`);
         console.log('╚══════════════════════════════════════════════════╝\n');
     }
 
@@ -744,13 +579,13 @@ class SeNARSCLI {
             console.log('Usage: .lm-switch <model-name>');
             return;
         }
-        const lm = (this.nar as any).lmClient;
+        const lm = this.nar.getLMClient();
         if (!lm) {
             console.log('LM client not configured');
             return;
         }
-        if (lm.setModel) {
-            lm.setModel(model);
+        if ((lm as any).setModel) {
+            (lm as any).setModel(model);
             console.log(`✓ Switched to model: ${model}`);
         } else {
             console.log('Model switching not supported by this LM client');
@@ -773,9 +608,8 @@ class SeNARSCLI {
     }
 
     private showConstitution(args: string[]): void {
-        const nar = this.nar as any;
         if (args[0] === 'add' && args[1]) {
-            nar.setConstitution([{
+            (this.nar as any).setConstitution([{
                 term: args.slice(1).join(' '),
                 type: 'belief' as const,
                 truth: {f: 1, c: 1},
@@ -785,12 +619,12 @@ class SeNARSCLI {
             console.log(`✓ Added to constitution: ${args.slice(1).join(' ')}`);
             return;
         }
-        const constitution = nar.getConstitution?.() || [];
+        const constitution = (this.nar as any).getConstitution?.() || [];
         console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ Constitution (Immutable Beliefs)                ║');
+        console.log('║ Constitution (Immutable Beliefs)                  ║');
         console.log('╠══════════════════════════════════════════════════╣');
         if (constitution.length === 0) {
-            console.log('║ No constitution set.                             ║');
+            console.log('║ No constitution set.                                ║');
         } else {
             for (const belief of constitution.slice(0, 10)) {
                 console.log(`║ ${belief.term.toString().padEnd(48)}║`);
@@ -801,13 +635,13 @@ class SeNARSCLI {
     }
 
     private showAttention(): void {
-        const report = (this.nar as any).attentionReport?.();
+        const report = this.nar.getAttentionReport?.();
         if (!report) {
             console.log('Attention report not available');
             return;
         }
         console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ Attention Allocation                             ║');
+        console.log('║ Attention Allocation                              ║');
         console.log('╠══════════════════════════════════════════════════╣');
         console.log(`║ Total Concepts: ${String(report.total).padEnd(37)}║`);
         console.log('╠══════════════════════════════════════════════════╣');

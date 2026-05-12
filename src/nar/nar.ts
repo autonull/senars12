@@ -199,9 +199,21 @@ export class NAR extends BaseComponent {
         this.memory.setConfig(updates);
     }
 
-    getLMClient(): LMClient | undefined {
-        return this._lmClient;
-    }
+getLMClient(): LMClient | undefined {
+    return this._lmClient;
+}
+
+getSelfAnalyzer(): ReasoningAboutReasoning | undefined {
+    return this.self;
+}
+
+getRLFP(): RLFPLearner | undefined {
+    return this.rlfp;
+}
+
+getAttentionReport(): { concepts: Array<{ term: string; priority: number }>; total: number } {
+    return this.attentionReport();
+}
 
     setConstitution(beliefs: Task[]): void {
         this._constitution = beliefs.map(b => ({
