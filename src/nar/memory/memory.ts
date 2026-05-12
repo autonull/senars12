@@ -144,7 +144,19 @@ export class Memory {
     return this.concepts.get(term);
   }
 
-    getLinkManager(): LinkManager {
+  findConcepts(pattern: string, limit: number = 10): Concept[] {
+    const results: Concept[] = [];
+    const patternLower = pattern.toLowerCase();
+    for (const concept of this.concepts.values()) {
+      if (concept.term.toString().toLowerCase().includes(patternLower)) {
+        results.push(concept);
+        if (results.length >= limit) break;
+      }
+    }
+    return results;
+  }
+
+  getLinkManager(): LinkManager {
         return this.linkManager;
     }
 

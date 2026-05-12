@@ -67,14 +67,17 @@ export const PROFILES: Record<'minimal' | 'standard' | 'full', BotConfig> = {
     }),
 };
 
-export function loadConfig(configPath?: string): BotConfig {
-    if (!configPath) return PROFILES.minimal;
-    try {
-        const loaded = JSON.parse(require('fs').readFileSync(configPath, 'utf-8'));
-        return {...PROFILES.minimal, ...loaded};
-    } catch {
-        return PROFILES.minimal;
-    }
+export async function loadConfig(configPath?: string): Promise<BotConfig> {
+  if (!configPath) return PROFILES.minimal;
+  try {
+    const fs = await import('fs');
+    const content = fs.readFileSync(configPath, 'utf-8');
+    const loaded = JSON.parse(content);
+    return {...PROFILES.minimal, ...loaded};
+  } catch (error) {
+    console.warn('Config load failed:', error);
+    return PROFILES.minimal;
+  }
 }
 
 export function mergeConfig(...configs: Partial<BotConfig>[]): BotConfig {

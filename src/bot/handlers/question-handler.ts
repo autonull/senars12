@@ -11,8 +11,8 @@ export function isQuestion(text: string): boolean {
 
 export function createQuestionHandler(deps: QuestionHandlerDeps) {
     return async (channel: string, user: string, text: string): Promise<boolean> => {
-        const questionText = text.trim().slice(0, -1).trim();
-        await deps.nar.question(questionText);
+  const questionText = text.trim();
+  await deps.nar.question(questionText);
         const derived = await deps.nar.run(5);
 
         if (derived > 0) {

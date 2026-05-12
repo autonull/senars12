@@ -32,22 +32,8 @@ const unaryOp = (fn: (f: number, c: number) => [number, number]) =>
 
 const c2w = (c: number): number => c === 1 ? 1e10 : c / (1 - c);
 const w2c = (w: number): number => w / (w + 1);
-const deductionBinary = binaryOp((f1, f2, c1, c2) => [f1 * f2, c1 * c2]);
-const inductionBinary = binaryOp((f1, f2, c1, c2) => {
-    const w = f2 * c1 * c2;
-    return [f2, w / (w + 1)];
-});
-const abductionBinary = binaryOp((f1, f2, c1, c2) => {
-    const w = f1 * c1 * c2;
-    return [f1, w / (w + 1)];
-});
-const revisionBinary = binaryOp((f1, f2, c1, c2) => {
-    const w1 = c2w(c1);
-    const w2 = c2w(c2);
-    const w = w1 + w2;
-    return [(f1 * w1 + f2 * w2) / w, w2c(w)];
-});
 const conversion = unaryOp((f, c) => [f, f * c]);
+const computeExpectation = (t: Truth): number => t.c * (t.f - 0.5) + 0.5;
 
 export const Truth = {
     create: createTruth,
@@ -62,10 +48,10 @@ export const Truth = {
     conversion: unaryOp((f, c) => [f, f * c]),
     expectation: (t: Truth): number => t.c * (t.f - 0.5) + 0.5,
 
-    harshness: (t: Truth): number => {
-        const exp = t.c * (t.f - 0.5) + 0.5;
-        return (1 - t.c) * (1 - exp) + t.c * exp;
-    },
+  harshness: (t: Truth): number => {
+const exp = computeExpectation(t);
+return (1 - t.c) * (1 - exp) + t.c * exp;
+},
 
     comparison: binaryOp((f1, f2, c1, c2) => {
         const fProd = f1 * f2;
@@ -93,10 +79,10 @@ export const Truth = {
     sameness: binaryOp((f1, f2, c1, c2) => [1 - Math.abs(f1 - f2), c1 * c2]),
     deduction: binaryOp((f1, f2, c1, c2) => [f1 * f2, c1 * c2]),
 
-    deductionWeak: (t1: Truth, t2: Truth): Truth | null => {
-        const res = deductionBinary(t1, t2);
-        return res ? createTruth(res.f, res.c / (res.c + WEAKENING_FACTOR)) : null;
-    },
+  deductionWeak: (t1: Truth, t2: Truth): Truth | null => {
+const res = Truth.deduction(t1, t2);
+return res ? createTruth(res.f, res.c / (res.c + WEAKENING_FACTOR)) : null;
+},
 
     induction: binaryOp((f1, f2, c1, c2) => {
         const w = f2 * c1 * c2;
@@ -117,11 +103,11 @@ export const Truth = {
         return [(f1 * w1 + f2 * w2) / w, w2c(w)];
     }),
 
-    choice: (t1: Truth, t2: Truth): Truth => {
-        const exp1 = t1.c * (t1.f - 0.5) + 0.5;
-        const exp2 = t2.c * (t2.f - 0.5) + 0.5;
-        return !t1 ? t2! : !t2 ? t1 : exp1 > exp2 ? t1 : t2;
-    },
+  choice: (t1: Truth, t2: Truth): Truth => {
+const exp1 = computeExpectation(t1);
+const exp2 = computeExpectation(t2);
+return t1 === undefined ? t2! : t2 === undefined ? t1 : exp1 > exp2 ? t1 : t2;
+},
 
     structuralDeduction: unaryOp((f, c) => [f * f, c / (c + 1) * c]),
     structuralReduction: unaryOp((f, c) => [f, c / (c + WEAKENING_FACTOR)]),
@@ -133,11 +119,11 @@ export const Truth = {
         return [(f1 * w1 + f2 * w2) / w, w2c(w)];
     }),
 
-    isStronger: (t1: Truth, t2: Truth): boolean => {
-        const exp1 = t1.c * (t1.f - 0.5) + 0.5;
-        const exp2 = t2.c * (t2.f - 0.5) + 0.5;
-        return exp1 > exp2;
-    },
+  isStronger: (t1: Truth, t2: Truth): boolean => {
+const exp1 = computeExpectation(t1);
+const exp2 = computeExpectation(t2);
+return exp1 > exp2;
+},
     weak: (c: number): number => clamp(c / (c + WEAKENING_FACTOR), 0, 1),
     c2w: (c: number): number => c === 1 ? 1e10 : c / (1 - c),
     w2c: (w: number): number => w / (w + 1),
@@ -152,11 +138,11 @@ export const Truth = {
     equals: (t1: Truth, t2: Truth, epsilon = 1e-9): boolean =>
         Math.abs(t1.f - t2.f) < epsilon && Math.abs(t1.c - t2.c) < epsilon,
 
-    compare: (t1: Truth, t2: Truth): number => {
-        const exp1 = t1.c * (t1.f - 0.5) + 0.5;
-        const exp2 = t2.c * (t2.f - 0.5) + 0.5;
-        return Math.abs(exp1 - exp2) < 1e-9 ? 0 : exp1 > exp2 ? 1 : -1;
-    },
+  compare: (t1: Truth, t2: Truth): number => {
+const exp1 = computeExpectation(t1);
+const exp2 = computeExpectation(t2);
+return Math.abs(exp1 - exp2) < 1e-9 ? 0 : exp1 > exp2 ? 1 : -1;
+},
 
     conversionChain: (t: Truth, steps: number): Truth => {
         let result = t;
@@ -164,23 +150,23 @@ export const Truth = {
         return result;
     },
 
-    deductionChain: (t1: Truth, t2: Truth, steps: number): Truth => {
-        let result = deductionBinary(t1, t2);
-        for (let i = 1; i < steps; i++) result = deductionBinary(result, t2);
-        return result;
-    },
+  deductionChain: (t1: Truth, t2: Truth, steps: number): Truth => {
+let result = Truth.deduction(t1, t2);
+for (let i = 1; i < steps; i++) result = Truth.deduction(result, t2);
+return result;
+},
 
-    inductionChain: (t1: Truth, t2: Truth, steps: number): Truth => {
-        let result = inductionBinary(t1, t2);
-        for (let i = 1; i < steps; i++) result = revisionBinary(result, inductionBinary(t1, t2));
-        return result;
-    },
+inductionChain: (t1: Truth, t2: Truth, steps: number): Truth => {
+let result = Truth.induction(t1, t2);
+for (let i = 1; i < steps; i++) result = Truth.revision(result, Truth.induction(t1, t2));
+return result;
+},
 
-    abductionChain: (t1: Truth, t2: Truth, steps: number): Truth => {
-        let result = abductionBinary(t1, t2);
-        for (let i = 1; i < steps; i++) result = revisionBinary(result, abductionBinary(t1, t2));
-        return result;
-    }
+abductionChain: (t1: Truth, t2: Truth, steps: number): Truth => {
+let result = Truth.abduction(t1, t2);
+for (let i = 1; i < steps; i++) result = Truth.revision(result, Truth.abduction(t1, t2));
+return result;
+}
 };
 
 export const isTruthEqual = (a: Truth, b: Truth, epsilon = 1e-9): boolean =>

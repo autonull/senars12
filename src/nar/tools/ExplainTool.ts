@@ -56,15 +56,10 @@ export class ExplainTool implements Tool {
         }
     }
 
-    private findConcept(termStr: string): Concept | undefined {
-        const conceptMap = (this.memory as any).concepts as Map<string, Concept>;
-        if (!conceptMap) return undefined;
-        for (const concept of conceptMap.values()) {
-            const termStr2 = concept.term.toString();
-            if (termStr2 === termStr || termStr2.includes(termStr)) return concept;
-        }
-        return undefined;
-    }
+  private findConcept(termStr: string): Concept | undefined {
+    const concepts = this.memory.findConcepts(termStr, 1);
+    return concepts[0];
+  }
 
     private generateExplanation(concept: Concept, includeDerivations: boolean, includeEvidence: boolean): Record<string, unknown> {
         const explanation: Record<string, unknown> = {

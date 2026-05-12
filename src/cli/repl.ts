@@ -101,11 +101,11 @@ class SeNARSCLI {
     }
 
     private completer(line: string): [string[], string] {
-        const commands = ['.help', '.run', '.stats', '.list', '.concepts', '.rules', '.tools',
-            '.query', '.trace', '.explain', '.clear', '.reset', '.load', '.save',
-            '.config', '.profile', '.quit', '.self', '.meta', '.optimize',
-            '.prefer', '.reward', '.rlfp-stats', '.lm-status', '.lm-switch', '.ask-nl',
-            '.constitution', '.attention', '.load-domain'];
+    const commands = ['.help', '.run', '.stats', '.list', '.concepts', '.rules', '.tools',
+      '.query', '.trace', '.explain', '.clear', '.load', '.save',
+      '.config', '.profile', '.quit', '.self', '.meta', '.optimize',
+      '.prefer', '.reward', '.rlfp-stats', '.lm-status', '.lm-switch', '.ask-nl',
+      '.constitution', '.attention', '.load-domain'];
 
         const parts = line.split(/\s+/);
         const lastPart = parts[parts.length - 1] || '';
@@ -179,9 +179,8 @@ class SeNARSCLI {
             '.rules': () => this.showRules(args.join(' ')),
             '.tools': () => this.showTools(args.join(' ')),
             '.config': () => this.handleConfig(args),
-            '.clear': () => this.clearMemory(),
-            '.reset': () => this.resetMemory(),
-            '.load': () => this.loadFile(args[0]),
+    '.clear': () => this.clearMemory(),
+    '.load': () => this.loadFile(args[0]),
             '.save': () => this.saveMemory(args[0]),
             '.query': () => this.queryTerm(args.join(' ')),
             '.trace': () => this.traceTerm(args.join(' ')),
@@ -361,15 +360,10 @@ class SeNARSCLI {
         }
     }
 
-    private resetMemory(): void {
-        this.nar.clearMemory();
-        console.log('✓ Memory cleared and system reset');
-    }
-
-    private clearMemory(): void {
-        this.nar.clearMemory();
-        console.log('✓ Memory cleared');
-    }
+  private clearMemory(): void {
+    this.nar.clearMemory();
+    console.log('✓ Memory cleared');
+  }
 
     private async loadFile(filename: string | undefined): Promise<void> {
         if (!filename) {
@@ -537,10 +531,9 @@ class SeNARSCLI {
                 '.trace': 'Show derivation: .trace <term>',
                 '.explain': 'Explain belief: .explain <term>',
                 '.config': 'View/set config: .config [key] [value]',
-                '.save': 'Save memory: .save <file>',
-                '.load': 'Load file: .load <file>',
-                '.reset': 'Clear memory and restart',
-                '.profile': 'Start/stop profiling: .profile [start|stop]',
+    '.save': 'Save memory: .save <file>',
+    '.load': 'Load file: .load <file>',
+    '.profile': 'Start/stop profiling: .profile [start|stop]',
                 '.clear': 'Clear memory',
                 '.self': 'Show self/metacognition status',
                 '.meta': 'Show meta-analysis report',
@@ -573,10 +566,9 @@ class SeNARSCLI {
 ║ .query <term>   Query memory                     ║
 ║ .trace <term>   Show derivation history          ║
 ║ .explain <term> Explain why derived              ║
-║ .config [k] [v] View/set config                  ║
-║ .clear          Clear memory                     ║
-║ .reset          Clear and restart                ║
-║ .load <file>    Load Narsese file                ║
+║ .config [k] [v] View/set config ║
+║ .clear Clear memory ║
+║ .load <file> Load Narsese file ║
 ║ .save <file>    Save memory to JSON             ║
 ║ .profile [cmd]  Performance profiling            ║
 ╠══════════════════════════════════════════════════╣

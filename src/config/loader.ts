@@ -133,21 +133,21 @@ export class ConfigLoader {
         const config: ValidatedConfig = {
             name: raw.name || 'SeNARS12',
             version: raw.version || '1.0.0',
-            lm: {
-                enabled: false,
-                provider: raw.lm?.provider || 'mock',
-                model: raw.lm?.model,
-                quantized: raw.lm?.quantized
-            },
-            core: {
-                maxConcepts: this.clamp(raw.memory?.maxConcepts ?? 100, 10, 10000),
-                priorityThreshold: this.clamp(0.1, 0, 1),
-                activationDecayRate: this.clamp(0.01, 0, 1),
-                consolidationInterval: raw.inference?.maxDerivationsPerStep ?? 10,
-                cpuThrottleMs: raw.inference?.cpuThrottleMs ?? 0,
-                maxDerivationDepth: this.clamp(raw.inference?.maxDerivationDepth ?? 10, 1, 100),
-                maxDerivationsPerStep: this.clamp(raw.inference?.maxDerivationsPerStep ?? 100, 1, 10000)
-            }
+    lm: {
+      enabled: raw.lm?.enabled ?? !!raw.lm?.provider,
+      provider: raw.lm?.provider || 'mock',
+      model: raw.lm?.model,
+      quantized: raw.lm?.quantized
+    },
+    core: {
+      maxConcepts: this.clamp(raw.memory?.maxConcepts ?? 100, 10, 10000),
+      priorityThreshold: this.clamp(raw.memory?.priorityThreshold ?? 0.1, 0, 1),
+      activationDecayRate: this.clamp(raw.memory?.activationDecayRate ?? 0.01, 0, 1),
+      consolidationInterval: raw.inference?.consolidationInterval ?? 10,
+      cpuThrottleMs: raw.inference?.cpuThrottleMs ?? 0,
+      maxDerivationDepth: this.clamp(raw.inference?.maxDerivationDepth ?? 10, 1, 100),
+      maxDerivationsPerStep: this.clamp(raw.inference?.maxDerivationsPerStep ?? 100, 1, 10000)
+    }
         };
 
         if (raw.irc) {

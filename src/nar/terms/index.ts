@@ -71,7 +71,7 @@ export {extractSymbols, jaccardSimilarity, calculateSimilarity} from './utils.js
 export {
   isCanonical,
   getCompoundArgs
-} from './guards.js';
+} from './accessors.js';
 
 // Term-based collections
 export {TermMap} from './term-map.js';

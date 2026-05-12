@@ -42,22 +42,7 @@ export class SearchTool implements Tool {
         }
     }
 
-    private searchMemory(pattern: string, limit: number): Concept[] {
-        const results: Concept[] = [];
-        const patternLower = pattern.toLowerCase();
-        const conceptMap = (this.memory as any).concepts as Map<string, Concept>;
-
-        if (!conceptMap) return results;
-
-        for (const concept of conceptMap.values()) {
-            if (results.length >= limit) break;
-
-            const termStr = concept.term.toString();
-            if (termStr.toLowerCase().includes(patternLower)) {
-                results.push(concept);
-            }
-        }
-
-        return results.sort((a, b) => b.priority - a.priority);
-    }
+private searchMemory(pattern: string, limit: number): Concept[] {
+  return this.memory.findConcepts(pattern, limit);
+}
 }

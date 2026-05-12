@@ -86,18 +86,22 @@ export class Concept {
         return this.beliefBag.size + this.goalBag.size + this.questionBag.size;
     }
 
-    addTask(type: ConceptTaskType, data: TaskData): boolean {
-        if (type === 'belief') return this.addBeliefWithRevision(data);
+  private recordAccess(): void {
+this.useCount++;
+this.lastAccessedAt = Date.now();
+this._priority = Math.min(1, this._priority + 0.1);
+}
 
-        const bag = type === 'goal' ? this.goalBag : this.questionBag;
-        const added = bag.add(data, data.budget.priority);
-        if (added) {
-            this.useCount++;
-            this.lastAccessedAt = Date.now();
-            this._priority = Math.min(1, this._priority + 0.1);
-        }
-        return added;
-    }
+addTask(type: ConceptTaskType, data: TaskData): boolean {
+if (type === 'belief') return this.addBeliefWithRevision(data);
+
+const bag = type === 'goal' ? this.goalBag : this.questionBag;
+const added = bag.add(data, data.budget.priority);
+if (added) {
+  this.recordAccess();
+}
+return added;
+}
 
     hasMatchingBelief(term: Term): boolean {
         return this.findMatchingBelief(term) !== undefined;
@@ -240,25 +244,21 @@ export class Concept {
         if (existing) {
             if (!data.truth || !existing.truth) return false;
 
-            const revisedTruth = TruthOps.revision(data.truth, existing.truth);
-            const revisedData = {...data, truth: revisedTruth, timestamp: Date.now()};
-            this.beliefBag.remove(existing);
-            const added = this.beliefBag.add(revisedData, revisedData.budget.priority);
-            if (added) {
-                this.useCount++;
-                this.lastAccessedAt = Date.now();
-                this._priority = Math.min(1, this._priority + 0.1);
-            }
-            return added;
-        }
+  const revisedTruth = TruthOps.revision(data.truth, existing.truth);
+  const revisedData = {...data, truth: revisedTruth, timestamp: Date.now()};
+  this.beliefBag.remove(existing);
+  const added = this.beliefBag.add(revisedData, revisedData.budget.priority);
+  if (added) {
+    this.recordAccess();
+  }
+  return added;
+}
 
-        const added = this.beliefBag.add(data, data.budget.priority);
-        if (added) {
-            this.useCount++;
-            this.lastAccessedAt = Date.now();
-            this._priority = Math.min(1, this._priority + 0.1);
-        }
-        return added;
+const added = this.beliefBag.add(data, data.budget.priority);
+if (added) {
+  this.recordAccess();
+}
+return added;
     }
 
     private findMatchingBelief(term: Term): TaskData | undefined {

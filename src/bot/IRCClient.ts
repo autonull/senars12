@@ -36,7 +36,7 @@ export class RealIRCClient extends EventEmitter {
     private reconnectAttempt = 0;
     private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     private pingTimer: ReturnType<typeof setInterval> | null = null;
-    private lastPingTime = 0;
+    private lastPingSent = 0;
     private pendingMessages: Map<string, string[]> = new Map();
     private messageQueue: Array<{ target: string; message: string }> = [];
     private queueTimer: ReturnType<typeof setInterval> | null = null;
@@ -108,9 +108,13 @@ export class RealIRCClient extends EventEmitter {
                 this.emit('error', err instanceof Error ? err : new Error(String(err)));
             });
 
-            this.client.on('message', (channel, nick, text) => {
-                this.emit('message', channel, nick, text, `${nick}! PRIVMSG ${channel} :${text}`);
-            });
+    this.client.on('message', (channel, nick, text) => {
+      this.emit('message', channel, nick, text, `${nick}! PRIVMSG ${channel} :${text}`);
+    });
+
+    this.client.on('pong', () => {
+      this.lastPingSent = 0;
+    });
 
             this.client.on('join', (channel, nick) => {
                 if (nick === this.config.nick) return;
@@ -241,20 +245,21 @@ export class RealIRCClient extends EventEmitter {
         }, delay);
     }
 
-    private startPingTimer(): void {
-        this.pingTimer = setInterval(() => {
-            if (!this.connected || this.lastPingTime <= 0) return;
-
-            const elapsed = Date.now() - this.lastPingTime;
-            if (elapsed > this.config.pingTimeout * 1000) {
-                this.emit('error', new Error('Ping timeout'));
-                this.client?.disconnect('Ping timeout', () => {
-                });
-                this.scheduleReconnect();
-            }
-            this.lastPingTime = Date.now();
-        }, this.config.pingTimeout * 1000);
-    }
+  private startPingTimer(): void {
+    this.lastPingSent = 0;
+    this.pingTimer = setInterval(() => {
+      if (!this.connected) return;
+      const now = Date.now();
+      if (this.lastPingSent === 0) {
+        this.client?.send('PING', 'SeNARS12');
+        this.lastPingSent = now;
+      } else {
+        if (now - this.lastPingSent > this.config.pingTimeout * 1000) {
+          this.emit('error', new Error('Ping timeout'));
+        }
+      }
+    }, this.config.pingTimeout * 1000);
+  }
 
     private stopPingTimer(): void {
         this.pingTimer && clearInterval(this.pingTimer);
