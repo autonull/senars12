@@ -38,7 +38,7 @@ export class RealIRCClient extends EventEmitter {
     private pingTimer: ReturnType<typeof setInterval> | null = null;
     private lastPingTime = 0;
     private pendingMessages: Map<string, string[]> = new Map();
-    private messageQueue: Array<{target: string; message: string}> = [];
+    private messageQueue: Array<{ target: string; message: string }> = [];
     private queueTimer: ReturnType<typeof setInterval> | null = null;
     private connected = false;
     private disposed = false;
@@ -157,6 +157,44 @@ export class RealIRCClient extends EventEmitter {
         this.dispatchMessage(target, message, pending);
     }
 
+    isConnected(): boolean {
+        return this.connected;
+    }
+
+    getNick(): string {
+        return this.config.nick;
+    }
+
+    async disconnect(message = 'Goodbye'): Promise<void> {
+        this.stopPingTimer();
+        this.stopQueueDrain();
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+        }
+        return new Promise((resolve) => {
+            this.client?.disconnect(message, () => resolve());
+            this.dispose();
+        });
+    }
+
+    dispose(): void {
+        this.disposed = true;
+        this.stopPingTimer();
+        this.stopQueueDrain();
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+        }
+        if (this.client) {
+            this.client.removeAllListeners();
+            this.client = null;
+        }
+        this.pendingMessages.clear();
+        this.messageQueue = [];
+        this.connected = false;
+    }
+
     private dispatchMessage(target: string, message: string, pending: string[]): void {
         if (!this.client) return;
         pending.push(message);
@@ -210,7 +248,8 @@ export class RealIRCClient extends EventEmitter {
             if (!this.connected) return;
             if (this.lastPingTime > 0 && Date.now() - this.lastPingTime > this.config.pingTimeout * 1000) {
                 this.emit('error', new Error('Ping timeout'));
-                this.client?.disconnect('Ping timeout', () => {});
+                this.client?.disconnect('Ping timeout', () => {
+                });
                 this.scheduleReconnect();
                 return;
             }
@@ -242,43 +281,5 @@ export class RealIRCClient extends EventEmitter {
                 this.emit('error', e instanceof Error ? e : new Error(String(e)));
             });
         }, delay + jitter);
-    }
-
-    isConnected(): boolean {
-        return this.connected;
-    }
-
-    getNick(): string {
-        return this.config.nick;
-    }
-
-    async disconnect(message = 'Goodbye'): Promise<void> {
-        this.stopPingTimer();
-        this.stopQueueDrain();
-        if (this.reconnectTimer) {
-            clearTimeout(this.reconnectTimer);
-            this.reconnectTimer = null;
-        }
-        return new Promise((resolve) => {
-            this.client?.disconnect(message, () => resolve());
-            this.dispose();
-        });
-    }
-
-    dispose(): void {
-        this.disposed = true;
-        this.stopPingTimer();
-        this.stopQueueDrain();
-        if (this.reconnectTimer) {
-            clearTimeout(this.reconnectTimer);
-            this.reconnectTimer = null;
-        }
-        if (this.client) {
-            this.client.removeAllListeners();
-            this.client = null;
-        }
-        this.pendingMessages.clear();
-        this.messageQueue = [];
-        this.connected = false;
     }
 }

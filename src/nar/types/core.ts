@@ -30,13 +30,13 @@ export type TaskType = 'belief' | 'goal' | 'question' | 'command';
 
 // Core Task interface
 export interface Task {
-  readonly term: Term;
-  readonly type: TaskType;
-  readonly truth: TruthType;
-  readonly budget: Budget;
-  readonly stamp: Stamp;
-  readonly occurrenceTime: number;
-  readonly derived: boolean;
+    readonly term: Term;
+    readonly type: TaskType;
+    readonly truth: TruthType;
+    readonly budget: Budget;
+    readonly stamp: Stamp;
+    readonly occurrenceTime: number;
+    readonly derived: boolean;
 }
 
 // Memory concepts
@@ -91,47 +91,47 @@ export const failure = (error: Error): Failure => ({success: false, error});
 
 // Create Budget object - optimized with defaults
 export const createBudget = (
-  priority: number,
-  durability = 0.8,
-  quality = 0.9,
-  cycles = 0,
-  depth = 0
+    priority: number,
+    durability = 0.8,
+    quality = 0.9,
+    cycles = 0,
+    depth = 0
 ): Budget =>
-  Object.freeze({priority, durability, quality, cycles, depth});
+    Object.freeze({priority, durability, quality, cycles, depth});
 
 // Pre-allocated neutral budget for performance
 const NEUTRAL_BUDGET = createBudget(0.5);
 
 // Create Task object - optimized
 export const createTask = (
-  term: Term,
-  type: TaskType,
-  truth: TruthType,
-  budget: Budget = NEUTRAL_BUDGET
+    term: Term,
+    type: TaskType,
+    truth: TruthType,
+    budget: Budget = NEUTRAL_BUDGET
 ): Task => ({
-  term,
-  type,
-  truth,
-  budget,
-  stamp: Stamp.createInput(),
-  occurrenceTime: Date.now(),
-  derived: false
+    term,
+    type,
+    truth,
+    budget,
+    stamp: Stamp.createInput(),
+    occurrenceTime: Date.now(),
+    derived: false
 });
 
 // Create secondary task from concept or belief - unified replacement for createTaskFromBelief/createTaskFromConcept
 export const createSecondaryTask = (
-  term: Term,
-  priority: number,
-  truth?: {f: number; c: number},
-  type: TaskType = 'belief'
+    term: Term,
+    priority: number,
+    truth?: { f: number; c: number },
+    type: TaskType = 'belief'
 ): Task => ({
-  term,
-  type,
-  truth: truth ?? {f: 0.5, c: 0.9},
-  budget: createBudget(priority),
-  stamp: Stamp.createInput(),
-  occurrenceTime: 0,
-  derived: false
+    term,
+    type,
+    truth: truth ?? {f: 0.5, c: 0.9},
+    budget: createBudget(priority),
+    stamp: Stamp.createInput(),
+    occurrenceTime: 0,
+    derived: false
 });
 
 // Error types for better error handling
@@ -176,14 +176,14 @@ export class ToolError extends NARError {
 
 // Query filter types
 export interface TermFilter {
-  contains?: string;
-  startsWith?: string;
-  endsWith?: string;
-  pattern?: RegExp;
-  limit?: number;
-  truthRange?: [number, number];
-  recency?: number;
-  type?: 'belief' | 'goal' | 'question' | 'command';
+    contains?: string;
+    startsWith?: string;
+    endsWith?: string;
+    pattern?: RegExp;
+    limit?: number;
+    truthRange?: [number, number];
+    recency?: number;
+    type?: 'belief' | 'goal' | 'question' | 'command';
 }
 
 export interface TruthFilter {
@@ -203,13 +203,14 @@ export interface QueryOptions {
 
 // Type guards
 export const isSuccess = <T>(result: Result<T>): result is Success<T> =>
-  result.success;
+    result.success;
 
 export const isFailure = <T>(result: Result<T>): result is Failure =>
-  !result.success;
+    !result.success;
 
 // Internal: base stats interface for metrics aggregation
 export interface BaseStats {
-  uptime?: number;
-  [key: string]: unknown;
+    uptime?: number;
+
+    [key: string]: unknown;
 }

@@ -12,7 +12,7 @@ import {MemoryScorer} from './scorer.js';
 import {MemoryConsolidation} from './consolidation.js';
 import type {ForgettingPolicy} from './forgetting.js';
 import {Forgetting} from './forgetting.js';
-import {calculateSimilarity} from '../terms/utils.js';
+import {calculateSimilarity} from '../terms';
 
 export interface MemoryConfig {
     maxConcepts?: number;
@@ -143,10 +143,16 @@ export class Memory {
         return concept;
     }
 
-addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget = {priority: 0.9, durability: 0.8, quality: 0.9, cycles: 0, depth: 0}): boolean {
-  const concept = this.getConcept(term) ?? this.addConcept(term);
-  return concept.addTask(type, {term, truth, budget});
-}
+    addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget = {
+        priority: 0.9,
+        durability: 0.8,
+        quality: 0.9,
+        cycles: 0,
+        depth: 0
+    }): boolean {
+        const concept = this.getConcept(term) ?? this.addConcept(term);
+        return concept.addTask(type, {term, truth, budget});
+    }
 
     removeConcept(term: Term): boolean {
         const concept = this.concepts.get(term.hash);
@@ -377,12 +383,12 @@ addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget = {prio
         return primary.mergeWith(others);
     }
 
-  findSimilarConcepts(term: Term, limit = 10): Concept[] {
-    const allConcepts = Array.from(this.concepts.values());
-    const scored = allConcepts.map(concept => ({
-      concept,
-      similarity: calculateSimilarity(concept, term),
-    }));
+    findSimilarConcepts(term: Term, limit = 10): Concept[] {
+        const allConcepts = Array.from(this.concepts.values());
+        const scored = allConcepts.map(concept => ({
+            concept,
+            similarity: calculateSimilarity(concept, term),
+        }));
 
         scored.sort((a, b) => b.similarity - a.similarity);
         return scored.slice(0, limit).map(s => s.concept);
@@ -455,8 +461,8 @@ addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget = {prio
             }
         }
 
-  return orphaned;
-  }
+        return orphaned;
+    }
 }
 
 // Serialization

@@ -3,20 +3,20 @@
  */
 
 import type {Term, Truth} from '../terms';
-import {termsEqual, extractSymbols, jaccardSimilarity} from '../terms';
+import {extractSymbols, jaccardSimilarity, termsEqual} from '../terms';
 import {Bag} from './bag.js';
 import {Truth as TruthOps} from '../terms/truth.js';
 
 import type {Budget} from '../types';
 
 export interface TaskData {
-  readonly term: Term;
-  readonly truth?: Truth;
-  readonly budget: Budget;
-  readonly timestamp?: number;
-  readonly stamp?: import('../terms/stamp.js').Stamp;
-  readonly occurrenceTime?: number;
-  readonly derived?: boolean;
+    readonly term: Term;
+    readonly truth?: Truth;
+    readonly budget: Budget;
+    readonly timestamp?: number;
+    readonly stamp?: import('../terms/stamp.js').Stamp;
+    readonly occurrenceTime?: number;
+    readonly derived?: boolean;
 }
 
 export type ConceptTaskType = 'belief' | 'goal' | 'question' | 'command';
@@ -39,28 +39,28 @@ export interface ConceptMergeResult {
 }
 
 export class Concept {
-  readonly term: Term;
-  readonly beliefBag: Bag<TaskData>;
-  readonly goalBag: Bag<TaskData>;
-  readonly questionBag: Bag<TaskData>;
-  readonly createdAt: number;
-  lastAccessedAt: number;
-  private activation = 0;
-  private useCount = 0;
-  private lastDecayTime: number;
-  private linkedConcepts = new Map<number, ConceptLink>();
-  private subConcepts = new Set<Concept>();
-  private parentConcepts = new Set<Concept>();
+    readonly term: Term;
+    readonly beliefBag: Bag<TaskData>;
+    readonly goalBag: Bag<TaskData>;
+    readonly questionBag: Bag<TaskData>;
+    readonly createdAt: number;
+    lastAccessedAt: number;
+    private activation = 0;
+    private useCount = 0;
+    private lastDecayTime: number;
+    private linkedConcepts = new Map<number, ConceptLink>();
+    private subConcepts = new Set<Concept>();
+    private parentConcepts = new Set<Concept>();
 
-  constructor(term: Term, config: ConceptConfig = {}) {
-    this.term = term;
-    this.beliefBag = new Bag(config.maxBeliefs ?? 100);
-    this.goalBag = new Bag(config.maxGoals ?? 50);
-    this.questionBag = new Bag(config.maxQuestions ?? 20);
-    this.createdAt = Date.now();
-    this.lastAccessedAt = Date.now();
-    this.lastDecayTime = Date.now();
-  }
+    constructor(term: Term, config: ConceptConfig = {}) {
+        this.term = term;
+        this.beliefBag = new Bag(config.maxBeliefs ?? 100);
+        this.goalBag = new Bag(config.maxGoals ?? 50);
+        this.questionBag = new Bag(config.maxQuestions ?? 20);
+        this.createdAt = Date.now();
+        this.lastAccessedAt = Date.now();
+        this.lastDecayTime = Date.now();
+    }
 
     private _priority = 0;
 
@@ -90,13 +90,13 @@ export class Concept {
         }
 
         const bag = type === 'goal' ? this.goalBag : this.questionBag;
-    const added = bag.add(data, data.budget.priority);
-    if (added) {
-      this.useCount++;
-      this.lastAccessedAt = Date.now();
-      this._priority = Math.min(1, this._priority + 0.1);
-    }
-    return added;
+        const added = bag.add(data, data.budget.priority);
+        if (added) {
+            this.useCount++;
+            this.lastAccessedAt = Date.now();
+            this._priority = Math.min(1, this._priority + 0.1);
+        }
+        return added;
     }
 
     hasMatchingBelief(term: Term): boolean {
@@ -282,25 +282,25 @@ export class Concept {
             if (data.truth && existing.truth) {
                 const revisedTruth = TruthOps.revision(data.truth, existing.truth);
                 const revisedData = {...data, truth: revisedTruth, timestamp: Date.now()};
-    this.beliefBag.remove(existing);
-    const added = this.beliefBag.add(revisedData, revisedData.budget.priority);
-    if (added) {
-      this.useCount++;
-      this.lastAccessedAt = Date.now();
-      this._priority = Math.min(1, this._priority + 0.1);
-    }
-    return added;
+                this.beliefBag.remove(existing);
+                const added = this.beliefBag.add(revisedData, revisedData.budget.priority);
+                if (added) {
+                    this.useCount++;
+                    this.lastAccessedAt = Date.now();
+                    this._priority = Math.min(1, this._priority + 0.1);
+                }
+                return added;
             }
             return false;
         }
 
-    const added = this.beliefBag.add(data, data.budget.priority);
-    if (added) {
-      this.useCount++;
-      this.lastAccessedAt = Date.now();
-      this._priority = Math.min(1, this._priority + 0.1);
-    }
-    return added;
+        const added = this.beliefBag.add(data, data.budget.priority);
+        if (added) {
+            this.useCount++;
+            this.lastAccessedAt = Date.now();
+            this._priority = Math.min(1, this._priority + 0.1);
+        }
+        return added;
     }
 
     private findMatchingBelief(term: Term): TaskData | undefined {
@@ -313,10 +313,10 @@ export class Concept {
         return undefined;
     }
 
-private calculateTermSimilarity(other: Term): number {
-  if (termsEqual(this.term, other)) return 1;
-  return jaccardSimilarity(extractSymbols(this.term), extractSymbols(other));
-}
+    private calculateTermSimilarity(other: Term): number {
+        if (termsEqual(this.term, other)) return 1;
+        return jaccardSimilarity(extractSymbols(this.term), extractSymbols(other));
+    }
 
     private calculateTaskOverlap(other: Concept): number {
         const thisBeliefs = new Set(this.getBeliefs().map(b => b.term.hash));

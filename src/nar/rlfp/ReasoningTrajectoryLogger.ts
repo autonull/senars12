@@ -1,6 +1,6 @@
 import {EventBus} from '../types';
 import {promises as fs} from 'fs';
-import {OperationError} from '../types/core.js';
+import {OperationError} from '../types';
 
 export interface TrajectoryStep {
     timestamp: number;

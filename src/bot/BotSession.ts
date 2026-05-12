@@ -1,4 +1,4 @@
-import type {NAR} from '../nar/index.js';
+import type {NAR} from '../nar';
 import type {IRCServerConfig} from './EmbeddedIRCServer.js';
 import {EmbeddedIRCServer} from './EmbeddedIRCServer.js';
 import {createMessageRouter} from './message-router.js';
@@ -38,7 +38,8 @@ export class BotSession {
             });
             this.sendFn = (ch: string, _u: string, msg: string) => this.ircServer?.send(ch, msg);
         } else {
-            this.sendFn = () => {};
+            this.sendFn = () => {
+            };
         }
     }
 

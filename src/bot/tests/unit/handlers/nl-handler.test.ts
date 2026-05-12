@@ -1,4 +1,4 @@
-import {createNlHandler} from '../../../handlers/nl-handler.js';
+import {createNlHandler} from '../../../handlers';
 
 describe('nl-handler', () => {
     test('sends usage hint for non-matching text', () => {

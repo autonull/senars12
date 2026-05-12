@@ -78,93 +78,93 @@ export class ReasoningTrace {
         };
     }
 
-  explain(conclusion: Task): ExplainResult {
-    const premises: Task[] = [];
-    const rules: string[] = [];
-    const confidence = conclusion.truth.f * conclusion.truth.c;
+    explain(conclusion: Task): ExplainResult {
+        const premises: Task[] = [];
+        const rules: string[] = [];
+        const confidence = conclusion.truth.f * conclusion.truth.c;
 
-    const history = this.getDerivationHistory(conclusion);
-    premises.push(...history.filter(t => t.stamp.id !== conclusion.stamp.id));
+        const history = this.getDerivationHistory(conclusion);
+        premises.push(...history.filter(t => t.stamp.id !== conclusion.stamp.id));
 
-    // Extract rules from derivation history
-    for (const task of history) {
-      const node = this.derivationHistory.get(task.stamp.id);
-      if (node?.rule) {
-        rules.push(node.rule);
-      }
+        // Extract rules from derivation history
+        for (const task of history) {
+            const node = this.derivationHistory.get(task.stamp.id);
+            if (node?.rule) {
+                rules.push(node.rule);
+            }
+        }
+
+        return {
+            conclusion,
+            premises,
+            rules: [...new Set(rules)],
+            confidence,
+            why: this.generateExplanation(conclusion, premises, confidence)
+        };
     }
 
-    return {
-      conclusion,
-      premises,
-      rules: [...new Set(rules)],
-      confidence,
-      why: this.generateExplanation(conclusion, premises, confidence)
-    };
-  }
-
-  recordDerivation(task: Task, rule?: string): void {
-    const node: DerivationNode = {
-      task,
-      children: [],
-      rule,
-      timestamp: Date.now()
-    };
-    this.derivationHistory.set(task.stamp.id, node);
-  }
-
-  buildDerivationTree(task: Task): DerivationTree {
-    const root = this.buildNode(task);
-    this.populateChildren(root, new Set());
-    const depth = this.calculateDepth(root);
-    const nodeCount = this.countNodes(root);
-
-    return {
-      root,
-      depth,
-      nodeCount
-    };
-  }
-
-  private populateChildren(node: DerivationNode, visited: Set<string>): void {
-    const stampId = node.task.stamp.id;
-    if (visited.has(stampId)) return;
-    visited.add(stampId);
-
-    const derivationIds = node.task.stamp.derivations || [];
-    if (derivationIds.length === 0) return;
-
-    for (const derivId of derivationIds) {
-      const parent = this.derivationHistory.get(derivId);
-      if (parent && !visited.has(derivId)) {
-        node.children.push(parent);
-        this.populateChildren(parent, visited);
-      }
-    }
-  }
-
-  getDerivationPath(task: Task): string[] {
-    const path: string[] = [];
-    let currentStamp = task.stamp;
-
-    while (currentStamp && path.length < 20) {
-      path.push(currentStamp.id);
-
-      // Find parent from derivation history
-      const node = this.derivationHistory.get(currentStamp.id);
-      if (!node || !node.children || node.children.length === 0) {
-        break;
-      }
-
-    // Get first child as parent in derivation chain
-    const parentNode = node.children[0];
-    if (!parentNode) break;
-    
-    currentStamp = parentNode.task.stamp;
+    recordDerivation(task: Task, rule?: string): void {
+        const node: DerivationNode = {
+            task,
+            children: [],
+            rule,
+            timestamp: Date.now()
+        };
+        this.derivationHistory.set(task.stamp.id, node);
     }
 
-    return path.reverse();
-  }
+    buildDerivationTree(task: Task): DerivationTree {
+        const root = this.buildNode(task);
+        this.populateChildren(root, new Set());
+        const depth = this.calculateDepth(root);
+        const nodeCount = this.countNodes(root);
+
+        return {
+            root,
+            depth,
+            nodeCount
+        };
+    }
+
+    getDerivationPath(task: Task): string[] {
+        const path: string[] = [];
+        let currentStamp = task.stamp;
+
+        while (currentStamp && path.length < 20) {
+            path.push(currentStamp.id);
+
+            // Find parent from derivation history
+            const node = this.derivationHistory.get(currentStamp.id);
+            if (!node || !node.children || node.children.length === 0) {
+                break;
+            }
+
+            // Get first child as parent in derivation chain
+            const parentNode = node.children[0];
+            if (!parentNode) break;
+
+            currentStamp = parentNode.task.stamp;
+        }
+
+        return path.reverse();
+    }
+
+    private populateChildren(node: DerivationNode, visited: Set<string>): void {
+        const stampId = node.task.stamp.id;
+        if (visited.has(stampId)) return;
+        visited.add(stampId);
+
+        const derivationIds = node.task.stamp.derivations || [];
+        if (derivationIds.length === 0) return;
+
+        for (const derivId of derivationIds) {
+            const parent = this.derivationHistory.get(derivId);
+            if (parent && !visited.has(derivId)) {
+                node.children.push(parent);
+                this.populateChildren(parent, visited);
+            }
+        }
+    }
 
     private buildNode(task: Task): DerivationNode {
         return {

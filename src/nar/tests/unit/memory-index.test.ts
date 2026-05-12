@@ -1,7 +1,7 @@
-import {MemoryIndex} from '../../memory/memory-index';
-import {Concept} from '../../memory/concept';
-import {TermBuilder, Truth} from '../../terms';
+import {MemoryIndex} from '../../memory';
 import type {Concept as ConceptType} from '../../memory/concept';
+import {Concept} from '../../memory';
+import {TermBuilder, Truth} from '../../terms';
 
 function createTestConcept(symbol: string, priority = 0.5): ConceptType {
     const concept = new Concept(TermBuilder.atom(symbol));

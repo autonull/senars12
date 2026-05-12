@@ -1,5 +1,5 @@
-import {isQuestion, createQuestionHandler} from '../../../handlers/question-handler.js';
-import {SeNARSFactory} from '../../../../nar/index.js';
+import {createQuestionHandler, isQuestion} from '../../../handlers';
+import {SeNARSFactory} from '../../../../nar';
 
 describe('question-handler', () => {
     describe('isQuestion', () => {

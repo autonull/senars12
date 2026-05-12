@@ -1,15 +1,15 @@
 import {describe, expect, test} from '@jest/globals';
 import {NARFacade} from '../../nar-facade';
 import {Memory} from '../../memory';
-import {QueryAPI} from '../../query/api';
-import {Reasoner} from '../../reason/reasoner';
-import {BagStrategy} from '../../reason/strategy';
-import {ToolManager} from '../../tools/manager';
-import {MetricsCollector} from '../../metrics';
-import {createTask, createBudget} from '../../types';
-import {TermBuilder, Truth, atom} from '../../terms';
-import type {Tool} from '../../tools/types';
+import {QueryAPI} from '../../query';
+import {Reasoner} from '../../reason';
+import {BagStrategy} from '../../reason';
+import {ToolManager} from '../../tools';
 import type {RuleStats} from '../../metrics';
+import {MetricsCollector} from '../../metrics';
+import {createBudget, createTask} from '../../types';
+import {atom, TermBuilder, Truth} from '../../terms';
+import type {Tool} from '../../tools';
 
 const createMockTool = (name: string, executeFn?: (args: Record<string, unknown>) => Promise<any>): Tool => ({
     name,
@@ -43,7 +43,11 @@ describe('NARFacade', () => {
         );
         tools = new ToolManager();
         metrics = new MetricsCollector();
-        facade = new NARFacade(memory, query, {getDerivationHistory: () => [], trace: () => null, explain: () => null} as any, tools, metrics);
+        facade = new NARFacade(memory, query, {
+            getDerivationHistory: () => [],
+            trace: () => null,
+            explain: () => null
+        } as any, tools, metrics);
     });
 
     describe('getBeliefs', () => {

@@ -3,8 +3,8 @@ import type {Term, Truth} from '../terms';
 export type TruthFn = (t1: Truth, t2: Truth) => Truth | null;
 
 export type RulePattern = {
-  left: { op?: string; subject?: string };
-  right: { op?: string; subject?: string };
+    left: { op?: string; subject?: string };
+    right: { op?: string; subject?: string };
 };
 
 export type RuleFn = (premises: [Term, Term]) => Term | undefined;

@@ -1,6 +1,5 @@
-import {LMResponseParser} from '../lm/parser.js';
-import {MockLMClient, RuleBasedLMClient} from '../lm/mock-client.js';
-import {LMRule} from '../lm/LMRule.js';
+import {LMResponseParser} from '../lm';
+import {MockLMClient, RuleBasedLMClient} from '../lm';
 import {SeNARSFactory} from '../index.js';
 
 describe('LMResponseParser', () => {
@@ -145,7 +144,7 @@ describe('RuleBasedLMClient', () => {
 describe('LM integration', () => {
     test('NAR with mock LM can be created', async () => {
         const nar = SeNARSFactory.createForBot({maxConcepts: 100});
-        const mockLm = new MockLMClient({'test': '(test --> concept)'});
+        const _mockLm = new MockLMClient({'test': '(test --> concept)'});
         const stats = nar.getStatistics();
         expect(stats.totalConcepts).toBeGreaterThanOrEqual(0);
     });

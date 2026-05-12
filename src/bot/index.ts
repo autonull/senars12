@@ -1,13 +1,13 @@
 import type {BotConfig} from './config.js';
 import {BotSession} from './BotSession.js';
-import {SeNARSFactory} from '../nar/index.js';
+import {SeNARSFactory} from '../nar';
 import {RealIRCClient} from './IRCClient.js';
 import {createMessageRouter} from './message-router.js';
 
 export interface Bot {
     start: () => Promise<void>;
     shutdown: () => Promise<void>;
-    status: {running: boolean; embodiments: {irc: boolean; cli: boolean}};
+    status: { running: boolean; embodiments: { irc: boolean; cli: boolean } };
 }
 
 export interface RealBot {

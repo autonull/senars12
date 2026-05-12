@@ -1,8 +1,14 @@
-import {describe, expect, test, beforeEach, afterEach} from '@jest/globals';
-import {MemoryPremiseSource, FocusPremiseSource, createPipeline, throttled, backpressureAware} from '../stream/pipeline.js';
+import {afterEach, beforeEach, describe, expect, test} from '@jest/globals';
+import {
+    backpressureAware,
+    createPipeline,
+    FocusPremiseSource,
+    MemoryPremiseSource,
+    throttled
+} from '../stream';
 import type {Memory} from '../memory';
 import {SeNARSFactory} from '../index.js';
-import {BagStrategy} from '../reason/strategy.js';
+import {BagStrategy} from '../reason';
 
 const createTestMemory = (): Memory => {
     const nar = SeNARSFactory.createForBot({maxConcepts: 50});
@@ -22,7 +28,10 @@ describe('MemoryPremiseSource', () => {
         memory = createTestMemory();
         source = new MemoryPremiseSource(memory, 'priority-weighted');
         controller = new AbortController();
-        await memory.addTask({kind: 'inheritance', symbol: 'A', hash: 0} as any, 'belief', {frequency: 0.9, confidence: 0.9} as any, {priority: 0.5, durability: 0.5, quality: 0.5} as any);
+        memory.addTask({kind: 'inheritance', symbol: 'A', hash: 0} as any, 'belief', {
+            frequency: 0.9,
+            confidence: 0.9
+        } as any, {priority: 0.5, durability: 0.5, quality: 0.5} as any);
     });
 
     afterEach(() => controller.abort());
@@ -112,7 +121,12 @@ describe('createPipeline', () => {
     test('creates pipeline with memory and strategy', () => {
         const memory = createTestMemory();
         const source = new MemoryPremiseSource(memory);
-        const pipeline = createPipeline(source, memory, BagStrategy, {cpuThrottleMs: 0, maxDepth: 5, maxQueueSize: 100, maxDerivationsPerStep: 10});
+        const pipeline = createPipeline(source, memory, BagStrategy, {
+            cpuThrottleMs: 0,
+            maxDepth: 5,
+            maxQueueSize: 100,
+            maxDerivationsPerStep: 10
+        });
         expect(pipeline).toBeDefined();
     });
 });

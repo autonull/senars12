@@ -1,5 +1,5 @@
-import {createCommandHandlers, parseCommand} from '../../../handlers/command-handler.js';
-import {SeNARSFactory} from '../../../../nar/index.js';
+import {createCommandHandlers, parseCommand} from '../../../handlers';
+import {SeNARSFactory} from '../../../../nar';
 
 describe('command-handler', () => {
     let sent: Array<[string, string, string]>;

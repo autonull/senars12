@@ -157,7 +157,7 @@ export class PolicyOptimizer {
                 .sort((a, b) => b.reward - a.reward)
                 .slice(0, Math.ceil(relevantHistory.length / 4));
 
-                if (topQuartile.length > 0) {
+            if (topQuartile.length > 0) {
                 const _commonFeatures = findCommonFeatures(topQuartile.map(h => h.trajectory));
 
                 if (avgReward < 0.5) {

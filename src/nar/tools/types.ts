@@ -65,20 +65,20 @@ export interface ToolChainResult {
     error?: string;
 }
 
-import {errMsg} from '../utils/helpers.js';
+import {errMsg} from '../utils';
 
 export interface ToolResult {
-success: boolean;
-content: unknown;
-error?: string;
-partial?: boolean;
-metadata?: Record<string, unknown>;
+    success: boolean;
+    content: unknown;
+    error?: string;
+    partial?: boolean;
+    metadata?: Record<string, unknown>;
 }
 
 export const errorResult = (error: unknown): ToolResult => ({
-success: false,
-content: null,
-error: errMsg(error)
+    success: false,
+    content: null,
+    error: errMsg(error)
 });
 
 export interface Schema {

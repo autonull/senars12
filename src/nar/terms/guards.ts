@@ -2,27 +2,27 @@ import type {Term} from './types.js';
 
 // Re-export type guards from types.ts
 export {
-  isVariableSymbol,
-  isAtomic,
-  isCompound
+    isVariableSymbol,
+    isAtomic,
+    isCompound
 } from './types.js';
 
 // Re-export accessors
 export {
-  getSubject,
-  getPredicate,
-  getAntecedent,
-  getConsequent,
-  getArgs,
-  isAtom,
-  isInheritance,
-  isSimilarity,
-  isImplication,
-  isEquivalence,
-  isConjunction,
-  isDisjunction,
-  isNegation,
-  termsEqual
+    getSubject,
+    getPredicate,
+    getAntecedent,
+    getConsequent,
+    getArgs,
+    isAtom,
+    isInheritance,
+    isSimilarity,
+    isImplication,
+    isEquivalence,
+    isConjunction,
+    isDisjunction,
+    isNegation,
+    termsEqual
 } from './accessors.js';
 
 /**
@@ -35,7 +35,7 @@ export const termHashKey = (term: Term): string => `${term.kind}-${term.hash}`;
  * Canonical terms have stable hashes suitable for use as Map keys
  */
 export const isCanonical = (term: Term): boolean => {
-  return term.hash !== undefined && term.hash !== null;
+    return term.hash !== undefined && term.hash !== null;
 };
 
 /**

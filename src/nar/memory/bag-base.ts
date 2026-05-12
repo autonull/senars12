@@ -7,11 +7,11 @@ export interface BagItem<T> {
 export abstract class AbstractBag<T> {
     protected items: BagItem<T>[] = [];
 
-    abstract add(item: T, priority: number): boolean;
-
     get size(): number {
         return this.items.length;
     }
+
+    abstract add(item: T, priority: number): boolean;
 
     peek(): T | undefined {
         return this.items[0]?.item;

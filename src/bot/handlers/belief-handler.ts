@@ -1,4 +1,4 @@
-import type {NAR} from '../../nar/index.js';
+import type {NAR} from '../../nar';
 
 export interface BeliefHandlerDeps {
     nar: NAR;

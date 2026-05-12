@@ -1,119 +1,119 @@
 import {describe, expect, test} from '@jest/globals';
-import {TermBuilder} from '../terms/factory.js';
-import {NALExtendedRules} from '../rules/nal-extended.js';
+import {TermBuilder} from '../terms';
+import {NALExtendedRules} from '../rules';
 
 describe('NAL2 Instance and Property Copula Rules', () => {
-  const {inheritance, instance, property, atom} = TermBuilder;
+    const {inheritance, instance, property, atom} = TermBuilder;
 
-  describe('instanceConversion', () => {
-    test('converts inheritance to instance form', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const inh = inheritance(bird, animal);
+    describe('instanceConversion', () => {
+        test('converts inheritance to instance form', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const inh = inheritance(bird, animal);
 
-      const result = NALExtendedRules.instanceConversion([inh, inh]);
+            const result = NALExtendedRules.instanceConversion([inh, inh]);
 
-    expect(result).toBeDefined();
-    expect(result?.toString()).toBe('({bird} --> {animal})');
+            expect(result).toBeDefined();
+            expect(result?.toString()).toBe('({bird} --> {animal})');
+        });
+
+        test('returns undefined for non-inheritance terms', () => {
+            const result = NALExtendedRules.instanceConversion([atom('test'), atom('test')]);
+            expect(result).toBeUndefined();
+        });
     });
 
-    test('returns undefined for non-inheritance terms', () => {
-      const result = NALExtendedRules.instanceConversion([atom('test'), atom('test')]);
-      expect(result).toBeUndefined();
-    });
-  });
+    describe('propertyConversion', () => {
+        test('converts inheritance to property form', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const inh = inheritance(bird, animal);
 
-  describe('propertyConversion', () => {
-    test('converts inheritance to property form', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const inh = inheritance(bird, animal);
+            const result = NALExtendedRules.propertyConversion([inh, inh]);
 
-      const result = NALExtendedRules.propertyConversion([inh, inh]);
+            expect(result).toBeDefined();
+            expect(result?.toString()).toBe('([bird] --> [animal])');
+        });
 
-      expect(result).toBeDefined();
-      expect(result?.toString()).toBe('([bird] --> [animal])');
-    });
-
-    test('returns undefined for non-inheritance terms', () => {
-      const result = NALExtendedRules.propertyConversion([atom('test'), atom('test')]);
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe('instanceDeduction', () => {
-    test('applies instance deduction when subject matches', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const birdInst = instance(bird);
-      const inh = inheritance(bird, animal);
-
-      const result = NALExtendedRules.instanceDeduction([inh, birdInst]);
-
-      expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(bird --> animal)');
+        test('returns undefined for non-inheritance terms', () => {
+            const result = NALExtendedRules.propertyConversion([atom('test'), atom('test')]);
+            expect(result).toBeUndefined();
+        });
     });
 
-    test('returns undefined when subject does not match', () => {
-      const bird = atom('bird');
-      const cat = atom('cat');
-      const animal = atom('animal');
-      const catInst = instance(cat);
-      const inh = inheritance(bird, animal);
+    describe('instanceDeduction', () => {
+        test('applies instance deduction when subject matches', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const birdInst = instance(bird);
+            const inh = inheritance(bird, animal);
 
-      const result = NALExtendedRules.instanceDeduction([inh, catInst]);
+            const result = NALExtendedRules.instanceDeduction([inh, birdInst]);
 
-      expect(result).toBeUndefined();
-    });
-  });
+            expect(result).toBeDefined();
+            expect(result?.toString()).toBe('(bird --> animal)');
+        });
 
-  describe('propertyInduction', () => {
-    test('applies property induction when predicate matches', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const animalProp = property(animal);
-      const inh = inheritance(bird, animal);
+        test('returns undefined when subject does not match', () => {
+            const bird = atom('bird');
+            const cat = atom('cat');
+            const animal = atom('animal');
+            const catInst = instance(cat);
+            const inh = inheritance(bird, animal);
 
-      const result = NALExtendedRules.propertyInduction([inh, animalProp]);
+            const result = NALExtendedRules.instanceDeduction([inh, catInst]);
 
-      expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(bird --> animal)');
-    });
-
-    test('returns undefined when predicate does not match', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const plant = atom('plant');
-      const plantProp = property(plant);
-      const inh = inheritance(bird, animal);
-
-      const result = NALExtendedRules.propertyInduction([inh, plantProp]);
-
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe('instance and property term creation', () => {
-    test('creates instance terms', () => {
-      const bird = atom('bird');
-      const birdInst = instance(bird);
-
-      expect(birdInst.toString()).toBe('{bird}');
+            expect(result).toBeUndefined();
+        });
     });
 
-    test('creates property terms', () => {
-      const animal = atom('animal');
-      const animalProp = property(animal);
+    describe('propertyInduction', () => {
+        test('applies property induction when predicate matches', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const animalProp = property(animal);
+            const inh = inheritance(bird, animal);
 
-      expect(animalProp.toString()).toBe('[animal]');
+            const result = NALExtendedRules.propertyInduction([inh, animalProp]);
+
+            expect(result).toBeDefined();
+            expect(result?.toString()).toBe('(bird --> animal)');
+        });
+
+        test('returns undefined when predicate does not match', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const plant = atom('plant');
+            const plantProp = property(plant);
+            const inh = inheritance(bird, animal);
+
+            const result = NALExtendedRules.propertyInduction([inh, plantProp]);
+
+            expect(result).toBeUndefined();
+        });
     });
 
-test('handles undefined input gracefully', () => {
-  const birdInst = instance(undefined!);
-  const animalProp = property(undefined!);
+    describe('instance and property term creation', () => {
+        test('creates instance terms', () => {
+            const bird = atom('bird');
+            const birdInst = instance(bird);
 
-  expect(birdInst.toString()).toBe('TRUE');
-  expect(animalProp.toString()).toBe('TRUE');
-});
-  });
+            expect(birdInst.toString()).toBe('{bird}');
+        });
+
+        test('creates property terms', () => {
+            const animal = atom('animal');
+            const animalProp = property(animal);
+
+            expect(animalProp.toString()).toBe('[animal]');
+        });
+
+        test('handles undefined input gracefully', () => {
+            const birdInst = instance(undefined!);
+            const animalProp = property(undefined!);
+
+            expect(birdInst.toString()).toBe('TRUE');
+            expect(animalProp.toString()).toBe('TRUE');
+        });
+    });
 });

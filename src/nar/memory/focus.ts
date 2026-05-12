@@ -1,5 +1,4 @@
 import type {Concept} from './concept.js';
-import {termsEqual} from '../terms';
 
 export interface FocusConfig {
     maxConcepts: number;
@@ -12,15 +11,20 @@ const DEFAULT_CONFIG: FocusConfig = {
 };
 
 export class Focus {
-    private concepts: Map<string, {concept: Concept; priority: number}> = new Map();
+    private concepts: Map<string, { concept: Concept; priority: number }> = new Map();
     private config: FocusConfig;
 
     constructor(config: FocusConfig = DEFAULT_CONFIG) {
         this.config = config;
     }
 
-    get size(): number { return this.concepts.size; }
-    get capacity(): number { return this.config.maxConcepts; }
+    get size(): number {
+        return this.concepts.size;
+    }
+
+    get capacity(): number {
+        return this.config.maxConcepts;
+    }
 
     addToFocus(concept: Concept): void {
         if (concept.priority < this.config.attentionThreshold) return;
@@ -37,8 +41,13 @@ export class Focus {
         return this.concepts.delete(key);
     }
 
-    getFocusSet(): Concept[] { return [...this.concepts.values()].map(c => c.concept); }
-    clearFocus(): void { this.concepts.clear(); }
+    getFocusSet(): Concept[] {
+        return [...this.concepts.values()].map(c => c.concept);
+    }
+
+    clearFocus(): void {
+        this.concepts.clear();
+    }
 
     adjustAttention(concept: Concept, delta: number): void {
         const key = concept.term.hash?.toString() ?? concept.term.toString();

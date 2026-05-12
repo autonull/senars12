@@ -1,5 +1,5 @@
-import {isBelief, createBeliefHandler} from '../../../handlers/belief-handler.js';
-import {SeNARSFactory} from '../../../../nar/index.js';
+import {createBeliefHandler, isBelief} from '../../../handlers';
+import {SeNARSFactory} from '../../../../nar';
 
 describe('belief-handler', () => {
     describe('isBelief', () => {

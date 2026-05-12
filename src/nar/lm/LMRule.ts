@@ -6,7 +6,7 @@ import type {LMClient, LMExecutionStats, LMRuleConfig, LMRuleStats} from './type
 import {CircuitBreaker} from '../utils';
 import type {Truth as TruthType} from '../terms/truth.js';
 import {LMResponseParser} from './parser.js';
-import {errMsg} from '../utils/helpers.js';
+import {errMsg} from '../utils';
 
 export class LMRule {
     readonly id: string;
@@ -90,15 +90,15 @@ export class LMRule {
             const tasks = this.generateTasks(processed, primary, secondary, context);
             this.recordExecution(true, Date.now() - startTime, prompt.length + response.length);
             return tasks;
-} catch (error) {
-this.emitEvent('lm.failure', {
-ruleId: this.id,
-error: errMsg(error),
-duration: Date.now() - startTime,
-timestamp: Date.now()
-});
-this.recordExecution(false, Date.now() - startTime);
-return [];
+        } catch (error) {
+            this.emitEvent('lm.failure', {
+                ruleId: this.id,
+                error: errMsg(error),
+                duration: Date.now() - startTime,
+                timestamp: Date.now()
+            });
+            this.recordExecution(false, Date.now() - startTime);
+            return [];
         }
     }
 
@@ -166,24 +166,30 @@ return [];
     }
 
     private taskFromProcessed(processed: unknown, primary: Term): Task {
-if (typeof processed === 'string') {
-  const parsed = LMResponseParser.parse(processed);
-  if (parsed.valid && parsed.term) {
-    return createTask(
-      parsed.term,
-      'belief',
-      parsed.truth ?? Truth.NEUTRAL,
-      parsed.confidence != null ? {priority: parsed.confidence, durability: 0.8, quality: 0.9, cycles: 0, depth: 0} : undefined
-    );
-  }
-}
+        if (typeof processed === 'string') {
+            const parsed = LMResponseParser.parse(processed);
+            if (parsed.valid && parsed.term) {
+                return createTask(
+                    parsed.term,
+                    'belief',
+                    parsed.truth ?? Truth.NEUTRAL,
+                    parsed.confidence != null ? {
+                        priority: parsed.confidence,
+                        durability: 0.8,
+                        quality: 0.9,
+                        cycles: 0,
+                        depth: 0
+                    } : undefined
+                );
+            }
+        }
 
-const term = (processed as Partial<Task> & { term?: Term }).term ?? primary;
-const type = (processed as Partial<Task> & { type?: TaskType }).type ?? 'belief';
-const truth = (processed as Partial<Task> & { truth?: TruthType }).truth ?? Truth.NEUTRAL;
-const budget = (processed as Partial<Task> & { budget?: Budget }).budget;
+        const term = (processed as Partial<Task> & { term?: Term }).term ?? primary;
+        const type = (processed as Partial<Task> & { type?: TaskType }).type ?? 'belief';
+        const truth = (processed as Partial<Task> & { truth?: TruthType }).truth ?? Truth.NEUTRAL;
+        const budget = (processed as Partial<Task> & { budget?: Budget }).budget;
 
-return createTask(term, type, truth, budget ?? undefined);
+        return createTask(term, type, truth, budget ?? undefined);
     }
 
     private recordExecution(success: boolean, duration: number, tokens?: number): void {

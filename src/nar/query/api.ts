@@ -18,9 +18,17 @@ export interface Answer {
 }
 
 export class QueryAPI {
-    private readonly memory: { getConcept: (term: Term) => Concept | undefined; findSimilarConcepts: (term: Term, limit?: number) => Concept[]; listConcepts: () => Concept[] };
+    private readonly memory: {
+        getConcept: (term: Term) => Concept | undefined;
+        findSimilarConcepts: (term: Term, limit?: number) => Concept[];
+        listConcepts: () => Concept[]
+    };
 
-    constructor(memory: { getConcept: (term: Term) => Concept | undefined; findSimilarConcepts: (term: Term, limit?: number) => Concept[]; listConcepts: () => Concept[] }) {
+    constructor(memory: {
+        getConcept: (term: Term) => Concept | undefined;
+        findSimilarConcepts: (term: Term, limit?: number) => Concept[];
+        listConcepts: () => Concept[]
+    }) {
         this.memory = memory;
     }
 
@@ -58,91 +66,103 @@ export class QueryAPI {
         };
     }
 
-  async ask(question: string | Term): Promise<Answer> {
-    const questionStr = typeof question === 'string' ? question : question.toString();
-    const questionTerm = typeof question === 'string' ? this.parseQuestion(question) : question;
+    async ask(question: string | Term): Promise<Answer> {
+        const questionStr = typeof question === 'string' ? question : question.toString();
+        const questionTerm = typeof question === 'string' ? this.parseQuestion(question) : question;
 
-    if (!questionTerm) {
-      return {
-        question: questionStr,
-        confidence: 0,
-        evidence: []
-      };
-    }
-
-    const concept = this.memory.getConcept(questionTerm);
-    if (concept) {
-      const belief = concept.beliefBag.peek();
-      if (belief?.truth) {
-        const confidence = belief.truth.f * belief.truth.c;
-        if (confidence >= 0.5) {
-          const task: Task = {
-            term: questionTerm,
-            type: 'belief',
-            truth: belief.truth,
-            budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-            stamp: (belief as TaskData).stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
-            occurrenceTime: 0,
-            derived: false
-          };
-
-          return {
-            question: questionStr,
-            answer: questionTerm.toString(),
-            confidence,
-            evidence: [task],
-            derivationPath: this.extractDerivationPath(task)
-          };
+        if (!questionTerm) {
+            return {
+                question: questionStr,
+                confidence: 0,
+                evidence: []
+            };
         }
-      }
-    }
 
-    const relatedConcepts = this.memory.findSimilarConcepts(questionTerm, 5);
-    for (const related of relatedConcepts) {
-      const belief = related.beliefBag.peek();
-      if (belief?.truth) {
-        const confidence = belief.truth.f * belief.truth.c;
-        if (confidence >= 0.5) {
-          const task: Task = {
-            term: related.term,
-            type: 'belief',
-            truth: belief.truth,
-            budget: {priority: related.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-            stamp: (belief as TaskData).stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
-            occurrenceTime: 0,
-            derived: false
-          };
+        const concept = this.memory.getConcept(questionTerm);
+        if (concept) {
+            const belief = concept.beliefBag.peek();
+            if (belief?.truth) {
+                const confidence = belief.truth.f * belief.truth.c;
+                if (confidence >= 0.5) {
+                    const task: Task = {
+                        term: questionTerm,
+                        type: 'belief',
+                        truth: belief.truth,
+                        budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+                        stamp: (belief as TaskData).stamp ?? {
+                            id: '',
+                            creationTime: 0,
+                            source: 'INPUT' as const,
+                            derivations: [],
+                            depth: 0
+                        },
+                        occurrenceTime: 0,
+                        derived: false
+                    };
 
-          return {
-            question: questionStr,
-            answer: related.term.toString(),
-            confidence,
-            evidence: [task],
-            derivationPath: this.extractDerivationPath(task)
-          };
+                    return {
+                        question: questionStr,
+                        answer: questionTerm.toString(),
+                        confidence,
+                        evidence: [task],
+                        derivationPath: this.extractDerivationPath(task)
+                    };
+                }
+            }
         }
-      }
+
+        const relatedConcepts = this.memory.findSimilarConcepts(questionTerm, 5);
+        for (const related of relatedConcepts) {
+            const belief = related.beliefBag.peek();
+            if (belief?.truth) {
+                const confidence = belief.truth.f * belief.truth.c;
+                if (confidence >= 0.5) {
+                    const task: Task = {
+                        term: related.term,
+                        type: 'belief',
+                        truth: belief.truth,
+                        budget: {priority: related.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+                        stamp: (belief as TaskData).stamp ?? {
+                            id: '',
+                            creationTime: 0,
+                            source: 'INPUT' as const,
+                            derivations: [],
+                            depth: 0
+                        },
+                        occurrenceTime: 0,
+                        derived: false
+                    };
+
+                    return {
+                        question: questionStr,
+                        answer: related.term.toString(),
+                        confidence,
+                        evidence: [task],
+                        derivationPath: this.extractDerivationPath(task)
+                    };
+                }
+            }
+        }
+
+        return {
+            question: questionStr,
+            confidence: 0,
+            evidence: []
+        };
     }
 
-    return {
-      question: questionStr,
-      confidence: 0,
-      evidence: []
-    };
-  }
-
-  private parseQuestion(question: string): Term | null {
-    try {
-      if (question.includes('-->') || question.includes('<->') || question.includes('=>')) {
-        const {termParser} = require('../terms/parser.js');
-        return termParser.parse(question);
-      }
-      return null;
-    } catch (error) {
-      console.warn('Failed to parse question:', question, error);
-      return null;
+    private parseQuestion(question: string): Term | null {
+        try {
+            if (question.includes('-->') || question.includes('<->') || question.includes('=>')) {
+                const {termParser} = require('../terms/parser.js');
+                return termParser.parse(question);
+            }
+            return null;
+        } catch (error) {
+            console.warn('Failed to parse question:', question, error);
+            return null;
+        }
     }
-  }
 
     private queryByType(type: TaskType, filter?: TermFilter): Task[] {
         const tasks: Task[] = [];
@@ -162,18 +182,24 @@ export class QueryAPI {
             type === 'goal' ? concept.goalBag :
                 type === 'question' ? concept.questionBag : null;
 
-if (bag) {
-  for (const item of bag.toArray()) {
-    tasks.push({
-      term: concept.term,
-      type,
-      truth: item.truth,
-      budget: typeof item.budget === 'number' ? {priority: item.budget, durability: 0.8, quality: 0.9, cycles: 0, depth: 0} : item.budget,
-      stamp: item.stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
-      occurrenceTime: item.occurrenceTime || Date.now(),
-      derived: item.derived || false
-    } as Task);
-  }
+        if (bag) {
+            for (const item of bag.toArray()) {
+                tasks.push({
+                    term: concept.term,
+                    type,
+                    truth: item.truth,
+                    budget: typeof item.budget === 'number' ? {
+                        priority: item.budget,
+                        durability: 0.8,
+                        quality: 0.9,
+                        cycles: 0,
+                        depth: 0
+                    } : item.budget,
+                    stamp: item.stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
+                    occurrenceTime: item.occurrenceTime || Date.now(),
+                    derived: item.derived || false
+                } as Task);
+            }
         }
 
         return tasks;

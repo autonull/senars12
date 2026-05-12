@@ -1,5 +1,5 @@
 import type {CompoundTerm, Term} from './types.js';
-import {computeHash} from '../utils/index.js';
+import {computeHash} from '../utils';
 import {termsEqual} from './accessors.js';
 import {TermBuilder} from './factory.js';
 

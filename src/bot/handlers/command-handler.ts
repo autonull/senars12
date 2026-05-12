@@ -1,4 +1,4 @@
-import type {NAR} from '../../nar/index.js';
+import type {NAR} from '../../nar';
 
 export interface CommandHandlerDeps {
     nar: NAR;
@@ -37,7 +37,7 @@ export function createCommandHandlers(deps: CommandHandlerDeps): readonly Comman
     ]);
 }
 
-export function parseCommand(text: string): {cmd: string; args: string[]} | null {
+export function parseCommand(text: string): { cmd: string; args: string[] } | null {
     const trimmed = text.trim();
     if (!trimmed.startsWith('.') && !trimmed.startsWith('!')) return null;
     const spaceIdx = trimmed.search(/[\s ]/);

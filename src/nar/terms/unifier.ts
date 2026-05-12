@@ -28,15 +28,15 @@ const occursCheck = (variable: string, term: Term, _subst: Substitution): boolea
 };
 
 const _applySubstitution = (term: Term, subst: Substitution): Term => {
-	if (term.kind === 'atom') {
-		if (term.symbol in subst) {
-			return subst[term.symbol]!;
-		}
-		return term;
-	}
+    if (term.kind === 'atom') {
+        if (term.symbol in subst) {
+            return subst[term.symbol]!;
+        }
+        return term;
+    }
 
-	const newArgs = (term.args ?? []).map(arg => _applySubstitution(arg, subst));
-	return {...term, args: newArgs} as Term;
+    const newArgs = (term.args ?? []).map(arg => _applySubstitution(arg, subst));
+    return {...term, args: newArgs} as Term;
 };
 
 export function unify(a: Term, b: Term, subst: Substitution = {}, enableOccursCheck = true): Substitution | undefined {
@@ -119,22 +119,22 @@ export function unifyMultiple(terms: Term[], initialSubst: Substitution = {}): S
 }
 
 export function composeBindings(s1: Substitution, s2: Substitution): Substitution | undefined {
-  const result = {...s1};
+    const result = {...s1};
 
-  for (const [varName, term] of Object.entries(s2)) {
-    if (varName in s1) {
-      const existing = s1[varName]!;
-      if (!termsEqual(existing, term)) {
-        const unified = unify(existing, term, s1);
-        if (!unified) return undefined;
-        result[varName] = unified[varName] || term;
-      }
-    } else {
-      result[varName] = term;
+    for (const [varName, term] of Object.entries(s2)) {
+        if (varName in s1) {
+            const existing = s1[varName]!;
+            if (!termsEqual(existing, term)) {
+                const unified = unify(existing, term, s1);
+                if (!unified) return undefined;
+                result[varName] = unified[varName] || term;
+            }
+        } else {
+            result[varName] = term;
+        }
     }
-  }
 
-  return result;
+    return result;
 }
 
 export function clearUnificationCache(): void {

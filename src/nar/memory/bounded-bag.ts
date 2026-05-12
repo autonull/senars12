@@ -36,6 +36,46 @@ export class BoundedBag<T> {
     private readonly overflowBehavior: OverflowBehavior = 'reject';
     private stats = {additions: 0, removals: 0, hits: 0, misses: 0};
     private onOverflow?: (item: T, priority: number, bag: BoundedBag<T>) => void;
+    private sampleStrategies: Record<string, (objective: any) => T | undefined> = {
+        priority: (objective) => {
+            const found = this.heap.find(h => h.priority >= objective.threshold);
+            if (found) {
+                this.stats.hits++;
+                return found.item;
+            }
+            this.stats.misses++;
+            return undefined;
+        },
+        recency: (objective) => {
+            const cutoff = Date.now() - objective.windowMs;
+            const found = this.heap.find(h => h.lastAccess >= cutoff);
+            if (found) {
+                this.stats.hits++;
+                return found.item;
+            }
+            this.stats.misses++;
+            return undefined;
+        },
+        novelty: () => {
+            this.stats.hits++;
+            return this.heap[0]?.item;
+        },
+        composite: (objective) => {
+            const scored = this.heap.map(h => ({
+                item: h.item,
+                score: h.priority * objective.weights.priority - ((Date.now() - h.lastAccess) / 1000) * objective.weights.recency,
+            }));
+            if (scored.length > 0) {
+                const best = [...scored].sort((a, b) => b.score - a.score)[0];
+                if (best) {
+                    this.stats.hits++;
+                    return best.item;
+                }
+            }
+            this.stats.misses++;
+            return undefined;
+        }
+    };
 
     constructor(
         capacity: number,
@@ -80,14 +120,14 @@ export class BoundedBag<T> {
                 const minP = this.findMinPriority();
                 if (priority <= minP) return false;
                 this.heap.shift();
-    } else if (this.overflowBehavior === 'replace-lowest') {
-      const minIdx = this.findMinIndex();
-      const minItem = this.heap[minIdx];
-      if (minIdx >= 0 && minItem && priority > minItem.priority) {
-        this.heap.splice(minIdx, 1);
-      } else {
-        return false;
-      }
+            } else if (this.overflowBehavior === 'replace-lowest') {
+                const minIdx = this.findMinIndex();
+                const minItem = this.heap[minIdx];
+                if (minIdx >= 0 && minItem && priority > minItem.priority) {
+                    this.heap.splice(minIdx, 1);
+                } else {
+                    return false;
+                }
             } else if (this.overflowBehavior === 'merge') {
                 const existing = this.heap.find(h => this.itemsMatch(h.item, item));
                 if (existing) {
@@ -181,47 +221,6 @@ export class BoundedBag<T> {
         };
     }
 
-    private sampleStrategies: Record<string, (objective: any) => T | undefined> = {
-        priority: (objective) => {
-            const found = this.heap.find(h => h.priority >= objective.threshold);
-            if (found) {
-                this.stats.hits++;
-                return found.item;
-            }
-            this.stats.misses++;
-            return undefined;
-        },
-        recency: (objective) => {
-            const cutoff = Date.now() - objective.windowMs;
-            const found = this.heap.find(h => h.lastAccess >= cutoff);
-            if (found) {
-                this.stats.hits++;
-                return found.item;
-            }
-            this.stats.misses++;
-            return undefined;
-        },
-        novelty: () => {
-            this.stats.hits++;
-            return this.heap[0]?.item;
-        },
-        composite: (objective) => {
-            const scored = this.heap.map(h => ({
-                item: h.item,
-                score: h.priority * objective.weights.priority - ((Date.now() - h.lastAccess) / 1000) * objective.weights.recency,
-            }));
-            if (scored.length > 0) {
-                const best = [...scored].sort((a, b) => b.score - a.score)[0];
-                if (best) {
-                    this.stats.hits++;
-                    return best.item;
-                }
-            }
-            this.stats.misses++;
-            return undefined;
-        }
-    };
-
     sample(objective: SamplingObjective): T | undefined {
         return this.sampleStrategies[objective.type]?.(objective);
     }
@@ -245,19 +244,19 @@ export class BoundedBag<T> {
         return minP;
     }
 
-  private findMinIndex(): number {
-    if (this.heap.length === 0) return -1;
-    let minIdx = 0;
-    let minP = this.heap[0]!.priority;
-    for (let i = 1; i < this.heap.length; i++) {
-      const item = this.heap[i];
-      if (item && item.priority < minP) {
-        minP = item.priority;
-        minIdx = i;
-      }
+    private findMinIndex(): number {
+        if (this.heap.length === 0) return -1;
+        let minIdx = 0;
+        let minP = this.heap[0]!.priority;
+        for (let i = 1; i < this.heap.length; i++) {
+            const item = this.heap[i];
+            if (item && item.priority < minP) {
+                minP = item.priority;
+                minIdx = i;
+            }
+        }
+        return minIdx;
     }
-    return minIdx;
-  }
 
     private itemsMatch(a: T, b: T): boolean {
         if (a == null || b == null) return a === b;

@@ -1,7 +1,7 @@
 /**
  * Test fixtures - Shared test utilities
  */
-import { NAR } from '../nar.js';
+import {NAR} from '../nar.js';
 
 export const E2E_CONFIG = {
     maxConcepts: 100,
@@ -14,4 +14,4 @@ export const E2E_CONFIG = {
     enableLMRules: false
 } as const;
 
-export const createTestNAR = (overrides?: Partial<typeof E2E_CONFIG>) => new NAR({ ...E2E_CONFIG, ...overrides });
+export const createTestNAR = (overrides?: Partial<typeof E2E_CONFIG>) => new NAR({...E2E_CONFIG, ...overrides});

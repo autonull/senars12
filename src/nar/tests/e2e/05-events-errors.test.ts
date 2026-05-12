@@ -23,7 +23,9 @@ describe('Event System', () => {
     it('eventBus supports subscription', async () => {
         let fired = false;
 
-        const unsub = nar.eventBus.on('test.event', () => { fired = true; });
+        const unsub = nar.eventBus.on('test.event', () => {
+            fired = true;
+        });
         nar.eventBus.emit('test.event', {});
         expect(fired).toBe(true);
         unsub();

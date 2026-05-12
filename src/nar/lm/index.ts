@@ -12,11 +12,11 @@ export type {ModelCapability, ModelRegistryEntry, ModelProvider} from './model-r
 export {EnhancedLMClient, createEnhancedLMClient, FallbackLMClient, createFallbackLMClient} from './enhanced-client.js';
 export type {CacheConfig, CacheEntry} from './enhanced-client.js';
 export {
-DynamicLMRuleGenerator, CompositeLMRule, createDynamicRuleGenerator, createCompositeRule
+    DynamicLMRuleGenerator, CompositeLMRule, createDynamicRuleGenerator, createCompositeRule
 } from './dynamic-rules.js';
 export type {DynamicRuleConfig, ValidationRule} from './dynamic-rules.js';
 export {
-ModelCapabilityDiscovery, ModelBenchmark, createModelCapabilityDiscovery, createModelBenchmark
+    ModelCapabilityDiscovery, ModelBenchmark, createModelCapabilityDiscovery, createModelBenchmark
 } from './model-discovery.js';
 export {BidirectionalFeedbackLoop, createBidirectionalFeedbackLoop} from './feedback.js';
 export type {FeedbackConfig, ValidationFeedback} from './feedback.js';

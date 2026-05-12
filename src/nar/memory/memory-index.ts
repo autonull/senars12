@@ -1,6 +1,6 @@
 import type {Concept} from './concept.js';
 import type {Term} from '../terms';
-import {extractSymbols, termsEqual, jaccardSimilarity} from '../terms';
+import {extractSymbols, jaccardSimilarity, termsEqual} from '../terms';
 import {addToSet} from '../utils/collections.js';
 import {THRESHOLDS} from '../constants.js';
 

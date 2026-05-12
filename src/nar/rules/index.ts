@@ -4,9 +4,9 @@ import './nal-extended.js';
 
 // Rule types and registry
 export type {
-  RegisteredRule,
-  RulePattern,
-  RuleFn
+    RegisteredRule,
+    RulePattern,
+    RuleFn
 } from './types.js';
 export {RuleRegistry, RuleIndex, createRulePattern} from './types.js';
 

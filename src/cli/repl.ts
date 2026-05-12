@@ -22,7 +22,7 @@ interface ProfileSession {
 }
 
 class SeNARSCLI {
-    private nar: NAR;
+    private readonly nar: NAR;
     private config: CLIConfig;
     private rl: readline.Interface;
     private history: string[] = [];
@@ -525,7 +525,7 @@ class SeNARSCLI {
     }
 
     private showHelp(command?: string): void {
-if (command) {
+        if (command) {
             const helpText: Record<string, string> = {
                 '.help': 'Show help for a command',
                 '.run': 'Run inference steps: .run [steps]',
@@ -558,7 +558,7 @@ if (command) {
             return;
         }
 
-console.log(`
+        console.log(`
 ╔══════════════════════════════════════════════════╗
 ║ SeNARS CLI Commands                              ║
 ╠══════════════════════════════════════════════════╣
@@ -783,7 +783,13 @@ console.log(`
     private showConstitution(args: string[]): void {
         const nar = this.nar as any;
         if (args[0] === 'add' && args[1]) {
-            nar.setConstitution([{term: args.slice(1).join(' '), type: 'belief' as const, truth: {f: 1, c: 1}, budget: 1, stamp: {id: '', creationTime: Date.now(), source: 'CONSTITUTION', derivations: [], depth: 0}}]);
+            nar.setConstitution([{
+                term: args.slice(1).join(' '),
+                type: 'belief' as const,
+                truth: {f: 1, c: 1},
+                budget: 1,
+                stamp: {id: '', creationTime: Date.now(), source: 'CONSTITUTION', derivations: [], depth: 0}
+            }]);
             console.log(`✓ Added to constitution: ${args.slice(1).join(' ')}`);
             return;
         }

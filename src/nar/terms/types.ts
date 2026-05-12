@@ -1,7 +1,7 @@
 /**
  * Term types and operators
  * Defines the structure of terms in NARS12
- * 
+ *
  * This is the pure types module - all type definitions only.
  * For operations on terms, see:
  * - serialize.ts / deserialize.ts - String conversion
@@ -14,10 +14,10 @@
  * - parser.ts - Term parsing
  */
 
-import {computeHash} from '../utils';
+import type {OperatorKey} from './operators.js';
+
 export {OPERATORS, COMMUTATIVE_OPS, NARY_OPS} from './operators.js';
 export type {OperatorKey, OperatorSymbol} from './operators.js';
-import type {OperatorKey} from './operators.js';
 
 export interface AtomicTerm {
     readonly kind: 'atom';
@@ -25,6 +25,7 @@ export interface AtomicTerm {
     readonly hash: number;
     readonly isVariable?: boolean;
     readonly args?: never;
+
     toString(): string;
 }
 
@@ -33,6 +34,7 @@ export interface CompoundTerm<K extends OperatorKey = OperatorKey> {
     readonly args: readonly Term[];
     readonly hash: number;
     readonly symbol?: never;
+
     toString(): string;
 }
 

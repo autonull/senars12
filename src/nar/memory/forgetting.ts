@@ -28,6 +28,11 @@ export class Forgetting {
     private readonly hooks?: ForgettingHooks;
     private readonly systemLoadFn?: () => number;
     private currentLoad = 0;
+    private policySelectors: Record<string, (concepts: Concept[], scorer: MemoryScorer) => Concept | undefined> = {
+        priority: (concepts) => this.selectByPriority(concepts),
+        age: (concepts) => this.selectByAge(concepts),
+        composite: (concepts, scorer) => this.selectByComposite(concepts, scorer)
+    };
 
     constructor(config: ForgettingConfig | ForgettingPolicy = 'fifo') {
         if (typeof config === 'string' || typeof config === 'object' && !('policy' in config)) {
@@ -47,12 +52,6 @@ export class Forgetting {
     setSystemLoad(load: number): void {
         this.currentLoad = load;
     }
-
-    private policySelectors: Record<string, (concepts: Concept[], scorer: MemoryScorer) => Concept | undefined> = {
-        priority: (concepts) => this.selectByPriority(concepts),
-        age: (concepts) => this.selectByAge(concepts),
-        composite: (concepts, scorer) => this.selectByComposite(concepts, scorer)
-    };
 
     selectVictim(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
         if (concepts.length === 0) return undefined;
@@ -124,7 +123,7 @@ export class Forgetting {
         return concepts;
     }
 
-private getConnectivity(concept: Concept): number {
+    private getConnectivity(concept: Concept): number {
         const links = concept.getLinks();
         const parents = concept.getParentConcepts();
         const children = concept.getChildConcepts();
@@ -157,12 +156,12 @@ private getConnectivity(concept: Concept): number {
         return concepts.reduce((oldest, c) => this.getLastAccess(c) < this.getLastAccess(oldest) ? c : oldest, concepts[0]!);
     }
 
-private selectByComposite(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
-  const policy = this.policy as { type: 'composite'; weights: { priority: number; age: number } };
-  return concepts.reduce((worst, c) => {
-    const score = scorer.score(c) * policy.weights.priority + (Date.now() - this.getLastAccess(c)) * policy.weights.age;
-    const worstScore = worst ? scorer.score(worst) * policy.weights.priority + (Date.now() - this.getLastAccess(worst)) * policy.weights.age : -Infinity;
-    return score > worstScore ? c : worst;
-  }, undefined as Concept | undefined);
-}
+    private selectByComposite(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
+        const policy = this.policy as { type: 'composite'; weights: { priority: number; age: number } };
+        return concepts.reduce((worst, c) => {
+            const score = scorer.score(c) * policy.weights.priority + (Date.now() - this.getLastAccess(c)) * policy.weights.age;
+            const worstScore = worst ? scorer.score(worst) * policy.weights.priority + (Date.now() - this.getLastAccess(worst)) * policy.weights.age : -Infinity;
+            return score > worstScore ? c : worst;
+        }, undefined as Concept | undefined);
+    }
 }

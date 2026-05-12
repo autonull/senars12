@@ -159,7 +159,13 @@ export class MetacognitiveMonitor {
         return avgThroughput > avgEarlierThroughput ? 'improving' : avgThroughput < avgEarlierThroughput ? 'declining' : 'stable';
     }
 
-    getMonitorState(): { reasoningSteps: number; performance: string; lastUpdate: number; monitorsActive: number; reasoningTrace: ReasoningStep[] } {
+    getMonitorState(): {
+        reasoningSteps: number;
+        performance: string;
+        lastUpdate: number;
+        monitorsActive: number;
+        reasoningTrace: ReasoningStep[]
+    } {
         return {
             reasoningSteps: this.reasoningTrace.length,
             performance: this.getPerformanceTrend(),

@@ -1,7 +1,7 @@
 import fc from 'fast-check';
-import {TermBuilder, Truth, serializeTerm, Stamp} from '../terms';
-import {normalize} from '../terms/normalize.js';
-import {Bag} from '../memory/bag.js';
+import {serializeTerm, Stamp, TermBuilder, Truth} from '../terms';
+import {normalize} from '../terms';
+import {Bag} from '../memory';
 
 describe('Property-Based Tests', () => {
     describe('Term Invariants', () => {

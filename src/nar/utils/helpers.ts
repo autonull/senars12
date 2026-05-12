@@ -49,46 +49,46 @@ export const isNil = (value: unknown): value is null | undefined =>
  * Ensure array is non-null
  */
 export const ensureArray = <T>(arr: T | T[] | undefined | null): T[] => {
-  if (arr == null) return [];
-  return Array.isArray(arr) ? arr : [arr];
+    if (arr == null) return [];
+    return Array.isArray(arr) ? arr : [arr];
 };
 
 /**
  * Extract error message from unknown error
  */
 export const errMsg = (e: unknown): string =>
-  e instanceof Error ? e.message : String(e);
+    e instanceof Error ? e.message : String(e);
 
 /**
  * Convert unknown error to Error object
  */
 export const errObj = (e: unknown): Error =>
-  e instanceof Error ? e : new Error(String(e));
+    e instanceof Error ? e : new Error(String(e));
 
 /**
  * Create error handler for logging
  */
 export const catchAndLog = (
-  logger: { warn: (ctx: string, msg: string) => void },
-  ctx: string
+    logger: { warn: (ctx: string, msg: string) => void },
+    ctx: string
 ) => (e: unknown): string => {
-  const msg = errMsg(e);
-  logger.warn(ctx, msg);
-  return msg;
+    const msg = errMsg(e);
+    logger.warn(ctx, msg);
+    return msg;
 };
 
 /**
  * Wrap a promise with a timeout
  */
 export function withTimeout<T>(promise: Promise<T>, ms: number, signal?: AbortSignal): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) => {
-      const timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms);
-      signal?.addEventListener('abort', () => {
-        clearTimeout(timer);
-        reject(new Error('Aborted'));
-      });
-    })
-  ]);
+    return Promise.race([
+        promise,
+        new Promise<never>((_, reject) => {
+            const timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms);
+            signal?.addEventListener('abort', () => {
+                clearTimeout(timer);
+                reject(new Error('Aborted'));
+            });
+        })
+    ]);
 }

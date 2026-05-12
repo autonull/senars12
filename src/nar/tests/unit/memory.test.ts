@@ -104,8 +104,8 @@ describe('Memory', () => {
                 activationDecayRate: 0.01,
                 consolidationInterval: 10
             });
-smallMem.addTask(TermBuilder.atom('a'), 'belief', Truth.TRUE, createBudget(0.5));
-smallMem.addTask(TermBuilder.atom('b'), 'belief', Truth.TRUE, createBudget(0.5));
+            smallMem.addTask(TermBuilder.atom('a'), 'belief', Truth.TRUE, createBudget(0.5));
+            smallMem.addTask(TermBuilder.atom('b'), 'belief', Truth.TRUE, createBudget(0.5));
 
             expect(smallMem.size).toBe(1);
         });
@@ -115,9 +115,9 @@ smallMem.addTask(TermBuilder.atom('b'), 'belief', Truth.TRUE, createBudget(0.5))
         test('returns concepts sorted by priority', () => {
             const a = TermBuilder.atom('a');
             const b = TermBuilder.atom('b');
-mem.addTask(a, 'belief', Truth.TRUE, createBudget(0.5));
-mem.addTask(b, 'belief', Truth.TRUE, createBudget(0.5));
-mem.addTask(b, 'belief', Truth.TRUE, createBudget(0.5));
+            mem.addTask(a, 'belief', Truth.TRUE, createBudget(0.5));
+            mem.addTask(b, 'belief', Truth.TRUE, createBudget(0.5));
+            mem.addTask(b, 'belief', Truth.TRUE, createBudget(0.5));
 
             const top = mem.sample(2);
             expect(top).toHaveLength(2);

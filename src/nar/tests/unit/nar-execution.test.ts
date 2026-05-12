@@ -1,10 +1,10 @@
-import {describe, expect, test, jest} from '@jest/globals';
+import {describe, expect, jest, test} from '@jest/globals';
 import {NARExecution} from '../../nar-execution';
 import {Memory} from '../../memory';
-import {TaskManager} from '../../task/manager';
-import {Reasoner} from '../../reason/reasoner';
-import {BagStrategy} from '../../reason/strategy';
-import {createTask, createBudget, DEFAULT_CONFIG} from '../../types';
+import {TaskManager} from '../../task';
+import {Reasoner} from '../../reason';
+import {BagStrategy} from '../../reason';
+import {createBudget, createTask, DEFAULT_CONFIG} from '../../types';
 import {TermBuilder, Truth} from '../../terms';
 import type {RLFPLearner} from '../../rlfp';
 

@@ -1,10 +1,10 @@
 /**
  * Resource Bounds & AIKR Compliance Tests
  */
-import {NAR} from '../../nar.js';
-import {Truth} from '../../terms/truth.js';
-import {TermBuilder} from '../../terms';
 import type {NARConfig} from '../../nar.js';
+import {NAR} from '../../nar.js';
+import {Truth} from '../../terms';
+import {TermBuilder} from '../../terms';
 
 describe('AIKR Compliance', () => {
     let nar: NAR;
@@ -129,96 +129,96 @@ describe('AIKR Compliance', () => {
     });
 
     describe('Resource Bounds Enforcement', () => {
-  it('derivation depth hard cap', async () => {
-    const nar2 = new NAR({
-      maxConcepts: 100,
-      maxDerivationDepth: 10,
-      enableLMRules: false
-    } as NARConfig);
+        it('derivation depth hard cap', async () => {
+            const nar2 = new NAR({
+                maxConcepts: 100,
+                maxDerivationDepth: 10,
+                enableLMRules: false
+            } as NARConfig);
 
-    const letters = 'abcdefghijklmnopqrst'.split('');
-    for (let i = 0; i < letters.length - 1; i++) {
-      await nar2.input(`(${letters[i]} --> ${letters[i + 1]})`, 'belief', Truth.create(0.9, 0.9));
-    }
+            const letters = 'abcdefghijklmnopqrst'.split('');
+            for (let i = 0; i < letters.length - 1; i++) {
+                await nar2.input(`(${letters[i]} --> ${letters[i + 1]})`, 'belief', Truth.create(0.9, 0.9));
+            }
 
-    await nar2.run(20);
+            await nar2.run(20);
 
-    const concepts = nar2.memory.listConcepts();
-    for (const concept of concepts) {
-      const beliefs = (concept as any).beliefBag;
-      if (beliefs && beliefs.peek) {
-        const belief = beliefs.peek();
-        if (belief && belief.stamp) {
-          expect(belief.stamp.depth).toBeLessThanOrEqual(10);
-        }
-      }
-    }
-  });
+            const concepts = nar2.memory.listConcepts();
+            for (const concept of concepts) {
+                const beliefs = (concept as any).beliefBag;
+                if (beliefs && beliefs.peek) {
+                    const belief = beliefs.peek();
+                    if (belief && belief.stamp) {
+                        expect(belief.stamp.depth).toBeLessThanOrEqual(10);
+                    }
+                }
+            }
+        });
 
-  it('concept count bounded by maxConcepts', async () => {
-    const nar2 = new NAR({
-      maxConcepts: 100,
-      enableLMRules: false
-    } as NARConfig);
+        it('concept count bounded by maxConcepts', async () => {
+            const nar2 = new NAR({
+                maxConcepts: 100,
+                enableLMRules: false
+            } as NARConfig);
 
-    for (let i = 0; i < 200; i++) {
-      await nar2.input(`(concept${i} --> property${i})`, 'belief', Truth.create(0.9, 0.9));
-    }
+            for (let i = 0; i < 200; i++) {
+                await nar2.input(`(concept${i} --> property${i})`, 'belief', Truth.create(0.9, 0.9));
+            }
 
-    await nar2.run(10);
+            await nar2.run(10);
 
-    expect(nar2.memory.size).toBeLessThanOrEqual(105);
-  });
+            expect(nar2.memory.size).toBeLessThanOrEqual(105);
+        });
 
-  it('interruptibility via AbortSignal', async () => {
-    const nar2 = new NAR({
-      maxConcepts: 1000,
-      enableLMRules: false
-    } as NARConfig);
+        it('interruptibility via AbortSignal', async () => {
+            const nar2 = new NAR({
+                maxConcepts: 1000,
+                enableLMRules: false
+            } as NARConfig);
 
-    for (let i = 0; i < 50; i++) {
-      await nar2.input(`(item${i} --> attribute${i})`, 'belief', Truth.create(0.9, 0.9));
-    }
+            for (let i = 0; i < 50; i++) {
+                await nar2.input(`(item${i} --> attribute${i})`, 'belief', Truth.create(0.9, 0.9));
+            }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 50);
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 50);
 
-    let partialResults = 0;
-    try {
-      const results = await nar2.run(100);
-      partialResults = results;
-    } catch (e) {
-    }
+            let partialResults = 0;
+            try {
+                const results = await nar2.run(100);
+                partialResults = results;
+} catch {
+}
 
-    clearTimeout(timeout);
-    expect(partialResults).toBeGreaterThanOrEqual(0);
-  });
+            clearTimeout(timeout);
+            expect(partialResults).toBeGreaterThanOrEqual(0);
+        });
 
-  it('no memory leak under sustained load', async () => {
-    const nar2 = new NAR({
-      maxConcepts: 100,
-      enableLMRules: false
-    } as NARConfig);
+        it('no memory leak under sustained load', async () => {
+            const nar2 = new NAR({
+                maxConcepts: 100,
+                enableLMRules: false
+            } as NARConfig);
 
-    const startMem = process.memoryUsage?.()?.heapUsed ?? 0;
+            const startMem = process.memoryUsage?.()?.heapUsed ?? 0;
 
-    for (let i = 0; i < 100; i++) {
-      await nar2.input(`(temp${i} --> prop${i})`, 'belief', Truth.create(0.9, 0.9));
-      await nar2.run(2);
-    }
+            for (let i = 0; i < 100; i++) {
+                await nar2.input(`(temp${i} --> prop${i})`, 'belief', Truth.create(0.9, 0.9));
+                await nar2.run(2);
+            }
 
-    if (global.gc) {
-      global.gc();
-    }
+            if (global.gc) {
+                global.gc();
+            }
 
-    const endMem = process.memoryUsage?.()?.heapUsed ?? 0;
-    const growth = endMem - startMem;
+            const endMem = process.memoryUsage?.()?.heapUsed ?? 0;
+            const growth = endMem - startMem;
 
-    expect(growth / 1024 / 1024).toBeLessThan(100);
-  });
-});
+            expect(growth / 1024 / 1024).toBeLessThan(100);
+        });
+    });
 
-describe('Complete Reasoning Cycle', () => {
+    describe('Complete Reasoning Cycle', () => {
         it('executes full cognitive cycle from input to derived belief', async () => {
             await nar.input('(bird --> animal)', 'belief', Truth.create(0.9, 0.9));
             await nar.input('(animal --> living)', 'belief', Truth.create(0.9, 0.9));

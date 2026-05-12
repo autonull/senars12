@@ -271,12 +271,12 @@ export class HTTPServer {
         return this.apiKeys.has(apiKey);
     }
 
-private checkRateLimit(key: string): boolean {
-    const now = Date.now();
-    const state = this.rateLimitState.get(key);
-    const rateLimit = this.config.rateLimit;
-    if (!rateLimit) return false;
-    const {windowMs, maxRequests} = rateLimit;
+    private checkRateLimit(key: string): boolean {
+        const now = Date.now();
+        const state = this.rateLimitState.get(key);
+        const rateLimit = this.config.rateLimit;
+        if (!rateLimit) return false;
+        const {windowMs, maxRequests} = rateLimit;
 
         if (!state || now > state.resetTime) {
             this.rateLimitState.set(key, {count: 1, resetTime: now + windowMs});
@@ -568,29 +568,29 @@ private checkRateLimit(key: string): boolean {
         }
     }
 
-  private async getStats(): Promise<HTTPResponse> {
-    if (!this.agent) {
-      return {statusCode: 503, body: {error: 'Agent not initialized'}};
+    private async getStats(): Promise<HTTPResponse> {
+        if (!this.agent) {
+            return {statusCode: 503, body: {error: 'Agent not initialized'}};
+        }
+        const nar = this.agent.getNAR();
+        const stats = nar.getStatistics();
+        const metrics = nar.getMetrics();
+        return {
+            statusCode: 200,
+            body: {
+                totalConcepts: stats.totalConcepts,
+                totalTasks: stats.totalTasks,
+                rulesFired: metrics.system.totalSteps || 0,
+                derivations: metrics.system.totalDerivations || 0
+            }
+        };
     }
-    const nar = this.agent.getNAR();
-    const stats = nar.getStatistics();
-    const metrics = nar.getMetrics();
-    return {
-      statusCode: 200,
-      body: {
-        totalConcepts: stats.totalConcepts,
-        totalTasks: stats.totalTasks,
-        rulesFired: metrics.system.totalSteps || 0,
-        derivations: metrics.system.totalDerivations || 0
-      }
-    };
-  }
 
-    private async getHealth(): Promise<HTTPResponse> {
-        const nar = this.agent?.getNAR();
-        const stats = nar?.getStatistics();
-        const metrics = nar?.getMetrics();
-        const lm = nar?.getLMClient?.();
+private async getHealth(): Promise<HTTPResponse> {
+const nar = this.agent?.getNAR();
+const stats = nar?.getStatistics();
+const _metrics = nar?.getMetrics();
+const lm = nar?.getLMClient?.();
 
         return {
             statusCode: 200,
@@ -606,7 +606,7 @@ private checkRateLimit(key: string): boolean {
                     available: true,
                     provider: (lm as any).provider ?? 'unknown',
                     model: (lm as any).model ?? 'unknown'
-                } : { available: false }
+                } : {available: false}
             }
         };
     }

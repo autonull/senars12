@@ -49,10 +49,10 @@ describe('TermBuilder', () => {
         expect(conj1).toBe(conj2);
     });
 
-test('negation handles undefined', () => {
-  const t = TermBuilder.negation(undefined!);
-  expect(isAtomic(t)).toBe(true);
-});
+    test('negation handles undefined', () => {
+        const t = TermBuilder.negation(undefined!);
+        expect(isAtomic(t)).toBe(true);
+    });
 
     test('compound with custom kind', () => {
         const a = TermBuilder.atom('A');

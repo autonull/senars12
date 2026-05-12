@@ -16,16 +16,16 @@ export type {
 
 
 export {
-  DEFAULT_CONFIG,
-  createBudget,
-  createTask,
-  success,
-  failure,
-  isSuccess,
-  isFailure,
-  NARError,
-  ValidationError,
-  ConfigurationError,
+    DEFAULT_CONFIG,
+    createBudget,
+    createTask,
+    success,
+    failure,
+    isSuccess,
+    isFailure,
+    NARError,
+    ValidationError,
+    ConfigurationError,
     OperationError
 } from './types/core.js';
 
@@ -53,7 +53,7 @@ export {
     getAntecedent,
     getConsequent,
     getArgs,
-    
+
     sameKind
 } from './terms/index.js';
 

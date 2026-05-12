@@ -1,5 +1,5 @@
 import {createMessageRouter} from '../../message-router.js';
-import {SeNARSFactory} from '../../../nar/index.js';
+import {SeNARSFactory} from '../../../nar';
 
 describe('message-router', () => {
     test('routes belief text to belief handler', async () => {

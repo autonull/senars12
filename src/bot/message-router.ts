@@ -1,5 +1,13 @@
-import type {NAR} from '../nar/index.js';
-import {parseCommand, createCommandHandlers, isBelief, isQuestion, createBeliefHandler, createQuestionHandler, createNlHandler} from './handlers/index.js';
+import type {NAR} from '../nar';
+import {
+    createBeliefHandler,
+    createCommandHandlers,
+    createNlHandler,
+    createQuestionHandler,
+    isBelief,
+    isQuestion,
+    parseCommand
+} from './handlers';
 
 export interface RouterDeps {
     nar: NAR;

@@ -1,12 +1,14 @@
 // Core types
 export type {Term, AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol} from './types.js';
-export { OPERATORS, isVariableSymbol, isAtomic, isCompound, getTermArgs, getTermArg } from './types.js';
+export {OPERATORS, isVariableSymbol, isAtomic, isCompound, getTermArgs, getTermArg} from './types.js';
 
-// Builder and factory
-import {TermBuilder} from './factory.js';
+// Utilities
+import {trackTerm} from '../memory/gc.js';
+export {trackTerm};
+
 export {TermBuilder, freeze, TermFactory} from './factory.js';
 // Convenience export for atom function
-export const atom = TermBuilder.atom;
+export {atom} from './factory.js';
 
 // Serialization
 export {serializeTerm, deserializeTerm} from './serialize.js';
@@ -38,27 +40,27 @@ export {termParser, TermParser} from './parser.js';
 
 // Accessors - named exports only
 export {
-  isInheritance,
-  isSimilarity,
-  isImplication,
-  isEquivalence,
-  isConjunction,
-  isDisjunction,
-  isNegation,
-  isInstance,
-  isProperty,
-  isSequence,
-  isParallel,
-  isPredictive,
-  isRetrospective,
-  isOperation,
-  getSubject,
-  getPredicate,
-  getAntecedent,
-  getConsequent,
-  getArgs,
-  termsEqual,
-  sameKind
+    isInheritance,
+    isSimilarity,
+    isImplication,
+    isEquivalence,
+    isConjunction,
+    isDisjunction,
+    isNegation,
+    isInstance,
+    isProperty,
+    isSequence,
+    isParallel,
+    isPredictive,
+    isRetrospective,
+    isOperation,
+    getSubject,
+    getPredicate,
+    getAntecedent,
+    getConsequent,
+    getArgs,
+    termsEqual,
+    sameKind
 } from './accessors.js';
 
 // Utilities
@@ -66,7 +68,7 @@ export {extractSymbols, getTermHash, jaccardSimilarity, calculateSimilarity} fro
 
 // Type guards and helpers
 export {
-  termHashKey,
-  isCanonical,
-  getCompoundArgs
+    termHashKey,
+    isCanonical,
+    getCompoundArgs
 } from './guards.js';

@@ -1,16 +1,16 @@
 import {
-  ConfigurationError,
-  createBudget,
-  createTask,
-  DEFAULT_CONFIG,
-  failure,
-  isFailure,
-  isSuccess,
-  NARError,
-  OperationError,
-  success,
-  ValidationError,
-  Budget
+    Budget,
+    ConfigurationError,
+    createBudget,
+    createTask,
+    DEFAULT_CONFIG,
+    failure,
+    isFailure,
+    isSuccess,
+    NARError,
+    OperationError,
+    success,
+    ValidationError
 } from '../../types';
 import {atom, Truth} from '../../terms';
 
@@ -50,13 +50,13 @@ describe('Task', () => {
         expect(task.occurrenceTime).toBeDefined();
     });
 
-  test('createTask accepts budget object', () => {
-    const term = atom('test');
-    const budget: Budget = createBudget(0.7);
-    const task = createTask(term, 'goal', Truth.NEUTRAL, budget);
-    expect(task.budget).toBe(budget);
-    expect(task.budget.priority).toBe(0.7);
-  });
+    test('createTask accepts budget object', () => {
+        const term = atom('test');
+        const budget: Budget = createBudget(0.7);
+        const task = createTask(term, 'goal', Truth.NEUTRAL, budget);
+        expect(task.budget).toBe(budget);
+        expect(task.budget.priority).toBe(0.7);
+    });
 });
 
 describe('Result types', () => {

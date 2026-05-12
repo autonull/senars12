@@ -44,7 +44,11 @@ const createTaskGen = (type: TaskType, budget: number) => (_r: unknown, _p: Term
     const parsed = LMResponseParser.parse(response);
     return parsed.valid && parsed.term
         ? [createTask(parsed.term, type, parsed.truth ?? Truth.NEUTRAL, createBudget(budget))]
-        : [createTask({kind: 'atom' as const, symbol: response.trim(), hash: 0}, type, Truth.NEUTRAL, createBudget(budget))];
+        : [createTask({
+            kind: 'atom' as const,
+            symbol: response.trim(),
+            hash: 0
+        }, type, Truth.NEUTRAL, createBudget(budget))];
 };
 
 const define = (

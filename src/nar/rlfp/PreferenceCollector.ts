@@ -1,7 +1,7 @@
 import {promises as fs} from 'fs';
 import {TrajectoryStep} from './ReasoningTrajectoryLogger.js';
 import {extractTrajectoryFeatures} from './utils.js';
-import {OperationError} from '../types/core.js';
+import {OperationError} from '../types';
 
 export interface PreferenceData {
     trajectoryA: TrajectoryStep[];

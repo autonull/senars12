@@ -5,26 +5,24 @@
 
 import {NAR, Task} from '../nar';
 
-import type {Tool, ToolResult} from '../nar/tools/types';
-
 export interface Embodiment {
-  readonly name: string;
+    readonly name: string;
 
-  start(agent: Agent): Promise<void>;
+    start(agent: Agent): Promise<void>;
 
-  stop(): Promise<void>;
+    stop(): Promise<void>;
 
-  send(message: string): Promise<void>;
+    send(message: string): Promise<void>;
 
-  onMessage(handler: (message: string) => void): void;
+    onMessage(handler: (message: string) => void): void;
 }
 
 export interface Command {
-  readonly name: string;
-  readonly description: string;
-  readonly usage: string;
+    readonly name: string;
+    readonly description: string;
+    readonly usage: string;
 
-  execute(args: string[], context: {nar: NAR; agent: Agent}): Promise<string>;
+    execute(args: string[], context: { nar: NAR; agent: Agent }): Promise<string>;
 }
 
 export interface InputProcessor {
@@ -49,21 +47,21 @@ export interface AgentCapabilities {
 }
 
 export class Agent {
-  private readonly narInstance: NAR;
-  private readonly embodiments: Embodiment[] = [];
-  private commands: Map<string, Command> = new Map();
-  private messageHandlers: Array<(message: string) => void> = [];
-  private running = false;
-  private profile: AgentProfile | null = null;
-  private statePath: string | null = null;
+    private readonly narInstance: NAR;
+    private readonly embodiments: Embodiment[] = [];
+    private commands: Map<string, Command> = new Map();
+    private messageHandlers: Array<(message: string) => void> = [];
+    private running = false;
+    private profile: AgentProfile | null = null;
+    private statePath: string | null = null;
 
-  constructor(
-    nar: NAR,
-    embodiments: Embodiment[] = []
-  ) {
-    this.narInstance = nar;
-    this.embodiments = embodiments;
-  }
+    constructor(
+        nar: NAR,
+        embodiments: Embodiment[] = []
+    ) {
+        this.narInstance = nar;
+        this.embodiments = embodiments;
+    }
 
     getNAR(): NAR {
         return this.narInstance;
@@ -73,13 +71,13 @@ export class Agent {
         return this.embodiments;
     }
 
-  addEmbodiment(embodiment: Embodiment): void {
-    this.embodiments.push(embodiment);
-  }
+    addEmbodiment(embodiment: Embodiment): void {
+        this.embodiments.push(embodiment);
+    }
 
-  registerCommand(command: Command): void {
-    this.commands.set(command.name, command);
-  }
+    registerCommand(command: Command): void {
+        this.commands.set(command.name, command);
+    }
 
     async start(): Promise<void> {
         if (this.running) {
@@ -158,16 +156,16 @@ export class Agent {
         return this.profile;
     }
 
-  getCapabilities(): AgentCapabilities {
-    return {
-      reasoning: true,
-      learning: true,
-      toolUse: this.narInstance.tools.list().length > 0,
-      embodiment: this.embodiments.map(e => e.name),
-      persistence: !!this.statePath,
-      metacognition: true
-    };
-  }
+    getCapabilities(): AgentCapabilities {
+        return {
+            reasoning: true,
+            learning: true,
+            toolUse: this.narInstance.tools.list().length > 0,
+            embodiment: this.embodiments.map(e => e.name),
+            persistence: !!this.statePath,
+            metacognition: true
+        };
+    }
 
     getSelfDescription(): string {
         const caps = this.getCapabilities();

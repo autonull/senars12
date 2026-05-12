@@ -1,145 +1,145 @@
 import {describe, expect, test} from '@jest/globals';
-import {TermBuilder} from '../terms/factory.js';
-import {NALExtendedRules} from '../rules/nal-extended.js';
+import {TermBuilder} from '../terms';
+import {NALExtendedRules} from '../rules';
 
 describe('NAL7 Temporal Rules', () => {
-  const {inheritance, sequence, parallel, predictive, atom} = TermBuilder;
+    const {inheritance, sequence, parallel, predictive, atom} = TermBuilder;
 
-  describe('sequenceIntroduction', () => {
-    test('creates sequence from two inheritances with same subject', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const living = atom('living');
-      const inh1 = inheritance(bird, animal);
-      const inh2 = inheritance(bird, living);
+    describe('sequenceIntroduction', () => {
+        test('creates sequence from two inheritances with same subject', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const living = atom('living');
+            const inh1 = inheritance(bird, animal);
+            const inh2 = inheritance(bird, living);
 
-      const result = NALExtendedRules.sequenceIntroduction([inh1, inh2]);
+            const result = NALExtendedRules.sequenceIntroduction([inh1, inh2]);
 
-      expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(bird --> (animal ,/ living))');
+            expect(result).toBeDefined();
+            expect(result?.toString()).toBe('(bird --> (animal ,/ living))');
+        });
+
+        test('returns undefined for different subjects', () => {
+            const bird = atom('bird');
+            const cat = atom('cat');
+            const animal = atom('animal');
+            const living = atom('living');
+            const inh1 = inheritance(bird, animal);
+            const inh2 = inheritance(cat, living);
+
+            const result = NALExtendedRules.sequenceIntroduction([inh1, inh2]);
+            expect(result).toBeUndefined();
+        });
     });
 
-    test('returns undefined for different subjects', () => {
-      const bird = atom('bird');
-      const cat = atom('cat');
-      const animal = atom('animal');
-      const living = atom('living');
-      const inh1 = inheritance(bird, animal);
-      const inh2 = inheritance(cat, living);
+    describe('parallelIntroduction', () => {
+        test('creates parallel from two inheritances with same subject', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const living = atom('living');
+            const inh1 = inheritance(bird, animal);
+            const inh2 = inheritance(bird, living);
 
-      const result = NALExtendedRules.sequenceIntroduction([inh1, inh2]);
-      expect(result).toBeUndefined();
-    });
-  });
+            const result = NALExtendedRules.parallelIntroduction([inh1, inh2]);
 
-  describe('parallelIntroduction', () => {
-    test('creates parallel from two inheritances with same subject', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const living = atom('living');
-      const inh1 = inheritance(bird, animal);
-      const inh2 = inheritance(bird, living);
+            expect(result).toBeDefined();
+            expect(result?.toString()).toBe('(bird --> (living || animal))');
+        });
 
-      const result = NALExtendedRules.parallelIntroduction([inh1, inh2]);
+        test('returns undefined for different subjects', () => {
+            const bird = atom('bird');
+            const cat = atom('cat');
+            const inh1 = inheritance(bird, atom('animal'));
+            const inh2 = inheritance(cat, atom('living'));
 
-expect(result).toBeDefined();
-expect(result?.toString()).toBe('(bird --> (living || animal))');
+            const result = NALExtendedRules.parallelIntroduction([inh1, inh2]);
+            expect(result).toBeUndefined();
+        });
     });
 
-    test('returns undefined for different subjects', () => {
-      const bird = atom('bird');
-      const cat = atom('cat');
-      const inh1 = inheritance(bird, atom('animal'));
-      const inh2 = inheritance(cat, atom('living'));
+    describe('predictiveImplication', () => {
+        test('creates predictive implication from sequence and inheritance', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const seq = sequence(bird, animal);
+            const inh = inheritance(bird, animal);
 
-      const result = NALExtendedRules.parallelIntroduction([inh1, inh2]);
-      expect(result).toBeUndefined();
-    });
-  });
+            const result = NALExtendedRules.predictiveImplication([seq, inh]);
 
-  describe('predictiveImplication', () => {
-    test('creates predictive implication from sequence and inheritance', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const seq = sequence(bird, animal);
-      const inh = inheritance(bird, animal);
+            expect(result).toBeDefined();
+            expect(result?.toString()).toBe('(bird /> animal)');
+        });
 
-      const result = NALExtendedRules.predictiveImplication([seq, inh]);
+        test('returns undefined when sequence does not match inheritance', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const cat = atom('cat');
+            const seq = sequence(bird, animal);
+            const inh = inheritance(cat, atom('living'));
 
-      expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(bird /> animal)');
-    });
-
-    test('returns undefined when sequence does not match inheritance', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const cat = atom('cat');
-      const seq = sequence(bird, animal);
-      const inh = inheritance(cat, atom('living'));
-
-      const result = NALExtendedRules.predictiveImplication([seq, inh]);
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe('temporalDeduction', () => {
-    test('derives inheritance from predictive and sequence', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const pred = predictive(bird, animal);
-      const seq = sequence(bird, animal);
-
-      const result = NALExtendedRules.temporalDeduction([pred, seq]);
-
-      expect(result).toBeDefined();
-      expect(result?.toString()).toBe('(bird --> animal)');
+            const result = NALExtendedRules.predictiveImplication([seq, inh]);
+            expect(result).toBeUndefined();
+        });
     });
 
-    test('returns undefined when predictive and sequence do not match', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const cat = atom('cat');
-      const pred = predictive(bird, animal);
-      const seq = sequence(cat, atom('living'));
+    describe('temporalDeduction', () => {
+        test('derives inheritance from predictive and sequence', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const pred = predictive(bird, animal);
+            const seq = sequence(bird, animal);
 
-      const result = NALExtendedRules.temporalDeduction([pred, seq]);
-      expect(result).toBeUndefined();
-    });
-  });
+            const result = NALExtendedRules.temporalDeduction([pred, seq]);
 
-  describe('temporal term creation', () => {
-    test('creates sequence terms', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const seq = sequence(bird, animal);
+            expect(result).toBeDefined();
+            expect(result?.toString()).toBe('(bird --> animal)');
+        });
 
-      expect(seq.toString()).toBe('(bird ,/ animal)');
-    });
+        test('returns undefined when predictive and sequence do not match', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const cat = atom('cat');
+            const pred = predictive(bird, animal);
+            const seq = sequence(cat, atom('living'));
 
-    test('creates parallel terms', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const par = parallel(bird, animal);
-
-      expect(par.toString()).toBe('(bird || animal)');
+            const result = NALExtendedRules.temporalDeduction([pred, seq]);
+            expect(result).toBeUndefined();
+        });
     });
 
-    test('creates predictive terms', () => {
-      const bird = atom('bird');
-      const animal = atom('animal');
-      const pred = predictive(bird, animal);
+    describe('temporal term creation', () => {
+        test('creates sequence terms', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const seq = sequence(bird, animal);
 
-      expect(pred.toString()).toBe('(bird /> animal)');
+            expect(seq.toString()).toBe('(bird ,/ animal)');
+        });
+
+        test('creates parallel terms', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const par = parallel(bird, animal);
+
+            expect(par.toString()).toBe('(bird || animal)');
+        });
+
+        test('creates predictive terms', () => {
+            const bird = atom('bird');
+            const animal = atom('animal');
+            const pred = predictive(bird, animal);
+
+            expect(pred.toString()).toBe('(bird /> animal)');
+        });
+
+        test('handles undefined input gracefully', () => {
+            const seq = sequence(undefined!, undefined!);
+            const par = parallel(undefined!, undefined!);
+            const pred = predictive(undefined!, undefined!);
+
+            expect(seq.toString()).toBe('TRUE');
+            expect(par.toString()).toBe('TRUE');
+            expect(pred.toString()).toBe('TRUE');
+        });
     });
-
-test('handles undefined input gracefully', () => {
-  const seq = sequence(undefined!, undefined!);
-  const par = parallel(undefined!, undefined!);
-  const pred = predictive(undefined!, undefined!);
-
-  expect(seq.toString()).toBe('TRUE');
-  expect(par.toString()).toBe('TRUE');
-  expect(pred.toString()).toBe('TRUE');
-});
-  });
 });

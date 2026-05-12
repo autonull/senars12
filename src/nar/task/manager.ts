@@ -1,5 +1,4 @@
-import type {Task} from '../types/core.js';
-import type {Budget} from '../types/core.js';
+import type {Budget, Task} from '../types';
 import {Memory} from '../memory';
 
 export type TaskLifecycle = 'pending' | 'running' | 'completed' | 'failed' | 'expired';

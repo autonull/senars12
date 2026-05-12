@@ -1,30 +1,30 @@
-import type {AtomicTerm, CompoundTerm, Term, OperatorKey} from './types.js';
+import type {AtomicTerm, CompoundTerm, OperatorKey, Term} from './types.js';
 import {OPERATORS} from './operators.js';
 
 export const getSubject = (term: Term): Term | undefined =>
-  term.kind === 'inheritance' || term.kind === 'similarity' ? term.args![0] : undefined;
+    term.kind === 'inheritance' || term.kind === 'similarity' ? term.args![0] : undefined;
 
 export const getPredicate = (term: Term): Term | undefined =>
-  term.kind === 'inheritance' || term.kind === 'similarity' ? term.args![1] : undefined;
+    term.kind === 'inheritance' || term.kind === 'similarity' ? term.args![1] : undefined;
 
 export const getAntecedent = (term: Term): Term | undefined =>
-  term.kind === 'implication' || term.kind === 'equivalence' ? term.args![0] : undefined;
+    term.kind === 'implication' || term.kind === 'equivalence' ? term.args![0] : undefined;
 
 export const getConsequent = (term: Term): Term | undefined =>
-  term.kind === 'implication' || term.kind === 'equivalence' ? term.args![1] : undefined;
+    term.kind === 'implication' || term.kind === 'equivalence' ? term.args![1] : undefined;
 
 export const getArgs = (term: Term): readonly Term[] =>
-  term.kind === 'atom' ? [] : term.args ?? [];
+    term.kind === 'atom' ? [] : term.args ?? [];
 
 export const isAtom = (term: Term): term is AtomicTerm => term.kind === 'atom';
 
 type IsGuard<K extends OperatorKey> = (t: Term) => t is CompoundTerm<K> & { kind: K };
 
 export const isType = Object.fromEntries(
-  (Object.keys(OPERATORS) as OperatorKey[]).map(key => [
-    key,
-    ((k: OperatorKey) => (t: Term): t is CompoundTerm<typeof k> => t.kind === k)(key)
-  ])
+    (Object.keys(OPERATORS) as OperatorKey[]).map(key => [
+        key,
+        ((k: OperatorKey) => (t: Term): t is CompoundTerm<typeof k> => t.kind === k)(key)
+    ])
 ) as Record<OperatorKey, IsGuard<OperatorKey>>;
 
 export const isInheritance = isType.inheritance;

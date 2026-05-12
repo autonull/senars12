@@ -1,6 +1,6 @@
 import {average} from './helpers.js';
 
-export const calculatePriorityDistribution = (concepts: {priority: number; totalTasks?: number}[]): {
+export const calculatePriorityDistribution = (concepts: { priority: number; totalTasks?: number }[]): {
     totalTasks: number;
     lowPriority: number;
     mediumPriority: number;

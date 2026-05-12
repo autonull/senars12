@@ -2,7 +2,7 @@ import type {Strategy} from '../strategy.js';
 import type {Task} from '../../types';
 import type {Memory} from '../../memory';
 import {createStrategy, createStrategy as createStrategyBase} from './base.js';
-import {Truth, termsEqual} from '../../terms';
+import {termsEqual, Truth} from '../../terms';
 
 export {createStrategy, createStrategyBase};
 

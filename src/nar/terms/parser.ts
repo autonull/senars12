@@ -1,7 +1,7 @@
 import {TermFactory} from './factory.js';
 import type {Term} from './types.js';
 import {Truth} from './truth.js';
-import {errMsg} from '../utils/helpers.js';
+import {errMsg} from '../utils';
 
 type TokenType =
     'ATOM'
@@ -79,8 +79,8 @@ export class TermParser {
                 try {
                     const result = this.parseWithTruth(stmt);
                     return {term: result.term, truth: result.truth};
-} catch (error) {
-throw new Error(`Failed to parse "${stmt}": ${errMsg(error)}`);
+                } catch (error) {
+                    throw new Error(`Failed to parse "${stmt}": ${errMsg(error)}`);
                 }
             });
     }

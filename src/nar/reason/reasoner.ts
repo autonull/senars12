@@ -45,55 +45,55 @@ export class Reasoner {
         this.config = config;
     }
 
-  async step(_timeoutMs = 5000, maxResults = 100, signal?: AbortSignal): Promise<Task[]> {
-    const results: Task[] = [];
-    const endTime = Date.now() + _timeoutMs;
-    this.derivationCount = 0;
+    async step(_timeoutMs = 5000, maxResults = 100, signal?: AbortSignal): Promise<Task[]> {
+        const results: Task[] = [];
+        const endTime = Date.now() + _timeoutMs;
+        this.derivationCount = 0;
 
-    for (const concept of this.memory.sample(100)) {
-      if (signal?.aborted || Date.now() > endTime || results.length >= maxResults) break;
+        for (const concept of this.memory.sample(100)) {
+            if (signal?.aborted || Date.now() > endTime || results.length >= maxResults) break;
 
-      const belief = concept.beliefBag.peek();
-      const task: Task = createTask(
-        concept.term,
-        'belief',
-        belief?.truth ?? Truth.NEUTRAL,
-        createBudget(concept.priority)
-      );
+            const belief = concept.beliefBag.peek();
+            const task: Task = createTask(
+                concept.term,
+                'belief',
+                belief?.truth ?? Truth.NEUTRAL,
+                createBudget(concept.priority)
+            );
 
-      for (const derivedTask of this.deriveFromSecondary(task)) {
-        results.push(derivedTask);
-        if (this.derivationCount >= (this.config.maxDerivationsPerStep ?? 1000)) break;
-      }
-    }
-
-    return results;
-  }
-
-  async* run(_timeoutMs = 5000, maxResults = 100, signal?: AbortSignal): AsyncGenerator<Task> {
-    let resultCount = 0;
-    this.derivationCount = 0;
-
-    for (const concept of this.memory.sample(100)) {
-      if (signal?.aborted || resultCount >= maxResults) break;
-
-      const belief = concept.beliefBag.peek();
-      const task: Task = createTask(
-        concept.term,
-        'belief',
-        belief?.truth ?? Truth.NEUTRAL,
-        createBudget(concept.priority)
-      );
-
-      for (const derivedTask of this.deriveFromSecondary(task)) {
-        yield derivedTask;
-        resultCount++;
-        if (this.config.cpuThrottleMs > 0) {
-          await new Promise(r => setTimeout(r, this.config.cpuThrottleMs));
+            for (const derivedTask of this.deriveFromSecondary(task)) {
+                results.push(derivedTask);
+                if (this.derivationCount >= (this.config.maxDerivationsPerStep ?? 1000)) break;
+            }
         }
-      }
+
+        return results;
     }
-  }
+
+    async* run(_timeoutMs = 5000, maxResults = 100, signal?: AbortSignal): AsyncGenerator<Task> {
+        let resultCount = 0;
+        this.derivationCount = 0;
+
+        for (const concept of this.memory.sample(100)) {
+            if (signal?.aborted || resultCount >= maxResults) break;
+
+            const belief = concept.beliefBag.peek();
+            const task: Task = createTask(
+                concept.term,
+                'belief',
+                belief?.truth ?? Truth.NEUTRAL,
+                createBudget(concept.priority)
+            );
+
+            for (const derivedTask of this.deriveFromSecondary(task)) {
+                yield derivedTask;
+                resultCount++;
+                if (this.config.cpuThrottleMs > 0) {
+                    await new Promise(r => setTimeout(r, this.config.cpuThrottleMs));
+                }
+            }
+        }
+    }
 
     getTraces(): ReasoningTrace[] {
         return [...this.traces];
@@ -111,13 +111,17 @@ export class Reasoner {
         this.recentStamps.clear();
     }
 
-    private *deriveFromSecondary(task: Task): Generator<Task> {
+    private* deriveFromSecondary(task: Task): Generator<Task> {
         for (const secondary of this.strategy.selectSecondary(task, this.memory)) {
             if (this.derivationCount >= (this.config.maxDerivationsPerStep ?? 1000)) break;
             if (!this.checkQualityThreshold(task, secondary)) continue;
 
             const p1: RuleInput = {term: task.term, truth: task.truth, stamp: task.stamp};
-            const p2: RuleInput = {term: secondary.term, truth: secondary.truth ?? Truth.NEUTRAL, stamp: secondary.stamp};
+            const p2: RuleInput = {
+                term: secondary.term,
+                truth: secondary.truth ?? Truth.NEUTRAL,
+                stamp: secondary.stamp
+            };
 
             for (const result of this.processor.processSync(p1, p2)) {
                 const derivedTask = this.createDerivedTask(result);
