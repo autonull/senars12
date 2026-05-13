@@ -3,7 +3,7 @@ import {WebSocket, WebSocketServer} from 'ws';
 import {EventEmitter} from 'events';
 import {createHash} from 'crypto';
 import {NarService} from './services/NarService.js';
-import type {Task} from '../nar/types.js';
+import type {Task} from '../nar/types/index.js';
 
 interface WSMessage {
   type: string;

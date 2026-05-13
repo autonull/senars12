@@ -264,7 +264,7 @@ export class RealIRCClient extends EventEmitter {
     private stopPingTimer(): void {
         this.pingTimer && clearInterval(this.pingTimer);
         this.pingTimer = null;
-        this.lastPingTime = 0;
+        this.lastPingSent = 0;
     }
 
     private scheduleReconnect(): void {

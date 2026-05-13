@@ -7,7 +7,7 @@ import {createBot, createRealBot} from './index.js';
     const profileArg = args.find(a => a.startsWith('--profile='));
     const profile = (profileArg ? profileArg.split('=')[1] : 'minimal') as 'minimal' | 'standard' | 'full';
 
-    const fileConfig = loadConfig(args.find(a => a.startsWith('--config='))?.split('=')[1]);
+    const fileConfig = await loadConfig(args.find(a => a.startsWith('--config='))?.split('=')[1]);
     const config = mergeConfig(fileConfig, {profile});
 
     const serverArg = args.find(a => a.startsWith('--server='));

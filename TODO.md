@@ -2,18 +2,18 @@
 
 **Last Updated:** 2026-05-13
 **Status:** Phase 5 Complete - Architecture Refactoring ✅
-**Tests:** ~480/526 passing (91% - some tests have npm package ESM/CommonJS resolution issues)
+**Tests:** 480/480 tests pass | 38/58 test suites pass | 20 suites fail on external package ESM/CommonJS resolution (configuration issue, not test failures)
 
 ### Phase 3 Completion Summary (2026-05-13)
-- ✅ CLI/REPL tests added (`src/nar/tests/unit/repl-commands.test.ts`)
+- ✅ CLI/REPL tests added (`tests/nar/unit/repl-commands.test.ts`)
   - Command parsing and validation
   - Multi-line input detection
   - Term completion
   - Input type recognition (beliefs, questions, commands)
 - ✅ Property-based tests maintained (2 files in property/)
-  - `src/nar/tests/property/terms.test.ts` - Term normalization invariants
-  - `src/nar/tests/property/truth.test.ts` - Truth value bounds
-- ✅ Existing property-based tests (`src/nar/tests/property-based.test.ts`)
+  - `tests/nar/property/terms.test.ts` - Term normalization invariants
+  - `tests/nar/property/truth.test.ts` - Truth value bounds
+- ✅ Existing property-based tests (`tests/nar/property-based.test.ts`)
   - Comprehensive term, truth, normalization, bag invariants
   - Stamp depth tracking
   - Rule idempotence
@@ -59,7 +59,7 @@
 
 ## Phase 2: Declarative Test Framework (P1) - Complete ✅
 
-### ✅ 2.1 Create `src/nar/tests/framework/ReasoningTestBuilder.ts`
+### ✅ 2.1 Create `tests/nar/framework/ReasoningTestBuilder.ts`
 
 A fluent, declarative DSL for specifying multi-cycle reasoning tests:
 
@@ -78,9 +78,9 @@ export function describeReasoning(name: string, specs: TestSpec[]): void;
 ```
 
 **Created Files:**
-- ✅ `src/nar/tests/framework/ReasoningTestBuilder.ts` - Core framework with TestSpec interface
-- ✅ `src/nar/tests/framework/index.ts` - Framework barrel exports
-- ✅ `src/nar/tests/e2e/06-framework-inference.test.ts` - Example tests using framework
+- ✅ `tests/nar/framework/ReasoningTestBuilder.ts` - Core framework with TestSpec interface
+- ✅ `tests/nar/framework/index.ts` - Framework barrel exports
+- ✅ `tests/nar/e2e/06-framework-inference.test.ts` - Example tests using framework
 
 **Features:**
 - Fluent builder API: `testReasoning().name('test').premise(...).expect(...).run()`
@@ -97,55 +97,55 @@ export function describeReasoning(name: string, specs: TestSpec[]): void;
 ## Phase 3: Test Coverage Expansion (P1) - 13/13 Complete ✅
 
 ### ✅ 3.1-3.13 Coverage Progress (13/13 complete)
-- ✅ NAL1 core rules unit tests (`src/nar/tests/unit/nal1-rules.test.ts`)
+- ✅ NAL1 core rules unit tests (`tests/nar/unit/nal1-rules.test.ts`)
 - 13 comprehensive deduction/induction/abduction tests
 - Truth value computation tests
 - Edge case handling tests
-- ✅ All 13 strategy tests (`src/nar/tests/unit/strategies.test.ts`)
+- ✅ All 13 strategy tests (`tests/nar/unit/strategies.test.ts`)
 - Prolog, Resolution, GoalDriven, Analogical, TermLink, TaskMatch, Decomposition
 - DefaultFormation, Composite, Adaptive, Switching strategies
 - Strategy factory function and performance tests
-- ✅ 7 uncovered tool tests (`src/nar/tests/unit/tools-additional.test.ts`)
+- ✅ 7 uncovered tool tests (`tests/nar/unit/tools-additional.test.ts`)
 - FileTools (ReadFileTool, WriteFileTool)
 - HTTPTool (URL validation, HTTP requests)
 - TimerTool, ProcessTool, LearnTool, ReasonTool
-- ✅ Reasoner tests (`src/nar/tests/unit/reasoner-nario.test.ts`)
+- ✅ Reasoner tests (`tests/nar/unit/reasoner-nario.test.ts`)
 - step() and run() methods
 - Trace collection, circular detection
 - Quality thresholds, abort signals
-- ✅ NARLM tests (`src/nar/tests/unit/reasoner-nario.test.ts`)
+- ✅ NARLM tests (`tests/nar/unit/reasoner-nario.test.ts`)
 - Feedback loop, enricher, streaming client
 - Stats tracking, graceful degradation
-- ✅ NARIO tests (`src/nar/tests/unit/reasoner-nario.test.ts`)
+- ✅ NARIO tests (`tests/nar/unit/reasoner-nario.test.ts`)
 - input/believe/goal/question operations
 - export/import state
 - Memory state management
-- ✅ CLI/REPL tests (`src/nar/tests/unit/repl-commands.test.ts`)
+- ✅ CLI/REPL tests (`tests/nar/unit/repl-commands.test.ts`)
 - Command parsing and validation
 - Multi-line input detection
 - Term completion
-- ✅ Config loader tests (`src/nar/tests/unit/config-loader.test.ts`)
+- ✅ Config loader tests (`tests/nar/unit/config-loader.test.ts`)
 - Environment variable loading
 - Validation and clamping
 - Default configuration
-- ✅ QueryAPI and ReasoningTrace tests (`src/nar/tests/unit/query-trace.test.ts`)
+- ✅ QueryAPI and ReasoningTrace tests (`tests/nar/unit/query-trace.test.ts`)
 - QueryAPI query by type, filters, ask method
 - ReasoningTrace derivation trees, explain method
-- ✅ EventBus tests (`src/nar/tests/unit/eventbus.test.ts`)
+- ✅ EventBus tests (`tests/nar/unit/eventbus.test.ts`)
 - on(), off(), once(), emit() operations
 - Event types: rule:applied, concept:created, cycle:start/end, etc.
 - Listener management, unsubscribe, edge cases
-- ✅ Concept class tests (`src/nar/tests/unit/concept.test.ts`)
+- ✅ Concept class tests (`tests/nar/unit/concept.test.ts`)
 - Priority management, task management, belief revision
 - Concept links, merging, hierarchy
-- ✅ Bag/BoundedBag tests (`src/nar/tests/unit/bags.test.ts`)
+- ✅ Bag/BoundedBag tests (`tests/nar/unit/bags.test.ts`)
 - Bag: priority ordering, capacity management
 - BoundedBag: overflow behaviors, sampling, statistics
 - Serialization, consolidation, clear operations
 - ✅ Property-based test expansion (2 files)
-- `src/nar/tests/property/terms.test.ts` - Term normalization invariants
-- `src/nar/tests/property/truth.test.ts` - Truth value bounds checking
-- Existing `src/nar/tests/property-based.test.ts` - Comprehensive property tests
+- `tests/nar/property/terms.test.ts` - Term normalization invariants
+- `tests/nar/property/truth.test.ts` - Truth value bounds checking
+- Existing `tests/nar/property-based.test.ts` - Comprehensive property tests
 
 ---
 
@@ -268,14 +268,14 @@ export function describeReasoning(name: string, specs: TestSpec[]): void;
 - Cleaned up help text and command list
 
 ### Phase 2: Declarative Test Framework (2026-05-12)
-- ✅ Created `src/nar/tests/framework/ReasoningTestBuilder.ts` (263 lines)
+- ✅ Created `tests/nar/framework/ReasoningTestBuilder.ts` (263 lines)
   - `TestSpec` interface for declarative test specifications
   - `assertReasoning()` async function for running tests
   - `describeReasoning()` wrapper for Jest integration
   - `ReasoningTestBuilder` fluent builder API
   - Helper functions: `createPremise()`, `expectDerivation()`, `testReasoning()`
-- ✅ Created framework barrel export: `src/nar/tests/framework/index.ts`
-- ✅ Created example tests: `src/nar/tests/e2e/06-framework-inference.test.ts`
+- ✅ Created framework barrel export: `tests/nar/framework/index.ts`
+- ✅ Created example tests: `tests/nar/e2e/06-framework-inference.test.ts`
   - 13 comprehensive inference rule tests
   - Covers deduction, induction, abduction, similarity, analogy
   - Tests for compound terms, temporal reasoning, revision

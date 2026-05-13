@@ -10,6 +10,7 @@ import {NARLM} from '../../../src/nar/nar-lm.js';
 import {RuleProcessor} from '../../../src/nar/rules/processor.js';
 import {createStrategy} from '../../../src/nar/reason/strategies/index.js';
 import {TermBuilder, Truth} from '../../../src/nar/terms/index.js';
+import {TaskManager} from '../../../src/nar/task/index.js';
 
 describe('Reasoner', () => {
   let nar: NAR;
@@ -117,10 +118,12 @@ describe('Reasoner', () => {
 describe('NARIO', () => {
   let nar: NAR;
   let nario: NARIO;
+  let taskManager: TaskManager;
 
   beforeEach(() => {
     nar = new NAR();
-    nario = new NARIO(nar.memory, nar.memory.getTaskManager(), nar.getConfig());
+    taskManager = new TaskManager(nar.memory, {});
+    nario = new NARIO(nar.memory, taskManager, nar.getConfig());
   });
 
   it('should create NARIO instance', () => {
@@ -306,19 +309,21 @@ describe('Integration: Reasoner + NARIO', () => {
   let nario: NARIO;
   let processor: RuleProcessor;
   let strategy: any;
+  let taskManager: TaskManager;
 
   beforeEach(() => {
     nar = new NAR();
+    taskManager = new TaskManager(nar.memory, {});
     processor = new RuleProcessor();
     strategy = createStrategy({name: 'test', sampleSize: 10, limit: 5});
-    
+
     reasoner = new Reasoner(nar.memory, processor, strategy, {
       cpuThrottleMs: 0,
       maxDerivationDepth: 10,
       maxDerivationsPerStep: 100
     });
 
-    nario = new NARIO(nar.memory, nar.memory.getTaskManager(), nar.getConfig());
+    nario = new NARIO(nar.memory, taskManager, nar.getConfig());
   });
 
   it('should chain input and reasoning', async () => {

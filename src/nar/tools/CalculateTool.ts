@@ -4,7 +4,7 @@ function parseMathExpression(expr: string): number {
   let pos = 0;
 
   function skipWhitespace(): void {
-    while (pos < expr.length && /\s/.test(expr[pos])) pos++;
+    while (pos < expr.length && /\s/.test(expr[pos]!)) pos++;
   }
 
   function parseNumber(): number {

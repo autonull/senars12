@@ -59,11 +59,7 @@ export class NARIO {
 
     for (const concept of data.concepts) {
       if (concept.term) {
-        const budget = createBudget(concept.priority ?? 0.5);
-        this.memory.addConcept(
-          termParser.parse(concept.term),
-          budget
-        );
+        this.memory.addConcept(termParser.parse(concept.term));
       }
     }
   }

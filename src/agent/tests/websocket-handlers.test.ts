@@ -6,7 +6,15 @@ describe('WebSocket Handlers - NarService', () => {
   let service: NarService;
 
   beforeEach(() => {
-    nar = new NAR({maxConcepts: 100, priorityThreshold: 0.1});
+    nar = new NAR({
+      maxConcepts: 100,
+      priorityThreshold: 0.1,
+      activationDecayRate: 0.01,
+      consolidationInterval: 10,
+      cpuThrottleMs: 10,
+      maxDerivationDepth: 10,
+      maxDerivationsPerStep: 100
+    });
     service = new NarService(nar);
   });
 

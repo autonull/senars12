@@ -1,6 +1,6 @@
 import type {NAR} from '../../nar/nar.js';
-import type {Task} from '../../nar/types.js';
-import {termParser} from '../../nar/terms.js';
+import type {Task} from '../../nar/types/index.js';
+import {termParser} from '../../nar/terms/index.js';
 
 export interface ConceptFilter {
   type?: 'belief' | 'goal' | 'question';
@@ -30,12 +30,12 @@ export class NarService {
   }
 
   async addBelief(term: string, truth?: { f: number; c: number }): Promise<{ added: true; term: string }> {
-    await this.nar.believe(term, truth ? { f: truth.f, c: truth.c, t: 0 } : undefined);
+    await this.nar.believe(term, truth ? { f: truth.f, c: truth.c } : undefined);
     return { added: true, term };
   }
 
   async addGoal(term: string, truth?: { f: number; c: number }): Promise<{ added: true; term: string }> {
-    await this.nar.goal(term, truth ? { f: truth.f, c: truth.c, t: 0 } : undefined);
+    await this.nar.goal(term, truth ? { f: truth.f, c: truth.c } : undefined);
     return { added: true, term };
   }
 
@@ -78,8 +78,9 @@ export class NarService {
   }
 
   async query(term: string, filter?: Record<string, unknown>): Promise<{ results: Task[]; count: number }> {
-    const results = this.nar.queryTerm(termParser.parse(term), filter);
-    return { results: Array.isArray(results) ? results : [results], count: Array.isArray(results) ? results.length : 1 };
+    const queryResult = this.nar.queryTerm(termParser.parse(term), filter);
+    const results = queryResult.beliefs;
+    return { results, count: results.length };
   }
 
   async getStats(): Promise<{
@@ -99,7 +100,7 @@ export class NarService {
   }
 
   getConfig(): Record<string, unknown> {
-    return this.nar.getConfig() as Record<string, unknown>;
+    return this.nar.getConfig() as unknown as Record<string, unknown>;
   }
 
   getAttentionSnapshot(): { concepts: Array<{ term: string; priority: number }>; total: number } {

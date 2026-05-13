@@ -1,7 +1,7 @@
 /**
  * Command handler interface and base types
  */
-import type {NAR} from '../nar';
+import type {NAR} from '../../nar/nar.js';
 
 export interface CommandHandler {
     name: string;

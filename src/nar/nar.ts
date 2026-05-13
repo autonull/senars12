@@ -76,7 +76,7 @@ export class NAR extends BaseComponent {
   private readonly lm: NARLM;
   private readonly config: NARConfig;
   private readonly processor: RuleProcessor;
-  private readonly _metrics: MetricsCollector;
+  private readonly _metricsCollector: MetricsCollector;
   private readonly _lmClient?: LMClient;
   private _lmInitialized = false;
   private _toolsInitialized = false;
@@ -107,7 +107,7 @@ export class NAR extends BaseComponent {
     this.io = new NARIO(this.memory, this.taskManager, this.config);
     this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp);
     this.lm = new NARLM(this.memory, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment, this.config.enableLMStreaming);
-    this._metrics = metrics;
+    this._metricsCollector = metrics;
 
     if (this.config.enableLMRules && this.config.lmClient) {
       this.initializeLMRules(this.config.lmClient);
@@ -314,19 +314,19 @@ Only output the answer, nothing else.`;
   }
 
   recordRuleExecution(ruleId: string, success: boolean, duration: number) {
-    this._metrics.recordRuleExecution(ruleId, success, duration);
+    this._metricsCollector.recordRuleExecution(ruleId, success, duration);
   }
 
   incrementDerivations(count?: number) {
-    this._metrics.incrementDerivations(count);
+    this._metricsCollector.incrementDerivations(count);
   }
 
   incrementSteps(count?: number) {
-    this._metrics.incrementSteps(count);
+    this._metricsCollector.incrementSteps(count);
   }
 
   getMetrics() {
-    return this._metrics.getSummary();
+    return this._metricsCollector.getSummary();
   }
 
     async initializeLM(): Promise<void> {

@@ -1,7 +1,7 @@
 /**
  * Core commands: help, run, stats, list, config, clear, quit
  */
-import type {NAR} from '../nar';
+import type {NAR} from '../../nar/nar.js';
 
 export function createCoreCommands(nar: NAR, display: any) {
     return {

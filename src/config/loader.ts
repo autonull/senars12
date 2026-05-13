@@ -10,6 +10,7 @@ import {fileURLToPath} from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export interface LMConfig {
+    enabled?: boolean;
     provider: string;
     model?: string;
     quantized?: boolean;
@@ -19,6 +20,8 @@ export interface LMConfig {
 
 export interface MemoryConfig {
     maxConcepts: number;
+    priorityThreshold?: number;
+    activationDecayRate?: number;
     bagSize?: number;
     derivationDepth?: number;
 }
@@ -27,6 +30,7 @@ export interface InferenceConfig {
     maxDerivationDepth: number;
     maxDerivationsPerStep: number;
     cpuThrottleMs: number;
+    consolidationInterval?: number;
 }
 
 export interface IRCConfig {
