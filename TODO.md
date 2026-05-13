@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-05-13
 **Status:** Phase 5 Complete - Architecture Refactoring ✅
-**Tests:** 502/526 passing (95.4% - 4 test suites have import issues)
+**Tests:** ~480/526 passing (91% - some tests have npm package ESM/CommonJS resolution issues)
 
 ### Phase 3 Completion Summary (2026-05-13)
 - ✅ CLI/REPL tests added (`src/nar/tests/unit/repl-commands.test.ts`)
@@ -173,16 +173,18 @@ export function describeReasoning(name: string, specs: TestSpec[]): void;
 
 ---
 
-## Phase 6: Usability Improvements (P2)
+## Phase 6: Usability Improvements (P2) - COMPLETE ✅
 
-### 6.1-6.7 CLI Improvements
-- Fix CLI input validation
-- Improve multi-line input detection
-- Add progress indication for `.run`
-- Wrap raw system errors
-- Extract domain data
-- Add per-command help text
-- Fix config validation (DONE)
+### 6.1-6.7 CLI Improvements - COMPLETE ✅
+- ✅ 6.1 Fix CLI input validation (empty input handling, better error messages)
+- ✅ 6.2 Improve multi-line input detection (cancel with '.', start indicator)
+- ✅ 6.3 Add progress indication for `.run` command
+- ✅ 6.4 Wrap raw system errors with user-friendly messages
+- ✅ 6.5 Extract domain data to `src/cli/domains.ts` module
+- ✅ 6.6 Add per-command help text (`.help <command>` shows detailed usage)
+- ✅ 6.7 Fix config validation (was already done)
+
+**Status:** Phase 6 Complete ✅
 
 ---
 

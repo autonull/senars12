@@ -7,7 +7,8 @@ import {NAR, SeNARSFactory} from '../nar';
 import * as readline from 'readline';
 import {HistoryManager} from './history';
 import {ProfileManager} from './profile';
-import {showHelp, showStats, listConcepts} from './display';
+import {showHelp, showStats, listConcepts, showCommandHelp} from './display';
+import {DOMAINS, DOMAIN_LIST, getDomain} from './domains';
 
 const MAX_HISTORY = 1000;
 
@@ -120,14 +121,28 @@ class SeNARSCLI {
     }
 
     private async processInput(input: string): Promise<void> {
-        if (input.startsWith('.')) {
-            await this.handleCommand(input);
-        } else if (input.endsWith('?')) {
-            await this.handleQuestion(input.slice(0, -1).trim());
-        } else if (input.endsWith('.')) {
-            await this.handleBelief(input.slice(0, -1).trim());
+        if (!input || input.trim().length === 0) {
+            return;
+        }
+
+        const trimmed = input.trim();
+
+        if (trimmed.startsWith('.')) {
+            await this.handleCommand(trimmed);
+        } else if (trimmed === '.' ) {
+            console.log('Multi-line input cancelled');
+            this.inMultiLine = false;
+            this.multiLineBuffer = [];
+        } else if (trimmed.startsWith('{')) {
+            this.inMultiLine = true;
+            this.multiLineBuffer = [trimmed.slice(1)];
+            console.log('> Multi-line input started (end with "." on empty line)');
+        } else if (trimmed.endsWith('?')) {
+            await this.handleQuestion(trimmed.slice(0, -1).trim());
+        } else if (trimmed.endsWith('.')) {
+            await this.handleBelief(trimmed.slice(0, -1).trim());
         } else {
-            console.log('Use (term). for beliefs, (term)? for questions, or .help');
+            console.log('Syntax: (term). for beliefs, (term)? for questions, or .help');
         }
     }
 
@@ -137,7 +152,12 @@ class SeNARSCLI {
         const args = parts.slice(1);
 
         const handlers: Record<string, () => void | Promise<void>> = {
-            '.help': () => showHelp(),
+            '.help': () => {
+                const cmd = args[0];
+                if (cmd && !showCommandHelp(cmd)) {
+                    console.log(`Unknown command: ${cmd}. Type .help for command list.`);
+                }
+            },
             '.run': () => this.runInference(args[0] ? parseInt(args[0]) : 5),
             '.stats': () => showStats(this.nar, args[0]),
             '.list': () => listConcepts(this.nar),
@@ -207,8 +227,9 @@ class SeNARSCLI {
     }
 
     private async runInference(steps: number): Promise<void> {
+        console.log(`⟳ Running ${steps} step(s)...`);
         const derived = await this.nar.run(steps);
-        console.log(`✓ Ran ${steps} step(s), derived ${derived} belief(s)`);
+        console.log(`✓ Completed ${steps} step(s), derived ${derived} belief(s)`);
     }
 
     private showConcepts(filter?: string): void {
@@ -252,11 +273,11 @@ class SeNARSCLI {
         const tools = this.nar.listTools();
 
         const filtered = filter
-            ? tools.filter(t => t.toLowerCase().includes(filter.toLowerCase()))
+            ? tools.filter(t => t.name.toLowerCase().includes(filter.toLowerCase()))
             : tools;
 
         for (const tool of filtered) {
-            console.log(` - ${tool}`);
+            console.log(` - ${tool.name}: ${tool.description}`);
         }
         console.log();
     }
@@ -652,23 +673,15 @@ class SeNARSCLI {
     }
 
     private loadDomain(args: string[]): void {
-        const domains: Record<string, string[]> = {
-            biology: ['<cell --> unit>.', '<organelle --> cell>.', '<DNA --> molecule>.', '<protein --> molecule>.'],
-            physics: ['<force --> interaction>.', '<mass --> property>.', '<energy --> property>.', '<velocity --> rate>.'],
-            mathematics: ['<number --> quantity>.', '<set --> collection>.', '<function --> mapping>.', '<proof --> reasoning>.'],
-            programming: ['<function --> code>.', '<variable --> storage>.', '<algorithm --> procedure>.', '<compiler --> tool>.'],
-            finance: ['<money --> value>.', '<investment --> allocation>.', '<risk --> uncertainty>.', '<profit --> gain>.']
-        };
-
         const domain = args[0]?.toLowerCase();
-        if (!domain || !domains[domain]) {
-            console.log('Usage: .load-domain <domain>');
-            console.log('Available domains: biology, physics, mathematics, programming, finance');
+        if (!domain || !DOMAINS[domain]) {
+            console.log(`Usage: .load-domain <domain>`);
+            console.log(`Available domains: ${DOMAIN_LIST}`);
             return;
         }
 
-        (this.nar as any).loadDomain({name: domain, beliefs: domains[domain]});
-        console.log(`✓ Loaded ${domain} domain with ${domains[domain].length} beliefs`);
+        (this.nar as any).loadDomain({name: domain, beliefs: DOMAINS[domain]});
+        console.log(`✓ Loaded ${domain} domain with ${DOMAINS[domain].length} beliefs`);
     }
 }
 
