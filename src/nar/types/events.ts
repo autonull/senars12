@@ -53,21 +53,25 @@ export class EventBus<T extends EventMap = NAREventMap> {
         }
     }
 
-    emit<K extends keyof T>(eventName: K & string, params: T[K]): void {
-        const listeners = this.listeners.get(eventName as string);
-        if (!listeners) return;
+  emit<K extends keyof T>(eventName: K & string, params: T[K]): void {
+    const listeners = this.listeners.get(eventName as string);
+    if (!listeners) return;
 
-        for (const listener of listeners) {
-            listener.fn(params);
-        }
-
-        const remaining = listeners.filter(l => !l.once);
-        if (remaining.length === 0) {
-            this.listeners.delete(eventName as string);
-        } else {
-            this.listeners.set(eventName as string, remaining);
-        }
+    for (const listener of listeners) {
+      try {
+        listener.fn(params);
+      } catch (error) {
+        // Continue to next listener even if one throws
+      }
     }
+
+    const remaining = listeners.filter(l => !l.once);
+    if (remaining.length === 0) {
+      this.listeners.delete(eventName as string);
+    } else {
+      this.listeners.set(eventName as string, remaining);
+    }
+  }
 
     clear(): void {
         this.listeners.clear();

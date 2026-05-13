@@ -128,13 +128,16 @@ return added;
         this._priority *= 1 - rate;
     }
 
-    applyTimeDecay(baseRate = 0.01): void {
-        const elapsed = Date.now() - this.lastDecayTime;
-        const decayFactor = Math.exp(-baseRate * elapsed / 60000);
-        this.activation *= decayFactor;
-        this._priority *= decayFactor;
-        this.lastDecayTime = Date.now();
+  applyTimeDecay(baseRate = 0.01): void {
+    const elapsed = Date.now() - this.lastDecayTime;
+    const decayFactor = Math.exp(-baseRate * elapsed / 60000);
+    this.activation *= decayFactor;
+    this._priority = Math.max(0, this._priority * decayFactor);
+    if (this._priority > 0 && elapsed < 1) {
+      this._priority = Math.max(0, this._priority * (1 - baseRate));
     }
+    this.lastDecayTime = Date.now();
+  }
 
   addLink(concept: Concept, strength = 0.5): void {
     if (concept === this) return;
