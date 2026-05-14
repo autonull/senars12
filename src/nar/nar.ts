@@ -440,7 +440,7 @@ Only output the answer, nothing else.`;
         const toolDeps: ToolDependency = {memory: this.memory, nar: this};
 
         for (const {Tool, args} of TOOL_REGISTRY) {
-            const toolArgs = args.map(arg => toolDeps[arg]).filter(Boolean);
+            const toolArgs = args.map(arg => toolDeps[arg]).filter(Boolean) as unknown[];
             this.tools.register(new Tool(...toolArgs));
         }
 

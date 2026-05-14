@@ -1,4 +1,5 @@
 import type {Term} from '../terms';
+import {termParser} from '../terms';
 import type {Task, TaskType, TermFilter} from '../types';
 import type {Concept} from '../memory';
 import type {TaskData} from '../memory/concept.js';
@@ -17,18 +18,16 @@ export interface Answer {
     derivationPath?: string[];
 }
 
-export class QueryAPI {
-    private readonly memory: {
-        getConcept: (term: Term) => Concept | undefined;
-        findSimilarConcepts: (term: Term, limit?: number) => Concept[];
-        listConcepts: () => Concept[]
-    };
+export interface MemoryRef {
+    getConcept: (term: Term) => Concept | undefined;
+    findSimilarConcepts: (term: Term, limit?: number) => Concept[];
+    listConcepts: () => Concept[];
+}
 
-    constructor(memory: {
-        getConcept: (term: Term) => Concept | undefined;
-        findSimilarConcepts: (term: Term, limit?: number) => Concept[];
-        listConcepts: () => Concept[]
-    }) {
+export class QueryAPI {
+    private readonly memory: MemoryRef;
+
+    constructor(memory: MemoryRef) {
         this.memory = memory;
     }
 
@@ -154,7 +153,6 @@ export class QueryAPI {
     private parseQuestion(question: string): Term | null {
         try {
             if (question.includes('-->') || question.includes('<->') || question.includes('=>')) {
-                const {termParser} = require('../terms/parser.js');
                 return termParser.parse(question);
             }
             return null;
@@ -261,6 +259,6 @@ export class QueryAPI {
     }
 }
 
-export const createQueryAPI = (memory: any): QueryAPI => {
+export const createQueryAPI = (memory: MemoryRef): QueryAPI => {
     return new QueryAPI(memory);
 };

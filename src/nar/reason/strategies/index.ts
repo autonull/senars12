@@ -1,6 +1,6 @@
 import type {Strategy} from '../strategy.js';
 import type {Task, TaskType} from '../../types';
-import type {Memory} from '../../memory';
+import type {Memory, Concept} from '../../memory';
 import type {Term} from '../../terms';
 import {termsEqual, Truth} from '../../terms';
 import {createStrategy, createStrategy as createStrategyBase} from './base.js';
@@ -23,9 +23,9 @@ const createTask = (term: Term, type: TaskType, truth: Truth, priority: number):
 const createBeliefTask = (term: Term, truth: Truth, priority: number): Task =>
     createTask(term, 'belief', truth, priority);
 
-const peekTruth = (concept: any): Truth | undefined => concept?.beliefBag?.peek()?.truth;
+const peekTruth = (concept: Concept): Truth | undefined => concept?.beliefBag?.peek()?.truth;
 
-const filterConcepts = (concepts: any[], excludeTerm: Term, condition: (c: any) => boolean): any[] =>
+const filterConcepts = (concepts: Concept[], excludeTerm: Term, condition: (c: Concept) => boolean): Concept[] =>
     concepts.filter(c => !termsEqual(c.term, excludeTerm) && condition(c));
 
 export const PrologStrategy: Strategy = createStrategy({name: 'prolog', sampleSize: 20, limit: 5});
@@ -33,7 +33,7 @@ export const PrologStrategy: Strategy = createStrategy({name: 'prolog', sampleSi
 export const ResolutionStrategy: Strategy = createStrategy({
     name: 'resolution',
     sampleSize: 15,
-    filter: (c: any) => c.term.kind === 'inheritance',
+    filter: (c: Concept) => c.term.kind === 'inheritance',
     limit: 5
 });
 

@@ -10,6 +10,7 @@ import {ProfileManager} from './profile';
 import {listConcepts, showCommandHelp, showStats} from './display';
 import {DOMAIN_LIST, DOMAINS} from './domains';
 import {errMsg} from '../nar/utils/helpers.js';
+import {termParser} from '../nar/terms';
 
 const _MAX_HISTORY = 1000;
 
@@ -19,8 +20,36 @@ interface CLIConfig {
     showDerivations: boolean;
 }
 
+type NARRef = NAR & {
+    askNaturalLanguage(question: string): Promise<string>;
+    setConstitution(beliefs: import('../nar/types').Task[]): void;
+    getConstitution(): import('../nar/types').Task[];
+    loadDomain(domain: { name: string; beliefs: string[] }): void;
+};
+
+interface SelfAnalyzerRef {
+    isRunning?: boolean;
+    getSystemAnalysis?(): unknown;
+    applyOptimizations?(): void;
+}
+
+interface RLFPref {
+    preferences?: unknown[];
+    trajectoryCount?: number;
+    lastOptimizeTime?: number;
+    addPreference?(preferred: string, rejected: string): void;
+    optimize?(): void;
+}
+
+interface LMClientRef {
+    provider?: string;
+    model?: string;
+    available?: boolean;
+    setModel?(model: string): void;
+}
+
 class SeNARSCLI {
-    private readonly nar: NAR;
+    private readonly nar: NARRef;
     private config: CLIConfig;
     private rl: Interface;
     private history: HistoryManager;
@@ -38,7 +67,7 @@ class SeNARSCLI {
         this.nar = SeNARSFactory.createForCLI({
             maxConcepts: this.config.maxConcepts,
             maxDerivationDepth: this.config.maxDerivationDepth
-        });
+        }) as NARRef;
 
         this.history = new HistoryManager();
         this.profile = new ProfileManager();
@@ -47,7 +76,7 @@ class SeNARSCLI {
             input: process.stdin,
             output: process.stdout,
             prompt: 'senars> ',
-            completer: this.completer.bind(this) as any
+            completer: (line: string): [string[], string] => this.completer(line)
         });
 
         this.setupHandlers();
@@ -318,7 +347,7 @@ class SeNARSCLI {
         if (args.length === 2) {
             const [key, value] = args;
             const typedValue = isNaN(Number(value)) ? value : Number(value);
-            this.nar.setConfig({[key!]: typedValue} as any);
+            this.nar.setConfig({[key!]: typedValue});
             console.log(`Set ${key} to ${typedValue}`);
         }
     }
@@ -418,10 +447,16 @@ class SeNARSCLI {
                 return;
             }
 
-            const trace = this.nar.traceTerm(termStr as any);
-            const traceData = trace as any;
+            const matchingConcept = this.nar.listConcepts().find(c => c.term.toString().includes(termStr));
+            const term = matchingConcept?.term;
+            if (!term) {
+                console.log(`No term found for: ${termStr}`);
+                return;
+            }
+            const trace = this.nar.traceTerm(term);
+            const traceData = trace;
 
-            if (!traceData || (traceData as any).length === 0) {
+            if (!traceData || (Array.isArray(traceData) ? traceData.length : 0) === 0) {
                 console.log(`No derivation trace found for: ${termStr}`);
                 return;
             }
@@ -429,9 +464,11 @@ class SeNARSCLI {
             const traceArray = Array.isArray(traceData) ? traceData : [traceData];
 
             console.log('\nDerivation Trace:');
-            traceArray.slice(-10).forEach((step: any, index: number) => {
-                const source = step.stamp?.source || step.stamp?.derivations ? 'DERIVED' : 'INPUT';
-                console.log(`${index + 1}. ${step.term?.toString() || 'unknown'} [${source}]`);
+            traceArray.slice(-10).forEach((step, index) => {
+                const stepRef = step as {stamp?: {source?: string; derivations?: unknown[]}; term?: {toString?: () => string}};
+                const source = stepRef.stamp?.source || stepRef.stamp?.derivations ? 'DERIVED' : 'INPUT';
+                const termStr = stepRef.term?.toString?.() ?? 'unknown';
+                console.log(`${index + 1}. ${termStr} [${source}]`);
             });
 
             if (traceArray.length > 10) {
@@ -457,7 +494,7 @@ class SeNARSCLI {
             }
 
             const topBelief = beliefs[0]!;
-            const explanation = this.nar.explain(topBelief as any);
+            const explanation = this.nar.explain(topBelief);
 
             console.log('\nExplanation:');
             console.log(`Term: ${topBelief.term.toString()}`);
@@ -468,7 +505,7 @@ class SeNARSCLI {
             if (explanation) {
                 console.log('\nDerivation path:');
                 if (Array.isArray(explanation)) {
-                    explanation.slice(-5).forEach((step: any, i: number) => {
+                    explanation.slice(-5).forEach((step, i) => {
                         console.log(` ${i + 1}. ${typeof step === 'string' ? step : step.toString()}`);
                     });
                 } else {
@@ -498,8 +535,9 @@ class SeNARSCLI {
             console.log('Self/Metacognition is not enabled');
             return;
         }
-        const isRunning = (self as { isRunning?: boolean }).isRunning ?? false;
-        const analysis = (self as { getSystemAnalysis?: () => unknown }).getSystemAnalysis?.();
+        const selfRef = self as SelfAnalyzerRef;
+        const isRunning = selfRef.isRunning ?? false;
+        const analysis = selfRef.getSystemAnalysis?.();
         const lines = [
             `Running: ${isRunning ? 'Yes' : 'No'}`,
             ...analysis ? [
@@ -516,19 +554,21 @@ class SeNARSCLI {
             console.log('Self/Metacognition is not enabled');
             return;
         }
-        const analysis = (self as { getSystemAnalysis?: () => unknown }).getSystemAnalysis?.();
+        const selfRef = self as SelfAnalyzerRef;
+        const analysis = selfRef.getSystemAnalysis?.();
         if (!analysis) {
             console.log('No analysis available yet');
             return;
         }
+        const analysisData = analysis as { cycleCount?: number; reasoningQuality?: number; strategies?: Array<{ name?: string; efficiency?: number }> };
         const lines: string[] = [
-            `Cycle Count: ${String((analysis as { cycleCount?: number }).cycleCount ?? 0)}`
+            `Cycle Count: ${String(analysisData.cycleCount ?? 0)}`
         ];
-        const reasoningQuality = (analysis as { reasoningQuality?: number }).reasoningQuality;
+        const reasoningQuality = analysisData.reasoningQuality;
         if (reasoningQuality) {
             lines.push(`Reasoning Quality: ${reasoningQuality.toFixed(2)}`);
         }
-        const strategies = (analysis as { strategies?: Array<{ name?: string; efficiency?: number }> }).strategies;
+        const strategies = analysisData.strategies;
         if (strategies?.length) {
             lines.push('Strategy Performance:');
             for (const s of strategies.slice(0, 3)) {
@@ -540,15 +580,16 @@ class SeNARSCLI {
 
     private async runOptimization(): Promise<void> {
         const self = this.nar.getSelfAnalyzer();
-        if (self && (self as any).applyOptimizations) {
-            (self as any).applyOptimizations();
+        if (self && (self as SelfAnalyzerRef).applyOptimizations) {
+            (self as SelfAnalyzerRef).applyOptimizations?.();
             console.log('✓ Applied metacognitive optimizations');
         } else {
             console.log('Self optimization not available');
         }
         const rlfp = this.nar.getRLFP();
-        if (rlfp && (rlfp as any).optimize) {
-            (rlfp as any).optimize();
+        const rlfpRef = rlfp as RLFPref | null;
+        if (rlfpRef?.optimize) {
+            rlfpRef.optimize();
             console.log('✓ RLFP policy optimized');
         }
     }
@@ -559,35 +600,39 @@ class SeNARSCLI {
             return;
         }
         const rlfp = this.nar.getRLFP();
-        if (!rlfp) {
+        const rlfpRef = rlfp as RLFPref | null;
+        if (!rlfpRef) {
             console.log('RLFP not enabled');
             return;
         }
-        (rlfp as any).addPreference(args[0], args[1]);
-        console.log(`✓ Preference recorded: ${args[0]} > ${args[1]}`);
+        const preferred = args[0]!;
+        const rejected = args[1]!;
+        rlfpRef.addPreference?.(preferred, rejected);
+        console.log(`✓ Preference recorded: ${preferred} > ${rejected}`);
     }
 
     private showRewardStatus(): void {
         const rlfp = this.nar.getRLFP();
-        if (!rlfp) {
+        const rlfpRef = rlfp as RLFPref | null;
+        if (!rlfpRef) {
             console.log('RLFP not enabled');
             return;
         }
-        const prefs = (rlfp as { preferences?: unknown[] }).preferences?.length ?? 0;
+        const prefs = rlfpRef.preferences?.length ?? 0;
         console.log('\n' + this.box('RLFP Reward Status', [`Preferences: ${prefs}`]) + '\n');
     }
 
     private showRLFPStats(): void {
         const rlfp = this.nar.getRLFP();
-        if (!rlfp) {
+        const rlfpRef = rlfp as RLFPref | null;
+        if (!rlfpRef) {
             console.log('RLFP not enabled');
             return;
         }
-        const rlfpAny = rlfp as { preferences?: unknown[]; trajectoryCount?: number; lastOptimizeTime?: number };
         console.log('\n' + this.box('RLFP Statistics', [
-            `Preferences: ${String(rlfpAny.preferences?.length ?? 0)}`,
-            `Trajectories: ${String(rlfpAny.trajectoryCount ?? 0)}`,
-            `Last Optimization: ${rlfpAny.lastOptimizeTime ? new Date(rlfpAny.lastOptimizeTime).toLocaleTimeString() : 'Never'}`
+            `Preferences: ${String(rlfpRef.preferences?.length ?? 0)}`,
+            `Trajectories: ${String(rlfpRef.trajectoryCount ?? 0)}`,
+            `Last Optimization: ${rlfpRef.lastOptimizeTime ? new Date(rlfpRef.lastOptimizeTime).toLocaleTimeString() : 'Never'}`
         ]) + '\n');
     }
 
@@ -597,11 +642,11 @@ class SeNARSCLI {
             console.log('LM client not configured');
             return;
         }
-        const lmAny = lm as { provider?: string; model?: string; available?: boolean };
+        const lmRef = lm as LMClientRef;
         console.log('\n' + this.box('LM Status', [
-            `Provider: ${String(lmAny.provider ?? 'unknown')}`,
-            `Model: ${String(lmAny.model ?? 'unknown')}`,
-            `Available: ${lmAny.available ? 'Yes' : 'No'}`
+            `Provider: ${String(lmRef.provider ?? 'unknown')}`,
+            `Model: ${String(lmRef.model ?? 'unknown')}`,
+            `Available: ${lmRef.available ? 'Yes' : 'No'}`
         ]) + '\n');
     }
 
@@ -615,8 +660,9 @@ class SeNARSCLI {
             console.log('LM client not configured');
             return;
         }
-        if ((lm as any).setModel) {
-            (lm as any).setModel(model);
+        const lmRef = lm as LMClientRef;
+        if (lmRef.setModel) {
+            lmRef.setModel(model);
             console.log(`✓ Switched to model: ${model}`);
         } else {
             console.log('Model switching not supported by this LM client');
@@ -631,7 +677,7 @@ class SeNARSCLI {
         }
         try {
             console.log(`Asking: "${question}"`);
-            const answer = await (this.nar as any).askNaturalLanguage(question);
+            const answer = await this.nar.askNaturalLanguage(question);
             console.log(`\n→ ${answer}`);
         } catch (error) {
             console.log(`Error: ${errMsg(error)}`);
@@ -640,17 +686,21 @@ class SeNARSCLI {
 
     private showConstitution(args: string[]): void {
         if (args[0] === 'add' && args[1]) {
-            (this.nar as any).setConstitution([{
-                term: args.slice(1).join(' '),
+            const termStr = args.slice(1).join(' ');
+            const term = termParser.parse(termStr);
+            this.nar.setConstitution([{
+                term,
                 type: 'belief' as const,
                 truth: {f: 1, c: 1},
-                budget: 1,
-                stamp: {id: '', creationTime: Date.now(), source: 'CONSTITUTION', derivations: [], depth: 0}
+                budget: {priority: 1, durability: 1, quality: 1, cycles: 0, depth: 0},
+                stamp: {id: '', creationTime: Date.now(), source: 'CONSTITUTION' as const, derivations: [], depth: 0},
+                occurrenceTime: Date.now(),
+                derived: false
             }]);
-            console.log(`✓ Added to constitution: ${args.slice(1).join(' ')}`);
+            console.log(`✓ Added to constitution: ${termStr}`);
             return;
         }
-        const constitution = (this.nar as any).getConstitution?.() || [];
+        const constitution = this.nar.getConstitution();
         console.log('\n╔══════════════════════════════════════════════════╗');
         console.log('║ Constitution (Immutable Beliefs)                  ║');
         console.log('╠══════════════════════════════════════════════════╣');
@@ -690,7 +740,7 @@ class SeNARSCLI {
             return;
         }
 
-        (this.nar as any).loadDomain({name: domain, beliefs: DOMAINS[domain]});
+        this.nar.loadDomain({name: domain, beliefs: DOMAINS[domain]});
         console.log(`✓ Loaded ${domain} domain with ${DOMAINS[domain].length} beliefs`);
     }
 }

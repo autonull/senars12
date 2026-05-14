@@ -11,7 +11,7 @@ interface PerformanceMonitor {
     trend: number;
     stability: number;
     history: Array<{ value: number; timestamp: number }>;
-    alerts: any[];
+    alerts: unknown[];
 }
 
 export interface ReasoningStep {
@@ -50,14 +50,23 @@ export interface MetacognitiveMonitorConfig {
     maxMemoryUsage?: number;
 }
 
+interface EventBus {
+    on(event: string, handler: (...args: unknown[]) => void): void;
+}
+
+interface NARWithEventBus {
+    eventBus?: EventBus;
+    memory?: { size?: number };
+}
+
 export class MetacognitiveMonitor {
-    private nar: any;
+    private nar: NARWithEventBus | null;
     private config: Required<MetacognitiveMonitorConfig>;
     private reasoningTrace: ReasoningStep[];
     private performanceHistory: PerformanceData[];
     private performanceMonitors: Map<string, PerformanceMonitor>;
 
-    constructor(nar: any, config: MetacognitiveMonitorConfig = {}) {
+    constructor(nar: NARWithEventBus | null, config: MetacognitiveMonitorConfig = {}) {
         this.nar = nar;
         this.config = {
             maxTraceSize: config.maxTraceSize ?? 1000,
@@ -72,10 +81,10 @@ export class MetacognitiveMonitor {
         this.setupMonitoring();
     }
 
-    recordReasoningStep(stepData: any): void {
+    recordReasoningStep(stepData: unknown): void {
         this.reasoningTrace.push({
             timestamp: Date.now(),
-            stepData,
+            stepData: stepData as ReasoningStep['stepData'],
             context: this.getCurrentContext()
         });
 
@@ -84,10 +93,10 @@ export class MetacognitiveMonitor {
         }
     }
 
-    recordError(errorData: any): void {
+    recordError(errorData: unknown): void {
         this.reasoningTrace.push({
             timestamp: Date.now(),
-            stepData: {type: 'error', errorData},
+            stepData: {type: 'error', errorData} as ReasoningStep['stepData'],
             context: this.getCurrentContext()
         });
     }
@@ -190,40 +199,40 @@ export class MetacognitiveMonitor {
 
         const eventBus = this.nar.eventBus;
 
-        eventBus.on('task:processed', (task: any) => {
+        eventBus.on('task:processed', (task: unknown) => {
             this.recordReasoningStep({
                 type: 'task_processed',
-                task: task,
+                task,
                 timestamp: Date.now()
             });
         });
 
-        eventBus.on('task:derived', (task: any) => {
+        eventBus.on('task:derived', (task: unknown) => {
             this.recordReasoningStep({
                 type: 'task_derived',
-                task: task,
+                task,
                 timestamp: Date.now()
             });
         });
 
-        eventBus.on('rule:fired', (data: any) => {
+        eventBus.on('rule:fired', (data: unknown) => {
+            const eventData = data as { ruleId?: string; result?: unknown };
             this.recordReasoningStep({
                 type: 'rule_fired',
-                ruleId: data.ruleId,
-                result: data.result,
+                ruleId: eventData.ruleId,
+                result: eventData.result,
                 timestamp: Date.now()
             });
         });
 
-        eventBus.on('error', (error: any) => {
+        eventBus.on('error', (error: unknown) => {
             this.recordError({
                 type: 'error',
-                error: error,
+                error,
                 timestamp: Date.now()
             });
         });
 
-        const _startTime = Date.now();
         let lastThroughput = 0;
         let lastThroughputTime = Date.now();
         let processedCount = 0;
@@ -258,8 +267,8 @@ export class MetacognitiveMonitor {
                     currentValue: 0,
                     trend: 0,
                     stability: 0,
-                    history: [],
-                    alerts: []
+                    history: [] as Array<{ value: number; timestamp: number }>,
+                    alerts: [] as unknown[]
                 };
 
                 currentMonitor.history.push({value, timestamp: Date.now()});
@@ -286,9 +295,9 @@ export class MetacognitiveMonitor {
         }
     }
 
-    private getCurrentContext(): any {
+    private getCurrentContext(): ReasoningStep['context'] {
         return {
-            memorySize: (this.nar as any)?.memory?.size ?? 0,
+            memorySize: this.nar?.memory?.size ?? 0,
             timestamp: Date.now()
         };
     }

@@ -49,7 +49,7 @@ export class APIRegistry {
             description: schema.description,
             params: schema.params,
             returns: schema.returns,
-            handler: schema.handler,
+            handler: schema.handler as (args: unknown) => Promise<unknown>,
         });
     }
 
