@@ -79,6 +79,14 @@ export interface MemoryStatistics {
   };
 }
 
+interface ConceptStats {
+  totalConcepts: number;
+  totalTasks: number;
+  lowPriority: number;
+  mediumPriority: number;
+  highPriority: number;
+}
+
 export class Memory {
   private readonly concepts = new TermMap<Concept>();
   private readonly config: Required<MemoryConfig>;
@@ -145,29 +153,23 @@ export class Memory {
   }
 
   getRelatedConcepts(term: Term, limit: number = 10): Concept[] {
-    const results: Concept[] = [];
     const concept = this.concepts.get(term);
-    if (!concept) return results;
+    if (!concept) return [];
 
-    const links = this.linkManager.getLinks(term);
-    for (const link of links.slice(0, limit)) {
-      const linkedConcept = this.concepts.get(link.targetTerm);
-      if (linkedConcept) {
-        results.push(linkedConcept);
-      }
-    }
+    const results = this.linkManager.getLinks(term).slice(0, limit)
+      .map(link => this.concepts.get(link.targetTerm))
+      .filter((c): c is Concept => !!c);
 
     if (results.length === 0) {
-      const similar = this.findSimilarConcepts(term, limit);
-      results.push(...similar);
+      results.push(...this.findSimilarConcepts(term, limit));
     }
 
     return results.slice(0, limit);
   }
 
   findConcepts(pattern: string, limit: number = 10): Concept[] {
-    const results: Concept[] = [];
     const patternLower = pattern.toLowerCase();
+    const results: Concept[] = [];
     for (const concept of this.concepts.values()) {
       if (concept.term.toString().toLowerCase().includes(patternLower)) {
         results.push(concept);
@@ -299,19 +301,7 @@ export class Memory {
   }
 
   getStatistics(): MemoryStatistics {
-    const stats = {
-      totalConcepts: 0,
-      totalTasks: 0,
-      lowPriority: 0,
-      mediumPriority: 0,
-      highPriority: 0,
-    };
-
-    for (const concept of this.concepts.values()) {
-      stats.totalConcepts++;
-      stats.totalTasks += concept.totalTasks;
-      stats[concept.priority < 0.3 ? 'lowPriority' : concept.priority < 0.7 ? 'mediumPriority' : 'highPriority']++;
-    }
+    const stats = this.calculateConceptStats();
 
     const result: MemoryStatistics = {
       totalConcepts: stats.totalConcepts,
@@ -376,19 +366,14 @@ export class Memory {
   }
 
   compact(): void {
-    const toRemove: Concept[] = [];
+    const toRemove = this.listConcepts()
+      .filter(c => c.priority < 0.1 && c.totalTasks === 0)
+      .sort((a, b) => a.priority - b.priority);
 
-    for (const concept of this.concepts.values()) {
-      if (concept.priority < 0.1 && concept.totalTasks === 0) {
-        toRemove.push(concept);
-      }
-    }
+    toRemove.push(...this.findOrphanedLinks());
 
-    toRemove.sort((a, b) => a.priority - b.priority);
-    const orphanedLinks = this.findOrphanedLinks();
-    toRemove.push(...orphanedLinks);
-
-    for (const concept of toRemove.slice(0, Math.ceil(this.concepts.size * 0.1))) {
+    const removeCount = Math.ceil(this.concepts.size * 0.1);
+    for (const concept of toRemove.slice(0, removeCount)) {
       this.removeConcept(concept.term);
     }
 
@@ -424,6 +409,24 @@ export class Memory {
 
     scored.sort((a, b) => b.similarity - a.similarity);
     return scored.slice(0, limit).map(s => s.concept);
+  }
+
+  private calculateConceptStats(): ConceptStats {
+    const stats: ConceptStats = {
+      totalConcepts: 0,
+      totalTasks: 0,
+      lowPriority: 0,
+      mediumPriority: 0,
+      highPriority: 0,
+    };
+
+    for (const concept of this.concepts.values()) {
+      stats.totalConcepts++;
+      stats.totalTasks += concept.totalTasks;
+      stats[concept.priority < 0.3 ? 'lowPriority' : concept.priority < 0.7 ? 'mediumPriority' : 'highPriority']++;
+    }
+
+    return stats;
   }
 
   private applyForgetting(): void {
@@ -493,9 +496,9 @@ export class Memory {
 
 // Serialization
 export {
-serialize,
-deserialize,
-validate,
-repair,
-type SerializedMemory,
+  serialize,
+  deserialize,
+  validate,
+  repair,
+  type SerializedMemory,
 } from './serialization.js';

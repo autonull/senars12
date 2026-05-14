@@ -36,7 +36,7 @@ export function registerAgentAPI(agent: Agent) {
       success: z.boolean(),
       term: z.string(),
     }),
-    handler: async ({ term, truth }) => {
+    handler: async ({ term, truth: _truth }) => {
       await nar.input(term);
       return { success: true, term };
     },
@@ -195,7 +195,6 @@ export function registerAgentAPI(agent: Agent) {
     }),
     handler: async () => {
       const stats = nar.getStatistics();
-      const metrics = nar.getMetrics();
       const lm = nar.getLMClient?.();
       return {
         status: 'healthy',
@@ -238,7 +237,7 @@ export function registerAgentAPI(agent: Agent) {
     returns: z.any(),
     handler: async ({ key }) => {
       const config = nar.getConfig();
-      return key ? { [key as keyof typeof config]: (config as any)[key] } : config;
+      return key ? { [key]: (config as any)[key] } : config;
     },
   });
 
