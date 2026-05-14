@@ -61,24 +61,24 @@ interface SerializedNARState {
     timestamp: string;
 }
 
-interface ToolRegistryEntry<T extends Tool = Tool> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Tool: new (...args: any[]) => T;
-    args: (keyof ToolDependency)[];
+interface ToolDefinition<T extends Tool = Tool> {
+    readonly name: string;
+    readonly factory: (deps: ToolDependency) => T;
+    readonly dependencies: (keyof ToolDependency)[];
 }
 
-const TOOL_REGISTRY: ToolRegistryEntry[] = [
-    {Tool: CalculateTool, args: []},
-    {Tool: SleepTool, args: []},
-    {Tool: ReadFileTool, args: []},
-    {Tool: WriteFileTool, args: []},
-    {Tool: HTTPTool, args: []},
-    {Tool: SearchTool, args: ['memory']},
-    {Tool: ReasonTool, args: ['nar']},
-    {Tool: ExplainTool, args: ['memory']},
-    {Tool: LearnTool, args: ['memory']},
-    {Tool: TimerTool, args: []},
-    {Tool: ProcessTool, args: []}
+const TOOL_DEFINITIONS: ToolDefinition[] = [
+    {name: 'Calculate', factory: () => new CalculateTool(), dependencies: []},
+    {name: 'Sleep', factory: () => new SleepTool(), dependencies: []},
+    {name: 'ReadFile', factory: () => new ReadFileTool(), dependencies: []},
+    {name: 'WriteFile', factory: () => new WriteFileTool(), dependencies: []},
+    {name: 'HTTP', factory: () => new HTTPTool(), dependencies: []},
+    {name: 'Search', factory: (deps) => new SearchTool(deps.memory), dependencies: ['memory']},
+    {name: 'Reason', factory: (deps) => new ReasonTool(deps.nar), dependencies: ['nar']},
+    {name: 'Explain', factory: (deps) => new ExplainTool(deps.memory), dependencies: ['memory']},
+    {name: 'Learn', factory: (deps) => new LearnTool(deps.memory), dependencies: ['memory']},
+    {name: 'Timer', factory: () => new TimerTool(), dependencies: []},
+    {name: 'Process', factory: () => new ProcessTool(), dependencies: []}
 ];
 
 export class NAR extends BaseComponent {
@@ -445,9 +445,8 @@ Only output the answer, nothing else.`;
 
         const toolDeps: ToolDependency = {memory: this.memory, nar: this};
 
-        for (const {Tool, args} of TOOL_REGISTRY) {
-            const toolArgs = args.map(arg => toolDeps[arg]);
-            this.tools.register(new Tool(...toolArgs));
+        for (const toolDef of TOOL_DEFINITIONS) {
+            this.tools.register(toolDef.factory(toolDeps));
         }
 
         this._toolsInitialized = true;
