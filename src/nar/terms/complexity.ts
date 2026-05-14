@@ -1,4 +1,4 @@
-import type {AtomicTerm, Term} from './types.js';
+import type {Term} from './types.js';
 
 export const getTermComplexity = (term: Term): {
     depth: number;
@@ -14,13 +14,11 @@ export const getTermComplexity = (term: Term): {
     const traverse = (t: Term, depth: number): void => {
         maxDepth = Math.max(maxDepth, depth);
         if (t.kind === 'atom') {
-            if ((t as AtomicTerm).isVariable) variableCount++;
+            if (t.isVariable) variableCount++;
         } else {
             operatorCount++;
             breadth = Math.max(breadth, t.args?.length ?? 0);
-            for (const arg of t.args ?? []) {
-                traverse(arg, depth + 1);
-            }
+            for (const arg of t.args ?? []) traverse(arg, depth + 1);
         }
     };
 

@@ -1,13 +1,12 @@
 import type {CompoundTerm, Term} from './types.js';
 import {termsEqual} from './accessors.js';
 import {TermBuilder} from './factory.js';
+import {OPERATORS} from './operators.js';
 
-const COMPOUND_KINDS = ['inheritance', 'similarity', 'implication', 'equivalence',
-    'conjunction', 'disjunction', 'negation', 'instance', 'property', 'sequence',
-    'parallel', 'predictive', 'retrospective', 'operation'] as const;
+const COMPOUND_KINDS = new Set(Object.keys(OPERATORS));
 
 const hasArgs = (term: Term): term is CompoundTerm =>
-    term.kind !== 'atom' && (COMPOUND_KINDS as readonly string[]).includes(term.kind);
+    term.kind !== 'atom' && COMPOUND_KINDS.has(term.kind);
 
 const termSortKey = (t: Term): string => t.kind === 'atom' ? t.symbol : String(t.kind);
 

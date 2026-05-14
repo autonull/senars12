@@ -22,14 +22,9 @@ export const OPERATORS = {
 export type OperatorKey = keyof typeof OPERATORS;
 export type OperatorSymbol = typeof OPERATORS[OperatorKey]['symbol'];
 
-export const COMMUTATIVE_OPS = new Set(
-    (Object.entries(OPERATORS) as [OperatorKey, typeof OPERATORS[OperatorKey]][])
-        .filter(([, v]) => v.commutative)
-        .map(([k]) => k)
-);
-
-export const NARY_OPS = new Set(
-    (Object.entries(OPERATORS) as [OperatorKey, typeof OPERATORS[OperatorKey]][])
-        .filter(([, v]) => v.nary)
-        .map(([k]) => k)
-);
+export const COMMUTATIVE_OPS = new Set<OperatorKey>();
+export const NARY_OPS = new Set<OperatorKey>();
+for (const [k, v] of Object.entries(OPERATORS) as [OperatorKey, typeof OPERATORS[OperatorKey]][]) {
+    v.commutative && COMMUTATIVE_OPS.add(k);
+    v.nary && NARY_OPS.add(k);
+}
