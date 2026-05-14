@@ -76,3 +76,4 @@ export {
 // Term-based collections
 export {TermMap} from './term-map.js';
 export {TermSet} from './term-set.js';
+export {TermCollection} from './term-collection.js';

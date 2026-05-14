@@ -9,91 +9,55 @@
  */
 
 import type {Term} from './types.js';
-import {termsEqual} from './accessors.js';
+import {TermCollection} from './term-collection.js';
 
-/**
- * A Map that uses Term objects as keys with proper structural equality
- */
-export class TermMap<V> {
-    private entries: Array<{ key: Term; value: V }> = [];
-    private refIndex = new Map<Term, number>();
+type Entry<V> = { key: Term; value: V };
 
-    get size(): number {
-        return this.entries.length;
-    }
-
-    private getIndex(term: Term): number {
-        const refIdx = this.refIndex.get(term);
-        if (refIdx !== undefined) return refIdx;
-        return this.entries.findIndex(e => termsEqual(e.key, term));
-    }
-
-    private setRef(term: Term, index: number): void {
-        if (Object.isFrozen(term)) this.refIndex.set(term, index);
-    }
-
-    private clearRef(term: Term): void {
-        this.refIndex.delete(term);
-    }
-
+export class TermMap<V> extends TermCollection<{ key: Term; value: V }> {
     get(term: Term): V | undefined {
-        const idx = this.getIndex(term);
-        return idx >= 0 ? this.entries[idx]?.value : undefined;
+        const idx = this.getIndex(term, e => e.key);
+        return idx >= 0 ? this.storage[idx]?.value : undefined;
     }
 
     set(term: Term, value: V): this {
-        const existingIndex = this.getIndex(term);
+        const existingIndex = this.getIndex(term, e => e.key);
         if (existingIndex >= 0) {
-            this.clearRef(this.entries[existingIndex]!.key);
-            this.entries[existingIndex]!.value = value;
+            this.clearRef(this.storage[existingIndex]!.key);
+            this.storage[existingIndex]!.value = value;
             this.setRef(term, existingIndex);
         } else {
-            this.entries.push({key: term, value});
-            this.setRef(term, this.entries.length - 1);
+            this.storage.push({key: term, value});
+            this.setRef(term, this.storage.length - 1);
         }
         return this;
     }
 
     has(term: Term): boolean {
-        return this.getIndex(term) >= 0;
+        return this.getIndex(term, e => e.key) >= 0;
     }
 
     delete(term: Term): boolean {
-        const index = this.getIndex(term);
-        if (index >= 0) {
-            this.clearRef(term);
-            this.entries.splice(index, 1);
-            for (let i = index; i < this.entries.length; i++) {
-                this.setRef(this.entries[i]!.key, i);
-            }
-            return true;
-        }
-        return false;
+        return this.deleteItem(term, e => e.key);
     }
 
-    clear(): void {
-        this.entries = [];
-        this.refIndex.clear();
+    getEntries(): Entry<V>[] {
+        return this.storage;
     }
 
-    getEntries(): Array<{ key: Term; value: V }> {
-        return this.entries;
-    }
-
-    * items(): IterableIterator<[Term, V]> {
-        for (const entry of this.entries) {
+    *items(): IterableIterator<[Term, V]> {
+        for (const entry of this.storage) {
             yield [entry.key, entry.value];
         }
     }
 
-    * keys(): IterableIterator<Term> {
-        for (const entry of this.entries) {
+    *keys(): IterableIterator<Term> {
+        for (const entry of this.storage) {
             yield entry.key;
         }
     }
 
-    * values(): IterableIterator<V> {
-        for (const entry of this.entries) {
+    *values(): IterableIterator<V> {
+        for (const entry of this.storage) {
             yield entry.value;
         }
     }
@@ -103,7 +67,7 @@ export class TermMap<V> {
     }
 
     forEach(callbackfn: (value: V, key: Term, map: TermMap<V>) => void): void {
-        for (const entry of this.entries) {
+        for (const entry of this.storage) {
             callbackfn(entry.value, entry.key, this);
         }
     }

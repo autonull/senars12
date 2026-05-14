@@ -2,6 +2,7 @@ import type {Term} from './types.js';
 import {termsEqual} from './accessors.js';
 import {getTermComplexity} from './complexity.js';
 import {serializeTerm} from './serialize.js';
+import {jaccard} from '../utils/similarity.js';
 
 export const getTermSimilarity = (t1: Term, t2: Term): number => {
     if (termsEqual(t1, t2)) return 1.0;
@@ -19,9 +20,7 @@ export const getTermSimilarity = (t1: Term, t2: Term): number => {
     const t2Str = serializeTerm(t2);
     const tokens1 = new Set(t1Str.split(/[\s(),]+/).filter(Boolean));
     const tokens2 = new Set(t2Str.split(/[\s(),]+/).filter(Boolean));
-    const intersection = new Set([...tokens1].filter(t => tokens2.has(t)));
-    const union = new Set([...tokens1, ...tokens2]);
-    const jaccard = union.size > 0 ? intersection.size / union.size : 0;
+    const tokenSimilarity = jaccard(tokens1, tokens2);
 
-    return (structuralSim + jaccard) / 2;
+    return (structuralSim + tokenSimilarity) / 2;
 };
