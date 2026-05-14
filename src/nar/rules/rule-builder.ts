@@ -5,43 +5,43 @@ import type {Term} from '../terms';
 import type {RuleFn} from './types.js';
 
 export const buildBinaryInhRule = (
-  validate: (t1: Term, t2: Term) => boolean,
-  transform: (t1: Term, t2: Term) => Term | undefined
+    validate: (t1: Term, t2: Term) => boolean,
+    transform: (t1: Term, t2: Term) => Term | undefined
 ): RuleFn => ([t1, t2]) => {
-  if (t1.kind !== 'inheritance' || t2.kind !== 'inheritance') return undefined;
-  if (!validate(t1, t2)) return undefined;
-  return transform(t1, t2);
+    if (t1.kind !== 'inheritance' || t2.kind !== 'inheritance') return undefined;
+    if (!validate(t1, t2)) return undefined;
+    return transform(t1, t2);
 };
 
 export const buildInhRule = (
-  extract: (term: Term) => Term | undefined,
-  transform: (term: Term) => Term | undefined
+    extract: (term: Term) => Term | undefined,
+    transform: (term: Term) => Term | undefined
 ): RuleFn => ([term]) => {
-  if (term.kind !== 'inheritance') return undefined;
-  const extracted = extract(term);
-  return extracted ? transform(extracted) : undefined;
+    if (term.kind !== 'inheritance') return undefined;
+    const extracted = extract(term);
+    return extracted ? transform(extracted) : undefined;
 };
 
 export const buildImpRule = (
-  extract: (term: Term) => Term | undefined,
-  transform: (term: Term) => Term | undefined
+    extract: (term: Term) => Term | undefined,
+    transform: (term: Term) => Term | undefined
 ): RuleFn => ([term]) => {
-  if (term.kind !== 'implication') return undefined;
-  const extracted = extract(term);
-  return extracted ? transform(extracted) : undefined;
+    if (term.kind !== 'implication') return undefined;
+    const extracted = extract(term);
+    return extracted ? transform(extracted) : undefined;
 };
 
 export const getVars = (term: Term): Term[] => {
-  const vars: Term[] = [];
-  const collect = (t: Term): void => {
-    if (t.kind === 'atom' && (t as any).isVariable) {
-      vars.push(t);
-    } else if (t.kind !== 'atom') {
-      (t.args ?? []).forEach(collect);
-    }
-  };
-  collect(term);
-  return vars;
+    const vars: Term[] = [];
+    const collect = (t: Term): void => {
+        if (t.kind === 'atom' && (t as any).isVariable) {
+            vars.push(t);
+        } else if (t.kind !== 'atom') {
+            (t.args ?? []).forEach(collect);
+        }
+    };
+    collect(term);
+    return vars;
 };
 
 export const inh = (term: Term) => term.kind === 'inheritance' ? term : undefined;

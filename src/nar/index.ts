@@ -1,32 +1,32 @@
 // Core types - exported first
 export type {
-  Term,
-  AtomicTerm,
-  CompoundTerm,
-  TruthType,
-  Source,
-  Task,
-  TaskType,
-  Budget,
-  CoreConfig,
-  Hash,
-  TermSymbol
+    Term,
+    AtomicTerm,
+    CompoundTerm,
+    TruthType,
+    Source,
+    Task,
+    TaskType,
+    Budget,
+    CoreConfig,
+    Hash,
+    TermSymbol
 } from './types/core.js';
 
 export {
-  createBudget,
-  createTask,
-  createSecondaryTask,
-  success,
-  failure,
-  isSuccess,
-  isFailure,
-  DEFAULT_CONFIG,
-  NARError,
-  ValidationError,
-  ConfigurationError,
-  OperationError,
-  ToolError
+    createBudget,
+    createTask,
+    createSecondaryTask,
+    success,
+    failure,
+    isSuccess,
+    isFailure,
+    DEFAULT_CONFIG,
+    NARError,
+    ValidationError,
+    ConfigurationError,
+    OperationError,
+    ToolError
 } from './types/core.js';
 
 export {Stamp} from './terms/stamp.js';

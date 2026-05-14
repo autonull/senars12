@@ -16,6 +16,11 @@ export abstract class TermCollection<T> {
         return this.storage.length;
     }
 
+    clear(): void {
+        this.storage = [];
+        this.refIndex.clear();
+    }
+
     protected getIndex(term: Term, getItem: (i: T) => Term): number {
         const refIdx = this.refIndex.get(term);
         if (refIdx !== undefined) return refIdx;
@@ -45,10 +50,5 @@ export abstract class TermCollection<T> {
             return true;
         }
         return false;
-    }
-
-    clear(): void {
-        this.storage = [];
-        this.refIndex.clear();
     }
 }

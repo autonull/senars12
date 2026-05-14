@@ -1,6 +1,7 @@
 # Unified API Layer
 
-This directory contains the unified API layer that provides a common interface for HTTP, WebSocket, and MCP protocols through metaprogramming and reflection.
+This directory contains the unified API layer that provides a common interface for HTTP, WebSocket, and MCP protocols
+through metaprogramming and reflection.
 
 ## Architecture
 
@@ -23,29 +24,34 @@ This directory contains the unified API layer that provides a common interface f
 ## Components
 
 ### `registry.ts`
+
 - Central handler registration
 - Zod schema validation
 - OpenAPI spec generation
 - Decorator support (`@apiMethod`)
 
 ### `agent-api.ts`
+
 - All agent API method definitions
 - Input/output schemas
 - Handler implementations
 
 ### `http-adapter.ts`
+
 - HTTP request handling
 - API key authentication
 - Rate limiting
 - CORS support
 
 ### `websocket-adapter.ts`
+
 - WebSocket message handling
 - Client management
 - Event subscriptions
 - Heartbeat/idle detection
 
 ### `mcp-adapter.ts` & `mcp-server.ts`
+
 - MCP protocol adapter
 - Tool definitions from registry
 - JSON Schema conversion
@@ -125,13 +131,13 @@ class AgentAPI {
 
 ## Benefits
 
-| Aspect | Before | After |
-|--------|--------|-------|
-| Handler duplication | 3x (HTTP + WS + MCP) | 1x (registry) |
-| Schema validation | Manual per-protocol | Centralized (Zod) |
-| OpenAPI/MCP spec | Manual sync | Auto-generated |
-| Error handling | Per-protocol | Unified |
-| Adding new protocol | Implement all handlers | One adapter |
+| Aspect              | Before                 | After             |
+|---------------------|------------------------|-------------------|
+| Handler duplication | 3x (HTTP + WS + MCP)   | 1x (registry)     |
+| Schema validation   | Manual per-protocol    | Centralized (Zod) |
+| OpenAPI/MCP spec    | Manual sync            | Auto-generated    |
+| Error handling      | Per-protocol           | Unified           |
+| Adding new protocol | Implement all handlers | One adapter       |
 
 ## API Methods
 

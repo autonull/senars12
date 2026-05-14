@@ -44,19 +44,19 @@ export class TermMap<V> extends TermCollection<{ key: Term; value: V }> {
         return this.storage;
     }
 
-    *items(): IterableIterator<[Term, V]> {
+    * items(): IterableIterator<[Term, V]> {
         for (const entry of this.storage) {
             yield [entry.key, entry.value];
         }
     }
 
-    *keys(): IterableIterator<Term> {
+    * keys(): IterableIterator<Term> {
         for (const entry of this.storage) {
             yield entry.key;
         }
     }
 
-    *values(): IterableIterator<V> {
+    * values(): IterableIterator<V> {
         for (const entry of this.storage) {
             yield entry.value;
         }

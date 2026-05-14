@@ -26,19 +26,19 @@ export class TermSet extends TermCollection<Term> {
         return this.deleteItem(term, t => t);
     }
 
-    *values(): IterableIterator<Term> {
+    * values(): IterableIterator<Term> {
         for (const term of this.storage) {
             yield term;
         }
     }
 
-    *keys(): IterableIterator<Term> {
+    * keys(): IterableIterator<Term> {
         for (const term of this.storage) {
             yield term;
         }
     }
 
-    *entries(): IterableIterator<[Term, Term]> {
+    * entries(): IterableIterator<[Term, Term]> {
         for (const term of this.storage) {
             yield [term, term];
         }

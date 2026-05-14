@@ -28,16 +28,6 @@ class SeNARSCLI {
     private multiLineBuffer: string[] = [];
     private inMultiLine = false;
 
-    private readonly box = (title: string, lines: string[]): string => {
-        const width = Math.max(title.length + 4, ...lines.map(l => l.length + 4), 50);
-        const h = '═'.repeat(width - 2);
-        return `╔${h}╗\n║ ${title.padEnd(width - 3)}║\n╠${h}╣\n${lines.map(l => `║ ${l.padEnd(width - 3)}║`).join('\n')}\n╚${h}╝`;
-    };
-
-    private readonly withError = async (fn: () => Promise<void>, fallback: string): Promise<void> => {
-        try { await fn(); } catch (error) { console.log(`Error: ${errMsg(error)}`); }
-    };
-
     constructor(config: Partial<CLIConfig> = {}) {
         this.config = {
             maxConcepts: config.maxConcepts ?? 100,
@@ -71,6 +61,20 @@ class SeNARSCLI {
         console.log('\nType .help for commands, .quit to exit\n');
         this.rl.prompt();
     }
+
+    private readonly box = (title: string, lines: string[]): string => {
+        const width = Math.max(title.length + 4, ...lines.map(l => l.length + 4), 50);
+        const h = '═'.repeat(width - 2);
+        return `╔${h}╗\n║ ${title.padEnd(width - 3)}║\n╠${h}╣\n${lines.map(l => `║ ${l.padEnd(width - 3)}║`).join('\n')}\n╚${h}╝`;
+    };
+
+    private readonly withError = async (fn: () => Promise<void>, fallback: string): Promise<void> => {
+        try {
+            await fn();
+        } catch (error) {
+            console.log(`Error: ${errMsg(error)}`);
+        }
+    };
 
     private setupHandlers(): void {
         this.rl.on('line', async (line) => {

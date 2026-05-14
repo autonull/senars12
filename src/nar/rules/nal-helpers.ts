@@ -25,7 +25,7 @@ export const foldKind = <T extends Term>(kind: T['kind'], fn: (left: T, right: T
 type LinkExtractor = (left: Term, right: Term) => { leftTerm: Term | undefined; rightTerm: Term | undefined };
 const linkFn = (extractor: LinkExtractor) =>
     (left: Term, right: Term): boolean => {
-        const { leftTerm, rightTerm } = extractor(left, right);
+        const {leftTerm, rightTerm} = extractor(left, right);
         return !!(leftTerm && rightTerm && termsEqual(leftTerm, rightTerm));
     };
 

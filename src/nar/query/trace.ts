@@ -1,5 +1,5 @@
 import type {Term} from '../terms';
-import type {Task, Budget, Stamp} from '../types';
+import type {Budget, Stamp, Task} from '../types';
 import type {Concept} from '../memory';
 
 export interface DerivationNode {
@@ -40,6 +40,7 @@ interface BeliefEntry {
 
 export interface MemoryReader {
     getConcept(term: Term): Concept | undefined;
+
     getRelatedConcepts(term: Term, limit?: number): Concept[];
 }
 
@@ -164,11 +165,11 @@ export class ReasoningTrace {
         return path.reverse();
     }
 
-private populateChildren(node: DerivationNode, visited: Set<string>): void {
-    if (!node.task.stamp?.id) return;
-    const stampId = node.task.stamp.id;
-    if (visited.has(stampId)) return;
-    visited.add(stampId);
+    private populateChildren(node: DerivationNode, visited: Set<string>): void {
+        if (!node.task.stamp?.id) return;
+        const stampId = node.task.stamp.id;
+        if (visited.has(stampId)) return;
+        visited.add(stampId);
 
         const derivationIds = node.task.stamp.derivations || [];
         if (derivationIds.length === 0) return;
@@ -207,13 +208,13 @@ private populateChildren(node: DerivationNode, visited: Set<string>): void {
         return count;
     }
 
-private collectDerivationHistory(task: Task, history: Task[], visited: Set<string>): void {
-    if (!task.stamp?.id) return;
-    const key = task.stamp.id;
+    private collectDerivationHistory(task: Task, history: Task[], visited: Set<string>): void {
+        if (!task.stamp?.id) return;
+        const key = task.stamp.id;
 
-    if (visited.has(key)) {
-      return;
-    }
+        if (visited.has(key)) {
+            return;
+        }
 
         visited.add(key);
         history.push(task);
