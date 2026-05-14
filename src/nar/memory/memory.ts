@@ -310,9 +310,7 @@ export class Memory {
     for (const concept of this.concepts.values()) {
       stats.totalConcepts++;
       stats.totalTasks += concept.totalTasks;
-      if (concept.priority < 0.3) stats.lowPriority++;
-      else if (concept.priority < 0.7) stats.mediumPriority++;
-      else stats.highPriority++;
+      stats[concept.priority < 0.3 ? 'lowPriority' : concept.priority < 0.7 ? 'mediumPriority' : 'highPriority']++;
     }
 
     const result: MemoryStatistics = {

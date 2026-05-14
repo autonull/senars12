@@ -3,6 +3,9 @@
  *
  * This replaces Map<number, V> where the number was a term hash,
  * allowing proper Term objects to be used as keys with correct equality semantics.
+ *
+ * Uses reference equality fast path for terms from TermFactory (which are frozen and cached),
+ * with structural equality fallback for other terms.
  */
 
 import type {Term} from './types.js';
@@ -13,34 +16,56 @@ import {termsEqual} from './accessors.js';
  */
 export class TermMap<V> {
     private entries: Array<{ key: Term; value: V }> = [];
+    private refIndex = new Map<Term, number>();
 
     get size(): number {
         return this.entries.length;
     }
 
+    private getIndex(term: Term): number {
+        const refIdx = this.refIndex.get(term);
+        if (refIdx !== undefined) return refIdx;
+        return this.entries.findIndex(e => termsEqual(e.key, term));
+    }
+
+    private setRef(term: Term, index: number): void {
+        if (Object.isFrozen(term)) this.refIndex.set(term, index);
+    }
+
+    private clearRef(term: Term): void {
+        this.refIndex.delete(term);
+    }
+
     get(term: Term): V | undefined {
-        const entry = this.entries.find(e => termsEqual(e.key, term));
-        return entry?.value;
+        const idx = this.getIndex(term);
+        return idx >= 0 ? this.entries[idx]?.value : undefined;
     }
 
     set(term: Term, value: V): this {
-        const existingIndex = this.entries.findIndex(e => termsEqual(e.key, term));
-        if (existingIndex !== -1) {
+        const existingIndex = this.getIndex(term);
+        if (existingIndex >= 0) {
+            this.clearRef(this.entries[existingIndex]!.key);
             this.entries[existingIndex]!.value = value;
+            this.setRef(term, existingIndex);
         } else {
             this.entries.push({key: term, value});
+            this.setRef(term, this.entries.length - 1);
         }
         return this;
     }
 
     has(term: Term): boolean {
-        return this.entries.some(e => termsEqual(e.key, term));
+        return this.getIndex(term) >= 0;
     }
 
     delete(term: Term): boolean {
-        const index = this.entries.findIndex(e => termsEqual(e.key, term));
-        if (index !== -1) {
+        const index = this.getIndex(term);
+        if (index >= 0) {
+            this.clearRef(term);
             this.entries.splice(index, 1);
+            for (let i = index; i < this.entries.length; i++) {
+                this.setRef(this.entries[i]!.key, i);
+            }
             return true;
         }
         return false;
@@ -48,6 +73,7 @@ export class TermMap<V> {
 
     clear(): void {
         this.entries = [];
+        this.refIndex.clear();
     }
 
     getEntries(): Array<{ key: Term; value: V }> {
