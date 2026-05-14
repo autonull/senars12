@@ -2,9 +2,8 @@ import type {LMClient} from './types.js';
 import type {Memory} from '../memory';
 import type {Term} from '../terms';
 import {Truth} from '../terms';
-import {createBudget, createTask, type Task} from '../types';
-import {LMResponseParser} from './parser.js';
-import {findUnderconnectedConcepts} from './enrichment-utils.js';
+import {createBudget, type Task} from '../types';
+import {findUnderconnectedConcepts, parseEnrichmentResponse} from './enrichment-utils.js';
 
 export interface EnricherConfig {
     enableProactiveEnrichment: boolean;
@@ -64,7 +63,10 @@ export class ProactiveEnricher {
         const cycleResults: EnrichmentResult[] = [];
         this.enrichmentCycle++;
 
-        const underconnectedConcepts = this.findUnderconnectedConcepts();
+        const underconnectedConcepts = findUnderconnectedConcepts(
+            this.memory.listConcepts(),
+            this.config.minConnectionsForEnrichment
+        );
 
         for (const conceptData of underconnectedConcepts.slice(0, this.config.maxConceptsPerCycle)) {
             try {
@@ -106,7 +108,25 @@ Provide a clear, concise explanation of what was derived and why.`;
             return '';
         }
 
-        const memoryContext = this.getRelevantMemoryContext(question);
+        const memoryContext = this.memory.listConcepts().slice(0, 20).map(c => {
+            const belief = c.beliefBag.peek();
+            return belief ? {
+                term: c.term,
+                type: 'belief' as const,
+                truth: belief.truth ?? Truth.NEUTRAL,
+                budget: createBudget(0.5),
+                stamp: belief.stamp ?? {
+                    id: 'qa',
+                    creationTime: Date.now(),
+                    source: 'INPUT' as const,
+                    derivations: [],
+                    depth: 0
+                },
+                occurrenceTime: Date.now(),
+                derived: false
+            } : null;
+        }).filter(t => t !== null) as Task[];
+
         const contextStr = memoryContext.map(t => `${t.term.toString()}: ${t.truth?.f ?? 0}`).join('\n');
 
         const prompt = `Given the following knowledge from memory:
@@ -150,21 +170,16 @@ Answer the question based on the available knowledge. If the answer cannot be de
         };
     }
 
-    private findUnderconnectedConcepts(): Array<{ term: Term; connections: number }> {
-        return findUnderconnectedConcepts(this.memory.listConcepts(), this.config.minConnectionsForEnrichment);
-    }
-
     private async enrichConcept(term: Term): Promise<EnrichmentResult> {
-        const hypotheses: Task[] = [];
-        const bridges: Task[] = [];
-        const explanations: string[] = [];
-
         const hypothesisPrompt = this.buildHypothesisPrompt(term);
+        let hypotheses: Task[] = [];
+        let bridges: Task[] = [];
+
         try {
             const response = await this.lmClient.generateText(hypothesisPrompt);
-            const parsed = this.parseEnrichmentResponse(response, term);
-            hypotheses.push(...parsed.hypotheses);
-            bridges.push(...parsed.bridges);
+            const parsed = parseEnrichmentResponse(response);
+            hypotheses = parsed.hypotheses;
+            bridges = parsed.bridges;
         } catch (error) {
             console.warn('Failed to generate hypotheses for term:', term, error);
         }
@@ -177,12 +192,7 @@ Answer the question based on the available knowledge. If the answer cannot be de
             this.memory.addTask(bridge.term, bridge.type, bridge.truth, bridge.budget);
         }
 
-        return {
-            concept: term,
-            hypotheses,
-            bridges,
-            explanations
-        };
+        return { concept: term, hypotheses, bridges, explanations: [] };
     }
 
     private buildHypothesisPrompt(term: Term): string {
@@ -191,62 +201,6 @@ Answer the question based on the available knowledge. If the answer cannot be de
 2. One property or implication involving this concept
 
 Respond in Narsese format, one statement per line.`;
-    }
-
-    private parseEnrichmentResponse(response: string, _term: Term): { hypotheses: Task[]; bridges: Task[] } {
-        const lines = response.split('\n').filter(l => l.trim());
-        const hypotheses: Task[] = [];
-        const bridges: Task[] = [];
-
-        for (const line of lines) {
-            const parsed = LMResponseParser.parse(line);
-            if (parsed.valid && parsed.term) {
-                const truth = parsed.truth ?? Truth.create(0.5, 0.3);
-                const task = createTask(parsed.term, 'belief', truth, createBudget(0.4, 0.8));
-
-                if (line.includes('-->') || line.includes('<->')) {
-                    hypotheses.push(task);
-                } else {
-                    bridges.push(task);
-                }
-            }
-        }
-
-        return {hypotheses, bridges};
-    }
-
-    private getRelevantMemoryContext(question: string): Task[] {
-        const questionLower = question.toLowerCase();
-        const concepts = this.memory.listConcepts();
-        const relevant: Task[] = [];
-
-        for (const concept of concepts.slice(0, 20)) {
-            const symbol = concept.term.toString().toLowerCase();
-            if (questionLower.includes(symbol) || symbol.includes(questionLower)) {
-                if (concept.beliefBag.size > 0) {
-                    const belief = concept.beliefBag.peek();
-                    if (belief) {
-                        relevant.push({
-                            term: concept.term,
-                            type: 'belief',
-                            truth: belief.truth ?? Truth.NEUTRAL,
-                            budget: createBudget(0.5),
-                            stamp: belief.stamp ?? {
-                                id: 'qa',
-                                creationTime: Date.now(),
-                                source: 'INPUT' as const,
-                                derivations: [],
-                                depth: 0
-                            },
-                            occurrenceTime: Date.now(),
-                            derived: false
-                        });
-                    }
-                }
-            }
-        }
-
-        return relevant;
     }
 }
 

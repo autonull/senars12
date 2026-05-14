@@ -206,6 +206,15 @@ export class SelfAnalyzer {
         this.optimizer.getOptimizationHistory();
     }
 
+    applyOptimizations(): void {
+        this.optimizer.applyOptimizations({
+            rulePriorities: [],
+            strategyAdjustments: [],
+            resourceAllocations: [],
+            performanceImprovements: []
+        }).catch(() => {});
+    }
+
     private async analyzeReasoningPatterns(): Promise<PatternAnalysis> {
         if (!this.nar) return emptyPatternAnalysis();
 

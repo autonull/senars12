@@ -16,6 +16,7 @@ export class ReasoningAboutReasoning {
     private readonly monitor: MetacognitiveMonitor;
     private analyzer: SelfAnalyzer;
     private periodicAnalysisInterval: NodeJS.Timeout | null;
+    isRunning: boolean = false;
 
     constructor(nar: NAR | null, config: ReasoningAboutReasoningConfig = {}) {
         this.nar = nar;
@@ -33,14 +34,20 @@ export class ReasoningAboutReasoning {
     }
 
     start(): void {
+        this.isRunning = true;
         this.startPeriodicSelfAnalysis();
     }
 
     stop(): void {
+        this.isRunning = false;
         if (this.periodicAnalysisInterval) {
             clearInterval(this.periodicAnalysisInterval);
             this.periodicAnalysisInterval = null;
         }
+    }
+
+    applyOptimizations(): void {
+        this.analyzer.applyOptimizations?.();
     }
 
     async performMetaCognitiveReasoning(): Promise<any> {

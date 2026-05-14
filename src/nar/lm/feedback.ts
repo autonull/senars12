@@ -3,8 +3,7 @@ import type {Memory} from '../memory';
 import type {Term} from '../terms';
 import {Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
-import {LMResponseParser} from './parser.js';
-import {findUnderconnectedConceptsFromTasks} from './enrichment-utils.js';
+import {findUnderconnectedConceptsFromTasks, parseEnrichmentResponse} from './enrichment-utils.js';
 
 export interface FeedbackConfig {
     enableBidirectionalFeedback: boolean;
@@ -48,12 +47,32 @@ export class BidirectionalFeedbackLoop {
             return null;
         }
 
-        const context = await this.gatherContext(hypothesis.term);
+        const context = this.memory.listConcepts().slice(0, this.config.maxContextConcepts).map(c => {
+            const belief = c.beliefBag.peek();
+            if (!belief?.truth) return null;
+            const confidence = belief.truth.f * (belief.truth.c ?? 0);
+            if (confidence < this.config.minConfidenceForFeedback) return null;
+            return {
+                term: c.term,
+                type: 'belief' as const,
+                truth: belief.truth,
+                budget: createBudget(0.5, 0.8),
+                stamp: belief.stamp ?? {
+                    id: 'context',
+                    creationTime: Date.now(),
+                    source: 'INPUT' as const,
+                    derivations: [],
+                    depth: 0
+                },
+                occurrenceTime: Date.now(),
+                derived: false
+            };
+        }).filter(t => t !== null) as Task[];
         const validationPrompt = this.buildValidationPrompt(hypothesis, context);
 
         try {
             const response = await this.lmClient.generateText(validationPrompt);
-            const validation = await this.parseValidation(response, hypothesis, context);
+            const validation = this.parseValidation(response, hypothesis, context);
 
             if (validation) {
                 await this.injectValidationResult(validation);
@@ -72,13 +91,16 @@ export class BidirectionalFeedbackLoop {
             return;
         }
 
-        const underconnectedConcepts = this.findUnderconnectedConcepts(derivations);
+        const underconnectedConcepts = findUnderconnectedConceptsFromTasks(
+            derivations,
+            term => this.memory.getConcept(term)
+        );
 
         for (const concept of underconnectedConcepts.slice(0, this.config.maxContextConcepts)) {
             try {
                 const enrichmentPrompt = this.buildEnrichmentPrompt(concept.term, derivations);
                 const response = await this.lmClient.generateText(enrichmentPrompt);
-                const bridgingHypotheses = await this.parseEnrichmentResponse(response, concept.term);
+                const bridgingHypotheses = parseEnrichmentResponse(response, Truth.NEUTRAL).hypotheses;
 
                 for (const hyp of bridgingHypotheses) {
                     this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget);
@@ -95,44 +117,6 @@ export class BidirectionalFeedbackLoop {
 
     clearPendingValidations(): void {
         this.pendingValidations.clear();
-    }
-
-    private async gatherContext(term: Term): Promise<Task[]> {
-        const concept = this.memory.getConcept(term);
-        if (!concept) {
-            return [];
-        }
-
-        const context: Task[] = [];
-        const concepts = this.memory.listConcepts().slice(0, this.config.maxContextConcepts);
-
-        for (const related of concepts) {
-            if (related.beliefBag.size > 0) {
-                const belief = related.beliefBag.peek();
-                if (belief && belief.truth) {
-                    const confidence = belief.truth.f * (belief.truth.c ?? 0);
-                    if (confidence >= this.config.minConfidenceForFeedback) {
-                        context.push({
-                            term: related.term,
-                            type: 'belief',
-                            truth: belief.truth,
-                            budget: createBudget(0.5, 0.8),
-                            stamp: belief.stamp ?? {
-                                id: 'context',
-                                creationTime: Date.now(),
-                                source: 'INPUT' as const,
-                                derivations: [],
-                                depth: 0
-                            },
-                            occurrenceTime: Date.now(),
-                            derived: false
-                        });
-                    }
-                }
-            }
-        }
-
-        return context;
     }
 
     private buildValidationPrompt(hypothesis: Task, context: Task[]): string {
@@ -152,7 +136,7 @@ Respond with:
 Then provide a revised confidence value if different from current.`;
     }
 
-    private async parseValidation(response: string, hypothesis: Task, context: Task[]): Promise<ValidationFeedback | null> {
+    private parseValidation(response: string, hypothesis: Task, context: Task[]): ValidationFeedback | null {
         const normalized = response.trim().toUpperCase();
         let result: 'confirmed' | 'contradicted' | 'inconclusive' = 'inconclusive';
         let revisedTruth: Truth | undefined;
@@ -188,10 +172,6 @@ Then provide a revised confidence value if different from current.`;
         }
     }
 
-    private findUnderconnectedConcepts(derivations: Task[]): Array<{ term: Term; connections: number }> {
-        return findUnderconnectedConceptsFromTasks(derivations, term => this.memory.getConcept(term));
-    }
-
     private buildEnrichmentPrompt(term: Term, derivations: Task[]): string {
         const derivationStr = derivations.map(d => d.term.toString()).join(', ');
 
@@ -199,22 +179,6 @@ Then provide a revised confidence value if different from current.`;
 
 Suggest 1-3 bridging hypotheses that could connect this concept to other concepts in the system.
 Respond in Narsese format, one per line.`;
-    }
-
-    private async parseEnrichmentResponse(response: string, _term: Term): Promise<Task[]> {
-        const lines = response.split('\n').filter(l => l.trim());
-        const tasks: Task[] = [];
-
-        for (const line of lines) {
-            const parsed = LMResponseParser.parse(line);
-            if (parsed.valid && parsed.term) {
-                const truth = parsed.truth ?? Truth.NEUTRAL;
-                const task = createTask(parsed.term, 'belief', truth, createBudget(0.5, 0.8));
-                tasks.push(task);
-            }
-        }
-
-        return tasks;
     }
 }
 

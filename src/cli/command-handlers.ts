@@ -1,29 +1,11 @@
 import type {NAR} from '../nar';
+import type {ReasoningAboutReasoning} from '../nar/self';
+import type {RLFPLearner} from '../nar/rlfp';
+import type {LMClient} from '../nar/lm/types.js';
 import {errMsg} from '../nar/utils/helpers.js';
 import {termParser} from '../nar/terms';
 import {box, showStats, showCommandHelp} from './display.js';
 import {DOMAIN_LIST, DOMAINS} from './domains.js';
-
-interface SelfAnalyzerRef {
-    isRunning?: boolean;
-    getSystemAnalysis?(): unknown;
-    applyOptimizations?(): void;
-}
-
-interface RLFPref {
-    preferences?: unknown[];
-    trajectoryCount?: number;
-    lastOptimizeTime?: number;
-    addPreference?(preferred: string, rejected: string): void;
-    optimize?(): void;
-}
-
-interface LMClientRef {
-    provider?: string;
-    model?: string;
-    available?: boolean;
-    setModel?(model: string): void;
-}
 
 export class CommandHandlers {
     private nar: NAR;
@@ -32,20 +14,16 @@ export class CommandHandlers {
         this.nar = nar;
     }
 
-    private get self() {
-        return (this.nar as unknown as {getSelfAnalyzer?: () => unknown}).getSelfAnalyzer?.() as SelfAnalyzerRef | undefined;
+    private get self(): ReasoningAboutReasoning | undefined {
+        return this.nar.getSelfAnalyzer();
     }
 
-    private get rlfp() {
-        return (this.nar as unknown as {getRLFP?: () => unknown}).getRLFP?.() as RLFPref | undefined;
+    private get rlfp(): RLFPLearner | undefined {
+        return this.nar.getRLFP();
     }
 
-    private get lm() {
-        return (this.nar as unknown as {getLMClient?: () => unknown}).getLMClient?.() as LMClientRef | undefined;
-    }
-
-    private get profile() {
-        return (this.nar as unknown as {profile?: {start: (n: NAR) => void; stop: (n: NAR) => void}}).profile;
+    private get lm(): LMClient | undefined {
+        return this.nar.getLMClient();
     }
 
     handleCommand(input: string): void {
@@ -73,7 +51,6 @@ export class CommandHandlers {
             '.query': () => this.queryTerm(args.join(' ')),
             '.trace': () => this.traceTerm(args.join(' ')),
             '.explain': () => this.explainTerm(args.join(' ')),
-            '.profile': () => this.handleProfile(args),
             '.self': () => this.showSelfStatus(),
             '.meta': () => this.showMetaAnalysis(),
             '.optimize': () => this.runOptimization(),
@@ -391,15 +368,6 @@ export class CommandHandlers {
             }
         } catch (error) {
             console.log(`Explain error: ${errMsg(error)}`);
-        }
-    }
-
-    private handleProfile(args: string[]): void {
-        const cmd = args[0];
-        if (cmd === 'start' || !cmd) {
-            this.profile?.start(this.nar);
-        } else if (cmd === 'stop') {
-            this.profile?.stop(this.nar);
         }
     }
 

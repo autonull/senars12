@@ -1,5 +1,8 @@
 import type {Term} from '../terms';
 import type {Task} from '../types/index.js';
+import {Truth} from '../terms';
+import {createBudget, createTask} from '../types';
+import {LMResponseParser} from './parser.js';
 
 export interface ConceptConnections {
     term: Term;
@@ -35,7 +38,7 @@ export function findUnderconnectedConcepts(
 
 export function findUnderconnectedConceptsFromTasks(
     tasks: Task[],
-    getConcept: (term: Term) => { beliefBag: { size: number }; questionBag: { size: number }; goalBag: { size: number } } | undefined
+    getConcept: (term: Term) => HasBags | undefined
 ): ConceptConnections[] {
     const conceptConnections = new Map<string, ConceptConnections>();
 
@@ -52,4 +55,27 @@ export function findUnderconnectedConceptsFromTasks(
 
     return Array.from(conceptConnections.values())
         .sort((a, b) => a.connections - b.connections);
+}
+
+export function parseEnrichmentResponse(response: string, defaultTruth?: Truth): { hypotheses: Task[]; bridges: Task[] } {
+    const lines = response.split('\n').filter(l => l.trim());
+    const hypotheses: Task[] = [];
+    const bridges: Task[] = [];
+    const truth = defaultTruth ?? Truth.create(0.5, 0.3);
+
+    for (const line of lines) {
+        const parsed = LMResponseParser.parse(line);
+        if (parsed.valid && parsed.term) {
+            const taskTruth = parsed.truth ?? truth;
+            const task = createTask(parsed.term, 'belief', taskTruth, createBudget(0.4, 0.8));
+
+            if (line.includes('-->') || line.includes('<->')) {
+                hypotheses.push(task);
+            } else {
+                bridges.push(task);
+            }
+        }
+    }
+
+    return {hypotheses, bridges};
 }

@@ -1,5 +1,5 @@
 import {appendFileSync} from 'fs';
-import {PreferenceData} from './PreferenceCollector.js';
+import {PreferenceCollector, type PreferenceData} from './PreferenceCollector.js';
 import {TrajectoryStep} from './ReasoningTrajectoryLogger.js';
 import {RewardModel} from './RewardModel.js';
 import {PolicyOptimizer} from './PolicyOptimizer.js';
@@ -16,7 +16,7 @@ export interface TrainingEntry {
 
 export interface RLFPLearnerConfig {
     rewardModel?: RewardModel;
-    preferenceCollector?: any;
+    preferenceCollector?: PreferenceCollector;
     policyOptimizer?: PolicyOptimizer;
     trajectoryLogger?: any;
 }
@@ -25,17 +25,44 @@ export class RLFPLearner {
     private outputFile = 'rlfp_training_data.jsonl';
     private readonly rewardModel: RewardModel;
     private readonly policyOptimizer: PolicyOptimizer;
+    private readonly _preferenceCollector: PreferenceCollector;
+    private _trajectoryCount: number = 0;
+    private _lastOptimizeTime: number | undefined;
 
     constructor(config: RLFPLearnerConfig = {}) {
         this.rewardModel = config.rewardModel ?? new RewardModel();
         this.policyOptimizer = new PolicyOptimizer(this.rewardModel);
+        this._preferenceCollector = config.preferenceCollector ?? new PreferenceCollector();
+    }
+
+    get trajectoryCount(): number {
+        return this._trajectoryCount;
+    }
+
+    get lastOptimizeTime(): number | undefined {
+        return this._lastOptimizeTime;
+    }
+
+    get preferences(): PreferenceData[] {
+        return this._preferenceCollector.getPreferences();
     }
 
     get policyOptimizerPublic(): PolicyOptimizer {
         return this.policyOptimizer;
     }
 
+    addPreference(preferred: string, rejected: string): void {
+        this._preferenceCollector.addPreference({
+            trajectoryA: [],
+            trajectoryB: [],
+            preference: 'A',
+            files: { A: preferred, B: rejected }
+        });
+    }
+
     optimize(): void {
+        this._lastOptimizeTime = Date.now();
+        this._trajectoryCount++;
         this.policyOptimizer.optimize();
     }
 

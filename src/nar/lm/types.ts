@@ -38,6 +38,10 @@ export interface LMRuleConfigInternal extends LMRuleConfig {
 }
 
 export interface LMClient {
+    provider?: string;
+    model?: string;
+    available?: boolean;
+
     generateText(prompt: string, options?: LMConfig): Promise<string>;
 
     generateTextWithCache?(prompt: string, options?: LMConfig): Promise<string>;
@@ -47,6 +51,8 @@ export interface LMClient {
     clearCache?(): void;
 
     getCost?(): { tokens: number; cost: number };
+
+    setModel?(model: string): void;
 }
 
 export interface LMExecutionStats {
