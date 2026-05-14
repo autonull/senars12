@@ -7,6 +7,7 @@ import {Agent} from './Agent';
 import {createServer, IncomingMessage, ServerResponse} from 'http';
 import {URL} from 'url';
 import {randomBytes} from 'crypto';
+import {errMsg} from '../nar/utils/helpers.js';
 
 interface HTTPRequest {
     method: string;
@@ -262,7 +263,7 @@ export class HTTPServer {
             res.end(JSON.stringify(response.body));
         } catch (error) {
             res.statusCode = 500;
-            res.end(JSON.stringify({error: error instanceof Error ? error.message : String(error)}));
+            res.end(JSON.stringify({error: errMsg(error)}));
         }
     }
 
@@ -390,6 +391,23 @@ export class HTTPServer {
         return {statusCode: 404, body: {error: 'Not found'}};
     }
 
+    private paginate<T>(
+        items: T[],
+        req?: HTTPRequest,
+        mapFn: (item: T) => string = (item) => String(item)
+    ): { paginated: string[]; total: number; page: number; limit: number } {
+        const url = req?.url ? new URL(req.url, 'http://localhost') : null;
+        const page = parseInt(url?.searchParams.get('page') || '1', 10);
+        const limit = Math.min(parseInt(url?.searchParams.get('limit') || '20', 10), 100);
+        const start = (page - 1) * limit;
+        return {
+            paginated: items.slice(start, start + limit).map(mapFn),
+            total: items.length,
+            page,
+            limit
+        };
+    }
+
     private async getBeliefs(req?: HTTPRequest): Promise<HTTPResponse> {
         if (!this.agent) {
             return {statusCode: 503, body: {error: 'Agent not initialized'}};
@@ -397,22 +415,16 @@ export class HTTPServer {
 
         const nar = this.agent.getNAR();
         const beliefs = nar.getBeliefs();
-        const url = req?.url ? new URL(req.url, 'http://localhost') : null;
-        const page = parseInt(url?.searchParams.get('page') || '1', 10);
-        const limit = Math.min(parseInt(url?.searchParams.get('limit') || '20', 10), 100);
-        const start = (page - 1) * limit;
-        const paginated = beliefs.slice(start, start + limit);
-        const baseUrl = url?.pathname || '/beliefs';
+        const {paginated, total, page, limit} = this.paginate(beliefs, req, (b) => b.term.toString());
+        const baseUrl = req?.url ? new URL(req.url, 'http://localhost').pathname : '/beliefs';
+        const totalPages = Math.ceil(total / limit);
 
         const response: HTTPResponse = {
             statusCode: 200,
-            body: {
-                beliefs: paginated.map(b => b.term.toString()),
-                pagination: {page, limit, total: beliefs.length, totalPages: Math.ceil(beliefs.length / limit)}
-            }
+            body: {beliefs: paginated, pagination: {page, limit, total, totalPages}}
         };
 
-        if (page < Math.ceil(beliefs.length / limit)) {
+        if (page < totalPages) {
             response.headers = {'Link': `<${baseUrl}?page=${page + 1}&limit=${limit}>; rel="next"`};
         }
         return response;
@@ -434,7 +446,7 @@ export class HTTPServer {
             await nar.input(belief.term);
             return {statusCode: 200, body: {success: true, term: belief.term}};
         } catch (error) {
-            return {statusCode: 400, body: {error: error instanceof Error ? error.message : String(error)}};
+            return {statusCode: 400, body: {error: errMsg(error)}};
         }
     }
 
@@ -445,22 +457,16 @@ export class HTTPServer {
 
         const nar = this.agent.getNAR();
         const goals = nar.getGoals();
-        const url = req?.url ? new URL(req.url, 'http://localhost') : null;
-        const page = parseInt(url?.searchParams.get('page') || '1', 10);
-        const limit = Math.min(parseInt(url?.searchParams.get('limit') || '20', 10), 100);
-        const start = (page - 1) * limit;
-        const paginated = goals.slice(start, start + limit);
-        const baseUrl = url?.pathname || '/goals';
+        const {paginated, total, page, limit} = this.paginate(goals, req, (g) => g.term.toString());
+        const baseUrl = req?.url ? new URL(req.url, 'http://localhost').pathname : '/goals';
+        const totalPages = Math.ceil(total / limit);
 
         const response: HTTPResponse = {
             statusCode: 200,
-            body: {
-                goals: paginated.map(g => g.term.toString()),
-                pagination: {page, limit, total: goals.length, totalPages: Math.ceil(goals.length / limit)}
-            }
+            body: {goals: paginated, pagination: {page, limit, total, totalPages}}
         };
 
-        if (page < Math.ceil(goals.length / limit)) {
+        if (page < totalPages) {
             response.headers = {'Link': `<${baseUrl}?page=${page + 1}&limit=${limit}>; rel="next"`};
         }
         return response;
@@ -482,7 +488,7 @@ export class HTTPServer {
             await nar.input(`${goal.term}!`);
             return {statusCode: 200, body: {success: true, term: goal.term}};
         } catch (error) {
-            return {statusCode: 400, body: {error: error instanceof Error ? error.message : String(error)}};
+            return {statusCode: 400, body: {error: errMsg(error)}};
         }
     }
 
@@ -493,22 +499,16 @@ export class HTTPServer {
 
         const nar = this.agent.getNAR();
         const questions = nar.getQuestions();
-        const url = req?.url ? new URL(req.url, 'http://localhost') : null;
-        const page = parseInt(url?.searchParams.get('page') || '1', 10);
-        const limit = Math.min(parseInt(url?.searchParams.get('limit') || '20', 10), 100);
-        const start = (page - 1) * limit;
-        const paginated = questions.slice(start, start + limit);
-        const baseUrl = url?.pathname || '/questions';
+        const {paginated, total, page, limit} = this.paginate(questions, req, (q) => q.term.toString());
+        const baseUrl = req?.url ? new URL(req.url, 'http://localhost').pathname : '/questions';
+        const totalPages = Math.ceil(total / limit);
 
         const response: HTTPResponse = {
             statusCode: 200,
-            body: {
-                questions: paginated.map(q => q.term.toString()),
-                pagination: {page, limit, total: questions.length, totalPages: Math.ceil(questions.length / limit)}
-            }
+            body: {questions: paginated, pagination: {page, limit, total, totalPages}}
         };
 
-        if (page < Math.ceil(questions.length / limit)) {
+        if (page < totalPages) {
             response.headers = {'Link': `<${baseUrl}?page=${page + 1}&limit=${limit}>; rel="next"`};
         }
         return response;
@@ -530,7 +530,7 @@ export class HTTPServer {
             await nar.input(`${question.term}?`);
             return {statusCode: 200, body: {success: true, term: question.term}};
         } catch (error) {
-            return {statusCode: 400, body: {error: error instanceof Error ? error.message : String(error)}};
+            return {statusCode: 400, body: {error: errMsg(error)}};
         }
     }
 
@@ -564,7 +564,7 @@ export class HTTPServer {
                 }
             };
         } catch (error) {
-            return {statusCode: 400, body: {error: error instanceof Error ? error.message : String(error)}};
+            return {statusCode: 400, body: {error: errMsg(error)}};
         }
     }
 

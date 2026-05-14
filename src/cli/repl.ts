@@ -9,8 +9,9 @@ import {HistoryManager} from './history';
 import {ProfileManager} from './profile';
 import {listConcepts, showCommandHelp, showStats} from './display';
 import {DOMAIN_LIST, DOMAINS} from './domains';
+import {errMsg} from '../nar/utils/helpers.js';
 
-const MAX_HISTORY = 1000;
+const _MAX_HISTORY = 1000;
 
 interface CLIConfig {
     maxConcepts: number;
@@ -153,9 +154,9 @@ class SeNARSCLI {
 
         const handlers: Record<string, () => void | Promise<void>> = {
             '.help': () => {
-                const cmd = args[0];
-                if (cmd && !showCommandHelp(cmd)) {
-                    console.log(`Unknown command: ${cmd}. Type .help for command list.`);
+                const helpCmd = args[0];
+                if (helpCmd && !showCommandHelp(helpCmd)) {
+                    console.log(`Unknown command: ${helpCmd}. Type .help for command list.`);
                 }
             },
             '.run': () => this.runInference(args[0] ? parseInt(args[0]) : 5),
@@ -195,7 +196,7 @@ class SeNARSCLI {
             try {
                 await handler();
             } catch (error) {
-                console.log(`Error: ${error instanceof Error ? error.message : String(error)}`);
+                console.log(`Error: ${errMsg(error)}`);
             }
         } else {
             console.log(`Unknown command: ${cmd}. Type .help for commands.`);
@@ -207,7 +208,7 @@ class SeNARSCLI {
             await this.nar.input(term);
             console.log(`✓ Added: ${term}`);
         } catch (error) {
-            console.log(`✗ Error: ${error instanceof Error ? error.message : String(error)}`);
+            console.log(`✗ Error: ${errMsg(error)}`);
         }
     }
 
@@ -222,7 +223,7 @@ class SeNARSCLI {
                 console.log('? No derivation found');
             }
         } catch (error) {
-            console.log(`✗ Error: ${error instanceof Error ? error.message : String(error)}`);
+            console.log(`✗ Error: ${errMsg(error)}`);
         }
     }
 
@@ -385,7 +386,7 @@ class SeNARSCLI {
                 }
             }
         } catch (error) {
-            console.log(`Query error: ${error instanceof Error ? error.message : String(error)}`);
+            console.log(`Query error: ${errMsg(error)}`);
         }
     }
 
@@ -423,7 +424,7 @@ class SeNARSCLI {
                 console.log(` ... and ${traceArray.length - 10} more steps`);
             }
         } catch (error) {
-            console.log(`Trace error: ${error instanceof Error ? error.message : String(error)}`);
+            console.log(`Trace error: ${errMsg(error)}`);
         }
     }
 
@@ -463,7 +464,7 @@ class SeNARSCLI {
                 console.log(' (No derivation path available)');
             }
         } catch (error) {
-            console.log(`Explain error: ${error instanceof Error ? error.message : String(error)}`);
+            console.log(`Explain error: ${errMsg(error)}`);
         }
     }
 
@@ -624,7 +625,7 @@ class SeNARSCLI {
             const answer = await (this.nar as any).askNaturalLanguage(question);
             console.log(`\n→ ${answer}`);
         } catch (error) {
-            console.log(`Error: ${error instanceof Error ? error.message : String(error)}`);
+            console.log(`Error: ${errMsg(error)}`);
         }
     }
 

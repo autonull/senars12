@@ -162,7 +162,7 @@ export class WebSocketEmbodiment implements Embodiment {
         }
     }
 
-    private async handleMessage(ws: WebSocket, message: WSMessage, client: WSClient): Promise<void> {
+    private async handleMessage(ws: WebSocket, message: WSMessage, _client: WSClient): Promise<void> {
         if (!this.narService) {
             this.sendError(ws, 'Service not initialized', message.id);
             return;

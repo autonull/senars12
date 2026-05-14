@@ -15,21 +15,21 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.79",
-    "ai": "^5.0.185",
+    "ai": "^5.0.188",
     "irc": "^0.5.2",
     "ollama": "^0.6.3"
   },
   "devDependencies": {
     "@types/irc": "^0.5.4",
     "@types/jest": "^29.5.14",
-    "@types/node": "^22.15.2",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0",
-    "eslint": "^9.0.0",
-    "fast-check": "^4.7.0",
+    "@types/node": "^22.19.19",
+    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/parser": "^8.59.3",
+    "eslint": "^9.39.4",
+    "fast-check": "^4.8.0",
     "jest": "^29.7.0",
-    "ts-jest": "^29.3.2",
-    "tsx": "^4.19.2",
-    "typescript": "^5.8.3"
+    "ts-jest": "^29.4.9",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   }
 }

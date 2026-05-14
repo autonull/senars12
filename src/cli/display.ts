@@ -6,7 +6,6 @@ import type {NAR} from '../nar';
 export function box(title: string, lines: string[]): string {
     const width = Math.max(title.length + 4, ...lines.map(l => l.length + 4), 50);
     const horizontal = '═'.repeat(width - 2);
-    const space = ' '.repeat(width - 2);
 
     const top = `╔${horizontal}╗`;
     const titleLine = `║ ${title.padEnd(width - 3)}║`;

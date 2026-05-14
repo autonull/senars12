@@ -10,28 +10,26 @@ export type {
   Budget,
   CoreConfig,
   Hash,
-  TermSymbol,
-  Stamp
+  TermSymbol
 } from './types/core.js';
 
-
 export {
-  DEFAULT_CONFIG,
   createBudget,
   createTask,
+  createSecondaryTask,
   success,
   failure,
   isSuccess,
   isFailure,
+  DEFAULT_CONFIG,
   NARError,
   ValidationError,
   ConfigurationError,
-  OperationError
+  OperationError,
+  ToolError
 } from './types/core.js';
 
-// Re-export Stamp class from terms
 export {Stamp} from './terms/stamp.js';
-
 
 // Terms
 export {TermBuilder, freeze, atom, serializeTerm} from './terms/index.js';

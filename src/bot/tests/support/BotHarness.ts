@@ -82,7 +82,7 @@ export class BotHarness {
     }
 
     private async findAvailablePort(): Promise<number> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             const server = net.createServer();
             server.listen(0, () => {
                 const address = server.address();

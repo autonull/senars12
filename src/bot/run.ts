@@ -18,7 +18,7 @@ import {createBot, createRealBot} from './index.js';
             ...config,
             embodiments: {
                 ...config.embodiments,
-                irc: {...config.embodiments?.irc, port},
+                irc: {...config.embodiments?.irc, port, enabled: config.embodiments?.irc?.enabled ?? true},
             },
         };
     }
