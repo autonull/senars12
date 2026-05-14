@@ -1,0 +1,135 @@
+/**
+ * Unified API Registry
+ * Centralized handler registration with Zod validation for HTTP, WebSocket, and MCP
+ */
+
+import { z } from 'zod';
+
+export interface HandlerMeta {
+  name: string;
+  description: string;
+  params: z.ZodSchema;
+  returns: z.ZodSchema;
+  handler: (args: any) => Promise<any>;
+}
+
+export interface APISpec {
+  handlers: Record<string, HandlerMeta>;
+}
+
+export class APIRegistry {
+  private static instance: APIRegistry | null = null;
+  private handlers: Map<string, HandlerMeta> = new Map();
+
+  private constructor() {}
+
+  static getInstance(): APIRegistry {
+    if (!APIRegistry.instance) {
+      APIRegistry.instance = new APIRegistry();
+    }
+    return APIRegistry.instance;
+  }
+
+  static reset(): void {
+    APIRegistry.instance = new APIRegistry();
+  }
+
+  register<T>(
+    name: string,
+    schema: {
+      description: string;
+      params: z.ZodSchema<T>;
+      returns: z.ZodSchema;
+      handler: (args: T) => Promise<any>;
+    }
+  ): void {
+    this.handlers.set(name, {
+      name,
+      description: schema.description,
+      params: schema.params,
+      returns: schema.returns,
+      handler: schema.handler,
+    });
+  }
+
+  async invoke(name: string, args: any): Promise<any> {
+    const handler = this.handlers.get(name);
+    if (!handler) {
+      throw new Error(`Handler ${name} not found`);
+    }
+    const validated = handler.params.parse(args);
+    return handler.handler(validated);
+  }
+
+  hasHandler(name: string): boolean {
+    return this.handlers.has(name);
+  }
+
+  getHandler(name: string): HandlerMeta | undefined {
+    return this.handlers.get(name);
+  }
+
+  getHandlers(): Map<string, HandlerMeta> {
+    return new Map(this.handlers);
+  }
+
+  getSpec(): Record<string, any> {
+    const spec: Record<string, any> = {};
+    for (const [name, meta] of this.handlers) {
+      spec[name] = {
+        name: meta.name,
+        description: meta.description,
+        params: meta.params,
+        returns: meta.returns,
+      };
+    }
+    return spec;
+  }
+
+  getOpenAPISpec(): Record<string, any> {
+    return {
+      openapi: '3.0.0',
+      info: {
+        title: 'SeNARS Unified API',
+        version: '1.0.0',
+        description: 'Unified API for SeNARS reasoning engine',
+      },
+      paths: Array.from(this.handlers.values()).reduce((acc, meta) => {
+        acc[`/${meta.name}`] = {
+          post: {
+            summary: meta.description,
+            requestBody: {
+              content: {
+                'application/json': {
+                  schema: meta.params,
+                },
+              },
+            },
+            responses: {
+              '200': {
+                description: 'Success',
+              },
+            },
+          },
+        };
+        return acc;
+      }, {} as Record<string, any>),
+    };
+  }
+}
+
+export function apiMethod(config: {
+  description: string;
+  params: z.ZodSchema;
+  returns: z.ZodSchema;
+}) {
+  return (target: any, propertyKey: string) => {
+    const registry = APIRegistry.getInstance();
+    registry.register(propertyKey, {
+      description: config.description,
+      params: config.params,
+      returns: config.returns,
+      handler: target[propertyKey].bind(target),
+    });
+  };
+}

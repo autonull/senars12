@@ -5,7 +5,7 @@
 
 import {Agent} from './Agent.js';
 import {HTTPServer} from './http-server.js';
-import {WebSocketEmbodiment} from './websocket-server.js';
+import {WebSocketServer as WebSocketEmbodiment} from './websocket-server.js';
 import {SeNARSFactory} from '../nar';
 
 async function testAgentProfile(): Promise<void> {
@@ -85,9 +85,9 @@ async function testWebSocket(): Promise<void> {
     const nar = SeNARSFactory.createDefault();
     const agent = new Agent(nar);
 
-    const wsEmbodiment = new WebSocketEmbodiment(8766);
+  const wsEmbodiment = new WebSocketEmbodiment({ port: 8766 });
 
-    await wsEmbodiment.start(agent);
+  await wsEmbodiment.start(agent);
     console.log('✓ WebSocket server started on port 8766');
 
     const clientCount = wsEmbodiment.getConnectedClients();

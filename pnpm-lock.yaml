@@ -10,16 +10,19 @@ importers:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: ^2.0.79
-        version: 2.0.79(zod@3.25.76)
+        version: 2.0.79(zod@4.4.3)
       ai:
         specifier: ^5.0.188
-        version: 5.0.188(zod@3.25.76)
+        version: 5.0.188(zod@4.4.3)
       irc:
         specifier: ^0.5.2
         version: 0.5.2
       ollama:
         specifier: ^0.6.3
         version: 0.6.3
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@types/irc':
         specifier: ^0.5.4
@@ -1800,30 +1803,30 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
 snapshots:
 
-  '@ai-sdk/anthropic@2.0.79(zod@3.25.76)':
+  '@ai-sdk/anthropic@2.0.79(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 2.0.3
-      '@ai-sdk/provider-utils': 3.0.25(zod@3.25.76)
-      zod: 3.25.76
+      '@ai-sdk/provider-utils': 3.0.25(zod@4.4.3)
+      zod: 4.4.3
 
-  '@ai-sdk/gateway@2.0.89(zod@3.25.76)':
+  '@ai-sdk/gateway@2.0.89(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 2.0.3
-      '@ai-sdk/provider-utils': 3.0.25(zod@3.25.76)
+      '@ai-sdk/provider-utils': 3.0.25(zod@4.4.3)
       '@vercel/oidc': 3.1.0
-      zod: 3.25.76
+      zod: 4.4.3
 
-  '@ai-sdk/provider-utils@3.0.25(zod@3.25.76)':
+  '@ai-sdk/provider-utils@3.0.25(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 2.0.3
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.0.8
-      zod: 3.25.76
+      zod: 4.4.3
 
   '@ai-sdk/provider@2.0.3':
     dependencies:
@@ -2522,13 +2525,13 @@ snapshots:
 
   acorn@8.16.0: {}
 
-  ai@5.0.188(zod@3.25.76):
+  ai@5.0.188(zod@4.4.3):
     dependencies:
-      '@ai-sdk/gateway': 2.0.89(zod@3.25.76)
+      '@ai-sdk/gateway': 2.0.89(zod@4.4.3)
       '@ai-sdk/provider': 2.0.3
-      '@ai-sdk/provider-utils': 3.0.25(zod@3.25.76)
+      '@ai-sdk/provider-utils': 3.0.25(zod@4.4.3)
       '@opentelemetry/api': 1.9.0
-      zod: 3.25.76
+      zod: 4.4.3
 
   ajv@6.15.0:
     dependencies:
@@ -3780,4 +3783,4 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod@3.25.76: {}
+  zod@4.4.3: {}

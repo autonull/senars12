@@ -4,7 +4,7 @@
  */
 
 import {Agent} from './Agent.js';
-import {WebSocketEmbodiment} from './websocket-server.js';
+import {WebSocketServer as WebSocketEmbodiment} from './websocket-server.js';
 import {HTTPServer} from './http-server.js';
 import {SeNARSFactory} from '../nar';
 import {runAllDemos} from './demos.js';
@@ -14,10 +14,10 @@ async function runAgentExample(): Promise<void> {
 
     const nar = SeNARSFactory.createDefault();
 
-    const wsEmbodiment = new WebSocketEmbodiment(8765);
-    const httpServer = new HTTPServer({port: 8080});
+  const wsEmbodiment = new WebSocketEmbodiment({ port: 8765 });
+  const httpServer = new HTTPServer({ port: 8080 });
 
-    const agent = new Agent(nar, [wsEmbodiment, httpServer as any]);
+  const agent = new Agent(nar, [wsEmbodiment, httpServer as any]);
 
     try {
         await agent.start();
