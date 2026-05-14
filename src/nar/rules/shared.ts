@@ -58,3 +58,10 @@ export const registerRule = (
         priority,
         truthFn
     });
+
+export type RuleSpec = [string, string, string, RuleFn, TruthFn, number];
+
+export const registerRules = (rules: RuleSpec[]) =>
+    rules.forEach(([id, left, right, fn, truth, priority]) =>
+        registerRule(id, left, right, fn, truth, priority)
+    );

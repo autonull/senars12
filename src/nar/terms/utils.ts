@@ -1,6 +1,7 @@
 import type {Term} from './types.js';
 import type {Concept} from '../memory';
 import {termsEqual} from './accessors.js';
+import {jaccard} from '../utils/similarity.js';
 
 export const extractSymbols = (term: Term, symbols = new Set<string>()): Set<string> => {
     if ('symbol' in term && typeof term.symbol === 'string') symbols.add(term.symbol);
@@ -12,12 +13,8 @@ export const extractSymbols = (term: Term, symbols = new Set<string>()): Set<str
     return symbols;
 };
 
-export const jaccardSimilarity = (setA: Set<string>, setB: Set<string>): number => {
-    if (setA.size === 0 && setB.size === 0) return 0;
-    const intersection = new Set([...setA].filter(s => setB.has(s)));
-    const union = new Set([...setA, ...setB]);
-    return intersection.size / union.size;
-};
+export const jaccardSimilarity = (setA: Set<string>, setB: Set<string>): number =>
+    jaccard(setA, setB);
 
 export const calculateSimilarity = (concept: Concept, term: Term): number => {
     if (termsEqual(concept.term, term)) return 1;

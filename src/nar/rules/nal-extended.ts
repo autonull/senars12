@@ -1,12 +1,31 @@
 import type {Term} from '../terms';
 import {getPredicate, getSubject, TermBuilder, termsEqual, Truth} from '../terms';
-import {extractInh, extractInhPair, registerRule} from './shared.js';
+import {extractInh, extractInhPair, registerRule, registerRules} from './shared.js';
 import {buildBinaryInhRule, buildInhRule, getVars} from './rule-builder.js';
 
 const ID = <T>(t: T): T => t;
 
 const {negation, inheritance, conjunction, disjunction, implication, equivalence, similarity,
     sequence, parallel, predictive, operation, instance, property, atom} = TermBuilder;
+
+const conversionRule = (wrap: (t: Term) => Term) => buildInhRule(ID, inh => {
+    const s = getSubject(inh), p = getPredicate(inh);
+    return s && p ? inheritance(wrap(s), wrap(p)) : undefined;
+});
+
+const deductionFromType = (typeKind: 'instance' | 'property', matchOn: 'subject' | 'predicate') =>
+    ([inh, term]: [Term, Term]): Term | undefined => {
+        if (inh.kind !== 'inheritance' || term.kind !== typeKind) return undefined;
+        const s = getSubject(inh), p = getPredicate(inh);
+        const arg = term.args[0];
+        if (!s || !p || !arg) return undefined;
+        return termsEqual(matchOn === 'subject' ? s : p, arg) ? inheritance(matchOn === 'subject' ? arg : s, matchOn === 'subject' ? p : arg) : undefined;
+    };
+
+const sameSubject = (inh1: Term, inh2: Term): boolean => {
+    const s1 = getSubject(inh1), s2 = getSubject(inh2);
+    return !!(s1 && s2 && termsEqual(s1, s2));
+};
 
 export const NALExtendedRules = {
     modusPonens: ([imp, antecedent]: [Term, Term]): Term | undefined => {
@@ -201,69 +220,29 @@ export const NALExtendedRules = {
         (inh1, _inh2) => inh1
     ),
 
-    instanceConversion: buildInhRule(ID, inh => {
-        const s = getSubject(inh), p = getPredicate(inh);
-        if (!s || !p) return undefined;
-        return inheritance(instance(s), instance(p));
-    }),
+    instanceConversion: conversionRule(instance),
 
-    propertyConversion: buildInhRule(ID, inh => {
-        const s = getSubject(inh), p = getPredicate(inh);
-        if (!s || !p) return undefined;
-        return inheritance(property(s), property(p));
-    }),
+    propertyConversion: conversionRule(property),
 
-    instanceDeduction: ([inh, inst]: [Term, Term]): Term | undefined => {
-        if (inh.kind !== 'inheritance') return undefined;
-        if (inst.kind !== 'instance') return undefined;
-        const s = getSubject(inh), p = getPredicate(inh);
-        const instArg = inst.args[0];
-        if (!s || !p || !instArg) return undefined;
-        if (termsEqual(s, instArg)) {
-            return inheritance(instArg, p);
-        }
-        return undefined;
-    },
+    instanceDeduction: deductionFromType('instance', 'subject'),
 
-    propertyInduction: ([inh, prop]: [Term, Term]): Term | undefined => {
-        if (inh.kind !== 'inheritance') return undefined;
-        if (prop.kind !== 'property') return undefined;
-        const s = getSubject(inh), p = getPredicate(inh);
-        const propArg = prop.args[0];
-        if (!s || !p || !propArg) return undefined;
-        if (termsEqual(p, propArg)) {
-            return inheritance(s, propArg);
-        }
-        return undefined;
-    },
+    propertyInduction: deductionFromType('property', 'predicate'),
 
     sequenceIntroduction: buildBinaryInhRule(
+        sameSubject,
         (inh1, inh2) => {
-            const s1 = getSubject(inh1), p1 = getPredicate(inh1);
-            const s2 = getSubject(inh2), p2 = getPredicate(inh2);
-            if (!s1 || !p1 || !s2 || !p2) return false;
-            return termsEqual(s1, s2);
-        },
-        (inh1, inh2) => {
-            const s1 = getSubject(inh1);
+            const s = getSubject(inh1);
             const p1 = getPredicate(inh1), p2 = getPredicate(inh2);
-            if (!s1 || !p1 || !p2) return undefined;
-            return inheritance(s1, sequence(p1, p2));
+            return s && p1 && p2 ? inheritance(s, sequence(p1, p2)) : undefined;
         }
     ),
 
     parallelIntroduction: buildBinaryInhRule(
+        sameSubject,
         (inh1, inh2) => {
-            const s1 = getSubject(inh1), p1 = getPredicate(inh1);
-            const s2 = getSubject(inh2), p2 = getPredicate(inh2);
-            if (!s1 || !p1 || !s2 || !p2) return false;
-            return termsEqual(s1, s2);
-        },
-        (inh1, inh2) => {
-            const s1 = getSubject(inh1);
+            const s = getSubject(inh1);
             const p1 = getPredicate(inh1), p2 = getPredicate(inh2);
-            if (!s1 || !p1 || !p2) return undefined;
-            return inheritance(s1, parallel(p1, p2));
+            return s && p1 && p2 ? inheritance(s, parallel(p1, p2)) : undefined;
         }
     ),
 
@@ -395,41 +374,43 @@ export const NALExtendedRules = {
     )
 };
 
-registerRule('nal.modusPonens', 'implication', 'atom', NALExtendedRules.modusPonens, Truth.deduction, 0.95);
-registerRule('nal.modusTollens', 'implication', 'negation', NALExtendedRules.modusTollens, Truth.contraposition, 0.9);
-registerRule('nal.conversion', 'inheritance', 'inheritance', NALExtendedRules.conversion, Truth.conversion, 0.7);
-registerRule('nal.extended.analogy', 'inheritance', 'inheritance', NALExtendedRules.analogy, Truth.analogy, 0.8);
-registerRule('nal.extended.comparison', 'inheritance', 'inheritance', NALExtendedRules.comparison, Truth.resemblance, 0.75);
-registerRule('nal.contrapositionRule', 'implication', 'implication', NALExtendedRules.contrapositionRule, Truth.contraposition, 0.7);
-registerRule('nal.structuralInheritance', 'conjunction', 'inheritance', NALExtendedRules.structuralInheritance, Truth.deduction, 0.75);
-registerRule('nal.structuralReduction', 'inheritance', 'inheritance', NALExtendedRules.structuralReduction, Truth.structuralReduction, 0.7);
-registerRule('nal.intersectionComposition', 'inheritance', 'inheritance', NALExtendedRules.intersectionComposition, Truth.intersection, 0.8);
-registerRule('nal.unionComposition', 'inheritance', 'inheritance', NALExtendedRules.unionComposition, Truth.union, 0.75);
-registerRule('nal.difference', 'inheritance', 'inheritance', NALExtendedRules.difference, Truth.deduction, 0.7);
-registerRule('nal.implicationDeduction', 'implication', 'implication', NALExtendedRules.implicationDeduction, Truth.deduction, 0.85);
-registerRule('nal.equivalence', 'implication', 'implication', NALExtendedRules.equivalence, Truth.intersection, 0.8);
-registerRule('nal.variableIntroduction', 'inheritance', 'inheritance', NALExtendedRules.variableIntroduction, Truth.deduction, 0.6);
-registerRule('nal.decomposition', 'conjunction', 'conjunction', NALExtendedRules.decomposition, Truth.deduction, 0.75);
-registerRule('nal.variableDependency', 'inheritance', 'inheritance', NALExtendedRules.variableDependency, Truth.deduction, 0.5);
-registerRule('nal.sameness', 'inheritance', 'inheritance', NALExtendedRules.sameness, Truth.sameness, 0.85);
-registerRule('nal.revisionWeak', 'inheritance', 'inheritance', NALExtendedRules.revisionWeak, Truth.revision, 0.65);
-registerRule('nal.extended.exemplification', 'inheritance', 'inheritance', NALExtendedRules.exemplification, Truth.exemplification, 0.8);
-registerRule('nal.instanceConversion', 'inheritance', 'instance', NALExtendedRules.instanceConversion, Truth.conversion, 0.7);
-registerRule('nal.propertyConversion', 'inheritance', 'property', NALExtendedRules.propertyConversion, Truth.conversion, 0.7);
-registerRule('nal.instanceDeduction', 'inheritance', 'instance', NALExtendedRules.instanceDeduction, Truth.deduction, 0.85);
-registerRule('nal.propertyInduction', 'inheritance', 'property', NALExtendedRules.propertyInduction, Truth.induction, 0.75);
-registerRule('nal.sequenceIntroduction', 'inheritance', 'inheritance', NALExtendedRules.sequenceIntroduction, Truth.deduction, 0.75);
-registerRule('nal.parallelIntroduction', 'inheritance', 'inheritance', NALExtendedRules.parallelIntroduction, Truth.deduction, 0.7);
-registerRule('nal.predictiveImplication', 'sequence', 'inheritance', NALExtendedRules.predictiveImplication, Truth.deduction, 0.8);
-registerRule('nal.temporalDeduction', 'predictive', 'sequence', NALExtendedRules.temporalDeduction, Truth.deduction, 0.85);
-registerRule('nal.operationExecution', 'inheritance', 'inheritance', NALExtendedRules.operationExecution, Truth.deduction, 0.8);
-registerRule('nal.goalExecution', 'inheritance', 'operation', NALExtendedRules.goalExecution, Truth.deduction, 0.85);
-registerRule('nal.proceduralDecomposition', 'sequence', 'operation', NALExtendedRules.proceduralDecomposition, Truth.deduction, 0.75);
-registerRule('nal.proceduralChaining', 'operation', 'operation', NALExtendedRules.proceduralChaining, Truth.deduction, 0.8);
-registerRule('nal.operationToPredictive', 'operation', 'sequence', NALExtendedRules.operationToPredictive, Truth.deduction, 0.75);
-registerRule('nal.strategyEffectiveness', 'inheritance', 'inheritance', NALExtendedRules.strategyEffectiveness, Truth.deduction, 0.8);
-registerRule('nal.resourceAllocation', 'inheritance', 'inheritance', NALExtendedRules.resourceAllocation, Truth.deduction, 0.75);
-registerRule('nal.errorPatternDetection', 'inheritance', 'inheritance', NALExtendedRules.errorPatternDetection, Truth.deduction, 0.7);
-registerRule('nal.utilityEstimation', 'inheritance', 'inheritance', NALExtendedRules.utilityEstimation, Truth.deduction, 0.8);
-registerRule('nal.metacognitiveRevision', 'inheritance', 'inheritance', NALExtendedRules.metacognitiveRevision, Truth.revision, 0.85);
-registerRule('nal.selfModelConsistency', 'inheritance', 'inheritance', NALExtendedRules.selfModelConsistency, Truth.sameness, 0.9);
+registerRules([
+    ['nal.modusPonens', 'implication', 'atom', NALExtendedRules.modusPonens, Truth.deduction, 0.95],
+    ['nal.modusTollens', 'implication', 'negation', NALExtendedRules.modusTollens, Truth.contraposition, 0.9],
+    ['nal.conversion', 'inheritance', 'inheritance', NALExtendedRules.conversion, Truth.conversion, 0.7],
+    ['nal.extended.analogy', 'inheritance', 'inheritance', NALExtendedRules.analogy, Truth.analogy, 0.8],
+    ['nal.extended.comparison', 'inheritance', 'inheritance', NALExtendedRules.comparison, Truth.resemblance, 0.75],
+    ['nal.contrapositionRule', 'implication', 'implication', NALExtendedRules.contrapositionRule, Truth.contraposition, 0.7],
+    ['nal.structuralInheritance', 'conjunction', 'inheritance', NALExtendedRules.structuralInheritance, Truth.deduction, 0.75],
+    ['nal.structuralReduction', 'inheritance', 'inheritance', NALExtendedRules.structuralReduction, Truth.structuralReduction, 0.7],
+    ['nal.intersectionComposition', 'inheritance', 'inheritance', NALExtendedRules.intersectionComposition, Truth.intersection, 0.8],
+    ['nal.unionComposition', 'inheritance', 'inheritance', NALExtendedRules.unionComposition, Truth.union, 0.75],
+    ['nal.difference', 'inheritance', 'inheritance', NALExtendedRules.difference, Truth.deduction, 0.7],
+    ['nal.implicationDeduction', 'implication', 'implication', NALExtendedRules.implicationDeduction, Truth.deduction, 0.85],
+    ['nal.equivalence', 'implication', 'implication', NALExtendedRules.equivalence, Truth.intersection, 0.8],
+    ['nal.variableIntroduction', 'inheritance', 'inheritance', NALExtendedRules.variableIntroduction, Truth.deduction, 0.6],
+    ['nal.decomposition', 'conjunction', 'conjunction', NALExtendedRules.decomposition, Truth.deduction, 0.75],
+    ['nal.variableDependency', 'inheritance', 'inheritance', NALExtendedRules.variableDependency, Truth.deduction, 0.5],
+    ['nal.sameness', 'inheritance', 'inheritance', NALExtendedRules.sameness, Truth.sameness, 0.85],
+    ['nal.revisionWeak', 'inheritance', 'inheritance', NALExtendedRules.revisionWeak, Truth.revision, 0.65],
+    ['nal.extended.exemplification', 'inheritance', 'inheritance', NALExtendedRules.exemplification, Truth.exemplification, 0.8],
+    ['nal.instanceConversion', 'inheritance', 'instance', NALExtendedRules.instanceConversion, Truth.conversion, 0.7],
+    ['nal.propertyConversion', 'inheritance', 'property', NALExtendedRules.propertyConversion, Truth.conversion, 0.7],
+    ['nal.instanceDeduction', 'inheritance', 'instance', NALExtendedRules.instanceDeduction, Truth.deduction, 0.85],
+    ['nal.propertyInduction', 'inheritance', 'property', NALExtendedRules.propertyInduction, Truth.induction, 0.75],
+    ['nal.sequenceIntroduction', 'inheritance', 'inheritance', NALExtendedRules.sequenceIntroduction, Truth.deduction, 0.75],
+    ['nal.parallelIntroduction', 'inheritance', 'inheritance', NALExtendedRules.parallelIntroduction, Truth.deduction, 0.7],
+    ['nal.predictiveImplication', 'sequence', 'inheritance', NALExtendedRules.predictiveImplication, Truth.deduction, 0.8],
+    ['nal.temporalDeduction', 'predictive', 'sequence', NALExtendedRules.temporalDeduction, Truth.deduction, 0.85],
+    ['nal.operationExecution', 'inheritance', 'inheritance', NALExtendedRules.operationExecution, Truth.deduction, 0.8],
+    ['nal.goalExecution', 'inheritance', 'operation', NALExtendedRules.goalExecution, Truth.deduction, 0.85],
+    ['nal.proceduralDecomposition', 'sequence', 'operation', NALExtendedRules.proceduralDecomposition, Truth.deduction, 0.75],
+    ['nal.proceduralChaining', 'operation', 'operation', NALExtendedRules.proceduralChaining, Truth.deduction, 0.8],
+    ['nal.operationToPredictive', 'operation', 'sequence', NALExtendedRules.operationToPredictive, Truth.deduction, 0.75],
+    ['nal.strategyEffectiveness', 'inheritance', 'inheritance', NALExtendedRules.strategyEffectiveness, Truth.deduction, 0.8],
+    ['nal.resourceAllocation', 'inheritance', 'inheritance', NALExtendedRules.resourceAllocation, Truth.deduction, 0.75],
+    ['nal.errorPatternDetection', 'inheritance', 'inheritance', NALExtendedRules.errorPatternDetection, Truth.deduction, 0.7],
+    ['nal.utilityEstimation', 'inheritance', 'inheritance', NALExtendedRules.utilityEstimation, Truth.deduction, 0.8],
+    ['nal.metacognitiveRevision', 'inheritance', 'inheritance', NALExtendedRules.metacognitiveRevision, Truth.revision, 0.85],
+    ['nal.selfModelConsistency', 'inheritance', 'inheritance', NALExtendedRules.selfModelConsistency, Truth.sameness, 0.9],
+]);

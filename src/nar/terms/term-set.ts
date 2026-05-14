@@ -33,9 +33,7 @@ export class TermSet extends TermCollection<Term> {
     }
 
     * keys(): IterableIterator<Term> {
-        for (const term of this.storage) {
-            yield term;
-        }
+        return this.values();
     }
 
     * entries(): IterableIterator<[Term, Term]> {

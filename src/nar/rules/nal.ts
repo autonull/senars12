@@ -4,13 +4,13 @@ import {
     abductionLink,
     buildAbduction,
     buildDeduction,
+    buildHigherOrderRule,
     buildInduction,
     deductionLink,
     inductionLink,
     syllogize
 } from './nal-helpers.js';
-import {registerRule} from './shared.js';
-import {extractInhPair} from './shared.js';
+import {extractInhPair, registerRules} from './shared.js';
 
 export interface NALRuleMetadata {
     id: string;
@@ -207,57 +207,47 @@ export const NALRules = {
         return TermBuilder.inheritance(s1, p2);
     },
 
-    higherOrderDeduction: ([imp1, imp2]: [Term, Term]): Term | undefined => {
-        if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
-        const [a1, c1] = imp1.args;
-        const [a2, c2] = imp2.args;
-        if (!a1 || !c1 || !a2 || !c2) return undefined;
-        if (!termsEqual(c1, a2)) return undefined;
-        return TermBuilder.implication(a1, c2);
-    },
+    higherOrderDeduction: buildHigherOrderRule(
+        (a1, c1, a2, c2) => termsEqual(c1, a2),
+        (a1, c1, a2, c2) => TermBuilder.implication(a1, c2)
+    ),
 
-    higherOrderAbduction: ([imp1, imp2]: [Term, Term]): Term | undefined => {
-        if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
-        const [a1, c1] = imp1.args;
-        const [a2, c2] = imp2.args;
-        if (!a1 || !c1 || !a2 || !c2) return undefined;
-        if (!termsEqual(c1, c2)) return undefined;
-        return TermBuilder.implication(a1, a2);
-    },
+    higherOrderAbduction: buildHigherOrderRule(
+        (a1, c1, a2, c2) => termsEqual(c1, c2),
+        (a1, c1, a2, c2) => TermBuilder.implication(a1, a2)
+    ),
 
-    higherOrderInduction: ([imp1, imp2]: [Term, Term]): Term | undefined => {
-        if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
-        const [a1, c1] = imp1.args;
-        const [a2, c2] = imp2.args;
-        if (!a1 || !c1 || !a2 || !c2) return undefined;
-        if (!termsEqual(a1, a2)) return undefined;
-        return TermBuilder.implication(c1, c2);
-    }
+    higherOrderInduction: buildHigherOrderRule(
+        (a1, c1, a2, c2) => termsEqual(a1, a2),
+        (a1, c1, a2, c2) => TermBuilder.implication(c1, c2)
+    )
 };
 
-registerRule('nal.deduction', 'inheritance', 'inheritance', NALRules.deduction, Truth.deduction, 1.0);
-registerRule('nal.induction', 'inheritance', 'inheritance', NALRules.induction, Truth.induction, 0.9);
-registerRule('nal.abduction', 'inheritance', 'inheritance', NALRules.abduction, Truth.abduction, 0.8);
-registerRule('nal.similarity', 'inheritance', 'inheritance', NALRules.similarity, Truth.resemblance, 0.95);
-registerRule('nal.contrapositive', 'implication', 'inheritance', NALRules.contrapositive, Truth.contraposition, 0.7);
-registerRule('nal.intersection', 'conjunction', 'conjunction', NALRules.intersection, Truth.intersection, 0.85);
-registerRule('nal.union', 'disjunction', 'disjunction', NALRules.union, Truth.union, 0.8);
-registerRule('nal.conjunctionIntro', 'inheritance', 'inheritance', NALRules.conjunctionIntro, Truth.intersection, 0.75);
-registerRule('nal.disjunctionIntro', 'atom', 'atom', NALRules.disjunctionIntro, Truth.union, 0.7);
-registerRule('nal.implicationIntro', 'inheritance', 'negation', NALRules.implicationIntro, Truth.deduction, 0.8);
-registerRule('nal.implicationElim', 'implication', 'atom', NALRules.implicationElim, Truth.deduction, 0.9);
-registerRule('nal.equivalenceIntro', 'implication', 'implication', NALRules.equivalenceIntro, Truth.intersection, 0.85);
-registerRule('nal.equivalenceElim', 'equivalence', 'atom', NALRules.equivalenceElim, Truth.deduction, 0.9);
-registerRule('nal.negationIntro', 'implication', 'implication', NALRules.negationIntro, Truth.deduction, 0.75);
-registerRule('nal.negationElim', 'negation', 'negation', NALRules.negationElim, Truth.union, 0.8);
-registerRule('nal.destruct', 'conjunction', 'atom', NALRules.destruct, Truth.deduction, 0.85);
-registerRule('nal.compose', 'inheritance', 'inheritance', NALRules.compose, Truth.deduction, 0.7);
-registerRule('nal.decompose', 'conjunction', 'conjunction', NALRules.decompose, Truth.deduction, 0.8);
-registerRule('nal.revision', 'inheritance', 'inheritance', NALRules.revision, Truth.revision, 0.6);
-registerRule('nal.analogy', 'inheritance', 'similarity', NALRules.analogy, Truth.analogy, 0.75);
-registerRule('nal.comparison', 'inheritance', 'inheritance', NALRules.comparison, Truth.sameness, 0.8);
-registerRule('nal.instantiation', 'inheritance', 'similarity', NALRules.instantiation, Truth.deduction, 0.85);
-registerRule('nal.exemplification', 'inheritance', 'inheritance', NALRules.exemplification, Truth.exemplification, 0.7);
-registerRule('nal.higherOrderDeduction', 'implication', 'implication', NALRules.higherOrderDeduction, Truth.deduction, 0.85);
-registerRule('nal.higherOrderAbduction', 'implication', 'implication', NALRules.higherOrderAbduction, Truth.abduction, 0.7);
-registerRule('nal.higherOrderInduction', 'implication', 'implication', NALRules.higherOrderInduction, Truth.induction, 0.75);
+registerRules([
+    ['nal.deduction', 'inheritance', 'inheritance', NALRules.deduction, Truth.deduction, 1.0],
+    ['nal.induction', 'inheritance', 'inheritance', NALRules.induction, Truth.induction, 0.9],
+    ['nal.abduction', 'inheritance', 'inheritance', NALRules.abduction, Truth.abduction, 0.8],
+    ['nal.similarity', 'inheritance', 'inheritance', NALRules.similarity, Truth.resemblance, 0.95],
+    ['nal.contrapositive', 'implication', 'inheritance', NALRules.contrapositive, Truth.contraposition, 0.7],
+    ['nal.intersection', 'conjunction', 'conjunction', NALRules.intersection, Truth.intersection, 0.85],
+    ['nal.union', 'disjunction', 'disjunction', NALRules.union, Truth.union, 0.8],
+    ['nal.conjunctionIntro', 'inheritance', 'inheritance', NALRules.conjunctionIntro, Truth.intersection, 0.75],
+    ['nal.disjunctionIntro', 'atom', 'atom', NALRules.disjunctionIntro, Truth.union, 0.7],
+    ['nal.implicationIntro', 'inheritance', 'negation', NALRules.implicationIntro, Truth.deduction, 0.8],
+    ['nal.implicationElim', 'implication', 'atom', NALRules.implicationElim, Truth.deduction, 0.9],
+    ['nal.equivalenceIntro', 'implication', 'implication', NALRules.equivalenceIntro, Truth.intersection, 0.85],
+    ['nal.equivalenceElim', 'equivalence', 'atom', NALRules.equivalenceElim, Truth.deduction, 0.9],
+    ['nal.negationIntro', 'implication', 'implication', NALRules.negationIntro, Truth.deduction, 0.75],
+    ['nal.negationElim', 'negation', 'negation', NALRules.negationElim, Truth.union, 0.8],
+    ['nal.destruct', 'conjunction', 'atom', NALRules.destruct, Truth.deduction, 0.85],
+    ['nal.compose', 'inheritance', 'inheritance', NALRules.compose, Truth.deduction, 0.7],
+    ['nal.decompose', 'conjunction', 'conjunction', NALRules.decompose, Truth.deduction, 0.8],
+    ['nal.revision', 'inheritance', 'inheritance', NALRules.revision, Truth.revision, 0.6],
+    ['nal.analogy', 'inheritance', 'similarity', NALRules.analogy, Truth.analogy, 0.75],
+    ['nal.comparison', 'inheritance', 'inheritance', NALRules.comparison, Truth.sameness, 0.8],
+    ['nal.instantiation', 'inheritance', 'similarity', NALRules.instantiation, Truth.deduction, 0.85],
+    ['nal.exemplification', 'inheritance', 'inheritance', NALRules.exemplification, Truth.exemplification, 0.7],
+    ['nal.higherOrderDeduction', 'implication', 'implication', NALRules.higherOrderDeduction, Truth.deduction, 0.85],
+    ['nal.higherOrderAbduction', 'implication', 'implication', NALRules.higherOrderAbduction, Truth.abduction, 0.7],
+    ['nal.higherOrderInduction', 'implication', 'implication', NALRules.higherOrderInduction, Truth.induction, 0.75],
+]);

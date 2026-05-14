@@ -54,3 +54,13 @@ export const buildAbduction = (left: Term, right: Term): Term | undefined => {
     const s = getSubject(right);
     return p && s ? TermBuilder.inheritance(s, p) : undefined;
 };
+
+export const buildHigherOrderRule = (
+    linkValidator: (a1: Term, c1: Term, a2: Term, c2: Term) => boolean,
+    resultBuilder: (a1: Term, c1: Term, a2: Term, c2: Term) => Term | undefined
+): RuleFn => ([imp1, imp2]) => {
+    if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;
+    const [a1, c1] = imp1.args, [a2, c2] = imp2.args;
+    if (!a1 || !c1 || !a2 || !c2) return undefined;
+    return linkValidator(a1, c1, a2, c2) ? resultBuilder(a1, c1, a2, c2) : undefined;
+};
