@@ -6,8 +6,10 @@ import {errMsg} from '../nar/utils/helpers.js';
 import {termParser} from '../nar/terms';
 import {box, showStats, showCommandHelp} from './display.js';
 import {DOMAIN_LIST, DOMAINS} from './domains.js';
+import {createLogger} from '../nar/logger';
 
 export class CommandHandlers {
+    private readonly logger = createLogger({scope: 'CLI'});
     private nar: NAR;
 
     constructor(nar: NAR) {
@@ -35,7 +37,7 @@ export class CommandHandlers {
             '.help': () => {
                 const helpCmd = args[0];
                 if (helpCmd && !showCommandHelp(helpCmd)) {
-                    console.log(`Unknown command: ${helpCmd}. Type .help for command list.`);
+                    this.logger.warn(`Unknown command: ${helpCmd}. Type .help for command list.`);
                 }
             },
             '.run': () => this.runInference(args[0] ? parseInt(args[0]) : 5),
@@ -64,7 +66,7 @@ export class CommandHandlers {
             '.attention': () => this.showAttention(),
             '.load-domain': () => this.loadDomain(args),
             '.quit': () => {
-                console.log('Goodbye!');
+                this.logger.info('Goodbye!');
                 process.exit(0);
             }
         };
@@ -74,19 +76,19 @@ export class CommandHandlers {
             try {
                 handler();
             } catch (error) {
-                console.log(`Error: ${errMsg(error)}`);
+                this.logger.error(`Error: ${errMsg(error)}`);
             }
         } else {
-            console.log(`Unknown command: ${cmd}. Type .help for commands.`);
+            this.logger.warn(`Unknown command: ${cmd}. Type .help for commands.`);
         }
     }
 
     async handleBelief(term: string): Promise<void> {
         try {
             await this.nar.input(term);
-            console.log(`✓ Added: ${term}`);
+            this.logger.info(`✓ Added: ${term}`);
         } catch (error) {
-            console.log(`✗ Error: ${errMsg(error)}`);
+            this.logger.error(`✗ Error: ${errMsg(error)}`);
         }
     }
 
@@ -96,36 +98,36 @@ export class CommandHandlers {
             const derived = await this.nar.run(5);
 
             if (derived > 0) {
-                console.log(`✓ Derived ${derived} new belief(s)`);
+                this.logger.info(`✓ Derived ${derived} new belief(s)`);
             } else {
-                console.log('? No derivation found');
+                this.logger.info('? No derivation found');
             }
         } catch (error) {
-            console.log(`✗ Error: ${errMsg(error)}`);
+            this.logger.error(`✗ Error: ${errMsg(error)}`);
         }
     }
 
     private async runInference(steps: number): Promise<void> {
-        console.log(`⟳ Running ${steps} step(s)...`);
+        this.logger.info(`⟳ Running ${steps} step(s)...`);
         const derived = await this.nar.run(steps);
-        console.log(`✓ Completed ${steps} step(s), derived ${derived} belief(s)`);
+        this.logger.info(`✓ Completed ${steps} step(s), derived ${derived} belief(s)`);
     }
 
     private listConcepts(): void {
         const concepts = this.nar.listConcepts();
         if (concepts.length === 0) {
-            console.log('Memory is empty');
+            this.logger.info('Memory is empty');
             return;
         }
 
-        console.log('\nConcepts:');
+        this.logger.info('\nConcepts:');
         for (const concept of concepts.slice(0, 20)) {
-            console.log(` - ${concept.term.toString()}`);
+            this.logger.info(` - ${concept.term.toString()}`);
         }
         if (concepts.length > 20) {
-            console.log(` ... and ${concepts.length - 20} more`);
+            this.logger.info(` ... and ${concepts.length - 20} more`);
         }
-        console.log();
+        this.logger.info('');
     }
 
     private showConcepts(filter?: string): void {
@@ -139,33 +141,33 @@ export class CommandHandlers {
         }
 
         if (filtered.length === 0) {
-            console.log(filter ? `No concepts matching '${filter}'` : 'Memory is empty');
+            this.logger.info(filter ? `No concepts matching '${filter}'` : 'Memory is empty');
             return;
         }
 
-        console.log(`\nConcepts (${filtered.length} total):`);
+        this.logger.info(`\nConcepts (${filtered.length} total):`);
         for (const concept of filtered.slice(0, 50)) {
-            console.log(` ${concept.term.toString()}`);
+            this.logger.info(` ${concept.term.toString()}`);
         }
         if (filtered.length > 50) {
-            console.log(` ... and ${filtered.length - 50} more`);
+            this.logger.info(` ... and ${filtered.length - 50} more`);
         }
-        console.log();
+        this.logger.info('');
     }
 
     private showRules(_filter?: string): void {
-        console.log('\nRegistered Rules:');
-        console.log(' (Rules are defined in RuleProcessor)');
-        console.log(' - deduction: (A --> B), (B --> C) => (A --> C)');
-        console.log(' - induction: (A --> B), (A --> C) => (C --> B)');
-        console.log(' - abduction: (A --> C), (B --> C) => (A --> B)');
-        console.log(' - revision: Merge conflicting beliefs');
-        console.log(' - LM rules: Dynamic language model inference');
-        console.log();
+        this.logger.info('\nRegistered Rules:');
+        this.logger.info(' (Rules are defined in RuleProcessor)');
+        this.logger.info(' - deduction: (A --> B), (B --> C) => (A --> C)');
+        this.logger.info(' - induction: (A --> B), (A --> C) => (C --> B)');
+        this.logger.info(' - abduction: (A --> C), (B --> C) => (A --> B)');
+        this.logger.info(' - revision: Merge conflicting beliefs');
+        this.logger.info(' - LM rules: Dynamic language model inference');
+        this.logger.info('');
     }
 
     private showTools(filter?: string): void {
-        console.log('\nAvailable Tools:');
+        this.logger.info('\nAvailable Tools:');
         const tools = this.nar.listTools();
 
         const filtered = filter
@@ -173,26 +175,26 @@ export class CommandHandlers {
             : tools;
 
         for (const tool of filtered) {
-            console.log(` - ${tool.name}: ${tool.description}`);
+            this.logger.info(` - ${tool.name}: ${tool.description}`);
         }
-        console.log();
+        this.logger.info('');
     }
 
     private handleConfig(args: string[]): void {
         if (args.length === 0) {
             const config = this.nar.getConfig();
-            console.log('\nCurrent Configuration:');
+            this.logger.info('\nCurrent Configuration:');
             for (const [key, value] of Object.entries(config)) {
-                console.log(` ${key}: ${String(value)}`);
+                this.logger.info(` ${key}: ${String(value)}`);
             }
-            console.log();
+            this.logger.info('');
             return;
         }
 
         if (args.length === 1) {
             const config = this.nar.getConfig();
             const value = config[args[0] as keyof typeof config];
-            console.log(`${args[0]}: ${String(value ?? 'unknown')}`);
+            this.logger.info(`${args[0]}: ${String(value ?? 'unknown')}`);
             return;
         }
 
@@ -200,18 +202,18 @@ export class CommandHandlers {
             const [key, value] = args;
             const typedValue = isNaN(Number(value)) ? value : Number(value);
             this.nar.setConfig({[key!]: typedValue});
-            console.log(`Set ${key} to ${typedValue}`);
+            this.logger.info(`Set ${key} to ${typedValue}`);
         }
     }
 
     private clearMemory(): void {
         this.nar.clearMemory();
-        console.log('✓ Memory cleared');
+        this.logger.info('✓ Memory cleared');
     }
 
     private async loadFile(filename: string | undefined): Promise<void> {
         if (!filename) {
-            console.log('Usage: .load <filename>');
+            this.logger.info('Usage: .load <filename>');
             return;
         }
 
@@ -227,12 +229,12 @@ export class CommandHandlers {
             }
         }
 
-        console.log(`✓ Loaded ${loaded} belief(s) from ${filename}`);
+        this.logger.info(`✓ Loaded ${loaded} belief(s) from ${filename}`);
     }
 
     private async saveMemory(filename: string | undefined): Promise<void> {
         if (!filename) {
-            console.log('Usage: .save <filename>');
+            this.logger.info('Usage: .save <filename>');
             return;
         }
 
@@ -250,12 +252,12 @@ export class CommandHandlers {
 
         const fs = await import('fs');
         await fs.promises.writeFile(filename, JSON.stringify(data, null, 2));
-        console.log(`✓ Saved ${concepts.length} concept(s) to ${filename}`);
+        this.logger.info(`✓ Saved ${concepts.length} concept(s) to ${filename}`);
     }
 
     private async queryTerm(termStr: string): Promise<void> {
         if (!termStr) {
-            console.log('Usage: .query <term>');
+            this.logger.info('Usage: .query <term>');
             return;
         }
 
@@ -264,30 +266,30 @@ export class CommandHandlers {
             const goals = this.nar.getGoals();
             const questions = this.nar.getQuestions();
 
-            console.log('\nQuery Results:');
-            console.log(`Beliefs: ${beliefs.length}`);
-            console.log(`Goals: ${goals.length}`);
-            console.log(`Questions: ${questions.length}`);
+            this.logger.info('\nQuery Results:');
+            this.logger.info(`Beliefs: ${beliefs.length}`);
+            this.logger.info(`Goals: ${goals.length}`);
+            this.logger.info(`Questions: ${questions.length}`);
 
             const all = [...beliefs, ...goals, ...questions];
             if (all.length > 0) {
-                console.log('\nMatches:');
+                this.logger.info('\nMatches:');
                 all.slice(0, 10).forEach(item => {
                     const truthStr = item.truth ? ` f=${item.truth.f.toFixed(2)} c=${item.truth.c.toFixed(2)}` : '';
-                    console.log(` ${item.term.toString()} [${item.type}]${truthStr}`);
+                    this.logger.info(` ${item.term.toString()} [${item.type}]${truthStr}`);
                 });
                 if (all.length > 10) {
-                    console.log(` ... and ${all.length - 10} more`);
+                    this.logger.info(` ... and ${all.length - 10} more`);
                 }
             }
         } catch (error) {
-            console.log(`Query error: ${errMsg(error)}`);
+            this.logger.error(`Query error: ${errMsg(error)}`);
         }
     }
 
     private async traceTerm(termStr: string): Promise<void> {
         if (!termStr) {
-            console.log('Usage: .trace <term>');
+            this.logger.info('Usage: .trace <term>');
             return;
         }
 
@@ -295,45 +297,45 @@ export class CommandHandlers {
             const beliefs = this.nar.getBeliefs({contains: termStr});
 
             if (beliefs.length === 0) {
-                console.log(`No beliefs found for: ${termStr}`);
+                this.logger.info(`No beliefs found for: ${termStr}`);
                 return;
             }
 
             const matchingConcept = this.nar.listConcepts().find(c => c.term.toString().includes(termStr));
             const term = matchingConcept?.term;
             if (!term) {
-                console.log(`No term found for: ${termStr}`);
+                this.logger.info(`No term found for: ${termStr}`);
                 return;
             }
             const trace = this.nar.traceTerm(term);
             const traceData = trace;
 
             if (!traceData || (Array.isArray(traceData) ? traceData.length : 0) === 0) {
-                console.log(`No derivation trace found for: ${termStr}`);
+                this.logger.info(`No derivation trace found for: ${termStr}`);
                 return;
             }
 
             const traceArray = Array.isArray(traceData) ? traceData : [traceData];
 
-            console.log('\nDerivation Trace:');
+            this.logger.info('\nDerivation Trace:');
             traceArray.slice(-10).forEach((step, index) => {
                 const stepRef = step as {stamp?: {source?: string; derivations?: unknown[]}; term?: {toString?: () => string}};
                 const source = stepRef.stamp?.source || stepRef.stamp?.derivations ? 'DERIVED' : 'INPUT';
                 const termStr = stepRef.term?.toString?.() ?? 'unknown';
-                console.log(`${index + 1}. ${termStr} [${source}]`);
+                this.logger.info(`${index + 1}. ${termStr} [${source}]`);
             });
 
             if (traceArray.length > 10) {
-                console.log(` ... and ${traceArray.length - 10} more steps`);
+                this.logger.info(` ... and ${traceArray.length - 10} more steps`);
             }
         } catch (error) {
-            console.log(`Trace error: ${errMsg(error)}`);
+            this.logger.error(`Trace error: ${errMsg(error)}`);
         }
     }
 
     private async explainTerm(termStr: string): Promise<void> {
         if (!termStr) {
-            console.log('Usage: .explain <term>');
+            this.logger.info('Usage: .explain <term>');
             return;
         }
 
@@ -341,40 +343,40 @@ export class CommandHandlers {
             const beliefs = this.nar.getBeliefs({contains: termStr});
 
             if (beliefs.length === 0) {
-                console.log(`No beliefs found for: ${termStr}`);
+                this.logger.info(`No beliefs found for: ${termStr}`);
                 return;
             }
 
             const topBelief = beliefs[0]!;
             const explanation = this.nar.explain(topBelief);
 
-            console.log('\nExplanation:');
-            console.log(`Term: ${topBelief.term.toString()}`);
-            console.log(`Type: ${topBelief.type}`);
-            console.log(`Truth: f=${topBelief.truth.f.toFixed(2)}, c=${topBelief.truth.c.toFixed(2)}`);
-            console.log(`Source: ${topBelief.stamp?.source || 'DERIVED'}`);
+            this.logger.info('\nExplanation:');
+            this.logger.info(`Term: ${topBelief.term.toString()}`);
+            this.logger.info(`Type: ${topBelief.type}`);
+            this.logger.info(`Truth: f=${topBelief.truth.f.toFixed(2)}, c=${topBelief.truth.c.toFixed(2)}`);
+            this.logger.info(`Source: ${topBelief.stamp?.source || 'DERIVED'}`);
 
             if (explanation) {
-                console.log('\nDerivation path:');
+                this.logger.info('\nDerivation path:');
                 if (Array.isArray(explanation)) {
                     explanation.slice(-5).forEach((step, i) => {
-                        console.log(` ${i + 1}. ${typeof step === 'string' ? step : step.toString()}`);
+                        this.logger.info(` ${i + 1}. ${typeof step === 'string' ? step : step.toString()}`);
                     });
                 } else {
-                    console.log(` ${explanation}`);
+                    this.logger.info(` ${explanation}`);
                 }
             } else {
-                console.log(' (No derivation path available)');
+                this.logger.info(' (No derivation path available)');
             }
         } catch (error) {
-            console.log(`Explain error: ${errMsg(error)}`);
+            this.logger.error(`Explain error: ${errMsg(error)}`);
         }
     }
 
     private showSelfStatus(): void {
         const self = this.self;
         if (!self) {
-            console.log('Self/Metacognition is not enabled');
+            this.logger.info('Self/Metacognition is not enabled');
             return;
         }
         const isRunning = self.isRunning ?? false;
@@ -392,12 +394,12 @@ export class CommandHandlers {
     private showMetaAnalysis(): void {
         const self = this.self;
         if (!self) {
-            console.log('Self/Metacognition is not enabled');
+            this.logger.info('Self/Metacognition is not enabled');
             return;
         }
         const analysis = self.getSystemAnalysis?.();
         if (!analysis) {
-            console.log('No analysis available yet');
+            this.logger.info('No analysis available yet');
             return;
         }
         const analysisData = analysis as { cycleCount?: number; reasoningQuality?: number; strategies?: Array<{ name?: string; efficiency?: number }> };
@@ -422,36 +424,36 @@ export class CommandHandlers {
         const self = this.self;
         if (self?.applyOptimizations) {
             self.applyOptimizations();
-            console.log('✓ Applied metacognitive optimizations');
+            this.logger.info('✓ Applied metacognitive optimizations');
         } else {
-            console.log('Self optimization not available');
+            this.logger.info('Self optimization not available');
         }
         const rlfp = this.rlfp;
         if (rlfp?.optimize) {
             rlfp.optimize();
-            console.log('✓ RLFP policy optimized');
+            this.logger.info('✓ RLFP policy optimized');
         }
     }
 
     private handlePrefer(args: string[]): void {
         if (args.length < 2) {
-            console.log('Usage: .prefer <prefered> <rejected>');
+            this.logger.info('Usage: .prefer <prefered> <rejected>');
             return;
         }
         const rlfp = this.rlfp;
         if (!rlfp) {
-            console.log('RLFP not enabled');
+            this.logger.info('RLFP not enabled');
             return;
         }
         const [preferred, rejected] = [args[0]!, args[1]!];
         rlfp.addPreference?.(preferred, rejected);
-        console.log(`✓ Preference recorded: ${preferred} > ${rejected}`);
+        this.logger.info(`✓ Preference recorded: ${preferred} > ${rejected}`);
     }
 
     private showRewardStatus(): void {
         const rlfp = this.rlfp;
         if (!rlfp) {
-            console.log('RLFP not enabled');
+            this.logger.info('RLFP not enabled');
             return;
         }
         console.log('\n' + box('RLFP Reward Status', [`Preferences: ${rlfp.preferences?.length ?? 0}`]) + '\n');
@@ -460,7 +462,7 @@ export class CommandHandlers {
     private showRLFPStats(): void {
         const rlfp = this.rlfp;
         if (!rlfp) {
-            console.log('RLFP not enabled');
+            this.logger.info('RLFP not enabled');
             return;
         }
         console.log('\n' + box('RLFP Statistics', [
@@ -473,7 +475,7 @@ export class CommandHandlers {
     private showLMStatus(): void {
         const lm = this.lm;
         if (!lm) {
-            console.log('LM client not configured');
+            this.logger.info('LM client not configured');
             return;
         }
         console.log('\n' + box('LM Status', [
@@ -485,39 +487,39 @@ export class CommandHandlers {
 
     private switchLMModel(model: string | undefined): void {
         if (!model) {
-            console.log('Usage: .lm-switch <model-name>');
+            this.logger.info('Usage: .lm-switch <model-name>');
             return;
         }
         const lm = this.lm;
         if (!lm) {
-            console.log('LM client not configured');
+            this.logger.info('LM client not configured');
             return;
         }
         if (lm.setModel) {
             lm.setModel(model);
-            console.log(`✓ Switched to model: ${model}`);
+            this.logger.info(`✓ Switched to model: ${model}`);
         } else {
-            console.log('Model switching not supported by this LM client');
+            this.logger.info('Model switching not supported by this LM client');
         }
     }
 
     async askNaturalLanguage(question: string): Promise<void> {
         if (!question) {
-            console.log('Usage: .ask-nl <natural language question>');
-            console.log('Example: .ask-nl Is a bird an animal?');
+            this.logger.info('Usage: .ask-nl <natural language question>');
+            this.logger.info('Example: .ask-nl Is a bird an animal?');
             return;
         }
         try {
-            console.log(`Asking: "${question}"`);
-            const askNL = (this.nar as unknown as {askNaturalLanguage?: (q: string) => Promise<string>}).askNaturalLanguage;
+            this.logger.info(`Asking: "${question}"`);
+            const askNL = (this.nar).askNaturalLanguage?.(question);
             if (askNL) {
-                const answer = await askNL(question);
-                console.log(`\n→ ${answer}`);
+                const answer = await askNL;
+                this.logger.info(`\n→ ${answer}`);
             } else {
-                console.log('Natural language query not available');
+                this.logger.info('Natural language query not available');
             }
         } catch (error) {
-            console.log(`Error: ${errMsg(error)}`);
+            this.logger.error(`Error: ${errMsg(error)}`);
         }
     }
 
@@ -525,8 +527,7 @@ export class CommandHandlers {
         if (args[0] === 'add' && args[1]) {
             const termStr = args.slice(1).join(' ');
             const term = termParser.parse(termStr);
-            const setConstitution = (this.nar as unknown as {setConstitution?: (b: unknown[]) => void}).setConstitution;
-            setConstitution?.([{
+            this.nar.setConstitution?.([{
                 term,
                 type: 'belief' as const,
                 truth: {f: 1, c: 1},
@@ -535,23 +536,21 @@ export class CommandHandlers {
                 occurrenceTime: Date.now(),
                 derived: false
             }]);
-            console.log(`✓ Added to constitution: ${termStr}`);
+            this.logger.info(`✓ Added to constitution: ${termStr}`);
             return;
         }
-        const getConstitution = (this.nar as unknown as {getConstitution?: () => unknown[]}).getConstitution;
-        const constitution = getConstitution?.() ?? [];
+        const constitution = this.nar.getConstitution?.() ?? [];
         const lines = constitution.length === 0
             ? ['No constitution set.']
-            : constitution.slice(0, 10).map(b => (b as {term: {toString: () => string}}).term.toString());
+            : constitution.slice(0, 10).map(b => b.term.toString());
         console.log('\n' + box('Constitution (Immutable Beliefs)', lines) + '\n');
-        console.log('Usage: .constitution add <narsese-belief>');
+        this.logger.info('Usage: .constitution add <narsese-belief>');
     }
 
     showAttention(): void {
-        const getAttentionReport = (this.nar as unknown as {getAttentionReport?: () => unknown}).getAttentionReport;
-        const report = getAttentionReport?.() as {total?: number; concepts?: Array<{term?: string; priority?: number}>} | undefined;
+        const report = this.nar.getAttentionReport?.();
         if (!report) {
-            console.log('Attention report not available');
+            this.logger.info('Attention report not available');
             return;
         }
         const lines = [`Total Concepts: ${String(report.total)}`, ...(report.concepts?.slice(0, 10).map(c =>
@@ -563,13 +562,12 @@ export class CommandHandlers {
     loadDomain(args: string[]): void {
         const domain = args[0]?.toLowerCase();
         if (!domain || !DOMAINS[domain]) {
-            console.log(`Usage: .load-domain <domain>`);
-            console.log(`Available domains: ${DOMAIN_LIST}`);
+            this.logger.info(`Usage: .load-domain <domain>`);
+            this.logger.info(`Available domains: ${DOMAIN_LIST}`);
             return;
         }
 
-        const loadDomain = (this.nar as unknown as {loadDomain?: (d: {name: string; beliefs: string[]}) => void}).loadDomain;
-        loadDomain?.({name: domain, beliefs: DOMAINS[domain]});
-        console.log(`✓ Loaded ${domain} domain with ${DOMAINS[domain].length} beliefs`);
+        this.nar.loadDomain?.({name: domain, beliefs: DOMAINS[domain]});
+        this.logger.info(`✓ Loaded ${domain} domain with ${DOMAINS[domain].length} beliefs`);
     }
 }

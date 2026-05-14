@@ -18,7 +18,7 @@ export function box(title: string, lines: string[]): string {
 
 export function showStats(nar: NAR, detail?: string): void {
     const stats = nar.getStatistics();
-    const metrics = nar.getMetrics?.() || {};
+    const metrics = nar.getMetrics?.();
 
     console.log('\n╔════════════════════════════════════════════════════════╗');
     console.log('║ SeNARS Statistics                                     ║');
@@ -27,9 +27,9 @@ export function showStats(nar: NAR, detail?: string): void {
     console.log(`║ Tasks: ${String(stats.totalTasks).padEnd(49)}║`);
 
     if (detail === 'detail' || detail === 'all') {
-        const ruleExecs = (metrics as any).ruleExecutions?.total || 0;
-        const derivs = (metrics as any).derivations || 0;
-        const steps = (metrics as any).steps || 0;
+        const ruleExecs = metrics?.rules?.reduce((sum, r) => sum + r.executions, 0) ?? 0;
+        const derivs = metrics?.system?.totalDerivations ?? 0;
+        const steps = metrics?.system?.totalSteps ?? 0;
         console.log(`║ Rule Executions: ${String(ruleExecs).padEnd(41)}║`);
         console.log(`║ Derivations: ${String(derivs).padEnd(45)}║`);
         console.log(`║ Steps: ${String(steps).padEnd(51)}║`);

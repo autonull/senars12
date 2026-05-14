@@ -3,7 +3,7 @@
  * Demonstrates the Agent layer with multiple embodiments
  */
 
-import {Agent} from './Agent.js';
+import {Agent, Embodiment} from './Agent.js';
 import {WebSocketServer as WebSocketEmbodiment} from './websocket-server.js';
 import {HTTPServer} from './http-server.js';
 import {SeNARSFactory} from '../nar';
@@ -17,7 +17,7 @@ async function runAgentExample(): Promise<void> {
     const wsEmbodiment = new WebSocketEmbodiment({port: 8765});
     const httpServer = new HTTPServer({port: 8080});
 
-    const agent = new Agent(nar, [wsEmbodiment, httpServer as any]);
+    const agent = new Agent(nar, [wsEmbodiment, httpServer as unknown as Embodiment]);
 
     try {
         await agent.start();

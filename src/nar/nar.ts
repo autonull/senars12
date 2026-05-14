@@ -61,10 +61,13 @@ interface SerializedNARState {
     timestamp: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyTool = new (...args: any[]) => Tool;
+interface ToolRegistryEntry<T extends Tool = Tool> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Tool: new (...args: any[]) => T;
+    args: (keyof ToolDependency)[];
+}
 
-const TOOL_REGISTRY: Array<{ Tool: AnyTool; args: (keyof ToolDependency)[] }> = [
+const TOOL_REGISTRY: ToolRegistryEntry[] = [
     {Tool: CalculateTool, args: []},
     {Tool: SleepTool, args: []},
     {Tool: ReadFileTool, args: []},

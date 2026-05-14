@@ -1,5 +1,5 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
-import {spawn, type SpawnOptions} from 'child_process';
+import {spawn, type SpawnOptions, type ChildProcess} from 'child_process';
 
 export class ProcessTool implements Tool {
     readonly name = 'process';
@@ -17,7 +17,7 @@ export class ProcessTool implements Tool {
         required: []
     };
 
-    private processes: Map<number, { process: any; command: string; startTime: number }> = new Map();
+    private processes: Map<number, { process: ChildProcess; command: string; startTime: number }> = new Map();
 
     async execute(args: Record<string, unknown>, _context?: ToolContext): Promise<ToolResult> {
         const {action = 'run', command, args: cmdArgs = [], cwd, timeout = 30000, processId} = args as {

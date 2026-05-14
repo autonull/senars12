@@ -5,7 +5,7 @@
 
 export interface WSMessage {
     type: string;
-    data?: any;
+    data?: unknown;
     id?: string;
 }
 
@@ -23,7 +23,7 @@ export interface WSResponse<T> {
 export interface WSEvent {
     type: 'event';
     event: string;
-    data: any;
+    data: unknown;
     timestamp: number;
 }
 
@@ -41,10 +41,10 @@ export class SeNARSClient {
     private ws: WebSocket | null = null;
     private messageId = 0;
     private pendingRequests: Map<string, {
-        resolve: (data: any) => void;
+        resolve: (data: unknown) => void;
         reject: (error: Error) => void;
     }> = new Map();
-    private eventHandlers: Map<string, Set<(data: any) => void>> = new Map();
+    private eventHandlers: Map<string, Set<(data: unknown) => void>> = new Map();
     private reconnectAttempts = 0;
     private maxReconnectAttempts = 5;
     private reconnectDelay = 1000;
@@ -73,7 +73,7 @@ export class SeNARSClient {
             };
 
             this.ws.onmessage = (event) => {
-                const message = JSON.parse(event.data) as WSResponse<any> | WSEvent;
+                const message = JSON.parse(event.data) as WSResponse<unknown> | WSEvent;
 
                 if (message.type === 'success' || message.type === 'error') {
                     const pending = message.id ? this.pendingRequests.get(message.id) : null;
@@ -115,7 +115,7 @@ export class SeNARSClient {
     }
 
     async getConcepts(filter?: ConceptFilter, pagination?: PaginationParams): Promise<{
-        results: any[];
+        results: unknown[];
         count: number
     }> {
         return this.sendMessage('concepts', {filter, pagination});
@@ -125,7 +125,7 @@ export class SeNARSClient {
         return this.sendMessage('run', {steps});
     }
 
-    async query(term: string, filter?: Record<string, unknown>): Promise<{ results: any[]; count: number }> {
+    async query(term: string, filter?: Record<string, unknown>): Promise<{ results: unknown[]; count: number }> {
         return this.sendMessage('query', {term, filter});
     }
 
@@ -141,7 +141,7 @@ export class SeNARSClient {
         return this.sendMessage('attention');
     }
 
-    async getHistory(limit?: number): Promise<{ tasks: any[]; count: number }> {
+    async getHistory(limit?: number): Promise<{ tasks: unknown[]; count: number }> {
         return this.sendMessage('history', {limit});
     }
 
@@ -154,14 +154,14 @@ export class SeNARSClient {
         await this.sendMessage('unsubscribe', {events});
     }
 
-    on(event: string, handler: (data: any) => void): void {
+    on(event: string, handler: (data: unknown) => void): void {
         if (!this.eventHandlers.has(event)) {
             this.eventHandlers.set(event, new Set());
         }
         this.eventHandlers.get(event)!.add(handler);
     }
 
-    off(event: string, handler: (data: any) => void): void {
+    off(event: string, handler: (data: unknown) => void): void {
         this.eventHandlers.get(event)?.delete(handler);
     }
 
@@ -178,7 +178,7 @@ export class SeNARSClient {
         setTimeout(() => this.connect(), delay);
     }
 
-    private sendMessage<T>(type: string, data?: any): Promise<T> {
+    private sendMessage<T>(type: string, data?: unknown): Promise<T> {
         return new Promise((resolve, reject) => {
             if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
                 reject(new Error('Not connected'));
@@ -186,7 +186,7 @@ export class SeNARSClient {
             }
 
             const id = `req-${++this.messageId}`;
-            this.pendingRequests.set(id, {resolve, reject});
+            this.pendingRequests.set(id, {resolve: resolve as (data: unknown) => void, reject});
 
             const message: WSMessage = {type, data, id};
             this.ws.send(JSON.stringify(message));
