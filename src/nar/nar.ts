@@ -50,25 +50,30 @@ export interface NARConfig extends CoreConfig {
   enableLMStreaming?: boolean;
 }
 
+interface ToolDependency {
+  memory: Memory;
+  nar: NAR;
+}
+
 interface SerializedNARState {
   concepts: Array<{ term: string; priority: number }>;
   config: NARConfig;
   timestamp: string;
 }
 
-const TOOL_REGISTRY = [
-  {Tool: CalculateTool, args: [] as const},
-  {Tool: SleepTool, args: [] as const},
-  {Tool: ReadFileTool, args: [] as const},
-  {Tool: WriteFileTool, args: [] as const},
-  {Tool: HTTPTool, args: [] as const},
-  {Tool: SearchTool, args: ['memory'] as const},
-  {Tool: ReasonTool, args: ['nar'] as const},
-  {Tool: ExplainTool, args: ['memory'] as const},
-  {Tool: LearnTool, args: ['memory'] as const},
-  {Tool: TimerTool, args: [] as const},
-  {Tool: ProcessTool, args: [] as const}
-] as const;
+const TOOL_REGISTRY: Array<{ Tool: new (...args: unknown[]) => Tool; args: (keyof ToolDependency)[] }> = [
+  {Tool: CalculateTool, args: []},
+  {Tool: SleepTool, args: []},
+  {Tool: ReadFileTool, args: []},
+  {Tool: WriteFileTool, args: []},
+  {Tool: HTTPTool, args: []},
+  {Tool: SearchTool, args: ['memory']},
+  {Tool: ReasonTool, args: ['nar']},
+  {Tool: ExplainTool, args: ['memory']},
+  {Tool: LearnTool, args: ['memory']},
+  {Tool: TimerTool, args: []},
+  {Tool: ProcessTool, args: []}
+];
 
 export class NAR extends BaseComponent {
   readonly memory: Memory;
@@ -432,11 +437,11 @@ Only output the answer, nothing else.`;
       return;
     }
 
-    const toolDeps: Record<string, any> = {memory: this.memory, nar: this};
+    const toolDeps: ToolDependency = {memory: this.memory, nar: this};
 
     for (const {Tool, args} of TOOL_REGISTRY) {
-      const toolArgs = args.map(arg => toolDeps[arg] ?? []).filter(Boolean);
-      this.tools.register(new (Tool as any)(...toolArgs));
+      const toolArgs = args.map(arg => toolDeps[arg]).filter(Boolean);
+      this.tools.register(new Tool(...toolArgs));
     }
 
     this._toolsInitialized = true;

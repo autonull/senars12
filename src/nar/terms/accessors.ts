@@ -2,16 +2,16 @@ import type {AtomicTerm, CompoundTerm, OperatorKey, Term} from './types.js';
 import {OPERATORS} from './operators.js';
 
 export const getSubject = (term: Term): Term | undefined =>
-    term.kind === 'inheritance' || term.kind === 'similarity' ? term.args![0] : undefined;
+    term.kind === 'inheritance' || term.kind === 'similarity' ? term.args?.[0] : undefined;
 
 export const getPredicate = (term: Term): Term | undefined =>
-    term.kind === 'inheritance' || term.kind === 'similarity' ? term.args![1] : undefined;
+    term.kind === 'inheritance' || term.kind === 'similarity' ? term.args?.[1] : undefined;
 
 export const getAntecedent = (term: Term): Term | undefined =>
-    term.kind === 'implication' || term.kind === 'equivalence' ? term.args![0] : undefined;
+    term.kind === 'implication' || term.kind === 'equivalence' ? term.args?.[0] : undefined;
 
 export const getConsequent = (term: Term): Term | undefined =>
-    term.kind === 'implication' || term.kind === 'equivalence' ? term.args![1] : undefined;
+    term.kind === 'implication' || term.kind === 'equivalence' ? term.args?.[1] : undefined;
 
 export const getArgs = (term: Term): readonly Term[] =>
     term.kind === 'atom' ? [] : term.args ?? [];

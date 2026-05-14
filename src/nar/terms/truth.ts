@@ -32,11 +32,13 @@ const unaryOp = (fn: (f: number, c: number) => [number, number]) =>
 
 const c2w = (c: number): number => c === 1 ? 1e10 : c / (1 - c);
 const w2c = (w: number): number => w / (w + 1);
-const conversion = unaryOp((f, c) => [f, f * c]);
-const computeExpectation = (t: Truth): number => t.c * (t.f - 0.5) + 0.5;
 
 export const Truth = {
-    create: createTruth,
+    create: (f: number, c: number): Truth =>
+        Object.freeze({
+            f: Math.max(0, Math.min(1, isNaN(f) ? 0.5 : f)),
+            c: Math.max(0, Math.min(1, isNaN(c) ? 0.9 : c))
+        }),
 
     TRUE: Object.freeze({f: 1.0, c: 0.9}) as Truth,
     FALSE: Object.freeze({f: 0.0, c: 0.9}) as Truth,
@@ -49,7 +51,7 @@ export const Truth = {
     expectation: (t: Truth): number => t.c * (t.f - 0.5) + 0.5,
 
     harshness: (t: Truth): number => {
-        const exp = computeExpectation(t);
+        const exp = Truth.expectation(t);
         return (1 - t.c) * (1 - exp) + t.c * exp;
     },
 
@@ -104,8 +106,8 @@ export const Truth = {
     }),
 
     choice: (t1: Truth, t2: Truth): Truth => {
-        const exp1 = computeExpectation(t1);
-        const exp2 = computeExpectation(t2);
+        const exp1 = Truth.expectation(t1);
+        const exp2 = Truth.expectation(t2);
         return t1 === undefined ? t2! : t2 === undefined ? t1 : exp1 > exp2 ? t1 : t2;
     },
 
@@ -119,14 +121,11 @@ export const Truth = {
         return [(f1 * w1 + f2 * w2) / w, w2c(w)];
     }),
 
-    isStronger: (t1: Truth, t2: Truth): boolean => {
-        const exp1 = computeExpectation(t1);
-        const exp2 = computeExpectation(t2);
-        return exp1 > exp2;
-    },
+    isStronger: (t1: Truth, t2: Truth): boolean =>
+        Truth.expectation(t1) > Truth.expectation(t2),
     weak: (c: number): number => clamp(c / (c + WEAKENING_FACTOR), 0, 1),
-    c2w: (c: number): number => c === 1 ? 1e10 : c / (1 - c),
-    w2c: (w: number): number => w / (w + 1),
+    c2w,
+    w2c,
 
     serialize: (t: Truth): string => `%${t.f.toFixed(4)};${t.c.toFixed(4)}%`,
 
@@ -139,14 +138,14 @@ export const Truth = {
         Math.abs(t1.f - t2.f) < epsilon && Math.abs(t1.c - t2.c) < epsilon,
 
     compare: (t1: Truth, t2: Truth): number => {
-        const exp1 = computeExpectation(t1);
-        const exp2 = computeExpectation(t2);
+        const exp1 = Truth.expectation(t1);
+        const exp2 = Truth.expectation(t2);
         return Math.abs(exp1 - exp2) < 1e-9 ? 0 : exp1 > exp2 ? 1 : -1;
     },
 
     conversionChain: (t: Truth, steps: number): Truth => {
         let result = t;
-        for (let i = 0; i < steps; i++) result = conversion(result);
+        for (let i = 0; i < steps; i++) result = Truth.conversion(result);
         return result;
     },
 

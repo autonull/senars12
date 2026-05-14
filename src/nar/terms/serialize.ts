@@ -2,77 +2,51 @@ import type {Term} from './types.js';
 import {OPERATORS} from './operators.js';
 import {termParser} from './parser.js';
 
+const serializeBinaryOp = (term: Term, op: string): string => {
+    const [a, b] = term.args ?? [];
+    return a && b ? `(${serialize(a)} ${op} ${serialize(b)})` : '';
+};
+
+const serializeUnaryOp = (term: Term, prefix: string, suffix = ''): string => {
+    const arg = term.args?.[0];
+    return arg ? `${prefix}${serialize(arg)}${suffix}` : '';
+};
+
 const serialize = (term: Term): string => {
     switch (term.kind) {
         case 'atom':
             return term.symbol;
         case 'inheritance':
-        case 'similarity': {
-            const [sub, pred] = term.args ?? [];
-            if (!sub || !pred) return '';
-            const op = OPERATORS[term.kind]?.symbol;
-            if (!op) return '';
-            return `(${serialize(sub)} ${op} ${serialize(pred)})`;
-        }
+        case 'similarity':
+            return serializeBinaryOp(term, OPERATORS[term.kind]?.symbol ?? '');
         case 'conjunction':
             return (term.args ?? []).length === 0
                 ? 'TRUE'
                 : `(${term.args.map(serialize).join(' & ')})`;
         case 'disjunction':
             return `(${(term.args ?? []).map(serialize).join(' | ')})`;
-        case 'negation': {
-            const arg = term.args?.[0];
-            if (!arg) return '';
-            return `(--${serialize(arg)})`;
-        }
+        case 'negation':
+            return serializeUnaryOp(term, '--', ')');
         case 'implication':
-        case 'equivalence': {
-            const [a, c] = term.args ?? [];
-            if (!a || !c) return '';
-            const op = OPERATORS[term.kind]?.symbol;
-            if (!op) return '';
-            return `(${serialize(a)} ${op} ${serialize(c)})`;
-        }
-        case 'instance': {
-            const arg = term.args?.[0];
-            if (!arg) return '';
-            return `{${serialize(arg)}}`;
-        }
-        case 'property': {
-            const arg = term.args?.[0];
-            if (!arg) return '';
-            return `[${serialize(arg)}]`;
-        }
-        case 'sequence': {
-            const [a, b] = term.args ?? [];
-            if (!a || !b) return '';
-            return `(${serialize(a)} ,/ ${serialize(b)})`;
-        }
-        case 'parallel': {
-            const [a, b] = term.args ?? [];
-            if (!a || !b) return '';
-            return `(${serialize(a)} || ${serialize(b)})`;
-        }
-        case 'predictive': {
-            const [a, b] = term.args ?? [];
-            if (!a || !b) return '';
-            return `(${serialize(a)} /> ${serialize(b)})`;
-        }
-        case 'retrospective': {
-            const [a, b] = term.args ?? [];
-            if (!a || !b) return '';
-            return `(${serialize(a)} /< ${serialize(b)})`;
-        }
-        case 'operation': {
-            const [op, input] = term.args ?? [];
-            if (!op || !input) return '';
-            return `(${serialize(op)} ^ ${serialize(input)})`;
-        }
+        case 'equivalence':
+            return serializeBinaryOp(term, OPERATORS[term.kind]?.symbol ?? '');
+        case 'instance':
+            return serializeUnaryOp(term, '{', '}');
+        case 'property':
+            return serializeUnaryOp(term, '[', ']');
+        case 'sequence':
+            return serializeBinaryOp(term, ',/');
+        case 'parallel':
+            return serializeBinaryOp(term, '||');
+        case 'predictive':
+            return serializeBinaryOp(term, '/>');
+        case 'retrospective':
+            return serializeBinaryOp(term, '/<');
+        case 'operation':
+            return serializeBinaryOp(term, '^');
         default: {
             const t = term as { args?: readonly Term[] };
-            return t.args
-                ? `(${t.args.map(serialize).join(', ')})`
-                : '';
+            return t.args ? `(${t.args.map(serialize).join(', ')})` : '';
         }
     }
 };

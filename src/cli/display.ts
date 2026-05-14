@@ -56,45 +56,41 @@ export function listConcepts(nar: NAR): void {
 }
 
 export function showHelp(): void {
-    console.log(`
-  ╔══════════════════════════════════════════════════╗
-  ║ SeNARS CLI Commands                              ║
-  ╠══════════════════════════════════════════════════╣
-  ║ (term).            Add belief                    ║
-  ║ (term)?            Ask question                  ║
-  ║ { ... }.           Multi-line input              ║
-  ║ .run [n]           Run n inference steps         ║
-  ║ .stats [detail]    Show statistics               ║
-  ║ .concepts [f]      List concepts (filter)        ║
-  ║ .rules             List registered rules         ║
-  ║ .tools [f]         List available tools          ║
-  ║ .query <term>      Query memory                  ║
-  ║ .trace <term>      Show derivation history       ║
-  ║ .explain <term>    Explain why derived           ║
-  ║ .config [k] [v]    View/set config               ║
-  ║ .clear             Clear memory                  ║
-  ║ .load <file>       Load Narsese file             ║
-  ║ .save <file>       Save memory to JSON           ║
-  ║ .profile [cmd]     Performance profiling         ║
-  ╠══════════════════════════════════════════════════╣
-  ║ Self/Metacognition:                              ║
-  ║ .self              Show self status              ║
-  ║ .meta              Show meta-analysis            ║
-  ║ .optimize          Apply optimizations now       ║
-  ╠══════════════════════════════════════════════════╣
-  ║ RLFP:                                            ║
-  ║ .prefer A B        Record A > B preference       ║
-  ║ .reward            Show reward status            ║
-  ║ .rlfp-stats        Show RLFP statistics          ║
-  ╠══════════════════════════════════════════════════╣
-  ║ LM:                                              ║
-  ║ .lm-status         Show LM status                ║
-  ║ .lm-switch <m>     Switch LM model               ║
-  ╠══════════════════════════════════════════════════╣
-  ║ .help [cmd]        Show help                     ║
-  ║ .quit              Exit                          ║
-  ╚══════════════════════════════════════════════════╝
-`);
+    console.log(box('SeNARS CLI Commands', [
+        '(term).            Add belief',
+        '(term)?            Ask question',
+        '{ ... }.           Multi-line input',
+        '.run [n]           Run n inference steps',
+        '.stats [detail]    Show statistics',
+        '.concepts [f]      List concepts (filter)',
+        '.rules             List registered rules',
+        '.tools [f]         List available tools',
+        '.query <term>      Query memory',
+        '.trace <term>      Show derivation history',
+        '.explain <term>    Explain why derived',
+        '.config [k] [v]    View/set config',
+        '.clear             Clear memory',
+        '.load <file>       Load Narsese file',
+        '.save <file>       Save memory to JSON',
+        '.profile [cmd]     Performance profiling',
+        '',
+        'Self/Metacognition:',
+        '.self              Show self status',
+        '.meta              Show meta-analysis',
+        '.optimize          Apply optimizations now',
+        '',
+        'RLFP:',
+        '.prefer A B        Record A > B preference',
+        '.reward            Show reward status',
+        '.rlfp-stats        Show RLFP statistics',
+        '',
+        'LM:',
+        '.lm-status         Show LM status',
+        '.lm-switch <m>     Switch LM model',
+        '',
+        '.help [cmd]        Show help',
+        '.quit              Exit',
+    ]));
 }
 
 const COMMAND_HELP: Record<string, string> = {

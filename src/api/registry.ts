@@ -5,12 +5,12 @@
 
 import { z } from 'zod';
 
-export interface HandlerMeta {
+export interface HandlerMeta<T = unknown> {
   name: string;
   description: string;
-  params: z.ZodSchema;
+  params: z.ZodSchema<T>;
   returns: z.ZodSchema;
-  handler: (args: any) => Promise<any>;
+  handler: (args: T) => Promise<unknown>;
 }
 
 export interface APISpec {
@@ -39,8 +39,8 @@ export class APIRegistry {
     schema: {
       description: string;
       params: z.ZodSchema<T>;
-      returns: z.ZodSchema;
-      handler: (args: T) => Promise<any>;
+      returns: z.ZodSchema<unknown>;
+      handler: (args: T) => Promise<unknown>;
     }
   ): void {
     this.handlers.set(name, {
@@ -52,8 +52,8 @@ export class APIRegistry {
     });
   }
 
-  async invoke(name: string, args: any): Promise<any> {
-    const handler = this.handlers.get(name);
+  async invoke<T>(name: string, args: T): Promise<unknown> {
+    const handler = this.handlers.get(name) as HandlerMeta<T> | undefined;
     if (!handler) {
       throw new Error(`Handler ${name} not found`);
     }
@@ -73,8 +73,8 @@ export class APIRegistry {
     return new Map(this.handlers);
   }
 
-  getSpec(): Record<string, any> {
-    const spec: Record<string, any> = {};
+  getSpec(): Record<string, { name: string; description: string; params: z.ZodSchema; returns: z.ZodSchema }> {
+    const spec: Record<string, { name: string; description: string; params: z.ZodSchema; returns: z.ZodSchema }> = {};
     for (const [name, meta] of this.handlers) {
       spec[name] = {
         name: meta.name,
@@ -86,7 +86,7 @@ export class APIRegistry {
     return spec;
   }
 
-  getOpenAPISpec(): Record<string, any> {
+  getOpenAPISpec(): { openapi: string; info: { title: string; version: string; description: string }; paths: Record<string, unknown> } {
     return {
       openapi: '3.0.0',
       info: {
@@ -113,23 +113,23 @@ export class APIRegistry {
           },
         };
         return acc;
-      }, {} as Record<string, any>),
+      }, {} as Record<string, unknown>),
     };
   }
 }
 
-export function apiMethod(config: {
+export function apiMethod<T>(config: {
   description: string;
-  params: z.ZodSchema;
-  returns: z.ZodSchema;
+  params: z.ZodSchema<T>;
+  returns: z.ZodSchema<unknown>;
 }) {
-  return (target: any, propertyKey: string) => {
+  return (target: Record<string, unknown>, propertyKey: string) => {
     const registry = APIRegistry.getInstance();
     registry.register(propertyKey, {
       description: config.description,
       params: config.params,
       returns: config.returns,
-      handler: target[propertyKey].bind(target),
+      handler: target[propertyKey] as (args: T) => Promise<unknown>,
     });
   };
 }

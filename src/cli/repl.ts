@@ -4,7 +4,7 @@
  */
 
 import {NAR, SeNARSFactory} from '../nar';
-import * as readline from 'readline';
+import {createInterface, Interface} from 'readline';
 import {HistoryManager} from './history';
 import {ProfileManager} from './profile';
 import {listConcepts, showCommandHelp, showStats} from './display';
@@ -22,11 +22,21 @@ interface CLIConfig {
 class SeNARSCLI {
     private readonly nar: NAR;
     private config: CLIConfig;
-    private rl: readline.Interface;
+    private rl: Interface;
     private history: HistoryManager;
     private profile: ProfileManager;
     private multiLineBuffer: string[] = [];
     private inMultiLine = false;
+
+    private readonly box = (title: string, lines: string[]): string => {
+        const width = Math.max(title.length + 4, ...lines.map(l => l.length + 4), 50);
+        const h = '═'.repeat(width - 2);
+        return `╔${h}╗\n║ ${title.padEnd(width - 3)}║\n╠${h}╣\n${lines.map(l => `║ ${l.padEnd(width - 3)}║`).join('\n')}\n╚${h}╝`;
+    };
+
+    private readonly withError = async (fn: () => Promise<void>, fallback: string): Promise<void> => {
+        try { await fn(); } catch (error) { console.log(`Error: ${errMsg(error)}`); }
+    };
 
     constructor(config: Partial<CLIConfig> = {}) {
         this.config = {
@@ -43,7 +53,7 @@ class SeNARSCLI {
         this.history = new HistoryManager();
         this.profile = new ProfileManager();
 
-        this.rl = readline.createInterface({
+        this.rl = createInterface({
             input: process.stdin,
             output: process.stdout,
             prompt: 'senars> ',
@@ -484,16 +494,16 @@ class SeNARSCLI {
             console.log('Self/Metacognition is not enabled');
             return;
         }
-        console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ Self/Metacognition Status                         ║');
-        console.log('╠══════════════════════════════════════════════════╣');
-        console.log(`║ Running: ${((self as any).isRunning ? 'Yes' : 'No').padEnd(44)}║`);
-        const analysis = (self as any).getSystemAnalysis?.();
-        if (analysis) {
-            console.log(`║ Cycles: ${String(analysis.cycleCount ?? 'N/A').padEnd(45)}║`);
-            console.log(`║ Strategies: ${String(analysis.strategies?.length ?? 0).padEnd(42)}║`);
-        }
-        console.log('╚══════════════════════════════════════════════════╝\n');
+        const isRunning = (self as { isRunning?: boolean }).isRunning ?? false;
+        const analysis = (self as { getSystemAnalysis?: () => unknown }).getSystemAnalysis?.();
+        const lines = [
+            `Running: ${isRunning ? 'Yes' : 'No'}`,
+            ...analysis ? [
+                `Cycles: ${String((analysis as { cycleCount?: number }).cycleCount ?? 'N/A')}`,
+                `Strategies: ${String((analysis as { strategies?: unknown[] }).strategies?.length ?? 0)}`
+            ] : []
+        ];
+        console.log('\n' + this.box('Self/Metacognition Status', lines) + '\n');
     }
 
     private showMetaAnalysis(): void {
@@ -502,25 +512,26 @@ class SeNARSCLI {
             console.log('Self/Metacognition is not enabled');
             return;
         }
-        const analysis = (self as any).getSystemAnalysis?.();
+        const analysis = (self as { getSystemAnalysis?: () => unknown }).getSystemAnalysis?.();
         if (!analysis) {
             console.log('No analysis available yet');
             return;
         }
-        console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ Meta-Analysis Report                              ║');
-        console.log('╠══════════════════════════════════════════════════╣');
-        console.log(`║ Cycle Count: ${String(analysis.cycleCount ?? 0).padEnd(40)}║`);
-        if (analysis.reasoningQuality) {
-            console.log(`║ Reasoning Quality: ${analysis.reasoningQuality.toFixed(2).padEnd(38)}║`);
+        const lines: string[] = [
+            `Cycle Count: ${String((analysis as { cycleCount?: number }).cycleCount ?? 0)}`
+        ];
+        const reasoningQuality = (analysis as { reasoningQuality?: number }).reasoningQuality;
+        if (reasoningQuality) {
+            lines.push(`Reasoning Quality: ${reasoningQuality.toFixed(2)}`);
         }
-        if (analysis.strategies?.length) {
-            console.log('║ Strategy Performance:');
-            for (const s of analysis.strategies.slice(0, 3)) {
-                console.log(`║ - ${s.name || 'unknown'}: ${s.efficiency?.toFixed(2) ?? 'N/A'}`);
+        const strategies = (analysis as { strategies?: Array<{ name?: string; efficiency?: number }> }).strategies;
+        if (strategies?.length) {
+            lines.push('Strategy Performance:');
+            for (const s of strategies.slice(0, 3)) {
+                lines.push(` - ${s.name || 'unknown'}: ${s.efficiency?.toFixed(2) ?? 'N/A'}`);
             }
         }
-        console.log('╚══════════════════════════════════════════════════╝\n');
+        console.log('\n' + this.box('Meta-Analysis Report', lines) + '\n');
     }
 
     private async runOptimization(): Promise<void> {
@@ -558,12 +569,8 @@ class SeNARSCLI {
             console.log('RLFP not enabled');
             return;
         }
-        console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ RLFP Reward Status                                ║');
-        console.log('╠══════════════════════════════════════════════════╣');
-        const prefs = (rlfp as any).preferences?.length ?? 0;
-        console.log(`║ Preferences: ${String(prefs).padEnd(43)}║`);
-        console.log('╚══════════════════════════════════════════════════╝\n');
+        const prefs = (rlfp as { preferences?: unknown[] }).preferences?.length ?? 0;
+        console.log('\n' + this.box('RLFP Reward Status', [`Preferences: ${prefs}`]) + '\n');
     }
 
     private showRLFPStats(): void {
@@ -572,13 +579,12 @@ class SeNARSCLI {
             console.log('RLFP not enabled');
             return;
         }
-        console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ RLFP Statistics                                   ║');
-        console.log('╠══════════════════════════════════════════════════╣');
-        console.log(`║ Preferences: ${String((rlfp as any).preferences?.length ?? 0).padEnd(43)}║`);
-        console.log(`║ Trajectories: ${String((rlfp as any).trajectoryCount ?? 0).padEnd(41)}║`);
-        console.log(`║ Last Optimization: ${((rlfp as any).lastOptimizeTime ? new Date((rlfp as any).lastOptimizeTime).toLocaleTimeString() : 'Never').padEnd(26)}║`);
-        console.log('╚══════════════════════════════════════════════════╝\n');
+        const rlfpAny = rlfp as { preferences?: unknown[]; trajectoryCount?: number; lastOptimizeTime?: number };
+        console.log('\n' + this.box('RLFP Statistics', [
+            `Preferences: ${String(rlfpAny.preferences?.length ?? 0)}`,
+            `Trajectories: ${String(rlfpAny.trajectoryCount ?? 0)}`,
+            `Last Optimization: ${rlfpAny.lastOptimizeTime ? new Date(rlfpAny.lastOptimizeTime).toLocaleTimeString() : 'Never'}`
+        ]) + '\n');
     }
 
     private showLMStatus(): void {
@@ -587,13 +593,12 @@ class SeNARSCLI {
             console.log('LM client not configured');
             return;
         }
-        console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ LM Status                                         ║');
-        console.log('╠══════════════════════════════════════════════════╣');
-        console.log(`║ Provider: ${String((lm as any).provider ?? 'unknown').padEnd(43)}║`);
-        console.log(`║ Model: ${String((lm as any).model ?? 'unknown').padEnd(45)}║`);
-        console.log(`║ Available: ${String((lm as any).available ? 'Yes' : 'No').padEnd(41)}║`);
-        console.log('╚══════════════════════════════════════════════════╝\n');
+        const lmAny = lm as { provider?: string; model?: string; available?: boolean };
+        console.log('\n' + this.box('LM Status', [
+            `Provider: ${String(lmAny.provider ?? 'unknown')}`,
+            `Model: ${String(lmAny.model ?? 'unknown')}`,
+            `Available: ${lmAny.available ? 'Yes' : 'No'}`
+        ]) + '\n');
     }
 
     private switchLMModel(model: string | undefined): void {

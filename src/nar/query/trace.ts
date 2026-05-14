@@ -1,5 +1,6 @@
 import type {Term} from '../terms';
-import type {Task} from '../types';
+import type {Task, Budget, Stamp} from '../types';
+import type {Concept} from '../memory';
 
 export interface DerivationNode {
     task: Task;
@@ -29,11 +30,24 @@ export interface ExplainResult {
     why: string;
 }
 
+interface BeliefEntry {
+    truth?: { f: number; c: number };
+    budget?: Budget;
+    stamp?: Stamp;
+    occurrenceTime?: number;
+    derived?: boolean;
+}
+
+export interface MemoryReader {
+    getConcept(term: Term): Concept | undefined;
+    getRelatedConcepts(term: Term, limit?: number): Concept[];
+}
+
 export class ReasoningTrace {
-    private readonly memory: any;
+    private readonly memory: MemoryReader;
     private readonly derivationHistory: Map<string, DerivationNode> = new Map();
 
-    constructor(memory: any) {
+    constructor(memory: MemoryReader) {
         this.memory = memory;
     }
 
@@ -53,14 +67,15 @@ export class ReasoningTrace {
 
             if (concept.beliefBag) {
                 for (const belief of concept.beliefBag.toArray()) {
+                    const entry = belief as BeliefEntry;
                     history.push({
                         term: concept.term,
                         type: 'belief',
-                        truth: belief.truth,
-                        budget: belief.budget,
-                        stamp: (belief as any).stamp,
-                        occurrenceTime: (belief as any).occurrenceTime || Date.now(),
-                        derived: (belief as any).derived || false
+                        truth: entry.truth,
+                        budget: entry.budget,
+                        stamp: entry.stamp,
+                        occurrenceTime: entry.occurrenceTime || Date.now(),
+                        derived: entry.derived || false
                     } as Task);
                 }
             }
@@ -216,6 +231,6 @@ private collectDerivationHistory(task: Task, history: Task[], visited: Set<strin
     }
 }
 
-export const createReasoningTrace = (memory: any): ReasoningTrace => {
+export const createReasoningTrace = (memory: MemoryReader): ReasoningTrace => {
     return new ReasoningTrace(memory);
 };
