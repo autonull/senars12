@@ -149,10 +149,11 @@ export class ReasoningTrace {
         return path.reverse();
     }
 
-    private populateChildren(node: DerivationNode, visited: Set<string>): void {
-        const stampId = node.task.stamp.id;
-        if (visited.has(stampId)) return;
-        visited.add(stampId);
+private populateChildren(node: DerivationNode, visited: Set<string>): void {
+    if (!node.task.stamp?.id) return;
+    const stampId = node.task.stamp.id;
+    if (visited.has(stampId)) return;
+    visited.add(stampId);
 
         const derivationIds = node.task.stamp.derivations || [];
         if (derivationIds.length === 0) return;
@@ -191,12 +192,13 @@ export class ReasoningTrace {
         return count;
     }
 
-    private collectDerivationHistory(task: Task, history: Task[], visited: Set<string>): void {
-        const key = task.stamp.id;
+private collectDerivationHistory(task: Task, history: Task[], visited: Set<string>): void {
+    if (!task.stamp?.id) return;
+    const key = task.stamp.id;
 
-        if (visited.has(key)) {
-            return;
-        }
+    if (visited.has(key)) {
+      return;
+    }
 
         visited.add(key);
         history.push(task);

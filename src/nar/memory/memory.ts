@@ -149,9 +149,9 @@ export class Memory {
         const concept = this.concepts.get(term);
         if (!concept) return results;
 
-        const links = this.linkManager.getLinksForTerm(term);
-        for (const link of links.slice(0, limit)) {
-            const linkedConcept = this.concepts.get(link.to);
+const links = this.linkManager.getLinks(term);
+    for (const link of links.slice(0, limit)) {
+      const linkedConcept = this.concepts.get(link.targetTerm);
             if (linkedConcept) {
                 results.push(linkedConcept);
             }

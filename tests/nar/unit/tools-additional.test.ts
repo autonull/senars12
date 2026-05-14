@@ -270,25 +270,34 @@ describe('ProcessTool', () => {
         expect(result.success).toBe(false);
     });
 
-    it('should kill process', async () => {
-        const startResult = await processTool.execute({
-            action: 'run',
-            command: 'sleep',
-            args: ['10']
-        });
-
-        if (startResult.success && startResult.content) {
-            const content = startResult.content as any;
-            const pid = content.pid;
-
-            const killResult = await processTool.execute({
-                action: 'kill',
-                processId: pid
-            });
-
-            expect(killResult.success).toBe(true);
-        }
+  it('should kill process', async () => {
+    const startPromise = processTool.execute({
+      action: 'run',
+      command: 'sleep',
+      args: ['10']
     });
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const listResult = await processTool.execute({ action: 'list' });
+    if (listResult.success && listResult.content) {
+      const content = listResult.content as any;
+      if (content.processes && content.processes.length > 0) {
+        const pid = content.processes[0].pid;
+        const killResult = await processTool.execute({
+          action: 'kill',
+          processId: pid
+        });
+        expect(killResult.success).toBe(true);
+      }
+    }
+
+    try {
+      await startPromise;
+    } catch {
+      // Ignore if process was killed
+    }
+  }, 5000);
 
     it('should handle killing non-existent process', async () => {
         const result = await processTool.execute({
@@ -335,15 +344,15 @@ describe('LearnTool', () => {
         expect(result.success).toBe(true);
     });
 
-    it('should handle invalid narsese', async () => {
-        const result = await learnTool.execute({
-            knowledge: 'invalid narsese statement',
-            type: 'belief'
-        });
-
-        expect(result.success).toBe(false);
-        expect(result.error).toBeDefined();
+  it('should handle invalid narsese', async () => {
+    const result = await learnTool.execute({
+      knowledge: '(unclosed statement',
+      type: 'belief'
     });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
 
     it('should learn goal', async () => {
         const result = await learnTool.execute({
@@ -404,15 +413,15 @@ describe('ReasonTool', () => {
         expect(result.content).toBeDefined();
     });
 
-    it('should handle invalid statement', async () => {
-        const result = await reasonTool.execute({
-            statement: 'invalid statement',
-            type: 'belief'
-        });
-
-        expect(result.success).toBe(false);
-        expect(result.error).toBeDefined();
+  it('should handle invalid statement', async () => {
+    const result = await reasonTool.execute({
+      statement: '(unclosed statement',
+      type: 'belief'
     });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
 
     it('should handle goal type', async () => {
         const result = await reasonTool.execute({
