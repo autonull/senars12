@@ -140,21 +140,42 @@ export class Memory {
         return this.concepts.size;
     }
 
-  getConcept(term: Term): Concept | undefined {
-    return this.concepts.get(term);
-  }
+getConcept(term: Term): Concept | undefined {
+return this.concepts.get(term);
+}
 
-  findConcepts(pattern: string, limit: number = 10): Concept[] {
-    const results: Concept[] = [];
-    const patternLower = pattern.toLowerCase();
-    for (const concept of this.concepts.values()) {
-      if (concept.term.toString().toLowerCase().includes(patternLower)) {
-        results.push(concept);
-        if (results.length >= limit) break;
-      }
-    }
-    return results;
-  }
+getRelatedConcepts(term: Term, limit: number = 10): Concept[] {
+const results: Concept[] = [];
+const concept = this.concepts.get(term);
+if (!concept) return results;
+
+const links = this.linkManager.getLinksForTerm(term);
+for (const link of links.slice(0, limit)) {
+const linkedConcept = this.concepts.get(link.to);
+if (linkedConcept) {
+results.push(linkedConcept);
+}
+}
+
+if (results.length === 0) {
+const similar = this.findSimilarConcepts(term, limit);
+results.push(...similar);
+}
+
+return results.slice(0, limit);
+}
+
+findConcepts(pattern: string, limit: number = 10): Concept[] {
+const results: Concept[] = [];
+const patternLower = pattern.toLowerCase();
+for (const concept of this.concepts.values()) {
+if (concept.term.toString().toLowerCase().includes(patternLower)) {
+results.push(concept);
+if (results.length >= limit) break;
+}
+}
+return results;
+}
 
   getLinkManager(): LinkManager {
         return this.linkManager;

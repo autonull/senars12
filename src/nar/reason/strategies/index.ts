@@ -125,29 +125,28 @@ export const TaskMatchStrategy: Strategy = createStrategy({
 });
 
 export const DecompositionStrategy: Strategy = {
-    name: 'decomposition',
-    selectSecondary(task, memory) {
-        const results: Task[] = [];
-        if (task.term.kind !== 'conjunction') return results;
+name: 'decomposition',
+selectSecondary(task, memory) {
+const results: Task[] = [];
+if (task.term.kind !== 'conjunction') return results;
 
-        for (const arg of task.term.args) {
-            const concept = memory.getConcept(arg);
-            if (!concept) continue;
-            const belief = concept.beliefBag.peek();
-            if (!belief) continue;
+for (const arg of task.term.args) {
+const concept = memory.getConcept(arg);
+const truth = concept?.beliefBag.peek()?.truth ?? Truth.NEUTRAL;
+const priority = concept?.priority ?? 0.5;
 
-            results.push({
-                term: arg,
-                type: 'belief' as const,
-                truth: belief.truth ?? Truth.NEUTRAL,
-                budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-                stamp: Object.freeze({id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0}),
-                occurrenceTime: 0,
-                derived: false
-            });
-        }
-        return results;
-    }
+results.push({
+term: arg,
+type: 'belief' as const,
+truth,
+budget: {priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+stamp: Object.freeze({id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0}),
+occurrenceTime: 0,
+derived: false
+});
+}
+return results;
+}
 };
 
 export const DefaultFormationStrategy: Strategy = createStrategy({

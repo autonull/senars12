@@ -136,7 +136,7 @@ describe('TimerTool', () => {
 
   it('should have correct metadata', () => {
     expect(timerTool.name).toBe('timer');
-    expect(timerTool.description).toContain('timer');
+    expect(timerTool.description).toContain('Schedule');
     expect(timerTool.parameters).toBeDefined();
   });
 

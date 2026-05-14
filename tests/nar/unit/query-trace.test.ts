@@ -124,7 +124,6 @@ describe('QueryAPI', () => {
     it('should query by term', async () => {
       await nar.input('(query --> test)', 'belief', {f: 0.9, c: 0.9});
 
-      const {termParser} = require('../../terms/parser.js');
       const term = termParser.parse('(query --> test)');
       const result = queryAPI.query(term);
 
@@ -155,8 +154,7 @@ describe('ReasoningTrace', () => {
   it('should trace term', async () => {
     await nar.input('(traced --> concept)', 'belief', {f: 0.9, c: 0.9});
 
-    const {termParser} = require('../../terms/parser.js');
-    const term = termParser.parse('(traced --> concept)');
+const term = termParser.parse('(traced --> concept)');
     const result = trace.trace(term);
 
     expect(result).toBeDefined();
@@ -166,8 +164,7 @@ describe('ReasoningTrace', () => {
   });
 
   it('should handle tracing unknown term', () => {
-    const {termParser} = require('../../terms/parser.js');
-    const term = termParser.parse('(unknown --> term)');
+const term = termParser.parse('(unknown --> term)');
     const result = trace.trace(term);
 
     expect(result).toBeDefined();

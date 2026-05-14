@@ -45,15 +45,22 @@ export class TaskManager {
         return this.pending.size;
     }
 
-    get stats() {
-        return {
-            pending: this.pending.size,
-            completed: this.completed.size,
-            failed: this.failed.size
-        };
-    }
+get stats() {
+return {
+pending: this.pending.size,
+completed: this.completed.size,
+failed: this.failed.size
+};
+}
 
-    addTask(task: Task, timeout?: number): void {
+peekTask(): Task | undefined {
+const pending = Array.from(this.pending.values());
+if (pending.length === 0) return undefined;
+const sorted = pending.sort((a, b) => b.priority - a.priority);
+return sorted[0]?.task;
+}
+
+addTask(task: Task, timeout?: number): void {
         const wrapper: TaskWrapper = {
             task,
             lifecycle: 'pending',

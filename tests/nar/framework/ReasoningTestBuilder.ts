@@ -71,10 +71,11 @@ export async function assertReasoning(spec: TestSpec): Promise<TestResult> {
 
     const concepts = nar.memory.listConcepts();
     concepts.forEach(concept => {
+      const belief = concept.beliefBag.peek();
       derivedConcepts.push({
         term: concept.term.toString(),
         priority: concept.priority,
-        truth: (concept as any).truth
+        truth: belief?.truth
       });
     });
 
@@ -94,7 +95,8 @@ export async function assertReasoning(spec: TestSpec): Promise<TestResult> {
       }
 
       if (expected.truthRange) {
-        const truth = (found as any).truth;
+        const belief = found.beliefBag.peek();
+        const truth = belief?.truth;
         if (truth) {
           const {minFrequency, maxFrequency, minConfidence, maxConfidence} = truth;
           if (minFrequency && truth.f < minFrequency) {
