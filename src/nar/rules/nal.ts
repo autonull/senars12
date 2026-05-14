@@ -164,7 +164,7 @@ export const NALRules = {
 
     decompose: ([c1, c2]: [Term, Term]): Term | undefined => {
         if (c1.kind !== 'conjunction' || c2.kind !== 'conjunction') return undefined;
-        const shared = c1.args.filter(a1 => c2.args.some((a2: any) => termsEqual(a1, a2)));
+        const shared = c1.args.filter(a1 => c2.args.some(a2 => termsEqual(a1, a2)));
         return shared[0];
     },
 

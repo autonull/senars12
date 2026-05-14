@@ -26,19 +26,18 @@ export class TermLinkStrategy implements Strategy {
         if (!termLinks) return [];
 
         const term = task.term;
-        const termLayer = termLinks as any;
-        const links = termLayer.getLinksByTerm?.(term) ?? [];
+        const links = termLinks.getLinksByTerm(term);
 
         const subject = getSubject(term);
         const predicate = getPredicate(term);
 
         if (subject) {
-            const subLinks = termLayer.getLinksByTerm?.(subject) ?? [];
+            const subLinks = termLinks.getLinksByTerm(subject);
             links.push(...subLinks);
         }
 
         if (predicate) {
-            const predLinks = termLayer.getLinksByTerm?.(predicate) ?? [];
+            const predLinks = termLinks.getLinksByTerm(predicate);
             links.push(...predLinks);
         }
 

@@ -61,7 +61,10 @@ interface SerializedNARState {
     timestamp: string;
 }
 
-const TOOL_REGISTRY: Array<{ Tool: new (...args: unknown[]) => Tool; args: (keyof ToolDependency)[] }> = [
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyTool = new (...args: any[]) => Tool;
+
+const TOOL_REGISTRY: Array<{ Tool: AnyTool; args: (keyof ToolDependency)[] }> = [
     {Tool: CalculateTool, args: []},
     {Tool: SleepTool, args: []},
     {Tool: ReadFileTool, args: []},
@@ -440,7 +443,7 @@ Only output the answer, nothing else.`;
         const toolDeps: ToolDependency = {memory: this.memory, nar: this};
 
         for (const {Tool, args} of TOOL_REGISTRY) {
-            const toolArgs = args.map(arg => toolDeps[arg]).filter(Boolean) as unknown[];
+            const toolArgs = args.map(arg => toolDeps[arg]);
             this.tools.register(new Tool(...toolArgs));
         }
 

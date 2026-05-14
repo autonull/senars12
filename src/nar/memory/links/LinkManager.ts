@@ -109,6 +109,13 @@ export class LinkManager {
         return false;
     }
 
+    removeAllLinksForTerm(term: Term): void {
+        const layer = this.getLayer('term');
+        if (layer instanceof TermLayer) {
+            layer.removeAllLinksForTerm(term);
+        }
+    }
+
     applyDecay(decayRate?: number): void {
         const rate = decayRate ?? this.config.globalDecayRate;
         for (const layer of this.layers.values()) {

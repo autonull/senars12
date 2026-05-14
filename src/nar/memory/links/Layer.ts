@@ -1,3 +1,4 @@
+import type {Term} from '../../terms';
 import type {LinkEntry} from './types.js';
 import {LinkBag} from './LinkBag.js';
 
@@ -39,5 +40,12 @@ export class Layer {
             capacity: this.capacity,
             utilization: this.bag.size() / this.capacity,
         };
+    }
+
+    removeAllLinksForTerm(_term: Term): void {
+    }
+
+    getLinksByTerm(_term: Term): LinkEntry[] {
+        return [];
     }
 }

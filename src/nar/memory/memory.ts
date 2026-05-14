@@ -223,10 +223,7 @@ export class Memory {
             if (this.config.enableIndexing) {
                 this.index.remove(concept);
             }
-            const termLayer = this.linkManager.getLayer('term');
-            if (termLayer && 'removeAllLinksForTerm' in termLayer) {
-                (termLayer as any).removeAllLinksForTerm(term);
-            }
+            this.linkManager.removeAllLinksForTerm(term);
             this.concepts.delete(term);
             return true;
         }

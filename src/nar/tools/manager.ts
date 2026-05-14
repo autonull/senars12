@@ -24,7 +24,7 @@ type LifecycleState = 'initialized' | 'running' | 'stopped' | 'disposed';
 
 export class ToolManager extends EventEmitter {
   private readonly registry = new Registry();
-  private readonly executionHistory: ToolEvent[] = [];
+  private executionHistory: ToolEvent[] = [];
   private readonly statistics = new Map<string, ToolStatistics>();
   private readonly allowedPermissions = new Set<string>();
   private readonly toolDescriptors = new Map<string, ToolDescriptor>();

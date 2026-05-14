@@ -4,6 +4,7 @@ import type {Term} from '../terms';
 import {Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
 import {LMResponseParser} from './parser.js';
+import {findUnderconnectedConceptsFromTasks} from './enrichment-utils.js';
 
 export interface FeedbackConfig {
     enableBidirectionalFeedback: boolean;
@@ -119,7 +120,7 @@ export class BidirectionalFeedbackLoop {
                             stamp: belief.stamp ?? {
                                 id: 'context',
                                 creationTime: Date.now(),
-                                source: 'MEMORY' as const,
+                                source: 'INPUT' as const,
                                 derivations: [],
                                 depth: 0
                             },
@@ -188,23 +189,7 @@ Then provide a revised confidence value if different from current.`;
     }
 
     private findUnderconnectedConcepts(derivations: Task[]): Array<{ term: Term; connections: number }> {
-        const conceptConnections: Map<string, { term: Term; connections: number }> = new Map();
-
-        for (const task of derivations) {
-            const concept = this.memory.getConcept(task.term);
-            if (concept) {
-                const connectionCount = concept.beliefBag.size + concept.questionBag.size + concept.goalBag.size;
-                conceptConnections.set(task.term.toString(), {
-                    term: task.term,
-                    connections: connectionCount
-                });
-            }
-        }
-
-        const sorted = Array.from(conceptConnections.values())
-            .sort((a, b) => a.connections - b.connections);
-
-        return sorted;
+        return findUnderconnectedConceptsFromTasks(derivations, term => this.memory.getConcept(term));
     }
 
     private buildEnrichmentPrompt(term: Term, derivations: Task[]): string {

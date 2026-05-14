@@ -123,12 +123,13 @@ export class QueryAPI {
 
     private extractDerivationPath(stamp?: import('../types').Stamp): string[] {
         const path: string[] = [];
-        let currentStamp = stamp;
+        let currentStamp: import('../types').Stamp | undefined = stamp;
 
         while (currentStamp && path.length < 10) {
             path.push(currentStamp.id);
-            if (!currentStamp.derivations?.length) break;
-            currentStamp = currentStamp.derivations[0];
+            const derivations = currentStamp.derivations;
+            if (!derivations || derivations.length === 0) break;
+            currentStamp = undefined;
         }
 
         return path;

@@ -4,6 +4,7 @@ import type {Term} from '../terms';
 import {Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
 import {LMResponseParser} from './parser.js';
+import {findUnderconnectedConcepts} from './enrichment-utils.js';
 
 export interface EnricherConfig {
     enableProactiveEnrichment: boolean;
@@ -150,24 +151,7 @@ Answer the question based on the available knowledge. If the answer cannot be de
     }
 
     private findUnderconnectedConcepts(): Array<{ term: Term; connections: number }> {
-        const concepts = this.memory.listConcepts();
-        const conceptConnections: Array<{ term: Term; connections: number }> = [];
-
-        for (const concept of concepts) {
-            const connectionCount =
-                concept.beliefBag.size +
-                concept.questionBag.size +
-                concept.goalBag.size;
-
-            if (connectionCount < this.config.minConnectionsForEnrichment) {
-                conceptConnections.push({
-                    term: concept.term,
-                    connections: connectionCount
-                });
-            }
-        }
-
-        return conceptConnections.sort((a, b) => a.connections - b.connections);
+        return findUnderconnectedConcepts(this.memory.listConcepts(), this.config.minConnectionsForEnrichment);
     }
 
     private async enrichConcept(term: Term): Promise<EnrichmentResult> {
@@ -250,7 +234,7 @@ Respond in Narsese format, one statement per line.`;
                             stamp: belief.stamp ?? {
                                 id: 'qa',
                                 creationTime: Date.now(),
-                                source: 'MEMORY' as const,
+                                source: 'INPUT' as const,
                                 derivations: [],
                                 depth: 0
                             },

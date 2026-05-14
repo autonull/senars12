@@ -207,7 +207,7 @@ export class TermLayer extends Layer {
         };
     }
 
-    removeAllLinksForTerm(term: Term): void {
+    override removeAllLinksForTerm(term: Term): void {
         const idsToRemove: string[] = [];
 
         for (const [id, entry] of this.links) {
@@ -232,7 +232,7 @@ export class TermLayer extends Layer {
         }
     }
 
-    getLinksByTerm(term: Term): LinkEntry[] {
+    override getLinksByTerm(term: Term): LinkEntry[] {
         const results: LinkEntry[] = [];
         for (const entry of this.links.values()) {
             if (termsEqual(entry.sourceTerm, term) || termsEqual(entry.targetTerm, term)) {
