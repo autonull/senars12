@@ -13,8 +13,7 @@ module.exports = {
   },
   testMatch: ['**/tests/**/*.test.ts'],
   testPathIgnorePatterns: [
-    '/node_modules/',
-    '/src/bot/tests/e2e/'
+    '/node_modules/'
   ],
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'],

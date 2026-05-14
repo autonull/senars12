@@ -6,6 +6,7 @@ import {describe, it, expect, beforeEach} from '@jest/globals';
 import {NAR} from '../../../src/nar/nar.js';
 import {QueryAPI, createQueryAPI} from '../../../src/nar/query/api.js';
 import {ReasoningTrace, createReasoningTrace} from '../../../src/nar/trace.js';
+import {termParser} from '../../../src/nar/terms/parser.js';
 
 describe('QueryAPI', () => {
   let nar: NAR;
@@ -330,8 +331,7 @@ describe('QueryAPI and ReasoningTrace Integration', () => {
     const beliefs = queryAPI.getBeliefs();
     expect(beliefs.length).toBeGreaterThan(0);
 
-    const {termParser} = require('../../terms/parser.js');
-    const term = termParser.parse('(integration --> test)');
+  const term = termParser.parse('(integration --> test)');
     const traceResult = trace.trace(term);
     expect(traceResult).toBeDefined();
   });

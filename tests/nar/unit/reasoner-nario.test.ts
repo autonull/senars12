@@ -11,6 +11,7 @@ import {RuleProcessor} from '../../../src/nar/rules/processor.js';
 import {createStrategy} from '../../../src/nar/reason/strategies/index.js';
 import {TermBuilder, Truth} from '../../../src/nar/terms/index.js';
 import {TaskManager} from '../../../src/nar/task/index.js';
+import {jest} from '@jest/globals';
 
 describe('Reasoner', () => {
   let nar: NAR;

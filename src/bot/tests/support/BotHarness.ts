@@ -23,10 +23,12 @@ export class BotHarness {
     });
 
     this.process.stderr?.on('data', (data) => {
-      console.error(`[Bot Error] ${data.toString().trim()}`);
+      const errorText = data.toString().trim();
+      this.output += errorText + '\n';
+      console.error(`[Bot Error] ${errorText}`);
     });
 
-    await this.waitForPattern(/listening|ready|started/i, 5000);
+    await this.waitForPattern(/listening|ready|started/i, 15000);
   }
 
   private async findAvailablePort(): Promise<number> {
@@ -41,15 +43,15 @@ export class BotHarness {
     });
   }
 
-  async kill(): Promise<void> {
+    async kill(): Promise<void> {
     if (this.process) {
       this.process.kill('SIGKILL');
-      
+
       // Destroy stdio streams to close handles
       this.process.stdin?.destroy();
       this.process.stdout?.destroy();
       this.process.stderr?.destroy();
-      
+
       // Wait for process to exit
       await new Promise<void>((resolve) => {
         if (!this.process) {
@@ -69,7 +71,10 @@ export class BotHarness {
         const timer = setTimeout(doResolve, 2000);
         timer.unref();
       });
-      
+
+      // Wait for port to be released
+      await new Promise(resolve => setTimeout(resolve, 200));
+
       this.process = null;
     }
   }
@@ -88,12 +93,12 @@ export class BotHarness {
         return this.output;
     }
 
-    private async waitForPattern(pattern: RegExp, timeout = 5000): Promise<void> {
-        const start = Date.now();
-        while (Date.now() - start < timeout) {
-            if (pattern.test(this.output)) return;
-            await new Promise(r => setTimeout(r, 50));
-        }
-        throw new Error(`Timeout waiting for pattern: ${pattern}`);
+  private async waitForPattern(pattern: RegExp, timeout = 5000): Promise<void> {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      if (pattern.test(this.output)) return;
+      await new Promise(r => setTimeout(r, 50));
     }
+    throw new Error(`Timeout waiting for pattern: ${pattern}. Output: "${this.output}"`);
+  }
 }
