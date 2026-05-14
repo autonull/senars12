@@ -5,6 +5,7 @@
 
 import {NAR, Task} from '../nar';
 import {errMsg} from '../nar/utils/helpers.js';
+import {Logger} from '../nar/logger/index.js';
 
 export interface Embodiment {
     readonly name: string;
@@ -55,6 +56,7 @@ export class Agent {
     private running = false;
     private profile: AgentProfile | null = null;
     private statePath: string | null = null;
+    private readonly logger: Logger;
 
     constructor(
         nar: NAR,
@@ -62,6 +64,7 @@ export class Agent {
     ) {
         this.narInstance = nar;
         this.embodiments = embodiments;
+        this.logger = new Logger({ scope: 'agent' });
     }
 
     getNAR(): NAR {
@@ -90,7 +93,7 @@ export class Agent {
             try {
                 await embodiment.start(this);
             } catch (error) {
-                console.error(`Failed to start embodiment ${embodiment.name}:`, error);
+                this.logger.error(`Failed to start embodiment ${embodiment.name}: ${errMsg(error)}`);
             }
         }
     }
@@ -105,7 +108,7 @@ export class Agent {
             try {
                 await embodiment.stop();
             } catch (error) {
-                console.error(`Failed to stop embodiment ${embodiment.name}:`, error);
+                this.logger.error(`Failed to stop embodiment ${embodiment.name}: ${errMsg(error)}`);
             }
         }
     }
@@ -119,7 +122,7 @@ export class Agent {
             try {
                 handler(message);
             } catch (error) {
-                console.error('Message handler error:', error);
+                this.logger.error(`Message handler error: ${errMsg(error)}`);
             }
         }
     }

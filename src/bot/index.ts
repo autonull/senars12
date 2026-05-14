@@ -3,6 +3,10 @@ import {BotSession} from './BotSession.js';
 import {SeNARSFactory} from '../nar';
 import {RealIRCClient} from './IRCClient.js';
 import {createMessageRouter} from './message-router.js';
+import {Logger} from '../nar/logger/index.js';
+import {errMsg} from '../nar/utils/index.js';
+
+const logger = new Logger({ scope: 'bot' });
 
 export interface Bot {
     start: () => Promise<void>;
@@ -32,12 +36,12 @@ export async function createBot(config: BotConfig): Promise<Bot> {
 
     return {
         start: async () => {
-            console.log('[Bot] Starting SeNARS Bot...');
+            logger.info('[Bot] Starting SeNARS Bot...');
             await session.start();
-            console.log('[Bot] Ready');
+            logger.info('[Bot] Ready');
         },
         shutdown: async () => {
-            console.log('[Bot] Shutting down...');
+            logger.info('[Bot] Shutting down...');
             await session.shutdown();
         },
         status: {
@@ -77,19 +81,19 @@ export async function createRealBot(config: {
         try {
             await router(channel, user, text);
         } catch (e) {
-            if (config.debug) console.error('[Bot] Handler error:', e);
+            if (config.debug) logger.error(`[Bot] Handler error: ${errMsg(e)}`);
         }
     });
 
     return {
         start: async () => {
-            console.log(`[Bot] Connecting to ${config.server}:${config.port} as ${config.nick}...`);
+            logger.info(`[Bot] Connecting to ${config.server}:${config.port} as ${config.nick}...`);
             await irc.connect();
-            console.log('[Bot] Connected');
+            logger.info('[Bot] Connected');
             await nar.run(1);
         },
         shutdown: async () => {
-            console.log('[Bot] Shutting down...');
+            logger.info('[Bot] Shutting down...');
             await irc.disconnect();
         },
         status: {

@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import {loadConfig, mergeConfig} from './config.js';
 import {createBot, createRealBot} from './index.js';
+import {Logger} from '../nar/logger/index.js';
+
+const logger = new Logger({ scope: 'bot:run' });
 
 (async () => {
     const args = process.argv.slice(2);
@@ -33,7 +36,7 @@ import {createBot, createRealBot} from './index.js';
         const channel = config.embodiments?.irc?.channel ?? '#senars';
 
         if (config.debug) {
-            console.log(`[Bot] Connecting to ${server}:${port} as ${nick}`);
+            logger.info(`[Bot] Connecting to ${server}:${port} as ${nick}`);
         }
 
         const bot = await createRealBot({
@@ -45,7 +48,7 @@ import {createBot, createRealBot} from './index.js';
         });
 
         process.on('SIGINT', async () => {
-            console.log('\n[Bot] Shutting down...');
+            logger.info('[Bot] Shutting down...');
             await bot.shutdown();
             process.exit(0);
         });
@@ -58,13 +61,13 @@ import {createBot, createRealBot} from './index.js';
         await bot.start();
     } else {
         if (config.debug) {
-            console.log('[Bot] Starting with profile:', config.profile || 'minimal');
+            logger.info(`[Bot] Starting with profile: ${config.profile || 'minimal'}`);
         }
 
         const bot = await createBot(config);
 
         process.on('SIGINT', async () => {
-            console.log('\n[Bot] Shutting down...');
+            logger.info('[Bot] Shutting down...');
             await bot.shutdown();
             process.exit(0);
         });

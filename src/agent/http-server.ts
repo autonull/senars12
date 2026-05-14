@@ -6,6 +6,8 @@
 import {Agent} from './Agent';
 import {createServer} from 'http';
 import {HTTPAdapter} from '../api/index.js';
+import {Logger} from '../nar/logger/index.js';
+import {errMsg} from '../nar/utils/index.js';
 
 export interface HTTPServerConfig {
     port?: number;
@@ -21,8 +23,10 @@ export class HTTPServer {
     private server: ReturnType<typeof createServer> | null = null;
     private adapter: HTTPAdapter;
     private config: any;
+    private readonly logger: Logger;
 
     constructor(config: HTTPServerConfig = {}) {
+        this.logger = new Logger({ scope: 'agent:http-server' });
         this.config = {
             port: config.port ?? 8080,
             enableCors: config.enableCors ?? true,
@@ -40,19 +44,19 @@ export class HTTPServer {
             try {
                 this.server = createServer((req, res) => {
                     this.adapter.handleRequest(req, res).catch((error) => {
-                        console.error('HTTP request error:', error);
+                        this.logger.error(`HTTP request error: ${errMsg(error)}`);
                         res.statusCode = 500;
                         res.end(JSON.stringify({error: 'Internal server error'}));
                     });
                 });
 
                 this.server.listen(this.config.port, () => {
-                    console.log(`HTTP server listening on port ${this.config.port}`);
+                    this.logger.info(`HTTP server listening on port ${this.config.port}`);
                     resolve();
                 });
 
                 this.server.on('error', (error) => {
-                    console.error('HTTP server error:', error);
+                    this.logger.error(`HTTP server error: ${errMsg(error)}`);
                     reject(error);
                 });
             } catch (error) {
@@ -72,7 +76,7 @@ export class HTTPServer {
                 if (error) {
                     reject(error);
                 } else {
-                    console.log('HTTP server closed');
+                    this.logger.info('HTTP server closed');
                     resolve();
                 }
             });

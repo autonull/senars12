@@ -6,6 +6,7 @@
 import {WebSocket, WebSocketServer} from 'ws';
 import {APIRegistry} from './registry.js';
 import {createHash} from 'crypto';
+import {Logger} from '../nar/logger/index.js';
 
 interface WSMessage {
     type: string;
@@ -34,9 +35,11 @@ export class WebSocketAdapter {
     private clients: Map<string, WSClient> = new Map();
     private eventSubscriptions: Map<string, Set<WebSocket>> = new Map();
     private config: Required<WebSocketAdapterConfig>;
+    private readonly logger: Logger;
 
     constructor(registry?: APIRegistry, config: WebSocketAdapterConfig = {}) {
         this.registry = registry || APIRegistry.getInstance();
+        this.logger = new Logger({ scope: 'api:websocket' });
         this.config = {
             port: config.port ?? 8765,
             maxClients: config.maxClients ?? 100,
@@ -51,12 +54,12 @@ export class WebSocketAdapter {
                 this.server = new WebSocketServer({port: this.config.port});
 
                 this.server.on('listening', () => {
-                    console.log(`WebSocket adapter listening on port ${this.config.port}`);
+                    this.logger.info(`WebSocket adapter listening on port ${this.config.port}`);
                     resolve();
                 });
 
                 this.server.on('error', (error) => {
-                    console.error('WebSocket adapter error:', error);
+                    this.logger.error('WebSocket adapter error', error);
                     reject(error);
                 });
 
@@ -91,7 +94,7 @@ export class WebSocketAdapter {
             this.clients.clear();
 
             this.server.close(() => {
-                console.log('WebSocket adapter closed');
+                this.logger.info('WebSocket adapter closed');
                 resolve();
             });
         });
@@ -143,7 +146,7 @@ export class WebSocketAdapter {
         };
 
         this.clients.set(id, client);
-        console.log(`Client ${id} connected. Total clients: ${this.clients.size}`);
+        this.logger.info(`Client ${id} connected. Total clients: ${this.clients.size}`);
 
         ws.on('message', (data) => {
             client.lastSeen = Date.now();
@@ -160,11 +163,11 @@ export class WebSocketAdapter {
         ws.on('close', () => {
             clearInterval(client.heartbeat);
             this.clients.delete(id);
-            console.log(`Client ${id} disconnected. Total clients: ${this.clients.size}`);
+            this.logger.info(`Client ${id} disconnected. Total clients: ${this.clients.size}`);
         });
 
         ws.on('error', (error) => {
-            console.error('WebSocket client error:', error);
+            this.logger.error('WebSocket client error', error);
             clearInterval(client.heartbeat);
             this.clients.delete(id);
         });
@@ -187,7 +190,7 @@ export class WebSocketAdapter {
                 client.ws.close(1000, 'Idle timeout');
                 clearInterval(client.heartbeat);
                 this.clients.delete(id);
-                console.log(`Client ${id} idle timeout`);
+                this.logger.info(`Client ${id} idle timeout`);
             }
         }
     }

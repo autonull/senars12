@@ -5,6 +5,7 @@
 
 import {APIRegistry} from './registry.js';
 import {MCPAdapter} from './mcp-adapter.js';
+import {Logger} from '../nar/logger/index.js';
 
 export interface MCPServerConfig {
     name?: string;
@@ -19,9 +20,11 @@ export class MCPServer {
     private adapter: MCPAdapter;
     private config: Required<MCPServerConfig>;
     private port: number;
+    private readonly logger: Logger;
 
     constructor(registry?: APIRegistry, config: MCPServerConfig = {}) {
         this.adapter = new MCPAdapter(registry);
+        this.logger = new Logger({ scope: 'api:mcp-server' });
         this.config = {
             name: config.name ?? 'senars-mcp',
             version: config.version ?? '1.0.0',
@@ -35,17 +38,15 @@ export class MCPServer {
      * For now, this is a placeholder - full MCP server would use stdio or SSE transport
      */
     async start(): Promise<void> {
-        console.log(
-            `MCP Server '${this.config.name}' v${this.config.version} ready`
-        );
-        console.log('Tools available:', this.adapter.getTools().map((t) => t.name).join(', '));
+        this.logger.info(`MCP Server '${this.config.name}' v${this.config.version} ready`);
+        this.logger.info(`Tools available: ${this.adapter.getTools().map((t) => t.name).join(', ')}`);
     }
 
     /**
      * Stop the MCP server
      */
     async stop(): Promise<void> {
-        console.log('MCP Server stopped');
+        this.logger.info('MCP Server stopped');
     }
 
     /**

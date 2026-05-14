@@ -4,6 +4,8 @@ import type {Term} from '../terms';
 import {Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
 import {findUnderconnectedConceptsFromTasks, parseEnrichmentResponse} from './enrichment-utils.js';
+import {Logger} from '../logger/index.js';
+import {errMsg} from '../utils/index.js';
 
 export interface FeedbackConfig {
     enableBidirectionalFeedback: boolean;
@@ -26,11 +28,13 @@ export class BidirectionalFeedbackLoop {
     private readonly memory: Memory;
     private readonly lmClient: LMClient;
     private readonly config: FeedbackConfig;
+    private readonly logger: Logger;
     private pendingValidations: Map<string, ValidationFeedback> = new Map();
 
     constructor(memory: Memory, lmClient: LMClient, config: Partial<FeedbackConfig> = {}) {
         this.memory = memory;
         this.lmClient = lmClient;
+        this.logger = new Logger({ scope: 'lm:feedback' });
         this.config = {
             enableBidirectionalFeedback: true,
             enableValidation: true,
@@ -81,7 +85,7 @@ export class BidirectionalFeedbackLoop {
 
             return validation;
         } catch (error) {
-            console.warn('Failed to validate hypothesis:', error);
+            this.logger.warn(`Failed to validate hypothesis: ${errMsg(error)}`);
             return null;
         }
     }
@@ -106,7 +110,7 @@ export class BidirectionalFeedbackLoop {
                     this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget);
                 }
             } catch (error) {
-                console.warn('Failed to enrich context for concept:', concept.term, error);
+                this.logger.warn(`Failed to enrich context for concept: ${concept.term.toString()} - ${errMsg(error)}`);
             }
         }
     }

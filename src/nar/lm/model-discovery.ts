@@ -1,6 +1,7 @@
 import type {LMClient} from './types.js';
 import type {ModelCapability, ModelRegistry, ModelRegistryEntry} from './model-registry.js';
 import {errMsg} from '../utils';
+import {Logger} from '../logger/index.js';
 
 export interface ModelBenchmarkResult {
     modelId: string;
@@ -27,9 +28,11 @@ export interface BenchmarkResult {
 
 export class ModelCapabilityDiscovery {
     private readonly registry: ModelRegistry;
+    private readonly logger: Logger;
 
     constructor(registry: ModelRegistry) {
         this.registry = registry;
+        this.logger = new Logger({ scope: 'lm:model-discovery' });
     }
 
     async discoverCapabilities(entry: ModelRegistryEntry): Promise<Partial<ModelCapability>> {
@@ -45,7 +48,7 @@ export class ModelCapabilityDiscovery {
             capabilities.contextWindow = contextWindow;
             capabilities.supportsStructuredOutput = supportsStructured;
         } catch (error) {
-            console.warn(`Failed to discover capabilities for ${entry.id}: ${error}`);
+            this.logger.warn(`Failed to discover capabilities for ${entry.id}: ${errMsg(error)}`);
         }
 
         return capabilities;
@@ -82,6 +85,7 @@ export class ModelCapabilityDiscovery {
 
 export class ModelBenchmark {
     private readonly registry: ModelRegistry;
+    private readonly logger: Logger;
     private readonly defaultTasks: BenchmarkTask[] = [
         {
             id: 'translation-simple',
@@ -107,6 +111,7 @@ export class ModelBenchmark {
 
     constructor(registry: ModelRegistry) {
         this.registry = registry;
+        this.logger = new Logger({ scope: 'lm:model-benchmark' });
     }
 
     async benchmark(modelId: string, tasks: BenchmarkTask[] = this.defaultTasks): Promise<ModelBenchmarkResult> {
@@ -145,7 +150,7 @@ export class ModelBenchmark {
 
                 comparisons.push({modelId, averageScore: avgScore, averageDuration: avgDuration});
             } catch (error) {
-                console.warn(`Failed to benchmark ${modelId}: ${error}`);
+                this.logger.warn(`Failed to benchmark ${modelId}: ${errMsg(error)}`);
             }
         }
 

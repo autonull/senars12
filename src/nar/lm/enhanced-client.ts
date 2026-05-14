@@ -1,5 +1,6 @@
 import type {LMClient, LMConfig, LMExecutionStats} from './types.js';
 import type {ModelRegistryEntry} from './model-registry.js';
+import {Logger} from '../logger/index.js';
 
 export interface CacheEntry {
     response: string;
@@ -20,6 +21,7 @@ export class EnhancedLMClient implements LMClient {
     private readonly baseClient: LMClient;
     private readonly cache: Map<string, CacheEntry> = new Map();
     private readonly cacheConfig: CacheConfig;
+    private readonly logger: Logger;
     private readonly modelEntry?: ModelRegistryEntry;
     private stats: LMExecutionStats = {
         totalCalls: 0,
@@ -40,6 +42,7 @@ export class EnhancedLMClient implements LMClient {
     ) {
         this.baseClient = baseClient;
         this.modelEntry = modelEntry;
+        this.logger = new Logger({ scope: 'lm:enhanced-client' });
         this.cacheConfig = {
             enabled: cacheConfig.enabled ?? true,
             ttlMs: cacheConfig.ttlMs ?? 3600000,
@@ -171,10 +174,15 @@ export const createEnhancedLMClient = (
 export class FallbackLMClient implements LMClient {
     private readonly clients: Array<{ client: LMClient; priority: number }> = [];
     private stats: Map<string, LMExecutionStats> = new Map();
+    private readonly logger: Logger;
 
     addClient(client: LMClient, priority: number = 0): void {
         this.clients.push({client, priority});
         this.clients.sort((a, b) => a.priority - b.priority);
+    }
+
+    constructor() {
+        this.logger = new Logger({ scope: 'lm:fallback-client' });
     }
 
     async generateText(prompt: string, options?: LMConfig): Promise<string> {
@@ -186,7 +194,7 @@ export class FallbackLMClient implements LMClient {
                 return result;
             } catch (error) {
                 lastError = error instanceof Error ? error : new Error(String(error));
-                console.warn(`Client failed, trying fallback: ${lastError.message}`);
+                this.logger.warn(`Client failed, trying fallback: ${lastError.message}`);
             }
         }
 

@@ -2,6 +2,8 @@ import type {NAR} from '../nar';
 import type {IRCServerConfig} from './EmbeddedIRCServer.js';
 import {EmbeddedIRCServer} from './EmbeddedIRCServer.js';
 import {createMessageRouter} from './message-router.js';
+import {Logger} from '../nar/logger/index.js';
+import {errMsg} from '../nar/utils/index.js';
 
 export interface BotSessionDeps {
     nar: NAR;
@@ -13,10 +15,12 @@ export class BotSession {
     private readonly nar: NAR;
     private readonly ircServer?: EmbeddedIRCServer;
     private readonly sendFn: (channel: string, user: string, text: string) => void;
+    private readonly logger: Logger;
     private started = false;
 
     constructor(deps: BotSessionDeps) {
         this.nar = deps.nar;
+        this.logger = new Logger({ scope: 'bot:session' });
         const channel = deps.ircConfig?.channel ?? '#senars';
 
         if (deps.ircConfig?.port) {
@@ -62,7 +66,7 @@ export class BotSession {
             try {
                 await router(channel, user, text);
             } catch (error) {
-                if (deps.debug) console.error('[Bot] Handler error:', error);
+                if (deps.debug) this.logger.error(`[Bot] Handler error: ${errMsg(error)}`);
             }
         });
     }

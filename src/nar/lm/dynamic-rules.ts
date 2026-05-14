@@ -3,6 +3,8 @@ import type {Task} from '../types';
 import {LMRule} from './LMRule.js';
 import type {LMClient, LMRuleConfig} from './types.js';
 import {LMResponseParser} from './parser.js';
+import {Logger} from '../logger/index.js';
+import {errMsg} from '../utils/index.js';
 
 export interface DynamicRuleConfig extends Partial<LMRuleConfig> {
     name: string;
@@ -22,10 +24,12 @@ export interface ValidationRule {
 export class DynamicLMRuleGenerator {
     private readonly lm: LMClient;
     private readonly baseConfig: Partial<LMRuleConfig>;
+    private readonly logger: Logger;
 
     constructor(lm: LMClient, baseConfig?: Partial<LMRuleConfig>) {
         this.lm = lm;
         this.baseConfig = baseConfig ?? {};
+        this.logger = new Logger({ scope: 'lm:dynamic-rules' });
     }
 
     async generateRuleFromDescription(description: string): Promise<LMRule | null> {
@@ -153,9 +157,11 @@ Respond with JSON only:
 
 export class CompositeLMRule extends LMRule {
     private readonly componentRules: LMRule[] = [];
+    private readonly logger: Logger;
 
     constructor(id: string, lm: LMClient, config: LMRuleConfig) {
         super(id, lm, config);
+        this.logger = new Logger({ scope: 'lm:composite-rule' });
     }
 
     addRule(rule: LMRule): void {
@@ -170,7 +176,7 @@ export class CompositeLMRule extends LMRule {
                 const tasks = await rule.apply(primary, secondary, context);
                 allTasks.push(...tasks);
             } catch (error) {
-                console.warn(`Component rule ${rule.id} failed: ${error}`);
+                this.logger.warn(`Component rule ${rule.id} failed: ${errMsg(error)}`);
             }
         }
 

@@ -1,4 +1,5 @@
 import type {LMClient} from './types.js';
+import {Logger} from '../logger/index.js';
 
 export type ModelProvider = 'anthropic' | 'openai' | 'ollama' | 'mock';
 
@@ -30,6 +31,11 @@ export interface ModelRegistryEntry {
 export class ModelRegistry {
     private readonly models: Map<string, ModelRegistryEntry> = new Map();
     private fallbackChain: string[] = [];
+    private readonly logger: Logger;
+
+    constructor() {
+        this.logger = new Logger({ scope: 'lm:model-registry' });
+    }
 
     register(entry: ModelRegistryEntry): void {
         this.models.set(entry.id, entry);
@@ -95,7 +101,7 @@ export class ModelRegistry {
                 entry.stats.totalCalls++;
                 lastError = error instanceof Error ? error : new Error(String(error));
 
-                console.warn(`Model ${modelId} failed, trying fallback: ${lastError.message}`);
+                this.logger.warn(`Model ${modelId} failed, trying fallback: ${lastError.message}`);
             }
         }
 

@@ -1,5 +1,6 @@
 import net from 'net';
 import {EventEmitter} from 'events';
+import {Logger} from '../nar/logger/index.js';
 
 export interface IRCMessage {
     prefix?: string;
@@ -18,6 +19,7 @@ export class EmbeddedIRCServer extends EventEmitter {
     private server: net.Server;
     private clients: Set<net.Socket> = new Set();
     private config: IRCServerConfig;
+    private readonly logger: Logger;
 
     constructor(config: Partial<IRCServerConfig> = {}) {
         super();
@@ -26,6 +28,7 @@ export class EmbeddedIRCServer extends EventEmitter {
             hostname: config.hostname ?? '127.0.0.1',
             channel: config.channel ?? '#senars',
         };
+        this.logger = new Logger({ scope: 'bot:irc-server' });
         this.server = net.createServer();
         this.setupServer();
     }
@@ -33,7 +36,7 @@ export class EmbeddedIRCServer extends EventEmitter {
     async start(): Promise<void> {
         return new Promise((resolve) => {
             this.server.listen(this.config.port, this.config.hostname, () => {
-                console.log(`IRC Server listening on ${this.config.hostname}:${this.config.port}`);
+                this.logger.info(`IRC Server listening on ${this.config.hostname}:${this.config.port}`);
                 resolve();
             });
         });

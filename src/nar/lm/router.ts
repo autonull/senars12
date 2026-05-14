@@ -1,5 +1,6 @@
 import type {LMClient} from './types.js';
 import type {ModelRegistry, ModelRegistryEntry} from './model-registry.js';
+import {Logger} from '../logger/index.js';
 
 export interface RoutingStrategy {
     type: 'speed' | 'quality' | 'cost' | 'balanced' | 'custom';
@@ -20,10 +21,12 @@ export interface RouterConfig {
 export class LMRouter {
     private readonly registry: ModelRegistry;
     private readonly config: RouterConfig;
+    private readonly logger: Logger;
     private ruleModelMap: Map<string, string> = new Map();
 
     constructor(registry: ModelRegistry, config: Partial<RouterConfig> = {}) {
         this.registry = registry;
+        this.logger = new Logger({ scope: 'lm:router' });
         this.config = {
             defaultStrategy: config.defaultStrategy ?? {type: 'balanced'},
             enableAdaptiveRouting: config.enableAdaptiveRouting ?? true,
@@ -95,7 +98,7 @@ export class LMRouter {
                 lastError = error instanceof Error ? error : new Error(String(error));
 
                 if (attempt < this.config.maxRetries - 1) {
-                    console.warn(`Attempt ${attempt + 1} failed for ${modelId}, retrying...`);
+                    this.logger.warn(`Attempt ${attempt + 1} failed for ${modelId}, retrying...`);
                 }
             }
         }

@@ -3,6 +3,8 @@
  * TypeScript client library for SeNARS WebSocket API
  */
 
+import {Logger} from '../../nar/logger/index.js';
+
 export interface WSMessage {
     type: string;
     data?: unknown;
@@ -48,8 +50,10 @@ export class SeNARSClient {
     private reconnectAttempts = 0;
     private maxReconnectAttempts = 5;
     private reconnectDelay = 1000;
+    private readonly logger: Logger;
 
     constructor(private url: string = 'ws://localhost:8765') {
+        this.logger = new Logger({ scope: 'agent:senars-client' });
     }
 
     async connect(): Promise<void> {
@@ -57,18 +61,18 @@ export class SeNARSClient {
             this.ws = new WebSocket(this.url);
 
             this.ws.onopen = () => {
-                console.log('Connected to SeNARS');
+                this.logger.info('Connected to SeNARS');
                 this.reconnectAttempts = 0;
                 resolve();
             };
 
             this.ws.onclose = (event) => {
-                console.log('Disconnected from SeNARS', event.code);
+                this.logger.info(`Disconnected from SeNARS (code: ${event.code})`);
                 this.attemptReconnect();
             };
 
             this.ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
+                this.logger.error('WebSocket error', new Error(error.message));
                 reject(error);
             };
 
@@ -167,13 +171,13 @@ export class SeNARSClient {
 
     private attemptReconnect(): void {
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            console.error('Max reconnection attempts reached');
+            this.logger.error('Max reconnection attempts reached');
             return;
         }
 
         this.reconnectAttempts++;
         const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-        console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
+        this.logger.info(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
 
         setTimeout(() => this.connect(), delay);
     }

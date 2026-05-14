@@ -4,6 +4,8 @@ import type {Term} from '../terms';
 import {Truth} from '../terms';
 import {createBudget, type Task} from '../types';
 import {findUnderconnectedConcepts, parseEnrichmentResponse} from './enrichment-utils.js';
+import {Logger} from '../logger/index.js';
+import {errMsg} from '../utils/index.js';
 
 export interface EnricherConfig {
     enableProactiveEnrichment: boolean;
@@ -25,6 +27,7 @@ export class ProactiveEnricher {
     private readonly memory: Memory;
     private readonly lmClient: LMClient;
     private readonly config: EnricherConfig;
+    private readonly logger: Logger;
     private enrichmentTimer?: NodeJS.Timeout;
     private enrichmentCycle: number = 0;
     private results: EnrichmentResult[] = [];
@@ -32,6 +35,7 @@ export class ProactiveEnricher {
     constructor(memory: Memory, lmClient: LMClient, config: Partial<EnricherConfig> = {}) {
         this.memory = memory;
         this.lmClient = lmClient;
+        this.logger = new Logger({ scope: 'lm:enrichment' });
         this.config = {
             enableProactiveEnrichment: true,
             enrichmentIntervalMs: 60000,
@@ -76,7 +80,7 @@ export class ProactiveEnricher {
                     this.results.push(result);
                 }
             } catch (error) {
-                console.warn('Failed to enrich concept:', conceptData.term, error);
+                this.logger.warn(`Failed to enrich concept: ${conceptData.term.toString()} - ${errMsg(error)}`);
             }
         }
 
@@ -98,7 +102,7 @@ Provide a clear, concise explanation of what was derived and why.`;
             const response = await this.lmClient.generateText(prompt);
             return response.trim();
         } catch (error) {
-            console.warn('Failed to generate explanation:', error);
+            this.logger.warn(`Failed to generate explanation: ${errMsg(error)}`);
             return '';
         }
     }
@@ -140,7 +144,7 @@ Answer the question based on the available knowledge. If the answer cannot be de
             const response = await this.lmClient.generateText(prompt);
             return response.trim();
         } catch (error) {
-            console.warn('Failed to answer question:', error);
+            this.logger.warn(`Failed to answer question: ${errMsg(error)}`);
             return '';
         }
     }
@@ -181,7 +185,7 @@ Answer the question based on the available knowledge. If the answer cannot be de
             hypotheses = parsed.hypotheses;
             bridges = parsed.bridges;
         } catch (error) {
-            console.warn('Failed to generate hypotheses for term:', term, error);
+            this.logger.warn(`Failed to generate hypotheses for term: ${term.toString()} - ${errMsg(error)}`);
         }
 
         for (const hyp of hypotheses) {

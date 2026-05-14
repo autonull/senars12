@@ -1,3 +1,6 @@
+import {Logger} from '../nar/logger/index.js';
+import {errMsg} from '../nar/utils/index.js';
+
 export interface BotConfig {
     profile: 'minimal' | 'standard' | 'full';
     nick: string;
@@ -67,6 +70,8 @@ export const PROFILES: Record<'minimal' | 'standard' | 'full', BotConfig> = {
     }),
 };
 
+const logger = new Logger({ scope: 'bot:config' });
+
 export async function loadConfig(configPath?: string): Promise<BotConfig> {
     if (!configPath) return PROFILES.minimal;
     try {
@@ -75,7 +80,7 @@ export async function loadConfig(configPath?: string): Promise<BotConfig> {
         const loaded = JSON.parse(content);
         return {...PROFILES.minimal, ...loaded};
     } catch (error) {
-        console.warn('Config load failed:', error);
+        logger.warn(`Config load failed: ${errMsg(error)}`);
         return PROFILES.minimal;
     }
 }
