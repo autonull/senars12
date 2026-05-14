@@ -1,5 +1,4 @@
 module.exports = {
-  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
@@ -18,8 +17,8 @@ module.exports = {
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'],
   transformIgnorePatterns: ['node_modules/'],
-  testTimeout: 10000,
+  testTimeout: 2000,
   forceExit: true,
   detectOpenHandles: false,
-  maxWorkers: 1
+  cache: true
 };

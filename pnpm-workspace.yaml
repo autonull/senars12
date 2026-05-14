@@ -1,4 +1,5 @@
 allowBuilds:
+  '@swc/core': set this to true or false
   esbuild: set this to true or false
   iconv: set this to true or false
   node-icu-charset-detector: set this to true or false
