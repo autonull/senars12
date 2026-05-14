@@ -41,27 +41,27 @@ export {termParser, TermParser} from './parser.js';
 
 // Accessors - named exports only
 export {
-  isInheritance,
-  isSimilarity,
-  isImplication,
-  isEquivalence,
-  isConjunction,
-  isDisjunction,
-  isNegation,
-  isInstance,
-  isProperty,
-  isSequence,
-  isParallel,
-  isPredictive,
-  isRetrospective,
-  isOperation,
-  getSubject,
-  getPredicate,
-  getAntecedent,
-  getConsequent,
-  getArgs,
-  termsEqual,
-  sameKind
+    isInheritance,
+    isSimilarity,
+    isImplication,
+    isEquivalence,
+    isConjunction,
+    isDisjunction,
+    isNegation,
+    isInstance,
+    isProperty,
+    isSequence,
+    isParallel,
+    isPredictive,
+    isRetrospective,
+    isOperation,
+    getSubject,
+    getPredicate,
+    getAntecedent,
+    getConsequent,
+    getArgs,
+    termsEqual,
+    sameKind
 } from './accessors.js';
 
 // Utilities
@@ -69,8 +69,8 @@ export {extractSymbols, jaccardSimilarity, calculateSimilarity} from './utils.js
 
 // Type guards and helpers
 export {
-  isCanonical,
-  getCompoundArgs
+    isCanonical,
+    getCompoundArgs
 } from './accessors.js';
 
 // Term-based collections

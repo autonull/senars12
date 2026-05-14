@@ -3,111 +3,114 @@ import type {Task} from '../../nar/types/index.js';
 import {termParser} from '../../nar/terms/index.js';
 
 export interface ConceptFilter {
-  type?: 'belief' | 'goal' | 'question';
-  term?: string;
+    type?: 'belief' | 'goal' | 'question';
+    term?: string;
 }
 
 export interface PaginationParams {
-  limit?: number;
-  offset?: number;
+    limit?: number;
+    offset?: number;
 }
 
 export interface NarServiceConfig {
-  defaultRunSteps?: number;
-  maxPaginationLimit?: number;
+    defaultRunSteps?: number;
+    maxPaginationLimit?: number;
 }
 
 export class NarService {
-  private readonly defaultRunSteps: number;
-  private readonly maxPaginationLimit: number;
+    private readonly defaultRunSteps: number;
+    private readonly maxPaginationLimit: number;
 
-  constructor(
-    private readonly nar: NAR,
-    config: NarServiceConfig = {}
-  ) {
-    this.defaultRunSteps = config.defaultRunSteps ?? 5;
-    this.maxPaginationLimit = config.maxPaginationLimit ?? 100;
-  }
-
-  async addBelief(term: string, truth?: { f: number; c: number }): Promise<{ added: true; term: string }> {
-    await this.nar.believe(term, truth ? { f: truth.f, c: truth.c } : undefined);
-    return { added: true, term };
-  }
-
-  async addGoal(term: string, truth?: { f: number; c: number }): Promise<{ added: true; term: string }> {
-    await this.nar.goal(term, truth ? { f: truth.f, c: truth.c } : undefined);
-    return { added: true, term };
-  }
-
-  async addQuestion(term: string): Promise<{ added: true; term: string }> {
-    await this.nar.question(term);
-    return { added: true, term };
-  }
-
-  async getConcepts(filter?: ConceptFilter, pagination?: PaginationParams): Promise<{ results: Task[]; count: number }> {
-    let all: Task[] = [];
-    
-    switch (filter?.type) {
-      case 'belief':
-        all = this.nar.getBeliefs();
-        break;
-      case 'goal':
-        all = this.nar.getGoals();
-        break;
-      case 'question':
-        all = this.nar.getQuestions();
-        break;
-      default:
-        all = [...this.nar.getBeliefs(), ...this.nar.getGoals(), ...this.nar.getQuestions()];
+    constructor(
+        private readonly nar: NAR,
+        config: NarServiceConfig = {}
+    ) {
+        this.defaultRunSteps = config.defaultRunSteps ?? 5;
+        this.maxPaginationLimit = config.maxPaginationLimit ?? 100;
     }
 
-    if (filter?.term) {
-      all = all.filter(task => task.term.toString().includes(filter.term!));
+    async addBelief(term: string, truth?: { f: number; c: number }): Promise<{ added: true; term: string }> {
+        await this.nar.believe(term, truth ? {f: truth.f, c: truth.c} : undefined);
+        return {added: true, term};
     }
 
-    const limit = Math.min(pagination?.limit ?? 20, this.maxPaginationLimit);
-    const offset = pagination?.offset ?? 0;
-    const paginated = all.slice(offset, offset + limit);
+    async addGoal(term: string, truth?: { f: number; c: number }): Promise<{ added: true; term: string }> {
+        await this.nar.goal(term, truth ? {f: truth.f, c: truth.c} : undefined);
+        return {added: true, term};
+    }
 
-    return { results: paginated, count: all.length };
-  }
+    async addQuestion(term: string): Promise<{ added: true; term: string }> {
+        await this.nar.question(term);
+        return {added: true, term};
+    }
 
-  async run(steps?: number): Promise<{ derived: number }> {
-    const derived = await this.nar.run(steps ?? this.defaultRunSteps);
-    return { derived };
-  }
+    async getConcepts(filter?: ConceptFilter, pagination?: PaginationParams): Promise<{
+        results: Task[];
+        count: number
+    }> {
+        let all: Task[] = [];
 
-  async query(term: string, filter?: Record<string, unknown>): Promise<{ results: Task[]; count: number }> {
-    const queryResult = this.nar.queryTerm(termParser.parse(term), filter);
-    const results = queryResult.beliefs;
-    return { results, count: results.length };
-  }
+        switch (filter?.type) {
+            case 'belief':
+                all = this.nar.getBeliefs();
+                break;
+            case 'goal':
+                all = this.nar.getGoals();
+                break;
+            case 'question':
+                all = this.nar.getQuestions();
+                break;
+            default:
+                all = [...this.nar.getBeliefs(), ...this.nar.getGoals(), ...this.nar.getQuestions()];
+        }
 
-  async getStats(): Promise<{
-    totalConcepts: number;
-    totalTasks: number;
-    derivations: number;
-    uptime: number;
-  }> {
-    const stats = this.nar.getStatistics();
-    const metrics = this.nar.getMetrics();
-    return {
-      totalConcepts: stats.totalConcepts,
-      totalTasks: stats.totalTasks,
-      derivations: metrics.system.totalDerivations || 0,
-      uptime: process.uptime()
-    };
-  }
+        if (filter?.term) {
+            all = all.filter(task => task.term.toString().includes(filter.term!));
+        }
 
-  getConfig(): Record<string, unknown> {
-    return this.nar.getConfig() as unknown as Record<string, unknown>;
-  }
+        const limit = Math.min(pagination?.limit ?? 20, this.maxPaginationLimit);
+        const offset = pagination?.offset ?? 0;
+        const paginated = all.slice(offset, offset + limit);
 
-  getAttentionSnapshot(): { concepts: Array<{ term: string; priority: number }>; total: number } {
-    return this.nar.attentionReport();
-  }
+        return {results: paginated, count: all.length};
+    }
 
-  getHistory(limit: number = 50): Task[] {
-    return this.nar.getBeliefs().slice(0, limit);
-  }
+    async run(steps?: number): Promise<{ derived: number }> {
+        const derived = await this.nar.run(steps ?? this.defaultRunSteps);
+        return {derived};
+    }
+
+    async query(term: string, filter?: Record<string, unknown>): Promise<{ results: Task[]; count: number }> {
+        const queryResult = this.nar.queryTerm(termParser.parse(term), filter);
+        const results = queryResult.beliefs;
+        return {results, count: results.length};
+    }
+
+    async getStats(): Promise<{
+        totalConcepts: number;
+        totalTasks: number;
+        derivations: number;
+        uptime: number;
+    }> {
+        const stats = this.nar.getStatistics();
+        const metrics = this.nar.getMetrics();
+        return {
+            totalConcepts: stats.totalConcepts,
+            totalTasks: stats.totalTasks,
+            derivations: metrics.system.totalDerivations || 0,
+            uptime: process.uptime()
+        };
+    }
+
+    getConfig(): Record<string, unknown> {
+        return this.nar.getConfig() as unknown as Record<string, unknown>;
+    }
+
+    getAttentionSnapshot(): { concepts: Array<{ term: string; priority: number }>; total: number } {
+        return this.nar.attentionReport();
+    }
+
+    getHistory(limit: number = 50): Task[] {
+        return this.nar.getBeliefs().slice(0, limit);
+    }
 }

@@ -7,24 +7,24 @@ import {createBot, createRealBot} from './index.js';
     const profileArg = args.find(a => a.startsWith('--profile='));
     const profile = (profileArg ? profileArg.split('=')[1] : 'minimal') as 'minimal' | 'standard' | 'full';
 
-const fileConfig = await loadConfig(args.find(a => a.startsWith('--config='))?.split('=')[1]);
-const portArg = args.find(a => a.startsWith('--port='));
-const port = portArg ? parseInt(portArg.split('=')[1]!, 10) : undefined;
+    const fileConfig = await loadConfig(args.find(a => a.startsWith('--config='))?.split('=')[1]);
+    const portArg = args.find(a => a.startsWith('--port='));
+    const port = portArg ? parseInt(portArg.split('=')[1]!, 10) : undefined;
 
 // Override port in config if specified via command line
-let config = mergeConfig(fileConfig, {profile});
-if (port) {
-  config = {
-    ...config,
-    embodiments: {
-      ...config.embodiments,
-      irc: {...config.embodiments?.irc, port},
-    },
-  };
-}
+    let config = mergeConfig(fileConfig, {profile});
+    if (port) {
+        config = {
+            ...config,
+            embodiments: {
+                ...config.embodiments,
+                irc: {...config.embodiments?.irc, port},
+            },
+        };
+    }
 
-const serverArg = args.find(a => a.startsWith('--server='));
-  const nickArg = args.find(a => a.startsWith('--nick='));
+    const serverArg = args.find(a => a.startsWith('--server='));
+    const nickArg = args.find(a => a.startsWith('--nick='));
 
     if (serverArg) {
         const server = serverArg.split('=')[1] ?? serverArg;

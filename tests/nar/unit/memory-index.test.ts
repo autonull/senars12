@@ -1,6 +1,6 @@
 import {Concept, MemoryIndex} from '../../../src/nar/memory';
 import type {Concept as ConceptType} from '../../memory/concept';
-import {TermBuilder, Truth, termsEqual} from '../../../src/nar/terms';
+import {TermBuilder, Truth} from '../../../src/nar/terms';
 
 function createTestConcept(symbol: string, priority = 0.5): ConceptType {
     const concept = new Concept(TermBuilder.atom(symbol));

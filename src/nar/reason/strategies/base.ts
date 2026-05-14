@@ -12,21 +12,21 @@ interface StrategyConfig {
 }
 
 export const createStrategy = (config: StrategyConfig): Strategy => {
-const {name, sampleSize, filter, truthFilter, limit = 5} = config;
+    const {name, sampleSize, filter, truthFilter, limit = 5} = config;
 
-const strategy = {
-name,
-sampleSize,
-limit,
-selectSecondary(task, memory) {
-return samplePremises(memory, task, {
-  sampleSize,
-  limit,
-  filter,
-  truthFilter
-});
-}
-} as Strategy & {sampleSize: number; limit: number};
+    const strategy = {
+        name,
+        sampleSize,
+        limit,
+        selectSecondary(task, memory) {
+            return samplePremises(memory, task, {
+                sampleSize,
+                limit,
+                filter,
+                truthFilter
+            });
+        }
+    } as Strategy & { sampleSize: number; limit: number };
 
-return strategy;
+    return strategy;
 };

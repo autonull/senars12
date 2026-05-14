@@ -27,17 +27,17 @@ describe('belief-handler', () => {
             send = (ch: string, u: string, t: string) => sent.push([ch, u, t]);
         });
 
-  test('believes text and reports derived count', async () => {
-    const handler = createBeliefHandler({nar, send});
-    const derived = await handler('#ch', 'user', '(A --> B).');
-    expect(sent).toContainEqual(['#ch', 'user', 'Added: (A --> B).']);
-    expect(derived).toBeGreaterThanOrEqual(0);
-  });
+        test('believes text and reports derived count', async () => {
+            const handler = createBeliefHandler({nar, send});
+            const derived = await handler('#ch', 'user', '(A --> B).');
+            expect(sent).toContainEqual(['#ch', 'user', 'Added: (A --> B).']);
+            expect(derived).toBeGreaterThanOrEqual(0);
+        });
 
-  test('preserves terminator', async () => {
-    const handler = createBeliefHandler({nar, send});
-    await handler('#ch', 'user', ' (X --> Y). ');
-    expect(sent).toContainEqual(['#ch', 'user', 'Added: (X --> Y).']);
-  });
+        test('preserves terminator', async () => {
+            const handler = createBeliefHandler({nar, send});
+            await handler('#ch', 'user', ' (X --> Y). ');
+            expect(sent).toContainEqual(['#ch', 'user', 'Added: (X --> Y).']);
+        });
     });
 });

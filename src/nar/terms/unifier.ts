@@ -40,18 +40,18 @@ const _applySubstitution = (term: Term, subst: Substitution): Term => {
 };
 
 function termToKey(term: Term): string {
-  if (term.kind === 'atom') {
-    return `atom:${term.symbol}`;
-  }
-  return `${term.kind}:${term.args?.map(termToKey).join(',')}`;
+    if (term.kind === 'atom') {
+        return `atom:${term.symbol}`;
+    }
+    return `${term.kind}:${term.args?.map(termToKey).join(',')}`;
 }
 
 export function unify(a: Term, b: Term, subst: Substitution = {}, enableOccursCheck = true): Substitution | undefined {
-  const cacheKey = `${termToKey(a)}-${termToKey(b)}-${Object.keys(subst).sort().join(',')}`;
-  const cached = unificationCache.get(cacheKey);
-  if (cached !== undefined) {
-    return cached;
-  }
+    const cacheKey = `${termToKey(a)}-${termToKey(b)}-${Object.keys(subst).sort().join(',')}`;
+    const cached = unificationCache.get(cacheKey);
+    if (cached !== undefined) {
+        return cached;
+    }
 
     let result: Substitution | undefined;
 

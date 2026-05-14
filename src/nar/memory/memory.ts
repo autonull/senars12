@@ -86,7 +86,7 @@ export interface MemoryHealth {
 }
 
 export class Memory {
-  private readonly concepts = new TermMap<Concept>();
+    private readonly concepts = new TermMap<Concept>();
     private readonly config: Required<MemoryConfig>;
     private readonly index: MemoryIndex;
     private readonly focus: Focus;
@@ -140,68 +140,68 @@ export class Memory {
         return this.concepts.size;
     }
 
-getConcept(term: Term): Concept | undefined {
-return this.concepts.get(term);
-}
+    getConcept(term: Term): Concept | undefined {
+        return this.concepts.get(term);
+    }
 
-getRelatedConcepts(term: Term, limit: number = 10): Concept[] {
-const results: Concept[] = [];
-const concept = this.concepts.get(term);
-if (!concept) return results;
+    getRelatedConcepts(term: Term, limit: number = 10): Concept[] {
+        const results: Concept[] = [];
+        const concept = this.concepts.get(term);
+        if (!concept) return results;
 
-const links = this.linkManager.getLinksForTerm(term);
-for (const link of links.slice(0, limit)) {
-const linkedConcept = this.concepts.get(link.to);
-if (linkedConcept) {
-results.push(linkedConcept);
-}
-}
+        const links = this.linkManager.getLinksForTerm(term);
+        for (const link of links.slice(0, limit)) {
+            const linkedConcept = this.concepts.get(link.to);
+            if (linkedConcept) {
+                results.push(linkedConcept);
+            }
+        }
 
-if (results.length === 0) {
-const similar = this.findSimilarConcepts(term, limit);
-results.push(...similar);
-}
+        if (results.length === 0) {
+            const similar = this.findSimilarConcepts(term, limit);
+            results.push(...similar);
+        }
 
-return results.slice(0, limit);
-}
+        return results.slice(0, limit);
+    }
 
-findConcepts(pattern: string, limit: number = 10): Concept[] {
-const results: Concept[] = [];
-const patternLower = pattern.toLowerCase();
-for (const concept of this.concepts.values()) {
-if (concept.term.toString().toLowerCase().includes(patternLower)) {
-results.push(concept);
-if (results.length >= limit) break;
-}
-}
-return results;
-}
+    findConcepts(pattern: string, limit: number = 10): Concept[] {
+        const results: Concept[] = [];
+        const patternLower = pattern.toLowerCase();
+        for (const concept of this.concepts.values()) {
+            if (concept.term.toString().toLowerCase().includes(patternLower)) {
+                results.push(concept);
+                if (results.length >= limit) break;
+            }
+        }
+        return results;
+    }
 
-  getLinkManager(): LinkManager {
+    getLinkManager(): LinkManager {
         return this.linkManager;
     }
 
-  addConcept(term: Term): Concept {
-    const existing = this.concepts.get(term);
-    if (existing) return existing;
+    addConcept(term: Term): Concept {
+        const existing = this.concepts.get(term);
+        if (existing) return existing;
 
-    if (this.concepts.size >= this.config.maxConcepts) {
-      this.applyForgetting();
+        if (this.concepts.size >= this.config.maxConcepts) {
+            this.applyForgetting();
+        }
+
+        this.checkMemoryPressure();
+
+        const concept = new Concept(term);
+        this.concepts.set(term, concept);
+
+        if (this.config.enableIndexing) {
+            this.index.index(concept, this.lastTimestamp);
+        }
+
+        this.updateFocus(concept);
+
+        return concept;
     }
-
-    this.checkMemoryPressure();
-
-    const concept = new Concept(term);
-    this.concepts.set(term, concept);
-
-    if (this.config.enableIndexing) {
-      this.index.index(concept, this.lastTimestamp);
-    }
-
-    this.updateFocus(concept);
-
-    return concept;
-  }
 
     addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget = {
         priority: 0.9,
@@ -214,22 +214,22 @@ return results;
         return concept.addTask(type, {term, truth, budget});
     }
 
-  removeConcept(term: Term): boolean {
-    const concept = this.concepts.get(term);
-    if (concept) {
-      this.focus.removeFromFocus(concept);
-      if (this.config.enableIndexing) {
-        this.index.remove(concept);
-      }
-      const termLayer = this.linkManager.getLayer('term');
-      if (termLayer && 'removeAllLinksForTerm' in termLayer) {
-        (termLayer as any).removeAllLinksForTerm(term);
-      }
-      this.concepts.delete(term);
-      return true;
+    removeConcept(term: Term): boolean {
+        const concept = this.concepts.get(term);
+        if (concept) {
+            this.focus.removeFromFocus(concept);
+            if (this.config.enableIndexing) {
+                this.index.remove(concept);
+            }
+            const termLayer = this.linkManager.getLayer('term');
+            if (termLayer && 'removeAllLinksForTerm' in termLayer) {
+                (termLayer as any).removeAllLinksForTerm(term);
+            }
+            this.concepts.delete(term);
+            return true;
+        }
+        return false;
     }
-    return false;
-  }
 
     getFocusConcepts(): Concept[] {
         return this.focus.getFocusSet();
@@ -255,7 +255,7 @@ return results;
             concept.decay(activationDecayRate);
         }
 
-  this.linkManager.applyDecay(linkDecayRate);
+        this.linkManager.applyDecay(linkDecayRate);
 
         const toArchive: Concept[] = [];
         const toRemove: Concept[] = [];
@@ -339,15 +339,15 @@ return results;
         Object.assign(this.config, updates);
     }
 
-  retrieveFromArchive(term: Term): Concept | undefined {
-    if (!this.config.enableArchive) return undefined;
-    const concept = this.archive.retrieve(term);
-    if (concept) {
-      this.archive.unarchive(term);
-      this.addConcept(term);
+    retrieveFromArchive(term: Term): Concept | undefined {
+        if (!this.config.enableArchive) return undefined;
+        const concept = this.archive.retrieve(term);
+        if (concept) {
+            this.archive.unarchive(term);
+            this.addConcept(term);
+        }
+        return concept;
     }
-    return concept;
-  }
 
     queryBySymbol(symbol: string): Concept[] {
         if (!this.config.enableIndexing) return [];

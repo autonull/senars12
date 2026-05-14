@@ -11,8 +11,8 @@ export function isBelief(text: string): boolean {
 
 export function createBeliefHandler(deps: BeliefHandlerDeps) {
     return async (channel: string, user: string, text: string): Promise<number> => {
-  const beliefText = text.trim();
-  await deps.nar.believe(beliefText);
+        const beliefText = text.trim();
+        await deps.nar.believe(beliefText);
         deps.send(channel, user, `Added: ${beliefText}`);
 
         const derived = await deps.nar.run(3);

@@ -20,20 +20,20 @@ export {OPERATORS, COMMUTATIVE_OPS, NARY_OPS} from './operators.js';
 export type {OperatorKey, OperatorSymbol} from './operators.js';
 
 export interface AtomicTerm {
-  readonly kind: 'atom';
-  readonly symbol: string;
-  readonly isVariable?: boolean;
-  readonly args?: never;
+    readonly kind: 'atom';
+    readonly symbol: string;
+    readonly isVariable?: boolean;
+    readonly args?: never;
 
-  toString(): string;
+    toString(): string;
 }
 
 export interface CompoundTerm<K extends OperatorKey = OperatorKey> {
-  readonly kind: K;
-  readonly args: readonly Term[];
-  readonly symbol?: never;
+    readonly kind: K;
+    readonly args: readonly Term[];
+    readonly symbol?: never;
 
-  toString(): string;
+    toString(): string;
 }
 
 export type Term = AtomicTerm | CompoundTerm;

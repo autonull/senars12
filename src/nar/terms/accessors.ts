@@ -58,23 +58,23 @@ const eqCompound = (a: CompoundTerm, b: Term): boolean => {
 };
 
 export const termsEqual = (a: Term, b: Term): boolean => {
-if (a === b) return true;
-if (a.kind !== b.kind) return false;
-if (a.kind === 'atom') {
-  return a.symbol === b.symbol;
-}
-const aArgs = a.args ?? [];
-const bArgs = b.args ?? [];
-if (aArgs.length !== bArgs.length) return false;
-for (let i = 0; i < aArgs.length; i++) {
-  if (!termsEqual(aArgs[i]!, bArgs[i]!)) return false;
-}
-return true;
+    if (a === b) return true;
+    if (a.kind !== b.kind) return false;
+    if (a.kind === 'atom') {
+        return a.symbol === b.symbol;
+    }
+    const aArgs = a.args ?? [];
+    const bArgs = b.args ?? [];
+    if (aArgs.length !== bArgs.length) return false;
+    for (let i = 0; i < aArgs.length; i++) {
+        if (!termsEqual(aArgs[i]!, bArgs[i]!)) return false;
+    }
+    return true;
 };
 
 export const isCanonical = (term: Term): boolean => {
-return Object.isFrozen(term);
+    return Object.isFrozen(term);
 };
 
 export const getCompoundArgs = (term: Term): readonly Term[] | undefined =>
-term.kind === 'atom' ? undefined : term.args;
+    term.kind === 'atom' ? undefined : term.args;

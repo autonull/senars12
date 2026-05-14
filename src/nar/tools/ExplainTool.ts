@@ -56,10 +56,10 @@ export class ExplainTool implements Tool {
         }
     }
 
-  private findConcept(termStr: string): Concept | undefined {
-    const concepts = this.memory.findConcepts(termStr, 1);
-    return concepts[0];
-  }
+    private findConcept(termStr: string): Concept | undefined {
+        const concepts = this.memory.findConcepts(termStr, 1);
+        return concepts[0];
+    }
 
     private generateExplanation(concept: Concept, includeDerivations: boolean, includeEvidence: boolean): Record<string, unknown> {
         const explanation: Record<string, unknown> = {

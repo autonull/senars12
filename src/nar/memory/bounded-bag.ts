@@ -111,51 +111,51 @@ export class BoundedBag<T> {
         return bag;
     }
 
-  add(item: T, priority: number): boolean {
-    if (this._capacity === 0) {
-      this.stats.misses++;
-      return false;
-    }
-
-    const existingIdx = this.heap.findIndex(h => this.itemsMatch(h.item, item));
-    if (existingIdx !== -1) {
-      const existing = this.heap[existingIdx]!;
-      existing.priority = Math.max(existing.priority, priority);
-      existing.lastAccess = Date.now();
-      this.accessLog.set(item, existing.lastAccess);
-      return true;
-    }
-
-    const entry: BagItem<T> = {item, priority, lastAccess: Date.now(), createdAt: Date.now()};
-
-    if (this.heap.length >= this._capacity) {
-      this.stats.misses++;
-      if (this.overflowBehavior === 'reject') {
-        const minP = this.findMinPriority();
-        if (priority <= minP) return false;
-        this.heap.shift();
-      } else if (this.overflowBehavior === 'replace-lowest') {
-        const minIdx = this.findMinIndex();
-        const minItem = this.heap[minIdx];
-        if (minIdx >= 0 && minItem && priority > minItem.priority) {
-          this.heap.splice(minIdx, 1);
-        } else {
-          return false;
+    add(item: T, priority: number): boolean {
+        if (this._capacity === 0) {
+            this.stats.misses++;
+            return false;
         }
-      } else if (this.overflowBehavior === 'merge') {
-        const minP = this.findMinPriority();
-        if (priority <= minP) return false;
-        this.heap.shift();
-      }
-    } else {
-      this.stats.additions++;
-    }
 
-    this.accessLog.set(item, entry.lastAccess);
-    const idx = this.heap.findIndex(h => h.priority < priority);
-    idx === -1 ? this.heap.push(entry) : this.heap.splice(idx, 0, entry);
-    return true;
-  }
+        const existingIdx = this.heap.findIndex(h => this.itemsMatch(h.item, item));
+        if (existingIdx !== -1) {
+            const existing = this.heap[existingIdx]!;
+            existing.priority = Math.max(existing.priority, priority);
+            existing.lastAccess = Date.now();
+            this.accessLog.set(item, existing.lastAccess);
+            return true;
+        }
+
+        const entry: BagItem<T> = {item, priority, lastAccess: Date.now(), createdAt: Date.now()};
+
+        if (this.heap.length >= this._capacity) {
+            this.stats.misses++;
+            if (this.overflowBehavior === 'reject') {
+                const minP = this.findMinPriority();
+                if (priority <= minP) return false;
+                this.heap.shift();
+            } else if (this.overflowBehavior === 'replace-lowest') {
+                const minIdx = this.findMinIndex();
+                const minItem = this.heap[minIdx];
+                if (minIdx >= 0 && minItem && priority > minItem.priority) {
+                    this.heap.splice(minIdx, 1);
+                } else {
+                    return false;
+                }
+            } else if (this.overflowBehavior === 'merge') {
+                const minP = this.findMinPriority();
+                if (priority <= minP) return false;
+                this.heap.shift();
+            }
+        } else {
+            this.stats.additions++;
+        }
+
+        this.accessLog.set(item, entry.lastAccess);
+        const idx = this.heap.findIndex(h => h.priority < priority);
+        idx === -1 ? this.heap.push(entry) : this.heap.splice(idx, 0, entry);
+        return true;
+    }
 
     addMany(items: Array<[T, number]>): number {
         let added = 0;
@@ -236,15 +236,15 @@ export class BoundedBag<T> {
         this.heap = this.heap.filter(entry => currentTime - entry.lastAccess <= ttl);
     }
 
-  clear(): void {
-    this.heap = [];
-    this.accessLog.clear();
-    this.stats = {additions: 0, removals: 0, hits: 0, misses: 0};
-  }
+    clear(): void {
+        this.heap = [];
+        this.accessLog.clear();
+        this.stats = {additions: 0, removals: 0, hits: 0, misses: 0};
+    }
 
-  toArray(): T[] {
-    return this.heap.map(h => h.item);
-  }
+    toArray(): T[] {
+        return this.heap.map(h => h.item);
+    }
 
     private findMinPriority(): number {
         if (this.heap.length === 0) return 0;
@@ -269,19 +269,19 @@ export class BoundedBag<T> {
         return minIdx;
     }
 
-private itemsMatch(a: T, b: T): boolean {
-  if (a == null || b == null) return a === b;
-  if (typeof a === 'object' && typeof b === 'object') {
-    if ('kind' in a && 'kind' in b) {
-      const aObj = a as {kind?: string; args?: unknown[]};
-      const bObj = b as {kind?: string; args?: unknown[]};
-      if (aObj.kind !== bObj.kind) return false;
-      const aArgs = aObj.args, bArgs = bObj.args;
-      if (Array.isArray(aArgs) && Array.isArray(bArgs) && aArgs.length !== bArgs.length) return false;
-      return true;
+    private itemsMatch(a: T, b: T): boolean {
+        if (a == null || b == null) return a === b;
+        if (typeof a === 'object' && typeof b === 'object') {
+            if ('kind' in a && 'kind' in b) {
+                const aObj = a as { kind?: string; args?: unknown[] };
+                const bObj = b as { kind?: string; args?: unknown[] };
+                if (aObj.kind !== bObj.kind) return false;
+                const aArgs = aObj.args, bArgs = bObj.args;
+                if (Array.isArray(aArgs) && Array.isArray(bArgs) && aArgs.length !== bArgs.length) return false;
+                return true;
+            }
+            return JSON.stringify(a) === JSON.stringify(b);
+        }
+        return a === b;
     }
-    return JSON.stringify(a) === JSON.stringify(b);
-  }
-  return a === b;
-}
 }

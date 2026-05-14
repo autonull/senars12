@@ -295,26 +295,26 @@ export class TermParser {
         throw new ParseError(`Unexpected token: ${t.value || t.type}`, pos, t);
     }
 
-private parseCompoundOrAtomic(): Term {
-const terms: Term[] = [];
-let op: string | undefined;
-while (this.at(this.pos).type !== 'RPAREN' && this.at(this.pos).type !== 'EOF') {
-const t = this.at(this.pos);
-if (this.isOp(t)) {
-if (!op) {
-op = t.value;
-this.pos++;
-} else {
-break;
-}
-} else if (t.type === 'COMMA') {
-this.pos++;
-} else if (t.type === 'ATOM' || t.type === 'VARIABLE' || t.type === 'LPAREN' || (this.isOp(t) && t.value === '--')) {
-terms.push(this.parseTerm());
-} else {
-break;
-}
-}
+    private parseCompoundOrAtomic(): Term {
+        const terms: Term[] = [];
+        let op: string | undefined;
+        while (this.at(this.pos).type !== 'RPAREN' && this.at(this.pos).type !== 'EOF') {
+            const t = this.at(this.pos);
+            if (this.isOp(t)) {
+                if (!op) {
+                    op = t.value;
+                    this.pos++;
+                } else {
+                    break;
+                }
+            } else if (t.type === 'COMMA') {
+                this.pos++;
+            } else if (t.type === 'ATOM' || t.type === 'VARIABLE' || t.type === 'LPAREN' || (this.isOp(t) && t.value === '--')) {
+                terms.push(this.parseTerm());
+            } else {
+                break;
+            }
+        }
         if (!op) {
             return terms[0] ?? TermFactory.atom('TRUE');
         }

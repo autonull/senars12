@@ -74,9 +74,9 @@ export class Concept {
         this._priority = Math.max(0, Math.min(1, value));
     }
 
-  get key(): Term {
-    return this.term;
-  }
+    get key(): Term {
+        return this.term;
+    }
 
     get activationValue(): number {
         return this.activation;
@@ -86,22 +86,16 @@ export class Concept {
         return this.beliefBag.size + this.goalBag.size + this.questionBag.size;
     }
 
-  private recordAccess(): void {
-this.useCount++;
-this.lastAccessedAt = Date.now();
-this._priority = Math.min(1, this._priority + 0.1);
-}
+    addTask(type: ConceptTaskType, data: TaskData): boolean {
+        if (type === 'belief') return this.addBeliefWithRevision(data);
 
-addTask(type: ConceptTaskType, data: TaskData): boolean {
-if (type === 'belief') return this.addBeliefWithRevision(data);
-
-const bag = type === 'goal' ? this.goalBag : this.questionBag;
-const added = bag.add(data, data.budget.priority);
-if (added) {
-  this.recordAccess();
-}
-return added;
-}
+        const bag = type === 'goal' ? this.goalBag : this.questionBag;
+        const added = bag.add(data, data.budget.priority);
+        if (added) {
+            this.recordAccess();
+        }
+        return added;
+    }
 
     hasMatchingBelief(term: Term): boolean {
         return this.findMatchingBelief(term) !== undefined;
@@ -128,42 +122,42 @@ return added;
         this._priority *= 1 - rate;
     }
 
-  applyTimeDecay(baseRate = 0.01): void {
-    const elapsed = Date.now() - this.lastDecayTime;
-    const decayFactor = Math.exp(-baseRate * elapsed / 60000);
-    this.activation *= decayFactor;
-    this._priority = Math.max(0, this._priority * decayFactor);
-    if (this._priority > 0 && elapsed < 1) {
-      this._priority = Math.max(0, this._priority * (1 - baseRate));
+    applyTimeDecay(baseRate = 0.01): void {
+        const elapsed = Date.now() - this.lastDecayTime;
+        const decayFactor = Math.exp(-baseRate * elapsed / 60000);
+        this.activation *= decayFactor;
+        this._priority = Math.max(0, this._priority * decayFactor);
+        if (this._priority > 0 && elapsed < 1) {
+            this._priority = Math.max(0, this._priority * (1 - baseRate));
+        }
+        this.lastDecayTime = Date.now();
     }
-    this.lastDecayTime = Date.now();
-  }
 
-  addLink(concept: Concept, strength = 0.5): void {
-    if (concept === this) return;
+    addLink(concept: Concept, strength = 0.5): void {
+        if (concept === this) return;
 
-    const updateLink = (target: Concept, source: Concept) => {
-      const existing = target.linkedConcepts.get(source.term);
-      if (existing) {
-        existing.strength = Math.min(1, existing.strength + strength * 0.1);
-        existing.lastUpdated = Date.now();
-      } else {
-        target.linkedConcepts.set(source.term, {
-          concept: source,
-          strength,
-          lastUpdated: Date.now(),
-        });
-      }
-    };
+        const updateLink = (target: Concept, source: Concept) => {
+            const existing = target.linkedConcepts.get(source.term);
+            if (existing) {
+                existing.strength = Math.min(1, existing.strength + strength * 0.1);
+                existing.lastUpdated = Date.now();
+            } else {
+                target.linkedConcepts.set(source.term, {
+                    concept: source,
+                    strength,
+                    lastUpdated: Date.now(),
+                });
+            }
+        };
 
-    updateLink(this, concept);
-    updateLink(concept, this);
-  }
+        updateLink(this, concept);
+        updateLink(concept, this);
+    }
 
-  removeLink(concept: Concept): void {
-    this.linkedConcepts.delete(concept.term);
-    concept.linkedConcepts.delete(this.term);
-  }
+    removeLink(concept: Concept): void {
+        this.linkedConcepts.delete(concept.term);
+        concept.linkedConcepts.delete(this.term);
+    }
 
     getLinks(): ConceptLink[] {
         return Array.from(this.linkedConcepts.values());
@@ -173,16 +167,16 @@ return added;
         return Array.from(this.linkedConcepts.values()).map(link => link.concept);
     }
 
-  updateLinks(): void {
-    const now = Date.now();
-    const decayRate = 0.001;
+    updateLinks(): void {
+        const now = Date.now();
+        const decayRate = 0.001;
 
-    for (const [key, link] of this.linkedConcepts.items()) {
-      const elapsed = now - link.lastUpdated;
-      link.strength *= Math.exp(-decayRate * elapsed / 60000);
-      if (link.strength < 0.01) this.linkedConcepts.delete(key);
+        for (const [key, link] of this.linkedConcepts.items()) {
+            const elapsed = now - link.lastUpdated;
+            link.strength *= Math.exp(-decayRate * elapsed / 60000);
+            if (link.strength < 0.01) this.linkedConcepts.delete(key);
+        }
     }
-  }
 
     canMergeWith(other: Concept, threshold = 0.85): boolean {
         if (this === other) return false;
@@ -241,27 +235,33 @@ return added;
         return Array.from(this.parentConcepts);
     }
 
+    private recordAccess(): void {
+        this.useCount++;
+        this.lastAccessedAt = Date.now();
+        this._priority = Math.min(1, this._priority + 0.1);
+    }
+
     private addBeliefWithRevision(data: TaskData): boolean {
         const existing = this.findMatchingBelief(data.term);
 
         if (existing) {
             if (!data.truth || !existing.truth) return false;
 
-  const revisedTruth = TruthOps.revision(data.truth, existing.truth);
-  const revisedData = {...data, truth: revisedTruth, timestamp: Date.now()};
-  this.beliefBag.remove(existing);
-  const added = this.beliefBag.add(revisedData, revisedData.budget.priority);
-  if (added) {
-    this.recordAccess();
-  }
-  return added;
-}
+            const revisedTruth = TruthOps.revision(data.truth, existing.truth);
+            const revisedData = {...data, truth: revisedTruth, timestamp: Date.now()};
+            this.beliefBag.remove(existing);
+            const added = this.beliefBag.add(revisedData, revisedData.budget.priority);
+            if (added) {
+                this.recordAccess();
+            }
+            return added;
+        }
 
-const added = this.beliefBag.add(data, data.budget.priority);
-if (added) {
-  this.recordAccess();
-}
-return added;
+        const added = this.beliefBag.add(data, data.budget.priority);
+        if (added) {
+            this.recordAccess();
+        }
+        return added;
     }
 
     private findMatchingBelief(term: Term): TaskData | undefined {
@@ -272,22 +272,22 @@ return added;
         return termsEqual(this.term, other) ? 1 : jaccardSimilarity(extractSymbols(this.term), extractSymbols(other));
     }
 
-  private calculateTaskOverlap(other: Concept): number {
-    const thisBeliefsSet = new TermSet();
-    const otherBeliefsSet = new TermSet();
-    
-    this.getBeliefs().forEach(b => thisBeliefsSet.add(b.term));
-    other.getBeliefs().forEach(b => otherBeliefsSet.add(b.term));
+    private calculateTaskOverlap(other: Concept): number {
+        const thisBeliefsSet = new TermSet();
+        const otherBeliefsSet = new TermSet();
 
-    if (thisBeliefsSet.size === 0 && otherBeliefsSet.size === 0) return 0;
+        this.getBeliefs().forEach(b => thisBeliefsSet.add(b.term));
+        other.getBeliefs().forEach(b => otherBeliefsSet.add(b.term));
 
-    let intersectionSize = 0;
-    thisBeliefsSet.forEach(term => {
-      if (otherBeliefsSet.has(term)) intersectionSize++;
-    });
-    
-    const unionSize = thisBeliefsSet.size + otherBeliefsSet.size - intersectionSize;
+        if (thisBeliefsSet.size === 0 && otherBeliefsSet.size === 0) return 0;
 
-    return unionSize > 0 ? intersectionSize / unionSize : 0;
-  }
+        let intersectionSize = 0;
+        thisBeliefsSet.forEach(term => {
+            if (otherBeliefsSet.has(term)) intersectionSize++;
+        });
+
+        const unionSize = thisBeliefsSet.size + otherBeliefsSet.size - intersectionSize;
+
+        return unionSize > 0 ? intersectionSize / unionSize : 0;
+    }
 }

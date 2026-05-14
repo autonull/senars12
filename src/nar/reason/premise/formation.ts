@@ -44,22 +44,22 @@ export class PremiseFormation {
         return quality >= threshold;
     }
 
-  private checkDiversity(primary: Task, secondary: Task): boolean {
-    const primaryStr = primary.term.kind === 'atom' ? primary.term.symbol : primary.term.kind;
-    const secondaryStr = secondary.term.kind === 'atom' ? secondary.term.symbol : secondary.term.kind;
-    const pairKey = `${primaryStr}-${secondaryStr}`;
-    const reverseKey = `${secondaryStr}-${primaryStr}`;
+    private checkDiversity(primary: Task, secondary: Task): boolean {
+        const primaryStr = primary.term.kind === 'atom' ? primary.term.symbol : primary.term.kind;
+        const secondaryStr = secondary.term.kind === 'atom' ? secondary.term.symbol : secondary.term.kind;
+        const pairKey = `${primaryStr}-${secondaryStr}`;
+        const reverseKey = `${secondaryStr}-${primaryStr}`;
 
-    if (this.recentPairs.has(pairKey) || this.recentPairs.has(reverseKey)) {
-      return false;
-    }
+        if (this.recentPairs.has(pairKey) || this.recentPairs.has(reverseKey)) {
+            return false;
+        }
 
-    if (this.recentPairs.size >= this.maxRecentPairs) {
-      const first = this.recentPairs.values().next().value;
-      if (first) this.recentPairs.delete(first);
-    }
+        if (this.recentPairs.size >= this.maxRecentPairs) {
+            const first = this.recentPairs.values().next().value;
+            if (first) this.recentPairs.delete(first);
+        }
 
-    this.recentPairs.add(pairKey);
+        this.recentPairs.add(pairKey);
         return true;
     }
 

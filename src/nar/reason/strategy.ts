@@ -4,11 +4,11 @@ import {Memory} from '../memory';
 import {termsEqual} from '../terms';
 
 export interface Strategy {
-readonly name: string;
-readonly sampleSize?: number;
-readonly limit?: number;
+    readonly name: string;
+    readonly sampleSize?: number;
+    readonly limit?: number;
 
-selectSecondary(task: Task, memory: Memory): Task[];
+    selectSecondary(task: Task, memory: Memory): Task[];
 }
 
 export const BagStrategy: Strategy = {

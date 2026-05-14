@@ -1,5 +1,5 @@
-import {LinkBag} from '../../../../src/nar/memory/links';
 import type {LinkEntry} from '../../../../src/nar/memory/links';
+import {LinkBag} from '../../../../src/nar/memory/links';
 
 describe('LinkBag', () => {
     describe('capacity eviction', () => {

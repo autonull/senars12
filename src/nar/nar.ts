@@ -67,20 +67,20 @@ export class NAR extends BaseComponent {
     readonly reasoner: Reasoner;
     readonly query: QueryAPI;
     readonly traceAPI: ReasoningTrace;
-  readonly tools: ToolManager;
-  readonly self?: ReasoningAboutReasoning;
-  readonly rlfp?: RLFPLearner;
+    readonly tools: ToolManager;
+    readonly self?: ReasoningAboutReasoning;
+    readonly rlfp?: RLFPLearner;
 
-  private readonly io: NARIO;
-  private readonly execution: NARExecution;
-  private readonly lm: NARLM;
-  private readonly config: NARConfig;
-  private readonly processor: RuleProcessor;
-  private readonly _metricsCollector: MetricsCollector;
-  private readonly _lmClient?: LMClient;
-  private _lmInitialized = false;
-  private _toolsInitialized = false;
-  private _constitution: Task[] = [];
+    private readonly io: NARIO;
+    private readonly execution: NARExecution;
+    private readonly lm: NARLM;
+    private readonly config: NARConfig;
+    private readonly processor: RuleProcessor;
+    private readonly _metricsCollector: MetricsCollector;
+    private readonly _lmClient?: LMClient;
+    private _lmInitialized = false;
+    private _toolsInitialized = false;
+    private _constitution: Task[] = [];
 
     constructor(config: NARConfig = DEFAULT_CONFIG) {
         const eventBus = new EventBus();
@@ -100,26 +100,26 @@ export class NAR extends BaseComponent {
         this.tools = new ToolManager();
         this._lmClient = this.config.lmClient;
 
-    if (this.config.enableRLFP) {
-      this.rlfp = new RLFPLearner({});
-    }
+        if (this.config.enableRLFP) {
+            this.rlfp = new RLFPLearner({});
+        }
 
-    this.io = new NARIO(this.memory, this.taskManager, this.config);
-    this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp);
-    this.lm = new NARLM(this.memory, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment, this.config.enableLMStreaming);
-    this._metricsCollector = metrics;
+        this.io = new NARIO(this.memory, this.taskManager, this.config);
+        this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp);
+        this.lm = new NARLM(this.memory, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment, this.config.enableLMStreaming);
+        this._metricsCollector = metrics;
 
-    if (this.config.enableLMRules && this.config.lmClient) {
-      this.initializeLMRules(this.config.lmClient);
-    }
+        if (this.config.enableLMRules && this.config.lmClient) {
+            this.initializeLMRules(this.config.lmClient);
+        }
 
-    if (this.config.enableTools) {
-      this.initializeTools();
-    }
+        if (this.config.enableTools) {
+            this.initializeTools();
+        }
 
-    if (this.config.enableSelf) {
-      this.self = new ReasoningAboutReasoning(this, {});
-    }
+        if (this.config.enableSelf) {
+            this.self = new ReasoningAboutReasoning(this, {});
+        }
     }
 
     override async initialize(): Promise<void> {
@@ -199,21 +199,21 @@ export class NAR extends BaseComponent {
         this.memory.setConfig(updates);
     }
 
-getLMClient(): LMClient | undefined {
-    return this._lmClient;
-}
+    getLMClient(): LMClient | undefined {
+        return this._lmClient;
+    }
 
-getSelfAnalyzer(): ReasoningAboutReasoning | undefined {
-    return this.self;
-}
+    getSelfAnalyzer(): ReasoningAboutReasoning | undefined {
+        return this.self;
+    }
 
-getRLFP(): RLFPLearner | undefined {
-    return this.rlfp;
-}
+    getRLFP(): RLFPLearner | undefined {
+        return this.rlfp;
+    }
 
-getAttentionReport(): { concepts: Array<{ term: string; priority: number }>; total: number } {
-    return this.attentionReport();
-}
+    getAttentionReport(): { concepts: Array<{ term: string; priority: number }>; total: number } {
+        return this.attentionReport();
+    }
 
     setConstitution(beliefs: Task[]): void {
         this._constitution = beliefs.map(b => ({
@@ -258,13 +258,13 @@ Question: "${question}"`;
         const narsese = await lm.generateText(translatePrompt);
         const cleaned = narsese.trim().replace(/^<|>$/g, '').trim();
 
-    await this.io.input(cleaned + '?');
-    await this.run(5);
+        await this.io.input(cleaned + '?');
+        await this.run(5);
 
-    const beliefs = this.query.getBeliefs();
-    const relevant = beliefs.filter(b =>
-      b.term.toString().toLowerCase().includes(cleaned.split('-->')[0]?.trim() || '')
-    );
+        const beliefs = this.query.getBeliefs();
+        const relevant = beliefs.filter(b =>
+            b.term.toString().toLowerCase().includes(cleaned.split('-->')[0]?.trim() || '')
+        );
 
         if (relevant.length === 0) {
             return "I don't have enough knowledge to answer that.";
@@ -281,53 +281,53 @@ Only output the answer, nothing else.`;
         return lm.generateText(explainPrompt);
     }
 
-  getBeliefs(filter?: Record<string, unknown>): Task[] {
-    return this.query.getBeliefs(filter);
-  }
+    getBeliefs(filter?: Record<string, unknown>): Task[] {
+        return this.query.getBeliefs(filter);
+    }
 
-  getGoals(filter?: Record<string, unknown>): Task[] {
-    return this.query.getGoals(filter);
-  }
+    getGoals(filter?: Record<string, unknown>): Task[] {
+        return this.query.getGoals(filter);
+    }
 
-  getQuestions(filter?: Record<string, unknown>): Task[] {
-    return this.query.getQuestions(filter);
-  }
+    getQuestions(filter?: Record<string, unknown>): Task[] {
+        return this.query.getQuestions(filter);
+    }
 
-  queryTerm(term: Term, filter?: Record<string, unknown>) {
-    return this.query.query(term, filter);
-  }
+    queryTerm(term: Term, filter?: Record<string, unknown>) {
+        return this.query.query(term, filter);
+    }
 
-  ask(question: string | Term) {
-    return this.query.ask(question);
-  }
+    ask(question: string | Term) {
+        return this.query.ask(question);
+    }
 
-  getDerivationHistory(task: Task) {
-    return this.traceAPI.getDerivationHistory(task);
-  }
+    getDerivationHistory(task: Task) {
+        return this.traceAPI.getDerivationHistory(task);
+    }
 
-  traceTerm(term: Term) {
-    return this.traceAPI.trace(term);
-  }
+    traceTerm(term: Term) {
+        return this.traceAPI.trace(term);
+    }
 
-  explain(conclusion: Task) {
-    return this.traceAPI.explain(conclusion);
-  }
+    explain(conclusion: Task) {
+        return this.traceAPI.explain(conclusion);
+    }
 
-  recordRuleExecution(ruleId: string, success: boolean, duration: number) {
-    this._metricsCollector.recordRuleExecution(ruleId, success, duration);
-  }
+    recordRuleExecution(ruleId: string, success: boolean, duration: number) {
+        this._metricsCollector.recordRuleExecution(ruleId, success, duration);
+    }
 
-  incrementDerivations(count?: number) {
-    this._metricsCollector.incrementDerivations(count);
-  }
+    incrementDerivations(count?: number) {
+        this._metricsCollector.incrementDerivations(count);
+    }
 
-  incrementSteps(count?: number) {
-    this._metricsCollector.incrementSteps(count);
-  }
+    incrementSteps(count?: number) {
+        this._metricsCollector.incrementSteps(count);
+    }
 
-  getMetrics() {
-    return this._metricsCollector.getSummary();
-  }
+    getMetrics() {
+        return this._metricsCollector.getSummary();
+    }
 
     async initializeLM(): Promise<void> {
         if (this._lmInitialized || !this.config.lmClient) {
@@ -336,13 +336,13 @@ Only output the answer, nothing else.`;
         this.initializeLMRules(this.config.lmClient);
     }
 
-  async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
-    return this.tools.execute(name, args);
-  }
+    async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
+        return this.tools.execute(name, args);
+    }
 
-  listTools(): Tool[] {
-    return this.tools.list();
-  }
+    listTools(): Tool[] {
+        return this.tools.list();
+    }
 
     export() {
         return this.io.export();

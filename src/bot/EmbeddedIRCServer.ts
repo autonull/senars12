@@ -101,10 +101,10 @@ export class EmbeddedIRCServer extends EventEmitter {
         let prefix: string | undefined;
         let cursor = 0;
 
-  if (parts[0]?.startsWith(':')) {
-    prefix = parts.shift();
-    cursor = 0;
-  }
+        if (parts[0]?.startsWith(':')) {
+            prefix = parts.shift();
+            cursor = 0;
+        }
 
         const command = parts[cursor++] || '';
         const params: string[] = [];

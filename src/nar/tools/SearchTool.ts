@@ -42,7 +42,7 @@ export class SearchTool implements Tool {
         }
     }
 
-private searchMemory(pattern: string, limit: number): Concept[] {
-  return this.memory.findConcepts(pattern, limit);
-}
+    private searchMemory(pattern: string, limit: number): Concept[] {
+        return this.memory.findConcepts(pattern, limit);
+    }
 }

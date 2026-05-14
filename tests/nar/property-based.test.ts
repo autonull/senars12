@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import {normalize, serializeTerm, Stamp, TermBuilder, Truth, termsEqual} from '../../src/nar/terms';
+import {normalize, serializeTerm, Stamp, TermBuilder, termsEqual, Truth} from '../../src/nar/terms';
 import {Bag} from '../../src/nar/memory';
 
 describe('Property-Based Tests', () => {
@@ -190,9 +190,9 @@ describe('Property-Based Tests', () => {
             fc.assert(
                 fc.property(fc.string(), (name) => {
                     const atom = TermBuilder.atom(name);
-                    
+
                     normalize(atom);
-                    
+
                 })
             );
         });

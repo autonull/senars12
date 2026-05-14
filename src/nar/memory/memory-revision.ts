@@ -9,8 +9,8 @@ import {Truth as TruthOps} from '../terms/truth.js';
 import {TermMap} from '../terms/term-map.js';
 
 export interface RevisionResult {
-  revised: Truth;
-  evidenceCount: number;
+    revised: Truth;
+    evidenceCount: number;
 }
 
 /**
@@ -18,24 +18,24 @@ export interface RevisionResult {
  * Combines evidence from multiple sources
  */
 export function reviseTruths(t1: Truth, t2: Truth): RevisionResult {
-  const revised = TruthOps.revision(t1, t2);
+    const revised = TruthOps.revision(t1, t2);
 
-  // Estimate evidence count based on confidence
-  // Higher confidence = more evidence
-  const evidence1 = Math.round(t1.c * 10);
-  const evidence2 = Math.round(t2.c * 10);
+    // Estimate evidence count based on confidence
+    // Higher confidence = more evidence
+    const evidence1 = Math.round(t1.c * 10);
+    const evidence2 = Math.round(t2.c * 10);
 
-  return {
-    revised,
-    evidenceCount: evidence1 + evidence2
-  };
+    return {
+        revised,
+        evidenceCount: evidence1 + evidence2
+    };
 }
 
 /**
  * Check if two tasks are duplicates (same term)
  */
 export function isDuplicate(task1: TaskData, task2: TaskData): boolean {
-  return termsEqual(task1.term, task2.term);
+    return termsEqual(task1.term, task2.term);
 }
 
 /**
@@ -43,23 +43,23 @@ export function isDuplicate(task1: TaskData, task2: TaskData): boolean {
  * Keeps the most recent or highest confidence task
  */
 export function deduplicateTasks(tasks: TaskData[]): TaskData[] {
-  const map = new TermMap<TaskData>();
+    const map = new TermMap<TaskData>();
 
-  for (const task of tasks) {
-    const existing = map.get(task.term);
+    for (const task of tasks) {
+        const existing = map.get(task.term);
 
-    if (!existing) {
-      map.set(task.term, task);
-    } else {
-      // Keep task with higher confidence or more recent
-      const existingConf = existing.truth?.c ?? 0;
-      const newConf = task.truth?.c ?? 0;
+        if (!existing) {
+            map.set(task.term, task);
+        } else {
+            // Keep task with higher confidence or more recent
+            const existingConf = existing.truth?.c ?? 0;
+            const newConf = task.truth?.c ?? 0;
 
-      if (newConf > existingConf) {
-        map.set(task.term, task);
-      }
+            if (newConf > existingConf) {
+                map.set(task.term, task);
+            }
+        }
     }
-  }
 
-  return Array.from(map.values());
+    return Array.from(map.values());
 }

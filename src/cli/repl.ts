@@ -7,8 +7,8 @@ import {NAR, SeNARSFactory} from '../nar';
 import * as readline from 'readline';
 import {HistoryManager} from './history';
 import {ProfileManager} from './profile';
-import {showHelp, showStats, listConcepts, showCommandHelp} from './display';
-import {DOMAINS, DOMAIN_LIST, getDomain} from './domains';
+import {listConcepts, showCommandHelp, showStats} from './display';
+import {DOMAIN_LIST, DOMAINS} from './domains';
 
 const MAX_HISTORY = 1000;
 
@@ -129,7 +129,7 @@ class SeNARSCLI {
 
         if (trimmed.startsWith('.')) {
             await this.handleCommand(trimmed);
-        } else if (trimmed === '.' ) {
+        } else if (trimmed === '.') {
             console.log('Multi-line input cancelled');
             this.inMultiLine = false;
             this.multiLineBuffer = [];

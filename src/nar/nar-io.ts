@@ -52,17 +52,17 @@ export class NARIO {
         };
     }
 
-  import(data: SerializedNARState): void {
-    if (!data.concepts || !Array.isArray(data.concepts)) {
-      throw new Error('Invalid import data');
-    }
+    import(data: SerializedNARState): void {
+        if (!data.concepts || !Array.isArray(data.concepts)) {
+            throw new Error('Invalid import data');
+        }
 
-    for (const concept of data.concepts) {
-      if (concept.term) {
-        this.memory.addConcept(termParser.parse(concept.term));
-      }
+        for (const concept of data.concepts) {
+            if (concept.term) {
+                this.memory.addConcept(termParser.parse(concept.term));
+            }
+        }
     }
-  }
 
     async saveToFile(filename: string): Promise<void> {
         const {promises: fs} = await import('fs');
