@@ -7,21 +7,27 @@ import {Concept, Stamp, TermBuilder, Truth} from '../../../src/nar';
 
 describe('Concept', () => {
   let concept: Concept;
+  const createTestConcept = () => {
+    const term = TermBuilder.inheritance(TermBuilder.atom('cat'), TermBuilder.atom('animal'));
+    return new Concept(term);
+  };
 
   beforeEach(() => {
-    const term = TermBuilder.inheritance(TermBuilder.atom('cat'), TermBuilder.atom('animal'));
-    concept = new Concept(term);
+    concept = createTestConcept();
   });
 
   describe('initialization', () => {
-    it('creates concept with term', () => {
-      expect(concept).toBeDefined();
-      expect(concept.term).toBeDefined();
-      expect(concept.term.kind).toBe('inheritance');
-    });
-
-    it('initializes with default priority', () => {
-      expect(concept.priority).toBe(0);
+    it.each`
+    property | expected
+    ${'term'} | ${'inheritance'}
+    ${'priority'} | ${0}
+    `('initializes with default $property', ({property, expected}) => {
+      const value = concept[property as keyof Concept];
+      if (property === 'term') {
+        expect((value as any).kind).toBe(expected);
+      } else {
+        expect(value).toBe(expected);
+      }
     });
 
     it('initializes with empty bags', () => {
@@ -43,17 +49,14 @@ describe('Concept', () => {
       concept = new Concept(term);
     });
 
-    it('sets and gets priority', () => {
-      concept.priority = 0.5;
-      expect(concept.priority).toBe(0.5);
-    });
-
-    it('clamps priority to [0, 1]', () => {
-      concept.priority = 1.5;
-      expect(concept.priority).toBe(1);
-      
-      concept.priority = -0.5;
-      expect(concept.priority).toBe(0);
+    it.each`
+    operation | value | expected
+    ${'sets'} | ${0.5} | ${0.5}
+    ${'clamps high'} | ${1.5} | ${1}
+    ${'clamps low'} | ${-0.5} | ${0}
+    `('$operation priority', ({value, expected}) => {
+      concept.priority = value;
+      expect(concept.priority).toBe(expected);
     });
 
     it('boosts priority', () => {
