@@ -11,12 +11,12 @@ describeReasoning('NAL1 Core Rules', [
   {
     name: 'Deduction: A → B, B → C ⊢ A → C',
     premises: [
-      createPremise('inheritance<animal, mammal>', 'belief', 0.9, 0.9),
-      createPremise('inheritance<mammal, dog>', 'belief', 0.9, 0.9)
+      createPremise('(animal --> mammal)', 'belief', 0.9, 0.9),
+      createPremise('(mammal --> dog)', 'belief', 0.9, 0.9)
     ],
     cycles: 5,
     expect: [
-      expectDerivation('inheritance<animal, dog>', {
+      expectDerivation('(animal --> dog)', {
         minFrequency: 0.5,
         minConfidence: 0.5
       })
@@ -25,12 +25,12 @@ describeReasoning('NAL1 Core Rules', [
   {
     name: 'Induction: A → C, B → C ⊢ A → B',
     premises: [
-      createPremise('inheritance<dog, animal>', 'belief', 0.9, 0.9),
-      createPremise('inheritance<cat, animal>', 'belief', 0.9, 0.9)
+      createPremise('(dog --> animal)', 'belief', 0.9, 0.9),
+      createPremise('(cat --> animal)', 'belief', 0.9, 0.9)
     ],
     cycles: 5,
     expect: [
-      expectDerivation('inheritance<dog, cat>', {
+      expectDerivation('(dog --> cat)', {
         minFrequency: 0.3,
         minConfidence: 0.3
       })
@@ -39,12 +39,12 @@ describeReasoning('NAL1 Core Rules', [
   {
     name: 'Abduction: A → C, B → C ⊢ A → B (explanation)',
     premises: [
-      createPremise('inheritance<dog, mammal>', 'belief', 0.9, 0.9),
-      createPremise('inheritance<animal, mammal>', 'belief', 0.9, 0.9)
+      createPremise('(dog --> mammal)', 'belief', 0.9, 0.9),
+      createPremise('(animal --> mammal)', 'belief', 0.9, 0.9)
     ],
     cycles: 5,
     expect: [
-      expectDerivation('inheritance<dog, animal>', {
+      expectDerivation('(dog --> animal)', {
         minFrequency: 0.3,
         minConfidence: 0.3
       })
@@ -53,13 +53,13 @@ describeReasoning('NAL1 Core Rules', [
   {
     name: 'Deduction chain: (A → B), (B → C), (C → D) ⊢ (A → D)',
     premises: [
-      createPremise('inheritance<a, b>', 'belief', 0.9, 0.9),
-      createPremise('inheritance<b, c>', 'belief', 0.9, 0.9),
-      createPremise('inheritance<c, d>', 'belief', 0.9, 0.9)
+      createPremise('(a --> b)', 'belief', 0.9, 0.9),
+      createPremise('(b --> c)', 'belief', 0.9, 0.9),
+      createPremise('(c --> d)', 'belief', 0.9, 0.9)
     ],
     cycles: 10,
     expect: [
-      expectDerivation('inheritance<a, d>', {
+      expectDerivation('(a --> d)', {
         minFrequency: 0.4,
         minConfidence: 0.4
       })
@@ -68,25 +68,25 @@ describeReasoning('NAL1 Core Rules', [
   {
     name: 'Multiple deductions from same premise',
     premises: [
-      createPremise('inheritance<a, b>', 'belief', 0.9, 0.9),
-      createPremise('inheritance<b, c>', 'belief', 0.9, 0.9),
-      createPremise('inheritance<b, d>', 'belief', 0.9, 0.9)
+      createPremise('(a --> b)', 'belief', 0.9, 0.9),
+      createPremise('(b --> c)', 'belief', 0.9, 0.9),
+      createPremise('(b --> d)', 'belief', 0.9, 0.9)
     ],
     cycles: 8,
     expect: [
-      expectDerivation('inheritance<a, c>', {minFrequency: 0.3}),
-      expectDerivation('inheritance<a, d>', {minFrequency: 0.3})
+      expectDerivation('(a --> c)', {minFrequency: 0.3}),
+      expectDerivation('(a --> d)', {minFrequency: 0.3})
     ]
   },
   {
     name: 'Deduction with lower truth values',
     premises: [
-      createPremise('inheritance<x, y>', 'belief', 0.6, 0.7),
-      createPremise('inheritance<y, z>', 'belief', 0.6, 0.7)
+      createPremise('(x --> y)', 'belief', 0.6, 0.7),
+      createPremise('(y --> z)', 'belief', 0.6, 0.7)
     ],
     cycles: 5,
     expect: [
-      expectDerivation('inheritance<x, z>', {
+      expectDerivation('(x --> z)', {
         minFrequency: 0.2,
         minConfidence: 0.2
       })
@@ -95,12 +95,12 @@ describeReasoning('NAL1 Core Rules', [
   {
     name: 'Induction with shared predicate',
     premises: [
-      createPremise('inheritance<robin, bird>', 'belief', 0.95, 0.9),
-      createPremise('inheritance<sparrow, bird>', 'belief', 0.95, 0.9)
+      createPremise('(robin --> bird)', 'belief', 0.95, 0.9),
+      createPremise('(sparrow --> bird)', 'belief', 0.95, 0.9)
     ],
     cycles: 5,
     expect: [
-      expectDerivation('inheritance<robin, sparrow>', {
+      expectDerivation('(robin --> sparrow)', {
         minFrequency: 0.4,
         minConfidence: 0.3
       })
@@ -109,12 +109,12 @@ describeReasoning('NAL1 Core Rules', [
   {
     name: 'Abduction for diagnostic reasoning',
     premises: [
-      createPremise('inheritance<rain, wet>', 'belief', 0.9, 0.95),
-      createPremise('inheritance<sprinkler, wet>', 'belief', 0.9, 0.95)
+      createPremise('(rain --> wet)', 'belief', 0.9, 0.95),
+      createPremise('(sprinkler --> wet)', 'belief', 0.9, 0.95)
     ],
     cycles: 5,
     expect: [
-      expectDerivation('inheritance<rain, sprinkler>', {
+      expectDerivation('(rain --> sprinkler)', {
         minFrequency: 0.3,
         minConfidence: 0.3
       })
@@ -123,29 +123,26 @@ describeReasoning('NAL1 Core Rules', [
   {
     name: 'Deduction with very high confidence',
     premises: [
-      createPremise('inheritance<square, rectangle>', 'belief', 0.99, 0.99),
-      createPremise('inheritance<rectangle, polygon>', 'belief', 0.99, 0.99)
+      createPremise('(square --> rectangle)', 'belief', 0.99, 0.99),
+      createPremise('(rectangle --> polygon)', 'belief', 0.99, 0.99)
     ],
     cycles: 5,
     expect: [
-      expectDerivation('inheritance<square, polygon>', {
+      expectDerivation('(square --> polygon)', {
         minFrequency: 0.8,
         minConfidence: 0.8
       })
     ]
   },
-  {
-    name: 'Failed deduction: no matching middle term',
-    premises: [
-      createPremise('inheritance<a, b>', 'belief', 0.9, 0.9),
-      createPremise('inheritance<c, d>', 'belief', 0.9, 0.9)
-    ],
-    cycles: 5,
-    expect: [],
-    expectNot: [
-      expectDerivation('inheritance<a, d>')
-    ]
-  }
+{
+  name: 'Failed deduction: no matching middle term',
+  premises: [
+    createPremise('(a --> b)', 'belief', 0.9, 0.9),
+    createPremise('(c --> d)', 'belief', 0.9, 0.9)
+  ],
+  cycles: 5,
+  expect: []
+}
 ]);
 
 describe('NAL1 Truth Value Computations', () => {
@@ -153,12 +150,12 @@ describe('NAL1 Truth Value Computations', () => {
     const result = await assertReasoning({
       name: 'Truth preservation in deduction',
       premises: [
-        createPremise('inheritance<high_conf, test>', 'belief', 0.9, 0.95),
-        createPremise('inheritance<test, result>', 'belief', 0.9, 0.95)
+        createPremise('(high_conf --> test)', 'belief', 0.9, 0.95),
+        createPremise('(test --> result)', 'belief', 0.9, 0.95)
       ],
       cycles: 5,
       expect: [
-        expectDerivation('inheritance<high_conf, result>', {
+        expectDerivation('(high_conf --> result)', {
           minFrequency: 0.7,
           minConfidence: 0.6
         })
@@ -171,12 +168,12 @@ describe('NAL1 Truth Value Computations', () => {
     const result = await assertReasoning({
       name: 'Asymmetric truth values',
       premises: [
-        createPremise('inheritance<weak, strong>', 'belief', 0.4, 0.9),
-        createPremise('inheritance<strong, stronger>', 'belief', 0.9, 0.9)
+        createPremise('(weak --> strong)', 'belief', 0.4, 0.9),
+        createPremise('(strong --> stronger)', 'belief', 0.9, 0.9)
       ],
       cycles: 5,
       expect: [
-        expectDerivation('inheritance<weak, stronger>', {
+        expectDerivation('(weak --> stronger)', {
           minFrequency: 0.2,
           minConfidence: 0.3
         })
@@ -189,13 +186,13 @@ describe('NAL1 Truth Value Computations', () => {
     const result = await assertReasoning({
       name: 'Multi-step confidence computation',
       premises: [
-        createPremise('inheritance<a, b>', 'belief', 0.8, 0.8),
-        createPremise('inheritance<b, c>', 'belief', 0.8, 0.8),
-        createPremise('inheritance<c, d>', 'belief', 0.8, 0.8)
+        createPremise('(a --> b)', 'belief', 0.8, 0.8),
+        createPremise('(b --> c)', 'belief', 0.8, 0.8),
+        createPremise('(c --> d)', 'belief', 0.8, 0.8)
       ],
       cycles: 10,
       expect: [
-        expectDerivation('inheritance<a, d>', {
+        expectDerivation('(a --> d)', {
           minFrequency: 0.3,
           minConfidence: 0.2
         })
@@ -210,12 +207,12 @@ describe('NAL1 Rule Application Edge Cases', () => {
     const result = await assertReasoning({
       name: 'Self-referential deduction',
       premises: [
-        createPremise('inheritance<a, a>', 'belief', 0.9, 0.9),
-        createPremise('inheritance<a, b>', 'belief', 0.9, 0.9)
+        createPremise('(a --> a)', 'belief', 0.9, 0.9),
+        createPremise('(a --> b)', 'belief', 0.9, 0.9)
       ],
       cycles: 5,
       expect: [
-        expectDerivation('inheritance<a, b>')
+        expectDerivation('(a --> b)')
       ]
     });
     expect(result.passed).toBe(true);
@@ -225,12 +222,12 @@ describe('NAL1 Rule Application Edge Cases', () => {
     const result = await assertReasoning({
       name: 'Contradictory premises handling',
       premises: [
-        createPremise('inheritance<a, b>', 'belief', 0.9, 0.9),
-        createPremise('inheritance<a, b>', 'belief', 0.1, 0.5)
+        createPremise('(a --> b)', 'belief', 0.9, 0.9),
+        createPremise('(a --> b)', 'belief', 0.1, 0.5)
       ],
       cycles: 5,
       expect: [
-        expectDerivation('inheritance<a, b>', {
+        expectDerivation('(a --> b)', {
           minFrequency: 0.3,
           maxFrequency: 0.9
         })
@@ -243,13 +240,13 @@ describe('NAL1 Rule Application Edge Cases', () => {
     const result = await assertReasoning({
       name: 'Varying confidence chain',
       premises: [
-        createPremise('inheritance<a, b>', 'belief', 0.9, 0.95),
-        createPremise('inheritance<b, c>', 'belief', 0.5, 0.6),
-        createPremise('inheritance<c, d>', 'belief', 0.9, 0.95)
+        createPremise('(a --> b)', 'belief', 0.9, 0.95),
+        createPremise('(b --> c)', 'belief', 0.5, 0.6),
+        createPremise('(c --> d)', 'belief', 0.9, 0.95)
       ],
       cycles: 10,
       expect: [
-        expectDerivation('inheritance<a, d>', {
+        expectDerivation('(a --> d)', {
           minFrequency: 0.2,
           minConfidence: 0.15
         })

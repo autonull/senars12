@@ -82,7 +82,7 @@ describeReasoning('Inference Rules', [
     premises: [
       createPremise('(bird --> fly)', 'belief', 0.9, 0.8),
       createPremise('(penguin --> bird)', 'belief', 0.95, 0.9),
-      createPremise('(penguin --> ~fly)', 'belief', 0.95, 0.9)
+      createPremise('(penguin --> (-- fly))', 'belief', 0.95, 0.9)
     ],
     cycles: 10,
     expect: [

@@ -3,11 +3,13 @@ module.exports = {
   testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\.js$': '$1',
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^(\\.{1,2}/.*)\\.mjs$': '$1',
+    '^(\\.{1,2}/.*)\\.cjs$': '$1',
     '^(\.{1,2}/.*)$': '$1'
   },
   transform: {
-    '^.+\.tsx?$': ['ts-jest', {useESM: true}]
+    '^.+\\.tsx?$': ['ts-jest', {useESM: true}]
   },
   testMatch: ['**/tests/unit/**/*.test.ts'],
   testTimeout: 10000,

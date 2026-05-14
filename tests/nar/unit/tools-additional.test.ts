@@ -316,7 +316,7 @@ describe('LearnTool', () => {
 
   it('should learn new belief', async () => {
     const result = await learnTool.execute({
-      knowledge: 'inheritance<cat, animal>',
+      knowledge: '(cat --> animal)',
       type: 'belief',
       truth: {frequency: 0.9, confidence: 0.9},
       priority: 0.8
@@ -328,7 +328,7 @@ describe('LearnTool', () => {
 
   it('should learn with default truth', async () => {
     const result = await learnTool.execute({
-      knowledge: 'inheritance<dog, mammal>',
+      knowledge: '(dog --> mammal)',
       type: 'belief'
     });
 
@@ -347,7 +347,7 @@ describe('LearnTool', () => {
 
   it('should learn goal', async () => {
     const result = await learnTool.execute({
-      knowledge: 'inheritance<goal, target>',
+      knowledge: '(goal --> target)',
       type: 'goal',
       truth: {frequency: 0.5, confidence: 0.8}
     });
@@ -357,7 +357,7 @@ describe('LearnTool', () => {
 
   it('should learn fact', async () => {
     const result = await learnTool.execute({
-      knowledge: 'inheritance<fact, knowledge>',
+      knowledge: '(fact --> knowledge)',
       type: 'fact',
       source: 'test'
     });
@@ -367,7 +367,7 @@ describe('LearnTool', () => {
 
   it('should include metadata in result', async () => {
     const result = await learnTool.execute({
-      knowledge: 'inheritance<test, concept>',
+      knowledge: '(test --> concept)',
       source: 'unit-test',
       priority: 0.7
     });
@@ -394,7 +394,7 @@ describe('ReasonTool', () => {
 
   it('should reason about statement', async () => {
     const result = await reasonTool.execute({
-      statement: 'inheritance<a, b>',
+      statement: '(a --> b)',
       type: 'belief',
       truth: {frequency: 0.9, confidence: 0.9},
       priority: 0.8
@@ -416,7 +416,7 @@ describe('ReasonTool', () => {
 
   it('should handle goal type', async () => {
     const result = await reasonTool.execute({
-      statement: 'inheritance<goal, target>',
+      statement: '(goal --> target)',
       type: 'goal'
     });
 
@@ -425,7 +425,7 @@ describe('ReasonTool', () => {
 
   it('should handle question type', async () => {
     const result = await reasonTool.execute({
-      statement: 'inheritance<question, answer>',
+      statement: '(question --> answer)',
       type: 'question'
     });
 
@@ -434,7 +434,7 @@ describe('ReasonTool', () => {
 
   it('should use default truth values', async () => {
     const result = await reasonTool.execute({
-      statement: 'inheritance<default, truth>'
+      statement: '(default --> truth)'
     });
 
     expect(result.success).toBe(true);
@@ -442,7 +442,7 @@ describe('ReasonTool', () => {
 
   it('should include metadata', async () => {
     const result = await reasonTool.execute({
-      statement: 'inheritance<metadata, test>'
+      statement: '(metadata --> test)'
     });
 
     expect(result.success).toBe(true);
@@ -463,14 +463,14 @@ describe('Tool Integration', () => {
     const reasonTool = new ReasonTool(nar);
 
     const learnResult = await learnTool.execute({
-      knowledge: 'inheritance<chain, test>',
+      knowledge: '(chain --> test)',
       type: 'belief'
     });
 
     expect(learnResult.success).toBe(true);
 
     const reasonResult = await reasonTool.execute({
-      statement: 'inheritance<chain, test>',
+      statement: '(chain --> test)',
       type: 'belief'
     });
 

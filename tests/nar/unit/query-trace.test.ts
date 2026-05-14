@@ -42,14 +42,14 @@ describe('QueryAPI', () => {
   });
 
   it('should query beliefs after input', async () => {
-    await nar.input('inheritance<cat, animal>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(cat --> animal)', 'belief', {f: 0.9, c: 0.9});
     const beliefs = queryAPI.getBeliefs();
     expect(beliefs.length).toBeGreaterThan(0);
   });
 
   it('should limit results', async () => {
     for (let i = 0; i < 10; i++) {
-      await nar.input(`inheritance<concept${i}, property>`, 'belief', {f: 0.9, c: 0.9});
+      await nar.input(`(concept${i} --> property)`, 'belief', {f: 0.9, c: 0.9});
     }
 
     const beliefs = queryAPI.getBeliefs();
@@ -58,8 +58,8 @@ describe('QueryAPI', () => {
 
   describe('Query by Type', () => {
     it('should filter beliefs by type', async () => {
-      await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
-      await nar.input('inheritance<c, d>', 'goal', {f: 0.5, c: 0.8});
+      await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(c --> d)', 'goal', {f: 0.5, c: 0.8});
 
       const beliefs = queryAPI.getBeliefs();
       const goals = queryAPI.getGoals();
@@ -68,7 +68,7 @@ describe('QueryAPI', () => {
     });
 
     it('should handle questions', async () => {
-      await nar.input('inheritance<question, answer>', 'question');
+      await nar.input('(question --> answer)', 'question');
       const questions = queryAPI.getQuestions();
       expect(questions.length).toBeGreaterThan(0);
     });
@@ -76,15 +76,15 @@ describe('QueryAPI', () => {
 
   describe('Query with Filters', () => {
     it('should apply truth range filter', async () => {
-      await nar.input('inheritance<high, truth>', 'belief', {f: 0.9, c: 0.9});
-      await nar.input('inheritance<low, truth>', 'belief', {f: 0.3, c: 0.5});
+      await nar.input('(high --> truth)', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(low --> truth)', 'belief', {f: 0.3, c: 0.5});
 
       const allBeliefs = queryAPI.getBeliefs();
       expect(allBeliefs.length).toBeGreaterThan(0);
     });
 
     it('should apply pattern filter', async () => {
-      await nar.input('inheritance<specific, term>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(specific --> term)', 'belief', {f: 0.9, c: 0.9});
 
       const beliefs = queryAPI.getBeliefs();
       expect(beliefs.length).toBeGreaterThan(0);
@@ -93,15 +93,15 @@ describe('QueryAPI', () => {
 
   describe('Ask Method', () => {
     it('should answer known question', async () => {
-      await nar.input('inheritance<known, fact>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(known --> fact)', 'belief', {f: 0.9, c: 0.9});
 
-      const answer = await queryAPI.ask('inheritance<known, fact>');
+      const answer = await queryAPI.ask('(known --> fact)');
       expect(answer).toBeDefined();
       expect(answer.question).toBeDefined();
     });
 
     it('should return low confidence for unknown question', async () => {
-      const answer = await queryAPI.ask('inheritance<unknown, fact>');
+      const answer = await queryAPI.ask('(unknown --> fact)');
       expect(answer.confidence).toBeLessThanOrEqual(0.5);
     });
 
@@ -112,19 +112,19 @@ describe('QueryAPI', () => {
     });
 
     it('should include evidence when available', async () => {
-      await nar.input('inheritance<evidence, test>', 'belief', {f: 0.95, c: 0.95});
+      await nar.input('(evidence --> test)', 'belief', {f: 0.95, c: 0.95});
 
-      const answer = await queryAPI.ask('inheritance<evidence, test>');
+      const answer = await queryAPI.ask('(evidence --> test)');
       expect(Array.isArray(answer.evidence)).toBe(true);
     });
   });
 
   describe('Query Method', () => {
     it('should query by term', async () => {
-      await nar.input('inheritance<query, test>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(query --> test)', 'belief', {f: 0.9, c: 0.9});
 
       const {termParser} = require('../../terms/parser.js');
-      const term = termParser.parse('inheritance<query, test>');
+      const term = termParser.parse('(query --> test)');
       const result = queryAPI.query(term);
 
       expect(result).toBeDefined();
@@ -152,10 +152,10 @@ describe('ReasoningTrace', () => {
   });
 
   it('should trace term', async () => {
-    await nar.input('inheritance<traced, concept>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(traced --> concept)', 'belief', {f: 0.9, c: 0.9});
 
     const {termParser} = require('../../terms/parser.js');
-    const term = termParser.parse('inheritance<traced, concept>');
+    const term = termParser.parse('(traced --> concept)');
     const result = trace.trace(term);
 
     expect(result).toBeDefined();
@@ -166,7 +166,7 @@ describe('ReasoningTrace', () => {
 
   it('should handle tracing unknown term', () => {
     const {termParser} = require('../../terms/parser.js');
-    const term = termParser.parse('inheritance<unknown, term>');
+    const term = termParser.parse('(unknown --> term)');
     const result = trace.trace(term);
 
     expect(result).toBeDefined();
@@ -175,10 +175,10 @@ describe('ReasoningTrace', () => {
 
   describe('Explain Method', () => {
     it('should explain conclusion', async () => {
-      await nar.input('inheritance<conclusion, test>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(conclusion --> test)', 'belief', {f: 0.9, c: 0.9});
 
       const concepts = nar.memory.listConcepts();
-      const concept = concepts.find(c => c.term.toString() === 'inheritance<conclusion, test>');
+      const concept = concepts.find(c => c.term.toString() === '(conclusion --> test)');
 
       if (concept && concept.beliefBag.size > 0) {
         const belief = concept.beliefBag.peek();
@@ -205,10 +205,10 @@ describe('ReasoningTrace', () => {
     });
 
     it('should handle explanation with no premises', async () => {
-      await nar.input('inheritance<simple, fact>', 'belief', {f: 0.8, c: 0.8});
+      await nar.input('(simple --> fact)', 'belief', {f: 0.8, c: 0.8});
 
       const concepts = nar.memory.listConcepts();
-      const concept = concepts.find(c => c.term.toString() === 'inheritance<simple, fact>');
+      const concept = concepts.find(c => c.term.toString() === '(simple --> fact)');
 
       if (concept && concept.beliefBag.size > 0) {
         const belief = concept.beliefBag.peek();
@@ -232,10 +232,10 @@ describe('ReasoningTrace', () => {
 
   describe('Derivation Tree', () => {
     it('should build derivation tree', async () => {
-      await nar.input('inheritance<tree, root>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(tree --> root)', 'belief', {f: 0.9, c: 0.9});
 
       const concepts = nar.memory.listConcepts();
-      const concept = concepts.find(c => c.term.toString() === 'inheritance<tree, root>');
+      const concept = concepts.find(c => c.term.toString() === '(tree --> root)');
 
       if (concept && concept.beliefBag.size > 0) {
         const belief = concept.beliefBag.peek();
@@ -260,10 +260,10 @@ describe('ReasoningTrace', () => {
     });
 
     it('should get derivation path', async () => {
-      await nar.input('inheritance<path, test>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(path --> test)', 'belief', {f: 0.9, c: 0.9});
 
       const concepts = nar.memory.listConcepts();
-      const concept = concepts.find(c => c.term.toString() === 'inheritance<path, test>');
+      const concept = concepts.find(c => c.term.toString() === '(path --> test)');
 
       if (concept && concept.beliefBag.size > 0) {
         const belief = concept.beliefBag.peek();
@@ -287,10 +287,10 @@ describe('ReasoningTrace', () => {
 
   describe('Record Derivation', () => {
     it('should record derivation', async () => {
-      await nar.input('inheritance<recorded, derivation>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(recorded --> derivation)', 'belief', {f: 0.9, c: 0.9});
 
       const concepts = nar.memory.listConcepts();
-      const concept = concepts.find(c => c.term.toString() === 'inheritance<recorded, derivation>');
+      const concept = concepts.find(c => c.term.toString() === '(recorded --> derivation)');
 
       if (concept && concept.beliefBag.size > 0) {
         const belief = concept.beliefBag.peek();
@@ -325,21 +325,21 @@ describe('QueryAPI and ReasoningTrace Integration', () => {
   });
 
   it('should work together for reasoning analysis', async () => {
-    await nar.input('inheritance<integration, test>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(integration --> test)', 'belief', {f: 0.9, c: 0.9});
 
     const beliefs = queryAPI.getBeliefs();
     expect(beliefs.length).toBeGreaterThan(0);
 
     const {termParser} = require('../../terms/parser.js');
-    const term = termParser.parse('inheritance<integration, test>');
+    const term = termParser.parse('(integration --> test)');
     const traceResult = trace.trace(term);
     expect(traceResult).toBeDefined();
   });
 
   it('should support question answering workflow', async () => {
-    await nar.input('inheritance<workflow, example>', 'belief', {f: 0.95, c: 0.95});
+    await nar.input('(workflow --> example)', 'belief', {f: 0.95, c: 0.95});
 
-    const answer = await queryAPI.ask('inheritance<workflow, example>');
+    const answer = await queryAPI.ask('(workflow --> example)');
     expect(answer).toBeDefined();
 
     if (answer.confidence > 0.5) {

@@ -36,8 +36,8 @@ describe('Core Strategies', () => {
     });
 
     it('should select secondary tasks for inference', async () => {
-      await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
-      await nar.input('inheritance<b, c>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(b --> c)', 'belief', {f: 0.9, c: 0.9});
 
       const task = nar.memory.getTaskManager().peekTask();
       if (task) {
@@ -55,8 +55,8 @@ describe('Core Strategies', () => {
     });
 
     it('should filter for inheritance terms only', async () => {
-      await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
-      await nar.input('conjunction<a, b>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(&, a, b)', 'belief', {f: 0.9, c: 0.9});
 
       const concepts = nar.memory.listConcepts();
       const inheritanceConcepts = concepts.filter(c => c.term.kind === 'inheritance');
@@ -70,8 +70,8 @@ describe('Core Strategies', () => {
     });
 
     it('should prioritize high-confidence beliefs', async () => {
-      await nar.input('inheritance<important, fact>', 'belief', {f: 0.95, c: 0.95});
-      await nar.input('inheritance<unimportant, fact>', 'belief', {f: 0.3, c: 0.5});
+      await nar.input('(important --> fact)', 'belief', {f: 0.95, c: 0.95});
+      await nar.input('(unimportant --> fact)', 'belief', {f: 0.3, c: 0.5});
 
       const task = nar.memory.getTaskManager().peekTask();
       if (task) {
@@ -87,8 +87,8 @@ describe('Core Strategies', () => {
     });
 
     it('should find concepts with overlapping terms', async () => {
-      await nar.input('inheritance<dog, animal>', 'belief', {f: 0.9, c: 0.9});
-      await nar.input('inheritance<cat, animal>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(dog --> animal)', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(cat --> animal)', 'belief', {f: 0.9, c: 0.9});
 
       const task = nar.memory.getTaskManager().peekTask();
       if (task) {
@@ -98,7 +98,7 @@ describe('Core Strategies', () => {
     });
 
     it('should handle non-inheritance terms gracefully', async () => {
-      await nar.input('atom<test>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('test', 'belief', {f: 0.9, c: 0.9});
 
       const task = nar.memory.getTaskManager().peekTask();
       if (task) {
@@ -116,8 +116,8 @@ describe('Core Strategies', () => {
     });
 
     it('should link related terms', async () => {
-      await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
-      await nar.input('inheritance<b, c>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(b --> c)', 'belief', {f: 0.9, c: 0.9});
 
       const task = nar.memory.getTaskManager().peekTask();
       if (task) {
@@ -135,7 +135,7 @@ describe('Core Strategies', () => {
     });
 
     it('should match tasks with similar terms', async () => {
-      await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
 
       const task = nar.memory.getTaskManager().peekTask();
       if (task) {
@@ -151,7 +151,7 @@ describe('Core Strategies', () => {
     });
 
     it('should decompose conjunctions into components', async () => {
-      await nar.input('conjunction<a, b, c>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(&, a, b, c)', 'belief', {f: 0.9, c: 0.9});
 
       const task = nar.memory.getTaskManager().peekTask();
       if (task) {
@@ -162,7 +162,7 @@ describe('Core Strategies', () => {
     });
 
     it('should return empty array for non-conjunction terms', async () => {
-      await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
 
       const task = nar.memory.getTaskManager().peekTask();
       if (task) {
@@ -180,7 +180,7 @@ describe('Core Strategies', () => {
     });
 
     it('should form beliefs from premises', async () => {
-      await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
+      await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
 
       const task = nar.memory.getTaskManager().peekTask();
       if (task) {
@@ -204,7 +204,7 @@ describe('Composite Strategies', () => {
       ResolutionStrategy
     ]);
 
-    await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
 
     const task = nar.memory.getTaskManager().peekTask();
     if (task) {
@@ -219,7 +219,7 @@ describe('Composite Strategies', () => {
       'sequential'
     );
 
-    await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
     const task = nar.memory.getTaskManager().peekTask();
     if (task) {
       const results = composite.selectSecondary(task, nar.memory);
@@ -233,7 +233,7 @@ describe('Composite Strategies', () => {
       'parallel'
     );
 
-    await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
     const task = nar.memory.getTaskManager().peekTask();
     if (task) {
       const results = composite.selectSecondary(task, nar.memory);
@@ -248,7 +248,7 @@ describe('Composite Strategies', () => {
       [0.5, 0.3, 0.2]
     );
 
-    await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
     const task = nar.memory.getTaskManager().peekTask();
     if (task) {
       const results = composite.selectSecondary(task, nar.memory);
@@ -266,7 +266,7 @@ describe('Composite Strategies', () => {
 
     const composite = new CompositeStrategy([failingStrategy, PrologStrategy]);
 
-    await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
     const task = nar.memory.getTaskManager().peekTask();
     if (task) {
       const results = composite.selectSecondary(task, nar.memory);
@@ -294,7 +294,7 @@ describe('Adaptive Strategy', () => {
   it('should adapt based on effectiveness', async () => {
     const adaptive = new AdaptiveStrategy([PrologStrategy, ResolutionStrategy]);
 
-    await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
     const task = nar.memory.getTaskManager().peekTask();
 
     if (task) {
@@ -312,7 +312,7 @@ describe('Adaptive Strategy', () => {
   it('should track statistics per strategy', async () => {
     const adaptive = new AdaptiveStrategy([PrologStrategy]);
 
-    await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
     const task = nar.memory.getTaskManager().peekTask();
 
     if (task) {
@@ -345,7 +345,7 @@ describe('Switching Strategy', () => {
   it('should cycle through strategies at interval', async () => {
     const switching = new SwitchingStrategy([PrologStrategy, ResolutionStrategy], 3);
 
-    await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
     const task = nar.memory.getTaskManager().peekTask();
 
     if (task) {
@@ -413,7 +413,7 @@ describe('Strategy Performance', () => {
 
   it('should handle large concept spaces efficiently', async () => {
     for (let i = 0; i < 50; i++) {
-      await nar.input(`inheritance<concept${i}, property>`, 'belief', {f: 0.9, c: 0.9});
+      await nar.input(`(concept${i} --> property)`, 'belief', {f: 0.9, c: 0.9});
     }
 
     const task = nar.memory.getTaskManager().peekTask();

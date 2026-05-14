@@ -41,16 +41,16 @@ describe('Reasoner', () => {
   });
 
   it('should perform reasoning step', async () => {
-    await nar.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
-    await nar.input('inheritance<b, c>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(b --> c)', 'belief', {f: 0.9, c: 0.9});
 
     const results = await reasoner.step(100, 10);
     expect(Array.isArray(results)).toBe(true);
   });
 
   it('should run reasoning with generator', async () => {
-    await nar.input('inheritance<x, y>', 'belief', {f: 0.9, c: 0.9});
-    await nar.input('inheritance<y, z>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(x --> y)', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(y --> z)', 'belief', {f: 0.9, c: 0.9});
 
     const generator = reasoner.run(100, 10);
     const results = [];
@@ -63,7 +63,7 @@ describe('Reasoner', () => {
   });
 
   it('should collect traces when enabled', async () => {
-    await nar.input('inheritance<trace, test>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(trace --> test)', 'belief', {f: 0.9, c: 0.9});
 
     await reasoner.step(100, 10);
     
@@ -72,7 +72,7 @@ describe('Reasoner', () => {
   });
 
   it('should clear traces', async () => {
-    await nar.input('inheritance<clear, test>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(clear --> test)', 'belief', {f: 0.9, c: 0.9});
     await reasoner.step(100, 10);
 
     reasoner.clearTraces();
@@ -81,7 +81,7 @@ describe('Reasoner', () => {
   });
 
   it('should track derivation count', async () => {
-    await nar.input('inheritance<count, test>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(count --> test)', 'belief', {f: 0.9, c: 0.9});
     
     reasoner.resetCircularDetection();
     const count = reasoner.getDerivationCount();
@@ -89,14 +89,14 @@ describe('Reasoner', () => {
   });
 
   it('should respect max derivations limit', async () => {
-    await nar.input('inheritance<limit, test>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(limit --> test)', 'belief', {f: 0.9, c: 0.9});
 
     const results = await reasoner.step(100, 5);
     expect(results.length).toBeLessThanOrEqual(5);
   });
 
   it('should handle abort signal', async () => {
-    await nar.input('inheritance<abort, test>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(abort --> test)', 'belief', {f: 0.9, c: 0.9});
 
     const controller = new AbortController();
     controller.abort();
@@ -108,7 +108,7 @@ describe('Reasoner', () => {
   it('should detect circular derivations', async () => {
     reasoner.resetCircularDetection();
     
-    await nar.input('inheritance<circular, test>', 'belief', {f: 0.9, c: 0.9});
+    await nar.input('(circular --> test)', 'belief', {f: 0.9, c: 0.9});
     await reasoner.step(100, 10);
 
     expect(reasoner.getDerivationCount()).toBeGreaterThanOrEqual(0);
@@ -137,35 +137,35 @@ describe('NARIO', () => {
   });
 
   it('should input belief', async () => {
-    await nario.input('inheritance<cat, animal>', 'belief', {f: 0.9, c: 0.9});
+    await nario.input('(cat --> animal)', 'belief', {f: 0.9, c: 0.9});
     
     const concepts = nar.memory.listConcepts();
     expect(concepts.length).toBeGreaterThan(0);
   });
 
   it('should believe statement', async () => {
-    await nario.believe('inheritance<dog, mammal>', {f: 0.95, c: 0.95});
+    await nario.believe('(dog --> mammal)', {f: 0.95, c: 0.95});
     
     const concepts = nar.memory.listConcepts();
     expect(concepts.length).toBeGreaterThan(0);
   });
 
   it('should set goal', async () => {
-    await nario.goal('inheritance<goal, target>', {f: 0.5, c: 0.8});
+    await nario.goal('(goal --> target)', {f: 0.5, c: 0.8});
     
     const concepts = nar.memory.listConcepts();
     expect(concepts.length).toBeGreaterThan(0);
   });
 
   it('should ask question', async () => {
-    await nario.question('inheritance<question, answer>');
+    await nario.question('(question --> answer)');
     
     const concepts = nar.memory.listConcepts();
     expect(concepts.length).toBeGreaterThan(0);
   });
 
   it('should export state', async () => {
-    await nario.input('inheritance<export, test>', 'belief', {f: 0.9, c: 0.9});
+    await nario.input('(export --> test)', 'belief', {f: 0.9, c: 0.9});
     
     const state = nario.export();
     expect(state).toBeDefined();
@@ -177,7 +177,7 @@ describe('NARIO', () => {
   it('should import state', async () => {
     const state = {
       concepts: [
-        {term: 'inheritance<imported, concept>', priority: 0.8}
+        {term: '(imported --> concept)', priority: 0.8}
       ],
       config: nar.getConfig(),
       timestamp: new Date().toISOString()
@@ -196,7 +196,7 @@ describe('NARIO', () => {
   });
 
   it('should get memory state', async () => {
-    await nario.input('inheritance<state, test>', 'belief', {f: 0.9, c: 0.9});
+    await nario.input('(state --> test)', 'belief', {f: 0.9, c: 0.9});
     
     const state = await nario.getMemoryState();
     expect(state).toBeDefined();
@@ -205,7 +205,7 @@ describe('NARIO', () => {
 
   it('should load memory state', async () => {
     const state = {
-      concepts: [{term: 'inheritance<loaded, state>', priority: 0.7}],
+      concepts: [{term: '(loaded --> state)', priority: 0.7}],
       config: nar.getConfig(),
       timestamp: new Date().toISOString()
     };
@@ -327,15 +327,15 @@ describe('Integration: Reasoner + NARIO', () => {
   });
 
   it('should chain input and reasoning', async () => {
-    await nario.input('inheritance<a, b>', 'belief', {f: 0.9, c: 0.9});
-    await nario.input('inheritance<b, c>', 'belief', {f: 0.9, c: 0.9});
+    await nario.input('(a --> b)', 'belief', {f: 0.9, c: 0.9});
+    await nario.input('(b --> c)', 'belief', {f: 0.9, c: 0.9});
 
     const results = await reasoner.step(100, 10);
     expect(Array.isArray(results)).toBe(true);
   });
 
   it('should export after reasoning', async () => {
-    await nario.input('inheritance<export, test>', 'belief', {f: 0.9, c: 0.9});
+    await nario.input('(export --> test)', 'belief', {f: 0.9, c: 0.9});
     await reasoner.step(100, 10);
 
     const state = nario.export();
