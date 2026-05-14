@@ -8,7 +8,7 @@ import {APIRegistry} from './registry.js';
 export interface MCPTool {
     name: string;
     description: string;
-    inputSchema: Record<string, any>;
+    inputSchema: Record<string, unknown>;
 }
 
 export interface MCPToolResult {
@@ -21,7 +21,7 @@ export interface MCPToolResult {
 
 export interface MCPToolCall {
     name: string;
-    arguments?: Record<string, any>;
+    arguments?: Record<string, unknown>;
 }
 
 export class MCPAdapter {
@@ -36,7 +36,7 @@ export class MCPAdapter {
      */
     getTools(): MCPTool[] {
         const tools: MCPTool[] = [];
-        for (const [name, meta] of this.registry.getHandlers()) {
+        for (const [_name, meta] of this.registry.getHandlers()) {
             tools.push({
                 name: meta.name,
                 description: meta.description,
@@ -74,12 +74,12 @@ export class MCPAdapter {
                     },
                 ],
             };
-        } catch (error: any) {
+        } catch (error: unknown) {
             return {
                 content: [
                     {
                         type: 'text',
-                        text: `Error: ${error.message}`,
+                        text: `Error: ${error instanceof Error ? error.message : String(error)}`,
                     },
                 ],
                 isError: true,
@@ -97,7 +97,7 @@ export class MCPAdapter {
     /**
      * Get server info for MCP handshake
      */
-    getServerInfo(): Record<string, any> {
+    getServerInfo(): Record<string, unknown> {
         return {
             name: 'senars-mcp',
             version: '1.0.0',
@@ -113,16 +113,14 @@ export class MCPAdapter {
     /**
      * Convert Zod schema to JSON Schema for MCP
      */
-    private zodToJSONSchema(schema: any): Record<string, any> {
-        // Basic conversion - handles common Zod types
-        if (!schema?._def) {
+    private zodToJSONSchema(schema: unknown): Record<string, unknown> {
+        const def = (schema as { _def?: Record<string, unknown> })?._def;
+        if (!def) {
             return {type: 'object', properties: {}};
         }
 
-        const def = schema._def;
-        const result: Record<string, any> = {};
+        const result: Record<string, unknown> = {};
 
-        // Type mapping
         const typeMap: Record<string, string> = {
             ZodString: 'string',
             ZodNumber: 'number',
@@ -133,32 +131,29 @@ export class MCPAdapter {
             ZodRecord: 'object',
         };
 
-        const typeName = def.typeName;
-        if (typeName in typeMap) {
+        const typeName = def.typeName as string | undefined;
+        if (typeName && typeName in typeMap) {
             result.type = typeMap[typeName];
         }
 
-        // Handle object properties
-        if (typeName === 'ZodObject') {
-            result.properties = {};
-            const shape = def.shape();
+        if (typeName === 'ZodObject' && typeof def.shape === 'function') {
+            const properties: Record<string, unknown> = {};
+            const shape = def.shape() as Record<string, unknown>;
             for (const [key, value] of Object.entries(shape)) {
-                result.properties[key] = this.zodToJSONSchema(value as any);
+                properties[key] = this.zodToJSONSchema(value);
             }
+            result.properties = properties;
         }
 
-        // Handle optional
-        if (typeName === 'ZodOptional') {
+        if (typeName === 'ZodOptional' && def.innerType) {
             return this.zodToJSONSchema(def.innerType);
         }
 
-        // Handle string constraints
         if (typeName === 'ZodString') {
             if (def.minLength) result.minLength = def.minLength;
             if (def.maxLength) result.maxLength = def.maxLength;
         }
 
-        // Handle number constraints
         if (typeName === 'ZodNumber') {
             if (def.minimum !== undefined) result.minimum = def.minimum;
             if (def.maximum !== undefined) result.maximum = def.maximum;

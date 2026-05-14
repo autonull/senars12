@@ -9,7 +9,7 @@ import {createHash} from 'crypto';
 
 interface WSMessage {
     type: string;
-    data?: any;
+    data?: Record<string, unknown>;
     id?: string;
 }
 
@@ -101,7 +101,7 @@ export class WebSocketAdapter {
         return this.clients.size;
     }
 
-    broadcast(event: string, data: any): void {
+    broadcast(event: string, data: Record<string, unknown>): void {
         const subscribers = this.eventSubscriptions.get(event);
         if (!subscribers || subscribers.size === 0) return;
 
@@ -202,14 +202,16 @@ export class WebSocketAdapter {
         try {
             // Handle subscription commands locally
             if (type === 'subscribe') {
-                await this.handleSubscribe(ws, data.events);
-                this.sendSuccess(ws, {subscribed: data.events}, message.id);
+                const events = (data as { events?: string[] })?.events ?? [];
+                await this.handleSubscribe(ws, events);
+                this.sendSuccess(ws, {subscribed: events}, message.id);
                 return;
             }
 
             if (type === 'unsubscribe') {
-                await this.handleUnsubscribe(ws, data.events);
-                this.sendSuccess(ws, {unsubscribed: data.events}, message.id);
+                const events = (data as { events?: string[] })?.events ?? [];
+                await this.handleUnsubscribe(ws, events);
+                this.sendSuccess(ws, {unsubscribed: events}, message.id);
                 return;
             }
 
@@ -218,10 +220,10 @@ export class WebSocketAdapter {
                 throw new Error(`Unknown message type: ${type}`);
             }
 
-            const result = await this.registry.invoke(type, data);
+            const result = await this.registry.invoke(type, data ?? {}) as Record<string, unknown>;
             this.sendSuccess(ws, result, message.id);
-        } catch (error: any) {
-            this.sendError(ws, error.message, message.id);
+        } catch (error: unknown) {
+            this.sendError(ws, error instanceof Error ? error.message : String(error), message.id);
         }
     }
 
@@ -246,7 +248,7 @@ export class WebSocketAdapter {
         }
     }
 
-    private sendSuccess(ws: WebSocket, data: any, id?: string): void {
+    private sendSuccess(ws: WebSocket, data: Record<string, unknown>, id?: string): void {
         ws.send(
             JSON.stringify({
                 type: 'success',

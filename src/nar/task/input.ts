@@ -25,37 +25,25 @@ export class InputProcessor {
         this.config = config;
     }
 
+    private determineTaskType(punctuation: string, type?: TaskType): TaskType {
+        if (type) return type;
+        if (punctuation === '?') return 'question';
+        if (punctuation === '!') return 'goal';
+        if (punctuation === '@') return 'command';
+        return this.config.defaultType;
+    }
+
     process(input: string, type?: TaskType): Task {
         const {text, punctuation} = extractPunctuation(input);
         const {term, truth: parsedTruth} = termParser.parseWithTruth(text);
-
-        let taskType = type ?? this.config.defaultType;
-        if (punctuation === '?') {
-            taskType = 'question';
-        } else if (punctuation === '!') {
-            taskType = 'goal';
-        } else if (punctuation === '@') {
-            taskType = 'command';
-        }
-
         const truth = parsedTruth ?? Truth.NEUTRAL;
-        return createTask(term, taskType, truth, createBudget(truth.f * truth.c));
+        return createTask(term, this.determineTaskType(punctuation, type), truth, createBudget(truth.f * truth.c));
     }
 
     processWithTruth(input: string, truth: Truth, type?: TaskType): Task {
         const {text, punctuation} = extractPunctuation(input);
         const {term} = termParser.parseWithTruth(text);
-
-        let taskType = type ?? this.config.defaultType;
-        if (punctuation === '?') {
-            taskType = 'question';
-        } else if (punctuation === '!') {
-            taskType = 'goal';
-        } else if (punctuation === '@') {
-            taskType = 'command';
-        }
-
-        return createTask(term, taskType, truth, createBudget(truth.f * truth.c));
+        return createTask(term, this.determineTaskType(punctuation, type), truth, createBudget(truth.f * truth.c));
     }
 
     parseTerm(input: string): Term {

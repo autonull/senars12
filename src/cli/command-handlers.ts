@@ -1,7 +1,7 @@
 import type {NAR} from '../nar';
 import {errMsg} from '../nar/utils/helpers.js';
 import {termParser} from '../nar/terms';
-import {box, showCommandHelp} from './display.js';
+import {box, showStats, showCommandHelp} from './display.js';
 import {DOMAIN_LIST, DOMAINS} from './domains.js';
 
 interface SelfAnalyzerRef {
@@ -32,6 +32,22 @@ export class CommandHandlers {
         this.nar = nar;
     }
 
+    private get self() {
+        return (this.nar as unknown as {getSelfAnalyzer?: () => unknown}).getSelfAnalyzer?.() as SelfAnalyzerRef | undefined;
+    }
+
+    private get rlfp() {
+        return (this.nar as unknown as {getRLFP?: () => unknown}).getRLFP?.() as RLFPref | undefined;
+    }
+
+    private get lm() {
+        return (this.nar as unknown as {getLMClient?: () => unknown}).getLMClient?.() as LMClientRef | undefined;
+    }
+
+    private get profile() {
+        return (this.nar as unknown as {profile?: {start: (n: NAR) => void; stop: (n: NAR) => void}}).profile;
+    }
+
     handleCommand(input: string): void {
         const parts = input.split(/\s+/);
         const cmd = parts[0]!;
@@ -45,7 +61,7 @@ export class CommandHandlers {
                 }
             },
             '.run': () => this.runInference(args[0] ? parseInt(args[0]) : 5),
-            '.stats': () => this.showStats(args[0]),
+            '.stats': () => showStats(this.nar, args[0]),
             '.list': () => this.listConcepts(),
             '.concepts': () => this.showConcepts(args.join(' ')),
             '.rules': () => this.showRules(args.join(' ')),
@@ -116,28 +132,6 @@ export class CommandHandlers {
         console.log(`⟳ Running ${steps} step(s)...`);
         const derived = await this.nar.run(steps);
         console.log(`✓ Completed ${steps} step(s), derived ${derived} belief(s)`);
-    }
-
-    private showStats(detail?: string): void {
-        const stats = this.nar.getStatistics();
-        const metrics = this.nar.getMetrics?.() || {};
-
-        console.log('\n╔════════════════════════════════════════════════════════╗');
-        console.log('║ SeNARS Statistics                                     ║');
-        console.log('╠════════════════════════════════════════════════════════╣');
-        console.log(`║ Concepts: ${String(stats.totalConcepts).padEnd(48)}║`);
-        console.log(`║ Tasks: ${String(stats.totalTasks).padEnd(49)}║`);
-
-        if (detail === 'detail' || detail === 'all') {
-            const ruleExecs = (metrics as any).ruleExecutions?.total || 0;
-            const derivs = (metrics as any).derivations || 0;
-            const steps = (metrics as any).steps || 0;
-            console.log(`║ Rule Executions: ${String(ruleExecs).padEnd(41)}║`);
-            console.log(`║ Derivations: ${String(derivs).padEnd(45)}║`);
-            console.log(`║ Steps: ${String(steps).padEnd(51)}║`);
-        }
-
-        console.log('╚════════════════════════════════════════════════════════╝\n');
     }
 
     private listConcepts(): void {
@@ -402,25 +396,21 @@ export class CommandHandlers {
 
     private handleProfile(args: string[]): void {
         const cmd = args[0];
-
         if (cmd === 'start' || !cmd) {
-            const profile = (this.nar as unknown as {profile?: {start: (n: NAR) => void; stop: (n: NAR) => void}}).profile;
-            profile?.start(this.nar);
+            this.profile?.start(this.nar);
         } else if (cmd === 'stop') {
-            const profile = (this.nar as unknown as {profile?: {start: (n: NAR) => void; stop: (n: NAR) => void}}).profile;
-            profile?.stop(this.nar);
+            this.profile?.stop(this.nar);
         }
     }
 
     private showSelfStatus(): void {
-        const self = (this.nar as unknown as {getSelfAnalyzer?: () => unknown}).getSelfAnalyzer?.();
+        const self = this.self;
         if (!self) {
             console.log('Self/Metacognition is not enabled');
             return;
         }
-        const selfRef = self as SelfAnalyzerRef;
-        const isRunning = selfRef.isRunning ?? false;
-        const analysis = selfRef.getSystemAnalysis?.();
+        const isRunning = self.isRunning ?? false;
+        const analysis = self.getSystemAnalysis?.();
         const lines = [
             `Running: ${isRunning ? 'Yes' : 'No'}`,
             ...analysis ? [
@@ -432,13 +422,12 @@ export class CommandHandlers {
     }
 
     private showMetaAnalysis(): void {
-        const self = (this.nar as unknown as {getSelfAnalyzer?: () => unknown}).getSelfAnalyzer?.();
+        const self = this.self;
         if (!self) {
             console.log('Self/Metacognition is not enabled');
             return;
         }
-        const selfRef = self as SelfAnalyzerRef;
-        const analysis = selfRef.getSystemAnalysis?.();
+        const analysis = self.getSystemAnalysis?.();
         if (!analysis) {
             console.log('No analysis available yet');
             return;
@@ -462,17 +451,16 @@ export class CommandHandlers {
     }
 
     private runOptimization(): void {
-        const self = (this.nar as unknown as {getSelfAnalyzer?: () => unknown}).getSelfAnalyzer?.();
-        if (self && (self as SelfAnalyzerRef).applyOptimizations) {
-            (self as SelfAnalyzerRef).applyOptimizations?.();
+        const self = this.self;
+        if (self?.applyOptimizations) {
+            self.applyOptimizations();
             console.log('✓ Applied metacognitive optimizations');
         } else {
             console.log('Self optimization not available');
         }
-        const rlfp = (this.nar as unknown as {getRLFP?: () => unknown}).getRLFP?.();
-        const rlfpRef = rlfp as RLFPref | null;
-        if (rlfpRef?.optimize) {
-            rlfpRef.optimize();
+        const rlfp = this.rlfp;
+        if (rlfp?.optimize) {
+            rlfp.optimize();
             console.log('✓ RLFP policy optimized');
         }
     }
@@ -482,54 +470,48 @@ export class CommandHandlers {
             console.log('Usage: .prefer <prefered> <rejected>');
             return;
         }
-        const rlfp = (this.nar as unknown as {getRLFP?: () => unknown}).getRLFP?.();
-        const rlfpRef = rlfp as RLFPref | null;
-        if (!rlfpRef) {
+        const rlfp = this.rlfp;
+        if (!rlfp) {
             console.log('RLFP not enabled');
             return;
         }
-        const preferred = args[0]!;
-        const rejected = args[1]!;
-        rlfpRef.addPreference?.(preferred, rejected);
+        const [preferred, rejected] = [args[0]!, args[1]!];
+        rlfp.addPreference?.(preferred, rejected);
         console.log(`✓ Preference recorded: ${preferred} > ${rejected}`);
     }
 
     private showRewardStatus(): void {
-        const rlfp = (this.nar as unknown as {getRLFP?: () => unknown}).getRLFP?.();
-        const rlfpRef = rlfp as RLFPref | null;
-        if (!rlfpRef) {
+        const rlfp = this.rlfp;
+        if (!rlfp) {
             console.log('RLFP not enabled');
             return;
         }
-        const prefs = rlfpRef.preferences?.length ?? 0;
-        console.log('\n' + box('RLFP Reward Status', [`Preferences: ${prefs}`]) + '\n');
+        console.log('\n' + box('RLFP Reward Status', [`Preferences: ${rlfp.preferences?.length ?? 0}`]) + '\n');
     }
 
     private showRLFPStats(): void {
-        const rlfp = (this.nar as unknown as {getRLFP?: () => unknown}).getRLFP?.();
-        const rlfpRef = rlfp as RLFPref | null;
-        if (!rlfpRef) {
+        const rlfp = this.rlfp;
+        if (!rlfp) {
             console.log('RLFP not enabled');
             return;
         }
         console.log('\n' + box('RLFP Statistics', [
-            `Preferences: ${String(rlfpRef.preferences?.length ?? 0)}`,
-            `Trajectories: ${String(rlfpRef.trajectoryCount ?? 0)}`,
-            `Last Optimization: ${rlfpRef.lastOptimizeTime ? new Date(rlfpRef.lastOptimizeTime).toLocaleTimeString() : 'Never'}`
+            `Preferences: ${String(rlfp.preferences?.length ?? 0)}`,
+            `Trajectories: ${String(rlfp.trajectoryCount ?? 0)}`,
+            `Last Optimization: ${rlfp.lastOptimizeTime ? new Date(rlfp.lastOptimizeTime).toLocaleTimeString() : 'Never'}`
         ]) + '\n');
     }
 
     private showLMStatus(): void {
-        const lm = (this.nar as unknown as {getLMClient?: () => unknown}).getLMClient?.();
+        const lm = this.lm;
         if (!lm) {
             console.log('LM client not configured');
             return;
         }
-        const lmRef = lm as LMClientRef;
         console.log('\n' + box('LM Status', [
-            `Provider: ${String(lmRef.provider ?? 'unknown')}`,
-            `Model: ${String(lmRef.model ?? 'unknown')}`,
-            `Available: ${lmRef.available ? 'Yes' : 'No'}`
+            `Provider: ${String(lm.provider ?? 'unknown')}`,
+            `Model: ${String(lm.model ?? 'unknown')}`,
+            `Available: ${lm.available ? 'Yes' : 'No'}`
         ]) + '\n');
     }
 
@@ -538,14 +520,13 @@ export class CommandHandlers {
             console.log('Usage: .lm-switch <model-name>');
             return;
         }
-        const lm = (this.nar as unknown as {getLMClient?: () => unknown}).getLMClient?.();
+        const lm = this.lm;
         if (!lm) {
             console.log('LM client not configured');
             return;
         }
-        const lmRef = lm as LMClientRef;
-        if (lmRef.setModel) {
-            lmRef.setModel(model);
+        if (lm.setModel) {
+            lm.setModel(model);
             console.log(`✓ Switched to model: ${model}`);
         } else {
             console.log('Model switching not supported by this LM client');
@@ -591,18 +572,10 @@ export class CommandHandlers {
         }
         const getConstitution = (this.nar as unknown as {getConstitution?: () => unknown[]}).getConstitution;
         const constitution = getConstitution?.() ?? [];
-        console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ Constitution (Immutable Beliefs)                  ║');
-        console.log('╠══════════════════════════════════════════════════╣');
-        if (constitution.length === 0) {
-            console.log('║ No constitution set.                                ║');
-        } else {
-            for (const belief of constitution.slice(0, 10)) {
-                const b = belief as {term: {toString: () => string}};
-                console.log(`║ ${b.term.toString().padEnd(48)}║`);
-            }
-        }
-        console.log('╚══════════════════════════════════════════════════╝\n');
+        const lines = constitution.length === 0
+            ? ['No constitution set.']
+            : constitution.slice(0, 10).map(b => (b as {term: {toString: () => string}}).term.toString());
+        console.log('\n' + box('Constitution (Immutable Beliefs)', lines) + '\n');
         console.log('Usage: .constitution add <narsese-belief>');
     }
 
@@ -613,15 +586,10 @@ export class CommandHandlers {
             console.log('Attention report not available');
             return;
         }
-        console.log('\n╔══════════════════════════════════════════════════╗');
-        console.log('║ Attention Allocation                              ║');
-        console.log('╠══════════════════════════════════════════════════╣');
-        console.log(`║ Total Concepts: ${String(report.total).padEnd(37)}║`);
-        console.log('╠══════════════════════════════════════════════════╣');
-        for (const c of report.concepts?.slice(0, 10) ?? []) {
-            console.log(`║ ${(c.term ?? '').substring(0, 40).padEnd(40)} ${(c.priority ?? 0).toFixed(3)}║`);
-        }
-        console.log('╚══════════════════════════════════════════════════╝\n');
+        const lines = [`Total Concepts: ${String(report.total)}`, ...(report.concepts?.slice(0, 10).map(c =>
+            `${(c.term ?? '').substring(0, 40).padEnd(40)} ${(c.priority ?? 0).toFixed(3)}`
+        ) ?? [])];
+        console.log('\n' + box('Attention Allocation', lines) + '\n');
     }
 
     loadDomain(args: string[]): void {

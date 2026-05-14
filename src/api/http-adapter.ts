@@ -50,7 +50,7 @@ export class HTTPAdapter {
         this.apiKeys.delete(key);
     }
 
-    getOpenAPISpec(): Record<string, any> {
+    getOpenAPISpec(): Record<string, unknown> {
         return this.registry.getOpenAPISpec();
     }
 
@@ -118,9 +118,9 @@ export class HTTPAdapter {
             const result = await this.registry.invoke(handlerName, body);
             res.statusCode = 200;
             res.end(JSON.stringify(result));
-        } catch (error: any) {
+        } catch (error: unknown) {
             res.statusCode = 400;
-            res.end(JSON.stringify({error: error.message}));
+            res.end(JSON.stringify({error: error instanceof Error ? error.message : String(error)}));
         }
     }
 
@@ -147,7 +147,7 @@ export class HTTPAdapter {
         return false;
     }
 
-    private async parseBody(req: IncomingMessage): Promise<any> {
+    private async parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
         return new Promise((resolve) => {
             if (req.method === 'GET' || req.method === 'HEAD') {
                 resolve({});
