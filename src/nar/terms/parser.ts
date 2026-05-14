@@ -2,7 +2,7 @@ import {TermFactory} from './factory.js';
 import type {Term} from './types.js';
 import {Truth} from './truth.js';
 import {errMsg} from '../utils';
-import {tokenize, type Token} from './tokenizer.js';
+import {type Token, tokenize} from './tokenizer.js';
 
 export interface ParserResult {
   term: Term;

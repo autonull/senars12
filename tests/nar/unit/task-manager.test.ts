@@ -1,7 +1,4 @@
-import {TaskManager} from '../../../src/nar';
-import {Memory} from '../../../src/nar';
-import {createBudget, createTask} from '../../../src/nar';
-import {TermBuilder, Truth} from '../../../src/nar';
+import {createBudget, createTask, Memory, TaskManager, TermBuilder, Truth} from '../../../src/nar';
 
 describe('TaskManager', () => {
     let mem: Memory;

@@ -1,8 +1,7 @@
 import type {Term} from '../terms';
 import {getPredicate, getSubject, TermBuilder, termsEqual, Truth} from '../terms';
-import {type RuleFn} from './types.js';
 import {registerRule} from './shared.js';
-import {buildBinaryInhRule, buildInhRule, inh, getVars} from './rule-builder.js';
+import {buildBinaryInhRule, buildInhRule, getVars} from './rule-builder.js';
 
 export const NALExtendedRules = {
   modusPonens: ([imp, antecedent]: [Term, Term]): Term | undefined => {

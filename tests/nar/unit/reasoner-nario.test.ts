@@ -4,13 +4,10 @@
 
 import {beforeEach, describe, expect, it, jest} from '@jest/globals';
 import {NAR} from '../../../src';
-import {Reasoner} from '../../../src/nar';
+import {Reasoner, RuleProcessor, TaskManager, TermBuilder, Truth} from '../../../src/nar';
 import {NARIO} from '../../../src/nar/nar-io.js';
 import {NARLM} from '../../../src/nar/nar-lm.js';
-import {RuleProcessor} from '../../../src/nar';
 import {createStrategy} from '../../../src/nar/reason';
-import {TermBuilder, Truth} from '../../../src/nar';
-import {TaskManager} from '../../../src/nar';
 
 describe('Reasoner', () => {
     let nar: NAR;

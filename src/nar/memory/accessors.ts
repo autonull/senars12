@@ -1,6 +1,6 @@
 import type {Term} from '../terms';
-import type {Concept} from './concept.js';
 import {TermMap} from '../terms';
+import type {Concept} from './concept.js';
 
 // Helpers specialized for Concept maps keyed by Term
 export function getConceptFromMap(map: TermMap<Concept>, term: Term): Concept | undefined {

@@ -1,16 +1,15 @@
 import type {Term} from '../terms';
 import {getPredicate, getSubject, TermBuilder, termsEqual, Truth} from '../terms';
 import {
-abductionLink,
-buildAbduction,
-buildDeduction,
-buildInduction,
-deductionLink,
-inductionLink,
-syllogize
+    abductionLink,
+    buildAbduction,
+    buildDeduction,
+    buildInduction,
+    deductionLink,
+    inductionLink,
+    syllogize
 } from './nal-helpers.js';
 import {registerRule} from './shared.js';
-import {buildBinaryInhRule} from './rule-builder.js';
 
 export interface NALRuleMetadata {
   id: string;

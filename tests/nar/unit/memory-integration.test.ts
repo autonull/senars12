@@ -1,6 +1,5 @@
 import {describe, expect, it} from '@jest/globals';
-import {Memory} from '../../../src/nar';
-import {TermBuilder} from '../../../src/nar';
+import {Memory, TermBuilder} from '../../../src/nar';
 
 describe('Phase 5: Memory Integration', () => {
     describe('MemoryIndex Integration', () => {

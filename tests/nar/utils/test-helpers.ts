@@ -4,8 +4,8 @@
  * Common utilities for test creation, validation, and DRY patterns
  */
 
-import type {Budget, Task, TaskType, Term, Truth as TruthType } from '../../../src/nar';
-import {Stamp, TermBuilder, Truth, createBudget as createBudgetFn, createTask as createTaskFn} from '../../../src/nar';
+import type {Budget, Task, TaskType, Term, Truth as TruthType} from '../../../src/nar';
+import {createBudget as createBudgetFn, createTask as createTaskFn, Stamp, TermBuilder, Truth} from '../../../src/nar';
 
 // ============================================================================
 // Factory Functions

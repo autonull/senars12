@@ -1,12 +1,10 @@
 import {describe, expect, test} from '@jest/globals';
-import {Memory} from '../../../src/nar';
+import {createBudget, createTask, Memory, TermBuilder, Truth} from '../../../src/nar';
 import {QueryAPI, ReasoningTrace} from '../../../src/nar/query';
 import type {Tool} from '../../../src/nar/tools';
 import {ToolManager} from '../../../src/nar/tools';
 import type {RuleStats} from '../../../src/nar/metrics';
 import {MetricsCollector} from '../../../src/nar/metrics';
-import {createBudget, createTask} from '../../../src/nar';
-import {TermBuilder, Truth} from '../../../src/nar';
 
 const createMockTool = (name: string, executeFn?: (args: Record<string, unknown>) => Promise<any>): Tool => ({
     name,

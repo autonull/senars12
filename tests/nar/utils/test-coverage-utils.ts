@@ -5,7 +5,7 @@
  */
 
 import type {Budget, Task, TaskType, Term, Truth as TruthType} from '../../../src/nar';
-import {Stamp, TermBuilder, Truth, createBudget as createBudgetFn, createTask as createTaskFn} from '../../../src/nar';
+import {createBudget as createBudgetFn, createTask as createTaskFn, Stamp, TermBuilder, Truth} from '../../../src/nar';
 
 // =============================================================================
 // Parameterized Test Generators

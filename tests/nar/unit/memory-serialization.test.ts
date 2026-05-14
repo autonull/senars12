@@ -1,7 +1,6 @@
 import {describe, expect, it} from '@jest/globals';
 import {deserialize, Memory, repair, serialize, validate} from '../../../src/nar/memory/memory.js';
-import {TermBuilder, Truth} from '../../../src/nar';
-import {createBudget} from '../../../src/nar';
+import {createBudget, TermBuilder, Truth} from '../../../src/nar';
 
 describe('Phase 5.4: Memory Serialization', () => {
     it('should serialize empty memory', () => {

@@ -1,5 +1,4 @@
-import type {NAR} from '../../nar';
-import type {Task} from '../../nar';
+import type {NAR, Task} from '../../nar';
 import {termParser} from '../../nar';
 
 export interface ConceptFilter {

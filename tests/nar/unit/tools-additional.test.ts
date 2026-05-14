@@ -5,12 +5,15 @@
 
 import {beforeEach, describe, expect, it} from '@jest/globals';
 import {NAR} from '../../../src';
-import {ReadFileTool, WriteFileTool} from '../../../src/nar/tools';
-import {HTTPTool} from '../../../src/nar/tools';
-import {TimerTool} from '../../../src/nar/tools';
-import {ProcessTool} from '../../../src/nar/tools';
-import {LearnTool} from '../../../src/nar/tools';
-import {ReasonTool} from '../../../src/nar/tools';
+import {
+    HTTPTool,
+    LearnTool,
+    ProcessTool,
+    ReadFileTool,
+    ReasonTool,
+    TimerTool,
+    WriteFileTool
+} from '../../../src/nar/tools';
 
 describe('ReadFileTool', () => {
     it('should have correct metadata', () => {

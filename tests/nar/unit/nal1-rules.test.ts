@@ -4,12 +4,7 @@
  */
 
 import {describe, expect, it} from '@jest/globals';
-import {
-    assertReasoning,
-    createPremise,
-    describeReasoning,
-    expectDerivation
-} from '../framework';
+import {assertReasoning, createPremise, describeReasoning, expectDerivation} from '../framework';
 
 describeReasoning('NAL1 Core Rules', [
     {

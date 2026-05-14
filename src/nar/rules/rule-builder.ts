@@ -2,7 +2,6 @@
  * Rule builder utilities for deduplicating NAL rule definitions
  */
 import type {Term} from '../terms';
-import {getPredicate, getSubject, TermBuilder, termsEqual} from '../terms';
 import type {RuleFn} from './types.js';
 
 export const buildBinaryInhRule = (

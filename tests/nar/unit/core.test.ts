@@ -1,18 +1,19 @@
 import {
-  Budget,
-  ConfigurationError,
-  createBudget,
-  createTask,
-  DEFAULT_CONFIG,
-  failure,
-  isFailure,
-  isSuccess,
-  NARError,
-  OperationError,
-  success,
-  ValidationError,
+    atom,
+    Budget,
+    ConfigurationError,
+    createBudget,
+    createTask,
+    DEFAULT_CONFIG,
+    failure,
+    isFailure,
+    isSuccess,
+    NARError,
+    OperationError,
+    success,
+    Truth,
+    ValidationError,
 } from '../../../src/nar';
-import {atom, Truth} from '../../../src/nar';
 
 describe('Budget', () => {
   describe.each`

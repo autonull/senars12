@@ -1,10 +1,16 @@
 import {describe, expect, jest, test} from '@jest/globals';
 import {NARExecution} from '../../../src/nar/nar-execution';
-import {Memory} from '../../../src/nar';
-import {TaskManager} from '../../../src/nar';
-import {BagStrategy, Reasoner} from '../../../src/nar';
-import {createBudget, createTask, DEFAULT_CONFIG} from '../../../src/nar';
-import {TermBuilder, Truth} from '../../../src/nar';
+import {
+    BagStrategy,
+    createBudget,
+    createTask,
+    DEFAULT_CONFIG,
+    Memory,
+    Reasoner,
+    TaskManager,
+    TermBuilder,
+    Truth
+} from '../../../src/nar';
 import type {RLFPLearner} from '../../rlfp';
 
 const createMockRLFP = (): RLFPLearner => ({

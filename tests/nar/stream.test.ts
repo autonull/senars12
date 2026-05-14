@@ -7,8 +7,7 @@ import {
     throttled
 } from '../../src/nar/stream';
 import type {Memory} from '../../src/nar';
-import {SeNARSFactory} from '../../src/nar';
-import {BagStrategy} from '../../src/nar';
+import {BagStrategy, SeNARSFactory} from '../../src/nar';
 
 const createTestMemory = (): Memory => {
     const nar = SeNARSFactory.createForBot({maxConcepts: 50});
