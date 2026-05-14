@@ -19,7 +19,6 @@ export class CommandHandlers {
         this.ctx = createCommandContext(nar);
         this.registry = new CommandRegistry('CLI');
 
-        this.registry.register({name: '.help', description: '', usage: '', handler: () => {}});
         const allCommands = [
             ...CoreCommands,
             ...NARDisplayCommands,
@@ -38,48 +37,19 @@ export class CommandHandlers {
         const cmd = parts[0]!;
         const args = parts.slice(1);
 
-        const handlers: Record<string, () => void | Promise<void>> = {
-            '.help': () => this.registry.handle('.help', this.ctx),
-            '.run': () => this.handleRun(args),
-            '.stats': () => this.handleStats(args),
-            '.list': () => this.registry.handle('.list', this.ctx),
-            '.concepts': () => this.registry.handle('.concepts', this.ctx),
-            '.rules': () => this.registry.handle('.rules', this.ctx),
-            '.tools': () => this.registry.handle('.tools', this.ctx),
-            '.config': () => this.handleConfig(args),
-            '.clear': () => this.registry.handle('.clear', this.ctx),
-            '.load': () => this.registry.handle('.load', this.ctx),
-            '.save': () => this.registry.handle('.save', this.ctx),
-            '.query': () => this.registry.handle('.query', this.ctx),
-            '.trace': () => this.registry.handle('.trace', this.ctx),
-            '.explain': () => this.registry.handle('.explain', this.ctx),
-            '.self': () => this.registry.handle('.self', this.ctx),
-            '.meta': () => this.registry.handle('.meta', this.ctx),
-            '.optimize': () => this.registry.handle('.optimize', this.ctx),
-            '.prefer': () => this.registry.handle('.prefer', this.ctx),
-            '.reward': () => this.registry.handle('.reward', this.ctx),
-            '.rlfp-stats': () => this.registry.handle('.rlfp-stats', this.ctx),
-            '.lm-status': () => this.registry.handle('.lm-status', this.ctx),
-            '.lm-switch': () => this.registry.handle('.lm-switch', this.ctx),
-            '.ask-nl': () => this.registry.handle('.ask-nl', this.ctx),
-            '.constitution': () => this.registry.handle('.constitution', this.ctx),
-            '.attention': () => this.registry.handle('.attention', this.ctx),
-            '.load-domain': () => this.registry.handle('.load-domain', this.ctx),
-            '.quit': () => {
-                this.logger.info('Goodbye!');
-                process.exit(0);
-            }
-        };
+        if (cmd === '.run') return void this.handleRun(args);
+        if (cmd === '.stats') return void this.handleStats(args);
+        if (cmd === '.config') return void this.handleConfig(args);
+        if (cmd === '.quit') {
+            this.logger.info('Goodbye!');
+            process.exit(0);
+        }
 
-        const handler = handlers[cmd];
-        if (handler) {
-            try {
-                handler();
-            } catch (error) {
-                this.logger.error(`Error: ${error}`);
-            }
-        } else {
-            this.logger.warn(`Unknown command: ${cmd}. Type .help for commands.`);
+        const handler = this.registry.handle.bind(this.registry);
+        try {
+            handler(cmd, {...this.ctx, args});
+        } catch (error) {
+            this.logger.error(`Error: ${error}`);
         }
     }
 

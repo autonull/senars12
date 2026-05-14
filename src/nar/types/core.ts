@@ -73,15 +73,9 @@ export type Nullable<T> = T | null;
 export type Optional<T> = T | undefined;
 
 // Result types for operations
-export interface Success<T> {
-    readonly success: true;
-    readonly data: T;
-}
+export type Success<T> = { readonly success: true; readonly data: T };
 
-export interface Failure {
-    readonly success: false;
-    readonly error: Error;
-}
+export type Failure = { readonly success: false; readonly error: Error };
 
 export type Result<T> = Success<T> | Failure;
 

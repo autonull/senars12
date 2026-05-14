@@ -9,4 +9,5 @@ export {calculatePriorityDistribution} from './distribution.js';
 export {jaccard} from './similarity.js';
 export {timed} from './timing.js';
 export {unique, halfSlice} from './array.js';
-export {resolveVariables} from './variables.js';
+export {isVariableReference, extractVarName, resolveVariables} from './variables.js';
+export {containsUrl} from './string.js';

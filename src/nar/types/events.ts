@@ -61,7 +61,7 @@ export class EventBus<T extends EventMap = NAREventMap> {
             try {
                 listener.fn(params);
             } catch (error) {
-                // Continue to next listener even if one throws
+                console.error(`Event listener error for ${eventName}:`, error);
             }
         }
 

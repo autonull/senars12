@@ -2,7 +2,7 @@ import type {Term, Truth} from '../terms';
 import {extractSymbols, jaccardSimilarity, TermMap, termsEqual, TermSet} from '../terms';
 import {Bag} from './bag.js';
 import {Truth as TruthOps} from '../terms/truth.js';
-import type {Budget} from '../types';
+import type {Budget, TaskType} from '../types';
 
 export interface TaskData {
   readonly term: Term;
@@ -14,7 +14,7 @@ export interface TaskData {
   readonly derived?: boolean;
 }
 
-export type ConceptTaskType = 'belief' | 'goal' | 'question' | 'command';
+export type ConceptTaskType = TaskType;
 
 export interface ConceptLink {
   concept: Concept;

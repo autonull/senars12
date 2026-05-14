@@ -39,7 +39,7 @@ export class HTTPServer {
         });
     }
 
-    async start(agent: Agent): Promise<void> {
+    async start(_agent: Agent): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
                 this.server = createServer((req, res) => {

@@ -4,13 +4,23 @@ import type {RLFPLearner} from '../../nar/rlfp';
 import type {LMClient} from '../../nar/lm/types.js';
 import {createLogger} from '../../nar/logger';
 
+export interface NARExtended {
+    loadDomain(domain: { name: string; beliefs: string[] }): void;
+    setConstitution(beliefs: Task[]): void;
+    getConstitution(): Task[];
+    getAttentionReport(): { concepts: Array<{ term: string; priority: number }>; total: number };
+}
+
 export interface CommandContext {
-    nar: NAR;
+    nar: NAR & NARExtended;
     logger: ReturnType<typeof createLogger>;
     getSelf(): ReasoningAboutReasoning | undefined;
     getRLFP(): RLFPLearner | undefined;
     getLM(): LMClient | undefined;
+    args?: string[];
 }
+
+type Task = import('../../nar/types').Task;
 
 export type CommandHandler = (ctx: CommandContext, args: string[]) => void | Promise<void>;
 

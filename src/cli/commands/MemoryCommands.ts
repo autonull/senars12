@@ -1,4 +1,4 @@
-import type {CommandContext, CommandDefinition} from './index.js';
+import type {CommandContext, CommandDefinition, NARExtended} from './index.js';
 import {DOMAIN_LIST, DOMAINS} from '../domains.js';
 import {box} from '../display.js';
 import {termParser} from '../../nar/terms';
@@ -78,7 +78,7 @@ export const MemoryCommands: CommandDefinition[] = [
                 return;
             }
 
-            (ctx.nar as any).loadDomain?.({name: domain, beliefs: DOMAINS[domain]});
+            ctx.nar.loadDomain({name: domain, beliefs: DOMAINS[domain]});
             ctx.logger.info(`✓ Loaded ${domain} domain with ${DOMAINS[domain].length} beliefs`);
         }
     },
@@ -90,7 +90,7 @@ export const MemoryCommands: CommandDefinition[] = [
             if (args[0] === 'add' && args[1]) {
                 const termStr = args.slice(1).join(' ');
                 const term = termParser.parse(termStr);
-                (ctx.nar as any).setConstitution?.([{
+                ctx.nar.setConstitution([{
                     term,
                     type: 'belief' as const,
                     truth: {f: 1, c: 1},
@@ -103,10 +103,10 @@ export const MemoryCommands: CommandDefinition[] = [
                 return;
             }
 
-            const constitution = (ctx.nar as any).getConstitution?.() ?? [];
+            const constitution = ctx.nar.getConstitution() ?? [];
             const lines = constitution.length === 0
                 ? ['No constitution set.']
-                : constitution.slice(0, 10).map((b: any) => b.term.toString());
+                : constitution.slice(0, 10).map(b => b.term.toString());
 
             ctx.logger.info('\n' + box('Constitution (Immutable Beliefs)', lines) + '\n');
             ctx.logger.info('Usage: .constitution add <narsese-belief>');
@@ -117,7 +117,7 @@ export const MemoryCommands: CommandDefinition[] = [
         description: 'Show attention allocation report',
         usage: '.attention',
         handler: (ctx) => {
-            const report = (ctx.nar as any).getAttentionReport?.();
+            const report = ctx.nar.getAttentionReport();
             if (!report) {
                 ctx.logger.info('Attention report not available');
                 return;
@@ -125,9 +125,9 @@ export const MemoryCommands: CommandDefinition[] = [
 
             const lines = [
                 `Total Concepts: ${String(report.total)}`,
-                ...(report.concepts?.slice(0, 10).map((c: any) =>
-                    `${(c.term ?? '').substring(0, 40).padEnd(40)} ${(c.priority ?? 0).toFixed(3)}`
-                ) ?? [])
+                ...report.concepts.slice(0, 10).map(c =>
+                    `${c.term.substring(0, 40).padEnd(40)} ${c.priority.toFixed(3)}`
+                )
             ];
 
             ctx.logger.info('\n' + box('Attention Allocation', lines) + '\n');

@@ -17,7 +17,7 @@ export interface Stamp<D extends Nat = 0> {
 }
 
 export const Stamp = {
-    createInput(): Stamp {
+    createInput(): Stamp<0> {
         return Object.freeze({
             id: makeId(),
             creationTime: Date.now(),
@@ -27,18 +27,18 @@ export const Stamp = {
         });
     },
 
-    derive<D extends Nat>(parentStamps: readonly Stamp<D>[], source: Source = 'DERIVED'): D extends 10 ? undefined : Stamp<Increment<D>> {
+    derive<D extends Nat>(parentStamps: readonly Stamp<D>[], source: Source = 'DERIVED'): Stamp<Increment<D>> | undefined {
         if (parentStamps.length === 0) {
             return Object.freeze({
                 id: makeId(),
                 creationTime: Date.now(),
                 source,
                 derivations: [],
-                depth: 0
-            }) as Stamp<Increment<D>>;
+                depth: 0 as Increment<D>
+            });
         }
         const maxDepth = parentStamps.reduce((max, s) => Math.max(max, s.depth), 0);
-        if (maxDepth >= DEPTH_MAX) return undefined as Stamp<Increment<D>>;
+        if (maxDepth >= DEPTH_MAX) return undefined;
 
         const allDerivations = parentStamps.flatMap(s => [s.id, ...s.derivations]);
         return Object.freeze({
@@ -47,7 +47,7 @@ export const Stamp = {
             source,
             derivations: [...new Set(allDerivations)],
             depth: (maxDepth + 1) as Increment<D>
-        }) as Stamp<Increment<D>>;
+        });
     },
 
     getDepth: (stamp: Stamp): number => stamp.depth,

@@ -13,15 +13,7 @@ export const SelfCommands: CommandDefinition[] = [
                 return;
             }
 
-            const isRunning = (self as any).isRunning ?? false;
-            const analysis = (self as any).getSystemAnalysis?.();
-            const lines = [
-                `Running: ${isRunning ? 'Yes' : 'No'}`,
-                ...analysis ? [
-                    `Cycles: ${String((analysis as {cycleCount?: number}).cycleCount ?? 'N/A')}`,
-                    `Strategies: ${String((analysis as {strategies?: unknown[]}).strategies?.length ?? 0)}`
-                ] : []
-            ];
+            const lines = [`Running: ${self.isRunning ? 'Yes' : 'No'}`];
             ctx.logger.info('\n' + box('Self/Metacognition Status', lines) + '\n');
         }
     },
@@ -29,28 +21,27 @@ export const SelfCommands: CommandDefinition[] = [
         name: '.meta',
         description: 'Show meta-analysis report',
         usage: '.meta',
-        handler: (ctx) => {
+        handler: async (ctx) => {
             const self = ctx.getSelf();
             if (!self) {
                 ctx.logger.info('Self/Metacognition is not enabled');
                 return;
             }
 
-            const analysis = (self as any).getSystemAnalysis?.();
+            const analysis = await self.getSystemAnalysis();
             if (!analysis) {
                 ctx.logger.info('No analysis available yet');
                 return;
             }
 
-            const analysisData = analysis as {cycleCount?: number; reasoningQuality?: number; strategies?: Array<{name?: string; efficiency?: number}>};
-            const lines: string[] = [`Cycle Count: ${String(analysisData.cycleCount ?? 0)}`];
+            const lines: string[] = [`Cycle Count: ${String(analysis.cycleCount ?? 0)}`];
 
-            const reasoningQuality = analysisData.reasoningQuality;
+            const reasoningQuality = analysis.reasoningQuality;
             if (reasoningQuality) {
                 lines.push(`Reasoning Quality: ${reasoningQuality.toFixed(2)}`);
             }
 
-            const strategies = analysisData.strategies;
+            const strategies = analysis.strategies;
             if (strategies?.length) {
                 lines.push('Strategy Performance:');
                 for (const s of strategies.slice(0, 3)) {
