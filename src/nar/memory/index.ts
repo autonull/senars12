@@ -4,7 +4,6 @@ export type {ConceptTaskType} from './concept.js';
 
 export {Bag} from './bag.js';
 export {BoundedBag} from './bounded-bag.js';
-export {AbstractBag} from './bag-base.js';
 export type {BagItem} from './bag-base.js';
 
 export {Memory} from './memory.js';

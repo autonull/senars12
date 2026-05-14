@@ -21,7 +21,6 @@ export class LMRouter {
     private readonly registry: ModelRegistry;
     private readonly config: RouterConfig;
     private ruleModelMap: Map<string, string> = new Map();
-    private contextModelMap: Map<string, string> = new Map();
 
     constructor(registry: ModelRegistry, config: Partial<RouterConfig> = {}) {
         this.registry = registry;
@@ -148,41 +147,32 @@ export class LMRouter {
                 return this.selectCustom(models, strategy.weight);
 
             default:
-                return models[0]?.id || null;
+                return models[0]?.id ?? null;
         }
     }
 
     private selectBySpeed(models: ModelRegistryEntry[]): string | null {
-        const speedOrder: ('fast' | 'medium' | 'slow')[] = ['fast', 'medium', 'slow'];
-        for (const speed of speedOrder) {
-            const model = models.find(m => m.config.speed === speed);
-            if (model) {
-                return model.id;
-            }
-        }
-        return models[0]?.id || null;
+        return this.selectByProperty(models, 'speed', ['fast', 'medium', 'slow']);
     }
 
     private selectByQuality(models: ModelRegistryEntry[]): string | null {
-        const qualityOrder: ('high' | 'medium' | 'low')[] = ['high', 'medium', 'low'];
-        for (const quality of qualityOrder) {
-            const model = models.find(m => m.config.quality === quality);
-            if (model) {
-                return model.id;
-            }
-        }
-        return models[0]?.id || null;
+        return this.selectByProperty(models, 'quality', ['high', 'medium', 'low']);
     }
 
     private selectByCost(models: ModelRegistryEntry[]): string | null {
-        const costOrder: ('low' | 'medium' | 'high')[] = ['low', 'medium', 'high'];
-        for (const cost of costOrder) {
-            const model = models.find(m => m.config.cost === cost);
-            if (model) {
-                return model.id;
-            }
+        return this.selectByProperty(models, 'cost', ['low', 'medium', 'high']);
+    }
+
+    private selectByProperty<K extends 'speed' | 'quality' | 'cost'>(
+        models: ModelRegistryEntry[],
+        prop: K,
+        order: ModelRegistryEntry['config'][K][]
+    ): string | null {
+        for (const value of order) {
+            const model = models.find(m => m.config[prop] === value);
+            if (model) return model.id;
         }
-        return models[0]?.id || null;
+        return models[0]?.id ?? null;
     }
 
     private selectBalanced(models: ModelRegistryEntry[], taskType: string): string | null {
@@ -202,7 +192,7 @@ export class LMRouter {
 
     private selectCustom(models: ModelRegistryEntry[], weight?: RoutingStrategy['weight']): string | null {
         if (!weight) {
-            return models[0]?.id || null;
+            return models[0]?.id ?? null;
         }
 
         const scores = models.map(model => {

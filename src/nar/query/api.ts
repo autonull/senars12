@@ -2,7 +2,6 @@ import type {Term} from '../terms';
 import {termParser} from '../terms';
 import type {Task, TaskType, TermFilter} from '../types';
 import type {Concept} from '../memory';
-import type {TaskData} from '../memory/concept.js';
 
 export interface QueryResult {
     beliefs: Task[];
@@ -70,11 +69,7 @@ export class QueryAPI {
         const questionTerm = typeof question === 'string' ? this.parseQuestion(question) : question;
 
         if (!questionTerm) {
-            return {
-                question: questionStr,
-                confidence: 0,
-                evidence: []
-            };
+            return {question: questionStr, confidence: 0, evidence: []};
         }
 
         const concept = this.memory.getConcept(questionTerm);
@@ -83,28 +78,12 @@ export class QueryAPI {
             if (belief?.truth) {
                 const confidence = belief.truth.f * belief.truth.c;
                 if (confidence >= 0.5) {
-                    const task: Task = {
-                        term: questionTerm,
-                        type: 'belief',
-                        truth: belief.truth,
-                        budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-                        stamp: belief.stamp ?? {
-                            id: '',
-                            creationTime: 0,
-                            source: 'INPUT' as const,
-                            derivations: [],
-                            depth: 0
-                        },
-                        occurrenceTime: 0,
-                        derived: false
-                    };
-
                     return {
                         question: questionStr,
                         answer: questionTerm.toString(),
                         confidence,
-                        evidence: [task],
-                        derivationPath: this.extractDerivationPath(task)
+                        evidence: [this.createTaskFromBelief(questionTerm, belief, concept.priority)],
+                        derivationPath: this.extractDerivationPath(belief.stamp)
                     };
                 }
             }
@@ -116,38 +95,43 @@ export class QueryAPI {
             if (belief?.truth) {
                 const confidence = belief.truth.f * belief.truth.c;
                 if (confidence >= 0.5) {
-                    const task: Task = {
-                        term: related.term,
-                        type: 'belief',
-                        truth: belief.truth,
-                        budget: {priority: related.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-                        stamp: belief.stamp ?? {
-                            id: '',
-                            creationTime: 0,
-                            source: 'INPUT' as const,
-                            derivations: [],
-                            depth: 0
-                        },
-                        occurrenceTime: 0,
-                        derived: false
-                    };
-
                     return {
                         question: questionStr,
                         answer: related.term.toString(),
                         confidence,
-                        evidence: [task],
-                        derivationPath: this.extractDerivationPath(task)
+                        evidence: [this.createTaskFromBelief(related.term, belief, related.priority)],
+                        derivationPath: this.extractDerivationPath(belief.stamp)
                     };
                 }
             }
         }
 
+        return {question: questionStr, confidence: 0, evidence: []};
+    }
+
+    private createTaskFromBelief(term: Term, belief: {truth?: {f: number; c: number}; stamp?: import('../types').Stamp}, priority: number): Task {
         return {
-            question: questionStr,
-            confidence: 0,
-            evidence: []
+            term,
+            type: 'belief',
+            truth: belief.truth!,
+            budget: {priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+            stamp: belief.stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
+            occurrenceTime: 0,
+            derived: false
         };
+    }
+
+    private extractDerivationPath(stamp?: import('../types').Stamp): string[] {
+        const path: string[] = [];
+        let currentStamp = stamp;
+
+        while (currentStamp && path.length < 10) {
+            path.push(currentStamp.id);
+            if (!currentStamp.derivations?.length) break;
+            currentStamp = currentStamp.derivations[0];
+        }
+
+        return path;
     }
 
     private parseQuestion(question: string): Term | null {
@@ -241,21 +225,6 @@ export class QueryAPI {
     private limitResults(tasks: Task[], limit?: number): Task[] {
         if (!limit || limit >= tasks.length) return tasks;
         return tasks.slice(0, limit);
-    }
-
-    private extractDerivationPath(task: Task): string[] {
-        const path: string[] = [];
-        let currentStamp = task.stamp;
-
-        while (currentStamp && path.length < 10) {
-            path.push(currentStamp.id);
-            if (!currentStamp.derivations || currentStamp.derivations.length === 0) {
-                break;
-            }
-            break;
-        }
-
-        return path;
     }
 }
 

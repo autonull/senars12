@@ -165,7 +165,7 @@ class SeNARSCLI {
     }
 
     private async processInput(input: string): Promise<void> {
-        if (!input || input.trim().length === 0) {
+        if (!input?.trim()) {
             return;
         }
 
