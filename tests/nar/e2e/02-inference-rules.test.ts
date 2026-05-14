@@ -1,8 +1,8 @@
 /**
  * Inference Rules Tests - Deduction, Induction, Abduction
  */
-import {NAR} from '../../../src/nar/nar.js';
-import {TermBuilder, Truth} from '../../../src/nar/terms';
+import {NAR} from '../../../src';
+import {TermBuilder, Truth} from '../../../src/nar';
 
 describe('Inference Rules', () => {
     let nar: NAR;

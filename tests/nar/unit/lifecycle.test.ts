@@ -1,5 +1,5 @@
 import {describe, expect, it} from '@jest/globals';
-import {BaseComponent, Container} from '../../../src/nar/lifecycle';
+import {BaseComponent, Container} from '../../../src/nar';
 import {createLogger} from '../../../src/nar/logger';
 import {MetricsCollector} from '../../../src/nar/metrics';
 import {EventBus} from '../../../src/nar/types';

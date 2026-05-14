@@ -1,5 +1,5 @@
 import {describe, expect, it} from '@jest/globals';
-import {RuleRegistry} from '../../src/nar/rules/index.js';
+import {RuleRegistry} from '../../src/nar';
 import '../../src/nar/rules/nal.js';
 import '../../src/nar/rules/nal-extended.js';
 

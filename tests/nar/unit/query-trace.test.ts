@@ -3,10 +3,10 @@
  */
 
 import {beforeEach, describe, expect, it} from '@jest/globals';
-import {NAR} from '../../../src/nar/nar.js';
-import {createQueryAPI, QueryAPI} from '../../../src/nar/query/api.js';
+import {NAR} from '../../../src';
+import {createQueryAPI, QueryAPI} from '../../../src/nar/query';
 import {createReasoningTrace, ReasoningTrace} from '../../../src/nar/trace.js';
-import {termParser} from '../../../src/nar/terms/parser.js';
+import {termParser} from '../../../src/nar';
 
 describe('QueryAPI', () => {
     let nar: NAR;

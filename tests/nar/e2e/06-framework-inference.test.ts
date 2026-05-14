@@ -3,7 +3,7 @@
  * Tests for deduction, induction, abduction, and similarity reasoning
  */
 
-import {createPremise, describeReasoning, expectDerivation} from '../framework/index.js';
+import {createPremise, describeReasoning, expectDerivation} from '../framework';
 
 describeReasoning('Inference Rules', [
     {

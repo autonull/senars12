@@ -4,7 +4,7 @@
  */
 
 import {NAR} from '../../nar';
-import {SeNARSFactory} from '../../../src/nar/factory';
+import {SeNARSFactory} from '../../../src/nar';
 
 describe('SeNARSCLI Command Handlers', () => {
     let nar: NAR;

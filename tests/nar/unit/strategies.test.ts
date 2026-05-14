@@ -4,7 +4,7 @@
  */
 
 import {beforeEach, describe, expect, it} from '@jest/globals';
-import {NAR} from '../../../src/nar/nar.js';
+import {NAR} from '../../../src';
 import {
     AdaptiveStrategy,
     AnalogicalStrategy,
@@ -18,7 +18,7 @@ import {
     SwitchingStrategy,
     TaskMatchStrategy,
     TermLinkStrategy
-} from '../../../src/nar/reason/strategies/index.js';
+} from '../../../src/nar/reason';
 import type {Strategy} from '../strategy.js';
 
 describe('Core Strategies', () => {

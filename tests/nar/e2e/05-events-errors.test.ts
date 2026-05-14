@@ -1,8 +1,8 @@
 /**
  * Event System & Error Handling Tests
  */
-import {NAR} from '../../../src/nar/nar.js';
-import {TermBuilder, Truth} from '../../../src/nar/terms';
+import {NAR} from '../../../src';
+import {TermBuilder, Truth} from '../../../src/nar';
 
 describe('Event System', () => {
     let nar: NAR;

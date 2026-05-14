@@ -1,8 +1,8 @@
 /**
  * Memory Operations Tests - Concept formation, activation, decay, consolidation
  */
-import {NAR} from '../../../src/nar/nar.js';
-import {TermBuilder, Truth} from '../../../src/nar/terms';
+import {NAR} from '../../../src';
+import {TermBuilder, Truth} from '../../../src/nar';
 
 describe('Memory Operations', () => {
     let nar: NAR;

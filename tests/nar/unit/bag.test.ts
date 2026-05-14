@@ -1,4 +1,4 @@
-import {Bag} from '../../../src/nar/memory';
+import {Bag} from '../../../src/nar';
 
 describe('Bag', () => {
     let bag: Bag<{ id: string }>;

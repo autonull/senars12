@@ -1,4 +1,4 @@
-import {atom, serializeTerm, TermBuilder, termsEqual, Truth} from '../../src/nar/terms';
+import {atom, serializeTerm, TermBuilder, termsEqual, Truth} from '../../src/nar';
 
 describe('Term', () => {
     test('atom creates term', () => {

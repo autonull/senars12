@@ -9,7 +9,7 @@ import {
     createPremise,
     describeReasoning,
     expectDerivation
-} from '../framework/ReasoningTestBuilder.js';
+} from '../framework';
 
 describeReasoning('NAL1 Core Rules', [
     {

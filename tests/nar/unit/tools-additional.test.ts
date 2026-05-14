@@ -4,13 +4,13 @@
  */
 
 import {beforeEach, describe, expect, it} from '@jest/globals';
-import {NAR} from '../../../src/nar/nar.js';
-import {ReadFileTool, WriteFileTool} from '../../../src/nar/tools/FileTools.js';
-import {HTTPTool} from '../../../src/nar/tools/HTTPTool.js';
-import {TimerTool} from '../../../src/nar/tools/TimerTool.js';
-import {ProcessTool} from '../../../src/nar/tools/ProcessTool.js';
-import {LearnTool} from '../../../src/nar/tools/LearnTool.js';
-import {ReasonTool} from '../../../src/nar/tools/ReasonTool.js';
+import {NAR} from '../../../src';
+import {ReadFileTool, WriteFileTool} from '../../../src/nar/tools';
+import {HTTPTool} from '../../../src/nar/tools';
+import {TimerTool} from '../../../src/nar/tools';
+import {ProcessTool} from '../../../src/nar/tools';
+import {LearnTool} from '../../../src/nar/tools';
+import {ReasonTool} from '../../../src/nar/tools';
 
 describe('ReadFileTool', () => {
     it('should have correct metadata', () => {

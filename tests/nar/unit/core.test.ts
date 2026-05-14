@@ -11,8 +11,8 @@ import {
     OperationError,
     success,
     ValidationError
-} from '../../../src/nar/types';
-import {atom, Truth} from '../../../src/nar/terms';
+} from '../../../src/nar';
+import {atom, Truth} from '../../../src/nar';
 
 describe('Budget', () => {
     test('createBudget creates frozen object', () => {

@@ -1,5 +1,5 @@
 import {describe, expect, jest, test} from '@jest/globals';
-import {BoundedBag} from '../../../src/nar/memory';
+import {BoundedBag} from '../../../src/nar';
 
 describe('BoundedBag', () => {
     describe('constructor', () => {

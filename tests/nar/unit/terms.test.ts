@@ -1,5 +1,5 @@
 import {computeHash, fnv1a} from '../../../src/nar/utils';
-import {isAtomic, isCompound, TermBuilder, Truth} from '../../../src/nar/terms';
+import {isAtomic, isCompound, TermBuilder, Truth} from '../../../src/nar';
 
 describe('Hash', () => {
     test('fnv1a is deterministic', () => {

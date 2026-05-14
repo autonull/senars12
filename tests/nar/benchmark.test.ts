@@ -1,5 +1,5 @@
-import {atom, Stamp, TermBuilder, termsEqual, Truth} from '../../src/nar/terms';
-import {RuleProcessor} from '../../src/nar/rules';
+import {atom, Stamp, TermBuilder, termsEqual, Truth} from '../../src/nar';
+import {RuleProcessor} from '../../src/nar';
 
 describe('Performance benchmarks', () => {
     test('term comparison benchmark <100ns', () => {

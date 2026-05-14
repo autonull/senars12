@@ -1,6 +1,6 @@
-import type {NAR} from '../../nar/nar.js';
-import type {Task} from '../../nar/types/index.js';
-import {termParser} from '../../nar/terms/index.js';
+import type {NAR} from '../../nar';
+import type {Task} from '../../nar';
+import {termParser} from '../../nar';
 
 export interface ConceptFilter {
     type?: 'belief' | 'goal' | 'question';

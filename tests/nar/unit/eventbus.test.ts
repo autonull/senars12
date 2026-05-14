@@ -4,10 +4,10 @@
 
 import {beforeEach, describe, expect, it, jest} from '@jest/globals';
 import type {NAREventMap} from '../../../src/nar/types/events.js';
-import {EventBus} from '../../../src/nar/types/events.js';
+import {EventBus} from '../../../src/nar/types';
 
 describe('EventBus', () => {
-    let eventBus: EventBus<NAREventMap>;
+    let eventBus: EventBus;
 
     beforeEach(() => {
         eventBus = new EventBus<NAREventMap>();

@@ -5,7 +5,7 @@
 import {Concept, type ConceptMergeResult, type ConceptTaskType} from './concept.js';
 import type {Term, Truth} from '../terms';
 import {calculateSimilarity} from '../terms';
-import {TermMap} from '../terms/term-map.js';
+import {TermMap} from '../terms';
 import type {Budget} from '../types';
 import {MemoryIndex} from './memory-index.js';
 import {Focus} from './focus.js';

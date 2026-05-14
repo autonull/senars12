@@ -1,4 +1,4 @@
-import {Stamp} from '../../../src/nar/terms';
+import {Stamp} from '../../../src/nar';
 import {DEPTH_MAX} from '../../../src/nar/types';
 
 describe('Stamp', () => {

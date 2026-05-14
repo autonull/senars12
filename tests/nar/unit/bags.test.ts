@@ -3,8 +3,8 @@
  */
 
 import {beforeEach, describe, expect, it} from '@jest/globals';
-import {Bag} from '../../../src/nar/memory/bag.js';
-import {BoundedBag} from '../../../src/nar/memory/bounded-bag.js';
+import {Bag} from '../../../src/nar';
+import {BoundedBag} from '../../../src/nar';
 
 describe('Bag', () => {
     let bag: Bag<string>;

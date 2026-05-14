@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import {Truth} from '../../../src/nar/terms';
+import {Truth} from '../../../src/nar';
 
 const truthArb = fc.tuple(
     fc.float({min: 0, max: 1}),

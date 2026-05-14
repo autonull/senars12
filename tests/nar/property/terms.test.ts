@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import type {Term} from '../../../src/nar/terms';
+import type {Term} from '../../../src/nar';
 import {normalize, TermBuilder, termsEqual} from '../../../src/nar/terms';
 
 const atomArb = fc.string({minLength: 1, maxLength: 10}).map(s => TermBuilder.atom(s));

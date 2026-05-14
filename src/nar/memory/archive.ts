@@ -1,6 +1,6 @@
 import type {Concept} from './concept.js';
 import type {Term} from '../terms';
-import {TermMap} from '../terms/term-map.js';
+import {TermMap} from '../terms';
 
 export interface ArchiveConfig {
     maxArchivedConcepts: number;

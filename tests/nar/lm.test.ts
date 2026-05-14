@@ -1,5 +1,5 @@
-import {LMResponseParser, MockLMClient, RuleBasedLMClient} from '../../src/nar/lm/index.js';
-import {SeNARSFactory} from '../../src/nar/index.js';
+import {LMResponseParser, MockLMClient, RuleBasedLMClient} from '../../src/nar/lm';
+import {SeNARSFactory} from '../../src/nar';
 
 describe('LMResponseParser', () => {
     describe('parse', () => {

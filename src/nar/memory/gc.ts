@@ -1,4 +1,4 @@
-import type {Term} from '../terms';
+import type {Term} from '../terms/types.js';
 import {TermMap} from '../terms/term-map.js';
 
 export interface TermMeta {

@@ -6,7 +6,7 @@ import type {TaskData} from './concept.js';
 import type {Truth} from '../terms';
 import {termsEqual} from '../terms';
 import {Truth as TruthOps} from '../terms/truth.js';
-import {TermMap} from '../terms/term-map.js';
+import {TermMap} from '../terms';
 
 export interface RevisionResult {
     revised: Truth;

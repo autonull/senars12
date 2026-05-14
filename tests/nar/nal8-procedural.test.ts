@@ -1,6 +1,6 @@
 import {describe, expect, test} from '@jest/globals';
-import {TermBuilder} from '../../src/nar/terms';
-import {NALExtendedRules} from '../../src/nar/rules';
+import {TermBuilder} from '../../src/nar';
+import {NALExtendedRules} from '../../src/nar';
 
 describe('NAL8 Procedural Rules', () => {
     const {inheritance, sequence, operation, predictive: _predictive, atom} = TermBuilder;

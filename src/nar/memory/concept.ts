@@ -6,8 +6,8 @@ import type {Term, Truth} from '../terms';
 import {extractSymbols, jaccardSimilarity, termsEqual} from '../terms';
 import {Bag} from './bag.js';
 import {Truth as TruthOps} from '../terms/truth.js';
-import {TermSet} from '../terms/term-set.js';
-import {TermMap} from '../terms/term-map.js';
+import {TermSet} from '../terms';
+import {TermMap} from '../terms';
 
 import type {Budget} from '../types';
 

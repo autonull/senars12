@@ -1,5 +1,5 @@
 import type {Concept} from './concept.js';
-import {TermMap} from '../terms/term-map.js';
+import {TermMap} from '../terms';
 
 export interface FocusConfig {
     maxConcepts: number;

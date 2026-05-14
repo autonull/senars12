@@ -1,9 +1,9 @@
 /**
  * Resource Bounds & AIKR Compliance Tests
  */
-import type {NARConfig} from '../../../src/nar/nar.js';
-import {NAR} from '../../../src/nar/nar.js';
-import {TermBuilder, Truth} from '../../../src/nar/terms';
+import type {NARConfig} from '../../../src';
+import {NAR} from '../../../src';
+import {TermBuilder, Truth} from '../../../src/nar';
 
 describe('AIKR Compliance', () => {
     let nar: NAR;

@@ -3,8 +3,8 @@
  * Fluent DSL for specifying multi-cycle reasoning tests
  */
 
-import type {NARConfig} from '../../../src/nar/nar.js';
-import {NAR} from '../../../src/nar/nar.js';
+import type {NARConfig} from '../../../src';
+import {NAR} from '../../../src';
 import type {TaskType} from '../../types/index.js';
 import type {Truth as TruthType} from '../../terms/truth.js';
 import type {Term} from '../../terms/types.js';

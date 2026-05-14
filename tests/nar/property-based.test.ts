@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import {normalize, serializeTerm, Stamp, TermBuilder, termsEqual, Truth} from '../../src/nar/terms';
-import {Bag} from '../../src/nar/memory';
+import {Bag} from '../../src/nar';
 
 describe('Property-Based Tests', () => {
     describe('Term Invariants', () => {

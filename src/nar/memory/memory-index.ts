@@ -1,7 +1,7 @@
 import type {Concept} from './concept.js';
 import type {Term} from '../terms';
 import {extractSymbols, jaccardSimilarity, termsEqual} from '../terms';
-import {TermMap} from '../terms/term-map.js';
+import {TermMap} from '../terms';
 import {addToSet} from '../utils/collections.js';
 import {THRESHOLDS} from '../constants.js';
 

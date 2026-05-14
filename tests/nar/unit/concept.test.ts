@@ -3,9 +3,9 @@
  */
 
 import {beforeEach, describe, expect, it} from '@jest/globals';
-import {Concept} from '../../../src/nar/memory/concept.js';
-import {TermBuilder, Truth} from '../../../src/nar/terms/index.js';
-import {Stamp} from '../../../src/nar/terms/stamp.js';
+import {Concept} from '../../../src/nar';
+import {TermBuilder, Truth} from '../../../src/nar';
+import {Stamp} from '../../../src/nar';
 
 describe('Concept', () => {
     let concept: Concept;
