@@ -3,6 +3,9 @@ import type {Task, TaskType} from '../../types';
 import type {Memory, Concept} from '../../memory';
 import type {Term} from '../../terms';
 import {termsEqual, Truth} from '../../terms';
+import {createLogger} from '../../logger';
+
+const logger = createLogger({scope: 'Strategies'});
 import {createStrategy, createStrategy as createStrategyBase} from './base.js';
 import {createTermLinkStrategy, TermLinkStrategy as TermLinkStrategyImpl} from './term-link.js';
 import {createSemanticStrategy, SemanticStrategy as SemanticStrategyImpl} from './semantic.js';
@@ -127,7 +130,7 @@ export class CompositeStrategy implements Strategy {
                 const results = strategy.selectSecondary(task, memory);
                 allResults.push(...results);
             } catch (error) {
-                console.warn(`Strategy ${strategy.name} failed:`, error);
+                logger.warn(`Strategy ${strategy.name} failed: ${error}`);
             }
         }
 

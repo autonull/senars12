@@ -2,6 +2,9 @@ import type {Term} from '../terms';
 import {termParser} from '../terms';
 import type {Task, TaskType, TermFilter} from '../types';
 import type {Concept} from '../memory';
+import {createLogger} from '../logger';
+
+const logger = createLogger({scope: 'QueryAPI'});
 
 export interface QueryResult {
     beliefs: Task[];
@@ -142,7 +145,7 @@ export class QueryAPI {
             }
             return null;
         } catch (error) {
-            console.warn('Failed to parse question:', question, error);
+            logger.warn(`Failed to parse question: ${question} - ${error}`);
             return null;
         }
     }

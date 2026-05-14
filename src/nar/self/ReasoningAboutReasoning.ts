@@ -1,6 +1,9 @@
 import type {NAR} from '../nar.js';
 import {MetacognitiveMonitor} from './MetacognitiveMonitor.js';
 import {SelfAnalyzer} from './SelfAnalyzer.js';
+import {createLogger} from '../logger';
+
+const logger = createLogger({scope: 'ReasoningAboutReasoning'});
 
 export interface ReasoningAboutReasoningConfig {
     maxTraceSize?: number;
@@ -138,7 +141,7 @@ export class ReasoningAboutReasoning {
                 try {
                     await this.performMetaCognitiveReasoning();
                 } catch (error) {
-                    console.warn('Periodic self-analysis error:', error);
+                    logger.warn(`Periodic self-analysis error: ${error}`);
                 }
             }, this.config.reasoningInterval);
         }

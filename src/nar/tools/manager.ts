@@ -11,6 +11,9 @@ import type {
 } from './types';
 import {Registry} from './registry';
 import {EventEmitter} from 'events';
+import {createLogger} from '../logger';
+
+const logger = createLogger({scope: 'ToolManager'});
 
 export interface ToolDescriptor {
   name: string;
@@ -74,7 +77,7 @@ export class ToolManager extends EventEmitter {
       this.emit('tool:init', {name, state: 'running'});
       return true;
     } catch (error) {
-      console.warn(`Tool initialization failed for ${name}:`, error);
+      logger.warn(`Tool initialization failed for ${name}: ${error}`);
       return false;
     }
   }
@@ -86,7 +89,7 @@ export class ToolManager extends EventEmitter {
       this.emit('tool:stop', {name, state: 'stopped'});
       return true;
     } catch (error) {
-      console.warn(`Tool stop failed for ${name}:`, error);
+      logger.warn(`Tool stop failed for ${name}: ${error}`);
       return false;
     }
   }
@@ -98,7 +101,7 @@ export class ToolManager extends EventEmitter {
       this.emit('tool:dispose', {name, state: 'disposed'});
       return true;
     } catch (error) {
-      console.warn(`Tool disposal failed for ${name}:`, error);
+      logger.warn(`Tool disposal failed for ${name}: ${error}`);
       return false;
     }
   }

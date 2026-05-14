@@ -6,10 +6,10 @@ import {errMsg} from '../nar/utils/helpers.js';
 import {termParser} from '../nar/terms';
 import {box, showStats, showCommandHelp} from './display.js';
 import {DOMAIN_LIST, DOMAINS} from './domains.js';
-import {createLogger} from '../nar/logger';
+import {createLogger} from '../nar/this.logger';
 
 export class CommandHandlers {
-    private readonly logger = createLogger({scope: 'CLI'});
+    private readonly this.logger = createLogger({scope: 'CLI'});
     private nar: NAR;
 
     constructor(nar: NAR) {
@@ -37,7 +37,7 @@ export class CommandHandlers {
             '.help': () => {
                 const helpCmd = args[0];
                 if (helpCmd && !showCommandHelp(helpCmd)) {
-                    this.logger.warn(`Unknown command: ${helpCmd}. Type .help for command list.`);
+                    this.this.logger.warn(`Unknown command: ${helpCmd}. Type .help for command list.`);
                 }
             },
             '.run': () => this.runInference(args[0] ? parseInt(args[0]) : 5),
@@ -66,7 +66,7 @@ export class CommandHandlers {
             '.attention': () => this.showAttention(),
             '.load-domain': () => this.loadDomain(args),
             '.quit': () => {
-                this.logger.info('Goodbye!');
+                this.this.logger.info('Goodbye!');
                 process.exit(0);
             }
         };
@@ -76,19 +76,19 @@ export class CommandHandlers {
             try {
                 handler();
             } catch (error) {
-                this.logger.error(`Error: ${errMsg(error)}`);
+                this.this.logger.error(`Error: ${errMsg(error)}`);
             }
         } else {
-            this.logger.warn(`Unknown command: ${cmd}. Type .help for commands.`);
+            this.this.logger.warn(`Unknown command: ${cmd}. Type .help for commands.`);
         }
     }
 
     async handleBelief(term: string): Promise<void> {
         try {
             await this.nar.input(term);
-            this.logger.info(`✓ Added: ${term}`);
+            this.this.logger.info(`✓ Added: ${term}`);
         } catch (error) {
-            this.logger.error(`✗ Error: ${errMsg(error)}`);
+            this.this.logger.error(`✗ Error: ${errMsg(error)}`);
         }
     }
 
@@ -98,36 +98,36 @@ export class CommandHandlers {
             const derived = await this.nar.run(5);
 
             if (derived > 0) {
-                this.logger.info(`✓ Derived ${derived} new belief(s)`);
+                this.this.logger.info(`✓ Derived ${derived} new belief(s)`);
             } else {
-                this.logger.info('? No derivation found');
+                this.this.logger.info('? No derivation found');
             }
         } catch (error) {
-            this.logger.error(`✗ Error: ${errMsg(error)}`);
+            this.this.logger.error(`✗ Error: ${errMsg(error)}`);
         }
     }
 
     private async runInference(steps: number): Promise<void> {
-        this.logger.info(`⟳ Running ${steps} step(s)...`);
+        this.this.logger.info(`⟳ Running ${steps} step(s)...`);
         const derived = await this.nar.run(steps);
-        this.logger.info(`✓ Completed ${steps} step(s), derived ${derived} belief(s)`);
+        this.this.logger.info(`✓ Completed ${steps} step(s), derived ${derived} belief(s)`);
     }
 
     private listConcepts(): void {
         const concepts = this.nar.listConcepts();
         if (concepts.length === 0) {
-            this.logger.info('Memory is empty');
+            this.this.logger.info('Memory is empty');
             return;
         }
 
-        this.logger.info('\nConcepts:');
+        this.this.logger.info('\nConcepts:');
         for (const concept of concepts.slice(0, 20)) {
-            this.logger.info(` - ${concept.term.toString()}`);
+            this.this.logger.info(` - ${concept.term.toString()}`);
         }
         if (concepts.length > 20) {
-            this.logger.info(` ... and ${concepts.length - 20} more`);
+            this.this.logger.info(` ... and ${concepts.length - 20} more`);
         }
-        this.logger.info('');
+        this.this.logger.info('');
     }
 
     private showConcepts(filter?: string): void {
@@ -141,33 +141,33 @@ export class CommandHandlers {
         }
 
         if (filtered.length === 0) {
-            this.logger.info(filter ? `No concepts matching '${filter}'` : 'Memory is empty');
+            this.this.logger.info(filter ? `No concepts matching '${filter}'` : 'Memory is empty');
             return;
         }
 
-        this.logger.info(`\nConcepts (${filtered.length} total):`);
+        this.this.logger.info(`\nConcepts (${filtered.length} total):`);
         for (const concept of filtered.slice(0, 50)) {
-            this.logger.info(` ${concept.term.toString()}`);
+            this.this.logger.info(` ${concept.term.toString()}`);
         }
         if (filtered.length > 50) {
-            this.logger.info(` ... and ${filtered.length - 50} more`);
+            this.this.logger.info(` ... and ${filtered.length - 50} more`);
         }
-        this.logger.info('');
+        this.this.logger.info('');
     }
 
     private showRules(_filter?: string): void {
-        this.logger.info('\nRegistered Rules:');
-        this.logger.info(' (Rules are defined in RuleProcessor)');
-        this.logger.info(' - deduction: (A --> B), (B --> C) => (A --> C)');
-        this.logger.info(' - induction: (A --> B), (A --> C) => (C --> B)');
-        this.logger.info(' - abduction: (A --> C), (B --> C) => (A --> B)');
-        this.logger.info(' - revision: Merge conflicting beliefs');
-        this.logger.info(' - LM rules: Dynamic language model inference');
-        this.logger.info('');
+        this.this.logger.info('\nRegistered Rules:');
+        this.this.logger.info(' (Rules are defined in RuleProcessor)');
+        this.this.logger.info(' - deduction: (A --> B), (B --> C) => (A --> C)');
+        this.this.logger.info(' - induction: (A --> B), (A --> C) => (C --> B)');
+        this.this.logger.info(' - abduction: (A --> C), (B --> C) => (A --> B)');
+        this.this.logger.info(' - revision: Merge conflicting beliefs');
+        this.this.logger.info(' - LM rules: Dynamic language model inference');
+        this.this.logger.info('');
     }
 
     private showTools(filter?: string): void {
-        this.logger.info('\nAvailable Tools:');
+        this.this.logger.info('\nAvailable Tools:');
         const tools = this.nar.listTools();
 
         const filtered = filter
@@ -175,26 +175,26 @@ export class CommandHandlers {
             : tools;
 
         for (const tool of filtered) {
-            this.logger.info(` - ${tool.name}: ${tool.description}`);
+            this.this.logger.info(` - ${tool.name}: ${tool.description}`);
         }
-        this.logger.info('');
+        this.this.logger.info('');
     }
 
     private handleConfig(args: string[]): void {
         if (args.length === 0) {
             const config = this.nar.getConfig();
-            this.logger.info('\nCurrent Configuration:');
+            this.this.logger.info('\nCurrent Configuration:');
             for (const [key, value] of Object.entries(config)) {
-                this.logger.info(` ${key}: ${String(value)}`);
+                this.this.logger.info(` ${key}: ${String(value)}`);
             }
-            this.logger.info('');
+            this.this.logger.info('');
             return;
         }
 
         if (args.length === 1) {
             const config = this.nar.getConfig();
             const value = config[args[0] as keyof typeof config];
-            this.logger.info(`${args[0]}: ${String(value ?? 'unknown')}`);
+            this.this.logger.info(`${args[0]}: ${String(value ?? 'unknown')}`);
             return;
         }
 
@@ -202,18 +202,18 @@ export class CommandHandlers {
             const [key, value] = args;
             const typedValue = isNaN(Number(value)) ? value : Number(value);
             this.nar.setConfig({[key!]: typedValue});
-            this.logger.info(`Set ${key} to ${typedValue}`);
+            this.this.logger.info(`Set ${key} to ${typedValue}`);
         }
     }
 
     private clearMemory(): void {
         this.nar.clearMemory();
-        this.logger.info('✓ Memory cleared');
+        this.this.logger.info('✓ Memory cleared');
     }
 
     private async loadFile(filename: string | undefined): Promise<void> {
         if (!filename) {
-            this.logger.info('Usage: .load <filename>');
+            this.this.logger.info('Usage: .load <filename>');
             return;
         }
 
@@ -229,12 +229,12 @@ export class CommandHandlers {
             }
         }
 
-        this.logger.info(`✓ Loaded ${loaded} belief(s) from ${filename}`);
+        this.this.logger.info(`✓ Loaded ${loaded} belief(s) from ${filename}`);
     }
 
     private async saveMemory(filename: string | undefined): Promise<void> {
         if (!filename) {
-            this.logger.info('Usage: .save <filename>');
+            this.this.logger.info('Usage: .save <filename>');
             return;
         }
 
@@ -252,12 +252,12 @@ export class CommandHandlers {
 
         const fs = await import('fs');
         await fs.promises.writeFile(filename, JSON.stringify(data, null, 2));
-        this.logger.info(`✓ Saved ${concepts.length} concept(s) to ${filename}`);
+        this.this.logger.info(`✓ Saved ${concepts.length} concept(s) to ${filename}`);
     }
 
     private async queryTerm(termStr: string): Promise<void> {
         if (!termStr) {
-            this.logger.info('Usage: .query <term>');
+            this.this.logger.info('Usage: .query <term>');
             return;
         }
 
@@ -266,30 +266,30 @@ export class CommandHandlers {
             const goals = this.nar.getGoals();
             const questions = this.nar.getQuestions();
 
-            this.logger.info('\nQuery Results:');
-            this.logger.info(`Beliefs: ${beliefs.length}`);
-            this.logger.info(`Goals: ${goals.length}`);
-            this.logger.info(`Questions: ${questions.length}`);
+            this.this.logger.info('\nQuery Results:');
+            this.this.logger.info(`Beliefs: ${beliefs.length}`);
+            this.this.logger.info(`Goals: ${goals.length}`);
+            this.this.logger.info(`Questions: ${questions.length}`);
 
             const all = [...beliefs, ...goals, ...questions];
             if (all.length > 0) {
-                this.logger.info('\nMatches:');
+                this.this.logger.info('\nMatches:');
                 all.slice(0, 10).forEach(item => {
                     const truthStr = item.truth ? ` f=${item.truth.f.toFixed(2)} c=${item.truth.c.toFixed(2)}` : '';
-                    this.logger.info(` ${item.term.toString()} [${item.type}]${truthStr}`);
+                    this.this.logger.info(` ${item.term.toString()} [${item.type}]${truthStr}`);
                 });
                 if (all.length > 10) {
-                    this.logger.info(` ... and ${all.length - 10} more`);
+                    this.this.logger.info(` ... and ${all.length - 10} more`);
                 }
             }
         } catch (error) {
-            this.logger.error(`Query error: ${errMsg(error)}`);
+            this.this.logger.error(`Query error: ${errMsg(error)}`);
         }
     }
 
     private async traceTerm(termStr: string): Promise<void> {
         if (!termStr) {
-            this.logger.info('Usage: .trace <term>');
+            this.this.logger.info('Usage: .trace <term>');
             return;
         }
 
@@ -297,45 +297,45 @@ export class CommandHandlers {
             const beliefs = this.nar.getBeliefs({contains: termStr});
 
             if (beliefs.length === 0) {
-                this.logger.info(`No beliefs found for: ${termStr}`);
+                this.this.logger.info(`No beliefs found for: ${termStr}`);
                 return;
             }
 
             const matchingConcept = this.nar.listConcepts().find(c => c.term.toString().includes(termStr));
             const term = matchingConcept?.term;
             if (!term) {
-                this.logger.info(`No term found for: ${termStr}`);
+                this.this.logger.info(`No term found for: ${termStr}`);
                 return;
             }
             const trace = this.nar.traceTerm(term);
             const traceData = trace;
 
             if (!traceData || (Array.isArray(traceData) ? traceData.length : 0) === 0) {
-                this.logger.info(`No derivation trace found for: ${termStr}`);
+                this.this.logger.info(`No derivation trace found for: ${termStr}`);
                 return;
             }
 
             const traceArray = Array.isArray(traceData) ? traceData : [traceData];
 
-            this.logger.info('\nDerivation Trace:');
+            this.this.logger.info('\nDerivation Trace:');
             traceArray.slice(-10).forEach((step, index) => {
                 const stepRef = step as {stamp?: {source?: string; derivations?: unknown[]}; term?: {toString?: () => string}};
                 const source = stepRef.stamp?.source || stepRef.stamp?.derivations ? 'DERIVED' : 'INPUT';
                 const termStr = stepRef.term?.toString?.() ?? 'unknown';
-                this.logger.info(`${index + 1}. ${termStr} [${source}]`);
+                this.this.logger.info(`${index + 1}. ${termStr} [${source}]`);
             });
 
             if (traceArray.length > 10) {
-                this.logger.info(` ... and ${traceArray.length - 10} more steps`);
+                this.this.logger.info(` ... and ${traceArray.length - 10} more steps`);
             }
         } catch (error) {
-            this.logger.error(`Trace error: ${errMsg(error)}`);
+            this.this.logger.error(`Trace error: ${errMsg(error)}`);
         }
     }
 
     private async explainTerm(termStr: string): Promise<void> {
         if (!termStr) {
-            this.logger.info('Usage: .explain <term>');
+            this.this.logger.info('Usage: .explain <term>');
             return;
         }
 
@@ -343,40 +343,40 @@ export class CommandHandlers {
             const beliefs = this.nar.getBeliefs({contains: termStr});
 
             if (beliefs.length === 0) {
-                this.logger.info(`No beliefs found for: ${termStr}`);
+                this.this.logger.info(`No beliefs found for: ${termStr}`);
                 return;
             }
 
             const topBelief = beliefs[0]!;
             const explanation = this.nar.explain(topBelief);
 
-            this.logger.info('\nExplanation:');
-            this.logger.info(`Term: ${topBelief.term.toString()}`);
-            this.logger.info(`Type: ${topBelief.type}`);
-            this.logger.info(`Truth: f=${topBelief.truth.f.toFixed(2)}, c=${topBelief.truth.c.toFixed(2)}`);
-            this.logger.info(`Source: ${topBelief.stamp?.source || 'DERIVED'}`);
+            this.this.logger.info('\nExplanation:');
+            this.this.logger.info(`Term: ${topBelief.term.toString()}`);
+            this.this.logger.info(`Type: ${topBelief.type}`);
+            this.this.logger.info(`Truth: f=${topBelief.truth.f.toFixed(2)}, c=${topBelief.truth.c.toFixed(2)}`);
+            this.this.logger.info(`Source: ${topBelief.stamp?.source || 'DERIVED'}`);
 
             if (explanation) {
-                this.logger.info('\nDerivation path:');
+                this.this.logger.info('\nDerivation path:');
                 if (Array.isArray(explanation)) {
                     explanation.slice(-5).forEach((step, i) => {
-                        this.logger.info(` ${i + 1}. ${typeof step === 'string' ? step : step.toString()}`);
+                        this.this.logger.info(` ${i + 1}. ${typeof step === 'string' ? step : step.toString()}`);
                     });
                 } else {
-                    this.logger.info(` ${explanation}`);
+                    this.this.logger.info(` ${explanation}`);
                 }
             } else {
-                this.logger.info(' (No derivation path available)');
+                this.this.logger.info(' (No derivation path available)');
             }
         } catch (error) {
-            this.logger.error(`Explain error: ${errMsg(error)}`);
+            this.this.logger.error(`Explain error: ${errMsg(error)}`);
         }
     }
 
     private showSelfStatus(): void {
         const self = this.self;
         if (!self) {
-            this.logger.info('Self/Metacognition is not enabled');
+            this.this.logger.info('Self/Metacognition is not enabled');
             return;
         }
         const isRunning = self.isRunning ?? false;
@@ -388,18 +388,18 @@ export class CommandHandlers {
                 `Strategies: ${String((analysis as { strategies?: unknown[] }).strategies?.length ?? 0)}`
             ] : []
         ];
-        console.log('\n' + box('Self/Metacognition Status', lines) + '\n');
+        this.this.logger.info('\n' + box('Self/Metacognition Status', lines) + '\n');
     }
 
     private showMetaAnalysis(): void {
         const self = this.self;
         if (!self) {
-            this.logger.info('Self/Metacognition is not enabled');
+            this.this.logger.info('Self/Metacognition is not enabled');
             return;
         }
         const analysis = self.getSystemAnalysis?.();
         if (!analysis) {
-            this.logger.info('No analysis available yet');
+            this.this.logger.info('No analysis available yet');
             return;
         }
         const analysisData = analysis as { cycleCount?: number; reasoningQuality?: number; strategies?: Array<{ name?: string; efficiency?: number }> };
@@ -417,55 +417,55 @@ export class CommandHandlers {
                 lines.push(` - ${s.name || 'unknown'}: ${s.efficiency?.toFixed(2) ?? 'N/A'}`);
             }
         }
-        console.log('\n' + box('Meta-Analysis Report', lines) + '\n');
+        this.this.logger.info('\n' + box('Meta-Analysis Report', lines) + '\n');
     }
 
     private runOptimization(): void {
         const self = this.self;
         if (self?.applyOptimizations) {
             self.applyOptimizations();
-            this.logger.info('✓ Applied metacognitive optimizations');
+            this.this.logger.info('✓ Applied metacognitive optimizations');
         } else {
-            this.logger.info('Self optimization not available');
+            this.this.logger.info('Self optimization not available');
         }
         const rlfp = this.rlfp;
         if (rlfp?.optimize) {
             rlfp.optimize();
-            this.logger.info('✓ RLFP policy optimized');
+            this.this.logger.info('✓ RLFP policy optimized');
         }
     }
 
     private handlePrefer(args: string[]): void {
         if (args.length < 2) {
-            this.logger.info('Usage: .prefer <prefered> <rejected>');
+            this.this.logger.info('Usage: .prefer <prefered> <rejected>');
             return;
         }
         const rlfp = this.rlfp;
         if (!rlfp) {
-            this.logger.info('RLFP not enabled');
+            this.this.logger.info('RLFP not enabled');
             return;
         }
         const [preferred, rejected] = [args[0]!, args[1]!];
         rlfp.addPreference?.(preferred, rejected);
-        this.logger.info(`✓ Preference recorded: ${preferred} > ${rejected}`);
+        this.this.logger.info(`✓ Preference recorded: ${preferred} > ${rejected}`);
     }
 
     private showRewardStatus(): void {
         const rlfp = this.rlfp;
         if (!rlfp) {
-            this.logger.info('RLFP not enabled');
+            this.this.logger.info('RLFP not enabled');
             return;
         }
-        console.log('\n' + box('RLFP Reward Status', [`Preferences: ${rlfp.preferences?.length ?? 0}`]) + '\n');
+        this.this.logger.info('\n' + box('RLFP Reward Status', [`Preferences: ${rlfp.preferences?.length ?? 0}`]) + '\n');
     }
 
     private showRLFPStats(): void {
         const rlfp = this.rlfp;
         if (!rlfp) {
-            this.logger.info('RLFP not enabled');
+            this.this.logger.info('RLFP not enabled');
             return;
         }
-        console.log('\n' + box('RLFP Statistics', [
+        this.this.logger.info('\n' + box('RLFP Statistics', [
             `Preferences: ${String(rlfp.preferences?.length ?? 0)}`,
             `Trajectories: ${String(rlfp.trajectoryCount ?? 0)}`,
             `Last Optimization: ${rlfp.lastOptimizeTime ? new Date(rlfp.lastOptimizeTime).toLocaleTimeString() : 'Never'}`
@@ -475,10 +475,10 @@ export class CommandHandlers {
     private showLMStatus(): void {
         const lm = this.lm;
         if (!lm) {
-            this.logger.info('LM client not configured');
+            this.this.logger.info('LM client not configured');
             return;
         }
-        console.log('\n' + box('LM Status', [
+        this.logger.info('\n' + box('LM Status', [
             `Provider: ${String(lm.provider ?? 'unknown')}`,
             `Model: ${String(lm.model ?? 'unknown')}`,
             `Available: ${lm.available ? 'Yes' : 'No'}`
@@ -487,39 +487,39 @@ export class CommandHandlers {
 
     private switchLMModel(model: string | undefined): void {
         if (!model) {
-            this.logger.info('Usage: .lm-switch <model-name>');
+            this.this.logger.info('Usage: .lm-switch <model-name>');
             return;
         }
         const lm = this.lm;
         if (!lm) {
-            this.logger.info('LM client not configured');
+            this.this.logger.info('LM client not configured');
             return;
         }
         if (lm.setModel) {
             lm.setModel(model);
-            this.logger.info(`✓ Switched to model: ${model}`);
+            this.this.logger.info(`✓ Switched to model: ${model}`);
         } else {
-            this.logger.info('Model switching not supported by this LM client');
+            this.this.logger.info('Model switching not supported by this LM client');
         }
     }
 
     async askNaturalLanguage(question: string): Promise<void> {
         if (!question) {
-            this.logger.info('Usage: .ask-nl <natural language question>');
-            this.logger.info('Example: .ask-nl Is a bird an animal?');
+            this.this.logger.info('Usage: .ask-nl <natural language question>');
+            this.this.logger.info('Example: .ask-nl Is a bird an animal?');
             return;
         }
         try {
-            this.logger.info(`Asking: "${question}"`);
+            this.this.logger.info(`Asking: "${question}"`);
             const askNL = (this.nar).askNaturalLanguage?.(question);
             if (askNL) {
                 const answer = await askNL;
-                this.logger.info(`\n→ ${answer}`);
+                this.this.logger.info(`\n→ ${answer}`);
             } else {
-                this.logger.info('Natural language query not available');
+                this.this.logger.info('Natural language query not available');
             }
         } catch (error) {
-            this.logger.error(`Error: ${errMsg(error)}`);
+            this.this.logger.error(`Error: ${errMsg(error)}`);
         }
     }
 
@@ -536,38 +536,38 @@ export class CommandHandlers {
                 occurrenceTime: Date.now(),
                 derived: false
             }]);
-            this.logger.info(`✓ Added to constitution: ${termStr}`);
+            this.this.logger.info(`✓ Added to constitution: ${termStr}`);
             return;
         }
         const constitution = this.nar.getConstitution?.() ?? [];
         const lines = constitution.length === 0
             ? ['No constitution set.']
             : constitution.slice(0, 10).map(b => b.term.toString());
-        console.log('\n' + box('Constitution (Immutable Beliefs)', lines) + '\n');
-        this.logger.info('Usage: .constitution add <narsese-belief>');
+        this.logger.info('\n' + box('Constitution (Immutable Beliefs)', lines) + '\n');
+        this.this.logger.info('Usage: .constitution add <narsese-belief>');
     }
 
     showAttention(): void {
         const report = this.nar.getAttentionReport?.();
         if (!report) {
-            this.logger.info('Attention report not available');
+            this.this.logger.info('Attention report not available');
             return;
         }
         const lines = [`Total Concepts: ${String(report.total)}`, ...(report.concepts?.slice(0, 10).map(c =>
             `${(c.term ?? '').substring(0, 40).padEnd(40)} ${(c.priority ?? 0).toFixed(3)}`
         ) ?? [])];
-        console.log('\n' + box('Attention Allocation', lines) + '\n');
+        this.logger.info('\n' + box('Attention Allocation', lines) + '\n');
     }
 
     loadDomain(args: string[]): void {
         const domain = args[0]?.toLowerCase();
         if (!domain || !DOMAINS[domain]) {
-            this.logger.info(`Usage: .load-domain <domain>`);
-            this.logger.info(`Available domains: ${DOMAIN_LIST}`);
+            this.this.logger.info(`Usage: .load-domain <domain>`);
+            this.this.logger.info(`Available domains: ${DOMAIN_LIST}`);
             return;
         }
 
         this.nar.loadDomain?.({name: domain, beliefs: DOMAINS[domain]});
-        this.logger.info(`✓ Loaded ${domain} domain with ${DOMAINS[domain].length} beliefs`);
+        this.this.logger.info(`✓ Loaded ${domain} domain with ${DOMAINS[domain].length} beliefs`);
     }
 }

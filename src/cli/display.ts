@@ -2,6 +2,9 @@
  * Display utilities for CLI box-drawing and formatting
  */
 import type {NAR} from '../nar';
+import {createLogger} from '../nar/logger';
+
+const logger = createLogger({scope: 'CLI'});
 
 export function box(title: string, lines: string[]): string {
     const width = Math.max(title.length + 4, ...lines.map(l => l.length + 4), 50);
@@ -125,7 +128,7 @@ const COMMAND_HELP: Record<string, string> = {
 export function showCommandHelp(cmd: string): boolean {
     const help = COMMAND_HELP[cmd];
     if (help) {
-        console.log(`\n${help}\n`);
+        logger.info(`\n${help}\n`);
         return true;
     }
     return false;

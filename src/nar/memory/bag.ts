@@ -33,30 +33,21 @@ export class Bag<T> {
   private stats = {additions: 0, removals: 0, hits: 0, misses: 0};
   private onOverflow?: (item: T, priority: number, bag: Bag<T>) => void;
 
-  private sampleStrategies: Record<string, (objective: any) => T | undefined> = {
-    priority: (objective) => {
-      const found = this.heap.find(h => h.priority >= objective.threshold);
-      this.stats[found ? 'hits' : 'misses']++;
-      return found?.item;
+  private static SAMPLE_STRATEGIES = {
+    priority: (heap: BagItem<unknown>[], objective: { threshold: number }) => {
+      return heap.find(h => h.priority >= objective.threshold)?.item;
     },
-    recency: (objective) => {
+    recency: (heap: BagItem<unknown>[], objective: { windowMs: number }) => {
       const cutoff = Date.now() - objective.windowMs;
-      const found = this.heap.find(h => h.lastAccess >= cutoff);
-      this.stats[found ? 'hits' : 'misses']++;
-      return found?.item;
+      return heap.find(h => h.lastAccess >= cutoff)?.item;
     },
-    novelty: () => {
-      this.stats.hits++;
-      return this.heap[0]?.item;
-    },
-    composite: (objective) => {
-      const scored = this.heap.map(h => ({
+    novelty: (heap: BagItem<unknown>[]) => heap[0]?.item,
+    composite: (heap: BagItem<unknown>[], objective: { weights: { priority: number; recency: number } }) => {
+      const scored = heap.map(h => ({
         item: h.item,
         score: h.priority * objective.weights.priority - ((Date.now() - h.lastAccess) / 1000) * objective.weights.recency,
       }));
-      const best = scored.length > 0 ? [...scored].sort((a, b) => b.score - a.score)[0] : undefined;
-      this.stats[best ? 'hits' : 'misses']++;
-      return best?.item;
+      return scored.length > 0 ? [...scored].sort((a, b) => b.score - a.score)[0]?.item : undefined;
     },
   };
 
@@ -199,7 +190,11 @@ export class Bag<T> {
   }
 
   sample(objective: SamplingObjective): T | undefined {
-    return this.sampleStrategies[objective.type]?.(objective);
+    const strategy = (Bag.SAMPLE_STRATEGIES as Record<string, (heap: BagItem<unknown>[], obj: unknown) => unknown>)[objective.type];
+    if (!strategy) return undefined;
+    const result = strategy(this.heap, objective);
+    this.stats[result ? 'hits' : 'misses']++;
+    return result as T | undefined;
   }
 
   consolidate(currentTime: number, ttl: number): void {
