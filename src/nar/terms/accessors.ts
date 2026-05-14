@@ -44,19 +44,6 @@ export const isOperation = isType.operation;
 
 export const sameKind = (a: Term, b: Term): boolean => a.kind === b.kind;
 
-const eqAtom = (a: AtomicTerm, b: Term): boolean =>
-    b.kind === 'atom' && a.symbol === b.symbol;
-
-const eqCompound = (a: CompoundTerm, b: Term): boolean => {
-    if (b.kind !== a.kind) return false;
-    const bArgs = b.args ?? [];
-    if (a.args.length !== bArgs.length) return false;
-    for (let i = 0; i < a.args.length; i++) {
-        if (!termsEqual(a.args[i]!, bArgs[i]!)) return false;
-    }
-    return true;
-};
-
 export const termsEqual = (a: Term, b: Term): boolean => {
     if (a === b) return true;
     if (a.kind !== b.kind) return false;

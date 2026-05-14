@@ -24,11 +24,14 @@ export interface Token {
     position: number;
 }
 
+const SINGLE_CHAR_TOKENS: Record<string, TokenType> = {
+    '(' : 'LPAREN', ')' : 'RPAREN', ',' : 'COMMA', ';' : 'SEMICOLON', '%' : 'TRUTH_START',
+    '&' : 'OP', '|' : 'OP',
+};
+
 export const tokenize = (input: string): Token[] => {
     const tokens: Token[] = [];
     let i = 0;
-    let line = 1;
-    let column = 1;
 
     const pushToken = (type: TokenType, value: string, offset: number) => {
         tokens.push({type, value, position: offset});
@@ -38,10 +41,8 @@ export const tokenize = (input: string): Token[] => {
         const ch = input.charAt(i);
 
         if (ch === '\n') {
-            line++;
-            column = 1;
-        } else if (!WHITESPACE.test(ch)) {
-            column++;
+            i++;
+            continue;
         }
 
         if (WHITESPACE.test(ch)) {
@@ -57,78 +58,30 @@ export const tokenize = (input: string): Token[] => {
             continue;
         }
 
-        if (ch === '(') {
-            pushToken('LPAREN', '(', i);
+        if (ch in SINGLE_CHAR_TOKENS) {
+            pushToken(SINGLE_CHAR_TOKENS[ch]!, ch, i);
             i++;
             continue;
         }
-        if (ch === ')') {
-            pushToken('RPAREN', ')', i);
-            i++;
-            continue;
-        }
-        if (ch === ',') {
-            pushToken('COMMA', ',', i);
-            i++;
-            continue;
-        }
-        if (ch === ';') {
-            pushToken('SEMICOLON', ';', i);
-            i++;
-            continue;
-        }
-        if (ch === '%') {
-            pushToken('TRUTH_START', '%', i);
-            i++;
-            continue;
-        }
-        if (i + 2 < input.length) {
-            const three = input.substring(i, i + 3);
-            if (three === '-->') {
-                pushToken('OP', '-->', i);
-                i += 3;
-                continue;
-            }
-            if (three === '<->') {
-                pushToken('OP', '<->', i);
-                i += 3;
-                continue;
-            }
-            if (three === '<=>') {
-                pushToken('OP', '<=>', i);
-                i += 3;
-                continue;
+
+        let matchedOp = '';
+        for (const op of ['<->', '<=>', '-->', '--', '=>']) {
+            if (input.substring(i, i + op.length) === op) {
+                matchedOp = op;
+                break;
             }
         }
-        if (i + 1 < input.length) {
-            const two = input.substring(i, i + 2);
-            if (two === '--') {
-                pushToken('OP', '--', i);
-                i += 2;
-                continue;
-            }
-            if (two === '=>') {
-                pushToken('OP', '=>', i);
-                i += 2;
-                continue;
-            }
-        }
-        if (ch === '&') {
-            pushToken('OP', '&', i);
-            i++;
+        if (matchedOp) {
+            pushToken('OP', matchedOp, i);
+            i += matchedOp.length;
             continue;
         }
-        if (ch === '|') {
-            pushToken('OP', '|', i);
-            i++;
-            continue;
-        }
+
         if (ch === '$') {
             let varname = '$';
             i++;
             while (i < input.length && /[a-zA-Z0-9_]/.test(input.charAt(i))) {
-                varname += input.charAt(i);
-                i++;
+                varname += input.charAt(i++);
             }
             pushToken('VARIABLE', varname, i - varname.length);
             continue;

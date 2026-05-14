@@ -1,26 +1,23 @@
-import type {CompoundTerm, OperatorKey, Term} from './types.js';
-import {OPERATORS} from './types.js';
+import type {CompoundTerm, Term} from './types.js';
 import {termsEqual} from './accessors.js';
 import {TermBuilder} from './factory.js';
 
-const COMPOUND_KINDS = new Set(Object.keys(OPERATORS) as OperatorKey[]);
+const COMPOUND_KINDS = ['inheritance', 'similarity', 'implication', 'equivalence',
+    'conjunction', 'disjunction', 'negation', 'instance', 'property', 'sequence',
+    'parallel', 'predictive', 'retrospective', 'operation'] as const;
 
 const hasArgs = (term: Term): term is CompoundTerm =>
-    COMPOUND_KINDS.has(term.kind);
+    term.kind !== 'atom' && (COMPOUND_KINDS as readonly string[]).includes(term.kind);
+
+const termSortKey = (t: Term): string => t.kind === 'atom' ? t.symbol : String(t.kind);
 
 export function normalize(term: Term): Term {
     if (term.kind === 'conjunction' || term.kind === 'disjunction') {
         const args = term.args ?? [];
         if (args.length <= 1) return term;
-        const sortedArgs = args.toSorted((a, b) => {
-            const aStr = a.kind === 'atom' ? a.symbol : String(a.kind);
-            const bStr = b.kind === 'atom' ? b.symbol : String(b.kind);
-            return aStr.localeCompare(bStr);
-        });
+        const sortedArgs = args.toSorted((a, b) => termSortKey(a).localeCompare(termSortKey(b)));
         const allSorted = sortedArgs.every((arg, i) => termsEqual(arg, args[i]!));
-        if (!allSorted) {
-            return TermBuilder.compound(term.kind, sortedArgs);
-        }
+        return allSorted ? term : TermBuilder.compound(term.kind, sortedArgs);
     }
     return term;
 }
@@ -60,16 +57,12 @@ export const getTermSize = (term: Term): number => {
 };
 
 export const improveNormalization = (term: Term): Term => {
-    if (term.kind === 'atom') {
-        return term;
-    }
+    if (term.kind === 'atom') return term;
 
     if (term.kind === 'conjunction' || term.kind === 'disjunction') {
-        const sortedArgs = [...(term.args ?? [])].sort((a, b) => {
-            const hashA = a.kind === 'atom' ? a.symbol : String(a.kind);
-            const hashB = b.kind === 'atom' ? b.symbol : String(b.kind);
-            return hashA.localeCompare(hashB);
-        });
+        const sortedArgs = [...(term.args ?? [])].sort((a, b) =>
+            termSortKey(a).localeCompare(termSortKey(b))
+        );
 
         let result = TermBuilder.compound(term.kind, sortedArgs);
         for (let i = 0; i < sortedArgs.length - 1; i++) {

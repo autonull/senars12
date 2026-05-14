@@ -3,13 +3,10 @@ import {getPredicate, getSubject, TermBuilder, termsEqual, Truth} from '../terms
 import {extractInh, extractInhPair, registerRule} from './shared.js';
 import {buildBinaryInhRule, buildInhRule, getVars} from './rule-builder.js';
 
-const {
-    negation, inheritance, conjunction, disjunction, implication, equivalence, similarity,
-    sequence, parallel, predictive, operation, instance, property, atom
-} = TermBuilder;
+const ID = <T>(t: T): T => t;
 
-const VALIDATE_TRUTH = (t: Term) => t;
-const IDENTITY = (t: Term) => t;
+const {negation, inheritance, conjunction, disjunction, implication, equivalence, similarity,
+    sequence, parallel, predictive, operation, instance, property, atom} = TermBuilder;
 
 export const NALExtendedRules = {
     modusPonens: ([imp, antecedent]: [Term, Term]): Term | undefined => {
@@ -114,7 +111,7 @@ export const NALExtendedRules = {
         return equivalence(a1, c1);
     },
 
-    variableIntroduction: buildInhRule(IDENTITY, inh => {
+    variableIntroduction: buildInhRule(ID, inh => {
         const sub = getSubject(inh), pred = getPredicate(inh);
         if (!sub || !pred) return undefined;
         return inheritance(sub, pred);
@@ -204,13 +201,13 @@ export const NALExtendedRules = {
         (inh1, _inh2) => inh1
     ),
 
-    instanceConversion: buildInhRule(IDENTITY, inh => {
+    instanceConversion: buildInhRule(ID, inh => {
         const s = getSubject(inh), p = getPredicate(inh);
         if (!s || !p) return undefined;
         return inheritance(instance(s), instance(p));
     }),
 
-    propertyConversion: buildInhRule(IDENTITY, inh => {
+    propertyConversion: buildInhRule(ID, inh => {
         const s = getSubject(inh), p = getPredicate(inh);
         if (!s || !p) return undefined;
         return inheritance(property(s), property(p));

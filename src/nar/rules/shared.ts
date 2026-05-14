@@ -2,14 +2,15 @@ import type {Term} from '../terms';
 import {getPredicate, getSubject} from '../terms';
 import {createRulePattern, type RuleFn, RuleRegistry, type TruthFn} from './types.js';
 
-export const matchInh = (t: Term) => t.kind === 'inheritance';
-export const matchImp = (t: Term) => t.kind === 'implication';
-export const matchConj = (t: Term) => t.kind === 'conjunction';
-export const matchDisj = (t: Term) => t.kind === 'disjunction';
-export const matchNeg = (t: Term) => t.kind === 'negation';
-export const matchSim = (t: Term) => t.kind === 'similarity';
-export const matchEq = (t: Term) => t.kind === 'equivalence';
-export const matchAtom = (t: Term) => t.kind === 'atom';
+export const matchKind = (kind: Term['kind']) => (t: Term) => t.kind === kind;
+export const matchInh = matchKind('inheritance');
+export const matchImp = matchKind('implication');
+export const matchConj = matchKind('conjunction');
+export const matchDisj = matchKind('disjunction');
+export const matchNeg = matchKind('negation');
+export const matchSim = matchKind('similarity');
+export const matchEq = matchKind('equivalence');
+export const matchAtom = matchKind('atom');
 
 export const validInh = (t: Term): boolean => {
     if (!matchInh(t)) return false;
