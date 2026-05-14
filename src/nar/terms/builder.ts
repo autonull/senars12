@@ -1,7 +1,7 @@
 /**
  * Term builder - re-exports from TermFactory for convenience
  */
-import type {Term} from './types.js';
+import type {OperatorKey, Term} from './types.js';
 import {TermFactory} from './factory.js';
 
 export const buildInheritance = TermFactory.inheritance;
@@ -19,4 +19,4 @@ export const buildParallel = TermFactory.parallel;
 export const buildPredictive = TermFactory.predictive;
 export const buildRetrospective = TermFactory.retrospective;
 export const buildOperation = TermFactory.operation;
-export const buildCompound = (kind: string, args: Term[]) => TermFactory.compound(kind as any, args);
+export const buildCompound = (kind: OperatorKey, args: Term[]) => TermFactory.compound(kind, args);

@@ -35,10 +35,10 @@ export const Stamp = {
                 source,
                 derivations: [],
                 depth: 0
-            }) as any;
+            }) as Stamp<Increment<D>>;
         }
         const maxDepth = parentStamps.reduce((max, s) => Math.max(max, s.depth), 0);
-        if (maxDepth >= DEPTH_MAX) return undefined as any;
+        if (maxDepth >= DEPTH_MAX) return undefined as Stamp<Increment<D>>;
 
         const allDerivations = parentStamps.flatMap(s => [s.id, ...s.derivations]);
         return Object.freeze({
@@ -47,7 +47,7 @@ export const Stamp = {
             source,
             derivations: [...new Set(allDerivations)],
             depth: (maxDepth + 1) as Increment<D>
-        }) as any;
+        }) as Stamp<Increment<D>>;
     },
 
     getDepth: (stamp: Stamp): number => stamp.depth,

@@ -88,7 +88,7 @@ export class QueryAPI {
                         type: 'belief',
                         truth: belief.truth,
                         budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-                        stamp: (belief as TaskData).stamp ?? {
+                        stamp: belief.stamp ?? {
                             id: '',
                             creationTime: 0,
                             source: 'INPUT' as const,
@@ -121,7 +121,7 @@ export class QueryAPI {
                         type: 'belief',
                         truth: belief.truth,
                         budget: {priority: related.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-                        stamp: (belief as TaskData).stamp ?? {
+                        stamp: belief.stamp ?? {
                             id: '',
                             creationTime: 0,
                             source: 'INPUT' as const,

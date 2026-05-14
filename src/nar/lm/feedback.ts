@@ -116,7 +116,7 @@ export class BidirectionalFeedbackLoop {
                             type: 'belief',
                             truth: belief.truth,
                             budget: createBudget(0.5, 0.8),
-                            stamp: (belief as any).stamp ?? {
+                            stamp: belief.stamp ?? {
                                 id: 'context',
                                 creationTime: Date.now(),
                                 source: 'MEMORY' as const,

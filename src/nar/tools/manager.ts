@@ -131,7 +131,7 @@ export class ToolManager extends EventEmitter {
 
         return allDescriptors.filter(desc => {
             if (filter.tags) {
-                const toolTags = (this.get(desc.name) as any)?.tags || [];
+                const toolTags = this.toolDescriptors.get(desc.name)?.tags ?? [];
                 if (!filter.tags.every(tag => toolTags.includes(tag))) return false;
             }
 
@@ -192,8 +192,8 @@ export class ToolManager extends EventEmitter {
 
         return allTools.filter(tool => {
             if (filter.tags) {
-                const toolTags = (tool as any).tags;
-                if (!toolTags || !filter.tags.every(tag => toolTags.includes(tag))) return false;
+                const toolTags = tool.tags ?? [];
+                if (!filter.tags.every(tag => toolTags.includes(tag))) return false;
             }
             if (filter.readOnly) {
                 const capabilities = tool.capabilities;

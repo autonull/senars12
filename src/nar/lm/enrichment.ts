@@ -247,7 +247,7 @@ Respond in Narsese format, one statement per line.`;
                             type: 'belief',
                             truth: belief.truth ?? Truth.NEUTRAL,
                             budget: createBudget(0.5),
-                            stamp: (belief as any).stamp ?? {
+                            stamp: belief.stamp ?? {
                                 id: 'qa',
                                 creationTime: Date.now(),
                                 source: 'MEMORY' as const,

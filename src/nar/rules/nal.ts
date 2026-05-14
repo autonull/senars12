@@ -10,6 +10,7 @@ import {
     syllogize
 } from './nal-helpers.js';
 import {registerRule} from './shared.js';
+import {extractInhPair} from './shared.js';
 
 export interface NALRuleMetadata {
     id: string;
@@ -169,16 +170,14 @@ export const NALRules = {
 
     revision: ([i1, i2]: [Term, Term]): Term | undefined => {
         if (i1.kind !== 'inheritance' || i2.kind !== 'inheritance') return undefined;
-        const s1 = getSubject(i1), p1 = getPredicate(i1);
-        const s2 = getSubject(i2), p2 = getPredicate(i2);
+        const {s1, p1, s2, p2} = extractInhPair(i1, i2) ?? {};
         if (!s1 || !p1 || !s2 || !p2) return undefined;
         return termsEqual(s1, s2) && termsEqual(p1, p2) ? i1 : undefined;
     },
 
     analogy: ([inh, sim]: [Term, Term]): Term | undefined => {
         if (inh.kind !== 'inheritance' || sim.kind !== 'similarity') return undefined;
-        const s1 = getSubject(inh), p1 = getPredicate(inh);
-        const s2 = getSubject(sim), p2 = getPredicate(sim);
+        const {s1, p1, s2, p2} = extractInhPair(inh, sim) ?? {};
         if (!s1 || !p1 || !s2 || !p2) return undefined;
         if (!termsEqual(p1, s2)) return undefined;
         return TermBuilder.inheritance(s1, p2);
@@ -186,8 +185,7 @@ export const NALRules = {
 
     comparison: ([inh1, inh2]: [Term, Term]): Term | undefined => {
         if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
-        const s1 = getSubject(inh1), p1 = getPredicate(inh1);
-        const s2 = getSubject(inh2), p2 = getPredicate(inh2);
+        const {s1, p1, s2, p2} = extractInhPair(inh1, inh2) ?? {};
         if (!s1 || !p1 || !s2 || !p2) return undefined;
         if (!termsEqual(s1, s2)) return undefined;
         return TermBuilder.similarity(p1, p2);
@@ -195,8 +193,7 @@ export const NALRules = {
 
     instantiation: ([inh, sim]: [Term, Term]): Term | undefined => {
         if (inh.kind !== 'inheritance' || sim.kind !== 'similarity') return undefined;
-        const s1 = getSubject(inh), p1 = getPredicate(inh);
-        const s2 = getSubject(sim), p2 = getPredicate(sim);
+        const {s1, p1, s2, p2} = extractInhPair(inh, sim) ?? {};
         if (!s1 || !p1 || !s2 || !p2) return undefined;
         if (!termsEqual(p1, p2)) return undefined;
         return TermBuilder.inheritance(s1, s2);
@@ -204,8 +201,7 @@ export const NALRules = {
 
     exemplification: ([inh1, inh2]: [Term, Term]): Term | undefined => {
         if (inh1.kind !== 'inheritance' || inh2.kind !== 'inheritance') return undefined;
-        const s1 = getSubject(inh1), p1 = getPredicate(inh1);
-        const s2 = getSubject(inh2), p2 = getPredicate(inh2);
+        const {s1, p1, s2, p2} = extractInhPair(inh1, inh2) ?? {};
         if (!s1 || !p1 || !s2 || !p2) return undefined;
         if (!termsEqual(p1, s2)) return undefined;
         return TermBuilder.inheritance(s1, p2);

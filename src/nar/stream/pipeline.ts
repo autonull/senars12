@@ -209,7 +209,7 @@ export async function* derive(
         const task: Task = {
             term: concept.term,
             type: 'belief',
-            truth: belief?.truth ?? {f: 0.5, c: 0.9},
+            truth: belief?.truth ?? Truth.NEUTRAL,
             budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
             stamp: Stamp.createInput(),
             occurrenceTime: 0,

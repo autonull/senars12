@@ -4,7 +4,7 @@
  */
 
 import type {Term} from '../terms';
-import {Stamp} from '../terms';
+import {Stamp, Truth} from '../terms';
 import type {Truth as TruthType} from '../terms/truth.js';
 
 // Re-export domain types
@@ -127,7 +127,7 @@ export const createSecondaryTask = (
 ): Task => ({
     term,
     type,
-    truth: truth ?? {f: 0.5, c: 0.9},
+    truth: truth ?? Truth.NEUTRAL,
     budget: createBudget(priority),
     stamp: Stamp.createInput(),
     occurrenceTime: 0,

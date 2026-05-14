@@ -3,6 +3,7 @@ export interface Tool {
     readonly description: string;
     readonly parameters: Schema;
     capabilities?: ToolCapabilities;
+    tags?: string[];
 
     execute(args: Record<string, unknown>, context?: ToolContext): Promise<ToolResult>;
 }

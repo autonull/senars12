@@ -1,9 +1,12 @@
-import type {CompoundTerm, Term} from './types.js';
+import type {CompoundTerm, OperatorKey, Term} from './types.js';
+import {OPERATORS} from './types.js';
 import {termsEqual} from './accessors.js';
 import {TermBuilder} from './factory.js';
 
+const COMPOUND_KINDS = new Set(Object.keys(OPERATORS) as OperatorKey[]);
+
 const hasArgs = (term: Term): term is CompoundTerm =>
-    ['conjunction', 'disjunction', 'inheritance', 'similarity', 'negation', 'implication', 'equivalence'].includes(term.kind);
+    COMPOUND_KINDS.has(term.kind);
 
 export function normalize(term: Term): Term {
     if (term.kind === 'conjunction' || term.kind === 'disjunction') {

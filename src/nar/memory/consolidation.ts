@@ -121,9 +121,9 @@ export class MemoryConsolidation {
             const cSubject = cTermArgs?.[0];
             const cPredicate = cTermArgs?.[1];
 
-            if (subject && cSubject && termsEqual(subject as any, cSubject as any)) {
+            if (subject && cSubject && termsEqual(subject, cSubject)) {
                 related.push(c);
-            } else if (predicate && cPredicate && termsEqual(predicate as any, cPredicate as any)) {
+            } else if (predicate && cPredicate && termsEqual(predicate, cPredicate)) {
                 related.push(c);
             } else if (termsEqual(cTerm, term)) {
                 related.push(c);

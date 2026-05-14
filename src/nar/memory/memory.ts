@@ -238,13 +238,9 @@ export class Memory {
     }
 
     sample(limit: number): Concept[] {
-        const allConcepts = Array.from(this.concepts.values());
-        const scored = allConcepts.map(concept => ({
-            concept,
-            score: this.scorer.scoreForRetrieval(concept),
-        }));
-        scored.sort((a, b) => b.score - a.score);
-        return scored.slice(0, limit).map(s => s.concept);
+        const allConcepts = [...this.concepts.values()];
+        allConcepts.sort((a, b) => this.scorer.scoreForRetrieval(b) - this.scorer.scoreForRetrieval(a));
+        return allConcepts.slice(0, limit);
     }
 
     consolidate(): void {
@@ -349,7 +345,7 @@ export class Memory {
 
     checkHealth(): MemoryHealth {
         const now = Date.now();
-        if (now - this.lastHealthCheck < this.healthCheckInterval) return this.getLastHealth();
+        if (now - this.lastHealthCheck < this.healthCheckInterval) return this.computeHealth();
         this.lastHealthCheck = now;
 
         const utilization = this.concepts.size / this.config.maxConcepts;
@@ -452,18 +448,6 @@ export class Memory {
         }
     }
 
-    private getLastHealth(): MemoryHealth {
-        const utilization = this.concepts.size / this.config.maxConcepts;
-        const consolidationNeeded = this.cyclesSinceConsolidation >= this.config.consolidationInterval;
-        return {
-            isHealthy: utilization < 0.9 && !consolidationNeeded,
-            pressureLevel: utilization,
-            consolidationNeeded,
-            forgettingNeeded: utilization > 0.8,
-            recommendations: [],
-        };
-    }
-
     private checkMemoryPressure(): void {
         if (!this.config.enablePressureDetection) return;
 
@@ -475,6 +459,18 @@ export class Memory {
             this.pressureDetector.respond(this, this.concepts.values());
             this.compact();
         }
+    }
+
+    private computeHealth(): MemoryHealth {
+        const utilization = this.concepts.size / this.config.maxConcepts;
+        const consolidationNeeded = this.cyclesSinceConsolidation >= this.config.consolidationInterval;
+        return {
+            isHealthy: utilization < 0.9 && !consolidationNeeded,
+            pressureLevel: utilization,
+            consolidationNeeded,
+            forgettingNeeded: utilization > 0.8,
+            recommendations: [],
+        };
     }
 
     private findOrphanedLinks(): Concept[] {

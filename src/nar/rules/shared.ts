@@ -28,6 +28,13 @@ export const extractInh = (t: Term) => {
     return {s, p};
 };
 
+export const extractInhPair = (inh1: Term, inh2: Term) => {
+    const s1 = getSubject(inh1), p1 = getPredicate(inh1);
+    const s2 = getSubject(inh2), p2 = getPredicate(inh2);
+    if (!s1 || !p1 || !s2 || !p2) return null;
+    return {s1, p1, s2, p2};
+};
+
 export const extractImp = (t: Term) => {
     const args = t.args ?? [];
     const [a, c] = args;

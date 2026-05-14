@@ -1,6 +1,6 @@
 import type {Term} from '../terms';
 import {getPredicate, getSubject, TermBuilder, termsEqual, Truth} from '../terms';
-import {registerRule} from './shared.js';
+import {extractInh, extractInhPair, registerRule} from './shared.js';
 import {buildBinaryInhRule, buildInhRule, getVars} from './rule-builder.js';
 
 const {
@@ -137,15 +137,15 @@ export const NALExtendedRules = {
 
     comparison: buildBinaryInhRule(
         (inh1, inh2) => {
-            const s1 = getSubject(inh1), p1 = getPredicate(inh1);
-            const s2 = getSubject(inh2), p2 = getPredicate(inh2);
-            if (!s1 || !p1 || !s2 || !p2) return false;
+            const extracted = extractInhPair(inh1, inh2);
+            if (!extracted) return false;
+            const {s1, p1, s2, p2} = extracted;
             return termsEqual(s1, s2) && termsEqual(p1, p2);
         },
         (inh1, _inh2) => {
-            const s1 = getSubject(inh1), p1 = getPredicate(inh1);
-            if (!s1 || !p1) return undefined;
-            return similarity(s1, p1);
+            const {s, p} = extractInh(inh1) ?? {};
+            if (!s || !p) return undefined;
+            return similarity(s, p);
         }
     ),
 
@@ -182,23 +182,23 @@ export const NALExtendedRules = {
 
     sameness: buildBinaryInhRule(
         (inh1, inh2) => {
-            const s1 = getSubject(inh1), p1 = getPredicate(inh1);
-            const s2 = getSubject(inh2), p2 = getPredicate(inh2);
-            if (!s1 || !p1 || !s2 || !p2) return false;
+            const extracted = extractInhPair(inh1, inh2);
+            if (!extracted) return false;
+            const {s1, p1, s2, p2} = extracted;
             return termsEqual(s1, s2) && termsEqual(p1, p2);
         },
         (inh1, _inh2) => {
-            const s1 = getSubject(inh1), p1 = getPredicate(inh1);
-            if (!s1 || !p1) return undefined;
-            return similarity(s1, p1);
+            const {s, p} = extractInh(inh1) ?? {};
+            if (!s || !p) return undefined;
+            return similarity(s, p);
         }
     ),
 
     revisionWeak: buildBinaryInhRule(
         (inh1, inh2) => {
-            const s1 = getSubject(inh1), p1 = getPredicate(inh1);
-            const s2 = getSubject(inh2), p2 = getPredicate(inh2);
-            if (!s1 || !p1 || !s2 || !p2) return false;
+            const extracted = extractInhPair(inh1, inh2);
+            if (!extracted) return false;
+            const {s1, p1, s2, p2} = extracted;
             return termsEqual(s1, s2) && termsEqual(p1, p2);
         },
         (inh1, _inh2) => inh1
@@ -372,22 +372,21 @@ export const NALExtendedRules = {
 
     metacognitiveRevision: buildBinaryInhRule(
         (belief1, belief2) => {
-            const s1 = getSubject(belief1), p1 = getPredicate(belief1);
-            const s2 = getSubject(belief2), p2 = getPredicate(belief2);
-            if (!s1 || !p1 || !s2 || !p2) return false;
+            const extracted = extractInhPair(belief1, belief2);
+            if (!extracted) return false;
+            const {s1, p1, s2, p2} = extracted;
             return termsEqual(s1, s2) && termsEqual(p1, p2);
         },
         (belief1, _belief2) => {
-            const s1 = getSubject(belief1), p1 = getPredicate(belief1);
-            if (!s1 || !p1) return undefined;
-            return inheritance(operation(atom('meta'), s1), operation(atom('revise'), p1));
+            const {s, p} = extractInh(belief1) ?? {};
+            if (!s || !p) return undefined;
+            return inheritance(operation(atom('meta'), s), operation(atom('revise'), p));
         }
     ),
 
     selfModelConsistency: buildBinaryInhRule(
         (model1, model2) => {
-            const s1 = getSubject(model1);
-            const s2 = getSubject(model2);
+            const s1 = getSubject(model1), s2 = getSubject(model2);
             if (!s1 || !s2) return false;
             return termsEqual(s1, s2);
         },
