@@ -205,13 +205,15 @@ export class RealIRCClient extends EventEmitter {
         this.pendingMessages.set(target, pending);
         this.client.say(target, message);
 
-        setTimeout(() => {
-            const current = this.pendingMessages.get(target) ?? [];
-            const idx = current.indexOf(message);
-            if (idx >= 0) current.splice(idx, 1);
-            this.pendingMessages.set(target, current);
-            this.drainQueue();
-        }, this.config.floodProtectionDelay);
+        setTimeout(() => this.completeDispatch(target, message), this.config.floodProtectionDelay);
+    }
+
+    private completeDispatch(target: string, message: string): void {
+        const current = this.pendingMessages.get(target) ?? [];
+        const idx = current.indexOf(message);
+        if (idx >= 0) current.splice(idx, 1);
+        this.pendingMessages.set(target, current);
+        this.drainQueue();
     }
 
     private drainQueue(): void {

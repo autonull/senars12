@@ -193,10 +193,3 @@ export class SeNARSClient {
         });
     }
 }
-
-// Example usage:
-// const client = new SeNARSClient('ws://localhost:8765');
-// await client.connect();
-// await client.addBelief('(bird --> animal).');
-// await client.subscribe(['derivation', 'stats']);
-// client.on('derivation', (data) => console.log('Derivation:', data));

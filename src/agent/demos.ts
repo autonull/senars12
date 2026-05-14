@@ -4,6 +4,7 @@
  */
 
 import {NAR, SeNARSFactory} from '../nar';
+import {errMsg} from '../nar/utils/helpers.js';
 
 export interface DemoScenario {
     name: string;
@@ -27,7 +28,7 @@ export class DemoRunner {
             await scenario.run(this.nar);
             console.log('\n✓ Demo completed successfully\n');
         } catch (error) {
-            console.error(`\n✗ Demo failed: ${error instanceof Error ? error.message : String(error)}\n`);
+            console.error(`\n✗ Demo failed: ${errMsg(error)}\n`);
             throw error;
         }
     }

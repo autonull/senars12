@@ -7,7 +7,7 @@ import {NAR, SeNARSFactory} from '../nar';
 import {createInterface, Interface} from 'readline';
 import {HistoryManager} from './history';
 import {ProfileManager} from './profile';
-import {listConcepts, showCommandHelp, showStats} from './display';
+import {box, listConcepts, showCommandHelp, showStats} from './display';
 import {DOMAIN_LIST, DOMAINS} from './domains';
 import {errMsg} from '../nar/utils/helpers.js';
 import {termParser} from '../nar/terms';
@@ -90,12 +90,6 @@ class SeNARSCLI {
         console.log('\nType .help for commands, .quit to exit\n');
         this.rl.prompt();
     }
-
-    private readonly box = (title: string, lines: string[]): string => {
-        const width = Math.max(title.length + 4, ...lines.map(l => l.length + 4), 50);
-        const h = '═'.repeat(width - 2);
-        return `╔${h}╗\n║ ${title.padEnd(width - 3)}║\n╠${h}╣\n${lines.map(l => `║ ${l.padEnd(width - 3)}║`).join('\n')}\n╚${h}╝`;
-    };
 
     private readonly withError = async (fn: () => Promise<void>, fallback: string): Promise<void> => {
         try {
@@ -545,7 +539,7 @@ class SeNARSCLI {
                 `Strategies: ${String((analysis as { strategies?: unknown[] }).strategies?.length ?? 0)}`
             ] : []
         ];
-        console.log('\n' + this.box('Self/Metacognition Status', lines) + '\n');
+        console.log('\n' + box('Self/Metacognition Status', lines) + '\n');
     }
 
     private showMetaAnalysis(): void {
@@ -575,7 +569,7 @@ class SeNARSCLI {
                 lines.push(` - ${s.name || 'unknown'}: ${s.efficiency?.toFixed(2) ?? 'N/A'}`);
             }
         }
-        console.log('\n' + this.box('Meta-Analysis Report', lines) + '\n');
+        console.log('\n' + box('Meta-Analysis Report', lines) + '\n');
     }
 
     private async runOptimization(): Promise<void> {
@@ -619,7 +613,7 @@ class SeNARSCLI {
             return;
         }
         const prefs = rlfpRef.preferences?.length ?? 0;
-        console.log('\n' + this.box('RLFP Reward Status', [`Preferences: ${prefs}`]) + '\n');
+        console.log('\n' + box('RLFP Reward Status', [`Preferences: ${prefs}`]) + '\n');
     }
 
     private showRLFPStats(): void {
@@ -629,7 +623,7 @@ class SeNARSCLI {
             console.log('RLFP not enabled');
             return;
         }
-        console.log('\n' + this.box('RLFP Statistics', [
+        console.log('\n' + box('RLFP Statistics', [
             `Preferences: ${String(rlfpRef.preferences?.length ?? 0)}`,
             `Trajectories: ${String(rlfpRef.trajectoryCount ?? 0)}`,
             `Last Optimization: ${rlfpRef.lastOptimizeTime ? new Date(rlfpRef.lastOptimizeTime).toLocaleTimeString() : 'Never'}`
@@ -643,7 +637,7 @@ class SeNARSCLI {
             return;
         }
         const lmRef = lm as LMClientRef;
-        console.log('\n' + this.box('LM Status', [
+        console.log('\n' + box('LM Status', [
             `Provider: ${String(lmRef.provider ?? 'unknown')}`,
             `Model: ${String(lmRef.model ?? 'unknown')}`,
             `Available: ${lmRef.available ? 'Yes' : 'No'}`

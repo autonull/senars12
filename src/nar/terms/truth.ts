@@ -34,11 +34,7 @@ const c2w = (c: number): number => c === 1 ? 1e10 : c / (1 - c);
 const w2c = (w: number): number => w / (w + 1);
 
 export const Truth = {
-    create: (f: number, c: number): Truth =>
-        Object.freeze({
-            f: Math.max(0, Math.min(1, isNaN(f) ? 0.5 : f)),
-            c: Math.max(0, Math.min(1, isNaN(c) ? 0.9 : c))
-        }),
+    create: createTruth,
 
     TRUE: Object.freeze({f: 1.0, c: 0.9}) as Truth,
     FALSE: Object.freeze({f: 0.0, c: 0.9}) as Truth,
@@ -105,11 +101,8 @@ export const Truth = {
         return [(f1 * w1 + f2 * w2) / w, w2c(w)];
     }),
 
-    choice: (t1: Truth, t2: Truth): Truth => {
-        const exp1 = Truth.expectation(t1);
-        const exp2 = Truth.expectation(t2);
-        return t1 === undefined ? t2! : t2 === undefined ? t1 : exp1 > exp2 ? t1 : t2;
-    },
+    choice: (t1: Truth, t2: Truth): Truth =>
+        Truth.expectation(t1) > Truth.expectation(t2) ? t1 : t2,
 
     structuralDeduction: unaryOp((f, c) => [f * f, c / (c + 1) * c]),
     structuralReduction: unaryOp((f, c) => [f, c / (c + WEAKENING_FACTOR)]),

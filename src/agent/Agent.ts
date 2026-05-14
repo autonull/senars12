@@ -4,6 +4,7 @@
  */
 
 import {NAR, Task} from '../nar';
+import {errMsg} from '../nar/utils/helpers.js';
 
 export interface Embodiment {
     readonly name: string;
@@ -134,7 +135,7 @@ export class Agent {
                 try {
                     return await command.execute(args, {nar: this.narInstance, agent: this});
                 } catch (error) {
-                    return `Error: ${error instanceof Error ? error.message : String(error)}`;
+                    return `Error: ${errMsg(error)}`;
                 }
             }
             return `Unknown command: ${cmdName}`;
@@ -144,7 +145,7 @@ export class Agent {
             await this.narInstance.input(message);
             return `✓ Added: ${message}`;
         } catch (error) {
-            return `✗ Error: ${error instanceof Error ? error.message : String(error)}`;
+            return `✗ Error: ${errMsg(error)}`;
         }
     }
 
