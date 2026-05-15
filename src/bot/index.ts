@@ -15,9 +15,9 @@ export interface Bot {
 }
 
 export interface RealBot {
-    start: () => Promise<void>;
-    shutdown: () => Promise<void>;
-    status: any;
+  start: () => Promise<void>;
+  shutdown: () => Promise<void>;
+  status: {running: boolean; connected: () => boolean; nick: string};
 }
 
 export async function createBot(config: BotConfig): Promise<Bot> {

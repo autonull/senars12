@@ -4,8 +4,8 @@
 import type {NAR} from '../nar';
 
 interface ProfileSession {
-    startTime: number;
-    startStats: any;
+  startTime: number;
+  startStats: ReturnType<NAR['getStatistics']>;
 }
 
 export class ProfileManager {

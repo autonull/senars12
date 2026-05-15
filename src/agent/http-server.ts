@@ -20,24 +20,24 @@ export interface HTTPServerConfig {
 }
 
 export class HTTPServer {
-    private server: ReturnType<typeof createServer> | null = null;
-    private adapter: HTTPAdapter;
-    private config: any;
-    private readonly logger: Logger;
+  private server: ReturnType<typeof createServer> | null = null;
+  private adapter: HTTPAdapter;
+  private readonly config: {port: number; enableCors: boolean};
+  private readonly logger: Logger;
 
-    constructor(config: HTTPServerConfig = {}) {
-        this.logger = LoggerFactory.getInstance().get('agent:http-server');
-        this.config = {
-            port: config.port ?? 8080,
-            enableCors: config.enableCors ?? true,
-        };
-        this.adapter = new HTTPAdapter(undefined, {
-            port: this.config.port,
-            apiKey: config.apiKey,
-            rateLimit: config.rateLimit,
-            enableCors: config.enableCors,
-        });
-    }
+  constructor(config: HTTPServerConfig = {}) {
+    this.logger = LoggerFactory.getInstance().get('agent:http-server');
+    this.config = {
+      port: config.port ?? 8080,
+      enableCors: config.enableCors ?? true,
+    };
+    this.adapter = new HTTPAdapter(undefined, {
+      port: this.config.port,
+      apiKey: config.apiKey,
+      rateLimit: config.rateLimit,
+      enableCors: config.enableCors,
+    });
+  }
 
     async start(_agent: Agent): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -91,7 +91,7 @@ export class HTTPServer {
         this.adapter.removeApiKey(key);
     }
 
-    getOpenAPISpec(): Record<string, any> {
-        return this.adapter.getOpenAPISpec?.() || {};
-    }
+  getOpenAPISpec(): Record<string, unknown> {
+    return this.adapter.getOpenAPISpec?.() || {};
+  }
 }

@@ -54,46 +54,46 @@ export function registerAgentAPI(agent: Agent) {
         },
     });
 
-    registry.register('getBeliefs', {
-        description: 'List all beliefs in the knowledge base',
-        params: z.object({pagination: PaginationSchema.optional()}),
-        returns: z.object({beliefs: z.array(z.any()), total: z.number()}),
-        handler: async () => {
-            const beliefs = nar.getBeliefs();
-            return {beliefs, total: beliefs.length};
-        },
-    });
+registry.register('getBeliefs', {
+  description: 'List all beliefs in the knowledge base',
+  params: z.object({pagination: PaginationSchema.optional()}),
+  returns: z.object({beliefs: z.array(z.object({})), total: z.number()}),
+  handler: async () => {
+    const beliefs = nar.getBeliefs();
+    return {beliefs, total: beliefs.length};
+  },
+});
 
-    registry.register('getGoals', {
-        description: 'List all goals in the knowledge base',
-        params: z.object({pagination: PaginationSchema.optional()}),
-        returns: z.object({goals: z.array(z.any()), total: z.number()}),
-        handler: async () => {
-            const goals = nar.getGoals();
-            return {goals, total: goals.length};
-        },
-    });
+registry.register('getGoals', {
+  description: 'List all goals in the knowledge base',
+  params: z.object({pagination: PaginationSchema.optional()}),
+  returns: z.object({goals: z.array(z.object({})), total: z.number()}),
+  handler: async () => {
+    const goals = nar.getGoals();
+    return {goals, total: goals.length};
+  },
+});
 
-    registry.register('getQuestions', {
-        description: 'List all questions in the knowledge base',
-        params: z.object({pagination: PaginationSchema.optional()}),
-        returns: z.object({questions: z.array(z.any()), total: z.number()}),
-        handler: async () => {
-            const questions = nar.getQuestions();
-            return {questions, total: questions.length};
-        },
-    });
+registry.register('getQuestions', {
+  description: 'List all questions in the knowledge base',
+  params: z.object({pagination: PaginationSchema.optional()}),
+  returns: z.object({questions: z.array(z.object({})), total: z.number()}),
+  handler: async () => {
+    const questions = nar.getQuestions();
+    return {questions, total: questions.length};
+  },
+});
 
-    registry.register('query', {
-        description: 'Query the knowledge base',
-        params: z.object({term: TermSchema, filter: z.any().optional()}),
-        returns: z.object({results: z.array(z.any()), count: z.number()}),
-        handler: async ({term, filter}) => {
-            const termObj = termParser.parse(term);
-            const results = await nar.query.query(termObj, filter);
-            return {results: results.beliefs, count: results.beliefs.length};
-        },
-    });
+registry.register('query', {
+  description: 'Query the knowledge base',
+  params: z.object({term: TermSchema, filter: z.record(z.string(), z.unknown()).optional()}),
+  returns: z.object({results: z.array(z.object({})), count: z.number()}),
+  handler: async ({term, filter}) => {
+    const termObj = termParser.parse(term);
+    const results = await nar.query.query(termObj, filter);
+    return {results: results.beliefs, count: results.beliefs.length};
+  },
+});
 
     registry.register('ask', {
         description: 'Ask a question and get an answer',
@@ -127,28 +127,28 @@ export function registerAgentAPI(agent: Agent) {
         },
     });
 
-    registry.register('getHealth', {
-        description: 'Health check',
-        params: z.object({}),
-        returns: z.object({
-            status: z.string(),
-            timestamp: z.number(),
-            uptime: z.number(),
-            memory: z.object({concepts: z.number(), tasks: z.number()}),
-            lm: z.object({available: z.boolean(), provider: z.string().optional(), model: z.string().optional()}),
-        }),
-        handler: async () => {
-            const stats = nar.getStatistics();
-            const lm = nar.getLMClient?.();
-            return {
-                status: 'healthy',
-                timestamp: Date.now(),
-                uptime: process.uptime(),
-                memory: {concepts: stats.totalConcepts ?? 0, tasks: stats.totalTasks ?? 0},
-                lm: lm ? {available: true, provider: (lm as any).provider ?? 'unknown', model: (lm as any).model ?? 'unknown'} : {available: false},
-            };
-        },
-    });
+registry.register('getHealth', {
+  description: 'Health check',
+  params: z.object({}),
+  returns: z.object({
+    status: z.string(),
+    timestamp: z.number(),
+    uptime: z.number(),
+    memory: z.object({concepts: z.number(), tasks: z.number()}),
+    lm: z.object({available: z.boolean(), provider: z.string().optional(), model: z.string().optional()}),
+  }),
+  handler: async () => {
+    const stats = nar.getStatistics();
+    const lm = nar.getLMClient?.();
+    return {
+      status: 'healthy',
+      timestamp: Date.now(),
+      uptime: process.uptime(),
+      memory: {concepts: stats.totalConcepts ?? 0, tasks: stats.totalTasks ?? 0},
+      lm: lm ? {available: true, provider: lm.provider ?? 'unknown', model: lm.model ?? 'unknown'} : {available: false},
+    };
+  },
+});
 
     registry.register('run', {
         description: 'Run inference steps',
@@ -157,15 +157,15 @@ export function registerAgentAPI(agent: Agent) {
         handler: async ({steps}) => ({derived: await nar.run(steps)}),
     });
 
-    registry.register('getConfig', {
-        description: 'Get system configuration',
-        params: z.object({key: z.string().optional()}),
-        returns: z.any(),
-        handler: async ({key}) => {
-            const config = nar.getConfig();
-            return key ? {[key]: (config as any)[key]} : config;
-        },
-    });
+registry.register('getConfig', {
+  description: 'Get system configuration',
+  params: z.object({key: z.string().optional()}),
+  returns: z.record(z.string(), z.unknown()),
+  handler: async ({key}) => {
+    const config = nar.getConfig();
+    return key ? {[key]: config[key as keyof typeof config]} : config;
+  },
+});
 
     registry.register('getAttention', {
         description: 'Get attention snapshot',
@@ -177,15 +177,15 @@ export function registerAgentAPI(agent: Agent) {
         },
     });
 
-    registry.register('getHistory', {
-        description: 'Get task history',
-        params: z.object({limit: z.number().positive().max(1000).optional()}),
-        returns: z.object({tasks: z.array(z.any()), count: z.number()}),
-        handler: async ({limit = 100}) => {
-            const tasks = nar.tools.getHistory(limit);
-            return {tasks, count: tasks.length};
-        },
-    });
+registry.register('getHistory', {
+  description: 'Get task history',
+  params: z.object({limit: z.number().positive().max(1000).optional()}),
+  returns: z.object({tasks: z.array(z.object({})), count: z.number()}),
+  handler: async ({limit = 100}) => {
+    const tasks = nar.tools.getHistory(limit);
+    return {tasks, count: tasks.length};
+  },
+});
 
     return registry;
 }
