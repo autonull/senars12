@@ -7,6 +7,11 @@ export {APIRegistry, apiMethod} from './registry.js';
 export {registerAgentAPI} from './agent-api.js';
 export {HTTPAdapter} from './http-adapter.js';
 export {WebSocketAdapter} from './websocket-adapter.js';
+
+// MCP exports (legacy compatibility)
 export {MCPAdapter} from './mcp-adapter.js';
-export {MCPServer} from './mcp-server.js';
+export {SeNARSMCPServer as MCPServer} from './mcp-server.js';
 export type {MCPTool, MCPToolResult, MCPToolCall} from './mcp-adapter.js';
+
+// MCP exports (enhanced)
+export * from './mcp/index.js';
