@@ -1,4 +1,4 @@
-import {Logger, LoggerFactory} from '../nar/logger/index.js';
+import {LoggerFactory} from '../nar/logger/index.js';
 import {errMsg} from '../nar/utils/index.js';
 
 export interface BotConfig {

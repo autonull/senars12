@@ -1,4 +1,4 @@
-import type {CommandContext, CommandDefinition} from './index.js';
+import type {CommandDefinition} from './index.js';
 import {box} from '../display.js';
 
 export const CoreCommands: CommandDefinition[] = [
@@ -6,8 +6,8 @@ export const CoreCommands: CommandDefinition[] = [
         name: '.help',
         description: 'Show help information',
         usage: '.help [command]',
-        handler: (ctx, args) => {
-            ctx.logger.info('\n' + box('SeNARS CLI Commands', [
+        handler: (_ctx, _args) => {
+            _ctx.logger.info('\n' + box('SeNARS CLI Commands', [
                 '(term).            Add belief',
                 '(term)?            Ask question',
                 '{ ... }.           Multi-line input',

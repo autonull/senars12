@@ -40,7 +40,7 @@ export class WebSocketServer implements Embodiment {
         this.adapter.broadcast('derivation', {message});
     }
 
-    onMessage(handler: (message: string) => void): void {
+    onMessage(_handler: (message: string) => void): void {
         // Handled by adapter through registry
     }
 

@@ -1,7 +1,7 @@
 import type {LMClient} from './types.js';
 import type {Memory} from '../memory';
 import type {Term} from '../terms';
-import {Truth} from '../terms';
+import {Stamp, Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
 import {findUnderconnectedConceptsFromTasks, parseEnrichmentResponse} from './enrichment-utils.js';
 import {Logger, LoggerFactory} from '../logger/index.js';
@@ -61,13 +61,7 @@ export class BidirectionalFeedbackLoop {
                 type: 'belief' as const,
                 truth: belief.truth,
                 budget: createBudget(0.5, 0.8),
-                stamp: belief.stamp ?? {
-                    id: 'context',
-                    creationTime: Date.now(),
-                    source: 'INPUT' as const,
-                    derivations: [],
-                    depth: 0
-                },
+                stamp: belief.stamp ?? Stamp.createInputWithId('context'),
                 occurrenceTime: Date.now(),
                 derived: false
             };

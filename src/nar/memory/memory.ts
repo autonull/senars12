@@ -334,20 +334,10 @@ export class Memory {
 
     checkHealth(): MemoryHealth {
         const now = Date.now();
-        if (now - this.lastHealthCheck < this.healthCheckInterval) return this.computeHealth();
-        this.lastHealthCheck = now;
-
-        const utilization = this.concepts.size / this.config.maxConcepts;
-        const consolidationNeeded = this.cyclesSinceConsolidation >= this.config.consolidationInterval;
-        const forgettingNeeded = utilization > 0.8;
-
-        return {
-            isHealthy: utilization < 0.9 && !consolidationNeeded,
-            pressureLevel: utilization,
-            consolidationNeeded,
-            forgettingNeeded,
-            recommendations: [],
-        };
+        if (now - this.lastHealthCheck >= this.healthCheckInterval) {
+            this.lastHealthCheck = now;
+        }
+        return this.computeHealth();
     }
 
     compact(): void {

@@ -27,6 +27,16 @@ export const Stamp = {
         });
     },
 
+    createInputWithId(id: string): Stamp<0> {
+        return Object.freeze({
+            id,
+            creationTime: Date.now(),
+            source: 'INPUT' as const,
+            derivations: [],
+            depth: 0
+        });
+    },
+
     derive<D extends Nat>(parentStamps: readonly Stamp<D>[], source: Source = 'DERIVED'): Stamp<Increment<D>> | undefined {
         if (parentStamps.length === 0) {
             return Object.freeze({

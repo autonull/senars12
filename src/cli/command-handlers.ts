@@ -1,5 +1,4 @@
 import type {NAR} from '../nar';
-import {createLogger} from '../nar/logger';
 import {CommandRegistry, createCommandContext, type CommandContext} from './commands/index.js';
 import {CoreCommands} from './commands/CoreCommands.js';
 import {NARDisplayCommands} from './commands/NARDisplayCommands.js';

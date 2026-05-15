@@ -17,23 +17,25 @@ export interface CacheConfig {
     costPerToken: number;
 }
 
+const EMPTY_STATS: LMExecutionStats = {
+    totalCalls: 0,
+    successfulCalls: 0,
+    failedCalls: 0,
+    totalDuration: 0,
+    totalTokens: 0,
+    averageDuration: 0,
+    successRate: 0,
+    totalCost: 0,
+    averageCost: 0
+};
+
 export class EnhancedLMClient implements LMClient {
     private readonly baseClient: LMClient;
     private readonly cache: Map<string, CacheEntry> = new Map();
     private readonly cacheConfig: CacheConfig;
     private readonly logger: Logger;
     private readonly modelEntry?: ModelRegistryEntry;
-    private stats: LMExecutionStats = {
-        totalCalls: 0,
-        successfulCalls: 0,
-        failedCalls: 0,
-        totalDuration: 0,
-        totalTokens: 0,
-        averageDuration: 0,
-        successRate: 0,
-        totalCost: 0,
-        averageCost: 0
-    };
+    private stats: LMExecutionStats = {...EMPTY_STATS};
 
     constructor(
         baseClient: LMClient,
@@ -128,17 +130,7 @@ export class EnhancedLMClient implements LMClient {
     }
 
     resetStats(): void {
-        this.stats = {
-            totalCalls: 0,
-            successfulCalls: 0,
-            failedCalls: 0,
-            totalDuration: 0,
-            totalTokens: 0,
-            averageDuration: 0,
-            successRate: 0,
-            totalCost: 0,
-            averageCost: 0
-        };
+        this.stats = {...EMPTY_STATS};
     }
 
     private generateCacheKey(prompt: string, options?: LMConfig): string {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {loadConfig, mergeConfig} from './config.js';
 import {createBot, createRealBot} from './index.js';
-import {Logger, LoggerFactory} from '../nar/logger/index.js';
+import {LoggerFactory} from '../nar/logger/index.js';
 
 const logger = LoggerFactory.getInstance().get('bot:run');
 

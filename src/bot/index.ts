@@ -3,7 +3,7 @@ import {BotSession} from './BotSession.js';
 import {SeNARSFactory} from '../nar';
 import {RealIRCClient} from './IRCClient.js';
 import {createMessageRouter} from './message-router.js';
-import {Logger, LoggerFactory} from '../nar/logger/index.js';
+import {LoggerFactory} from '../nar/logger/index.js';
 import {errMsg} from '../nar/utils/index.js';
 
 const logger = LoggerFactory.getInstance().get('bot');

@@ -25,7 +25,7 @@ export interface MCPToolCall {
 }
 
 export class MCPAdapter extends BaseAdapter {
-    constructor(registry?: any) {
+    constructor(_registry?: any) {
         super('api:mcp');
     }
 
