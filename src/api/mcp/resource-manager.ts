@@ -5,6 +5,7 @@
 
 import {ResourceDescriptor} from './types.js';
 import {createLogger, type Logger} from '../../nar/logger/index.js';
+import {toError} from '../../nar/utils/helpers.js';
 
 /**
  * Resource content structure
@@ -105,7 +106,7 @@ export class ResourceManager {
 				try {
 					return await resolver.resolve(uri, context);
 				} catch (error) {
-					this.logger.error(`Failed to resolve ${uri}`, error instanceof Error ? error : new Error(String(error)));
+					this.logger.error(`Failed to resolve ${uri}`, toError(error));
 					throw error;
 				}
 			}
@@ -126,7 +127,7 @@ export class ResourceManager {
 				try {
 					return await resolver.list(template, context);
 				} catch (error) {
-					this.logger.error(`Failed to list resources for ${template}`, error instanceof Error ? error : new Error(String(error)));
+					this.logger.error(`Failed to list resources for ${template}`, toError(error));
 				}
 			}
 		}

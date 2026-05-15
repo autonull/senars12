@@ -47,8 +47,11 @@ export const errMsg = (e: unknown): string =>
   e instanceof Error ? e.message : String(e);
 
 /** Convert unknown error to Error object */
-export const errObj = (e: unknown): Error =>
+export const toError = (e: unknown): Error =>
   e instanceof Error ? e : new Error(String(e));
+
+/** Alias for toError for backwards compatibility */
+export const errObj = toError;
 
 /** Create error handler for logging */
 export const catchAndLog = (
@@ -89,16 +92,13 @@ export async function withRetry<T>(
   maxRetries = 3,
   delayMs = 1000
 ): Promise<T> {
-  let lastError: Error;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error) {
-      lastError = errObj(error);
-      if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
-      }
+      if (attempt === maxRetries) throw toError(error);
+      await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
     }
   }
-  throw lastError!;
+  throw new Error('Unreachable');
 }

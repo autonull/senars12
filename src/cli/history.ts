@@ -2,6 +2,7 @@
  * Command history management
  */
 import {existsSync, promises as fs} from 'fs';
+import {errMsg} from '../nar/utils/index.js';
 
 const HISTFILE = process.env.SENARS_HISTFILE || '/tmp/senars_history';
 const MAX_HISTORY = 1000;
@@ -30,8 +31,8 @@ export class HistoryManager {
     async saveHistory(): Promise<void> {
         try {
             await fs.writeFile(HISTFILE, this.history.join('\n'), 'utf-8');
-        } catch {
-            // Ignore history save errors
+        } catch (error) {
+            console.error('Failed to save history:', errMsg(error));
         }
     }
 

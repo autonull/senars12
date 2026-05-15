@@ -1,6 +1,7 @@
 import {SeNARSMCPServer} from '../../api/mcp-server.js';
 import {createLogger} from '../../nar/logger/index.js';
 import {registerDefaultModels, getTurnkeyConfig} from '../../nar/lm/defaults.js';
+import {toError} from '../../nar/utils/helpers.js';
 
 interface MCPCommandOptions {
 	transport?: 'stdio' | 'sse' | 'http';
@@ -35,7 +36,7 @@ export async function startMCPServer(options: MCPCommandOptions = {}): Promise<v
 
 		await new Promise(() => {});
 	} catch (error) {
-		logger.error('Failed to start MCP Server', error instanceof Error ? error : new Error(String(error)));
+		logger.error('Failed to start MCP Server', toError(error));
 		throw error;
 	}
 }

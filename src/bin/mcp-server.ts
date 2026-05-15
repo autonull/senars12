@@ -8,6 +8,7 @@ import {SeNARSMCPServer} from '../api/mcp-server.js';
 import {APIRegistry} from '../api/registry.js';
 import {createLogger} from '../nar/logger/index.js';
 import {registerDefaultModels, getTurnkeyConfig} from '../nar/lm/defaults.js';
+import {toError} from '../nar/utils/helpers.js';
 
 async function main() {
 	const logger = createLogger({scope: 'mcp:bin'});
@@ -53,7 +54,7 @@ async function main() {
 		// Keep process alive for stdio transport
 		await new Promise(() => {});
 	} catch (error) {
-		logger.error("MCP Server failed", error instanceof Error ? error : new Error(String(error)));
+		logger.error("MCP Server failed", toError(error));
 		process.exit(1);
 	}
 }

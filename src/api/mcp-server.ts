@@ -19,6 +19,7 @@ import type {SchemaTransformer} from './mcp/schema-transformer.js';
 import {getSchemaTransformer} from './mcp/schema-transformer.js';
 import {CapabilityDescriptor} from './mcp/types.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
+import {toError} from '../nar/utils/helpers.js';
 
 /**
  * MCP Server Configuration
@@ -117,7 +118,7 @@ export class SeNARSMCPServer {
 						isError: result.isError,
 					};
 				} catch (error) {
-					this.logger.error(`Tool execution failed: ${name}`, error instanceof Error ? error : new Error(String(error)));
+					this.logger.error(`Tool execution failed: ${name}`, toError(error));
 
 					return {
 						content: [
@@ -228,7 +229,7 @@ export class SeNARSMCPServer {
 				`Available tools: ${tools.map((t) => t.name).join(', ') || 'none'}`
 			);
 		} catch (error) {
-			this.logger.error('Failed to start MCP Server', error instanceof Error ? error : new Error(String(error)));
+			this.logger.error('Failed to start MCP Server', toError(error));
 			throw error;
 		}
 	}
@@ -248,7 +249,7 @@ export class SeNARSMCPServer {
 			this.isRunning = false;
 			this.logger.info('MCP Server stopped');
 		} catch (error) {
-			this.logger.error('Error stopping MCP Server', error instanceof Error ? error : new Error(String(error)));
+			this.logger.error('Error stopping MCP Server', toError(error));
 		}
 	}
 

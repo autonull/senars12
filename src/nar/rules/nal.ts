@@ -122,9 +122,10 @@ export const NALRules = {
 function foldNary(kind: Term['kind'], eq: (a1: Term, a2: Term) => boolean, unique = false): RuleFn {
     return ([t1, t2]: [Term, Term]): Term | undefined => {
         if (t1.kind !== kind || t2.kind !== kind) return undefined;
+        const a1 = t1.args!, a2 = t2.args!;
         const args = unique
-            ? [...t1.args, ...t2.args].filter((a, i, arr) => arr.findIndex(b => eq(a, b)) === i)
-            : t1.args.filter(a1 => t2.args.some(a2 => eq(a1, a2)));
+            ? [...a1, ...a2].filter((a, i, arr) => arr.findIndex(b => eq(a, b)) === i)
+            : a1.filter(x => a2.some(y => eq(x, y)));
         return args.length > 0 ? (kind === 'conjunction' ? TermBuilder.conjunction(...args) : TermBuilder.disjunction(...args)) : undefined;
     };
 }
