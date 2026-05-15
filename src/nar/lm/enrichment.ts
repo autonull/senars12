@@ -4,7 +4,7 @@ import type {Term} from '../terms';
 import {Truth} from '../terms';
 import {createBudget, type Task} from '../types';
 import {findUnderconnectedConcepts, parseEnrichmentResponse} from './enrichment-utils.js';
-import {Logger} from '../logger/index.js';
+import {Logger, LoggerFactory} from '../logger/index.js';
 import {errMsg} from '../utils/index.js';
 
 export interface EnricherConfig {
@@ -35,7 +35,7 @@ export class ProactiveEnricher {
     constructor(memory: Memory, lmClient: LMClient, config: Partial<EnricherConfig> = {}) {
         this.memory = memory;
         this.lmClient = lmClient;
-        this.logger = new Logger({ scope: 'lm:enrichment' });
+        this.logger = LoggerFactory.getInstance().get('lm:enrichment');
         this.config = {
             enableProactiveEnrichment: true,
             enrichmentIntervalMs: 60000,

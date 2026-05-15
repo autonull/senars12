@@ -1,4 +1,5 @@
 import type {CommandContext, CommandDefinition, NARExtended} from './index.js';
+import {requireArgs} from './index.js';
 import {DOMAIN_LIST, DOMAINS} from '../domains.js';
 import {box} from '../display.js';
 import {termParser} from '../../nar/terms';
@@ -9,11 +10,8 @@ export const MemoryCommands: CommandDefinition[] = [
         description: 'Load beliefs from file',
         usage: '.load <filename>',
         handler: async (ctx, args) => {
-            const filename = args[0];
-            if (!filename) {
-                ctx.logger.info('Usage: .load <filename>');
-                return;
-            }
+            if (!requireArgs(ctx, args, '.load <filename>')) return;
+            const filename = args[0]!;
 
             try {
                 const content = await import('fs').then(fs => fs.promises.readFile(filename, 'utf-8'));
@@ -39,11 +37,8 @@ export const MemoryCommands: CommandDefinition[] = [
         description: 'Save memory to file',
         usage: '.save <filename>',
         handler: async (ctx, args) => {
-            const filename = args[0];
-            if (!filename) {
-                ctx.logger.info('Usage: .save <filename>');
-                return;
-            }
+            if (!requireArgs(ctx, args, '.save <filename>')) return;
+            const filename = args[0]!;
 
             try {
                 const concepts = ctx.nar.listConcepts().map(c => ({
@@ -71,9 +66,9 @@ export const MemoryCommands: CommandDefinition[] = [
         description: 'Load sample domain',
         usage: '.load-domain <domain>',
         handler: (ctx, args) => {
-            const domain = args[0]?.toLowerCase();
-            if (!domain || !DOMAINS[domain]) {
-                ctx.logger.info(`Usage: .load-domain <domain>`);
+            if (!requireArgs(ctx, args, '.load-domain <domain>')) return;
+            const domain = args[0]!.toLowerCase();
+            if (!DOMAINS[domain]) {
                 ctx.logger.info(`Available domains: ${DOMAIN_LIST}`);
                 return;
             }

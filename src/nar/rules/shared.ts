@@ -2,6 +2,17 @@ import type {Term} from '../terms';
 import {getPredicate, getSubject} from '../terms';
 import {createRulePattern, type RuleFn, RuleRegistry, type TruthFn} from './types.js';
 
+export type TermKind = 'inheritance' | 'similarity' | 'implication' | 'equivalence' | 'instance' | 'property' | 'atom' | 'conjunction' | 'disjunction' | 'negation' | 'sequence' | 'predictive' | 'operation';
+
+export interface RuleDefinition {
+    readonly id: string;
+    readonly leftKind: string;
+    readonly rightKind: string;
+    readonly apply: RuleFn;
+    readonly truthFn: TruthFn;
+    readonly priority: number;
+}
+
 export const matchKind = (kind: Term['kind']) => (t: Term) => t.kind === kind;
 export const matchInh = matchKind('inheritance');
 export const matchImp = matchKind('implication');
@@ -36,6 +47,14 @@ export const extractInhPair = (inh1: Term, inh2: Term) => {
     return {s1, p1, s2, p2};
 };
 
+export const matchInhPair = <T>(
+    fn: (s1: Term, p1: Term, s2: Term, p2: Term) => T | undefined
+) => ([inh1, inh2]: [Term, Term]): T | undefined => {
+    const {s1, p1, s2, p2} = extractInhPair(inh1, inh2) ?? {};
+    if (!s1 || !p1 || !s2 || !p2) return undefined;
+    return fn(s1, p1, s2, p2);
+};
+
 export const extractImp = (t: Term) => {
     const args = t.args ?? [];
     const [a, c] = args;
@@ -61,7 +80,7 @@ export const registerRule = (
 
 export type RuleSpec = [string, string, string, RuleFn, TruthFn, number];
 
-export const registerRules = (rules: RuleSpec[]) =>
-    rules.forEach(([id, left, right, fn, truth, priority]) =>
-        registerRule(id, left, right, fn, truth, priority)
+export const registerRules = (rules: RuleDefinition[]) =>
+    rules.forEach(rule =>
+        registerRule(rule.id, rule.leftKind, rule.rightKind, rule.apply, rule.truthFn, rule.priority)
     );

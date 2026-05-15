@@ -4,9 +4,8 @@
  */
 
 import {WebSocket, WebSocketServer} from 'ws';
-import {APIRegistry} from './registry.js';
 import {createHash} from 'crypto';
-import {Logger} from '../nar/logger/index.js';
+import {BaseAdapter} from './base-adapter.js';
 
 interface WSMessage {
     type: string;
@@ -29,17 +28,14 @@ export interface WebSocketAdapterConfig {
     idleTimeout?: number;
 }
 
-export class WebSocketAdapter {
-    private registry: APIRegistry;
+export class WebSocketAdapter extends BaseAdapter {
     private server: WebSocketServer | null = null;
     private clients: Map<string, WSClient> = new Map();
     private eventSubscriptions: Map<string, Set<WebSocket>> = new Map();
     private config: Required<WebSocketAdapterConfig>;
-    private readonly logger: Logger;
 
-    constructor(registry?: APIRegistry, config: WebSocketAdapterConfig = {}) {
-        this.registry = registry || APIRegistry.getInstance();
-        this.logger = new Logger({ scope: 'api:websocket' });
+    constructor(registry?: any, config: WebSocketAdapterConfig = {}) {
+        super('api:websocket');
         this.config = {
             port: config.port ?? 8765,
             maxClients: config.maxClients ?? 100,

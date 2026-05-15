@@ -1,7 +1,7 @@
 import type {LMClient} from './types.js';
 import type {ModelCapability, ModelRegistry, ModelRegistryEntry} from './model-registry.js';
 import {errMsg} from '../utils';
-import {Logger} from '../logger/index.js';
+import {Logger, LoggerFactory} from '../logger/index.js';
 
 export interface ModelBenchmarkResult {
     modelId: string;
@@ -32,7 +32,7 @@ export class ModelCapabilityDiscovery {
 
     constructor(registry: ModelRegistry) {
         this.registry = registry;
-        this.logger = new Logger({ scope: 'lm:model-discovery' });
+        this.logger = LoggerFactory.getInstance().get('lm:model-discovery');
     }
 
     async discoverCapabilities(entry: ModelRegistryEntry): Promise<Partial<ModelCapability>> {

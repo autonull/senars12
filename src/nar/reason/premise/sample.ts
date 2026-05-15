@@ -8,7 +8,7 @@ export interface PremiseFilter {
     (concept: Concept, task: Task): boolean;
 }
 
-export interface TruthFilter {
+export interface TruthPredicate {
     (truth: { f: number; c: number }): boolean;
 }
 
@@ -16,13 +16,13 @@ export interface SampleConfig {
     sampleSize: number;
     limit: number;
     filter?: PremiseFilter;
-    truthFilter?: TruthFilter;
+    truthFilter?: TruthPredicate;
     skipSameTerm?: boolean;
 }
 
 const DEFAULT_CONFIG: Omit<SampleConfig, 'filter' | 'truthFilter'> & {
     filter: PremiseFilter | undefined;
-    truthFilter: TruthFilter | undefined;
+    truthFilter: TruthPredicate | undefined;
 } = {
     sampleSize: 20,
     limit: 10,

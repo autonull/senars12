@@ -3,7 +3,7 @@
  * Adapts registry handlers to MCP tools
  */
 
-import {APIRegistry} from './registry.js';
+import {BaseAdapter} from './base-adapter.js';
 
 export interface MCPTool {
     name: string;
@@ -24,11 +24,9 @@ export interface MCPToolCall {
     arguments?: Record<string, unknown>;
 }
 
-export class MCPAdapter {
-    private registry: APIRegistry;
-
-    constructor(registry?: APIRegistry) {
-        this.registry = registry || APIRegistry.getInstance();
+export class MCPAdapter extends BaseAdapter {
+    constructor(registry?: any) {
+        super('api:mcp');
     }
 
     /**

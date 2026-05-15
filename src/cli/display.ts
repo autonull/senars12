@@ -133,3 +133,18 @@ export function showCommandHelp(cmd: string): boolean {
     }
     return false;
 }
+
+export function formatPaginatedList<T>(
+    items: T[],
+    max: number,
+    format: (item: T) => string,
+    options: { prefix?: string; suffix?: string } = {}
+): string {
+    const page = items.slice(0, max);
+    const remaining = items.length - max;
+    const lines = page.map(format);
+    if (remaining > 0) lines.push(`... and ${remaining} more`);
+    const prefix = options.prefix ?? '';
+    const suffix = options.suffix ?? '';
+    return prefix + lines.join('\n') + suffix;
+}

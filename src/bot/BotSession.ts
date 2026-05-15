@@ -2,7 +2,7 @@ import type {NAR} from '../nar';
 import type {IRCServerConfig} from './EmbeddedIRCServer.js';
 import {EmbeddedIRCServer} from './EmbeddedIRCServer.js';
 import {createMessageRouter} from './message-router.js';
-import {Logger} from '../nar/logger/index.js';
+import {Logger, LoggerFactory} from '../nar/logger/index.js';
 import {errMsg} from '../nar/utils/index.js';
 
 export interface BotSessionDeps {
@@ -20,7 +20,7 @@ export class BotSession {
 
     constructor(deps: BotSessionDeps) {
         this.nar = deps.nar;
-        this.logger = new Logger({ scope: 'bot:session' });
+        this.logger = LoggerFactory.getInstance().get('bot:session');
         const channel = deps.ircConfig?.channel ?? '#senars';
 
         if (deps.ircConfig?.port) {

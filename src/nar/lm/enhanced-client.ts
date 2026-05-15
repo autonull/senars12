@@ -1,6 +1,6 @@
 import type {LMClient, LMConfig, LMExecutionStats} from './types.js';
 import type {ModelRegistryEntry} from './model-registry.js';
-import {Logger} from '../logger/index.js';
+import {Logger, LoggerFactory} from '../logger/index.js';
 
 export interface CacheEntry {
     response: string;
@@ -42,7 +42,7 @@ export class EnhancedLMClient implements LMClient {
     ) {
         this.baseClient = baseClient;
         this.modelEntry = modelEntry;
-        this.logger = new Logger({ scope: 'lm:enhanced-client' });
+        this.logger = LoggerFactory.getInstance().get('lm:enhanced-client');
         this.cacheConfig = {
             enabled: cacheConfig.enabled ?? true,
             ttlMs: cacheConfig.ttlMs ?? 3600000,
@@ -182,7 +182,7 @@ export class FallbackLMClient implements LMClient {
     }
 
     constructor() {
-        this.logger = new Logger({ scope: 'lm:fallback-client' });
+        this.logger = LoggerFactory.getInstance().get('lm:fallback-client');
     }
 
     async generateText(prompt: string, options?: LMConfig): Promise<string> {

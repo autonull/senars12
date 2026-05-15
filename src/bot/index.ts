@@ -3,10 +3,10 @@ import {BotSession} from './BotSession.js';
 import {SeNARSFactory} from '../nar';
 import {RealIRCClient} from './IRCClient.js';
 import {createMessageRouter} from './message-router.js';
-import {Logger} from '../nar/logger/index.js';
+import {Logger, LoggerFactory} from '../nar/logger/index.js';
 import {errMsg} from '../nar/utils/index.js';
 
-const logger = new Logger({ scope: 'bot' });
+const logger = LoggerFactory.getInstance().get('bot');
 
 export interface Bot {
     start: () => Promise<void>;

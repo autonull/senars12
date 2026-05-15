@@ -1,6 +1,6 @@
 import net from 'net';
 import {EventEmitter} from 'events';
-import {Logger} from '../nar/logger/index.js';
+import {Logger, LoggerFactory} from '../nar/logger/index.js';
 
 export interface IRCMessage {
     prefix?: string;
@@ -28,7 +28,7 @@ export class EmbeddedIRCServer extends EventEmitter {
             hostname: config.hostname ?? '127.0.0.1',
             channel: config.channel ?? '#senars',
         };
-        this.logger = new Logger({ scope: 'bot:irc-server' });
+        this.logger = LoggerFactory.getInstance().get('bot:irc-server');
         this.server = net.createServer();
         this.setupServer();
     }

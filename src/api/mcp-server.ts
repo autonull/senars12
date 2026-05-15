@@ -5,7 +5,7 @@
 
 import {APIRegistry} from './registry.js';
 import {MCPAdapter} from './mcp-adapter.js';
-import {Logger} from '../nar/logger/index.js';
+import {Logger, LoggerFactory} from '../nar/logger/index.js';
 
 export interface MCPServerConfig {
     name?: string;
@@ -24,7 +24,7 @@ export class MCPServer {
 
     constructor(registry?: APIRegistry, config: MCPServerConfig = {}) {
         this.adapter = new MCPAdapter(registry);
-        this.logger = new Logger({ scope: 'api:mcp-server' });
+        this.logger = LoggerFactory.getInstance().get('api:mcp-server');
         this.config = {
             name: config.name ?? 'senars-mcp',
             version: config.version ?? '1.0.0',

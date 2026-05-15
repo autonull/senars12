@@ -4,9 +4,9 @@
  */
 
 import {IncomingMessage, ServerResponse} from 'http';
-import {APIRegistry} from './registry.js';
 import {URL} from 'url';
 import {randomBytes} from 'crypto';
+import {BaseAdapter} from './base-adapter.js';
 
 export interface HTTPAdapterConfig {
     port?: number;
@@ -23,14 +23,13 @@ interface RateLimitState {
     resetTime: number;
 }
 
-export class HTTPAdapter {
-    private registry: APIRegistry;
+export class HTTPAdapter extends BaseAdapter {
     private config: Required<HTTPAdapterConfig>;
     private rateLimitState: Map<string, RateLimitState> = new Map();
     private apiKeys: Set<string> = new Set();
 
-    constructor(registry?: APIRegistry, config: HTTPAdapterConfig = {}) {
-        this.registry = registry || APIRegistry.getInstance();
+    constructor(registry?: any, config: HTTPAdapterConfig = {}) {
+        super('api:http');
         this.config = {
             port: config.port ?? 8080,
             apiKey: config.apiKey ?? randomBytes(32).toString('hex'),

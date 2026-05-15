@@ -80,3 +80,9 @@ export function createCommandContext(nar: NAR): CommandContext {
         getLM: () => nar.getLMClient?.()
     };
 }
+
+export function requireArgs(ctx: CommandContext, args: string[], usage: string): args is string[] {
+    if (args.length > 0) return true;
+    ctx.logger.info(`Usage: ${usage}`);
+    return false;
+}

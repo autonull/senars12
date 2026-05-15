@@ -1,6 +1,6 @@
 import type {LMClient} from './types.js';
 import type {ModelRegistry, ModelRegistryEntry} from './model-registry.js';
-import {Logger} from '../logger/index.js';
+import {Logger, LoggerFactory} from '../logger/index.js';
 
 export interface RoutingStrategy {
     type: 'speed' | 'quality' | 'cost' | 'balanced' | 'custom';
@@ -26,7 +26,7 @@ export class LMRouter {
 
     constructor(registry: ModelRegistry, config: Partial<RouterConfig> = {}) {
         this.registry = registry;
-        this.logger = new Logger({ scope: 'lm:router' });
+        this.logger = LoggerFactory.getInstance().get('lm:router');
         this.config = {
             defaultStrategy: config.defaultStrategy ?? {type: 'balanced'},
             enableAdaptiveRouting: config.enableAdaptiveRouting ?? true,
