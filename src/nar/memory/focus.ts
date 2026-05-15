@@ -44,11 +44,7 @@ export class Focus {
     }
 
     getFocusSet(): Concept[] {
-        const result: Concept[] = [];
-        for (const entry of this.concepts.values()) {
-            result.push(entry.concept);
-        }
-        return result;
+        return [...this.concepts.values()].map(entry => entry.concept);
     }
 
     clearFocus(): void {

@@ -172,7 +172,7 @@ registry.register('getConfig', {
         params: z.object({}),
         returns: z.object({concepts: z.array(z.object({term: z.string(), priority: z.number()})), total: z.number()}),
         handler: async () => {
-            const attention = nar.getAttentionReport();
+            const attention = nar.attentionReport();
             return {concepts: attention.concepts, total: attention.total};
         },
     });

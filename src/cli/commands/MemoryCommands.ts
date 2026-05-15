@@ -112,15 +112,11 @@ export const MemoryCommands: CommandDefinition[] = [
         description: 'Show attention allocation report',
         usage: '.attention',
         handler: (ctx) => {
-            const report = ctx.nar.getAttentionReport();
-            if (!report) {
-                ctx.logger.info('Attention report not available');
-                return;
-            }
+            const report = ctx.nar.attentionReport();
 
-            const lines = [
+            const lines: string[] = [
                 `Total Concepts: ${String(report.total)}`,
-                ...report.concepts.slice(0, 10).map(c =>
+                ...report.concepts.slice(0, 10).map((c: { term: string; priority: number }) =>
                     `${c.term.substring(0, 40).padEnd(40)} ${c.priority.toFixed(3)}`
                 )
             ];

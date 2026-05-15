@@ -17,7 +17,7 @@ function createCommandHandler(deps: CommandHandlerDeps, cmd: string, help: strin
         name: cmd,
         help,
         matches: (c: string) => c === cmd || c === `!${cmd.slice(1)}`,
-        handle: (ch: string, u: string, a: string[]) => fn(ch, u, a),
+        handle: (channel: string, user: string, args: string[]) => fn(channel, user, args),
     });
 }
 

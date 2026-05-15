@@ -8,6 +8,7 @@ import {URL} from 'url';
 import {randomBytes} from 'crypto';
 import {BaseAdapter} from './base-adapter.js';
 import type {APIResponse} from './base-adapter.js';
+import {errMsg} from '../nar/utils/helpers.js';
 
 export interface HTTPAdapterConfig {
     port?: number;
@@ -125,7 +126,7 @@ export class HTTPAdapter extends BaseAdapter {
             res.statusCode = 200;
             res.end(JSON.stringify(result));
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : String(error);
+            const message = errMsg(error);
             res.statusCode = 400;
             const response: APIResponse = BaseAdapter.errorResponse('HANDLER_ERROR', message);
             res.end(JSON.stringify(response));

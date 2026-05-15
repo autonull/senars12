@@ -56,67 +56,38 @@ export class NARLM {
     }
 
     async processHypothesisWithFeedback(hypothesis: Task): Promise<boolean> {
-        if (!this.feedbackLoop) {
-            return false;
-        }
-        const result = await this.feedbackLoop.processHypothesis(hypothesis);
+        const result = this.feedbackLoop ? await this.feedbackLoop.processHypothesis(hypothesis) : null;
         return result !== null;
     }
 
     async enrichMemory(): Promise<void> {
-        if (!this.enricher) {
-            return;
-        }
-        await this.enricher.runEnrichmentCycle();
+        await this.enricher?.runEnrichmentCycle();
     }
 
-    async streamResponse(
-        prompt: string,
-        onToken: (token: string) => void,
-        lmClient?: LMClient
-    ): Promise<string> {
-        if (!this.streamingClient || !lmClient) {
-            if (!lmClient) {
-                throw new Error('LM client not configured');
-            }
-            return lmClient.generateText(prompt);
-        }
+    async streamResponse(prompt: string, onToken: (token: string) => void, lmClient?: LMClient): Promise<string> {
+        if (!lmClient) throw new Error('LM client not configured');
+        if (!this.streamingClient) return lmClient.generateText(prompt);
         return this.streamingClient.streamGenerateText(prompt, onToken);
     }
 
     cancelStream(streamId: string): boolean {
-        if (!this.streamingClient) {
-            return false;
-        }
-        return this.streamingClient.cancelStream(streamId);
+        return this.streamingClient?.cancelStream(streamId) ?? false;
     }
 
     getEnrichmentStats(): LMEnrichmentStats | null {
-        if (!this.enricher) {
-            return null;
-        }
-        const stats = this.enricher.getStats();
-        return {
+        const stats = this.enricher?.getStats();
+        return stats ? {
             cycles: stats.enrichmentCycles,
             conceptsEnriched: stats.totalConceptsEnriched,
             hypothesesGenerated: stats.totalHypothesesGenerated
-        };
+        } : null;
     }
 
     getFeedbackStats(): FeedbackStats | null {
-        if (!this.feedbackLoop) {
-            return null;
-        }
-        return {
-            pendingValidations: this.feedbackLoop.getPendingValidations().length
-        };
+        return this.feedbackLoop ? { pendingValidations: this.feedbackLoop.getPendingValidations().length } : null;
     }
 
     getStreamingStats(): LMStreamingStats | null {
-        if (!this.streamingClient) {
-            return null;
-        }
-        const manager = this.streamingClient.getStreamManager();
-        return manager.getStats();
+        return this.streamingClient?.getStreamManager().getStats() ?? null;
     }
 }

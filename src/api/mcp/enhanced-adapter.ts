@@ -12,6 +12,7 @@ import {
 	LogEntry,
 } from './types.js';
 import {SchemaTransformer, getSchemaTransformer} from './schema-transformer.js';
+import {errMsg} from '../../nar/utils/helpers.js';
 import {APIRegistry} from '../registry.js';
 
 /**
@@ -121,7 +122,7 @@ export class EnhancedMCPAdapter extends BaseMCPAdapter {
 				success: false,
 				error: {
 					code: 'EXECUTION_ERROR',
-					message: error instanceof Error ? error.message : String(error),
+					message: errMsg(error),
 				},
 			};
 		}

@@ -8,7 +8,7 @@ export interface NARExtended {
     loadDomain(domain: { name: string; beliefs: string[] }): void;
     setConstitution(beliefs: Task[]): void;
     getConstitution(): Task[];
-    getAttentionReport(): { concepts: Array<{ term: string; priority: number }>; total: number };
+    attentionReport(): { concepts: Array<{ term: string; priority: number }>; total: number };
 }
 
 export interface CommandContext {

@@ -5,6 +5,7 @@
 
 import {WebSocket, WebSocketServer} from 'ws';
 import {BaseAdapter} from './base-adapter.js';
+import {errMsg} from '../nar/utils/helpers.js';
 
 const CLIENT_ID_CHARS = '0123456789abcdefghijklmnopqrstuvwxyz';
 const generateClientId = (): string =>
@@ -222,7 +223,7 @@ export class WebSocketAdapter extends BaseAdapter {
             const result = await this.registry.invoke(type, data ?? {}) as Record<string, unknown>;
             this.sendSuccess(ws, result, message.id);
         } catch (error: unknown) {
-            this.sendError(ws, error instanceof Error ? error.message : String(error), message.id);
+            this.sendError(ws, errMsg(error), message.id);
         }
     }
 

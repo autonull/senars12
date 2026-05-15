@@ -149,24 +149,26 @@ export class Forgetting {
 
     private selectByPriority(concepts: Concept[]): Concept | undefined {
         const policy = this.policy as { type: 'priority'; threshold: number };
-        return concepts.find(c => c.priority < policy.threshold) ?? concepts.reduce((min, c) => min && c.priority < min.priority ? c : min, concepts[0]);
+        return concepts.find(c => c.priority < policy.threshold) ?? concepts[0];
+    }
+
+    private findOldest(concepts: Concept[]): Concept | undefined {
+        return concepts.reduce((oldest, c) => this.getLastAccess(c) < this.getLastAccess(oldest) ? c : oldest, concepts[0]!);
     }
 
     private selectByAge(concepts: Concept[]): Concept | undefined {
         const policy = this.policy as { type: 'age'; maxAgeMs: number };
         const now = Date.now();
-        const found = concepts.find(c => now - this.getLastAccess(c) > policy.maxAgeMs);
-        if (found) return found;
-        if (concepts.length === 0) return undefined;
-        return concepts.reduce((oldest, c) => this.getLastAccess(c) < this.getLastAccess(oldest) ? c : oldest, concepts[0]!);
+        return concepts.find(c => now - this.getLastAccess(c) > policy.maxAgeMs) ?? this.findOldest(concepts);
     }
 
     private selectByComposite(concepts: Concept[], scorer: MemoryScorer): Concept | undefined {
         const policy = this.policy as { type: 'composite'; weights: { priority: number; age: number } };
-        return concepts.reduce((worst, c) => {
-            const score = scorer.score(c) * policy.weights.priority + (Date.now() - this.getLastAccess(c)) * policy.weights.age;
-            const worstScore = worst ? scorer.score(worst) * policy.weights.priority + (Date.now() - this.getLastAccess(worst)) * policy.weights.age : -Infinity;
-            return score > worstScore ? c : worst;
-        }, undefined as Concept | undefined);
+        const calcScore = (c: Concept) => scorer.score(c) * policy.weights.priority + (Date.now() - this.getLastAccess(c)) * policy.weights.age;
+        let worst: Concept | undefined;
+        for (const c of concepts) {
+            if (!worst || calcScore(c) > calcScore(worst)) worst = c;
+        }
+        return worst;
     }
 }

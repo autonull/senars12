@@ -232,10 +232,6 @@ export class NAR extends BaseComponent {
     return {concepts: sorted, total: concepts.length};
   }
 
-  getAttentionReport() {
-    return this.attentionReport();
-  }
-
   // Domain loading
   loadDomain(domain: { name: string; beliefs: string[] }): void {
     for (const belief of domain.beliefs) {

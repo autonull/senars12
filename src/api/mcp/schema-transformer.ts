@@ -11,6 +11,7 @@ import {
 	SchemaTransformationResult,
 	ValidationResult,
 } from './types.js';
+import {errMsg} from '../../nar/utils/helpers.js';
 
 /**
  * Schema transformation service
@@ -121,7 +122,7 @@ export class SchemaTransformer {
 		} catch (error) {
 			return {
 				isValid: false,
-				errors: [error instanceof Error ? error.message : String(error)],
+				errors: [errMsg(error)],
 			};
 		}
 	}

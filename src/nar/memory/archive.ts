@@ -29,15 +29,11 @@ export class Archive {
         return this.config.maxArchivedConcepts;
     }
 
-    get stats(): {
-        size: number;
-        capacity: number;
-        utilization: number;
-    } {
+    get stats(): { size: number; capacity: number; utilization: number } {
         return {
-            size: this.size,
-            capacity: this.capacity,
-            utilization: this.size / this.capacity
+            size: this.archived.size,
+            capacity: this.config.maxArchivedConcepts,
+            utilization: this.archived.size / this.config.maxArchivedConcepts
         };
     }
 

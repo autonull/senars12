@@ -54,10 +54,8 @@ export class TaskManager {
     }
 
     peekTask(): Task | undefined {
-        const pending = Array.from(this.pending.values());
-        if (pending.length === 0) return undefined;
-        const sorted = pending.sort((a, b) => b.priority - a.priority);
-        return sorted[0]?.task;
+        const pending = [...this.pending.values()].sort((a, b) => b.priority - a.priority);
+        return pending[0]?.task;
     }
 
     addTask(task: Task, timeout?: number): void {
@@ -135,7 +133,7 @@ export class TaskManager {
     }
 
     getTask(taskId: string): TaskWrapper | undefined {
-        return this.pending.get(taskId) || this.completed.get(taskId) || this.failed.get(taskId);
+        return this.pending.get(taskId) ?? this.completed.get(taskId) ?? this.failed.get(taskId);
     }
 
     clear(): void {

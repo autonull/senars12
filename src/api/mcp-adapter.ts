@@ -6,6 +6,7 @@
 import {BaseAdapter} from './base-adapter.js';
 import {z} from 'zod';
 import {SchemaTransformer} from './mcp/schema-transformer.js';
+import {errMsg} from '../nar/utils/helpers.js';
 
 export interface MCPTool {
 	name: string;
@@ -81,7 +82,7 @@ export class MCPAdapter extends BaseAdapter {
 				],
 			};
 		} catch (error: unknown) {
-			const message = error instanceof Error ? error.message : String(error);
+			const message = errMsg(error);
 			return {
 				content: [
 					{

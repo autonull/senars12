@@ -151,73 +151,37 @@ export class QueryAPI {
     }
 
     private queryByType(type: TaskType, filter?: TermFilter): Task[] {
-        const tasks: Task[] = [];
-        const concepts = this.memory.listConcepts();
-
-        for (const concept of concepts) {
-            const extracted = this.extractTasks(concept, type);
-            tasks.push(...extracted);
-        }
-
+        const tasks = this.memory.listConcepts().flatMap(concept => this.extractTasks(concept, type));
         return this.limitResults(this.applyFilters(tasks, filter), filter?.limit);
     }
 
     private extractTasks(concept: Concept, type: TaskType): Task[] {
-        const tasks: Task[] = [];
-        const bag = type === 'belief' ? concept.beliefBag :
-            type === 'goal' ? concept.goalBag :
-                type === 'question' ? concept.questionBag : null;
+        const bag = type === 'belief' ? concept.beliefBag : type === 'goal' ? concept.goalBag : type === 'question' ? concept.questionBag : null;
+        if (!bag) return [];
 
-        if (bag) {
-            for (const item of bag.toArray()) {
-                tasks.push({
-                    term: concept.term,
-                    type,
-                    truth: item.truth,
-                    budget: typeof item.budget === 'number' ? {
-                        priority: item.budget,
-                        durability: 0.8,
-                        quality: 0.9,
-                        cycles: 0,
-                        depth: 0
-                    } : item.budget,
-                    stamp: item.stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
-                    occurrenceTime: item.occurrenceTime || Date.now(),
-                    derived: item.derived || false
-                } as Task);
-            }
-        }
-
-        return tasks;
+        return bag.toArray().map(item => ({
+            term: concept.term,
+            type,
+            truth: item.truth,
+            budget: typeof item.budget === 'number' ? {priority: item.budget, durability: 0.8, quality: 0.9, cycles: 0, depth: 0} : item.budget,
+            stamp: item.stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
+            occurrenceTime: item.occurrenceTime || Date.now(),
+            derived: item.derived || false
+        } as Task));
     }
 
     private applyFilters(tasks: Task[], filter?: TermFilter): Task[] {
         if (!filter) return tasks;
 
         return tasks.filter(task => {
-            if (filter.pattern && !this.matchesPattern(task, filter.pattern.toString())) {
-                return false;
-            }
-
+            if (filter.pattern && task.term.toString() !== filter.pattern.toString()) return false;
             if (filter.truthRange) {
                 const [min, max] = filter.truthRange;
                 const confidence = task.truth.f * task.truth.c;
-                if (confidence < min || confidence > max) {
-                    return false;
-                }
+                if (confidence < min || confidence > max) return false;
             }
-
-            if (filter.recency) {
-                const now = Date.now();
-                if (now - task.occurrenceTime > filter.recency) {
-                    return false;
-                }
-            }
-
-            if (filter.type && task.type !== filter.type) {
-                return false;
-            }
-
+            if (filter.recency && Date.now() - task.occurrenceTime > filter.recency) return false;
+            if (filter.type && task.type !== filter.type) return false;
             return true;
         });
     }
