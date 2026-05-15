@@ -6,6 +6,7 @@
 import {SeNARSMCPServer} from '../../api/mcp-server.js';
 import {APIRegistry} from '../../api/registry.js';
 import {LoggerFactory} from '../../nar/logger/index.js';
+import {registerDefaultModels, getTurnkeyConfig} from '../../nar/lm/defaults.js';
 
 interface MCPCommandOptions {
 	transport?: 'stdio' | 'sse' | 'http';
@@ -21,6 +22,11 @@ export async function startMCPServer(
 
 	try {
 		logger.info('Starting MCP Server...');
+
+		// Register default LM models for turnkey operation
+		registerDefaultModels();
+		const config = getTurnkeyConfig();
+		logger.info(`Default LM: ${config.lm.provider}/${config.lm.model}`);
 
 		// Get or create API registry
 		const registry = APIRegistry.getInstance();

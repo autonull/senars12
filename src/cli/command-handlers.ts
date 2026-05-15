@@ -30,21 +30,25 @@ export class CommandHandlers {
         }
     }
 
-    handleCommand(input: string): void {
-        const parts = input.split(/\s+/);
-        const cmd = parts[0]!;
-        const args = parts.slice(1);
+	async handleCommand(input: string): Promise<void> {
+		const parts = input.split(/\s+/);
+		const cmd = parts[0]!;
+		const args = parts.slice(1);
 
-        if (cmd === '.quit') {
-            process.exit(0);
-        }
+		if (cmd === '.quit') {
+			process.exit(0);
+		}
 
-        try {
-            this.registry.handle(cmd, {...this.ctx, args});
-        } catch (error) {
-            this.ctx.logger.error(`Error: ${error}`);
-        }
-    }
+		try {
+			const result = this.registry.handle(cmd, {...this.ctx, args});
+			// Handle async command handlers
+			if (result instanceof Promise) {
+				await result;
+			}
+		} catch (error) {
+			this.ctx.logger.error(`Error: ${error}`);
+		}
+	}
 
     async handleBelief(term: string): Promise<void> {
         try {

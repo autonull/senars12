@@ -8,10 +8,13 @@ import {NAR} from './nar.js';
 import type {LMClient} from './lm';
 import type {CoreConfig} from './types';
 import {DEFAULT_CONFIG} from './types';
+import {setupDefaultLMClient} from './lm/defaults.js';
+import {createSeNARSRegistry, type SeNARSRegistry} from './lm/providers.js';
 
 export interface SeNARSOptions {
     core?: Partial<CoreConfig>;
     lmClient?: LMClient;
+    providerRegistry?: SeNARSRegistry;
     enableLMRules?: boolean;
 }
 
@@ -68,19 +71,23 @@ const TEST_CONFIG = {
 
 export class SeNARSFactory {
     static createDefault(options: SeNARSOptions = {}): NAR {
+        const registry = options.providerRegistry ?? createSeNARSRegistry();
+        const lmClient = options.lmClient ?? setupDefaultLMClient();
         const config: NARConfig = {
             ...DEFAULT_CONFIG, ...options.core,
-            enableLMRules: options.enableLMRules ?? false,
-            lmClient: options.lmClient ?? undefined
+            enableLMRules: options.enableLMRules ?? true,
+            lmClient,
+            providerRegistry: registry,
         };
         return new NAR(config);
     }
 
-    static fromConfig(config: SeNARSConfig, lmClient?: LMClient | null): NAR {
+    static fromConfig(config: SeNARSConfig, lmClient?: LMClient | null, registry?: SeNARSRegistry | null): NAR {
         const narConfig: NARConfig = {
             ...config.nar,
             enableLMRules: config.lm?.enabled ?? false,
-            lmClient: config.lm?.enabled ? lmClient ?? undefined : undefined
+            lmClient: config.lm?.enabled ? lmClient ?? setupDefaultLMClient() : undefined,
+            providerRegistry: registry ?? createSeNARSRegistry(),
         };
         return new NAR(narConfig);
     }

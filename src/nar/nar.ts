@@ -9,6 +9,7 @@ import {termsEqual} from './terms';
 import type {Truth as TruthType} from './terms/truth.js';
 import type {LMClient} from './lm';
 import {LMRules} from './lm';
+import type {SeNARSRegistry} from './lm/providers.js';
 import {QueryAPI, ReasoningTrace} from './query';
 import {MetricsCollector} from './metrics';
 import {createLogger} from './logger';
@@ -30,15 +31,16 @@ export interface RLFPConfig {
 }
 
 export interface NARConfig extends CoreConfig {
-  lmClient?: LMClient;
-  enableLMRules?: boolean;
-  enableTools?: boolean;
-  enableSelf?: boolean;
-  enableRLFP?: boolean;
-  rlfp?: RLFPConfig;
-  enableBidirectionalFeedback?: boolean;
-  enableProactiveEnrichment?: boolean;
-  enableLMStreaming?: boolean;
+    lmClient?: LMClient;
+    providerRegistry?: SeNARSRegistry;
+    enableLMRules?: boolean;
+    enableTools?: boolean;
+    enableSelf?: boolean;
+    enableRLFP?: boolean;
+    rlfp?: RLFPConfig;
+    enableBidirectionalFeedback?: boolean;
+    enableProactiveEnrichment?: boolean;
+    enableLMStreaming?: boolean;
 }
 
 interface ToolDependency {
@@ -76,16 +78,17 @@ export class NAR extends BaseComponent {
   readonly self?: ReasoningAboutReasoning;
   readonly rlfp?: RLFPLearner;
 
-  private readonly io: NARIO;
-  private readonly execution: NARExecution;
-  private readonly lm: NARLM;
-  private readonly config: NARConfig;
-  private readonly processor: RuleProcessor;
-  private readonly _metricsCollector: MetricsCollector;
-  private readonly _lmClient?: LMClient;
-  private _lmInitialized = false;
-  private _toolsInitialized = false;
-  private _constitution: Task[] = [];
+    private readonly io: NARIO;
+    private readonly execution: NARExecution;
+    private readonly lm: NARLM;
+    private readonly config: NARConfig;
+    private readonly processor: RuleProcessor;
+    private readonly _metricsCollector: MetricsCollector;
+    private readonly _lmClient?: LMClient;
+    private readonly _registry?: SeNARSRegistry;
+    private _lmInitialized = false;
+    private _toolsInitialized = false;
+    private _constitution: Task[] = [];
 
   constructor(config: NARConfig = DEFAULT_CONFIG) {
     const eventBus = new EventBus();
@@ -103,7 +106,8 @@ export class NAR extends BaseComponent {
     this.query = new QueryAPI(this.memory);
     this.traceAPI = new ReasoningTrace(this.memory);
     this.tools = new ToolManager();
-    this._lmClient = this.config.lmClient;
+        this._lmClient = this.config.lmClient;
+        this._registry = this.config.providerRegistry;
 
     if (this.config.enableRLFP) this.rlfp = new RLFPLearner({});
 
@@ -196,12 +200,30 @@ export class NAR extends BaseComponent {
     this.memory.setConfig(updates);
   }
 
-  // Component accessors
-  getLMClient(): LMClient | undefined {
-    return this._lmClient;
-  }
+    // Component accessors
+    getLMClient(): LMClient | undefined {
+        return this._lmClient;
+    }
 
-  getSelfAnalyzer(): ReasoningAboutReasoning | undefined {
+    getProviderRegistry(): SeNARSRegistry | undefined {
+        return this._registry;
+    }
+
+    getQualityModel() {
+        if (!this._registry) return undefined;
+        return this._registry.languageModel('cloud:quality')
+            ?? this._registry.languageModel('local:quality')
+            ?? this._registry.languageModel('builtin:compact');
+    }
+
+    getFastModel() {
+        if (!this._registry) return undefined;
+        return this._registry.languageModel('cloud:fast')
+            ?? this._registry.languageModel('local:fast')
+            ?? this._registry.languageModel('builtin:compact');
+    }
+
+    getSelfAnalyzer(): ReasoningAboutReasoning | undefined {
     return this.self;
   }
 

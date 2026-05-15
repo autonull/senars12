@@ -1,7 +1,7 @@
 import type {LMClient} from './types.js';
 import {Logger, LoggerFactory} from '../logger/index.js';
 
-export type ModelProvider = 'anthropic' | 'openai' | 'ollama' | 'mock';
+export type ModelProvider = 'anthropic' | 'openai' | 'ollama' | 'mock' | 'transformers';
 
 export interface ModelCapability {
     provider: ModelProvider;

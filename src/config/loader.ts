@@ -83,8 +83,10 @@ const DEFAULT_APP_CONFIG: ValidatedConfig = {
     name: 'SeNARS12',
     version: '1.0.0',
     lm: {
-        enabled: false,
-        provider: 'mock'
+        enabled: true,
+        provider: 'transformers',
+        model: 'Xenova/Llama-3.2-1B-Instruct',
+        quantized: true
     },
     core: {
         maxConcepts: 100,

@@ -10,7 +10,8 @@
   "scripts": {
     "dev": "tsx --watch src/index.ts",
     "start": "tsx src/index.ts",
-    "mcp": "tsx src/bin/mcp-server.ts",
+    "repl": "NODE_NO_WARNINGS=1 tsx src/cli/repl.ts",
+    "mcp": "NODE_NO_WARNINGS=1 tsx src/bin/mcp-server.ts",
     "test": "NODE_NO_WARNINGS=1 NODE_OPTIONS='--experimental-vm-modules' pnpm exec jest --config jest.config.cjs",
     "test:unit": "NODE_NO_WARNINGS=1 NODE_OPTIONS='--experimental-vm-modules' pnpm exec jest --config jest.unit.config.cjs",
     "lint": "eslint .",
@@ -20,10 +21,17 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.79",
+    "@browser-ai/transformers-js": "1.0.0",
+    "@huggingface/transformers": "^3.0.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "ai": "^5.0.188",
+    "cli-table3": "^0.6.5",
+    "figures": "^6.1.0",
     "irc": "^0.5.2",
+    "kleur": "^4.1.5",
     "ollama": "^0.6.3",
+    "ollama-ai-provider-v2": "^3.5.1",
+    "ora": "^9.4.0",
     "zod": "^4.4.3",
     "zod-to-json-schema": "^3.25.2"
   },

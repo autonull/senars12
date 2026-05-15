@@ -1,7 +1,8 @@
 allowBuilds:
   '@swc/core': set this to true or false
-  esbuild: set this to true or false
-  iconv: set this to true or false
-  node-icu-charset-detector: set this to true or false
-  protobufjs: set this to true or false
-  sharp: set this to true or false
+  esbuild: true
+  iconv: true
+  node-icu-charset-detector: true
+  onnxruntime-node: false
+  protobufjs: false
+  sharp: false

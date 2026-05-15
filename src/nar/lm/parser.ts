@@ -12,151 +12,73 @@ export interface ParsedLMResponse {
 
 export interface StructuredLMOutput {
     narsese: string;
-    truth?: {
-        f: number;
-        c: number;
-    };
+    truth?: {f: number; c: number};
     confidence?: number;
 }
 
-export class LMResponseParser {
-    static parse(response: string, defaultTruth?: Truth): ParsedLMResponse {
+export const LMResponseParser = {
+    parse(response: string, defaultTruth?: Truth): ParsedLMResponse {
         if (!response || response.trim() === '') {
-            return {
-                term: termParser.parse('TRUE'),
-                truth: defaultTruth,
-                valid: false,
-                raw: response,
-                error: 'Empty response'
-            };
+            return {term: termParser.parse('TRUE'), truth: defaultTruth, valid: false, raw: response, error: 'Empty response'};
         }
-
         try {
-            const structured = this.extractStructuredOutput(response);
-
+            const structured = extractStructuredOutput(response);
             if (structured) {
                 const {term, truth} = termParser.parseWithTruth(structured.narsese);
                 const finalTruth = structured.truth
                     ? Truth.create(structured.truth.f, structured.truth.c)
                     : (truth ?? defaultTruth ?? Truth.NEUTRAL);
-
-                return {
-                    term,
-                    truth: finalTruth,
-                    confidence: structured.confidence,
-                    raw: response,
-                    valid: true
-                };
+                return {term, truth: finalTruth, confidence: structured.confidence, raw: response, valid: true};
             }
-
             const plainText = response.trim();
             const {term, truth} = termParser.parseWithTruth(plainText);
-            const finalTruth = truth ?? defaultTruth ?? Truth.NEUTRAL;
-
-            return {
-                term,
-                truth: finalTruth,
-                raw: response,
-                valid: true
-            };
+            return {term, truth: truth ?? defaultTruth ?? Truth.NEUTRAL, raw: response, valid: true};
         } catch (error) {
-            const extractedTerm = this.extractTermFromText(response);
-            if (extractedTerm) {
-                return {
-                    term: extractedTerm,
-                    truth: defaultTruth ?? Truth.NEUTRAL,
-                    raw: response,
-                    valid: true
-                };
-            }
-
             return {
                 term: termParser.parse('TRUE'),
-                truth: defaultTruth ?? Truth.NEUTRAL,
-                raw: response,
+                truth: defaultTruth,
                 valid: false,
-                error: error instanceof Error ? error.message : 'Failed to parse Narsese'
+                raw: response,
+                error: error instanceof Error ? error.message : String(error),
             };
         }
-    }
+    },
 
-    static validate(response: string): { valid: boolean; error?: string } {
+    validate(response: string, defaultTruth?: Truth): ParsedLMResponse {
         if (!response || response.trim() === '') {
-            return {valid: false, error: 'Empty response'};
+            return {term: termParser.parse('TRUE'), truth: defaultTruth, valid: false, raw: response, error: 'Empty response'};
         }
-
-        if (response.includes('-->') || response.includes('=>') || response.includes('<->')) {
-            return {valid: true};
-        }
-
-        if (response.includes('{') && response.includes('}')) {
+        const trimmed = response.trim();
+        if (trimmed.startsWith('{')) {
             try {
-                const jsonMatch = response.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    JSON.parse(jsonMatch[0]);
-                    return {valid: true};
+                const parsed = JSON.parse(trimmed);
+                if (parsed.narsese) {
+                    const {term, truth} = termParser.parseWithTruth(parsed.narsese);
+                    const finalTruth = parsed.truth
+                        ? Truth.create(parsed.truth.f, parsed.truth.c)
+                        : (truth ?? defaultTruth ?? Truth.NEUTRAL);
+                    return {term, truth: finalTruth, raw: response, valid: true};
                 }
+                return {term: termParser.parse('TRUE'), truth: defaultTruth, valid: false, raw: response, error: 'Missing narsese field in JSON'};
             } catch {
-                return {valid: false, error: 'Invalid JSON in response'};
+                return {term: termParser.parse('TRUE'), truth: defaultTruth, valid: false, raw: response, error: 'Invalid JSON in response'};
             }
         }
-
-        return {valid: true};
-    }
-
-    private static extractStructuredOutput(response: string): StructuredLMOutput | null {
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) return null;
-
         try {
-            const jsonStr = jsonMatch[0];
-            const obj = JSON.parse(jsonStr);
-
-            if (typeof obj.narsese === 'string') {
-                return {
-                    narsese: obj.narsese,
-                    truth: obj.truth,
-                    confidence: obj.confidence
-                };
-            }
+            const {term, truth} = termParser.parseWithTruth(trimmed);
+            return {term, truth: truth ?? defaultTruth ?? Truth.NEUTRAL, raw: response, valid: true};
         } catch {
-            return null;
+            return {term: termParser.parse('TRUE'), truth: defaultTruth, valid: false, raw: response, error: 'Invalid Narsese syntax'};
         }
+    },
+};
 
-        return null;
-    }
-
-    private static extractTermFromText(text: string): Term | null {
-        const inheritanceMatch = text.match(/\(([^()]+)\s*-->\s*([^()]+)\)/);
-        if (inheritanceMatch) {
-            try {
-                return termParser.parse(inheritanceMatch[0]);
-            } catch {
-                return null;
-            }
-        }
-
-        const implicationMatch = text.match(/\(([^()]+)\s*=>\s*([^()]+)\)/);
-        if (implicationMatch) {
-            try {
-                return termParser.parse(implicationMatch[0]);
-            } catch {
-                return null;
-            }
-        }
-
-        const lines = text.split('\n');
-        for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.includes('-->') || trimmed.includes('=>') || trimmed.includes('<->')) {
-                try {
-                    return termParser.parse(trimmed);
-                } catch {
-                    continue;
-                }
-            }
-        }
-
+function extractStructuredOutput(response: string): StructuredLMOutput | null {
+    const jsonMatch = response.match(/\{[\s\S]*"narsese"\s*:[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    try {
+        return JSON.parse(jsonMatch[0]);
+    } catch {
         return null;
     }
 }

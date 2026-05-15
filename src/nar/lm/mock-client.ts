@@ -19,6 +19,9 @@ const DEFAULT_RESPONSES: Record<string, string> = {
 };
 
 export class MockLMClient implements LMClient {
+    readonly provider = 'mock';
+    readonly model = 'default';
+    readonly available = true;
     private responses: Map<string, MockResponse> = new Map();
     private callLog: Array<{ prompt: string; response: string }> = [];
     private shouldFail = false;

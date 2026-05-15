@@ -7,12 +7,19 @@
 import {SeNARSMCPServer} from '../api/mcp-server.js';
 import {APIRegistry} from '../api/registry.js';
 import {LoggerFactory} from '../nar/logger/index.js';
+import {registerDefaultModels, getTurnkeyConfig} from '../nar/lm/defaults.js';
 
 async function main() {
 	const logger = LoggerFactory.getInstance().get('mcp:bin');
 
 	try {
 		logger.info('Starting SeNARS MCP Server...');
+
+		// Register default models including Transformers.js
+		registerDefaultModels();
+		const config = getTurnkeyConfig();
+		logger.info(`Default LM: ${config.lm.provider}/${config.lm.model}`);
+		logger.info(`Fallback chain: ${config.fallbackChain.join(' -> ')}`);
 
 		// Get or create API registry
 		const registry = APIRegistry.getInstance();
