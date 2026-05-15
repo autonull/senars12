@@ -6,6 +6,9 @@
 export const clamp = (v: number, min: number, max: number): number =>
   Math.max(min, Math.min(max, v));
 
+/** Clamps value between 0 and 1 */
+export const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
+
 /** Calculate average of numbers, returns 0 for empty array */
 export const average = (values: number[]): number =>
   values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;

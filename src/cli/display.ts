@@ -3,8 +3,10 @@
  */
 import type {NAR} from '../nar';
 
+const MIN_WIDTH = 50;
+
 export function box(title: string, lines: string[]): string {
-    const width = Math.max(title.length + 4, ...lines.map(l => l.length + 4), 50);
+    const width = Math.max(title.length + 4, ...lines.map(l => l.length + 4), MIN_WIDTH);
     const horizontal = '═'.repeat(width - 2);
 
     const top = `╔${horizontal}╗`;
@@ -20,22 +22,24 @@ export function showStats(nar: NAR, detail?: string): void {
     const stats = nar.getStatistics();
     const metrics = nar.getMetrics?.();
 
-    console.log('\n╔════════════════════════════════════════════════════════╗');
-    console.log('║ SeNARS Statistics                                     ║');
-    console.log('╠════════════════════════════════════════════════════════╣');
-    console.log(`║ Concepts: ${String(stats.totalConcepts).padEnd(48)}║`);
-    console.log(`║ Tasks: ${String(stats.totalTasks).padEnd(49)}║`);
+    const ruleExecs = metrics?.rules?.reduce((sum, r) => sum + r.executions, 0) ?? 0;
+    const derivs = metrics?.system?.totalDerivations ?? 0;
+    const steps = metrics?.system?.totalSteps ?? 0;
 
-    if (detail === 'detail' || detail === 'all') {
-        const ruleExecs = metrics?.rules?.reduce((sum, r) => sum + r.executions, 0) ?? 0;
-        const derivs = metrics?.system?.totalDerivations ?? 0;
-        const steps = metrics?.system?.totalSteps ?? 0;
-        console.log(`║ Rule Executions: ${String(ruleExecs).padEnd(41)}║`);
-        console.log(`║ Derivations: ${String(derivs).padEnd(45)}║`);
-        console.log(`║ Steps: ${String(steps).padEnd(51)}║`);
-    }
+    const lines = [
+        `Concepts: ${String(stats.totalConcepts)}`,
+        `Tasks: ${String(stats.totalTasks)}`,
+        ...(detail === 'detail' || detail === 'all'
+            ? [
+                `Rule Executions: ${String(ruleExecs)}`,
+                `Derivations: ${String(derivs)}`,
+                `Steps: ${String(steps)}`,
+            ]
+            : []),
+    ];
 
-    console.log('╚════════════════════════════════════════════════════════╝\n');
+    console.log(box('SeNARS Statistics', lines));
+    console.log();
 }
 
 export function listConcepts(nar: NAR): void {

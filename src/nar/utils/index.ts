@@ -3,7 +3,7 @@ export {Throttle, createThrottle} from './throttle.js';
 export {WeakCache, createWeakCache} from './weak-cache.js';
 export {fnv1a, fnv1aCombine, computeHash} from './hash.js';
 export {
-    clamp, safeDiv, deepFreeze, makeId, isNil, ensureArray, average, errMsg, errObj, catchAndLog
+    clamp, clamp01, safeDiv, deepFreeze, makeId, isNil, ensureArray, average, errMsg, errObj, catchAndLog
 } from './helpers.js';
 export {calculatePriorityDistribution} from './distribution.js';
 export {jaccard} from './similarity.js';

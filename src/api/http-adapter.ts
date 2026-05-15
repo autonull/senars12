@@ -7,6 +7,7 @@ import {IncomingMessage, ServerResponse} from 'http';
 import {URL} from 'url';
 import {randomBytes} from 'crypto';
 import {BaseAdapter} from './base-adapter.js';
+import type {APIResponse} from './base-adapter.js';
 
 export interface HTTPAdapterConfig {
     port?: number;
@@ -101,11 +102,8 @@ export class HTTPAdapter extends BaseAdapter {
                 const limited = this.checkRateLimit(apiKey || 'anonymous');
                 if (limited) {
                     res.statusCode = 429;
-                    res.end(JSON.stringify({
-                        type: 'error',
-                        error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Rate limit exceeded' },
-                        timestamp: Date.now(),
-                    }));
+                    const response: APIResponse = BaseAdapter.errorResponse('RATE_LIMIT_EXCEEDED', 'Rate limit exceeded');
+                    res.end(JSON.stringify(response));
                     return;
                 }
             }
@@ -118,11 +116,8 @@ export class HTTPAdapter extends BaseAdapter {
 
             if (!this.registry.hasHandler(handlerName)) {
                 res.statusCode = 404;
-                res.end(JSON.stringify({
-                    type: 'error',
-                    error: { code: 'HANDLER_NOT_FOUND', message: 'Handler not found' },
-                    timestamp: Date.now(),
-                }));
+                const response: APIResponse = BaseAdapter.errorResponse('HANDLER_NOT_FOUND', 'Handler not found');
+                res.end(JSON.stringify(response));
                 return;
             }
 
@@ -132,11 +127,8 @@ export class HTTPAdapter extends BaseAdapter {
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
             res.statusCode = 400;
-            res.end(JSON.stringify({
-                type: 'error',
-                error: { code: 'HANDLER_ERROR', message },
-                timestamp: Date.now(),
-            }));
+            const response: APIResponse = BaseAdapter.errorResponse('HANDLER_ERROR', message);
+            res.end(JSON.stringify(response));
         }
     }
 

@@ -4,8 +4,11 @@
  */
 
 import {WebSocket, WebSocketServer} from 'ws';
-import {createHash} from 'crypto';
 import {BaseAdapter} from './base-adapter.js';
+
+const CLIENT_ID_CHARS = '0123456789abcdefghijklmnopqrstuvwxyz';
+const generateClientId = (): string =>
+    Array.from({length: 16}, () => CLIENT_ID_CHARS[Math.floor(Math.random() * CLIENT_ID_CHARS.length)]).join('');
 
 interface WSMessage {
     type: string;
@@ -126,10 +129,7 @@ export class WebSocketAdapter extends BaseAdapter {
     }
 
     private handleConnection(ws: WebSocket): void {
-        const id = createHash('sha256')
-            .update(Math.random().toString())
-            .digest('hex')
-            .slice(0, 16);
+        const id = generateClientId();
         const client: WSClient = {
             ws,
             id,
@@ -248,27 +248,10 @@ export class WebSocketAdapter extends BaseAdapter {
     }
 
     private sendSuccess(ws: WebSocket, data: Record<string, unknown>, id?: string): void {
-        ws.send(
-            JSON.stringify({
-                type: 'success',
-                id,
-                data,
-                timestamp: Date.now(),
-            })
-        );
+        this.sendJSON(ws, BaseAdapter.successResponse(data, id));
     }
 
     private sendError(ws: WebSocket, error: string, id?: string): void {
-        ws.send(
-            JSON.stringify({
-                type: 'error',
-                id,
-                error: {
-                    code: 'HANDLER_ERROR',
-                    message: error,
-                },
-                timestamp: Date.now(),
-            })
-        );
+        this.sendJSON(ws, BaseAdapter.errorResponse('HANDLER_ERROR', error, id));
     }
 }

@@ -6,6 +6,7 @@ import {Concept, type ConceptMergeResult, type ConceptTaskType} from './concept.
 import type {Term, Truth} from '../terms';
 import {calculateSimilarity, TermMap} from '../terms';
 import type {Budget} from '../types';
+import {NEUTRAL_BUDGET} from '../types/core.js';
 import {MemoryIndex} from './memory-index.js';
 import {Focus} from './focus.js';
 import {Archive} from './archive.js';
@@ -197,13 +198,7 @@ export class Memory {
         return concept;
     }
 
-    addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget = {
-        priority: 0.9,
-        durability: 0.8,
-        quality: 0.9,
-        cycles: 0,
-        depth: 0
-    }): boolean {
+    addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget = NEUTRAL_BUDGET): boolean {
         const concept = this.getConcept(term) ?? this.addConcept(term);
         return concept.addTask(type, {term, truth, budget});
     }

@@ -1,4 +1,7 @@
 import type {Concept} from './concept.js';
+import {THRESHOLDS} from '../constants.js';
+
+const {PRIORITY: PRIORITY_THRESHOLDS} = THRESHOLDS;
 
 export interface StatisticsData {
     totalConcepts: number;
@@ -110,7 +113,7 @@ export class StatisticsCalculator {
         for (const concept of concepts) {
             stats.totalConcepts++;
             stats.totalTasks += concept.totalTasks;
-            stats[concept.priority < 0.3 ? 'lowPriority' : concept.priority < 0.7 ? 'mediumPriority' : 'highPriority']++;
+            stats[concept.priority < PRIORITY_THRESHOLDS.LOW ? 'lowPriority' : concept.priority < PRIORITY_THRESHOLDS.MEDIUM ? 'mediumPriority' : 'highPriority']++;
         }
 
         return stats;

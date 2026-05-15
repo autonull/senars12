@@ -94,7 +94,7 @@ export const createBudget = (
     Object.freeze({priority, durability, quality, cycles, depth});
 
 // Pre-allocated neutral budget for performance
-const NEUTRAL_BUDGET = createBudget(0.5);
+export const NEUTRAL_BUDGET = createBudget(0.5);
 
 // Create Task object - optimized
 export const createTask = (

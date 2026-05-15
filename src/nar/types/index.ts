@@ -18,6 +18,7 @@ export type {
 } from './core.js';
 export {
     DEFAULT_CONFIG,
+    NEUTRAL_BUDGET,
     success,
     failure,
     createBudget,

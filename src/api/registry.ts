@@ -71,7 +71,7 @@ export class APIRegistry {
     }
 
     getHandlers(): Map<string, HandlerMeta> {
-        return new Map(this.handlers);
+        return this.handlers;
     }
 
     getSpec(): Record<string, { name: string; description: string; params: z.ZodSchema; returns: z.ZodSchema }> {

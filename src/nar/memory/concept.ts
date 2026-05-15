@@ -3,6 +3,12 @@ import {extractSymbols, jaccardSimilarity, TermMap, termsEqual, TermSet} from '.
 import {Bag} from './bag.js';
 import {Truth as TruthOps} from '../terms/truth.js';
 import type {Budget, TaskType} from '../types';
+import {THRESHOLDS, LINK} from '../constants.js';
+import {clamp01} from '../utils/index.js';
+
+const {DECAY_TIME_CONSTANT} = THRESHOLDS;
+const {DECAY_RATE, MIN_PRIORITY: MIN_LINK_STRENGTH} = LINK;
+const {MERGE: MERGE_SIMILARITY_THRESHOLD} = THRESHOLDS;
 
 export interface TaskData {
   readonly term: Term;
@@ -108,7 +114,7 @@ export class Concept {
 
   applyTimeDecay(baseRate = 0.01): void {
     const elapsed = Date.now() - this.lastDecayTime;
-    const decayFactor = Math.exp(-baseRate * elapsed / 60000);
+    const decayFactor = Math.exp(-baseRate * elapsed / DECAY_TIME_CONSTANT);
     this.activation *= decayFactor;
     this._priority = Math.max(0, this._priority * decayFactor);
     if (this._priority > 0 && elapsed < 1) {
@@ -123,7 +129,7 @@ export class Concept {
     const update = (target: Concept, source: Concept) => {
       const existing = target.linkedConcepts.get(source.term);
       if (existing) {
-        existing.strength = Math.min(1, existing.strength + strength * 0.1);
+        existing.strength = clamp01(existing.strength + strength * 0.1);
         existing.lastUpdated = Date.now();
       } else {
         target.linkedConcepts.set(source.term, {concept: source, strength, lastUpdated: Date.now()});
@@ -149,16 +155,15 @@ export class Concept {
 
   updateLinks(): void {
     const now = Date.now();
-    const decayRate = 0.001;
 
     for (const [key, link] of this.linkedConcepts.items()) {
       const elapsed = now - link.lastUpdated;
-      link.strength *= Math.exp(-decayRate * elapsed / 60000);
-      if (link.strength < 0.01) this.linkedConcepts.delete(key);
+      link.strength *= Math.exp(-DECAY_RATE * elapsed / DECAY_TIME_CONSTANT);
+      if (link.strength < MIN_LINK_STRENGTH) this.linkedConcepts.delete(key);
     }
   }
 
-  canMergeWith(other: Concept, threshold = 0.85): boolean {
+  canMergeWith(other: Concept, threshold = MERGE_SIMILARITY_THRESHOLD): boolean {
     return this !== other && (
       this.calculateTermSimilarity(other.term) >= threshold ||
       this.calculateTaskOverlap(other) >= threshold
