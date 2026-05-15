@@ -7,6 +7,6 @@ export abstract class BaseAdapter {
 
     constructor(scope: string) {
         this.registry = APIRegistry.getInstance();
-        this.logger = LoggerFactory.create({scope});
+        this.logger = LoggerFactory.getInstance().get(scope);
     }
 }

@@ -40,7 +40,8 @@ export function createCommandHandlers(deps: CommandHandlerDeps): readonly Comman
 export function parseCommand(text: string): { cmd: string; args: string[] } | null {
     const trimmed = text.trim();
     if (!trimmed.startsWith('.') && !trimmed.startsWith('!')) return null;
-    const spaceIdx = trimmed.search(/[\s ]/);
-    if (spaceIdx < 0) return {cmd: trimmed, args: []};
-    return {cmd: trimmed.slice(0, spaceIdx), args: trimmed.slice(spaceIdx + 1).trim().split(/\s+/)};
+
+    const spaceIdx = trimmed.indexOf(' ');
+    const [cmd, ...argParts] = spaceIdx < 0 ? [trimmed] : [trimmed.slice(0, spaceIdx), trimmed.slice(spaceIdx + 1)];
+    return {cmd, args: argParts.join('').split(/\s+/).filter(Boolean)};
 }

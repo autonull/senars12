@@ -2,9 +2,6 @@
  * Display utilities for CLI box-drawing and formatting
  */
 import type {NAR} from '../nar';
-import {createLogger} from '../nar/logger';
-
-const logger = createLogger({scope: 'CLI'});
 
 export function box(title: string, lines: string[]): string {
     const width = Math.max(title.length + 4, ...lines.map(l => l.length + 4), 50);
@@ -96,44 +93,6 @@ export function showHelp(): void {
     ]));
 }
 
-const COMMAND_HELP: Record<string, string> = {
-    '.run': 'Usage: .run [n]\n  Run n inference cycles (default: 5)',
-    '.stats': 'Usage: .stats [detail]\n  Show system statistics. Use "detail" for verbose output.',
-    '.concepts': 'Usage: .concepts [filter]\n  List concepts in memory, optionally filtered by term',
-    '.rules': 'Usage: .rules\n  Display registered inference rules',
-    '.tools': 'Usage: .tools [filter]\n  List available tools, optionally filtered by name',
-    '.query': 'Usage: .query <term>\n  Query memory for beliefs, goals, questions matching term',
-    '.trace': 'Usage: .trace <term>\n  Show derivation trace for a term',
-    '.explain': 'Usage: .explain <term>\n  Explain how a belief was derived',
-    '.config': 'Usage: .config [key] [value]\n  View all config, or get/set specific values',
-    '.clear': 'Usage: .clear\n  Clear all concepts and tasks from memory',
-    '.load': 'Usage: .load <file>\n  Load Narsese beliefs from a file',
-    '.save': 'Usage: .save <file>\n  Save current memory state to JSON file',
-    '.profile': 'Usage: .profile [start|stop]\n  Start or stop performance profiling',
-    '.self': 'Usage: .self\n  Show self-model and metacognition status',
-    '.meta': 'Usage: .meta\n  Show meta-analysis report',
-    '.optimize': 'Usage: .optimize\n  Apply metacognitive optimizations',
-    '.prefer': 'Usage: .prefer <preferred> <rejected>\n  Record a preference: preferred > rejected',
-    '.reward': 'Usage: .reward\n  Show RLFP reward and preference status',
-    '.rlfp-stats': 'Usage: .rlfp-stats\n  Show detailed RLFP statistics',
-    '.lm-status': 'Usage: .lm-status\n  Show language model provider status',
-    '.lm-switch': 'Usage: .lm-switch <model>\n  Switch to a different LM model',
-    '.ask-nl': 'Usage: .ask-nl <question>\n  Ask a natural language question',
-    '.constitution': 'Usage: .constitution [add <belief>]\n  View or add immutable constitutional beliefs',
-    '.attention': 'Usage: .attention\n  Show attention allocation report',
-    '.load-domain': 'Usage: .load-domain <domain>\n  Load sample beliefs from a domain (biology, physics, math, programming, finance)',
-    '.quit': 'Usage: .quit\n  Exit the REPL',
-};
-
-export function showCommandHelp(cmd: string): boolean {
-    const help = COMMAND_HELP[cmd];
-    if (help) {
-        logger.info(`\n${help}\n`);
-        return true;
-    }
-    return false;
-}
-
 export function formatPaginatedList<T>(
     items: T[],
     max: number,
@@ -144,7 +103,5 @@ export function formatPaginatedList<T>(
     const remaining = items.length - max;
     const lines = page.map(format);
     if (remaining > 0) lines.push(`... and ${remaining} more`);
-    const prefix = options.prefix ?? '';
-    const suffix = options.suffix ?? '';
-    return prefix + lines.join('\n') + suffix;
+    return (options.prefix ?? '') + lines.join('\n') + (options.suffix ?? '');
 }

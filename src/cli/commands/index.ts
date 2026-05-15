@@ -59,10 +59,7 @@ export class CommandRegistry {
         }
 
         try {
-            const result = def.handler(ctx, []);
-            if (result instanceof Promise) {
-                return result;
-            }
+            return def.handler(ctx, ctx.args ?? []);
         } catch (error) {
             this.logger.error(`Error: ${error}`);
         }

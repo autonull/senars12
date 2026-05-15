@@ -27,11 +27,10 @@ export function createMessageRouter(deps: RouterDeps) {
 
         const parsed = parseCommand(trimmed);
         if (parsed) {
-            for (const cmd of commands) {
-                if (cmd.matches(parsed.cmd)) {
-                    await cmd.handle(channel, user, parsed.args);
-                    return;
-                }
+            const cmd = commands.find(c => c.matches(parsed.cmd));
+            if (cmd) {
+                await cmd.handle(channel, user, parsed.args);
+                return;
             }
         }
 
