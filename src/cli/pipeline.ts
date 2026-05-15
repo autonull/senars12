@@ -18,12 +18,12 @@ export class InputPipeline {
             case 'command':        return this.execCommand(input);
             case 'narsese-belief': return this.addBelief(input);
             case 'narsese-question': return this.askQuestion(input);
-            case 'nl-explicit':    return this.handleNL(input.slice(1, -1), true);
-            case 'nl-implicit':    return this.handleNL(input, false);
+            case 'nl-explicit':    return this.handleNL(input.slice(1, -1));
+            case 'nl-implicit':    return this.handleNL(input);
         }
     }
 
-    private async handleNL(text: string, explicit: boolean) {
+    private async handleNL(text: string) {
         if (!this.translator) {
             this.renderer.warn('LM not configured — use Narsese syntax');
             return;

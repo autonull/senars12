@@ -113,7 +113,7 @@ export class NAR extends BaseComponent {
 
     this.io = new NARIO(this.memory, this.taskManager, this.config);
     this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp);
-    this.lm = new NARLM(this.memory, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment, this.config.enableLMStreaming);
+    this.lm = new NARLM(this.memory, this._registry, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment, this.config.enableLMStreaming);
     this._metricsCollector = metrics;
 
     this.initializeOptionalFeatures();

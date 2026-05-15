@@ -1,4 +1,6 @@
 import type {LMClient} from './lm';
+import type {SeNARSRegistry} from './lm/providers.js';
+import {getQualityModel} from './lm/providers.js';
 import {BidirectionalFeedbackLoop, ProactiveEnricher, StreamingLMClient} from './lm';
 import type {Memory} from './memory';
 import type {Task} from './types';
@@ -25,6 +27,7 @@ export class NARLM {
 
     constructor(
         private readonly memory: Memory,
+        private readonly registry?: SeNARSRegistry,
         lmClient?: LMClient,
         enableBidirectionalFeedback?: boolean,
         enableProactiveEnrichment?: boolean,
@@ -53,6 +56,10 @@ export class NARLM {
 
     getStreamingClient(): StreamingLMClient | undefined {
         return this.streamingClient;
+    }
+
+    getQualityModel() {
+        return this.registry ? getQualityModel(this.registry) : undefined;
     }
 
     async processHypothesisWithFeedback(hypothesis: Task): Promise<boolean> {
