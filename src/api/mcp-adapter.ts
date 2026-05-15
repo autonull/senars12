@@ -73,11 +73,16 @@ export class MCPAdapter extends BaseAdapter {
                 ],
             };
         } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
             return {
                 content: [
                     {
                         type: 'text',
-                        text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+                        text: JSON.stringify({
+                            type: 'error',
+                            error: { code: 'HANDLER_ERROR', message },
+                            timestamp: Date.now(),
+                        }, null, 2),
                     },
                 ],
                 isError: true,

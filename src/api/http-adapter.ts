@@ -89,7 +89,11 @@ export class HTTPAdapter extends BaseAdapter {
             const apiKey = req.headers['x-api-key'] as string;
             if (!this.authenticate(apiKey)) {
                 res.statusCode = 401;
-                res.end(JSON.stringify({error: 'Unauthorized'}));
+                res.end(JSON.stringify({
+                    type: 'error',
+                    error: { code: 'UNAUTHORIZED', message: 'Unauthorized' },
+                    timestamp: Date.now(),
+                }));
                 return;
             }
 
@@ -97,7 +101,11 @@ export class HTTPAdapter extends BaseAdapter {
                 const limited = this.checkRateLimit(apiKey || 'anonymous');
                 if (limited) {
                     res.statusCode = 429;
-                    res.end(JSON.stringify({error: 'Rate limit exceeded'}));
+                    res.end(JSON.stringify({
+                        type: 'error',
+                        error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Rate limit exceeded' },
+                        timestamp: Date.now(),
+                    }));
                     return;
                 }
             }
@@ -110,7 +118,11 @@ export class HTTPAdapter extends BaseAdapter {
 
             if (!this.registry.hasHandler(handlerName)) {
                 res.statusCode = 404;
-                res.end(JSON.stringify({error: 'Handler not found'}));
+                res.end(JSON.stringify({
+                    type: 'error',
+                    error: { code: 'HANDLER_NOT_FOUND', message: 'Handler not found' },
+                    timestamp: Date.now(),
+                }));
                 return;
             }
 
@@ -118,8 +130,13 @@ export class HTTPAdapter extends BaseAdapter {
             res.statusCode = 200;
             res.end(JSON.stringify(result));
         } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
             res.statusCode = 400;
-            res.end(JSON.stringify({error: error instanceof Error ? error.message : String(error)}));
+            res.end(JSON.stringify({
+                type: 'error',
+                error: { code: 'HANDLER_ERROR', message },
+                timestamp: Date.now(),
+            }));
         }
     }
 
