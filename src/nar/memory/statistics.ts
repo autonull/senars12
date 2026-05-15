@@ -1,8 +1,4 @@
-/**
- * Memory statistics calculation
- */
 import type {Concept} from './concept.js';
-import type {Memory} from './memory.js';
 
 export interface StatisticsData {
     totalConcepts: number;
@@ -11,6 +7,14 @@ export interface StatisticsData {
     maxPriority: number;
     minPriority: number;
     conceptsByType: Map<string, number>;
+}
+
+export interface ConceptStats {
+    totalConcepts: number;
+    totalTasks: number;
+    lowPriority: number;
+    mediumPriority: number;
+    highPriority: number;
 }
 
 export class StatisticsCalculator {
@@ -71,26 +75,44 @@ export class StatisticsCalculator {
         this.typeCounts.clear();
     }
 
-    calculate(memory: Memory): StatisticsData {
-        const concepts = memory.sample(1000);
-        const priorities = concepts.map(c => c.priority);
+    calculateFromConcepts(concepts: Iterable<Concept>): StatisticsData {
+        const conceptList = [...concepts];
+        const priorities = conceptList.map(c => c.priority);
         const avgPriority = priorities.length > 0 ? priorities.reduce((sum, p) => sum + p, 0) / priorities.length : 0;
         const maxPriority = priorities.length > 0 ? Math.max(...priorities) : 0;
         const minPriority = priorities.length > 0 ? Math.min(...priorities) : 1;
 
         const conceptsByType = new Map<string, number>();
-        for (const concept of concepts) {
+        for (const concept of conceptList) {
             const key = concept.term.kind;
             conceptsByType.set(key, (conceptsByType.get(key) ?? 0) + 1);
         }
 
         return {
-            totalConcepts: this.conceptCount,
-            totalTasks: this.taskCount,
+            totalConcepts: conceptList.length,
+            totalTasks: conceptList.reduce((sum, c) => sum + c.totalTasks, 0),
             avgPriority,
             maxPriority,
             minPriority,
             conceptsByType
         };
+    }
+
+    calculateConceptStats(concepts: Iterable<Concept>): ConceptStats {
+        const stats: ConceptStats = {
+            totalConcepts: 0,
+            totalTasks: 0,
+            lowPriority: 0,
+            mediumPriority: 0,
+            highPriority: 0,
+        };
+
+        for (const concept of concepts) {
+            stats.totalConcepts++;
+            stats.totalTasks += concept.totalTasks;
+            stats[concept.priority < 0.3 ? 'lowPriority' : concept.priority < 0.7 ? 'mediumPriority' : 'highPriority']++;
+        }
+
+        return stats;
     }
 }

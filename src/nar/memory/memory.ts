@@ -79,14 +79,6 @@ export interface MemoryStatistics {
     };
 }
 
-interface ConceptStats {
-    totalConcepts: number;
-    totalTasks: number;
-    lowPriority: number;
-    mediumPriority: number;
-    highPriority: number;
-}
-
 export class Memory {
     private readonly concepts = new TermMap<Concept>();
     private readonly config: Required<MemoryConfig>;
@@ -294,7 +286,7 @@ export class Memory {
     }
 
     getStatistics(): MemoryStatistics {
-        const stats = this.calculateConceptStats();
+        const stats = this.statsCalculator.calculateConceptStats(this.concepts.values());
 
         const result: MemoryStatistics = {
             totalConcepts: stats.totalConcepts,
@@ -397,29 +389,11 @@ export class Memory {
         const allConcepts = Array.from(this.concepts.values());
         const scored = allConcepts.map(concept => ({
             concept,
-            similarity: calculateSimilarity(concept, term),
+            similarity: calculateSimilarity(concept.term, term),
         }));
 
         scored.sort((a, b) => b.similarity - a.similarity);
         return scored.slice(0, limit).map(s => s.concept);
-    }
-
-    private calculateConceptStats(): ConceptStats {
-        const stats: ConceptStats = {
-            totalConcepts: 0,
-            totalTasks: 0,
-            lowPriority: 0,
-            mediumPriority: 0,
-            highPriority: 0,
-        };
-
-        for (const concept of this.concepts.values()) {
-            stats.totalConcepts++;
-            stats.totalTasks += concept.totalTasks;
-            stats[concept.priority < 0.3 ? 'lowPriority' : concept.priority < 0.7 ? 'mediumPriority' : 'highPriority']++;
-        }
-
-        return stats;
     }
 
     private applyForgetting(): void {

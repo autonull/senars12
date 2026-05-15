@@ -8,6 +8,9 @@ export type {BagItem} from './bag-base.js';
 export {Memory} from './memory.js';
 export type {MemoryConfig, MemoryStatistics} from './memory.js';
 
+export {MemoryCore} from './memory-core.js';
+export {MemoryLinks} from './memory-links.js';
+
 // Memory modules - internal to Memory class now
 export {MemoryIndex} from './memory-index.js';
 export {Focus} from './focus.js';
