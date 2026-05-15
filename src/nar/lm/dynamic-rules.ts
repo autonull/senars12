@@ -3,7 +3,7 @@ import type {Task} from '../types';
 import {LMRule} from './LMRule.js';
 import type {LMClient, LMRuleConfig} from './types.js';
 import {LMResponseParser} from './parser.js';
-import {Logger, LoggerFactory} from '../logger/index.js';
+import {createLogger, type Logger} from '../logger/index.js';
 import {errMsg} from '../utils/index.js';
 
 export interface DynamicRuleConfig extends Partial<LMRuleConfig> {
@@ -29,7 +29,7 @@ export class DynamicLMRuleGenerator {
     constructor(lm: LMClient, baseConfig?: Partial<LMRuleConfig>) {
         this.lm = lm;
         this.baseConfig = baseConfig ?? {};
-        this.logger = LoggerFactory.getInstance().get('lm:dynamic-rules');
+        this.logger = createLogger({scope: 'lm:dynamic-rules'});
     }
 
     async generateRuleFromDescription(description: string): Promise<LMRule | null> {
@@ -161,7 +161,7 @@ export class CompositeLMRule extends LMRule {
 
     constructor(id: string, lm: LMClient, config: LMRuleConfig) {
         super(id, lm, config);
-        this.logger = LoggerFactory.getInstance().get('lm:composite-rule');
+        this.logger = createLogger({scope: 'lm:composite-rule'});
     }
 
     addRule(rule: LMRule): void {

@@ -4,7 +4,7 @@ import type {Term} from '../terms';
 import {Stamp, Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
 import {findUnderconnectedConceptsFromTasks, parseEnrichmentResponse} from './enrichment-utils.js';
-import {Logger, LoggerFactory} from '../logger/index.js';
+import {createLogger, type Logger} from '../logger/index.js';
 import {errMsg} from '../utils/index.js';
 
 export interface FeedbackConfig {
@@ -34,7 +34,7 @@ export class BidirectionalFeedbackLoop {
     constructor(memory: Memory, lmClient: LMClient, config: Partial<FeedbackConfig> = {}) {
         this.memory = memory;
         this.lmClient = lmClient;
-        this.logger = LoggerFactory.getInstance().get('lm:feedback');
+        this.logger = createLogger({scope: 'lm:feedback'});
         this.config = {
             enableBidirectionalFeedback: true,
             enableValidation: true,

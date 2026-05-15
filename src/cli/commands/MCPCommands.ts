@@ -5,7 +5,7 @@
 
 import {SeNARSMCPServer} from '../../api/mcp-server.js';
 import {APIRegistry} from '../../api/registry.js';
-import {LoggerFactory} from '../../nar/logger/index.js';
+import {createLogger} from '../../nar/logger/index.js';
 import {registerDefaultModels, getTurnkeyConfig} from '../../nar/lm/defaults.js';
 
 interface MCPCommandOptions {
@@ -18,7 +18,7 @@ interface MCPCommandOptions {
 export async function startMCPServer(
 	options: MCPCommandOptions = {}
 ): Promise<void> {
-	const logger = LoggerFactory.getInstance().get('cli:mcp');
+	const logger = createLogger({scope: 'cli:mcp'});
 
 	try {
 		logger.info('Starting MCP Server...');

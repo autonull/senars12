@@ -6,7 +6,7 @@
 import {Agent} from './Agent';
 import {createServer} from 'http';
 import {HTTPAdapter} from '../api/index.js';
-import {Logger, LoggerFactory} from '../nar/logger/index.js';
+import {createLogger, type Logger} from '../nar/logger/index.js';
 import {errMsg} from '../nar/utils/index.js';
 
 export interface HTTPServerConfig {
@@ -26,7 +26,7 @@ export class HTTPServer {
   private readonly logger: Logger;
 
   constructor(config: HTTPServerConfig = {}) {
-    this.logger = LoggerFactory.getInstance().get('agent:http-server');
+    this.logger = createLogger({scope: 'agent:http-server'});
     this.config = {
       port: config.port ?? 8080,
       enableCors: config.enableCors ?? true,

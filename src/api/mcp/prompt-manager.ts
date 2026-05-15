@@ -4,7 +4,7 @@
  */
 
 import {PromptTemplate, PromptArgument, MCPMessage, MCPContent} from './types.js';
-import {Logger, LoggerFactory} from '../../nar/logger/index.js';
+import {createLogger, type Logger} from '../../nar/logger/index.js';
 
 /**
  * Prompt renderer interface
@@ -32,7 +32,7 @@ export class PromptManager implements PromptRenderer {
 	private logger: Logger;
 
 	constructor() {
-		this.logger = LoggerFactory.getInstance().get('api:mcp:prompts');
+		this.logger = createLogger({scope: 'api:mcp:prompts'});
 	}
 
 	/**

@@ -1,5 +1,5 @@
 import type {LMClient} from './types.js';
-import {Logger, LoggerFactory} from '../logger/index.js';
+import {createLogger, type Logger} from '../logger/index.js';
 
 export type ModelProvider = 'anthropic' | 'openai' | 'ollama' | 'mock' | 'transformers';
 
@@ -34,7 +34,7 @@ export class ModelRegistry {
     private readonly logger: Logger;
 
     constructor() {
-        this.logger = LoggerFactory.getInstance().get('lm:model-registry');
+        this.logger = createLogger({scope: 'lm:model-registry'});
     }
 
     register(entry: ModelRegistryEntry): void {

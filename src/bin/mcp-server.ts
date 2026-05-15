@@ -6,11 +6,11 @@
 
 import {SeNARSMCPServer} from '../api/mcp-server.js';
 import {APIRegistry} from '../api/registry.js';
-import {LoggerFactory} from '../nar/logger/index.js';
+import {createLogger} from '../nar/logger/index.js';
 import {registerDefaultModels, getTurnkeyConfig} from '../nar/lm/defaults.js';
 
 async function main() {
-	const logger = LoggerFactory.getInstance().get('mcp:bin');
+	const logger = createLogger({scope: 'mcp:bin'});
 
 	try {
 		logger.info('Starting SeNARS MCP Server...');

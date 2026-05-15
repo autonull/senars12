@@ -141,39 +141,8 @@ export class Logger {
     }
 }
 
-export class LoggerFactory {
-    private static instance: LoggerFactory;
-    private readonly loggers: Map<string, Logger> = new Map();
-
-    static getInstance(): LoggerFactory {
-        if (!LoggerFactory.instance) {
-            LoggerFactory.instance = new LoggerFactory();
-        }
-        return LoggerFactory.instance;
-    }
-
-    static create(config: Partial<LoggerConfig> = {}): Logger {
-        return new Logger(config);
-    }
-
-    get(scope: string): Logger {
-        const existing = this.loggers.get(scope);
-        if (existing) {
-            return existing;
-        }
-
-        const logger = new Logger({
-            scope,
-            format: 'text'
-        });
-
-        this.loggers.set(scope, logger);
-        return logger;
-    }
-}
-
 export const createLogger = (config?: Partial<LoggerConfig>): Logger => {
     return new Logger(config);
 };
 
-export const defaultLogger = LoggerFactory.getInstance().get('root');
+export const defaultLogger = createLogger({scope: 'root'});

@@ -29,45 +29,10 @@ export interface SeNARSConfig {
     };
 }
 
-const BASE_CONFIG = {
-    activationDecayRate: 0.01,
-    consolidationInterval: 10,
-} as const;
-
-const MINIMAL_CONFIG = {
-    ...BASE_CONFIG,
-    maxConcepts: 100,
-    priorityThreshold: 0.1,
-    cpuThrottleMs: 0,
-    maxDerivationDepth: 10,
-    maxDerivationsPerStep: 100
-} as const;
-const CLI_CONFIG = {
-    ...BASE_CONFIG,
-    maxConcepts: 200,
-    priorityThreshold: 0.1,
-    cpuThrottleMs: 0,
-    maxDerivationDepth: 10,
-    maxDerivationsPerStep: 100
-} as const;
-const BOT_CONFIG = {
-    ...BASE_CONFIG,
-    maxConcepts: 1000,
-    priorityThreshold: 0.5,
-    cpuThrottleMs: 10,
-    maxDerivationDepth: 10,
-    maxDerivationsPerStep: 1000
-} as const;
-const TEST_CONFIG = {
-    ...BASE_CONFIG,
-    maxConcepts: 100,
-    priorityThreshold: 0.0,
-    activationDecayRate: 0.0,
-    consolidationInterval: 1000,
-    cpuThrottleMs: 0,
-    maxDerivationDepth: 20,
-    maxDerivationsPerStep: 1000
-} as const;
+const MINIMAL_CONFIG: CoreConfig = {...DEFAULT_CONFIG, maxConcepts: 100, priorityThreshold: 0.1, cpuThrottleMs: 0, maxDerivationsPerStep: 100};
+const CLI_CONFIG: CoreConfig = {...DEFAULT_CONFIG, maxConcepts: 200, priorityThreshold: 0.1, cpuThrottleMs: 0, maxDerivationsPerStep: 100};
+const BOT_CONFIG: CoreConfig = {...DEFAULT_CONFIG};
+const TEST_CONFIG: CoreConfig = {...DEFAULT_CONFIG, maxConcepts: 100, priorityThreshold: 0, activationDecayRate: 0, consolidationInterval: 1000, cpuThrottleMs: 0, maxDerivationDepth: 20};
 
 export class SeNARSFactory {
     static createDefault(options: SeNARSOptions = {}): NAR {

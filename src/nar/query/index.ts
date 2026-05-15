@@ -7,5 +7,5 @@ export type {DerivationTree, DerivationNode, TraceResult, ExplainResult} from '.
 
 export {MetricsCollector, createMetricsCollector} from '../metrics/index.js';
 
-export {Logger, createLogger, LoggerFactory, defaultLogger} from '../logger/index.js';
+export {Logger, createLogger, defaultLogger} from '../logger/index.js';
 export type {LogLevel, LogEntry, LoggerConfig} from '../logger/index.js';

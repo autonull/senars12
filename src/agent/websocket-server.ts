@@ -48,6 +48,3 @@ export class WebSocketServer implements Embodiment {
         return this.adapter.getConnectedClients();
     }
 }
-
-// Re-export for backward compatibility
-export {WebSocketAdapter as WebSocketEmbodiment};

@@ -1,4 +1,4 @@
-import {LoggerFactory} from '../nar/logger/index.js';
+import {createLogger} from '../nar/logger/index.js';
 import {errMsg} from '../nar/utils/index.js';
 
 export interface BotConfig {
@@ -70,7 +70,7 @@ export const PROFILES: Record<'minimal' | 'standard' | 'full', BotConfig> = {
     }),
 };
 
-const logger = LoggerFactory.getInstance().get('bot:config');
+const logger = createLogger({scope: 'bot:config'});
 
 export async function loadConfig(configPath?: string): Promise<BotConfig> {
     if (!configPath) return PROFILES.minimal;

@@ -5,7 +5,7 @@
 import {beforeEach, describe, expect, it} from '@jest/globals';
 import {NAR} from '../../../src';
 import {createQueryAPI, QueryAPI} from '../../../src/nar/query';
-import {createReasoningTrace, ReasoningTrace} from '../../../src/nar/trace.js';
+import {createReasoningTrace, ReasoningTrace} from '../../../src/nar/query/index.js';
 import {termParser} from '../../../src/nar';
 
 describe('QueryAPI', () => {

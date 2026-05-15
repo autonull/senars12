@@ -127,19 +127,3 @@ export class APIRegistry {
         };
     }
 }
-
-export function apiMethod<T>(config: {
-    description: string;
-    params: z.ZodSchema<T>;
-    returns: z.ZodSchema<unknown>;
-}) {
-    return (target: Record<string, unknown>, propertyKey: string) => {
-        const registry = APIRegistry.getInstance();
-        registry.register(propertyKey, {
-            description: config.description,
-            params: config.params,
-            returns: config.returns,
-            handler: target[propertyKey] as (args: T) => Promise<unknown>,
-        });
-    };
-}

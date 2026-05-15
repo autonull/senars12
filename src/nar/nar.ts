@@ -106,8 +106,8 @@ export class NAR extends BaseComponent {
     this.query = new QueryAPI(this.memory);
     this.traceAPI = new ReasoningTrace(this.memory);
     this.tools = new ToolManager();
-        this._lmClient = this.config.lmClient;
-        this._registry = this.config.providerRegistry;
+    this._lmClient = this.config.lmClient;
+    this._registry = this.config.providerRegistry;
 
     if (this.config.enableRLFP) this.rlfp = new RLFPLearner({});
 
@@ -200,28 +200,28 @@ export class NAR extends BaseComponent {
     this.memory.setConfig(updates);
   }
 
-    // Component accessors
-    getLMClient(): LMClient | undefined {
-        return this._lmClient;
-    }
+  // Component accessors
+  getLMClient(): LMClient | undefined {
+    return this._lmClient;
+  }
 
-    getProviderRegistry(): SeNARSRegistry | undefined {
-        return this._registry;
-    }
+  getProviderRegistry(): SeNARSRegistry | undefined {
+    return this._registry;
+  }
 
-    getQualityModel() {
-        if (!this._registry) return undefined;
-        return this._registry.languageModel('cloud:quality')
-            ?? this._registry.languageModel('local:quality')
-            ?? this._registry.languageModel('builtin:compact');
-    }
+  getQualityModel() {
+    if (!this._registry) return undefined;
+    return this._registry.languageModel('cloud:quality')
+      ?? this._registry.languageModel('local:quality')
+      ?? this._registry.languageModel('builtin:compact');
+  }
 
-    getFastModel() {
-        if (!this._registry) return undefined;
-        return this._registry.languageModel('cloud:fast')
-            ?? this._registry.languageModel('local:fast')
-            ?? this._registry.languageModel('builtin:compact');
-    }
+  getFastModel() {
+    if (!this._registry) return undefined;
+    return this._registry.languageModel('cloud:fast')
+      ?? this._registry.languageModel('local:fast')
+      ?? this._registry.languageModel('builtin:compact');
+  }
 
     getSelfAnalyzer(): ReasoningAboutReasoning | undefined {
     return this.self;

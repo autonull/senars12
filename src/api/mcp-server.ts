@@ -19,7 +19,7 @@ import {APIRegistry} from './registry.js';
 import {EnhancedMCPAdapter} from './mcp/enhanced-adapter.js';
 import {SchemaTransformer, getSchemaTransformer} from './mcp/schema-transformer.js';
 import {CapabilityDescriptor} from './mcp/types.js';
-import {Logger, LoggerFactory} from '../nar/logger/index.js';
+import {createLogger, type Logger} from '../nar/logger/index.js';
 
 /**
  * MCP Server Configuration
@@ -46,7 +46,7 @@ export class SeNARSMCPServer {
 	constructor(registry?: APIRegistry, config: MCPServerConfig = {}) {
 		this.adapter = new EnhancedMCPAdapter(registry);
 		this.schemaTransformer = getSchemaTransformer();
-		this.logger = LoggerFactory.getInstance().get('api:mcp-server');
+		this.logger = createLogger({scope: 'api:mcp-server'});
 
 		this.config = {
 			name: config.name ?? 'senars-mcp',

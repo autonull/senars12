@@ -1,4 +1,4 @@
-import {Logger, LoggerFactory} from '../nar/logger/index.js';
+import {createLogger, type Logger} from '../nar/logger/index.js';
 import {APIRegistry} from './registry.js';
 
 export interface APIResponse {
@@ -15,7 +15,7 @@ export abstract class BaseAdapter {
 
     constructor(scope: string) {
         this.registry = APIRegistry.getInstance();
-        this.logger = LoggerFactory.getInstance().get(scope);
+        this.logger = createLogger({scope});
     }
 
     protected static successResponse(

@@ -1,4 +1,4 @@
-import type {CommandContext, CommandDefinition} from './index.js';
+import type {CommandDefinition} from './index.js';
 import {box} from '../display.js';
 
 export const SelfCommands: CommandDefinition[] = [

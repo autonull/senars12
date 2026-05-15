@@ -5,7 +5,7 @@
 
 import {NAR, Task} from '../nar';
 import {errMsg} from '../nar/utils/helpers.js';
-import {Logger, LoggerFactory} from '../nar/logger/index.js';
+import {createLogger, type Logger} from '../nar/logger/index.js';
 
 export interface Embodiment {
     readonly name: string;
@@ -64,7 +64,7 @@ export class Agent {
     ) {
         this.narInstance = nar;
         this.embodiments = embodiments;
-        this.logger = LoggerFactory.getInstance().get('agent');
+        this.logger = createLogger({scope: 'agent'});
     }
 
     getNAR(): NAR {

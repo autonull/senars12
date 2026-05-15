@@ -7,7 +7,7 @@ import type {LMClient} from './types.js';
 import type {ModelCapability, ModelRegistryEntry, ModelRegistry} from './model-registry.js';
 import {createMockLMClient} from './mock-client.js';
 import {defaultModelRegistry} from './model-registry.js';
-import {LoggerFactory} from '../logger/index.js';
+import {createLogger} from '../logger/index.js';
 
 export const DEFAULT_COMPACT_MODEL = 'Xenova/LaMini-Flan-T5-77M';
 
@@ -100,12 +100,12 @@ export function createDefaultLMClient(): LMClient {
 
 export function setupDefaultLMClient(registry: ModelRegistry = defaultModelRegistry): LMClient {
     registerDefaultModels(registry);
-    const logger = LoggerFactory.getInstance().get('lm:defaults');
+    const logger = createLogger({scope: 'lm:defaults'});
     const transformersEntry = registry.get('transformers');
     if (transformersEntry?.enabled) {
         try {
             return transformersEntry.clientFactory();
-        } catch (error) {
+        } catch {
             logger.debug('Transformers.js failed, trying fallback');
         }
     }
@@ -113,7 +113,7 @@ export function setupDefaultLMClient(registry: ModelRegistry = defaultModelRegis
     if (ollamaEntry?.enabled) {
         try {
             return ollamaEntry.clientFactory();
-        } catch (error) {
+        } catch {
             logger.debug('Ollama failed, using mock');
         }
     }
@@ -140,7 +140,7 @@ function getTurnkeyDefaults(): TurnkeyConfig {
     };
 }
 
-export function createLMClientFromConfig(provider: ProviderType): LMClient {
+export function createLMClientFromConfig(_provider: ProviderType): LMClient {
     return createMockLMClient();
 }
 

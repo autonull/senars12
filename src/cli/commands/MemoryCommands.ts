@@ -1,4 +1,4 @@
-import type {CommandContext, CommandDefinition, NARExtended} from './index.js';
+import type {CommandDefinition} from './index.js';
 import {requireArgs} from './index.js';
 import {DOMAIN_LIST, DOMAINS} from '../domains.js';
 import {box} from '../display.js';

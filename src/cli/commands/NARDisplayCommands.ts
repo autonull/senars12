@@ -1,4 +1,4 @@
-import type {CommandContext, CommandDefinition} from './index.js';
+import type {CommandDefinition} from './index.js';
 import {errMsg} from '../../nar/utils/helpers.js';
 
 export const NARDisplayCommands: CommandDefinition[] = [

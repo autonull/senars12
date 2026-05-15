@@ -4,7 +4,7 @@ describe('nl-handler', () => {
     test('sends usage hint for non-matching text', () => {
         const sent: Array<[string, string, string]> = [];
         const send = (ch: string, u: string, t: string) => sent.push([ch, u, t]);
-        const handler = createNlHandler({send});
+        const handler = createNlHandler({send} as any);
         handler('#ch', 'user');
         expect(sent).toContainEqual(['#ch', 'user', expect.stringContaining('belief')]);
     });

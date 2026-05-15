@@ -4,7 +4,7 @@
  */
 
 import {ResourceDescriptor} from './types.js';
-import {Logger, LoggerFactory} from '../../nar/logger/index.js';
+import {createLogger, type Logger} from '../../nar/logger/index.js';
 
 /**
  * Resource content structure
@@ -58,7 +58,7 @@ export class ResourceManager {
 	private logger: Logger;
 
 	constructor() {
-		this.logger = LoggerFactory.getInstance().get('api:mcp:resources');
+		this.logger = createLogger({scope: 'api:mcp:resources'});
 	}
 
 	/**

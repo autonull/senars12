@@ -3,7 +3,7 @@
  * TypeScript client library for SeNARS WebSocket API
  */
 
-import {Logger, LoggerFactory} from '../../nar/logger/index.js';
+import {createLogger, type Logger} from '../../nar/logger/index.js';
 
 export interface WSMessage {
     type: string;
@@ -53,7 +53,7 @@ export class SeNARSClient {
     private readonly logger: Logger;
 
     constructor(private url: string = 'ws://localhost:8765') {
-        this.logger = LoggerFactory.getInstance().get('agent:senars-client');
+        this.logger = createLogger({scope: 'agent:senars-client'});
     }
 
     async connect(): Promise<void> {
