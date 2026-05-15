@@ -25,7 +25,7 @@ async function main() {
 		const registry = APIRegistry.getInstance();
 
 		// Create MCP server with stdio transport (default)
-		const server = new SeNARSMCPServer(registry, {
+		const server = new SeNARSMCPServer({
 			name: 'senars-mcp',
 			version: '1.0.0',
 			transport: 'stdio',

@@ -3,7 +3,7 @@
  * High-level interface for end-user interaction
  */
 
-import {NAR, Task} from '../nar';
+import {NAR} from '../nar';
 import {errMsg} from '../nar/utils/helpers.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
 
@@ -25,10 +25,6 @@ export interface Command {
     readonly usage: string;
 
     execute(args: string[], context: { nar: NAR; agent: Agent }): Promise<string>;
-}
-
-export interface InputProcessor {
-    process(input: string): Promise<Task | null>;
 }
 
 export interface AgentProfile {
@@ -83,34 +79,22 @@ export class Agent {
         this.commands.set(command.name, command);
     }
 
-    async start(): Promise<void> {
-        if (this.running) {
-            return;
-        }
-        this.running = true;
+    private async _forEachEmbodiment(fn: (e: Embodiment) => Promise<void>, action: string): Promise<void> {
+        await Promise.allSettled(this.embodiments.map(async e => {
+            try { await fn(e); } catch (err) { this.logger.error(`Failed to ${action} embodiment ${e.name}: ${errMsg(err)}`); }
+        }));
+    }
 
-        for (const embodiment of this.embodiments) {
-            try {
-                await embodiment.start(this);
-            } catch (error) {
-                this.logger.error(`Failed to start embodiment ${embodiment.name}: ${errMsg(error)}`);
-            }
-        }
+    async start(): Promise<void> {
+        if (this.running) return;
+        this.running = true;
+        await this._forEachEmbodiment(e => e.start(this), 'start');
     }
 
     async stop(): Promise<void> {
-        if (!this.running) {
-            return;
-        }
+        if (!this.running) return;
         this.running = false;
-
-        for (const embodiment of this.embodiments) {
-            try {
-                await embodiment.stop();
-            } catch (error) {
-                this.logger.error(`Failed to stop embodiment ${embodiment.name}: ${errMsg(error)}`);
-            }
-        }
+        await this._forEachEmbodiment(e => e.stop(), 'stop');
     }
 
     onMessage(handler: (message: string) => void): void {
@@ -184,28 +168,21 @@ Capabilities:
   - Metacognition: ${caps.metacognition ? '✓' : '✗'}`;
     }
 
+    private _resolveStatePath(path?: string): string { return path ?? this.statePath ?? 'agent-state.json'; }
+
     async saveState(path?: string): Promise<void> {
         const fs = await import('fs/promises');
-        const statePath = path || this.statePath || 'agent-state.json';
-        const state = {
-            profile: this.profile,
-            memory: await this.narInstance.getMemoryState(),
-            timestamp: Date.now()
-        };
-        await fs.writeFile(statePath, JSON.stringify(state, null, 2));
+        const statePath = this._resolveStatePath(path);
+        await fs.writeFile(statePath, JSON.stringify({profile: this.profile, memory: await this.narInstance.getMemoryState(), timestamp: Date.now()}, null, 2));
         this.statePath = statePath;
     }
 
     async loadState(path?: string): Promise<void> {
         const fs = await import('fs/promises');
-        const statePath = path || this.statePath || 'agent-state.json';
-        const state = JSON.parse(await fs.readFile(statePath, 'utf-8'));
-        if (state.profile) {
-            this.profile = state.profile;
-        }
-        if (state.memory) {
-            await this.narInstance.loadMemoryState(state.memory);
-        }
+        const statePath = this._resolveStatePath(path);
+        const {profile, memory} = JSON.parse(await fs.readFile(statePath, 'utf-8'));
+        if (profile) this.profile = profile;
+        if (memory) await this.narInstance.loadMemoryState(memory);
         this.statePath = statePath;
     }
 }

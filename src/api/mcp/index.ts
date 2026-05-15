@@ -3,17 +3,14 @@
  * Model Context Protocol integration for SeNARS
  */
 
-// Core types (exclude ResourceContent which is re-exported from resource-manager)
+// Core types
 export type {
 	CapabilityDescriptor,
-	InternalSchema,
-	SchemaTransformationResult,
 	ValidationResult,
 	ExecutionContext,
 	ProgressUpdate,
 	LogEntry,
 	ExecutionResult,
-	ResultFormatter,
 	MCPContent,
 	TextContent,
 	ImageContent,
@@ -22,8 +19,6 @@ export type {
 	PromptTemplate,
 	PromptArgument,
 	MCPMessage,
-	MCPAdapterConfig,
-	CORSConfig,
 } from './types.js';
 
 // Schema transformer

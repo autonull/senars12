@@ -147,35 +147,6 @@ export class PromptManager implements PromptRenderer {
 		role: 'user' | 'assistant' | 'system',
 		content: string
 	): MCPMessage {
-		return {
-			role,
-			content: [
-				{
-					type: 'text',
-					text: content,
-				},
-			],
-		};
-	}
-
-	/**
-	 * Append user message to conversation
-	 */
-	appendUserMessage(text: string): MCPMessage {
-		return this.createMessage('user', text);
-	}
-
-	/**
-	 * Append assistant message to conversation
-	 */
-	appendAssistantMessage(text: string): MCPMessage {
-		return this.createMessage('assistant', text);
-	}
-
-	/**
-	 * Append system message to conversation
-	 */
-	appendSystemMessage(text: string): MCPMessage {
-		return this.createMessage('system', text);
+		return {role, content: [{type: 'text', text: content}]};
 	}
 }

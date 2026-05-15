@@ -11,9 +11,8 @@ import {
 	ProgressUpdate,
 	LogEntry,
 } from './types.js';
-import {SchemaTransformer, getSchemaTransformer} from './schema-transformer.js';
+import {getSchemaTransformer} from './schema-transformer.js';
 import {errMsg} from '../../nar/utils/helpers.js';
-import {APIRegistry} from '../registry.js';
 
 /**
  * Progress reporter callback type
@@ -44,8 +43,8 @@ export class EnhancedMCPAdapter extends BaseMCPAdapter {
 	protected progressTokens: Map<string | number, ProgressReporter> = new Map();
 	protected activeProgressId: number = 0;
 
-	constructor(registry?: APIRegistry) {
-		super(registry);
+	constructor() {
+		super();
 		this.schemaTransformer = getSchemaTransformer();
 	}
 
@@ -164,7 +163,7 @@ export class EnhancedMCPAdapter extends BaseMCPAdapter {
 	protected async executeCapability(
 		name: string,
 		args: Record<string, unknown>,
-		context: ExecutionContext
+		_context: ExecutionContext
 	): Promise<unknown> {
 		const handler = this.registry.getHandler(name);
 
@@ -257,10 +256,8 @@ export class EnhancedMCPAdapter extends BaseMCPAdapter {
 }
 
 /**
- * Factory function to create and initialize enhanced adapter
+ * Factory function to create enhanced adapter
  */
-export function createEnhancedMCPAdapter(
-	registry?: APIRegistry
-): EnhancedMCPAdapter {
-	return new EnhancedMCPAdapter(registry);
+export function createEnhancedMCPAdapter(): EnhancedMCPAdapter {
+	return new EnhancedMCPAdapter();
 }

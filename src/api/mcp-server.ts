@@ -14,10 +14,9 @@ import {
 	ListPromptsRequestSchema,
 	GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import {z} from 'zod';
-import {APIRegistry} from './registry.js';
 import {EnhancedMCPAdapter} from './mcp/enhanced-adapter.js';
-import {SchemaTransformer, getSchemaTransformer} from './mcp/schema-transformer.js';
+import type {SchemaTransformer} from './mcp/schema-transformer.js';
+import {getSchemaTransformer} from './mcp/schema-transformer.js';
 import {CapabilityDescriptor} from './mcp/types.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
 
@@ -43,8 +42,8 @@ export class SeNARSMCPServer {
 	private schemaTransformer: SchemaTransformer;
 	private isRunning: boolean = false;
 
-	constructor(registry?: APIRegistry, config: MCPServerConfig = {}) {
-		this.adapter = new EnhancedMCPAdapter(registry);
+	constructor(config: MCPServerConfig = {}) {
+		this.adapter = new EnhancedMCPAdapter();
 		this.schemaTransformer = getSchemaTransformer();
 		this.logger = createLogger({scope: 'api:mcp-server'});
 
@@ -269,60 +268,21 @@ export class SeNARSMCPServer {
 		this.logger.info(`Unregistered capability: ${name}`);
 	}
 
-	/**
-	 * List all available tools
-	 */
 	listTools(): Array<{name: string; description: string}> {
-		return this.adapter.getTools().map((tool) => ({
-			name: tool.name,
-			description: tool.description,
-		}));
+		return this.adapter.getTools().map(t => ({name: t.name, description: t.description}));
 	}
 
-	/**
-	 * Get tool schema by name
-	 */
 	getToolSchema(name: string): Record<string, unknown> | undefined {
-		const tools = this.adapter.getTools();
-		const tool = tools.find((t) => t.name === name);
-		return tool ? tool.inputSchema : undefined;
+		return this.adapter.getTools().find(t => t.name === name)?.inputSchema;
 	}
 
-	/**
-	 * Execute a tool call (for testing/internal use)
-	 */
-	async handleToolCall(
-		name: string,
-		args: Record<string, any>
-	): Promise<any> {
-		return this.adapter.executeTool({name, arguments: args});
-	}
-
-	/**
-	 * Check if server is running
-	 */
 	isServerRunning(): boolean {
 		return this.isRunning;
 	}
 
-	/**
-	 * Get adapter for advanced operations
-	 */
 	getAdapter(): EnhancedMCPAdapter {
 		return this.adapter;
 	}
-}
-
-/**
- * Factory function to create and start MCP server
- */
-export async function createMCPServer(
-	registry?: APIRegistry,
-	config?: MCPServerConfig
-): Promise<SeNARSMCPServer> {
-	const server = new SeNARSMCPServer(registry, config);
-	await server.start();
-	return server;
 }
 
 export {EnhancedMCPAdapter};

@@ -3,7 +3,8 @@
  * End-to-end demonstration scripts
  */
 
-import {NAR, SeNARSFactory} from '../nar';
+import type {NAR} from '../nar';
+import {SeNARSFactory} from '../nar';
 import {errMsg} from '../nar/utils/helpers.js';
 
 export interface DemoScenario {
@@ -41,135 +42,44 @@ export class DemoRunner {
     }
 }
 
-export const knowledgeBaseDemo: DemoScenario = {
-    name: 'Knowledge Base Reasoning',
-    description: 'Load facts and query conclusions',
-    run: async (nar: NAR) => {
-        console.log('Loading knowledge base...\n');
+interface DemoInput { text: string; label?: string }
 
-        await nar.input('(cat --> animal).');
-        console.log('✓ Added: (cat --> animal)');
-
-        await nar.input('(dog --> animal).');
-        console.log('✓ Added: (dog --> animal)');
-
-        await nar.input('(animal --> living-being).');
-        console.log('✓ Added: (animal --> living-being)');
-
-        console.log('\nRunning inference...\n');
-        const derived = await nar.run(10);
-        console.log(`Derived ${derived} new belief(s)`);
-
-        console.log('\nQuerying memory...\n');
-        const concepts = nar.listConcepts();
-        console.log(`Memory contains ${concepts.length} concept(s):`);
-        for (const concept of concepts.slice(0, 10)) {
-            console.log(`  - ${concept.term.toString()}`);
+const demo = (name: string, description: string, inputs: DemoInput[], runSteps = 5, showConcepts = false): DemoScenario => ({
+    name, description,
+    run: async (nar) => {
+        for (const {text, label} of inputs) {
+            await nar.input(text);
+            console.log(`✓ ${label ?? 'Added'}: ${text}`);
         }
-    }
-};
-
-export const goalAchievementDemo: DemoScenario = {
-    name: 'Goal Achievement',
-    description: 'Set goal and watch decomposition',
-    run: async (nar: NAR) => {
-        console.log('Setting up goals and beliefs...\n');
-
-        await nar.input('(want --> eat-food).!');
-        console.log('✓ Goal: (want --> eat-food)');
-
-        await nar.input('(eat-food --> action).');
-        console.log('✓ Belief: (eat-food --> action)');
-
-        await nar.input('(action --> do).');
-        console.log('✓ Belief: (action --> do)');
-
-        console.log('\nRunning goal-directed reasoning...\n');
-        const derived = await nar.run(5);
+        const derived = await nar.run(runSteps);
         console.log(`Derived ${derived} belief(s)`);
-
-        const goals = nar.getGoals();
-        console.log(`\nActive goals: ${goals.length}`);
-        for (const goal of goals.slice(0, 5)) {
-            console.log(`  - ${goal.term.toString()}`);
+        if (showConcepts) {
+            const concepts = nar.listConcepts();
+            console.log(`Concepts: ${concepts.length}`);
+            for (const c of concepts.slice(0, 10)) console.log(`  - ${c.term.toString()}`);
         }
     }
-};
+});
 
-export const analogicalReasoningDemo: DemoScenario = {
-    name: 'Analogical Reasoning',
-    description: 'Cross-domain transfer',
-    run: async (nar: NAR) => {
-        console.log('Setting up analogical domains...\n');
+export const knowledgeBaseDemo: DemoScenario = demo('Knowledge Base Reasoning', 'Load facts and query conclusions', [
+    {text: '(cat --> animal).'}, {text: '(dog --> animal).'}, {text: '(animal --> living-being).'},
+], 10, true);
 
-        await nar.input('(bird --> fly).');
-        console.log('✓ Source: (bird --> fly)');
+export const goalAchievementDemo: DemoScenario = demo('Goal Achievement', 'Set goal and watch decomposition', [
+    {text: '(want --> eat-food).!', label: 'Goal'}, {text: '(eat-food --> action).'}, {text: '(action --> do).'},
+], 5);
 
-        await nar.input('(fish --> swim).');
-        console.log('✓ Source: (fish --> swim)');
+export const analogicalReasoningDemo: DemoScenario = demo('Analogical Reasoning', 'Cross-domain transfer', [
+    {text: '(bird --> fly).'}, {text: '(fish --> swim).'}, {text: '(bird --> animal).'}, {text: '(fish --> animal).'},
+], 10);
 
-        await nar.input('(bird --> animal).');
-        console.log('✓ Source: (bird --> animal)');
+export const questionAnsweringDemo: DemoScenario = demo('Question Answering', 'Answer questions from knowledge base', [
+    {text: '(Paris --> capital-of-France).'}, {text: '(France --> country).'}, {text: '(Paris --> ?)?', label: 'Asked'},
+], 5);
 
-        await nar.input('(fish --> animal).');
-        console.log('✓ Source: (fish --> animal)');
-
-        console.log('\nRunning analogical inference...\n');
-        const derived = await nar.run(10);
-        console.log(`Derived ${derived} belief(s)`);
-
-        const concepts = nar.listConcepts();
-        console.log(`\nConcepts after analogy: ${concepts.length}`);
-    }
-};
-
-export const questionAnsweringDemo: DemoScenario = {
-    name: 'Question Answering',
-    description: 'Answer questions from knowledge base',
-    run: async (nar: NAR) => {
-        console.log('Building knowledge base...\n');
-
-        await nar.input('(Paris --> capital-of-France).');
-        console.log('✓ Added: (Paris --> capital-of-France)');
-
-        await nar.input('(France --> country).');
-        console.log('✓ Added: (France --> country)');
-
-        console.log('\nAsking questions...\n');
-        await nar.input('(Paris --> ?)?');
-        console.log('✓ Asked: (Paris --> ?)');
-
-        const derived = await nar.run(5);
-        console.log(`\nDerived ${derived} belief(s)`);
-
-        const questions = nar.getQuestions();
-        console.log(`\nActive questions: ${questions.length}`);
-    }
-};
-
-export const basicInferenceDemo: DemoScenario = {
-    name: 'Basic Inference',
-    description: 'Simple syllogistic reasoning',
-    run: async (nar: NAR) => {
-        console.log('Setting up syllogism...\n');
-
-        await nar.input('(Socrates --> human).');
-        console.log('✓ Premise: (Socrates --> human)');
-
-        await nar.input('(human --> mortal).');
-        console.log('✓ Premise: (human --> mortal)');
-
-        console.log('\nRunning deduction...\n');
-        const derived = await nar.run(5);
-        console.log(`Derived ${derived} new belief(s)`);
-
-        const concepts = nar.listConcepts();
-        console.log(`\nConcepts: ${concepts.length}`);
-        for (const concept of concepts) {
-            console.log(`  - ${concept.term.toString()}`);
-        }
-    }
-};
+export const basicInferenceDemo: DemoScenario = demo('Basic Inference', 'Simple syllogistic reasoning', [
+    {text: '(Socrates --> human).', label: 'Premise'}, {text: '(human --> mortal).', label: 'Premise'},
+], 5, true);
 
 export const demos: DemoScenario[] = [
     basicInferenceDemo,

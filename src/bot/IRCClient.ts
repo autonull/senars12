@@ -18,7 +18,7 @@ export interface IRCClientConfig {
     pingTimeout?: number;
 }
 
-export interface IRCClientEvents {
+interface _IRCClientEvents {
     message: (channel: string, user: string, text: string, raw: string) => void;
     error: (error: Error) => void;
     connected: () => void;
@@ -104,34 +104,14 @@ export class RealIRCClient extends EventEmitter {
                 resolve();
             });
 
-            this.client.on('error', (err) => {
-                this.emit('error', err instanceof Error ? err : new Error(String(err)));
-            });
-
-            this.client.on('message', (channel, nick, text) => {
-                this.emit('message', channel, nick, text, `${nick}! PRIVMSG ${channel} :${text}`);
-            });
-
-            this.client.on('pong', () => {
-                this.lastPingSent = 0;
-            });
-
-            this.client.on('join', (channel, nick) => {
-                if (nick === this.config.nick) return;
-                this.emit('join', channel, nick);
-            });
-
-            this.client.on('nick', (oldNick, newNick) => {
-                this.emit('nick', oldNick, newNick);
-            });
-
-            this.client.on('part', (channel, nick, reason) => {
-                this.emit('part', channel, nick, reason);
-            });
-
-            this.client.on('quit', (nick, reason) => {
-                this.emit('quit', nick, reason);
-            });
+            const fwd = <T extends unknown[]>(event: string, handler: (...args: T) => void) => this.client!.on(event, handler as (...args: unknown[]) => void);
+            fwd('error', (err) => this.emit('error', err instanceof Error ? err : new Error(String(err))));
+            fwd('message', (channel: string, nick: string, text: string) => this.emit('message', channel, nick, text, `${nick}! PRIVMSG ${channel} :${text}`));
+            fwd('pong', () => { this.lastPingSent = 0; });
+            fwd('join', (channel: string, nick: string) => { if (nick !== this.config.nick) this.emit('join', channel, nick); });
+            fwd('nick', (_old: string, _new: string) => this.emit('nick', _old, _new));
+            fwd('part', (ch: string, nk: string, reason?: string) => this.emit('part', ch, nk, reason));
+            fwd('quit', (nk: string, reason?: string) => this.emit('quit', nk, reason));
 
             this.client.on('close', () => {
                 this.connected = false;

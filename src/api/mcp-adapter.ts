@@ -30,7 +30,7 @@ export interface MCPToolCall {
 export class MCPAdapter extends BaseAdapter {
 	protected schemaTransformer: SchemaTransformer;
 
-	constructor(registry?: any) {
+	constructor() {
 		super('api:mcp');
 		this.schemaTransformer = new SchemaTransformer();
 	}
@@ -51,20 +51,6 @@ export class MCPAdapter extends BaseAdapter {
 	}
 
 	/**
-	 * Get a single tool definition by name
-	 */
-	getTool(name: string): MCPTool | undefined {
-		const meta = this.registry.getHandler(name);
-		if (!meta) return undefined;
-
-		return {
-			name: meta.name,
-			description: meta.description,
-			inputSchema: this.zodToJSONSchema(meta.params),
-		};
-	}
-
-	/**
 	 * Execute a tool call
 	 */
 	async executeTool(call: MCPToolCall): Promise<MCPToolResult> {
@@ -82,22 +68,8 @@ export class MCPAdapter extends BaseAdapter {
 				],
 			};
 		} catch (error: unknown) {
-			const message = errMsg(error);
 			return {
-				content: [
-					{
-						type: 'text',
-						text: JSON.stringify(
-							{
-								type: 'error',
-								error: {code: 'HANDLER_ERROR', message},
-								timestamp: Date.now(),
-							},
-							null,
-							2
-						),
-					},
-				],
+				content: [{type: 'text', text: JSON.stringify({type: 'error', error: {code: 'HANDLER_ERROR', message: errMsg(error)}, timestamp: Date.now()}, null, 2)}],
 				isError: true,
 			};
 		}

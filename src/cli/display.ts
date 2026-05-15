@@ -2,7 +2,6 @@ import kleur from 'kleur';
 import Table from 'cli-table3';
 import ora from 'ora';
 import figures from 'figures';
-import type {NAR} from '../nar';
 
 const k = {
     sys: (s: string) => kleur.cyan(s),
@@ -29,33 +28,6 @@ export function box(title: string, lines: string[]): string {
     const content = lines.map(line => `║ ${line.padEnd(width - 3)}║`).join('\n');
     const bottom = `╚${horizontal}╝`;
     return `${top}\n${titleLine}\n${middle}\n${content ? content + '\n' : ''}${bottom}`;
-}
-
-export function showStats(nar: NAR, detail?: string): void {
-    const stats = nar.getStatistics();
-    const metrics = nar.getMetrics?.();
-    const ruleExecs = metrics?.rules?.reduce((sum, r) => sum + r.executions, 0) ?? 0;
-    const derivs = metrics?.system?.totalDerivations ?? 0;
-    const steps = metrics?.system?.totalSteps ?? 0;
-    const lines = [
-        `Concepts: ${String(stats.totalConcepts)}`,
-        `Tasks: ${String(stats.totalTasks)}`,
-        ...(detail === 'detail' || detail === 'all'
-            ? [`Rule Executions: ${String(ruleExecs)}`, `Derivations: ${String(derivs)}`, `Steps: ${String(steps)}`]
-            : []),
-    ];
-    console.log(box('SeNARS Statistics', lines));
-    console.log();
-}
-
-export function listConcepts(nar: NAR): void {
-    const concepts = nar.listConcepts();
-    if (concepts.length === 0) { console.log('Memory is empty'); return; }
-    const lines = concepts.slice(0, 20).map(c =>
-        `${c.term.toString()}  [p:${c.priority.toFixed(2)} a:${c.activationValue.toFixed(2)}]`
-    );
-    console.log(box('Concepts', lines));
-    console.log();
 }
 
 export type SpinnerHandle = ReturnType<typeof ora>;
@@ -101,8 +73,6 @@ export class OutputRenderer {
         console.log(table.toString());
     }
 
-    prompt(text: string) { return k.prompt(text); }
-    dim(text: string) { return k.dim(text); }
 }
 
 export {k};

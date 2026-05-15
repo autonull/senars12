@@ -7,8 +7,6 @@ import {z} from 'zod';
 import {JSONSchema7} from 'json-schema';
 import {
 	CapabilityDescriptor,
-	InternalSchema,
-	SchemaTransformationResult,
 	ValidationResult,
 } from './types.js';
 import {errMsg} from '../../nar/utils/helpers.js';

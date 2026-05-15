@@ -45,15 +45,4 @@ export class HistoryManager {
         this.index = this.history.length;
     }
 
-    getHistory(): string[] {
-        return this.history;
-    }
-
-    getIndex(): number {
-        return this.index;
-    }
-
-    setIndex(index: number): void {
-        this.index = index;
-    }
 }

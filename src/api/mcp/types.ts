@@ -4,7 +4,6 @@
  */
 
 import {JSONSchema7} from 'json-schema';
-import {z} from 'zod';
 
 /**
  * Abstract capability descriptor (aligned with MCP tool schema)
@@ -24,30 +23,6 @@ export interface CapabilityDescriptor {
 		longRunning?: boolean;
 		requiresContext?: boolean;
 	};
-}
-
-/**
- * Internal validation schema wrapper
- */
-export interface InternalSchema {
-	_def?: {
-		typeName?: string;
-		shape?: () => Record<string, unknown>;
-		minLength?: number;
-		maxLength?: number;
-		minimum?: number;
-		maximum?: number;
-		innerType?: InternalSchema;
-	};
-}
-
-/**
- * Schema transformation result
- */
-export interface SchemaTransformationResult {
-	jsonSchema: JSONSchema7;
-	isValid: boolean;
-	errors?: string[];
 }
 
 /**
@@ -106,21 +81,6 @@ export interface ExecutionResult {
 		message: string;
 		details?: unknown;
 	};
-}
-
-/**
- * Result formatter interface
- */
-export interface ResultFormatter {
-	/**
-	 * Convert internal result → MCP content array (text/image/resource/etc.)
-	 */
-	format(result: unknown, descriptor: CapabilityDescriptor): MCPContent[];
-
-	/**
-	 * Optional: extract structured payload for machine consumption
-	 */
-	extractStructured(result: unknown, descriptor: CapabilityDescriptor): unknown;
 }
 
 /**
@@ -201,102 +161,4 @@ export interface PromptArgument {
 export interface MCPMessage {
 	role: 'user' | 'assistant' | 'system';
 	content: MCPContent[];
-}
-
-/**
- * Configuration for MCP adapter
- */
-export interface MCPAdapterConfig {
-	server: {
-		name: string;
-		version: string;
-		protocolVersion?: string;
-	};
-	transports: {
-		stdio?: {
-			enabled: boolean;
-		};
-		sse?: {
-			enabled: boolean;
-			endpoint: string;
-			port?: number;
-		};
-		streamableHttp?: {
-			enabled: boolean;
-			endpoint: string;
-			port?: number;
-			cors?: CORSConfig;
-		};
-	};
-	capabilities: {
-		tools?: {
-			listChanged?: boolean;
-		};
-		resources?: {
-			subscribe?: boolean;
-			listChanged?: boolean;
-		};
-		prompts?: {
-			listChanged?: boolean;
-		};
-		logging?: {
-			level?: string;
-		};
-	};
-	extensions?: Record<string, unknown>;
-}
-
-/**
- * CORS configuration for HTTP transports
- */
-export interface CORSConfig {
-	allowedOrigins: string[];
-	allowedHeaders?: string[];
-	allowedMethods?: string[];
-}
-
-/**
- * Default configuration factory
- */
-export function createDefaultConfig(
-	name: string = 'senars-mcp',
-	version: string = '1.0.0'
-): MCPAdapterConfig {
-	return {
-		server: {
-			name,
-			version,
-			protocolVersion: '2024-11-05', // Latest MCP spec version
-		},
-		transports: {
-			stdio: {
-				enabled: true,
-			},
-			sse: {
-				enabled: false,
-				endpoint: '/mcp/sse',
-				port: 8766,
-			},
-			streamableHttp: {
-				enabled: false,
-				endpoint: '/mcp',
-				port: 8766,
-			},
-		},
-		capabilities: {
-			tools: {
-				listChanged: true,
-			},
-			resources: {
-				subscribe: true,
-				listChanged: true,
-			},
-			prompts: {
-				listChanged: true,
-			},
-			logging: {
-				level: 'info',
-			},
-		},
-	};
 }

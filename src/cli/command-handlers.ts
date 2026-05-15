@@ -1,4 +1,3 @@
-import type {NAR} from '../nar';
 import {CommandRegistry, createCommandContext, type CommandContext} from './commands/index.js';
 import {CoreCommands} from './commands/CoreCommands.js';
 import {NARDisplayCommands} from './commands/NARDisplayCommands.js';
@@ -8,12 +7,10 @@ import {LMCommands} from './commands/LMCommands.js';
 import {MemoryCommands} from './commands/MemoryCommands.js';
 
 export class CommandHandlers {
-    private readonly nar: NAR;
     private readonly registry: CommandRegistry;
     private readonly ctx: CommandContext;
 
-    constructor(nar: NAR) {
-        this.nar = nar;
+    constructor(nar: Parameters<typeof createCommandContext>[0]) {
         this.ctx = createCommandContext(nar);
         this.registry = new CommandRegistry('CLI');
 
@@ -40,37 +37,9 @@ export class CommandHandlers {
 		}
 
 		try {
-			const result = this.registry.handle(cmd, {...this.ctx, args});
-			// Handle async command handlers
-			if (result instanceof Promise) {
-				await result;
-			}
+			await this.registry.handle(cmd, {...this.ctx, args});
 		} catch (error) {
 			this.ctx.logger.error(`Error: ${error}`);
 		}
 	}
-
-    async handleBelief(term: string): Promise<void> {
-        try {
-            await this.nar.input(term);
-            this.ctx.logger.info(`✓ Added: ${term}`);
-        } catch (error) {
-            this.ctx.logger.error(`✗ Error: ${error}`);
-        }
-    }
-
-    async handleQuestion(term: string): Promise<void> {
-        try {
-            await this.nar.question(term);
-            const derived = await this.nar.run(5);
-
-            if (derived > 0) {
-                this.ctx.logger.info(`✓ Derived ${derived} new belief(s)`);
-            } else {
-                this.ctx.logger.info('? No derivation found');
-            }
-        } catch (error) {
-            this.ctx.logger.error(`✗ Error: ${error}`);
-        }
-    }
 }

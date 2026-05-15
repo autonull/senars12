@@ -1,6 +1,6 @@
 import type {NAR} from '../nar/nar.js';
 
-export interface HandlerDeps { nar: NAR; send: (channel: string, user: string, text: string) => void; }
+interface HandlerDeps { nar: NAR; send: (channel: string, user: string, text: string) => void; }
 
 export interface CommandHandler {
     handle: (channel: string, user: string, args: string[]) => Promise<void>;

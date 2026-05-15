@@ -11,7 +11,7 @@ export interface PaginationParams {
     offset?: number;
 }
 
-export interface NarServiceConfig {
+interface NarServiceConfig {
     defaultRunSteps?: number;
     maxPaginationLimit?: number;
 }
@@ -28,20 +28,9 @@ export class NarService {
         this.maxPaginationLimit = config.maxPaginationLimit ?? 100;
     }
 
-    async addBelief(term: string, truth?: { f: number; c: number }): Promise<{ added: true; term: string }> {
-        await this.nar.believe(term, truth ? {f: truth.f, c: truth.c} : undefined);
-        return {added: true, term};
-    }
-
-    async addGoal(term: string, truth?: { f: number; c: number }): Promise<{ added: true; term: string }> {
-        await this.nar.goal(term, truth ? {f: truth.f, c: truth.c} : undefined);
-        return {added: true, term};
-    }
-
-    async addQuestion(term: string): Promise<{ added: true; term: string }> {
-        await this.nar.question(term);
-        return {added: true, term};
-    }
+    async addBelief(term: string, truth?: { f: number; c: number }) { await this.nar.believe(term, truth); return {added: true, term}; }
+    async addGoal(term: string, truth?: { f: number; c: number }) { await this.nar.goal(term, truth); return {added: true, term}; }
+    async addQuestion(term: string) { await this.nar.question(term); return {added: true, term}; }
 
     async getConcepts(filter?: ConceptFilter, pagination?: PaginationParams): Promise<{
         results: Task[];

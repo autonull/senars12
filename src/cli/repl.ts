@@ -24,7 +24,7 @@ type NARRef = ReturnType<typeof SeNARSFactory.createForCLI>;
 const COMMANDS = [
 	'.help', '.run', '.stats', '.list', '.concepts', '.rules', '.tools',
 	'.query', '.trace', '.explain', '.clear', '.load', '.save',
-	'.config', '.profile', '.quit', '.self', '.meta', '.optimize',
+	'.config', '.quit', '.self', '.meta', '.optimize',
 	'.prefer', '.reward', '.rlfp-stats', '.lm-status', '.lm-config', '.lm-switch',
 	'.lm-switch-provider', '.ask-nl', '.constitution', '.attention', '.load-domain'
 ];
@@ -68,10 +68,7 @@ export class SeNARSCLI {
 			terminal: isTTY
 		});
 
-		process.on('SIGINT', () => {
-			console.log(`\n${k.dim('Goodbye!')}`);
-			this.rl.close();
-		});
+		process.on('SIGINT', () => this.rl.close());
 
 		this.rl.on('line', (line) => this.onLine(line));
 		this.rl.on('close', () => {
