@@ -6,6 +6,7 @@
 import {promises as fs} from 'fs';
 import {dirname, join} from 'path';
 import {fileURLToPath} from 'url';
+import {clamp} from '../nar/utils/helpers.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -55,122 +56,83 @@ export interface AppConfig {
 export interface ValidatedConfig {
     name: string;
     version: string;
-    lm: {
-        enabled: boolean;
-        provider: string;
-        model?: string;
-        quantized?: boolean;
-    };
+    lm: { enabled: boolean; provider: string; model?: string; quantized?: boolean };
     core: {
-        maxConcepts: number;
-        priorityThreshold: number;
-        activationDecayRate: number;
-        consolidationInterval: number;
-        cpuThrottleMs: number;
-        maxDerivationDepth: number;
+        maxConcepts: number; priorityThreshold: number; activationDecayRate: number;
+        consolidationInterval: number; cpuThrottleMs: number; maxDerivationDepth: number;
         maxDerivationsPerStep: number;
     };
-    irc?: {
-        server: string;
-        port: number;
-        useTLS: boolean;
-        nick: string;
-        channels: string[];
-    };
+    irc?: { server: string; port: number; useTLS: boolean; nick: string; channels: string[] };
 }
 
 const DEFAULT_APP_CONFIG: ValidatedConfig = {
-    name: 'SeNARS12',
-    version: '1.0.0',
-    lm: {
-        enabled: true,
-        provider: 'transformers',
-        model: 'Xenova/Llama-3.2-1B-Instruct',
-        quantized: true
-    },
+    name: 'SeNARS12', version: '1.0.0',
+    lm: { enabled: true, provider: 'transformers', model: 'Xenova/Llama-3.2-1B-Instruct', quantized: true },
     core: {
-        maxConcepts: 100,
-        priorityThreshold: 0.1,
-        activationDecayRate: 0.01,
-        consolidationInterval: 10,
-        cpuThrottleMs: 0,
-        maxDerivationDepth: 10,
-        maxDerivationsPerStep: 100
+        maxConcepts: 100, priorityThreshold: 0.1, activationDecayRate: 0.01,
+        consolidationInterval: 10, cpuThrottleMs: 0, maxDerivationDepth: 10, maxDerivationsPerStep: 100
     }
 };
+
+const clampEnv = (env: string | undefined, min: number, max: number, fallback: number): number =>
+    env ? clamp(parseInt(env, 10), min, max) : fallback;
 
 export class ConfigLoader {
     static async loadFromFile(filePath?: string): Promise<ValidatedConfig> {
         const path = filePath ?? await this.findConfigFile();
-
         try {
-            const content = await fs.readFile(path, 'utf-8');
-            const raw = JSON.parse(content) as AppConfig;
+            const raw = JSON.parse(await fs.readFile(path, 'utf-8')) as AppConfig;
             return this.validate(raw);
         } catch (error) {
-            console.warn(`Config file not found or invalid: ${error}`);
-            console.warn('Using default configuration');
+            console.warn(`Config file not found or invalid: ${error}\nUsing default configuration`);
             return DEFAULT_APP_CONFIG;
         }
     }
 
     static async loadFromEnv(): Promise<ValidatedConfig> {
-        const config: ValidatedConfig = {
+        return {
             ...DEFAULT_APP_CONFIG,
             lm: {
-                enabled: false,
-                provider: process.env.LM_PROVIDER || 'mock'
+                enabled: !!process.env.LM_MODEL,
+                provider: process.env.LM_PROVIDER || 'mock',
+                ...(process.env.LM_MODEL && {model: process.env.LM_MODEL})
+            },
+            core: {
+                ...DEFAULT_APP_CONFIG.core,
+                maxConcepts: clampEnv(process.env.MAX_CONCEPTS, 10, 10000, DEFAULT_APP_CONFIG.core.maxConcepts)
             }
         };
-
-        if (process.env.LM_MODEL) {
-            config.lm.enabled = true;
-            config.lm.model = process.env.LM_MODEL;
-        }
-
-        if (process.env.MAX_CONCEPTS) {
-            config.core.maxConcepts = parseInt(process.env.MAX_CONCEPTS, 10);
-        }
-
-        return config;
     }
 
     private static validate(raw: AppConfig): ValidatedConfig {
+        const mem = raw.memory ?? {};
+        const inf = raw.inference ?? {};
         const config: ValidatedConfig = {
-            name: raw.name || 'SeNARS12',
-            version: raw.version || '1.0.0',
+            name: raw.name || 'SeNARS12', version: raw.version || '1.0.0',
             lm: {
                 enabled: raw.lm?.enabled ?? !!raw.lm?.provider,
                 provider: raw.lm?.provider || 'mock',
-                model: raw.lm?.model,
-                quantized: raw.lm?.quantized
+                model: raw.lm?.model, quantized: raw.lm?.quantized
             },
             core: {
-                maxConcepts: this.clamp(raw.memory?.maxConcepts ?? 100, 10, 10000),
-                priorityThreshold: this.clamp(raw.memory?.priorityThreshold ?? 0.1, 0, 1),
-                activationDecayRate: this.clamp(raw.memory?.activationDecayRate ?? 0.01, 0, 1),
-                consolidationInterval: raw.inference?.consolidationInterval ?? 10,
-                cpuThrottleMs: raw.inference?.cpuThrottleMs ?? 0,
-                maxDerivationDepth: this.clamp(raw.inference?.maxDerivationDepth ?? 10, 1, 100),
-                maxDerivationsPerStep: this.clamp(raw.inference?.maxDerivationsPerStep ?? 100, 1, 10000)
+                maxConcepts: clamp(mem.maxConcepts ?? 100, 10, 10000),
+                priorityThreshold: clamp(mem.priorityThreshold ?? 0.1, 0, 1),
+                activationDecayRate: clamp(mem.activationDecayRate ?? 0.01, 0, 1),
+                consolidationInterval: inf.consolidationInterval ?? 10,
+                cpuThrottleMs: inf.cpuThrottleMs ?? 0,
+                maxDerivationDepth: clamp(inf.maxDerivationDepth ?? 10, 1, 100),
+                maxDerivationsPerStep: clamp(inf.maxDerivationsPerStep ?? 100, 1, 10000)
             }
         };
 
         if (raw.irc) {
             config.irc = {
-                server: raw.irc.server || 'irc.libera.chat',
-                port: raw.irc.port || 6697,
-                useTLS: raw.irc.useTLS ?? true,
-                nick: raw.irc.nick || 'senars12',
+                server: raw.irc.server || 'irc.libera.chat', port: raw.irc.port || 6697,
+                useTLS: raw.irc.useTLS ?? true, nick: raw.irc.nick || 'senars12',
                 channels: raw.irc.channels || ['#nars']
             };
         }
-
         return config;
-    }
-
-    private static clamp(value: number, min: number, max: number): number {
-        return Math.max(min, Math.min(max, value));
     }
 
     private static async findConfigFile(): Promise<string> {
@@ -180,16 +142,9 @@ export class ConfigLoader {
             join(__dirname, '..', 'senars.config.json'),
             join(__dirname, 'senars.config.json')
         ];
-
         for (const path of paths) {
-            try {
-                await fs.access(path);
-                return path;
-            } catch {
-                continue;
-            }
+            try { await fs.access(path); return path; } catch { continue; }
         }
-
         throw new Error('Configuration file not found');
     }
 }

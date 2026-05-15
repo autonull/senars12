@@ -35,12 +35,8 @@ export function createQuestionHandler(deps: HandlerDeps) {
     return async (channel: string, user: string, text: string): Promise<boolean> => {
         await deps.nar.question(text.trim());
         const derived = await deps.nar.run(5);
-        if (derived > 0) {
-            deps.send(channel, user, `Derived ${derived} belief(s)`);
-            return true;
-        }
-        deps.send(channel, user, 'No derivation found');
-        return false;
+        deps.send(channel, user, derived > 0 ? `Derived ${derived} belief(s)` : 'No derivation found');
+        return derived > 0;
     };
 }
 
@@ -54,8 +50,9 @@ const cmd = (deps: HandlerDeps, name: string, help: string, fn: (ch: string, u: 
     Object.freeze({name, help, matches: (c: string) => c === name || c === `!${name.slice(1)}`, handle: fn});
 
 export function createCommandHandlers(deps: HandlerDeps): readonly CommandHandler[] {
+    const send = (text: string) => async (ch: string, u: string) => deps.send(ch, u, text);
     return Object.freeze([
-        cmd(deps, '.help', 'Commands: (term). add belief | (term)? ask | .stats | .clear', async (ch, u) => deps.send(ch, u, 'Commands: (term). add belief | (term)? ask | .stats | .clear')),
+        cmd(deps, '.help', 'Commands: (term). add belief | (term)? ask | .stats | .clear', send('Commands: (term). add belief | (term)? ask | .stats | .clear')),
         cmd(deps, '.stats', 'Show concept and task counts', async (ch, u) => {
             const {totalConcepts, totalTasks} = deps.nar.getStatistics();
             deps.send(ch, u, `Concepts: ${totalConcepts}, Tasks: ${totalTasks}`);

@@ -11,15 +11,22 @@ import {termParser} from '../nar/terms/parser.js';
 const registry = APIRegistry.getInstance();
 
 const TermSchema = z.string().min(1, 'Term cannot be empty');
-const TruthSchema = z.object({
-    f: z.number().min(0).max(1),
-    c: z.number().min(0).max(1),
-}).optional();
+const TruthSchema = z.object({f: z.number().min(0).max(1), c: z.number().min(0).max(1)}).optional();
+const PaginationSchema = z.object({page: z.number().positive().optional(), limit: z.number().positive().max(100).optional()});
 
-const PaginationSchema = z.object({
-    page: z.number().positive().optional(),
-    limit: z.number().positive().max(100).optional(),
-});
+type TaskType = 'beliefs' | 'goals' | 'questions';
+
+const registerListEndpoint = (nar: ReturnType<Agent['getNAR']>, type: TaskType) => {
+    registry.register(`get${type.charAt(0).toUpperCase() + type.slice(1)}`, {
+        description: `List all ${type} in the knowledge base`,
+        params: z.object({pagination: PaginationSchema.optional()}),
+        returns: z.object({[type]: z.array(z.object({})), total: z.number()}),
+        handler: async () => {
+            const items = nar[`get${type.charAt(0).toUpperCase() + type.slice(1)}`]();
+            return {[type]: items, total: items.length};
+        }
+    });
+};
 
 export function registerAgentAPI(agent: Agent) {
     const nar = agent.getNAR();
@@ -28,72 +35,34 @@ export function registerAgentAPI(agent: Agent) {
         description: 'Add a belief to the knowledge base',
         params: z.object({term: TermSchema, truth: TruthSchema}),
         returns: z.object({success: z.boolean(), term: z.string()}),
-        handler: async ({term}) => {
-            await nar.input(term);
-            return {success: true, term};
-        },
+        handler: async ({term}) => { await nar.input(term); return {success: true, term}; }
     });
 
     registry.register('addGoal', {
         description: 'Add a goal to the knowledge base',
         params: z.object({term: TermSchema, truth: TruthSchema}),
         returns: z.object({success: z.boolean(), term: z.string()}),
-        handler: async ({term}) => {
-            await nar.input(`${term}!`);
-            return {success: true, term};
-        },
+        handler: async ({term}) => { await nar.input(`${term}!`); return {success: true, term}; }
     });
 
     registry.register('addQuestion', {
         description: 'Add a question to the knowledge base',
         params: z.object({term: TermSchema}),
         returns: z.object({success: z.boolean(), term: z.string()}),
-        handler: async ({term}) => {
-            await nar.input(`${term}?`);
-            return {success: true, term};
-        },
+        handler: async ({term}) => { await nar.input(`${term}?`); return {success: true, term}; }
     });
 
-registry.register('getBeliefs', {
-  description: 'List all beliefs in the knowledge base',
-  params: z.object({pagination: PaginationSchema.optional()}),
-  returns: z.object({beliefs: z.array(z.object({})), total: z.number()}),
-  handler: async () => {
-    const beliefs = nar.getBeliefs();
-    return {beliefs, total: beliefs.length};
-  },
-});
+    (['beliefs', 'goals', 'questions'] as TaskType[]).forEach(type => registerListEndpoint(nar, type));
 
-registry.register('getGoals', {
-  description: 'List all goals in the knowledge base',
-  params: z.object({pagination: PaginationSchema.optional()}),
-  returns: z.object({goals: z.array(z.object({})), total: z.number()}),
-  handler: async () => {
-    const goals = nar.getGoals();
-    return {goals, total: goals.length};
-  },
-});
-
-registry.register('getQuestions', {
-  description: 'List all questions in the knowledge base',
-  params: z.object({pagination: PaginationSchema.optional()}),
-  returns: z.object({questions: z.array(z.object({})), total: z.number()}),
-  handler: async () => {
-    const questions = nar.getQuestions();
-    return {questions, total: questions.length};
-  },
-});
-
-registry.register('query', {
-  description: 'Query the knowledge base',
-  params: z.object({term: TermSchema, filter: z.record(z.string(), z.unknown()).optional()}),
-  returns: z.object({results: z.array(z.object({})), count: z.number()}),
-  handler: async ({term, filter}) => {
-    const termObj = termParser.parse(term);
-    const results = await nar.query.query(termObj, filter);
-    return {results: results.beliefs, count: results.beliefs.length};
-  },
-});
+    registry.register('query', {
+        description: 'Query the knowledge base',
+        params: z.object({term: TermSchema, filter: z.record(z.string(), z.unknown()).optional()}),
+        returns: z.object({results: z.array(z.object({})), count: z.number()}),
+        handler: async ({term, filter}) => {
+            const results = await nar.query.query(termParser.parse(term), filter);
+            return {results: results.beliefs, count: results.beliefs.length};
+        }
+    });
 
     registry.register('ask', {
         description: 'Ask a question and get an answer',
@@ -103,69 +72,58 @@ registry.register('query', {
             await nar.input(question);
             const derived = await nar.run(steps);
             return {answer: derived > 0 ? `Found ${derived} derivations` : 'No answer found', derivations: derived};
-        },
+        }
     });
 
     registry.register('getStats', {
         description: 'Get system statistics',
         params: z.object({}),
-        returns: z.object({
-            totalConcepts: z.number(),
-            totalTasks: z.number(),
-            rulesFired: z.number(),
-            derivations: z.number(),
-        }),
+        returns: z.object({totalConcepts: z.number(), totalTasks: z.number(), rulesFired: z.number(), derivations: z.number()}),
         handler: async () => {
             const stats = nar.getStatistics();
             const metrics = nar.getMetrics();
             return {
-                totalConcepts: stats.totalConcepts,
-                totalTasks: stats.totalTasks,
-                rulesFired: metrics.system.totalSteps || 0,
-                derivations: metrics.system.totalDerivations || 0,
+                totalConcepts: stats.totalConcepts, totalTasks: stats.totalTasks,
+                rulesFired: metrics.system.totalSteps || 0, derivations: metrics.system.totalDerivations || 0
             };
-        },
+        }
     });
 
-registry.register('getHealth', {
-  description: 'Health check',
-  params: z.object({}),
-  returns: z.object({
-    status: z.string(),
-    timestamp: z.number(),
-    uptime: z.number(),
-    memory: z.object({concepts: z.number(), tasks: z.number()}),
-    lm: z.object({available: z.boolean(), provider: z.string().optional(), model: z.string().optional()}),
-  }),
-  handler: async () => {
-    const stats = nar.getStatistics();
-    const lm = nar.getLMClient?.();
-    return {
-      status: 'healthy',
-      timestamp: Date.now(),
-      uptime: process.uptime(),
-      memory: {concepts: stats.totalConcepts ?? 0, tasks: stats.totalTasks ?? 0},
-      lm: lm ? {available: true, provider: lm.provider ?? 'unknown', model: lm.model ?? 'unknown'} : {available: false},
-    };
-  },
-});
+    registry.register('getHealth', {
+        description: 'Health check',
+        params: z.object({}),
+        returns: z.object({
+            status: z.string(), timestamp: z.number(), uptime: z.number(),
+            memory: z.object({concepts: z.number(), tasks: z.number()}),
+            lm: z.object({available: z.boolean(), provider: z.string().optional(), model: z.string().optional()})
+        }),
+        handler: async () => {
+            const stats = nar.getStatistics();
+            const lm = nar.getLMClient?.();
+            return {
+                status: 'healthy', timestamp: Date.now(), uptime: process.uptime(),
+                memory: {concepts: stats.totalConcepts ?? 0, tasks: stats.totalTasks ?? 0},
+                lm: lm ? {available: true, provider: lm.provider ?? 'unknown', model: lm.model ?? 'unknown'} : {available: false}
+            };
+        }
+    });
 
     registry.register('run', {
         description: 'Run inference steps',
         params: z.object({steps: z.number().positive().max(100)}),
         returns: z.object({derived: z.number()}),
-        handler: async ({steps}) => ({derived: await nar.run(steps)}),
+        handler: async ({steps}) => ({derived: await nar.run(steps)})
     });
 
-registry.register('getConfig', {
-  description: 'Get system configuration',
-  params: z.object({key: z.string().optional()}),
-  returns: z.record(z.string(), z.unknown()),
-  handler: async ({key}) => {
-    const config = nar.getConfig();
-    return key ? {[key]: config[key as keyof typeof config]} : config;
-  },
-});
+    registry.register('getConfig', {
+        description: 'Get system configuration',
+        params: z.object({key: z.string().optional()}),
+        returns: z.record(z.string(), z.unknown()),
+        handler: async ({key}) => {
+            const config = nar.getConfig();
+            return key ? {[key]: config[key as keyof typeof config]} : config;
+        }
+    });
 
     registry.register('getAttention', {
         description: 'Get attention snapshot',
@@ -174,18 +132,18 @@ registry.register('getConfig', {
         handler: async () => {
             const attention = nar.attentionReport();
             return {concepts: attention.concepts, total: attention.total};
-        },
+        }
     });
 
-registry.register('getHistory', {
-  description: 'Get task history',
-  params: z.object({limit: z.number().positive().max(1000).optional()}),
-  returns: z.object({tasks: z.array(z.object({})), count: z.number()}),
-  handler: async ({limit = 100}) => {
-    const tasks = nar.tools.getHistory(limit);
-    return {tasks, count: tasks.length};
-  },
-});
+    registry.register('getHistory', {
+        description: 'Get task history',
+        params: z.object({limit: z.number().positive().max(1000).optional()}),
+        returns: z.object({tasks: z.array(z.object({})), count: z.number()}),
+        handler: async ({limit = 100}) => {
+            const tasks = nar.tools.getHistory(limit);
+            return {tasks, count: tasks.length};
+        }
+    });
 
     return registry;
 }

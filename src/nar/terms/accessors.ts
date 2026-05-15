@@ -17,23 +17,16 @@ export const isPredictive = (t: Term): t is CompoundTerm<'predictive'> => isType
 export const isRetrospective = (t: Term): t is CompoundTerm<'retrospective'> => isType('retrospective', t);
 export const isOperation = (t: Term): t is CompoundTerm<'operation'> => isType('operation', t);
 
-export const getSubject = (term: Term): Term | undefined =>
-    (term.kind === 'inheritance' || term.kind === 'similarity') ? term.args?.[0] : undefined;
+const isSubjectPredicate = (t: Term): boolean => t.kind === 'inheritance' || t.kind === 'similarity';
+const isAntecedentConsequent = (t: Term): boolean => t.kind === 'implication' || t.kind === 'equivalence';
 
-export const getPredicate = (term: Term): Term | undefined =>
-    (term.kind === 'inheritance' || term.kind === 'similarity') ? term.args?.[1] : undefined;
+export const getSubject = (term: Term): Term | undefined => isSubjectPredicate(term) ? term.args?.[0] : undefined;
+export const getPredicate = (term: Term): Term | undefined => isSubjectPredicate(term) ? term.args?.[1] : undefined;
+export const getAntecedent = (term: Term): Term | undefined => isAntecedentConsequent(term) ? term.args?.[0] : undefined;
+export const getConsequent = (term: Term): Term | undefined => isAntecedentConsequent(term) ? term.args?.[1] : undefined;
 
-export const getAntecedent = (term: Term): Term | undefined =>
-    (term.kind === 'implication' || term.kind === 'equivalence') ? term.args?.[0] : undefined;
-
-export const getConsequent = (term: Term): Term | undefined =>
-    (term.kind === 'implication' || term.kind === 'equivalence') ? term.args?.[1] : undefined;
-
-export const getArgs = (term: Term): readonly Term[] =>
-    term.kind === 'atom' ? [] : term.args ?? [];
-
+export const getArgs = (term: Term): readonly Term[] => term.kind === 'atom' ? [] : term.args ?? [];
 export const isAtom = (term: Term): term is AtomicTerm => term.kind === 'atom';
-
 export const sameKind = (a: Term, b: Term): boolean => a.kind === b.kind;
 
 export const termsEqual = (a: Term, b: Term): boolean => {
@@ -50,6 +43,4 @@ export const termsEqual = (a: Term, b: Term): boolean => {
 };
 
 export const isCanonical = (term: Term): boolean => Object.isFrozen(term);
-
-export const getCompoundArgs = (term: Term): readonly Term[] | undefined =>
-    term.kind === 'atom' ? undefined : term.args;
+export const getCompoundArgs = (term: Term): readonly Term[] | undefined => term.kind === 'atom' ? undefined : term.args;

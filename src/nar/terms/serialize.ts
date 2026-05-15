@@ -2,21 +2,25 @@ import type {Term} from './types.js';
 import {OPERATORS} from './operators.js';
 import {termParser} from './parser.js';
 
-const binaryOps = ['inheritance', 'similarity', 'implication', 'equivalence', 'sequence', 'parallel', 'predictive', 'retrospective', 'operation'] as const;
-const unaryOps = ['negation', 'instance', 'property'] as const;
+const BINARY_OPS = new Set(Object.entries(OPERATORS).filter(([, v]) => v.arity === 2 || v.nary).map(([k]) => k));
+const UNARY_OPS = new Set(Object.entries(OPERATORS).filter(([, v]) => v.arity === 1).map(([k]) => k));
+
+const WRAPPERS: Record<string, [string, string]> = {
+    negation: ['--', ')'], instance: ['{', '}'], property: ['[', ']']
+};
 
 const serialize = (term: Term): string => {
     if (term.kind === 'atom') return term.symbol;
 
-    if (binaryOps.includes(term.kind as typeof binaryOps[number])) {
+    if (BINARY_OPS.has(term.kind)) {
         const [a, b] = term.args ?? [];
         const op = OPERATORS[term.kind]?.symbol ?? '';
         return a && b ? `(${serialize(a)} ${op} ${serialize(b)})` : '';
     }
 
-    if (unaryOps.includes(term.kind as typeof unaryOps[number])) {
+    if (UNARY_OPS.has(term.kind)) {
         const arg = term.args?.[0];
-        const [prefix, suffix] = term.kind === 'negation' ? ['--', ')'] : term.kind === 'instance' ? ['{', '}'] : ['[', ']'];
+        const [prefix, suffix] = WRAPPERS[term.kind] ?? ['', ''];
         return arg ? `${prefix}${serialize(arg)}${suffix}` : '';
     }
 
@@ -36,9 +40,5 @@ const serialize = (term: Term): string => {
 export const serializeTerm = serialize;
 
 export const deserializeTerm = (s: string): Term | null => {
-    try {
-        return termParser.parse(s);
-    } catch {
-        return null;
-    }
+    try { return termParser.parse(s); } catch { return null; }
 };
