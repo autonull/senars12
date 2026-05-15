@@ -143,7 +143,7 @@ export class ConfigLoader {
             join(__dirname, 'senars.config.json')
         ];
         for (const path of paths) {
-            try { await fs.access(path); return path; } catch { continue; }
+            try { await fs.access(path); return path; } catch (e) { console.error('Config path access failed:', e); continue; }
         }
         throw new Error('Configuration file not found');
     }

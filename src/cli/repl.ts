@@ -26,7 +26,8 @@ const COMMANDS = [
 	'.query', '.trace', '.explain', '.clear', '.load', '.save',
 	'.config', '.quit', '.self', '.meta', '.optimize',
 	'.prefer', '.reward', '.rlfp-stats', '.lm-status', '.lm-config', '.lm-switch',
-	'.lm-switch-provider', '.ask-nl', '.constitution', '.attention', '.load-domain'
+	'.lm-switch-provider', '.ask-nl', '.constitution', '.attention', '.load-domain',
+	'.stack'  // Show current trace stack
 ];
 
 export class SeNARSCLI {

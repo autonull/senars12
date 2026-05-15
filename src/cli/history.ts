@@ -22,10 +22,7 @@ export class HistoryManager {
                 this.history = content.split('\n').filter(line => line.trim()).slice(-MAX_HISTORY);
                 this.index = this.history.length;
             }
-        } catch {
-            this.history = [];
-            this.index = 0;
-        }
+        } catch (e) { console.error('Failed to load history:', e); this.history = []; this.index = 0; }
     }
 
     async saveHistory(): Promise<void> {

@@ -75,21 +75,14 @@ export class APIRegistry {
     }
 
     getSpec(): Record<string, { name: string; description: string; params: z.ZodSchema; returns: z.ZodSchema }> {
-        const spec: Record<string, {
-            name: string;
-            description: string;
-            params: z.ZodSchema;
-            returns: z.ZodSchema
-        }> = {};
-        for (const [name, meta] of this.handlers) {
-            spec[name] = {
+        return Object.fromEntries(
+            Array.from(this.handlers.entries()).map(([name, meta]) => [name, {
                 name: meta.name,
                 description: meta.description,
                 params: meta.params,
                 returns: meta.returns,
-            };
-        }
-        return spec;
+            }])
+        );
     }
 
     getOpenAPISpec(): {

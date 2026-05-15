@@ -4,12 +4,10 @@
  */
 
 import {WebSocket, WebSocketServer} from 'ws';
-import {BaseAdapter} from './base-adapter.js';
+import {BaseAdapter, successResponse, errorResponse} from './base-adapter.js';
 import {errMsg} from '../nar/utils/helpers.js';
 
-const CLIENT_ID_CHARS = '0123456789abcdefghijklmnopqrstuvwxyz';
-const generateClientId = (): string =>
-    Array.from({length: 16}, () => CLIENT_ID_CHARS[Math.floor(Math.random() * CLIENT_ID_CHARS.length)]).join('');
+const generateClientId = (): string => crypto.randomUUID();
 
 interface WSMessage {
     type: string;
@@ -152,7 +150,8 @@ export class WebSocketAdapter extends BaseAdapter {
                 this.handleMessage(ws, message, client).catch((error) => {
                     this.sendError(ws, error.message, message.id);
                 });
-            } catch {
+            } catch (e) {
+                console.error('Invalid message:', e);
                 this.sendError(ws, 'Invalid message format', undefined);
             }
         });
@@ -249,10 +248,10 @@ export class WebSocketAdapter extends BaseAdapter {
     }
 
     private sendSuccess(ws: WebSocket, data: Record<string, unknown>, id?: string): void {
-        this.sendJSON(ws, BaseAdapter.successResponse(data, id));
+        this.sendJSON(ws, successResponse(data, id));
     }
 
     private sendError(ws: WebSocket, error: string, id?: string): void {
-        this.sendJSON(ws, BaseAdapter.errorResponse('HANDLER_ERROR', error, id));
+        this.sendJSON(ws, errorResponse('HANDLER_ERROR', error, id));
     }
 }

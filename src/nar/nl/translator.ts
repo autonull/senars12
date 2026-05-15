@@ -20,7 +20,7 @@ export class NLTranslator {
 
         const validBeliefs = object.beliefs.filter(b => {
             try { termParser.parse(b.narsese); return true; }
-            catch { return false; }
+            catch (e) { console.error('Invalid belief filtered:', e); return false; }
         });
 
         return {...object, beliefs: validBeliefs};
@@ -29,7 +29,8 @@ export class NLTranslator {
     async translateWithFallback(nl: string, fallbackModel: LanguageModel): Promise<TranslationResult> {
         try {
             return await this.translate(nl);
-        } catch {
+        } catch (e) {
+            console.error('Translation with fallback failed:', e);
             const {object} = await generateObject({
                 model: fallbackModel,
                 prompt: `Translate to Narsese: "${nl}"`,

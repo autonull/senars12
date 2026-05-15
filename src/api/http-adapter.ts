@@ -6,7 +6,7 @@
 import {IncomingMessage, ServerResponse} from 'http';
 import {URL} from 'url';
 import {randomBytes} from 'crypto';
-import {BaseAdapter} from './base-adapter.js';
+import {BaseAdapter, errorResponse} from './base-adapter.js';
 import type {APIResponse} from './base-adapter.js';
 import {errMsg} from '../nar/utils/helpers.js';
 
@@ -103,7 +103,7 @@ export class HTTPAdapter extends BaseAdapter {
                 const limited = this.checkRateLimit(apiKey || 'anonymous');
                 if (limited) {
                     res.statusCode = 429;
-                    const response: APIResponse = BaseAdapter.errorResponse('RATE_LIMIT_EXCEEDED', 'Rate limit exceeded');
+                    const response: APIResponse = errorResponse('RATE_LIMIT_EXCEEDED', 'Rate limit exceeded');
                     res.end(JSON.stringify(response));
                     return;
                 }
@@ -117,7 +117,7 @@ export class HTTPAdapter extends BaseAdapter {
 
             if (!this.registry.hasHandler(handlerName)) {
                 res.statusCode = 404;
-                const response: APIResponse = BaseAdapter.errorResponse('HANDLER_NOT_FOUND', 'Handler not found');
+                const response: APIResponse = errorResponse('HANDLER_NOT_FOUND', 'Handler not found');
                 res.end(JSON.stringify(response));
                 return;
             }
@@ -128,7 +128,7 @@ export class HTTPAdapter extends BaseAdapter {
         } catch (error: unknown) {
             const message = errMsg(error);
             res.statusCode = 400;
-            const response: APIResponse = BaseAdapter.errorResponse('HANDLER_ERROR', message);
+            const response: APIResponse = errorResponse('HANDLER_ERROR', message);
             res.end(JSON.stringify(response));
         }
     }
@@ -170,9 +170,7 @@ export class HTTPAdapter extends BaseAdapter {
             req.on('end', () => {
                 try {
                     resolve(body ? JSON.parse(body) : {});
-                } catch {
-                    resolve({});
-                }
+                } catch (e) { console.error('JSON parse failed:', e); resolve({}); }
             });
         });
     }

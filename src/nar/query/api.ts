@@ -75,41 +75,31 @@ export class QueryAPI {
             return {question: questionStr, confidence: 0, evidence: []};
         }
 
-        const concept = this.memory.getConcept(questionTerm);
-        if (concept) {
-            const belief = concept.beliefBag.peek();
-            if (belief?.truth) {
-                const confidence = belief.truth.f * belief.truth.c;
-                if (confidence >= 0.5) {
-                    return {
-                        question: questionStr,
-                        answer: questionTerm.toString(),
-                        confidence,
-                        evidence: [this.createTaskFromBelief(questionTerm, belief, concept.priority)],
-                        derivationPath: this.extractDerivationPath(belief.stamp)
-                    };
-                }
-            }
-        }
+        const directAnswer = this.tryAnswer(questionTerm, this.memory.getConcept(questionTerm));
+        if (directAnswer) return directAnswer;
 
         const relatedConcepts = this.memory.findSimilarConcepts(questionTerm, 5);
         for (const related of relatedConcepts) {
-            const belief = related.beliefBag.peek();
-            if (belief?.truth) {
-                const confidence = belief.truth.f * belief.truth.c;
-                if (confidence >= 0.5) {
-                    return {
-                        question: questionStr,
-                        answer: related.term.toString(),
-                        confidence,
-                        evidence: [this.createTaskFromBelief(related.term, belief, related.priority)],
-                        derivationPath: this.extractDerivationPath(belief.stamp)
-                    };
-                }
-            }
+            const answer = this.tryAnswer(questionTerm, related);
+            if (answer) return answer;
         }
 
         return {question: questionStr, confidence: 0, evidence: []};
+    }
+
+    private tryAnswer(question: Term, concept: Concept | undefined): Answer | null {
+        if (!concept) return null;
+        const belief = concept.beliefBag.peek();
+        if (!belief?.truth) return null;
+        const confidence = belief.truth.f * belief.truth.c;
+        if (confidence < 0.5) return null;
+        return {
+            question: question.toString(),
+            answer: concept.term.toString(),
+            confidence,
+            evidence: [this.createTaskFromBelief(concept.term, belief, concept.priority)],
+            derivationPath: this.extractDerivationPath(belief.stamp)
+        };
     }
 
     private createTaskFromBelief(term: Term, belief: {truth?: {f: number; c: number}; stamp?: import('../types').Stamp}, priority: number): Task {

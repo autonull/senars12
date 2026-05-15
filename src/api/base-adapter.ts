@@ -9,6 +9,12 @@ export interface APIResponse {
     timestamp: number;
 }
 
+export const successResponse = (data: Record<string, unknown>, id?: string): APIResponse =>
+    ({type: 'success', id, data, timestamp: Date.now()});
+
+export const errorResponse = (code: string, message: string, id?: string): APIResponse =>
+    ({type: 'error', id, error: {code, message}, timestamp: Date.now()});
+
 export abstract class BaseAdapter {
     protected readonly registry: APIRegistry;
     protected readonly logger: Logger;
@@ -16,21 +22,6 @@ export abstract class BaseAdapter {
     constructor(scope: string) {
         this.registry = APIRegistry.getInstance();
         this.logger = createLogger({scope});
-    }
-
-    protected static successResponse(
-        data: Record<string, unknown>,
-        id?: string
-    ): APIResponse {
-        return {type: 'success', id, data, timestamp: Date.now()};
-    }
-
-    protected static errorResponse(
-        code: string,
-        message: string,
-        id?: string
-    ): APIResponse {
-        return {type: 'error', id, error: {code, message}, timestamp: Date.now()};
     }
 
     protected sendJSON(ws: {send: (data: string) => void}, response: APIResponse): void {

@@ -27,6 +27,22 @@ const sameSubject = (inh1: Term, inh2: Term): boolean => {
     return !!(s1 && s2 && termsEqual(s1, s2));
 };
 
+const sameInhPair = (inh1: Term, inh2: Term) => {
+    const extracted = extractInhPair(inh1, inh2);
+    if (!extracted) return false;
+    const {s1, p1, s2, p2} = extracted;
+    return termsEqual(s1, s2) && termsEqual(p1, p2);
+};
+
+const buildSequenceRule = (builder: (p1: Term, p2: Term) => Term) => buildBinaryInhRule(
+    sameSubject,
+    (inh1, inh2) => {
+        const s = getSubject(inh1);
+        const p1 = getPredicate(inh1), p2 = getPredicate(inh2);
+        return s && p1 && p2 ? inheritance(s, builder(p1, p2)) : undefined;
+    }
+);
+
 export const NALExtendedRules = {
     modusPonens: ([imp, antecedent]: [Term, Term]): Term | undefined => {
         if (imp.kind !== 'implication' || antecedent.kind !== 'atom') return undefined;
@@ -152,12 +168,7 @@ export const NALExtendedRules = {
     },
 
     comparison: buildBinaryInhRule(
-        (inh1, inh2) => {
-            const extracted = extractInhPair(inh1, inh2);
-            if (!extracted) return false;
-            const {s1, p1, s2, p2} = extracted;
-            return termsEqual(s1, s2) && termsEqual(p1, p2);
-        },
+        sameInhPair,
         (inh1, _inh2) => {
             const {s, p} = extractInh(inh1) ?? {};
             if (!s || !p) return undefined;
@@ -197,12 +208,7 @@ export const NALExtendedRules = {
     ),
 
     sameness: buildBinaryInhRule(
-        (inh1, inh2) => {
-            const extracted = extractInhPair(inh1, inh2);
-            if (!extracted) return false;
-            const {s1, p1, s2, p2} = extracted;
-            return termsEqual(s1, s2) && termsEqual(p1, p2);
-        },
+        sameInhPair,
         (inh1, _inh2) => {
             const {s, p} = extractInh(inh1) ?? {};
             if (!s || !p) return undefined;
@@ -211,12 +217,7 @@ export const NALExtendedRules = {
     ),
 
     revisionWeak: buildBinaryInhRule(
-        (inh1, inh2) => {
-            const extracted = extractInhPair(inh1, inh2);
-            if (!extracted) return false;
-            const {s1, p1, s2, p2} = extracted;
-            return termsEqual(s1, s2) && termsEqual(p1, p2);
-        },
+        sameInhPair,
         (inh1, _inh2) => inh1
     ),
 
@@ -228,23 +229,9 @@ export const NALExtendedRules = {
 
     propertyInduction: deductionFromType('property', 'predicate'),
 
-    sequenceIntroduction: buildBinaryInhRule(
-        sameSubject,
-        (inh1, inh2) => {
-            const s = getSubject(inh1);
-            const p1 = getPredicate(inh1), p2 = getPredicate(inh2);
-            return s && p1 && p2 ? inheritance(s, sequence(p1, p2)) : undefined;
-        }
-    ),
+    sequenceIntroduction: buildSequenceRule(sequence),
 
-    parallelIntroduction: buildBinaryInhRule(
-        sameSubject,
-        (inh1, inh2) => {
-            const s = getSubject(inh1);
-            const p1 = getPredicate(inh1), p2 = getPredicate(inh2);
-            return s && p1 && p2 ? inheritance(s, parallel(p1, p2)) : undefined;
-        }
-    ),
+    parallelIntroduction: buildSequenceRule(parallel),
 
     predictiveImplication: ([seq, inh]: [Term, Term]): Term | undefined => {
         if (seq.kind !== 'sequence') return undefined;
@@ -347,12 +334,7 @@ export const NALExtendedRules = {
     },
 
     metacognitiveRevision: buildBinaryInhRule(
-        (belief1, belief2) => {
-            const extracted = extractInhPair(belief1, belief2);
-            if (!extracted) return false;
-            const {s1, p1, s2, p2} = extracted;
-            return termsEqual(s1, s2) && termsEqual(p1, p2);
-        },
+        sameInhPair,
         (belief1, _belief2) => {
             const {s, p} = extractInh(belief1) ?? {};
             if (!s || !p) return undefined;

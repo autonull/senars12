@@ -1,7 +1,17 @@
 import type {CommandDefinition} from './index.js';
 import {box} from '../display.js';
+import {getGlobalTracer} from '../../nar/trace/index.js';
 
 export const CoreCommands: CommandDefinition[] = [
+    {
+        name: '.stack',
+        description: 'Show current input trace stack',
+        usage: '.stack',
+        handler: (_ctx, _args) => {
+            const tracer = getGlobalTracer();
+            _ctx.logger.info('\n' + tracer.formatTrace() + '\n');
+        }
+    },
     {
         name: '.help',
         description: 'Show help information',

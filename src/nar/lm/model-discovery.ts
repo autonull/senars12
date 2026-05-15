@@ -56,9 +56,7 @@ export class ModelCapabilityDiscovery {
             try {
                 await client.generateText('Count to 10: '.repeat(size), {maxTokens: 10});
                 maxContext = size;
-            } catch {
-                break;
-            }
+            } catch (e) { console.error('Context test failed:', e); break; }
         }
 
         return maxContext;
@@ -68,9 +66,7 @@ export class ModelCapabilityDiscovery {
         try {
             JSON.parse(await client.generateText('Respond with JSON only: {"test": true}'));
             return true;
-        } catch {
-            return false;
-        }
+        } catch (e) { console.error('Structured output test failed:', e); return false; }
     }
 }
 

@@ -224,21 +224,18 @@ export class Memory {
 
         const {activationDecayRate, priorityThreshold, archiveThreshold, enableArchive, linkDecayRate} = this.config;
 
-        for (const concept of this.concepts.values()) {
-            concept.decay(activationDecayRate);
-        }
-
-        this.linkManager.applyDecay(linkDecayRate);
-
         const toArchive: Concept[] = [];
         const toRemove: Concept[] = [];
 
         for (const concept of this.concepts.values()) {
+            concept.decay(activationDecayRate);
             if (concept.priority < priorityThreshold && concept.totalTasks === 0) {
                 if (enableArchive && concept.priority < archiveThreshold) toArchive.push(concept);
                 else toRemove.push(concept);
             }
         }
+
+        this.linkManager.applyDecay(linkDecayRate);
 
         if (enableArchive) toArchive.forEach(concept => this.archiveConcept(concept));
         toRemove.forEach(concept => this.removeConcept(concept.term));
@@ -411,19 +408,9 @@ export class Memory {
     }
 
     private findOrphanedLinks(): Concept[] {
-        const orphaned: Concept[] = [];
-
-        for (const concept of this.concepts.values()) {
-            const links = concept.getLinks();
-            for (const link of links) {
-                if (!this.concepts.has(link.concept.key)) {
-                    orphaned.push(concept);
-                    break;
-                }
-            }
-        }
-
-        return orphaned;
+        return [...this.concepts.values()].filter(concept =>
+            concept.getLinks().some(link => !this.concepts.has(link.concept.key))
+        );
     }
 }
 

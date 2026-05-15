@@ -130,31 +130,35 @@ function foldNary(kind: Term['kind'], eq: (a1: Term, a2: Term) => boolean, uniqu
     };
 }
 
-registerRules([
-    rule('nal.deduction', 'inheritance', 'inheritance', NALRules.deduction, Truth.deduction, 1.0),
-    rule('nal.induction', 'inheritance', 'inheritance', NALRules.induction, Truth.induction, 0.9),
-    rule('nal.abduction', 'inheritance', 'inheritance', NALRules.abduction, Truth.abduction, 0.8),
-    rule('nal.similarity', 'inheritance', 'inheritance', NALRules.similarity, Truth.resemblance, 0.95),
-    rule('nal.contrapositive', 'implication', 'inheritance', NALRules.contrapositive, Truth.contraposition, 0.7),
-    rule('nal.intersection', 'conjunction', 'conjunction', NALRules.intersection, Truth.intersection, 0.85),
-    rule('nal.union', 'disjunction', 'disjunction', NALRules.union, Truth.union, 0.8),
-    rule('nal.conjunctionIntro', 'inheritance', 'inheritance', NALRules.conjunctionIntro, Truth.intersection, 0.75),
-    rule('nal.disjunctionIntro', 'atom', 'atom', NALRules.disjunctionIntro, Truth.union, 0.7),
-    rule('nal.implicationIntro', 'inheritance', 'negation', NALRules.implicationIntro, Truth.deduction, 0.8),
-    rule('nal.implicationElim', 'implication', 'atom', NALRules.implicationElim, Truth.deduction, 0.9),
-    rule('nal.equivalenceIntro', 'implication', 'implication', NALRules.equivalenceIntro, Truth.intersection, 0.85),
-    rule('nal.equivalenceElim', 'equivalence', 'atom', NALRules.equivalenceElim, Truth.deduction, 0.9),
-    rule('nal.negationIntro', 'implication', 'implication', NALRules.negationIntro, Truth.deduction, 0.75),
-    rule('nal.negationElim', 'negation', 'negation', NALRules.negationElim, Truth.union, 0.8),
-    rule('nal.destruct', 'conjunction', 'atom', NALRules.destruct, Truth.deduction, 0.85),
-    rule('nal.compose', 'inheritance', 'inheritance', NALRules.compose, Truth.deduction, 0.7),
-    rule('nal.decompose', 'conjunction', 'conjunction', NALRules.decompose, Truth.deduction, 0.8),
-    rule('nal.revision', 'inheritance', 'inheritance', NALRules.revision, Truth.revision, 0.6),
-    rule('nal.analogy', 'inheritance', 'similarity', NALRules.analogy, Truth.analogy, 0.75),
-    rule('nal.comparison', 'inheritance', 'inheritance', NALRules.comparison, Truth.sameness, 0.8),
-    rule('nal.instantiation', 'inheritance', 'similarity', NALRules.instantiation, Truth.deduction, 0.85),
-    rule('nal.exemplification', 'inheritance', 'inheritance', NALRules.exemplification, Truth.exemplification, 0.7),
-    rule('nal.higherOrderDeduction', 'implication', 'implication', NALRules.higherOrderDeduction, Truth.deduction, 0.85),
-    rule('nal.higherOrderAbduction', 'implication', 'implication', NALRules.higherOrderAbduction, Truth.abduction, 0.7),
-    rule('nal.higherOrderInduction', 'implication', 'implication', NALRules.higherOrderInduction, Truth.induction, 0.75),
-]);
+const RULE_CONFIGS = [
+    ['nal.deduction', 'inheritance', 'inheritance', NALRules.deduction, Truth.deduction, 1.0],
+    ['nal.induction', 'inheritance', 'inheritance', NALRules.induction, Truth.induction, 0.9],
+    ['nal.abduction', 'inheritance', 'inheritance', NALRules.abduction, Truth.abduction, 0.8],
+    ['nal.similarity', 'inheritance', 'inheritance', NALRules.similarity, Truth.resemblance, 0.95],
+    ['nal.contrapositive', 'implication', 'inheritance', NALRules.contrapositive, Truth.contraposition, 0.7],
+    ['nal.intersection', 'conjunction', 'conjunction', NALRules.intersection, Truth.intersection, 0.85],
+    ['nal.union', 'disjunction', 'disjunction', NALRules.union, Truth.union, 0.8],
+    ['nal.conjunctionIntro', 'inheritance', 'inheritance', NALRules.conjunctionIntro, Truth.intersection, 0.75],
+    ['nal.disjunctionIntro', 'atom', 'atom', NALRules.disjunctionIntro, Truth.union, 0.7],
+    ['nal.implicationIntro', 'inheritance', 'negation', NALRules.implicationIntro, Truth.deduction, 0.8],
+    ['nal.implicationElim', 'implication', 'atom', NALRules.implicationElim, Truth.deduction, 0.9],
+    ['nal.equivalenceIntro', 'implication', 'implication', NALRules.equivalenceIntro, Truth.intersection, 0.85],
+    ['nal.equivalenceElim', 'equivalence', 'atom', NALRules.equivalenceElim, Truth.deduction, 0.9],
+    ['nal.negationIntro', 'implication', 'implication', NALRules.negationIntro, Truth.deduction, 0.75],
+    ['nal.negationElim', 'negation', 'negation', NALRules.negationElim, Truth.union, 0.8],
+    ['nal.destruct', 'conjunction', 'atom', NALRules.destruct, Truth.deduction, 0.85],
+    ['nal.compose', 'inheritance', 'inheritance', NALRules.compose, Truth.deduction, 0.7],
+    ['nal.decompose', 'conjunction', 'conjunction', NALRules.decompose, Truth.deduction, 0.8],
+    ['nal.revision', 'inheritance', 'inheritance', NALRules.revision, Truth.revision, 0.6],
+    ['nal.analogy', 'inheritance', 'similarity', NALRules.analogy, Truth.analogy, 0.75],
+    ['nal.comparison', 'inheritance', 'inheritance', NALRules.comparison, Truth.sameness, 0.8],
+    ['nal.instantiation', 'inheritance', 'similarity', NALRules.instantiation, Truth.deduction, 0.85],
+    ['nal.exemplification', 'inheritance', 'inheritance', NALRules.exemplification, Truth.exemplification, 0.7],
+    ['nal.higherOrderDeduction', 'implication', 'implication', NALRules.higherOrderDeduction, Truth.deduction, 0.85],
+    ['nal.higherOrderAbduction', 'implication', 'implication', NALRules.higherOrderAbduction, Truth.abduction, 0.7],
+    ['nal.higherOrderInduction', 'implication', 'implication', NALRules.higherOrderInduction, Truth.induction, 0.75],
+] as const;
+
+registerRules(RULE_CONFIGS.map(([id, leftKind, rightKind, apply, truthFn, priority]) =>
+    rule(id, leftKind, rightKind, apply, truthFn, priority)
+));

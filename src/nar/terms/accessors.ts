@@ -2,20 +2,21 @@ import type {AtomicTerm, CompoundTerm, OperatorKey, Term} from './types.js';
 
 export const isType = <K extends OperatorKey>(k: K, t: Term): t is CompoundTerm<K> => t.kind === k;
 
-export const isInheritance = (t: Term): t is CompoundTerm<'inheritance'> => isType('inheritance', t);
-export const isSimilarity = (t: Term): t is CompoundTerm<'similarity'> => isType('similarity', t);
-export const isImplication = (t: Term): t is CompoundTerm<'implication'> => isType('implication', t);
-export const isEquivalence = (t: Term): t is CompoundTerm<'equivalence'> => isType('equivalence', t);
-export const isConjunction = (t: Term): t is CompoundTerm<'conjunction'> => isType('conjunction', t);
-export const isDisjunction = (t: Term): t is CompoundTerm<'disjunction'> => isType('disjunction', t);
-export const isNegation = (t: Term): t is CompoundTerm<'negation'> => isType('negation', t);
-export const isInstance = (t: Term): t is CompoundTerm<'instance'> => isType('instance', t);
-export const isProperty = (t: Term): t is CompoundTerm<'property'> => isType('property', t);
-export const isSequence = (t: Term): t is CompoundTerm<'sequence'> => isType('sequence', t);
-export const isParallel = (t: Term): t is CompoundTerm<'parallel'> => isType('parallel', t);
-export const isPredictive = (t: Term): t is CompoundTerm<'predictive'> => isType('predictive', t);
-export const isRetrospective = (t: Term): t is CompoundTerm<'retrospective'> => isType('retrospective', t);
-export const isOperation = (t: Term): t is CompoundTerm<'operation'> => isType('operation', t);
+const createTypeGuard = <K extends 'inheritance' | 'similarity' | 'implication' | 'equivalence' | 'conjunction' | 'disjunction' | 'negation' | 'instance' | 'property' | 'sequence' | 'parallel' | 'predictive' | 'retrospective' | 'operation'>(kind: K) => (t: Term): t is CompoundTerm<K> => isType(kind, t);
+export const isInheritance = createTypeGuard('inheritance');
+export const isSimilarity = createTypeGuard('similarity');
+export const isImplication = createTypeGuard('implication');
+export const isEquivalence = createTypeGuard('equivalence');
+export const isConjunction = createTypeGuard('conjunction');
+export const isDisjunction = createTypeGuard('disjunction');
+export const isNegation = createTypeGuard('negation');
+export const isInstance = createTypeGuard('instance');
+export const isProperty = createTypeGuard('property');
+export const isSequence = createTypeGuard('sequence');
+export const isParallel = createTypeGuard('parallel');
+export const isPredictive = createTypeGuard('predictive');
+export const isRetrospective = createTypeGuard('retrospective');
+export const isOperation = createTypeGuard('operation');
 
 const isSubjectPredicate = (t: Term): boolean => t.kind === 'inheritance' || t.kind === 'similarity';
 const isAntecedentConsequent = (t: Term): boolean => t.kind === 'implication' || t.kind === 'equivalence';

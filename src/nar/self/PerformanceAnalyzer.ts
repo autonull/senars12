@@ -52,9 +52,7 @@ export class PerformanceAnalyzer {
         try {
             const usage = process.memoryUsage();
             return (usage.heapUsed + usage.heapTotal) / 2;
-        } catch {
-            return 0;
-        }
+        } catch (e) { console.error('Memory check failed:', e); return 0; }
     }
 
     determineThroughputTrend(): 'increasing' | 'decreasing' | 'stable' {

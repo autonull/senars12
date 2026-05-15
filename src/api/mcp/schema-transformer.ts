@@ -43,10 +43,8 @@ export class SchemaTransformer {
 					// Convert Draft 2020-12 to Draft 7 format if needed
 					return this.convertToDraft7(result) as JSONSchema7;
 				}
-			} catch {
-				// Fallback for older Zod versions
-			}
-		}
+            } catch (e) { console.error('Schema conversion failed:', e); }
+        }
 
 		// Fallback: return empty object schema
 		return {

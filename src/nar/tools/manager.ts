@@ -15,6 +15,8 @@ import {createLogger} from '../logger';
 
 const logger = createLogger({scope: 'ToolManager'});
 
+const failureResult = (error: string): ToolResult => ({success: false, content: null, error});
+
 export interface ToolDescriptor {
   name: string;
   description: string;
@@ -171,17 +173,17 @@ export class ToolManager extends EventEmitter {
   async execute(name: string, args: Record<string, unknown>, context?: ToolContext): Promise<ToolResult> {
     const startTime = Date.now();
     const tool = this.get(name);
-    if (!tool) return {success: false, content: null, error: `Tool '${name}' not found`};
+    if (!tool) return failureResult(`Tool '${name}' not found`);
 
     const state = this.lifecycleState.get(name);
     if (state !== 'running' && state !== 'initialized') {
-      return {success: false, content: null, error: `Tool '${name}' is not running (state: ${state})`};
+      return failureResult(`Tool '${name}' is not running (state: ${state})`);
     }
 
     if (this.sandboxMode && context?.permissions) {
       const required = tool.capabilities?.requiresPermissions || [];
       if (!required.every(p => context.permissions?.has(p))) {
-        return {success: false, content: null, error: `Missing required permissions: ${required.join(', ')}`};
+        return failureResult(`Missing required permissions: ${required.join(', ')}`);
       }
     }
 
@@ -189,7 +191,7 @@ export class ToolManager extends EventEmitter {
     if (budget) {
       budget.executions = (budget.executions || 0) + 1;
       if (budget.maxExecutions && budget.executions > budget.maxExecutions) {
-        return {success: false, content: null, error: 'Execution budget exceeded'};
+        return failureResult('Execution budget exceeded');
       }
     }
 
@@ -264,6 +266,19 @@ export class ToolManager extends EventEmitter {
 
   async shutdown(): Promise<void> {
     await Promise.all(Array.from(this.lifecycleState.keys()).map(name => this.disposeTool(name)));
+  }
+
+  private hasRequiredPermissions(tool: Tool, permissions?: Set<string>): boolean {
+    const required = tool.capabilities?.requiresPermissions || [];
+    return required.every(p => permissions?.has(p) ?? false);
+  }
+
+  private isRunning(name: string): boolean {
+    return this.lifecycleState.get(name) === 'running';
+  }
+
+  private isDisposed(name: string): boolean {
+    return this.lifecycleState.get(name) === 'disposed';
   }
 
   private initializeStatistics(name: string): void {

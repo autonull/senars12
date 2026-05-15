@@ -133,18 +133,21 @@ export class NAR extends BaseComponent {
 
   override async stop(): Promise<void> {
     this.self?.stop();
-    this.lm.getEnricher()?.stop();
-    this.lm.getStreamingClient()?.cancelAllStreams();
+    this.stopLM();
     await super.stop();
     this.logger.info('NAR stopped');
   }
 
   override async dispose(): Promise<void> {
     this.self?.shutdown();
-    this.lm.getEnricher()?.stop();
-    this.lm.getStreamingClient()?.cancelAllStreams();
+    this.stopLM();
     await super.dispose();
     this.logger.info('NAR disposed');
+  }
+
+  private stopLM(): void {
+    this.lm.getEnricher()?.stop();
+    this.lm.getStreamingClient()?.cancelAllStreams();
   }
 
   // Input methods
@@ -201,14 +204,16 @@ export class NAR extends BaseComponent {
   getRLFP(): RLFPLearner | undefined { return this.rlfp; }
 
   getQualityModel() {
-    return this._registry?.languageModel('cloud:quality')
-      ?? this._registry?.languageModel('local:quality')
-      ?? this._registry?.languageModel('builtin:compact');
+    return this.getModelWithFallback('quality');
   }
 
   getFastModel() {
-    return this._registry?.languageModel('cloud:fast')
-      ?? this._registry?.languageModel('local:fast')
+    return this.getModelWithFallback('fast');
+  }
+
+  private getModelWithFallback(prefix: string) {
+    return this._registry?.languageModel(`cloud:${prefix}`)
+      ?? this._registry?.languageModel(`local:${prefix}`)
       ?? this._registry?.languageModel('builtin:compact');
   }
 
@@ -345,8 +350,14 @@ export class NAR extends BaseComponent {
 
   private contradicts(a: Term, b: Term): boolean {
     if (termsEqual(a, b)) return true;
-    if (a.kind === 'negation' && a.args[0] && termsEqual(a.args[0], b)) return true;
-    if (b.kind === 'negation' && b.args[0] && termsEqual(b.args[0], a)) return true;
+    if (a.kind === 'negation') {
+      const [aArg] = a.args;
+      return !!aArg && termsEqual(aArg, b);
+    }
+    if (b.kind === 'negation') {
+      const [bArg] = b.args;
+      return !!bArg && termsEqual(bArg, a);
+    }
     return false;
   }
 }

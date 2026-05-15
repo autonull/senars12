@@ -36,6 +36,13 @@ const statsFromValues = (values: number[]) => {
     };
 };
 
+const AGE_BUCKETS = [
+    {min: 0, max: 60_000, count: 0},
+    {min: 60_000, max: 300_000, count: 0},
+    {min: 300_000, max: 900_000, count: 0},
+    {min: 900_000, max: Infinity, count: 0}
+] as const;
+
 const SAMPLE_FN: Record<string, (heap: BagItem<unknown>[], obj: Record<string, unknown>) => unknown> = {
     priority: (h, o) => h.find(e => e.priority >= (o.threshold as number))?.item,
     recency: (h, o) => { const cutoff = Date.now() - (o.windowMs as number); return h.find(e => e.lastAccess >= cutoff)?.item; },
@@ -79,9 +86,7 @@ export class Bag<T> {
 
     if (this.heap.length >= this._capacity) {
         this.stats.misses++;
-        if (this.overflowBehavior === 'reject' || this.overflowBehavior === 'merge') {
-            if (!this.handleOverflow(priority)) return false;
-        } else if (!this.handleOverflow(priority)) return false;
+        if (!this.handleOverflow(priority)) return false;
     } else {
         this.stats.additions++;
     }
@@ -91,33 +96,23 @@ export class Bag<T> {
     return true;
   }
 
-  addMany(items: Array<[T, number]>): number {
-    let added = 0;
-    for (const [item, priority] of items) { if (this.add(item, priority)) added++; }
-    return added;
-  }
+  addMany(items: Array<[T, number]>): number { let added = 0; for (const [item, priority] of items) { if (this.add(item, priority)) added++; } return added; }
 
   removeMany(predicate: (item: T) => boolean): number {
     let removed = 0;
-    this.heap = this.heap.filter(entry => {
-        if (predicate(entry.item)) { removed++; this.stats.removals++; return false; }
-        return true;
-    });
+    this.heap = this.heap.filter(entry => { if (predicate(entry.item)) { removed++; this.stats.removals++; return false; } return true; });
     return removed;
   }
 
   getStatistics(): BagStatistics {
     const priorities = this.heap.map(h => h.priority);
     const ages = this.heap.map(h => Date.now() - h.createdAt);
-    const ageBuckets = [
-        {min: 0, max: 60_000, count: 0}, {min: 60_000, max: 300_000, count: 0},
-        {min: 300_000, max: 900_000, count: 0}, {min: 900_000, max: Infinity, count: 0}
-    ];
-    for (const age of ages) ageBuckets.find(b => age >= b.min && age < b.max)!.count++;
+    const buckets = AGE_BUCKETS.map(b => ({...b}));
+    for (const age of ages) buckets.find(b => age >= b.min && age < b.max)!.count++;
 
     return {
         size: this.heap.length, capacity: this._capacity, utilization: this.heap.length / this._capacity,
-        priorityDistribution: statsFromValues(priorities), ageHistogram: {buckets: ageBuckets},
+        priorityDistribution: statsFromValues(priorities), ageHistogram: {buckets},
         throughput: {...this.stats}
     };
   }
@@ -131,9 +126,7 @@ export class Bag<T> {
 
   static deserialize<T>(state: BoundedBagState<T>): Bag<T> {
     const bag = new Bag<T>(state.capacity, {overflowBehavior: state.overflowBehavior});
-    for (const {item, priority, lastAccess, createdAt} of state.items) {
-        bag.heap.push({item, priority, lastAccess, createdAt});
-    }
+    for (const {item, priority, lastAccess, createdAt} of state.items) bag.heap.push({item, priority, lastAccess, createdAt});
     bag.stats = {...state.stats};
     return bag;
   }
@@ -146,9 +139,7 @@ export class Bag<T> {
     return result as T | undefined;
   }
 
-  consolidate(currentTime: number, ttl: number): void {
-    this.heap = this.heap.filter(entry => currentTime - entry.lastAccess <= ttl);
-  }
+  consolidate(currentTime: number, ttl: number): void { this.heap = this.heap.filter(entry => currentTime - entry.lastAccess <= ttl); }
 
   clear(): void { this.heap = []; this.stats = {additions: 0, removals: 0, hits: 0, misses: 0}; }
   toArray(): T[] { return this.heap.map(h => h.item); }

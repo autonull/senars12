@@ -4,7 +4,7 @@
 
 import type {StampType, Term} from '../terms';
 import {Stamp as StampFactory} from '../terms';
-import {type RegisteredRule, RuleIndex, RuleRegistry} from './types.js';
+import {type RegisteredRule, RuleIndex, RuleRegistry, type TruthFn} from './types.js';
 import {Truth, type Truth as TruthType} from '../terms/truth.js';
 import type {LMRule} from '../lm';
 import {EventBus} from '../types';
@@ -49,6 +49,11 @@ export class RuleProcessor {
         if (this.eventBus) lmRule.setEventBus(this.eventBus);
     }
 
+    private buildResult(term: Term, truthFn: TruthFn, p1: RuleInput, p2: RuleInput, priority: number): RuleResult {
+        const truth = truthFn(p1.truth, p2.truth) ?? Truth.NEUTRAL;
+        return {term, truth, stamp: deriveStamp(p1, p2), priority};
+    }
+
     async* process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
         for await (const [p1, p2] of premises) {
             for (const rule of this.ruleIndex.match(p1.term, p2.term)) {
@@ -57,10 +62,7 @@ export class RuleProcessor {
                 try {
                     const result = rule.apply([p1.term, p2.term]);
                     if (result) {
-                        const truthFn = rule.truthFn ?? NEUTRAL_FN;
-                        const derivedStamp = deriveStamp(p1, p2);
-                        const truth = truthFn(p1.truth, p2.truth) ?? Truth.NEUTRAL;
-                        yield {term: result as Term, truth, stamp: derivedStamp, priority: rule.priority};
+                        yield this.buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
                     }
                 } catch (error) {
                     this.handleRuleError(error, rule.id);
@@ -82,10 +84,7 @@ export class RuleProcessor {
             try {
                 const result = rule.apply([p1.term, p2.term]);
                 if (result) {
-                    const truthFn = rule.truthFn ?? NEUTRAL_FN;
-                    const derivedStamp = deriveStamp(p1, p2);
-                    const truth = truthFn(p1.truth, p2.truth) ?? Truth.NEUTRAL;
-                    this.resultBuffer.push({term: result as Term, truth, stamp: derivedStamp, priority: rule.priority});
+                    this.resultBuffer.push(this.buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority));
                 }
             } catch (error) {
                 this.handleRuleError(error, rule.id);
