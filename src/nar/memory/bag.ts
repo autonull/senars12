@@ -81,14 +81,18 @@ export class Bag<T> {
 
     if (this.heap.length >= this._capacity) {
       this.stats.misses++;
-      if (this.overflowBehavior === 'replace-lowest') {
+      if (this.overflowBehavior === 'reject') {
+        const minEntry = this.getMinEntry();
+        if (priority <= (minEntry?.priority ?? 0)) return false;
+        this.heap.pop();
+      } else if (this.overflowBehavior === 'replace-lowest') {
         const minEntry = this.getMinEntry();
         if (minEntry && priority > minEntry.priority) {
           this.heap.splice(this.heap.length - 1, 1);
         } else {
           return false;
         }
-      } else if (this.overflowBehavior === 'reject' || this.overflowBehavior === 'merge') {
+      } else if (this.overflowBehavior === 'merge') {
         const minEntry = this.getMinEntry();
         if (priority <= (minEntry?.priority ?? 0)) return false;
         this.heap.pop();
