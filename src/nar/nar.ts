@@ -191,44 +191,25 @@ export class NAR extends BaseComponent {
   }
 
   // Configuration
-  getConfig(): NARConfig {
-    return {...this.config};
-  }
-
-  setConfig(updates: Partial<NARConfig>): void {
-    Object.assign(this.config, updates);
-    this.memory.setConfig(updates);
-  }
+  getConfig(): NARConfig { return {...this.config}; }
+  setConfig(updates: Partial<NARConfig>): void { Object.assign(this.config, updates); this.memory.setConfig(updates); }
 
   // Component accessors
-  getLMClient(): LMClient | undefined {
-    return this._lmClient;
-  }
-
-  getProviderRegistry(): SeNARSRegistry | undefined {
-    return this._registry;
-  }
+  getLMClient(): LMClient | undefined { return this._lmClient; }
+  getProviderRegistry(): SeNARSRegistry | undefined { return this._registry; }
+  getSelfAnalyzer(): ReasoningAboutReasoning | undefined { return this.self; }
+  getRLFP(): RLFPLearner | undefined { return this.rlfp; }
 
   getQualityModel() {
-    if (!this._registry) return undefined;
-    return this._registry.languageModel('cloud:quality')
-      ?? this._registry.languageModel('local:quality')
-      ?? this._registry.languageModel('builtin:compact');
+    return this._registry?.languageModel('cloud:quality')
+      ?? this._registry?.languageModel('local:quality')
+      ?? this._registry?.languageModel('builtin:compact');
   }
 
   getFastModel() {
-    if (!this._registry) return undefined;
-    return this._registry.languageModel('cloud:fast')
-      ?? this._registry.languageModel('local:fast')
-      ?? this._registry.languageModel('builtin:compact');
-  }
-
-    getSelfAnalyzer(): ReasoningAboutReasoning | undefined {
-    return this.self;
-  }
-
-  getRLFP(): RLFPLearner | undefined {
-    return this.rlfp;
+    return this._registry?.languageModel('cloud:fast')
+      ?? this._registry?.languageModel('local:fast')
+      ?? this._registry?.languageModel('builtin:compact');
   }
 
   // Constitution
@@ -236,10 +217,7 @@ export class NAR extends BaseComponent {
     this._constitution = beliefs.map(b => ({...b, stamp: {...b.stamp, source: 'CONSTITUTION' as const}}));
   }
 
-  getConstitution(): Task[] {
-    return [...this._constitution];
-  }
-
+  getConstitution(): Task[] { return [...this._constitution]; }
   checkConstitutionViolation(belief: Task): boolean {
     return this._constitution.some(c => this.contradicts(belief.term, c.term));
   }
@@ -247,18 +225,13 @@ export class NAR extends BaseComponent {
   // Attention
   attentionReport(): { concepts: Array<{ term: string; priority: number }>; total: number } {
     const concepts = this.memory.listConcepts();
-    const sorted = concepts
-      .map(c => ({term: c.term.toString(), priority: c.priority}))
-      .sort((a, b) => b.priority - a.priority)
-      .slice(0, 20);
+    const sorted = concepts.map(c => ({term: c.term.toString(), priority: c.priority})).sort((a, b) => b.priority - a.priority).slice(0, 20);
     return {concepts: sorted, total: concepts.length};
   }
 
   // Domain loading
   loadDomain(domain: { name: string; beliefs: string[] }): void {
-    for (const belief of domain.beliefs) {
-      this.io.input(belief);
-    }
+    for (const belief of domain.beliefs) this.io.input(belief);
   }
 
   // Natural language processing
@@ -286,55 +259,22 @@ export class NAR extends BaseComponent {
   }
 
   // Query API delegation
-  getBeliefs(filter?: Record<string, unknown>): Task[] {
-    return this.query.getBeliefs(filter);
-  }
-
-  getGoals(filter?: Record<string, unknown>): Task[] {
-    return this.query.getGoals(filter);
-  }
-
-  getQuestions(filter?: Record<string, unknown>): Task[] {
-    return this.query.getQuestions(filter);
-  }
-
-  queryTerm(term: Term, filter?: Record<string, unknown>) {
-    return this.query.query(term, filter);
-  }
-
-  ask(question: string | Term) {
-    return this.query.ask(question);
-  }
+  getBeliefs(filter?: Record<string, unknown>): Task[] { return this.query.getBeliefs(filter); }
+  getGoals(filter?: Record<string, unknown>): Task[] { return this.query.getGoals(filter); }
+  getQuestions(filter?: Record<string, unknown>): Task[] { return this.query.getQuestions(filter); }
+  queryTerm(term: Term, filter?: Record<string, unknown>) { return this.query.query(term, filter); }
+  ask(question: string | Term) { return this.query.ask(question); }
 
   // Trace API delegation
-  getDerivationHistory(task: Task) {
-    return this.traceAPI.getDerivationHistory(task);
-  }
-
-  traceTerm(term: Term) {
-    return this.traceAPI.trace(term);
-  }
-
-  explain(conclusion: Task) {
-    return this.traceAPI.explain(conclusion);
-  }
+  getDerivationHistory(task: Task) { return this.traceAPI.getDerivationHistory(task); }
+  traceTerm(term: Term) { return this.traceAPI.trace(term); }
+  explain(conclusion: Task) { return this.traceAPI.explain(conclusion); }
 
   // Metrics
-  recordRuleExecution(ruleId: string, success: boolean, duration: number) {
-    this._metricsCollector.recordRuleExecution(ruleId, success, duration);
-  }
-
-  incrementDerivations(count?: number) {
-    this._metricsCollector.incrementDerivations(count);
-  }
-
-  incrementSteps(count?: number) {
-    this._metricsCollector.incrementSteps(count);
-  }
-
-  getMetrics() {
-    return this._metricsCollector.getSummary();
-  }
+  recordRuleExecution(ruleId: string, success: boolean, duration: number) { this._metricsCollector.recordRuleExecution(ruleId, success, duration); }
+  incrementDerivations(count?: number) { this._metricsCollector.incrementDerivations(count); }
+  incrementSteps(count?: number) { this._metricsCollector.incrementSteps(count); }
+  getMetrics() { return this._metricsCollector.getSummary(); }
 
   // LM initialization
   async initializeLM(): Promise<void> {
@@ -343,67 +283,25 @@ export class NAR extends BaseComponent {
   }
 
   // Tool execution
-  async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
-    return this.tools.execute(name, args);
-  }
-
-  listTools(): Tool[] {
-    return this.tools.list();
-  }
+  async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> { return this.tools.execute(name, args); }
+  listTools(): Tool[] { return this.tools.list(); }
 
   // Serialization
-  export() {
-    return this.io.export();
-  }
-
-  import(data: any) {
-    return this.io.import(data);
-  }
-
-  async saveToFile(filename: string): Promise<void> {
-    await this.io.saveToFile(filename);
-  }
-
-  async loadFromFile(filename: string): Promise<void> {
-    await this.io.loadFromFile(filename);
-  }
-
-  async getMemoryState(): Promise<any> {
-    return this.io.getMemoryState();
-  }
-
-  async loadMemoryState(state: any): Promise<void> {
-    await this.io.loadMemoryState(state);
-  }
+  export() { return this.io.export(); }
+  import(data: any) { return this.io.import(data); }
+  async saveToFile(filename: string): Promise<void> { await this.io.saveToFile(filename); }
+  async loadFromFile(filename: string): Promise<void> { await this.io.loadFromFile(filename); }
+  async getMemoryState(): Promise<any> { return this.io.getMemoryState(); }
+  async loadMemoryState(state: any): Promise<void> { await this.io.loadMemoryState(state); }
 
   // LM methods
-  async processHypothesisWithFeedback(hypothesis: Task): Promise<boolean> {
-    return this.lm.processHypothesisWithFeedback(hypothesis);
-  }
-
-  async enrichMemoryWithLM(): Promise<void> {
-    await this.lm.enrichMemory();
-  }
-
-  async streamResponse(prompt: string, onToken: (token: string) => void): Promise<string> {
-    return this.lm.streamResponse(prompt, onToken, this._lmClient);
-  }
-
-  cancelLMStream(streamId: string): boolean {
-    return this.lm.cancelStream(streamId);
-  }
-
-  getEnrichmentStats() {
-    return this.lm.getEnrichmentStats();
-  }
-
-  getFeedbackStats() {
-    return this.lm.getFeedbackStats();
-  }
-
-  getLMStreamingStats() {
-    return this.lm.getStreamingStats();
-  }
+  async processHypothesisWithFeedback(hypothesis: Task): Promise<boolean> { return this.lm.processHypothesisWithFeedback(hypothesis); }
+  async enrichMemoryWithLM(): Promise<void> { await this.lm.enrichMemory(); }
+  async streamResponse(prompt: string, onToken: (token: string) => void): Promise<string> { return this.lm.streamResponse(prompt, onToken, this._lmClient); }
+  cancelLMStream(streamId: string): boolean { return this.lm.cancelStream(streamId); }
+  getEnrichmentStats() { return this.lm.getEnrichmentStats(); }
+  getFeedbackStats() { return this.lm.getFeedbackStats(); }
+  getLMStreamingStats() { return this.lm.getStreamingStats(); }
 
   private initializeOptionalFeatures(): void {
     if (this.config.enableLMRules && this.config.lmClient) {

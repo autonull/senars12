@@ -12,7 +12,7 @@ export {
 } from './dynamic-rules.js';
 export type {DynamicRuleConfig, ValidationRule} from './dynamic-rules.js';
 export {
-    ModelCapabilityDiscovery, ModelBenchmark, createModelCapabilityDiscovery, createModelBenchmark
+    ModelCapabilityDiscovery, ModelBenchmark
 } from './model-discovery.js';
 export {BidirectionalFeedbackLoop, createBidirectionalFeedbackLoop} from './feedback.js';
 export type {FeedbackConfig, ValidationFeedback} from './feedback.js';

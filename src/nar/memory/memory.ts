@@ -137,15 +137,14 @@ export class Memory {
         this.statsCalculator = new StatisticsCalculator();
     }
 
-    get size(): number {
-        return this.concepts.size;
-    }
+    get size(): number { return this.concepts.size; }
+    getConcept(term: Term): Concept | undefined { return this.concepts.get(term); }
+    getLinkManager(): LinkManager { return this.linkManager; }
+    listConcepts(): Concept[] { return Array.from(this.concepts.values()); }
+    getFocusConcepts(): Concept[] { return this.focus.getFocusSet(); }
+    getMemoryPressure(): number { return this.pressureLevel; }
 
-    getConcept(term: Term): Concept | undefined {
-        return this.concepts.get(term);
-    }
-
-    getRelatedConcepts(term: Term, limit: number = 10): Concept[] {
+    getRelatedConcepts(term: Term, limit = 10): Concept[] {
         const concept = this.concepts.get(term);
         if (!concept) return [];
 
@@ -170,10 +169,6 @@ export class Memory {
             }
         }
         return results;
-    }
-
-    getLinkManager(): LinkManager {
-        return this.linkManager;
     }
 
     addConcept(term: Term): Concept {
@@ -215,10 +210,6 @@ export class Memory {
             return true;
         }
         return false;
-    }
-
-    getFocusConcepts(): Concept[] {
-        return this.focus.getFocusSet();
     }
 
     sample(limit: number): Concept[] {
@@ -264,10 +255,6 @@ export class Memory {
         return false;
     }
 
-    listConcepts(): Concept[] {
-        return Array.from(this.concepts.values());
-    }
-
     clear(): void {
         this.concepts.clear();
         this.focus.clearFocus();
@@ -303,9 +290,7 @@ export class Memory {
         return result;
     }
 
-    setConfig(updates: Partial<MemoryConfig>): void {
-        Object.assign(this.config, updates);
-    }
+    setConfig(updates: Partial<MemoryConfig>): void { Object.assign(this.config, updates); }
 
     retrieveFromArchive(term: Term): Concept | undefined {
         if (!this.config.enableArchive) return undefined;
@@ -348,10 +333,6 @@ export class Memory {
         }
 
         this.updateAllFocus();
-    }
-
-    getMemoryPressure(): number {
-        return this.pressureLevel;
     }
 
     mergeConcepts(concepts: Concept[]): ConceptMergeResult | null {

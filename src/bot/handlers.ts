@@ -1,9 +1,6 @@
 import type {NAR} from '../nar/nar.js';
 
-export interface HandlerDeps {
-    nar: NAR;
-    send: (channel: string, user: string, text: string) => void;
-}
+export interface HandlerDeps { nar: NAR; send: (channel: string, user: string, text: string) => void; }
 
 export interface CommandHandler {
     handle: (channel: string, user: string, args: string[]) => Promise<void>;
@@ -12,13 +9,8 @@ export interface CommandHandler {
     readonly help: string;
 }
 
-export function isBelief(text: string): boolean {
-    return text.trim().endsWith('.');
-}
-
-export function isQuestion(text: string): boolean {
-    return text.trim().endsWith('?');
-}
+export const isBelief = (text: string): boolean => text.trim().endsWith('.');
+export const isQuestion = (text: string): boolean => text.trim().endsWith('?');
 
 export function parseCommand(text: string): { cmd: string; args: string[] } | null {
     const trimmed = text.trim();
@@ -34,9 +26,7 @@ export function createBeliefHandler(deps: HandlerDeps) {
         await deps.nar.believe(beliefText);
         deps.send(channel, user, `Added: ${beliefText}`);
         const derived = await deps.nar.run(3);
-        if (derived > 0) {
-            deps.send(channel, user, `Derived ${derived} new belief(s)`);
-        }
+        if (derived > 0) deps.send(channel, user, `Derived ${derived} new belief(s)`);
         return derived;
     };
 }
@@ -60,27 +50,16 @@ export function createNlHandler(deps: HandlerDeps) {
     };
 }
 
-function createCommandHandler(deps: HandlerDeps, cmd: string, help: string, fn: (channel: string, user: string, args: string[]) => Promise<void>): CommandHandler {
-    return Object.freeze({
-        name: cmd,
-        help,
-        matches: (c: string) => c === cmd || c === `!${cmd.slice(1)}`,
-        handle: (channel: string, user: string, args: string[]) => fn(channel, user, args),
-    });
-}
+const cmd = (deps: HandlerDeps, name: string, help: string, fn: (ch: string, u: string, args: string[]) => Promise<void>): CommandHandler =>
+    Object.freeze({name, help, matches: (c: string) => c === name || c === `!${name.slice(1)}`, handle: fn});
 
 export function createCommandHandlers(deps: HandlerDeps): readonly CommandHandler[] {
     return Object.freeze([
-        createCommandHandler(deps, '.help', 'Commands: (term). add belief | (term)? ask | .stats | .clear', async (ch, u) => {
-            deps.send(ch, u, 'Commands: (term). add belief | (term)? ask | .stats | .clear');
+        cmd(deps, '.help', 'Commands: (term). add belief | (term)? ask | .stats | .clear', async (ch, u) => deps.send(ch, u, 'Commands: (term). add belief | (term)? ask | .stats | .clear')),
+        cmd(deps, '.stats', 'Show concept and task counts', async (ch, u) => {
+            const {totalConcepts, totalTasks} = deps.nar.getStatistics();
+            deps.send(ch, u, `Concepts: ${totalConcepts}, Tasks: ${totalTasks}`);
         }),
-        createCommandHandler(deps, '.stats', 'Show concept and task counts', async (ch, u) => {
-            const stats = deps.nar.getStatistics();
-            deps.send(ch, u, `Concepts: ${stats.totalConcepts}, Tasks: ${stats.totalTasks}`);
-        }),
-        createCommandHandler(deps, '.clear', 'Clear all memory', async (ch, u) => {
-            deps.nar.clearMemory();
-            deps.send(ch, u, 'Memory cleared');
-        }),
+        cmd(deps, '.clear', 'Clear all memory', async (ch, u) => { deps.nar.clearMemory(); deps.send(ch, u, 'Memory cleared'); }),
     ]);
 }

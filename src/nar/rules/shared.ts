@@ -84,3 +84,12 @@ export const registerRules = (rules: RuleDefinition[]) =>
     rules.forEach(rule =>
         registerRule(rule.id, rule.leftKind, rule.rightKind, rule.apply, rule.truthFn, rule.priority)
     );
+
+export const rule = (
+    id: string,
+    leftKind: string,
+    rightKind: string,
+    apply: RuleFn,
+    truthFn: TruthFn,
+    priority = 0.8
+): RuleDefinition => ({id, leftKind, rightKind, apply, truthFn, priority});

@@ -44,17 +44,19 @@ export const getVars = (term: Term): Term[] => {
     return vars;
 };
 
-export const inh = (term: Term) => term.kind === 'inheritance' ? term : undefined;
-export const imp = (term: Term) => term.kind === 'implication' ? term : undefined;
-export const conj = (term: Term) => term.kind === 'conjunction' ? term : undefined;
-export const disj = (term: Term) => term.kind === 'disjunction' ? term : undefined;
-export const neg = (term: Term) => term.kind === 'negation' ? term : undefined;
-export const sim = (term: Term) => term.kind === 'similarity' ? term : undefined;
-export const seq = (term: Term) => term.kind === 'sequence' ? term : undefined;
-export const pred = (term: Term) => term.kind === 'predictive' ? term : undefined;
-export const op = (term: Term) => term.kind === 'operation' ? term : undefined;
-export const inst = (term: Term) => term.kind === 'instance' ? term : undefined;
-export const prop = (term: Term) => term.kind === 'property' ? term : undefined;
+const termGuard = <K extends Term['kind']>(kind: K) => (term: Term): term is Extract<Term, { kind: K }> => term.kind === kind;
+
+export const inh = termGuard('inheritance');
+export const imp = termGuard('implication');
+export const conj = termGuard('conjunction');
+export const disj = termGuard('disjunction');
+export const neg = termGuard('negation');
+export const sim = termGuard('similarity');
+export const seq = termGuard('sequence');
+export const pred = termGuard('predictive');
+export const op = termGuard('operation');
+export const inst = termGuard('instance');
+export const prop = termGuard('property');
 
 export const getArgs = (term: Term): readonly Term[] => term.args ?? [];
 export const getArg = (term: Term, index: number): Term | undefined => term.args?.[index];
