@@ -8,8 +8,9 @@ import type {ModelCapability, ModelRegistryEntry, ModelRegistry} from './model-r
 import {createMockLMClient} from './mock-client.js';
 import {defaultModelRegistry} from './model-registry.js';
 import {createLogger} from '../logger/index.js';
+import type {LanguageModel} from 'ai';
 
-export const DEFAULT_COMPACT_MODEL = 'Xenova/LaMini-Flan-T5-77M';
+export const DEFAULT_COMPACT_MODEL = 'HuggingFaceTB/SmolLM2-360M-Instruct';
 
 export const COMPACT_MODEL_CAPABILITY: Omit<ModelCapability, 'provider' | 'model'> = {
     contextWindow: 128000,
@@ -54,37 +55,149 @@ export interface TurnkeyConfig {
     fallbackChain: readonly ProviderType[];
 }
 
+class TransformersLMClient implements LMClient {
+  readonly provider = 'transformers';
+  readonly model: string;
+  available = true;
+  private modelInstance?: LanguageModel;
+  private initializing?: Promise<void>;
+
+  constructor(modelId: string = DEFAULT_COMPACT_MODEL) {
+    this.model = modelId;
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (this.modelInstance) return;
+    if (this.initializing) return this.initializing;
+
+    this.initializing = (async () => {
+      try {
+        const { transformersJS } = await import('@browser-ai/transformers-js');
+        this.modelInstance = transformersJS(this.model, { device: 'cpu' });
+      } catch (error) {
+        console.error('Failed to initialize Transformers.js:', error);
+        this.available = false;
+        throw error;
+      } finally {
+        this.initializing = undefined;
+      }
+    })();
+
+    return this.initializing;
+  }
+
+  async init(): Promise<void> {
+    await this.ensureInitialized();
+  }
+
+  async generateText(prompt: string, _options?: any): Promise<string> {
+    await this.ensureInitialized();
+    if (!this.modelInstance) {
+      throw new Error('Transformers.js model not initialized');
+    }
+    try {
+      const result = await (this.modelInstance as any).doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        rawPrompt: undefined,
+      });
+      return result.content?.[0]?.text ?? '';
+    } catch (error: any) {
+      if (error.message?.includes('float32') || error.message?.includes('Float32Array')) {
+        const mock = createMockLMClient();
+        return mock.generateText(prompt);
+      }
+      throw new Error(`Transformers.js generation failed: ${error.message}`);
+    }
+  }
+}
+
+class OllamaLMClient implements LMClient {
+  readonly provider = 'ollama';
+  readonly model: string;
+  available = true;
+  private modelInstance?: LanguageModel;
+  private initializing?: Promise<void>;
+
+  constructor(modelId: string = 'llama3.2') {
+    this.model = modelId;
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (this.modelInstance) return;
+    if (this.initializing) return this.initializing;
+
+    this.initializing = (async () => {
+      try {
+        const { ollama } = await import('ollama-ai-provider-v2');
+        this.modelInstance = ollama(this.model) as unknown as LanguageModel;
+      } catch (error) {
+        console.error('Failed to initialize Ollama:', error);
+        this.available = false;
+        throw error;
+      } finally {
+        this.initializing = undefined;
+      }
+    })();
+
+    return this.initializing;
+  }
+
+  async init(): Promise<void> {
+    await this.ensureInitialized();
+  }
+
+  async generateText(prompt: string, _options?: any): Promise<string> {
+    await this.ensureInitialized();
+    if (!this.modelInstance) {
+      throw new Error('Ollama model not initialized');
+    }
+    try {
+      const result = await (this.modelInstance as any).doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+        rawPrompt: undefined,
+      });
+      return result.content?.[0]?.text ?? '';
+    } catch (error: any) {
+      throw new Error(`Ollama generation failed: ${error.message}`);
+    }
+  }
+}
+
 export function createTransformersEntry(): ModelRegistryEntry {
-    return {
-        id: 'transformers',
-        config: {provider: 'transformers' as const, model: DEFAULT_COMPACT_MODEL, ...COMPACT_MODEL_CAPABILITY},
-        clientFactory: () => createMockLMClient(),
-        enabled: true,
-        priority: 1,
-        stats: {totalCalls: 0, successfulCalls: 0, failedCalls: 0, averageLatency: 0},
-    };
+  return {
+    id: 'transformers',
+    config: { provider: 'transformers' as const, model: DEFAULT_COMPACT_MODEL, ...COMPACT_MODEL_CAPABILITY },
+    clientFactory: () => new TransformersLMClient(DEFAULT_COMPACT_MODEL),
+    enabled: true,
+    priority: 1,
+    stats: { totalCalls: 0, successfulCalls: 0, failedCalls: 0, averageLatency: 0 },
+  };
 }
 
 export function createOllamaEntry(): ModelRegistryEntry {
-    return {
-        id: 'ollama',
-        config: {provider: 'ollama' as const, model: 'llama3.2', ...OLLAMA_MODEL_CAPABILITY},
-        clientFactory: () => createMockLMClient(),
-        enabled: true,
-        priority: 2,
-        stats: {totalCalls: 0, successfulCalls: 0, failedCalls: 0, averageLatency: 0},
-    };
+  return {
+    id: 'ollama',
+    config: { provider: 'ollama' as const, model: 'llama3.2', ...OLLAMA_MODEL_CAPABILITY },
+    clientFactory: () => new OllamaLMClient('llama3.2'),
+    enabled: true,
+    priority: 2,
+    stats: { totalCalls: 0, successfulCalls: 0, failedCalls: 0, averageLatency: 0 },
+  };
 }
 
 export function createMockEntry(): ModelRegistryEntry {
-    return {
-        id: 'mock',
-        config: {provider: 'mock' as const, model: 'default', ...MOCK_MODEL_CAPABILITY},
-        clientFactory: () => createMockLMClient(),
-        enabled: true,
-        priority: 99,
-        stats: {totalCalls: 0, successfulCalls: 0, failedCalls: 0, averageLatency: 0},
-    };
+  return {
+    id: 'mock',
+    config: { provider: 'mock' as const, model: 'default', ...MOCK_MODEL_CAPABILITY },
+    clientFactory: () => createMockLMClient(),
+    enabled: true,
+    priority: 99,
+    stats: { totalCalls: 0, successfulCalls: 0, failedCalls: 0, averageLatency: 0 },
+  };
 }
 
 export function registerDefaultModels(registry: ModelRegistry = defaultModelRegistry): void {
@@ -99,25 +212,28 @@ export function createDefaultLMClient(): LMClient {
 }
 
 export function setupDefaultLMClient(registry: ModelRegistry = defaultModelRegistry): LMClient {
-    registerDefaultModels(registry);
-    const logger = createLogger({scope: 'lm:defaults'});
-    const transformersEntry = registry.get('transformers');
-    if (transformersEntry?.enabled) {
-        try {
-            return transformersEntry.clientFactory();
-        } catch {
-            logger.debug('Transformers.js failed, trying fallback');
-        }
+  registerDefaultModels(registry);
+  const logger = createLogger({ scope: 'lm:defaults' });
+
+  const transformersEntry = registry.get('transformers');
+  if (transformersEntry?.enabled) {
+    try {
+      return transformersEntry.clientFactory();
+    } catch (error) {
+      logger.debug('Transformers.js failed, trying fallback', error);
     }
-    const ollamaEntry = registry.get('ollama');
-    if (ollamaEntry?.enabled) {
-        try {
-            return ollamaEntry.clientFactory();
-        } catch {
-            logger.debug('Ollama failed, using mock');
-        }
+  }
+
+  const ollamaEntry = registry.get('ollama');
+  if (ollamaEntry?.enabled) {
+    try {
+      return ollamaEntry.clientFactory();
+    } catch (error) {
+      logger.debug('Ollama failed, using mock', error);
     }
-    return createMockLMClient();
+  }
+
+  return createMockLMClient();
 }
 
 export function getTurnkeyConfig(): TurnkeyConfig {

@@ -31,7 +31,7 @@ export function createSeNARSRegistry() {
 
         builtin: customProvider({
             languageModels: {
-                compact: transformersJS('Xenova/LaMini-Flan-T5-77M', {device: 'cpu'}),
+                compact: transformersJS('HuggingFaceTB/SmolLM2-360M-Instruct', {device: 'cpu'}),
             },
         }),
     });

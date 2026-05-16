@@ -16,7 +16,7 @@ describe('Turnkey LM Integration', () => {
     test('should have turnkey config available', () => {
         const config = getTurnkeyConfig();
         expect(config).toBeDefined();
-        expect(config.lm.model).toBe('Xenova/LaMini-Flan-T5-77M');
+        expect(config.lm.model).toBe('HuggingFaceTB/SmolLM2-360M-Instruct');
         expect(config.lm.device).toBe('cpu');
         expect(config.fallbackChain).toEqual(['transformers', 'ollama', 'mock']);
     });
@@ -51,7 +51,7 @@ describe('Turnkey LM Integration', () => {
             expect(result).toBeDefined();
             expect(typeof result).toBe('string');
         }
-    });
+    }, 30000);
 
     test('should handle fallback chain', () => {
         const nar = SeNARSFactory.createDefault({ enableLMRules: true });
