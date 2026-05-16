@@ -14,25 +14,7 @@ import {
 import {getSchemaTransformer} from './schema-transformer.js';
 import {errMsg} from '../../nar/utils/helpers.js';
 
-/**
- * Progress reporter callback type
- */
 export type ProgressReporter = (update: ProgressUpdate) => void;
-
-/**
- * Streaming handler for incremental results
- */
-export interface StreamingHandler {
-	/**
-	 * Execute with streaming results
-	 */
-	executeStream(
-		args: Record<string, unknown>,
-		context: ExecutionContext & {
-			yield: (chunk: unknown) => void;
-		}
-	): Promise<void>;
-}
 
 /**
  * Enhanced MCP Adapter with full protocol support

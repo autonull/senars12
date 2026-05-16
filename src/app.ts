@@ -6,8 +6,10 @@
  * - Application logic (CLI, Bot, etc.)
  */
 
-import {loadConfigFromEnv} from './config';
-import {SeNARSFactory} from './nar';
+import {loadConfigFromEnv, DEFAULT_NAR_CONFIG} from './config/index.js';
+import {SeNARSFactory} from './nar/index.js';
+import {setupGracefulShutdown} from './utils/shutdown.js';
+import {createLogger} from './nar/logger/index.js';
 
 const MODES = {
     cli: runCLI,
@@ -36,25 +38,20 @@ async function runCLI() {
 }
 
 async function runBot() {
+  const logger = createLogger({scope: 'app:bot'});
   console.log('Starting Bot mode...');
   const {Agent} = await import('./agent/Agent.js');
-  const {SeNARSFactory} = await import('./nar/index.js');
   const {createSeNARSRegistry} = await import('./nar/lm/providers.js');
 
   const registry = createSeNARSRegistry();
   const nar = SeNARSFactory.createDefault({
-    core: {maxConcepts: 100, maxDerivationDepth: 10},
-    enableLMRules: true,
+    ...DEFAULT_NAR_CONFIG,
     providerRegistry: registry,
   });
 
-  const agent = new Agent(nar);
+  const agent = new Agent(nar, logger);
   await agent.start();
-
-  process.on('SIGINT', async () => {
-    await agent.stop();
-    process.exit(0);
-  });
+  setupGracefulShutdown(() => agent.stop(), logger);
 }
 
 async function runDemo() {

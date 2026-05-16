@@ -195,18 +195,13 @@ export class ToolManager extends EventEmitter {
       }
     }
 
-    const event: ToolEvent = {type: 'tool_call', name, args, timestamp: startTime, context};
-    this.emit('tool:call', event);
-    this.addToHistory(event);
+    const baseEvent = {name, args, timestamp: startTime, context} as const;
+    this.emit('tool:call', {type: 'tool_call', ...baseEvent});
+    this.addToHistory({type: 'tool_call', ...baseEvent});
 
     try {
       const result = await this.registry.execute(name, args, context);
       const duration = Date.now() - startTime;
-      const resultEvent: ToolEvent = {type: 'tool_result', name, args, result, timestamp: Date.now(), duration, context};
-
-      this.updateStatistics(name, result, duration);
-      this.emit('tool:result', resultEvent);
-      this.addToHistory(resultEvent);
 
       if (budget) {
         budget.totalDuration = (budget.totalDuration || 0) + duration;
@@ -216,20 +211,18 @@ export class ToolManager extends EventEmitter {
         }
       }
 
+      const resultEvent: ToolEvent = {type: 'tool_result', ...baseEvent, result, timestamp: Date.now(), duration};
+      this.updateStatistics(name, result, duration);
+      this.emit('tool:result', resultEvent);
+      this.addToHistory(resultEvent);
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
-      const errorEvent: ToolEvent = {
-        type: 'tool_error',
-        name,
-        args,
-        result: {success: false, content: null, error: error instanceof Error ? error.message : 'Unknown error'},
-        timestamp: Date.now(),
-        duration,
-        context
-      };
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      const errorResult = {success: false, content: null, error: errorMsg};
+      const errorEvent: ToolEvent = {type: 'tool_error', ...baseEvent, result: errorResult, timestamp: Date.now(), duration};
 
-      this.updateStatistics(name, {success: false, content: null, error: String(error)}, duration);
+      this.updateStatistics(name, errorResult, duration);
       this.emit('tool:error', errorEvent);
       this.addToHistory(errorEvent);
       throw error;
@@ -266,19 +259,6 @@ export class ToolManager extends EventEmitter {
 
   async shutdown(): Promise<void> {
     await Promise.all(Array.from(this.lifecycleState.keys()).map(name => this.disposeTool(name)));
-  }
-
-  private hasRequiredPermissions(tool: Tool, permissions?: Set<string>): boolean {
-    const required = tool.capabilities?.requiresPermissions || [];
-    return required.every(p => permissions?.has(p) ?? false);
-  }
-
-  private isRunning(name: string): boolean {
-    return this.lifecycleState.get(name) === 'running';
-  }
-
-  private isDisposed(name: string): boolean {
-    return this.lifecycleState.get(name) === 'disposed';
   }
 
   private initializeStatistics(name: string): void {

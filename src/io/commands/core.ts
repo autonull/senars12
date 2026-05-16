@@ -27,8 +27,7 @@ export const coreCommands: CommandDefinition[] = [
     const stats = ctx.nar.getStatistics();
     let result = `Concepts: ${stats.totalConcepts}, Tasks: ${stats.totalTasks}`;
     if (args[0] === 'detail') {
-      const narAny = ctx.nar as any;
-      const metrics = narAny.getMetrics?.();
+      const metrics = ctx.nar.getMetrics();
       if (metrics) {
         const ruleExecs = metrics.rules?.reduce((sum: number, r: {executions: number}) => sum + r.executions, 0) ?? 0;
         const derivs = metrics.system?.totalDerivations ?? 0;

@@ -1,4 +1,5 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
+import {errorResult} from './types';
 
 export class TimerTool implements Tool {
     readonly name = 'timer';
@@ -6,11 +7,7 @@ export class TimerTool implements Tool {
     readonly parameters: Schema = {
         type: 'object',
         properties: {
-            action: {
-                type: 'string',
-                description: 'Action to perform: start, stop, cancel',
-                enum: ['start', 'stop', 'cancel', 'list']
-            },
+            action: {type: 'string', description: 'Action to perform: start, stop, cancel', enum: ['start', 'stop', 'cancel', 'list']},
             name: {type: 'string', description: 'Timer name'},
             delay: {type: 'number', description: 'Delay in milliseconds', minimum: 0},
             repeat: {type: 'number', description: 'Number of repetitions (0 for infinite)', minimum: 0},
@@ -19,8 +16,8 @@ export class TimerTool implements Tool {
         required: ['action']
     };
 
-    private timers: Map<string, NodeJS.Timeout> = new Map();
-    private timerConfig: Map<string, { delay: number; repeat: number; callback: string; count: number }> = new Map();
+    private timers = new Map<string, NodeJS.Timeout>();
+    private timerConfig = new Map<string, { delay: number; repeat: number; callback: string; count: number }>();
 
     async execute(args: Record<string, unknown>, _context?: ToolContext): Promise<ToolResult> {
         const {action, name, delay = 1000, repeat = 0, callback} = args as {
@@ -34,35 +31,19 @@ export class TimerTool implements Tool {
         try {
             switch (action) {
                 case 'start':
-                    if (!name || !callback) {
-                        return {success: false, content: null, error: 'Timer name and callback required'};
-                    }
+                    if (!name || !callback) return errorResult('Timer name and callback required');
                     return this.startTimer(name, delay, repeat, callback);
-
                 case 'stop':
-                    if (!name) {
-                        return {success: false, content: null, error: 'Timer name required'};
-                    }
-                    return this.stopTimer(name);
-
                 case 'cancel':
-                    if (!name) {
-                        return {success: false, content: null, error: 'Timer name required'};
-                    }
-                    return this.cancelTimer(name);
-
+                    if (!name) return errorResult('Timer name required');
+                    return action === 'stop' ? this.stopTimer(name) : this.cancelTimer(name);
                 case 'list':
                     return this.listTimers();
-
                 default:
-                    return {success: false, content: null, error: `Unknown action: ${action}`};
+                    return errorResult(`Unknown action: ${action}`);
             }
         } catch (error) {
-            return {
-                success: false,
-                content: null,
-                error: error instanceof Error ? error.message : 'Timer operation failed'
-            };
+            return errorResult(error);
         }
     }
 
@@ -110,17 +91,10 @@ export class TimerTool implements Tool {
 
     private stopTimer(name: string): ToolResult {
         const config = this.timerConfig.get(name);
-        if (!config) {
-            return {success: false, content: null, error: `Timer '${name}' not found`};
-        }
-
+        if (!config) return errorResult(`Timer '${name}' not found`);
         this.clearTimer(name);
         this.timerConfig.delete(name);
-
-        return {
-            success: true,
-            content: {name, status: 'stopped'}
-        };
+        return {success: true, content: {name, status: 'stopped'}};
     }
 
     private cancelTimer(name: string): ToolResult {

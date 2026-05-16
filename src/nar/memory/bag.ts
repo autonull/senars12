@@ -1,6 +1,9 @@
-import type {BagItem} from './bag-base.js';
-
-export type {BagItem};
+export interface BagItem<T> {
+  item: T;
+  priority: number;
+  lastAccess: number;
+  createdAt: number;
+}
 
 export type SamplingObjective =
   | {type: 'priority'; threshold: number}

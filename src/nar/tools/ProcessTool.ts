@@ -1,5 +1,6 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
 import {spawn, type SpawnOptions, type ChildProcess} from 'child_process';
+import {errorResult} from './types';
 
 export class ProcessTool implements Tool {
     readonly name = 'process';
@@ -17,7 +18,7 @@ export class ProcessTool implements Tool {
         required: []
     };
 
-    private processes: Map<number, { process: ChildProcess; command: string; startTime: number }> = new Map();
+    private processes = new Map<number, { process: ChildProcess; command: string; startTime: number }>();
 
     async execute(args: Record<string, unknown>, _context?: ToolContext): Promise<ToolResult> {
         const {action = 'run', command, args: cmdArgs = [], cwd, timeout = 30000, processId} = args as {
@@ -30,28 +31,15 @@ export class ProcessTool implements Tool {
         };
 
         try {
-            if (action === 'list') {
-                return this.listProcesses();
-            }
-
+            if (action === 'list') return this.listProcesses();
             if (action === 'kill') {
-                if (!processId) {
-                    return {success: false, content: null, error: 'Process ID required for kill action'};
-                }
+                if (!processId) return errorResult('Process ID required for kill action');
                 return this.killProcess(processId);
             }
-
-            if (action === 'run' && command) {
-                return this.runProcess(command, cmdArgs, cwd || process.cwd(), timeout);
-            }
-
-            return {success: false, content: null, error: 'Invalid action or missing command'};
+            if (action === 'run' && command) return this.runProcess(command, cmdArgs, cwd || process.cwd(), timeout);
+            return errorResult('Invalid action or missing command');
         } catch (error) {
-            return {
-                success: false,
-                content: null,
-                error: error instanceof Error ? error.message : 'Process operation failed'
-            };
+            return errorResult(error);
         }
     }
 
@@ -108,40 +96,21 @@ export class ProcessTool implements Tool {
             proc.on('error', (error) => {
                 clearTimeout(timeoutId);
                 this.processes.delete(pid);
-
-                resolve({
-                    success: false,
-                    content: null,
-                    error: error.message
-                });
+                resolve(errorResult(error));
             });
         });
     }
 
     private killProcess(pid: number): ToolResult {
         const procInfo = this.processes.get(pid);
-        if (!procInfo) {
-            return {success: false, content: null, error: `Process ${pid} not found`};
-        }
+        if (!procInfo) return errorResult(`Process ${pid} not found`);
 
         try {
             procInfo.process.kill();
             this.processes.delete(pid);
-
-            return {
-                success: true,
-                content: {
-                    pid,
-                    command: procInfo.command,
-                    status: 'killed'
-                }
-            };
+            return {success: true, content: {pid, command: procInfo.command, status: 'killed'}};
         } catch (error) {
-            return {
-                success: false,
-                content: null,
-                error: error instanceof Error ? error.message : 'Failed to kill process'
-            };
+            return errorResult(error);
         }
     }
 

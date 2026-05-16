@@ -2,25 +2,26 @@ import {WebSocket, WebSocketServer} from 'ws';
 import type {ConnectionConfig, ConnectionDeps, IOMessage} from '../types.js';
 import {BaseConnection} from './base.js';
 import {createLogger} from '../../nar/logger/index.js';
+import {startWSServer} from '../utils/http.js';
 
 interface WSClient {
-  ws: WebSocket;
-  id: string;
-  subscriptions: Set<string>;
-  heartbeat: NodeJS.Timeout;
-  lastSeen: number;
+    ws: WebSocket;
+    id: string;
+    subscriptions: Set<string>;
+    heartbeat: NodeJS.Timeout;
+    lastSeen: number;
 }
 
 export class WSConnection extends BaseConnection {
-  override readonly id: string;
-  override readonly name: string;
-  override readonly type = 'websocket';
+    override readonly id: string;
+    override readonly name: string;
+    override readonly type = 'websocket';
 
-  private server: WebSocketServer | null = null;
-  private clients: Map<string, WSClient> = new Map();
-  private eventSubscriptions: Map<string, Set<WebSocket>> = new Map();
-  private port: number;
-  override readonly logger = createLogger({scope: 'io:ws'});
+    private server: WebSocketServer | null = null;
+    private clients = new Map<string, WSClient>();
+    private eventSubscriptions = new Map<string, Set<WebSocket>>();
+    private port: number;
+    override readonly logger = createLogger({scope: 'io:ws'});
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);
@@ -29,50 +30,32 @@ export class WSConnection extends BaseConnection {
         this.port = (config.config.port as number) ?? 8765;
     }
 
-  override async connect(): Promise<void> {
-    if (this.state === 'connected') return;
-    this.setState('connecting');
+    override async connect(): Promise<void> {
+        if (this.state === 'connected') return;
+        this.setState('connecting');
 
-    return new Promise((resolve, reject) => {
-      this.server = new WebSocketServer({port: this.port});
-
-            const failTimeout = setTimeout(() => {
-                reject(new Error('WebSocket server startup timeout'));
-                this.server?.close();
-            }, 10000);
-
-            this.server.on('listening', () => {
-                clearTimeout(failTimeout);
-                this.setState('connected');
-                this.logger.info(`WebSocket server listening on port ${this.port}`);
-                resolve();
-            });
-
-            this.server.on('error', (err) => {
-                this.handleError(this.createError(err.message, 'WS_SERVER_ERROR', true, err));
-                if (this.state !== 'connected') {
-                    reject(err);
-                }
-            });
-
-            this.server.on('connection', (ws) => {
-                this.handleNewClient(ws);
-            });
-        });
+        try {
+            this.server = await startWSServer(this.port, WebSocketServer);
+            this.server.on('connection', ws => this.handleNewClient(ws));
+            this.setState('connected');
+            this.logger.info(`WebSocket server listening on port ${this.port}`);
+        } catch (err) {
+            this.handleError(this.createError((err as Error).message, 'WS_SERVER_ERROR', true, err as Error));
+            throw err;
+        }
     }
 
     override async disconnect(reason?: string): Promise<void> {
         if (this.state === 'disconnected' || this.state === 'idle') return;
-
         this.setState('disconnecting');
 
-        for (const [, client] of this.clients) {
+        for (const client of this.clients.values()) {
             clearInterval(client.heartbeat);
             client.ws.close(1000, reason ?? 'Server closing');
         }
         this.clients.clear();
 
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
             this.server?.close(() => {
                 this.setState('disconnected');
                 this.logger.info(`WebSocket server on port ${this.port} closed`);
@@ -86,40 +69,25 @@ export class WSConnection extends BaseConnection {
             this.broadcast(text);
             return;
         }
-
         const client = this.clients.get(target);
-        if (client && client.ws.readyState === WebSocket.OPEN) {
-            client.ws.send(JSON.stringify({
-                type: 'message',
-                data: text,
-                timestamp: Date.now(),
-            }));
+        if (client?.ws.readyState === WebSocket.OPEN) {
+            client.ws.send(JSON.stringify({type: 'message', data: text, timestamp: Date.now()}));
         }
     }
 
-    broadcast(event: string, data?: Record<string, unknown>): void {
+    private broadcast(event: string, data?: Record<string, unknown>): void {
         const subscribers = this.eventSubscriptions.get(event);
         if (!subscribers) return;
-
-        const message = JSON.stringify({
-            type: 'event',
-            event,
-            data,
-            timestamp: Date.now(),
-        });
-
+        const message = JSON.stringify({type: 'event', event, data, timestamp: Date.now()});
         for (const ws of subscribers) {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(message);
-            }
+            if (ws.readyState === WebSocket.OPEN) ws.send(message);
         }
     }
 
     private handleNewClient(ws: WebSocket): void {
         const id = crypto.randomUUID();
         const client: WSClient = {
-            ws,
-            id,
+            ws, id,
             subscriptions: new Set(),
             heartbeat: setInterval(() => this.sendHeartbeat(ws), 30000),
             lastSeen: Date.now(),
@@ -128,11 +96,10 @@ export class WSConnection extends BaseConnection {
         this.clients.set(id, client);
         this.logger.info(`WebSocket client ${id} connected. Total: ${this.clients.size}`);
 
-        ws.on('message', (data) => {
+        ws.on('message', data => {
             client.lastSeen = Date.now();
             try {
-                const message = JSON.parse(data.toString());
-                this.handleWSMessage(ws, message, client);
+                this.handleWSMessage(ws, JSON.parse(data.toString()), client);
             } catch (e) {
                 this.logger.error('Invalid WebSocket message', e as Error);
             }
@@ -144,7 +111,7 @@ export class WSConnection extends BaseConnection {
             this.logger.info(`WebSocket client ${id} disconnected. Total: ${this.clients.size}`);
         });
 
-        ws.on('error', (err) => {
+        ws.on('error', err => {
             this.logger.error(`WebSocket client ${id} error`, err);
             clearInterval(client.heartbeat);
             this.clients.delete(id);
@@ -157,11 +124,8 @@ export class WSConnection extends BaseConnection {
         const msgType = message.type as string;
 
         if (msgType === 'subscribe') {
-            const events = (message.events as string[]) ?? [];
-            for (const event of events) {
-                if (!this.eventSubscriptions.has(event)) {
-                    this.eventSubscriptions.set(event, new Set());
-                }
+            for (const event of (message.events as string[]) ?? []) {
+                if (!this.eventSubscriptions.has(event)) this.eventSubscriptions.set(event, new Set());
                 this.eventSubscriptions.get(event)!.add(ws);
                 client.subscriptions.add(event);
             }
@@ -169,24 +133,21 @@ export class WSConnection extends BaseConnection {
         }
 
         if (msgType === 'unsubscribe') {
-            const events = (message.events as string[]) ?? [];
-            for (const event of events) {
+            for (const event of (message.events as string[]) ?? []) {
                 this.eventSubscriptions.get(event)?.delete(ws);
                 client.subscriptions.delete(event);
             }
             return;
         }
 
-        const ioMessage: IOMessage = {
+        this.handleMessage({
             id: crypto.randomUUID(),
             source: this.id,
             sender: client.id,
             text: (message.data as string) ?? JSON.stringify(message),
             timestamp: Date.now(),
             metadata: {clientId: client.id, type: msgType},
-        };
-
-        this.handleMessage(ioMessage);
+        });
     }
 
     private sendHeartbeat(ws: WebSocket): void {

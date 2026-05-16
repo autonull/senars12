@@ -10,6 +10,8 @@ import {Agent} from '../agent/Agent.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {createLogger} from '../nar/logger/index.js';
+import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
+import {setupGracefulShutdown} from '../utils/shutdown.js';
 import type {ConnectionConfig} from '../io/types.js';
 
 const logger = createLogger({scope: 'bot'});
@@ -17,24 +19,13 @@ const logger = createLogger({scope: 'bot'});
 async function main() {
   const registry = createSeNARSRegistry();
   const nar = SeNARSFactory.createDefault({
-    core: {maxConcepts: 100, maxDerivationDepth: 10},
-    enableLMRules: true,
+    ...DEFAULT_NAR_CONFIG,
     providerRegistry: registry,
   });
 
   const agent = new Agent(nar, logger);
 
-  process.on('SIGINT', async () => {
-    logger.info('Shutting down...');
-    await agent.stop();
-    process.exit(0);
-  });
-
-  process.on('SIGTERM', async () => {
-    logger.info('Shutting down...');
-    await agent.stop();
-    process.exit(0);
-  });
+  setupGracefulShutdown(() => agent.stop(), logger);
 
   await agent.start();
 

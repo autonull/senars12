@@ -8,6 +8,8 @@ import {APIRegistry} from './registry.js';
 import {Agent} from '../agent/Agent.js';
 import {termParser} from '../nar/terms/index.js';
 
+import type {NAR} from '../nar/nar.js';
+
 const registry = APIRegistry.getInstance();
 
 const TermSchema = z.string().min(1, 'Term cannot be empty');
@@ -16,21 +18,22 @@ const PaginationSchema = z.object({page: z.number().positive().optional(), limit
 
 type TaskType = 'beliefs' | 'goals' | 'questions';
 
-const registerListEndpoint = (nar: any, type: TaskType) => {
+const registerListEndpoint = (nar: NAR, type: TaskType) => {
   registry.register(`get${type.charAt(0).toUpperCase() + type.slice(1)}`, {
     description: `List all ${type} in the knowledge base`,
     params: z.object({pagination: PaginationSchema.optional()}),
     returns: z.object({[type]: z.array(z.object({})), total: z.number()}),
     handler: async () => {
-      const methodName = `get${type.charAt(0).toUpperCase() + type.slice(1)}`;
-      const items = (nar as any)[methodName]();
+      const items = type === 'beliefs' ? nar.getBeliefs()
+        : type === 'goals' ? nar.getGoals()
+        : nar.getQuestions();
       return {[type]: items, total: items.length};
     }
   });
 };
 
 export function registerAgentAPI(agent: Agent) {
-  const nar = (agent as any).nar;
+  const nar = agent.getNAR();
 
     registry.register('addBelief', {
         description: 'Add a belief to the knowledge base',

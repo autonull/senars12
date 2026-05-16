@@ -9,6 +9,11 @@ export {
     ConfigLoader
 } from './loader.js';
 
+export {
+    DEFAULT_NAR_CONFIG,
+    DEFAULT_NAR_CORE_CONFIG,
+} from './defaults.js';
+
 export type {
     AppConfig,
     ValidatedConfig,

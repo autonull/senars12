@@ -22,7 +22,7 @@ import {MCPConnection} from '../io/connections/mcp.js';
 export class Agent {
     private readonly nar: NAR;
     private readonly manager: ConnectionManager;
-    private readonly router: MessageRouter;
+    readonly router: MessageRouter;
     private readonly commands: CommandRegistry;
     private readonly emitter: EventEmitter;
     private readonly logger: Logger;
@@ -237,4 +237,6 @@ export class Agent {
     off(event: string, handler: (...args: unknown[]) => void): void {
         this.emitter.off(event, handler);
     }
+
+    getNAR(): NAR { return this.nar; }
 }

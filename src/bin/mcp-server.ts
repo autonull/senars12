@@ -9,6 +9,7 @@ import {APIRegistry} from '../api/registry.js';
 import {createLogger} from '../nar/logger/index.js';
 import {registerDefaultModels, getTurnkeyConfig} from '../nar/lm/defaults.js';
 import {toError} from '../nar/utils/helpers.js';
+import {setupGracefulShutdown} from '../utils/shutdown.js';
 
 async function main() {
 	const logger = createLogger({scope: 'mcp:bin'});
@@ -38,21 +39,7 @@ async function main() {
 		logger.info(`Transport: stdio`);
 		logger.info(`Tools: ${server.listTools().map((t) => t.name).join(', ') || 'none'}`);
 
-		// Handle graceful shutdown
-		process.on('SIGINT', async () => {
-			logger.info('Received SIGINT, shutting down...');
-			await server.stop();
-			process.exit(0);
-		});
-
-		process.on('SIGTERM', async () => {
-			logger.info('Received SIGTERM, shutting down...');
-			await server.stop();
-			process.exit(0);
-		});
-
-		// Keep process alive for stdio transport
-		await new Promise(() => {});
+		setupGracefulShutdown(() => server.stop(), logger);
 	} catch (error) {
 		logger.error("MCP Server failed", toError(error));
 		process.exit(1);

@@ -213,9 +213,9 @@ export class Memory {
     }
 
     sample(limit: number): Concept[] {
-        const allConcepts = [...this.concepts.values()];
-        allConcepts.sort((a, b) => this.scorer.scoreForRetrieval(b) - this.scorer.scoreForRetrieval(a));
-        return allConcepts.slice(0, limit);
+        return [...this.concepts.values()]
+            .sort((a, b) => this.scorer.scoreForRetrieval(b) - this.scorer.scoreForRetrieval(a))
+            .slice(0, limit);
     }
 
     consolidate(): void {
@@ -244,12 +244,10 @@ export class Memory {
     }
 
     archiveConcept(concept: Concept): boolean {
-        if (this.config.enableArchive) {
-            this.archive.archive(concept);
-            this.index.remove(concept);
-            return true;
-        }
-        return false;
+        if (!this.config.enableArchive) return false;
+        this.archive.archive(concept);
+        this.index.remove(concept);
+        return true;
     }
 
     clear(): void {
@@ -408,8 +406,9 @@ export class Memory {
     }
 
     private findOrphanedLinks(): Concept[] {
+        const knownKeys = new Set(this.concepts.keys());
         return [...this.concepts.values()].filter(concept =>
-            concept.getLinks().some(link => !this.concepts.has(link.concept.key))
+            concept.getLinks().some(link => !knownKeys.has(link.concept.key))
         );
     }
 }

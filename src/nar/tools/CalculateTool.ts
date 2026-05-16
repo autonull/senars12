@@ -1,4 +1,5 @@
 import type {Schema, Tool, ToolResult} from './types';
+import {errorResult} from './types';
 
 function parseMathExpression(expr: string): number {
     let pos = 0;
@@ -14,13 +15,9 @@ function parseMathExpression(expr: string): number {
             numStr += expr[pos];
             pos++;
         }
-        if (numStr === '') {
-            throw new Error('Expected number');
-        }
+        if (numStr === '') throw new Error('Expected number');
         const num = Number(numStr);
-        if (isNaN(num)) {
-            throw new Error('Invalid number');
-        }
+        if (isNaN(num)) throw new Error('Invalid number');
         return num;
     }
 
@@ -30,9 +27,7 @@ function parseMathExpression(expr: string): number {
             pos++;
             const result = parseExpression();
             skipWhitespace();
-            if (expr[pos] !== ')') {
-                throw new Error('Expected closing parenthesis');
-            }
+            if (expr[pos] !== ')') throw new Error('Expected closing parenthesis');
             pos++;
             return result;
         } else if (expr[pos] === '-') {
@@ -55,8 +50,7 @@ function parseMathExpression(expr: string): number {
                 left *= parseFactor();
             } else if (expr[pos] === '/') {
                 pos++;
-                const right = parseFactor();
-                left /= right;
+                left /= parseFactor();
             } else {
                 break;
             }
@@ -84,9 +78,7 @@ function parseMathExpression(expr: string): number {
     skipWhitespace();
     const result = parseExpression();
     skipWhitespace();
-    if (pos < expr.length) {
-        throw new Error(`Unexpected character at position ${pos}: ${expr[pos]}`);
-    }
+    if (pos < expr.length) throw new Error(`Unexpected character at position ${pos}: ${expr[pos]}`);
     return result;
 }
 
@@ -95,9 +87,7 @@ export class CalculateTool implements Tool {
     readonly description = 'Mathematical computation tool';
     readonly parameters: Schema = {
         type: 'object',
-        properties: {
-            expression: {type: 'string', description: 'Mathematical expression to evaluate'}
-        },
+        properties: {expression: {type: 'string', description: 'Mathematical expression to evaluate'}},
         required: ['expression']
     };
 
@@ -107,24 +97,11 @@ export class CalculateTool implements Tool {
         try {
             const sanitized = expression.trim();
             if (!sanitized || /[^0-9+\-*/().\s]/.test(sanitized)) {
-                return {
-                    success: false,
-                    content: null,
-                    error: 'Invalid characters in expression. Only digits, +, -, *, /, (, ), and spaces allowed'
-                };
+                return errorResult('Invalid characters in expression. Only digits, +, -, *, /, (, ), and spaces allowed');
             }
-
-            const result = parseMathExpression(sanitized);
-            return {
-                success: true,
-                content: result
-            };
+            return {success: true, content: parseMathExpression(sanitized)};
         } catch (error) {
-            return {
-                success: false,
-                content: null,
-                error: error instanceof Error ? error.message : 'Calculation failed'
-            };
+            return errorResult(error);
         }
     }
 }

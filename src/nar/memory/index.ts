@@ -3,7 +3,7 @@ export {Concept} from './concept.js';
 export type {ConceptTaskType} from './concept.js';
 
 export {Bag, Bag as BoundedBag} from './bag.js';
-export type {BagItem} from './bag-base.js';
+export type {BagItem} from './bag.js';
 
 export {Memory} from './memory.js';
 export type {MemoryConfig, MemoryStatistics} from './memory.js';

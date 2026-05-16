@@ -220,7 +220,7 @@ export function setupDefaultLMClient(registry: ModelRegistry = defaultModelRegis
     try {
       return transformersEntry.clientFactory();
     } catch (error) {
-      logger.debug('Transformers.js failed, trying fallback', error);
+      logger.debug('Transformers.js failed, trying fallback');
     }
   }
 
@@ -229,7 +229,7 @@ export function setupDefaultLMClient(registry: ModelRegistry = defaultModelRegis
     try {
       return ollamaEntry.clientFactory();
     } catch (error) {
-      logger.debug('Ollama failed, using mock', error);
+      logger.debug('Ollama failed, using mock');
     }
   }
 

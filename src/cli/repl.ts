@@ -5,18 +5,19 @@
 import {Agent} from '../agent/Agent.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
-import {k} from './display.js';
 import {createLogger} from '../nar/logger/index.js';
+import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
+import {setupGracefulShutdown} from '../utils/shutdown.js';
+import {k} from './display.js';
 
 export class SeNARSCLI {
-    private readonly agent: Agent;
-    private readonly logger = createLogger({scope: 'cli:repl'});
+    readonly agent: Agent;
+    readonly logger = createLogger({scope: 'cli:repl'});
 
     constructor() {
         const registry = createSeNARSRegistry();
         const nar = SeNARSFactory.createDefault({
-            core: {maxConcepts: 100, maxDerivationDepth: 10},
-            enableLMRules: true,
+            ...DEFAULT_NAR_CONFIG,
             providerRegistry: registry,
         });
         this.agent = new Agent(nar);
@@ -39,13 +40,14 @@ export class SeNARSCLI {
         const connection = await this.agent.addConnection(cliConfig);
 
         connection.onMessage(async (message) => {
+            const nar = this.agent.getNAR();
             const context = {
                 connection,
-                nar: this.agent.getConnection('cli') ? (this.agent as any).nar : null,
+                nar,
                 respond: async (text: string) => connection.send(message.sender, text),
             };
             try {
-                await (this.agent as any).router.route(message, context);
+                await this.agent.router.route(message, context);
             } catch (error) {
                 console.log(k.err(`Error: ${error}`));
             }
@@ -65,7 +67,7 @@ export class SeNARSCLI {
 async function main() {
     const cli = new SeNARSCLI();
     await cli.start();
-    await new Promise(() => {});
+    setupGracefulShutdown(() => cli.agent.stop(), cli.logger);
 }
 
 main();
