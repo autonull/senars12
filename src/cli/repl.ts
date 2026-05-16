@@ -1,147 +1,71 @@
 /**
- * SeNARS CLI REPL - Interactive terminal interface for neuro-symbolic reasoning
- * Modernized with AI SDK provider registry, NL translator, and display pipeline
+ * SeNARS CLI REPL - Interactive terminal interface using Agent + CLIConnection
  */
 
-import {SeNARSFactory} from '../nar';
-import {createInterface} from 'readline';
-import {HistoryManager} from './history';
-import {CommandHandlers} from './command-handlers';
-import {createSeNARSRegistry, getQualityModel} from '../nar/lm/providers.js';
-import {NLTranslator} from '../nar/nl/translator.js';
-import {InputPipeline} from './pipeline.js';
-import {OutputRenderer} from './display.js';
+import {Agent} from '../agent/Agent.js';
+import {SeNARSFactory} from '../nar/index.js';
+import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {k} from './display.js';
-
-interface CLIConfig {
-	maxConcepts: number;
-	maxDerivationDepth: number;
-	showDerivations: boolean;
-}
-
-type NARRef = ReturnType<typeof SeNARSFactory.createForCLI>;
-
-const COMMANDS = [
-	'.help', '.run', '.stats', '.list', '.concepts', '.rules', '.tools',
-	'.query', '.trace', '.explain', '.clear', '.load', '.save',
-	'.config', '.quit', '.self', '.meta', '.optimize',
-	'.prefer', '.reward', '.rlfp-stats', '.lm-status', '.lm-config', '.lm-switch',
-	'.lm-switch-provider', '.ask-nl', '.constitution', '.attention', '.load-domain',
-	'.stack'  // Show current trace stack
-];
+import {createLogger} from '../nar/logger/index.js';
 
 export class SeNARSCLI {
-	private readonly nar: NARRef;
-	private readonly rl: ReturnType<typeof createInterface>;
-	private readonly history = new HistoryManager();
-	private commands!: CommandHandlers;
-	private pipeline!: InputPipeline;
-	private readonly renderer: OutputRenderer;
-	private translator?: NLTranslator;
-	private multiLineBuffer: string[] = [];
-	private inMultiLine = false;
+    private readonly agent: Agent;
+    private readonly logger = createLogger({scope: 'cli:repl'});
 
-	constructor(config: Partial<CLIConfig> = {}) {
-		this.renderer = new OutputRenderer();
+    constructor() {
+        const registry = createSeNARSRegistry();
+        const nar = SeNARSFactory.createDefault({
+            core: {maxConcepts: 100, maxDerivationDepth: 10},
+            enableLMRules: true,
+            providerRegistry: registry,
+        });
+        this.agent = new Agent(nar);
+    }
 
-		const registry = createSeNARSRegistry();
-		this.translator = new NLTranslator(registry);
+    async start(): Promise<void> {
+        console.log(k.bold('SeNARS CLI') + ' - Interactive terminal interface');
+        console.log(k.dim('Type .help for commands, .quit to exit\n'));
 
-		this.nar = SeNARSFactory.createDefault({
-			core: {
-				maxConcepts: config.maxConcepts ?? 100,
-				maxDerivationDepth: config.maxDerivationDepth ?? 10
-			},
-			enableLMRules: true,
-			providerRegistry: registry,
-		}) as NARRef;
+        const cliConfig = {
+            id: 'cli',
+            type: 'cli' as const,
+            enabled: true,
+            config: {
+                name: 'CLI',
+                sendFn: (text: string) => console.log(text),
+            }
+        };
 
-		this.commands = new CommandHandlers(this.nar);
-		this.pipeline = new InputPipeline(this.nar, this.translator, this.renderer, this.commands);
+        const connection = await this.agent.addConnection(cliConfig);
 
-		const isTTY = process.stdin.isTTY;
+        connection.onMessage(async (message) => {
+            const context = {
+                connection,
+                nar: this.agent.getConnection('cli') ? (this.agent as any).nar : null,
+                respond: async (text: string) => connection.send(message.sender, text),
+            };
+            try {
+                await (this.agent as any).router.route(message, context);
+            } catch (error) {
+                console.log(k.err(`Error: ${error}`));
+            }
+        });
 
-		this.rl = createInterface({
-			input: process.stdin,
-			output: process.stdout,
-			prompt: k.prompt('senars> '),
-			completer: (line: string): [string[], string] => this.completer(line),
-			terminal: isTTY
-		});
+        this.agent.on('connection:state', (data) => {
+            const {id, prev, current} = data as {id: string; prev: string; current: string};
+            if (id === 'cli') {
+                this.logger.debug(`CLI state: ${prev} -> ${current}`);
+            }
+        });
 
-		process.on('SIGINT', () => this.rl.close());
-
-		this.rl.on('line', (line) => this.onLine(line));
-		this.rl.on('close', () => {
-			this.history.saveHistory();
-			if (process.stdin.isTTY) {
-				console.log(`\n${k.dim('Goodbye!')}`);
-			}
-			process.exit(0);
-		});
-	}
-
-	async start(): Promise<void> {
-		this.renderer.banner();
-
-		const model = getQualityModel(createSeNARSRegistry());
-		if (model) {
-			this.renderer.success('Language model ready');
-		} else {
-			this.renderer.warn('No LM available — running in pure symbolic mode');
-		}
-
-		this.renderer.help();
-		this.rl.prompt();
-	}
-
-	private async onLine(line: string): Promise<void> {
-		if (this.inMultiLine) {
-			if (line.trim() === '.') {
-				const input = this.multiLineBuffer.join('\n');
-				this.multiLineBuffer = [];
-				this.inMultiLine = false;
-				this.history.add(input);
-				await this.pipeline.process(input);
-			} else {
-				this.multiLineBuffer.push(line);
-			}
-		} else {
-			const trimmed = line.trim();
-			if (!trimmed) {
-				this.rl.prompt();
-				return;
-			}
-			if (trimmed.startsWith('{')) {
-				this.inMultiLine = true;
-				this.multiLineBuffer = [trimmed.slice(1)];
-				console.log(k.dim('> Multi-line input started (end with "." on empty line)'));
-			} else {
-				this.history.add(trimmed);
-				await this.pipeline.process(trimmed);
-			}
-		}
-		this.rl.prompt();
-	}
-
-	private completer(line: string): [string[], string] {
-		const parts = line.split(/\s+/);
-		const lastPart = parts[parts.length - 1] || '';
-
-		if (line.startsWith('.')) {
-			const matches = COMMANDS.filter(cmd => cmd.startsWith(lastPart));
-			return [matches.length ? matches : [line], lastPart];
-		}
-
-		const concepts = this.nar.listConcepts().slice(0, 50);
-		const matches = concepts.map(c => c.term.toString()).filter(term => term.startsWith(lastPart));
-		return [matches.length ? matches : [line], lastPart];
-	}
+        await this.agent.start();
+    }
 }
 
 async function main() {
-	const cli = new SeNARSCLI();
-	await cli.start();
+    const cli = new SeNARSCLI();
+    await cli.start();
+    await new Promise(() => {});
 }
 
 main();

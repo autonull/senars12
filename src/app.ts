@@ -36,10 +36,25 @@ async function runCLI() {
 }
 
 async function runBot() {
-    console.log('Starting Bot mode...');
-    const {createBot} = await import('./bot/index.js');
-    const {PROFILES} = await import('./bot/config.js');
-    await (await createBot(PROFILES.minimal)).start();
+  console.log('Starting Bot mode...');
+  const {Agent} = await import('./agent/Agent.js');
+  const {SeNARSFactory} = await import('./nar/index.js');
+  const {createSeNARSRegistry} = await import('./nar/lm/providers.js');
+
+  const registry = createSeNARSRegistry();
+  const nar = SeNARSFactory.createDefault({
+    core: {maxConcepts: 100, maxDerivationDepth: 10},
+    enableLMRules: true,
+    providerRegistry: registry,
+  });
+
+  const agent = new Agent(nar);
+  await agent.start();
+
+  process.on('SIGINT', async () => {
+    await agent.stop();
+    process.exit(0);
+  });
 }
 
 async function runDemo() {

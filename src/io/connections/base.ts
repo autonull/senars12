@@ -1,0 +1,111 @@
+import type { Connection, ConnectionConfig, ConnectionDeps, ConnectionError, ConnectionState, IOMessage } from '../types.js';
+import { ConnectionError as ConnError } from '../types.js';
+
+export abstract class BaseConnection implements Connection {
+    abstract readonly id: string;
+    abstract readonly name: string;
+    abstract readonly type: string;
+
+    private _state: ConnectionState = 'idle';
+    protected messageHandler?: (message: IOMessage) => Promise<void>;
+    protected stateChangeHandlers: Array<(state: ConnectionState, prev: ConnectionState) => void> = [];
+    protected errorHandlers: Array<(error: ConnectionError) => void> = [];
+    protected messageCount = 0;
+    protected errorCount = 0;
+
+    protected readonly config: ConnectionConfig;
+    protected readonly emit: (event: string, data: unknown) => void;
+    protected readonly logger: ConnectionDeps['logger'];
+
+    constructor(config: ConnectionConfig, deps: ConnectionDeps) {
+        this.config = config;
+        this.emit = deps.emit;
+        this.logger = deps.logger;
+    }
+
+    get state(): ConnectionState {
+        return this._state;
+    }
+
+    protected setState(value: ConnectionState): void {
+        const prev = this._state;
+        if (prev !== value) {
+            this._state = value;
+            this.emit('connection:state', { id: this.id, prev, current: value });
+            for (const handler of this.stateChangeHandlers) {
+                handler(value, prev);
+            }
+        }
+    }
+
+    abstract connect(): Promise<void>;
+    abstract disconnect(reason?: string): Promise<void>;
+    abstract send(target: string, text: string): Promise<void>;
+
+    async reconnect(): Promise<void> {
+        if (this.state === 'connected') return;
+        await this.disconnect('reconnect');
+        await this.connect();
+    }
+
+    onMessage(handler: (message: IOMessage) => Promise<void>): void {
+        this.messageHandler = handler;
+    }
+
+    onStateChange(handler: (state: ConnectionState, prev: ConnectionState) => void): void {
+        this.stateChangeHandlers.push(handler);
+    }
+
+    onError(handler: (error: ConnectionError) => void): void {
+        this.errorHandlers.push(handler);
+    }
+
+    getStatus(): { state: ConnectionState; messageCount: number; errorCount: number } {
+        return {
+            state: this.state,
+            messageCount: this.messageCount,
+            errorCount: this.errorCount
+        };
+    }
+
+    async reconfigure(config: Record<string, unknown>): Promise<void> {
+        Object.assign(this.config.config, config);
+    }
+
+    protected handleMessage(message: IOMessage): void {
+        this.messageCount++;
+        if (this.messageHandler) {
+            this.messageHandler(message).catch(err => {
+                this.logger.error(`Message handler error for ${this.id}`, err as Error);
+            });
+        }
+    }
+
+    protected handleError(error: ConnectionError): void {
+        this.errorCount++;
+        for (const handler of this.errorHandlers) {
+            handler(error);
+        }
+    }
+
+    protected createError(message: string, code: string, recoverable: boolean, cause?: Error): ConnectionError {
+        return new ConnError(message, this.id, code, recoverable, cause);
+    }
+
+    protected withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+        return this._withRetry(fn, maxRetries, 0);
+    }
+
+    private async _withRetry<T>(fn: () => Promise<T>, maxRetries: number, attempt: number): Promise<T> {
+        try {
+            return await fn();
+        } catch (error) {
+            if (attempt >= maxRetries) {
+                throw error;
+            }
+            const delay = Math.min(100 * Math.pow(2, attempt), 1000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return this._withRetry(fn, maxRetries, attempt + 1);
+        }
+    }
+}

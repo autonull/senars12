@@ -16,20 +16,21 @@ const PaginationSchema = z.object({page: z.number().positive().optional(), limit
 
 type TaskType = 'beliefs' | 'goals' | 'questions';
 
-const registerListEndpoint = (nar: ReturnType<Agent['getNAR']>, type: TaskType) => {
-    registry.register(`get${type.charAt(0).toUpperCase() + type.slice(1)}`, {
-        description: `List all ${type} in the knowledge base`,
-        params: z.object({pagination: PaginationSchema.optional()}),
-        returns: z.object({[type]: z.array(z.object({})), total: z.number()}),
-        handler: async () => {
-            const items = nar[`get${type.charAt(0).toUpperCase() + type.slice(1)}`]();
-            return {[type]: items, total: items.length};
-        }
-    });
+const registerListEndpoint = (nar: any, type: TaskType) => {
+  registry.register(`get${type.charAt(0).toUpperCase() + type.slice(1)}`, {
+    description: `List all ${type} in the knowledge base`,
+    params: z.object({pagination: PaginationSchema.optional()}),
+    returns: z.object({[type]: z.array(z.object({})), total: z.number()}),
+    handler: async () => {
+      const methodName = `get${type.charAt(0).toUpperCase() + type.slice(1)}`;
+      const items = (nar as any)[methodName]();
+      return {[type]: items, total: items.length};
+    }
+  });
 };
 
 export function registerAgentAPI(agent: Agent) {
-    const nar = agent.getNAR();
+  const nar = (agent as any).nar;
 
     registry.register('addBelief', {
         description: 'Add a belief to the knowledge base',

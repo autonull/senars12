@@ -1,188 +1,240 @@
-/**
- * SeNARS Agent Layer
- * High-level interface for end-user interaction
- */
-
-import {NAR} from '../nar';
+import {EventEmitter} from 'events';
+import type {NAR} from '../nar/nar.js';
 import {errMsg} from '../nar/utils/helpers.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
-
-export interface Embodiment {
-    readonly name: string;
-
-    start(agent: Agent): Promise<void>;
-
-    stop(): Promise<void>;
-
-    send(message: string): Promise<void>;
-
-    onMessage(handler: (message: string) => void): void;
-}
-
-export interface Command {
-    readonly name: string;
-    readonly description: string;
-    readonly usage: string;
-
-    execute(args: string[], context: { nar: NAR; agent: Agent }): Promise<string>;
-}
-
-export interface AgentProfile {
-    id: string;
-    name: string;
-    description: string;
-    config: Record<string, unknown>;
-    capabilities: string[];
-}
-
-export interface AgentCapabilities {
-    reasoning: boolean;
-    learning: boolean;
-    toolUse: boolean;
-    embodiment: string[];
-    persistence: boolean;
-    metacognition: boolean;
-}
+import {ConnectionManager} from '../io/connection-manager.js';
+import {MessageRouter} from '../io/router.js';
+import {CommandRegistry, type CommandContext} from '../io/commands/registry.js';
+import {coreCommands} from '../io/commands/core.js';
+import {connectionCommands} from '../io/commands/connection.js';
+import {memoryCommands} from '../io/commands/memory.js';
+import {narCommands} from '../io/commands/nar.js';
+import {selfCommands} from '../io/commands/self.js';
+import {lmCommands} from '../io/commands/lm.js';
+import {rlfpCommands} from '../io/commands/rlfp.js';
+import type {Connection, ConnectionConfig, IOMessage, MessageClassification} from '../io/types.js';
+import {CLIConnection} from '../io/connections/cli.js';
+import {IRCConnection} from '../io/connections/irc.js';
+import {WSConnection} from '../io/connections/ws.js';
+import {HTTPConnection} from '../io/connections/http.js';
+import {MCPConnection} from '../io/connections/mcp.js';
 
 export class Agent {
-    private readonly narInstance: NAR;
-    private readonly embodiments: Embodiment[] = [];
-    private commands: Map<string, Command> = new Map();
-    private messageHandlers: Array<(message: string) => void> = [];
-    private running = false;
-    private profile: AgentProfile | null = null;
-    private statePath: string | null = null;
+    private readonly nar: NAR;
+    private readonly manager: ConnectionManager;
+    private readonly router: MessageRouter;
+    private readonly commands: CommandRegistry;
+    private readonly emitter: EventEmitter;
     private readonly logger: Logger;
+    private running = false;
 
-    constructor(
-        nar: NAR,
-        embodiments: Embodiment[] = []
-    ) {
-        this.narInstance = nar;
-        this.embodiments = embodiments;
-        this.logger = createLogger({scope: 'agent'});
+    constructor(nar: NAR, logger?: Logger) {
+        this.nar = nar;
+        this.emitter = new EventEmitter();
+        this.logger = logger ?? createLogger({scope: 'agent'});
+        this.manager = new ConnectionManager(this.logger);
+        this.router = new MessageRouter();
+        this.commands = new CommandRegistry();
+        this.registerConnectionFactories();
+        this.registerCommands();
+        this.setupMiddleware();
     }
 
-    getNAR(): NAR {
-        return this.narInstance;
+    private registerConnectionFactories(): void {
+        this.manager.registerFactory({
+            type: 'cli',
+            create: (config, deps) => new CLIConnection(config, deps)
+        });
+        this.manager.registerFactory({
+            type: 'irc',
+            create: (config, deps) => new IRCConnection(config, deps)
+        });
+        this.manager.registerFactory({
+            type: 'websocket',
+            create: (config, deps) => new WSConnection(config, deps)
+        });
+        this.manager.registerFactory({
+            type: 'http',
+            create: (config, deps) => new HTTPConnection(config, deps)
+        });
+        this.manager.registerFactory({
+            type: 'mcp',
+            create: (config, deps) => new MCPConnection(config, deps)
+        });
     }
 
-    getEmbodiments(): Embodiment[] {
-        return this.embodiments;
+    private registerCommands(): void {
+        for (const cmd of coreCommands) {
+            this.commands.register(cmd);
+        }
+        for (const cmd of connectionCommands) {
+            this.commands.register(cmd);
+        }
+        for (const cmd of memoryCommands) {
+            this.commands.register(cmd);
+        }
+        for (const cmd of narCommands) {
+            this.commands.register(cmd);
+        }
+        for (const cmd of selfCommands) {
+            this.commands.register(cmd);
+        }
+        for (const cmd of lmCommands) {
+            this.commands.register(cmd);
+        }
+        for (const cmd of rlfpCommands) {
+            this.commands.register(cmd);
+        }
     }
 
-    addEmbodiment(embodiment: Embodiment): void {
-        this.embodiments.push(embodiment);
+    private setupMiddleware(): void {
+        this.router.use(async (message, context, next) => {
+            if (message.text.startsWith('.')) {
+                const parts = message.text.slice(1).split(/\s+/);
+                const cmdName = '.' + parts[0];
+                const args = parts.slice(1);
+                try {
+                    const cmdContext: CommandContext = {
+                        nar: this.nar,
+                        connection: context.connection,
+                        manager: this.manager
+                    };
+                    const result = await this.commands.execute(cmdName, args, cmdContext);
+                    await context.respond(result);
+                } catch (error) {
+                    await context.respond(`Error: ${errMsg(error)}`);
+                }
+                return;
+            }
+            await next();
+        });
+
+        this.router.use(async (message, context, next) => {
+            const classification = this.classifyMessage(message);
+            if (classification === 'belief') {
+                await this.nar.believe(message.text);
+                const derived = await this.nar.run(3);
+                await context.respond(`Added: ${message.text}${derived > 0 ? ` (derived ${derived})` : ''}`);
+                return;
+            }
+            if (classification === 'question') {
+                await this.nar.question(message.text);
+                const derived = await this.nar.run(5);
+                await context.respond(derived > 0 ? `Derived ${derived} belief(s)` : 'No derivation found');
+                return;
+            }
+            await next();
+        });
+
+        this.router.use(async (message, context) => {
+            await context.respond(`Processed: ${message.text}`);
+        });
     }
 
-    registerCommand(command: Command): void {
-        this.commands.set(command.name, command);
+    private classifyMessage(message: IOMessage): MessageClassification {
+        const text = message.text.trim();
+        if (text.startsWith('.')) return 'command';
+        if (text.endsWith('.')) return 'belief';
+        if (text.endsWith('?')) return 'question';
+        if (text.startsWith('!')) return 'goal';
+        return 'natural-language';
     }
 
-    private async _forEachEmbodiment(fn: (e: Embodiment) => Promise<void>, action: string): Promise<void> {
-        await Promise.allSettled(this.embodiments.map(async e => {
-            try { await fn(e); } catch (err) { this.logger.error(`Failed to ${action} embodiment ${e.name}: ${errMsg(err)}`); }
-        }));
+    async addConnection(config: ConnectionConfig): Promise<Connection> {
+        return this.manager.addConnection(config, {
+            nar: this.nar,
+            emit: (event, data) => this.emitter.emit(event, data)
+        });
+    }
+
+    async removeConnection(id: string): Promise<void> {
+        await this.manager.removeConnection(id);
+    }
+
+    async enableConnection(id: string): Promise<void> {
+        await this.manager.enableConnection(id);
+    }
+
+    async disableConnection(id: string): Promise<void> {
+        await this.manager.disableConnection(id);
+    }
+
+    getConnection(id: string): Connection | undefined {
+        return this.manager.getConnection(id);
+    }
+
+    getConnections(): ReadonlyMap<string, Connection> {
+        return this.manager.getConnections();
     }
 
     async start(): Promise<void> {
         if (this.running) return;
         this.running = true;
-        await this._forEachEmbodiment(e => e.start(this), 'start');
+        this.logger.info('Agent started');
     }
 
     async stop(): Promise<void> {
         if (!this.running) return;
         this.running = false;
-        await this._forEachEmbodiment(e => e.stop(), 'stop');
+        await this.manager.shutdownAll();
+        this.logger.info('Agent stopped');
     }
 
-    onMessage(handler: (message: string) => void): void {
-        this.messageHandlers.push(handler);
+    async sendTo(connectionId: string, target: string, text: string): Promise<void> {
+        const connection = this.manager.getConnection(connectionId);
+        if (connection) {
+            await connection.send(target, text);
+        }
     }
 
-    async broadcast(message: string): Promise<void> {
-        for (const handler of this.messageHandlers) {
-            try {
-                handler(message);
-            } catch (error) {
-                this.logger.error(`Message handler error: ${errMsg(error)}`);
+    async broadcast(text: string, exclude: string[] = []): Promise<void> {
+        for (const [id, connection] of this.manager.getConnections()) {
+            if (!exclude.includes(id)) {
+                await connection.send('broadcast', text);
             }
         }
     }
 
-    async handleInput(message: string): Promise<string> {
-        if (message.startsWith('.')) {
-            const parts = message.slice(1).split(/\s+/);
-            const cmdName = `.${parts[0]}`;
-            const args = parts.slice(1);
-
-            const command = this.commands.get(cmdName);
-            if (command) {
-                try {
-                    return await command.execute(args, {nar: this.narInstance, agent: this});
-                } catch (error) {
-                    return `Error: ${errMsg(error)}`;
-                }
-            }
-            return `Unknown command: ${cmdName}`;
-        }
-
-        try {
-            await this.narInstance.input(message);
-            return `✓ Added: ${message}`;
-        } catch (error) {
-            return `✗ Error: ${errMsg(error)}`;
-        }
-    }
-
-    setProfile(profile: AgentProfile): void {
-        this.profile = profile;
-    }
-
-    getProfile(): AgentProfile | null {
-        return this.profile;
-    }
-
-    getCapabilities(): AgentCapabilities {
-        return {
-            reasoning: true,
-            learning: true,
-            toolUse: this.narInstance.tools.list().length > 0,
-            embodiment: this.embodiments.map(e => e.name),
-            persistence: !!this.statePath,
-            metacognition: true
+    async requestConnection(type: string, config: Record<string, unknown>): Promise<void> {
+        const id = config.id as string ?? `conn-${crypto.randomUUID()}`;
+        const connectionConfig: ConnectionConfig = {
+            id,
+            type,
+            enabled: true,
+            config
         };
+        await this.addConnection(connectionConfig);
+        this.emitter.emit('connection:requested', {type, config});
     }
-
-    getSelfDescription(): string {
-        const caps = this.getCapabilities();
-        const profile = this.profile ? this.profile.name : 'default';
-        return `SeNARS Agent v12 - Profile: ${profile}
-Capabilities:
-  - Reasoning: ${caps.reasoning ? '✓' : '✗'}
-  - Learning: ${caps.learning ? '✓' : '✗'}
-  - Tool Use: ${caps.toolUse ? '✓' : '✗'}
-  - Embodiments: ${caps.embodiment.join(', ') || 'none'}
-  - Persistence: ${caps.persistence ? '✓' : '✗'}
-  - Metacognition: ${caps.metacognition ? '✓' : '✗'}`;
-    }
-
-    private _resolveStatePath(path?: string): string { return path ?? this.statePath ?? 'agent-state.json'; }
 
     async saveState(path?: string): Promise<void> {
         const fs = await import('fs/promises');
-        const statePath = this._resolveStatePath(path);
-        await fs.writeFile(statePath, JSON.stringify({profile: this.profile, memory: await this.narInstance.getMemoryState(), timestamp: Date.now()}, null, 2));
-        this.statePath = statePath;
+        const statePath = path ?? 'agent-state.json';
+        const connections: Array<{id: string; type: string; state: string}> = [];
+        for (const [id, conn] of this.manager.getConnections()) {
+            connections.push({id, type: conn.type, state: conn.state});
+        }
+        await fs.writeFile(statePath, JSON.stringify({
+            connections,
+            memory: await this.nar.getMemoryState?.() ?? {},
+            timestamp: Date.now()
+        }, null, 2));
     }
 
     async loadState(path?: string): Promise<void> {
         const fs = await import('fs/promises');
-        const statePath = this._resolveStatePath(path);
-        const {profile, memory} = JSON.parse(await fs.readFile(statePath, 'utf-8'));
-        if (profile) this.profile = profile;
-        if (memory) await this.narInstance.loadMemoryState(memory);
-        this.statePath = statePath;
+        const statePath = path ?? 'agent-state.json';
+        const data = JSON.parse(await fs.readFile(statePath, 'utf-8'));
+        if (data.memory) {
+            await this.nar.loadMemoryState?.(data.memory);
+        }
+    }
+
+    on(event: string, handler: (...args: unknown[]) => void): void {
+        this.emitter.on(event, handler);
+    }
+
+    off(event: string, handler: (...args: unknown[]) => void): void {
+        this.emitter.off(event, handler);
     }
 }

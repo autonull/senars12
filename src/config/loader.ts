@@ -114,15 +114,15 @@ export class ConfigLoader {
                 provider: raw.lm?.provider || 'mock',
                 model: raw.lm?.model, quantized: raw.lm?.quantized
             },
-            core: {
-                maxConcepts: clamp(mem.maxConcepts ?? 100, 10, 10000),
-                priorityThreshold: clamp(mem.priorityThreshold ?? 0.1, 0, 1),
-                activationDecayRate: clamp(mem.activationDecayRate ?? 0.01, 0, 1),
-                consolidationInterval: inf.consolidationInterval ?? 10,
-                cpuThrottleMs: inf.cpuThrottleMs ?? 0,
-                maxDerivationDepth: clamp(inf.maxDerivationDepth ?? 10, 1, 100),
-                maxDerivationsPerStep: clamp(inf.maxDerivationsPerStep ?? 100, 1, 10000)
-            }
+  core: {
+    maxConcepts: clamp((mem as any).maxConcepts ?? 100, 10, 10000),
+    priorityThreshold: clamp((mem as any).priorityThreshold ?? 0.1, 0, 1),
+    activationDecayRate: clamp((mem as any).activationDecayRate ?? 0.01, 0, 1),
+    consolidationInterval: (inf as any).consolidationInterval ?? 10,
+    cpuThrottleMs: (inf as any).cpuThrottleMs ?? 0,
+    maxDerivationDepth: clamp((inf as any).maxDerivationDepth ?? 10, 1, 100),
+    maxDerivationsPerStep: clamp((inf as any).maxDerivationsPerStep ?? 100, 1, 10000)
+  }
         };
 
         if (raw.irc) {

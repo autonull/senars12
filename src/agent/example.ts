@@ -1,61 +1,72 @@
 /**
  * SeNARS Agent Example
- * Demonstrates the Agent layer with multiple embodiments
+ * Demonstrates the Agent layer with multiple connections
  */
 
-import {Agent, Embodiment} from './Agent.js';
-import {WebSocketServer as WebSocketEmbodiment} from './websocket-server.js';
-import {HTTPServer} from './http-server.js';
+import {Agent} from './Agent.js';
 import {SeNARSFactory} from '../nar';
-import {runAllDemos} from './demos.js';
+import {createSeNARSRegistry} from '../nar/lm/providers.js';
+import type {ConnectionConfig} from '../io/types.js';
 
 async function runAgentExample(): Promise<void> {
-    console.log('Starting SeNARS Agent Example...\n');
+console.log('Starting SeNARS Agent Example...\n');
 
-    const nar = SeNARSFactory.createDefault();
+const registry = createSeNARSRegistry();
+const nar = SeNARSFactory.createDefault({
+  core: {maxConcepts: 100, maxDerivationDepth: 10},
+  enableLMRules: true,
+  providerRegistry: registry,
+});
 
-    const wsEmbodiment = new WebSocketEmbodiment({port: 8765});
-    const httpServer = new HTTPServer({port: 8080});
+const agent = new Agent(nar);
 
-    const agent = new Agent(nar, [wsEmbodiment, httpServer as unknown as Embodiment]);
+try {
+await agent.start();
 
-    try {
-        await agent.start();
-        console.log('Agent started with embodiments:\n');
-        console.log('  - WebSocket server on ws://localhost:8765');
-        console.log('  - HTTP API on http://localhost:8080\n');
+const wsConfig: ConnectionConfig = {
+  id: 'ws-example',
+  type: 'websocket',
+  enabled: true,
+  config: {port: 8765},
+};
 
-        console.log('Example usage:');
-        console.log('  POST http://localhost:8080/beliefs');
-        console.log('  { "term": "(cat --> animal)" }');
-        console.log('\n  GET http://localhost:8080/stats');
-        console.log('\n  WebSocket: Connect to ws://localhost:8765\n');
+const httpConfig: ConnectionConfig = {
+  id: 'http-example',
+  type: 'http',
+  enabled: true,
+  config: {port: 8080},
+};
 
-        console.log('Running for 10 seconds...\n');
-        await new Promise(resolve => setTimeout(resolve, 10000));
+await agent.addConnection(wsConfig);
+await agent.addConnection(httpConfig);
 
-        await agent.stop();
-        console.log('\nAgent stopped.');
-    } catch (error) {
-        console.error('Agent error:', error);
-        await agent.stop();
-        process.exit(1);
-    }
+console.log('Agent started with connections:\n');
+console.log(' - WebSocket server on ws://localhost:8765');
+console.log(' - HTTP API on http://localhost:8080\n');
+
+console.log('Example usage:');
+console.log(' POST http://localhost:8080/beliefs');
+console.log(' { "term": "(cat --> animal)" }');
+console.log('\n GET http://localhost:8080/stats');
+console.log('\n WebSocket: Connect to ws://localhost:8765\n');
+
+console.log('Running for 10 seconds...\n');
+await new Promise(resolve => setTimeout(resolve, 10000));
+
+await agent.stop();
+console.log('\nAgent stopped.');
+} catch (error) {
+console.error('Agent error:', error);
+await agent.stop();
+process.exit(1);
 }
-
-async function runDemosExample(): Promise<void> {
-    console.log('Running SeNARS Demos...\n');
-    await runAllDemos();
 }
 
 const mode = process.argv[2] || 'agent';
 
 if (mode === 'agent') {
-    runAgentExample().catch(console.error);
-} else if (mode === 'demos') {
-    runDemosExample().catch(console.error);
+runAgentExample().catch(console.error);
 } else {
-    console.log('Usage: node example.js [agent|demos]');
-    console.log('  agent - Run agent with WebSocket and HTTP servers');
-    console.log('  demos - Run demo scenarios');
+console.log('Usage: node example.js [agent]');
+console.log(' agent - Run agent with WebSocket and HTTP connections');
 }

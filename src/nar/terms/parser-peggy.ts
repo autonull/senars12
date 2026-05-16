@@ -4,8 +4,8 @@
 import {TermFactory} from './factory.js';
 import type {Term} from './types.js';
 import {Truth} from './truth.js';
-import {errMsg} from '../utils';
-import {parse as peggyParse} from './peggy-original.js';
+import {errMsg} from '../utils/index.js';
+import {parse as peggyParse} from './peggy-generated.js';
 
 export interface ParserResult {
   term: Term;
