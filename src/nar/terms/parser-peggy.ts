@@ -24,7 +24,7 @@ export class ParseError extends Error {
   constructor(
     message: string,
     public position: ParserPosition,
-    public token?: any
+    public token?: unknown
   ) {
     super(`${message} at line ${position.line}, column ${position.column}`);
     this.name = 'ParseError';
@@ -32,33 +32,28 @@ export class ParseError extends Error {
 }
 
 export class TermParser {
-  private get termFactory() { return TermFactory; }
+  private get termFactory() {
+    return TermFactory;
+  }
 
   parse(input: string): Term {
     const validInput = this._validateInput(input);
-    
+
     try {
-      const result: any = peggyParse(validInput, {termFactory: this.termFactory});
-      
-      // If result is a Task (has term property), return the term
-      if (result.term) {
-        let term = result.term as Term;
-        
-        // Handle negation normalization
-        if (
-          result.operator === '--' &&
-          result.components?.length === 1 &&
-          result.truthValue
-        ) {
-          term = result.components[0] as Term;
+      const result: unknown = peggyParse(validInput, {termFactory: this.termFactory});
+
+      if ((result as any).term) {
+        let term = (result as any).term as Term;
+
+        if ((result as any).operator === '--' && (result as any).components?.length === 1 && (result as any).truthValue) {
+          term = (result as any).components[0] as Term;
         }
-        
+
         return term;
       }
-      
-      // Otherwise return the result directly (it's already a Term)
+
       return result as Term;
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw this._wrapError(error, validInput);
     }
   }
@@ -66,9 +61,9 @@ export class TermParser {
   parseMultiple(input: string): ParserResult[] {
     const statements = input.split(';');
     return statements
-      .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0 && !stmt.startsWith(';;'))
-      .map(stmt => {
+      .map((stmt) => stmt.trim())
+      .filter((stmt) => stmt.length > 0 && !stmt.startsWith(';;'))
+      .map((stmt) => {
         try {
           const result = this.parseWithTruth(stmt);
           return {term: result.term, truth: result.truth};
@@ -78,19 +73,17 @@ export class TermParser {
       });
   }
 
-  parseWithTruth(input: string): { term: Term; truth?: Truth } {
+  parseWithTruth(input: string): {term: Term; truth?: Truth} {
     const trimmed = input.trim();
-    
-    // Extract truth value if present
+
     const truthMatch = trimmed.match(/%\s*([0-9.]+)\s*;\s*([0-9.]+)\s*%\s*$/);
     const truth = truthMatch
       ? Truth.create(parseFloat(truthMatch[1] ?? '0.5'), parseFloat(truthMatch[2] ?? '0.9'))
       : undefined;
     let termStr = truthMatch ? trimmed.slice(0, -truthMatch[0].length).trim() : trimmed;
-    
-    // Strip task punctuation if present (for compatibility with senars11 parser behavior)
+
     termStr = termStr.replace(/[.!?@;]+\s*$/, '').trim();
-    
+
     return {term: this.parse(termStr), truth};
   }
 
@@ -104,21 +97,17 @@ export class TermParser {
     return input.trim();
   }
 
-  private _wrapError(error: any, input: string): Error {
-    const location = error.location;
+  private _wrapError(error: unknown, input: string): Error {
+    const location = (error as any).location;
     const position: ParserPosition = location
       ? {
           line: location.start?.line || 1,
           column: location.start?.column || 1,
-          offset: location.start?.offset || 0
+          offset: location.start?.offset || 0,
         }
       : {line: 1, column: 1, offset: 0};
 
-    return new ParseError(
-      `TermParser parsing failed: ${error.message}`,
-      position,
-      error
-    );
+    return new ParseError(`TermParser parsing failed: ${(error as Error).message}`, position, error);
   }
 }
 

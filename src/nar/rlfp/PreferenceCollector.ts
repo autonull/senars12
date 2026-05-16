@@ -24,12 +24,13 @@ export class PreferenceCollector {
             throw new OperationError(`Error loading trajectories: ${(error as Error).message}`, {pathA, pathB});
         }
 
-        console.log('\n==========================================');
-        console.log('=== Trajectory A ===');
-        console.log(this.formatTrajectory(trajectoryA));
-        console.log('\n=== Trajectory B ===');
-        console.log(this.formatTrajectory(trajectoryB));
-        console.log('==========================================\n');
+    // Debug: Compare trajectories A and B
+    // console.log('\n==========================================');
+    // console.log('=== Trajectory A ===');
+    // console.log(this.formatTrajectory(trajectoryA));
+    // console.log('\n=== Trajectory B ===');
+    // console.log(this.formatTrajectory(trajectoryB));
+    // console.log('==========================================\n');
 
         const preference = await this.promptUser();
         if (preference === 'SKIP') return null;
