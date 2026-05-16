@@ -62,7 +62,7 @@ const demo = (name: string, description: string, inputs: DemoInput[], runSteps =
 });
 
 export const knowledgeBaseDemo: DemoScenario = demo('Knowledge Base Reasoning', 'Load facts and query conclusions', [
-    {text: '(cat --> animal).'}, {text: '(dog --> animal).'}, {text: '(animal --> living-being).'},
+    {text: '(cat --> animal).'}, {text: '(dog --> animal).'}, {text: '(animal --> "living being").'},
 ], 10, true);
 
 export const goalAchievementDemo: DemoScenario = demo('Goal Achievement', 'Set goal and watch decomposition', [
@@ -74,7 +74,7 @@ export const analogicalReasoningDemo: DemoScenario = demo('Analogical Reasoning'
 ], 10);
 
 export const questionAnsweringDemo: DemoScenario = demo('Question Answering', 'Answer questions from knowledge base', [
-    {text: '(Paris --> capital-of-France).'}, {text: '(France --> country).'}, {text: '(Paris --> ?)?', label: 'Asked'},
+    {text: '(Paris --> "capital of France").'}, {text: '(France --> country).'}, {text: '(Paris --> ?)?', label: 'Asked'},
 ], 5);
 
 export const basicInferenceDemo: DemoScenario = demo('Basic Inference', 'Simple syllogistic reasoning', [

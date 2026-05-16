@@ -1,4 +1,4 @@
-import {termParser} from './parser.js';
+import {termParser} from '../../../src/nar/terms/index.js';
 
 describe('TermParser', () => {
     describe('Variable Support', () => {
@@ -59,8 +59,67 @@ describe('TermParser', () => {
         });
 
         it('handles complex nested structures', () => {
-            const term = termParser.parse('((bird --> animal) => (flies --> action))');
+            const term = termParser.parse('((bird --> animal) ==> (flies --> action))');
             expect(term.kind).toBe('implication');
+        });
+
+        it('handles (a-->b). style input without hanging', () => {
+            const result = termParser.parseWithTruth('(a-->b).');
+            expect(result.term.kind).toBe('inheritance');
+        });
+
+        it('parses sets and properties', () => {
+            expect(termParser.parse('{a, b}').kind).toBe('setExt');
+            expect(termParser.parse('[a, b]').kind).toBe('setInt');
+        });
+
+        it('parses negation', () => {
+            expect(termParser.parse('--a').kind).toBe('negation');
+        });
+
+        it('parses angle bracket statements', () => {
+            expect(termParser.parse('<a --> b>').kind).toBe('inheritance');
+        });
+    });
+
+    describe('Quoted Atoms (LM-ready)', () => {
+        it('parses quoted atom with spaces', () => {
+            const term = termParser.parse('"living being"');
+            expect(term.kind).toBe('atom');
+            expect((term as any).symbol).toBe('"living being"');
+        });
+
+        it('parses quoted atom in statement', () => {
+            const result = termParser.parse('(animal --> "living being")');
+            expect(result.kind).toBe('inheritance');
+        });
+
+        it('parses quoted atom with special chars', () => {
+            const term = termParser.parse('"needs oxygen"');
+            expect(term.kind).toBe('atom');
+            expect((term as any).symbol).toBe('"needs oxygen"');
+        });
+
+        it('parses long quoted text', () => {
+            const term = termParser.parse('"a long sentence with many words"');
+            expect(term.kind).toBe('atom');
+        });
+    });
+
+    describe('REPL-style Punctuation', () => {
+        it('strips trailing period from belief', () => {
+            const result = termParser.parseWithTruth('(a-->b).');
+            expect(result.term.kind).toBe('inheritance');
+        });
+
+        it('strips trailing question mark from question', () => {
+            const result = termParser.parseWithTruth('(a-->b)?');
+            expect(result.term.kind).toBe('inheritance');
+        });
+
+        it('strips trailing exclamation from goal', () => {
+            const result = termParser.parseWithTruth('(a-->b)!');
+            expect(result.term.kind).toBe('inheritance');
         });
     });
 });

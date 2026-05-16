@@ -37,7 +37,7 @@ export {TermCache} from './cache.js';
 // Unification
 export {unify} from './unifier.js';
 export type {Substitution} from './unifier.js';
-export {termParser, TermParser} from './parser.js';
+export {termParser, TermParser} from './parser-peggy.js';
 
 // Accessors - named exports only
 export {

@@ -80,12 +80,14 @@ Statement
 
 AngleBracketStatement
   = "<" _ subject:Term _ op:InfixOperator _ predicate:Term _ ">" {
-      return options.termFactory.create(op.trim(), [subject, predicate]);
+      const kindMap = {'-->': 'inheritance', '<->': 'similarity', '==>': 'implication', '<=>': 'equivalence', '<~>': 'contrast', '=/>' : 'predictive', '=|': 'retrospective', '=/=': 'anti', '=': 'equality', '&&': 'conjunction', '||': 'disjunction', '&|': 'parallel', '&/': 'sequence'};
+      return options.termFactory.create(kindMap[op.trim()] ?? op.trim(), [subject, predicate]);
     }
 
 ParenthesizedStatement
   = "(" _ subject:Term _ op:InfixOperator _ predicate:Term _ ")" {
-      return options.termFactory.create(op.trim(), [subject, predicate]);
+      const kindMap = {'-->': 'inheritance', '<->': 'similarity', '==>': 'implication', '<=>': 'equivalence', '<~>': 'contrast', '=/>' : 'predictive', '=|': 'retrospective', '=/=': 'anti', '=': 'equality', '&&': 'conjunction', '||': 'disjunction', '&|': 'parallel', '&/': 'sequence'};
+      return options.termFactory.create(kindMap[op.trim()] ?? op.trim(), [subject, predicate]);
     }
 
 Operator
@@ -99,8 +101,8 @@ InfixOperator
     }
 
 Set
-  = "{" _ components:TermList? _ "}" { return options.termFactory.setExt(components || []); }
-  / "[" _ components:TermList? _ "]" { return options.termFactory.setInt(components || []); }
+  = "{" _ components:TermList? _ "}" { return options.termFactory.create('setExt', components || []); }
+  / "[" _ components:TermList? _ "]" { return options.termFactory.create('setInt', components || []); }
 
 TermList
   = head:Term tail:(_ "," _ Term)* {
@@ -115,13 +117,13 @@ TermList
 
 AtomicTerm "atomic term"
   = StringLiteral
-  / chars:$([^(){}<>.,!%?;:@ \t\n\r=&/|>-]+) { return options.termFactory.atom(chars); }
+  / chars:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+) { return options.termFactory.atom(chars); }
 
 StringLiteral
   = '"' chars:$([^"]*) '"' { return options.termFactory.atom('"' + chars + '"'); }
 
 Variable "variable"
-  = varName:$([?$#*%][^(){}<>.,!%?; \t\n\r=&/|>-]*) { return options.termFactory.atom(varName); }
+  = varName:$([?$#*%][^(){}[\]<>.,!%?; \t\n\r=&/|>-]*) { return options.termFactory.atom(varName); }
 
 Float "float"
   = val:$("-"? [0-9]+ ("." [0-9]+)?) { return parseFloat(val); }

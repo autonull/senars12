@@ -221,7 +221,7 @@ describe('AIKR Compliance', () => {
         it('executes full cognitive cycle from input to derived belief', async () => {
             await nar.input('(bird --> animal)', 'belief', Truth.create(0.9, 0.9));
             await nar.input('(animal --> living)', 'belief', Truth.create(0.9, 0.9));
-            await nar.input('(living --> needs-oxygen)', 'belief', Truth.create(0.95, 0.95));
+            await nar.input('(living --> "needs oxygen")', 'belief', Truth.create(0.95, 0.95));
 
             const initialSize = nar.memory.size;
             expect(initialSize).toBeGreaterThan(0);
