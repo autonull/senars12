@@ -26,4 +26,3 @@ export {ExplainTool} from './ExplainTool.js';
 export {LearnTool} from './LearnTool.js';
 export {TimerTool} from './TimerTool.js';
 export {ProcessTool} from './ProcessTool.js';
-export {ToolGuidedReasoning} from './guided.js';

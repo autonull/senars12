@@ -28,18 +28,15 @@ export {Stamp} from './stamp.js';
 export type {Stamp as StampType, Source} from './stamp.js';
 
 // Normalization
-export {normalize, visit, reduce, getTermDepth, getTermSize} from './normalize.js';
+export {normalize} from './normalize.js';
 export type {TermVisitorFn} from './normalize.js';
-
-// Caching
-export {TermCache} from './cache.js';
 
 // Unification
 export {unify} from './unifier.js';
 export type {Substitution} from './unifier.js';
 export {termParser, TermParser} from './parser-peggy.js';
 
-// Accessors - named exports only
+// Accessors
 export {
     isInheritance,
     isSimilarity,
@@ -64,16 +61,10 @@ export {
     sameKind
 } from './accessors.js';
 
-// Utilities
-export {extractSymbols, jaccardSimilarity, calculateSimilarity} from './utils.js';
-
-// Type guards and helpers
-export {
-    isCanonical,
-    getCompoundArgs
-} from './accessors.js';
-
 // Term-based collections
 export {TermMap} from './term-map.js';
 export {TermSet} from './term-set.js';
 export {TermCollection} from './term-collection.js';
+
+// Utilities
+export {extractSymbols, jaccardSimilarity, calculateSimilarity} from './utils.js';

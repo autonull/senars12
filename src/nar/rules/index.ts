@@ -17,6 +17,3 @@ export type {RuleResult, RuleInput} from './processor.js';
 // Rule sets
 export {NALRules} from './nal.js';
 export {NALExtendedRules} from './nal-extended.js';
-
-// Rule utilities
-export {composeRules, sequenceRules} from './compose.js';

@@ -1,4 +1,4 @@
-import type {AtomicTerm, CompoundTerm, OperatorKey, Term} from './types.js';
+import type {CompoundTerm, OperatorKey, Term} from './types.js';
 
 export const isType = <K extends OperatorKey>(k: K, t: Term): t is CompoundTerm<K> => t.kind === k;
 
@@ -27,7 +27,6 @@ export const getAntecedent = (term: Term): Term | undefined => isAntecedentConse
 export const getConsequent = (term: Term): Term | undefined => isAntecedentConsequent(term) ? term.args?.[1] : undefined;
 
 export const getArgs = (term: Term): readonly Term[] => term.kind === 'atom' ? [] : term.args ?? [];
-export const isAtom = (term: Term): term is AtomicTerm => term.kind === 'atom';
 export const sameKind = (a: Term, b: Term): boolean => a.kind === b.kind;
 
 export const termsEqual = (a: Term, b: Term): boolean => {
@@ -42,6 +41,3 @@ export const termsEqual = (a: Term, b: Term): boolean => {
     }
     return true;
 };
-
-export const isCanonical = (term: Term): boolean => Object.isFrozen(term);
-export const getCompoundArgs = (term: Term): readonly Term[] | undefined => term.kind === 'atom' ? undefined : term.args;

@@ -1,17 +1,17 @@
 import type {Strategy} from '../strategy.js';
 import type {Task, TaskType} from '../../types';
+import {createSecondaryTask} from '../../types';
 import type {Memory, Concept} from '../../memory';
 import type {Term} from '../../terms';
 import {termsEqual, Truth} from '../../terms';
 import {createLogger} from '../../logger';
 
 const logger = createLogger({scope: 'Strategies'});
-import {createStrategy, createStrategy as createStrategyBase} from './base.js';
-import {createTermLinkStrategy, TermLinkStrategy as TermLinkStrategyImpl} from './term-link.js';
-import {createSemanticStrategy, SemanticStrategy as SemanticStrategyImpl} from './semantic.js';
+import {createStrategy} from './base.js';
+import {createTermLinkStrategy} from './term-link.js';
+import {createSemanticStrategy} from './semantic.js';
 
-export {createStrategy, createStrategyBase};
-export {TermLinkStrategyImpl, createTermLinkStrategy, SemanticStrategyImpl, createSemanticStrategy};
+export {createStrategy, createTermLinkStrategy, createSemanticStrategy};
 
 const createTask = (term: Term, type: TaskType, truth: Truth, priority: number): Task => ({
     term,

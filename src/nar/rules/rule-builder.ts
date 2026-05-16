@@ -22,15 +22,6 @@ export const buildInhRule = (
     return extracted ? transform(extracted) : undefined;
 };
 
-export const buildImpRule = (
-    extract: (term: Term) => Term | undefined,
-    transform: (term: Term) => Term | undefined
-): RuleFn => ([term]) => {
-    if (term.kind !== 'implication') return undefined;
-    const extracted = extract(term);
-    return extracted ? transform(extracted) : undefined;
-};
-
 export const getVars = (term: Term): Term[] => {
     const vars: Term[] = [];
     const collect = (t: Term): void => {

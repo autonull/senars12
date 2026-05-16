@@ -17,8 +17,8 @@ import {Forgetting} from './forgetting.js';
 import {LinkManager} from './links';
 import {LINK} from '../constants.js';
 import {PressureDetector} from './pressure.js';
-import {HealthMonitor, type MemoryHealth} from './health.js';
-import {StatisticsCalculator} from './statistics.js';
+import type {MemoryHealth} from './health.js';
+import {calculateConceptStats} from './statistics.js';
 
 export interface MemoryConfig {
     maxConcepts?: number;
@@ -91,8 +91,6 @@ export class Memory {
     private readonly forgetting: Forgetting;
     private readonly linkManager: LinkManager;
     private readonly pressureDetector: PressureDetector;
-    private readonly healthMonitor: HealthMonitor;
-    private readonly statsCalculator: StatisticsCalculator;
     private cyclesSinceConsolidation = 0;
     private lastTimestamp = Date.now();
     private readonly healthCheckInterval: number;
@@ -133,8 +131,6 @@ export class Memory {
             globalDecayRate: config.linkDecayRate ?? LINK.DECAY_RATE,
         });
         this.pressureDetector = new PressureDetector(config);
-        this.healthMonitor = new HealthMonitor({healthCheckInterval: this.config.healthCheckInterval});
-        this.statsCalculator = new StatisticsCalculator();
     }
 
     get size(): number { return this.concepts.size; }
@@ -263,7 +259,7 @@ export class Memory {
     }
 
     getStatistics(): MemoryStatistics {
-        const stats = this.statsCalculator.calculateConceptStats(this.concepts.values());
+        const stats = calculateConceptStats(this.concepts.values());
 
         const result: MemoryStatistics = {
             totalConcepts: stats.totalConcepts,

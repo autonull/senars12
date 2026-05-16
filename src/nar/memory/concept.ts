@@ -149,6 +149,7 @@ export class Concept {
     return Array.from(this.linkedConcepts.values());
   }
 
+  // Deprecated: use getLinks() instead
   getLinkedConcepts(): Concept[] {
     return Array.from(this.linkedConcepts.values()).map(link => link.concept);
   }
@@ -221,11 +222,9 @@ export class Concept {
 
     if (existing) {
       if (!data.truth || !existing.truth) return false;
-
       const revisedTruth = TruthOps.revision(data.truth, existing.truth);
-      const revisedData = {...data, truth: revisedTruth, timestamp: Date.now()};
       this.beliefBag.remove(existing);
-      const added = this.beliefBag.add(revisedData, revisedData.budget.priority);
+      const added = this.beliefBag.add({...data, truth: revisedTruth, timestamp: Date.now()}, data.budget.priority);
       added && this.recordAccess();
       return added;
     }

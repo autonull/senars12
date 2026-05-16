@@ -2,8 +2,6 @@ import type {Term} from '../terms';
 import {getPredicate, getSubject} from '../terms';
 import {createRulePattern, type RuleFn, RuleRegistry, type TruthFn} from './types.js';
 
-export type TermKind = 'inheritance' | 'similarity' | 'implication' | 'equivalence' | 'instance' | 'property' | 'atom' | 'conjunction' | 'disjunction' | 'negation' | 'sequence' | 'predictive' | 'operation';
-
 export interface RuleDefinition {
     readonly id: string;
     readonly leftKind: string;
@@ -13,26 +11,11 @@ export interface RuleDefinition {
     readonly priority: number;
 }
 
-export const matchKind = (kind: Term['kind']) => (t: Term) => t.kind === kind;
-export const matchInh = matchKind('inheritance');
-export const matchImp = matchKind('implication');
-export const matchConj = matchKind('conjunction');
-export const matchDisj = matchKind('disjunction');
-export const matchNeg = matchKind('negation');
-export const matchSim = matchKind('similarity');
-export const matchEq = matchKind('equivalence');
-export const matchAtom = matchKind('atom');
+export const matchInh = (t: Term) => t.kind === 'inheritance';
 
 export const validInh = (t: Term): boolean => {
     if (!matchInh(t)) return false;
     return !!(getSubject(t) && getPredicate(t));
-};
-
-export const validImp = (t: Term): boolean => {
-    if (!matchImp(t)) return false;
-    const args = t.args ?? [];
-    const [a, c] = args;
-    return !!(a && c);
 };
 
 export const extractInh = (t: Term) => {
@@ -77,8 +60,6 @@ export const registerRule = (
         priority,
         truthFn
     });
-
-export type RuleSpec = [string, string, string, RuleFn, TruthFn, number];
 
 export const registerRules = (rules: RuleDefinition[]) =>
     rules.forEach(rule =>

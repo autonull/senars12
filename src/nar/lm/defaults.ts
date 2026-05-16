@@ -243,22 +243,7 @@ export function getTurnkeyConfig(): TurnkeyConfig {
     };
 }
 
-export function isTransformersAvailable(): boolean {
-    return true;
-}
-
-export const TURNKEY_DEFAULTS = getTurnkeyDefaults();
-
-function getTurnkeyDefaults(): TurnkeyConfig {
-    return {
-        lm: {provider: 'transformers' as const, model: DEFAULT_COMPACT_MODEL, device: 'cpu' as const, quantized: true, temperature: 0.7, maxTokens: 256},
-        fallbackChain: [...FALLBACK_CHAIN],
-    };
-}
-
-export function createLMClientFromConfig(_provider: ProviderType): LMClient {
-    return createMockLMClient();
-}
+export const TURNKEY_DEFAULTS = getTurnkeyConfig();
 
 export function getProviderPriority(provider: ProviderType): number {
     const index = FALLBACK_CHAIN.indexOf(provider);

@@ -24,4 +24,3 @@ export const ExhaustiveStrategy: Strategy = {
 };
 
 export {createStrategy, CompositeStrategy, AdaptiveStrategy, SwitchingStrategy} from './strategies/index.js';
-export {createStrategy as createStrategyBase} from './strategies/base.js';

@@ -23,5 +23,5 @@ export {
 } from './strategies/index.js';
 
 // Premise formation
-export {PremiseFormation, TermMatchingSelector, DecompositionSelector, AnalogySelector} from './premise/index.js';
+export {TermMatchingSelector, DecompositionSelector, AnalogySelector} from './premise/index.js';
 export type {PremiseSelector, PremiseConfig} from './premise/index.js';
