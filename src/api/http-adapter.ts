@@ -7,15 +7,14 @@ import {IncomingMessage, ServerResponse} from 'http';
 import {URL} from 'url';
 import {randomBytes} from 'crypto';
 import {BaseAdapter, errorResponse} from './base-adapter.js';
-import type {APIResponse} from './base-adapter.js';
 import {errMsg} from '../nar/utils/helpers.js';
-import {parseHttpBody, setCORSHeaders, ApiKeyManager} from '../io/utils/http.js';
+import {ApiKeyManager, parseHttpBody, setCORSHeaders} from '../io/utils/http.js';
 
 export interface HTTPAdapterConfig {
     port?: number;
     apiKey?: string;
     enableCors?: boolean;
-    rateLimit?: {windowMs: number; maxRequests: number};
+    rateLimit?: { windowMs: number; maxRequests: number };
 }
 
 interface RateLimitState {
@@ -39,10 +38,17 @@ export class HTTPAdapter extends BaseAdapter {
         if (this.config.apiKey) this.apiKeys.add(this.config.apiKey);
     }
 
-    addApiKey(key: string): void { this.apiKeys.add(key); }
-    removeApiKey(key: string): void { this.apiKeys.remove(key); }
+    addApiKey(key: string): void {
+        this.apiKeys.add(key);
+    }
 
-    getOpenAPISpec(): Record<string, unknown> { return this.registry.getOpenAPISpec(); }
+    removeApiKey(key: string): void {
+        this.apiKeys.remove(key);
+    }
+
+    getOpenAPISpec(): Record<string, unknown> {
+        return this.registry.getOpenAPISpec();
+    }
 
     async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
         const url = new URL(req.url || '/', 'http://localhost');
@@ -51,16 +57,22 @@ export class HTTPAdapter extends BaseAdapter {
         if (this.config.enableCors) setCORSHeaders(res);
         res.setHeader('Content-Type', 'application/json');
 
-        if (method === 'OPTIONS') { res.statusCode = 204; res.end(); return; }
+        if (method === 'OPTIONS') {
+            res.statusCode = 204;
+            res.end();
+            return;
+        }
 
         if (url.pathname === '/health') {
             const result = await this.registry.invoke('getHealth', {});
-            res.statusCode = 200; res.end(JSON.stringify(result));
+            res.statusCode = 200;
+            res.end(JSON.stringify(result));
             return;
         }
 
         if (url.pathname === '/openapi' || url.pathname === '/openapi.json') {
-            res.statusCode = 200; res.end(JSON.stringify(this.registry.getOpenAPISpec()));
+            res.statusCode = 200;
+            res.end(JSON.stringify(this.registry.getOpenAPISpec()));
             return;
         }
 
@@ -68,7 +80,11 @@ export class HTTPAdapter extends BaseAdapter {
             const apiKey = req.headers['x-api-key'] as string;
             if (!this.apiKeys.has(apiKey)) {
                 res.statusCode = 401;
-                res.end(JSON.stringify({type: 'error', error: {code: 'UNAUTHORIZED', message: 'Unauthorized'}, timestamp: Date.now()}));
+                res.end(JSON.stringify({
+                    type: 'error',
+                    error: {code: 'UNAUTHORIZED', message: 'Unauthorized'},
+                    timestamp: Date.now()
+                }));
                 return;
             }
 
@@ -90,7 +106,8 @@ export class HTTPAdapter extends BaseAdapter {
             }
 
             const result = await this.registry.invoke(handlerName, body);
-            res.statusCode = 200; res.end(JSON.stringify(result));
+            res.statusCode = 200;
+            res.end(JSON.stringify(result));
         } catch (error: unknown) {
             res.statusCode = 400;
             res.end(JSON.stringify(errorResponse('HANDLER_ERROR', errMsg(error))));
@@ -117,6 +134,9 @@ export class HTTPAdapter extends BaseAdapter {
         try {
             const body = await parseHttpBody(req);
             return body ? JSON.parse(body) : {};
-        } catch (e) { console.error('JSON parse failed:', e); return {}; }
+        } catch (e) {
+            console.error('JSON parse failed:', e);
+            return {};
+        }
     }
 }

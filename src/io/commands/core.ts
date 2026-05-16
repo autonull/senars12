@@ -1,4 +1,4 @@
-import type {CommandContext, CommandDefinition} from './registry.js';
+import type {CommandDefinition} from './registry.js';
 
 export const coreCommands: CommandDefinition[] = [
     {
@@ -23,19 +23,21 @@ export const coreCommands: CommandDefinition[] = [
         name: '.stats',
         description: 'Show system statistics',
         usage: '.stats [detail]',
-  execute: async (args, ctx) => {
-    const stats = ctx.nar.getStatistics();
-    let result = `Concepts: ${stats.totalConcepts}, Tasks: ${stats.totalTasks}`;
-    if (args[0] === 'detail') {
-      const metrics = ctx.nar.getMetrics();
-      if (metrics) {
-        const ruleExecs = metrics.rules?.reduce((sum: number, r: {executions: number}) => sum + r.executions, 0) ?? 0;
-        const derivs = metrics.system?.totalDerivations ?? 0;
-        result += `\nRule Executions: ${ruleExecs}, Derivations: ${derivs}`;
-      }
-    }
-    return result;
-  }
+        execute: async (args, ctx) => {
+            const stats = ctx.nar.getStatistics();
+            let result = `Concepts: ${stats.totalConcepts}, Tasks: ${stats.totalTasks}`;
+            if (args[0] === 'detail') {
+                const metrics = ctx.nar.getMetrics();
+                if (metrics) {
+                    const ruleExecs = metrics.rules?.reduce((sum: number, r: {
+                        executions: number
+                    }) => sum + r.executions, 0) ?? 0;
+                    const derivs = metrics.system?.totalDerivations ?? 0;
+                    result += `\nRule Executions: ${ruleExecs}, Derivations: ${derivs}`;
+                }
+            }
+            return result;
+        }
     },
     {
         name: '.clear',

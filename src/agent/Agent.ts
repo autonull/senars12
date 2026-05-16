@@ -4,7 +4,7 @@ import {errMsg} from '../nar/utils/helpers.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
 import {ConnectionManager} from '../io/connection-manager.js';
 import {MessageRouter} from '../io/router.js';
-import {CommandRegistry, type CommandContext} from '../io/commands/registry.js';
+import {type CommandContext, CommandRegistry} from '../io/commands/registry.js';
 import {coreCommands} from '../io/commands/core.js';
 import {connectionCommands} from '../io/commands/connection.js';
 import {memoryCommands} from '../io/commands/memory.js';
@@ -20,9 +20,9 @@ import {HTTPConnection} from '../io/connections/http.js';
 import {MCPConnection} from '../io/connections/mcp.js';
 
 export class Agent {
+    readonly router: MessageRouter;
     private readonly nar: NAR;
     private readonly manager: ConnectionManager;
-    readonly router: MessageRouter;
     private readonly commands: CommandRegistry;
     private readonly emitter: EventEmitter;
     private readonly logger: Logger;
@@ -38,6 +38,108 @@ export class Agent {
         this.registerConnectionFactories();
         this.registerCommands();
         this.setupMiddleware();
+    }
+
+    async addConnection(config: ConnectionConfig): Promise<Connection> {
+        return this.manager.addConnection(config, {
+            nar: this.nar,
+            emit: (event, data) => this.emitter.emit(event, data)
+        });
+    }
+
+    async removeConnection(id: string): Promise<void> {
+        await this.manager.removeConnection(id);
+    }
+
+    async enableConnection(id: string): Promise<void> {
+        await this.manager.enableConnection(id);
+    }
+
+    async disableConnection(id: string): Promise<void> {
+        await this.manager.disableConnection(id);
+    }
+
+    getConnection(id: string): Connection | undefined {
+        return this.manager.getConnection(id);
+    }
+
+    getConnections(): ReadonlyMap<string, Connection> {
+        return this.manager.getConnections();
+    }
+
+    async start(): Promise<void> {
+        if (this.running) return;
+        this.running = true;
+        this.logger.info('Agent started');
+    }
+
+    async stop(): Promise<void> {
+        if (!this.running) return;
+        this.running = false;
+        await this.manager.shutdownAll();
+        this.logger.info('Agent stopped');
+    }
+
+    async sendTo(connectionId: string, target: string, text: string): Promise<void> {
+        const connection = this.manager.getConnection(connectionId);
+        if (connection) {
+            await connection.send(target, text);
+        }
+    }
+
+    async broadcast(text: string, exclude: string[] = []): Promise<void> {
+        for (const [id, connection] of this.manager.getConnections()) {
+            if (!exclude.includes(id)) {
+                await connection.send('broadcast', text);
+            }
+        }
+    }
+
+    async requestConnection(type: string, config: Record<string, unknown>): Promise<void> {
+        const id = config.id as string ?? `conn-${crypto.randomUUID()}`;
+        const connectionConfig: ConnectionConfig = {
+            id,
+            type,
+            enabled: true,
+            config
+        };
+        await this.addConnection(connectionConfig);
+        this.emitter.emit('connection:requested', {type, config});
+    }
+
+    async saveState(path?: string): Promise<void> {
+        const fs = await import('fs/promises');
+        const statePath = path ?? 'agent-state.json';
+        const connections: Array<{ id: string; type: string; state: string }> = [];
+        for (const [id, conn] of this.manager.getConnections()) {
+            connections.push({id, type: conn.type, state: conn.state});
+        }
+        await fs.writeFile(statePath, JSON.stringify({
+            connections,
+            memory: await this.nar.getMemoryState?.() ?? {},
+            timestamp: Date.now()
+        }, null, 2));
+    }
+
+    async loadState(path?: string): Promise<void> {
+        const fs = await import('fs/promises');
+        const statePath = path ?? 'agent-state.json';
+        const data = JSON.parse(await fs.readFile(statePath, 'utf-8'));
+        if (data.memory) {
+            await this.nar.loadMemoryState?.(data.memory);
+        }
+    }
+
+    on(event: string, handler: (...args: unknown[]) => void): void {
+        this.emitter.on(event, handler);
+    }
+
+    off(event: string, handler: (...args: unknown[]) => void): void {
+        this.emitter.off(event, handler);
+    }
+
+    getNAR(): NAR {
+        return this.nar;
     }
 
     private registerConnectionFactories(): void {
@@ -139,104 +241,4 @@ export class Agent {
         if (text.startsWith('!')) return 'goal';
         return 'natural-language';
     }
-
-    async addConnection(config: ConnectionConfig): Promise<Connection> {
-        return this.manager.addConnection(config, {
-            nar: this.nar,
-            emit: (event, data) => this.emitter.emit(event, data)
-        });
-    }
-
-    async removeConnection(id: string): Promise<void> {
-        await this.manager.removeConnection(id);
-    }
-
-    async enableConnection(id: string): Promise<void> {
-        await this.manager.enableConnection(id);
-    }
-
-    async disableConnection(id: string): Promise<void> {
-        await this.manager.disableConnection(id);
-    }
-
-    getConnection(id: string): Connection | undefined {
-        return this.manager.getConnection(id);
-    }
-
-    getConnections(): ReadonlyMap<string, Connection> {
-        return this.manager.getConnections();
-    }
-
-    async start(): Promise<void> {
-        if (this.running) return;
-        this.running = true;
-        this.logger.info('Agent started');
-    }
-
-    async stop(): Promise<void> {
-        if (!this.running) return;
-        this.running = false;
-        await this.manager.shutdownAll();
-        this.logger.info('Agent stopped');
-    }
-
-    async sendTo(connectionId: string, target: string, text: string): Promise<void> {
-        const connection = this.manager.getConnection(connectionId);
-        if (connection) {
-            await connection.send(target, text);
-        }
-    }
-
-    async broadcast(text: string, exclude: string[] = []): Promise<void> {
-        for (const [id, connection] of this.manager.getConnections()) {
-            if (!exclude.includes(id)) {
-                await connection.send('broadcast', text);
-            }
-        }
-    }
-
-    async requestConnection(type: string, config: Record<string, unknown>): Promise<void> {
-        const id = config.id as string ?? `conn-${crypto.randomUUID()}`;
-        const connectionConfig: ConnectionConfig = {
-            id,
-            type,
-            enabled: true,
-            config
-        };
-        await this.addConnection(connectionConfig);
-        this.emitter.emit('connection:requested', {type, config});
-    }
-
-    async saveState(path?: string): Promise<void> {
-        const fs = await import('fs/promises');
-        const statePath = path ?? 'agent-state.json';
-        const connections: Array<{id: string; type: string; state: string}> = [];
-        for (const [id, conn] of this.manager.getConnections()) {
-            connections.push({id, type: conn.type, state: conn.state});
-        }
-        await fs.writeFile(statePath, JSON.stringify({
-            connections,
-            memory: await this.nar.getMemoryState?.() ?? {},
-            timestamp: Date.now()
-        }, null, 2));
-    }
-
-    async loadState(path?: string): Promise<void> {
-        const fs = await import('fs/promises');
-        const statePath = path ?? 'agent-state.json';
-        const data = JSON.parse(await fs.readFile(statePath, 'utf-8'));
-        if (data.memory) {
-            await this.nar.loadMemoryState?.(data.memory);
-        }
-    }
-
-    on(event: string, handler: (...args: unknown[]) => void): void {
-        this.emitter.on(event, handler);
-    }
-
-    off(event: string, handler: (...args: unknown[]) => void): void {
-        this.emitter.off(event, handler);
-    }
-
-    getNAR(): NAR { return this.nar; }
 }

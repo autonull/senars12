@@ -40,5 +40,10 @@ const serialize = (term: Term): string => {
 export const serializeTerm = serialize;
 
 export const deserializeTerm = (s: string): Term | null => {
-    try { return termParser.parse(s); } catch (e) { console.error('Deserialize failed:', e); return null; }
+    try {
+        return termParser.parse(s);
+    } catch (e) {
+        console.error('Deserialize failed:', e);
+        return null;
+    }
 };

@@ -1,6 +1,6 @@
 import type {Term} from '../terms';
-import type {Task} from '../types/index.js';
 import {Truth} from '../terms';
+import type {Task} from '../types/index.js';
 import {createBudget, createTask} from '../types';
 import {LMResponseParser} from './parser.js';
 
@@ -29,7 +29,7 @@ export function findUnderconnectedConcepts(
             concept.goalBag.size;
 
         if (connectionCount < minConnections) {
-            result.push({ term: concept.term, connections: connectionCount });
+            result.push({term: concept.term, connections: connectionCount});
         }
     }
 
@@ -57,7 +57,10 @@ export function findUnderconnectedConceptsFromTasks(
         .sort((a, b) => a.connections - b.connections);
 }
 
-export function parseEnrichmentResponse(response: string, defaultTruth?: Truth): { hypotheses: Task[]; bridges: Task[] } {
+export function parseEnrichmentResponse(response: string, defaultTruth?: Truth): {
+    hypotheses: Task[];
+    bridges: Task[]
+} {
     const lines = response.split('\n').filter(l => l.trim());
     const hypotheses: Task[] = [];
     const bridges: Task[] = [];

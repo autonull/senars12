@@ -13,7 +13,9 @@ export interface ServerStartupOptions {
 export const parseHttpBody = (req: IncomingMessage): Promise<string> =>
     new Promise(resolve => {
         let body = '';
-        req.on('data', chunk => { body += chunk; });
+        req.on('data', chunk => {
+            body += chunk;
+        });
         req.on('end', () => resolve(body));
     });
 
@@ -51,7 +53,7 @@ export const startHttpServer = (
 
 export const startWSServer = (
     port: number,
-    WSServerClass: new (options: {port: number}) => WebSocketServer,
+    WSServerClass: new (options: { port: number }) => WebSocketServer,
     options?: { timeout?: number }
 ): Promise<WebSocketServer> => {
     const server = new WSServerClass({port});
@@ -78,8 +80,19 @@ export const startWSServer = (
 export class ApiKeyManager {
     private keys = new Set<string>();
 
-    add(key: string): void { this.keys.add(key); }
-    remove(key: string): void { this.keys.delete(key); }
-    has(key: string): boolean { return this.keys.has(key); }
-    get size(): number { return this.keys.size; }
+    get size(): number {
+        return this.keys.size;
+    }
+
+    add(key: string): void {
+        this.keys.add(key);
+    }
+
+    remove(key: string): void {
+        this.keys.delete(key);
+    }
+
+    has(key: string): boolean {
+        return this.keys.has(key);
+    }
 }

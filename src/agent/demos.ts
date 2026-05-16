@@ -42,7 +42,10 @@ export class DemoRunner {
     }
 }
 
-interface DemoInput { text: string; label?: string }
+interface DemoInput {
+    text: string;
+    label?: string
+}
 
 const demo = (name: string, description: string, inputs: DemoInput[], runSteps = 5, showConcepts = false): DemoScenario => ({
     name, description,
@@ -74,7 +77,10 @@ export const analogicalReasoningDemo: DemoScenario = demo('Analogical Reasoning'
 ], 10);
 
 export const questionAnsweringDemo: DemoScenario = demo('Question Answering', 'Answer questions from knowledge base', [
-    {text: '(Paris --> "capital of France").'}, {text: '(France --> country).'}, {text: '(Paris --> ?)?', label: 'Asked'},
+    {text: '(Paris --> "capital of France").'}, {text: '(France --> country).'}, {
+        text: '(Paris --> ?)?',
+        label: 'Asked'
+    },
 ], 5);
 
 export const basicInferenceDemo: DemoScenario = demo('Basic Inference', 'Simple syllogistic reasoning', [

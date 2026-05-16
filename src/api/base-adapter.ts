@@ -24,7 +24,7 @@ export abstract class BaseAdapter {
         this.logger = createLogger({scope});
     }
 
-    protected sendJSON(ws: {send: (data: string) => void}, response: APIResponse): void {
+    protected sendJSON(ws: { send: (data: string) => void }, response: APIResponse): void {
         ws.send(JSON.stringify(response));
     }
 }

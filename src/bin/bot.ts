@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * SeNARS Bot - Multi-connection agent
- * 
+ *
  * Runs the Agent with IRC, WebSocket, HTTP, and MCP connections.
  * CLI is not started by default - use .connect cli to add it.
  */
@@ -17,89 +17,89 @@ import type {ConnectionConfig} from '../io/types.js';
 const logger = createLogger({scope: 'bot'});
 
 async function main() {
-  const registry = createSeNARSRegistry();
-  const nar = SeNARSFactory.createDefault({
-    ...DEFAULT_NAR_CONFIG,
-    providerRegistry: registry,
-  });
-
-  const agent = new Agent(nar, logger);
-
-  setupGracefulShutdown(() => agent.stop(), logger);
-
-  await agent.start();
-
-  const connections: Array<{type: string; config: ConnectionConfig}> = [];
-
-  if (process.env.SENARS_IRC_ENABLED === 'true') {
-    connections.push({
-      type: 'irc',
-      config: {
-        id: 'irc-main',
-        type: 'irc',
-        enabled: true,
-        config: {
-          server: process.env.SENARS_IRC_SERVER || 'irc.libera.chat',
-          port: parseInt(process.env.SENARS_IRC_PORT || '6667'),
-          nick: process.env.SENARS_IRC_NICK || 'senars-bot',
-          channels: process.env.SENARS_IRC_CHANNELS?.split(',') || ['#senars'],
-        },
-      },
+    const registry = createSeNARSRegistry();
+    const nar = SeNARSFactory.createDefault({
+        ...DEFAULT_NAR_CONFIG,
+        providerRegistry: registry,
     });
-  }
 
-  if (process.env.SENARS_WS_ENABLED === 'true' || process.env.SENARS_HTTP_ENABLED === 'true') {
-    connections.push({
-      type: 'websocket',
-      config: {
-        id: 'ws-main',
-        type: 'websocket',
-        enabled: true,
-        config: {
-          port: parseInt(process.env.SENARS_WS_PORT || '8080'),
-        },
-      },
-    });
-  }
+    const agent = new Agent(nar, logger);
 
-  if (process.env.SENARS_HTTP_ENABLED === 'true') {
-    connections.push({
-      type: 'http',
-      config: {
-        id: 'http-main',
-        type: 'http',
-        enabled: true,
-        config: {
-          port: parseInt(process.env.SENARS_HTTP_PORT || '8081'),
-        },
-      },
-    });
-  }
+    setupGracefulShutdown(() => agent.stop(), logger);
 
-  if (process.env.SENARS_MCP_ENABLED === 'true') {
-    connections.push({
-      type: 'mcp',
-      config: {
-        id: 'mcp-main',
-        type: 'mcp',
-        enabled: true,
-        config: {
-          transport: (process.env.SENARS_MCP_TRANSPORT as any) || 'stdio',
-        },
-      },
-    });
-  }
+    await agent.start();
 
-  for (const {type, config} of connections) {
-    try {
-      await agent.addConnection(config);
-      logger.info(`Connected ${type} connection: ${config.id}`);
-    } catch (error) {
-      logger.error(`Failed to connect ${type}: ${error}`);
+    const connections: Array<{ type: string; config: ConnectionConfig }> = [];
+
+    if (process.env.SENARS_IRC_ENABLED === 'true') {
+        connections.push({
+            type: 'irc',
+            config: {
+                id: 'irc-main',
+                type: 'irc',
+                enabled: true,
+                config: {
+                    server: process.env.SENARS_IRC_SERVER || 'irc.libera.chat',
+                    port: parseInt(process.env.SENARS_IRC_PORT || '6667'),
+                    nick: process.env.SENARS_IRC_NICK || 'senars-bot',
+                    channels: process.env.SENARS_IRC_CHANNELS?.split(',') || ['#senars'],
+                },
+            },
+        });
     }
-  }
 
-  logger.info('Bot ready');
+    if (process.env.SENARS_WS_ENABLED === 'true' || process.env.SENARS_HTTP_ENABLED === 'true') {
+        connections.push({
+            type: 'websocket',
+            config: {
+                id: 'ws-main',
+                type: 'websocket',
+                enabled: true,
+                config: {
+                    port: parseInt(process.env.SENARS_WS_PORT || '8080'),
+                },
+            },
+        });
+    }
+
+    if (process.env.SENARS_HTTP_ENABLED === 'true') {
+        connections.push({
+            type: 'http',
+            config: {
+                id: 'http-main',
+                type: 'http',
+                enabled: true,
+                config: {
+                    port: parseInt(process.env.SENARS_HTTP_PORT || '8081'),
+                },
+            },
+        });
+    }
+
+    if (process.env.SENARS_MCP_ENABLED === 'true') {
+        connections.push({
+            type: 'mcp',
+            config: {
+                id: 'mcp-main',
+                type: 'mcp',
+                enabled: true,
+                config: {
+                    transport: (process.env.SENARS_MCP_TRANSPORT as any) || 'stdio',
+                },
+            },
+        });
+    }
+
+    for (const {type, config} of connections) {
+        try {
+            await agent.addConnection(config);
+            logger.info(`Connected ${type} connection: ${config.id}`);
+        } catch (error) {
+            logger.error(`Failed to connect ${type}: ${error}`);
+        }
+    }
+
+    logger.info('Bot ready');
 }
 
 main().catch(console.error);

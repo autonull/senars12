@@ -12,14 +12,20 @@ export interface ParsedLMResponse {
 
 export interface StructuredLMOutput {
     narsese: string;
-    truth?: {f: number; c: number};
+    truth?: { f: number; c: number };
     confidence?: number;
 }
 
 export const LMResponseParser = {
     parse(response: string, defaultTruth?: Truth): ParsedLMResponse {
         if (!response || response.trim() === '') {
-            return {term: termParser.parse('TRUE'), truth: defaultTruth, valid: false, raw: response, error: 'Empty response'};
+            return {
+                term: termParser.parse('TRUE'),
+                truth: defaultTruth,
+                valid: false,
+                raw: response,
+                error: 'Empty response'
+            };
         }
         try {
             const structured = extractStructuredOutput(response);
@@ -46,7 +52,13 @@ export const LMResponseParser = {
 
     validate(response: string, defaultTruth?: Truth): ParsedLMResponse {
         if (!response || response.trim() === '') {
-            return {term: termParser.parse('TRUE'), truth: defaultTruth, valid: false, raw: response, error: 'Empty response'};
+            return {
+                term: termParser.parse('TRUE'),
+                truth: defaultTruth,
+                valid: false,
+                raw: response,
+                error: 'Empty response'
+            };
         }
         const trimmed = response.trim();
         if (trimmed.startsWith('{')) {
@@ -59,16 +71,34 @@ export const LMResponseParser = {
                         : (truth ?? defaultTruth ?? Truth.NEUTRAL);
                     return {term, truth: finalTruth, raw: response, valid: true};
                 }
-                return {term: termParser.parse('TRUE'), truth: defaultTruth, valid: false, raw: response, error: 'Missing narsese field in JSON'};
+                return {
+                    term: termParser.parse('TRUE'),
+                    truth: defaultTruth,
+                    valid: false,
+                    raw: response,
+                    error: 'Missing narsese field in JSON'
+                };
             } catch {
-                return {term: termParser.parse('TRUE'), truth: defaultTruth, valid: false, raw: response, error: 'Invalid JSON in response'};
+                return {
+                    term: termParser.parse('TRUE'),
+                    truth: defaultTruth,
+                    valid: false,
+                    raw: response,
+                    error: 'Invalid JSON in response'
+                };
             }
         }
         try {
             const {term, truth} = termParser.parseWithTruth(trimmed);
             return {term, truth: truth ?? defaultTruth ?? Truth.NEUTRAL, raw: response, valid: true};
         } catch {
-            return {term: termParser.parse('TRUE'), truth: defaultTruth, valid: false, raw: response, error: 'Invalid Narsese syntax'};
+            return {
+                term: termParser.parse('TRUE'),
+                truth: defaultTruth,
+                valid: false,
+                raw: response,
+                error: 'Invalid Narsese syntax'
+            };
         }
     },
 };

@@ -35,7 +35,9 @@ export const getVars = (term: Term): Term[] => {
     return vars;
 };
 
-const termGuard = <K extends Term['kind']>(kind: K) => (term: Term): term is Extract<Term, { kind: K }> => term.kind === kind;
+const termGuard = <K extends Term['kind']>(kind: K) => (term: Term): term is Extract<Term, {
+    kind: K
+}> => term.kind === kind;
 
 export const inh = termGuard('inheritance');
 export const imp = termGuard('implication');

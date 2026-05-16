@@ -1,18 +1,22 @@
-import type { Connection, ConnectionConfig, ConnectionDeps, ConnectionError, ConnectionState, IOMessage } from '../types.js';
-import { ConnectionError as ConnError } from '../types.js';
+import type {
+    Connection,
+    ConnectionConfig,
+    ConnectionDeps,
+    ConnectionError,
+    ConnectionState,
+    IOMessage
+} from '../types.js';
+import {ConnectionError as ConnError} from '../types.js';
 
 export abstract class BaseConnection implements Connection {
     abstract readonly id: string;
     abstract readonly name: string;
     abstract readonly type: string;
-
-    private _state: ConnectionState = 'idle';
     protected messageHandler?: (message: IOMessage) => Promise<void>;
     protected stateChangeHandlers: Array<(state: ConnectionState, prev: ConnectionState) => void> = [];
     protected errorHandlers: Array<(error: ConnectionError) => void> = [];
     protected messageCount = 0;
     protected errorCount = 0;
-
     protected readonly config: ConnectionConfig;
     protected readonly emit: (event: string, data: unknown) => void;
     protected readonly logger: ConnectionDeps['logger'];
@@ -23,23 +27,16 @@ export abstract class BaseConnection implements Connection {
         this.logger = deps.logger;
     }
 
+    private _state: ConnectionState = 'idle';
+
     get state(): ConnectionState {
         return this._state;
     }
 
-    protected setState(value: ConnectionState): void {
-        const prev = this._state;
-        if (prev !== value) {
-            this._state = value;
-            this.emit('connection:state', { id: this.id, prev, current: value });
-            for (const handler of this.stateChangeHandlers) {
-                handler(value, prev);
-            }
-        }
-    }
-
     abstract connect(): Promise<void>;
+
     abstract disconnect(reason?: string): Promise<void>;
+
     abstract send(target: string, text: string): Promise<void>;
 
     async reconnect(): Promise<void> {
@@ -70,6 +67,17 @@ export abstract class BaseConnection implements Connection {
 
     async reconfigure(config: Record<string, unknown>): Promise<void> {
         Object.assign(this.config.config, config);
+    }
+
+    protected setState(value: ConnectionState): void {
+        const prev = this._state;
+        if (prev !== value) {
+            this._state = value;
+            this.emit('connection:state', {id: this.id, prev, current: value});
+            for (const handler of this.stateChangeHandlers) {
+                handler(value, prev);
+            }
+        }
     }
 
     protected handleMessage(message: IOMessage): void {

@@ -5,8 +5,10 @@ import {buildBinaryInhRule, buildInhRule, getVars} from './rule-builder.js';
 
 const ID = <T>(t: T): T => t;
 
-const {negation, inheritance, conjunction, disjunction, implication, equivalence, similarity,
-    sequence, parallel, predictive, operation, instance, property, atom} = TermBuilder;
+const {
+    negation, inheritance, conjunction, disjunction, implication, equivalence, similarity,
+    sequence, parallel, predictive, operation, instance, property, atom
+} = TermBuilder;
 
 const conversionRule = (wrap: (t: Term) => Term) => buildInhRule(ID, inh => {
     const s = getSubject(inh), p = getPredicate(inh);

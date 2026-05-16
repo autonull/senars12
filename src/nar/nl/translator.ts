@@ -2,11 +2,12 @@ import type {LanguageModel} from 'ai';
 import {generateObject} from 'ai';
 import type {SeNARSRegistry} from '../lm/providers.js';
 import {getStructuredModel} from '../lm/providers.js';
-import {TranslationSchema, type TranslationResult} from './schemas.js';
+import {type TranslationResult, TranslationSchema} from './schemas.js';
 import {termParser} from '../terms/index.js';
 
 export class NLTranslator {
-    constructor(private registry: SeNARSRegistry) {}
+    constructor(private registry: SeNARSRegistry) {
+    }
 
     async translate(nl: string): Promise<TranslationResult> {
         const model = getStructuredModel(this.registry);
@@ -19,8 +20,13 @@ export class NLTranslator {
         });
 
         const validBeliefs = object.beliefs.filter(b => {
-            try { termParser.parse(b.narsese); return true; }
-            catch (e) { console.error('Invalid belief filtered:', e); return false; }
+            try {
+                termParser.parse(b.narsese);
+                return true;
+            } catch (e) {
+                console.error('Invalid belief filtered:', e);
+                return false;
+            }
         });
 
         return {...object, beliefs: validBeliefs};

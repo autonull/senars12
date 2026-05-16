@@ -4,13 +4,12 @@ import {BaseConnection} from './base.js';
 import {createLogger} from '../../nar/logger/index.js';
 
 export class CLIConnection extends BaseConnection {
-  override readonly id: string;
-  override readonly name: string;
-  override readonly type = 'cli';
-
-  private rl: Interface | null = null;
-  override readonly logger = createLogger({scope: 'io:cli'});
-  private readonly sendFn: (text: string) => void;
+    override readonly id: string;
+    override readonly name: string;
+    override readonly type = 'cli';
+    override readonly logger = createLogger({scope: 'io:cli'});
+    private rl: Interface | null = null;
+    private readonly sendFn: (text: string) => void;
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);

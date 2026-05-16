@@ -1,4 +1,4 @@
-import type {CommandContext, CommandDefinition} from './registry.js';
+import type {CommandDefinition} from './registry.js';
 import {singleArgCmd} from './utils.js';
 
 export const connectionCommands: CommandDefinition[] = [
@@ -20,7 +20,10 @@ export const connectionCommands: CommandDefinition[] = [
             if (args.length < 2) return 'Usage: .connect <id> <type> [config...]';
             const [id, type, ...configParts] = args;
             const config = Object.fromEntries(configParts.map(p => p.split('=')).filter(([k, v]) => k && v));
-            await ctx.manager.addConnection({id: id!, type: type!, enabled: true, config}, {nar: ctx.nar, emit: () => {}});
+            await ctx.manager.addConnection({id: id!, type: type!, enabled: true, config}, {
+                nar: ctx.nar, emit: () => {
+                }
+            });
             return `Connection ${id} (${type}) created and connected`;
         }
     },

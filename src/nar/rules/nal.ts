@@ -1,8 +1,14 @@
 import type {Term} from '../terms';
 import {getPredicate, getSubject, TermBuilder, termsEqual, Truth} from '../terms';
 import {
-    abductionLink, buildAbduction, buildDeduction, buildHigherOrderRule,
-    buildInduction, deductionLink, inductionLink, syllogize
+    abductionLink,
+    buildAbduction,
+    buildDeduction,
+    buildHigherOrderRule,
+    buildInduction,
+    deductionLink,
+    inductionLink,
+    syllogize
 } from './nal-helpers.js';
 import {matchInhPair, registerRules, rule} from './shared.js';
 import {type RuleFn} from './types.js';
@@ -18,7 +24,10 @@ export const NALRules = {
         const s1 = getSubject(l), p1 = getPredicate(l), s2 = getSubject(r), p2 = getPredicate(r);
         if (!s1 || !p1 || !s2 || !p2) return false;
         return (termsEqual(s1, s2) && termsEqual(p1, p2)) || (termsEqual(s1, p2) && termsEqual(p1, s2));
-    }, (l) => { const s = getSubject(l), p = getPredicate(l); return s && p ? TermBuilder.similarity(s, p) : undefined; }),
+    }, (l) => {
+        const s = getSubject(l), p = getPredicate(l);
+        return s && p ? TermBuilder.similarity(s, p) : undefined;
+    }),
 
     contrapositive: ([imp, inh]: [Term, Term]): Term | undefined => {
         if (imp.kind !== 'implication' || inh.kind !== 'inheritance') return undefined;
@@ -93,7 +102,10 @@ export const NALRules = {
     compose: syl('inheritance', 'inheritance', (l, r) => {
         const p1 = getPredicate(l), s2 = getSubject(r);
         return !!(p1 && s2 && termsEqual(p1, s2));
-    }, (l, r) => { const s = getSubject(l), p = getPredicate(r); return s && p ? TermBuilder.inheritance(s, p) : undefined; }),
+    }, (l, r) => {
+        const s = getSubject(l), p = getPredicate(r);
+        return s && p ? TermBuilder.inheritance(s, p) : undefined;
+    }),
 
     revision: ([i1, i2]: [Term, Term]) => {
         if (i1.kind !== 'inheritance' || i2.kind !== 'inheritance') return undefined;

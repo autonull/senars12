@@ -67,7 +67,7 @@ export interface ValidatedConfig {
 
 const DEFAULT_APP_CONFIG: ValidatedConfig = {
     name: 'SeNARS12', version: '1.0.0',
-    lm: { enabled: true, provider: 'transformers', model: 'Xenova/Llama-3.2-1B-Instruct', quantized: true },
+    lm: {enabled: true, provider: 'transformers', model: 'Xenova/Llama-3.2-1B-Instruct', quantized: true},
     core: {
         maxConcepts: 100, priorityThreshold: 0.1, activationDecayRate: 0.01,
         consolidationInterval: 10, cpuThrottleMs: 0, maxDerivationDepth: 10, maxDerivationsPerStep: 100
@@ -114,15 +114,15 @@ export class ConfigLoader {
                 provider: raw.lm?.provider || 'mock',
                 model: raw.lm?.model, quantized: raw.lm?.quantized
             },
-  core: {
-    maxConcepts: clamp((mem as any).maxConcepts ?? 100, 10, 10000),
-    priorityThreshold: clamp((mem as any).priorityThreshold ?? 0.1, 0, 1),
-    activationDecayRate: clamp((mem as any).activationDecayRate ?? 0.01, 0, 1),
-    consolidationInterval: (inf as any).consolidationInterval ?? 10,
-    cpuThrottleMs: (inf as any).cpuThrottleMs ?? 0,
-    maxDerivationDepth: clamp((inf as any).maxDerivationDepth ?? 10, 1, 100),
-    maxDerivationsPerStep: clamp((inf as any).maxDerivationsPerStep ?? 100, 1, 10000)
-  }
+            core: {
+                maxConcepts: clamp((mem as any).maxConcepts ?? 100, 10, 10000),
+                priorityThreshold: clamp((mem as any).priorityThreshold ?? 0.1, 0, 1),
+                activationDecayRate: clamp((mem as any).activationDecayRate ?? 0.01, 0, 1),
+                consolidationInterval: (inf as any).consolidationInterval ?? 10,
+                cpuThrottleMs: (inf as any).cpuThrottleMs ?? 0,
+                maxDerivationDepth: clamp((inf as any).maxDerivationDepth ?? 10, 1, 100),
+                maxDerivationsPerStep: clamp((inf as any).maxDerivationsPerStep ?? 100, 1, 10000)
+            }
         };
 
         if (raw.irc) {
@@ -143,7 +143,13 @@ export class ConfigLoader {
             join(__dirname, 'senars.config.json')
         ];
         for (const path of paths) {
-            try { await fs.access(path); return path; } catch (e) { console.error('Config path access failed:', e); continue; }
+            try {
+                await fs.access(path);
+                return path;
+            } catch (e) {
+                console.error('Config path access failed:', e);
+                continue;
+            }
         }
         throw new Error('Configuration file not found');
     }

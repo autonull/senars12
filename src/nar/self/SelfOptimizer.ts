@@ -86,10 +86,6 @@ export class SelfOptimizer {
         }
     }
 
-    private async performMemoryCleanup(): Promise<void> {
-        this.nar?.memory?.consolidate();
-    }
-
     async applyPerformanceOptimizations(): Promise<void> {
         if (!this.nar) return;
 
@@ -140,5 +136,9 @@ export class SelfOptimizer {
         this.optimizationHistory.performanceImprovements.push(...optimizations.performanceImprovements);
         this.optimizationHistory.performanceImprovements =
             this.optimizationHistory.performanceImprovements.slice(-100);
+    }
+
+    private async performMemoryCleanup(): Promise<void> {
+        this.nar?.memory?.consolidate();
     }
 }

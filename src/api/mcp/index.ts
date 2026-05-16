@@ -5,20 +5,20 @@
 
 // Core types
 export type {
-	CapabilityDescriptor,
-	ValidationResult,
-	ExecutionContext,
-	ProgressUpdate,
-	LogEntry,
-	ExecutionResult,
-	MCPContent,
-	TextContent,
-	ImageContent,
-	EmbeddedResource,
-	ResourceDescriptor,
-	PromptTemplate,
-	PromptArgument,
-	MCPMessage,
+    CapabilityDescriptor,
+    ValidationResult,
+    ExecutionContext,
+    ProgressUpdate,
+    LogEntry,
+    ExecutionResult,
+    MCPContent,
+    TextContent,
+    ImageContent,
+    EmbeddedResource,
+    ResourceDescriptor,
+    PromptTemplate,
+    PromptArgument,
+    MCPMessage,
 } from './types.js';
 
 // Schema transformer

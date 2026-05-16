@@ -37,13 +37,33 @@ export class OutputRenderer {
         return ora({text, color: 'cyan', spinner: 'dots'}).start();
     }
 
-    success(msg: string) { console.log(`  ${k.ok(msg)}`); }
-    error(msg: string) { console.log(`  ${k.err(msg)}`); }
-    warn(msg: string) { console.log(`  ${k.warn(msg)}`); }
-    info(msg: string) { console.log(`  ${k.info(msg)}`); }
-    hint(msg: string) { console.log(k.hint(msg)); }
-    reasoning(msg: string) { console.log(`  ${k.reason(msg)}`); }
-    lm(msg: string) { console.log(`  ${k.lm(msg)}`); }
+    success(msg: string) {
+        console.log(`  ${k.ok(msg)}`);
+    }
+
+    error(msg: string) {
+        console.log(`  ${k.err(msg)}`);
+    }
+
+    warn(msg: string) {
+        console.log(`  ${k.warn(msg)}`);
+    }
+
+    info(msg: string) {
+        console.log(`  ${k.info(msg)}`);
+    }
+
+    hint(msg: string) {
+        console.log(k.hint(msg));
+    }
+
+    reasoning(msg: string) {
+        console.log(`  ${k.reason(msg)}`);
+    }
+
+    lm(msg: string) {
+        console.log(`  ${k.lm(msg)}`);
+    }
 
     table(headers: string[], rows: string[][]) {
         const t = new Table({

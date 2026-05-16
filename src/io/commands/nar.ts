@@ -42,7 +42,9 @@ export const narCommands: CommandDefinition[] = [
                 let result = 'Derivation Trace:';
                 const traceArray = Array.isArray(trace) ? trace : [trace];
                 traceArray.slice(-10).forEach((step, index) => {
-                    const displayTerm = (step as {term?: {toString?: () => string}})?.term?.toString?.() ?? 'unknown';
+                    const displayTerm = (step as {
+                        term?: { toString?: () => string }
+                    })?.term?.toString?.() ?? 'unknown';
                     result += `\n${index + 1}. ${displayTerm}`;
                 });
                 if (traceArray.length > 10) result += `\n ... and ${traceArray.length - 10} more steps`;

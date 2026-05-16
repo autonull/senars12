@@ -2,7 +2,7 @@
  * Graceful shutdown utility for SeNARS processes
  */
 
-export function setupGracefulShutdown(shutdownFn: () => Promise<void>, logger?: {info: (msg: string) => void}): void {
+export function setupGracefulShutdown(shutdownFn: () => Promise<void>, logger?: { info: (msg: string) => void }): void {
     const handleShutdown = async (signal: string) => {
         logger?.info(`Received ${signal}, shutting down...`);
         await shutdownFn();

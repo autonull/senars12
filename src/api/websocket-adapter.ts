@@ -4,7 +4,7 @@
  */
 
 import {WebSocket, WebSocketServer} from 'ws';
-import {BaseAdapter, successResponse, errorResponse} from './base-adapter.js';
+import {BaseAdapter, errorResponse, successResponse} from './base-adapter.js';
 import {errMsg} from '../nar/utils/helpers.js';
 
 const generateClientId = (): string => crypto.randomUUID();

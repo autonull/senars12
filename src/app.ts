@@ -6,7 +6,7 @@
  * - Application logic (CLI, Bot, etc.)
  */
 
-import {loadConfigFromEnv, DEFAULT_NAR_CONFIG} from './config/index.js';
+import {DEFAULT_NAR_CONFIG, loadConfigFromEnv} from './config/index.js';
 import {SeNARSFactory} from './nar/index.js';
 import {setupGracefulShutdown} from './utils/shutdown.js';
 import {createLogger} from './nar/logger/index.js';
@@ -38,20 +38,20 @@ async function runCLI() {
 }
 
 async function runBot() {
-  const logger = createLogger({scope: 'app:bot'});
-  console.log('Starting Bot mode...');
-  const {Agent} = await import('./agent/Agent.js');
-  const {createSeNARSRegistry} = await import('./nar/lm/providers.js');
+    const logger = createLogger({scope: 'app:bot'});
+    console.log('Starting Bot mode...');
+    const {Agent} = await import('./agent/Agent.js');
+    const {createSeNARSRegistry} = await import('./nar/lm/providers.js');
 
-  const registry = createSeNARSRegistry();
-  const nar = SeNARSFactory.createDefault({
-    ...DEFAULT_NAR_CONFIG,
-    providerRegistry: registry,
-  });
+    const registry = createSeNARSRegistry();
+    const nar = SeNARSFactory.createDefault({
+        ...DEFAULT_NAR_CONFIG,
+        providerRegistry: registry,
+    });
 
-  const agent = new Agent(nar, logger);
-  await agent.start();
-  setupGracefulShutdown(() => agent.stop(), logger);
+    const agent = new Agent(nar, logger);
+    await agent.start();
+    setupGracefulShutdown(() => agent.stop(), logger);
 }
 
 async function runDemo() {

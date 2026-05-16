@@ -14,12 +14,12 @@ export interface ReasoningAboutReasoningConfig {
 }
 
 export class ReasoningAboutReasoning {
+    isRunning: boolean = false;
     private readonly nar: NAR | null;
     private readonly config: Required<ReasoningAboutReasoningConfig>;
     private readonly monitor: MetacognitiveMonitor;
     private analyzer: SelfAnalyzer;
     private periodicAnalysisInterval: NodeJS.Timeout | null;
-    isRunning: boolean = false;
 
     constructor(nar: NAR | null, config: ReasoningAboutReasoningConfig = {}) {
         this.nar = nar;

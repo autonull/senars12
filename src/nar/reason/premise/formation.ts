@@ -6,6 +6,7 @@ import {samplePremises} from './sample.js';
 
 export interface PremiseSelector {
     readonly name: string;
+
     select(task: Task, memory: Memory, limit?: number): Task[];
 }
 

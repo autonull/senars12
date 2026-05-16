@@ -7,7 +7,11 @@ export class TimerTool implements Tool {
     readonly parameters: Schema = {
         type: 'object',
         properties: {
-            action: {type: 'string', description: 'Action to perform: start, stop, cancel', enum: ['start', 'stop', 'cancel', 'list']},
+            action: {
+                type: 'string',
+                description: 'Action to perform: start, stop, cancel',
+                enum: ['start', 'stop', 'cancel', 'list']
+            },
             name: {type: 'string', description: 'Timer name'},
             delay: {type: 'number', description: 'Delay in milliseconds', minimum: 0},
             repeat: {type: 'number', description: 'Number of repetitions (0 for infinite)', minimum: 0},

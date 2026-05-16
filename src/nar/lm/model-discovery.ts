@@ -56,7 +56,10 @@ export class ModelCapabilityDiscovery {
             try {
                 await client.generateText('Count to 10: '.repeat(size), {maxTokens: 10});
                 maxContext = size;
-            } catch (e) { console.error('Context test failed:', e); break; }
+            } catch (e) {
+                console.error('Context test failed:', e);
+                break;
+            }
         }
 
         return maxContext;
@@ -66,7 +69,10 @@ export class ModelCapabilityDiscovery {
         try {
             JSON.parse(await client.generateText('Respond with JSON only: {"test": true}'));
             return true;
-        } catch (e) { console.error('Structured output test failed:', e); return false; }
+        } catch (e) {
+            console.error('Structured output test failed:', e);
+            return false;
+        }
     }
 }
 
@@ -74,9 +80,26 @@ export class ModelBenchmark {
     private readonly registry: ModelRegistry;
     private readonly logger: Logger;
     private readonly defaultTasks: BenchmarkTask[] = [
-        {id: 'translation-simple', type: 'translation', prompt: 'Translate to Narsese: "Birds are animals"', expectedPattern: '-->', timeout: 5000},
-        {id: 'reasoning-deduction', type: 'reasoning', prompt: 'If A implies B, and B implies C, what is the relationship between A and C?', expectedPattern: '=>', timeout: 10000},
-        {id: 'decomposition-complex', type: 'decomposition', prompt: 'Break down the goal "build a house" into subgoals', timeout: 15000}
+        {
+            id: 'translation-simple',
+            type: 'translation',
+            prompt: 'Translate to Narsese: "Birds are animals"',
+            expectedPattern: '-->',
+            timeout: 5000
+        },
+        {
+            id: 'reasoning-deduction',
+            type: 'reasoning',
+            prompt: 'If A implies B, and B implies C, what is the relationship between A and C?',
+            expectedPattern: '=>',
+            timeout: 10000
+        },
+        {
+            id: 'decomposition-complex',
+            type: 'decomposition',
+            prompt: 'Break down the goal "build a house" into subgoals',
+            timeout: 15000
+        }
     ];
 
     constructor(registry: ModelRegistry) {
@@ -84,7 +107,11 @@ export class ModelBenchmark {
         this.logger = createLogger({scope: 'lm:model-benchmark'});
     }
 
-    async benchmark(modelId: string, tasks: BenchmarkTask[] = this.defaultTasks): Promise<{modelId: string; tasks: BenchmarkTask[]; results: BenchmarkResult[]}> {
+    async benchmark(modelId: string, tasks: BenchmarkTask[] = this.defaultTasks): Promise<{
+        modelId: string;
+        tasks: BenchmarkTask[];
+        results: BenchmarkResult[]
+    }> {
         const entry = this.registry.get(modelId);
         if (!entry) throw new Error(`Model ${modelId} not found`);
 
@@ -94,8 +121,12 @@ export class ModelBenchmark {
         return {modelId, tasks, results};
     }
 
-    async compareModels(modelIds: string[], tasks?: BenchmarkTask[]): Promise<Array<{modelId: string; averageScore: number; averageDuration: number}>> {
-        const comparisons: Array<{modelId: string; averageScore: number; averageDuration: number}> = [];
+    async compareModels(modelIds: string[], tasks?: BenchmarkTask[]): Promise<Array<{
+        modelId: string;
+        averageScore: number;
+        averageDuration: number
+    }>> {
+        const comparisons: Array<{ modelId: string; averageScore: number; averageDuration: number }> = [];
 
         for (const modelId of modelIds) {
             try {
@@ -126,7 +157,14 @@ export class ModelBenchmark {
 
             return {taskId: task.id, success, duration, tokens: response.length / 4, score};
         } catch (error) {
-            return {taskId: task.id, success: false, duration: Date.now() - startTime, tokens: 0, score: 0, error: errMsg(error)};
+            return {
+                taskId: task.id,
+                success: false,
+                duration: Date.now() - startTime,
+                tokens: 0,
+                score: 0,
+                error: errMsg(error)
+            };
         }
     }
 }

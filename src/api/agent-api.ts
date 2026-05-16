@@ -14,46 +14,58 @@ const registry = APIRegistry.getInstance();
 
 const TermSchema = z.string().min(1, 'Term cannot be empty');
 const TruthSchema = z.object({f: z.number().min(0).max(1), c: z.number().min(0).max(1)}).optional();
-const PaginationSchema = z.object({page: z.number().positive().optional(), limit: z.number().positive().max(100).optional()});
+const PaginationSchema = z.object({
+    page: z.number().positive().optional(),
+    limit: z.number().positive().max(100).optional()
+});
 
 type TaskType = 'beliefs' | 'goals' | 'questions';
 
 const registerListEndpoint = (nar: NAR, type: TaskType) => {
-  registry.register(`get${type.charAt(0).toUpperCase() + type.slice(1)}`, {
-    description: `List all ${type} in the knowledge base`,
-    params: z.object({pagination: PaginationSchema.optional()}),
-    returns: z.object({[type]: z.array(z.object({})), total: z.number()}),
-    handler: async () => {
-      const items = type === 'beliefs' ? nar.getBeliefs()
-        : type === 'goals' ? nar.getGoals()
-        : nar.getQuestions();
-      return {[type]: items, total: items.length};
-    }
-  });
+    registry.register(`get${type.charAt(0).toUpperCase() + type.slice(1)}`, {
+        description: `List all ${type} in the knowledge base`,
+        params: z.object({pagination: PaginationSchema.optional()}),
+        returns: z.object({[type]: z.array(z.object({})), total: z.number()}),
+        handler: async () => {
+            const items = type === 'beliefs' ? nar.getBeliefs()
+                : type === 'goals' ? nar.getGoals()
+                    : nar.getQuestions();
+            return {[type]: items, total: items.length};
+        }
+    });
 };
 
 export function registerAgentAPI(agent: Agent) {
-  const nar = agent.getNAR();
+    const nar = agent.getNAR();
 
     registry.register('addBelief', {
         description: 'Add a belief to the knowledge base',
         params: z.object({term: TermSchema, truth: TruthSchema}),
         returns: z.object({success: z.boolean(), term: z.string()}),
-        handler: async ({term}) => { await nar.input(term); return {success: true, term}; }
+        handler: async ({term}) => {
+            await nar.input(term);
+            return {success: true, term};
+        }
     });
 
     registry.register('addGoal', {
         description: 'Add a goal to the knowledge base',
         params: z.object({term: TermSchema, truth: TruthSchema}),
         returns: z.object({success: z.boolean(), term: z.string()}),
-        handler: async ({term}) => { await nar.input(`${term}!`); return {success: true, term}; }
+        handler: async ({term}) => {
+            await nar.input(`${term}!`);
+            return {success: true, term};
+        }
     });
 
     registry.register('addQuestion', {
         description: 'Add a question to the knowledge base',
         params: z.object({term: TermSchema}),
         returns: z.object({success: z.boolean(), term: z.string()}),
-        handler: async ({term}) => { await nar.input(`${term}?`); return {success: true, term}; }
+        handler: async ({term}) => {
+            await nar.input(`${term}?`);
+            return {success: true, term};
+        }
     });
 
     (['beliefs', 'goals', 'questions'] as TaskType[]).forEach(type => registerListEndpoint(nar, type));
@@ -82,7 +94,12 @@ export function registerAgentAPI(agent: Agent) {
     registry.register('getStats', {
         description: 'Get system statistics',
         params: z.object({}),
-        returns: z.object({totalConcepts: z.number(), totalTasks: z.number(), rulesFired: z.number(), derivations: z.number()}),
+        returns: z.object({
+            totalConcepts: z.number(),
+            totalTasks: z.number(),
+            rulesFired: z.number(),
+            derivations: z.number()
+        }),
         handler: async () => {
             const stats = nar.getStatistics();
             const metrics = nar.getMetrics();
@@ -107,7 +124,11 @@ export function registerAgentAPI(agent: Agent) {
             return {
                 status: 'healthy', timestamp: Date.now(), uptime: process.uptime(),
                 memory: {concepts: stats.totalConcepts ?? 0, tasks: stats.totalTasks ?? 0},
-                lm: lm ? {available: true, provider: lm.provider ?? 'unknown', model: lm.model ?? 'unknown'} : {available: false}
+                lm: lm ? {
+                    available: true,
+                    provider: lm.provider ?? 'unknown',
+                    model: lm.model ?? 'unknown'
+                } : {available: false}
             };
         }
     });

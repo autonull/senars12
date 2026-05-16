@@ -1,6 +1,6 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
-import {spawn, type SpawnOptions, type ChildProcess} from 'child_process';
 import {errorResult} from './types';
+import {type ChildProcess, spawn, type SpawnOptions} from 'child_process';
 
 export class ProcessTool implements Tool {
     readonly name = 'process';

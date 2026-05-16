@@ -54,7 +54,7 @@ export class SeNARSCLI {
         });
 
         this.agent.on('connection:state', (data) => {
-            const {id, prev, current} = data as {id: string; prev: string; current: string};
+            const {id, prev, current} = data as { id: string; prev: string; current: string };
             if (id === 'cli') {
                 this.logger.debug(`CLI state: ${prev} -> ${current}`);
             }

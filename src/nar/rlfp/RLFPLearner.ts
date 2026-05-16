@@ -26,8 +26,6 @@ export class RLFPLearner {
     private readonly rewardModel: RewardModel;
     private readonly policyOptimizer: PolicyOptimizer;
     private readonly _preferenceCollector: PreferenceCollector;
-    private _trajectoryCount: number = 0;
-    private _lastOptimizeTime: number | undefined;
 
     constructor(config: RLFPLearnerConfig = {}) {
         this.rewardModel = config.rewardModel ?? new RewardModel();
@@ -35,9 +33,13 @@ export class RLFPLearner {
         this._preferenceCollector = config.preferenceCollector ?? new PreferenceCollector();
     }
 
+    private _trajectoryCount: number = 0;
+
     get trajectoryCount(): number {
         return this._trajectoryCount;
     }
+
+    private _lastOptimizeTime: number | undefined;
 
     get lastOptimizeTime(): number | undefined {
         return this._lastOptimizeTime;
@@ -56,7 +58,7 @@ export class RLFPLearner {
             trajectoryA: [],
             trajectoryB: [],
             preference: 'A',
-            files: { A: preferred, B: rejected }
+            files: {A: preferred, B: rejected}
         });
     }
 

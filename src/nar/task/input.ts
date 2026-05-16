@@ -25,14 +25,6 @@ export class InputProcessor {
         this.config = config;
     }
 
-    private determineTaskType(punctuation: string, type?: TaskType): TaskType {
-        if (type) return type;
-        if (punctuation === '?') return 'question';
-        if (punctuation === '!') return 'goal';
-        if (punctuation === '@') return 'command';
-        return this.config.defaultType;
-    }
-
     process(input: string, type?: TaskType): Task {
         const {text, punctuation} = extractPunctuation(input);
         const {term, truth: parsedTruth} = termParser.parseWithTruth(text);
@@ -58,6 +50,14 @@ export class InputProcessor {
         if (punctuation === '@') return 'command';
 
         return 'belief';
+    }
+
+    private determineTaskType(punctuation: string, type?: TaskType): TaskType {
+        if (type) return type;
+        if (punctuation === '?') return 'question';
+        if (punctuation === '!') return 'goal';
+        if (punctuation === '@') return 'command';
+        return this.config.defaultType;
     }
 }
 

@@ -24,7 +24,7 @@ export interface RuleResult {
 }
 
 const deriveStamp = (p1: RuleInput, p2: RuleInput): StampType =>
-  (StampFactory.derive([p1.stamp, p2.stamp]) ?? StampFactory.createInput()) as unknown as StampType;
+    (StampFactory.derive([p1.stamp, p2.stamp]) ?? StampFactory.createInput()) as unknown as StampType;
 
 const NEUTRAL_FN = (): TruthType => Truth.NEUTRAL;
 
@@ -47,11 +47,6 @@ export class RuleProcessor {
     registerLMRule(lmRule: LMRule): void {
         this.lmRules.push(lmRule);
         if (this.eventBus) lmRule.setEventBus(this.eventBus);
-    }
-
-    private buildResult(term: Term, truthFn: TruthFn, p1: RuleInput, p2: RuleInput, priority: number): RuleResult {
-        const truth = truthFn(p1.truth, p2.truth) ?? Truth.NEUTRAL;
-        return {term, truth, stamp: deriveStamp(p1, p2), priority};
     }
 
     async* process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
@@ -92,6 +87,11 @@ export class RuleProcessor {
         }
 
         return this.resultBuffer;
+    }
+
+    private buildResult(term: Term, truthFn: TruthFn, p1: RuleInput, p2: RuleInput, priority: number): RuleResult {
+        const truth = truthFn(p1.truth, p2.truth) ?? Truth.NEUTRAL;
+        return {term, truth, stamp: deriveStamp(p1, p2), priority};
     }
 
     private async* processLMRules(p1: RuleInput, p2: RuleInput): AsyncGenerator<RuleResult> {

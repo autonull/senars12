@@ -3,16 +3,15 @@ import {URL} from 'url';
 import type {ConnectionConfig, ConnectionDeps, IOMessage} from '../types.js';
 import {BaseConnection} from './base.js';
 import {createLogger} from '../../nar/logger/index.js';
-import {parseHttpBody, setCORSHeaders, startHttpServer, ApiKeyManager} from '../utils/http.js';
+import {ApiKeyManager, parseHttpBody, setCORSHeaders, startHttpServer} from '../utils/http.js';
 
 export class HTTPConnection extends BaseConnection {
     override readonly id: string;
     override readonly name: string;
     override readonly type = 'http';
-
+    override readonly logger = createLogger({scope: 'io:http'});
     private server: http.Server | null = null;
     private port: number;
-    override readonly logger = createLogger({scope: 'io:http'});
     private apiKeys = new ApiKeyManager();
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
@@ -53,6 +52,14 @@ export class HTTPConnection extends BaseConnection {
 
     async send(_target: string, _text: string): Promise<void> {
         this.logger.warn(`send() called on HTTP connection - use respond via request context`);
+    }
+
+    addApiKey(key: string): void {
+        this.apiKeys.add(key);
+    }
+
+    removeApiKey(key: string): void {
+        this.apiKeys.remove(key);
     }
 
     private async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -121,10 +128,8 @@ export class HTTPConnection extends BaseConnection {
             }
         }, 30000);
 
-        await responsePromise.catch(() => {});
+        await responsePromise.catch(() => {
+        });
         clearTimeout(timeout);
     }
-
-    addApiKey(key: string): void { this.apiKeys.add(key); }
-    removeApiKey(key: string): void { this.apiKeys.remove(key); }
 }

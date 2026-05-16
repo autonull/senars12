@@ -5,7 +5,10 @@
 
 import {clamp, safeDiv} from '../utils';
 
-export interface Truth { readonly f: number; readonly c: number; }
+export interface Truth {
+    readonly f: number;
+    readonly c: number;
+}
 
 const WEAKENING_FACTOR = 10;
 
@@ -13,10 +16,16 @@ const createTruth = (f: number, c: number): Truth =>
     Object.freeze({f: clamp(isNaN(f) ? 0.5 : f, 0, 1), c: clamp(isNaN(c) ? 0.9 : c, 0, 1)});
 
 const binaryOp = (fn: (f1: number, f2: number, c1: number, c2: number) => [number, number]) =>
-    (t1: Truth, t2: Truth): Truth => { const [f, c] = fn(t1.f, t2.f, t1.c, t2.c); return createTruth(f, c); };
+    (t1: Truth, t2: Truth): Truth => {
+        const [f, c] = fn(t1.f, t2.f, t1.c, t2.c);
+        return createTruth(f, c);
+    };
 
 const unaryOp = (fn: (f: number, c: number) => [number, number]) =>
-    (t: Truth): Truth => { const [f, c] = fn(t.f, t.c); return createTruth(f, c); };
+    (t: Truth): Truth => {
+        const [f, c] = fn(t.f, t.c);
+        return createTruth(f, c);
+    };
 
 const c2w = (c: number): number => c === 1 ? 1e10 : c / (1 - c);
 const w2c = (w: number): number => w / (w + 1);
@@ -44,12 +53,21 @@ export const Truth = {
     negation: unaryOp((f, c) => [1 - f, c]),
     conversion: unaryOp((f, c) => [f, f * c]),
     expectation: (t: Truth): number => t.c * (t.f - 0.5) + 0.5,
-    harshness: (t: Truth): number => { const exp = Truth.expectation(t); return (1 - t.c) * (1 - exp) + t.c * exp; },
+    harshness: (t: Truth): number => {
+        const exp = Truth.expectation(t);
+        return (1 - t.c) * (1 - exp) + t.c * exp;
+    },
 
-    comparison: binaryOp((f1, f2, c1, c2) => { const fProd = f1 * f2; return [safeDiv(fProd, fProd + (1 - f1) * (1 - f2)), c1 * c2]; }),
+    comparison: binaryOp((f1, f2, c1, c2) => {
+        const fProd = f1 * f2;
+        return [safeDiv(fProd, fProd + (1 - f1) * (1 - f2)), c1 * c2];
+    }),
     analogy: binaryOp((f1, f2, c1, c2) => [f1 * f2, c1 * c2 * f2]),
     resemblance: binaryOp((f1, f2, c1, c2) => [(f1 + f2) / 2, c1 * c2]),
-    contraposition: binaryOp((f1, f2, c1, c2) => { const cf = f2 * (1 - f1); return [safeDiv(cf, cf + (1 - f2) * f1), c1 * c2]; }),
+    contraposition: binaryOp((f1, f2, c1, c2) => {
+        const cf = f2 * (1 - f1);
+        return [safeDiv(cf, cf + (1 - f2) * f1), c1 * c2];
+    }),
     intersection: binaryOp((f1, f2, c1, c2) => [f1 * f2, c1 * c2]),
     union: binaryOp((f1, f2, c1, c2) => [1 - (1 - f1) * (1 - f2), c1 * c2]),
     subtract: binaryOp((f1, f2, c1, c2) => [Math.max(0, f1 - f2), c1 * c2]),
@@ -61,10 +79,19 @@ export const Truth = {
         const res = Truth.deduction(t1, t2);
         return res ? createTruth(res.f, res.c / (res.c + WEAKENING_FACTOR)) : null;
     },
-    induction: binaryOp((f1, f2, c1, c2) => { const w = f2 * c1 * c2; return [f2, w / (w + 1)]; }),
-    abduction: binaryOp((f1, f2, c1, c2) => { const w = f1 * c1 * c2; return [f1, w / (w + 1)]; }),
+    induction: binaryOp((f1, f2, c1, c2) => {
+        const w = f2 * c1 * c2;
+        return [f2, w / (w + 1)];
+    }),
+    abduction: binaryOp((f1, f2, c1, c2) => {
+        const w = f1 * c1 * c2;
+        return [f1, w / (w + 1)];
+    }),
     detachment: binaryOp((f1, f2, c1, c2) => [f2, f1 * c1 * c2]),
-    revision: binaryOp((f1, f2, c1, c2) => { const w1 = c2w(c1), w2 = c2w(c2), w = w1 + w2; return [(f1 * w1 + f2 * w2) / w, w2c(w)]; }),
+    revision: binaryOp((f1, f2, c1, c2) => {
+        const w1 = c2w(c1), w2 = c2w(c2), w = w1 + w2;
+        return [(f1 * w1 + f2 * w2) / w, w2c(w)];
+    }),
     choice: (t1: Truth, t2: Truth): Truth => Truth.expectation(t1) > Truth.expectation(t2) ? t1 : t2,
     structuralDeduction: unaryOp((f, c) => [f * f, c / (c + 1) * c]),
     structuralReduction: unaryOp((f, c) => [f, c / (c + WEAKENING_FACTOR)]),

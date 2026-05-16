@@ -2,8 +2,6 @@
  * Input tracing for debugging infinite loops and performance issues
  */
 
-import type {Term} from '../terms';
-
 export type TraceEventType =
     | 'input_start'
     | 'input_parse'
@@ -59,7 +57,7 @@ export class InputTracer {
 
     event(type: TraceEventType, label: string, data?: Record<string, unknown>): void {
         const now = Date.now();
-        
+
         // Check for infinite loop in current phase
         if (this.currentPhase !== 'idle') {
             const key = `${this.currentPhase}:${type}`;
@@ -80,7 +78,7 @@ export class InputTracer {
                 });
                 throw new LoopDetectionError(
                     `Infinite loop detected: ${label} executed ${count} times in phase "${this.currentPhase}"`,
-                    { phase: this.currentPhase, type, count }
+                    {phase: this.currentPhase, type, count}
                 );
             }
         }
@@ -91,11 +89,11 @@ export class InputTracer {
                 type: 'timeout',
                 timestamp: now,
                 label: `Operation exceeded ${this.config.timeoutMs}ms timeout`,
-                data: { elapsed, phase: this.currentPhase, ...data }
+                data: {elapsed, phase: this.currentPhase, ...data}
             });
             throw new TimeoutError(
                 `Operation timed out after ${elapsed}ms in phase "${this.currentPhase}"`,
-                { elapsed, phase: this.currentPhase }
+                {elapsed, phase: this.currentPhase}
             );
         }
 

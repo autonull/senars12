@@ -1,6 +1,6 @@
-import type { NAR } from '../../nar/nar.js';
-import type { Connection } from '../types.js';
-import type { ConnectionManager } from '../connection-manager.js';
+import type {NAR} from '../../nar/nar.js';
+import type {Connection} from '../types.js';
+import type {ConnectionManager} from '../connection-manager.js';
 
 export interface CommandContext {
     readonly nar: NAR;

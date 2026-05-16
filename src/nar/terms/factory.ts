@@ -27,7 +27,9 @@ const createAtom = (symbol: string): AtomicTerm => {
         kind: 'atom' as const,
         symbol,
         isVariable: symbol.startsWith('$'),
-        toString() { return symbol; }
+        toString() {
+            return symbol;
+        }
     } as AtomicTerm), key);
 };
 
@@ -51,7 +53,9 @@ const createCompound = (kind: OperatorKey, args: Term[]): Term => {
     return cache(Object.freeze({
         kind,
         args: sorted as readonly Term[],
-        toString() { return serializeTerm(this as CompoundTerm); }
+        toString() {
+            return serializeTerm(this as CompoundTerm);
+        }
     } as CompoundTerm), key);
 };
 
@@ -61,26 +65,28 @@ for (const key of Object.keys(OPERATORS) as OperatorKey[]) {
 }
 
 export const TermBuilder = {
-  atom: (symbol: string): AtomicTerm =>
-    symbol === 'TRUE' ? TRUE_ATOM : symbol === 'FALSE' ? FALSE_ATOM : createAtom(symbol),
+    atom: (symbol: string): AtomicTerm =>
+        symbol === 'TRUE' ? TRUE_ATOM : symbol === 'FALSE' ? FALSE_ATOM : createAtom(symbol),
 
-  ...compoundCtors as Record<OperatorKey, (...args: Term[]) => Term>,
+    ...compoundCtors as Record<OperatorKey, (...args: Term[]) => Term>,
 
-  compound: (kind: OperatorKey, args: Term[]): Term => createCompound(kind, args),
+    compound: (kind: OperatorKey, args: Term[]): Term => createCompound(kind, args),
 
-  // Peggy parser compatibility aliases
-  create: (kind: string, args: Term[]): Term => createCompound(kind as OperatorKey, args),
-  setExt: (components: Term[]): Term => createCompound('instance', components),
-  setInt: (components: Term[]): Term => createCompound('property', components),
-  tuple: (components: Term[]): Term => createCompound('conjunction', components),
-  atomic: (symbol: string): AtomicTerm => createAtom(symbol),
-  inheritance: (subj: Term, pred: Term): Term => createCompound('inheritance', [subj, pred]),
-  negation: (term: Term): Term => createCompound('negation', [term]),
-  delta: (term: Term): Term => createCompound('negation', [term]), // delta is negation
+    // Peggy parser compatibility aliases
+    create: (kind: string, args: Term[]): Term => createCompound(kind as OperatorKey, args),
+    setExt: (components: Term[]): Term => createCompound('instance', components),
+    setInt: (components: Term[]): Term => createCompound('property', components),
+    tuple: (components: Term[]): Term => createCompound('conjunction', components),
+    atomic: (symbol: string): AtomicTerm => createAtom(symbol),
+    inheritance: (subj: Term, pred: Term): Term => createCompound('inheritance', [subj, pred]),
+    negation: (term: Term): Term => createCompound('negation', [term]),
+    delta: (term: Term): Term => createCompound('negation', [term]), // delta is negation
 
-  evict: (key: string): boolean => termCache.delete(key),
-  clear: (): void => termCache.clear(),
-  get size(): number { return termCache.size; }
+    evict: (key: string): boolean => termCache.delete(key),
+    clear: (): void => termCache.clear(),
+    get size(): number {
+        return termCache.size;
+    }
 };
 
 export const freeze = <T extends object>(obj: T): Readonly<T> => Object.freeze(obj);

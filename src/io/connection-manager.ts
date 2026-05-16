@@ -1,26 +1,33 @@
-import type { Connection, ConnectionConfig, ConnectionFactory, ConnectionState, Logger } from './types.js';
+import type {Connection, ConnectionConfig, ConnectionFactory, Logger} from './types.js';
 
 export class ConnectionManager {
     private connections: Map<string, Connection> = new Map();
     private factories: Map<string, ConnectionFactory> = new Map();
     private readonly logger: Logger;
 
-  constructor(logger?: Logger) {
-    this.logger = logger ?? {
-      debug: () => {},
-      info: () => {},
-      warn: () => {},
-      error: () => {},
-      child: () => this as unknown as Logger,
-    };
-  }
+    constructor(logger?: Logger) {
+        this.logger = logger ?? {
+            debug: () => {
+            },
+            info: () => {
+            },
+            warn: () => {
+            },
+            error: () => {
+            },
+            child: () => this as unknown as Logger,
+        };
+    }
 
     registerFactory(factory: ConnectionFactory): void {
         this.factories.set(factory.type, factory);
         this.logger.info(`Registered factory for connection type: ${factory.type}`);
     }
 
-    async addConnection(config: ConnectionConfig, deps: { nar: unknown; emit: (event: string, data: unknown) => void }): Promise<Connection> {
+    async addConnection(config: ConnectionConfig, deps: {
+        nar: unknown;
+        emit: (event: string, data: unknown) => void
+    }): Promise<Connection> {
         const factory = this.factories.get(config.type);
         if (!factory) {
             throw new Error(`No factory registered for connection type: ${config.type}`);

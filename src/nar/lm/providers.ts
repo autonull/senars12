@@ -1,4 +1,4 @@
-import {createProviderRegistry, customProvider, wrapLanguageModel, defaultSettingsMiddleware} from 'ai';
+import {createProviderRegistry, customProvider, defaultSettingsMiddleware, wrapLanguageModel} from 'ai';
 import {anthropic} from '@ai-sdk/anthropic';
 import {ollama} from 'ollama-ai-provider-v2';
 import {transformersJS} from '@browser-ai/transformers-js';
@@ -58,8 +58,11 @@ export function getStructuredModel(registry: SeNARSRegistry) {
 
 export function getModelForTask(registry: SeNARSRegistry, task: 'quality' | 'fast' | 'structured') {
     switch (task) {
-        case 'quality': return getQualityModel(registry);
-        case 'fast': return getFastModel(registry);
-        case 'structured': return getStructuredModel(registry);
+        case 'quality':
+            return getQualityModel(registry);
+        case 'fast':
+            return getFastModel(registry);
+        case 'structured':
+            return getStructuredModel(registry);
     }
 }

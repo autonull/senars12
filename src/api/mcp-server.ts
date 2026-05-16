@@ -7,12 +7,12 @@ import {Server} from '@modelcontextprotocol/sdk/server/index.js';
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
 import type {ServerCapabilities} from '@modelcontextprotocol/sdk/types.js';
 import {
-	CallToolRequestSchema,
-	ListToolsRequestSchema,
-	ListResourcesRequestSchema,
-	ReadResourceRequestSchema,
-	ListPromptsRequestSchema,
-	GetPromptRequestSchema,
+    CallToolRequestSchema,
+    GetPromptRequestSchema,
+    ListPromptsRequestSchema,
+    ListResourcesRequestSchema,
+    ListToolsRequestSchema,
+    ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import {EnhancedMCPAdapter} from './mcp/enhanced-adapter.js';
 import type {SchemaTransformer} from './mcp/schema-transformer.js';
@@ -25,10 +25,10 @@ import {toError} from '../nar/utils/helpers.js';
  * MCP Server Configuration
  */
 export interface MCPServerConfig {
-	name?: string;
-	version?: string;
-	port?: number;
-	transport?: 'stdio' | 'sse' | 'http';
+    name?: string;
+    version?: string;
+    port?: number;
+    transport?: 'stdio' | 'sse' | 'http';
 }
 
 /**
@@ -36,254 +36,254 @@ export interface MCPServerConfig {
  * Uses official @modelcontextprotocol/sdk for protocol compliance
  */
 export class SeNARSMCPServer {
-	private server: Server;
-	private adapter: EnhancedMCPAdapter;
-	private config: Required<MCPServerConfig>;
-	private logger: Logger;
-	private schemaTransformer: SchemaTransformer;
-	private isRunning: boolean = false;
+    private server: Server;
+    private adapter: EnhancedMCPAdapter;
+    private config: Required<MCPServerConfig>;
+    private logger: Logger;
+    private schemaTransformer: SchemaTransformer;
+    private isRunning: boolean = false;
 
-	constructor(config: MCPServerConfig = {}) {
-		this.adapter = new EnhancedMCPAdapter();
-		this.schemaTransformer = getSchemaTransformer();
-		this.logger = createLogger({scope: 'api:mcp-server'});
+    constructor(config: MCPServerConfig = {}) {
+        this.adapter = new EnhancedMCPAdapter();
+        this.schemaTransformer = getSchemaTransformer();
+        this.logger = createLogger({scope: 'api:mcp-server'});
 
-		this.config = {
-			name: config.name ?? 'senars-mcp',
-			version: config.version ?? '1.0.0',
-			port: config.port ?? 8766,
-			transport: config.transport ?? 'stdio',
-		};
+        this.config = {
+            name: config.name ?? 'senars-mcp',
+            version: config.version ?? '1.0.0',
+            port: config.port ?? 8766,
+            transport: config.transport ?? 'stdio',
+        };
 
-		// Initialize MCP server with capabilities
-		const capabilities: ServerCapabilities = {
-			tools: {
-				listChanged: true,
-			},
-			resources: {
-				subscribe: true,
-				listChanged: true,
-			},
-			prompts: {
-				listChanged: true,
-			},
-			logging: {},
-		};
+        // Initialize MCP server with capabilities
+        const capabilities: ServerCapabilities = {
+            tools: {
+                listChanged: true,
+            },
+            resources: {
+                subscribe: true,
+                listChanged: true,
+            },
+            prompts: {
+                listChanged: true,
+            },
+            logging: {},
+        };
 
-		this.server = new Server(
-			{
-				name: this.config.name,
-				version: this.config.version,
-			},
-			{
-				capabilities,
-			}
-		);
+        this.server = new Server(
+            {
+                name: this.config.name,
+                version: this.config.version,
+            },
+            {
+                capabilities,
+            }
+        );
 
-		// Register handlers
-		this.registerHandlers();
-	}
+        // Register handlers
+        this.registerHandlers();
+    }
 
-	/**
-	 * Register MCP protocol handlers
-	 */
-	private registerHandlers(): void {
-		// Tool listing
-		this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-			const tools = this.adapter.getTools().map((tool) => ({
-				name: tool.name,
-				description: tool.description,
-				inputSchema: tool.inputSchema,
-			}));
+    /**
+     * Start the MCP server with specified transport
+     */
+    async start(): Promise<void> {
+        if (this.isRunning) {
+            this.logger.warn('MCP Server already running');
+            return;
+        }
 
-			return {tools};
-		});
+        this.logger.info(
+            `Starting MCP Server '${this.config.name}' v${this.config.version}`
+        );
+        this.logger.info(`Transport: ${this.config.transport}`);
 
-		// Tool execution
-		this.server.setRequestHandler(
-			CallToolRequestSchema,
-			async (request) => {
-				const {name, arguments: args} = request.params;
+        try {
+            // Select transport
+            let transport;
 
-				this.logger.info(`Tool call: ${name}`, args);
+            switch (this.config.transport) {
+                case 'stdio':
+                    transport = new StdioServerTransport();
+                    break;
+                case 'sse':
+                    // SSE transport would be implemented here
+                    this.logger.warn('SSE transport not yet implemented');
+                    return;
+                case 'http':
+                    // HTTP transport would be implemented here
+                    this.logger.warn('HTTP transport not yet implemented');
+                    return;
+                default:
+                    throw new Error(`Unknown transport: ${this.config.transport}`);
+            }
 
-				try {
-					const result = await this.adapter.executeTool({
-						name,
-						arguments: args || {},
-					});
+            // Connect server to transport
+            await this.server.connect(transport);
 
-					return {
-						content: result.content,
-						isError: result.isError,
-					};
-				} catch (error) {
-					this.logger.error(`Tool execution failed: ${name}`, toError(error));
+            this.isRunning = true;
+            this.logger.info('MCP Server started successfully');
 
-					return {
-						content: [
-							{
-								type: 'text',
-								text: JSON.stringify(
-									{
-										type: 'error',
-										error: {
-											code: 'EXECUTION_ERROR',
-											message:
-												error instanceof Error
-													? error.message
-													: String(error),
-										},
-										timestamp: Date.now(),
-									},
-									null,
-									2
-								),
-							},
-						],
-						isError: true,
-					};
-				}
-			}
-		);
+            // Log available tools
+            const tools = this.adapter.getTools();
+            this.logger.info(
+                `Available tools: ${tools.map((t) => t.name).join(', ') || 'none'}`
+            );
+        } catch (error) {
+            this.logger.error('Failed to start MCP Server', toError(error));
+            throw error;
+        }
+    }
 
-		// Resource listing (placeholder)
-		this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
-			return {
-				resources: [],
-			};
-		});
+    /**
+     * Stop the MCP server
+     */
+    async stop(): Promise<void> {
+        if (!this.isRunning) {
+            return;
+        }
 
-		// Resource retrieval (placeholder)
-		this.server.setRequestHandler(
-			ReadResourceRequestSchema,
-			async (_request) => {
-				return {
-					contents: [],
-				};
-			}
-		);
+        this.logger.info('Stopping MCP Server');
 
-		// Prompt listing (placeholder)
-		this.server.setRequestHandler(ListPromptsRequestSchema, async () => {
-			return {
-				prompts: [],
-			};
-		});
+        try {
+            await this.server.close();
+            this.isRunning = false;
+            this.logger.info('MCP Server stopped');
+        } catch (error) {
+            this.logger.error('Error stopping MCP Server', toError(error));
+        }
+    }
 
-		// Prompt retrieval (placeholder)
-		this.server.setRequestHandler(
-			GetPromptRequestSchema,
-			async (_request) => {
-				return {
-					description: 'No prompts configured',
-					messages: [],
-				};
-			}
-		);
-	}
+    /**
+     * Register a new capability dynamically
+     */
+    registerCapability(descriptor: CapabilityDescriptor): void {
+        this.adapter.registerCapability(descriptor);
+        this.logger.info(`Registered capability: ${descriptor.name}`);
+    }
 
-	/**
-	 * Start the MCP server with specified transport
-	 */
-	async start(): Promise<void> {
-		if (this.isRunning) {
-			this.logger.warn('MCP Server already running');
-			return;
-		}
+    /**
+     * Unregister a capability dynamically
+     */
+    unregisterCapability(name: string): void {
+        this.adapter.unregisterCapability(name);
+        this.logger.info(`Unregistered capability: ${name}`);
+    }
 
-		this.logger.info(
-			`Starting MCP Server '${this.config.name}' v${this.config.version}`
-		);
-		this.logger.info(`Transport: ${this.config.transport}`);
+    listTools(): Array<{ name: string; description: string }> {
+        return this.adapter.getTools().map(t => ({name: t.name, description: t.description}));
+    }
 
-		try {
-			// Select transport
-			let transport;
+    getToolSchema(name: string): Record<string, unknown> | undefined {
+        return this.adapter.getTools().find(t => t.name === name)?.inputSchema;
+    }
 
-			switch (this.config.transport) {
-				case 'stdio':
-					transport = new StdioServerTransport();
-					break;
-				case 'sse':
-					// SSE transport would be implemented here
-					this.logger.warn('SSE transport not yet implemented');
-					return;
-				case 'http':
-					// HTTP transport would be implemented here
-					this.logger.warn('HTTP transport not yet implemented');
-					return;
-				default:
-					throw new Error(`Unknown transport: ${this.config.transport}`);
-			}
+    isServerRunning(): boolean {
+        return this.isRunning;
+    }
 
-			// Connect server to transport
-			await this.server.connect(transport);
+    getAdapter(): EnhancedMCPAdapter {
+        return this.adapter;
+    }
 
-			this.isRunning = true;
-			this.logger.info('MCP Server started successfully');
+    /**
+     * Register MCP protocol handlers
+     */
+    private registerHandlers(): void {
+        // Tool listing
+        this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+            const tools = this.adapter.getTools().map((tool) => ({
+                name: tool.name,
+                description: tool.description,
+                inputSchema: tool.inputSchema,
+            }));
 
-			// Log available tools
-			const tools = this.adapter.getTools();
-			this.logger.info(
-				`Available tools: ${tools.map((t) => t.name).join(', ') || 'none'}`
-			);
-		} catch (error) {
-			this.logger.error('Failed to start MCP Server', toError(error));
-			throw error;
-		}
-	}
+            return {tools};
+        });
 
-	/**
-	 * Stop the MCP server
-	 */
-	async stop(): Promise<void> {
-		if (!this.isRunning) {
-			return;
-		}
+        // Tool execution
+        this.server.setRequestHandler(
+            CallToolRequestSchema,
+            async (request) => {
+                const {name, arguments: args} = request.params;
 
-		this.logger.info('Stopping MCP Server');
+                this.logger.info(`Tool call: ${name}`, args);
 
-		try {
-			await this.server.close();
-			this.isRunning = false;
-			this.logger.info('MCP Server stopped');
-		} catch (error) {
-			this.logger.error('Error stopping MCP Server', toError(error));
-		}
-	}
+                try {
+                    const result = await this.adapter.executeTool({
+                        name,
+                        arguments: args || {},
+                    });
 
-	/**
-	 * Register a new capability dynamically
-	 */
-	registerCapability(descriptor: CapabilityDescriptor): void {
-		this.adapter.registerCapability(descriptor);
-		this.logger.info(`Registered capability: ${descriptor.name}`);
-	}
+                    return {
+                        content: result.content,
+                        isError: result.isError,
+                    };
+                } catch (error) {
+                    this.logger.error(`Tool execution failed: ${name}`, toError(error));
 
-	/**
-	 * Unregister a capability dynamically
-	 */
-	unregisterCapability(name: string): void {
-		this.adapter.unregisterCapability(name);
-		this.logger.info(`Unregistered capability: ${name}`);
-	}
+                    return {
+                        content: [
+                            {
+                                type: 'text',
+                                text: JSON.stringify(
+                                    {
+                                        type: 'error',
+                                        error: {
+                                            code: 'EXECUTION_ERROR',
+                                            message:
+                                                error instanceof Error
+                                                    ? error.message
+                                                    : String(error),
+                                        },
+                                        timestamp: Date.now(),
+                                    },
+                                    null,
+                                    2
+                                ),
+                            },
+                        ],
+                        isError: true,
+                    };
+                }
+            }
+        );
 
-	listTools(): Array<{name: string; description: string}> {
-		return this.adapter.getTools().map(t => ({name: t.name, description: t.description}));
-	}
+        // Resource listing (placeholder)
+        this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
+            return {
+                resources: [],
+            };
+        });
 
-	getToolSchema(name: string): Record<string, unknown> | undefined {
-		return this.adapter.getTools().find(t => t.name === name)?.inputSchema;
-	}
+        // Resource retrieval (placeholder)
+        this.server.setRequestHandler(
+            ReadResourceRequestSchema,
+            async (_request) => {
+                return {
+                    contents: [],
+                };
+            }
+        );
 
-	isServerRunning(): boolean {
-		return this.isRunning;
-	}
+        // Prompt listing (placeholder)
+        this.server.setRequestHandler(ListPromptsRequestSchema, async () => {
+            return {
+                prompts: [],
+            };
+        });
 
-	getAdapter(): EnhancedMCPAdapter {
-		return this.adapter;
-	}
+        // Prompt retrieval (placeholder)
+        this.server.setRequestHandler(
+            GetPromptRequestSchema,
+            async (_request) => {
+                return {
+                    description: 'No prompts configured',
+                    messages: [],
+                };
+            }
+        );
+    }
 }
 
 export {EnhancedMCPAdapter};

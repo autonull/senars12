@@ -1,7 +1,7 @@
 import type {LMClient} from './lm';
+import {BidirectionalFeedbackLoop, ProactiveEnricher, StreamingLMClient} from './lm';
 import type {SeNARSRegistry} from './lm/providers.js';
 import {getQualityModel} from './lm/providers.js';
-import {BidirectionalFeedbackLoop, ProactiveEnricher, StreamingLMClient} from './lm';
 import type {Memory} from './memory';
 import type {Task} from './types';
 
@@ -91,7 +91,7 @@ export class NARLM {
     }
 
     getFeedbackStats(): FeedbackStats | null {
-        return this.feedbackLoop ? { pendingValidations: this.feedbackLoop.getPendingValidations().length } : null;
+        return this.feedbackLoop ? {pendingValidations: this.feedbackLoop.getPendingValidations().length} : null;
     }
 
     getStreamingStats(): LMStreamingStats | null {

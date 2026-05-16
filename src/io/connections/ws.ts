@@ -1,5 +1,5 @@
 import {WebSocket, WebSocketServer} from 'ws';
-import type {ConnectionConfig, ConnectionDeps, IOMessage} from '../types.js';
+import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
 import {createLogger} from '../../nar/logger/index.js';
 import {startWSServer} from '../utils/http.js';
@@ -16,12 +16,11 @@ export class WSConnection extends BaseConnection {
     override readonly id: string;
     override readonly name: string;
     override readonly type = 'websocket';
-
+    override readonly logger = createLogger({scope: 'io:ws'});
     private server: WebSocketServer | null = null;
     private clients = new Map<string, WSClient>();
     private eventSubscriptions = new Map<string, Set<WebSocket>>();
     private port: number;
-    override readonly logger = createLogger({scope: 'io:ws'});
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);

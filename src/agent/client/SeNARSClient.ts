@@ -106,16 +106,50 @@ export class SeNARSClient {
     }
 
     // Core operations - thin wrappers around sendMessage
-    async addBelief(term: string, truth?: { f: number; c: number }) { return this.sendMessage<{ added: true; term: string }>('belief', {term, truth}); }
-    async addGoal(term: string, truth?: { f: number; c: number }) { return this.sendMessage<{ added: true; term: string }>('goal', {term, truth}); }
-    async addQuestion(term: string) { return this.sendMessage<{ added: true; term: string }>('question', {term}); }
-    async getConcepts(filter?: ConceptFilter, pagination?: PaginationParams) { return this.sendMessage<{ results: unknown[]; count: number }>('concepts', {filter, pagination}); }
-    async run(steps?: number) { return this.sendMessage<{ derived: number }>('run', {steps}); }
-    async query(term: string, filter?: Record<string, unknown>) { return this.sendMessage<{ results: unknown[]; count: number }>('query', {term, filter}); }
-    async getStats() { return this.sendMessage<{ totalConcepts: number; totalTasks: number; derivations: number; uptime: number }>('stats'); }
-    async getConfig(key?: string) { return this.sendMessage<Record<string, unknown>>('config', {key}); }
-    async getAttentionSnapshot() { return this.sendMessage<{ concepts: Array<{ term: string; priority: number }>; total: number }>('attention'); }
-    async getHistory(limit?: number) { return this.sendMessage<{ tasks: unknown[]; count: number }>('history', {limit}); }
+    async addBelief(term: string, truth?: { f: number; c: number }) {
+        return this.sendMessage<{ added: true; term: string }>('belief', {term, truth});
+    }
+
+    async addGoal(term: string, truth?: { f: number; c: number }) {
+        return this.sendMessage<{ added: true; term: string }>('goal', {term, truth});
+    }
+
+    async addQuestion(term: string) {
+        return this.sendMessage<{ added: true; term: string }>('question', {term});
+    }
+
+    async getConcepts(filter?: ConceptFilter, pagination?: PaginationParams) {
+        return this.sendMessage<{ results: unknown[]; count: number }>('concepts', {filter, pagination});
+    }
+
+    async run(steps?: number) {
+        return this.sendMessage<{ derived: number }>('run', {steps});
+    }
+
+    async query(term: string, filter?: Record<string, unknown>) {
+        return this.sendMessage<{ results: unknown[]; count: number }>('query', {term, filter});
+    }
+
+    async getStats() {
+        return this.sendMessage<{
+            totalConcepts: number;
+            totalTasks: number;
+            derivations: number;
+            uptime: number
+        }>('stats');
+    }
+
+    async getConfig(key?: string) {
+        return this.sendMessage<Record<string, unknown>>('config', {key});
+    }
+
+    async getAttentionSnapshot() {
+        return this.sendMessage<{ concepts: Array<{ term: string; priority: number }>; total: number }>('attention');
+    }
+
+    async getHistory(limit?: number) {
+        return this.sendMessage<{ tasks: unknown[]; count: number }>('history', {limit});
+    }
 
     // Event subscription
     async subscribe(events: string[]): Promise<void> {

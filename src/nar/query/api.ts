@@ -102,7 +102,10 @@ export class QueryAPI {
         };
     }
 
-    private createTaskFromBelief(term: Term, belief: {truth?: {f: number; c: number}; stamp?: import('../types').Stamp}, priority: number): Task {
+    private createTaskFromBelief(term: Term, belief: {
+        truth?: { f: number; c: number };
+        stamp?: import('../types').Stamp
+    }, priority: number): Task {
         return {
             term,
             type: 'belief',
@@ -153,7 +156,13 @@ export class QueryAPI {
             term: concept.term,
             type,
             truth: item.truth,
-            budget: typeof item.budget === 'number' ? {priority: item.budget, durability: 0.8, quality: 0.9, cycles: 0, depth: 0} : item.budget,
+            budget: typeof item.budget === 'number' ? {
+                priority: item.budget,
+                durability: 0.8,
+                quality: 0.9,
+                cycles: 0,
+                depth: 0
+            } : item.budget,
             stamp: item.stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
             occurrenceTime: item.occurrenceTime || Date.now(),
             derived: item.derived || false

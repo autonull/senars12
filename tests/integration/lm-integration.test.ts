@@ -3,10 +3,10 @@
  * Test AI SDK provider registry configuration
  */
 
-import { describe, test, expect, beforeAll } from '@jest/globals';
-import { SeNARSFactory } from '../../src/nar/factory.js';
-import { registerDefaultModels, getTurnkeyConfig } from '../../src/nar/lm/defaults.js';
-import { createSeNARSRegistry, getQualityModel, getFastModel } from '../../src/nar/lm/providers.js';
+import {beforeAll, describe, expect, test} from '@jest/globals';
+import {SeNARSFactory} from '../../src/nar/factory.js';
+import {getTurnkeyConfig, registerDefaultModels} from '../../src/nar/lm/defaults.js';
+import {createSeNARSRegistry, getFastModel, getQualityModel} from '../../src/nar/lm/providers.js';
 
 describe('Turnkey LM Integration', () => {
     beforeAll(() => {
@@ -22,14 +22,14 @@ describe('Turnkey LM Integration', () => {
     });
 
     test('should create NAR with LM client', () => {
-        const nar = SeNARSFactory.createDefault({ enableLMRules: true });
+        const nar = SeNARSFactory.createDefault({enableLMRules: true});
         const lm = nar.getLMClient();
         expect(lm).toBeDefined();
     });
 
     test('should create NAR with provider registry', () => {
         const registry = createSeNARSRegistry();
-        const nar = SeNARSFactory.createDefault({ enableLMRules: true, providerRegistry: registry });
+        const nar = SeNARSFactory.createDefault({enableLMRules: true, providerRegistry: registry});
         expect(nar).toBeDefined();
         expect(nar.getProviderRegistry()).toBeDefined();
     });
@@ -43,7 +43,7 @@ describe('Turnkey LM Integration', () => {
     });
 
     test('should generate text with LM', async () => {
-        const nar = SeNARSFactory.createDefault({ enableLMRules: true });
+        const nar = SeNARSFactory.createDefault({enableLMRules: true});
         const lm = nar.getLMClient();
 
         if (lm) {
@@ -54,7 +54,7 @@ describe('Turnkey LM Integration', () => {
     }, 30000);
 
     test('should handle fallback chain', () => {
-        const nar = SeNARSFactory.createDefault({ enableLMRules: true });
+        const nar = SeNARSFactory.createDefault({enableLMRules: true});
         expect(nar).toBeDefined();
     });
 });

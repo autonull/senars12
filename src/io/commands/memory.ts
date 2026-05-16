@@ -1,4 +1,4 @@
-import type {CommandContext, CommandDefinition} from './registry.js';
+import type {CommandDefinition} from './registry.js';
 import {singleArgCmd} from './utils.js';
 
 export const memoryCommands: CommandDefinition[] = [
@@ -24,7 +24,11 @@ export const memoryCommands: CommandDefinition[] = [
         execute: singleArgCmd('.save <filename>', async (filename, ctx) => {
             const concepts = ctx.nar.listConcepts().map(c => {
                 const cAny = c as any;
-                return {term: c.term.toString(), beliefs: cAny.beliefBag?.toArray?.() || [], goals: cAny.goalBag?.toArray?.() || []};
+                return {
+                    term: c.term.toString(),
+                    beliefs: cAny.beliefBag?.toArray?.() || [],
+                    goals: cAny.goalBag?.toArray?.() || []
+                };
             });
             const data = {concepts, timestamp: new Date().toISOString(), statistics: ctx.nar.getStatistics()};
             const fs = await import('fs');

@@ -190,7 +190,7 @@ Answer the question based on the available knowledge. If the answer cannot be de
             this.memory.addTask(bridge.term, bridge.type, bridge.truth, bridge.budget);
         }
 
-        return { concept: term, hypotheses, bridges, explanations: [] };
+        return {concept: term, hypotheses, bridges, explanations: []};
     }
 
     private buildHypothesisPrompt(term: Term): string {

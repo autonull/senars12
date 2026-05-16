@@ -16,14 +16,13 @@ export interface MCPToolCall {
 }
 
 export class MCPConnection extends BaseConnection {
-  override readonly id: string;
-  override readonly name: string;
-  override readonly type = 'mcp';
-
-  private transport: 'stdio' | 'sse' = 'stdio';
-  override readonly logger = createLogger({scope: 'io:mcp'});
-  private process: ReturnType<typeof import('child_process').spawn> | null = null;
-  private tools: Map<string, {description: string; inputSchema: Record<string, unknown>}> = new Map();
+    override readonly id: string;
+    override readonly name: string;
+    override readonly type = 'mcp';
+    override readonly logger = createLogger({scope: 'io:mcp'});
+    private transport: 'stdio' | 'sse' = 'stdio';
+    private process: ReturnType<typeof import('child_process').spawn> | null = null;
+    private tools: Map<string, { description: string; inputSchema: Record<string, unknown> }> = new Map();
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);
@@ -41,6 +40,79 @@ export class MCPConnection extends BaseConnection {
         } else {
             this.setState('connected');
         }
+    }
+
+    async disconnect(reason?: string): Promise<void> {
+        if (this.state === 'disconnected' || this.state === 'idle') return;
+
+        this.setState('disconnecting');
+
+        if (this.process) {
+            this.process.kill();
+            this.process = null;
+        }
+
+        this.setState('disconnected');
+        this.logger.info(`MCP connection ${this.id} disconnected: ${reason ?? 'normal'}`);
+    }
+
+    async send(target: string, text: string): Promise<void> {
+        if (!this.process?.stdin) return;
+
+        const parts = target.split(':');
+        const toolName = parts[0];
+        const operation = parts[1] ?? 'call';
+
+        const message = {
+            jsonrpc: '2.0',
+            id: crypto.randomUUID(),
+            method: operation,
+            params: {
+                name: toolName,
+                arguments: text ? JSON.parse(text) : {},
+            },
+        };
+
+        this.process.stdin.write(JSON.stringify(message) + '\n');
+    }
+
+    async callTool(name: string, args: Record<string, unknown>): Promise<MCPToolResult> {
+        return new Promise((resolve) => {
+            const id = crypto.randomUUID();
+            const message = {
+                jsonrpc: '2.0',
+                id,
+                method: 'tools/call',
+                params: {name, arguments: args},
+            };
+
+            const timeout = setTimeout(() => {
+                resolve({
+                    content: [{type: 'text', text: JSON.stringify({error: 'Tool call timeout'})}],
+                    isError: true,
+                });
+            }, 30000);
+
+            const originalHandler = this.messageHandler;
+            this.messageHandler = async (msg) => {
+                clearTimeout(timeout);
+                this.messageHandler = originalHandler;
+                resolve({
+                    content: [{type: 'text', text: msg.text}],
+                    isError: false,
+                });
+            };
+
+            this.process?.stdin?.write(JSON.stringify(message) + '\n');
+        });
+    }
+
+    getTools(): Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> {
+        return Array.from(this.tools.values()).map(t => ({
+            name: t.description,
+            description: t.description,
+            inputSchema: t.inputSchema,
+        }));
     }
 
     private async connectStdio(): Promise<void> {
@@ -93,79 +165,6 @@ export class MCPConnection extends BaseConnection {
         });
     }
 
-    async disconnect(reason?: string): Promise<void> {
-        if (this.state === 'disconnected' || this.state === 'idle') return;
-
-        this.setState('disconnecting');
-
-        if (this.process) {
-            this.process.kill();
-            this.process = null;
-        }
-
-        this.setState('disconnected');
-        this.logger.info(`MCP connection ${this.id} disconnected: ${reason ?? 'normal'}`);
-    }
-
-    async send(target: string, text: string): Promise<void> {
-        if (!this.process?.stdin) return;
-
-        const parts = target.split(':');
-        const toolName = parts[0];
-        const operation = parts[1] ?? 'call';
-
-        const message = {
-            jsonrpc: '2.0',
-            id: crypto.randomUUID(),
-            method: operation,
-            params: {
-                name: toolName,
-                arguments: text ? JSON.parse(text) : {},
-            },
-        };
-
-        this.process.stdin.write(JSON.stringify(message) + '\n');
-    }
-
-async callTool(name: string, args: Record<string, unknown>): Promise<MCPToolResult> {
-    return new Promise((resolve) => {
-      const id = crypto.randomUUID();
-      const message = {
-        jsonrpc: '2.0',
-        id,
-        method: 'tools/call',
-        params: {name, arguments: args},
-      };
-
-      const timeout = setTimeout(() => {
-        resolve({
-          content: [{type: 'text', text: JSON.stringify({error: 'Tool call timeout'})}],
-          isError: true,
-        });
-      }, 30000);
-
-      const originalHandler = this.messageHandler;
-      this.messageHandler = async (msg) => {
-        clearTimeout(timeout);
-        this.messageHandler = originalHandler;
-        resolve({
-          content: [{type: 'text', text: msg.text}],
-          isError: false,
-        });
-      };
-
-      this.process?.stdin?.write(JSON.stringify(message) + '\n');
-    });
-  }
-
-    getTools(): Array<{name: string; description: string; inputSchema: Record<string, unknown>}> {
-        return Array.from(this.tools.values()).map(t => ({
-            name: t.description,
-            description: t.description,
-            inputSchema: t.inputSchema,
-        }));
-    }
-
     private handleMCPMessage(data: Record<string, unknown>): void {
         const method = data.method as string | undefined;
 
@@ -175,7 +174,9 @@ async callTool(name: string, args: Record<string, unknown>): Promise<MCPToolResu
         }
 
         if (method === 'tools/list') {
-            const tools = (data.params as {result: {tools: Array<{name: string; description: string; inputSchema: Record<string, unknown>}>}})?.result?.tools ?? [];
+            const tools = (data.params as {
+                result: { tools: Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> }
+            })?.result?.tools ?? [];
             this.tools.clear();
             for (const tool of tools) {
                 this.tools.set(tool.name, {
@@ -187,7 +188,7 @@ async callTool(name: string, args: Record<string, unknown>): Promise<MCPToolResu
         }
 
         if (method === 'tools/call') {
-            const params = data.params as {name: string; arguments: Record<string, unknown>};
+            const params = data.params as { name: string; arguments: Record<string, unknown> };
             const message: IOMessage = {
                 id: data.id as string ?? crypto.randomUUID(),
                 source: this.id,

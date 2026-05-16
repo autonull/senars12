@@ -1,5 +1,5 @@
-import type { Connection, IOMessage } from './types.js';
-import type { NAR } from '../nar/nar.js';
+import type {Connection, IOMessage} from './types.js';
+import type {NAR} from '../nar/nar.js';
 
 export interface MessageContext {
     readonly connection: Connection;
@@ -20,18 +20,18 @@ export class MessageRouter {
         this.middleware.push(middleware);
     }
 
-  async route(message: IOMessage, context: MessageContext): Promise<void> {
-    let index = 0;
+    async route(message: IOMessage, context: MessageContext): Promise<void> {
+        let index = 0;
 
-    const next = async (): Promise<void> => {
-      if (index < this.middleware.length) {
-        const handler = this.middleware[index++];
-        if (handler) {
-          await handler(message, context, next);
-        }
-      }
-    };
+        const next = async (): Promise<void> => {
+            if (index < this.middleware.length) {
+                const handler = this.middleware[index++];
+                if (handler) {
+                    await handler(message, context, next);
+                }
+            }
+        };
 
-    await next();
-  }
+        await next();
+    }
 }
