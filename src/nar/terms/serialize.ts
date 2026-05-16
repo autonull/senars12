@@ -1,6 +1,6 @@
 import type {Term} from './types.js';
 import {OPERATORS} from './operators.js';
-import {termParser} from './parser.js';
+import {termParser} from './parser-peggy.js';
 
 const BINARY_OPS = new Set(Object.entries(OPERATORS).filter(([, v]) => v.arity === 2 || v.nary).map(([k]) => k));
 const UNARY_OPS = new Set(Object.entries(OPERATORS).filter(([, v]) => v.arity === 1).map(([k]) => k));

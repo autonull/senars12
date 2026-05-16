@@ -6,7 +6,7 @@
 import {z} from 'zod';
 import {APIRegistry} from './registry.js';
 import {Agent} from '../agent/Agent.js';
-import {termParser} from '../nar/terms/parser.js';
+import {termParser} from '../nar/terms/index.js';
 
 const registry = APIRegistry.getInstance();
 

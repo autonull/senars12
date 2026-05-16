@@ -3,7 +3,7 @@ import {generateObject} from 'ai';
 import type {SeNARSRegistry} from '../lm/providers.js';
 import {getStructuredModel} from '../lm/providers.js';
 import {TranslationSchema, type TranslationResult} from './schemas.js';
-import {termParser} from '../terms/parser.js';
+import {termParser} from '../terms/index.js';
 
 export class NLTranslator {
     constructor(private registry: SeNARSRegistry) {}
