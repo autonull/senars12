@@ -1,6 +1,6 @@
 import type {NAR} from '../nar.js';
 import {MetacognitiveMonitor} from './MetacognitiveMonitor.js';
-import {SelfAnalyzer, type MetaCognitiveResult, type MonitorState} from './SelfAnalyzer.js';
+import {type MetaCognitiveResult, type MonitorState, SelfAnalyzer} from './SelfAnalyzer.js';
 import {createLogger} from '../logger';
 
 const logger = createLogger({scope: 'ReasoningAboutReasoning'});
@@ -106,12 +106,12 @@ export class ReasoningAboutReasoning {
             reasoningTrace: this.monitor.getReasoningTrace().slice(-10),
             performanceTrend: this.monitor.getPerformanceTrend(),
             currentContext: {
-                memorySize: memory ? (memory as {size?: number}).size ?? 0 : 0,
+                memorySize: memory ? (memory as { size?: number }).size ?? 0 : 0,
                 conceptCount: this.nar.listConcepts().length,
                 timestamp: Date.now()
             },
             performanceMonitors: {
-                throughput: (monitorState as MonitorState & {throughput?: number}).throughput ?? 0,
+                throughput: (monitorState as MonitorState & { throughput?: number }).throughput ?? 0,
                 memoryUsage: process.memoryUsage?.()
             },
             activeMetaTasks: 0,

@@ -84,6 +84,7 @@ export class NAR extends BaseComponent {
     readonly query: QueryAPI;
     readonly traceAPI: ReasoningTrace;
     readonly tools: ToolManager;
+    readonly self?: ReasoningAboutReasoning;
     readonly rlfp?: RLFPLearner;
 
     private readonly io: NARIO;
@@ -97,7 +98,6 @@ export class NAR extends BaseComponent {
     private _lmInitialized = false;
     private _toolsInitialized = false;
     private _constitution: Task[] = [];
-    private _self?: ReasoningAboutReasoning;
 
     constructor(config: NARConfig = DEFAULT_CONFIG) {
         const eventBus = new EventBus();
@@ -235,10 +235,6 @@ export class NAR extends BaseComponent {
     // Constitution
     setConstitution(beliefs: Task[]): void {
         this._constitution = beliefs.map(b => ({...b, stamp: {...b.stamp, source: 'CONSTITUTION' as const}}));
-    }
-
-    get self(): ReasoningAboutReasoning | undefined {
-        return this._self;
     }
 
     getConstitution(): Task[] {
@@ -427,7 +423,7 @@ export class NAR extends BaseComponent {
             this.initializeTools();
         }
         if (this.config.enableSelf) {
-            this._self = new ReasoningAboutReasoning(this, {});
+            Object.assign(this, {self: new ReasoningAboutReasoning(this, {})});
         }
     }
 

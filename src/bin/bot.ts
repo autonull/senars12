@@ -7,7 +7,6 @@
  */
 
 import {Agent} from '../agent/Agent.js';
-import {ChatResponder} from '../agent/ChatResponder.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {createLogger} from '../nar/logger/index.js';
@@ -24,13 +23,7 @@ async function main() {
         providerRegistry: registry,
     });
 
-    const chatResponder = new ChatResponder({
-        nar,
-        registry,
-        name: process.env.SENARS_BOT_NAME || 'SeNARS',
-    });
-
-    const agent = new Agent(nar, logger, chatResponder);
+    const agent = new Agent(nar, logger);
 
     setupGracefulShutdown(() => agent.stop(), logger);
 

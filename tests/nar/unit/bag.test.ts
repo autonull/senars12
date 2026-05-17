@@ -146,12 +146,12 @@ describe('Bag', () => {
             expect(items).toHaveLength(1);
         });
 
-        test('toArray returns all items', () => {
+        test('getItems returns all items', () => {
             const bag = new Bag<TestItem>(3);
             bag.add({id: 'a'}, 0.5);
             bag.add({id: 'b'}, 0.6);
 
-            const items = bag.toArray();
+            const items = bag.getItems();
             expect(items).toHaveLength(2);
             expect(items).toContainEqual({id: 'a'});
             expect(items).toContainEqual({id: 'b'});

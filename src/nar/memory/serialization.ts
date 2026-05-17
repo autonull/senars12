@@ -73,7 +73,7 @@ function serializeBag(bag: any): SerializedTask[] {
     const tasks: SerializedTask[] = [];
     if (!bag) return tasks;
 
-    const items = bag.toArray ? bag.toArray() : [];
+    const items = bag.getItems ? bag.getItems() : [];
     for (const item of items) {
         tasks.push({
             term: termToString(item.term),

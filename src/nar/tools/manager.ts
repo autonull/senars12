@@ -9,7 +9,6 @@ import type {
     ToolResult,
     ToolStatistics
 } from './types';
-import {errorResult} from './types';
 import {Registry} from './registry';
 import {EventEmitter} from 'events';
 import {createLogger} from '../logger';
@@ -219,15 +218,16 @@ export class ToolManager extends EventEmitter {
             return result;
         } catch (error) {
             const duration = Date.now() - startTime;
-            const errResult = errorResult(error);
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            const errorResult = {success: false, content: null, error: errorMsg};
             const errorEvent: ToolEvent = {
                 type: 'tool_error', ...baseEvent,
-                result: errResult,
+                result: errorResult,
                 timestamp: Date.now(),
                 duration
             };
 
-            this.updateStatistics(name, errResult, duration);
+            this.updateStatistics(name, errorResult, duration);
             this.emit('tool:error', errorEvent);
             this.addToHistory(errorEvent);
             throw error;

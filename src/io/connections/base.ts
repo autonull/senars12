@@ -69,10 +69,6 @@ export abstract class BaseConnection implements Connection {
         Object.assign(this.config.config, config);
     }
 
-    protected isDisconnected(): boolean {
-        return this._state === 'disconnected' || this._state === 'idle';
-    }
-
     protected setState(value: ConnectionState): void {
         const prev = this._state;
         if (prev !== value) {
@@ -98,10 +94,6 @@ export abstract class BaseConnection implements Connection {
         for (const handler of this.errorHandlers) {
             handler(error);
         }
-    }
-
-    protected createMessage(sender: string, text: string, metadata?: Record<string, unknown>): IOMessage {
-        return {id: crypto.randomUUID(), source: this.id, sender, text, timestamp: Date.now(), metadata};
     }
 
     protected createError(message: string, code: string, recoverable: boolean, cause?: Error): ConnectionError {

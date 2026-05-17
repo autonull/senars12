@@ -7,18 +7,16 @@ export class ConnectionManager {
 
     constructor(logger?: Logger) {
         this.logger = logger ?? {
-            debug: () => {},
-            info: () => {},
-            warn: () => {},
-            error: () => {},
+            debug: () => {
+            },
+            info: () => {
+            },
+            warn: () => {
+            },
+            error: () => {
+            },
             child: () => this as unknown as Logger,
         };
-    }
-
-    private getConnectionOrThrow(id: string): Connection {
-        const connection = this.connections.get(id);
-        if (!connection) throw new Error(`Connection not found: ${id}`);
-        return connection;
     }
 
     registerFactory(factory: ConnectionFactory): void {
@@ -108,5 +106,11 @@ export class ConnectionManager {
 
     getConnectionsByType(type: string): Connection[] {
         return Array.from(this.connections.values()).filter(c => c.type === type);
+    }
+
+    private getConnectionOrThrow(id: string): Connection {
+        const connection = this.connections.get(id);
+        if (!connection) throw new Error(`Connection not found: ${id}`);
+        return connection;
     }
 }

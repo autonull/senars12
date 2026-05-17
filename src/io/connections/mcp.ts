@@ -189,7 +189,10 @@ export class MCPConnection extends BaseConnection {
 
         if (method === 'tools/call') {
             const params = data.params as { name: string; arguments: Record<string, unknown> };
-            this.handleMessage(this.createMessage('mcp-client', JSON.stringify({tool: params.name, args: params.arguments}), {toolCall: true}));
+            this.handleMessage(this.createMessage('mcp-client', JSON.stringify({
+                tool: params.name,
+                args: params.arguments
+            }), {toolCall: true}));
         }
     }
 

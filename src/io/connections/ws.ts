@@ -127,6 +127,9 @@ export class WSConnection extends BaseConnection {
             return;
         }
 
-        this.handleMessage(this.createMessage(client.id, (message.data as string) ?? JSON.stringify(message), {clientId: client.id, type: msgType}));
+        this.handleMessage(this.createMessage(client.id, (message.data as string) ?? JSON.stringify(message), {
+            clientId: client.id,
+            type: msgType
+        }));
     }
 }
