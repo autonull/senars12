@@ -36,10 +36,10 @@ describe('LinkBag', () => {
                 lastAccessedAt: Date.now(),
             };
 
-            expect(bag.add(entry1)).toBe(true);
-            expect(bag.add(entry2)).toBe(true);
-            expect(bag.add(entry3)).toBe(true);
-            expect(bag.size()).toBe(3);
+expect(bag.add(entry1)).toBe(true);
+    expect(bag.add(entry2)).toBe(true);
+    expect(bag.add(entry3)).toBe(true);
+    expect(bag.size).toBe(3);
 
             const entry4: LinkEntry = {
                 id: '4_5_term-link',
@@ -51,8 +51,8 @@ describe('LinkBag', () => {
                 lastAccessedAt: Date.now(),
             };
 
-            expect(bag.add(entry4)).toBe(true);
-            expect(bag.size()).toBe(3);
+expect(bag.add(entry4)).toBe(true);
+    expect(bag.size).toBe(3);
 
             expect(bag.get('2_3_term-link')).toBeUndefined();
         });
@@ -104,10 +104,10 @@ describe('LinkBag', () => {
                 lastAccessedAt: Date.now(),
             };
 
-            bag.add(entry);
-            bag.applyDecay(0.5);
+bag.add(entry);
+    bag.applyDecay(0.5);
 
-            expect(bag.size()).toBe(0);
+    expect(bag.size).toBe(0);
         });
     });
 });

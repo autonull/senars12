@@ -1,220 +1,242 @@
+import {BaseBag, type BagStats} from './BaseBag.js';
+
 export interface BagItem<T> {
-    item: T;
-    priority: number;
-    lastAccess: number;
-    createdAt: number;
+  item: T;
+  priority: number;
+  lastAccess: number;
+  createdAt: number;
 }
 
 export type SamplingObjective =
-    | { type: 'priority'; threshold: number }
-    | { type: 'recency'; windowMs: number }
-    | { type: 'novelty'; maxDepth: number }
-    | { type: 'composite'; weights: { priority: number; recency: number; novelty: number } };
+  | {type: 'priority'; threshold: number}
+  | {type: 'recency'; windowMs: number}
+  | {type: 'novelty'; maxDepth: number}
+  | {type: 'composite'; weights: {priority: number; recency: number; novelty: number}};
 
 export type OverflowBehavior = 'reject' | 'replace-lowest' | 'merge';
 
 export interface BagStatistics {
-    size: number;
-    capacity: number;
-    utilization: number;
-    priorityDistribution: { min: number; max: number; avg: number; median: number };
-    ageHistogram: { buckets: { min: number; max: number; count: number }[] };
-    throughput: { additions: number; removals: number; hits: number; misses: number };
+  size: number;
+  capacity: number;
+  utilization: number;
+  priorityDistribution: {min: number; max: number; avg: number; median: number};
+  ageHistogram: {buckets: {min: number; max: number; count: number}[]};
+  throughput: {additions: number; removals: number; hits: number; misses: number};
 }
 
 export interface BoundedBagState<T> {
-    items: { item: T; priority: number; lastAccess: number; createdAt: number }[];
-    capacity: number;
-    overflowBehavior: OverflowBehavior;
-    stats: { additions: number; removals: number; hits: number; misses: number };
+  items: {item: T; priority: number; lastAccess: number; createdAt: number}[];
+  capacity: number;
+  overflowBehavior: OverflowBehavior;
+  stats: {additions: number; removals: number; hits: number; misses: number};
 }
 
-const statsFromValues = (values: number[]) => {
-    if (values.length === 0) return {min: 0, max: 0, avg: 0, median: 0};
-    const sorted = [...values].sort((a, b) => a - b);
-    return {
-        min: Math.min(...values), max: Math.max(...values),
-        avg: values.reduce((a, b) => a + b, 0) / values.length,
-        median: sorted[Math.floor(sorted.length / 2)] ?? 0
-    };
-};
-
-const AGE_BUCKETS = [
-    {min: 0, max: 60_000, count: 0},
-    {min: 60_000, max: 300_000, count: 0},
-    {min: 300_000, max: 900_000, count: 0},
-    {min: 900_000, max: Infinity, count: 0}
-] as const;
-
 const SAMPLE_FN: Record<string, (heap: BagItem<unknown>[], obj: Record<string, unknown>) => unknown> = {
-    priority: (h, o) => h.find(e => e.priority >= (o.threshold as number))?.item,
-    recency: (h, o) => {
-        const cutoff = Date.now() - (o.windowMs as number);
-        return h.find(e => e.lastAccess >= cutoff)?.item;
-    },
-    novelty: h => h[0]?.item,
-    composite: (h, o) => {
-        const w = o.weights as { priority: number; recency: number };
-        const scored = h.map(e => ({
-            item: e.item,
-            score: e.priority * w.priority - ((Date.now() - e.lastAccess) / 1000) * w.recency
-        }));
-        return scored.length > 0 ? [...scored].sort((a, b) => b.score - a.score)[0]?.item : undefined;
-    }
+  priority: (h, o) => h.find(e => e.priority >= (o.threshold as number))?.item,
+  recency: (h, o) => {
+    const cutoff = Date.now() - (o.windowMs as number);
+    return h.find(e => e.lastAccess >= cutoff)?.item;
+  },
+  novelty: h => h[0]?.item,
+  composite: (h, o) => {
+    const w = o.weights as {priority: number; recency: number};
+    const scored = h.map(e => ({
+      item: e.item,
+      score: e.priority * w.priority - ((Date.now() - e.lastAccess) / 1000) * w.recency
+    }));
+    return scored.length > 0 ? [...scored].sort((a, b) => b.score - a.score)[0]?.item : undefined;
+  }
 };
 
-export class Bag<T> {
-    private heap: BagItem<T>[] = [];
-    private readonly _capacity: number;
-    private readonly overflowBehavior: OverflowBehavior;
-    private stats = {additions: 0, removals: 0, hits: 0, misses: 0};
-    private onOverflow?: (item: T, priority: number, bag: Bag<T>) => void;
+export class Bag<T> extends BaseBag<{priority: number; createdAt: number; lastAccessedAt: number}> {
+  private heap: BagItem<T>[] = [];
 
-    constructor(capacity: number, options?: {
-        overflowBehavior?: OverflowBehavior;
-        onOverflow?: (item: T, priority: number, bag: Bag<T>) => void
-    }) {
-        this._capacity = capacity;
-        this.overflowBehavior = options?.overflowBehavior ?? 'reject';
-        this.onOverflow = options?.onOverflow;
+  constructor(capacity: number, options?: {
+    overflowBehavior?: 'reject' | 'replace-lowest' | 'merge';
+    onOverflow?: (item: T, priority: number, bag: Bag<T>) => void
+  }) {
+    super({
+      capacity,
+      overflowBehavior: options?.overflowBehavior
+    });
+  }
+
+  static deserialize<T>(state: BoundedBagState<T>): Bag<T> {
+    const bag = new Bag<T>(state.capacity, {overflowBehavior: state.overflowBehavior});
+    for (const {item, priority, lastAccess, createdAt} of state.items) {
+      bag.heap.push({item, priority, lastAccess, createdAt});
+    }
+    bag.stats = {...state.stats};
+    return bag;
+  }
+
+  add(item: T, priority: number): boolean {
+    if (this.capacity === 0) {
+      this.trackMiss();
+      return false;
     }
 
-    get size(): number {
-        return this.heap.length;
+    const entry = {item, priority, lastAccess: Date.now(), createdAt: Date.now()};
+
+    if (this.heap.length >= this.capacity) {
+      this.trackMiss();
+      if (!this.shouldOverflow(priority)) return false;
+    } else {
+      this.trackAdd();
     }
 
-    get capacity(): number {
-        return this._capacity;
+    const idx = this.heap.findIndex(h => h.priority < priority);
+    idx === -1 ? this.heap.push(entry) : this.heap.splice(idx, 0, entry);
+    return true;
+  }
+
+  private shouldOverflow(priority: number): boolean {
+    const minEntry = this.getMinEntry();
+    if (!minEntry) return false;
+
+    const minP = minEntry.priority;
+    if (priority <= minP) {
+      this.trackMiss();
+      return false;
     }
 
-    static deserialize<T>(state: BoundedBagState<T>): Bag<T> {
-        const bag = new Bag<T>(state.capacity, {overflowBehavior: state.overflowBehavior});
-        for (const {item, priority, lastAccess, createdAt} of state.items) bag.heap.push({
-            item,
-            priority,
-            lastAccess,
-            createdAt
-        });
-        bag.stats = {...state.stats};
-        return bag;
+    this.removeById(String(minEntry.item));
+    this.onOverflow?.(priority, this);
+    return true;
+  }
+
+  addMany(items: Array<[T, number]>): number {
+    let added = 0;
+    for (const [item, priority] of items) {
+      if (this.add(item, priority)) added++;
     }
+    return added;
+  }
 
-    add(item: T, priority: number): boolean {
-        if (this._capacity === 0) {
-            this.stats.misses++;
-            return false;
-        }
-
-        const entry: BagItem<T> = {item, priority, lastAccess: Date.now(), createdAt: Date.now()};
-
-        if (this.heap.length >= this._capacity) {
-            this.stats.misses++;
-            if (!this.handleOverflow(priority)) return false;
-        } else {
-            this.stats.additions++;
-        }
-
-        const idx = this.heap.findIndex(h => h.priority < priority);
-        idx === -1 ? this.heap.push(entry) : this.heap.splice(idx, 0, entry);
-        return true;
-    }
-
-    addMany(items: Array<[T, number]>): number {
-        let added = 0;
-        for (const [item, priority] of items) {
-            if (this.add(item, priority)) added++;
-        }
-        return added;
-    }
-
-    removeMany(predicate: (item: T) => boolean): number {
-        let removed = 0;
-        this.heap = this.heap.filter(entry => {
-            if (predicate(entry.item)) {
-                removed++;
-                this.stats.removals++;
-                return false;
-            }
-            return true;
-        });
-        return removed;
-    }
-
-    getStatistics(): BagStatistics {
-        const priorities = this.heap.map(h => h.priority);
-        const ages = this.heap.map(h => Date.now() - h.createdAt);
-        const buckets = AGE_BUCKETS.map(b => ({...b}));
-        for (const age of ages) buckets.find(b => age >= b.min && age < b.max)!.count++;
-
-        return {
-            size: this.heap.length, capacity: this._capacity, utilization: this.heap.length / this._capacity,
-            priorityDistribution: statsFromValues(priorities), ageHistogram: {buckets},
-            throughput: {...this.stats}
-        };
-    }
-
-    serialize(): BoundedBagState<T> {
-        return {
-            items: this.heap.map(({item, priority, lastAccess, createdAt}) => ({
-                item,
-                priority,
-                lastAccess,
-                createdAt
-            })),
-            capacity: this._capacity, overflowBehavior: this.overflowBehavior, stats: {...this.stats}
-        };
-    }
-
-    sample(objective: SamplingObjective): T | undefined {
-        const strategy = SAMPLE_FN[objective.type];
-        if (!strategy) return undefined;
-        const result = strategy(this.heap, objective);
-        this.stats[result ? 'hits' : 'misses']++;
-        return result as T | undefined;
-    }
-
-    consolidate(currentTime: number, ttl: number): void {
-        this.heap = this.heap.filter(entry => currentTime - entry.lastAccess <= ttl);
-    }
-
-    clear(): void {
-        this.heap = [];
-        this.stats = {additions: 0, removals: 0, hits: 0, misses: 0};
-    }
-
-    toArray(): T[] {
-        return this.heap.map(h => h.item);
-    }
-
-    pruneTo(maxSize: number): void {
-        this.heap = this.heap.slice(0, maxSize);
-    }
-
-    peek(): T | undefined {
-        return this.heap[0]?.item;
-    }
-
-    remove(item: T): boolean {
-        const idx = this.heap.findIndex(h => h.item === item);
-        if (idx >= 0) {
-            this.heap.splice(idx, 1);
-            return true;
-        }
+  removeMany(predicate: (item: T) => boolean): number {
+    let removed = 0;
+    this.heap = this.heap.filter(entry => {
+      if (predicate(entry.item)) {
+        removed++;
+        this.trackRemoval();
         return false;
-    }
+      }
+      return true;
+    });
+    return removed;
+  }
 
-    * entries(): Generator<[T, number]> {
-        for (const {item, priority} of this.heap) yield [item, priority];
-    }
+  override getStatistics(): BagStatistics {
+    return super.getStatistics() as BagStatistics;
+  }
 
-    private getMinEntry(): BagItem<T> | undefined {
-        return this.heap[this.heap.length - 1];
-    }
+  serialize(): BoundedBagState<T> {
+    return {
+      items: this.heap.map(({item, priority, lastAccess, createdAt}) => ({
+        item,
+        priority,
+        lastAccess,
+        createdAt
+      })),
+      capacity: this.capacityValue,
+      overflowBehavior: this.overflowBehavior,
+      stats: {...this.stats}
+    };
+  }
 
-    private handleOverflow(priority: number): boolean {
-        const minP = this.getMinEntry()?.priority ?? 0;
-        if (priority <= minP) return false;
-        this.overflowBehavior === 'merge' ? this.heap.pop() : this.heap.splice(this.heap.length - 1, 1);
-        return true;
+  sample(objective: SamplingObjective): T | undefined {
+    const strategy = SAMPLE_FN[objective.type];
+    if (!strategy) return undefined;
+    const result = strategy(this.heap, objective);
+    this.trackHit();
+    if (!result) this.trackMiss();
+    return result as T | undefined;
+  }
+
+  override consolidate(currentTime: number, ttl: number): void {
+    super.consolidate(currentTime, ttl);
+  }
+
+  clear(): void {
+    this.heap = [];
+    this.clearStats();
+  }
+
+  toArray(): T[] {
+    return this.heap.map(h => h.item);
+  }
+
+  pruneTo(maxSize: number): void {
+    this.heap = this.heap.slice(0, maxSize);
+  }
+
+  peek(): T | undefined {
+    return this.heap[0]?.item;
+  }
+
+  remove(item: T): boolean {
+    const idx = this.heap.findIndex(h => h.item === item);
+    if (idx >= 0) {
+      this.heap.splice(idx, 1);
+      this.trackRemoval();
+      return true;
     }
+    return false;
+  }
+
+  *entries(): Generator<[T, number]> {
+    for (const {item, priority} of this.heap) yield [item, priority];
+  }
+
+  protected override itemsCount(): number {
+    return this.heap.length;
+  }
+
+  protected override getPriorities(): number[] {
+    return this.heap.map(h => h.priority);
+  }
+
+  protected override getAges(): number[] {
+    return this.heap.map(h => Date.now() - h.createdAt);
+  }
+
+  protected override getCreatedTimes(): number[] {
+    return this.heap.map(h => h.createdAt);
+  }
+
+  protected override selectVictim(): string | undefined {
+    return this.getMinEntryId();
+  }
+
+  protected override removeById(id: string): boolean {
+    const idx = this.heap.findIndex(h => this.getItemId(h) === id);
+    if (idx >= 0) {
+      this.heap.splice(idx, 1);
+      return true;
+    }
+    return false;
+  }
+
+  protected override updateAccess(id: string): void {
+    const idx = this.heap.findIndex(h => this.getItemId(h) === id);
+    if (idx >= 0) {
+      this.heap[idx]!.lastAccess = Date.now();
+    }
+  }
+
+  protected override getIds(): string[] {
+    return this.heap.map(h => String(h.item));
+  }
+
+  private getItemId(entry: BagItem<T>): string {
+    return String(entry.item);
+  }
+
+  private getMinEntryId(): string | undefined {
+    return this.heap.length > 0 ? String(this.heap[this.heap.length - 1]?.item) : undefined;
+  }
+
+  private getMinEntry(): BagItem<T> | undefined {
+    return this.heap[this.heap.length - 1];
+  }
 }
