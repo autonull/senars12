@@ -106,7 +106,5 @@ Following @AGENTS.md:
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)](https://www.typescriptlang.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-10.0-cyan)](https://pnpm.io/)
-[![Tests](https://img.shields.io/badge/tests-35%20passed-green)](./tests/)
-[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](./tests/)
 
 </div>

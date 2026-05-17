@@ -1,11 +1,15 @@
 /**
  * SeNARS Demo Scenarios
  * End-to-end demonstration scripts
+ * Refactored to use ScenarioRunner
  */
 
 import type {NAR} from '../nar';
 import {SeNARSFactory} from '../nar';
 import {errMsg} from '../nar/utils/helpers.js';
+import {ScenarioRunner} from './scenarios/ScenarioRunner.js';
+import {ScoringEngine} from './scenarios/ScoringEngine.js';
+import type {Scenario} from './scenarios/types.js';
 
 export interface DemoScenario {
     name: string;
@@ -59,7 +63,7 @@ const demo = (name: string, description: string, inputs: DemoInput[], runSteps =
         if (showConcepts) {
             const concepts = nar.listConcepts();
             console.log(`Concepts: ${concepts.length}`);
-            for (const c of concepts.slice(0, 10)) console.log(`  - ${c.term.toString()}`);
+            for (const c of concepts.slice(0, 10)) console.log(` - ${c.term.toString()}`);
         }
     }
 });
@@ -102,4 +106,21 @@ export async function runAllDemos(): Promise<void> {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
     runAllDemos().catch(console.error);
+}
+
+export function demoToScenario(demo: DemoScenario): Scenario {
+    return {
+        id: `demo-${demo.name.toLowerCase().replace(/\s+/g, '-')}`,
+        name: demo.name,
+        category: 'demo',
+        description: demo.description,
+        steps: [],
+        setup: async (nar) => {
+            await demo.run(nar);
+        },
+    };
+}
+
+export function createScenarioRunner(nar: NAR): ScenarioRunner {
+    return new ScenarioRunner(nar);
 }

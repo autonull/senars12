@@ -13,3 +13,26 @@ export const DEFAULT_NAR_CONFIG: Partial<NARConfig> = {
     ...DEFAULT_NAR_CORE_CONFIG,
     enableLMRules: true,
 } as const;
+
+export const DEFAULT_BOT_CONFIG = {
+    auth: {mode: 'open' as 'open' | 'auth'},
+    degradation: {
+        lmHealthCheckInterval: 30000,
+        fallbackEnabled: true,
+    },
+    channel: {defaultType: 'irc' as const},
+    conversation: {maxHistoryPerUser: 20, maxAgeMs: 3600000},
+    agenticLoop: {
+        reasoningStepsPerWake: 5,
+        wakeupIntervalMs: 60000,
+        maxInputTurns: 50,
+        maxWakeTurns: 3,
+        sleepIntervalMs: 1000,
+        enableLMRules: true,
+    },
+    responseInterpreter: {
+        enabled: true,
+        autoBelieveNarsese: true,
+        autoExecuteTools: true,
+    },
+} as const;

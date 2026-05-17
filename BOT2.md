@@ -1,24 +1,94 @@
-# SeNARS Bot Plan — Phase 2
+# SeNARS Bot Plan — Phase 2 (Revised)
 
 ## Goal
 
 Achieve and exceed OmegaClaw feature parity by closing remaining gaps and building an **open-ended
 experimentation framework** that enables AI coding agents to iteratively test, tune, and improve
-the Bot's capabilities, prompts, heuristics, and interactions with SeNARS — going far beyond
-simple preference-based evaluation.
+the Bot's capabilities, prompts, heuristics, and interactions with SeNARS.
 
-## Phase 1: Gap Closure
+## Gap Analysis
+
+After thorough review of both codebases, the plan below addresses these gaps:
+
+### 1. Skill Catalog (OmegaClaw `getSkills`)
+
+OmegaClaw's `getSkills()` returns a text list of all callable skills injected into every LLM prompt.
+SeNARS ChatResponder has no equivalent — the LM doesn't know what tools, commands, or NAL operations
+are available. **Fix**: `SkillCatalog` auto-generates from registered tools, commands, and NAL operations.
+
+### 2. Grounded Reasoning
+
+OmegaClaw has documented grounding: fetch facts from verified sources, map source quality to confidence,
+store with provenance. SeNARS has HTTP/Search tools but no structured grounding pipeline.
+**Fix**: `GroundingPipeline` with source-quality→confidence mapping and provenance tracking.
+
+### 3. Multi-Cycle Reasoning State
+
+OmegaClaw uses `pin` + `&lastresults` + history for state across reasoning cycles. SeNARS ChatResponder
+has conversation history but no structured multi-cycle state.
+**Fix**: `WorkingMemory` (multi-slot pin/recall) + `lastResults` tracking.
+
+### 4. Error Feedback Loop
+
+OmegaClaw feeds parse/skill errors back into the next prompt for self-correction. SeNARS logs errors
+but doesn't feed them into ChatResponder.
+**Fix**: Error feedback appended to ChatResponder system prompt.
+
+### 5. Confidence Calibration
+
+OmegaClaw discounts LLM-originated confidence by ~15pp. SeNARS accepts LM output without calibration.
+**Fix**: `OrchestrationGuide` with `calibrateLLMConfidence()` and novelty discount.
+
+### 6. Response Interpreter
+
+OmegaClaw's loop parses LLM output as s-expressions (skill calls) and executes them. SeNARS ChatResponder
+returns natural language only. The Bot should be able to auto-believe Narsese, execute tool calls,
+and ask questions of the reasoning engine from its own responses.
+**Fix**: `ResponseInterpreter` that parses ChatResponder output for structured actions.
+
+### 7. Response Repair Unused
+
+`response-repair.ts` exists (repairParentheses, repairResponse, tryRepairAndParse) but is **not imported
+anywhere**. OmegaClaw's `balance_parentheses` is called on every LLM response in the loop.
+**Fix**: Wire response-repair into LMRule and ChatResponder.
+
+### 8. MCP Design: Bot as MCP Server
+
+`SeNARSMCPServer` exists as a standalone binary (`mcp-server.ts`) with its own disconnected NAR
+instance. `registerAgentAPI()` is dead code — never called. This is redundant and broken.
+
+**Correct design**: Wire MCP server into `bot.ts` as a shared component, not a separate process.
+External AI agents (Claude Code, Cursor) connect to the **same NAR instance** the Bot uses —
+shared memory, shared beliefs, shared reasoning. The standalone `mcp-server.ts` binary is removed.
+
+### 9. SeNARS Tool System
+
+SeNARS has 11 built-in tools (Calculate, Sleep, ReadFile, WriteFile, HTTP, Search, Reason,
+Explain, Learn, Timer, Process) plus BraveSearchTool. These work within the NAR engine but:
+- Are not exposed to the LM (ChatResponder doesn't know they exist)
+- Are not exposed via MCP (no MCP tool registration)
+- Cannot be triggered from ChatResponder output (no response interpreter)
+
+**Fix**: `SkillCatalog` exposes tools to LM, MCP server exposes tools externally,
+`ResponseInterpreter` triggers tools from Bot's own responses. Tools remain fully functional
+in the NAR engine — no changes to tool implementations needed.
+
+### 10. No Benchmark/Experiment System
+
+OmegaClaw has no formal benchmark system (relies on operational experience). SeNARS should have one —
+this is a **strength**, not a gap, but needs building.
+**Fix**: `ScenarioRunner`, `ExperimentRunner`, `BenchmarkSuite`, `ScoringEngine`, `RLFPBridge`.
+
+## Phase 1: Core Bot Functionality (IRC-Ready)
 
 ### 1.1 Auth System
-
-OmegaClaw has `auth <secret>` binding per channel. SeNARS needs equivalent access control.
 
 **File**: `src/io/auth.ts` — new
 
 ```
 AuthManager
   ├── secrets: Map<string, string>              // connection-id → secret
-  ├── authenticated: Map<string, Set<string>>   // connection-id → set of authenticated sender ids
+  ├── authenticated: Map<string, Set<string>>   // connection-id → authenticated sender ids
   │
   ├── setSecret(connectionId, secret)
   ├── checkAuth(connectionId, senderId, message) → 'allow' | 'ignore' | 'auth_bound'
@@ -26,82 +96,82 @@ AuthManager
   └── isBound(connectionId, senderId) → boolean
 ```
 
-**Integration**:
-- `Agent.router` auth middleware runs before all other middleware
-- `.auth <secret>` command added to core commands
-- `ConnectionConfig` gains optional `authSecret` field
-- Default: no auth required (open mode), matching OmegaClaw's unset `OMEGACLAW_AUTH_SECRET`
+Integration: auth middleware in Agent.router (runs first), `.auth <secret>` command,
+`ConnectionConfig.authSecret` field. Default: no auth (open mode).
 
-### 1.2 AgenticLoop Wakeup Sequence
-
-Currently a placeholder. Implement actual self-initiated work.
-
-**File**: `src/agent/AgenticLoop.ts` — modify `wakeupSequence()`
-
-```
-wakeupSequence():
-  1. Run reasoning steps (config.reasoningStepsPerWake)
-  2. Run LM enrichment (if enabled)
-  3. Run memory consolidation (Memory.consolidate())
-  4. Run self-analysis (SelfAnalyzer if available)
-  5. Check episodic memory for patterns (failed queries, repeated questions)
-  6. If ScenarioRunner exists: run pending benchmarks
-  7. If ExperimentRunner exists: check for active experiments to evaluate
-```
-
-### 1.3 IRC Usability
-
-OmegaClaw's IRC bot joins, authenticates users, and responds. SeNARS needs equivalent channel UX.
-
-**File**: `src/io/connections/irc.ts` — modify
-
-- **Join message**: Bot sends a brief intro on channel join (configurable)
-- **Help on `.help`**: Lists available commands and interaction patterns
-- **Per-user context**: Track conversation history per sender for coherent multi-user interaction
-- **Message length handling**: IRC has 512-byte line limit; current implementation handles this
-- **Flood protection**: Already implemented (queue-based rate limiting)
-
-**File**: `src/agent/ChannelBehavior.ts` — new
-
-Manages channel-specific behavior policies:
-
-```
-ChannelBehavior
-  ├── joinMessage: string | null           // sent on join
-  ├── helpText: string                     // response to .help
-  ├── maxResponseLength: number            // truncate for IRC (default 400)
-  ├── perUserContext: boolean              // track per-user conversation (default true)
-  ├── showReasoning: boolean               // include derivation info in responses (default false)
-  └── responseMode: 'conversational' | 'narsese' | 'hybrid'  // how to format responses
-```
-
-### 1.4 Working Memory (Pin)
-
-OmegaClaw has `pin` — a volatile single-slot working memory for multi-cycle tasks. SeNARS needs
-equivalent for maintaining state across turns.
+### 1.2 Working Memory (Pin/Recall)
 
 **File**: `src/nar/memory/WorkingMemory.ts` — new
 
 ```
 WorkingMemory
-  ├── slot: { key: string; value: string; timestamp: number } | null
+  ├── slots: Map<string, { value: string; timestamp: number }>
   │
-  ├── pin(key, value) → boolean            // store in working memory
-  ├── recall() → string | null             // get current pinned value
-  ├── clear()                              // release working memory
-  └── isSet() → boolean
+  ├── pin(key, value)
+  ├── recall(key?) → string | null
+  ├── recallAll() → Map<string, string>
+  ├── unpin(key?)
+  └── isSet(key) → boolean
 ```
 
-**Integration**:
-- `.pin <key> <value>` command
-- `.recall` command
-- Included in ChatResponder system prompt context
-- Logged to episodic memory on pin/clear
+Multi-slot (more useful than OmegaClaw's single-slot). Commands: `.pin`, `.recall`, `.unpin`.
+Included in ChatResponder system prompt context.
 
-### 1.5 Action Thresholds & Orchestration Guidance
+### 1.3 Skill Catalog
 
-OmegaClaw documents ACT/HYPOTHESIZE/IGNORE thresholds for gating actions on truth values.
-SeNARS should expose these for the LM to use in orchestration decisions.
+**File**: `src/agent/SkillCatalog.ts` — new
+
+```
+SkillCatalog
+  ├── nar: NAR
+  │
+  ├── getSkillsText() → string
+  │     — auto-generates from registered tools, commands, NAL operations
+  │     — includes signatures, descriptions, examples
+  │     — updated dynamically as components register
+  │
+  ├── getSkillsForPrompt() → string
+  │     — concise version for ChatResponder system prompt
+  │
+  └── registerCustomSkill(name, description, example)
+```
+
+Injected into ChatResponder: `## Available Skills\n${catalog.getSkillsForPrompt()}`
+
+### 1.4 Response Interpreter
+
+**File**: `src/agent/ResponseInterpreter.ts` — new
+
+Parses ChatResponder output for structured actions, then feeds results back into the system:
+
+```
+ResponseInterpreter
+  ├── nar: NAR
+  │
+  ├── interpret(response: string) → InterpretationResult
+  │     — extracts Narsese statements → auto-believe
+  │     — extracts tool calls → execute
+  │     — extracts questions → ask reasoning engine
+  │     — returns structured actions + cleaned natural language
+  │
+  ├── executeAndRespond(result: InterpretationResult) → string
+  │     — executes extracted actions
+  │     — appends action results to response
+  │     — e.g., "I've added that cats are animals. (Derived 2 beliefs)"
+  │
+  └── registerPattern(pattern, handler)
+        — custom extraction patterns
+```
+
+**Integration**: Called after `ChatResponder.respond()` in the Agent router's final middleware:
+```
+response = await chatResponder.respond(message.text)
+result = await responseInterpreter.interpret(response)
+if (result.hasActions) response = await responseInterpreter.executeAndRespond(result)
+await context.respond(response)
+```
+
+### 1.5 Orchestration Guide
 
 **File**: `src/nar/orchestration.ts` — new
 
@@ -109,63 +179,204 @@ SeNARS should expose these for the LM to use in orchestration decisions.
 OrchestrationGuide
   ├── evaluate(truth: Truth) → 'ACT' | 'HYPOTHESIZE' | 'IGNORE'
   ├── expectation(truth: Truth) → number   // exp = c × (f - 0.5) + 0.5
+  ├── calibrateLLMConfidence(truth: Truth) → Truth  // -15pp for LLM-originated
   ├── noveltyDiscount(concept: Concept, truth: Truth) → Truth
-  │     — c_new = c × (1 - novelty) for new claims
-  └── maxChainDepth: number                // default 3, warn beyond
+  └── maxChainDepth: number                // default 3
 ```
 
-**Integration**:
-- Included in ChatResponder system prompt as orchestration guidance
-- Used by LM rules to calibrate confidence on LLM-originated beliefs
-- Available as `.evaluate <term>` command for users
+Included in ChatResponder system prompt. Used by LM rules to calibrate confidence.
+
+### 1.6 Wire Response Repair
+
+**Files**: `src/nar/lm/rules.ts`, `src/agent/ChatResponder.ts` — modify
+
+Import and use `tryRepairAndParse` from `response-repair.ts` in:
+- `LMRule.taskFromProcessed()` — repair before parsing LM output
+- `ChatResponder.respond()` — repair before returning response
+
+### 1.7 AgenticLoop Wakeup Sequence
+
+**File**: `src/agent/AgenticLoop.ts` — modify
+
+The AgenticLoop bridges event-driven channels (IRC, WS, HTTP) to the Agent's message processing:
+
+```
+Connections (IRC, WS, HTTP, MCP)
+  └── onMessage(handler) → pushes IOMessage into MessageQueue
+
+AgenticLoop
+  ├── queue.drain() → processes each through Agent.router
+  └── wakeupSequence() → self-initiated work when idle
+```
+
+Current `AgenticLoop` has `setMessageHandler()` but `bot.ts` never wires it to `Agent.router`.
+The loop also never starts. Fix:
+
+```
+// bot.ts
+loop.setMessageHandler(async (msg) => {
+    await agent.router.route(msg, {
+        connection: msg.source,
+        nar: agent.getNAR(),
+        respond: (text) => agent.sendTo(msg.source, msg.sender, text)
+    });
+});
+loop.start();
+```
+
+Modified `wakeupSequence()`:
+```
+wakeupSequence():
+  1. Run reasoning steps (config.reasoningStepsPerWake)
+  2. Run LM enrichment (if enabled)
+  3. Run memory consolidation
+  4. Run self-analysis (SelfAnalyzer if available)
+  5. Check episodic memory for patterns
+  6. Run pending benchmarks (ScenarioRunner if available)
+  7. Check active experiments (ExperimentRunner if available)
+```
+
+### 1.8 Bot Profile & Channel Behavior
+
+**File**: `src/agent/BotProfile.ts` — new
+
+```
+BotProfile
+  ├── name: string                    // 'SeNARS'
+  ├── personality: string
+  ├── joinMessage: string             // sent on channel join
+  ├── capabilities: string[]
+  ├── interactionGuide: string        // how users interact
+  └── reasoningTransparency: 'none' | 'summary' | 'full'
+```
+
+**File**: `src/agent/ChannelBehavior.ts` — new
+
+```
+ChannelBehavior
+  ├── maxResponseLength: number       // IRC: 400
+  ├── perUserContext: boolean
+  ├── showReasoning: boolean
+  └── responseMode: 'conversational' | 'narsese' | 'hybrid'
+```
+
+### 1.9 Conversation Manager
+
+**File**: `src/agent/ConversationManager.ts` — new
+
+```
+ConversationManager
+  ├── perUser: Map<string, ConversationContext>
+  │
+  ├── getContext(userId) → ConversationContext
+  ├── addMessage(userId, message)
+  ├── addResponse(userId, response)
+  ├── getContextForPrompt(userId) → string   // for LM system prompt
+  └── prune(maxAge)
+```
+
+### 1.10 Response Formatter
+
+**File**: `src/agent/ResponseFormatter.ts` — new
+
+```
+ResponseFormatter
+  ├── formatForIRC(text) → string[]     // 400-char chunks, strip markdown
+  ├── formatForWS(text) → string        // full markdown, JSON option
+  ├── formatForCLI(text) → string       // terminal colors
+  └── addProvenance(response, beliefs) → string  // derivation info
+```
+
+### 1.11 Graceful Degradation
+
+**File**: `src/agent/DegradationManager.ts` — new
+
+```
+DegradationManager
+  ├── lmStatus: 'available' | 'degraded' | 'unavailable'
+  ├── fallbackResponses: Map<string, string>
+  │
+  ├── checkLMHealth() → LMStatus
+  ├── getFallbackResponse(input) → string | null
+  ├── shouldUseFallback() → boolean
+  └── reportStatus() → string
+```
+
+### 1.12 Grounding Pipeline
+
+**File**: `src/nar/grounding.ts` — new
+
+Uses existing HTTP and Search tools to fetch external facts, then maps source quality to confidence:
+
+```
+GroundingPipeline
+  ├── nar: NAR
+  ├── memory: Memory
+  ├── tools: ToolManager        // uses HTTP, BraveSearch, Search tools
+  │
+  ├── groundFact(query: string, source: string, quality: SourceQuality) → Task
+  │     — uses Search/HTTP tools to fetch fact
+  │     — maps quality to confidence (PRIMARY=0.9, LLM_PRIOR=0.5)
+  │     — stores with provenance in memory
+  │
+  ├── recallGroundedFact(query: string) → Task | null
+  │     — checks embedding memory first (existing EmbeddingLayer)
+  │
+  └── SourceQuality
+        PRIMARY = 0.9       // SEC, PubMed, official API
+        SECONDARY = 0.7     // Reuters, AP, major news
+        GENERAL = 0.55      // Wikipedia, general news
+        TERTIARY = 0.4      // Blog, forum
+        LLM_PRIOR = 0.5     // LLM alone (assume 15pp overconfident)
+```
+
+### 1.13 Last Results Tracking
+
+OmegaClaw feeds the previous turn's skill results into the next prompt (`&lastresults`).
+This enables multi-cycle reasoning where the LM sees what happened last turn.
+
+**File**: `src/agent/LastResults.ts` — new
+
+```
+LastResults
+  ├── history: Array<{ turn: number; input: string; response: string; actions: string[] }>
+  │
+  ├── record(turn, input, response, actions)
+  ├── getRecent(n) → string           // last N turns, formatted for prompt
+  └── clear()
+```
+
+Injected into ChatResponder system prompt:
+```
+## Previous Turn Results
+${lastResults.getRecent(3)}
+```
 
 ## Phase 2: Open-Ended Experimentation Framework
 
-### Design Philosophy
-
-OmegaClaw's MeTTa architecture is inspectable and modifiable at runtime. SeNARS achieves the
-same through its **RLFP system** combined with a broader **Experimentation Framework** that
-supports multiple methodologies beyond preference learning:
-
-| Methodology | Purpose | Mechanism |
-|---|---|---|
-| **Scenario testing** | Validate specific behaviors | Input → run → assert on derivations/responses |
-| **Benchmark suites** | Track regression over time | Scored runs, baseline comparison |
-| **Parameter sweeps** | Find optimal config values | Grid/random search over config space |
-| **Prompt experiments** | Test LM prompt variations | A/B/C prompt variants, score outputs |
-| **Hypothesis testing** | Validate reasoning claims | Propose hypothesis → gather evidence → verdict |
-| **Knowledge injection** | Test belief addition strategies | Add beliefs → measure derivation quality |
-| **Tool composition** | Test tool call sequences | Define tool chains → validate outcomes |
-| **RLFP preference** | Learn from pairwise comparison | Trajectory A vs B → reward model update |
-
-The key insight: **preference learning is one tool among many**. AI agents need the full toolkit
-to explore the system's behavior space effectively.
-
 ### 2.1 Unified Scenario System
 
-Replaces `demos.ts`. One format serves demos, tests, and benchmarks.
-
-**File**: `src/agent/scenarios/types.ts`
+**File**: `src/agent/scenarios/types.ts` — new
 
 ```typescript
 interface ScenarioStep {
     input: string;
     type?: 'belief' | 'question' | 'goal' | 'chat' | 'command';
     label?: string;
-    waitMs?: number;          // pause after this step
-    runSteps?: number;        // run NAR steps after this input
+    waitMs?: number;
+    runSteps?: number;
 }
 
 interface ExpectedDerivation {
     contains?: string;        // term substring match
     equals?: string;          // exact term match
-    minTruthF?: number;       // minimum frequency
-    minTruthC?: number;       // minimum confidence
-    maxTruthF?: number;       // upper bound (catch over-confidence)
+    minTruthF?: number;
+    minTruthC?: number;
+    maxTruthF?: number;
     maxTruthC?: number;
-    minCount?: number;        // minimum matching derivations
-    maxCount?: number;        // maximum (catch over-derivation)
-    ruleIds?: string[];       // expected inference rules used
+    minCount?: number;
+    maxCount?: number;
+    ruleIds?: string[];
 }
 
 interface ScenarioExpectation {
@@ -175,30 +386,30 @@ interface ScenarioExpectation {
     responseNotContains?: string[];
     toolCalls?: string[];
     toolCallsNot?: string[];
-    minScore?: number;        // overall score threshold
-    maxDuration?: number;     // performance constraint
-    memorySize?: [number, number];  // expected concept count range
+    minScore?: number;
+    maxDuration?: number;
+    memorySize?: [number, number];
 }
 
 interface Scenario {
     id: string;
     name: string;
     category: 'demo' | 'test' | 'benchmark';
-    tags?: string[];          // e.g., ['nal1', 'deduction', 'basic']
+    tags?: string[];
     description: string;
     steps: ScenarioStep[];
     expectation?: ScenarioExpectation;
-    weight?: number;          // benchmark scoring weight (default 1)
-    setup?: (nar: NAR) => Promise<void>;   // pre-scenario setup
-    teardown?: (nar: NAR) => Promise<void>; // post-scenario cleanup
+    weight?: number;
+    setup?: (nar: NAR) => Promise<void>;
+    teardown?: (nar: NAR) => Promise<void>;
 }
 
 interface ScenarioResult {
     scenario: Scenario;
     passed: boolean;
-    score: number;            // 0-1
+    score: number;
     details: AssertionResult[];
-    trajectory: TrajectoryStep[];  // for RLFP
+    trajectory: TrajectoryStep[];
     beliefsBefore: number;
     beliefsAfter: number;
     derivedCount: number;
@@ -209,14 +420,14 @@ interface ScenarioResult {
 interface AssertionResult {
     description: string;
     passed: boolean;
-    score: number;            // 0-1 for partial credit
+    score: number;
     detail?: string;
 }
 ```
 
 ### 2.2 ScenarioRunner
 
-**File**: `src/agent/scenarios/ScenarioRunner.ts`
+**File**: `src/agent/scenarios/ScenarioRunner.ts` — new
 
 ```
 ScenarioRunner
@@ -224,68 +435,35 @@ ScenarioRunner
   ├── scoring: ScoringEngine
   ├── trajectoryLogger?: ReasoningTrajectoryLogger
   │
-  ├── run(scenario: Scenario) → ScenarioResult
-  │     — executes steps in order
-  │     — logs trajectory if logger available
-  │     — evaluates expectations
-  │     — returns scored result
-  │
-  ├── runBatch(scenarios: Scenario[]) → ScenarioResult[]
-  │     — runs each scenario, isolating memory between runs
-  │     — parallel-safe (each gets its own NAR instance)
-  │
-  ├── runInteractive(scenario: Scenario) → AsyncGenerator<ScenarioProgress>
-  │     — yields progress after each step (for live monitoring)
-  │     — supports cancellation
-  │
-  └── exportResults(results: ScenarioResult[]) → string
-        — JSON/Markdown report generation
+  ├── run(scenario) → ScenarioResult
+  ├── runBatch(scenarios) → ScenarioResult[]
+  ├── runInteractive(scenario) → AsyncGenerator<ScenarioProgress>
+  └── exportResults(results) → string
 ```
 
 ### 2.3 ScoringEngine
 
-**File**: `src/agent/scenarios/ScoringEngine.ts`
+**File**: `src/agent/scenarios/ScoringEngine.ts` — new
 
 ```
 ScoringEngine
-  ├── embeddingGenerator?: EmbeddingGenerator  // for semantic similarity
+  ├── embeddingGenerator?: EmbeddingGenerator
   │
-  ├── scoreDerivations(actual: Task[], expected: ExpectedDerivation[])
-  │     → {score: 0-1, assertions: AssertionResult[]}
-  │     — exact match (equals): pass/fail
-  │     — substring match (contains): pass/fail with partial credit for near-misses
-  │     — truth value validation: linear penalty for deviation from thresholds
-  │     — count validation: pass/fail with bounds checking
-  │
-  ├── scoreResponse(actual: string, expected: string)
-  │     → {score: 0-1, assertions: AssertionResult[]}
-  │     — exact match when expected is specific
-  │     — semantic similarity via embeddings when available
-  │     — keyword overlap fallback
-  │     — structural checks (valid Narsese? conversational?)
-  │
-  ├── scoreToolCalls(actual: string[], expected: string[])
-  │     → {score: 0-1, assertions: AssertionResult[]}
-  │     — exact match, Jaccard similarity for partial
-  │
-  └── aggregate(results: ScenarioResult[]) → BenchmarkReport
-        — weighted average score
-        — per-category breakdown (by tags)
-        — regression detection vs baseline
-        — statistical significance (t-test for score changes)
+  ├── scoreDerivations(actual, expected) → {score, assertions}
+  ├── scoreResponse(actual, expected) → {score, assertions}
+  ├── scoreToolCalls(actual, expected) → {score, assertions}
+  └── aggregate(results) → BenchmarkReport
 ```
 
 ### 2.4 Benchmark Suites
 
-**File**: `src/agent/benchmarks/index.ts`
-
-Pre-built suites covering core capabilities:
+**File**: `src/agent/benchmarks/index.ts` — new
 
 | Suite | Tag | Scenarios | Purpose |
 |---|---|---|---|
-| `nal1-deduction` | `nal1`, `deduction` | 8 | Deduction: `(A --> B), (B --> C) ⊢ (A --> C)` |
-| `nal1-induction` | `nal1`, `induction` | 6 | Induction: `(A --> B), (A --> C) ⊢ (C --> B)` |
-| `nal1-abduction` | `nal1`, `abduction` | 6 | Abduction: `(A --> B), (C --> B) ⊢ (C --> A)` |
+| `nal1-deduction` | `nal1`, `deduction` | 8 | `(A --> B), (B --> C) ⊢ (A --> C)` |
+| `nal1-induction` | `nal1`, `induction` | 6 | `(A --> B), (A --> C) ⊢ (C --> B)` |
+| `nal1-abduction` | `nal1`, `abduction` | 6 | `(A --> B), (C --> B) ⊢ (C --> A)` |
 | `nal2-compound` | `nal2`, `compound` | 10 | Intersection, union, product terms |
 | `nal3-higher` | `nal3`, `higher-order` | 8 | Implication, equivalence inference |
 | `nal4-revision` | `nal4`, `revision` | 6 | Belief revision with conflicting evidence |
@@ -299,35 +477,9 @@ Pre-built suites covering core capabilities:
 | `lm-rules` | `lm` | 8 | LM rule firing and output quality |
 | `full` | — | 104 | All suites combined |
 
-Each scenario tests **specific derivation content**, not just count:
+### 2.5 ExperimentRunner
 
-```typescript
-// Example: nal1 deduction scenario
-{
-    id: 'nal1-deduction-01',
-    name: 'Simple Deduction',
-    category: 'benchmark',
-    tags: ['nal1', 'deduction'],
-    description: 'A→B, B→C ⊢ A→C',
-    steps: [
-        { input: '(cat --> animal).', type: 'belief' },
-        { input: '(animal --> living-being).', type: 'belief' },
-    ],
-    expectation: {
-        afterSteps: 5,
-        derivations: [
-            { contains: 'cat', minTruthF: 0.5, minTruthC: 0.3 },
-            { contains: 'living-being', minTruthF: 0.5, minTruthC: 0.2 },
-        ],
-    },
-}
-```
-
-### 2.5 ExperimentRunner — Open-Ended Exploration
-
-**File**: `src/agent/experiments/ExperimentRunner.ts`
-
-This is the core of open-ended experimentation. Supports multiple experiment types:
+**File**: `src/agent/experiments/ExperimentRunner.ts` — new
 
 ```typescript
 type ExperimentType =
@@ -352,51 +504,6 @@ interface Experiment {
     completedAt?: number;
 }
 
-interface ExperimentConfig {
-    // parameter-sweep
-    parameters?: Record<string, { min: number; max: number; step?: number; values?: number[] }>;
-    objective?: string;  // scenario ID or scoring function name
-
-    // prompt-ab
-    promptVariants?: string[];
-    testScenario?: string;  // scenario ID to test against
-
-    // hypothesis-test
-    hypothesis?: string;     // natural language description
-    evidenceScenario?: string; // scenario that gathers evidence
-    verdictThreshold?: number; // score threshold for acceptance
-
-    // knowledge-injection
-    beliefs?: string[];      // beliefs to inject
-    testQueries?: string[];  // queries to run after injection
-
-    // tool-composition
-    toolSequence?: Array<{ tool: string; args: Record<string, unknown> }>;
-    expectedResult?: string;
-
-    // adversarial-test
-    adversarialInputs?: string[];  // noisy/contradictory inputs
-    expectedBehavior?: string;      // how system should respond
-
-    // stress-test
-    inputRate?: number;       // messages per second
-    duration?: number;        // test duration in ms
-}
-
-interface ExperimentResult {
-    trials: TrialResult[];
-    bestTrial?: TrialResult;
-    summary: string;
-    recommendations: string[];
-}
-
-interface TrialResult {
-    parameters: Record<string, unknown>;
-    score: number;
-    details: Record<string, unknown>;
-    timestamp: number;
-}
-
 class ExperimentRunner {
     constructor(nar: NAR, scenarioRunner: ScenarioRunner);
 
@@ -405,36 +512,23 @@ class ExperimentRunner {
     cancelExperiment(experimentId: string): void;
     getExperiment(experimentId: string): Experiment;
     listExperiments(status?: string): Experiment[];
-
-    // Internal runners
-    private runParameterSweep(experiment: Experiment): Promise<ExperimentResult>;
-    private runPromptAB(experiment: Experiment): Promise<ExperimentResult>;
-    private runHypothesisTest(experiment: Experiment): Promise<ExperimentResult>;
-    private runKnowledgeInjection(experiment: Experiment): Promise<ExperimentResult>;
-    private runToolComposition(experiment: Experiment): Promise<ExperimentResult>;
-    private runAdversarialTest(experiment: Experiment): Promise<ExperimentResult>;
-    private runStressTest(experiment: Experiment): Promise<ExperimentResult>;
 }
 ```
 
 #### Parameter Sweep Example
-
 ```typescript
-// Find optimal similarity threshold for embedding layer
 runner.createExperiment({
     type: 'parameter-sweep',
     parameters: {
         'memory.similarityThreshold': { min: 0.4, max: 0.9, step: 0.05 },
         'memory.maxLinksPerConcept': { values: [5, 10, 15, 20, 30] },
     },
-    objective: 'nal2-compound',  // benchmark suite to optimize for
+    objective: 'nal2-compound',
 });
 ```
 
 #### Prompt A/B Example
-
 ```typescript
-// Compare two ChatResponder system prompts
 runner.createExperiment({
     type: 'prompt-ab',
     promptVariants: [
@@ -446,33 +540,25 @@ runner.createExperiment({
 ```
 
 #### Hypothesis Test Example
-
 ```typescript
-// Test: "Adding (bird --> fly) enables answering about penguin flight"
 runner.createExperiment({
     type: 'hypothesis-test',
     hypothesis: 'Birds fly implies penguins fly unless overridden',
-    beliefs: [
-        '(bird --> fly).',
-        '(penguin --> bird).',
-        '(penguin --> "not fly).',
-    ],
+    beliefs: ['(bird --> fly).', '(penguin --> bird).', '(penguin --> "not fly).'],
     testQueries: ['(penguin --> ?)?'],
     verdictThreshold: 0.7,
 });
 ```
 
 #### Adversarial Test Example
-
 ```typescript
-// Test system resilience to contradictory inputs
 runner.createExperiment({
     type: 'adversarial-test',
     adversarialInputs: [
         '(cat --> animal).',
         '(cat --> "not animal).',
-        '(cat --> animal).',  // repeat
-        '((cat --> animal) --> (cat --> animal)).',  // tautology
+        '(cat --> animal).',
+        '((cat --> animal) --> (cat --> animal)).',
     ],
     expectedBehavior: 'Revision should merge conflicting beliefs, confidence should increase',
 });
@@ -480,35 +566,25 @@ runner.createExperiment({
 
 ### 2.6 RLFPBridge
 
-**File**: `src/agent/rlfp/RLFPBridge.ts`
-
-Connects all experiment types to the existing RLFP system:
+**File**: `src/agent/rlfp/RLFPBridge.ts` — new
 
 ```
 RLFPBridge
   ├── onScenarioResult(result: ScenarioResult)
-  │     — logs trajectory for passed/failed scenarios
-  │     — creates preference pairs from comparative runs
-  │
-  ├── onExperimentResult(experiment: Experiment, result: ExperimentResult)
-  │     — best trial vs worst trial → preference pair
-  │     — feeds RewardModel for policy optimization
-  │
-  ├── compareRuns(before: ScenarioResult[], after: ScenarioResult[])
-  │     — aggregate score comparison → preference
-  │
+  ├── onExperimentResult(experiment, result)
+  ├── compareRuns(before, after)
   ├── getOptimizationSuggestions() → PolicyUpdate[]
-  │     — queries PolicyOptimizer for parameter recommendations
-  │
-  └── applySuggestion(update: PolicyUpdate)
-        — mutates NAR config, logs change for audit
+  └── applySuggestion(update)
 ```
+
+Connects all experiment types to existing RLFP system:
+- Passed/failed scenarios → trajectory logging
+- Comparative runs → preference pairs
+- Best vs worst trial → reward model update
 
 ### 2.7 SelfAnalyzer
 
-**File**: `src/agent/SelfAnalyzer.ts`
-
-Runs during `AgenticLoop.wakeupSequence()`:
+**File**: `src/agent/SelfAnalyzer.ts` — new
 
 ```
 SelfAnalyzer
@@ -518,71 +594,46 @@ SelfAnalyzer
   ├── experimentRunner: ExperimentRunner
   │
   ├── analyzeEpisodicMemory() → AnalysisReport
-  │     — frequently failed questions
-  │     — repeated user patterns
-  │     — tool call failure rates
-  │     — response quality trends
-  │
   ├── analyzeReasoningGaps() → GapReport
-  │     — queries with no derivations
-  │     — low-attention but high-interest concepts
-  │     — missing embedding links
-  │     — chain depth analysis (where do chains break?)
-  │
   ├── analyzeKnowledgeCoverage() → CoverageReport
-  │     — concept density by domain
-  │     — orphan concepts (no links)
-  │     — belief age distribution
-  │     — derivation graph connectivity
-  │
   ├── proposeImprovements() → ImprovementProposal[]
-  │     — belief additions to fill gaps
-  │     — parameter adjustments
-  │     — prompt refinements
-  │     — experiment suggestions
-  │
-  └── executeImprovement(proposal: ImprovementProposal)
-        — applies change, runs validation, records outcome
+  └── executeImprovement(proposal)
 ```
+
+Runs during `AgenticLoop.wakeupSequence()`:
+- Identifies frequently failed questions
+- Detects repeated user patterns
+- Finds tool call failure rates
+- Measures response quality trends
+- Analyzes derivation graph connectivity
+- Proposes belief additions, parameter adjustments, prompt refinements
 
 ### 2.8 RegressionTracker
 
-**File**: `src/agent/scenarios/RegressionTracker.ts`
-
-Tracks benchmark scores over time, detects regressions:
+**File**: `src/agent/scenarios/RegressionTracker.ts` — new
 
 ```
 RegressionTracker
-  ├── storage: File-backed or in-memory
+  ├── storage: File-backed
   │
-  ├── recordRun(suiteId: string, report: BenchmarkReport)
-  │     — stores timestamp, scores, config snapshot
-  │
-  ├── getHistory(suiteId: string, limit?: number) → BenchmarkHistoryEntry[]
-  │
-  ├── detectRegression(suiteId: string) → RegressionAlert | null
-  │     — compares latest vs baseline
-  │     — statistical significance check (t-test)
-  │     — alerts on significant drops
-  │
-  ├── setBaseline(suiteId: string)
-  │     — marks current scores as baseline
-  │
+  ├── recordRun(suiteId, report)
+  ├── getHistory(suiteId, limit?) → BenchmarkHistoryEntry[]
+  ├── detectRegression(suiteId) → RegressionAlert | null
+  ├── setBaseline(suiteId)
   └── exportReport() → string
-        — Markdown report with trend charts (ASCII)
 ```
+
+Tracks benchmark scores over time, detects regressions with t-test for statistical significance.
 
 ## Phase 3: Agent-Driven Development Workflow
 
 ### 3.1 CLI Commands
 
 ```
-# Scenarios
+# Scenarios & Benchmarks
 .scenario run <id>              — run single scenario
-.scenario list [tag]            — list scenarios, optionally filtered by tag
+.scenario list [tag]            — list scenarios filtered by tag
 .scenario run-batch <suite>     — run benchmark suite
-
-# Benchmarks
 .bench run [suite]              — run benchmark, print report
 .bench compare <id1> <id2>      — compare two benchmark runs
 .bench baseline                 — set current scores as baseline
@@ -590,7 +641,7 @@ RegressionTracker
 .bench regression [suite]       — check for regressions
 
 # Experiments
-.experiment create <type>       — create new experiment (interactive wizard)
+.experiment create <type>       — create new experiment
 .experiment run <id>            — run experiment
 .experiment list [status]       — list experiments
 .experiment results <id>        — show experiment results
@@ -616,19 +667,23 @@ RegressionTracker
 
 # Working Memory
 .pin <key> <value>              — store in working memory
-.recall                         — get current pinned value
-.unpin                          — clear working memory
+.recall [key]                   — get pinned value(s)
+.unpin [key]                    — clear working memory
 
 # Orchestration
 .evaluate <term>                — show truth value and action tier
+
+# Grounding
+.ground <query> <source>        — add externally grounded fact
+.grounded [query]               — list grounded facts
 ```
 
 ### 3.2 WebSocket API Extensions
 
-Extend `SeNARSClient` with evaluation and experiment methods:
+Extend `SeNARSClient` with:
 
 ```typescript
-// Scenarios
+// Scenarios & Benchmarks
 async runScenario(id: string): Promise<ScenarioResult>
 async listScenarios(tag?: string): Promise<Scenario[]>
 async runBenchmark(suite: string): Promise<BenchmarkReport>
@@ -653,141 +708,141 @@ async getBenchmarkHistory(suite: string): Promise<BenchmarkHistoryEntry[]>
 async detectRegression(suite: string): Promise<RegressionAlert | null>
 ```
 
-### 3.3 How AI Agents Use This System
-
-The full workflow for an AI coding agent improving the bot:
+### 3.3 AI Agent Workflow
 
 ```
 DISCOVERY
-  1. .bench run full → get baseline scores across all suites
-  2. .bench history → see trends, identify regressions
-  3. .self analyze → get gap analysis and improvement proposals
+  1. .bench run full → baseline scores
+  2. .bench history → trends, regressions
+  3. .self analyze → gap analysis
 
 EXPERIMENTATION
-  4. .experiment create parameter-sweep → optimize similarityThreshold
-  5. .experiment run <id> → wait for results
-  6. .experiment results <id> → review best configuration
-
-  7. .experiment create prompt-ab → test new ChatResponder prompt
-  8. .experiment run <id> → compare variants
-
-  9. .experiment create hypothesis-test → validate reasoning claim
-  10. .experiment run <id> → get verdict
+  4. .experiment create parameter-sweep → optimize config
+  5. .experiment run <id> → results
+  6. .experiment create prompt-ab → test prompts
+  7. .experiment create hypothesis-test → validate reasoning
 
 VALIDATION
-  11. .bench run full → verify improvements didn't break other suites
-  12. .bench compare <old> <new> → confirm statistical significance
-  13. .self analyze → verify gaps are closing
+  8. .bench run full → verify no regressions
+  9. .bench compare <old> <new> → statistical significance
+  10. .self analyze → verify gaps closing
 
 ITERATION
-  14. Apply best config via .config set
-  15. .bench baseline → set new baseline
-  16. Commit changes with benchmark scores in message
-  17. Repeat from step 1
+  11. .config set → apply best config
+  12. .bench baseline → new baseline
+  13. Commit with benchmark scores
+  14. Repeat
 ```
 
-## Phase 4: Bot Usability Enhancements
+## Phase 4: MCP Server Integration
 
-### 4.1 Bot Identity & Personality
+### Design: Bot as MCP Server (not separate process)
 
-**File**: `src/agent/BotProfile.ts` — new
+`SeNARSMCPServer` currently runs as a standalone binary with its own disconnected NAR instance.
+The correct design integrates it into `bot.ts` so external AI agents connect to the **same NAR
+instance** the Bot uses — shared memory, beliefs, and reasoning state.
 
+**Architecture**:
 ```
-BotProfile
-  ├── name: string                    // default 'SeNARS'
-  ├── personality: string             // behavioral description
-  ├── joinMessage: string             // sent on channel join
-  ├── capabilities: string[]          // what the bot can do
-  ├── interactionGuide: string        // how users should interact
-  └── reasoningTransparency: 'none' | 'summary' | 'full'
-```
-
-Default profile:
-```
-Name: SeNARS
-Join: "Hello! I'm SeNARS, a reasoning-based AI. Tell me facts (end with .),
-       ask questions (end with ?), set goals (end with !), or just chat.
-       Type .help for commands."
-Capabilities: [
-  "Learn facts: (cat --> animal).",
-  "Answer questions: (cat --> ?)?",
-  "Set goals: (want --> explore).!",
-  "Natural conversation",
-  "Web search (if configured)",
-  "File operations",
-  "Mathematical calculations",
-]
+bot.ts
+└── Agent
+     ├── NAR (single shared instance)
+     ├── Connections (IRC, WS, HTTP)
+     ├── ChatResponder
+     ├── ScenarioRunner / ExperimentRunner
+     └── MCP Server (stdio or SSE transport)
+          ├── registerAgentAPI(agent) → APIRegistry populated
+          ├── EnhancedMCPAdapter → exposes real tools
+          └── Shares NAR, memory, tools with everything else
 ```
 
-### 4.2 Conversation Context Management
+The standalone `mcp-server.ts` binary is removed.
 
-**File**: `src/agent/ConversationManager.ts` — new
+### 4.1 Wire MCP Server into Bot
 
-```
-ConversationManager
-  ├── perUser: Map<string, ConversationContext>
-  │
-  ├── getContext(userId: string) → ConversationContext
-  │     — last N messages with this user
-  │     — pinned working memory
-  │     — active goals/topics
-  │
-  ├── addMessage(userId: string, message: IOMessage)
-  ├── addResponse(userId: string, response: string)
-  ├── getContextForPrompt(userId: string) → string
-  │     — formats conversation history for LM system prompt
-  │
-  └── prune(maxAge: number)
-        — removes stale conversations
-```
+**File**: `src/bin/bot.ts` — modify
 
-### 4.3 Response Formatting
+Create `SeNARSMCPServer` within bot.ts, passing the shared NAR and Agent:
 
-**File**: `src/agent/ResponseFormatter.ts` — new
+```typescript
+const mcpServer = new SeNARSMCPServer({
+    name: 'senars-bot',
+    version: '1.0.0',
+    transport: process.env.SENARS_MCP_TRANSPORT ?? 'stdio',
+});
 
-Handles channel-specific response formatting:
+// Register all agent APIs with shared NAR
+registerAgentAPI(agent, mcpServer.getAdapter());
 
-```
-ResponseFormatter
-  ├── formatForIRC(text: string) → string[]
-  │     — splits into 400-char chunks
-  │     — strips markdown
-  │     — preserves Narsese structure
-  │
-  ├── formatForWS(text: string) → string
-  │     — full markdown support
-  │     — structured JSON option
-  │
-  ├── formatForCLI(text: string) → string
-  │     — terminal colors if TTY
-  │     — full formatting
-  │
-  └── addProvenance(response: string, beliefs: Task[]) → string
-        — appends derivation info when reasoningTransparency > 'none'
-        — "Derived from: (A --> B) [f=0.90 c=0.81] via deduction"
+// Register SeNARS tools as MCP tools
+registerNARToolsAsMCP(nar, mcpServer.getAdapter());
+
+// Register scenario/experiment/self-analysis endpoints
+registerEvaluationAPIs(scenarioRunner, experimentRunner, selfAnalyzer, mcpServer.getAdapter());
+
+await mcpServer.start();
 ```
 
-### 4.4 Graceful Degradation
+### 4.2 Register SeNARS Tools as MCP Tools
 
-When LM is unavailable or fails:
+**File**: `src/api/mcp-tools.ts` — new
 
-1. **Narsese-only mode**: Still process beliefs, questions, goals via NAL rules
-2. **Fallback responses**: Pattern-matched responses for common inputs
-3. **Error transparency**: Inform user when LM is unavailable, what still works
-4. **Queue & retry**: If LM is temporarily down, queue requests and retry
+Map existing NAR tools to MCP tool definitions:
 
-**File**: `src/agent/DegradationManager.ts` — new
+| NAR Tool | MCP Tool | Description |
+|---|---|---|
+| Calculate | `calculate` | Evaluate arithmetic/math expressions |
+| ReadFile | `read_file` | Read file contents |
+| WriteFile | `write_file` | Write content to file |
+| HTTP | `http_request` | Make HTTP requests |
+| Search | `search_memory` | Search NAR memory for beliefs |
+| BraveSearch | `web_search` | Search the web via Brave API |
+| Reason | `run_reasoning` | Run NAL inference steps |
+| Explain | `explain_belief` | Explain how a belief was derived |
+| Learn | `learn_belief` | Add a belief to memory |
+| Process | `run_process` | Execute a shell command |
+| Timer | `set_timer` | Set a timer/delay |
 
-```
-DegradationManager
-  ├── lmStatus: 'available' | 'degraded' | 'unavailable'
-  ├── fallbackResponses: Map<string, string>  // pattern → response
-  │
-  ├── checkLMHealth() → LMStatus
-  ├── getFallbackResponse(input: string) → string | null
-  ├── shouldUseFallback() → boolean
-  └── reportStatus() → string
-```
+### 4.3 Register MCP Prompts
+
+**File**: `src/api/mcp-prompts.ts` — new
+
+SeNARS-specific prompt templates for AI agents:
+
+| Prompt | Purpose |
+|---|---|
+| `reasoning_chain` | Guide for building NAL inference chains |
+| `grounded_fact` | Template for adding externally verified facts |
+| `multi_cycle_task` | Template for multi-turn reasoning tasks |
+| `experiment_design` | Template for designing parameter sweeps |
+| `benchmark_analysis` | Template for analyzing benchmark results |
+
+### 4.4 Register MCP Resources
+
+**File**: `src/api/mcp-resources.ts` — new
+
+Expose SeNARS state as MCP resources:
+
+| Resource URI | Content |
+|---|---|
+| `nar://beliefs` | All stored beliefs with truth values |
+| `nar://concepts` | Active concepts with attention priorities |
+| `nar://attention` | Current attention snapshot |
+| `nar://episodes` | Recent episodic memory entries |
+| `nar://benchmarks` | Benchmark history and scores |
+| `nar://config` | Current configuration |
+| `nar://tools` | Available tools with schemas |
+
+### 4.5 Register API Endpoints
+
+**File**: `src/api/agent-api.ts` — modify
+
+Add endpoints for new subsystems:
+- `runScenario`, `listScenarios`, `runBenchmark`
+- `createExperiment`, `runExperiment`, `listExperiments`
+- `selfAnalyze`, `selfPropose`, `selfApply`
+- `getConfig`, `setConfig`, `configHistory`
+- `getBenchmarkHistory`, `detectRegression`
 
 ## File Change Summary
 
@@ -804,6 +859,8 @@ DegradationManager
 | `src/agent/ConversationManager.ts` | **NEW** | Per-user conversation context |
 | `src/agent/ResponseFormatter.ts` | **NEW** | Channel-specific response formatting |
 | `src/agent/DegradationManager.ts` | **NEW** | Graceful degradation when LM unavailable |
+| `src/agent/SkillCatalog.ts` | **NEW** | Auto-generated skill catalog for LM prompts |
+| `src/agent/ResponseInterpreter.ts` | **NEW** | Parse ChatResponder output, execute actions, feed back |
 | `src/agent/scenarios/types.ts` | **NEW** | Unified scenario/test/benchmark types |
 | `src/agent/scenarios/ScenarioRunner.ts` | **NEW** | Scenario execution engine |
 | `src/agent/scenarios/ScoringEngine.ts` | **NEW** | Scoring functions |
@@ -811,10 +868,14 @@ DegradationManager
 | `src/agent/experiments/ExperimentRunner.ts` | **NEW** | Open-ended experiment execution |
 | `src/agent/rlfp/RLFPBridge.ts` | **NEW** | Bridge experiments → RLFP |
 | `src/agent/SelfAnalyzer.ts` | **NEW** | Agentic self-analysis |
-| `src/nar/memory/WorkingMemory.ts` | **NEW** | Pin/recall working memory slot |
-| `src/nar/orchestration.ts` | **NEW** | Action thresholds, novelty discount |
+| `src/nar/memory/WorkingMemory.ts` | **NEW** | Pin/recall working memory |
+| `src/nar/orchestration.ts` | **NEW** | Action thresholds, confidence calibration |
+| `src/nar/grounding.ts` | **NEW** | Grounded reasoning pipeline |
+| `src/agent/LastResults.ts` | **NEW** | Track previous turn results for multi-cycle context |
+| `src/nar/lm/rules.ts` | MODIFY | Wire response-repair into LM rules |
+| `src/agent/ChatResponder.ts` | MODIFY | Wire response-repair, inject skill catalog, error feedback, last results |
 | `src/agent/benchmarks/index.ts` | **NEW** | Benchmark suite registry |
-| `src/agent/benchmarks/nal1.ts` | **NEW** | NAL-1 benchmarks (deduction, induction, abduction) |
+| `src/agent/benchmarks/nal1.ts` | **NEW** | NAL-1 benchmarks |
 | `src/agent/benchmarks/nal2.ts` | **NEW** | NAL-2 compound term benchmarks |
 | `src/agent/benchmarks/nal3.ts` | **NEW** | NAL-3 higher-order benchmarks |
 | `src/agent/benchmarks/nal4.ts` | **NEW** | NAL-4 revision benchmarks |
@@ -829,7 +890,12 @@ DegradationManager
 | `src/agent/client/SeNARSClient.ts` | MODIFY | Add experiment/config/self-analysis methods |
 | `src/agent/demos.ts` | MODIFY | Refactor to use ScenarioRunner, backward compat |
 | `src/agent/index.ts` | MODIFY | Export new modules |
-| `src/bin/bot.ts` | MODIFY | Wire auth, AgenticLoop, RLFP, BotProfile |
+| `src/api/mcp-tools.ts` | **NEW** | Register NAR tools as MCP tools |
+| `src/api/mcp-prompts.ts` | **NEW** | Register SeNARS prompt templates |
+| `src/api/mcp-resources.ts` | **NEW** | Register SeNARS state as MCP resources |
+| `src/api/agent-api.ts` | MODIFY | Add scenario/experiment/self-analysis endpoints |
+| `src/bin/bot.ts` | MODIFY | Wire auth, AgenticLoop, RLFP, BotProfile, MCP server |
+| `src/bin/mcp-server.ts` | **REMOVE** | Redundant — MCP integrated into bot.ts |
 | `src/config/defaults.ts` | MODIFY | Add all new defaults |
 | `tests/agent/scenarios.test.ts` | **NEW** | Unit tests for ScenarioRunner, ScoringEngine |
 | `tests/agent/experiments.test.ts` | **NEW** | Tests for ExperimentRunner |
@@ -844,8 +910,17 @@ DegradationManager
 | 1 | Auth System | None | Standalone |
 | 1 | Working Memory | None | Standalone |
 | 1 | Orchestration Guide | None | Standalone |
-| 1 | IRC Usability | Auth System | Channel behavior |
-| 1 | AgenticLoop wakeup | Orchestration Guide | Integration point |
+| 1 | Skill Catalog | None | Depends on existing tool/command registration |
+| 1 | Response Interpreter | None | Standalone |
+| 1 | Response Repair wiring | None | Import existing module |
+| 1 | BotProfile | None | Standalone |
+| 1 | ChannelBehavior | BotProfile | Uses profile |
+| 1 | ConversationManager | None | Standalone |
+| 1 | ResponseFormatter | ChannelBehavior | Uses behavior config |
+| 1 | DegradationManager | None | Standalone |
+| 1 | Grounding Pipeline | Orchestration Guide, NAR tools | Uses confidence calibration, HTTP/Search tools |
+| 1 | Last Results Tracking | None | Standalone, feeds into ChatResponder prompt |
+| 1 | AgenticLoop wiring | Agent.router | Connect loop to Agent router, start loop |
 | 2 | Scenario types + Runner | None | Core evaluation infra |
 | 2 | ScoringEngine | Scenario types | Depends on types |
 | 2 | Benchmark suites | ScenarioRunner | Needs runner to execute |
@@ -855,10 +930,12 @@ DegradationManager
 | 2 | SelfAnalyzer | All above | Uses everything |
 | 3 | CLI commands | All above | Agent-facing API |
 | 3 | WS extensions | All above | Programmatic API |
-| 4 | BotProfile | None | Standalone |
-| 4 | ConversationManager | None | Standalone |
-| 4 | ResponseFormatter | BotProfile | Uses profile |
-| 4 | DegradationManager | None | Standalone |
+| 4 | MCP Server in bot.ts | All above | Shares NAR instance |
+| 4 | MCP Tools | NAR tools, MCP Server | Expose tools via MCP |
+| 4 | MCP Prompts | MCP Server | Prompt templates |
+| 4 | MCP Resources | MCP Server | State as resources |
+| 4 | API Endpoints | All above | Registry endpoints |
+| — | `mcp-server.ts` | — | **Remove** — redundant |
 
 Phases within a group can be developed in parallel. Cross-phase dependencies are noted.
 
@@ -870,51 +947,86 @@ No new external dependencies. Uses existing:
 - EpisodicMemory (pattern analysis)
 - EventBus (trajectory logging)
 - EmbeddingLayer (semantic scoring fallback)
+- `SeNARSMCPServer`, `EnhancedMCPAdapter`, `APIRegistry` (already exist, wired into bot)
+- `PromptManager`, `ResourceManager` (already exist, used for MCP prompts/resources)
+- response-repair.ts (already exists, just needs wiring)
+- NAR tools (11 built-in + BraveSearchTool, exposed via MCP)
 
 ## Design Decisions
 
 ### Unified Scenario Format
 
-One `Scenario` type with `category` field replaces three separate systems:
-- `demo` → showcase, no assertions required
+One `Scenario` type with `category` field replaces demos/tests/benchmarks:
+- `demo` → showcase, no assertions
 - `test` → CI validation, must pass
 - `benchmark` → scored, tracked for regression
 
-This eliminates duplication and gives AI agents a single interface for all evaluation needs.
-
 ### Content-Level Derivation Checks
 
-Scenarios assert on **specific derivation content** (terms, truth values, rule IDs), not just
-derivation count. This catches missing rules, incorrect truth propagation, and over-derivation.
+Scenarios assert on **specific derivation content** (terms, truth values, rule IDs), not just count.
+Catches missing rules, incorrect truth propagation, and over-derivation.
 
-### Open-Ended Experimentation Over Preference-Only
+### Open-Ended Experimentation
 
-RLFP preference learning is powerful but limited to pairwise comparisons. The `ExperimentRunner`
-adds:
+RLFP preference learning is one tool among many. `ExperimentRunner` adds:
+- Parameter sweeps, prompt A/B, hypothesis tests, knowledge injection, adversarial tests, stress tests
 
-- **Parameter sweeps** — systematic exploration of config space
-- **Prompt A/B** — direct comparison of LM prompts
-- **Hypothesis tests** — structured validation of reasoning claims
-- **Knowledge injection** — test belief addition strategies
-- **Adversarial tests** — validate defense stack resilience
-- **Stress tests** — performance under load
+Each produces actionable results independently; RLFP adds the learning layer over time.
 
-Each experiment type produces `ExperimentResult` with `TrialResult`s that can feed into RLFP
-as preference pairs (best vs worst trial), but also stand alone as actionable findings.
+### Response Interpreter
 
-### RLFP as One Tool, Not the Only Tool
+The Bot's own LM responses can trigger NAL operations. This bridges the gap between
+OmegaClaw's "LLM emits skill calls" model and SeNARS's "LLM produces natural language" model.
+The Bot can auto-believe facts it states, execute tools it mentions, and ask questions of itself.
 
-The `RLFPBridge` connects experiment outcomes to the reward model, but experiments are valuable
-even without RLFP. An AI agent can:
+### Skill Catalog
 
-1. Run a parameter sweep → find optimal values → apply directly
-2. Run a prompt A/B → pick winner → update ChatResponder
-3. Run a hypothesis test → get verdict → add/remove beliefs
+Auto-generated from registered components — no manual maintenance needed. As tools and commands
+are registered, the catalog updates. This is more maintainable than OmegaClaw's manual `getSkills`
+list in MeTTa.
 
-RLFP adds the learning layer: over time, the system learns which configurations work best
-across many experiments.
+### Grounded Reasoning
+
+Source quality → confidence mapping prevents LLM overconfidence. Grounded facts persist across
+sessions with provenance, creating a reliability flywheel.
 
 ### Backward Compatibility
 
-`demos.ts` is refactored to use `ScenarioRunner` internally but maintains its existing API
-so existing code continues to work. The `DemoRunner` class wraps `ScenarioRunner`.
+`demos.ts` refactored to use `ScenarioRunner` internally but maintains existing API.
+`DemoRunner` wraps `ScenarioRunner`.
+
+### MCP: Integrated, Not Separate
+
+`SeNARSMCPServer` runs inside `bot.ts`, sharing the same NAR instance. External AI agents
+(Claude Code, Cursor) connect to the live Bot — same memory, same beliefs, same reasoning state.
+The standalone `mcp-server.ts` binary is removed as redundant.
+
+### SeNARS Tools: Three Exposure Paths
+
+The 11 built-in tools + BraveSearchTool are exposed through three channels:
+1. **NAR engine** — used during reasoning (already works)
+2. **SkillCatalog** — listed in ChatResponder system prompt for LM awareness (new)
+3. **MCP server** — callable by external AI agents via MCP protocol (new)
+
+Additionally, `ResponseInterpreter` can trigger tools from the Bot's own ChatResponder output,
+enabling the Bot to self-initiate tool use during conversation.
+
+### Response Interpreter Feedback Loop
+
+The Bot doesn't just respond — it acts on its own responses. `ResponseInterpreter` parses
+ChatResponder output for Narsese statements (auto-believes them), tool calls (executes them),
+and questions (asks the reasoning engine). Results are appended to the response and fed into
+`LastResults` for the next turn. This creates a closed loop: respond → interpret → act → learn.
+
+### AgenticLoop Wiring
+
+The existing `AgenticLoop` has `setMessageHandler()` but `bot.ts` never calls it or starts the
+loop. The fix wires `Agent.router` as the message handler and calls `loop.start()`. This is the
+critical integration point that makes the Bot autonomous rather than purely reactive.
+
+### Last Results for Multi-Cycle Reasoning
+
+OmegaClaw's `&lastresults` feeds previous turn's skill results into the next prompt, enabling
+the LM to continue multi-step reasoning across turns. `LastResults` provides the same mechanism,
+tracking input/response/action triples and injecting the last N turns into ChatResponder's
+system prompt.

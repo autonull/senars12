@@ -12,6 +12,9 @@ import {narCommands} from '../io/commands/nar.js';
 import {selfCommands} from '../io/commands/self.js';
 import {lmCommands} from '../io/commands/lm.js';
 import {rlfpCommands} from '../io/commands/rlfp.js';
+import {authCommands} from '../io/commands/auth.js';
+import {configCommands} from '../io/commands/config.js';
+import {AuthManager} from '../io/auth.js';
 import type {Connection, ConnectionConfig, IOMessage, MessageClassification} from '../io/types.js';
 import {CLIConnection} from '../io/connections/cli.js';
 import {IRCConnection} from '../io/connections/irc.js';
@@ -27,6 +30,7 @@ export class Agent {
     private readonly commands: CommandRegistry;
     private readonly emitter: EventEmitter;
     private readonly logger: Logger;
+    private readonly authManager: AuthManager;
     private readonly chatResponder?: ChatResponder;
     private running = false;
 
@@ -37,13 +41,21 @@ export class Agent {
         this.manager = new ConnectionManager(this.logger);
         this.router = new MessageRouter();
         this.commands = new CommandRegistry();
+        this.authManager = new AuthManager();
         this.chatResponder = chatResponder;
         this.registerConnectionFactories();
         this.registerCommands();
         this.setupMiddleware();
     }
 
+    getAuthManager(): AuthManager {
+        return this.authManager;
+    }
+
     async addConnection(config: ConnectionConfig): Promise<Connection> {
+        if (config.authSecret) {
+            this.authManager.setSecret(config.id, config.authSecret);
+        }
         return this.manager.addConnection(config, {
             nar: this.nar,
             emit: (event, data) => this.emitter.emit(event, data)
@@ -51,6 +63,7 @@ export class Agent {
     }
 
     async removeConnection(id: string): Promise<void> {
+        this.authManager.clearConnection(id);
         await this.manager.removeConnection(id);
     }
 
@@ -159,12 +172,26 @@ export class Agent {
     }
 
     private registerCommands(): void {
-        for (const cmd of [coreCommands, connectionCommands, memoryCommands, narCommands, selfCommands, lmCommands, rlfpCommands].flat()) {
+        for (const cmd of [coreCommands, connectionCommands, memoryCommands, narCommands, selfCommands, lmCommands, rlfpCommands, authCommands, configCommands].flat()) {
             this.commands.register(cmd);
         }
     }
 
     private setupMiddleware(): void {
+        this.router.use(async (message, context, next) => {
+            const authResult = this.authManager.checkAuth(message.source, message.sender, message.text);
+            if (authResult === 'ignore') {
+                this.logger.debug(`Ignoring unauthenticated message from ${message.sender} on ${message.source}`);
+                return;
+            }
+            if (authResult === 'auth_bound') {
+                this.authManager.bindUser(message.source, message.sender);
+                await context.respond('Authenticated successfully');
+                return;
+            }
+            await next();
+        });
+
         this.router.use(async (message, context, next) => {
             if (message.text.startsWith('.')) {
                 const parts = message.text.slice(1).split(/\s+/);

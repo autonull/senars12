@@ -105,7 +105,6 @@ export class SeNARSClient {
         this.ws = null;
     }
 
-    // Core operations - thin wrappers around sendMessage
     async addBelief(term: string, truth?: { f: number; c: number }) {
         return this.sendMessage<{ added: true; term: string }>('belief', {term, truth});
     }
@@ -151,13 +150,64 @@ export class SeNARSClient {
         return this.sendMessage<{ tasks: unknown[]; count: number }>('history', {limit});
     }
 
-    // Event subscription
     async subscribe(events: string[]): Promise<void> {
         await this.sendMessage('subscribe', {events});
     }
 
     async unsubscribe(events: string[]): Promise<void> {
         await this.sendMessage('unsubscribe', {events});
+    }
+
+    async runScenario(id: string) {
+        return this.sendMessage<{ passed: boolean; score: number }>('scenario:run', {id});
+    }
+
+    async listScenarios(tag?: string) {
+        return this.sendMessage<{ scenarios: Array<{id: string; name: string}>; total: number }>('scenario:list', {tag});
+    }
+
+    async runBenchmark(suite: string) {
+        return this.sendMessage<{ passed: number; failed: number; score: number }>('benchmark:run', {suite});
+    }
+
+    async createExperiment(config: {type: string; name: string; description: string; config?: Record<string, unknown>}) {
+        return this.sendMessage<{ id: string }>('experiment:create', config);
+    }
+
+    async runExperiment(id: string) {
+        return this.sendMessage<{ score: number; duration: number }>('experiment:run', {id});
+    }
+
+    async listExperiments(status?: string) {
+        return this.sendMessage<{ experiments: Array<{id: string; name: string; status: string}> }>('experiment:list', {status});
+    }
+
+    async getExperimentResults(id: string) {
+        return this.sendMessage<{ score: number; details: Record<string, unknown> }>('experiment:results', {id});
+    }
+
+    async setConfig(key: string, value: unknown) {
+        return this.sendMessage<{ success: boolean }>('config:set', {key, value});
+    }
+
+    async selfAnalyze() {
+        return this.sendMessage<{ timestamp: number; recommendations: string[] }>('self:analyze');
+    }
+
+    async selfPropose() {
+        return this.sendMessage<{ proposals: Array<{id: string; description: string}> }>('self:propose');
+    }
+
+    async selfApply(proposalId: string) {
+        return this.sendMessage<{ success: boolean }>('self:apply', {proposalId});
+    }
+
+    async getBenchmarkHistory(suite: string, limit?: number) {
+        return this.sendMessage<{ history: Array<{score: number; timestamp: number}> }>('benchmark:history', {suite, limit});
+    }
+
+    async detectRegression(suite: string) {
+        return this.sendMessage<{ hasRegression: boolean; message: string | null }>('benchmark:regression', {suite});
     }
 
     on(event: string, handler: (data: unknown) => void): void {

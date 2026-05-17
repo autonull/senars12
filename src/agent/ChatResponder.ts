@@ -4,6 +4,7 @@ import {getQualityModel} from '../nar/lm/providers.js';
 import {generateText, type ModelMessage} from 'ai';
 import {createLogger} from '../nar/logger/index.js';
 import {errMsg} from '../nar/utils/helpers.js';
+import {tryRepairAndParse} from '../nar/lm/response-repair.js';
 
 export interface ChatResponderConfig {
     nar: NAR;
@@ -52,7 +53,11 @@ export class ChatResponder {
                 allowSystemInMessages: true,
             });
 
-            const response = result.text.trim();
+            const response = tryRepairAndParse(
+                result.text.trim(),
+                (r) => r,
+                'markdown'
+            ) ?? result.text.trim();
             this.addHistory('user', userMessage);
             this.addHistory('assistant', response);
 

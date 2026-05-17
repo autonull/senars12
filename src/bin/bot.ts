@@ -7,10 +7,24 @@
  */
 
 import {Agent} from '../agent/Agent.js';
+import {AgenticLoop} from '../agent/AgenticLoop.js';
+import {ChatResponder} from '../agent/ChatResponder.js';
+import {SkillCatalog} from '../agent/SkillCatalog.js';
+import {ResponseInterpreter} from '../agent/ResponseInterpreter.js';
+import {DegradationManager} from '../agent/DegradationManager.js';
+import {ResponseFormatter} from '../agent/ResponseFormatter.js';
+import {ConversationManager} from '../agent/ConversationManager.js';
+import {SelfAnalyzer} from '../agent/SelfAnalyzer.js';
+import {ScenarioRunner} from '../agent/scenarios/ScenarioRunner.js';
+import {ScoringEngine} from '../agent/scenarios/ScoringEngine.js';
+import {ExperimentRunner} from '../agent/experiments/ExperimentRunner.js';
+import {RLFPBridge} from '../agent/rlfp/RLFPBridge.js';
+import {RegressionTracker} from '../agent/scenarios/RegressionTracker.js';
+import {BotProfile, ChannelBehavior} from '../agent/BotProfile.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {createLogger} from '../nar/logger/index.js';
-import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
+import {DEFAULT_NAR_CONFIG, DEFAULT_BOT_CONFIG} from '../config/defaults.js';
 import {setupGracefulShutdown} from '../utils/shutdown.js';
 import type {ConnectionConfig} from '../io/types.js';
 
@@ -23,9 +37,58 @@ async function main() {
         providerRegistry: registry,
     });
 
-    const agent = new Agent(nar, logger);
+    const botProfile = new BotProfile();
+    const channelBehavior = new ChannelBehavior(DEFAULT_BOT_CONFIG.channel.defaultType);
+    const chatResponder = new ChatResponder({
+        nar,
+        registry,
+        name: botProfile.name,
+        personality: botProfile.personality,
+    });
 
-    setupGracefulShutdown(() => agent.stop(), logger);
+    const skillCatalog = new SkillCatalog(nar);
+    const responseInterpreter = new ResponseInterpreter(nar);
+    const degradationManager = new DegradationManager();
+    const responseFormatter = new ResponseFormatter(channelBehavior);
+    const conversationManager = new ConversationManager();
+
+    const scoringEngine = new ScoringEngine();
+    const scenarioRunner = new ScenarioRunner(nar);
+    const experimentRunner = new ExperimentRunner(nar, scenarioRunner);
+    const selfAnalyzer = new SelfAnalyzer(nar, undefined, scenarioRunner, experimentRunner);
+    const regressionTracker = new RegressionTracker();
+
+    const agent = new Agent(nar, logger, chatResponder);
+
+    const loopConfig = DEFAULT_BOT_CONFIG.agenticLoop;
+    const loop = new AgenticLoop({
+        maxInputTurns: loopConfig.maxInputTurns,
+        maxWakeTurns: loopConfig.maxWakeTurns,
+        sleepIntervalMs: loopConfig.sleepIntervalMs,
+        wakeupIntervalMs: loopConfig.wakeupIntervalMs,
+        reasoningStepsPerWake: loopConfig.reasoningStepsPerWake,
+        enableLMRules: loopConfig.enableLMRules,
+    }, nar);
+
+    loop.setMessageHandler(async (msg) => {
+        await agent.router.route(msg, {
+            connection: msg.source as any,
+            nar: agent.getNAR(),
+            respond: async (text) => {
+                const chunks = responseFormatter.formatForIRC(text);
+                for (const chunk of chunks) {
+                    await agent.sendTo(msg.source, msg.sender, chunk);
+                }
+            }
+        });
+    });
+
+    loop.start();
+
+    setupGracefulShutdown(async () => {
+        await agent.stop();
+        loop.stop();
+    }, logger);
 
     await agent.start();
 
@@ -38,6 +101,7 @@ async function main() {
                 id: 'irc-main',
                 type: 'irc',
                 enabled: true,
+                authSecret: process.env.SENARS_IRC_AUTH_SECRET,
                 config: {
                     server: process.env.SENARS_IRC_SERVER || 'irc.libera.chat',
                     port: parseInt(process.env.SENARS_IRC_PORT || '6667'),
@@ -99,7 +163,8 @@ async function main() {
         }
     }
 
-    logger.info('Bot ready');
+    logger.info(`Bot ready: ${botProfile.name}`);
+    logger.info(`Connections: ${connections.length} configured`);
 }
 
 main().catch(console.error);

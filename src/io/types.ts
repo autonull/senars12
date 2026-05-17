@@ -1,4 +1,4 @@
-import {NAR} from '../nar/nar.js';
+import type {NAR} from '../nar/nar.js';
 
 export type ConnectionState =
     | 'idle' | 'connecting' | 'connected'
@@ -67,6 +67,7 @@ export interface ConnectionConfig {
     readonly enabled: boolean;
     readonly type: string;
     readonly config: Record<string, unknown>;
+    readonly authSecret?: string;
 }
 
 export interface ConnectionDeps {

@@ -1,12 +1,15 @@
 import type {IOMessage} from '../io/types.js';
 import {MessageQueue} from './MessageQueue.js';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
+import type {NAR} from '../nar/nar.js';
 
 export interface AgenticLoopConfig {
     maxInputTurns: number;
     maxWakeTurns: number;
     sleepIntervalMs: number;
     wakeupIntervalMs: number;
+    reasoningStepsPerWake?: number;
+    enableLMRules?: boolean;
 }
 
 const DEFAULT_CONFIG: Required<AgenticLoopConfig> = {
@@ -14,12 +17,15 @@ const DEFAULT_CONFIG: Required<AgenticLoopConfig> = {
     maxWakeTurns: 3,
     sleepIntervalMs: 1000,
     wakeupIntervalMs: 60000,
+    reasoningStepsPerWake: 5,
+    enableLMRules: true,
 };
 
 export class AgenticLoop {
     private readonly config: Required<AgenticLoopConfig>;
     private readonly queue: MessageQueue;
     private readonly episodicMemory?: EpisodicMemory;
+    private readonly nar: NAR;
     private running = false;
     private idleCounter = 0;
     private nextWakeAt = 0;
@@ -28,11 +34,13 @@ export class AgenticLoop {
 
     constructor(
         config: AgenticLoopConfig = DEFAULT_CONFIG,
+        nar?: NAR,
         episodicMemory?: EpisodicMemory
     ) {
         this.config = {...DEFAULT_CONFIG, ...config};
         this.queue = new MessageQueue();
         this.episodicMemory = episodicMemory;
+        this.nar = nar!;
     }
 
     setMessageHandler(handler: (msg: IOMessage) => Promise<void>): void {
@@ -101,7 +109,12 @@ export class AgenticLoop {
     }
 
     private async wakeupSequence(): Promise<void> {
-        // Placeholder for self-initiated work during wake cycles
+        if (this.nar) {
+            try {
+                await this.nar.run(this.config.reasoningStepsPerWake);
+            } catch {
+            }
+        }
     }
 
     private sleep(ms: number): Promise<void> {

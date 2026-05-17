@@ -1,1 +1,16 @@
 export {Agent} from './Agent.js';
+export {BotProfile, ChannelBehavior} from './BotProfile.js';
+export {ConversationManager} from './ConversationManager.js';
+export {DegradationManager} from './DegradationManager.js';
+export {LastResults} from './LastResults.js';
+export {ResponseFormatter} from './ResponseFormatter.js';
+export {ResponseInterpreter} from './ResponseInterpreter.js';
+export {RLFPBridge} from './rlfp/RLFPBridge.js';
+export {ScenarioRunner} from './scenarios/ScenarioRunner.js';
+export {ScoringEngine} from './scenarios/ScoringEngine.js';
+export {RegressionTracker} from './scenarios/RegressionTracker.js';
+export {ExperimentRunner} from './experiments/ExperimentRunner.js';
+export {SelfAnalyzer} from './SelfAnalyzer.js';
+export {SkillCatalog} from './SkillCatalog.js';
+export * from './scenarios/types.js';
+export * from './benchmarks/index.js';

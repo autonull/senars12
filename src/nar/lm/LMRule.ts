@@ -6,6 +6,7 @@ import type {LMClient, LMExecutionStats, LMRuleConfig, LMRuleStats} from './type
 import {CircuitBreaker, errMsg} from '../utils';
 import type {Truth as TruthType} from '../terms/truth.js';
 import {LMResponseParser} from './parser.js';
+import {tryRepairAndParse} from './response-repair.js';
 
 const defaultStats = (): LMExecutionStats => ({
     totalCalls: 0, successfulCalls: 0, failedCalls: 0, totalDuration: 0,
@@ -129,7 +130,8 @@ export class LMRule {
     }
 
     private processResponse(response: string, primary: Term, secondary: Term | undefined, context?: Record<string, unknown>): unknown {
-        return this.config.responseProcessor ? this.config.responseProcessor(response, primary, secondary, context) : response;
+        const repaired = tryRepairAndParse(response, (r) => r, 'narsese') ?? response;
+        return this.config.responseProcessor ? this.config.responseProcessor(repaired, primary, secondary, context) : repaired;
     }
 
     private generateTasks(processed: unknown, primary: Term, secondary: Term | undefined, context?: Record<string, unknown>): Task[] {
