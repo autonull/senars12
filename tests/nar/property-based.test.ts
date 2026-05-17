@@ -168,7 +168,7 @@ describe('Property-Based Tests', () => {
                     for (let v = 0; v < 100; v++) {
                         items.add(v, v);
                     }
-                    expect(items.getItems().length).toBeLessThanOrEqual(capacity);
+                    expect(items.toArray().length).toBeLessThanOrEqual(capacity);
                 })
             );
         });
@@ -179,7 +179,7 @@ describe('Property-Based Tests', () => {
             items.add('mid', 0.5);
             items.add('high', 0.9);
             items.add('incoming', 0.3);
-            const kept = items.getItems();
+            const kept = items.toArray();
             expect(kept).not.toContain('low');
             expect(kept).toContain('high');
         });

@@ -190,10 +190,6 @@ export class Bag<T> {
         this.heap = this.heap.slice(0, maxSize);
     }
 
-    getItems(): T[] {
-        return this.heap.map(h => h.item);
-    }
-
     peek(): T | undefined {
         return this.heap[0]?.item;
     }

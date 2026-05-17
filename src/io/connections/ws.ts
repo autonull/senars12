@@ -139,14 +139,7 @@ export class WSConnection extends BaseConnection {
             return;
         }
 
-        this.handleMessage({
-            id: crypto.randomUUID(),
-            source: this.id,
-            sender: client.id,
-            text: (message.data as string) ?? JSON.stringify(message),
-            timestamp: Date.now(),
-            metadata: {clientId: client.id, type: msgType},
-        });
+        this.handleMessage(this.createMessage(client.id, (message.data as string) ?? JSON.stringify(message), {clientId: client.id, type: msgType}));
     }
 
     private sendHeartbeat(ws: WebSocket): void {

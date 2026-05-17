@@ -143,48 +143,20 @@ export class Agent {
     }
 
     private registerConnectionFactories(): void {
-        this.manager.registerFactory({
-            type: 'cli',
-            create: (config, deps) => new CLIConnection(config, deps)
-        });
-        this.manager.registerFactory({
-            type: 'irc',
-            create: (config, deps) => new IRCConnection(config, deps)
-        });
-        this.manager.registerFactory({
-            type: 'websocket',
-            create: (config, deps) => new WSConnection(config, deps)
-        });
-        this.manager.registerFactory({
-            type: 'http',
-            create: (config, deps) => new HTTPConnection(config, deps)
-        });
-        this.manager.registerFactory({
-            type: 'mcp',
-            create: (config, deps) => new MCPConnection(config, deps)
-        });
+        const factories = [
+            {type: 'cli', ctor: CLIConnection},
+            {type: 'irc', ctor: IRCConnection},
+            {type: 'websocket', ctor: WSConnection},
+            {type: 'http', ctor: HTTPConnection},
+            {type: 'mcp', ctor: MCPConnection},
+        ] as const;
+        for (const {type, ctor} of factories) {
+            this.manager.registerFactory({type, create: (config, deps) => new ctor(config, deps)});
+        }
     }
 
     private registerCommands(): void {
-        for (const cmd of coreCommands) {
-            this.commands.register(cmd);
-        }
-        for (const cmd of connectionCommands) {
-            this.commands.register(cmd);
-        }
-        for (const cmd of memoryCommands) {
-            this.commands.register(cmd);
-        }
-        for (const cmd of narCommands) {
-            this.commands.register(cmd);
-        }
-        for (const cmd of selfCommands) {
-            this.commands.register(cmd);
-        }
-        for (const cmd of lmCommands) {
-            this.commands.register(cmd);
-        }
-        for (const cmd of rlfpCommands) {
+        for (const cmd of [coreCommands, connectionCommands, memoryCommands, narCommands, selfCommands, lmCommands, rlfpCommands].flat()) {
             this.commands.register(cmd);
         }
     }

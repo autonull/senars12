@@ -96,6 +96,10 @@ export abstract class BaseConnection implements Connection {
         }
     }
 
+    protected createMessage(sender: string, text: string, metadata?: Record<string, unknown>): IOMessage {
+        return {id: crypto.randomUUID(), source: this.id, sender, text, timestamp: Date.now(), metadata};
+    }
+
     protected createError(message: string, code: string, recoverable: boolean, cause?: Error): ConnectionError {
         return new ConnError(message, this.id, code, recoverable, cause);
     }

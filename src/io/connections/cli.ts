@@ -43,15 +43,7 @@ export class CLIConnection extends BaseConnection {
                 return;
             }
 
-            const message: IOMessage = {
-                id: crypto.randomUUID(),
-                source: this.id,
-                sender: 'local-user',
-                text: trimmed,
-                timestamp: Date.now(),
-            };
-
-            this.handleMessage(message);
+            this.handleMessage(this.createMessage('local-user', trimmed));
         });
 
         this.rl.on('close', () => {

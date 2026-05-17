@@ -105,8 +105,8 @@ export class ConfigLoader {
     }
 
     private static validate(raw: AppConfig): ValidatedConfig {
-        const mem = raw.memory ?? {};
-        const inf = raw.inference ?? {};
+        const mem: Partial<MemoryConfig> = raw.memory ?? {};
+        const inf: Partial<InferenceConfig> = raw.inference ?? {};
         const config: ValidatedConfig = {
             name: raw.name || 'SeNARS12', version: raw.version || '1.0.0',
             lm: {
@@ -115,13 +115,13 @@ export class ConfigLoader {
                 model: raw.lm?.model, quantized: raw.lm?.quantized
             },
             core: {
-                maxConcepts: clamp((mem as any).maxConcepts ?? 100, 10, 10000),
-                priorityThreshold: clamp((mem as any).priorityThreshold ?? 0.1, 0, 1),
-                activationDecayRate: clamp((mem as any).activationDecayRate ?? 0.01, 0, 1),
-                consolidationInterval: (inf as any).consolidationInterval ?? 10,
-                cpuThrottleMs: (inf as any).cpuThrottleMs ?? 0,
-                maxDerivationDepth: clamp((inf as any).maxDerivationDepth ?? 10, 1, 100),
-                maxDerivationsPerStep: clamp((inf as any).maxDerivationsPerStep ?? 100, 1, 10000)
+                maxConcepts: clamp(mem.maxConcepts ?? 100, 10, 10000),
+                priorityThreshold: clamp(mem.priorityThreshold ?? 0.1, 0, 1),
+                activationDecayRate: clamp(mem.activationDecayRate ?? 0.01, 0, 1),
+                consolidationInterval: inf.consolidationInterval ?? 10,
+                cpuThrottleMs: inf.cpuThrottleMs ?? 0,
+                maxDerivationDepth: clamp(inf.maxDerivationDepth ?? 10, 1, 100),
+                maxDerivationsPerStep: clamp(inf.maxDerivationsPerStep ?? 100, 1, 10000)
             }
         };
 

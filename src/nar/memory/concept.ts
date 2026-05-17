@@ -93,15 +93,15 @@ export class Concept {
     }
 
     getBeliefs(): TaskData[] {
-        return this.beliefBag.getItems();
+        return this.beliefBag.toArray();
     }
 
     getGoals(): TaskData[] {
-        return this.goalBag.getItems();
+        return this.goalBag.toArray();
     }
 
     getQuestions(): TaskData[] {
-        return this.questionBag.getItems();
+        return this.questionBag.toArray();
     }
 
     boost(amount: number): void {
@@ -240,7 +240,7 @@ export class Concept {
     }
 
     private findMatchingBelief(term: Term): TaskData | undefined {
-        return this.beliefBag.getItems().find(item => termsEqual(item.term, term));
+        return this.beliefBag.toArray().find(item => termsEqual(item.term, term));
     }
 
     private calculateTermSimilarity(other: Term): number {

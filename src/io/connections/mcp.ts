@@ -1,4 +1,4 @@
-import type {ConnectionConfig, ConnectionDeps, IOMessage} from '../types.js';
+import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
 import {createLogger} from '../../nar/logger/index.js';
 
@@ -42,7 +42,7 @@ export class MCPConnection extends BaseConnection {
         }
     }
 
-    async disconnect(reason?: string): Promise<void> {
+    override async disconnect(reason?: string): Promise<void> {
         if (this.state === 'disconnected' || this.state === 'idle') return;
 
         this.setState('disconnecting');
@@ -189,15 +189,7 @@ export class MCPConnection extends BaseConnection {
 
         if (method === 'tools/call') {
             const params = data.params as { name: string; arguments: Record<string, unknown> };
-            const message: IOMessage = {
-                id: data.id as string ?? crypto.randomUUID(),
-                source: this.id,
-                sender: 'mcp-client',
-                text: JSON.stringify({tool: params.name, args: params.arguments}),
-                timestamp: Date.now(),
-                metadata: {toolCall: true},
-            };
-            this.handleMessage(message);
+            this.handleMessage(this.createMessage('mcp-client', JSON.stringify({tool: params.name, args: params.arguments}), {toolCall: true}));
         }
     }
 

@@ -165,21 +165,26 @@ const analyzeTermPatterns = (concepts: Concept[]): TermPattern[] => {
     })).sort((a, b) => b.frequency - a.frequency).slice(0, 20);
 };
 
-const analyzePerformancePatterns = (metrics: MetricsCollector | null): PerformancePatterns => ({
-    ruleExecution: metrics ? calcAvg(metrics.getRuleStats().map((s) => s.averageDuration)) : 0,
-    memoryUsage: (() => {
-        try {
-            const {heapUsed, heapTotal} = process.memoryUsage();
-            return (heapUsed + heapTotal) / 2;
-        } catch {
-            return 0;
-        }
-    })(),
-    throughput: 'stable' as const,
-});
+const analyzePerformancePatterns = (metrics: MetricsCollector | null): PerformancePatterns => {
+    const ruleStats = metrics?.getRuleStats();
+    const avgDuration = Array.isArray(ruleStats) ? calcAvg(ruleStats.map((s) => s.averageDuration)) : 0;
+    return {
+        ruleExecution: avgDuration,
+        memoryUsage: (() => {
+            try {
+                const {heapUsed, heapTotal} = process.memoryUsage();
+                return (heapUsed + heapTotal) / 2;
+            } catch {
+                return 0;
+            }
+        })(),
+        throughput: 'stable' as const,
+    };
+};
 
 const identifySuccessfulStrategies = (metrics: MetricsCollector | null): string[] => {
-    const stats = Array.isArray(metrics?.getRuleStats()) ? metrics!.getRuleStats() : [];
+    const ruleStats = metrics?.getRuleStats();
+    const stats = Array.isArray(ruleStats) ? ruleStats : [];
     if (!stats.length) return [];
     return stats
         .filter((s) => s.successes > 0 && s.executions > 0)
@@ -444,11 +449,11 @@ export class SelfAnalyzer {
     }
 
     private getResourceAnalysis(): Omit<ResourceUsage, 'highPriorityConcepts' | 'lowPriorityConcepts'> {
-        if (!this.nar) return {conceptCount: 0, avgPriority: 0, memoryUsage: getMemory()};
+        if (!this.nar) return {conceptCount: 0, avgConceptPriority: 0, memoryUsage: getMemory()};
         const concepts = this.nar.listConcepts();
         return {
             conceptCount: concepts.length,
-            avgPriority: calcAvg(concepts.map((c) => c.priority)),
+            avgConceptPriority: calcAvg(concepts.map((c) => c.priority)),
             memoryUsage: getMemory()
         };
     }

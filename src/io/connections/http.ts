@@ -100,14 +100,9 @@ export class HTTPConnection extends BaseConnection {
             return;
         }
 
-        const ioMessage: IOMessage = {
-            id: crypto.randomUUID(),
-            source: this.id,
-            sender: authApiKey ?? 'anonymous',
-            text: method === 'GET' ? url.searchParams.toString() : JSON.stringify(body),
-            timestamp: Date.now(),
-            metadata: {method, path: url.pathname, query: Object.fromEntries(url.searchParams)},
-        };
+        const ioMessage = this.createMessage(authApiKey ?? 'anonymous',
+            method === 'GET' ? url.searchParams.toString() : JSON.stringify(body),
+            {method, path: url.pathname, query: Object.fromEntries(url.searchParams)});
 
         const responsePromise = new Promise<string>(resolve => {
             const originalHandler = this.messageHandler;

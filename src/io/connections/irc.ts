@@ -1,5 +1,5 @@
 import irc, {Client as IRCClient} from 'irc';
-import type {ConnectionConfig, ConnectionDeps, IOMessage} from '../types.js';
+import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
 import {createLogger} from '../../nar/logger/index.js';
 
@@ -26,7 +26,7 @@ export class IRCConnection extends BaseConnection {
     override readonly type = 'irc';
     override readonly logger = createLogger({scope: 'io:irc'});
     private client: IRCClient | null = null;
-    private ircConfig!: IRCConnectionConfig;
+    private readonly ircConfig: IRCConnectionConfig;
     private pendingMessages: Map<string, string[]> = new Map();
     private messageQueue: Array<{ target: string; message: string }> = [];
     private queueTimer: ReturnType<typeof setInterval> | null = null;
@@ -100,15 +100,7 @@ export class IRCConnection extends BaseConnection {
             });
 
             this.client.on('message', (channel: string, nick: string, text: string) => {
-                const message: IOMessage = {
-                    id: crypto.randomUUID(),
-                    source: this.id,
-                    sender: nick,
-                    text,
-                    timestamp: Date.now(),
-                    metadata: {channel},
-                };
-                this.handleMessage(message);
+                this.handleMessage(this.createMessage(nick, text, {channel}));
             });
 
             this.client.on('close', () => {
@@ -147,7 +139,7 @@ export class IRCConnection extends BaseConnection {
         if (!this.connected || !this.client) return;
 
         const pending = this.pendingMessages.get(target) ?? [];
-        if (pending.length >= (this.ircConfig as any).floodProtectionMaxPending) {
+        if (pending.length >= this.ircConfig.floodProtectionMaxPending!) {
             this.messageQueue.push({target, message: text});
             return;
         }
@@ -178,7 +170,7 @@ export class IRCConnection extends BaseConnection {
             if (!next) break;
             const {target, message} = next;
             const pending = this.pendingMessages.get(target) ?? [];
-            if (pending.length >= (this.ircConfig as any).floodProtectionMaxPending) break;
+            if (pending.length >= this.ircConfig.floodProtectionMaxPending!) break;
             this.messageQueue.shift();
             this.dispatchMessage(target, message, pending);
         }
@@ -197,9 +189,9 @@ export class IRCConnection extends BaseConnection {
 
     private scheduleJoin(): void {
         if (!this.client) return;
-        const delay = (this.ircConfig as any).floodProtectionDelay * ((this.ircConfig as any).channels.length + 1);
+        const delay = this.ircConfig.floodProtectionDelay! * (this.ircConfig.channels.length + 1);
         setTimeout(() => {
-            for (const channel of (this.ircConfig as any).channels) {
+            for (const channel of this.ircConfig.channels) {
                 this.client?.join(channel);
             }
         }, delay);
