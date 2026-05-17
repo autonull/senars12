@@ -122,7 +122,7 @@ export class ResourceManager {
         template: string,
         context: RequestContext = {}
     ): Promise<ResourceDescriptor[]> {
-        for (const [prefix, resolver] of this.resolvers.entries()) {
+        for (const [_prefix, resolver] of this.resolvers.entries()) {
             if (resolver.list) {
                 try {
                     return await resolver.list(template, context);
@@ -144,8 +144,8 @@ export class ResourceManager {
         uri: string,
         callback: (update: ResourceContent) => void
     ): () => void {
-        for (const [prefix, resolver] of this.resolvers.entries()) {
-            if (uri.startsWith(prefix) && resolver.subscribe) {
+        for (const [_prefix, resolver] of this.resolvers.entries()) {
+            if (resolver.subscribe) {
                 return resolver.subscribe(uri, callback);
             }
         }

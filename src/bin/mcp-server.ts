@@ -24,7 +24,7 @@ async function main() {
         logger.info(`Fallback chain: ${config.fallbackChain.join(' -> ')}`);
 
         // Get or create API registry
-        const registry = APIRegistry.getInstance();
+        const _registry = APIRegistry.getInstance();
 
         // Create MCP server with stdio transport (default)
         const server = new SeNARSMCPServer({

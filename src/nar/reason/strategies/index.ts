@@ -25,11 +25,6 @@ const createTask = (term: Term, type: TaskType, truth: Truth, priority: number):
 const createBeliefTask = (term: Term, truth: Truth, priority: number): Task =>
     createTask(term, 'belief', truth, priority);
 
-const peekTruth = (concept: Concept): Truth | undefined => concept?.beliefBag?.peek()?.truth;
-
-const filterConcepts = (concepts: Concept[], excludeTerm: Term, condition: (c: Concept) => boolean): Concept[] =>
-    concepts.filter(c => !termsEqual(c.term, excludeTerm) && condition(c));
-
 export const PrologStrategy: Strategy = createStrategy({name: 'prolog', sampleSize: 20, limit: 5});
 
 export const ResolutionStrategy: Strategy = createStrategy({

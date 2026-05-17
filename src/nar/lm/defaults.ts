@@ -219,7 +219,7 @@ export function setupDefaultLMClient(registry: ModelRegistry = defaultModelRegis
     if (transformersEntry?.enabled) {
         try {
             return transformersEntry.clientFactory();
-        } catch (error) {
+        } catch {
             logger.debug('Transformers.js failed, trying fallback');
         }
     }
@@ -228,7 +228,7 @@ export function setupDefaultLMClient(registry: ModelRegistry = defaultModelRegis
     if (ollamaEntry?.enabled) {
         try {
             return ollamaEntry.clientFactory();
-        } catch (error) {
+        } catch {
             logger.debug('Ollama failed, using mock');
         }
     }

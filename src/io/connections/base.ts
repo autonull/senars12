@@ -27,7 +27,22 @@ export abstract class BaseConnection implements Connection {
         this.logger = deps.logger;
     }
 
-    private _state: ConnectionState = 'idle';
+    protected createMessage(sender: string, text: string, metadata?: Record<string, unknown>): IOMessage {
+        return {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            source: this.id,
+            sender,
+            text,
+            timestamp: Date.now(),
+            metadata,
+        };
+    }
+
+    protected isDisconnected(): boolean {
+        return this._state === 'disconnected' || this._state === 'idle';
+    }
+
+    private _state: ConnectionState = 'disconnected';
 
     get state(): ConnectionState {
         return this._state;

@@ -97,7 +97,7 @@ export class TermParser {
         return input.trim();
     }
 
-    private _wrapError(error: unknown, input: string): Error {
+    private _wrapError(error: unknown, _input: string): Error {
         const location = (error as any).location;
         const position: ParserPosition = location
             ? {

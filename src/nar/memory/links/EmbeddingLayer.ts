@@ -37,8 +37,8 @@ export class EmbeddingLayer extends Layer {
                     });
                 }
             }
-        } catch (error) {
-            console.warn('Embedding index failed:', error);
+        } catch {
+            console.warn('Embedding index failed');
         }
     }
 

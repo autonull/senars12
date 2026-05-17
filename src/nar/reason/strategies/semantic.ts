@@ -47,7 +47,7 @@ export class SemanticStrategy implements Strategy {
         const linkManager = memory.getLinkManager();
 
         if (linkManager) {
-            for (const {term: termStr, score} of similar) {
+            for (const _ of similar) {
                 // For now, skip semantic linking as it requires term registry
                 // This would need reconstruction from term string
             }

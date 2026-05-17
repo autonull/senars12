@@ -33,11 +33,11 @@ export class TermLayer extends Layer {
 
     static deserialize(
         data: SerializedLayer,
-        termResolver: (id: string) => Term | undefined
+        _termResolver: (id: string) => Term | undefined
     ): TermLayer {
         const layer = new TermLayer(data.capacity);
 
-        for (const link of data.links) {
+        for (const _link of data.links) {
             // Skip reconstruction from serialized form for now
             // Would need proper term registry
         }

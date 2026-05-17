@@ -53,3 +53,22 @@ export const prop = termGuard('property');
 
 export const getArgs = (term: Term): readonly Term[] => term.args ?? [];
 export const getArg = (term: Term, index: number): Term | undefined => term.args?.[index];
+
+export const builders = {
+    unary: <T>(
+        guard: (t: Term) => boolean,
+        transform: (t: Term) => T | undefined
+    ) => (term: Term): T | undefined =>
+        guard(term) ? transform(term) : undefined,
+
+    binary: <T>(
+        guard: (t1: Term, t2: Term) => boolean,
+        transform: (t1: Term, t2: Term) => T | undefined
+    ) => (t1: Term, t2: Term): T | undefined =>
+        guard(t1, t2) ? transform(t1, t2) : undefined,
+
+    chain: <T>(
+        ...fns: ((t: Term) => T | undefined)[]
+    ) => (term: Term): T | undefined =>
+        fns.reduce((acc, fn) => acc ?? fn(term), undefined as T | undefined),
+} as const;

@@ -5,6 +5,8 @@
 import type {Memory} from './memory.js';
 import type {Term} from '../terms';
 import {TermBuilder} from '../terms';
+import type {Bag} from './bag.js';
+import type {TaskData} from './concept.js';
 
 export interface SerializedMemory {
     version: number;
@@ -69,16 +71,21 @@ function termToString(term: Term): string {
     }
 }
 
-function serializeBag(bag: any): SerializedTask[] {
-    const tasks: SerializedTask[] = [];
-    if (!bag) return tasks;
+export type BagItemWithMeta = {
+    term: Term;
+    truth?: { f: number; c: number };
+    budget: number;
+    meta: { priority: number; lastAccess: number; createdAt: number };
+};
 
-    const items = bag.getItems ? bag.getItems() : [];
-    for (const item of items) {
+function serializeBag(bag: Bag<TaskData>): SerializedTask[] {
+    const tasks: SerializedTask[] = [];
+
+    for (const [item, priority] of bag.entries()) {
         tasks.push({
             term: termToString(item.term),
             truth: item.truth ? {f: item.truth.f, c: item.truth.c} : undefined,
-            budget: item.budget ?? 0.9
+            budget: item.budget.priority ?? priority
         });
     }
     return tasks;
@@ -95,8 +102,8 @@ export async function deserialize(data: SerializedMemory, memory: Memory): Promi
         try {
             const term = TermBuilder.atom(serialized.term);
             memory.addConcept(term);
-        } catch (error) {
-            console.warn(`Failed to deserialize concept: ${serialized.term}`, error);
+        } catch {
+            console.warn(`Failed to deserialize concept: ${serialized.term}`);
         }
     }
 }
@@ -128,8 +135,8 @@ export function repair(data: Partial<SerializedMemory>): SerializedMemory | null
         if (validate(data)) {
             return data as SerializedMemory;
         }
-    } catch (error) {
-        console.warn('Failed to repair memory data:', error);
+    } catch {
+        console.warn('Failed to repair memory data');
     }
 
     return null;

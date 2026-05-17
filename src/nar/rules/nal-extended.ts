@@ -1,7 +1,8 @@
 import type {Term} from '../terms';
 import {getPredicate, getSubject, TermBuilder, termsEqual, Truth} from '../terms';
-import {extractInh, extractInhPair, registerRules, rule} from './shared.js';
+import {extractInh, extractInhPair, registerRule} from './shared.js';
 import {buildBinaryInhRule, buildInhRule, getVars} from './rule-builder.js';
+import {type TruthFn} from './types.js';
 
 const ID = <T>(t: T): T => t;
 
@@ -358,43 +359,47 @@ export const NALExtendedRules = {
     )
 };
 
-registerRules([
-    rule('nal.modusPonens', 'implication', 'atom', NALExtendedRules.modusPonens, Truth.deduction, 0.95),
-    rule('nal.modusTollens', 'implication', 'negation', NALExtendedRules.modusTollens, Truth.contraposition, 0.9),
-    rule('nal.conversion', 'inheritance', 'inheritance', NALExtendedRules.conversion, Truth.conversion, 0.7),
-    rule('nal.extended.analogy', 'inheritance', 'inheritance', NALExtendedRules.analogy, Truth.analogy, 0.8),
-    rule('nal.extended.comparison', 'inheritance', 'inheritance', NALExtendedRules.comparison, Truth.resemblance, 0.75),
-    rule('nal.contrapositionRule', 'implication', 'implication', NALExtendedRules.contrapositionRule, Truth.contraposition, 0.7),
-    rule('nal.structuralInheritance', 'conjunction', 'inheritance', NALExtendedRules.structuralInheritance, Truth.deduction, 0.75),
-    rule('nal.structuralReduction', 'inheritance', 'inheritance', NALExtendedRules.structuralReduction, Truth.structuralReduction, 0.7),
-    rule('nal.intersectionComposition', 'inheritance', 'inheritance', NALExtendedRules.intersectionComposition, Truth.intersection, 0.8),
-    rule('nal.unionComposition', 'inheritance', 'inheritance', NALExtendedRules.unionComposition, Truth.union, 0.75),
-    rule('nal.difference', 'inheritance', 'inheritance', NALExtendedRules.difference, Truth.deduction, 0.7),
-    rule('nal.implicationDeduction', 'implication', 'implication', NALExtendedRules.implicationDeduction, Truth.deduction, 0.85),
-    rule('nal.equivalence', 'implication', 'implication', NALExtendedRules.equivalence, Truth.intersection, 0.8),
-    rule('nal.variableIntroduction', 'inheritance', 'inheritance', NALExtendedRules.variableIntroduction, Truth.deduction, 0.6),
-    rule('nal.decomposition', 'conjunction', 'conjunction', NALExtendedRules.decomposition, Truth.deduction, 0.75),
-    rule('nal.variableDependency', 'inheritance', 'inheritance', NALExtendedRules.variableDependency, Truth.deduction, 0.5),
-    rule('nal.sameness', 'inheritance', 'inheritance', NALExtendedRules.sameness, Truth.sameness, 0.85),
-    rule('nal.revisionWeak', 'inheritance', 'inheritance', NALExtendedRules.revisionWeak, Truth.revision, 0.65),
-    rule('nal.extended.exemplification', 'inheritance', 'inheritance', NALExtendedRules.exemplification, Truth.exemplification, 0.8),
-    rule('nal.instanceConversion', 'inheritance', 'instance', NALExtendedRules.instanceConversion, Truth.conversion, 0.7),
-    rule('nal.propertyConversion', 'inheritance', 'property', NALExtendedRules.propertyConversion, Truth.conversion, 0.7),
-    rule('nal.instanceDeduction', 'inheritance', 'instance', NALExtendedRules.instanceDeduction, Truth.deduction, 0.85),
-    rule('nal.propertyInduction', 'inheritance', 'property', NALExtendedRules.propertyInduction, Truth.induction, 0.75),
-    rule('nal.sequenceIntroduction', 'inheritance', 'inheritance', NALExtendedRules.sequenceIntroduction, Truth.deduction, 0.75),
-    rule('nal.parallelIntroduction', 'inheritance', 'inheritance', NALExtendedRules.parallelIntroduction, Truth.deduction, 0.7),
-    rule('nal.predictiveImplication', 'sequence', 'inheritance', NALExtendedRules.predictiveImplication, Truth.deduction, 0.8),
-    rule('nal.temporalDeduction', 'predictive', 'sequence', NALExtendedRules.temporalDeduction, Truth.deduction, 0.85),
-    rule('nal.operationExecution', 'inheritance', 'inheritance', NALExtendedRules.operationExecution, Truth.deduction, 0.8),
-    rule('nal.goalExecution', 'inheritance', 'operation', NALExtendedRules.goalExecution, Truth.deduction, 0.85),
-    rule('nal.proceduralDecomposition', 'sequence', 'operation', NALExtendedRules.proceduralDecomposition, Truth.deduction, 0.75),
-    rule('nal.proceduralChaining', 'operation', 'operation', NALExtendedRules.proceduralChaining, Truth.deduction, 0.8),
-    rule('nal.operationToPredictive', 'operation', 'sequence', NALExtendedRules.operationToPredictive, Truth.deduction, 0.75),
-    rule('nal.strategyEffectiveness', 'inheritance', 'inheritance', NALExtendedRules.strategyEffectiveness, Truth.deduction, 0.8),
-    rule('nal.resourceAllocation', 'inheritance', 'inheritance', NALExtendedRules.resourceAllocation, Truth.deduction, 0.75),
-    rule('nal.errorPatternDetection', 'inheritance', 'inheritance', NALExtendedRules.errorPatternDetection, Truth.deduction, 0.7),
-    rule('nal.utilityEstimation', 'inheritance', 'inheritance', NALExtendedRules.utilityEstimation, Truth.deduction, 0.8),
-    rule('nal.metacognitiveRevision', 'inheritance', 'inheritance', NALExtendedRules.metacognitiveRevision, Truth.revision, 0.85),
-    rule('nal.selfModelConsistency', 'inheritance', 'inheritance', NALExtendedRules.selfModelConsistency, Truth.sameness, 0.9),
-]);
+const RULES = [
+    {id: 'nal.modusPonens', left: 'implication', right: 'atom', fn: 'modusPonens', truth: 'deduction', priority: 0.95},
+    {id: 'nal.modusTollens', left: 'implication', right: 'negation', fn: 'modusTollens', truth: 'contraposition', priority: 0.9},
+    {id: 'nal.conversion', left: 'inheritance', right: 'inheritance', fn: 'conversion', truth: 'conversion', priority: 0.7},
+    {id: 'nal.extended.analogy', left: 'inheritance', right: 'inheritance', fn: 'analogy', truth: 'analogy', priority: 0.8},
+    {id: 'nal.extended.comparison', left: 'inheritance', right: 'inheritance', fn: 'comparison', truth: 'resemblance', priority: 0.75},
+    {id: 'nal.contrapositionRule', left: 'implication', right: 'implication', fn: 'contrapositionRule', truth: 'contraposition', priority: 0.7},
+    {id: 'nal.structuralInheritance', left: 'conjunction', right: 'inheritance', fn: 'structuralInheritance', truth: 'deduction', priority: 0.75},
+    {id: 'nal.structuralReduction', left: 'inheritance', right: 'inheritance', fn: 'structuralReduction', truth: 'structuralReduction', priority: 0.7},
+    {id: 'nal.intersectionComposition', left: 'inheritance', right: 'inheritance', fn: 'intersectionComposition', truth: 'intersection', priority: 0.8},
+    {id: 'nal.unionComposition', left: 'inheritance', right: 'inheritance', fn: 'unionComposition', truth: 'union', priority: 0.75},
+    {id: 'nal.difference', left: 'inheritance', right: 'inheritance', fn: 'difference', truth: 'deduction', priority: 0.7},
+    {id: 'nal.implicationDeduction', left: 'implication', right: 'implication', fn: 'implicationDeduction', truth: 'deduction', priority: 0.85},
+    {id: 'nal.equivalence', left: 'implication', right: 'implication', fn: 'equivalence', truth: 'intersection', priority: 0.8},
+    {id: 'nal.variableIntroduction', left: 'inheritance', right: 'inheritance', fn: 'variableIntroduction', truth: 'deduction', priority: 0.6},
+    {id: 'nal.decomposition', left: 'conjunction', right: 'conjunction', fn: 'decomposition', truth: 'deduction', priority: 0.75},
+    {id: 'nal.variableDependency', left: 'inheritance', right: 'inheritance', fn: 'variableDependency', truth: 'deduction', priority: 0.5},
+    {id: 'nal.sameness', left: 'inheritance', right: 'inheritance', fn: 'sameness', truth: 'sameness', priority: 0.85},
+    {id: 'nal.revisionWeak', left: 'inheritance', right: 'inheritance', fn: 'revisionWeak', truth: 'revision', priority: 0.65},
+    {id: 'nal.extended.exemplification', left: 'inheritance', right: 'inheritance', fn: 'exemplification', truth: 'exemplification', priority: 0.8},
+    {id: 'nal.instanceConversion', left: 'inheritance', right: 'instance', fn: 'instanceConversion', truth: 'conversion', priority: 0.7},
+    {id: 'nal.propertyConversion', left: 'inheritance', right: 'property', fn: 'propertyConversion', truth: 'conversion', priority: 0.7},
+    {id: 'nal.instanceDeduction', left: 'inheritance', right: 'instance', fn: 'instanceDeduction', truth: 'deduction', priority: 0.85},
+    {id: 'nal.propertyInduction', left: 'inheritance', right: 'property', fn: 'propertyInduction', truth: 'induction', priority: 0.75},
+    {id: 'nal.sequenceIntroduction', left: 'inheritance', right: 'inheritance', fn: 'sequenceIntroduction', truth: 'deduction', priority: 0.75},
+    {id: 'nal.parallelIntroduction', left: 'inheritance', right: 'inheritance', fn: 'parallelIntroduction', truth: 'deduction', priority: 0.7},
+    {id: 'nal.predictiveImplication', left: 'sequence', right: 'inheritance', fn: 'predictiveImplication', truth: 'deduction', priority: 0.8},
+    {id: 'nal.temporalDeduction', left: 'predictive', right: 'sequence', fn: 'temporalDeduction', truth: 'deduction', priority: 0.85},
+    {id: 'nal.operationExecution', left: 'inheritance', right: 'inheritance', fn: 'operationExecution', truth: 'deduction', priority: 0.8},
+    {id: 'nal.goalExecution', left: 'inheritance', right: 'operation', fn: 'goalExecution', truth: 'deduction', priority: 0.85},
+    {id: 'nal.proceduralDecomposition', left: 'sequence', right: 'operation', fn: 'proceduralDecomposition', truth: 'deduction', priority: 0.75},
+    {id: 'nal.proceduralChaining', left: 'operation', right: 'operation', fn: 'proceduralChaining', truth: 'deduction', priority: 0.8},
+    {id: 'nal.operationToPredictive', left: 'operation', right: 'sequence', fn: 'operationToPredictive', truth: 'deduction', priority: 0.75},
+    {id: 'nal.strategyEffectiveness', left: 'inheritance', right: 'inheritance', fn: 'strategyEffectiveness', truth: 'deduction', priority: 0.8},
+    {id: 'nal.resourceAllocation', left: 'inheritance', right: 'inheritance', fn: 'resourceAllocation', truth: 'deduction', priority: 0.75},
+    {id: 'nal.errorPatternDetection', left: 'inheritance', right: 'inheritance', fn: 'errorPatternDetection', truth: 'deduction', priority: 0.7},
+    {id: 'nal.utilityEstimation', left: 'inheritance', right: 'inheritance', fn: 'utilityEstimation', truth: 'deduction', priority: 0.8},
+    {id: 'nal.metacognitiveRevision', left: 'inheritance', right: 'inheritance', fn: 'metacognitiveRevision', truth: 'revision', priority: 0.85},
+    {id: 'nal.selfModelConsistency', left: 'inheritance', right: 'inheritance', fn: 'selfModelConsistency', truth: 'sameness', priority: 0.9},
+] as const;
+
+RULES.forEach(({id, left, right, fn, truth, priority}) =>
+    registerRule(id, left, right, NALExtendedRules[fn as keyof typeof NALExtendedRules], Truth[truth as keyof typeof Truth] as TruthFn, priority)
+);

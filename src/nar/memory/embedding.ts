@@ -4,13 +4,16 @@ export interface EmbeddingGenerator {
     generate(text: string): Promise<number[]>;
 }
 
+type PipelineOptions = {pooling: 'mean' | 'none' | 'cls' | 'first_token' | 'eos' | 'last_token'; normalize: boolean};
+type PipelineFn = (text: string, options: PipelineOptions) => Promise<{data: IterableIterator<number>}>;
+
 export class TransformersEmbeddingGenerator implements EmbeddingGenerator {
     dimension = 384;
-    private model: any = null;
+    private model: PipelineFn | null = null;
     private readonly cache = new Map<string, number[]>();
     private readonly cacheSize: number;
 
-    constructor(modelName = 'Xenova/all-MiniLM-L6-v2', cacheSize = 1000) {
+    constructor(_modelName = 'Xenova/all-MiniLM-L6-v2', cacheSize = 1000) {
         this.cacheSize = cacheSize;
     }
 
@@ -21,11 +24,15 @@ export class TransformersEmbeddingGenerator implements EmbeddingGenerator {
 
         if (!this.model) {
             const {pipeline} = await import('@huggingface/transformers');
-            this.model = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+            const pipe = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+            this.model = async (text: string, opts: PipelineOptions) => {
+                const result = await pipe(text, opts) as unknown as {data: IterableIterator<number>};
+                return result;
+            };
         }
 
         const output = await this.model(text, {pooling: 'mean', normalize: true});
-        const embedding = Array.from(output.data as number[]);
+        const embedding = Array.from(output.data);
 
         if (this.cache.size >= this.cacheSize) {
             const firstKey = this.cache.keys().next().value;
