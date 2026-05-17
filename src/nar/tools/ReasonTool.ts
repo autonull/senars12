@@ -1,4 +1,5 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
+import {errorResult} from './types';
 import type {NAR} from '../nar';
 import {termParser, Truth} from '../terms';
 
@@ -52,11 +53,7 @@ export class ReasonTool implements Tool {
                 metadata: {timestamp: Date.now()}
             };
         } catch (error) {
-            return {
-                success: false,
-                content: null,
-                error: error instanceof Error ? error.message : 'Reasoning failed'
-            };
+            return errorResult(error);
         }
     }
 }

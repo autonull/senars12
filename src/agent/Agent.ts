@@ -18,6 +18,7 @@ import {IRCConnection} from '../io/connections/irc.js';
 import {WSConnection} from '../io/connections/ws.js';
 import {HTTPConnection} from '../io/connections/http.js';
 import {MCPConnection} from '../io/connections/mcp.js';
+import {ChatResponder} from './ChatResponder.js';
 
 export class Agent {
     readonly router: MessageRouter;
@@ -26,15 +27,17 @@ export class Agent {
     private readonly commands: CommandRegistry;
     private readonly emitter: EventEmitter;
     private readonly logger: Logger;
+    private readonly chatResponder?: ChatResponder;
     private running = false;
 
-    constructor(nar: NAR, logger?: Logger) {
+    constructor(nar: NAR, logger?: Logger, chatResponder?: ChatResponder) {
         this.nar = nar;
         this.emitter = new EventEmitter();
         this.logger = logger ?? createLogger({scope: 'agent'});
         this.manager = new ConnectionManager(this.logger);
         this.router = new MessageRouter();
         this.commands = new CommandRegistry();
+        this.chatResponder = chatResponder;
         this.registerConnectionFactories();
         this.registerCommands();
         this.setupMiddleware();
@@ -201,7 +204,12 @@ export class Agent {
         });
 
         this.router.use(async (message, context) => {
-            await context.respond(`Processed: ${message.text}`);
+            if (this.chatResponder) {
+                const response = await this.chatResponder.respond(message.text);
+                await context.respond(response);
+            } else {
+                await context.respond(`Processed: ${message.text}`);
+            }
         });
     }
 

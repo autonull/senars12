@@ -4,6 +4,7 @@ import type {MetricsCollector} from '../metrics';
 import type {Concept} from '../memory';
 import {isCompound} from '../terms';
 import {type Optimizations, SelfOptimizer} from './SelfOptimizer.js';
+import {errMsg} from '../utils';
 
 export interface SelfAnalyzerConfig {
     selfCorrectionEnabled?: boolean;
@@ -243,7 +244,7 @@ export class SelfAnalyzer {
         } catch (error) {
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: errMsg(error),
                 timestamp: Date.now(),
                 monitorState: this.monitor.getMonitorState(),
             };
@@ -255,11 +256,7 @@ export class SelfAnalyzer {
             await this.applyCorrections(await this.identifyIssues());
             return {success: true, timestamp: Date.now(), monitorState: this.monitor.getMonitorState()};
         } catch (error) {
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : 'Unknown error',
-                timestamp: Date.now()
-            };
+            return {success: false, error: errMsg(error), timestamp: Date.now()};
         }
     }
 

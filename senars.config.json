@@ -4,7 +4,8 @@
   "configVersion": "1.0",
   "lm": {
     "provider": "transformers",
-    "model": "Xenova/Llama-3.2-1B-Instruct",
+    "model": "onnx-community/Qwen2.5-1.5B-Instruct",
+    "compactModel": "HuggingFaceTB/SmolLM2-360M-Instruct",
     "quantized": true,
     "cacheDir": ".cache/models"
   },

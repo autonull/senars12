@@ -20,9 +20,13 @@ export const selfCommands: CommandDefinition[] = [
             if (!self) return 'Self/Metacognition is not enabled';
             const analysis = await self.getSystemAnalysis?.() ?? null;
             if (!analysis) return 'No analysis available yet';
-            let result = `Meta-Analysis Report:\nCycle Count: ${analysis.cycleCount ?? 0}`;
-            if (analysis.reasoningQuality) result += `\nReasoningQuality: ${analysis.reasoningQuality.toFixed(2)}`;
-            return result;
+            const {metaCognition, resourceUsage, performance} = analysis;
+            return `Meta-Analysis Report:
+Steps: ${metaCognition.reasoningSteps}
+Performance: ${metaCognition.performance}
+Concepts: ${resourceUsage.conceptCount}
+Avg Priority: ${resourceUsage.avgConceptPriority.toFixed(2)}
+Rule Execution: ${performance.ruleExecution.toFixed(1)}ms`;
         }
     },
     {

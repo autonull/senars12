@@ -69,6 +69,10 @@ export abstract class BaseConnection implements Connection {
         Object.assign(this.config.config, config);
     }
 
+    protected isDisconnected(): boolean {
+        return this._state === 'disconnected' || this._state === 'idle';
+    }
+
     protected setState(value: ConnectionState): void {
         const prev = this._state;
         if (prev !== value) {

@@ -1,4 +1,5 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
+import {errorResult} from './types';
 import type {Memory} from '../memory';
 import {termParser, Truth} from '../terms';
 import {createBudget} from '../types';
@@ -59,11 +60,7 @@ export class LearnTool implements Tool {
                 }
             };
         } catch (error) {
-            return {
-                success: false,
-                content: null,
-                error: error instanceof Error ? error.message : 'Learning failed'
-            };
+            return errorResult(error);
         }
     }
 }

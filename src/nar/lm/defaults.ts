@@ -11,6 +11,7 @@ import {createLogger} from '../logger/index.js';
 import type {LanguageModel} from 'ai';
 
 export const DEFAULT_COMPACT_MODEL = 'HuggingFaceTB/SmolLM2-360M-Instruct';
+export const DEFAULT_CHAT_MODEL = 'onnx-community/Qwen2.5-1.5B-Instruct';
 
 export const COMPACT_MODEL_CAPABILITY: Omit<ModelCapability, 'provider' | 'model'> = {
     contextWindow: 128000,

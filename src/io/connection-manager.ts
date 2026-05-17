@@ -7,16 +7,18 @@ export class ConnectionManager {
 
     constructor(logger?: Logger) {
         this.logger = logger ?? {
-            debug: () => {
-            },
-            info: () => {
-            },
-            warn: () => {
-            },
-            error: () => {
-            },
+            debug: () => {},
+            info: () => {},
+            warn: () => {},
+            error: () => {},
             child: () => this as unknown as Logger,
         };
+    }
+
+    private getConnectionOrThrow(id: string): Connection {
+        const connection = this.connections.get(id);
+        if (!connection) throw new Error(`Connection not found: ${id}`);
+        return connection;
     }
 
     registerFactory(factory: ConnectionFactory): void {
@@ -49,22 +51,14 @@ export class ConnectionManager {
     }
 
     async removeConnection(id: string): Promise<void> {
-        const connection = this.connections.get(id);
-        if (!connection) {
-            throw new Error(`Connection not found: ${id}`);
-        }
-
+        const connection = this.getConnectionOrThrow(id);
         await connection.disconnect('removed');
         this.connections.delete(id);
         this.logger.info(`Removed connection: ${id}`);
     }
 
     async enableConnection(id: string): Promise<void> {
-        const connection = this.connections.get(id);
-        if (!connection) {
-            throw new Error(`Connection not found: ${id}`);
-        }
-
+        const connection = this.getConnectionOrThrow(id);
         if (connection.state === 'connected') return;
 
         if (connection.state === 'disconnected' || connection.state === 'idle') {
@@ -77,11 +71,7 @@ export class ConnectionManager {
     }
 
     async disableConnection(id: string): Promise<void> {
-        const connection = this.connections.get(id);
-        if (!connection) {
-            throw new Error(`Connection not found: ${id}`);
-        }
-
+        const connection = this.getConnectionOrThrow(id);
         if (connection.state === 'disconnected' || connection.state === 'idle') return;
 
         await connection.disconnect('disabled');
@@ -89,11 +79,7 @@ export class ConnectionManager {
     }
 
     async reconnectConnection(id: string): Promise<void> {
-        const connection = this.connections.get(id);
-        if (!connection) {
-            throw new Error(`Connection not found: ${id}`);
-        }
-
+        const connection = this.getConnectionOrThrow(id);
         await connection.reconnect();
         this.logger.info(`Reconnected connection: ${id}`);
     }

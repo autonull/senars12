@@ -6,6 +6,9 @@ import {transformersJS} from '@browser-ai/transformers-js';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ollamaProvider = ollama as any;
 
+export const BUILTIN_CHAT_MODEL = 'onnx-community/Qwen2.5-1.5B-Instruct';
+export const BUILTIN_COMPACT_MODEL = 'HuggingFaceTB/SmolLM2-360M-Instruct';
+
 export function createSeNARSRegistry() {
     return createProviderRegistry({
         cloud: customProvider({
@@ -31,7 +34,8 @@ export function createSeNARSRegistry() {
 
         builtin: customProvider({
             languageModels: {
-                compact: transformersJS('HuggingFaceTB/SmolLM2-360M-Instruct', {device: 'cpu'}),
+                quality: transformersJS(BUILTIN_CHAT_MODEL, {device: 'cpu'}),
+                compact: transformersJS(BUILTIN_COMPACT_MODEL, {device: 'cpu'}),
             },
         }),
     });

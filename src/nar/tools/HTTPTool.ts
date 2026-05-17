@@ -1,4 +1,5 @@
 import type {Schema, Tool, ToolResult} from './types';
+import {errorResult} from './types';
 import {URL} from 'url';
 
 export class HTTPTool implements Tool {
@@ -47,11 +48,7 @@ export class HTTPTool implements Tool {
                 }
             };
         } catch (error) {
-            return {
-                success: false,
-                content: null,
-                error: error instanceof Error ? error.message : 'HTTP request failed'
-            };
+            return errorResult(error);
         }
     }
 

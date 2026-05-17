@@ -1,4 +1,5 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
+import {errorResult} from './types';
 import type {Concept, Memory} from '../memory';
 
 export class SearchTool implements Tool {
@@ -34,11 +35,7 @@ export class SearchTool implements Tool {
                 metadata: {totalFound: concepts.length}
             };
         } catch (error) {
-            return {
-                success: false,
-                content: null,
-                error: error instanceof Error ? error.message : 'Search failed'
-            };
+            return errorResult(error);
         }
     }
 

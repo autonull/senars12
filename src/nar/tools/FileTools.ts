@@ -1,4 +1,5 @@
 import type {Schema, Tool, ToolResult} from './types';
+import {errorResult} from './types';
 import {promises as fs} from 'fs';
 
 export class ReadFileTool implements Tool {
@@ -17,16 +18,9 @@ export class ReadFileTool implements Tool {
 
         try {
             const content = await fs.readFile(path, 'utf-8');
-            return {
-                success: true,
-                content: {path, content}
-            };
+            return {success: true, content: {path, content}};
         } catch (error) {
-            return {
-                success: false,
-                content: null,
-                error: error instanceof Error ? error.message : 'Failed to read file'
-            };
+            return errorResult(error);
         }
     }
 }
@@ -48,16 +42,9 @@ export class WriteFileTool implements Tool {
 
         try {
             await fs.writeFile(path, content, 'utf-8');
-            return {
-                success: true,
-                content: {path, written: content.length}
-            };
+            return {success: true, content: {path, written: content.length}};
         } catch (error) {
-            return {
-                success: false,
-                content: null,
-                error: error instanceof Error ? error.message : 'Failed to write file'
-            };
+            return errorResult(error);
         }
     }
 }

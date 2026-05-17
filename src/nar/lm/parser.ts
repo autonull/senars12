@@ -1,5 +1,6 @@
 import type {Term} from '../terms';
 import {termParser, Truth} from '../terms';
+import {errMsg} from '../utils';
 
 export interface ParsedLMResponse {
     term: Term;
@@ -45,7 +46,7 @@ export const LMResponseParser = {
                 truth: defaultTruth,
                 valid: false,
                 raw: response,
-                error: error instanceof Error ? error.message : String(error),
+                error: errMsg(error),
             };
         }
     },

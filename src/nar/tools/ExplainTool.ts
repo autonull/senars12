@@ -1,4 +1,5 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
+import {errorResult} from './types';
 import type {Concept, Memory} from '../memory';
 import {termParser} from '../terms';
 
@@ -48,11 +49,7 @@ export class ExplainTool implements Tool {
                 }
             };
         } catch (error) {
-            return {
-                success: false,
-                content: null,
-                error: error instanceof Error ? error.message : 'Explanation generation failed'
-            };
+            return errorResult(error);
         }
     }
 

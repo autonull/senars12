@@ -3,6 +3,7 @@
  */
 
 import {Agent} from '../agent/Agent.js';
+import {ChatResponder} from '../agent/ChatResponder.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {createLogger} from '../nar/logger/index.js';
@@ -20,7 +21,12 @@ export class SeNARSCLI {
             ...DEFAULT_NAR_CONFIG,
             providerRegistry: registry,
         });
-        this.agent = new Agent(nar);
+        const chatResponder = new ChatResponder({
+            nar,
+            registry,
+            name: 'SeNARS',
+        });
+        this.agent = new Agent(nar, undefined, chatResponder);
     }
 
     async start(): Promise<void> {

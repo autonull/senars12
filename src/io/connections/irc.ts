@@ -120,7 +120,7 @@ export class IRCConnection extends BaseConnection {
     }
 
     override async disconnect(reason?: string): Promise<void> {
-        if (this.state === 'disconnected' || this.state === 'idle') return;
+        if (this.isDisconnected()) return;
 
         this.setState('disconnecting');
         this.stopQueueDrain();

@@ -1,6 +1,6 @@
 import type {NAR} from '../nar.js';
 import {MetacognitiveMonitor} from './MetacognitiveMonitor.js';
-import {SelfAnalyzer} from './SelfAnalyzer.js';
+import {SelfAnalyzer, type MetaCognitiveResult, type MonitorState} from './SelfAnalyzer.js';
 import {createLogger} from '../logger';
 
 const logger = createLogger({scope: 'ReasoningAboutReasoning'});
@@ -13,13 +13,33 @@ export interface ReasoningAboutReasoningConfig {
     selfCorrectionEnabled?: boolean;
 }
 
+export interface SystemState {
+    reasoningTrace: unknown[];
+    performanceTrend: string;
+    currentContext: { memorySize: number; conceptCount: number; timestamp: number };
+    performanceMonitors: { throughput: number; memoryUsage?: NodeJS.MemoryUsage };
+    activeMetaTasks: number;
+    isRunning: boolean;
+    config?: unknown;
+    stats?: unknown;
+}
+
+export interface ReasoningState {
+    active: boolean;
+    reasoningSteps: number;
+    performance: string;
+    lastUpdate: number;
+    monitorsActive: number;
+    pendingMetaTasks: number;
+}
+
 export class ReasoningAboutReasoning {
-    isRunning: boolean = false;
+    isRunning = false;
     private readonly nar: NAR | null;
     private readonly config: Required<ReasoningAboutReasoningConfig>;
     private readonly monitor: MetacognitiveMonitor;
     private analyzer: SelfAnalyzer;
-    private periodicAnalysisInterval: NodeJS.Timeout | null;
+    private periodicAnalysisInterval: NodeJS.Timeout | null = null;
 
     constructor(nar: NAR | null, config: ReasoningAboutReasoningConfig = {}) {
         this.nar = nar;
@@ -33,7 +53,6 @@ export class ReasoningAboutReasoning {
 
         this.monitor = new MetacognitiveMonitor(nar, this.config);
         this.analyzer = new SelfAnalyzer(nar, this.monitor, null, this.config);
-        this.periodicAnalysisInterval = null;
     }
 
     start(): void {
@@ -53,31 +72,31 @@ export class ReasoningAboutReasoning {
         this.analyzer.applyOptimizations?.();
     }
 
-    async performMetaCognitiveReasoning(): Promise<any> {
+    async performMetaCognitiveReasoning(): Promise<MetaCognitiveResult> {
         const result = await this.analyzer.performMetaCognitiveReasoning();
         result.monitorState = this.monitor.getMonitorState();
         return result;
     }
 
-    async performSelfCorrection(): Promise<any> {
+    async performSelfCorrection(): Promise<MetaCognitiveResult> {
         return this.analyzer.performSelfCorrection();
     }
 
-    querySystemState(_query: any): any {
+    querySystemState(): SystemState {
         if (!this.nar) {
             return {
                 reasoningTrace: [],
                 performanceTrend: 'unknown',
-                currentContext: {},
-                performanceMonitors: {},
+                currentContext: {memorySize: 0, conceptCount: 0, timestamp: Date.now()},
+                performanceMonitors: {throughput: 0},
                 activeMetaTasks: 0,
                 isRunning: false
             };
         }
 
         const memory = this.nar.memory;
-        const config = this.nar.getConfig?.() ?? {};
-        const stats = this.nar.getStatistics?.() ?? {};
+        const config = this.nar.getConfig?.();
+        const stats = this.nar.getStatistics?.();
         const monitorState = this.monitor.getMonitorState();
         const isRunning = 'isRunning' in this.nar && typeof this.nar.isRunning === 'function'
             ? this.nar.isRunning()
@@ -87,13 +106,13 @@ export class ReasoningAboutReasoning {
             reasoningTrace: this.monitor.getReasoningTrace().slice(-10),
             performanceTrend: this.monitor.getPerformanceTrend(),
             currentContext: {
-                memorySize: memory ? (memory as any).size ?? 0 : 0,
+                memorySize: memory ? (memory as {size?: number}).size ?? 0 : 0,
                 conceptCount: this.nar.listConcepts().length,
                 timestamp: Date.now()
             },
             performanceMonitors: {
-                throughput: (monitorState as any).throughput ?? 0,
-                memoryUsage: process.memoryUsage ? process.memoryUsage() : undefined
+                throughput: (monitorState as MonitorState & {throughput?: number}).throughput ?? 0,
+                memoryUsage: process.memoryUsage?.()
             },
             activeMetaTasks: 0,
             isRunning,
@@ -102,11 +121,11 @@ export class ReasoningAboutReasoning {
         };
     }
 
-    getReasoningTrace(): any[] {
+    getReasoningTrace(): unknown[] {
         return this.monitor.getReasoningTrace();
     }
 
-    getReasoningState(): any {
+    getReasoningState(): ReasoningState {
         const monitorState = this.monitor.getMonitorState();
         const isRunning = this.nar && 'isRunning' in this.nar && typeof this.nar.isRunning === 'function'
             ? this.nar.isRunning()
@@ -122,7 +141,7 @@ export class ReasoningAboutReasoning {
         };
     }
 
-    async getSystemAnalysis(): Promise<any> {
+    async getSystemAnalysis(): Promise<ReturnType<SelfAnalyzer['getSystemAnalysis']>> {
         return this.analyzer.getSystemAnalysis();
     }
 

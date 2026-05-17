@@ -3,14 +3,15 @@ import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
 import {createLogger} from '../../nar/logger/index.js';
 import {startWSServer} from '../utils/http.js';
-
-interface WSClient {
-    ws: WebSocket;
-    id: string;
-    subscriptions: Set<string>;
-    heartbeat: NodeJS.Timeout;
-    lastSeen: number;
-}
+import {
+    broadcastToSubscribers,
+    cleanupWSClient,
+    sendHeartbeat,
+    sendWSMessage,
+    subscribeToEvents,
+    unsubscribeFromEvents,
+    type WSClient
+} from '../utils/websocket.js';
 
 export class WSConnection extends BaseConnection {
     override readonly id: string;
@@ -45,12 +46,11 @@ export class WSConnection extends BaseConnection {
     }
 
     override async disconnect(reason?: string): Promise<void> {
-        if (this.state === 'disconnected' || this.state === 'idle') return;
+        if (this.isDisconnected()) return;
         this.setState('disconnecting');
 
         for (const client of this.clients.values()) {
-            clearInterval(client.heartbeat);
-            client.ws.close(1000, reason ?? 'Server closing');
+            cleanupWSClient(client, 1000, reason ?? 'Server closing');
         }
         this.clients.clear();
 
@@ -69,18 +69,13 @@ export class WSConnection extends BaseConnection {
             return;
         }
         const client = this.clients.get(target);
-        if (client?.ws.readyState === WebSocket.OPEN) {
-            client.ws.send(JSON.stringify({type: 'message', data: text, timestamp: Date.now()}));
+        if (client) {
+            sendWSMessage(client.ws, 'message', {data: text});
         }
     }
 
     private broadcast(event: string, data?: Record<string, unknown>): void {
-        const subscribers = this.eventSubscriptions.get(event);
-        if (!subscribers) return;
-        const message = JSON.stringify({type: 'event', event, data, timestamp: Date.now()});
-        for (const ws of subscribers) {
-            if (ws.readyState === WebSocket.OPEN) ws.send(message);
-        }
+        broadcastToSubscribers(this.eventSubscriptions.get(event), event, data);
     }
 
     private handleNewClient(ws: WebSocket): void {
@@ -88,7 +83,7 @@ export class WSConnection extends BaseConnection {
         const client: WSClient = {
             ws, id,
             subscriptions: new Set(),
-            heartbeat: setInterval(() => this.sendHeartbeat(ws), 30000),
+            heartbeat: setInterval(() => sendHeartbeat(ws), 30000),
             lastSeen: Date.now(),
         };
 
@@ -98,7 +93,7 @@ export class WSConnection extends BaseConnection {
         ws.on('message', data => {
             client.lastSeen = Date.now();
             try {
-                this.handleWSMessage(ws, JSON.parse(data.toString()), client);
+                this.handleWSMessage(JSON.parse(data.toString()), client);
             } catch (e) {
                 this.logger.error('Invalid WebSocket message', e as Error);
             }
@@ -119,32 +114,19 @@ export class WSConnection extends BaseConnection {
         ws.send(JSON.stringify({type: 'connected', id}));
     }
 
-    private handleWSMessage(ws: WebSocket, message: Record<string, unknown>, client: WSClient): void {
+    private handleWSMessage(message: Record<string, unknown>, client: WSClient): void {
         const msgType = message.type as string;
 
         if (msgType === 'subscribe') {
-            for (const event of (message.events as string[]) ?? []) {
-                if (!this.eventSubscriptions.has(event)) this.eventSubscriptions.set(event, new Set());
-                this.eventSubscriptions.get(event)!.add(ws);
-                client.subscriptions.add(event);
-            }
+            subscribeToEvents(this.eventSubscriptions, client, (message.events as string[]) ?? []);
             return;
         }
 
         if (msgType === 'unsubscribe') {
-            for (const event of (message.events as string[]) ?? []) {
-                this.eventSubscriptions.get(event)?.delete(ws);
-                client.subscriptions.delete(event);
-            }
+            unsubscribeFromEvents(this.eventSubscriptions, client, (message.events as string[]) ?? []);
             return;
         }
 
         this.handleMessage(this.createMessage(client.id, (message.data as string) ?? JSON.stringify(message), {clientId: client.id, type: msgType}));
-    }
-
-    private sendHeartbeat(ws: WebSocket): void {
-        if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({type: 'heartbeat', timestamp: Date.now()}));
-        }
     }
 }

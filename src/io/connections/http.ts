@@ -38,7 +38,7 @@ export class HTTPConnection extends BaseConnection {
     }
 
     override async disconnect(): Promise<void> {
-        if (this.state === 'disconnected' || this.state === 'idle') return;
+        if (this.isDisconnected()) return;
         this.setState('disconnecting');
 
         return new Promise(resolve => {
