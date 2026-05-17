@@ -27,6 +27,12 @@ import {createLogger} from '../nar/logger/index.js';
 import {DEFAULT_NAR_CONFIG, DEFAULT_BOT_CONFIG} from '../config/defaults.js';
 import {setupGracefulShutdown} from '../utils/shutdown.js';
 import type {ConnectionConfig} from '../io/types.js';
+import {SeNARSMCPServer} from '../api/mcp-server.js';
+import {registerNARToolsAsMCP, registerAgentAPI as registerMCPAgentAPI} from '../api/mcp-tools.js';
+import {registerMCPPrompts} from '../api/mcp-prompts.js';
+import {registerMCPResources} from '../api/mcp-resources.js';
+import {registerScenarioAPIs, registerExperimentAPIs, registerSelfAnalysisAPIs, registerRegressionAPIs} from '../api/agent-api.js';
+import {EnhancedMCPAdapter} from '../api/mcp/enhanced-adapter.js';
 
 const logger = createLogger({scope: 'bot'});
 
@@ -60,6 +66,40 @@ async function main() {
 
     const agent = new Agent(nar, logger, chatResponder);
 
+    // Initialize MCP server if enabled
+    let mcpServer: SeNARSMCPServer | undefined;
+    if (process.env.SENARS_MCP_ENABLED === 'true') {
+        mcpServer = new SeNARSMCPServer({
+            name: 'senars-bot',
+            version: '1.0.0',
+            transport: (process.env.SENARS_MCP_TRANSPORT as any) || 'stdio',
+        });
+
+        // Get the MCP adapter
+        const adapter = mcpServer.getAdapter();
+
+        // Register all agent APIs with shared NAR
+        registerMCPAgentAPI(agent, adapter);
+
+        // Register SeNARS tools as MCP tools
+        registerNARToolsAsMCP(nar, adapter);
+
+        // Register MCP prompts
+        registerMCPPrompts(adapter);
+
+        // Register MCP resources
+        registerMCPResources(adapter, nar);
+
+        // Register scenario/experiment/self-analysis APIs
+        registerScenarioAPIs(scenarioRunner);
+        registerExperimentAPIs(experimentRunner);
+        registerSelfAnalysisAPIs(selfAnalyzer);
+        registerRegressionAPIs(regressionTracker);
+
+        await mcpServer.start();
+        logger.info('MCP Server started');
+    }
+
     const loopConfig = DEFAULT_BOT_CONFIG.agenticLoop;
     const loop = new AgenticLoop({
         maxInputTurns: loopConfig.maxInputTurns,
@@ -88,6 +128,9 @@ async function main() {
     setupGracefulShutdown(async () => {
         await agent.stop();
         loop.stop();
+        if (mcpServer) {
+            mcpServer.stop();
+        }
     }, logger);
 
     await agent.start();
@@ -140,19 +183,8 @@ async function main() {
         });
     }
 
-    if (process.env.SENARS_MCP_ENABLED === 'true') {
-        connections.push({
-            type: 'mcp',
-            config: {
-                id: 'mcp-main',
-                type: 'mcp',
-                enabled: true,
-                config: {
-                    transport: (process.env.SENARS_MCP_TRANSPORT as any) || 'stdio',
-                },
-            },
-        });
-    }
+    // MCP is now initialized earlier and handled separately
+    // No need to add as a connection anymore
 
     for (const {type, config} of connections) {
         try {
