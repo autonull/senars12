@@ -1,16 +1,67 @@
 import type {CommandDefinition} from './registry.js';
 import type {NAR} from '../../nar/nar.js';
+import type {SelfAnalyzer} from '../../agent/SelfAnalyzer.js';
+
+interface ExtendedNAR extends NAR {
+	selfAnalyzer?: SelfAnalyzer;
+}
 
 export const selfCommands: CommandDefinition[] = [
-    {
-        name: '.self',
-        description: 'Show self/metacognition status',
-        usage: '.self',
-        execute: async (_args, ctx) => {
-            const self = ctx.nar.getSelfAnalyzer();
-            return self ? `Self/Metacognition Status:\nRunning: ${self.isRunning ? 'Yes' : 'No'}` : 'Self/Metacognition is not enabled';
-        }
-    },
+{
+	name: '.self',
+	description: 'Show self/metacognition status',
+	usage: '.self',
+	execute: async (_args, ctx) => {
+		const nar = ctx.nar as ExtendedNAR;
+		const self = nar.selfAnalyzer || ctx.nar.getSelfAnalyzer();
+		if (!self) return 'Self/Metacognition is not enabled';
+		return `Self/Metacognition Status:\nRunning: ${'isRunning' in self ? (self as any).isRunning : 'N/A'}`;
+	}
+},
+{
+	name: '.self.analyze',
+	description: 'Run self-analysis and print report',
+	usage: '.self analyze',
+	execute: async (_args, ctx) => {
+		const nar = ctx.nar as ExtendedNAR;
+		if (!nar.selfAnalyzer) return 'SelfAnalyzer not available';
+
+		try {
+			const report = await nar.selfAnalyzer.analyzeReasoningGaps();
+			return `Self-Analysis Report:\nMissing Rules: ${report.missingRules.length}\nLow Confidence Beliefs: ${report.lowConfidenceBeliefs.length}\nRepeated Failures: ${report.repeatedFailures.length}`;
+		} catch (error) {
+			return `Error during analysis: ${error}`;
+		}
+	},
+},
+{
+	name: '.self.propose',
+	description: 'Show improvement suggestions',
+	usage: '.self propose',
+	execute: async (_args, ctx) => {
+		const nar = ctx.nar as ExtendedNAR;
+		if (!nar.selfAnalyzer) return 'SelfAnalyzer not available';
+
+		const proposals = nar.selfAnalyzer.proposeImprovements();
+		if (proposals.length === 0) return 'No improvement suggestions available at this time.';
+
+		return proposals.map(p => `[${p.type}] ${p.description}\nExpected Impact: ${p.expectedImpact}\nConfidence: ${(p.confidence * 100).toFixed(0)}%`).join('\n\n');
+	},
+},
+{
+	name: '.self.apply',
+	description: 'Apply suggested improvement',
+	usage: '.self apply <id>',
+	execute: async (args, ctx) => {
+		const nar = ctx.nar as ExtendedNAR;
+		if (!nar.selfAnalyzer) return 'SelfAnalyzer not available';
+
+		const proposalId = args[0];
+		if (!proposalId) return 'Usage: .self apply <id>\nUse .self propose to see available improvements';
+
+		return `Improvement ${proposalId} application pending implementation`;
+	},
+},
     {
         name: '.meta',
         description: 'Show meta-analysis report',

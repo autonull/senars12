@@ -1,7 +1,7 @@
 import type {IOMessage} from '../io/types.js';
 import {MessageQueue} from './MessageQueue.js';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import type {NAR} from '../nar/nar.js';
+import type {Agent} from './Agent.js';
 
 export interface AgenticLoopConfig {
     maxInputTurns: number;
@@ -25,7 +25,7 @@ export class AgenticLoop {
     private readonly config: Required<AgenticLoopConfig>;
     private readonly queue: MessageQueue;
     private readonly episodicMemory?: EpisodicMemory;
-    private readonly nar: NAR;
+    private readonly agent: Agent;
     private running = false;
     private idleCounter = 0;
     private nextWakeAt = 0;
@@ -33,14 +33,14 @@ export class AgenticLoop {
     private onMessage?: (msg: IOMessage) => Promise<void>;
 
     constructor(
-        config: AgenticLoopConfig = DEFAULT_CONFIG,
-        nar?: NAR,
-        episodicMemory?: EpisodicMemory
+        agent: Agent,
+        episodicMemory?: EpisodicMemory,
+        config: AgenticLoopConfig = DEFAULT_CONFIG
     ) {
+        this.agent = agent;
         this.config = {...DEFAULT_CONFIG, ...config};
         this.queue = new MessageQueue();
         this.episodicMemory = episodicMemory;
-        this.nar = nar!;
     }
 
     setMessageHandler(handler: (msg: IOMessage) => Promise<void>): void {
@@ -108,14 +108,93 @@ export class AgenticLoop {
         }
     }
 
-    private async wakeupSequence(): Promise<void> {
-        if (this.nar) {
-            try {
-                await this.nar.run(this.config.reasoningStepsPerWake);
-            } catch {
-            }
-        }
+  private async wakeupSequence(): Promise<void> {
+    const nar = this.agent.getNAR();
+
+    // 1. Run reasoning steps
+    try {
+      await nar.run(this.config.reasoningStepsPerWake);
+    } catch {
     }
+
+    // 2. LM enrichment (if enabled)
+    try {
+      if (nar.enrichMemoryWithLM && this.config.enableLMRules) {
+        await nar.enrichMemoryWithLM();
+      }
+    } catch {
+    }
+
+    // 3. Memory consolidation
+    try {
+      nar.memory.consolidate();
+    } catch {
+    }
+
+    // 4. Self-analysis for reasoning gaps (use agent's SelfAnalyzer)
+    try {
+      const selfAnalyzer = nar.getSelfAnalyzer();
+      if (selfAnalyzer && 'analyzeReasoningGaps' in selfAnalyzer) {
+        await (selfAnalyzer as any).analyzeReasoningGaps();
+      }
+    } catch {
+    }
+
+    // 5. Episodic memory pattern check
+    if (this.episodicMemory) {
+      try {
+        const recentEpisodes = await this.episodicMemory.getEpisodes({
+          limit: 100
+        });
+        // Check for patterns or repeated issues
+        if (recentEpisodes.length > 0) {
+          const errorCount = recentEpisodes.filter(e => e.type === 'error').length;
+          if (errorCount > 10) {
+            // Log high error rate
+            await this.episodicMemory.log('input', 'high_error_rate', {
+              errorCount,
+              totalEpisodes: recentEpisodes.length,
+              turn: this.currentTurn
+            });
+          }
+        }
+      } catch {
+      }
+    }
+
+    // 6. Check for pending benchmarks/experiments (if available via agent)
+    try {
+      const narAny = nar as any;
+      if (narAny.scenarioRunner) {
+        // Check for pending scenarios
+        const pending = await (narAny.scenarioRunner as any).getPendingScenarios?.();
+        if (pending?.length > 0) {
+          // Could trigger scenario execution
+        }
+      }
+      if (narAny.experimentRunner) {
+        // Check for pending experiments
+        const pending = await (narAny.experimentRunner as any).getPendingExperiments?.();
+        if (pending?.length > 0) {
+          // Could trigger experiment execution
+        }
+      }
+    } catch {
+    }
+
+    // 7. Log wakeup activity to episodic memory
+    if (this.episodicMemory) {
+      try {
+        await this.episodicMemory.log('input', 'wakeup', {
+          turn: this.currentTurn,
+          idleCounter: this.idleCounter,
+          concepts: nar.getStatistics()?.totalConcepts ?? 0,
+          tasks: nar.getStatistics()?.totalTasks ?? 0
+        });
+      } catch {
+      }
+    }
+  }
 
     private sleep(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));

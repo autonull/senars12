@@ -18,14 +18,14 @@ export interface CommandDefinition {
 }
 
 export class CommandRegistry {
-    private commands: Map<string, CommandDefinition> = new Map();
+    private readonly _commands: Map<string, CommandDefinition> = new Map();
 
     register(cmd: CommandDefinition): void {
-        this.commands.set(cmd.name, cmd);
+        this._commands.set(cmd.name, cmd);
     }
 
     async execute(name: string, args: string[], context: CommandContext): Promise<string> {
-        const cmd = this.commands.get(name);
+        const cmd = this._commands.get(name);
         if (!cmd) {
             throw new Error(`Unknown command: ${name}`);
         }
@@ -33,10 +33,14 @@ export class CommandRegistry {
     }
 
     list(): ReadonlyMap<string, CommandDefinition> {
-        return this.commands;
+        return this._commands;
+    }
+
+    get commands(): ReadonlyMap<string, CommandDefinition> {
+        return this._commands;
     }
 
     get(name: string): CommandDefinition | undefined {
-        return this.commands.get(name);
+        return this._commands.get(name);
     }
 }

@@ -1,5 +1,6 @@
 import type {Concept} from './memory';
 import {Memory} from './memory';
+import {WorkingMemory} from './memory/WorkingMemory.js';
 import {BagStrategy, Reasoner} from './reason';
 import {TaskManager} from './task';
 import {RuleProcessor} from './rules';
@@ -79,6 +80,7 @@ const TOOL_DEFS: ToolDefinition[] = [
 
 export class NAR extends BaseComponent {
     readonly memory: Memory;
+    readonly workingMemory: WorkingMemory;
     readonly taskManager: TaskManager;
     readonly reasoner: Reasoner;
     readonly query: QueryAPI;
@@ -108,6 +110,7 @@ export class NAR extends BaseComponent {
 
         this.config = this.validateConfig(config);
         this.memory = new Memory(this.config);
+        this.workingMemory = new WorkingMemory();
         this.processor = new RuleProcessor();
         this.processor.setEventBus(eventBus);
         this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);

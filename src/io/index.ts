@@ -15,3 +15,4 @@ export * from './commands/nar.js';
 export * from './commands/self.js';
 export * from './commands/lm.js';
 export * from './commands/rlfp.js';
+export * from './commands/scenario.js';

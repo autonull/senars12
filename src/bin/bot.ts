@@ -8,31 +8,22 @@
 
 import {Agent} from '../agent/Agent.js';
 import {AgenticLoop} from '../agent/AgenticLoop.js';
-import {ChatResponder} from '../agent/ChatResponder.js';
-import {SkillCatalog} from '../agent/SkillCatalog.js';
-import {ResponseInterpreter} from '../agent/ResponseInterpreter.js';
-import {DegradationManager} from '../agent/DegradationManager.js';
-import {ResponseFormatter} from '../agent/ResponseFormatter.js';
-import {ConversationManager} from '../agent/ConversationManager.js';
-import {SelfAnalyzer} from '../agent/SelfAnalyzer.js';
-import {ScenarioRunner} from '../agent/scenarios/ScenarioRunner.js';
-import {ScoringEngine} from '../agent/scenarios/ScoringEngine.js';
-import {ExperimentRunner} from '../agent/experiments/ExperimentRunner.js';
-import {RLFPBridge} from '../agent/rlfp/RLFPBridge.js';
-import {RegressionTracker} from '../agent/scenarios/RegressionTracker.js';
-import {BotProfile, ChannelBehavior} from '../agent/BotProfile.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {createLogger} from '../nar/logger/index.js';
 import {DEFAULT_NAR_CONFIG, DEFAULT_BOT_CONFIG} from '../config/defaults.js';
 import {setupGracefulShutdown} from '../utils/shutdown.js';
-import type {ConnectionConfig} from '../io/types.js';
+import type {ConnectionConfig, IOMessage} from '../io/types.js';
 import {SeNARSMCPServer} from '../api/mcp-server.js';
 import {registerNARToolsAsMCP, registerAgentAPI as registerMCPAgentAPI} from '../api/mcp-tools.js';
 import {registerMCPPrompts} from '../api/mcp-prompts.js';
 import {registerMCPResources} from '../api/mcp-resources.js';
 import {registerScenarioAPIs, registerExperimentAPIs, registerSelfAnalysisAPIs, registerRegressionAPIs} from '../api/agent-api.js';
-import {EnhancedMCPAdapter} from '../api/mcp/enhanced-adapter.js';
+import {ScenarioRunner} from '../agent/scenarios/ScenarioRunner.js';
+import {ScoringEngine} from '../agent/scenarios/ScoringEngine.js';
+import {ExperimentRunner} from '../agent/experiments/ExperimentRunner.js';
+import {RegressionTracker} from '../agent/scenarios/RegressionTracker.js';
+import {SelfAnalyzer} from '../agent/SelfAnalyzer.js';
 
 const logger = createLogger({scope: 'bot'});
 
@@ -43,28 +34,17 @@ async function main() {
         providerRegistry: registry,
     });
 
-    const botProfile = new BotProfile();
-    const channelBehavior = new ChannelBehavior(DEFAULT_BOT_CONFIG.channel.defaultType);
-    const chatResponder = new ChatResponder({
+    const agent = new Agent({
         nar,
-        registry,
-        name: botProfile.name,
-        personality: botProfile.personality,
+        logger,
+        responseInterpreter: {extractionMode: 'explicit'},
     });
-
-    const skillCatalog = new SkillCatalog(nar);
-    const responseInterpreter = new ResponseInterpreter(nar);
-    const degradationManager = new DegradationManager();
-    const responseFormatter = new ResponseFormatter(channelBehavior);
-    const conversationManager = new ConversationManager();
 
     const scoringEngine = new ScoringEngine();
     const scenarioRunner = new ScenarioRunner(nar);
     const experimentRunner = new ExperimentRunner(nar, scenarioRunner);
     const selfAnalyzer = new SelfAnalyzer(nar, undefined, scenarioRunner, experimentRunner);
     const regressionTracker = new RegressionTracker();
-
-    const agent = new Agent(nar, logger, chatResponder);
 
     // Initialize MCP server if enabled
     let mcpServer: SeNARSMCPServer | undefined;
@@ -75,22 +55,11 @@ async function main() {
             transport: (process.env.SENARS_MCP_TRANSPORT as any) || 'stdio',
         });
 
-        // Get the MCP adapter
         const adapter = mcpServer.getAdapter();
-
-        // Register all agent APIs with shared NAR
         registerMCPAgentAPI(agent, adapter);
-
-        // Register SeNARS tools as MCP tools
         registerNARToolsAsMCP(nar, adapter);
-
-        // Register MCP prompts
         registerMCPPrompts(adapter);
-
-        // Register MCP resources
         registerMCPResources(adapter, nar);
-
-        // Register scenario/experiment/self-analysis APIs
         registerScenarioAPIs(scenarioRunner);
         registerExperimentAPIs(experimentRunner);
         registerSelfAnalysisAPIs(selfAnalyzer);
@@ -101,26 +70,35 @@ async function main() {
     }
 
     const loopConfig = DEFAULT_BOT_CONFIG.agenticLoop;
-    const loop = new AgenticLoop({
-        maxInputTurns: loopConfig.maxInputTurns,
-        maxWakeTurns: loopConfig.maxWakeTurns,
-        sleepIntervalMs: loopConfig.sleepIntervalMs,
-        wakeupIntervalMs: loopConfig.wakeupIntervalMs,
-        reasoningStepsPerWake: loopConfig.reasoningStepsPerWake,
-        enableLMRules: loopConfig.enableLMRules,
-    }, nar);
+    const loop = new AgenticLoop(
+        agent,
+        undefined,
+        {
+            maxInputTurns: loopConfig.maxInputTurns,
+            maxWakeTurns: loopConfig.maxWakeTurns,
+            sleepIntervalMs: loopConfig.sleepIntervalMs,
+            wakeupIntervalMs: loopConfig.wakeupIntervalMs,
+            reasoningStepsPerWake: loopConfig.reasoningStepsPerWake,
+            enableLMRules: loopConfig.enableLMRules,
+        }
+    );
 
-    loop.setMessageHandler(async (msg) => {
-        await agent.router.route(msg, {
-            connection: msg.source as any,
-            nar: agent.getNAR(),
-            respond: async (text) => {
-                const chunks = responseFormatter.formatForIRC(text);
+    loop.setMessageHandler(async (msg: IOMessage) => {
+        const ctx = {
+            connectionId: msg.source,
+            connectionType: 'irc' as const,
+            sender: msg.sender,
+            respond: async (text: string) => {
+                const chunks = agent.responseFormatter.formatForIRC(text);
                 for (const chunk of chunks) {
                     await agent.sendTo(msg.source, msg.sender, chunk);
                 }
-            }
-        });
+            },
+        };
+        const response = await agent.processMessage(msg.text, ctx);
+        if (response.text) {
+            await ctx.respond(response.text);
+        }
     });
 
     loop.start();
@@ -183,9 +161,6 @@ async function main() {
         });
     }
 
-    // MCP is now initialized earlier and handled separately
-    // No need to add as a connection anymore
-
     for (const {type, config} of connections) {
         try {
             await agent.addConnection(config);
@@ -195,7 +170,7 @@ async function main() {
         }
     }
 
-    logger.info(`Bot ready: ${botProfile.name}`);
+    logger.info(`Bot ready: ${agent.botProfile.name}`);
     logger.info(`Connections: ${connections.length} configured`);
 }
 

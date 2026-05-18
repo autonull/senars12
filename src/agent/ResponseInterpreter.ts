@@ -13,14 +13,31 @@ export interface InterpretationResult {
     hasActions: boolean;
 }
 
+export type ExtractionMode = 'none' | 'explicit' | 'narsese' | 'all';
+
+export interface ResponseInterpreterConfig {
+    extractionMode?: ExtractionMode;
+    trustedSources?: string[];
+    directivePatterns?: RegExp[];
+}
+
 type ActionHandler = (action: ParsedAction, nar: NAR) => Promise<string>;
+
+const EXPLICIT_PATTERN = /\[(BELIEVE|TOOL|QUESTION|GOAL):\s*([^\]]+)\]/gi;
+const EXPLICIT_NARSESE_PATTERN = /\[BELIEVE:\s*((?:\([^\)]+\)[^.]*\.)+)\]/gi;
 
 export class ResponseInterpreter {
     private readonly nar: NAR;
     private readonly handlers: Map<string, ActionHandler> = new Map();
+    private readonly extractionMode: ExtractionMode;
+    private readonly trustedSources: Set<string>;
+    private readonly directivePatterns: RegExp[];
 
-    constructor(nar: NAR) {
+    constructor(nar: NAR, config?: ResponseInterpreterConfig) {
         this.nar = nar;
+        this.extractionMode = config?.extractionMode ?? 'explicit';
+        this.trustedSources = new Set(config?.trustedSources ?? []);
+        this.directivePatterns = config?.directivePatterns ?? [];
         this.registerDefaultHandlers();
     }
 
@@ -48,33 +65,64 @@ export class ResponseInterpreter {
         this.handlers.set(type, handler);
     }
 
-    interpret(response: string): InterpretationResult {
+    interpret(response: string, source?: string): InterpretationResult {
+        if (this.extractionMode === 'none') {
+            return {actions: [], cleanedResponse: response, hasActions: false};
+        }
+
         const actions: ParsedAction[] = [];
         let cleaned = response;
 
-        const narsesePattern = /\(([^)]+)\s*(-->|<->|=>|<=>|[&|])\s*([^)]+)\)/g;
-        let match;
-        while ((match = narsesePattern.exec(response)) !== null) {
-            actions.push({type: 'narsese', raw: match[0]});
+        if (this.extractionMode === 'explicit' || this.extractionMode === 'all') {
+            const explicitMatches = response.matchAll(EXPLICIT_PATTERN);
+            for (const match of explicitMatches) {
+                const directive = match[1]!;
+                const content = match[2]!;
+                switch (directive.toUpperCase()) {
+                    case 'BELIEVE':
+                        actions.push({type: 'narsese', raw: content.trim()});
+                        cleaned = cleaned.replace(match[0], '');
+                        break;
+                    case 'TOOL':
+                        actions.push({type: 'tool_call', raw: content.trim()});
+                        cleaned = cleaned.replace(match[0], '');
+                        break;
+                    case 'QUESTION':
+                        actions.push({type: 'question', raw: content.trim()});
+                        cleaned = cleaned.replace(match[0], '');
+                        break;
+                }
+            }
         }
 
-        const toolCallPattern = /\b(calculate|search|http|read|write|reason|explain|learn|timer|process)\s*\([^)]*\)/gi;
-        while ((match = toolCallPattern.exec(response)) !== null) {
-            actions.push({type: 'tool_call', raw: match[0]});
+        if (this.extractionMode === 'narsese' || this.extractionMode === 'all') {
+            const narsesePattern = /\(([^)]+)\s*(-->|<->|=>|<=>|[&|])\s*([^)]+)\)/g;
+            let narseseMatch;
+            while ((narseseMatch = narsesePattern.exec(response)) !== null) {
+                actions.push({type: 'narsese', raw: narseseMatch[0]});
+            }
         }
 
-        const questionPattern = /\?[^.?\n]+$/gm;
-        const questionMatches = response.match(questionPattern) || [];
-        for (const q of questionMatches) {
-            const trimmed = q.trim();
-            if (trimmed.length > 3 && !trimmed.startsWith('http')) {
-                actions.push({type: 'question', raw: trimmed});
+        if (this.extractionMode === 'all') {
+            const toolCallPattern = /\b(calculate|search|http|read|write|reason|explain|learn|timer|process)\s*\([^)]*\)/gi;
+            let toolMatch;
+            while ((toolMatch = toolCallPattern.exec(response)) !== null) {
+                actions.push({type: 'tool_call', raw: toolMatch[0]});
+            }
+
+            const questionPattern = /\?[^.?\n]+$/gm;
+            const questionMatches = response.match(questionPattern) || [];
+            for (const q of questionMatches) {
+                const trimmed = q.trim();
+                if (trimmed.length > 3 && !trimmed.startsWith('http')) {
+                    actions.push({type: 'question', raw: trimmed});
+                }
             }
         }
 
         return {
             actions,
-            cleanedResponse: cleaned,
+            cleanedResponse: cleaned.trim(),
             hasActions: actions.length > 0,
         };
     }

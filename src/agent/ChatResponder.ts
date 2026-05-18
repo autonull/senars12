@@ -5,6 +5,9 @@ import {generateText, type ModelMessage} from 'ai';
 import {createLogger} from '../nar/logger/index.js';
 import {errMsg} from '../nar/utils/helpers.js';
 import {tryRepairAndParse} from '../nar/lm/response-repair.js';
+import type {SkillCatalog} from './SkillCatalog.js';
+import type {LastResults} from './LastResults.js';
+import type {DegradationManager} from './DegradationManager.js';
 
 export interface ChatResponderConfig {
     nar: NAR;
@@ -13,6 +16,9 @@ export interface ChatResponderConfig {
     personality?: string;
     maxContextConcepts?: number;
     maxResponseTokens?: number;
+    skillCatalog?: SkillCatalog;
+    lastResults?: LastResults;
+    degradationManager?: DegradationManager;
 }
 
 export class ChatResponder {
@@ -22,6 +28,9 @@ export class ChatResponder {
     private readonly personality: string;
     private readonly maxContextConcepts: number;
     private readonly maxResponseTokens: number;
+    private readonly skillCatalog?: SkillCatalog;
+    private readonly lastResults?: LastResults;
+    private readonly degradationManager?: DegradationManager;
     private readonly logger = createLogger({scope: 'chat:responder'});
     private readonly conversationHistory: ModelMessage[] = [];
     private readonly maxHistoryLength = 10;
@@ -33,9 +42,16 @@ export class ChatResponder {
         this.personality = config.personality ?? DEFAULT_PERSONALITY;
         this.maxContextConcepts = config.maxContextConcepts ?? 15;
         this.maxResponseTokens = config.maxResponseTokens ?? 512;
+        this.skillCatalog = config.skillCatalog;
+        this.lastResults = config.lastResults;
+        this.degradationManager = config.degradationManager;
     }
 
     async respond(userMessage: string): Promise<string> {
+        if (this.degradationManager?.shouldUseFallback()) {
+            return this.degradationManager.getFallbackResponse(userMessage) ?? this.fallbackResponse(userMessage);
+        }
+
         try {
             const model = this.registry ? getQualityModel(this.registry) : this.nar.getQualityModel();
             if (!model) {
@@ -64,6 +80,7 @@ export class ChatResponder {
             return response;
         } catch (error) {
             this.logger.warn(`Chat response failed: ${errMsg(error)}`);
+            this.degradationManager?.setLMStatus('degraded');
             return this.fallbackResponse(userMessage);
         }
     }
@@ -75,6 +92,8 @@ export class ChatResponder {
     private buildSystemPrompt(): string {
         const attentionContext = this.getAttentionContext();
         const memoryContext = this.getMemoryContext();
+        const skillContext = this.getSkillContext();
+        const recentContext = this.getRecentContext();
 
         return `${SYSTEM_PROMPT_BASE}
 
@@ -88,12 +107,29 @@ ${attentionContext}
 ## Memory Beliefs
 ${memoryContext}
 
+${skillContext}
+
+${recentContext}
+
 ## Response Guidelines
 - Be conversational, helpful, and concise
 - Draw on your knowledge context when relevant
 - Acknowledge uncertainty when appropriate
 - Use natural language, not Narsese syntax
 - Keep responses under 3-4 sentences unless asked for detail`.trim();
+    }
+
+    private getSkillContext(): string {
+        if (!this.skillCatalog) return '';
+        const skills = this.skillCatalog.getSkillsForPrompt();
+        return `## Available Skills\n${skills}`;
+    }
+
+    private getRecentContext(): string {
+        if (!this.lastResults) return '';
+        const recent = this.lastResults.getRecent(3);
+        if (!recent) return '';
+        return `## Recent Conversation\n${recent}`;
     }
 
     private getAttentionContext(): string {

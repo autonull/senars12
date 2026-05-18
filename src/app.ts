@@ -49,7 +49,7 @@ async function runBot() {
         providerRegistry: registry,
     });
 
-    const agent = new Agent(nar, logger);
+    const agent = new Agent({nar, logger});
     await agent.start();
     setupGracefulShutdown(() => agent.stop(), logger);
 }

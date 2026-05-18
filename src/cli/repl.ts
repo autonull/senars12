@@ -1,5 +1,5 @@
 /**
- * SeNARS CLI REPL - Interactive terminal interface using Agent + CLIConnection
+ * SeNARS CLI REPL - Unified entry point for TTY and pipe modes
  */
 
 import {Agent} from '../agent/Agent.js';
@@ -8,66 +8,215 @@ import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {createLogger} from '../nar/logger/index.js';
 import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
 import {setupGracefulShutdown} from '../utils/shutdown.js';
-import {k} from './display.js';
+import {PipeOutput} from './PipeOutput.js';
+import {createInterface} from 'readline';
+import type {ChannelType} from '../agent/ChannelBehavior.js';
+
+interface CLIOptions {
+    json?: boolean;
+    quiet?: boolean;
+    noInit?: boolean;
+    timeout?: number;
+    maxTurns?: number;
+}
+
+function parseArgs(): {options: CLIOptions; commands: string[]} {
+    const args = process.argv.slice(2);
+    const options: CLIOptions = {};
+    const commands: string[] = [];
+
+    for (const arg of args) {
+        if (arg === '--json') options.json = true;
+        else if (arg === '--quiet') options.quiet = true;
+        else if (arg === '--no-init') options.noInit = true;
+        else if (arg.startsWith('--timeout=')) options.timeout = parseInt(arg.split('=')[1]!);
+        else if (arg.startsWith('--max-turns=')) options.maxTurns = parseInt(arg.split('=')[1]!);
+        else commands.push(arg);
+    }
+
+    return {options, commands};
+}
 
 export class SeNARSCLI {
     readonly agent: Agent;
     readonly logger = createLogger({scope: 'cli:repl'});
+    private isTTY: boolean;
+    private pipeOutput: PipeOutput;
+    private options: CLIOptions;
+    private turnCount = 0;
+    private inputBuffer = '';
+    private bufferingTimeout: NodeJS.Timeout | null = null;
 
-    constructor() {
+    constructor(options: CLIOptions = {}) {
         const registry = createSeNARSRegistry();
         const nar = SeNARSFactory.createDefault({
             ...DEFAULT_NAR_CONFIG,
             providerRegistry: registry,
         });
-        this.agent = new Agent(nar);
+        this.options = options;
+        this.agent = new Agent({nar});
+        this.isTTY = process.stdin.isTTY ?? false;
+        this.pipeOutput = new PipeOutput({options});
     }
 
     async start(): Promise<void> {
-        console.log(k.bold('SeNARS CLI') + ' - Interactive terminal interface');
-        console.log(k.dim('Type .help for commands, .quit to exit\n'));
+        if (!this.options.noInit && !this.isTTY) {
+            process.stdout.write(this.pipeOutput.formatInit() + '\n');
+        }
 
-        const cliConfig = {
-            id: 'cli',
-            type: 'cli' as const,
-            enabled: true,
-            config: {
-                name: 'CLI',
-                sendFn: (text: string) => console.log(text),
+        await this.agent.start();
+
+        if (this.isTTY) {
+            await this.startTTYMode();
+        } else {
+            await this.startPipeMode();
+        }
+    }
+
+    private async startTTYMode(): Promise<void> {
+        console.log('SeNARS CLI - Interactive terminal interface');
+        console.log('Type .help for commands, .quit to exit\n');
+
+        const rl = createInterface({
+            input: process.stdin,
+            output: process.stdout,
+            prompt: 'senars> ',
+            terminal: true,
+        });
+
+        rl.on('line', async (line) => {
+            const trimmed = line.trim();
+            if (!trimmed) {
+                rl.prompt();
+                return;
+            }
+
+            this.turnCount++;
+            const response = await this.agent.processMessage(trimmed, {
+                connectionId: 'cli',
+                connectionType: 'cli',
+                sender: 'local-user',
+                respond: async (text) => console.log(text),
+            });
+
+            if (this.turnCount >= (this.options.maxTurns ?? Infinity)) {
+                rl.close();
+                return;
+            }
+
+            rl.prompt();
+        });
+
+        rl.on('close', () => {
+            console.log('\nGoodbye!');
+            process.exit(0);
+        });
+
+        process.on('SIGINT', () => {
+            rl.close();
+            process.exit(0);
+        });
+
+        rl.prompt();
+    }
+
+    private async startPipeMode(): Promise<void> {
+        const rl = createInterface({
+            input: process.stdin,
+            output: process.stdout,
+            terminal: false,
+        });
+
+        let lastOutputTime = Date.now();
+        const checkTimeout = () => {
+            if (this.options.timeout && Date.now() - lastOutputTime > this.options.timeout) {
+                process.exit(0);
             }
         };
 
-        const connection = await this.agent.addConnection(cliConfig);
+        const timeoutInterval = setInterval(checkTimeout, 1000);
 
-        connection.onMessage(async (message) => {
-            const nar = this.agent.getNAR();
-            const context = {
-                connection,
-                nar,
-                respond: async (text: string) => connection.send(message.sender, text),
-            };
-            try {
-                await this.agent.router.route(message, context);
-            } catch (error) {
-                console.log(k.err(`Error: ${error}`));
+        rl.on('line', async (line) => {
+            lastOutputTime = Date.now();
+            const trimmed = line.trim();
+
+            if (!trimmed) return;
+
+            if (this.inputBuffer) {
+                if (trimmed === '.') {
+                    const fullInput = this.inputBuffer;
+                    this.inputBuffer = '';
+                    await this.processInput(fullInput);
+                } else {
+                    this.inputBuffer += '\n' + trimmed;
+                }
+                return;
+            }
+
+            if (trimmed.startsWith('(') && !trimmed.includes(').')) {
+                this.inputBuffer = trimmed;
+                if (this.bufferingTimeout) clearTimeout(this.bufferingTimeout);
+                this.bufferingTimeout = setTimeout(() => {
+                    if (this.inputBuffer) {
+                        const discard = this.inputBuffer;
+                        this.inputBuffer = '';
+                        process.stderr.write(`! Buffer timeout, discarding: ${discard.slice(0, 50)}...\n`);
+                    }
+                }, 10000);
+                return;
+            }
+
+            await this.processInput(trimmed);
+
+            if (this.turnCount >= (this.options.maxTurns ?? Infinity)) {
+                rl.close();
+                clearInterval(timeoutInterval);
             }
         });
 
-        this.agent.on('connection:state', (data) => {
-            const {id, prev, current} = data as { id: string; prev: string; current: string };
-            if (id === 'cli') {
-                this.logger.debug(`CLI state: ${prev} -> ${current}`);
+        rl.on('close', () => {
+            if (this.inputBuffer) {
+                process.stderr.write(`! EOF with uncommitted buffer\n`);
             }
+            clearInterval(timeoutInterval);
+            process.exit(0);
         });
+    }
 
-        await this.agent.start();
+    private async processInput(text: string): Promise<void> {
+        if (this.options.quiet) {
+            process.stdout.write(`> ${text}\n`);
+        }
+
+        if (text === '.quit' || text === '.exit') {
+            process.stdout.write(this.pipeOutput.formatQuit() + '\n');
+            process.exit(0);
+            return;
+        }
+
+        try {
+            const response = await this.agent.processMessage(text, {
+                connectionId: 'pipe',
+                connectionType: 'cli',
+                sender: 'pipe-user',
+                respond: async (t) => { process.stdout.write(`< ${t}\n`); },
+            });
+
+            if (response.text) {
+            }
+        } catch (error) {
+            process.stderr.write(`! Error: ${error}\n`);
+        }
+
+        this.turnCount++;
     }
 }
 
 async function main() {
-    const cli = new SeNARSCLI();
-    await cli.start();
+    const {options} = parseArgs();
+    const cli = new SeNARSCLI(options);
     setupGracefulShutdown(() => cli.agent.stop(), cli.logger);
+    await cli.start();
 }
 
 main();
