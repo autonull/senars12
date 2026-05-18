@@ -85,6 +85,11 @@ interface PipelineEvents {
     'lm:end': { response: string; durationMs: number };
     'lm:suggests-reasoning': boolean;
 
+    // LM Rules (inside NAR reasoning engine)
+    'lm-rule:executed': { ruleId: string; durationMs: number; tasksGenerated: number };
+    'lm-rule:failed': { ruleId: string; error: string; durationMs: number };
+    'lm-rule:disabled': { ruleId: string };
+
     // Directives
     'directive:found': { directive: LMDirective };
     'directive:execute': { directive: LMDirective; success: boolean; result?: unknown; error?: string };
@@ -177,6 +182,11 @@ interface BotConfig {
         signals?: ClassificationSignalDef[];  // Override/extend default signals
         modeWeight?: number;            // How much ctx.mode boosts matching intent (default: 0.5)
     };
+    lmRules: {
+        enabled: boolean;               // Default: true
+        rules: LMRuleConfigEntry[];     // Per-rule enable/disable + overrides
+        custom?: LMRuleDef[];           // Custom rule definitions (context fragments + instruction)
+    };
     tui: {
         typingIndicator: boolean;
         colors: boolean;
@@ -217,6 +227,119 @@ interface ClassificationSignalDef {
     intent: Intent;
     weight: number;
 }
+```
+
+### LM Rule Configuration
+
+```typescript
+interface LMRuleConfigEntry {
+    id: string;                         // e.g. 'lm-analogical-reasoning'
+    enabled: boolean;
+    priority?: number;                  // Override default priority
+    instruction?: string;               // Override default instruction
+    context?: (keyof typeof contextFragments | ContextFragment)[];  // Override context fragments
+    maxCallsPerTurn?: number;           // Rate limit
+    budget?: number;                    // Task budget override
+}
+```
+
+### Context Fragments
+
+Composable functions that extract facets of NAR state for LM rule prompts. Each rule declares which fragments it needs inline — no separate provider/template registries or string-keyed mapping.
+
+```typescript
+type ContextFragment = (nar: NAR, ctx?: BotContext) => string;
+
+const contextFragments = {
+    attention: (nar) => {
+        const r = nar.attentionReport();
+        return r.concepts.length ? `Active: ${r.concepts.slice(0, 10).map(c => `${c.term} (${(c.priority * 100).toFixed(0)}%)`).join(', ')}` : '';
+    },
+    relatedBeliefs: (term: Term) => (nar) => {
+        const b = nar.getBeliefs().filter(b => b.term.toString().includes(term.toString().split(' ')[0] ?? ''));
+        return b.length ? `Related: ${b.slice(0, 5).map(b => `${b.term} :${b.truth.f.toFixed(1)}:${b.truth.c.toFixed(1)}`).join('; ')}` : '';
+    },
+    links: (term: Term) => (nar) => {
+        const l = nar.memory.getLinkManager().getLinks(term).slice(0, 8);
+        return l.length ? `Links: ${l.map(l => `${l.sourceTerm} → ${l.targetTerm} [${l.type}, p=${l.priority.toFixed(2)}]`).join('; ')}` : '';
+    },
+    goals: (nar) => { const g = nar.getGoals(); return g.length ? `Goals: ${g.slice(0, 3).map(g => g.term).join('; ')}` : ''; },
+    questions: (nar) => { const q = nar.getQuestions(); return q.length ? `Questions: ${q.slice(0, 3).map(q => q.term).join('; ')}` : ''; },
+    recentDerivations: (_nar, ctx) => { const r = ctx?.turn?.reasoningResult?.newBeliefs; return r?.length ? `Derived: ${r.slice(0, 3).map(b => b.term).join('; ')}` : ''; },
+    memoryHealth: (nar) => { const s = nar.getStatistics(); return `Memory: ${s.totalConcepts} concepts, pressure ${(s.memoryPressure * 100).toFixed(0)}%`; },
+    focus: (nar) => { const f = nar.memory.getFocusConcepts?.() ?? []; return f.length ? `Focus: ${f.slice(0, 5).map(c => c.term).join(', ')}` : ''; },
+    workingMemory: (_nar, ctx) => { const p = ctx?.conversation?.getPinned?.() ?? []; return p.length ? `Pinned: ${p.join('; ')}` : ''; },
+};
+```
+
+Parameterized fragments (those needing a term) are curried: `contextFragments.relatedBeliefs(term)` returns a `ContextFragment`.
+
+### LM Rule Definitions
+
+Each rule declares its context needs inline — fragments are referenced by name or as custom functions. The `instruction` field replaces the old template suffix.
+
+```typescript
+interface LMRuleDef {
+    id: string;
+    context: (keyof typeof contextFragments | ContextFragment)[];  // Fragment names or inline functions
+    instruction: string;         // What the LM should do
+    prompt?: string;             // Optional full prompt override
+}
+
+const DEFAULT_LM_RULES: LMRuleDef[] = [
+    { id: 'lm-analogical-reasoning', context: ['attention', 'relatedBeliefs', 'links'], instruction: 'Find structural similarities, not just surface overlap.' },
+    { id: 'lm-hypothesis-generation', context: ['attention', 'relatedBeliefs', 'goals'], instruction: 'Generate testable hypotheses with appropriate confidence.' },
+    { id: 'lm-belief-revision', context: ['relatedBeliefs', 'recentDerivations'], instruction: 'Adjust confidence based on consistency with existing beliefs.' },
+    { id: 'lm-goal-decomposition', context: ['goals', 'relatedBeliefs', 'links'], instruction: 'Break into achievable subgoals given current capabilities.' },
+    { id: 'lm-concept-elaboration', context: ['attention', 'relatedBeliefs', 'links', 'focus'], instruction: 'Include properties, relationships, and implications.' },
+    { id: 'lm-temporal-causal', context: ['relatedBeliefs', 'links'], instruction: 'Focus on time-ordered and cause-effect link types.' },
+    { id: 'lm-uncertainty-calibration', context: ['relatedBeliefs', 'memoryHealth'], instruction: 'Consider memory reliability and belief consistency.' },
+    { id: 'lm-schema-induction', context: ['attention', 'relatedBeliefs', 'links'], instruction: 'Look for recurring structures across related concepts.' },
+    { id: 'lm-variable-grounding', context: ['attention', 'focus'], instruction: 'Use active concepts as grounding targets.' },
+    { id: 'lm-explanation-generation', context: ['relatedBeliefs', 'links', 'recentDerivations'], instruction: 'Reference supporting beliefs and derivation paths.' },
+    { id: 'lm-narsese-translation', context: [], instruction: 'Use standard Narsese operators.' },
+    { id: 'lm-meta-reasoning', context: ['memoryHealth', 'attention'], instruction: 'Consider cognitive state and resource allocation.' },
+    { id: 'lm-interactive-clarification', context: ['relatedBeliefs', 'questions'], instruction: 'Identify ambiguities and missing information.' },
+];
+```
+
+### Context Assembly
+
+A single function replaces the three-component provider/template/assembler system:
+
+```typescript
+function buildRuleContext(rule: LMRuleDef, nar: NAR, term: Term, ctx?: BotContext): string {
+    const parts: string[] = ['Consider the current knowledge state:'];
+    for (const key of rule.context) {
+        const fn = typeof key === 'function' ? key(nar, ctx) : (contextFragments as any)[key];
+        if (fn) { const s = typeof key === 'function' ? fn : (typeof key === 'string' ? fn(term)?.(nar, ctx) : ''); if (s) parts.push(s); }
+    }
+    parts.push(rule.instruction);
+    return parts.filter(Boolean).join('\n');
+}
+```
+
+### Default LM Rules Config
+
+```typescript
+const DEFAULT_LM_RULES_CONFIG: BotConfig['lmRules'] = {
+    enabled: true,
+    rules: [
+        { id: 'lm-narsese-translation', enabled: true },
+        { id: 'lm-belief-revision', enabled: true },
+        { id: 'lm-goal-decomposition', enabled: true },
+        { id: 'lm-hypothesis-generation', enabled: true },
+        { id: 'lm-explanation-generation', enabled: true },
+        { id: 'lm-analogical-reasoning', enabled: true },
+        { id: 'lm-meta-reasoning', enabled: false },
+        { id: 'lm-uncertainty-calibration', enabled: true },
+        { id: 'lm-schema-induction', enabled: false },
+        { id: 'lm-temporal-causal', enabled: true },
+        { id: 'lm-variable-grounding', enabled: true },
+        { id: 'lm-concept-elaboration', enabled: true },
+        { id: 'lm-interactive-clarification', enabled: false },
+    ],
+};
 ```
 
 ---
@@ -294,7 +417,7 @@ const DEFAULT_BOT_CONFIG: BotConfig = {
     reasoning: {
         autoTrigger: true, triggerThreshold: 0.5, triggerCooldown: 3,
         maxStepsPerTrigger: 5, backgroundReasoning: true, backgroundIntervalMs: 60000,
-        lmDriven: false,
+        lmDriven: true,
     },
     streaming: { enabled: true, showReasoningSteps: true, showToolCalls: true },
     conversation: { maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50 },
@@ -302,6 +425,7 @@ const DEFAULT_BOT_CONFIG: BotConfig = {
     directives: { builtIn: true },
     nlParsers: { builtIn: true },
     classifier: {},
+    lmRules: DEFAULT_LM_RULES_CONFIG,
     tui: { typingIndicator: true, colors: true, compactMode: false, statusBar: true },
     prompts: {},
 };
@@ -855,8 +979,47 @@ class SeNARSProcessor implements PipelineStage {
     enabled = (ctx) => ctx.capabilities.hasSeNARS &&
         (ctx.turn.reasoningTriggered || ctx.turn.classification.primary === 'narsese');
 
+    private lmRulesInitialized = false;
+
+    private initLMRules(nar: NAR, ctx: BotContext): void {
+        if (this.lmRulesInitialized || !ctx.config.lmRules.enabled) return;
+        const lmClient = nar.getLMClient?.();
+        if (!lmClient) return;
+
+        const lmRules = LMRules.createAll(lmClient);
+
+        for (const rule of lmRules) {
+            const entry = ctx.config.lmRules.rules.find(r => r.id === rule.id);
+            if (entry?.enabled === false) { rule.disable(); continue; }
+
+            // Wrap rule apply to inject context from fragments
+            const originalApply = rule.apply.bind(rule);
+            rule.apply = async (primary, secondary, context) => {
+                const start = Date.now();
+                const ruleDef = DEFAULT_LM_RULES.find(r => r.id === rule.id);
+                const fragments = entry?.context ?? ruleDef?.context ?? [];
+                const richContext = buildRuleContext({ context: fragments, instruction: entry?.instruction ?? ruleDef?.instruction ?? '' }, nar, primary, ctx);
+                const enhancedContext = { ...context, richContext };
+                const tasks = await originalApply(primary, secondary, enhancedContext);
+                for (const task of tasks) {
+                    task.stamp = { ...task.stamp, source: `lm-rule:${rule.id}` };
+                }
+                ctx.events.emit('lm-rule:executed', {
+                    ruleId: rule.id, durationMs: Date.now() - start, tasksGenerated: tasks.length,
+                });
+                return tasks;
+            };
+
+            if (entry?.priority != null) rule.priority = entry.priority;
+            nar.processor.registerLMRule(rule);
+        }
+        this.lmRulesInitialized = true;
+    }
+
     async execute(ctx: BotContext): Promise<void> {
         const nar = ctx.seNARS!;
+        this.initLMRules(nar, ctx);
+
         const text = ctx.turn.input.text.trim();
         const cls = ctx.turn.classification;
         const before = new Set(nar.getBeliefs().map(b => `${b.term.toString()}:${b.truth?.f ?? 0}:${b.truth?.c ?? 0}`));
@@ -986,6 +1149,8 @@ class LMResponder implements PipelineStage {
                     p.push(`(<${b.term}>.${tv})`);
                 }
             }
+            const reasoningModes = this.getReasoningModes(ctx);
+            if (reasoningModes) p.push(reasoningModes);
         }
 
         p.push(this.buildDirectiveInstructions(ctx));
@@ -1018,6 +1183,14 @@ class LMResponder implements PipelineStage {
             'To use a tool: [TOOL:toolName(arg1, arg2)]\n' +
             'To control reasoning depth: [REASONING_DEPTH:n]\n' +
             'These markers are stripped from visible output.';
+    }
+
+    private getReasoningModes(ctx: BotContext): string {
+        if (!ctx.seNARS) return '';
+        const enabled = ctx.seNARS.processor.getLMRules()
+            .filter(r => r.enabled)
+            .map(r => `- ${r.name}: ${r.description}`);
+        return enabled.length ? '\n## Available Reasoning Modes\n' + enabled.join('\n') : '';
     }
 
     private buildHistory(ctx: BotContext): string {
@@ -1436,6 +1609,7 @@ export class Bot {
             directives: { ...d.directives, ...override.directives },
             nlParsers: { ...d.nlParsers, ...override.nlParsers },
             classifier: { ...d.classifier, ...override.classifier },
+            lmRules: { ...d.lmRules, ...override.lmRules, rules: override.lmRules?.rules ?? d.lmRules.rules },
             tui: { ...d.tui, ...override.tui },
             prompts: { ...d.prompts, ...override.prompts },
         };
@@ -1494,6 +1668,273 @@ export class Bot {
 
 ---
 
+## AgenticLoop
+
+Background execution: drains message queue, runs idle reasoning, performs periodic maintenance.
+
+```typescript
+interface AgenticLoopConfig {
+    maxInputTurns: number;          // Default: 50 — idle turns before wakeup
+    sleepIntervalMs: number;        // Default: 1000
+    wakeupIntervalMs: number;       // Default: 60000
+    reasoningStepsPerWake: number;  // Default: 5
+    enableLMRules: boolean;         // Default: true
+    backgroundReasoning: boolean;   // Default: true
+}
+
+class AgenticLoop {
+    private readonly config: Required<AgenticLoopConfig>;
+    private readonly queue = new MessageQueue();
+    private readonly bot: Bot;
+    private readonly nar?: NAR;
+    private readonly episodicMemory?: EpisodicMemory;
+    private running = false;
+    private idleCounter = 0;
+    private nextWakeAt = 0;
+    private currentTurn = 0;
+    private onMessage?: (msg: IOMessage) => Promise<void>;
+
+    constructor(bot: Bot, nar: NAR | undefined, episodicMemory?: EpisodicMemory, config?: Partial<AgenticLoopConfig>) {
+        this.bot = bot; this.nar = nar; this.episodicMemory = episodicMemory;
+        this.config = { maxInputTurns: 50, sleepIntervalMs: 1000, wakeupIntervalMs: 60000, reasoningStepsPerWake: 5, enableLMRules: true, backgroundReasoning: true, ...config };
+    }
+
+    setMessageHandler(h: (msg: IOMessage) => Promise<void>): void { this.onMessage = h; }
+    start(): void { if (this.running) return; this.running = true; this.nextWakeAt = Date.now() + this.config.wakeupIntervalMs; this.runLoop(); }
+    stop(): void { this.running = false; }
+    pushMessage(m: IOMessage): void { this.queue.push(m); }
+    getStats(): { turn: number; idle: number; queue: number } { return { turn: this.currentTurn, idle: this.idleCounter, queue: this.queue.size() }; }
+
+    private async runLoop(): Promise<void> {
+        while (this.running) {
+            const msgs = this.queue.drain();
+            if (msgs.length) {
+                this.idleCounter = 0;
+                for (const m of msgs) {
+                    await this.onMessage?.(m);
+                    this.episodicMemory?.log({ type: 'input', input: m.text, source: m.source, sender: m.sender, timestamp: Date.now() });
+                }
+            } else { this.idleCounter++; }
+
+            const now = Date.now();
+            if (this.idleCounter >= this.config.maxInputTurns && now >= this.nextWakeAt) {
+                await this.wakeup();
+                this.nextWakeAt = now + this.config.wakeupIntervalMs;
+                this.idleCounter = 0;
+            }
+            await new Promise(r => setTimeout(r, this.config.sleepIntervalMs));
+            this.currentTurn++;
+        }
+    }
+
+    private async wakeup(): Promise<void> {
+        const nar = this.nar; if (!nar) return;
+        if (this.config.backgroundReasoning) {
+            try { await nar.run(this.config.reasoningStepsPerWake); } catch {}
+            try { for (const q of (nar.getQuestions?.() ?? []).slice(0, 3)) await nar.run(this.config.reasoningStepsPerWake); } catch {}
+            try { for (const g of (nar.getGoals?.() ?? []).slice(0, 2)) await nar.run(this.config.reasoningStepsPerWake); } catch {}
+        }
+        try { if (this.config.enableLMRules && nar.enrichMemoryWithLM) await nar.enrichMemoryWithLM(); } catch {}
+        try { nar.memory?.consolidate?.(); } catch {}
+        try { nar.getSelfAnalyzer?.()?.analyzeReasoningGaps?.(); } catch {}
+        this.episodicMemory?.log({ type: 'wakeup', input: 'wakeup', source: 'loop', sender: 'system', timestamp: Date.now() });
+    }
+}
+```
+
+## TUI
+
+Event-driven terminal interface. Listeners subscribe to pipeline events for real-time feedback without coupling to stage internals.
+
+### Visual Conventions
+
+| Element | Format |
+|---------|--------|
+| User input | `> your message` |
+| Bot response | `bot: response text` |
+| Reasoning step | `  → (<A --> B>. :0.9:0.8)` (dimmed) |
+| Tool call | `  ⚙ tool:calculate(2+2) = 4` |
+| Error | `  ✗ error: description` (red) |
+| Streaming status | `  ⏳ thinking...` (spinner) |
+| Mode indicator | `[auto]`, `[chat]`, `[reason]` (prefix) |
+| Capability status | `[LM✓]`, `[LM✗]`, `[NAR✓]`, `[NAR✗]` |
+
+### Status Bar
+
+```
+[LM: claude-sonnet-4] [NAR: 142 concepts] [turn: 47] [mode: auto]
+```
+
+### REPL Implementation
+
+```typescript
+class REPL {
+    private bot: Bot;
+    private rl: readline.Interface;
+
+    constructor(bot: Bot) { this.bot = bot; }
+
+    async start(): Promise<void> {
+        const c = this.bot.getCapabilities();
+        console.log(`\n  ${this.bot.profile.name} — ${this.bot.profile.personality}\n`);
+        console.log(`  Mode: ${c.mode}  LM: ${c.hasLM ? '✓' : '✗'}  SeNARS: ${c.hasSeNARS ? '✓' : '✗'}  Stream: ${c.hasStreaming ? '✓' : '✗'}`);
+        console.log(`  Type /help for commands.\n`);
+
+        // Wire event listeners for real-time feedback
+        this.bot.on('stage:start', ({ stage }) => process.stdout.write(`  [${stage}]`));
+        this.bot.on('lm:chunk', ({ content }) => process.stdout.write(content));
+        this.bot.on('directive:found', ({ directive }) => process.stdout.write(`\n  → directive: ${directive.type}`));
+        this.bot.on('reasoning:end', ({ newBeliefs }) => {
+            if (newBeliefs.length) process.stdout.write(`\n  → ${newBeliefs.length} new belief(s)`);
+        });
+
+        this.rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        this.rl.setPrompt('> ');
+
+        for await (const line of this.rl) await this.processLine(line);
+    }
+
+    private async processLine(line: string): Promise<void> {
+        const t = line.trim(); if (!t) return;
+        process.stdout.write(`> ${t}\n`);
+
+        let streamed = '';
+        const respondFn = async (text: string | StreamChunk) => {
+            if (typeof text === 'string') streamed = text;
+            else if (text.type === 'text') { process.stdout.write(text.content); streamed += text.content; }
+            else if (text.type === 'status' && text.content === 'typing') process.stdout.write('  bot: ');
+        };
+
+        const showTyping = this.bot.getCapabilities().hasLM && this.bot.config.tui.typingIndicator;
+        const spinner = showTyping ? ora('thinking...').start() : null;
+
+        try {
+            const response = await this.bot.processMessage(
+                { id: crypto.randomUUID(), source: 'cli', sender: 'user', text: t, timestamp: Date.now() },
+                { id: 'repl', type: 'cli', sender: 'user', respond: respondFn, stream: async () => {} },
+            );
+            spinner?.stop();
+            if (!streamed) process.stdout.write(`bot: ${response.text}\n`);
+            else process.stdout.write('\n');
+            this.showMetrics(response);
+        } catch (e) {
+            spinner?.stop();
+            process.stdout.write(`\n✗ ${e instanceof Error ? e.message : String(e)}\n`);
+        }
+    }
+
+    private showMetrics(r: BotResponse): void {
+        if (!r.metrics) return;
+        const total = Date.now() - r.metrics.startTime;
+        const stages = [...r.metrics.stages.entries()].map(([n, t]) => `${n}:${t.durationMs}ms${t.error ? '✗' : ''}`).join(' ');
+        process.stdout.write(`  [${total}ms | ${stages}]\n`);
+    }
+}
+```
+
+## ConnectionManager Wiring
+
+All entry points (REPL, IRC, WS, HTTP, MCP) route through `Bot.processMessage()` with a typed `ConnectionInfo`.
+
+```typescript
+class ConnectionManager {
+    private connections = new Map<string, Connection>();
+    private factories = new Map<string, ConnectionFactory>();
+    private logger: Logger;
+
+    constructor(logger: Logger) { this.logger = logger; }
+
+    registerFactory(factory: { type: ChannelType; create: (cfg: ConnectionConfig, deps: ConnectionDeps) => Connection }): void {
+        this.factories.set(factory.type, factory.create);
+    }
+
+    async addConnection(config: ConnectionConfig, deps: ConnectionDeps): Promise<Connection> {
+        const ctor = this.factories.get(config.type);
+        if (!ctor) throw new Error(`Unknown connection type: ${config.type}`);
+        const conn = ctor(config, deps);
+        this.connections.set(config.id, conn);
+        return conn;
+    }
+
+    getConnection(id: string): Connection | undefined { return this.connections.get(id); }
+
+    async shutdownAll(): Promise<void> {
+        for (const conn of this.connections.values()) await conn.close();
+        this.connections.clear();
+    }
+}
+
+interface ConnectionDeps {
+    nar: NAR;
+    emit: (event: string, data: unknown) => void;
+    logger: Logger;
+}
+```
+
+### Entry Point
+
+```typescript
+async function main() {
+    const nar = new NAR({ lmClient: undefined, enableLMRules: true, enableTools: true });
+
+    const lm = await createLMClient({
+        provider: 'anthropic', model: 'claude-sonnet-4-20250514',
+        fallback: ['ollama/llama3.1:8b', 'transformersjs/Qwen2.5-1.5B'],
+    }).catch(() => undefined);
+
+    if (lm) nar.setLMClient(lm);
+
+    const bot = new Bot({
+        profile: { name: 'SeNARS', personality: 'A reasoning-focused AI assistant.' },
+        lm, nar, episodicMemory: new EpisodicMemory(),
+    });
+
+    const connManager = new ConnectionManager(createLogger({ scope: 'connections' }));
+
+    for (const { type, ctor } of [
+        { type: 'cli', ctor: CLIConnection }, { type: 'irc', ctor: IRCConnection },
+        { type: 'websocket', ctor: WSConnection }, { type: 'http', ctor: HTTPConnection },
+        { type: 'mcp', ctor: MCPConnection },
+    ]) connManager.registerFactory({ type, create: (cfg, deps) => new ctor(cfg, deps) });
+
+    new REPL(bot).start();
+    bot.startAgenticLoop({ backgroundReasoning: true });
+}
+```
+
+### Bot Integration
+
+```typescript
+// In Bot class:
+setConnectionManager(m: ConnectionManager): void { this.connectionManager = m; }
+
+async addConnection(config: ConnectionConfig): Promise<Connection> {
+    if (!this.connectionManager) throw new Error('ConnectionManager not set');
+    return this.connectionManager.addConnection(config, {
+        nar: this.nar!,
+        emit: (e, d) => this.events.emit(e as any, d),
+        logger: this.logger.child(`conn:${config.id}`),
+    });
+}
+
+startAgenticLoop(config?: Partial<AgenticLoopConfig>): void {
+    if (!this.nar) return;
+    this.agenticLoop = new AgenticLoop(this, this.nar, this.episodicMemory, config);
+    this.agenticLoop.setMessageHandler(async (msg) => {
+        await this.processMessage(msg, {
+            id: msg.source, type: 'cli', sender: msg.sender,
+            respond: async (text) => {
+                const content = typeof text === 'string' ? text : text.content;
+                const conn = this.connectionManager?.getConnection(msg.source);
+                if (conn) await conn.send(msg.sender, content); else console.log(content);
+            },
+            stream: async () => {},
+        });
+    });
+    this.agenticLoop.start();
+}
+```
+
 ## File Layout
 
 ```
@@ -1511,18 +1952,20 @@ src/bot/
   │   ├── InputClassifier.ts    # + classify(), DEFAULT_SIGNALS, NARSESE_RE
   │   ├── ReasoningTrigger.ts   # + ReasoningTriggerCore
   │   ├── SeNARSProcessor.ts    # + DEFAULT_NL_PARSERS, NLParserDef
-  │   ├── LMResponder.ts        # + LMStreamAdapter
+  │   ├── LMResponder.ts        # + LMStreamAdapter, getReasoningModes()
   │   ├── DirectiveProcessor.ts # + DirectiveDef, built-in patterns
   │   ├── ResponseComposer.ts
   │   ├── ResponseFormatter.ts
   │   └── StatePersistor.ts
+  ├── context/
+  │   └── fragments.ts          # contextFragments, buildRuleContext(), LMRuleDef
   ├── conversation/
   │   ├── ConversationState.ts  # + ConversationStateManager, Message, ReasoningArtifact
   │   └── types.ts              # BotMode, BotProfile
   ├── config/
-  │   ├── defaults.ts           # DEFAULT_BOT_CONFIG
+  │   ├── defaults.ts           # DEFAULT_BOT_CONFIG, DEFAULT_LM_RULES, DEFAULT_LM_RULES_CONFIG
   │   ├── loader.ts             # JSONC config file + env overrides
-  │   └── types.ts              # BotConfig, ClassificationSignalDef
+  │   └── types.ts              # BotConfig, ClassificationSignalDef, LMRuleConfigEntry
   └── presets/
       └── index.ts              # PRESETS, StageFactory
 ```
@@ -1635,4 +2078,29 @@ bot.config.directives.custom = [{
     },
     triggersLoopBack: true,
 }];
+
+// Experiment: enable/disable LM rules per session
+bot.config.lmRules.rules = bot.config.lmRules.rules.map(r =>
+    r.id === 'lm-analogical-reasoning' ? { ...r, enabled: true } : r
+);
+
+// Experiment: custom context fragment for domain-specific knowledge
+bot.config.lmRules.custom = [{
+    id: 'lm-domain-reasoning',
+    context: ['attention', (nar) => {
+        const domainConcepts = nar.listConcepts().filter(c => c.term.toString().startsWith('domain_'));
+        return domainConcepts.length
+            ? `Domain facts: ${domainConcepts.map(c => `${c.term.toString()} (p=${c.priority.toFixed(2)})`).join('; ')}`
+            : '';
+    }],
+    instruction: 'Apply domain-specific reasoning patterns.',
+}];
+
+// Experiment: observe LM rule performance
+bot.on('lm-rule:executed', ({ ruleId, durationMs, tasksGenerated }) => {
+    experiment.record('lm-rule', { ruleId, durationMs, tasksGenerated });
+});
+bot.on('lm-rule:failed', ({ ruleId, error }) => {
+    experiment.record('lm-rule-failure', { ruleId, error });
+});
 ```
