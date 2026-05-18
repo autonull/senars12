@@ -2,62 +2,221 @@
 
 ## Vision
 
-A single, fully-wired bot class that replaces both `Agent` and `Bot`. The pipeline supports bidirectional NAR↔LM interaction within a single turn, with bounded loop-back for LM directives. All entry points (REPL, IRC, WS, HTTP, MCP) use the same processing path.
+A single `Bot` class with a pipeline that supports bidirectional NAR↔LM interaction via bounded loop-back. All entry points (REPL, IRC, WS, HTTP, MCP) share one processing path. Graceful degradation across full / LM-only / SeNARS-only modes.
 
-No dead code. No duplicate state. No unidirectional assumptions.
+No dead code. No duplicate state. No god class. No ceremony over substance.
 
 ---
 
 ## Architecture Principles
 
-1. **Single orchestrator** — One `Bot` class, pipeline-based, wired to all connections
-2. **Bidirectional turn** — SeNARS runs first, LM sees results, LM directives loop back to SeNARS
-3. **Unified state** — One `ConversationState` per sender, replaces `ConversationManager` + `ChatResponder.history`
-4. **Streaming by default** — Enabled for all channels that support it
-5. **Loop-bounded** — Directive loop-back resets counter each iteration; `maxLoops` caps total passes
-6. **Observability built-in** — Per-stage timing, derivation tracing, error context
-7. **DRY context building** — `LMResponder` uses `ConversationState.getContextForLM()` instead of duplicating logic
+1. **Pipeline, not switch** — Composable stages replace hardcoded branching
+2. **SeNARS first, LM second** — LM always sees what SeNARS derived
+3. **Loop-back** — LM directives feed back into SeNARS, bounded by `maxLoops`
+4. **Unified state** — One `ConversationState` per sender
+5. **Streaming default** — Token-by-token for channels that support it
+6. **Self-degrading** — `enabled()` predicates skip unavailable stages
+7. **DRY context** — `LMResponder` uses `ConversationState.getContextForLM()`
 
 ---
 
-## Simplified Stage Pipeline
+## Pipeline
 
 ```
 InputNormalizer → AuthChecker → CommandProcessor* → InputClassifier
   → ReasoningTrigger → SeNARSProcessor → LMResponder
-  → DirectiveProcessor ↻ (loop-back, resets each pass, max 2 total)
+  → DirectiveProcessor ↻ (loop: SeNARSProcessor → LMResponder → DirectiveProcessor)
   → ResponseComposer → ResponseFormatter → StatePersistor
 
 * CommandProcessor: early exit, skips remaining stages
 ```
 
-### Stage Order and Rationale
-
-| # | Stage | Why Here |
+| # | Stage | Responsibility |
 |---|---|---|
-| 1 | `InputNormalizer` | Always first — clean input before anything else |
-| 2 | `AuthChecker` | Always second — reject before processing |
-| 3 | `CommandProcessor` | Early exit for `/` commands — no reasoning needed |
-| 4 | `InputClassifier` | Must run before reasoning decisions |
-| 5 | `ReasoningTrigger` | Decides if SeNARS should activate |
-| 6 | `SeNARSProcessor` | Runs NAL operations first — produces beliefs LM can reference |
-| 7 | `LMResponder` | Generates with SeNARS results in system prompt |
-| 8 | `DirectiveProcessor` | Extracts `[BELIEVE:]`, `[QUESTION:]`, `[TOOL:]` from LM output, executes against NAR, optionally requests loop-back |
-| 9 | `ResponseComposer` | Merges all results with actual belief content |
-| 10 | `ResponseFormatter` | Channel-specific formatting |
-| 11 | `StatePersistor` | Logs to episodic memory |
-
-### Key Change from BOT4: DirectiveProcessor Replaces ToolExecutor
-
-BOT4 had `ToolExecutor` as a separate stage that only handled `[TOOL:...]`. BOT5 unifies all LM directives into `DirectiveProcessor`, which:
-- Handles `[BELIEVE:...]`, `[QUESTION:...]`, `[TOOL:...]` in one place
-- Feeds `[BELIEVE:]` and `[QUESTION:]` back into SeNARS (loop-back)
-- Bounded by `maxLoops` (default 2) to prevent infinite cycles
-- Each loop iteration re-runs `SeNARSProcessor` → `LMResponder` → `DirectiveProcessor`
+| 1 | `InputNormalizer` | Trim, NFC normalize, strip zero-width chars |
+| 2 | `AuthChecker` | Rate limit, auth binding |
+| 3 | `CommandProcessor` | Execute `/` or `.` commands, early exit |
+| 4 | `InputClassifier` | Multi-signal intent classification |
+| 5 | `ReasoningTrigger` | Heuristic + LM-signal scoring for SeNARS activation |
+| 6 | `SeNARSProcessor` | NAL operations, belief diff tracking |
+| 7 | `LMResponder` | Generate response with SeNARS context |
+| 8 | `DirectiveProcessor` | Extract + execute `[BELIEVE:]`, `[QUESTION:]`, `[TOOL:]`; request loop-back |
+| 9 | `ResponseComposer` | Merge reasoning + LM + directives into response |
+| 10 | `ResponseFormatter` | Channel-specific formatting (IRC stripping) |
+| 11 | `StatePersistor` | Log turn to episodic memory |
 
 ---
 
-## Core Types
+## Advanced LM↔NAR Communication Patterns
+
+The pipeline enables these bidirectional interaction patterns:
+
+| Pattern | Mechanism | Configurable |
+|---|---|---|
+| **LM → NAR belief injection** | `[BELIEVE: (<term --> rel>. :f:c)]` | Confidence via truth values |
+| **LM → NAR question** | `[QUESTION: (<term --> ?>.)]` | Derivation depth via `nar.run(n)` |
+| **LM → tool → NAR** | `[TOOL:name(args)]` → narsese result → `nar.believe()` | Tool-returned narsese auto-believed |
+| **LM suggests reasoning** | `[REASONING_SUGGESTED: reason]` | Triggers next-turn reasoning trigger boost |
+| **LM controls reasoning depth** | `[REASONING_DEPTH:n]` | Sets `maxStepsPerTrigger` for next pass |
+| **Iterative refinement** | Loop-back: SeNARS → LM → SeNARS | `maxLoops`, `loopBackOn` |
+| **NAR → LM context** | `getContextForLM()` with attention report, artifacts, pins | `maxConcepts`, artifact count |
+| **NAR → LM uncertainty** | `lmSuggestsReasoning` flag + low-confidence beliefs in prompt | Via belief truth values |
+| **Graceful degradation** | `enabled()` predicates per stage | Automatic based on capabilities |
+
+### Configuration Extensions
+
+```typescript
+interface BotConfig {
+    reasoning: {
+        autoTrigger: boolean;
+        triggerThreshold: number;
+        triggerCooldown: number;
+        maxStepsPerTrigger: number;
+        backgroundReasoning: boolean;
+        backgroundIntervalMs: number;
+        lmDriven: boolean;              // LM can override steps via [REASONING_DEPTH:n]
+    };
+    streaming: {
+        enabled: boolean;
+        showReasoningSteps: boolean;
+        showToolCalls: boolean;
+    };
+    conversation: {
+        maxHistory: number;
+        summaryThreshold: number;
+        maxArtifacts: number;
+    };
+    pipeline: {
+        maxLoops: number;               // Default: 2
+        stageTimeoutMs: number;         // Default: 30000
+        enableLoopBack: boolean;        // Default: true
+        loopBackOn: ('believe' | 'question' | 'tool_call')[];  // Default: ['believe', 'question']
+        stages?: PipelineStage[];       // Custom stage list (overrides defaults)
+        preset?: 'default' | 'chat' | 'reasoning' | 'tool';   // Pre-configured stage sets
+    };
+    directives: {
+        builtIn: boolean;               // Default: true (BELIEVE, QUESTION, TOOL, REASONING_DEPTH)
+        custom?: DirectiveDef[];        // Custom directive patterns + handlers
+    };
+    prompts: {
+        system?: string;                // Template: {{name}}, {{personality}}, {{context}}, {{directives}}, {{history}}, {{input}}
+        directiveInstructions?: string;  // Custom directive instructions in prompt
+        responseGuidelines?: string;    // Custom response guidelines
+    };
+    tui: {
+        typingIndicator: boolean;
+        colors: boolean;
+        compactMode: boolean;
+        statusBar: boolean;
+    };
+}
+
+interface DirectiveDef {
+    pattern: RegExp;                    // Regex with capture group for content
+    type: string;                       // Directive type name
+    extract: (match: RegExpMatchArray) => { name?: string; content: string };
+    execute: (nar: NAR, content: string, name?: string) => Promise<unknown>;
+    triggersLoopBack: boolean;          // Whether this directive requests another pass
+}
+```
+
+### Pipeline Presets
+
+| Preset | Stages | Loop-Back | Use Case |
+|---|---|---|---|
+| `default` | All 11 stages | Enabled on believe/question | Full LM+NAR interaction |
+| `chat` | Normalizer → Auth → Command → Classifier → LMResponder → Composer → Formatter → Persistor | Disabled | LM-only conversation |
+| `reasoning` | Normalizer → Auth → Command → Classifier → Trigger → SeNARSProcessor → Composer → Formatter → Persistor | Disabled | NAR-only reasoning REPL |
+| `tool` | Normalizer → Auth → Command → Classifier → SeNARSProcessor → LMResponder → DirectiveProcessor → Composer → Formatter → Persistor | Enabled on tool_call | Tool-focused workflows |
+
+Presets are applied before custom `stages` — if both are set, `stages` wins.
+
+## Pipeline Presets
+
+| Preset | Stages | Loop-Back | Use Case |
+|---|---|---|---|
+| `default` | All 11 stages | Enabled on believe/question | Full LM+NAR interaction |
+| `chat` | Normalizer → Auth → Command → Classifier → LMResponder → Composer → Formatter → Persistor | Disabled | LM-only conversation |
+| `reasoning` | Normalizer → Auth → Command → Classifier → Trigger → SeNARSProcessor → Composer → Formatter → Persistor | Disabled | NAR-only reasoning REPL |
+| `tool` | Normalizer → Auth → Command → Classifier → SeNARSProcessor → LMResponder → DirectiveProcessor → Composer → Formatter → Persistor | Enabled on tool_call | Tool-focused workflows |
+
+Presets are applied before custom `stages` — if both are set, `stages` wins.
+
+### Preset Definitions
+
+```typescript
+type StageFactory = (bot: Bot) => PipelineStage;
+
+const PRESETS: Record<string, StageFactory[]> = {
+    default: [
+        () => new InputNormalizer(),
+        () => new AuthChecker(),
+        (b) => new CommandProcessor(b.commands),
+        () => new InputClassifier(),
+        () => new ReasoningTriggerStage(),
+        () => new SeNARSProcessor(),
+        () => new LMResponder(),
+        () => new DirectiveProcessor(),
+        () => new ResponseComposer(),
+        () => new ResponseFormatter(),
+        (b) => new StatePersistor(b.episodicMemory),
+    ],
+    chat: [
+        () => new InputNormalizer(),
+        () => new AuthChecker(),
+        (b) => new CommandProcessor(b.commands),
+        () => new InputClassifier(),
+        () => new LMResponder(),
+        () => new ResponseComposer(),
+        () => new ResponseFormatter(),
+        (b) => new StatePersistor(b.episodicMemory),
+    ],
+    reasoning: [
+        () => new InputNormalizer(),
+        () => new AuthChecker(),
+        (b) => new CommandProcessor(b.commands),
+        () => new InputClassifier(),
+        () => new ReasoningTriggerStage(),
+        () => new SeNARSProcessor(),
+        () => new ResponseComposer(),
+        () => new ResponseFormatter(),
+        (b) => new StatePersistor(b.episodicMemory),
+    ],
+    tool: [
+        () => new InputNormalizer(),
+        () => new AuthChecker(),
+        (b) => new CommandProcessor(b.commands),
+        () => new InputClassifier(),
+        () => new SeNARSProcessor(),
+        () => new LMResponder(),
+        () => new DirectiveProcessor(),
+        () => new ResponseComposer(),
+        () => new ResponseFormatter(),
+        (b) => new StatePersistor(b.episodicMemory),
+    ],
+};
+```
+
+### Default Config
+
+```typescript
+const DEFAULT_BOT_CONFIG: BotConfig = {
+    reasoning: {
+        autoTrigger: true, triggerThreshold: 0.5, triggerCooldown: 3,
+        maxStepsPerTrigger: 5, backgroundReasoning: true, backgroundIntervalMs: 60000,
+        lmDriven: false,
+    },
+    streaming: { enabled: true, showReasoningSteps: true, showToolCalls: true },
+    conversation: { maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50 },
+    pipeline: { maxLoops: 2, stageTimeoutMs: 30000, enableLoopBack: true, loopBackOn: ['believe', 'question'] },
+    directives: { builtIn: true },
+    tui: { typingIndicator: true, colors: true, compactMode: false, statusBar: true },
+};
+```
+
+---
+
+## Types
 
 ### BotConfig
 
@@ -72,7 +231,7 @@ interface BotConfig {
         backgroundIntervalMs: number;
     };
     streaming: {
-        enabled: boolean;
+        enabled: boolean;           // Default: true
         showReasoningSteps: boolean;
         showToolCalls: boolean;
     };
@@ -82,8 +241,8 @@ interface BotConfig {
         maxArtifacts: number;
     };
     pipeline: {
-        maxLoops: number;           // Max directive loop-back iterations per turn
-        stageTimeoutMs: number;     // Per-stage execution timeout
+        maxLoops: number;           // Default: 2
+        stageTimeoutMs: number;     // Default: 30000
     };
     tui: {
         typingIndicator: boolean;
@@ -94,46 +253,11 @@ interface BotConfig {
 }
 ```
 
-### Default Config
-
-```typescript
-const DEFAULT_BOT_CONFIG: BotConfig = {
-    reasoning: {
-        autoTrigger: true,
-        triggerThreshold: 0.5,
-        triggerCooldown: 3,
-        maxStepsPerTrigger: 5,
-        backgroundReasoning: true,
-        backgroundIntervalMs: 60000,
-    },
-    streaming: {
-        enabled: true,              // Default ON
-        showReasoningSteps: true,
-        showToolCalls: true,
-    },
-    conversation: {
-        maxHistory: 20,
-        summaryThreshold: 30,
-        maxArtifacts: 50,
-    },
-    pipeline: {
-        maxLoops: 2,
-        stageTimeoutMs: 30000,
-    },
-    tui: {
-        typingIndicator: true,
-        colors: true,
-        compactMode: false,
-        statusBar: true,
-    },
-};
-```
-
 ### TurnState
 
 ```typescript
 interface TurnState {
-    input: IOMessage;
+    input: IOMessage;               // From io/types.ts (readonly fields)
     classification: InputClassification;
     reasoningTriggered: boolean;
     reasoningResult?: DerivationResult;
@@ -145,34 +269,35 @@ interface TurnState {
     actions: TurnAction[];
     finalResponse: string;
     error?: Error;
-    loopCount: number;              // Current loop-back iteration (reset each pass)
+    passCount: number;              // 0 = not started, 1 = first pass, 2+ = loop-back
+    needsLoopBack: boolean;         // Set by DirectiveProcessor to request another pass
+    loopBackType?: string;          // Type of directive that triggered loop-back (for loopBackOn filtering)
+    reasoningDepthOverride?: number;// Set by [REASONING_DEPTH:n] directive
 }
 ```
 
-### DerivationResult
+### Supporting Types
 
 ```typescript
 interface DerivationResult {
-    steps: number;          // Number of derivation steps executed
-    beliefs: Belief[];      // All beliefs after derivation
-    newBeliefs: Belief[];   // Only beliefs added/changed this pass
+    steps: number;                  // NEW beliefs derived this pass
+    beliefs: Belief[];              // All beliefs after derivation
+    newBeliefs: Belief[];           // Only beliefs added/changed this pass
 }
-```
 
-### LMDirective
+interface Belief {
+    term: string;
+    truth?: { frequency: number; confidence: number };
+}
 
-```typescript
 interface LMDirective {
-    type: 'believe' | 'question' | 'tool_call';
-    name: string;           // Tool name for tool_call, empty for believe/question
-    content: string;        // Narsese string or tool args
-    raw: string;            // Original directive text
+    type: 'believe' | 'question' | 'tool_call' | 'reasoning_depth' | string;
+    name: string;                   // Tool name for tool_call, empty for believe/question
+    content: string;                // Narsese string or tool args
+    raw: string;                    // Original directive text
+    _def?: DirectiveDef;            // Custom directive definition (internal)
 }
-```
 
-### DirectiveResult
-
-```typescript
 interface DirectiveResult {
     directive: LMDirective;
     success: boolean;
@@ -180,32 +305,22 @@ interface DirectiveResult {
     error?: string;
     derivationSteps?: number;
 }
-```
 
-### TurnMetrics
-
-```typescript
-interface TurnMetrics {
-    startTime: number;
-    stages: Map<string, StageTiming>;
+interface TurnAction {
+    type: 'believe' | 'question' | 'goal' | 'tool_call';
+    content: string;
+    result?: string;
 }
 
-interface StageTiming {
-    durationMs: number;
+interface ToolResult {
+    name: string;
+    result?: unknown;
     error?: string;
 }
-```
 
-### Capabilities
-
-```typescript
-interface Capabilities {
-    hasLM: boolean;
-    hasSeNARS: boolean;
-    hasStreaming: boolean;
-    hasTools: boolean;
-    hasMemory: boolean;
-    mode: 'full' | 'lm-only' | 'senars-only';
+interface TurnMetrics {
+    startTime: number;
+    stages: Map<string, { durationMs: number; error?: string }>;
 }
 ```
 
@@ -236,121 +351,126 @@ interface BotResponse {
 }
 ```
 
+### Capabilities
+
+```typescript
+interface Capabilities {
+    hasLM: boolean;
+    hasSeNARS: boolean;
+    hasStreaming: boolean;
+    hasTools: boolean;
+    hasMemory: boolean;
+    mode: 'full' | 'lm-only' | 'senars-only';
+}
+
+function detectCapabilities(lm?: LMClient, seNARS?: NAR): Capabilities {
+    const hasLM = !!lm && lm.available !== false;
+    const hasSeNARS = !!seNARS;
+    const mode = hasLM && hasSeNARS ? 'full'
+        : hasLM ? 'lm-only'
+        : hasSeNARS ? 'senars-only'
+        : (() => { throw new Error('At least one capability required'); })();
+    return {
+        hasLM, hasSeNARS,
+        hasStreaming: hasLM && lm!.provider !== undefined,
+        hasTools: hasSeNARS && seNARS!.tools !== undefined && seNARS!.tools.list().length > 0,
+        hasMemory: hasSeNARS && !!seNARS!.memory,
+        mode,
+    };
+}
+```
+
+### ConnectionInfo
+
+```typescript
+interface ConnectionInfo {
+    id: string;
+    type: ChannelType;
+    sender: string;
+    respond: (text: string | StreamChunk) => Promise<void>;
+    stream: (stream: AsyncIterable<StreamChunk>) => Promise<void>;
+}
+
+interface StreamChunk {
+    type: 'text' | 'reasoning' | 'tool' | 'error' | 'status';
+    content: string;
+    done: boolean;
+    metadata?: Record<string, unknown>;
+}
+```
+
 ---
 
-## MessagePipeline with Loop-Back
+## MessagePipeline
 
-**CRITICAL FIX from BOT4**: The loop counter must be reset at the start of each iteration. `DirectiveProcessor` increments it to request another pass. The `do...while` loop continues only while `loopCount > 0`.
+Loop-back is managed internally by the pipeline. Stages don't manage loop state — they just set `needsLoopBack` when appropriate.
 
 ```typescript
 class MessagePipeline {
     private stages: PipelineStage[];
-    private loopStages: Set<string>;
+    private loopStages = new Set(['SeNARSProcessor', 'LMResponder', 'DirectiveProcessor']);
 
-    constructor(stages: PipelineStage[], loopStageNames: string[] = ['SeNARSProcessor', 'LMResponder', 'DirectiveProcessor']) {
+    constructor(stages: PipelineStage[]) {
         this.stages = stages.sort((a, b) => a.priority - b.priority);
-        this.loopStages = new Set(loopStageNames);
     }
 
     async process(message: IOMessage, ctx: BotContext): Promise<BotResponse> {
         ctx.turn.input = message;
-        ctx.turn.loopCount = 0;
+        ctx.turn.passCount = 0;
+        ctx.turn.needsLoopBack = false;
         ctx.metrics = { startTime: Date.now(), stages: new Map() };
 
-        const maxLoops = ctx.config.pipeline.maxLoops;
-        let passCount = 0;
+        const loopBackOn = new Set(ctx.config.pipeline.loopBackOn ?? ['believe', 'question']);
+        const enableLoopBack = ctx.config.pipeline.enableLoopBack !== false;
 
         do {
-            // FIX: Reset loopCount at start of each pass.
-            // DirectiveProcessor will increment if it needs another pass.
-            ctx.turn.loopCount = 0;
-            passCount++;
+            ctx.turn.passCount++;
+            ctx.turn.needsLoopBack = false;
 
             for (const stage of this.stages) {
                 if (!stage.enabled(ctx)) continue;
-                // On loop-back passes, skip non-loop stages
-                if (passCount > 1 && !this.loopStages.has(stage.name)) continue;
+                if (ctx.turn.passCount > 1 && !this.loopStages.has(stage.name)) continue;
 
                 const start = Date.now();
                 try {
-                    await this.executeWithTimeout(stage, ctx, ctx.config.pipeline.stageTimeoutMs);
+                    await Promise.race([
+                        stage.execute(ctx),
+                        new Promise<never>((_, reject) =>
+                            setTimeout(() => reject(new Error(`Stage ${stage.name} timed out`)), ctx.config.pipeline.stageTimeoutMs)
+                        ),
+                    ]);
                 } catch (error) {
                     ctx.turn.error = error as Error;
                     ctx.metrics.stages.set(stage.name, { durationMs: Date.now() - start, error: String(error) });
-                    ctx.turn.finalResponse = this.generateErrorResponse(error, ctx);
+                    ctx.turn.finalResponse = this.errorResponse(error, ctx);
                     break;
                 }
                 ctx.metrics.stages.set(stage.name, { durationMs: Date.now() - start });
 
-                if (ctx.turn.finalResponse && stage.name === 'CommandProcessor') {
-                    return this.composeResponse(ctx);
-                }
+                if (ctx.turn.finalResponse && stage.name === 'CommandProcessor') return this.composeResponse(ctx);
             }
 
             if (ctx.turn.error) break;
-            // Continue only if DirectiveProcessor requested another pass
-        } while (ctx.turn.loopCount > 0 && passCount <= maxLoops);
+            // Only loop back if enabled and DirectiveProcessor set a matching directive type
+        } while (enableLoopBack && ctx.turn.needsLoopBack && loopBackOn.has(ctx.turn.loopBackType!) && ctx.turn.passCount < ctx.config.pipeline.maxLoops);
 
         return this.composeResponse(ctx);
     }
 
-    private async executeWithTimeout(stage: PipelineStage, ctx: BotContext, timeoutMs: number): Promise<void> {
-        await Promise.race([
-            stage.execute(ctx),
-            new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error(`Stage ${stage.name} timed out after ${timeoutMs}ms`)), timeoutMs)
-            ),
-        ]);
-    }
-
     private composeResponse(ctx: BotContext): BotResponse {
-        return {
-            text: ctx.turn.finalResponse,
-            reasoning: ctx.turn.reasoningResult,
-            actions: ctx.turn.actions,
-            metrics: ctx.metrics,
-        };
+        return { text: ctx.turn.finalResponse, reasoning: ctx.turn.reasoningResult, actions: ctx.turn.actions, metrics: ctx.metrics };
     }
 
-    private generateErrorResponse(error: unknown, ctx: BotContext): string {
-        if (error instanceof Error) {
-            if (error.message.includes('LM') || (error.message.includes('timeout') && ctx.capabilities.hasSeNARS)) {
-                return 'LM is currently unavailable. I can still process Narsese input and commands.';
-            }
-            if (error.message.includes('SeNARS') || error.message.includes('NAR')) {
-                return 'Reasoning engine is unavailable. Chat mode is still active.';
-            }
-            return `An error occurred: ${error.message}`;
-        }
-        return 'An unknown error occurred';
+    private errorResponse(error: unknown, ctx: BotContext): string {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes('LM') || (msg.includes('timeout') && ctx.capabilities.hasSeNARS))
+            return 'LM is currently unavailable. I can still process Narsese input and commands.';
+        if (msg.includes('SeNARS') || msg.includes('NAR'))
+            return 'Reasoning engine is unavailable. Chat mode is still active.';
+        return `An error occurred: ${msg}`;
     }
 }
-```
 
-### Loop-Back Mechanics
-
-```
-Pass 1 (normal):
-  ctx.turn.loopCount = 0  (reset)
-  All stages run in order
-  DirectiveProcessor executes directives
-  If believe/question directive found → ctx.turn.loopCount = 1
-
-Pass 2 (loop-back, only if loopCount > 0):
-  ctx.turn.loopCount = 0  (reset again)
-  Only SeNARSProcessor, LMResponder, DirectiveProcessor run
-  DirectiveProcessor finds no more directives → loopCount stays 0
-  Loop exits
-
-Pass 3 (would be loop-back 2, only if maxLoops >= 3):
-  Only if DirectiveProcessor in pass 2 also set loopCount = 1
-```
-
----
-
-## PipelineStage Interface
-
-```typescript
 interface PipelineStage {
     name: string;
     priority: number;
@@ -359,22 +479,31 @@ interface PipelineStage {
 }
 ```
 
+### Loop Mechanics
+
+```
+Pass 1: All stages run. SeNARSProcessor processes input. DirectiveProcessor may set needsLoopBack=true.
+Pass 2: Only SeNARSProcessor, LMResponder, DirectiveProcessor run.
+        SeNARSProcessor sees passCount=2 → skips input, runs derivations on directive-injected beliefs.
+        DirectiveProcessor finds no new directives → needsLoopBack stays false.
+        Loop exits.
+```
+
+Two state variables manage the entire loop: `passCount` (how many passes executed) and `needsLoopBack` (whether another pass is needed). No `loopCount`, no `inputProcessed`, no counter increment/decrement ceremony.
+
 ---
 
 ## Stage Specifications
 
 ### 1. InputNormalizer
 
-**FIX**: `IOMessage` fields are `readonly` in `io/types.ts`. We work on a mutable copy stored in `ctx.turn.input`.
-
 ```typescript
 class InputNormalizer implements PipelineStage {
-    name = 'InputNormalizer';
-    priority = 1;
+    name = 'InputNormalizer'; priority = 1;
     enabled = () => true;
 
     async execute(ctx: BotContext): Promise<void> {
-        // Create mutable copy since IOMessage fields are readonly
+        // IOMessage fields are readonly — create mutable copy
         ctx.turn.input = {
             ...ctx.turn.input,
             text: ctx.turn.input.text.trim().normalize('NFC').replace(/[\u200B-\u200D\uFEFF]/g, ''),
@@ -387,22 +516,24 @@ class InputNormalizer implements PipelineStage {
 
 ```typescript
 class AuthChecker implements PipelineStage {
-    name = 'AuthChecker';
-    priority = 2;
+    name = 'AuthChecker'; priority = 2;
     enabled = () => true;
-
     private rateLimit = new Map<string, number[]>();
 
     async execute(ctx: BotContext): Promise<void> {
         const key = `${ctx.connection.id}:${ctx.connection.sender}`;
         const now = Date.now();
         const window = (this.rateLimit.get(key) ?? []).filter(t => now - t < 60_000);
-        if (window.length >= 30) {
-            ctx.turn.finalResponse = 'Rate limited. Please wait.';
-            return;
-        }
+        if (window.length >= 30) { ctx.turn.finalResponse = 'Rate limited. Please wait.'; return; }
         window.push(now);
         this.rateLimit.set(key, window);
+
+        // Periodic cleanup to prevent memory leak
+        if (this.rateLimit.size > 1000) {
+            for (const [k, v] of this.rateLimit) {
+                if (v.every(t => now - t >= 60_000)) this.rateLimit.delete(k);
+            }
+        }
     }
 }
 ```
@@ -411,48 +542,41 @@ class AuthChecker implements PipelineStage {
 
 ```typescript
 class CommandProcessor implements PipelineStage {
-    name = 'CommandProcessor';
-    priority = 3;
-    enabled = (ctx) => ctx.turn.input.text.startsWith('/');
+    name = 'CommandProcessor'; priority = 3;
+    enabled = (ctx) => ctx.turn.input.text.startsWith('/') || ctx.turn.input.text.startsWith('.');
 
     constructor(private registry: CommandRegistry) {}
 
     async execute(ctx: BotContext): Promise<void> {
         const text = ctx.turn.input.text.trim();
         const parts = text.slice(1).split(/\s+/);
-        const cmdName = '/' + parts[0]!;
+        const cmdName = text.startsWith('/') ? '/' + parts[0]! : '.' + parts[0]!;
         const args = parts.slice(1);
 
         const cmd = this.registry.get(cmdName);
-        if (!cmd) {
-            ctx.turn.finalResponse = `Unknown command: ${cmdName}. Type /help for available commands.`;
-            return;
-        }
+        if (!cmd) { ctx.turn.finalResponse = `Unknown command: ${cmdName}. Type /help for available commands.`; return; }
+        if (cmd.requiresLM && !ctx.capabilities.hasLM) { ctx.turn.finalResponse = `Command ${cmdName} requires LM (not available).`; return; }
+        if (cmd.requiresSeNARS && !ctx.capabilities.hasSeNARS) { ctx.turn.finalResponse = `Command ${cmdName} requires SeNARS (not available).`; return; }
 
-        if (cmd.requiresLM && !ctx.capabilities.hasLM) {
-            ctx.turn.finalResponse = `Command ${cmdName} requires LM (not available).`;
-            return;
+        try {
+            const result = await cmd.handler(args, ctx);
+            ctx.turn.finalResponse = typeof result === 'string' ? result : await this.streamToString(result);
+        } catch (error) {
+            ctx.turn.finalResponse = `Error: ${error instanceof Error ? error.message : String(error)}`;
         }
-        if (cmd.requiresSeNARS && !ctx.capabilities.hasSeNARS) {
-            ctx.turn.finalResponse = `Command ${cmdName} requires SeNARS (not available).`;
-            return;
-        }
-
-        const result = await cmd.handler(args, ctx);
-        ctx.turn.finalResponse = typeof result === 'string' ? result : await this.streamToString(result);
     }
 
     private async streamToString(stream: AsyncIterable<{ content: string }>): Promise<string> {
-        let result = '';
-        for await (const chunk of stream) result += chunk.content;
-        return result;
+        let r = ''; for await (const c of stream) r += c.content; return r;
     }
 }
 ```
 
+**Key**: Commands receive the full `BotContext`, which includes `ctx.connection` (real connection info, not a fake stub).
+
 ### 4. InputClassifier
 
-Multi-signal weighted classification. Replaces punctuation-only approach.
+Multi-signal weighted classification. Mode acts as hard override when signals are weak.
 
 ```typescript
 type Intent = 'chat' | 'reason' | 'query' | 'goal' | 'command' | 'narsese';
@@ -471,7 +595,7 @@ interface ClassificationSignal {
     weight: number;
 }
 
-const NARSESE_REGEX = /^\s*\(\s*<[^>]+>\s*(-->|<->|==>|<=>|&&|\|\|)\s*/;
+const NARSESE_RE = /^\s*\(\s*<[^>]+>\s*(-->|<->|==>|<=>|&&|\|\|)\s*/;
 
 const KEYWORD_SIGNALS: [RegExp, Intent, number][] = [
     [/\b(why|how|therefore|because|implies|derive|prove|explain|analyze|reason)\b/i, 'reason', 0.5],
@@ -481,59 +605,37 @@ const KEYWORD_SIGNALS: [RegExp, Intent, number][] = [
     [/\b([A-Z][a-z]+)\s+(is a|are|has|can|does|implies)\s+([A-Z][a-z]+)/i, 'reason', 0.2],
 ];
 
-function classify(input: string, context: ConversationState): InputClassification {
+function classify(input: string, ctx: ConversationState): InputClassification {
     const scores: Record<Intent, number> = { chat: 0.1, reason: 0, query: 0, goal: 0, command: 0, narsese: 0 };
     const signals: ClassificationSignal[] = [];
-    const trimmed = input.trim();
+    const t = input.trim();
 
-    if (trimmed.startsWith('/')) {
-        scores.command = 1.0;
-        signals.push({ type: 'structure', source: 'slash-prefix', intent: 'command', weight: 1.0 });
+    if (t.startsWith('/') || t.startsWith('.')) { scores.command = 1.0; signals.push({ type: 'structure', source: 'prefix', intent: 'command', weight: 1.0 }); }
+    if (NARSESE_RE.test(t)) { scores.narsese = 0.9; signals.push({ type: 'narsese', source: 'syntax', intent: 'narsese', weight: 0.9 }); }
+    if (t.startsWith('!')) { scores.goal = 0.8; signals.push({ type: 'structure', source: 'bang', intent: 'goal', weight: 0.8 }); }
+    if (t.endsWith('?')) { scores.query += 0.6; signals.push({ type: 'structure', source: 'question-mark', intent: 'query', weight: 0.6 }); }
+
+    for (const [re, intent, w] of KEYWORD_SIGNALS) {
+        if (re.test(t)) { scores[intent] += w; signals.push({ type: 'keyword', source: re.source, intent, weight: w }); }
     }
 
-    if (NARSESE_REGEX.test(trimmed)) {
-        scores.narsese = 0.9;
-        signals.push({ type: 'narsese', source: 'syntax-match', intent: 'narsese', weight: 0.9 });
+    const last = ctx.messages.at(-1);
+    if (last?.role === 'assistant' && last.metadata?.suggestsReasoning) {
+        scores.reason += 0.3; signals.push({ type: 'lm-suggestion', source: 'prior-turn', intent: 'reason', weight: 0.3 });
     }
 
-    if (trimmed.startsWith('!')) {
-        scores.goal = 0.8;
-        signals.push({ type: 'structure', source: 'bang-prefix', intent: 'goal', weight: 0.8 });
-    }
-
-    if (trimmed.endsWith('?')) {
-        scores.query += 0.6;
-        signals.push({ type: 'structure', source: 'question-mark', intent: 'query', weight: 0.6 });
-    }
-
-    for (const [pattern, intent, weight] of KEYWORD_SIGNALS) {
-        if (pattern.test(trimmed)) {
-            scores[intent] += weight;
-            signals.push({ type: 'keyword', source: pattern.source, intent, weight });
-        }
-    }
-
-    const lastMsg = context.messages.at(-1);
-    if (lastMsg?.role === 'assistant' && lastMsg.metadata?.suggestsReasoning) {
-        scores.reason += 0.3;
-        signals.push({ type: 'lm-suggestion', source: 'prior-turn', intent: 'reason', weight: 0.3 });
-    }
-
-    if (context.mode === 'reason') scores.reason += 0.5;
-    if (context.mode === 'chat') scores.chat += 0.5;
+    if (ctx.mode === 'reason') scores.reason += 0.5;
+    if (ctx.mode === 'chat') scores.chat += 0.5;
 
     const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-    const primary = sorted[0] as [Intent, number];
-    const secondary = sorted[1][1] > primary[1] - 0.2 ? sorted[1][0] as Intent : undefined;
-
-    return { primary: primary[0], secondary, confidence: Math.min(primary[1], 1.0), signals };
+    const [primary, pScore] = sorted[0] as [Intent, number];
+    const secondary = (sorted[1]?.[1] ?? 0) > pScore - 0.2 ? sorted[1][0] as Intent : undefined;
+    return { primary, secondary, confidence: Math.min(pScore, 1.0), signals };
 }
 
 class InputClassifier implements PipelineStage {
-    name = 'InputClassifier';
-    priority = 4;
+    name = 'InputClassifier'; priority = 4;
     enabled = () => true;
-
     async execute(ctx: BotContext): Promise<void> {
         ctx.turn.classification = classify(ctx.turn.input.text, ctx.conversation);
     }
@@ -542,205 +644,135 @@ class InputClassifier implements PipelineStage {
 
 ### 5. ReasoningTrigger
 
-Hybrid heuristic + LM signal scoring with cooldown.
-
 ```typescript
 class ReasoningTriggerCore {
     private cooldown = 0;
-    private readonly config = {
-        heuristicWeight: 0.6,
-        lmSignalWeight: 0.4,
-        threshold: 0.5,
-        cooldownTurns: 3,
-        maxStepsPerTrigger: 5,
-    };
 
-    shouldTrigger(ctx: BotContext): { activate: boolean; confidence: number; reason?: string; suggestedSteps?: number } {
-        if (this.cooldown > 0) { this.cooldown--; return { activate: false, confidence: 0, reason: 'cooldown' }; }
-        if (!ctx.capabilities.hasSeNARS) return { activate: false, confidence: 0, reason: 'unavailable' };
-        if (ctx.conversation.mode === 'chat') return { activate: false, confidence: 0, reason: 'chat-mode' };
+    shouldTrigger(ctx: BotContext): { activate: boolean; confidence: number } {
+        if (this.cooldown > 0) { this.cooldown--; return { activate: false, confidence: 0 }; }
+        if (!ctx.capabilities.hasSeNARS || ctx.conversation.mode === 'chat') return { activate: false, confidence: 0 };
 
-        const heuristicScore = this.evaluateHeuristics(ctx);
-        const lmScore = ctx.conversation.messages.at(-1)?.role === 'assistant' &&
+        const h = this.heuristics(ctx);
+        const lm = ctx.conversation.messages.at(-1)?.role === 'assistant' &&
             ctx.conversation.messages.at(-1)!.metadata?.suggestsReasoning ? 0.7 : 0;
-        const combined = (heuristicScore * this.config.heuristicWeight) + (lmScore * this.config.lmSignalWeight);
+        const score = h * 0.6 + lm * 0.4;
 
-        if (combined >= this.config.threshold) {
-            this.cooldown = this.config.cooldownTurns;
-            return { activate: true, confidence: combined, reason: this.explain(heuristicScore, lmScore), suggestedSteps: this.suggestSteps(combined) };
-        }
-
-        return { activate: false, confidence: combined };
+        if (score >= 0.5) { this.cooldown = 3; return { activate: true, confidence: score }; }
+        return { activate: false, confidence: score };
     }
 
-    private evaluateHeuristics(ctx: BotContext): number {
+    private heuristics(ctx: BotContext): number {
         const input = ctx.turn.input.text.toLowerCase();
-        let score = 0;
-        if (this.detectKnowledgeGap(input, ctx)) score += 0.3;
-        if (this.detectContradiction(input, ctx)) score += 0.4;
-        if (/\b(why|how|therefore|because|implies|derive|prove|explain|analyze|reason)\b/.test(input)) score += 0.2;
-        if (/\b(if|then|when|given|suppose|assuming)\b.*\b(then|what|would|does)\b/.test(input)) score += 0.3;
-        if (/\b([A-Z][a-z]+)\s+(is a|are|has|can|does|implies)\s+([A-Z][a-z]+)/i.test(input)) score += 0.2;
-        if ((input.match(/\bbecause\b|\btherefore\b|\bthus\b|\bso\b/g) || []).length >= 2) score += 0.2;
-        if (/\b(difference between|compare|similar to|unlike|versus|vs)\b/.test(input)) score += 0.2;
-        return Math.min(score, 1.0);
+        let s = 0;
+        if (this.knowledgeGap(input, ctx)) s += 0.3;
+        if (this.contradiction(input, ctx)) s += 0.4;
+        if (/\b(why|how|therefore|because|implies|derive|prove|explain|analyze|reason)\b/.test(input)) s += 0.2;
+        if (/\b(if|then|when|given|suppose|assuming)\b.*\b(then|what|would|does)\b/.test(input)) s += 0.3;
+        if (/\b([A-Z][a-z]+)\s+(is a|are|has|can|does|implies)\s+([A-Z][a-z]+)/i.test(input)) s += 0.2;
+        if ((input.match(/\bbecause\b|\btherefore\b|\bthus\b|\bso\b/g) || []).length >= 2) s += 0.2;
+        if (/\b(difference between|compare|similar to|unlike|versus|vs)\b/.test(input)) s += 0.2;
+        return Math.min(s, 1.0);
     }
 
-    private detectKnowledgeGap(input: string, ctx: BotContext): boolean {
+    private knowledgeGap(input: string, ctx: BotContext): boolean {
         if (!ctx.seNARS) return false;
         const report = ctx.seNARS.attentionReport();
         const terms = input.match(/\b[a-z]+\b/g) ?? [];
         return terms.some(t => t.length > 3 && !report.concepts.some((c: { term: string }) => c.term.toLowerCase().includes(t)));
     }
 
-    private detectContradiction(input: string, ctx: BotContext): boolean {
+    private contradiction(input: string, ctx: BotContext): boolean {
         if (!ctx.seNARS) return false;
         const beliefs = ctx.seNARS.getBeliefs();
-        const negations = ['not', "n't", 'no', 'never', 'false', 'wrong'];
-        if (!negations.some(n => input.includes(n))) return false;
+        if (!['not', "n't", 'no', 'never', 'false', 'wrong'].some(n => input.includes(n))) return false;
         const terms = input.match(/\b[a-z]+\b/g) ?? [];
         return terms.some((t: string) => t.length > 3 && beliefs.some((b: { term: { toString(): string } }) => b.term.toString().toLowerCase().includes(t)));
-    }
-
-    private explain(heuristic: number, lm: number): string {
-        const parts: string[] = [];
-        if (heuristic > 0.3) parts.push('heuristic signals');
-        if (lm > 0.3) parts.push('LM suggestion');
-        return parts.join(' + ') || 'combined score exceeded threshold';
-    }
-
-    private suggestSteps(confidence: number): number {
-        if (confidence > 0.8) return 10;
-        if (confidence > 0.6) return 5;
-        return 3;
     }
 }
 
 class ReasoningTriggerStage implements PipelineStage {
-    name = 'ReasoningTrigger';
-    priority = 5;
+    name = 'ReasoningTrigger'; priority = 5;
     enabled = (ctx) => ctx.capabilities.hasSeNARS && ctx.conversation.mode === 'auto';
-
-    constructor(private trigger = new ReasoningTriggerCore()) {}
-
+    constructor(private core = new ReasoningTriggerCore()) {}
     async execute(ctx: BotContext): Promise<void> {
-        const decision = this.trigger.shouldTrigger(ctx);
-        ctx.turn.reasoningTriggered = decision.activate;
+        ctx.turn.reasoningTriggered = this.core.shouldTrigger(ctx).activate;
     }
 }
 ```
 
 ### 6. SeNARSProcessor
 
-Runs NAL operations. Produces `DerivationResult` with `newBeliefs` (before/after diff) for LM context.
-
-**FIX**: `steps` counts only *new* beliefs derived, not total beliefs.
+Processes input on first pass only. On loop-back, runs derivations on directive-injected beliefs.
 
 ```typescript
 class SeNARSProcessor implements PipelineStage {
-    name = 'SeNARSProcessor';
-    priority = 6;
+    name = 'SeNARSProcessor'; priority = 6;
     enabled = (ctx) => ctx.capabilities.hasSeNARS &&
         (ctx.turn.reasoningTriggered || ctx.turn.classification.primary === 'narsese');
 
     async execute(ctx: BotContext): Promise<void> {
         const nar = ctx.seNARS!;
         const text = ctx.turn.input.text.trim();
-        const classification = ctx.turn.classification;
-        const beforeBeliefs = new Set(nar.getBeliefs().map(b => this.beliefKey(b)));
+        const cls = ctx.turn.classification;
+        const before = new Set(nar.getBeliefs().map(b => `${b.term.toString()}:${b.truth?.f ?? 0}:${b.truth?.c ?? 0}`));
 
-        switch (classification.primary) {
-            case 'narsese':
-                await this.handleNarseseInput(nar, text);
-                break;
-            case 'goal':
-                await nar.goal(text.slice(1));
-                break;
-            case 'query':
-                await nar.question(text);
-                await nar.run(5);
-                break;
-            default:
-                if (ctx.turn.reasoningTriggered) {
-                    const narseseInput = this.naturalLanguageToNarsese(text);
-                    if (narseseInput) await nar.believe(narseseInput);
-                    await nar.run(ctx.config.reasoning.maxStepsPerTrigger);
-                }
-                break;
+        // LM-driven reasoning depth override
+        const steps = ctx.turn.reasoningDepthOverride ?? ctx.config.reasoning.maxStepsPerTrigger;
+
+        if (ctx.turn.passCount === 1) {
+            switch (cls.primary) {
+                case 'narsese':
+                    if (text.startsWith('!')) await nar.goal(text.slice(1));
+                    else if (text.includes('?')) { await nar.question(text); await nar.run(5); }
+                    else { await nar.believe(text); await nar.run(3); }
+                    break;
+                case 'goal': await nar.goal(text.slice(1)); break;
+                case 'query': await nar.question(text); await nar.run(5); break;
+                default:
+                    if (ctx.turn.reasoningTriggered) {
+                        const nl = this.nlToNarsese(text);
+                        if (nl) await nar.believe(nl);
+                        await nar.run(steps);
+                    }
+                    break;
+            }
+        } else {
+            await nar.run(3);
         }
 
-        const allBeliefs = nar.getBeliefs();
-        const newBeliefs = allBeliefs.filter(b => !beforeBeliefs.has(this.beliefKey(b)));
-
+        const all = nar.getBeliefs();
+        const newB = all.filter(b => !before.has(`${b.term.toString()}:${b.truth?.f ?? 0}:${b.truth?.c ?? 0}`));
         ctx.turn.reasoningResult = {
-            steps: newBeliefs.length,       // FIX: count new beliefs, not total
-            beliefs: this.toBeliefs(allBeliefs),
-            newBeliefs: this.toBeliefs(newBeliefs),
+            steps: newB.length,
+            beliefs: all.map(b => ({ term: b.term.toString(), truth: b.truth ? { frequency: b.truth.f, confidence: b.truth.c } : undefined })),
+            newBeliefs: newB.map(b => ({ term: b.term.toString(), truth: b.truth ? { frequency: b.truth.f, confidence: b.truth.c } : undefined })),
         };
     }
 
-    private async handleNarseseInput(nar: NAR, text: string): Promise<void> {
-        if (text.startsWith('!')) {
-            await nar.goal(text.slice(1));
-        } else if (text.includes('?')) {
-            await nar.question(text);
-            await nar.run(5);
-        } else {
-            await nar.believe(text);
-            await nar.run(3);
-        }
-    }
-
-    private naturalLanguageToNarsese(text: string): string | null {
-        // "X is a Y" → (<X --> Y>.)
-        const isAMatch = text.match(/^([A-Za-z_]+)\s+is\s+a\s+([A-Za-z_]+)/i);
-        if (isAMatch) return `(<${isAMatch[1]} --> ${isAMatch[2]}>.)`;
-
-        // "X has Y" → (<X --> [has_Y]>.)
-        const hasMatch = text.match(/^([A-Za-z_]+)\s+has\s+([A-Za-z_]+)/i);
-        if (hasMatch) return `(<${hasMatch[1]} --> [has_${hasMatch[2]}]>.)`;
-
-        // "X is Y" (property) → (<X --> [Y]>.)
-        const isMatch = text.match(/^([A-Za-z_]+)\s+is\s+([A-Za-z_]+)/i);
-        if (isMatch) return `(<${isMatch[1]} --> [${isMatch[2]}]>.)`;
-
-        // "X implies Y" → ((<X> ==> <Y>).)
-        const impliesMatch = text.match(/^([A-Za-z_]+)\s+(?:implies|means|leads to)\s+([A-Za-z_]+)/i);
-        if (impliesMatch) return `((<${impliesMatch[1]}> ==> <${impliesMatch[2]}>).)`;
-
-        // "X is not Y" → (<X --> [Y]>. :0.0:0.9)
-        const notMatch = text.match(/^([A-Za-z_]+)\s+is\s+not\s+([A-Za-z_]+)/i);
-        if (notMatch) return `(<${notMatch[1]} --> [${notMatch[2]}]>. :0.0:0.9)`;
-
+    private nlToNarsese(text: string): string | null {
+        const t = text.trim();
+        const m1 = t.match(/^([A-Za-z_]+)\s+is\s+not\s+([A-Za-z_]+)\b/i);
+        if (m1) return `(<${m1[1]} --> [${m1[2]}]>. :0.0:0.9)`;
+        const m2 = t.match(/^([A-Za-z_]+)\s+is\s+a\s+([A-Za-z_]+)\b/i);
+        if (m2) return `(<${m2[1]} --> ${m2[2]}>.)`;
+        const m3 = t.match(/^([A-Za-z_]+)\s+has\s+([A-Za-z_]+)\b/i);
+        if (m3) return `(<${m3[1]} --> [has_${m3[2]}]>.)`;
+        const m4 = t.match(/^([A-Za-z_]+)\s+is\s+([A-Za-z_]+)\b/i);
+        if (m4) return `(<${m4[1]} --> [${m4[2]}]>.)`;
+        const m5 = t.match(/^([A-Za-z_]+)\s+(?:implies|means|leads to)\s+([A-Za-z_]+)\b/i);
+        if (m5) return `((<${m5[1]}> ==> <${m5[2]}>).)`;
         return null;
-    }
-
-    private beliefKey(b: { term: { toString(): string }; truth?: { f: number; c: number } }): string {
-        return `${b.term.toString()}:${b.truth?.f ?? 0}:${b.truth?.c ?? 0}`;
-    }
-
-    private toBeliefs(tasks: { term: { toString(): string }; truth?: { f: number; c: number } }[]): Belief[] {
-        return tasks.map(t => ({
-            term: t.term.toString(),
-            truth: t.truth ? { frequency: t.truth.f, confidence: t.truth.c } : undefined,
-        }));
     }
 }
 ```
 
 ### 7. LMResponder
 
-Generates LM response with SeNARS results in system prompt. Supports streaming.
-
-**FIXES**:
-1. Check for `[REASONING_SUGGESTED:]` in the **original** response before cleaning
-2. Use `ConversationState.getContextForLM()` instead of duplicating context building
-3. `LMClient` has no `.stream()` method — use simulated word-by-word streaming as fallback
+Uses `getContextForLM()` for NAR context. Checks `[REASONING_SUGGESTED:]` before cleaning. Does NOT strip directive markers — DirectiveProcessor owns that.
 
 ```typescript
 class LMResponder implements PipelineStage {
-    name = 'LMResponder';
-    priority = 7;
+    name = 'LMResponder'; priority = 7;
     enabled = (ctx) => ctx.capabilities.hasLM;
 
     async execute(ctx: BotContext): Promise<void> {
@@ -755,111 +787,107 @@ class LMResponder implements PipelineStage {
             ctx.turn.lmResponse = await lm.generateText(prompt);
         }
 
-        // FIX: Check for reasoning suggestion BEFORE stripping markers
-        const original = ctx.turn.lmResponse || '';
-        ctx.turn.lmSuggestsReasoning = /\[REASONING_SUGGESTED:/.test(original);
-
-        // Strip all markers from visible response
-        ctx.turn.lmResponse = this.stripMarkers(original);
+        // Check REASONING_SUGGESTED before stripping
+        const raw = ctx.turn.lmResponse || '';
+        ctx.turn.lmSuggestsReasoning = /\[REASONING_SUGGESTED:/.test(raw);
+        // Strip only REASONING_SUGGESTED — directive markers handled by DirectiveProcessor
+        ctx.turn.lmResponse = raw.replace(/\[REASONING_SUGGESTED:[^\]]*\]\s*/g, '').trim();
     }
 
     private async streamResponse(ctx: BotContext, lm: LMClient, prompt: string): Promise<void> {
         await ctx.connection.respond({ type: 'status', content: 'typing', done: false });
 
-        let fullResponse = '';
+        const adapter = new LMStreamAdapter(lm);
+        let full = '';
         try {
-            // LMClient has no .stream() — simulate word-by-word
-            const text = await lm.generateText(prompt);
-            const tokens = text.split(/(\s+)/);
-            for (const token of tokens) {
-                if (token) {
-                    fullResponse += token;
-                    await ctx.connection.respond({ type: 'text', content: token, done: false });
+            const msgs = [{ role: 'user' as const, content: prompt, timestamp: Date.now() }];
+            for await (const chunk of adapter.stream(msgs)) {
+                if (chunk.type === 'text' && chunk.content) { full += chunk.content; await ctx.connection.respond(chunk); }
+                else if (chunk.type === 'error') {
+                    await ctx.connection.respond({ type: 'error', content: chunk.content, done: true });
+                    if (!full) { ctx.turn.lmResponse = this.fallback(ctx); return; }
+                    break;
                 }
             }
-        } catch (error) {
-            await ctx.connection.respond({ type: 'error', content: `Stream interrupted: ${error instanceof Error ? error.message : String(error)}`, done: true });
-            if (fullResponse.length === 0) {
-                ctx.turn.lmResponse = this.generateFallback(ctx);
-                return;
-            }
+        } catch (e) {
+            await ctx.connection.respond({ type: 'error', content: `Stream interrupted: ${e instanceof Error ? e.message : String(e)}`, done: true });
+            if (!full) { ctx.turn.lmResponse = this.fallback(ctx); return; }
         }
-
-        ctx.turn.lmResponse = fullResponse;
+        ctx.turn.lmResponse = full;
     }
 
     private buildPrompt(ctx: BotContext): string {
-        const parts: string[] = [];
+        const t = ctx.config.prompts;
+        if (t?.system) {
+            return t.system
+                .replace('{{name}}', ctx.profile.name)
+                .replace('{{personality}}', ctx.profile.personality)
+                .replace('{{context}}', this.buildContext(ctx))
+                .replace('{{directives}}', this.buildDirectiveInstructions(ctx))
+                .replace('{{guidelines}}', t.responseGuidelines ?? this.defaultGuidelines())
+                .replace('{{history}}', this.buildHistory(ctx))
+                .replace('{{input}}', ctx.turn.input.text);
+        }
 
-        parts.push(`You are ${ctx.profile.name}. ${ctx.profile.personality}`);
+        // Default prompt construction
+        const p: string[] = [];
+        p.push(`You are ${ctx.profile.name}. ${ctx.profile.personality}`);
 
-        // Use ConversationState.getContextForLM() for NAR context (DRY)
         if (ctx.capabilities.hasSeNARS && ctx.seNARS) {
-            const narContext = ctx.conversation.getContextForLM(10, ctx.seNARS);
-            if (narContext) {
-                parts.push('\n## Knowledge Context');
-                parts.push(narContext);
-            }
-
-            // Current turn derivations (not in getContextForLM)
+            const narCtx = ctx.conversation.getContextForLM(10, ctx.seNARS);
+            if (narCtx) { p.push('\n## Knowledge Context'); p.push(narCtx); }
             if (ctx.turn.reasoningResult?.newBeliefs?.length) {
-                parts.push('\n## Just Derived This Turn');
+                p.push('\n## Just Derived This Turn');
                 for (const b of ctx.turn.reasoningResult.newBeliefs.slice(0, 5)) {
                     const tv = b.truth ? ` :${b.truth.frequency.toFixed(1)}:${b.truth.confidence.toFixed(1)}` : '';
-                    parts.push(`(<${b.term}>.${tv})`);
+                    p.push(`(<${b.term}>.${tv})`);
                 }
             }
         }
 
-        // Directive instructions
-        if (ctx.capabilities.hasSeNARS) {
-            parts.push('\n## Directives');
-            parts.push('If you want the reasoning engine to add a belief, include:');
-            parts.push('  [BELIEVE: (<term --> category>. :frequency:confidence)]');
-            parts.push('If you want it to answer a question:');
-            parts.push('  [QUESTION: (<term --> ?>.)]');
-            parts.push('If you want to use a tool:');
-            parts.push('  [TOOL:toolName(arg1, arg2)]');
-            parts.push('These markers are stripped from visible output.');
+        p.push(this.buildDirectiveInstructions(ctx));
+        p.push('\n## Response Guidelines');
+        p.push(t?.responseGuidelines ?? this.defaultGuidelines());
 
-            parts.push('\n## Reasoning Suggestions');
-            parts.push('If the user\'s question would benefit from formal logical reasoning, include:');
-            parts.push('  [REASONING_SUGGESTED: brief reason]');
-            parts.push('Examples: causal questions, logical puzzles, comparisons, contradictions.');
-            parts.push('Do NOT include this for simple factual questions or casual conversation.');
-        }
-
-        parts.push('\n## Response Guidelines');
-        parts.push('- Be concise and direct');
-        parts.push('- When uncertain, acknowledge uncertainty');
-        parts.push('- Don\'t fabricate facts — if unsure, say so');
-        parts.push('- Ground responses in the reasoning context above when available');
-
-        // Conversation history
         const history = ctx.conversation.getHistory(ctx.config.conversation.maxHistory);
-        if (history.length > 0) {
-            parts.push('\n## Recent Conversation');
-            for (const m of history) {
-                parts.push(`${m.role}: ${m.content}`);
-            }
-        }
+        if (history.length) { p.push('\n## Recent Conversation'); for (const m of history) p.push(`${m.role}: ${m.content}`); }
 
-        // Current user input
-        parts.push(`\nuser: ${ctx.turn.input.text}`);
-
-        return parts.join('\n');
+        p.push(`\nuser: ${ctx.turn.input.text}`);
+        return p.join('\n');
     }
 
-    private stripMarkers(text: string): string {
-        return text
-            .replace(/\[REASONING_SUGGESTED:[^\]]*\]\s*/g, '')
-            .replace(/\[BELIEVE:[^\]]*\]\s*/g, '')
-            .replace(/\[QUESTION:[^\]]*\]\s*/g, '')
-            .replace(/\[TOOL:[^\]]*\]\s*/g, '')
-            .trim();
+    private buildContext(ctx: BotContext): string {
+        if (!ctx.capabilities.hasSeNARS || !ctx.seNARS) return '';
+        const narCtx = ctx.conversation.getContextForLM(10, ctx.seNARS);
+        const derivations = ctx.turn.reasoningResult?.newBeliefs?.slice(0, 5).map(b => {
+            const tv = b.truth ? ` :${b.truth.frequency.toFixed(1)}:${b.truth.confidence.toFixed(1)}` : '';
+            return `(<${b.term}>.${tv})`;
+        }).join('\n') ?? '';
+        return [narCtx, derivations ? `Just derived:\n${derivations}` : ''].filter(Boolean).join('\n');
     }
 
-    private generateFallback(ctx: BotContext): string {
+    private buildDirectiveInstructions(ctx: BotContext): string {
+        if (!ctx.capabilities.hasSeNARS) return '';
+        if (ctx.config.prompts?.directiveInstructions) return ctx.config.prompts.directiveInstructions;
+        return '\n## Directives\n' +
+            'To add a belief: [BELIEVE: (<term --> category>. :frequency:confidence)]\n' +
+            'To ask a question: [QUESTION: (<term --> ?>.)]\n' +
+            'To use a tool: [TOOL:toolName(arg1, arg2)]\n' +
+            'To control reasoning depth: [REASONING_DEPTH:n]\n' +
+            'These markers are stripped from visible output.';
+    }
+
+    private buildHistory(ctx: BotContext): string {
+        const history = ctx.conversation.getHistory(ctx.config.conversation.maxHistory);
+        if (!history.length) return '';
+        return '\n## Recent Conversation\n' + history.map(m => `${m.role}: ${m.content}`).join('\n');
+    }
+
+    private defaultGuidelines(): string {
+        return '- Be concise and direct\n- When uncertain, acknowledge uncertainty\n- Don\'t fabricate facts\n- Ground responses in the reasoning context above when available';
+    }
+
+    private fallback(ctx: BotContext): string {
         return ctx.capabilities.hasSeNARS
             ? 'I had trouble generating a response, but the reasoning engine processed your input.'
             : "I'm having trouble generating a response right now.";
@@ -867,144 +895,132 @@ class LMResponder implements PipelineStage {
 }
 ```
 
-### 8. DirectiveProcessor (NEW — replaces ToolExecutor)
+### 8. DirectiveProcessor
 
-Extracts all LM directives, executes them, and triggers loop-back for believe/question directives.
+Sole owner of directive marker stripping. Sets `needsLoopBack` for believe/question directives.
 
 ```typescript
 class DirectiveProcessor implements PipelineStage {
-    name = 'DirectiveProcessor';
-    priority = 8;
-    // FIX: Enable when there's an LM response. SeNARS is needed for execution,
-    // but we check that inside execute() for better error messages.
+    name = 'DirectiveProcessor'; priority = 8;
     enabled = (ctx) => !!ctx.turn.lmResponse;
 
-    async execute(ctx: BotContext): Promise<void> {
-        const directives = this.extractDirectives(ctx.turn.lmResponse!);
-        if (directives.length === 0) return;
+    private readonly BUILT_IN_PATTERNS = [
+        { re: /\[BELIEVE:\s*([^\]]+)\]/gi, type: 'believe' as const, extract: (m: RegExpMatchArray) => ({ content: m[1]!.trim() }) },
+        { re: /\[QUESTION:\s*([^\]]+)\]/gi, type: 'question' as const, extract: (m: RegExpMatchArray) => ({ content: m[1]!.trim() }) },
+        { re: /\[TOOL:\s*(\w+)\s*\(([^)]*)\)\]/gi, type: 'tool_call' as const, extract: (m: RegExpMatchArray) => ({ name: m[1]!, content: m[2]! }) },
+        { re: /\[REASONING_DEPTH:\s*(\d+)\]/gi, type: 'reasoning_depth' as const, extract: (m: RegExpMatchArray) => ({ content: m[1]! }) },
+    ];
 
+    async execute(ctx: BotContext): Promise<void> {
+        const directives = this.extractAll(ctx.turn.lmResponse!, ctx);
+        if (!directives.length) return;
         ctx.turn.directives = directives;
 
-        // All directives require SeNARS
         if (!ctx.seNARS) {
-            ctx.turn.directiveResults = directives.map(d => ({
-                directive: d,
-                success: false,
-                error: 'SeNARS not available',
-            }));
+            ctx.turn.directiveResults = directives.map(d => ({ directive: d, success: false, error: 'SeNARS not available' }));
             return;
         }
 
         const nar = ctx.seNARS;
-        let needsLoopBack = false;
 
-        for (const directive of directives) {
-            const result = await this.executeDirective(nar, directive);
+        for (const d of directives) {
+            const result = d._def?.execute
+                ? { directive: d, success: true, result: await d._def.execute(nar, d.content, d.name) }
+                : await this.execBuiltIn(nar, d, ctx);
             ctx.turn.directiveResults.push(result);
-            ctx.turn.actions.push({
-                type: directive.type,
-                content: directive.content,
-                result: result.success ? String(result.result) : result.error,
-            });
+            ctx.turn.actions.push({ type: d.type, content: d.content, result: result.success ? String(result.result) : result.error });
 
-            if (directive.type === 'believe' || directive.type === 'question') {
-                needsLoopBack = true;
+            // Handle REASONING_DEPTH
+            if (d.type === 'reasoning_depth' && ctx.config.reasoning.lmDriven) {
+                ctx.turn.reasoningDepthOverride = parseInt(d.content, 10);
             }
+        }
 
-            if (directive.type === 'tool_call' && result.success && result.result) {
-                const res = result.result as Record<string, unknown>;
-                if (res.narsese && typeof res.narsese === 'string') {
-                    await nar.believe(res.narsese);
-                    await nar.run(3);
+        // Strip all directive markers
+        ctx.turn.lmResponse = this.stripAll(ctx.turn.lmResponse!, ctx);
+
+        // Request loop-back for matching directive types
+        const loopBackTypes = directives.filter(d => d._def?.triggersLoopBack !== false && (d.type === 'believe' || d.type === 'question'));
+        if (loopBackTypes.length) {
+            ctx.turn.needsLoopBack = true;
+            ctx.turn.loopBackType = loopBackTypes[0].type;
+        }
+    }
+
+    private extractAll(response: string, ctx: BotContext): LMDirective[] {
+        const results: LMDirective[] = [];
+
+        // Built-in patterns
+        if (ctx.config.directives?.builtIn !== false) {
+            for (const p of this.BUILT_IN_PATTERNS) {
+                for (const m of response.matchAll(p.re)) {
+                    const ext = p.extract(m);
+                    results.push({ type: p.type, name: (ext as any).name ?? '', content: ext.content, raw: m[0]!, _def: undefined });
                 }
             }
         }
 
-        // Strip directives from visible response
-        ctx.turn.lmResponse = this.stripDirectives(ctx.turn.lmResponse!);
-
-        // FIX: Request loop-back by incrementing loopCount.
-        // The pipeline resets loopCount to 0 at the start of each pass,
-        // so this increment survives only to trigger one more iteration.
-        if (needsLoopBack) {
-            ctx.turn.loopCount++;
-            // Reset reasoning result so SeNARSProcessor re-runs with new beliefs
-            ctx.turn.reasoningResult = undefined;
-        }
-    }
-
-    private extractDirectives(response: string): LMDirective[] {
-        const results: LMDirective[] = [];
-
-        for (const match of response.matchAll(/\[BELIEVE:\s*([^\]]+)\]/gi)) {
-            results.push({ type: 'believe', name: '', content: match[1]!.trim(), raw: match[0]! });
-        }
-
-        for (const match of response.matchAll(/\[QUESTION:\s*([^\]]+)\]/gi)) {
-            results.push({ type: 'question', name: '', content: match[1]!.trim(), raw: match[0]! });
-        }
-
-        for (const match of response.matchAll(/\[TOOL:\s*(\w+)\s*\(([^)]*)\)\]/gi)) {
-            results.push({ type: 'tool_call', name: match[1]!, content: match[2]!, raw: match[0]! });
+        // Custom patterns
+        for (const def of ctx.config.directives?.custom ?? []) {
+            for (const m of response.matchAll(def.pattern)) {
+                const ext = def.extract(m);
+                results.push({ type: def.type, name: ext.name ?? '', content: ext.content, raw: m[0]!, _def: def });
+            }
         }
 
         return results;
     }
 
-    private async executeDirective(nar: NAR, directive: LMDirective): Promise<DirectiveResult> {
+    private async execBuiltIn(nar: NAR, d: LMDirective, ctx: BotContext): Promise<DirectiveResult> {
         try {
-            switch (directive.type) {
+            switch (d.type) {
                 case 'believe': {
-                    await nar.believe(directive.content);
-                    const derived = await nar.run(3);
-                    return { directive, success: true, result: `Added belief, ${derived} derivations`, derivationSteps: derived };
+                    const derived = await nar.believe(d.content).then(() => nar.run(3));
+                    return { directive: d, success: true, result: `${derived} derivations`, derivationSteps: derived };
                 }
                 case 'question': {
-                    await nar.question(directive.content);
-                    const derived = await nar.run(5);
-                    return { directive, success: true, result: `Asked question, ${derived} derivations`, derivationSteps: derived };
+                    const derived = await nar.question(d.content).then(() => nar.run(5));
+                    return { directive: d, success: true, result: `${derived} derivations`, derivationSteps: derived };
                 }
                 case 'tool_call': {
-                    const tool = nar.tools.get(directive.name);
-                    if (!tool) return { directive, success: false, error: `Tool not found: ${directive.name}` };
-                    const args = this.parseToolArgs(directive.content);
-                    const result = await nar.executeTool(directive.name, args);
-                    return { directive, success: true, result: result.content };
+                    const tool = nar.tools.get(d.name);
+                    if (!tool) return { directive: d, success: false, error: `Tool not found: ${d.name}` };
+                    const result = await nar.executeTool(d.name, this.parseArgs(d.content));
+                    return { directive: d, success: true, result: result.content };
                 }
+                case 'reasoning_depth': return { directive: d, success: true, result: `Depth set to ${d.content}` };
+                default: return { directive: d, success: false, error: `Unknown directive: ${d.type}` };
             }
-        } catch (error) {
-            return { directive, success: false, error: String(error) };
-        }
+        } catch (e) { return { directive: d, success: false, error: String(e) }; }
     }
 
-    private parseToolArgs(argsStr: string): Record<string, unknown> {
-        if (!argsStr.trim()) return {};
-        try {
-            return JSON.parse(`{${argsStr}}`);
-        } catch {
-            const parts = argsStr.split(',').map(s => s.trim());
-            return parts.reduce((acc, v, i) => ({ ...acc, [`arg${i}`]: v }), {});
+    private stripAll(response: string, ctx: BotContext): string {
+        let r = response;
+        if (ctx.config.directives?.builtIn !== false) {
+            r = r.replace(/\[BELIEVE:[^\]]*\]\s*/g, '').replace(/\[QUESTION:[^\]]*\]\s*/g, '')
+                 .replace(/\[TOOL:[^\]]*\]\s*/g, '').replace(/\[REASONING_DEPTH:[^\]]*\]\s*/g, '');
         }
+        for (const def of ctx.config.directives?.custom ?? []) {
+            r = r.replace(def.pattern, '');
+        }
+        return r.trim();
     }
 
-    private stripDirectives(response: string): string {
-        return response
-            .replace(/\[BELIEVE:[^\]]*\]\s*/g, '')
-            .replace(/\[QUESTION:[^\]]*\]\s*/g, '')
-            .replace(/\[TOOL:[^\]]*\]\s*/g, '')
-            .trim();
+    private parseArgs(s: string): Record<string, unknown> {
+        if (!s.trim()) return {};
+        try { return JSON.parse(`{${s}}`); } catch {
+            const parts = s.split(',').map(x => x.trim());
+            return parts.reduce((a, v, i) => ({ ...a, [`arg${i}`]: v }), {});
+        }
     }
 }
 ```
 
 ### 9. ResponseComposer
 
-Renders actual belief content, not just counts.
-
 ```typescript
 class ResponseComposer implements PipelineStage {
-    name = 'ResponseComposer';
-    priority = 9;
+    name = 'ResponseComposer'; priority = 9;
     enabled = () => true;
 
     async execute(ctx: BotContext): Promise<void> {
@@ -1012,87 +1028,54 @@ class ResponseComposer implements PipelineStage {
 
         const parts: string[] = [];
 
-        // SeNARS reasoning result with actual beliefs
-        if (ctx.turn.reasoningResult) {
-            const r = ctx.turn.reasoningResult;
-            if (r.steps > 0) {
-                parts.push(this.formatReasoningResult(r, ctx.config.streaming.showReasoningSteps));
-            } else if (ctx.turn.classification.primary === 'narsese') {
-                parts.push('No derivations found.');
-            }
+        if (ctx.turn.reasoningResult?.steps) {
+            parts.push(this.formatReasoning(ctx.turn.reasoningResult, ctx.config.streaming.showReasoningSteps));
+        } else if (ctx.turn.classification.primary === 'narsese') {
+            parts.push('No derivations found.');
         }
 
-        // LM response
-        if (ctx.turn.lmResponse) {
-            parts.push(ctx.turn.lmResponse);
+        if (ctx.turn.lmResponse) parts.push(ctx.turn.lmResponse);
+        if (ctx.turn.directiveResults.length) {
+            const s = this.formatDirectives(ctx.turn.directiveResults);
+            if (s) parts.push(s);
         }
-
-        // Directive execution results
-        if (ctx.turn.directiveResults.length > 0) {
-            const directiveText = this.formatDirectiveResults(ctx.turn.directiveResults);
-            if (directiveText) parts.push(directiveText);
-        }
-
-        // Tool results (legacy, kept for backward compat)
-        if (ctx.turn.toolResults.length > 0) {
-            parts.push(this.formatToolResults(ctx.turn.toolResults));
-        }
-
-        // Fallback if nothing produced output
-        if (parts.length === 0) {
-            parts.push(this.fallbackResponse(ctx));
-        }
+        if (ctx.turn.toolResults.length) parts.push(this.formatTools(ctx.turn.toolResults));
+        if (!parts.length) parts.push(this.fallback(ctx));
 
         ctx.turn.finalResponse = parts.join('\n\n');
     }
 
-    private formatReasoningResult(result: DerivationResult, showSteps: boolean): string {
-        if (!showSteps || result.newBeliefs.length === 0) {
-            return `Derived ${result.steps} belief(s).`;
-        }
-
-        const lines = [`Derived ${result.steps} belief(s):`];
-        for (const b of result.newBeliefs.slice(0, 5)) {
+    private formatReasoning(r: DerivationResult, showSteps: boolean): string {
+        if (!showSteps || !r.newBeliefs.length) return `Derived ${r.steps} belief(s).`;
+        const lines = [`Derived ${r.steps} belief(s):`];
+        for (const b of r.newBeliefs.slice(0, 5)) {
             const tv = b.truth ? ` :${b.truth.frequency.toFixed(1)}:${b.truth.confidence.toFixed(1)}` : '';
             lines.push(`  → (<${b.term}>.${tv})`);
         }
-        if (result.newBeliefs.length > 5) {
-            lines.push(`  ... and ${result.newBeliefs.length - 5} more`);
+        if (r.newBeliefs.length > 5) lines.push(`  ... and ${r.newBeliefs.length - 5} more`);
+        return lines.join('\n');
+    }
+
+    private formatDirectives(results: DirectiveResult[]): string {
+        const lines: string[] = [];
+        for (const r of results) {
+            if (!r.success) { lines.push(`  ✗ ${r.directive.type}: ${r.error}`); continue; }
+            if (r.directive.type === 'believe') lines.push(`  ✓ Added: ${r.directive.content.slice(0, 60)}${r.derivationSteps ? ` (${r.derivationSteps} derivations)` : ''}`);
+            else if (r.directive.type === 'question') lines.push(`  ✓ Queried: ${r.directive.content.slice(0, 60)}${r.derivationSteps ? ` (${r.derivationSteps} derivations)` : ''}`);
+            else if (r.directive.type === 'tool_call') lines.push(`  ✓ Tool ${r.directive.name}: ${String(r.result).slice(0, 80)}`);
         }
         return lines.join('\n');
     }
 
-    private formatDirectiveResults(results: DirectiveResult[]): string {
-        const lines: string[] = [];
-        for (const r of results) {
-            if (r.directive.type === 'believe' && r.success) {
-                lines.push(`  ✓ Added: ${r.directive.content.slice(0, 60)}${r.derivationSteps ? ` (${r.derivationSteps} derivations)` : ''}`);
-            } else if (r.directive.type === 'question' && r.success) {
-                lines.push(`  ✓ Queried: ${r.directive.content.slice(0, 60)}${r.derivationSteps ? ` (${r.derivationSteps} derivations)` : ''}`);
-            } else if (r.directive.type === 'tool_call' && r.success) {
-                lines.push(`  ✓ Tool ${r.directive.name}: ${String(r.result).slice(0, 80)}`);
-            } else if (!r.success) {
-                lines.push(`  ✗ ${r.directive.type}: ${r.error}`);
-            }
-        }
-        return lines.length > 0 ? lines.join('\n') : '';
+    private formatTools(results: ToolResult[]): string {
+        return results.map(r => r.error ? `✗ ${r.name}: ${r.error}` : `✓ ${r.name}: ${String(r.result)}`).join('\n');
     }
 
-    private formatToolResults(results: ToolResult[]): string {
-        return results.map(r =>
-            r.error ? `✗ ${r.name}: ${r.error}` : `✓ ${r.name}: ${String(r.result)}`
-        ).join('\n');
-    }
-
-    private fallbackResponse(ctx: BotContext): string {
+    private fallback(ctx: BotContext): string {
         const c = ctx.turn.classification.primary;
         if (c === 'narsese') return 'Processed. No derivations.';
-        if (c === 'query') return ctx.capabilities.hasSeNARS
-            ? 'No derivation found. Try adding related beliefs first.'
-            : "I don't have enough information to answer that.";
-        return ctx.capabilities.hasLM
-            ? "I'm not sure how to respond to that."
-            : 'Processed.';
+        if (c === 'query') return ctx.capabilities.hasSeNARS ? 'No derivation found. Try adding related beliefs first.' : "I don't have enough information to answer that.";
+        return ctx.capabilities.hasLM ? "I'm not sure how to respond to that." : 'Processed.';
     }
 }
 ```
@@ -1101,24 +1084,18 @@ class ResponseComposer implements PipelineStage {
 
 ```typescript
 class ResponseFormatter implements PipelineStage {
-    name = 'ResponseFormatter';
-    priority = 10;
+    name = 'ResponseFormatter'; priority = 10;
     enabled = () => true;
 
     async execute(ctx: BotContext): Promise<void> {
-        const type = ctx.connection.type;
-        if (type === 'irc') {
-            ctx.turn.finalResponse = this.formatForIRC(ctx.turn.finalResponse);
+        if (ctx.connection.type === 'irc') {
+            ctx.turn.finalResponse = ctx.turn.finalResponse
+                .replace(/\*\*(.+?)\*\*/g, '$1')
+                .replace(/\*(.+?)\*/g, '$1')
+                .replace(/`(.+?)`/g, '$1')
+                .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+                .slice(0, 400);
         }
-    }
-
-    private formatForIRC(text: string): string {
-        return text
-            .replace(/\*\*(.+?)\*\*/g, '$1')
-            .replace(/\*(.+?)\*/g, '$1')
-            .replace(/`(.+?)`/g, '$1')
-            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-            .slice(0, 400);
     }
 }
 ```
@@ -1127,10 +1104,8 @@ class ResponseFormatter implements PipelineStage {
 
 ```typescript
 class StatePersistor implements PipelineStage {
-    name = 'StatePersistor';
-    priority = 11;
+    name = 'StatePersistor'; priority = 11;
     enabled = () => true;
-
     constructor(private episodicMemory?: EpisodicMemory) {}
 
     async execute(ctx: BotContext): Promise<void> {
@@ -1141,7 +1116,6 @@ class StatePersistor implements PipelineStage {
             classification: ctx.turn.classification.primary,
             reasoningTriggered: ctx.turn.reasoningTriggered,
             directives: ctx.turn.directives.length,
-            loopCount: ctx.turn.loopCount,
             sender: ctx.connection.sender,
             source: ctx.connection.id,
             timestamp: Date.now(),
@@ -1153,9 +1127,7 @@ class StatePersistor implements PipelineStage {
 
 ---
 
-## Unified Conversation State
-
-Replaces both `ConversationManager` and `ChatResponder.conversationHistory`.
+## ConversationState
 
 ```typescript
 interface Message {
@@ -1186,7 +1158,7 @@ class ConversationState {
 
     addMessage(msg: Message, lm?: LMClient): void {
         this.messages.push(msg);
-        if (lm) this.maybeSummarize(lm);
+        lm?.generateText && this.maybeSummarize(lm);
     }
 
     getHistory(limit?: number): Message[] {
@@ -1194,50 +1166,39 @@ class ConversationState {
     }
 
     getContextForLM(maxConcepts: number, nar: NAR): string {
-        const parts: string[] = [];
-        if (this.summary) parts.push(`Conversation summary: ${this.summary}`);
-
-        const concepts = nar.attentionReport(maxConcepts);
-        if (concepts.concepts.length > 0) {
-            parts.push('Knowledge context:');
-            for (const c of concepts.concepts) parts.push(`  - ${c.term} (priority: ${c.priority})`);
+        const p: string[] = [];
+        if (this.summary) p.push(`Conversation summary: ${this.summary}`);
+        const report = nar.attentionReport(maxConcepts);
+        if (report.concepts.length) {
+            p.push('Knowledge context:');
+            for (const c of report.concepts) p.push(`  - ${c.term} (priority: ${c.priority})`);
         }
-
         const recent = this.reasoningArtifacts.slice(-5);
-        if (recent.length > 0) {
-            parts.push('Recent reasoning:');
-            for (const a of recent) parts.push(`  - ${a.content}`);
-        }
-
-        if (this.pinnedBeliefs.size > 0) {
-            parts.push('Pinned context:');
-            for (const b of this.pinnedBeliefs) parts.push(`  - ${b}`);
-        }
-
-        return parts.join('\n');
+        if (recent.length) { p.push('Recent reasoning:'); for (const a of recent) p.push(`  - ${a.content}`); }
+        if (this.pinnedBeliefs.size) { p.push('Pinned context:'); for (const b of this.pinnedBeliefs) p.push(`  - ${b}`); }
+        return p.join('\n');
     }
 
     private async maybeSummarize(lm: LMClient): Promise<void> {
         if (this.messages.length <= this.config.conversation.summaryThreshold) return;
-        const toSummarize = this.messages.slice(0, -10);
-        const prompt = `Summarize the following conversation in 2-3 sentences:\n\n${toSummarize.map(m => `${m.role}: ${m.content}`).join('\n')}`;
-        this.summary = await lm.generateText(prompt);
-        this.messages = this.messages.slice(-10);
+        const toSum = this.messages.slice(0, -10);
+        try {
+            this.summary = await lm.generateText(`Summarize in 2-3 sentences:\n\n${toSum.map(m => `${m.role}: ${m.content}`).join('\n')}`);
+            this.messages = this.messages.slice(-10);
+        } catch { /* continue without summary */ }
     }
 
     set(key: string, value: unknown): void { this.workingMemory.set(key, value); }
     get<T>(key: string): T | undefined { return this.workingMemory.get(key) as T; }
 
-    addArtifact(artifact: ReasoningArtifact): void {
-        this.reasoningArtifacts.push(artifact);
+    addArtifact(a: ReasoningArtifact): void {
+        this.reasoningArtifacts.push(a);
         const max = this.config.conversation.maxArtifacts;
-        if (this.reasoningArtifacts.length > max) {
-            this.reasoningArtifacts = this.reasoningArtifacts.slice(-Math.floor(max / 2));
-        }
+        if (this.reasoningArtifacts.length > max) this.reasoningArtifacts = this.reasoningArtifacts.slice(-Math.floor(max / 2));
     }
 
-    pin(belief: string): void { this.pinnedBeliefs.add(belief); }
-    unpin(belief: string): void { this.pinnedBeliefs.delete(belief); }
+    pin(b: string): void { this.pinnedBeliefs.add(b); }
+    unpin(b: string): void { this.pinnedBeliefs.delete(b); }
     getPinned(): string[] { return [...this.pinnedBeliefs]; }
 }
 
@@ -1246,9 +1207,7 @@ class ConversationStateManager {
     constructor(private readonly config: BotConfig) {}
 
     getOrCreate(sender: string): ConversationState {
-        if (!this.states.has(sender)) {
-            this.states.set(sender, new ConversationState(this.config));
-        }
+        if (!this.states.has(sender)) this.states.set(sender, new ConversationState(this.config));
         return this.states.get(sender)!;
     }
 
@@ -1256,27 +1215,33 @@ class ConversationStateManager {
     remove(sender: string): void { this.states.delete(sender); }
     getAll(): ReadonlyMap<string, ConversationState> { return this.states; }
 
-    // FIX: Added serialize() method for Bot.saveState()
     serialize(): Record<string, unknown> {
-        const result: Record<string, unknown> = {};
-        for (const [sender, state] of this.states) {
-            result[sender] = {
-                messages: state.getHistory(),
-                summary: (state as any).summary,
-                pinnedBeliefs: state.getPinned(),
-                mode: state.mode,
-            };
+        const r: Record<string, unknown> = {};
+        for (const [s, st] of this.states) {
+            r[s] = { messages: st.getHistory(), summary: (st as any).summary, pinnedBeliefs: st.getPinned(), mode: st.mode };
         }
-        return result;
+        return r;
+    }
+
+    deserialize(data: Record<string, unknown>): void {
+        for (const [sender, entry] of Object.entries(data)) {
+            const e = entry as Record<string, unknown>;
+            const st = new ConversationState(this.config);
+            st.messages = (e.messages as Message[]) ?? [];
+            (st as any).summary = e.summary as string | undefined;
+            st.mode = (e.mode as BotMode) ?? 'auto';
+            for (const b of (e.pinnedBeliefs as string[]) ?? []) st.pin(b);
+            this.states.set(sender, st);
+        }
     }
 }
 ```
 
 ---
 
-## Unified Bot Class
+## Bot Class
 
-Replaces both `Agent` and `Bot`. Wires pipeline, connections, and agentic loop.
+Thin orchestrator. Delegates connection management to `ConnectionManager`, agentic loop to `AgenticLoop`.
 
 ```typescript
 export interface BotDeps {
@@ -1294,13 +1259,15 @@ export class Bot {
     readonly stateManager: ConversationStateManager;
     readonly config: BotConfig;
     readonly capabilities: Capabilities;
+
     private readonly lm?: LMClient;
     private readonly nar?: NAR;
-    private readonly episodicMemory?: EpisodicMemory;
-    private readonly commands: CommandRegistry;
+    readonly episodicMemory?: EpisodicMemory;
+    readonly commands: CommandRegistry;
     private connectionManager?: ConnectionManager;
     private agenticLoop?: AgenticLoop;
     private logger: Logger;
+    private emitter = new EventEmitter();
 
     constructor(deps: BotDeps) {
         this.profile = deps.profile;
@@ -1311,73 +1278,63 @@ export class Bot {
         this.config = { ...DEFAULT_BOT_CONFIG, ...deps.config };
         this.stateManager = new ConversationStateManager(this.config);
         this.episodicMemory = deps.episodicMemory;
-        this.commands = deps.commandRegistry ?? this.createCommandRegistry();
+        this.commands = deps.commandRegistry ?? this.createCommands();
         this.pipeline = this.createPipeline();
     }
 
-    private createCommandRegistry(): CommandRegistry {
-        const registry = new CommandRegistry();
-        // ALL command modules — no subset gap
-        const allCommands = [
+    private createCommands(): CommandRegistry {
+        const r = new CommandRegistry();
+        for (const cmd of [
             coreCommands, connectionCommands, memoryCommands, narCommands,
             selfCommands, lmCommands, rlfpCommands, authCommands,
             configCommands, scenarioCommands, benchmarkCommands,
             experimentCommands, episodesCommands,
-        ].flat();
-        for (const cmd of allCommands) registry.register(cmd);
-        return registry;
+        ].flat()) r.register(cmd);
+        return r;
     }
 
     private createPipeline(): MessagePipeline {
-        const reasoningTrigger = new ReasoningTriggerCore();
-        return new MessagePipeline([
-            new InputNormalizer(),
-            new AuthChecker(),
-            new CommandProcessor(this.commands),
-            new InputClassifier(),
-            new ReasoningTriggerStage(reasoningTrigger),
-            new SeNARSProcessor(),
-            new LMResponder(),
-            new DirectiveProcessor(),
-            new ResponseComposer(),
-            new ResponseFormatter(),
-            new StatePersistor(this.episodicMemory),
-        ]);
+        // Custom stages override everything
+        if (this.config.pipeline.stages?.length) return new MessagePipeline(this.config.pipeline.stages);
+
+        // Apply preset or use default
+        const preset = this.config.pipeline.preset ?? 'default';
+        const stages = PRESETS[preset] ?? PRESETS.default;
+        return new MessagePipeline(stages.map(S => new S(this)));
     }
 
-    // Connection management
-    setConnectionManager(manager: ConnectionManager): void {
-        this.connectionManager = manager;
-    }
+    // Connection management (delegated)
+    setConnectionManager(m: ConnectionManager): void { this.connectionManager = m; }
 
     async addConnection(config: ConnectionConfig): Promise<Connection> {
         if (!this.connectionManager) throw new Error('ConnectionManager not set');
-        // FIX: Pass logger to ConnectionDeps
         return this.connectionManager.addConnection(config, {
             nar: this.nar!,
-            emit: (event, data) => this.emit(event, data),
+            emit: (e, d) => this.emit(e, d),
             logger: this.logger.child(`conn:${config.id}`),
         });
     }
 
-    // Message processing — single entry point for all connections
+    // Single message entry point
     async processMessage(msg: IOMessage, respondFn: (text: string | StreamChunk) => Promise<void>): Promise<BotResponse> {
-        const connInfo = this.getConnectionInfo(msg, respondFn);
+        const connInfo: ConnectionInfo = {
+            id: msg.source,
+            type: (msg.metadata?.connectionType as ChannelType) ?? 'cli',
+            sender: msg.sender,
+            respond: respondFn,
+            stream: async (stream) => { for await (const c of stream) if (c.type === 'text') await respondFn(c); },
+        };
+
         const conversation = this.stateManager.getOrCreate(msg.sender);
         const ctx = this.createContext(connInfo, conversation);
-
         const response = await this.pipeline.process(msg, ctx);
 
-        // Record messages in conversation state
         conversation.addMessage({ role: 'user', content: msg.text, timestamp: Date.now() }, this.lm);
         conversation.addMessage({
-            role: 'assistant',
-            content: response.text,
-            timestamp: Date.now(),
+            role: 'assistant', content: response.text, timestamp: Date.now(),
             metadata: ctx.turn.lmSuggestsReasoning ? { suggestsReasoning: true } : undefined,
         }, this.lm);
 
-        // Record artifacts
         if (ctx.turn.reasoningResult?.newBeliefs?.length) {
             conversation.addArtifact({
                 type: 'derivation',
@@ -1386,92 +1343,56 @@ export class Bot {
             });
         }
         for (const dr of ctx.turn.directiveResults) {
-            if (dr.success) {
-                conversation.addArtifact({
-                    type: dr.directive.type === 'believe' ? 'belief_added' : dr.directive.type === 'question' ? 'question_answered' : 'tool_result',
-                    content: dr.directive.content.slice(0, 80),
-                    timestamp: Date.now(),
-                });
-            }
+            if (dr.success) conversation.addArtifact({
+                type: dr.directive.type === 'believe' ? 'belief_added' : dr.directive.type === 'question' ? 'question_answered' : 'tool_result',
+                content: dr.directive.content.slice(0, 80), timestamp: Date.now(),
+            });
         }
 
         return response;
     }
 
-    private getConnectionInfo(msg: IOMessage, respondFn: (text: string | StreamChunk) => Promise<void>): ConnectionInfo {
-        return {
-            id: msg.source,
-            type: (msg.metadata?.connectionType as ChannelType) ?? 'cli',
-            sender: msg.sender,
-            respond: respondFn,
-            stream: async (stream: AsyncIterable<StreamChunk>) => {
-                let buf = '';
-                for await (const chunk of stream) {
-                    if (chunk.type === 'text') buf += chunk.content;
-                    await respondFn(chunk);
-                }
-            },
-        };
-    }
-
     private createContext(connInfo: ConnectionInfo, conversation: ConversationState): BotContext {
         return {
-            profile: this.profile,
-            lm: this.lm,
-            seNARS: this.nar,
-            connection: connInfo,
-            conversation,
+            profile: this.profile, lm: this.lm, seNARS: this.nar,
+            connection: connInfo, conversation,
             turn: {
                 input: { id: crypto.randomUUID(), source: connInfo.id, sender: connInfo.sender, text: '', timestamp: Date.now() },
                 classification: { primary: 'chat', confidence: 0.1, signals: [] },
-                reasoningTriggered: false,
-                lmSuggestsReasoning: false,
-                directives: [],
-                directiveResults: [],
-                toolResults: [],
-                actions: [],
-                finalResponse: '',
-                loopCount: 0,
+                reasoningTriggered: false, lmSuggestsReasoning: false,
+                directives: [], directiveResults: [], toolResults: [], actions: [],
+                finalResponse: '', passCount: 0, needsLoopBack: false,
             },
-            config: this.config,
-            capabilities: this.capabilities,
+            config: this.config, capabilities: this.capabilities,
             metrics: { startTime: Date.now(), stages: new Map() },
         };
     }
 
-    // Agentic loop integration
+    // Agentic loop
     startAgenticLoop(config?: Partial<AgenticLoopConfig>): void {
         if (!this.nar) return;
         this.agenticLoop = new AgenticLoop(this, this.nar, this.episodicMemory, config);
         this.agenticLoop.setMessageHandler(async (msg) => {
             await this.processMessage(msg, async (text) => {
                 const content = typeof text === 'string' ? text : text.content;
-                if (this.connectionManager) {
-                    const conn = this.connectionManager.getConnection(msg.source);
-                    if (conn) await conn.send(msg.sender, content);
-                } else {
-                    console.log(content);
-                }
+                const conn = this.connectionManager?.getConnection(msg.source);
+                if (conn) await conn.send(msg.sender, content); else console.log(content);
             });
         });
         this.agenticLoop.start();
     }
 
-    stopAgenticLoop(): void {
-        this.agenticLoop?.stop();
-    }
+    stopAgenticLoop(): void { this.agenticLoop?.stop(); }
 
-    // Event emitter for connections
-    private emitter = new EventEmitter();
+    // Events
     on(event: string, handler: (...args: unknown[]) => void): void { this.emitter.on(event, handler); }
     off(event: string, handler: (...args: unknown[]) => void): void { this.emitter.off(event, handler); }
     private emit(event: string, ...args: unknown[]): void { this.emitter.emit(event, ...args); }
 
-    // State persistence
+    // State persistence (symmetric save/load)
     async saveState(path?: string): Promise<void> {
         const fs = await import('fs/promises');
-        const statePath = path ?? 'bot-state.json';
-        await fs.writeFile(statePath, JSON.stringify({
+        await fs.writeFile(path ?? 'bot-state.json', JSON.stringify({
             conversationState: this.stateManager.serialize(),
             memory: await this.nar?.getMemoryState?.() ?? {},
             timestamp: Date.now(),
@@ -1480,8 +1401,8 @@ export class Bot {
 
     async loadState(path?: string): Promise<void> {
         const fs = await import('fs/promises');
-        const statePath = path ?? 'bot-state.json';
-        const data = JSON.parse(await fs.readFile(statePath, 'utf-8'));
+        const data = JSON.parse(await fs.readFile(path ?? 'bot-state.json', 'utf-8'));
+        if (data.conversationState) this.stateManager.deserialize(data.conversationState);
         if (data.memory) await this.nar?.loadMemoryState?.(data.memory);
     }
 
@@ -1490,13 +1411,7 @@ export class Bot {
     getCommands(): CommandRegistry { return this.commands; }
     getCapabilities(): Capabilities { return this.capabilities; }
 
-    getSnapshot(): {
-        turn: number;
-        concepts: number;
-        tasks: number;
-        lmStatus: string;
-        workingMemory: number;
-    } {
+    getSnapshot(): { turn: number; concepts: number; tasks: number; lmStatus: string; workingMemory: number } {
         const stats = this.nar?.getStatistics();
         return {
             turn: this.stateManager.getAll().size,
@@ -1511,14 +1426,11 @@ export class Bot {
 
 ---
 
-## AgenticLoop — Decoupled from Agent
-
-Holds `Bot` reference instead of `Agent`. Uses pipeline directly.
+## AgenticLoop
 
 ```typescript
 interface AgenticLoopConfig {
     maxInputTurns: number;
-    maxWakeTurns: number;
     sleepIntervalMs: number;
     wakeupIntervalMs: number;
     reasoningStepsPerWake: number;
@@ -1526,22 +1438,17 @@ interface AgenticLoopConfig {
     backgroundReasoning: boolean;
 }
 
-const DEFAULT_LOOP_CONFIG: Required<AgenticLoopConfig> = {
-    maxInputTurns: 50,
-    maxWakeTurns: 3,
-    sleepIntervalMs: 1000,
-    wakeupIntervalMs: 60000,
-    reasoningStepsPerWake: 5,
-    enableLMRules: true,
-    backgroundReasoning: true,
+const DEFAULT_LOOP: Required<AgenticLoopConfig> = {
+    maxInputTurns: 50, sleepIntervalMs: 1000, wakeupIntervalMs: 60000,
+    reasoningStepsPerWake: 5, enableLMRules: true, backgroundReasoning: true,
 };
 
 class AgenticLoop {
     private readonly config: Required<AgenticLoopConfig>;
-    private readonly queue: MessageQueue;
-    private readonly episodicMemory?: EpisodicMemory;
+    private readonly queue = new MessageQueue();
     private readonly bot: Bot;
     private readonly nar?: NAR;
+    private readonly episodicMemory?: EpisodicMemory;
     private running = false;
     private idleCounter = 0;
     private nextWakeAt = 0;
@@ -1549,215 +1456,110 @@ class AgenticLoop {
     private onMessage?: (msg: IOMessage) => Promise<void>;
 
     constructor(bot: Bot, nar: NAR | undefined, episodicMemory?: EpisodicMemory, config?: Partial<AgenticLoopConfig>) {
-        this.bot = bot;
-        this.nar = nar;
-        this.config = { ...DEFAULT_LOOP_CONFIG, ...config };
-        this.queue = new MessageQueue();
-        this.episodicMemory = episodicMemory;
+        this.bot = bot; this.nar = nar; this.episodicMemory = episodicMemory;
+        this.config = { ...DEFAULT_LOOP, ...config };
     }
 
-    setMessageHandler(handler: (msg: IOMessage) => Promise<void>): void { this.onMessage = handler; }
-
-    start(): void {
-        if (this.running) return;
-        this.running = true;
-        this.nextWakeAt = Date.now() + this.config.wakeupIntervalMs;
-        this.runLoop();
-    }
-
+    setMessageHandler(h: (msg: IOMessage) => Promise<void>): void { this.onMessage = h; }
+    start(): void { if (this.running) return; this.running = true; this.nextWakeAt = Date.now() + this.config.wakeupIntervalMs; this.runLoop(); }
     stop(): void { this.running = false; }
-    pushMessage(message: IOMessage): void { this.queue.push(message); }
-
-    getStats(): { turn: number; idleCounter: number; queueSize: number } {
-        return { turn: this.currentTurn, idleCounter: this.idleCounter, queueSize: this.queue.size() };
-    }
+    pushMessage(m: IOMessage): void { this.queue.push(m); }
+    getStats(): { turn: number; idle: number; queue: number } { return { turn: this.currentTurn, idle: this.idleCounter, queue: this.queue.size() }; }
 
     private async runLoop(): Promise<void> {
         while (this.running) {
-            const messages = this.queue.drain();
-
-            if (messages.length > 0) {
+            const msgs = this.queue.drain();
+            if (msgs.length) {
                 this.idleCounter = 0;
-                for (const msg of messages) {
-                    if (this.onMessage) await this.onMessage(msg);
-                    this.episodicMemory?.log({ type: 'input', input: msg.text, source: msg.source, sender: msg.sender, timestamp: Date.now() });
+                for (const m of msgs) {
+                    await this.onMessage?.(m);
+                    this.episodicMemory?.log({ type: 'input', input: m.text, source: m.source, sender: m.sender, timestamp: Date.now() });
                 }
-            } else {
-                this.idleCounter++;
-            }
+            } else { this.idleCounter++; }
 
             const now = Date.now();
             if (this.idleCounter >= this.config.maxInputTurns && now >= this.nextWakeAt) {
-                await this.wakeupSequence();
+                await this.wakeup();
                 this.nextWakeAt = now + this.config.wakeupIntervalMs;
                 this.idleCounter = 0;
             }
-
-            await this.sleep(this.config.sleepIntervalMs);
+            await new Promise(r => setTimeout(r, this.config.sleepIntervalMs));
             this.currentTurn++;
         }
     }
 
-    private async wakeupSequence(): Promise<void> {
-        const nar = this.nar;
-        if (!nar) return;
-
-        if (this.config.backgroundReasoning) await this.backgroundReasoning(nar);
-
-        try {
-            if (this.config.enableLMRules && nar.enrichMemoryWithLM) await nar.enrichMemoryWithLM();
-        } catch { /* logged internally */ }
-
-        try {
-            nar.memory?.consolidate?.();
-        } catch { /* logged internally */ }
-
-        try {
-            const selfAnalyzer = nar.getSelfAnalyzer?.();
-            if (selfAnalyzer?.analyzeReasoningGaps) await selfAnalyzer.analyzeReasoningGaps();
-        } catch { /* logged internally */ }
-
-        this.episodicMemory?.log({
-            type: 'wakeup',
-            input: 'wakeup',
-            source: 'loop',
-            sender: 'system',
-            timestamp: Date.now(),
-            metadata: {
-                turn: this.currentTurn,
-                idleCounter: this.idleCounter,
-                concepts: nar.getStatistics()?.totalConcepts ?? 0,
-                tasks: nar.getStatistics()?.totalTasks ?? 0,
-            },
-        });
-    }
-
-    private async backgroundReasoning(nar: NAR): Promise<void> {
-        const steps = this.config.reasoningStepsPerWake;
-
-        try { await nar.run(steps); } catch { /* logged internally */ }
-
-        try {
-            const questions = nar.getQuestions?.();
-            if (questions?.length) {
-                for (const q of questions.slice(0, 3)) await nar.run(steps);
-            }
-        } catch { /* logged internally */ }
-
-        try {
-            const goals = nar.getGoals?.();
-            if (goals?.length) {
-                for (const g of goals.slice(0, 2)) await nar.run(steps);
-            }
-        } catch { /* logged internally */ }
-    }
-
-    private sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
+    private async wakeup(): Promise<void> {
+        const nar = this.nar; if (!nar) return;
+        if (this.config.backgroundReasoning) {
+            try { await nar.run(this.config.reasoningStepsPerWake); } catch {}
+            try { for (const q of (nar.getQuestions?.() ?? []).slice(0, 3)) await nar.run(this.config.reasoningStepsPerWake); } catch {}
+            try { for (const g of (nar.getGoals?.() ?? []).slice(0, 2)) await nar.run(this.config.reasoningStepsPerWake); } catch {}
+        }
+        try { if (this.config.enableLMRules && nar.enrichMemoryWithLM) await nar.enrichMemoryWithLM(); } catch {}
+        try { nar.memory?.consolidate?.(); } catch {}
+        try { nar.getSelfAnalyzer?.()?.analyzeReasoningGaps?.(); } catch {}
+        this.episodicMemory?.log({ type: 'wakeup', input: 'wakeup', source: 'loop', sender: 'system', timestamp: Date.now() });
     }
 }
 ```
 
 ---
 
-## REPL — Wired to Bot with Streaming Display
-
-Replaces `SeNARSCLI` that used `Agent`. Now uses `Bot`. Streaming content is displayed token-by-token.
+## REPL
 
 ```typescript
 class REPL {
     private bot: Bot;
     private rl: readline.Interface;
 
-    constructor(bot: Bot) {
-        this.bot = bot;
-    }
+    constructor(bot: Bot) { this.bot = bot; }
 
     async start(): Promise<void> {
-        const caps = this.bot.getCapabilities();
+        const c = this.bot.getCapabilities();
         console.log(`\n  ${this.bot.profile.name} — ${this.bot.profile.personality}\n`);
-        console.log(`  Mode: ${caps.mode}`);
-        console.log(`  LM: ${caps.hasLM ? '✓' : '✗'}  SeNARS: ${caps.hasSeNARS ? '✓' : '✗'}  Streaming: ${caps.hasStreaming ? '✓' : '✗'}`);
-        console.log(`  Type /help for commands, or just talk.\n`);
-
-        if (caps.mode === 'senars-only') {
-            console.log('  Narsese mode: use (<term --> rel>.) for beliefs, (<term --> ?>) for questions');
-            console.log('  Or use /run, /beliefs, /concepts, /help\n');
-        }
+        console.log(`  Mode: ${c.mode}  LM: ${c.hasLM ? '✓' : '✗'}  SeNARS: ${c.hasSeNARS ? '✓' : '✗'}  Stream: ${c.hasStreaming ? '✓' : '✗'}`);
+        console.log(`  Type /help for commands.\n`);
 
         this.rl = readline.createInterface({ input: process.stdin, output: process.stdout });
         this.rl.setPrompt('> ');
 
-        for await (const line of this.rl) {
-            await this.processLine(line);
-        }
+        for await (const line of this.rl) await this.processLine(line);
     }
 
     private async processLine(line: string): Promise<void> {
-        const trimmed = line.trim();
-        if (!trimmed) return;
+        const t = line.trim(); if (!t) return;
+        process.stdout.write(`> ${t}\n`);
 
-        process.stdout.write(`> ${trimmed}\n`);
-
-        const caps = this.bot.getCapabilities();
-        const showTyping = caps.hasLM && this.bot.config.tui.typingIndicator;
-
-        // FIX: Streaming callback actually displays tokens
-        let streamedContent = '';
+        let streamed = '';
         const respondFn = async (text: string | StreamChunk) => {
-            if (typeof text === 'string') {
-                streamedContent = text;
-            } else if (text.type === 'text') {
-                process.stdout.write(text.content);
-                streamedContent += text.content;
-            } else if (text.type === 'status' && text.content === 'typing') {
-                process.stdout.write('  bot: ');
-            }
+            if (typeof text === 'string') streamed = text;
+            else if (text.type === 'text') { process.stdout.write(text.content); streamed += text.content; }
+            else if (text.type === 'status' && text.content === 'typing') process.stdout.write('  bot: ');
         };
 
-        if (showTyping) {
-            const spinner = ora('thinking...').start();
-            try {
-                const response = await this.bot.processMessage(
-                    { id: crypto.randomUUID(), source: 'cli', sender: 'user', text: trimmed, timestamp: Date.now() },
-                    respondFn,
-                );
-                spinner.stop();
-                // If streaming produced content, add newline; otherwise use response.text
-                if (!streamedContent) {
-                    process.stdout.write(`bot: ${response.text}\n`);
-                } else {
-                    process.stdout.write('\n');
-                }
-                this.displayMetrics(response);
-            } catch (error) {
-                spinner.stop();
-                process.stdout.write(`\n✗ ${error instanceof Error ? error.message : String(error)}\n`);
-            }
-        } else {
-            try {
-                const response = await this.bot.processMessage(
-                    { id: crypto.randomUUID(), source: 'cli', sender: 'user', text: trimmed, timestamp: Date.now() },
-                    respondFn,
-                );
-                if (!streamedContent) {
-                    process.stdout.write(`bot: ${response.text}\n`);
-                }
-                this.displayMetrics(response);
-            } catch (error) {
-                process.stdout.write(`✗ ${error instanceof Error ? error.message : String(error)}\n`);
-            }
+        const showTyping = this.bot.getCapabilities().hasLM && this.bot.config.tui.typingIndicator;
+        const spinner = showTyping ? ora('thinking...').start() : null;
+
+        try {
+            const response = await this.bot.processMessage(
+                { id: crypto.randomUUID(), source: 'cli', sender: 'user', text: t, timestamp: Date.now() },
+                respondFn,
+            );
+            spinner?.stop();
+            if (!streamed) process.stdout.write(`bot: ${response.text}\n`);
+            else process.stdout.write('\n');
+            this.showMetrics(response);
+        } catch (e) {
+            spinner?.stop();
+            process.stdout.write(`\n✗ ${e instanceof Error ? e.message : String(e)}\n`);
         }
     }
 
-    private displayMetrics(response: BotResponse): void {
-        if (response.metrics) {
-            const total = Date.now() - response.metrics.startTime;
-            const stageTimes = [...response.metrics.stages.entries()]
-                .map(([name, t]) => `${name}: ${t.durationMs}ms${t.error ? ` ✗` : ''}`)
-                .join(', ');
-            process.stdout.write(`  [${total}ms | ${stageTimes}]\n`);
-        }
+    private showMetrics(r: BotResponse): void {
+        if (!r.metrics) return;
+        const total = Date.now() - r.metrics.startTime;
+        const stages = [...r.metrics.stages.entries()].map(([n, t]) => `${n}:${t.durationMs}ms${t.error ? '✗' : ''}`).join(' ');
+        process.stdout.write(`  [${total}ms | ${stages}]\n`);
     }
 }
 ```
@@ -1768,124 +1570,153 @@ class REPL {
 
 ```typescript
 async function main() {
-    // 1. Create NAR
-    const nar = new NAR({
-        lmClient: undefined,  // Set below
-        enableLMRules: true,
-        enableTools: true,
-    });
+    const nar = new NAR({ lmClient: undefined, enableLMRules: true, enableTools: true });
 
-    // 2. Create LM client (optional — graceful degradation)
     const lm = await createLMClient({
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-20250514',
+        provider: 'anthropic', model: 'claude-sonnet-4-20250514',
         fallback: ['ollama/llama3.1:8b', 'transformersjs/Qwen2.5-1.5B'],
     }).catch(() => undefined);
 
-    // Set LM on NAR for internal LM integration (LMRule, enrichment)
-    if (lm) {
-        nar.setLMClient(lm);
-    }
+    if (lm) nar.setLMClient(lm);
 
-    // 3. Create Bot (single orchestrator)
     const bot = new Bot({
         profile: { name: 'SeNARS', personality: 'A reasoning-focused AI assistant.' },
-        lm,
-        nar,
-        episodicMemory: new EpisodicMemory(),
+        lm, nar, episodicMemory: new EpisodicMemory(),
     });
 
-    // 4. Set up connection manager
     const connManager = new ConnectionManager(createLogger({ scope: 'connections' }));
     bot.setConnectionManager(connManager);
 
-    // 5. Register connection factories
-    const factories = [
-        { type: 'cli', ctor: CLIConnection },
-        { type: 'irc', ctor: IRCConnection },
-        { type: 'websocket', ctor: WSConnection },
-        { type: 'http', ctor: HTTPConnection },
+    for (const { type, ctor } of [
+        { type: 'cli', ctor: CLIConnection }, { type: 'irc', ctor: IRCConnection },
+        { type: 'websocket', ctor: WSConnection }, { type: 'http', ctor: HTTPConnection },
         { type: 'mcp', ctor: MCPConnection },
-    ];
-    for (const { type, ctor } of factories) {
-        connManager.registerFactory({ type, create: (config, deps) => new ctor(config, deps) });
-    }
+    ]) connManager.registerFactory({ type, create: (cfg, deps) => new ctor(cfg, deps) });
 
-    // 6. Start CLI REPL
-    const repl = new REPL(bot);
-    repl.start();
-
-    // 7. Start agentic loop (background reasoning)
+    new REPL(bot).start();
     bot.startAgenticLoop({ backgroundReasoning: true });
 }
 ```
 
 ---
 
-## Data Flow: Bidirectional NAR↔LM
+## Data Flow
 
 ```
-Pass 1 (normal):
+Pass 1:
   InputNormalizer → AuthChecker → CommandProcessor → InputClassifier
-    → ReasoningTrigger → SeNARSProcessor
-      ↓
-      SeNARS runs NAL operations → ctx.turn.reasoningResult = { beliefs, newBeliefs }
-    → LMResponder
-      ↓
-      System prompt includes newBeliefs + getContextForLM() output
-      LM generates response with [BELIEVE:], [QUESTION:], [TOOL:] directives
-      Markers stripped from visible output; lmSuggestsReasoning set
-    → DirectiveProcessor
-      ↓
-      Extracts directives from LM response
-      Executes: nar.believe(), nar.question(), nar.tools.execute()
-      If believe/question executed → ctx.turn.loopCount = 1
+  → ReasoningTrigger → SeNARSProcessor (processes input, tracks newBeliefs)
+  → LMResponder (sees newBeliefs in prompt, generates response)
+  → DirectiveProcessor (extracts [BELIEVE:]/[QUESTION:]/[TOOL:], executes, strips markers)
+    → If believe/question → needsLoopBack = true
 
-Pass 2 (loop-back, only if loopCount > 0):
-  ctx.turn.loopCount = 0 (reset at pass start)
-  Only SeNARSProcessor, LMResponder, DirectiveProcessor run
-    → SeNARSProcessor (re-runs with new beliefs from directives)
-      ↓
-      New derivations from LM-suggested beliefs
-    → LMResponder (generates updated response with new derivations)
-    → DirectiveProcessor (re-extracts — no more directives → loopCount stays 0)
+Pass 2 (only if needsLoopBack):
+  SeNARSProcessor (passCount=2 → skips input, runs nar.run() on directive-injected beliefs)
+  → LMResponder (sees new derivations, generates updated response)
+  → DirectiveProcessor (no new directives → needsLoopBack stays false)
 
 Final:
-  → ResponseComposer (renders actual belief content + directive results)
-  → ResponseFormatter → StatePersistor
+  → ResponseComposer → ResponseFormatter → StatePersistor
 ```
 
-### Key Flow Properties
-
-1. **SeNARS before LM**: LM always sees what SeNARS derived in the current pass
-2. **LM directives loop back**: `[BELIEVE:]` and `[QUESTION:]` feed into SeNARS for another derivation pass
-3. **Bounded loops**: `maxLoops` (default 2) caps total passes; `loopCount` resets each pass
-4. **Tool results feed NAR**: Tool output with `narsese` field is believed immediately
-5. **ResponseComposer renders beliefs**: Actual derived beliefs shown to user, not just counts
-6. **DRY context building**: `LMResponder` uses `ConversationState.getContextForLM()` instead of duplicating logic
+Properties:
+1. SeNARS before LM — LM always sees current derivations
+2. Loop-back bounded — `maxLoops` caps passes, `needsLoopBack` is a simple boolean
+3. No double-processing — `passCount > 1` skips input injection
+4. Single marker stripping — `DirectiveProcessor` owns it
+5. DRY context — `LMResponder` uses `getContextForLM()`
+6. Tool results feed NAR — tool output with `narsese` field is believed immediately
 
 ---
 
-## Command System
+## Interaction Examples
 
-All commands registered in the single `Bot` class. No subset gap.
+### Full Mode with Loop-Back
 
-### Command Definition
+```
+> If all mammals are warm-blooded and whales are mammals, are whales warm-blooded?
 
-```typescript
-interface CommandDef {
-    name: string;
-    aliases?: string[];
-    description: string;
-    usage: string;
-    category: string;
-    requiresLM?: boolean;
-    requiresSeNARS?: boolean;
-    handler: (args: string[], ctx: BotContext) => Promise<string | AsyncIterable<StreamChunk>>;
-}
+  ⏳ thinking...
+  → reasoning triggered: multi-hop pattern detected
+  → derived: 2 beliefs
+    → (<whale --> warm_blooded>. :0.9:0.7)
+
+  bot: Yes — whales are warm-blooded. This follows from the syllogism.
+
+  [42ms | InputNormalizer:1ms AuthChecker:2ms SeNARSProcessor:18ms LMResponder:12ms DirectiveProcessor:1ms]
 ```
 
-### Command Modules (all 13)
+### LM Controls Reasoning Depth
+
+```
+> Explain the causal chain of climate change impacts
+
+  bot: Climate change impacts cascade through ecological systems. [REASONING_DEPTH:10]
+       Rising temperatures affect...
+
+  (internally: [REASONING_DEPTH:10] sets maxStepsPerTrigger=10 for next derivation pass)
+```
+
+### Custom Directive Extension
+
+```typescript
+const bot = new Bot({
+    profile: { name: 'SeNARS', personality: 'A reasoning assistant.' },
+    nar, lm,
+    directives: {
+        builtIn: true,
+        custom: [{
+            pattern: /\[GROUND:\s*([^\]]+)\]/gi,
+            type: 'ground',
+            extract: (m) => ({ content: m[1]!.trim() }),
+            execute: async (nar, content) => {
+                const results = await braveSearch(content);
+                for (const r of results.slice(0, 3)) await nar.believe(r.toNarsese());
+                return `${results.length} facts grounded`;
+            },
+            triggersLoopBack: true,
+        }],
+    },
+});
+```
+
+### Prompt Template Customization
+
+```typescript
+const bot = new Bot({
+    profile: { name: 'SeNARS', personality: 'A reasoning assistant.' },
+    nar, lm,
+    prompts: {
+        system: `You are {{name}}. {{personality}}\n\n{{context}}\n\n{{directives}}\n\n{{guidelines}}\n\n{{history}}\n\nuser: {{input}}`,
+        directiveInstructions: 'Use [BELIEVE:] to add facts, [QUESTION:] to query, [TOOL:] to compute.',
+        responseGuidelines: '- Be technical and precise\n- Cite belief truth values',
+    },
+});
+```
+
+### Chat-Only Preset (No SeNARS)
+
+```typescript
+const bot = new Bot({
+    profile: { name: 'ChatBot', personality: 'A friendly conversational assistant.' },
+    lm,
+    config: { pipeline: { preset: 'chat' } },
+});
+```
+
+### Reasoning-Only Preset (No LM)
+
+```typescript
+const bot = new Bot({
+    profile: { name: 'SeNARS', personality: 'A formal reasoning engine.' },
+    nar,
+    config: { pipeline: { preset: 'reasoning' } },
+});
+```
+
+### SeNARS-Only Mode
+
+All 13 modules registered. Commands receive full `BotContext` (real connection, no fake stubs).
 
 | Module | Commands | Requires |
 |---|---|---|
@@ -1910,12 +1741,12 @@ interface CommandDef {
 ```
 src/
 ├── bot/
-│   ├── Bot.ts                    # Single orchestrator (replaces Agent + Bot)
-│   ├── BotContext.ts             # Types: BotContext, TurnState, Capabilities, etc.
-│   ├── ConversationState.ts      # Per-sender state + ConversationStateManager
-│   ├── AgenticLoop.ts            # Decoupled from Bot, uses Bot reference
+│   ├── Bot.ts                    # Thin orchestrator
+│   ├── BotContext.ts             # All types (no duplicates)
+│   ├── ConversationState.ts      # Per-sender state + manager
+│   ├── AgenticLoop.ts            # Background reasoning
 │   ├── pipeline/
-│   │   ├── Pipeline.ts           # MessagePipeline with loop-back support
+│   │   ├── Pipeline.ts           # MessagePipeline with loop-back
 │   │   └── stages/
 │   │       ├── InputNormalizer.ts
 │   │       ├── AuthChecker.ts
@@ -1928,392 +1759,159 @@ src/
 │   │       ├── ResponseComposer.ts
 │   │       ├── ResponseFormatter.ts
 │   │       └── StatePersistor.ts
-│   ├── streaming/
+│   ├── streaming/                # Reuse existing
 │   │   ├── types.ts
 │   │   ├── LMStreamAdapter.ts
 │   │   └── ChannelStreamer.ts
 │   ├── tui/
-│   │   └── REPL.ts               # Wired to Bot with streaming display
+│   │   └── REPL.ts
 │   └── index.ts
-├── nar/                          # Unchanged — NAR reasoner engine
-│   ├── nar.ts
-│   ├── lm/                       # Internal LM integration (LMRule, enrichment, feedback)
-│   ├── memory/
-│   ├── reason/
-│   └── tools/
-├── io/                           # Unchanged — I/O layer
+├── nar/                          # Unchanged
+├── io/                           # Unchanged
 │   ├── connection-manager.ts
-│   ├── commands/                 # All 13 command modules
+│   ├── commands/                 # All 13 modules
 │   └── connections/
 └── cli/
-    └── repl.ts                   # Entry point — creates Bot, starts REPL
+    └── repl.ts
 ```
 
-### Removed Files
+### Removed
 
 | File | Reason |
 |---|---|
 | `src/agent/Agent.ts` | Replaced by `Bot` |
-| `src/agent/ChatResponder.ts` | Functionality merged into `LMResponder` stage |
-| `src/agent/ResponseInterpreter.ts` | Functionality merged into `DirectiveProcessor` stage |
+| `src/agent/Bot.ts` (old) | Replaced by unified `Bot` |
+| `src/agent/ChatResponder.ts` | Merged into `LMResponder` |
+| `src/agent/ResponseInterpreter.ts` | Merged into `DirectiveProcessor` |
 | `src/agent/ConversationManager.ts` | Replaced by `ConversationState` |
-| `src/agent/Bot.ts` | Replaced by unified `Bot` |
-| `src/agent/DegradationManager.ts` | Pipeline `enabled()` predicates handle degradation automatically |
-| `src/agent/LastResults.ts` | Replaced by episodic memory logging |
-| `src/agent/ResponseFormatter.ts` (agent-level) | Replaced by pipeline `ResponseFormatter` stage |
+| `src/agent/DegradationManager.ts` | `enabled()` predicates handle degradation |
+| `src/agent/LastResults.ts` | Replaced by episodic memory |
+| `src/agent/ResponseFormatter.ts` (agent-level) | Replaced by pipeline stage |
 | `src/agent/ChannelBehavior.ts` | Merged into `ResponseFormatter` |
+| `src/agent/pipeline/stages/ToolExecutor.ts` | Replaced by `DirectiveProcessor` |
 
 ---
 
 ## Degradation
 
-No separate `DegradationManager`. Degradation is automatic via `enabled()` predicates:
+No `DegradationManager`. Stages self-check via `enabled()`:
 
-```typescript
-// If LM fails, ctx.capabilities.hasLM becomes false
-// Next turn:
-//   LMResponder.enabled(ctx) → false → skipped
-//   DirectiveProcessor.enabled(ctx) → still true (checks SeNARS internally)
-//   ResponseComposer.fallbackResponse(ctx) → uses hasLM check
-
-// If SeNARS fails, ctx.capabilities.hasSeNARS becomes false
-// Next turn:
-//   ReasoningTriggerStage.enabled(ctx) → false → skipped
-//   SeNARSProcessor.enabled(ctx) → false → skipped
-//   DirectiveProcessor.enabled(ctx) → true, but all directives fail with "SeNARS not available"
-//   LMResponder.enabled(ctx) → true → LM responds normally
 ```
+LM unavailable:
+  LMResponder.enabled → false (skipped)
+  DirectiveProcessor.enabled → false (no lmResponse)
+  ResponseComposer → fallback without LM text
 
-Pipeline stages self-check capabilities at runtime. No reconfiguration needed.
+SeNARS unavailable:
+  ReasoningTrigger.enabled → false (skipped)
+  SeNARSProcessor.enabled → false (skipped)
+  DirectiveProcessor → runs but all directives fail with "SeNARS not available"
+  LMResponder → responds normally
+```
 
 ---
 
-## Testing Strategy
+## Type Migration (BotContext.ts changes)
 
-### Unit Tests (per stage)
+1. **Remove duplicate `IOMessage`** — use `io/types.ts` readonly version
+2. **Remove duplicate `Capabilities`** — keep single definition
+3. **Add `pipeline` to `BotConfig`**: `{ maxLoops: number; stageTimeoutMs: number }`
+4. **Add to `TurnState`**: `passCount: number`, `needsLoopBack: boolean`, `directives: LMDirective[]`, `directiveResults: DirectiveResult[]`
+5. **Add `newBeliefs` to `DerivationResult`**
+6. **Add types**: `LMDirective`, `DirectiveResult`, `TurnMetrics`
+7. **Add `metrics` to `BotContext` and `BotResponse`**
+8. **Add `pipeline` to default config** with `maxLoops: 2`, `stageTimeoutMs: 30000`
+9. **Set `streaming.enabled = true`** in defaults
+
+---
+
+## Testing
 
 ```typescript
-describe('InputClassifier', () => {
-    it('classifies slash prefix as command', () => {
-        assert.equal(classify('/help', emptyContext()).primary, 'command');
-    });
-    it('classifies Narsese syntax as narsese', () => {
-        assert.equal(classify('(<bird --> animal>.)', emptyContext()).primary, 'narsese');
-    });
-    it('detects reasoning keywords', () => {
-        assert.equal(classify('Why do birds migrate?', emptyContext()).primary, 'reason');
-    });
-    it('respects mode override', () => {
-        const ctx = emptyContext(); ctx.conversation.mode = 'chat';
-        assert.equal(classify('Why do birds migrate?', ctx).primary, 'chat');
-    });
-});
-
 describe('DirectiveProcessor', () => {
     it('extracts BELIEVE directives', () => {
-        const directives = extractDirectives('Hello [BELIEVE: (<X --> Y>.)] world');
-        assert.equal(directives.length, 1);
-        assert.equal(directives[0].type, 'believe');
+        const d = extractDirectives('Hello [BELIEVE: (<X --> Y>.)] world');
+        assert.equal(d.length, 1); assert.equal(d[0].type, 'believe');
     });
-    it('extracts multiple directive types', () => {
-        const directives = extractDirectives('[BELIEVE: (<A --> B>.)] [TOOL:calc(1+1)]');
-        assert.equal(directives.length, 2);
-    });
-    it('triggers loop-back on believe directive', async () => {
-        const ctx = createFullContext();
-        ctx.turn.lmResponse = '[BELIEVE: (<X --> Y>. :1.0:0.9)]';
-        ctx.turn.loopCount = 0;
+    it('triggers loop-back on believe', async () => {
+        const ctx = fullCtx(); ctx.turn.lmResponse = '[BELIEVE: (<X --> Y>. :1.0:0.9)]';
         await new DirectiveProcessor().execute(ctx);
-        assert.equal(ctx.turn.loopCount, 1);
+        assert.isTrue(ctx.turn.needsLoopBack);
     });
-    it('respects maxLoops — pipeline resets loopCount each pass', async () => {
-        const ctx = createFullContext();
-        ctx.config.pipeline.maxLoops = 1;
-        ctx.turn.lmResponse = '[BELIEVE: (<X --> Y>.)]';
-        // Pipeline resets loopCount to 0 at start of each pass
-        // DirectiveProcessor increments to 1 to request another pass
-        // After pass 2, loopCount is reset to 0, no more directives → stays 0
-        // Pipeline exits because loopCount is 0
-        await new DirectiveProcessor().execute(ctx);
-        assert.equal(ctx.turn.loopCount, 1);
+    it('does not run on plain response', () => {
+        const ctx = fullCtx(); ctx.turn.lmResponse = 'Hello world';
+        assert.isFalse(new DirectiveProcessor().enabled(ctx));
     });
 });
 
 describe('SeNARSProcessor', () => {
-    it('converts "X is a Y" to Narsese', () => {
-        const processor = new SeNARSProcessor();
-        const narsese = (processor as any).naturalLanguageToNarsese('Bird is a animal');
-        assert.equal(narsese, '(<Bird --> animal>.)');
-    });
-    it('converts "X is not Y" to negative Narsese', () => {
-        const processor = new SeNARSProcessor();
-        const narsese = (processor as any).naturalLanguageToNarsese('Bird is not mammal');
-        assert.equal(narsese, '(<Bird --> [mammal]>. :0.0:0.9)');
+    it('skips input on loop-back', async () => {
+        const ctx = fullCtx(); ctx.turn.passCount = 2;
+        ctx.turn.input.text = '(<a --> b>.)';
+        const before = ctx.seNARS.getBeliefs().length;
+        await new SeNARSProcessor().execute(ctx);
+        assert.equal(ctx.seNARS.getBeliefs().length, before); // no new belief added
     });
     it('counts only new beliefs as steps', async () => {
-        // Setup: NAR has 10 existing beliefs
-        const ctx = createFullContext();
-        const beforeCount = ctx.seNARS.getBeliefs().length;
-        // After processing, only newly derived beliefs count as steps
-        // ...
+        const ctx = fullCtx();
+        await new SeNARSProcessor().execute(ctx);
+        assert.equal(ctx.turn.reasoningResult.steps, ctx.turn.reasoningResult.newBeliefs.length);
     });
 });
 
 describe('LMResponder', () => {
     it('detects REASONING_SUGGESTED before stripping', async () => {
-        const ctx = createFullContext();
+        const ctx = fullCtx();
         ctx.lm!.generateText = async () => 'Hello [REASONING_SUGGESTED: causal] world';
         await new LMResponder().execute(ctx);
         assert.isTrue(ctx.turn.lmSuggestsReasoning);
-        assert.equal(ctx.turn.lmResponse, 'Hello world');  // Marker stripped
+        assert.equal(ctx.turn.lmResponse, 'Hello world');
     });
-    it('uses getContextForLM for NAR context', async () => {
-        // Verify LMResponder.buildPrompt() calls conversation.getContextForLM()
-        // ...
+    it('does not strip directive markers', async () => {
+        const ctx = fullCtx();
+        ctx.lm!.generateText = async () => 'Hello [BELIEVE: (<X --> Y>.)] world';
+        await new LMResponder().execute(ctx);
+        assert.match(ctx.turn.lmResponse, /\[BELIEVE:/); // still present
     });
 });
 
-describe('MessagePipeline loop-back', () => {
-    it('exits after maxLoops passes', async () => {
-        const pipeline = createFullPipeline();
-        const ctx = createFullContext();
-        ctx.config.pipeline.maxLoops = 2;
-        // Mock LM to always return a BELIEVE directive
+describe('Pipeline loop-back', () => {
+    it('exits after maxLoops', async () => {
+        const ctx = fullCtx(); ctx.config.pipeline.maxLoops = 2;
         ctx.lm!.generateText = async () => '[BELIEVE: (<X --> Y>.)]';
-        await pipeline.process({ text: 'test', sender: 'user', source: 'cli' }, ctx);
-        // Should execute at most 2 loop-back passes + 1 normal pass = 3 total
-        // ...
+        await pipeline.process(msg, ctx);
+        assert.ok(ctx.turn.passCount <= 2);
     });
-    it('resets loopCount each pass', async () => {
-        // Verify loopCount is 0 at start of each pass
-        // ...
-    });
-});
-```
-
-### Integration Tests
-
-```typescript
-describe('Pipeline — Full Mode with Loop-Back', () => {
-    it('processes Narsese input and derives', async () => {
-        const pipeline = createFullPipeline();
-        const ctx = createFullContext();
-        const response = await pipeline.process(
-            { text: '(<bird --> animal>.)', sender: 'user', source: 'cli' },
-            ctx,
-        );
-        assert.ok(response.text);
-    });
-
-    it('LM directive loops back to SeNARS', async () => {
-        const pipeline = createFullPipeline();
-        const ctx = createFullContext();
-        ctx.lm!.generateText = async () => '[BELIEVE: (<whale --> mammal>. :1.0:0.9)]';
-        const response = await pipeline.process(
-            { text: 'Tell me about whales', sender: 'user', source: 'cli' },
-            ctx,
-        );
-        assert.ok(ctx.turn.directiveResults.some(d => d.directive.type === 'believe' && d.success));
-    });
-
-    it('auto-triggers reasoning on causal question', async () => {
-        const pipeline = createFullPipeline();
-        const ctx = createFullContext();
-        const response = await pipeline.process(
-            { text: 'Why do birds fly south?', sender: 'user', source: 'cli' },
-            ctx,
-        );
-        assert.isTrue(ctx.turn.reasoningTriggered);
-    });
-});
-
-describe('Pipeline — Degradation', () => {
-    it('skips LM stages when LM unavailable', async () => {
-        const pipeline = createSeNARSOnlyPipeline();
-        const ctx = createSeNARSOnlyContext();
-        const response = await pipeline.process(
-            { text: '(<bird --> animal>.)', sender: 'user', source: 'cli' },
-            ctx,
-        );
-        assert.isUndefined(ctx.turn.lmResponse);
-        assert.ok(ctx.turn.reasoningResult);
-    });
-
-    it('skips SeNARS stages when NAR unavailable', async () => {
-        const pipeline = createLMOnlyPipeline();
-        const ctx = createLMOnlyContext();
-        const response = await pipeline.process(
-            { text: 'Tell me about birds', sender: 'user', source: 'cli' },
-            ctx,
-        );
-        assert.ok(ctx.turn.lmResponse);
-        assert.isUndefined(ctx.turn.reasoningResult);
+    it('does not double-process input', async () => {
+        const ctx = fullCtx(); ctx.config.pipeline.maxLoops = 2;
+        ctx.lm!.generateText = async () => '[BELIEVE: (<X --> Y>.)]';
+        const before = ctx.seNARS.getBeliefs().length;
+        await pipeline.process({ text: '(<a --> b>.)', ...msg }, ctx);
+        // Input belief added exactly once
+        assert.ok(ctx.seNARS.getBeliefs().length <= before + 1);
     });
 });
 ```
 
 ---
 
-## Migration Plan
+## Design Decisions
 
-### Phase 1: Consolidate Types
-- [ ] Update `BotContext.ts` with new types (`TurnMetrics`, `LMDirective`, `DirectiveResult`, `loopCount`, `pipeline` config)
-- [ ] Add `newBeliefs` to `DerivationResult`
-- [ ] Set `streaming.enabled = true` in defaults
-
-### Phase 2: Implement DirectiveProcessor
-- [ ] Create `DirectiveProcessor.ts` stage (replaces `ToolExecutor.ts`)
-- [ ] Implement directive extraction for `[BELIEVE:]`, `[QUESTION:]`, `[TOOL:]`
-- [ ] Implement loop-back logic with `maxLoops` bound
-- [ ] Add tool arg parsing fallback
-
-### Phase 3: Update Pipeline with Loop-Back
-- [ ] Modify `MessagePipeline.process()` — reset `loopCount` at start of each pass
-- [ ] Add `loopStages` set for re-executed stages
-- [ ] Add per-stage timeout via `executeWithTimeout()`
-- [ ] Add `TurnMetrics` tracking
-
-### Phase 4: Update Stages
-- [ ] `InputNormalizer`: create mutable copy of `IOMessage` (fields are readonly)
-- [ ] `SeNARSProcessor`: track `newBeliefs` (before/after diff), count only new as steps
-- [ ] `SeNARSProcessor`: expand NL-to-Narsese (5 patterns)
-- [ ] `LMResponder`: check `[REASONING_SUGGESTED:]` before stripping markers
-- [ ] `LMResponder`: use `ConversationState.getContextForLM()` for NAR context
-- [ ] `LMResponder`: add directive instructions to system prompt
-- [ ] `ResponseComposer`: render actual belief content
-- [ ] `ResponseComposer`: format directive execution results
-
-### Phase 5: Unify Bot Class
-- [ ] Create unified `Bot` class (replaces both `Agent` and old `Bot`)
-- [ ] Register ALL 13 command modules
-- [ ] Wire `getConnectionInfo()`, `createContext()`, `processMessage()`
-- [ ] Add `serialize()` to `ConversationStateManager`
-- [ ] Pass logger to `ConnectionDeps` in `addConnection()`
-
-### Phase 6: Decouple AgenticLoop
-- [ ] Update `AgenticLoop` to accept `Bot` instead of `Agent`
-- [ ] Remove `Agent` dependency
-- [ ] Update `wakeupSequence()` to use `Bot` methods
-
-### Phase 7: Wire REPL to Bot
-- [ ] Update `repl.ts` to create `Bot` instead of `Agent`
-- [ ] Add streaming display (typing indicator, token-by-token)
-- [ ] Add metrics display (stage timing)
-
-### Phase 8: Remove Legacy Code
-- [ ] Delete `Agent.ts`, `ChatResponder.ts`, `ResponseInterpreter.ts`
-- [ ] Delete `ConversationManager.ts`, `LastResults.ts`, `DegradationManager.ts`
-- [ ] Delete old `Bot.ts`
-- [ ] Update all imports
-- [ ] Run tests, fix breakages
-
-### Phase 9: Verify All Entry Points
-- [ ] CLI REPL
-- [ ] IRC connection
-- [ ] WebSocket connection
-- [ ] HTTP connection
-- [ ] MCP server
-- [ ] Agentic loop background reasoning
-
----
-
-## Interaction Examples
-
-### Full Mode with Loop-Back
-
-```
-> If all mammals are warm-blooded and whales are mammals, are whales warm-blooded?
-
-  ⏳ thinking...
-  → reasoning triggered: multi-hop pattern detected
-  → derived: 2 beliefs
-    → (<whale --> warm_blooded>. :0.9:0.7)
-    → (<mammal --> warm_blooded>. :1.0:0.9)
-
-  bot: Yes — whales are warm-blooded. This follows from the syllogism:
-       all mammals are warm-blooded, whales are mammals, therefore whales
-       are warm-blooded.
-
-  [42ms | InputNormalizer: 1ms, AuthChecker: 2ms, InputClassifier: 3ms,
-   ReasoningTrigger: 5ms, SeNARSProcessor: 18ms, LMResponder: 12ms,
-   DirectiveProcessor: 1ms, ResponseComposer: 0ms, ResponseFormatter: 0ms]
-```
-
-### LM Suggests Reasoning, Bot Adds Belief
-
-```
-> What's the relationship between birds and animals?
-
-  bot: Birds are a subclass of animals. All birds share the properties of animals.
-
-  (internally: [REASONING_SUGGESTED: inheritance relationship] detected)
-  (internally: [BELIEVE: (<bird --> animal>. :1.0:0.9)] executed)
-
-  → Loop-back: SeNARS processed [BELIEVE: (<bird --> animal>. :1.0:0.9)]
-  → Added: (<bird --> animal>. :1.0:0.9) (0 derivations)
-
-  [67ms | ... SeNARSProcessor: 15ms, LMResponder: 35ms, DirectiveProcessor: 12ms,
-   SeNARSProcessor(loop): 5ms ...]
-```
-
-### SeNARS-Only Mode
-
-```
-> (<bird --> animal>.)
-
-  → Added: (<bird --> animal>. :1.0:0.9)
-  → 0 derivations
-
-> (<robin --> bird>.)
-
-  → Added: (<robin --> bird>. :1.0:0.9)
-  → 0 derivations
-
-> /run 3
-
-  → Derived: (<robin --> animal>. :1.0:0.81) — transitive
-  → 1 new belief
-
-> (<robin --> ?>)
-
-  → robin is a: animal (1.0:0.81), bird (1.0:0.9)
-```
-
-### LM-Only Mode
-
-```
-> Why do birds fly south?
-
-  bot: Birds migrate south for several reasons:
-  1. Food availability decreases in northern regions during winter
-  2. Warmer climates reduce energy expenditure for thermoregulation
-  3. Daylight hours affect breeding cycles
-
-  Note: I don't have a formal reasoning engine loaded, so this is based
-  on my training knowledge rather than derived facts.
-```
-
----
-
-## Key Design Decisions
-
-| Decision | Rationale |
+| Decision | Why |
 |---|---|
-| Single `Bot` class | Eliminates Agent/Bot duality, single entry point |
-| Loop-back pipeline with reset | Enables LM→NAR→LM interaction; reset prevents infinite loop |
-| `maxLoops` bound | Caps total passes per turn |
-| `DirectiveProcessor` replaces `ToolExecutor` | Unifies all LM directive handling |
-| `newBeliefs` tracking | LM sees what was just derived, not just concept priorities |
-| Streaming default ON | Real-time feedback expected in modern interfaces |
-| Degradation via `enabled()` | No separate manager — capabilities checked at runtime |
-| Per-stage timeout | Prevents hung stages from blocking entire turn |
-| `TurnMetrics` built-in | Observability without external tooling |
-| All 13 command modules in Bot | No functionality gap between modes |
-| Remove `ChatResponder`, `ResponseInterpreter` | Functionality absorbed into pipeline stages |
-| Remove `ConversationManager`, `LastResults` | Replaced by `ConversationState` + episodic memory |
-| Remove `DegradationManager` | Pipeline self-degrades via `enabled()` predicates |
-| `LMResponder` uses `getContextForLM()` | DRY — no duplicate context building |
-| Mutable `IOMessage` copy in `InputNormalizer` | `IOMessage` fields are readonly in `io/types.ts` |
-| `LMClient` simulated streaming | `LMClient` has no native `.stream()` — word-by-word fallback |
-| `ConversationStateManager.serialize()` | Required by `Bot.saveState()` |
-| Logger passed to `ConnectionDeps` | Required by `ConnectionDeps` interface |
+| `needsLoopBack` boolean, not counter | Simpler — pipeline controls max passes via `passCount < maxLoops` |
+| `passCount` for input skip | `passCount > 1` is clearer than a separate `inputProcessed` flag |
+| DirectiveProcessor owns marker stripping | Single responsibility — LMResponder only checks REASONING_SUGGESTED |
+| Reuse LMStreamAdapter + ChannelStreamer | Existing infrastructure handles native/simulated/channel-specific streaming |
+| Commands get full BotContext | No fake Connection stubs needed |
+| Symmetric save/load | `loadState()` restores what `saveState()` persisted |
+| AuthChecker periodic cleanup | Prevents unbounded memory growth |
+| NL-to-Narsese word-boundary anchoring | Prevents false matches on longer sentences |
+| Streaming default ON | Real-time feedback expected |
+| Pipeline, not switch | Composable, testable, independently replaceable stages |
+| Pipeline presets | Common configurations without boilerplate |
+| Custom directives via config | Extensible without modifying core code |
+| Prompt templates | Customize LM behavior without code changes |
+| `loopBackOn` array | Fine-grained control over which directives trigger re-processing |
+| `[REASONING_DEPTH:n]` directive | LM controls derivation effort per-turn |
+| `lmDriven` flag | Opt-in for LM reasoning depth control (default off) |
