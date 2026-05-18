@@ -29,7 +29,7 @@ import {ChatResponder, type ChatResponderConfig} from './ChatResponder.js';
 import {ResponseInterpreter, type ResponseInterpreterConfig} from './ResponseInterpreter.js';
 import {DegradationManager} from './DegradationManager.js';
 import {ResponseFormatter} from './ResponseFormatter.js';
-import {BotProfile, ChannelBehavior} from './BotProfile.js';
+import {BotProfile} from './BotProfile.js';
 import {ConversationManager} from './ConversationManager.js';
 import {LastResults, type LastResultsEntry} from './LastResults.js';
 import {SkillCatalog} from './SkillCatalog.js';
@@ -94,10 +94,8 @@ export class Agent {
         this.lastResults = new LastResults();
         this.degradationManager = new DegradationManager();
         this.conversationManager = new ConversationManager();
-        this.botProfile = Object.assign(new BotProfile(), config.botProfile ?? {});
-
-        const channelBehavior = new ChannelBehavior('irc');
-        this.responseFormatter = new ResponseFormatter(channelBehavior);
+this.botProfile = Object.assign(new BotProfile(), config.botProfile ?? {});
+this.responseFormatter = new ResponseFormatter();
 
         this.responseInterpreter = config.responseInterpreter !== false
             ? new ResponseInterpreter(this.nar, config.responseInterpreter)
@@ -250,7 +248,7 @@ if (config.chatResponder !== false) {
         switch (classification) {
             case 'command': {
                 const parts = text.slice(1).split(/\s+/);
-                const cmdName = '.' + parts[0]!;
+                const cmdName = text.trim().startsWith('/') ? '/' + parts[0]! : '.' + parts[0]!;
                 const args = parts.slice(1);
                 try {
                     const cmdContext: CommandContext = {
@@ -365,7 +363,7 @@ if (config.chatResponder !== false) {
 
     private classifyInput(text: string): MessageClassification {
         const trimmed = text.trim();
-        if (trimmed.startsWith('.')) return 'command';
+        if (trimmed.startsWith('.') || trimmed.startsWith('/')) return 'command';
         if (trimmed.endsWith('.')) return 'belief';
         if (trimmed.endsWith('?')) return 'question';
         if (trimmed.startsWith('!')) return 'goal';

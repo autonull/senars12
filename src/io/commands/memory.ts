@@ -3,9 +3,10 @@ import {singleArgCmd} from './utils.js';
 
 export const memoryCommands: CommandDefinition[] = [
   {
-    name: '.list',
+    name: '/list',
+    aliases: ['.list'],
     description: 'List all concepts',
-    usage: '.list',
+    usage: '/list',
     execute: async (_args, ctx) => {
       const concepts = ctx.nar.listConcepts();
       if (concepts.length === 0) return 'Memory is empty';
@@ -18,9 +19,10 @@ export const memoryCommands: CommandDefinition[] = [
     }
   },
   {
-    name: '.concepts',
+    name: '/concepts',
+    aliases: ['.concepts'],
     description: 'List concepts with optional filter',
-    usage: '.concepts [filter]',
+    usage: '/concepts [filter]',
     execute: async (args, ctx) => {
       const filter = args.join(' ').toLowerCase();
       const concepts = ctx.nar.listConcepts();
@@ -43,10 +45,11 @@ export const memoryCommands: CommandDefinition[] = [
     }
   },
     {
-        name: '.save',
+        name: '/save',
+        aliases: ['.save'],
         description: 'Save memory to file',
-        usage: '.save <filename>',
-        execute: singleArgCmd('.save <filename>', async (filename, ctx) => {
+        usage: '/save <filename>',
+        execute: singleArgCmd('/save <filename>', async (filename, ctx) => {
             const concepts = ctx.nar.listConcepts().map(c => {
                 const cAny = c as any;
                 return {
@@ -62,10 +65,11 @@ export const memoryCommands: CommandDefinition[] = [
         })
     },
     {
-        name: '.load',
+        name: '/load',
+        aliases: ['.load'],
         description: 'Load beliefs from file',
-        usage: '.load <filename>',
-        execute: singleArgCmd('.load <filename>', async (filename, ctx) => {
+        usage: '/load <filename>',
+        execute: singleArgCmd('/load <filename>', async (filename, ctx) => {
             try {
                 const fs = await import('fs');
                 const content = await fs.promises.readFile(filename, 'utf-8');

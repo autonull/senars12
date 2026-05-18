@@ -2,12 +2,13 @@ import type {CommandDefinition} from './registry.js';
 
 export const narCommands: CommandDefinition[] = [
     {
-        name: '.query',
+        name: '/query',
+        aliases: ['.query'],
         description: 'Query memory for beliefs/goals/questions',
-        usage: '.query <term>',
+        usage: '/query <term>',
         execute: async (args, ctx) => {
             const termStr = args.join(' ');
-            if (!termStr) return 'Usage: .query <term>';
+            if (!termStr) return 'Usage: /query <term>';
             const beliefs = ctx.nar.getBeliefs();
             const goals = ctx.nar.getGoals();
             const questions = ctx.nar.getQuestions();
@@ -25,12 +26,13 @@ export const narCommands: CommandDefinition[] = [
         }
     },
     {
-        name: '.trace',
+        name: '/trace',
+        aliases: ['.trace'],
         description: 'Show derivation trace',
-        usage: '.trace <term>',
+        usage: '/trace <term>',
         execute: async (args, ctx) => {
             const termStr = args.join(' ');
-            if (!termStr) return 'Usage: .trace <term>';
+            if (!termStr) return 'Usage: /trace <term>';
             try {
                 const beliefs = ctx.nar.getBeliefs({contains: termStr});
                 if (beliefs.length === 0) return `No beliefs found for: ${termStr}`;
@@ -55,12 +57,13 @@ export const narCommands: CommandDefinition[] = [
         }
     },
     {
-        name: '.explain',
+        name: '/explain',
+        aliases: ['.explain'],
         description: 'Explain how a belief was derived',
-        usage: '.explain <term>',
+        usage: '/explain <term>',
         execute: async (args, ctx) => {
             const termStr = args.join(' ');
-            if (!termStr) return 'Usage: .explain <term>';
+            if (!termStr) return 'Usage: /explain <term>';
             try {
                 const beliefs = ctx.nar.getBeliefs({contains: termStr});
                 if (beliefs.length === 0) return `No beliefs found for: ${termStr}`;

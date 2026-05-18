@@ -73,9 +73,11 @@ export class SeNARSCLI {
         }
     }
 
-    private async startTTYMode(): Promise<void> {
-        console.log('SeNARS CLI - Interactive terminal interface');
-        console.log('Type .help for commands, .quit to exit\n');
+private async startTTYMode(): Promise<void> {
+if (!this.options.noInit) {
+console.log('SeNARS CLI - Interactive terminal interface');
+console.log('Type .help for commands, .quit to exit\n');
+}
 
         const rl = createInterface({
             input: process.stdin,
@@ -84,38 +86,42 @@ export class SeNARSCLI {
             terminal: true,
         });
 
-        rl.on('line', async (line) => {
-            const trimmed = line.trim();
-            if (!trimmed) {
-                rl.prompt();
-                return;
-            }
+rl.on('line', async (line) => {
+const trimmed = line.trim();
+if (!trimmed) {
+rl.prompt();
+return;
+}
 
-            this.turnCount++;
-            const response = await this.agent.processMessage(trimmed, {
-                connectionId: 'cli',
-                connectionType: 'cli',
-                sender: 'local-user',
-                respond: async (text) => console.log(text),
-            });
+if (trimmed === '.quit' || trimmed === '.exit' || trimmed === '/quit' || trimmed === '/exit') {
+rl.close();
+return;
+}
 
-            if (this.turnCount >= (this.options.maxTurns ?? Infinity)) {
-                rl.close();
-                return;
-            }
+this.turnCount++;
+const response = await this.agent.processMessage(trimmed, {
+connectionId: 'cli',
+connectionType: 'cli',
+sender: 'local-user',
+respond: async (text) => console.log(text),
+});
 
-            rl.prompt();
-        });
+if (this.turnCount >= (this.options.maxTurns ?? Infinity)) {
+rl.close();
+return;
+}
 
-        rl.on('close', () => {
-            console.log('\nGoodbye!');
-            process.exit(0);
-        });
+rl.prompt();
+});
 
-        process.on('SIGINT', () => {
-            rl.close();
-            process.exit(0);
-        });
+rl.on('close', () => {
+console.log('\nGoodbye!');
+process.exit(0);
+});
+
+process.on('SIGINT', () => {
+rl.close();
+});
 
         rl.prompt();
     }
@@ -127,17 +133,17 @@ export class SeNARSCLI {
             terminal: false,
         });
 
-        let lastOutputTime = Date.now();
-        const checkTimeout = () => {
-            if (this.options.timeout && Date.now() - lastOutputTime > this.options.timeout) {
-                process.exit(0);
-            }
-        };
+let lastInputTime = Date.now();
+const checkTimeout = () => {
+if (this.options.timeout && Date.now() - lastInputTime > this.options.timeout) {
+process.exit(0);
+}
+};
 
-        const timeoutInterval = setInterval(checkTimeout, 1000);
+const timeoutInterval = setInterval(checkTimeout, 1000);
 
-        rl.on('line', async (line) => {
-            lastOutputTime = Date.now();
+rl.on('line', async (line) => {
+lastInputTime = Date.now();
             const trimmed = line.trim();
 
             if (!trimmed) return;
@@ -153,18 +159,18 @@ export class SeNARSCLI {
                 return;
             }
 
-            if (trimmed.startsWith('(') && !trimmed.includes(').')) {
-                this.inputBuffer = trimmed;
-                if (this.bufferingTimeout) clearTimeout(this.bufferingTimeout);
-                this.bufferingTimeout = setTimeout(() => {
-                    if (this.inputBuffer) {
-                        const discard = this.inputBuffer;
-                        this.inputBuffer = '';
-                        process.stderr.write(`! Buffer timeout, discarding: ${discard.slice(0, 50)}...\n`);
-                    }
-                }, 10000);
-                return;
-            }
+if (trimmed.startsWith('(') && !trimmed.includes(').')) {
+this.inputBuffer = trimmed;
+if (this.bufferingTimeout) clearTimeout(this.bufferingTimeout);
+this.bufferingTimeout = setTimeout(() => {
+if (this.inputBuffer) {
+const discard = this.inputBuffer;
+this.inputBuffer = '';
+process.stderr.write(`! Buffer timeout, discarding: ${discard.slice(0, 50)}...\n`);
+}
+}, 30000);
+return;
+}
 
             await this.processInput(trimmed);
 
@@ -183,32 +189,29 @@ export class SeNARSCLI {
         });
     }
 
-    private async processInput(text: string): Promise<void> {
-        if (this.options.quiet) {
-            process.stdout.write(`> ${text}\n`);
-        }
+private async processInput(text: string): Promise<void> {
+if (!this.options.quiet) {
+process.stdout.write(`> ${text}\n`);
+}
 
-        if (text === '.quit' || text === '.exit') {
+        if (text === '.quit' || text === '.exit' || text === '/quit' || text === '/exit') {
             process.stdout.write(this.pipeOutput.formatQuit() + '\n');
             process.exit(0);
             return;
         }
 
-        try {
-            const response = await this.agent.processMessage(text, {
-                connectionId: 'pipe',
-                connectionType: 'cli',
-                sender: 'pipe-user',
-                respond: async (t) => { process.stdout.write(`< ${t}\n`); },
-            });
+try {
+await this.agent.processMessage(text, {
+connectionId: 'pipe',
+connectionType: 'cli',
+sender: 'pipe-user',
+respond: async (t) => { process.stdout.write(`< ${t}\n`); },
+});
+} catch (error) {
+process.stderr.write(`! Error: ${error}\n`);
+}
 
-            if (response.text) {
-            }
-        } catch (error) {
-            process.stderr.write(`! Error: ${error}\n`);
-        }
-
-        this.turnCount++;
+this.turnCount++;
     }
 }
 

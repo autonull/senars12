@@ -22,23 +22,22 @@ export class PipeOutput {
     private readonly config: PipeOutputConfig;
     private turnCount = 0;
 
-    constructor(config: PipeOutputConfig = {}) {
-        this.formatter = new OutputFormatter('cli', config.options ?? {});
-        this.config = config;
-    }
+constructor(config: PipeOutputConfig = {}) {
+this.formatter = new OutputFormatter('pipe', config.options ?? {});
+this.config = config;
+}
 
     formatInput(text: string): string {
         const formatted = this.formatter.formatInput(text);
         return formatted;
     }
 
-    formatResponse(text: string): string {
-        const formatted = this.formatter.formatResponse(text);
-        if (this.formatter.shouldOutputJson()) {
-            return '';
-        }
-        return formatted;
-    }
+formatResponse(text: string): string {
+if (this.formatter.shouldOutputJson()) {
+return this.formatter.formatMetadata({response: text});
+}
+return this.formatter.formatResponse(text);
+}
 
     formatBeliefResult(input: string, derived: number): string {
         const turn = ++this.turnCount;

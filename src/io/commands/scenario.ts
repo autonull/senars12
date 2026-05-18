@@ -19,63 +19,68 @@ interface ExtendedNAR extends NAR {
 
 export const scenarioCommands: CommandDefinition[] = [
 {
-	name: '.scenario',
+	name: '/scenario',
+	aliases: ['.scenario'],
 	description: 'Run or list scenarios',
-	usage: '.scenario <run|list|run-batch> [args]',
+	usage: '/scenario <run|list|run-batch> [args]',
 	execute: async (args, ctx) => {
 		const nar = ctx.nar as ExtendedNAR;
 		if (!nar.scenarioRunner) return 'ScenarioRunner not available';
 
 		const subcmd = args[0];
 		if (!subcmd) {
-			return 'Usage: .scenario <run|list|run-batch>\nUse .scenario list to see available scenarios';
+			return 'Usage: /scenario <run|list|run-batch>\nUse /scenario list to see available scenarios';
 		}
 
 		return `Scenario command: ${subcmd} (implementation pending)`;
 	},
 },
 {
-	name: '.scenario.run',
+	name: '/scenario.run',
+	aliases: ['.scenario.run'],
 	description: 'Run single scenario',
-	usage: '.scenario run <id>',
+	usage: '/scenario run <id>',
 	execute: async (args, ctx) => {
 		const nar = ctx.nar as ExtendedNAR;
 		if (!nar.scenarioRunner) return 'ScenarioRunner not available';
 
 		const scenarioId = args[0];
-		if (!scenarioId) return 'Usage: .scenario run <id>';
+		if (!scenarioId) return 'Usage: /scenario run <id>';
 
 		return `Running scenario: ${scenarioId}\n(Note: Scenario loading pending implementation)`;
 	},
 },
 {
-	name: '.scenario.list',
+	name: '/scenario.list',
+	aliases: ['.scenario.list'],
 	description: 'List scenarios filtered by tag',
-	usage: '.scenario list [tag]',
+	usage: '/scenario list [tag]',
 	execute: async (args) => {
 		const tag = args[0];
 		return `Listing scenarios${tag ? ` with tag: ${tag}` : ''}\n(Note: Scenario catalog pending implementation)`;
 	},
 },
 {
-	name: '.scenario.run-batch',
+	name: '/scenario.run-batch',
+	aliases: ['.scenario.run-batch'],
 	description: 'Run benchmark suite',
-	usage: '.scenario run-batch <suite>',
+	usage: '/scenario run-batch <suite>',
 	execute: async (args) => {
 		const suite = args[0];
-		if (!suite) return 'Usage: .scenario run-batch <suite>';
+		if (!suite) return 'Usage: /scenario run-batch <suite>';
 		return `Running benchmark suite: ${suite}\n(Note: Batch execution pending implementation)`;
 	},
 },
 {
-	name: '.pin',
+	name: '/pin',
+	aliases: ['.pin'],
 	description: 'Store in working memory',
-	usage: '.pin <key> <value>',
+	usage: '/pin <key> <value>',
 	execute: async (args, ctx) => {
 		const nar = ctx.nar as ExtendedNAR;
 		if (!nar.workingMemory) return 'WorkingMemory not available';
 
-		if (args.length < 1) return 'Usage: .pin <key> <value>';
+		if (args.length < 1) return 'Usage: /pin <key> <value>';
 
 		const key = args[0]!;
 		const value = args.slice(1).join(' ') || '';
@@ -85,9 +90,10 @@ export const scenarioCommands: CommandDefinition[] = [
 	}
 },
   {
-    name: '.recall',
+    name: '/recall',
+    aliases: ['.recall'],
     description: 'Recall from working memory',
-    usage: '.recall [key]',
+    usage: '/recall [key]',
     execute: async (args, ctx) => {
       const nar = ctx.nar as ExtendedNAR;
       if (!nar.workingMemory) return 'WorkingMemory not available';
@@ -104,9 +110,10 @@ export const scenarioCommands: CommandDefinition[] = [
     }
   },
   {
-    name: '.unpin',
+    name: '/unpin',
+    aliases: ['.unpin'],
     description: 'Clear working memory',
-    usage: '.unpin [key]',
+    usage: '/unpin [key]',
     execute: async (args, ctx) => {
       const nar = ctx.nar as ExtendedNAR;
       if (!nar.workingMemory) return 'WorkingMemory not available';
@@ -122,14 +129,15 @@ export const scenarioCommands: CommandDefinition[] = [
     }
   },
   {
-    name: '.evaluate',
+    name: '/evaluate',
+    aliases: ['.evaluate'],
     description: 'Evaluate truth value and action tier',
-    usage: '.evaluate <frequency> <confidence>',
+    usage: '/evaluate <frequency> <confidence>',
     execute: async (args, ctx) => {
       const nar = ctx.nar as ExtendedNAR;
       if (!nar.orchestrationGuide) return 'OrchestrationGuide not available';
       
-  if (args.length < 2) return 'Usage: .evaluate <frequency> <confidence>';
+  if (args.length < 2) return 'Usage: /evaluate <frequency> <confidence>';
   
   const f = parseFloat(args[0]!);
   const c = parseFloat(args[1]!);
@@ -145,54 +153,30 @@ export const scenarioCommands: CommandDefinition[] = [
     }
   },
   {
-    name: '.ground',
+    name: '/ground',
+    aliases: ['.ground'],
     description: 'Add grounded fact',
-    usage: '.ground <fact> <source>',
+    usage: '/ground <fact> <source>',
     execute: async (args, ctx) => {
       const nar = ctx.nar as ExtendedNAR;
       if (!nar.groundingPipeline) return 'GroundingPipeline not available';
       
-      if (args.length < 2) return 'Usage: .ground <fact> <source>';
+      if (args.length < 2) return 'Usage: /ground <fact> <source>';
       
       const fact = args.join(' ');
       return `Grounded: ${fact} (Note: Full grounding requires HTTP/Search tools)`;
     }
   },
-  {
-    name: '.grounded',
-    description: 'List grounded facts',
-    usage: '.grounded [query]',
-    execute: async (_args, ctx) => {
-      const nar = ctx.nar as ExtendedNAR;
-      if (!nar.groundingPipeline) return 'GroundingPipeline not available';
-      
-      return 'No grounded facts stored yet';
-    }
-  },
-  {
-    name: '.self',
-    description: 'Self-analysis status',
-    usage: '.self',
-    execute: async (_args, ctx) => {
-      const nar = ctx.nar as ExtendedNAR;
-      if (!nar.selfAnalyzer) return 'SelfAnalyzer not available';
-      return 'Self-analysis is available. Use .self-analyze for full report.';
-    }
-  },
-  {
-    name: '.self-analyze',
-    description: 'Run self-analysis',
-    usage: '.self-analyze',
-    execute: async (_args, ctx) => {
-      const nar = ctx.nar as ExtendedNAR;
-      if (!nar.selfAnalyzer) return 'SelfAnalyzer not available';
-      
-      try {
-        const report = await nar.selfAnalyzer.analyzeReasoningGaps();
-        return `Self-Analysis:\n${JSON.stringify(report, null, 2)}`;
-      } catch (error) {
-        return `Error during analysis: ${error}`;
-      }
-    }
-  }
+{
+name: '/grounded',
+aliases: ['.grounded'],
+description: 'List grounded facts',
+usage: '/grounded [query]',
+execute: async (_args, ctx) => {
+const nar = ctx.nar as ExtendedNAR;
+if (!nar.groundingPipeline) return 'GroundingPipeline not available';
+
+return 'No grounded facts stored yet';
+}
+}
 ];

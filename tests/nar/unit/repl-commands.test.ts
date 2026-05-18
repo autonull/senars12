@@ -3,18 +3,18 @@
  * Tests for REPL command handling and input processing
  */
 
-import {NAR} from '../../nar';
-import {SeNARSFactory} from '../../../src/nar';
+import {NAR} from '../../../src/nar/nar.js';
+import {SeNARSFactory} from '../../../src/nar/factory.js';
+import {DEFAULT_NAR_CONFIG} from '../../../src/config/defaults.js';
 
 describe('SeNARSCLI Command Handlers', () => {
-    let nar: NAR;
+  let nar: NAR;
 
-    beforeEach(() => {
-        nar = SeNARSFactory.createDefault({
-            maxConcepts: 100,
-            maxDerivationDepth: 10
-        });
+  beforeEach(() => {
+    nar = SeNARSFactory.createDefault({
+      ...DEFAULT_NAR_CONFIG
     });
+  });
 
     describe('.help command', () => {
         it('should show help for commands', () => {

@@ -60,8 +60,8 @@ Input ──▶ [Middleware Pipeline] ──▶ BotResponse
   │            ├── InputClassifier        ├── actions (tool calls, beliefs added)
   │            ├── ReasoningTrigger       ├── streaming (AsyncIterable)
   │            ├── SeNARSProcessor        └── metadata (confidence, mode)
-  │            ├── ToolExecutor
   │            ├── LMResponder
+  │            ├── ToolExecutor
   │            ├── ResponseComposer
   │            ├── ResponseFormatter
   │            └── StatePersistor
@@ -102,16 +102,16 @@ interface ConnectionInfo {
     id: string;
     type: ChannelType;
     sender: string;
-    respond: (text: string | Streamable) => Promise<void>;
-    stream: (stream: AsyncIterable<Streamable>) => Promise<void>;
+    respond: (text: string | StreamChunk) => Promise<void>;
+    stream: (stream: AsyncIterable<StreamChunk>) => Promise<void>;
 }
 
 interface ConversationState {
     messages: Message[];              // Full history (prunable)
     summary?: string;                 // Auto-summarized when history grows
-    workingMemory: Map<string, any>;  // Cross-turn scratchpad (separate from NAR WorkingMemory)
+    workingMemory: Map<string, unknown>;  // Cross-turn scratchpad (separate from NAR WorkingMemory)
     reasoningArtifacts: ReasoningArtifact[];  // Visible reasoning steps
-    pinnedBeliefs: string[];          // User-pinned context
+    pinnedBeliefs: Set<string>;       // User-pinned context
     lastClassification?: InputClassification;
     mode: BotMode;                    // 'auto' | 'chat' | 'reason'
 }
@@ -122,10 +122,22 @@ interface TurnState {
     reasoningTriggered: boolean;
     reasoningResult?: DerivationResult;
     lmResponse?: string;
+    lmSuggestsReasoning: boolean;
     toolResults: ToolResult[];
     actions: TurnAction[];
     finalResponse: string;
     error?: Error;
+}
+
+interface DerivationResult {
+    steps: number;        // Number of derivation steps executed
+    beliefs: Belief[];    // Current beliefs after derivation
+}
+
+interface ToolResult {
+    name: string;
+    result?: unknown;
+    error?: string;
 }
 
 interface TurnAction {
@@ -177,20 +189,20 @@ interface Capabilities {
     mode: 'full' | 'lm-only' | 'senars-only';
 }
 
-function detectCapabilities(ctx: BotContext): Capabilities {
-    const hasLM = !!ctx.lm && ctx.lm.isAvailable();
-    const hasSeNARS = !!ctx.seNARS;
+function detectCapabilities(lm?: LMClient, seNARS?: NAR): Capabilities {
+    const hasLM = !!lm && lm.isAvailable();
+    const hasSeNARS = !!seNARS;
     const mode = hasLM && hasSeNARS ? 'full'
         : hasLM ? 'lm-only'
         : hasSeNARS ? 'senars-only'
-        : throw new Error('At least one capability required');
+        : (() => { throw new Error('At least one capability required'); })();
 
     return {
         hasLM,
         hasSeNARS,
-        hasStreaming: hasLM && ctx.lm!.supportsStreaming(),
-        hasTools: hasSeNARS && ctx.seNARS!.tools.count > 0,
-        hasMemory: hasSeNARS && !!ctx.seNARS!.memory,
+        hasStreaming: hasLM && lm!.supportsStreaming(),
+        hasTools: hasSeNARS && seNARS!.tools.count > 0,
+        hasMemory: hasSeNARS && !!seNARS!.memory,
         mode,
     };
 }
@@ -214,7 +226,7 @@ interface PipelineStage {
     name: string;
     priority: number;  // Lower runs first
     enabled: (ctx: BotContext) => boolean;
-    execute(ctx: BotContext, next: () => Promise<void>): Promise<void>;
+    execute(ctx: BotContext): Promise<void>;
 }
 
 class MessagePipeline {
@@ -226,17 +238,12 @@ class MessagePipeline {
 
     async process(message: IOMessage, ctx: BotContext): Promise<BotResponse> {
         ctx.turn.input = message;
-        let i = 0;
-        const next = async () => {
-            while (i < this.stages.length) {
-                const stage = this.stages[i++];
-                if (stage.enabled(ctx)) {
-                    await stage.execute(ctx, next);
-                    return;
-                }
-            }
-        };
-        await next();
+        for (const stage of this.stages) {
+            if (!stage.enabled(ctx)) continue;
+            await stage.execute(ctx);
+            // CommandProcessor sets finalResponse and skips remaining stages
+            if (ctx.turn.finalResponse && stage.name === 'CommandProcessor') break;
+        }
         return this.composeResponse(ctx);
     }
 
@@ -245,7 +252,6 @@ class MessagePipeline {
             text: ctx.turn.finalResponse,
             reasoning: ctx.turn.reasoningResult,
             actions: ctx.turn.actions,
-            streaming: ctx.turn.streaming,
         };
     }
 }
@@ -254,9 +260,10 @@ interface BotResponse {
     text: string;
     reasoning?: DerivationResult;
     actions: TurnAction[];
-    streaming: boolean;
 }
 ```
+
+**Key change from previous design**: Stages execute sequentially without `next()` callbacks. `CommandProcessor` sets `ctx.turn.finalResponse` and the pipeline breaks out of the loop. This is simpler, more predictable, and avoids the callback nesting bug from the previous design.
 
 ### Standard Stages (in priority order)
 
@@ -265,11 +272,11 @@ interface BotResponse {
 | 1 | `InputNormalizer` | Trim, detect encoding, extract inline commands | Always |
 | 2 | `AuthChecker` | Verify sender permissions, rate limiting | Always |
 | 3 | `CommandProcessor` | Handle `/` commands, early return if matched | Input starts with `/` |
-| 4 | `InputClassifier` | Classify intent: chat, reason, query, goal, mixed | Always |
+| 4 | `InputClassifier` | Classify intent: chat, reason, query, goal, narsese | Always |
 | 5 | `ReasoningTrigger` | Decide if SeNARS reasoning should activate | SeNARS available AND auto mode |
-| 6 | `SeNARSProcessor` | Execute NAL operations (believe, question, goal, derive) | SeNARS available AND triggered |
-| 7 | `ToolExecutor` | Execute tool calls from LM response or explicit commands | SeNARS available AND tools present |
-| 8 | `LMResponder` | Generate LM response with reasoning context | LM available |
+| 6 | `SeNARSProcessor` | Execute NAL operations (believe, question, goal, derive) | SeNARS available AND (triggered OR narsese intent) |
+| 7 | `LMResponder` | Generate LM response with reasoning context | LM available |
+| 8 | `ToolExecutor` | Execute tool calls from LM response or explicit commands | SeNARS available AND tools present AND LM response has directives |
 | 9 | `ResponseComposer` | Merge SeNARS results + LM response + tool output | Always |
 | 10 | `ResponseFormatter` | Channel-specific formatting (IRC chunking, markdown) | Always |
 | 11 | `StatePersistor` | Update conversation state, episodic memory | Always |
@@ -283,17 +290,17 @@ InputNormalizer     → normalize text, detect encoding
      │
 AuthChecker         → check permissions, rate limits
      │
-CommandProcessor    → if /command: execute, set finalResponse, skip remaining stages
+CommandProcessor    → if /command: execute, set finalResponse, BREAK (skip remaining)
      │               → else: pass through
 InputClassifier     → set turn.classification (weighted multi-signal)
      │
 ReasoningTrigger    → if should trigger: set turn.reasoningTriggered = true
      │
-SeNARSProcessor     → if triggered: run NAL ops, set turn.reasoningResult
-     │
-ToolExecutor        → if tool actions: execute, set turn.toolResults
+SeNARSProcessor     → if triggered OR narsese intent: run NAL ops, set turn.reasoningResult
      │
 LMResponder         → if LM available: generate response, set turn.lmResponse
+     │
+ToolExecutor        → if LM response has [TOOL:...]: execute, set turn.toolResults
      │
 ResponseComposer    → merge all results into turn.finalResponse
      │
@@ -301,6 +308,443 @@ ResponseFormatter   → format for channel type
      │
 StatePersistor      → update conversation, log to episodic memory
 ```
+
+### Stage Specifications
+
+#### InputNormalizer
+
+```typescript
+class InputNormalizer implements PipelineStage {
+    name = 'InputNormalizer';
+    priority = 1;
+    enabled = () => true;
+
+    async execute(ctx: BotContext): Promise<void> {
+        const text = ctx.turn.input.text.trim();
+        // Strip zero-width characters, normalize Unicode
+        ctx.turn.input.text = text.normalize('NFC').replace(/[\u200B-\u200D\uFEFF]/g, '');
+    }
+}
+```
+
+#### AuthChecker
+
+```typescript
+class AuthChecker implements PipelineStage {
+    name = 'AuthChecker';
+    priority = 2;
+    enabled = () => true;
+
+    async execute(ctx: BotContext): Promise<void> {
+        const { connectionId, sender } = ctx.connection;
+        // Check rate limiting
+        if (this.isRateLimited(connectionId, sender)) {
+            ctx.turn.finalResponse = 'Rate limited. Please wait before sending more messages.';
+            return;
+        }
+        // Check permissions (if auth manager configured)
+        if (this.authManager && this.authManager.shouldIgnore(connectionId, sender, ctx.turn.input.text)) {
+            ctx.turn.finalResponse = '';  // Silent ignore
+        }
+    }
+}
+```
+
+#### CommandProcessor
+
+```typescript
+class CommandProcessor implements PipelineStage {
+    name = 'CommandProcessor';
+    priority = 3;
+    enabled = (ctx) => ctx.turn.input.text.trim().startsWith('/');
+
+    async execute(ctx: BotContext): Promise<void> {
+        const text = ctx.turn.input.text.trim();
+        const parts = text.slice(1).split(/\s+/);
+        const cmdName = '/' + parts[0];
+        const args = parts.slice(1);
+
+        const cmd = this.registry.get(cmdName);
+        if (!cmd) {
+            ctx.turn.finalResponse = `Unknown command: ${cmdName}. Type /help for available commands.`;
+            return;
+        }
+
+        // Check requirements
+        if (cmd.requiresLM && !ctx.capabilities.hasLM) {
+            ctx.turn.finalResponse = `Command ${cmdName} requires LM (not available).`;
+            return;
+        }
+        if (cmd.requiresSeNARS && !ctx.capabilities.hasSeNARS) {
+            ctx.turn.finalResponse = `Command ${cmdName} requires SeNARS (not available).`;
+            return;
+        }
+        if (cmd.requiresFull && (!ctx.capabilities.hasLM || !ctx.capabilities.hasSeNARS)) {
+            ctx.turn.finalResponse = `Command ${cmdName} requires both LM and SeNARS.`;
+            return;
+        }
+
+        const result = await cmd.handler(args, ctx);
+        ctx.turn.finalResponse = typeof result === 'string' ? result : await streamToString(result);
+    }
+}
+```
+
+#### InputClassifier
+
+```typescript
+class InputClassifier implements PipelineStage {
+    name = 'InputClassifier';
+    priority = 4;
+    enabled = () => true;
+
+    async execute(ctx: BotContext): Promise<void> {
+        ctx.turn.classification = classify(ctx.turn.input.text, ctx.conversation);
+    }
+}
+```
+
+#### SeNARSProcessor
+
+```typescript
+class SeNARSProcessor implements PipelineStage {
+    name = 'SeNARSProcessor';
+    priority = 6;
+    enabled = (ctx) => ctx.capabilities.hasSeNARS &&
+        (ctx.turn.reasoningTriggered || ctx.turn.classification.primary === 'narsese');
+
+    async execute(ctx: BotContext): Promise<void> {
+        const nar = ctx.seNARS!;
+        const text = ctx.turn.input.text.trim();
+        const classification = ctx.turn.classification;
+
+        switch (classification.primary) {
+            case 'narsese':
+                // Direct Narsese input
+                if (text.startsWith('!')) {
+                    await nar.goal(text.slice(1));
+                } else if (text.includes('?')) {
+                    await nar.question(text);
+                    const derived = await nar.run(5);
+                    ctx.turn.reasoningResult = { steps: derived, beliefs: nar.getBeliefs() };
+                } else {
+                    await nar.believe(text);
+                    const derived = await nar.run(3);
+                    ctx.turn.reasoningResult = { steps: derived, beliefs: nar.getBeliefs() };
+                }
+                break;
+
+            case 'goal':
+                await nar.goal(text.slice(1));
+                break;
+
+            case 'query':
+                await nar.question(text);
+                const qDerived = await nar.run(5);
+                if (qDerived > 0) {
+                    ctx.turn.reasoningResult = { steps: qDerived, beliefs: nar.getBeliefs() };
+                }
+                break;
+
+            default:
+                // Auto-triggered reasoning
+                if (ctx.turn.reasoningTriggered) {
+                    // Convert natural language to Narsese and reason
+                    const narseseInput = this.naturalLanguageToNarsese(text, ctx);
+                    if (narseseInput) {
+                        await nar.believe(narseseInput);
+                    }
+                    const derived = await nar.run(ctx.config.reasoning.maxStepsPerTrigger);
+                    ctx.turn.reasoningResult = { steps: derived, beliefs: nar.getBeliefs() };
+                }
+                break;
+        }
+    }
+
+    private naturalLanguageToNarsese(text: string, ctx: BotContext): string | null {
+        // Heuristic: "X is a Y" → (<X --> Y>.)
+        const isAMatch = text.match(/^([A-Za-z_]+)\s+is\s+a\s+([A-Za-z_]+)/i);
+        if (isAMatch) return `(<${isAMatch[1]} --> ${isAMatch[2]}>.)`;
+
+        // Heuristic: "X has Y" → (<X --> [has_Y]>.)
+        const hasMatch = text.match(/^([A-Za-z_]+)\s+has\s+([A-Za-z_]+)/i);
+        if (hasMatch) return `(<${hasMatch[1]} --> ${hasMatch[2]}>.)`;
+
+        return null;
+    }
+}
+```
+
+#### LMResponder
+
+```typescript
+class LMResponder implements PipelineStage {
+    name = 'LMResponder';
+    priority = 7;
+    enabled = (ctx) => ctx.capabilities.hasLM;
+
+    async execute(ctx: BotContext): Promise<void> {
+        if (!ctx.lm) return;
+
+        const messages = this.buildMessages(ctx);
+
+        if (ctx.config.streaming.enabled && ctx.lm.supportsStreaming()) {
+            await this.streamResponse(ctx, messages);
+        } else {
+            ctx.turn.lmResponse = await ctx.lm.generate(messages);
+        }
+    }
+
+    private async streamResponse(ctx: BotContext, messages: Message[]): Promise<void> {
+        let fullResponse = '';
+
+        // Send typing indicator
+        await ctx.connection.respond({ type: 'status', content: 'typing', done: false });
+
+        for await (const chunk of ctx.lm.stream(messages)) {
+            fullResponse += chunk.content;
+            await ctx.connection.respond(chunk);
+        }
+
+        // Strip reasoning suggestion marker from visible response
+        const cleaned = fullResponse.replace(/\[REASONING_SUGGESTED:[^\]]*\]\s*/g, '');
+        ctx.turn.lmResponse = cleaned.trim();
+
+        // Flag for wiring code to set metadata when adding assistant message
+        if (/\[REASONING_SUGGESTED:/.test(fullResponse)) {
+            ctx.turn.lmSuggestsReasoning = true;
+        }
+    }
+
+    private buildMessages(ctx: BotContext): Message[] {
+        const system = this.buildSystemPrompt(ctx);
+        const history = ctx.conversation.getHistory(ctx.config.conversation.maxHistory);
+
+        return [
+            { role: 'system', content: system },
+            ...history.map(m => ({ role: m.role, content: m.content })),
+            { role: 'user', content: ctx.turn.input.text },
+        ];
+    }
+}
+```
+
+#### ToolExecutor
+
+```typescript
+class ToolExecutor implements PipelineStage {
+    name = 'ToolExecutor';
+    priority = 8;
+    enabled = (ctx) => ctx.capabilities.hasTools &&
+        !!ctx.turn.lmResponse && /\[TOOL:/.test(ctx.turn.lmResponse);
+
+    async execute(ctx: BotContext): Promise<void> {
+        const nar = ctx.seNARS!;
+        const directives = extractToolDirectives(ctx.turn.lmResponse!);
+
+        for (const directive of directives) {
+            const tool = nar.toolManager.get(directive.name);
+            if (!tool) {
+                ctx.turn.toolResults.push({ name: directive.name, error: 'Tool not found' });
+                continue;
+            }
+            try {
+                const result = await tool.execute(directive.args);
+                ctx.turn.toolResults.push({ name: directive.name, result });
+
+                // If tool produces Narsese, feed back to reasoner
+                if (result.narsese) {
+                    await nar.believe(result.narsese);
+                    await nar.run(3);
+                }
+            } catch (error) {
+                ctx.turn.toolResults.push({ name: directive.name, error: String(error) });
+            }
+        }
+
+        // Strip tool directives from visible response
+        ctx.turn.lmResponse = ctx.turn.lmResponse!.replace(/\[TOOL:[^\]]*\]\s*/g, '').trim();
+    }
+}
+```
+
+#### ResponseComposer
+
+```typescript
+class ResponseComposer implements PipelineStage {
+    name = 'ResponseComposer';
+    priority = 9;
+    enabled = () => true;
+
+    async execute(ctx: BotContext): Promise<void> {
+        // If CommandProcessor already set response, skip
+        if (ctx.turn.finalResponse) return;
+
+        const parts: string[] = [];
+
+        // SeNARS reasoning result
+        if (ctx.turn.reasoningResult) {
+            const r = ctx.turn.reasoningResult;
+            if (r.steps > 0) {
+                parts.push(this.formatReasoningResult(r));
+            } else if (ctx.turn.classification.primary === 'narsese') {
+                parts.push('No derivations found.');
+            }
+        }
+
+        // LM response
+        if (ctx.turn.lmResponse) {
+            parts.push(ctx.turn.lmResponse);
+        }
+
+        // Tool results
+        if (ctx.turn.toolResults.length > 0) {
+            parts.push(this.formatToolResults(ctx.turn.toolResults));
+        }
+
+        // Fallback if nothing produced output
+        if (parts.length === 0) {
+            const classification = ctx.turn.classification;
+            switch (classification.primary) {
+                case 'narsese':
+                    parts.push('Processed. No derivations.');
+                    break;
+                case 'query':
+                    parts.push(ctx.capabilities.hasSeNARS
+                        ? 'No derivation found. Try adding related beliefs first.'
+                        : "I don't have enough information to answer that.");
+                    break;
+                default:
+                    parts.push(ctx.capabilities.hasLM
+                        ? "I'm not sure how to respond to that."
+                        : 'Processed.');
+            }
+        }
+
+        ctx.turn.finalResponse = parts.join('\n\n');
+    }
+
+    private formatReasoningResult(result: DerivationResult): string {
+        return `Derived ${result.steps} belief(s).`;
+    }
+
+    private formatToolResults(results: ToolResult[]): string {
+        return results.map(r =>
+            r.error ? `✗ ${r.name}: ${r.error}` : `✓ ${r.name}: ${r.result}`
+        ).join('\n');
+    }
+}
+```
+
+#### ResponseFormatter
+
+```typescript
+class ResponseFormatter implements PipelineStage {
+    name = 'ResponseFormatter';
+    priority = 10;
+    enabled = () => true;
+
+    async execute(ctx: BotContext): Promise<void> {
+        const { connectionType } = ctx.connection;
+        const text = ctx.turn.finalResponse;
+
+        // IRC: strip markdown, chunk to 400 chars
+        if (connectionType === 'irc') {
+            ctx.turn.finalResponse = this.formatForIRC(text);
+        }
+        // WS/HTTP: keep markdown, no chunking needed (streaming handles it)
+        // CLI: keep markdown, optional colors
+        // Pipe: JSON-formatted if requested
+    }
+
+    private formatForIRC(text: string): string {
+        return text
+            .replace(/\*\*(.+?)\*\*/g, '$1')
+            .replace(/\*(.+?)\*/g, '$1')
+            .replace(/`(.+?)`/g, '$1')
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+            .slice(0, 400);
+    }
+}
+```
+
+#### StatePersistor
+
+```typescript
+class StatePersistor implements PipelineStage {
+    name = 'StatePersistor';
+    priority = 11;
+    enabled = () => true;
+
+    async execute(ctx: BotContext): Promise<void> {
+        // Log to episodic memory
+        this.episodicMemory?.log({
+            type: 'turn',
+            input: ctx.turn.input.text,
+            output: ctx.turn.finalResponse,
+            classification: ctx.turn.classification.primary,
+            reasoningTriggered: ctx.turn.reasoningTriggered,
+            sender: ctx.connection.sender,
+            source: ctx.connection.id,
+            timestamp: Date.now(),
+        });
+    }
+}
+```
+
+---
+
+## Utility Functions
+
+### Tool Directive Extraction
+
+```typescript
+interface ToolDirective {
+    name: string;
+    args: string;
+}
+
+function extractToolDirectives(response: string): ToolDirective[] {
+    const pattern = /\[TOOL:\s*(\w+)\s*\(([^)]*)\)\]/gi;
+    const results: ToolDirective[] = [];
+    for (const match of response.matchAll(pattern)) {
+        results.push({ name: match[1]!, args: match[2]! });
+    }
+    return results;
+}
+```
+
+### Stream to String
+
+```typescript
+async function streamToString(stream: AsyncIterable<{ content: string }>): Promise<string> {
+    let result = '';
+    for await (const chunk of stream) result += chunk.content;
+    return result;
+}
+```
+
+---
+
+## StreamChunk Types
+
+```typescript
+interface StreamChunk {
+    type: 'text' | 'reasoning' | 'tool' | 'error' | 'status';
+    content: string;
+    done: boolean;
+    metadata?: Record<string, unknown>;
+}
+
+interface LMClient {
+    isAvailable(): boolean;
+    supportsStreaming(): boolean;
+    generate(messages: Message[], options?: GenerateOptions): Promise<string>;
+    stream(messages: Message[], options?: StreamOptions): AsyncIterable<StreamChunk>;
+}
+```
+
+**Note**: `summarize()` was removed from `LMClient` — auto-summarization uses `generate()` with a summarization prompt instead of a dedicated method. This keeps the interface minimal.
 
 ---
 
@@ -346,52 +790,56 @@ interface ClassificationSignal {
 Classification uses weighted scoring per intent. Primary = highest aggregate score. Secondary = second highest if within 0.2 of primary. Confidence = primary score normalized.
 
 ```typescript
+// Narsese detection regex
+const NARSESE_REGEX = /^\s*\(\s*<[^>]+>\s*(-->|<->|==>|<=>|&&|\|\|)\s*/;
+
+// Keyword signals: [regex, intent, weight]
+const KEYWORD_SIGNALS: [RegExp, Intent, number][] = [
+    [/\b(why|how|therefore|because|implies|derive|prove|explain|analyze|reason)\b/i, 'reason', 0.5],
+    [/\b(if|then|when|given|suppose|assuming)\b.*\b(then|what|would|does)\b/i, 'reason', 0.4],
+    [/\b(difference between|compare|similar to|unlike|versus|vs)\b/i, 'reason', 0.2],
+    [/\b(tell me|what is|explain|describe|define)\b/i, 'query', 0.3],
+    [/\b([A-Z][a-z]+)\s+(is a|are|has|can|does|implies)\s+([A-Z][a-z]+)/i, 'reason', 0.2],
+];
+
 function classify(input: string, context: ConversationState): InputClassification {
     const scores: Record<Intent, number> = { chat: 0.1, reason: 0, query: 0, goal: 0, command: 0, narsese: 0 };
     const signals: ClassificationSignal[] = [];
-
     const trimmed = input.trim();
 
-    // Command
     if (trimmed.startsWith('/')) {
         scores.command = 1.0;
         signals.push({ type: 'structure', source: 'slash-prefix', intent: 'command', weight: 1.0 });
     }
 
-    // Narsese
     if (NARSESE_REGEX.test(trimmed)) {
         scores.narsese = 0.9;
         signals.push({ type: 'narsese', source: 'syntax-match', intent: 'narsese', weight: 0.9 });
     }
 
-    // Goal
     if (trimmed.startsWith('!')) {
         scores.goal = 0.8;
         signals.push({ type: 'structure', source: 'bang-prefix', intent: 'goal', weight: 0.8 });
     }
 
-    // Query
     if (trimmed.endsWith('?')) {
         scores.query += 0.6;
         signals.push({ type: 'structure', source: 'question-mark', intent: 'query', weight: 0.6 });
     }
 
-    // Keywords
     for (const [pattern, intent, weight] of KEYWORD_SIGNALS) {
-        if (pattern.test(trimmed.toLowerCase())) {
+        if (pattern.test(trimmed)) {
             scores[intent] += weight;
             signals.push({ type: 'keyword', source: pattern.source, intent, weight });
         }
     }
 
-    // LM suggestion from last turn
     const lastMsg = context.messages.at(-1);
     if (lastMsg?.role === 'assistant' && lastMsg.metadata?.suggestsReasoning) {
         scores.reason += 0.3;
         signals.push({ type: 'lm-suggestion', source: 'prior-turn', intent: 'reason', weight: 0.3 });
     }
 
-    // Mode override
     if (context.mode === 'reason') scores.reason += 0.5;
     if (context.mode === 'chat') scores.chat += 0.5;
 
@@ -399,12 +847,7 @@ function classify(input: string, context: ConversationState): InputClassificatio
     const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
     const secondary = sorted[1][1] > primary[1] - 0.2 ? sorted[1][0] as Intent : undefined;
 
-    return {
-        primary: primary[0],
-        secondary,
-        confidence: Math.min(primary[1], 1.0),
-        signals,
-    };
+    return { primary: primary[0], secondary, confidence: Math.min(primary[1], 1.0), signals };
 }
 ```
 
@@ -442,55 +885,11 @@ interface CommandDef {
     requiresLM?: boolean;       // Skip if LM unavailable
     requiresSeNARS?: boolean;   // Skip if SeNARS unavailable
     requiresFull?: boolean;     // Skip unless both available
-    handler: (args: string[], ctx: BotContext) => Promise<string | Streamable>;
+    handler: (args: string[], ctx: BotContext) => Promise<string | AsyncIterable<StreamChunk>>;
 }
 ```
 
 Commands declare their dependencies. The framework hides or disables commands whose requirements aren't met. `/help` and `/commands` only show available commands for the current mode.
-
-### Command Execution in Pipeline
-
-`CommandProcessor` stage handles `/` commands with early exit:
-
-```typescript
-class CommandProcessor implements PipelineStage {
-    name = 'CommandProcessor';
-    priority = 3;
-    enabled = () => true;
-
-    async execute(ctx: BotContext, next: () => Promise<void>): Promise<void> {
-        const text = ctx.turn.input.text.trim();
-        if (!text.startsWith('/')) { await next(); return; }
-
-        const parts = text.slice(1).split(/\s+/);
-        const cmdName = '/' + parts[0];
-        const args = parts.slice(1);
-
-        const cmd = this.registry.get(cmdName);
-        if (!cmd) {
-            ctx.turn.finalResponse = `Unknown command: ${cmdName}. Type /help for available commands.`;
-            return;
-        }
-
-        // Check requirements
-        if (cmd.requiresLM && !ctx.capabilities.hasLM) {
-            ctx.turn.finalResponse = `Command ${cmdName} requires LM (not available).`;
-            return;
-        }
-        if (cmd.requiresSeNARS && !ctx.capabilities.hasSeNARS) {
-            ctx.turn.finalResponse = `Command ${cmdName} requires SeNARS (not available).`;
-            return;
-        }
-        if (cmd.requiresFull && (!ctx.capabilities.hasLM || !ctx.capabilities.hasSeNARS)) {
-            ctx.turn.finalResponse = `Command ${cmdName} requires both LM and SeNARS.`;
-            return;
-        }
-
-        const result = await cmd.handler(args, ctx);
-        ctx.turn.finalResponse = typeof result === 'string' ? result : streamToString(result);
-    }
-}
-```
 
 ---
 
@@ -516,7 +915,7 @@ interface TriggerDecision {
 }
 
 class ReasoningTrigger {
-    private cooldown: number = 0;
+    private cooldown = 0;
 
     shouldTrigger(ctx: BotContext): TriggerDecision {
         if (this.cooldown > 0) { this.cooldown--; return { activate: false, confidence: 0, reason: 'cooldown' }; }
@@ -530,12 +929,7 @@ class ReasoningTrigger {
 
         if (combined >= this.config.threshold) {
             this.cooldown = this.config.cooldownTurns;
-            return {
-                activate: true,
-                confidence: combined,
-                reason: this.explain(heuristicScore, lmScore),
-                suggestedSteps: this.suggestSteps(combined),
-            };
+            return { activate: true, confidence: combined, reason: this.explain(heuristicScore, lmScore), suggestedSteps: this.suggestSteps(combined) };
         }
 
         return { activate: false, confidence: combined };
@@ -545,25 +939,12 @@ class ReasoningTrigger {
         const input = ctx.turn.input.text.toLowerCase();
         let score = 0;
 
-        // Knowledge gap: user asks about concept not in NAR memory
         if (this.detectKnowledgeGap(input, ctx)) score += 0.3;
-
-        // Contradiction: input conflicts with existing beliefs
         if (this.detectContradiction(input, ctx)) score += 0.4;
-
-        // Reasoning keywords
         if (/\b(why|how|therefore|because|implies|derive|prove|explain|analyze|reason)\b/.test(input)) score += 0.2;
-
-        // Multi-hop question patterns
         if (/\b(if|then|when|given|suppose|assuming)\b.*\b(then|what|would|does)\b/.test(input)) score += 0.3;
-
-        // Classification/subsumption patterns
         if (/\b([A-Z][a-z]+)\s+(is a|are|has|can|does|implies)\s+([A-Z][a-z]+)/i.test(input)) score += 0.2;
-
-        // Causal chains
         if ((input.match(/\bbecause\b|\btherefore\b|\bthus\b|\bso\b/g) || []).length >= 2) score += 0.2;
-
-        // Comparison patterns
         if (/\b(difference between|compare|similar to|unlike|versus|vs)\b/.test(input)) score += 0.2;
 
         return Math.min(score, 1.0);
@@ -571,26 +952,23 @@ class ReasoningTrigger {
 
     private evaluateLMSignal(ctx: BotContext): number {
         const lastMsg = ctx.conversation.messages.at(-1);
-        if (lastMsg?.role === 'assistant' && lastMsg.metadata?.suggestsReasoning) return 0.7;
-        return 0;
+        return lastMsg?.role === 'assistant' && lastMsg.metadata?.suggestsReasoning ? 0.7 : 0;
     }
 
     private detectKnowledgeGap(input: string, ctx: BotContext): boolean {
         if (!ctx.seNARS) return false;
         const concepts = ctx.seNARS.attentionReport(5);
-        const terms = extractNouns(input);
-        return terms.some(t => !concepts.some(c => c.term.toLowerCase().includes(t.toLowerCase())));
+        const terms = input.match(/\b[a-z]+\b/g) ?? [];
+        return terms.some(t => t.length > 3 && !concepts.some(c => c.term.toLowerCase().includes(t)));
     }
 
     private detectContradiction(input: string, ctx: BotContext): boolean {
         if (!ctx.seNARS) return false;
         const beliefs = ctx.seNARS.getBeliefs();
         const negations = ['not', "n't", 'no', 'never', 'false', 'wrong'];
-        const hasNegation = negations.some(n => input.includes(n));
-        if (!hasNegation) return false;
-        // Check if negated statement matches an existing belief
-        const terms = extractNouns(input);
-        return terms.some(t => beliefs.some(b => b.term.includes(t)));
+        if (!negations.some(n => input.includes(n))) return false;
+        const terms = input.match(/\b[a-z]+\b/g) ?? [];
+        return terms.some(t => t.length > 3 && beliefs.some(b => b.term.toLowerCase().includes(t)));
     }
 
     private explain(heuristic: number, lm: number): string {
@@ -604,6 +982,20 @@ class ReasoningTrigger {
         if (confidence > 0.8) return 10;
         if (confidence > 0.6) return 5;
         return 3;
+    }
+}
+
+// Pipeline stage wrapper
+class ReasoningTriggerStage implements PipelineStage {
+    name = 'ReasoningTrigger';
+    priority = 5;
+    enabled = (ctx) => ctx.capabilities.hasSeNARS && ctx.conversation.mode === 'auto';
+
+    constructor(private trigger: ReasoningTrigger) {}
+
+    async execute(ctx: BotContext): Promise<void> {
+        const decision = this.trigger.shouldTrigger(ctx);
+        ctx.turn.reasoningTriggered = decision.activate;
     }
 }
 ```
@@ -631,167 +1023,43 @@ The `LMResponder` stage extracts this marker and sets `metadata.suggestsReasonin
 
 ---
 
-## Tool Execution
-
-Replaces `ResponseInterpreter` tool extraction with a dedicated stage.
-
-### Tool Execution Flow
-
-```
-LMResponder generates response containing [TOOL:calculate(2+2)]
-     │
-ToolExecutor stage extracts tool directives
-     │
-For each tool directive:
-  1. Parse tool name and arguments
-  2. Check tool availability in NAR.toolManager
-  3. Execute tool with arguments
-  4. Capture result
-  5. If tool produces Narsese: feed back to SeNARSProcessor
-     │
-Tool results appended to turn.toolResults
-     │
-ResponseComposer incorporates tool results into final response
-```
-
-### Tool Directive Format
-
-LM output can include tool directives in the same format as `ResponseInterpreter`:
-
-```
-[TOOL:calculate(2+2)]
-[TOOL:search("birds migration patterns")]
-[TOOL:http("GET", "https://api.example.com/data")]
-```
-
-Users can also invoke tools directly:
-
-```
-/tools.run calculate 2+2
-/tools.run search "birds migration"
-```
-
-### ToolExecutor Stage
-
-```typescript
-class ToolExecutor implements PipelineStage {
-    name = 'ToolExecutor';
-    priority = 7;
-    enabled = (ctx) => ctx.capabilities.hasTools;
-
-    async execute(ctx: BotContext, next: () => Promise<void>): Promise<void> {
-        await next();  // Run after LMResponder
-
-        // Extract tool directives from LM response
-        const directives = extractToolDirectives(ctx.turn.lmResponse ?? '');
-
-        for (const directive of directives) {
-            const tool = ctx.seNARS!.toolManager.get(directive.name);
-            if (!tool) {
-                ctx.turn.toolResults.push({ name: directive.name, error: 'Tool not found' });
-                continue;
-            }
-            try {
-                const result = await tool.execute(directive.args);
-                ctx.turn.toolResults.push({ name: directive.name, result });
-
-                // If tool produces Narsese, feed back to SeNARS
-                if (result.narsese) {
-                    await ctx.seNARS!.believe(result.narsese);
-                    await ctx.seNARS!.run(3);
-                }
-            } catch (error) {
-                ctx.turn.toolResults.push({ name: directive.name, error: String(error) });
-            }
-        }
-    }
-}
-```
-
----
-
 ## Streaming Architecture
 
 Full token-by-token streaming with optional interleaved reasoning steps.
 
-### Streamable Types
-
-```typescript
-interface StreamChunk {
-    type: 'text' | 'reasoning' | 'tool' | 'error' | 'status';
-    content: string;
-    done: boolean;
-    metadata?: Record<string, unknown>;
-}
-
-interface LMClient {
-    isAvailable(): boolean;
-    supportsStreaming(): boolean;
-    generate(messages: Message[], options?: GenerateOptions): Promise<string>;
-    stream(messages: Message[], options?: StreamOptions): AsyncIterable<StreamChunk>;
-    summarize(messages: Message[]): Promise<string>;
-}
-```
-
 ### Streaming Pipeline Integration
 
-When streaming is enabled, `LMResponder` yields chunks instead of returning a single string:
+When streaming is enabled, `LMResponder` streams chunks directly to the connection:
 
 ```typescript
 class LMResponder implements PipelineStage {
     name = 'LMResponder';
-    priority = 8;
+    priority = 7;
     enabled = (ctx) => ctx.capabilities.hasLM;
 
-    async execute(ctx: BotContext, next: () => Promise<void>): Promise<void> {
-        if (!ctx.lm) { await next(); return; }
+    async execute(ctx: BotContext): Promise<void> {
+        if (!ctx.lm) return;
 
         const messages = this.buildMessages(ctx);
 
         if (ctx.config.streaming.enabled && ctx.lm.supportsStreaming()) {
-            ctx.turn.streaming = true;
             let fullResponse = '';
-
-            // Send typing indicator
             await ctx.connection.respond({ type: 'status', content: 'typing', done: false });
 
             for await (const chunk of ctx.lm.stream(messages)) {
                 fullResponse += chunk.content;
-
-                // Interleave reasoning steps if triggered
-                if (ctx.turn.reasoningTriggered && this.isReasoningBoundary(fullResponse)) {
-                    const reasoningStep = this.extractReasoningStep(fullResponse);
-                    if (reasoningStep) {
-                        await ctx.connection.respond({
-                            type: 'reasoning',
-                            content: reasoningStep,
-                            done: false,
-                        });
-                        ctx.conversation.addArtifact({ type: 'derivation', content: reasoningStep });
-                    }
-                }
-
                 await ctx.connection.respond(chunk);
             }
 
-            ctx.turn.lmResponse = fullResponse;
+            const cleaned = fullResponse.replace(/\[REASONING_SUGGESTED:[^\]]*\]\s*/g, '');
+            ctx.turn.lmResponse = cleaned.trim();
+
+            if (/\[REASONING_SUGGESTED:/.test(fullResponse)) {
+                ctx.turn.lmSuggestsReasoning = true;
+            }
         } else {
-            // Non-streaming fallback
             ctx.turn.lmResponse = await ctx.lm.generate(messages);
         }
-    }
-
-    private buildMessages(ctx: BotContext): Message[] {
-        const system = this.buildSystemPrompt(ctx);
-        const history = ctx.conversation.getHistory(ctx.config.conversation.maxHistory);
-        const reasoningContext = this.buildReasoningContext(ctx);
-
-        return [
-            { role: 'system', content: system },
-            ...(reasoningContext ? [{ role: 'system', content: reasoningContext }] : []),
-            ...history.map(m => ({ role: m.role, content: m.content })),
-            { role: 'user', content: ctx.turn.input.text },
-        ];
     }
 }
 ```
@@ -804,7 +1072,6 @@ For channels that support streaming (WS, HTTP, pipe), responses are sent as NDJS
 {"type": "status", "content": "typing", "done": false}
 {"type": "text", "content": "Let me think", "done": false}
 {"type": "text", "content": " about that...", "done": false}
-{"type": "reasoning", "content": "(<bird --> animal>. :1.0:0.9)", "done": false}
 {"type": "text", "content": "Birds are animals.", "done": true}
 ```
 
@@ -814,14 +1081,12 @@ For channels that don't support streaming (IRC), the stream is buffered and sent
 class ChannelStreamer {
     async streamTo(connection: ConnectionInfo, stream: AsyncIterable<StreamChunk>): Promise<void> {
         if (connection.type === 'irc') {
-            // Buffer and send as single message
             const buffered: string[] = [];
             for await (const chunk of stream) {
                 if (chunk.type === 'text') buffered.push(chunk.content);
             }
             await connection.respond(buffered.join(''));
         } else {
-            // Forward chunks directly
             await connection.stream(stream);
         }
     }
@@ -830,22 +1095,15 @@ class ChannelStreamer {
 
 ### Streaming Error Handling
 
-If the stream fails mid-response:
-
 ```typescript
 try {
     for await (const chunk of ctx.lm.stream(messages)) {
-        // ...
+        fullResponse += chunk.content;
+        await ctx.connection.respond(chunk);
     }
 } catch (error) {
-    // Send error chunk
-    await ctx.connection.respond({
-        type: 'error',
-        content: `Stream interrupted: ${error.message}`,
-        done: true,
-    });
+    await ctx.connection.respond({ type: 'error', content: `Stream interrupted: ${error.message}`, done: true });
 
-    // Fall back to non-streaming if partial response
     if (fullResponse.length > 0) {
         ctx.turn.lmResponse = fullResponse + ' [stream interrupted]';
     } else {
@@ -877,11 +1135,11 @@ Or ask the system questions:
   [QUESTION: (<term --> ?>.)]
 
 ## Knowledge Context
-{attentionReport}  // Top concepts from NAR
+{attentionReport}
 
-{recentBeliefs}    // Recent derived beliefs
+{recentBeliefs}
 
-{reasoningArtifacts}  // Recent reasoning steps visible to user
+{reasoningArtifacts}
 
 ## Conversation Guidelines
 - Be concise and direct
@@ -991,13 +1249,13 @@ When the bot runs background reasoning (idle wakeup), it generates Narsese input
 ```typescript
 interface BackgroundReasoningConfig {
     enabled: boolean;
-    intervalMs: number;           // How often to check
-    maxStepsPerCycle: number;     // Max reasoning steps per background cycle
+    intervalMs: number;
+    maxStepsPerCycle: number;
     priority: {
-        unansweredQuestions: number;  // Weight for unanswered questions
-        activeGoals: number;          // Weight for active goals
-        lowConfidenceBeliefs: number; // Weight for belief consolidation
-        userTopics: number;           // Weight for recent user topics
+        unansweredQuestions: number;
+        activeGoals: number;
+        lowConfidenceBeliefs: number;
+        userTopics: number;
     };
 }
 ```
@@ -1012,13 +1270,13 @@ Replaces current `SeNARSCLI` with a richer terminal interface.
 
 ```typescript
 interface TUIConfig {
-    showReasoningSteps: boolean;    // Show NAL derivations inline
-    showConfidence: boolean;        // Show truth values
-    showToolCalls: boolean;         // Show tool execution
-    typingIndicator: boolean;       // Show "thinking..." animation
-    colors: boolean;                // Terminal colors
-    compactMode: boolean;           // Minimal output
-    statusBar: boolean;             // Show persistent status bar
+    showReasoningSteps: boolean;
+    showConfidence: boolean;
+    showToolCalls: boolean;
+    typingIndicator: boolean;
+    colors: boolean;
+    compactMode: boolean;
+    statusBar: boolean;
 }
 ```
 
@@ -1073,6 +1331,7 @@ class REPL {
     private rl: readline.Interface;
     private history: string[] = [];
     private ctx: BotContext;
+    private pipeline: MessagePipeline;
 
     async start(): Promise<void> {
         this.printBanner();
@@ -1112,16 +1371,13 @@ class REPL {
         this.history.push(trimmed);
         console.log(cyan(`> ${trimmed}`));
 
-        // Show typing indicator for LM mode
-        if (this.ctx.capabilities.hasLM && this.config.tui.typingIndicator) {
+        if (this.ctx.capabilities.hasLM && this.ctx.config.tui.typingIndicator) {
             const spinner = ora('thinking...').start();
-
             try {
                 const response = await this.pipeline.process(
                     { text: trimmed, sender: 'user', source: 'cli' },
                     this.ctx,
                 );
-
                 spinner.stop();
                 this.displayResponse(response);
             } catch (error) {
@@ -1144,15 +1400,13 @@ class REPL {
     }
 
     private displayResponse(response: BotResponse): void {
-        // Show reasoning steps if enabled
-        if (this.config.tui.showReasoningSteps && response.reasoning) {
-            for (const step of response.reasoning.derivations) {
-                console.log(dim(`  → ${step.term} :${step.truth?.frequency}:${step.truth?.confidence}`));
+        if (this.ctx.config.tui.showReasoningSteps && response.reasoning?.steps) {
+            for (const belief of response.reasoning.beliefs.slice(-3)) {
+                console.log(dim(`  → ${belief.term} :${belief.truth?.frequency}:${belief.truth?.confidence}`));
             }
         }
 
-        // Show tool calls if enabled
-        if (this.config.tui.showToolCalls && response.actions.length > 0) {
+        if (this.ctx.config.tui.showToolCalls && response.actions.length > 0) {
             for (const action of response.actions) {
                 if (action.type === 'tool_call') {
                     console.log(cyan(`  ⚙ ${action.content} = ${action.result}`));
@@ -1160,7 +1414,6 @@ class REPL {
             }
         }
 
-        // Show main response
         console.log(white(`  bot: ${response.text}\n`));
     }
 }
@@ -1178,14 +1431,16 @@ Replaces `ConversationManager` + `ChatResponder.conversationHistory` + `LastResu
 class ConversationState {
     private messages: Message[] = [];
     private summary?: string;
-    private workingMemory = new Map<string, any>();
+    private workingMemory = new Map<string, unknown>();
     private reasoningArtifacts: ReasoningArtifact[] = [];
-    private pinnedBeliefs: Set<string> = new Set();
+    private pinnedBeliefs = new Set<string>();
     mode: BotMode = 'auto';
 
-    addMessage(msg: Message): void {
+    constructor(private readonly config: BotConfig) {}
+
+    addMessage(msg: Message, lm?: LMClient): void {
         this.messages.push(msg);
-        this.maybeSummarize();
+        if (lm) this.maybeSummarize(lm);
     }
 
     getHistory(limit?: number): Message[] {
@@ -1194,25 +1449,20 @@ class ConversationState {
 
     getContextForLM(maxConcepts: number, nar: NAR): string {
         const parts: string[] = [];
-
-        // Summary if available
         if (this.summary) parts.push(`Conversation summary: ${this.summary}`);
 
-        // NAR knowledge context
         const concepts = nar.attentionReport(maxConcepts);
         if (concepts.length > 0) {
             parts.push('Knowledge context:');
             for (const c of concepts) parts.push(`  - ${c.term} (priority: ${c.priority})`);
         }
 
-        // Recent reasoning artifacts
         const recent = this.getRecentArtifacts(5);
         if (recent.length > 0) {
             parts.push('Recent reasoning:');
             for (const a of recent) parts.push(`  - ${a.content}`);
         }
 
-        // Pinned beliefs
         if (this.pinnedBeliefs.size > 0) {
             parts.push('Pinned context:');
             for (const b of this.pinnedBeliefs) parts.push(`  - ${b}`);
@@ -1221,23 +1471,22 @@ class ConversationState {
         return parts.join('\n');
     }
 
-    private async maybeSummarize(ctx: BotContext): Promise<void> {
-        const threshold = ctx.config.conversation.summaryThreshold;
-        if (this.messages.length > threshold && ctx.lm) {
-            const toSummarize = this.messages.slice(0, -10);
-            this.summary = await ctx.lm.summarize(toSummarize);
-            this.messages = this.messages.slice(-10);
-        }
+    private async maybeSummarize(lm: LMClient): Promise<void> {
+        if (this.messages.length <= this.config.conversation.summaryThreshold) return;
+        const toSummarize = this.messages.slice(0, -10);
+        const prompt = `Summarize the following conversation in 2-3 sentences:\n\n${
+            toSummarize.map(m => `${m.role}: ${m.content}`).join('\n')
+        }`;
+        this.summary = await lm.generate([{ role: 'user', content: prompt }]);
+        this.messages = this.messages.slice(-10);
     }
 
-    // Working memory for cross-turn state (separate from NAR WorkingMemory)
     set(key: string, value: unknown): void { this.workingMemory.set(key, value); }
     get<T>(key: string): T | undefined { return this.workingMemory.get(key) as T; }
 
-    // Reasoning artifacts visible to user
     addArtifact(artifact: ReasoningArtifact): void {
         this.reasoningArtifacts.push(artifact);
-        const max = ctx.config.conversation.maxArtifacts;
+        const max = this.config.conversation.maxArtifacts;
         if (this.reasoningArtifacts.length > max) {
             this.reasoningArtifacts = this.reasoningArtifacts.slice(-Math.floor(max / 2));
         }
@@ -1247,7 +1496,6 @@ class ConversationState {
         return this.reasoningArtifacts.slice(-limit);
     }
 
-    // Pinned beliefs (user-selected important context)
     pin(belief: string): void { this.pinnedBeliefs.add(belief); }
     unpin(belief: string): void { this.pinnedBeliefs.delete(belief); }
     getPinned(): string[] { return [...this.pinnedBeliefs]; }
@@ -1268,6 +1516,8 @@ interface Message {
 }
 ```
 
+**Key fix**: `ConversationState` now stores `config` in its constructor, so `addArtifact` and `maybeSummarize` can access configuration without needing a `ctx` parameter. `maybeSummarize` uses `lm.generate()` with a summarization prompt instead of a non-existent `lm.summarize()`.
+
 ### Conversation State Manager
 
 Manages per-sender conversation states:
@@ -1276,32 +1526,25 @@ Manages per-sender conversation states:
 class ConversationStateManager {
     private states = new Map<string, ConversationState>();
 
-    getOrCreate(sender: string, config: BotConfig): ConversationState {
+    constructor(private readonly config: BotConfig) {}
+
+    getOrCreate(sender: string): ConversationState {
         if (!this.states.has(sender)) {
-            this.states.set(sender, new ConversationState());
+            this.states.set(sender, new ConversationState(this.config));
         }
         return this.states.get(sender)!;
     }
 
-    get(sender: string): ConversationState | undefined {
-        return this.states.get(sender);
-    }
+    get(sender: string): ConversationState | undefined { return this.states.get(sender); }
+    remove(sender: string): void { this.states.delete(sender); }
+    getAll(): ReadonlyMap<string, ConversationState> { return this.states; }
 
-    remove(sender: string): void {
-        this.states.delete(sender);
-    }
-
-    getAll(): ReadonlyMap<string, ConversationState> {
-        return this.states;
-    }
-
-    // Serialize for save/load
     serialize(): Record<string, unknown> {
         const result: Record<string, unknown> = {};
         for (const [sender, state] of this.states) {
             result[sender] = {
                 messages: state.getHistory(),
-                summary: state.summary,
+                summary: (state as any).summary,
                 pinnedBeliefs: state.getPinned(),
                 mode: state.mode,
             };
@@ -1319,12 +1562,12 @@ Current loop unconditionally runs NAR steps. Redesigned loop adapts to capabilit
 
 ```typescript
 interface AgenticLoopConfig {
-    maxInputTurns: number;        // Turns before wakeup
-    maxWakeTurns: number;         // Max turns per wakeup cycle
-    sleepIntervalMs: number;      // Polling interval
-    wakeupIntervalMs: number;     // Idle time before wakeup
+    maxInputTurns: number;
+    maxWakeTurns: number;
+    sleepIntervalMs: number;
+    wakeupIntervalMs: number;
     reasoningStepsPerWake: number;
-    backgroundReasoning: boolean; // Enable background reasoning
+    backgroundReasoning: boolean;
     backgroundIntervalMs: number;
 }
 
@@ -1334,21 +1577,19 @@ class AgenticLoop {
     private config: AgenticLoopConfig;
     private queue: MessageQueue;
     private running = false;
+    private handler: (msg: IOMessage) => Promise<void> = async () => {};
+    private seNARS?: NAR;  // Direct NAR reference for background reasoning
 
-    constructor(pipeline: MessagePipeline, episodicMemory: EpisodicMemory, config?: AgenticLoopConfig) {
+    constructor(pipeline: MessagePipeline, episodicMemory: EpisodicMemory, seNARS: NAR | undefined, config?: AgenticLoopConfig) {
         this.pipeline = pipeline;
         this.episodicMemory = episodicMemory;
+        this.seNARS = seNARS;
         this.config = { ...DEFAULT_LOOP_CONFIG, ...config };
         this.queue = new MessageQueue();
     }
 
-    pushMessage(message: IOMessage): void {
-        this.queue.push(message);
-    }
-
-    setMessageHandler(handler: (msg: IOMessage) => Promise<void>): void {
-        this.handler = handler;
-    }
+    pushMessage(message: IOMessage): void { this.queue.push(message); }
+    setMessageHandler(handler: (msg: IOMessage) => Promise<void>): void { this.handler = handler; }
 
     async runLoop(): Promise<void> {
         while (this.running) {
@@ -1368,39 +1609,28 @@ class AgenticLoop {
     }
 
     async wakeupSequence(): Promise<void> {
-        const caps = this.detectCapabilities();
-        let turnsRun = 0;
+        const hasSeNARS = !!this.seNARS;
+        const hasMemory = hasSeNARS && !!this.seNARS!.memory;
 
-        // SeNARS: background reasoning (only if SeNARS available)
-        if (caps.hasSeNARS && this.config.backgroundReasoning) {
-            await this.backgroundReasoning(caps);
+        if (hasSeNARS && this.config.backgroundReasoning) {
+            await this.backgroundReasoning();
         }
 
-        // LM: memory enrichment (only if both available)
-        if (caps.hasLM && caps.hasSeNARS) {
-            await this.memoryEnrichment();
+        if (hasSeNARS && this.seNARS!.lm) {
+            await this.seNARS!.enrichMemoryWithLM();
         }
 
-        // Memory: consolidation (only if memory available)
-        if (caps.hasMemory) {
-            await this.memoryConsolidation();
+        if (hasMemory) {
+            await this.seNARS!.memory.consolidate();
         }
 
-        // Self-analysis (only if both available)
-        if (caps.hasLM && caps.hasSeNARS) {
-            await this.selfAnalysis();
-        }
-
-        // Episodic: pattern detection
         await this.episodicCheck();
 
-        this.episodicMemory.log({ type: 'wakeup', turns: turnsRun, capabilities: caps });
+        this.episodicMemory.log({ type: 'wakeup', capabilities: { hasSeNARS, hasMemory } });
     }
 
-    private async backgroundReasoning(caps: Capabilities): Promise<void> {
-        if (!this.ctx.seNARS) return;
-
-        const nar = this.ctx.seNARS;
+    private async backgroundReasoning(): Promise<void> {
+        const nar = this.seNARS!;
         const steps = this.config.reasoningStepsPerWake;
 
         // Priority 1: Answer unanswered questions
@@ -1424,15 +1654,20 @@ class AgenticLoop {
         // Priority 4: Reason about recent user topics
         const recentTopics = this.extractRecentTopics();
         for (const topic of recentTopics.slice(0, 2)) {
-            // Create a question about the topic to stimulate reasoning
             await nar.question(`(<${topic} --> ?>)`);
             await nar.run(steps);
         }
     }
+
+    private extractRecentTopics(): string[] {
+        // Extract topics from recent episodic memory
+        // Implementation depends on EpisodicMemory API
+        return [];
+    }
 }
 ```
 
-Each wakeup stage checks its own requirements. No stage fails if a capability is missing.
+**Key fix**: `AgenticLoop` now stores `seNARS` directly as a constructor parameter (instead of referencing non-existent `this.ctx`). `wakeupSequence` checks capabilities locally instead of calling a non-existent `detectCapabilities()` method.
 
 ### Background Reasoning Prompts
 
@@ -1465,27 +1700,26 @@ Framework gracefully degrades based on available capabilities.
 ```typescript
 class DegradationManager {
     private lmAvailable = true;
-    private currentMode: BotMode;
-    private listeners: Array<(mode: BotMode) => void> = [];
+    private listeners: Array<(message: string) => void> = [];
 
     checkLMHealth(): void {
         const wasAvailable = this.lmAvailable;
         this.lmAvailable = this.testLMConnectivity();
 
         if (wasAvailable && !this.lmAvailable) {
-            this.notifyModeChange('Switched to reasoning mode (LM unavailable)');
-            this.reconfigurePipeline();
+            this.notify('LM unavailable — switched to reasoning mode. Commands and Narsese input still work.');
         } else if (!wasAvailable && this.lmAvailable) {
-            this.notifyModeChange('LM restored, full mode active');
-            this.reconfigurePipeline();
+            this.notify('LM restored — full mode active.');
         }
     }
 
-    private reconfigurePipeline(): void {
-        // Dynamically enable/disable pipeline stages
-        for (const stage of this.pipeline.stages) {
-            stage.enabled = this.computeStageEnabled(stage);
-        }
+    reconfigurePipeline(pipeline: MessagePipeline): void {
+        // Pipeline stages self-check via enabled() predicates
+        // No explicit reconfiguration needed — next process() call uses current state
+    }
+
+    private notify(message: string): void {
+        for (const listener of this.listeners) listener(message);
     }
 }
 ```
@@ -1497,6 +1731,8 @@ Degradation notifications are sent to all connected channels:
 [SYSTEM] LM restored — full mode active.
 ```
 
+**Key fix**: `DegradationManager` no longer tries to reassign `stage.enabled` (which would replace a function with a boolean). Instead, stages check `ctx.capabilities` at runtime, so degradation is automatic on the next `process()` call.
+
 ---
 
 ## MCP Integration
@@ -1504,7 +1740,6 @@ Degradation notifications are sent to all connected channels:
 MCP server shares the same NAR instance and pipeline. In the new architecture:
 
 ```typescript
-// MCP server uses the same pipeline for processing
 const mcpServer = new SeNARSMCPServer({
     name: 'senars-bot',
     version: '1.0.0',
@@ -1512,17 +1747,9 @@ const mcpServer = new SeNARSMCPServer({
 });
 
 const adapter = mcpServer.getAdapter();
-
-// Register NAR tools as MCP tools
 registerNARToolsAsMCP(nar, adapter);
-
-// Register MCP prompts that use the pipeline
 registerMCPPrompts(adapter, pipeline);
-
-// Register MCP resources (beliefs, concepts, episodes)
 registerMCPResources(adapter, nar);
-
-// Register scenario/experiment/self-analysis APIs
 registerScenarioAPIs(scenarioRunner);
 registerExperimentAPIs(experimentRunner);
 registerSelfAnalysisAPIs(selfAnalyzer);
@@ -1572,11 +1799,14 @@ Each connection type (IRC, WS, HTTP, CLI, pipe, MCP) implements `BotConnection`.
 class MessagePipeline {
     async process(message: IOMessage, ctx: BotContext): Promise<BotResponse> {
         try {
-            // ... stage execution
+            for (const stage of this.stages) {
+                if (!stage.enabled(ctx)) continue;
+                await stage.execute(ctx);
+                if (ctx.turn.finalResponse && stage.name === 'CommandProcessor') break;
+            }
         } catch (error) {
             ctx.turn.error = error as Error;
             ctx.turn.finalResponse = this.generateErrorResponse(error, ctx);
-            this.logError(error, ctx);
         }
         return this.composeResponse(ctx);
     }
@@ -1707,6 +1937,190 @@ SENARS_TUI_COLORS=true
 
 ---
 
+## Bot Class
+
+The `Bot` class replaces `Agent` as the top-level orchestrator. It wires the pipeline, connections, and context.
+
+```typescript
+interface BotDeps {
+    profile: BotProfile;
+    lm?: LMClient;
+    nar?: NAR;
+    pipeline: MessagePipeline;
+    stateManager: ConversationStateManager;
+    config: BotConfig;
+    capabilities: Capabilities;
+    connectionManager: ConnectionManager;
+    degradationManager?: DegradationManager;
+}
+
+class Bot {
+    readonly profile: BotProfile;
+    readonly pipeline: MessagePipeline;
+    readonly stateManager: ConversationStateManager;
+    readonly config: BotConfig;
+    readonly capabilities: Capabilities;
+    private readonly lm?: LMClient;
+    private readonly nar?: NAR;
+    private readonly connectionManager: ConnectionManager;
+    private readonly degradationManager?: DegradationManager;
+
+    constructor(deps: BotDeps) {
+        this.profile = deps.profile;
+        this.lm = deps.lm;
+        this.nar = deps.nar;
+        this.pipeline = deps.pipeline;
+        this.stateManager = deps.stateManager;
+        this.config = deps.config;
+        this.capabilities = deps.capabilities;
+        this.connectionManager = deps.connectionManager;
+        this.degradationManager = deps.degradationManager;
+    }
+
+    getConnectionInfo(msg: IOMessage): ConnectionInfo {
+        const conn = this.connectionManager.get(msg.source);
+        return {
+            id: msg.source,
+            type: conn?.type ?? 'cli',
+            sender: msg.sender,
+            respond: async (text) => {
+                const content = typeof text === 'string' ? text : text.content;
+                await this.connectionManager.get(msg.source)?.send(msg.sender, content);
+            },
+            stream: async (stream) => {
+                const c = this.connectionManager.get(msg.source);
+                if (c?.stream) await c.stream(msg.sender, stream);
+                else {
+                    // Fallback: buffer and send
+                    let buf = '';
+                    for await (const chunk of stream) buf += chunk.content;
+                    await c?.send(msg.sender, buf);
+                }
+            },
+        };
+    }
+
+    createContext(connInfo: ConnectionInfo, conversation: ConversationState): BotContext {
+        return {
+            profile: this.profile,
+            lm: this.lm,
+            seNARS: this.nar,
+            connection: connInfo,
+            conversation,
+            turn: {
+                input: {} as IOMessage,  // Set by pipeline.process()
+                classification: { primary: 'chat', confidence: 0.1, signals: [] },
+                reasoningTriggered: false,
+                lmSuggestsReasoning: false,
+                toolResults: [],
+                actions: [],
+                finalResponse: '',
+            },
+            config: this.config,
+            capabilities: this.capabilities,
+        };
+    }
+
+    async processMessage(msg: IOMessage, connInfo: ConnectionInfo, conversation: ConversationState): Promise<BotResponse> {
+        const ctx = this.createContext(connInfo, conversation);
+        const response = await this.pipeline.process(msg, ctx);
+
+        // Add messages to conversation state
+        conversation.addMessage({ role: 'user', content: msg.text, timestamp: Date.now() }, this.lm);
+        conversation.addMessage({
+            role: 'assistant',
+            content: response.text,
+            timestamp: Date.now(),
+            metadata: ctx.turn.lmSuggestsReasoning ? { suggestsReasoning: true } : undefined,
+        }, this.lm);
+
+        // Record reasoning artifacts
+        if (ctx.turn.reasoningResult) {
+            conversation.addArtifact({
+                type: 'derivation',
+                content: `Derived ${ctx.turn.reasoningResult.steps} belief(s)`,
+                timestamp: Date.now(),
+            });
+        }
+
+        return response;
+    }
+
+    async startConnections(connections: Record<string, ConnectionConfig>): Promise<void> {
+        for (const [id, config] of Object.entries(connections)) {
+            try {
+                await this.connectionManager.add(config);
+            } catch (error) {
+                console.error(`Failed to connect ${id}: ${error}`);
+            }
+        }
+    }
+}
+```
+
+---
+
+## Bot Entry Point
+
+### Wiring: `bot.ts`
+
+```typescript
+async function main() {
+    // 1. Load configuration
+    const config = await loadConfig();
+
+    // 2. Create capabilities
+    const lm = config.capabilities.lm.enabled ? await createLMClient(config.capabilities.lm) : undefined;
+    const nar = config.capabilities.senars.enabled ? SeNARSFactory.createDefault(config.capabilities.senars) : undefined;
+    const capabilities = detectCapabilities(lm, nar);
+
+    // 3. Create unified context
+    const profile = new BotProfile(config.profile);
+    const stateManager = new ConversationStateManager(config);
+    const connectionManager = new ConnectionManager();
+    const pipeline = createPipeline(config, nar, lm);
+
+    // 4. Create Bot (replaces Agent)
+    const bot = new Bot({ profile, lm, nar, pipeline, stateManager, config, capabilities, connectionManager });
+
+    // 5. Create AgenticLoop
+    const episodicMemory = new EpisodicMemory();
+    const loop = new AgenticLoop(pipeline, episodicMemory, nar, config.agenticLoop);
+
+    // 6. Wire message handler
+    loop.setMessageHandler(async (msg: IOMessage) => {
+        const connInfo = bot.getConnectionInfo(msg);
+        const conversation = stateManager.getOrCreate(msg.sender);
+        const response = await bot.processMessage(msg, connInfo, conversation);
+        if (response.text) await connInfo.respond(response.text);
+    });
+
+    // 7. Start loop and connections
+    loop.start();
+    await bot.startConnections(config.connections);
+}
+
+function createPipeline(config: BotConfig, nar?: NAR, lm?: LMClient): MessagePipeline {
+    const capabilities = detectCapabilities(lm, nar);
+    const trigger = new ReasoningTrigger(defaultTriggerConfig);
+    return new MessagePipeline([
+        new InputNormalizer(),
+        new AuthChecker(),
+        new CommandProcessor(new CommandRegistry()),
+        new InputClassifier(),
+        new ReasoningTriggerStage(trigger),
+        new SeNARSProcessor(),
+        new LMResponder(),
+        new ToolExecutor(),
+        new ResponseComposer(),
+        new ResponseFormatter(),
+        new StatePersistor(),
+    ]);
+}
+```
+
+---
+
 ## File Structure (Proposed)
 
 ```
@@ -1725,8 +2139,8 @@ src/bot/
 │   │   ├── InputClassifier.ts
 │   │   ├── ReasoningTrigger.ts
 │   │   ├── SeNARSProcessor.ts
-│   │   ├── ToolExecutor.ts
 │   │   ├── LMResponder.ts
+│   │   ├── ToolExecutor.ts
 │   │   ├── ResponseComposer.ts
 │   │   ├── ResponseFormatter.ts
 │   │   └── StatePersistor.ts
@@ -1768,7 +2182,6 @@ During migration, old `Agent` class wraps the new pipeline:
 class Agent {
     private pipeline: MessagePipeline;
 
-    // Old API still works
     async processMessage(text: string, ctx: ChannelContext): Promise<ChannelResponse> {
         const botCtx = this.adaptChannelContext(ctx);
         const response = await this.pipeline.process(
@@ -1786,11 +2199,195 @@ class Agent {
 
 ---
 
+## Testing Strategy
+
+### Unit Tests (per stage)
+
+Each pipeline stage is independently testable:
+
+```typescript
+describe('InputClassifier', () => {
+    it('classifies slash prefix as command', () => {
+        const result = classify('/help', createEmptyContext());
+        assert.equal(result.primary, 'command');
+    });
+
+    it('classifies Narsese syntax as narsese', () => {
+        const result = classify('(<bird --> animal>.)', createEmptyContext());
+        assert.equal(result.primary, 'narsese');
+    });
+
+    it('classifies terminal ? as query', () => {
+        const result = classify('What is a bird?', createEmptyContext());
+        assert.equal(result.primary, 'query');
+    });
+
+    it('detects reasoning keywords', () => {
+        const result = classify('Why do birds migrate?', createEmptyContext());
+        assert.equal(result.primary, 'reason');
+    });
+
+    it('respects mode override', () => {
+        const ctx = createEmptyContext();
+        ctx.conversation.mode = 'chat';
+        const result = classify('Why do birds migrate?', ctx);
+        assert.equal(result.primary, 'chat');
+    });
+});
+
+describe('ReasoningTrigger', () => {
+    it('triggers on multi-hop patterns', () => {
+        const ctx = createSeNARSContext('If all cats are mammals and Felix is a cat...');
+        const trigger = new ReasoningTrigger(defaultConfig);
+        const decision = trigger.shouldTrigger(ctx);
+        assert.isTrue(decision.activate);
+    });
+
+    it('respects cooldown', () => {
+        // ...
+    });
+
+    it('skips in chat mode', () => {
+        // ...
+    });
+});
+
+describe('ResponseComposer', () => {
+    it('merges LM response with reasoning result', () => {
+        // ...
+    });
+
+    it('falls back when no stages produce output', () => {
+        // ...
+    });
+});
+```
+
+### Integration Tests
+
+```typescript
+describe('Pipeline — Full Mode', () => {
+    it('processes Narsese input and derives', async () => {
+        const pipeline = createFullPipeline();
+        const ctx = createFullContext();
+        const response = await pipeline.process({ text: '(<bird --> animal>.)', sender: 'user', source: 'cli' }, ctx);
+        assert.include(response.text, 'Added');
+    });
+
+    it('auto-triggers reasoning on causal question', async () => {
+        const pipeline = createFullPipeline();
+        const ctx = createFullContext();
+        const response = await pipeline.process({ text: 'Why do birds fly south?', sender: 'user', source: 'cli' }, ctx);
+        assert.isTrue(ctx.turn.reasoningTriggered);
+    });
+});
+
+describe('Pipeline — LM-only Mode', () => {
+    it('responds with LM when SeNARS unavailable', async () => {
+        const pipeline = createLMOnlyPipeline();
+        const ctx = createLMOnlyContext();
+        const response = await pipeline.process({ text: 'Tell me about birds', sender: 'user', source: 'cli' }, ctx);
+        assert.isUndefined(ctx.turn.reasoningResult);
+        assert.ok(ctx.turn.lmResponse);
+    });
+});
+
+describe('Pipeline — SeNARS-only Mode', () => {
+    it('processes Narsese without LM', async () => {
+        const pipeline = createSeNARSOnlyPipeline();
+        const ctx = createSeNARSOnlyContext();
+        const response = await pipeline.process({ text: '(<bird --> animal>.)', sender: 'user', source: 'cli' }, ctx);
+        assert.isUndefined(ctx.turn.lmResponse);
+        assert.ok(ctx.turn.reasoningResult);
+    });
+});
+```
+
+### Degradation Tests
+
+```typescript
+describe('Degradation', () => {
+    it('switches to SeNARS-only when LM fails', async () => {
+        // ...
+    });
+
+    it('recovers when LM returns', async () => {
+        // ...
+    });
+});
+```
+
+---
+
+## Security Considerations
+
+### Rate Limiting
+
+`AuthChecker` stage enforces per-sender rate limits:
+
+```typescript
+class RateLimiter {
+    private windows = new Map<string, number[]>();
+
+    isAllowed(sender: string, maxPerMinute = 30): boolean {
+        const now = Date.now();
+        const window = this.windows.get(sender) ?? [];
+        const recent = window.filter(t => now - t < 60_000);
+        if (recent.length >= maxPerMinute) return false;
+        recent.push(now);
+        this.windows.set(sender, recent);
+        return true;
+    }
+}
+```
+
+### Input Validation
+
+- Narsese input is parsed by the existing Narsese parser (validates syntax before execution)
+- Command arguments are validated by each command's handler
+- LM responses are sanitized: `[REASONING_SUGGESTED:...]` and `[TOOL:...]` markers are stripped before display
+- Tool execution is sandboxed by NAR's `ToolManager`
+
+### Authentication
+
+- IRC: nick-based auth with secret handshake (`SENARS_IRC_AUTH_SECRET`)
+- WS/HTTP: token-based auth via `ConnectionConfig.authSecret`
+- MCP: stdio transport (inherently trusted)
+- CLI: no auth (local access)
+
+---
+
+## Performance Considerations
+
+### Hot Path Optimization
+
+The pipeline's `process()` method is the hot path. Optimizations:
+
+- `enabled()` predicates are checked before `execute()` — disabled stages cost only a boolean check
+- `ConversationState.getHistory()` returns a slice copy only when needed (LM responder)
+- Reasoning artifacts are capped at `maxArtifacts` with aggressive trimming (keep last 50% when over limit)
+- NAR `attentionReport()` and `getBeliefs()` are called only when building LM context, not every turn
+
+### Streaming Overhead
+
+- NDJSON streaming adds minimal overhead (one JSON parse per chunk)
+- IRC buffering collects all text chunks before sending (single message, respects 400-char limit via `ResponseFormatter`)
+- WS/HTTP/pipe channels forward chunks directly (no buffering)
+
+### Memory Management
+
+- `ConversationState.messages` is pruned via auto-summarization at `summaryThreshold`
+- `reasoningArtifacts` is capped at `maxArtifacts`
+- `workingMemory` is unbounded but intended for small cross-turn values
+- NAR memory is managed by NAR's own consolidation (decay, forgetting)
+
+---
+
 ## Migration Plan
 
 ### Phase 1: Foundation
 - [ ] Create `BotContext`, `ConversationState`, `Capabilities`, `BotConfig` types
-- [ ] Implement `MessagePipeline` with stage interface and `enabled()` predicates
+- [ ] Implement `MessagePipeline` with sequential stage execution (no `next()` callbacks)
 - [ ] Implement capability detection at startup
 - [ ] Implement `ConversationStateManager` for per-sender state
 - [ ] Port `InputNormalizer` and `AuthChecker` stages
@@ -1799,15 +2396,15 @@ class Agent {
 ### Phase 2: Core Processing
 - [ ] Implement `InputClassifier` with weighted multi-signal classification
 - [ ] Implement `ReasoningTrigger` with hybrid heuristics + LM signals
-- [ ] Implement `SeNARSProcessor` stage (believe, question, goal, derive)
-- [ ] Implement `LMResponder` stage with system prompt builder
+- [ ] Implement `SeNARSProcessor` stage (believe, question, goal, derive, NL-to-Narsese)
+- [ ] Implement `LMResponder` stage with system prompt builder and streaming support
 - [ ] Implement `ToolExecutor` stage for tool directive extraction and execution
-- [ ] Implement `ResponseComposer` stage (merge SeNARS + LM + tool results)
+- [ ] Implement `ResponseComposer` stage (merge SeNARS + LM + tool results with fallback)
 
 ### Phase 3: Streaming
-- [ ] Implement `StreamChunk` types and `LMClient.stream()` interface
+- [ ] Implement `StreamChunk` types
 - [ ] Implement `LMStreamAdapter` — Vercel AI SDK → AsyncIterable
-- [ ] Implement `ChannelStreamer` — per-channel streaming logic with buffering
+- [ ] Implement `ChannelStreamer` — per-channel streaming logic with IRC buffering
 - [ ] Implement NDJSON streaming protocol for WS/HTTP/pipe
 - [ ] Implement streaming error handling and fallback
 - [ ] Update `LMResponder` to support streaming mode
@@ -1821,7 +2418,7 @@ class Agent {
 - [ ] Add `/mode` command support in TUI
 
 ### Phase 5: AgenticLoop
-- [ ] Redesign `AgenticLoop` to use pipeline instead of `Agent.processMessage()`
+- [ ] Redesign `AgenticLoop` to accept `pipeline` and `seNARS` directly (no `Agent` dependency)
 - [ ] Implement capability-aware wakeup sequence
 - [ ] Implement background reasoning with priority queue
 - [ ] Add cooldown and sensitivity configuration
@@ -1830,7 +2427,7 @@ class Agent {
 ### Phase 6: Configuration & Degradation
 - [ ] Implement `bot.config.jsonc` loading with validation
 - [ ] Implement environment variable overrides
-- [ ] Implement `DegradationManager` with runtime reconfiguration
+- [ ] Implement `DegradationManager` with runtime health checks
 - [ ] Add degradation notifications to all channels
 - [ ] Implement graceful LM/SeNARS failure recovery
 
@@ -1949,7 +2546,8 @@ class Agent {
 
 | Decision | Rationale |
 |---|---|
-| Pipeline over monolith | Each stage is testable, replaceable, skippable |
+| Sequential pipeline (no `next()` callbacks) | Simpler, avoids callback nesting bugs, easier to reason about |
+| `CommandProcessor` breaks loop via `finalResponse` check | Clean early-exit without special control flow |
 | Optional capabilities | Framework works with LM-only, SeNARS-only, or both |
 | `/` prefix | Standard across chat platforms, no punctuation conflicts |
 | Hybrid auto-triggering | Heuristics catch obvious cases, LM catches subtle ones |
@@ -1957,10 +2555,12 @@ class Agent {
 | Streaming first-class | Enables real-time feedback, reasoning visibility |
 | Modeless by default | Context-aware, no manual mode switching required |
 | `/mode` override | Users can force behavior when auto-detection is wrong |
-| Auto-summarization | Keeps LM context windows manageable for long conversations |
+| Auto-summarization via `generate()` | No dedicated `summarize()` method needed — keeps `LMClient` minimal |
+| `ConversationState` stores `config` | Avoids passing `ctx` through every method |
+| `AgenticLoop` stores `seNARS` directly | No dependency on `Agent` or non-existent `ctx` |
+| Degradation via runtime `enabled()` checks | No need to reassign stage functions — next call uses current capabilities |
 | Capability matrix at startup | Clear feedback about what's available |
 | Per-sender conversation state | Multi-user support without state leakage |
-| `enabled()` predicates | Stages self-determine activation, no hardcoding |
 | Error type hierarchy | Specific errors enable targeted recovery |
 | Config file + env overrides | Flexible deployment across environments |
 | Compatibility wrapper | Gradual migration without breaking existing code |

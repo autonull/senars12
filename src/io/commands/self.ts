@@ -8,9 +8,10 @@ interface ExtendedNAR extends NAR {
 
 export const selfCommands: CommandDefinition[] = [
 {
-	name: '.self',
+	name: '/self',
+	aliases: ['.self'],
 	description: 'Show self/metacognition status',
-	usage: '.self',
+	usage: '/self',
 	execute: async (_args, ctx) => {
 		const nar = ctx.nar as ExtendedNAR;
 		const self = nar.selfAnalyzer || ctx.nar.getSelfAnalyzer();
@@ -19,9 +20,10 @@ export const selfCommands: CommandDefinition[] = [
 	}
 },
 {
-	name: '.self.analyze',
+	name: '/self.analyze',
+	aliases: ['.self.analyze'],
 	description: 'Run self-analysis and print report',
-	usage: '.self analyze',
+	usage: '/self analyze',
 	execute: async (_args, ctx) => {
 		const nar = ctx.nar as ExtendedNAR;
 		if (!nar.selfAnalyzer) return 'SelfAnalyzer not available';
@@ -35,9 +37,10 @@ export const selfCommands: CommandDefinition[] = [
 	},
 },
 {
-	name: '.self.propose',
+	name: '/self.propose',
+	aliases: ['.self.propose'],
 	description: 'Show improvement suggestions',
-	usage: '.self propose',
+	usage: '/self propose',
 	execute: async (_args, ctx) => {
 		const nar = ctx.nar as ExtendedNAR;
 		if (!nar.selfAnalyzer) return 'SelfAnalyzer not available';
@@ -49,23 +52,25 @@ export const selfCommands: CommandDefinition[] = [
 	},
 },
 {
-	name: '.self.apply',
+	name: '/self.apply',
+	aliases: ['.self.apply'],
 	description: 'Apply suggested improvement',
-	usage: '.self apply <id>',
+	usage: '/self apply <id>',
 	execute: async (args, ctx) => {
 		const nar = ctx.nar as ExtendedNAR;
 		if (!nar.selfAnalyzer) return 'SelfAnalyzer not available';
 
 		const proposalId = args[0];
-		if (!proposalId) return 'Usage: .self apply <id>\nUse .self propose to see available improvements';
+		if (!proposalId) return 'Usage: /self apply <id>\nUse /self propose to see available improvements';
 
 		return `Improvement ${proposalId} application pending implementation`;
 	},
 },
     {
-        name: '.meta',
+        name: '/meta',
+        aliases: ['.meta'],
         description: 'Show meta-analysis report',
-        usage: '.meta',
+        usage: '/meta',
         execute: async (_args, ctx) => {
             const self = ctx.nar.getSelfAnalyzer();
             if (!self) return 'Self/Metacognition is not enabled';
@@ -81,9 +86,10 @@ Rule Execution: ${performance.ruleExecution.toFixed(1)}ms`;
         }
     },
     {
-        name: '.constitution',
+        name: '/constitution',
+        aliases: ['.constitution'],
         description: 'View or add constitutional beliefs',
-        usage: '.constitution [add <term>]',
+        usage: '/constitution [add <term>]',
         execute: async (args, ctx) => {
             const nar = ctx.nar as NAR;
             if (args[0] === 'add' && args[1]) {

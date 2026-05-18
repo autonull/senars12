@@ -7,9 +7,10 @@ interface ExtendedNAR {
 
 export const episodesCommands: CommandDefinition[] = [
   {
-    name: '.episodes',
+    name: '/episodes',
+    aliases: ['.episodes'],
     description: 'View episodic memory entries',
-    usage: '.episodes [n] - Show last n entries (default: 10)',
+    usage: '/episodes [n] - Show last n entries (default: 10)',
     execute: async (args, ctx) => {
       const nar = ctx.nar as ExtendedNAR;
       if (!nar.episodicMemory) {
@@ -43,9 +44,10 @@ export const episodesCommands: CommandDefinition[] = [
     }
   },
   {
-    name: '.episodes.clear',
+    name: '/episodes.clear',
+    aliases: ['.episodes.clear'],
     description: 'Clear all episodic memory',
-    usage: '.episodes.clear',
+    usage: '/episodes.clear',
     execute: async (_args, ctx) => {
       const nar = ctx.nar as ExtendedNAR;
       if (!nar.episodicMemory) {
@@ -61,9 +63,10 @@ export const episodesCommands: CommandDefinition[] = [
     }
   },
   {
-    name: '.episodes.prune',
+    name: '/episodes.prune',
+    aliases: ['.episodes.prune'],
     description: 'Remove old episodes based on retention policy',
-    usage: '.episodes.prune',
+    usage: '/episodes.prune',
     execute: async (_args, ctx) => {
       const nar = ctx.nar as ExtendedNAR;
       if (!nar.episodicMemory) {

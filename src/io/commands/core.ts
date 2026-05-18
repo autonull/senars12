@@ -2,17 +2,19 @@ import type {CommandDefinition} from './registry.js';
 
 export const coreCommands: CommandDefinition[] = [
     {
-        name: '.help',
+        name: '/help',
+        aliases: ['.help'],
         description: 'Show help information',
-        usage: '.help [command]',
+        usage: '/help [command]',
         execute: async () => {
-            return 'Commands:\n  (term). add belief\n  (term)? ask question\n  .run [n] run inference steps\n  .stats show statistics\n  .clear clear memory\n  .quit exit';
+            return 'Commands:\n  (term). add belief\n  (term)? ask question\n  /run [n] run inference steps\n  /stats show statistics\n  /clear clear memory\n  /quit exit';
         }
     },
     {
-        name: '.run',
+        name: '/run',
+        aliases: ['.run'],
         description: 'Run inference steps',
-        usage: '.run [n]',
+        usage: '/run [n]',
         execute: async (args, ctx) => {
             const steps = args[0] ? parseInt(args[0]) : 5;
             const derived = await ctx.nar.run(steps);
@@ -20,9 +22,10 @@ export const coreCommands: CommandDefinition[] = [
         }
     },
     {
-        name: '.stats',
+        name: '/stats',
+        aliases: ['.stats'],
         description: 'Show system statistics',
-        usage: '.stats [detail]',
+        usage: '/stats [detail]',
         execute: async (args, ctx) => {
             const stats = ctx.nar.getStatistics();
             let result = `Concepts: ${stats.totalConcepts}, Tasks: ${stats.totalTasks}`;
@@ -40,18 +43,20 @@ export const coreCommands: CommandDefinition[] = [
         }
     },
     {
-        name: '.clear',
+        name: '/clear',
+        aliases: ['.clear'],
         description: 'Clear all memory',
-        usage: '.clear',
+        usage: '/clear',
         execute: async (_args, ctx) => {
             ctx.nar.clearMemory();
             return 'Memory cleared';
         }
     },
     {
-        name: '.quit',
+        name: '/quit',
+        aliases: ['.quit'],
         description: 'Exit the CLI',
-        usage: '.quit',
+        usage: '/quit',
         execute: async () => {
             process.exit(0);
         }

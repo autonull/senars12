@@ -1,21 +1,19 @@
 import type {Agent} from '../../agent/Agent.js';
 import type {AgenticLoop} from '../../agent/AgenticLoop.js';
 import type {BotProfile} from '../../agent/BotProfile.js';
-import type {ChannelBehavior} from '../../agent/ChannelBehavior.js';
 import type {ConversationManager} from '../../agent/ConversationManager.js';
 import type {ResponseFormatter} from '../../agent/ResponseFormatter.js';
 import type {IRCConnection} from '../connections/irc.js';
 import type {IOMessage} from '../types.js';
 
 export interface IRCAdapterConfig {
-  botProfile: BotProfile;
-  channelBehavior: ChannelBehavior;
-  conversationManager: ConversationManager;
-  responseFormatter: ResponseFormatter;
-  agent: Agent;
-  agenticLoop: AgenticLoop;
-  ircConnection: IRCConnection;
-  channels: string[];
+botProfile: BotProfile;
+conversationManager: ConversationManager;
+responseFormatter: ResponseFormatter;
+agent: Agent;
+agenticLoop: AgenticLoop;
+ircConnection: IRCConnection;
+channels: string[];
 }
 
 /**
@@ -57,9 +55,11 @@ export class IRCAdapter {
       });
     });
 
-    // Handle channel join
-    ircConnection.on('join', (channel: string) => {
-      this.handleChannelJoin(channel);
+    // Handle channel join via state change
+    ircConnection.onStateChange((state, prevState) => {
+      if (state === 'connected' && prevState !== 'connected') {
+        // Connection established, channels will be joined
+      }
     });
   }
 
@@ -135,7 +135,8 @@ export class IRCAdapter {
    */
   async getUserContext(userId: string): Promise<string | undefined> {
     const {conversationManager} = this.config;
-    return conversationManager.getContext(userId);
+    const context = conversationManager.getContext(userId);
+    return context ? conversationManager.getContextForPrompt(userId) : undefined;
   }
 
   /**

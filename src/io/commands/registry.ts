@@ -14,6 +14,7 @@ export interface CommandDefinition {
     readonly name: string;
     readonly description: string;
     readonly usage: string;
+    readonly aliases?: string[];
     execute: CommandHandler;
 }
 
@@ -22,6 +23,9 @@ export class CommandRegistry {
 
     register(cmd: CommandDefinition): void {
         this._commands.set(cmd.name, cmd);
+        for (const alias of cmd.aliases ?? []) {
+            this._commands.set(alias, cmd);
+        }
     }
 
     async execute(name: string, args: string[], context: CommandContext): Promise<string> {

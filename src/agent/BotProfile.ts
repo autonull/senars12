@@ -1,5 +1,3 @@
-export {ChannelBehavior} from './ChannelBehavior.js';
-
 export class BotProfile {
     readonly name = 'SeNARS';
     readonly personality = 'Curious, analytical, and helpful. I learn from conversations and reason about knowledge using formal logic.';

@@ -1,5 +1,6 @@
 export {Agent} from './Agent.js';
-export {BotProfile, ChannelBehavior} from './BotProfile.js';
+export {BotProfile} from './BotProfile.js';
+export {ChannelBehavior} from './ChannelBehavior.js';
 export {ConversationManager} from './ConversationManager.js';
 export {DegradationManager} from './DegradationManager.js';
 export {LastResults} from './LastResults.js';
@@ -14,3 +15,7 @@ export {SelfAnalyzer} from './SelfAnalyzer.js';
 export {SkillCatalog} from './SkillCatalog.js';
 export * from './scenarios/types.js';
 export * from './benchmarks/index.js';
+export * from './streaming/index.js';
+export * from './tui/index.js';
+export {loadConfig, saveConfig, DEFAULT_CONFIG} from './config.js';
+export type {BotFullConfig, BotProfile as ProfileConfig, CapabilitiesConfig} from './config.js';

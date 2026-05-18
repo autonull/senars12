@@ -1,7 +1,8 @@
 import type {IOMessage} from '../io/types.js';
 import {MessageQueue} from './MessageQueue.js';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import type {Agent} from './Agent.js';
+import type {NAR} from '../nar/nar.js';
+import {Agent} from './Agent.js';
 
 export interface AgenticLoopConfig {
     maxInputTurns: number;
@@ -10,6 +11,7 @@ export interface AgenticLoopConfig {
     wakeupIntervalMs: number;
     reasoningStepsPerWake?: number;
     enableLMRules?: boolean;
+    backgroundReasoning?: boolean;
 }
 
 const DEFAULT_CONFIG: Required<AgenticLoopConfig> = {
@@ -19,13 +21,15 @@ const DEFAULT_CONFIG: Required<AgenticLoopConfig> = {
     wakeupIntervalMs: 60000,
     reasoningStepsPerWake: 5,
     enableLMRules: true,
+    backgroundReasoning: true,
 };
 
 export class AgenticLoop {
     private readonly config: Required<AgenticLoopConfig>;
     private readonly queue: MessageQueue;
     private readonly episodicMemory?: EpisodicMemory;
-    private readonly agent: Agent;
+    private readonly agent?: Agent;
+    private readonly nar?: NAR;
     private running = false;
     private idleCounter = 0;
     private nextWakeAt = 0;
@@ -33,11 +37,12 @@ export class AgenticLoop {
     private onMessage?: (msg: IOMessage) => Promise<void>;
 
     constructor(
-        agent: Agent,
+        agent: Agent | NAR,
         episodicMemory?: EpisodicMemory,
         config: AgenticLoopConfig = DEFAULT_CONFIG
     ) {
-        this.agent = agent;
+        this.agent = agent instanceof Agent ? agent : undefined;
+        this.nar = agent instanceof Agent ? agent.getNAR() : agent;
         this.config = {...DEFAULT_CONFIG, ...config};
         this.queue = new MessageQueue();
         this.episodicMemory = episodicMemory;
@@ -108,93 +113,86 @@ export class AgenticLoop {
         }
     }
 
-  private async wakeupSequence(): Promise<void> {
-    const nar = this.agent.getNAR();
+    private async wakeupSequence(): Promise<void> {
+        const nar = this.nar;
+        if (!nar) return;
 
-    // 1. Run reasoning steps
-    try {
-      await nar.run(this.config.reasoningStepsPerWake);
-    } catch {
-    }
-
-    // 2. LM enrichment (if enabled)
-    try {
-      if (nar.enrichMemoryWithLM && this.config.enableLMRules) {
-        await nar.enrichMemoryWithLM();
-      }
-    } catch {
-    }
-
-    // 3. Memory consolidation
-    try {
-      nar.memory.consolidate();
-    } catch {
-    }
-
-    // 4. Self-analysis for reasoning gaps (use agent's SelfAnalyzer)
-    try {
-      const selfAnalyzer = nar.getSelfAnalyzer();
-      if (selfAnalyzer && 'analyzeReasoningGaps' in selfAnalyzer) {
-        await (selfAnalyzer as any).analyzeReasoningGaps();
-      }
-    } catch {
-    }
-
-    // 5. Episodic memory pattern check
-    if (this.episodicMemory) {
-      try {
-        const recentEpisodes = await this.episodicMemory.getEpisodes({
-          limit: 100
-        });
-        // Check for patterns or repeated issues
-        if (recentEpisodes.length > 0) {
-          const errorCount = recentEpisodes.filter(e => e.type === 'error').length;
-          if (errorCount > 10) {
-            // Log high error rate
-            await this.episodicMemory.log('input', 'high_error_rate', {
-              errorCount,
-              totalEpisodes: recentEpisodes.length,
-              turn: this.currentTurn
-            });
-          }
+        if (this.config.backgroundReasoning) {
+            await this.backgroundReasoning(nar);
         }
-      } catch {
-      }
+
+        try {
+            if (this.config.enableLMRules && nar.enrichMemoryWithLM) {
+                await nar.enrichMemoryWithLM();
+            }
+        } catch {}
+
+        try {
+            if (nar.memory?.consolidate) {
+                nar.memory.consolidate();
+            }
+        } catch {}
+
+        try {
+            const selfAnalyzer = nar.getSelfAnalyzer?.();
+            if (selfAnalyzer && typeof (selfAnalyzer as any).analyzeReasoningGaps === 'function') {
+                await (selfAnalyzer as any).analyzeReasoningGaps();
+            }
+        } catch {}
+
+        if (this.episodicMemory) {
+            try {
+                const recentEpisodes = await this.episodicMemory.getEpisodes({ limit: 100 });
+                if (recentEpisodes.length > 0) {
+                    const errorCount = recentEpisodes.filter(e => e.type === 'error').length;
+                    if (errorCount > 10) {
+                        await this.episodicMemory.log('input', 'high_error_rate', {
+                            errorCount,
+                            totalEpisodes: recentEpisodes.length,
+                            turn: this.currentTurn,
+                        });
+                    }
+                }
+            } catch {}
+        }
+
+        if (this.episodicMemory) {
+            try {
+                await this.episodicMemory.log('input', 'wakeup', {
+                    turn: this.currentTurn,
+                    idleCounter: this.idleCounter,
+                    concepts: nar.getStatistics()?.totalConcepts ?? 0,
+                    tasks: nar.getStatistics()?.totalTasks ?? 0,
+                });
+            } catch {}
+        }
     }
 
-    // 6. Check for pending benchmarks/experiments (if available via agent)
-    try {
-      const narAny = nar as any;
-      if (narAny.scenarioRunner) {
-        // Check for pending scenarios
-        const pending = await (narAny.scenarioRunner as any).getPendingScenarios?.();
-        if (pending?.length > 0) {
-          // Could trigger scenario execution
-        }
-      }
-      if (narAny.experimentRunner) {
-        // Check for pending experiments
-        const pending = await (narAny.experimentRunner as any).getPendingExperiments?.();
-        if (pending?.length > 0) {
-          // Could trigger experiment execution
-        }
-      }
-    } catch {
-    }
+    private async backgroundReasoning(nar: NAR): Promise<void> {
+        const steps = this.config.reasoningStepsPerWake;
 
-    // 7. Log wakeup activity to episodic memory
-    if (this.episodicMemory) {
-      try {
-        await this.episodicMemory.log('input', 'wakeup', {
-          turn: this.currentTurn,
-          idleCounter: this.idleCounter,
-          concepts: nar.getStatistics()?.totalConcepts ?? 0,
-          tasks: nar.getStatistics()?.totalTasks ?? 0
-        });
-      } catch {
-      }
+        try {
+            await nar.run(steps);
+        } catch {}
+
+        try {
+            const questions = nar.getQuestions?.();
+            if (questions && questions.length > 0) {
+                for (const q of questions.slice(0, 3)) {
+                    await nar.run(steps);
+                }
+            }
+        } catch {}
+
+        try {
+            const goals = nar.getGoals?.();
+            if (goals && goals.length > 0) {
+                for (const g of goals.slice(0, 2)) {
+                    await nar.run(steps);
+                }
+            }
+        } catch {}
     }
-  }
 
     private sleep(ms: number): Promise<void> {
         return new Promise(resolve => setTimeout(resolve, ms));

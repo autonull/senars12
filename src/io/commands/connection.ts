@@ -3,9 +3,10 @@ import {singleArgCmd} from './utils.js';
 
 export const connectionCommands: CommandDefinition[] = [
     {
-        name: '.connections',
+        name: '/connections',
+        aliases: ['.connections'],
         description: 'Show all connections',
-        usage: '.connections',
+        usage: '/connections',
         execute: async (_args, ctx) => {
             const connections = ctx.manager.getConnections();
             if (connections.size === 0) return 'No active connections';
@@ -13,11 +14,12 @@ export const connectionCommands: CommandDefinition[] = [
         }
     },
     {
-        name: '.connect',
+        name: '/connect',
+        aliases: ['.connect'],
         description: 'Create and connect a new connection',
-        usage: '.connect <id> <type> [config...]',
+        usage: '/connect <id> <type> [config...]',
         execute: async (args, ctx) => {
-            if (args.length < 2) return 'Usage: .connect <id> <type> [config...]';
+            if (args.length < 2) return 'Usage: /connect <id> <type> [config...]';
             const [id, type, ...configParts] = args;
             const config = Object.fromEntries(configParts.map(p => p.split('=')).filter(([k, v]) => k && v));
             await ctx.manager.addConnection({id: id!, type: type!, enabled: true, config}, {
@@ -28,37 +30,41 @@ export const connectionCommands: CommandDefinition[] = [
         }
     },
     {
-        name: '.disconnect',
+        name: '/disconnect',
+        aliases: ['.disconnect'],
         description: 'Disconnect and remove a connection',
-        usage: '.disconnect <id>',
-        execute: singleArgCmd('.disconnect <id>', async (id, ctx) => {
+        usage: '/disconnect <id>',
+        execute: singleArgCmd('/disconnect <id>', async (id, ctx) => {
             await ctx.manager.removeConnection(id);
             return `Connection ${id} removed`;
         })
     },
     {
-        name: '.enable',
+        name: '/enable',
+        aliases: ['.enable'],
         description: 'Resume a disabled connection',
-        usage: '.enable <id>',
-        execute: singleArgCmd('.enable <id>', async (id, ctx) => {
+        usage: '/enable <id>',
+        execute: singleArgCmd('/enable <id>', async (id, ctx) => {
             await ctx.manager.enableConnection(id);
             return `Connection ${id} enabled`;
         })
     },
     {
-        name: '.disable',
+        name: '/disable',
+        aliases: ['.disable'],
         description: 'Suspend a connection',
-        usage: '.disable <id>',
-        execute: singleArgCmd('.disable <id>', async (id, ctx) => {
+        usage: '/disable <id>',
+        execute: singleArgCmd('/disable <id>', async (id, ctx) => {
             await ctx.manager.disableConnection(id);
             return `Connection ${id} disabled`;
         })
     },
     {
-        name: '.reconnect',
+        name: '/reconnect',
+        aliases: ['.reconnect'],
         description: 'Force reconnect a connection',
-        usage: '.reconnect <id>',
-        execute: singleArgCmd('.reconnect <id>', async (id, ctx) => {
+        usage: '/reconnect <id>',
+        execute: singleArgCmd('/reconnect <id>', async (id, ctx) => {
             await ctx.manager.reconnectConnection(id);
             return `Connection ${id} reconnected`;
         })

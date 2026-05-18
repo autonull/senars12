@@ -11,9 +11,11 @@ import {AgenticLoop} from '../agent/AgenticLoop.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {createLogger} from '../nar/logger/index.js';
+import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {DEFAULT_NAR_CONFIG, DEFAULT_BOT_CONFIG} from '../config/defaults.js';
 import {setupGracefulShutdown} from '../utils/shutdown.js';
 import type {ConnectionConfig, IOMessage} from '../io/types.js';
+import type {ChannelType} from '../agent/ChannelBehavior.js';
 import {SeNARSMCPServer} from '../api/mcp-server.js';
 import {registerNARToolsAsMCP, registerAgentAPI as registerMCPAgentAPI} from '../api/mcp-tools.js';
 import {registerMCPPrompts} from '../api/mcp-prompts.js';
@@ -24,6 +26,7 @@ import {ScoringEngine} from '../agent/scenarios/ScoringEngine.js';
 import {ExperimentRunner} from '../agent/experiments/ExperimentRunner.js';
 import {RegressionTracker} from '../agent/scenarios/RegressionTracker.js';
 import {SelfAnalyzer} from '../agent/SelfAnalyzer.js';
+import {createIRCAdapter} from '../io/adapters/irc-adapter.js';
 
 const logger = createLogger({scope: 'bot'});
 
@@ -34,17 +37,20 @@ async function main() {
         providerRegistry: registry,
     });
 
-    const agent = new Agent({
-        nar,
-        logger,
-        responseInterpreter: {extractionMode: 'explicit'},
-    });
+const agent = new Agent({
+  nar,
+  logger,
+  responseInterpreter: {extractionMode: 'explicit'},
+});
 
-    const scoringEngine = new ScoringEngine();
-    const scenarioRunner = new ScenarioRunner(nar);
-    const experimentRunner = new ExperimentRunner(nar, scenarioRunner);
-    const selfAnalyzer = new SelfAnalyzer(nar, undefined, scenarioRunner, experimentRunner);
-    const regressionTracker = new RegressionTracker();
+// Initialize episodic memory
+const episodicMemory = new EpisodicMemory();
+
+const scoringEngine = new ScoringEngine();
+const scenarioRunner = new ScenarioRunner(nar);
+const experimentRunner = new ExperimentRunner(nar, scenarioRunner);
+const selfAnalyzer = new SelfAnalyzer(nar, undefined, scenarioRunner, experimentRunner);
+const regressionTracker = new RegressionTracker();
 
     // Initialize MCP server if enabled
     let mcpServer: SeNARSMCPServer | undefined;
@@ -69,37 +75,39 @@ async function main() {
         logger.info('MCP Server started');
     }
 
-    const loopConfig = DEFAULT_BOT_CONFIG.agenticLoop;
-    const loop = new AgenticLoop(
-        agent,
-        undefined,
-        {
-            maxInputTurns: loopConfig.maxInputTurns,
-            maxWakeTurns: loopConfig.maxWakeTurns,
-            sleepIntervalMs: loopConfig.sleepIntervalMs,
-            wakeupIntervalMs: loopConfig.wakeupIntervalMs,
-            reasoningStepsPerWake: loopConfig.reasoningStepsPerWake,
-            enableLMRules: loopConfig.enableLMRules,
-        }
-    );
+const loopConfig = DEFAULT_BOT_CONFIG.agenticLoop;
+const loop = new AgenticLoop(
+  agent,
+  episodicMemory,
+  {
+    maxInputTurns: loopConfig.maxInputTurns,
+    maxWakeTurns: loopConfig.maxWakeTurns,
+    sleepIntervalMs: loopConfig.sleepIntervalMs,
+    wakeupIntervalMs: loopConfig.wakeupIntervalMs,
+    reasoningStepsPerWake: loopConfig.reasoningStepsPerWake,
+    enableLMRules: loopConfig.enableLMRules,
+  }
+);
 
-    loop.setMessageHandler(async (msg: IOMessage) => {
-        const ctx = {
-            connectionId: msg.source,
-            connectionType: 'irc' as const,
-            sender: msg.sender,
-            respond: async (text: string) => {
-                const chunks = agent.responseFormatter.formatForIRC(text);
-                for (const chunk of chunks) {
-                    await agent.sendTo(msg.source, msg.sender, chunk);
-                }
-            },
-        };
-        const response = await agent.processMessage(msg.text, ctx);
-        if (response.text) {
-            await ctx.respond(response.text);
-        }
-    });
+loop.setMessageHandler(async (msg: IOMessage) => {
+const connectionType: ChannelType = msg.source === 'irc-main' ? 'irc' : msg.source === 'ws-main' ? 'ws' : msg.source === 'http-main' ? 'http' : 'cli';
+const ctx = {
+connectionId: msg.source,
+connectionType,
+sender: msg.sender,
+respond: async (text: string) => {
+const chunks = agent.responseFormatter.format(connectionType, text);
+const toSend = Array.isArray(chunks) ? chunks : [chunks];
+for (const chunk of toSend) {
+await agent.sendTo(msg.source, msg.sender, chunk);
+}
+},
+};
+const response = await agent.processMessage(msg.text, ctx);
+if (response.text) {
+await ctx.respond(response.text);
+}
+});
 
     loop.start();
 
@@ -115,23 +123,21 @@ async function main() {
 
     const connections: Array<{ type: string; config: ConnectionConfig }> = [];
 
-    if (process.env.SENARS_IRC_ENABLED === 'true') {
-        connections.push({
-            type: 'irc',
-            config: {
-                id: 'irc-main',
-                type: 'irc',
-                enabled: true,
-                authSecret: process.env.SENARS_IRC_AUTH_SECRET,
-                config: {
-                    server: process.env.SENARS_IRC_SERVER || 'irc.libera.chat',
-                    port: parseInt(process.env.SENARS_IRC_PORT || '6667'),
-                    nick: process.env.SENARS_IRC_NICK || 'senars-bot',
-                    channels: process.env.SENARS_IRC_CHANNELS?.split(',') || ['#senars'],
-                },
-            },
-        });
-    }
+if (process.env.SENARS_IRC_ENABLED === 'true') {
+  const ircConfig = {
+    id: 'irc-main',
+    type: 'irc',
+    enabled: true,
+    authSecret: process.env.SENARS_IRC_AUTH_SECRET,
+    config: {
+      server: process.env.SENARS_IRC_SERVER || 'irc.libera.chat',
+      port: parseInt(process.env.SENARS_IRC_PORT || '6667'),
+      nick: process.env.SENARS_IRC_NICK || 'senars-bot',
+      channels: process.env.SENARS_IRC_CHANNELS?.split(',') || ['#senars'],
+    },
+  };
+  connections.push({type: 'irc', config: ircConfig});
+}
 
     if (process.env.SENARS_WS_ENABLED === 'true' || process.env.SENARS_HTTP_ENABLED === 'true') {
         connections.push({
@@ -161,14 +167,28 @@ async function main() {
         });
     }
 
-    for (const {type, config} of connections) {
-        try {
-            await agent.addConnection(config);
-            logger.info(`Connected ${type} connection: ${config.id}`);
-        } catch (error) {
-            logger.error(`Failed to connect ${type}: ${error}`);
-        }
-    }
+for (const {type, config} of connections) {
+  try {
+    const connection = await agent.addConnection(config);
+    logger.info(`Connected ${type} connection: ${config.id}`);
+
+// Wire IRC connection to use IRC adapter
+if (type === 'irc') {
+const ircAdapter = createIRCAdapter({
+botProfile: agent.botProfile,
+conversationManager: agent.conversationManager,
+responseFormatter: agent.responseFormatter,
+agent,
+agenticLoop: loop,
+ircConnection: connection as any,
+channels: (config.config as any).channels || [],
+});
+logger.info(`IRC adapter wired for ${config.id}`);
+}
+  } catch (error) {
+    logger.error(`Failed to connect ${type}: ${error}`);
+  }
+}
 
     logger.info(`Bot ready: ${agent.botProfile.name}`);
     logger.info(`Connections: ${connections.length} configured`);
