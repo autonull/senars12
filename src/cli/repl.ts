@@ -12,6 +12,7 @@ import {setupGracefulShutdown} from '../utils/shutdown.js';
 import {PipeOutput} from './PipeOutput.js';
 import {createInterface} from 'readline';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
+import {createREPLCommands} from './commands.js';
 import type {ChannelType} from '../agent/ChannelBehavior.js';
 import type {IOMessage, StreamChunk, BotResponse} from '../agent/BotContext.js';
 
@@ -41,40 +42,44 @@ function parseArgs(): {options: CLIOptions; commands: string[]} {
 }
 
 export class SeNARSCLI {
-    readonly bot: Bot;
-    readonly logger = createLogger({scope: 'cli:repl'});
-    private isTTY: boolean;
-    private pipeOutput: PipeOutput;
-    private options: CLIOptions;
-    private turnCount = 0;
-    private inputBuffer = '';
-    private bufferingTimeout: NodeJS.Timeout | null = null;
+  readonly bot: Bot;
+  readonly nar: any;
+  readonly logger = createLogger({scope: 'cli:repl'});
+  private isTTY: boolean;
+  private pipeOutput: PipeOutput;
+  private options: CLIOptions;
+  private turnCount = 0;
+  private inputBuffer = '';
+  private bufferingTimeout: NodeJS.Timeout | null = null;
+  private replCommands: ReturnType<typeof createREPLCommands>;
 
-    constructor(options: CLIOptions = {}) {
-        const registry = createSeNARSRegistry();
-        const nar = SeNARSFactory.createDefault({
-            ...DEFAULT_NAR_CONFIG,
-            providerRegistry: registry,
-        });
+  constructor(options: CLIOptions = {}) {
+    const registry = createSeNARSRegistry();
+    const nar = SeNARSFactory.createDefault({
+      ...DEFAULT_NAR_CONFIG,
+      providerRegistry: registry,
+    });
 
-        const profile = new BotProfile();
-        const episodicMemory = new EpisodicMemory();
+    this.nar = nar;
+    const profile = new BotProfile();
+    const episodicMemory = new EpisodicMemory();
 
-        this.bot = new Bot({
-            profile,
-            nar,
-            episodicMemory,
-            config: {
-                streaming: {enabled: false, showReasoningSteps: true, showToolCalls: true},
-            },
-        });
+    this.bot = new Bot({
+      profile,
+      nar,
+      episodicMemory,
+      config: {
+        streaming: {enabled: false, showReasoningSteps: true, showToolCalls: true},
+      },
+    });
 
-        this.options = options;
-        this.isTTY = process.stdin.isTTY ?? false;
-        this.pipeOutput = new PipeOutput({options});
+    this.options = options;
+    this.isTTY = process.stdin.isTTY ?? false;
+    this.pipeOutput = new PipeOutput({options});
+    this.replCommands = createREPLCommands(this.bot, nar);
 
-        this.wireEventListeners();
-    }
+    this.wireEventListeners();
+  }
 
     private wireEventListeners(): void {
         if (this.options.quiet || !this.isTTY) return;
@@ -239,43 +244,52 @@ export class SeNARSCLI {
         });
     }
 
-    private async processInput(text: string): Promise<void> {
-        if (!this.options.quiet) {
-            process.stdout.write(`> ${text}\n`);
-        }
-
-        if (text === '.quit' || text === '.exit' || text === '/quit' || text === '/exit') {
-            process.stdout.write(this.pipeOutput.formatQuit() + '\n');
-            process.exit(0);
-            return;
-        }
-
-        try {
-            const state = this.bot.stateManager.getOrCreate('cli-user');
-            const connInfo = this.bot.getConnectionInfo(
-                {id: crypto.randomUUID(), source: 'cli', sender: 'cli-user', text, timestamp: Date.now()},
-                async (t: string | StreamChunk) => {
-                    if (typeof t === 'string') process.stdout.write(t);
-                    else if (t.type === 'text') process.stdout.write(t.content);
-                    else if (t.type === 'status' && t.content === 'typing') process.stdout.write('bot: ');
-                },
-            );
-
-            const response = await this.bot.processMessage(
-                {id: crypto.randomUUID(), source: 'cli', sender: 'cli-user', text, timestamp: Date.now()},
-                connInfo,
-                state,
-            );
-
-            if (!this.options.quiet && response.text) {
-                process.stdout.write(`< ${response.text}\n`);
-            }
-        } catch (error) {
-            process.stderr.write(`! Error: ${error instanceof Error ? error.message : String(error)}\n`);
-        }
-
-        this.turnCount++;
+  private async processInput(text: string): Promise<void> {
+    if (!this.options.quiet) {
+      process.stdout.write(`> ${text}\n`);
     }
+
+    if (text === '.quit' || text === '.exit' || text === '/quit' || text === '/exit') {
+      process.stdout.write(this.pipeOutput.formatQuit() + '\n');
+      process.exit(0);
+      return;
+    }
+
+    const cmdResult = await this.replCommands.execute(text);
+    if (cmdResult.success) {
+      if (cmdResult.output) {
+        process.stdout.write(`${cmdResult.output}\n`);
+      }
+      this.turnCount++;
+      return;
+    }
+
+    try {
+      const state = this.bot.stateManager.getOrCreate('cli-user');
+      const connInfo = this.bot.getConnectionInfo(
+        {id: crypto.randomUUID(), source: 'cli', sender: 'cli-user', text, timestamp: Date.now()},
+        async (t: string | StreamChunk) => {
+          if (typeof t === 'string') process.stdout.write(t);
+          else if (t.type === 'text') process.stdout.write(t.content);
+          else if (t.type === 'status' && t.content === 'typing') process.stdout.write('bot: ');
+        },
+      );
+
+      const response = await this.bot.processMessage(
+        {id: crypto.randomUUID(), source: 'cli', sender: 'cli-user', text, timestamp: Date.now()},
+        connInfo,
+        state,
+      );
+
+      if (!this.options.quiet && response.text) {
+        process.stdout.write(`< ${response.text}\n`);
+      }
+    } catch (error) {
+      process.stderr.write(`! Error: ${error instanceof Error ? error.message : String(error)}\n`);
+    }
+
+    this.turnCount++;
+  }
 }
 
 async function main() {

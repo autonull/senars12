@@ -35,10 +35,10 @@ describe('IRCAdapter', () => {
     const episodicMemory = new EpisodicMemory();
     agenticLoop = new AgenticLoop(agent, episodicMemory);
     
-    botProfile = new BotProfile();
-    channelBehavior = new ChannelBehavior('irc');
-    conversationManager = new ConversationManager();
-    responseFormatter = new ResponseFormatter(channelBehavior);
+  botProfile = new BotProfile();
+  channelBehavior = new ChannelBehavior('irc');
+  conversationManager = new ConversationManager();
+  responseFormatter = new ResponseFormatter();
   });
 
   afterEach(async () => {
@@ -48,6 +48,7 @@ describe('IRCAdapter', () => {
   it('should create IRC adapter', () => {
     const mockIrcConnection = {
       onMessage: () => {},
+      onStateChange: () => {},
       on: () => {},
       send: async () => {},
       name: 'test-bot',
@@ -55,7 +56,6 @@ describe('IRCAdapter', () => {
 
     const adapter = createIRCAdapter({
       botProfile,
-      channelBehavior,
       conversationManager,
       responseFormatter,
       agent,
@@ -79,6 +79,7 @@ describe('IRCAdapter', () => {
           metadata: {},
         });
       },
+      onStateChange: () => {},
       on: () => {},
       send: async () => {},
       name: 'test-bot',
@@ -86,7 +87,6 @@ describe('IRCAdapter', () => {
 
     const adapter = createIRCAdapter({
       botProfile,
-      channelBehavior,
       conversationManager,
       responseFormatter,
       agent,
