@@ -18,22 +18,12 @@ describe('NAL9 Self/Control Rules', () => {
         });
     });
 
-    describe('errorPatternDetection', () => {
-        test('detects error patterns', () => {
-            const error = inheritance(atom('context'), atom('error_occurred'));
-            const context = inheritance(atom('situation'), atom('risky'));
-
-            const ruleResult = NALExtendedRules.errorPatternDetection([error, context]);
-
-            expect(ruleResult).toBeDefined();
-            expect(ruleResult?.toString()).toContain('/>');
-        });
-
-        test('returns undefined for non-inheritance', () => {
-            const result = NALExtendedRules.errorPatternDetection([atom('test'), atom('test')]);
-            expect(result).toBeUndefined();
-        });
+  // DISABLED: BOT7 §1.1 — creates spurious predictive negations
+  describe('errorPatternDetection', () => {
+    test('is disabled to prevent spurious predictive negations', () => {
+      expect(NALExtendedRules.errorPatternDetection).toBeUndefined();
     });
+  });
 
     // DISABLED: BOT7 §1.1 — embeds operations in inheritance predicates
     describe('utilityEstimation', () => {

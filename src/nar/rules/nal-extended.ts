@@ -329,13 +329,15 @@ export const NALExtendedRules = {
     // },
     resourceAllocation: undefined as unknown as ([task, resource]: [Term, Term]) => Term | undefined,
 
-    errorPatternDetection: ([error, context]: [Term, Term]): Term | undefined => {
-        if (error.kind !== 'inheritance') return undefined;
-        if (context.kind !== 'inheritance') return undefined;
-        const e = getPredicate(error), c = getSubject(context);
-        if (!e || !c) return undefined;
-        return predictive(c, negation(e));
-    },
+  // DISABLED: Creates spurious predictive negations (BOT7 §1.1)
+  // errorPatternDetection: ([error, context]: [Term, Term]): Term | undefined => {
+  // if (error.kind !== 'inheritance') return undefined;
+  // if (context.kind !== 'inheritance') return undefined;
+  // const e = getPredicate(error), c = getSubject(context);
+  // if (!e || !c) return undefined;
+  // return predictive(c, negation(e));
+  // },
+  errorPatternDetection: undefined as unknown as ([error, context]: [Term, Term]) => Term | undefined,
 
     // DISABLED: Embeds operations in inheritance predicates (BOT7 §1.1)
     // utilityEstimation: ([concept, utility]: [Term, Term]): Term | undefined => {
@@ -408,9 +410,10 @@ const RULES = [
     {id: 'nal.proceduralChaining', left: 'operation', right: 'operation', fn: 'proceduralChaining', truth: 'deduction', priority: 0.8},
     {id: 'nal.operationToPredictive', left: 'operation', right: 'sequence', fn: 'operationToPredictive', truth: 'deduction', priority: 0.75},
     // DISABLED: {id: 'nal.strategyEffectiveness', ...} — embeds ^ in predicates (BOT7 §1.1)
-    // DISABLED: {id: 'nal.resourceAllocation', ...} — embeds ^ in predicates (BOT7 §1.1)
-    {id: 'nal.errorPatternDetection', left: 'inheritance', right: 'inheritance', fn: 'errorPatternDetection', truth: 'deduction', priority: 0.7},
-    // DISABLED: {id: 'nal.utilityEstimation', ...} — embeds ^ in predicates (BOT7 §1.1)
+  // DISABLED: {id: 'nal.resourceAllocation', ...} — embeds ^ in predicates (BOT7 §1.1)
+  // DISABLED: {id: 'nal.errorPatternDetection', ...} — creates spurious predictive negations (BOT7 §1.1)
+  // {id: 'nal.errorPatternDetection', left: 'inheritance', right: 'inheritance', fn: 'errorPatternDetection', truth: 'deduction', priority: 0.7},
+  // DISABLED: {id: 'nal.utilityEstimation', ...} — embeds ^ in predicates (BOT7 §1.1)
     // DISABLED: {id: 'nal.metacognitiveRevision', ...} — operations as subject/predicate (BOT7 §1.1)
     // DISABLED: {id: 'nal.selfModelConsistency', ...} — operations inside similarity (BOT7 §1.1)
 ] as const;
