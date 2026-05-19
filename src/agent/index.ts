@@ -1,7 +1,9 @@
 export {Agent} from './Agent.js';
+export {Bot, type BotDeps} from './Bot.js';
 export {BotProfile} from './BotProfile.js';
 export {ChannelBehavior} from './ChannelBehavior.js';
 export {ConversationManager} from './ConversationManager.js';
+export {ConversationState, ConversationStateManager} from './ConversationState.js';
 export {DegradationManager} from './DegradationManager.js';
 export {LastResults} from './LastResults.js';
 export {ResponseFormatter} from './ResponseFormatter.js';
@@ -17,5 +19,16 @@ export * from './scenarios/types.js';
 export * from './benchmarks/index.js';
 export * from './streaming/index.js';
 export * from './tui/index.js';
+export * from './pipeline/index.js';
 export {loadConfig, saveConfig, DEFAULT_CONFIG} from './config.js';
 export type {BotFullConfig, BotProfile as ProfileConfig, CapabilitiesConfig} from './config.js';
+export type {
+    BotConfig, BotContext, BotResponse, Capabilities, ConnectionInfo,
+    PipelineEvents, TurnState, TurnMetrics, DerivationResult, Belief,
+    LMDirective, DirectiveResult, TurnAction, ToolResult,
+    InputClassification, ClassificationSignal, Intent, BotMode,
+    Message, ReasoningArtifact, IOMessage, StreamChunk,
+    NLParserDef, DirectiveDef, ClassificationSignalDef,
+    LMRuleConfigEntry, LMRuleDef, ContextFragment,
+} from './BotContext.js';
+export {contextFragments, detectCapabilities, PipelineEventEmitter} from './BotContext.js';

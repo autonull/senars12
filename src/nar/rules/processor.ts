@@ -3,7 +3,7 @@
  */
 
 import type {StampType, Term} from '../terms';
-import {Stamp as StampFactory} from '../terms';
+import {Stamp as StampFactory, getSubject, getPredicate, isOperation, isTautology} from '../terms';
 import {type RegisteredRule, RuleIndex, RuleRegistry, type TruthFn} from './types.js';
 import {Truth, type Truth as TruthType} from '../terms/truth.js';
 import type {LMRule} from '../lm';
@@ -27,6 +27,21 @@ const deriveStamp = (p1: RuleInput, p2: RuleInput): StampType =>
     (StampFactory.derive([p1.stamp, p2.stamp]) ?? StampFactory.createInput()) as unknown as StampType;
 
 const NEUTRAL_FN = (): TruthType => Truth.NEUTRAL;
+
+const validateRuleOutput = (term: Term, premises: [Term, Term]): boolean => {
+    if (isTautology(term)) return false;
+    if (term.args && term.args.length > 0) {
+        const argCount = term.args.length;
+        if ((term.kind === 'inheritance' || term.kind === 'similarity' || term.kind === 'implication' || term.kind === 'equivalence') && argCount !== 2) return false;
+        if ((term.kind === 'negation' || term.kind === 'instance' || term.kind === 'property') && argCount !== 1) return false;
+    }
+    if (term.kind === 'inheritance' || term.kind === 'similarity') {
+        const s = getSubject(term), p = getPredicate(term);
+        if (s && isOperation(s)) return false;
+        if (p && isOperation(p)) return false;
+    }
+    return true;
+};
 
 export class RuleProcessor {
     private readonly ruleIndex: RuleIndex;
@@ -56,8 +71,10 @@ export class RuleProcessor {
 
                 try {
                     const result = rule.apply([p1.term, p2.term]);
-                    if (result) {
+                    if (result && validateRuleOutput(result, [p1.term, p2.term])) {
                         yield this.buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
+                    } else if (result) {
+                        this.eventBus?.emit('rule:output-rejected', {ruleId: rule.id, term: result.toString()});
                     }
                 } catch (error) {
                     this.handleRuleError(error, rule.id);
@@ -78,8 +95,10 @@ export class RuleProcessor {
             if (!rule.sync) continue;
             try {
                 const result = rule.apply([p1.term, p2.term]);
-                if (result) {
+                if (result && validateRuleOutput(result, [p1.term, p2.term])) {
                     this.resultBuffer.push(this.buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority));
+                } else if (result) {
+                    this.eventBus?.emit('rule:output-rejected', {ruleId: rule.id, term: result.toString()});
                 }
             } catch (error) {
                 this.handleRuleError(error, rule.id);

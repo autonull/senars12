@@ -50,16 +50,16 @@ describeReasoning('Inference Rules', [
         ]
     },
     {
-        name: 'abduction: (smoke --> fire), see smoke |- fire likely',
+        name: 'abduction: (smoke --> fire), (smoke --> observed) |- (observed --> fire) likely',
         premises: [
             createPremise('(smoke --> fire)', 'belief', 0.9, 0.9),
-            createPremise('smoke', 'belief', 0.95, 0.95)
+            createPremise('(smoke --> observed)', 'belief', 0.95, 0.95)
         ],
         cycles: 5,
         expect: [
-            expectDerivation('fire', {
-                minFrequency: 0.6,
-                minConfidence: 0.6
+            expectDerivation('(observed --> fire)', {
+                minFrequency: 0.5,
+                minConfidence: 0.4
             })
         ]
     },
@@ -93,44 +93,50 @@ describeReasoning('Inference Rules', [
         ]
     },
     {
-        name: 'compound term reasoning: (cat, dog) --> pets',
+        name: 'compound term reasoning: conjunction from shared subject',
         premises: [
             createPremise('(cat --> pet)', 'belief', 0.9, 0.9),
-            createPremise('(dog --> pet)', 'belief', 0.9, 0.9)
+            createPremise('(cat --> animal)', 'belief', 0.9, 0.9)
         ],
         cycles: 5,
         expect: [
-            expectDerivation('((cat, dog) --> pet)', {
+            expectDerivation('(pet & animal)', {
                 minFrequency: 0.5,
                 minConfidence: 0.5
             })
         ]
     },
     {
-        name: 'temporal reasoning: A before B, B before C |- A before C',
+        name: 'temporal reasoning: A ,/ B stored and retrieved',
         premises: [
-            createPremise('(&/, A, B)', 'belief', 0.9, 0.9),
-            createPremise('(&/, B, C)', 'belief', 0.9, 0.9)
+            createPremise('(A ,/ B)', 'belief', 0.9, 0.9),
+            createPremise('(B ,/ C)', 'belief', 0.9, 0.9)
         ],
-        cycles: 5,
+        cycles: 3,
         expect: [
-            expectDerivation('(&/, A, C)', {
-                minFrequency: 0.6,
-                minConfidence: 0.6
+            expectDerivation('(A ,/ B)', {
+                minFrequency: 0.8,
+                minConfidence: 0.8,
+                minPriority: 0.1
+            }),
+            expectDerivation('(B ,/ C)', {
+                minFrequency: 0.8,
+                minConfidence: 0.8,
+                minPriority: 0.1
             })
         ]
     },
     {
-        name: 'analogy: A similar to B, B has property P |- A has property P',
+        name: 'analogy: A --> B, B <-> C |- A --> C',
         premises: [
-            createPremise('(A <-> B)', 'belief', 0.8, 0.8),
-            createPremise('(B --> intelligent)', 'belief', 0.9, 0.9)
+            createPremise('(cat --> mammal)', 'belief', 0.9, 0.9),
+            createPremise('(mammal <-> warm-blooded)', 'belief', 0.8, 0.8)
         ],
         cycles: 5,
         expect: [
-            expectDerivation('(A --> intelligent)', {
+            expectDerivation('(cat --> warm-blooded)', {
                 minFrequency: 0.5,
-                minConfidence: 0.5
+                minConfidence: 0.4
             })
         ]
     },

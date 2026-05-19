@@ -4,39 +4,17 @@ import {NALExtendedRules, TermBuilder} from '../../src/nar';
 describe('NAL8 Procedural Rules', () => {
     const {inheritance, sequence, operation, predictive: _predictive, atom} = TermBuilder;
 
+    // DISABLED: BOT7 §1.1 — operationExecution produces ^ in inheritance predicates
     describe('operationExecution', () => {
-        test('creates operation from inheritance terms', () => {
-            const bird = atom('bird');
-            const animal = atom('animal');
-            const opTerm = inheritance(bird, animal);
-            const food = atom('food');
-
-            const result = NALExtendedRules.operationExecution([opTerm, food]);
-
-            expect(result).toBeDefined();
-            expect(result?.toString()).toBe('((bird --> animal) ^ food)');
+        test('is disabled to prevent operation misuse', () => {
+            expect(NALExtendedRules.operationExecution).toBeUndefined();
         });
     });
 
+    // DISABLED: BOT7 §1.1 — goalExecution conflates goals with inheritance
     describe('goalExecution', () => {
-        test('executes goal with operation', () => {
-            const goal = inheritance(atom('goal'), atom('achieved'));
-            const opTerm = atom('op');
-            const input = atom('input');
-            const op = operation(opTerm, input);
-
-            const result = NALExtendedRules.goalExecution([goal, op]);
-
-            expect(result).toBeDefined();
-            expect(result?.toString()).toBe('((goal --> achieved) --> op)');
-        });
-
-        test('returns undefined for non-operation', () => {
-            const goal = atom('goal');
-            const notOp = inheritance(atom('a'), atom('b'));
-
-            const result = NALExtendedRules.goalExecution([goal, notOp]);
-            expect(result).toBeUndefined();
+        test('is disabled to prevent goal conflation', () => {
+            expect(NALExtendedRules.goalExecution).toBeUndefined();
         });
     });
 

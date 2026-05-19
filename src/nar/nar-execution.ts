@@ -32,7 +32,6 @@ export class NARExecution {
 
             for (const task of results) {
                 this.memory.addTask(task.term, task.type, task.truth, task.budget);
-                this.taskManager.addTask(task);
             }
 
             if (this.rlfp && this._cycleCount % (this.config.rlfp?.optimizeInterval ?? 100) === 0) {

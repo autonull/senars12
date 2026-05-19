@@ -3,6 +3,12 @@ import {MetacognitiveMonitor} from './MetacognitiveMonitor.js';
 import {type MetaCognitiveResult, type MonitorState, SelfAnalyzer} from './SelfAnalyzer.js';
 import {createLogger} from '../logger';
 
+export interface GapReport {
+    missingRules: string[];
+    lowConfidenceBeliefs: Array<{term: string; f: number; c: number}>;
+    repeatedFailures: string[];
+}
+
 const logger = createLogger({scope: 'ReasoningAboutReasoning'});
 
 export interface ReasoningAboutReasoningConfig {
@@ -80,6 +86,10 @@ export class ReasoningAboutReasoning {
 
     async performSelfCorrection(): Promise<MetaCognitiveResult> {
         return this.analyzer.performSelfCorrection();
+    }
+
+    async analyzeReasoningGaps(): Promise<GapReport> {
+        return {missingRules: [], lowConfidenceBeliefs: [], repeatedFailures: []};
     }
 
     querySystemState(): SystemState {

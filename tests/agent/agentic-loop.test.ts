@@ -51,13 +51,20 @@ describe('AgenticLoop', () => {
   });
 
   it('should process messages through message handler', async () => {
-    const loop = new AgenticLoop(agent, episodicMemory);
+    const loop = new AgenticLoop(agent, episodicMemory, {
+      maxInputTurns: 50,
+      maxWakeTurns: 3,
+      sleepIntervalMs: 10,
+      wakeupIntervalMs: 60000,
+    });
     let processed = false;
 
     loop.setMessageHandler(async (msg) => {
       processed = true;
       expect(msg.text).toBe('(cat --> animal).');
     });
+
+    loop.start();
 
     const message: IOMessage = {
       id: 'test-1',
@@ -71,6 +78,7 @@ describe('AgenticLoop', () => {
     
     // Give time for processing
     await new Promise(resolve => setTimeout(resolve, 100));
+    loop.stop();
     expect(processed).toBe(true);
   });
 

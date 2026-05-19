@@ -260,17 +260,21 @@ export const NALExtendedRules = {
         return undefined;
     },
 
-    operationExecution: ([op, input]: [Term, Term]): Term | undefined => {
-        if (op.kind !== 'inheritance') return undefined;
-        return operation(op, input);
-    },
+    // DISABLED: Produces operation terms inside inheritance predicates (BOT7 §1.1)
+    // operationExecution: ([op, input]: [Term, Term]): Term | undefined => {
+    //     if (op.kind !== 'inheritance') return undefined;
+    //     return operation(op, input);
+    // },
+    operationExecution: undefined as unknown as ([op, input]: [Term, Term]) => Term | undefined,
 
-    goalExecution: ([goal, op]: [Term, Term]): Term | undefined => {
-        if (op.kind !== 'operation') return undefined;
-        const [opTerm] = op.args;
-        if (!opTerm) return undefined;
-        return inheritance(goal, opTerm);
-    },
+    // DISABLED: Conflates goal satisfaction with inheritance (BOT7 §1.1)
+    // goalExecution: ([goal, op]: [Term, Term]): Term | undefined => {
+    //     if (op.kind !== 'operation') return undefined;
+    //     const [opTerm] = op.args;
+    //     if (!opTerm) return undefined;
+    //     return inheritance(goal, opTerm);
+    // },
+    goalExecution: undefined as unknown as ([goal, op]: [Term, Term]) => Term | undefined,
 
     proceduralDecomposition: ([seq, op]: [Term, Term]): Term | undefined => {
         if (seq.kind !== 'sequence') return undefined;
@@ -304,21 +308,26 @@ export const NALExtendedRules = {
         return undefined;
     },
 
-    strategyEffectiveness: ([strategy, result]: [Term, Term]): Term | undefined => {
-        if (strategy.kind !== 'inheritance') return undefined;
-        if (result.kind !== 'inheritance') return undefined;
-        const s = getSubject(strategy), p = getPredicate(strategy);
-        if (!s || !p) return undefined;
-        return inheritance(operation(s, p), result);
-    },
+    // DISABLED: Embeds operations in inheritance predicates (BOT7 §1.1)
+    // strategyEffectiveness: ([strategy, result]: [Term, Term]): Term | undefined => {
+    //     if (strategy.kind !== 'inheritance') return undefined;
+    //     if (result.kind !== 'inheritance') return undefined;
+    //     const s = getSubject(strategy), p = getPredicate(strategy);
+    //     const r = getSubject(result);
+    //     if (!s || !p || !r) return undefined;
+    //     return implication(operation(s, p), r);
+    // },
+    strategyEffectiveness: undefined as unknown as ([strategy, result]: [Term, Term]) => Term | undefined,
 
-    resourceAllocation: ([task, resource]: [Term, Term]): Term | undefined => {
-        if (task.kind !== 'inheritance') return undefined;
-        if (resource.kind !== 'inheritance') return undefined;
-        const t = getSubject(task), r = getSubject(resource);
-        if (!t || !r) return undefined;
-        return inheritance(t, operation(atom('allocate'), r));
-    },
+    // DISABLED: Embeds operations in inheritance predicates (BOT7 §1.1)
+    // resourceAllocation: ([task, resource]: [Term, Term]): Term | undefined => {
+    //     if (task.kind !== 'inheritance') return undefined;
+    //     if (resource.kind !== 'inheritance') return undefined;
+    //     const t = getSubject(task), r = getSubject(resource);
+    //     if (!t || !r) return undefined;
+    //     return implication(t, operation(atom('allocate'), r));
+    // },
+    resourceAllocation: undefined as unknown as ([task, resource]: [Term, Term]) => Term | undefined,
 
     errorPatternDetection: ([error, context]: [Term, Term]): Term | undefined => {
         if (error.kind !== 'inheritance') return undefined;
@@ -328,35 +337,41 @@ export const NALExtendedRules = {
         return predictive(c, negation(e));
     },
 
-    utilityEstimation: ([concept, utility]: [Term, Term]): Term | undefined => {
-        if (concept.kind !== 'inheritance') return undefined;
-        if (utility.kind !== 'inheritance') return undefined;
-        const c = getSubject(concept), u = getPredicate(utility);
-        if (!c || !u) return undefined;
-        return inheritance(c, operation(atom('utility'), u));
-    },
+    // DISABLED: Embeds operations in inheritance predicates (BOT7 §1.1)
+    // utilityEstimation: ([concept, utility]: [Term, Term]): Term | undefined => {
+    //     if (concept.kind !== 'inheritance') return undefined;
+    //     if (utility.kind !== 'inheritance') return undefined;
+    //     const c = getSubject(concept), u = getPredicate(utility);
+    //     if (!c || !u) return undefined;
+    //     return implication(c, operation(atom('utility'), u));
+    // },
+    utilityEstimation: undefined as unknown as ([concept, utility]: [Term, Term]) => Term | undefined,
 
-    metacognitiveRevision: buildBinaryInhRule(
-        sameInhPair,
-        (belief1, _belief2) => {
-            const {s, p} = extractInh(belief1) ?? {};
-            if (!s || !p) return undefined;
-            return inheritance(operation(atom('meta'), s), operation(atom('revise'), p));
-        }
-    ),
+    // DISABLED: Produces operations as both subject and predicate (BOT7 §1.1)
+    // metacognitiveRevision: buildBinaryInhRule(
+    //     sameInhPair,
+    //     (belief1, _belief2) => {
+    //         const {s, p} = extractInh(belief1) ?? {};
+    //         if (!s || !p) return undefined;
+    //         return equivalence(operation(atom('meta'), s), operation(atom('revise'), p));
+    //     }
+    // ),
+    metacognitiveRevision: undefined as unknown as ([t1, t2]: [Term, Term]) => Term | undefined,
 
-    selfModelConsistency: buildBinaryInhRule(
-        (model1, model2) => {
-            const s1 = getSubject(model1), s2 = getSubject(model2);
-            if (!s1 || !s2) return false;
-            return termsEqual(s1, s2);
-        },
-        (model1, model2) => {
-            const s1 = getSubject(model1), s2 = getSubject(model2);
-            if (!s1 || !s2) return undefined;
-            return similarity(operation(atom('self'), s1), operation(atom('model'), s2));
-        }
-    )
+    // DISABLED: Produces operations inside similarity (BOT7 §1.1)
+    // selfModelConsistency: buildBinaryInhRule(
+    //     (model1, model2) => {
+    //         const s1 = getSubject(model1), s2 = getSubject(model2);
+    //         if (!s1 || !s2) return false;
+    //         return termsEqual(s1, s2);
+    //     },
+    //     (model1, model2) => {
+    //         const s1 = getSubject(model1), s2 = getSubject(model2);
+    //         if (!s1 || !s2) return undefined;
+    //         return equivalence(operation(atom('self'), s1), operation(atom('model'), s2));
+    //     }
+    // )
+    selfModelConsistency: undefined as unknown as ([t1, t2]: [Term, Term]) => Term | undefined,
 };
 
 const RULES = [
@@ -387,19 +402,22 @@ const RULES = [
     {id: 'nal.parallelIntroduction', left: 'inheritance', right: 'inheritance', fn: 'parallelIntroduction', truth: 'deduction', priority: 0.7},
     {id: 'nal.predictiveImplication', left: 'sequence', right: 'inheritance', fn: 'predictiveImplication', truth: 'deduction', priority: 0.8},
     {id: 'nal.temporalDeduction', left: 'predictive', right: 'sequence', fn: 'temporalDeduction', truth: 'deduction', priority: 0.85},
-    {id: 'nal.operationExecution', left: 'inheritance', right: 'inheritance', fn: 'operationExecution', truth: 'deduction', priority: 0.8},
-    {id: 'nal.goalExecution', left: 'inheritance', right: 'operation', fn: 'goalExecution', truth: 'deduction', priority: 0.85},
+    // DISABLED: {id: 'nal.operationExecution', ...} — produces ^ in inheritance (BOT7 §1.1)
+    // DISABLED: {id: 'nal.goalExecution', ...} — conflates goals with inheritance (BOT7 §1.1)
     {id: 'nal.proceduralDecomposition', left: 'sequence', right: 'operation', fn: 'proceduralDecomposition', truth: 'deduction', priority: 0.75},
     {id: 'nal.proceduralChaining', left: 'operation', right: 'operation', fn: 'proceduralChaining', truth: 'deduction', priority: 0.8},
     {id: 'nal.operationToPredictive', left: 'operation', right: 'sequence', fn: 'operationToPredictive', truth: 'deduction', priority: 0.75},
-    {id: 'nal.strategyEffectiveness', left: 'inheritance', right: 'inheritance', fn: 'strategyEffectiveness', truth: 'deduction', priority: 0.8},
-    {id: 'nal.resourceAllocation', left: 'inheritance', right: 'inheritance', fn: 'resourceAllocation', truth: 'deduction', priority: 0.75},
+    // DISABLED: {id: 'nal.strategyEffectiveness', ...} — embeds ^ in predicates (BOT7 §1.1)
+    // DISABLED: {id: 'nal.resourceAllocation', ...} — embeds ^ in predicates (BOT7 §1.1)
     {id: 'nal.errorPatternDetection', left: 'inheritance', right: 'inheritance', fn: 'errorPatternDetection', truth: 'deduction', priority: 0.7},
-    {id: 'nal.utilityEstimation', left: 'inheritance', right: 'inheritance', fn: 'utilityEstimation', truth: 'deduction', priority: 0.8},
-    {id: 'nal.metacognitiveRevision', left: 'inheritance', right: 'inheritance', fn: 'metacognitiveRevision', truth: 'revision', priority: 0.85},
-    {id: 'nal.selfModelConsistency', left: 'inheritance', right: 'inheritance', fn: 'selfModelConsistency', truth: 'sameness', priority: 0.9},
+    // DISABLED: {id: 'nal.utilityEstimation', ...} — embeds ^ in predicates (BOT7 §1.1)
+    // DISABLED: {id: 'nal.metacognitiveRevision', ...} — operations as subject/predicate (BOT7 §1.1)
+    // DISABLED: {id: 'nal.selfModelConsistency', ...} — operations inside similarity (BOT7 §1.1)
 ] as const;
 
-RULES.forEach(({id, left, right, fn, truth, priority}) =>
-    registerRule(id, left, right, NALExtendedRules[fn as keyof typeof NALExtendedRules], Truth[truth as keyof typeof Truth] as TruthFn, priority)
-);
+RULES.forEach(({id, left, right, fn, truth, priority}) => {
+    const ruleFn = NALExtendedRules[fn as keyof typeof NALExtendedRules];
+    if (ruleFn) {
+        registerRule(id, left, right, ruleFn, Truth[truth as keyof typeof Truth] as TruthFn, priority);
+    }
+});

@@ -1,4 +1,5 @@
 export {MessagePipeline, type PipelineStage} from './Pipeline.js';
+export {PRESETS, type StageFactory} from './presets.js';
 export {InputNormalizer} from './stages/InputNormalizer.js';
 export {AuthChecker} from './stages/AuthChecker.js';
 export {CommandProcessor} from './stages/CommandProcessor.js';
@@ -6,7 +7,7 @@ export {InputClassifier} from './stages/InputClassifier.js';
 export {ReasoningTriggerStage} from './stages/ReasoningTrigger.js';
 export {SeNARSProcessor} from './stages/SeNARSProcessor.js';
 export {LMResponder} from './stages/LMResponder.js';
-export {ToolExecutor} from './stages/ToolExecutor.js';
+export {DirectiveProcessor} from './stages/DirectiveProcessor.js';
 export {ResponseComposer} from './stages/ResponseComposer.js';
 export {ResponseFormatter} from './stages/ResponseFormatter.js';
 export {StatePersistor} from './stages/StatePersistor.js';

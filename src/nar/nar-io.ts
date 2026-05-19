@@ -1,8 +1,8 @@
 import type {Term} from './terms';
-import {termParser, Truth} from './terms';
+import {termParser, Truth, validateTaskTerm} from './terms';
 import type {Truth as TruthType} from './terms/truth.js';
 import type {TaskType} from './types';
-import {createBudget, createTask} from './types';
+import {createBudget, createTask, EventBus} from './types';
 import type {NARConfig} from './nar';
 import type {TaskManager} from './task';
 import type {Memory} from './memory';
@@ -14,6 +14,8 @@ interface SerializedNARState {
 }
 
 export class NARIO {
+    private _eventBus: EventBus | null = null;
+
     constructor(
         private readonly memory: Memory,
         private readonly taskManager: TaskManager,
@@ -21,12 +23,22 @@ export class NARIO {
     ) {
     }
 
+    setEventBus(eventBus: EventBus): void {
+        this._eventBus = eventBus;
+    }
+
     async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
         const {term: parsedTerm, truth: parsedTruth} = typeof input === 'string'
             ? termParser.parseWithTruth(input)
             : {term: input, truth: undefined};
 
-        this.addTask(parsedTerm, type, truth ?? parsedTruth ?? Truth.NEUTRAL);
+        const validation = validateTaskTerm(parsedTerm);
+        if (!validation.valid) {
+            this._eventBus?.emit('warning', {message: validation.reason, term: parsedTerm.toString()});
+            return;
+        }
+
+        this.addTask(parsedTerm, type, truth ?? parsedTruth ?? Truth.TRUE);
     }
 
     async believe(input: string | Term, truth?: TruthType): Promise<void> {
@@ -89,8 +101,6 @@ export class NARIO {
 
     private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void {
         const budget = createBudget(truth.f * truth.c);
-        const task = createTask(term, type, truth, budget);
-        this.taskManager.addTask(task);
         this.memory.addTask(term, type, truth, budget);
     }
 }

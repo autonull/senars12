@@ -1,5 +1,5 @@
 import type {Term} from '../terms';
-import {termParser} from '../terms';
+import {termParser, termsEqual} from '../terms';
 import type {Task, TaskType, TermFilter} from '../types';
 import type {Concept} from '../memory';
 import {createLogger} from '../logger';
@@ -75,24 +75,35 @@ export class QueryAPI {
             return {question: questionStr, confidence: 0, evidence: []};
         }
 
-        const directAnswer = this.tryAnswer(questionTerm, this.memory.getConcept(questionTerm));
-        if (directAnswer) return directAnswer;
+        const matchingConcept = this.findConceptByTerm(questionTerm);
+        if (matchingConcept) {
+            const answer = this.tryAnswer(questionTerm, matchingConcept, true);
+            if (answer) return answer;
+        }
 
         const relatedConcepts = this.memory.findSimilarConcepts(questionTerm, 5);
         for (const related of relatedConcepts) {
-            const answer = this.tryAnswer(questionTerm, related);
+            const answer = this.tryAnswer(questionTerm, related, false);
             if (answer) return answer;
         }
 
         return {question: questionStr, confidence: 0, evidence: []};
     }
 
-    private tryAnswer(question: Term, concept: Concept | undefined): Answer | null {
+    private findConceptByTerm(term: Term): Concept | undefined {
+        for (const concept of this.memory.listConcepts()) {
+            if (termsEqual(concept.term, term)) return concept;
+        }
+        return undefined;
+    }
+
+    private tryAnswer(question: Term, concept: Concept | undefined, isExactMatch: boolean): Answer | null {
         if (!concept) return null;
         const belief = concept.beliefBag.peek();
         if (!belief?.truth) return null;
         const confidence = belief.truth.f * belief.truth.c;
-        if (confidence < 0.5) return null;
+        const threshold = isExactMatch ? 0.01 : 0.1;
+        if (confidence < threshold) return null;
         return {
             question: question.toString(),
             answer: concept.term.toString(),

@@ -1,5 +1,5 @@
-import {NarService} from '../services/NarService.js';
-import {NAR} from '../../nar';
+import {NarService} from '../../src/agent/services/NarService.js';
+import {NAR} from '../../src/nar/index.js';
 
 describe('WebSocket Handlers - NarService', () => {
     let nar: NAR;

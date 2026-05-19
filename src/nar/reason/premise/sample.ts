@@ -1,7 +1,16 @@
 import type {Concept, Memory} from '../../memory';
 import type {Task} from '../../types';
 import {createSecondaryTask} from '../../types';
-import {termsEqual} from '../../terms';
+import {termsEqual, extractSymbols} from '../../terms';
+
+const MIN_SHARED_ATOMS = 1;
+
+const hasSharedAtoms = (term1: Task['term'], term2: Task['term']): boolean => {
+    const atoms1 = extractSymbols(term1);
+    const atoms2 = extractSymbols(term2);
+    for (const a of atoms1) { if (atoms2.has(a)) return true; }
+    return false;
+};
 
 export interface PremiseFilter {
     (concept: Concept, task: Task): boolean;
@@ -37,6 +46,7 @@ export function samplePremises(memory: Memory, task: Task, config: Partial<Sampl
 
     for (const concept of concepts) {
         if (merged.skipSameTerm && termsEqual(concept.term, task.term)) continue;
+        if (!hasSharedAtoms(concept.term, task.term)) continue;
         if (merged.filter && !merged.filter(concept, task)) continue;
 
         const belief = concept.beliefBag.peek();

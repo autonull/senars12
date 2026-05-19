@@ -32,6 +32,12 @@ export interface BotFullConfig {
   reasoning: BotConfig['reasoning'];
   streaming: BotConfig['streaming'];
   conversation: BotConfig['conversation'];
+  pipeline: BotConfig['pipeline'];
+  directives: BotConfig['directives'];
+  nlParsers: BotConfig['nlParsers'];
+  classifier: BotConfig['classifier'];
+  lmRules: BotConfig['lmRules'];
+  prompts: BotConfig['prompts'];
   tui: BotConfig['tui'];
   connections: Record<string, any>;
 }
@@ -54,29 +60,49 @@ const DEFAULT_CONFIG: BotFullConfig = {
       maxConcepts: 10000,
     },
   },
-  reasoning: {
-    autoTrigger: true,
-    triggerThreshold: 0.5,
-    triggerCooldown: 3,
-    maxStepsPerTrigger: 5,
-    backgroundReasoning: true,
-    backgroundIntervalMs: 60000,
-  },
-  streaming: {
-    enabled: true,
-    showReasoningSteps: true,
-    showToolCalls: true,
-  },
-  conversation: {
-    maxHistory: 20,
-    summaryThreshold: 30,
-    maxArtifacts: 50,
-  },
-  tui: {
-    typingIndicator: true,
-    colors: true,
-    compactMode: false,
-  },
+reasoning: {
+  autoTrigger: true,
+  triggerThreshold: 0.5,
+  triggerCooldown: 3,
+  maxStepsPerTrigger: 5,
+  backgroundReasoning: true,
+  backgroundIntervalMs: 60000,
+  lmDriven: true,
+},
+streaming: {
+  enabled: true,
+  showReasoningSteps: true,
+  showToolCalls: true,
+},
+conversation: {
+  maxHistory: 20,
+  summaryThreshold: 30,
+  maxArtifacts: 50,
+},
+pipeline: {
+  maxLoops: 2,
+  stageTimeoutMs: 30000,
+  enableLoopBack: true,
+  loopBackOn: ['believe', 'question'],
+},
+directives: {
+  builtIn: true,
+},
+nlParsers: {
+  builtIn: true,
+},
+classifier: {},
+lmRules: {
+  enabled: true,
+  rules: [],
+},
+prompts: {},
+tui: {
+  typingIndicator: true,
+  colors: true,
+  compactMode: false,
+  statusBar: true,
+},
   connections: {
     cli: { enabled: true },
     irc: { enabled: false },
@@ -124,22 +150,22 @@ export async function loadConfig(configPath?: string): Promise<BotFullConfig> {
  * Deep merge two configurations
  */
 function mergeConfigs(defaults: BotFullConfig, overrides: Partial<BotFullConfig>): BotFullConfig {
-  const result: any = { ...defaults };
-  
-  for (const key of Object.keys(overrides)) {
-    const overrideValue = (overrides as any)[key];
-    const defaultValue = (defaults as any)[key];
-    
+  const result: Record<string, unknown> = {...defaults};
+
+  for (const key of Object.keys(overrides) as (keyof BotFullConfig)[]) {
+    const overrideValue = overrides[key];
+    const defaultValue = defaults[key];
+
     if (overrideValue !== undefined) {
       if (typeof overrideValue === 'object' && typeof defaultValue === 'object' && !Array.isArray(overrideValue)) {
-        result[key] = mergeConfigs(defaultValue, overrideValue);
+        result[key] = mergeConfigs(defaultValue as BotFullConfig, overrideValue as Partial<BotFullConfig>);
       } else {
         result[key] = overrideValue;
       }
     }
   }
-  
-  return result as BotFullConfig;
+
+  return result as unknown as BotFullConfig;
 }
 
 /**

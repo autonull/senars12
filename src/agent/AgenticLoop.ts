@@ -135,8 +135,8 @@ export class AgenticLoop {
 
         try {
             const selfAnalyzer = nar.getSelfAnalyzer?.();
-            if (selfAnalyzer && typeof (selfAnalyzer as any).analyzeReasoningGaps === 'function') {
-                await (selfAnalyzer as any).analyzeReasoningGaps();
+            if (selfAnalyzer) {
+                await selfAnalyzer.analyzeReasoningGaps();
             }
         } catch {}
 

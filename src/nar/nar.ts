@@ -124,6 +124,7 @@ export class NAR extends BaseComponent {
         if (this.config.enableRLFP) this.rlfp = new RLFPLearner({});
 
         this.io = new NARIO(this.memory, this.taskManager, this.config);
+        this.io.setEventBus(eventBus);
         this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp);
         this.lm = new NARLM(this.memory, this._registry, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment, this.config.enableLMStreaming);
         this._metricsCollector = metrics;

@@ -1,12 +1,18 @@
 import type {Message, StreamChunk} from '../BotContext.js';
 import type {GenerateOptions, StreamOptions} from './types.js';
 
+interface StreamableLMClient {
+  generateText(prompt: string, options?: GenerateOptions): Promise<string>;
+  stream?(prompt: string, options?: StreamOptions): AsyncIterable<{text?: string; content?: string}>;
+  generateStream?(prompt: string, options?: StreamOptions): AsyncIterable<{text?: string; content?: string}>;
+}
+
 /**
  * Adapter to convert LMClient to AsyncIterable streaming
  * Works with existing LMClient interface
  */
 export class LMStreamAdapter {
-  constructor(private client: any) {}
+  constructor(private client: StreamableLMClient) {}
 
   async *stream(messages: Message[], options?: StreamOptions): AsyncIterable<StreamChunk> {
     // Send typing status
@@ -34,8 +40,10 @@ export class LMStreamAdapter {
   }
 
   private async *nativeStream(messages: Message[], options?: StreamOptions): AsyncIterable<StreamChunk> {
-    // Use native streaming if available
-    const stream = await this.client.stream(
+    const streamFn = this.client.stream ?? this.client.generateStream;
+    if (!streamFn) return;
+
+    const stream = await streamFn.call(this.client,
       this.buildPrompt(messages),
       options
     );

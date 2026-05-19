@@ -2,8 +2,42 @@ import type {BotContext} from '../../BotContext.js';
 import type {PipelineStage} from '../Pipeline.js';
 import {CommandRegistry, type CommandContext, type CommandDefinition} from '../../../io/commands/registry.js';
 import type {NAR} from '../../../nar/nar.js';
-import type {Connection} from '../../../io/types.js';
+import type {Connection, ConnectionState, ConnectionError} from '../../../io/types.js';
 import type {ConnectionManager} from '../../../io/connection-manager.js';
+
+class PipelineConnection implements Connection {
+    constructor(
+        readonly id: string,
+        readonly name: string,
+        readonly type: string,
+        private _state: ConnectionState,
+        private ctx: BotContext
+    ) {}
+
+    get state(): ConnectionState { return this._state; }
+
+    async connect(): Promise<void> {}
+    async disconnect(_reason?: string): Promise<void> {}
+    async reconnect(): Promise<void> {}
+
+    async send(_target: string, text: string): Promise<void> {
+        this.ctx.turn.commandResponses.push(text);
+    }
+
+    async respond(_target: string, text: string): Promise<void> {
+        this.ctx.turn.commandResponses.push(text);
+    }
+
+    onMessage(_handler: (message: import('../../../io/types.js').IOMessage) => Promise<void>): void {}
+    onStateChange(_handler: (state: ConnectionState, prev: ConnectionState) => void): void {}
+    onError(_handler: (error: ConnectionError) => void): void {}
+
+    getStatus(): { state: ConnectionState; messageCount: number; errorCount: number } {
+        return {state: 'connected', messageCount: 0, errorCount: 0};
+    }
+
+    async reconfigure(_config: Record<string, unknown>): Promise<void> {}
+}
 
 export class CommandProcessor implements PipelineStage {
     name = 'CommandProcessor';
@@ -25,44 +59,29 @@ export class CommandProcessor implements PipelineStage {
         }
 
         const nar = ctx.seNARS!;
-        const connection: Connection = {
-            id: ctx.connection.id,
-            name: ctx.connection.type,
-            type: ctx.connection.type,
-            state: 'connected',
-            connect: async () => {},
-            disconnect: async () => {},
-            reconnect: async () => {},
-            send: async () => {},
-            onMessage: () => {},
-            onStateChange: () => {},
-            onError: () => {},
-            getStatus: () => ({state: 'connected', messageCount: 0, errorCount: 0}),
-            reconfigure: async () => {},
-        };
-
+        const connection = new PipelineConnection(ctx.connection.id, ctx.connection.type, ctx.connection.type, 'connected', ctx);
         const cmdContext: CommandContext = {nar, connection, manager: {} as ConnectionManager};
 
-        const requiresLM = (cmd as any).requiresLM;
-        const requiresSeNARS = (cmd as any).requiresSeNARS;
-        const requiresFull = (cmd as any).requiresFull;
+        const cmdDef = cmd as CommandDefinition & {requiresLM?: boolean; requiresSeNARS?: boolean; requiresFull?: boolean};
 
-        if (requiresLM && !ctx.capabilities.hasLM) {
+        if (cmdDef.requiresLM && !ctx.capabilities.hasLM) {
             ctx.turn.finalResponse = `Command ${cmdName} requires LM (not available).`;
             return;
         }
-        if (requiresSeNARS && !ctx.capabilities.hasSeNARS) {
+        if (cmdDef.requiresSeNARS && !ctx.capabilities.hasSeNARS) {
             ctx.turn.finalResponse = `Command ${cmdName} requires SeNARS (not available).`;
             return;
         }
-        if (requiresFull && (!ctx.capabilities.hasLM || !ctx.capabilities.hasSeNARS)) {
+        if (cmdDef.requiresFull && (!ctx.capabilities.hasLM || !ctx.capabilities.hasSeNARS)) {
             ctx.turn.finalResponse = `Command ${cmdName} requires both LM and SeNARS.`;
             return;
         }
 
         try {
             const result = await this.registry.execute(cmdName, args, cmdContext);
-            ctx.turn.finalResponse = result;
+            ctx.turn.finalResponse = ctx.turn.commandResponses.length
+                ? [...ctx.turn.commandResponses, result].filter(Boolean).join('\n')
+                : result;
         } catch (error) {
             ctx.turn.finalResponse = `Error: ${error instanceof Error ? error.message : String(error)}`;
         }

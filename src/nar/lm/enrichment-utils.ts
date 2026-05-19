@@ -64,7 +64,7 @@ export function parseEnrichmentResponse(response: string, defaultTruth?: Truth):
     const lines = response.split('\n').filter(l => l.trim());
     const hypotheses: Task[] = [];
     const bridges: Task[] = [];
-    const truth = defaultTruth ?? Truth.create(0.5, 0.3);
+    const truth = defaultTruth ?? Truth.TRUE;
 
     for (const line of lines) {
         const parsed = LMResponseParser.parse(line);

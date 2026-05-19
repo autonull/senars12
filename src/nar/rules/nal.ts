@@ -107,10 +107,8 @@ export const NALRules = {
         return s && p ? TermBuilder.inheritance(s, p) : undefined;
     }),
 
-    revision: ([i1, i2]: [Term, Term]) => {
-        if (i1.kind !== 'inheritance' || i2.kind !== 'inheritance') return undefined;
-        return matchInhPair((s1, p1, s2, p2) => termsEqual(s1, s2) && termsEqual(p1, p2) ? i1 : undefined)([i1, i2]);
-    },
+    // DISABLED: Revision is handled at Concept level (Concept.addBeliefWithRevision) — BOT7 §3.4
+    revision: undefined as unknown as ([i1, i2]: [Term, Term]) => Term | undefined,
 
     analogy: ([inh, sim]: [Term, Term]) => {
         if (inh.kind !== 'inheritance' || sim.kind !== 'similarity') return undefined;
@@ -171,6 +169,8 @@ const RULE_CONFIGS = [
     ['nal.higherOrderInduction', 'implication', 'implication', NALRules.higherOrderInduction, Truth.induction, 0.75],
 ] as const;
 
-registerRules(RULE_CONFIGS.map(([id, leftKind, rightKind, apply, truthFn, priority]) =>
-    rule(id, leftKind, rightKind, apply, truthFn, priority)
-));
+registerRules(RULE_CONFIGS
+    .filter(([, , , apply]) => apply != null)
+    .map(([id, leftKind, rightKind, apply, truthFn, priority]) =>
+        rule(id, leftKind, rightKind, apply, truthFn, priority)
+    ));
