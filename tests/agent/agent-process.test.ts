@@ -39,7 +39,7 @@ describe('Agent.processMessage()', () => {
   });
 
   it('should process question input', async () => {
-    await agent.processMessage('(cat --> animal).', {
+await agent.processMessage('(cat-->animal).', {
       connectionId: 'test',
       connectionType: 'cli',
       sender: 'tester',

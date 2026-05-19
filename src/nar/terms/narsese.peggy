@@ -79,13 +79,13 @@ Statement
   / ParenthesizedStatement
 
 AngleBracketStatement
-  = "<" _ subject:Term _ op:InfixOperator _ predicate:Term _ ">" {
+  = "<" _ subject:Term _ op:InfixOperator _? _ predicate:Term _ ">" {
       const kindMap = {'-->': 'inheritance', '<->': 'similarity', '==>': 'implication', '<=>': 'equivalence', '<~>': 'contrast', '=/>' : 'predictive', '=|': 'retrospective', '=/=': 'anti', '=': 'equality', '&&': 'conjunction', '||': 'disjunction', '&|': 'parallel', '&/': 'sequence'};
       return options.termFactory.create(kindMap[op.trim()] ?? op.trim(), [subject, predicate]);
     }
 
 ParenthesizedStatement
-  = "(" _ subject:Term _ op:InfixOperator _ predicate:Term _ ")" {
+  = "(" _ subject:Term _ op:InfixOperator _? _ predicate:Term _ ")" {
       const kindMap = {'-->': 'inheritance', '<->': 'similarity', '==>': 'implication', '<=>': 'equivalence', '<~>': 'contrast', '=/>' : 'predictive', '=|': 'retrospective', '=/=': 'anti', '=': 'equality', '&&': 'conjunction', '||': 'disjunction', '&|': 'parallel', '&/': 'sequence'};
       return options.termFactory.create(kindMap[op.trim()] ?? op.trim(), [subject, predicate]);
     }

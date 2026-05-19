@@ -64,7 +64,7 @@ describe('BOT2 LM Integration', () => {
     workingMemory.pin('goal', 'test-reasoning');
     
     await nar.believe('(cat-->animal).');
-    await nar.believe('(animal-->living-being).');
+    await nar.believe('(animal-->"living being").');
     
     const beliefs = nar.getBeliefs();
     expect(beliefs.length).toBeGreaterThanOrEqual(2);
@@ -94,7 +94,7 @@ describe('BOT2 LM Integration', () => {
     
     await nar.believe('(bird-->fly).');
     await nar.believe('(penguin-->bird).');
-    await nar.believe('(penguin-->"not fly).');
+    await nar.believe('(penguin-->"not fly").');
     
     const beliefs = nar.getBeliefs();
     expect(beliefs.length).toBeGreaterThanOrEqual(3);

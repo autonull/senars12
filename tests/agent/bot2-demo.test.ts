@@ -36,8 +36,8 @@ describe('BOT2 Real-World Demo', () => {
     workingMemory.pin('context', 'biology-reasoning');
     
     await nar.believe('(cat-->animal).');
-    await nar.believe('(animal-->living-being).');
-    await nar.believe('(living-being-->entity).');
+    await nar.believe('(animal-->"living being").');
+    await nar.believe('("living being"-->entity).');
     
     const beliefs = nar.getBeliefs();
     console.log(`Added ${beliefs.length} initial beliefs`);
@@ -91,7 +91,7 @@ describe('BOT2 Real-World Demo', () => {
     
     expect(secConfidence.c).toBeGreaterThan(blogConfidence.c);
     
-    await nar.believe('(stock-->financial-instrument).');
+    await nar.believe('(stock-->"financial instrument").');
     const beliefs = nar.getBeliefs();
     console.log(`Stored belief with high-confidence source`);
     
@@ -166,7 +166,7 @@ describe('BOT2 Real-World Demo', () => {
       description: 'Test basic deduction',
       steps: [
         {input: '(cat-->animal).', type: 'belief' as const, runSteps: 0},
-        {input: '(animal-->living-being).', type: 'belief' as const, runSteps: 5},
+        {input: '(animal-->"living being").', type: 'belief' as const, runSteps: 5},
       ]
     };
     
@@ -190,7 +190,7 @@ describe('BOT2 Real-World Demo', () => {
     
     await nar.believe('(bird-->fly).');
     await nar.believe('(penguin-->bird).');
-    await nar.believe('(penguin-->"not fly).');
+    await nar.believe('(penguin-->"not fly").');
     
     console.log('Step 1: Added conflicting beliefs about penguins');
     
@@ -227,7 +227,7 @@ describe('BOT2 Real-World Demo', () => {
   it('Demo 9: Non-trivial reasoning chain', async () => {
     console.log('\n=== Demo 9: Non-Trivial Reasoning Chain ===');
     
-    await nar.believe('(mammal-->warm-blooded).');
+    await nar.believe('(mammal-->"warm blooded").');
     await nar.believe('(dog-->mammal).');
     await nar.believe('(cat-->mammal).');
     await nar.believe('(whale-->mammal).');
