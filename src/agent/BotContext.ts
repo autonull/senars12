@@ -3,6 +3,7 @@ import type {LMClient} from '../nar/lm/types.js';
 import type {Connection} from '../io/types.js';
 import type {BotProfile} from './BotProfile.js';
 import type {ChannelType} from './ChannelBehavior.js';
+import type {NLAnalysis, Ambiguity} from '../nar/nl/analyzer.js';
 import {TaskFormatter} from '../nar/utils/task-formatter.js';
 
 export type BotMode = 'auto' | 'chat' | 'reason';
@@ -22,6 +23,13 @@ export interface PipelineEvents {
 
   // Classification
   'classify:result': { input: string; classification: InputClassification };
+  'nl:analyzed': { input: string; analysis: NLAnalysis };
+  'nl:clarification-needed': { ambiguity: Ambiguity };
+  'nl:translation': { nl: string; narsese: string; tier: number };
+  'nal:derived': { premises: string[]; rule: string; conclusion: string; truth: { f: number; c: number } };
+  'lm:validation-failed': { output: string; reason: string };
+  'cognitive:state-change': { oldState: string; newState: string; action: string };
+  'feedback:correction': { original: string; corrected: string };
 
   // Reasoning
   'trigger:score': { heuristicScore: number; lmScore: number; total: number; activated: boolean };

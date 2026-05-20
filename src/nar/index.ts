@@ -99,3 +99,7 @@ export type {ComponentDefinition, ValueDefinition, Definition} from './lifecycle
 export {classify, NLTranslator} from './nl/index.js';
 export type {InputType} from './nl/index.js';
 export * from './nl/schemas.js';
+
+// Cognitive
+export {Observer, runCounterfactual} from './cognitive/index.js';
+export type {CognitiveState, CognitiveAction, ObserverReport} from './cognitive/index.js';

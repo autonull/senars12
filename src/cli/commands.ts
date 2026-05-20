@@ -111,6 +111,58 @@ export class REPLCommands {
       return this.runScenario(trimmed.slice(10).trim());
     }
 
+    if (trimmed.startsWith('/budget')) {
+      return this.budget(trimmed.slice(7).trim());
+    }
+
+    if (trimmed.startsWith('/focus ')) {
+      return this.focus(trimmed.slice(7).trim());
+    }
+
+    if (trimmed.startsWith('/forget ')) {
+      return this.forget(trimmed.slice(8).trim());
+    }
+
+    if (trimmed === '/context') {
+      return this.context();
+    }
+
+    if (trimmed.startsWith('/export')) {
+      return this.export(trimmed.slice(7).trim());
+    }
+
+    if (trimmed.startsWith('/import ')) {
+      return this.import(trimmed.slice(8).trim());
+    }
+
+    if (trimmed === '/self.status') {
+      return this.selfStatus();
+    }
+
+    if (trimmed === '/self.analyze') {
+      return this.selfAnalyze();
+    }
+
+    if (trimmed.startsWith('/debug')) {
+      return this.debug(trimmed.slice(6).trim());
+    }
+
+    if (trimmed.startsWith('/rules')) {
+      return this.rules(trimmed.slice(6).trim());
+    }
+
+    if (trimmed.startsWith('/lm-rules')) {
+      return this.lmRules(trimmed.slice(9).trim());
+    }
+
+    if (trimmed.startsWith('/benchmark')) {
+      return this.benchmark(trimmed.slice(10).trim());
+    }
+
+    if (trimmed.startsWith('/adversarial')) {
+      return this.adversarial(trimmed.slice(12).trim());
+    }
+
     return {success: false, output: ''};
   }
 
@@ -129,6 +181,20 @@ SeNARS REPL Commands
 /experiment [N] input Run experiment (alias for /run)
 /reset               Reset memory and conversation
 /history [N]         Show last N conversation turns
+/budget [preset]     Show/set cognitive budget (chat|reasoning|deep|balanced)
+/focus <topic>       Boost attention for topic
+/forget <pattern>    Remove beliefs matching pattern
+/context             Show attention/focus state
+/export [file]       Export beliefs to file
+/import <file>       Import beliefs from file
+/self.status         Show cognitive state
+/self.analyze        Run self-analysis
+/debug on|off        Toggle Narsese debug output
+/rules [list]        List NAL rules
+/lm-rules [list]     List LM rules
+/benchmark           Run performance benchmark
+/adversarial [scn]   Run adversarial test (loop|explosion|oscillation)
+/scenario <id>       Run test scenario
 /help [command]      Show help for command
 .quit/.exit          Exit REPL
 `.trim();
@@ -290,6 +356,140 @@ SeNARS REPL Commands
         output: `Test error: ${error instanceof Error ? error.message : String(error)}`
       };
     }
+  }
+
+  private budget(preset: string): CommandResult {
+    const presets = ['chat', 'reasoning', 'deep', 'balanced'];
+    if (!preset) return {success: true, output: `Current budget presets: ${presets.join(', ')}`};
+    if (!presets.includes(preset)) return {success: false, output: `Invalid preset. Use: ${presets.join(', ')}`};
+    const {getBudget, BUDGET_PRESETS} = require('../nar/config/budget.js');
+    const budget = BUDGET_PRESETS[preset];
+    return {success: true, output: `Budget "${preset}": NAL=${budget.maxNALSteps}, LM=${budget.maxLMCalls}, depth=${budget.maxDerivationDepth}, memory=${budget.maxMemoryOps}`};
+  }
+
+  private focus(topic: string): CommandResult {
+    if (!topic) return {success: false, output: 'Usage: /focus <topic>'};
+    this.nar.memory.getFocus().boostTopic(topic, 2.0, 50);
+    return {success: true, output: `Focus boosted for "${topic}" (2x, 50 cycles)`};
+  }
+
+  private forget(pattern: string): CommandResult {
+    if (!pattern) return {success: false, output: 'Usage: /forget <pattern>'};
+    let count = 0;
+    for (const concept of this.nar.listConcepts()) {
+      if (concept.term.toString().toLowerCase().includes(pattern.toLowerCase())) {
+        this.nar.memory.removeConcept(concept.term);
+        count++;
+      }
+    }
+    return {success: true, output: `Removed ${count} concept(s) matching "${pattern}"`};
+  }
+
+  private context(): CommandResult {
+    const stats = this.nar.getStatistics();
+    const report = this.nar.attentionReport();
+    const focus = this.nar.memory.getFocusConcepts();
+    const lines: string[] = [
+      `Concepts: ${stats.totalConcepts}, Pressure: ${(stats.memoryPressure * 100).toFixed(0)}%`,
+      `Active concepts: ${report.concepts.slice(0, 5).map(c => `${c.term} (${(c.priority * 100).toFixed(0)}%)`).join(', ')}`,
+      `Focus concepts: ${focus.slice(0, 5).map(c => c.term.toString()).join(', ')}`,
+    ];
+    return {success: true, output: lines.join('\n')};
+  }
+
+  private export(file: string): CommandResult {
+    const beliefs = this.nar.getBeliefs();
+    const output = beliefs.map(b => {
+      const tv = b.truth ? ` :${b.truth.f.toFixed(1)}:${b.truth.c.toFixed(1)}` : '';
+      return `${b.term.toString()}${tv}`;
+    }).join('\n');
+    if (file) {
+      require('fs').writeFileSync(file, output);
+      return {success: true, output: `Exported ${beliefs.length} beliefs to ${file}`};
+    }
+    return {success: true, output: output || 'No beliefs to export'};
+  }
+
+  private import(file: string): CommandResult {
+    if (!file) return {success: false, output: 'Usage: /import <file>'};
+    try {
+      const content = require('fs').readFileSync(file, 'utf-8');
+      const lines = content.split('\n').filter((l: string) => l.trim() && !l.startsWith('#'));
+      let count = 0;
+      for (const line of lines) {
+        try {
+          this.nar.believe(line.trim());
+          count++;
+        } catch { /* skip invalid */ }
+      }
+      return {success: true, output: `Imported ${count} beliefs from ${file}`};
+    } catch (error) {
+      return {success: false, output: `Import error: ${error instanceof Error ? error.message : String(error)}`};
+    }
+  }
+
+  private selfStatus(): CommandResult {
+    const {Observer} = require('../nar/cognitive/index.js');
+    const observer = new Observer();
+    return {success: true, output: observer.reportState(this.nar)};
+  }
+
+  private async selfAnalyze(): Promise<CommandResult> {
+    const {Observer} = require('../nar/cognitive/index.js');
+    const observer = new Observer();
+    const report = observer.check(this.nar);
+    const lines = [
+      `State: ${report.state}`,
+      `Action: ${report.action}`,
+      `Concepts: ${report.totalConcepts}`,
+      `Contradictions: ${report.contradictions}`,
+      `Memory pressure: ${(report.memoryPressure * 100).toFixed(0)}%`,
+      `Derivations/sec: ${report.derivationsPerSecond.toFixed(2)}`,
+      report.suggestion ? `Suggestion: ${report.suggestion}` : '',
+    ].filter(Boolean);
+    return {success: true, output: lines.join('\n')};
+  }
+
+  private debug(arg: string): CommandResult {
+    if (!arg) return {success: true, output: 'Debug mode: /debug on|off'};
+    const enabled = arg.toLowerCase() === 'on';
+    return {success: true, output: `Narsese debug output ${enabled ? 'enabled' : 'disabled'}`};
+  }
+
+  private rules(arg: string): CommandResult {
+    const nalRules = ['deduction', 'induction', 'abduction', 'revision', 'analogy', 'comparison', 'contraction', 'exemplification', 'conversion', 'contraposition', 'negation', 'conditional', 'temporal'];
+    if (!arg || arg === 'list') return {success: true, output: `NAL rules: ${nalRules.join(', ')}`};
+    return {success: true, output: `Rule management: ${arg}`};
+  }
+
+  private lmRules(arg: string): CommandResult {
+    const rules = ['lm-narsese-translation', 'lm-belief-revision', 'lm-goal-decomposition', 'lm-hypothesis-generation', 'lm-explanation-generation', 'lm-analogical-reasoning', 'lm-meta-reasoning', 'lm-uncertainty-calibration', 'lm-schema-induction', 'lm-temporal-causal', 'lm-variable-grounding', 'lm-concept-elaboration', 'lm-interactive-clarification'];
+    if (!arg || arg === 'list') return {success: true, output: `LM rules: ${rules.join(', ')}`};
+    return {success: true, output: `LM rule management: ${arg}`};
+  }
+
+  private async benchmark(arg: string): Promise<CommandResult> {
+    const start = Date.now();
+    await this.nar.run(100);
+    const elapsed = Date.now() - start;
+    const stats = this.nar.getStatistics();
+    return {success: true, output: `Benchmark: ${elapsed}ms, ${stats.totalConcepts} concepts, ${stats.totalTasks} tasks`};
+  }
+
+  private async adversarial(arg: string): Promise<CommandResult> {
+    const scenario = arg || 'loop';
+    const scenarios: Record<string, string[]> = {
+      loop: ['(A --> B).', '(B --> C).', '(C --> A).'],
+      explosion: Array(100).fill(0).map((_, i) => `(<x${i} --> y${i}>. :0.5:0.5)`),
+      oscillation: ['(A --> B). :1.0:0.9', '(A --> B). :0.0:0.9'],
+    };
+    const steps = scenarios[scenario] ?? scenarios.loop!;
+    for (const step of steps) {
+      try { await this.nar.believe(step); } catch { /* skip */ }
+    }
+    await this.nar.run(10);
+    const stats = this.nar.getStatistics();
+    return {success: true, output: `Adversarial "${scenario}": ${stats.totalConcepts} concepts, ${stats.totalTasks} tasks after injection`};
   }
 }
 

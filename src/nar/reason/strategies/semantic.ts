@@ -1,87 +1,85 @@
-import type {Task} from '../../types';
-import {createSecondaryTask} from '../../types';
-import type {Memory} from '../../memory';
+import type {Task} from '../../types/index.js';
+import {createSecondaryTask} from '../../types/index.js';
+import type {Memory} from '../../memory/index.js';
+import type {Concept} from '../../memory/concept.js';
 import type {Strategy} from '../strategy.js';
-
-interface SimilarTerm {
-    term: string;
-    score: number;
-    termObj: unknown;
-}
+import type {Term} from '../../terms/index.js';
 
 interface SemanticStrategyConfig {
     minSimilarity?: number;
     maxResults?: number;
+    linkWeight?: number;
+    embeddingWeight?: number;
+    priorityWeight?: number;
 }
 
 export class SemanticStrategy implements Strategy {
     readonly name = 'semantic';
-    private readonly minSimilarity: number;
-    private readonly maxResults: number;
+    private readonly config: Required<SemanticStrategyConfig>;
 
     constructor(config?: SemanticStrategyConfig) {
-        this.minSimilarity = config?.minSimilarity ?? 0.6;
-        this.maxResults = config?.maxResults ?? 10;
+        this.config = {
+            minSimilarity: config?.minSimilarity ?? 0.6,
+            maxResults: config?.maxResults ?? 10,
+            linkWeight: config?.linkWeight ?? 0.5,
+            embeddingWeight: config?.embeddingWeight ?? 0.3,
+            priorityWeight: config?.priorityWeight ?? 0.2,
+        };
     }
 
     selectSecondary(task: Task, memory: Memory): Task[] {
-        const memoryWithEmbedding = memory as Memory & { getEmbeddingLayer?: () => unknown };
-        const embeddingLayer = memoryWithEmbedding.getEmbeddingLayer?.();
-        if (!embeddingLayer) return [];
-
-        const termKey = task.term.kind === 'atom' ? task.term.symbol : task.term.kind;
-        const embedding = (embeddingLayer as {
-            getEmbedding?: (term: string) => unknown
-        }).getEmbedding?.(termKey);
-        if (!embedding) return [];
-
-        const similar = (embeddingLayer as {
-            findSimilar?: (embedding: unknown, options: { minScore: number; maxResults: number }) => SimilarTerm[]
-        }).findSimilar?.(embedding, {
-            minScore: this.minSimilarity,
-            maxResults: this.maxResults,
-        });
-
-        if (!similar || similar.length === 0) return [];
-
-        const linkManager = memory.getLinkManager();
-
-        if (linkManager) {
-            for (const _ of similar) {
-                // For now, skip semantic linking as it requires term registry
-                // This would need reconstruction from term string
-            }
-        }
-
-        return this.similarToTasks(similar, memory);
+        const candidates = memory.listConcepts().filter(c => c.term.toString() !== task.term.toString());
+        return this.scoreAndSelect(task.term, candidates, memory);
     }
 
-    private similarToTasks(similar: SimilarTerm[], memory: Memory): Task[] {
-        const results: Task[] = [];
+    private scoreAndSelect(primary: Term, candidates: Concept[], memory: Memory): Task[] {
+        const linkManager = memory.getLinkManager();
+        const primaryStr = primary.toString();
 
-        for (const {term: termStr} of similar) {
-            const allConcepts = memory.listConcepts();
-            const concept = allConcepts.find(c => {
-                const cTerm = c.term;
-                const cStr = cTerm.kind === 'atom' ? cTerm.symbol : cTerm.kind;
-                return cStr === termStr;
-            });
-            if (!concept) continue;
+        const scored = candidates.map(c => {
+            const termStr = c.term.toString();
+            const linkStrength = linkManager
+                ? this.getLinkStrength(linkManager, primary, termStr)
+                : 0;
 
-            const belief = concept.beliefBag?.peek();
-            if (!belief) continue;
+            const embeddingSim = this.getEmbeddingSimilarity(memory, primaryStr, termStr);
+            const priorityScore = c.priority;
 
-            const secondaryTask = createSecondaryTask(
-                concept.term,
-                0.5,
-                belief.truth ? {f: belief.truth.f, c: belief.truth.c} : undefined,
-                'belief'
-            );
+            const score = linkStrength * this.config.linkWeight
+                + embeddingSim * this.config.embeddingWeight
+                + priorityScore * this.config.priorityWeight;
 
-            results.push(secondaryTask);
-        }
+            return { concept: c, score };
+        });
 
-        return results;
+        return scored
+            .filter(s => s.score >= this.config.minSimilarity)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, this.config.maxResults)
+            .map(s => this.conceptToTask(s.concept));
+    }
+
+    private getLinkStrength(linkManager: NonNullable<ReturnType<Memory['getLinkManager']>>, primary: Term, targetStr: string): number {
+        const links = linkManager.getLinks(primary, { minPriority: 0 });
+        const match = links.find(l => l.targetTerm.toString() === targetStr);
+        return match ? match.priority : 0;
+    }
+
+    private getEmbeddingSimilarity(memory: Memory, termA: string, termB: string): number {
+        const memWithEmbedding = memory as Memory & { getEmbeddingLayer?: () => { similarity: (a: string, b: string) => number } | null };
+        const embeddingLayer = memWithEmbedding.getEmbeddingLayer?.();
+        if (!embeddingLayer?.similarity) return 0;
+        return embeddingLayer.similarity(termA, termB);
+    }
+
+    private conceptToTask(concept: Concept): Task {
+        const belief = concept.beliefBag.peek();
+        return createSecondaryTask(
+            concept.term,
+            concept.priority,
+            belief?.truth ? { f: belief.truth.f, c: belief.truth.c } : undefined,
+            'belief',
+        );
     }
 }
 

@@ -43,8 +43,11 @@ export class LMRule {
         this.eventBus = eventBus;
     }
 
-    canApply(primary: Term, secondary?: Term, _context?: Record<string, unknown>): boolean {
-        return this.enabled && this.circuitBreaker.getState() !== 'open' && !!this.lm && !!primary && (!this.config.singlePremise || !!secondary);
+    canApply(primary: Term, secondary?: Term, context?: Record<string, unknown>): boolean {
+        if (!this.enabled || this.circuitBreaker.getState() === 'open' || !this.lm || !primary) return false;
+        if (this.config.singlePremise && !secondary) return false;
+        if (this.config.activationCondition && !this.config.activationCondition(primary, secondary, context)) return false;
+        return true;
     }
 
     async apply(primary: Term, secondary?: Term, context?: Record<string, unknown>): Promise<Task[]> {

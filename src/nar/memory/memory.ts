@@ -145,6 +145,10 @@ export class Memory {
         return this.focus.getFocusSet();
     }
 
+    getFocus(): Focus {
+        return this.focus;
+    }
+
     getMemoryPressure(): number {
         return this.pressureLevel;
     }
@@ -213,11 +217,11 @@ export class Memory {
             .slice(0, limit);
     }
 
-    consolidate(): void {
+    consolidate(opts?: { lm?: { generateObject: (opts: { prompt: string; schema: unknown }) => Promise<{ object: { name: string; definition: string } }> } }): void {
         if (++this.cyclesSinceConsolidation < this.config.consolidationInterval) return;
         this.cyclesSinceConsolidation = 0;
 
-        const {activationDecayRate, priorityThreshold, archiveThreshold, enableArchive, linkDecayRate} = this.config;
+        const { activationDecayRate, priorityThreshold, archiveThreshold, enableArchive, linkDecayRate } = this.config;
         const toArchive: Concept[] = [];
         const toRemove: Concept[] = [];
 
@@ -233,6 +237,98 @@ export class Memory {
         if (enableArchive) toArchive.forEach((concept) => this.archiveConcept(concept));
         toRemove.forEach((concept) => this.removeConcept(concept.term));
         this.updateAllFocus();
+
+        if (opts?.lm) {
+            this.lmAssistedConsolidate(opts.lm);
+        }
+    }
+
+    private async lmAssistedConsolidate(lm: { generateObject: (opts: { prompt: string; schema: unknown }) => Promise<{ object: { name: string; definition: string } }> }): Promise<void> {
+        const clusters = this.findDenseClusters();
+        for (const cluster of clusters) {
+            if (cluster.concepts.length >= 3 && !cluster.hasAbstract) {
+                try {
+                    const conceptNames = cluster.concepts.map(c => c.term.toString());
+                    const result = await lm.generateObject({
+                        prompt: `Abstract category for: ${conceptNames.join(', ')}?`,
+                        schema: { type: 'object', properties: { name: { type: 'string' }, definition: { type: 'string' } } },
+                    });
+                    this.createAbstractConcept(result.object.name, cluster.concepts);
+                } catch {
+                    // LM abstraction failed, continue without it
+                }
+            }
+        }
+    }
+
+    findDenseClusters(minSize = 3, minLinkStrength = 0.5): Array<{ concepts: Concept[]; hasAbstract: boolean }> {
+        const clusters: Array<{ concepts: Concept[]; hasAbstract: boolean }> = [];
+        const visited = new Set<string>();
+        const allConcepts = this.listConcepts();
+
+        for (const concept of allConcepts) {
+            const key = concept.term.toString();
+            if (visited.has(key)) continue;
+
+            const cluster = this.bfsCluster(concept, minLinkStrength, visited);
+            if (cluster.length >= minSize) {
+                clusters.push({
+                    concepts: cluster,
+                    hasAbstract: cluster.some(c => c.term.toString().includes('abstract') || c.term.toString().includes('category')),
+                });
+            }
+        }
+
+        return clusters;
+    }
+
+    private bfsCluster(start: Concept, minStrength: number, visited: Set<string>): Concept[] {
+        const cluster: Concept[] = [];
+        const queue: Concept[] = [start];
+        const startKey = start.term.toString();
+        visited.add(startKey);
+
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            cluster.push(current);
+
+            const links = this.linkManager.getLinks(current.term);
+            for (const link of links) {
+                if (link.priority < minStrength) continue;
+                const target = this.concepts.get(link.targetTerm);
+                if (!target) continue;
+                const targetKey = target.term.toString();
+                if (visited.has(targetKey)) continue;
+
+                visited.add(targetKey);
+                queue.push(target);
+            }
+        }
+
+        return cluster;
+    }
+
+    createAbstractConcept(name: string, sourceConcepts: Concept[]): Concept {
+        const { atom } = require('../terms/factory.js');
+        const abstractTerm = atom(name);
+        const concept = this.addConcept(abstractTerm);
+
+        for (const source of sourceConcepts) {
+            this.linkManager.addLink(abstractTerm, source.term, { type: 'term-link', priority: 0.7 });
+        }
+
+        return concept;
+    }
+
+    removeConceptsMatching(pattern: string): number {
+        const patternLower = pattern.toLowerCase();
+        const toRemove = this.listConcepts().filter(c =>
+            c.term.toString().toLowerCase().includes(patternLower),
+        );
+        for (const concept of toRemove) {
+            this.removeConcept(concept.term);
+        }
+        return toRemove.length;
     }
 
     archiveConcept(concept: Concept): boolean {

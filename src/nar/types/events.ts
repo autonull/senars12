@@ -1,4 +1,6 @@
 import type {Term, Truth} from '../terms';
+import type {NLAnalysis, Ambiguity} from '../nl/analyzer.js';
+import type {CognitiveState, CognitiveAction} from '../cognitive/Observer.js';
 
 export interface EventMap {
     [key: string]: unknown;
@@ -15,6 +17,18 @@ export interface NAREventMap extends EventMap {
     'cycle:start': { cycle: number; conceptCount: number };
     'cycle:end': { cycle: number; derivations: number; duration: number };
     'error': { error: Error; context?: Record<string, unknown> };
+    // NL events (GROW2 §9.3)
+    'nl:analyzed': { input: string; analysis: NLAnalysis };
+    'nl:translation': { nl: string; narsese: string; tier: number };
+    'nl:clarification-needed': { ambiguity: Ambiguity };
+    // NAL events
+    'nal:derived': { premises: string[]; rule: string; conclusion: string; truth: Truth };
+    // LM validation events
+    'lm:validation-failed': { output: string; reason: string };
+    // Cognitive events
+    'cognitive:state-change': { oldState: CognitiveState; newState: CognitiveState; action: CognitiveAction };
+    // Feedback events
+    'feedback:correction': { original: string; corrected: string };
 }
 
 export type EventReceiver<T> = (params: T) => void;

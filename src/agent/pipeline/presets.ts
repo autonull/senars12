@@ -2,7 +2,7 @@ import type {PipelineStage} from './Pipeline.js';
 import {InputNormalizer} from './stages/InputNormalizer.js';
 import {AuthChecker} from './stages/AuthChecker.js';
 import {CommandProcessor} from './stages/CommandProcessor.js';
-import {InputClassifier} from './stages/InputClassifier.js';
+import {NLAnalyzerStage} from './stages/NLAnalyzerStage.js';
 import {ReasoningTriggerStage} from './stages/ReasoningTrigger.js';
 import {SeNARSProcessor} from './stages/SeNARSProcessor.js';
 import {LMResponder} from './stages/LMResponder.js';
@@ -21,7 +21,7 @@ export const PRESETS: Record<string, StageFactory[]> = {
     () => new InputNormalizer(),
     () => new AuthChecker(),
     (d) => new CommandProcessor(d.commands),
-    () => new InputClassifier(),
+    () => new NLAnalyzerStage(),
     () => new ReasoningTriggerStage(),
     () => new SeNARSProcessor(),
     () => new LMResponder(),
@@ -34,7 +34,7 @@ export const PRESETS: Record<string, StageFactory[]> = {
     () => new InputNormalizer(),
     () => new AuthChecker(),
     (d) => new CommandProcessor(d.commands),
-    () => new InputClassifier(),
+    () => new NLAnalyzerStage(),
     () => new LMResponder(),
     () => new ResponseComposer(),
     () => new ResponseFormatter(),
@@ -44,7 +44,7 @@ export const PRESETS: Record<string, StageFactory[]> = {
     () => new InputNormalizer(),
     () => new AuthChecker(),
     (d) => new CommandProcessor(d.commands),
-    () => new InputClassifier(),
+    () => new NLAnalyzerStage(),
     () => new ReasoningTriggerStage(),
     () => new SeNARSProcessor(),
     () => new ResponseComposer(),
@@ -55,7 +55,7 @@ export const PRESETS: Record<string, StageFactory[]> = {
     () => new InputNormalizer(),
     () => new AuthChecker(),
     (d) => new CommandProcessor(d.commands),
-    () => new InputClassifier(),
+    () => new NLAnalyzerStage(),
     () => new SeNARSProcessor(),
     () => new LMResponder(),
     () => new DirectiveProcessor(),

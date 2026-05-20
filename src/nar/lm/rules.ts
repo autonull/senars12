@@ -4,6 +4,7 @@ import type {Term} from '../terms';
 import {Truth} from '../terms';
 import {createBudget, createTask, type Task, type TaskType} from '../types';
 import {LMResponseParser} from './parser.js';
+import {calculateSimilarity} from '../terms/utils.js';
 
 interface LMRuleDefinition {
     id: string;
@@ -14,6 +15,7 @@ interface LMRuleDefinition {
     taskType?: TaskType;
     budget?: number;
     multiline?: boolean;
+    activationCondition?: (primary: Term, secondary?: Term, context?: Record<string, unknown>) => boolean;
 }
 
 const NARSESE_INSTRUCTIONS = `
@@ -52,22 +54,57 @@ const createTaskGen = (type: TaskType, budget: number) => (_r: unknown, _p: Term
 
 const define = (
     id: string, name: string, desc: string, priority: number,
-    taskType: TaskType = 'belief', budget = 0.7, multiline = false
-): LMRuleDefinition => ({id, name, description: desc, priority, taskType, budget, multiline});
+    taskType: TaskType = 'belief', budget = 0.7, multiline = false,
+    activationCondition?: LMRuleDefinition['activationCondition']
+): LMRuleDefinition => ({id, name, description: desc, priority, taskType, budget, multiline, activationCondition});
+
+const hasVariable = (term: Term): boolean => {
+    const str = term.toString();
+    return /\?[0-9a-zA-Z_]/.test(str);
+};
+
+const isUnderconnected = (_primary: Term, _secondary?: Term, ctx?: Record<string, unknown>): boolean => {
+    const linkCount = (ctx?.linkCount as number) ?? 0;
+    const avgLinks = (ctx?.avgLinksPerConcept as number) ?? 5;
+    return linkCount < avgLinks * 0.3;
+};
+
+const hasLowConfidence = (primary: Term, _secondary?: Term, ctx?: Record<string, unknown>): boolean => {
+    const truth = ctx?.truth as { f?: number; c?: number } | undefined;
+    return truth ? (truth.c ?? 0) < 0.5 : false;
+};
+
+const hasConflictingBeliefs = (_primary: Term, _secondary?: Term, ctx?: Record<string, unknown>): boolean => {
+    return (ctx?.conflictCount as number ?? 0) > 0;
+};
+
+const isComplexGoal = (primary: Term): boolean => {
+    const str = primary.toString();
+    return str.includes('&') || str.includes('|') || (str.match(/-->/g) ?? []).length > 1;
+};
+
+const hasStructuralSimilarityNoOverlap = (primary: Term, secondary?: Term): boolean => {
+    if (!secondary) return false;
+    const pAtoms = new Set(primary.toString().match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []);
+    const sAtoms = new Set(secondary.toString().match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []);
+    const sim = calculateSimilarity(primary, secondary);
+    const overlap = [...pAtoms].filter(a => sAtoms.has(a)).length;
+    return sim > 0.6 && overlap === 0;
+};
 
 const ruleDefs: LMRuleDefinition[] = [
     define('lm-narsese-translation', 'LMNarseseTranslationRule', 'Translates natural language to Narsese', 0.9, 'belief', 0.9),
-    define('lm-belief-revision', 'LMBeliefRevisionRule', 'Revises belief confidence based on context', 0.8, 'belief', 0.7),
-    define('lm-goal-decomposition', 'LMGoalDecompositionRule', 'Decomposes complex goals into subgoals', 0.85, 'goal', 0.8, true),
-    define('lm-hypothesis-generation', 'LMHypothesisGenerationRule', 'Generates hypotheses from observations', 0.75, 'belief', 0.6),
+    define('lm-belief-revision', 'LMBeliefRevisionRule', 'Revises belief confidence based on context', 0.8, 'belief', 0.7, false, hasConflictingBeliefs),
+    define('lm-goal-decomposition', 'LMGoalDecompositionRule', 'Decomposes complex goals into subgoals', 0.85, 'goal', 0.8, true, isComplexGoal),
+    define('lm-hypothesis-generation', 'LMHypothesisGenerationRule', 'Generates hypotheses from observations', 0.75, 'belief', 0.6, false, hasLowConfidence),
     define('lm-explanation-generation', 'LMExplanationGenerationRule', 'Generates explanations for beliefs', 0.7, 'belief', 0.65),
-    define('lm-analogical-reasoning', 'LMAnalogicalReasoningRule', 'Performs analogical reasoning between concepts', 0.8, 'belief', 0.7),
+    define('lm-analogical-reasoning', 'LMAnalogicalReasoningRule', 'Performs analogical reasoning between concepts', 0.8, 'belief', 0.7, false, hasStructuralSimilarityNoOverlap),
     define('lm-meta-reasoning', 'LMMetaReasoningGuidanceRule', 'Provides meta-level reasoning guidance', 0.75, 'belief', 0.65),
     define('lm-uncertainty-calibration', 'LMUncertaintyCalibrationRule', 'Calibrates uncertainty in beliefs', 0.7, 'belief', 0.6),
     define('lm-schema-induction', 'LMSchemaInductionRule', 'Induces schemas from examples', 0.75, 'belief', 0.65),
     define('lm-temporal-causal', 'LMTemporalCausalModelingRule', 'Models temporal and causal relationships', 0.8, 'belief', 0.7),
-    define('lm-variable-grounding', 'LMVariableGroundingRule', 'Grounds variables in concrete instances', 0.7, 'belief', 0.65),
-    define('lm-concept-elaboration', 'LMConceptElaborationRule', 'Elaborates on concept properties', 0.75, 'belief', 0.7),
+    define('lm-variable-grounding', 'LMVariableGroundingRule', 'Grounds variables in concrete instances', 0.7, 'belief', 0.65, false, (p) => hasVariable(p)),
+    define('lm-concept-elaboration', 'LMConceptElaborationRule', 'Elaborates on concept properties', 0.75, 'belief', 0.7, false, isUnderconnected),
     define('lm-interactive-clarification', 'LMInteractiveClarificationRule', 'Seeks clarification for ambiguous inputs', 0.7, 'question', 0.65),
 ];
 
@@ -96,6 +133,7 @@ const createRule = (lm: LMClient | null, def: LMRuleDefinition, config: Partial<
         description: def.description,
         priority: def.priority,
         singlePremise: def.singlePremise ?? true,
+        activationCondition: def.activationCondition,
         promptTemplate: `${NARSESE_INSTRUCTIONS}\n\n${prompts[def.id]}`,
         taskGenerator: def.multiline
             ? (r: unknown) => parseResponse(String(r), taskType, budget)

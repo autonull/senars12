@@ -121,12 +121,24 @@ export class EpisodicMemory {
 
     async clear(): Promise<void> {
         try {
-            await fs.rm(this.config.basePath, {recursive: true, force: true});
+            await fs.rm(this.config.basePath, { recursive: true, force: true });
         } catch {
             // Directory may not exist
         }
         this.currentFile = null;
         this.currentEntries = 0;
+    }
+
+    async recallRecent(limit = 5): Promise<Episode[]> {
+        return this.getEpisodes({ limit, type: 'input' });
+    }
+
+    async getRecentSummary(limit = 10): Promise<string> {
+        const episodes = await this.getEpisodes({ limit });
+        if (episodes.length === 0) return 'No recent episodes.';
+
+        const recent = episodes.slice(0, 5);
+        return recent.map(e => `[${new Date(e.timestamp).toLocaleTimeString()}] ${e.type}: ${e.content}`).join('\n');
     }
 
     private async appendToCurrentFile(line: string): Promise<void> {

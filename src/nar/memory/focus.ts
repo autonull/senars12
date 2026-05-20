@@ -1,4 +1,5 @@
 import type {Concept} from './concept.js';
+import type {Task} from '../types/index.js';
 import {TermMap} from '../terms';
 
 export interface FocusConfig {
@@ -14,6 +15,8 @@ const DEFAULT_CONFIG: FocusConfig = {
 export class Focus {
     private concepts: TermMap<{ concept: Concept; priority: number }> = new TermMap();
     private config: FocusConfig;
+    private topicBoosts = new Map<string, { factor: number; ttl: number }>();
+    private activeGoals: Task[] = [];
 
     constructor(config: FocusConfig = DEFAULT_CONFIG) {
         this.config = config;
@@ -36,7 +39,7 @@ export class Focus {
                 this.concepts.delete(oldest.value);
             }
         }
-        this.concepts.set(concept.term, {concept, priority: concept.priority});
+        this.concepts.set(concept.term, { concept, priority: concept.priority });
     }
 
     removeFromFocus(concept: Concept): boolean {
@@ -57,5 +60,45 @@ export class Focus {
 
         entry.priority = Math.max(0, Math.min(1, entry.priority + delta));
         if (entry.priority < this.config.attentionThreshold) this.removeFromFocus(concept);
+    }
+
+    boostTopic(topic: string, factor = 2.0, ttl = 50): void {
+        this.topicBoosts.set(topic.toLowerCase(), { factor, ttl });
+    }
+
+    setActiveGoals(goals: Task[]): void {
+        this.activeGoals = goals;
+    }
+
+    adjustPriority(concept: Concept, basePriority: number): number {
+        let p = basePriority;
+        const termStr = concept.term.toString().toLowerCase();
+
+        for (const [topic, boost] of this.topicBoosts) {
+            if (termStr.includes(topic)) {
+                p *= boost.factor;
+                boost.ttl--;
+                if (boost.ttl <= 0) this.topicBoosts.delete(topic);
+            }
+        }
+
+        for (const goal of this.activeGoals) {
+            const goalStr = goal.term.toString().toLowerCase();
+            if (termStr.includes(goalStr) || goalStr.includes(termStr)) {
+                p *= 1.5;
+            }
+        }
+
+        if (concept.lastAccessedAt > Date.now() - 60000) p *= 1.2;
+
+        return Math.min(p, 1.0);
+    }
+
+    getTopicBoosts(): Map<string, { factor: number; ttl: number }> {
+        return this.topicBoosts;
+    }
+
+    clearTopicBoosts(): void {
+        this.topicBoosts.clear();
     }
 }

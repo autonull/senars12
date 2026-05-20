@@ -1,4 +1,12 @@
 export {classify} from './classifier.js';
 export type {InputType} from './classifier.js';
-export {NLTranslator} from './translator.js';
+export {NLTranslator, TranslationCache} from './translator.js';
+export type {TranslationCacheEntry} from './translator.js';
+export {NLAnalyzer} from './analyzer.js';
+export type {NLAnalysis, NLIntent, NLIntentType, Ambiguity} from './analyzer.js';
+export {ResultInterpreter, truthToNL} from './interpreter.js';
+export {ContextBuilder} from './context.js';
+export type {ContextOpts} from './context.js';
+export {ClarificationHandler, generateClarificationWithLM} from './clarification.js';
+export type {ClarificationRequest} from './clarification.js';
 export * from './schemas.js';

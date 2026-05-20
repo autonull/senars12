@@ -29,6 +29,7 @@ export interface LMRuleConfig {
     promptTemplate?: string | LMPromptGenerator;
     responseProcessor?: LMResponseProcessor;
     taskGenerator?: LMTaskGenerator;
+    activationCondition?: (primary: Term, secondary?: Term, context?: Record<string, unknown>) => boolean;
 }
 
 export interface LMRuleConfigInternal extends LMRuleConfig {
