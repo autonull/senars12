@@ -1,0 +1,6 @@
+# tests/e2e/synergy-02.txt — NL→NAL translation
+All cats are animals
+All animals are living
+Are cats living?
+/beliefs
+/quit

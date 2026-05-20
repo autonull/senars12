@@ -15,6 +15,71 @@ import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {createREPLCommands} from './commands.js';
 import type {ChannelType} from '../agent/ChannelBehavior.js';
 import type {IOMessage, StreamChunk, BotResponse} from '../agent/BotContext.js';
+import type {LMClient} from '../nar/lm/types.js';
+import {generateText} from 'ai';
+import {anthropic} from '@ai-sdk/anthropic';
+import {ollama} from 'ollama-ai-provider-v2';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ollamaProvider = ollama as any;
+
+function createLMClient(provider: string): LMClient | undefined {
+    const logger = createLogger({scope: 'cli:lm'});
+    switch (provider) {
+        case 'anthropic': {
+            const model = anthropic('claude-sonnet-4-20250514');
+            return {
+                provider: 'anthropic',
+                model: 'claude-sonnet-4-20250514',
+                available: true,
+                async generateText(prompt) {
+                    const result = await generateText({model, prompt, maxOutputTokens: 2048, temperature: 0.3});
+                    return result.text;
+                },
+            };
+        }
+        case 'ollama': {
+            const model = ollamaProvider('llama3.2');
+            return {
+                provider: 'ollama',
+                model: 'llama3.2',
+                available: true,
+                async generateText(prompt) {
+                    const result = await generateText({model, prompt, maxOutputTokens: 2048, temperature: 0.3});
+                    return result.text;
+                },
+            };
+        }
+        case 'builtin': {
+            const {transformersJS} = requireModule('@browser-ai/transformers-js');
+            if (!transformersJS) {
+                logger.warn('Transformers.js not available, falling back to mock');
+                return undefined;
+            }
+            const model = transformersJS('onnx-community/Qwen2.5-1.5B-Instruct', {device: 'cpu'});
+            return {
+                provider: 'builtin',
+                model: 'Qwen2.5-1.5B-Instruct',
+                available: true,
+                async generateText(prompt) {
+                    const result = await generateText({model, prompt, maxOutputTokens: 2048, temperature: 0.3});
+                    return result.text;
+                },
+            };
+        }
+        default:
+            logger.warn(`Unknown LM provider: ${provider}`);
+            return undefined;
+    }
+}
+
+function requireModule(name: string): any {
+    try {
+        return require(name);
+    } catch {
+        return {};
+    }
+}
 
 interface CLIOptions {
     json?: boolean;
@@ -22,6 +87,7 @@ interface CLIOptions {
     noInit?: boolean;
     timeout?: number;
     maxTurns?: number;
+    lm?: string;
 }
 
 function parseArgs(): {options: CLIOptions; commands: string[]} {
@@ -35,6 +101,7 @@ function parseArgs(): {options: CLIOptions; commands: string[]} {
         else if (arg === '--no-init') options.noInit = true;
         else if (arg.startsWith('--timeout=')) options.timeout = parseInt(arg.split('=')[1]!);
         else if (arg.startsWith('--max-turns=')) options.maxTurns = parseInt(arg.split('=')[1]!);
+        else if (arg.startsWith('--lm=')) options.lm = arg.split('=')[1]!;
         else commands.push(arg);
     }
 
@@ -55,9 +122,11 @@ export class SeNARSCLI {
 
   constructor(options: CLIOptions = {}) {
     const registry = createSeNARSRegistry();
+    const lmClient = options.lm ? createLMClient(options.lm) : undefined;
     const nar = SeNARSFactory.createDefault({
       ...DEFAULT_NAR_CONFIG,
       providerRegistry: registry,
+      lmClient,
     });
 
     this.nar = nar;
@@ -67,6 +136,7 @@ export class SeNARSCLI {
     this.bot = new Bot({
       profile,
       nar,
+      lm: lmClient,
       episodicMemory,
       config: {
         streaming: {enabled: false, showReasoningSteps: true, showToolCalls: true},
@@ -128,8 +198,9 @@ export class SeNARSCLI {
     private async startTTYMode(): Promise<void> {
         if (!this.options.noInit) {
             const caps = this.bot.capabilities;
+            const lmInfo = this.options.lm ? `LM: ${this.options.lm} (${caps.hasLM ? '✓' : '✗'})` : `LM: ✗ (use --lm=anthropic|ollama|builtin)`;
             console.log('SeNARS CLI - BOT6 Pipeline Architecture');
-            console.log(`Mode: ${caps.mode}  LM: ${caps.hasLM ? '✓' : '✗'}  SeNARS: ${caps.hasSeNARS ? '✓' : '✗'}`);
+            console.log(`Mode: ${caps.mode}  ${lmInfo}  SeNARS: ${caps.hasSeNARS ? '✓' : '✗'}`);
             console.log('Type /help for commands, /quit to exit\n');
         }
 

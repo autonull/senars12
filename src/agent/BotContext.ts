@@ -370,6 +370,11 @@ export interface ConnectionInfo {
   id: string;
   type: ChannelType;
   sender: string;
+  canonicalId?: string;
+  authId?: string;
+  nick?: string;
+  username?: string;
+  hostmask?: string;
   respond: (text: string | StreamChunk) => Promise<void>;
   stream: (stream: AsyncIterable<StreamChunk>) => Promise<void>;
 }

@@ -1,0 +1,5 @@
+# tests/e2e/synergy-05.txt — Tool chaining
+[TOOL:search("animal taxonomy mammals")]
+[TOOL:reason("mammals are animals, dolphins are mammals")]
+/beliefs dolphin
+/quit

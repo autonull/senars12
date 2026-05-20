@@ -26,6 +26,10 @@ export class REPLCommands {
     this.unifiedRunner = createUnifiedTestRunner(nar);
   }
 
+  private getEpisodicMemory() {
+    return (this.bot as any).episodicMemory || (this.nar as any).episodicMemory;
+  }
+
   async execute(input: string): Promise<CommandResult> {
     const trimmed = input.trim();
     
@@ -163,8 +167,44 @@ export class REPLCommands {
       return this.adversarial(trimmed.slice(12).trim());
     }
 
-    return {success: false, output: ''};
+    if (trimmed === '/episodes') {
+      return this.episodes(10);
+    }
+
+    if (trimmed.startsWith('/episodes ')) {
+      return this.episodes(parseInt(trimmed.slice(9).trim()) || 10);
+    }
+
+    if (trimmed === '/episodes.clear') {
+      return this.episodesClear();
+    }
+
+    if (trimmed === '/episodes.prune') {
+      return this.episodesPrune();
+    }
+
+    if (trimmed.startsWith('/pin ')) {
+      return this.pin(trimmed.slice(5).trim());
+    }
+
+    if (trimmed === '/pinned') {
+      return this.pinned();
+    }
+
+  if (trimmed.startsWith('/unpin')) {
+    return this.unpin(trimmed.slice(7).trim());
   }
+
+  if (trimmed === '/identity') {
+    return this.identity();
+  }
+
+  if (trimmed.startsWith('/identity ')) {
+    return this.identityDetail(trimmed.slice(9).trim());
+  }
+
+  return {success: false, output: ''};
+}
 
   private help(): CommandResult {
     const helpText = `
@@ -195,7 +235,15 @@ SeNARS REPL Commands
 /benchmark           Run performance benchmark
 /adversarial [scn]   Run adversarial test (loop|explosion|oscillation)
 /scenario <id>       Run test scenario
-/help [command]      Show help for command
+/episodes [n] Show last n episodic memory entries (default: 10)
+/episodes.clear Clear all episodic memory
+/episodes.prune Remove old episodes based on retention policy
+/pin <key> <value> Store in working memory
+/pinned List all pinned items
+/unpin [key] Clear working memory or unpin specific key
+/identity Show identity resolution info
+/identity <canonicalId> Show details for identity
+/help [command] Show help for command
 .quit/.exit          Exit REPL
 `.trim();
     return {success: true, output: helpText};
@@ -492,6 +540,140 @@ SeNARS REPL Commands
     await this.nar.run(10);
     const stats = this.nar.getStatistics();
     return {success: true, output: `Adversarial "${scenario}": ${stats.totalConcepts} concepts, ${stats.totalTasks} tasks after injection`};
+  }
+
+  private async episodes(limit: number): Promise<CommandResult> {
+    const mem = this.getEpisodicMemory();
+    if (!mem) return {success: false, output: 'EpisodicMemory not available'};
+    try {
+      const episodes = await mem.getEpisodes({limit});
+      if (episodes.length === 0) return {success: true, output: 'No episodes found'};
+      const lines = episodes.map((e: any) => {
+        const time = new Date(e.timestamp).toISOString();
+        const meta = Object.keys(e.metadata).length ? ` [${JSON.stringify(e.metadata)}]` : '';
+        return `[${time}] ${e.type}: ${e.content}${meta}`;
+      });
+      return {success: true, output: `Episodic Memory (${episodes.length} entries):\n${lines.join('\n')}`};
+    } catch (error) {
+      return {success: false, output: `Error: ${error instanceof Error ? error.message : String(error)}`};
+    }
+  }
+
+  private async episodesClear(): Promise<CommandResult> {
+    const mem = (this.nar as any).episodicMemory;
+    if (!mem) return {success: false, output: 'EpisodicMemory not available'};
+    try {
+      await mem.clear();
+      return {success: true, output: 'Episodic memory cleared'};
+    } catch (error) {
+      return {success: false, output: `Error: ${error instanceof Error ? error.message : String(error)}`};
+    }
+  }
+
+  private async episodesPrune(): Promise<CommandResult> {
+    const mem = (this.nar as any).episodicMemory;
+    if (!mem) return {success: false, output: 'EpisodicMemory not available'};
+    try {
+      await mem.pruneOldEpisodes();
+      return {success: true, output: 'Old episodes pruned'};
+    } catch (error) {
+      return {success: false, output: `Error: ${error instanceof Error ? error.message : String(error)}`};
+    }
+  }
+
+  private pin(args: string): CommandResult {
+    const wm = (this.nar as any).workingMemory;
+    if (!wm) return {success: false, output: 'WorkingMemory not available'};
+    const parts = args.split(/\s+/);
+    if (parts.length < 1) return {success: false, output: 'Usage: /pin <key> <value>'};
+    const key = parts[0]!;
+    const value = parts.slice(1).join(' ') || '';
+    wm.pin(key, value);
+    return {success: true, output: `Pinned ${key} = ${value}`};
+  }
+
+  private pinned(): CommandResult {
+    const wm = (this.nar as any).workingMemory;
+    if (!wm) return {success: false, output: 'WorkingMemory not available'};
+    const all: Map<string, string> = wm.recallAll();
+    if (all.size === 0) return {success: true, output: 'Working memory is empty'};
+    const lines = [...all.entries()].map(([k, v]) => `${k}: ${v}`);
+    return {success: true, output: `Pinned items:\n${lines.join('\n')}`};
+  }
+
+  private unpin(args: string): CommandResult {
+    const wm = (this.nar as any).workingMemory;
+    if (!wm) return {success: false, output: 'WorkingMemory not available'};
+    if (!args) {
+      wm.unpin();
+      return {success: true, output: 'Working memory cleared'};
+    }
+    wm.unpin(args);
+    return {success: true, output: `Unpinned ${args}`};
+  }
+
+  private identity(): CommandResult {
+    const stateManager = (this.bot as any).stateManager;
+    if (!stateManager) {
+      return {success: false, output: 'State manager not available'};
+    }
+
+    const resolver = stateManager.getIdentityResolver?.();
+    if (!resolver) {
+      return {success: false, output: 'Identity resolver not available'};
+    }
+
+    const stats = resolver.getStats();
+    const identities = resolver.getAllIdentities();
+
+    const lines = [
+      `Identity Resolution Summary:`,
+      `  Total identities: ${stats.totalIdentities}`,
+      `  Total aliases: ${stats.totalAliases}`,
+      `  Avg aliases per identity: ${stats.avgAliasesPerIdentity.toFixed(2)}`,
+      ``,
+      `Active identities:`,
+    ];
+
+    for (const identity of identities.slice(0, 10)) {
+      lines.push(`  ${identity.canonicalId}: ${identity.allAliases.join(', ')}`);
+    }
+
+    if (identities.length > 10) {
+      lines.push(`  ... and ${identities.length - 10} more`);
+    }
+
+    return {success: true, output: lines.join('\n')};
+  }
+
+  private identityDetail(canonicalId: string): CommandResult {
+    const stateManager = (this.bot as any).stateManager;
+    if (!stateManager) {
+      return {success: false, output: 'State manager not available'};
+    }
+
+    const resolver = stateManager.getIdentityResolver?.();
+    if (!resolver) {
+      return {success: false, output: 'Identity resolver not available'};
+    }
+
+    const metadata = resolver.getIdentityMetadata(canonicalId);
+    if (!metadata) {
+      return {success: false, output: `Identity not found: ${canonicalId}`};
+    }
+
+    const aliases = resolver.getIdentities(canonicalId);
+    const lines = [
+      `Identity: ${canonicalId}`,
+      `  Aliases: ${aliases.join(', ')}`,
+      `  Hostmask: ${metadata.hostmask || 'N/A'}`,
+      `  Auth ID: ${metadata.authId || 'N/A'}`,
+      `  Nick: ${metadata.nick || 'N/A'}`,
+      `  Username: ${metadata.username || 'N/A'}`,
+      `  Last seen: ${new Date(metadata.lastSeen).toLocaleString()}`,
+    ];
+
+    return {success: true, output: lines.join('\n')};
   }
 }
 

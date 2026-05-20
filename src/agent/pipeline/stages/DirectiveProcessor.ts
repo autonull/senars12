@@ -44,6 +44,16 @@ export class DirectiveProcessor implements PipelineStage {
       if (d.type === 'reasoning_depth' && ctx.config.reasoning.lmDriven) {
         ctx.turn.reasoningDepthOverride = parseInt(d.content, 10);
       }
+
+      // Tool-result-aware loop-back: trigger if tool result contains actionable data
+      if (d.type === 'tool_call' && result.success) {
+        const resultStr = String(result.result);
+        if (resultStr && resultStr.length > 0 && !resultStr.includes('undefined')) {
+          ctx.turn.needsLoopBack = true;
+          ctx.turn.loopBackType = 'tool_result';
+          ctx.events.emit('directive:loop-requested', {type: 'tool_result'});
+        }
+      }
     }
 
     ctx.turn.directives = directives;

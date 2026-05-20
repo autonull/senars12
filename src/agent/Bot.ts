@@ -1,7 +1,7 @@
 import type {NAR} from '../nar/nar.js';
 import type {LMClient} from '../nar/lm/types.js';
 import {MessagePipeline, PRESETS, type StageFactory} from './pipeline/index.js';
-import {ConversationStateManager} from './ConversationState.js';
+import {ConversationStateManager} from './ConversationStateManager.js';
 import type {BotContext, BotResponse, BotConfig, Capabilities, ConnectionInfo, IOMessage, PipelineEvents, StreamChunk} from './BotContext.js';
 import {detectCapabilities, PipelineEventEmitter} from './BotContext.js';
 import type {BotProfile} from './BotProfile.js';
@@ -11,6 +11,8 @@ import {coreCommands} from '../io/commands/core.js';
 import {memoryCommands} from '../io/commands/memory.js';
 import {narCommands} from '../io/commands/nar.js';
 import {configCommands} from '../io/commands/config.js';
+import {episodesCommands} from '../io/commands/episodes.js';
+import {scenarioCommands} from '../io/commands/scenario.js';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import type {ConnectionManager} from '../io/connection-manager.js';
 import type {ConnectionConfig} from '../io/types.js';
@@ -91,11 +93,11 @@ export class Bot {
         };
     }
 
-    private createCommandRegistry(): CommandRegistry {
-        const r = new CommandRegistry();
-        for (const cmd of [coreCommands, memoryCommands, narCommands, configCommands].flat()) r.register(cmd);
-        return r;
-    }
+  private createCommandRegistry(): CommandRegistry {
+    const r = new CommandRegistry();
+    for (const cmd of [coreCommands, memoryCommands, narCommands, configCommands, episodesCommands, scenarioCommands].flat()) r.register(cmd);
+    return r;
+  }
 
     private createPipeline(): MessagePipeline {
         const preset = this.config.pipeline.preset ?? 'default';

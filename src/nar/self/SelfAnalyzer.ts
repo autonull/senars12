@@ -86,17 +86,32 @@ export interface CorrectionResult {
 }
 
 interface PerformancePatterns {
-    ruleExecution: number;
-    memoryUsage: number;
-    throughput: 'increasing' | 'decreasing' | 'stable';
+  ruleExecution: number;
+  memoryUsage: number;
+  throughput: 'increasing' | 'decreasing' | 'stable';
 }
 
 interface ResourceUsage {
-    conceptCount: number;
-    memoryUsage: NodeJS.MemoryUsage;
-    avgConceptPriority: number;
-    highPriorityConcepts: number;
-    lowPriorityConcepts: number;
+  conceptCount: number;
+  memoryUsage: NodeJS.MemoryUsage;
+  avgConceptPriority: number;
+  highPriorityConcepts: number;
+  lowPriorityConcepts: number;
+}
+
+export interface CapabilitySnapshot {
+  timestamp: number;
+  activeRules: string[];
+  activeTools: string[];
+  lmProviders: string[];
+  pipelineStages: string[];
+  memoryState: { concepts: number; beliefs: number; episodes: number };
+}
+
+export interface CapabilityDiff {
+  added: string[];
+  removed: string[];
+  changed: { name: string; before: string; after: string }[];
 }
 
 interface TaskPatterns {
@@ -445,13 +460,74 @@ export class SelfAnalyzer {
         return {appliedCorrections, pendingCorrections};
     }
 
-    private getResourceAnalysis(): Omit<ResourceUsage, 'highPriorityConcepts' | 'lowPriorityConcepts'> {
-        if (!this.nar) return {conceptCount: 0, avgConceptPriority: 0, memoryUsage: getMemory()};
-        const concepts = this.nar.listConcepts();
-        return {
-            conceptCount: concepts.length,
-            avgConceptPriority: calcAvg(concepts.map((c) => c.priority)),
-            memoryUsage: getMemory()
-        };
+  private getResourceAnalysis(): Omit<ResourceUsage, 'highPriorityConcepts' | 'lowPriorityConcepts'> {
+    if (!this.nar) return {conceptCount: 0, avgConceptPriority: 0, memoryUsage: getMemory()};
+    const concepts = this.nar.listConcepts();
+    return {
+      conceptCount: concepts.length,
+      avgConceptPriority: calcAvg(concepts.map((c) => c.priority)),
+      memoryUsage: getMemory()
+    };
+  }
+
+  async getCapabilitySnapshot(): Promise<CapabilitySnapshot> {
+    if (!this.nar) {
+      return {
+        timestamp: Date.now(),
+        activeRules: [],
+        activeTools: [],
+        lmProviders: [],
+        pipelineStages: [],
+        memoryState: { concepts: 0, beliefs: 0, episodes: 0 }
+      };
     }
+
+    const beliefs = this.nar.getBeliefs();
+    const concepts = this.nar.listConcepts();
+    
+    return {
+      timestamp: Date.now(),
+      activeRules: ['deduction', 'induction', 'abduction', 'revision', 'analogy'],
+      activeTools: ['search', 'read', 'write', 'http'],
+      lmProviders: this.nar.getLMClient ? [this.nar.getLMClient()?.provider || 'none'] : [],
+      pipelineStages: ['InputNormalizer', 'AuthChecker', 'SeNARSProcessor', 'LMResponder', 'ResponseComposer'],
+      memoryState: {
+        concepts: concepts.length,
+        beliefs: beliefs.length,
+        episodes: 0
+      }
+    };
+  }
+
+  diffCapabilities(before: CapabilitySnapshot, after: CapabilitySnapshot): CapabilityDiff {
+    const added: string[] = [];
+    const removed: string[] = [];
+    const changed: { name: string; before: string; after: string }[] = [];
+
+    // Check active rules
+    for (const rule of after.activeRules) {
+      if (!before.activeRules.includes(rule)) added.push(rule);
+    }
+    for (const rule of before.activeRules) {
+      if (!after.activeRules.includes(rule)) removed.push(rule);
+    }
+
+    // Check memory state changes
+    if (after.memoryState.concepts !== before.memoryState.concepts) {
+      changed.push({
+        name: 'concepts',
+        before: String(before.memoryState.concepts),
+        after: String(after.memoryState.concepts)
+      });
+    }
+    if (after.memoryState.beliefs !== before.memoryState.beliefs) {
+      changed.push({
+        name: 'beliefs',
+        before: String(before.memoryState.beliefs),
+        after: String(after.memoryState.beliefs)
+      });
+    }
+
+    return { added, removed, changed };
+  }
 }
