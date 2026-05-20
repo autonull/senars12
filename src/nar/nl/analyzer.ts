@@ -86,10 +86,11 @@ export class NLAnalyzer {
     }
 
     private detectNarsese(input: string): { valid: boolean; confidence: number } {
-        const cleaned = input.replace(/[.!?]$/, '').trim();
+        // Strip trailing punctuation but preserve truth value syntax (:f:c or %f;c%)
+        const cleaned = input.replace(/(?::\s*[0-9.]+\s*:\s*[0-9.]+|%s*[0-9.]+\s*;\s*[0-9.]+%)\s*$/, '').replace(/[.!?]+\s*$/, '').trim();
         if (!/^[\(\[<]/.test(cleaned)) return { valid: false, confidence: 0 };
         try {
-            termParser.parse(input);
+            termParser.parseWithTruth(input);
             return { valid: true, confidence: 0.95 };
         } catch {
             return { valid: false, confidence: 0.2 };

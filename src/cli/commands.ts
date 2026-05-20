@@ -112,7 +112,7 @@ export class REPLCommands {
     }
 
     if (trimmed.startsWith('/budget')) {
-      return this.budget(trimmed.slice(7).trim());
+      return await this.budget(trimmed.slice(7).trim());
     }
 
     if (trimmed.startsWith('/focus ')) {
@@ -128,19 +128,19 @@ export class REPLCommands {
     }
 
     if (trimmed.startsWith('/export')) {
-      return this.export(trimmed.slice(7).trim());
+      return await this.export(trimmed.slice(7).trim());
     }
 
     if (trimmed.startsWith('/import ')) {
-      return this.import(trimmed.slice(8).trim());
+      return await this.import(trimmed.slice(8).trim());
     }
 
     if (trimmed === '/self.status') {
-      return this.selfStatus();
+      return await this.selfStatus();
     }
 
     if (trimmed === '/self.analyze') {
-      return this.selfAnalyze();
+      return await this.selfAnalyze();
     }
 
     if (trimmed.startsWith('/debug')) {
@@ -358,12 +358,12 @@ SeNARS REPL Commands
     }
   }
 
-  private budget(preset: string): CommandResult {
+  private async budget(preset: string): Promise<CommandResult> {
     const presets = ['chat', 'reasoning', 'deep', 'balanced'];
     if (!preset) return {success: true, output: `Current budget presets: ${presets.join(', ')}`};
     if (!presets.includes(preset)) return {success: false, output: `Invalid preset. Use: ${presets.join(', ')}`};
-    const {getBudget, BUDGET_PRESETS} = require('../nar/config/budget.js');
-    const budget = BUDGET_PRESETS[preset];
+    const mod = await import('../nar/config/budget.js');
+    const budget = mod.BUDGET_PRESETS[preset]!;
     return {success: true, output: `Budget "${preset}": NAL=${budget.maxNALSteps}, LM=${budget.maxLMCalls}, depth=${budget.maxDerivationDepth}, memory=${budget.maxMemoryOps}`};
   }
 
@@ -397,23 +397,25 @@ SeNARS REPL Commands
     return {success: true, output: lines.join('\n')};
   }
 
-  private export(file: string): CommandResult {
+  private async export(file: string): Promise<CommandResult> {
     const beliefs = this.nar.getBeliefs();
     const output = beliefs.map(b => {
       const tv = b.truth ? ` :${b.truth.f.toFixed(1)}:${b.truth.c.toFixed(1)}` : '';
       return `${b.term.toString()}${tv}`;
     }).join('\n');
     if (file) {
-      require('fs').writeFileSync(file, output);
+      const fs = await import('fs');
+      fs.writeFileSync(file, output);
       return {success: true, output: `Exported ${beliefs.length} beliefs to ${file}`};
     }
     return {success: true, output: output || 'No beliefs to export'};
   }
 
-  private import(file: string): CommandResult {
+  private async import(file: string): Promise<CommandResult> {
     if (!file) return {success: false, output: 'Usage: /import <file>'};
     try {
-      const content = require('fs').readFileSync(file, 'utf-8');
+      const fs = await import('fs');
+      const content = fs.readFileSync(file, 'utf-8');
       const lines = content.split('\n').filter((l: string) => l.trim() && !l.startsWith('#'));
       let count = 0;
       for (const line of lines) {
@@ -428,14 +430,14 @@ SeNARS REPL Commands
     }
   }
 
-  private selfStatus(): CommandResult {
-    const {Observer} = require('../nar/cognitive/index.js');
+  private async selfStatus(): Promise<CommandResult> {
+    const {Observer} = await import('../nar/cognitive/index.js');
     const observer = new Observer();
     return {success: true, output: observer.reportState(this.nar)};
   }
 
   private async selfAnalyze(): Promise<CommandResult> {
-    const {Observer} = require('../nar/cognitive/index.js');
+    const {Observer} = await import('../nar/cognitive/index.js');
     const observer = new Observer();
     const report = observer.check(this.nar);
     const lines = [

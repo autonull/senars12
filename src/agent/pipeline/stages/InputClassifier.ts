@@ -6,7 +6,7 @@ const isNarsese = (text: string): boolean => {
   const t = text.trim();
   if (t.startsWith('/') || t.startsWith('!')) return false;
   try {
-    termParser.parse(t);
+    termParser.parseWithTruth(t);
     return true;
   } catch {
     return false;

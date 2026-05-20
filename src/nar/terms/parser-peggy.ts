@@ -76,9 +76,15 @@ export class TermParser {
     parseWithTruth(input: string): { term: Term; truth?: Truth } {
         const trimmed = input.trim();
 
-        const truthMatch = trimmed.match(/%\s*([0-9.]+)\s*;\s*([0-9.]+)\s*%\s*$/);
+        // Support both :f:c (colon syntax) and %f;c% (percent syntax)
+        const truthMatch = trimmed.match(
+            /(?:%\s*([0-9.]+)\s*;\s*([0-9.]+)\s*%|:\s*([0-9.]+)\s*:\s*([0-9.]+))\s*$/
+        );
         const truth = truthMatch
-            ? Truth.create(parseFloat(truthMatch[1] ?? '0.5'), parseFloat(truthMatch[2] ?? '0.9'))
+            ? Truth.create(
+                parseFloat(truthMatch[1] ?? truthMatch[3] ?? '0.5'),
+                parseFloat(truthMatch[2] ?? truthMatch[4] ?? '0.9')
+              )
             : undefined;
         let termStr = truthMatch ? trimmed.slice(0, -truthMatch[0].length).trim() : trimmed;
 
