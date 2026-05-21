@@ -246,12 +246,14 @@ export interface TurnState {
   needsLoopBack: boolean;
   loopBackType?: string;
   reasoningDepthOverride?: number;
+  nlAnalysis?: NLAnalysis;
 }
 
 export interface DerivationResult {
   steps: number;
   beliefs: Belief[];
   newBeliefs: Belief[];
+  trace?: unknown[];
 }
 
 export interface Belief {

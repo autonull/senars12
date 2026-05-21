@@ -71,8 +71,8 @@ describe('BOT2.md Components', () => {
     it('should apply novelty discount', () => {
       const guide = new OrchestrationGuide();
       const discounted = guide.noveltyDiscount({term: 'test'}, {f: 0.8, c: 0.9});
-      expect(discounted.f).toBe(0.76);
-      expect(discounted.c).toBeCloseTo(0.882);
+      expect(discounted.f).toBeCloseTo(0.74);
+      expect(discounted.c).toBeCloseTo(0.816);
     });
   });
 

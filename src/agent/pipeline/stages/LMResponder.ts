@@ -139,9 +139,9 @@ export class LMResponder implements PipelineStage {
 
   private getWorkingMemoryContext(ctx: BotContext): string | null {
     try {
-      const wm = (ctx.seNARS as any)?.workingMemory;
+      const wm = ctx.seNARS?.workingMemory;
       if (!wm) return null;
-      const all: Map<string, string> = wm.recallAll?.() || new Map();
+      const all = wm.recallAll();
       if (all.size === 0) return null;
       const lines = [...all.entries()].map(([k, v]) => `  ${k}: ${v}`);
       return lines.join('\n');

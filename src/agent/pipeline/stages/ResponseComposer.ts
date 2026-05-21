@@ -68,7 +68,7 @@ export class ResponseComposer implements PipelineStage {
 
   private formatProofTrail(ctx: BotContext): string | null {
     try {
-      const trace = (ctx.turn as any).reasoningResult?.trace;
+      const trace = ctx.turn.reasoningResult?.trace;
       if (!trace || !trace.length) return null;
       
       const lines = trace.slice(0, 5).map((step: any) => {

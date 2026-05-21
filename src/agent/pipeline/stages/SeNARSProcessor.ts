@@ -129,7 +129,7 @@ export class SeNARSProcessor implements PipelineStage {
     const nar = ctx.seNARS!;
     this.initLMRules(nar, ctx);
 
-    const analysis = (ctx.turn as any).nlAnalysis as NLAnalysis | undefined;
+    const analysis = ctx.turn.nlAnalysis;
     const text = ctx.turn.input.text.trim();
     const classification = ctx.turn.classification;
     const steps = ctx.turn.reasoningDepthOverride ?? this.adaptiveDepth(text, classification, ctx);
