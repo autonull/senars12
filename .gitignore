@@ -44,3 +44,4 @@ verification/
 # Leftover/debug files
 *.bak
 *.debug.js
+.agents
