@@ -66,6 +66,104 @@ AgentConfig = CoreConfig + PipelineConfig + ConnectionConfig[] + OptionalModules
 - Connection configs: optional, add dynamically
 - Matches component architecture
 
+### Decision 9: OmegaClaw Parity → **Option A (Minimal viable parity)**
+- Target: Working REPL/IRC bot with NARS+LM reasoning
+- Defer self-modification to post-consolidation
+- Focus on cognitive synergy: NARS NAL + 12 LM rules + bidirectional feedback
+- Simpler startup experience needed (one-command bot)
+
+---
+
+## OmegaClaw Comparison & Cognitive Synergy
+
+### Feature Comparison
+
+| Aspect | OmegaClaw | SeNARS12 (after consolidation) | Winner |
+|--------|-----------|-------------------------------|--------|
+| **NL Understanding** | Basic MeTTa patterns | 15 NL parsers + LM translation | **SeNARS12** |
+| **Reasoning** | Simple MeTTa rules | Full NARS NAL (deduction, abduction, induction, revision) | **SeNARS12** |
+| **Memory** | Episodic only | Working + Episodic + Conceptual (NARS) | **SeNARS12** |
+| **LM Integration** | Direct LLM calls | 12 LM rules + bidirectional feedback | **SeNARS12** |
+| **Background Loop** | 10min wake | Configurable wake + proactive enrichment | **SeNARS12** |
+| **Startup Simplicity** | `sh run.sh` | Needs work (config files) | OmegaClaw |
+| **Self-Modification** | MeTTa runtime | Partial (dynamic LM rules) | OmegaClaw |
+
+### Cognitive Synergy Validated
+
+Five cognitive flows demonstrate NARS+LM integration:
+
+1. **Fast NL→Narsese** (pattern matching) - 15 built-in NL parsers
+2. **Complex NL→LM translation** (fallback) - LM generates Narsese with truth values
+3. **Question answering** - NARS deduction + LM natural language generation
+4. **Background enrichment** - LM hypothesis generation + NARS validation
+5. **Contradiction resolution** - NARS conflict detection + LM evidence evaluation
+
+**Conclusion**: SeNARS12 architecture provides deeper NARS-LM integration than OmegaClaw's MeTTa+LLM approach through:
+- 12 specialized LM rules (Narsese translation, belief revision, goal decomposition, etc.)
+- Bidirectional feedback loop (LM validates NARS hypotheses, NARS grounds LM outputs)
+- Proactive enrichment (LM suggests connections, NARS validates via deduction)
+- Multi-tier memory (working memory for immediate context, episodic for history, conceptual for NARS terms)
+
+---
+
+## Implementation Priority
+
+**Phase 1-2**: Core consolidation (Bot→Agent rename, delete redundant classes)
+**Phase 3**: Ensure all 12 LM rules work in unified pipeline
+**Phase 4**: AgenticLoop as background scheduler (not message processor)
+**Phase 5**: Test REPL and IRC end-to-end with NARS+LM reasoning
+**Phase 6**: Simplify startup (one-command bot similar to OmegaClaw)
+- Bot has the full pipeline we want
+- Rename Bot → Agent, then add ConnectionManager integration
+- Preserves sophisticated pipeline while adding connection management
+- Old Agent/Bot deleted, not deprecated
+
+### Decision 2: ChatResponder → **Eliminate**
+- Redundant with LMResponder pipeline stage
+- All LM responses flow through pipeline
+- Delete `src/agent/ChatResponder.ts`
+
+### Decision 3: ResponseInterpreter → **Fold into DirectiveProcessor**
+- DirectiveProcessor already exists as pipeline stage
+- Does everything ResponseInterpreter does (plus loop-back logic)
+- Delete `src/agent/ResponseInterpreter.ts`
+- Enhance DirectiveProcessor if needed
+
+### Decision 4: SkillCatalog → **Keep but deprecate**
+- Only used for metadata (descriptions), not execution
+- Not critical path
+- Mark for future removal or integration
+
+### Decision 5: CommandRegistry → **Single shared instance**
+- Commands are infrastructure (like NAR itself)
+- CommandProcessor stage uses the registry
+- Internal code can call commands directly from registry
+- One registry, multiple consumers
+
+### Decision 6: AgenticLoop → **Background task scheduler (A)**
+- NOT a message processor
+- Schedules periodic reasoning, LM enrichment, memory consolidation
+- External messages all go through `Agent.processMessage()`
+- Becomes optional Agent module
+
+### Decision 7: processMessage() signature → **A (IOMessage + ChannelContext)**
+```typescript
+processMessage(msg: IOMessage, ctx: ChannelContext): Promise<ChannelResponse>
+```
+- IOMessage is immutable input
+- ChannelContext provides response channel
+- Matches Bot's pattern, makes testing easy
+- Works for REPL, IRC, WS, HTTP, MCP
+
+### Decision 8: Configuration → **B (Modular)**
+```typescript
+AgentConfig = CoreConfig + PipelineConfig + ConnectionConfig[] + OptionalModules
+```
+- Core config: NAR, profile (required)
+- Pipeline config: reasoning behavior (sensible defaults)
+- Connection configs: optional, add dynamically
+- Matches component architecture
+
 ---
 
 ## Phase 1: Core Agent Consolidation
