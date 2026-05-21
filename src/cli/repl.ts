@@ -3,7 +3,7 @@
  * Uses BOT6 pipeline architecture
  */
 
-import {Bot, BotProfile, ConversationStateManager} from '../agent/index.js';
+import {Agent, BotProfile, ConversationStateManager} from '../agent/index.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {createLogger} from '../nar/logger/index.js';
@@ -109,7 +109,7 @@ function parseArgs(): {options: CLIOptions; commands: string[]} {
 }
 
 export class SeNARSCLI {
-  readonly bot: Bot;
+  readonly bot: Agent;
   readonly nar: any;
   readonly logger = createLogger({scope: 'cli:repl'});
   private isTTY: boolean;
@@ -133,7 +133,7 @@ export class SeNARSCLI {
     const profile = new BotProfile();
     const episodicMemory = new EpisodicMemory();
 
-    this.bot = new Bot({
+    this.bot = new Agent({
       profile,
       nar,
       lm: lmClient,

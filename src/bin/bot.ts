@@ -26,7 +26,6 @@ import {ScoringEngine} from '../agent/scenarios/ScoringEngine.js';
 import {ExperimentRunner} from '../agent/experiments/ExperimentRunner.js';
 import {RegressionTracker} from '../agent/scenarios/RegressionTracker.js';
 import {SelfAnalyzer} from '../agent/SelfAnalyzer.js';
-import {createIRCAdapter} from '../io/adapters/irc-adapter.js';
 
 const logger = createLogger({scope: 'bot'});
 
@@ -37,22 +36,20 @@ async function main() {
         providerRegistry: registry,
     });
 
-const agent = new Agent({
-  nar,
-  logger,
-  responseInterpreter: {extractionMode: 'explicit'},
-});
+    const agent = new Agent({
+        nar,
+        logger,
+        botProfile: {},
+    });
 
-// Initialize episodic memory
-const episodicMemory = new EpisodicMemory();
+    const episodicMemory = new EpisodicMemory();
 
-const scoringEngine = new ScoringEngine();
-const scenarioRunner = new ScenarioRunner(nar);
-const experimentRunner = new ExperimentRunner(nar, scenarioRunner);
-const selfAnalyzer = new SelfAnalyzer(nar, undefined, scenarioRunner, experimentRunner);
-const regressionTracker = new RegressionTracker();
+    const scoringEngine = new ScoringEngine();
+    const scenarioRunner = new ScenarioRunner(nar);
+    const experimentRunner = new ExperimentRunner(nar, scenarioRunner);
+    const selfAnalyzer = new SelfAnalyzer(nar, undefined, scenarioRunner, experimentRunner);
+    const regressionTracker = new RegressionTracker();
 
-    // Initialize MCP server if enabled
     let mcpServer: SeNARSMCPServer | undefined;
     if (process.env.SENARS_MCP_ENABLED === 'true') {
         mcpServer = new SeNARSMCPServer({
@@ -75,39 +72,35 @@ const regressionTracker = new RegressionTracker();
         logger.info('MCP Server started');
     }
 
-const loopConfig = DEFAULT_BOT_CONFIG.agenticLoop;
-const loop = new AgenticLoop(
-  agent,
-  episodicMemory,
-  {
-    maxInputTurns: loopConfig.maxInputTurns,
-    maxWakeTurns: loopConfig.maxWakeTurns,
-    sleepIntervalMs: loopConfig.sleepIntervalMs,
-    wakeupIntervalMs: loopConfig.wakeupIntervalMs,
-    reasoningStepsPerWake: loopConfig.reasoningStepsPerWake,
-    enableLMRules: loopConfig.enableLMRules,
-  }
-);
+    const loopConfig = DEFAULT_BOT_CONFIG.agenticLoop;
+    const loop = new AgenticLoop(
+        agent,
+        episodicMemory,
+        {
+            maxInputTurns: loopConfig.maxInputTurns,
+            maxWakeTurns: loopConfig.maxWakeTurns,
+            sleepIntervalMs: loopConfig.sleepIntervalMs,
+            wakeupIntervalMs: loopConfig.wakeupIntervalMs,
+            reasoningStepsPerWake: loopConfig.reasoningStepsPerWake,
+            enableLMRules: loopConfig.enableLMRules,
+        }
+    );
 
-loop.setMessageHandler(async (msg: IOMessage) => {
-const connectionType: ChannelType = msg.source === 'irc-main' ? 'irc' : msg.source === 'ws-main' ? 'ws' : msg.source === 'http-main' ? 'http' : 'cli';
-const ctx = {
-connectionId: msg.source,
-connectionType,
-sender: msg.sender,
-respond: async (text: string) => {
-const chunks = agent.responseFormatter.format(connectionType, text);
-const toSend = Array.isArray(chunks) ? chunks : [chunks];
-for (const chunk of toSend) {
-await agent.sendTo(msg.source, msg.sender, chunk);
-}
-},
-};
-const response = await agent.processMessage(msg.text, ctx);
-if (response.text) {
-await ctx.respond(response.text);
-}
-});
+    loop.setMessageHandler(async (msg: IOMessage) => {
+        const connectionType: ChannelType = msg.source === 'irc-main' ? 'irc' : msg.source === 'ws-main' ? 'ws' : msg.source === 'http-main' ? 'http' : 'cli';
+        const ctx = {
+            connectionId: msg.source,
+            connectionType,
+            sender: msg.sender,
+            respond: async (text: string) => {
+                await agent.sendTo(msg.source, msg.sender, text);
+            },
+        };
+        const response = await agent.processMessage(msg.text, ctx);
+        if (response.text) {
+            await ctx.respond(response.text);
+        }
+    });
 
     loop.start();
 
@@ -123,21 +116,21 @@ await ctx.respond(response.text);
 
     const connections: Array<{ type: string; config: ConnectionConfig }> = [];
 
-if (process.env.SENARS_IRC_ENABLED === 'true') {
-  const ircConfig = {
-    id: 'irc-main',
-    type: 'irc',
-    enabled: true,
-    authSecret: process.env.SENARS_IRC_AUTH_SECRET,
-    config: {
-      server: process.env.SENARS_IRC_SERVER || 'irc.libera.chat',
-      port: parseInt(process.env.SENARS_IRC_PORT || '6667'),
-      nick: process.env.SENARS_IRC_NICK || 'senars-bot',
-      channels: process.env.SENARS_IRC_CHANNELS?.split(',') || ['#senars'],
-    },
-  };
-  connections.push({type: 'irc', config: ircConfig});
-}
+    if (process.env.SENARS_IRC_ENABLED === 'true') {
+        const ircConfig = {
+            id: 'irc-main',
+            type: 'irc',
+            enabled: true,
+            authSecret: process.env.SENARS_IRC_AUTH_SECRET,
+            config: {
+                server: process.env.SENARS_IRC_SERVER || 'irc.libera.chat',
+                port: parseInt(process.env.SENARS_IRC_PORT || '6667'),
+                nick: process.env.SENARS_IRC_NICK || 'senars-bot',
+                channels: process.env.SENARS_IRC_CHANNELS?.split(',') || ['#senars'],
+            },
+        };
+        connections.push({type: 'irc', config: ircConfig});
+    }
 
     if (process.env.SENARS_WS_ENABLED === 'true' || process.env.SENARS_HTTP_ENABLED === 'true') {
         connections.push({
@@ -167,30 +160,20 @@ if (process.env.SENARS_IRC_ENABLED === 'true') {
         });
     }
 
-for (const {type, config} of connections) {
-  try {
-    const connection = await agent.addConnection(config);
-    logger.info(`Connected ${type} connection: ${config.id}`);
+    for (const {type, config} of connections) {
+        try {
+            const connection = await agent.addConnection(config);
+            logger.info(`Connected ${type} connection: ${config.id}`);
 
-// Wire IRC connection to use IRC adapter
-if (type === 'irc') {
-const ircAdapter = createIRCAdapter({
-botProfile: agent.botProfile,
-conversationManager: agent.conversationManager,
-responseFormatter: agent.responseFormatter,
-agent,
-agenticLoop: loop,
-ircConnection: connection as any,
-channels: (config.config as any).channels || [],
-});
-logger.info(`IRC adapter wired for ${config.id}`);
-}
-  } catch (error) {
-    logger.error(`Failed to connect ${type}: ${error}`);
-  }
-}
+            if (type === 'irc') {
+                logger.info(`IRC connection added for ${config.id}`);
+            }
+        } catch (error) {
+            logger.error(`Failed to connect ${type}: ${error}`);
+        }
+    }
 
-    logger.info(`Bot ready: ${agent.botProfile.name}`);
+    logger.info(`Bot ready: ${agent.profile.name}`);
     logger.info(`Connections: ${connections.length} configured`);
 }
 

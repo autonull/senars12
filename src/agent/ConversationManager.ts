@@ -1,3 +1,5 @@
+import {ConversationStateManager} from './ConversationStateManager.js';
+
 export interface ConversationContext {
     userId: string;
     messages: Array<{role: 'user' | 'assistant'; content: string; timestamp: number}>;
@@ -8,6 +10,7 @@ export interface ConversationContext {
 export class ConversationManager {
     private readonly perUser: Map<string, ConversationContext> = new Map();
     private readonly maxHistory = 20;
+    private readonly stateManager = new ConversationStateManager({} as any);
 
     getContext(userId: string): ConversationContext {
         if (!this.perUser.has(userId)) {

@@ -1,10 +1,12 @@
-import {EventEmitter} from 'events';
 import type {NAR} from '../nar/nar.js';
-import {errMsg} from '../nar/utils/helpers.js';
-import {createLogger, type Logger} from '../nar/logger/index.js';
-import {ConnectionManager} from '../io/connection-manager.js';
-import {MessageRouter} from '../io/router.js';
-import {type CommandContext, CommandRegistry} from '../io/commands/registry.js';
+import type {LMClient} from '../nar/lm/types.js';
+import {MessagePipeline, PRESETS, type StageFactory} from './pipeline/index.js';
+import {ConversationStateManager} from './ConversationStateManager.js';
+import type {BotContext, BotResponse, BotConfig, Capabilities, ConnectionInfo, IOMessage, PipelineEvents, StreamChunk} from './BotContext.js';
+import {detectCapabilities, PipelineEventEmitter} from './BotContext.js';
+import {BotProfile} from './BotProfile.js';
+import type {ChannelType} from './ChannelBehavior.js';
+import {CommandRegistry} from '../io/commands/registry.js';
 import {coreCommands} from '../io/commands/core.js';
 import {connectionCommands} from '../io/commands/connection.js';
 import {memoryCommands} from '../io/commands/memory.js';
@@ -18,22 +20,55 @@ import {scenarioCommands} from '../io/commands/scenario.js';
 import {benchmarkCommands} from '../io/commands/benchmark.js';
 import {experimentCommands} from '../io/commands/experiment.js';
 import {episodesCommands} from '../io/commands/episodes.js';
-import {AuthManager} from '../io/auth.js';
-import type {Connection, ConnectionConfig, IOMessage, MessageClassification} from '../io/types.js';
+import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
+import {ConnectionManager} from '../io/connection-manager.js';
 import {CLIConnection} from '../io/connections/cli.js';
 import {IRCConnection} from '../io/connections/irc.js';
 import {WSConnection} from '../io/connections/ws.js';
 import {HTTPConnection} from '../io/connections/http.js';
 import {MCPConnection} from '../io/connections/mcp.js';
-import {ChatResponder, type ChatResponderConfig} from './ChatResponder.js';
-import {ResponseInterpreter, type ResponseInterpreterConfig} from './ResponseInterpreter.js';
-import {DegradationManager} from './DegradationManager.js';
-import {ResponseFormatter} from './ResponseFormatter.js';
-import {BotProfile} from './BotProfile.js';
-import {ConversationManager} from './ConversationManager.js';
-import {LastResults, type LastResultsEntry} from './LastResults.js';
-import {SkillCatalog} from './SkillCatalog.js';
-import type {ChannelType} from './ChannelBehavior.js';
+import type {ConnectionConfig, Connection} from '../io/types.js';
+import {AuthManager} from '../io/auth.js';
+import type {AgenticLoopConfig} from './AgenticLoop.js';
+import {createLogger} from '../nar/logger/index.js';
+import type {Logger} from '../nar/logger/index.js';
+
+type EventCallback<T> = (data: T) => void;
+
+const DEFAULT_BOT_CONFIG: BotConfig = {
+  reasoning: {
+    autoTrigger: true, triggerThreshold: 0.5, triggerCooldown: 3,
+    maxStepsPerTrigger: 5, backgroundReasoning: true, backgroundIntervalMs: 60000, lmDriven: true,
+  },
+  streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
+  conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
+  pipeline: {maxLoops: 2, stageTimeoutMs: 30000, enableLoopBack: true, loopBackOn: ['believe', 'question']},
+  directives: {builtIn: true},
+  nlParsers: {builtIn: true},
+  classifier: {},
+  lmRules: {enabled: true, rules: []},
+  prompts: {},
+  tui: {typingIndicator: true, colors: true, compactMode: false, statusBar: true},
+};
+
+export interface AgentDeps {
+    profile: BotProfile;
+    lm?: LMClient;
+    nar?: NAR;
+    pipeline?: MessagePipeline;
+    stateManager?: ConversationStateManager;
+    config?: Partial<BotConfig>;
+    capabilities?: Capabilities;
+    episodicMemory?: EpisodicMemory;
+    logger?: Logger;
+    commands?: CommandRegistry;
+}
+
+export interface AgentConfig {
+    nar: NAR;
+    logger?: Logger;
+    botProfile?: Partial<BotProfile>;
+}
 
 export interface ChannelContext {
     connectionId: string;
@@ -49,191 +84,163 @@ export interface ChannelResponse {
     metadata?: Record<string, unknown>;
 }
 
-export interface AgentConfig {
-    nar: NAR;
-    logger?: Logger;
-    chatResponder?: ChatResponderConfig | false;
-    skillCatalog?: boolean;
-    responseInterpreter?: ResponseInterpreterConfig | false;
-    degradationManager?: boolean;
-    responseFormatter?: boolean;
-    botProfile?: Partial<BotProfile>;
-    conversationManager?: boolean;
-    lastResults?: {maxRecent?: number};
-}
-
 export class Agent {
-    readonly router: MessageRouter;
-    readonly nar: NAR;
-    readonly skillCatalog: SkillCatalog;
-    readonly lastResults: LastResults;
-    readonly responseInterpreter: ResponseInterpreter;
-    readonly degradationManager: DegradationManager;
-    readonly responseFormatter: ResponseFormatter;
-    readonly botProfile: BotProfile;
-    readonly conversationManager: ConversationManager;
+    readonly profile: BotProfile;
+    readonly pipeline: MessagePipeline;
+    readonly stateManager: ConversationStateManager;
+    readonly config: BotConfig;
+    readonly capabilities: Capabilities;
+    readonly events: PipelineEventEmitter;
+    readonly commands: CommandRegistry;
+    readonly episodicMemory?: EpisodicMemory;
+    readonly authManager: AuthManager;
 
-    private readonly manager: ConnectionManager;
-    private readonly commands: CommandRegistry;
-    private readonly emitter: EventEmitter;
+    private readonly lm?: LMClient;
+    private readonly nar?: NAR;
+    private readonly connectionManager: ConnectionManager;
     private readonly logger: Logger;
-    private readonly authManager: AuthManager;
-    private readonly chatResponder?: ChatResponder;
+    private agenticLoop?: {setMessageHandler: (h: (msg: IOMessage) => Promise<void>) => void; start: () => void; stop: () => void};
     private running = false;
 
-    constructor(config: AgentConfig) {
-        this.nar = config.nar;
-        this.emitter = new EventEmitter();
-        this.logger = config.logger ?? createLogger({scope: 'agent'});
-        this.manager = new ConnectionManager(this.logger);
-        this.router = new MessageRouter();
-        this.commands = new CommandRegistry();
-        this.authManager = new AuthManager();
+    constructor(deps: AgentDeps);
+    constructor(config: AgentConfig);
+    constructor(depsOrConfig: AgentDeps | AgentConfig) {
+        const isConfig = 'nar' in depsOrConfig && !('profile' in depsOrConfig);
+        const baseLogger = isConfig ? (depsOrConfig as AgentConfig).logger ?? createLogger({scope: 'agent'}) : (depsOrConfig as AgentDeps).logger ?? createLogger({scope: 'agent'});
 
-        this.skillCatalog = new SkillCatalog(this.nar);
-        this.lastResults = new LastResults();
-        this.degradationManager = new DegradationManager();
-        this.conversationManager = new ConversationManager();
-this.botProfile = Object.assign(new BotProfile(), config.botProfile ?? {});
-this.responseFormatter = new ResponseFormatter();
-
-        this.responseInterpreter = config.responseInterpreter !== false
-            ? new ResponseInterpreter(this.nar, config.responseInterpreter)
-            : new ResponseInterpreter(this.nar, {extractionMode: 'none'});
-
-if (config.chatResponder !== false) {
-            const crConfig: ChatResponderConfig = {
-                nar: this.nar,
-                name: this.botProfile.name,
-                personality: this.botProfile.personality,
-                skillCatalog: config.skillCatalog !== false ? this.skillCatalog : undefined,
-                lastResults: this.lastResults,
-                degradationManager: config.degradationManager !== false ? this.degradationManager : undefined,
-                ...(typeof config.chatResponder === 'object' ? config.chatResponder : {}),
-            };
-            this.chatResponder = new ChatResponder(crConfig);
-        }
-
-        this.registerConnectionFactories();
-        this.registerCommands();
-    }
-
-    getAuthManager(): AuthManager {
-        return this.authManager;
-    }
-
-    async addConnection(config: ConnectionConfig): Promise<Connection> {
-        if (config.authSecret) {
-            this.authManager.setSecret(config.id, config.authSecret);
-        }
-        return this.manager.addConnection(config, {
-            nar: this.nar,
-            emit: (event, data) => this.emitter.emit(event, data)
-        });
-    }
-
-    async removeConnection(id: string): Promise<void> {
-        this.authManager.clearConnection(id);
-        await this.manager.removeConnection(id);
-    }
-
-    async enableConnection(id: string): Promise<void> {
-        await this.manager.enableConnection(id);
-    }
-
-    async disableConnection(id: string): Promise<void> {
-        await this.manager.disableConnection(id);
-    }
-
-    getConnection(id: string): Connection | undefined {
-        return this.manager.getConnection(id);
-    }
-
-    getConnections(): ReadonlyMap<string, Connection> {
-        return this.manager.getConnections();
-    }
-
-    async start(): Promise<void> {
-        if (this.running) return;
-        this.running = true;
-        this.skillCatalog.updateFromCommands(this.commands.commands);
-        this.logger.info('Agent started');
-    }
-
-    async stop(): Promise<void> {
-        if (!this.running) return;
-        this.running = false;
-        await this.manager.shutdownAll();
-        this.logger.info('Agent stopped');
-    }
-
-    async sendTo(connectionId: string, target: string, text: string): Promise<void> {
-        const connection = this.manager.getConnection(connectionId);
-        if (connection) {
-            await connection.send(target, text);
+        if (isConfig) {
+            const config = depsOrConfig as AgentConfig;
+            this.logger = baseLogger;
+            this.profile = Object.assign(new BotProfile(), config.botProfile ?? {});
+            this.lm = undefined;
+            this.nar = config.nar;
+            this.episodicMemory = undefined;
+            this.capabilities = detectCapabilities(undefined, config.nar);
+            this.config = this.mergeConfig(DEFAULT_BOT_CONFIG, {});
+            this.events = new PipelineEventEmitter();
+            this.stateManager = new ConversationStateManager(this.config);
+            this.commands = this.createCommandRegistry();
+            this.pipeline = this.createPipeline();
+            this.connectionManager = new ConnectionManager(this.logger);
+            this.authManager = new AuthManager();
+        } else {
+            const deps = depsOrConfig as AgentDeps;
+            this.logger = baseLogger;
+            this.profile = deps.profile;
+            this.lm = deps.lm;
+            this.nar = deps.nar;
+            this.episodicMemory = deps.episodicMemory;
+            this.capabilities = deps.capabilities ?? detectCapabilities(this.lm, this.nar);
+            this.config = this.mergeConfig(DEFAULT_BOT_CONFIG, deps.config ?? {});
+            this.events = new PipelineEventEmitter();
+            this.stateManager = deps.stateManager ?? new ConversationStateManager(this.config);
+            this.commands = deps.commands ?? this.createCommandRegistry();
+            this.pipeline = deps.pipeline ?? this.createPipeline();
+            this.connectionManager = new ConnectionManager(this.logger);
+            this.authManager = new AuthManager();
         }
     }
 
-    async broadcast(text: string, exclude: string[] = []): Promise<void> {
-        for (const [id, connection] of this.manager.getConnections()) {
-            if (!exclude.includes(id)) {
-                await connection.send('broadcast', text);
-            }
-        }
-    }
-
-    async requestConnection(type: string, config: Record<string, unknown>): Promise<void> {
-        const id = config.id as string ?? `conn-${crypto.randomUUID()}`;
-        const connectionConfig: ConnectionConfig = {
-            id,
-            type,
-            enabled: true,
-            config
+    private mergeConfig(d: BotConfig, o: Partial<BotConfig> | undefined): BotConfig {
+        return {
+            reasoning: {...d.reasoning, ...o?.reasoning},
+            streaming: {...d.streaming, ...o?.streaming},
+            conversation: {...d.conversation, ...o?.conversation},
+            pipeline: {...d.pipeline, ...o?.pipeline, loopBackOn: o?.pipeline?.loopBackOn ?? d.pipeline.loopBackOn},
+            directives: {...d.directives, ...o?.directives},
+            nlParsers: {...d.nlParsers, ...o?.nlParsers},
+            classifier: {...d.classifier, ...o?.classifier},
+            lmRules: {...d.lmRules, ...o?.lmRules, rules: o?.lmRules?.rules ?? d.lmRules.rules},
+            tui: {...d.tui, ...o?.tui},
+            prompts: {...d.prompts, ...o?.prompts},
         };
-        await this.addConnection(connectionConfig);
-        this.emitter.emit('connection:requested', {type, config});
     }
 
-    async saveState(path?: string): Promise<void> {
-        const fs = await import('fs/promises');
-        const statePath = path ?? 'agent-state.json';
-        const connections: Array<{ id: string; type: string; state: string }> = [];
-        for (const [id, conn] of this.manager.getConnections()) {
-            connections.push({id, type: conn.type, state: conn.state});
+    private createCommandRegistry(): CommandRegistry {
+        const r = new CommandRegistry();
+        for (const cmd of [coreCommands, connectionCommands, memoryCommands, narCommands, selfCommands, lmCommands, rlfpCommands, authCommands, configCommands, scenarioCommands, benchmarkCommands, experimentCommands, episodesCommands].flat()) {
+            r.register(cmd);
         }
-        await fs.writeFile(statePath, JSON.stringify({
-            connections,
-            memory: await this.nar.getMemoryState?.() ?? {},
-            timestamp: Date.now()
-        }, null, 2));
+        return r;
     }
 
-    async loadState(path?: string): Promise<void> {
-        const fs = await import('fs/promises');
-        const statePath = path ?? 'agent-state.json';
-        const data = JSON.parse(await fs.readFile(statePath, 'utf-8'));
-        if (data.memory) {
-            await this.nar.loadMemoryState?.(data.memory);
+    private createPipeline(): MessagePipeline {
+        const preset = this.config.pipeline.preset ?? 'default';
+        const factories = this.config.pipeline.stages
+            ? this.config.pipeline.stages.map(s => typeof s === 'function' ? s : (() => s))
+            : PRESETS[preset]!;
+        return new MessagePipeline(factories.map(f => f({commands: this.commands, episodicMemory: this.episodicMemory})));
+    }
+
+    private registerConnectionFactories(): void {
+        this.connectionManager.registerFactory({type: 'cli', create: (config, deps) => new CLIConnection(config, deps)});
+        this.connectionManager.registerFactory({type: 'irc', create: (config, deps) => new IRCConnection(config, deps)});
+        this.connectionManager.registerFactory({type: 'websocket', create: (config, deps) => new WSConnection(config, deps)});
+        this.connectionManager.registerFactory({type: 'http', create: (config, deps) => new HTTPConnection(config, deps)});
+        this.connectionManager.registerFactory({type: 'mcp', create: (config, deps) => new MCPConnection(config, deps)});
+    }
+
+    getCapabilities(): Capabilities { return this.capabilities; }
+
+    getConnectionInfo(msg: IOMessage, respondFn: (text: string | StreamChunk) => Promise<void>): ConnectionInfo {
+        return {
+            id: msg.source, type: (msg.metadata?.connectionType as ChannelType) ?? 'cli', sender: msg.sender,
+            respond: respondFn,
+            stream: async (s: AsyncIterable<StreamChunk>) => {
+                let buf = ''; for await (const c of s) buf += c.content; await respondFn(buf);
+            },
+        };
+    }
+
+    createContext(connInfo: ConnectionInfo, conversation: ReturnType<ConversationStateManager['getOrCreate']>): BotContext {
+        return {
+            profile: this.profile, lm: this.lm, seNARS: this.nar, connection: connInfo, conversation,
+            turn: {
+                input: {id: crypto.randomUUID(), source: connInfo.id, sender: connInfo.sender, text: '', timestamp: Date.now()},
+                classification: {primary: 'chat', confidence: 0.1, signals: []},
+                reasoningTriggered: false, lmSuggestsReasoning: false, toolResults: [], actions: [],
+                finalResponse: '', directives: [], directiveResults: [], passCount: 0, needsLoopBack: false,
+                commandResponses: [],
+            },
+            config: this.config, capabilities: this.capabilities,
+            metrics: {startTime: Date.now(), stages: new Map()}, events: this.events,
+        };
+    }
+
+    async processMessage(msg: IOMessage, connInfo: ConnectionInfo, conversation: ReturnType<ConversationStateManager['getOrCreate']>): Promise<BotResponse>;
+    async processMessage(text: string, ctx: ChannelContext): Promise<ChannelResponse>;
+    async processMessage(msgOrText: IOMessage | string, connInfoOrCtx: ConnectionInfo | ChannelContext, conversation?: ReturnType<ConversationStateManager['getOrCreate']>): Promise<BotResponse | ChannelResponse> {
+        if (typeof msgOrText === 'string') {
+            return this.processMessageLegacy(msgOrText, connInfoOrCtx as ChannelContext);
         }
+
+        const msg = msgOrText;
+        const connInfo = connInfoOrCtx as ConnectionInfo;
+        const conv = conversation!;
+
+        const authResult = this.authManager.checkAuth(connInfo.id, connInfo.sender, msg.text);
+        if (authResult === 'ignore') {
+            return {text: '', reasoning: undefined, actions: []};
+        }
+        if (authResult === 'auth_bound') {
+            this.authManager.bindUser(connInfo.id, connInfo.sender);
+            return {text: 'Authenticated successfully', reasoning: undefined, actions: []};
+        }
+
+        const ctx = this.createContext(connInfo, conv);
+        const response = await this.pipeline.process(msg, ctx);
+        conv.addMessage({role: 'user', content: msg.text, timestamp: Date.now()}, this.lm);
+        conv.addMessage({
+            role: 'assistant', content: response.text, timestamp: Date.now(),
+            metadata: ctx.turn.lmSuggestsReasoning ? {suggestsReasoning: true} : undefined,
+        }, this.lm);
+        if (ctx.turn.reasoningResult) {
+            conv.addArtifact({type: 'derivation', content: `Derived ${ctx.turn.reasoningResult.steps} belief(s)`, timestamp: Date.now()});
+        }
+        return response;
     }
 
-    on(event: string, handler: (...args: unknown[]) => void): void {
-        this.emitter.on(event, handler);
-    }
-
-    off(event: string, handler: (...args: unknown[]) => void): void {
-        this.emitter.off(event, handler);
-    }
-
-    getNAR(): NAR {
-        return this.nar;
-    }
-
-    getCommands(): CommandRegistry {
-        return this.commands;
-    }
-
-    async processMessage(text: string, ctx: ChannelContext): Promise<ChannelResponse> {
+    private async processMessageLegacy(text: string, ctx: ChannelContext): Promise<ChannelResponse> {
         const authResult = this.authManager.checkAuth(ctx.connectionId, ctx.sender, text);
         if (authResult === 'ignore') {
             return {text: '', type: 'chat'};
@@ -243,86 +250,111 @@ if (config.chatResponder !== false) {
             return {text: 'Authenticated successfully', type: 'chat'};
         }
 
-        const classification = this.classifyInput(text);
+        const state = this.stateManager.getOrCreate(ctx.sender);
+        const connInfo = this.getConnectionInfo(
+            {id: crypto.randomUUID(), source: ctx.connectionId, sender: ctx.sender, text, timestamp: Date.now()},
+            async (t: string | StreamChunk) => { await ctx.respond(typeof t === 'string' ? t : t.content); },
+        );
+        const response = await this.processMessage(
+            {id: crypto.randomUUID(), source: ctx.connectionId, sender: ctx.sender, text, timestamp: Date.now()},
+            connInfo,
+            state,
+        );
+        return {text: response.text, type: 'chat', actions: response.actions.map(a => a.content)};
+    }
 
-        switch (classification) {
-            case 'command': {
-                const parts = text.slice(1).split(/\s+/);
-                const cmdName = text.trim().startsWith('/') ? '/' + parts[0]! : '.' + parts[0]!;
-                const args = parts.slice(1);
-                try {
-                    const cmdContext: CommandContext = {
-                        nar: this.nar,
-                        connection: this.getConnection(ctx.connectionId) ?? {
-                            id: ctx.connectionId,
-                            name: ctx.connectionType,
-                            type: ctx.connectionType,
-                            state: 'connected',
-                            connect: async () => {},
-                            disconnect: async () => {},
-                            reconnect: async () => {},
-                            send: async () => {},
-                            onMessage: () => {},
-                            onStateChange: () => {},
-                            onError: () => {},
-                            getStatus: () => ({state: 'connected', messageCount: 0, errorCount: 0}),
-                            reconfigure: async () => {},
-                        },
-                        manager: this.manager,
-                    };
-                    const result = await this.commands.execute(cmdName, args, cmdContext);
-                    this.lastResults.record(text, result, [cmdName]);
-                    return {text: result, type: 'command'};
-                } catch (error) {
-                    return {text: `Error: ${errMsg(error)}`, type: 'command'};
-                }
-            }
-            case 'belief': {
-                await this.nar.believe(text);
-                const derived = await this.nar.run(3);
-                const response = `Added: ${text}${derived > 0 ? ` (derived ${derived})` : ''}`;
-                this.lastResults.record(text, response);
-                this.conversationManager.addMessage(ctx.sender, 'user', text);
-                this.conversationManager.addMessage(ctx.sender, 'assistant', response);
-                return {text: response, type: 'belief'};
-            }
-            case 'question': {
-                await this.nar.question(text);
-                const derived = await this.nar.run(5);
-                const response = derived > 0 ? `Derived ${derived} belief(s)` : 'No derivation found';
-                this.lastResults.record(text, response);
-                this.conversationManager.addMessage(ctx.sender, 'user', text);
-                this.conversationManager.addMessage(ctx.sender, 'assistant', response);
-                return {text: response, type: 'question'};
-            }
-            case 'goal': {
-                await this.nar.goal(text.slice(1));
-                const response = `Goal registered: ${text.slice(1)}`;
-                this.lastResults.record(text, response);
-                return {text: response, type: 'goal'};
-            }
-            case 'natural-language':
-            default: {
-                if (this.chatResponder) {
-                    const response = await this.chatResponder.respond(text);
-                    const interpreted = this.responseInterpreter.interpret(response);
-                    if (interpreted.hasActions) {
-                        const actionResult = await this.responseInterpreter.executeAndRespond(interpreted);
-                        this.lastResults.record(text, actionResult, interpreted.actions.map(a => a.raw));
-                    } else {
-                        this.lastResults.record(text, response);
-                    }
-                    this.conversationManager.addMessage(ctx.sender, 'user', text);
-                    this.conversationManager.addMessage(ctx.sender, 'assistant', response);
-                    return {
-                        text: response,
-                        type: 'chat',
-                        actions: interpreted.hasActions ? interpreted.actions.map(a => a.raw) : undefined
-                    };
-                }
-                return {text: `Processed: ${text}`, type: 'chat'};
+    on<K extends keyof PipelineEvents>(event: K, cb: EventCallback<PipelineEvents[K]>): void { this.events.on(event, cb); }
+    off<K extends keyof PipelineEvents>(event: K, cb: EventCallback<PipelineEvents[K]>): void { this.events.off(event, cb); }
+
+    async addConnection(config: ConnectionConfig): Promise<Connection> {
+        if (config.authSecret) {
+            this.authManager.setSecret(config.id, config.authSecret);
+        }
+        return this.connectionManager.addConnection(config, {
+            nar: this.nar, emit: (e: string, d: unknown) => this.events.emit(e as keyof PipelineEvents, d as PipelineEvents[keyof PipelineEvents]),
+        });
+    }
+
+    async removeConnection(id: string): Promise<void> {
+        this.authManager.clearConnection(id);
+        await this.connectionManager.removeConnection(id);
+    }
+
+    async enableConnection(id: string): Promise<void> {
+        await this.connectionManager.enableConnection(id);
+    }
+
+    async disableConnection(id: string): Promise<void> {
+        await this.connectionManager.disableConnection(id);
+    }
+
+    getConnection(id: string): Connection | undefined {
+        return this.connectionManager.getConnection(id);
+    }
+
+    getConnections(): ReadonlyMap<string, Connection> {
+        return this.connectionManager.getConnections();
+    }
+
+    getAuthManager(): AuthManager {
+        return this.authManager;
+    }
+
+    getNAR(): NAR | undefined {
+        return this.nar;
+    }
+
+    getCommands(): CommandRegistry {
+        return this.commands;
+    }
+
+    async sendTo(connectionId: string, target: string, text: string): Promise<void> {
+        const connection = this.connectionManager.getConnection(connectionId);
+        if (connection) {
+            await connection.send(target, text);
+        }
+    }
+
+    async broadcast(text: string, exclude: string[] = []): Promise<void> {
+        for (const [id, connection] of this.connectionManager.getConnections()) {
+            if (!exclude.includes(id)) {
+                await connection.send('broadcast', text);
             }
         }
+    }
+
+    async start(): Promise<void> {
+        if (this.running) return;
+        this.running = true;
+        this.registerConnectionFactories();
+        this.logger.info(`Agent started: ${this.profile.name} (${this.capabilities.mode})`);
+    }
+
+    async stop(): Promise<void> {
+        if (!this.running) return;
+        this.running = false;
+        await this.connectionManager.shutdownAll();
+        this.agenticLoop?.stop();
+        this.logger.info('Agent stopped');
+    }
+
+    startAgenticLoop(loop: {setMessageHandler: (h: (msg: IOMessage) => Promise<void>) => void; start: () => void; stop: () => void}): void {
+        if (!this.nar) return;
+        this.agenticLoop = loop;
+        loop.setMessageHandler(async (msg) => {
+            const connInfo = {
+                id: msg.source, type: 'cli' as const, sender: msg.sender,
+                respond: async (text: string | {content: string}) => {
+                    const content = typeof text === 'string' ? text : text.content;
+                    const conn = this.connectionManager.getConnection(msg.source);
+                    conn ? await conn.send(msg.sender, content) : console.log(content);
+                },
+                stream: async () => {},
+            };
+            const state = this.stateManager.getOrCreate(msg.sender);
+            await this.processMessage(msg, connInfo, state);
+        });
+        loop.start();
     }
 
     getSnapshot(): {
@@ -332,41 +364,13 @@ if (config.chatResponder !== false) {
         lmStatus: string;
         workingMemory: number;
     } {
-        const stats = this.nar.getStatistics();
+        const stats = this.nar?.getStatistics();
         return {
-            turn: this.lastResults.getHistory().length,
+            turn: 0,
             concepts: stats?.totalConcepts ?? 0,
             tasks: stats?.totalTasks ?? 0,
-            lmStatus: this.degradationManager.reportStatus(),
-            workingMemory: this.nar.workingMemory.size(),
+            lmStatus: 'unknown',
+            workingMemory: this.nar?.workingMemory?.size() ?? 0,
         };
-    }
-
-    private registerConnectionFactories(): void {
-        const factories = [
-            {type: 'cli', ctor: CLIConnection},
-            {type: 'irc', ctor: IRCConnection},
-            {type: 'websocket', ctor: WSConnection},
-            {type: 'http', ctor: HTTPConnection},
-            {type: 'mcp', ctor: MCPConnection},
-        ] as const;
-        for (const {type, ctor} of factories) {
-            this.manager.registerFactory({type, create: (config, deps) => new ctor(config, deps)});
-        }
-    }
-
-  private registerCommands(): void {
-    for (const cmd of [coreCommands, connectionCommands, memoryCommands, narCommands, selfCommands, lmCommands, rlfpCommands, authCommands, configCommands, scenarioCommands, benchmarkCommands, experimentCommands, episodesCommands].flat()) {
-      this.commands.register(cmd);
-    }
-  }
-
-    private classifyInput(text: string): MessageClassification {
-        const trimmed = text.trim();
-        if (trimmed.startsWith('.') || trimmed.startsWith('/')) return 'command';
-        if (trimmed.endsWith('.')) return 'belief';
-        if (trimmed.endsWith('?')) return 'question';
-        if (trimmed.startsWith('!')) return 'goal';
-        return 'natural-language';
     }
 }

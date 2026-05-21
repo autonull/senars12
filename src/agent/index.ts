@@ -1,15 +1,14 @@
 export {Agent} from './Agent.js';
-export {Bot, type BotDeps} from './Bot.js';
+export {Agent as Bot} from './Agent.js';
+export type {AgentDeps} from './Agent.js';
 export {BotProfile} from './BotProfile.js';
 export {ChannelBehavior} from './ChannelBehavior.js';
-export {ConversationManager} from './ConversationManager.js';
 export {ConversationState} from './ConversationState.js';
 export {ConversationStateManager} from './ConversationStateManager.js';
 export {IdentityResolver} from './IdentityResolver.js';
 export {DegradationManager} from './DegradationManager.js';
 export {LastResults} from './LastResults.js';
 export {ResponseFormatter} from './ResponseFormatter.js';
-export {ResponseInterpreter} from './ResponseInterpreter.js';
 export {RLFPBridge} from './rlfp/RLFPBridge.js';
 export {ScenarioRunner} from './scenarios/ScenarioRunner.js';
 export {ScoringEngine} from './scenarios/ScoringEngine.js';

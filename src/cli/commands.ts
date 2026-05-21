@@ -2,7 +2,7 @@
  * REPL Commands for BOT7: Interactive debugging and tuning
  */
 
-import type {Bot} from '../agent/index.js';
+import type {Agent} from '../agent/index.js';
 import type {NAR} from '../nar/index.js';
 import {ExperimentRunner, formatExperimentResult, formatDiagnosticReport} from './ExperimentRunner.js';
 import {termParser} from '../nar/terms/index.js';
@@ -21,13 +21,13 @@ export class REPLCommands {
   private depth = 3;
   private mode: 'auto' | 'chat' | 'reason' = 'auto';
 
-  constructor(private bot: Bot, private nar: NAR) {
+  constructor(private agent: Agent, private nar: NAR) {
     this.experimentRunner = new ExperimentRunner(nar);
     this.unifiedRunner = createUnifiedTestRunner(nar);
   }
 
   private getEpisodicMemory() {
-    return (this.bot as any).episodicMemory || (this.nar as any).episodicMemory;
+    return (this.agent as any).episodicMemory || (this.nar as any).episodicMemory;
   }
 
   async execute(input: string): Promise<CommandResult> {
@@ -369,7 +369,7 @@ SeNARS REPL Commands
   }
 
   private history(count = 10): CommandResult {
-    const state = this.bot.stateManager.getOrCreate('cli-user');
+    const state = this.agent.stateManager.getOrCreate('cli-user');
     const messages = (state as any).messages || [];
     const recent = messages.slice(-count);
     
@@ -613,7 +613,7 @@ SeNARS REPL Commands
   }
 
   private identity(): CommandResult {
-    const stateManager = (this.bot as any).stateManager;
+    const stateManager = (this.agent as any).stateManager;
     if (!stateManager) {
       return {success: false, output: 'State manager not available'};
     }
@@ -647,7 +647,7 @@ SeNARS REPL Commands
   }
 
   private identityDetail(canonicalId: string): CommandResult {
-    const stateManager = (this.bot as any).stateManager;
+    const stateManager = (this.agent as any).stateManager;
     if (!stateManager) {
       return {success: false, output: 'State manager not available'};
     }
@@ -677,6 +677,6 @@ SeNARS REPL Commands
   }
 }
 
-export function createREPLCommands(bot: Bot, nar: NAR): REPLCommands {
-  return new REPLCommands(bot, nar);
+export function createREPLCommands(agent: Agent, nar: NAR): REPLCommands {
+  return new REPLCommands(agent, nar);
 }
