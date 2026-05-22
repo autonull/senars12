@@ -32,7 +32,6 @@ export interface BotFullConfig {
   reasoning: BotConfig['reasoning'];
   streaming: BotConfig['streaming'];
   conversation: BotConfig['conversation'];
-  pipeline: BotConfig['pipeline'];
   directives: BotConfig['directives'];
   nlParsers: BotConfig['nlParsers'];
   classifier: BotConfig['classifier'];
@@ -78,12 +77,6 @@ conversation: {
   maxHistory: 20,
   summaryThreshold: 30,
   maxArtifacts: 50,
-},
-pipeline: {
-  maxLoops: 2,
-  stageTimeoutMs: 30000,
-  enableLoopBack: true,
-  loopBackOn: ['believe', 'question'],
 },
 directives: {
   builtIn: true,

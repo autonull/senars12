@@ -102,14 +102,6 @@ export interface BotConfig {
     summaryThreshold: number;
     maxArtifacts: number;
   };
-  pipeline: {
-    maxLoops: number;
-    stageTimeoutMs: number;
-    enableLoopBack: boolean;
-    loopBackOn: ('believe' | 'question' | 'tool_call')[];
-    stages?: any[];
-    preset?: 'default' | 'chat' | 'reasoning' | 'tool';
-  };
   directives: {
     builtIn: boolean;
     custom?: DirectiveDef[];

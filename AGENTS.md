@@ -39,3 +39,5 @@
 
 - Code structure: Keep functions focused (single responsibility), limit function length, organize methods logically,
   prefer composition over inheritance, maintain consistent class structure
+
+- Use `pnpm`, not `npm`

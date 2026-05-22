@@ -20,7 +20,6 @@ describe('AIAgent', () => {
     },
     streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
     conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-    pipeline: {maxLoops: 10, stageTimeoutMs: 5000, enableLoopBack: false, loopBackOn: []},
     directives: {builtIn: true},
     nlParsers: {builtIn: true},
     classifier: {},
@@ -62,7 +61,6 @@ describe('AIAgent', () => {
         },
         streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
         conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-        pipeline: {maxLoops: 10, stageTimeoutMs: 5000, enableLoopBack: false, loopBackOn: []},
       },
       capabilities: createTestCapabilities(),
     });
@@ -90,7 +88,6 @@ describe('AIAgent', () => {
         },
         streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
         conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-        pipeline: {maxLoops: 10, stageTimeoutMs: 5000, enableLoopBack: false, loopBackOn: []},
       },
       capabilities: createTestCapabilities(),
     });
@@ -124,7 +121,6 @@ describe('AIAgent', () => {
         },
         streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
         conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-        pipeline: {maxLoops: 10, stageTimeoutMs: 5000, enableLoopBack: false, loopBackOn: []},
       },
       capabilities: createTestCapabilities(),
     });
@@ -155,7 +151,6 @@ describe('AIAgent', () => {
         },
         streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
         conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-        pipeline: {maxLoops: 10, stageTimeoutMs: 5000, enableLoopBack: false, loopBackOn: []},
       },
       capabilities: createTestCapabilities(),
     });
@@ -184,7 +179,6 @@ describe('AIAgent', () => {
         },
         streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
         conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-        pipeline: {maxLoops: 10, stageTimeoutMs: 5000, enableLoopBack: false, loopBackOn: []},
       },
       capabilities: createTestCapabilities(),
     });
@@ -217,7 +211,6 @@ describe('AIAgent', () => {
         },
         streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
         conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-        pipeline: {maxLoops: 10, stageTimeoutMs: 5000, enableLoopBack: false, loopBackOn: []},
       },
       capabilities: createTestCapabilities(),
     });

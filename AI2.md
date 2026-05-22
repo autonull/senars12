@@ -1,5 +1,185 @@
 # Phase 5: Active Cognitive Reasoning
 
+## Purpose & Philosophical Foundation
+
+### The Neurosymbolic Imperative
+
+**Why does this architecture exist?** To realize the untapped potential of neurosymbolic AI by combining the complementary strengths of neural and symbolic reasoning:
+
+**NARS (Symbolic)** provides:
+- Formal logical inference (deduction, induction, abduction)
+- Explicit belief revision with truth tracking
+- Attention-based resource allocation
+- Goal-directed operational reasoning
+- Transparent, auditable reasoning chains
+
+**LM (Neural)** provides:
+- Semantic understanding and contextual interpretation
+- Pattern recognition across diverse inputs
+- Natural language fluency and generation
+- Knowledge bridging when symbolic gaps appear
+- Flexible prompt-based reasoning strategies
+
+**The Synergy**: Neither approach alone achieves general intelligence. Pure neural systems lack explicit reasoning and truth tracking. Pure symbolic systems lack semantic flexibility and contextual understanding. **Phase 5 creates the architecture where they enhance each other continuously.**
+
+---
+
+### Why This Complexity? The Case for Flexible Architecture
+
+#### The Problem with Fixed Pipelines
+
+Previous architectures (Phases 1-4) used fixed pipeline stages:
+```
+Input → Classifier → ReasoningTrigger → NARS → LM → Response
+```
+
+**Limitations**:
+- **Rigid decision boundaries**: A concept is either "reasoning-worthy" or not, based on fixed thresholds
+- **No learning from outcomes**: Cannot adapt triggering based on whether reasoning helped
+- **Wasted computation**: Running full pipeline on simple queries
+- **Missed opportunities**: Not triggering reasoning when it would have helped but heuristic failed
+
+#### The Phase 5 Solution: Attention-Based Cognitive Scheduling
+
+Instead of fixed pipelines, Phase 5 uses **dynamic, attention-driven scheduling**:
+```
+User Input → NARS Task Added → Attention Priority Rises → LM Rules Fire Conditionally → Reasoning Cycles Run Proportionally
+```
+
+**Benefits**:
+- **Contextual sensitivity**: Reasoning triggers when concepts become salient, not just on keyword matches
+- **Gradual engagement**: Low effort → high effort scaling based on task complexity
+- **Continuous feedback**: LM rules fire based on belief state changes, not one-time classification
+- **Optimizable**: Every parameter (thresholds, priorities, effort levels) can be tuned via RLFP
+
+---
+
+### The Flexibility Imperative: Why Hard-Coding Fails
+
+#### 1. Prompt Composition Flexibility
+
+**Problem**: Fixed prompts like "Classify this input" fail across diverse contexts:
+- Technical query: "Is (cat --> animal) true?" → needs formal classification
+- Casual chat: "what do you think about cats?" → needs conversational response
+- Goal-setting: "understand why cats land on their feet" → needs reasoning activation
+
+**Phase 5 Solution**: LM rules with **contextual prompts**:
+```typescript
+// Prompt adapts based on conversation history, user intent, attention state
+const prompt = `
+Context: {{attentionReport}}
+Recent turns: {{conversationSummary}}
+User intent: {{inferredIntent}}
+
+Classify: {{input}}
+Options: chat, reason, query, goal
+Confidence: [0-1]
+`;
+```
+
+**Why it matters**: The same input "is water wet?" could be:
+- Casual chat (low-stakes opinion)
+- Philosophical reasoning (requires formal analysis)
+- Knowledge gap (user genuinely uncertain)
+
+Only **contextual prompt composition** can distinguish these cases.
+
+---
+
+#### 2. LM Rule Triggering Flexibility
+
+**Problem**: Fixed triggering rules fail in edge cases:
+- `if input contains "why" → trigger reasoning` misses implicit reasoning needs
+- `if confidence < 0.5 → ask clarification` interrupts flow unnecessarily
+- `if contradiction detected → fire revision rule` may over-correct on noise
+
+**Phase 5 Solution**: **Multi-factor triggering** with adjustable weights:
+```typescript
+const triggerScore = 
+  (concept.priority * config.priorityWeight) +
+  (contradiction.severity * config.contradictionWeight) +
+  (userIntent.urgency * config.urgencyWeight) +
+  (recentReasoning.success * config.recencyWeight);
+
+if (triggerScore > adaptiveThreshold) {
+  fireLMRule(rule);
+}
+```
+
+**Why it matters**: 
+- High-priority concepts automatically get more LM attention
+- Contradictions in important domains trigger resolution, minor ones ignored
+- User urgency (e.g., repeated questions) boosts triggering
+- Recent success/failure adjusts future triggering sensitivity
+
+---
+
+#### 3. Parameter & Heuristic Flexibility
+
+**Problem**: Fixed parameters optimize for average case, fail on edge cases:
+- `satisfactionThreshold: 0.8` too high for exploratory reasoning
+- `effortLevel: 0.3` wastes CPU on simple tasks, under-serves complex ones
+- `priorityThreshold: 0.5` misses low-priority-but-important connections
+
+**Phase 5 Solution**: **Configurable parameter spaces** with RLFP optimization targets:
+```typescript
+interface Phase5Config {
+  scheduler: {
+    effortLevel: number; // 0.0 to 1.0 - optimizable for task completion rate
+    idleThresholdMs: number; // 1000 to 60000 - optimizable for user satisfaction
+    maxReasoningCycles: number; // 1 to 100 - optimizable for CPU budget
+  };
+  goals: {
+    satisfactionThreshold: number; // 0.0 to 1.0 - optimizable for accuracy vs speed
+    maxBlockedCycles: number; // 1 to 50 - optimizable for persistence
+  };
+}
+```
+
+**Why it matters**:
+- Different tasks need different parameters (exploration vs exploitation)
+- RLFP can learn optimal parameters from outcomes
+- Users can tune for their priorities (speed vs accuracy)
+- System adapts to domain (math needs high precision, brainstorming needs low)
+
+---
+
+### The Architectural Justification: Why Not Simpler?
+
+#### Tempting Simplifications (And Why They Fail)
+
+**Simplification 1**: "Just run reasoning on every input"
+- **Problem**: Wastes computation on trivial queries
+- **Phase 5**: Attention-based triggering scales effort with need
+
+**Simplification 2**: "Use fixed thresholds for everything"
+- **Problem**: No adaptation to context or user needs
+- **Phase 5**: All thresholds configurable and optimizable
+
+**Simplification 3**: "Let LM decide when to use NARS"
+- **Problem**: LM has no visibility into NARS attention state
+- **Phase 5**: Bidirectional awareness: LM sees NARS state, NARS queries LM for gaps
+
+**Simplification 4**: "Run autonomous reasoning continuously"
+- **Problem**: Wastes CPU, may reason about irrelevant topics
+- **Phase 5**: Proportional effort control, idle-triggered, priority-based scheduling
+
+---
+
+### The Ultimate Goal: Self-Improving Cognitive Architecture
+
+Phase 5 is designed not as a fixed system, but as a **learning architecture**:
+
+1. **Collect trajectories**: Every reasoning cycle, LM rule firing, goal satisfaction is logged
+2. **Evaluate outcomes**: Did reasoning help? Was the LM rule useful? Was the goal achieved?
+3. **Adjust parameters**: RLFP optimizes thresholds, weights, effort levels
+4. **Refine prompts**: Successful prompt patterns reinforced, failures repaired
+5. **Emergent behavior**: System learns when to reason, when to chat, when to ask
+
+**The Vision**: A system that starts with human-tuned parameters and gradually learns optimal cognitive behavior through interaction.
+
+---
+
 ## Executive Summary
 
 **Goal**: Evolve SeNARS from reactive chatbot to autonomous cognitive agent with goal-directed reasoning, attention-priority scheduling, and contextual LM rule triggering.
@@ -13,6 +193,28 @@
 4. **Attention-priority scheduling**: All tasks (goals, questions, beliefs) compete by priority
 5. **Contextual LM triggering**: LM rules fire based on concept priority, not just user input
 6. **Transparent visibility**: Active goals visible in TUI with non-spammy progress updates
+7. **Connection-agnostic**: Works seamlessly across TUI (REPL), IRC, WebSocket, HTTP, and MCP modes
+8. **Optimizable architecture**: All parameters tunable via RLFP for continuous improvement
+
+---
+
+## Architecture Overview
+# Phase 5: Active Cognitive Reasoning
+
+## Executive Summary
+
+**Goal**: Evolve SeNARS from reactive chatbot to autonomous cognitive agent with goal-directed reasoning, attention-priority scheduling, and contextual LM rule triggering.
+
+**Core Innovation**: Replace fixed pipeline stages with flexible, optimizable LM rules and attention-based scheduling while preserving NARS-native task processing.
+
+**Key Design Principles**:
+1. **NARS-native goals**: Goals are `(statement)!` tasks with optional metadata extension
+2. **Truth-based satisfaction**: Goal `(G)!` satisfied when belief `(G).` has `truth.f > threshold`
+3. **Proportional effort control**: Controllable reasoning effort from idle to 100% CPU
+4. **Attention-priority scheduling**: All tasks (goals, questions, beliefs) compete by priority
+5. **Contextual LM triggering**: LM rules fire based on concept priority, not just user input
+6. **Transparent visibility**: Active goals visible in TUI with non-spammy progress updates
+7. **Connection-agnostic**: Works seamlessly across TUI (REPL), IRC, WebSocket, HTTP, and MCP modes
 
 ---
 
@@ -66,433 +268,178 @@ From deleted pipeline logic, these become **new LM rules**:
 
 ## Core Components
 
-### 1. Goal Task Metadata Extension
+### 1. Goal Tasks (NARS-Native, No Metadata)
 
-**File**: `src/nar/task/GoalTask.ts` (new)
+**Phase 5A Approach**: Use NARS-native goal tasks without metadata extension.
+
+- Goals are `(statement)!` tasks with type `'goal'`
+- Satisfaction: Check if belief `(G).` exists with `truth.f > 0.8`
+- No sub-goals, no parent tracking, no progress bars (deferred to 5B)
 
 ```typescript
-import type {Task} from '../types';
-import type {Truth} from '../terms';
-
-export interface GoalSatisfactionCondition {
-  type: 'belief-exists';
-  term: string; // Narsese term to check
-  threshold: number; // truth.f must exceed this
+// Simplified goal handling for 5A
+export function isGoalSatisfied(nar: NAR, goalTerm: string): boolean {
+  const beliefs = nar.getBeliefs(goalTerm);
+  return beliefs.some(b => b.truth.f > 0.8);
 }
 
-export interface GoalMetadata {
-  conversationId?: string;
-  userIntent?: string;
-  satisfactionCondition?: GoalSatisfactionCondition;
-  parentGoalId?: string;
-  subGoals?: string[]; // Goal task IDs
-  createdAt: number;
-  source: 'user' | 'autonomous' | 'lm-generated';
-  priority?: number; // Override default priority
-}
-
-/**
- * Extend NARS goal task with metadata
- * Goal: (statement)! with attached GoalMetadata
- */
-export interface GoalTask extends Task {
-  metadata?: GoalMetadata;
-}
-
-/**
- * Check if goal is satisfied based on belief truth
- */
-export function isGoalSatisfied(
-  goal: GoalTask,
-  getBelief: (term: string) => {truth: Truth} | undefined
-): boolean {
-  const condition = goal.metadata?.satisfactionCondition;
-  if (!condition) {
-    // Default: check if goal statement has belief with high truth.f
-    const belief = getBelief(goal.term.toString());
-    return belief ? belief.truth.f > 0.8 : false;
-  }
-  
-  if (condition.type === 'belief-exists') {
-    const belief = getBelief(condition.term);
-    return belief ? belief.truth.f > condition.threshold : false;
-  }
-  
-  return false;
-}
-
-/**
- * Add feedback belief when goal satisfied
- */
-export function addGoalFeedback(
-  goal: GoalTask,
-  nar: NAR
-): void {
-  const feedbackTruth = {f: 1.0, c: 0.9};
-  nar.input(`${goal.term.toString()}. :${feedbackTruth.f}:${feedbackTruth.c}`);
+export function addGoalFeedback(nar: NAR, goalTerm: string): void {
+  nar.input(`${goalTerm}. :1.0:0.9`);
 }
 ```
 
 ---
 
-### 2. Autonomous Scheduler
+### 2. Autonomous Scheduler (Agent Layer)
 
-**File**: `src/nar/orchestration/AutonomousScheduler.ts` (new)
+**File**: `src/agent/AutonomousScheduler.ts` (agent layer, not NAR core)
+
+**Key Design Decisions**:
+- Located in agent layer (opt-in for interactive modes)
+- Activity-aware: tracks processing state, pending responses
+- Priority-based LM rule triggering (no time cooldowns)
+- Configurable via `senars.config.json`
 
 ```typescript
-import type {NAR} from '../nar';
-import type {Task} from '../types';
-import type {LMClient} from '../lm';
-
-export interface SchedulerConfig {
-  effortLevel: number; // 0.0 to 1.0 (idle to 100% CPU)
-  idleThresholdMs: number; // No input for X ms → start autonomous
-  maxReasoningCycles: number;
-  cpuThrottleMs: number; // Yield every X ms
-  priorityThreshold: number; // Only process tasks above this priority
+interface ActivityState {
+  lastInputTime: number;
+  isProcessing: boolean;
+  pendingResponses: number;
 }
 
-const DEFAULT_CONFIG: SchedulerConfig = {
-  effortLevel: 0.3, // Start conservative
-  idleThresholdMs: 5000,
-  maxReasoningCycles: 10,
-  cpuThrottleMs: 10,
-  priorityThreshold: 0.5
-};
+export interface SchedulerConfig {
+  effortLevel: number; // 0.0 to 1.0
+  idleThresholdMs: number; // 1000 to 60000
+  maxReasoningCycles: number; // 1 to 100
+  priorityThreshold: number; // 0.0 to 1.0
+}
 
 export class AutonomousScheduler {
   private nar: NAR;
-  private lmClient?: LMClient;
   private config: SchedulerConfig;
-  private lastInputTime: number = Date.now();
-  private isRunning: boolean = false;
-  private stopSignal?: AbortController;
+  private activity: ActivityState;
 
   constructor(nar: NAR, config: Partial<SchedulerConfig> = {}) {
     this.nar = nar;
-    this.config = {...DEFAULT_CONFIG, ...config};
+    this.config = config;
+    this.activity = {
+      lastInputTime: Date.now(),
+      isProcessing: false,
+      pendingResponses: 0
+    };
   }
 
-  /**
-   * Record user input timestamp (resets idle timer)
-   */
   markUserInput(): void {
-    this.lastInputTime = Date.now();
+    this.activity.lastInputTime = Date.now();
   }
 
-  /**
-   * Start autonomous reasoning loop
-   */
-  async start(): Promise<void> {
-    if (this.isRunning) return;
-    this.isRunning = true;
-    this.stopSignal = new AbortController();
-
-    while (this.isRunning && !this.stopSignal.signal.aborted) {
-      const idleTime = Date.now() - this.lastInputTime;
-      
-      if (idleTime >= this.config.idleThresholdMs) {
-        await this.runReasoningCycle();
-      }
-      
-      // Sleep based on effort level (inverse: high effort = short sleep)
-      const sleepMs = (1 - this.config.effortLevel) * 1000;
-      await new Promise(r => setTimeout(r, sleepMs));
-    }
+  private shouldRunCycle(): boolean {
+    const idleTime = Date.now() - this.activity.lastInputTime;
+    if (this.activity.isProcessing) return false;
+    if (this.activity.pendingResponses > 0) return false;
+    if (idleTime < this.config.idleThresholdMs!) return false;
+    return true;
   }
 
-  /**
-   * Stop autonomous reasoning
-   */
-  stop(): void {
-    this.isRunning = false;
-    this.stopSignal?.abort();
-  }
-
-  /**
-   * Run one reasoning cycle
-   * Priority order:
-   * 1. High-priority questions (priority > 0.8)
-   * 2. Active goals (priority > 0.7)
-   * 3. LM rule triggers (priority > 0.6)
-   * 4. Proactive enrichment (priority < 0.5)
-   */
-  private async runReasoningCycle(): Promise<void> {
-    const cycleStart = Date.now();
-    let cyclesRun = 0;
-
-    // Get tasks by priority
-    const tasks = this.nar.getTasksByPriority(this.config.priorityThreshold);
-
-    for (const task of tasks) {
-      if (Date.now() - cycleStart > this.config.cpuThrottleMs) {
-        await new Promise(r => setTimeout(r, 0)); // Yield
-      }
-
-      if (++cyclesRun >= this.config.maxReasoningCycles) break;
-
-      // Process task based on type
-      if (task.type === 'question') {
-        await this.processQuestion(task);
-      } else if (task.type === 'goal') {
-        await this.processGoal(task);
-      } else if (task.type === 'belief') {
-        await this.processBelief(task);
-      }
-    }
-
-    // Run LM rules for high-priority concepts
-    await this.triggerLMRules();
-
-    // Run proactive enrichment (low priority background task)
-    await this.runProactiveEnrichment();
-  }
-
-  private async processQuestion(task: Task): Promise<void> {
-    // Questions handled by attention priority
-    // High-priority questions may trigger LM clarification
-    if (task.budget.priority > 0.8) {
-      // Fire lm-interactive-clarification rule
-      await this.nar.fireLMRule('lm-interactive-clarification', {
-        question: task.term.toString()
-      });
-    }
-  }
-
-  private async processGoal(task: Task): Promise<void> {
-    // Check goal satisfaction
-    const satisfied = this.isGoalSatisfied(task);
-    if (satisfied) {
-      // Add feedback belief
-      this.addGoalFeedback(task);
-    } else {
-      // Fire lm-goal-decomposition if sub-goals needed
-      await this.nar.fireLMRule('lm-goal-decomposition', {
-        goal: task.term.toString()
-      });
-    }
-  }
-
-  private async processBelief(task: Task): Promise<void> {
-    // Check for contradictions, low confidence, etc.
-    await this.nar.fireLMRule('lm-belief-revision', {
-      belief: task.term.toString()
-    });
-  }
-
-  private async triggerLMRules(): Promise<void> {
-    // Get high-priority concepts
-    const concepts = this.nar.listConcepts()
-      .filter(c => c.priority > this.config.priorityThreshold);
-
-    for (const concept of concepts) {
-      // Fire relevant LM rules based on concept state
-      if (concept.links.length < 2) {
-        await this.nar.fireLMRule('lm-concept-elaboration', {
-          concept: concept.term.toString()
-        });
-      }
-
-      if (concept.beliefBag.size() > 0) {
-        const topBelief = concept.beliefBag.peek();
-        if (topBelief.truth.c < 0.5) {
-          await this.nar.fireLMRule('lm-uncertainty-calibration', {
-            belief: concept.term.toString()
-          });
-        }
-      }
-    }
-  }
-
-  private async runProactiveEnrichment(): Promise<void> {
-    // Existing ProactiveEnricher logic
-    // Run as low-priority background task
-    const enricher = this.nar.getEnricher();
-    if (enricher) {
-      await enricher.runEnrichmentCycle();
-    }
-  }
-
-  private isGoalSatisfied(task: Task): boolean {
-    // Check if belief exists with high truth.f
-    const beliefs = this.nar.getBeliefs(task.term);
-    return beliefs.some(b => b.truth.f > 0.8);
-  }
-
-  private addGoalFeedback(task: Task): void {
-    // Add feedback belief
-    this.nar.input(`${task.term.toString()}. :1.0:0.9`);
-  }
+  // ... rest of implementation with priority-based LM triggering
 }
 ```
 
 ---
 
-### 3. LM Rule Trigger System
+### 3. LM Rule Trigger System (Priority-Based)
 
-**File**: `src/nar/lm/LMRuleTrigger.ts` (new)
+**File**: `src/nar/lm/LMRuleTrigger.ts`
+
+**Key Features**:
+- Priority-based gating (replaces time cooldowns)
+- Recursion depth limits (3 default, 5 for high priority)
+- Circuit breaker after 5 consecutive failures
+- Max fires per cycle based on priority
 
 ```typescript
-import type {NAR} from '../nar';
-import type {LMRule} from './LMRule';
-import type {Concept} from '../memory';
-
-export interface LMRuleTriggerConfig {
-  priorityThreshold: number;
-  contradictionThreshold: number;
-  underconnectedThreshold: number;
-  lowConfidenceThreshold: number;
+interface TriggerState {
+  lastFired: number;
+  fireCount: number;
+  failureCount: number;
 }
-
-const DEFAULT_TRIGGER_CONFIG: LMRuleTriggerConfig = {
-  priorityThreshold: 0.7,
-  contradictionThreshold: 0.3,
-  underconnectedThreshold: 2,
-  lowConfidenceThreshold: 0.5
-};
 
 export class LMRuleTrigger {
   private nar: NAR;
-  private config: LMRuleTriggerConfig;
+  private currentDepth = 0;
+  private triggerState: Map<string, TriggerState> = new Map();
 
-  constructor(nar: NAR, config: Partial<LMRuleTriggerConfig> = {}) {
-    this.nar = nar;
-    this.config = {...DEFAULT_TRIGGER_CONFIG, ...config};
+  private shouldFire(ruleId: string, concept: Concept): boolean {
+    const state = this.getTriggerState(ruleId, concept);
+    const now = Date.now();
+
+    // Circuit breaker
+    if (state.failureCount > 5) return false;
+
+    // Priority gating (no arbitrary timers)
+    if (concept.priority > 0.9) return true; // Always
+    if (concept.priority > 0.8 && state.fireCount < 3) return true;
+    if (concept.priority > 0.7 && state.fireCount === 0) return true;
+
+    return false;
   }
 
-  /**
-   * Check all concepts for LM rule triggers
-   * Called by AutonomousScheduler during reasoning cycle
-   */
-  async checkTriggers(): Promise<void> {
-    const concepts = this.nar.listConcepts();
+  private async fireWithTracking(ruleId: string, concept: Concept): Promise<void> {
+    try {
+      this.currentDepth++;
+      const maxDepth = concept.priority > 0.95 ? 5 : 3;
+      if (this.currentDepth > maxDepth) return;
 
-    for (const concept of concepts) {
-      await this.triggerRulesForConcept(concept);
+      await this.nar.fireLMRule(ruleId, { concept: concept.term.toString() });
+    } finally {
+      this.currentDepth--;
     }
-  }
-
-  /**
-   * Trigger LM rules for a single concept
-   */
-  private async triggerRulesForConcept(concept: Concept): Promise<void> {
-    const rules: string[] = [];
-
-    // High priority concept → fire relevant rules
-    if (concept.priority > this.config.priorityThreshold) {
-      rules.push('lm-concept-elaboration');
-    }
-
-    // Low confidence belief → fire uncertainty calibration
-    const topBelief = concept.beliefBag.peek();
-    if (topBelief && topBelief.truth.c < this.config.lowConfidenceThreshold) {
-      rules.push('lm-uncertainty-calibration');
-    }
-
-    // Underconnected concept → fire elaboration
-    if (concept.links.length < this.config.underconnectedThreshold) {
-      rules.push('lm-concept-elaboration');
-    }
-
-    // Contradiction detected → fire belief revision
-    if (this.hasContradiction(concept)) {
-      rules.push('lm-belief-revision');
-    }
-
-    // Execute triggered rules
-    for (const ruleId of rules) {
-      await this.nar.fireLMRule(ruleId, {
-        concept: concept.term.toString(),
-        belief: concept.term.toString()
-      });
-    }
-  }
-
-  /**
-   * Check if concept has contradictory beliefs
-   */
-  private hasContradiction(concept: Concept): boolean {
-    const beliefs = Array.from(concept.beliefBag);
-    if (beliefs.length < 2) return false;
-
-    // Check for conflicting truth values
-    const highTruth = beliefs.some(b => b.truth.f > 0.7);
-    const lowTruth = beliefs.some(b => b.truth.f < 0.3);
-
-    return highTruth && lowTruth;
   }
 }
 ```
 
 ---
 
-### 4. Goal Satisfaction Monitor
+### 4. TUI Goal Display (Simplified for 5A)
 
-**File**: `src/nar/task/GoalMonitor.ts` (new)
+**File**: `src/agent/tui/GoalView.ts`
+
+**Phase 5A Features** (no metadata):
+- Display goal term
+- Show priority
+- Show satisfaction status (✓/○)
+- Show time active
 
 ```typescript
-import type {NAR} from '../nar';
-import type {GoalTask} from './GoalTask';
-import {EventEmitter} from 'events';
+export class GoalView {
+  private render(): void {
+    const goals = this.nar.getGoals();
+    const lines: string[] = [];
 
-export interface GoalMonitorEvents {
-  'goal:satisfied': (goal: GoalTask) => void;
-  'goal:blocked': (goal: GoalTask, reason: string) => void;
-  'goal:abandoned': (goal: GoalTask, reason: string) => void;
-  'goal:progress': (goal: GoalTask, progress: number) => void;
-}
+    if (goals.length > 0) {
+      lines.push(`Active Goals (${goals.length}):`);
+      for (const goal of goals.slice(0, 5)) {
+        const satisfied = isGoalSatisfied(this.nar, goal.term.toString());
+        const priority = goal.budget.priority;
+        const activeTime = Date.now() - goal.budget.time;
 
-export class GoalMonitor extends EventEmitter {
-  private nar: NAR;
-  private activeGoals: Map<string, GoalTask> = new Map();
-  private progressTrackers: Map<string, number> = new Map();
-
-  constructor(nar: NAR) {
-    super();
-    this.nar = nar;
-  }
-
-  /**
-   * Track a goal task
-   */
-  track(goal: GoalTask): void {
-    this.activeGoals.set(goal.term.toString(), goal);
-    this.progressTrackers.set(goal.term.toString(), 0);
-  }
-
-  /**
-   * Check satisfaction for all active goals
-   */
-  checkAllGoals(): void {
-    for (const [term, goal] of this.activeGoals) {
-      const satisfied = this.isSatisfied(goal);
-      
-      if (satisfied) {
-        this.emit('goal:satisfied', goal);
-        this.activeGoals.delete(term);
-      } else {
-        // Check if blocked
-        if (this.isBlocked(goal)) {
-          this.emit('goal:blocked', goal, 'no progress after multiple cycles');
-        }
+        let line = ` ${goal.term.toString()}`;
+        line += ` [${satisfied ? '✓' : '○'}]`;
+        line += ` pri:${priority.toFixed(2)}`;
+        line += ` ${this.formatTime(activeTime)}`;
+        lines.push(line);
       }
     }
-  }
 
-  /**
-   * Check if single goal is satisfied
-   */
-  private isSatisfied(goal: GoalTask): boolean {
-    const beliefs = this.nar.getBeliefs(goal.term);
-    return beliefs.some(b => b.truth.f > 0.8);
-  }
+    const questions = this.nar.getQuestions();
+    if (questions.length > 0) {
+      lines.push(`Pending Questions (${questions.length}):`);
+      for (const q of questions.slice(0, 5)) {
+        lines.push(` ? ${q.term.toString()}`);
+      }
+    }
 
-  /**
-   * Check if goal is blocked (no progress)
-   */
-  private isBlocked(goal: GoalTask): boolean {
-    const progress = this.progressTrackers.get(goal.term.toString()) ?? 0;
-    return progress > 10; // Blocked after 10 cycles without progress
+    process.stderr.write('\x1b[2J\x1b[H' + lines.join('\n') + '\n');
   }
 }
 ```
@@ -510,18 +457,27 @@ export interface GoalViewConfig {
   showProgress: boolean;
   showSubGoals: boolean;
   updateIntervalMs: number;
+  maxVisibleGoals: number;
+  maxVisibleQuestions: number;
 }
 
+/**
+ * Displays active goals and pending questions in TUI
+ * Updates batched to avoid spam
+ */
 export class GoalView {
   private activeGoals: GoalTask[] = [];
   private pendingQuestions: string[] = [];
   private config: GoalViewConfig;
+  private lastUpdate: number = 0;
 
   constructor(config: Partial<GoalViewConfig> = {}) {
     this.config = {
       showProgress: true,
       showSubGoals: true,
-      updateIntervalMs: 1000, // Batch updates
+      updateIntervalMs: 1000,
+      maxVisibleGoals: 5,
+      maxVisibleQuestions: 5,
       ...config
     };
   }
@@ -537,13 +493,16 @@ export class GoalView {
   }
 
   private render(): void {
-    // Render to TUI status bar
+    // Rate limit updates
+    const now = Date.now();
+    if (now - this.lastUpdate < this.config.updateIntervalMs) return;
+    this.lastUpdate = now;
+
     const lines: string[] = [];
 
-    // Active goals section
     if (this.activeGoals.length > 0) {
       lines.push(`Active Goals (${this.activeGoals.length}):`);
-      for (const goal of this.activeGoals.slice(0, 5)) {
+      for (const goal of this.activeGoals.slice(0, this.config.maxVisibleGoals)) {
         const progress = this.calculateProgress(goal);
         const subGoals = goal.metadata?.subGoals?.length ?? 0;
         
@@ -558,20 +517,20 @@ export class GoalView {
       }
     }
 
-    // Pending questions section
     if (this.pendingQuestions.length > 0) {
       lines.push(`Pending Questions (${this.pendingQuestions.length}):`);
-      for (const q of this.pendingQuestions.slice(0, 5)) {
+      for (const q of this.pendingQuestions.slice(0, this.config.maxVisibleQuestions)) {
         lines.push(`  ? ${q}`);
       }
     }
 
-    // Output to TUI
-    console.log(lines.join('\n'));
+    // Output to TUI status bar
+    process.stderr.write('\x1b[2J\x1b[H'); // Clear
+    process.stderr.write(lines.join('\n') + '\n');
   }
 
   private calculateProgress(goal: GoalTask): number {
-    // TODO: Implement progress calculation
+    // TODO: Implement based on sub-goal completion
     return 0;
   }
 }
@@ -579,208 +538,104 @@ export class GoalView {
 
 ---
 
-## Configuration Space
+## Configuration (Phase 5A)
 
-### Searchable/Optimizable Parameters
+Configured in `senars.config.json`:
 
-```typescript
-interface Phase5Config {
-  // Autonomous Scheduler
-  scheduler: {
-    effortLevel: number; // 0.0 to 1.0
-    idleThresholdMs: number; // 1000 to 60000
-    maxReasoningCycles: number; // 1 to 100
-    cpuThrottleMs: number; // 1 to 100
-    priorityThreshold: number; // 0.0 to 1.0
-  };
-
-  // LM Rule Triggers
-  lmTriggers: {
-    priorityThreshold: number; // 0.0 to 1.0
-    contradictionThreshold: number; // 0.0 to 1.0
-    underconnectedThreshold: number; // 1 to 10
-    lowConfidenceThreshold: number; // 0.0 to 1.0
-  };
-
-  // Goal Satisfaction
-  goals: {
-    satisfactionThreshold: number; // 0.0 to 1.0 (truth.f)
-    maxBlockedCycles: number; // 1 to 50
-    feedbackTruthF: number; // 0.0 to 1.0
-    feedbackTruthC: number; // 0.0 to 1.0
-  };
-
-  // TUI Updates
-  ui: {
-    updateIntervalMs: number; // 100 to 10000
-    maxVisibleGoals: number; // 1 to 20
-    maxVisibleQuestions: number; // 1 to 20
-  };
-}
-```
-
-### RLFP Optimization Targets (Future)
-
-The following parameters are designed for RLFP training:
-
-1. **Scheduler effort level** → Optimize for task completion rate
-2. **Priority thresholds** → Optimize for user satisfaction
-3. **LM rule firing frequency** → Optimize for reasoning quality
-4. **Goal satisfaction threshold** → Optimize for accuracy vs speed tradeoff
-
----
-
-## Implementation Plan
-
-### Week 1-2: Goal Task Foundation
-
-**Tasks**:
-- [ ] Create `src/nar/task/GoalTask.ts` with metadata extension
-- [ ] Implement goal satisfaction checking logic
-- [ ] Add goal creation tools to `src/agent/tools/nars-tools.ts`
-- [ ] Wire goal tracking to `AIAgent.chat()`
-- [ ] Test: User sets goal → tracked → satisfied → feedback added
-
-**Files to Create**:
-- `src/nar/task/GoalTask.ts`
-- `src/nar/task/GoalMonitor.ts`
-
-**Files to Modify**:
-- `src/agent/tools/nars-tools.ts` (add goal tools)
-- `src/agent/AIAgent.ts` (wire goal tracking)
-
----
-
-### Week 3-4: Autonomous Scheduler
-
-**Tasks**:
-- [ ] Create `src/nar/orchestration/AutonomousScheduler.ts`
-- [ ] Implement proportional effort control (idle → 100% CPU)
-- [ ] Wire to attention system (get tasks by priority)
-- [ ] Integrate with existing `ProactiveEnricher`
-- [ ] Test: Scheduler runs at configured effort level
-
-**Files to Create**:
-- `src/nar/orchestration/AutonomousScheduler.ts`
-
-**Files to Modify**:
-- `src/nar/nar.ts` (add scheduler integration)
-- `src/agent/config.ts` (add scheduler config)
-
----
-
-### Week 5-6: LM Rule Triggering
-
-**Tasks**:
-- [ ] Create `src/nar/lm/LMRuleTrigger.ts`
-- [ ] Implement triggers for all 13 existing LM rules
-- [ ] Wire to attention priority system
-- [ ] Test: LM rules fire based on concept state, not just user input
-
-**Files to Create**:
-- `src/nar/lm/LMRuleTrigger.ts`
-- `src/nar/lm/rules/lm-intent-classification.ts` (new rule)
-- `src/nar/lm/rules/lm-reasoning-trigger.ts` (new rule)
-- `src/nar/lm/rules/lm-contextual-clarification.ts` (new rule)
-
-**Files to Modify**:
-- `src/nar/lm/rules.ts` (add new rules)
-
----
-
-### Week 7-8: Visibility & Polish
-
-**Tasks**:
-- [ ] Create `src/agent/tui/GoalView.ts`
-- [ ] Implement goal progress display
-- [ ] Add non-spammy update batching
-- [ ] Test: Goals visible in TUI, updates batched
-- [ ] Run end-to-end scenarios
-
-**Files to Create**:
-- `src/agent/tui/GoalView.ts`
-
-**Files to Modify**:
-- `src/agent/tui/StatusBar.ts` (add goal view)
-- `src/bin/bot-ai.ts` (wire goal view)
-
----
-
-## Success Metrics
-
-1. **Goal Achievement Rate**: % of goals satisfied vs abandoned (>70% target)
-2. **Autonomous Progress**: Reasoning cycles completed without user input
-3. **LM Rule Coverage**: % of deleted pipeline functionality replaced by LM rules (>80% target)
-4. **Cognitive Depth**: Average goal tree depth achieved (target: 3-5 levels)
-5. **User Satisfaction**: Qualitative assessment of reasoning quality
-6. **Effort Control**: Scheduler effort level correlates with CPU usage (R² > 0.8)
-
----
-
-## Migration from Pipeline
-
-### Old Pattern (Deleted):
-```typescript
-// Pipeline stage: InputClassifier
-const classification = classify(input);
-if (classification.primary === 'reason') {
-  // Pipeline stage: ReasoningTrigger
-  const trigger = reasoningTrigger.shouldTrigger(ctx);
-  if (trigger.activate) {
-    await nar.run(trigger.suggestedSteps);
+```json
+{
+  "phase5": {
+    "scheduler": {
+      "effortLevel": 0.3,
+      "idleThresholdMs": 5000,
+      "maxReasoningCycles": 10,
+      "priorityThreshold": 0.7
+    },
+    "lmTriggers": {
+      "priorityThreshold": 0.7,
+      "highPriorityThreshold": 0.9,
+      "maxDepth": 3,
+      "maxDepthHighPriority": 5,
+      "circuitBreakerFailures": 5
+    }
   }
 }
 ```
 
-### New Pattern (Phase 5):
+---
+
+## Connection Integration (Phase 5A)
+
+All connection adapters call `nar.scheduler?.markUserInput()` on user input:
+
 ```typescript
-// AIAgent.chat() with autonomous scheduling
-const agent = new AIAgent({...});
-const context = {sender: 'user', connectionType: 'cli'};
+// CLI, IRC, WS, MCP - all use same pattern
+export class CLIConnection {
+  constructor(private nar: NAR) {}
 
-// User input processed with cognitive context
-const response = await agent.chat(input, context);
-
-// Autonomous scheduler runs in background
-scheduler.start(); // Runs reasoning cycles based on effort level
+  async handleMessage(input: string) {
+    this.nar.scheduler?.markUserInput();
+    await this.nar.input(input);
+  }
+}
 ```
 
----
-
-## Testing Strategy
-
-### Unit Tests
-- Goal satisfaction checking
-- LM rule triggering conditions
-- Scheduler effort control
-- Goal monitor events
-
-### Integration Tests
-- End-to-end goal setting → reasoning → satisfaction
-- LM rule firing during autonomous cycles
-- TUI goal display updates
-- Scheduler proportional effort (idle → 100% CPU)
-
-### Scenario Tests
-1. **Syllogism Chain**: Set goal → derive conclusion → satisfy
-2. **Knowledge Gap**: Unknown term → LM clarification → belief added
-3. **Multi-turn Goal**: Complex goal → sub-goals → synthesis
-4. **Contradiction**: Inject conflict → detect → resolve
-5. **Background Reasoning**: Set goal → wait 30s → verify progress
+**TUI**: GoalView displays active goals  
+**IRC/WS/MCP**: Basic goal status (defer advanced commands to 5B)
 
 ---
 
-## References
+## Implementation Plan (Phase 5A - Minimal)
 
-- **AI.md**: Phases 1-4 completion status
-- **PHASE4_COMPLETE.md**: Deprecation of legacy pipeline
-- **src/nar/lm/rules.ts**: Existing LM rules (13 total)
-- **src/nar/lm/feedback.ts**: Bidirectional feedback loop
-- **src/nar/lm/enrichment.ts**: Proactive enrichment
-- **src/nar/orchestration.ts**: Existing orchestration patterns
+### Week 1: Autonomous Scheduler
+- [ ] Create `src/agent/AutonomousScheduler.ts` (agent layer, not NAR core)
+- [ ] Implement activity-aware scheduling (tracks processing state, pending responses)
+- [ ] Implement priority-based gating (no time cooldowns)
+- [ ] Test idle detection and cycle execution
+
+### Week 2: LM Rule Trigger System
+- [ ] Create `src/nar/lm/LMRuleTrigger.ts`
+- [ ] Implement priority-based concept filtering
+- [ ] Implement recursion depth limits (3 default, 5 for high priority)
+- [ ] Implement circuit breaker (5 consecutive failures)
+- [ ] Test priority gating with mock concepts
+
+### Week 3: LM Rules Implementation
+- [ ] Implement `lm-reasoning-trigger` rule (priority-based triggering)
+- [ ] Implement `lm-goal-decomposition` rule (basic decomposition)
+- [ ] Test rules with priority gating
+- [ ] Verify no infinite loops or explosions
+
+### Week 4: TUI Goal Display
+- [ ] Create `src/agent/tui/GoalView.ts` (simplified for 5A)
+- [ ] Display: goal term, priority, satisfaction status, time active
+- [ ] Integrate with TUI status bar
+- [ ] Test rendering performance
+
+### Week 5: Connection Adapter Integration
+- [ ] Add `scheduler.markUserInput()` to CLI connection
+- [ ] Add scheduler to AIAgent with config flag
+- [ ] Wire activity tracking across all connections
+- [ ] Test multi-connection scenarios
+
+### Week 6: End-to-End Testing & Polish
+- [ ] Unit tests (mocked time)
+- [ ] Integration tests (real NAR + mock LM)
+- [ ] E2E scenarios (real idle time)
+- [ ] Performance tuning and bug fixes
 
 ---
 
-**Status**: ⏳ Ready to Implement
-**Target Completion**: Phase 5 (8 weeks)
-**Next Phase**: Production Readiness & Optimization (Phase 6)
+## Success Metrics (Phase 5A)
+
+1. **Scheduler Stability**: Runs 1hr+ without crashes
+2. **Priority Gating**: High-priority concepts (>0.9) trigger LM rules, low-priority (<0.7) do not
+3. **CPU Control**: `effortLevel` parameter correlates with reasoning cycle frequency (R² > 0.8)
+4. **Goal Satisfaction Detection**: Correctly identifies when belief `(G).` with `truth.f > 0.8` exists for goal `(G)!`
+5. **No Infinite Loops**: Recursion depth limits prevent runaway LM rule chains
+
+---
+
+**Status**: ⏳ Ready to Implement (Phase 5A - Minimal)
+**Target**: 6 weeks
+**Next**: Implement Week 1 (AutonomousScheduler)

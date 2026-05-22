@@ -91,6 +91,16 @@ export class CognitiveContextBuilder {
     return parts.join('\n');
   }
 
+  checkGoalSatisfaction(goalTerm: string): { satisfied: boolean; truthFreq: number; truthConf: number } {
+    const beliefs = this.nar.getBeliefs()
+    const belief = beliefs.find(b => b.term.toString() === goalTerm)
+    return {
+      satisfied: belief !== undefined && belief.truth.f > 0.8,
+      truthFreq: belief?.truth.f ?? 0,
+      truthConf: belief?.truth.c ?? 0,
+    }
+  }
+
   primeAttention(input: string): void {
     const terms = this.extractTerms(input);
     for (const termStr of terms) {

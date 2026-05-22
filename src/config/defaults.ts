@@ -25,10 +25,10 @@ export const DEFAULT_BOT_CONFIG = {
     agenticLoop: {
         reasoningStepsPerWake: 5,
         wakeupIntervalMs: 60000,
-        maxInputTurns: 50,
-        maxWakeTurns: 3,
         sleepIntervalMs: 1000,
         enableLMRules: true,
+        effortLevel: 0.3,
+        priorityThreshold: 0.5,
     },
     responseInterpreter: {
         enabled: true,

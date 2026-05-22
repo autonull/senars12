@@ -30,6 +30,7 @@ import {ExperimentRunner} from '../experiments/ExperimentRunner.js';
 import {RegressionTracker} from '../scenarios/RegressionTracker.js';
 import {SelfAnalyzer} from '../SelfAnalyzer.js';
 import type {NAR} from '../../nar/nar.js';
+import {AutonomousScheduler} from '../AutonomousScheduler.js';
 
 export interface ConnectionAdapterConfig {
   id: string;
@@ -43,6 +44,14 @@ export interface AIAgentDeps {
   nar?: NAR;
   episodicMemory?: import('../../nar/memory/EpisodicMemory.js').EpisodicMemory;
   logger?: Logger;
+  agenticLoop?: {
+    reasoningStepsPerWake: number;
+    wakeupIntervalMs: number;
+    sleepIntervalMs: number;
+    enableLMRules: boolean;
+    effortLevel: number;
+    priorityThreshold: number;
+  };
 }
 
 /**
@@ -53,6 +62,8 @@ export class AIAgentConnectionManager {
   private readonly agent: AIAgent;
   private readonly nar?: NAR;
   private readonly logger: Logger;
+  private readonly agenticLoop?: AIAgentDeps['agenticLoop'];
+  private scheduler?: AutonomousScheduler;
   private mcpServer?: SeNARSMCPServer;
   private scenarioRunner?: ScenarioRunner;
   private experimentRunner?: ExperimentRunner;
@@ -64,6 +75,10 @@ export class AIAgentConnectionManager {
     this.agent = agent;
     this.nar = deps.nar;
     this.logger = deps.logger ?? createLogger({scope: 'agent:connections'});
+    this.agenticLoop = deps.agenticLoop;
+    if (this.nar && this.agenticLoop) {
+      this.scheduler = new AutonomousScheduler(this.nar, this.agenticLoop);
+    }
   }
 
   /**
@@ -145,6 +160,7 @@ export class AIAgentConnectionManager {
    * Handle incoming message from connection
    */
   private async handleMessage(connection: Connection, message: IOMessage): Promise<void> {
+    this.scheduler?.markUserInput()
     try {
       this.logger.info(`Message from ${connection.id}: ${message.text.slice(0, 50)}...`);
 
@@ -162,7 +178,6 @@ export class AIAgentConnectionManager {
         },
         streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
         conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-        pipeline: {maxLoops: 10, stageTimeoutMs: 5000, enableLoopBack: false, loopBackOn: []},
         directives: {builtIn: true},
         nlParsers: {builtIn: true},
         classifier: {},
@@ -242,15 +257,14 @@ export class AIAgentConnectionManager {
    * Start all connections
    */
   async start(): Promise<void> {
+    this.scheduler?.start()
     if (this.mcpServer) {
       await this.initializeMCP();
     }
   }
 
-  /**
-   * Stop all connections
-   */
   async stop(): Promise<void> {
+    this.scheduler?.stop()
     for (const connection of this.connections) {
       try {
         await connection.disconnect('shutdown');

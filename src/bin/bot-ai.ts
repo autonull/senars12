@@ -65,12 +65,6 @@ async function main() {
         summaryThreshold: 30,
         maxArtifacts: 50,
       },
-      pipeline: {
-        maxLoops: 10,
-        stageTimeoutMs: 5000,
-        enableLoopBack: false,
-        loopBackOn: [],
-      },
       prompts: {},
     },
     capabilities,

@@ -1,8 +1,6 @@
-import type {MessagePipeline} from './pipeline/Pipeline.js';
-
 /**
  * DegradationManager - Runtime capability degradation as specified in BOT4.md
- * Monitors LM and SeNARS health and reconfigures pipeline accordingly
+ * Monitors LM and SeNARS health and reconfigures behavior accordingly
  */
 export class DegradationManager {
   private lmAvailable = true;
@@ -12,7 +10,6 @@ export class DegradationManager {
   private healthCheckInterval?: NodeJS.Timeout;
 
   constructor(
-    private readonly pipeline?: MessagePipeline,
     private readonly config: DegradationConfig = DEFAULT_CONFIG
   ) {}
 

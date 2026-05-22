@@ -106,6 +106,10 @@ export interface StatusBarData {
   narAvailable: boolean;
   turn: number;
   mode: string;
+  goals?: {
+    active: number
+    satisfied: number
+  }
 }
 
 export function buildStatusBar(data: StatusBarData, config: TUIConfig): string {
@@ -127,7 +131,12 @@ export function buildStatusBar(data: StatusBarData, config: TUIConfig): string {
   
   parts.push(VISUAL.modeIndicator(data.mode, config.colors));
   parts.push(`turn: ${data.turn}`);
-  
+
+  if (data.goals && data.goals.active > 0) {
+    const pct = data.goals.satisfied / data.goals.active
+    parts.push(`goals:${data.goals.active} ✓${data.goals.satisfied} ${(pct * 100).toFixed(0)}%`)
+  }
+
   return VISUAL.statusBar(parts, config.colors);
 }
 

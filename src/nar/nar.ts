@@ -112,6 +112,7 @@ export class NAR extends BaseComponent {
         this.memory = new Memory(this.config);
         this.workingMemory = new WorkingMemory();
         this.processor = new RuleProcessor();
+        this.processor.setConfig({memory: this.memory, priorityThreshold: this.config.priorityThreshold});
         this.processor.setEventBus(eventBus);
         this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
         this.taskManager = new TaskManager(this.memory);

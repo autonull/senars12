@@ -9,6 +9,7 @@ import {Truth, type Truth as TruthType} from '../terms/truth.js';
 import type {LMRule} from '../lm';
 import {EventBus} from '../types';
 import {toError} from '../utils/helpers.js';
+import type {Memory} from '../memory/memory.js';
 
 export interface RuleInput {
     term: Term;
@@ -48,10 +49,17 @@ export class RuleProcessor {
     private readonly lmRules: LMRule[] = [];
     private eventBus: EventBus | null = null;
     private resultBuffer: RuleResult[] = [];
+    private memory?: Memory;
+    private priorityThreshold = 0;
 
     constructor(rules?: RegisteredRule[]) {
         this.ruleIndex = new RuleIndex();
         (rules ?? RuleRegistry.getAll()).forEach(rule => this.ruleIndex.register(rule));
+    }
+
+    setConfig(config: {memory?: Memory; priorityThreshold?: number}): void {
+        if (config.memory) this.memory = config.memory;
+        if (config.priorityThreshold !== undefined) this.priorityThreshold = config.priorityThreshold;
     }
 
     setEventBus(eventBus: EventBus): void {
@@ -116,9 +124,17 @@ export class RuleProcessor {
     private async* processLMRules(p1: RuleInput, p2: RuleInput): AsyncGenerator<RuleResult> {
         if (this.lmRules.length === 0) return;
 
+        const p1Concept = this.memory?.getConcept(p1.term)
+        const p2Concept = this.memory?.getConcept(p2.term)
+        const maxPriority = Math.max(p1Concept?.priority ?? 0, p2Concept?.priority ?? 0)
+
+        if (maxPriority < this.priorityThreshold) return
+
+        const context = { priority: maxPriority }
+
         const results = await Promise.all(this.lmRules.map(async lmRule => {
             try {
-                const tasks = await lmRule.apply(p1.term, p2.term);
+                const tasks = await lmRule.apply(p1.term, p2.term, context);
                 const derivedStamp = deriveStamp(p1, p2);
                 return tasks.map(task => ({
                     term: task.term,
