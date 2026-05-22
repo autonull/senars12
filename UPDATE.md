@@ -1,555 +1,244 @@
-# Agent Unification & Architecture Consolidation Plan
+# NAL+LM Cognitive Synergy System - Complete Design
 
-## Vision
+## Core Philosophy
+**One input, unified processing, synergistic output.**
 
-Create a single, elegant `Agent` class that serves as the **unified entry point** for all message processing across REPL, IRC, WebSocket, HTTP, and MCP connections. The Agent should:
-
-1. **Own the full pipeline** - No duplicate message processing paths
-2. **Manage connections** - Direct integration with ConnectionManager
-3. **Maintain conversation state** - Single source of truth via ConversationStateManager
-4. **Support background reasoning** - Optional AgenticLoop as background task scheduler
-5. **Provide neurosymbolic integration** - Seamless NARS + LM reasoning
+The system treats every input as potentially requiring both semantic understanding (LM) and logical reasoning (NARS). The question is never "which one handles this?" but "how do they collaborate?"
 
 ---
 
-## Design Decisions Summary
+## Unified Data Flow
 
-### Decision 1: Migration Strategy → **C (Rename Bot → Agent)**
-- Bot has the full pipeline we want
-- Rename Bot → Agent, then add ConnectionManager integration
-- Preserves sophisticated pipeline while adding connection management
-- Old Agent/Bot deleted, not deprecated
-
-### Decision 2: ChatResponder → **Eliminate**
-- Redundant with LMResponder pipeline stage
-- All LM responses flow through pipeline
-- Delete `src/agent/ChatResponder.ts`
-
-### Decision 3: ResponseInterpreter → **Fold into DirectiveProcessor**
-- DirectiveProcessor already exists as pipeline stage
-- Does everything ResponseInterpreter does (plus loop-back logic)
-- Delete `src/agent/ResponseInterpreter.ts`
-- Enhance DirectiveProcessor if needed
-
-### Decision 4: SkillCatalog → **Keep but deprecate**
-- Only used for metadata (descriptions), not execution
-- Not critical path
-- Mark for future removal or integration
-
-### Decision 5: CommandRegistry → **Single shared instance**
-- Commands are infrastructure (like NAR itself)
-- CommandProcessor stage uses the registry
-- Internal code can call commands directly from registry
-- One registry, multiple consumers
-
-### Decision 6: AgenticLoop → **Background task scheduler (A)**
-- NOT a message processor
-- Schedules periodic reasoning, LM enrichment, memory consolidation
-- External messages all go through `Agent.processMessage()`
-- Becomes optional Agent module
-
-### Decision 7: processMessage() signature → **A (IOMessage + ChannelContext)**
-```typescript
-processMessage(msg: IOMessage, ctx: ChannelContext): Promise<ChannelResponse>
 ```
-- IOMessage is immutable input
-- ChannelContext provides response channel
-- Matches Bot's pattern, makes testing easy
-- Works for REPL, IRC, WS, HTTP, MCP
-
-### Decision 8: Configuration → **B (Modular)**
-```typescript
-AgentConfig = CoreConfig + PipelineConfig + ConnectionConfig[] + OptionalModules
-```
-- Core config: NAR, profile (required)
-- Pipeline config: reasoning behavior (sensible defaults)
-- Connection configs: optional, add dynamically
-- Matches component architecture
-
-### Decision 9: OmegaClaw Parity → **Option A (Minimal viable parity)**
-- Target: Working REPL/IRC bot with NARS+LM reasoning
-- Defer self-modification to post-consolidation
-- Focus on cognitive synergy: NARS NAL + 12 LM rules + bidirectional feedback
-- Simpler startup experience needed (one-command bot)
-
----
-
-## OmegaClaw Comparison & Cognitive Synergy
-
-### Feature Comparison
-
-| Aspect | OmegaClaw | SeNARS12 (after consolidation) | Winner |
-|--------|-----------|-------------------------------|--------|
-| **NL Understanding** | Basic MeTTa patterns | 15 NL parsers + LM translation | **SeNARS12** |
-| **Reasoning** | Simple MeTTa rules | Full NARS NAL (deduction, abduction, induction, revision) | **SeNARS12** |
-| **Memory** | Episodic only | Working + Episodic + Conceptual (NARS) | **SeNARS12** |
-| **LM Integration** | Direct LLM calls | 12 LM rules + bidirectional feedback | **SeNARS12** |
-| **Background Loop** | 10min wake | Configurable wake + proactive enrichment | **SeNARS12** |
-| **Startup Simplicity** | `sh run.sh` | Needs work (config files) | OmegaClaw |
-| **Self-Modification** | MeTTa runtime | Partial (dynamic LM rules) | OmegaClaw |
-
-### Cognitive Synergy Validated
-
-Five cognitive flows demonstrate NARS+LM integration:
-
-1. **Fast NL→Narsese** (pattern matching) - 15 built-in NL parsers
-2. **Complex NL→LM translation** (fallback) - LM generates Narsese with truth values
-3. **Question answering** - NARS deduction + LM natural language generation
-4. **Background enrichment** - LM hypothesis generation + NARS validation
-5. **Contradiction resolution** - NARS conflict detection + LM evidence evaluation
-
-**Conclusion**: SeNARS12 architecture provides deeper NARS-LM integration than OmegaClaw's MeTTa+LLM approach through:
-- 12 specialized LM rules (Narsese translation, belief revision, goal decomposition, etc.)
-- Bidirectional feedback loop (LM validates NARS hypotheses, NARS grounds LM outputs)
-- Proactive enrichment (LM suggests connections, NARS validates via deduction)
-- Multi-tier memory (working memory for immediate context, episodic for history, conceptual for NARS terms)
-
----
-
-## Implementation Priority
-
-**Phase 1-2**: Core consolidation (Bot→Agent rename, delete redundant classes)
-**Phase 3**: Ensure all 12 LM rules work in unified pipeline
-**Phase 4**: AgenticLoop as background scheduler (not message processor)
-**Phase 5**: Test REPL and IRC end-to-end with NARS+LM reasoning
-**Phase 6**: Simplify startup (one-command bot similar to OmegaClaw)
-- Bot has the full pipeline we want
-- Rename Bot → Agent, then add ConnectionManager integration
-- Preserves sophisticated pipeline while adding connection management
-- Old Agent/Bot deleted, not deprecated
-
-### Decision 2: ChatResponder → **Eliminate**
-- Redundant with LMResponder pipeline stage
-- All LM responses flow through pipeline
-- Delete `src/agent/ChatResponder.ts`
-
-### Decision 3: ResponseInterpreter → **Fold into DirectiveProcessor**
-- DirectiveProcessor already exists as pipeline stage
-- Does everything ResponseInterpreter does (plus loop-back logic)
-- Delete `src/agent/ResponseInterpreter.ts`
-- Enhance DirectiveProcessor if needed
-
-### Decision 4: SkillCatalog → **Keep but deprecate**
-- Only used for metadata (descriptions), not execution
-- Not critical path
-- Mark for future removal or integration
-
-### Decision 5: CommandRegistry → **Single shared instance**
-- Commands are infrastructure (like NAR itself)
-- CommandProcessor stage uses the registry
-- Internal code can call commands directly from registry
-- One registry, multiple consumers
-
-### Decision 6: AgenticLoop → **Background task scheduler (A)**
-- NOT a message processor
-- Schedules periodic reasoning, LM enrichment, memory consolidation
-- External messages all go through `Agent.processMessage()`
-- Becomes optional Agent module
-
-### Decision 7: processMessage() signature → **A (IOMessage + ChannelContext)**
-```typescript
-processMessage(msg: IOMessage, ctx: ChannelContext): Promise<ChannelResponse>
-```
-- IOMessage is immutable input
-- ChannelContext provides response channel
-- Matches Bot's pattern, makes testing easy
-- Works for REPL, IRC, WS, HTTP, MCP
-
-### Decision 8: Configuration → **B (Modular)**
-```typescript
-AgentConfig = CoreConfig + PipelineConfig + ConnectionConfig[] + OptionalModules
-```
-- Core config: NAR, profile (required)
-- Pipeline config: reasoning behavior (sensible defaults)
-- Connection configs: optional, add dynamically
-- Matches component architecture
-
----
-
-## Phase 1: Core Agent Consolidation
-
-### 1.1 Remove Redundant Classes
-
-**Delete:**
-- ❌ `src/agent/Bot.ts` → Folded into unified Agent
-- ❌ `src/agent/ConversationManager.ts` → Replaced by ConversationStateManager
-- ❌ `src/agent/ChatResponder.ts` → Replaced by LMResponder pipeline stage
-- ❌ `src/agent/ResponseInterpreter.ts` → Folded into DirectiveProcessor
-
-**Keep & Enhance:**
-- ✅ `src/agent/Agent.ts` → Becomes the unified entry point (renamed from Bot)
-- ✅ `src/agent/ConversationStateManager.ts` → Primary conversation state
-- ✅ `src/agent/ConversationState.ts` → State structure
-- ✅ `src/agent/BotProfile.ts` → Bot identity
-- ✅ `src/agent/SkillCatalog.ts` → Metadata registry (deprecated)
-
-### 1.2 New Agent Architecture
-
-```typescript
-export class Agent {
-  // Core components (required)
-  readonly nar: NAR;
-  readonly pipeline: MessagePipeline;
-  readonly conversationManager: ConversationStateManager;
-  readonly connectionManager: ConnectionManager;
-  readonly authManager: AuthManager;
-  readonly commands: CommandRegistry;
+INPUT (any form)
+  ↓
+STAGE 1: Context Builder
+  - Extract conversation history (max 10 turns)
+  - Get attention report from NARS (top 20 concepts)
+  - Identify active topics
+  - Build context snapshot for LM
+  ↓
+STAGE 2: LM Semantic Interpreter
+  Input: {raw text, context snapshot}
   
-  // Optional modules
-  readonly agenticLoop?: AgenticLoop;        // Background task scheduler
-  readonly episodicMemory?: EpisodicMemory;
+  LM analyzes and returns structured output:
+  {
+    intent: 'statement' | 'question' | 'goal' | 'command',
+    confidence: 0.0-1.0,
+    keyTerms: string[],
+    suggestedNarsese?: string,    // if belief to add
+    suggestedQuery?: string,      // if query to ask
+    suggestedGoal?: string,       // if goal to pursue
+    semanticContext: string,      // for response
+    requiresReasoning: boolean,   // trigger NARS?
+    reasoningDepth: number        // how deep to go
+  }
+  ↓
+  ┌─────────────────────┴──────────────────────┐
+  ↓                                           ↓
+STAGE 3a: NARS Engine                    STAGE 3b: LM Direct
+If LM suggests NARS ops                  If LM says no NARS needed
+  - Add beliefs                            LM generates response
+  - Ask queries                            using semantic context
+  - Pursue goals                           No NARS interaction
+  - Run inference
+  Returns:                                 Returns:
+  - Derivation results                     - Conversational response
+  - Query answers                          - Acknowledgment
+  - Updated attention
+  ↓                                           ↓
+  └─────────────────────┬──────────────────────┘
+                        ↓
+STAGE 4: Response Synthesizer
+  Input: {LM interpretation, NARS results}
   
-  // Configuration
-  readonly config: AgentConfig;               // Modular config
-  readonly profile: BotProfile;
+  If NARS ran:
+    - Interpret derivation trace
+    - Explain in natural language
+    - Cite sources (which beliefs led to conclusion)
   
-  // Single entry point
-  async processMessage(
-    msg: IOMessage,
-    ctx: ChannelContext
-  ): Promise<ChannelResponse>;
+  If LM-only:
+    - Use semanticContext for response
+    - Maintain conversational flow
+  
+  Output: Natural, contextually-aware response
+  ↓
+STAGE 5: State Update
+  - Add new beliefs to conversation history
+  - Update NARS attention based on interaction
+  - Persist episodic memory if enabled
+```
+
+---
+
+## Component Details
+
+### Stage 1: Context Builder
+**Purpose**: Gather all relevant context for interpretation
+
+**Inputs**:
+- Raw user input
+- Current conversation state
+- NARS memory state
+
+**Outputs**:
+```typescript
+interface ContextSnapshot {
+  history: Message[];           // Last N turns
+  attention: {
+    concepts: {term: string, priority: number}[];
+    focusTerms: string[];
+  };
+  recentDerivations: Derivation[];
+  mode: 'chat' | 'reason' | 'auto';
 }
 ```
 
-### 1.3 Pipeline Stages (Final List)
+### Stage 2: LM Semantic Interpreter
+**Purpose**: Understand meaning, suggest operations
 
-1. `InputNormalizer` - Normalize input encoding, whitespace
-2. `AuthChecker` - Validate authentication
-3. `InputClassifier` - Detect intent (chat/reason/query/narsese/command)
-4. `NLAnalyzerStage` - Deep natural language analysis
-5. `CommandProcessor` - Execute commands (if input is command)
-6. `SeNARSProcessor` - NARS reasoning with LM rules
-7. `ReasoningTriggerStage` - Adaptive reasoning depth
-8. `LMResponder` - Generate natural language responses
-9. `DirectiveProcessor` - Extract and execute directives
-10. `ResponseComposer` - Compose final response
-11. `ResponseFormatter` - Format for channel (IRC/WS/HTTP/etc)
-12. `StatePersistor` - Persist conversation state
-
----
-
-## Phase 2: Connection Integration
-
-### 2.1 Unified Connection Handling
-
-**All connections use identical pipeline:**
-- CLI/REPL → Connection adapter → Agent.processMessage()
-- IRC → Connection adapter → Agent.processMessage()
-- WebSocket → Connection adapter → Agent.processMessage()
-- HTTP → Connection adapter → Agent.processMessage()
-- MCP → Connection adapter → Agent.processMessage()
-
-### 2.2 Message Flow
-
+**Prompt Structure**:
 ```
-User Input
-    ↓
-Connection Adapter (cli/irc/ws/http/mcp)
-    ↓
-IOMessage { id, source, sender, text, timestamp }
-    ↓
-Agent.processMessage(msg, ctx)
-    ↓
-MessagePipeline
-    ├── InputNormalizer
-    ├── AuthChecker
-    ├── InputClassifier
-    ├── SeNARSProcessor (NARS + LM rules)
-    ├── LMResponder (response generation)
-    ├── DirectiveProcessor (extract actions)
-    └── ResponseComposer
-    ↓
-ChannelResponse { text, actions, metadata }
-    ↓
-Connection.send(target, text)
-```
+You are interpreting user input for a cognitive system.
 
----
+CONTEXT:
+- Recent conversation: {history summary}
+- Active concepts: {top NARS concepts by attention}
+- System mode: {chat/reason/auto}
 
-## Phase 3: Neurosymbolic Integration
+INPUT: "{user input}"
 
-### 3.1 NARS + LM Rules (Preserved)
-
-**12 built-in LM rules** from `src/nar/lm/rules.ts`:
-- Narsese translation
-- Belief revision
-- Goal decomposition
-- Hypothesis generation
-- Analogical reasoning
-- Meta-reasoning
-- Uncertainty calibration
-- Schema induction
-- Temporal-causal modeling
-- Variable grounding
-- Concept elaboration
-- Interactive clarification
-
-### 3.2 NL Translation Pipeline
-
-**Multi-tier approach:**
-1. Pattern matching (fast, common phrases) - 15 built-in parsers
-2. LM translation (fallback, complex input)
-3. Interactive clarification (when ambiguous)
-
-### 3.3 Context Building for LM
-
-LMResponder builds rich context from:
-- Attention report (active concepts)
-- Related beliefs
-- Link structure
-- Recent derivations
-- Goals and questions
-- Working memory state
-- Episodic recall (if enabled)
-
----
-
-## Phase 4: Background Reasoning
-
-### 4.1 AgenticLoop as Background Scheduler
-
-**AgenticLoop responsibilities:**
-- ✅ Run NARS derivation steps on idle cycles
-- ✅ Trigger LM enrichment (proactive concept elaboration)
-- ✅ Memory consolidation
-- ✅ Self-analysis (detect reasoning gaps)
-- ✅ Episodic logging
-- ❌ NOT message processing (removed)
-
-**AgenticLoop becomes:**
-```typescript
-class AgenticLoop {
-  constructor(agent: Agent, config: AgenticLoopConfig)
-  
-  start(): void;   // Start background task scheduler
-  stop(): void;    // Stop scheduler
-  
-  // No more setMessageHandler, pushMessage
-  // These are removed - messages go through Agent.processMessage()
+Respond in JSON:
+{
+  "intent": "statement|question|goal|command",
+  "confidence": 0.0-1.0,
+  "keyTerms": ["term1", "term2"],
+  "suggestedNarsese": "(term --> property).",  // if applicable
+  "suggestedQuery": "(term --> ?1)?",          // if question
+  "semanticContext": "User is asking about...",
+  "requiresReasoning": true/false,
+  "reasoningDepth": 3
 }
 ```
 
-### 4.2 Wake Cycle Activities
+### Stage 3a: NARS Engine
+**Purpose**: Execute symbolic operations
 
-Configurable wake/sleep cycles:
-- Wake interval: default 60s
-- Reasoning steps per wake: default 5
-- LM enrichment: enabled/disabled
-- Memory consolidation: enabled/disabled
+**Operations**:
+- `believe(narsese)`: Add belief with truth values
+- `query(narsese)`: Ask question, get answer with confidence
+- `goal(narsese)`: Set goal, plan achievement
+- `run(steps)`: Perform inference steps
 
----
-
-## Phase 5: Configuration Structure
-
-### 5.1 Modular Configuration
-
+**Outputs**:
 ```typescript
-interface AgentConfig {
-  // Core (required)
-  nar: NARConfig;
-  profile: BotProfile;
-  
-  // Pipeline (sensible defaults)
-  pipeline: {
-    stages?: PipelineStageConfig[];
-    maxLoops: number;              // Default: 2
-    enableLoopBack: boolean;       // Default: true
-    loopBackOn: ('believe' | 'question' | 'tool_call')[];
-    stageTimeoutMs: number;        // Default: 30000
-  };
-  
-  // Conversation
-  conversation: {
-    maxHistory: number;            // Default: 20
-    summaryThreshold: number;      // Default: 30
-    maxArtifacts: number;          // Default: 50
-  };
-  
-  // Reasoning
-  reasoning: {
-    autoTrigger: boolean;          // Default: true
-    triggerThreshold: number;      // Default: 0.5
-    maxStepsPerTrigger: number;    // Default: 3-5 (adaptive)
-    adaptiveDepth: boolean;        // Default: true
-  };
-  
-  // LM integration
-  lm: {
-    enabled: boolean;              // Default: true
-    streaming: boolean;            // Default: false
-    rules: LMRuleConfig[];         // Default: all 12 rules enabled
-    enrichment: {
-      enabled: boolean;            // Default: true
-      intervalMs: number;          // Default: 60000
-    };
-  };
-  
-  // Optional: AgenticLoop
-  agenticLoop?: {
-    enabled: boolean;              // Default: false
-    wakeupIntervalMs: number;      // Default: 60000
-    reasoningStepsPerWake: number; // Default: 5
-  };
-  
-  // Optional: Connections (can add dynamically)
-  connections?: ConnectionConfig[];
+interface NARSResult {
+  beliefs?: Belief[];
+  queryAnswer?: {answer: string, confidence: number};
+  derivations?: Derivation[];
+  attentionUpdate?: AttentionChange;
 }
 ```
 
-### 5.2 Default Configurations
+### Stage 3b: LM Direct
+**Purpose**: Handle purely conversational input
 
-**Minimal REPL config:**
+**When Used**:
+- Greetings ("hello", "how are you")
+- Clarifications ("what do you mean?")
+- Meta-discussion ("can you do X?")
+- LM confidence is high, NARS not needed
+
+### Stage 4: Response Synthesizer
+**Purpose**: Generate natural, informative responses
+
+**Logic**:
 ```typescript
-const replConfig: AgentConfig = {
-  nar: { /* NARS config */ },
-  profile: { name: 'SeNARS', personality: '...' },
-  pipeline: { /* defaults */ },
-  conversation: { /* defaults */ },
-  reasoning: { /* defaults */ },
-  lm: { enabled: false },  // Optional
-  // No agenticLoop, no connections
-};
+function synthesizeResponse(lm: LMInterpretation, nars?: NARSResult): string {
+  if (nars) {
+    if (nars.queryAnswer) {
+      return formatQueryAnswer(nars.queryAnswer, lm.semanticContext);
+    }
+    if (nars.beliefs) {
+      return ackowledgeBelief(nars.beliefs, lm.semanticContext);
+    }
+    if (nars.derivations) {
+      return explainDerivation(nars.derivations, lm.semanticContext);
+    }
+  }
+  return lm.semanticContext;
+}
 ```
 
-**Full multi-connection config:**
-```typescript
-const fullConfig: AgentConfig = {
-  nar: { /* NARS config */ },
-  profile: { name: 'SeNARS', personality: '...' },
-  pipeline: { /* defaults */ },
-  conversation: { /* defaults */ },
-  reasoning: { /* defaults */ },
-  lm: { enabled: true, streaming: true },
-  agenticLoop: {
-    enabled: true,
-    wakeupIntervalMs: 60000,
-    reasoningStepsPerWake: 5
-  },
-  connections: [
-    { type: 'irc', config: { /* ... */ } },
-    { type: 'websocket', config: { /* ... */ } },
-    { type: 'http', config: { /* ... */ } }
-  ]
-};
-```
+**Response Styles**:
+- **Factual**: "Yes, Tweety can fly." (confidence > 0.8)
+- **Tentative**: "Probably, Tweety can fly." (confidence 0.5-0.8)
+- **Uncertain**: "I'm not sure if Tweety can fly." (confidence < 0.5)
+- **Explanatory**: "Yes, because Tweety is a bird and birds can fly."
+
+### Stage 5: State Update
+**Purpose**: Maintain system state
+
+**Updates**:
+- Add user input to conversation history
+- Add system response to conversation history
+- Update NARS attention based on terms used
+- Store episodic memory (if enabled)
+- Update metrics (turns, response times, etc.)
 
 ---
 
-## Phase 6: Implementation Steps
+## Implementation Phases
 
-### Step 1: Prepare Ground Truth ✅
-- [x] Read all current Agent.ts and Bot.ts code
-- [x] Identify all methods/properties used externally
-- [x] Document migration path
+### Phase 1: Fix Immediate Issues (CURRENT)
+- [x] Fix NL parser syntax
+- [ ] Remove forced NL→Narsese translation
+- [ ] Ensure queries route to LM, not parser
+- [ ] Test: "All birds can fly", "Can Tweety fly?", "What are cats?"
 
-### Step 2: Create Unified Agent
-- [ ] Create `src/agent/Agent.ts` (new, unified)
-  - [ ] Rename current Bot → Agent
-  - [ ] Integrate ConnectionManager
-  - [ ] Integrate CommandRegistry
-  - [ ] Integrate AuthManager
-  - [ ] Add AgenticLoop as optional module
-- [ ] Delete old files:
-  - [ ] `src/agent/Bot.ts`
-  - [ ] `src/agent/ConversationManager.ts`
-  - [ ] `src/agent/ChatResponder.ts`
-  - [ ] `src/agent/ResponseInterpreter.ts`
+### Phase 2: Implement Unified Flow
+- [ ] Create ContextBuilder stage
+- [ ] Implement LM Semantic Interpreter
+- [ ] Simplify SeNARSProcessor to execute ops only
+- [ ] Create Response Synthesizer
 
-### Step 3: Update Entry Points
-- [ ] Update `src/bin/bot.ts`:
-  ```typescript
-  import {Agent} from '../agent/Agent.js';
-  const agent = new Agent({...});
-  ```
-- [ ] Update `src/cli/repl.ts`:
-  ```typescript
-  import {Agent} from '../agent/Agent.js';
-  const agent = new Agent({...});
-  ```
-- [ ] Update `src/agent/AgenticLoop.ts`:
-  - Remove message processing
-  - Convert to background task scheduler
-- [ ] Update all tests
+### Phase 3: Enable Synergy
+- [ ] LM→NARS: structured operation suggestions
+- [ ] NARS→LM: context, attention, derivations
+- [ ] Bidirectional feedback loop
 
-### Step 4: Update Pipeline Stages
-- [ ] Ensure all 12 stages work with unified Agent
-- [ ] Integrate NLAnalyzerStage
-- [ ] Enhance ReasoningTriggerStage
-- [ ] Add rule success tracking (foundational)
-- [ ] Improve error handling
-
-### Step 5: Test & Validate
-- [ ] All existing tests pass
-- [ ] REPL works identically
-- [ ] IRC connection works
-- [ ] WebSocket connection works
-- [ ] HTTP connection works
-- [ ] MCP server works
-- [ ] Background reasoning works (if enabled)
+### Phase 4: Polish & Optimize
+- [ ] Streaming responses
+- [ ] Adaptive reasoning depth
+- [ ] Interactive clarification
+- [ ] Performance optimization
 
 ---
 
-## Success Criteria
+## Test Cases
 
-1. ✅ **Single entry point**: All input flows through `Agent.processMessage(msg, ctx)`
-2. ✅ **No redundancy**: Each capability implemented once
-3. ✅ **Identical behavior**: REPL and connections use same pipeline
-4. ✅ **Backward compatible**: Existing code works with minimal changes
-5. ✅ **Extensible**: Easy to add custom stages, tools, rules
-6. ✅ **Performant**: No unnecessary overhead from consolidation
-7. ✅ **Testable**: All functionality covered by tests
+### Passing ✅
+1. "Tweety is a bird" → `(Tweety --> bird).` via NL parser
+2. "Cats are mammals" → `(Cats --> (mammals)).` via NL parser
 
----
+### Failing ❌ (Target of Phase 1)
+1. "All birds can fly" → Should parse as universal
+2. "Can Tweety fly?" → Should be LM query
+3. "What are cats?" → Should be LM query
 
-## Risk Mitigation
-
-**Risk**: Breaking existing integrations  
-**Mitigation**: Comprehensive test suite, run before/after each phase
-
-**Risk**: Losing functionality in consolidation  
-**Mitigation**: Feature checklist, verify each feature post-consolidation
-
-**Risk**: Performance regression  
-**Mitigation**: Benchmark REPL and connection response times before/after
-
-**Risk**: Configuration complexity  
-**Mitigation**: Sensible defaults, progressive enhancement, minimal config required
+### Target Behavior (Phase 2+)
+1. Deductive reasoning chain
+2. LM-handled conversational queries
+3. Uncertainty acknowledgment
+4. Contextual follow-ups
 
 ---
 
-## Timeline
+## Success Metrics
 
-- **Phase 1-2**: Core consolidation (2-3 days)
-- **Phase 3-4**: Integration & enhancement (2-3 days)
-- **Phase 5-6**: Testing & validation (2-3 days)
-
-**Total**: 6-9 days for full consolidation
-
----
-
-## Notes
-
-- This plan prioritizes **working software** over perfect architecture
-- Each phase produces a runnable, testable system
-- Rollback possible after each phase
-- Focus on vertical slice: Bot/Agent functionality first
-- Background reasoning and self-optimization are secondary
-- **Key insight**: Bot has the pipeline, Agent has the connections → merge into unified Agent
-
----
-
-## Future Enhancements (Post-Consolidation)
-
-### Self-Optimization Foundation
-- Track rule success rates per concept type
-- Adjust rule priorities dynamically (exponential moving average)
-- Detect ineffective rule patterns
-- Constitution evolution
-
-### Advanced Features
-- Multi-agent collaboration
-- Distributed reasoning
-- Persistent knowledge graphs
-- Advanced episodic memory with retrieval
-
-These are **out of scope** for initial consolidation but the architecture should support them.
+- ✅ Zero parser errors exposed to users
+- ✅ Natural handling of all NL input types
+- ✅ Seamless NARS+LM collaboration
+- ✅ Contextually appropriate responses
+- ✅ Transparent reasoning when needed
+- ✅ Ergonomic conversational flow
