@@ -17,7 +17,7 @@ export function generalTools(deps: ToolDeps) {
   return {
     search_memory: tool({
       description: 'Search NARS memory for beliefs matching a pattern',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().describe('Search query'),
         limit: z.number().optional().default(10),
       }),
@@ -35,7 +35,7 @@ export function generalTools(deps: ToolDeps) {
 
     calculate: tool({
       description: 'Perform mathematical calculation',
-      parameters: z.object({
+      inputSchema: z.object({
         expression: z.string().describe('Math expression, e.g., "2 + 2 * 3"'),
       }),
       execute: async ({expression}) => {
@@ -59,7 +59,7 @@ export function generalTools(deps: ToolDeps) {
 
     get_recent_episodes: tool({
       description: 'Get recent episodes from episodic memory',
-      parameters: z.object({
+      inputSchema: z.object({
         limit: z.number().optional().default(10),
         type: z.enum(['input', 'response', 'belief_added', 'question', 'tool_call', 'error']).optional(),
       }),

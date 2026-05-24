@@ -17,7 +17,8 @@ export class ToolGuidedReasoning {
         try {
             const result = await this.toolManager.execute(toolName, args);
             return result.success;
-        } catch {
+        } catch (e) {
+            console.error(`Tool execution failed: ${toolName}`, e);
             return false;
         }
     }
@@ -27,10 +28,10 @@ export class ToolGuidedReasoning {
             const belief = `(TOOL_RESULT_${event.name} --> ${JSON.stringify(event.result.content)})`;
             try {
                 const term = termParser.parse(belief);
-                this.memory.addTask(term, 'belief', Truth.NEUTRAL, createBudget(0.5));
+                this.memory.addTask(term, 'belief', Truth.NEUTRAL, createBudget(0.5)); // system boundary — tool result has no truth
             } catch {
                 const atomTerm = termParser.parse(`tool_result_${event.name}`);
-                this.memory.addTask(atomTerm, 'belief', Truth.NEUTRAL, createBudget(0.5));
+                this.memory.addTask(atomTerm, 'belief', Truth.NEUTRAL, createBudget(0.5)); // system boundary — tool result has no truth
             }
         }
     }

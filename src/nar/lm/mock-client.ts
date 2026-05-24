@@ -3,7 +3,7 @@
  * Provides predictable, configurable responses
  */
 
-import type {LMClient, LMConfig} from './types.js';
+import type {LMClient, LMClientStats, LMConfig} from './types.js';
 
 interface MockResponse {
     text: string;
@@ -26,6 +26,7 @@ export class MockLMClient implements LMClient {
     private callLog: Array<{ prompt: string; response: string }> = [];
     private shouldFail = false;
     private failMessage = 'Mock LM failure';
+    private totalDuration = 0;
 
     constructor(responses?: Record<string, string>) {
         if (responses) {
@@ -40,8 +41,25 @@ export class MockLMClient implements LMClient {
         }
     }
 
-    async generateText(prompt: string, _options?: LMConfig): Promise<string> {
+    getStats(): LMClientStats {
+        const totalCalls = this.callLog.length;
+        return {
+            totalCalls,
+            successfulCalls: this.shouldFail ? 0 : totalCalls,
+            failedCalls: this.shouldFail ? totalCalls : 0,
+            timeoutCount: 0,
+            totalDuration: this.totalDuration,
+            averageDuration: totalCalls > 0 ? this.totalDuration / totalCalls : 0,
+            queueDepth: 0,
+            queueHighWater: 0,
+        };
+    }
+
+    async generateText(prompt: string, _options?: LMConfig & { signal?: AbortSignal }): Promise<string> {
+        const start = Date.now();
+        if (_options?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
         if (this.shouldFail) {
+            this.totalDuration += Date.now() - start;
             throw new Error(this.failMessage);
         }
 
@@ -56,6 +74,7 @@ export class MockLMClient implements LMClient {
         }
 
         this.callLog.push({prompt, response: response.text});
+        this.totalDuration += Date.now() - start;
         return response.text;
     }
 

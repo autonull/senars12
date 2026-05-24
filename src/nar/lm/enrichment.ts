@@ -80,6 +80,7 @@ export class ProactiveEnricher {
                     this.results.push(result);
                 }
             } catch (error) {
+                // expected: LM call may fail due to network/provider issues — skip this concept
                 this.logger.warn(`Failed to enrich concept: ${conceptData.term.toString()} - ${errMsg(error)}`);
             }
         }
@@ -102,6 +103,7 @@ Provide a clear, concise explanation of what was derived and why.`;
             const response = await this.lmClient.generateText(prompt);
             return response.trim();
         } catch (error) {
+            // expected: LM call may fail due to network/provider issues
             this.logger.warn(`Failed to generate explanation: ${errMsg(error)}`);
             return '';
         }
@@ -114,18 +116,19 @@ Provide a clear, concise explanation of what was derived and why.`;
 
         const memoryContext = this.memory.listConcepts().slice(0, 20).map(c => {
             const belief = c.beliefBag.peek();
-            return belief ? {
+            if (!belief || !belief.truth || !belief.stamp) return null;
+            return {
                 term: c.term,
                 type: 'belief' as const,
-                truth: belief.truth ?? Truth.NEUTRAL,
+                truth: belief.truth,
                 budget: createBudget(0.5),
-                stamp: belief.stamp ?? Stamp.createInputWithId('qa'),
+                stamp: belief.stamp,
                 occurrenceTime: Date.now(),
                 derived: false
-            } : null;
+            };
         }).filter(t => t !== null) as Task[];
 
-        const contextStr = memoryContext.map(t => `${t.term.toString()}: ${t.truth?.f ?? 0}`).join('\n');
+        const contextStr = memoryContext.map(t => `${t.term.toString()}: ${t.truth.f}`).join('\n');
 
         const prompt = `Given the following knowledge from memory:
 ${contextStr}
@@ -138,6 +141,7 @@ Answer the question based on the available knowledge. If the answer cannot be de
             const response = await this.lmClient.generateText(prompt);
             return response.trim();
         } catch (error) {
+            // expected: LM call may fail due to network/provider issues
             this.logger.warn(`Failed to answer question: ${errMsg(error)}`);
             return '';
         }
@@ -179,15 +183,16 @@ Answer the question based on the available knowledge. If the answer cannot be de
             hypotheses = parsed.hypotheses;
             bridges = parsed.bridges;
         } catch (error) {
+            // expected: LM call may fail due to network/provider issues
             this.logger.warn(`Failed to generate hypotheses for term: ${term.toString()} - ${errMsg(error)}`);
         }
 
         for (const hyp of hypotheses) {
-            this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget);
+            this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget, hyp.stamp);
         }
 
         for (const bridge of bridges) {
-            this.memory.addTask(bridge.term, bridge.type, bridge.truth, bridge.budget);
+            this.memory.addTask(bridge.term, bridge.type, bridge.truth, bridge.budget, bridge.stamp);
         }
 
         return {concept: term, hypotheses, bridges, explanations: []};

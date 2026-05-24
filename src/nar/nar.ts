@@ -32,6 +32,11 @@ import {
 import {BaseComponent} from './lifecycle';
 import {ReasoningAboutReasoning} from './self';
 import {RLFPLearner} from './rlfp';
+import {CognitiveController} from './cognitive/controller';
+import type {CognitiveRegistry} from './cognitive/registry';
+import type {CognitiveParameters} from './config/cognitive-parameters';
+import type {AttentionModel} from './cognitive/types';
+import {SimpleAttention} from './cognitive/attention-models';
 import {NARIO} from './nar-io';
 import {NARExecution} from './nar-execution';
 import {NARLM} from './nar-lm';
@@ -51,6 +56,11 @@ export interface NARConfig extends CoreConfig {
     enableBidirectionalFeedback?: boolean;
     enableProactiveEnrichment?: boolean;
     enableLMStreaming?: boolean;
+
+    /** Cognitive architecture configuration (Phase 3+) */
+    cognitiveParams?: CognitiveParameters;
+    strategyRegistry?: CognitiveRegistry;
+    adaptationInterval?: number;
 }
 
 interface ToolDependency {
@@ -87,10 +97,11 @@ export class NAR extends BaseComponent {
     readonly traceAPI: ReasoningTrace;
     readonly tools: ToolManager;
     readonly self?: ReasoningAboutReasoning;
-    readonly rlfp?: RLFPLearner;
+    rlfp?: RLFPLearner;
+    cognitiveController?: CognitiveController;
 
     private readonly io: NARIO;
-    private readonly execution: NARExecution;
+    private execution: NARExecution;
     private readonly lm: NARLM;
     private readonly config: NARConfig;
     private readonly processor: RuleProcessor;
@@ -109,7 +120,7 @@ export class NAR extends BaseComponent {
         super({logger, metrics, eventBus});
 
         this.config = this.validateConfig(config);
-        this.memory = new Memory(this.config);
+        this.memory = new Memory(this.config, { attentionModel: this.createAttentionModel(config) });
         this.workingMemory = new WorkingMemory();
         this.processor = new RuleProcessor();
         this.processor.setConfig({memory: this.memory, priorityThreshold: this.config.priorityThreshold});
@@ -124,9 +135,22 @@ export class NAR extends BaseComponent {
 
         if (this.config.enableRLFP) this.rlfp = new RLFPLearner({});
 
+        // Cognitive architecture — wire CognitiveController when params + registry are provided
+        if (config.cognitiveParams && config.strategyRegistry) {
+            this.cognitiveController = new CognitiveController(
+                config.strategyRegistry,
+                this.memory,
+                this.processor,
+                metrics,
+                this.rlfp,
+                config.cognitiveParams,
+                config.adaptationInterval
+            );
+        }
+
         this.io = new NARIO(this.memory, this.taskManager, this.config);
         this.io.setEventBus(eventBus);
-        this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp);
+        this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.cognitiveController);
         this.lm = new NARLM(this.memory, this._registry, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment, this.config.enableLMStreaming);
         this._metricsCollector = metrics;
 
@@ -212,22 +236,85 @@ export class NAR extends BaseComponent {
         this.memory.setConfig(updates);
     }
 
-    // Component accessors
-    getLMClient(): LMClient | undefined {
-        return this._lmClient;
-    }
+// Component accessors
+getLMClient(): LMClient | undefined {
+  return this._lmClient;
+}
 
-    getProviderRegistry(): SeNARSRegistry | undefined {
-        return this._registry;
-    }
+getProviderRegistry(): SeNARSRegistry | undefined {
+  return this._registry;
+}
 
-    getSelfAnalyzer(): ReasoningAboutReasoning | undefined {
-        return this.self;
-    }
+getSelfAnalyzer(): ReasoningAboutReasoning | undefined {
+  return this.self;
+}
 
-    getRLFP(): RLFPLearner | undefined {
-        return this.rlfp;
-    }
+getRLFP(): RLFPLearner | undefined {
+  return this.rlfp;
+}
+
+getProcessor(): RuleProcessor {
+  return this.processor;
+}
+
+getExecution(): NARExecution {
+  return this.execution;
+}
+
+getController(): CognitiveController | undefined {
+  return this.cognitiveController;
+}
+
+getMetricsCollector(): MetricsCollector {
+  return this._metricsCollector;
+}
+
+reconfigure(params: CognitiveParameters): void {
+  if (!this.cognitiveController) {
+    throw new Error('NAR was not created with cognitive architecture enabled');
+  }
+  const registry = this.config.strategyRegistry;
+  if (!registry) {
+    throw new Error('NAR has no strategy registry — cannot reconfigure');
+  }
+  this.cognitiveController = new CognitiveController(
+    registry,
+    this.memory,
+    this.processor,
+    this._metricsCollector,
+    this.rlfp,
+    params,
+    this.config.adaptationInterval
+  );
+  this.execution = new NARExecution(
+    this.memory, this.taskManager, this.reasoner,
+    this.config, this.rlfp, this.cognitiveController
+  );
+}
+
+setRLFP(rlfp: RLFPLearner): void {
+  this.rlfp = rlfp;
+}
+
+inputTask(task: Task): void {
+  this.taskManager.addTask(task);
+}
+
+getPhaseTimer() {
+  return this.execution.getPhaseTimer();
+}
+
+getLMClientStats() {
+  return this._lmClient?.getStats?.();
+}
+
+getLMRuleExecutionLog() {
+  return this.processor.getLMRuleExecutionLog();
+}
+
+clearLMRuleExecutionLog() {
+  this.processor.clearLMRuleExecutionLog();
+}
 
     getQualityModel() {
         return this.getModelWithFallback('quality');
@@ -458,6 +545,12 @@ export class NAR extends BaseComponent {
             this.tools.register(toolDef.factory(toolDeps));
         }
         this._toolsInitialized = true;
+    }
+
+    private createAttentionModel(config: NARConfig): AttentionModel {
+        const type = config.cognitiveParams?.strategies.attention.type;
+        if (!type) return new SimpleAttention();
+        return config.strategyRegistry?.get('attention', type) ?? new SimpleAttention();
     }
 
     private contradicts(a: Term, b: Term): boolean {

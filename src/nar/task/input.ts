@@ -28,7 +28,7 @@ export class InputProcessor {
     process(input: string, type?: TaskType): Task {
         const {text, punctuation} = extractPunctuation(input);
         const {term, truth: parsedTruth} = termParser.parseWithTruth(text);
-        const truth = parsedTruth ?? Truth.NEUTRAL;
+        const truth = parsedTruth ?? Truth.NEUTRAL; // system boundary — user input may lack truth
         return createTask(term, this.determineTaskType(punctuation, type), truth, createBudget(truth.f * truth.c));
     }
 

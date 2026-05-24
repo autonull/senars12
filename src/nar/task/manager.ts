@@ -96,7 +96,7 @@ export class TaskManager {
             wrapper.lifecycle = 'running';
             wrapper.startedAt = Date.now();
 
-            const added = this.memory.addTask(wrapper.task.term, wrapper.task.type, wrapper.task.truth, wrapper.task.budget as Budget);
+            const added = this.memory.addTask(wrapper.task.term, wrapper.task.type, wrapper.task.truth, wrapper.task.budget as Budget, wrapper.task.stamp);
 
             if (added) {
                 wrapper.lifecycle = 'completed';

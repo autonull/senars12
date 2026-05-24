@@ -29,17 +29,21 @@ const linkFn = (extractor: LinkExtractor) =>
         return !!(leftTerm && rightTerm && termsEqual(leftTerm, rightTerm));
     };
 
-const dedIndExtractor = (left: Term, right: Term) => ({
+const dedExtractor = (left: Term, right: Term) => ({
     leftTerm: getPredicate(left),
     rightTerm: getSubject(right)
 });
-const abdExtractor = (left: Term, right: Term) => ({
+const indExtractor = (left: Term, right: Term) => ({
     leftTerm: getSubject(left),
     rightTerm: getSubject(right)
 });
+const abdExtractor = (left: Term, right: Term) => ({
+    leftTerm: getPredicate(left),
+    rightTerm: getPredicate(right)
+});
 
-export const deductionLink = linkFn(dedIndExtractor);
-export const inductionLink = linkFn(dedIndExtractor);
+export const deductionLink = linkFn(dedExtractor);
+export const inductionLink = linkFn(indExtractor);
 export const abductionLink = linkFn(abdExtractor);
 
 export const buildDeduction = (left: Term, right: Term): Term | undefined => {
@@ -47,12 +51,14 @@ export const buildDeduction = (left: Term, right: Term): Term | undefined => {
     return s && p ? TermBuilder.inheritance(s, p) : undefined;
 };
 
-export const buildInduction = buildDeduction;
+export const buildInduction = (left: Term, right: Term): Term | undefined => {
+    const p1 = getPredicate(left), p2 = getPredicate(right);
+    return p1 && p2 ? TermBuilder.inheritance(p1, p2) : undefined;
+};
 
 export const buildAbduction = (left: Term, right: Term): Term | undefined => {
-    const p = getPredicate(left);
-    const s = getSubject(right);
-    return p && s ? TermBuilder.inheritance(s, p) : undefined;
+    const s1 = getSubject(left), s2 = getSubject(right);
+    return s1 && s2 ? TermBuilder.inheritance(s1, s2) : undefined;
 };
 
 export const buildHigherOrderRule = (

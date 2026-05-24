@@ -99,13 +99,7 @@ export const NALRules = {
     destruct: ([conj, atm]: [Term, Term]): Term | undefined =>
         conj.kind === 'conjunction' && atm.kind === 'atom' ? conj.args.find(a => termsEqual(a, atm)) : undefined,
 
-    compose: syl('inheritance', 'inheritance', (l, r) => {
-        const p1 = getPredicate(l), s2 = getSubject(r);
-        return !!(p1 && s2 && termsEqual(p1, s2));
-    }, (l, r) => {
-        const s = getSubject(l), p = getPredicate(r);
-        return s && p ? TermBuilder.inheritance(s, p) : undefined;
-    }),
+    compose: undefined as unknown as ([i1, i2]: [Term, Term]) => Term | undefined,
 
     // DISABLED: Revision is handled at Concept level (Concept.addBeliefWithRevision) — BOT7 §3.4
     revision: undefined as unknown as ([i1, i2]: [Term, Term]) => Term | undefined,
@@ -122,7 +116,7 @@ export const NALRules = {
         return matchInhPair((s1, p1, s2, p2) => termsEqual(p1, p2) ? TermBuilder.inheritance(s1, s2) : undefined)([inh, sim]);
     },
 
-    exemplification: matchInhPair((s1, p1, s2, p2) => termsEqual(p1, s2) ? TermBuilder.inheritance(s1, p2) : undefined) as RuleFn,
+    exemplification: matchInhPair((s1, p1, s2, p2) => termsEqual(p1, p2) ? TermBuilder.inheritance(s1, s2) : undefined) as RuleFn,
 
     higherOrderDeduction: buildHigherOrderRule((_a1, c1, a2, _c2) => termsEqual(c1, a2), (a1, _c1, _a2, c2) => TermBuilder.implication(a1, c2)),
     higherOrderAbduction: buildHigherOrderRule((_a1, c1, _a2, c2) => termsEqual(c1, c2), (a1, _c1, a2, _c2) => TermBuilder.implication(a1, a2)),
@@ -163,7 +157,8 @@ const RULE_CONFIGS = [
     ['nal.analogy', 'inheritance', 'similarity', NALRules.analogy, Truth.analogy, 0.75],
     ['nal.comparison', 'inheritance', 'inheritance', NALRules.comparison, Truth.sameness, 0.8],
     ['nal.instantiation', 'inheritance', 'similarity', NALRules.instantiation, Truth.deduction, 0.85],
-    ['nal.exemplification', 'inheritance', 'inheritance', NALRules.exemplification, Truth.exemplification, 0.7],
+    // nal.exemplification is registered from nal-extended.ts
+
     ['nal.higherOrderDeduction', 'implication', 'implication', NALRules.higherOrderDeduction, Truth.deduction, 0.85],
     ['nal.higherOrderAbduction', 'implication', 'implication', NALRules.higherOrderAbduction, Truth.abduction, 0.7],
     ['nal.higherOrderInduction', 'implication', 'implication', NALRules.higherOrderInduction, Truth.induction, 0.75],

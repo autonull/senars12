@@ -7,6 +7,33 @@ import type {Capabilities} from '../../src/agent/BotContext.js';
 import {DEFAULT_BOT_CONFIG} from '../../src/config/defaults.js';
 import type {BotConfig} from '../../src/agent/BotContext.js';
 
+function createMockModel() {
+  return {
+    specificationVersion: 'v2',
+    provider: 'mock',
+    modelId: 'mock-model',
+    defaultObjectGenerationMode: 'json' as const,
+    doGenerate: async () => ({
+      content: [{type: 'text' as const, text: 'Mock response with reasoning.'}],
+      finishReason: 'stop' as const,
+      usage: {inputTokens: 10, outputTokens: 5, totalTokens: 15},
+    }),
+    doStream: async () => {
+      const {ReadableStream} = await import('node:stream/web');
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode(JSON.stringify({type: 'text-delta', id: '0', delta: 'Mock'})));
+          controller.enqueue(encoder.encode(JSON.stringify({type: 'text-delta', id: '0', delta: ' response'})));
+          controller.enqueue(encoder.encode(JSON.stringify({type: 'text-end', id: '0'})));
+          controller.close();
+        },
+      });
+      return {stream, rawResponse: {headers: new Headers({'content-type': 'text/plain'})}};
+    },
+  };
+}
+
 describe('AIAgent', () => {
   const testBotConfig: BotConfig = {
     reasoning: {
@@ -43,25 +70,30 @@ describe('AIAgent', () => {
     mode: 'full',
   });
 
+  const testConfig = {
+    reasoning: {
+      autoTrigger: true,
+      triggerThreshold: 0.5,
+      triggerCooldown: 3,
+      maxStepsPerTrigger: 5,
+      backgroundReasoning: false,
+      backgroundIntervalMs: 60000,
+      lmDriven: true,
+    },
+    streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
+    conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
+  };
+
+  const mockModel = createMockModel();
+
   it('should initialize with NARS', () => {
     const registry = createSeNARSRegistry();
     const nar = SeNARSFactory.createDefault({providerRegistry: registry});
     const agent = new AIAgent({
       nar,
       provider: 'transformers',
-      config: {
-        reasoning: {
-          autoTrigger: true,
-          triggerThreshold: 0.5,
-          triggerCooldown: 3,
-          maxStepsPerTrigger: 5,
-          backgroundReasoning: false,
-          backgroundIntervalMs: 60000,
-          lmDriven: true,
-        },
-        streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
-        conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-      },
+      languageModel: mockModel,
+      config: testConfig,
       capabilities: createTestCapabilities(),
     });
 
@@ -75,20 +107,8 @@ describe('AIAgent', () => {
     const agent = new AIAgent({
       nar,
       provider: 'transformers',
-      model: 'Qwen/Qwen2.5-1.5B-Instruct',
-      config: {
-        reasoning: {
-          autoTrigger: true,
-          triggerThreshold: 0.5,
-          triggerCooldown: 3,
-          maxStepsPerTrigger: 5,
-          backgroundReasoning: false,
-          backgroundIntervalMs: 60000,
-          lmDriven: true,
-        },
-        streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
-        conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-      },
+      languageModel: mockModel,
+      config: testConfig,
       capabilities: createTestCapabilities(),
     });
 
@@ -108,20 +128,8 @@ describe('AIAgent', () => {
     const agent = new AIAgent({
       nar,
       provider: 'transformers',
-      model: 'Qwen/Qwen2.5-1.5B-Instruct',
-      config: {
-        reasoning: {
-          autoTrigger: true,
-          triggerThreshold: 0.5,
-          triggerCooldown: 3,
-          maxStepsPerTrigger: 5,
-          backgroundReasoning: false,
-          backgroundIntervalMs: 60000,
-          lmDriven: true,
-        },
-        streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
-        conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-      },
+      languageModel: mockModel,
+      config: testConfig,
       capabilities: createTestCapabilities(),
     });
 
@@ -138,20 +146,8 @@ describe('AIAgent', () => {
     const agent = new AIAgent({
       nar,
       provider: 'transformers',
-      model: 'Qwen/Qwen2.5-1.5B-Instruct',
-      config: {
-        reasoning: {
-          autoTrigger: true,
-          triggerThreshold: 0.5,
-          triggerCooldown: 3,
-          maxStepsPerTrigger: 5,
-          backgroundReasoning: false,
-          backgroundIntervalMs: 60000,
-          lmDriven: true,
-        },
-        streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
-        conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-      },
+      languageModel: mockModel,
+      config: testConfig,
       capabilities: createTestCapabilities(),
     });
 
@@ -166,20 +162,8 @@ describe('AIAgent', () => {
     const agent = new AIAgent({
       nar,
       provider: 'transformers',
-      model: 'Qwen/Qwen2.5-1.5B-Instruct',
-      config: {
-        reasoning: {
-          autoTrigger: true,
-          triggerThreshold: 0.5,
-          triggerCooldown: 3,
-          maxStepsPerTrigger: 5,
-          backgroundReasoning: false,
-          backgroundIntervalMs: 60000,
-          lmDriven: true,
-        },
-        streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
-        conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-      },
+      languageModel: mockModel,
+      config: testConfig,
       capabilities: createTestCapabilities(),
     });
 
@@ -198,20 +182,8 @@ describe('AIAgent', () => {
     const agent = new AIAgent({
       nar,
       provider: 'transformers',
-      model: 'Qwen/Qwen2.5-1.5B-Instruct',
-      config: {
-        reasoning: {
-          autoTrigger: true,
-          triggerThreshold: 0.5,
-          triggerCooldown: 3,
-          maxStepsPerTrigger: 5,
-          backgroundReasoning: false,
-          backgroundIntervalMs: 60000,
-          lmDriven: true,
-        },
-        streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
-        conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-      },
+      languageModel: mockModel,
+      config: testConfig,
       capabilities: createTestCapabilities(),
     });
 

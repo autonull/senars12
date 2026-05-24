@@ -301,7 +301,8 @@ export class SelfAnalyzer {
                 resourceAllocations: [],
                 performanceImprovements: []
             })
-            .catch(() => {
+            .catch((e) => {
+                console.warn(`applyOptimizations failed: ${e}`);
             });
     }
 

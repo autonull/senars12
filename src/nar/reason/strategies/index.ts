@@ -7,10 +7,16 @@ import {createLogger} from '../../logger';
 import {createStrategy} from './base.js';
 import {createTermLinkStrategy} from './term-link.js';
 import {createSemanticStrategy} from './semantic.js';
+import type {ComponentMetadata} from '../../cognitive/types';
 
 const logger = createLogger({scope: 'Strategies'});
 
 export {createStrategy, createTermLinkStrategy, createSemanticStrategy};
+
+const withMeta = <T extends Strategy>(strategy: T, description: string): T => {
+  (strategy as unknown as {metadata: ComponentMetadata}).metadata = { name: strategy.name, description };
+  return strategy;
+};
 
 const createTask = (term: Term, type: TaskType, truth: Truth, priority: number): Task => ({
     term,
@@ -25,16 +31,17 @@ const createTask = (term: Term, type: TaskType, truth: Truth, priority: number):
 const createBeliefTask = (term: Term, truth: Truth, priority: number): Task =>
     createTask(term, 'belief', truth, priority);
 
-export const PrologStrategy: Strategy = createStrategy({name: 'prolog', sampleSize: 20, limit: 5});
+export const PrologStrategy: Strategy = withMeta(createStrategy({name: 'prolog', sampleSize: 20, limit: 5}), 'Prolog-style secondary selection');
 
-export const ResolutionStrategy: Strategy = createStrategy({
+export const ResolutionStrategy: Strategy = withMeta(createStrategy({
     name: 'resolution',
     sampleSize: 15,
     filter: (c: Concept) => c.term.kind === 'inheritance',
     limit: 5
-});
+}), 'Inheritance-focused resolution strategy');
 
 export const GoalDrivenStrategy: Strategy = {
+    metadata: { name: 'goal-driven', description: 'Prioritize high-confidence beliefs related to goals' },
     name: 'goal-driven',
     selectSecondary(task, memory) {
         const results: Task[] = [];
@@ -55,6 +62,7 @@ export const GoalDrivenStrategy: Strategy = {
 };
 
 export const AnalogicalStrategy: Strategy = {
+    metadata: { name: 'analogical', description: 'Match inheritance terms with overlapping subject/predicate' },
     name: 'analogical',
     selectSecondary(task, memory) {
         const results: Task[] = [];
@@ -87,26 +95,29 @@ export const AnalogicalStrategy: Strategy = {
     }
 };
 
-export const TermLinkStrategy: Strategy = createStrategy({name: 'term-link', sampleSize: 25, limit: 10});
-export const TaskMatchStrategy: Strategy = createStrategy({name: 'task-match', sampleSize: 20, limit: 5});
+export const TermLinkStrategy: Strategy = withMeta(createStrategy({name: 'term-link', sampleSize: 25, limit: 10}), 'Term link based secondary selection');
+export const TaskMatchStrategy: Strategy = withMeta(createStrategy({name: 'task-match', sampleSize: 20, limit: 5}), 'Task match based secondary selection');
 
 export const DecompositionStrategy: Strategy = {
+    metadata: { name: 'decomposition', description: 'Decompose conjunctions into component beliefs' },
     name: 'decomposition',
     selectSecondary(task, memory) {
         if (task.term.kind !== 'conjunction') return [];
 
-        return task.term.args.map(arg => {
+return task.term.args.map(arg => {
             const concept = memory.getConcept(arg);
-            const truth = concept?.beliefBag.peek()?.truth ?? Truth.NEUTRAL;
-            const priority = concept?.priority ?? 0.5;
-            return createBeliefTask(arg, truth, priority);
-        });
+            if (!concept) return null;
+            const belief = concept.beliefBag.peek();
+            if (!belief?.truth) return null;
+            return createBeliefTask(arg, belief.truth, concept.priority);
+        }).filter((t): t is Task => t !== null);
     }
 };
 
-export const DefaultFormationStrategy: Strategy = createStrategy({name: 'default-formation', sampleSize: 10, limit: 5});
+export const DefaultFormationStrategy: Strategy = withMeta(createStrategy({name: 'default-formation', sampleSize: 10, limit: 5}), 'Default premise formation with small sample');
 
 export class CompositeStrategy implements Strategy {
+    readonly metadata: ComponentMetadata = { name: 'composite', description: 'Combine multiple strategies with weights' };
     readonly name = 'composite';
 
     constructor(
@@ -156,6 +167,7 @@ interface StrategyStats {
 }
 
 export class AdaptiveStrategy implements Strategy {
+    readonly metadata: ComponentMetadata = { name: 'adaptive', description: 'Select best strategy based on past effectiveness' };
     readonly name = 'adaptive';
     private stats: Map<string, StrategyStats> = new Map();
 
@@ -199,6 +211,7 @@ export class AdaptiveStrategy implements Strategy {
 }
 
 export class SwitchingStrategy implements Strategy {
+    readonly metadata: ComponentMetadata = { name: 'switching', description: 'Cycle through strategies at fixed intervals' };
     readonly name = 'switching';
     private currentIndex = 0;
     private readonly switchInterval: number;

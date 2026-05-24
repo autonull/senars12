@@ -37,7 +37,7 @@ const parseResponse = (response: string, type: TaskType, budget: number): Task[]
     return response.split('\n').filter(l => l.trim()).map(line => {
         const parsed = LMResponseParser.parse(line);
         const term = parsed.valid && parsed.term ? parsed.term : {kind: 'atom' as const, symbol: line.trim()};
-        return createTask(term, type, parsed.truth ?? Truth.NEUTRAL, createBudget(budget));
+        return createTask(term, type, parsed.truth, createBudget(budget));
     });
 };
 
@@ -45,7 +45,7 @@ const createTaskGen = (type: TaskType, budget: number) => (_r: unknown, _p: Term
     const response = typeof _r === 'string' ? _r : String(_r);
     const parsed = LMResponseParser.parse(response);
     return parsed.valid && parsed.term
-        ? [createTask(parsed.term, type, parsed.truth ?? Truth.NEUTRAL, createBudget(budget))]
+        ? [createTask(parsed.term, type, parsed.truth, createBudget(budget))]
         : [createTask({
             kind: 'atom' as const,
             symbol: response.trim()

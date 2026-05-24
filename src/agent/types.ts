@@ -7,6 +7,7 @@ export interface AIAgentConfig {
   provider: 'anthropic' | 'ollama' | 'transformers' | 'custom';
   model?: string;
   instructions?: string | SystemPromptBuilder;
+  languageModel?: import('ai').LanguageModel;
   config: Partial<BotConfig>;
   capabilities: Capabilities;
 }

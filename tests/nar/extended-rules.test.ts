@@ -18,7 +18,7 @@ describe('Extended NAL Rules Registration', () => {
             'nal.variableDependency',
             'nal.sameness',
             'nal.revisionWeak',
-            'nal.exemplification'
+            'nal.extended.exemplification'
         ];
 
         extendedRuleIds.forEach(id => {

@@ -6,6 +6,7 @@ import {createBudget, createTask, EventBus} from './types';
 import type {NARConfig} from './nar';
 import type {TaskManager} from './task';
 import type {Memory} from './memory';
+import type {CognitiveParameters} from './config/cognitive-parameters.js';
 
 interface SerializedNARState {
     concepts: Array<{ term: string; priority: number }>;
@@ -14,14 +15,19 @@ interface SerializedNARState {
 }
 
 export class NARIO {
-    private _eventBus: EventBus | null = null;
+  private _eventBus: EventBus | null = null;
+  private cognitiveParams?: CognitiveParameters;
 
-    constructor(
-        private readonly memory: Memory,
-        private readonly taskManager: TaskManager,
-        private readonly config: NARConfig
-    ) {
-    }
+  constructor(
+  private readonly memory: Memory,
+  private readonly taskManager: TaskManager,
+  private readonly config: NARConfig
+  ) {
+  }
+
+  setcognitiveParams(params: CognitiveParameters): void {
+  this.cognitiveParams = params;
+  }
 
     setEventBus(eventBus: EventBus): void {
         this._eventBus = eventBus;
@@ -99,8 +105,53 @@ export class NARIO {
         }
     }
 
-    private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void {
-        const budget = createBudget(truth.f * truth.c);
-        this.memory.addTask(term, type, truth, budget);
-    }
+private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void { // system boundary — IO tasks may lack truth
+const budget = createBudget(truth.f * truth.c);
+this.memory.addTask(term, type, truth, budget);
+
+// Boost priority of related concepts to enable LM enhancement
+// This implements attention priming - concepts mentioned become more active
+if (this.cognitiveParams?.attention.autoPrime ?? true) {
+	this.primeAttention(term);
+}
+}
+
+private primeAttention(term: Term): void {
+const params = this.cognitiveParams;
+const primeBoost = params?.attention.primeBoost ?? 0.3;
+const relatedBoost = params?.attention.relatedBoost ?? 0.15;
+const maxPriority = params?.priority.maxPriority ?? 1.0;
+
+// Boost priority of the concept itself
+const concept = this.memory.getConcept(term);
+if (concept) {
+	concept.priority = Math.min(maxPriority, concept.priority + primeBoost);
+}
+
+// Also boost concepts that share terms (simple relevance propagation)
+if (params?.attention.structuralSimilarity ?? true) {
+	const termStr = term.toString();
+	for (const c of this.memory.listConcepts()) {
+		const cStr = c.term.toString();
+		// Boost if concepts share atoms or are structurally related
+		if (cStr !== termStr && this.areTermsRelated(termStr, cStr)) {
+			c.priority = Math.min(maxPriority, c.priority + relatedBoost);
+		}
+	}
+}
+}
+
+private areTermsRelated(term1: string, term2: string): boolean {
+// Extract atoms from inheritance terms like (bird --> animal)
+const match1 = term1.match(/\((\w+)\s+-->\s+(\w+)\)/);
+const match2 = term2.match(/\((\w+)\s+-->\s+(\w+)\)/);
+
+if (match1 && match2) {
+	const [, s1, p1] = match1;
+	const [, s2, p2] = match2;
+	// Related if they share subject or predicate
+	return s1 === s2 || s1 === p2 || p1 === s2 || p1 === p2;
+}
+return false;
+}
 }

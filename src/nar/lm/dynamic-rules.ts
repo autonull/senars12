@@ -176,6 +176,7 @@ export class CompositeLMRule extends LMRule {
                 const tasks = await rule.apply(primary, secondary, context);
                 allTasks.push(...tasks);
             } catch (error) {
+                // expected: individual rule failure shouldn't abort other rules
                 this.logger.warn(`Component rule ${rule.id} failed: ${errMsg(error)}`);
             }
         }

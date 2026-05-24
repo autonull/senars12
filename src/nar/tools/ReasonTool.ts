@@ -34,7 +34,7 @@ export class ReasonTool implements Tool {
 
         try {
             const term = termParser.parse(statement);
-            const truthValue = truth ? Truth.create(truth.frequency ?? 0.5, truth.confidence ?? 0.9) : Truth.NEUTRAL;
+            const truthValue = truth ? Truth.create(truth.frequency ?? 0.5, truth.confidence ?? 0.9) : Truth.NEUTRAL; // system boundary — external input may lack truth
 
             await this.nar.input(statement, type, truthValue);
 

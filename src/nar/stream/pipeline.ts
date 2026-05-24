@@ -2,7 +2,6 @@ import type {Task} from '../types';
 import {createBudget, createTask} from '../types';
 import type {Memory} from '../memory';
 import type {Strategy} from '../reason';
-import {Stamp, Truth} from '../terms';
 
 export type PremiseSource = AsyncGenerator<Task, void, void>;
 
@@ -37,11 +36,11 @@ export class MemoryPremiseSource extends PremiseSourceBase {
             const concepts = this.memory.sample(100);
             for (const concept of concepts) {
                 const topBelief = concept.beliefBag.peek();
-                if (topBelief) {
+                if (topBelief?.truth) {
                     yield createTask(
                         concept.term,
                         'belief',
-                        topBelief.truth ?? Truth.NEUTRAL,
+                        topBelief.truth,
                         createBudget(concept.priority)
                     );
                 }
@@ -61,11 +60,11 @@ export class FocusPremiseSource extends PremiseSourceBase {
             const concepts = this.memory.listConcepts().filter(c => c.priority > 0.7);
             for (const concept of concepts) {
                 const topBelief = concept.beliefBag.peek();
-                if (topBelief) {
+                if (topBelief?.truth) {
                     yield createTask(
                         concept.term,
                         'belief',
-                        topBelief.truth ?? Truth.NEUTRAL,
+                        topBelief.truth,
                         createBudget(concept.priority)
                     );
                 }
@@ -206,12 +205,13 @@ export async function* derive(
         if (count >= config.maxDerivationsPerStep) break;
 
         const belief = concept.beliefBag.peek();
+        if (!belief?.truth || !belief.stamp) continue;
         const task: Task = {
             term: concept.term,
             type: 'belief',
-            truth: belief?.truth ?? Truth.NEUTRAL,
+            truth: belief.truth,
             budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-            stamp: Stamp.createInput(),
+            stamp: belief.stamp,
             occurrenceTime: 0,
             derived: false
         };

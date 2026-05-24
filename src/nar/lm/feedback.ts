@@ -1,7 +1,7 @@
 import type {LMClient} from './types.js';
 import type {Memory} from '../memory';
 import type {Term} from '../terms';
-import {Stamp, Truth} from '../terms';
+import {Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
 import {findUnderconnectedConceptsFromTasks, parseEnrichmentResponse} from './enrichment-utils.js';
 import {createLogger, type Logger} from '../logger/index.js';
@@ -53,15 +53,15 @@ export class BidirectionalFeedbackLoop {
 
         const context = this.memory.listConcepts().slice(0, this.config.maxContextConcepts).map(c => {
             const belief = c.beliefBag.peek();
-            if (!belief?.truth) return null;
-            const confidence = belief.truth.f * (belief.truth.c ?? 0);
+            if (!belief?.truth || !belief.stamp) return null;
+            const confidence = belief.truth.f * belief.truth.c;
             if (confidence < this.config.minConfidenceForFeedback) return null;
             return {
                 term: c.term,
                 type: 'belief' as const,
                 truth: belief.truth,
                 budget: createBudget(0.5, 0.8),
-                stamp: belief.stamp ?? Stamp.createInputWithId('context'),
+                stamp: belief.stamp,
                 occurrenceTime: Date.now(),
                 derived: false
             };
@@ -79,6 +79,7 @@ export class BidirectionalFeedbackLoop {
 
             return validation;
         } catch (error) {
+            // expected: LM call may fail due to network/provider issues
             this.logger.warn(`Failed to validate hypothesis: ${errMsg(error)}`);
             return null;
         }
@@ -98,14 +99,15 @@ export class BidirectionalFeedbackLoop {
             try {
                 const enrichmentPrompt = this.buildEnrichmentPrompt(concept.term, derivations);
                 const response = await this.lmClient.generateText(enrichmentPrompt);
-                const bridgingHypotheses = parseEnrichmentResponse(response, Truth.NEUTRAL).hypotheses;
+                const bridgingHypotheses = parseEnrichmentResponse(response).hypotheses;
 
                 for (const hyp of bridgingHypotheses) {
-                    this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget);
+                    this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget, hyp.stamp);
                 }
             } catch (error) {
-                this.logger.warn(`Failed to enrich context for concept: ${concept.term.toString()} - ${errMsg(error)}`);
-            }
+            // expected: LM call may fail due to network/provider issues
+            this.logger.warn(`Failed to enrich context for concept: ${concept.term.toString()} - ${errMsg(error)}`);
+        }
         }
     }
 
@@ -118,13 +120,13 @@ export class BidirectionalFeedbackLoop {
     }
 
     private buildValidationPrompt(hypothesis: Task, context: Task[]): string {
-        const contextStr = context.map(t => `${t.term.toString()}: ${t.truth?.f ?? 0}`).join('\n');
+        const contextStr = context.map(t => `${t.term.toString()}: ${t.truth.f}`).join('\n');
 
         return `Given the following context and hypothesis, validate whether the hypothesis is consistent with the context.
 Context:
 ${contextStr}
 
-Hypothesis: ${hypothesis.term.toString()} (confidence: ${hypothesis.truth?.f ?? 0})
+Hypothesis: ${hypothesis.term.toString()} (confidence: ${hypothesis.truth.f})
 
 Respond with:
 - "VALID" if the hypothesis is consistent with context
@@ -166,7 +168,7 @@ Then provide a revised confidence value if different from current.`;
                 validation.revisedTruth,
                 createBudget(0.7, 0.8)
             );
-            this.memory.addTask(revisedTask.term, revisedTask.type, revisedTask.truth, revisedTask.budget);
+            this.memory.addTask(revisedTask.term, revisedTask.type, revisedTask.truth, revisedTask.budget, revisedTask.stamp);
         }
     }
 

@@ -1,6 +1,7 @@
 import type {Concept} from './concept.js';
 import type {Task} from '../types/index.js';
 import {TermMap} from '../terms';
+import type {AttentionModel} from '../cognitive/types';
 
 export interface FocusConfig {
     maxConcepts: number;
@@ -18,7 +19,10 @@ export class Focus {
     private topicBoosts = new Map<string, { factor: number; ttl: number }>();
     private activeGoals: Task[] = [];
 
-    constructor(config: FocusConfig = DEFAULT_CONFIG) {
+    constructor(
+        config: FocusConfig = DEFAULT_CONFIG,
+        private readonly attentionModel?: AttentionModel
+    ) {
         this.config = config;
     }
 
@@ -66,12 +70,23 @@ export class Focus {
         this.topicBoosts.set(topic.toLowerCase(), { factor, ttl });
     }
 
+    getActiveGoals(): Task[] {
+        return [...this.activeGoals];
+    }
+
     setActiveGoals(goals: Task[]): void {
         this.activeGoals = goals;
     }
 
     adjustPriority(concept: Concept, basePriority: number): number {
         let p = basePriority;
+
+        // Delegate to attention model if available
+        if (this.attentionModel) {
+            const decay = this.attentionModel.decay(concept, 1, 0.01);
+            p -= decay;
+        }
+
         const termStr = concept.term.toString().toLowerCase();
 
         for (const [topic, boost] of this.topicBoosts) {

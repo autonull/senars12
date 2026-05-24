@@ -78,7 +78,7 @@ export function unify(a: Term, b: Term, subst: Substitution = {}, enableOccursCh
                 result = undefined;
                 break;
             }
-            s = unify(next, nextB, s ?? {}, enableOccursCheck);
+            s = unify(next, nextB, s, enableOccursCheck);
             if (!s) {
                 result = undefined;
                 break;

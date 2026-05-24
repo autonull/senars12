@@ -1,6 +1,6 @@
 export {NAR} from './nar/index.js';
 export type {NARConfig} from './nar/index.js';
-export {Agent} from './agent/index.js';
+export {AIAgent} from './agent/index.js';
 export {loadConfig, loadConfigFromEnv, ConfigLoader} from './config/loader.js';
 export type {AppConfig, ValidatedConfig, LMConfig, MemoryConfig, InferenceConfig, IRCConfig} from './config/loader.js';
 export * from './io/index.js';

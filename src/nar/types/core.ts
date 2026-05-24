@@ -128,6 +128,17 @@ export const createSecondaryTask = (
     derived: false
 });
 
+// Runtime assertion for belief tasks — crash early instead of silently fabricating values
+export function assertBeliefTask(task: Task): asserts task is Task & { truth: TruthType } {
+  if (task.type !== 'question' && !task.truth) {
+    throw new NARError(
+      `Bug: ${task.type} task missing truth: ${task.term}`,
+      'MISSING_TRUTH',
+      { taskType: task.type, term: task.term }
+    );
+  }
+}
+
 // Error types for better error handling
 export class NARError extends Error {
     constructor(

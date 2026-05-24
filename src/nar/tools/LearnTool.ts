@@ -37,7 +37,7 @@ export class LearnTool implements Tool {
 
         try {
             const term = termParser.parse(knowledge);
-            const truthValue = truth ? Truth.create(truth.frequency ?? 0.5, truth.confidence ?? 0.9) : Truth.NEUTRAL;
+            const truthValue = truth ? Truth.create(truth.frequency ?? 0.5, truth.confidence ?? 0.9) : Truth.NEUTRAL; // system boundary — external input may lack truth
             const budget = createBudget(priority);
 
             this.memory.addTask(term, 'belief' as any, truthValue, budget);

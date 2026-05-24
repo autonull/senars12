@@ -1,7 +1,7 @@
 import {Concept, type ConceptMergeResult, type ConceptTaskType} from './concept.js';
 import type {Term, Truth} from '../terms';
-import {calculateSimilarity, TermMap} from '../terms';
-import type {Budget} from '../types';
+import {Stamp, calculateSimilarity, TermMap} from '../terms';
+import type {Budget, Task} from '../types';
 import {NEUTRAL_BUDGET} from '../types/core.js';
 import {MemoryIndex} from './memory-index.js';
 import {Focus} from './focus.js';
@@ -15,6 +15,8 @@ import {LINK} from '../constants.js';
 import {PressureDetector} from './pressure.js';
 import type {MemoryHealth} from './health.js';
 import {calculateConceptStats} from './statistics.js';
+import type {AttentionModel} from '../cognitive/types';
+import {SimpleAttention} from '../cognitive/attention-models';
 
 export interface MemoryConfig {
     maxConcepts?: number;
@@ -73,6 +75,7 @@ export interface MemoryStatistics {
 }
 
 export class Memory {
+    readonly attentionModel: AttentionModel;
     private readonly concepts = new TermMap<Concept>();
     private readonly config: Required<MemoryConfig>;
     private readonly index: MemoryIndex;
@@ -91,11 +94,13 @@ export class Memory {
     private readonly onMemoryPressure?: (level: number, memory: Memory) => void;
 
     constructor(config: MemoryConfig = DEFAULT_CONFIG, options?: {
-        onMemoryPressure?: (level: number, memory: Memory) => void
+        onMemoryPressure?: (level: number, memory: Memory) => void;
+        attentionModel?: AttentionModel;
     }) {
         this.config = {...DEFAULT_CONFIG, ...config};
         this.healthCheckInterval = this.config.healthCheckInterval;
         this.onMemoryPressure = options?.onMemoryPressure;
+        this.attentionModel = options?.attentionModel ?? new SimpleAttention();
 
         this.index = new MemoryIndex({
             enableAtomicIndex: this.config.enableIndexing,
@@ -149,6 +154,28 @@ export class Memory {
         return this.focus;
     }
 
+    getGoals(): Task[] {
+        const goals: Task[] = [];
+        for (const concept of this.concepts.values()) {
+            for (const g of concept.goalBag.toArray()) {
+                goals.push({
+                    term: g.term,
+                    type: 'goal',
+                    truth: g.truth,
+                    budget: g.budget,
+                    stamp: g.stamp,
+                    occurrenceTime: g.occurrenceTime ?? 0,
+                    derived: g.derived ?? false
+                } as Task);
+            }
+        }
+        return goals;
+    }
+
+    getConfig(): MemoryConfig {
+        return this.config;
+    }
+
     getMemoryPressure(): number {
         return this.pressureLevel;
     }
@@ -194,9 +221,9 @@ export class Memory {
         return concept;
     }
 
-    addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget = NEUTRAL_BUDGET): boolean {
+    addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget = NEUTRAL_BUDGET, stamp?: import('../terms/stamp.js').Stamp): boolean {
         const concept = this.getConcept(term) ?? this.addConcept(term);
-        return concept.addTask(type, {term, truth, budget});
+        return concept.addTask(type, {term, truth, budget, stamp: stamp ?? Stamp.createInput()});
     }
 
     removeConcept(term: Term): boolean {
@@ -212,14 +239,20 @@ export class Memory {
     }
 
     sample(limit: number): Concept[] {
+        for (const concept of this.concepts.values()) {
+            const decay = this.attentionModel.decay(concept, 1, this.config.activationDecayRate);
+            if (decay !== 0) concept.priority = Math.max(0, concept.priority - decay);
+        }
         return [...this.concepts.values()]
             .sort((a, b) => this.scorer.scoreForRetrieval(b) - this.scorer.scoreForRetrieval(a))
             .slice(0, limit);
     }
 
-    consolidate(opts?: { lm?: { generateObject: (opts: { prompt: string; schema: unknown }) => Promise<{ object: { name: string; definition: string } }> } }): void {
+    consolidate(opts?: { lm?: { generateObject: (opts: { prompt: string; schema: unknown }) => Promise<{ object: { name: string; definition: string } }> }; cycleCount?: number }): void {
         if (++this.cyclesSinceConsolidation < this.config.consolidationInterval) return;
         this.cyclesSinceConsolidation = 0;
+
+        this.attentionModel.tick(this, opts?.cycleCount ?? this.cyclesSinceConsolidation);
 
         const { activationDecayRate, priorityThreshold, archiveThreshold, enableArchive, linkDecayRate } = this.config;
         const toArchive: Concept[] = [];

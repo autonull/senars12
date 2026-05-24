@@ -173,7 +173,7 @@ export const NALExtendedRules = {
     comparison: buildBinaryInhRule(
         sameInhPair,
         (inh1, _inh2) => {
-            const {s, p} = extractInh(inh1) ?? {};
+            const {s, p} = extractInh(inh1);
             if (!s || !p) return undefined;
             return similarity(s, p);
         }
@@ -202,18 +202,21 @@ export const NALExtendedRules = {
     },
 
     exemplification: buildBinaryInhRule(
-        (inh1, inh2) => !!(getSubject(inh1) && getPredicate(inh2)),
         (inh1, inh2) => {
-            const sub1 = getSubject(inh1), pred2 = getPredicate(inh2);
-            if (!sub1 || !pred2) return undefined;
-            return inheritance(sub1, pred2);
+            const p1 = getPredicate(inh1), p2 = getPredicate(inh2);
+            return !!(p1 && p2 && termsEqual(p1, p2));
+        },
+        (inh1, inh2) => {
+            const s1 = getSubject(inh1), s2 = getSubject(inh2);
+            if (!s1 || !s2) return undefined;
+            return inheritance(s1, s2);
         }
     ),
 
     sameness: buildBinaryInhRule(
         sameInhPair,
         (inh1, _inh2) => {
-            const {s, p} = extractInh(inh1) ?? {};
+            const {s, p} = extractInh(inh1);
             if (!s || !p) return undefined;
             return similarity(s, p);
         }

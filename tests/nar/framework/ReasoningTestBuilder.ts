@@ -98,7 +98,7 @@ export async function assertReasoning(spec: TestSpec): Promise<TestResult> {
                 const belief = found.beliefBag.peek();
                 const truth = belief?.truth;
                 if (truth) {
-                    const {minFrequency, maxFrequency, minConfidence, maxConfidence} = truth;
+                    const {minFrequency, maxFrequency, minConfidence, maxConfidence} = expected.truthRange;
                     if (minFrequency && truth.f < minFrequency) {
                         errors.push(
                             `Frequency too low for "${termStr}": expected >= ${minFrequency}, got ${truth.f}`

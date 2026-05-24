@@ -34,24 +34,12 @@ async function main() {
 
 async function runCLI() {
     console.log('Starting CLI mode...');
-    await import('./cli/repl.js');
+    await import('./cli/repl');
 }
 
 async function runBot() {
-    const logger = createLogger({scope: 'app:bot'});
-    console.log('Starting Bot mode...');
-    const {Agent} = await import('./agent/Agent.js');
-    const {createSeNARSRegistry} = await import('./nar/lm/providers.js');
-
-    const registry = createSeNARSRegistry();
-    const nar = SeNARSFactory.createDefault({
-        ...DEFAULT_NAR_CONFIG,
-        providerRegistry: registry,
-    });
-
-    const agent = new Agent({nar, logger});
-    await agent.start();
-    setupGracefulShutdown(() => agent.stop(), logger);
+    console.log('Bot mode not available - use CLI mode or runDemo');
+    process.exit(1);
 }
 
 async function runDemo() {

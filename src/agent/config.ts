@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import {readFileSync, writeFileSync, existsSync} from 'fs';
+import {resolve} from 'path';
 import type {BotConfig} from './BotContext.js';
 
 /**
@@ -110,14 +110,14 @@ tui: {
  */
 export async function loadConfig(configPath?: string): Promise<BotFullConfig> {
   const filePath = configPath || process.env.SENARS_CONFIG || 'bot.config.jsonc';
-  const absolutePath = path.resolve(process.cwd(), filePath);
+  const absolutePath = resolve(process.cwd(), filePath);
   
   let config: Partial<BotFullConfig> = {};
   
   // Try to load from file
-  if (fs.existsSync(absolutePath)) {
+  if (existsSync(absolutePath)) {
     try {
-      const content = fs.readFileSync(absolutePath, 'utf-8');
+      const content = readFileSync(absolutePath, 'utf-8');
       // Simple JSONC parsing (remove comments and trailing commas)
       const jsonContent = content
         .replace(/\/\/.*$/gm, '') // Remove single-line comments
@@ -219,10 +219,10 @@ function parseBoolean(value: string): boolean {
  */
 export function saveConfig(config: Partial<BotFullConfig>, configPath?: string): void {
   const filePath = configPath || process.env.SENARS_CONFIG || 'bot.config.jsonc';
-  const absolutePath = path.resolve(process.cwd(), filePath);
+  const absolutePath = resolve(process.cwd(), filePath);
   
   const content = JSON.stringify(config, null, 2);
-  fs.writeFileSync(absolutePath, content, 'utf-8');
+  writeFileSync(absolutePath, content, 'utf-8');
 }
 
 export {DEFAULT_CONFIG};

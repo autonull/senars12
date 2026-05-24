@@ -22,6 +22,7 @@ export interface LMRuleConfig {
     id?: string;
     name?: string;
     description?: string;
+    category?: string;
     priority?: number;
     enabled?: boolean;
     singlePremise?: boolean;
@@ -38,12 +39,23 @@ export interface LMRuleConfigInternal extends LMRuleConfig {
     taskGenerator?: (processed: unknown, primary: Term, secondary?: Term, context?: Record<string, unknown>) => Task[];
 }
 
+export interface LMClientStats {
+    totalCalls: number;
+    successfulCalls: number;
+    failedCalls: number;
+    timeoutCount: number;
+    totalDuration: number;
+    averageDuration: number;
+    queueDepth: number;
+    queueHighWater: number;
+}
+
 export interface LMClient {
     provider?: string;
     model?: string;
     available?: boolean;
 
-    generateText(prompt: string, options?: LMConfig): Promise<string>;
+    generateText(prompt: string, options?: LMConfig & { signal?: AbortSignal }): Promise<string>;
 
     generateTextWithCache?(prompt: string, options?: LMConfig): Promise<string>;
 
@@ -54,6 +66,8 @@ export interface LMClient {
     getCost?(): { tokens: number; cost: number };
 
     setModel?(model: string): void;
+
+    getStats?(): LMClientStats;
 }
 
 export interface LMExecutionStats {

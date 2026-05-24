@@ -63,6 +63,7 @@ export function serialize(memory: Memory): SerializedMemory {
 function termToString(term: Term): string {
     if (!term) return 'unknown';
     try {
+        // system boundary — term structure varies across memory versions
         const sym = (term as any).symbol;
         if (sym) return sym;
         return term.kind === 'atom' ? term.symbol : term.kind;
@@ -103,6 +104,7 @@ export async function deserialize(data: SerializedMemory, memory: Memory): Promi
             const term = TermBuilder.atom(serialized.term);
             memory.addConcept(term);
         } catch {
+            // expected: individual concept deserialization failure shouldn't abort memory load
             console.warn(`Failed to deserialize concept: ${serialized.term}`);
         }
     }
@@ -136,6 +138,7 @@ export function repair(data: Partial<SerializedMemory>): SerializedMemory | null
             return data as SerializedMemory;
         }
     } catch {
+        // expected: repair is best-effort; returns null on failure
         console.warn('Failed to repair memory data');
     }
 

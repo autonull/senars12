@@ -13,6 +13,12 @@ import {
 } from '../../../src/nar';
 import type {RLFPLearner} from '../../rlfp';
 
+const createMockProcessor = () => ({
+    processSync: () => [],
+    processLMRulesExternal: async function*() { /* noop */ },
+    processLMRulesSingle: async function*() { /* noop */ }
+});
+
 const createMockRLFP = (): RLFPLearner => ({
     optimize: jest.fn(),
     updateModel: jest.fn(),
@@ -36,7 +42,7 @@ describe('NARExecution', () => {
         taskManager = new TaskManager(memory);
         reasoner = new Reasoner(
             memory,
-            {processSync: () => []} as any,
+            createMockProcessor() as any,
             BagStrategy,
             {cpuThrottleMs: 0, maxDerivationDepth: 10, maxDerivationsPerStep: 100}
         );
@@ -76,7 +82,7 @@ describe('NARExecution', () => {
         test('respects maxDerivationDepth via reasoner config', async () => {
             const constrainedReasoner = new Reasoner(
                 memory,
-                {processSync: () => []} as any,
+                createMockProcessor() as any,
                 BagStrategy,
                 {cpuThrottleMs: 0, maxDerivationDepth: 2, maxDerivationsPerStep: 100}
             );

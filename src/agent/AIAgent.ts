@@ -22,6 +22,8 @@ export class AIAgent {
   private readonly capabilities: Capabilities;
   private readonly cognitiveContextBuilder?: CognitiveContextBuilder;
   private readonly selfAnalysisManager?: SelfAnalysisManager;
+  private readonly provider: string;
+  private readonly languageModel?: import('ai').LanguageModel;
   private turnCount = 0;
 
   constructor(config: AIAgentConfig & {
@@ -38,6 +40,8 @@ export class AIAgent {
     this.episodicMemory = config.episodicMemory;
     this.config = config.config as BotConfig;
     this.capabilities = config.capabilities;
+    this.provider = config.provider ?? 'transformers';
+    this.languageModel = config.languageModel;
 
     if (this.nar) {
       this.cognitiveContextBuilder = new CognitiveContextBuilder(this.nar);
@@ -54,14 +58,27 @@ export class AIAgent {
     }
   }
 
-  private getProvider() {
-    if (process.env.ANTHROPIC_API_KEY) {
-      return createAnthropic({apiKey: process.env.ANTHROPIC_API_KEY})('claude-sonnet-4-20250514');
+  private async getProvider() {
+    const [{createProviderRegistry}, {transformersJS}, ollamaModule, {createAnthropic}] = await Promise.all([
+      import('ai'),
+      import('@browser-ai/transformers-js'),
+      import('ollama-ai-provider-v2'),
+      import('@ai-sdk/anthropic'),
+    ]);
+
+    const registry = createProviderRegistry({
+      anthropic: createAnthropic({apiKey: process.env.ANTHROPIC_API_KEY || ''}),
+      ollama: ollamaModule.ollama as any,
+      transformers: transformersJS as any,
+    });
+
+    if (this.provider === 'anthropic' && process.env.ANTHROPIC_API_KEY) {
+      return registry.languageModel(`anthropic:claude-sonnet-4-20250514`);
     }
-    if (process.env.OLLAMA_HOST) {
-      return ollamaProvider('llama3.2');
+    if (this.provider === 'ollama' || process.env.OLLAMA_HOST) {
+      return registry.languageModel('ollama:llama3.2');
     }
-    throw new Error('No LM provider available');
+    return registry.languageModel('transformers:onnx-community/Qwen2.5-1.5B-Instruct');
   }
 
   private createTools() {
@@ -160,7 +177,7 @@ Accepted input:
 
     try {
       const result = await generateText({
-        model: this.getProvider() as Parameters<typeof generateText>[0]['model'],
+        model: this.languageModel ?? await this.getProvider() as Parameters<typeof generateText>[0]['model'],
         messages,
         tools: this.createTools(),
         maxOutputTokens: 2048,

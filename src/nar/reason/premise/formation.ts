@@ -4,12 +4,14 @@ import {createSecondaryTask} from '../../types';
 import {termsEqual} from '../../terms';
 import {samplePremises} from './sample.js';
 
+/** @deprecated Use Strategy from '../strategy.js' instead. PremiseSelector is unused — will be removed in next major. */
 export interface PremiseSelector {
     readonly name: string;
 
     select(task: Task, memory: Memory, limit?: number): Task[];
 }
 
+/** @deprecated Use Strategy config instead. */
 export interface PremiseConfig {
     sampleSize: number;
     qualityThreshold: number;
@@ -17,6 +19,7 @@ export interface PremiseConfig {
     filters: Array<(task: Task, memory: Memory) => boolean>;
 }
 
+/** @deprecated Use Strategy implementations from '../strategy.js' or '../strategies/index.js' instead. */
 export class TermMatchingSelector implements PremiseSelector {
     readonly name = 'term-matching';
 
@@ -32,6 +35,7 @@ export class TermMatchingSelector implements PremiseSelector {
     }
 }
 
+/** @deprecated Use DecompositionStrategy from '../strategies/index.js' instead. */
 export class DecompositionSelector implements PremiseSelector {
     readonly name = 'decomposition';
 
@@ -56,6 +60,7 @@ export class DecompositionSelector implements PremiseSelector {
     }
 }
 
+/** @deprecated Use AnalogicalStrategy from '../strategies/index.js' instead. */
 export class AnalogySelector implements PremiseSelector {
     readonly name = 'analogy';
 

@@ -33,7 +33,9 @@ export const extractInhPair = (inh1: Term, inh2: Term) => {
 export const matchInhPair = <T>(
     fn: (s1: Term, p1: Term, s2: Term, p2: Term) => T | undefined
 ) => ([inh1, inh2]: [Term, Term]): T | undefined => {
-    const {s1, p1, s2, p2} = extractInhPair(inh1, inh2) ?? {};
+    const extracted = extractInhPair(inh1, inh2);
+    if (!extracted) return undefined;
+    const {s1, p1, s2, p2} = extracted;
     if (!s1 || !p1 || !s2 || !p2) return undefined;
     return fn(s1, p1, s2, p2);
 };

@@ -147,8 +147,9 @@ export class Observer {
             const concept = nar.getConcept(term);
             if (concept) {
                 const topBelief = concept.beliefBag.peek();
-                if (topBelief) {
-                    concept.beliefBag.removeMany(b => b !== topBelief && (b.truth?.c ?? 0) < (topBelief.truth?.c ?? 0));
+                if (topBelief?.truth) {
+                    const topC = topBelief.truth.c;
+                    concept.beliefBag.removeMany(b => b !== topBelief && (b.truth?.c ?? 0) < topC);
                 }
             }
         }
