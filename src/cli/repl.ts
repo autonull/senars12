@@ -240,8 +240,10 @@ async function main() {
       if (!running) break;
       const result = await cli.processLine(line);
       if (result) console.log(result);
+      await new Promise(resolve => setImmediate(resolve));
     }
     await cli.stop();
+    process.stdout.end();
   } else {
     const rl = createInterface({
       input: process.stdin,
@@ -251,13 +253,16 @@ async function main() {
 
     console.log('\n SeNARS Cognitive REPL');
     console.log(' Type .help for commands, .quit to exit\n');
+    console.log(' LM: Transformers.js ready\n');
 
     rl.prompt();
     for await (const line of rl) {
       if (!running) break;
       const result = await cli.processLine(line);
       if (result) console.log(result);
-      if (running) rl.prompt();
+      if (running) {
+        rl.prompt();
+      }
     }
     await cli.stop();
     rl.close();

@@ -28,7 +28,8 @@ import {ScenarioRunner} from '../scenarios/ScenarioRunner.js';
 import {ScoringEngine} from '../scenarios/ScoringEngine.js';
 import {ExperimentRunner} from '../experiments/ExperimentRunner.js';
 import {RegressionTracker} from '../scenarios/RegressionTracker.js';
-import {SelfAnalyzer} from '../SelfAnalyzer.js';
+import {SelfAnalyzer} from '../../nar/self/SelfAnalyzer.js';
+import {ReasoningAboutReasoning} from '../../nar/self/ReasoningAboutReasoning.js';
 import type {NAR} from '../../nar/nar.js';
 import {AutonomousScheduler} from '../AutonomousScheduler.js';
 
@@ -67,7 +68,7 @@ export class AIAgentConnectionManager {
   private mcpServer?: SeNARSMCPServer;
   private scenarioRunner?: ScenarioRunner;
   private experimentRunner?: ExperimentRunner;
-  private selfAnalyzer?: SelfAnalyzer;
+  private selfAnalyzer?: ReasoningAboutReasoning;
   private regressionTracker?: RegressionTracker;
   private connections: Connection[] = [];
 
@@ -238,7 +239,7 @@ export class AIAgentConnectionManager {
       this.scenarioRunner = new ScenarioRunner(this.nar);
       this.experimentRunner = new ExperimentRunner(this.nar, this.scenarioRunner);
       this.regressionTracker = new RegressionTracker();
-      this.selfAnalyzer = new SelfAnalyzer(this.nar, undefined, this.scenarioRunner, this.experimentRunner);
+      this.selfAnalyzer = new ReasoningAboutReasoning(this.nar);
 
       // Register APIs
       registerScenarioAPIs(this.scenarioRunner);

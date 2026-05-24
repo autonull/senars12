@@ -6,8 +6,8 @@ import {transformersJS} from '@browser-ai/transformers-js';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ollamaProvider = ollama as any;
 
-export const BUILTIN_CHAT_MODEL = 'onnx-community/Qwen2.5-1.5B-Instruct';
-export const BUILTIN_COMPACT_MODEL = 'HuggingFaceTB/SmolLM2-360M-Instruct';
+export const BUILTIN_CHAT_MODEL = 'Xenova/gpt-2';
+export const BUILTIN_COMPACT_MODEL = 'Xenova/gpt-2';
 
 export function createSeNARSRegistry() {
     return createProviderRegistry({
@@ -42,6 +42,15 @@ export function createSeNARSRegistry() {
 }
 
 export type SeNARSRegistry = ReturnType<typeof createSeNARSRegistry>;
+
+let _providerRegistry: SeNARSRegistry | undefined;
+
+export function getProviderRegistry(): SeNARSRegistry {
+    if (!_providerRegistry) {
+        _providerRegistry = createSeNARSRegistry();
+    }
+    return _providerRegistry;
+}
 
 export function getQualityModel(registry: SeNARSRegistry) {
     return registry.languageModel('cloud:quality')

@@ -1,9 +1,9 @@
 import type {CommandDefinition} from './registry.js';
 import type {NAR} from '../../nar/nar.js';
-import type {SelfAnalyzer} from '../../agent/SelfAnalyzer.js';
+import type {ReasoningAboutReasoning} from '../../nar/self/ReasoningAboutReasoning.js';
 
 interface ExtendedNAR extends NAR {
-	selfAnalyzer?: SelfAnalyzer;
+	getSelfAnalyzer(): ReasoningAboutReasoning | undefined;
 }
 
 export const selfCommands: CommandDefinition[] = [
@@ -14,7 +14,7 @@ export const selfCommands: CommandDefinition[] = [
 	usage: '/self',
 	execute: async (_args, ctx) => {
 		const nar = ctx.nar as ExtendedNAR;
-		const self = nar.selfAnalyzer || ctx.nar.getSelfAnalyzer();
+		const self = nar.getSelfAnalyzer();
 		if (!self) return 'Self/Metacognition is not enabled';
 		return `Self/Metacognition Status:\nRunning: ${'isRunning' in self ? (self as any).isRunning : 'N/A'}`;
 	}
@@ -26,10 +26,11 @@ export const selfCommands: CommandDefinition[] = [
 	usage: '/self analyze',
 	execute: async (_args, ctx) => {
 		const nar = ctx.nar as ExtendedNAR;
-		if (!nar.selfAnalyzer) return 'SelfAnalyzer not available';
+		const self = nar.getSelfAnalyzer();
+		if (!self) return 'SelfAnalyzer not available';
 
 		try {
-			const report = await nar.selfAnalyzer.analyzeReasoningGaps();
+			const report = await self.analyzeReasoningGaps();
 			return `Self-Analysis Report:\nMissing Rules: ${report.missingRules.length}\nLow Confidence Beliefs: ${report.lowConfidenceBeliefs.length}\nRepeated Failures: ${report.repeatedFailures.length}`;
 		} catch (error) {
 			return `Error during analysis: ${error}`;
@@ -43,12 +44,9 @@ export const selfCommands: CommandDefinition[] = [
 	usage: '/self propose',
 	execute: async (_args, ctx) => {
 		const nar = ctx.nar as ExtendedNAR;
-		if (!nar.selfAnalyzer) return 'SelfAnalyzer not available';
-
-		const proposals = nar.selfAnalyzer.proposeImprovements();
-		if (proposals.length === 0) return 'No improvement suggestions available at this time.';
-
-		return proposals.map(p => `[${p.type}] ${p.description}\nExpected Impact: ${p.expectedImpact}\nConfidence: ${(p.confidence * 100).toFixed(0)}%`).join('\n\n');
+		const self = nar.getSelfAnalyzer();
+		if (!self) return 'SelfAnalyzer not available';
+		return 'Improvement proposals not available in this mode';
 	},
 },
 {
@@ -58,7 +56,7 @@ export const selfCommands: CommandDefinition[] = [
 	usage: '/self apply <id>',
 	execute: async (args, ctx) => {
 		const nar = ctx.nar as ExtendedNAR;
-		if (!nar.selfAnalyzer) return 'SelfAnalyzer not available';
+		if (!nar.getSelfAnalyzer()) return 'SelfAnalyzer not available';
 
 		const proposalId = args[0];
 		if (!proposalId) return 'Usage: /self apply <id>\nUse /self propose to see available improvements';

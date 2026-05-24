@@ -1,6 +1,6 @@
 import type {CommandDefinition} from './registry.js';
 import type {NAR} from '../../nar/nar.js';
-import type {SelfAnalyzer} from '../../agent/SelfAnalyzer.js';
+import type {SelfAnalyzer} from '../../nar/self/SelfAnalyzer.js';
 import type {ScenarioRunner} from '../../agent/scenarios/ScenarioRunner.js';
 
 interface ExtendedNAR extends NAR {

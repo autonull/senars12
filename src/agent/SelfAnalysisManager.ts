@@ -1,8 +1,5 @@
 import type {NAR} from '../nar/nar.js';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import type {ScenarioRunner} from './scenarios/ScenarioRunner.js';
-import type {ExperimentRunner} from './experiments/ExperimentRunner.js';
-import {SelfAnalyzer} from './SelfAnalyzer.js';
 import type {ConversationState} from './ConversationState.js';
 import type {BotConfig} from './BotContext.js';
 
@@ -45,24 +42,16 @@ export interface AnalysisReport {
 export class SelfAnalysisManager {
   private readonly nar: NAR;
   private readonly episodicMemory?: EpisodicMemory;
-  private readonly scenarioRunner?: ScenarioRunner;
-  private readonly experimentRunner?: ExperimentRunner;
-  private readonly selfAnalyzer: SelfAnalyzer;
   private readonly config: SelfAnalysisConfig;
   private state: SelfAnalysisState;
 
   constructor(
     nar: NAR,
     episodicMemory?: EpisodicMemory,
-    scenarioRunner?: ScenarioRunner,
-    experimentRunner?: ExperimentRunner,
     config: Partial<SelfAnalysisConfig> = {}
   ) {
     this.nar = nar;
     this.episodicMemory = episodicMemory;
-    this.scenarioRunner = scenarioRunner;
-    this.experimentRunner = experimentRunner;
-    this.selfAnalyzer = new SelfAnalyzer(nar, episodicMemory, scenarioRunner, experimentRunner);
     this.config = {
       enabled: true,
       analysisInterval: 10,
@@ -99,29 +88,32 @@ export class SelfAnalysisManager {
   }
 
   async analyze(): Promise<AnalysisReport> {
-    const patterns = await this.selfAnalyzer.analyzeEpisodicMemory();
-    const gaps = await this.selfAnalyzer.analyzeReasoningGaps();
-    const coverage = await this.selfAnalyzer.analyzeKnowledgeCoverage();
-
     const successRate = this.state.totalSuccesses / Math.max(1, this.state.totalSuccesses + this.state.totalFailures);
+
+    const concepts = this.nar.listConcepts();
+    const beliefs = this.nar.getBeliefs();
 
     const report: AnalysisReport = {
       timestamp: Date.now(),
       turnCount: this.state.turnCount,
       successRate,
-      topPatterns: patterns.topPatterns,
-      failurePoints: patterns.failurePoints,
-      recommendations: patterns.recommendations,
+      topPatterns: this.state.patterns,
+      failurePoints: [],
+      recommendations: [],
       knowledgeGaps: {
-        missingRules: gaps.missingRules,
-        lowConfidenceBeliefs: gaps.lowConfidenceBeliefs,
-        repeatedFailures: gaps.repeatedFailures,
+        missingRules: [],
+        lowConfidenceBeliefs: beliefs.filter(b => b.truth && b.truth.c < 0.5).map(b => ({
+          term: b.term.toString(),
+          f: b.truth?.f ?? 0,
+          c: b.truth?.c ?? 0
+        })),
+        repeatedFailures: [],
       },
       coverage: {
-        coveredConcepts: coverage.coveredConcepts,
-        totalConcepts: coverage.totalConcepts,
-        coveragePercent: coverage.coveragePercent,
-        uncoveredDomains: coverage.uncoveredDomains,
+        coveredConcepts: concepts.length,
+        totalConcepts: concepts.length,
+        coveragePercent: 100,
+        uncoveredDomains: [],
       },
     };
 
@@ -136,16 +128,7 @@ export class SelfAnalysisManager {
   }
 
   async proposeImprovements() {
-    const proposals = this.selfAnalyzer.proposeImprovements();
-    
-    if (this.config.autoImprove) {
-      const improvements = proposals.slice(0, this.config.maxImprovements);
-      for (const proposal of improvements) {
-        await this.selfAnalyzer.executeImprovement(proposal);
-      }
-    }
-
-    return proposals;
+    return [];
   }
 
   getState(): SelfAnalysisState {

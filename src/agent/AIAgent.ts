@@ -1,29 +1,25 @@
 import {generateText, tool} from 'ai';
-import {createAnthropic} from '@ai-sdk/anthropic';
-import {ollama} from 'ollama-ai-provider-v2';
 import type {NAR} from '../nar/nar.js';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import {narsTools} from './tools/nars-tools.js';
-import {generalTools} from './tools/general-tools.js';
-import {CognitiveContextBuilder} from './CognitiveContext.js';
+import {createNARSTools, createGeneralTools} from '../nar/tools/adapters/index.js';
 import {SelfAnalysisManager} from './SelfAnalysisManager.js';
 import type {AIAgentConfig, BotConfig} from './types.js';
 import type {ConversationState} from './ConversationState.js';
 import type {Capabilities} from './BotContext.js';
 import type {ScenarioRunner} from './scenarios/ScenarioRunner.js';
 import type {ExperimentRunner} from './experiments/ExperimentRunner.js';
-
-const ollamaProvider = ollama as unknown as (model: string) => ReturnType<typeof ollama>;
+import type {LMClient} from '../nar/lm/types.js';
+import {adapt} from '../nar/lm/adapters/index.js';
 
 export class AIAgent {
   private readonly nar?: NAR;
   private readonly episodicMemory?: EpisodicMemory;
   private readonly config: BotConfig;
   private readonly capabilities: Capabilities;
-  private readonly cognitiveContextBuilder?: CognitiveContextBuilder;
   private readonly selfAnalysisManager?: SelfAnalysisManager;
   private readonly provider: string;
-  private readonly languageModel?: import('ai').LanguageModel;
+  private readonly languageModel?: ReturnType<typeof adapt>;
+  private readonly lmClient?: LMClient;
   private turnCount = 0;
 
   constructor(config: AIAgentConfig & {
@@ -41,56 +37,30 @@ export class AIAgent {
     this.config = config.config as BotConfig;
     this.capabilities = config.capabilities;
     this.provider = config.provider ?? 'transformers';
-    this.languageModel = config.languageModel;
+    this.lmClient = config.lmClient;
+    this.languageModel = config.languageModel
+      ? config.languageModel as ReturnType<typeof adapt>
+      : config.lmClient ? adapt(config.lmClient) : undefined;
 
-    if (this.nar) {
-      this.cognitiveContextBuilder = new CognitiveContextBuilder(this.nar);
-      
-      if (config.selfAnalysisConfig?.enabled) {
-        this.selfAnalysisManager = new SelfAnalysisManager(
-          this.nar,
-          this.episodicMemory,
-          config.scenarioRunner,
-          config.experimentRunner,
-          config.selfAnalysisConfig
-        );
-      }
+    if (this.nar && config.selfAnalysisConfig?.enabled) {
+      this.selfAnalysisManager = new SelfAnalysisManager(
+        this.nar,
+        this.episodicMemory,
+        config.selfAnalysisConfig
+      );
     }
-  }
-
-  private async getProvider() {
-    const [{createProviderRegistry}, {transformersJS}, ollamaModule, {createAnthropic}] = await Promise.all([
-      import('ai'),
-      import('@browser-ai/transformers-js'),
-      import('ollama-ai-provider-v2'),
-      import('@ai-sdk/anthropic'),
-    ]);
-
-    const registry = createProviderRegistry({
-      anthropic: createAnthropic({apiKey: process.env.ANTHROPIC_API_KEY || ''}),
-      ollama: ollamaModule.ollama as any,
-      transformers: transformersJS as any,
-    });
-
-    if (this.provider === 'anthropic' && process.env.ANTHROPIC_API_KEY) {
-      return registry.languageModel(`anthropic:claude-sonnet-4-20250514`);
-    }
-    if (this.provider === 'ollama' || process.env.OLLAMA_HOST) {
-      return registry.languageModel('ollama:llama3.2');
-    }
-    return registry.languageModel('transformers:onnx-community/Qwen2.5-1.5B-Instruct');
   }
 
   private createTools() {
-    const tools: Record<string, ReturnType<typeof tool>> = {};
+    const tools: Record<string, unknown> = {};
 
     if (this.nar) {
-      Object.assign(tools, narsTools(this.nar));
+      Object.assign(tools, createNARSTools(this.nar));
     }
 
-    Object.assign(tools, generalTools({
+    Object.assign(tools, createGeneralTools({
       nar: this.nar,
-      episodicMemory: this.episodicMemory,
+      episodicMemory: this.episodicMemory as {getEpisodes(options: {limit: number; type?: string}): Promise<unknown[]>} | undefined,
     }));
 
     return tools;
@@ -147,6 +117,61 @@ Accepted input:
 - /help — Show all commands`;
   }
 
+  private primeAttention(input: string): void {
+    if (!this.nar) return;
+    const terms = this.extractTerms(input);
+    for (const termStr of terms) {
+      const concepts = this.nar.listConcepts();
+      const concept = concepts.find(c => c.term.toString() === termStr);
+      if (concept) {
+        concept.priority = Math.min(1.0, concept.priority + 0.1);
+      }
+    }
+  }
+
+  private extractTerms(input: string): string[] {
+    const matches = input.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) ?? [];
+    return [...new Set(matches)];
+  }
+
+  private buildCognitiveContext(conversation?: ConversationState): string {
+    if (!this.nar) return '';
+
+    const attention = this.nar.attentionReport();
+    const beliefs = this.nar.getBeliefs();
+    const stats = this.nar.getStatistics();
+
+    const parts: string[] = [];
+
+    if (attention.concepts.length > 0) {
+      parts.push('## Current Attention Focus');
+      parts.push(attention.concepts.slice(0, 15).map(c => {
+        const belief = beliefs.find(b => b.term.toString() === c.term);
+        const truthStr = belief?.truth ? ` (f=${belief.truth.f.toFixed(2)}, c=${belief.truth.c.toFixed(2)})` : '';
+        return `- **${c.term}**: priority=${c.priority.toFixed(2)}${truthStr}`;
+      }).join('\n'));
+    }
+
+    const questions = this.nar.getQuestions().slice(0, 5).map(q => q.term.toString());
+    if (questions.length > 0) {
+      parts.push('\n## Unanswered Questions');
+      questions.forEach(q => parts.push(`- ${q}`));
+    }
+
+    const goals = this.nar.getGoals().slice(0, 3).map(g => g.term.toString());
+    if (goals.length > 0) {
+      parts.push('\n## Active Goals');
+      goals.forEach(g => parts.push(`- ${g}`));
+    }
+
+    parts.push(`\n## Memory State`);
+    parts.push(`- Concepts: ${stats.totalConcepts}`);
+    parts.push(`- Tasks: ${stats.totalTasks}`);
+    parts.push(`- Working Memory: ${this.nar.workingMemory.size()}`);
+
+    return parts.join('\n');
+  }
+
   async chat(input: string, context: {sender: string; connectionType: string; conversation: ConversationState}): Promise<string> {
     const startTime = Date.now();
     await this.episodicMemory?.log('input', input, {
@@ -154,18 +179,11 @@ Accepted input:
       channel: context.connectionType,
     });
 
-    if (this.nar && this.cognitiveContextBuilder) {
-      this.cognitiveContextBuilder.primeAttention(input);
+    if (this.nar) {
+      this.primeAttention(input);
     }
 
-    const cognitiveContext = this.cognitiveContextBuilder
-      ? await this.cognitiveContextBuilder.buildContext({
-          conversation: context.conversation,
-          maxConcepts: 15,
-          maxQuestions: 5,
-          maxGoals: 3,
-        })
-      : undefined;
+    const cognitiveContext = this.nar ? this.buildCognitiveContext(context.conversation) : undefined;
 
     const history = context.conversation.getHistory(20);
     const messages: {role: 'user' | 'assistant' | 'system'; content: string}[] = [
@@ -177,9 +195,9 @@ Accepted input:
 
     try {
       const result = await generateText({
-        model: this.languageModel ?? await this.getProvider() as Parameters<typeof generateText>[0]['model'],
+        model: this.languageModel as any,
         messages,
-        tools: this.createTools(),
+        tools: this.createTools() as any,
         maxOutputTokens: 2048,
       });
 

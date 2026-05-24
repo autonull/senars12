@@ -10,7 +10,7 @@ import {createMockLMClient} from './mock-client.js';
 import {createLogger} from '../logger/index.js';
 import type {LanguageModel} from 'ai';
 
-export const DEFAULT_COMPACT_MODEL = 'HuggingFaceTB/SmolLM2-360M-Instruct';
+export const DEFAULT_COMPACT_MODEL = 'Xenova/gpt-2';
 
 export const COMPACT_MODEL_CAPABILITY: Omit<ModelCapability, 'provider' | 'model'> = {
     contextWindow: 128000,

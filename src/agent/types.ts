@@ -1,5 +1,6 @@
 import type {NAR} from '../nar/nar.js';
 import type {Capabilities} from './BotContext.js';
+import type {LMClient} from '../nar/lm/types.js';
 
 export interface AIAgentConfig {
   nar?: NAR;
@@ -7,7 +8,8 @@ export interface AIAgentConfig {
   provider: 'anthropic' | 'ollama' | 'transformers' | 'custom';
   model?: string;
   instructions?: string | SystemPromptBuilder;
-  languageModel?: import('ai').LanguageModel;
+  languageModel?: unknown;
+  lmClient?: LMClient;
   config: Partial<BotConfig>;
   capabilities: Capabilities;
 }

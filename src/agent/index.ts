@@ -1,7 +1,6 @@
 // Core Agent (New Architecture)
 export {AIAgent} from './AIAgent.js';
 export type {AIAgentConfig, ConversationContext, SystemPromptBuilder} from './types.js';
-export {CognitiveContextBuilder} from './CognitiveContext.js';
 
 // Self-Analysis (Phase 3)
 export {SelfAnalysisManager} from './SelfAnalysisManager.js';
@@ -18,10 +17,7 @@ export {RegressionTracker} from './scenarios/RegressionTracker.js';
 export {ExperimentRunner} from './experiments/ExperimentRunner.js';
 export * from './scenarios/types.js';
 
-// Self-Analysis Core
-export {SelfAnalyzer} from './SelfAnalyzer.js';
-
-// State & Context
+// Scenarios & Experiments
 export {ConversationState} from './ConversationState.js';
 export {BotProfile} from './BotProfile.js';
 export {ChannelBehavior} from './ChannelBehavior.js';

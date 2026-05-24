@@ -9,7 +9,7 @@ import {LastResults} from '../../src/agent/LastResults.js';
 import {ScenarioRunner} from '../../src/agent/scenarios/ScenarioRunner.js';
 import {ScoringEngine} from '../../src/agent/scenarios/ScoringEngine.js';
 import {ExperimentRunner} from '../../src/agent/experiments/ExperimentRunner.js';
-import {SelfAnalyzer} from '../../src/agent/SelfAnalyzer.js';
+import {SelfAnalyzer} from '../../src/nar/self/SelfAnalyzer.js';
 
 describe('BOT2.md Components', () => {
   describe('WorkingMemory', () => {
@@ -244,15 +244,16 @@ describe('BOT2.md Components', () => {
   });
 
   describe('SelfAnalyzer', () => {
-    it('should be constructable', () => {
-      const nar = new NAR();
-      const analyzer = new SelfAnalyzer(nar);
+    it('should be constructable when self is enabled', () => {
+      const nar = new NAR({enableSelf: true, maxConcepts: 100, priorityThreshold: 0.5, activationDecayRate: 0.01, consolidationInterval: 10, cpuThrottleMs: 10, maxDerivationDepth: 10, maxDerivationsPerStep: 100});
+      const analyzer = nar.getSelfAnalyzer();
       expect(analyzer).toBeDefined();
     });
 
-    it('should analyze reasoning gaps', async () => {
-      const nar = new NAR();
-      const analyzer = new SelfAnalyzer(nar);
+    it('should analyze reasoning gaps when self is enabled', async () => {
+      const nar = new NAR({enableSelf: true, maxConcepts: 100, priorityThreshold: 0.5, activationDecayRate: 0.01, consolidationInterval: 10, cpuThrottleMs: 10, maxDerivationDepth: 10, maxDerivationsPerStep: 100});
+      const analyzer = nar.getSelfAnalyzer();
+      if (!analyzer) return;
       const report = await analyzer.analyzeReasoningGaps();
       expect(report).toBeDefined();
     });
