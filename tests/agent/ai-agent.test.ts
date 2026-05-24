@@ -7,29 +7,46 @@ import type {Capabilities} from '../../src/agent/BotContext.js';
 import {DEFAULT_BOT_CONFIG} from '../../src/config/defaults.js';
 import type {BotConfig} from '../../src/agent/BotContext.js';
 
-function createMockModel() {
+function createMockModel(nar?: any): any {
   return {
-    specificationVersion: 'v2',
-    provider: 'mock',
-    modelId: 'mock-model',
+    specificationVersion: 'v2' as const,
+    provider: 'mock' as const,
+    modelId: 'mock-model' as const,
     defaultObjectGenerationMode: 'json' as const,
-    doGenerate: async () => ({
-      content: [{type: 'text' as const, text: 'Mock response with reasoning.'}],
-      finishReason: 'stop' as const,
-      usage: {inputTokens: 10, outputTokens: 5, totalTokens: 15},
-    }),
+    supportedUrls: {} as Record<string, RegExp[]>,
+    doGenerate: async ({ prompt }: { prompt: any }) => {
+      const promptText = typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
+
+      // Simulate tool call: if prompt mentions "cats are animals", call nar_believe
+      if (promptText.includes('cats are animals')) {
+        if (nar) await nar.input('(cat --> animal).');
+        return {
+          content: [{ type: 'text' as const, text: 'I have added the belief (cat --> animal) to memory.' }],
+          finishReason: 'stop' as const,
+          usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+          warnings: [] as any[],
+        };
+      }
+
+      return {
+        content: [{ type: 'text' as const, text: 'Mock response with reasoning.' }],
+        finishReason: 'stop' as const,
+        usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+        warnings: [] as any[],
+      };
+    },
     doStream: async () => {
-      const {ReadableStream} = await import('node:stream/web');
+      const { ReadableStream } = await import('node:stream/web');
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         start(controller) {
-          controller.enqueue(encoder.encode(JSON.stringify({type: 'text-delta', id: '0', delta: 'Mock'})));
-          controller.enqueue(encoder.encode(JSON.stringify({type: 'text-delta', id: '0', delta: ' response'})));
-          controller.enqueue(encoder.encode(JSON.stringify({type: 'text-end', id: '0'})));
+          controller.enqueue(encoder.encode(JSON.stringify({ type: 'text-delta', id: '0', delta: 'Mock' })));
+          controller.enqueue(encoder.encode(JSON.stringify({ type: 'text-delta', id: '0', delta: ' response' })));
+          controller.enqueue(encoder.encode(JSON.stringify({ type: 'text-end', id: '0' })));
           controller.close();
         },
       });
-      return {stream, rawResponse: {headers: new Headers({'content-type': 'text/plain'})}};
+      return { stream, rawResponse: { headers: new Headers({ 'content-type': 'text/plain' }) } };
     },
   };
 }
@@ -107,7 +124,7 @@ describe('AIAgent', () => {
     const agent = new AIAgent({
       nar,
       provider: 'transformers',
-      languageModel: mockModel,
+      languageModel: createMockModel(nar),
       config: testConfig,
       capabilities: createTestCapabilities(),
     });
