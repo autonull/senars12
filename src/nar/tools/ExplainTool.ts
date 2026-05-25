@@ -2,7 +2,13 @@ import type {Schema, Tool, ToolContext, ToolResult} from './types';
 import {errorResult} from './types';
 import type {Concept, Memory} from '../memory';
 import {termParser} from '../terms';
+import {tool} from './decorator.js';
 
+@tool({
+    name: 'explain',
+    description: 'Generate human-readable explanation for a belief or derivation',
+    capabilities: {pure: false, readOnly: true}
+})
 export class ExplainTool implements Tool {
     readonly name = 'explain';
     readonly description = 'Generate human-readable explanation for a belief or derivation';

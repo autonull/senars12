@@ -1,4 +1,4 @@
-import type {Concept} from './concept.js';
+import type {Concept} from '../concept.js';
 
 export interface ScorerConfig {
     noveltyWeight: number;

@@ -1,5 +1,5 @@
-import type {Concept} from './concept.js';
-import type {MemoryScorer} from './scorer.js';
+import type {Concept} from '../concept.js';
+import type {MemoryScorer} from '../pressure/scorer.js';
 
 export type ForgettingPolicy =
     | 'fifo'

@@ -1,4 +1,4 @@
-import type {ToolManager} from './manager';
+import type {ToolManager} from './tool-registry';
 import type {Memory} from '../memory';
 import {termParser, Truth} from '../terms';
 import {createBudget} from '../types';

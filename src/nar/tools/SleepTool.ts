@@ -1,6 +1,12 @@
 import type {Schema, Tool, ToolResult} from './types';
 import {errorResult} from './types';
+import {tool} from './decorator.js';
 
+@tool({
+    name: 'sleep',
+    description: 'Delay execution for specified milliseconds',
+    capabilities: {pure: false, readOnly: true}
+})
 export class SleepTool implements Tool {
     readonly name = 'sleep';
     readonly description = 'Delay execution for specified milliseconds';

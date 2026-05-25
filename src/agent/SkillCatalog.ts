@@ -1,5 +1,5 @@
 import type {NAR} from '../nar/nar.js';
-import {ToolManager} from '../nar/tools/manager.js';
+import {ToolManager} from '../nar/tools/tool-registry.js';
 import type {CommandDefinition} from '../io/commands/registry.js';
 
 export interface SkillEntry {

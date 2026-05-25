@@ -1,7 +1,6 @@
 import {describe, expect, it} from '@jest/globals';
 import {RuleRegistry} from '../../src/nar';
-import '../../src/nar/rules/nal.js';
-import '../../src/nar/rules/nal-extended.js';
+import '../../src/nar/rules/rules-dsl.js';
 
 describe('Extended NAL Rules Registration', () => {
     it('should register all extended rules with truth functions', () => {

@@ -1,7 +1,13 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
 import {errorResult} from './types';
 import {type ChildProcess, spawn, type SpawnOptions} from 'child_process';
+import {tool} from './decorator.js';
 
+@tool({
+    name: 'process',
+    description: 'Spawn and manage subprocesses',
+    capabilities: {pure: false, readOnly: false}
+})
 export class ProcessTool implements Tool {
     readonly name = 'process';
     readonly description = 'Spawn and manage subprocesses';

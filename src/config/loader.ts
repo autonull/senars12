@@ -1,12 +1,8 @@
-/**
- * Configuration Loader
- * Loads and validates configuration from JSON files
- */
-
 import {promises as fs} from 'fs';
 import {dirname, join} from 'path';
 import {fileURLToPath} from 'url';
 import {clamp} from '../nar/utils/helpers.js';
+import {configSchema} from './schema.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -100,6 +96,29 @@ export class ConfigLoader {
             core: {
                 ...DEFAULT_APP_CONFIG.core,
                 maxConcepts: clampEnv(process.env.MAX_CONCEPTS, 10, 10000, DEFAULT_APP_CONFIG.core.maxConcepts)
+            }
+        };
+    }
+
+    static fromSchema(): ValidatedConfig {
+        const parsed = configSchema.parse({});
+        return {
+            name: parsed.name,
+            version: parsed.version,
+            lm: {
+                enabled: parsed.lm.enabled,
+                provider: parsed.lm.provider,
+                model: parsed.lm.model ?? 'Xenova/Llama-3.2-1B-Instruct',
+                quantized: parsed.lm.quantized ?? true
+            },
+            core: {
+                maxConcepts: parsed.memory.maxConcepts,
+                priorityThreshold: parsed.memory.priorityThreshold,
+                activationDecayRate: parsed.memory.activationDecayRate,
+                consolidationInterval: parsed.inference.consolidationInterval ?? 10,
+                cpuThrottleMs: parsed.inference.cpuThrottleMs,
+                maxDerivationDepth: parsed.inference.maxDerivationDepth,
+                maxDerivationsPerStep: parsed.inference.maxDerivationsPerStep
             }
         };
     }

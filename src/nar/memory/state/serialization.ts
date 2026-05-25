@@ -2,11 +2,11 @@
  * Memory serialization with versioning
  */
 
-import type {Memory} from './memory.js';
-import type {Term} from '../terms';
-import {TermBuilder} from '../terms';
-import type {Bag} from './bag.js';
-import type {TaskData} from './concept.js';
+import type {Memory} from '../memory.js';
+import type {Term} from '../../terms';
+import {TermBuilder} from '../../terms';
+import type {Bag} from '../bag.js';
+import type {TaskData} from '../concept.js';
 
 export interface SerializedMemory {
     version: number;

@@ -3,7 +3,13 @@ import {errorResult} from './types';
 import type {Memory} from '../memory';
 import {termParser, Truth} from '../terms';
 import {createBudget} from '../types';
+import {tool} from './decorator.js';
 
+@tool({
+    name: 'learn',
+    description: 'Add new knowledge from external sources',
+    capabilities: {pure: false, readOnly: false}
+})
 export class LearnTool implements Tool {
     readonly name = 'learn';
     readonly description = 'Add new knowledge from external sources';

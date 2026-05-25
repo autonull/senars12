@@ -5,16 +5,16 @@ import type {Budget, Task} from '../types';
 import {NEUTRAL_BUDGET} from '../types/core.js';
 import {MemoryIndex} from './memory-index.js';
 import {Focus} from './focus.js';
-import {Archive} from './archive.js';
-import {MemoryScorer} from './scorer.js';
-import {MemoryConsolidation} from './consolidation.js';
-import type {ForgettingPolicy} from './forgetting.js';
-import {Forgetting} from './forgetting.js';
+import {Archive} from './lifecycle/archive.js';
+import {MemoryScorer} from './pressure/scorer.js';
+import {MemoryConsolidation} from './pressure/consolidation.js';
+import type {ForgettingPolicy} from './lifecycle/forgetting.js';
+import {Forgetting} from './lifecycle/forgetting.js';
 import {LinkManager} from './links';
 import {LINK} from '../constants.js';
-import {PressureDetector} from './pressure.js';
+import {PressureDetector} from './pressure/pressure.js';
 import type {MemoryHealth} from './health.js';
-import {calculateConceptStats} from './statistics.js';
+import {calculateConceptStats} from './state/statistics.js';
 import type {AttentionModel} from '../cognitive/types';
 import {SimpleAttention} from '../cognitive/attention-models';
 
@@ -510,4 +510,4 @@ export class Memory {
     }
 }
 
-export {serialize, deserialize, validate, repair, type SerializedMemory} from './serialization.js';
+export {serialize, deserialize, validate, repair, type SerializedMemory} from './state/serialization.js';

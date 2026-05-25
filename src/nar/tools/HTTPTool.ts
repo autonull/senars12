@@ -1,7 +1,13 @@
 import type {Schema, Tool, ToolResult} from './types';
 import {errorResult} from './types';
 import {URL} from 'url';
+import {tool} from './decorator.js';
 
+@tool({
+    name: 'http',
+    description: 'Make HTTP requests (sandboxed)',
+    capabilities: {pure: false, readOnly: true}
+})
 export class HTTPTool implements Tool {
     readonly name = 'http';
     readonly description = 'Make HTTP requests (sandboxed)';

@@ -2,7 +2,13 @@ import type {Schema, Tool, ToolContext, ToolResult} from './types';
 import {errorResult} from './types';
 import type {NAR} from '../nar';
 import {termParser, Truth} from '../terms';
+import {tool} from './decorator.js';
 
+@tool({
+    name: 'reason',
+    description: 'Invoke NAR reasoning on a specific term or statement',
+    capabilities: {pure: false, readOnly: false}
+})
 export class ReasonTool implements Tool {
     readonly name = 'reason';
     readonly description = 'Invoke NAR reasoning on a specific term or statement';

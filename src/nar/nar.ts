@@ -27,7 +27,8 @@ import {
     SleepTool,
     TimerTool,
     ToolManager,
-    WriteFileTool
+    WriteFileTool,
+    discoverTools
 } from './tools';
 import {BaseComponent} from './lifecycle';
 import {ReasoningAboutReasoning} from './self';
@@ -67,26 +68,6 @@ interface ToolDependency {
     memory: Memory;
     nar: NAR;
 }
-
-interface ToolDefinition<T extends Tool = Tool> {
-    readonly name: string;
-    readonly factory: (deps: ToolDependency) => T;
-    readonly dependencies: (keyof ToolDependency)[];
-}
-
-const TOOL_DEFS: ToolDefinition[] = [
-    {name: 'Calculate', factory: () => new CalculateTool(), dependencies: []},
-    {name: 'Sleep', factory: () => new SleepTool(), dependencies: []},
-    {name: 'ReadFile', factory: () => new ReadFileTool(), dependencies: []},
-    {name: 'WriteFile', factory: () => new WriteFileTool(), dependencies: []},
-    {name: 'HTTP', factory: () => new HTTPTool(), dependencies: []},
-    {name: 'Search', factory: (deps) => new SearchTool(deps.memory), dependencies: ['memory']},
-    {name: 'Reason', factory: (deps) => new ReasonTool(deps.nar), dependencies: ['nar']},
-    {name: 'Explain', factory: (deps) => new ExplainTool(deps.memory), dependencies: ['memory']},
-    {name: 'Learn', factory: (deps) => new LearnTool(deps.memory), dependencies: ['memory']},
-    {name: 'Timer', factory: () => new TimerTool(), dependencies: []},
-    {name: 'Process', factory: () => new ProcessTool(), dependencies: []}
-];
 
 export class NAR extends BaseComponent {
     readonly memory: Memory;
@@ -540,9 +521,10 @@ clearLMRuleExecutionLog() {
     private initializeTools(): void {
         if (this._toolsInitialized) return;
 
-        const toolDeps: ToolDependency = {memory: this.memory, nar: this};
-        for (const toolDef of TOOL_DEFS) {
-            this.tools.register(toolDef.factory(toolDeps));
+        const toolDeps = {memory: this.memory, nar: this} as Record<string, unknown>;
+        const tools = discoverTools(toolDeps);
+        for (const tool of tools) {
+            this.tools.register(tool);
         }
         this._toolsInitialized = true;
     }

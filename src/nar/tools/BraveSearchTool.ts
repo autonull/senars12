@@ -1,11 +1,17 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types.js';
 import {errorResult} from './types.js';
+import {tool} from './decorator.js';
 
 export interface BraveSearchConfig {
     apiKeyEnv: string;
     defaultCount: number;
 }
 
+@tool({
+    name: 'brave-search',
+    description: 'Search the web using Brave Search API',
+    capabilities: {pure: false, readOnly: true}
+})
 export class BraveSearchTool implements Tool {
     readonly name = 'brave-search';
     readonly description = 'Search the web using Brave Search API';

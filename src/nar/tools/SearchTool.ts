@@ -1,7 +1,13 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
 import {errorResult} from './types';
 import type {Concept, Memory} from '../memory';
+import {tool} from './decorator.js';
 
+@tool({
+    name: 'search',
+    description: 'Search memory for concepts matching a term pattern',
+    capabilities: {pure: true, readOnly: true}
+})
 export class SearchTool implements Tool {
     readonly name = 'search';
     readonly description = 'Search memory for concepts matching a term pattern';

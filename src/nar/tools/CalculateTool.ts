@@ -1,5 +1,6 @@
 import type {Schema, Tool, ToolResult} from './types';
 import {errorResult} from './types';
+import {tool} from './decorator.js';
 
 function parseMathExpression(expr: string): number {
     let pos = 0;
@@ -82,6 +83,11 @@ function parseMathExpression(expr: string): number {
     return result;
 }
 
+@tool({
+    name: 'calculate',
+    description: 'Mathematical computation tool',
+    capabilities: {pure: true, readOnly: true}
+})
 export class CalculateTool implements Tool {
     readonly name = 'calculate';
     readonly description = 'Mathematical computation tool';

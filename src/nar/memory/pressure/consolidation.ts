@@ -1,6 +1,6 @@
-import {Memory} from './memory.js';
-import type {Concept} from './concept.js';
-import {termsEqual} from '../terms';
+import {Memory} from '../memory.js';
+import type {Concept} from '../concept.js';
+import {termsEqual} from '../../terms';
 
 export interface ConsolidationConfig {
     healthCheckInterval: number;

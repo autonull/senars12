@@ -1,5 +1,5 @@
-import type {Term} from '../terms/types.js';
-import {TermMap} from '../terms/term-map.js';
+import type {Term} from '../../terms/types.js';
+import {TermMap} from '../../terms/term-map.js';
 
 export interface TermMeta {
     lastAccess: number;

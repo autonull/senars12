@@ -1,5 +1,5 @@
-import type {Concept} from './concept.js';
-import {THRESHOLDS} from '../constants.js';
+import type {Concept} from '../concept.js';
+import {THRESHOLDS} from '../../constants.js';
 
 const {PRIORITY: PRIORITY_THRESHOLDS} = THRESHOLDS;
 

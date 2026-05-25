@@ -1,6 +1,6 @@
 export type {LMClient, LMConfig, ModelConfig} from './types.js';
 export {LMRule} from './LMRule.js';
-export {LMRules} from './rules.js';
+export {LMRules} from './lm-rule-factory.js';
 export {MockLMClient, createMockLMClient, RuleBasedLMClient, createRuleBasedLMClient} from './mock-client.js';
 export {LMResponseParser} from './parser.js';
 export type {ParsedLMResponse, StructuredLMOutput} from './parser.js';
@@ -9,8 +9,8 @@ export {LMRouter} from './router.js';
 export type {ModelCapability, ModelRegistryEntry, ModelProvider} from './model-registry.js';
 export {
     DynamicLMRuleGenerator, CompositeLMRule, createDynamicRuleGenerator, createCompositeRule
-} from './dynamic-rules.js';
-export type {DynamicRuleConfig, ValidationRule} from './dynamic-rules.js';
+} from './lm-rule-factory.js';
+export type {DynamicRuleConfig, ValidationRule} from './lm-rule-factory.js';
 export {
     ModelCapabilityDiscovery, ModelBenchmark
 } from './model-discovery.js';

@@ -1,6 +1,12 @@
 import type {Schema, Tool, ToolContext, ToolResult} from './types';
 import {errorResult} from './types';
+import {tool} from './decorator.js';
 
+@tool({
+    name: 'timer',
+    description: 'Schedule delayed or recurring actions',
+    capabilities: {pure: false, readOnly: false}
+})
 export class TimerTool implements Tool {
     readonly name = 'timer';
     readonly description = 'Schedule delayed or recurring actions';

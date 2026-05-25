@@ -14,8 +14,8 @@ export type {
     ToolStatistics
 } from './types.js';
 export {errorResult, createToolEvent} from './types.js';
-export {Registry} from './registry.js';
-export {ToolManager} from './manager.js';
+export {Registry, ToolManager} from './tool-registry.js';
+export {discoverTools} from './decorator.js';
 export {CalculateTool} from './CalculateTool.js';
 export {SleepTool} from './SleepTool.js';
 export {ReadFileTool, WriteFileTool} from './FileTools.js';

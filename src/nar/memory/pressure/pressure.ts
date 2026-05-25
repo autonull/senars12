@@ -1,8 +1,8 @@
 /**
  * Memory pressure detection and response
  */
-import type {Concept} from './concept.js';
-import type {Memory} from './memory.js';
+import type {Concept} from '../concept.js';
+import type {Memory} from '../memory.js';
 
 export interface PressureConfig {
     enablePressureDetection?: boolean;

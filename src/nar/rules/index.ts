@@ -1,6 +1,5 @@
 // Side-effect: register NAL rules on module load
-import './nal.js';
-import './nal-extended.js';
+import './rules-dsl.js';
 
 // Rule types and registry
 export type {
@@ -15,5 +14,4 @@ export {RuleProcessor} from './processor.js';
 export type {RuleResult, RuleInput} from './processor.js';
 
 // Rule sets
-export {NALRules} from './nal.js';
-export {NALExtendedRules} from './nal-extended.js';
+export {NALRules, NALExtendedRules} from './rules-dsl.js';
