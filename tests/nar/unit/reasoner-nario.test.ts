@@ -25,8 +25,7 @@ describe('Reasoner', () => {
             maxDerivationDepth: 10,
             maxDerivationsPerStep: 100,
             enableCircularDetection: true,
-            enableTraceCollection: true,
-            premiseQualityThreshold: 0.3
+            enableTraceCollection: true
         });
     });
 

@@ -12,8 +12,6 @@ import fs from 'node:fs';
 
 const PARAMETER_MAP: Record<string, (p: CognitiveParameters, v: unknown) => void> = {
   'priority.initial':               (p, v) => { p.priority.initialPriority = v as number; },
-  'priority.threshold':             (p, v) => { p.priority.threshold = v as number; },
-  'priority.lmActivationThreshold': (p, v) => { p.priority.lmActivationThreshold = v as number; },
   'priority.directMentionBoost':    (p, v) => { p.priority.directMentionBoost = v as number; },
   'priority.decayRate':             (p, v) => { p.priority.decayRate = v as number; },
   'strategy.sampling':              (p, v) => { p.strategies.sampling.type = v as string; },
@@ -25,7 +23,6 @@ const PARAMETER_MAP: Record<string, (p: CognitiveParameters, v: unknown) => void
   'lm.timeout':                     (p, v) => { p.lm.callTimeoutMs = v as number; },
   'inference.maxDerivations':       (p, v) => { p.inference.maxDerivationsPerStep = v as number; },
   'inference.maxDepth':             (p, v) => { p.inference.maxDerivationDepth = v as number; },
-  'inference.qualityThreshold':     (p, v) => { p.inference.premiseQualityThreshold = v as number; },
 };
 
 export function applyParamValues(params: CognitiveParameters, values: Record<string, unknown>): CognitiveParameters {
@@ -39,11 +36,9 @@ export function applyParamValues(params: CognitiveParameters, values: Record<str
 export const COGNITIVE_PARAMETER_SPACE: SearchSpace = {
   parameters: {
     'priority.initial':               { type: 'float', min: 0.01, max: 0.3, log: true },
-    'priority.threshold':             { type: 'float', min: 0.05, max: 0.3 },
-    'priority.lmActivationThreshold': { type: 'float', min: 0.2, max: 0.8 },
     'priority.directMentionBoost':    { type: 'float', min: 0.1, max: 0.5 },
     'priority.decayRate':             { type: 'float', min: 0.01, max: 0.2 },
-    'strategy.sampling':              { type: 'categorical', values: ['priority', 'top-n', 'above-threshold', 'novelty', 'goal-biased', 'diverse'] },
+    'strategy.sampling':              { type: 'categorical', values: ['priority', 'top-n', 'novelty', 'goal-biased', 'diverse'] },
     'strategy.premise':               { type: 'categorical', values: ['default-formation', 'bag', 'prolog', 'resolution', 'goal-driven', 'analogical', 'term-link', 'task-match', 'decomposition', 'exhaustive'] },
     'strategy.lmRule':                { type: 'categorical', values: ['all', 'priority', 'rotation', 'diverse'] },
     'strategy.attention':             { type: 'categorical', values: ['simple', 'spreading', 'goal-relevance', 'composite'] },
@@ -52,7 +47,6 @@ export const COGNITIVE_PARAMETER_SPACE: SearchSpace = {
     'lm.timeout':                     { type: 'int', min: 1000, max: 30000, log: true },
     'inference.maxDerivations':       { type: 'int', min: 100, max: 10000, log: true },
     'inference.maxDepth':             { type: 'int', min: 5, max: 20 },
-    'inference.qualityThreshold':     { type: 'float', min: 0, max: 0.9 },
   }
 };
 

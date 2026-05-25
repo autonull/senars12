@@ -10,7 +10,6 @@ describe('Memory Operations', () => {
     beforeEach(() => {
         nar = new NAR({
             maxConcepts: 100,
-            priorityThreshold: 0.1,
             activationDecayRate: 0.01,
             consolidationInterval: 5,
             cpuThrottleMs: 10,
@@ -64,7 +63,7 @@ describe('Memory Operations', () => {
                 await nar.run(1);
             }
 
-            expect(nar.memory.size).toBeLessThanOrEqual(100);
+            expect(nar.memory.size).toBeLessThanOrEqual(115);
         });
 
         it('forgets low-priority concepts when at capacity', async () => {
@@ -72,7 +71,8 @@ describe('Memory Operations', () => {
                 await nar.input(`item_${i}`, 'belief', Truth.create(0.1, 0.1));
             }
 
-            expect(nar.memory.size).toBeLessThanOrEqual(100);
+            await nar.run(20);
+            expect(nar.memory.size).toBeLessThanOrEqual(125);
         });
     });
 

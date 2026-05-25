@@ -3,12 +3,12 @@ import {extractSymbols, jaccardSimilarity, TermMap, termsEqual, TermSet} from '.
 import {Bag} from './bag.js';
 import {Truth as TruthOps} from '../terms/truth.js';
 import type {Budget, TaskType} from '../types';
-import {LINK, THRESHOLDS} from '../constants.js';
+import {LINK} from '../constants.js';
 import {clamp01} from '../utils/index.js';
 
-const {DECAY_TIME_CONSTANT} = THRESHOLDS;
+const DECAY_TIME_CONSTANT = 60000;
 const {DECAY_RATE, MIN_PRIORITY: MIN_LINK_STRENGTH} = LINK;
-const {MERGE: MERGE_SIMILARITY_THRESHOLD} = THRESHOLDS;
+const DEFAULT_MERGE_SIMILARITY = 0.85;
 
 export interface TaskData {
     readonly term: Term;
@@ -165,7 +165,7 @@ export class Concept {
         }
     }
 
-    canMergeWith(other: Concept, threshold = MERGE_SIMILARITY_THRESHOLD): boolean {
+    canMergeWith(other: Concept, threshold = 0.85): boolean {
         return this !== other && (
             this.calculateTermSimilarity(other.term) >= threshold ||
             this.calculateTaskOverlap(other) >= threshold

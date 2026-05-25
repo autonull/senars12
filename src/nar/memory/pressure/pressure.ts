@@ -6,24 +6,21 @@ import type {Memory} from '../memory.js';
 
 export interface PressureConfig {
     enablePressureDetection?: boolean;
-    pressureThreshold?: number;
     activationDecayRate?: number;
 }
 
 export class PressureDetector {
-    private readonly threshold: number;
     private readonly decayRate: number;
 
     constructor(config: PressureConfig = {}) {
-        this.threshold = config.pressureThreshold ?? 0.9;
         this.decayRate = config.activationDecayRate ?? 0.01;
     }
 
     detect(utilization: number): { level: number; shouldCompact: boolean; shouldDecay: boolean } {
         return {
             level: utilization,
-            shouldCompact: utilization >= this.threshold,
-            shouldDecay: utilization >= this.threshold,
+            shouldCompact: utilization > 0.8,
+            shouldDecay: utilization > 0.7,
         };
     }
 

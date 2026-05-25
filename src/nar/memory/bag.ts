@@ -8,7 +8,7 @@ export interface BagItem<T> {
 }
 
 export type SamplingObjective =
-    | { type: 'priority'; threshold: number }
+    | { type: 'priority' }
     | { type: 'recency'; windowMs: number }
     | { type: 'novelty'; maxDepth: number }
     | { type: 'composite'; weights: { priority: number; recency: number; novelty: number } };
@@ -32,7 +32,13 @@ export interface BoundedBagState<T> {
 }
 
 const SAMPLE_FN: Record<string, (heap: BagItem<unknown>[], obj: Record<string, unknown>) => unknown> = {
-    priority: (h, o) => h.find(e => e.priority >= (o.threshold as number))?.item,
+    priority: (h) => {
+      const total = h.reduce((s, e) => s + e.priority, 0);
+      if (total <= 0) return h[0]?.item;
+      let r = Math.random() * total;
+      for (const e of h) { r -= e.priority; if (r <= 0) return e.item; }
+      return h[h.length - 1]?.item;
+    },
     recency: (h, o) => {
         const cutoff = Date.now() - (o.windowMs as number);
         return h.find(e => e.lastAccess >= cutoff)?.item;

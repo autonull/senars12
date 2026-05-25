@@ -102,8 +102,8 @@ export class QueryAPI {
         const belief = concept.beliefBag.peek();
         if (!belief?.truth) return null;
         const confidence = belief.truth.f * belief.truth.c;
-        const threshold = isExactMatch ? 0.01 : 0.1;
-        if (confidence < threshold) return null;
+        const minConfidence = isExactMatch ? 0.01 : 0.05;
+        if (confidence < minConfidence) return null;
         return {
             question: question.toString(),
             answer: concept.term.toString(),

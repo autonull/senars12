@@ -103,10 +103,6 @@ export class SelfOptimizer {
             this.nar.setConfig({...config, maxDerivationsPerStep: Math.max(50, config.maxDerivationsPerStep - 10)});
         }
 
-        if (errorRate > 0.1 && config.priorityThreshold < 0.7) {
-            this.nar.setConfig({...config, priorityThreshold: Math.min(0.7, config.priorityThreshold + 0.05)});
-        }
-
         if (memoryUsage > 100000000 || conceptCount > config.maxConcepts! * 0.9) {
             this.nar.memory?.consolidate();
         }
@@ -114,7 +110,7 @@ export class SelfOptimizer {
         const concepts = this.nar.listConcepts();
         const lowPriorityConcepts = concepts.filter(c => c.priority < 0.2);
         if (lowPriorityConcepts.length > concepts.length * 0.5) {
-            this.nar.setConfig({...config, priorityThreshold: Math.max(0.1, config.priorityThreshold! - 0.05)});
+            this.nar.memory?.consolidate();
         }
     }
 

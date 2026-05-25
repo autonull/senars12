@@ -245,13 +245,13 @@ describe('BOT2.md Components', () => {
 
   describe('SelfAnalyzer', () => {
     it('should be constructable when self is enabled', () => {
-      const nar = new NAR({enableSelf: true, maxConcepts: 100, priorityThreshold: 0.5, activationDecayRate: 0.01, consolidationInterval: 10, cpuThrottleMs: 10, maxDerivationDepth: 10, maxDerivationsPerStep: 100});
+      const nar = new NAR({enableSelf: true, maxConcepts: 100, activationDecayRate: 0.01, consolidationInterval: 10, cpuThrottleMs: 10, maxDerivationDepth: 10, maxDerivationsPerStep: 100});
       const analyzer = nar.getSelfAnalyzer();
       expect(analyzer).toBeDefined();
     });
 
     it('should analyze reasoning gaps when self is enabled', async () => {
-      const nar = new NAR({enableSelf: true, maxConcepts: 100, priorityThreshold: 0.5, activationDecayRate: 0.01, consolidationInterval: 10, cpuThrottleMs: 10, maxDerivationDepth: 10, maxDerivationsPerStep: 100});
+      const nar = new NAR({enableSelf: true, maxConcepts: 100, activationDecayRate: 0.01, consolidationInterval: 10, cpuThrottleMs: 10, maxDerivationDepth: 10, maxDerivationsPerStep: 100});
       const analyzer = nar.getSelfAnalyzer();
       if (!analyzer) return;
       const report = await analyzer.analyzeReasoningGaps();

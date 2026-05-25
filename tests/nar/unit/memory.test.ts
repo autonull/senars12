@@ -6,7 +6,6 @@ describe('Memory', () => {
     beforeEach(() => {
         mem = new Memory({
             maxConcepts: 100,
-            priorityThreshold: 0.5,
             activationDecayRate: 0.01,
             consolidationInterval: 10
         });
@@ -95,15 +94,15 @@ describe('Memory', () => {
     });
 
     describe('forgetting', () => {
-        test('removes oldest when at capacity', () => {
+        test('removes lowest priority when at capacity with priority policy', () => {
             const smallMem = new Memory({
                 maxConcepts: 1,
-                priorityThreshold: 0.5,
                 activationDecayRate: 0.01,
-                consolidationInterval: 10
+                consolidationInterval: 10,
+                forgettingPolicy: 'lowest-priority'
             });
-            smallMem.addTask(TermBuilder.atom('a'), 'belief', Truth.TRUE, createBudget(0.5));
-            smallMem.addTask(TermBuilder.atom('b'), 'belief', Truth.TRUE, createBudget(0.5));
+            smallMem.addTask(TermBuilder.atom('a'), 'belief', Truth.TRUE, createBudget(0.3));
+            smallMem.addTask(TermBuilder.atom('b'), 'belief', Truth.TRUE, createBudget(0.7));
 
             expect(smallMem.size).toBe(1);
         });

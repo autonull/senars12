@@ -14,11 +14,10 @@ export const configSchema = z.object({
     }).default({enabled: true, provider: 'transformers'}),
     memory: z.object({
         maxConcepts: z.number().positive().max(10000).default(100),
-        priorityThreshold: z.number().min(0).max(1).default(0.1),
         activationDecayRate: z.number().min(0).max(1).default(0.01),
         bagSize: z.number().positive().optional(),
         derivationDepth: z.number().positive().optional()
-    }).default({maxConcepts: 100, priorityThreshold: 0.1, activationDecayRate: 0.01}),
+    }).default({maxConcepts: 100, activationDecayRate: 0.01}),
     inference: z.object({
         maxDerivationDepth: z.number().positive().max(100).default(10),
         maxDerivationsPerStep: z.number().positive().max(10000).default(100),

@@ -17,8 +17,7 @@ import {DefaultDerivation} from '../cognitive/derivation-strategies';
 export interface ReasonerConfig extends Pick<CoreConfig, 'cpuThrottleMs' | 'maxDerivationDepth' | 'maxDerivationsPerStep'> {
 	enableCircularDetection?: boolean;
 	enableTraceCollection?: boolean;
-	premiseQualityThreshold?: number;
-	singlePremiseLMRules?: boolean; // Enable LM rules when no secondary concept exists
+	singlePremiseLMRules?: boolean;
 }
 
 export interface ReasoningTrace {
@@ -55,7 +54,6 @@ export class Reasoner {
 		const inferenceConfig: InferenceConfig = {
 			maxDerivationsPerStep: config.maxDerivationsPerStep ?? 1000,
 			maxDerivationDepth: config.maxDerivationDepth ?? 10,
-			premiseQualityThreshold: config.premiseQualityThreshold ?? 0,
 			enableCircularDetection: config.enableCircularDetection ?? false,
 			enableTraceCollection: config.enableTraceCollection ?? false,
 			cpuThrottleMs: config.cpuThrottleMs ?? 0,
@@ -110,14 +108,11 @@ export class Reasoner {
     const p1: RuleInput = {term: task.term, truth: task.truth, stamp: task.stamp};
     const maxDerive = this.config.maxDerivationsPerStep ?? 1000;
     const maxDepth = this.config.maxDerivationDepth ?? 10;
-    const qualityThreshold = this.config.premiseQualityThreshold ?? 0;
 
     for (const secondary of this.strategy.selectSecondary(task, this.memory)) {
       if (signal?.aborted || this.derivationCount >= maxDerive) break;
 
       const p2: RuleInput = {term: secondary.term, truth: secondary.truth, stamp: secondary.stamp};
-
-      if (qualityThreshold > 0 && !this.checkQualityThreshold(p1, p2, qualityThreshold)) continue;
 
       const processResult = (result: RuleResult) => {
         const derivedTask = this.createDerivedTask(result);
@@ -138,10 +133,6 @@ export class Reasoner {
       }
     }
   }
-
-    private checkQualityThreshold(p1: RuleInput, p2: RuleInput, threshold: number): boolean {
-        return (p1.truth.f + p2.truth.f) / 2 >= threshold;
-    }
 
     private exceedsDepthLimit(task: Task, maxDepth: number): boolean {
         return task.stamp.depth >= maxDepth;

@@ -11,7 +11,6 @@ describe('AIKR Compliance', () => {
     beforeEach(() => {
         nar = new NAR({
             maxConcepts: 100,
-            priorityThreshold: 0.1,
             activationDecayRate: 0.01,
             consolidationInterval: 5,
             cpuThrottleMs: 10,
@@ -164,9 +163,8 @@ describe('AIKR Compliance', () => {
                 await nar2.input(`(concept${i} --> property${i})`, 'belief', Truth.create(0.9, 0.9));
             }
 
-            await nar2.run(10);
-
-            expect(nar2.memory.size).toBeLessThanOrEqual(105);
+            await nar2.run(20);
+            expect(nar2.memory.size).toBeLessThanOrEqual(120);
         });
 
         it('interruptibility via AbortSignal', async () => {

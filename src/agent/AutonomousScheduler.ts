@@ -6,7 +6,6 @@ export interface SchedulerConfig {
   sleepIntervalMs: number;
   enableLMRules: boolean;
   effortLevel: number;
-  priorityThreshold: number;
 }
 
 export class AutonomousScheduler {

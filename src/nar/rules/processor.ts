@@ -60,11 +60,9 @@ export class RuleProcessor {
     private eventBus: EventBus | null = null;
     private resultBuffer: RuleResult[] = [];
     private memory?: Memory;
-    private priorityThreshold = 0;
     private lmSelector: LMRuleSelector | null = null;
     private maxLMRulesPerStep = 13;
     private lmRotationIndex = 0;
-    private lmActivationThreshold = 0.5;
     private executionLog: LMRuleExecutionEntry[] = [];
 
     constructor(rules?: RegisteredRule[]) {
@@ -72,10 +70,8 @@ export class RuleProcessor {
         (rules ?? RuleRegistry.getAll()).forEach(rule => this.ruleIndex.register(rule));
     }
 
-    setConfig(config: {memory?: Memory; priorityThreshold?: number; lmActivationThreshold?: number}): void {
+    setConfig(config: {memory?: Memory}): void {
         if (config.memory) this.memory = config.memory;
-        if (config.priorityThreshold !== undefined) this.priorityThreshold = config.priorityThreshold;
-        if (config.lmActivationThreshold !== undefined) this.lmActivationThreshold = config.lmActivationThreshold;
     }
 
     setEventBus(eventBus: EventBus): void {
@@ -173,7 +169,6 @@ export class RuleProcessor {
                 maxRules: this.maxLMRulesPerStep,
                 conceptPriority: maxPriority,
                 rotationIndex: this.lmRotationIndex,
-                priorityThreshold: this.lmActivationThreshold,
                 premiseCount: 2
             })
             : this.lmRules;
@@ -181,10 +176,6 @@ export class RuleProcessor {
         const results = await Promise.all(selected.map(async lmRule => {
             const startTime = Date.now();
             try {
-                if (maxPriority < this.lmActivationThreshold) {
-                    this.executionLog.push({ruleName: lmRule.name, status: 'skipped', durationMs: 0, tasksProduced: 0});
-                    return [];
-                }
                 const tasks = await lmRule.apply(p1.term, p2.term, {priority: maxPriority});
                 const derivedStamp = deriveStamp(p1, p2);
                 const result = tasks.map(task => ({
@@ -218,7 +209,6 @@ export class RuleProcessor {
                 maxRules: this.maxLMRulesPerStep,
                 conceptPriority: maxPriority,
                 rotationIndex: this.lmRotationIndex,
-                priorityThreshold: this.lmActivationThreshold,
                 premiseCount: 2
             })
             : this.lmRules;
@@ -227,10 +217,6 @@ export class RuleProcessor {
             if (signal?.aborted) return [];
             const startTime = Date.now();
             try {
-                if (maxPriority < this.lmActivationThreshold) {
-                    this.executionLog.push({ruleName: lmRule.name, status: 'skipped', durationMs: 0, tasksProduced: 0});
-                    return [];
-                }
                 const tasks = await lmRule.apply(p1.term, p2.term, {priority: maxPriority});
                 const derivedStamp = deriveStamp(p1, p2);
                 const result = tasks.map(task => ({

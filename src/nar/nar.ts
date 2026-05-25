@@ -104,7 +104,7 @@ export class NAR extends BaseComponent {
         this.memory = new Memory(this.config, { attentionModel: this.createAttentionModel(config) });
         this.workingMemory = new WorkingMemory();
         this.processor = new RuleProcessor();
-        this.processor.setConfig({memory: this.memory, priorityThreshold: this.config.priorityThreshold});
+        this.processor.setConfig({memory: this.memory});
         this.processor.setEventBus(eventBus);
         this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
         this.taskManager = new TaskManager(this.memory);
@@ -503,9 +503,6 @@ clearLMRuleExecutionLog() {
     private validateConfig(config: NARConfig): NARConfig {
         if (config.maxConcepts <= 0) {
             throw new ConfigurationError('maxConcepts must be positive', {maxConcepts: config.maxConcepts});
-        }
-        if (config.priorityThreshold < 0 || config.priorityThreshold > 1) {
-            throw new ConfigurationError('priorityThreshold must be between 0 and 1', {priorityThreshold: config.priorityThreshold});
         }
         return config;
     }

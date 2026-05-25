@@ -5,8 +5,6 @@ import {termsEqual} from '../../terms';
 export interface ConsolidationConfig {
     healthCheckInterval: number;
     decayRate: number;
-    consolidationThreshold: number;
-    archiveThreshold: number;
     enableActivationPropagation: boolean;
     enableDecay: boolean;
     enableForgetting: boolean;
@@ -15,8 +13,6 @@ export interface ConsolidationConfig {
 const DEFAULT_CONFIG: ConsolidationConfig = {
     healthCheckInterval: 100,
     decayRate: 0.01,
-    consolidationThreshold: 0.5,
-    archiveThreshold: 0.2,
     enableActivationPropagation: true,
     enableDecay: true,
     enableForgetting: true
@@ -144,12 +140,22 @@ export class MemoryConsolidation {
         const toArchive: Concept[] = [];
         const toForget: Concept[] = [];
 
-        for (const concept of concepts) {
-            if (concept.priority < this.config.archiveThreshold && concept.totalTasks === 0) {
-                toArchive.push(concept);
-            } else if (concept.priority < 0.05 && concept.totalTasks === 0) {
-                toForget.push(concept);
-            }
+        const capacityPressure = concepts.length / memory['config'].maxConcepts;
+
+        const candidates = concepts.filter(c => c.totalTasks === 0);
+        if (candidates.length === 0) return {archived: 0, forgotten: 0};
+
+        candidates.sort((a, b) => a.priority - b.priority);
+
+        if (capacityPressure > 0.8) {
+            const archiveCount = Math.ceil(candidates.length * Math.min(0.3, capacityPressure - 0.5));
+            toArchive.push(...candidates.slice(0, archiveCount));
+        }
+
+        if (capacityPressure > 0.9) {
+            const forgetCount = Math.ceil(candidates.length * Math.min(0.2, capacityPressure - 0.8));
+            const remaining = candidates.filter(c => !toArchive.includes(c));
+            toForget.push(...remaining.slice(0, forgetCount));
         }
 
         let archived = 0;

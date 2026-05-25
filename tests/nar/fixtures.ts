@@ -5,7 +5,6 @@ import {NAR} from '../nar.js';
 
 export const E2E_CONFIG = {
     maxConcepts: 100,
-    priorityThreshold: 0.1,
     activationDecayRate: 0.01,
     consolidationInterval: 5,
     cpuThrottleMs: 10,

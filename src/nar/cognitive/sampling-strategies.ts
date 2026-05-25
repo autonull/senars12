@@ -17,16 +17,6 @@ export class TopNSampling implements SamplingStrategy {
   }
 }
 
-export class AboveThresholdSampling implements SamplingStrategy {
-  readonly metadata = { name: 'above-threshold', description: 'All concepts above dynamic threshold' };
-  private threshold = 0.3;
-  sample(memory: Memory, count: number): Concept[] {
-    return memory.listConcepts()
-      .filter(c => c.priority >= this.threshold)
-      .slice(0, count);
-  }
-}
-
 export class NoveltySampling implements SamplingStrategy {
   readonly metadata = { name: 'novelty', description: 'Bias toward least-recently-accessed concepts' };
   sample(memory: Memory, count: number): Concept[] {

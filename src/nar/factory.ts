@@ -43,14 +43,12 @@ export interface CognitiveOptions {
 const MINIMAL_CONFIG: CoreConfig = {
     ...DEFAULT_CONFIG,
     maxConcepts: 100,
-    priorityThreshold: 0.1,
     cpuThrottleMs: 0,
     maxDerivationsPerStep: 100
 };
 const CLI_CONFIG: CoreConfig = {
     ...DEFAULT_CONFIG,
     maxConcepts: 200,
-    priorityThreshold: 0.1,
     cpuThrottleMs: 0,
     maxDerivationsPerStep: 100
 };
@@ -58,7 +56,6 @@ const BOT_CONFIG: CoreConfig = {...DEFAULT_CONFIG};
 const TEST_CONFIG: CoreConfig = {
     ...DEFAULT_CONFIG,
     maxConcepts: 100,
-    priorityThreshold: 0,
     activationDecayRate: 0,
     consolidationInterval: 1000,
     cpuThrottleMs: 0,

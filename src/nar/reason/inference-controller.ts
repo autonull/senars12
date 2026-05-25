@@ -20,13 +20,12 @@ import type {SamplingStrategy, DerivationStrategy, DerivationContext} from '../c
 export interface InferenceConfig {
 	maxDerivationsPerStep: number;
 	maxDerivationDepth: number;
-	premiseQualityThreshold: number;
 	enableCircularDetection: boolean;
 	enableTraceCollection: boolean;
 	cpuThrottleMs: number;
-	singlePremiseLMRules: boolean; // Enable LM rules when no secondary exists
-	maxLMRulesPerStep: number; // Limit LM rules fired per step for performance
-	enableLMRules: boolean; // Master switch for LM rules
+	singlePremiseLMRules: boolean;
+	maxLMRulesPerStep: number;
+	enableLMRules: boolean;
 }
 
 export interface InferenceResult {
@@ -93,7 +92,6 @@ export class InferenceController {
 			const ctx: DerivationContext = {
 				maxDerivations: this.config.maxDerivationsPerStep,
 				maxDepth: this.config.maxDerivationDepth,
-				qualityThreshold: this.config.premiseQualityThreshold,
 				cpuThrottleMs: this.config.cpuThrottleMs,
 				singlePremiseEnabled: this.config.singlePremiseLMRules ?? true,
 				signal
@@ -173,10 +171,6 @@ export class InferenceController {
 		const p1: RuleInput = {term: p1Task.term, truth: p1Task.truth, stamp: p1Task.stamp};
 		const p2: RuleInput = {term: p2Task.term, truth: p2Task.truth, stamp: p2Task.stamp};
 		const maxDepth = this.config.maxDerivationDepth ?? 10;
-		const qualityThreshold = this.config.premiseQualityThreshold ?? 0;
-
-		// Check quality threshold
-		if (qualityThreshold > 0 && !this.checkQualityThreshold(p1, p2, qualityThreshold)) return;
 
 		const processResult = (result: RuleResult) => {
 			const derivedTask = this.createDerivedTask(result);
@@ -213,10 +207,6 @@ export class InferenceController {
 			occurrenceTime: Date.now(),
 			derived: false
 		};
-	}
-
-	private checkQualityThreshold(p1: RuleInput, p2: RuleInput, threshold: number): boolean {
-		return (p1.truth.f + p2.truth.f) / 2 >= threshold;
 	}
 
 	private exceedsDepthLimit(task: Task, maxDepth: number): boolean {

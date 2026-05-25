@@ -1,5 +1,5 @@
 import type {SamplingStrategy, Strategy, DerivationStrategy, LMRuleSelector, AttentionModel, StrategyRegistry, StrategyType, ComponentMetadata} from './types';
-import {PrioritySampling, TopNSampling, AboveThresholdSampling, NoveltySampling, GoalBiasedSampling, DiverseSampling} from './sampling-strategies';
+import {PrioritySampling, TopNSampling, NoveltySampling, GoalBiasedSampling, DiverseSampling} from './sampling-strategies';
 import {DefaultDerivation, AnytimeDerivation, FocusedDerivation, SampledDerivation} from './derivation-strategies';
 import {AllSelector, PrioritySelector, RotationSelector, DiverseSelector} from './lm-selectors';
 import {SimpleAttention, SpreadingActivation, GoalRelevanceAttention, CompositeAttention} from './attention-models';
@@ -45,7 +45,6 @@ export class CognitiveRegistry implements StrategyRegistry {
   initializeDefaults(): void {
     this.register('sampling', 'priority', new PrioritySampling());
     this.register('sampling', 'top-n', new TopNSampling());
-    this.register('sampling', 'above-threshold', new AboveThresholdSampling());
     this.register('sampling', 'novelty', new NoveltySampling());
     this.register('sampling', 'goal-biased', new GoalBiasedSampling());
     this.register('sampling', 'diverse', new DiverseSampling());

@@ -27,31 +27,23 @@ export class DefaultDerivation implements DerivationStrategy {
   }
 }
 
-export class AnytimeDerivation extends DefaultDerivation {
-  override readonly metadata = { name: 'anytime', description: 'Stop early when derived task quality >= threshold' };
+export class AnytimeDerivation implements DerivationStrategy {
+  readonly metadata = { name: 'anytime', description: 'Yield as results become available, stop early if signal aborted' };
 
-  override async *derive(primary: Task, secondaries: Task[], processor: RuleProcessor, ctx: DerivationContext): AsyncGenerator<Task> {
+  async *derive(primary: Task, secondaries: Task[], processor: RuleProcessor, ctx: DerivationContext): AsyncGenerator<Task> {
+    if (ctx.signal?.aborted) return;
     if (secondaries.length > 0) {
       for (const secondary of secondaries) {
         if (ctx.signal?.aborted) return;
         const p1: RuleInput = { term: primary.term, truth: primary.truth, stamp: primary.stamp };
         const p2: RuleInput = { term: secondary.term, truth: secondary.truth, stamp: secondary.stamp };
 
-        for (const result of processor.processSync(p1, p2)) {
-          yield toTask(result);
-          if (result.truth.f >= ctx.qualityThreshold) return;
-        }
-        for await (const result of processor.processLMRulesExternal(p1, p2, ctx.signal)) {
-          yield toTask(result);
-          if (result.truth.f >= ctx.qualityThreshold) return;
-        }
+        for (const result of processor.processSync(p1, p2)) yield toTask(result);
+        for await (const result of processor.processLMRulesExternal(p1, p2, ctx.signal)) yield toTask(result);
       }
     } else if (ctx.singlePremiseEnabled) {
       const p1: RuleInput = { term: primary.term, truth: primary.truth, stamp: primary.stamp };
-      for await (const result of processor.processLMRulesSingle(p1, ctx.signal)) {
-        yield toTask(result);
-        if (result.truth.f >= ctx.qualityThreshold) return;
-      }
+      for await (const result of processor.processLMRulesSingle(p1, ctx.signal)) yield toTask(result);
     }
   }
 }

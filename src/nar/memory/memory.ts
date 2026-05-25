@@ -12,7 +12,7 @@ import type {ForgettingPolicy} from './lifecycle/forgetting.js';
 import {Forgetting} from './lifecycle/forgetting.js';
 import {LinkManager} from './links';
 import {LINK} from '../constants.js';
-import {PressureDetector} from './pressure/pressure.js';
+
 import type {MemoryHealth} from './health.js';
 import {calculateConceptStats} from './state/statistics.js';
 import type {AttentionModel} from '../cognitive/types';
@@ -20,19 +20,15 @@ import {SimpleAttention} from '../cognitive/attention-models';
 
 export interface MemoryConfig {
     maxConcepts?: number;
-    priorityThreshold?: number;
     activationDecayRate?: number;
     consolidationInterval?: number;
     focusMaxConcepts?: number;
-    focusThreshold?: number;
-    archiveThreshold?: number;
     archiveMaxConcepts?: number;
     enableIndexing?: boolean;
     enableArchive?: boolean;
     forgettingPolicy?: ForgettingPolicy;
     healthCheckInterval?: number;
     enablePressureDetection?: boolean;
-    pressureThreshold?: number;
     linkCapacity?: number;
     termLinkCapacity?: number;
     semanticLinkCapacity?: number;
@@ -42,19 +38,15 @@ export interface MemoryConfig {
 
 const DEFAULT_CONFIG: Required<MemoryConfig> = {
     maxConcepts: 1000,
-    priorityThreshold: 0.5,
     activationDecayRate: 0.01,
     consolidationInterval: 10,
     focusMaxConcepts: 50,
-    focusThreshold: 0.3,
-    archiveThreshold: 0.2,
     archiveMaxConcepts: 1000,
     enableIndexing: true,
     enableArchive: true,
     forgettingPolicy: 'fifo',
     healthCheckInterval: 1000,
     enablePressureDetection: true,
-    pressureThreshold: 0.9,
     linkCapacity: 1000,
     termLinkCapacity: 1000,
     semanticLinkCapacity: 500,
@@ -85,21 +77,17 @@ export class Memory {
     private readonly consolidation: MemoryConsolidation;
     private readonly forgetting: Forgetting;
     private readonly linkManager: LinkManager;
-    private readonly pressureDetector: PressureDetector;
     private cyclesSinceConsolidation = 0;
     private lastTimestamp = Date.now();
     private readonly healthCheckInterval: number;
     private lastHealthCheck = 0;
     private pressureLevel = 0;
-    private readonly onMemoryPressure?: (level: number, memory: Memory) => void;
 
     constructor(config: MemoryConfig = DEFAULT_CONFIG, options?: {
-        onMemoryPressure?: (level: number, memory: Memory) => void;
         attentionModel?: AttentionModel;
     }) {
         this.config = {...DEFAULT_CONFIG, ...config};
         this.healthCheckInterval = this.config.healthCheckInterval;
-        this.onMemoryPressure = options?.onMemoryPressure;
         this.attentionModel = options?.attentionModel ?? new SimpleAttention();
 
         this.index = new MemoryIndex({
@@ -109,11 +97,9 @@ export class Memory {
         });
         this.focus = new Focus({
             maxConcepts: this.config.focusMaxConcepts,
-            attentionThreshold: this.config.focusThreshold
         });
         this.archive = new Archive({
             maxArchivedConcepts: this.config.archiveMaxConcepts,
-            archiveThreshold: this.config.archiveThreshold,
         });
         this.scorer = new MemoryScorer();
         this.consolidation = new MemoryConsolidation();
@@ -127,7 +113,6 @@ export class Memory {
             forgetPolicy: config.linkForgetPolicy ?? LINK.FORGET_POLICY,
             globalDecayRate: config.linkDecayRate ?? LINK.DECAY_RATE,
         });
-        this.pressureDetector = new PressureDetector(config);
     }
 
     get size(): number {
@@ -211,7 +196,6 @@ export class Memory {
         if (existing) return existing;
 
         if (this.concepts.size >= this.config.maxConcepts) this.applyForgetting();
-        this.checkMemoryPressure();
 
         const concept = new Concept(term);
         this.concepts.set(term, concept);
@@ -254,21 +238,29 @@ export class Memory {
 
         this.attentionModel.tick(this, opts?.cycleCount ?? this.cyclesSinceConsolidation);
 
-        const { activationDecayRate, priorityThreshold, archiveThreshold, enableArchive, linkDecayRate } = this.config;
-        const toArchive: Concept[] = [];
-        const toRemove: Concept[] = [];
+        const { activationDecayRate, enableArchive, linkDecayRate, maxConcepts } = this.config;
 
         for (const concept of this.concepts.values()) {
             concept.decay(activationDecayRate);
-            if (concept.priority < priorityThreshold && concept.totalTasks === 0) {
-                if (enableArchive && concept.priority < archiveThreshold) toArchive.push(concept);
-                else toRemove.push(concept);
-            }
         }
 
+        const capacityPressure = this.concepts.size / maxConcepts;
+        if (capacityPressure > 0.8) {
+            const candidates = [...this.concepts.values()].filter(c => c.totalTasks === 0);
+            candidates.sort((a, b) => a.priority - b.priority);
+            const toArchiveCount = Math.ceil(candidates.length * Math.min(0.3, capacityPressure - 0.5));
+            const toRemoveCount = capacityPressure > 0.9 
+                ? Math.ceil(candidates.length * Math.min(0.2, capacityPressure - 0.8)) 
+                : 0;
+            
+            for (let i = 0; i < toArchiveCount && i < candidates.length; i++) {
+                this.archiveConcept(candidates[i]!);
+            }
+            for (let i = toArchiveCount; i < toArchiveCount + toRemoveCount && i < candidates.length; i++) {
+                this.removeConcept(candidates[i]!.term);
+            }
+        }
         this.linkManager.applyDecay(linkDecayRate);
-        if (enableArchive) toArchive.forEach((concept) => this.archiveConcept(concept));
-        toRemove.forEach((concept) => this.removeConcept(concept.term));
         this.updateAllFocus();
 
         if (opts?.lm) {
@@ -472,21 +464,9 @@ export class Memory {
 
     private updateAllFocus(): void {
         this.focus.clearFocus();
-        for (const concept of this.concepts.values()) {
-            if (concept.priority >= this.config.priorityThreshold) this.focus.addToFocus(concept);
-        }
-    }
-
-    private checkMemoryPressure(): void {
-        if (!this.config.enablePressureDetection) return;
-
-        const utilization = this.concepts.size / this.config.maxConcepts;
-        this.pressureLevel = utilization;
-
-        if (utilization >= this.config.pressureThreshold) {
-            this.onMemoryPressure?.(utilization, this);
-            this.pressureDetector.respond(this, this.concepts.values());
-            this.compact();
+        const sorted = [...this.concepts.values()].sort((a, b) => b.priority - a.priority);
+        for (const concept of sorted.slice(0, this.config.focusMaxConcepts)) {
+            this.focus.addToFocus(concept);
         }
     }
 

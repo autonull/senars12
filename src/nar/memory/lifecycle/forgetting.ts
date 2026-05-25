@@ -3,7 +3,7 @@ import type {MemoryScorer} from '../pressure/scorer.js';
 
 export type ForgettingPolicy =
     | 'fifo'
-    | { type: 'priority'; threshold: number }
+    | 'lowest-priority'
     | { type: 'age'; maxAgeMs: number }
     | { type: 'composite'; weights: { priority: number; age: number } };
 
@@ -29,7 +29,8 @@ export class Forgetting {
     private readonly systemLoadFn?: () => number;
     private currentLoad = 0;
     private policySelectors: Record<string, (concepts: Concept[], scorer: MemoryScorer) => Concept | undefined> = {
-        priority: (concepts) => this.selectByPriority(concepts),
+        'fifo': (concepts) => this.selectFifo(concepts),
+        'lowest-priority': (concepts) => this.selectLowestPriority(concepts),
         age: (concepts) => this.selectByAge(concepts),
         composite: (concepts, scorer) => this.selectByComposite(concepts, scorer)
     };
@@ -77,8 +78,8 @@ export class Forgetting {
 
         if (this.enableAdaptive && adaptiveFactor > 0.5) {
             victim = this.selectAdaptive(candidates, scorer, adaptiveFactor);
-        } else if (this.policy === 'fifo') {
-            victim = this.selectFifo(candidates);
+        } else if (typeof this.policy === 'string') {
+            victim = this.policySelectors[this.policy]?.(candidates, scorer);
         } else if (typeof this.policy === 'object' && 'type' in this.policy) {
             victim = this.policySelectors[this.policy.type]?.(candidates, scorer);
         }
@@ -147,9 +148,8 @@ export class Forgetting {
         return concepts.reduce((oldest, c) => this.getLastAccess(c) < this.getLastAccess(oldest) ? c : oldest, concepts[0]!);
     }
 
-    private selectByPriority(concepts: Concept[]): Concept | undefined {
-        const policy = this.policy as { type: 'priority'; threshold: number };
-        return concepts.find(c => c.priority < policy.threshold) ?? concepts[0];
+    private selectLowestPriority(concepts: Concept[]): Concept | undefined {
+        return concepts.reduce((lowest, c) => c.priority < lowest.priority ? c : lowest);
     }
 
     private findOldest(concepts: Concept[]): Concept | undefined {

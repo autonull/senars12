@@ -16,10 +16,8 @@ describe('applyParamValues', () => {
   it('applies float values', () => {
     const result = applyParamValues(DEFAULT_COGNITIVE_PARAMETERS, {
       'priority.initial': 0.05,
-      'priority.threshold': 0.15,
     });
     expect(result.priority.initialPriority).toBe(0.05);
-    expect(result.priority.threshold).toBe(0.15);
     // Original unchanged
     expect(DEFAULT_COGNITIVE_PARAMETERS.priority.initialPriority).not.toBe(0.05);
   });
@@ -58,8 +56,6 @@ describe('COGNITIVE_PARAMETER_SPACE', () => {
   it('contains all expected parameter keys', () => {
     const expectedKeys = [
       'priority.initial',
-      'priority.threshold',
-      'priority.lmActivationThreshold',
       'priority.directMentionBoost',
       'priority.decayRate',
       'strategy.sampling',
@@ -71,7 +67,6 @@ describe('COGNITIVE_PARAMETER_SPACE', () => {
       'lm.timeout',
       'inference.maxDerivations',
       'inference.maxDepth',
-      'inference.qualityThreshold',
     ];
     for (const key of expectedKeys) {
       expect(COGNITIVE_PARAMETER_SPACE.parameters[key]).toBeDefined();
@@ -186,6 +181,5 @@ describe('serialization round-trip', () => {
     const restored = deserializeParams(json);
     // mergeParameters fills in defaults for missing fields
     expect(restored.priority.initialPriority).toBe(0.25);
-    expect(restored.priority.threshold).toBe(DEFAULT_COGNITIVE_PARAMETERS.priority.threshold);
   });
 });

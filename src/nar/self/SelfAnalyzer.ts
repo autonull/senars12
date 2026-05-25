@@ -70,13 +70,12 @@ export interface IdentifiedIssues {
         success?: boolean;
         duration?: number;
     }>;
-    resourceIssues: Array<{ type: string; severity: string; value?: number; threshold?: number; description: string }>;
+    resourceIssues: Array<{ type: string; severity: string; value?: number; percentile?: number; description: string }>;
     performanceIssues: Array<{
         type: string;
         severity: string;
         description: string;
         value?: number;
-        threshold?: number
     }>;
 }
 
@@ -368,7 +367,6 @@ export class SelfAnalyzer {
                 type: 'high_low_priority_ratio',
                 severity: 'medium',
                 value: lowPriorityRatio,
-                threshold: 0.5,
                 description: 'Over 50% of concepts have low priority',
             });
 
@@ -377,7 +375,6 @@ export class SelfAnalyzer {
                 type: 'high_concept_count',
                 severity: 'high',
                 value: concepts.length,
-                threshold: 100,
                 description: 'Concept count exceeds recommended limit',
             });
 
@@ -405,7 +402,6 @@ export class SelfAnalyzer {
                 type: 'high_task_drop_rate',
                 severity: 'high',
                 value: taskPatterns.dropRate,
-                threshold: 0.1,
                 description: 'More than 10% of tasks are being dropped',
             });
 

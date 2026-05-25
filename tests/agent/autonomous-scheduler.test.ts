@@ -17,7 +17,6 @@ describe('AutonomousScheduler', () => {
       sleepIntervalMs: 500,
       enableLMRules: true,
       effortLevel: 0.5,
-      priorityThreshold: 0.5,
     };
     scheduler = new AutonomousScheduler(mockNar, config);
   });

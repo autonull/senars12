@@ -42,7 +42,6 @@ export class CognitiveController {
     const inferenceConfig = {
       maxDerivationsPerStep: params.inference.maxDerivationsPerStep,
       maxDerivationDepth: params.inference.maxDerivationDepth,
-      premiseQualityThreshold: params.inference.premiseQualityThreshold,
       enableCircularDetection: params.inference.enableCircularDetection ?? true,
       enableTraceCollection: params.inference.enableTraceCollection ?? false,
       cpuThrottleMs: params.inference.cpuThrottleMs ?? 0,
@@ -63,28 +62,13 @@ export class CognitiveController {
     this.cycleCount++;
     if (this.cycleCount % this.adaptInterval !== 0) return;
 
-    const newParams = this.rlfp
-      ? this.adaptWithRLFP()
-      : this.adaptWithThresholds();
+    if (!this.rlfp) return;
 
+    const newParams = this.adaptWithRLFP();
     if (JSON.stringify(newParams.strategies) !== JSON.stringify(this.currentParams.strategies)) {
       this.currentParams = newParams;
       this.buildInferenceController(newParams);
     }
-  }
-
-  private adaptWithThresholds(): CognitiveParameters {
-    const summary = this.metrics.getSummary() as MetricsSummary;
-    const adapted = structuredClone(this.currentParams);
-    const lmLatency = summary.lm?.averageLatency ?? 0;
-    const derivPerSec = summary.throughput?.derivationsPerSecond ?? Infinity;
-
-    if (lmLatency > 2000) {
-      adapted.strategies.lmRule.type = 'priority';
-      adapted.strategies.lmRule.maxRules = Math.max(1, adapted.strategies.lmRule.maxRules - 1);
-    }
-    if (derivPerSec < 10) adapted.strategies.derivation.type = 'focused';
-    return adapted;
   }
 
   private adaptWithRLFP(): CognitiveParameters {

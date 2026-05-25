@@ -28,7 +28,6 @@ export const DEFAULT_BOT_CONFIG = {
         sleepIntervalMs: 1000,
         enableLMRules: true,
         effortLevel: 0.3,
-        priorityThreshold: 0.5,
     },
     responseInterpreter: {
         enabled: true,

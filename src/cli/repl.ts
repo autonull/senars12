@@ -26,11 +26,11 @@ export class SeNARSCLI {
 
 static async create(): Promise<SeNARSCLI> {
  const registry = createSeNARSRegistry();
- const nar = SeNARSFactory.createDefault({
- providerRegistry: registry,
- core: {maxConcepts: 200, priorityThreshold: 0.1},
- enableLMRules: true,
- }) as any;
+const nar = SeNARSFactory.createDefault({
+  providerRegistry: registry,
+  core: {maxConcepts: 200},
+  enableLMRules: true,
+}) as any;
 
  await nar.initialize();
  const lmClient = nar.getLMClient?.();

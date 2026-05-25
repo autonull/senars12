@@ -108,21 +108,21 @@ describe('BoundedBag', () => {
     });
 
     describe('sample', () => {
-        test('samples by priority threshold', () => {
+        test('samples proportionally by priority', () => {
             const bag = new BoundedBag<{ id: string }>(5);
             bag.add({id: 'low'}, 0.3);
             bag.add({id: 'high'}, 0.9);
 
-            const result = bag.sample({type: 'priority', threshold: 0.5});
+            const result = bag.sample({type: 'priority'});
             expect(result?.id).toBe('high');
         });
 
-        test('returns undefined when no item meets threshold', () => {
+        test('samples proportionally even with low values', () => {
             const bag = new BoundedBag<{ id: string }>(5);
             bag.add({id: 'low'}, 0.2);
 
-            const result = bag.sample({type: 'priority', threshold: 0.8});
-            expect(result).toBeUndefined();
+            const result = bag.sample({type: 'priority'});
+            expect(result?.id).toBe('low');
         });
 
         test('samples by recency window', () => {
@@ -200,7 +200,7 @@ describe('BoundedBag', () => {
         test('reports throughput stats', () => {
             const bag = new BoundedBag<{ id: string }>(5);
             bag.add({id: 'a'}, 0.5);
-            bag.sample({type: 'priority', threshold: 0.3});
+            bag.sample({type: 'priority'});
 
             const stats = bag.getStatistics();
             expect(stats.throughput.additions).toBe(1);

@@ -2,7 +2,6 @@ import type {Concept} from './concept.js';
 import type {Term} from '../terms';
 import {extractSymbols, jaccardSimilarity, TermMap, termsEqual} from '../terms';
 import {addToSet} from '../utils/collections.js';
-import {THRESHOLDS} from '../constants.js';
 
 export interface MemoryIndexConfig {
     enableAtomicIndex: boolean;
@@ -36,7 +35,7 @@ export class MemoryIndex {
     private inverseIndex: TermMap<InverseIndexEntry>;
     private readonly similarityIndex: TermMap<SimilarityCluster>;
     private config: Required<MemoryIndexConfig>;
-    private readonly temporalResolution = THRESHOLDS.TEMPORAL_RESOLUTION;
+    private readonly temporalResolution = 1000;
 
     constructor(
         config: MemoryIndexConfig = {
@@ -131,11 +130,11 @@ export class MemoryIndex {
         return Array.from(results);
     }
 
-    getBySimilarity(term: Term, threshold = 0.5): Concept[] {
+    getBySimilarity(term: Term, limit = 10): Concept[] {
         const cluster = this.similarityIndex.get(term);
         if (!cluster) return [];
 
-        return cluster.concepts.filter(c => c.priority >= threshold);
+        return cluster.concepts.slice(0, limit);
     }
 
     findSimilarConcepts(term: Term, limit = 10): Concept[] {

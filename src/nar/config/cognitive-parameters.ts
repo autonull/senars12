@@ -5,10 +5,10 @@
  * These can be tuned, optimized, or evolved without code changes.
  * 
  * Categories:
- * - Priority Management: thresholds, boosts, decay
+ * - Priority Management: boosts, decay
  * - LM Integration: when and how LM rules fire
  * - Attention Mechanisms: how concepts gain/lose priority
- * - Inference Control: derivation limits, quality thresholds
+ * - Inference Control: derivation limits
  */
 
 export interface CognitiveParameters {
@@ -37,12 +37,6 @@ export interface CognitiveParameters {
 export interface PriorityConfig {
 	/** Initial priority for new concepts */
 	initialPriority: number;
-	
-	/** Minimum priority for concepts to be retained */
-	threshold: number;
-	
-	/** Priority required for LM enhancement */
-	lmActivationThreshold: number;
 	
 	/** Maximum priority (ceiling) */
 	maxPriority: number;
@@ -121,9 +115,6 @@ export interface InferenceConfig {
 	/** Maximum derivation depth */
 	maxDerivationDepth: number;
 	
-	/** Quality threshold for premise pairs */
-	premiseQualityThreshold: number;
-	
 	/** Enable circular detection */
 	enableCircularDetection: boolean;
 	
@@ -152,8 +143,6 @@ export interface InferenceConfig {
 export const DEFAULT_COGNITIVE_PARAMETERS: CognitiveParameters = {
 	priority: {
 		initialPriority: 0.1,
-		threshold: 0.1,
-		lmActivationThreshold: 0.5,
 		maxPriority: 1.0,
 		directMentionBoost: 0.3,
 		relatedConceptBoost: 0.15,
@@ -192,7 +181,6 @@ export const DEFAULT_COGNITIVE_PARAMETERS: CognitiveParameters = {
 	inference: {
 		maxDerivationsPerStep: 1000,
 		maxDerivationDepth: 10,
-		premiseQualityThreshold: 0,
 		enableCircularDetection: true,
 		enableTraceCollection: false,
 		cpuThrottleMs: 0,
@@ -216,10 +204,6 @@ export const FAST_COGNITIVE_CONFIG: CognitiveParameters = {
 	lm: {
 		...DEFAULT_COGNITIVE_PARAMETERS.lm,
 		enabled: false
-	},
-	priority: {
-		...DEFAULT_COGNITIVE_PARAMETERS.priority,
-		lmActivationThreshold: 0.8
 	}
 };
 
@@ -228,14 +212,10 @@ export const FAST_COGNITIVE_CONFIG: CognitiveParameters = {
  */
 export const LM_HEAVY_CONFIG: CognitiveParameters = {
 	...DEFAULT_COGNITIVE_PARAMETERS,
-	priority: {
-		...DEFAULT_COGNITIVE_PARAMETERS.priority,
-		lmActivationThreshold: 0.3 // Low threshold for early activation
-	},
 	lm: {
 		...DEFAULT_COGNITIVE_PARAMETERS.lm,
 		maxRulesPerCycle: 13,
-		callTimeoutMs: 8000 // More time for LM
+		callTimeoutMs: 8000
 	}
 };
 
@@ -258,8 +238,6 @@ export const RESEARCH_COGNITIVE_CONFIG: CognitiveParameters = {
 export const PARAMETER_SPACE = {
 	priority: {
 		initialPriority: { min: 0.01, max: 0.2, default: 0.1 },
-		threshold: { min: 0.05, max: 0.2, default: 0.1 },
-		lmActivationThreshold: { min: 0.2, max: 0.8, default: 0.5 },
 		directMentionBoost: { min: 0.1, max: 0.5, default: 0.3 },
 		relatedConceptBoost: { min: 0.05, max: 0.3, default: 0.15 }
 	},
@@ -289,8 +267,6 @@ export function validateParameters(params: Partial<CognitiveParameters>): { vali
 	if (params.priority) {
 		const p = params.priority;
 		if (p.initialPriority < 0 || p.initialPriority > 1) errors.push('priority.initialPriority must be in [0, 1]');
-		if (p.threshold < 0 || p.threshold > 1) errors.push('priority.threshold must be in [0, 1]');
-		if (p.lmActivationThreshold < 0 || p.lmActivationThreshold > 1) errors.push('priority.lmActivationThreshold must be in [0, 1]');
 		if (p.directMentionBoost < 0 || p.directMentionBoost > 1) errors.push('priority.directMentionBoost must be in [0, 1]');
 	}
 

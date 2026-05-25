@@ -51,7 +51,6 @@ export interface AIAgentDeps {
     sleepIntervalMs: number;
     enableLMRules: boolean;
     effortLevel: number;
-    priorityThreshold: number;
   };
 }
 

@@ -10,7 +10,7 @@ describe('Phase 5: Memory Integration', () => {
 
             const results = memory.queryBySymbol('test');
             expect(results.length).toBe(1);
-            expect(results[0]?.term.hash).toBe(term.hash);
+            expect(results[0]?.term).toBe(term);
         });
 
         it('should return empty array when indexing disabled', () => {
@@ -25,7 +25,7 @@ describe('Phase 5: Memory Integration', () => {
 
     describe('Focus Integration', () => {
         it('should track focus concepts', () => {
-            const memory = new Memory({priorityThreshold: 0.1});
+            const memory = new Memory();
             memory.addConcept(TermBuilder.atom('focused'));
 
             const focused = memory.getFocusConcepts();
@@ -34,8 +34,8 @@ describe('Phase 5: Memory Integration', () => {
 
         it('should update focus during consolidation', () => {
             const memory = new Memory({
-                consolidationInterval: 1,
-                priorityThreshold: 0.5
+                maxConcepts: 100,
+                activationDecayRate: 0.01,
             });
 
             memory.addConcept(TermBuilder.atom('high'));
@@ -52,8 +52,6 @@ describe('Phase 5: Memory Integration', () => {
         it('should track archived concepts count', () => {
             const memory = new Memory({
                 enableArchive: true,
-                archiveThreshold: 0.3,
-                priorityThreshold: 0.5,
                 consolidationInterval: 1
             });
 
@@ -66,8 +64,7 @@ describe('Phase 5: Memory Integration', () => {
 
         it('should support archive statistics', () => {
             const memory = new Memory({
-                enableArchive: true,
-                archiveThreshold: 0.01
+                enableArchive: true
             });
 
             memory.addConcept(TermBuilder.atom('concept1'));

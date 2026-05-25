@@ -1,4 +1,4 @@
-export const THRESHOLDS = Object.freeze({
+export const DEPRECATED_DEPRECATED_THRESHOLDS = Object.freeze({
     PRIORITY: Object.freeze({LOW: 0.3, MEDIUM: 0.7, HIGH: 0.9}),
     MERGE: 0.85,
     ARCHIVE: 0.2,

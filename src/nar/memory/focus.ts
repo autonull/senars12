@@ -5,12 +5,10 @@ import type {AttentionModel} from '../cognitive/types';
 
 export interface FocusConfig {
     maxConcepts: number;
-    attentionThreshold: number;
 }
 
 const DEFAULT_CONFIG: FocusConfig = {
     maxConcepts: 50,
-    attentionThreshold: 0.3
 };
 
 export class Focus {
@@ -35,12 +33,14 @@ export class Focus {
     }
 
     addToFocus(concept: Concept): void {
-        if (concept.priority < this.config.attentionThreshold) return;
-
         if (this.concepts.size >= this.config.maxConcepts && !this.concepts.has(concept.term)) {
-            const oldest = this.concepts.keys().next();
-            if (oldest) {
-                this.concepts.delete(oldest.value);
+            const lowest = [...this.concepts].reduce((a, b) =>
+                a[1].priority < b[1].priority ? a : b
+            );
+            if (lowest[1].priority < concept.priority) {
+                this.concepts.delete(lowest[0]);
+            } else {
+                return;
             }
         }
         this.concepts.set(concept.term, { concept, priority: concept.priority });
@@ -63,7 +63,6 @@ export class Focus {
         if (!entry) return;
 
         entry.priority = Math.max(0, Math.min(1, entry.priority + delta));
-        if (entry.priority < this.config.attentionThreshold) this.removeFromFocus(concept);
     }
 
     boostTopic(topic: string, factor = 2.0, ttl = 50): void {

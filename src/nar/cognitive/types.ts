@@ -33,7 +33,6 @@ export interface Strategy {
 export interface DerivationContext {
   maxDerivations: number;
   maxDepth: number;
-  qualityThreshold: number;
   cpuThrottleMs: number;
   singlePremiseEnabled: boolean;
   signal?: AbortSignal;
@@ -53,7 +52,6 @@ export interface DerivationStrategy {
 export interface LMRuleSelectionContext {
   maxRules: number;
   rotationIndex?: number;
-  priorityThreshold?: number;
   conceptPriority: number;
   premiseCount: 1 | 2;
 }

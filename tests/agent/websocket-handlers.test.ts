@@ -8,7 +8,6 @@ describe('WebSocket Handlers - NarService', () => {
     beforeEach(() => {
         nar = new NAR({
             maxConcepts: 100,
-            priorityThreshold: 0.1,
             activationDecayRate: 0.01,
             consolidationInterval: 10,
             cpuThrottleMs: 10,

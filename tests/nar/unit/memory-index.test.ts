@@ -97,16 +97,16 @@ describe('MemoryIndex', () => {
     });
 
     describe('getBySimilarity', () => {
-        test('returns concepts above threshold', () => {
+        test('returns concepts matching term', () => {
             const concept = createTestConcept('HighPriority', 0.9);
             index.index(concept);
 
-            const results = index.getBySimilarity(concept.term, 0.5);
+            const results = index.getBySimilarity(concept.term, 10);
             expect(results.length).toBeGreaterThan(0);
         });
 
         test('returns empty for unknown hash', () => {
-            const results = index.getBySimilarity(TermBuilder.atom("nonexistent"), 0.5);
+            const results = index.getBySimilarity(TermBuilder.atom("nonexistent"), 10);
             expect(results).toEqual([]);
         });
     });

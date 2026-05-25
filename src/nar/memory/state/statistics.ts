@@ -1,7 +1,4 @@
 import type {Concept} from '../concept.js';
-import {THRESHOLDS} from '../../constants.js';
-
-const {PRIORITY: PRIORITY_THRESHOLDS} = THRESHOLDS;
 
 export interface ConceptStats {
     totalConcepts: number;
@@ -12,11 +9,22 @@ export interface ConceptStats {
 }
 
 export const calculateConceptStats = (concepts: Iterable<Concept>): ConceptStats => {
-    const stats: ConceptStats = {totalConcepts: 0, totalTasks: 0, lowPriority: 0, mediumPriority: 0, highPriority: 0};
+    const priorities: number[] = [];
+    let totalTasks = 0;
     for (const concept of concepts) {
-        stats.totalConcepts++;
-        stats.totalTasks += concept.totalTasks;
-        stats[concept.priority < PRIORITY_THRESHOLDS.LOW ? 'lowPriority' : concept.priority < PRIORITY_THRESHOLDS.MEDIUM ? 'mediumPriority' : 'highPriority']++;
+        totalTasks += concept.totalTasks;
+        priorities.push(concept.priority);
     }
-    return stats;
+    priorities.sort((a, b) => a - b);
+    const n = priorities.length;
+    const p33 = n > 0 ? priorities[Math.floor(n * 0.33)]! : 0;
+    const p67 = n > 0 ? priorities[Math.floor(n * 0.67)]! : 0;
+
+    return {
+        totalConcepts: n,
+        totalTasks,
+        lowPriority: priorities.filter(p => p < p33).length,
+        mediumPriority: priorities.filter(p => p >= p33 && p < p67).length,
+        highPriority: priorities.filter(p => p >= p67).length
+    };
 };

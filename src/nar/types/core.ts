@@ -49,7 +49,6 @@ export interface ConceptLike {
 // Configuration interfaces
 export interface CoreConfig {
     readonly maxConcepts: number;
-    readonly priorityThreshold: number;
     readonly activationDecayRate: number;
     readonly consolidationInterval: number;
     readonly cpuThrottleMs: number;
@@ -60,7 +59,6 @@ export interface CoreConfig {
 // Default configuration values
 export const DEFAULT_CONFIG: CoreConfig = Object.freeze({
     maxConcepts: 1000,
-    priorityThreshold: 0.5,
     activationDecayRate: 0.01,
     consolidationInterval: 10,
     cpuThrottleMs: 10,

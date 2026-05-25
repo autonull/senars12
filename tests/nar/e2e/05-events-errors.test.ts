@@ -10,7 +10,6 @@ describe('Event System', () => {
     beforeEach(() => {
         nar = new NAR({
             maxConcepts: 100,
-            priorityThreshold: 0.1,
             activationDecayRate: 0.01,
             consolidationInterval: 5,
             cpuThrottleMs: 10,
@@ -61,7 +60,6 @@ describe('Error Handling', () => {
     beforeEach(() => {
         nar = new NAR({
             maxConcepts: 100,
-            priorityThreshold: 0.1,
             activationDecayRate: 0.01,
             consolidationInterval: 5,
             cpuThrottleMs: 10,

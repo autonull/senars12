@@ -182,7 +182,6 @@ describe('Error types', () => {
 describe('DEFAULT_CONFIG', () => {
     const configTests = [
         {key: 'maxConcepts', expected: 1000},
-        {key: 'priorityThreshold', expected: 0.5},
         {key: 'activationDecayRate', expected: 0.01},
         {key: 'consolidationInterval', expected: 10},
         {key: 'cpuThrottleMs', expected: 10},
@@ -199,8 +198,6 @@ describe('DEFAULT_CONFIG', () => {
     });
 
     test('config values are within valid ranges', () => {
-        expect(DEFAULT_CONFIG.priorityThreshold).toBeGreaterThanOrEqual(0);
-        expect(DEFAULT_CONFIG.priorityThreshold).toBeLessThanOrEqual(1);
         expect(DEFAULT_CONFIG.activationDecayRate).toBeGreaterThanOrEqual(0);
         expect(DEFAULT_CONFIG.maxConcepts).toBeGreaterThan(0);
         expect(DEFAULT_CONFIG.consolidationInterval).toBeGreaterThan(0);

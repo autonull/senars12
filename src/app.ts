@@ -53,7 +53,6 @@ async function runDemo() {
     const nar = SeNARSFactory.createDefault({
         core: {
             maxConcepts: config.core.maxConcepts,
-            priorityThreshold: config.core.priorityThreshold,
             activationDecayRate: config.core.activationDecayRate,
             consolidationInterval: config.core.consolidationInterval,
             cpuThrottleMs: config.core.cpuThrottleMs,

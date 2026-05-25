@@ -4,12 +4,10 @@ import {TermMap} from '../../terms';
 
 export interface ArchiveConfig {
     maxArchivedConcepts: number;
-    archiveThreshold: number;
 }
 
 const DEFAULT_CONFIG: ArchiveConfig = {
     maxArchivedConcepts: 1000,
-    archiveThreshold: 0.2
 };
 
 export class Archive {
@@ -38,15 +36,13 @@ export class Archive {
     }
 
     archive(concept: Concept): void {
-        if (concept.priority < this.config.archiveThreshold) {
-            if (this.archived.size >= this.config.maxArchivedConcepts) {
-                const oldest = this.archived.keys().next();
-                if (oldest) {
-                    this.archived.delete(oldest.value);
-                }
+        if (this.archived.size >= this.config.maxArchivedConcepts) {
+            const oldest = this.archived.keys().next();
+            if (oldest) {
+                this.archived.delete(oldest.value);
             }
-            this.archived.set(concept.term, concept);
         }
+        this.archived.set(concept.term, concept);
     }
 
     retrieve(term: Term): Concept | undefined {

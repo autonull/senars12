@@ -17,7 +17,6 @@ export interface LMConfig {
 
 export interface MemoryConfig {
     maxConcepts: number;
-    priorityThreshold?: number;
     activationDecayRate?: number;
     bagSize?: number;
     derivationDepth?: number;
@@ -54,7 +53,7 @@ export interface ValidatedConfig {
     version: string;
     lm: { enabled: boolean; provider: string; model?: string; quantized?: boolean };
     core: {
-        maxConcepts: number; priorityThreshold: number; activationDecayRate: number;
+        maxConcepts: number; activationDecayRate: number;
         consolidationInterval: number; cpuThrottleMs: number; maxDerivationDepth: number;
         maxDerivationsPerStep: number;
     };
@@ -65,7 +64,7 @@ const DEFAULT_APP_CONFIG: ValidatedConfig = {
     name: 'SeNARS12', version: '1.0.0',
     lm: {enabled: true, provider: 'transformers', model: 'Xenova/Llama-3.2-1B-Instruct', quantized: true},
     core: {
-        maxConcepts: 100, priorityThreshold: 0.1, activationDecayRate: 0.01,
+        maxConcepts: 100, activationDecayRate: 0.01,
         consolidationInterval: 10, cpuThrottleMs: 0, maxDerivationDepth: 10, maxDerivationsPerStep: 100
     }
 };
@@ -113,7 +112,6 @@ export class ConfigLoader {
             },
             core: {
                 maxConcepts: parsed.memory.maxConcepts,
-                priorityThreshold: parsed.memory.priorityThreshold,
                 activationDecayRate: parsed.memory.activationDecayRate,
                 consolidationInterval: parsed.inference.consolidationInterval ?? 10,
                 cpuThrottleMs: parsed.inference.cpuThrottleMs,
@@ -135,7 +133,6 @@ export class ConfigLoader {
             },
             core: {
                 maxConcepts: clamp((mem as any).maxConcepts ?? 100, 10, 10000),
-                priorityThreshold: clamp((mem as any).priorityThreshold ?? 0.1, 0, 1),
                 activationDecayRate: clamp((mem as any).activationDecayRate ?? 0.01, 0, 1),
                 consolidationInterval: (inf as any).consolidationInterval ?? 10,
                 cpuThrottleMs: (inf as any).cpuThrottleMs ?? 0,

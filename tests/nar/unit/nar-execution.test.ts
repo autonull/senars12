@@ -35,7 +35,6 @@ describe('NARExecution', () => {
     beforeEach(() => {
         memory = new Memory({
             maxConcepts: 100,
-            priorityThreshold: 0.5,
             activationDecayRate: 0.01,
             consolidationInterval: 10
         });
