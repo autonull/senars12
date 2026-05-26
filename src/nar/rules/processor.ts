@@ -7,7 +7,7 @@ import {Stamp as StampFactory, getSubject, getPredicate, isOperation, isTautolog
 import {type RegisteredRule, RuleIndex, RuleRegistry, type TruthFn} from './types.js';
 import {Truth, type Truth as TruthType} from '../terms/truth.js';
 import type {LMRule} from '../lm';
-import type {LMRuleSelector} from '../cognitive/types';
+import type {LMRuleSelector} from '../strategies/types.js';
 import {EventBus} from '../types';
 import {toError} from '../utils/helpers.js';
 import type {Memory} from '../memory/memory.js';

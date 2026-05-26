@@ -5,173 +5,26 @@ import type {BotProfile} from './BotProfile.js';
 import type {ChannelType} from './ChannelBehavior.js';
 import type {NLAnalysis, Ambiguity} from '../nar/nl/analyzer.js';
 import {TaskFormatter} from '../nar/utils/task-formatter.js';
+import type {EventBus} from '../nar/types/events.js';
+import type {BotConfig, DirectiveDef, ContextFragment} from './config.js';
 
 export type BotMode = 'auto' | 'chat' | 'reason';
 export type Intent = 'chat' | 'reason' | 'query' | 'goal' | 'command' | 'narsese';
 
-// Pipeline Events
-export interface PipelineEvents {
-  // Lifecycle
-  'turn:start': { input: IOMessage; passCount: number };
-  'turn:end': { response: BotResponse; durationMs: number };
-  'turn:error': { error: Error; stage: string; passCount: number };
+// Re-export EventBus for backward compatibility
+export {EventBus as PipelineEventEmitter} from '../nar/types/events.js';
+export type {EventBus as PipelineEventEmitterType} from '../nar/types/events.js';
 
-  // Stage lifecycle
-  'stage:start': { stage: string; passCount: number };
-  'stage:end': { stage: string; durationMs: number; passCount: number };
-  'stage:error': { stage: string; error: Error; durationMs: number };
-
-  // Classification
-  'classify:result': { input: string; classification: InputClassification };
-  'nl:analyzed': { input: string; analysis: NLAnalysis };
-  'nl:clarification-needed': { ambiguity: Ambiguity };
-  'nl:translation': { nl: string; narsese: string; tier: number };
-  'nal:derived': { premises: string[]; rule: string; conclusion: string; truth: { f: number; c: number } };
-  'lm:validation-failed': { output: string; reason: string };
-  'cognitive:state-change': { oldState: string; newState: string; action: string };
-  'feedback:correction': { original: string; corrected: string };
-
-  // Reasoning
-  'trigger:score': { heuristicScore: number; lmScore: number; total: number; activated: boolean };
-  'reasoning:start': { inputType: string; steps: number };
-  'reasoning:end': { steps: number; newBeliefs: Belief[] };
-
-  // LM
-  'lm:start': { promptLength: number; streaming: boolean };
-  'lm:chunk': { content: string; accumulated: string };
-  'lm:end': { response: string; durationMs: number };
-  'lm:suggests-reasoning': boolean;
-
-  // LM Rules
-  'lm-rule:executed': { ruleId: string; durationMs: number; tasksGenerated: number };
-  'lm-rule:failed': { ruleId: string; error: string; durationMs: number };
-  'lm-rule:disabled': { ruleId: string };
-
-  // Directives
-  'directive:found': { directive: LMDirective };
-  'directive:execute': { directive: LMDirective; success: boolean; result?: unknown; error?: string };
-  'directive:loop-requested': { type: string };
-
-  // Loop
-  'loop:pass': { passCount: number; needsLoopBack: boolean };
-}
-
-// Event Bus
-type EventCallback<T> = (data: T) => void;
-
-export class PipelineEventEmitter {
-  private listeners = new Map<string, Set<EventCallback<unknown>>>();
-
-  on<K extends keyof PipelineEvents>(event: K, cb: EventCallback<PipelineEvents[K]>): void {
-    if (!this.listeners.has(event)) this.listeners.set(event, new Set());
-    this.listeners.get(event)!.add(cb as EventCallback<unknown>);
-  }
-
-  off<K extends keyof PipelineEvents>(event: K, cb: EventCallback<PipelineEvents[K]>): void {
-    this.listeners.get(event)?.delete(cb as EventCallback<unknown>);
-  }
-
-  emit<K extends keyof PipelineEvents>(event: K, data: PipelineEvents[K]): void {
-    for (const cb of this.listeners.get(event) ?? []) cb(data);
-  }
-
-  once<K extends keyof PipelineEvents>(event: K, cb: EventCallback<PipelineEvents[K]>): void {
-    const wrapper: EventCallback<unknown> = (data) => { cb(data as PipelineEvents[K]); this.off(event, wrapper); };
-    this.on(event, wrapper);
-  }
-}
-
-// Configuration Types
-export interface BotConfig {
-  reasoning: {
-    autoTrigger: boolean;
-    triggerThreshold: number;
-    triggerCooldown: number;
-    maxStepsPerTrigger: number;
-    backgroundReasoning: boolean;
-    backgroundIntervalMs: number;
-    lmDriven: boolean;
-  };
-  streaming: {
-    enabled: boolean;
-    showReasoningSteps: boolean;
-    showToolCalls: boolean;
-  };
-  conversation: {
-    maxHistory: number;
-    summaryThreshold: number;
-    maxArtifacts: number;
-  };
-  directives: {
-    builtIn: boolean;
-    custom?: DirectiveDef[];
-  };
-  nlParsers: {
-    builtIn: boolean;
-    custom?: NLParserDef[];
-  };
-  classifier: {
-    signals?: ClassificationSignalDef[];
-    modeWeight?: number;
-  };
-  lmRules: {
-    enabled: boolean;
-    rules: LMRuleConfigEntry[];
-    custom?: LMRuleDef[];
-  };
-  prompts: {
-    system?: string;
-    directiveInstructions?: string;
-    responseGuidelines?: string;
-  };
-  tui: {
-    typingIndicator: boolean;
-    colors: boolean;
-    compactMode: boolean;
-    statusBar: boolean;
-  };
-}
-
-// Pluggable Types
-export interface NLParserDef {
-  name: string;
-  match: (text: string) => boolean;
-  translate: (text: string) => string | null;
-}
-
-export interface DirectiveDef {
-  pattern: RegExp;
-  type: string;
-  extract: (match: RegExpMatchArray) => { name?: string; content: string };
-  execute: (nar: NAR, content: string, name?: string) => Promise<unknown>;
-  triggersLoopBack: boolean;
-}
-
-export interface ClassificationSignalDef {
-  type: 'keyword' | 'pattern' | 'structure' | 'narsese';
-  pattern: RegExp;
-  intent: Intent;
-  weight: number;
-}
-
-export interface LMRuleConfigEntry {
-  id: string;
-  enabled: boolean;
-  priority?: number;
-  instruction?: string;
-  context?: (keyof typeof contextFragments | ContextFragment)[];
-  maxCallsPerTurn?: number;
-  budget?: number;
-}
-
-export interface LMRuleDef {
-  id: string;
-  context: (keyof typeof contextFragments | ContextFragment)[];
-  instruction: string;
-  prompt?: string;
-}
-
-export type ContextFragment = (nar: NAR, ctx?: BotContext) => string;
+// Re-export config types for backward compatibility
+export type {
+  BotConfig,
+  NLParserDef,
+  DirectiveDef,
+  ClassificationSignalDef,
+  LMRuleConfigEntry,
+  LMRuleDef,
+  ContextFragment,
+} from './config.js';
 
 // Context Fragments
 export const contextFragments = {
@@ -200,9 +53,9 @@ export const contextFragments = {
     const q = nar.getQuestions();
     return q.length ? `Questions: ${q.slice(0, 3).map(q => q.term).join('; ')}` : '';
   },
-  recentDerivations: (_nar: NAR, ctx?: BotContext) => {
-    const r = ctx?.turn?.reasoningResult?.newBeliefs;
-    return r?.length ? `Derived: ${r.slice(0, 3).map(b => b.term).join('; ')}` : '';
+  recentDerivations: (_nar: NAR, ctx?: unknown) => {
+    const r = (ctx as any)?.turn?.reasoningResult?.newBeliefs;
+    return r?.length ? `Derived: ${r.slice(0, 3).map((b: any) => b.term).join('; ')}` : '';
   },
   memoryHealth: (nar: NAR) => {
     const s = nar.getStatistics();
@@ -212,8 +65,8 @@ export const contextFragments = {
     const report = nar.attentionReport();
     return report.concepts.length ? `Focus: ${report.concepts.slice(0, 5).map(c => `${c.term}(${(c.priority * 100).toFixed(0)}%)`).join(', ')}` : '';
   },
-  workingMemory: (_nar: NAR, ctx?: BotContext) => {
-    const pinned = ctx?.conversation.getPinned() ?? [];
+  workingMemory: (_nar: NAR, ctx?: unknown) => {
+    const pinned = (ctx as any)?.conversation?.getPinned() ?? [];
     return pinned.length ? `Pinned: ${pinned.join('; ')}` : '';
   },
 };
@@ -390,7 +243,7 @@ export interface BotContext {
   config: BotConfig;
   capabilities: Capabilities;
   metrics: TurnMetrics;
-  events: PipelineEventEmitter;
+  events: EventBus;
 }
 
 export function detectCapabilities(lm?: LMClient, seNARS?: NAR): Capabilities {

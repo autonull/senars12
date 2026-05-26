@@ -1,6 +1,7 @@
 import {readFileSync, writeFileSync, existsSync} from 'fs';
 import {resolve} from 'path';
-import type {BotConfig} from './BotContext.js';
+import type {NAR} from '../nar/nar.js';
+import type {Intent} from './BotContext.js';
 
 /**
  * Configuration system for BOT4.md
@@ -10,6 +11,96 @@ import type {BotConfig} from './BotContext.js';
 export interface BotProfile {
   name: string;
   personality: string;
+}
+
+export interface NLParserDef {
+  name: string;
+  match: (text: string) => boolean;
+  translate: (text: string) => string | null;
+}
+
+export interface DirectiveDef {
+  pattern: RegExp;
+  type: string;
+  extract: (match: RegExpMatchArray) => { name?: string; content: string };
+  execute: (nar: NAR, content: string, name?: string) => Promise<unknown>;
+  triggersLoopBack: boolean;
+}
+
+export interface ClassificationSignalDef {
+  type: 'keyword' | 'pattern' | 'structure' | 'narsese';
+  pattern: RegExp;
+  intent: Intent;
+  weight: number;
+}
+
+export interface LMRuleConfigEntry {
+  id: string;
+  enabled: boolean;
+  priority?: number;
+  instruction?: string;
+  context?: unknown[];
+  maxCallsPerTurn?: number;
+  budget?: number;
+}
+
+export interface LMRuleDef {
+  id: string;
+  context: unknown[];
+  instruction: string;
+  prompt?: string;
+}
+
+export type ContextFragment = (nar: NAR, ctx?: unknown) => string;
+
+export interface BotConfig {
+  reasoning: {
+    autoTrigger: boolean;
+    triggerThreshold: number;
+    triggerCooldown: number;
+    maxStepsPerTrigger: number;
+    backgroundReasoning: boolean;
+    backgroundIntervalMs: number;
+    lmDriven: boolean;
+  };
+  streaming: {
+    enabled: boolean;
+    showReasoningSteps: boolean;
+    showToolCalls: boolean;
+  };
+  conversation: {
+    maxHistory: number;
+    summaryThreshold: number;
+    maxArtifacts: number;
+  };
+  directives: {
+    builtIn: boolean;
+    custom?: DirectiveDef[];
+  };
+  nlParsers: {
+    builtIn: boolean;
+    custom?: NLParserDef[];
+  };
+  classifier: {
+    signals?: ClassificationSignalDef[];
+    modeWeight?: number;
+  };
+  lmRules: {
+    enabled: boolean;
+    rules: LMRuleConfigEntry[];
+    custom?: LMRuleDef[];
+  };
+  prompts: {
+    system?: string;
+    directiveInstructions?: string;
+    responseGuidelines?: string;
+  };
+  tui: {
+    typingIndicator: boolean;
+    colors: boolean;
+    compactMode: boolean;
+    statusBar: boolean;
+  };
 }
 
 export interface CapabilitiesConfig {
@@ -38,7 +129,7 @@ export interface BotFullConfig {
   lmRules: BotConfig['lmRules'];
   prompts: BotConfig['prompts'];
   tui: BotConfig['tui'];
-  connections: Record<string, any>;
+  connections: Record<string, unknown>;
 }
 
 const DEFAULT_CONFIG: BotFullConfig = {

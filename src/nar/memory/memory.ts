@@ -15,8 +15,8 @@ import {LINK} from '../constants.js';
 
 import type {MemoryHealth} from './health.js';
 import {calculateConceptStats} from './state/statistics.js';
-import type {AttentionModel} from '../cognitive/types';
-import {SimpleAttention} from '../cognitive/attention-models';
+import type {AttentionModel} from '../strategies/types.js';
+import {SimpleAttention} from '../strategies/attention/index.js';
 
 export interface MemoryConfig {
     maxConcepts?: number;

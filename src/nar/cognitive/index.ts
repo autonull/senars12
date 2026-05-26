@@ -1,13 +1,16 @@
-export {Observer, runCounterfactual} from './Observer.js';
-export type {CognitiveState, CognitiveAction, ObserverReport} from './Observer.js';
+export {ObserverService as Observer} from '../../agent/services/ObserverService.js';
+export type {CognitiveState, CognitiveAction, ObserverReport} from '../../agent/services/ObserverService.js';
+export {runCounterfactual} from './counterfactual.js';
 
 export {CognitiveRegistry} from './registry';
 export {CognitiveController} from './controller';
 
-export {PrioritySampling, TopNSampling, NoveltySampling, GoalBiasedSampling, DiverseSampling} from './sampling-strategies';
-export {DefaultDerivation, AnytimeDerivation, FocusedDerivation, SampledDerivation} from './derivation-strategies';
-export {AllSelector, PrioritySelector, RotationSelector, DiverseSelector} from './lm-selectors';
-export {SimpleAttention, SpreadingActivation, GoalRelevanceAttention, CompositeAttention} from './attention-models';
+export {
+  PrioritySampling, TopNSampling, NoveltySampling, GoalBiasedSampling, DiverseSampling,
+  DefaultDerivation, AnytimeDerivation, FocusedDerivation, SampledDerivation, toTask,
+  AllSelector, PrioritySelector, RotationSelector, DiverseSelector,
+  SimpleAttention, SpreadingActivation, GoalRelevanceAttention, CompositeAttention
+} from '../strategies/index.js';
 
 export type {
   ComponentMetadata, StrategyType,
@@ -16,7 +19,7 @@ export type {
   AttentionModel, AttentionContext,
   MetricsSummary, SearchSpaceParam, SearchSpace,
   StrategyRegistry
-} from './types';
+} from '../strategies/types.js';
 
 export {CognitiveOptimizer, GridSampler, RandomSampler, ParamSampler, applyParamValues, serializeParams, deserializeParams, COGNITIVE_PARAMETER_SPACE} from './optimizer';
 export type {OptimizationResult} from './optimizer';

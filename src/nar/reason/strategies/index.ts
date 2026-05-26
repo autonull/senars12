@@ -7,7 +7,7 @@ import {createLogger} from '../../logger';
 import {createStrategy} from './base.js';
 import {createTermLinkStrategy} from './term-link.js';
 import {createSemanticStrategy} from './semantic.js';
-import type {ComponentMetadata} from '../../cognitive/types';
+import type {ComponentMetadata} from '../../strategies/types.js';
 
 const logger = createLogger({scope: 'Strategies'});
 

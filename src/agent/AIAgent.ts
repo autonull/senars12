@@ -2,54 +2,54 @@ import {generateText, tool} from 'ai';
 import type {NAR} from '../nar/nar.js';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {createNARSTools, createGeneralTools} from '../nar/tools/adapters/index.js';
-import {SelfAnalysisManager} from './SelfAnalysisManager.js';
-import type {AIAgentConfig, BotConfig} from './types.js';
+import type {AIAgentConfig, BotConfig, ProcessContext, AgentResult, CognitiveState} from './types.js';
 import type {ConversationState} from './ConversationState.js';
 import type {Capabilities} from './BotContext.js';
 import type {ScenarioRunner} from './scenarios/ScenarioRunner.js';
 import type {ExperimentRunner} from './experiments/ExperimentRunner.js';
 import type {LMClient} from '../nar/lm/types.js';
 import {adapt} from '../nar/lm/adapters/index.js';
+import {EventBus} from '../nar/types/events.js';
+import {Belief, TurnAction} from './BotContext.js';
 
 export class AIAgent {
-  private readonly nar?: NAR;
-  private readonly episodicMemory?: EpisodicMemory;
-  private readonly config: BotConfig;
-  private readonly capabilities: Capabilities;
-  private readonly selfAnalysisManager?: SelfAnalysisManager;
-  private readonly provider: string;
-  private readonly languageModel?: ReturnType<typeof adapt>;
-  private readonly lmClient?: LMClient;
-  private turnCount = 0;
+private readonly nar?: NAR;
+private readonly episodicMemory?: EpisodicMemory;
+private readonly config: BotConfig;
+private readonly capabilities: Capabilities;
+private readonly provider: string;
+private readonly languageModel?: ReturnType<typeof adapt>;
+private readonly lmClient?: LMClient;
+private turnCount = 0;
 
-  constructor(config: AIAgentConfig & {
-    selfAnalysisConfig?: {
-      enabled: boolean;
-      analysisInterval: number;
-      autoImprove: boolean;
-      maxImprovements: number;
-    };
-    scenarioRunner?: ScenarioRunner;
-    experimentRunner?: ExperimentRunner;
-  }) {
-    this.nar = config.nar;
-    this.episodicMemory = config.episodicMemory;
-    this.config = config.config as BotConfig;
-    this.capabilities = config.capabilities;
-    this.provider = config.provider ?? 'transformers';
-    this.lmClient = config.lmClient;
-    this.languageModel = config.languageModel
-      ? config.languageModel as ReturnType<typeof adapt>
-      : config.lmClient ? adapt(config.lmClient) : undefined;
+// Cognition state fields
+private isRunning = true;
+private cycleCount = 0;
+private lastActivity = Date.now();
+private errorCount = 0;
+private eventBus: EventBus;
 
-    if (this.nar && config.selfAnalysisConfig?.enabled) {
-      this.selfAnalysisManager = new SelfAnalysisManager(
-        this.nar,
-        this.episodicMemory,
-        config.selfAnalysisConfig
-      );
-    }
-  }
+constructor(config: AIAgentConfig & {
+selfAnalysisConfig?: {
+enabled: boolean;
+analysisInterval: number;
+autoImprove: boolean;
+maxImprovements: number;
+};
+scenarioRunner?: ScenarioRunner;
+experimentRunner?: ExperimentRunner;
+}) {
+this.nar = config.nar;
+this.episodicMemory = config.episodicMemory;
+this.config = config.config as BotConfig;
+this.capabilities = config.capabilities;
+this.provider = config.provider ?? 'transformers';
+this.lmClient = config.lmClient;
+this.languageModel = config.languageModel
+? config.languageModel as ReturnType<typeof adapt>
+: config.lmClient ? adapt(config.lmClient) : undefined;
+this.eventBus = new EventBus();
+}
 
   private createTools() {
     const tools: Record<string, unknown> = {};
@@ -206,39 +206,207 @@ Accepted input:
         channel: context.connectionType,
       });
 
-      context.conversation.addMessage({
-        role: 'assistant',
-        content: result.text,
-        timestamp: Date.now(),
-      });
+    context.conversation.addMessage({
+      role: 'assistant',
+      content: result.text,
+      timestamp: Date.now(),
+    });
 
-      this.turnCount++;
-      await this.selfAnalysisManager?.recordTurn(true);
-      
-      if (this.selfAnalysisManager && await this.selfAnalysisManager.shouldAnalyze()) {
-        await this.selfAnalysisManager.analyze();
-      }
+    this.turnCount++;
 
-      return result.text;
-    } catch (error) {
-      await this.selfAnalysisManager?.recordTurn(false, error instanceof Error ? error.message : String(error));
-      throw error;
-    }
+    return result.text;
+  } catch (error) {
+    throw error;
+  }
   }
 
   getCapabilities(): Capabilities {
     return this.capabilities;
   }
 
-  getSelfAnalysisSummary(): Promise<string> {
-    return this.selfAnalysisManager?.generateSummary() ?? Promise.resolve('Self-analysis not enabled');
-  }
+getTurnCount(): number {
+return this.turnCount;
+}
 
-  async getAnalysisReport() {
-    return this.selfAnalysisManager?.analyze();
-  }
+async process(input: string, context?: ProcessContext): Promise<AgentResult> {
+const startTime = Date.now();
+this.eventBus.emit('agent:process:start', { input, context });
 
-  getTurnCount(): number {
-    return this.turnCount;
-  }
+try {
+const classification = this.classify(input);
+let result: AgentResult;
+
+if (classification.primary === 'narsese') {
+result = await this.handleNarsese(input, context);
+} else if (classification.primary === 'reason') {
+result = await this.handleReasoning(input, context);
+} else {
+result = await this.handleChat(input, context);
+}
+
+if (context?.reasoningDepth) {
+await this.recordTurn(true);
+}
+
+this.eventBus.emit('agent:process:complete', {
+result,
+durationMs: Date.now() - startTime
+});
+
+this.lastActivity = Date.now();
+this.cycleCount++;
+
+return result;
+} catch (error) {
+this.errorCount++;
+this.eventBus.emit('error', {
+error: error instanceof Error ? error : new Error(String(error)),
+context: { input, stage: 'process' }
+});
+
+return {
+success: false,
+response: '',
+error: error instanceof Error ? error.message : String(error),
+metrics: {
+durationMs: Date.now() - startTime,
+cycleCount: this.cycleCount,
+eventCount: 0
+}
+};
+}
+}
+
+async reason(input: string, steps?: number): Promise<Belief[]> {
+const result = await this.process(input, { reasoningDepth: steps });
+return (result.reasoning?.newBeliefs as Belief[]) ?? [];
+}
+
+async suspend(): Promise<void> {
+this.isRunning = false;
+this.eventBus.emit('agent:suspend', {
+cycleCount: this.cycleCount,
+lastActivity: this.lastActivity
+});
+}
+
+async resume(): Promise<void> {
+this.isRunning = true;
+this.eventBus.emit('agent:resume', {
+cycleCount: this.cycleCount,
+lastActivity: this.lastActivity
+});
+}
+
+getMetrics(): {
+cycleCount: number;
+isRunning: boolean;
+errorCount: number;
+lastActivity: number;
+narMetrics?: unknown;
+conversationMetrics?: unknown;
+} {
+return {
+cycleCount: this.cycleCount,
+isRunning: this.isRunning,
+errorCount: this.errorCount,
+lastActivity: this.lastActivity,
+narMetrics: this.nar?.getStatistics(),
+conversationMetrics: undefined,
+};
+}
+
+getState(): CognitiveState {
+if (this.errorCount > 10) return 'confused';
+if (!this.isRunning) return 'idle';
+return 'normal';
+}
+
+private classify(input: string): { primary: 'narsese' | 'chat' | 'reason'; confidence: number; signals: string[] } {
+const isNarsese = input.includes('-->') || input.includes('?') || input.startsWith('(');
+const isReasoning = input.toLowerCase().includes('why') ||
+input.toLowerCase().includes('how') ||
+input.toLowerCase().includes('therefore');
+
+return {
+primary: isNarsese ? 'narsese' : isReasoning ? 'reason' : 'chat',
+confidence: 0.8,
+signals: [],
+};
+}
+
+private async handleNarsese(input: string, context?: ProcessContext): Promise<AgentResult> {
+if (!this.nar) {
+return {
+success: false,
+response: 'NAR not initialized',
+error: 'NAR engine not available'
+};
+}
+
+try {
+const steps = context?.reasoningDepth ?? 5;
+
+return {
+success: true,
+response: `Processed: ${input}`,
+reasoning: {
+steps,
+newBeliefs: [],
+trace: []
+},
+metrics: {
+durationMs: 0,
+cycleCount: this.cycleCount,
+eventCount: 0
+}
+};
+} catch (error) {
+return {
+success: false,
+response: '',
+error: error instanceof Error ? error.message : String(error)
+};
+}
+}
+
+private async handleChat(input: string, context?: ProcessContext): Promise<AgentResult> {
+if (this.languageModel) {
+return {
+success: true,
+response: `Chat response to: ${input}`,
+metrics: {
+durationMs: 0,
+cycleCount: this.cycleCount,
+eventCount: 0
+}
+};
+}
+
+return this.handleDefault(input, context);
+}
+
+private async handleReasoning(input: string, context?: ProcessContext): Promise<AgentResult> {
+return this.handleNarsese(input, context);
+}
+
+private async handleDefault(input: string, context?: ProcessContext): Promise<AgentResult> {
+if (this.nar) {
+return this.handleNarsese(input, context);
+}
+
+return {
+success: true,
+response: `Echo: ${input}`,
+metrics: {
+durationMs: 0,
+cycleCount: this.cycleCount,
+eventCount: 0
+}
+};
+}
+
+private async recordTurn(success: boolean): Promise<void> {
+// Self-analysis integration point
+}
 }

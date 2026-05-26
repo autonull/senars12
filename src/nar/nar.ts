@@ -36,8 +36,8 @@ import {RLFPLearner} from './rlfp';
 import {CognitiveController} from './cognitive/controller';
 import type {CognitiveRegistry} from './cognitive/registry';
 import type {CognitiveParameters} from './config/cognitive-parameters';
-import type {AttentionModel} from './cognitive/types';
-import {SimpleAttention} from './cognitive/attention-models';
+import type {AttentionModel} from './strategies/types.js';
+import {SimpleAttention} from './strategies/attention/index.js';
 import {NARIO} from './nar-io';
 import {NARExecution} from './nar-execution';
 import {NARLM} from './nar-lm';
@@ -70,47 +70,47 @@ interface ToolDependency {
 }
 
 export class NAR extends BaseComponent {
-    readonly memory: Memory;
-    readonly workingMemory: WorkingMemory;
-    readonly taskManager: TaskManager;
-    readonly reasoner: Reasoner;
-    readonly query: QueryAPI;
-    readonly traceAPI: ReasoningTrace;
-    readonly tools: ToolManager;
-    readonly self?: ReasoningAboutReasoning;
-    rlfp?: RLFPLearner;
-    cognitiveController?: CognitiveController;
+  readonly memory: Memory;
+  readonly workingMemory!: WorkingMemory;
+  readonly taskManager: TaskManager;
+  readonly reasoner: Reasoner;
+  readonly query: QueryAPI;
+  readonly traceAPI: ReasoningTrace;
+  readonly tools: ToolManager;
+  readonly self?: ReasoningAboutReasoning;
+  rlfp?: RLFPLearner;
+  cognitiveController?: CognitiveController;
 
-    private readonly io: NARIO;
-    private execution: NARExecution;
-    private readonly lm: NARLM;
-    private readonly config: NARConfig;
-    private readonly processor: RuleProcessor;
-    private readonly _metricsCollector: MetricsCollector;
+  private readonly io: NARIO;
+  private execution: NARExecution;
+  private readonly lm: NARLM;
+  private readonly config: NARConfig;
+  private readonly processor: RuleProcessor;
+  private readonly _metricsCollector: MetricsCollector;
     private readonly _lmClient?: LMClient;
     private readonly _registry?: SeNARSRegistry;
     private _lmInitialized = false;
     private _toolsInitialized = false;
     private _constitution: Task[] = [];
 
-    constructor(config: NARConfig = DEFAULT_CONFIG) {
-        const eventBus = new EventBus();
-        const logger = createLogger({scope: 'NAR'});
-        const metrics = new MetricsCollector();
+  constructor(config: NARConfig & { eventBus?: EventBus } = DEFAULT_CONFIG) {
+    const eventBus = config.eventBus ?? new EventBus();
+    const logger = createLogger({scope: 'NAR'});
+    const metrics = new MetricsCollector();
 
-        super({logger, metrics, eventBus});
+    super({logger, metrics, eventBus});
 
-        this.config = this.validateConfig(config);
-        this.memory = new Memory(this.config, { attentionModel: this.createAttentionModel(config) });
+    this.config = this.validateConfig(config);
+    this.memory = new Memory(this.config, { attentionModel: this.createAttentionModel(config) });
+    this.processor = new RuleProcessor();
+    this.processor.setConfig({memory: this.memory});
+    this.processor.setEventBus(eventBus);
+    this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
+    this.taskManager = new TaskManager(this.memory);
+    this.query = new QueryAPI(this.memory);
+    this.traceAPI = new ReasoningTrace(this.memory);
+    this.tools = new ToolManager({ eventBus });
         this.workingMemory = new WorkingMemory();
-        this.processor = new RuleProcessor();
-        this.processor.setConfig({memory: this.memory});
-        this.processor.setEventBus(eventBus);
-        this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
-        this.taskManager = new TaskManager(this.memory);
-        this.query = new QueryAPI(this.memory);
-        this.traceAPI = new ReasoningTrace(this.memory);
-        this.tools = new ToolManager();
         this._lmClient = this.config.lmClient;
         this._registry = this.config.providerRegistry;
 

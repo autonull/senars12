@@ -10,9 +10,9 @@ import type {RuleInput, RuleProcessor, RuleResult} from '../rules';
 import type {Strategy} from './strategy.js';
 import type {Term} from '../terms';
 import {InferenceController, type InferenceConfig} from './inference-controller.js';
-import type {SamplingStrategy, DerivationStrategy} from '../cognitive/types';
-import {PrioritySampling} from '../cognitive/sampling-strategies';
-import {DefaultDerivation} from '../cognitive/derivation-strategies';
+import type {SamplingStrategy, DerivationStrategy} from '../strategies/types.js';
+import {PrioritySampling} from '../strategies/sampling/index.js';
+import {DefaultDerivation} from '../strategies/derivation/index.js';
 
 export interface ReasonerConfig extends Pick<CoreConfig, 'cpuThrottleMs' | 'maxDerivationDepth' | 'maxDerivationsPerStep'> {
 	enableCircularDetection?: boolean;

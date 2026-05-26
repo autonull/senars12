@@ -1,21 +1,26 @@
 import type {NAR} from '../nar/nar.js';
 import type {LMClient} from '../nar/lm/types.js';
 import type {BotConfig, BotMode, Message, ReasoningArtifact} from './BotContext.js';
+import {EventBus} from '../nar/types/events.js';
 
 export class ConversationState {
-  messages: Message[] = [];
-  summary?: string;
-  workingMemory = new Map<string, unknown>();
-  reasoningArtifacts: ReasoningArtifact[] = [];
-  pinnedBeliefs = new Set<string>();
-  mode: BotMode = 'auto';
+messages: Message[] = [];
+summary?: string;
+workingMemory = new Map<string, unknown>();
+reasoningArtifacts: ReasoningArtifact[] = [];
+pinnedBeliefs = new Set<string>();
+mode: BotMode = 'auto';
 
-  constructor(private readonly config: BotConfig) {}
+constructor(
+private readonly config: BotConfig,
+private eventBus?: EventBus
+) {}
 
-  addMessage(msg: Message, lm?: LMClient): void {
-    this.messages.push(msg);
-    if (lm) this.maybeSummarize(lm);
-  }
+addMessage(msg: Message, lm?: LMClient): void {
+this.messages.push(msg);
+this.eventBus?.emit('conversation:message-added', { message: msg, count: this.messages.length });
+if (lm) this.maybeSummarize(lm);
+}
 
   getHistory(limit?: number): Message[] {
     return limit ? this.messages.slice(-limit) : [...this.messages];
@@ -55,21 +60,23 @@ export class ConversationState {
     return this.workingMemory.get(key) as T;
   }
 
-  addArtifact(artifact: ReasoningArtifact): void {
-    this.reasoningArtifacts.push(artifact);
-    const max = this.config.conversation.maxArtifacts;
-    if (this.reasoningArtifacts.length > max) {
-      this.reasoningArtifacts = this.reasoningArtifacts.slice(-Math.floor(max / 2));
-    }
-  }
+addArtifact(artifact: ReasoningArtifact): void {
+this.reasoningArtifacts.push(artifact);
+this.eventBus?.emit('conversation:artifact-added', { artifact, count: this.reasoningArtifacts.length });
+const max = this.config.conversation.maxArtifacts;
+if (this.reasoningArtifacts.length > max) {
+this.reasoningArtifacts = this.reasoningArtifacts.slice(-Math.floor(max / 2));
+}
+}
 
   getRecentArtifacts(limit = 5): ReasoningArtifact[] {
     return this.reasoningArtifacts.slice(-limit);
   }
 
-  pin(belief: string): void {
-    this.pinnedBeliefs.add(belief);
-  }
+pin(belief: string): void {
+this.pinnedBeliefs.add(belief);
+this.eventBus?.emit('conversation:belief-pinned', { belief, count: this.pinnedBeliefs.size });
+}
 
   unpin(belief: string): void {
     this.pinnedBeliefs.delete(belief);
@@ -79,17 +86,18 @@ export class ConversationState {
     return [...this.pinnedBeliefs];
   }
 
-  private async maybeSummarize(lm: LMClient): Promise<void> {
-    if (this.messages.length <= this.config.conversation.summaryThreshold) return;
-    const toSummarize = this.messages.slice(0, -10);
-    const prompt = `Summarize the following conversation in 2-3 sentences:\n\n${
-      toSummarize.map(m => `${m.role}: ${m.content}`).join('\n')
-    }`;
-    try {
-      this.summary = await lm.generateText(prompt);
-      this.messages = this.messages.slice(-10);
-    } catch {
-      // Summarization failed, continue without summarizing
-    }
-  }
+private async maybeSummarize(lm: LMClient): Promise<void> {
+if (this.messages.length <= this.config.conversation.summaryThreshold) return;
+const toSummarize = this.messages.slice(0, -10);
+const prompt = `Summarize the following conversation in 2-3 sentences:\n\n${
+toSummarize.map(m => `${m.role}: ${m.content}`).join('\n')
+}`;
+try {
+this.summary = await lm.generateText(prompt);
+this.messages = this.messages.slice(-10);
+this.eventBus?.emit('conversation:summarized', { summary: this.summary });
+} catch {
+// Summarization failed, continue without summarizing
+}
+}
 }

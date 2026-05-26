@@ -1,37 +1,46 @@
 import type {LMClient} from './types.js';
-import {EventEmitter} from 'events';
+import {EventBus} from '../types/events.js';
 import {errMsg} from '../utils';
 
 export interface StreamConfig {
-    enableStreaming: boolean;
-    enableCancellation: boolean;
+  enableStreaming: boolean;
+  enableCancellation: boolean;
 }
 
 export interface StreamEvent {
-    type: 'token' | 'complete' | 'error' | 'cancelled';
-    data?: string;
-    error?: string;
+  type: 'token' | 'complete' | 'error' | 'cancelled';
+  data?: string;
+  error?: string;
 }
 
 export interface StreamHandle {
-    id: string;
-    abort: () => void;
-    promise: Promise<string>;
+  id: string;
+  abort: () => void;
+  promise: Promise<string>;
 }
 
-export class LMStreamManager extends EventEmitter {
-    private readonly config: StreamConfig;
-    private activeStreams: Map<string, AbortController> = new Map();
-    private streamIdCounter: number = 0;
+export class LMStreamManager {
+  private readonly config: StreamConfig;
+  private activeStreams: Map<string, AbortController> = new Map();
+  private streamIdCounter: number = 0;
+  private eventBus?: EventBus;
 
-    constructor(config: Partial<StreamConfig> = {}) {
-        super();
-        this.config = {
-            enableStreaming: true,
-            enableCancellation: true,
-            ...config
-        };
-    }
+  constructor(config: Partial<StreamConfig> = {}, eventBus?: EventBus) {
+    this.config = {
+      enableStreaming: true,
+      enableCancellation: true,
+      ...config
+    };
+    this.eventBus = eventBus;
+  }
+
+  setEventBus(eventBus: EventBus): void {
+    this.eventBus = eventBus;
+  }
+
+  private emit(event: string, data: any): void {
+    this.eventBus?.emit(event as any, data);
+  }
 
     async generateWithStreaming(
         client: LMClient,

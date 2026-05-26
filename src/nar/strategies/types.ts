@@ -1,8 +1,8 @@
-import type {Memory} from '../memory/memory.js';
+import type {Memory} from '../memory/index.js';
 import type {Concept} from '../memory/concept.js';
 import type {Task} from '../types/core.js';
-import type {RuleProcessor, RuleResult} from '../rules/processor.js';
-import type {LMRule} from '../lm';
+import type {RuleProcessor} from '../rules/processor.js';
+import type {LMRule} from '../lm/index.js';
 
 // ── Shared ───────────────────────────────────
 export interface ComponentMetadata {
@@ -20,7 +20,6 @@ export interface SamplingStrategy {
 }
 
 // ── 2. Strategy (Premise Selection) ───────────
-// metadata is OPTIONAL for backward compat with existing implementations.
 export interface Strategy {
   readonly metadata?: ComponentMetadata;
   readonly name: string;
@@ -105,7 +104,6 @@ export interface StrategyRegistry {
   list(type: StrategyType): ComponentMetadata[];
   has(type: StrategyType, name: string): boolean;
   unregister(type: StrategyType, name: string): boolean;
-  clear(type?: StrategyType): void;
   composePremise(strategies: Array<{ name: string; weight: number }>): Strategy;
   createAdaptive(strategies: string[]): Strategy;
 }

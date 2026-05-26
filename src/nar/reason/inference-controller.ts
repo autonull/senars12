@@ -15,7 +15,7 @@ import type {Memory} from '../memory/memory.js';
 import type {RuleInput, RuleProcessor, RuleResult} from '../rules/processor.js';
 import type {Strategy} from './strategy.js';
 import type {ReasonerConfig} from './reasoner.js';
-import type {SamplingStrategy, DerivationStrategy, DerivationContext} from '../cognitive/types';
+import type {SamplingStrategy, DerivationStrategy, DerivationContext} from '../strategies/types.js';
 
 export interface InferenceConfig {
 	maxDerivationsPerStep: number;

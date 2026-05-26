@@ -1,11 +1,15 @@
-import type {NAR} from '../nar/nar.js';
-import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import type {ConversationState} from './ConversationState.js';
-import type {BotConfig} from './BotContext.js';
+/**
+ * SelfAnalysisService - Self-analysis as a cognitive service
+ *
+ * Migrated from: src/agent/SelfAnalysisManager.ts
+ */
+
+import type {NAR} from '../../nar/nar.js';
+import type {EpisodicMemory} from '../../nar/memory/EpisodicMemory.js';
 
 export interface SelfAnalysisConfig {
   enabled: boolean;
-  analysisInterval: number; // Number of turns between analyses
+  analysisInterval: number;
   autoImprove: boolean;
   maxImprovements: number;
 }
@@ -39,7 +43,7 @@ export interface AnalysisReport {
   };
 }
 
-export class SelfAnalysisManager {
+export class SelfAnalysisService {
   private readonly nar: NAR;
   private readonly episodicMemory?: EpisodicMemory;
   private readonly config: SelfAnalysisConfig;
@@ -141,13 +145,13 @@ export class SelfAnalysisManager {
 
   async generateSummary(): Promise<string> {
     const parts: string[] = [];
-    
+
     parts.push(`## Self-Analysis Summary`);
     parts.push(`- Turns: ${this.state.turnCount}`);
     const successRate = this.state.totalSuccesses / Math.max(1, this.state.totalSuccesses + this.state.totalFailures);
     parts.push(`- Success Rate: ${(successRate * 100).toFixed(1)}%`);
     parts.push(`- Total Failures: ${this.state.totalFailures}`);
-    
+
     if (this.state.lastReport) {
       const {lastReport} = this.state;
       parts.push(`- Top Pattern: ${lastReport.topPatterns[0] ?? 'None'}`);

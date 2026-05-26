@@ -28,7 +28,7 @@ import {ScenarioRunner} from '../scenarios/ScenarioRunner.js';
 import {ScoringEngine} from '../scenarios/ScoringEngine.js';
 import {ExperimentRunner} from '../experiments/ExperimentRunner.js';
 import {RegressionTracker} from '../scenarios/RegressionTracker.js';
-import {SelfAnalyzer} from '../../nar/self/SelfAnalyzer.js';
+import {SelfAnalyzerService as SelfAnalyzer} from '../services/SelfAnalyzerService.js';
 import {ReasoningAboutReasoning} from '../../nar/self/ReasoningAboutReasoning.js';
 import type {NAR} from '../../nar/nar.js';
 import {AutonomousScheduler} from '../AutonomousScheduler.js';

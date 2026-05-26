@@ -1,7 +1,7 @@
 import type {Concept} from './concept.js';
 import type {Task} from '../types/index.js';
 import {TermMap} from '../terms';
-import type {AttentionModel} from '../cognitive/types';
+import type {AttentionModel} from '../strategies/types.js';
 
 export interface FocusConfig {
     maxConcepts: number;

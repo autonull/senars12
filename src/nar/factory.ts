@@ -8,7 +8,7 @@ import {NAR} from './nar.js';
 import type {LMClient} from './lm';
 import type {RLFPLearner} from './rlfp';
 import type {CoreConfig} from './types';
-import {DEFAULT_CONFIG} from './types';
+import {DEFAULT_CONFIG, EventBus} from './types';
 import {setupDefaultLMClient} from './lm/defaults.js';
 import {createSeNARSRegistry, type SeNARSRegistry} from './lm/providers.js';
 import {CognitiveRegistry} from './cognitive/registry';
@@ -16,10 +16,11 @@ import {DEFAULT_COGNITIVE_PARAMETERS, RESEARCH_COGNITIVE_CONFIG, mergeParameters
 import type {CognitiveParameters} from './config/cognitive-parameters';
 
 export interface SeNARSOptions {
-    core?: Partial<CoreConfig>;
-    lmClient?: LMClient;
-    providerRegistry?: SeNARSRegistry;
-    enableLMRules?: boolean;
+  core?: Partial<CoreConfig>;
+  lmClient?: LMClient;
+  providerRegistry?: SeNARSRegistry;
+  enableLMRules?: boolean;
+  eventBus?: EventBus;
 }
 
 export interface SeNARSConfig {
@@ -63,17 +64,19 @@ const TEST_CONFIG: CoreConfig = {
 };
 
 export class SeNARSFactory {
-    static createDefault(options: SeNARSOptions = {}): NAR {
-        const registry = options.providerRegistry ?? createSeNARSRegistry();
-        const lmClient = options.lmClient ?? setupDefaultLMClient();
-        const config: NARConfig = {
-            ...DEFAULT_CONFIG, ...options.core,
-            enableLMRules: options.enableLMRules ?? true,
-            lmClient,
-            providerRegistry: registry,
-        };
-        return new NAR(config);
-    }
+  static createDefault(options: SeNARSOptions = {}): NAR {
+    const registry = options.providerRegistry ?? createSeNARSRegistry();
+    const lmClient = options.lmClient ?? setupDefaultLMClient();
+    const eventBus = options.eventBus ?? new EventBus();
+    const config: NARConfig & { eventBus?: EventBus } = {
+      ...DEFAULT_CONFIG, ...options.core,
+      enableLMRules: options.enableLMRules ?? true,
+      lmClient,
+      providerRegistry: registry,
+      eventBus,
+    };
+    return new NAR(config);
+  }
 
     static fromConfig(config: SeNARSConfig, lmClient?: LMClient | null, registry?: SeNARSRegistry | null): NAR {
         const narConfig: NARConfig = {

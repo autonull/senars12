@@ -2,7 +2,7 @@ import type {Task} from '../types';
 import {createSecondaryTask} from '../types';
 import {Memory} from '../memory';
 import {termsEqual, extractSymbols} from '../terms';
-import type {ComponentMetadata} from '../cognitive/types';
+import type {ComponentMetadata} from '../strategies/types.js';
 
 const MIN_SHARED_ATOMS = 1;
 const MIN_DERIVATION_PRIORITY = 0.05;

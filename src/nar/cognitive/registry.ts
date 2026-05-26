@@ -1,8 +1,8 @@
-import type {SamplingStrategy, Strategy, DerivationStrategy, LMRuleSelector, AttentionModel, StrategyRegistry, StrategyType, ComponentMetadata} from './types';
-import {PrioritySampling, TopNSampling, NoveltySampling, GoalBiasedSampling, DiverseSampling} from './sampling-strategies';
-import {DefaultDerivation, AnytimeDerivation, FocusedDerivation, SampledDerivation} from './derivation-strategies';
-import {AllSelector, PrioritySelector, RotationSelector, DiverseSelector} from './lm-selectors';
-import {SimpleAttention, SpreadingActivation, GoalRelevanceAttention, CompositeAttention} from './attention-models';
+import type {SamplingStrategy, Strategy, DerivationStrategy, LMRuleSelector, AttentionModel, StrategyRegistry, StrategyType, ComponentMetadata} from '../strategies/types.js';
+import {PrioritySampling, TopNSampling, NoveltySampling, GoalBiasedSampling, DiverseSampling} from '../strategies/sampling/index.js';
+import {DefaultDerivation, AnytimeDerivation, FocusedDerivation, SampledDerivation} from '../strategies/derivation/index.js';
+import {AllSelector, PrioritySelector, RotationSelector, DiverseSelector} from '../strategies/lm-selectors/index.js';
+import {SimpleAttention, SpreadingActivation, GoalRelevanceAttention, CompositeAttention} from '../strategies/attention/index.js';
 import {BagStrategy, ExhaustiveStrategy} from '../reason/strategy';
 import {
   PrologStrategy, ResolutionStrategy, GoalDrivenStrategy, AnalogicalStrategy,
