@@ -64,23 +64,40 @@ for (const key of Object.keys(OPERATORS) as OperatorKey[]) {
     compoundCtors[key] = (...args: Term[]) => createCompound(key, args);
 }
 
+const containsTerm = (container: Term, target: Term): boolean => {
+if (container.kind === 'atom') {
+return container.symbol === (target.kind === 'atom' ? target.symbol : '');
+}
+if ('args' in container && container.args) {
+for (const arg of container.args) {
+	if (containsTerm(arg, target)) return true;
+}
+}
+return false;
+};
+
 export const TermBuilder = {
-    atom: (symbol: string): AtomicTerm =>
-        symbol === 'TRUE' ? TRUE_ATOM : symbol === 'FALSE' ? FALSE_ATOM : createAtom(symbol),
+atom: (symbol: string): AtomicTerm =>
+symbol === 'TRUE' ? TRUE_ATOM : symbol === 'FALSE' ? FALSE_ATOM : createAtom(symbol),
 
-    ...compoundCtors as Record<OperatorKey, (...args: Term[]) => Term>,
+...compoundCtors as Record<OperatorKey, (...args: Term[]) => Term>,
 
-    compound: (kind: OperatorKey, args: Term[]): Term => createCompound(kind, args),
+compound: (kind: OperatorKey, args: Term[]): Term => createCompound(kind, args),
 
-    // Peggy parser compatibility aliases
-    create: (kind: string, args: Term[]): Term => createCompound(kind as OperatorKey, args),
-    setExt: (components: Term[]): Term => createCompound('instance', components),
-    setInt: (components: Term[]): Term => createCompound('property', components),
-    tuple: (components: Term[]): Term => createCompound('conjunction', components),
-    atomic: (symbol: string): AtomicTerm => createAtom(symbol),
-    inheritance: (subj: Term, pred: Term): Term => createCompound('inheritance', [subj, pred]),
-    negation: (term: Term): Term => createCompound('negation', [term]),
-    delta: (term: Term): Term => createCompound('negation', [term]), // delta is negation
+// Peggy parser compatibility aliases
+create: (kind: string, args: Term[]): Term => createCompound(kind as OperatorKey, args),
+setExt: (components: Term[]): Term => createCompound('instance', components),
+setInt: (components: Term[]): Term => createCompound('property', components),
+tuple: (components: Term[]): Term => createCompound('conjunction', components),
+atomic: (symbol: string): AtomicTerm => createAtom(symbol),
+inheritance: (subj: Term, pred: Term): Term | undefined => {
+if (containsTerm(subj, pred) || containsTerm(pred, subj)) {
+	return undefined;
+}
+return createCompound('inheritance', [subj, pred]);
+},
+negation: (term: Term): Term => createCompound('negation', [term]),
+delta: (term: Term): Term => createCompound('negation', [term]), // delta is negation
 
     evict: (key: string): boolean => termCache.delete(key),
     clear: (): void => termCache.clear(),

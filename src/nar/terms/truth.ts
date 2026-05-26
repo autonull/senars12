@@ -6,9 +6,22 @@ export interface Truth {
 }
 
 const WEAKENING_FACTOR = 10;
+const MAX_CONFIDENCE = 0.999;
 
-const createTruth = (f: number, c: number): Truth =>
-    Object.freeze({f: clamp(isNaN(f) ? 0.5 : f, 0, 1), c: clamp(isNaN(c) ? 0.9 : c, 0, 1)});
+class TruthError extends Error {
+  constructor(msg: string) {
+    super(msg);
+    this.name = 'TruthError';
+  }
+}
+
+const createTruth = (f: number, c: number): Truth => {
+  const clampedC = clamp(isNaN(c) ? 0.9 : c, 0, MAX_CONFIDENCE);
+  if (c > MAX_CONFIDENCE) {
+    throw new TruthError(`Confidence ${c} exceeds maximum ${MAX_CONFIDENCE}`);
+  }
+  return Object.freeze({f: clamp(isNaN(f) ? 0.5 : f, 0, 1), c: clampedC});
+};
 
 const c2w = (c: number): number => c === 1 ? 1e10 : c / (1 - c);
 const w2c = (w: number): number => w / (w + 1);
@@ -37,10 +50,11 @@ const truthOps = {
 } as const;
 
 export const Truth = {
-    create: createTruth,
-    TRUE: Object.freeze({f: 1.0, c: 0.9}) as Truth,
-    FALSE: Object.freeze({f: 0.0, c: 0.9}) as Truth,
-    NEUTRAL: Object.freeze({f: 0.5, c: 0.9}) as Truth,
+create: createTruth,
+TRUE: Object.freeze({f: 1.0, c: 0.9}) as Truth,
+FALSE: Object.freeze({f: 0.0, c: 0.9}) as Truth,
+NEUTRAL: Object.freeze({f: 0.5, c: 0.9}) as Truth,
+MAX_CONFIDENCE,
     safeDiv,
 
     negation: truthOps.unary((f, c) => [1 - f, c]),
@@ -81,10 +95,14 @@ export const Truth = {
         return [f1, w / (w + 1)];
     }),
     detachment: truthOps.binary((f1, f2, c1, c2) => [f2, f1 * c1 * c2]),
-    revision: truthOps.binary((f1, f2, c1, c2) => {
-        const w1 = c2w(c1), w2 = c2w(c2), w = w1 + w2;
-        return [(f1 * w1 + f2 * w2) / w, w2c(w)];
-    }),
+revision: truthOps.binary((f1, f2, c1, c2) => {
+const w1 = c2w(c1), w2 = c2w(c2), w = w1 + w2;
+const newC = w2c(w);
+if (newC > MAX_CONFIDENCE) {
+return [f1 * c1 + f2 * c2 / (c1 + c2), MAX_CONFIDENCE];
+}
+return [(f1 * w1 + f2 * w2) / w, newC];
+}),
     choice: (t1: Truth, t2: Truth): Truth => Truth.expectation(t1) > Truth.expectation(t2) ? t1 : t2,
     structuralDeduction: truthOps.unary((f, c) => [f * f, c / (c + 1) * c]),
     structuralReduction: truthOps.unary((f, c) => [f, c / (c + WEAKENING_FACTOR)]),

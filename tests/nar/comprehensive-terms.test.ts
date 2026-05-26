@@ -27,24 +27,27 @@ describe('Term Builder Comprehensive Tests', () => {
         });
     });
 
-    describe('Inheritance Terms', () => {
-        it('creates inheritance terms', () => {
-            const subj = TermBuilder.atom('bird');
-            const pred = TermBuilder.atom('animal');
-            const inh = TermBuilder.inheritance(subj, pred);
+describe('Inheritance Terms', () => {
+it('creates inheritance terms', () => {
+const subj = TermBuilder.atom('bird');
+const pred = TermBuilder.atom('animal');
+const inh = TermBuilder.inheritance(subj, pred);
 
-            expect(inh).toBeDefined();
-        });
+expect(inh).toBeDefined();
+expect(inh!.kind).toBe('inheritance');
+});
 
-        it('preserves argument order in inheritance', () => {
-            const a = TermBuilder.atom('A');
-            const b = TermBuilder.atom('B');
-            const ab = TermBuilder.inheritance(a, b);
-            const ba = TermBuilder.inheritance(b, a);
+it('preserves argument order in inheritance', () => {
+const a = TermBuilder.atom('A');
+const b = TermBuilder.atom('B');
+const ab = TermBuilder.inheritance(a, b);
+const ba = TermBuilder.inheritance(b, a);
 
-            expect(termsEqual(ab, ba)).toBe(false);
-        });
-    });
+expect(ab).toBeDefined();
+expect(ba).toBeDefined();
+expect(termsEqual(ab!, ba!)).toBe(false);
+});
+});
 
     describe('Similarity Terms', () => {
         it('creates similarity terms', () => {
@@ -166,28 +169,32 @@ describe('Term Builder Comprehensive Tests', () => {
         });
     });
 
-    describe('Compound Term Equality', () => {
-        it('computes consistent equality for compound terms', () => {
-            const a = TermBuilder.atom('A');
-            const b = TermBuilder.atom('B');
+describe('Compound Term Equality', () => {
+it('computes consistent equality for compound terms', () => {
+const a = TermBuilder.atom('A');
+const b = TermBuilder.atom('B');
 
-            const inh1 = TermBuilder.inheritance(a, b);
-            const inh2 = TermBuilder.inheritance(a, b);
+const inh1 = TermBuilder.inheritance(a, b);
+const inh2 = TermBuilder.inheritance(a, b);
 
-            expect(termsEqual(inh1, inh2)).toBe(true);
-        });
+expect(inh1).toBeDefined();
+expect(inh2).toBeDefined();
+expect(termsEqual(inh1!, inh2!)).toBe(true);
+});
 
-        it('distinguishes different compound structures', () => {
-            const a = TermBuilder.atom('A');
-            const b = TermBuilder.atom('B');
-            const c = TermBuilder.atom('C');
+it('distinguishes different compound structures', () => {
+const a = TermBuilder.atom('A');
+const b = TermBuilder.atom('B');
+const c = TermBuilder.atom('C');
 
-            const inh1 = TermBuilder.inheritance(a, b);
-            const inh2 = TermBuilder.inheritance(b, c);
+const inh1 = TermBuilder.inheritance(a, b);
+const inh2 = TermBuilder.inheritance(b, c);
 
-            expect(termsEqual(inh1, inh2)).toBe(false);
-        });
-    });
+expect(inh1).toBeDefined();
+expect(inh2).toBeDefined();
+expect(termsEqual(inh1!, inh2!)).toBe(false);
+});
+});
 });
 
 describe('Truth Value Operations', () => {
@@ -203,10 +210,16 @@ describe('Truth Value Operations', () => {
             expect(Truth.create(-0.5, 0.9).f).toBe(0.0);
         });
 
-        it('clamps confidence to [0, 1]', () => {
-            expect(Truth.create(0.5, 1.5).c).toBe(1.0);
-            expect(Truth.create(0.5, -0.5).c).toBe(0.0);
-        });
+it('clamps confidence to [0, MAX_CONFIDENCE]', () => {
+expect(Truth.create(0.5, -0.5).c).toBe(0.0);
+expect(Truth.create(0.5, 0.999).c).toBe(0.999);
+expect(Truth.create(0.5, 0.999).c).toBeLessThanOrEqual(Truth.MAX_CONFIDENCE);
+});
+
+it('throws on confidence exceeding maximum', () => {
+expect(() => Truth.create(0.5, 1.001)).toThrow('Confidence');
+expect(() => Truth.create(0.5, 1.5)).toThrow('Confidence');
+});
 
         it('handles NaN inputs', () => {
             const t = Truth.create(NaN, NaN);

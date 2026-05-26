@@ -77,18 +77,24 @@ const inductionLink = linkFn(indExtractor);
 const abductionLink = linkFn(abdExtractor);
 
 const buildDeduction = (left: Term, right: Term): Term | undefined => {
-    const s = getSubject(left), p = getPredicate(right);
-    return s && p ? TermBuilder.inheritance(s, p) : undefined;
+const s = getSubject(left), p = getPredicate(right);
+if (!s || !p) return undefined;
+const result = TermBuilder.inheritance(s, p);
+return result ?? undefined;
 };
 
 const buildInduction = (left: Term, right: Term): Term | undefined => {
-    const p1 = getPredicate(left), p2 = getPredicate(right);
-    return p1 && p2 ? TermBuilder.inheritance(p1, p2) : undefined;
+const p1 = getPredicate(left), p2 = getPredicate(right);
+if (!p1 || !p2) return undefined;
+const result = TermBuilder.inheritance(p1, p2);
+return result ?? undefined;
 };
 
 const buildAbduction = (left: Term, right: Term): Term | undefined => {
-    const s1 = getSubject(left), s2 = getSubject(right);
-    return s1 && s2 ? TermBuilder.inheritance(s1, s2) : undefined;
+const s1 = getSubject(left), s2 = getSubject(right);
+if (!s1 || !s2) return undefined;
+const result = TermBuilder.inheritance(s1, s2);
+return result ?? undefined;
 };
 
 const buildHigherOrderRule = (
