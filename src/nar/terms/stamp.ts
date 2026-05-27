@@ -50,12 +50,30 @@ export const Stamp = {
         const maxDepth = parentStamps.reduce((max, s) => Math.max(max, s.depth), 0);
         if (maxDepth >= DEPTH_MAX) return undefined;
 
-        const allDerivations = parentStamps.flatMap(s => [s.id, ...s.derivations]);
+        const seenEvidence = new Set<string>();
+        let totalEvidenceCount = 0;
+
+        for (const stamp of parentStamps) {
+            seenEvidence.add(stamp.id);
+            totalEvidenceCount++;
+
+            for (const derivationId of stamp.derivations) {
+                seenEvidence.add(derivationId);
+                totalEvidenceCount++;
+            }
+        }
+
+        // OpenNARS evidence overlap detection: if the number of unique evidence IDs is less than
+        // the total number of evidence IDs collected, then an overlap occurred
+        if (seenEvidence.size < totalEvidenceCount) {
+            return undefined;
+        }
+
         return Object.freeze({
             id: makeId(),
             creationTime: Date.now(),
             source,
-            derivations: [...new Set(allDerivations)],
+            derivations: Array.from(seenEvidence),
             depth: (maxDepth + 1) as Increment<D>
         });
     },
