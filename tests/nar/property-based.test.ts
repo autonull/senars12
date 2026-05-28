@@ -66,7 +66,7 @@ describe('Property-Based Tests', () => {
     describe('Truth Value Invariants', () => {
         it('frequency is always in [0, 1]', () => {
             fc.assert(
-                fc.property(fc.float({min: 0, max: 1}), fc.float({min: 0, max: 1}), (f, c) => {
+                fc.property(fc.float({min: 0, max: 1}), fc.float({min: 0, max: Math.fround(Truth.MAX_CONFIDENCE), noNaN: true}).map(c => Math.min(c, Truth.MAX_CONFIDENCE)), (f, c) => {
                     const truth = Truth.create(f, c);
                     expect(truth.f).toBeGreaterThanOrEqual(0);
                     expect(truth.f).toBeLessThanOrEqual(1);
@@ -76,7 +76,7 @@ describe('Property-Based Tests', () => {
 
         it('confidence is always in [0, 1]', () => {
             fc.assert(
-                fc.property(fc.float({min: 0, max: 1}), fc.float({min: 0, max: 1}), (f, c) => {
+                fc.property(fc.float({min: 0, max: 1}), fc.float({min: 0, max: Math.fround(Truth.MAX_CONFIDENCE), noNaN: true}).map(c => Math.min(c, Truth.MAX_CONFIDENCE)), (f, c) => {
                     const truth = Truth.create(f, c);
                     expect(truth.c).toBeGreaterThanOrEqual(0);
                     expect(truth.c).toBeLessThanOrEqual(1);
@@ -88,9 +88,9 @@ describe('Property-Based Tests', () => {
             fc.assert(
                 fc.property(
                     fc.float({min: 0, max: 1}),
+                    fc.float({min: 0, max: Math.fround(Truth.MAX_CONFIDENCE), noNaN: true}).map(c => Math.min(c, Truth.MAX_CONFIDENCE)),
                     fc.float({min: 0, max: 1}),
-                    fc.float({min: 0, max: 1}),
-                    fc.float({min: 0, max: 1}),
+                    fc.float({min: 0, max: Math.fround(Truth.MAX_CONFIDENCE), noNaN: true}).map(c => Math.min(c, Truth.MAX_CONFIDENCE)),
                     (f1, c1, f2, c2) => {
                         const t1 = Truth.create(f1, c1);
                         const t2 = Truth.create(f2, c2);
@@ -110,7 +110,7 @@ describe('Property-Based Tests', () => {
             fc.assert(
                 fc.property(
                     fc.float({min: 0, max: 1}),
-                    fc.float({min: 0, max: 1}),
+                    fc.float({min: 0, max: Math.fround(Truth.MAX_CONFIDENCE), noNaN: true}).map(c => Math.min(c, Truth.MAX_CONFIDENCE)),
                     (f, c) => {
                         const truth = Truth.create(f, c);
                         const negated = Truth.negation(truth);

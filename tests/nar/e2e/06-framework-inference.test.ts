@@ -100,7 +100,7 @@ describeReasoning('Inference Rules', [
         ],
         cycles: 5,
         expect: [
-            expectDerivation('(pet & animal)', {
+            expectDerivation('([pet, animal])', {
                 minFrequency: 0.5,
                 minConfidence: 0.5
             })

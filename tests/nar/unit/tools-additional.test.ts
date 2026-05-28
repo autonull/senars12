@@ -277,7 +277,7 @@ describe('ProcessTool', () => {
         const startPromise = processTool.execute({
             action: 'run',
             command: 'sleep',
-            args: ['10']
+            args: ['2']
         });
 
         await new Promise(resolve => setTimeout(resolve, 100));

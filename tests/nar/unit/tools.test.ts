@@ -1,4 +1,5 @@
 import {CalculateTool, ReadFileTool, Registry, SleepTool, ToolManager, WriteFileTool} from '../../../src/nar/tools';
+import {EventBus} from '../../../src/nar/types';
 
 describe('Tool Framework', () => {
     describe('Registry', () => {
@@ -146,7 +147,8 @@ describe('Tool Framework', () => {
         });
 
         it('should emit events on tool execution', async () => {
-            const manager = new ToolManager();
+            const eventBus = new EventBus();
+            const manager = new ToolManager({ eventBus });
             manager.register(new CalculateTool());
 
             const events: string[] = [];
