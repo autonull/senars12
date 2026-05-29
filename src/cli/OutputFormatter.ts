@@ -23,48 +23,27 @@ export class OutputFormatter {
         this.options = options;
     }
 
-    formatInput(text: string): string {
-        if (this.options.quiet) return '';
-        return `> ${text}`;
-    }
+    formatInput = (text: string): string => this.options.quiet ? '' : `> ${text}`;
 
-    formatResponse(text: string): string {
-        return `< ${text}`;
-    }
+    formatResponse = (text: string): string => `< ${text}`;
 
-    formatError(text: string): string {
-        return `! ${text}`;
-    }
+    formatError = (text: string): string => `! ${text}`;
 
-    formatMetadata(data: Record<string, unknown>): string {
-        return `# ${JSON.stringify(data)}`;
-    }
+    formatMetadata = (data: Record<string, unknown>): string => `# ${JSON.stringify(data)}`;
 
-    formatForChannel(text: string): string | string[] {
-        if (this.channelType === 'irc') {
-            return this.chunkText(text, 400);
-        }
-        return text;
-    }
+    formatForChannel = (text: string): string | string[] =>
+        this.channelType === 'irc' ? this.chunkText(text, 400) : text;
 
-    private chunkText(text: string, maxLength: number): string[] {
-        const chunks: string[] = [];
+    private chunkText = (text: string, maxLength: number): string[] => {
         const stripped = this.stripAnsi(text);
-        for (let i = 0; i < stripped.length; i += maxLength) {
-            chunks.push(stripped.slice(i, i + maxLength));
-        }
-        return chunks;
-    }
+        return Array.from({length: Math.ceil(stripped.length / maxLength)}, (_, i) =>
+            stripped.slice(i * maxLength, (i + 1) * maxLength)
+        );
+    };
 
-    private stripAnsi(text: string): string {
-        return text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
-    }
+    private stripAnsi = (text: string): string => text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
 
-    shouldOutputJson(): boolean {
-        return this.options.json ?? false;
-    }
+    shouldOutputJson = (): boolean => this.options.json ?? false;
 
-    shouldEchoInput(): boolean {
-        return !this.options.quiet;
-    }
+    shouldEchoInput = (): boolean => !this.options.quiet;
 }

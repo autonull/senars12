@@ -10,13 +10,9 @@ export class ChannelStreamer {
     connection: {type: string; respond: (text: string | StreamChunk) => Promise<void>},
     stream: AsyncIterable<StreamChunk>
   ): Promise<void> {
-    if (connection.type === 'irc') {
-      // IRC: buffer all chunks and send as single message
-      await this.bufferedStream(connection, stream);
-    } else {
-      // WS/HTTP/pipe: forward chunks directly
-      await this.directStream(connection, stream);
-    }
+    await (connection.type === 'irc'
+      ? this.bufferedStream(connection, stream)
+      : this.directStream(connection, stream));
   }
 
   private async bufferedStream(
@@ -24,15 +20,10 @@ export class ChannelStreamer {
     stream: AsyncIterable<StreamChunk>
   ): Promise<void> {
     const buffered: string[] = [];
-
     for await (const chunk of stream) {
-      if (chunk.type === 'text' && chunk.content) {
-        buffered.push(chunk.content);
-      } else if (chunk.type === 'error') {
-        buffered.push(`Error: ${chunk.content}`);
-      }
+      if (chunk.type === 'text' && chunk.content) buffered.push(chunk.content);
+      else if (chunk.type === 'error') buffered.push(`Error: ${chunk.content}`);
     }
-
     await connection.respond(buffered.join(''));
   }
 
@@ -40,18 +31,10 @@ export class ChannelStreamer {
     connection: {respond: (text: string | StreamChunk) => Promise<void>},
     stream: AsyncIterable<StreamChunk>
   ): Promise<void> {
-    for await (const chunk of stream) {
-      await connection.respond(chunk);
-    }
+    for await (const chunk of stream) await connection.respond(chunk);
   }
 }
 
-export function isStreamChunk(value: unknown): value is StreamChunk {
-  if (!value || typeof value !== 'object') return false;
-  const chunk = value as Partial<StreamChunk>;
-  return (
-    chunk.type !== undefined &&
-    chunk.content !== undefined &&
-    chunk.done !== undefined
-  );
-}
+export const isStreamChunk = (value: unknown): value is StreamChunk =>
+  !!value && typeof value === 'object' &&
+  'type' in value && 'content' in value && 'done' in value;

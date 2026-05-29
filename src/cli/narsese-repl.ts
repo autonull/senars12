@@ -25,34 +25,26 @@ async function main() {
 
   rl.on('line', async (line) => {
     const input = line.trim();
-    if (input === 'exit' || input === 'quit') {
-      rl.close();
-      return;
-    }
+    if (/^(?:exit|quit)$/i.test(input)) return rl.close();
+    if (!input) return rl.prompt();
 
-    if (input) {
-      try {
-        if (input.endsWith('!')) {
-            await nar.input(input, 'goal');
-            console.log(`[GOAL ACCEPTED] ${input}`);
-        } else if (input.endsWith('?')) {
-            const cleanQ = input.replace(/[?!.]+$/, '');
-            const beliefs = nar.getBeliefs();
-            const match = beliefs.find((b: any) => b.term.toString().includes(cleanQ.split('-->')[0] ?? cleanQ));
-            if (match) {
-                console.log(`[ANSWER] ${match.term.toString()} f=${match.truth?.f.toFixed(2)} c=${match.truth?.c.toFixed(2)}`);
-            } else {
-                console.log(`[NO ANSWER] ${input}`);
-            }
-        } else {
-            const clean = input.replace(/[?!.]+$/, '');
-            await nar.input(clean, 'belief');
-            const derived = await nar.run(5);
-            console.log(`[BELIEF ACCEPTED] ${clean} | Derived ${derived} concepts`);
-        }
-      } catch (err: any) {
-        console.error(`Error processing input: ${err.message}`);
+    try {
+      const clean = input.replace(/[?!.]+$/, '');
+      if (input.endsWith('!')) {
+          await nar.input(input, 'goal');
+          console.log(`[GOAL ACCEPTED] ${input}`);
+      } else if (input.endsWith('?')) {
+          const match = nar.getBeliefs().find((b: any) => b.term.toString().includes(clean.split('-->')[0] ?? clean));
+          console.log(match
+              ? `[ANSWER] ${match.term.toString()} f=${match.truth?.f.toFixed(2)} c=${match.truth?.c.toFixed(2)}`
+              : `[NO ANSWER] ${input}`);
+      } else {
+          await nar.input(clean, 'belief');
+          const derived = await nar.run(5);
+          console.log(`[BELIEF ACCEPTED] ${clean} | Derived ${derived} concepts`);
       }
+    } catch (err) {
+      console.error(`Error processing input: ${err instanceof Error ? err.message : String(err)}`);
     }
     rl.prompt();
   }).on('close', () => {
