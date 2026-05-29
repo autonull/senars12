@@ -6,6 +6,7 @@ import {AIAgent} from '../agent/AIAgent.js';
 import {AIAgentConnectionManager} from '../agent/connections/index.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
+import {setupDefaultLMClient} from '../nar/lm/defaults.js';
 import {createLogger} from '../nar/logger/index.js';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
@@ -15,9 +16,11 @@ const logger = createLogger({scope: 'cli'});
 
 async function main() {
   const registry = createSeNARSRegistry();
+  const lmClient = setupDefaultLMClient();
   const nar = SeNARSFactory.createDefault({
     ...DEFAULT_NAR_CONFIG,
     providerRegistry: registry,
+    lmClient,
   });
 
   const episodicMemory = new EpisodicMemory({
@@ -27,13 +30,14 @@ async function main() {
     retentionDays: 30,
   });
 
-  const capabilities = detectCapabilities(undefined, nar);
+  const capabilities = detectCapabilities(lmClient, nar);
 
   const agent = new AIAgent({
     nar,
     episodicMemory,
     provider: (process.env.LM_PROVIDER || 'transformers') as any,
     model: process.env.LM_MODEL,
+    lmClient,
     instructions: process.env.AGENT_INSTRUCTIONS,
     config: {
       reasoning: {

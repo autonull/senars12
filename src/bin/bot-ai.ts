@@ -10,6 +10,7 @@ import {AIAgent} from '../agent/AIAgent.js';
 import {AIAgentConnectionManager, createConnectionConfigsFromEnv} from '../agent/connections/index.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
+import {setupDefaultLMClient} from '../nar/lm/defaults.js';
 import {createLogger} from '../nar/logger/index.js';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
@@ -21,9 +22,11 @@ const logger = createLogger({scope: 'bot'});
 async function main() {
   // 1. Create NARS
   const registry = createSeNARSRegistry();
+  const lmClient = setupDefaultLMClient();
   const nar = SeNARSFactory.createDefault({
     ...DEFAULT_NAR_CONFIG,
     providerRegistry: registry,
+    lmClient,
   });
 
   // 2. Create episodic memory
@@ -35,7 +38,7 @@ async function main() {
   });
 
   // 3. Detect capabilities
-  const capabilities = detectCapabilities(undefined, nar);
+  const capabilities = detectCapabilities(lmClient, nar);
   logger.info(`Capabilities: ${capabilities.mode}`);
 
   // 4. Create AI Agent
@@ -44,6 +47,7 @@ async function main() {
     episodicMemory,
     provider: (process.env.LM_PROVIDER || 'transformers') as any,
     model: process.env.LM_MODEL,
+    lmClient,
     instructions: process.env.AGENT_INSTRUCTIONS,
     config: {
       reasoning: {

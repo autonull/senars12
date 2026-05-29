@@ -448,10 +448,15 @@ for (let loop = 0; loop < maxLoops; loop++) {
 
     // Execute tool explicitly to allow NARS to run properly in loops
     let tcResult: any;
-    if (tc.toolName.startsWith('nar_')) {
+    if (tc.toolName.startsWith('nar_') || tc.toolName === 'search_memory' || tc.toolName === 'calculate' || tc.toolName === 'get_recent_episodes') {
         const tools = this.createTools();
-        if ((tools as any)[tc.toolName]) {
-            tcResult = await (tools as any)[tc.toolName].execute((tc as any).args, {} as any);
+        const toolInstance = (tools as any)[tc.toolName];
+        if (toolInstance && typeof toolInstance.execute === 'function') {
+            try {
+                tcResult = await toolInstance.execute((tc as any).args ?? {}, {} as any);
+            } catch (e: any) {
+                tcResult = { success: false, error: e.message || String(e) };
+            }
         }
     }
 
