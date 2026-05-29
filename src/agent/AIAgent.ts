@@ -189,7 +189,7 @@ Accepted input:
     const messages: {role: 'user' | 'assistant' | 'system'; content: string}[] = [
       {role: 'system', content: this.buildInstructions()},
       ...(cognitiveContext ? [{role: 'system' as const, content: `## Current Cognitive State\n${cognitiveContext}`}] : []),
-      ...history.map(h => ({role: h.role, content: h.content})),
+      ...history.map((h: any) => ({role: h.role, content: h.content})),
       {role: 'user', content: input},
     ];
 
@@ -371,23 +371,86 @@ error: error instanceof Error ? error.message : String(error)
 }
 
 private async handleChat(input: string, context?: ProcessContext): Promise<AgentResult> {
-if (this.languageModel) {
+if (!this.languageModel) {
+return this.handleDefault(input, context);
+}
+const startTime = Date.now();
+try {
+const history = (context as any)?.conversation ? (context as any).conversation.getHistory(20) : [];
+const cognitiveContext = this.nar && (context as any)?.conversation ? this.buildCognitiveContext((context as any).conversation) : undefined;
+
+const messages: {role: 'user' | 'assistant' | 'system'; content: string}[] = [
+{role: 'system', content: this.buildInstructions()},
+...(cognitiveContext ? [{role: 'system' as const, content: `## Current Cognitive State\n${cognitiveContext}`}] : []),
+...history.map((h: any) => ({role: h.role, content: h.content})),
+{role: 'user', content: input},
+];
+
+const result = await generateText({
+model: this.languageModel as any,
+messages,
+tools: this.createTools() as any,
+maxOutputTokens: 2048,
+});
+
+if ((context as any)?.conversation) {
+(context as any).conversation.addMessage({
+role: 'assistant',
+content: result.text,
+timestamp: Date.now(),
+});
+}
+
 return {
 success: true,
-response: `Chat response to: ${input}`,
+response: result.text,
+actions: result.toolCalls?.map(tc => ({
+type: 'tool',
+name: tc.toolName,
+data: (tc as any).args
+})) as any,
 metrics: {
-durationMs: 0,
+durationMs: Date.now() - startTime,
 cycleCount: this.cycleCount,
 eventCount: 0
 }
 };
+} catch (error) {
+return {
+success: false,
+response: '',
+error: error instanceof Error ? error.message : String(error)
+};
 }
-
-return this.handleDefault(input, context);
 }
 
 private async handleReasoning(input: string, context?: ProcessContext): Promise<AgentResult> {
-return this.handleNarsese(input, context);
+if (!this.nar) {
+return this.handleDefault(input, context);
+}
+const startTime = Date.now();
+try {
+const derived = await this.nar.run(context?.reasoningDepth ?? 5);
+return {
+success: true,
+response: `Ran reasoning cycle, derived ${derived} new concepts.`,
+reasoning: {
+steps: context?.reasoningDepth ?? 5,
+newBeliefs: [],
+},
+metrics: {
+durationMs: Date.now() - startTime,
+cycleCount: this.cycleCount,
+eventCount: derived
+}
+};
+} catch (error) {
+return {
+success: false,
+response: '',
+error: error instanceof Error ? error.message : String(error)
+};
+}
 }
 
 private async handleDefault(input: string, context?: ProcessContext): Promise<AgentResult> {
