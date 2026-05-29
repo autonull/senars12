@@ -100,4 +100,31 @@ this.eventBus?.emit('conversation:summarized', { summary: this.summary });
 // Summarization failed, continue without summarizing
 }
 }
+
+  toJSON(): string {
+    return JSON.stringify({
+      messages: this.messages,
+      summary: this.summary,
+      reasoningArtifacts: this.reasoningArtifacts,
+      pinnedBeliefs: Array.from(this.pinnedBeliefs),
+      mode: this.mode,
+      workingMemory: Array.from(this.workingMemory.entries())
+    });
+  }
+
+  fromJSON(json: string): void {
+    try {
+      const data = JSON.parse(json);
+      this.messages = data.messages || [];
+      this.summary = data.summary;
+      this.reasoningArtifacts = data.reasoningArtifacts || [];
+      this.pinnedBeliefs = new Set(data.pinnedBeliefs || []);
+      this.mode = data.mode || 'auto';
+      if (data.workingMemory) {
+        this.workingMemory = new Map(data.workingMemory);
+      }
+    } catch (e) {
+      console.warn('Failed to parse ConversationState from JSON', e);
+    }
+  }
 }

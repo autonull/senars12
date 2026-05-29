@@ -424,12 +424,20 @@ let toolCallsRecorded: any[] = [];
 const maxLoops = 5;
 
 for (let loop = 0; loop < maxLoops; loop++) {
-  const result = await generateText({
-    model: this.languageModel as any,
-    messages: messages as any,
-    tools: this.createTools() as any,
-    maxOutputTokens: 2048,
-  });
+  let result;
+  try {
+      result = await generateText({
+        model: this.languageModel as any,
+        messages: messages as any,
+        tools: this.createTools() as any,
+        maxOutputTokens: 2048,
+      });
+  } catch (lmError: any) {
+      const errorMsg = `[SYSTEM ERROR] Language model generation failed: ${lmError.message || String(lmError)}`;
+      this.eventBus.emit('error', { error: lmError, context: { stage: 'handleChat-generateText' } });
+      finalResultText += (finalResultText ? '\n' : '') + errorMsg;
+      break;
+  }
 
   if (result.text) {
     finalResultText += (finalResultText ? '\n' : '') + result.text;
