@@ -12,7 +12,6 @@ import type {
   IOMessage,
   Logger,
 } from '../../io/types.js';
-import {ConnectionManager} from '../../io/connection-manager.js';
 import {createLogger} from '../../nar/logger/index.js';
 import {CLIConnection} from '../../io/connections/cli.js';
 import {IRCConnection} from '../../io/connections/irc.js';
@@ -25,10 +24,8 @@ import {registerMCPPrompts} from '../../api/mcp-prompts.js';
 import {registerMCPResources} from '../../api/mcp-resources.js';
 import {registerScenarioAPIs, registerExperimentAPIs, registerSelfAnalysisAPIs, registerRegressionAPIs} from '../../api/agent-api.js';
 import {ScenarioRunner} from '../scenarios/ScenarioRunner.js';
-import {ScoringEngine} from '../scenarios/ScoringEngine.js';
 import {ExperimentRunner} from '../experiments/ExperimentRunner.js';
 import {RegressionTracker} from '../scenarios/RegressionTracker.js';
-import {SelfAnalyzerService as SelfAnalyzer} from '../services/SelfAnalyzerService.js';
 import {ReasoningAboutReasoning} from '../../nar/self/ReasoningAboutReasoning.js';
 import type {NAR} from '../../nar/nar.js';
 import {AutonomousScheduler} from '../AutonomousScheduler.js';
@@ -193,10 +190,10 @@ export class AIAgentConnectionManager {
         conversation,
       };
 
-      const response = await this.agent.chat(message.text, context);
+      const result = await this.agent.process(message.text, context as any);
 
-      if (response) {
-        await connection.send(message.sender, response);
+      if (result.response) {
+        await connection.send(message.sender, result.response);
       }
     } catch (error) {
       this.logger.error(`Error handling message from ${connection.id}`, error as Error);
@@ -234,7 +231,6 @@ export class AIAgentConnectionManager {
       registerMCPResources(adapter, this.nar);
 
       // Initialize scenario/experiment runners
-      const scoringEngine = new ScoringEngine();
       this.scenarioRunner = new ScenarioRunner(this.nar);
       this.experimentRunner = new ExperimentRunner(this.nar, this.scenarioRunner);
       this.regressionTracker = new RegressionTracker();

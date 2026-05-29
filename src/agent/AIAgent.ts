@@ -1,4 +1,4 @@
-import {generateText, tool} from 'ai';
+import {generateText} from 'ai';
 import type {NAR} from '../nar/nar.js';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {createNARSTools, createGeneralTools} from '../nar/tools/adapters/index.js';
@@ -10,7 +10,8 @@ import type {ExperimentRunner} from './experiments/ExperimentRunner.js';
 import type {LMClient} from '../nar/lm/types.js';
 import {adapt} from '../nar/lm/adapters/index.js';
 import {EventBus} from '../nar/types/events.js';
-import {Belief, TurnAction} from './BotContext.js';
+import {Belief} from './BotContext.js';
+import {inputProcessor} from '../nar/task/input.js';
 
 export class AIAgent {
 private readonly nar?: NAR;
@@ -134,7 +135,7 @@ Accepted input:
     return [...new Set(matches)];
   }
 
-  private buildCognitiveContext(conversation?: ConversationState): string {
+  private buildCognitiveContext(_conversation?: ConversationState): string {
     if (!this.nar) return '';
 
     const attention = this.nar.attentionReport();
@@ -173,7 +174,6 @@ Accepted input:
   }
 
   async chat(input: string, context: {sender: string; connectionType: string; conversation: ConversationState}): Promise<string> {
-    const startTime = Date.now();
     await this.episodicMemory?.log('input', input, {
       sender: context.sender,
       channel: context.connectionType,
@@ -323,7 +323,14 @@ return 'normal';
 }
 
 private classify(input: string): { primary: 'narsese' | 'chat' | 'reason'; confidence: number; signals: string[] } {
-const isNarsese = input.includes('-->') || input.includes('?') || input.startsWith('(');
+let isNarsese = false;
+try {
+  inputProcessor.process(input);
+  isNarsese = true;
+} catch {
+  isNarsese = false;
+}
+
 const isReasoning = input.toLowerCase().includes('why') ||
 input.toLowerCase().includes('how') ||
 input.toLowerCase().includes('therefore');
@@ -343,20 +350,39 @@ response: 'NAR not initialized',
 error: 'NAR engine not available'
 };
 }
-
+const startTime = Date.now();
 try {
 const steps = context?.reasoningDepth ?? 5;
+const isGoal = input.endsWith('!');
+const isQuestion = input.endsWith('?');
+
+let response = '';
+
+if (isGoal) {
+  await this.nar.input(input, 'goal');
+  response = `GOAL: ${input}`;
+} else if (isQuestion) {
+  const cleanQ = input.replace(/[?!.]+$/, '');
+  const beliefs = this.nar.getBeliefs();
+  const match = beliefs.find((b: any) => b.term.toString().includes(cleanQ.split('-->')[0] ?? cleanQ));
+  response = match ? `Answer: ${match.term.toString()} f=${match.truth?.f.toFixed(2)} c=${match.truth?.c.toFixed(2)}` : `No answer for: ${input}`;
+} else {
+  const clean = input.replace(/[?!.]+$/, '');
+  await this.nar.input(clean, 'belief');
+  const derived = await this.nar.run(steps);
+  response = `+ ${clean} │ derived ${derived}`;
+}
 
 return {
 success: true,
-response: `Processed: ${input}`,
+response,
 reasoning: {
 steps,
 newBeliefs: [],
 trace: []
 },
 metrics: {
-durationMs: 0,
+durationMs: Date.now() - startTime,
 cycleCount: this.cycleCount,
 eventCount: 0
 }
@@ -379,32 +405,82 @@ try {
 const history = (context as any)?.conversation ? (context as any).conversation.getHistory(20) : [];
 const cognitiveContext = this.nar && (context as any)?.conversation ? this.buildCognitiveContext((context as any).conversation) : undefined;
 
-const messages: {role: 'user' | 'assistant' | 'system'; content: string}[] = [
+const messages: {role: 'user' | 'assistant' | 'system' | 'tool'; content: string | any[]}[] = [
 {role: 'system', content: this.buildInstructions()},
 ...(cognitiveContext ? [{role: 'system' as const, content: `## Current Cognitive State\n${cognitiveContext}`}] : []),
 ...history.map((h: any) => ({role: h.role, content: h.content})),
 {role: 'user', content: input},
 ];
 
-const result = await generateText({
-model: this.languageModel as any,
-messages,
-tools: this.createTools() as any,
-maxOutputTokens: 2048,
-});
+let finalResultText = '';
+let toolCallsRecorded: any[] = [];
+const maxLoops = 3;
 
-if ((context as any)?.conversation) {
+for (let loop = 0; loop < maxLoops; loop++) {
+  const result = await generateText({
+    model: this.languageModel as any,
+    messages: messages as any,
+    tools: this.createTools() as any,
+    maxOutputTokens: 2048,
+  });
+
+  if (result.text) {
+    finalResultText += (finalResultText ? '\n' : '') + result.text;
+  }
+
+  if (!result.toolCalls || result.toolCalls.length === 0) {
+    break;
+  }
+
+  const toolResults = [];
+  messages.push({
+    role: 'assistant',
+    content: result.toolCalls.map(tc => ({
+        type: 'tool-call',
+        toolName: tc.toolName,
+        toolCallId: tc.toolCallId,
+        args: (tc as any).args
+    })) as any
+  });
+
+  for (const tc of result.toolCalls) {
+    toolCallsRecorded.push(tc);
+
+    // Execute tool explicitly to allow NARS to run properly in loops
+    let tcResult: any;
+    if (tc.toolName.startsWith('nar_')) {
+        const tools = this.createTools();
+        if ((tools as any)[tc.toolName]) {
+            tcResult = await (tools as any)[tc.toolName].execute((tc as any).args, {} as any);
+        }
+    }
+
+    toolResults.push({
+      type: 'tool-result',
+      toolCallId: tc.toolCallId,
+      toolName: tc.toolName,
+      result: tcResult || { success: true }
+    });
+  }
+
+  messages.push({
+    role: 'tool',
+    content: toolResults as any
+  });
+}
+
+if ((context as any)?.conversation && finalResultText) {
 (context as any).conversation.addMessage({
 role: 'assistant',
-content: result.text,
+content: finalResultText,
 timestamp: Date.now(),
 });
 }
 
 return {
 success: true,
-response: result.text,
-actions: result.toolCalls?.map(tc => ({
+response: finalResultText || 'No response generated.',
+actions: toolCallsRecorded.map(tc => ({
 type: 'tool',
 name: tc.toolName,
 data: (tc as any).args
@@ -469,7 +545,7 @@ eventCount: 0
 };
 }
 
-private async recordTurn(success: boolean): Promise<void> {
+private async recordTurn(_success: boolean): Promise<void> {
 // Self-analysis integration point
 }
 }
