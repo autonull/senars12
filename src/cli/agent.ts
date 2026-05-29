@@ -1,9 +1,9 @@
 /**
- * SeNARS CLI REPL — Pipe-mode interactive shell
+ * SeNARS Agent Connections — Multi-channel agent orchestrator
  */
 
 import {AIAgent} from '../agent/AIAgent.js';
-import {AIAgentConnectionManager} from '../agent/connections/index.js';
+import {AIAgentConnectionManager, createConnectionConfigsFromEnv} from '../agent/connections/index.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {setupDefaultLMClient} from '../nar/lm/defaults.js';
@@ -12,7 +12,7 @@ import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
 import {detectCapabilities} from '../agent/BotContext.js';
 
-const logger = createLogger({scope: 'cli'});
+const logger = createLogger({scope: 'cli:agent'});
 
 async function main() {
   const registry = createSeNARSRegistry();
@@ -70,21 +70,19 @@ async function main() {
     logger,
   });
 
-  await connectionManager.addConnections([
-    {
-      id: 'cli-main',
-      type: 'cli',
-      enabled: true,
-      config: {
-        name: 'CLI'
-      }
-    }
-  ]);
+  // Pull connections from environment configuration (e.g. CLI, IRC, WebSocket)
+  const connectionConfigs = createConnectionConfigsFromEnv();
 
+  if (connectionConfigs.length === 0) {
+      logger.warn('No connections enabled in environment configuration. The agent will run idly.');
+  }
+
+  await connectionManager.addConnections(connectionConfigs);
   await connectionManager.start();
 
-  logger.info(`CLI mode started. Interaction relies on AIAgent cognitive loop.`);
+  logger.info(`SeNARS Agent mode started.`);
   logger.info(`Mode: ${capabilities.mode}`);
+  logger.info(`Active Connections: ${connectionConfigs.map(c => c.type).join(', ')}`);
 }
 
 main().catch(err => {

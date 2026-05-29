@@ -67,6 +67,7 @@ export class AIAgentConnectionManager {
   private selfAnalyzer?: ReasoningAboutReasoning;
   private regressionTracker?: RegressionTracker;
   private connections: Connection[] = [];
+  private conversationStates: Map<string, any> = new Map();
 
   constructor(agent: AIAgent, deps: AIAgentDeps = {}) {
     this.agent = agent;
@@ -159,30 +160,34 @@ export class AIAgentConnectionManager {
   private async handleMessage(connection: Connection, message: IOMessage): Promise<void> {
     this.scheduler?.markUserInput()
     try {
-      this.logger.info(`Message from ${connection.id}: ${message.text.slice(0, 50)}...`);
+      this.logger.info(`Message from ${connection.id} (${message.origin}): ${message.text.slice(0, 50)}...`);
 
-      // TODO: Create conversation state per channel/user
       const {ConversationState} = await import('../ConversationState.js');
-      const botConfig: any = {
-        reasoning: {
-          autoTrigger: true,
-          triggerThreshold: 0.5,
-          triggerCooldown: 3,
-          maxStepsPerTrigger: 5,
-          backgroundReasoning: false,
-          backgroundIntervalMs: 60000,
-          lmDriven: true,
-        },
-        streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
-        conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-        directives: {builtIn: true},
-        nlParsers: {builtIn: true},
-        classifier: {},
-        lmRules: {enabled: true, rules: []},
-        tui: {typingIndicator: false, colors: true, compactMode: false, statusBar: true},
-        prompts: {},
-      };
-      const conversation = new ConversationState(botConfig);
+
+      let conversation = this.conversationStates.get(message.origin);
+      if (!conversation) {
+        const botConfig: any = {
+          reasoning: {
+            autoTrigger: true,
+            triggerThreshold: 0.5,
+            triggerCooldown: 3,
+            maxStepsPerTrigger: 5,
+            backgroundReasoning: false,
+            backgroundIntervalMs: 60000,
+            lmDriven: true,
+          },
+          streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
+          conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
+          directives: {builtIn: true},
+          nlParsers: {builtIn: true},
+          classifier: {},
+          lmRules: {enabled: true, rules: []},
+          tui: {typingIndicator: false, colors: true, compactMode: false, statusBar: true},
+          prompts: {},
+        };
+        conversation = new ConversationState(botConfig);
+        this.conversationStates.set(message.origin, conversation);
+      }
 
       const context = {
         sender: message.sender,
@@ -190,10 +195,21 @@ export class AIAgentConnectionManager {
         conversation,
       };
 
+      // Depending on connection.type (e.g., 'irc' vs 'cli') the agent could inject specific BotProfiles
       const result = await this.agent.process(message.text, context as any);
 
       if (result.response) {
-        await connection.send(message.sender, result.response);
+        // Send back to the channel/sender (IRC targets the channel usually, but base connection uses text target)
+        // Extract channel from origin if IRC. In IRC, messages are sent back to the channel.
+        let target = message.sender;
+        if (connection.type === 'irc') {
+             // origin format: irc:channel:sender
+             const parts = message.origin.split(':');
+             if (parts.length >= 2 && parts[1] !== 'direct' && parts[1] !== undefined) {
+                 target = parts[1];
+             }
+        }
+        await connection.send(target, result.response);
       }
     } catch (error) {
       this.logger.error(`Error handling message from ${connection.id}`, error as Error);

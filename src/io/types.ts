@@ -7,6 +7,7 @@ export type ConnectionState =
 export interface IOMessage {
     readonly id: string;
     readonly source: string;
+    readonly origin: string;
     readonly sender: string;
     readonly text: string;
     readonly timestamp: number;

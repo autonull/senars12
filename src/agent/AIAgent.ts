@@ -67,11 +67,14 @@ this.eventBus = new EventBus();
     return tools;
   }
 
-  private buildInstructions(): string {
+  private buildInstructions(context?: {sender: string; connectionType: string}): string {
     const mode = this.capabilities.mode;
 
+    // Inject persona based on connection if desired
+    const personaContext = context ? `\nYou are interacting via ${context.connectionType.toUpperCase()} with ${context.sender}.` : '';
+
     if (mode === 'full') {
-      return `You are an intelligent assistant with access to a formal reasoning engine (SeNARS).
+      return `You are an intelligent assistant with access to a formal reasoning engine (SeNARS).${personaContext}
 
 ## Capabilities
 - You can suggest logical analysis by including: [REASONING_SUGGESTED: brief reason]
@@ -84,16 +87,18 @@ this.eventBus = new EventBus();
 - Comparisons and contrasts
 - Contradictions or conflicting information
 - Multi-hop inference patterns
+- When requested to use NARS or think logically
 
 ## Response Guidelines
 - Be concise and direct
 - Acknowledge uncertainty when present
 - Don't fabricate facts
-- Use reasoning engine for formal logic, not for conversational chat`;
+- Use reasoning engine for formal logic, not for conversational chat
+- If you call a NARS tool and the output indicates reasoning is required, call the reasoning tools again until you have an answer.`;
     }
 
     if (mode === 'lm-only') {
-      return `You are a helpful conversational AI assistant.
+      return `You are a helpful conversational AI assistant.${personaContext}
 
 ## Capabilities
 - Natural conversation
@@ -106,7 +111,7 @@ this.eventBus = new EventBus();
 - Don't fabricate facts`;
     }
 
-    return `SeNARS Reasoning Engine — Narsese Input Mode
+    return `SeNARS Reasoning Engine — Narsese Input Mode${personaContext}
 
 Accepted input:
 - (<term --> category>.) — Add belief
@@ -187,7 +192,7 @@ Accepted input:
 
     const history = context.conversation.getHistory(20);
     const messages: {role: 'user' | 'assistant' | 'system'; content: string}[] = [
-      {role: 'system', content: this.buildInstructions()},
+      {role: 'system', content: this.buildInstructions(context)},
       ...(cognitiveContext ? [{role: 'system' as const, content: `## Current Cognitive State\n${cognitiveContext}`}] : []),
       ...history.map((h: any) => ({role: h.role, content: h.content})),
       {role: 'user', content: input},
@@ -404,9 +409,10 @@ const startTime = Date.now();
 try {
 const history = (context as any)?.conversation ? (context as any).conversation.getHistory(20) : [];
 const cognitiveContext = this.nar && (context as any)?.conversation ? this.buildCognitiveContext((context as any).conversation) : undefined;
+const typedContext = context as any as {sender: string, connectionType: string, conversation: any};
 
 const messages: {role: 'user' | 'assistant' | 'system' | 'tool'; content: string | any[]}[] = [
-{role: 'system', content: this.buildInstructions()},
+{role: 'system', content: this.buildInstructions(typedContext)},
 ...(cognitiveContext ? [{role: 'system' as const, content: `## Current Cognitive State\n${cognitiveContext}`}] : []),
 ...history.map((h: any) => ({role: h.role, content: h.content})),
 {role: 'user', content: input},
@@ -414,7 +420,8 @@ const messages: {role: 'user' | 'assistant' | 'system' | 'tool'; content: string
 
 let finalResultText = '';
 let toolCallsRecorded: any[] = [];
-const maxLoops = 3;
+// Increased maxLoops to allow more reasoning steps in a single response cycle
+const maxLoops = 5;
 
 for (let loop = 0; loop < maxLoops; loop++) {
   const result = await generateText({
@@ -446,25 +453,25 @@ for (let loop = 0; loop < maxLoops; loop++) {
   for (const tc of result.toolCalls) {
     toolCallsRecorded.push(tc);
 
-    // Execute tool explicitly to allow NARS to run properly in loops
     let tcResult: any;
-    if (tc.toolName.startsWith('nar_') || tc.toolName === 'search_memory' || tc.toolName === 'calculate' || tc.toolName === 'get_recent_episodes') {
-        const tools = this.createTools();
-        const toolInstance = (tools as any)[tc.toolName];
-        if (toolInstance && typeof toolInstance.execute === 'function') {
-            try {
-                tcResult = await toolInstance.execute((tc as any).args ?? {}, {} as any);
-            } catch (e: any) {
-                tcResult = { success: false, error: e.message || String(e) };
-            }
+    const tools = this.createTools();
+    const toolInstance = (tools as any)[tc.toolName];
+
+    if (toolInstance && typeof toolInstance.execute === 'function') {
+        try {
+            tcResult = await toolInstance.execute((tc as any).args ?? {}, {} as any);
+        } catch (e: any) {
+            tcResult = { success: false, error: e.message || String(e) };
         }
+    } else {
+        tcResult = { success: false, error: `Tool ${tc.toolName} not found or not executable` };
     }
 
     toolResults.push({
       type: 'tool-result',
       toolCallId: tc.toolCallId,
       toolName: tc.toolName,
-      result: tcResult || { success: true }
+      result: tcResult
     });
   }
 

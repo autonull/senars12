@@ -28,9 +28,15 @@ export abstract class BaseConnection implements Connection {
     }
 
     protected createMessage(sender: string, text: string, metadata?: Record<string, unknown>): IOMessage {
+        // Build origin string. Default: connectionType:channel:sender
+        // Can be overridden via metadata.origin
+        const channel = metadata?.channel ? String(metadata.channel) : 'direct';
+        const origin = metadata?.origin ? String(metadata.origin) : `${this.type}:${channel}:${sender}`;
+
         return {
             id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
             source: this.id,
+            origin,
             sender,
             text,
             timestamp: Date.now(),
