@@ -80,6 +80,7 @@ this.eventBus = new EventBus();
 - You can suggest logical analysis by including: [REASONING_SUGGESTED: brief reason]
 - You can add beliefs: [BELIEVE: (<term --> category>. :frequency:confidence)]
 - You can ask questions: [QUESTION: (<term --> ?>.)]
+- You have access to your episodic memory and the conversation summary to recall past interactions.
 
 ## When to Use Reasoning
 - Causal questions ("why", "how", "therefore")
@@ -140,7 +141,7 @@ Accepted input:
     return [...new Set(matches)];
   }
 
-  private buildCognitiveContext(_conversation?: ConversationState): string {
+  private async buildCognitiveContext(conversation?: ConversationState): Promise<string> {
     if (!this.nar) return '';
 
     const attention = this.nar.attentionReport();
@@ -175,6 +176,25 @@ Accepted input:
     parts.push(`- Tasks: ${stats.totalTasks}`);
     parts.push(`- Working Memory: ${this.nar.workingMemory.size()}`);
 
+    if (this.episodicMemory) {
+        try {
+            // Pull recent episodes to provide temporal context
+            const episodes = await this.episodicMemory.getEpisodes({ limit: 5 });
+            if (episodes && episodes.length > 0) {
+                parts.push(`\n## Recent Episodic Memories`);
+                for (const ep of episodes) {
+                    parts.push(`- [${new Date(ep.timestamp).toISOString()}] ${ep.type}: ${(ep.content as string).slice(0, 100)}`);
+                }
+            }
+        } catch (e) {
+            // Ignore error fetching episodic memory
+        }
+    }
+
+    if (conversation && conversation.summary) {
+        parts.push(`\n## Conversation Summary\n${conversation.summary}`);
+    }
+
     return parts.join('\n');
   }
 
@@ -188,7 +208,7 @@ Accepted input:
       this.primeAttention(input);
     }
 
-    const cognitiveContext = this.nar ? this.buildCognitiveContext(context.conversation) : undefined;
+    const cognitiveContext = this.nar ? await this.buildCognitiveContext(context.conversation) : undefined;
 
     const history = context.conversation.getHistory(20);
     const messages: {role: 'user' | 'assistant' | 'system'; content: string}[] = [
@@ -215,7 +235,7 @@ Accepted input:
       role: 'assistant',
       content: result.text,
       timestamp: Date.now(),
-    });
+    }, this.lmClient);
 
     this.turnCount++;
 
@@ -408,7 +428,7 @@ return this.handleDefault(input, context);
 const startTime = Date.now();
 try {
 const history = (context as any)?.conversation ? (context as any).conversation.getHistory(20) : [];
-const cognitiveContext = this.nar && (context as any)?.conversation ? this.buildCognitiveContext((context as any).conversation) : undefined;
+const cognitiveContext = this.nar && (context as any)?.conversation ? await this.buildCognitiveContext((context as any).conversation) : undefined;
 const typedContext = context as any as {sender: string, connectionType: string, conversation: any};
 
 const messages: {role: 'user' | 'assistant' | 'system' | 'tool'; content: string | any[]}[] = [
@@ -494,7 +514,7 @@ if ((context as any)?.conversation && finalResultText) {
 role: 'assistant',
 content: finalResultText,
 timestamp: Date.now(),
-});
+}, this.lmClient);
 }
 
 return {
