@@ -13,6 +13,7 @@ export class HTTPConnection extends BaseConnection {
     private server: http.Server | null = null;
     private port: number;
     private apiKeys = new ApiKeyManager();
+    private pendingRequests = new Map<string, (text: string) => void>();
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);
@@ -50,8 +51,14 @@ export class HTTPConnection extends BaseConnection {
         });
     }
 
-    async send(_target: string, _text: string): Promise<void> {
-        this.logger.warn(`send() called on HTTP connection - use respond via request context`);
+    async send(target: string, text: string): Promise<void> {
+        const resolve = this.pendingRequests.get(target);
+        if (resolve) {
+            resolve(text);
+            this.pendingRequests.delete(target);
+        } else {
+            this.logger.warn(`send() called on HTTP connection for unknown target: ${target}`);
+        }
     }
 
     addApiKey(key: string): void {
@@ -100,31 +107,50 @@ export class HTTPConnection extends BaseConnection {
             return;
         }
 
-        const ioMessage = this.createMessage(authApiKey ?? 'anonymous',
+        // Ensure the ID of the HTTP request is used as the target for resolution
+        const requestId = crypto.randomUUID();
+
+        // The target to respond to will be the requestId
+        const ioMessage = this.createMessage(requestId,
             method === 'GET' ? url.searchParams.toString() : JSON.stringify(body),
-            {method, path: url.pathname, query: Object.fromEntries(url.searchParams)});
+            {
+                method,
+                path: url.pathname,
+                query: Object.fromEntries(url.searchParams),
+                channel: 'http',
+                origin: `http:direct:${requestId}`
+            }
+        );
 
         const responsePromise = new Promise<string>(resolve => {
-            const originalHandler = this.messageHandler;
-            this.messageHandler = async (msg: IOMessage): Promise<void> => {
-                res.statusCode = 200;
-                res.end(JSON.stringify({type: 'response', data: msg.text, timestamp: Date.now()}));
-                this.messageHandler = originalHandler;
-                resolve(msg.text);
-            };
+            this.pendingRequests.set(requestId, resolve);
         });
 
         this.handleMessage(ioMessage);
 
         const timeout = setTimeout(() => {
-            if (!res.writableEnded) {
-                res.statusCode = 408;
-                res.end(JSON.stringify({error: {code: 'TIMEOUT', message: 'Handler timeout'}}));
+            if (this.pendingRequests.has(requestId)) {
+                this.pendingRequests.delete(requestId);
+                if (!res.writableEnded) {
+                    res.statusCode = 408;
+                    res.end(JSON.stringify({error: {code: 'TIMEOUT', message: 'Handler timeout'}}));
+                }
             }
         }, 30000);
 
-        await responsePromise.catch(() => {
-        });
-        clearTimeout(timeout);
+        try {
+            const responseText = await responsePromise;
+            clearTimeout(timeout);
+            if (!res.writableEnded) {
+                res.statusCode = 200;
+                res.end(JSON.stringify({type: 'response', data: responseText, timestamp: Date.now()}));
+            }
+        } catch (e) {
+            clearTimeout(timeout);
+            if (!res.writableEnded) {
+                res.statusCode = 500;
+                res.end(JSON.stringify({error: {code: 'INTERNAL_ERROR', message: (e as Error).message}}));
+            }
+        }
     }
 }

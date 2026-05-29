@@ -23,6 +23,7 @@ export class MCPConnection extends BaseConnection {
     private transport: 'stdio' | 'sse' = 'stdio';
     private process: ReturnType<typeof import('child_process').spawn> | null = null;
     private tools: Map<string, { description: string; inputSchema: Record<string, unknown> }> = new Map();
+    private pendingToolCalls = new Map<string, (result: MCPToolResult) => void>();
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);
@@ -86,22 +87,17 @@ export class MCPConnection extends BaseConnection {
                 params: {name, arguments: args},
             };
 
-            const timeout = setTimeout(() => {
-                resolve({
-                    content: [{type: 'text', text: JSON.stringify({error: 'Tool call timeout'})}],
-                    isError: true,
-                });
-            }, 30000);
+            this.pendingToolCalls.set(id, resolve);
 
-            const originalHandler = this.messageHandler;
-            this.messageHandler = async (msg) => {
-                clearTimeout(timeout);
-                this.messageHandler = originalHandler;
-                resolve({
-                    content: [{type: 'text', text: msg.text}],
-                    isError: false,
-                });
-            };
+            const timeout = setTimeout(() => {
+                if (this.pendingToolCalls.has(id)) {
+                    this.pendingToolCalls.delete(id);
+                    resolve({
+                        content: [{type: 'text', text: JSON.stringify({error: 'Tool call timeout'})}],
+                        isError: true,
+                    });
+                }
+            }, 30000);
 
             this.process?.stdin?.write(JSON.stringify(message) + '\n');
         });
@@ -192,7 +188,31 @@ export class MCPConnection extends BaseConnection {
             this.handleMessage(this.createMessage('mcp-client', JSON.stringify({
                 tool: params.name,
                 args: params.arguments
-            }), {toolCall: true}));
+            }), {
+                toolCall: true,
+                origin: 'mcp:tool:mcp-client'
+            }));
+            return;
+        }
+
+        // Handle tool call results returned back to us
+        const id = data.id as string | undefined;
+        if (id && data.result && this.pendingToolCalls.has(id)) {
+            const resolve = this.pendingToolCalls.get(id)!;
+            this.pendingToolCalls.delete(id);
+            const result = data.result as {content: Array<{type: string, text: string}>, isError?: boolean};
+            resolve(result);
+            return;
+        }
+
+        if (id && data.error && this.pendingToolCalls.has(id)) {
+            const resolve = this.pendingToolCalls.get(id)!;
+            this.pendingToolCalls.delete(id);
+            resolve({
+                content: [{type: 'text', text: JSON.stringify(data.error)}],
+                isError: true
+            });
+            return;
         }
     }
 
