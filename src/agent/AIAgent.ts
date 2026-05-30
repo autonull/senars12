@@ -258,46 +258,30 @@ const startTime = Date.now();
 this.eventBus.emit('agent:process:start', { input, context });
 
 try {
-const classification = this.classify(input);
-let result: AgentResult;
+const primary = this.classify(input).primary;
+const result = await (
+    primary === 'narsese' ? this.handleNarsese(input, context) :
+    primary === 'reason' ? this.handleReasoning(input, context) :
+    this.handleChat(input, context)
+);
 
-if (classification.primary === 'narsese') {
-result = await this.handleNarsese(input, context);
-} else if (classification.primary === 'reason') {
-result = await this.handleReasoning(input, context);
-} else {
-result = await this.handleChat(input, context);
-}
+if (context?.reasoningDepth) await this.recordTurn(true);
 
-if (context?.reasoningDepth) {
-await this.recordTurn(true);
-}
-
-this.eventBus.emit('agent:process:complete', {
-result,
-durationMs: Date.now() - startTime
-});
-
+this.eventBus.emit('agent:process:complete', { result, durationMs: Date.now() - startTime });
 this.lastActivity = Date.now();
 this.cycleCount++;
 
 return result;
 } catch (error) {
 this.errorCount++;
-this.eventBus.emit('error', {
-error: error instanceof Error ? error : new Error(String(error)),
-context: { input, stage: 'process' }
-});
+const err = error instanceof Error ? error : new Error(String(error));
+this.eventBus.emit('error', { error: err, context: { input, stage: 'process' } });
 
 return {
 success: false,
 response: '',
-error: error instanceof Error ? error.message : String(error),
-metrics: {
-durationMs: Date.now() - startTime,
-cycleCount: this.cycleCount,
-eventCount: 0
-}
+error: err.message,
+metrics: { durationMs: Date.now() - startTime, cycleCount: this.cycleCount, eventCount: 0 }
 };
 }
 }
