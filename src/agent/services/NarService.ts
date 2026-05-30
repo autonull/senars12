@@ -47,21 +47,12 @@ export class NarService {
         results: Task[];
         count: number
     }> {
-        let all: Task[] = [];
-
-        switch (filter?.type) {
-            case 'belief':
-                all = this.nar.getBeliefs();
-                break;
-            case 'goal':
-                all = this.nar.getGoals();
-                break;
-            case 'question':
-                all = this.nar.getQuestions();
-                break;
-            default:
-                all = [...this.nar.getBeliefs(), ...this.nar.getGoals(), ...this.nar.getQuestions()];
-        }
+        const map = {
+            belief: () => this.nar.getBeliefs(),
+            goal: () => this.nar.getGoals(),
+            question: () => this.nar.getQuestions()
+        };
+        let all: Task[] = filter?.type ? map[filter.type]() : [...this.nar.getBeliefs(), ...this.nar.getGoals(), ...this.nar.getQuestions()];
 
         if (filter?.term) {
             all = all.filter(task => task.term.toString().includes(filter.term!));
@@ -92,11 +83,10 @@ export class NarService {
         uptime: number;
     }> {
         const stats = this.nar.getStatistics();
-        const metrics = this.nar.getMetrics();
         return {
             totalConcepts: stats.totalConcepts,
             totalTasks: stats.totalTasks,
-            derivations: metrics.system.totalDerivations || 0,
+            derivations: this.nar.getMetrics().system.totalDerivations || 0,
             uptime: process.uptime()
         };
     }

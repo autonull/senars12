@@ -92,7 +92,7 @@ export class SelfAnalysisService {
   }
 
   async analyze(): Promise<AnalysisReport> {
-    const successRate = this.state.totalSuccesses / Math.max(1, this.state.totalSuccesses + this.state.totalFailures);
+    const successRate = this.state.totalSuccesses / (this.state.totalSuccesses + this.state.totalFailures || 1);
 
     const concepts = this.nar.listConcepts();
     const beliefs = this.nar.getBeliefs();
@@ -148,7 +148,7 @@ export class SelfAnalysisService {
 
     parts.push(`## Self-Analysis Summary`);
     parts.push(`- Turns: ${this.state.turnCount}`);
-    const successRate = this.state.totalSuccesses / Math.max(1, this.state.totalSuccesses + this.state.totalFailures);
+    const successRate = this.state.totalSuccesses / (this.state.totalSuccesses + this.state.totalFailures || 1);
     parts.push(`- Success Rate: ${(successRate * 100).toFixed(1)}%`);
     parts.push(`- Total Failures: ${this.state.totalFailures}`);
 

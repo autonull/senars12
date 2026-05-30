@@ -14,8 +14,8 @@ export interface CognitiveControllerConfig {
 }
 
 export class CognitiveController {
-  private nar: NAR;
-  private observer: ObserverService;
+  private readonly nar: NAR;
+  private readonly observer: ObserverService;
   private config: Required<CognitiveControllerConfig>;
   private isRunning = false;
   private observationIntervalId?: NodeJS.Timeout;
@@ -23,10 +23,7 @@ export class CognitiveController {
   constructor(nar: NAR, config: CognitiveControllerConfig = {}) {
     this.nar = nar;
     this.observer = new ObserverService();
-    this.config = {
-      enableObservation: config.enableObservation ?? true,
-      observationInterval: config.observationInterval ?? 5000,
-    };
+    this.config = { enableObservation: true, observationInterval: 5000, ...config };
   }
 
   async start(): Promise<void> {
