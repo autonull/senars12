@@ -61,13 +61,9 @@ export class HTTPConnection extends BaseConnection {
         }
     }
 
-    addApiKey(key: string): void {
-        this.apiKeys.add(key);
-    }
+    addApiKey = (key: string): void => this.apiKeys.add(key);
 
-    removeApiKey(key: string): void {
-        this.apiKeys.remove(key);
-    }
+    removeApiKey = (key: string): void => this.apiKeys.remove(key);
 
     private async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
         const url = new URL(req.url || '/', `http://localhost:${this.port}`);

@@ -74,9 +74,8 @@ export class WSConnection extends BaseConnection {
         }
     }
 
-    private broadcast(event: string, data?: Record<string, unknown>): void {
+    private broadcast = (event: string, data?: Record<string, unknown>): void =>
         broadcastToSubscribers(this.eventSubscriptions.get(event), event, data);
-    }
 
     private handleNewClient(ws: WebSocket): void {
         const id = crypto.randomUUID();

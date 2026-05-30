@@ -233,24 +233,20 @@ export async function loadConfig(configPath?: string): Promise<BotFullConfig> {
 /**
  * Deep merge two configurations
  */
-function mergeConfigs(defaults: BotFullConfig, overrides: Partial<BotFullConfig>): BotFullConfig {
+const mergeConfigs = (defaults: BotFullConfig, overrides: Partial<BotFullConfig>): BotFullConfig => {
   const result: Record<string, unknown> = {...defaults};
-
   for (const key of Object.keys(overrides) as (keyof BotFullConfig)[]) {
-    const overrideValue = overrides[key];
-    const defaultValue = defaults[key];
-
+    const [overrideValue, defaultValue] = [overrides[key], defaults[key]];
     if (overrideValue !== undefined) {
-      if (typeof overrideValue === 'object' && typeof defaultValue === 'object' && !Array.isArray(overrideValue)) {
-        result[key] = mergeConfigs(defaultValue as BotFullConfig, overrideValue as Partial<BotFullConfig>);
-      } else {
-        result[key] = overrideValue;
-      }
+      result[key] = (typeof overrideValue === 'object' && typeof defaultValue === 'object' && !Array.isArray(overrideValue))
+        ? mergeConfigs(defaultValue as BotFullConfig, overrideValue as Partial<BotFullConfig>)
+        : overrideValue;
     }
   }
-
   return result as unknown as BotFullConfig;
-}
+};
+
+const parseBoolean = (value: string): boolean => value.toLowerCase() === 'true' || value === '1';
 
 /**
  * Apply environment variable overrides
@@ -260,60 +256,30 @@ function mergeConfigs(defaults: BotFullConfig, overrides: Partial<BotFullConfig>
  * - SENARS_LM_MODEL=claude-sonnet-4
  * - SENARS_REASONING_AUTO_TRIGGER=true
  */
-function applyEnvOverrides(config: BotFullConfig): void {
+const applyEnvOverrides = (config: BotFullConfig): void => {
   const env = process.env;
   
-  // LM overrides
-  if (env.SENARS_LM_ENABLED) {
-    config.capabilities.lm.enabled = parseBoolean(env.SENARS_LM_ENABLED);
-  }
-  if (env.SENARS_LM_MODEL) {
-    config.capabilities.lm.model = env.SENARS_LM_MODEL;
-  }
-  if (env.SENARS_LM_PROVIDER) {
-    config.capabilities.lm.provider = env.SENARS_LM_PROVIDER;
-  }
+  if (env.SENARS_LM_ENABLED) config.capabilities.lm.enabled = parseBoolean(env.SENARS_LM_ENABLED);
+  if (env.SENARS_LM_MODEL) config.capabilities.lm.model = env.SENARS_LM_MODEL;
+  if (env.SENARS_LM_PROVIDER) config.capabilities.lm.provider = env.SENARS_LM_PROVIDER;
   
-  // SeNARS overrides
-  if (env.SENARS_SENARS_ENABLED) {
-    config.capabilities.senars.enabled = parseBoolean(env.SENARS_SENARS_ENABLED);
-  }
+  if (env.SENARS_SENARS_ENABLED) config.capabilities.senars.enabled = parseBoolean(env.SENARS_SENARS_ENABLED);
   
-  // Reasoning overrides
-  if (env.SENARS_REASONING_AUTO_TRIGGER) {
-    config.reasoning.autoTrigger = parseBoolean(env.SENARS_REASONING_AUTO_TRIGGER);
-  }
-  if (env.SENARS_REASONING_TRIGGER_THRESHOLD) {
-    config.reasoning.triggerThreshold = parseFloat(env.SENARS_REASONING_TRIGGER_THRESHOLD);
-  }
+  if (env.SENARS_REASONING_AUTO_TRIGGER) config.reasoning.autoTrigger = parseBoolean(env.SENARS_REASONING_AUTO_TRIGGER);
+  if (env.SENARS_REASONING_TRIGGER_THRESHOLD) config.reasoning.triggerThreshold = parseFloat(env.SENARS_REASONING_TRIGGER_THRESHOLD);
   
-  // Streaming overrides
-  if (env.SENARS_STREAMING_ENABLED) {
-    config.streaming.enabled = parseBoolean(env.SENARS_STREAMING_ENABLED);
-  }
+  if (env.SENARS_STREAMING_ENABLED) config.streaming.enabled = parseBoolean(env.SENARS_STREAMING_ENABLED);
   
-  // TUI overrides
-  if (env.SENARS_TUI_COLORS) {
-    config.tui.colors = parseBoolean(env.SENARS_TUI_COLORS);
-  }
-  if (env.SENARS_TUI_TYPING_INDICATOR) {
-    config.tui.typingIndicator = parseBoolean(env.SENARS_TUI_TYPING_INDICATOR);
-  }
-}
-
-function parseBoolean(value: string): boolean {
-  return value.toLowerCase() === 'true' || value === '1';
-}
+  if (env.SENARS_TUI_COLORS) config.tui.colors = parseBoolean(env.SENARS_TUI_COLORS);
+  if (env.SENARS_TUI_TYPING_INDICATOR) config.tui.typingIndicator = parseBoolean(env.SENARS_TUI_TYPING_INDICATOR);
+};
 
 /**
  * Save configuration to file
  */
-export function saveConfig(config: Partial<BotFullConfig>, configPath?: string): void {
-  const filePath = configPath || process.env.SENARS_CONFIG || 'bot.config.jsonc';
-  const absolutePath = resolve(process.cwd(), filePath);
-  
-  const content = JSON.stringify(config, null, 2);
-  writeFileSync(absolutePath, content, 'utf-8');
-}
+export const saveConfig = (config: Partial<BotFullConfig>, configPath?: string): void => {
+  const absolutePath = resolve(process.cwd(), configPath || process.env.SENARS_CONFIG || 'bot.config.jsonc');
+  writeFileSync(absolutePath, JSON.stringify(config, null, 2), 'utf-8');
+};
 
 export {DEFAULT_CONFIG};

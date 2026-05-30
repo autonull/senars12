@@ -22,117 +22,56 @@ export class PipeOutput {
     private readonly config: PipeOutputConfig;
     private turnCount = 0;
 
-constructor(config: PipeOutputConfig = {}) {
-this.formatter = new OutputFormatter('pipe', config.options ?? {});
-this.config = config;
-}
-
-    formatInput(text: string): string {
-        const formatted = this.formatter.formatInput(text);
-        return formatted;
+    constructor(config: PipeOutputConfig = {}) {
+        this.formatter = new OutputFormatter('pipe', config.options ?? {});
+        this.config = config;
     }
 
-formatResponse(text: string): string {
-if (this.formatter.shouldOutputJson()) {
-return this.formatter.formatMetadata({response: text});
-}
-return this.formatter.formatResponse(text);
-}
+    formatInput = (text: string): string => this.formatter.formatInput(text);
 
-    formatBeliefResult(input: string, derived: number): string {
-        const turn = ++this.turnCount;
-        const meta: TurnMetadata = {
-            turn,
-            type: 'belief',
-            input,
-            derivations: derived,
-        };
-        return this.formatMeta(meta) + `\n< Added: ${input}${derived > 0 ? ` (derived ${derived})` : ''}`;
-    }
+    formatResponse = (text: string): string =>
+        this.formatter.shouldOutputJson() ? this.formatter.formatMetadata({response: text}) : this.formatter.formatResponse(text);
 
-    formatQuestionResult(input: string, derived: number): string {
-        const turn = ++this.turnCount;
-        const meta: TurnMetadata = {
-            turn,
-            type: 'question',
-            input,
-            derivations: derived,
-        };
-        return this.formatMeta(meta) + `\n< ${derived > 0 ? `Derived ${derived} belief(s)` : 'No derivation found'}`;
-    }
+    formatBeliefResult = (input: string, derived: number): string =>
+        this.formatMeta({turn: ++this.turnCount, type: 'belief', input, derivations: derived}) +
+        `\n< Added: ${input}${derived > 0 ? ` (derived ${derived})` : ''}`;
 
-    formatCommandResult(input: string, result: string): string {
-        const turn = ++this.turnCount;
-        const meta: TurnMetadata = {
-            turn,
-            type: 'command',
-            input,
-        };
-        return this.formatMeta(meta) + `\n< ${result}`;
-    }
+    formatQuestionResult = (input: string, derived: number): string =>
+        this.formatMeta({turn: ++this.turnCount, type: 'question', input, derivations: derived}) +
+        `\n< ${derived > 0 ? `Derived ${derived} belief(s)` : 'No derivation found'}`;
 
-    formatChatResult(input: string, response: string, lmAvailable: boolean): string {
-        const turn = ++this.turnCount;
-        const meta: TurnMetadata = {
-            turn,
-            type: 'chat',
-            input,
-            lm: lmAvailable ? 'available' : 'unavailable',
-        };
-        return this.formatMeta(meta) + `\n< ${response}`;
-    }
+    formatCommandResult = (input: string, result: string): string =>
+        this.formatMeta({turn: ++this.turnCount, type: 'command', input}) + `\n< ${result}`;
 
-    formatStats(stats: {beliefs: number; tasks: number; concepts: number}): string {
-        return `< Beliefs: ${stats.beliefs}, Tasks: ${stats.tasks}, Concepts: ${stats.concepts}`;
-    }
+    formatChatResult = (input: string, response: string, lmAvailable: boolean): string =>
+        this.formatMeta({turn: ++this.turnCount, type: 'chat', input, lm: lmAvailable ? 'available' : 'unavailable'}) +
+        `\n< ${response}`;
 
-    formatError(text: string): string {
-        return this.formatter.formatError(text);
-    }
+    formatStats = (stats: {beliefs: number; tasks: number; concepts: number}): string =>
+        `< Beliefs: ${stats.beliefs}, Tasks: ${stats.tasks}, Concepts: ${stats.concepts}`;
 
-    formatQuit(): string {
-        return '< Goodbye.';
-    }
+    formatError = (text: string): string => this.formatter.formatError(text);
 
-    formatInit(): string {
-        if (this.config.options?.noInit) return '';
-        return '< SeNARS ready. Type .help for commands.';
-    }
+    formatQuit = (): string => '< Goodbye.';
 
-    formatMeta(meta: TurnMetadata): string {
-        if (!this.formatter.shouldOutputJson()) return '';
-        return this.formatter.formatMetadata(meta as unknown as Record<string, unknown>);
-    }
+    formatInit = (): string => this.config.options?.noInit ? '' : '< SeNARS ready. Type .help for commands.';
 
-    formatWorkingMemoryOutput(key: string, value: string | null): string {
-        if (value === null) return `< Key "${key}" not found in working memory`;
-        return `< ${key}: ${value}`;
-    }
+    formatMeta = (meta: TurnMetadata): string =>
+        this.formatter.shouldOutputJson() ? this.formatter.formatMetadata(meta as unknown as Record<string, unknown>) : '';
 
-    formatPinResult(key: string, value: string): string {
-        return `< Pinned ${key} = ${value}`;
-    }
+    formatWorkingMemoryOutput = (key: string, value: string | null): string =>
+        value === null ? `< Key "${key}" not found in working memory` : `< ${key}: ${value}`;
 
-    formatUnpinResult(key?: string): string {
-        return `< ${key ? `Unpinned ${key}` : 'Working memory cleared'}`;
-    }
+    formatPinResult = (key: string, value: string): string => `< Pinned ${key} = ${value}`;
 
-    formatRecallAll(entries: Map<string, string>): string {
-        if (entries.size === 0) return '< Working memory is empty';
-        const lines = Array.from(entries.entries()).map(([k, v]) => `< ${k}: ${v}`);
-        return lines.join('\n');
-    }
+    formatUnpinResult = (key?: string): string => `< ${key ? `Unpinned ${key}` : 'Working memory cleared'}`;
 
-    incrementTurn(): number {
-        this.turnCount++;
-        return this.turnCount;
-    }
+    formatRecallAll = (entries: Map<string, string>): string =>
+        entries.size === 0 ? '< Working memory is empty' : Array.from(entries.entries()).map(([k, v]) => `< ${k}: ${v}`).join('\n');
 
-    getTurnCount(): number {
-        return this.turnCount;
-    }
+    incrementTurn = (): number => ++this.turnCount;
 
-    resetTurnCount(): void {
-        this.turnCount = 0;
-    }
+    getTurnCount = (): number => this.turnCount;
+
+    resetTurnCount = (): void => { this.turnCount = 0; };
 }

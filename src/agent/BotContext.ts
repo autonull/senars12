@@ -246,20 +246,16 @@ export interface BotContext {
   events: EventBus;
 }
 
-export function detectCapabilities(lm?: LMClient, seNARS?: NAR): Capabilities {
+export const detectCapabilities = (lm?: LMClient, seNARS?: NAR): Capabilities => {
   const hasLM = !!lm && lm.available !== false;
   const hasSeNARS = !!seNARS;
-  const mode = hasLM && hasSeNARS ? 'full'
-    : hasLM ? 'lm-only'
-    : hasSeNARS ? 'senars-only'
-    : (() => { throw new Error('At least one capability required'); })();
+  if (!hasLM && !hasSeNARS) throw new Error('At least one capability required');
 
   return {
-    hasLM,
-    hasSeNARS,
+    hasLM, hasSeNARS,
     hasStreaming: hasLM && lm!.provider !== undefined,
     hasTools: hasSeNARS && seNARS!.tools !== undefined && seNARS!.tools.list().length > 0,
     hasMemory: hasSeNARS && !!seNARS!.memory,
-    mode,
+    mode: hasLM && hasSeNARS ? 'full' : hasLM ? 'lm-only' : 'senars-only',
   };
-}
+};

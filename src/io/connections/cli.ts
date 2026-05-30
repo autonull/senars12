@@ -74,11 +74,7 @@ export class CLIConnection extends BaseConnection {
         }
     }
 
-    protected override handleMessage(message: IOMessage): void {
-        if (this.messageHandler) {
-            this.messageHandler(message).catch(err => {
-                this.logger.error(`Message handler error`, err as Error);
-            });
-        }
-    }
+    protected override handleMessage = (message: IOMessage): void => {
+        this.messageHandler?.(message).catch(err => this.logger.error(`Message handler error`, err as Error));
+    };
 }

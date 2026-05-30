@@ -368,56 +368,32 @@ signals: [],
 }
 
 private async handleNarsese(input: string, context?: ProcessContext): Promise<AgentResult> {
-if (!this.nar) {
-return {
-success: false,
-response: 'NAR not initialized',
-error: 'NAR engine not available'
-};
-}
+if (!this.nar) return {success: false, response: 'NAR not initialized', error: 'NAR engine not available'};
 const startTime = Date.now();
 try {
-const steps = context?.reasoningDepth ?? 5;
-const isGoal = input.endsWith('!');
-const isQuestion = input.endsWith('?');
-
-let response = '';
-
-if (isGoal) {
-  await this.nar.input(input, 'goal');
-  response = `GOAL: ${input}`;
-} else if (isQuestion) {
-  const cleanQ = input.replace(/[?!.]+$/, '');
-  const beliefs = this.nar.getBeliefs();
-  const match = beliefs.find((b: any) => b.term.toString().includes(cleanQ.split('-->')[0] ?? cleanQ));
-  response = match ? `Answer: ${match.term.toString()} f=${match.truth?.f.toFixed(2)} c=${match.truth?.c.toFixed(2)}` : `No answer for: ${input}`;
-} else {
+  const steps = context?.reasoningDepth ?? 5;
+  let response = '';
   const clean = input.replace(/[?!.]+$/, '');
-  await this.nar.input(clean, 'belief');
-  const derived = await this.nar.run(steps);
-  response = `+ ${clean} │ derived ${derived}`;
-}
 
-return {
-success: true,
-response,
-reasoning: {
-steps,
-newBeliefs: [],
-trace: []
-},
-metrics: {
-durationMs: Date.now() - startTime,
-cycleCount: this.cycleCount,
-eventCount: 0
-}
-};
+  if (input.endsWith('!')) {
+      await this.nar.input(input, 'goal');
+      response = `GOAL: ${input}`;
+  } else if (input.endsWith('?')) {
+      const match = this.nar.getBeliefs().find((b: any) => b.term.toString().includes(clean.split('-->')[0] ?? clean));
+      response = match ? `Answer: ${match.term.toString()} f=${match.truth?.f.toFixed(2)} c=${match.truth?.c.toFixed(2)}` : `No answer for: ${input}`;
+  } else {
+      await this.nar.input(clean, 'belief');
+      const derived = await this.nar.run(steps);
+      response = `+ ${clean} │ derived ${derived}`;
+  }
+
+  return {
+    success: true, response,
+    reasoning: {steps, newBeliefs: [], trace: []},
+    metrics: {durationMs: Date.now() - startTime, cycleCount: this.cycleCount, eventCount: 0}
+  };
 } catch (error) {
-return {
-success: false,
-response: '',
-error: error instanceof Error ? error.message : String(error)
-};
+  return {success: false, response: '', error: error instanceof Error ? error.message : String(error)};
 }
 }
 

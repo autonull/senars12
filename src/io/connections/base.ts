@@ -27,37 +27,21 @@ export abstract class BaseConnection implements Connection {
         this.logger = deps.logger;
     }
 
-    protected createMessage(sender: string, text: string, metadata?: Record<string, unknown>): IOMessage {
-        // Build origin string. Default: connectionType:channel:sender
-        // Can be overridden via metadata.origin
-        const channel = metadata?.channel ? String(metadata.channel) : 'direct';
-        const origin = metadata?.origin ? String(metadata.origin) : `${this.type}:${channel}:${sender}`;
+    protected createMessage = (sender: string, text: string, metadata?: Record<string, unknown>): IOMessage => ({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        source: this.id,
+        origin: metadata?.origin ? String(metadata.origin) : `${this.type}:${metadata?.channel ? String(metadata.channel) : 'direct'}:${sender}`,
+        sender, text, timestamp: Date.now(), metadata,
+    });
 
-        return {
-            id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-            source: this.id,
-            origin,
-            sender,
-            text,
-            timestamp: Date.now(),
-            metadata,
-        };
-    }
-
-    protected isDisconnected(): boolean {
-        return this._state === 'disconnected' || this._state === 'idle';
-    }
+    protected isDisconnected = (): boolean => this._state === 'disconnected' || this._state === 'idle';
 
     private _state: ConnectionState = 'disconnected';
 
-    get state(): ConnectionState {
-        return this._state;
-    }
+    get state(): ConnectionState { return this._state; }
 
     abstract connect(): Promise<void>;
-
     abstract disconnect(reason?: string): Promise<void>;
-
     abstract send(target: string, text: string): Promise<void>;
 
     async reconnect(): Promise<void> {
@@ -66,75 +50,46 @@ export abstract class BaseConnection implements Connection {
         await this.connect();
     }
 
-    onMessage(handler: (message: IOMessage) => Promise<void>): void {
-        this.messageHandler = handler;
-    }
+    onMessage = (handler: (message: IOMessage) => Promise<void>): void => { this.messageHandler = handler; };
+    onStateChange = (handler: (state: ConnectionState, prev: ConnectionState) => void): void => { this.stateChangeHandlers.push(handler); };
+    onError = (handler: (error: ConnectionError) => void): void => { this.errorHandlers.push(handler); };
 
-    onStateChange(handler: (state: ConnectionState, prev: ConnectionState) => void): void {
-        this.stateChangeHandlers.push(handler);
-    }
+    getStatus = (): { state: ConnectionState; messageCount: number; errorCount: number } =>
+        ({ state: this.state, messageCount: this.messageCount, errorCount: this.errorCount });
 
-    onError(handler: (error: ConnectionError) => void): void {
-        this.errorHandlers.push(handler);
-    }
+    reconfigure = async (config: Record<string, unknown>): Promise<void> => { Object.assign(this.config.config, config); };
 
-    getStatus(): { state: ConnectionState; messageCount: number; errorCount: number } {
-        return {
-            state: this.state,
-            messageCount: this.messageCount,
-            errorCount: this.errorCount
-        };
-    }
-
-    async reconfigure(config: Record<string, unknown>): Promise<void> {
-        Object.assign(this.config.config, config);
-    }
-
-    protected setState(value: ConnectionState): void {
+    protected setState = (value: ConnectionState): void => {
         const prev = this._state;
         if (prev !== value) {
             this._state = value;
             this.emit('connection:state', {id: this.id, prev, current: value});
-            for (const handler of this.stateChangeHandlers) {
-                handler(value, prev);
-            }
+            this.stateChangeHandlers.forEach(h => h(value, prev));
         }
-    }
+    };
 
-    protected handleMessage(message: IOMessage): void {
+    protected handleMessage = (message: IOMessage): void => {
         this.messageCount++;
-        if (this.messageHandler) {
-            this.messageHandler(message).catch(err => {
-                this.logger.error(`Message handler error for ${this.id}`, err as Error);
-            });
-        }
-    }
+        this.messageHandler?.(message).catch(err => this.logger.error(`Message handler error for ${this.id}`, err as Error));
+    };
 
-    protected handleError(error: ConnectionError): void {
+    protected handleError = (error: ConnectionError): void => {
         this.errorCount++;
-        for (const handler of this.errorHandlers) {
-            handler(error);
-        }
-    }
+        this.errorHandlers.forEach(h => h(error));
+    };
 
-    protected createError(message: string, code: string, recoverable: boolean, cause?: Error): ConnectionError {
-        return new ConnError(message, this.id, code, recoverable, cause);
-    }
+    protected createError = (message: string, code: string, recoverable: boolean, cause?: Error): ConnectionError =>
+        new ConnError(message, this.id, code, recoverable, cause);
 
-    protected withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
-        return this._withRetry(fn, maxRetries, 0);
-    }
+    protected withRetry = <T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> => this._withRetry(fn, maxRetries, 0);
 
-    private async _withRetry<T>(fn: () => Promise<T>, maxRetries: number, attempt: number): Promise<T> {
+    private _withRetry = async <T>(fn: () => Promise<T>, maxRetries: number, attempt: number): Promise<T> => {
         try {
             return await fn();
         } catch (error) {
-            if (attempt >= maxRetries) {
-                throw error;
-            }
-            const delay = Math.min(100 * Math.pow(2, attempt), 1000);
-            await new Promise(resolve => setTimeout(resolve, delay));
+            if (attempt >= maxRetries) throw error;
+            await new Promise(resolve => setTimeout(resolve, Math.min(100 * Math.pow(2, attempt), 1000)));
             return this._withRetry(fn, maxRetries, attempt + 1);
         }
-    }
+    };
 }
