@@ -21,7 +21,7 @@ export class ChannelStreamer {
   ): Promise<void> {
     const buffered: string[] = [];
     for await (const chunk of stream) {
-      if (chunk.type === 'text' && chunk.content) buffered.push(chunk.content);
+      if (chunk.type === 'text' && chunk?.content) buffered.push(chunk.content);
       else if (chunk.type === 'error') buffered.push(`Error: ${chunk.content}`);
     }
     await connection.respond(buffered.join(''));

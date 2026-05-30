@@ -34,10 +34,8 @@ async function main() {
           await nar.input(input, 'goal');
           console.log(`[GOAL ACCEPTED] ${input}`);
       } else if (input.endsWith('?')) {
-          const match = nar.getBeliefs().find((b: any) => b.term.toString().includes(clean.split('-->')[0] ?? clean));
-          console.log(match
-              ? `[ANSWER] ${match.term.toString()} f=${match.truth?.f.toFixed(2)} c=${match.truth?.c.toFixed(2)}`
-              : `[NO ANSWER] ${input}`);
+          const match = nar.getBeliefs().find((b: { term: { toString: () => string }, truth?: { f: number, c: number } }) => b.term.toString().includes(clean.split('-->')[0] ?? clean));
+          console.log(match ? `[ANSWER] ${match.term.toString()} f=${match.truth?.f.toFixed(2)} c=${match.truth?.c.toFixed(2)}` : `[NO ANSWER] ${input}`);
       } else {
           await nar.input(clean, 'belief');
           const derived = await nar.run(5);

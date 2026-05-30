@@ -148,28 +148,28 @@ export class IRCConnection extends BaseConnection {
         }
     }
 
-    private startQueueDrain = (): void => {
+    private startQueueDrain(): void {
         this.queueTimer = setInterval(() => this.drainQueue(), this.ircConfig.floodProtectionDelay);
-    };
+    }
 
-    private stopQueueDrain = (): void => {
+    private stopQueueDrain(): void {
         if (this.queueTimer) clearInterval(this.queueTimer);
         this.queueTimer = null;
-    };
+    }
 
-    private scheduleJoin = (): void => {
+    private scheduleJoin(): void {
         if (!this.client) return;
         const delay = (this.ircConfig.floodProtectionDelay ?? 1000) * (this.ircConfig.channels.length + 1);
         setTimeout(() => this.ircConfig.channels.forEach(c => this.client?.join(c)), delay);
-    };
+    }
 
-    private scheduleReconnect = (): void => {
+    private scheduleReconnect(): void {
         this.withRetry(() => this.connect()).catch((err) =>
             this.handleError(this.createError('Max reconnect retries exceeded', 'RECONNECT_FAILED', false, err as Error))
         );
-    };
+    }
 
-    private dispose = (): void => {
+    private dispose(): void {
         this.stopQueueDrain();
         this.pendingMessages.clear();
         this.messageQueue = [];
@@ -178,5 +178,5 @@ export class IRCConnection extends BaseConnection {
             this.client.removeAllListeners();
             this.client = null;
         }
-    };
+    }
 }

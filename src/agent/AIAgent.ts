@@ -387,14 +387,15 @@ return this.handleDefault(input, context);
 }
 const startTime = Date.now();
 try {
-const history = (context as any)?.conversation ? (context as any).conversation.getHistory(20) : [];
-const cognitiveContext = this.nar && (context as any)?.conversation ? await this.buildCognitiveContext((context as any).conversation) : undefined;
-const typedContext = context as any as {sender: string, connectionType: string, conversation: any};
+const convContext = context as { conversation?: { getHistory: (n: number) => { role: 'user'|'assistant'|'system'; content: string }[], addMessage: (msg: any, lmClient: any) => void }, sender: string, connectionType: string } | undefined;
+const history = convContext?.conversation ? convContext.conversation.getHistory(20) : [];
+const cognitiveContext = this.nar && convContext?.conversation ? await this.buildCognitiveContext(convContext.conversation as any) : undefined;
+const typedContext = convContext as {sender: string, connectionType: string, conversation: any};
 
 const messages: {role: 'user' | 'assistant' | 'system' | 'tool'; content: string | any[]}[] = [
 {role: 'system', content: this.buildInstructions(typedContext)},
 ...(cognitiveContext ? [{role: 'system' as const, content: `## Current Cognitive State\n${cognitiveContext}`}] : []),
-...history.map((h: any) => ({role: h.role, content: h.content})),
+...history.map(h => ({role: h.role, content: h.content})),
 {role: 'user', content: input},
 ];
 
@@ -412,9 +413,10 @@ for (let loop = 0; loop < maxLoops; loop++) {
         tools: this.createTools() as any,
         maxOutputTokens: 2048,
       });
-  } catch (lmError: any) {
-      const errorMsg = `[SYSTEM ERROR] Language model generation failed: ${lmError.message || String(lmError)}`;
-      this.eventBus.emit('error', { error: lmError, context: { stage: 'handleChat-generateText' } });
+  } catch (lmError: unknown) {
+      const err = lmError instanceof Error ? lmError : new Error(String(lmError));
+      const errorMsg = `[SYSTEM ERROR] Language model generation failed: ${err.message}`;
+      this.eventBus.emit('error', { error: err, context: { stage: 'handleChat-generateText' } });
       finalResultText += (finalResultText ? '\n' : '') + errorMsg;
       break;
   }

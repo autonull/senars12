@@ -96,8 +96,8 @@ try {
 this.summary = await lm.generateText(prompt);
 this.messages = this.messages.slice(-10);
 this.eventBus?.emit('conversation:summarized', { summary: this.summary });
-} catch {
-// Summarization failed, continue without summarizing
+} catch (error) {
+console.warn('Conversation summarization failed:', error);
 }
 }
 

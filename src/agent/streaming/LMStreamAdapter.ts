@@ -30,17 +30,17 @@ export class LMStreamAdapter {
         // Simulate streaming by character/token
         yield* this.simulatedStream(messages, options);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       yield {
         type: 'error',
-        content: String(error),
+        content: error instanceof Error ? error.message : String(error),
         done: true,
       };
     }
   }
 
   private async *nativeStream(messages: Message[], options?: StreamOptions): AsyncIterable<StreamChunk> {
-    const streamFn = this.client.stream ?? this.client.generateStream;
+    const streamFn: ((prompt: string, options?: StreamOptions) => AsyncIterable<{text?: string; content?: string}>) | undefined = this.client.stream ?? this.client.generateStream;
     if (!streamFn) return;
 
     const stream = await streamFn.call(this.client,
