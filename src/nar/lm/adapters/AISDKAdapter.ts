@@ -47,7 +47,9 @@ export class AISDKAdapter implements AISDKLanguageModel {
         finishReason: 'stop' | 'length' | 'content-filter' | 'error';
         usage: {promptTokens: number; completionTokens: number};
     }> {
-        const prompt = options.prompt?.[0]?.content?.[0]?.text ?? '';
+        const prompt = (options.prompt ?? [])
+            .map(m => `${m.role}: ${(m.content ?? []).map(c => c.text ?? '').join('')}`)
+            .join('\n');
         const config: LMConfig = {
             maxTokens: options.maxOutputTokens,
         };

@@ -6,8 +6,8 @@
 
 import type {NAR} from '../../nar/nar.js';
 import type {LMClient} from '../../nar/lm/types.js';
-import type {Term} from '../../nar/terms/types.js';
 import {EventBus} from '../../nar/types/events.js';
+import {findConflicts, termOverlap, countContradictions as countContradictionsImpl} from './conflict-utils.js';
 
 export type CognitiveState = 'normal' | 'confused' | 'bored' | 'overloaded' | 'idle';
 export type CognitiveAction = 'continue' | 'resolve-conflicts' | 'explore' | 'consolidate' | 'suspend';
@@ -41,7 +41,7 @@ export class ObserverService {
   check(nar: NAR): ObserverReport {
     const stats = nar.getStatistics();
     const beliefs = nar.getBeliefs();
-    const contradictions = this.countContradictions(beliefs);
+    const contradictions = countContradictionsImpl(beliefs);
     const metrics = nar.getMetrics();
     const derivationsPerSecond = metrics.throughput?.derivationsPerSecond ?? 0;
 
@@ -152,7 +152,7 @@ idle: 'idle - not running'
 
   reportConflicts(nar: NAR): string {
     const beliefs = nar.getBeliefs();
-    const conflicts = this.findConflicts(beliefs);
+    const conflicts = findConflicts(beliefs);
     if (conflicts.length === 0) return 'No conflicts detected.';
 
     return `I found ${conflicts.length} conflict(s): ` +
@@ -164,7 +164,7 @@ idle: 'idle - not running'
 
   private resolveConflicts(nar: NAR): void {
     const beliefs = nar.getBeliefs();
-    const conflicts = this.findConflicts(beliefs);
+    const conflicts = findConflicts(beliefs);
     for (const conflict of conflicts.slice(0, 5)) {
       const concept = nar.getConcept(conflict.a);
       if (concept) {
@@ -183,7 +183,7 @@ idle: 'idle - not running'
     for (const concept of underconnected) {
       const termStr = concept.term.toString();
       const related = concepts.filter(c =>
-        c !== concept && this.termOverlap(termStr, c.term.toString()),
+        c !== concept && termOverlap(termStr, c.term.toString()),
       ).slice(0, 3);
       for (const r of related) {
         if (!concept.getLinks().some(l => l.concept.term.toString() === r.term.toString())) {
@@ -194,65 +194,5 @@ idle: 'idle - not running'
         }
       }
     }
-  }
-
-  private countContradictions(beliefs: Array<{ term: { toString(): string }; truth?: { f: number; c: number } }>): number {
-    const termMap = new Map<string, Array<{ f: number; c: number }>>();
-    for (const b of beliefs) {
-      if (!b.truth) continue;
-      const key = b.term.toString();
-      const list = termMap.get(key) ?? [];
-      list.push({ f: b.truth.f, c: b.truth.c });
-      termMap.set(key, list);
-    }
-
-    let count = 0;
-    for (const [, truths] of termMap) {
-      for (let i = 0; i < truths.length; i++) {
-        for (let j = i + 1; j < truths.length; j++) {
-          const ti = truths[i];
-          const tj = truths[j];
-          if (ti && tj && Math.abs(ti.f - tj.f) > 0.3) count++;
-        }
-      }
-    }
-    return count;
-  }
-
-  private findConflicts(beliefs: Array<{ term: { toString(): string }; truth?: { f: number; c: number } }>): Array<{ a: Term; b: Term }> {
-    const termMap = new Map<string, Array<{ term: Term; f: number }>>();
-    for (const b of beliefs) {
-      if (!b.truth) continue;
-      const term = b.term as unknown as Term;
-      const key = term.toString();
-      const list = termMap.get(key) ?? [];
-      list.push({ term, f: b.truth.f });
-      termMap.set(key, list);
-    }
-
-    const conflicts: Array<{ a: Term; b: Term }> = [];
-    for (const [, truths] of termMap) {
-      for (let i = 0; i < truths.length; i++) {
-        for (let j = i + 1; j < truths.length; j++) {
-          const ti = truths[i];
-          const tj = truths[j];
-          if (ti && tj && Math.abs(ti.f - tj.f) > 0.3) {
-            conflicts.push({ a: ti.term, b: tj.term });
-          }
-        }
-      }
-    }
-    return conflicts;
-  }
-
-  private termOverlap(a: string, b: string): number {
-    const aWords = new Set(a.toLowerCase().split(/[\s_()\[\]<>\-\/=>]+/).filter(Boolean));
-    const bWords = new Set(b.toLowerCase().split(/[\s_()\[\]<>\-\/=>]+/).filter(Boolean));
-    if (aWords.size === 0 || bWords.size === 0) return 0;
-    let overlap = 0;
-    for (const w of aWords) {
-      if (bWords.has(w)) overlap++;
-    }
-    return overlap / Math.max(aWords.size, bWords.size);
   }
 }

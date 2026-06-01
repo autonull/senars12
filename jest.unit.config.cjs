@@ -12,7 +12,7 @@ module.exports = {
         '^.+\\.tsx?$': ['ts-jest', {useESM: true}]
     },
     testMatch: ['**/tests/nar/unit/**/*.test.ts'],
-    testTimeout: 10000,
+    testTimeout: 1000,
     collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'],
     forceExit: true,

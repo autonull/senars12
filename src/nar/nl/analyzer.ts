@@ -1,4 +1,4 @@
-import type {BotContext} from '../../agent/BotContext.js';
+import type {BotContext} from '../../agent/types.js';
 import {termParser} from '../terms/index.js';
 
 export type NLIntentType =

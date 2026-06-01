@@ -27,7 +27,6 @@ export class StatusBarComponent {
       clearInterval(this.interval);
       this.interval = undefined;
     }
-    // Clear the status bar line
     process.stdout.write('\r\x1b[K\n');
   }
   
@@ -35,7 +34,6 @@ export class StatusBarComponent {
     if (!this.visible) return;
     const data = this.getData();
     const bar = buildStatusBar(data, this.config);
-    // Write status bar at cursor position
     process.stdout.write(`\r\x1b[K${bar}\n`);
   }
   

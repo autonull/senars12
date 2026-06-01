@@ -1,8 +1,7 @@
 /**
  * Connection Adapters for AIAgent
- * 
+ *
  * Bridges the gap between AIAgent and connection adapters.
- * This is the key integration for Phase 2 of AI.md plan.
  */
 
 import type {AIAgent} from '../AIAgent.js';
@@ -29,6 +28,7 @@ import {RegressionTracker} from '../scenarios/RegressionTracker.js';
 import {ReasoningAboutReasoning} from '../../nar/self/ReasoningAboutReasoning.js';
 import type {NAR} from '../../nar/nar.js';
 import {AutonomousScheduler} from '../AutonomousScheduler.js';
+import {makeDefaultBotConfig} from '../../config/defaults.js';
 
 export interface ConnectionAdapterConfig {
   id: string;
@@ -51,10 +51,6 @@ export interface AIAgentDeps {
   };
 }
 
-/**
- * Creates connection adapters for AIAgent
- * Handles all connection types: CLI, IRC, WebSocket, HTTP, MCP
- */
 export class AIAgentConnectionManager {
   private readonly agent: AIAgent;
   private readonly nar?: NAR;
@@ -81,23 +77,17 @@ export class AIAgentConnectionManager {
     }
   }
 
-  /**
-   * Broadcast autonomous insights back to active connections
-   */
   private async handleAutonomousInsights(data: { derived: number; insights: any[] }): Promise<void> {
     if (!data.insights || data.insights.length === 0) return;
 
-    const insightText = data.insights.map(i => i.term.toString()).join(', ');
+    const insightText = data.insights.map((i: any) => i.term.toString()).join(', ');
     this.logger.info(`Autonomous reasoning produced ${data.derived} insights: ${insightText}`);
 
-    // Convert insights into a natural language observation using the agent's process
     const prompt = `[SYSTEM BACKGROUND REASONING] You just autonomously reasoned and derived the following logical conclusions: ${insightText}. Briefly share this thought or insight with the active conversations if relevant, or simply state what you realized.`;
 
-    // Broadcast this insight to the last active conversation if available
     if (this.conversationStates.size > 0) {
-        // Find the most recently active conversation origin (for simplicity, we grab the first active or the CLI/IRC main)
         const origins = Array.from(this.conversationStates.keys());
-        const targetOrigin = origins.find(o => o.startsWith('irc:') || o.startsWith('cli:')) || origins[0];
+        const targetOrigin = origins.find((o: string) => o.startsWith('irc:') || o.startsWith('cli:')) || origins[0];
 
         if (targetOrigin !== undefined) {
             const context = {
@@ -110,7 +100,7 @@ export class AIAgentConnectionManager {
                 const result = await this.agent.process(prompt, context as any);
                 if (result.response) {
                     const connectionType = targetOrigin.split(':')[0];
-                    const connection = this.connections.find(c => c.type === connectionType);
+                    const connection = this.connections.find((c: Connection) => c.type === connectionType);
 
                     if (connection) {
                         let target = 'system';
@@ -128,9 +118,6 @@ export class AIAgentConnectionManager {
     }
   }
 
-  /**
-   * Add multiple connections from config
-   */
   async addConnections(configs: ConnectionAdapterConfig[]): Promise<void> {
     for (const config of configs) {
       if (!config.enabled) continue;
@@ -144,18 +131,12 @@ export class AIAgentConnectionManager {
     }
   }
 
-  /**
-   * Add a single connection
-   */
   async addConnection(config: ConnectionAdapterConfig): Promise<void> {
     const connection = await this.createConnection(config);
     await connection.connect();
     this.connections.push(connection);
   }
 
-  /**
-   * Create connection instance based on type
-   */
   private async createConnection(config: ConnectionAdapterConfig): Promise<Connection> {
     const connectionConfig: ConnectionConfig = {
       id: config.id,
@@ -195,7 +176,6 @@ export class AIAgentConnectionManager {
         throw new Error(`Unknown connection type: ${config.type}`);
     }
 
-    // Set up message handler
     connection.onMessage(async (message: IOMessage) => {
       await this.handleMessage(connection, message);
     });
@@ -205,22 +185,12 @@ export class AIAgentConnectionManager {
 
   private async createDefaultConversationState(): Promise<any> {
     const {ConversationState} = await import('../ConversationState.js');
-    return new ConversationState({
+    return new ConversationState(makeDefaultBotConfig({
         reasoning: {autoTrigger: true, triggerThreshold: 0.5, triggerCooldown: 3, maxStepsPerTrigger: 5, backgroundReasoning: false, backgroundIntervalMs: 60000, lmDriven: true},
         streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
-        conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-        directives: {builtIn: true},
-        nlParsers: {builtIn: true},
-        classifier: {},
-        lmRules: {enabled: true, rules: []},
-        tui: {typingIndicator: false, colors: true, compactMode: false, statusBar: true},
-        prompts: {},
-    } as any);
+    }));
   }
 
-  /**
-   * Handle incoming message from connection
-   */
   private async handleMessage(connection: Connection, message: IOMessage): Promise<void> {
     this.scheduler?.markUserInput();
     try {
@@ -253,9 +223,6 @@ export class AIAgentConnectionManager {
     }
   }
 
-  /**
-   * Initialize MCP server with all capabilities
-   */
   async initializeMCP(): Promise<void> {
     if (!this.nar) {
       this.logger.warn('NARS not available, skipping MCP initialization');
@@ -276,19 +243,16 @@ export class AIAgentConnectionManager {
 
       const adapter = this.mcpServer.getAdapter();
 
-      // Register NARS tools
       registerNARToolsAsMCP(this.nar, adapter);
       registerAgentAPI({}, adapter);
       registerMCPPrompts(adapter);
       registerMCPResources(adapter, this.nar);
 
-      // Initialize scenario/experiment runners
       this.scenarioRunner = new ScenarioRunner(this.nar);
       this.experimentRunner = new ExperimentRunner(this.nar, this.scenarioRunner);
       this.regressionTracker = new RegressionTracker();
       this.selfAnalyzer = new ReasoningAboutReasoning(this.nar);
 
-      // Register APIs
       registerScenarioAPIs(this.scenarioRunner);
       registerExperimentAPIs(this.experimentRunner);
       registerSelfAnalysisAPIs(this.selfAnalyzer);
@@ -301,9 +265,6 @@ export class AIAgentConnectionManager {
     }
   }
 
-  /**
-   * Start all connections
-   */
   private async loadConversationStates(): Promise<void> {
     try {
         const fs = await import('fs/promises');
@@ -344,14 +305,14 @@ export class AIAgentConnectionManager {
 
   async start(): Promise<void> {
     await this.loadConversationStates();
-    this.scheduler?.start()
+    this.scheduler?.start();
     if (this.mcpServer) {
       await this.initializeMCP();
     }
   }
 
   async stop(): Promise<void> {
-    this.scheduler?.stop()
+    this.scheduler?.stop();
     await this.saveConversationStates();
     for (const connection of this.connections) {
       try {
@@ -365,9 +326,6 @@ export class AIAgentConnectionManager {
     }
   }
 
-  /**
-   * Get connection status
-   */
   getStatus() {
     return {
       connections: Array.from(this.connections).map(c => c.getStatus()),
@@ -376,13 +334,9 @@ export class AIAgentConnectionManager {
   }
 }
 
-/**
- * Factory function to create connection configs from environment
- */
 export function createConnectionConfigsFromEnv(): ConnectionAdapterConfig[] {
   const configs: ConnectionAdapterConfig[] = [];
 
-  // CLI connection (always enabled for testing)
   configs.push({
     id: 'cli',
     type: 'cli',
@@ -390,7 +344,6 @@ export function createConnectionConfigsFromEnv(): ConnectionAdapterConfig[] {
     config: {},
   });
 
-  // IRC connection
   if (process.env.SENARS_IRC_ENABLED === 'true') {
     configs.push({
       id: 'irc-main',
@@ -406,7 +359,6 @@ export function createConnectionConfigsFromEnv(): ConnectionAdapterConfig[] {
     });
   }
 
-  // WebSocket connection
   if (process.env.SENARS_WS_ENABLED === 'true') {
     configs.push({
       id: 'ws-main',
@@ -418,7 +370,6 @@ export function createConnectionConfigsFromEnv(): ConnectionAdapterConfig[] {
     });
   }
 
-  // HTTP connection
   if (process.env.SENARS_HTTP_ENABLED === 'true') {
     configs.push({
       id: 'http-main',
@@ -430,7 +381,6 @@ export function createConnectionConfigsFromEnv(): ConnectionAdapterConfig[] {
     });
   }
 
-  // MCP connection
   if (process.env.SENARS_MCP_ENABLED === 'true') {
     configs.push({
       id: 'mcp',

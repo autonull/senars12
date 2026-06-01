@@ -1,23 +1,25 @@
 /**
- * Unified Test Framework - Comprehensive Tests
+ * Scenario Test Framework - Comprehensive Tests
  */
 
-import {describe, expect, it, beforeEach} from '@jest/globals';
+import {describe, expect, it, beforeEach, jest} from '@jest/globals';
 import {SeNARSFactory} from '../../../src/nar/factory.js';
 import {createSeNARSRegistry} from '../../../src/nar/lm/providers.js';
 import {DEFAULT_NAR_CONFIG} from '../../../src/config/defaults.js';
-import {createUnifiedTestRunner, Tests} from '../../../src/agent/scenarios/UnifiedTestRunner.js';
+import {ScenarioRunner, Scenarios} from '../../../src/agent/scenarios/ScenarioRunner.js';
 
-describe('UnifiedTestRunner: Core Functionality', () => {
-  let runner: ReturnType<typeof createUnifiedTestRunner>;
+jest.setTimeout(30000);
 
-  beforeEach(async () => {
+describe('ScenarioRunner: Core Functionality', () => {
+  let runner: ScenarioRunner;
+
+  beforeEach(() => {
     const registry = createSeNARSRegistry();
     const nar = SeNARSFactory.createDefault({
       ...DEFAULT_NAR_CONFIG,
       providerRegistry: registry,
     });
-    runner = createUnifiedTestRunner(nar);
+    runner = new ScenarioRunner(nar);
   });
 
   it('should run single test successfully', async () => {
@@ -67,7 +69,7 @@ describe('UnifiedTestRunner: Core Functionality', () => {
         { input: '<cat --> animal>.', type: 'belief' }
       ],
       expectation: {
-        contains: ['dog']  // Should not be present
+        contains: ['dog']
       },
       type: 'single',
       category: 'test'
@@ -118,47 +120,47 @@ describe('UnifiedTestRunner: Core Functionality', () => {
   });
 });
 
-describe('UnifiedTestRunner: Predefined Tests', () => {
-  let runner: ReturnType<typeof createUnifiedTestRunner>;
+describe('ScenarioRunner: Predefined Scenarios', () => {
+  let runner: ScenarioRunner;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     const registry = createSeNARSRegistry();
     const nar = SeNARSFactory.createDefault({
       ...DEFAULT_NAR_CONFIG,
       providerRegistry: registry,
     });
-    runner = createUnifiedTestRunner(nar);
+    runner = new ScenarioRunner(nar);
   });
 
   it('should pass transitive inference test', async () => {
-    const result = await runner.run(Tests.transitive(3));
+    const result = await runner.run(Scenarios.transitive(3));
     expect(result.passed).toBe(true);
     expect(result.beliefs.some(b => b.includes('A') && b.includes('C'))).toBe(true);
   });
 
   it('should pass operation misuse check', async () => {
-    const result = await runner.run(Tests.operationMisuse());
+    const result = await runner.run(Scenarios.operationMisuse());
     expect(result.passed).toBe(true);
     expect(result.beliefs.every(b => !b.includes('^'))).toBe(true);
   });
 
   it('should pass premise relevance test', async () => {
-    const result = await runner.run(Tests.premiseRelevance());
+    const result = await runner.run(Scenarios.premiseRelevance());
     expect(result.passed).toBe(true);
     expect(result.derivations).toBeGreaterThan(0);
   });
 });
 
-describe('UnifiedTestRunner: Edge Cases', () => {
-  let runner: ReturnType<typeof createUnifiedTestRunner>;
+describe('ScenarioRunner: Edge Cases', () => {
+  let runner: ScenarioRunner;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     const registry = createSeNARSRegistry();
     const nar = SeNARSFactory.createDefault({
       ...DEFAULT_NAR_CONFIG,
       providerRegistry: registry,
     });
-    runner = createUnifiedTestRunner(nar);
+    runner = new ScenarioRunner(nar);
   });
 
   it('should handle empty steps gracefully', async () => {
@@ -187,7 +189,6 @@ describe('UnifiedTestRunner: Edge Cases', () => {
       category: 'test'
     });
 
-    // Should not crash, may pass or fail based on error handling
     expect(result.testId).toBe('invalid');
   });
 
@@ -205,7 +206,7 @@ describe('UnifiedTestRunner: Edge Cases', () => {
     });
 
     expect(result.trajectory.length).toBe(2);
-    expect(result.trajectory[0].step).toBe(0);
-    expect(result.trajectory[1].step).toBe(1);
+    expect(result.trajectory[0]!.step).toBe(0);
+    expect(result.trajectory[1]!.step).toBe(1);
   });
 });

@@ -17,7 +17,7 @@ module.exports = {
     collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'],
     transformIgnorePatterns: ['node_modules/'],
-    testTimeout: 2000,
+    testTimeout: 1000,
     forceExit: true,
     detectOpenHandles: false,
     cache: true

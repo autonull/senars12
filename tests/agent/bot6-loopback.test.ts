@@ -1,9 +1,9 @@
 import {describe, it, expect} from '@jest/globals';
-import {PipelineEventEmitter} from '../../src/agent/BotContext.js';
+import {EventBus} from '../../src/nar/types/events.js';
 
 describe('BOT6 Loop-Back', () => {
   it('should have pipeline with loop-back support', () => {
-    const emitter = new PipelineEventEmitter();
+    const emitter = new EventBus();
     
     const events: string[] = [];
     
@@ -23,7 +23,7 @@ describe('BOT6 Loop-Back', () => {
   });
 
   it('should support event subscription and emission', () => {
-    const emitter = new PipelineEventEmitter();
+    const emitter = new EventBus();
     let eventCount = 0;
     
     emitter.on('classify:result', () => { eventCount++; });

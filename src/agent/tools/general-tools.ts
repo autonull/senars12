@@ -1,1 +1,0 @@
-export {createGeneralTools as generalTools} from '../../nar/tools/adapters/index.js';

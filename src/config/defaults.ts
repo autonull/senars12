@@ -1,8 +1,6 @@
-/**
- * Shared default configurations for SeNARS entry points
- */
-
 import type {NARConfig} from '../nar/nar.js';
+import type {AppConfig, BotConfig, BotProfile} from './schema.js';
+import {appConfigSchema, botConfigSchema, botProfileSchema} from './schema.js';
 
 export const DEFAULT_NAR_CORE_CONFIG: Partial<NARConfig> = {
     maxConcepts: 100,
@@ -14,24 +12,9 @@ export const DEFAULT_NAR_CONFIG: Partial<NARConfig> = {
     enableLMRules: true,
 } as const;
 
-export const DEFAULT_BOT_CONFIG = {
-    auth: {mode: 'open' as 'open' | 'auth'},
-    degradation: {
-        lmHealthCheckInterval: 30000,
-        fallbackEnabled: true,
-    },
-    channel: {defaultType: 'irc' as const},
-    conversation: {maxHistoryPerUser: 20, maxAgeMs: 3600000},
-    agenticLoop: {
-        reasoningStepsPerWake: 5,
-        wakeupIntervalMs: 60000,
-        sleepIntervalMs: 1000,
-        enableLMRules: true,
-        effortLevel: 0.3,
-    },
-    responseInterpreter: {
-        enabled: true,
-        autoBelieveNarsese: true,
-        autoExecuteTools: true,
-    },
-} as const;
+export const DEFAULT_BOT_CONFIG: BotConfig = botConfigSchema.parse({});
+export const DEFAULT_PROFILE: BotProfile = botProfileSchema.parse({});
+export const DEFAULT_APP_CONFIG: AppConfig = appConfigSchema.parse({});
+
+export const makeDefaultBotConfig = (overrides?: Partial<BotConfig>): BotConfig =>
+    botConfigSchema.parse(overrides ?? {});

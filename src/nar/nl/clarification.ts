@@ -2,7 +2,7 @@ import {generateObject} from 'ai';
 import type {LanguageModel} from 'ai';
 import {ClarificationSchema, type ClarificationResult} from '../nl/schemas.js';
 import type {Ambiguity} from '../nl/analyzer.js';
-import type {BotContext} from '../../agent/BotContext.js';
+import type {BotContext} from '../../agent/types.js';
 
 export interface ClarificationRequest {
     question: string;

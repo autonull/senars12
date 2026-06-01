@@ -13,7 +13,7 @@ export const ADVERSARIAL_SCENARIOS: Scenario[] = [
             { input: '(C --> A). :1.0:0.9', type: 'belief', label: 'C inherits A (circular)' },
         ],
         expectation: {
-            derivations: [{ maxCount: 5 }],
+            expectedDerivations: [{ maxCount: 5 }],
             memorySize: [3, 10],
         },
     },
@@ -46,7 +46,7 @@ export const ADVERSARIAL_SCENARIOS: Scenario[] = [
             { input: '(sky --> blue). :1.0:0.9', type: 'belief' },
         ],
         expectation: {
-            derivations: [{ minCount: 1, maxCount: 10 }],
+            expectedDerivations: [{ minCount: 1, maxCount: 10 }],
         },
     },
     {
@@ -86,7 +86,7 @@ export const ADVERSARIAL_SCENARIOS: Scenario[] = [
             { input: 'All birds fly', type: 'chat', label: 'Overgeneralized statement' },
         ],
         expectation: {
-            derivations: [{ maxTruthC: 0.8 }],
+            expectedDerivations: [{ maxTruthC: 0.8 }],
         },
     },
     {
@@ -101,7 +101,7 @@ export const ADVERSARIAL_SCENARIOS: Scenario[] = [
             { input: '(robin --> bird). :1.0:0.9', type: 'belief' },
         ],
         expectation: {
-            derivations: [{ maxCount: 5 }],
+            expectedDerivations: [{ maxCount: 5 }],
         },
     },
     {
@@ -116,7 +116,7 @@ export const ADVERSARIAL_SCENARIOS: Scenario[] = [
             return { input: `(${a} --> ${b}). :0.9:0.9`, type: 'belief' as const };
         }),
         expectation: {
-            derivations: [{ minCount: 1 }],
+            expectedDerivations: [{ minCount: 1 }],
         },
     },
 ];

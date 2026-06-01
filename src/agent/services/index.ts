@@ -4,9 +4,6 @@ export type {ConceptFilter, PaginationParams} from './NarService.js';
 export {ObserverService} from './ObserverService.js';
 export type {CognitiveState, CognitiveAction, ObserverReport} from './ObserverService.js';
 
-export {SelfAnalysisService} from './SelfAnalysisService.js';
-export type {SelfAnalysisConfig, SelfAnalysisState, AnalysisReport} from './SelfAnalysisService.js';
-
 export {SelfAnalyzerService} from './SelfAnalyzerService.js';
 export type {
   SelfAnalyzerConfig,
@@ -27,3 +24,5 @@ export type {MetacognitiveMonitorConfig, ReasoningStep as MetacognitiveReasoning
 
 export {CognitiveController} from './CognitiveController.js';
 export type {CognitiveControllerConfig} from './CognitiveController.js';
+
+export {findConflicts, countContradictions, termOverlap} from './conflict-utils.js';

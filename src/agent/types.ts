@@ -1,92 +1,313 @@
 import type {NAR} from '../nar/nar.js';
-import type {Capabilities, BotConfig, Belief, Message} from './BotContext.js';
+import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import type {LMClient} from '../nar/lm/types.js';
-import type {TurnAction} from './BotContext.js';
+import type {Connection} from '../io/types.js';
+import type {NLAnalysis, Ambiguity} from '../nar/nl/analyzer.js';
+import type {EventBus} from '../nar/types/events.js';
+import type {BotProfile, BotConfig} from '../config/index.js';
+import type {ChannelType} from './ChannelBehavior.js';
 
-export type {BotConfig, Belief, Message};
-export interface AIAgentConfig {
-nar?: NAR;
-episodicMemory?: import('../nar/memory/EpisodicMemory.js').EpisodicMemory;
-provider: 'anthropic' | 'ollama' | 'transformers' | 'custom';
-model?: string;
-instructions?: string | SystemPromptBuilder;
-languageModel?: unknown;
-lmClient?: LMClient;
-config: Partial<BotConfig>;
-capabilities: Capabilities;
+export type {BotConfig, BotProfile} from '../config/index.js';
+export type {CognitiveState, CognitiveAction} from './services/ObserverService.js';
+
+export interface SystemPromptBuilder {
+    (deps: {nar?: NAR; config: BotConfig}): string;
 }
 
-export type SystemPromptBuilder = (deps: {nar?: NAR; config: Partial<BotConfig>}) => string;
-
 export interface CognitiveSnapshot {
-attention: AttentionReport;
-workingBeliefs: Belief[];
-recentDerivations: string[];
-unansweredQuestions: string[];
-activeGoals: string[];
-memoryState: {
-totalConcepts: number;
-totalTasks: number;
-workingMemorySize: number;
-};
+    attention: AttentionReport;
+    workingBeliefs: Belief[];
+    recentDerivations: string[];
+    unansweredQuestions: string[];
+    activeGoals: string[];
+    memoryState: {
+        totalConcepts: number;
+        totalTasks: number;
+        workingMemorySize: number;
+    };
 }
 
 export interface AttentionReport {
-concepts: Array<{term: string; priority: number; urgency?: number}>;
-total: number;
+    concepts: Array<{term: string; priority: number; urgency?: number}>;
+    total: number;
 }
 
 export interface ContextOptions {
-maxConcepts?: number;
-minPriority?: number;
-maxQuestions?: number;
-maxGoals?: number;
-conversation?: import('./ConversationState.js').ConversationState;
+    maxConcepts?: number;
+    minPriority?: number;
+    maxQuestions?: number;
+    maxGoals?: number;
+    conversation?: import('./ConversationState.js').ConversationState;
 }
 
 export interface ConversationContext {
-sender: string;
-connectionType: string;
-conversation: import('./ConversationState.js').ConversationState;
+    sender: string;
+    connectionType: string;
+    conversation: import('./ConversationState.js').ConversationState;
 }
 
 export interface ProcessContext {
-sender?: string;
-channel?: string;
-connectionType?: string;
-reasoningDepth?: number;
-enableLM?: boolean;
-enableNAR?: boolean;
-timeout?: number;
+    sender?: string;
+    channel?: string;
+    connectionType?: string;
+    reasoningDepth?: number;
+    enableLM?: boolean;
+    enableNAR?: boolean;
+    timeout?: number;
+}
+
+export interface AIAgentConfig {
+    nar?: NAR;
+    episodicMemory?: EpisodicMemory;
+    provider: 'anthropic' | 'ollama' | 'transformers' | 'custom';
+    model?: string;
+    instructions?: string | SystemPromptBuilder;
+    lmClient?: LMClient;
+    config: BotConfig;
+    capabilities: Capabilities;
 }
 
 export interface AgentResult {
-success: boolean;
-response: string;
-reasoning?: {
-steps: number;
-newBeliefs: Belief[];
-trace?: unknown[];
-};
-actions?: TurnAction[];
-metrics?: {
-durationMs: number;
-cycleCount: number;
-eventCount: number;
-};
-error?: string;
+    success: boolean;
+    response: string;
+    reasoning?: {
+        steps: number;
+        newBeliefs: Belief[];
+        trace?: unknown[];
+    };
+    actions?: TurnAction[];
+    metrics?: {
+        durationMs: number;
+        cycleCount: number;
+        eventCount: number;
+    };
+    error?: string;
 }
 
-export type CognitiveState = 'normal' | 'confused' | 'bored' | 'overloaded' | 'idle';
+export type BotMode = 'auto' | 'chat' | 'reason';
+export type Intent = 'chat' | 'reason' | 'query' | 'goal' | 'command' | 'narsese';
 
-export type CognitiveAction = 'continue' | 'resolve-conflicts' | 'explore' | 'consolidate' | 'suspend';
-
-export interface CognitiveObserverReport {
-state: CognitiveState;
-action: CognitiveAction;
-contradictions: number;
-totalConcepts: number;
-memoryPressure: number;
-derivationsPerSecond: number;
-suggestion?: string;
+export interface TurnState {
+    input: IOMessage;
+    classification: InputClassification;
+    reasoningTriggered: boolean;
+    reasoningResult?: DerivationResult;
+    queryAnswer?: string;
+    lmResponse?: string;
+    lmSuggestsReasoning: boolean;
+    directives: LMDirective[];
+    directiveResults: DirectiveResult[];
+    toolResults: ToolResult[];
+    commandResponses: string[];
+    actions: TurnAction[];
+    finalResponse: string;
+    error?: Error;
+    passCount: number;
+    needsLoopBack: boolean;
+    loopBackType?: string;
+    reasoningDepthOverride?: number;
+    nlAnalysis?: NLAnalysis;
 }
+
+export interface DerivationResult {
+    steps: number;
+    beliefs: Belief[];
+    newBeliefs: Belief[];
+    trace?: unknown[];
+}
+
+export interface Belief {
+    term: string;
+    truth?: {frequency: number; confidence: number};
+}
+
+export interface LMDirective {
+    type: 'believe' | 'question' | 'tool_call' | 'reasoning_depth' | string;
+    name: string;
+    content: string;
+    raw: string;
+    _def?: DirectiveDef;
+}
+
+export interface DirectiveResult {
+    directive: LMDirective;
+    success: boolean;
+    result?: unknown;
+    error?: string;
+    derivationSteps?: number;
+}
+
+export interface TurnAction {
+    type: 'believe' | 'question' | 'goal' | 'tool_call';
+    content: string;
+    result?: string;
+}
+
+export interface ToolResult {
+    name: string;
+    result?: unknown;
+    error?: string;
+}
+
+export interface TurnMetrics {
+    startTime: number;
+    stages: Map<string, {durationMs: number; error?: string}>;
+}
+
+export interface IOMessage {
+    id: string;
+    source: string;
+    sender: string;
+    text: string;
+    timestamp: number;
+    metadata?: Record<string, unknown>;
+}
+
+export interface Message {
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    timestamp: number;
+    metadata?: Record<string, unknown>;
+}
+
+export interface ConversationStateData {
+    messages: Message[];
+    summary?: string;
+    workingMemory: Map<string, unknown>;
+    reasoningArtifacts: ReasoningArtifact[];
+    pinnedBeliefs: Set<string>;
+    lastClassification?: InputClassification;
+    mode: BotMode;
+    addMessage(msg: Message, lm?: LMClient): void;
+    getHistory(limit?: number): Message[];
+    getContextForLM(maxConcepts: number, nar: NAR): string;
+    set(key: string, value: unknown): void;
+    get<T>(key: string): T | undefined;
+    addArtifact(artifact: ReasoningArtifact): void;
+    getRecentArtifacts(limit?: number): ReasoningArtifact[];
+    pin(belief: string): void;
+    unpin(belief: string): void;
+    getPinned(): string[];
+}
+
+export interface ReasoningArtifact {
+    type: 'derivation' | 'tool_result' | 'belief_added' | 'question_answered';
+    content: string;
+    timestamp: number;
+    metadata?: Record<string, unknown>;
+}
+
+export interface InputClassification {
+    primary: Intent;
+    secondary?: Intent;
+    confidence: number;
+    signals: ClassificationSignal[];
+    narseseTerms?: string[];
+}
+
+export interface ClassificationSignal {
+    type: 'keyword' | 'pattern' | 'structure' | 'lm-suggestion' | 'narsese';
+    source: string;
+    intent: Intent;
+    weight: number;
+}
+
+export interface BotResponse {
+    text: string;
+    reasoning?: DerivationResult;
+    actions: TurnAction[];
+    metrics?: TurnMetrics;
+}
+
+export interface Capabilities {
+    hasLM: boolean;
+    hasSeNARS: boolean;
+    hasStreaming: boolean;
+    hasTools: boolean;
+    hasMemory: boolean;
+    mode: 'full' | 'lm-only' | 'senars-only';
+}
+
+export interface ConnectionInfo {
+    id: string;
+    type: ChannelType;
+    sender: string;
+    canonicalId?: string;
+    authId?: string;
+    nick?: string;
+    username?: string;
+    hostmask?: string;
+    respond: (text: string) => Promise<void>;
+    stream: (stream: AsyncIterable<StreamChunk>) => Promise<void>;
+}
+
+export interface StreamChunk {
+    type: 'text' | 'reasoning' | 'tool' | 'error' | 'status';
+    content: string;
+    done: boolean;
+    metadata?: Record<string, unknown>;
+}
+
+export interface BotContext {
+    profile: BotProfile;
+    lm?: LMClient;
+    seNARS?: NAR;
+    connection: ConnectionInfo;
+    conversation: ConversationStateData;
+    turn: TurnState;
+    config: BotConfig;
+    capabilities: Capabilities;
+    metrics: TurnMetrics;
+    events: EventBus;
+}
+
+export interface DirectiveDef {
+    pattern: RegExp;
+    type: string;
+    extract: (match: RegExpMatchArray) => {name?: string; content: string};
+    execute: (nar: NAR, content: string, name?: string) => Promise<unknown>;
+    triggersLoopBack: boolean;
+}
+
+export interface NLParserDef {
+    name: string;
+    match: (text: string) => boolean;
+    translate: (text: string) => string | null;
+}
+
+export interface ClassificationSignalDef {
+    type: 'keyword' | 'pattern' | 'structure' | 'narsese';
+    pattern: RegExp;
+    intent: Intent;
+    weight: number;
+}
+
+export interface LMRuleConfigEntry {
+    id: string;
+    enabled: boolean;
+    priority?: number;
+    instruction?: string;
+    context?: unknown[];
+    maxCallsPerTurn?: number;
+    budget?: number;
+}
+
+export interface LMRuleDef {
+    id: string;
+    context: unknown[];
+    instruction: string;
+    prompt?: string;
+}
+
+export type ContextFragment = (nar: NAR, ctx?: unknown) => string;
+
+export interface AgentMetrics {
+    cycleCount: number;
+    isRunning: boolean;
+    errorCount: number;
+    lastActivity: number;
+    narMetrics?: unknown;
+    conversationMetrics?: unknown;
+}
+
+export type {Connection, Ambiguity};

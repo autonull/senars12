@@ -3,7 +3,8 @@ import type {EpisodicMemory} from '../../nar/memory/EpisodicMemory.js';
 import {AIAgent} from '../AIAgent.js';
 import type {ConversationState} from '../ConversationState.js';
 import type {Scenario} from '../scenarios/types.js';
-import type {BotConfig, Capabilities} from '../BotContext.js';
+import type {Capabilities} from '../types.js';
+import {makeDefaultBotConfig} from '../../config/defaults.js';
 import {SeNARSFactory} from '../../nar/index.js';
 import {createSeNARSRegistry} from '../../nar/lm/providers.js';
 import {ScenarioRunner} from '../scenarios/ScenarioRunner.js';
@@ -76,7 +77,7 @@ export class BenchmarkRunner {
       mode: 'full',
     };
 
-    const botConfig: BotConfig = {
+    const botConfig = makeDefaultBotConfig({
       reasoning: {
         autoTrigger: true,
         triggerThreshold: 0.5,
@@ -87,14 +88,7 @@ export class BenchmarkRunner {
         lmDriven: true,
       },
       streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
-      conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
-      directives: {builtIn: true},
-      nlParsers: {builtIn: true},
-      classifier: {},
-      lmRules: {enabled: true, rules: []},
-      tui: {typingIndicator: false, colors: true, compactMode: false, statusBar: true},
-      prompts: {},
-    };
+    });
 
     const agent = new AIAgent({
       nar,

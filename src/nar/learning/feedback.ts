@@ -1,6 +1,6 @@
 import type {Task} from '../types/index.js';
 import type {TranslationCache} from '../nl/translator.js';
-import type {DerivationResult} from '../../agent/BotContext.js';
+import type {DerivationResult} from '../../agent/types.js';
 import type {RLFPLearner} from '../rlfp/RLFPLearner.js';
 import {isTautology, isOperation, getSubject, getPredicate} from '../terms/index.js';
 

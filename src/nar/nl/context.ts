@@ -1,5 +1,5 @@
 import type {NAR} from '../nar.js';
-import type {BotContext} from '../../agent/BotContext.js';
+import type {BotContext} from '../../agent/types.js';
 import type {TranslationCacheEntry} from './translator.js';
 
 export interface ContextOpts {

@@ -46,8 +46,8 @@ async function runDemo() {
     console.log('Running demo mode...\n');
 
     const config = await loadConfigFromEnv();
-    console.log(`Configuration loaded: ${config.name} v${config.version}`);
-    console.log(` LM Provider: ${config.lm.provider}`);
+    console.log(`Configuration loaded: ${config.profile.name} (${config.profile.personality})`);
+    console.log(` LM Provider: ${config.capabilities.lm.provider}`);
     console.log(` Max Concepts: ${config.core.maxConcepts}\n`);
 
     const nar = SeNARSFactory.createDefault({

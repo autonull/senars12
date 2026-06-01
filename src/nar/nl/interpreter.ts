@@ -1,5 +1,5 @@
 import type {NAR} from '../nar.js';
-import type {DerivationResult, Belief} from '../../agent/BotContext.js';
+import type {DerivationResult, Belief} from '../../agent/types.js';
 
 interface DerivationSummary {
     conclusion: string;

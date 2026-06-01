@@ -1,6 +1,6 @@
 import type {NAR} from '../nar/nar.js';
 import type {LMClient} from '../nar/lm/types.js';
-import type {BotConfig, BotMode, Message, ReasoningArtifact} from './BotContext.js';
+import type {BotConfig, BotMode, Message, ReasoningArtifact} from './types.js';
 import {EventBus} from '../nar/types/events.js';
 
 export class ConversationState {
