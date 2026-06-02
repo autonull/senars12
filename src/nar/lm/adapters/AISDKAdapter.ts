@@ -98,9 +98,12 @@ export class AISDKAdapter implements AISDKLanguageModel {
 
     async doStream(options: Parameters<AISDKLanguageModel['doStream']>[0]) {
         const result = await this.doGenerate(options);
+        const text = result.content[0]?.text ?? '';
         const stream = new ReadableStream({
             start(controller) {
-                controller.enqueue({type: 'text', text: result.content[0]?.text ?? ''});
+                if (text) {
+                    controller.enqueue({type: 'text-delta' as const, id: '1', text});
+                }
                 controller.close();
             }
         });

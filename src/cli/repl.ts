@@ -61,7 +61,7 @@ async function main() {
         conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
     });
 
-    const capabilities: Capabilities = {hasLM: true, hasSeNARS: true, hasStreaming: false, hasTools: true, hasMemory: true, mode: 'full'};
+    const capabilities: Capabilities = {hasLM: true, hasSeNARS: true, hasStreaming: true, hasTools: true, hasMemory: true, mode: 'full'};
 
     const agent = new AIAgent({
         nar,

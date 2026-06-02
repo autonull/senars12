@@ -1,4 +1,4 @@
-import {generateText} from 'ai';
+import {generateText, streamText, type CoreMessage} from 'ai';
 import type {NAR} from '../nar/nar.js';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {createNARSTools, createGeneralTools} from '../nar/tools/adapters/index.js';
@@ -314,9 +314,10 @@ Accepted input:
         }
     }
 
-    private async runLM(
+private async runLM(
         messages: {role: 'user' | 'assistant' | 'system' | 'tool'; content: string | any[]}[],
         maxLoops = 5,
+        systemPrompt?: string,
     ): Promise<{text: string; toolCalls: any[]}> {
         if (!this.model) return {text: '', toolCalls: []};
         const tools = this.getTools();
@@ -330,6 +331,7 @@ Accepted input:
                     messages: messages as any,
                     tools: tools as any,
                     maxOutputTokens: 2048,
+                    system: systemPrompt,
                 });
             } catch (lmError) {
                 const err = lmError instanceof Error ? lmError : new Error(String(lmError));
@@ -380,6 +382,86 @@ Accepted input:
         return {text: '', toolCalls: allToolCalls};
     }
 
+    private async* runLMStream(
+        messages: {role: 'user' | 'assistant' | 'system' | 'tool'; content: string | any[]}[],
+        systemPrompt?: string,
+    ): AsyncGenerator<{text: string; toolCalls: any[]}> {
+        if (!this.model) return;
+        const tools = this.getTools();
+        let fullText = '';
+
+        const result = streamText({
+            model: this.model as any,
+            messages: messages as any,
+            tools: tools as any,
+            maxOutputTokens: 2048,
+            system: systemPrompt,
+        });
+
+        for await (const chunk of result.fullStream) {
+            if (chunk.type === 'tool-call') {
+                yield {text: fullText, toolCalls: [chunk]};
+            } else if (chunk.type === 'text-delta') {
+                fullText += (chunk as any).text ?? '';
+                yield {text: fullText, toolCalls: []};
+            } else if (chunk.type === 'text') {
+                fullText += (chunk as any).text ?? '';
+                yield {text: fullText, toolCalls: []};
+            }
+        }
+
+        yield {text: fullText, toolCalls: []};
+    }
+
+    async chatStream(input: string, ctx: {sender: string; connectionType: string; conversation: ConversationState}, onChunk?: (text: string) => void): Promise<string> {
+        const startTime = Date.now();
+        this.eventBus.emit('agent:process:start', {input, context: ctx});
+
+        try {
+            const sender = ctx.sender ?? 'user';
+            const connectionType = ctx.connectionType ?? 'cli';
+            const conversation = ctx.conversation;
+
+            if (this.nar) this.primeAttention(input);
+            await this.episodicMemory?.log('input', input, {sender, channel: connectionType});
+
+            const cognitiveContext = this.nar && conversation ? await this.buildCognitiveContext(conversation) : undefined;
+            const history = conversation ? conversation.getHistory(20) : [];
+
+            const messages: {role: 'user' | 'assistant' | 'system' | 'tool'; content: string | any[]}[] = [
+                ...history.map(h => ({role: h.role, content: h.content})),
+                {role: 'user', content: input},
+            ];
+
+            const systemPrompt = cognitiveContext
+                ? `${this.buildInstructions({sender, connectionType})}\n\n## Current Cognitive State\n${cognitiveContext}`
+                : this.buildInstructions({sender, connectionType});
+
+            let fullResponse = '';
+            for await (const {text, toolCalls} of this.runLMStream(messages, systemPrompt)) {
+                if (onChunk && text) onChunk(text);
+                fullResponse = text;
+            }
+
+            await this.episodicMemory?.log('response', fullResponse, {sender, channel: connectionType});
+            if (conversation && fullResponse) {
+                conversation.addMessage({role: 'assistant', content: fullResponse, timestamp: Date.now()}, this.lmClient);
+            }
+            this.turnCount++;
+
+            this.eventBus.emit('agent:process:complete', {result: {response: fullResponse}, durationMs: Date.now() - startTime});
+            this.lastActivity = Date.now();
+            this.cycleCount++;
+
+            return fullResponse || 'No response generated.';
+        } catch (error) {
+            this.errorCount++;
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.eventBus.emit('error', {error: err, context: {input, stage: 'chatStream'}});
+            return `Error: ${err.message}`;
+        }
+    }
+
     private async handleChat(input: string, context?: ProcessContext): Promise<AgentResult> {
         if (!this.model) return this.handleDefault(input, context);
         const startTime = Date.now();
@@ -397,17 +479,20 @@ Accepted input:
             if (this.nar) this.primeAttention(input);
             await this.episodicMemory?.log('input', input, {sender, channel: connectionType});
 
+            const instructions = this.buildInstructions({sender, connectionType});
             const cognitiveContext = this.nar && conversation ? await this.buildCognitiveContext(conversation) : undefined;
             const history = conversation ? conversation.getHistory(20) : [];
 
             const messages: {role: 'user' | 'assistant' | 'system' | 'tool'; content: string | any[]}[] = [
-                {role: 'system', content: this.buildInstructions({sender, connectionType})},
-                ...(cognitiveContext ? [{role: 'system' as const, content: `## Current Cognitive State\n${cognitiveContext}`}] : []),
                 ...history.map(h => ({role: h.role, content: h.content})),
                 {role: 'user', content: input},
             ];
 
-            const {text, toolCalls} = await this.runLM(messages, 5);
+            const systemPrompt = cognitiveContext 
+                ? `${instructions}\n\n## Current Cognitive State\n${cognitiveContext}`
+                : instructions;
+
+            const {text, toolCalls} = await this.runLM(messages, 5, systemPrompt);
 
             await this.episodicMemory?.log('response', text, {sender, channel: connectionType});
 
