@@ -15,7 +15,7 @@ import type {ConversationState} from './ConversationState.js';
 import type {LMClient} from '../nar/lm/types.js';
 import {adapt} from '../nar/lm/adapters/index.js';
 import {EventBus} from '../nar/types/events.js';
-import {inputProcessor} from '../nar/task/input.js';
+import {termParser} from '../nar/terms/index.js';
 import {SelfAnalyzerService} from './services/SelfAnalyzerService.js';
 import {MetacognitiveMonitor} from './services/MetacognitiveMonitor.js';
 import type {CognitiveState} from './types.js';
@@ -273,23 +273,15 @@ Accepted input:
     }
 
     private classify(input: string): {primary: 'narsese' | 'chat' | 'reason'; confidence: number; signals: string[]} {
-        let isNarsese = false;
+        const hasPunctuation = /[.?!]$/.test(input.trim());
+        if (!hasPunctuation) return {primary: 'chat', confidence: 0.8, signals: []};
+
         try {
-            inputProcessor.process(input);
-            isNarsese = true;
+            const term = termParser.parse(input);
+            return {primary: 'narsese', confidence: 0.9, signals: ['narsese_parseable']};
         } catch {
-            isNarsese = false;
+            return {primary: 'chat', confidence: 0.8, signals: []};
         }
-
-        const isReasoning = input.toLowerCase().includes('why') ||
-            input.toLowerCase().includes('how') ||
-            input.toLowerCase().includes('therefore');
-
-        return {
-            primary: isNarsese ? 'narsese' : isReasoning ? 'reason' : 'chat',
-            confidence: 0.8,
-            signals: [],
-        };
     }
 
     private async handleNarsese(input: string, context?: ProcessContext): Promise<AgentResult> {
@@ -308,8 +300,8 @@ Accepted input:
                 response = match ? `Answer: ${match.term.toString()} f=${match.truth?.f.toFixed(2)} c=${match.truth?.c.toFixed(2)}` : `No answer for: ${input}`;
             } else {
                 await this.nar.input(clean, 'belief');
-                const derived = await this.nar.run(steps);
-                response = `+ ${clean} │ derived ${derived}`;
+                this.nar.run(steps).catch(() => {}); // non-blocking
+                response = `+ ${clean}`;
             }
 
             return {

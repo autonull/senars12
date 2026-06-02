@@ -85,7 +85,7 @@ describe('AIAgent', () => {
     expect(agent.getCapabilities()).toBeDefined();
   });
 
-  it.skip('should call nar_believe tool', async () => {
+  it('should call nar_believe tool', async () => {
     // TODO: AI SDK 5 dispatch path bypasses our mock adapter. Restore once
     // AISDKAdapter.doGenerate is reachable from the test's runLM call.
     const registry = createSeNARSRegistry();

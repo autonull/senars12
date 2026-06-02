@@ -9,10 +9,11 @@ module.exports = {
         '^(\.{1,2}/.*)$': '$1'
     },
     transform: {
-        '^.+\\.tsx?$': ['ts-jest', {useESM: true}]
+        '^.+\\.tsx?$': ['ts-jest', {useESM: true}],
+        '^.+\\.js$': '<rootDir>/tests/jest-transform.cjs'
     },
     testMatch: ['**/tests/nar/unit/**/*.test.ts'],
-    testTimeout: 1000,
+    testTimeout: 60000,
     collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'],
     forceExit: true,

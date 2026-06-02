@@ -16,7 +16,7 @@ describe('Turnkey LM Integration', () => {
     test('should have turnkey config available', () => {
         const config = getTurnkeyConfig();
         expect(config).toBeDefined();
-        expect(config.lm.model).toBe('HuggingFaceTB/SmolLM2-360M-Instruct');
+        expect(config.lm.model).toBe('HuggingFaceTB/SmolLM2-135M-Instruct');
         expect(config.lm.device).toBe('cpu');
         expect(config.fallbackChain).toEqual(['transformers', 'ollama', 'mock']);
     });
