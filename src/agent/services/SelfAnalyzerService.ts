@@ -16,6 +16,15 @@ export interface SelfAnalyzerConfig {
   selfCorrectionEnabled?: boolean;
   patternDetectionEnabled?: boolean;
   optimizationEnabled?: boolean;
+  recencyEpisodes?: number;
+}
+
+export interface AgentPolicy {
+  routingWeights: Record<string, number>;
+  toolSelectionBias: Record<string, number>;
+  promptBudget: number;
+  recencyEpisodes: number;
+  updatedAt: number;
 }
 
 export interface InferenceChain {
@@ -248,6 +257,15 @@ export class SelfAnalyzerService {
   private readonly metrics: MetricsCollector | null;
   private readonly optimizer: SelfOptimizer;
   private config: Required<SelfAnalyzerConfig>;
+  private recentRoutes: string[] = [];
+  private recentTools: string[] = [];
+  private policy: AgentPolicy = {
+    routingWeights: {narsese: 1, nl: 1, reason: 1, command: 1, narsese_belief: 1, narsese_question: 1},
+    toolSelectionBias: {},
+    promptBudget: 2048,
+    recencyEpisodes: 20,
+    updatedAt: 0,
+  };
 
   constructor(
     nar: NAR | null,
@@ -263,6 +281,7 @@ export class SelfAnalyzerService {
       selfCorrectionEnabled: config.selfCorrectionEnabled ?? true,
       patternDetectionEnabled: config.patternDetectionEnabled ?? true,
       optimizationEnabled: config.optimizationEnabled ?? true,
+      recencyEpisodes: config.recencyEpisodes ?? 20,
     };
   }
 
@@ -340,6 +359,73 @@ export class SelfAnalyzerService {
       .catch((e) => {
         console.warn(`applyOptimizations failed: ${e}`);
       });
+  }
+
+  /**
+   * Record the most recent route kind (Phase 8, invariant I10).
+   * Used to bias routing weights toward the dominant pattern.
+   */
+  recordRoute(kind: string): void {
+    const cap = this.config.recencyEpisodes;
+    this.recentRoutes.push(kind);
+    if (this.recentRoutes.length > cap) {
+      this.recentRoutes.splice(0, this.recentRoutes.length - cap);
+    }
+  }
+
+  /**
+   * Record the most recent tool call (Phase 8, invariant I10).
+   * Used to bias tool selection.
+   */
+  recordTool(name: string): void {
+    const cap = this.config.recencyEpisodes;
+    this.recentTools.push(name);
+    if (this.recentTools.length > cap) {
+      this.recentTools.splice(0, this.recentTools.length - cap);
+    }
+  }
+
+  /**
+   * Recompute the behavioural policy from the rolling window. Returns the
+   * new policy. The policy is also cached on the instance for
+   * `getPolicy()`.
+   */
+  recomputePolicy(): AgentPolicy {
+    const routeCounts = new Map<string, number>();
+    for (const r of this.recentRoutes) routeCounts.set(r, (routeCounts.get(r) ?? 0) + 1);
+    const totalRoutes = Math.max(1, this.recentRoutes.length);
+    const routingWeights: Record<string, number> = {};
+    for (const [kind, count] of routeCounts) {
+      routingWeights[kind] = Math.max(0.1, count / totalRoutes);
+    }
+    // Keep a stable baseline for the standard kinds
+    for (const k of ['narsese-belief', 'narsese-question', 'command', 'nl', 'reason']) {
+      if (!(k in routingWeights)) routingWeights[k] = 0.1;
+    }
+
+    const toolCounts = new Map<string, number>();
+    for (const t of this.recentTools) toolCounts.set(t, (toolCounts.get(t) ?? 0) + 1);
+    const toolSelectionBias: Record<string, number> = {};
+    for (const [name, count] of toolCounts) {
+      toolSelectionBias[name] = Math.max(0.1, count / Math.max(1, this.recentTools.length));
+    }
+
+    // Prompt budget: shrink if average processing time is high
+    const perf = analyzePerformancePatterns(this.metrics);
+    const budget = perf.ruleExecution > 50 ? 1024 : 2048;
+
+    this.policy = {
+      routingWeights,
+      toolSelectionBias,
+      promptBudget: budget,
+      recencyEpisodes: this.config.recencyEpisodes,
+      updatedAt: Date.now(),
+    };
+    return this.policy;
+  }
+
+  getPolicy(): AgentPolicy {
+    return this.policy;
   }
 
   private async analyzeReasoningPatterns(): Promise<PatternAnalysis> {

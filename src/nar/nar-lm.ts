@@ -1,5 +1,5 @@
 import type {LMClient} from './lm';
-import {BidirectionalFeedbackLoop, ProactiveEnricher, StreamingLMClient} from './lm';
+import {BidirectionalFeedbackLoop, ProactiveEnricher} from './lm';
 import type {SeNARSRegistry} from './lm/providers.js';
 import {getQualityModel} from './lm/providers.js';
 import type {Memory} from './memory';
@@ -15,15 +15,9 @@ export interface FeedbackStats {
     pendingValidations: number;
 }
 
-export interface LMStreamingStats {
-    activeStreams: number;
-    totalStreams: number;
-}
-
 export class NARLM {
     private readonly feedbackLoop?: BidirectionalFeedbackLoop;
     private readonly enricher?: ProactiveEnricher;
-    private readonly streamingClient?: StreamingLMClient;
 
     constructor(
         private readonly memory: Memory,
@@ -31,7 +25,6 @@ export class NARLM {
         lmClient?: LMClient,
         enableBidirectionalFeedback?: boolean,
         enableProactiveEnrichment?: boolean,
-        enableLMStreaming?: boolean
     ) {
         if (lmClient) {
             if (enableBidirectionalFeedback) {
@@ -39,9 +32,6 @@ export class NARLM {
             }
             if (enableProactiveEnrichment) {
                 this.enricher = new ProactiveEnricher(memory, lmClient);
-            }
-            if (enableLMStreaming) {
-                this.streamingClient = new StreamingLMClient(lmClient);
             }
         }
     }
@@ -52,10 +42,6 @@ export class NARLM {
 
     getEnricher(): ProactiveEnricher | undefined {
         return this.enricher;
-    }
-
-    getStreamingClient(): StreamingLMClient | undefined {
-        return this.streamingClient;
     }
 
     getQualityModel() {
@@ -71,16 +57,6 @@ export class NARLM {
         await this.enricher?.runEnrichmentCycle();
     }
 
-    async streamResponse(prompt: string, onToken: (token: string) => void, lmClient?: LMClient): Promise<string> {
-        if (!lmClient) throw new Error('LM client not configured');
-        if (!this.streamingClient) return lmClient.generateText(prompt);
-        return this.streamingClient.streamGenerateText(prompt, onToken);
-    }
-
-    cancelStream(streamId: string): boolean {
-        return this.streamingClient?.cancelStream(streamId) ?? false;
-    }
-
     getEnrichmentStats(): LMEnrichmentStats | null {
         const stats = this.enricher?.getStats();
         return stats ? {
@@ -92,9 +68,5 @@ export class NARLM {
 
     getFeedbackStats(): FeedbackStats | null {
         return this.feedbackLoop ? {pendingValidations: this.feedbackLoop.getPendingValidations().length} : null;
-    }
-
-    getStreamingStats(): LMStreamingStats | null {
-        return this.streamingClient?.getStreamManager().getStats() ?? null;
     }
 }

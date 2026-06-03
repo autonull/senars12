@@ -2,7 +2,6 @@ import type {Tool, ToolCapabilities, ToolChainResult, ToolChainStep, ToolContext
 import {ToolError} from '../types';
 import {errMsg} from '../utils';
 import {EventBus} from '../types/events.js';
-import type {NAREventMap} from '../types/events.js';
 import {createLogger} from '../logger';
 
 const logger = createLogger({scope: 'ToolManager'});

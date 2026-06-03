@@ -71,8 +71,12 @@ export class AIAgentConnectionManager {
     this.nar = deps.nar;
     this.logger = deps.logger ?? createLogger({scope: 'agent:connections'});
     this.agenticLoop = deps.agenticLoop;
-    if (this.nar && this.agenticLoop) {
+    const agentScheduler = this.agent.getScheduler();
+    if (this.nar && this.agenticLoop && !agentScheduler) {
       this.scheduler = new AutonomousScheduler(this.nar, this.agenticLoop);
+      this.scheduler.eventBus.on('scheduler:insights', (data: any) => this.handleAutonomousInsights(data));
+    } else if (agentScheduler) {
+      this.scheduler = agentScheduler;
       this.scheduler.eventBus.on('scheduler:insights', (data: any) => this.handleAutonomousInsights(data));
     }
   }
@@ -85,36 +89,27 @@ export class AIAgentConnectionManager {
 
     const prompt = `[SYSTEM BACKGROUND REASONING] You just autonomously reasoned and derived the following logical conclusions: ${insightText}. Briefly share this thought or insight with the active conversations if relevant, or simply state what you realized.`;
 
-    if (this.conversationStates.size > 0) {
-        const origins = Array.from(this.conversationStates.keys());
-        const targetOrigin = origins.find((o: string) => o.startsWith('irc:') || o.startsWith('cli:')) || origins[0];
+    if (this.conversationStates.size === 0) return;
+    const origins = Array.from(this.conversationStates.keys());
+    const targetOrigin = origins.find((o: string) => o.startsWith('irc:') || o.startsWith('cli:')) ?? origins[0];
+    if (!targetOrigin) return;
 
-        if (targetOrigin !== undefined) {
-            const context = {
-                sender: 'system',
-                connectionType: targetOrigin.split(':')[0] || 'system',
-                conversation: this.conversationStates.get(targetOrigin)
-            };
+    const conversation = this.conversationStates.get(targetOrigin);
+    const connectionType = targetOrigin.split(':')[0] ?? 'system';
 
-            try {
-                const result = await this.agent.process(prompt, context as any);
-                if (result.response) {
-                    const connectionType = targetOrigin.split(':')[0];
-                    const connection = this.connections.find((c: Connection) => c.type === connectionType);
-
-                    if (connection) {
-                        let target = 'system';
-                        if (connection.type === 'irc') {
-                            const parts = targetOrigin.split(':');
-                            if (parts.length >= 2 && parts[1] !== 'direct' && parts[1] !== undefined) target = parts[1];
-                        }
-                        await connection.send(target, result.response);
-                    }
-                }
-            } catch (err) {
-                this.logger.error(`Failed to broadcast autonomous insight`, err as Error);
-            }
+    try {
+        const result = await this.agent.executeEpisode(prompt, {sender: 'system', connectionType, conversation});
+        if (!result.text) return;
+        const connection = this.connections.find((c: Connection) => c.type === connectionType);
+        if (!connection) return;
+        let target = 'system';
+        if (connection.type === 'irc') {
+            const parts = targetOrigin.split(':');
+            if (parts.length >= 2 && parts[1] !== 'direct' && parts[1] !== undefined) target = parts[1]!;
         }
+        await connection.send(target, result.text);
+    } catch (err) {
+        this.logger.error(`Failed to broadcast autonomous insight`, err as Error);
     }
   }
 
@@ -195,28 +190,17 @@ export class AIAgentConnectionManager {
     this.scheduler?.markUserInput();
     try {
       this.logger.info(`Message from ${connection.id} (${message.origin}): ${message.text.slice(0, 50)}...`);
-
       if (!this.conversationStates.has(message.origin)) {
-          this.conversationStates.set(message.origin, await this.createDefaultConversationState());
+        this.conversationStates.set(message.origin, await this.createDefaultConversationState());
       }
-      const conversation = this.conversationStates.get(message.origin);
-
-      const context = {
+      const result = await this.agent.executeEpisode(message.text, {
         sender: message.sender,
         connectionType: connection.type,
-        conversation,
-      };
-
-      const result = await this.agent.process(message.text, context as any);
-
-      if (result.response) {
-        let target = message.sender;
-        if (connection.type === 'irc') {
-             const parts = message.origin.split(':');
-             target = parts.length >= 2 && parts[1] !== 'direct' ? parts[1]! : target;
-        }
-        await connection.send(target, result.response);
-      }
+        conversation: this.conversationStates.get(message.origin),
+      });
+      if (!result.text) return;
+      const target = connection.type === 'irc' ? (message.origin.split(':')[1] || message.sender) : message.sender;
+      await connection.send(target, result.text);
     } catch (error) {
       this.logger.error(`Error handling message from ${connection.id}`, error as Error);
       await connection.send(message.sender, `Error: ${(error as Error).message}`);

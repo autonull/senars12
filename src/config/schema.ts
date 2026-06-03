@@ -67,6 +67,20 @@ const conversationDefaults = {
     maxHistory: 20,
     summaryThreshold: 30,
     maxArtifacts: 50,
+    pinnedBeliefLimit: 8,
+};
+
+const autonomyDefaults = {
+    incorporationLimit: 3,
+    incorporationWindowMs: 5 * 60 * 1000,
+};
+
+const policyDefaults = {
+    promptBudget: 2048,
+    recencyEpisodes: 20,
+    selfAnalysisEveryN: 10,
+    consolidationEveryN: 5,
+    consolidationDebounceMs: 2000,
 };
 
 const tuiDefaults = {
@@ -98,6 +112,8 @@ const botConfigDefaults = {
     lmRules: lmRulesDefaults,
     prompts: {},
     tui: tuiDefaults,
+    autonomy: autonomyDefaults,
+    policy: policyDefaults,
 };
 
 export const botConfigSchema = z.object({
@@ -119,6 +135,7 @@ export const botConfigSchema = z.object({
         maxHistory: z.number().int().positive().default(conversationDefaults.maxHistory),
         summaryThreshold: z.number().int().positive().default(conversationDefaults.summaryThreshold),
         maxArtifacts: z.number().int().positive().default(conversationDefaults.maxArtifacts),
+        pinnedBeliefLimit: z.number().int().positive().default(conversationDefaults.pinnedBeliefLimit),
     }).default(conversationDefaults),
     directives: z.object({builtIn: z.boolean().default(builtInDefaults.builtIn)}).default(builtInDefaults),
     nlParsers: z.object({builtIn: z.boolean().default(builtInDefaults.builtIn)}).default(builtInDefaults),
@@ -142,6 +159,17 @@ export const botConfigSchema = z.object({
         compactMode: z.boolean().default(tuiDefaults.compactMode),
         statusBar: z.boolean().default(tuiDefaults.statusBar),
     }).default(tuiDefaults),
+    autonomy: z.object({
+        incorporationLimit: z.number().int().positive().default(autonomyDefaults.incorporationLimit),
+        incorporationWindowMs: z.number().int().positive().default(autonomyDefaults.incorporationWindowMs),
+    }).default(autonomyDefaults),
+    policy: z.object({
+        promptBudget: z.number().int().positive().default(policyDefaults.promptBudget),
+        recencyEpisodes: z.number().int().positive().default(policyDefaults.recencyEpisodes),
+        selfAnalysisEveryN: z.number().int().positive().default(policyDefaults.selfAnalysisEveryN),
+        consolidationEveryN: z.number().int().positive().default(policyDefaults.consolidationEveryN),
+        consolidationDebounceMs: z.number().int().positive().default(policyDefaults.consolidationDebounceMs),
+    }).default(policyDefaults),
 });
 
 export const appConfigSchema = z.object({

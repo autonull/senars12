@@ -1,7 +1,7 @@
 import type {EnhancedMCPAdapter} from './mcp/enhanced-adapter.js';
 import type {NAR} from '../nar/nar.js';
 
-export function registerMCPResources(adapter: EnhancedMCPAdapter, nar: NAR): void {
+export function registerMCPResources(adapter: EnhancedMCPAdapter, _nar: NAR): void {
     adapter.registerCapability({
         name: 'nar://beliefs',
         description: 'All stored beliefs with truth values',

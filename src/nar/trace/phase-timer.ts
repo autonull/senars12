@@ -47,12 +47,10 @@ export class PhaseTimer {
   formatFlameChart(): string {
     const summary = this.getSummary();
     const lines: string[] = [`=== Temporal Trace (${summary.totalDurationMs}ms total) ===`, ''];
-    let lastTime = 0;
     for (const p of summary.phases) {
       const bar = '#'.repeat(Math.max(1, Math.round(p.durationMs / 10)));
       const pct = summary.totalDurationMs > 0 ? (p.durationMs / summary.totalDurationMs * 100).toFixed(1) : '0.0';
       lines.push(` [${p.category}] ${p.name.padEnd(40)} ${String(p.durationMs).padStart(6)}ms (${pct}%) ${bar}`);
-      lastTime = p.startTime;
     }
     if (Object.keys(summary.byCategory).length > 0) {
       lines.push('');

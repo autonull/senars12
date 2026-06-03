@@ -8,7 +8,6 @@ import {clamp01} from '../utils/index.js';
 
 const DECAY_TIME_CONSTANT = 60000;
 const {DECAY_RATE, MIN_PRIORITY: MIN_LINK_STRENGTH} = LINK;
-const DEFAULT_MERGE_SIMILARITY = 0.85;
 
 export interface TaskData {
     readonly term: Term;

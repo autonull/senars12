@@ -1,7 +1,6 @@
 import type {LMClient} from './types.js';
 import type {Memory} from '../memory';
 import type {Term} from '../terms';
-import {Stamp, Truth} from '../terms';
 import {createBudget, type Task} from '../types';
 import {findUnderconnectedConcepts, parseEnrichmentResponse} from './enrichment-utils.js';
 import {createLogger, type Logger} from '../logger/index.js';

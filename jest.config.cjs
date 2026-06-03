@@ -8,8 +8,7 @@ module.exports = {
         '^(\\.{1,2}/.*)$': '$1'
     },
     transform: {
-        '^.+\\.tsx?$': ['ts-jest', {useESM: true}],
-        '^.+\\.js$': '<rootDir>/tests/jest-transform.cjs'
+        '^.+\\.tsx?$': ['ts-jest', {useESM: true}]
     },
     testMatch: ['**/tests/**/*.test.ts'],
     testPathIgnorePatterns: [
@@ -18,7 +17,7 @@ module.exports = {
     collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'],
     transformIgnorePatterns: ['node_modules/'],
-    testTimeout: 60000,
+    testTimeout: 1000,
     forceExit: true,
     detectOpenHandles: false,
     cache: true

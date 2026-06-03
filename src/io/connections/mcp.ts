@@ -24,6 +24,7 @@ export class MCPConnection extends BaseConnection {
     private process: ReturnType<typeof import('child_process').spawn> | null = null;
     private tools: Map<string, { description: string; inputSchema: Record<string, unknown> }> = new Map();
     private pendingToolCalls = new Map<string, (result: MCPToolResult) => void>();
+    private toolCallTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);
@@ -92,12 +93,14 @@ export class MCPConnection extends BaseConnection {
             const timeout = setTimeout(() => {
                 if (this.pendingToolCalls.has(id)) {
                     this.pendingToolCalls.delete(id);
+                    this.toolCallTimeouts.delete(id);
                     resolve({
                         content: [{type: 'text', text: JSON.stringify({error: 'Tool call timeout'})}],
                         isError: true,
                     });
                 }
             }, 30000);
+            this.toolCallTimeouts.set(id, timeout);
 
             this.process?.stdin?.write(JSON.stringify(message) + '\n');
         });
@@ -200,6 +203,8 @@ export class MCPConnection extends BaseConnection {
         if (id && data.result && this.pendingToolCalls.has(id)) {
             const resolve = this.pendingToolCalls.get(id)!;
             this.pendingToolCalls.delete(id);
+            clearTimeout(this.toolCallTimeouts.get(id));
+            this.toolCallTimeouts.delete(id);
             const result = data.result as {content: Array<{type: string, text: string}>, isError?: boolean};
             resolve(result);
             return;
@@ -208,6 +213,8 @@ export class MCPConnection extends BaseConnection {
         if (id && data.error && this.pendingToolCalls.has(id)) {
             const resolve = this.pendingToolCalls.get(id)!;
             this.pendingToolCalls.delete(id);
+            clearTimeout(this.toolCallTimeouts.get(id));
+            this.toolCallTimeouts.delete(id);
             resolve({
                 content: [{type: 'text', text: JSON.stringify(data.error)}],
                 isError: true

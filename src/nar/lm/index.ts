@@ -18,8 +18,6 @@ export {BidirectionalFeedbackLoop, createBidirectionalFeedbackLoop} from './feed
 export type {FeedbackConfig, ValidationFeedback} from './feedback.js';
 export {ProactiveEnricher, createProactiveEnricher} from './enrichment.js';
 export type {EnricherConfig, EnrichmentResult} from './enrichment.js';
-export {LMStreamManager, StreamingLMClient, createLMStreamManager, createStreamingLMClient} from './streaming.js';
-export type {StreamConfig, StreamEvent, StreamHandle} from './streaming.js';
 export {
     registerDefaultModels,
     setupDefaultLMClient, TURNKEY_DEFAULTS, getTurnkeyConfig,

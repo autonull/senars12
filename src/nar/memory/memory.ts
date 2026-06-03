@@ -238,7 +238,7 @@ export class Memory {
 
         this.attentionModel.tick(this, opts?.cycleCount ?? this.cyclesSinceConsolidation);
 
-        const { activationDecayRate, enableArchive, linkDecayRate, maxConcepts } = this.config;
+        const { activationDecayRate, linkDecayRate, maxConcepts } = this.config;
 
         for (const concept of this.concepts.values()) {
             concept.decay(activationDecayRate);

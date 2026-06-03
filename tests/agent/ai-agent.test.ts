@@ -15,13 +15,20 @@ function createMockLMClient(nar?: any): LMClient {
     async generateText(prompt: string): Promise<string> {
       const p = prompt.toLowerCase();
       if (p.includes('cats are animals')) {
-        if (nar) await nar.input('(cat --> animal).');
-        return 'I have added the belief (cat --> animal) to memory.';
+        const statement = '(cat --> animal).';
+        if (nar) await nar.input(statement);
+        return `I will record that belief. {"name": "nar_believe", "arguments": {"statement": "${statement}"}}`;
       }
       if (p.includes('is a cat living')) {
         return 'Yes, a cat is living because it is an animal and animals are living things.';
       }
-      return 'Mock response with reasoning.';
+      if (p.includes('hello')) {
+        return 'Hello! How can I help you?';
+      }
+      if (p.includes('how are you')) {
+        return 'I am well, thank you for asking.';
+      }
+      return 'Mock response.';
     },
   };
 }
@@ -86,8 +93,6 @@ describe('AIAgent', () => {
   });
 
   it('should call nar_believe tool', async () => {
-    // TODO: AI SDK 5 dispatch path bypasses our mock adapter. Restore once
-    // AISDKAdapter.doGenerate is reachable from the test's runLM call.
     const registry = createSeNARSRegistry();
     const nar = SeNARSFactory.createDefault({providerRegistry: registry});
     const agent = new AIAgent({
@@ -140,8 +145,7 @@ describe('AIAgent', () => {
     expect(agent).toBeDefined();
   });
 
-  it.skip('should maintain conversation history', async () => {
-    // TODO: see `should call nar_believe tool` — AI SDK 5 dispatch path.
+  it('should maintain conversation history', async () => {
     const registry = createSeNARSRegistry();
     const nar = SeNARSFactory.createDefault({providerRegistry: registry});
     const conversation = new ConversationState(testBotConfig);

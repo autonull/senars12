@@ -24,6 +24,8 @@ Commands:
   .stats    - Show NAR and LM statistics
   .beliefs  - Show current beliefs
   .concepts - Show active concepts
+  .episodes - List recent episodes (replayable)
+  .replay <id>  - Re-run a recorded episode and diff against original
   .clear    - Clear screen
 
 Narsese shortcuts:
@@ -33,6 +35,11 @@ Narsese shortcuts:
 
 Just type natural language to chat with the agent!
 `;
+
+const REPLAY_ARG = process.argv.find((a, i) => process.argv[i - 1] === '--replay' || a.startsWith('--replay='));
+const REPLAY_ID = REPLAY_ARG
+    ? (REPLAY_ARG.includes('=') ? REPLAY_ARG.split('=')[1] : process.argv[process.argv.indexOf(REPLAY_ARG) + 1])
+    : undefined;
 
 async function main() {
     const modelId = process.env.LM_MODEL || DEFAULT_TRANSFORMERS_MODEL;
@@ -58,7 +65,7 @@ async function main() {
     const testConfig = makeDefaultBotConfig({
         reasoning: {autoTrigger: false, triggerThreshold: 0.5, triggerCooldown: 3, maxStepsPerTrigger: 5, backgroundReasoning: false, backgroundIntervalMs: 60000, lmDriven: true},
         streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
-        conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50},
+        conversation: {maxHistory: 20, summaryThreshold: 30, maxArtifacts: 50, pinnedBeliefLimit: 8},
     });
 
     const capabilities: Capabilities = {hasLM: true, hasSeNARS: true, hasStreaming: true, hasTools: true, hasMemory: true, mode: 'full'};
@@ -72,6 +79,17 @@ async function main() {
     });
 
     const conversation = new ConversationState(testConfig);
+
+    if (REPLAY_ID) {
+        try {
+            const result = await agent.replay(REPLAY_ID);
+            console.log(JSON.stringify(result, null, 2));
+            process.exit(0);
+        } catch (err) {
+            console.error(`Replay failed: ${err instanceof Error ? err.message : String(err)}`);
+            process.exit(1);
+        }
+    }
 
     console.log('\n╔══════════════════════════════════════════════════╗');
     console.log('║ SeNARS REPL - Neuro-Symbolic Reasoning CLI    ║');
@@ -145,6 +163,42 @@ async function main() {
                     console.log(`  ${c.term}: priority=${c.priority.toFixed(2)}`);
                 }
                 if (concepts.length > 20) console.log(`  ... and ${concepts.length - 20} more`);
+                rl.prompt();
+                return;
+            }
+
+            if (input === '.episodes') {
+                const eps = agent.listEpisodes(20);
+                console.log(`\n--- ${eps.length} Recent Episode(s) ---`);
+                for (const e of eps) {
+                    const preview = e.input.length > 60 ? e.input.slice(0, 59) + '…' : e.input;
+                    console.log(`  ${e.id}  [${e.routeKind ?? '?'}]  ${preview}`);
+                }
+                rl.prompt();
+                return;
+            }
+
+            if (input.startsWith('.replay ')) {
+                const id = input.slice('.replay '.length).trim();
+                if (!id) {
+                    console.log('Usage: .replay <episodeId>');
+                    rl.prompt();
+                    return;
+                }
+                try {
+                    const result = await agent.replay(id);
+                    console.log(`\n--- Replay ${id} ---`);
+                    console.log(`route: ${result.original.routeKind ?? '?'} → ${result.replay.route.kind}`);
+                    console.log(`text match: ${result.match.text}  | tool calls: ${result.replay.toolCalls.length}  | artifacts: ${result.replay.artifacts.length}`);
+                    if (!result.match.text) {
+                        const a = result.original.response.slice(0, 80);
+                        const b = result.replay.text.slice(0, 80);
+                        console.log(`  original: ${a}${result.original.response.length > 80 ? '…' : ''}`);
+                        console.log(`  replay:   ${b}${result.replay.text.length > 80 ? '…' : ''}`);
+                    }
+                } catch (err) {
+                    console.error(`Replay error: ${err instanceof Error ? err.message : String(err)}`);
+                }
                 rl.prompt();
                 return;
             }

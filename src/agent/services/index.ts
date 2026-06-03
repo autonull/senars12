@@ -17,6 +17,7 @@ export type {
   CorrectionResult,
   CapabilitySnapshot,
   CapabilityDiff,
+  AgentPolicy,
 } from './SelfAnalyzerService.js';
 
 export {MetacognitiveMonitor} from './MetacognitiveMonitor.js';

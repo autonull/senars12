@@ -62,7 +62,7 @@ export class ExperimentRunner {
             experiment.completedAt = Date.now();
 
             return result;
-        } catch (_error) {
+        } catch {
             experiment.status = 'failed';
             return null;
         }

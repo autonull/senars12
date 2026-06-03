@@ -1,5 +1,3 @@
-import type {BotContext} from './types.js';
-
 export interface IdentityBinding {
   canonicalId: string;
   aliases: Set<string>;

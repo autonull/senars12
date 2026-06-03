@@ -27,7 +27,7 @@ function makeMockLM(): LMClient {
 const testConfig = makeDefaultBotConfig({
     reasoning: {autoTrigger: false, triggerThreshold: 0.5, triggerCooldown: 3, maxStepsPerTrigger: 5, backgroundReasoning: false, backgroundIntervalMs: 60000, lmDriven: true},
     streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
-    conversation: {maxHistory: 8, summaryThreshold: 30, maxArtifacts: 50},
+    conversation: {maxHistory: 8, summaryThreshold: 30, maxArtifacts: 50, pinnedBeliefLimit: 8},
 });
 
 const capabilities: Capabilities = {hasLM: true, hasSeNARS: true, hasStreaming: false, hasTools: true, hasMemory: true, mode: 'full'};
@@ -75,10 +75,13 @@ describe('CLI connection round-trips with AIAgent', () => {
             text: 'Tell me something about cats',
             timestamp: Date.now(),
         };
-        const handler = (conn as any).handleMessage as (m: typeof fakeMessage) => Promise<void>;
-        await handler(fakeMessage);
+        const handler = (conn as any).handleMessage as (m: typeof fakeMessage) => void;
+        handler(fakeMessage);
 
-        await new Promise((r) => setImmediate(r));
+        const deadline = Date.now() + 5000;
+        while (printed.length === 0 && Date.now() < deadline) {
+            await new Promise((r) => setTimeout(r, 25));
+        }
         expect(printed.length).toBeGreaterThan(0);
         expect(printed[0]).toMatch(/Mock reply/i);
 

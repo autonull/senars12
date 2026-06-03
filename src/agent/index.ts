@@ -1,5 +1,9 @@
 export {AIAgent} from './AIAgent.js';
 export {AutonomousScheduler} from './AutonomousScheduler.js';
+export type {SchedulerInsight} from './AutonomousScheduler.js';
+export {InsightStream} from './autonomy/InsightStream.js';
+export {ConsolidationEngine} from './cognition/ConsolidationEngine.js';
+export type {EpisodeRecord} from './cognition/ConsolidationEngine.js';
 export {ConversationState} from './ConversationState.js';
 export {channelBehavior, CHANNEL_DEFAULTS, type ChannelType, type ResponseMode, type ChannelBehaviorConfig} from './ChannelBehavior.js';
 export {IdentityResolver} from './IdentityResolver.js';

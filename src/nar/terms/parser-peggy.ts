@@ -1,12 +1,15 @@
 // senars12 Peggy parser wrapper - based on senars11 design
 // This replaces the hand-written recursive descent parser
 
+import {createRequire} from 'node:module';
 import {TermFactory} from './factory.js';
 import type {Term} from './types.js';
 import {Truth} from './truth.js';
 import {errMsg} from '../utils/index.js';
-// @ts-ignore - Peggy generated module has no type declarations
-import {parse as peggyParse} from './peggy-generated.js';
+
+const require = createRequire(import.meta.url);
+const peggyModule: {parse: (input: string, options?: unknown) => unknown} = require('./peggy-generated.cjs');
+const peggyParse = peggyModule.parse;
 
 export interface ParserResult {
     term: Term;

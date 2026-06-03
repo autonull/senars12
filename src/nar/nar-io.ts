@@ -2,7 +2,7 @@ import type {Term} from './terms';
 import {termParser, Truth, validateTaskTerm} from './terms';
 import type {Truth as TruthType} from './terms/truth.js';
 import type {TaskType} from './types';
-import {createBudget, createTask, EventBus} from './types';
+import {createBudget, EventBus} from './types';
 import type {NARConfig} from './nar';
 import type {TaskManager} from './task';
 import type {Memory} from './memory';

@@ -311,3 +311,64 @@ export interface AgentMetrics {
 }
 
 export type {Connection, Ambiguity};
+
+// ---------------------------------------------------------------------------
+// Phase 1: Route discriminated union. Replaces the legacy trio of
+// `Intent` + `BotMode` + `InputClassification` for the new pipeline.
+// The legacy types are kept for backward compatibility with existing call
+// sites; new code should consume `Route`.
+// ---------------------------------------------------------------------------
+
+export type RouteKind = 'narsese-belief' | 'narsese-question' | 'command' | 'nl' | 'reason';
+
+export type Route =
+    | {kind: 'narsese-belief'; confidence: number; signals: RouteSignal[]; narsese?: string; concepts: string[]}
+    | {kind: 'narsese-question'; confidence: number; signals: RouteSignal[]; narsese?: string; concepts: string[]}
+    | {kind: 'command'; confidence: number; signals: RouteSignal[]; command: string; arguments?: string[]}
+    | {kind: 'nl'; confidence: number; signals: RouteSignal[]; intent: string; concepts: string[]; ambiguity: number}
+    | {kind: 'reason'; confidence: number; signals: RouteSignal[]; depth: number; trigger: string};
+
+export interface RouteSignal {
+    source: 'classifier' | 'nl-analyzer' | 'pattern' | 'keyword' | 'narsese-parser' | 'fallback';
+    name: string;
+    weight: number;
+}
+
+export interface ComposedRequest {
+    system: string;
+    messages: Array<{role: 'user' | 'assistant' | 'system' | 'tool'; content: string | unknown[]; timestamp?: number}>;
+    tools: Record<string, unknown>;
+    ctxHash: string;
+    snapshot: CognitiveSnapshotData | null;
+    budget: {systemTokens: number; historyTokens: number; snapshotTokens: number; total: number; maxTokens: number};
+}
+
+export interface CognitiveSnapshotData {
+    attention: Array<{term: string; priority: number; urgency?: number; truth?: {f: number; c: number}}>;
+    questions: string[];
+    goals: string[];
+    memory: {totalConcepts: number; totalTasks: number; workingMemorySize: number};
+    episodes: Array<{timestamp: number; type: string; summary: string}>;
+    summary?: string;
+    pinnedBeliefs: string[];
+    priorInsights?: string[];
+    tokens: number;
+    capturedAt: number;
+}
+
+export interface RequestComposerDeps {
+    nar?: import('../nar/nar.js').NAR;
+    episodicMemory?: import('../nar/memory/EpisodicMemory.js').EpisodicMemory;
+    conversation?: import('./ConversationState.js').ConversationState;
+    config: import('../config/index.js').BotConfig;
+    instructions?: string;
+    snapshot?: CognitiveSnapshotData | null;
+    maxContextTokens?: number;
+    priorInsights?: string[];
+}
+
+export interface ToolError {
+    toolCallId: string;
+    toolName: string;
+    message: string;
+}

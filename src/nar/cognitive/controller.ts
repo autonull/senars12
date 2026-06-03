@@ -2,7 +2,6 @@ import type {CognitiveParameters} from '../config/cognitive-parameters';
 import type {Memory} from '../memory/memory.js';
 import type {RuleProcessor} from '../rules/processor.js';
 import type {MetricsCollector} from '../metrics';
-import type {MetricsSummary} from '../strategies/types.js';
 import type {RLFPLearner} from '../rlfp';
 import {InferenceController} from '../reason/inference-controller';
 import type {Strategy} from '../reason/strategy';
@@ -74,7 +73,6 @@ export class CognitiveController {
   private adaptWithRLFP(): CognitiveParameters {
     const adapted = structuredClone(this.currentParams);
     if (this.rlfp) {
-      const policy = this.rlfp.policyOptimizerPublic;
       const preferences = this.rlfp.preferences;
       if (preferences.length > 0) {
         adapted.strategies.lmRule.type = 'priority';

@@ -1,250 +1,177 @@
-import {generateText, streamText, type CoreMessage} from 'ai';
 import type {NAR} from '../nar/nar.js';
-import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import {createNARSTools, createGeneralTools} from '../nar/tools/adapters/index.js';
-import type {
-    AIAgentConfig,
-    ProcessContext,
-    AgentResult,
-    Belief,
-    TurnAction,
-    Capabilities,
-    AgentMetrics,
-} from './types.js';
-import type {ConversationState} from './ConversationState.js';
+import type {AIAgentConfig, AgentResult, Belief, Capabilities, AgentMetrics, TurnAction, Route} from './types.js';
 import type {LMClient} from '../nar/lm/types.js';
-import {adapt} from '../nar/lm/adapters/index.js';
-import {EventBus} from '../nar/types/events.js';
-import {termParser} from '../nar/terms/index.js';
-import {SelfAnalyzerService} from './services/SelfAnalyzerService.js';
-import {MetacognitiveMonitor} from './services/MetacognitiveMonitor.js';
-import type {CognitiveState} from './types.js';
+import type {ModelEvent} from './model/ModelRunner.js';
+import {type AgentPolicy, type SelfAnalyzerService} from './services/SelfAnalyzerService.js';
+import {WorkingMemory} from './cognition/WorkingMemory.js';
+import {ReasoningTrace} from './cognition/ReasoningTrace.js';
+import {reflect, applyVerdict} from './cognition/ReflectionStage.js';
+import {ConsolidationEngine} from './cognition/ConsolidationEngine.js';
+import {AutonomousScheduler} from './AutonomousScheduler.js';
+import {type EpisodeRunner} from './cognition/EpisodeRunner.js';
+import {abortedResult, finalizeEpisode, yieldToEventLoop} from './cognition/EpisodeFinalizer.js';
+import {persistWM} from './cognition/WorkingMemoryPersistence.js';
+import {buildAgentWiring, type AgentWiring} from './cognition/AgentWiring.js';
+import type {EpisodeContext, EpisodeResult} from './cognition/EpisodeTypes.js';
+
+export type {EpisodeContext, EpisodeResult, TurnResult} from './cognition/EpisodeTypes.js';
 
 export class AIAgent {
+    private readonly wiring: AgentWiring;
     private readonly nar?: NAR;
-    private readonly episodicMemory?: EpisodicMemory;
     private readonly config: AIAgentConfig['config'];
     private readonly capabilities: Capabilities;
     private readonly lmClient?: LMClient;
-    private readonly model?: ReturnType<typeof adapt>;
-    private readonly eventBus = new EventBus();
     private readonly selfAnalyzer?: SelfAnalyzerService;
+    private readonly scheduler?: AutonomousScheduler;
+    private readonly consolidation: ConsolidationEngine;
     private turnCount = 0;
     private cycleCount = 0;
     private errorCount = 0;
     private isRunning = true;
     private lastActivity = Date.now();
-    private toolsCache?: Record<string, unknown>;
+    private aborted = false;
+    private episodeController?: AbortController;
 
     constructor(config: AIAgentConfig) {
-        this.nar = config.nar;
-        this.episodicMemory = config.episodicMemory;
-        this.config = config.config;
-        this.capabilities = config.capabilities;
-        this.lmClient = config.lmClient;
-        this.model = config.lmClient ? adapt(config.lmClient) : undefined;
-        if (config.nar) {
-            const monitor = new MetacognitiveMonitor(null);
-            this.selfAnalyzer = new SelfAnalyzerService(config.nar, monitor, null, {});
+        const refs = {
+            turnCount: () => this.turnCount,
+            nextTurn: () => ++this.turnCount,
+            nextCycle: () => ++this.cycleCount,
+            markActivity: () => { this.lastActivity = Date.now(); },
+        };
+        this.wiring = buildAgentWiring(config, refs);
+        this.nar = this.wiring.nar;
+        this.lmClient = this.wiring.lmClient;
+        this.config = this.wiring.config;
+        this.capabilities = this.wiring.capabilities;
+        this.selfAnalyzer = this.wiring.selfAnalyzer;
+        this.scheduler = this.wiring.scheduler;
+        this.consolidation = this.wiring.consolidation;
+    }
+
+    async executeEpisode(input: string, ctx: EpisodeContext = {}): Promise<EpisodeResult> {
+        const start = Date.now();
+        const controller = new AbortController();
+        this.episodeController = controller;
+        const signal = ctx.signal ?? controller.signal;
+        const events: ModelEvent[] = [];
+        const emit = (e: ModelEvent) => {
+            events.push(e);
+            ctx.onEvent?.(e);
+        };
+
+        try {
+            await yieldToEventLoop();
+            if (this.aborted || signal.aborted) return abortedResult(input, ctx, start, this.cycleCount, undefined, undefined, this.nar);
+
+            const trace = new ReasoningTrace();
+            const routeResult = this.wiring.preparer.resolveRoute(input, ctx);
+            trace.recordRoute(routeResult);
+            await yieldToEventLoop();
+            if (this.aborted || signal.aborted) return abortedResult(input, ctx, start, this.cycleCount, routeResult, trace, this.nar);
+
+            const wm = this.wiring.preparer.prepareWM(ctx, trace);
+            await yieldToEventLoop();
+            this.wiring.preparer.checkAutonomyIntoWM(wm, trace);
+            await yieldToEventLoop();
+
+            const candidate = await this.runCandidate(input, routeResult, ctx, start, wm, trace, emit, signal);
+            await yieldToEventLoop();
+
+            const verdict = ctx.skipReflection || this.isDirectRoute(routeResult.kind)
+                ? {action: 'accept' as const}
+                : await reflect(candidate.text, trace, {lmClient: this.lmClient, nar: this.nar, workingMemory: wm, maxOutputTokens: 256}, signal);
+            trace.recordReflect(verdict);
+            const reflectionArtifacts: EpisodeResult['artifacts'] = [];
+            applyVerdict(verdict, {workingMemory: wm, nar: this.nar}, reflectionArtifacts);
+            await yieldToEventLoop();
+
+            const finalArtifacts = [...candidate.artifacts, ...reflectionArtifacts];
+            const result = finalizeEpisode(candidate, verdict, finalArtifacts, wm, trace, ctx, start, events.length, this.cycleCount);
+            persistWM(ctx.conversation, wm);
+            this.wiring.recorder.record(input, result, routeResult, wm, signal);
+            this.wiring.recorder.updatePolicy(routeResult, result);
+            return result;
+        } finally {
+            this.episodeController = undefined;
         }
     }
 
-    private getTools(): Record<string, unknown> {
-        if (this.toolsCache) return this.toolsCache;
-        const tools: Record<string, unknown> = {};
-        if (this.nar) {
-            Object.assign(tools, createNARSTools(this.nar));
-        }
-        Object.assign(tools, createGeneralTools({
-            nar: this.nar,
-            episodicMemory: this.episodicMemory as {getEpisodes(options: {limit: number; type?: string}): Promise<unknown[]>} | undefined,
-        }));
-        this.toolsCache = tools;
-        return tools;
+    async chat(input: string, ctx: EpisodeContext = {}): Promise<string> {
+        return (await this.executeEpisode(input, ctx)).text;
     }
 
-    private buildInstructions(context?: {sender: string; connectionType: string}): string {
-        const mode = this.capabilities.mode;
-        const personaContext = context ? `\nYou are interacting via ${context.connectionType.toUpperCase()} with ${context.sender}.` : '';
-
-        if (mode === 'full') {
-            return `You are an intelligent assistant with access to a formal reasoning engine (SeNARS).${personaContext}
-
-## Capabilities
-- You can suggest logical analysis by including: [REASONING_SUGGESTED: brief reason]
-- You can add beliefs: [BELIEVE: (<term --> category>. :frequency:confidence)]
-- You can ask questions: [QUESTION: (<term --> ?>.)]
-- You have access to your episodic memory and the conversation summary to recall past interactions.
-
-## When to Use Reasoning
-- Causal questions ("why", "how", "therefore")
-- Logical puzzles and syllogisms
-- Comparisons and contrasts
-- Contradictions or conflicting information
-- Multi-hop inference patterns
-- When requested to use NARS or think logically
-
-## Response Guidelines
-- Be concise and direct
-- Acknowledge uncertainty when present
-- Don't fabricate facts
-- Use reasoning engine for formal logic, not for conversational chat
-- If you call a NARS tool and the output indicates reasoning is required, call the reasoning tools again until you have an answer.`;
+    async process(input: string, ctx: EpisodeContext = {}): Promise<AgentResult> {
+        const start = Date.now();
+        try {
+            const result = await this.executeEpisode(input, ctx);
+            const actions: TurnAction[] = result.toolCalls.map(tc => ({type: 'tool_call' as const, content: tc.toolName}));
+            this.wiring.eventBus.emit('agent:process:complete', {result, durationMs: Date.now() - start});
+            return {success: true, response: result.text, actions, metrics: result.metrics};
+        } catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.errorCount++;
+            return {success: false, response: '', error: err.message, metrics: {durationMs: Date.now() - start, cycleCount: this.cycleCount, eventCount: 0}};
         }
-
-        if (mode === 'lm-only') {
-            return `You are a helpful conversational AI assistant.${personaContext}
-
-## Capabilities
-- Natural conversation
-- Tool usage when appropriate
-- Factual questions within your training
-
-## Guidelines
-- Be concise and direct
-- Acknowledge uncertainty
-- Don't fabricate facts`;
-        }
-
-        return `SeNARS Reasoning Engine — Narsese Input Mode${personaContext}
-
-Accepted input:
-- (<term --> category>.) — Add belief
-- (<term --> ?>) — Ask question
-- !(<term --> goal>.) — Set goal
-- /run [n] — Run n reasoning steps
-- /beliefs — Show current beliefs
-- /concepts — Show active concepts
-- /help — Show all commands`;
-    }
-
-    private primeAttention(input: string): void {
-        if (!this.nar) return;
-        const terms = this.extractTerms(input);
-        for (const termStr of terms) {
-            const concepts = this.nar.listConcepts();
-            const concept = concepts.find(c => c.term.toString() === termStr);
-            if (concept) {
-                concept.priority = Math.min(1.0, concept.priority + 0.1);
-            }
-        }
-    }
-
-    private extractTerms(input: string): string[] {
-        const matches = input.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) ?? [];
-        return [...new Set(matches)];
-    }
-
-    private async buildCognitiveContext(conversation?: ConversationState): Promise<string> {
-        if (!this.nar) return '';
-
-        const attention = this.nar.attentionReport();
-        const beliefs = this.nar.getBeliefs();
-        const stats = this.nar.getStatistics();
-
-        const parts: string[] = [];
-
-        if (attention.concepts.length > 0) {
-            parts.push('## Current Attention Focus');
-            parts.push(attention.concepts.slice(0, 15).map(c => {
-                const belief = beliefs.find(b => b.term.toString() === c.term);
-                const truthStr = belief?.truth ? ` (f=${belief.truth.f.toFixed(2)}, c=${belief.truth.c.toFixed(2)})` : '';
-                return `- **${c.term}**: priority=${c.priority.toFixed(2)}${truthStr}`;
-            }).join('\n'));
-        }
-
-        const questions = this.nar.getQuestions().slice(0, 5).map(q => q.term.toString());
-        if (questions.length > 0) {
-            parts.push('\n## Unanswered Questions');
-            questions.forEach(q => parts.push(`- ${q}`));
-        }
-
-        const goals = this.nar.getGoals().slice(0, 3).map(g => g.term.toString());
-        if (goals.length > 0) {
-            parts.push('\n## Active Goals');
-            goals.forEach(g => parts.push(`- ${g}`));
-        }
-
-        parts.push(`\n## Memory State`);
-        parts.push(`- Concepts: ${stats.totalConcepts}`);
-        parts.push(`- Tasks: ${stats.totalTasks}`);
-        parts.push(`- Working Memory: ${this.nar.workingMemory.size()}`);
-
-        if (this.episodicMemory) {
-            try {
-                const episodes = await this.episodicMemory.getEpisodes({limit: 5});
-                if (episodes && episodes.length > 0) {
-                    parts.push(`\n## Recent Episodic Memories`);
-                    for (const ep of episodes) {
-                        parts.push(`- [${new Date(ep.timestamp).toISOString()}] ${ep.type}: ${(ep.content as string).slice(0, 100)}`);
-                    }
-                }
-            } catch {}
-        }
-
-        if (conversation && conversation.summary) {
-            parts.push(`\n## Conversation Summary\n${conversation.summary}`);
-        }
-
-        return parts.join('\n');
-    }
-
-    async chat(input: string, ctx: {sender: string; connectionType: string; conversation: ConversationState}): Promise<string> {
-        const result = await this.process(input, ctx as unknown as ProcessContext);
-        return result.response;
     }
 
     async reason(input: string, steps?: number): Promise<Belief[]> {
-        const result = await this.process(input, {reasoningDepth: steps});
-        return (result.reasoning?.newBeliefs as Belief[]) ?? [];
+        const result = await this.executeEpisode(input, {routeOverride: 'reason', reasoningDepth: steps});
+        return result.artifacts
+            .map(a => a.metadata?.belief)
+            .filter((b): b is string => typeof b === 'string')
+            .map(term => ({term}));
     }
 
-    async process(input: string, ctx?: ProcessContext): Promise<AgentResult> {
-        const startTime = Date.now();
-        this.eventBus.emit('agent:process:start', {input, context: ctx});
+    async replay(episodeId: string): Promise<{original: {input: string; response: string; artifacts: number; routeKind?: string}; replay: EpisodeResult; match: {text: boolean; toolCalls: boolean; artifacts: number}}> {
+        const original = this.consolidation.getEpisodeById(episodeId);
+        if (!original) throw new Error(`Episode not found: ${episodeId}`);
 
-        try {
-            const primary = this.classify(input).primary;
-            const result = await (
-                primary === 'narsese' ? this.handleNarsese(input, ctx) :
-                primary === 'reason' ? this.handleReasoning(input, ctx) :
-                this.handleChat(input, ctx)
-            );
+        const routeOverride = original.routeKind as Route['kind'] | undefined;
+        const replay = await this.executeEpisode(original.input, {
+            routeOverride,
+            skipReflection: true,
+            sender: 'replay',
+        });
 
-            if (ctx?.reasoningDepth) await this.recordTurn(true);
+        return {
+            original: {
+                input: original.input,
+                response: original.response,
+                artifacts: original.artifacts.length,
+                routeKind: original.routeKind,
+            },
+            replay,
+            match: {
+                text: replay.text === original.response,
+                toolCalls: replay.toolCalls.length === 0 && original.artifacts.length === 0,
+                artifacts: replay.artifacts.length,
+            },
+        };
+    }
 
-            this.eventBus.emit('agent:process:complete', {result, durationMs: Date.now() - startTime});
-            this.lastActivity = Date.now();
-            this.cycleCount++;
-            return result;
-        } catch (error) {
-            this.errorCount++;
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.eventBus.emit('error', {error: err, context: {input, stage: 'process'}});
-
-            return {
-                success: false,
-                response: '',
-                error: err.message,
-                metrics: {durationMs: Date.now() - startTime, cycleCount: this.cycleCount, eventCount: 0},
-            };
-        }
+    listEpisodes(limit = 20): Array<{id: string; input: string; routeKind?: string}> {
+        return this.consolidation.getRecentEpisodes(limit).map(r => ({
+            id: r.id, input: r.input, routeKind: r.routeKind,
+        }));
     }
 
     async suspend(): Promise<void> {
         this.isRunning = false;
-        this.eventBus.emit('agent:suspend', {
-            cycleCount: this.cycleCount,
-            lastActivity: this.lastActivity,
-        });
+        this.wiring.eventBus.emit('agent:suspend', {cycleCount: this.cycleCount, lastActivity: this.lastActivity});
     }
 
     async resume(): Promise<void> {
         this.isRunning = true;
-        this.eventBus.emit('agent:resume', {
-            cycleCount: this.cycleCount,
-            lastActivity: this.lastActivity,
-        });
+        this.aborted = false;
+        this.wiring.eventBus.emit('agent:resume', {cycleCount: this.cycleCount, lastActivity: this.lastActivity});
+    }
+
+    abort(): void {
+        this.aborted = true;
+        this.episodeController?.abort();
+        this.wiring.eventBus.emit('agent:abort', {cycleCount: this.cycleCount});
     }
 
     getMetrics(): AgentMetrics {
@@ -258,316 +185,45 @@ Accepted input:
         };
     }
 
-    getState(): CognitiveState {
-        if (this.errorCount > 10) return 'confused';
-        if (!this.isRunning) return 'idle';
-        return 'normal';
+    getState(): 'idle' | 'normal' | 'confused' {
+        return this.errorCount > 10 ? 'confused' : (this.isRunning ? 'normal' : 'idle');
     }
 
-    getCapabilities(): Capabilities {
-        return this.capabilities;
-    }
+    getCapabilities(): Capabilities { return this.capabilities; }
+    getTurnCount(): number { return this.turnCount; }
+    getConsolidationEngine(): ConsolidationEngine { return this.consolidation; }
+    getScheduler(): AutonomousScheduler | undefined { return this.scheduler; }
 
-    getTurnCount(): number {
-        return this.turnCount;
-    }
-
-    private classify(input: string): {primary: 'narsese' | 'chat' | 'reason'; confidence: number; signals: string[]} {
-        const hasPunctuation = /[.?!]$/.test(input.trim());
-        if (!hasPunctuation) return {primary: 'chat', confidence: 0.8, signals: []};
-
-        try {
-            const term = termParser.parse(input);
-            return {primary: 'narsese', confidence: 0.9, signals: ['narsese_parseable']};
-        } catch {
-            return {primary: 'chat', confidence: 0.8, signals: []};
-        }
-    }
-
-    private async handleNarsese(input: string, context?: ProcessContext): Promise<AgentResult> {
-        if (!this.nar) return {success: false, response: 'NAR not initialized', error: 'NAR engine not available'};
-        const startTime = Date.now();
-        try {
-            const steps = context?.reasoningDepth ?? 5;
-            let response = '';
-            const clean = input.replace(/[?!.]+$/, '');
-
-            if (input.endsWith('!')) {
-                await this.nar.input(input, 'goal');
-                response = `GOAL: ${input}`;
-            } else if (input.endsWith('?')) {
-                const match = this.nar.getBeliefs().find((b: any) => b.term.toString().includes(clean.split('-->')[0] ?? clean));
-                response = match ? `Answer: ${match.term.toString()} f=${match.truth?.f.toFixed(2)} c=${match.truth?.c.toFixed(2)}` : `No answer for: ${input}`;
-            } else {
-                await this.nar.input(clean, 'belief');
-                this.nar.run(steps).catch(() => {}); // non-blocking
-                response = `+ ${clean}`;
-            }
-
-            return {
-                success: true, response,
-                reasoning: {steps, newBeliefs: [], trace: []},
-                metrics: {durationMs: Date.now() - startTime, cycleCount: this.cycleCount, eventCount: 0},
-            };
-        } catch (error) {
-            return {success: false, response: '', error: error instanceof Error ? error.message : String(error)};
-        }
-    }
-
-private async runLM(
-        messages: {role: 'user' | 'assistant' | 'system' | 'tool'; content: string | any[]}[],
-        maxLoops = 5,
-        systemPrompt?: string,
-    ): Promise<{text: string; toolCalls: any[]}> {
-        if (!this.model) return {text: '', toolCalls: []};
-        const tools = this.getTools();
-        const allToolCalls: any[] = [];
-
-        for (let loop = 0; loop < maxLoops; loop++) {
-            let result;
-            try {
-                result = await generateText({
-                    model: this.model as any,
-                    messages: messages as any,
-                    tools: tools as any,
-                    maxOutputTokens: 2048,
-                    system: systemPrompt,
-                });
-            } catch (lmError) {
-                const err = lmError instanceof Error ? lmError : new Error(String(lmError));
-                this.eventBus.emit('error', {error: err, context: {stage: 'runLM'}});
-                return {text: err.message, toolCalls: allToolCalls};
-            }
-
-            if (!result.toolCalls || result.toolCalls.length === 0) {
-                return {text: result.text ?? '', toolCalls: allToolCalls};
-            }
-
-            messages.push({
-                role: 'assistant',
-                content: result.toolCalls.map((tc: any) => ({
-                    type: 'tool-call',
-                    toolName: tc.toolName,
-                    toolCallId: tc.toolCallId,
-                    args: (tc as any).input ?? (tc as any).args,
-                })) as any,
-            });
-
-            const toolResults: any[] = [];
-            for (const tc of result.toolCalls) {
-                allToolCalls.push(tc);
-                const toolInstance = (tools as any)[tc.toolName];
-                let tcResult: any;
-                const args = (tc as any).input ?? (tc as any).args ?? {};
-                if (toolInstance && typeof toolInstance.execute === 'function') {
-                    try {
-                        tcResult = await toolInstance.execute(args, {} as any);
-                    } catch (e: any) {
-                        tcResult = {success: false, error: e.message ?? String(e)};
-                    }
-                } else {
-                    tcResult = {success: false, error: `Tool ${tc.toolName} not found or not executable`};
-                }
-                toolResults.push({
-                    type: 'tool-result',
-                    toolCallId: tc.toolCallId,
-                    toolName: tc.toolName,
-                    result: tcResult,
-                });
-            }
-
-            messages.push({role: 'tool', content: toolResults as any});
-        }
-
-        return {text: '', toolCalls: allToolCalls};
-    }
-
-    private async* runLMStream(
-        messages: {role: 'user' | 'assistant' | 'system' | 'tool'; content: string | any[]}[],
-        systemPrompt?: string,
-    ): AsyncGenerator<{text: string; toolCalls: any[]}> {
-        if (!this.model) return;
-        const tools = this.getTools();
-        let fullText = '';
-
-        const result = streamText({
-            model: this.model as any,
-            messages: messages as any,
-            tools: tools as any,
-            maxOutputTokens: 2048,
-            system: systemPrompt,
-        });
-
-        for await (const chunk of result.fullStream) {
-            if (chunk.type === 'tool-call') {
-                yield {text: fullText, toolCalls: [chunk]};
-            } else if (chunk.type === 'text-delta') {
-                fullText += (chunk as any).text ?? '';
-                yield {text: fullText, toolCalls: []};
-            } else if (chunk.type === 'text') {
-                fullText += (chunk as any).text ?? '';
-                yield {text: fullText, toolCalls: []};
-            }
-        }
-
-        yield {text: fullText, toolCalls: []};
-    }
-
-    async chatStream(input: string, ctx: {sender: string; connectionType: string; conversation: ConversationState}, onChunk?: (text: string) => void): Promise<string> {
-        const startTime = Date.now();
-        this.eventBus.emit('agent:process:start', {input, context: ctx});
-
-        try {
-            const sender = ctx.sender ?? 'user';
-            const connectionType = ctx.connectionType ?? 'cli';
-            const conversation = ctx.conversation;
-
-            if (this.nar) this.primeAttention(input);
-            await this.episodicMemory?.log('input', input, {sender, channel: connectionType});
-
-            const cognitiveContext = this.nar && conversation ? await this.buildCognitiveContext(conversation) : undefined;
-            const history = conversation ? conversation.getHistory(20) : [];
-
-            const messages: {role: 'user' | 'assistant' | 'system' | 'tool'; content: string | any[]}[] = [
-                ...history.map(h => ({role: h.role, content: h.content})),
-                {role: 'user', content: input},
-            ];
-
-            const systemPrompt = cognitiveContext
-                ? `${this.buildInstructions({sender, connectionType})}\n\n## Current Cognitive State\n${cognitiveContext}`
-                : this.buildInstructions({sender, connectionType});
-
-            let fullResponse = '';
-            for await (const {text, toolCalls} of this.runLMStream(messages, systemPrompt)) {
-                if (onChunk && text) onChunk(text);
-                fullResponse = text;
-            }
-
-            await this.episodicMemory?.log('response', fullResponse, {sender, channel: connectionType});
-            if (conversation && fullResponse) {
-                conversation.addMessage({role: 'assistant', content: fullResponse, timestamp: Date.now()}, this.lmClient);
-            }
-            this.turnCount++;
-
-            this.eventBus.emit('agent:process:complete', {result: {response: fullResponse}, durationMs: Date.now() - startTime});
-            this.lastActivity = Date.now();
-            this.cycleCount++;
-
-            return fullResponse || 'No response generated.';
-        } catch (error) {
-            this.errorCount++;
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.eventBus.emit('error', {error: err, context: {input, stage: 'chatStream'}});
-            return `Error: ${err.message}`;
-        }
-    }
-
-    private async handleChat(input: string, context?: ProcessContext): Promise<AgentResult> {
-        if (!this.model) return this.handleDefault(input, context);
-        const startTime = Date.now();
-        try {
-            const ctx = context as unknown as {
-                sender?: string;
-                connectionType?: string;
-                conversation?: ConversationState;
-            } | undefined;
-
-            const sender = ctx?.sender ?? 'user';
-            const connectionType = ctx?.connectionType ?? 'cli';
-            const conversation = ctx?.conversation;
-
-            if (this.nar) this.primeAttention(input);
-            await this.episodicMemory?.log('input', input, {sender, channel: connectionType});
-
-            const instructions = this.buildInstructions({sender, connectionType});
-            const cognitiveContext = this.nar && conversation ? await this.buildCognitiveContext(conversation) : undefined;
-            const history = conversation ? conversation.getHistory(20) : [];
-
-            const messages: {role: 'user' | 'assistant' | 'system' | 'tool'; content: string | any[]}[] = [
-                ...history.map(h => ({role: h.role, content: h.content})),
-                {role: 'user', content: input},
-            ];
-
-            const systemPrompt = cognitiveContext 
-                ? `${instructions}\n\n## Current Cognitive State\n${cognitiveContext}`
-                : instructions;
-
-            const {text, toolCalls} = await this.runLM(messages, 5, systemPrompt);
-
-            await this.episodicMemory?.log('response', text, {sender, channel: connectionType});
-
-            if (conversation && text) {
-                conversation.addMessage({role: 'assistant', content: text, timestamp: Date.now()}, this.lmClient);
-            }
-            this.turnCount++;
-
-            const actions: TurnAction[] = toolCalls.map(tc => ({
-                type: 'tool_call',
-                content: tc.toolName,
-            }));
-
-            return {
-                success: true,
-                response: text || 'No response generated.',
-                actions,
-                metrics: {
-                    durationMs: Date.now() - startTime,
-                    cycleCount: this.cycleCount,
-                    eventCount: toolCalls.length,
-                },
-            };
-        } catch (error) {
-            return {
-                success: false,
-                response: '',
-                error: error instanceof Error ? error.message : String(error),
-            };
-        }
-    }
-
-    private async handleReasoning(input: string, context?: ProcessContext): Promise<AgentResult> {
-        if (!this.nar) return this.handleDefault(input, context);
-        const startTime = Date.now();
-        try {
-            const derived = await this.nar.run(context?.reasoningDepth ?? 5);
-            return {
-                success: true,
-                response: `Ran reasoning cycle, derived ${derived} new concepts.`,
-                reasoning: {
-                    steps: context?.reasoningDepth ?? 5,
-                    newBeliefs: [],
-                },
-                metrics: {
-                    durationMs: Date.now() - startTime,
-                    cycleCount: this.cycleCount,
-                    eventCount: derived,
-                },
-            };
-        } catch (error) {
-            return {
-                success: false,
-                response: '',
-                error: error instanceof Error ? error.message : String(error),
-            };
-        }
-    }
-
-    private async handleDefault(input: string, context?: ProcessContext): Promise<AgentResult> {
-        if (this.nar) return this.handleNarsese(input, context);
-        return {
-            success: true,
-            response: `Echo: ${input}`,
-            metrics: {
-                durationMs: 0,
-                cycleCount: this.cycleCount,
-                eventCount: 0,
-            },
+    getPolicy(): AgentPolicy {
+        return this.selfAnalyzer?.getPolicy() ?? {
+            routingWeights: {'narsese-belief': 1, 'narsese-question': 1, command: 1, nl: 1, reason: 1},
+            toolSelectionBias: {},
+            promptBudget: this.config.policy.promptBudget,
+            recencyEpisodes: this.config.policy.recencyEpisodes,
+            updatedAt: 0,
         };
     }
 
-    private async recordTurn(success: boolean): Promise<void> {
-        if (this.selfAnalyzer) {
-            await this.selfAnalyzer.performMetaCognitiveReasoning();
+    private isDirectRoute(kind: Route['kind']): boolean {
+        return kind === 'reason' || kind === 'narsese-belief' || kind === 'narsese-question' || kind === 'command';
+    }
+
+    private async runCandidate(
+        input: string,
+        routeResult: Route,
+        ctx: EpisodeContext,
+        start: number,
+        wm: WorkingMemory,
+        trace: ReasoningTrace,
+        emit: (e: ModelEvent) => void,
+        signal: AbortSignal,
+    ): ReturnType<EpisodeRunner['runModelCandidate']> {
+        if (routeResult.kind === 'reason') {
+            return this.wiring.episodeRunner.runReasonCandidate(input, routeResult, ctx, start, trace, wm);
         }
+        if (this.isDirectRoute(routeResult.kind)) {
+            return this.wiring.episodeRunner.runNoModelCandidate(input, routeResult, ctx, start);
+        }
+        return this.wiring.episodeRunner.runModelCandidate(input, routeResult, ctx, start, wm, trace, emit, signal);
     }
 }

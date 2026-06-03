@@ -1,6 +1,6 @@
 import http, {type IncomingMessage, type ServerResponse} from 'http';
 import {URL} from 'url';
-import type {ConnectionConfig, ConnectionDeps, IOMessage} from '../types.js';
+import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
 import {createLogger} from '../../nar/logger/index.js';
 import {ApiKeyManager, parseHttpBody, setCORSHeaders, startHttpServer} from '../utils/http.js';

@@ -16,18 +16,7 @@ import {MetricsCollector} from './metrics';
 import {createLogger} from './logger';
 import type {Tool, ToolResult} from './tools';
 import {
-    CalculateTool,
-    ExplainTool,
-    HTTPTool,
-    LearnTool,
-    ProcessTool,
-    ReadFileTool,
-    ReasonTool,
-    SearchTool,
-    SleepTool,
-    TimerTool,
     ToolManager,
-    WriteFileTool,
     discoverTools
 } from './tools';
 import {BaseComponent} from './lifecycle';
@@ -62,11 +51,6 @@ export interface NARConfig extends CoreConfig {
     cognitiveParams?: CognitiveParameters;
     strategyRegistry?: CognitiveRegistry;
     adaptationInterval?: number;
-}
-
-interface ToolDependency {
-    memory: Memory;
-    nar: NAR;
 }
 
 export class NAR extends BaseComponent {
@@ -132,7 +116,7 @@ export class NAR extends BaseComponent {
         this.io = new NARIO(this.memory, this.taskManager, this.config);
         this.io.setEventBus(eventBus);
         this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.cognitiveController);
-        this.lm = new NARLM(this.memory, this._registry, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment, this.config.enableLMStreaming);
+        this.lm = new NARLM(this.memory, this._registry, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment);
         this._metricsCollector = metrics;
 
         this.initializeOptionalFeatures();
@@ -457,14 +441,6 @@ clearLMRuleExecutionLog() {
         await this.lm.enrichMemory();
     }
 
-    async streamResponse(prompt: string, onToken: (token: string) => void): Promise<string> {
-        return this.lm.streamResponse(prompt, onToken, this._lmClient);
-    }
-
-    cancelLMStream(streamId: string): boolean {
-        return this.lm.cancelStream(streamId);
-    }
-
     getEnrichmentStats() {
         return this.lm.getEnrichmentStats();
     }
@@ -473,13 +449,8 @@ clearLMRuleExecutionLog() {
         return this.lm.getFeedbackStats();
     }
 
-    getLMStreamingStats() {
-        return this.lm.getStreamingStats();
-    }
-
     private stopLM(): void {
         this.lm.getEnricher()?.stop();
-        this.lm.getStreamingClient()?.cancelAllStreams();
     }
 
     private getModelWithFallback(prefix: string) {

@@ -1,5 +1,4 @@
 import type {NAR} from '../../nar/nar.js';
-import type {EpisodicMemory} from '../../nar/memory/EpisodicMemory.js';
 import {AIAgent} from '../AIAgent.js';
 import type {ConversationState} from '../ConversationState.js';
 import type {Scenario} from '../scenarios/types.js';

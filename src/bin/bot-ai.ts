@@ -83,6 +83,7 @@ async function main() {
         maxHistory: 20,
         summaryThreshold: 30,
         maxArtifacts: 50,
+        pinnedBeliefLimit: 8,
       },
       prompts: {},
     }),

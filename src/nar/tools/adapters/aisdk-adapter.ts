@@ -141,6 +141,125 @@ export function createNARSTools(nar: {
     };
 }
 
+/**
+ * Tools bound to a `WorkingMemory` instance — see `agent/cognition/WorkingMemory`.
+ * Phase 6: lets the LM read and write named slots (focus, goal, hypothesis,
+ * evidence, open_questions, recent_derivations, prior_insights) during an
+ * episode. The tools the LM sees depend on the active WM, not on a static
+ * catalogue; the agent passes a fresh instance per episode.
+ */
+export function createWorkingMemoryTools(wm: {
+    get(name: string): unknown;
+    set(name: string, value: unknown, ttlMs?: number): void;
+    append(name: string, value: string, ttlMs?: number, limit?: number): void;
+    remove(name: string, value: string): void;
+    clear(name: string): void;
+    snapshot(): Readonly<Record<string, unknown>>;
+    keys(): string[];
+}) {
+    return {
+        set_focus: tool({
+            description: 'Set the current focus slot in working memory (episode-scoped).',
+            inputSchema: z.object({
+                focus: z.string().describe('The current focus of attention.'),
+                ttlMs: z.number().int().positive().optional(),
+            }),
+            execute: async ({focus, ttlMs}) => {
+                wm.set('focus', focus, ttlMs);
+                return {success: true, focus};
+            },
+        }),
+
+        set_goal: tool({
+            description: 'Set the current goal slot in working memory (episode-scoped).',
+            inputSchema: z.object({
+                goal: z.string().describe('The current goal.'),
+                ttlMs: z.number().int().positive().optional(),
+            }),
+            execute: async ({goal, ttlMs}) => {
+                wm.set('goal', goal, ttlMs);
+                return {success: true, goal};
+            },
+        }),
+
+        set_hypothesis: tool({
+            description: 'Set the working hypothesis slot in working memory (5 min TTL by default).',
+            inputSchema: z.object({
+                hypothesis: z.string().describe('The current hypothesis to test.'),
+                ttlMs: z.number().int().positive().optional(),
+            }),
+            execute: async ({hypothesis, ttlMs}) => {
+                wm.set('hypothesis', hypothesis, ttlMs);
+                return {success: true, hypothesis};
+            },
+        }),
+
+        add_evidence: tool({
+            description: 'Append an evidence item to working memory. Deduplicated, capped to 64 entries.',
+            inputSchema: z.object({
+                evidence: z.string().describe('The evidence to add.'),
+                ttlMs: z.number().int().positive().optional(),
+            }),
+            execute: async ({evidence, ttlMs}) => {
+                wm.append('evidence', evidence, ttlMs);
+                return {success: true, evidence};
+            },
+        }),
+
+        mark_open_question: tool({
+            description: 'Persist an open question in working memory (no TTL).',
+            inputSchema: z.object({
+                question: z.string().describe('The open question to track.'),
+            }),
+            execute: async ({question}) => {
+                wm.append('open_questions', question);
+                return {success: true, question};
+            },
+        }),
+
+        record_derivation: tool({
+            description: 'Record a recent derivation in working memory (e.g. a chained inference).',
+            inputSchema: z.object({
+                derivation: z.string().describe('A short description of the derivation.'),
+            }),
+            execute: async ({derivation}) => {
+                wm.append('recent_derivations', derivation);
+                return {success: true, derivation};
+            },
+        }),
+
+        get_slot: tool({
+            description: 'Read a named slot from working memory.',
+            inputSchema: z.object({
+                name: z.string().describe('Slot name, e.g. focus, goal, hypothesis, evidence, open_questions, recent_derivations, prior_insights.'),
+            }),
+            execute: async ({name}) => {
+                const value = wm.get(name);
+                return {name, value: value ?? null, present: value !== undefined};
+            },
+        }),
+
+        clear_slot: tool({
+            description: 'Clear a named slot from working memory.',
+            inputSchema: z.object({
+                name: z.string().describe('Slot name to clear.'),
+            }),
+            execute: async ({name}) => {
+                wm.clear(name);
+                return {success: true, name};
+            },
+        }),
+
+        snapshot_working_memory: tool({
+            description: 'Take a snapshot of all currently-live working memory slots.',
+            inputSchema: z.object({}),
+            execute: async () => {
+                return {snapshot: wm.snapshot(), keys: wm.keys()};
+            },
+        }),
+    };
+}
+
 export function createGeneralTools(deps: {
     nar?: {queryTerm(term: unknown, filter?: unknown): {beliefs: unknown[]}};
     episodicMemory?: {getEpisodes(options: {limit: number; type?: string}): Promise<unknown[]>};

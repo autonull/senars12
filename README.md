@@ -85,6 +85,26 @@ pnpm run test:unit
 pnpm run test --coverage
 ```
 
+### End-to-end smoke scripts
+
+End-to-end smokes are spawned as child processes from Jest (the VM breaks
+ONNX's cross-realm Float32Array checks). They can also be run directly
+once the model weights are cached locally.
+
+```bash
+# Real-LM agent.executeEpisode end-to-end (used by tests/integration/execute-turn.test.ts)
+pnpm exec tsx scripts/execute-turn-smoke.ts
+
+# Full cognitive pipeline: multi-hop inference, belief recording, contradiction
+pnpm exec tsx scripts/cli-smoke.ts
+```
+
+The `cli-smoke` script seeds NARS with `(cat --> animal)` and
+`(animal --> living)`, then runs three probes that exercise the
+neurosymbolic loop end-to-end against the real
+`TransformersLMClient`. It prints one log line per probe and exits
+non-zero if any check fails.
+
 ---
 
 ### Code Guidelines

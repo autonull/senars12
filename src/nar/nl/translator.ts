@@ -1,4 +1,3 @@
-import type {LanguageModel} from 'ai';
 import {generateObject, generateText} from 'ai';
 import type {SeNARSRegistry} from '../lm/providers.js';
 import {getStructuredModel} from '../lm/providers.js';

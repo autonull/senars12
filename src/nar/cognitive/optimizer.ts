@@ -3,9 +3,7 @@ import {DEFAULT_COGNITIVE_PARAMETERS, mergeParameters} from '../config/cognitive
 import type {SearchSpace, MetricsSummary} from '../strategies/types.js';
 import type {Task} from '../types';
 import type {NAR} from '../nar';
-import {CognitiveController} from './controller';
 import type {CognitiveRegistry} from './registry';
-import {NARExecution} from '../nar-execution';
 import fs from 'node:fs';
 
 // ── Parameter Mapping ────────────────────────────────────────────

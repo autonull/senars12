@@ -1,1 +1,1 @@
-export {createNARSTools, createGeneralTools} from './aisdk-adapter.js';
+export {createNARSTools, createGeneralTools, createWorkingMemoryTools} from './aisdk-adapter.js';

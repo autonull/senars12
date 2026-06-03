@@ -5,7 +5,6 @@
 
 import type {NAR} from '../nar/index.js';
 import type {Task} from '../nar/types/index.js';
-import {TaskFormatter} from '../nar/utils/task-formatter.js';
 import {ReasoningTrace} from '../nar/query/index.js';
 import {termParser, termsEqual, extractSymbols} from '../nar/terms/index.js';
 

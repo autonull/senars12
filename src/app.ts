@@ -6,10 +6,8 @@
  * - Application logic (CLI, Bot, etc.)
  */
 
-import {DEFAULT_NAR_CONFIG, loadConfigFromEnv} from './config/index.js';
+import {loadConfigFromEnv} from './config/index.js';
 import {SeNARSFactory} from './nar/index.js';
-import {setupGracefulShutdown} from './utils/shutdown.js';
-import {createLogger} from './nar/logger/index.js';
 
 const MODES = {
     cli: runCLI,
