@@ -35,6 +35,7 @@ export class WebSocketAdapter extends BaseAdapter {
     private clients: Map<string, WSClient> = new Map();
     private eventSubscriptions: Map<string, Set<WebSocket>> = new Map();
     private config: Required<WebSocketAdapterConfig>;
+    private heartbeatIntervalId?: NodeJS.Timeout;
 
     constructor(registry?: any, config: WebSocketAdapterConfig = {}) {
         super('api:websocket');
@@ -70,7 +71,7 @@ export class WebSocketAdapter extends BaseAdapter {
                 });
 
                 // Heartbeat check
-                setInterval(() => {
+                this.heartbeatIntervalId = setInterval(() => {
                     this.checkHeartbeat();
                 }, this.config.heartbeatInterval);
             } catch (error) {
@@ -81,12 +82,18 @@ export class WebSocketAdapter extends BaseAdapter {
 
     async stop(): Promise<void> {
         return new Promise((resolve) => {
+            if (this.heartbeatIntervalId) {
+                clearInterval(this.heartbeatIntervalId);
+                this.heartbeatIntervalId = undefined;
+            }
+
             if (!this.server) {
                 resolve();
                 return;
             }
 
             for (const [, client] of this.clients) {
+                clearInterval(client.heartbeat);
                 client.ws.close();
             }
             this.clients.clear();

@@ -71,6 +71,7 @@ export class MetacognitiveMonitor {
   private reasoningTrace: ReasoningStep[];
   private performanceHistory: PerformanceData[];
   private performanceMonitors: Map<string, PerformanceMonitor>;
+  private monitorInterval?: NodeJS.Timeout;
 
   constructor(nar: NARWithEventBus | null, config: MetacognitiveMonitorConfig = {}) {
     this.nar = nar;
@@ -198,6 +199,10 @@ export class MetacognitiveMonitor {
     this.reasoningTrace = [];
     this.performanceHistory = [];
     this.performanceMonitors.clear();
+    if (this.monitorInterval) {
+      clearInterval(this.monitorInterval);
+      this.monitorInterval = undefined;
+    }
   }
 
   private setupMonitoring(): void {
@@ -253,7 +258,7 @@ export class MetacognitiveMonitor {
       }
     });
 
-    setInterval(() => {
+    this.monitorInterval = setInterval(() => {
       const memoryUsage = process.memoryUsage ? process.memoryUsage().heapUsed : 0;
       this.analyzePerformance({
         throughput: lastThroughput,
