@@ -65,6 +65,9 @@ export class AIAgentConnectionManager {
   private connections: Connection[] = [];
   private conversationStates: Map<string, any> = new Map();
   private readonly stateSavePath = '.cache/conversations';
+  private lastAutonomousBroadcastAt = 0;
+  private readonly autonomousBroadcastCooldownMs = 5 * 60_000;
+  private readonly autonomousBroadcastEnabled = process.env.SENARS_AUTONOMY_BROADCAST === 'true';
 
   constructor(agent: AIAgent, deps: AIAgentDeps = {}) {
     this.agent = agent;
@@ -82,7 +85,10 @@ export class AIAgentConnectionManager {
   }
 
   private async handleAutonomousInsights(data: { derived: number; insights: any[] }): Promise<void> {
+    if (!this.autonomousBroadcastEnabled) return;
     if (!data.insights || data.insights.length === 0) return;
+    const now = Date.now();
+    if (now - this.lastAutonomousBroadcastAt < this.autonomousBroadcastCooldownMs) return;
 
     const insightText = data.insights.map((i: any) => i.term.toString()).join(', ');
     this.logger.info(`Autonomous reasoning produced ${data.derived} insights: ${insightText}`);
@@ -91,9 +97,10 @@ export class AIAgentConnectionManager {
 
     if (this.conversationStates.size === 0) return;
     const origins = Array.from(this.conversationStates.keys());
-    const targetOrigin = origins.find((o: string) => o.startsWith('irc:') || o.startsWith('cli:')) ?? origins[0];
+    const targetOrigin = origins.find((o: string) => o.startsWith('cli:')) ?? origins[0];
     if (!targetOrigin) return;
 
+    this.lastAutonomousBroadcastAt = now;
     const conversation = this.conversationStates.get(targetOrigin);
     const connectionType = targetOrigin.split(':')[0] ?? 'system';
 
@@ -199,7 +206,7 @@ export class AIAgentConnectionManager {
         conversation: this.conversationStates.get(message.origin),
       });
       if (!result.text) return;
-      const target = connection.type === 'irc' ? (message.origin.split(':')[1] || message.sender) : message.sender;
+      const target = resolveReplyTarget(connection, message);
       await connection.send(target, result.text);
     } catch (error) {
       this.logger.error(`Error handling message from ${connection.id}`, error as Error);
@@ -316,6 +323,14 @@ export class AIAgentConnectionManager {
       mcp: this.mcpServer ? {running: this.mcpServer.isServerRunning()} : undefined,
     };
   }
+}
+
+function resolveReplyTarget(connection: Connection, message: IOMessage): string {
+  if (connection.type !== 'irc') return message.sender;
+  const parts = message.origin.split(':');
+  const channel = parts[1];
+  if (channel && channel !== 'direct') return channel;
+  return message.sender;
 }
 
 export function createConnectionConfigsFromEnv(): ConnectionAdapterConfig[] {

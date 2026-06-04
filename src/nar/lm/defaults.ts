@@ -115,10 +115,11 @@ export function createTransformersEntry(): ModelRegistryEntry {
 }
 
 export function createOllamaEntry(): ModelRegistryEntry {
+    const model = process.env.OLLAMA_MODEL || process.env.LM_MODEL || 'llama3.2';
     return {
         id: 'ollama',
-        config: {provider: 'ollama' as const, model: 'llama3.2', ...OLLAMA_MODEL_CAPABILITY},
-        clientFactory: () => new OllamaLMClient('llama3.2'),
+        config: {provider: 'ollama' as const, model, ...OLLAMA_MODEL_CAPABILITY},
+        clientFactory: () => new OllamaLMClient(model),
         enabled: true,
         priority: 2,
         stats: {totalCalls: 0, successfulCalls: 0, failedCalls: 0, averageLatency: 0},

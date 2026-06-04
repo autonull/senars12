@@ -117,7 +117,7 @@ export class AIAgent {
     }
 
     async reason(input: string, steps?: number): Promise<Belief[]> {
-        const result = await this.executeEpisode(input, {routeOverride: 'reason', reasoningDepth: steps});
+        const result = await this.executeEpisode(input, {reasoningDepth: steps});
         return result.artifacts
             .map(a => a.metadata?.belief)
             .filter((b): b is string => typeof b === 'string')
@@ -196,7 +196,7 @@ export class AIAgent {
 
     getPolicy(): AgentPolicy {
         return this.selfAnalyzer?.getPolicy() ?? {
-            routingWeights: {'narsese-belief': 1, 'narsese-question': 1, command: 1, nl: 1, reason: 1},
+            routingWeights: {'narsese-belief': 1, 'narsese-question': 1, command: 1, nl: 1},
             toolSelectionBias: {},
             promptBudget: this.config.policy.promptBudget,
             recencyEpisodes: this.config.policy.recencyEpisodes,
@@ -205,7 +205,7 @@ export class AIAgent {
     }
 
     private isDirectRoute(kind: Route['kind']): boolean {
-        return kind === 'reason' || kind === 'narsese-belief' || kind === 'narsese-question' || kind === 'command';
+        return kind === 'narsese-belief' || kind === 'narsese-question' || kind === 'command';
     }
 
     private async runCandidate(
@@ -218,9 +218,6 @@ export class AIAgent {
         emit: (e: ModelEvent) => void,
         signal: AbortSignal,
     ): ReturnType<EpisodeRunner['runModelCandidate']> {
-        if (routeResult.kind === 'reason') {
-            return this.wiring.episodeRunner.runReasonCandidate(input, routeResult, ctx, start, trace, wm);
-        }
         if (this.isDirectRoute(routeResult.kind)) {
             return this.wiring.episodeRunner.runNoModelCandidate(input, routeResult, ctx, start);
         }

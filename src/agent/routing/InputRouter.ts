@@ -50,10 +50,8 @@ export function route(input: string, ctx: RouteContext = {}): Route {
         return {kind: 'command', confidence: 0.95, signals, command: args.length ? cmd.split(/\s+/)[0]! : cmd, arguments: args};
     }
 
-    if (kind === 'reason') {
-        const depth = ctx.reasoningDepth ?? 5;
-        const trigger = REASON_TRIGGERS.exec(trimmed)?.[0] ?? 'explicit';
-        return {kind: 'reason', confidence: 0.8, signals, depth, trigger};
+    if (REASON_TRIGGERS.test(trimmed) || (QUESTION_TRIGGERS.test(trimmed) && analysis.confidence < 0.5)) {
+        signals.push({source: 'pattern', name: 'reason-trigger', weight: 0.6});
     }
 
     return {
@@ -70,7 +68,6 @@ function pickKind(trimmed: string, classifierKind: string, analysis: ReturnType<
     if (classifierKind === 'command') return 'command';
     if (classifierKind === 'narsese-belief' && analysis.isNarsese) return 'narsese-belief';
     if (classifierKind === 'narsese-question' && analysis.isNarsese) return 'narsese-question';
-    if (REASON_TRIGGERS.test(trimmed) || (QUESTION_TRIGGERS.test(trimmed) && analysis.confidence < 0.5)) return 'reason';
     return 'nl';
 }
 

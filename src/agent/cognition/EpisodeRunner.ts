@@ -105,58 +105,6 @@ export class EpisodeRunner {
         };
     }
 
-    async runReasonCandidate(
-        input: string,
-        r: Route,
-        ctx: EpisodeContext,
-        start: number,
-        trace: ReasoningTrace,
-        wm: WorkingMemory,
-    ): Promise<TurnResult> {
-        const {nar, snapshot, eventBus} = this.deps;
-        const steps = ctx.reasoningDepth ?? 5;
-        const artifacts: ReasoningArtifact[] = [];
-        if (nar) {
-            const before = captureBeliefCount(nar);
-            await nar.run(steps);
-            snapshot.invalidateAll();
-            const derived = captureDerivedBeliefs(nar, before);
-            for (const d of derived) {
-                artifacts.push({
-                    type: 'derivation',
-                    content: `${d.term} (f=${d.truth?.f.toFixed(2) ?? '?'}, c=${d.truth?.c.toFixed(2) ?? '?'})`,
-                    timestamp: Date.now(),
-                    metadata: {belief: d.term, toolName: 'nar_reason'},
-                });
-            }
-        }
-        const conversation = ctx.conversation;
-        if (conversation) {
-            conversation.addMessage({role: 'user', content: input, timestamp: start});
-            for (const a of artifacts) conversation.addArtifact(a);
-            this.deps.pinTopBeliefs(conversation, artifacts);
-        }
-        const summary = artifacts.length > 0
-            ? `Ran ${steps}-step reasoning; derived ${artifacts.length} new belief${artifacts.length === 1 ? '' : 's'}: ${artifacts.slice(0, 3).map(a => a.content).join('; ')}${artifacts.length > 3 ? '…' : ''}`
-            : `Ran reasoning cycle (${steps} steps).`;
-        if (summary) wm.set('focus', summary);
-        trace.recordFinalize(artifacts, []);
-        const cycle = this.deps.nextCycle();
-        this.deps.nextTurn();
-        this.deps.markActivity();
-        const ctxHash = buildCtxHash(r, nar, Date.now());
-        eventBus.emit('agent:turn:complete', {text: summary, ctxHash, route: r.kind});
-        return {
-            text: summary,
-            toolCalls: [],
-            artifacts,
-            errors: [],
-            route: r,
-            ctxHash,
-            metrics: {durationMs: Date.now() - start, cycleCount: cycle, eventCount: 0},
-        };
-    }
-
     async runNoModelCandidate(input: string, r: Route, ctx: EpisodeContext, start: number): Promise<TurnResult> {
         const {nar} = this.deps;
         if (!nar) {

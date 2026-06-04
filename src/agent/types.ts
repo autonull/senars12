@@ -319,14 +319,13 @@ export type {Connection, Ambiguity};
 // sites; new code should consume `Route`.
 // ---------------------------------------------------------------------------
 
-export type RouteKind = 'narsese-belief' | 'narsese-question' | 'command' | 'nl' | 'reason';
+export type RouteKind = 'narsese-belief' | 'narsese-question' | 'command' | 'nl';
 
 export type Route =
     | {kind: 'narsese-belief'; confidence: number; signals: RouteSignal[]; narsese?: string; concepts: string[]}
     | {kind: 'narsese-question'; confidence: number; signals: RouteSignal[]; narsese?: string; concepts: string[]}
     | {kind: 'command'; confidence: number; signals: RouteSignal[]; command: string; arguments?: string[]}
-    | {kind: 'nl'; confidence: number; signals: RouteSignal[]; intent: string; concepts: string[]; ambiguity: number}
-    | {kind: 'reason'; confidence: number; signals: RouteSignal[]; depth: number; trigger: string};
+    | {kind: 'nl'; confidence: number; signals: RouteSignal[]; intent: string; concepts: string[]; ambiguity: number};
 
 export interface RouteSignal {
     source: 'classifier' | 'nl-analyzer' | 'pattern' | 'keyword' | 'narsese-parser' | 'fallback';

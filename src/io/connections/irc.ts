@@ -31,6 +31,7 @@ export class IRCConnection extends BaseConnection {
     private messageQueue: Array<{ target: string; message: string }> = [];
     private queueTimer: ReturnType<typeof setInterval> | null = null;
     private connected = false;
+    private readyAt = 0;
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);
@@ -50,8 +51,8 @@ export class IRCConnection extends BaseConnection {
             sasl: cfg.sasl ?? false,
             autoReconnect: cfg.autoReconnect ?? true,
             autoReconnectMaxRetries: cfg.autoReconnectMaxRetries ?? 10,
-            floodProtectionDelay: cfg.floodProtectionDelay ?? 1000,
-            floodProtectionMaxPending: cfg.floodProtectionMaxPending ?? 3,
+            floodProtectionDelay: cfg.floodProtectionDelay ?? 2000,
+            floodProtectionMaxPending: cfg.floodProtectionMaxPending ?? 2,
             pingTimeout: cfg.pingTimeout ?? 60,
         };
     }
@@ -75,7 +76,6 @@ export class IRCConnection extends BaseConnection {
             this.client.on('registered', () => {
                 clearTimeout(failTimeout);
                 this.connected = true;
-                this.setState('connected');
                 this.scheduleJoin();
                 this.startQueueDrain();
                 this.logger.info(`IRC connected to ${server}`);
@@ -83,7 +83,7 @@ export class IRCConnection extends BaseConnection {
             });
 
             this.client.on('error', (err) => this.handleError(this.createError(err.message, 'IRC_ERROR', true, err)));
-            this.client.on('message', (channel, nck, text) => this.handleMessage(this.createMessage(nck, text, {channel})));
+            this.client.on('message', (from, to, text) => this.handleMessage(this.createMessage(from, text, {channel: to.startsWith('#') ? to : undefined})));
             this.client.on('close', () => {
                 this.connected = false;
                 if (this.state === 'connected') {
@@ -112,9 +112,13 @@ export class IRCConnection extends BaseConnection {
 
     async send(target: string, text: string): Promise<void> {
         if (!this.connected || !this.client) return;
+        if (Date.now() < this.readyAt) {
+            this.messageQueue.push({target, message: text});
+            return;
+        }
 
         const pending = this.pendingMessages.get(target) ?? [];
-        if (pending.length >= (this.ircConfig.floodProtectionMaxPending ?? 3)) {
+        if (pending.length >= (this.ircConfig.floodProtectionMaxPending ?? 2)) {
             this.messageQueue.push({target, message: text});
             return;
         }
@@ -159,8 +163,13 @@ export class IRCConnection extends BaseConnection {
 
     private scheduleJoin(): void {
         if (!this.client) return;
-        const delay = (this.ircConfig.floodProtectionDelay ?? 1000) * (this.ircConfig.channels.length + 1);
-        setTimeout(() => this.ircConfig.channels.forEach(c => this.client?.join(c)), delay);
+        const channelDelay = (this.ircConfig.floodProtectionDelay ?? 2000) * (this.ircConfig.channels.length + 1);
+        const joinWarmup = 5000;
+        this.readyAt = Date.now() + channelDelay + joinWarmup;
+        setTimeout(() => {
+            this.setState('connected');
+            this.ircConfig.channels.forEach(c => this.client?.join(c));
+        }, channelDelay);
     }
 
     private scheduleReconnect(): void {
