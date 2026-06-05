@@ -2,6 +2,7 @@ import {createProviderRegistry, customProvider, defaultSettingsMiddleware, wrapL
 import {anthropic} from '@ai-sdk/anthropic';
 import {ollama} from 'ollama-ai-provider-v2';
 import {transformersJS} from '@browser-ai/transformers-js';
+import {resolveLMConfig} from './env-config.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ollamaProvider = ollama as any;
@@ -9,26 +10,37 @@ const ollamaProvider = ollama as any;
 export const BUILTIN_CHAT_MODEL = 'Xenova/gpt-2';
 export const BUILTIN_COMPACT_MODEL = 'Xenova/gpt-2';
 
+const OLLAMA_QUALITY_DEFAULT = 'llama3.1:8b';
+const OLLAMA_FAST_DEFAULT = 'llama3.2:3b';
+const OLLAMA_COMPACT_DEFAULT = 'phi3:3.8b';
+const ANTHROPIC_QUALITY_DEFAULT = 'claude-sonnet-4-20250514';
+const ANTHROPIC_FAST_DEFAULT = 'claude-haiku-4-20240307';
+
 export function createSeNARSRegistry() {
+    const cfg = resolveLMConfig();
+    const ollamaQuality = cfg.host ? ollamaProvider(cfg.model, {baseURL: `${cfg.host}/v1`}) : ollamaProvider(OLLAMA_QUALITY_DEFAULT);
+    const ollamaFast = cfg.host ? ollamaProvider(OLLAMA_FAST_DEFAULT, {baseURL: `${cfg.host}/v1`}) : ollamaProvider(OLLAMA_FAST_DEFAULT);
+    const ollamaCompact = cfg.host ? ollamaProvider(OLLAMA_COMPACT_DEFAULT, {baseURL: `${cfg.host}/v1`}) : ollamaProvider(OLLAMA_COMPACT_DEFAULT);
+
     return createProviderRegistry({
         cloud: customProvider({
             languageModels: {
                 quality: wrapLanguageModel({
-                    model: anthropic('claude-sonnet-4-20250514'),
+                    model: anthropic(ANTHROPIC_QUALITY_DEFAULT),
                     middleware: defaultSettingsMiddleware({
                         settings: {maxOutputTokens: 2048, temperature: 0.3},
                     }),
                 }),
-                fast: anthropic('claude-haiku-4-20240307'),
+                fast: anthropic(ANTHROPIC_FAST_DEFAULT),
             },
             fallbackProvider: anthropic,
         }),
 
         local: customProvider({
             languageModels: {
-                quality: ollamaProvider('llama3.1:8b'),
-                fast: ollamaProvider('llama3.2:3b'),
-                compact: ollamaProvider('phi3:3.8b'),
+                quality: ollamaQuality,
+                fast: ollamaFast,
+                compact: ollamaCompact,
             },
         }),
 

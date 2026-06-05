@@ -11,13 +11,17 @@ import {AIAgentConnectionManager, createConnectionConfigsFromEnv} from '../agent
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {setupDefaultLMClient} from '../nar/lm/defaults.js';
+import {resolveLMConfig} from '../nar/lm/env-config.js';
 import {createLogger} from '../nar/logger/index.js';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {DEFAULT_NAR_CONFIG, makeDefaultBotConfig} from '../config/defaults.js';
 import {setupGracefulShutdown} from '../utils/shutdown.js';
+import {assertValidEnv} from '../utils/env-validate.js';
 import type {Capabilities} from '../agent/types.js';
 import type {LMClient} from '../nar/lm/types.js';
 import type {NAR} from '../nar/nar.js';
+
+assertValidEnv();
 
 const detectCapabilities = (lm?: LMClient, seNARS?: NAR): Capabilities => {
     const hasLM = !!lm && lm.available !== false;
@@ -38,6 +42,7 @@ async function main() {
   // 1. Create NARS
   const registry = createSeNARSRegistry();
   const lmClient = setupDefaultLMClient();
+  const lmConfig = resolveLMConfig();
   const nar = SeNARSFactory.createDefault({
     ...DEFAULT_NAR_CONFIG,
     providerRegistry: registry,
@@ -60,8 +65,8 @@ async function main() {
   const agent = new AIAgent({
     nar,
     episodicMemory,
-    provider: (process.env.LM_PROVIDER || 'transformers') as any,
-    model: process.env.LM_MODEL,
+    provider: lmConfig.provider as any,
+    model: lmConfig.model,
     lmClient,
     instructions: process.env.AGENT_INSTRUCTIONS,
     config: makeDefaultBotConfig({
@@ -113,9 +118,9 @@ async function main() {
   await connectionManager.start();
 
   logger.info(`Bot ready: AIAgent with ${connectionConfigs.length} connections`);
+  logger.info(`LM: provider=${lmConfig.provider} model=${lmConfig.model}${lmConfig.host ? ` host=${lmConfig.host}` : ''}`);
   logger.info(`Mode: ${capabilities.mode}`);
   logger.info(`NARS: ${capabilities.hasSeNARS ? 'enabled' : 'disabled'}`);
-  logger.info(`LM: ${capabilities.hasLM ? 'enabled' : 'disabled'}`);
 }
 
 main().catch(console.error);

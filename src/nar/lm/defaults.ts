@@ -10,6 +10,7 @@ import {createMockLMClient} from './mock-client.js';
 import {createLogger} from '../logger/index.js';
 import type {LanguageModel} from 'ai';
 import {TransformersLMClient, DEFAULT_TRANSFORMERS_MODEL} from './transformers-client.js';
+import {resolveLMConfig} from './env-config.js';
 
 export const DEFAULT_COMPACT_MODEL = DEFAULT_TRANSFORMERS_MODEL;
 export {TransformersLMClient};
@@ -115,7 +116,7 @@ export function createTransformersEntry(): ModelRegistryEntry {
 }
 
 export function createOllamaEntry(): ModelRegistryEntry {
-    const model = process.env.OLLAMA_MODEL || process.env.LM_MODEL || 'llama3.2';
+    const {model} = resolveLMConfig();
     return {
         id: 'ollama',
         config: {provider: 'ollama' as const, model, ...OLLAMA_MODEL_CAPABILITY},
@@ -152,7 +153,7 @@ export function setupDefaultLMClient(registry: ModelRegistry = defaultModelRegis
     registerDefaultModels(registry);
     const logger = createLogger({scope: 'lm:defaults'});
 
-    const provider = process.env.LM_PROVIDER || 'transformers';
+    const {provider} = resolveLMConfig();
 
     if (provider === 'transformers') {
         const transformersEntry = registry.get('transformers');

@@ -2,6 +2,12 @@
  * Connection Adapters for AIAgent
  *
  * Bridges the gap between AIAgent and connection adapters.
+ *
+ * Unified mode (TODO4 W3+): every message — user or system — runs through the
+ * 5-phase cycle (perceive → reason → decide → act+reflect → commit). State is
+ * persisted as versioned JSON snapshots per origin; an in-memory journal records
+ * every cycle for `!trace` / `!replay`. `!`-prefixed messages are intercepted
+ * before the cycle and routed to operator commands.
  */
 
 import type {AIAgent} from '../AIAgent.js';
@@ -17,6 +23,7 @@ import {IRCConnection} from '../../io/connections/irc.js';
 import {WSConnection} from '../../io/connections/ws.js';
 import {HTTPConnection} from '../../io/connections/http.js';
 import {MCPConnection} from '../../io/connections/mcp.js';
+import {resolveReplyTarget as resolveReplyTargetFn} from '../../io/connections/reply-target.js';
 import {SeNARSMCPServer} from '../../api/mcp-server.js';
 import {registerNARToolsAsMCP, registerAgentAPI} from '../../api/mcp-tools.js';
 import {registerMCPPrompts} from '../../api/mcp-prompts.js';
@@ -29,6 +36,12 @@ import {ReasoningAboutReasoning} from '../../nar/self/ReasoningAboutReasoning.js
 import type {NAR} from '../../nar/nar.js';
 import {AutonomousScheduler} from '../AutonomousScheduler.js';
 import {makeDefaultBotConfig} from '../../config/defaults.js';
+import {
+  StateJournal,
+  dispatchCycleMessage,
+  type State,
+  type DispatchState,
+} from '../cycle/index.js';
 
 export interface ConnectionAdapterConfig {
   id: string;
@@ -64,7 +77,17 @@ export class AIAgentConnectionManager {
   private regressionTracker?: RegressionTracker;
   private connections: Connection[] = [];
   private conversationStates: Map<string, any> = new Map();
+  private cycleStates: Map<string, State> = new Map();
+  private journals: Map<string, StateJournal> = new Map();
+  private cycleQueues: Map<string, Promise<unknown>> = new Map();
   private readonly stateSavePath = '.cache/conversations';
+  private readonly cycleStatePath = '.cache/cycle';
+  private readonly maxSnapshots = (() => {
+    const raw = process.env.SENARS_MAX_SNAPSHOTS;
+    if (!raw) return undefined;
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  })();
   private lastAutonomousBroadcastAt = 0;
   private readonly autonomousBroadcastCooldownMs = 5 * 60_000;
   private readonly autonomousBroadcastEnabled = process.env.SENARS_AUTONOMY_BROADCAST === 'true';
@@ -103,18 +126,34 @@ export class AIAgentConnectionManager {
     this.lastAutonomousBroadcastAt = now;
     const conversation = this.conversationStates.get(targetOrigin);
     const connectionType = targetOrigin.split(':')[0] ?? 'system';
+    const connection = this.connections.find((c: Connection) => c.type === connectionType);
+    if (!connection) return;
 
     try {
-        const result = await this.agent.executeEpisode(prompt, {sender: 'system', connectionType, conversation});
-        if (!result.text) return;
-        const connection = this.connections.find((c: Connection) => c.type === connectionType);
-        if (!connection) return;
-        let target = 'system';
-        if (connection.type === 'irc') {
-            const parts = targetOrigin.split(':');
-            if (parts.length >= 2 && parts[1] !== 'direct' && parts[1] !== undefined) target = parts[1]!;
-        }
-        await connection.send(target, result.text);
+        const sent = await dispatchCycleMessage(
+          {
+            origin: targetOrigin,
+            connectionId: connection.id,
+            connectionType,
+            sender: 'system',
+            text: prompt,
+            timestamp: now,
+            episodeCtx: {sender: 'system', connectionType, conversation},
+          },
+          {
+            store: {states: this.cycleStates, journals: this.journals, stateDir: this.cycleStatePath, queues: this.cycleQueues},
+            agent: this.agent,
+            resolveTarget: () => {
+              if (connection.type !== 'irc') return 'system';
+              const parts = targetOrigin.split(':');
+              if (parts.length >= 2 && parts[1] !== 'direct' && parts[1] !== undefined) return parts[1]!;
+              return 'system';
+            },
+            send: (target, text) => connection.send(target, text),
+            maxSnapshots: this.maxSnapshots,
+          },
+        );
+        if (sent.sent.length === 0) return;
     } catch (err) {
         this.logger.error(`Failed to broadcast autonomous insight`, err as Error);
     }
@@ -200,14 +239,38 @@ export class AIAgentConnectionManager {
       if (!this.conversationStates.has(message.origin)) {
         this.conversationStates.set(message.origin, await this.createDefaultConversationState());
       }
-      const result = await this.agent.executeEpisode(message.text, {
+
+      const episodeCtx = {
         sender: message.sender,
         connectionType: connection.type,
         conversation: this.conversationStates.get(message.origin),
-      });
-      if (!result.text) return;
-      const target = resolveReplyTarget(connection, message);
-      await connection.send(target, result.text);
+      };
+
+      const store: DispatchState = {
+        states: this.cycleStates,
+        journals: this.journals,
+        stateDir: this.cycleStatePath,
+        queues: this.cycleQueues,
+      };
+
+      await dispatchCycleMessage(
+        {
+          origin: message.origin,
+          connectionId: connection.id,
+          connectionType: connection.type,
+          sender: message.sender,
+          text: message.text,
+          timestamp: message.timestamp,
+          episodeCtx,
+        },
+        {
+          store,
+          agent: this.agent,
+          resolveTarget: (input) => resolveReplyTarget(connection, {...message, sender: input.sender}),
+          send: (target, text) => connection.send(target, text),
+          maxSnapshots: this.maxSnapshots,
+        },
+      );
     } catch (error) {
       this.logger.error(`Error handling message from ${connection.id}`, error as Error);
       await connection.send(message.sender, `Error: ${(error as Error).message}`);
@@ -326,11 +389,7 @@ export class AIAgentConnectionManager {
 }
 
 function resolveReplyTarget(connection: Connection, message: IOMessage): string {
-  if (connection.type !== 'irc') return message.sender;
-  const parts = message.origin.split(':');
-  const channel = parts[1];
-  if (channel && channel !== 'direct') return channel;
-  return message.sender;
+  return resolveReplyTargetFn(connection, message);
 }
 
 export function createConnectionConfigsFromEnv(): ConnectionAdapterConfig[] {
