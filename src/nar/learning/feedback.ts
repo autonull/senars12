@@ -1,8 +1,12 @@
 import type {Task} from '../types/index.js';
 import type {TranslationCache} from '../nl/translator.js';
-import type {DerivationResult} from '../../agent/types.js';
 import type {RLFPLearner} from '../rlfp/RLFPLearner.js';
 import {isTautology, isOperation, getSubject, getPredicate} from '../terms/index.js';
+
+interface DerivationResult {
+    steps?: number;
+    newBeliefs: Array<{term: string}>;
+}
 
 export interface CorrectionEntry {
     pattern: string;

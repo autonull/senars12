@@ -1,6 +1,6 @@
 import type {NAR} from '../nar.js';
-import {MetacognitiveMonitor} from '../../agent/services/MetacognitiveMonitor.js';
-import {type MetaCognitiveResult, type MonitorState, SelfAnalyzerService as SelfAnalyzer} from '../../agent/services/SelfAnalyzerService.js';
+import {MetacognitiveMonitor} from '../cognitive/MetacognitiveMonitor.js';
+import {type MetaCognitiveResult, type MonitorState, SelfAnalyzerService as SelfAnalyzer} from '../cognitive/SelfAnalyzerService.js';
 import {createLogger} from '../logger';
 
 export interface GapReport {

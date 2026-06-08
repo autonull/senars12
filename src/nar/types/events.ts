@@ -1,6 +1,6 @@
 import type {Term, Truth} from '../terms';
 import type {NLAnalysis, Ambiguity} from '../nl/analyzer.js';
-import type {CognitiveState, CognitiveAction} from '../../agent/services/ObserverService.js';
+import type {CognitiveState, CognitiveAction} from '../cognitive/ObserverService.js';
 
 export interface EventMap {
     [key: string]: unknown;

@@ -1,5 +1,11 @@
 import type {NAR} from '../../nar/nar.js';
-import type {ReasoningArtifact} from '../types.js';
+
+export interface ReasoningArtifact {
+    type: 'derivation' | 'tool_result' | 'belief_added' | 'question_answered';
+    content: string;
+    timestamp: number;
+    metadata?: Record<string, unknown>;
+}
 
 export interface ToolCall {
     toolName: string;

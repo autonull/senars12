@@ -1,5 +1,16 @@
 import type {NAR} from '../nar.js';
-import type {DerivationResult, Belief} from '../../agent/types.js';
+
+export interface DerivationResult {
+    steps: number;
+    beliefs: Belief[];
+    newBeliefs: Belief[];
+    trace?: unknown[];
+}
+
+export interface Belief {
+    term: string;
+    truth?: {frequency: number; confidence: number};
+}
 
 interface DerivationSummary {
     conclusion: string;

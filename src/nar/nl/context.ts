@@ -1,6 +1,10 @@
 import type {NAR} from '../nar.js';
-import type {BotContext} from '../../agent/types.js';
 import type {TranslationCacheEntry} from './translator.js';
+
+export interface BotContext {
+    turn?: {reasoningResult?: {newBeliefs?: Array<{term: string; truth?: {frequency: number; confidence: number}}>}};
+    conversation?: {summary?: string; getPinned?(): string[]};
+}
 
 export interface ContextOpts {
     attention?: boolean;
@@ -31,7 +35,7 @@ export class ContextBuilder {
             if (beliefs) parts.push(beliefs);
         }
 
-        if (opts.derivations && ctx?.turn.reasoningResult?.newBeliefs?.length) {
+        if (opts.derivations && ctx?.turn?.reasoningResult?.newBeliefs?.length) {
             const derivations = this.formatDerivations(ctx.turn.reasoningResult.newBeliefs.slice(0, 5));
             if (derivations) parts.push(derivations);
         }
@@ -115,7 +119,7 @@ export class ContextBuilder {
     }
 
     private formatPinned(ctx: BotContext | undefined): string {
-        const pinned = ctx?.conversation.getPinned?.() ?? [];
+        const pinned = ctx?.conversation?.getPinned?.() ?? [];
         if (pinned.length === 0) return '';
         return `Pinned context: ${pinned.join('; ')}`;
     }

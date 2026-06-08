@@ -1,7 +1,7 @@
 import {describe, it, expect} from '@jest/globals';
-import {route} from '../../../src/agent/routing/InputRouter.js';
+import {route} from '../../../src/agent/routing.js';
 
-describe('InputRouter', () => {
+describe('route (v4)', () => {
     it('routes narsese belief', () => {
         const r = route('(cat --> animal).');
         expect(r.kind).toBe('narsese-belief');
@@ -36,23 +36,9 @@ describe('InputRouter', () => {
         }
     });
 
-    it('routes reason trigger to reason kind', () => {
-        const r = route('Why is the sky blue?');
-        expect(r.kind === 'reason' || r.kind === 'nl').toBe(true);
-        if (r.kind === 'reason') {
-            expect(r.trigger).toBeDefined();
-            expect(r.depth).toBeGreaterThan(0);
-        }
-    });
-
     it('falls back to nl for empty input', () => {
         const r = route('   ');
         expect(r.kind).toBe('nl');
-    });
-
-    it('passes reasoningDepth through to reason kind', () => {
-        const r = route('Infer whether P is true', {reasoningDepth: 9});
-        if (r.kind === 'reason') expect(r.depth).toBe(9);
     });
 
     it('populates signals from classifier and analyzer', () => {

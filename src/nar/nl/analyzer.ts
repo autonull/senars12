@@ -1,5 +1,6 @@
-import type {BotContext} from '../../agent/types.js';
 import {termParser} from '../terms/index.js';
+
+export type BotContext = Record<string, unknown>;
 
 export type NLIntentType =
     | 'believe' | 'query' | 'goal' | 'forget' | 'focus'

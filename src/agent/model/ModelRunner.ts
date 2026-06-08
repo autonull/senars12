@@ -1,7 +1,28 @@
 import type {LMClient} from '../../nar/lm/types.js';
 import {adapt, type AISDKLanguageModel} from '../../nar/lm/adapters/index.js';
-import type {ComposedRequest, ReasoningArtifact, ToolError} from '../types.js';
 import {dispatchToolCalls, type ToolCall} from './ToolDispatcher.js';
+
+export interface ComposedRequest {
+    system: string;
+    messages: Array<{role: 'user' | 'assistant' | 'system' | 'tool'; content: string | unknown[]; timestamp?: number}>;
+    tools: Record<string, unknown>;
+    ctxHash: string;
+    snapshot: unknown;
+    budget: {systemTokens: number; historyTokens: number; snapshotTokens: number; total: number; maxTokens: number};
+}
+
+export interface ReasoningArtifact {
+    type: 'derivation' | 'tool_result' | 'belief_added' | 'question_answered';
+    content: string;
+    timestamp: number;
+    metadata?: Record<string, unknown>;
+}
+
+export interface ToolError {
+    toolCallId: string;
+    toolName: string;
+    message: string;
+}
 
 export type ModelEvent =
     | {kind: 'text-delta'; text: string}
