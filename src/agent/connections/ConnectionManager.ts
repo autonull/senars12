@@ -3,13 +3,19 @@
  *
  * Bridges the gap between AIAgent and connection adapters.
  *
- * Unified mode (TODO4 W3+): every message — user or system — runs through the
- * 5-phase cycle (perceive → reason → decide → act+reflect → commit). State is
- * persisted as versioned JSON snapshots per origin; an in-memory journal records
- * every cycle for `!trace` / `!replay`. `!`-prefixed messages are intercepted
- * before the cycle and routed to operator commands.
+ * Unified mode: every message — user or system — runs through the
+ * 5-phase cycle (perceive → reason → decide → act+reflect → commit).
+ * State is persisted as versioned JSON snapshots per origin; an in-memory
+ * journal records every cycle for `!trace` / `!replay`. `!`-prefixed messages
+ * are intercepted before the cycle and routed to operator commands.
+ *
+ * Per-origin message serialization lives in `BaseConnection.handleMessage`;
+ * the queue is keyed on `message.origin` so messages from the same channel
+ * serialize, while different channels process in parallel.
  */
 
+import {join} from 'node:path';
+import {mkdir} from 'node:fs/promises';
 import type {AIAgent} from '../AIAgent.js';
 import type {
   Connection,
@@ -38,9 +44,18 @@ import {AutonomousScheduler} from '../AutonomousScheduler.js';
 import {makeDefaultBotConfig} from '../../config/defaults.js';
 import {
   StateJournal,
-  dispatchCycleMessage,
+  initialState,
+  cycle,
+  snapshotState,
+  appendJournal,
+  loadJournal,
+  restoreState,
+  runOperatorCommand,
   type State,
-  type DispatchState,
+  type Focus,
+  type Reasoner,
+  type Turn,
+  type OperatorContext,
 } from '../cycle/index.js';
 
 export interface ConnectionAdapterConfig {
@@ -64,6 +79,39 @@ export interface AIAgentDeps {
   };
 }
 
+const turnToText = (turn: Turn | undefined): string | null => {
+    if (!turn) return null;
+    switch (turn.kind) {
+        case 'response': return turn.text;
+        case 'tool_calls': return `[cycle: ${turn.calls.length} tool call(s) — ${turn.calls.map(c => c.name).join(', ')}]`;
+        case 'internal': return null;
+    }
+};
+
+const safeOriginDir = (stateDir: string, origin: string): string =>
+    join(stateDir, encodeURIComponent(origin));
+
+const messageToFocus = (message: IOMessage, connectionId: string): Focus => ({
+    kind: 'message',
+    source: connectionId,
+    sender: message.sender,
+    text: message.text,
+    origin: message.origin,
+    receivedAt: message.timestamp,
+});
+
+const inlineReasoner = (agent: AIAgent, episodeCtx: Record<string, unknown>): Reasoner => ({
+    reason: async (focus) => {
+        const result = await agent.executeEpisode(focus.text, episodeCtx as never);
+        return {
+            text: result.text,
+            toolCalls: result.toolCalls.map(tc => ({name: tc.toolName, args: tc.args})),
+            routeKind: result.route.kind,
+            confidence: result.route.confidence,
+        };
+    },
+});
+
 export class AIAgentConnectionManager {
   private readonly agent: AIAgent;
   private readonly nar?: NAR;
@@ -79,15 +127,8 @@ export class AIAgentConnectionManager {
   private conversationStates: Map<string, any> = new Map();
   private cycleStates: Map<string, State> = new Map();
   private journals: Map<string, StateJournal> = new Map();
-  private cycleQueues: Map<string, Promise<unknown>> = new Map();
   private readonly stateSavePath = '.cache/conversations';
   private readonly cycleStatePath = '.cache/cycle';
-  private readonly maxSnapshots = (() => {
-    const raw = process.env.SENARS_MAX_SNAPSHOTS;
-    if (!raw) return undefined;
-    const n = parseInt(raw, 10);
-    return Number.isFinite(n) && n > 0 ? n : undefined;
-  })();
   private lastAutonomousBroadcastAt = 0;
   private readonly autonomousBroadcastCooldownMs = 5 * 60_000;
   private readonly autonomousBroadcastEnabled = process.env.SENARS_AUTONOMY_BROADCAST === 'true';
@@ -104,6 +145,117 @@ export class AIAgentConnectionManager {
     } else if (agentScheduler) {
       this.scheduler = agentScheduler;
       this.scheduler.eventBus.on('scheduler:insights', (data: any) => this.handleAutonomousInsights(data));
+    }
+  }
+
+  private getOrCreateJournal(origin: string, dir: string): StateJournal {
+    let j = this.journals.get(origin);
+    if (j) return j;
+    j = new StateJournal();
+    this.journals.set(origin, j);
+    void (async () => {
+      const lines = await loadJournal(dir);
+      for (const line of lines) {
+        j!.record(line.state, line.turns, line.focus, line.recordedAt);
+      }
+    })();
+    return j;
+  }
+
+  private async getOrCreateState(origin: string, dir: string): Promise<State> {
+    const cached = this.cycleStates.get(origin);
+    if (cached) return cached;
+    const lines = await loadJournal(dir);
+    const latest = lines.at(-1);
+    const state = latest?.state ?? initialState();
+    this.cycleStates.set(origin, state);
+    if (!this.journals.has(origin)) {
+      const j = new StateJournal();
+      for (const line of lines) {
+        j.record(line.state, line.turns, line.focus, line.recordedAt);
+      }
+      this.journals.set(origin, j);
+    }
+    return state;
+  }
+
+  private resolveReplyTarget(connection: Connection, message: IOMessage): string {
+    return resolveReplyTargetFn(connection, message);
+  }
+
+  private async runCycleForMessage(
+    connection: Connection,
+    message: IOMessage,
+  ): Promise<void> {
+    this.scheduler?.markUserInput();
+    const origin = message.origin;
+    const dir = safeOriginDir(this.cycleStatePath, origin);
+
+    if (!this.conversationStates.has(origin)) {
+      this.conversationStates.set(origin, await this.createDefaultConversationState());
+    }
+    const conversation = this.conversationStates.get(origin);
+    const episodeCtx = {
+      sender: message.sender,
+      connectionType: connection.type,
+      conversation,
+    };
+    const reasoner = inlineReasoner(this.agent, episodeCtx);
+
+    await mkdir(this.cycleStatePath, {recursive: true});
+
+    if (message.text.startsWith('!')) {
+      await this.getOrCreateState(origin, dir);
+      const state = this.cycleStates.get(origin) ?? initialState();
+      const journal = this.getOrCreateJournal(origin, dir);
+      const turns = journal.latest()?.turns ?? [];
+      const ctx: OperatorContext = {
+        journal,
+        currentState: () => this.cycleStates.get(origin) ?? state,
+        currentTurns: () => this.journals.get(origin)?.latest()?.turns ?? turns,
+        reasoner,
+      };
+      const action = await runOperatorCommand(message.text, ctx);
+      if (action.kind === 'unhandled') return;
+      if (action.kind === 'response') {
+        const target = this.resolveReplyTarget(connection, message);
+        await connection.send(target, action.text);
+        return;
+      }
+      if (action.kind === 'rollback') {
+        const snap = await restoreState(action.version, dir);
+        if (!snap) {
+          const target = this.resolveReplyTarget(connection, message);
+          await connection.send(target, `no snapshot at version ${action.version}`);
+          return;
+        }
+        this.cycleStates.set(origin, snap.state);
+        this.journals.set(origin, new StateJournal());
+        const target = this.resolveReplyTarget(connection, message);
+        await connection.send(target, `rolled back to v${action.version} (state reverted; next cycle starts from here)`);
+        return;
+      }
+    }
+
+    const state = await this.getOrCreateState(origin, dir);
+    const focus = messageToFocus(message, connection.id);
+    const {state: nextState, turn} = await cycle(focus, state, reasoner);
+    this.cycleStates.set(origin, nextState);
+    const journal = this.getOrCreateJournal(origin, dir);
+    journal.record(nextState, [turn], focus);
+    await snapshotState(nextState, [turn], dir);
+    await appendJournal(dir, {
+      version: nextState.version,
+      state: nextState,
+      turns: [turn],
+      focus,
+      recordedAt: Date.now(),
+    });
+
+    const text = turnToText(turn);
+    if (text) {
+      const target = this.resolveReplyTarget(connection, message);
+      await connection.send(target, text);
     }
   }
 
@@ -124,38 +276,27 @@ export class AIAgentConnectionManager {
     if (!targetOrigin) return;
 
     this.lastAutonomousBroadcastAt = now;
-    const conversation = this.conversationStates.get(targetOrigin);
     const connectionType = targetOrigin.split(':')[0] ?? 'system';
     const connection = this.connections.find((c: Connection) => c.type === connectionType);
     if (!connection) return;
 
+    const sender = connection.type === 'irc'
+      ? (targetOrigin.split(':')[1] ?? 'system')
+      : 'system';
+
     try {
-        const sent = await dispatchCycleMessage(
-          {
-            origin: targetOrigin,
-            connectionId: connection.id,
-            connectionType,
-            sender: 'system',
-            text: prompt,
-            timestamp: now,
-            episodeCtx: {sender: 'system', connectionType, conversation},
-          },
-          {
-            store: {states: this.cycleStates, journals: this.journals, stateDir: this.cycleStatePath, queues: this.cycleQueues},
-            agent: this.agent,
-            resolveTarget: () => {
-              if (connection.type !== 'irc') return 'system';
-              const parts = targetOrigin.split(':');
-              if (parts.length >= 2 && parts[1] !== 'direct' && parts[1] !== undefined) return parts[1]!;
-              return 'system';
-            },
-            send: (target, text) => connection.send(target, text),
-            maxSnapshots: this.maxSnapshots,
-          },
-        );
-        if (sent.sent.length === 0) return;
+      const message: IOMessage = {
+        id: `${now}-autonomous`,
+        source: connection.id,
+        origin: targetOrigin,
+        sender,
+        text: prompt,
+        timestamp: now,
+        metadata: {autonomous: true},
+      };
+      await this.runCycleForMessage(connection, message);
     } catch (err) {
-        this.logger.error(`Failed to broadcast autonomous insight`, err as Error);
+      this.logger.error(`Failed to broadcast autonomous insight`, err as Error);
     }
   }
 
@@ -218,7 +359,13 @@ export class AIAgentConnectionManager {
     }
 
     connection.onMessage(async (message: IOMessage) => {
-      await this.handleMessage(connection, message);
+      try {
+        this.logger.info(`Message from ${connection.id} (${message.origin}): ${message.text.slice(0, 50)}...`);
+        await this.runCycleForMessage(connection, message);
+      } catch (error) {
+        this.logger.error(`Error handling message from ${connection.id}`, error as Error);
+        await connection.send(message.sender, `Error: ${(error as Error).message}`);
+      }
     });
 
     return connection;
@@ -230,51 +377,6 @@ export class AIAgentConnectionManager {
         reasoning: {autoTrigger: true, triggerThreshold: 0.5, triggerCooldown: 3, maxStepsPerTrigger: 5, backgroundReasoning: false, backgroundIntervalMs: 60000, lmDriven: true},
         streaming: {enabled: false, showReasoningSteps: false, showToolCalls: false},
     }));
-  }
-
-  private async handleMessage(connection: Connection, message: IOMessage): Promise<void> {
-    this.scheduler?.markUserInput();
-    try {
-      this.logger.info(`Message from ${connection.id} (${message.origin}): ${message.text.slice(0, 50)}...`);
-      if (!this.conversationStates.has(message.origin)) {
-        this.conversationStates.set(message.origin, await this.createDefaultConversationState());
-      }
-
-      const episodeCtx = {
-        sender: message.sender,
-        connectionType: connection.type,
-        conversation: this.conversationStates.get(message.origin),
-      };
-
-      const store: DispatchState = {
-        states: this.cycleStates,
-        journals: this.journals,
-        stateDir: this.cycleStatePath,
-        queues: this.cycleQueues,
-      };
-
-      await dispatchCycleMessage(
-        {
-          origin: message.origin,
-          connectionId: connection.id,
-          connectionType: connection.type,
-          sender: message.sender,
-          text: message.text,
-          timestamp: message.timestamp,
-          episodeCtx,
-        },
-        {
-          store,
-          agent: this.agent,
-          resolveTarget: (input) => resolveReplyTarget(connection, {...message, sender: input.sender}),
-          send: (target, text) => connection.send(target, text),
-          maxSnapshots: this.maxSnapshots,
-        },
-      );
-    } catch (error) {
-      this.logger.error(`Error handling message from ${connection.id}`, error as Error);
-      await connection.send(message.sender, `Error: ${(error as Error).message}`);
-    }
   }
 
   async initializeMCP(): Promise<void> {
@@ -386,10 +488,6 @@ export class AIAgentConnectionManager {
       mcp: this.mcpServer ? {running: this.mcpServer.isServerRunning()} : undefined,
     };
   }
-}
-
-function resolveReplyTarget(connection: Connection, message: IOMessage): string {
-  return resolveReplyTargetFn(connection, message);
 }
 
 export function createConnectionConfigsFromEnv(): ConnectionAdapterConfig[] {

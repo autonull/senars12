@@ -18,14 +18,14 @@ const focus = (text: string): Focus => ({
 });
 
 const makeReasoner = (thought: Partial<Thought> = {}): Reasoner => ({
-    reason: jest.fn(async (_focus: Focus, _state: State): Promise<Thought> => ({
+    reason: async (_focus: Focus, _state: State): Promise<Thought> => ({
         text: 'hello', toolCalls: [], confidence: 0.7, ...thought,
-    })),
+    }),
 });
 
 const advance = async (j: StateJournal, state: State, text: string, reasoner: Reasoner): Promise<{state: State; entry: ReturnType<StateJournal['record']>}> => {
-    const {state: next, turns} = await cycle(focus(text), state, {reasoner});
-    const entry = j.record(next, turns, focus(text));
+    const {state: next, turn} = await cycle(focus(text), state, reasoner);
+    const entry = j.record(next, [turn], focus(text));
     return {state: next, entry};
 };
 
@@ -68,72 +68,70 @@ describe('formatTrace', () => {
     });
 });
 
-describe('replayVersion + formatReplay', () => {
+describe('replayVersion + formatReplay (terse)', () => {
     it('returns null when version is missing', async () => {
         const j = new StateJournal();
-        const r = await replayVersion(99, j, {reasoner: makeReasoner()});
+        const r = await replayVersion(99, j, makeReasoner());
         expect(r).toBeNull();
     });
 
     it('returns null when the entry has no focus', async () => {
         const j = new StateJournal();
         j.record({...initialState(), version: 1, attention: null}, []);
-        const r = await replayVersion(1, j, {reasoner: makeReasoner()});
+        const r = await replayVersion(1, j, makeReasoner());
         expect(r).toBeNull();
     });
 
-    it('replays a version and reports diff', async () => {
+    it('replays a version and reports terse diff (1 line per concern)', async () => {
         const j = new StateJournal();
         const r1 = makeReasoner({text: 'a'});
         let s: State = initialState();
         ({state: s} = await advance(j, s, 'hi', r1));
-        const r = await replayVersion(1, j, {reasoner: r1});
+        const r = await replayVersion(1, j, r1);
         expect(r).not.toBeNull();
         const out = formatReplay(r!.entry, r!.replayed);
         expect(out).toContain('REPLAY v1');
-        expect(out).toContain('original turns:');
-        expect(out).toContain('replay  turns:');
-        expect(out).toContain('state diff:');
-        expect(out).toContain('turn diff:');
+        expect(out).toMatch(/^state: /m);
+        expect(out).toMatch(/^turn\[0\]: \d+b/m);
     });
 
-    it('shows matching turns as "(turns match)" when text is identical', async () => {
+    it('shows "(matches)" when replayed turn text is identical', async () => {
         const j = new StateJournal();
         const r1 = makeReasoner({text: 'same'});
         let s: State = initialState();
         ({state: s} = await advance(j, s, 'hi', r1));
-        const r = await replayVersion(1, j, {reasoner: r1});
+        const r = await replayVersion(1, j, r1);
         const out = formatReplay(r!.entry, r!.replayed);
-        expect(out).toContain('(turns match)');
+        expect(out).toMatch(/turn\[0\]: 4b \(matches\)/);
     });
 
-    it('surfaces response-text diff when replayed turn differs', async () => {
+    it('shows size delta when text differs', async () => {
         const j = new StateJournal();
         const r1 = makeReasoner({text: 'original'});
         let s: State = initialState();
         ({state: s} = await advance(j, s, 'hi', r1));
         const replayReasoner = makeReasoner({text: 'replayed-with-different-text'});
-        const r = await replayVersion(1, j, {reasoner: replayReasoner});
+        const r = await replayVersion(1, j, replayReasoner);
         const out = formatReplay(r!.entry, r!.replayed);
-        expect(out).toMatch(/turn\[0\] text: "original" → "replayed-with-different-text"/);
+        expect(out).toMatch(/turn\[0\]: 8b → 28b/);
     });
 
-    it('reports turn-count mismatch when replay emits different number of turns', async () => {
+    it('reports turn-count mismatch when counts differ', () => {
         const entry = {
             version: 1,
             state: {...initialState(), version: 1, attention: focus('x')},
-            turns: [{kind: 'response' as const, text: 'one', confidence: 0.5}],
+            turns: [
+                {kind: 'response' as const, text: 'one', confidence: 0.5},
+                {kind: 'response' as const, text: 'two', confidence: 0.5},
+            ],
             focus: focus('x'),
             recordedAt: 1000,
         };
         const replayed = {
             state: entry.state,
-            turns: [
-                {kind: 'response' as const, text: 'one', confidence: 0.5},
-                {kind: 'response' as const, text: 'two', confidence: 0.5},
-            ],
+            turn: {kind: 'response' as const, text: 'one-and-only', confidence: 0.5},
         };
         const out = formatReplay(entry, replayed);
-        expect(out).toContain('turn count: 1 → 2');
+        expect(out).toContain('turn count: 2 → 1');
     });
 });

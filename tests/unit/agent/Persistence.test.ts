@@ -8,7 +8,7 @@ import {
     listSnapshots,
     latestSnapshot,
     clearSnapshots,
-    enforceRetention,
+    MAX_SNAPSHOTS,
 } from '../../../src/agent/cycle/index.js';
 
 const mkTmp = async (): Promise<string> => mkdtemp(join(tmpdir(), 'senars-cycle-'));
@@ -121,15 +121,12 @@ describe('clearSnapshots', () => {
     });
 });
 
-describe('enforceRetention', () => {
+describe('hard-cap retention via MAX_SNAPSHOTS', () => {
     it('keeps all when under cap', async () => {
         const dir = await mkTmp();
         try {
             await snapshotState({...initialState(), version: 1}, [], dir);
             await snapshotState({...initialState(), version: 2}, [], dir);
-            const r = await enforceRetention(dir, 10);
-            expect(r.removed).toEqual([]);
-            expect(r.kept).toEqual([1, 2]);
             expect((await listSnapshots(dir)).map(s => s.version)).toEqual([1, 2]);
         } finally { await cleanup(dir); }
     });
@@ -137,28 +134,13 @@ describe('enforceRetention', () => {
     it('removes oldest FIFO when over cap', async () => {
         const dir = await mkTmp();
         try {
-            for (let v = 1; v <= 5; v++) await snapshotState({...initialState(), version: v}, [], dir);
-            const r = await enforceRetention(dir, 3);
-            expect(r.removed).toEqual([1, 2]);
-            expect(r.kept).toEqual([3, 4, 5]);
-            expect((await listSnapshots(dir)).map(s => s.version)).toEqual([3, 4, 5]);
+            for (let v = 1; v <= MAX_SNAPSHOTS + 5; v++) {
+                await snapshotState({...initialState(), version: v}, [], dir);
+            }
+            const versions = (await listSnapshots(dir)).map(s => s.version);
+            expect(versions).toHaveLength(MAX_SNAPSHOTS);
+            expect(versions.at(0)).toBe(6);
+            expect(versions.at(-1)).toBe(MAX_SNAPSHOTS + 5);
         } finally { await cleanup(dir); }
-    });
-
-    it('returns empty arrays for cap <= 0', async () => {
-        const dir = await mkTmp();
-        try {
-            await snapshotState({...initialState(), version: 1}, [], dir);
-            const r = await enforceRetention(dir, 0);
-            expect(r).toEqual({kept: [], removed: []});
-            expect((await listSnapshots(dir)).map(s => s.version)).toEqual([1]);
-        } finally { await cleanup(dir); }
-    });
-
-    it('handles missing dir gracefully', async () => {
-        const dir = await mkTmp();
-        const r = await enforceRetention(join(dir, 'nope'), 10);
-        expect(r).toEqual({kept: [], removed: []});
-        await cleanup(dir);
-    });
+    }, 30000);
 });

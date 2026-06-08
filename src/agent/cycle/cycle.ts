@@ -5,33 +5,30 @@ import {decide} from './decide.js';
 import {actAndReflect} from './act-reflect.js';
 import {commit} from './commit.js';
 import type {Turn} from './Turn.js';
-import type {Validator} from './validator.js';
-
-export interface CycleDeps {
-    readonly reasoner: Reasoner;
-    readonly validator?: Validator;
-}
+import {patternValidator} from './validator.js';
 
 export interface CycleResult {
     readonly state: State;
-    readonly turns: readonly Turn[];
+    readonly turn: Turn;
 }
+
+const validator = patternValidator();
 
 export const cycle = async (
     input: Focus | null,
     state: State,
-    deps: CycleDeps,
+    reasoner: Reasoner,
 ): Promise<CycleResult> => {
-    const s1 = perceive(input, state);
     if (!input) {
         const note = state.interrupted ? 'interrupted' : 'no-new-input';
-        return {state, turns: [{kind: 'internal', note}]};
+        return {state, turn: {kind: 'internal', note}};
     }
 
-    const thought = await reason(s1, deps.reasoner);
+    const s1 = perceive(input, state);
+    const thought = await reason(s1, reasoner);
     const decision = decide(thought);
-    const turn = actAndReflect(decision, s1, deps.validator);
+    const turn = actAndReflect(decision, s1, validator);
     const s2 = commit(s1, [turn]);
 
-    return {state: {...s2, prev: state}, turns: [turn]};
+    return {state: {...s2, prev: state}, turn};
 };

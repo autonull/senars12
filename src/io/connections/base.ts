@@ -75,8 +75,17 @@ export abstract class BaseConnection implements Connection {
 
     protected handleMessage(message: IOMessage): void {
         this.messageCount++;
-        this.messageHandler?.(message).catch(err => this.logger.error(`Message handler error for ${this.id}`, err as Error));
+        const origin = message.origin;
+        const prev = this.queues.get(origin) ?? Promise.resolve();
+        const next = prev.then(() => this.messageHandler?.(message));
+        this.queues.set(origin, next);
+        next.catch(err => this.logger.error(`Message handler error for ${this.id}`, err as Error))
+            .finally(() => {
+                if (this.queues.get(origin) === next) this.queues.delete(origin);
+            });
     }
+
+    private queues: Map<string, Promise<unknown>> = new Map();
 
     protected handleError(error: ConnectionError): void {
         this.errorCount++;

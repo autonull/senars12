@@ -17,8 +17,7 @@ export {reason, type Thought, type Reasoner} from './reason.js';
 export {decide, decisionToTurn, type Decision} from './decide.js';
 export {actAndReflect} from './act-reflect.js';
 export {commit} from './commit.js';
-export {cycle, type CycleResult, type CycleDeps} from './cycle.js';
-export {episodeReasoner, type EpisodeReasonerDeps} from './adapters.js';
+export {cycle, type CycleResult} from './cycle.js';
 export {patternValidator, isIdentityUpdate, type Validator, type Verdict, type IdentityUpdate} from './validator.js';
 export {recallEpisodes} from './memory.js';
 export {StateJournal, type JournalEntry, type StateJournalOptions} from './StateJournal.js';
@@ -28,11 +27,15 @@ export {
     listSnapshots,
     latestSnapshot,
     clearSnapshots,
-    enforceRetention,
+    MAX_SNAPSHOTS,
+    appendJournal,
+    loadJournal,
+    clearJournal,
+    diffStates,
+    isEmptyDiff,
     type StateSnapshot,
-    type RetentionResult,
+    type JournalLine,
+    type StateDiff,
 } from './persistence.js';
-export {diffStates, isEmptyDiff, type StateDiff} from './diff.js';
 export {formatDebug, formatTrace, formatReplay, replayVersion} from './observability.js';
-export {runOperatorCommand, type OperatorContext, type OperatorResult} from './operator.js';
-export {dispatchCycleMessage, type DispatchInput, type DispatchOptions, type DispatchOutput, type DispatchState} from './dispatch.js';
+export {runOperatorCommand, type OperatorContext, type OperatorAction} from './operator.js';
