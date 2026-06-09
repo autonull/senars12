@@ -48,7 +48,7 @@ describe('ToolDispatcher', () => {
             [{toolName: 'boom', toolCallId: 'b1', args: {}}],
             {tools},
         );
-        expect(result.errors[0]?.message).toBe('kapow');
+        expect(result.errors[0]?.message).toContain('kapow');
         expect(result.artifacts).toEqual([]);
     });
 

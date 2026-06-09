@@ -24,6 +24,12 @@ export const connectionCommands: CommandDefinition[] = [
             const config = Object.fromEntries(configParts.map(p => p.split('=')).filter(([k, v]) => k && v));
             await ctx.manager.addConnection({id: id!, type: type!, enabled: true, config}, {
                 nar: ctx.nar, emit: () => {
+                }, logger: {
+                    debug: () => {},
+                    info: () => {},
+                    warn: () => {},
+                    error: () => {},
+                    child: () => ({debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, child: () => ({}) as never}) as never,
                 }
             });
             return `Connection ${id} (${type}) created and connected`;

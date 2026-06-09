@@ -1,6 +1,7 @@
 export {NAR} from './nar/index.js';
 export type {NARConfig} from './nar/index.js';
-export {AIAgent} from './agent/index.js';
+export {createAgent} from './agent/index.js';
+export type {Agent, AgentOptions} from './agent/index.js';
 export {loadConfig, loadConfigFromEnv, makeDefaultBotConfig, DEFAULT_BOT_CONFIG, DEFAULT_PROFILE} from './config/index.js';
 export type {AppConfig, BotProfile} from './config/index.js';
 export * from './io/index.js';

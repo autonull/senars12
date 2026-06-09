@@ -2,7 +2,7 @@
  * SeNARS Agent CLI
  */
 
-import {AIAgent} from '../agent/agent.js';
+import {createAgent} from '../agent/agent.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {setupDefaultLMClient} from '../nar/lm/defaults.js';
@@ -32,10 +32,10 @@ async function main() {
         retentionDays: 30,
     });
 
-    const agent = new AIAgent({nar, lmClient, episodicMemory});
+    const agent = createAgent({nar, lmClient, episodicMemory});
     void agent;
     logger.info('SeNARS Agent started.');
-    logger.info('(No connections configured in slim v4 build)');
+    logger.info('(No connections configured in harness build)');
 }
 
 main().catch(err => {

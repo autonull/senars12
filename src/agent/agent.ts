@@ -1,222 +1,313 @@
 import type {NAR} from '../nar/nar.js';
 import type {LMClient} from '../nar/lm/types.js';
-import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import {ModelRunner} from './model/ModelRunner.js';
-import {route, type Route} from './routing.js';
-import {recordRoute, recordTool, getPolicy} from './services/metrics.js';
+import type {EpisodeType, EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
+import {termParser, type ParseTaskResult} from '../nar/terms/index.js';
+import {ContextBuilder, type ContextOpts} from '../nar/nl/context.js';
 import {createNARSTools, createGeneralTools} from '../nar/tools/adapters/index.js';
+import {ModelRunner} from './model/ModelRunner.js';
+import {buildAgentTools} from './tools.js';
+import type {ConversationSession} from './ConversationSession.js';
+import {appendTurn, DEFAULT_SESSION_HISTORY_LIMIT, trimHistory} from './ConversationSession.js';
+import {formatHistoryAsMessages} from './chat-history.js';
 
-export interface ConversationEntry {
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: number;
-}
-
-export interface EpisodeRecord {
-    id: string;
-    input: string;
-    response: string;
-    concepts: string[];
-    routeKind: string;
-    timestamp: number;
-}
-
-export interface AIAgentOptions {
+export interface AgentOptions {
     nar?: NAR;
-    lm?: LMClient;
     lmClient?: LMClient;
     episodicMemory?: EpisodicMemory;
-    maxLoops?: number;
     systemInstructions?: string;
+    context?: ContextOpts;
+    maxLoops?: number;
 }
 
-const SYSTEM_PROMPT = 'You are SeNARS — a neurosymbolic cognitive kernel. ' +
-    'Call nar_believe or nar_query when formal logic is needed.';
+export interface Agent {
+    chat(input: string): Promise<string>;
+    chatWithHistory(input: string, session: ConversationSession, opts?: {historyLimit?: number}): Promise<string>;
+    believe(narsese: string): Promise<void>;
+    know(key: string, value: string): void;
+    knowGet(key: string): string | undefined;
+    knowList(): Array<{key: string; value: string}>;
+    recall(query?: string, limit?: number): Promise<Array<{timestamp: number; type: string; content: string}>>;
+    start(): () => void;
+    stop(): void;
+    setThrottle(percent: number): void;
+    getThrottle(): number;
+    getNAR(): NAR | undefined;
+    getEpisodicMemory(): EpisodicMemory | undefined;
+}
 
-const MAX_HISTORY = 40;
-const MAX_PINNED = 8;
-const MAX_EPISODES = 256;
-const MAX_CONCEPT_SLICE = 10;
-const MAX_QUESTION_SLICE = 5;
+const DEFAULT_SYSTEM_PROMPT = 'You are SeNARS — a neurosymbolic cognitive kernel.';
 
-export class AIAgent {
-    private readonly nar?: NAR;
-    private readonly lm?: LMClient;
-    private readonly runner: ModelRunner;
-    private readonly episodicMemory?: EpisodicMemory;
-    private readonly systemInstructions: string;
-    private history: ConversationEntry[] = [];
-    private pinned: string[] = [];
-    private episodeLog: EpisodeRecord[] = [];
+const REASONING_INTERVAL_MS = 60_000;
+const MAX_REASON_STEPS_PER_TICK = 5;
 
-    constructor(opts: AIAgentOptions = {}) {
-        this.nar = opts.nar;
-        this.lm = opts.lmClient ?? opts.lm;
-        this.episodicMemory = opts.episodicMemory;
-        this.systemInstructions = opts.systemInstructions ?? SYSTEM_PROMPT;
-        this.runner = new ModelRunner({
-            lmClient: this.lm,
-            maxLoops: opts.maxLoops ?? 5,
-        });
-    }
+type KnowledgeEntry = {key: string; value: string};
 
-    async chat(input: string): Promise<string> {
-        const r = route(input);
-        recordRoute(r.kind);
-        this.episodicMemory?.log('input', input).catch(() => {});
+export function createAgent(opts: AgentOptions = {}): Agent {
+    const {
+        nar,
+        lmClient,
+        episodicMemory,
+        systemInstructions,
+        context: contextOpts = {},
+        maxLoops = 5,
+    } = opts;
 
-        if (r.kind === 'narsese-belief' && r.narsese) return this.handleBelief(input, r.narsese);
-        if (r.kind === 'narsese-question') return this.handleQuestion(input, r);
-        if (r.kind === 'command') return this.handleCommand(input, r);
+    const contextBuilder = new ContextBuilder();
+    const runner = new ModelRunner({lmClient, maxLoops});
+    const knowledge = new Map<string, string>();
 
-        return this.handleNL(input);
-    }
+    let throttle = 100;
+    let reasoningHandle: ReturnType<typeof setInterval> | null = null;
 
-    private async handleBelief(input: string, statement: string): Promise<string> {
-        await this.nar?.input(statement, 'belief');
-        await this.nar?.run(5);
-        const text = `+ ${statement}`;
-        this.recordToolsFor('nar_believe');
-        this.logEpisode(input, text, [statement], 'narsese-belief');
-        this.episodicMemory?.log('response', text, {kind: 'narsese-belief'}).catch(() => {});
-        return text;
-    }
+    const safeLog = (type: EpisodeType, content: string, metadata: Record<string, unknown> = {}): void => {
+        episodicMemory?.log(type, content, metadata).catch(() => {});
+    };
 
-    private handleQuestion(input: string, r: Extract<Route, {kind: 'narsese-question'}>): string {
-        const needle = r.narsese ?? '';
-        const ans = this.nar?.getBeliefs().find(b => {
-            const t = (b as {term?: {toString(): string}}).term;
-            return t && t.toString().includes(needle);
-        });
-        const truth = (ans as {truth?: {f: number; c: number}} | undefined)?.truth;
-        const term = (ans as {term?: {toString(): string}} | undefined)?.term;
-        const text = ans && term
-            ? `<${term.toString()}>${truth ? ` f=${truth.f.toFixed(2)} c=${truth.c.toFixed(2)}` : ''}`
-            : `No answer for: ${needle || input}`;
-        this.logEpisode(input, text, [], 'narsese-question');
-        this.episodicMemory?.log('response', text, {kind: 'narsese-question'}).catch(() => {});
-        return text;
-    }
-
-    private handleCommand(input: string, r: Extract<Route, {kind: 'command'}>): string {
-        const text = `[${r.command}${r.arguments?.length ? ' ' + r.arguments.join(' ') : ''}]`;
-        this.logEpisode(input, text, [], 'command');
-        this.episodicMemory?.log('response', text, {kind: 'command'}).catch(() => {});
-        return text;
-    }
-
-    private async handleNL(input: string): Promise<string> {
-        const tools = this.buildTools();
-        const snapshot = this.buildSnapshot();
-        const system = snapshot ? `${this.systemInstructions}\n\n## Cognitive State\n${snapshot}` : this.systemInstructions;
-
-        const result = await this.collectRun({system, input, tools});
-
-        for (const call of result.toolCalls) recordTool(call.toolName);
-
-        this.history.push({role: 'user', content: input, timestamp: Date.now()});
-        this.history.push({role: 'assistant', content: result.text, timestamp: Date.now()});
-        if (this.history.length > MAX_HISTORY) this.history = this.history.slice(-MAX_HISTORY);
-
-        for (const a of result.artifacts) {
-            if (a.type === 'belief_added' && a.content) {
-                this.pinned.push(a.content);
-                if (this.pinned.length > MAX_PINNED) this.pinned = this.pinned.slice(-MAX_PINNED);
-            }
-        }
-
-        const concepts = result.artifacts.map(a => a.content).filter((c): c is string => typeof c === 'string');
-        this.logEpisode(input, result.text, concepts, 'nl');
-        this.episodicMemory?.log('response', result.text, {kind: 'nl', toolCalls: result.toolCalls.length}).catch(() => {});
-        return result.text;
-    }
-
-    private buildTools(): Record<string, unknown> {
-        const tools: Record<string, unknown> = {};
-        if (this.nar) Object.assign(tools, createNARSTools(this.nar as Parameters<typeof createNARSTools>[0]));
-        Object.assign(tools, createGeneralTools({
-            nar: this.nar as Parameters<typeof createGeneralTools>[0]['nar'],
-            episodicMemory: this.episodicMemory as Parameters<typeof createGeneralTools>[0]['episodicMemory'],
-        }));
-        return tools;
-    }
-
-    private buildSnapshot(): string {
-        if (!this.nar) return '';
-        const attn = this.nar.attentionReport();
+    const buildSystemPrompt = (): string => {
         const parts: string[] = [];
-        if (this.pinned.length) {
-            parts.push('Pinned beliefs:');
-            for (const b of this.pinned) parts.push(`  - ${b}`);
+        const constitution = nar?.getConstitution?.() ?? [];
+        if (constitution.length) {
+            parts.push('## Constitution\n' + constitution.map(b => (b as {term: {toString(): string}}).term.toString()).join('\n'));
         }
-        if (attn.concepts.length) {
-            parts.push('Attention focus:');
-            for (const c of attn.concepts.slice(0, MAX_CONCEPT_SLICE)) {
-                parts.push(`  - ${c.term} (p=${c.priority.toFixed(2)})`);
-            }
-        }
-        const questions = this.nar.getQuestions().slice(0, MAX_QUESTION_SLICE);
-        if (questions.length) {
-            parts.push('Open questions:');
-            for (const q of questions) {
-                const term = (q as {term?: {toString(): string}}).term;
-                if (term) parts.push(`  ? ${term.toString()}`);
-            }
-        }
-        return parts.join('\n');
-    }
+        if (systemInstructions) parts.push(systemInstructions);
+        return parts.join('\n\n') || DEFAULT_SYSTEM_PROMPT;
+    };
 
-    private async collectRun(args: {system: string; input: string; tools: Record<string, unknown>}) {
-        const messages = [
-            ...this.history.slice(-20).map(h => ({role: h.role, content: h.content})),
-            {role: 'user' as const, content: args.input},
-        ];
-        const composed = {
-            system: args.system,
-            messages,
-            tools: args.tools,
+    const defaultContextOpts: ContextOpts = {attention: true, beliefs: true, goals: true, ...contextOpts};
+
+    const buildContext = async (input: string): Promise<string> => {
+        if (!nar) return '';
+        const parts: string[] = [];
+
+        const narContext = contextBuilder.build(nar, input, undefined, defaultContextOpts);
+        if (narContext) parts.push(narContext);
+
+        if (episodicMemory) {
+            const episodes = await episodicMemory.getEpisodes({limit: 5}).catch(() => []);
+            if (episodes.length) {
+                const lines = episodes.map((e: {type: string; content: string}) => {
+                    const preview = e.content.length > 80 ? e.content.slice(0, 79) + '...' : e.content;
+                    return `  - [${e.type}] ${preview}`;
+                });
+                parts.push(`Recent interactions:\n${lines.join('\n')}`);
+            }
+        }
+
+        return parts.join('\n\n');
+    };
+
+    const recallFromMemory = async (query?: string, limit = 10): Promise<Array<{timestamp: number; type: string; content: string}>> => {
+        if (!episodicMemory) return [];
+        const episodes = await episodicMemory.getEpisodes({limit}).catch(() => []);
+        const q = query?.toLowerCase();
+        return (q ? episodes.filter((e: {content: string}) => e.content.toLowerCase().includes(q)) : episodes)
+            .map((e: {timestamp: number; type: string; content: string}) => ({timestamp: e.timestamp, type: e.type, content: e.content}));
+    };
+
+    const buildTools = (): Record<string, unknown> => {
+        const tools: Record<string, unknown> = {};
+        if (nar) {
+            Object.assign(tools, createNARSTools(nar as Parameters<typeof createNARSTools>[0]));
+            Object.assign(tools, createGeneralTools({
+                nar: nar as Parameters<typeof createGeneralTools>[0]['nar'],
+                episodicMemory: episodicMemory as Parameters<typeof createGeneralTools>[0]['episodicMemory'],
+            }));
+        }
+        const agentDeps = {
+            know: (k: string, v: string) => { knowledge.set(k, v); safeLog('input', v, {kind: 'knowledge', key: k}); },
+            knowGet: (k: string) => knowledge.get(k),
+            knowList: () => [...knowledge.entries()].map(([key, value]): KnowledgeEntry => ({key, value})),
+            recall: (q?: string, l?: number) => recallFromMemory(q, l),
+        };
+        Object.assign(tools, buildAgentTools(agentDeps));
+        return tools;
+    };
+
+    const tryParseNarsese = (input: string): ParseTaskResult | null => termParser.parseTask(input);
+
+    const formatBelief = (b: {term: {toString(): string}; truth?: {f: number; c: number}}): string => {
+        const truth = b.truth ? ` (f=${b.truth.f.toFixed(2)} c=${b.truth.c.toFixed(2)})` : '';
+        return `${b.term.toString()}${truth}`;
+    };
+
+    const dispatchToLM = async (input: string): Promise<string> => {
+        if (!runner.hasModel()) {
+            return 'No LM configured — Narsese input only.';
+        }
+        const context = await buildContext(input);
+        const system = context ? `${buildSystemPrompt()}\n\n## Cognitive State\n${context}` : buildSystemPrompt();
+
+        const iter = runner.run({
+            system,
+            messages: [{role: 'user', content: input}],
+            tools: buildTools(),
             ctxHash: String(Date.now()),
             snapshot: null,
             budget: {systemTokens: 0, historyTokens: 0, snapshotTokens: 0, total: 0, maxTokens: 0},
-        };
-        const iter = this.runner.run(composed as never);
+        });
+
         let next = await iter.next();
         while (!next.done) next = await iter.next();
-        return next.value;
-    }
+        return next.value?.text ?? '';
+    };
 
-    private recordToolsFor(name: string): void { recordTool(name); }
+    const chat = async (input: string): Promise<string> => {
+        safeLog('input', input);
 
-    private logEpisode(input: string, response: string, concepts: string[], routeKind: string): void {
-        this.episodeLog.push({
-            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            input, response, concepts, routeKind, timestamp: Date.now(),
+        const task = tryParseNarsese(input);
+        if (task) {
+            await nar?.input(task.term, task.taskType, task.truth);
+
+            if (task.taskType === 'question') {
+                const needle = task.term.toString();
+                const existing = nar?.getBeliefs().find((b: {term: {toString(): string}}) =>
+                    b.term.toString().toLowerCase().includes(needle.toLowerCase())
+                );
+                const response = existing
+                    ? formatBelief(existing as {term: {toString(): string}; truth?: {f: number; c: number}})
+                    : `Question queued: ${input} (reasoning in background)`;
+                safeLog('response', response, {narsese: input, taskType: task.taskType});
+                return response;
+            }
+
+            const response = `+ ${input}`;
+            safeLog('response', response, {narsese: input, taskType: task.taskType});
+            return response;
+        }
+
+        const response = await dispatchToLM(input);
+        safeLog('response', response);
+        return response;
+    };
+
+    const chatWithHistory = async (
+        input: string,
+        session: ConversationSession,
+        opts: {historyLimit?: number} = {},
+    ): Promise<string> => {
+        const historyLimit = opts.historyLimit ?? DEFAULT_SESSION_HISTORY_LIMIT;
+        safeLog('input', input, {session: session.key});
+
+        const task = tryParseNarsese(input);
+        if (task) {
+            await nar?.input(task.term, task.taskType, task.truth);
+
+            if (task.taskType === 'question') {
+                const needle = task.term.toString();
+                const existing = nar?.getBeliefs().find((b: {term: {toString(): string}}) =>
+                    b.term.toString().toLowerCase().includes(needle.toLowerCase())
+                );
+                const response = existing
+                    ? formatBelief(existing as {term: {toString(): string}; truth?: {f: number; c: number}})
+                    : `Question queued: ${input} (reasoning in background)`;
+                appendTurn(session, 'user', input, {narsese: true, taskType: task.taskType});
+                appendTurn(session, 'assistant', response, {narsese: true, taskType: task.taskType});
+                trimHistory(session, historyLimit);
+                safeLog('response', response, {session: session.key, narsese: true});
+                return response;
+            }
+
+            const response = `+ ${input}`;
+            appendTurn(session, 'user', input, {narsese: true, taskType: task.taskType});
+            appendTurn(session, 'assistant', response, {narsese: true, taskType: task.taskType});
+            trimHistory(session, historyLimit);
+            safeLog('response', response, {session: session.key, narsese: true});
+            return response;
+        }
+
+        const historyMessages = formatHistoryAsMessages(session.history, historyLimit);
+        historyMessages.push({role: 'user', content: input});
+
+        const context = await buildContext(input);
+        const system = context ? `${buildSystemPrompt()}\n\n## Cognitive State\n${context}` : buildSystemPrompt();
+
+        const iter = runner.run({
+            system,
+            messages: historyMessages,
+            tools: buildTools(),
+            ctxHash: String(Date.now()),
+            snapshot: null,
+            budget: {systemTokens: 0, historyTokens: 0, snapshotTokens: 0, total: 0, maxTokens: 0},
         });
-        if (this.episodeLog.length > MAX_EPISODES) this.episodeLog = this.episodeLog.slice(-MAX_EPISODES);
-    }
+        let next = await iter.next();
+        while (!next.done) next = await iter.next();
+        const reply = next.value?.text ?? '';
 
-    getPolicy() { return getPolicy(); }
+        appendTurn(session, 'user', input);
+        appendTurn(session, 'assistant', reply);
+        trimHistory(session, historyLimit);
 
-    getRecentEpisodes(limit = 20): EpisodeRecord[] { return this.episodeLog.slice(-limit); }
+        safeLog('response', reply, {session: session.key});
+        return reply;
+    };
 
-    getHistory(limit = 20): ConversationEntry[] { return this.history.slice(-limit); }
+    const believe = async (narsese: string): Promise<void> => {
+        const task = tryParseNarsese(narsese);
+        if (task) {
+            await nar?.input(task.term, task.taskType, task.truth);
+        } else {
+            await nar?.believe(narsese);
+        }
+        safeLog('belief_added', narsese);
+    };
 
-    getPinned(): string[] { return [...this.pinned]; }
+    const know = (key: string, value: string): void => {
+        knowledge.set(key, value);
+        safeLog('input', value, {kind: 'knowledge', key});
+    };
 
-    async summarize(lm: {generateText(prompt: string): Promise<string>}): Promise<void> {
-        if (this.history.length <= 30) return;
-        const toSummarize = this.history.slice(0, -10);
-        const prompt = `Summarize: ${toSummarize.map(m => `${m.role}: ${m.content}`).join('\n')}`;
-        const summary = await lm.generateText(prompt);
-        this.history = this.history.slice(-10);
-        this.history.unshift({role: 'assistant', content: `Summary: ${summary}`, timestamp: Date.now()});
-    }
+    const knowGet = (key: string): string | undefined => knowledge.get(key);
 
-    listEpisodes(limit = 20): Array<{id: string; input: string; routeKind?: string}> {
-        return this.episodeLog.slice(-limit).map(r => ({id: r.id, input: r.input, routeKind: r.routeKind}));
-    }
+    const knowList = (): KnowledgeEntry[] => [...knowledge.entries()].map(([key, value]) => ({key, value}));
 
-    replay(_id: string): Promise<never> {
-        return Promise.reject(new Error('replay is not supported in the slim v4 agent'));
-    }
+    const recall = (query?: string, limit = 10): Promise<Array<{timestamp: number; type: string; content: string}>> =>
+        recallFromMemory(query, limit);
+
+    const start = (): () => void => {
+        if (!nar) return () => {};
+        if (reasoningHandle) stop();
+
+        const self = nar.getSelfAnalyzer?.();
+        self?.start?.();
+
+        reasoningHandle = setInterval(async () => {
+            if (throttle === 0) return;
+            const steps = Math.max(1, Math.round(MAX_REASON_STEPS_PER_TICK * (throttle / 100)));
+            await nar.run(steps).catch(() => {});
+            if (self?.performSelfCorrection) {
+                await self.performSelfCorrection().catch(() => {});
+            }
+        }, REASONING_INTERVAL_MS);
+
+        if (typeof reasoningHandle.unref === 'function') reasoningHandle.unref();
+        return stop;
+    };
+
+    const stop = (): void => {
+        if (reasoningHandle) {
+            clearInterval(reasoningHandle);
+            reasoningHandle = null;
+        }
+        nar?.getSelfAnalyzer?.()?.stop?.();
+    };
+
+    const setThrottle = (percent: number): void => {
+        throttle = Math.max(0, Math.min(100, percent));
+    };
+
+    return {
+        chat,
+        chatWithHistory,
+        believe,
+        know,
+        knowGet,
+        knowList,
+        recall,
+        start,
+        stop,
+        setThrottle,
+        getThrottle: () => throttle,
+        getNAR: () => nar,
+        getEpisodicMemory: () => episodicMemory,
+    };
 }

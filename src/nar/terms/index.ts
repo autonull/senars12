@@ -34,7 +34,8 @@ export type {TermVisitorFn} from './normalize.js';
 // Unification
 export {unify} from './unifier.js';
 export type {Substitution} from './unifier.js';
-export {termParser, TermParser} from './parser-peggy.js';
+export {termParser, TermParser, ParseError} from './parser-peggy.js';
+export type {ParserResult, ParseTaskResult, TaskTypeName} from './parser-peggy.js';
 
 // Accessors
 export {

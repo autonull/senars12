@@ -9,9 +9,10 @@ export const NarseseBeliefSchema = z.object({
 });
 
 export const TranslationSchema = z.object({
-    beliefs: z.array(NarseseBeliefSchema).describe('Narsese beliefs extracted from the input'),
-    isQuestion: z.boolean().describe('Whether the input is a question'),
-    summary: z.string().describe('Brief natural language summary'),
+    beliefs: z.array(NarseseBeliefSchema).describe('Narsese beliefs to assert'),
+    questions: z.array(z.string()).describe('Narsese questions to ask (raw Narsese strings)'),
+    goals: z.array(z.string()).describe('Narsese goals to pursue (raw Narsese strings)'),
+    summary: z.string().describe('Brief natural language summary of what was extracted'),
 });
 
 export const ExplanationSchema = z.object({

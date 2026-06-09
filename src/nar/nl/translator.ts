@@ -135,6 +135,8 @@ export interface TranslationCacheEntry {
     timestamp: number;
 }
 
+export type {TranslationResult};
+
 export class TranslationCache {
     private cache = new Map<string, TranslationCacheEntry>();
     private maxSize = 500;
@@ -219,7 +221,8 @@ export class NLTranslator {
                 if (narsese && this.validateNarsese(narsese)) {
                     return {
                         beliefs: [{ narsese, truth: this.extractTruth(narsese) }],
-                        isQuestion: nl.trim().endsWith('?'),
+                        questions: [],
+                        goals: [],
                         summary: nl,
                     };
                 }
@@ -246,9 +249,19 @@ export class NLTranslator {
             });
 
             const validBeliefs = object.beliefs.filter(b => this.validateNarsese(b.narsese));
-            if (validBeliefs.length === 0) return null;
+            const validQuestions = (object.questions ?? []).filter(q => this.validateNarsese(q));
+            const validGoals = (object.goals ?? []).filter(g => this.validateNarsese(g));
 
-            return { ...object, beliefs: validBeliefs };
+            if (validBeliefs.length === 0 && validQuestions.length === 0 && validGoals.length === 0) {
+                return null;
+            }
+
+            return {
+                beliefs: validBeliefs,
+                questions: validQuestions,
+                goals: validGoals,
+                summary: object.summary,
+            };
         } catch {
             return null;
         }
@@ -283,11 +296,16 @@ export class NLTranslator {
         parts.push('Narsese syntax:');
         parts.push('  (A --> B) inheritance, (A <-> B) similarity, (A ==> B) implication');
         parts.push('  (A =/> B) temporal, [property], --(negation), (A --> ?1) question');
+        parts.push('Output JSON with three arrays:');
+        parts.push('  - beliefs: array of {narsese, truth?} for statements to assert');
+        parts.push('  - questions: array of Narsese strings ending in ?');
+        parts.push('  - goals: array of Narsese strings ending in !');
         parts.push('Rules:');
         parts.push('  - Universal ("all") → frequency 1.0, confidence 0.9');
         parts.push('  - Typical statements → frequency 0.9, confidence 0.9');
         parts.push('  - Existential ("some") → frequency 0.5, confidence 0.5');
         parts.push('  - Cap confidence < 1.0 unless explicitly "all"');
+        parts.push('  - Multiple statements in input → multiple entries in arrays');
 
         if (ctx?.beliefs?.length) {
             parts.push('\nRelated beliefs:');

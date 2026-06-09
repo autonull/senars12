@@ -5,10 +5,12 @@ export function createNARSTools(nar: {
     input(statement: string, type?: string, truth?: unknown): Promise<void>;
     queryTerm(term: unknown, filter?: unknown): {beliefs: unknown[]};
     getQuestions(): unknown[];
+    getGoals(): unknown[];
     run(steps: number): Promise<number>;
     getStatistics(): {totalConcepts: number; totalTasks: number};
     getBeliefs(): unknown[];
     attentionReport(): {concepts: unknown[]; total: number};
+    getConstitution(): unknown[];
     workingMemory: {size(): number};
 }) {
     return {
@@ -22,16 +24,30 @@ export function createNARSTools(nar: {
                 }).optional(),
             }),
             execute: async ({statement, truth}) => {
-                const fullStatement = truth
-                    ? `${statement} :|: truth=${truth.frequency}`
+                const f = truth?.frequency;
+                const c = truth?.confidence;
+                const hasTruth = f !== undefined && c !== undefined;
+                const fullStatement = hasTruth
+                    ? `${statement.replace(/\.$/, '')} %${f};${c}%`
                     : statement;
                 await nar.input(fullStatement);
                 return {
                     success: true,
-                    statement,
+                    statement: fullStatement,
                     truth,
                     timestamp: Date.now(),
                 };
+            },
+        }),
+
+        nar_goal: tool({
+            description: 'Add a goal to NARS in Narsese format. Goals drive procedural inference.',
+            inputSchema: z.object({
+                statement: z.string().describe('Narsese goal statement, e.g., "(call_mom)!"'),
+            }),
+            execute: async ({statement}) => {
+                await nar.input(statement, 'goal');
+                return {success: true, statement, timestamp: Date.now()};
             },
         }),
 
@@ -136,6 +152,17 @@ export function createNARSTools(nar: {
                     concepts: report.concepts.slice(0, limit),
                     total: report.total,
                 };
+            },
+        }),
+
+        nar_get_goals: tool({
+            description: 'Get current goals from NARS memory',
+            inputSchema: z.object({
+                limit: z.number().min(1).max(100).optional().default(10),
+            }),
+            execute: async ({limit = 10}) => {
+                const goals = (nar.getGoals() as unknown[]).slice(0, limit);
+                return {goals, count: goals.length};
             },
         }),
     };

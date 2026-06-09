@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import {createInterface} from 'readline';
-import {AIAgent} from '../agent/agent.js';
+import {createAgent, type Agent} from '../agent/agent.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {setupDefaultLMClient} from '../nar/lm/defaults.js';
@@ -22,23 +22,23 @@ SeNARS REPL - Neuro-Symbolic Reasoning CLI
 ============================================
 
 Commands:
-  .help     - Show this help
-  .quit     - Exit the REPL
-  .stats    - Show NAR and LM statistics
-  .beliefs  - Show current beliefs
-  .concepts - Show active concepts
-  .episodes - List recent episodes
-  .clear    - Clear screen
+  .help        - Show this help
+  .quit        - Exit the REPL
+  .stats       - NAR and LM statistics
+  .beliefs     - List NAR beliefs (with truth values)
+  .concepts    - List NAR concepts (with priority)
+  .attention   - Attention focus report
+  .episodes    - List recent episodes (use [n] to limit)
+  .know [k] [v]  Get/set/list knowledge
+  .recall [q]  - Search episodic memory
+  .throttle [n]  Get/set reasoning throttle (0-100%)
+  .status      - Agent + NAR + LM status
+  .clear       - Clear screen
 
-Narsese shortcuts:
-  <term>+.     - Add belief
-  <term>!.     - Add goal
-  <term>?      - Query
-
-Just type natural language to chat with the agent!
+Just type natural language to chat, or Narsese to feed NAR directly!
 `;
 
-const buildCommands = (nar: NAR, agent: AIAgent, lmClient: LMClient): CLICommand[] => [
+const buildCommands = (nar: NAR, agent: Agent, lmClient: LMClient): CLICommand[] => [
     {name: 'help', description: 'Show help', execute: () => HELP},
     {name: 'quit', description: 'Exit the REPL', execute: () => QUIT_SENTINEL},
     {
@@ -85,13 +85,89 @@ const buildCommands = (nar: NAR, agent: AIAgent, lmClient: LMClient): CLICommand
         },
     },
     {
-        name: 'episodes', description: 'List recent episodes', execute: () => {
-            const eps = agent.listEpisodes(20);
-            const lines = [`\n--- ${eps.length} Recent Episode(s) ---`];
-            for (const e of eps) {
-                const preview = e.input.length > 60 ? e.input.slice(0, 59) + '…' : e.input;
-                lines.push(`  ${e.id}  [${e.routeKind ?? '?'}]  ${preview}`);
+        name: 'attention', description: 'Attention focus report', execute: () => {
+            const attn = nar.attentionReport();
+            const lines = [`\n--- Attention (${attn.total} total) ---`];
+            for (const c of attn.concepts.slice(0, 20)) {
+                lines.push(`  ${c.term} (p=${c.priority.toFixed(2)})`);
             }
+            return lines.join('\n');
+        },
+    },
+    {
+        name: 'episodes', description: 'List recent episodes', execute: async (args) => {
+            const limit = parseInt(args) || 10;
+            const episodes = await agent.recall(undefined, limit);
+            const lines = [`\n--- ${episodes.length} Recent Episode(s) ---`];
+            for (const e of episodes) {
+                const preview = e.content.length > 60 ? e.content.slice(0, 59) + '…' : e.content;
+                lines.push(`  [${e.type}] ${preview}`);
+            }
+            return lines.join('\n');
+        },
+    },
+    {
+        name: 'know', description: 'Get/set/list knowledge', execute: (args) => {
+            const parts = args.trim().split(/\s+/);
+            if (!parts[0]) {
+                const entries = agent.knowList();
+                if (!entries.length) return '\n  (empty)';
+                const lines = [`\n--- ${entries.length} Knowledge Entry/Entries ---`];
+                for (const {key, value} of entries) {
+                    const preview = value.length > 60 ? value.slice(0, 59) + '…' : value;
+                    lines.push(`  ${key}: ${preview}`);
+                }
+                return lines.join('\n');
+            }
+            if (parts.length === 1) {
+                const value = agent.knowGet(parts[0]);
+                return value !== undefined ? `${parts[0]}: ${value}` : `Key not found: ${parts[0]}`;
+            }
+            const key = parts[0];
+            const value = parts.slice(1).join(' ');
+            agent.know(key, value);
+            return `Stored: ${key}`;
+        },
+    },
+    {
+        name: 'recall', description: 'Search episodic memory', execute: async (args) => {
+            const episodes = await agent.recall(args.trim() || undefined);
+            const lines = [`\n--- ${episodes.length} Episode(s) ---`];
+            for (const e of episodes) {
+                const preview = e.content.length > 60 ? e.content.slice(0, 59) + '…' : e.content;
+                lines.push(`  [${e.type}] ${preview}`);
+            }
+            return lines.join('\n');
+        },
+    },
+    {
+        name: 'throttle', description: 'Get/set reasoning throttle', execute: (args) => {
+            const n = parseInt(args);
+            if (isNaN(n)) return `Throttle: ${agent.getThrottle()}%`;
+            agent.setThrottle(n);
+            return `Throttle set to ${agent.getThrottle()}%`;
+        },
+    },
+    {
+        name: 'status', description: 'Agent and NAR status', execute: () => {
+            const stats = nar.getStatistics();
+            const lmStats = lmClient.getStats?.();
+            const lines = [
+                `\n--- Agent Status ---`,
+                `Throttle: ${agent.getThrottle()}%`,
+                `\n--- NAR ---`,
+                `Concepts: ${stats.totalConcepts}`,
+                `Tasks: ${stats.totalTasks}`,
+                `\n--- LM ---`,
+                `Provider: ${lmClient.provider ?? 'unknown'}`,
+                `Model: ${lmClient.model ?? 'unknown'}`,
+            ];
+            if (lmStats) {
+                lines.push(`Calls: ${lmStats.totalCalls} (${lmStats.successfulCalls} ok, ${lmStats.failedCalls} fail)`);
+                lines.push(`Avg: ${lmStats.averageDuration.toFixed(0)}ms`);
+            }
+            const knowledge = agent.knowList();
+            lines.push(`\n--- Knowledge ---`, `${knowledge.length} entries`);
             return lines.join('\n');
         },
     },
@@ -159,7 +235,7 @@ async function main() {
         retentionDays: parseInt(process.env.EPISODIC_RETENTION_DAYS || '30'),
     });
 
-    const agent = new AIAgent({nar, lmClient, episodicMemory});
+    const agent = createAgent({nar, lmClient, episodicMemory});
 
     console.log('\n╔══════════════════════════════════════════════════╗');
     console.log('║ SeNARS REPL - Neuro-Symbolic Reasoning CLI    ║');

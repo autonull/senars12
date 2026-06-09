@@ -51,7 +51,8 @@ export class FeedbackLearner {
 
         this.translationCache?.record(originalNL, {
             beliefs: [{ narsese: correctedNarsese }],
-            isQuestion: false,
+            questions: [],
+            goals: [],
             summary: originalNL,
         });
 

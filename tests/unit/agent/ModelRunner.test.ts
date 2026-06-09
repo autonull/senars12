@@ -1,7 +1,7 @@
 import {describe, it, expect} from '@jest/globals';
 import {ModelRunner} from '../../../src/agent/model/ModelRunner.js';
+import type {ComposedRequest, ReasoningArtifact} from '../../../src/agent/model/ModelRunner.js';
 import type {LMClient} from '../../../src/nar/lm/types.js';
-import type {ComposedRequest, ReasoningArtifact} from '../../../src/agent/types.js';
 
 class ScriptedLMClient implements LMClient {
     readonly provider = 'scripted';
@@ -156,7 +156,7 @@ describe('ModelRunner', () => {
         const events: {kind: string; [k: string]: unknown}[] = [];
         const result = await drain(runner, composed, events);
         expect(result.errors.length).toBe(1);
-        expect(result.errors[0]?.message).toBe('kapow');
+        expect(result.errors[0]?.message).toContain('kapow');
         const errEvent = events.find(e => e.kind === 'tool-error');
         expect(errEvent).toBeDefined();
     });

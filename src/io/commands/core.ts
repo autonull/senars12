@@ -55,10 +55,10 @@ export const coreCommands: CommandDefinition[] = [
     {
         name: '/quit',
         aliases: ['.quit'],
-        description: 'Exit the CLI',
+        description: 'Exit the CLI / disconnect',
         usage: '/quit',
         execute: async () => {
-            process.exit(0);
+            return '__CLI_QUIT__';
         }
     }
 ];

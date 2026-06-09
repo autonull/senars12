@@ -1,9 +1,22 @@
 #!/usr/bin/env tsx
 /**
- * SeNARS Bot - Multi-connection agent using AIAgent
+ * SeNARS Bot - Multi-connection agent.
+ *
+ * Default config: connects to irc.libera.chat#senars as `senars-bot`
+ * and starts a WebSocket server on 8765. Set ENABLE_HTTP=true or
+ * ENABLE_MCP=true to opt in to additional transports.
  */
 
-import {AIAgent} from '../agent/agent.js';
+import {createAgent} from '../agent/agent.js';
+import {ConnectionManager} from '../io/connection-manager.js';
+import {AuthManager} from '../io/auth.js';
+import {CommandRegistry} from '../io/commands/registry.js';
+import {CLIConnection, IRCConnection, WSConnection, HTTPConnection, MCPConnection} from '../io/index.js';
+import {bindAgentToConnection} from '../agent/io-bridge.js';
+import {createConnectionConfigsFromEnv} from '../agent/io-config.js';
+import {JsonlSessionManager} from '../agent/SessionManager.js';
+import {registerAllCommands} from '../agent/register-commands.js';
+import {createNlBridge} from '../agent/nl-bridge.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {setupDefaultLMClient} from '../nar/lm/defaults.js';
@@ -13,13 +26,13 @@ import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
 import {setupGracefulShutdown} from '../utils/shutdown.js';
 import {assertValidEnv} from '../utils/env-validate.js';
-
+import {mkdir} from 'node:fs/promises';
 
 assertValidEnv();
 
 const logger = createLogger({scope: 'bot'});
 
-async function main() {
+async function main(): Promise<void> {
     const registry = createSeNARSRegistry();
     const lmClient = setupDefaultLMClient();
     const lmConfig = resolveLMConfig();
@@ -36,15 +49,70 @@ async function main() {
         retentionDays: parseInt(process.env.EPISODIC_RETENTION_DAYS || '30'),
     });
 
-    const agent = new AIAgent({nar, lmClient, episodicMemory});
-    void agent;
-    logger.info(`Bot ready: AIAgent (mode=${lmClient ? 'full' : 'senars-only'})`);
-    logger.info(`LM: provider=${lmConfig.provider} model=${lmConfig.model}`);
+    const agent = createAgent({nar, lmClient, episodicMemory});
+
+    await mkdir('.cache/sessions', {recursive: true}).catch(() => undefined);
+    const sessionManager = new JsonlSessionManager({basePath: '.cache/sessions'});
+    await sessionManager.restore();
+
+    const auth = new AuthManager();
+    if (process.env.AUTH_SECRET) {
+        for (const connId of (process.env.AUTH_CONNECTION_IDS ?? 'irc-main,http-main,ws-main').split(',')) {
+            auth.setSecret(connId.trim(), process.env.AUTH_SECRET);
+        }
+    }
+
+    const commandRegistry = new CommandRegistry();
+    registerAllCommands(commandRegistry, {nar, episodicMemory, agent});
+
+    const nlBridge = createNlBridge({nar, registry});
+
+    const cm = new ConnectionManager(logger);
+    cm.registerFactory({type: 'cli', create: cfg => new CLIConnection(cfg, {nar, emit: () => undefined, logger})});
+    cm.registerFactory({type: 'irc', create: cfg => new IRCConnection(cfg, {nar, emit: () => undefined, logger})});
+    cm.registerFactory({type: 'websocket', create: cfg => new WSConnection(cfg, {nar, emit: () => undefined, logger})});
+    cm.registerFactory({type: 'http', create: cfg => new HTTPConnection(cfg, {nar, emit: () => undefined, logger})});
+    cm.registerFactory({type: 'mcp', create: cfg => new MCPConnection(cfg, {nar, emit: () => undefined, logger})});
+
+    const configs = createConnectionConfigsFromEnv();
+    logger.info(`Configured connections: ${configs.map((c: {type: string; id: string}) => `${c.type}:${c.id}`).join(', ') || '(none)'}`);
+
+    for (const cfg of configs) {
+        try {
+            const conn = await cm.addConnection(cfg, {nar, emit: () => undefined, logger});
+            bindAgentToConnection(agent, conn, {
+                auth,
+                commandRegistry,
+                sessionManager,
+                episodicMemory,
+                nlBridge,
+                manager: cm,
+                enableNlTranslation: process.env.ENABLE_NL_TRANSLATION !== 'false',
+                enableNarseseHumanization: process.env.ENABLE_NARSESE_HUMANIZATION !== 'false',
+            });
+            logger.info(`Bound bridge to: ${conn.name} (${conn.type})`);
+        } catch (e) {
+            logger.error(`Failed to add ${cfg.type}: ${(e as Error).message}`);
+        }
+    }
+
+    const stopReasoning = agent.start();
 
     setupGracefulShutdown(async () => {
         logger.info('Shutting down...');
+        await sessionManager.snapshot();
+        await sessionManager.close();
+        stopReasoning();
+        await cm.shutdownAll();
         logger.info('Bot stopped');
     }, logger);
+
+    logger.info(`Bot ready: ${configs.length} connection(s), mode=${lmClient ? 'full' : 'senars-only'}`);
+    logger.info(`LM: ${lmConfig.provider} ${lmConfig.model}`);
+    logger.info(`Try: IRC ${process.env.IRC_SERVER ?? 'irc.libera.chat'} #${(process.env.IRC_CHANNELS ?? '#senars').split(',')[0]}, or ws://localhost:${process.env.WS_PORT ?? '8765'}`);
 }
 
-main().catch(console.error);
+main().catch(err => {
+    logger.error('Bot failed to start', err as Error);
+    process.exit(1);
+});

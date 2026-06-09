@@ -17,6 +17,15 @@ export interface ParserResult {
     statements?: ParserResult[];
 }
 
+export type TaskTypeName = 'belief' | 'question' | 'goal' | 'command';
+
+export interface ParseTaskResult {
+    term: Term;
+    taskType: TaskTypeName;
+    truth?: Truth;
+    punctuation: '.' | '?' | '!' | ';';
+}
+
 export interface ParserPosition {
     line: number;
     column: number;
@@ -94,6 +103,38 @@ export class TermParser {
         termStr = termStr.replace(/[.!?@;]+\s*$/, '').trim();
 
         return {term: this.parse(termStr), truth};
+    }
+
+    parseTask(input: string): ParseTaskResult | null {
+        const trimmed = input?.trim?.() ?? '';
+        if (!trimmed) return null;
+
+        try {
+            const result: unknown = peggyParse(trimmed, {termFactory: this.termFactory});
+            const r = result as {term?: Term; punctuation?: string; truthValue?: {frequency: number; confidence: number}} | null;
+            if (!r || !r.term || !r.punctuation) return null;
+
+            const punc = r.punctuation;
+            if (punc !== '.' && punc !== '?' && punc !== '!' && punc !== ';') return null;
+
+            const puncToType: Record<string, TaskTypeName> = {
+                '.': 'belief',
+                '?': 'question',
+                '!': 'goal',
+                ';': 'command',
+            };
+            const taskType = puncToType[punc];
+            if (!taskType) return null;
+
+            const rawTruth = r.truthValue;
+            const truth = rawTruth
+                ? Truth.create(rawTruth.frequency, rawTruth.confidence)
+                : undefined;
+
+            return {term: r.term, taskType, truth, punctuation: punc as ParseTaskResult['punctuation']};
+        } catch {
+            return null;
+        }
     }
 
     private _validateInput(input: string): string {

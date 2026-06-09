@@ -211,7 +211,7 @@ function textFromContent(content: string | Array<Record<string, unknown>>): stri
     return parts.join('');
 }
 
-const TOOL_CALL_REGEX = /\{(?:[^{}]|\{[^{}]*\})*"name"(?:[^{}]|\{[^{}]*\})*\}/g;
+const TOOL_CALL_MARKER = '"name"';
 
 interface ExtractedToolCall {
     toolCallId: string;
@@ -224,22 +224,60 @@ interface ToolCallExtraction {
     toolCalls: ExtractedToolCall[];
 }
 
+function findBalancedJsonObject(text: string, start: number): {end: number} | null {
+    if (text[start] !== '{') return null;
+    let depth = 1;
+    for (let i = start + 1; i < text.length; i++) {
+        const c = text[i];
+        if (c === '{') depth++;
+        else if (c === '}') {
+            depth--;
+            if (depth === 0) return {end: i + 1};
+        }
+    }
+    return null;
+}
+
 function extractToolCalls(text: string, tools: Array<{name: string; inputSchema?: unknown}>): ToolCallExtraction {
     const toolCalls: ExtractedToolCall[] = [];
     const usedSpans: Array<[number, number]> = [];
 
-    const matches = text.match(TOOL_CALL_REGEX) ?? [];
-    for (const m of matches) {
-        const start = text.indexOf(m, usedSpans.length > 0 ? usedSpans[usedSpans.length - 1]![1] : 0);
-        if (start === -1) continue;
-        const end = start + m.length;
-        const parsed = safeParseJson(m);
-        if (!parsed || typeof parsed !== 'object') continue;
+    let cursor = 0;
+    while (cursor < text.length) {
+        const marker = text.indexOf(TOOL_CALL_MARKER, cursor);
+        if (marker === -1) break;
+
+        let braceStart = marker;
+        while (braceStart > 0 && text[braceStart] !== '{') braceStart--;
+        if (braceStart < cursor) {
+            cursor = marker + TOOL_CALL_MARKER.length;
+            continue;
+        }
+
+        const balanced = findBalancedJsonObject(text, braceStart);
+        if (!balanced) {
+            cursor = marker + TOOL_CALL_MARKER.length;
+            continue;
+        }
+
+        const json = text.slice(braceStart, balanced.end);
+        const parsed = safeParseJson(json);
+        if (!parsed || typeof parsed !== 'object') {
+            cursor = balanced.end;
+            continue;
+        }
         const obj = parsed as Record<string, unknown>;
         const name = typeof obj.name === 'string' ? obj.name : null;
-        if (!name) continue;
+        if (!name) {
+            cursor = balanced.end;
+            continue;
+        }
         const tool = tools.find(t => t.name === name);
-        if (!tool) continue;
+        if (!tool) {
+            cursor = balanced.end;
+            continue;
+        }
+
         const rawArgs = (obj.arguments && typeof obj.arguments === 'object') ? obj.arguments as Record<string, unknown> : {};
         const validated = validateArgs(rawArgs, tool.inputSchema);
         toolCalls.push({
@@ -247,7 +285,8 @@ function extractToolCalls(text: string, tools: Array<{name: string; inputSchema?
             toolName: name,
             input: validated,
         });
-        usedSpans.push([start, end]);
+        usedSpans.push([braceStart, balanced.end]);
+        cursor = balanced.end;
     }
 
     const cleanText = stripSpans(text, usedSpans);
@@ -264,25 +303,23 @@ function safeParseJson(s: string): unknown {
 
 function validateArgs(raw: Record<string, unknown>, schema: unknown): Record<string, unknown> {
     if (!schema || typeof schema !== 'object') return raw;
-    const candidate = schema as {safeParse?: (input: unknown) => {success: boolean; data?: unknown; error?: unknown}; parse?: (input: unknown) => unknown};
+    const candidate = schema as {safeParse?: (input: unknown) => {success: boolean; data?: unknown; error?: unknown}; parse?: (input: unknown) => unknown; _zod?: {def?: {shape?: Record<string, unknown>}}};
     if (typeof candidate.safeParse !== 'function') return raw;
     const result = candidate.safeParse(raw);
     if (result.success) return (result.data as Record<string, unknown>) ?? raw;
-    const coerced = coerceOptionalFields(raw, result.error);
+    const coerced = coerceOptionalFields(raw, candidate);
     const retry = candidate.safeParse(coerced);
     if (retry.success) return (retry.data as Record<string, unknown>) ?? coerced;
-    return raw;
+    return coerced;
 }
 
-function coerceOptionalFields(raw: Record<string, unknown>, err: unknown): Record<string, unknown> {
-    const issues = (err as {issues?: Array<{code?: string; path?: Array<string|number>}>})?.issues;
-    if (!Array.isArray(issues)) return raw;
-    const out: Record<string, unknown> = {...raw};
-    for (const issue of issues) {
-        if (issue.code === 'invalid_type' && Array.isArray(issue.path) && issue.path.length > 0) {
-            const key = String(issue.path[0]);
-            if (!(key in out)) continue;
-        }
+function coerceOptionalFields(raw: Record<string, unknown>, schema: unknown): Record<string, unknown> {
+    const shape = (schema as {_zod?: {def?: {shape?: Record<string, unknown>}}})?._zod?.def?.shape;
+    const knownKeys = shape && typeof shape === 'object' ? new Set(Object.keys(shape)) : null;
+    if (!knownKeys) return raw;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(raw)) {
+        if (knownKeys.has(k)) out[k] = v;
     }
     return out;
 }

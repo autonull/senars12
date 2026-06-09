@@ -63,7 +63,7 @@ export interface ModelRunnerDeps {
  *      message history so the LM sees its own actions
  *   5. loop until no tool calls, or `maxLoops` reached
  *
- * `maxLoops` is supplied by `AIAgent` from
+ * `maxLoops` is supplied by `createAgent` (or the host) from
  * `botConfig.reasoning.maxStepsPerTrigger`; we don't reach for the AI
  * SDK's `generateText` / `streamText` because we want full control over
  * the event surface (the SDK's internal multi-step loop is opaque).
@@ -103,8 +103,11 @@ export class ModelRunner {
 
             let result;
             try {
+                const messagesWithSystem = composed.system
+                    ? [{role: 'system' as const, content: composed.system}, ...messages]
+                    : messages;
                 result = await this.model.doGenerate({
-                    prompt: messages as never,
+                    prompt: messagesWithSystem as never,
                     tools: toolsArray,
                     maxOutputTokens: this.maxOutputTokens,
                     ...(signal ? {abortSignal: signal} : {}),

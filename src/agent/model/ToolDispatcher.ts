@@ -60,7 +60,11 @@ export async function dispatchToolCalls(calls: ToolCall[], deps: ToolDispatcherD
             result = await tool.execute(call.args);
         } catch (e) {
             const message = e instanceof Error ? e.message : String(e);
-            errors.push({toolCallId: call.toolCallId, toolName: call.toolName, message});
+            const fields = Object.keys(call.args);
+            const hint = fields.length
+                ? ` (provided fields: ${fields.join(', ')})`
+                : ' (no fields provided — likely missing required arguments)';
+            errors.push({toolCallId: call.toolCallId, toolName: call.toolName, message: message + hint});
             continue;
         }
 
