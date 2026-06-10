@@ -1,4 +1,4 @@
-import type {Tool, ToolCapabilities, ToolChainResult, ToolChainStep, ToolContext, ToolEvent, ToolFilter, ToolRegistry, ToolResult, ToolStatistics} from './types';
+import type {Schema, Tool, ToolCapabilities, ToolChainResult, ToolChainStep, ToolContext, ToolEvent, ToolFilter, ToolRegistry, ToolResult, ToolStatistics} from './types';
 import {ToolError} from '../types';
 import {errMsg} from '../utils';
 import {EventBus} from '../types/events.js';
@@ -104,7 +104,7 @@ export class Registry implements ToolRegistry {
         return result;
     }
 
-    private validateArgs(schema: import('./types').Schema, args: Record<string, unknown>): void {
+    private validateArgs(schema: Schema, args: Record<string, unknown>): void {
         if (!schema) return;
 
         if (schema.required) {
@@ -126,7 +126,7 @@ export class Registry implements ToolRegistry {
         }
     }
 
-    private validateType(key: string, value: unknown, prop: import('./types').Schema['properties'][string]): void {
+    private validateType(key: string, value: unknown, prop: Schema['properties'][string]): void {
         const typeChecks: Record<string, () => boolean> = {
             string: () => typeof value === 'string',
             number: () => typeof value === 'number',

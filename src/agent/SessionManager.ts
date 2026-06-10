@@ -1,11 +1,12 @@
 import {join} from 'node:path';
-import {promises as fs} from 'fs';
+import {promises as fs} from 'node:fs';
 import {
     createSession,
     type ConversationSession,
     type SessionMessage,
     DEFAULT_SESSION_HISTORY_LIMIT,
 } from './ConversationSession.js';
+import {createLogger, type Logger} from '../nar/logger/index.js';
 
 export interface SessionManager {
     getOrCreate(key: string): ConversationSession;
@@ -20,6 +21,7 @@ export interface SessionManager {
 interface ManagerOptions {
     historyLimit?: number;
     flushIntervalMs?: number;
+    logger?: Logger;
 }
 
 const safeFile = (key: string): string => key.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -27,9 +29,11 @@ const safeFile = (key: string): string => key.replace(/[^a-zA-Z0-9_-]/g, '_');
 export class InMemorySessionManager implements SessionManager {
     private readonly sessions = new Map<string, ConversationSession>();
     private readonly historyLimit: number;
+    private readonly logger: Logger;
 
     constructor(opts: ManagerOptions = {}) {
         this.historyLimit = opts.historyLimit ?? DEFAULT_SESSION_HISTORY_LIMIT;
+        this.logger = opts.logger ?? createLogger({scope: 'session:in-memory'});
     }
 
     getOrCreate(key: string): ConversationSession {
@@ -37,6 +41,8 @@ export class InMemorySessionManager implements SessionManager {
         if (!session) {
             session = createSession(key);
             this.sessions.set(key, session);
+        } else {
+            session.lastSeenAt = Date.now();
         }
         return session;
     }
@@ -90,12 +96,14 @@ export class JsonlSessionManager implements SessionManager {
     private readonly basePath: string;
     private readonly historyLimit: number;
     private readonly dirty = new Set<string>();
+    private readonly logger: Logger;
     private flushTimer: ReturnType<typeof setInterval> | null = null;
     private writeQueue: Promise<void> = Promise.resolve();
 
     constructor(opts: JsonlSessionManagerOptions) {
         this.basePath = opts.basePath;
         this.historyLimit = opts.historyLimit ?? DEFAULT_SESSION_HISTORY_LIMIT;
+        this.logger = opts.logger ?? createLogger({scope: 'session:jsonl'});
         const flushMs = opts.flushIntervalMs ?? 5000;
         this.flushTimer = setInterval(() => {
             this.flushAll().catch(() => undefined);
@@ -108,6 +116,8 @@ export class JsonlSessionManager implements SessionManager {
         if (!session) {
             session = createSession(key);
             this.sessions.set(key, session);
+        } else {
+            session.lastSeenAt = Date.now();
         }
         return session;
     }
@@ -195,9 +205,13 @@ export class JsonlSessionManager implements SessionManager {
                 continue;
             }
             await this.writeQueue;
-            this.writeQueue = this.writeSession(session).finally(() => {
-                this.dirty.delete(key);
-            });
+            const keyCopy = key;
+            this.writeQueue = this.writeSession(session)
+                .then(() => { this.dirty.delete(keyCopy); })
+                .catch(err => {
+                    this.dirty.delete(keyCopy);
+                    this.logger.error('session flush failed', err instanceof Error ? err : new Error(String(err)), {key: keyCopy});
+                });
         }
         await this.writeQueue;
     }

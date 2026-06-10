@@ -63,7 +63,7 @@ async function main(): Promise<void> {
     }
 
     const commandRegistry = new CommandRegistry();
-    registerAllCommands(commandRegistry, {nar, episodicMemory, agent});
+    registerAllCommands(commandRegistry);
 
     const nlBridge = createNlBridge({nar, registry});
 

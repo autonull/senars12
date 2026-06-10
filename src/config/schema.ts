@@ -98,6 +98,26 @@ const lmRulesDefaults = {
 const builtInDefaults = {builtIn: true};
 
 const senarsCapabilityDefaults = {enabled: true};
+
+const agentDefaults = {
+    maxLoops: 5,
+    reasoningIntervalMs: 60_000,
+    sessionHistoryLimit: 20,
+    rateLimitPerMinute: 30,
+    enableNlTranslation: true,
+    enableNarseseHumanization: true,
+};
+
+export const agentSectionSchema = z.object({
+    maxLoops: z.number().int().min(0).max(50).default(agentDefaults.maxLoops),
+    reasoningIntervalMs: z.number().int().positive().default(agentDefaults.reasoningIntervalMs),
+    sessionHistoryLimit: z.number().int().positive().default(agentDefaults.sessionHistoryLimit),
+    rateLimitPerMinute: z.number().int().positive().default(agentDefaults.rateLimitPerMinute),
+    enableNlTranslation: z.boolean().default(agentDefaults.enableNlTranslation),
+    enableNarseseHumanization: z.boolean().default(agentDefaults.enableNarseseHumanization),
+    systemInstructions: z.string().max(16_000).optional(),
+}).default({...agentDefaults});
+
 const capabilitiesDefaults = {
     lm: lmDefaults,
     senars: senarsCapabilityDefaults,
@@ -183,6 +203,7 @@ export const appConfigSchema = z.object({
         }).default({...senarsCapabilityDefaults}),
     }).default({...capabilitiesDefaults, lm: {...capabilitiesDefaults.lm}, senars: {...capabilitiesDefaults.senars}}),
     core: narCoreSchema.default({...narCoreDefaults}),
+    agent: agentSectionSchema,
     bot: botConfigSchema.default({...botConfigDefaults, lmRules: {...botConfigDefaults.lmRules, rules: [...botConfigDefaults.lmRules.rules]}}),
     connections: z.record(z.string(), z.unknown()).default(() => ({})),
 });
@@ -192,3 +213,4 @@ export type BotConfig = z.infer<typeof botConfigSchema>;
 export type BotProfile = z.infer<typeof botProfileSchema>;
 export type NarCoreConfig = z.infer<typeof narCoreSchema>;
 export type LmConfig = z.infer<typeof lmSchema>;
+export type AgentSectionConfig = z.infer<typeof agentSectionSchema>;

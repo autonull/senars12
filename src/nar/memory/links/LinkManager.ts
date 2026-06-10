@@ -26,7 +26,7 @@ export class LinkManager {
 
     static deserialize(
         data: SerializedLinkManager,
-        termResolver: (id: string) => import('../../terms/index.js').Term | undefined
+        termResolver: (id: string) => Term | undefined
     ): LinkManager {
         const manager = new LinkManager(data.config);
 

@@ -1,9 +1,22 @@
 export {createAgent} from './agent.js';
-export type {Agent, AgentOptions} from './agent.js';
-export {ModelRunner} from './model/ModelRunner.js';
+export type {Agent, AgentOptions, ChatOptions, ChatStreamEvent, AgentStats} from './agent.js';
+export {ModelRunner, truncateArtifact} from './model/ModelRunner.js';
 export type {ComposedRequest, ModelEvent, ModelRunResult, ModelRunnerDeps, ReasoningArtifact} from './model/ModelRunner.js';
 export {dispatchToolCalls} from './model/ToolDispatcher.js';
 export type {ToolCall, ToolDispatchResult, ToolError} from './model/ToolDispatcher.js';
+export {AgentEventBus} from './AgentEventBus.js';
+export type {AgentEventKind, AgentEventPayloads} from './AgentEventBus.js';
+
+export {renderSystemPrompt, buildCognitiveState, computeCognitiveFingerprint} from './SystemPrompt.js';
+export type {SystemPromptSections, CognitiveStateOptions} from './SystemPrompt.js';
+
+export {agentOptionsSchema, validateAgentOptions, AgentOptionsValidationError} from './options-schema.js';
+export type {ValidatedAgentOptions} from './options-schema.js';
+
+export {createAgentPreset} from './presets.js';
+export type {AgentPresetName, AgentPresetDeps, AgentPresetResult} from './presets.js';
+
+export {agentConfigToOptions} from './config-bridge.js';
 
 export type {SessionMessage, ConversationSession} from './ConversationSession.js';
 export {
@@ -25,12 +38,17 @@ export {bindAgentToConnection} from './io-bridge.js';
 export type {BridgeOptions} from './io-bridge.js';
 export type {BridgeContext} from './io-middleware.js';
 export {
+    resolveSessionKey,
+    createErrorBoundary,
     originExtractor,
     createAuthMiddleware,
     createCommandInterceptor,
     createRateLimiter,
     createSessionBinder,
     createAgentDispatch,
+    createStreamingAgentDispatch,
+    abortSession,
+    clearSessionState,
     createNarsTraceAnnotator,
     createNlInputTranslation,
     createNarseseOutputHumanization,
@@ -39,4 +57,9 @@ export {
 export {createConnectionConfigsFromEnv, DEFAULT_PORTS} from './io-config.js';
 
 export {registerAllCommands} from './register-commands.js';
-export type {CommandDeps} from './register-commands.js';
+
+export {buildAgentTools} from './tools.js';
+export type {AgentToolDeps} from './tools.js';
+
+export {EpisodeWorkingMemory} from './EpisodeWorkingMemory.js';
+export type {EpisodeWorkingMemoryOptions, EpisodeSlot} from './EpisodeWorkingMemory.js';

@@ -1,6 +1,6 @@
 import type {Term, Truth} from '../terms';
-import {extractSymbols, jaccardSimilarity, TermMap, termsEqual, TermSet} from '../terms';
 import {Bag} from './bag.js';
+import {extractSymbols, jaccardSimilarity, Stamp, TermMap, termsEqual, TermSet} from '../terms';
 import {Truth as TruthOps} from '../terms/truth.js';
 import type {Budget, TaskType} from '../types';
 import {LINK} from '../constants.js';
@@ -14,7 +14,7 @@ export interface TaskData {
     readonly truth?: Truth;
     readonly budget: Budget;
     readonly timestamp?: number;
-    readonly stamp?: import('../terms/stamp.js').Stamp;
+    readonly stamp?: Stamp;
     readonly occurrenceTime?: number;
     readonly derived?: boolean;
 }

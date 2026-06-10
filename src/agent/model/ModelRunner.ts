@@ -37,13 +37,19 @@ export interface ModelRunResult {
     artifacts: ReasoningArtifact[];
     errors: ToolError[];
     messages: Array<{role: 'user' | 'assistant' | 'system' | 'tool'; content: string | unknown[]}>;
+    usage: {inputTokens: number; outputTokens: number; totalTokens: number};
 }
 
 export interface ModelRunnerDeps {
     lmClient?: LMClient;
     maxLoops?: number;
     maxOutputTokens?: number;
+    maxToolResultEntries?: number;
+    maxToolResultChars?: number;
 }
+
+const DEFAULT_MAX_TOOL_RESULT_ENTRIES = 20;
+const DEFAULT_MAX_TOOL_RESULT_CHARS = 8_000;
 
 /**
  * Wraps the AI SDK adapter and runs the tool-call loop.
@@ -72,11 +78,15 @@ export class ModelRunner {
     private readonly model?: AISDKLanguageModel;
     private readonly maxLoops: number;
     private readonly maxOutputTokens: number;
+    private readonly maxToolResultEntries: number;
+    private readonly maxToolResultChars: number;
 
     constructor(deps: ModelRunnerDeps) {
         this.model = deps.lmClient ? adapt(deps.lmClient) : undefined;
         this.maxLoops = deps.maxLoops ?? 5;
         this.maxOutputTokens = deps.maxOutputTokens ?? 2048;
+        this.maxToolResultEntries = deps.maxToolResultEntries ?? DEFAULT_MAX_TOOL_RESULT_ENTRIES;
+        this.maxToolResultChars = deps.maxToolResultChars ?? DEFAULT_MAX_TOOL_RESULT_CHARS;
     }
 
     hasModel(): boolean {
@@ -85,7 +95,7 @@ export class ModelRunner {
 
     async *run(composed: ComposedRequest, signal?: AbortSignal): AsyncGenerator<ModelEvent, ModelRunResult> {
         if (!this.model) {
-            const empty: ModelRunResult = {text: '', toolCalls: [], artifacts: [], errors: [], messages: composed.messages};
+            const empty: ModelRunResult = {text: '', toolCalls: [], artifacts: [], errors: [], messages: composed.messages, usage: {inputTokens: 0, outputTokens: 0, totalTokens: 0}};
             return empty;
         }
 
@@ -97,6 +107,8 @@ export class ModelRunner {
         const allErrors: ToolError[] = [];
         const toolsArray = toToolArray(composed.tools);
         let text = '';
+        let totalInput = 0;
+        let totalOutput = 0;
 
         for (let loop = 0; loop < this.maxLoops; loop++) {
             if (signal?.aborted) break;
@@ -114,8 +126,13 @@ export class ModelRunner {
                 });
             } catch (e) {
                 const message = e instanceof Error ? e.message : String(e);
-                const failure: ModelRunResult = {text: message, toolCalls: allCalls, artifacts: allArtifacts, errors: allErrors, messages};
+                const failure: ModelRunResult = {text: message, toolCalls: allCalls, artifacts: allArtifacts, errors: allErrors, messages, usage: {inputTokens: totalInput, outputTokens: totalOutput, totalTokens: totalInput + totalOutput}};
                 return failure;
+            }
+
+            if (result.usage) {
+                totalInput += result.usage.inputTokens;
+                totalOutput += result.usage.outputTokens;
             }
 
             let stepText = '';
@@ -160,12 +177,21 @@ export class ModelRunner {
             for (const c of mapped) yield {kind: 'tool-call', call: c};
 
             const dispatch = await dispatchToolCalls(mapped, {tools: composed.tools});
-            allArtifacts.push(...dispatch.artifacts);
+            const truncatedArtifacts = dispatch.artifacts.map(a => truncateArtifact(a, this.maxToolResultEntries, this.maxToolResultChars));
+            const truncatedResults = new Map<string, unknown>();
+            for (const a of truncatedArtifacts) {
+                if (a.type !== 'tool_result') continue;
+                const id = String(a.metadata?.toolCallId ?? '');
+                if (!truncatedResults.has(id)) {
+                    truncatedResults.set(id, a.metadata?.result);
+                }
+            }
+            allArtifacts.push(...truncatedArtifacts);
             allErrors.push(...dispatch.errors);
 
             for (const c of mapped) {
-                const a = dispatch.artifacts.find(x => x.metadata?.toolCallId === c.toolCallId);
-                if (a) yield {kind: 'tool-result', call: c, result: a.metadata?.result};
+                const result = truncatedResults.get(c.toolCallId);
+                if (result !== undefined) yield {kind: 'tool-result', call: c, result};
             }
             for (const e of dispatch.errors) {
                 const c = mapped.find(x => x.toolCallId === e.toolCallId);
@@ -174,13 +200,12 @@ export class ModelRunner {
 
             const toolResultContent: unknown[] = [];
             for (const c of mapped) {
-                const artifact = dispatch.artifacts.find(x => x.metadata?.toolCallId === c.toolCallId);
-                if (artifact) {
+                if (truncatedResults.has(c.toolCallId)) {
                     toolResultContent.push({
                         type: 'tool-result',
                         toolCallId: c.toolCallId,
                         toolName: c.toolName,
-                        result: artifact.metadata?.result,
+                        result: truncatedResults.get(c.toolCallId),
                     });
                 } else {
                     const err = dispatch.errors.find(x => x.toolCallId === c.toolCallId);
@@ -198,7 +223,7 @@ export class ModelRunner {
         }
 
         yield {kind: 'finish', text, toolCalls: allCalls};
-        return {text, toolCalls: allCalls, artifacts: allArtifacts, errors: allErrors, messages};
+        return {text, toolCalls: allCalls, artifacts: allArtifacts, errors: allErrors, messages, usage: {inputTokens: totalInput, outputTokens: totalOutput, totalTokens: totalInput + totalOutput}};
     }
 }
 
@@ -207,4 +232,55 @@ function toToolArray(tools: Record<string, unknown>): Array<{type: string; name:
         const d = def as {description?: string; inputSchema?: unknown} | undefined;
         return {type: 'function', name, ...(d?.description ? {description: d.description} : {}), ...(d?.inputSchema ? {inputSchema: d.inputSchema} : {})};
     });
+}
+
+export function truncateArtifact(
+    artifact: ReasoningArtifact,
+    maxEntries: number,
+    maxChars: number,
+): ReasoningArtifact {
+    if (artifact.metadata?.result === undefined) return artifact;
+    const truncated = truncateResult(artifact.metadata.result, maxEntries, maxChars);
+    if (truncated === artifact.metadata.result) return artifact;
+    return {
+        ...artifact,
+        metadata: {...(artifact.metadata ?? {}), result: truncated, truncated: true, originalSize: estimateSize(artifact.metadata.result)},
+    };
+}
+
+function truncateResult(value: unknown, maxEntries: number, maxChars: number): unknown {
+    if (Array.isArray(value)) {
+        if (value.length <= maxEntries && estimateSize(value) <= maxChars) return value;
+        const sliced = value.slice(0, maxEntries);
+        return {entries: sliced, count: value.length, truncated: true};
+    }
+    if (value && typeof value === 'object') {
+        const obj = value as Record<string, unknown>;
+        const size = estimateSize(value);
+        if (size <= maxChars) return value;
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj)) {
+            if (Array.isArray(v) && v.length > maxEntries) {
+                out[k] = {entries: v.slice(0, maxEntries), count: v.length, truncated: true};
+            } else {
+                out[k] = v;
+            }
+        }
+        out.truncated = true;
+        return out;
+    }
+    if (typeof value === 'string' && value.length > maxChars) {
+        const suffix = '…[truncated]';
+        const headroom = Math.max(0, maxChars - suffix.length);
+        return value.slice(0, headroom) + suffix;
+    }
+    return value;
+}
+
+function estimateSize(value: unknown): number {
+    try {
+        return JSON.stringify(value).length;
+    } catch {
+        return Number.MAX_SAFE_INTEGER;
+    }
 }

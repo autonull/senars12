@@ -34,6 +34,8 @@ export interface Connection {
 
     onMessage(handler: (message: IOMessage) => Promise<void>): void;
 
+    removeMessageHandler(handler: (message: IOMessage) => Promise<void>): void;
+
     onStateChange(handler: (state: ConnectionState, prev: ConnectionState) => void): void;
 
     onError(handler: (error: ConnectionError) => void): void;

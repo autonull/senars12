@@ -3,18 +3,20 @@ import {MessageRouter, type MessageContext} from '../io/router.js';
 import type {Agent} from './agent.js';
 import type {AuthManager} from '../io/auth.js';
 import type {CommandRegistry} from '../io/commands/registry.js';
+import type {ConnectionManager} from '../io/connection-manager.js';
 import type {SessionManager} from './SessionManager.js';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import type {NAR} from '../nar/nar.js';
 import {resolveReplyTarget} from '../io/connections/reply-target.js';
 import type {NlBridge} from './nl-bridge.js';
+import {createLogger} from '../nar/logger/index.js';
 import {
+    createErrorBoundary,
     originExtractor,
     createAuthMiddleware,
     createCommandInterceptor,
     createRateLimiter,
     createSessionBinder,
-    createAgentDispatch,
+    createStreamingAgentDispatch,
     createNarsTraceAnnotator,
     createNlInputTranslation,
     createNarseseOutputHumanization,
@@ -27,10 +29,11 @@ export interface BridgeOptions {
     episodicMemory?: EpisodicMemory;
     rateLimitPerMinute?: number;
     nlBridge?: NlBridge;
-    manager?: import('../io/connection-manager.js').ConnectionManager;
+    manager?: ConnectionManager;
     enableNlTranslation?: boolean;
     enableNarseseHumanization?: boolean;
     enableNarsTrace?: boolean;
+    enableStreaming?: boolean;
 }
 
 export function bindAgentToConnection(
@@ -39,26 +42,30 @@ export function bindAgentToConnection(
     opts: BridgeOptions,
 ): () => void {
     const router = new MessageRouter();
+    const logger = createLogger({scope: `bridge:${connection.id}`});
+    router.use(createErrorBoundary(logger));
     if (opts.auth) router.use(createAuthMiddleware(opts.auth));
     router.use(originExtractor);
     if (opts.commandRegistry) router.use(createCommandInterceptor(opts.commandRegistry));
     router.use(createRateLimiter(opts.rateLimitPerMinute ?? 30));
     router.use(createSessionBinder(opts.sessionManager));
-    if (opts.enableNlTranslation && opts.nlBridge) {
+    if (opts.enableNlTranslation && opts.nlBridge && agent.getNAR()) {
         router.use(createNlInputTranslation(opts.nlBridge));
     }
     if (opts.enableNarseseHumanization && opts.nlBridge) {
         router.use(createNarseseOutputHumanization(opts.nlBridge));
     }
-    router.use(createAgentDispatch(agent));
-    if (opts.enableNarsTrace !== false && agent.getNAR()) {
-        router.use(createNarsTraceAnnotator(agent.getNAR() as NAR));
+    router.use(createStreamingAgentDispatch(agent, logger));
+    const traceNar = agent.getNAR();
+    if (opts.enableNarsTrace !== false && traceNar) {
+        router.use(createNarsTraceAnnotator(traceNar));
     }
 
     const handler = (message: IOMessage) => {
+        const nar = agent.getNAR();
         const context: MessageContext = {
             connection,
-            nar: agent.getNAR() as NAR,
+            ...(nar ? {nar} : {}),
             respond: (text: string) => connection.send(resolveReplyTarget(connection, message), text),
             ...(opts.manager ? {manager: opts.manager} : {}),
         };
@@ -67,6 +74,6 @@ export function bindAgentToConnection(
     connection.onMessage(handler);
 
     return () => {
-        // Connection doesn't expose off() — caller should disconnect()
+        connection.removeMessageHandler?.(handler);
     };
 }

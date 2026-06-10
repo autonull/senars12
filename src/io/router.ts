@@ -5,7 +5,7 @@ import type {ConnectionManager} from './connection-manager.js';
 
 export interface MessageContext {
     readonly connection: Connection;
-    readonly nar: NAR;
+    readonly nar?: NAR;
     readonly respond: (text: string) => Promise<void>;
     readonly sessionKey?: string;
     readonly session?: ConversationSession;

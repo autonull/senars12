@@ -1,4 +1,4 @@
-import {appendFileSync} from 'fs';
+import {appendFileSync} from 'node:fs';
 import {PreferenceCollector, type PreferenceData} from './PreferenceCollector.js';
 import {TrajectoryStep} from './ReasoningTrajectoryLogger.js';
 import {RewardModel} from './RewardModel.js';

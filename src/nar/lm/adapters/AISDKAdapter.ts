@@ -130,10 +130,12 @@ export class AISDKAdapter implements AISDKLanguageModel {
             content.push({type: 'tool-call' as const, toolCallId: tc.toolCallId, toolName: tc.toolName, input: tc.input});
         }
 
+        const usage = estimateUsage(promptText, text);
+
         return {
             content,
             finishReason: toolCalls.length > 0 ? 'tool-calls' as const : 'stop' as const,
-            usage: {inputTokens: 0, outputTokens: 0, totalTokens: 0},
+            usage,
         };
     }
 
@@ -336,4 +338,15 @@ function stripSpans(text: string, spans: Array<[number, number]>): string {
     }
     out += text.slice(cursor);
     return out;
+}
+
+function estimateTokens(text: string): number {
+    if (!text) return 0;
+    return Math.max(1, Math.ceil(text.length / 4));
+}
+
+function estimateUsage(prompt: string, response: string): {inputTokens: number; outputTokens: number; totalTokens: number} {
+    const input = estimateTokens(prompt);
+    const output = estimateTokens(response);
+    return {inputTokens: input, outputTokens: output, totalTokens: input + output};
 }

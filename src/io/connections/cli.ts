@@ -120,6 +120,8 @@ export class CLIConnection extends BaseConnection {
     }
 
     protected override handleMessage = (message: IOMessage): void => {
-        this.messageHandler?.(message).catch(err => this.logger.error(`Message handler error`, err as Error));
+        const handlers = this.messageHandlers.slice();
+        Promise.allSettled(handlers.map(h => h(message)))
+            .catch(err => this.logger.error(`Message handler error`, err as Error));
     };
 }

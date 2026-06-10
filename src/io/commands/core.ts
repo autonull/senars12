@@ -1,4 +1,5 @@
 import type {CommandDefinition} from './registry.js';
+import {requireNar} from './utils.js';
 
 export const coreCommands: CommandDefinition[] = [
     {
@@ -16,8 +17,10 @@ export const coreCommands: CommandDefinition[] = [
         description: 'Run inference steps',
         usage: '/run [n]',
         execute: async (args, ctx) => {
+            const nar = requireNar(ctx);
+            if (!nar.ok) return nar.message;
             const steps = args[0] ? parseInt(args[0]) : 5;
-            const derived = await ctx.nar.run(steps);
+            const derived = await nar.nar.run(steps);
             return `Ran ${steps} step(s), derived ${derived} belief(s)`;
         }
     },
@@ -27,10 +30,12 @@ export const coreCommands: CommandDefinition[] = [
         description: 'Show system statistics',
         usage: '/stats [detail]',
         execute: async (args, ctx) => {
-            const stats = ctx.nar.getStatistics();
+            const nar = requireNar(ctx);
+            if (!nar.ok) return nar.message;
+            const stats = nar.nar.getStatistics();
             let result = `Concepts: ${stats.totalConcepts}, Tasks: ${stats.totalTasks}`;
             if (args[0] === 'detail') {
-                const metrics = ctx.nar.getMetrics();
+                const metrics = nar.nar.getMetrics();
                 if (metrics) {
                     const ruleExecs = metrics.rules?.reduce((sum: number, r: {
                         executions: number
@@ -48,7 +53,9 @@ export const coreCommands: CommandDefinition[] = [
         description: 'Clear all memory',
         usage: '/clear',
         execute: async (_args, ctx) => {
-            ctx.nar.clearMemory();
+            const nar = requireNar(ctx);
+            if (!nar.ok) return nar.message;
+            nar.nar.clearMemory();
             return 'Memory cleared';
         }
     },

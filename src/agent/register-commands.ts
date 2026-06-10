@@ -9,20 +9,13 @@ import {rlfpCommands} from '../io/commands/rlfp.js';
 import {configCommands} from '../io/commands/config.js';
 import {episodesCommands} from '../io/commands/episodes.js';
 import {authCommands} from '../io/commands/auth.js';
-import type {NAR} from '../nar/nar.js';
-import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import type {Connection} from '../io/types.js';
-import type {ConnectionManager} from '../io/connection-manager.js';
 
-export interface CommandDeps {
-    nar?: NAR;
-    episodicMemory?: EpisodicMemory;
-    agent?: {chat(input: string): Promise<string>};
-    getConnection?: (id: string) => Connection | undefined;
-    listConnections?: () => ReadonlyMap<string, Connection>;
-}
-
-export function registerAllCommands(registry: CommandRegistry, _deps: CommandDeps = {}): void {
+/**
+ * Register all built-in command sets with the registry. Commands read their
+ * dependencies (NAR, ConnectionManager, EpisodicMemory) off the per-call
+ * `CommandContext`, so no registry-time wiring is required.
+ */
+export function registerAllCommands(registry: CommandRegistry): void {
     for (const cmd of authCommands) registry.register(cmd);
     for (const cmd of coreCommands) registry.register(cmd);
     for (const cmd of connectionCommands) registry.register(cmd);

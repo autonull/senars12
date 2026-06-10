@@ -2,21 +2,23 @@ import {describe, it, expect, jest} from '@jest/globals';
 import {bindAgentToConnection} from '../../../src/agent/io-bridge.js';
 import {createConnectionConfigsFromEnv} from '../../../src/agent/io-config.js';
 import {
+    createErrorBoundary,
     originExtractor,
     createCommandInterceptor,
     createRateLimiter,
     createSessionBinder,
     createAgentDispatch,
     createAuthMiddleware,
+    resolveSessionKey,
 } from '../../../src/agent/io-middleware.js';
-import {InMemorySessionManager} from '../../../src/agent/SessionManager.js';
+import {InMemorySessionManager, JsonlSessionManager} from '../../../src/agent/SessionManager.js';
 import {createSession} from '../../../src/agent/ConversationSession.js';
 import {CommandRegistry} from '../../../src/io/commands/registry.js';
 import {AuthManager} from '../../../src/io/auth.js';
 import {MessageRouter} from '../../../src/io/router.js';
 import {SeNARSFactory} from '../../../src/nar/index.js';
 import {EpisodicMemory} from '../../../src/nar/memory/EpisodicMemory.js';
-import type {Connection, IOMessage} from '../../../src/io/types.js';
+import type {Connection, IOMessage, Logger} from '../../../src/io/types.js';
 import type {NAR} from '../../../src/nar/nar.js';
 import type {LMClient} from '../../../src/nar/lm/types.js';
 import {createAgent} from '../../../src/agent/agent.js';
@@ -56,6 +58,10 @@ function makeConn(): TestConn {
         handlers,
         send: async (target, text) => { sent.push({target, text}); },
         onMessage: (h) => { handlers.push(h); },
+        removeMessageHandler: (h) => {
+            const idx = handlers.indexOf(h);
+            if (idx >= 0) handlers.splice(idx, 1);
+        },
         onStateChange: () => undefined,
         onError: () => undefined,
         getStatus: () => ({state: 'connected', messageCount: messages.length, errorCount: 0}),
@@ -288,5 +294,161 @@ describe('createConnectionConfigsFromEnv', () => {
         expect(types).toContain('websocket');
         expect(types).not.toContain('http');
         process.env = old;
+    });
+});
+
+describe('resolveSessionKey', () => {
+    it('returns message.origin', () => {
+        const m = makeMessage('hi', 'irc:#senars:bob');
+        expect(resolveSessionKey(m)).toBe('irc:#senars:bob');
+    });
+});
+
+describe('createErrorBoundary', () => {
+    function makeLogger(): Logger & {errors: Array<{message: string; error?: Error}>} {
+        const errors: Array<{message: string; error?: Error}> = [];
+        return {
+            errors,
+            debug: () => undefined,
+            info: () => undefined,
+            warn: () => undefined,
+            error: (message, error) => { errors.push({message, error}); },
+            child: () => makeLogger(),
+        };
+    }
+
+    it('catches errors from downstream middleware and sends fallback response', async () => {
+        const logger = makeLogger();
+        const mw = createErrorBoundary(logger);
+        const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+        const boom = new Error('kaboom');
+        const ctx = {connection: makeConn(), respond};
+        await mw(makeMessage('x'), ctx, async () => { throw boom; });
+        expect(respond).toHaveBeenCalledWith('Error: kaboom');
+        expect(logger.errors[0]?.message).toContain('middleware pipeline error');
+        expect(logger.errors[0]?.error).toBe(boom);
+    });
+
+    it('passes through when no error', async () => {
+        const logger = makeLogger();
+        const mw = createErrorBoundary(logger);
+        const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+        const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+        const ctx = {connection: makeConn(), respond};
+        await mw(makeMessage('x'), ctx, next);
+        expect(next).toHaveBeenCalled();
+        expect(respond).not.toHaveBeenCalled();
+    });
+});
+
+describe('CommandContext with no manager', () => {
+    it('/connections returns fallback when no manager', async () => {
+        const registry = new CommandRegistry();
+        registry.register({
+            name: 'connections', aliases: ['.connections'],
+            description: '', usage: '',
+            execute: async (_args, ctx) => {
+                if (!ctx.manager) return 'Connection manager not configured';
+                return ctx.manager.getConnections().size === 0 ? 'No active connections' : 'has conns';
+            },
+        });
+        const mw = createCommandInterceptor(registry);
+        const conn = makeConn();
+        const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+        const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+        const ctx = {connection: conn, respond};
+        await mw(makeMessage('/connections'), ctx, next);
+        expect(respond).toHaveBeenCalledWith(expect.stringContaining('Connection manager not configured'));
+    });
+
+    it('/help works without manager or nar', async () => {
+        const registry = new CommandRegistry();
+        registry.register({
+            name: 'help', aliases: ['.help'],
+            description: '', usage: '',
+            execute: async () => 'Commands:\n  /help\n  /stats',
+        });
+        const mw = createCommandInterceptor(registry);
+        const conn = makeConn();
+        const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+        const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+        const ctx = {connection: conn, respond};
+        await mw(makeMessage('/help'), ctx, next);
+        expect(respond).toHaveBeenCalledWith(expect.stringContaining('Commands:'));
+    });
+});
+
+describe('getOrCreate touches lastSeenAt', () => {
+    it('updates lastSeenAt on repeated access', async () => {
+        const mgr = new InMemorySessionManager();
+        const first = mgr.getOrCreate('k1');
+        const initial = first.lastSeenAt;
+        await new Promise(r => setTimeout(r, 10));
+        const second = mgr.getOrCreate('k1');
+        expect(second).toBe(first);
+        expect(second.lastSeenAt).toBeGreaterThanOrEqual(initial);
+    });
+
+    it('JsonlSessionManager also touches lastSeenAt', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'sessions-'));
+        const mgr = new JsonlSessionManager({basePath: dir});
+        const first = mgr.getOrCreate('k1');
+        const initial = first.lastSeenAt;
+        await new Promise(r => setTimeout(r, 10));
+        const second = mgr.getOrCreate('k1');
+        expect(second.lastSeenAt).toBeGreaterThanOrEqual(initial);
+        await mgr.close();
+    });
+});
+
+describe('bindAgentToConnection: cleanup', () => {
+    it('returns a cleanup function that removes the message handler', async () => {
+        const nar = SeNARSFactory.createForTesting({maxConcepts: 5});
+        const agent = createAgent({nar, lmClient: scriptedLM});
+        const conn = makeConn();
+        const sessionManager = new InMemorySessionManager();
+        const dispose = bindAgentToConnection(agent, conn, {
+            sessionManager,
+            enableNlTranslation: false,
+            enableNarseseHumanization: false,
+            enableNarsTrace: false,
+        });
+        expect(conn.handlers.length).toBe(1);
+        dispose();
+        expect(conn.handlers.length).toBe(0);
+    });
+});
+
+describe('createNlInputTranslation with no NAR', () => {
+    it('passes through cleanly when nar is undefined (skips input)', async () => {
+        const {createNlBridge} = await import('../../../src/agent/nl-bridge.js');
+        const {createSeNARSRegistry} = await import('../../../src/nar/lm/providers.js');
+        const registry = createSeNARSRegistry();
+        const nar = SeNARSFactory.createForTesting({maxConcepts: 5});
+        const nlBridge = createNlBridge({nar, registry});
+        const mw = createCommandInterceptor(new CommandRegistry());
+        const bridge = (await import('../../../src/agent/io-middleware.js')).createNlInputTranslation(nlBridge);
+        const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+        const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+        const ctx = {connection: makeConn(), respond};
+        await bridge(makeMessage('hello world'), ctx, next);
+        expect(next).toHaveBeenCalled();
+    });
+});
+
+describe('bindAgentToConnection: no NAR (LM only)', () => {
+    it('works with no NAR (LM only)', async () => {
+        const agent = createAgent({lmClient: scriptedLM});
+        const conn = makeConn();
+        const sessionManager = new InMemorySessionManager();
+        bindAgentToConnection(agent, conn, {
+            sessionManager,
+            enableNlTranslation: false,
+            enableNarseseHumanization: false,
+            enableNarsTrace: false,
+        });
+        await conn.handlers[0]!(makeMessage('hello'));
+        expect(conn.sent.length).toBeGreaterThan(0);
+        expect(conn.sent[0]?.text).toBe('Hi!');
     });
 });

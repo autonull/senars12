@@ -1,4 +1,4 @@
-import {promises as fs} from 'fs';
+import {promises as fs} from 'node:fs';
 import {TrajectoryStep} from './ReasoningTrajectoryLogger.js';
 import {extractTrajectoryFeatures} from './utils.js';
 import {OperationError} from '../types';

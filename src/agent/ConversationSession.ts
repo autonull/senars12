@@ -36,6 +36,12 @@ export function appendTurn(
     session.lastSeenAt = Date.now();
 }
 
+/**
+ * Trim session history to at most `limit * 2` messages. The pre-buffer
+ * multiplier (×2) avoids a slice on every single turn — we only act once
+ * the buffer overflows, then keep a 2× window so that alternating user /
+ * assistant turns aren't split mid-exchange.
+ */
 export function trimHistory(session: ConversationSession, limit: number): void {
     if (session.history.length > limit * 2) {
         session.history = session.history.slice(-limit * 2);

@@ -1,6 +1,6 @@
 import type {Schema, Tool, ToolResult} from './types';
 import {errorResult} from './types';
-import {promises as fs} from 'fs';
+import {promises as fs} from 'node:fs';
 import {tool} from './decorator.js';
 
 @tool({

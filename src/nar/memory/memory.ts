@@ -205,7 +205,7 @@ export class Memory {
         return concept;
     }
 
-    addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget = NEUTRAL_BUDGET, stamp?: import('../terms/stamp.js').Stamp): boolean {
+    addTask(term: Term, type: ConceptTaskType, truth?: Truth, budget: Budget = NEUTRAL_BUDGET, stamp?: Stamp): boolean {
         const concept = this.getConcept(term) ?? this.addConcept(term);
         return concept.addTask(type, {term, truth, budget, stamp: stamp ?? Stamp.createInput()});
     }

@@ -10,6 +10,7 @@ class FakeConn implements Partial<Connection> {
     async reconnect() {}
     async send() {}
     onMessage() {}
+    removeMessageHandler() {}
     onStateChange() {}
     onError() {}
     getStatus() { return {state: this.state, messageCount: 0, errorCount: 0}; }

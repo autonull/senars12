@@ -6,6 +6,12 @@ export interface AgentToolDeps {
     knowGet: (key: string) => string | undefined;
     knowList: () => Array<{key: string; value: string}>;
     recall: (query?: string, limit?: number) => Promise<Array<{timestamp: number; type: string; content: string}>>;
+    setInstructions?: (mode: 'append' | 'replace', instructions: string) => void;
+    getSessionInfo?: () => {
+        messageCount: number;
+        createdAt: number;
+        pinnedBeliefs: string[];
+    };
 }
 
 export function buildAgentTools(deps: AgentToolDeps): Record<string, unknown> {
@@ -46,6 +52,34 @@ export function buildAgentTools(deps: AgentToolDeps): Record<string, unknown> {
                 limit: z.number().optional().default(10).describe('Maximum number of episodes to return'),
             }),
             execute: ({query, limit}) => deps.recall(query, limit),
+        }),
+
+        agent_instruct: tool({
+            description: 'Update the agent\'s system instructions for the remainder of this session. Use when the user establishes a new persistent rule for how to respond.',
+            inputSchema: z.object({
+                instructions: z.string().describe('New or additional instructions to apply.'),
+                mode: z.enum(['append', 'replace']).optional().default('append').describe('Whether to append to or replace the existing instructions.'),
+            }),
+            execute: ({instructions, mode}) => {
+                if (!deps.setInstructions) return {error: 'setInstructions hook not available in this context'};
+                deps.setInstructions(mode, instructions);
+                return {applied: true, mode, length: instructions.length};
+            },
+        }),
+
+        get_session_info: tool({
+            description: 'Get the current session metadata: message count, age, pinned beliefs.',
+            inputSchema: z.object({}),
+            execute: () => {
+                if (!deps.getSessionInfo) return {error: 'session info not available'};
+                const info = deps.getSessionInfo();
+                return {
+                    messageCount: info.messageCount,
+                    createdAt: info.createdAt,
+                    ageMs: Date.now() - info.createdAt,
+                    pinnedBeliefs: info.pinnedBeliefs,
+                };
+            },
         }),
     };
 }

@@ -32,7 +32,7 @@ async function main() {
 
 async function runCLI() {
     console.log('Starting CLI mode...');
-    await import('./cli/agent.js');
+    await import('./bin/repl.js');
 }
 
 async function runBot() {

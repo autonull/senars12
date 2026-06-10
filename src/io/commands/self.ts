@@ -1,6 +1,7 @@
 import type {CommandDefinition} from './registry.js';
 import type {NAR} from '../../nar/nar.js';
 import type {ReasoningAboutReasoning} from '../../nar/self/ReasoningAboutReasoning.js';
+import {requireNar} from './utils.js';
 
 interface ExtendedNAR extends NAR {
 	getSelfAnalyzer(): ReasoningAboutReasoning | undefined;
@@ -13,7 +14,9 @@ export const selfCommands: CommandDefinition[] = [
 	description: 'Show self/metacognition status',
 	usage: '/self',
 	execute: async (_args, ctx) => {
-		const nar = ctx.nar as ExtendedNAR;
+		const guard = requireNar(ctx);
+		if (!guard.ok) return guard.message;
+		const nar = guard.nar as ExtendedNAR;
 		const self = nar.getSelfAnalyzer();
 		if (!self) return 'Self/Metacognition is not enabled';
 		return `Self/Metacognition Status:\nRunning: ${'isRunning' in self ? (self as any).isRunning : 'N/A'}`;
@@ -25,7 +28,9 @@ export const selfCommands: CommandDefinition[] = [
 	description: 'Run self-analysis and print report',
 	usage: '/self analyze',
 	execute: async (_args, ctx) => {
-		const nar = ctx.nar as ExtendedNAR;
+		const guard = requireNar(ctx);
+		if (!guard.ok) return guard.message;
+		const nar = guard.nar as ExtendedNAR;
 		const self = nar.getSelfAnalyzer();
 		if (!self) return 'SelfAnalyzer not available';
 
@@ -43,7 +48,9 @@ export const selfCommands: CommandDefinition[] = [
 	description: 'Show improvement suggestions',
 	usage: '/self propose',
 	execute: async (_args, ctx) => {
-		const nar = ctx.nar as ExtendedNAR;
+		const guard = requireNar(ctx);
+		if (!guard.ok) return guard.message;
+		const nar = guard.nar as ExtendedNAR;
 		const self = nar.getSelfAnalyzer();
 		if (!self) return 'SelfAnalyzer not available';
 		return 'Improvement proposals not available in this mode';
@@ -55,7 +62,9 @@ export const selfCommands: CommandDefinition[] = [
 	description: 'Apply suggested improvement',
 	usage: '/self apply <id>',
 	execute: async (args, ctx) => {
-		const nar = ctx.nar as ExtendedNAR;
+		const guard = requireNar(ctx);
+		if (!guard.ok) return guard.message;
+		const nar = guard.nar as ExtendedNAR;
 		if (!nar.getSelfAnalyzer()) return 'SelfAnalyzer not available';
 
 		const proposalId = args[0];
@@ -70,7 +79,9 @@ export const selfCommands: CommandDefinition[] = [
         description: 'Show meta-analysis report',
         usage: '/meta',
         execute: async (_args, ctx) => {
-            const self = ctx.nar.getSelfAnalyzer();
+            const guard = requireNar(ctx);
+            if (!guard.ok) return guard.message;
+            const self = guard.nar.getSelfAnalyzer();
             if (!self) return 'Self/Metacognition is not enabled';
             const analysis = await self.getSystemAnalysis?.() ?? null;
             if (!analysis) return 'No analysis available yet';
@@ -89,7 +100,9 @@ Rule Execution: ${performance.ruleExecution.toFixed(1)}ms`;
         description: 'View or add constitutional beliefs',
         usage: '/constitution [add <term>]',
         execute: async (args, ctx) => {
-            const nar = ctx.nar as NAR;
+            const guard = requireNar(ctx);
+            if (!guard.ok) return guard.message;
+            const nar = guard.nar as NAR;
             if (args[0] === 'add' && args[1]) {
                 const termStr = args.slice(1).join(' ');
                 const constitution = nar.getConstitution();

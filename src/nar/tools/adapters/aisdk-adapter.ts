@@ -292,24 +292,6 @@ export function createGeneralTools(deps: {
     episodicMemory?: {getEpisodes(options: {limit: number; type?: string}): Promise<unknown[]>};
 }) {
     return {
-        search_memory: tool({
-            description: 'Search NARS memory for beliefs matching a pattern',
-            inputSchema: z.object({
-                query: z.string().describe('Search query'),
-                limit: z.number().optional().default(10),
-            }),
-            execute: async ({query, limit = 10}) => {
-                if (!deps.nar) {
-                    return {error: 'NARS not available', results: []};
-                }
-                const results = deps.nar.queryTerm(query, {maxResults: limit});
-                return {
-                    results: results.beliefs.slice(0, limit),
-                    count: results.beliefs.length,
-                };
-            },
-        }),
-
         calculate: tool({
             description: 'Perform mathematical calculation',
             inputSchema: z.object({

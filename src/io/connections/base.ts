@@ -12,7 +12,7 @@ export abstract class BaseConnection implements Connection {
     abstract readonly id: string;
     abstract readonly name: string;
     abstract readonly type: string;
-    protected messageHandler?: (message: IOMessage) => Promise<void>;
+    protected messageHandlers: Array<(message: IOMessage) => Promise<void>> = [];
     protected stateChangeHandlers: Array<(state: ConnectionState, prev: ConnectionState) => void> = [];
     protected errorHandlers: Array<(error: ConnectionError) => void> = [];
     protected messageCount = 0;
@@ -54,7 +54,10 @@ export abstract class BaseConnection implements Connection {
         await this.connect();
     }
 
-    onMessage(handler: (message: IOMessage) => Promise<void>): void { this.messageHandler = handler; }
+    onMessage(handler: (message: IOMessage) => Promise<void>): void { this.messageHandlers.push(handler); }
+    removeMessageHandler(handler: (message: IOMessage) => Promise<void>): void {
+        this.messageHandlers = this.messageHandlers.filter(h => h !== handler);
+    }
     onStateChange(handler: (state: ConnectionState, prev: ConnectionState) => void): void { this.stateChangeHandlers.push(handler); }
     onError(handler: (error: ConnectionError) => void): void { this.errorHandlers.push(handler); }
 
@@ -77,7 +80,8 @@ export abstract class BaseConnection implements Connection {
         this.messageCount++;
         const origin = message.origin;
         const prev = this.queues.get(origin) ?? Promise.resolve();
-        const next = prev.then(() => this.messageHandler?.(message));
+        const handlers = this.messageHandlers.slice();
+        const next = prev.then(() => Promise.allSettled(handlers.map(h => h(message))));
         this.queues.set(origin, next);
         next.catch(err => this.logger.error(`Message handler error for ${this.id}`, err as Error))
             .finally(() => {
