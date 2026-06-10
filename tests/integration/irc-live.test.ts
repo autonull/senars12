@@ -3,15 +3,15 @@ import {createServer, type Server, type Socket} from 'node:net';
 import {mkdtempSync, rmSync} from 'fs';
 import {tmpdir} from 'os';
 import {join} from 'path';
-import {createAgent} from '../../../src/agent/agent.js';
-import {SeNARSFactory} from '../../../src/nar/index.js';
-import {bindAgentToConnection} from '../../../src/agent/io-bridge.js';
-import {IRCConnection} from '../../../src/io/connections/irc.js';
-import {CommandRegistry} from '../../../src/io/commands/registry.js';
-import {InMemorySessionManager} from '../../../src/agent/SessionManager.js';
-import {EpisodicMemory} from '../../../src/nar/memory/EpisodicMemory.js';
-import type {LMClient} from '../../../src/nar/lm/types.js';
-import type {NAR} from '../../../src/nar/nar.js';
+import {createAgent} from '../../src/agent/agent.js';
+import {SeNARSFactory} from '../../src/nar/index.js';
+import {bindAgentToConnection} from '../../src/agent/io-bridge.js';
+import {IRCConnection} from '../../src/io/connections/irc.js';
+import {CommandRegistry} from '../../src/io/commands/registry.js';
+import {InMemorySessionManager} from '../../src/agent/SessionManager.js';
+import {EpisodicMemory} from '../../src/nar/memory/EpisodicMemory.js';
+import type {LMClient} from '../../src/nar/lm/types.js';
+import type {NAR} from '../../src/nar/nar.js';
 
 class MockIRCServer {
     private server: Server;

@@ -70,6 +70,24 @@ pnpm run typecheck
 pnpm run lint
 ```
 
+## 🤖 Run the bot on IRC
+
+The `pnpm bot` command starts a multi-transport agent that drives a
+single SeNARS agent through IRC, CLI, and WebSocket. Three commands:
+
+```bash
+cp .env.example .env       # fill in your LM provider credentials
+pnpm bot                    # IRC + WS by default
+```
+
+Default behavior: connects to `irc.libera.chat#senars` as `senars-bot`
+and starts a WebSocket server on `ws://localhost:8765`. Friends can
+join the IRC channel and chat, or connect their bots to the WebSocket.
+
+To enable HTTP (REST) too: set `ENABLE_HTTP=true` in `.env`. See
+`docs/bot-api.md` for the bot-to-bot API and `docs/manual-test-irc.md`
+for a 9-step manual test protocol.
+
 ---
 
 ## 🧪 Testing

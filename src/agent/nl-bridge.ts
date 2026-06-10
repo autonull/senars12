@@ -24,7 +24,7 @@ export interface NlBridge {
 }
 
 export function createNlBridge(deps: NlBridgeDeps): NlBridge {
-    const translator = new NLTranslator(deps.registry);
+    const translator = new NLTranslator(deps.registry, {structuredOnly: true});
     const interpreter = new ResultInterpreter();
     const analyzer = new NLAnalyzer();
 

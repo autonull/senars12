@@ -165,9 +165,11 @@ export class NLTranslator {
     private registry: SeNARSRegistry;
     private cache = new TranslationCache();
     private parsers: NLParserDef[] = NL_PATTERNS;
+    private structuredOnly: boolean;
 
-    constructor(registry: SeNARSRegistry) {
+    constructor(registry: SeNARSRegistry, opts?: {structuredOnly?: boolean}) {
         this.registry = registry;
+        this.structuredOnly = opts?.structuredOnly ?? false;
     }
 
     setParsers(parsers: NLParserDef[]): void {
@@ -205,13 +207,21 @@ export class NLTranslator {
         ctx?: { input?: string; beliefs?: string[] },
         lastError?: string | null,
     ): Promise<TranslationResult | string | null> {
-        const tier1 = this.tryTier1(nl);
-        if (tier1) return tier1;
+        // In structuredOnly mode, skip regex (tier1) and free-text LM (tier3).
+        // Only the structured LM call (tier2) is used, with retry via translate()'s outer loop.
+        if (!this.structuredOnly) {
+            const tier1 = this.tryTier1(nl);
+            if (tier1) return tier1;
+        }
 
         const tier2 = await this.tryTier2(nl, ctx, lastError);
         if (tier2) return tier2;
 
-        return await this.tryTier3(nl, lastError);
+        if (!this.structuredOnly) {
+            return await this.tryTier3(nl, lastError);
+        }
+
+        return null;
     }
 
     private tryTier1(nl: string): TranslationResult | null {
