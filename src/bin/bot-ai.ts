@@ -24,6 +24,8 @@ import {resolveLMConfig} from '../nar/lm/env-config.js';
 import {createLogger} from '../nar/logger/index.js';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
+import {loadConfigFromEnv} from '../config/index.js';
+import {agentConfigToOptions} from '../agent/config-bridge.js';
 import {setupGracefulShutdown} from '../utils/shutdown.js';
 import {assertValidEnv} from '../utils/env-validate.js';
 import {mkdir} from 'node:fs/promises';
@@ -33,6 +35,8 @@ assertValidEnv();
 const logger = createLogger({scope: 'bot'});
 
 async function main(): Promise<void> {
+    const config = await loadConfigFromEnv();
+
     const registry = createSeNARSRegistry();
     const lmClient = setupDefaultLMClient();
     const lmConfig = resolveLMConfig();
@@ -49,7 +53,8 @@ async function main(): Promise<void> {
         retentionDays: parseInt(process.env.EPISODIC_RETENTION_DAYS || '30'),
     });
 
-    const agent = createAgent({nar, lmClient, episodicMemory});
+    const agentOptions = {nar, lmClient, episodicMemory, ...agentConfigToOptions(config.agent)};
+    const agent = createAgent(agentOptions);
 
     await mkdir('.cache/sessions', {recursive: true}).catch(() => undefined);
     const sessionManager = new JsonlSessionManager({basePath: '.cache/sessions'});
@@ -87,8 +92,8 @@ async function main(): Promise<void> {
                 episodicMemory,
                 nlBridge,
                 manager: cm,
-                enableNlTranslation: process.env.ENABLE_NL_TRANSLATION !== 'false',
-                enableNarseseHumanization: process.env.ENABLE_NARSESE_HUMANIZATION !== 'false',
+                enableNlTranslation: config.agent.enableNlTranslation,
+                enableNarseseHumanization: config.agent.enableNarseseHumanization,
             });
             logger.info(`Bound bridge to: ${conn.name} (${conn.type})`);
         } catch (e) {

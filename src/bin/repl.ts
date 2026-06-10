@@ -12,6 +12,8 @@ import {assertValidEnv} from '../utils/env-validate.js';
 import {QUIT_SENTINEL, type CLICommand} from '../io/connections/cli.js';
 import type {LMClient} from '../nar/lm/types.js';
 import type {NAR} from '../nar/nar.js';
+import {loadConfigFromEnv} from '../config/index.js';
+import {agentConfigToOptions} from '../agent/config-bridge.js';
 
 assertValidEnv();
 
@@ -235,7 +237,8 @@ async function main() {
         retentionDays: parseInt(process.env.EPISODIC_RETENTION_DAYS || '30'),
     });
 
-    const agent = createAgent({nar, lmClient, episodicMemory});
+    const appConfig = await loadConfigFromEnv();
+    const agent = createAgent({nar, lmClient, episodicMemory, ...agentConfigToOptions(appConfig.agent)});
 
     console.log('\n╔══════════════════════════════════════════════════╗');
     console.log('║ SeNARS REPL - Neuro-Symbolic Reasoning CLI    ║');

@@ -13,9 +13,6 @@ import {appendTurn} from './ConversationSession.js';
 import {EpisodeWorkingMemory} from './EpisodeWorkingMemory.js';
 
 export interface BridgeContext extends MessageContext {
-    sessionKey?: string;
-    session?: ConversationSession;
-    manager?: ConnectionManager;
     workingMemory?: EpisodeWorkingMemory;
 }
 

@@ -87,14 +87,18 @@ type KnowledgeEntry = {key: string; value: string};
 type Derivation = {timestamp: number; term: string};
 
 export function createAgent(opts: AgentOptions = {}): Agent {
-    const validated = validateAgentOptions(opts);
+    // Validate with zod schema — catches misconfiguration early and applies
+    // defaults (e.g. maxLoops defaults to 5). The typed AgentOptions interface
+    // is still used for the destructure since zod's inferred type uses unknown
+    // for non-primitive fields.
+    validateAgentOptions(opts);
     const {
         nar,
         lmClient,
         episodicMemory,
         systemInstructions,
         context: contextOpts = {},
-        maxLoops,
+        maxLoops = 5,
         logger = createLogger({scope: 'agent'}),
     } = opts;
 
