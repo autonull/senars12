@@ -63,3 +63,30 @@ export type {AgentToolDeps} from './tools.js';
 
 export {EpisodeWorkingMemory} from './EpisodeWorkingMemory.js';
 export type {EpisodeWorkingMemoryOptions, EpisodeSlot} from './EpisodeWorkingMemory.js';
+
+export {GoalManager} from './GoalManager.js';
+export type {Goal, GoalManagerOptions} from './GoalManager.js';
+
+export {MetaCritic} from './MetaCritic.js';
+export type {MetaCriticOptions, MetaEvaluation} from './MetaCritic.js';
+
+export {Drives} from './Drives.js';
+export type {DrivesOptions} from './Drives.js';
+
+export {WMManager} from './WMManager.js';
+export type {WMManagerOptions} from './WMManager.js';
+
+export {ApprovalManager} from '../nar/tools/adapters/external-tools.js';
+export type {ApprovalRequest, ApprovalResult} from '../nar/tools/adapters/external-tools.js';
+
+export {
+    createWebSearchTools,
+    createHTTPFetchTools,
+    createCodeExecTools,
+    createFileSystemTools,
+    createRagQueryTools,
+    createHumanApprovalTool,
+} from '../nar/tools/adapters/external-tools.js';
+
+export {createDashboard} from './dashboard.js';
+export type {DashboardOptions} from './dashboard.js';

@@ -23,6 +23,8 @@
     "test:cognitive:real": "NODE_NO_WARNINGS=1 NODE_OPTIONS='--experimental-vm-modules' pnpm exec jest --config jest.config.cjs --testPathPattern='-real\\.test\\.ts$' --maxWorkers=1 --forceExit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "eval:autonomy": "tsx scripts/eval-autonomy.ts",
+    "eval:autonomy:perf": "tsx scripts/eval-autonomy.ts --perf",
     "audit:stale": "bash scripts/audit-stale-deleted.sh",
     "typecheck": "tsc --noEmit",
     "build": "tsc"

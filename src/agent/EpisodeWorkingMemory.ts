@@ -61,6 +61,18 @@ export class EpisodeWorkingMemory {
         return true;
     }
 
+    touch(name: string, ttlMs?: number): boolean {
+        const slot = this.slots.get(name);
+        if (!slot) return false;
+        if (slot.expiresAt < this.now()) {
+            this.slots.delete(name);
+            return false;
+        }
+        slot.updatedAt = this.now();
+        slot.expiresAt = this.now() + (ttlMs ?? this.defaultTTL);
+        return true;
+    }
+
     clear(name: string): void {
         this.slots.delete(name);
     }

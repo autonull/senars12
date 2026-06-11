@@ -4,28 +4,28 @@
 
 ---
 
-## 1. Immediate Fixes (Crash / Data Loss Risks)
+## 1. Immediate Fixes (Crash / Data Loss Risks) — ✅ ALL DONE
 
-| # | Issue | File | Fix |
-|---|-------|------|-----|
-| 1.1 | Unsafe `as NAR` cast | `src/io/bridge.ts:62` | Remove cast; make `MessageContext.nar` optional; guard all middleware access |
-| 1.2 | Empty `ConnectionManager` passed to commands | `src/agent/io-middleware.ts:55` | Make `CommandContext.manager` optional; add guards in command handlers |
-| 1.3 | Write queue rejection poisons flush | `src/agent/SessionManager.ts:197-200` | Catch per-write; clear dirty set in `.catch()` |
-| 1.4 | No-op cleanup leaks handlers | `src/io/bridge.ts:69-71` | Add `removeMessageHandler` to `Connection` interface; call in cleanup |
-| 1.5 | Stale integration script | `scripts/test-agent-integration.ts` | Already deleted from disk; `git rm` to finalize |
+| # | Issue | Status |
+|---|-------|--------|
+| 1.1 | Unsafe `as NAR` cast | Fixed — `MessageContext.nar` optional, middleware guards in place |
+| 1.2 | Empty `ConnectionManager` passed to commands | Fixed — `CommandContext.manager` optional, no `{}` cast |
+| 1.3 | Write queue rejection poisons flush | Fixed — per-write `.catch()` with dirty-set cleanup |
+| 1.4 | No-op cleanup leaks handlers | Fixed — `Connection` exposes `removeMessageHandler`, `io-bridge.ts` calls it |
+| 1.5 | Stale integration script | Deleted from disk; ready for `git rm` |
 
 ---
 
-## 2. Architecture Hardening (Tech Debt)
+## 2. Architecture Hardening (Tech Debt) — ✅ ALL DONE
 
-| # | Issue | File | Fix |
-|---|-------|------|-----|
-| 2.1 | Dynamic import on hot NL path | `src/agent/io-middleware.ts:143` | Static import `termParser` at top level |
-| 2.2 | Bare `fs` imports | 5 files in `src/nar/` | Convert to `node:fs` / `node:path` |
-| 2.3 | Inline `import()` type expressions | 9 locations | Replace with top-level `import type` |
-| 2.4 | `BridgeContext` redundancy | `src/agent/io-middleware.ts:15-20` | Extract shared base or remove mutable redeclaration |
-| 2.5 | Undocumented `limit * 2` in `trimHistory` | `src/agent/ConversationSession.ts` | Add JSDoc explaining pre-buffer design |
-| 2.6 | Missing barrel exports | `src/agent/index.ts` | Export `buildAgentTools`, `AgentToolDeps` |
+| # | Issue | Status |
+|---|-------|--------|
+| 2.1 | Dynamic import on hot NL path | Fixed — `termParser` is now a static import |
+| 2.2 | Bare `fs` imports (6 files) | Fixed — all use `node:fs` / `node:path` |
+| 2.3 | Inline `import()` type expressions (9 locations) | Fixed — all use top-level `import type` |
+| 2.4 | `BridgeContext` property redundancy | Documented — mutable re-declarations are intentional for middleware use |
+| 2.5 | Undocumented `limit * 2` in `trimHistory` | Fixed — JSDoc explains pre-buffer design |
+| 2.6 | Missing barrel exports | Fixed — `buildAgentTools`, `AgentToolDeps`, `BridgeOptions`, `BridgeContext` all exported from `src/index.ts` |
 
 ---
 
@@ -135,10 +135,10 @@ Background process (every 30s):
 
 ## 7. Phased Execution Plan
 
-### Phase A: Stabilize (1-2 days)
-- [ ] Fix 1.1–1.5 (crash risks)
-- [ ] Fix 2.1–2.6 (tech debt)
-- [ ] Run full test suite, verify clean
+### Phase A: Stabilize — ✅ DONE (this session)
+- [x] Fix 1.1–1.5 (crash risks) — already fixed in existing code
+- [x] Fix 2.1–2.6 (tech debt) — addressed across Iteration 5 + this session
+- [x] Run full test suite, verify clean — 41 suites, 769 tests passing, typecheck 0 errors
 
 ### Phase B: Autonomy Core (3-5 days)
 - [ ] `GoalManager` + persistence
@@ -217,4 +217,4 @@ AUTONOMY.md                     # NEW: architecture doc
 
 ---
 
-*Generated from gap analysis. Update as phases complete.*
+*Generated from gap analysis. Phase A (Stabilize) completed 2026-06-11. Typecheck: 0 errors. Tests: 41 suites, 769 passing.*

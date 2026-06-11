@@ -12,7 +12,17 @@ import {termParser} from '../nar/terms/index.js';
 import {appendTurn} from './ConversationSession.js';
 import {EpisodeWorkingMemory} from './EpisodeWorkingMemory.js';
 
+/**
+ * Mutable runtime context extending MessageContext.
+ *
+ * Properties inherited from MessageContext are re-declared without `readonly`
+ * so middleware can attach session/binding state mid-pipeline. If MessageContext
+ * gains new fields, add them here too to keep the mutable variant in sync.
+ */
 export interface BridgeContext extends MessageContext {
+    sessionKey?: string;
+    session?: ConversationSession;
+    manager?: ConnectionManager;
     workingMemory?: EpisodeWorkingMemory;
 }
 

@@ -3,17 +3,33 @@ import type {LMClient} from '../nar/lm/types.js';
 import type {EpisodeType, EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {termParser, type ParseTaskResult} from '../nar/terms/index.js';
 import type {ContextOpts} from '../nar/nl/context.js';
-import {createNARSTools, createGeneralTools, createWorkingMemoryTools} from '../nar/tools/adapters/index.js';
+import {
+    createNARSTools,
+    createGeneralTools,
+    createWorkingMemoryTools,
+    createWebSearchTools,
+    createHTTPFetchTools,
+    createCodeExecTools,
+    createFileSystemTools,
+    createRagQueryTools,
+    ApprovalManager,
+    createHumanApprovalTool,
+} from '../nar/tools/adapters/index.js';
 import {ModelRunner, type ModelEvent} from './model/ModelRunner.js';
 import {buildAgentTools} from './tools.js';
 import type {ConversationSession} from './ConversationSession.js';
 import {appendTurn, DEFAULT_SESSION_HISTORY_LIMIT, trimHistory} from './ConversationSession.js';
 import {formatHistoryAsMessages} from './chat-history.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
-import type {EpisodeWorkingMemory} from './EpisodeWorkingMemory.js';
+import {EpisodeWorkingMemory} from './EpisodeWorkingMemory.js';
 import {AgentEventBus, type AgentEventKind, type AgentEventPayloads} from './AgentEventBus.js';
 import {renderSystemPrompt, buildCognitiveState, computeCognitiveFingerprint, type SystemPromptSections} from './SystemPrompt.js';
 import {validateAgentOptions, AgentOptionsValidationError, type ValidatedAgentOptions} from './options-schema.js';
+import {GoalManager} from './GoalManager.js';
+import type {Goal} from './GoalManager.js';
+import {MetaCritic} from './MetaCritic.js';
+import {Drives} from './Drives.js';
+import {WMManager} from './WMManager.js';
 
 const RECENT_DERIVATIONS_LIMIT = 20;
 const RECENT_DERIVATIONS_MAX_AGE_MS = 30 * 60_000;
@@ -26,6 +42,13 @@ export interface AgentOptions {
     context?: ContextOpts;
     maxLoops?: number;
     logger?: Logger;
+    workspaceRoot?: string;
+    externalTools?: {
+        webSearch?: {apiKey?: string};
+        codeExec?: {maxTimeout?: number; maxOutputBytes?: number};
+        fs?: {maxReadSize?: number};
+    };
+    approvalManager?: ApprovalManager;
 }
 
 export interface ChatOptions {
@@ -74,6 +97,12 @@ export interface Agent {
     getRecentDerivations(): ReadonlyArray<{timestamp: number; term: string}>;
     getLastSelfCorrectionNote(): string | undefined;
     getStats(): AgentStats;
+    getGoals(): readonly Goal[];
+    addGoal(description: string, priority?: number): Goal;
+    getActiveGoal(): Goal | undefined;
+    getMetaScore(): number | undefined;
+    resolveApproval(id: string, approved: boolean, reason?: string): boolean;
+    getPendingApprovals(): Array<{id: string; request: string; createdAt: number}>;
     on<K extends AgentEventKind>(event: K, listener: (payload: AgentEventPayloads[K]) => void): () => void;
     off<K extends AgentEventKind>(event: K, listener: (payload: AgentEventPayloads[K]) => void): void;
 }
@@ -100,6 +129,9 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         context: contextOpts = {},
         maxLoops = 5,
         logger = createLogger({scope: 'agent'}),
+        workspaceRoot = process.cwd(),
+        externalTools: extToolOpts = {},
+        approvalManager: externalApprovalManager,
     } = opts;
 
     const runner = new ModelRunner({lmClient, maxLoops});
@@ -112,6 +144,12 @@ export function createAgent(opts: AgentOptions = {}): Agent {
     const recentDerivations: Derivation[] = [];
     let lastSelfCorrectionNote: string | undefined;
     const eventBus = new AgentEventBus();
+    const internalWM = new EpisodeWorkingMemory();
+    const approvalManager = externalApprovalManager ?? new ApprovalManager();
+    const goalManager = new GoalManager({eventBus, episodicMemory, persistPath: '.cache/goals.json'});
+    const metaCritic = new MetaCritic({nar, eventBus});
+    const drives = new Drives({nar, eventBus, wm: internalWM});
+    const wmManager = new WMManager({wm: internalWM, eventBus});
     const stats: AgentStats = {
         totalChats: 0,
         successfulChats: 0,
@@ -263,6 +301,24 @@ export function createAgent(opts: AgentOptions = {}): Agent {
             }) : undefined,
         };
         Object.assign(tools, buildAgentTools(agentDeps));
+
+        // External tools -- available regardless of nar availability
+        Object.assign(tools, createWebSearchTools({apiKey: extToolOpts.webSearch?.apiKey}));
+        Object.assign(tools, createHTTPFetchTools());
+        Object.assign(tools, createCodeExecTools({
+            workspaceRoot,
+            maxTimeout: extToolOpts.codeExec?.maxTimeout,
+            maxOutputBytes: extToolOpts.codeExec?.maxOutputBytes,
+        }));
+        Object.assign(tools, createFileSystemTools({
+            workspaceRoot,
+            maxReadSize: extToolOpts.fs?.maxReadSize,
+        }));
+        if (episodicMemory) {
+            Object.assign(tools, createRagQueryTools({episodicMemory}));
+        }
+        Object.assign(tools, createHumanApprovalTool(approvalManager));
+
         return tools;
     };
 
@@ -561,12 +617,33 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         return lines.length ? lines.join('\n') : undefined;
     };
 
+    const evaluateGoalProgress = (goal: Goal): void => {
+        if (!nar) return;
+        try {
+            const keywords = goal.description.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+            const allBeliefs = nar.getBeliefs();
+            const relevantBeliefs = allBeliefs.filter((b: {term: {toString(): string}}) => {
+                const termStr = b.term.toString().toLowerCase();
+                return keywords.some(k => termStr.includes(k));
+            });
+            if (relevantBeliefs.length > 0) {
+                const avgConfidence = relevantBeliefs.reduce((sum: number, b: {truth: {c: number}}) => sum + b.truth.c, 0) / relevantBeliefs.length;
+                const newProgress = Math.min(0.95, avgConfidence * relevantBeliefs.length / (relevantBeliefs.length + 1));
+                goalManager.updateProgress(goal.id, newProgress);
+            }
+        } catch {
+            // best-effort progress evaluation
+        }
+    };
+
     const start = (): () => void => {
         if (!nar) return () => {};
         if (reasoningHandle) stop();
 
         const self = nar.getSelfAnalyzer?.();
         self?.start?.();
+
+        goalManager.load().catch(() => {});
 
         reasoningHandle = setInterval(async () => {
             if (throttle === 0) return;
@@ -589,6 +666,25 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                         error: err instanceof Error ? err.message : String(err),
                     });
                 }
+            }
+
+            try {
+                const activeGoal = goalManager.advance();
+                if (activeGoal) {
+                    evaluateGoalProgress(activeGoal);
+                    if (activeGoal.progress >= 1) {
+                        goalManager.completeGoal(activeGoal.id);
+                    }
+                }
+                const wmSnapshot = internalWM.snapshot() as Record<string, unknown>;
+                await metaCritic.tick(activeGoal ?? undefined, wmSnapshot);
+                await drives.tick();
+                await wmManager.tick(activeGoal ?? undefined);
+                await goalManager.persist();
+            } catch (err) {
+                logger.warn('autonomy tick failed', {
+                    error: err instanceof Error ? err.message : String(err),
+                });
             }
         }, REASONING_INTERVAL_MS);
 
@@ -629,6 +725,12 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         getRecentDerivations: () => recentDerivations.slice(),
         getLastSelfCorrectionNote: () => lastSelfCorrectionNote,
         getStats: () => ({...stats}),
+        resolveApproval: (id, approved, reason) => approvalManager.resolveApproval(id, approved, reason),
+        getPendingApprovals: () => approvalManager.getPending().map(r => ({id: r.id, request: r.request, createdAt: r.createdAt})),
+        getGoals: () => goalManager.getGoals(),
+        addGoal: (desc, priority) => goalManager.addGoal(desc, priority),
+        getActiveGoal: () => goalManager.getActiveGoal(),
+        getMetaScore: () => metaCritic.getLastScore(),
         on: (event, listener) => eventBus.on(event, listener),
         off: (event, listener) => eventBus.off(event, listener),
     };
