@@ -22,6 +22,12 @@ import {formatHistoryAsMessages} from './chat-history.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
 import {AgentEventBus, type AgentEventKind, type AgentEventPayloads} from './AgentEventBus.js';
 import {validateAgentOptions, type ValidatedAgentOptions} from './options-schema.js';
+import type {NlBridge} from './nl-bridge.js';
+import type {TranslationResult} from '../nar/nl/schemas.js';
+
+const REASONING_INTERVAL_MS = 60_000;
+const MAX_REASON_STEPS_PER_TICK = 5;
+const MAX_RECENT_DERIVATIONS = 50;
 
 export interface AgentOptions {
     nar?: NAR;
@@ -38,6 +44,7 @@ export interface AgentOptions {
         fs?: {maxReadSize?: number};
     };
     approvalManager?: ApprovalManager;
+    nlBridge?: NlBridge;
 }
 
 export interface ChatOptions {
@@ -66,12 +73,21 @@ export interface AgentStats {
     startedAt: number;
 }
 
+export interface DerivationEntry {
+    term: string;
+    truth?: {f: number; c: number};
+    timestamp: number;
+}
+
 export interface Agent {
     chat(input: string, opts?: ChatOptions): Promise<string>;
     chatWithHistory(input: string, session: ConversationSession, opts?: ChatOptions): Promise<string>;
     chatStream(input: string, session?: ConversationSession, opts?: ChatOptions): AsyncGenerator<ChatStreamEvent, string>;
     believe(narsese: string): Promise<void>;
     recall(query?: string, limit?: number): Promise<Array<{timestamp: number; type: string; content: string}>>;
+    know(key: string, value: string): void;
+    knowGet(key: string): string | undefined;
+    knowList(): Array<{key: string; value: string}>;
     start(): () => void;
     stop(): void;
     setThrottle(percent: number): void;
@@ -80,6 +96,7 @@ export interface Agent {
     getEpisodicMemory(): EpisodicMemory | undefined;
     getLogger(): Logger;
     getStats(): AgentStats;
+    getRecentDerivations(): DerivationEntry[];
     resolveApproval(id: string, approved: boolean, reason?: string): boolean;
     getPendingApprovals(): Array<{id: string; request: string; createdAt: number}>;
     on<K extends AgentEventKind>(event: K, listener: (payload: AgentEventPayloads[K]) => void): () => void;
@@ -105,16 +122,20 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         workspaceRoot = process.cwd(),
         externalTools: extToolOpts = {},
         approvalManager: externalApprovalManager,
+        nlBridge,
     } = opts;
 
     const runner = new ModelRunner({lmClient, maxLoops});
     const knowledge = new Map<string, string>();
     const sessionInstructions = new WeakMap<ConversationSession, string>();
+    const sessionScratchpad = new WeakMap<ConversationSession, Map<string, string>>();
     const eventBus = new AgentEventBus();
     const approvalManager = externalApprovalManager ?? new ApprovalManager();
     const contextBuilder = new ContextBuilder();
     const defaultContextOpts: ContextOpts = {attention: true, beliefs: true, goals: true, ...contextOpts};
     let throttle = 100;
+    let reasoningHandle: ReturnType<typeof setInterval> | undefined;
+    const recentDerivations: DerivationEntry[] = [];
 
     const stats: AgentStats = {
         totalChats: 0,
@@ -151,6 +172,37 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         });
     };
 
+    const captureDerivations = async (count: number): Promise<void> => {
+        if (!nar || count <= 0) return;
+        try {
+            const beliefs = nar.getBeliefs();
+            const recent = beliefs.slice(-count);
+            for (const b of recent) {
+                const entry: DerivationEntry = {
+                    term: b.term.toString(),
+                    truth: b.truth ? {f: b.truth.f, c: b.truth.c} : undefined,
+                    timestamp: Date.now(),
+                };
+                recentDerivations.push(entry);
+            }
+            if (recentDerivations.length > MAX_RECENT_DERIVATIONS) {
+                recentDerivations.splice(0, recentDerivations.length - MAX_RECENT_DERIVATIONS);
+            }
+        } catch {
+            // derivation capture is best-effort
+        }
+    };
+
+    const getScratchpad = (session?: ConversationSession): Map<string, string> | undefined => {
+        if (!session) return undefined;
+        let pad = sessionScratchpad.get(session);
+        if (!pad) {
+            pad = new Map();
+            sessionScratchpad.set(session, pad);
+        }
+        return pad;
+    };
+
     const buildSystemPrompt = async (input: string, session?: ConversationSession): Promise<string> => {
         const instruction = session ? sessionInstructions.get(session) : systemInstructions;
         const parts: string[] = [];
@@ -166,6 +218,22 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         if (instruction) {
             parts.push('## Instructions');
             parts.push(instruction);
+        }
+
+        const pad = getScratchpad(session);
+        if (pad && pad.size > 0) {
+            parts.push('## Session Context');
+            for (const [k, v] of pad) {
+                parts.push(`${k}: ${v}`);
+            }
+        }
+
+        if (recentDerivations.length > 0) {
+            parts.push('## Recent Derivations');
+            for (const d of recentDerivations.slice(-10)) {
+                const truth = d.truth ? ` (f=${d.truth.f.toFixed(2)} c=${d.truth.c.toFixed(2)})` : '';
+                parts.push(`${d.term}${truth}`);
+            }
         }
 
         if (nar) {
@@ -207,6 +275,32 @@ export function createAgent(opts: AgentOptions = {}): Agent {
             }) : undefined,
         }));
 
+        if (session) {
+            const pad = getScratchpad(session);
+            if (pad) {
+                Object.assign(tools, {
+                    set_context: {
+                        description: 'Store a key-value pair in the session scratchpad for this conversation.',
+                        inputSchema: {type: 'object', properties: {key: {type: 'string'}, value: {type: 'string'}}, required: ['key', 'value']},
+                        execute: ({key, value}: {key: string; value: string}) => { pad.set(key, value); return {stored: true, key}; },
+                    },
+                    get_context: {
+                        description: 'Retrieve a value from the session scratchpad.',
+                        inputSchema: {type: 'object', properties: {key: {type: 'string'}}, required: ['key']},
+                        execute: ({key}: {key: string}) => {
+                            const value = pad.get(key);
+                            return value !== undefined ? {found: true, key, value} : {found: false, key};
+                        },
+                    },
+                    list_context: {
+                        description: 'List all entries in the session scratchpad.',
+                        inputSchema: {type: 'object', properties: {}},
+                        execute: () => ({entries: [...pad.entries()].map(([k, v]) => ({key: k, value: v}))}),
+                    },
+                });
+            }
+        }
+
         Object.assign(tools, createWebSearchTools({apiKey: extToolOpts.webSearch?.apiKey}));
         Object.assign(tools, createHTTPFetchTools());
         Object.assign(tools, createCodeExecTools({
@@ -227,6 +321,46 @@ export function createAgent(opts: AgentOptions = {}): Agent {
     };
 
     const tryParseNarsese = (input: string): ParseTaskResult | null => termParser.parseTask(input);
+
+    const formatTranslationResult = (result: TranslationResult): string => {
+        const parts: string[] = [];
+        if (result.beliefs.length > 0) {
+            parts.push(`Recorded ${result.beliefs.length} belief${result.beliefs.length > 1 ? 's' : ''}:`);
+            for (const b of result.beliefs) {
+                parts.push(`  + ${b.narsese}`);
+            }
+        }
+        if (result.questions.length > 0) {
+            parts.push(`Asked ${result.questions.length} question${result.questions.length > 1 ? 's' : ''}.`);
+        }
+        if (result.goals.length > 0) {
+            parts.push(`Set ${result.goals.length} goal${result.goals.length > 1 ? 's' : ''}.`);
+        }
+        if (result.summary) parts.push(result.summary);
+        return parts.join('\n') || 'Understood.';
+    };
+
+    const tryNlTranslation = async (input: string): Promise<string | null> => {
+        if (!nlBridge?.isAvailable()) return null;
+        try {
+            const translation = await nlBridge.nlToNarsese(input);
+            if (translation.kind === 'none') return null;
+            if (translation.kind === 'clarify') return translation.question;
+            const {result} = translation;
+            for (const b of result.beliefs) {
+                await nar?.believe(b.narsese, b.truth);
+            }
+            for (const q of result.questions) {
+                await nar?.question(q);
+            }
+            for (const g of result.goals) {
+                await nar?.goal(g);
+            }
+            return formatTranslationResult(result);
+        } catch {
+            return null;
+        }
+    };
 
     const formatBelief = (b: {term: {toString(): string}; truth?: {f: number; c: number}}): string => {
         const truth = b.truth ? ` (f=${b.truth.f.toFixed(2)} c=${b.truth.c.toFixed(2)})` : '';
@@ -289,6 +423,13 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                 eventBus.emit('agent:process:complete', {input, output: response, durationMs: Date.now() - startTime, timestamp: Date.now()});
                 return response;
             }
+            const nlResult = await tryNlTranslation(input);
+            if (nlResult !== null) {
+                safeLog('response', nlResult);
+                recordStats('success', Date.now() - startTime);
+                eventBus.emit('agent:process:complete', {input, output: nlResult, durationMs: Date.now() - startTime, timestamp: Date.now()});
+                return nlResult;
+            }
             const dispatch = await dispatchToLM(input, opts);
             const response = dispatch.text;
             safeLog('response', response);
@@ -336,6 +477,16 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                 recordStats('success', Date.now() - startTime);
                 eventBus.emit('agent:process:complete', {input, output: response, sessionKey: session.key, durationMs: Date.now() - startTime, timestamp: Date.now()});
                 return response;
+            }
+            const nlResult = await tryNlTranslation(input);
+            if (nlResult !== null) {
+                appendTurn(session, 'user', input);
+                appendTurn(session, 'assistant', nlResult);
+                trimHistory(session, historyLimit);
+                safeLog('response', nlResult, {session: session.key});
+                recordStats('success', Date.now() - startTime);
+                eventBus.emit('agent:process:complete', {input, output: nlResult, sessionKey: session.key, durationMs: Date.now() - startTime, timestamp: Date.now()});
+                return nlResult;
             }
             const historyMessages = formatHistoryAsMessages(session.history, historyLimit);
             historyMessages.push({role: 'user', content: input});
@@ -385,6 +536,18 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                     trimHistory(session, opts.historyLimit ?? DEFAULT_SESSION_HISTORY_LIMIT);
                 }
                 return response;
+            }
+            const nlResult = await tryNlTranslation(input);
+            if (nlResult !== null) {
+                final = nlResult;
+                yield {kind: 'text-delta', text: nlResult};
+                yield {kind: 'finish', text: nlResult};
+                if (session) {
+                    appendTurn(session, 'user', input);
+                    appendTurn(session, 'assistant', nlResult);
+                    trimHistory(session, opts.historyLimit ?? DEFAULT_SESSION_HISTORY_LIMIT);
+                }
+                return nlResult;
             }
             if (!runner.hasModel()) {
                 const fallback = 'No LM configured — Narsese input only.';
@@ -460,11 +623,28 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                 logger.warn('NAR start failed', {error: err instanceof Error ? err.message : String(err)});
             });
         }
+        if (!reasoningHandle) {
+            reasoningHandle = setInterval(async () => {
+                if (throttle === 0 || !nar) return;
+                const steps = Math.max(1, Math.round(MAX_REASON_STEPS_PER_TICK * (throttle / 100)));
+                try {
+                    const derived = await nar.run(steps);
+                    if (derived > 0) await captureDerivations(derived);
+                } catch {
+                    // background reasoning is best-effort
+                }
+            }, REASONING_INTERVAL_MS);
+            reasoningHandle.unref();
+        }
         eventBus.emit('agent:resume', {timestamp: Date.now()});
         return stop;
     };
 
     const stop = (): void => {
+        if (reasoningHandle) {
+            clearInterval(reasoningHandle);
+            reasoningHandle = undefined;
+        }
         if (nar && (nar.state === 'started' || nar.state === 'initialized')) {
             nar.stop().catch(() => {});
         }
@@ -477,6 +657,9 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         chatStream,
         believe,
         recall,
+        know: (key: string, value: string) => { knowledge.set(key, value); safeLog('input', value, {kind: 'knowledge', key}); },
+        knowGet: (key: string) => knowledge.get(key),
+        knowList: () => [...knowledge.entries()].map(([key, value]) => ({key, value})),
         start,
         stop,
         setThrottle: (percent: number) => { throttle = Math.max(0, Math.min(100, percent)); },
@@ -485,6 +668,7 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         getEpisodicMemory: () => episodicMemory,
         getLogger: () => logger,
         getStats: () => ({...stats}),
+        getRecentDerivations: () => [...recentDerivations],
         resolveApproval: (id, approved, reason) => approvalManager.resolveApproval(id, approved, reason),
         getPendingApprovals: () => approvalManager.getPending().map(r => ({id: r.id, request: r.request, createdAt: r.createdAt})),
         on: (event, listener) => eventBus.on(event, listener),
