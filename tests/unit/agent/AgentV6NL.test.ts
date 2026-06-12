@@ -66,17 +66,6 @@ describe('Agent v6 — NL integration (real ModelRunner loop)', () => {
         expect(beliefs[0]!.term.toString()).toContain('cat');
     });
 
-    it('NL chat → LM emits know tool → knowledge stored', async () => {
-        const lm = makeStatefulLM([
-            {tool: 'know', args: {key: 'favorite-animal', value: 'cat'}},
-            {text: 'Saved your favorite animal.'},
-        ]);
-        const agent = createAgent({nar, lmClient: lm, episodicMemory: ep});
-        const reply = await agent.chat('Save my favorite animal is a cat');
-        expect(reply).toContain('Saved');
-        expect(agent.knowGet('favorite-animal')).toBe('cat');
-    });
-
     it('NL chat → LM emits calculate tool → math result in final text', async () => {
         const lm = makeStatefulLM([
             {tool: 'calculate', args: {expression: '7 * 6 + 2'}},

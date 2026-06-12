@@ -1,7 +1,6 @@
 import {describe, it, expect} from '@jest/globals';
 import {createAgent} from '../../../src/agent/agent.js';
 import {SeNARSFactory} from '../../../src/nar/index.js';
-import {EpisodeWorkingMemory} from '../../../src/agent/EpisodeWorkingMemory.js';
 import {createSession} from '../../../src/agent/ConversationSession.js';
 import {truncateArtifact, ModelRunner} from '../../../src/agent/model/ModelRunner.js';
 import {AgentEventBus} from '../../../src/agent/AgentEventBus.js';
@@ -176,15 +175,13 @@ describe('ModelRunner tool result cap', () => {
     });
 });
 
-describe('Agent with chatStream and working memory', () => {
-    it('passes workingMemory through buildTools and emits lifecycle events', async () => {
+describe('Agent with chatStream', () => {
+    it('emits lifecycle events', async () => {
         const agent = createAgent({lmClient: scriptedLM});
         const session = createSession('test:wm:alice');
-        const wm = new EpisodeWorkingMemory();
-        wm.set('focus', 'cats');
         const events: string[] = [];
         agent.on('agent:process:complete', p => events.push(`done:${p.output.length}`));
-        const iter = agent.chatStream('hello world', session, {workingMemory: wm});
+        const iter = agent.chatStream('hello world', session);
         let finalText = '';
         while (true) {
             const next = await iter.next();
@@ -192,7 +189,5 @@ describe('Agent with chatStream and working memory', () => {
         }
         expect(finalText).toBe('Hi!');
         expect(events.length).toBe(1);
-        // Working memory should be retained on the session state — verify the slot persisted
-        expect(wm.get('focus')).toBe('cats');
     });
 });

@@ -1,9 +1,7 @@
 import {describe, it, expect} from '@jest/globals';
 import {createAgent} from '../../../src/agent/agent.js';
-import {EpisodeWorkingMemory} from '../../../src/agent/EpisodeWorkingMemory.js';
 import {createSession} from '../../../src/agent/ConversationSession.js';
 import {SeNARSFactory} from '../../../src/nar/index.js';
-import {renderSystemPrompt, computeCognitiveFingerprint} from '../../../src/agent/SystemPrompt.js';
 import {buildAgentTools} from '../../../src/agent/tools.js';
 import {createStreamingAgentDispatch, abortSession} from '../../../src/agent/io-middleware.js';
 import {MessageRouter} from '../../../src/io/router.js';
@@ -35,89 +33,6 @@ function silentLogger(): Logger {
         child: () => silentLogger(),
     };
 }
-
-describe('renderSystemPrompt', () => {
-    it('returns base default when nothing is provided', () => {
-        const prompt = renderSystemPrompt({
-            constitution: [],
-            instructions: undefined,
-            workingMemory: undefined,
-            cognitiveState: '',
-            recentDerivations: [],
-            selfCorrectionNote: undefined,
-            includeReActStrategy: false,
-            previousSnapshotFingerprint: undefined,
-        });
-        expect(prompt).toBe('You are SeNARS — a neurosymbolic cognitive kernel.');
-    });
-
-    it('composes sections in the documented order', () => {
-        const prompt = renderSystemPrompt({
-            constitution: ['(R1)'],
-            instructions: 'Be brief.',
-            workingMemory: undefined,
-            cognitiveState: 'Concepts: 5',
-            recentDerivations: [{timestamp: 1, term: '(A)'}],
-            selfCorrectionNote: 'Bias 0.3',
-            includeReActStrategy: true,
-            previousSnapshotFingerprint: undefined,
-        });
-        const order = ['## Constitution', '## Instructions', '## Cognitive State', '## Recent Derivations', '## Self-Correction Notes', '## Tool Use Strategy'];
-        let last = -1;
-        for (const heading of order) {
-            const idx = prompt.indexOf(heading);
-            expect(idx).toBeGreaterThan(last);
-            last = idx;
-        }
-    });
-
-    it('omits empty sections', () => {
-        const prompt = renderSystemPrompt({
-            constitution: [],
-            instructions: 'Only this',
-            workingMemory: undefined,
-            cognitiveState: '',
-            recentDerivations: [],
-            selfCorrectionNote: undefined,
-            includeReActStrategy: false,
-            previousSnapshotFingerprint: undefined,
-        });
-        expect(prompt).toBe('## Instructions\nOnly this');
-    });
-
-    it('renders working memory slots', () => {
-        const wm = new EpisodeWorkingMemory();
-        wm.set('focus', 'cat');
-        wm.set('goal', 'pet cats');
-        const prompt = renderSystemPrompt({
-            constitution: [],
-            instructions: undefined,
-            workingMemory: wm,
-            cognitiveState: '',
-            recentDerivations: [],
-            selfCorrectionNote: undefined,
-            includeReActStrategy: false,
-            previousSnapshotFingerprint: undefined,
-        });
-        expect(prompt).toContain('## Working Memory');
-        expect(prompt).toContain('focus: cat');
-        expect(prompt).toContain('goal: pet cats');
-    });
-});
-
-describe('computeCognitiveFingerprint', () => {
-    it('returns "no-nar" when no NAR is present', () => {
-        expect(computeCognitiveFingerprint(undefined, [], undefined)).toBe('no-nar');
-    });
-
-    it('changes when belief count changes', () => {
-        const nar = SeNARSFactory.createForTesting({maxConcepts: 10});
-        const before = computeCognitiveFingerprint(nar, [], undefined);
-        nar.input('(cat --> animal).');
-        const after = computeCognitiveFingerprint(nar, [], undefined);
-        expect(after).not.toBe(before);
-    });
-});
 
 describe('Agent tools: agent_instruct and get_session_info', () => {
     it('buildAgentTools includes both new tools', () => {

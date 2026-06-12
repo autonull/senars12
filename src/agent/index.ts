@@ -7,9 +7,6 @@ export type {ToolCall, ToolDispatchResult, ToolError} from './model/ToolDispatch
 export {AgentEventBus} from './AgentEventBus.js';
 export type {AgentEventKind, AgentEventPayloads} from './AgentEventBus.js';
 
-export {renderSystemPrompt, buildCognitiveState, computeCognitiveFingerprint} from './SystemPrompt.js';
-export type {SystemPromptSections, CognitiveStateOptions} from './SystemPrompt.js';
-
 export {agentOptionsSchema, validateAgentOptions, AgentOptionsValidationError} from './options-schema.js';
 export type {ValidatedAgentOptions} from './options-schema.js';
 
@@ -61,21 +58,6 @@ export {registerAllCommands} from './register-commands.js';
 export {buildAgentTools} from './tools.js';
 export type {AgentToolDeps} from './tools.js';
 
-export {EpisodeWorkingMemory} from './EpisodeWorkingMemory.js';
-export type {EpisodeWorkingMemoryOptions, EpisodeSlot} from './EpisodeWorkingMemory.js';
-
-export {GoalManager} from './GoalManager.js';
-export type {Goal, GoalManagerOptions} from './GoalManager.js';
-
-export {MetaCritic} from './MetaCritic.js';
-export type {MetaCriticOptions, MetaEvaluation} from './MetaCritic.js';
-
-export {Drives} from './Drives.js';
-export type {DrivesOptions} from './Drives.js';
-
-export {WMManager} from './WMManager.js';
-export type {WMManagerOptions} from './WMManager.js';
-
 export {ApprovalManager} from '../nar/tools/adapters/external-tools.js';
 export type {ApprovalRequest, ApprovalResult} from '../nar/tools/adapters/external-tools.js';
 
@@ -87,6 +69,3 @@ export {
     createRagQueryTools,
     createHumanApprovalTool,
 } from '../nar/tools/adapters/external-tools.js';
-
-export {createDashboard} from './dashboard.js';
-export type {DashboardOptions} from './dashboard.js';

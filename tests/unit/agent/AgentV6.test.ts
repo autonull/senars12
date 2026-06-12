@@ -71,23 +71,6 @@ describe('Agent (v6 harness)', () => {
         rmSync(ep['config'].basePath, {recursive: true, force: true});
     });
 
-    // ── know / knowGet / knowList ───────────────────────────
-
-    it('know() stores and retrieves key/value pairs', () => {
-        const agent = createAgent({nar});
-        agent.know('project', 'senars');
-        expect(agent.knowGet('project')).toBe('senars');
-        expect(agent.knowGet('missing')).toBeUndefined();
-    });
-
-    it('knowList() returns all entries', () => {
-        const agent = createAgent({nar});
-        agent.know('a', '1');
-        agent.know('b', '2');
-        const list = agent.knowList();
-        expect(list).toEqual(expect.arrayContaining([{key: 'a', value: '1'}, {key: 'b', value: '2'}]));
-    });
-
     // ── recall ──────────────────────────────────────────────
 
     it('recall() returns empty without episodic memory', async () => {

@@ -10,7 +10,6 @@ import type {Agent} from './agent.js';
 import type {NlBridge} from './nl-bridge.js';
 import {termParser} from '../nar/terms/index.js';
 import {appendTurn} from './ConversationSession.js';
-import {EpisodeWorkingMemory} from './EpisodeWorkingMemory.js';
 
 /**
  * Mutable runtime context extending MessageContext.
@@ -23,7 +22,6 @@ export interface BridgeContext extends MessageContext {
     sessionKey?: string;
     session?: ConversationSession;
     manager?: ConnectionManager;
-    workingMemory?: EpisodeWorkingMemory;
 }
 
 const NARSESE_OUTPUT_RE = /[(<{}\[].*?[)>}\]]/;
@@ -153,19 +151,14 @@ export function createAgentDispatch(agent: Agent): MessageMiddleware {
     return async (message, context, next) => {
         const bridgeCtx = context as BridgeContext;
         const reply = bridgeCtx.session
-            ? await agent.chatWithHistory(message.text, bridgeCtx.session, {
-                ...(bridgeCtx.workingMemory ? {workingMemory: bridgeCtx.workingMemory} : {}),
-            })
-            : await agent.chat(message.text, {
-                ...(bridgeCtx.workingMemory ? {workingMemory: bridgeCtx.workingMemory} : {}),
-            });
+            ? await agent.chatWithHistory(message.text, bridgeCtx.session)
+            : await agent.chat(message.text);
         await context.respond(reply);
     };
 }
 
 interface DispatchState {
     controller: AbortController;
-    workingMemory: EpisodeWorkingMemory;
 }
 
 const sessionStates = new WeakMap<ConversationSession, DispatchState>();
@@ -175,7 +168,6 @@ const getSessionState = (session: ConversationSession): DispatchState => {
     if (!state) {
         state = {
             controller: new AbortController(),
-            workingMemory: new EpisodeWorkingMemory(),
         };
         sessionStates.set(session, state);
     }
@@ -190,10 +182,7 @@ export function createStreamingAgentDispatch(agent: Agent, logger: Logger, opts:
 
         const state = session ? getSessionState(session) : {
             controller: new AbortController(),
-            workingMemory: new EpisodeWorkingMemory(),
         };
-
-        if (session) bridgeCtx.workingMemory = state.workingMemory;
 
         const previous = state.controller;
         const nextController = new AbortController();
@@ -206,7 +195,6 @@ export function createStreamingAgentDispatch(agent: Agent, logger: Logger, opts:
         try {
             const iter = agent.chatStream(message.text, session, {
                 signal: nextController.signal,
-                ...(session ? {workingMemory: state.workingMemory} : {workingMemory: state.workingMemory}),
             });
             let nextEvent = await iter.next();
             while (!nextEvent.done) {

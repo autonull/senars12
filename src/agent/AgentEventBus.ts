@@ -3,15 +3,7 @@ export type AgentEventKind =
     | 'agent:process:complete'
     | 'agent:process:error'
     | 'agent:suspend'
-    | 'agent:resume'
-    | 'agent:meta:evaluation'
-    | 'goal:created'
-    | 'goal:started'
-    | 'goal:completed'
-    | 'goal:failed'
-    | 'drive:curiosity'
-    | 'drive:coherence'
-    | 'drive:competence';
+    | 'agent:resume';
 
 export interface AgentEventPayloads {
     'agent:process:start': {input: string; sessionKey?: string; timestamp: number};
@@ -19,14 +11,6 @@ export interface AgentEventPayloads {
     'agent:process:error': {input: string; sessionKey?: string; error: string; timestamp: number};
     'agent:suspend': {timestamp: number};
     'agent:resume': {timestamp: number};
-    'agent:meta:evaluation': {score: number; recommendations: string[]; goalId?: string; timestamp: number};
-    'goal:created': {goalId: string; description: string; priority: number; timestamp: number};
-    'goal:started': {goalId: string; description: string; timestamp: number};
-    'goal:completed': {goalId: string; description: string; progress: number; timestamp: number};
-    'goal:failed': {goalId: string; description: string; timestamp: number};
-    'drive:curiosity': {concept: string; timestamp: number};
-    'drive:coherence': {contradiction: string; timestamp: number};
-    'drive:competence': {prediction: string; timestamp: number};
 }
 
 type AgentListener<K extends AgentEventKind> = (payload: AgentEventPayloads[K]) => void;

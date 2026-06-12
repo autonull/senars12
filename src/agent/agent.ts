@@ -2,11 +2,10 @@ import type {NAR} from '../nar/nar.js';
 import type {LMClient} from '../nar/lm/types.js';
 import type {EpisodeType, EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {termParser, type ParseTaskResult} from '../nar/terms/index.js';
-import type {ContextOpts} from '../nar/nl/context.js';
+import {ContextBuilder, type ContextOpts} from '../nar/nl/context.js';
 import {
     createNARSTools,
     createGeneralTools,
-    createWorkingMemoryTools,
     createWebSearchTools,
     createHTTPFetchTools,
     createCodeExecTools,
@@ -15,24 +14,14 @@ import {
     ApprovalManager,
     createHumanApprovalTool,
 } from '../nar/tools/adapters/index.js';
-import {ModelRunner, type ModelEvent} from './model/ModelRunner.js';
+import {ModelRunner} from './model/ModelRunner.js';
 import {buildAgentTools} from './tools.js';
 import type {ConversationSession} from './ConversationSession.js';
 import {appendTurn, DEFAULT_SESSION_HISTORY_LIMIT, trimHistory} from './ConversationSession.js';
 import {formatHistoryAsMessages} from './chat-history.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
-import {EpisodeWorkingMemory} from './EpisodeWorkingMemory.js';
 import {AgentEventBus, type AgentEventKind, type AgentEventPayloads} from './AgentEventBus.js';
-import {renderSystemPrompt, buildCognitiveState, computeCognitiveFingerprint, type SystemPromptSections} from './SystemPrompt.js';
-import {validateAgentOptions, AgentOptionsValidationError, type ValidatedAgentOptions} from './options-schema.js';
-import {GoalManager} from './GoalManager.js';
-import type {Goal} from './GoalManager.js';
-import {MetaCritic} from './MetaCritic.js';
-import {Drives} from './Drives.js';
-import {WMManager} from './WMManager.js';
-
-const RECENT_DERIVATIONS_LIMIT = 20;
-const RECENT_DERIVATIONS_MAX_AGE_MS = 30 * 60_000;
+import {validateAgentOptions, type ValidatedAgentOptions} from './options-schema.js';
 
 export interface AgentOptions {
     nar?: NAR;
@@ -54,7 +43,6 @@ export interface AgentOptions {
 export interface ChatOptions {
     historyLimit?: number;
     signal?: AbortSignal;
-    workingMemory?: EpisodeWorkingMemory;
 }
 
 export interface ChatStreamEvent {
@@ -83,9 +71,6 @@ export interface Agent {
     chatWithHistory(input: string, session: ConversationSession, opts?: ChatOptions): Promise<string>;
     chatStream(input: string, session?: ConversationSession, opts?: ChatOptions): AsyncGenerator<ChatStreamEvent, string>;
     believe(narsese: string): Promise<void>;
-    know(key: string, value: string): void;
-    knowGet(key: string): string | undefined;
-    knowList(): Array<{key: string; value: string}>;
     recall(query?: string, limit?: number): Promise<Array<{timestamp: number; type: string; content: string}>>;
     start(): () => void;
     stop(): void;
@@ -94,32 +79,20 @@ export interface Agent {
     getNAR(): NAR | undefined;
     getEpisodicMemory(): EpisodicMemory | undefined;
     getLogger(): Logger;
-    getRecentDerivations(): ReadonlyArray<{timestamp: number; term: string}>;
-    getLastSelfCorrectionNote(): string | undefined;
     getStats(): AgentStats;
-    getGoals(): readonly Goal[];
-    addGoal(description: string, priority?: number): Goal;
-    getActiveGoal(): Goal | undefined;
-    getMetaScore(): number | undefined;
     resolveApproval(id: string, approved: boolean, reason?: string): boolean;
     getPendingApprovals(): Array<{id: string; request: string; createdAt: number}>;
     on<K extends AgentEventKind>(event: K, listener: (payload: AgentEventPayloads[K]) => void): () => void;
     off<K extends AgentEventKind>(event: K, listener: (payload: AgentEventPayloads[K]) => void): void;
 }
 
-const DEFAULT_SYSTEM_PROMPT = 'You are SeNARS — a neurosymbolic cognitive kernel.';
-
-const REASONING_INTERVAL_MS = 60_000;
-const MAX_REASON_STEPS_PER_TICK = 5;
-
-type KnowledgeEntry = {key: string; value: string};
-type Derivation = {timestamp: number; term: string};
+const toEventTokens = (u: {inputTokens: number; outputTokens: number; totalTokens: number}) => ({
+    input: u.inputTokens,
+    output: u.outputTokens,
+    total: u.totalTokens,
+});
 
 export function createAgent(opts: AgentOptions = {}): Agent {
-    // Validate with zod schema — catches misconfiguration early and applies
-    // defaults (e.g. maxLoops defaults to 5). The typed AgentOptions interface
-    // is still used for the destructure since zod's inferred type uses unknown
-    // for non-primitive fields.
     validateAgentOptions(opts);
     const {
         nar,
@@ -137,19 +110,12 @@ export function createAgent(opts: AgentOptions = {}): Agent {
     const runner = new ModelRunner({lmClient, maxLoops});
     const knowledge = new Map<string, string>();
     const sessionInstructions = new WeakMap<ConversationSession, string>();
-    const sessionFingerprints = new WeakMap<ConversationSession, string>();
-
-    let throttle = 100;
-    let reasoningHandle: ReturnType<typeof setInterval> | null = null;
-    const recentDerivations: Derivation[] = [];
-    let lastSelfCorrectionNote: string | undefined;
     const eventBus = new AgentEventBus();
-    const internalWM = new EpisodeWorkingMemory();
     const approvalManager = externalApprovalManager ?? new ApprovalManager();
-    const goalManager = new GoalManager({eventBus, episodicMemory, persistPath: '.cache/goals.json'});
-    const metaCritic = new MetaCritic({nar, eventBus});
-    const drives = new Drives({nar, eventBus, wm: internalWM});
-    const wmManager = new WMManager({wm: internalWM, eventBus});
+    const contextBuilder = new ContextBuilder();
+    const defaultContextOpts: ContextOpts = {attention: true, beliefs: true, goals: true, ...contextOpts};
+    let throttle = 100;
+
     const stats: AgentStats = {
         totalChats: 0,
         successfulChats: 0,
@@ -175,12 +141,6 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         }
     };
 
-    const toEventTokens = (u: {inputTokens: number; outputTokens: number; totalTokens: number}): {input: number; output: number; total: number} => ({
-        input: u.inputTokens,
-        output: u.outputTokens,
-        total: u.totalTokens,
-    });
-
     const safeLog = (type: EpisodeType, content: string, metadata: Record<string, unknown> = {}): void => {
         if (!episodicMemory) return;
         episodicMemory.log(type, content, metadata).catch(err => {
@@ -191,89 +151,38 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         });
     };
 
-    const recordDerivation = (term: string): void => {
-        const now = Date.now();
-        recentDerivations.push({timestamp: now, term});
-        const cutoff = now - RECENT_DERIVATIONS_MAX_AGE_MS;
-        while (recentDerivations.length > 0 && (recentDerivations[0]?.timestamp ?? 0) < cutoff) {
-            recentDerivations.shift();
-        }
-        while (recentDerivations.length > RECENT_DERIVATIONS_LIMIT) {
-            recentDerivations.shift();
-        }
-    };
-
-    const buildSystemPrompt = (workingMemory: EpisodeWorkingMemory | undefined, session: ConversationSession | undefined): string => {
+    const buildSystemPrompt = async (input: string, session?: ConversationSession): Promise<string> => {
         const instruction = session ? sessionInstructions.get(session) : systemInstructions;
-        const sections: SystemPromptSections = {
-            constitution: (nar?.getConstitution?.() ?? []).map(b => (b as {term: {toString(): string}}).term.toString()),
-            instructions: instruction,
-            workingMemory,
-            cognitiveState: '',
-            recentDerivations,
-            selfCorrectionNote: lastSelfCorrectionNote,
-            includeReActStrategy: true,
-            previousSnapshotFingerprint: undefined,
-        };
-        return renderSystemPrompt(sections);
+        const parts: string[] = [];
+
+        const constitution = nar?.getConstitution?.() ?? [];
+        if (constitution.length > 0) {
+            parts.push('## Constitution');
+            for (const b of constitution) {
+                parts.push((b as {term: {toString(): string}}).term.toString());
+            }
+        }
+
+        if (instruction) {
+            parts.push('## Instructions');
+            parts.push(instruction);
+        }
+
+        if (nar) {
+            const cognitiveState = contextBuilder.build(nar, input, undefined, defaultContextOpts);
+            if (cognitiveState) {
+                parts.push('## Cognitive State');
+                parts.push(cognitiveState);
+            }
+        }
+
+        parts.push('## Tool Use Strategy');
+        parts.push('Think step by step. Use tools when needed. Be concise.');
+
+        return parts.join('\n\n');
     };
 
-    const defaultContextOpts: ContextOpts = {attention: true, beliefs: true, goals: true, ...contextOpts};
-
-    const buildContext = async (input: string, session: ConversationSession | undefined): Promise<{state: string; fingerprint: string; isDelta: boolean}> => {
-        const fingerprint = computeCognitiveFingerprint(nar, recentDerivations, lastSelfCorrectionNote);
-        const previousFingerprint = session ? sessionFingerprints.get(session) : undefined;
-
-        const episodicEpisodes = episodicMemory
-            ? await episodicMemory.getEpisodes({limit: 5}).catch(() => [] as Array<{type: string; content: string}>)
-            : [];
-
-        const {state} = await buildCognitiveState(
-            nar,
-            input,
-            {
-                attention: Boolean(defaultContextOpts.attention),
-                beliefs: Boolean(defaultContextOpts.beliefs),
-                goals: Boolean(defaultContextOpts.goals),
-            },
-            fingerprint,
-            previousFingerprint,
-            episodicEpisodes,
-        );
-
-        if (session) sessionFingerprints.set(session, fingerprint);
-        const isDelta = Boolean(previousFingerprint) && fingerprint !== previousFingerprint;
-        return {state, fingerprint, isDelta};
-    };
-
-    const renderPromptForSession = async (
-        workingMemory: EpisodeWorkingMemory | undefined,
-        session: ConversationSession | undefined,
-        input: string,
-    ): Promise<string> => {
-        const {state} = await buildContext(input, session);
-        const sections: SystemPromptSections = {
-            constitution: (nar?.getConstitution?.() ?? []).map(b => (b as {term: {toString(): string}}).term.toString()),
-            instructions: session ? sessionInstructions.get(session) : systemInstructions,
-            workingMemory,
-            cognitiveState: state,
-            recentDerivations,
-            selfCorrectionNote: lastSelfCorrectionNote,
-            includeReActStrategy: true,
-            previousSnapshotFingerprint: session ? sessionFingerprints.get(session) : undefined,
-        };
-        return renderSystemPrompt(sections);
-    };
-
-    const recallFromMemory = async (query?: string, limit = 10): Promise<Array<{timestamp: number; type: string; content: string}>> => {
-        if (!episodicMemory) return [];
-        const episodes = await episodicMemory.getEpisodes({limit}).catch(() => []);
-        const q = query?.toLowerCase();
-        return (q ? episodes.filter((e: {content: string}) => e.content.toLowerCase().includes(q)) : episodes)
-            .map((e: {timestamp: number; type: string; content: string}) => ({timestamp: e.timestamp, type: e.type, content: e.content}));
-    };
-
-    const buildTools = (workingMemory?: EpisodeWorkingMemory, session?: ConversationSession): Record<string, unknown> => {
+    const buildTools = (session?: ConversationSession): Record<string, unknown> => {
         const tools: Record<string, unknown> = {};
         if (nar) {
             Object.assign(tools, createNARSTools(nar as Parameters<typeof createNARSTools>[0]));
@@ -282,13 +191,10 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                 episodicMemory: episodicMemory as Parameters<typeof createGeneralTools>[0]['episodicMemory'],
             }));
         }
-        if (workingMemory) {
-            Object.assign(tools, createWorkingMemoryTools(workingMemory));
-        }
-        const agentDeps: Parameters<typeof buildAgentTools>[0] = {
+        Object.assign(tools, buildAgentTools({
             know: (k: string, v: string) => { knowledge.set(k, v); safeLog('input', v, {kind: 'knowledge', key: k}); },
             knowGet: (k: string) => knowledge.get(k),
-            knowList: () => [...knowledge.entries()].map(([key, value]): KnowledgeEntry => ({key, value})),
+            knowList: () => [...knowledge.entries()].map(([key, value]) => ({key, value})),
             recall: (q?: string, l?: number) => recallFromMemory(q, l),
             setInstructions: session ? (mode, instructions) => {
                 const existing = sessionInstructions.get(session) ?? '';
@@ -299,10 +205,8 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                 createdAt: session.createdAt,
                 pinnedBeliefs: [...session.pinnedBeliefs],
             }) : undefined,
-        };
-        Object.assign(tools, buildAgentTools(agentDeps));
+        }));
 
-        // External tools -- available regardless of nar availability
         Object.assign(tools, createWebSearchTools({apiKey: extToolOpts.webSearch?.apiKey}));
         Object.assign(tools, createHTTPFetchTools());
         Object.assign(tools, createCodeExecTools({
@@ -329,26 +233,29 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         return `${b.term.toString()}${truth}`;
     };
 
-    const buildComposedRequest = async (input: string, historyMessages?: Array<{role: 'user' | 'assistant' | 'system' | 'tool'; content: string}>, workingMemory?: EpisodeWorkingMemory, session?: ConversationSession) => {
-        const system = await renderPromptForSession(workingMemory, session, input);
+    const recallFromMemory = async (query?: string, limit = 10): Promise<Array<{timestamp: number; type: string; content: string}>> => {
+        if (!episodicMemory) return [];
+        const episodes = await episodicMemory.getEpisodes({limit}).catch(() => []);
+        const q = query?.toLowerCase();
+        return (q ? episodes.filter(e => e.content.toLowerCase().includes(q)) : episodes)
+            .map(e => ({timestamp: e.timestamp, type: e.type, content: e.content}));
+    };
 
+    const buildComposedRequest = async (input: string, historyMessages?: Array<{role: 'user' | 'assistant' | 'system' | 'tool'; content: string}>, session?: ConversationSession) => {
+        const system = await buildSystemPrompt(input, session);
         return {
             system,
             messages: historyMessages ?? [{role: 'user' as const, content: input}],
-            tools: buildTools(workingMemory, session),
+            tools: buildTools(session),
             ctxHash: String(Date.now()),
             snapshot: null,
             budget: {systemTokens: 0, historyTokens: 0, snapshotTokens: 0, total: 0, maxTokens: 0},
         };
     };
 
-    void buildSystemPrompt;
-
-    const dispatchToLM = async (input: string, opts: {signal?: AbortSignal; workingMemory?: EpisodeWorkingMemory; session?: ConversationSession} = {}): Promise<{text: string; usage?: {inputTokens: number; outputTokens: number; totalTokens: number}}> => {
-        if (!runner.hasModel()) {
-            return {text: 'No LM configured — Narsese input only.'};
-        }
-        const composed = await buildComposedRequest(input, undefined, opts.workingMemory, opts.session);
+    const dispatchToLM = async (input: string, opts: {signal?: AbortSignal; session?: ConversationSession} = {}): Promise<{text: string; usage?: {inputTokens: number; outputTokens: number; totalTokens: number}}> => {
+        if (!runner.hasModel()) return {text: 'No LM configured — Narsese input only.'};
+        const composed = await buildComposedRequest(input, undefined, opts.session);
         const iter = runner.run(composed, opts.signal);
         let next = await iter.next();
         while (!next.done) next = await iter.next();
@@ -363,10 +270,9 @@ export function createAgent(opts: AgentOptions = {}): Agent {
             const task = tryParseNarsese(input);
             if (task) {
                 await nar?.input(task.term, task.taskType, task.truth);
-
                 if (task.taskType === 'question') {
                     const needle = task.term.toString();
-                    const existing = nar?.getBeliefs().find((b: {term: {toString(): string}}) =>
+                    const existing = nar?.getBeliefs().find(b =>
                         b.term.toString().toLowerCase().includes(needle.toLowerCase())
                     );
                     const response = existing
@@ -377,14 +283,12 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                     eventBus.emit('agent:process:complete', {input, output: response, durationMs: Date.now() - startTime, timestamp: Date.now()});
                     return response;
                 }
-
                 const response = `+ ${input}`;
                 safeLog('response', response, {narsese: input, taskType: task.taskType});
                 recordStats('success', Date.now() - startTime);
                 eventBus.emit('agent:process:complete', {input, output: response, durationMs: Date.now() - startTime, timestamp: Date.now()});
                 return response;
             }
-
             const dispatch = await dispatchToLM(input, opts);
             const response = dispatch.text;
             safeLog('response', response);
@@ -399,24 +303,18 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         }
     };
 
-    const chatWithHistory = async (
-        input: string,
-        session: ConversationSession,
-        opts: ChatOptions = {},
-    ): Promise<string> => {
+    const chatWithHistory = async (input: string, session: ConversationSession, opts: ChatOptions = {}): Promise<string> => {
         const historyLimit = opts.historyLimit ?? DEFAULT_SESSION_HISTORY_LIMIT;
         const startTime = Date.now();
         eventBus.emit('agent:process:start', {input, sessionKey: session.key, timestamp: startTime});
         try {
             safeLog('input', input, {session: session.key});
-
             const task = tryParseNarsese(input);
             if (task) {
                 await nar?.input(task.term, task.taskType, task.truth);
-
                 if (task.taskType === 'question') {
                     const needle = task.term.toString();
-                    const existing = nar?.getBeliefs().find((b: {term: {toString(): string}}) =>
+                    const existing = nar?.getBeliefs().find(b =>
                         b.term.toString().toLowerCase().includes(needle.toLowerCase())
                     );
                     const response = existing
@@ -430,7 +328,6 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                     eventBus.emit('agent:process:complete', {input, output: response, sessionKey: session.key, durationMs: Date.now() - startTime, timestamp: Date.now()});
                     return response;
                 }
-
                 const response = `+ ${input}`;
                 appendTurn(session, 'user', input, {narsese: true, taskType: task.taskType});
                 appendTurn(session, 'assistant', response, {narsese: true, taskType: task.taskType});
@@ -440,21 +337,17 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                 eventBus.emit('agent:process:complete', {input, output: response, sessionKey: session.key, durationMs: Date.now() - startTime, timestamp: Date.now()});
                 return response;
             }
-
             const historyMessages = formatHistoryAsMessages(session.history, historyLimit);
             historyMessages.push({role: 'user', content: input});
-
-            const composed = await buildComposedRequest(input, historyMessages, opts.workingMemory, session);
+            const composed = await buildComposedRequest(input, historyMessages, session);
             const iter = runner.run(composed, opts.signal);
             let next = await iter.next();
             while (!next.done) next = await iter.next();
             const reply = next.value?.text ?? '';
             const usage = next.value?.usage;
-
             appendTurn(session, 'user', input);
             appendTurn(session, 'assistant', reply);
             trimHistory(session, historyLimit);
-
             safeLog('response', reply, {session: session.key});
             recordStats('success', Date.now() - startTime, usage);
             eventBus.emit('agent:process:complete', {input, output: reply, sessionKey: session.key, durationMs: Date.now() - startTime, ...(usage ? {tokens: toEventTokens(usage)} : {}), timestamp: Date.now()});
@@ -493,7 +386,6 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                 }
                 return response;
             }
-
             if (!runner.hasModel()) {
                 const fallback = 'No LM configured — Narsese input only.';
                 final = fallback;
@@ -501,15 +393,13 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                 yield {kind: 'finish', text: fallback};
                 return fallback;
             }
-
             let historyMessages: Array<{role: 'user' | 'assistant' | 'system'; content: string}> | undefined;
             if (session) {
                 historyMessages = formatHistoryAsMessages(session.history, opts.historyLimit ?? DEFAULT_SESSION_HISTORY_LIMIT);
                 historyMessages.push({role: 'user', content: input});
             }
-            const composed = await buildComposedRequest(input, historyMessages, opts.workingMemory, session);
+            const composed = await buildComposedRequest(input, historyMessages, session);
             const iter = runner.run(composed, opts.signal);
-
             while (true) {
                 const next = await iter.next();
                 if (next.done) {
@@ -518,29 +408,14 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                     break;
                 }
                 const ev = next.value;
-                if (ev.kind === 'text-delta') {
-                    yield {kind: 'text-delta', text: ev.text};
-                } else if (ev.kind === 'tool-call') {
-                    yield {
-                        kind: 'tool-call',
-                        toolName: ev.call.toolName,
-                        toolArgs: ev.call.args,
-                    };
-                } else if (ev.kind === 'tool-result') {
-                    yield {
-                        kind: 'tool-result',
-                        toolName: ev.call.toolName,
-                        toolArgs: ev.call.args,
-                        toolResult: ev.result,
-                    };
-                }
+                if (ev.kind === 'text-delta') yield {kind: 'text-delta', text: ev.text};
+                else if (ev.kind === 'tool-call') yield {kind: 'tool-call', toolName: ev.call.toolName, toolArgs: ev.call.args};
+                else if (ev.kind === 'tool-result') yield {kind: 'tool-result', toolName: ev.call.toolName, toolArgs: ev.call.args, toolResult: ev.result};
             }
-
             if (opts.signal?.aborted) {
                 yield {kind: 'aborted'};
                 return final;
             }
-
             yield {kind: 'finish', text: final};
             if (session) {
                 appendTurn(session, 'user', input);
@@ -566,144 +441,34 @@ export function createAgent(opts: AgentOptions = {}): Agent {
 
     const believe = async (narsese: string): Promise<void> => {
         const task = tryParseNarsese(narsese);
-        if (task) {
-            await nar?.input(task.term, task.taskType, task.truth);
-        } else {
-            await nar?.believe(narsese);
-        }
+        if (task) await nar?.input(task.term, task.taskType, task.truth);
+        else await nar?.believe(narsese);
         safeLog('belief_added', narsese);
     };
-
-    const know = (key: string, value: string): void => {
-        knowledge.set(key, value);
-        safeLog('input', value, {kind: 'knowledge', key});
-    };
-
-    const knowGet = (key: string): string | undefined => knowledge.get(key);
-
-    const knowList = (): KnowledgeEntry[] => [...knowledge.entries()].map(([key, value]) => ({key, value}));
 
     const recall = (query?: string, limit = 10): Promise<Array<{timestamp: number; type: string; content: string}>> =>
         recallFromMemory(query, limit);
 
-    const captureDerivations = (count: number): void => {
-        if (!nar) return;
-        try {
-            const beliefs = nar.getBeliefs();
-            const fresh = beliefs
-                .slice(-count)
-                .map(b => ({timestamp: Date.now(), term: (b.term as {toString(): string}).toString()}));
-            for (const d of fresh) recordDerivation(d.term);
-        } catch (err) {
-            logger.warn('failed to capture derivations', {
-                error: err instanceof Error ? err.message : String(err),
-            });
-        }
-    };
-
-    const formatSelfCorrection = (result: unknown): string | undefined => {
-        if (!result || typeof result !== 'object') return undefined;
-        const r = result as Record<string, unknown>;
-        const lines: string[] = [];
-        if (typeof r.toolSelectionBias === 'number') {
-            lines.push(`Tool selection bias: ${r.toolSelectionBias.toFixed(2)}`);
-        }
-        if (typeof r.reasoningInterval === 'number') {
-            lines.push(`Reasoning interval: ${r.reasoningInterval}ms`);
-        }
-        if (Array.isArray(r.adjustments) && r.adjustments.length) {
-            lines.push(`Recent adjustments: ${r.adjustments.length}`);
-        }
-        return lines.length ? lines.join('\n') : undefined;
-    };
-
-    const evaluateGoalProgress = (goal: Goal): void => {
-        if (!nar) return;
-        try {
-            const keywords = goal.description.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-            const allBeliefs = nar.getBeliefs();
-            const relevantBeliefs = allBeliefs.filter((b: {term: {toString(): string}}) => {
-                const termStr = b.term.toString().toLowerCase();
-                return keywords.some(k => termStr.includes(k));
-            });
-            if (relevantBeliefs.length > 0) {
-                const avgConfidence = relevantBeliefs.reduce((sum: number, b: {truth: {c: number}}) => sum + b.truth.c, 0) / relevantBeliefs.length;
-                const newProgress = Math.min(0.95, avgConfidence * relevantBeliefs.length / (relevantBeliefs.length + 1));
-                goalManager.updateProgress(goal.id, newProgress);
-            }
-        } catch {
-            // best-effort progress evaluation
-        }
-    };
-
-    const start = (): () => void => {
+    const start = (): (() => void) => {
         if (!nar) return () => {};
-        if (reasoningHandle) stop();
-
-        const self = nar.getSelfAnalyzer?.();
-        self?.start?.();
-
-        goalManager.load().catch(() => {});
-
-        reasoningHandle = setInterval(async () => {
-            if (throttle === 0) return;
-            const steps = Math.max(1, Math.round(MAX_REASON_STEPS_PER_TICK * (throttle / 100)));
-            try {
-                const derived = await nar.run(steps);
-                if (derived > 0) captureDerivations(derived);
-            } catch (err) {
-                logger.warn('background reasoning step failed', {
-                    error: err instanceof Error ? err.message : String(err),
-                });
-            }
-            if (self?.performSelfCorrection) {
-                try {
-                    const result = await self.performSelfCorrection();
-                    const note = formatSelfCorrection(result);
-                    if (note) lastSelfCorrectionNote = note;
-                } catch (err) {
-                    logger.warn('self-correction failed', {
-                        error: err instanceof Error ? err.message : String(err),
-                    });
-                }
-            }
-
-            try {
-                const activeGoal = goalManager.advance();
-                if (activeGoal) {
-                    evaluateGoalProgress(activeGoal);
-                    if (activeGoal.progress >= 1) {
-                        goalManager.completeGoal(activeGoal.id);
-                    }
-                }
-                const wmSnapshot = internalWM.snapshot() as Record<string, unknown>;
-                await metaCritic.tick(activeGoal ?? undefined, wmSnapshot);
-                await drives.tick();
-                await wmManager.tick(activeGoal ?? undefined);
-                await goalManager.persist();
-            } catch (err) {
-                logger.warn('autonomy tick failed', {
-                    error: err instanceof Error ? err.message : String(err),
-                });
-            }
-        }, REASONING_INTERVAL_MS);
-
-        if (typeof reasoningHandle.unref === 'function') reasoningHandle.unref();
+        if (nar.state === 'created') {
+            nar.initialize().then(() => nar.start()).catch(err => {
+                logger.warn('NAR lifecycle failed', {error: err instanceof Error ? err.message : String(err)});
+            });
+        } else if (nar.state === 'initialized') {
+            nar.start().catch(err => {
+                logger.warn('NAR start failed', {error: err instanceof Error ? err.message : String(err)});
+            });
+        }
         eventBus.emit('agent:resume', {timestamp: Date.now()});
         return stop;
     };
 
     const stop = (): void => {
-        if (reasoningHandle) {
-            clearInterval(reasoningHandle);
-            reasoningHandle = null;
+        if (nar && (nar.state === 'started' || nar.state === 'initialized')) {
+            nar.stop().catch(() => {});
         }
-        nar?.getSelfAnalyzer?.()?.stop?.();
         eventBus.emit('agent:suspend', {timestamp: Date.now()});
-    };
-
-    const setThrottle = (percent: number): void => {
-        throttle = Math.max(0, Math.min(100, percent));
     };
 
     return {
@@ -711,26 +476,17 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         chatWithHistory,
         chatStream,
         believe,
-        know,
-        knowGet,
-        knowList,
         recall,
         start,
         stop,
-        setThrottle,
+        setThrottle: (percent: number) => { throttle = Math.max(0, Math.min(100, percent)); },
         getThrottle: () => throttle,
         getNAR: () => nar,
         getEpisodicMemory: () => episodicMemory,
         getLogger: () => logger,
-        getRecentDerivations: () => recentDerivations.slice(),
-        getLastSelfCorrectionNote: () => lastSelfCorrectionNote,
         getStats: () => ({...stats}),
         resolveApproval: (id, approved, reason) => approvalManager.resolveApproval(id, approved, reason),
         getPendingApprovals: () => approvalManager.getPending().map(r => ({id: r.id, request: r.request, createdAt: r.createdAt})),
-        getGoals: () => goalManager.getGoals(),
-        addGoal: (desc, priority) => goalManager.addGoal(desc, priority),
-        getActiveGoal: () => goalManager.getActiveGoal(),
-        getMetaScore: () => metaCritic.getLastScore(),
         on: (event, listener) => eventBus.on(event, listener),
         off: (event, listener) => eventBus.off(event, listener),
     };
