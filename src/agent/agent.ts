@@ -2,7 +2,10 @@ import type {NAR} from '../nar/nar.js';
 import type {LMClient} from '../nar/lm/types.js';
 import type {EpisodeType, EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {termParser, type ParseTaskResult} from '../nar/terms/index.js';
-import {ContextBuilder, type ContextOpts} from '../nar/nl/context.js';
+import {ContextAssembler, type ContextAssemblerOpts} from '../nar/nl/context-assembler.js';
+import {NLUnderstandingService, type TaskBatch} from '../nar/nl/understanding.js';
+import {NLGenerationService, type GenerationInput} from '../nar/nl/generation.js';
+import {TranslationCache} from '../nar/nl/cache.js';
 import {
     createNARSTools,
     createGeneralTools,
@@ -21,12 +24,11 @@ import {appendTurn, DEFAULT_SESSION_HISTORY_LIMIT, trimHistory} from './Conversa
 import {formatHistoryAsMessages} from './chat-history.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
 import {AgentEventBus, type AgentEventKind, type AgentEventPayloads} from './AgentEventBus.js';
-import {validateAgentOptions, type ValidatedAgentOptions} from './options-schema.js';
-import type {NlBridge} from './nl-bridge.js';
-import type {TranslationResult} from '../nar/nl/schemas.js';
+import {validateAgentOptions} from './options-schema.js';
 
 const REASONING_INTERVAL_MS = 60_000;
 const MAX_REASON_STEPS_PER_TICK = 5;
+const MIN_REASON_STEPS_PER_TICK = 1;
 const MAX_RECENT_DERIVATIONS = 50;
 
 export interface AgentOptions {
@@ -34,7 +36,7 @@ export interface AgentOptions {
     lmClient?: LMClient;
     episodicMemory?: EpisodicMemory;
     systemInstructions?: string;
-    context?: ContextOpts;
+    context?: ContextAssemblerOpts;
     maxLoops?: number;
     logger?: Logger;
     workspaceRoot?: string;
@@ -44,7 +46,6 @@ export interface AgentOptions {
         fs?: {maxReadSize?: number};
     };
     approvalManager?: ApprovalManager;
-    nlBridge?: NlBridge;
 }
 
 export interface ChatOptions {
@@ -122,7 +123,6 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         workspaceRoot = process.cwd(),
         externalTools: extToolOpts = {},
         approvalManager: externalApprovalManager,
-        nlBridge,
     } = opts;
 
     const runner = new ModelRunner({lmClient, maxLoops});
@@ -131,8 +131,17 @@ export function createAgent(opts: AgentOptions = {}): Agent {
     const sessionScratchpad = new WeakMap<ConversationSession, Map<string, string>>();
     const eventBus = new AgentEventBus();
     const approvalManager = externalApprovalManager ?? new ApprovalManager();
-    const contextBuilder = new ContextBuilder();
-    const defaultContextOpts: ContextOpts = {attention: true, beliefs: true, goals: true, ...contextOpts};
+    const translationCache = new TranslationCache();
+    const narRegistry = nar?.getProviderRegistry?.();
+    const contextAssembler = nar ? new ContextAssembler(translationCache) : undefined;
+    const understandingService = nar && narRegistry ? new NLUnderstandingService(
+        narRegistry,
+        translationCache,
+        {structuredOnly: true}
+    ) : undefined;
+    const generationService = nar && narRegistry ? new NLGenerationService(
+        narRegistry
+    ) : undefined;
     let throttle = 100;
     let reasoningHandle: ReturnType<typeof setInterval> | undefined;
     const recentDerivations: DerivationEntry[] = [];
@@ -236,11 +245,33 @@ export function createAgent(opts: AgentOptions = {}): Agent {
             }
         }
 
-        if (nar) {
-            const cognitiveState = contextBuilder.build(nar, input, undefined, defaultContextOpts);
-            if (cognitiveState) {
+        if (nar && contextAssembler) {
+            const nlContext = contextAssembler.assemble(nar, input, contextOpts);
+            const stateParts: string[] = [];
+            if (nlContext.beliefs && nlContext.beliefs.length > 0) {
+                stateParts.push('Related beliefs:');
+                for (const b of nlContext.beliefs) {
+                    stateParts.push(`  ${b}`);
+                }
+            }
+            if (nlContext.activeGoals && nlContext.activeGoals.length > 0) {
+                stateParts.push('Active goals:');
+                for (const g of nlContext.activeGoals) {
+                    stateParts.push(`  ${g}`);
+                }
+            }
+            if (nlContext.recentDerivations && nlContext.recentDerivations.length > 0) {
+                stateParts.push('Recent derivations:');
+                for (const d of nlContext.recentDerivations) {
+                    stateParts.push(`  ${d}`);
+                }
+            }
+            if (nlContext.memoryHealth) {
+                stateParts.push(`Memory: ${nlContext.memoryHealth.totalConcepts} concepts, pressure ${(nlContext.memoryHealth.pressure * 100).toFixed(0)}%`);
+            }
+            if (stateParts.length > 0) {
                 parts.push('## Cognitive State');
-                parts.push(cognitiveState);
+                parts.push(stateParts.join('\n'));
             }
         }
 
@@ -322,49 +353,91 @@ export function createAgent(opts: AgentOptions = {}): Agent {
 
     const tryParseNarsese = (input: string): ParseTaskResult | null => termParser.parseTask(input);
 
-    const formatTranslationResult = (result: TranslationResult): string => {
+    const formatTaskBatchResult = (batch: TaskBatch): string => {
         const parts: string[] = [];
-        if (result.beliefs.length > 0) {
-            parts.push(`Recorded ${result.beliefs.length} belief${result.beliefs.length > 1 ? 's' : ''}:`);
-            for (const b of result.beliefs) {
+        if (batch.beliefs.length > 0) {
+            parts.push(`Recorded ${batch.beliefs.length} belief${batch.beliefs.length > 1 ? 's' : ''}:`);
+            for (const b of batch.beliefs) {
                 parts.push(`  + ${b.narsese}`);
             }
         }
-        if (result.questions.length > 0) {
-            parts.push(`Asked ${result.questions.length} question${result.questions.length > 1 ? 's' : ''}.`);
+        if (batch.questions.length > 0) {
+            parts.push(`Asked ${batch.questions.length} question${batch.questions.length > 1 ? 's' : ''}.`);
         }
-        if (result.goals.length > 0) {
-            parts.push(`Set ${result.goals.length} goal${result.goals.length > 1 ? 's' : ''}.`);
+        if (batch.goals.length > 0) {
+            parts.push(`Set ${batch.goals.length} goal${batch.goals.length > 1 ? 's' : ''}.`);
         }
-        if (result.summary) parts.push(result.summary);
+        if (batch.meta.ambiguities.length > 0) {
+            parts.push(`Detected ${batch.meta.ambiguities.length} ambiguity${batch.meta.ambiguities.length > 1 ? 'ies' : ''}.`);
+        }
         return parts.join('\n') || 'Understood.';
     };
 
     const tryNlTranslation = async (input: string): Promise<string | null> => {
-        if (!nlBridge?.isAvailable()) return null;
+        if (!understandingService || !nar) return null;
         try {
-            const translation = await nlBridge.nlToNarsese(input);
-            if (translation.kind === 'none') return null;
-            if (translation.kind === 'clarify') return translation.question;
-            const {result} = translation;
-            for (const b of result.beliefs) {
-                await nar?.believe(b.narsese, b.truth);
+            const nlContext = contextAssembler?.assemble(nar, input, contextOpts);
+            const batch = await understandingService.understand(input, nlContext);
+            if (!batch) return null;
+            for (const b of batch.beliefs) {
+                await nar.believe(b.narsese, b.truth);
             }
-            for (const q of result.questions) {
-                await nar?.question(q);
+            for (const q of batch.questions) {
+                await nar.question(q.narsese);
             }
-            for (const g of result.goals) {
-                await nar?.goal(g);
+            for (const g of batch.goals) {
+                await nar.goal(g.narsese);
             }
-            return formatTranslationResult(result);
+            return formatTaskBatchResult(batch);
         } catch {
             return null;
         }
     };
 
+    const DRIVE_PATTERNS: Array<{re: RegExp; driveId: string; amount: number}> = [
+        {re: /\b(?:stop|less|reduce)\s+(?:being\s+)?curious\b/i, driveId: 'curiosity', amount: -0.3},
+        {re: /\b(?:be\s+more|increase|boost)\s+curious\b/i, driveId: 'curiosity', amount: 0.3},
+        {re: /\b(?:stop|less|reduce)\s+(?:being\s+)?social\b/i, driveId: 'social', amount: -0.3},
+        {re: /\b(?:be\s+more|increase|boost)\s+social\b/i, driveId: 'social', amount: 0.3},
+        {re: /\b(?:focus|concentrate)\b/i, driveId: 'coherence', amount: 0.2},
+        {re: /\b(?:relax|chill)\b/i, driveId: 'coherence', amount: -0.2},
+    ];
+
+    const tryDriveStimulation = (input: string): string | null => {
+        const driveManager = nar?.getDriveManager?.();
+        if (!driveManager) return null;
+        for (const {re, driveId, amount} of DRIVE_PATTERNS) {
+            if (re.test(input)) {
+                driveManager.stimulate(driveId, amount);
+                return `Adjusted ${driveId} drive.`;
+            }
+        }
+        return null;
+    };
+
     const formatBelief = (b: {term: {toString(): string}; truth?: {f: number; c: number}}): string => {
         const truth = b.truth ? ` (f=${b.truth.f.toFixed(2)} c=${b.truth.c.toFixed(2)})` : '';
         return `${b.term.toString()}${truth}`;
+    };
+
+    const generateReasonedResponse = async (input: string, beliefs: Array<{term: {toString(): string}; truth?: {f: number; c: number}}>): Promise<string | null> => {
+        if (!generationService || beliefs.length === 0) return null;
+        try {
+            const genInput: GenerationInput = {
+                query: input,
+                derivation: null,
+                beliefs: beliefs.map(b => ({
+                    term: b.term.toString(),
+                    truth: b.truth ? {frequency: b.truth.f, confidence: b.truth.c} : undefined,
+                })),
+                conflicts: [],
+            };
+            const output = await generationService.generate(genInput);
+            if (output.confidence > 0.3) return output.response;
+        } catch {
+            // generation failure is non-critical
+        }
+        return null;
     };
 
     const recallFromMemory = async (query?: string, limit = 10): Promise<Array<{timestamp: number; type: string; content: string}>> => {
@@ -409,9 +482,13 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                     const existing = nar?.getBeliefs().find(b =>
                         b.term.toString().toLowerCase().includes(needle.toLowerCase())
                     );
-                    const response = existing
-                        ? formatBelief(existing as {term: {toString(): string}; truth?: {f: number; c: number}})
-                        : `Question queued: ${input} (reasoning in background)`;
+                    let response: string;
+                    if (existing) {
+                        const reasoned = await generateReasonedResponse(input, [existing as {term: {toString(): string}; truth?: {f: number; c: number}}]);
+                        response = reasoned ?? formatBelief(existing as {term: {toString(): string}; truth?: {f: number; c: number}});
+                    } else {
+                        response = `Question queued: ${input} (reasoning in background)`;
+                    }
                     safeLog('response', response, {narsese: input, taskType: task.taskType});
                     recordStats('success', Date.now() - startTime);
                     eventBus.emit('agent:process:complete', {input, output: response, durationMs: Date.now() - startTime, timestamp: Date.now()});
@@ -422,6 +499,13 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                 recordStats('success', Date.now() - startTime);
                 eventBus.emit('agent:process:complete', {input, output: response, durationMs: Date.now() - startTime, timestamp: Date.now()});
                 return response;
+            }
+            const driveResult = tryDriveStimulation(input);
+            if (driveResult !== null) {
+                safeLog('response', driveResult);
+                recordStats('success', Date.now() - startTime);
+                eventBus.emit('agent:process:complete', {input, output: driveResult, durationMs: Date.now() - startTime, timestamp: Date.now()});
+                return driveResult;
             }
             const nlResult = await tryNlTranslation(input);
             if (nlResult !== null) {
@@ -458,9 +542,13 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                     const existing = nar?.getBeliefs().find(b =>
                         b.term.toString().toLowerCase().includes(needle.toLowerCase())
                     );
-                    const response = existing
-                        ? formatBelief(existing as {term: {toString(): string}; truth?: {f: number; c: number}})
-                        : `Question queued: ${input} (reasoning in background)`;
+                    let response: string;
+                    if (existing) {
+                        const reasoned = await generateReasonedResponse(input, [existing as {term: {toString(): string}; truth?: {f: number; c: number}}]);
+                        response = reasoned ?? formatBelief(existing as {term: {toString(): string}; truth?: {f: number; c: number}});
+                    } else {
+                        response = `Question queued: ${input} (reasoning in background)`;
+                    }
                     appendTurn(session, 'user', input, {narsese: true, taskType: task.taskType});
                     appendTurn(session, 'assistant', response, {narsese: true, taskType: task.taskType});
                     trimHistory(session, historyLimit);
@@ -477,6 +565,16 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                 recordStats('success', Date.now() - startTime);
                 eventBus.emit('agent:process:complete', {input, output: response, sessionKey: session.key, durationMs: Date.now() - startTime, timestamp: Date.now()});
                 return response;
+            }
+            const driveResult = tryDriveStimulation(input);
+            if (driveResult !== null) {
+                appendTurn(session, 'user', input);
+                appendTurn(session, 'assistant', driveResult);
+                trimHistory(session, historyLimit);
+                safeLog('response', driveResult, {session: session.key});
+                recordStats('success', Date.now() - startTime);
+                eventBus.emit('agent:process:complete', {input, output: driveResult, sessionKey: session.key, durationMs: Date.now() - startTime, timestamp: Date.now()});
+                return driveResult;
             }
             const nlResult = await tryNlTranslation(input);
             if (nlResult !== null) {
@@ -626,7 +724,10 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         if (!reasoningHandle) {
             reasoningHandle = setInterval(async () => {
                 if (throttle === 0 || !nar) return;
-                const steps = Math.max(1, Math.round(MAX_REASON_STEPS_PER_TICK * (throttle / 100)));
+                const driveManager = nar.getDriveManager();
+                const urgency = driveManager?.getUrgency() ?? 0;
+                const urgencySteps = Math.round(MIN_REASON_STEPS_PER_TICK + (MAX_REASON_STEPS_PER_TICK - MIN_REASON_STEPS_PER_TICK) * urgency);
+                const steps = Math.max(MIN_REASON_STEPS_PER_TICK, Math.round(urgencySteps * (throttle / 100)));
                 try {
                     const derived = await nar.run(steps);
                     if (derived > 0) await captureDerivations(derived);

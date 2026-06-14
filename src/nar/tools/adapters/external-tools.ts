@@ -136,8 +136,6 @@ export function createCodeExecTools(deps: CodeExecDeps = {}) {
 
                     const stdout: Buffer[] = [];
                     const stderr: Buffer[] = [];
-                    let stdoutBytes = 0;
-                    let stderrBytes = 0;
                     let truncated = false;
 
                     const collect = (buffer: Buffer[], target: Buffer[], byteCount: {value: number}, maxBytes: number) => {

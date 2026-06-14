@@ -148,7 +148,7 @@ export function createSessionBinder(manager: SessionManager): MessageMiddleware 
 }
 
 export function createAgentDispatch(agent: Agent): MessageMiddleware {
-    return async (message, context, next) => {
+    return async (message, context, _next) => {
         const bridgeCtx = context as BridgeContext;
         const reply = bridgeCtx.session
             ? await agent.chatWithHistory(message.text, bridgeCtx.session)
@@ -176,7 +176,7 @@ const getSessionState = (session: ConversationSession): DispatchState => {
 
 export function createStreamingAgentDispatch(agent: Agent, logger: Logger, opts: {humanizeTools?: boolean} = {}): MessageMiddleware {
     const humanize = opts.humanizeTools ?? true;
-    return async (message, context, next) => {
+    return async (message, context, _next) => {
         const bridgeCtx = context as BridgeContext;
         const session = bridgeCtx.session;
 
@@ -370,7 +370,7 @@ export function createNarseseOutputHumanization(nlBridge: NlBridge): MessageMidd
         (context as {respond: typeof originalRespond}).respond = async (text: string) => {
             let toSend = text;
             if (NARSESE_OUTPUT_RE.test(text)) {
-                const humanized = nlBridge.interpretDerivation(null, text);
+                const humanized = await nlBridge.interpretDerivation(null, text);
                 if (humanized && humanized !== text) {
                     toSend = humanized;
                     for (let i = sessionRef.history.length - 1; i >= 0; i--) {

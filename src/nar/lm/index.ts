@@ -15,7 +15,7 @@ export {
     ModelCapabilityDiscovery, ModelBenchmark
 } from './model-discovery.js';
 export {BidirectionalFeedbackLoop, createBidirectionalFeedbackLoop} from './feedback.js';
-export type {FeedbackConfig, ValidationFeedback} from './feedback.js';
+export type {FeedbackConfig, ValidationFeedback, ContradictionExplanation, ExtractedPattern} from './feedback.js';
 export {ProactiveEnricher, createProactiveEnricher} from './enrichment.js';
 export type {EnricherConfig, EnrichmentResult} from './enrichment.js';
 export {
@@ -25,3 +25,8 @@ export {
 } from './defaults.js';
 export {createSeNARSRegistry, getQualityModel, getFastModel, getStructuredModel, getModelForTask} from './providers.js';
 export type {SeNARSRegistry} from './providers.js';
+export {
+    LMRuleV2Runner, createV2Rules,
+    createHypothesisRule, createExplanationRule, createAnalogyRule, createCausalRule, createSchemaRule,
+} from './rule-factory-v2.js';
+export type {LMRuleV2, LMCategory, ValidationResult as V2ValidationResult, LMContext as V2LMContext} from './rule-factory-v2.js';

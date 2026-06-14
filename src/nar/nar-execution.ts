@@ -6,6 +6,7 @@ import {BagStrategy} from './reason';
 import type {NARConfig} from './nar';
 import type {RLFPLearner} from './rlfp';
 import type {CognitiveController} from './cognitive/controller';
+import type {DriveManager} from './drives/index.js';
 import {createPipeline, MemoryPremiseSource} from './stream';
 import {PhaseTimer} from './trace/index.js';
 import {createLogger} from './logger/index.js';
@@ -21,7 +22,8 @@ export class NARExecution {
    private readonly reasoner: Reasoner,
    private readonly config: NARConfig,
    private readonly rlfp?: RLFPLearner,
-   private readonly cognitiveController?: CognitiveController
+   private readonly cognitiveController?: CognitiveController,
+   private readonly driveManager?: DriveManager
  ) {}
 
   async run(steps = 1, signal?: AbortSignal): Promise<number> {
@@ -37,6 +39,11 @@ export class NARExecution {
       this.phaseTimer.begin('task-manager', 'processPending');
       const processed = await this.taskManager.processPending();
       derived += processed.length;
+      this.phaseTimer.end();
+
+      // Update drive states before reasoning
+      this.phaseTimer.begin('drives', 'update');
+      this.driveManager?.updateCycle();
       this.phaseTimer.end();
 
       // Adaptation hook — allows CognitiveController to tune strategies at runtime

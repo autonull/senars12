@@ -30,6 +30,7 @@ import {SimpleAttention} from './strategies/attention/index.js';
 import {NARIO} from './nar-io';
 import {NARExecution} from './nar-execution';
 import {NARLM} from './nar-lm';
+import {DriveManager, createBootstrapTasks} from './drives/index.js';
 
 export interface RLFPConfig {
     optimizeInterval?: number;
@@ -64,6 +65,7 @@ export class NAR extends BaseComponent {
   readonly self?: ReasoningAboutReasoning;
   rlfp?: RLFPLearner;
   cognitiveController?: CognitiveController;
+  private driveManager?: DriveManager;
 
   private readonly io: NARIO;
   private execution: NARExecution;
@@ -115,9 +117,11 @@ export class NAR extends BaseComponent {
 
         this.io = new NARIO(this.memory, this.taskManager, this.config);
         this.io.setEventBus(eventBus);
-        this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.cognitiveController);
+        this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.cognitiveController, this.driveManager);
         this.lm = new NARLM(this.memory, this._registry, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment);
         this._metricsCollector = metrics;
+
+        this.driveManager = new DriveManager(this as any);
 
         this.initializeOptionalFeatures();
     }
@@ -131,6 +135,7 @@ export class NAR extends BaseComponent {
         await super.start();
         this.self?.start();
         this.lm.getEnricher()?.start();
+        await this.injectBootstrapGoals();
         this.logger.info('NAR started');
     }
 
@@ -230,6 +235,10 @@ getController(): CognitiveController | undefined {
   return this.cognitiveController;
 }
 
+getDriveManager(): DriveManager | undefined {
+  return this.driveManager;
+}
+
 getMetricsCollector(): MetricsCollector {
   return this._metricsCollector;
 }
@@ -253,7 +262,7 @@ reconfigure(params: CognitiveParameters): void {
   );
   this.execution = new NARExecution(
     this.memory, this.taskManager, this.reasoner,
-    this.config, this.rlfp, this.cognitiveController
+    this.config, this.rlfp, this.cognitiveController, this.driveManager
   );
 }
 
@@ -468,6 +477,13 @@ clearLMRuleExecutionLog() {
         }
         if (this.config.enableSelf) {
             Object.assign(this, {self: new ReasoningAboutReasoning(this, {})});
+        }
+    }
+
+    private async injectBootstrapGoals(): Promise<void> {
+        const tasks = createBootstrapTasks();
+        for (const task of tasks) {
+            await this.io.input(task.term, task.type, task.truth);
         }
     }
 

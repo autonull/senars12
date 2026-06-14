@@ -1,5 +1,5 @@
 import type {Term, Truth} from '../terms';
-import type {NLAnalysis, Ambiguity} from '../nl/analyzer.js';
+import type {TaskBatch, Ambiguity} from '../nl/understanding.js';
 import type {CognitiveState, CognitiveAction} from '../cognitive/ObserverService.js';
 
 export interface EventMap {
@@ -18,7 +18,7 @@ export interface NAREventMap extends EventMap {
   'cycle:end': { cycle: number; derivations: number; duration: number };
   'error': { error: Error; context?: Record<string, unknown> };
   // NL events (GROW2 §9.3)
-  'nl:analyzed': { input: string; analysis: NLAnalysis };
+  'nl:analyzed': { input: string; analysis: TaskBatch };
   'nl:translation': { nl: string; narsese: string; tier: number };
   'nl:clarification-needed': { ambiguity: Ambiguity };
   // NAL events
