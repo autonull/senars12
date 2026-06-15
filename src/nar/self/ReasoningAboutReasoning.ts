@@ -39,6 +39,14 @@ export interface ReasoningState {
     pendingMetaTasks: number;
 }
 
+export interface QualityAssessment {
+    overall: number;
+    coherence: number;
+    relevance: number;
+    completeness: number;
+    timestamp: number;
+}
+
 export class ReasoningAboutReasoning {
     isRunning = false;
     private readonly nar: NAR | null;
@@ -153,6 +161,10 @@ export class ReasoningAboutReasoning {
 
     async getSystemAnalysis(): Promise<ReturnType<SelfAnalyzer['getSystemAnalysis']>> {
         return this.analyzer.getSystemAnalysis();
+    }
+
+    async assessQuality(): Promise<QualityAssessment> {
+        return this.analyzer.assessQuality();
     }
 
     shutdown(): void {

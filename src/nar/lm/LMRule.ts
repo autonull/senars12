@@ -9,6 +9,7 @@ import {LMResponseParser} from './parser.js';
 import {tryRepairAndParse} from './response-repair.js';
 import type {z, ZodSchema} from 'zod';
 import type {SystemEventBus, SystemEventMap} from '../../agent/SystemEventBus.js';
+import {generateObject, type LanguageModel} from 'ai';
 
 const defaultStats = (): LMExecutionStats => ({
     totalCalls: 0, successfulCalls: 0, failedCalls: 0, totalDuration: 0,
@@ -65,7 +66,7 @@ export class LMRule {
   private eventBus: EventBus | null;
   private systemEventBus: SystemEventBus | null = null;
   private stats: LMExecutionStats = defaultStats();
-  private structuredModel: { generateObject: (opts: {prompt: string; schema: unknown; model?: unknown}) => Promise<{object: unknown}> } | null = null;
+  private structuredModel: LanguageModel | null = null;
   private toolDispatcher?: (tool: string, args: Record<string, unknown>) => Promise<unknown>;
   private readonly enableTools: boolean;
   private readonly constitutionAware: boolean;
@@ -111,7 +112,7 @@ export class LMRule {
         this.systemEventBus = bus;
     }
 
-    setStructuredModel(model: { generateObject: (opts: {prompt: string; schema: unknown; model?: unknown}) => Promise<{object: unknown}> }): void {
+    setStructuredModel(model: LanguageModel): void {
         this.structuredModel = model;
     }
 
@@ -267,9 +268,10 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
             return this.executeLM(prompt, signal);
         }
         return await this.circuitBreaker.execute(async () => {
-            const result = await this.structuredModel!.generateObject({
+            const result = await generateObject({
+                model: this.structuredModel!,
                 prompt,
-                schema: this.outputSchema,
+                schema: this.outputSchema!,
             });
             return JSON.stringify(result.object);
         });

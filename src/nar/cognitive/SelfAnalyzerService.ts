@@ -61,6 +61,14 @@ export interface MonitorState {
   throughput?: number;
 }
 
+export interface QualityAssessment {
+  overall: number;
+  coherence: number;
+  relevance: number;
+  completeness: number;
+  timestamp: number;
+}
+
 export type {ReasoningStep};
 
 export interface MetaCognitiveResult {
@@ -607,6 +615,44 @@ export class SelfAnalyzerService {
       conceptCount: concepts.length,
       avgConceptPriority: calcAvg(concepts.map((c) => c.priority)),
       memoryUsage: getMemory(),
+    };
+  }
+
+  async assessQuality(): Promise<QualityAssessment> {
+    if (!this.nar) {
+      return {overall: 0, coherence: 0, relevance: 0, completeness: 0, timestamp: Date.now()};
+    }
+    const concepts = this.nar.listConcepts();
+    const beliefs = this.nar.getBeliefs();
+    const monitorState = this.monitor.getMonitorState();
+
+    // Coherence: based on contradiction detection and consistency
+    const contradictions = this.nar.getConstitution?.()?.length ?? 0;
+    const coherence = Math.max(0, 1 - contradictions * 0.1);
+
+    // Relevance: based on active goals and belief alignment
+    const goals = this.nar.getGoals?.() ?? [];
+    const relevantBeliefs = beliefs.filter(b =>
+      goals.some(g => b.term.toString().includes(g.term.toString().split('-->')[0]?.trim() ?? ''))
+    ).length;
+    const relevance = goals.length > 0 ? Math.min(1, relevantBeliefs / goals.length) : 0.5;
+
+    // Completeness: based on question resolution rate
+    const questions = this.nar.getQuestions?.() ?? [];
+    const answeredQuestions = questions.filter(q =>
+      beliefs.some(b => b.term.toString().includes(q.term.toString().replace('?', '').trim()))
+    ).length;
+    const completeness = questions.length > 0 ? answeredQuestions / questions.length : 0.5;
+
+    // Overall: weighted average
+    const overall = (coherence * 0.4 + relevance * 0.3 + completeness * 0.3);
+
+    return {
+      overall: Math.round(overall * 100) / 100,
+      coherence: Math.round(coherence * 100) / 100,
+      relevance: Math.round(relevance * 100) / 100,
+      completeness: Math.round(completeness * 100) / 100,
+      timestamp: Date.now(),
     };
   }
 

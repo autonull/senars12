@@ -88,6 +88,10 @@ export class PreferenceCollector {
         return this.preferences;
     }
 
+    clear(): void {
+        this.preferences = [];
+    }
+
     detectImplicitPreference(trajectoryA: TrajectoryStep[], trajectoryB: TrajectoryStep[]): 'A' | 'B' | 'SKIP' {
         const scoreA = this.computeImplicitScore(trajectoryA);
         const scoreB = this.computeImplicitScore(trajectoryB);

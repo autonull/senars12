@@ -12,6 +12,7 @@ import type {LMRuleSelector} from '../strategies/types.js';
 import {EventBus} from '../types';
 import {toError} from '../utils/helpers.js';
 import type {Memory} from '../memory/memory.js';
+import type {NAR} from '../nar.js';
 
 interface LMRuleExecutionEntry {
     ruleName: string;
@@ -62,6 +63,7 @@ export class RuleProcessor {
     private eventBus: EventBus | null = null;
     private resultBuffer: RuleResult[] = [];
     private memory?: Memory;
+    private nar?: NAR;
     private lmSelector: LMRuleSelector | null = null;
     private maxLMRulesPerStep = 13;
     private lmRotationIndex = 0;
@@ -72,8 +74,9 @@ export class RuleProcessor {
         (rules ?? RuleRegistry.getAll()).forEach(rule => this.ruleIndex.register(rule));
     }
 
-    setConfig(config: {memory?: Memory}): void {
+    setConfig(config: {memory?: Memory; nar?: NAR}): void {
         if (config.memory) this.memory = config.memory;
+        if (config.nar) this.nar = config.nar;
     }
 
     setEventBus(eventBus: EventBus): void {
@@ -203,6 +206,26 @@ export class RuleProcessor {
         );
 
         const stats = this.memory?.getStatistics();
+
+        // Build drive state from NAR's drive manager
+        const driveState: Record<string, number> = {};
+        const driveManager = this.nar?.getDriveManager?.();
+        if (driveManager) {
+            for (const ds of driveManager.getAllStates()) {
+                driveState[ds.spec.id] = ds.currentIntensity;
+            }
+        }
+
+        // Get conflict count from NAR
+        let conflictCount = 0;
+        if (this.nar) {
+            const beliefs = this.nar.getBeliefs?.();
+            if (beliefs) {
+                const {findConflicts} = await import('../cognitive/conflict-utils.js');
+                conflictCount = findConflicts(beliefs).length;
+            }
+        }
+
         const ruleContext: Record<string, unknown> = {
             priority: maxPriority,
             conceptPriority: maxPriority,
@@ -210,6 +233,8 @@ export class RuleProcessor {
             secondaryTerm: effectiveP2.term.toString(),
             totalConcepts: stats?.totalConcepts ?? 0,
             memoryPressure: stats?.memoryPressure ?? 0,
+            driveState,
+            conflictCount,
         };
 
         const relatedConcepts = this.memory?.getRelatedConcepts(p1.term, 5);

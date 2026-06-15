@@ -93,7 +93,7 @@ export class NAR extends BaseComponent {
     this.config = this.validateConfig(config);
     this.memory = new Memory(this.config, { attentionModel: this.createAttentionModel(config) });
     this.processor = new RuleProcessor();
-    this.processor.setConfig({memory: this.memory});
+    this.processor.setConfig({memory: this.memory, nar: this});
     this.processor.setEventBus(eventBus);
     this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
     this.taskManager = new TaskManager(this.memory);
@@ -123,7 +123,7 @@ export class NAR extends BaseComponent {
         this.io.setEventBus(eventBus);
         this.systemEventBus = new SystemEventBus();
         this.systemEventBus.wrapNarEventBus(eventBus);
-        this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.cognitiveController, this.driveManager);
+        this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.rlfp?.policyOptimizerPublic, this.cognitiveController, this.driveManager, this.systemEventBus, this.self);
         this.lm = new NARLM(this.memory, this._registry, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment);
         this._metricsCollector = metrics;
 
@@ -432,7 +432,7 @@ reconfigure(params: CognitiveParameters): void {
   );
   this.execution = new NARExecution(
     this.memory, this.taskManager, this.reasoner,
-    this.config, this.rlfp, this.cognitiveController, this.driveManager
+    this.config, this.rlfp, this.rlfp?.policyOptimizerPublic, this.cognitiveController, this.driveManager
   );
 }
 
@@ -670,10 +670,25 @@ clearLMRuleExecutionLog() {
             ? this._registry.languageModel('cloud:quality')
                 ?? this._registry.languageModel('local:quality')
             : undefined;
+
+        // Create tool dispatcher for LM rules that need tool access
+        const toolDispatcher = async (tool: string, args: Record<string, unknown>) => {
+            return this.executeTool(tool, args);
+        };
+
         for (const rule of lmRules) {
-            if (structuredModel) rule.setStructuredModel(structuredModel as never);
+            if (structuredModel) rule.setStructuredModel(structuredModel);
             rule.setSystemEventBus(this.systemEventBus);
             rule.setNAR(this);
+            rule.setToolDispatcher(toolDispatcher);
+            // Enable tools for rules that benefit from tool access
+            if (rule.id === 'lm-goal-decomposition' || rule.id === 'lm-hypothesis-generation' || rule.id === 'lm-analogical-reasoning') {
+                (rule as any).enableTools = true;
+            }
+            // Enable constitution awareness for belief-modifying rules
+            if (rule.id === 'lm-belief-revision' || rule.id === 'lm-goal-decomposition' || rule.id === 'lm-hypothesis-generation') {
+                (rule as any).constitutionAware = true;
+            }
             this.processor.registerLMRule(rule);
         }
         this._lmInitialized = true;

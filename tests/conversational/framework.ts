@@ -14,6 +14,14 @@ export interface ProbeExpectations {
     expectNarseseParsed?: boolean;
     expectBeliefIncrease?: boolean;
     maxDurationMs?: number;
+    expectLmRuleFired?: string[];
+    expectBeliefCountChange?: number;
+    expectNoAgentLmCall?: boolean;
+    expectDriveChanged?: {driveId: string; minDelta: number};
+    expectProactiveEvent?: string;
+    expectNarDerivations?: number;
+    expectRLFPState?: {explorationRate?: number; policyChanged?: boolean};
+    expectExplanationChain?: {minPremises: number; minConfidence: number};
 }
 
 export interface ProbeResult {

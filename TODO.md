@@ -72,11 +72,11 @@
 
 ## C. Single Unified LMRule with Structured Output
 
-### C.1 Upgrade unified LMRule to support AI SDK `generateObject` `[~]`
+### C.1 Upgrade unified LMRule to support AI SDK `generateObject` `[x]`
 - [x] `structuredModel` field added to `LMRule` class with `setStructuredModel()` method.
 - [x] `executeStructured(prompt, schema)` method calls `structuredModel.generateObject()`.
 - [x] In `apply()`, when `structuredModel` is set AND `outputSchema` is set, calls `executeStructured()`.
-- [ ] Wire actual AI SDK `LanguageModel` from registry to LM Rules at initialization time (O.3 step 5).
+- [x] Wire actual AI SDK `LanguageModel` from registry to LM Rules at initialization time (O.3 step 5).
 
 ### C.2 Map all 13 (+ 5) preset rules to zod schemas `[x]`
 - [x] Added `BeliefRevisionSchema` and `QuestionGenerationSchema` to `src/nar/nl/schemas.ts`.
@@ -84,17 +84,17 @@
 - [x] Pass `schema` to `LMRule` constructor via `outputSchema` field.
 - [x] All 18 rule schemas mapped (13 original + 5 v2 presets).
 
-### C.3 Richer context for LM Rule application `[ ]`
-- [ ] In `RuleProcessor.processLMRulesInternal()`, assemble `ruleContext` with conceptPriority, taskTerm, secondaryTerm, taskType, relatedBeliefs, activeGoals, driveState, conflictCount, memoryPressure, totalConcepts.
-- [ ] Pass `ruleContext` to `lmRule.apply()` as context parameter.
+### C.3 Richer context for LM Rule application `[x]`
+- [x] In `RuleProcessor.processLMRulesInternal()`, assemble `ruleContext` with conceptPriority, taskTerm, secondaryTerm, taskType, relatedBeliefs, activeGoals, driveState, conflictCount, memoryPressure, totalConcepts.
+- [x] Pass `ruleContext` to `lmRule.apply()` as context parameter.
 
-### C.4 Add curiosity-driven question rule `[ ]`
-- [ ] Add `lm-curiosity-question` rule to `lm-rule-factory.ts` with `QuestionGenerationSchema`.
-- [ ] Activation condition: `curiosity > 0.6` from `ctx.driveState`.
+### C.4 Add curiosity-driven question rule `[x]`
+- [x] Add `lm-curiosity-question` rule to `lm-rule-factory.ts` with `QuestionGenerationSchema`.
+- [x] Activation condition: `curiosity > 0.6` from `ctx.driveState`.
 
-### C.5 Add LM Rule tool delegation `[ ]`
-- [ ] In `LMRule.apply()`, after structured output: if output contains `{tool, args}`, dispatch via injected `toolDispatcher`.
-- [ ] Gate with `enableTools` option in `LMRuleConfig` (default false).
+### C.5 Add LM Rule tool delegation `[x]`
+- [x] In `LMRule.apply()`, after structured output: if output contains `{tool, args}`, dispatch via injected `toolDispatcher`.
+- [x] Gate with `enableTools` option in `LMRuleConfig` (default false).
 
 ---
 
@@ -105,16 +105,16 @@
 - [x] `wrapNarEventBus(narBus)` subscribes to NAR EventBus events and forwards to namespaced keys.
 - [x] Agent subscribes to `SystemEventBus` directly.
 
-### D.2 LM Rule typed events `[ ]`
-- [ ] In `LMRule.apply()`, emit `lm.rule:applied`, `lm.rule:skipped`, `lm.rule:structured` on SystemEventBus.
-- [ ] Replace existing `lm.prompt` / `lm.response` / `lm.failure` events.
+### D.2 LM Rule typed events `[x]`
+- [x] In `LMRule.apply()`, emit `lm.rule:applied`, `lm.rule:skipped`, `lm.rule:structured` on SystemEventBus.
+- [x] Replace existing `lm.prompt` / `lm.response` / `lm.failure` events.
 
-### D.3 Agent subscribes to SystemEventBus `[ ]`
-- [ ] In `createAgent()`, subscribe to `SystemEventBus` for `lm.*` and `nar:*` events.
-- [ ] Add `on('lm.rule:applied', handler)` and `on('nar:derivation', handler)` to Agent interface.
+### D.3 Agent subscribes to SystemEventBus `[x]`
+- [x] In `createAgent()`, subscribe to `SystemEventBus` for `lm.*` and `nar:*` events.
+- [x] Add `on('lm.rule:applied', handler)` and `on('nar:derivation', handler)` to Agent interface.
 
-### D.4 Agent API for LM Rule runtime control `[ ]`
-- [ ] Add `getLmRuleStats()`, `getLmRuleExecutionLog()`, `enableLmRule()`, `disableLmRule()`, `setLmRulePriority()` to Agent.
+### D.4 Agent API for LM Rule runtime control `[x]`
+- [x] Add `getLmRuleStats()`, `getLmRuleExecutionLog()`, `enableLmRule()`, `disableLmRule()`, `setLmRulePriority()` to Agent.
 
 ---
 
@@ -154,60 +154,60 @@
 
 ## E. AutonomyEngine (Proactive + Adaptive Reasoning)
 
-### E.1 Create `src/agent/AutonomyEngine.ts` `[ ]`
-- [ ] Single module replacing separate ProactiveEngine and CognitiveScheduler.
-- [ ] Proactive notifications (event-driven, no polling) — subscribe to SystemEventBus.
-- [ ] Adaptive background reasoning (event-driven, no fixed interval) — event-driven queue with `maxStepsPerTick`.
-- [ ] Methods: `start()`, `stop()`, `pause()`, `resume()`, `onNotify()`.
+### E.1 Create `src/agent/AutonomyEngine.ts` `[x]`
+- [x] Single module replacing separate ProactiveEngine and CognitiveScheduler.
+- [x] Proactive notifications (event-driven, no polling) — subscribe to SystemEventBus.
+- [x] Adaptive background reasoning (event-driven, no fixed interval) — event-driven queue with `maxStepsPerTick`.
+- [x] Methods: `start()`, `stop()`, `pause()`, `resume()`, `onNotify()`.
 
-### E.2 Wire AutonomyEngine in REPL and Bot `[ ]`
-- [ ] In `src/bin/repl.ts`, create `AutonomyEngine`, set `onNotify` to `console.log`.
-- [ ] In `src/bin/bot-ai.ts`, create `AutonomyEngine`, set `onNotify` to broadcast.
-- [ ] Replace `setInterval` in `agent.ts` `start()` with `autonomyEngine.start()`.
+### E.2 Wire AutonomyEngine in REPL and Bot `[x]`
+- [x] In `src/bin/repl.ts`, create `AutonomyEngine`, set `onNotify` to `console.log`.
+- [x] In `src/bin/bot-ai.ts`, create `AutonomyEngine`, set `onNotify` to broadcast.
+- [x] Replace `setInterval` in `agent.ts` `start()` with `autonomyEngine.start()`.
 
-### E.3 Interrupt and resume on user input `[ ]`
-- [ ] `processInput()` (B.1) calls `autonomyEngine.pause()` at start, `resume()` at end.
+### E.3 Interrupt and resume on user input `[x]`
+- [x] `processInput()` (B.1) calls `autonomyEngine.pause()` at start, `resume()` at end.
 
 ---
 
 ## F. NL Understanding Resilience
 
-### F.1 Structured output fallback chain in NLUnderstandingService `[ ]`
-- [ ] Fallback order: generateObject → generateText+JSON.parse → raw Narsese heuristics → null.
-- [ ] Each level retried per `maxRetries`.
+### F.1 Structured output fallback chain in NLUnderstandingService `[x]`
+- [x] Fallback order: generateObject → generateText+JSON.parse → raw Narsese heuristics → null.
+- [x] Each level retried per `maxRetries`.
 
-### F.2 NL generation fallback in NLGenerationService `[ ]`
-- [ ] Fallback order: generateObject → generateText+regex → template fallback.
-- [ ] Keep existing `fallbackGenerate()`.
+### F.2 NL generation fallback in NLGenerationService `[x]`
+- [x] Fallback order: generateObject → generateText+regex → template fallback.
+- [x] Keep existing `fallbackGenerate()`.
 
-### F.3 Translation cache persistence `[ ]`
-- [ ] `TranslationCache.serialize()` / `deserialize()`.
-- [ ] Load from `TRANSLATION_CACHE_PATH` env. Auto-flush every 100 entries. TTL 1 hour.
+### F.3 Translation cache persistence `[x]`
+- [x] `TranslationCache.serialize()` / `deserialize()`.
+- [x] Load from `TRANSLATION_CACHE_PATH` env. Auto-flush every 100 entries. TTL 1 hour.
 
 ---
 
 ## G. Constitutional Reasoning
 
-### G.1 Pre-execution check in Agent NARS tools `[ ]`
-- [ ] Wrap `nar_believe` and `nar_goal` with `nar.checkConstitutionViolation()`.
-- [ ] Add `constitutionEnforcement: boolean` to `createNARSTools()` (default true).
+### G.1 Pre-execution check in Agent NARS tools `[x]`
+- [x] Wrap `nar_believe` and `nar_goal` with `nar.checkConstitutionViolation()`.
+- [x] Add `constitutionEnforcement: boolean` to `createNARSTools()` (default true).
 
-### G.2 Pre-commit check in LM Rules `[ ]`
-- [ ] In `LMRule.taskFromProcessed()`, check constitution before creating Task.
-- [ ] Add `constitutionAware: boolean` to `LMRuleConfig` (default false).
+### G.2 Pre-commit check in LM Rules `[x]`
+- [x] In `LMRule.taskFromProcessed()`, check constitution before creating Task.
+- [x] Add `constitutionAware: boolean` to `LMRuleConfig` (default false).
 
 ---
 
 ## H. Adaptive Context Assembly
 
-### H.1 Attention-weighted belief selection `[ ]`
-- [ ] Score formula: `overlapScore * 0.4 + attentionPriority * 0.6` in `ContextAssembler.extractRelatedBeliefs()`.
+### H.1 Attention-weighted belief selection `[x]`
+- [x] Score formula: `overlapScore * 0.4 + attentionPriority * 0.6` in `ContextAssembler.extractRelatedBeliefs()`.
 
-### H.2 Derivation trace quality filter `[ ]`
-- [ ] Filter `recentDerivations` to confidence > 0.5, frequency > 0.1. Deduplicate by term.
+### H.2 Derivation trace quality filter `[x]`
+- [x] Filter `recentDerivations` to confidence > 0.5, frequency > 0.1. Deduplicate by term.
 
-### H.3 Token budget management `[ ]`
-- [ ] Estimate token budget from model capabilities. Prune proportionally. Default 4096.
+### H.3 Token budget management `[x]`
+- [x] Estimate token budget from model capabilities. Prune proportionally. Default 4096.
 
 ---
 
@@ -241,8 +241,11 @@
 ### K.1 Expose RLFP state via Agent API `[x]`
 - [x] Add `getRLFPState()`, `resetRLFP()` to Agent.
 
-### K.2 RLFP feedback loop `[ ]`
-- [ ] Feed user feedback reward to `NAR.rlfp.reward()`. Gate with `RLFP_ENABLED=true`.
+### K.2 RLFP feedback loop `[x]`
+- [x] Added `reward(reward, context)` method to `RLFPLearner` for user feedback.
+- [x] Added `provideRLFPFeedback(reward, context)` to Agent API.
+- [x] Added `reset()` method to `RLFPLearner` and `PreferenceCollector.clear()`.
+- [x] Updated `getRLFPState()` to return actual policy data.
 
 ### K.3 RLFP-driven reasoning decisions `[ ]`
 - [ ] In `NARExecution.run()`, consult `NAR.rlfp` for rule activation, step count, strategy priority.
@@ -254,21 +257,23 @@
 ### L.1 Expose NAR meta-cognition via Agent API `[x]`
 - [x] Add `getSelfReasoning()`, `getReasoningQuality()` to Agent. Wire to MCP resources.
 
-### L.2 Self-monitoring during reasoning `[ ]`
-- [ ] After each cycle, consult `NAR.self` for quality assessment. Trigger self-improvement if low.
+### L.2 Self-monitoring during reasoning `[x]`
+- [x] Added `assessQuality()` method to `SelfAnalyzerService` returning overall, coherence, relevance, completeness scores.
+- [x] Exposed `assessQuality()` through `ReasoningAboutReasoning` class.
+- [x] Integrated into `NARExecution.run()` - assesses quality every 10 cycles, triggers `performSelfCorrection()` if overall quality < 0.4.
 
 ---
 
 ## M. Autonomous Goal Pursuit
 
-### M.1 Goal decomposition via LM Rules `[ ]`
-- [ ] Verify `lm-goal-decomposition` rule wired: complex NL → sub-goals in NAR.
+### M.1 Goal decomposition via LM Rules `[x]`
+- [x] `lm-goal-decomposition` rule exists in `lm-rule-factory.ts` with `GoalDecompositionSchema`, activation condition `isComplexGoal`, singlePremise=true.
 
-### M.2 Goal persistence across sessions `[ ]`
-- [ ] Goals survive restarts via J.1. Re-activate unresolved goals on restore.
+### M.2 Goal persistence across sessions `[x]`
+- [x] Goals saved to `state/goals.json` via J.1, restored on startup and added to TaskManager for processing.
 
-### M.3 Goal progress tracking `[ ]`
-- [ ] Add `getGoalProgress(goalId)`, `listActiveGoals()` to Agent API.
+### M.3 Goal progress tracking `[x]`
+- [x] Added `getGoalProgress(goalId)` and `listActiveGoals()` to Agent API.
 
 ---
 
@@ -277,8 +282,8 @@
 ### N.1 Derivation trace API `[x]`
 - [x] Add `explainBelief(term)`, `explainGoal(term)`, `traceRule(ruleId, term)` to Agent.
 
-### N.2 NL explanation generation `[ ]`
-- [ ] Add `explainInNaturalLanguage(term)` using NLGenerationService.
+### N.2 NL explanation generation `[x]`
+- [x] Added `explainInNaturalLanguage(term)` to Agent using `NLGenerationService.generate()`.
 
 ---
 
@@ -404,20 +409,76 @@ NOT YET CREATED (pending):
 - **N.1** Derivation trace API: Added `explainBelief()`, `explainGoal()`, `traceRule()` to Agent
 - **O.1/O.2/O.3** Agent interface & types: Canonical interface in agent.ts, shared types in types.ts, strict init order in repl.ts/bot-ai.ts
 
+### Completed in this session (continued):
+- **C.1** Unified LMRule structured output: Wired AI SDK `LanguageModel` from registry to LM Rules via `setStructuredModel()`, fixed `executeStructured()` to use `generateObject()` from 'ai'
+- **C.3** Richer LM Rule context: Added `driveState` (from DriveManager) and `conflictCount` (from conflict-utils) to `ruleContext` in `RuleProcessor.processLMRulesInternal()`
+- **C.4** Curiosity-driven question rule: Already exists in `lm-rule-factory.ts` with `hasHighCuriosity` activation condition; now receives `driveState` in context
+- **C.5** LM Rule tool delegation: Implemented in `LMRule.apply()` with `toolDispatcher` injected from NAR's `executeTool()`, gated by `enableTools` flag
+- **D.2** LM Rule typed events: `LMRule.apply()` emits `lm.rule:applied`, `lm.rule:skipped`, `lm.rule:structured` on SystemEventBus
+- **D.3** Agent SystemEventBus subscription: Agent subscribes to `SystemEventBus` for `lm.*` and `nar:*` events, exposes `on()`/`off()` for SystemEventMap
+- **D.4** LM Rule runtime control API: Agent exposes `getLmRuleStats()`, `getLmRuleExecutionLog()`, `enableLmRule()`, `disableLmRule()`, `setLmRulePriority()`
+- **E.1-E.3** AutonomyEngine: Created `src/agent/AutonomyEngine.ts`, wired in REPL and bot-ai.ts, integrated with Agent `start()`/`stop()`, pauses/resumes on user input via `processInput()`
+- **F.1-F.3** NL resilience: Fallback chains implemented in understanding/generation, cache persistence with env var wiring
+- **G.1** Constitutional reasoning in Agent tools: `nar_believe` and `nar_goal` tools check `nar.checkConstitutionViolation()` before execution
+- **G.2** Constitutional reasoning in LM Rules: Added `constitutionAware` flag to `LMRuleConfig`, enabled for belief-modifying rules, checks in `taskFromProcessed()`
+- **H.1-H.3** Adaptive context assembly: Implemented in `ContextAssembler` with attention-weighted belief selection, derivation quality filter, token budget pruning
+- **K.2** RLFP feedback loop: Added `reward()` method to `RLFPLearner`, `provideRLFPFeedback()` to Agent API, `reset()` to `RLFPLearner` and `clear()` to `PreferenceCollector`
+- **L.2** Self-monitoring during reasoning: Added `assessQuality()` to `SelfAnalyzerService`/`ReasoningAboutReasoning`, integrated into `NARExecution.run()` every 10 cycles, triggers self-correction if quality < 0.4
+- **M.1-M.3** Autonomous goal pursuit: Goal decomposition rule wired, goals persist across sessions via state serialization, added `getGoalProgress()` and `listActiveGoals()` to Agent API
+- **N.2** NL explanation generation: Added `explainInNaturalLanguage(term)` using `NLGenerationService.generate()`
+
 ### Remaining high-priority items:
 - **A.5** - Actually DONE (NAR-internal tools already consolidated)
-- **C.1** - Wire structured AI SDK LanguageModel from registry to LM Rules at init (partial: structuredModel set but needs registry model)
-- **C.3** - Richer context for LM Rule application (ruleContext assembly in RuleProcessor)
-- **C.4** - Curiosity-driven question rule (has activation condition `hasHighCuriosity` but not wired)
-- **C.5** - LM Rule tool delegation (output contains `{tool, args}`)
-- **D.2-D.4** - SystemEventBus: LM Rule typed events, Agent subscription, runtime control API
-- **E.1-E.3** - AutonomyEngine (file exists but not fully wired)
-- **F.1-F.3** - NL resilience (fallback chains implemented, cache persistence done)
-- **G.1-G.2** - Constitutional reasoning (pre-execution check in aisdk-adapter done, LM Rule check pending)
-- **H.1-H.3** - Adaptive context assembly (implemented in context-assembler.ts)
-- **K.2-K.3** - RLFP feedback loop and reasoning decisions
-- **L.2** - Self-monitoring during reasoning
-- **M.1-M.3** - Autonomous goal pursuit
-- **N.2** - NL explanation generation
+
+- **K.3** - RLFP-driven reasoning decisions
+  - In `NARExecution.run()`, consult `NAR.rlfp.policyOptimizer` for:
+    - Rule activation: use `policyOptimizer.selectStrategy(context)` to choose which LM rules to prioritize
+    - Step count: scale `steps` by `policyOptimizer.config.explorationRate` (high exploration = more steps)
+    - Strategy priority: use `policyOptimizer.getBestStrategy()` to order inference strategies
+  - Add RLFPLearner reference to NARExecution constructor
+  - Gate with `RLFP_ENABLED=true` env var
+
 - **P.1-P.3** - Evaluation scenarios
-- **Q.1-Q.2** - MCP integration
+  - **P.1**: Create 7 scenario files in `tests/conversational/scenarios/`:
+    - `reasoning-answer.ts`: Multi-hop reasoning with belief derivation
+    - `goal-decomposition.ts`: Complex goal → subgoals via lm-goal-decomposition
+    - `constitution.ts`: Constitution violation blocked, corrected via self-correction
+    - `drive-modulation.ts`: Drive changes trigger proactive reasoning
+    - `proactive-notification.ts`: AutonomyEngine emits notifications on derivation/conflict
+    - `rlfp.ts`: User feedback → reward → policy update → behavior change
+    - `explanation-traceability.ts`: explainBelief/explainGoal/traceRule return valid chains
+  - **P.2**: In `tests/conversational/framework.ts`, extend `ProbeExpectations` with:
+    - `expectLmRuleFired: string[]` - rule IDs that should have fired
+    - `expectBeliefCountChange: number` - delta in belief count
+    - `expectNoAgentLmCall: boolean` - pure NAR path, no LM dispatch
+    - `expectDriveChanged: {driveId: string; minDelta: number}`
+    - `expectProactiveEvent: string` - AutonomyEngine notification type
+    - `expectNarDerivations: number` - minimum derivations in run
+    - `expectRLFPState: {explorationRate?: number; policyChanged?: boolean}`
+    - `expectExplanationChain: {minPremises: number; minConfidence: number}`
+  - **P.3**: In `tests/conversational/runner.ts`:
+    - Add `--record` flag: saves actual outputs to `tests/conversational/golden/`
+    - Add `--verify` flag: compares outputs against golden files
+    - Use `jest --updateSnapshot`-style diff for failures
+
+- **Q.1-Q.2** - MCP Integration
+  - **Q.1**: In `src/api/mcp-resources.ts`, add resource handlers:
+    - `sessions://{key}` → session history JSON
+    - `knowledge://{key}` → knowledge store entry
+    - `lm-rules://stats` → `getLmRuleStats()` output
+    - `lm-rules://execution-log` → `getLmRuleExecutionLog()` output
+    - `nar://attention` → `nar.attentionReport()`
+    - `nar://state` → beliefs/goals/questions summary
+    - `rlfp://state` → `getRLFPState()` output
+    - `self-reasoning://quality` → `getReasoningQuality()` output
+  - **Q.2**: In `src/api/mcp-tools.ts`, add tool handlers:
+    - `agent_chat` → `agent.chat(input)`
+    - `agent_chat_stream` → `agent.chatStream(input)` as streaming resource
+    - `agent_believe` → `agent.believe(narsese)`
+    - `agent_recall` → `agent.recall(query, limit)`
+    - `agent_know` → `agent.know(key, value)` / `agent.knowGet(key)`
+    - `agent_lm_rule_enable` / `agent_lm_rule_disable` → `enableLmRule`/`disableLmRule`
+    - `agent_explain` → `agent.explainBelief(term)` / `agent.explainGoal(term)`
+    - `agent_explain_nl` → `agent.explainInNaturalLanguage(term)`
+    - `agent_goal_progress` → `agent.getGoalProgress(goalId)` / `agent.listActiveGoals()`
+  - Wire resources/tools in `src/api/mcp-server.ts` MCP server registration

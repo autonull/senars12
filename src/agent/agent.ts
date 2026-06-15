@@ -115,11 +115,15 @@ export interface Agent {
     getAutonomyEngine(): AutonomyEngine | undefined;
     getRLFPState(): {enabled: boolean; policy: Record<string, number>; qValues: Record<string, number>; explorationRate: number; totalRewards: number; totalSteps: number} | null;
     resetRLFP(): void;
+    provideRLFPFeedback(reward: number, context?: string): void;
     getSelfReasoning(): {qualityScore: number; consistency: number; gaps: string[]; suggestions: string[]} | null;
     getReasoningQuality(): {overall: number; coherence: number; relevance: number; completeness: number} | null;
     explainBelief(term: string): Promise<{explanation: string; confidence: number; premises: string[]} | null>;
     explainGoal(term: string): Promise<{explanation: string; confidence: number; premises: string[]} | null>;
     traceRule(ruleId: string, term: string): Promise<{ruleName: string; input: string; output: string; confidence: number} | null>;
+    getGoalProgress(goalId: string): Promise<{goalId: string; progress: number; status: 'active' | 'completed' | 'failed'; subgoals: string[]} | null>;
+    listActiveGoals(): Promise<Array<{goalId: string; term: string; progress: number; status: string}>>;
+    explainInNaturalLanguage(term: string): Promise<string | null>;
     on<K extends AgentEventKind>(event: K, listener: (payload: AgentEventPayloads[K]) => void): () => void;
     off<K extends AgentEventKind>(event: K, listener: (payload: AgentEventPayloads[K]) => void): void;
     on<K extends keyof SystemEventMap>(event: K, listener: (payload: SystemEventMap[K]) => void): () => void;
@@ -191,7 +195,7 @@ export interface Agent {
         const sessionScratchpad = new WeakMap<ConversationSession, Map<string, string>>();
         const eventBus = new AgentEventBus();
         const approvalManager = externalApprovalManager ?? new ApprovalManager();
-        const translationCache = new TranslationCache();
+        const translationCache = new TranslationCache({basePath: process.env.TRANSLATION_CACHE_PATH ?? '.cache/translation-cache'});
         const narRegistry = nar?.getProviderRegistry?.();
         const systemEventBus = nar?.getSystemEventBus?.();
         const contextAssembler = nar ? new ContextAssembler(translationCache) : undefined;
@@ -691,18 +695,31 @@ export interface Agent {
             if (rule && 'priority' in rule) (rule as {priority: number}).priority = priority;
         },
         getAutonomyEngine: () => autonomyEngine,
-        getRLFPState: () => nar?.getRLFP?.() ? {
-            enabled: true,
-            policy: {},
-            qValues: {},
-            explorationRate: 0,
-            totalRewards: 0,
-            totalSteps: 0,
-        } : null,
+        getRLFPState: () => {
+            const rlfp = nar?.getRLFP?.();
+            if (!rlfp) return null;
+            const policyOptimizer = (rlfp as any).policyOptimizerPublic;
+            return {
+                enabled: true,
+                policy: Object.fromEntries(
+                    policyOptimizer?.getAllStrategies?.().map((s: string) => [s, policyOptimizer.getStrategyStats(s)?.priority ?? 1]) ?? []
+                ),
+                qValues: {},
+                explorationRate: policyOptimizer?.config?.explorationRate ?? 0.1,
+                totalRewards: (rlfp as any).trajectoryCount ?? 0,
+                totalSteps: (rlfp as any).trajectoryCount ?? 0,
+            };
+        },
         resetRLFP: () => {
             const rlfp = nar?.getRLFP?.();
-            if (rlfp) {
-                // RLFPLearner doesn't have a reset method yet
+            if (rlfp && typeof (rlfp as any).reset === 'function') {
+                (rlfp as any).reset();
+            }
+        },
+        provideRLFPFeedback: (reward: number, context?: string) => {
+            const rlfp = nar?.getRLFP?.();
+            if (rlfp && typeof (rlfp as any).reward === 'function') {
+                (rlfp as any).reward(reward, context);
             }
         },
         getSelfReasoning: () => nar?.getSelfAnalyzer?.() ? {
@@ -755,6 +772,61 @@ export interface Agent {
                 output: '',
                 confidence: 0,
             };
+        },
+        getGoalProgress: async (goalId: string) => {
+            if (!nar) return null;
+            const goals = nar.getGoals?.() ?? [];
+            const goal = goals.find(g => g.term.toString() === goalId || g.term.toString().includes(goalId));
+            if (!goal) return null;
+            const beliefs = nar.getBeliefs?.() ?? [];
+            const relatedBeliefs = beliefs.filter(b => b.term.toString().includes(goal.term.toString().split('-->')[0]?.trim() ?? ''));
+            const progress = Math.min(1, relatedBeliefs.length / Math.max(1, goals.length));
+            const status = progress >= 1 ? 'completed' : progress > 0 ? 'active' : 'active';
+            return {
+                goalId,
+                progress: Math.round(progress * 100) / 100,
+                status,
+                subgoals: [], // Could be populated from goal decomposition
+            };
+        },
+        listActiveGoals: async () => {
+            if (!nar) return [];
+            const goals = nar.getGoals?.() ?? [];
+            const beliefs = nar.getBeliefs?.() ?? [];
+            return goals.map(g => {
+                const relatedBeliefs = beliefs.filter(b => b.term.toString().includes(g.term.toString().split('-->')[0]?.trim() ?? ''));
+                const progress = Math.min(1, relatedBeliefs.length / Math.max(1, goals.length));
+                const status = progress >= 1 ? 'completed' : progress > 0 ? 'active' : 'active';
+                return {
+                    goalId: g.term.toString(),
+                    term: g.term.toString(),
+                    progress: Math.round(progress * 100) / 100,
+                    status,
+                };
+            });
+        },
+        explainInNaturalLanguage: async (term: string) => {
+            if (!nar || !generationService) return null;
+            try {
+                const {termParser} = await import('../nar/terms/index.js');
+                const parsed = termParser.parse(term);
+                if (!parsed) return null;
+                const result = nar.query.query(parsed, {truthRange: [0, 1], limit: 5});
+                if (!result.beliefs.length) return null;
+                const genInput = {
+                    query: `Explain: ${term}`,
+                    derivation: null,
+                    beliefs: result.beliefs.map(b => ({
+                        term: b.term.toString(),
+                        truth: b.truth ? {frequency: b.truth.f, confidence: b.truth.c} : undefined,
+                    })),
+                    conflicts: [],
+                };
+                const output = await generationService.generate(genInput);
+                return output.response;
+            } catch {
+                return null;
+            }
         },
         on: (event: string, listener: (...args: any[]) => void) => {
             const unsubAgent = eventBus.on(event as any, listener);
