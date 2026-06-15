@@ -7,7 +7,7 @@ import {CircuitBreaker, errMsg} from '../utils';
 import type {Truth as TruthType} from '../terms/truth.js';
 import {LMResponseParser} from './parser.js';
 import {tryRepairAndParse} from './response-repair.js';
-import type {z, ZodSchema} from 'zod';
+import type {ZodSchema} from 'zod';
 import type {SystemEventBus, SystemEventMap} from '../../agent/SystemEventBus.js';
 import {generateObject, type LanguageModel} from 'ai';
 
@@ -301,7 +301,7 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
     return this.generateTasks(processed, primary, secondary, context);
   }
 
-  private processStructuredResponse(response: string, primary: Term, secondary: Term | undefined, lmContext: LMContext): Task[] {
+  private processStructuredResponse(response: string, primary: Term, _secondary: Term | undefined, _lmContext: LMContext): Task[] {
     let parsed: unknown;
     try {
         const jsonMatch = response.match(/\{[\s\S]*\}/);

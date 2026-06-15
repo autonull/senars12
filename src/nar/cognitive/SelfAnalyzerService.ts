@@ -622,9 +622,7 @@ export class SelfAnalyzerService {
     if (!this.nar) {
       return {overall: 0, coherence: 0, relevance: 0, completeness: 0, timestamp: Date.now()};
     }
-    const concepts = this.nar.listConcepts();
     const beliefs = this.nar.getBeliefs();
-    const monitorState = this.monitor.getMonitorState();
 
     // Coherence: based on contradiction detection and consistency
     const contradictions = this.nar.getConstitution?.()?.length ?? 0;

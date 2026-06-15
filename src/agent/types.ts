@@ -1,5 +1,4 @@
 import type {Task} from '../nar/types';
-import type {Term} from '../nar/terms';
 
 export interface RLFPState {
   enabled: boolean;

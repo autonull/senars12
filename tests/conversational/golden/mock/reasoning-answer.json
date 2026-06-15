@@ -1,0 +1,47 @@
+{
+  "name": "reasoning-answer",
+  "probes": [
+    {
+      "input": "Is a robin an animal?",
+      "response": "Hi there! Nice to meet you.",
+      "narseseParsed": false,
+      "nlTranslated": false,
+      "toolCalls": [],
+      "beliefsBefore": 4,
+      "beliefsAfter": 4,
+      "derivations": 0,
+      "durationMs": 9,
+      "lmCalls": 1,
+      "errors": []
+    },
+    {
+      "input": "Can a sparrow fly?",
+      "response": "Hi there! Nice to meet you.",
+      "narseseParsed": false,
+      "nlTranslated": false,
+      "toolCalls": [],
+      "beliefsBefore": 4,
+      "beliefsAfter": 4,
+      "derivations": 0,
+      "durationMs": 4,
+      "lmCalls": 1,
+      "errors": []
+    },
+    {
+      "input": "What can fly?",
+      "response": "Hi there! Nice to meet you.",
+      "narseseParsed": false,
+      "nlTranslated": false,
+      "toolCalls": [],
+      "beliefsBefore": 4,
+      "beliefsAfter": 4,
+      "derivations": 0,
+      "durationMs": 7,
+      "lmCalls": 1,
+      "errors": []
+    }
+  ],
+  "passed": 0,
+  "failed": 3,
+  "durationMs": 32
+}

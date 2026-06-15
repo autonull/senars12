@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import {createInterface} from 'readline';
-import {createAgent, type Agent, AutonomyEngine, createAutonomyEngine} from '../agent/index.js';
+import {createAgent, type Agent, createAutonomyEngine} from '../agent/index.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {setupDefaultLMClient} from '../nar/lm/defaults.js';

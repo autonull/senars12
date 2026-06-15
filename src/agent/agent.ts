@@ -23,8 +23,8 @@ import {DEFAULT_SESSION_HISTORY_LIMIT} from './ConversationSession.js';
 import {formatHistoryAsMessages} from './chat-history.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
 import {AgentEventBus, type AgentEventKind, type AgentEventPayloads} from './AgentEventBus.js';
-import {AutonomyEngine, createAutonomyEngine} from './AutonomyEngine.js';
-import {SystemEventBus, type SystemEventMap} from './SystemEventBus.js';
+import {AutonomyEngine} from './AutonomyEngine.js';
+import type {SystemEventMap} from './SystemEventBus.js';
 import {validateAgentOptions} from './options-schema.js';
 import {processInput, appendSessionTurns, type InputEvent} from './input-processor.js';
 
@@ -51,6 +51,11 @@ export interface AgentOptions {
     autonomyEngine?: AutonomyEngine;
     persistKnowledge?: boolean;
     knowledgePath?: string;
+    reasoningIntervalMs?: number;
+    sessionHistoryLimit?: number;
+    rateLimitPerMinute?: number;
+    enableNlTranslation?: boolean;
+    enableNarseseHumanization?: boolean;
 }
 
 export interface ChatOptions {

@@ -119,9 +119,7 @@ export class ConversationalTestHarness {
 
     async teardown(): Promise<void> {
         this.agent?.stop();
-        if (this.nar && (this.nar.state === 'started' || this.nar.state === 'initialized')) {
-            await this.nar.stop();
-        }
+        // agent.stop() already stops NAR, avoid double-stop
     }
 
     getAgent(): Agent | undefined {

@@ -78,6 +78,17 @@ export class NARExecution {
       derived += results.length;
       this.phaseTimer.end();
 
+      // Emit reasoning cycle event
+      if (this.systemEventBus) {
+        this.systemEventBus.emit('nar:reasoning:cycle', {
+          cycle: this._cycleCount,
+          derived: results.length,
+          strategyPriority,
+          effectiveSteps,
+          timestamp: Date.now(),
+        });
+      }
+
       this.phaseTimer.begin('memory', 'addTasks');
       for (const task of results) {
         this.memory.addTask(task.term, task.type, task.truth, task.budget, task.stamp);

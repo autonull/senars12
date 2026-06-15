@@ -8,7 +8,7 @@
  */
 
 import {createAgent} from '../agent/agent.js';
-import {AutonomyEngine, createAutonomyEngine} from '../agent/index.js';
+import {createAutonomyEngine} from '../agent/index.js';
 import {ConnectionManager} from '../io/connection-manager.js';
 import {AuthManager} from '../io/auth.js';
 import {CommandRegistry} from '../io/commands/registry.js';
@@ -106,7 +106,7 @@ async function main(): Promise<void> {
         }
     }
 
-    const stopReasoning = agent.start();
+    agent.start();
 
     setupGracefulShutdown(async () => {
         logger.info('Shutting down...');

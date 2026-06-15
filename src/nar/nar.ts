@@ -191,15 +191,12 @@ export class NAR extends BaseComponent {
         if (!this.config.persistState) return;
         try {
             const fs = require('fs').promises;
-            const path = require('path');
 
             const {termParser} = await import('./terms/index.js');
             const {Truth} = await import('./terms/truth.js');
             const {Stamp} = await import('./terms/stamp.js');
 
-            const baseDir = path.dirname(this.getStatePath('beliefs.json'));
-
-            // Load beliefs
+// Load beliefs
             const beliefsPath = this.getStatePath('beliefs.json');
             if (await fs.access(beliefsPath).then(() => true).catch(() => false)) {
                 const content = await fs.readFile(beliefsPath, 'utf-8');

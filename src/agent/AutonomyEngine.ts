@@ -161,7 +161,8 @@ export class AutonomyEngine {
         this.processing = true;
 
         while (this.jobQueue.length > 0 && this.running && !this.paused) {
-            const job = this.jobQueue.shift()!;
+            const job = this.jobQueue.shift();
+            if (!job) break;
 
             try {
                 const derived = await this.nar.run(job.steps);

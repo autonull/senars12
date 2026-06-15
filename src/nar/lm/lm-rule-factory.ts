@@ -6,7 +6,7 @@ import type {Term} from '../terms';
 import {Truth} from '../terms';
 import type {Task, TaskType} from '../types';
 import {createBudget, createTask} from '../types';
-import {LMRule, type LMRuleConfigV2} from './LMRule.js';
+import {LMRule} from './LMRule.js';
 import type {LMClient, LMRuleConfig} from './types.js';
 import {LMResponseParser} from './parser.js';
 import {calculateSimilarity} from '../terms/utils.js';

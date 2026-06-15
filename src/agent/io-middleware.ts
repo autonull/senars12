@@ -8,8 +8,6 @@ import type {SessionManager} from './SessionManager.js';
 import type {ConversationSession} from './ConversationSession.js';
 import type {Agent} from './agent.js';
 import type {NLGenerationService, GenerationInput} from '../nar/nl/generation.js';
-import {termParser} from '../nar/terms/index.js';
-import {appendTurn} from './ConversationSession.js';
 
 /**
  * Mutable runtime context extending MessageContext.

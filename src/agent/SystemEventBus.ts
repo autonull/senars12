@@ -1,7 +1,5 @@
 import {EventEmitter} from 'node:events';
 import type {EventBus} from '../nar/types';
-import type {Term} from '../nar/terms';
-import type {Truth} from '../nar/terms/truth';
 
 export interface SystemEventMap {
     'nar:derivation': {term: string; confidence: number; timestamp: number};
@@ -10,6 +8,7 @@ export interface SystemEventMap {
     'nar:conflict:detected': {term: string; conflictWith: string; timestamp: number};
     'nar:task:added': {term: string; type: string; timestamp: number};
     'nar:drive:changed': {drive: string; urgency: number; timestamp: number};
+    'nar:reasoning:cycle': {cycle: number; derived: number; strategyPriority: string | null; effectiveSteps: number; timestamp: number};
     'lm.rule:applied': {ruleId: string; ruleName: string; primaryTerm: string; secondaryTerm?: string; tasksProduced: number; durationMs: number; timestamp: number; schema?: string};
     'lm.rule:skipped': {ruleId: string; ruleName: string; reason: 'circuit_open' | 'disabled' | 'activation_failed' | 'single_premise_missing'; timestamp: number};
     'lm.rule:structured': {ruleId: string; schema: string; output: unknown; timestamp: number};
