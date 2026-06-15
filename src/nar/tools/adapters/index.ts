@@ -1,4 +1,5 @@
 export {createNARSTools, createGeneralTools, createWorkingMemoryTools} from './aisdk-adapter.js';
+export type {NARSToolDeps, NARSToolsOptions} from './aisdk-adapter.js';
 export {
     createWebSearchTools,
     createHTTPFetchTools,

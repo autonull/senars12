@@ -6,6 +6,10 @@ export {dispatchToolCalls} from './model/ToolDispatcher.js';
 export type {ToolCall, ToolDispatchResult, ToolError} from './model/ToolDispatcher.js';
 export {AgentEventBus} from './AgentEventBus.js';
 export type {AgentEventKind, AgentEventPayloads} from './AgentEventBus.js';
+export {SystemEventBus} from './SystemEventBus.js';
+export type {SystemEventMap} from './SystemEventBus.js';
+export {AutonomyEngine, createAutonomyEngine} from './AutonomyEngine.js';
+export type {AutonomyEngineConfig, ReasoningJob} from './AutonomyEngine.js';
 
 export {agentOptionsSchema, validateAgentOptions, AgentOptionsValidationError} from './options-schema.js';
 export type {ValidatedAgentOptions} from './options-schema.js';
@@ -28,9 +32,6 @@ export {InMemorySessionManager, JsonlSessionManager} from './SessionManager.js';
 export {formatHistoryAsMessages, truncateForBudget} from './chat-history.js';
 export type {HistoryMessage} from './chat-history.js';
 
-export type {NlBridge, NlBridgeDeps, NlTranslation, DerivationResult, TranslationResult} from './nl-bridge.js';
-export {createNlBridge} from './nl-bridge.js';
-
 export {bindAgentToConnection} from './io-bridge.js';
 export type {BridgeOptions} from './io-bridge.js';
 export type {BridgeContext} from './io-middleware.js';
@@ -47,7 +48,6 @@ export {
     abortSession,
     clearSessionState,
     createNarsTraceAnnotator,
-    createNlInputTranslation,
     createNarseseOutputHumanization,
 } from './io-middleware.js';
 

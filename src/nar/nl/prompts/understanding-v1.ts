@@ -46,6 +46,8 @@ export function buildUnderstandingPrompt(
     parts.push('  - beliefs: [{narsese, truth?}] for statements to assert');
     parts.push('  - questions: [narsese_string] for questions to ask (end in ?)');
     parts.push('  - goals: [narsese_string] for goals to pursue (end in !)');
+    parts.push('  - meta: {detectedIntent, ambiguities?, coreferences?, implicitContext?, driveModulations?}');
+    parts.push('    driveModulations: {driveId: amount} e.g. {"curiosity": 0.3, "coherence": -0.2}');
     parts.push('');
     parts.push('Rules:');
     parts.push('  - Universal ("all") → frequency 1.0, confidence 0.9');
@@ -56,6 +58,7 @@ export function buildUnderstandingPrompt(
     parts.push('  - Ambiguous input → flag in meta.ambiguities');
     parts.push('  - Coreferences ("he", "it", "that") → resolve using context');
     parts.push('  - Detect intent: chat, command, reasoning, or learning');
+    parts.push('  - For command intent: include driveModulations to adjust drives (curiosity, social, coherence)');
 
     if (opts.beliefs?.length) {
         parts.push('\nRelated beliefs in memory:');

@@ -71,6 +71,25 @@ export const ConceptElaborationSchema = z.object({
     relations: z.array(z.string()),
 });
 
+export const BeliefRevisionSchema = z.object({
+    revised: z.object({
+        narsese: z.string().describe('Revised Narsese statement'),
+        truth: z.object({
+            f: z.number().min(0).max(1).describe('Revised frequency'),
+            c: z.number().min(0).max(1).describe('Revised confidence'),
+        }),
+    }),
+    reason: z.string().describe('Explanation for the revision'),
+});
+
+export const QuestionGenerationSchema = z.object({
+    questions: z.array(z.object({
+        narsese: z.string().describe('Narsese question ending in ?'),
+        relevance: z.number().min(0).max(1).describe('How relevant to current context'),
+        rationale: z.string().describe('Why this question is worth asking'),
+    })),
+});
+
 export const ClarificationSchema = z.object({
     question: z.string(),
     options: z.array(z.string()),
@@ -111,6 +130,7 @@ export const TaskBatchSchema = z.object({
         ambiguities: z.array(AmbiguitySchema),
         coreferences: z.array(CoreferenceSchema),
         implicitContext: z.array(z.string()),
+        driveModulations: z.record(z.string(), z.number()).optional().describe('Drive modulation adjustments (driveId -> amount)'),
     }),
 });
 
@@ -137,3 +157,5 @@ export type TemporalCausalResult = z.infer<typeof TemporalCausalSchema>;
 export type VariableGroundingResult = z.infer<typeof VariableGroundingSchema>;
 export type ConceptElaborationResult = z.infer<typeof ConceptElaborationSchema>;
 export type ClarificationResult = z.infer<typeof ClarificationSchema>;
+export type BeliefRevisionResult = z.infer<typeof BeliefRevisionSchema>;
+export type QuestionGenerationResult = z.infer<typeof QuestionGenerationSchema>;

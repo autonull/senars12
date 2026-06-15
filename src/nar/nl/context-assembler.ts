@@ -10,6 +10,19 @@ export interface ContextAssemblerOpts {
     maxExamples?: number;
 }
 
+export interface ContextAssemblerOpts {
+    tokenBudget?: number;
+    maxBeliefs?: number;
+    maxDerivations?: number;
+    maxGoals?: number;
+    maxExamples?: number;
+}
+
+function estimateTokens(text: string): number {
+    // Rough estimate: 1 token ≈ 4 characters
+    return Math.ceil(text.length / 4);
+}
+
 export class ContextAssembler {
     private cache: TranslationCache;
 
@@ -27,6 +40,7 @@ export class ContextAssembler {
             maxDerivations = 5,
             maxGoals = 5,
             maxExamples = 3,
+            tokenBudget = 4096,
         } = opts;
 
         const beliefs = this.extractRelatedBeliefs(nar, input, maxBeliefs);
@@ -35,13 +49,67 @@ export class ContextAssembler {
         const memoryHealth = this.extractMemoryHealth(nar);
         const recentExamples = this.extractRelevantExamples(input, maxExamples);
 
-        return {
-            beliefs,
-            recentDerivations,
+        // Token budget management
+        const assembled: NLContext = {
+            beliefs: beliefs ?? [],
+            recentDerivations: recentDerivations ?? [],
             memoryHealth,
-            activeGoals,
-            recentExamples,
+            activeGoals: activeGoals ?? [],
+            recentExamples: recentExamples ?? [],
         };
+
+        // Prune proportionally if over budget
+        const pruned = this.pruneToTokenBudget(assembled, tokenBudget, input);
+        return pruned;
+    }
+
+    private pruneToTokenBudget(
+        context: NLContext,
+        tokenBudget: number,
+        input: string,
+    ): NLContext {
+        const inputTokens = estimateTokens(input);
+        const availableBudget = tokenBudget - inputTokens - 500; // Reserve tokens for response
+        
+        if (availableBudget <= 0) {
+            return {
+                beliefs: [],
+                recentDerivations: [],
+                memoryHealth: context.memoryHealth,
+                activeGoals: [],
+                recentExamples: [],
+            };
+        }
+
+        // Calculate current token usage
+        const beliefsText = (context.beliefs ?? []).join('\n');
+        const derivationsText = (context.recentDerivations ?? []).join('\n');
+        const goalsText = (context.activeGoals ?? []).join('\n');
+        const examplesText = (context.recentExamples ?? []).map(e => e.nl).join('\n');
+
+        const currentTokens = 
+            estimateTokens(beliefsText) + 
+            estimateTokens(derivationsText) + 
+            estimateTokens(goalsText) + 
+            estimateTokens(examplesText);
+
+        if (currentTokens <= availableBudget) {
+            return context;
+        }
+
+        // Prune proportionally
+        const ratio = availableBudget / currentTokens;
+        return {
+            beliefs: this.pruneArray(context.beliefs ?? [], Math.max(1, Math.floor((context.beliefs ?? []).length * ratio))),
+            recentDerivations: this.pruneArray(context.recentDerivations ?? [], Math.max(1, Math.floor((context.recentDerivations ?? []).length * ratio))),
+            memoryHealth: context.memoryHealth,
+            activeGoals: this.pruneArray(context.activeGoals ?? [], Math.max(1, Math.floor((context.activeGoals ?? []).length * ratio))),
+            recentExamples: this.pruneArray(context.recentExamples ?? [], Math.max(1, Math.floor((context.recentExamples ?? []).length * ratio))),
+        };
+    }
+
+    private pruneArray<T>(arr: T[], maxLen: number): T[] {
+        return arr.slice(0, maxLen);
     }
 
     private extractRelatedBeliefs(nar: NAR, input: string, max: number): string[] {
@@ -55,7 +123,16 @@ export class ContextAssembler {
             for (const w of words) {
                 if (termWords.has(w)) overlap++;
             }
-            return {term: b.term.toString(), truth: b.truth, score: overlap};
+            // Handle mock NARs that may not have getConcept
+            let attentionPriority = 0;
+            if (typeof nar.getConcept === 'function') {
+                const concept = nar.getConcept(b.term);
+                attentionPriority = concept?.priority ?? 0;
+            }
+            // Score formula: overlapScore * 0.4 + attentionPriority * 0.6
+            const overlapScore = overlap / Math.max(1, words.size);
+            const score = overlapScore * 0.4 + attentionPriority * 0.6;
+            return {term: b.term.toString(), truth: b.truth, score};
         });
 
         return scored
@@ -72,7 +149,23 @@ export class ContextAssembler {
 
     private extractRecentDerivations(nar: NAR, max: number): string[] {
         const beliefs = nar.getBeliefs();
-        return beliefs.slice(-max).map(b => {
+        
+        // Quality filter: confidence > 0.5, frequency > 0.1
+        // Deduplicate by term
+        const seen = new Set<string>();
+        const filtered = beliefs
+            .filter(b => {
+                if (!b.truth) return false;
+                if (b.truth.c <= 0.5) return false;
+                if (b.truth.f <= 0.1) return false;
+                const termStr = b.term.toString();
+                if (seen.has(termStr)) return false;
+                seen.add(termStr);
+                return true;
+            })
+            .slice(-max);
+
+        return filtered.map(b => {
             const truth = b.truth
                 ? ` :${b.truth.f.toFixed(2)}:${b.truth.c.toFixed(2)}`
                 : '';

@@ -1,7 +1,7 @@
 import {tool} from 'ai';
 import {z} from 'zod';
 
-export function createNARSTools(nar: {
+export interface NARSToolDeps {
     input(statement: string, type?: string, truth?: unknown): Promise<void>;
     queryTerm(term: unknown, filter?: unknown): {beliefs: unknown[]};
     getQuestions(): unknown[];
@@ -11,8 +11,34 @@ export function createNARSTools(nar: {
     getBeliefs(): unknown[];
     attentionReport(): {concepts: unknown[]; total: number};
     getConstitution(): unknown[];
+    checkConstitutionViolation(belief: unknown): boolean;
     workingMemory: {size(): number};
-}) {
+}
+
+export interface NARSToolsOptions {
+    constitutionEnforcement?: boolean;
+}
+
+export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {}) {
+    const {constitutionEnforcement = true} = options;
+
+    const checkConstitution = async (statement: string, type: string) => {
+        if (!constitutionEnforcement) return {violation: false};
+        try {
+            // Parse the statement to create a task for checking
+            const {termParser, Truth} = await import('../../terms/index.js');
+            const {createTask, createBudget} = await import('../../types');
+            const parsed = termParser.parseTask(statement);
+            if (parsed && parsed.term) {
+                const task = createTask(parsed.term, type as 'belief' | 'goal', parsed.truth ?? Truth.NEUTRAL, createBudget(0.5));
+                const violation = nar.checkConstitutionViolation(task);
+                return {violation, clause: violation ? 'constitution conflict' : undefined};
+            }
+        } catch {
+            // If parsing fails, skip constitution check
+        }
+        return {violation: false};
+    };
     return {
         nar_believe: tool({
             description: 'Add a belief to NARS knowledge base in Narsese format',
@@ -24,6 +50,14 @@ export function createNARSTools(nar: {
                 }).optional(),
             }),
             execute: async ({statement, truth}) => {
+                const check = await checkConstitution(statement, 'belief');
+                if (check.violation) {
+                    return {
+                        success: false,
+                        error: `Constitution violation: ${check.clause}`,
+                        statement,
+                    };
+                }
                 const f = truth?.frequency;
                 const c = truth?.confidence;
                 const hasTruth = f !== undefined && c !== undefined;
@@ -46,6 +80,14 @@ export function createNARSTools(nar: {
                 statement: z.string().describe('Narsese goal statement, e.g., "(call_mom)!"'),
             }),
             execute: async ({statement}) => {
+                const check = await checkConstitution(statement, 'goal');
+                if (check.violation) {
+                    return {
+                        success: false,
+                        error: `Constitution violation: ${check.clause}`,
+                        statement,
+                    };
+                }
                 await nar.input(statement, 'goal');
                 return {success: true, statement, timestamp: Date.now()};
             },

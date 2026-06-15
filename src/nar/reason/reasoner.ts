@@ -125,7 +125,7 @@ export class Reasoner {
         if (derived) yield derived;
       }
 
-      for await (const result of this.processor.processLMRulesExternal(p1, p2, signal)) {
+      for await (const result of this.processor.processLMRules(p1, p2, {signal})) {
         const derived = processResult(result);
         if (derived) yield derived;
       }

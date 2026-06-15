@@ -151,7 +151,7 @@ export class InferenceController {
 		const p1: RuleInput = {term: task.term, truth: task.truth, stamp: task.stamp};
 		const maxDepth = this.config.maxDerivationDepth ?? 10;
 
-		for await (const result of this.processor.processLMRulesSingle(p1, signal)) {
+		for await (const result of this.processor.processLMRules(p1, undefined, {signal, singlePremise: true})) {
 			const derivedTask = this.createDerivedTask(result);
 			if (this.exceedsDepthLimit(derivedTask, maxDepth) || this.isCircular(derivedTask)) continue;
 			
@@ -187,7 +187,7 @@ export class InferenceController {
 		}
 
 		// Fire LM-based rules on the premise pair
-		for await (const result of this.processor.processLMRulesExternal(p1, p2, signal)) {
+		for await (const result of this.processor.processLMRules(p1, p2, {signal})) {
 			this.lmRulesFiredCount++;
 			const derived = processResult(result);
 			if (derived) yield derived;

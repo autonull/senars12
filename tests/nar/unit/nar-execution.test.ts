@@ -15,8 +15,7 @@ import type {RLFPLearner} from '../../rlfp';
 
 const createMockProcessor = () => ({
     processSync: () => [],
-    processLMRulesExternal: async function*() { /* noop */ },
-    processLMRulesSingle: async function*() { /* noop */ }
+    processLMRules: async function*() { /* noop */ },
 });
 
 const createMockRLFP = (): RLFPLearner => ({

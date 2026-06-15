@@ -7,7 +7,7 @@ import type {ConnectionManager} from '../io/connection-manager.js';
 import type {SessionManager} from './SessionManager.js';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {resolveReplyTarget} from '../io/connections/reply-target.js';
-import type {NlBridge} from './nl-bridge.js';
+import type {NLGenerationService} from '../nar/nl/generation.js';
 import {createLogger} from '../nar/logger/index.js';
 import {
     createErrorBoundary,
@@ -18,7 +18,6 @@ import {
     createSessionBinder,
     createStreamingAgentDispatch,
     createNarsTraceAnnotator,
-    createNlInputTranslation,
     createNarseseOutputHumanization,
 } from './io-middleware.js';
 
@@ -28,9 +27,8 @@ export interface BridgeOptions {
     sessionManager: SessionManager;
     episodicMemory?: EpisodicMemory;
     rateLimitPerMinute?: number;
-    nlBridge?: NlBridge;
+    generationService?: NLGenerationService;
     manager?: ConnectionManager;
-    enableNlTranslation?: boolean;
     enableNarseseHumanization?: boolean;
     enableNarsTrace?: boolean;
     enableStreaming?: boolean;
@@ -49,11 +47,8 @@ export function bindAgentToConnection(
     if (opts.commandRegistry) router.use(createCommandInterceptor(opts.commandRegistry));
     router.use(createRateLimiter(opts.rateLimitPerMinute ?? 30));
     router.use(createSessionBinder(opts.sessionManager));
-    if (opts.enableNlTranslation && opts.nlBridge && agent.getNAR()) {
-        router.use(createNlInputTranslation(opts.nlBridge));
-    }
-    if (opts.enableNarseseHumanization && opts.nlBridge) {
-        router.use(createNarseseOutputHumanization(opts.nlBridge));
+    if (opts.enableNarseseHumanization && opts.generationService) {
+        router.use(createNarseseOutputHumanization(opts.generationService));
     }
     router.use(createStreamingAgentDispatch(agent, logger));
     const traceNar = agent.getNAR();

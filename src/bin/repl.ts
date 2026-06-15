@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 import {createInterface} from 'readline';
-import {createAgent, type Agent} from '../agent/agent.js';
+import {createAgent, type Agent, AutonomyEngine, createAutonomyEngine} from '../agent/index.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {setupDefaultLMClient} from '../nar/lm/defaults.js';
@@ -14,6 +14,8 @@ import type {LMClient} from '../nar/lm/types.js';
 import type {NAR} from '../nar/nar.js';
 import {loadConfigFromEnv} from '../config/index.js';
 import {agentConfigToOptions} from '../agent/config-bridge.js';
+import {JsonlSessionManager} from '../agent/SessionManager.js';
+import type {ConversationSession} from '../agent/ConversationSession.js';
 
 assertValidEnv();
 
@@ -40,7 +42,7 @@ Commands:
 Just type natural language to chat, or Narsese to feed NAR directly!
 `;
 
-const buildCommands = (nar: NAR, agent: Agent, lmClient: LMClient): CLICommand[] => [
+const buildCommands = (nar: NAR, agent: Agent, lmClient: LMClient, sessionManager: JsonlSessionManager, getSession: () => ConversationSession, setSession: (s: ConversationSession) => void): CLICommand[] => [
     {name: 'help', description: 'Show help', execute: () => HELP},
     {name: 'quit', description: 'Exit the REPL', execute: () => QUIT_SENTINEL},
     {
@@ -131,8 +133,7 @@ const buildCommands = (nar: NAR, agent: Agent, lmClient: LMClient): CLICommand[]
             return `Stored: ${key}`;
         },
     },
-    {
-        name: 'recall', description: 'Search episodic memory', execute: async (args) => {
+    {name: 'recall', description: 'Search episodic memory', execute: async (args) => {
             const episodes = await agent.recall(args.trim() || undefined);
             const lines = [`\n--- ${episodes.length} Episode(s) ---`];
             for (const e of episodes) {
@@ -140,6 +141,20 @@ const buildCommands = (nar: NAR, agent: Agent, lmClient: LMClient): CLICommand[]
                 lines.push(`  [${e.type}] ${preview}`);
             }
             return lines.join('\n');
+        },
+    },
+    {
+        name: 'sessions', description: 'List saved sessions', execute: async () => {
+            const sessions = await sessionManager.size();
+            return `\n--- ${sessions} Session(s) ---`;
+        },
+    },
+    {
+        name: 'session', description: 'Switch or create session', execute: async (args) => {
+            const key = args.trim() || 'default';
+            const session = sessionManager.getOrCreate(key);
+            setSession(session);
+            return `Switched to session: ${key} (${session.history.length} messages)`;
         },
     },
     {
@@ -237,19 +252,48 @@ async function main() {
         retentionDays: parseInt(process.env.EPISODIC_RETENTION_DAYS || '30'),
     });
 
+    // Create and configure AutonomyEngine
+    const systemEventBus = nar.getSystemEventBus();
+    const autonomyEngine = createAutonomyEngine(nar, systemEventBus);
+    autonomyEngine.setNotifyHandler((msg) => console.log(`[Autonomy] ${msg}`));
+
+    // Create and restore session manager
+    const sessionManager = new JsonlSessionManager({basePath: '.cache/sessions'});
+    await sessionManager.restore();
+    let currentSession = sessionManager.getOrCreate('default');
+
     const appConfig = await loadConfigFromEnv();
-    const agent = createAgent({nar, lmClient, episodicMemory, ...agentConfigToOptions(appConfig.agent)});
+    const agent = createAgent({
+        nar,
+        lmClient,
+        episodicMemory,
+        autonomyEngine,
+        ...agentConfigToOptions(appConfig.agent)
+    });
+
+    // Start the agent (which starts AutonomyEngine)
+    agent.start();
 
     console.log('\n╔══════════════════════════════════════════════════╗');
     console.log('║ SeNARS REPL - Neuro-Symbolic Reasoning CLI    ║');
     console.log('╚══════════════════════════════════════════════════╝\n');
     console.log('Type .help for commands, or just chat!\n');
 
+    // Build commands with session manager reference
+    const getSession = () => currentSession;
+    const setSession = (s: ConversationSession) => { currentSession = s; };
+    const commands = buildCommands(nar, agent, lmClient, sessionManager, getSession, setSession);
+
     await readlineLoop({
         prompt: 'senars> ',
-        commands: buildCommands(nar, agent, lmClient),
-        onInput: (text: string) => agent.chat(text),
+        commands,
+        onInput: async (text: string) => agent.chatWithHistory(text, currentSession),
     });
+
+    // Stop the agent (which stops AutonomyEngine)
+    agent.stop();
+    await sessionManager.snapshot();
+    await sessionManager.close();
 
     logger.info('Shutting down...');
 }

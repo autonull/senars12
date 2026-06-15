@@ -251,7 +251,6 @@ describe('bindAgentToConnection end-to-end', () => {
         const conn = makeConn();
         bindAgentToConnection(agent, conn, {
             sessionManager,
-            enableNlTranslation: false,
             enableNarseseHumanization: false,
         });
         expect(conn.handlers.length).toBe(1);
@@ -273,7 +272,6 @@ describe('bindAgentToConnection end-to-end', () => {
         bindAgentToConnection(agent, conn, {
             sessionManager,
             commandRegistry: registry,
-            enableNlTranslation: false,
             enableNarseseHumanization: false,
         });
         await conn.handlers[0]!(makeMessage('/help'));
@@ -409,30 +407,12 @@ describe('bindAgentToConnection: cleanup', () => {
         const sessionManager = new InMemorySessionManager();
         const dispose = bindAgentToConnection(agent, conn, {
             sessionManager,
-            enableNlTranslation: false,
             enableNarseseHumanization: false,
             enableNarsTrace: false,
         });
         expect(conn.handlers.length).toBe(1);
         dispose();
         expect(conn.handlers.length).toBe(0);
-    });
-});
-
-describe('createNlInputTranslation with no NAR', () => {
-    it('passes through cleanly when nar is undefined (skips input)', async () => {
-        const {createNlBridge} = await import('../../../src/agent/nl-bridge.js');
-        const {createSeNARSRegistry} = await import('../../../src/nar/lm/providers.js');
-        const registry = createSeNARSRegistry();
-        const nar = SeNARSFactory.createForTesting({maxConcepts: 5});
-        const nlBridge = createNlBridge({nar, registry});
-        const mw = createCommandInterceptor(new CommandRegistry());
-        const bridge = (await import('../../../src/agent/io-middleware.js')).createNlInputTranslation(nlBridge);
-        const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
-        const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-        const ctx = {connection: makeConn(), respond};
-        await bridge(makeMessage('hello world'), ctx, next);
-        expect(next).toHaveBeenCalled();
     });
 });
 
@@ -443,7 +423,6 @@ describe('bindAgentToConnection: no NAR (LM only)', () => {
         const sessionManager = new InMemorySessionManager();
         bindAgentToConnection(agent, conn, {
             sessionManager,
-            enableNlTranslation: false,
             enableNarseseHumanization: false,
             enableNarsTrace: false,
         });

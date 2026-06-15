@@ -31,6 +31,7 @@ import {NARIO} from './nar-io';
 import {NARExecution} from './nar-execution';
 import {NARLM} from './nar-lm';
 import {DriveManager, createBootstrapTasks} from './drives/index.js';
+import {SystemEventBus} from '../agent/SystemEventBus.js';
 
 export interface RLFPConfig {
     optimizeInterval?: number;
@@ -47,6 +48,8 @@ export interface NARConfig extends CoreConfig {
     enableBidirectionalFeedback?: boolean;
     enableProactiveEnrichment?: boolean;
     enableLMStreaming?: boolean;
+    persistState?: boolean;
+    statePath?: string;
 
     /** Cognitive architecture configuration (Phase 3+) */
     cognitiveParams?: CognitiveParameters;
@@ -66,6 +69,7 @@ export class NAR extends BaseComponent {
   rlfp?: RLFPLearner;
   cognitiveController?: CognitiveController;
   private driveManager?: DriveManager;
+  private readonly systemEventBus: SystemEventBus;
 
   private readonly io: NARIO;
   private execution: NARExecution;
@@ -117,6 +121,8 @@ export class NAR extends BaseComponent {
 
         this.io = new NARIO(this.memory, this.taskManager, this.config);
         this.io.setEventBus(eventBus);
+        this.systemEventBus = new SystemEventBus();
+        this.systemEventBus.wrapNarEventBus(eventBus);
         this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.cognitiveController, this.driveManager);
         this.lm = new NARLM(this.memory, this._registry, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment);
         this._metricsCollector = metrics;
@@ -131,8 +137,167 @@ export class NAR extends BaseComponent {
         this.logger.info('NAR initialized');
     }
 
+    private getStatePath(filename: string): string {
+        const path = require('path');
+        const base = this.config.statePath ?? '.cache/nar-state';
+        return path.resolve(base, filename);
+    }
+
+    private async saveState(): Promise<void> {
+        if (!this.config.persistState) return;
+        try {
+            const fs = require('fs').promises;
+            const path = require('path');
+
+            const beliefs = this.query.getBeliefs().map(b => ({
+                term: b.term.toString(),
+                truth: b.truth ? {f: b.truth.f, c: b.truth.c} : undefined,
+                stamp: b.stamp,
+            }));
+            const goals = this.query.getGoals().map(g => ({
+                term: g.term.toString(),
+                truth: g.truth ? {f: g.truth.f, c: g.truth.c} : undefined,
+                stamp: g.stamp,
+            }));
+            const questions = this.query.getQuestions().map(q => ({
+                term: q.term.toString(),
+                truth: q.truth ? {f: q.truth.f, c: q.truth.c} : undefined,
+                stamp: q.stamp,
+            }));
+            const attention = this.attentionReport();
+            const driveStates = this.driveManager?.getAllStates() ?? [];
+            const drives: Record<string, number> = {};
+            for (const ds of driveStates) {
+                drives[ds.spec.id] = ds.currentIntensity;
+            }
+
+            const baseDir = path.dirname(this.getStatePath('beliefs.json'));
+            await fs.mkdir(baseDir, {recursive: true});
+            await fs.writeFile(this.getStatePath('beliefs.json'), JSON.stringify(beliefs, null, 2), 'utf-8');
+            await fs.writeFile(this.getStatePath('goals.json'), JSON.stringify(goals, null, 2), 'utf-8');
+            await fs.writeFile(this.getStatePath('questions.json'), JSON.stringify(questions, null, 2), 'utf-8');
+            await fs.writeFile(this.getStatePath('attention.json'), JSON.stringify(attention, null, 2), 'utf-8');
+            await fs.writeFile(this.getStatePath('drives.json'), JSON.stringify(drives, null, 2), 'utf-8');
+
+            // Save LM Rule state
+            const lmRuleState = this.processor.serializeLMRules();
+            await fs.writeFile(this.getStatePath('lm-rules.json'), JSON.stringify(lmRuleState, null, 2), 'utf-8');
+        } catch (e) {
+            this.logger.warn('NAR state save failed', {error: e instanceof Error ? e.message : String(e)});
+        }
+    }
+
+    private async loadState(): Promise<void> {
+        if (!this.config.persistState) return;
+        try {
+            const fs = require('fs').promises;
+            const path = require('path');
+
+            const {termParser} = await import('./terms/index.js');
+            const {Truth} = await import('./terms/truth.js');
+            const {Stamp} = await import('./terms/stamp.js');
+
+            const baseDir = path.dirname(this.getStatePath('beliefs.json'));
+
+            // Load beliefs
+            const beliefsPath = this.getStatePath('beliefs.json');
+            if (await fs.access(beliefsPath).then(() => true).catch(() => false)) {
+                const content = await fs.readFile(beliefsPath, 'utf-8');
+                const beliefs = JSON.parse(content);
+                for (const b of beliefs) {
+                    const parsed = termParser.parse(b.term);
+                    if (parsed) {
+                        const task = {
+                            term: parsed,
+                            type: 'belief' as const,
+                            truth: b.truth ?? Truth.NEUTRAL,
+                            budget: {priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+                            stamp: b.stamp ?? Stamp.createInput(),
+                            occurrenceTime: Date.now(),
+                            derived: false,
+                        };
+                        this.taskManager.addTask(task);
+                    }
+                }
+            }
+
+            // Load goals
+            const goalsPath = this.getStatePath('goals.json');
+            if (await fs.access(goalsPath).then(() => true).catch(() => false)) {
+                const content = await fs.readFile(goalsPath, 'utf-8');
+                const goals = JSON.parse(content);
+                for (const g of goals) {
+                    const parsed = termParser.parse(g.term);
+                    if (parsed) {
+                        const task = {
+                            term: parsed,
+                            type: 'goal' as const,
+                            truth: g.truth ?? Truth.NEUTRAL,
+                            budget: {priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+                            stamp: g.stamp ?? Stamp.createInput(),
+                            occurrenceTime: Date.now(),
+                            derived: false,
+                        };
+                        this.taskManager.addTask(task);
+                    }
+                }
+            }
+
+            // Load questions
+            const questionsPath = this.getStatePath('questions.json');
+            if (await fs.access(questionsPath).then(() => true).catch(() => false)) {
+                const content = await fs.readFile(questionsPath, 'utf-8');
+                const questions = JSON.parse(content);
+                for (const q of questions) {
+                    const parsed = termParser.parse(q.term);
+                    if (parsed) {
+                        const task = {
+                            term: parsed,
+                            type: 'question' as const,
+                            truth: q.truth ?? Truth.NEUTRAL,
+                            budget: {priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+                            stamp: q.stamp ?? Stamp.createInput(),
+                            occurrenceTime: Date.now(),
+                            derived: false,
+                        };
+                        this.taskManager.addTask(task);
+                    }
+                }
+            }
+
+            // Load drives
+            const drivesPath = this.getStatePath('drives.json');
+            if (await fs.access(drivesPath).then(() => true).catch(() => false)) {
+                const content = await fs.readFile(drivesPath, 'utf-8');
+                const drives = JSON.parse(content);
+                if (this.driveManager && drives) {
+                    for (const [driveId, value] of Object.entries(drives)) {
+                        const currentState = this.driveManager.getState(driveId);
+                        const currentIntensity = currentState?.currentIntensity ?? 0;
+                        const targetIntensity = Number(value);
+                        const diff = targetIntensity - currentIntensity;
+                        this.driveManager.stimulate(driveId, diff);
+                    }
+                }
+            }
+
+            this.logger.info('NAR state loaded');
+
+            // Load LM Rule state
+            const lmRulesPath = this.getStatePath('lm-rules.json');
+            if (await fs.access(lmRulesPath).then(() => true).catch(() => false)) {
+                const content = await fs.readFile(lmRulesPath, 'utf-8');
+                const lmRuleState = JSON.parse(content);
+                this.processor.deserializeLMRules(lmRuleState);
+            }
+        } catch (e) {
+            this.logger.warn('NAR state load failed', {error: e instanceof Error ? e.message : String(e)});
+        }
+    }
+
     override async start(): Promise<void> {
         await super.start();
+        await this.loadState();
         this.self?.start();
         this.lm.getEnricher()?.start();
         await this.injectBootstrapGoals();
@@ -142,6 +307,7 @@ export class NAR extends BaseComponent {
     override async stop(): Promise<void> {
         this.self?.stop();
         this.stopLM();
+        await this.saveState();
         await super.stop();
         this.logger.info('NAR stopped');
     }
@@ -237,6 +403,10 @@ getController(): CognitiveController | undefined {
 
 getDriveManager(): DriveManager | undefined {
   return this.driveManager;
+}
+
+getSystemEventBus(): SystemEventBus {
+  return this.systemEventBus;
 }
 
 getMetricsCollector(): MetricsCollector {
@@ -496,7 +666,14 @@ clearLMRuleExecutionLog() {
 
     private initializeLMRules(lmClient: LMClient): void {
         const lmRules = LMRules.createAll(lmClient);
+        const structuredModel = this._registry
+            ? this._registry.languageModel('cloud:quality')
+                ?? this._registry.languageModel('local:quality')
+            : undefined;
         for (const rule of lmRules) {
+            if (structuredModel) rule.setStructuredModel(structuredModel as never);
+            rule.setSystemEventBus(this.systemEventBus);
+            rule.setNAR(this);
             this.processor.registerLMRule(rule);
         }
         this._lmInitialized = true;

@@ -8,6 +8,7 @@
  */
 
 import {createAgent} from '../agent/agent.js';
+import {AutonomyEngine, createAutonomyEngine} from '../agent/index.js';
 import {ConnectionManager} from '../io/connection-manager.js';
 import {AuthManager} from '../io/auth.js';
 import {CommandRegistry} from '../io/commands/registry.js';
@@ -16,7 +17,7 @@ import {bindAgentToConnection} from '../agent/io-bridge.js';
 import {createConnectionConfigsFromEnv} from '../agent/io-config.js';
 import {JsonlSessionManager} from '../agent/SessionManager.js';
 import {registerAllCommands} from '../agent/register-commands.js';
-import {createNlBridge} from '../agent/nl-bridge.js';
+import {NLGenerationService} from '../nar/nl/generation.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {setupDefaultLMClient} from '../nar/lm/defaults.js';
@@ -53,7 +54,12 @@ async function main(): Promise<void> {
         retentionDays: parseInt(process.env.EPISODIC_RETENTION_DAYS || '30'),
     });
 
-    const agentOptions = {nar, lmClient, episodicMemory, ...agentConfigToOptions(config.agent)};
+    // Create and configure AutonomyEngine
+    const systemEventBus = nar.getSystemEventBus();
+    const autonomyEngine = createAutonomyEngine(nar, systemEventBus);
+    autonomyEngine.setNotifyHandler((msg) => logger.debug(`[Autonomy] ${msg}`));
+
+    const agentOptions = {nar, lmClient, episodicMemory, autonomyEngine, ...agentConfigToOptions(config.agent)};
     const agent = createAgent(agentOptions);
 
     await mkdir('.cache/sessions', {recursive: true}).catch(() => undefined);
@@ -70,7 +76,7 @@ async function main(): Promise<void> {
     const commandRegistry = new CommandRegistry();
     registerAllCommands(commandRegistry);
 
-    const nlBridge = createNlBridge({nar, registry});
+    const generationService = new NLGenerationService(registry);
 
     const cm = new ConnectionManager(logger);
     cm.registerFactory({type: 'cli', create: cfg => new CLIConnection(cfg, {nar, emit: () => undefined, logger})});
@@ -90,9 +96,8 @@ async function main(): Promise<void> {
                 commandRegistry,
                 sessionManager,
                 episodicMemory,
-                nlBridge,
+                generationService,
                 manager: cm,
-                enableNlTranslation: config.agent.enableNlTranslation,
                 enableNarseseHumanization: config.agent.enableNarseseHumanization,
             });
             logger.info(`Bound bridge to: ${conn.name} (${conn.type})`);
@@ -107,7 +112,7 @@ async function main(): Promise<void> {
         logger.info('Shutting down...');
         await sessionManager.snapshot();
         await sessionManager.close();
-        stopReasoning();
+        agent.stop();
         await cm.shutdownAll();
         logger.info('Bot stopped');
     }, logger);

@@ -7,7 +7,7 @@ import type {ConnectionManager} from '../io/connection-manager.js';
 import type {SessionManager} from './SessionManager.js';
 import type {ConversationSession} from './ConversationSession.js';
 import type {Agent} from './agent.js';
-import type {NlBridge} from './nl-bridge.js';
+import type {NLGenerationService, GenerationInput} from '../nar/nl/generation.js';
 import {termParser} from '../nar/terms/index.js';
 import {appendTurn} from './ConversationSession.js';
 
@@ -298,67 +298,7 @@ export function createNarsTraceAnnotator(nar: NAR): MessageMiddleware {
     };
 }
 
-export function createNlInputTranslation(nlBridge: NlBridge): MessageMiddleware {
-    return async (message, context, next) => {
-        const text = message.text;
-        if (termParser.parseTask(text) !== null) {
-            await next();
-            return;
-        }
-
-        const translation = await nlBridge.nlToNarsese(text);
-        if (translation.kind === 'none') {
-            await next();
-            return;
-        }
-        if (translation.kind === 'clarify') {
-            await context.respond(translation.question);
-            return;
-        }
-
-        const nar = context.nar;
-        if (!nar) {
-            await next();
-            return;
-        }
-
-        const {result} = translation;
-        const tasks: Array<Promise<unknown>> = [];
-        for (const belief of result.beliefs ?? []) {
-            tasks.push(nar.believe(belief.narsese, belief.truth));
-        }
-        for (const question of result.questions ?? []) {
-            tasks.push(nar.question(question));
-        }
-        for (const goal of result.goals ?? []) {
-            tasks.push(nar.goal(goal));
-        }
-        await Promise.all(tasks);
-
-        const lines: string[] = [];
-        for (const belief of result.beliefs ?? []) {
-            lines.push(`+ ${belief.narsese}`);
-        }
-        for (const question of result.questions ?? []) {
-            lines.push(`? ${question}`);
-        }
-        for (const goal of result.goals ?? []) {
-            lines.push(`! ${goal}`);
-        }
-        const response = lines.length > 0
-            ? lines.join('\n') + (result.summary ? `\n\n(${result.summary})` : '')
-            : result.summary || 'Translation produced no Narsese operations.';
-
-        const bridgeCtx = context as BridgeContext;
-        if (bridgeCtx.session) {
-            appendTurn(bridgeCtx.session, 'user', text);
-            appendTurn(bridgeCtx.session, 'assistant', response, {translated: true});
-        }
-        await context.respond(response);
-    };
-}
-
-export function createNarseseOutputHumanization(nlBridge: NlBridge): MessageMiddleware {
+export function createNarseseOutputHumanization(generationService: NLGenerationService): MessageMiddleware {
     return async (_message, context, next) => {
         const bridgeCtx = context as BridgeContext;
         if (!bridgeCtx.session) {
@@ -370,18 +310,26 @@ export function createNarseseOutputHumanization(nlBridge: NlBridge): MessageMidd
         (context as {respond: typeof originalRespond}).respond = async (text: string) => {
             let toSend = text;
             if (NARSESE_OUTPUT_RE.test(text)) {
-                const humanized = await nlBridge.interpretDerivation(null, text);
-                if (humanized && humanized !== text) {
-                    toSend = humanized;
-                    for (let i = sessionRef.history.length - 1; i >= 0; i--) {
-                        const m = sessionRef.history[i];
-                        if (m && m.role === 'assistant') {
-                            m.content = humanized;
-                            m.metadata = {...(m.metadata ?? {}), narsese: text, humanized: true};
-                            break;
+                try {
+                    const genInput: GenerationInput = {
+                        query: text,
+                        derivation: null,
+                        beliefs: [],
+                        conflicts: [],
+                    };
+                    const output = await generationService.generate(genInput);
+                    if (output?.response && output.response !== text) {
+                        toSend = output.response;
+                        for (let i = sessionRef.history.length - 1; i >= 0; i--) {
+                            const m = sessionRef.history[i];
+                            if (m && m.role === 'assistant') {
+                                m.content = output.response;
+                                m.metadata = {...(m.metadata ?? {}), narsese: text, humanized: true};
+                                break;
+                            }
                         }
                     }
-                }
+                } catch { /* keep original text on failure */ }
             }
             return originalRespond(toSend);
         };

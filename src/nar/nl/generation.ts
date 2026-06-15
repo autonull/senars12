@@ -1,4 +1,4 @@
-import {generateObject} from 'ai';
+import {generateObject, generateText} from 'ai';
 import type {SeNARSRegistry} from '../lm/providers.js';
 import {getStructuredModel} from '../lm/providers.js';
 import {GenerationOutputSchema} from './schemas.js';
@@ -85,6 +85,7 @@ export class NLGenerationService {
             userProfile: input.userProfile,
         });
 
+        // Fallback chain: generateObject → generateText+regex → template fallback
         try {
             const {object} = await generateObject({
                 model: this.structuredModel,
@@ -103,6 +104,25 @@ export class NLGenerationService {
                 },
             };
         } catch {
+            // Level 2: generateText + regex extraction
+            try {
+                const textResult = await generateText({
+                    model: this.structuredModel,
+                    prompt: prompt + '\n\nRespond with a natural language answer, confidence (0-1), and followup questions as JSON: {"response": "...", "confidence": 0.8, "suggestedFollowups": ["..."]}',
+                });
+                const jsonMatch = textResult.text.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    return {
+                        response: parsed.response ?? '',
+                        confidence: parsed.confidence ?? 0.5,
+                        suggestedFollowups: parsed.suggestedFollowups ?? [],
+                        meta: {reasoningType, keyPremises, gaps},
+                    };
+                }
+            } catch {
+                // Level 3: template fallback
+            }
             return this.fallbackGenerate(input);
         }
     }

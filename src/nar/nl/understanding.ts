@@ -1,4 +1,4 @@
-import {generateObject} from 'ai';
+import {generateObject, generateText} from 'ai';
 import type {SeNARSRegistry} from '../lm/providers.js';
 import {getStructuredModel} from '../lm/providers.js';
 import {termParser} from '../terms/index.js';
@@ -28,6 +28,7 @@ export interface TaskBatch {
         ambiguities: Ambiguity[];
         coreferences: Coreference[];
         implicitContext: string[];
+        driveModulations?: Record<string, number>;
     };
 }
 
@@ -115,18 +116,50 @@ export class NLUnderstandingService {
                 : undefined,
         });
 
-        const {object} = await generateObject({
-            model: this.structuredModel,
-            prompt,
-            schema: TaskBatchSchema,
-        });
+        // Fallback chain: generateObject → generateText+JSON.parse → raw Narsese heuristics
+        let object: TaskBatch | null = null;
 
-        const validBeliefs = object.beliefs
+        // Level 1: generateObject (structured output)
+        try {
+            const result = await generateObject({
+                model: this.structuredModel,
+                prompt,
+                schema: TaskBatchSchema,
+            });
+            object = result.object as TaskBatch;
+        } catch {
+            // Level 2: generateText + JSON.parse
+            try {
+                const textResult = await generateText({
+                    model: this.structuredModel,
+                    prompt: prompt + '\n\nRespond with valid JSON only.',
+                });
+                const jsonMatch = textResult.text.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    object = JSON.parse(jsonMatch[0]) as TaskBatch;
+                }
+            } catch {
+                // Level 3: raw Narsese heuristics - extract Narsese from text
+                try {
+                    const textResult = await generateText({
+                        model: this.structuredModel,
+                        prompt: prompt + '\n\nRespond with Narsese statements only.',
+                    });
+                    object = this.extractNarseseFromText(textResult.text, input);
+                } catch {
+                    return null;
+                }
+            }
+        }
+
+        if (!object) return null;
+
+        const validBeliefs = (object.beliefs ?? [])
             .filter(b => validateNarsese(b.narsese))
             .map(b => ({...b, source: b.source as 'user' | 'inferred'}));
 
-        const validQuestions = object.questions.filter(q => validateNarsese(q.narsese));
-        const validGoals = object.goals.filter(g => validateNarsese(g.narsese));
+        const validQuestions = (object.questions ?? []).filter(q => validateNarsese(q.narsese));
+        const validGoals = (object.goals ?? []).filter(g => validateNarsese(g.narsese));
 
         if (validBeliefs.length === 0 && validQuestions.length === 0 && validGoals.length === 0) {
             return null;
@@ -137,10 +170,45 @@ export class NLUnderstandingService {
             questions: validQuestions,
             goals: validGoals,
             meta: {
-                detectedIntent: object.meta.detectedIntent as TaskBatch['meta']['detectedIntent'],
-                ambiguities: object.meta.ambiguities as unknown as Ambiguity[],
-                coreferences: object.meta.coreferences as unknown as Coreference[],
-                implicitContext: object.meta.implicitContext,
+                detectedIntent: object.meta?.detectedIntent as TaskBatch['meta']['detectedIntent'] ?? 'reasoning',
+                ambiguities: object.meta?.ambiguities as unknown as Ambiguity[] ?? [],
+                coreferences: object.meta?.coreferences as unknown as Coreference[] ?? [],
+                implicitContext: object.meta?.implicitContext ?? [],
+            },
+        };
+    }
+
+    private extractNarseseFromText(text: string, input: string): TaskBatch {
+        // Heuristic: extract valid Narsese from text response
+        const beliefs: Array<{narsese: string; truth?: {f: number; c: number}; source: 'user' | 'inferred'}> = [];
+        const questions: Array<{narsese: string; context?: string}> = [];
+        const goals: Array<{narsese: string; priority?: number}> = [];
+
+        // Look for Narsese patterns like (A --> B), (A => B), ?(A --> B), !(A)
+        const narsesePattern = /[\(<][^\)>]*[\)>]/g;
+        const matches = text.match(narsesePattern) ?? [];
+
+        for (const match of matches) {
+            if (validateNarsese(match)) {
+                if (match.startsWith('?')) {
+                    questions.push({narsese: match, context: input});
+                } else if (match.startsWith('!')) {
+                    goals.push({narsese: match, priority: 0.5});
+                } else {
+                    beliefs.push({narsese: match, source: 'user'});
+                }
+            }
+        }
+
+        return {
+            beliefs,
+            questions,
+            goals,
+            meta: {
+                detectedIntent: 'learning',
+                ambiguities: [],
+                coreferences: [],
+                implicitContext: [],
             },
         };
     }

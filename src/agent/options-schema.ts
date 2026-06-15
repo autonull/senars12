@@ -18,6 +18,8 @@ export const agentOptionsSchema = z.object({
     context: contextOptsSchema.optional(),
     maxLoops: z.number().int().min(0).max(50).default(5),
     logger: z.unknown().optional(),
+    persistKnowledge: z.boolean().default(false),
+    knowledgePath: z.string().default('.cache/agent-knowledge.json'),
 }).strict();
 
 export type ValidatedAgentOptions = z.infer<typeof agentOptionsSchema>;

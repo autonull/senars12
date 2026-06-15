@@ -1,10 +1,9 @@
 import type {NAR} from '../nar/nar.js';
 import type {LMClient} from '../nar/lm/types.js';
 import type {EpisodeType, EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import {termParser, type ParseTaskResult} from '../nar/terms/index.js';
 import {ContextAssembler, type ContextAssemblerOpts} from '../nar/nl/context-assembler.js';
-import {NLUnderstandingService, type TaskBatch} from '../nar/nl/understanding.js';
-import {NLGenerationService, type GenerationInput} from '../nar/nl/generation.js';
+import {NLUnderstandingService} from '../nar/nl/understanding.js';
+import {NLGenerationService} from '../nar/nl/generation.js';
 import {TranslationCache} from '../nar/nl/cache.js';
 import {
     createNARSTools,
@@ -20,11 +19,14 @@ import {
 import {ModelRunner} from './model/ModelRunner.js';
 import {buildAgentTools} from './tools.js';
 import type {ConversationSession} from './ConversationSession.js';
-import {appendTurn, DEFAULT_SESSION_HISTORY_LIMIT, trimHistory} from './ConversationSession.js';
+import {DEFAULT_SESSION_HISTORY_LIMIT} from './ConversationSession.js';
 import {formatHistoryAsMessages} from './chat-history.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
 import {AgentEventBus, type AgentEventKind, type AgentEventPayloads} from './AgentEventBus.js';
+import {AutonomyEngine, createAutonomyEngine} from './AutonomyEngine.js';
+import {SystemEventBus, type SystemEventMap} from './SystemEventBus.js';
 import {validateAgentOptions} from './options-schema.js';
+import {processInput, appendSessionTurns, type InputEvent} from './input-processor.js';
 
 const REASONING_INTERVAL_MS = 60_000;
 const MAX_REASON_STEPS_PER_TICK = 5;
@@ -46,6 +48,9 @@ export interface AgentOptions {
         fs?: {maxReadSize?: number};
     };
     approvalManager?: ApprovalManager;
+    autonomyEngine?: AutonomyEngine;
+    persistKnowledge?: boolean;
+    knowledgePath?: string;
 }
 
 export interface ChatOptions {
@@ -91,6 +96,8 @@ export interface Agent {
     knowList(): Array<{key: string; value: string}>;
     start(): () => void;
     stop(): void;
+    pause(): void;
+    resume(): void;
     setThrottle(percent: number): void;
     getThrottle(): number;
     getNAR(): NAR | undefined;
@@ -100,51 +107,106 @@ export interface Agent {
     getRecentDerivations(): DerivationEntry[];
     resolveApproval(id: string, approved: boolean, reason?: string): boolean;
     getPendingApprovals(): Array<{id: string; request: string; createdAt: number}>;
+    getLmRuleStats(): Array<{id: string; name: string; enabled: boolean; stats: {totalCalls: number; successfulCalls: number; failedCalls: number; totalDuration: number; totalTokens: number; averageDuration: number; successRate: number; totalCost: number; averageCost: number}; circuitState: 'closed' | 'open' | 'half-open'}>;
+    getLmRuleExecutionLog(): Array<{ruleName: string; status: 'fired' | 'skipped' | 'timeout' | 'aborted'; durationMs: number; tasksProduced: number; timestamp: number}>;
+    enableLmRule(id: string): void;
+    disableLmRule(id: string): void;
+    setLmRulePriority(id: string, priority: number): void;
+    getAutonomyEngine(): AutonomyEngine | undefined;
+    getRLFPState(): {enabled: boolean; policy: Record<string, number>; qValues: Record<string, number>; explorationRate: number; totalRewards: number; totalSteps: number} | null;
+    resetRLFP(): void;
+    getSelfReasoning(): {qualityScore: number; consistency: number; gaps: string[]; suggestions: string[]} | null;
+    getReasoningQuality(): {overall: number; coherence: number; relevance: number; completeness: number} | null;
+    explainBelief(term: string): Promise<{explanation: string; confidence: number; premises: string[]} | null>;
+    explainGoal(term: string): Promise<{explanation: string; confidence: number; premises: string[]} | null>;
+    traceRule(ruleId: string, term: string): Promise<{ruleName: string; input: string; output: string; confidence: number} | null>;
     on<K extends AgentEventKind>(event: K, listener: (payload: AgentEventPayloads[K]) => void): () => void;
     off<K extends AgentEventKind>(event: K, listener: (payload: AgentEventPayloads[K]) => void): void;
+    on<K extends keyof SystemEventMap>(event: K, listener: (payload: SystemEventMap[K]) => void): () => void;
+    off<K extends keyof SystemEventMap>(event: K, listener: (payload: SystemEventMap[K]) => void): void;
 }
 
-const toEventTokens = (u: {inputTokens: number; outputTokens: number; totalTokens: number}) => ({
-    input: u.inputTokens,
-    output: u.outputTokens,
-    total: u.totalTokens,
-});
+    const toEventTokens = (u: {inputTokens: number; outputTokens: number; totalTokens: number}) => ({
+        input: u.inputTokens,
+        output: u.outputTokens,
+        total: u.totalTokens,
+    });
 
-export function createAgent(opts: AgentOptions = {}): Agent {
-    validateAgentOptions(opts);
-    const {
-        nar,
-        lmClient,
-        episodicMemory,
-        systemInstructions,
-        context: contextOpts = {},
-        maxLoops = 5,
-        logger = createLogger({scope: 'agent'}),
-        workspaceRoot = process.cwd(),
-        externalTools: extToolOpts = {},
-        approvalManager: externalApprovalManager,
-    } = opts;
+    export function createAgent(opts: AgentOptions = {}): Agent {
+        validateAgentOptions(opts);
+        const {
+            nar,
+            lmClient,
+            episodicMemory,
+            systemInstructions,
+            context: contextOpts = {},
+            maxLoops = 5,
+            logger = createLogger({scope: 'agent'}),
+            workspaceRoot = process.cwd(),
+            externalTools: extToolOpts = {},
+            approvalManager: externalApprovalManager,
+            persistKnowledge = false,
+            knowledgePath = '.cache/agent-knowledge.json',
+        } = opts;
 
-    const runner = new ModelRunner({lmClient, maxLoops});
-    const knowledge = new Map<string, string>();
-    const sessionInstructions = new WeakMap<ConversationSession, string>();
-    const sessionScratchpad = new WeakMap<ConversationSession, Map<string, string>>();
-    const eventBus = new AgentEventBus();
-    const approvalManager = externalApprovalManager ?? new ApprovalManager();
-    const translationCache = new TranslationCache();
-    const narRegistry = nar?.getProviderRegistry?.();
-    const contextAssembler = nar ? new ContextAssembler(translationCache) : undefined;
-    const understandingService = nar && narRegistry ? new NLUnderstandingService(
-        narRegistry,
-        translationCache,
-        {structuredOnly: true}
-    ) : undefined;
-    const generationService = nar && narRegistry ? new NLGenerationService(
-        narRegistry
-    ) : undefined;
-    let throttle = 100;
-    let reasoningHandle: ReturnType<typeof setInterval> | undefined;
-    const recentDerivations: DerivationEntry[] = [];
+        const runner = new ModelRunner({lmClient, maxLoops});
+        const knowledge = new Map<string, string>();
+
+        if (persistKnowledge) {
+            try {
+                const fs = require('fs');
+                const path = require('path');
+                const fullPath = path.resolve(workspaceRoot, knowledgePath);
+                if (fs.existsSync(fullPath)) {
+                    const content = fs.readFileSync(fullPath, 'utf-8');
+                    const data = JSON.parse(content);
+                    if (data && typeof data === 'object') {
+                        for (const [key, value] of Object.entries(data)) {
+                            knowledge.set(key, String(value));
+                        }
+                    }
+                }
+            } catch {
+                // Ignore load errors
+            }
+        }
+
+        const saveKnowledge = (): void => {
+            if (!persistKnowledge) return;
+            try {
+                const fs = require('fs');
+                const path = require('path');
+                const fullPath = path.resolve(workspaceRoot, knowledgePath);
+                const dir = path.dirname(fullPath);
+                if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir, {recursive: true});
+                }
+                const data = Object.fromEntries(knowledge);
+                fs.writeFileSync(fullPath, JSON.stringify(data, null, 2), 'utf-8');
+            } catch {
+                // Ignore save errors
+            }
+        };
+        const sessionInstructions = new WeakMap<ConversationSession, string>();
+        const sessionScratchpad = new WeakMap<ConversationSession, Map<string, string>>();
+        const eventBus = new AgentEventBus();
+        const approvalManager = externalApprovalManager ?? new ApprovalManager();
+        const translationCache = new TranslationCache();
+        const narRegistry = nar?.getProviderRegistry?.();
+        const systemEventBus = nar?.getSystemEventBus?.();
+        const contextAssembler = nar ? new ContextAssembler(translationCache) : undefined;
+        const understandingService = nar && narRegistry ? new NLUnderstandingService(
+            narRegistry,
+            translationCache,
+            {structuredOnly: true}
+        ) : undefined;
+        const generationService = nar && narRegistry ? new NLGenerationService(
+            narRegistry
+        ) : undefined;
+        let throttle = 100;
+        let reasoningHandle: ReturnType<typeof setInterval> | undefined;
+        let autonomyEngine: AutonomyEngine | undefined;
+        const recentDerivations: DerivationEntry[] = [];
 
     const stats: AgentStats = {
         totalChats: 0,
@@ -351,95 +413,6 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         return tools;
     };
 
-    const tryParseNarsese = (input: string): ParseTaskResult | null => termParser.parseTask(input);
-
-    const formatTaskBatchResult = (batch: TaskBatch): string => {
-        const parts: string[] = [];
-        if (batch.beliefs.length > 0) {
-            parts.push(`Recorded ${batch.beliefs.length} belief${batch.beliefs.length > 1 ? 's' : ''}:`);
-            for (const b of batch.beliefs) {
-                parts.push(`  + ${b.narsese}`);
-            }
-        }
-        if (batch.questions.length > 0) {
-            parts.push(`Asked ${batch.questions.length} question${batch.questions.length > 1 ? 's' : ''}.`);
-        }
-        if (batch.goals.length > 0) {
-            parts.push(`Set ${batch.goals.length} goal${batch.goals.length > 1 ? 's' : ''}.`);
-        }
-        if (batch.meta.ambiguities.length > 0) {
-            parts.push(`Detected ${batch.meta.ambiguities.length} ambiguity${batch.meta.ambiguities.length > 1 ? 'ies' : ''}.`);
-        }
-        return parts.join('\n') || 'Understood.';
-    };
-
-    const tryNlTranslation = async (input: string): Promise<string | null> => {
-        if (!understandingService || !nar) return null;
-        try {
-            const nlContext = contextAssembler?.assemble(nar, input, contextOpts);
-            const batch = await understandingService.understand(input, nlContext);
-            if (!batch) return null;
-            for (const b of batch.beliefs) {
-                await nar.believe(b.narsese, b.truth);
-            }
-            for (const q of batch.questions) {
-                await nar.question(q.narsese);
-            }
-            for (const g of batch.goals) {
-                await nar.goal(g.narsese);
-            }
-            return formatTaskBatchResult(batch);
-        } catch {
-            return null;
-        }
-    };
-
-    const DRIVE_PATTERNS: Array<{re: RegExp; driveId: string; amount: number}> = [
-        {re: /\b(?:stop|less|reduce)\s+(?:being\s+)?curious\b/i, driveId: 'curiosity', amount: -0.3},
-        {re: /\b(?:be\s+more|increase|boost)\s+curious\b/i, driveId: 'curiosity', amount: 0.3},
-        {re: /\b(?:stop|less|reduce)\s+(?:being\s+)?social\b/i, driveId: 'social', amount: -0.3},
-        {re: /\b(?:be\s+more|increase|boost)\s+social\b/i, driveId: 'social', amount: 0.3},
-        {re: /\b(?:focus|concentrate)\b/i, driveId: 'coherence', amount: 0.2},
-        {re: /\b(?:relax|chill)\b/i, driveId: 'coherence', amount: -0.2},
-    ];
-
-    const tryDriveStimulation = (input: string): string | null => {
-        const driveManager = nar?.getDriveManager?.();
-        if (!driveManager) return null;
-        for (const {re, driveId, amount} of DRIVE_PATTERNS) {
-            if (re.test(input)) {
-                driveManager.stimulate(driveId, amount);
-                return `Adjusted ${driveId} drive.`;
-            }
-        }
-        return null;
-    };
-
-    const formatBelief = (b: {term: {toString(): string}; truth?: {f: number; c: number}}): string => {
-        const truth = b.truth ? ` (f=${b.truth.f.toFixed(2)} c=${b.truth.c.toFixed(2)})` : '';
-        return `${b.term.toString()}${truth}`;
-    };
-
-    const generateReasonedResponse = async (input: string, beliefs: Array<{term: {toString(): string}; truth?: {f: number; c: number}}>): Promise<string | null> => {
-        if (!generationService || beliefs.length === 0) return null;
-        try {
-            const genInput: GenerationInput = {
-                query: input,
-                derivation: null,
-                beliefs: beliefs.map(b => ({
-                    term: b.term.toString(),
-                    truth: b.truth ? {frequency: b.truth.f, confidence: b.truth.c} : undefined,
-                })),
-                conflicts: [],
-            };
-            const output = await generationService.generate(genInput);
-            if (output.confidence > 0.3) return output.response;
-        } catch {
-            // generation failure is non-critical
-        }
-        return null;
-    };
-
     const recallFromMemory = async (query?: string, limit = 10): Promise<Array<{timestamp: number; type: string; content: string}>> => {
         if (!episodicMemory) return [];
         const episodes = await episodicMemory.getEpisodes({limit}).catch(() => []);
@@ -469,57 +442,47 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         return {text: next.value?.text ?? '', ...(next.value?.usage ? {usage: next.value.usage} : {})};
     };
 
+    const processInputDeps = {
+        nar,
+        hasLmModel: runner.hasModel(),
+        understandingService,
+        generationService,
+        contextAssembler: contextAssembler!,
+        contextOpts,
+        autonomyEngine,
+    };
+
+    const runProcessInput = async (input: string, opts: {signal?: AbortSignal; session?: ConversationSession; historyLimit?: number} = {}) => {
+        const gen = processInput(processInputDeps, input, opts);
+        let next = await gen.next();
+        let event: InputEvent | undefined;
+        while (!next.done) {
+            event = next.value;
+            next = await gen.next();
+        }
+        return {text: next.value, event};
+    };
+
     const chat = async (input: string, opts: ChatOptions = {}): Promise<string> => {
         const startTime = Date.now();
         eventBus.emit('agent:process:start', {input, timestamp: startTime});
         try {
             safeLog('input', input);
-            const task = tryParseNarsese(input);
-            if (task) {
-                await nar?.input(task.term, task.taskType, task.truth);
-                if (task.taskType === 'question') {
-                    const needle = task.term.toString();
-                    const existing = nar?.getBeliefs().find(b =>
-                        b.term.toString().toLowerCase().includes(needle.toLowerCase())
-                    );
-                    let response: string;
-                    if (existing) {
-                        const reasoned = await generateReasonedResponse(input, [existing as {term: {toString(): string}; truth?: {f: number; c: number}}]);
-                        response = reasoned ?? formatBelief(existing as {term: {toString(): string}; truth?: {f: number; c: number}});
-                    } else {
-                        response = `Question queued: ${input} (reasoning in background)`;
-                    }
-                    safeLog('response', response, {narsese: input, taskType: task.taskType});
-                    recordStats('success', Date.now() - startTime);
-                    eventBus.emit('agent:process:complete', {input, output: response, durationMs: Date.now() - startTime, timestamp: Date.now()});
-                    return response;
-                }
-                const response = `+ ${input}`;
-                safeLog('response', response, {narsese: input, taskType: task.taskType});
-                recordStats('success', Date.now() - startTime);
-                eventBus.emit('agent:process:complete', {input, output: response, durationMs: Date.now() - startTime, timestamp: Date.now()});
+            const {text, event} = await runProcessInput(input, opts);
+
+            if (event?.kind === 'lm-dispatch') {
+                const dispatch = await dispatchToLM(input, opts);
+                const response = dispatch.text;
+                safeLog('response', response);
+                recordStats('success', Date.now() - startTime, dispatch.usage);
+                eventBus.emit('agent:process:complete', {input, output: response, durationMs: Date.now() - startTime, ...(dispatch.usage ? {tokens: toEventTokens(dispatch.usage)} : {}), timestamp: Date.now()});
                 return response;
             }
-            const driveResult = tryDriveStimulation(input);
-            if (driveResult !== null) {
-                safeLog('response', driveResult);
-                recordStats('success', Date.now() - startTime);
-                eventBus.emit('agent:process:complete', {input, output: driveResult, durationMs: Date.now() - startTime, timestamp: Date.now()});
-                return driveResult;
-            }
-            const nlResult = await tryNlTranslation(input);
-            if (nlResult !== null) {
-                safeLog('response', nlResult);
-                recordStats('success', Date.now() - startTime);
-                eventBus.emit('agent:process:complete', {input, output: nlResult, durationMs: Date.now() - startTime, timestamp: Date.now()});
-                return nlResult;
-            }
-            const dispatch = await dispatchToLM(input, opts);
-            const response = dispatch.text;
-            safeLog('response', response);
-            recordStats('success', Date.now() - startTime, dispatch.usage);
-            eventBus.emit('agent:process:complete', {input, output: response, durationMs: Date.now() - startTime, ...(dispatch.usage ? {tokens: toEventTokens(dispatch.usage)} : {}), timestamp: Date.now()});
-            return response;
+
+            safeLog('response', text);
+            recordStats('success', Date.now() - startTime);
+            eventBus.emit('agent:process:complete', {input, output: text, durationMs: Date.now() - startTime, timestamp: Date.now()});
+            return text;
         } catch (e) {
             const err = e instanceof Error ? e.message : String(e);
             recordStats('failure', Date.now() - startTime);
@@ -534,73 +497,29 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         eventBus.emit('agent:process:start', {input, sessionKey: session.key, timestamp: startTime});
         try {
             safeLog('input', input, {session: session.key});
-            const task = tryParseNarsese(input);
-            if (task) {
-                await nar?.input(task.term, task.taskType, task.truth);
-                if (task.taskType === 'question') {
-                    const needle = task.term.toString();
-                    const existing = nar?.getBeliefs().find(b =>
-                        b.term.toString().toLowerCase().includes(needle.toLowerCase())
-                    );
-                    let response: string;
-                    if (existing) {
-                        const reasoned = await generateReasonedResponse(input, [existing as {term: {toString(): string}; truth?: {f: number; c: number}}]);
-                        response = reasoned ?? formatBelief(existing as {term: {toString(): string}; truth?: {f: number; c: number}});
-                    } else {
-                        response = `Question queued: ${input} (reasoning in background)`;
-                    }
-                    appendTurn(session, 'user', input, {narsese: true, taskType: task.taskType});
-                    appendTurn(session, 'assistant', response, {narsese: true, taskType: task.taskType});
-                    trimHistory(session, historyLimit);
-                    safeLog('response', response, {session: session.key, narsese: true});
-                    recordStats('success', Date.now() - startTime);
-                    eventBus.emit('agent:process:complete', {input, output: response, sessionKey: session.key, durationMs: Date.now() - startTime, timestamp: Date.now()});
-                    return response;
-                }
-                const response = `+ ${input}`;
-                appendTurn(session, 'user', input, {narsese: true, taskType: task.taskType});
-                appendTurn(session, 'assistant', response, {narsese: true, taskType: task.taskType});
-                trimHistory(session, historyLimit);
-                safeLog('response', response, {session: session.key, narsese: true});
-                recordStats('success', Date.now() - startTime);
-                eventBus.emit('agent:process:complete', {input, output: response, sessionKey: session.key, durationMs: Date.now() - startTime, timestamp: Date.now()});
-                return response;
+            const {text, event} = await runProcessInput(input, {signal: opts.signal, session, historyLimit});
+
+            if (event?.kind === 'lm-dispatch') {
+                const historyMessages = formatHistoryAsMessages(session.history, historyLimit);
+                historyMessages.push({role: 'user', content: input});
+                const composed = await buildComposedRequest(input, historyMessages, session);
+                const iter = runner.run(composed, opts.signal);
+                let next = await iter.next();
+                while (!next.done) next = await iter.next();
+                const reply = next.value?.text ?? '';
+                const usage = next.value?.usage;
+                appendSessionTurns(session, input, reply, historyLimit);
+                safeLog('response', reply, {session: session.key});
+                recordStats('success', Date.now() - startTime, usage);
+                eventBus.emit('agent:process:complete', {input, output: reply, sessionKey: session.key, durationMs: Date.now() - startTime, ...(usage ? {tokens: toEventTokens(usage)} : {}), timestamp: Date.now()});
+                return reply;
             }
-            const driveResult = tryDriveStimulation(input);
-            if (driveResult !== null) {
-                appendTurn(session, 'user', input);
-                appendTurn(session, 'assistant', driveResult);
-                trimHistory(session, historyLimit);
-                safeLog('response', driveResult, {session: session.key});
-                recordStats('success', Date.now() - startTime);
-                eventBus.emit('agent:process:complete', {input, output: driveResult, sessionKey: session.key, durationMs: Date.now() - startTime, timestamp: Date.now()});
-                return driveResult;
-            }
-            const nlResult = await tryNlTranslation(input);
-            if (nlResult !== null) {
-                appendTurn(session, 'user', input);
-                appendTurn(session, 'assistant', nlResult);
-                trimHistory(session, historyLimit);
-                safeLog('response', nlResult, {session: session.key});
-                recordStats('success', Date.now() - startTime);
-                eventBus.emit('agent:process:complete', {input, output: nlResult, sessionKey: session.key, durationMs: Date.now() - startTime, timestamp: Date.now()});
-                return nlResult;
-            }
-            const historyMessages = formatHistoryAsMessages(session.history, historyLimit);
-            historyMessages.push({role: 'user', content: input});
-            const composed = await buildComposedRequest(input, historyMessages, session);
-            const iter = runner.run(composed, opts.signal);
-            let next = await iter.next();
-            while (!next.done) next = await iter.next();
-            const reply = next.value?.text ?? '';
-            const usage = next.value?.usage;
-            appendTurn(session, 'user', input);
-            appendTurn(session, 'assistant', reply);
-            trimHistory(session, historyLimit);
-            safeLog('response', reply, {session: session.key});
-            recordStats('success', Date.now() - startTime, usage);
-            eventBus.emit('agent:process:complete', {input, output: reply, sessionKey: session.key, durationMs: Date.now() - startTime, ...(usage ? {tokens: toEventTokens(usage)} : {}), timestamp: Date.now()});
-            return reply;
+
+            appendSessionTurns(session, input, text, historyLimit);
+            safeLog('response', text, {session: session.key});
+            recordStats('success', Date.now() - startTime);
+            eventBus.emit('agent:process:complete', {input, output: text, sessionKey: session.key, durationMs: Date.now() - startTime, timestamp: Date.now()});
+            return text;
         } catch (e) {
             const err = e instanceof Error ? e.message : String(e);
             recordStats('failure', Date.now() - startTime);
@@ -621,57 +540,36 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         let didError = false;
         let errorMessage: string | undefined;
         try {
-            const task = tryParseNarsese(input);
-            if (task) {
-                await nar?.input(task.term, task.taskType, task.truth);
-                const response = `+ ${input}`;
-                final = response;
-                yield {kind: 'text-delta', text: response};
-                yield {kind: 'finish', text: response};
-                if (session) {
-                    appendTurn(session, 'user', input, {narsese: true, taskType: task.taskType});
-                    appendTurn(session, 'assistant', response, {narsese: true, taskType: task.taskType});
-                    trimHistory(session, opts.historyLimit ?? DEFAULT_SESSION_HISTORY_LIMIT);
-                }
-                return response;
-            }
-            const nlResult = await tryNlTranslation(input);
-            if (nlResult !== null) {
-                final = nlResult;
-                yield {kind: 'text-delta', text: nlResult};
-                yield {kind: 'finish', text: nlResult};
-                if (session) {
-                    appendTurn(session, 'user', input);
-                    appendTurn(session, 'assistant', nlResult);
-                    trimHistory(session, opts.historyLimit ?? DEFAULT_SESSION_HISTORY_LIMIT);
-                }
-                return nlResult;
-            }
-            if (!runner.hasModel()) {
-                const fallback = 'No LM configured — Narsese input only.';
-                final = fallback;
-                yield {kind: 'text-delta', text: fallback};
-                yield {kind: 'finish', text: fallback};
-                return fallback;
-            }
-            let historyMessages: Array<{role: 'user' | 'assistant' | 'system'; content: string}> | undefined;
-            if (session) {
-                historyMessages = formatHistoryAsMessages(session.history, opts.historyLimit ?? DEFAULT_SESSION_HISTORY_LIMIT);
-                historyMessages.push({role: 'user', content: input});
-            }
-            const composed = await buildComposedRequest(input, historyMessages, session);
-            const iter = runner.run(composed, opts.signal);
-            while (true) {
-                const next = await iter.next();
-                if (next.done) {
-                    final = next.value?.text ?? '';
-                    streamUsage = next.value?.usage;
-                    break;
-                }
+            const historyLimit = opts.historyLimit ?? DEFAULT_SESSION_HISTORY_LIMIT;
+            const gen = processInput(processInputDeps, input, {signal: opts.signal, session, historyLimit});
+            let next = await gen.next();
+            while (!next.done) {
                 const ev = next.value;
-                if (ev.kind === 'text-delta') yield {kind: 'text-delta', text: ev.text};
-                else if (ev.kind === 'tool-call') yield {kind: 'tool-call', toolName: ev.call.toolName, toolArgs: ev.call.args};
-                else if (ev.kind === 'tool-result') yield {kind: 'tool-result', toolName: ev.call.toolName, toolArgs: ev.call.args, toolResult: ev.result};
+                if (ev.kind === 'lm-dispatch') {
+                    let historyMessages: Array<{role: 'user' | 'assistant' | 'system'; content: string}> | undefined;
+                    if (session) {
+                        historyMessages = formatHistoryAsMessages(session.history, historyLimit);
+                        historyMessages.push({role: 'user', content: input});
+                    }
+                    const composed = await buildComposedRequest(input, historyMessages, session);
+                    const iter = runner.run(composed, opts.signal);
+                    while (true) {
+                        const lmNext = await iter.next();
+                        if (lmNext.done) {
+                            final = lmNext.value?.text ?? '';
+                            streamUsage = lmNext.value?.usage;
+                            break;
+                        }
+                        const lmEv = lmNext.value;
+                        if (lmEv.kind === 'text-delta') yield {kind: 'text-delta', text: lmEv.text};
+                        else if (lmEv.kind === 'tool-call') yield {kind: 'tool-call', toolName: lmEv.call.toolName, toolArgs: lmEv.call.args};
+                        else if (lmEv.kind === 'tool-result') yield {kind: 'tool-result', toolName: lmEv.call.toolName, toolArgs: lmEv.call.args, toolResult: lmEv.result};
+                    }
+                } else {
+                    final = ev.text;
+                    yield {kind: 'text-delta', text: ev.text};
+                }
+                next = await gen.next();
             }
             if (opts.signal?.aborted) {
                 yield {kind: 'aborted'};
@@ -679,9 +577,7 @@ export function createAgent(opts: AgentOptions = {}): Agent {
             }
             yield {kind: 'finish', text: final};
             if (session) {
-                appendTurn(session, 'user', input);
-                appendTurn(session, 'assistant', final);
-                trimHistory(session, opts.historyLimit ?? DEFAULT_SESSION_HISTORY_LIMIT);
+                appendSessionTurns(session, input, final, historyLimit);
             }
             safeLog('response', final, session ? {session: session.key} : {});
             return final;
@@ -701,9 +597,12 @@ export function createAgent(opts: AgentOptions = {}): Agent {
     };
 
     const believe = async (narsese: string): Promise<void> => {
-        const task = tryParseNarsese(narsese);
-        if (task) await nar?.input(task.term, task.taskType, task.truth);
-        else await nar?.believe(narsese);
+        const {event} = await runProcessInput(narsese);
+        if (event?.kind === 'narsese-input' || event?.kind === 'question-response') {
+            // already processed by processInput
+        } else {
+            await nar?.believe(narsese);
+        }
         safeLog('belief_added', narsese);
     };
 
@@ -721,7 +620,13 @@ export function createAgent(opts: AgentOptions = {}): Agent {
                 logger.warn('NAR start failed', {error: err instanceof Error ? err.message : String(err)});
             });
         }
-        if (!reasoningHandle) {
+
+        // Use AutonomyEngine if provided, otherwise fall back to setInterval
+        if (opts.autonomyEngine) {
+            autonomyEngine = opts.autonomyEngine;
+            autonomyEngine.setNotifyHandler((msg) => logger.debug(msg));
+            autonomyEngine.start();
+        } else if (!reasoningHandle) {
             reasoningHandle = setInterval(async () => {
                 if (throttle === 0 || !nar) return;
                 const driveManager = nar.getDriveManager();
@@ -742,13 +647,16 @@ export function createAgent(opts: AgentOptions = {}): Agent {
     };
 
     const stop = (): void => {
-        if (reasoningHandle) {
+        if (autonomyEngine) {
+            autonomyEngine.stop();
+        } else if (reasoningHandle) {
             clearInterval(reasoningHandle);
             reasoningHandle = undefined;
         }
         if (nar && (nar.state === 'started' || nar.state === 'initialized')) {
             nar.stop().catch(() => {});
         }
+        saveKnowledge();
         eventBus.emit('agent:suspend', {timestamp: Date.now()});
     };
 
@@ -758,11 +666,13 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         chatStream,
         believe,
         recall,
-        know: (key: string, value: string) => { knowledge.set(key, value); safeLog('input', value, {kind: 'knowledge', key}); },
+        know: (key: string, value: string) => { knowledge.set(key, value); safeLog('input', value, {kind: 'knowledge', key}); saveKnowledge(); },
         knowGet: (key: string) => knowledge.get(key),
         knowList: () => [...knowledge.entries()].map(([key, value]) => ({key, value})),
         start,
         stop,
+        pause: () => autonomyEngine?.pause(),
+        resume: () => autonomyEngine?.resume(),
         setThrottle: (percent: number) => { throttle = Math.max(0, Math.min(100, percent)); },
         getThrottle: () => throttle,
         getNAR: () => nar,
@@ -772,7 +682,88 @@ export function createAgent(opts: AgentOptions = {}): Agent {
         getRecentDerivations: () => [...recentDerivations],
         resolveApproval: (id, approved, reason) => approvalManager.resolveApproval(id, approved, reason),
         getPendingApprovals: () => approvalManager.getPending().map(r => ({id: r.id, request: r.request, createdAt: r.createdAt})),
-        on: (event, listener) => eventBus.on(event, listener),
-        off: (event, listener) => eventBus.off(event, listener),
+        getLmRuleStats: () => nar?.getProcessor().getLmRuleStats?.() ?? [],
+        getLmRuleExecutionLog: () => nar?.getProcessor().getLMRuleExecutionLog?.() ?? [],
+        enableLmRule: (id: string) => nar?.getProcessor().getLMRule?.(id)?.enable?.(),
+        disableLmRule: (id: string) => nar?.getProcessor().getLMRule?.(id)?.disable?.(),
+        setLmRulePriority: (id: string, priority: number) => {
+            const rule = nar?.getProcessor().getLMRule?.(id);
+            if (rule && 'priority' in rule) (rule as {priority: number}).priority = priority;
+        },
+        getAutonomyEngine: () => autonomyEngine,
+        getRLFPState: () => nar?.getRLFP?.() ? {
+            enabled: true,
+            policy: {},
+            qValues: {},
+            explorationRate: 0,
+            totalRewards: 0,
+            totalSteps: 0,
+        } : null,
+        resetRLFP: () => {
+            const rlfp = nar?.getRLFP?.();
+            if (rlfp) {
+                // RLFPLearner doesn't have a reset method yet
+            }
+        },
+        getSelfReasoning: () => nar?.getSelfAnalyzer?.() ? {
+            qualityScore: 0,
+            consistency: 0,
+            gaps: [],
+            suggestions: [],
+        } : null,
+        getReasoningQuality: () => nar?.getSelfAnalyzer?.() ? {
+            overall: 0,
+            coherence: 0,
+            relevance: 0,
+            completeness: 0,
+        } : null,
+        explainBelief: async (term: string) => {
+            if (!nar) return null;
+            const {termParser} = await import('../nar/terms/index.js');
+            const parsed = termParser.parse(term);
+            if (!parsed) return null;
+            const result = nar.query.query(parsed, {truthRange: [0, 1], limit: 1});
+            if (!result.beliefs.length) return null;
+            const belief = result.beliefs[0]!;
+            return {
+                explanation: belief.term.toString(),
+                confidence: belief.truth?.c ?? 0,
+                premises: [belief.term.toString()],
+            };
+        },
+        explainGoal: async (term: string) => {
+            if (!nar) return null;
+            const {termParser} = await import('../nar/terms/index.js');
+            const parsed = termParser.parse(term);
+            if (!parsed) return null;
+            const result = nar.query.query(parsed, {truthRange: [0, 1], limit: 1});
+            if (!result.beliefs.length) return null;
+            const goal = result.beliefs[0]!;
+            return {
+                explanation: goal.term.toString(),
+                confidence: goal.truth?.c ?? 0,
+                premises: [goal.term.toString()],
+            };
+        },
+        traceRule: async (ruleId: string, term: string) => {
+            if (!nar) return null;
+            const rule = nar.getProcessor().getLMRule?.(ruleId);
+            if (!rule) return null;
+            return {
+                ruleName: rule.name,
+                input: term,
+                output: '',
+                confidence: 0,
+            };
+        },
+        on: (event: string, listener: (...args: any[]) => void) => {
+            const unsubAgent = eventBus.on(event as any, listener);
+            const unsubSystem = systemEventBus?.on(event as any, listener);
+            return () => { unsubAgent(); unsubSystem?.(); };
+        },
+        off: (event: string, listener: (...args: any[]) => void) => {
+            eventBus.off(event as any, listener);
+            systemEventBus?.off(event as any, listener);
+        },
     };
 }
