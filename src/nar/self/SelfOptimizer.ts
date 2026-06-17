@@ -95,7 +95,7 @@ export class SelfOptimizer {
         const config = this.nar.getConfig();
         const {throughput, system} = metrics;
         const throughputValue = throughput?.derivationsPerSecond ?? 0;
-        const errorRate = system?.errors && system.totalDerivations ? system.errors / system.totalDerivations : 0;
+        const _errorRate = system?.errors && system.totalDerivations ? system.errors / system.totalDerivations : 0;
         const memoryUsage = process.memoryUsage?.().heapUsed ?? 0;
         const conceptCount = this.nar.listConcepts().length;
 

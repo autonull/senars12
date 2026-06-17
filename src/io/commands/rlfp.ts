@@ -1,4 +1,5 @@
 import type {CommandDefinition} from './registry.js';
+import {requireNar} from './utils.js';
 
 export const rlfpCommands: CommandDefinition[] = [
 {
@@ -8,8 +9,10 @@ export const rlfpCommands: CommandDefinition[] = [
 	usage: '/prefer <preferred> <rejected>',
 	execute: async (args, ctx) => {
 		if (args.length < 2) return 'Usage: /prefer <preferred> <rejected>';
+		const nar = requireNar(ctx);
+		if (!nar.ok) return nar.message;
 		const [preferred, rejected] = args;
-		const rlfp = ctx.nar.getRLFP();
+		const rlfp = nar.nar.getRLFP();
 		if (!rlfp) return 'RLFP not enabled';
 		if (typeof rlfp.addPreference === 'function') rlfp.addPreference(preferred!, rejected!);
 		return `Preference recorded: ${preferred} > ${rejected}`;
@@ -21,7 +24,9 @@ export const rlfpCommands: CommandDefinition[] = [
 	description: 'Show reward status',
 	usage: '/reward',
 	execute: async (_args, ctx) => {
-		const rlfp = ctx.nar.getRLFP();
+		const nar = requireNar(ctx);
+		if (!nar.ok) return nar.message;
+		const rlfp = nar.nar.getRLFP();
 		return rlfp ? `RLFP Reward Status:\nPreferences: ${rlfp.preferences?.length ?? 0}` : 'RLFP not enabled';
 	}
 },
@@ -31,7 +36,9 @@ export const rlfpCommands: CommandDefinition[] = [
 	description: 'Show policy optimizer strategies',
 	usage: '/policy',
 	execute: async (_args, ctx) => {
-		const rlfp = ctx.nar.getRLFP();
+		const nar = requireNar(ctx);
+		if (!nar.ok) return nar.message;
+		const rlfp = nar.nar.getRLFP();
 		if (!rlfp) return 'RLFP not enabled';
 		return 'Policy optimizer strategies:\n- Default: preference-based learning\n- Status: Active\n(Note: Detailed policy info pending implementation)';
 	}

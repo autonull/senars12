@@ -3,9 +3,9 @@ import type {Connection} from '../types.js';
 import type {ConnectionManager} from '../connection-manager.js';
 
 export interface CommandContext {
-    readonly nar: NAR;
+    readonly nar?: NAR;
     readonly connection: Connection;
-    readonly manager: ConnectionManager;
+    readonly manager?: ConnectionManager;
 }
 
 export type CommandHandler = (args: string[], context: CommandContext) => Promise<string>;

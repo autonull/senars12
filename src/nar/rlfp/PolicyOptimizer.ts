@@ -48,6 +48,10 @@ export class PolicyOptimizer {
         };
     }
 
+    getConfig(): Required<PolicyConfig> {
+        return this.config;
+    }
+
     recordOutcome(trajectory: TrajectoryStep[], strategyUsed: string): number {
         const reward = this.rewardModel.computeReward(trajectory);
 

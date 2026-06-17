@@ -16,7 +16,7 @@ interface RuleDef {
     readonly priority: number;
 }
 
-const rule = <T extends RuleDef>(id: string, description: string, config: Omit<T, 'id' | 'description'>): T =>
+const _rule = <T extends RuleDef>(id: string, description: string, config: Omit<T, 'id' | 'description'>): T =>
     ({id, description, ...config} as T);
 
 const registerRule = (id: string, left: string, right: string, fn: RuleFn, truthFn: TruthFn, priority: number) =>
@@ -72,9 +72,9 @@ const abdExtractor = (left: Term, right: Term) => ({
     rightTerm: getPredicate(right)
 });
 
-const deductionLink = linkFn(dedExtractor);
-const inductionLink = linkFn(indExtractor);
-const abductionLink = linkFn(abdExtractor);
+const _deductionLink = linkFn(dedExtractor);
+const _inductionLink = linkFn(indExtractor);
+const _abductionLink = linkFn(abdExtractor);
 
 const buildDeduction = (left: Term, right: Term): Term | undefined => {
 const s = getSubject(left), p = getPredicate(right);
@@ -109,7 +109,7 @@ const buildHigherOrderRule = (
 
 const {
     negation, inheritance, conjunction, disjunction, implication, equivalence, similarity,
-    sequence, parallel, predictive, operation, instance, property, atom
+    sequence, parallel, predictive, operation, instance, property
 } = TermBuilder;
 
 const foldNary = (kind: Term['kind'], eq: (a1: Term, a2: Term) => boolean, unique = false): RuleFn => {

@@ -50,12 +50,42 @@ export const Stamp = {
         const maxDepth = parentStamps.reduce((max, s) => Math.max(max, s.depth), 0);
         if (maxDepth >= DEPTH_MAX) return undefined;
 
-        const allDerivations = parentStamps.flatMap(s => [s.id, ...s.derivations]);
+        const seenEvidence = new Set<string>();
+        let totalCount = 0;
+
+        for (const stamp of parentStamps) {
+            if (!stamp) continue;
+            seenEvidence.add(stamp.id);
+            totalCount++;
+            if (stamp.derivations) {
+                for (const derivationId of stamp.derivations) {
+                    seenEvidence.add(derivationId);
+                    totalCount++;
+                }
+            }
+        }
+
+        if (seenEvidence.size < totalCount) {
+            // Deduplicate if identical parent
+            const uniqueParents = new Set(parentStamps.map(s => s.id));
+            if (uniqueParents.size === 1 && parentStamps.length > 1) {
+                // Return just one of the parents if they are identical
+                return Object.freeze({
+                    id: makeId(),
+                    creationTime: Date.now(),
+                    source,
+                    derivations: Array.from(seenEvidence),
+                    depth: (maxDepth + 1) as Increment<D>
+                });
+            }
+            return undefined;
+        }
+
         return Object.freeze({
             id: makeId(),
             creationTime: Date.now(),
             source,
-            derivations: [...new Set(allDerivations)],
+            derivations: Array.from(seenEvidence),
             depth: (maxDepth + 1) as Increment<D>
         });
     },

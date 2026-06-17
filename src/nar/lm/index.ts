@@ -1,5 +1,6 @@
 export type {LMClient, LMConfig, ModelConfig} from './types.js';
 export {LMRule} from './LMRule.js';
+export type {LMContext, ValidationResult, LMRuleConfigV2} from './LMRule.js';
 export {LMRules} from './lm-rule-factory.js';
 export {MockLMClient, createMockLMClient, RuleBasedLMClient, createRuleBasedLMClient} from './mock-client.js';
 export {LMResponseParser} from './parser.js';
@@ -15,11 +16,9 @@ export {
     ModelCapabilityDiscovery, ModelBenchmark
 } from './model-discovery.js';
 export {BidirectionalFeedbackLoop, createBidirectionalFeedbackLoop} from './feedback.js';
-export type {FeedbackConfig, ValidationFeedback} from './feedback.js';
+export type {FeedbackConfig, ValidationFeedback, ContradictionExplanation, ExtractedPattern} from './feedback.js';
 export {ProactiveEnricher, createProactiveEnricher} from './enrichment.js';
 export type {EnricherConfig, EnrichmentResult} from './enrichment.js';
-export {LMStreamManager, StreamingLMClient, createLMStreamManager, createStreamingLMClient} from './streaming.js';
-export type {StreamConfig, StreamEvent, StreamHandle} from './streaming.js';
 export {
     registerDefaultModels,
     setupDefaultLMClient, TURNKEY_DEFAULTS, getTurnkeyConfig,

@@ -1,10 +1,15 @@
 import type {Connection, IOMessage} from './types.js';
 import type {NAR} from '../nar/nar.js';
+import type {ConversationSession} from '../agent/ConversationSession.js';
+import type {ConnectionManager} from './connection-manager.js';
 
 export interface MessageContext {
     readonly connection: Connection;
-    readonly nar: NAR;
+    readonly nar?: NAR;
     readonly respond: (text: string) => Promise<void>;
+    readonly sessionKey?: string;
+    readonly session?: ConversationSession;
+    readonly manager?: ConnectionManager;
 }
 
 export type MessageMiddleware = (

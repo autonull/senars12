@@ -1,6 +1,6 @@
 import type {NAR} from '../nar.js';
-import {MetacognitiveMonitor} from '../../agent/services/MetacognitiveMonitor.js';
-import {type MetaCognitiveResult, type MonitorState, SelfAnalyzerService as SelfAnalyzer} from '../../agent/services/SelfAnalyzerService.js';
+import {MetacognitiveMonitor} from '../cognitive/MetacognitiveMonitor.js';
+import {type MetaCognitiveResult, type MonitorState, SelfAnalyzerService as SelfAnalyzer} from '../cognitive/SelfAnalyzerService.js';
 import {createLogger} from '../logger';
 
 export interface GapReport {
@@ -37,6 +37,14 @@ export interface ReasoningState {
     lastUpdate: number;
     monitorsActive: number;
     pendingMetaTasks: number;
+}
+
+export interface QualityAssessment {
+    overall: number;
+    coherence: number;
+    relevance: number;
+    completeness: number;
+    timestamp: number;
 }
 
 export class ReasoningAboutReasoning {
@@ -153,6 +161,10 @@ export class ReasoningAboutReasoning {
 
     async getSystemAnalysis(): Promise<ReturnType<SelfAnalyzer['getSystemAnalysis']>> {
         return this.analyzer.getSystemAnalysis();
+    }
+
+    async assessQuality(): Promise<QualityAssessment> {
+        return this.analyzer.assessQuality();
     }
 
     shutdown(): void {

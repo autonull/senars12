@@ -2,11 +2,12 @@ import type {Term} from './terms';
 import {termParser, Truth, validateTaskTerm} from './terms';
 import type {Truth as TruthType} from './terms/truth.js';
 import type {TaskType} from './types';
-import {createBudget, createTask, EventBus} from './types';
+import {createBudget, EventBus} from './types';
 import type {NARConfig} from './nar';
 import type {TaskManager} from './task';
 import type {Memory} from './memory';
 import type {CognitiveParameters} from './config/cognitive-parameters.js';
+import {promises as fs} from 'node:fs';
 
 interface SerializedNARState {
     concepts: Array<{ term: string; priority: number }>;
@@ -83,13 +84,11 @@ export class NARIO {
     }
 
     async saveToFile(filename: string): Promise<void> {
-        const {promises: fs} = await import('fs');
         const data = this.export();
         await fs.writeFile(filename, JSON.stringify(data, null, 2));
     }
 
     async loadFromFile(filename: string): Promise<void> {
-        const {promises: fs} = await import('fs');
         const content = await fs.readFile(filename, 'utf-8');
         const data = JSON.parse(content);
         this.import(data);

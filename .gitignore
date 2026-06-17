@@ -45,3 +45,5 @@ verification/
 *.bak
 *.debug.js
 .agents
+.env
+.cache

@@ -6,10 +6,8 @@
  * - Application logic (CLI, Bot, etc.)
  */
 
-import {DEFAULT_NAR_CONFIG, loadConfigFromEnv} from './config/index.js';
+import {loadConfigFromEnv} from './config/index.js';
 import {SeNARSFactory} from './nar/index.js';
-import {setupGracefulShutdown} from './utils/shutdown.js';
-import {createLogger} from './nar/logger/index.js';
 
 const MODES = {
     cli: runCLI,
@@ -34,7 +32,7 @@ async function main() {
 
 async function runCLI() {
     console.log('Starting CLI mode...');
-    await import('./cli/repl');
+    await import('./bin/repl.js');
 }
 
 async function runBot() {
@@ -46,8 +44,8 @@ async function runDemo() {
     console.log('Running demo mode...\n');
 
     const config = await loadConfigFromEnv();
-    console.log(`Configuration loaded: ${config.name} v${config.version}`);
-    console.log(` LM Provider: ${config.lm.provider}`);
+    console.log(`Configuration loaded: ${config.profile.name} (${config.profile.personality})`);
+    console.log(` LM Provider: ${config.capabilities.lm.provider}`);
     console.log(` Max Concepts: ${config.core.maxConcepts}\n`);
 
     const nar = SeNARSFactory.createDefault({

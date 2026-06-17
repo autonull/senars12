@@ -74,9 +74,8 @@ export class WSConnection extends BaseConnection {
         }
     }
 
-    private broadcast(event: string, data?: Record<string, unknown>): void {
+    private broadcast = (event: string, data?: Record<string, unknown>): void =>
         broadcastToSubscribers(this.eventSubscriptions.get(event), event, data);
-    }
 
     private handleNewClient(ws: WebSocket): void {
         const id = crypto.randomUUID();
@@ -127,9 +126,14 @@ export class WSConnection extends BaseConnection {
             return;
         }
 
+        // Optional tracking of clientId to ensure persistent memory cache hits across reconnections
+        const incomingClientId = message.clientId ? String(message.clientId) : client.id;
+
         this.handleMessage(this.createMessage(client.id, (message.data as string) ?? JSON.stringify(message), {
-            clientId: client.id,
-            type: msgType
+            clientId: incomingClientId,
+            type: msgType,
+            channel: 'ws',
+            origin: `ws:direct:${incomingClientId}`
         }));
     }
 }

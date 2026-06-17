@@ -1,4 +1,5 @@
 import type {NAR} from '../nar/nar.js';
+import type {Agent} from '../agent/agent.js';
 import type {EnhancedMCPAdapter} from './mcp/enhanced-adapter.js';
 
 export function registerNARToolsAsMCP(nar: NAR, adapter: EnhancedMCPAdapter): void {
@@ -139,7 +140,131 @@ export function registerNARToolsAsMCP(nar: NAR, adapter: EnhancedMCPAdapter): vo
     }
 }
 
-export function registerAgentAPI(_agent: unknown, adapter: EnhancedMCPAdapter): void {
+export function registerAgentAPI(agent: Agent, adapter: EnhancedMCPAdapter): void {
+    adapter.registerCapability({
+        name: 'agent_chat',
+        description: 'Chat with the agent (non-streaming)',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                input: {type: 'string', description: 'User input'},
+                historyLimit: {type: 'number', description: 'Max history turns'},
+            },
+            required: ['input'],
+        },
+    });
+
+    adapter.registerCapability({
+        name: 'agent_chat_stream',
+        description: 'Chat with the agent (streaming)',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                input: {type: 'string', description: 'User input'},
+                historyLimit: {type: 'number', description: 'Max history turns'},
+            },
+            required: ['input'],
+        },
+    });
+
+    adapter.registerCapability({
+        name: 'agent_believe',
+        description: 'Add a belief to NAR memory',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                narsese: {type: 'string', description: 'Belief in Narsese format'},
+            },
+            required: ['narsese'],
+        },
+    });
+
+    adapter.registerCapability({
+        name: 'agent_recall',
+        description: 'Recall from episodic memory',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: {type: 'string', description: 'Search query'},
+                limit: {type: 'number', description: 'Max results', default: 10},
+            },
+        },
+    });
+
+    adapter.registerCapability({
+        name: 'agent_know',
+        description: 'Store or retrieve knowledge',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                key: {type: 'string', description: 'Knowledge key'},
+                value: {type: 'string', description: 'Knowledge value (omit to retrieve)'},
+            },
+            required: ['key'],
+        },
+    });
+
+    adapter.registerCapability({
+        name: 'agent_lm_rule_enable',
+        description: 'Enable an LM rule',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: {type: 'string', description: 'Rule ID'},
+            },
+            required: ['id'],
+        },
+    });
+
+    adapter.registerCapability({
+        name: 'agent_lm_rule_disable',
+        description: 'Disable an LM rule',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                id: {type: 'string', description: 'Rule ID'},
+            },
+            required: ['id'],
+        },
+    });
+
+    adapter.registerCapability({
+        name: 'agent_explain',
+        description: 'Explain a belief or goal',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                term: {type: 'string', description: 'Term to explain'},
+                type: {type: 'string', enum: ['belief', 'goal'], default: 'belief'},
+            },
+            required: ['term'],
+        },
+    });
+
+    adapter.registerCapability({
+        name: 'agent_explain_nl',
+        description: 'Explain in natural language',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                term: {type: 'string', description: 'Term to explain'},
+            },
+            required: ['term'],
+        },
+    });
+
+    adapter.registerCapability({
+        name: 'agent_goal_progress',
+        description: 'Get goal progress or list active goals',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                goalId: {type: 'string', description: 'Goal ID (omit to list all)'},
+            },
+        },
+    });
+
+    // Legacy tools for compatibility
     adapter.registerCapability({
         name: 'get_beliefs',
         description: 'Get all beliefs from NAR memory',

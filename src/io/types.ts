@@ -7,6 +7,7 @@ export type ConnectionState =
 export interface IOMessage {
     readonly id: string;
     readonly source: string;
+    readonly origin: string;
     readonly sender: string;
     readonly text: string;
     readonly timestamp: number;
@@ -32,6 +33,8 @@ export interface Connection {
     send(target: string, text: string): Promise<void>;
 
     onMessage(handler: (message: IOMessage) => Promise<void>): void;
+
+    removeMessageHandler(handler: (message: IOMessage) => Promise<void>): void;
 
     onStateChange(handler: (state: ConnectionState, prev: ConnectionState) => void): void;
 

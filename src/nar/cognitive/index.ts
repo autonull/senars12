@@ -1,5 +1,5 @@
-export {ObserverService as Observer} from '../../agent/services/ObserverService.js';
-export type {CognitiveState, CognitiveAction, ObserverReport} from '../../agent/services/ObserverService.js';
+export {ObserverService as Observer} from './ObserverService.js';
+export type {CognitiveState, CognitiveAction, ObserverReport} from './ObserverService.js';
 export {runCounterfactual} from './counterfactual.js';
 
 export {CognitiveRegistry} from './registry';

@@ -4,7 +4,6 @@
  */
 
 export {APIRegistry} from './registry.js';
-export {registerAgentAPI} from './agent-api.js';
 export {HTTPAdapter} from './http-adapter.js';
 export {WebSocketAdapter} from './websocket-adapter.js';
 

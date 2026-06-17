@@ -74,7 +74,14 @@ describe('RuleProcessor LM Rule Priority', () => {
 
     expect(mockLMRule.apply).toHaveBeenCalled();
     const callArgs = mockLMRule.apply.mock.calls[0];
-    expect(callArgs?.[2]).toEqual({priority: 0.7});
+    const context = callArgs?.[2] as Record<string, unknown>;
+    expect(context?.priority).toBe(0.7);
+    expect(context?.conceptPriority).toBe(0.7);
+    expect(context?.taskTerm).toBe('A');
+    expect(context?.secondaryTerm).toBe('B');
+    expect(context?.totalConcepts).toBe(2);
+    expect(context?.memoryPressure).toBe(0);
+    expect(Array.isArray(context?.relatedBeliefs)).toBe(true);
   });
 
   test('high priority concepts result in higher selection probability', async () => {

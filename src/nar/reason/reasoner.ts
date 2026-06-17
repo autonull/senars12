@@ -8,9 +8,7 @@ import {createBudget, createTask} from '../types';
 import type {Memory, Concept} from '../memory';
 import type {RuleInput, RuleProcessor, RuleResult} from '../rules';
 import type {Strategy} from './strategy.js';
-import type {Term} from '../terms';
 import {InferenceController, type InferenceConfig} from './inference-controller.js';
-import type {SamplingStrategy, DerivationStrategy} from '../strategies/types.js';
 import {PrioritySampling} from '../strategies/sampling/index.js';
 import {DefaultDerivation} from '../strategies/derivation/index.js';
 
@@ -127,7 +125,7 @@ export class Reasoner {
         if (derived) yield derived;
       }
 
-      for await (const result of this.processor.processLMRulesExternal(p1, p2, signal)) {
+      for await (const result of this.processor.processLMRules(p1, p2, {signal})) {
         const derived = processResult(result);
         if (derived) yield derived;
       }

@@ -18,11 +18,11 @@ export class DefaultDerivation implements DerivationStrategy {
         const p2: RuleInput = { term: secondary.term, truth: secondary.truth, stamp: secondary.stamp };
 
         for (const result of processor.processSync(p1, p2)) yield toTask(result);
-        for await (const result of processor.processLMRulesExternal(p1, p2, ctx.signal)) yield toTask(result);
+        for await (const result of processor.processLMRules(p1, p2, {signal: ctx.signal})) yield toTask(result);
       }
     } else if (ctx.singlePremiseEnabled) {
       const p1: RuleInput = { term: primary.term, truth: primary.truth, stamp: primary.stamp };
-      for await (const result of processor.processLMRulesSingle(p1, ctx.signal)) yield toTask(result);
+      for await (const result of processor.processLMRules(p1, undefined, {signal: ctx.signal, singlePremise: true})) yield toTask(result);
     }
   }
 }

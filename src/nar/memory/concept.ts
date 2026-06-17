@@ -1,6 +1,6 @@
 import type {Term, Truth} from '../terms';
-import {extractSymbols, jaccardSimilarity, TermMap, termsEqual, TermSet} from '../terms';
 import {Bag} from './bag.js';
+import {extractSymbols, jaccardSimilarity, Stamp, TermMap, termsEqual, TermSet} from '../terms';
 import {Truth as TruthOps} from '../terms/truth.js';
 import type {Budget, TaskType} from '../types';
 import {LINK} from '../constants.js';
@@ -8,14 +8,13 @@ import {clamp01} from '../utils/index.js';
 
 const DECAY_TIME_CONSTANT = 60000;
 const {DECAY_RATE, MIN_PRIORITY: MIN_LINK_STRENGTH} = LINK;
-const DEFAULT_MERGE_SIMILARITY = 0.85;
 
 export interface TaskData {
     readonly term: Term;
     readonly truth?: Truth;
     readonly budget: Budget;
     readonly timestamp?: number;
-    readonly stamp?: import('../terms/stamp.js').Stamp;
+    readonly stamp?: Stamp;
     readonly occurrenceTime?: number;
     readonly derived?: boolean;
 }

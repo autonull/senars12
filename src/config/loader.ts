@@ -1,175 +1,81 @@
 import {promises as fs} from 'fs';
-import {dirname, join} from 'path';
-import {fileURLToPath} from 'url';
-import {clamp} from '../nar/utils/helpers.js';
-import {configSchema} from './schema.js';
+import {resolve} from 'path';
+import {appConfigSchema} from './schema.js';
+import type {AppConfig} from './schema.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+export type {AppConfig, BotConfig, BotProfile, NarCoreConfig, LmConfig} from './schema.js';
 
-export interface LMConfig {
-    enabled?: boolean;
-    provider: string;
-    model?: string;
-    quantized?: boolean;
-    cacheDir?: string;
-    apiKeyEnv?: string;
-}
-
-export interface MemoryConfig {
-    maxConcepts: number;
-    activationDecayRate?: number;
-    bagSize?: number;
-    derivationDepth?: number;
-}
-
-export interface InferenceConfig {
-    maxDerivationDepth: number;
-    maxDerivationsPerStep: number;
-    cpuThrottleMs: number;
-    consolidationInterval?: number;
-}
-
-export interface IRCConfig {
-    server: string;
-    port: number;
-    useTLS: boolean;
-    nick: string;
-    channels: string[];
-}
-
-export interface AppConfig {
-    name: string;
-    version: string;
-    configVersion: string;
-    lm?: LMConfig;
-    memory?: MemoryConfig;
-    inference?: InferenceConfig;
-    production?: LMConfig;
-    irc?: IRCConfig;
-}
-
-export interface ValidatedConfig {
-    name: string;
-    version: string;
-    lm: { enabled: boolean; provider: string; model?: string; quantized?: boolean };
-    core: {
-        maxConcepts: number; activationDecayRate: number;
-        consolidationInterval: number; cpuThrottleMs: number; maxDerivationDepth: number;
-        maxDerivationsPerStep: number;
-    };
-    irc?: { server: string; port: number; useTLS: boolean; nick: string; channels: string[] };
-}
-
-const DEFAULT_APP_CONFIG: ValidatedConfig = {
-    name: 'SeNARS12', version: '1.0.0',
-    lm: {enabled: true, provider: 'transformers', model: 'Xenova/Llama-3.2-1B-Instruct', quantized: true},
-    core: {
-        maxConcepts: 100, activationDecayRate: 0.01,
-        consolidationInterval: 10, cpuThrottleMs: 0, maxDerivationDepth: 10, maxDerivationsPerStep: 100
-    }
+const ENV_OVERRIDES: Record<string, (env: string) => unknown> = {
+    'SENARS_LM_ENABLED': v => v.toLowerCase() === 'true' || v === '1',
+    'SENARS_LM_PROVIDER': v => v,
+    'SENARS_LM_MODEL': v => v,
+    'SENARS_SENARS_ENABLED': v => v.toLowerCase() === 'true' || v === '1',
+    'SENARS_REASONING_AUTO_TRIGGER': v => v.toLowerCase() === 'true' || v === '1',
+    'SENARS_REASONING_TRIGGER_THRESHOLD': v => parseFloat(v),
+    'SENARS_STREAMING_ENABLED': v => v.toLowerCase() === 'true' || v === '1',
+    'SENARS_TUI_COLORS': v => v.toLowerCase() === 'true' || v === '1',
+    'SENARS_TUI_TYPING_INDICATOR': v => v.toLowerCase() === 'true' || v === '1',
 };
 
-const clampEnv = (env: string | undefined, min: number, max: number, fallback: number): number =>
-    env ? clamp(parseInt(env, 10), min, max) : fallback;
+const applyEnvOverrides = (raw: Record<string, unknown>): Record<string, unknown> => {
+    const out = {...raw};
+    const caps = (out.capabilities as Record<string, unknown> | undefined) ?? {};
+    const lm = {...(caps.lm as Record<string, unknown> | undefined ?? {})};
+    const senars = {...(caps.senars as Record<string, unknown> | undefined ?? {})};
+    const reasoning = {...((out.bot as Record<string, unknown> | undefined)?.reasoning as Record<string, unknown> | undefined ?? {})};
+    const streaming = {...((out.bot as Record<string, unknown> | undefined)?.streaming as Record<string, unknown> | undefined ?? {})};
+    const tui = {...((out.bot as Record<string, unknown> | undefined)?.tui as Record<string, unknown> | undefined ?? {})};
 
-export class ConfigLoader {
-    static async loadFromFile(filePath?: string): Promise<ValidatedConfig> {
-        const path = filePath ?? await this.findConfigFile();
-        try {
-            const raw = JSON.parse(await fs.readFile(path, 'utf-8')) as AppConfig;
-            return this.validate(raw);
-        } catch (error) {
-            console.warn(`Config file not found or invalid: ${error}\nUsing default configuration`);
-            return DEFAULT_APP_CONFIG;
+    if (process.env.SENARS_LM_ENABLED) lm.enabled = ENV_OVERRIDES['SENARS_LM_ENABLED']!(process.env.SENARS_LM_ENABLED);
+    if (process.env.SENARS_LM_PROVIDER) lm.provider = process.env.SENARS_LM_PROVIDER;
+    if (process.env.SENARS_LM_MODEL) lm.model = process.env.SENARS_LM_MODEL;
+    if (process.env.SENARS_SENARS_ENABLED) senars.enabled = ENV_OVERRIDES['SENARS_SENARS_ENABLED']!(process.env.SENARS_SENARS_ENABLED);
+    if (process.env.SENARS_REASONING_AUTO_TRIGGER) reasoning.autoTrigger = ENV_OVERRIDES['SENARS_REASONING_AUTO_TRIGGER']!(process.env.SENARS_REASONING_AUTO_TRIGGER);
+    if (process.env.SENARS_REASONING_TRIGGER_THRESHOLD) reasoning.triggerThreshold = ENV_OVERRIDES['SENARS_REASONING_TRIGGER_THRESHOLD']!(process.env.SENARS_REASONING_TRIGGER_THRESHOLD);
+    if (process.env.SENARS_STREAMING_ENABLED) streaming.enabled = ENV_OVERRIDES['SENARS_STREAMING_ENABLED']!(process.env.SENARS_STREAMING_ENABLED);
+    if (process.env.SENARS_TUI_COLORS) tui.colors = ENV_OVERRIDES['SENARS_TUI_COLORS']!(process.env.SENARS_TUI_COLORS);
+    if (process.env.SENARS_TUI_TYPING_INDICATOR) tui.typingIndicator = ENV_OVERRIDES['SENARS_TUI_TYPING_INDICATOR']!(process.env.SENARS_TUI_TYPING_INDICATOR);
+
+    return {
+        ...out,
+        capabilities: {...caps, lm, senars},
+        bot: {...(out.bot as Record<string, unknown> | undefined ?? {}), reasoning, streaming, tui},
+    };
+};
+
+const deepMerge = <T>(defaults: T, overrides: Partial<T> | undefined): T => {
+    if (!overrides) return defaults;
+    const out: Record<string, unknown> = {...(defaults as Record<string, unknown>)};
+    for (const [k, v] of Object.entries(overrides as Record<string, unknown>)) {
+        const cur = out[k];
+        if (v && typeof v === 'object' && !Array.isArray(v) && cur && typeof cur === 'object' && !Array.isArray(cur)) {
+            out[k] = deepMerge(cur, v as Record<string, unknown>);
+        } else if (v !== undefined) {
+            out[k] = v;
         }
     }
+    return out as T;
+};
 
-    static async loadFromEnv(): Promise<ValidatedConfig> {
-        return {
-            ...DEFAULT_APP_CONFIG,
-            lm: {
-                enabled: !!process.env.LM_MODEL,
-                provider: process.env.LM_PROVIDER || 'mock',
-                ...(process.env.LM_MODEL && {model: process.env.LM_MODEL})
-            },
-            core: {
-                ...DEFAULT_APP_CONFIG.core,
-                maxConcepts: clampEnv(process.env.MAX_CONCEPTS, 10, 10000, DEFAULT_APP_CONFIG.core.maxConcepts)
-            }
-        };
-    }
-
-    static fromSchema(): ValidatedConfig {
-        const parsed = configSchema.parse({});
-        return {
-            name: parsed.name,
-            version: parsed.version,
-            lm: {
-                enabled: parsed.lm.enabled,
-                provider: parsed.lm.provider,
-                model: parsed.lm.model ?? 'Xenova/Llama-3.2-1B-Instruct',
-                quantized: parsed.lm.quantized ?? true
-            },
-            core: {
-                maxConcepts: parsed.memory.maxConcepts,
-                activationDecayRate: parsed.memory.activationDecayRate,
-                consolidationInterval: parsed.inference.consolidationInterval ?? 10,
-                cpuThrottleMs: parsed.inference.cpuThrottleMs,
-                maxDerivationDepth: parsed.inference.maxDerivationDepth,
-                maxDerivationsPerStep: parsed.inference.maxDerivationsPerStep
-            }
-        };
-    }
-
-    private static validate(raw: AppConfig): ValidatedConfig {
-        const mem = raw.memory ?? {};
-        const inf = raw.inference ?? {};
-        const config: ValidatedConfig = {
-            name: raw.name || 'SeNARS12', version: raw.version || '1.0.0',
-            lm: {
-                enabled: raw.lm?.enabled ?? !!raw.lm?.provider,
-                provider: raw.lm?.provider || 'mock',
-                model: raw.lm?.model, quantized: raw.lm?.quantized
-            },
-            core: {
-                maxConcepts: clamp((mem as any).maxConcepts ?? 100, 10, 10000),
-                activationDecayRate: clamp((mem as any).activationDecayRate ?? 0.01, 0, 1),
-                consolidationInterval: (inf as any).consolidationInterval ?? 10,
-                cpuThrottleMs: (inf as any).cpuThrottleMs ?? 0,
-                maxDerivationDepth: clamp((inf as any).maxDerivationDepth ?? 10, 1, 100),
-                maxDerivationsPerStep: clamp((inf as any).maxDerivationsPerStep ?? 100, 1, 10000)
-            }
-        };
-
-        if (raw.irc) {
-            config.irc = {
-                server: raw.irc.server || 'irc.libera.chat', port: raw.irc.port || 6697,
-                useTLS: raw.irc.useTLS ?? true, nick: raw.irc.nick || 'senars12',
-                channels: raw.irc.channels || ['#nars']
-            };
+export const loadConfig = async (path?: string): Promise<AppConfig> => {
+    let raw: Record<string, unknown> = {};
+    const filePath = path ?? process.env.SENARS_CONFIG ?? 'senars.config.json';
+    try {
+        const absolutePath = resolve(process.cwd(), filePath);
+        const content = await fs.readFile(absolutePath, 'utf-8');
+        raw = JSON.parse(content);
+    } catch (e) {
+        const err = e as NodeJS.ErrnoException;
+        if (err.code !== 'ENOENT') {
+            console.warn(`Failed to load config from ${filePath}: ${err.message}\nUsing default configuration`);
         }
-        return config;
     }
+    const merged = applyEnvOverrides(raw);
+    return appConfigSchema.parse(merged);
+};
 
-    private static async findConfigFile(): Promise<string> {
-        const paths = [
-            join(process.cwd(), 'senars.config.json'),
-            join(__dirname, '..', '..', 'senars.config.json'),
-            join(__dirname, '..', 'senars.config.json'),
-            join(__dirname, 'senars.config.json')
-        ];
-        for (const path of paths) {
-            try {
-                await fs.access(path);
-                return path;
-            } catch (e) {
-                console.error('Config path access failed:', e);
-                continue;
-            }
-        }
-        throw new Error('Configuration file not found');
-    }
-}
+export const loadConfigFromEnv = async (): Promise<AppConfig> => {
+    return appConfigSchema.parse(applyEnvOverrides({}));
+};
 
-export const loadConfig = ConfigLoader.loadFromFile;
-export const loadConfigFromEnv = ConfigLoader.loadFromEnv;
+export const deepMergeConfig = deepMerge;

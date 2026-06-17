@@ -120,7 +120,7 @@ return [(f1 * w1 + f2 * w2) / w, newC];
         const match = s.match(/%\s*([0-9.]+)\s*;\s*([0-9.]+)\s*%/);
         return match ? createTruth(parseFloat(match[1]!) ?? 0.5, parseFloat(match[2]!) ?? 0.9) : null;
     },
-    equals: (t1: Truth, t2: Truth, epsilon = 1e-9): boolean => Math.abs(t1.f - t2.f) < epsilon && Math.abs(t1.c - t2.c) < epsilon,
+    equals: (t1: Truth, t2: Truth, epsilon = 1e-3): boolean => Math.abs(t1.f - t2.f) < epsilon && Math.abs(t1.c - t2.c) < epsilon,
     compare: (t1: Truth, t2: Truth): number => {
         const diff = Truth.expectation(t1) - Truth.expectation(t2);
         return Math.abs(diff) < 1e-9 ? 0 : diff > 0 ? 1 : -1;
@@ -136,5 +136,5 @@ return [(f1 * w1 + f2 * w2) / w, newC];
     }
 } as const;
 
-export const isTruthEqual = (a: Truth, b: Truth, epsilon = 1e-9): boolean =>
+export const isTruthEqual = (a: Truth, b: Truth, epsilon = 1e-3): boolean =>
     Math.abs(a.f - b.f) < epsilon && Math.abs(a.c - b.c) < epsilon;

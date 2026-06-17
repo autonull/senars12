@@ -1,6 +1,6 @@
 import type {Term} from '../terms';
 import {termParser, termsEqual} from '../terms';
-import type {Task, TaskType, TermFilter} from '../types';
+import type {Stamp, Task, TaskType, TermFilter} from '../types';
 import type {Concept} from '../memory';
 import {createLogger} from '../logger';
 
@@ -115,7 +115,7 @@ export class QueryAPI {
 
     private createTaskFromBelief(term: Term, belief: {
         truth?: { f: number; c: number };
-        stamp?: import('../types').Stamp
+        stamp?: Stamp
     }, priority: number): Task {
         return {
             term,
@@ -128,9 +128,9 @@ export class QueryAPI {
         };
     }
 
-    private extractDerivationPath(stamp?: import('../types').Stamp): string[] {
+    private extractDerivationPath(stamp?: Stamp): string[] {
         const path: string[] = [];
-        let currentStamp: import('../types').Stamp | undefined = stamp;
+        let currentStamp: Stamp | undefined = stamp;
 
         while (currentStamp && path.length < 10) {
             path.push(currentStamp.id);

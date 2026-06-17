@@ -227,14 +227,13 @@ describe('NARLM', () => {
 
     beforeEach(() => {
         nar = new NAR();
-        narlm = new NARLM(nar.memory, undefined, false, false, false);
+        narlm = new NARLM(nar.memory, undefined, false, false);
     });
 
     it('should create NARLM instance', () => {
         expect(narlm).toBeDefined();
         expect(narlm.getFeedbackLoop).toBeDefined();
         expect(narlm.getEnricher).toBeDefined();
-        expect(narlm.getStreamingClient).toBeDefined();
     });
 
     it('should return undefined for feedback loop when disabled', () => {
@@ -245,11 +244,6 @@ describe('NARLM', () => {
     it('should return undefined for enricher when disabled', () => {
         const enricher = narlm.getEnricher();
         expect(enricher).toBeUndefined();
-    });
-
-    it('should return undefined for streaming client when disabled', () => {
-        const streaming = narlm.getStreamingClient();
-        expect(streaming).toBeUndefined();
     });
 
     it('should handle processHypothesisWithFeedback without feedback loop', async () => {
@@ -272,17 +266,6 @@ describe('NARLM', () => {
         await expect(narlm.enrichMemory()).resolves.toBeUndefined();
     });
 
-    it('should handle streamResponse without streaming client', async () => {
-        const onToken = jest.fn();
-
-        await expect(narlm.streamResponse('test prompt', onToken)).rejects.toThrow('LM client not configured');
-    });
-
-    it('should cancel stream gracefully', () => {
-        const result = narlm.cancelStream('stream-id');
-        expect(result).toBe(false);
-    });
-
     it('should return null for enrichment stats when enricher disabled', () => {
         const stats = narlm.getEnrichmentStats();
         expect(stats).toBeNull();
@@ -290,11 +273,6 @@ describe('NARLM', () => {
 
     it('should return null for feedback stats when feedback loop disabled', () => {
         const stats = narlm.getFeedbackStats();
-        expect(stats).toBeNull();
-    });
-
-    it('should return null for streaming stats when streaming disabled', () => {
-        const stats = narlm.getStreamingStats();
         expect(stats).toBeNull();
     });
 });

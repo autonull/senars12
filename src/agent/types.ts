@@ -1,92 +1,120 @@
-import type {NAR} from '../nar/nar.js';
-import type {Capabilities, BotConfig, Belief, Message} from './BotContext.js';
-import type {LMClient} from '../nar/lm/types.js';
-import type {TurnAction} from './BotContext.js';
+import type {Task} from '../nar/types';
 
-export type {BotConfig, Belief, Message};
-export interface AIAgentConfig {
-nar?: NAR;
-episodicMemory?: import('../nar/memory/EpisodicMemory.js').EpisodicMemory;
-provider: 'anthropic' | 'ollama' | 'transformers' | 'custom';
-model?: string;
-instructions?: string | SystemPromptBuilder;
-languageModel?: unknown;
-lmClient?: LMClient;
-config: Partial<BotConfig>;
-capabilities: Capabilities;
+export interface RLFPState {
+  enabled: boolean;
+  policy: Record<string, number>;
+  qValues: Record<string, number>;
+  explorationRate: number;
+  totalRewards: number;
+  totalSteps: number;
 }
 
-export type SystemPromptBuilder = (deps: {nar?: NAR; config: Partial<BotConfig>}) => string;
-
-export interface CognitiveSnapshot {
-attention: AttentionReport;
-workingBeliefs: Belief[];
-recentDerivations: string[];
-unansweredQuestions: string[];
-activeGoals: string[];
-memoryState: {
-totalConcepts: number;
-totalTasks: number;
-workingMemorySize: number;
-};
+export interface SelfReasoningState {
+  qualityScore: number;
+  consistency: number;
+  gaps: string[];
+  suggestions: string[];
 }
 
-export interface AttentionReport {
-concepts: Array<{term: string; priority: number; urgency?: number}>;
-total: number;
+export interface QualityMetrics {
+  overall: number;
+  coherence: number;
+  relevance: number;
+  completeness: number;
 }
 
-export interface ContextOptions {
-maxConcepts?: number;
-minPriority?: number;
-maxQuestions?: number;
-maxGoals?: number;
-conversation?: import('./ConversationState.js').ConversationState;
+export interface GoalProgress {
+  goalId: string;
+  term: string;
+  progress: number;
+  status: 'active' | 'completed' | 'failed' | 'paused';
+  subgoals: GoalProgress[];
+  startedAt: number;
+  updatedAt: number;
 }
 
-export interface ConversationContext {
-sender: string;
-connectionType: string;
-conversation: import('./ConversationState.js').ConversationState;
+export interface ExplanationChain {
+  conclusion: string;
+  premises: ExplanationChain[];
+  rule: string;
+  confidence: number;
 }
 
-export interface ProcessContext {
-sender?: string;
-channel?: string;
-connectionType?: string;
-reasoningDepth?: number;
-enableLM?: boolean;
-enableNAR?: boolean;
-timeout?: number;
+export interface RuleTrace {
+  ruleId: string;
+  ruleName: string;
+  input: {primary: string; secondary?: string};
+  output: {tasks: string[]; durationMs: number};
+  timestamp: number;
 }
 
-export interface AgentResult {
-success: boolean;
-response: string;
-reasoning?: {
-steps: number;
-newBeliefs: Belief[];
-trace?: unknown[];
-};
-actions?: TurnAction[];
-metrics?: {
-durationMs: number;
-cycleCount: number;
-eventCount: number;
-};
-error?: string;
+export interface LMRuleStats {
+  id: string;
+  name: string;
+  enabled: boolean;
+  stats: {
+    totalCalls: number;
+    successfulCalls: number;
+    failedCalls: number;
+    totalDuration: number;
+    totalTokens: number;
+    averageDuration: number;
+    successRate: number;
+    totalCost: number;
+    averageCost: number;
+  };
+  circuitState: 'closed' | 'open' | 'half-open';
 }
 
-export type CognitiveState = 'normal' | 'confused' | 'bored' | 'overloaded' | 'idle';
+export interface LMRuleExecutionEntry {
+  ruleName: string;
+  status: 'fired' | 'skipped' | 'timeout' | 'aborted';
+  durationMs: number;
+  tasksProduced: number;
+  timestamp: number;
+}
 
-export type CognitiveAction = 'continue' | 'resolve-conflicts' | 'explore' | 'consolidate' | 'suspend';
+export interface ChatOpts {
+  historyLimit?: number;
+  signal?: AbortSignal;
+}
 
-export interface CognitiveObserverReport {
-state: CognitiveState;
-action: CognitiveAction;
-contradictions: number;
-totalConcepts: number;
-memoryPressure: number;
-derivationsPerSecond: number;
-suggestion?: string;
+export type StreamEvent =
+  | {kind: 'text-delta'; text: string}
+  | {kind: 'tool-call'; toolName: string; toolArgs: Record<string, unknown>}
+  | {kind: 'tool-result'; toolName: string; toolArgs: Record<string, unknown>; toolResult: unknown}
+  | {kind: 'finish'; text: string}
+  | {kind: 'aborted'}
+  | {kind: 'error'; error: string}
+  | {kind: 'clarify'; text: string}
+  | {kind: 'lm-rule-applied'; ruleId: string; ruleName: string; tasksProduced: number};
+
+export interface AgentEventPayloads {
+  'agent:process:start': {input: string; sessionKey?: string; timestamp: number};
+  'agent:process:complete': {input: string; output: string; durationMs: number; sessionKey?: string; tokens?: {input: number; output: number; total: number}; timestamp: number};
+  'agent:process:error': {input: string; error: string; sessionKey?: string; timestamp: number};
+  'agent:suspend': {timestamp: number};
+  'agent:resume': {timestamp: number};
+}
+
+export interface DerivationEntry {
+  term: string;
+  truth?: {f: number; c: number};
+  timestamp: number;
+}
+
+export interface NARState {
+  beliefs: Task[];
+  goals: Task[];
+  questions: Task[];
+  attention: {totalConcepts: number; pressure: number};
+  drives: Record<string, number>;
+}
+
+export interface SessionSnapshot {
+  key: string;
+  history: Array<{role: 'user' | 'assistant'; content: string; timestamp: number}>;
+  pinnedBeliefs: string[];
+  createdAt: number;
+  updatedAt: number;
 }

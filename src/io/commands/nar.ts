@@ -1,4 +1,5 @@
 import type {CommandDefinition} from './registry.js';
+import {requireNar} from './utils.js';
 
 export const narCommands: CommandDefinition[] = [
     {
@@ -9,9 +10,11 @@ export const narCommands: CommandDefinition[] = [
         execute: async (args, ctx) => {
             const termStr = args.join(' ');
             if (!termStr) return 'Usage: /query <term>';
-            const beliefs = ctx.nar.getBeliefs();
-            const goals = ctx.nar.getGoals();
-            const questions = ctx.nar.getQuestions();
+            const nar = requireNar(ctx);
+            if (!nar.ok) return nar.message;
+            const beliefs = nar.nar.getBeliefs();
+            const goals = nar.nar.getGoals();
+            const questions = nar.nar.getQuestions();
             let result = `Query Results:\nBeliefs: ${beliefs.length}\nGoals: ${goals.length}\nQuestions: ${questions.length}`;
             const all = [...beliefs, ...goals, ...questions];
             if (all.length > 0) {
@@ -33,13 +36,15 @@ export const narCommands: CommandDefinition[] = [
         execute: async (args, ctx) => {
             const termStr = args.join(' ');
             if (!termStr) return 'Usage: /trace <term>';
+            const nar = requireNar(ctx);
+            if (!nar.ok) return nar.message;
             try {
-                const beliefs = ctx.nar.getBeliefs({contains: termStr});
+                const beliefs = nar.nar.getBeliefs({contains: termStr});
                 if (beliefs.length === 0) return `No beliefs found for: ${termStr}`;
-                const matchingConcept = ctx.nar.listConcepts().find(c => c.term.toString().includes(termStr));
+                const matchingConcept = nar.nar.listConcepts().find(c => c.term.toString().includes(termStr));
                 const term = matchingConcept?.term;
                 if (!term) return `No term found for: ${termStr}`;
-                const trace = ctx.nar.traceTerm(term);
+                const trace = nar.nar.traceTerm(term);
                 if (!trace || (Array.isArray(trace) ? trace.length : 0) === 0) return `No derivation trace found for: ${termStr}`;
                 let result = 'Derivation Trace:';
                 const traceArray = Array.isArray(trace) ? trace : [trace];
@@ -64,12 +69,14 @@ export const narCommands: CommandDefinition[] = [
         execute: async (args, ctx) => {
             const termStr = args.join(' ');
             if (!termStr) return 'Usage: /explain <term>';
+            const nar = requireNar(ctx);
+            if (!nar.ok) return nar.message;
             try {
-                const beliefs = ctx.nar.getBeliefs({contains: termStr});
+                const beliefs = nar.nar.getBeliefs({contains: termStr});
                 if (beliefs.length === 0) return `No beliefs found for: ${termStr}`;
                 const topBelief = beliefs[0];
                 if (!topBelief) return `No beliefs found for: ${termStr}`;
-                const explanation = ctx.nar.explain(topBelief);
+                const explanation = nar.nar.explain(topBelief);
                 let result = `Explanation:\nTerm: ${topBelief.term.toString()}\nType: ${topBelief.type}\nTruth: f=${topBelief.truth.f.toFixed(2)}, c=${topBelief.truth.c.toFixed(2)}\nSource: ${topBelief.stamp?.source || 'DERIVED'}`;
                 if (explanation) {
                     result += '\nDerivation path:';

@@ -14,7 +14,6 @@ import {createBudget} from '../types/core.js';
 import type {Memory} from '../memory/memory.js';
 import type {RuleInput, RuleProcessor, RuleResult} from '../rules/processor.js';
 import type {Strategy} from './strategy.js';
-import type {ReasonerConfig} from './reasoner.js';
 import type {SamplingStrategy, DerivationStrategy, DerivationContext} from '../strategies/types.js';
 
 export interface InferenceConfig {
@@ -152,7 +151,7 @@ export class InferenceController {
 		const p1: RuleInput = {term: task.term, truth: task.truth, stamp: task.stamp};
 		const maxDepth = this.config.maxDerivationDepth ?? 10;
 
-		for await (const result of this.processor.processLMRulesSingle(p1, signal)) {
+		for await (const result of this.processor.processLMRules(p1, undefined, {signal, singlePremise: true})) {
 			const derivedTask = this.createDerivedTask(result);
 			if (this.exceedsDepthLimit(derivedTask, maxDepth) || this.isCircular(derivedTask)) continue;
 			
@@ -188,7 +187,7 @@ export class InferenceController {
 		}
 
 		// Fire LM-based rules on the premise pair
-		for await (const result of this.processor.processLMRulesExternal(p1, p2, signal)) {
+		for await (const result of this.processor.processLMRules(p1, p2, {signal})) {
 			this.lmRulesFiredCount++;
 			const derived = processResult(result);
 			if (derived) yield derived;
@@ -237,7 +236,7 @@ export class InferenceController {
 		};
 	}
 
-	private collectTrace(premises: Task[], result: Task): void {
+	private collectTrace(_premises: Task[], _result: Task): void {
 		// Trace collection logic
 	}
 

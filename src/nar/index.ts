@@ -96,8 +96,6 @@ export {Container} from './lifecycle/Container.js';
 export type {ComponentDefinition, ValueDefinition, Definition} from './lifecycle/Container.js';
 
 // NL Translation
-export {classify, NLTranslator} from './nl/index.js';
-export type {InputType} from './nl/index.js';
 export * from './nl/schemas.js';
 
 // Cognitive

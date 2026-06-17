@@ -1,6 +1,6 @@
 /**
  * LM Rule Factory - Unified factory for LM-based inference rules
- * Consolidates rules.ts and dynamic-rules.ts into a single factory
+ * Consolidates rules.ts, dynamic-rules.ts, and rule-factory-v2.ts presets into a single factory
  */
 import type {Term} from '../terms';
 import {Truth} from '../terms';
@@ -10,6 +10,13 @@ import {LMRule} from './LMRule.js';
 import type {LMClient, LMRuleConfig} from './types.js';
 import {LMResponseParser} from './parser.js';
 import {calculateSimilarity} from '../terms/utils.js';
+import type {ZodSchema} from 'zod';
+import {
+    TranslationSchema, ExplanationSchema, GoalDecompositionSchema, HypothesisSchema,
+    AnalogySchema, MetaReasoningSchema, UncertaintySchema, SchemaInductionSchema,
+    TemporalCausalSchema, VariableGroundingSchema, ConceptElaborationSchema,
+    BeliefRevisionSchema, QuestionGenerationSchema,
+} from '../nl/schemas.js';
 
 export interface LMRuleDefinition {
     id: string;
@@ -21,6 +28,7 @@ export interface LMRuleDefinition {
     budget?: number;
     multiline?: boolean;
     activationCondition?: (primary: Term, secondary?: Term, context?: Record<string, unknown>) => boolean;
+    schema?: ZodSchema;
 }
 
 const NARSESE_INSTRUCTIONS = `
@@ -89,21 +97,33 @@ export const hasStructuralSimilarityNoOverlap = (primary: Term, secondary?: Term
     return sim > 0.6 && overlap === 0;
 };
 
+export const hasHighCuriosity = (_primary: Term, _secondary?: Term, ctx?: Record<string, unknown>): boolean => {
+    const driveState = ctx?.driveState as Record<string, number> | undefined;
+    return (driveState?.curiosity ?? 0) > 0.6;
+};
+
 // Preset rule definitions
 const ruleDefs: LMRuleDefinition[] = [
-    {id: 'lm-narsese-translation', name: 'LMNarseseTranslationRule', description: 'Translates natural language to Narsese', priority: 0.9, taskType: 'belief', budget: 0.9},
-    {id: 'lm-belief-revision', name: 'LMBeliefRevisionRule', description: 'Revises belief confidence based on context', priority: 0.8, taskType: 'belief', budget: 0.7, activationCondition: hasConflictingBeliefs},
-    {id: 'lm-goal-decomposition', name: 'LMGoalDecompositionRule', description: 'Decomposes complex goals into subgoals', priority: 0.85, taskType: 'goal', budget: 0.8, singlePremise: true, activationCondition: isComplexGoal},
-    {id: 'lm-hypothesis-generation', name: 'LMHypothesisGenerationRule', description: 'Generates hypotheses from observations', priority: 0.75, taskType: 'belief', budget: 0.6, activationCondition: hasLowConfidence},
-    {id: 'lm-explanation-generation', name: 'LMExplanationGenerationRule', description: 'Generates explanations for beliefs', priority: 0.7, taskType: 'belief', budget: 0.65},
-    {id: 'lm-analogical-reasoning', name: 'LMAnalogicalReasoningRule', description: 'Performs analogical reasoning between concepts', priority: 0.8, taskType: 'belief', budget: 0.7, activationCondition: hasStructuralSimilarityNoOverlap},
-    {id: 'lm-meta-reasoning', name: 'LMMetaReasoningGuidanceRule', description: 'Provides meta-level reasoning guidance', priority: 0.75, taskType: 'belief', budget: 0.65},
-    {id: 'lm-uncertainty-calibration', name: 'LMUncertaintyCalibrationRule', description: 'Calibrates uncertainty in beliefs', priority: 0.7, taskType: 'belief', budget: 0.6},
-    {id: 'lm-schema-induction', name: 'LMSchemaInductionRule', description: 'Induces schemas from examples', priority: 0.75, taskType: 'belief', budget: 0.65},
-    {id: 'lm-temporal-causal', name: 'LMTemporalCausalModelingRule', description: 'Models temporal and causal relationships', priority: 0.8, taskType: 'belief', budget: 0.7},
-    {id: 'lm-variable-grounding', name: 'LMVariableGroundingRule', description: 'Grounds variables in concrete instances', priority: 0.7, taskType: 'belief', budget: 0.65, activationCondition: (p) => hasVariable(p)},
-    {id: 'lm-concept-elaboration', name: 'LMConceptElaborationRule', description: 'Elaborates on concept properties', priority: 0.75, taskType: 'belief', budget: 0.7, activationCondition: isUnderconnected},
+    {id: 'lm-narsese-translation', name: 'LMNarseseTranslationRule', description: 'Translates natural language to Narsese', priority: 0.9, taskType: 'belief', budget: 0.9, schema: TranslationSchema},
+    {id: 'lm-belief-revision', name: 'LMBeliefRevisionRule', description: 'Revises belief confidence based on context', priority: 0.8, taskType: 'belief', budget: 0.7, activationCondition: hasConflictingBeliefs, schema: BeliefRevisionSchema},
+    {id: 'lm-goal-decomposition', name: 'LMGoalDecompositionRule', description: 'Decomposes complex goals into subgoals', priority: 0.85, taskType: 'goal', budget: 0.8, singlePremise: true, activationCondition: isComplexGoal, schema: GoalDecompositionSchema},
+    {id: 'lm-hypothesis-generation', name: 'LMHypothesisGenerationRule', description: 'Generates hypotheses from observations', priority: 0.75, taskType: 'belief', budget: 0.6, activationCondition: hasLowConfidence, schema: HypothesisSchema},
+    {id: 'lm-explanation-generation', name: 'LMExplanationGenerationRule', description: 'Generates explanations for beliefs', priority: 0.7, taskType: 'belief', budget: 0.65, schema: ExplanationSchema},
+    {id: 'lm-analogical-reasoning', name: 'LMAnalogicalReasoningRule', description: 'Performs analogical reasoning between concepts', priority: 0.8, taskType: 'belief', budget: 0.7, activationCondition: hasStructuralSimilarityNoOverlap, schema: AnalogySchema},
+    {id: 'lm-meta-reasoning', name: 'LMMetaReasoningGuidanceRule', description: 'Provides meta-level reasoning guidance', priority: 0.75, taskType: 'belief', budget: 0.65, schema: MetaReasoningSchema},
+    {id: 'lm-uncertainty-calibration', name: 'LMUncertaintyCalibrationRule', description: 'Calibrates uncertainty in beliefs', priority: 0.7, taskType: 'belief', budget: 0.6, schema: UncertaintySchema},
+    {id: 'lm-schema-induction', name: 'LMSchemaInductionRule', description: 'Induces schemas from examples', priority: 0.75, taskType: 'belief', budget: 0.65, schema: SchemaInductionSchema},
+    {id: 'lm-temporal-causal', name: 'LMTemporalCausalModelingRule', description: 'Models temporal and causal relationships', priority: 0.8, taskType: 'belief', budget: 0.7, schema: TemporalCausalSchema},
+    {id: 'lm-variable-grounding', name: 'LMVariableGroundingRule', description: 'Grounds variables in concrete instances', priority: 0.7, taskType: 'belief', budget: 0.65, activationCondition: (p) => hasVariable(p), schema: VariableGroundingSchema},
+    {id: 'lm-concept-elaboration', name: 'LMConceptElaborationRule', description: 'Elaborates on concept properties', priority: 0.75, taskType: 'belief', budget: 0.7, activationCondition: isUnderconnected, schema: ConceptElaborationSchema},
+    {id: 'lm-curiosity-question', name: 'LMCuriosityQuestionRule', description: 'Generates questions driven by curiosity', priority: 0.7, taskType: 'question', budget: 0.65, singlePremise: true, activationCondition: hasHighCuriosity, schema: QuestionGenerationSchema},
     {id: 'lm-interactive-clarification', name: 'LMInteractiveClarificationRule', description: 'Seeks clarification for ambiguous inputs', priority: 0.7, taskType: 'question', budget: 0.65},
+    // V2 preset rules (merged from rule-factory-v2.ts)
+    {id: 'lm-v2-hypothesis', name: 'LMV2HypothesisRule', description: 'Generates typed hypotheses with truth values', priority: 0.75, taskType: 'belief', singlePremise: true, schema: HypothesisSchema},
+    {id: 'lm-v2-explanation', name: 'LMV2ExplanationRule', description: 'Generates typed explanations with key premises', priority: 0.7, taskType: 'belief', singlePremise: true, schema: ExplanationSchema},
+    {id: 'lm-v2-analogy', name: 'LMV2AnalogyRule', description: 'Finds structural analogies between concepts', priority: 0.8, taskType: 'belief', schema: AnalogySchema},
+    {id: 'lm-v2-causal', name: 'LMV2CausalRule', description: 'Models causal relationships', priority: 0.8, taskType: 'belief', schema: TemporalCausalSchema},
+    {id: 'lm-v2-schema', name: 'LMV2SchemaRule', description: 'Induces reusable schemas from patterns', priority: 0.75, taskType: 'belief', singlePremise: true, schema: SchemaInductionSchema},
 ];
 
 const prompts: Record<string, string> = {
@@ -119,7 +139,13 @@ const prompts: Record<string, string> = {
     'lm-temporal-causal': 'What temporal/causal relationships involve "{{primaryTerm}}"?',
     'lm-variable-grounding': 'What concrete instances ground "{{primaryTerm}}"?',
     'lm-concept-elaboration': 'Elaborate on "{{primaryTerm}}". What are its properties?',
+    'lm-curiosity-question': 'Given "{{primaryTerm}}" and curiosity drive, what questions should be asked? Generate Narsese questions. Respond with JSON: {"questions": [{"narsese": "?term", "relevance": 0.8, "rationale": "..."}]}',
     'lm-interactive-clarification': 'What clarification is needed for "{{primaryTerm}}"?',
+    'lm-v2-hypothesis': 'You are a NARS hypothesis generator. Given: {{primaryTerm}}. Generate a plausible hypothesis in Narsese with truth values. Respond with JSON: {"narsese": "(...)", "truth": {"f": 0.8, "c": 0.7}, "rationale": "..."}',
+    'lm-v2-explanation': 'You are a NARS explanation generator. Explain why: {{primaryTerm}}. Respond with JSON: {"explanation": "...", "confidence": 0.8, "keyPremises": ["..."]}',
+    'lm-v2-analogy': 'You are an analogical reasoning system. Source: {{primaryTerm}}. Target: {{secondaryTerm}}. Find structural analogies. Respond with JSON: {"analogies": [{"source": "...", "target": "...", "mapping": "..."}]}',
+    'lm-v2-causal': 'You are a causal reasoning system. Analyze causal relationships for: {{primaryTerm}}. Respond with JSON: {"relations": [{"cause": "...", "effect": "...", "type": "direct|enabling|preventing", "confidence": 0.8}]}',
+    'lm-v2-schema': 'You are a schema induction system. Pattern: {{primaryTerm}}. Induce a reusable schema. Respond with JSON: {"schema": "...", "instances": ["..."], "confidence": 0.8}',
 };
 
 interface LMRuleFactoryConfig extends Partial<LMRuleConfig> {
@@ -309,6 +335,30 @@ export class LMRuleFactory {
             .build();
     }
 
+    curiosityQuestion(): LMRule {
+        return createRule(this.lm, ruleDefs.find(d => d.id === 'lm-curiosity-question')!);
+    }
+
+    v2Hypothesis(): LMRule {
+        return createRule(this.lm, ruleDefs.find(d => d.id === 'lm-v2-hypothesis')!);
+    }
+
+    v2Explanation(): LMRule {
+        return createRule(this.lm, ruleDefs.find(d => d.id === 'lm-v2-explanation')!);
+    }
+
+    v2Analogy(): LMRule {
+        return createRule(this.lm, ruleDefs.find(d => d.id === 'lm-v2-analogy')!);
+    }
+
+    v2Causal(): LMRule {
+        return createRule(this.lm, ruleDefs.find(d => d.id === 'lm-v2-causal')!);
+    }
+
+    v2Schema(): LMRule {
+        return createRule(this.lm, ruleDefs.find(d => d.id === 'lm-v2-schema')!);
+    }
+
     createAll(): LMRule[] {
         return [
             this.narseseTranslation(),
@@ -323,7 +373,13 @@ export class LMRuleFactory {
             this.temporalCausal(),
             this.variableGrounding(),
             this.conceptElaboration(),
+            this.curiosityQuestion(),
             this.interactiveClarification(),
+            this.v2Hypothesis(),
+            this.v2Explanation(),
+            this.v2Analogy(),
+            this.v2Causal(),
+            this.v2Schema(),
         ];
     }
 
@@ -361,6 +417,8 @@ const createRule = (lm: LMClient | null, def: LMRuleDefinition, config: Partial<
         singlePremise: def.singlePremise ?? true,
         activationCondition: def.activationCondition,
         promptTemplate: `${NARSESE_INSTRUCTIONS}\n\n${prompts[def.id]}`,
+        taskType,
+        outputSchema: def.schema,
         taskGenerator: def.multiline
             ? (r: unknown) => parseResponse(String(r), taskType, budget)
             : createTaskGen(taskType, budget)

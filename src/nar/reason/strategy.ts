@@ -4,7 +4,6 @@ import {Memory} from '../memory';
 import {termsEqual, extractSymbols} from '../terms';
 import type {ComponentMetadata} from '../strategies/types.js';
 
-const MIN_SHARED_ATOMS = 1;
 const MIN_DERIVATION_PRIORITY = 0.05;
 
 const hasSharedAtoms = (term1: Task['term'], term2: Task['term']): boolean => {

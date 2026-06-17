@@ -1,7 +1,0 @@
-# tests/e2e/synergy-03.txt — Contradiction handling
-<bird --> fly>. :0.8:0.9
-<penguin --> bird>. :1.0:0.9
-<penguin --> fly>. :0.0:0.9
-<penguin --> fly>?
-/self.status
-/quit

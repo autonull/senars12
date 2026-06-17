@@ -26,7 +26,8 @@ export class ConnectionManager {
 
     async addConnection(config: ConnectionConfig, deps: {
         nar: unknown;
-        emit: (event: string, data: unknown) => void
+        emit: (event: string, data: unknown) => void;
+        logger: import('./types.js').Logger;
     }): Promise<Connection> {
         const factory = this.factories.get(config.type);
         if (!factory) {

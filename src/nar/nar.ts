@@ -16,18 +16,7 @@ import {MetricsCollector} from './metrics';
 import {createLogger} from './logger';
 import type {Tool, ToolResult} from './tools';
 import {
-    CalculateTool,
-    ExplainTool,
-    HTTPTool,
-    LearnTool,
-    ProcessTool,
-    ReadFileTool,
-    ReasonTool,
-    SearchTool,
-    SleepTool,
-    TimerTool,
     ToolManager,
-    WriteFileTool,
     discoverTools
 } from './tools';
 import {BaseComponent} from './lifecycle';
@@ -41,6 +30,8 @@ import {SimpleAttention} from './strategies/attention/index.js';
 import {NARIO} from './nar-io';
 import {NARExecution} from './nar-execution';
 import {NARLM} from './nar-lm';
+import {DriveManager, createBootstrapTasks} from './drives/index.js';
+import {SystemEventBus} from '../agent/SystemEventBus.js';
 
 export interface RLFPConfig {
     optimizeInterval?: number;
@@ -57,16 +48,13 @@ export interface NARConfig extends CoreConfig {
     enableBidirectionalFeedback?: boolean;
     enableProactiveEnrichment?: boolean;
     enableLMStreaming?: boolean;
+    persistState?: boolean;
+    statePath?: string;
 
     /** Cognitive architecture configuration (Phase 3+) */
     cognitiveParams?: CognitiveParameters;
     strategyRegistry?: CognitiveRegistry;
     adaptationInterval?: number;
-}
-
-interface ToolDependency {
-    memory: Memory;
-    nar: NAR;
 }
 
 export class NAR extends BaseComponent {
@@ -80,6 +68,8 @@ export class NAR extends BaseComponent {
   readonly self?: ReasoningAboutReasoning;
   rlfp?: RLFPLearner;
   cognitiveController?: CognitiveController;
+  private driveManager?: DriveManager;
+  private readonly systemEventBus: SystemEventBus;
 
   private readonly io: NARIO;
   private execution: NARExecution;
@@ -103,7 +93,7 @@ export class NAR extends BaseComponent {
     this.config = this.validateConfig(config);
     this.memory = new Memory(this.config, { attentionModel: this.createAttentionModel(config) });
     this.processor = new RuleProcessor();
-    this.processor.setConfig({memory: this.memory});
+    this.processor.setConfig({memory: this.memory, nar: this});
     this.processor.setEventBus(eventBus);
     this.reasoner = new Reasoner(this.memory, this.processor, BagStrategy, this.config);
     this.taskManager = new TaskManager(this.memory);
@@ -131,9 +121,13 @@ export class NAR extends BaseComponent {
 
         this.io = new NARIO(this.memory, this.taskManager, this.config);
         this.io.setEventBus(eventBus);
-        this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.cognitiveController);
-        this.lm = new NARLM(this.memory, this._registry, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment, this.config.enableLMStreaming);
+        this.systemEventBus = new SystemEventBus();
+        this.systemEventBus.wrapNarEventBus(eventBus);
+        this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.rlfp?.policyOptimizerPublic, this.cognitiveController, this.driveManager, this.systemEventBus, this.self);
+        this.lm = new NARLM(this.memory, this._registry, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment);
         this._metricsCollector = metrics;
+
+        this.driveManager = new DriveManager(this as any);
 
         this.initializeOptionalFeatures();
     }
@@ -143,16 +137,174 @@ export class NAR extends BaseComponent {
         this.logger.info('NAR initialized');
     }
 
+    private getStatePath(filename: string): string {
+        const path = require('path');
+        const base = this.config.statePath ?? '.cache/nar-state';
+        return path.resolve(base, filename);
+    }
+
+    private async saveState(): Promise<void> {
+        if (!this.config.persistState) return;
+        try {
+            const fs = require('fs').promises;
+            const path = require('path');
+
+            const beliefs = this.query.getBeliefs().map(b => ({
+                term: b.term.toString(),
+                truth: b.truth ? {f: b.truth.f, c: b.truth.c} : undefined,
+                stamp: b.stamp,
+            }));
+            const goals = this.query.getGoals().map(g => ({
+                term: g.term.toString(),
+                truth: g.truth ? {f: g.truth.f, c: g.truth.c} : undefined,
+                stamp: g.stamp,
+            }));
+            const questions = this.query.getQuestions().map(q => ({
+                term: q.term.toString(),
+                truth: q.truth ? {f: q.truth.f, c: q.truth.c} : undefined,
+                stamp: q.stamp,
+            }));
+            const attention = this.attentionReport();
+            const driveStates = this.driveManager?.getAllStates() ?? [];
+            const drives: Record<string, number> = {};
+            for (const ds of driveStates) {
+                drives[ds.spec.id] = ds.currentIntensity;
+            }
+
+            const baseDir = path.dirname(this.getStatePath('beliefs.json'));
+            await fs.mkdir(baseDir, {recursive: true});
+            await fs.writeFile(this.getStatePath('beliefs.json'), JSON.stringify(beliefs, null, 2), 'utf-8');
+            await fs.writeFile(this.getStatePath('goals.json'), JSON.stringify(goals, null, 2), 'utf-8');
+            await fs.writeFile(this.getStatePath('questions.json'), JSON.stringify(questions, null, 2), 'utf-8');
+            await fs.writeFile(this.getStatePath('attention.json'), JSON.stringify(attention, null, 2), 'utf-8');
+            await fs.writeFile(this.getStatePath('drives.json'), JSON.stringify(drives, null, 2), 'utf-8');
+
+            // Save LM Rule state
+            const lmRuleState = this.processor.serializeLMRules();
+            await fs.writeFile(this.getStatePath('lm-rules.json'), JSON.stringify(lmRuleState, null, 2), 'utf-8');
+        } catch (e) {
+            this.logger.warn('NAR state save failed', {error: e instanceof Error ? e.message : String(e)});
+        }
+    }
+
+    private async loadState(): Promise<void> {
+        if (!this.config.persistState) return;
+        try {
+            const fs = require('fs').promises;
+
+            const {termParser} = await import('./terms/index.js');
+            const {Truth} = await import('./terms/truth.js');
+            const {Stamp} = await import('./terms/stamp.js');
+
+// Load beliefs
+            const beliefsPath = this.getStatePath('beliefs.json');
+            if (await fs.access(beliefsPath).then(() => true).catch(() => false)) {
+                const content = await fs.readFile(beliefsPath, 'utf-8');
+                const beliefs = JSON.parse(content);
+                for (const b of beliefs) {
+                    const parsed = termParser.parse(b.term);
+                    if (parsed) {
+                        const task = {
+                            term: parsed,
+                            type: 'belief' as const,
+                            truth: b.truth ?? Truth.NEUTRAL,
+                            budget: {priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+                            stamp: b.stamp ?? Stamp.createInput(),
+                            occurrenceTime: Date.now(),
+                            derived: false,
+                        };
+                        this.taskManager.addTask(task);
+                    }
+                }
+            }
+
+            // Load goals
+            const goalsPath = this.getStatePath('goals.json');
+            if (await fs.access(goalsPath).then(() => true).catch(() => false)) {
+                const content = await fs.readFile(goalsPath, 'utf-8');
+                const goals = JSON.parse(content);
+                for (const g of goals) {
+                    const parsed = termParser.parse(g.term);
+                    if (parsed) {
+                        const task = {
+                            term: parsed,
+                            type: 'goal' as const,
+                            truth: g.truth ?? Truth.NEUTRAL,
+                            budget: {priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+                            stamp: g.stamp ?? Stamp.createInput(),
+                            occurrenceTime: Date.now(),
+                            derived: false,
+                        };
+                        this.taskManager.addTask(task);
+                    }
+                }
+            }
+
+            // Load questions
+            const questionsPath = this.getStatePath('questions.json');
+            if (await fs.access(questionsPath).then(() => true).catch(() => false)) {
+                const content = await fs.readFile(questionsPath, 'utf-8');
+                const questions = JSON.parse(content);
+                for (const q of questions) {
+                    const parsed = termParser.parse(q.term);
+                    if (parsed) {
+                        const task = {
+                            term: parsed,
+                            type: 'question' as const,
+                            truth: q.truth ?? Truth.NEUTRAL,
+                            budget: {priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+                            stamp: q.stamp ?? Stamp.createInput(),
+                            occurrenceTime: Date.now(),
+                            derived: false,
+                        };
+                        this.taskManager.addTask(task);
+                    }
+                }
+            }
+
+            // Load drives
+            const drivesPath = this.getStatePath('drives.json');
+            if (await fs.access(drivesPath).then(() => true).catch(() => false)) {
+                const content = await fs.readFile(drivesPath, 'utf-8');
+                const drives = JSON.parse(content);
+                if (this.driveManager && drives) {
+                    for (const [driveId, value] of Object.entries(drives)) {
+                        const currentState = this.driveManager.getState(driveId);
+                        const currentIntensity = currentState?.currentIntensity ?? 0;
+                        const targetIntensity = Number(value);
+                        const diff = targetIntensity - currentIntensity;
+                        this.driveManager.stimulate(driveId, diff);
+                    }
+                }
+            }
+
+            this.logger.info('NAR state loaded');
+
+            // Load LM Rule state
+            const lmRulesPath = this.getStatePath('lm-rules.json');
+            if (await fs.access(lmRulesPath).then(() => true).catch(() => false)) {
+                const content = await fs.readFile(lmRulesPath, 'utf-8');
+                const lmRuleState = JSON.parse(content);
+                this.processor.deserializeLMRules(lmRuleState);
+            }
+        } catch (e) {
+            this.logger.warn('NAR state load failed', {error: e instanceof Error ? e.message : String(e)});
+        }
+    }
+
     override async start(): Promise<void> {
         await super.start();
+        await this.loadState();
         this.self?.start();
         this.lm.getEnricher()?.start();
+        await this.injectBootstrapGoals();
         this.logger.info('NAR started');
     }
 
     override async stop(): Promise<void> {
         this.self?.stop();
         this.stopLM();
+        await this.saveState();
         await super.stop();
         this.logger.info('NAR stopped');
     }
@@ -246,6 +398,14 @@ getController(): CognitiveController | undefined {
   return this.cognitiveController;
 }
 
+getDriveManager(): DriveManager | undefined {
+  return this.driveManager;
+}
+
+getSystemEventBus(): SystemEventBus {
+  return this.systemEventBus;
+}
+
 getMetricsCollector(): MetricsCollector {
   return this._metricsCollector;
 }
@@ -269,7 +429,7 @@ reconfigure(params: CognitiveParameters): void {
   );
   this.execution = new NARExecution(
     this.memory, this.taskManager, this.reasoner,
-    this.config, this.rlfp, this.cognitiveController
+    this.config, this.rlfp, this.rlfp?.policyOptimizerPublic, this.cognitiveController, this.driveManager
   );
 }
 
@@ -457,14 +617,6 @@ clearLMRuleExecutionLog() {
         await this.lm.enrichMemory();
     }
 
-    async streamResponse(prompt: string, onToken: (token: string) => void): Promise<string> {
-        return this.lm.streamResponse(prompt, onToken, this._lmClient);
-    }
-
-    cancelLMStream(streamId: string): boolean {
-        return this.lm.cancelStream(streamId);
-    }
-
     getEnrichmentStats() {
         return this.lm.getEnrichmentStats();
     }
@@ -473,13 +625,8 @@ clearLMRuleExecutionLog() {
         return this.lm.getFeedbackStats();
     }
 
-    getLMStreamingStats() {
-        return this.lm.getStreamingStats();
-    }
-
     private stopLM(): void {
         this.lm.getEnricher()?.stop();
-        this.lm.getStreamingClient()?.cancelAllStreams();
     }
 
     private getModelWithFallback(prefix: string) {
@@ -500,6 +647,13 @@ clearLMRuleExecutionLog() {
         }
     }
 
+    private async injectBootstrapGoals(): Promise<void> {
+        const tasks = createBootstrapTasks();
+        for (const task of tasks) {
+            await this.io.input(task.term, task.type, task.truth);
+        }
+    }
+
     private validateConfig(config: NARConfig): NARConfig {
         if (config.maxConcepts <= 0) {
             throw new ConfigurationError('maxConcepts must be positive', {maxConcepts: config.maxConcepts});
@@ -509,7 +663,29 @@ clearLMRuleExecutionLog() {
 
     private initializeLMRules(lmClient: LMClient): void {
         const lmRules = LMRules.createAll(lmClient);
+        const structuredModel = this._registry
+            ? this._registry.languageModel('cloud:quality')
+                ?? this._registry.languageModel('local:quality')
+            : undefined;
+
+        // Create tool dispatcher for LM rules that need tool access
+        const toolDispatcher = async (tool: string, args: Record<string, unknown>) => {
+            return this.executeTool(tool, args);
+        };
+
         for (const rule of lmRules) {
+            if (structuredModel) rule.setStructuredModel(structuredModel);
+            rule.setSystemEventBus(this.systemEventBus);
+            rule.setNAR(this);
+            rule.setToolDispatcher(toolDispatcher);
+            // Enable tools for rules that benefit from tool access
+            if (rule.id === 'lm-goal-decomposition' || rule.id === 'lm-hypothesis-generation' || rule.id === 'lm-analogical-reasoning') {
+                (rule as any).enableTools = true;
+            }
+            // Enable constitution awareness for belief-modifying rules
+            if (rule.id === 'lm-belief-revision' || rule.id === 'lm-goal-decomposition' || rule.id === 'lm-hypothesis-generation') {
+                (rule as any).constitutionAware = true;
+            }
             this.processor.registerLMRule(rule);
         }
         this._lmInitialized = true;

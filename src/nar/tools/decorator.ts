@@ -1,7 +1,7 @@
 /**
  * Tool Decorator - Auto-registration system for tools
  */
-import type {Tool, ToolCapabilities, ToolContext, ToolResult} from './types.js';
+import type {Tool, ToolCapabilities} from './types.js';
 
 export interface ToolMetadata {
     name: string;

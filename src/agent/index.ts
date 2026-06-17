@@ -1,34 +1,71 @@
-export {AIAgent} from './AIAgent.js';
-export type {AIAgentConfig, ConversationContext, SystemPromptBuilder, ProcessContext, AgentResult, CognitiveState} from './types.js';
-export * from './services/index.js';
-export {BenchmarkRunner} from './benchmarks/BenchmarkRunner.js';
-export type {BenchmarkConfig, BenchmarkResult, ScenarioResult} from './benchmarks/BenchmarkRunner.js';
-export {ScenarioRunner} from './scenarios/ScenarioRunner.js';
-export {ScoringEngine} from './scenarios/ScoringEngine.js';
-export {RegressionTracker} from './scenarios/RegressionTracker.js';
-export {ExperimentRunner} from './experiments/ExperimentRunner.js';
-export * from './scenarios/types.js';
-export {ConversationState} from './ConversationState.js';
-export {BotProfile} from './BotProfile.js';
-export {ChannelBehavior} from './ChannelBehavior.js';
-export {IdentityResolver} from './IdentityResolver.js';
-export * from './tools/nars-tools.js';
-export * from './tools/general-tools.js';
-export {loadConfig, saveConfig, DEFAULT_CONFIG} from './config.js';
-export type {BotFullConfig, BotProfile as ProfileConfig, CapabilitiesConfig} from './config.js';
-export type {
-  BotConfig, BotContext, BotResponse, Capabilities, ConnectionInfo,
-  TurnState, TurnMetrics, DerivationResult, Belief,
-  LMDirective, DirectiveResult, TurnAction, ToolResult,
-  InputClassification, ClassificationSignal, Intent, BotMode,
-  Message, ReasoningArtifact, IOMessage, StreamChunk,
-  NLParserDef, DirectiveDef, ClassificationSignalDef,
-  LMRuleConfigEntry, LMRuleDef, ContextFragment,
-  PipelineEventEmitter,
-} from './BotContext.js';
-export {contextFragments, detectCapabilities} from './BotContext.js';
-export * from './benchmarks/index.js';
-export * from './streaming/index.js';
-export * from './tui/index.js';
-export {SkillCatalog} from './SkillCatalog.js';
-export {RLFPBridge} from './rlfp/RLFPBridge.js';
+export {createAgent} from './agent.js';
+export type {Agent, AgentOptions, ChatOptions, ChatStreamEvent, AgentStats} from './agent.js';
+export {ModelRunner, truncateArtifact} from './model/ModelRunner.js';
+export type {ComposedRequest, ModelEvent, ModelRunResult, ModelRunnerDeps, ReasoningArtifact} from './model/ModelRunner.js';
+export {dispatchToolCalls} from './model/ToolDispatcher.js';
+export type {ToolCall, ToolDispatchResult, ToolError} from './model/ToolDispatcher.js';
+export {AgentEventBus} from './AgentEventBus.js';
+export type {AgentEventKind, AgentEventPayloads} from './AgentEventBus.js';
+export {SystemEventBus} from './SystemEventBus.js';
+export type {SystemEventMap} from './SystemEventBus.js';
+export {AutonomyEngine, createAutonomyEngine} from './AutonomyEngine.js';
+export type {AutonomyEngineConfig, ReasoningJob} from './AutonomyEngine.js';
+
+export {agentOptionsSchema, validateAgentOptions, AgentOptionsValidationError} from './options-schema.js';
+export type {ValidatedAgentOptions} from './options-schema.js';
+
+export {createAgentPreset} from './presets.js';
+export type {AgentPresetName, AgentPresetDeps, AgentPresetResult} from './presets.js';
+
+export {agentConfigToOptions} from './config-bridge.js';
+
+export type {SessionMessage, ConversationSession} from './ConversationSession.js';
+export {
+    createSession,
+    appendTurn,
+    trimHistory,
+    getRecentHistory,
+    DEFAULT_SESSION_HISTORY_LIMIT,
+} from './ConversationSession.js';
+export type {SessionManager} from './SessionManager.js';
+export {InMemorySessionManager, JsonlSessionManager} from './SessionManager.js';
+export {formatHistoryAsMessages, truncateForBudget} from './chat-history.js';
+export type {HistoryMessage} from './chat-history.js';
+
+export {bindAgentToConnection} from './io-bridge.js';
+export type {BridgeOptions} from './io-bridge.js';
+export type {BridgeContext} from './io-middleware.js';
+export {
+    resolveSessionKey,
+    createErrorBoundary,
+    originExtractor,
+    createAuthMiddleware,
+    createCommandInterceptor,
+    createRateLimiter,
+    createSessionBinder,
+    createAgentDispatch,
+    createStreamingAgentDispatch,
+    abortSession,
+    clearSessionState,
+    createNarsTraceAnnotator,
+    createNarseseOutputHumanization,
+} from './io-middleware.js';
+
+export {createConnectionConfigsFromEnv, DEFAULT_PORTS} from './io-config.js';
+
+export {registerAllCommands} from './register-commands.js';
+
+export {buildAgentTools} from './tools.js';
+export type {AgentToolDeps} from './tools.js';
+
+export {ApprovalManager} from '../nar/tools/adapters/external-tools.js';
+export type {ApprovalRequest, ApprovalResult} from '../nar/tools/adapters/external-tools.js';
+
+export {
+    createWebSearchTools,
+    createHTTPFetchTools,
+    createCodeExecTools,
+    createFileSystemTools,
+    createRagQueryTools,
+    createHumanApprovalTool,
+} from '../nar/tools/adapters/external-tools.js';

@@ -1,17 +1,29 @@
 // senars12 Peggy parser wrapper - based on senars11 design
 // This replaces the hand-written recursive descent parser
 
+import {createRequire} from 'node:module';
 import {TermFactory} from './factory.js';
 import type {Term} from './types.js';
 import {Truth} from './truth.js';
 import {errMsg} from '../utils/index.js';
-// @ts-ignore - Peggy generated module has no type declarations
-import {parse as peggyParse} from './peggy-generated.js';
+
+const require = createRequire(import.meta.url);
+const peggyModule: {parse: (input: string, options?: unknown) => unknown} = require('./peggy-generated.cjs');
+const peggyParse = peggyModule.parse;
 
 export interface ParserResult {
     term: Term;
     truth?: Truth;
     statements?: ParserResult[];
+}
+
+export type TaskTypeName = 'belief' | 'question' | 'goal' | 'command';
+
+export interface ParseTaskResult {
+    term: Term;
+    taskType: TaskTypeName;
+    truth?: Truth;
+    punctuation: '.' | '?' | '!' | ';';
 }
 
 export interface ParserPosition {
@@ -91,6 +103,38 @@ export class TermParser {
         termStr = termStr.replace(/[.!?@;]+\s*$/, '').trim();
 
         return {term: this.parse(termStr), truth};
+    }
+
+    parseTask(input: string): ParseTaskResult | null {
+        const trimmed = input?.trim?.() ?? '';
+        if (!trimmed) return null;
+
+        try {
+            const result: unknown = peggyParse(trimmed, {termFactory: this.termFactory});
+            const r = result as {term?: Term; punctuation?: string; truthValue?: {frequency: number; confidence: number}} | null;
+            if (!r || !r.term || !r.punctuation) return null;
+
+            const punc = r.punctuation;
+            if (punc !== '.' && punc !== '?' && punc !== '!' && punc !== ';') return null;
+
+            const puncToType: Record<string, TaskTypeName> = {
+                '.': 'belief',
+                '?': 'question',
+                '!': 'goal',
+                ';': 'command',
+            };
+            const taskType = puncToType[punc];
+            if (!taskType) return null;
+
+            const rawTruth = r.truthValue;
+            const truth = rawTruth
+                ? Truth.create(rawTruth.frequency, rawTruth.confidence)
+                : undefined;
+
+            return {term: r.term, taskType, truth, punctuation: punc as ParseTaskResult['punctuation']};
+        } catch {
+            return null;
+        }
     }
 
     private _validateInput(input: string): string {

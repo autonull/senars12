@@ -3,8 +3,6 @@ import type {Task} from '../../types';
 import {createSecondaryTask} from '../../types';
 import {termsEqual, extractSymbols} from '../../terms';
 
-const MIN_SHARED_ATOMS = 1;
-
 const hasSharedAtoms = (term1: Task['term'], term2: Task['term']): boolean => {
     const atoms1 = extractSymbols(term1);
     const atoms2 = extractSymbols(term2);
