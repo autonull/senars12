@@ -181,7 +181,7 @@ describe('Agent with chatStream', () => {
         const session = createSession('test:wm:alice');
         const events: string[] = [];
         agent.on('agent:process:complete', p => events.push(`done:${p.output.length}`));
-        const iter = agent.chat('hello world', { stream: true, session });
+        const iter = agent.chatStream('hello world', session);
         let finalText = '';
         while (true) {
             const next = await iter.next();

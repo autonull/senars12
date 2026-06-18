@@ -4,7 +4,7 @@ import {WorkingMemory} from './memory/WorkingMemory.js';
 import {BagStrategy, Reasoner} from './reason';
 import {TaskManager} from './task';
 import {RuleProcessor} from './rules';
-import {ConfigurationError, type CoreConfig, DEFAULT_CONFIG, EventBus as NarEventBus, type Task, type TaskType} from './types';
+import {ConfigurationError, type CoreConfig, DEFAULT_CONFIG, EventBus, type Task, type TaskType} from './types';
 import type {Term} from './terms';
 import {termsEqual} from './terms';
 import type {Truth as TruthType} from './terms/truth.js';
@@ -31,7 +31,7 @@ import {NARIO} from './nar-io';
 import {NARExecution} from './nar-execution';
 import {NARLM} from './nar-lm';
 import {DriveManager, createBootstrapTasks} from './drives/index.js';
-import {EventBus as AgentEventBus} from '../agent/EventBus.js';
+import {EventBus} from '../agent/EventBus.js';
 
 export interface RLFPConfig {
     optimizeInterval?: number;
@@ -69,7 +69,7 @@ export class NAR extends BaseComponent {
   rlfp?: RLFPLearner;
   cognitiveController?: CognitiveController;
   private driveManager?: DriveManager;
-  private readonly systemEventBus: AgentEventBus;
+  private readonly systemEventBus: EventBus;
 
   private readonly io: NARIO;
   private execution: NARExecution;
@@ -83,8 +83,8 @@ export class NAR extends BaseComponent {
     private _toolsInitialized = false;
     private _constitution: Task[] = [];
 
-  constructor(config: NARConfig & { eventBus?: NarEventBus } = DEFAULT_CONFIG) {
-    const eventBus = config.eventBus ?? new NarEventBus();
+  constructor(config: NARConfig & { eventBus?: EventBus } = DEFAULT_CONFIG) {
+    const eventBus = config.eventBus ?? new EventBus();
     const logger = createLogger({scope: 'NAR'});
     const metrics = new MetricsCollector();
 
@@ -121,7 +121,7 @@ export class NAR extends BaseComponent {
 
         this.io = new NARIO(this.memory, this.taskManager, this.config);
         this.io.setEventBus(eventBus);
-        this.systemEventBus = new AgentEventBus();
+        this.systemEventBus = new EventBus();
         this.systemEventBus.wrapNarEventBus(eventBus);
         this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.rlfp?.policyOptimizerPublic, this.cognitiveController, this.driveManager, this.systemEventBus, this.self);
         this.lm = new NARLM(this.memory, this._registry, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment);
@@ -402,11 +402,7 @@ getDriveManager(): DriveManager | undefined {
   return this.driveManager;
 }
 
-getEventBus(): NarEventBus {
-  return this.eventBus;
-}
-
-getSystemEventBus(): AgentEventBus {
+getEventBus(): EventBus {
   return this.systemEventBus;
 }
 
@@ -679,8 +675,7 @@ clearLMRuleExecutionLog() {
 
         for (const rule of lmRules) {
             if (structuredModel) rule.setStructuredModel(structuredModel);
-            rule.setSystemEventBus(this.systemEventBus);
-            rule.setEventBus(this.eventBus);
+            rule.setEventBus(this.systemEventBus);
             rule.setNAR(this);
             rule.setToolDispatcher(toolDispatcher);
             // Enable tools for rules that benefit from tool access

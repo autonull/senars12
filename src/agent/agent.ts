@@ -22,11 +22,14 @@ import type {ConversationSession} from './ConversationSession.js';
 import {DEFAULT_SESSION_HISTORY_LIMIT} from './ConversationSession.js';
 import {formatHistoryAsMessages} from './chat-history.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
-import {AgentEventBus, type AgentEventKind, type AgentEventPayloads} from './AgentEventBus.js';
+import {EventBus, type EventKey, type EventMap} from './EventBus.js';
 import {AutonomyEngine} from './AutonomyEngine.js';
-import type {SystemEventMap} from './SystemEventBus.js';
 import {validateAgentOptions} from './options-schema.js';
 import {processInput, appendSessionTurns, type InputEvent} from './input-processor.js';
+import {StatsManager} from './subservices/StatsManager.js';
+import {KnowledgeManager} from './subservices/KnowledgeManager.js';
+import {SessionOrchestrator} from './subservices/SessionOrchestrator.js';
+import {PromptBuilder} from './subservices/PromptBuilder.js';
 
 const REASONING_INTERVAL_MS = 60_000;
 const MAX_REASON_STEPS_PER_TICK = 5;
@@ -61,6 +64,8 @@ export interface AgentOptions {
 export interface ChatOptions {
     historyLimit?: number;
     signal?: AbortSignal;
+    session?: ConversationSession;
+    stream?: boolean;
 }
 
 export interface ChatStreamEvent {
@@ -91,8 +96,11 @@ export interface DerivationEntry {
 }
 
 export interface Agent {
-    chat(input: string, opts?: ChatOptions): Promise<string>;
+    chat(input: string, opts?: ChatOptions & {stream?: false}): Promise<string>;
+    chat(input: string, opts: ChatOptions & {stream: true}): AsyncGenerator<ChatStreamEvent, string>;
+    /** @deprecated Use chat(input, { session }) instead */
     chatWithHistory(input: string, session: ConversationSession, opts?: ChatOptions): Promise<string>;
+    /** @deprecated Use chat(input, { stream: true, session }) instead */
     chatStream(input: string, session?: ConversationSession, opts?: ChatOptions): AsyncGenerator<ChatStreamEvent, string>;
     believe(narsese: string): Promise<void>;
     recall(query?: string, limit?: number): Promise<Array<{timestamp: number; type: string; content: string}>>;
@@ -129,10 +137,10 @@ export interface Agent {
     getGoalProgress(goalId: string): Promise<{goalId: string; progress: number; status: 'active' | 'completed' | 'failed'; subgoals: string[]} | null>;
     listActiveGoals(): Promise<Array<{goalId: string; term: string; progress: number; status: string}>>;
     explainInNaturalLanguage(term: string): Promise<string | null>;
-    on<K extends AgentEventKind>(event: K, listener: (payload: AgentEventPayloads[K]) => void): () => void;
-    off<K extends AgentEventKind>(event: K, listener: (payload: AgentEventPayloads[K]) => void): void;
-    on<K extends keyof SystemEventMap>(event: K, listener: (payload: SystemEventMap[K]) => void): () => void;
-    off<K extends keyof SystemEventMap>(event: K, listener: (payload: SystemEventMap[K]) => void): void;
+    on<K extends EventKey>(event: K, listener: (payload: EventMap[K]) => void): () => void;
+    off<K extends EventKey>(event: K, listener: (payload: EventMap[K]) => void): void;
+    on<K extends keyof EventMap>(event: K, listener: (payload: EventMap[K]) => void): () => void;
+    off<K extends keyof EventMap>(event: K, listener: (payload: EventMap[K]) => void): void;
 }
 
     const toEventTokens = (u: {inputTokens: number; outputTokens: number; totalTokens: number}) => ({
@@ -159,50 +167,18 @@ export interface Agent {
         } = opts;
 
         const runner = new ModelRunner({lmClient, maxLoops});
-        const knowledge = new Map<string, string>();
 
-        if (persistKnowledge) {
-            try {
-                const fs = require('fs');
-                const path = require('path');
-                const fullPath = path.resolve(workspaceRoot, knowledgePath);
-                if (fs.existsSync(fullPath)) {
-                    const content = fs.readFileSync(fullPath, 'utf-8');
-                    const data = JSON.parse(content);
-                    if (data && typeof data === 'object') {
-                        for (const [key, value] of Object.entries(data)) {
-                            knowledge.set(key, String(value));
-                        }
-                    }
-                }
-            } catch {
-                // Ignore load errors
-            }
-        }
+        const knowledgeManager = new KnowledgeManager({
+            knowledgePath,
+            persistKnowledge,
+        });
 
-        const saveKnowledge = (): void => {
-            if (!persistKnowledge) return;
-            try {
-                const fs = require('fs');
-                const path = require('path');
-                const fullPath = path.resolve(workspaceRoot, knowledgePath);
-                const dir = path.dirname(fullPath);
-                if (!fs.existsSync(dir)) {
-                    fs.mkdirSync(dir, {recursive: true});
-                }
-                const data = Object.fromEntries(knowledge);
-                fs.writeFileSync(fullPath, JSON.stringify(data, null, 2), 'utf-8');
-            } catch {
-                // Ignore save errors
-            }
-        };
-        const sessionInstructions = new WeakMap<ConversationSession, string>();
-        const sessionScratchpad = new WeakMap<ConversationSession, Map<string, string>>();
-        const eventBus = new AgentEventBus();
+        const sessionOrchestrator = new SessionOrchestrator();
+        const eventBus = new EventBus();
         const approvalManager = externalApprovalManager ?? new ApprovalManager();
         const translationCache = new TranslationCache({basePath: process.env.TRANSLATION_CACHE_PATH ?? '.cache/translation-cache'});
         const narRegistry = nar?.getProviderRegistry?.();
-        const systemEventBus = nar?.getSystemEventBus?.();
+        const systemEventBus = nar?.getEventBus?.();
         const contextAssembler = nar ? new ContextAssembler(translationCache) : undefined;
         const understandingService = nar && narRegistry ? new NLUnderstandingService(
             narRegistry,
@@ -217,30 +193,8 @@ export interface Agent {
         let autonomyEngine: AutonomyEngine | undefined;
         const recentDerivations: DerivationEntry[] = [];
 
-    const stats: AgentStats = {
-        totalChats: 0,
-        successfulChats: 0,
-        failedChats: 0,
-        totalInputTokens: 0,
-        totalOutputTokens: 0,
-        totalTokens: 0,
-        totalDurationMs: 0,
-        averageDurationMs: 0,
-        startedAt: Date.now(),
-    };
-
-    const recordStats = (outcome: 'success' | 'failure', durationMs: number, tokens?: {inputTokens: number; outputTokens: number; totalTokens: number}): void => {
-        stats.totalChats++;
-        if (outcome === 'success') stats.successfulChats++;
-        else stats.failedChats++;
-        stats.totalDurationMs += durationMs;
-        stats.averageDurationMs = stats.totalDurationMs / stats.totalChats;
-        if (tokens) {
-            stats.totalInputTokens += tokens.inputTokens;
-            stats.totalOutputTokens += tokens.outputTokens;
-            stats.totalTokens += tokens.totalTokens;
-        }
-    };
+    const statsManager = new StatsManager();
+    const recordStats = statsManager.recordStats.bind(statsManager);
 
     const safeLog = (type: EpisodeType, content: string, metadata: Record<string, unknown> = {}): void => {
         if (!episodicMemory) return;
@@ -273,83 +227,17 @@ export interface Agent {
         }
     };
 
-    const getScratchpad = (session?: ConversationSession): Map<string, string> | undefined => {
-        if (!session) return undefined;
-        let pad = sessionScratchpad.get(session);
-        if (!pad) {
-            pad = new Map();
-            sessionScratchpad.set(session, pad);
-        }
-        return pad;
-    };
+    const promptBuilder = new PromptBuilder(
+        systemInstructions ?? '',
+        sessionOrchestrator,
+        recentDerivations,
+        nar,
+        contextAssembler,
+        contextOpts
+    );
 
     const buildSystemPrompt = async (input: string, session?: ConversationSession): Promise<string> => {
-        const instruction = session ? sessionInstructions.get(session) : systemInstructions;
-        const parts: string[] = [];
-
-        const constitution = nar?.getConstitution?.() ?? [];
-        if (constitution.length > 0) {
-            parts.push('## Constitution');
-            for (const b of constitution) {
-                parts.push((b as {term: {toString(): string}}).term.toString());
-            }
-        }
-
-        if (instruction) {
-            parts.push('## Instructions');
-            parts.push(instruction);
-        }
-
-        const pad = getScratchpad(session);
-        if (pad && pad.size > 0) {
-            parts.push('## Session Context');
-            for (const [k, v] of pad) {
-                parts.push(`${k}: ${v}`);
-            }
-        }
-
-        if (recentDerivations.length > 0) {
-            parts.push('## Recent Derivations');
-            for (const d of recentDerivations.slice(-10)) {
-                const truth = d.truth ? ` (f=${d.truth.f.toFixed(2)} c=${d.truth.c.toFixed(2)})` : '';
-                parts.push(`${d.term}${truth}`);
-            }
-        }
-
-        if (nar && contextAssembler) {
-            const nlContext = contextAssembler.assemble(nar, input, contextOpts);
-            const stateParts: string[] = [];
-            if (nlContext.beliefs && nlContext.beliefs.length > 0) {
-                stateParts.push('Related beliefs:');
-                for (const b of nlContext.beliefs) {
-                    stateParts.push(`  ${b}`);
-                }
-            }
-            if (nlContext.activeGoals && nlContext.activeGoals.length > 0) {
-                stateParts.push('Active goals:');
-                for (const g of nlContext.activeGoals) {
-                    stateParts.push(`  ${g}`);
-                }
-            }
-            if (nlContext.recentDerivations && nlContext.recentDerivations.length > 0) {
-                stateParts.push('Recent derivations:');
-                for (const d of nlContext.recentDerivations) {
-                    stateParts.push(`  ${d}`);
-                }
-            }
-            if (nlContext.memoryHealth) {
-                stateParts.push(`Memory: ${nlContext.memoryHealth.totalConcepts} concepts, pressure ${(nlContext.memoryHealth.pressure * 100).toFixed(0)}%`);
-            }
-            if (stateParts.length > 0) {
-                parts.push('## Cognitive State');
-                parts.push(stateParts.join('\n'));
-            }
-        }
-
-        parts.push('## Tool Use Strategy');
-        parts.push('Think step by step. Use tools when needed. Be concise.');
-
-        return parts.join('\n\n');
+        return promptBuilder.buildSystemPrompt(input, session);
     };
 
     const buildTools = (session?: ConversationSession): Record<string, unknown> => {
@@ -362,13 +250,12 @@ export interface Agent {
             }));
         }
         Object.assign(tools, buildAgentTools({
-            know: (k: string, v: string) => { knowledge.set(k, v); safeLog('input', v, {kind: 'knowledge', key: k}); },
-            knowGet: (k: string) => knowledge.get(k),
-            knowList: () => [...knowledge.entries()].map(([key, value]) => ({key, value})),
+            know: (k: string, v: string) => { knowledgeManager.know(k, v); safeLog('input', v, {kind: 'knowledge', key: k}); },
+            knowGet: (k: string) => knowledgeManager.knowGet(k),
+            knowList: () => knowledgeManager.knowList(),
             recall: (q?: string, l?: number) => recallFromMemory(q, l),
             setInstructions: session ? (mode, instructions) => {
-                const existing = sessionInstructions.get(session) ?? '';
-                sessionInstructions.set(session, mode === 'replace' ? instructions : (existing ? `${existing}\n${instructions}` : instructions));
+                sessionOrchestrator.setSessionInstructions(session, mode, instructions);
             } : undefined,
             getSessionInfo: session ? () => ({
                 messageCount: session.history.length,
@@ -378,7 +265,7 @@ export interface Agent {
         }));
 
         if (session) {
-            const pad = getScratchpad(session);
+            const pad = sessionOrchestrator.getScratchpad(session);
             if (pad) {
                 Object.assign(tools, {
                     set_context: {
@@ -472,33 +359,44 @@ export interface Agent {
         return {text: next.value, event};
     };
 
-    const chat = async (input: string, opts: ChatOptions = {}): Promise<string> => {
-        const startTime = Date.now();
-        eventBus.emit('agent:process:start', {input, timestamp: startTime});
-        try {
-            safeLog('input', input);
-            const {text, event} = await runProcessInput(input, opts);
-
-            if (event?.kind === 'lm-dispatch') {
-                const dispatch = await dispatchToLM(input, opts);
-                const response = dispatch.text;
-                safeLog('response', response);
-                recordStats('success', Date.now() - startTime, dispatch.usage);
-                eventBus.emit('agent:process:complete', {input, output: response, durationMs: Date.now() - startTime, ...(dispatch.usage ? {tokens: toEventTokens(dispatch.usage)} : {}), timestamp: Date.now()});
-                return response;
-            }
-
-            safeLog('response', text);
-            recordStats('success', Date.now() - startTime);
-            eventBus.emit('agent:process:complete', {input, output: text, durationMs: Date.now() - startTime, timestamp: Date.now()});
-            return text;
-        } catch (e) {
-            const err = e instanceof Error ? e.message : String(e);
-            recordStats('failure', Date.now() - startTime);
-            eventBus.emit('agent:process:error', {input, error: err, timestamp: Date.now()});
-            throw e;
+    function chat(input: string, opts: ChatOptions & {stream: true}): AsyncGenerator<ChatStreamEvent, string>;
+    function chat(input: string, opts?: ChatOptions & {stream?: false}): Promise<string>;
+    function chat(input: string, opts: ChatOptions = {}): any {
+        if (opts.stream) {
+            return chatStream(input, opts.session, opts);
         }
-    };
+        if (opts.session) {
+            return chatWithHistory(input, opts.session, opts);
+        }
+
+        return (async () => {
+            const startTime = Date.now();
+            eventBus.emit('agent:process:start', {input, timestamp: startTime});
+            try {
+                safeLog('input', input);
+                const {text, event} = await runProcessInput(input, opts);
+
+                if (event?.kind === 'lm-dispatch') {
+                    const dispatch = await dispatchToLM(input, opts);
+                    const response = dispatch.text;
+                    safeLog('response', response);
+                    recordStats('success', Date.now() - startTime, dispatch.usage);
+                    eventBus.emit('agent:process:complete', {input, output: response, durationMs: Date.now() - startTime, ...(dispatch.usage ? {tokens: toEventTokens(dispatch.usage)} : {}), timestamp: Date.now()});
+                    return response;
+                }
+
+                safeLog('response', text);
+                recordStats('success', Date.now() - startTime);
+                eventBus.emit('agent:process:complete', {input, output: text, durationMs: Date.now() - startTime, timestamp: Date.now()});
+                return text;
+            } catch (e) {
+                const err = e instanceof Error ? e.message : String(e);
+                recordStats('failure', Date.now() - startTime);
+                eventBus.emit('agent:process:error', {input, error: err, timestamp: Date.now()});
+                throw e;
+            }
+        })();
+    }
 
     const chatWithHistory = async (input: string, session: ConversationSession, opts: ChatOptions = {}): Promise<string> => {
         const historyLimit = opts.historyLimit ?? DEFAULT_SESSION_HISTORY_LIMIT;
@@ -665,7 +563,7 @@ export interface Agent {
         if (nar && (nar.state === 'started' || nar.state === 'initialized')) {
             nar.stop().catch(() => {});
         }
-        saveKnowledge();
+        knowledgeManager.saveKnowledge();
         eventBus.emit('agent:suspend', {timestamp: Date.now()});
     };
 
@@ -675,9 +573,9 @@ export interface Agent {
         chatStream,
         believe,
         recall,
-        know: (key: string, value: string) => { knowledge.set(key, value); safeLog('input', value, {kind: 'knowledge', key}); saveKnowledge(); },
-        knowGet: (key: string) => knowledge.get(key),
-        knowList: () => [...knowledge.entries()].map(([key, value]) => ({key, value})),
+        know: (key: string, value: string) => { knowledgeManager.know(key, value); safeLog('input', value, {kind: 'knowledge', key}); },
+        knowGet: (key: string) => knowledgeManager.knowGet(key),
+        knowList: () => knowledgeManager.knowList(),
         start,
         stop,
         pause: () => autonomyEngine?.pause(),
@@ -687,7 +585,7 @@ export interface Agent {
         getNAR: () => nar,
         getEpisodicMemory: () => episodicMemory,
         getLogger: () => logger,
-        getStats: () => ({...stats}),
+        getStats: () => statsManager.getStats(),
         getRecentDerivations: () => [...recentDerivations],
         resolveApproval: (id, approved, reason) => approvalManager.resolveApproval(id, approved, reason),
         getPendingApprovals: () => approvalManager.getPending().map(r => ({id: r.id, request: r.request, createdAt: r.createdAt})),

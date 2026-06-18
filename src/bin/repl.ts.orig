@@ -13,7 +13,7 @@ import {QUIT_SENTINEL, type CLICommand} from '../io/connections/cli.js';
 import type {LMClient} from '../nar/lm/types.js';
 import type {NAR} from '../nar/nar.js';
 import {loadConfigFromEnv} from '../config/index.js';
-import {agentConfigToOptions} from '../agent/options-schema.js';
+import {agentConfigToOptions} from '../agent/config-bridge.js';
 import {JsonlSessionManager} from '../agent/SessionManager.js';
 import type {ConversationSession} from '../agent/ConversationSession.js';
 

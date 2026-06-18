@@ -108,10 +108,6 @@ export class LMRule {
         this.eventBus = eventBus;
     }
 
-    setSystemEventBus(bus: AgentEventBus): void {
-        this.systemEventBus = bus;
-    }
-
     setStructuredModel(model: LanguageModel): void {
         this.structuredModel = model;
     }
@@ -128,7 +124,7 @@ canApply(primary: Term, secondary?: Term, context?: Record<string, unknown>): bo
     return !this.getSkipReason(primary, secondary, context);
 }
 
-private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, unknown>): AgentEventMap['system:lm.rule:skipped']['reason'] | null {
+private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, unknown>): EventMap['system:lm.rule:skipped']['reason'] | null {
     if (!this.enabled) return 'disabled';
     if (this.circuitBreaker.getState() === 'open') return 'circuit_open';
     if (!this.lm || !primary) return 'disabled';
@@ -188,7 +184,7 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
 
             const tasks = this.processAndGenerate(response, primary, secondary, lmContext, context);
             this.recordSuccess(duration, prompt.length + response.length);
-            this.emitSystemEvent('system:lm.rule:applied' as keyof AgentEventMap, {
+            this.emitSystemEvent('system:lm.rule:applied', {
                 ruleId: this.id,
                 ruleName: this.name,
                 primaryTerm: primary.toString(),
@@ -253,7 +249,7 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
         if (this.eventBus) this.eventBus.emit(eventName, data);
     }
 
-    private emitSystemEvent<K extends keyof AgentEventMap>(event: K, data: AgentEventMap[K]): void {
+    private emitSystemEvent<K extends keyof EventMap>(event: K, data: EventMap[K]): void {
         if (this.systemEventBus) this.systemEventBus.emit(event, data);
     }
 

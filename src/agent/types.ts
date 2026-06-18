@@ -89,7 +89,7 @@ export type StreamEvent =
   | {kind: 'clarify'; text: string}
   | {kind: 'lm-rule-applied'; ruleId: string; ruleName: string; tasksProduced: number};
 
-export interface AgentEventPayloads {
+export interface EventMap {
   'agent:process:start': {input: string; sessionKey?: string; timestamp: number};
   'agent:process:complete': {input: string; output: string; durationMs: number; sessionKey?: string; tokens?: {input: number; output: number; total: number}; timestamp: number};
   'agent:process:error': {input: string; error: string; sessionKey?: string; timestamp: number};
