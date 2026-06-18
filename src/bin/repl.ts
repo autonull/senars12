@@ -263,11 +263,20 @@ async function main() {
     let currentSession = sessionManager.getOrCreate('default');
 
     const appConfig = await loadConfigFromEnv();
+
+    const externalTools = {
+        webSearch: { apiKey: process.env.BRAVE_API_KEY ?? process.env.TAVILY_API_KEY },
+        codeExec: { maxTimeout: 10000, maxOutputBytes: 1024 * 1024 },
+        fs: { maxReadSize: 1024 * 1024 },
+    };
+
     const agent = createAgent({
         nar,
         lmClient,
         episodicMemory,
         autonomyEngine,
+        externalTools,
+        workspaceRoot: process.cwd(),
         ...agentConfigToOptions(appConfig.agent)
     });
 

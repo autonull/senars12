@@ -73,6 +73,17 @@ export class PromptBuilder {
             if (nlContext.memoryHealth) {
                 stateParts.push(`Memory: ${nlContext.memoryHealth.totalConcepts} concepts, pressure ${(nlContext.memoryHealth.pressure * 100).toFixed(0)}%`);
             }
+            const driveManager = this.nar.getDriveManager?.();
+            if (driveManager) {
+                const activeDrives = driveManager.getAllStates().filter(d => d.isActive);
+                if (activeDrives.length > 0) {
+                    stateParts.push('Active Drives:');
+                    for (const d of activeDrives) {
+                        stateParts.push(`  ${d.spec.id}: intensity ${(d.currentIntensity * 100).toFixed(0)}%`);
+                    }
+                }
+            }
+
             if (stateParts.length > 0) {
                 parts.push('## Cognitive State');
                 parts.push(stateParts.join('\n'));

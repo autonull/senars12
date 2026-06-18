@@ -8,13 +8,7 @@ import {TranslationCache} from '../nar/nl/cache.js';
 import {
     createNARSTools,
     createGeneralTools,
-    createWebSearchTools,
-    createHTTPFetchTools,
-    createCodeExecTools,
-    createFileSystemTools,
-    createRagQueryTools,
     ApprovalManager,
-    createHumanApprovalTool,
 } from '../nar/tools/adapters/index.js';
 import {ModelRunner} from './model/ModelRunner.js';
 import {buildAgentTools} from './tools.js';
@@ -290,21 +284,10 @@ export interface Agent {
             }
         }
 
-        Object.assign(tools, createWebSearchTools({apiKey: extToolOpts.webSearch?.apiKey}));
-        Object.assign(tools, createHTTPFetchTools());
-        Object.assign(tools, createCodeExecTools({
-            workspaceRoot,
-            maxTimeout: extToolOpts.codeExec?.maxTimeout,
-            maxOutputBytes: extToolOpts.codeExec?.maxOutputBytes,
-        }));
-        Object.assign(tools, createFileSystemTools({
-            workspaceRoot,
-            maxReadSize: extToolOpts.fs?.maxReadSize,
-        }));
-        if (episodicMemory) {
-            Object.assign(tools, createRagQueryTools({episodicMemory}));
+        // Add external tools configured via options
+        if (extToolOpts) {
+            Object.assign(tools, extToolOpts);
         }
-        Object.assign(tools, createHumanApprovalTool(approvalManager));
 
         return tools;
     };
