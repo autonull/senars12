@@ -20,7 +20,6 @@ import {
     createNarsTraceAnnotator,
     createNarseseOutputHumanization,
     compose,
-    conditional,
 } from './io-middleware.js';
 
 export interface BridgeOptions {

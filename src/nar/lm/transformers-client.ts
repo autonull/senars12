@@ -28,6 +28,7 @@ export class TransformersLMClient implements LMClient {
             prompt: Array<{role: string; content: Array<{type: 'text'; text: string}>}>;
             maxOutputTokens?: number;
             temperature?: number;
+            abortSignal?: AbortSignal;
         }): Promise<{
             content?: Array<{type: 'text'; text: string}>;
         }>;
@@ -73,6 +74,7 @@ export class TransformersLMClient implements LMClient {
                         prompt: [{role: 'user', content: [{type: 'text', text: prompt}]}],
                         maxOutputTokens: options?.maxTokens ?? 128,
                         temperature: options?.temperature ?? 0.7,
+                        abortSignal: options?.signal,
                     }),
                     this.timeoutPromise(this.inferenceTimeoutMs, options?.signal),
                 ]);

@@ -47,7 +47,7 @@ export class EventBus {
         for (const listener of listeners) {
             try {
                 listener(data);
-            } catch (err) {
+            } catch (_err) {
                 // listener errors must not break the pipeline
             }
         }
