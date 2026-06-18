@@ -1,5 +1,6 @@
 import type {NAR} from '../nar.js';
-import type {Term, Truth} from '../terms/index.js';
+import type {Term} from '../terms/index.js';
+import {Truth} from '../terms/truth.js';
 
 export interface CounterfactualReport {
     possible: boolean;
@@ -32,8 +33,8 @@ export async function counterfactual(
 
     const originalTruth = originalBelief.truth;
     const negatedTruth: Truth = originalTruth
-        ? { f: negate ? 1 - originalTruth.f : originalTruth.f, c: originalTruth.c * 0.5 }
-        : { f: negate ? 0 : 1, c: 0.5 };
+        ? Truth.create(negate ? 1 - originalTruth.f : originalTruth.f, originalTruth.c * 0.5)
+        : Truth.create(negate ? 0 : 1, 0.5);
 
     try {
         await nar.believe(term, negatedTruth);

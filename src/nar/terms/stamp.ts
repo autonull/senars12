@@ -3,14 +3,15 @@
  */
 
 import {makeId} from '../utils';
-import type {Increment, Nat} from '../types';
+import type {Increment, Nat, Timestamp} from '../types/index.js';
+import {createTimestamp} from '../types/index.js';
 import {DEPTH_MAX} from '../types';
 
 export type Source = 'INPUT' | 'DERIVED' | 'CONSTITUTION' | 'LM' | 'EXTERNAL_MCP';
 
 export interface Stamp<D extends Nat = 0> {
     readonly id: string;
-    readonly creationTime: number;
+    readonly creationTime: Timestamp;
     readonly source: Source;
     readonly derivations: readonly string[];
     readonly depth: D;
@@ -20,7 +21,7 @@ export const Stamp = {
     createInput(): Stamp<0> {
         return Object.freeze({
             id: makeId(),
-            creationTime: Date.now(),
+            creationTime: createTimestamp(),
             source: 'INPUT' as const,
             derivations: [],
             depth: 0
@@ -30,7 +31,7 @@ export const Stamp = {
     createInputWithId(id: string): Stamp<0> {
         return Object.freeze({
             id,
-            creationTime: Date.now(),
+            creationTime: createTimestamp(),
             source: 'INPUT' as const,
             derivations: [],
             depth: 0
@@ -41,7 +42,7 @@ export const Stamp = {
         if (parentStamps.length === 0) {
             return Object.freeze({
                 id: makeId(),
-                creationTime: Date.now(),
+                creationTime: createTimestamp(),
                 source,
                 derivations: [],
                 depth: 0 as Increment<D>
@@ -72,7 +73,7 @@ export const Stamp = {
                 // Return just one of the parents if they are identical
                 return Object.freeze({
                     id: makeId(),
-                    creationTime: Date.now(),
+                    creationTime: createTimestamp(),
                     source,
                     derivations: Array.from(seenEvidence),
                     depth: (maxDepth + 1) as Increment<D>
@@ -83,7 +84,7 @@ export const Stamp = {
 
         return Object.freeze({
             id: makeId(),
-            creationTime: Date.now(),
+            creationTime: createTimestamp(),
             source,
             derivations: Array.from(seenEvidence),
             depth: (maxDepth + 1) as Increment<D>

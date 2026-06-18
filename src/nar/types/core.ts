@@ -13,6 +13,14 @@ export type {Truth as TruthType} from '../terms/truth.js';
 export type {Stamp, Source} from '../terms/stamp.js';
 
 // Core identity and hashing
+
+// Branded types for temporal and probabilistic reasoning safety
+export type Timestamp = number & { readonly __brand: unique symbol };
+export type Duration = number & { readonly __brand: unique symbol };
+
+export const createTimestamp = (ms?: number): Timestamp => (ms ?? Date.now()) as Timestamp;
+export const createDuration = (ms: number): Duration => ms as Duration;
+
 export type Hash = number;
 export type TermSymbol = string;
 
@@ -35,7 +43,7 @@ export interface Task {
     readonly truth: TruthType;
     readonly budget: Budget;
     readonly stamp: Stamp;
-    readonly occurrenceTime: number;
+    readonly occurrenceTime: Timestamp;
     readonly derived: boolean;
 }
 
@@ -106,7 +114,7 @@ export const createTask = (
     truth,
     budget,
     stamp: Stamp.createInput(),
-    occurrenceTime: Date.now(),
+    occurrenceTime: createTimestamp(),
     derived: false
 });
 
@@ -114,15 +122,15 @@ export const createTask = (
 export const createSecondaryTask = (
     term: Term,
     priority: number,
-    truth?: { f: number; c: number },
+    truth?: TruthType,
     type: TaskType = 'belief'
 ): Task => ({
     term,
     type,
-    truth: truth ?? Truth.NEUTRAL,
+    truth: (truth as TruthType) ?? Truth.NEUTRAL,
     budget: createBudget(priority),
     stamp: Stamp.createInput(),
-    occurrenceTime: 0,
+    occurrenceTime: createTimestamp(0),
     derived: false
 });
 

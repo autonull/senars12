@@ -1,8 +1,13 @@
 import {clamp, safeDiv} from '../utils';
 
+
+export type Frequency = number & { readonly __brand: unique symbol };
+export type Confidence = number & { readonly __brand: unique symbol };
+
 export interface Truth {
-    readonly f: number;
-    readonly c: number;
+
+    readonly f: Frequency;
+    readonly c: Confidence;
 }
 
 const WEAKENING_FACTOR = 10;
@@ -20,7 +25,7 @@ const createTruth = (f: number, c: number): Truth => {
   if (c > MAX_CONFIDENCE) {
     throw new TruthError(`Confidence ${c} exceeds maximum ${MAX_CONFIDENCE}`);
   }
-  return Object.freeze({f: clamp(isNaN(f) ? 0.5 : f, 0, 1), c: clampedC});
+  return Object.freeze({f: clamp(isNaN(f) ? 0.5 : f, 0, 1) as Frequency, c: clampedC as Confidence});
 };
 
 const c2w = (c: number): number => c === 1 ? 1e10 : c / (1 - c);
@@ -51,11 +56,11 @@ const truthOps = {
 
 export const Truth = {
 create: createTruth,
-TRUE: Object.freeze({f: 1.0, c: 0.9}) as Truth,
-FALSE: Object.freeze({f: 0.0, c: 0.9}) as Truth,
-NEUTRAL: Object.freeze({f: 0.5, c: 0.9}) as Truth,
+TRUE: Object.freeze({f: 1.0 as Frequency, c: 0.9 as Confidence}) as Truth,
+FALSE: Object.freeze({f: 0.0 as Frequency, c: 0.9 as Confidence}) as Truth,
+NEUTRAL: Object.freeze({f: 0.5 as Frequency, c: 0.9 as Confidence}) as Truth,
 MAX_CONFIDENCE,
-    safeDiv,
+    safeDiv: (a: number, b: number): number => Math.abs(b) < 1e-9 ? 0 : a / b,
 
     negation: truthOps.unary((f, c) => [1 - f, c]),
     conversion: truthOps.unary((f, c) => [f, f * c]),

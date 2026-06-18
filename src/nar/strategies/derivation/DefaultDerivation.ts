@@ -4,7 +4,7 @@ import type {RuleProcessor, RuleResult, RuleInput} from '../../rules/processor.j
 import type {DerivationStrategy, DerivationContext} from '../types.js';
 
 export const toTask = (r: RuleResult): Task => ({
-  term: r.term, type: 'belief', truth: r.truth, budget: createBudget(r.priority), stamp: r.stamp, occurrenceTime: Date.now(), derived: true
+  term: r.term, type: 'belief', truth: r.truth, budget: createBudget(r.priority), stamp: r.stamp, occurrenceTime: Date.now() as any, derived: true
 });
 
 export class DefaultDerivation implements DerivationStrategy {

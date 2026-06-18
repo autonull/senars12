@@ -149,7 +149,7 @@ export class Reasoner {
     }
 
   private createDerivedTask(result: RuleResult): Task {
-    return {term: result.term, type: 'belief', truth: result.truth, budget: createBudget(result.priority), stamp: result.stamp, occurrenceTime: Date.now(), derived: true};
+    return {term: result.term, type: 'belief', truth: result.truth, budget: createBudget(result.priority), stamp: result.stamp, occurrenceTime: Date.now() as any, derived: true};
   }
 
   private collectTrace(premises: Task[], result: Task): void {
