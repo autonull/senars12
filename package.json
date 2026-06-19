@@ -24,7 +24,6 @@
     "test:conversational": "NODE_NO_WARNINGS=1 tsx tests/conversational/runner.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "audit:stale": "bash scripts/audit-stale-deleted.sh",
     "typecheck": "tsc --noEmit",
     "build": "tsc"
   },
