@@ -67,13 +67,18 @@ export class EpisodicMemory {
             for (const file of dateFiles) {
                 if (episodes.length >= (options?.limit ?? Infinity)) break;
 
+
                 const filePath = join(basePath, file);
                 const content = await fs.readFile(filePath, 'utf-8');
                 const lines = content.split('\n').filter(line => line.trim());
 
-                for (const line of lines) {
+                // Read backwards to get newest episodes first
+                for (let i = lines.length - 1; i >= 0; i--) {
+                    const line = lines[i];
+                    if (!line) continue;
                     try {
                         const episode = JSON.parse(line) as Episode;
+
 
                         if (options?.type && episode.type !== options.type) continue;
                         if (options?.timeRange) {

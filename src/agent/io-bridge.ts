@@ -19,6 +19,7 @@ import {
     createStreamingAgentDispatch,
     createNarsTraceAnnotator,
     createNarseseOutputHumanization,
+    compose,
 } from './io-middleware.js';
 
 export interface BridgeOptions {
@@ -41,20 +42,19 @@ export function bindAgentToConnection(
 ): () => void {
     const router = new MessageRouter();
     const logger = createLogger({scope: `bridge:${connection.id}`});
-    router.use(createErrorBoundary(logger));
-    if (opts.auth) router.use(createAuthMiddleware(opts.auth));
-    router.use(originExtractor);
-    if (opts.commandRegistry) router.use(createCommandInterceptor(opts.commandRegistry));
-    router.use(createRateLimiter(opts.rateLimitPerMinute ?? 30));
-    router.use(createSessionBinder(opts.sessionManager));
-    if (opts.enableNarseseHumanization && opts.generationService) {
-        router.use(createNarseseOutputHumanization(opts.generationService));
-    }
-    router.use(createStreamingAgentDispatch(agent, logger));
     const traceNar = agent.getNAR();
-    if (opts.enableNarsTrace !== false && traceNar) {
-        router.use(createNarsTraceAnnotator(traceNar));
-    }
+
+    router.use(createErrorBoundary(logger));
+    router.use(compose(
+        opts.auth ? createAuthMiddleware(opts.auth) : async (m, c, next) => next(),
+        originExtractor,
+        opts.commandRegistry ? createCommandInterceptor(opts.commandRegistry) : async (m, c, next) => next(),
+        createRateLimiter(opts.rateLimitPerMinute ?? 30),
+        createSessionBinder(opts.sessionManager),
+        opts.enableNarseseHumanization && opts.generationService ? createNarseseOutputHumanization(opts.generationService) : async (m, c, next) => next(),
+        createStreamingAgentDispatch(agent, logger),
+        opts.enableNarsTrace !== false && traceNar ? createNarsTraceAnnotator(traceNar) : async (m, c, next) => next()
+    ));
 
     const handler = (message: IOMessage) => {
         const nar = agent.getNAR();

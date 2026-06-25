@@ -154,7 +154,7 @@ export class ConversationalTestHarness {
 
         let response = '';
         try {
-            const stream = this.agent.chatStream(input, this.session, {signal: timeoutController.signal});
+            const stream = this.agent.chat(input, { stream: true, session: this.session, signal: timeoutController.signal});
             let next = await stream.next();
             while (!next.done) {
                 const ev = next.value;

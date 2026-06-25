@@ -3,7 +3,7 @@ import {createAgent} from '../../../src/agent/agent.js';
 import {SeNARSFactory} from '../../../src/nar/index.js';
 import {createSession} from '../../../src/agent/ConversationSession.js';
 import {truncateArtifact, ModelRunner} from '../../../src/agent/model/ModelRunner.js';
-import {AgentEventBus} from '../../../src/agent/AgentEventBus.js';
+import {EventBus} from '../../../src/agent/EventBus.js';
 import type {LMClient} from '../../../src/nar/lm/types.js';
 
 const scriptedLM: LMClient = {
@@ -89,9 +89,9 @@ describe('Agent stats', () => {
     });
 });
 
-describe('AgentEventBus', () => {
+describe('EventBus', () => {
     it('on() returns an unsubscribe function', () => {
-        const bus = new AgentEventBus();
+        const bus = new EventBus();
         let count = 0;
         const unsub = bus.on('agent:resume', () => { count++; });
         bus.emit('agent:resume', {timestamp: 1});
@@ -103,7 +103,7 @@ describe('AgentEventBus', () => {
     });
 
     it('isolates listener errors', () => {
-        const bus = new AgentEventBus();
+        const bus = new EventBus();
         let firstRan = false;
         let secondRan = false;
         bus.on('agent:resume', () => { firstRan = true; throw new Error('boom'); });
@@ -181,7 +181,7 @@ describe('Agent with chatStream', () => {
         const session = createSession('test:wm:alice');
         const events: string[] = [];
         agent.on('agent:process:complete', p => events.push(`done:${p.output.length}`));
-        const iter = agent.chatStream('hello world', session);
+        const iter = agent.chat('hello world', { stream: true, session });
         let finalText = '';
         while (true) {
             const next = await iter.next();

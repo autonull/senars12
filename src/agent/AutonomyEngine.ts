@@ -1,5 +1,5 @@
 import type {NAR} from '../nar/nar.js';
-import type {SystemEventBus, SystemEventMap} from './SystemEventBus.js';
+import type {EventBus, EventMap} from './EventBus.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
 
 export interface AutonomyEngineConfig {
@@ -17,7 +17,7 @@ export interface ReasoningJob {
 
 export class AutonomyEngine {
     private readonly nar: NAR;
-    private readonly systemEventBus: SystemEventBus;
+    private readonly systemEventBus: EventBus;
     private readonly config: Required<AutonomyEngineConfig>;
     private readonly logger: Logger;
 
@@ -32,7 +32,7 @@ export class AutonomyEngine {
     private conflictUnsub?: () => void;
     private goalUnsub?: () => void;
 
-    constructor(nar: NAR, systemEventBus: SystemEventBus, config: Partial<AutonomyEngineConfig> = {}) {
+    constructor(nar: NAR, systemEventBus: EventBus, config: Partial<AutonomyEngineConfig> = {}) {
         this.nar = nar;
         this.systemEventBus = systemEventBus;
         this.config = {
@@ -121,7 +121,7 @@ export class AutonomyEngine {
         this.goalUnsub?.();
     }
 
-    private handleDriveChange(data: SystemEventMap['nar:drive:changed']): void {
+    private handleDriveChange(data: EventMap['nar:drive:changed']): void {
         const urgency = data.urgency ?? 0;
         const steps = Math.max(
             this.config.minStepsPerTick,
@@ -135,18 +135,18 @@ export class AutonomyEngine {
         this.notify(`Drive changed: ${data.drive} urgency=${urgency.toFixed(2)}, scheduling ${steps} steps`);
     }
 
-    private handleDerivation(data: SystemEventMap['nar:derivation']): void {
+    private handleDerivation(data: EventMap['nar:derivation']): void {
         this.notify(`New derivation: ${data.term} (confidence: ${data.confidence.toFixed(2)})`);
     }
 
-    private handleConflict(data: SystemEventMap['nar:conflict:detected']): void {
+    private handleConflict(data: EventMap['nar:conflict:detected']): void {
         this.notify(`Conflict detected: ${data.term} conflicts with ${data.conflictWith}`);
         if (!this.paused && this.running) {
             this.requestReasoning(this.config.maxStepsPerTick).catch(() => {});
         }
     }
 
-    private handleGoalResolved(data: SystemEventMap['nar:goal:resolved']): void {
+    private handleGoalResolved(data: EventMap['nar:goal:resolved']): void {
         this.notify(`Goal resolved: ${data.term}`);
     }
 
@@ -176,6 +176,6 @@ export class AutonomyEngine {
     }
 }
 
-export function createAutonomyEngine(nar: NAR, systemEventBus: SystemEventBus, config?: Partial<AutonomyEngineConfig>): AutonomyEngine {
+export function createAutonomyEngine(nar: NAR, systemEventBus: EventBus, config?: Partial<AutonomyEngineConfig>): AutonomyEngine {
     return new AutonomyEngine(nar, systemEventBus, config);
 }

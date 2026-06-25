@@ -26,7 +26,7 @@ export class GroundingPipeline {
         quality: SourceQuality,
         fact: string
     ): Promise<void> {
-        await this.nar.believe(fact, {f: 0.9, c: quality});
+        await this.nar.believe(fact, {f: 0.9, c: quality} as any);
     }
 
     recallGroundedFact(_query: string): string | null {

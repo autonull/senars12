@@ -203,7 +203,7 @@ export class InferenceController {
 			truth: belief.truth,
 			budget: createBudget(concept.priority),
 			stamp: belief.stamp,
-			occurrenceTime: Date.now(),
+			occurrenceTime: Date.now() as any,
 			derived: false
 		};
 	}
@@ -231,7 +231,7 @@ export class InferenceController {
 			truth: result.truth,
 			budget: createBudget(result.priority),
 			stamp: result.stamp,
-			occurrenceTime: Date.now(),
+			occurrenceTime: Date.now() as any,
 			derived: true
 		};
 	}

@@ -1,4 +1,6 @@
-import type {Term} from '../terms';
+import type {Term} from '../terms/index.js';
+import {Truth} from '../terms/truth.js';
+import {createTimestamp} from '../types/core.js';
 import {termParser, termsEqual} from '../terms';
 import type {Stamp, Task, TaskType, TermFilter} from '../types';
 import type {Concept} from '../memory';
@@ -120,10 +122,10 @@ export class QueryAPI {
         return {
             term,
             type: 'belief',
-            truth: belief.truth!,
+            truth: belief.truth ? Truth.create(belief.truth.f, belief.truth.c) : Truth.NEUTRAL,
             budget: {priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-            stamp: belief.stamp ?? {id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0},
-            occurrenceTime: 0,
+            stamp: belief.stamp ?? ({id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0} as any),
+            occurrenceTime: createTimestamp(0),
             derived: false
         };
     }

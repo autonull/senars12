@@ -89,7 +89,7 @@ export type StreamEvent =
   | {kind: 'clarify'; text: string}
   | {kind: 'lm-rule-applied'; ruleId: string; ruleName: string; tasksProduced: number};
 
-export interface AgentEventPayloads {
+export interface AgentEventMap {
   'agent:process:start': {input: string; sessionKey?: string; timestamp: number};
   'agent:process:complete': {input: string; output: string; durationMs: number; sessionKey?: string; tokens?: {input: number; output: number; total: number}; timestamp: number};
   'agent:process:error': {input: string; error: string; sessionKey?: string; timestamp: number};
@@ -117,4 +117,114 @@ export interface SessionSnapshot {
   pinnedBeliefs: string[];
   createdAt: number;
   updatedAt: number;
+}
+import type {NAR} from '../nar/nar.js';
+import type {LMClient} from '../nar/lm/types.js';
+import type {EpisodeType, EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
+import {ContextAssemblerOpts} from '../nar/nl/context-assembler.js';
+import {ApprovalManager} from '../nar/tools/adapters/index.js';
+import type {ConversationSession} from './ConversationSession.js';
+import {Logger} from '../nar/logger/index.js';
+import {AutonomyEngine} from './AutonomyEngine.js';
+import type {EventKey, EventMap} from './EventBus.js';
+
+export interface AgentOptions {
+    nar?: NAR;
+    lmClient?: LMClient;
+    episodicMemory?: EpisodicMemory;
+    systemInstructions?: string;
+    context?: ContextAssemblerOpts;
+    maxLoops?: number;
+    logger?: Logger;
+    workspaceRoot?: string;
+    externalTools?: {
+        webSearch?: {apiKey?: string};
+        codeExec?: {maxTimeout?: number; maxOutputBytes?: number};
+        fs?: {maxReadSize?: number};
+    };
+    approvalManager?: ApprovalManager;
+    autonomyEngine?: AutonomyEngine;
+    persistKnowledge?: boolean;
+    knowledgePath?: string;
+    reasoningIntervalMs?: number;
+    sessionHistoryLimit?: number;
+    rateLimitPerMinute?: number;
+    enableNlTranslation?: boolean;
+    enableNarseseHumanization?: boolean;
+}
+
+export interface ChatOptions {
+    historyLimit?: number;
+    signal?: AbortSignal;
+    session?: ConversationSession;
+    stream?: boolean;
+}
+
+export interface ChatStreamEvent {
+    kind: 'text-delta' | 'tool-call' | 'tool-result' | 'finish' | 'aborted' | 'error';
+    text?: string;
+    error?: string;
+    toolName?: string;
+    toolArgs?: Record<string, unknown>;
+    toolResult?: unknown;
+}
+
+export interface AgentStats {
+    totalChats: number;
+    successfulChats: number;
+    failedChats: number;
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    totalTokens: number;
+    totalDurationMs: number;
+    averageDurationMs: number;
+    startedAt: number;
+}
+
+export interface Agent {
+    chat(input: string, opts?: ChatOptions & {stream?: false}): Promise<string>;
+    chat(input: string, opts: ChatOptions & {stream: true}): AsyncGenerator<ChatStreamEvent, string>;
+    /** @deprecated Use chat(input, { session }) instead */
+    chatWithHistory(input: string, session: ConversationSession, opts?: ChatOptions): Promise<string>;
+    /** @deprecated Use chat(input, { stream: true, session }) instead */
+    chatStream(input: string, session?: ConversationSession, opts?: ChatOptions): AsyncGenerator<ChatStreamEvent, string>;
+    believe(narsese: string): Promise<void>;
+    recall(query?: string, limit?: number): Promise<Array<{timestamp: number; type: string; content: string}>>;
+    know(key: string, value: string): void;
+    knowGet(key: string): string | undefined;
+    knowList(): Array<{key: string; value: string}>;
+    start(): () => void;
+    stop(): void;
+    pause(): void;
+    resume(): void;
+    setThrottle(percent: number): void;
+    getThrottle(): number;
+    getNAR(): NAR | undefined;
+    getEpisodicMemory(): EpisodicMemory | undefined;
+    getLogger(): Logger;
+    getStats(): AgentStats;
+    getRecentDerivations(): DerivationEntry[];
+    resolveApproval(id: string, approved: boolean, reason?: string): boolean;
+    getPendingApprovals(): Array<{id: string; request: string; createdAt: number}>;
+    getLmRuleStats(): Array<{id: string; name: string; enabled: boolean; stats: {totalCalls: number; successfulCalls: number; failedCalls: number; totalDuration: number; totalTokens: number; averageDuration: number; successRate: number; totalCost: number; averageCost: number}; circuitState: 'closed' | 'open' | 'half-open'}>;
+    getLmRuleExecutionLog(): Array<{ruleName: string; status: 'fired' | 'skipped' | 'timeout' | 'aborted'; durationMs: number; tasksProduced: number; timestamp: number}>;
+    enableLmRule(id: string): void;
+    disableLmRule(id: string): void;
+    setLmRulePriority(id: string, priority: number): void;
+    getAutonomyEngine(): AutonomyEngine | undefined;
+    getRLFPState(): {enabled: boolean; policy: Record<string, number>; qValues: Record<string, number>; explorationRate: number; totalRewards: number; totalSteps: number} | null;
+    resetRLFP(): void;
+    provideRLFPFeedback(reward: number, context?: string): void;
+    getSelfReasoning(): {qualityScore: number; consistency: number; gaps: string[]; suggestions: string[]} | null;
+    getReasoningQuality(): {overall: number; coherence: number; relevance: number; completeness: number} | null;
+    explainBelief(term: string): Promise<{explanation: string; confidence: number; premises: string[]} | null>;
+    explainGoal(term: string): Promise<{explanation: string; confidence: number; premises: string[]} | null>;
+    traceRule(ruleId: string, term: string): Promise<{ruleName: string; input: string; output: string; confidence: number} | null>;
+    getGoalProgress(goalId: string): Promise<{goalId: string; progress: number; status: 'active' | 'completed' | 'failed'; subgoals: string[]} | null>;
+    listActiveGoals(): Promise<Array<{goalId: string; term: string; progress: number; status: string}>>;
+    explainInNaturalLanguage(term: string): Promise<string | null>;
+    on<K extends EventKey>(event: K, listener: (payload: EventMap[K]) => void): () => void;
+    off<K extends EventKey>(event: K, listener: (payload: EventMap[K]) => void): void;
+    on<K extends keyof EventMap>(event: K, listener: (payload: EventMap[K]) => void): () => void;
+    off<K extends keyof EventMap>(event: K, listener: (payload: EventMap[K]) => void): void;
 }

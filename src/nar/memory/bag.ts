@@ -31,17 +31,42 @@ export interface BoundedBagState<T> {
     stats: { additions: number; removals: number; hits: number; misses: number };
 }
 
-const SAMPLE_FN: Record<string, (heap: BagItem<unknown>[], obj: Record<string, unknown>) => unknown> = {
-    priority: (h) => {
-      const total = h.reduce((s, e) => s + e.priority, 0);
-      if (total <= 0) return h[0]?.item;
-      let r = Math.random() * total;
-      for (const e of h) { r -= e.priority; if (r <= 0) return e.item; }
-      return h[h.length - 1]?.item;
+const SAMPLE_FN: Record<string, (heap: BagItem<unknown>[], obj: Record<string, unknown>, bag?: any) => unknown> = {
+    priority: (h, o, bag) => {
+        if (h.length === 0) return undefined;
+        let total = bag?._totalPriority ?? 0;
+        if (total <= 0) {
+            total = 0;
+            for (let i = 0; i < h.length; i++) {
+                total += h[i]!.priority;
+            }
+            if (bag) bag._totalPriority = total;
+        }
+        if (total <= 0) return h[h.length - 1]?.item;
+
+        let r = Math.random() * total;
+        // iterate backwards (highest priority first for faster exit usually)
+        for (let i = h.length - 1; i >= 0; i--) {
+            const e = h[i];
+            if (e) {
+                r -= e.priority;
+                if (r <= 0) return e.item;
+            }
+        }
+        return h[0]?.item;
     },
     recency: (h, o) => {
         const cutoff = Date.now() - (o.windowMs as number);
-        return h.find(e => e.lastAccess >= cutoff)?.item;
+        let best = undefined;
+        let bestLastAccess = -1;
+        for (let i = 0; i < h.length; i++) {
+            const e = h[i];
+            if (e && e.lastAccess >= cutoff && e.lastAccess > bestLastAccess) {
+                best = e.item;
+                bestLastAccess = e.lastAccess;
+            }
+        }
+        return best;
     },
     novelty: h => h[0]?.item,
     composite: (h, o) => {
@@ -54,8 +79,12 @@ const SAMPLE_FN: Record<string, (heap: BagItem<unknown>[], obj: Record<string, u
     }
 };
 
+
+
+
 export class Bag<T> extends BaseBag<{ priority: number; createdAt: number; lastAccessedAt: number }> {
     private heap: BagItem<T>[] = [];
+    public _totalPriority = 0;
 
     constructor(capacity: number, options?: {
         overflowBehavior?: 'reject' | 'replace-lowest' | 'merge';
@@ -93,6 +122,7 @@ export class Bag<T> extends BaseBag<{ priority: number; createdAt: number; lastA
 
         const idx = this.heap.findIndex(h => h.priority < priority);
         idx === -1 ? this.heap.push(entry) : this.heap.splice(idx, 0, entry);
+        this._totalPriority += priority;
         return true;
     }
 
@@ -110,6 +140,7 @@ export class Bag<T> extends BaseBag<{ priority: number; createdAt: number; lastA
             if (predicate(entry.item)) {
                 removed++;
                 this.trackRemoval();
+                this._totalPriority -= entry.priority;
                 return false;
             }
             return true;
@@ -138,7 +169,7 @@ export class Bag<T> extends BaseBag<{ priority: number; createdAt: number; lastA
     sample(objective: SamplingObjective): T | undefined {
         const strategy = SAMPLE_FN[objective.type];
         if (!strategy) return undefined;
-        const result = strategy(this.heap, objective);
+        const result = strategy(this.heap, objective, this);
         this.trackHit();
         if (!result) this.trackMiss();
         return result as T | undefined;
@@ -150,6 +181,7 @@ export class Bag<T> extends BaseBag<{ priority: number; createdAt: number; lastA
 
     clear(): void {
         this.heap = [];
+        this._totalPriority = 0;
         this.clearStats();
     }
 
@@ -172,6 +204,8 @@ export class Bag<T> extends BaseBag<{ priority: number; createdAt: number; lastA
     remove(item: T): boolean {
         const idx = this.heap.findIndex(h => h.item === item);
         if (idx >= 0) {
+            const e = this.heap[idx];
+            if (e) this._totalPriority -= e.priority;
             this.heap.splice(idx, 1);
             this.trackRemoval();
             return true;
@@ -206,6 +240,8 @@ export class Bag<T> extends BaseBag<{ priority: number; createdAt: number; lastA
     protected override removeById(id: string): boolean {
         const idx = this.heap.findIndex(h => this.getItemId(h) === id);
         if (idx >= 0) {
+            const e = this.heap[idx];
+            if (e) this._totalPriority -= e.priority;
             this.heap.splice(idx, 1);
             return true;
         }

@@ -3,6 +3,8 @@ export type {Truth as TruthType} from '../terms/truth.js';
 export type {Stamp, Source} from '../terms/stamp.js';
 export type {
     Hash,
+    Timestamp,
+    Duration,
     TermSymbol,
     Budget,
     TaskType,
@@ -23,6 +25,8 @@ export {
     failure,
     createBudget,
     createTask,
+    createTimestamp,
+    createDuration,
     createSecondaryTask,
     NARError,
     ValidationError,

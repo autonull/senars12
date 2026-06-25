@@ -1,3 +1,4 @@
+import {createTimestamp} from '../types/core.js';
 import type {Task} from '../types';
 import {createBudget, createTask} from '../types';
 import type {Memory} from '../memory';
@@ -212,7 +213,7 @@ export async function* derive(
             truth: belief.truth,
             budget: {priority: concept.priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
             stamp: belief.stamp,
-            occurrenceTime: 0,
+            occurrenceTime: createTimestamp(0),
             derived: false
         };
 

@@ -22,6 +22,53 @@ export interface BridgeContext extends MessageContext {
     manager?: ConnectionManager;
 }
 
+/** Middleware composition utility */
+export function compose(...middlewares: MessageMiddleware[]): MessageMiddleware {
+    return async (message, context, next) => {
+        let index = -1;
+        async function dispatch(i: number): Promise<void> {
+            if (i <= index) throw new Error('next() called multiple times');
+            index = i;
+            const fn = middlewares[i];
+            if (i === middlewares.length) {
+                if (next) await next();
+                return;
+            }
+            if (fn) {
+                await fn(message, context, dispatch.bind(null, i + 1));
+            }
+        }
+        await dispatch(0);
+    };
+}
+
+/** Conditional middleware execution */
+export function conditional(condition: (message: IOMessage, context: MessageContext) => boolean | Promise<boolean>, middleware: MessageMiddleware): MessageMiddleware {
+    return async (message, context, next) => {
+        if (await condition(message, context)) {
+            await middleware(message, context, next);
+        } else {
+            await next();
+        }
+    };
+}
+
+/** Timeout middleware */
+export function timeout(ms: number, fallbackResponse: string = 'Request timed out'): MessageMiddleware {
+    return async (message, context, next) => {
+        const timeoutPromise = new Promise<void>((_, reject) => setTimeout(() => reject(new Error(fallbackResponse)), ms));
+        try {
+            await Promise.race([next(), timeoutPromise]);
+        } catch (e) {
+            if (e instanceof Error && e.message === fallbackResponse) {
+                await context.respond(fallbackResponse);
+            } else {
+                throw e;
+            }
+        }
+    };
+}
+
 const NARSESE_OUTPUT_RE = /[(<{}\[].*?[)>}\]]/;
 
 export function resolveSessionKey(message: IOMessage): string {
@@ -149,7 +196,7 @@ export function createAgentDispatch(agent: Agent): MessageMiddleware {
     return async (message, context, _next) => {
         const bridgeCtx = context as BridgeContext;
         const reply = bridgeCtx.session
-            ? await agent.chatWithHistory(message.text, bridgeCtx.session)
+            ? await agent.chat(message.text, { session: bridgeCtx.session })
             : await agent.chat(message.text);
         await context.respond(reply);
     };
@@ -191,7 +238,9 @@ export function createStreamingAgentDispatch(agent: Agent, logger: Logger, opts:
         let streamedText = '';
 
         try {
-            const iter = agent.chatStream(message.text, session, {
+            const iter = agent.chat(message.text, {
+                stream: true,
+                session,
                 signal: nextController.signal,
             });
             let nextEvent = await iter.next();

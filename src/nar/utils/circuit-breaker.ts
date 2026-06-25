@@ -1,3 +1,8 @@
+import {OperationError} from '../types/core.js';
+import {createLogger} from '../logger/index.js';
+
+const logger = createLogger({scope: 'circuit-breaker'});
+
 export interface CircuitBreakerConfig {
     failureThreshold: number;
     resetTimeoutMs: number;
@@ -21,16 +26,19 @@ export class CircuitBreaker {
     async execute<T>(fn: () => Promise<T>): Promise<T> {
         if (this.state === 'open') {
             if (Date.now() - this.lastFailureTime >= this.config.resetTimeoutMs) {
+                logger.info('Circuit breaker state changed: open -> half-open');
                 this.state = 'half-open';
                 this.failures = 0;
             } else {
-                throw new Error('Circuit breaker is open');
+                logger.warn('Circuit breaker execution rejected: circuit is open');
+                throw new OperationError('Circuit breaker is open', { state: this.state });
             }
         }
 
         try {
             const result = await fn();
             if (this.state === 'half-open') {
+                logger.info('Circuit breaker state changed: half-open -> closed');
                 this.state = 'closed';
                 this.failures = 0;
             }
@@ -46,6 +54,7 @@ export class CircuitBreaker {
     }
 
     reset(): void {
+        if (this.state !== 'closed') logger.info('Circuit breaker state reset to closed');
         this.state = 'closed';
         this.failures = 0;
     }
@@ -53,6 +62,9 @@ export class CircuitBreaker {
     private recordFailure(): void {
         this.failures++;
         this.lastFailureTime = Date.now();
-        if (this.failures >= this.config.failureThreshold) this.state = 'open';
+        if (this.failures >= this.config.failureThreshold) {
+            if (this.state !== 'open') logger.warn('Circuit breaker state changed: ' + this.state + ' -> open');
+            this.state = 'open';
+        }
     }
 }

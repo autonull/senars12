@@ -112,7 +112,7 @@ async function tryNlTranslation(
         }
 
         for (const b of batch.beliefs) {
-            await nar.believe(b.narsese, b.truth);
+            await nar.believe(b.narsese, b.truth as any);
         }
         for (const q of batch.questions) {
             await nar.question(q.narsese);
@@ -159,8 +159,8 @@ export async function* processInput(
                     b.term.toString().toLowerCase().includes(needle.toLowerCase()),
                 );
                 if (existing) {
-                    const reasoned = await generateReasonedResponse(generationService, input, [existing as {term: {toString(): string}; truth?: {f: number; c: number}}]);
-                    const text = reasoned ?? formatBelief(existing as {term: {toString(): string}; truth?: {f: number; c: number}});
+                    const reasoned = await generateReasonedResponse(generationService, input, [existing as any]);
+                    const text = reasoned ?? formatBelief(existing as any);
                     yield {kind: 'question-response', text};
                     return text;
                 }

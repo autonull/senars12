@@ -13,7 +13,7 @@ import {QUIT_SENTINEL, type CLICommand} from '../io/connections/cli.js';
 import type {LMClient} from '../nar/lm/types.js';
 import type {NAR} from '../nar/nar.js';
 import {loadConfigFromEnv} from '../config/index.js';
-import {agentConfigToOptions} from '../agent/config-bridge.js';
+import {agentConfigToOptions} from '../agent/options-schema.js';
 import {JsonlSessionManager} from '../agent/SessionManager.js';
 import type {ConversationSession} from '../agent/ConversationSession.js';
 
@@ -263,11 +263,20 @@ async function main() {
     let currentSession = sessionManager.getOrCreate('default');
 
     const appConfig = await loadConfigFromEnv();
+
+    const externalTools = {
+        webSearch: { apiKey: process.env.BRAVE_API_KEY ?? process.env.TAVILY_API_KEY },
+        codeExec: { maxTimeout: 10000, maxOutputBytes: 1024 * 1024 },
+        fs: { maxReadSize: 1024 * 1024 },
+    };
+
     const agent = createAgent({
         nar,
         lmClient,
         episodicMemory,
         autonomyEngine,
+        externalTools,
+        workspaceRoot: process.cwd(),
         ...agentConfigToOptions(appConfig.agent)
     });
 
@@ -287,7 +296,7 @@ async function main() {
     await readlineLoop({
         prompt: 'senars> ',
         commands,
-        onInput: async (text: string) => agent.chatWithHistory(text, currentSession),
+        onInput: async (text: string) => agent.chat(text, { session: currentSession }),
     });
 
     // Stop the agent (which stops AutonomyEngine)

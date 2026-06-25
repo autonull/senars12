@@ -1,14 +1,14 @@
 import type {Term} from '../terms';
 import {Truth} from '../terms';
 import type {Budget, Task, TaskType} from '../types';
-import {createTask, EventBus} from '../types';
+import {createTask, EventBus as NarEventBus} from '../types';
 import type {LMClient, LMExecutionStats, LMRuleConfig, LMRuleStats} from './types.js';
 import {CircuitBreaker, errMsg} from '../utils';
 import type {Truth as TruthType} from '../terms/truth.js';
 import {LMResponseParser} from './parser.js';
 import {tryRepairAndParse} from './response-repair.js';
 import type {ZodSchema} from 'zod';
-import type {SystemEventBus, SystemEventMap} from '../../agent/SystemEventBus.js';
+import type {EventBus as AgentEventBus, EventMap as AgentEventMap} from '../../agent/EventBus.js';
 import {generateObject, type LanguageModel} from 'ai';
 
 const defaultStats = (): LMExecutionStats => ({
@@ -63,8 +63,8 @@ export class LMRule {
   private readonly baseConfig: LMRuleConfig;
   private readonly v2Config: LMRuleConfigV2;
   private readonly circuitBreaker: CircuitBreaker;
-  private eventBus: EventBus | null;
-  private systemEventBus: SystemEventBus | null = null;
+  private eventBus: NarEventBus | null;
+  private systemEventBus: AgentEventBus | null = null;
   private stats: LMExecutionStats = defaultStats();
   private structuredModel: LanguageModel | null = null;
   private toolDispatcher?: (tool: string, args: Record<string, unknown>) => Promise<unknown>;
@@ -104,11 +104,11 @@ export class LMRule {
     this.enableTools = (config as LMRuleConfigV2).enableTools ?? false;
   }
 
-    setEventBus(eventBus: EventBus): void {
+    setEventBus(eventBus: NarEventBus): void {
         this.eventBus = eventBus;
     }
 
-    setSystemEventBus(bus: SystemEventBus): void {
+    setSystemEventBus(bus: AgentEventBus): void {
         this.systemEventBus = bus;
     }
 
@@ -128,7 +128,7 @@ canApply(primary: Term, secondary?: Term, context?: Record<string, unknown>): bo
     return !this.getSkipReason(primary, secondary, context);
 }
 
-private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, unknown>): SystemEventMap['lm.rule:skipped']['reason'] | null {
+private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, unknown>): AgentEventMap['system:lm.rule:skipped']['reason'] | null {
     if (!this.enabled) return 'disabled';
     if (this.circuitBreaker.getState() === 'open') return 'circuit_open';
     if (!this.lm || !primary) return 'disabled';
@@ -140,7 +140,7 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
     async apply(primary: Term, secondary?: Term, context?: Record<string, unknown>, signal?: AbortSignal): Promise<Task[]> {
         const skipReason = this.getSkipReason(primary, secondary, context);
         if (skipReason || signal?.aborted) {
-            if (skipReason) this.emitSystemEvent('lm.rule:skipped', {ruleId: this.id, ruleName: this.name, reason: skipReason, timestamp: Date.now()});
+            if (skipReason) this.emitSystemEvent('system:lm.rule:skipped', {ruleId: this.id, ruleName: this.name, reason: skipReason, timestamp: Date.now()});
             return [];
         }
 
@@ -155,7 +155,7 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
             const usedStructured = !!(this.structuredModel && this.outputSchema);
             if (usedStructured) {
                 response = await this.executeStructured(prompt, signal);
-                this.emitSystemEvent('lm.rule:structured', {ruleId: this.id, schema: this.outputSchema!.description ?? 'unknown', output: response, timestamp: Date.now()});
+                this.emitSystemEvent('system:lm.rule:structured', {ruleId: this.id, schema: this.outputSchema!.description ?? 'unknown', output: response, timestamp: Date.now()});
             } else {
                 response = await this.executeLM(prompt, signal);
             }
@@ -171,7 +171,7 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
                         const toolContext = {...context, toolResult};
                         const toolPrompt = this.generatePrompt(primary, secondary, this.buildLMContext(primary, secondary, toolContext), toolContext);
                         response = await this.executeStructured(toolPrompt, signal);
-                        this.emitSystemEvent('lm.rule:structured', {ruleId: this.id, schema: this.outputSchema!.description ?? 'unknown', output: response, timestamp: Date.now()});
+                        this.emitSystemEvent('system:lm.rule:structured', {ruleId: this.id, schema: this.outputSchema!.description ?? 'unknown', output: response, timestamp: Date.now()});
                     }
                 } catch {
                     // Not valid JSON or no tool call, continue with original response
@@ -188,7 +188,7 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
 
             const tasks = this.processAndGenerate(response, primary, secondary, lmContext, context);
             this.recordSuccess(duration, prompt.length + response.length);
-            this.emitSystemEvent('lm.rule:applied', {
+            this.emitSystemEvent('system:lm.rule:applied' as keyof AgentEventMap, {
                 ruleId: this.id,
                 ruleName: this.name,
                 primaryTerm: primary.toString(),
@@ -253,7 +253,7 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
         if (this.eventBus) this.eventBus.emit(eventName, data);
     }
 
-    private emitSystemEvent<K extends keyof SystemEventMap>(event: K, data: SystemEventMap[K]): void {
+    private emitSystemEvent<K extends keyof AgentEventMap>(event: K, data: AgentEventMap[K]): void {
         if (this.systemEventBus) this.systemEventBus.emit(event, data);
     }
 
@@ -347,7 +347,7 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
       if (parsed.valid && parsed.term) {
         const task = createTask(parsed.term, this.taskType, parsed.truth, parsed.confidence != null ? {priority: parsed.confidence, durability: 0.8, quality: 0.9, cycles: 0, depth: 0} : undefined);
         if (this.constitutionAware && this.nar && this.nar.checkConstitutionViolation(task)) {
-            this.emitSystemEvent('lm.rule:constitution-violation', {ruleId: this.id, term: parsed.term.toString(), clause: 'constitution conflict', timestamp: Date.now()});
+            this.emitSystemEvent('system:lm.rule:constitution-violation', {ruleId: this.id, term: parsed.term.toString(), clause: 'constitution conflict', timestamp: Date.now()});
             return createTask(primary, this.taskType, Truth.NEUTRAL);
         }
         return task;
@@ -361,7 +361,7 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
 
     const task = createTask(term, type, truth, budget ?? undefined);
     if (this.constitutionAware && this.nar && this.nar.checkConstitutionViolation(task)) {
-        this.emitSystemEvent('lm.rule:constitution-violation', {ruleId: this.id, term: term.toString(), clause: 'constitution conflict', timestamp: Date.now()});
+        this.emitSystemEvent('system:lm.rule:constitution-violation', {ruleId: this.id, term: term.toString(), clause: 'constitution conflict', timestamp: Date.now()});
         return createTask(primary, this.taskType, Truth.NEUTRAL);
     }
     return task;

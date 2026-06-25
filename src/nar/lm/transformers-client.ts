@@ -12,6 +12,8 @@
 
 import type {LMClient, LMClientStats} from './types.js';
 import {createLogger} from '../logger/index.js';
+import {CircuitBreaker} from '../utils/circuit-breaker.js';
+import {OperationError} from '../types/core.js';
 
 export const DEFAULT_TRANSFORMERS_MODEL = 'HuggingFaceTB/SmolLM2-135M-Instruct';
 
@@ -26,6 +28,7 @@ export class TransformersLMClient implements LMClient {
             prompt: Array<{role: string; content: Array<{type: 'text'; text: string}>}>;
             maxOutputTokens?: number;
             temperature?: number;
+            abortSignal?: AbortSignal;
         }): Promise<{
             content?: Array<{type: 'text'; text: string}>;
         }>;
@@ -36,8 +39,7 @@ export class TransformersLMClient implements LMClient {
     private running = 0;
     private readonly maxConcurrent = 1;
     private readonly inferenceTimeoutMs = 300_000;
-    private consecutiveFailures = 0;
-    private readonly maxConsecutiveFailures = 3;
+    private readonly circuitBreaker = new CircuitBreaker({ failureThreshold: 3, resetTimeoutMs: 300000 });
     private stats: LMClientStats = {
         totalCalls: 0, successfulCalls: 0, failedCalls: 0, timeoutCount: 0,
         totalDuration: 0, averageDuration: 0, queueDepth: 0, queueHighWater: 0,
@@ -56,7 +58,7 @@ export class TransformersLMClient implements LMClient {
     }
 
     async generateText(prompt: string, options?: {signal?: AbortSignal; maxTokens?: number; temperature?: number}): Promise<string> {
-        if (!this.available) return '';
+        if (!this.available || this.circuitBreaker.getState() === 'open') return '';
         const startTime = Date.now();
         this.stats.totalCalls++;
 
@@ -64,35 +66,33 @@ export class TransformersLMClient implements LMClient {
             await this.ensureInitialized();
             await this.acquire(options?.signal);
             if (options?.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
-            if (!this.modelInstance) throw new Error('Transformers.js model not initialized');
+            if (!this.modelInstance) throw new OperationError('Transformers.js model not initialized');
 
-            const result = await Promise.race([
-                this.modelInstance.doGenerate({
-                    prompt: [{role: 'user', content: [{type: 'text', text: prompt}]}],
-                    maxOutputTokens: options?.maxTokens ?? 128,
-                    temperature: options?.temperature ?? 0.7,
-                }),
-                this.timeoutPromise(this.inferenceTimeoutMs, options?.signal),
-            ]);
-            this.consecutiveFailures = 0;
+            const result = await this.circuitBreaker.execute(async () => {
+                return await Promise.race([
+                    this.modelInstance!.doGenerate({
+                        prompt: [{role: 'user', content: [{type: 'text', text: prompt}]}],
+                        maxOutputTokens: options?.maxTokens ?? 128,
+                        temperature: options?.temperature ?? 0.7,
+                        abortSignal: options?.signal,
+                    }),
+                    this.timeoutPromise(this.inferenceTimeoutMs, options?.signal),
+                ]);
+            });
+
             this.recordSuccess(Date.now() - startTime);
             return result.content?.[0]?.text ?? '';
         } catch (error) {
             const dur = Date.now() - startTime;
-            const isTimeout = error instanceof Error && error.message.includes('timed out');
             const isAbort = (error as Error).name === 'AbortError';
-
-            if (isTimeout || (!isAbort && error instanceof Error)) {
-                this.consecutiveFailures++;
-            }
 
             this.recordFailure(error as Error, dur);
             if (isAbort) throw error;
 
-            if (this.consecutiveFailures >= this.maxConsecutiveFailures) {
+            if (this.circuitBreaker.getState() === 'open') {
                 this.available = false;
                 const err = error as Error & {stack?: string};
-                logger.error('generateText failed, LM unavailable after consecutive failures', err);
+                logger.error('generateText failed, LM unavailable due to open circuit breaker', err);
             }
 
             return '';

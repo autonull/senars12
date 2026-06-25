@@ -14,7 +14,7 @@ import {AuthManager} from '../io/auth.js';
 import {CommandRegistry} from '../io/commands/registry.js';
 import {CLIConnection, IRCConnection, WSConnection, HTTPConnection, MCPConnection} from '../io/index.js';
 import {bindAgentToConnection} from '../agent/io-bridge.js';
-import {createConnectionConfigsFromEnv} from '../agent/io-config.js';
+import {createConnectionConfigsFromEnv} from '../agent/options-schema.js';
 import {JsonlSessionManager} from '../agent/SessionManager.js';
 import {registerAllCommands} from '../agent/register-commands.js';
 import {NLGenerationService} from '../nar/nl/generation.js';
@@ -26,7 +26,7 @@ import {createLogger} from '../nar/logger/index.js';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
 import {loadConfigFromEnv} from '../config/index.js';
-import {agentConfigToOptions} from '../agent/config-bridge.js';
+import {agentConfigToOptions} from '../agent/options-schema.js';
 import {setupGracefulShutdown} from '../utils/shutdown.js';
 import {assertValidEnv} from '../utils/env-validate.js';
 import {mkdir} from 'node:fs/promises';
@@ -59,7 +59,21 @@ async function main(): Promise<void> {
     const autonomyEngine = createAutonomyEngine(nar, systemEventBus);
     autonomyEngine.setNotifyHandler((msg) => logger.debug(`[Autonomy] ${msg}`));
 
-    const agentOptions = {nar, lmClient, episodicMemory, autonomyEngine, ...agentConfigToOptions(config.agent)};
+    const externalTools = {
+        webSearch: { apiKey: process.env.BRAVE_API_KEY ?? process.env.TAVILY_API_KEY },
+        codeExec: { maxTimeout: 10000, maxOutputBytes: 1024 * 1024 },
+        fs: { maxReadSize: 1024 * 1024 },
+    };
+
+    const agentOptions = {
+        nar,
+        lmClient,
+        episodicMemory,
+        autonomyEngine,
+        externalTools,
+        workspaceRoot: process.cwd(),
+        ...agentConfigToOptions(config.agent)
+    };
     const agent = createAgent(agentOptions);
 
     await mkdir('.cache/sessions', {recursive: true}).catch(() => undefined);

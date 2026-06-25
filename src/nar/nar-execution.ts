@@ -11,7 +11,7 @@ import type {DriveManager} from './drives/index.js';
 import {createPipeline, MemoryPremiseSource} from './stream';
 import {PhaseTimer} from './trace/index.js';
 import {createLogger} from './logger/index.js';
-import type {SystemEventBus} from '../agent/SystemEventBus.js';
+import type {EventBus} from '../agent/EventBus.js';
 import type {ReasoningAboutReasoning} from './self';
 
 export class NARExecution {
@@ -28,7 +28,7 @@ export class NARExecution {
     private readonly policyOptimizer?: PolicyOptimizer,
     private readonly cognitiveController?: CognitiveController,
     private readonly driveManager?: DriveManager,
-    private readonly systemEventBus?: SystemEventBus,
+    private readonly systemEventBus?: EventBus,
     private readonly self?: ReasoningAboutReasoning
   ) {}
 

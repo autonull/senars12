@@ -4,10 +4,8 @@ export {ModelRunner, truncateArtifact} from './model/ModelRunner.js';
 export type {ComposedRequest, ModelEvent, ModelRunResult, ModelRunnerDeps, ReasoningArtifact} from './model/ModelRunner.js';
 export {dispatchToolCalls} from './model/ToolDispatcher.js';
 export type {ToolCall, ToolDispatchResult, ToolError} from './model/ToolDispatcher.js';
-export {AgentEventBus} from './AgentEventBus.js';
-export type {AgentEventKind, AgentEventPayloads} from './AgentEventBus.js';
-export {SystemEventBus} from './SystemEventBus.js';
-export type {SystemEventMap} from './SystemEventBus.js';
+export {EventBus} from './EventBus.js';
+export type {EventKey, EventMap} from './EventBus.js';
 export {AutonomyEngine, createAutonomyEngine} from './AutonomyEngine.js';
 export type {AutonomyEngineConfig, ReasoningJob} from './AutonomyEngine.js';
 
@@ -17,7 +15,7 @@ export type {ValidatedAgentOptions} from './options-schema.js';
 export {createAgentPreset} from './presets.js';
 export type {AgentPresetName, AgentPresetDeps, AgentPresetResult} from './presets.js';
 
-export {agentConfigToOptions} from './config-bridge.js';
+export {agentConfigToOptions, createConnectionConfigsFromEnv, DEFAULT_PORTS} from './options-schema.js';
 
 export type {SessionMessage, ConversationSession} from './ConversationSession.js';
 export {
@@ -50,8 +48,6 @@ export {
     createNarsTraceAnnotator,
     createNarseseOutputHumanization,
 } from './io-middleware.js';
-
-export {createConnectionConfigsFromEnv, DEFAULT_PORTS} from './io-config.js';
 
 export {registerAllCommands} from './register-commands.js';
 

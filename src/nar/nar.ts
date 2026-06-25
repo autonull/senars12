@@ -4,10 +4,11 @@ import {WorkingMemory} from './memory/WorkingMemory.js';
 import {BagStrategy, Reasoner} from './reason';
 import {TaskManager} from './task';
 import {RuleProcessor} from './rules';
-import {ConfigurationError, type CoreConfig, DEFAULT_CONFIG, EventBus, type Task, type TaskType} from './types';
+import {ConfigurationError, type CoreConfig, DEFAULT_CONFIG, EventBus as NarEventBus, type Task, type TaskType} from './types';
 import type {Term} from './terms';
 import {termsEqual} from './terms';
 import type {Truth as TruthType} from './terms/truth.js';
+import {Truth} from './terms/truth.js';
 import type {LMClient} from './lm';
 import {LMRules} from './lm';
 import type {SeNARSRegistry} from './lm/providers.js';
@@ -31,7 +32,7 @@ import {NARIO} from './nar-io';
 import {NARExecution} from './nar-execution';
 import {NARLM} from './nar-lm';
 import {DriveManager, createBootstrapTasks} from './drives/index.js';
-import {SystemEventBus} from '../agent/SystemEventBus.js';
+import {EventBus as AgentEventBus} from '../agent/EventBus.js';
 
 export interface RLFPConfig {
     optimizeInterval?: number;
@@ -69,7 +70,7 @@ export class NAR extends BaseComponent {
   rlfp?: RLFPLearner;
   cognitiveController?: CognitiveController;
   private driveManager?: DriveManager;
-  private readonly systemEventBus: SystemEventBus;
+  private readonly systemEventBus: AgentEventBus;
 
   private readonly io: NARIO;
   private execution: NARExecution;
@@ -83,8 +84,8 @@ export class NAR extends BaseComponent {
     private _toolsInitialized = false;
     private _constitution: Task[] = [];
 
-  constructor(config: NARConfig & { eventBus?: EventBus } = DEFAULT_CONFIG) {
-    const eventBus = config.eventBus ?? new EventBus();
+  constructor(config: NARConfig & { eventBus?: NarEventBus } = DEFAULT_CONFIG) {
+    const eventBus = config.eventBus ?? new NarEventBus();
     const logger = createLogger({scope: 'NAR'});
     const metrics = new MetricsCollector();
 
@@ -121,7 +122,7 @@ export class NAR extends BaseComponent {
 
         this.io = new NARIO(this.memory, this.taskManager, this.config);
         this.io.setEventBus(eventBus);
-        this.systemEventBus = new SystemEventBus();
+        this.systemEventBus = new AgentEventBus();
         this.systemEventBus.wrapNarEventBus(eventBus);
         this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.rlfp?.policyOptimizerPublic, this.cognitiveController, this.driveManager, this.systemEventBus, this.self);
         this.lm = new NARLM(this.memory, this._registry, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment);
@@ -151,17 +152,17 @@ export class NAR extends BaseComponent {
 
             const beliefs = this.query.getBeliefs().map(b => ({
                 term: b.term.toString(),
-                truth: b.truth ? {f: b.truth.f, c: b.truth.c} : undefined,
+                truth: b.truth ? Truth.create(b.truth.f, b.truth.c) : undefined,
                 stamp: b.stamp,
             }));
             const goals = this.query.getGoals().map(g => ({
                 term: g.term.toString(),
-                truth: g.truth ? {f: g.truth.f, c: g.truth.c} : undefined,
+                truth: g.truth ? Truth.create(g.truth.f, g.truth.c) : undefined,
                 stamp: g.stamp,
             }));
             const questions = this.query.getQuestions().map(q => ({
                 term: q.term.toString(),
-                truth: q.truth ? {f: q.truth.f, c: q.truth.c} : undefined,
+                truth: q.truth ? Truth.create(q.truth.f, q.truth.c) : undefined,
                 stamp: q.stamp,
             }));
             const attention = this.attentionReport();
@@ -210,7 +211,7 @@ export class NAR extends BaseComponent {
                             truth: b.truth ?? Truth.NEUTRAL,
                             budget: {priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
                             stamp: b.stamp ?? Stamp.createInput(),
-                            occurrenceTime: Date.now(),
+                            occurrenceTime: Date.now() as any,
                             derived: false,
                         };
                         this.taskManager.addTask(task);
@@ -232,7 +233,7 @@ export class NAR extends BaseComponent {
                             truth: g.truth ?? Truth.NEUTRAL,
                             budget: {priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
                             stamp: g.stamp ?? Stamp.createInput(),
-                            occurrenceTime: Date.now(),
+                            occurrenceTime: Date.now() as any,
                             derived: false,
                         };
                         this.taskManager.addTask(task);
@@ -254,7 +255,7 @@ export class NAR extends BaseComponent {
                             truth: q.truth ?? Truth.NEUTRAL,
                             budget: {priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
                             stamp: q.stamp ?? Stamp.createInput(),
-                            occurrenceTime: Date.now(),
+                            occurrenceTime: Date.now() as any,
                             derived: false,
                         };
                         this.taskManager.addTask(task);
@@ -402,7 +403,11 @@ getDriveManager(): DriveManager | undefined {
   return this.driveManager;
 }
 
-getSystemEventBus(): SystemEventBus {
+getEventBus(): NarEventBus {
+  return this.eventBus;
+}
+
+getSystemEventBus(): AgentEventBus {
   return this.systemEventBus;
 }
 
@@ -650,7 +655,7 @@ clearLMRuleExecutionLog() {
     private async injectBootstrapGoals(): Promise<void> {
         const tasks = createBootstrapTasks();
         for (const task of tasks) {
-            await this.io.input(task.term, task.type, task.truth);
+            await this.io.input(task.term, task.type, task.truth as any);
         }
     }
 
@@ -676,6 +681,7 @@ clearLMRuleExecutionLog() {
         for (const rule of lmRules) {
             if (structuredModel) rule.setStructuredModel(structuredModel);
             rule.setSystemEventBus(this.systemEventBus);
+            rule.setEventBus(this.eventBus);
             rule.setNAR(this);
             rule.setToolDispatcher(toolDispatcher);
             // Enable tools for rules that benefit from tool access

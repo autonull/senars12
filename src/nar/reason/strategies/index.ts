@@ -23,8 +23,8 @@ const createTask = (term: Term, type: TaskType, truth: Truth, priority: number):
     type,
     truth,
     budget: {priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-    stamp: Object.freeze({id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0}),
-    occurrenceTime: 0,
+    stamp: Object.freeze({id: '', creationTime: 0 as any, source: 'INPUT' as const, derivations: [], depth: 0}),
+    occurrenceTime: 0 as any,
     derived: false
 });
 

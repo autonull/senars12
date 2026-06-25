@@ -1,6 +1,6 @@
 import {describe, it, expect, jest} from '@jest/globals';
 import {bindAgentToConnection} from '../../../src/agent/io-bridge.js';
-import {createConnectionConfigsFromEnv} from '../../../src/agent/io-config.js';
+import {createConnectionConfigsFromEnv} from '../../../src/agent/options-schema.js';
 import {
     createErrorBoundary,
     originExtractor,
