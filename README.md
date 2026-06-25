@@ -16,12 +16,11 @@ system that thinks like humans do: fluidly, adaptively, and resourcefully, while
 
 ### 🔮 Parser-less Symbolic Foundation
 
-### 🧩 AIKR by Construction
+### 🧩 Principles
 
 - **Anytime** ⏱️ — Interruptible execution at any point
 - **Interruptible** ⏸️ — Cooperative yielding to event loop
-- **Knowledge-limited** 📚 — Derivation depth enforced by types
-- **Resource-constrained** 💪 — CPU throttling, backpressure, bounded bags
+- **AIKR** 📚 — Assumption of Insufficient Knowledge Resources: Memory/attention/bag capacity, derivation depth enforced by types, CPU throttling, backpressure
 
 ### 🎨 Zero-Cost Abstractions
 
