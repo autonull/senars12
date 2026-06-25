@@ -1,7 +1,9 @@
 allowBuilds:
+  '@google/genai': true
   '@swc/core': set this to true or false
   esbuild: true
   iconv: true
+  koffi: true
   node-icu-charset-detector: true
   onnxruntime-node: false
   protobufjs: false
