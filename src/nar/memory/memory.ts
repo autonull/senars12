@@ -1,6 +1,6 @@
 import {Concept, type ConceptMergeResult, type ConceptTaskType} from './concept.js';
-import type {Term, Truth} from '../terms';
-import {Stamp, calculateSimilarity, TermMap} from '../terms';
+import type {Term, Truth as TruthType} from '../terms';
+import {Stamp, calculateSimilarity, TermMap, Truth} from '../terms';
 import type {Budget, Task} from '../types';
 import {NEUTRAL_BUDGET} from '../types/core.js';
 import {MemoryIndex} from './memory-index.js';
@@ -143,15 +143,13 @@ export class Memory {
         const goals: Task[] = [];
         for (const concept of this.concepts.values()) {
             for (const g of concept.goalBag.toArray()) {
-                goals.push({
-                    term: g.term,
-                    type: 'goal',
-                    truth: g.truth,
-                    budget: g.budget,
-                    stamp: g.stamp,
-                    occurrenceTime: g.occurrenceTime ?? 0,
+                const task: Task = {
+                    term: g.term, type: 'goal', truth: g.truth ?? Truth.NEUTRAL,
+                    budget: g.budget, stamp: g.stamp ?? Stamp.createInput(),
+                    occurrenceTime: (g.occurrenceTime ?? Date.now()) as Task['occurrenceTime'],
                     derived: g.derived ?? false
-                } as Task);
+                };
+                goals.push(task);
             }
         }
         return goals;
@@ -222,11 +220,15 @@ export class Memory {
         return false;
     }
 
-    sample(limit: number): Concept[] {
+    private decayAll(): void {
         for (const concept of this.concepts.values()) {
             const decay = this.attentionModel.decay(concept, 1, this.config.activationDecayRate);
             if (decay !== 0) concept.priority = Math.max(0, concept.priority - decay);
         }
+    }
+
+    sample(limit: number): Concept[] {
+        this.decayAll();
         return [...this.concepts.values()]
             .sort((a, b) => this.scorer.scoreForRetrieval(b) - this.scorer.scoreForRetrieval(a))
             .slice(0, limit);
@@ -238,11 +240,9 @@ export class Memory {
 
         this.attentionModel.tick(this, opts?.cycleCount ?? this.cyclesSinceConsolidation);
 
-        const { activationDecayRate, linkDecayRate, maxConcepts } = this.config;
+        const { linkDecayRate, maxConcepts } = this.config;
 
-        for (const concept of this.concepts.values()) {
-            concept.decay(activationDecayRate);
-        }
+        this.decayAll();
 
         const capacityPressure = this.concepts.size / maxConcepts;
         if (capacityPressure > 0.8) {

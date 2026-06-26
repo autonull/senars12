@@ -1,5 +1,5 @@
 import type {NAR} from '../../nar/nar.js';
-import type {LMClient} from '../../nar/lm/types.js';
+
 import type {EpisodeType, EpisodicMemory} from '../../nar/memory/EpisodicMemory.js';
 import {ContextAssembler, type ContextAssemblerOpts} from '../../nar/nl/context-assembler.js';
 import {NLUnderstandingService} from '../../nar/nl/understanding.js';
@@ -13,12 +13,11 @@ import {
 import {ModelRunner} from '../model/ModelRunner.js';
 import {buildAgentTools} from '../tools.js';
 import type {ConversationSession} from '../ConversationSession.js';
-import {DEFAULT_SESSION_HISTORY_LIMIT} from '../ConversationSession.js';
-import {formatHistoryAsMessages} from '../chat-history.js';
+
 import {createLogger, type Logger} from '../../nar/logger/index.js';
 import {EventBus, type EventKey, type EventMap} from '../EventBus.js';
 import {AutonomyEngine} from '../AutonomyEngine.js';
-import {processInput, appendSessionTurns, type InputEvent} from '../input-processor.js';
+import {processInput, type InputEvent, type InputProcessorDeps} from '../input-processor.js';
 import {StatsManager} from '../subservices/StatsManager.js';
 import {KnowledgeManager} from '../subservices/KnowledgeManager.js';
 import {SessionOrchestrator} from '../subservices/SessionOrchestrator.js';
@@ -32,12 +31,6 @@ const REASONING_INTERVAL_MS = 60_000;
 const MAX_REASON_STEPS_PER_TICK = 5;
 const MIN_REASON_STEPS_PER_TICK = 1;
 const MAX_RECENT_DERIVATIONS = 50;
-
-const toEventTokens = (u: {inputTokens: number; outputTokens: number; totalTokens: number}) => ({
-    input: u.inputTokens,
-    output: u.outputTokens,
-    total: u.totalTokens,
-});
 
 export class AgentImpl implements Agent {
     private nar?: NAR;
@@ -64,7 +57,7 @@ export class AgentImpl implements Agent {
     private recentDerivations: DerivationEntry[] = [];
     private extToolOpts: Record<string, unknown> = {};
     private contextOpts: ContextAssemblerOpts;
-    private processInputDeps: any;
+    private processInputDeps: InputProcessorDeps;
 
     constructor(opts: AgentOptions) {
         this.nar = opts.nar;

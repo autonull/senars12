@@ -30,16 +30,16 @@ export interface NAREventMap extends EventMap {
   // Feedback events
   'feedback:correction': { original: string; corrected: string };
   // Pipeline events (from PipelineEvents)
-  'turn:start': { input: any; passCount: number };
-  'turn:end': { response: any; durationMs: number };
+  'turn:start': { input: unknown; passCount: number };
+  'turn:end': { response: unknown; durationMs: number };
   'turn:error': { error: Error; stage: string; passCount: number };
   'stage:start': { stage: string; passCount: number };
   'stage:end': { stage: string; durationMs: number; passCount: number };
   'stage:error': { stage: string; error: Error; durationMs: number };
-  'classify:result': { input: string; classification: any };
+  'classify:result': { input: string; classification: unknown };
   'trigger:score': { heuristicScore: number; lmScore: number; total: number; activated: boolean };
   'reasoning:start': { inputType: string; steps: number };
-  'reasoning:end': { steps: number; newBeliefs: any[] };
+  'reasoning:end': { steps: number; newBeliefs: unknown[] };
   'lm:start': { promptLength: number; streaming: boolean };
   'lm:chunk': { content: string; accumulated: string };
   'lm:end': { response: string; durationMs: number };
@@ -47,17 +47,17 @@ export interface NAREventMap extends EventMap {
   'lm-rule:executed': { ruleId: string; durationMs: number; tasksGenerated: number };
   'lm-rule:failed': { ruleId: string; error: string; durationMs: number };
   'lm-rule:disabled': { ruleId: string };
-  'directive:found': { directive: any };
-  'directive:execute': { directive: any; success: boolean; result?: unknown; error?: string };
+  'directive:found': { directive: unknown };
+  'directive:execute': { directive: unknown; success: boolean; result?: unknown; error?: string };
   'directive:loop-requested': { type: string };
   'loop:pass': { passCount: number; needsLoopBack: boolean };
   // Tool events
-  'tool:register': { name: string; descriptor: any };
+  'tool:register': { name: string; descriptor: unknown };
   'tool:unregister': { name: string };
   'tool:init': { name: string; state: string };
   'tool:stop': { name: string; state: string };
   'tool:dispose': { name: string; state: string };
-  'tool:call': { type: string; name: string; args: any; timestamp: number; context?: any };
+  'tool:call': { type: string; name: string; args: unknown; timestamp: number; context?: unknown };
   'tool:result': { type: string; name: string; args: any; result: any; timestamp: number; duration: number; context?: any };
   'tool:error': { type: string; name: string; args: any; result: any; timestamp: number; duration: number; context?: any };
   // Conversation events

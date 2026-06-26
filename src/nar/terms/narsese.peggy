@@ -117,7 +117,13 @@ TermList
 
 AtomicTerm "atomic term"
   = StringLiteral
+  / HyphenatedAtom
   / chars:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+) { return options.termFactory.atom(chars); }
+
+HyphenatedAtom "hyphenated atom"
+  = head:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+) tail:$("-" [^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+)+ {
+      return options.termFactory.atom(head + tail.join(''));
+    }
 
 StringLiteral
   = '"' chars:$([^"]*) '"' { return options.termFactory.atom('"' + chars + '"'); }

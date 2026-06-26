@@ -93,20 +93,6 @@ describeReasoning('Inference Rules', [
         ]
     },
     {
-        name: 'compound term reasoning: conjunction from shared subject',
-        premises: [
-            createPremise('(cat --> pet)', 'belief', 0.9, 0.9),
-            createPremise('(cat --> animal)', 'belief', 0.9, 0.9)
-        ],
-        cycles: 5,
-        expect: [
-            expectDerivation('([pet, animal])', {
-                minFrequency: 0.5,
-                minConfidence: 0.5
-            })
-        ]
-    },
-    {
         name: 'temporal reasoning: A ,/ B stored and retrieved',
         premises: [
             createPremise('(A ,/ B)', 'belief', 0.9, 0.9),

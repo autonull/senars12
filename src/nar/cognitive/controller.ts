@@ -59,9 +59,7 @@ export class CognitiveController {
 
   adapt(): void {
     this.cycleCount++;
-    if (this.cycleCount % this.adaptInterval !== 0) return;
-
-    if (!this.rlfp) return;
+    if (this.cycleCount % this.adaptInterval !== 0 || !this.rlfp) return;
 
     const newParams = this.adaptWithRLFP();
     if (JSON.stringify(newParams.strategies) !== JSON.stringify(this.currentParams.strategies)) {
@@ -72,19 +70,16 @@ export class CognitiveController {
 
   private adaptWithRLFP(): CognitiveParameters {
     const adapted = structuredClone(this.currentParams);
-    if (this.rlfp) {
-      const preferences = this.rlfp.preferences;
-      if (preferences.length > 0) {
-        adapted.strategies.lmRule.type = 'priority';
-        adapted.strategies.derivation.type = 'focused';
-      }
+    if (this.rlfp && this.rlfp.preferences.length > 0) {
+      adapted.strategies.lmRule.type = 'priority';
+      adapted.strategies.derivation.type = 'focused';
     }
     return adapted;
   }
 
   setStrategy(type: StrategyType, name: string): void {
-    const key = type === 'lm-rule' ? 'lmRule' : type;
-    (this.currentParams.strategies as Record<string, {type: string}>)[key]!.type = name;
+    const key: keyof typeof this.currentParams.strategies = type === 'lm-rule' ? 'lmRule' : type as keyof typeof this.currentParams.strategies;
+    this.currentParams.strategies[key].type = name;
     this.buildInferenceController(this.currentParams);
   }
 }

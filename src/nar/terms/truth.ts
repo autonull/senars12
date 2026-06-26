@@ -104,7 +104,7 @@ revision: truthOps.binary((f1, f2, c1, c2) => {
 const w1 = c2w(c1), w2 = c2w(c2), w = w1 + w2;
 const newC = w2c(w);
 if (newC > MAX_CONFIDENCE) {
-return [f1 * c1 + f2 * c2 / (c1 + c2), MAX_CONFIDENCE];
+return [(f1 * c1 + f2 * c2) / (c1 + c2), MAX_CONFIDENCE];
 }
 return [(f1 * w1 + f2 * w2) / w, newC];
 }),

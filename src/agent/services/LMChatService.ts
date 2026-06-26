@@ -1,4 +1,4 @@
-import type {LMClient} from '../../nar/lm/types.js';
+import type {LMClient as _LMClient} from '../../nar/lm/types.js';
 import type {ConversationSession} from '../ConversationSession.js';
 import {DEFAULT_SESSION_HISTORY_LIMIT} from '../ConversationSession.js';
 import {formatHistoryAsMessages} from '../chat-history.js';
@@ -7,7 +7,7 @@ import {PromptBuilder} from '../subservices/PromptBuilder.js';
 import type {ChatOptions, ChatStreamEvent} from '../types.js';
 import {EventBus} from '../EventBus.js';
 import {StatsManager} from '../subservices/StatsManager.js';
-import {processInput, appendSessionTurns, type InputEvent} from '../input-processor.js';
+import {processInput, appendSessionTurns, type InputEvent, type InputProcessorDeps} from '../input-processor.js';
 import type {EpisodeType} from '../../nar/memory/EpisodicMemory.js';
 
 const toEventTokens = (u: {inputTokens: number; outputTokens: number; totalTokens: number}) => ({
@@ -24,7 +24,7 @@ export class LMChatService {
         private statsManager: StatsManager,
         private buildTools: (session?: ConversationSession) => Record<string, unknown>,
         private safeLog: (type: EpisodeType, content: string, metadata?: Record<string, unknown>) => Promise<void>,
-        private processInputDeps: any
+        private processInputDeps: InputProcessorDeps
     ) {}
 
     private async buildComposedRequest(input: string, historyMessages?: Array<{role: 'user' | 'assistant' | 'system' | 'tool'; content: string}>, session?: ConversationSession) {

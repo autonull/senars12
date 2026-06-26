@@ -11,56 +11,56 @@ export function registerMCPResources(adapter: EnhancedMCPAdapter, _context: MCPR
     adapter.registerCapability({
         name: 'nar://beliefs',
         description: 'All stored beliefs with truth values',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 
     adapter.registerCapability({
         name: 'nar://concepts',
         description: 'Active concepts with attention priorities',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 
     adapter.registerCapability({
         name: 'nar://attention',
         description: 'Current attention snapshot',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 
     adapter.registerCapability({
         name: 'nar://state',
         description: 'NAR state summary (beliefs/goals/questions/attention/drives)',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 
     adapter.registerCapability({
         name: 'nar://episodes',
         description: 'Recent episodic memory entries',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 
     adapter.registerCapability({
         name: 'nar://benchmarks',
         description: 'Benchmark history and scores',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 
     adapter.registerCapability({
         name: 'nar://config',
         description: 'Current configuration',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 
     adapter.registerCapability({
         name: 'nar://tools',
         description: 'Available tools with schemas',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 
     // Session resources
     adapter.registerCapability({
         name: 'sessions://list',
         description: 'List all available sessions',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 
     adapter.registerCapability({
@@ -70,14 +70,14 @@ export function registerMCPResources(adapter: EnhancedMCPAdapter, _context: MCPR
             type: 'object',
             properties: {key: {type: 'string'}},
             required: ['key'],
-        } as any,
+        },
     });
 
     // Knowledge resources
     adapter.registerCapability({
         name: 'knowledge://list',
         description: 'List all knowledge entries',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 
     adapter.registerCapability({
@@ -87,34 +87,34 @@ export function registerMCPResources(adapter: EnhancedMCPAdapter, _context: MCPR
             type: 'object',
             properties: {key: {type: 'string'}},
             required: ['key'],
-        } as any,
+        },
     });
 
     // LM Rules resources
     adapter.registerCapability({
         name: 'lm-rules://stats',
         description: 'LM Rule statistics (calls, successes, failures, circuit state)',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 
     adapter.registerCapability({
         name: 'lm-rules://execution-log',
         description: 'Recent LM Rule execution log',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 
     // RLFP resources
     adapter.registerCapability({
         name: 'rlfp://state',
         description: 'RLFP learner state (policy, exploration rate, rewards)',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 
     // Self-reasoning resources
     adapter.registerCapability({
         name: 'self-reasoning://quality',
         description: 'Self-reasoning quality metrics (overall, coherence, relevance, completeness)',
-        inputSchema: {type: 'object', properties: {}} as any,
+        inputSchema: {type: 'object', properties: {}},
     });
 }
 
@@ -191,15 +191,15 @@ export function getResourceContent(
         case 'rlfp://state': {
             const rlfp = nar.getRLFP?.();
             if (!rlfp) return JSON.stringify({enabled: false}, null, 2);
-            const policyOptimizer = (rlfp as any).policyOptimizerPublic;
+            const policyOptimizer = rlfp.policyOptimizerPublic;
             return JSON.stringify({
                 enabled: true,
                 policy: Object.fromEntries(
                     policyOptimizer?.getAllStrategies?.().map((s: string) => [s, policyOptimizer.getStrategyStats(s)?.priority ?? 1]) ?? []
                 ),
                 explorationRate: policyOptimizer?.getConfig?.().explorationRate ?? 0.1,
-                totalRewards: (rlfp as any).trajectoryCount ?? 0,
-                totalSteps: (rlfp as any).trajectoryCount ?? 0,
+                totalRewards: rlfp.trajectoryCount ?? 0,
+                totalSteps: rlfp.trajectoryCount ?? 0,
             }, null, 2);
         }
         case 'self-reasoning://quality': {

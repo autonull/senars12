@@ -3,7 +3,6 @@
  */
 
 import type {StampType, Term} from '../terms';
-import {Stamp as StampFactory, getSubject, getPredicate, isOperation, isTautology} from '../terms';
 import {type RegisteredRule, RuleIndex, RuleRegistry, type TruthFn} from './types.js';
 import {Truth, type Truth as TruthType} from '../terms/truth.js';
 import type {LMRule} from '../lm';
@@ -13,6 +12,7 @@ import {EventBus} from '../types';
 import {toError} from '../utils/helpers.js';
 import type {Memory} from '../memory/memory.js';
 import type {NAR} from '../nar.js';
+import {deriveStamp, NEUTRAL_FN, validateRuleOutput, buildResult} from './rule-utils.js';
 
 interface LMRuleExecutionEntry {
     ruleName: string;
@@ -34,28 +34,6 @@ export interface RuleResult {
     stamp: StampType;
     priority: number;
 }
-
-const deriveStamp = (p1: RuleInput, p2: RuleInput): StampType => {
-    const stamps = [p1.stamp, p2.stamp].filter((s): s is NonNullable<typeof s> => s != null);
-    return (StampFactory.derive(stamps) ?? StampFactory.createInput()) as unknown as StampType;
-};
-
-const NEUTRAL_FN = (): TruthType => Truth.NEUTRAL;
-
-const validateRuleOutput = (term: Term, _premises: [Term, Term]): boolean => {
-    if (isTautology(term)) return false;
-    if (term.args && term.args.length > 0) {
-        const argCount = term.args.length;
-        if ((term.kind === 'inheritance' || term.kind === 'similarity' || term.kind === 'implication' || term.kind === 'equivalence') && argCount !== 2) return false;
-        if ((term.kind === 'negation' || term.kind === 'instance' || term.kind === 'property') && argCount !== 1) return false;
-    }
-    if (term.kind === 'inheritance' || term.kind === 'similarity') {
-        const s = getSubject(term), p = getPredicate(term);
-        if (s && isOperation(s)) return false;
-        if (p && isOperation(p)) return false;
-    }
-    return true;
-};
 
 export class RuleProcessor {
     private readonly ruleIndex: RuleIndex;
@@ -132,7 +110,7 @@ export class RuleProcessor {
     }
 
     async* processLMRules(p1: RuleInput, p2?: RuleInput, opts?: {signal?: AbortSignal; singlePremise?: boolean}): AsyncGenerator<RuleResult> {
-        yield* this.processLMRulesInternal(p1, p2, opts);
+        yield* this.processLMRulesImpl(p1, p2, opts);
     }
 
     async* process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
@@ -143,7 +121,7 @@ export class RuleProcessor {
                 try {
                     const result = rule.apply([p1.term, p2.term]);
                     if (result && validateRuleOutput(result, [p1.term, p2.term])) {
-                        yield this.buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
+                        yield buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
                     } else if (result) {
                         this.eventBus?.emit('rule:output-rejected', {ruleId: rule.id, term: result.toString()});
                     }
@@ -152,7 +130,7 @@ export class RuleProcessor {
                 }
             }
 
-            for await (const lmResult of this.processLMRulesInternal(p1, p2)) {
+            for await (const lmResult of this.processLMRulesImpl(p1, p2)) {
                 yield lmResult;
             }
         }
@@ -172,7 +150,7 @@ export class RuleProcessor {
                     const rs = result.toString();
                     // Skip results that duplicate a premise term — prevents revision corruption
                     if (rs === p1s || rs === p2s) continue;
-                    const rr = this.buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
+                    const rr = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
                     const existing = seen.get(rs);
                     if (!existing || rule.priority > existing.priority) {
                         seen.set(rs, rr);
@@ -189,12 +167,7 @@ export class RuleProcessor {
         return this.resultBuffer;
     }
 
-    private buildResult(term: Term, truthFn: TruthFn, p1: RuleInput, p2: RuleInput, priority: number): RuleResult {
-        const truth = truthFn(p1.truth, p2.truth) ?? Truth.NEUTRAL;
-        return {term, truth, stamp: deriveStamp(p1, p2), priority};
-    }
-
-    private async* processLMRulesInternal(p1: RuleInput, p2?: RuleInput, opts?: {signal?: AbortSignal; singlePremise?: boolean}): AsyncGenerator<RuleResult> {
+    private async* processLMRulesImpl(p1: RuleInput, p2?: RuleInput, opts?: {signal?: AbortSignal; singlePremise?: boolean}): AsyncGenerator<RuleResult> {
         if (this.lmRules.length === 0 || opts?.signal?.aborted) return;
 
         const isSinglePremise = opts?.singlePremise ?? !p2;

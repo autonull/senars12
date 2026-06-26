@@ -10,16 +10,19 @@ import {
   CompositeStrategy, AdaptiveStrategy
 } from '../reason/strategies';
 
+type StrategyImpl = SamplingStrategy | Strategy | DerivationStrategy | LMRuleSelector | AttentionModel;
+type StrategyMap = Map<string, StrategyImpl>;
+
 export class CognitiveRegistry implements StrategyRegistry {
-  private stores = {
-    sampling:   new Map<string, SamplingStrategy>(),
-    premise:    new Map<string, Strategy>(),
-    derivation: new Map<string, DerivationStrategy>(),
-    'lm-rule':  new Map<string, LMRuleSelector>(),
-    attention:  new Map<string, AttentionModel>(),
+  private readonly stores: Record<StrategyType, StrategyMap> = {
+    sampling:   new Map(),
+    premise:    new Map(),
+    derivation: new Map(),
+    'lm-rule':  new Map(),
+    attention:  new Map(),
   };
 
-  register(type: StrategyType, name: string, impl: any): void {
+  register(type: StrategyType, name: string, impl: StrategyImpl): void {
     if (this.stores[type].has(name)) throw new Error(`'${name}' already registered for ${type}`);
     this.stores[type].set(name, impl);
   }
@@ -31,7 +34,12 @@ export class CognitiveRegistry implements StrategyRegistry {
   }
 
   list(type: StrategyType): ComponentMetadata[] {
-    return [...this.stores[type].values()].map(s => (s as {metadata?: ComponentMetadata}).metadata).filter(Boolean) as ComponentMetadata[];
+    const result: ComponentMetadata[] = [];
+    for (const s of this.stores[type].values()) {
+      const m = (s as {metadata?: ComponentMetadata}).metadata;
+      if (m) result.push(m);
+    }
+    return result;
   }
 
   has(type: StrategyType, name: string): boolean { return this.stores[type].has(name); }
@@ -39,41 +47,41 @@ export class CognitiveRegistry implements StrategyRegistry {
 
   clear(type?: StrategyType): void {
     if (type) this.stores[type].clear();
-    else for (const s of Object.values(this.stores)) (s as Map<string, unknown>).clear();
+    else for (const s of Object.values(this.stores)) s.clear();
   }
 
   initializeDefaults(): void {
-    this.register('sampling', 'priority', new PrioritySampling());
-    this.register('sampling', 'top-n', new TopNSampling());
-    this.register('sampling', 'novelty', new NoveltySampling());
-    this.register('sampling', 'goal-biased', new GoalBiasedSampling());
-    this.register('sampling', 'diverse', new DiverseSampling());
-
-    this.register('premise', 'default-formation', DefaultFormationStrategy);
-    this.register('premise', 'bag', BagStrategy);
-    this.register('premise', 'prolog', PrologStrategy);
-    this.register('premise', 'resolution', ResolutionStrategy);
-    this.register('premise', 'goal-driven', GoalDrivenStrategy);
-    this.register('premise', 'analogical', AnalogicalStrategy);
-    this.register('premise', 'term-link', TermLinkStrategy);
-    this.register('premise', 'task-match', TaskMatchStrategy);
-    this.register('premise', 'decomposition', DecompositionStrategy);
-    this.register('premise', 'exhaustive', ExhaustiveStrategy);
-
-    this.register('derivation', 'default', new DefaultDerivation());
-    this.register('derivation', 'anytime', new AnytimeDerivation());
-    this.register('derivation', 'focused', new FocusedDerivation());
-    this.register('derivation', 'sampled', new SampledDerivation());
-
-    this.register('lm-rule', 'all', new AllSelector());
-    this.register('lm-rule', 'priority', new PrioritySelector());
-    this.register('lm-rule', 'rotation', new RotationSelector());
-    this.register('lm-rule', 'diverse', new DiverseSelector());
-
-    this.register('attention', 'simple', new SimpleAttention());
-    this.register('attention', 'spreading', new SpreadingActivation());
-    this.register('attention', 'goal-relevance', new GoalRelevanceAttention());
-    this.register('attention', 'composite', new CompositeAttention([]));
+    type Registration = [StrategyType, string, StrategyImpl];
+    const items: Registration[] = [
+      ['sampling', 'priority', new PrioritySampling()],
+      ['sampling', 'top-n', new TopNSampling()],
+      ['sampling', 'novelty', new NoveltySampling()],
+      ['sampling', 'goal-biased', new GoalBiasedSampling()],
+      ['sampling', 'diverse', new DiverseSampling()],
+      ['premise', 'default-formation', DefaultFormationStrategy],
+      ['premise', 'bag', BagStrategy],
+      ['premise', 'prolog', PrologStrategy],
+      ['premise', 'resolution', ResolutionStrategy],
+      ['premise', 'goal-driven', GoalDrivenStrategy],
+      ['premise', 'analogical', AnalogicalStrategy],
+      ['premise', 'term-link', TermLinkStrategy],
+      ['premise', 'task-match', TaskMatchStrategy],
+      ['premise', 'decomposition', DecompositionStrategy],
+      ['premise', 'exhaustive', ExhaustiveStrategy],
+      ['derivation', 'default', new DefaultDerivation()],
+      ['derivation', 'anytime', new AnytimeDerivation()],
+      ['derivation', 'focused', new FocusedDerivation()],
+      ['derivation', 'sampled', new SampledDerivation()],
+      ['lm-rule', 'all', new AllSelector()],
+      ['lm-rule', 'priority', new PrioritySelector()],
+      ['lm-rule', 'rotation', new RotationSelector()],
+      ['lm-rule', 'diverse', new DiverseSelector()],
+      ['attention', 'simple', new SimpleAttention()],
+      ['attention', 'spreading', new SpreadingActivation()],
+      ['attention', 'goal-relevance', new GoalRelevanceAttention()],
+      ['attention', 'composite', new CompositeAttention([])],
+    ];
+    for (const [type, name, impl] of items) this.register(type, name, impl);
   }
 
   composePremise(names: Array<{ name: string; weight: number }>): Strategy {

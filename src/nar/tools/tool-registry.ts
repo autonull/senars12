@@ -211,25 +211,26 @@ export class ToolManager {
     this.eventBus = eventBus;
   }
 
-  on(event: string, callback: (data: any) => void): void {
-    this.eventBus?.on(event as any, callback);
+  on(event: string, callback: (data: unknown) => void): void {
+    this.eventBus?.on(event as never, callback);
   }
 
-  private emit(event: string, data: any): void {
-    this.eventBus?.emit(event as any, data);
+  private emit(event: string, data: unknown): void {
+    this.eventBus?.emit(event as never, data as never);
   }
 
   register(tool: Tool, descriptor?: ToolDescriptor): void {
     this.registry.register(tool);
     this.lifecycleState.set(tool.name, 'initialized');
-    this.toolDescriptors.set(tool.name, descriptor ?? {
+    const resolvedDescriptor = descriptor ?? {
       name: tool.name,
       description: tool.description,
       capabilities: tool.capabilities,
       tags: [],
       version: '1.0.0'
-    });
-    this.emit('tool:register', {name: tool.name, descriptor: this.toolDescriptors.get(tool.name)!});
+    };
+    this.toolDescriptors.set(tool.name, resolvedDescriptor);
+    this.emit('tool:register', {name: tool.name, descriptor: resolvedDescriptor} as never);
   }
 
   unregister(name: string): void {
@@ -238,7 +239,7 @@ export class ToolManager {
     this.statistics.delete(name);
     this.lifecycleState.delete(name);
     this.toolDescriptors.delete(name);
-    this.emit('tool:unregister', {name} as any);
+    this.emit('tool:unregister', {name} as never);
   }
 
   async initializeTool(name: string): Promise<boolean> {
