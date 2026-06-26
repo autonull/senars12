@@ -1,279 +1,188 @@
 import type {NAR} from '../nar/nar.js';
 import type {Agent} from '../agent/agent.js';
 import type {EnhancedMCPAdapter} from './mcp/enhanced-adapter.js';
+import {z} from 'zod';
+import {promises as fs} from 'node:fs';
 
 export function registerNARToolsAsMCP(nar: NAR, adapter: EnhancedMCPAdapter): void {
-    const tools: Array<{name: string; description: string; inputSchema: Record<string, unknown>}> = [
-        {
-            name: 'calculate',
-            description: 'Evaluate arithmetic/math expressions',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    expression: {type: 'string', description: 'Math expression to evaluate'},
-                },
-                required: ['expression'],
-            },
+    const registry = adapter['registry'];
+    
+    // Calculate tool
+    registry.register('calculate', {
+        description: 'Evaluate arithmetic/math expressions',
+        params: z.object({expression: z.string()}),
+        returns: z.any(),
+        handler: async ({expression}: {expression: string}) => {
+            // Safe eval for math expressions
+            const result = eval(expression.replace(/[^0-9+\-*/.()eE\s]/g, ''));
+            return {result};
         },
-        {
-            name: 'read_file',
-            description: 'Read file contents',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    path: {type: 'string', description: 'File path to read'},
-                },
-                required: ['path'],
-            },
+    });
+    
+    // Read file tool
+    registry.register('read_file', {
+        description: 'Read file contents',
+        params: z.object({path: z.string()}),
+        returns: z.any(),
+        handler: async ({path}: {path: string}) => {
+            const content = await fs.readFile(path, 'utf-8');
+            return {path, content};
         },
-        {
-            name: 'write_file',
-            description: 'Write content to file',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    path: {type: 'string', description: 'File path to write'},
-                    content: {type: 'string', description: 'Content to write'},
-                },
-                required: ['path', 'content'],
-            },
+    });
+    
+    // Write file tool
+    registry.register('write_file', {
+        description: 'Write content to file',
+        params: z.object({path: z.string(), content: z.string()}),
+        returns: z.any(),
+        handler: async ({path, content}: {path: string; content: string}) => {
+            await fs.writeFile(path, content, 'utf-8');
+            return {success: true};
         },
-        {
-            name: 'http_request',
-            description: 'Make HTTP requests',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    method: {type: 'string', enum: ['GET', 'POST', 'PUT', 'DELETE']},
-                    url: {type: 'string', description: 'URL to request'},
-                    headers: {type: 'object', description: 'HTTP headers'},
-                    body: {type: 'string', description: 'Request body'},
-                },
-                required: ['method', 'url'],
-            },
+    });
+    
+    // Search memory tool
+    registry.register('search_memory', {
+        description: 'Search NAR memory for beliefs',
+        params: z.object({query: z.string()}),
+        returns: z.any(),
+        handler: async ({query}: {query: string}) => {
+            const beliefs = nar.getBeliefs();
+            return beliefs.filter(b => b.term.toString().toLowerCase().includes(query.toLowerCase()));
         },
-        {
-            name: 'search_memory',
-            description: 'Search NAR memory for beliefs',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    query: {type: 'string', description: 'Search query'},
-                },
-                required: ['query'],
-            },
+    });
+    
+    // Run reasoning tool
+    registry.register('run_reasoning', {
+        description: 'Run NAL inference steps',
+        params: z.object({steps: z.number()}),
+        returns: z.any(),
+        handler: async ({steps}: {steps: number}) => {
+            const derived = await nar.run(steps);
+            return {derived, beliefs: nar.getBeliefs().slice(-10)};
         },
-        {
-            name: 'web_search',
-            description: 'Search the web via Brave API',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    query: {type: 'string', description: 'Web search query'},
-                },
-                required: ['query'],
-            },
+    });
+    
+    // Learn belief tool
+    registry.register('learn_belief', {
+        description: 'Add a belief to memory',
+        params: z.object({belief: z.string()}),
+        returns: z.any(),
+        handler: async ({belief}: {belief: string}) => {
+            await nar.believe(belief);
+            return {added: belief};
         },
-        {
-            name: 'run_reasoning',
-            description: 'Run NAL inference steps',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    steps: {type: 'number', description: 'Number of reasoning steps'},
-                },
-                required: ['steps'],
-            },
+    });
+    
+    // Explain belief tool
+    registry.register('explain_belief', {
+        description: 'Explain how a belief was derived',
+        params: z.object({term: z.string()}),
+        returns: z.any(),
+        handler: async ({term}: {term: string}) => {
+            return {term, derivation: 'N/A'};
         },
-        {
-            name: 'explain_belief',
-            description: 'Explain how a belief was derived',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    term: {type: 'string', description: 'Term to explain'},
-                },
-                required: ['term'],
-            },
-        },
-        {
-            name: 'learn_belief',
-            description: 'Add a belief to memory',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    belief: {type: 'string', description: 'Belief in Narsese format'},
-                },
-                required: ['belief'],
-            },
-        },
-        {
-            name: 'set_timer',
-            description: 'Set a timer/delay',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    ms: {type: 'number', description: 'Milliseconds to wait'},
-                },
-                required: ['ms'],
-            },
-        },
-        {
-            name: 'run_process',
-            description: 'Execute a shell command',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    command: {type: 'string', description: 'Shell command to execute'},
-                },
-                required: ['command'],
-            },
-        },
-    ];
-
-    for (const tool of tools) {
-        adapter.registerCapability({
-            name: tool.name,
-            description: tool.description,
-            inputSchema: tool.inputSchema as any,
-        });
-    }
+    });
 }
 
 export function registerAgentAPI(agent: Agent, adapter: EnhancedMCPAdapter): void {
-    adapter.registerCapability({
-        name: 'agent_chat',
+    const registry = adapter['registry'];
+    
+    registry.register('agent_chat', {
         description: 'Chat with the agent (non-streaming)',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                input: {type: 'string', description: 'User input'},
-                historyLimit: {type: 'number', description: 'Max history turns'},
-            },
-            required: ['input'],
+        params: z.object({input: z.string(), historyLimit: z.number().optional()}),
+        returns: z.any(),
+        handler: async ({input}: {input: string; historyLimit?: number}) => {
+            return agent.chat(input);
         },
     });
-
-    adapter.registerCapability({
-        name: 'agent_chat_stream',
+    
+    registry.register('agent_chat_stream', {
         description: 'Chat with the agent (streaming)',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                input: {type: 'string', description: 'User input'},
-                historyLimit: {type: 'number', description: 'Max history turns'},
-            },
-            required: ['input'],
+        params: z.object({input: z.string(), historyLimit: z.number().optional()}),
+        returns: z.any(),
+        handler: async ({input}: {input: string; historyLimit?: number}) => {
+            let result = '';
+            for await (const event of agent.chatStream(input)) {
+                if (event.kind === 'finish' || event.kind === 'aborted' || event.kind === 'error') {
+                    result = event.text ?? '';
+                }
+            }
+            return result;
         },
     });
-
-    adapter.registerCapability({
-        name: 'agent_believe',
+    
+    registry.register('agent_believe', {
         description: 'Add a belief to NAR memory',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                narsese: {type: 'string', description: 'Belief in Narsese format'},
-            },
-            required: ['narsese'],
+        params: z.object({narsese: z.string()}),
+        returns: z.any(),
+        handler: async ({narsese}: {narsese: string}) => {
+            await agent.believe(narsese);
+            return {success: true};
         },
     });
-
-    adapter.registerCapability({
-        name: 'agent_recall',
+    
+    registry.register('agent_recall', {
         description: 'Recall from episodic memory',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                query: {type: 'string', description: 'Search query'},
-                limit: {type: 'number', description: 'Max results', default: 10},
-            },
+        params: z.object({query: z.string().optional(), limit: z.number().optional()}),
+        returns: z.any(),
+        handler: async ({query, limit}: {query?: string; limit?: number}) => {
+            return agent.recall(query, limit);
         },
     });
-
-    adapter.registerCapability({
-        name: 'agent_know',
+    
+    registry.register('agent_know', {
         description: 'Store or retrieve knowledge',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                key: {type: 'string', description: 'Knowledge key'},
-                value: {type: 'string', description: 'Knowledge value (omit to retrieve)'},
-            },
-            required: ['key'],
+        params: z.object({key: z.string(), value: z.string().optional()}),
+        returns: z.any(),
+        handler: async ({key, value}: {key: string; value?: string}) => {
+            if (value !== undefined) {
+                agent.know(key, value);
+                return {stored: true, key, value};
+            }
+            return {key, value: agent.knowGet(key)};
         },
     });
-
-    adapter.registerCapability({
-        name: 'agent_lm_rule_enable',
+    
+    registry.register('agent_lm_rule_enable', {
         description: 'Enable an LM rule',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                id: {type: 'string', description: 'Rule ID'},
-            },
-            required: ['id'],
+        params: z.object({id: z.string()}),
+        returns: z.any(),
+        handler: async ({id}: {id: string}) => {
+            agent.enableLmRule(id);
+            return {enabled: true, id};
         },
     });
-
-    adapter.registerCapability({
-        name: 'agent_lm_rule_disable',
+    
+    registry.register('agent_lm_rule_disable', {
         description: 'Disable an LM rule',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                id: {type: 'string', description: 'Rule ID'},
-            },
-            required: ['id'],
+        params: z.object({id: z.string()}),
+        returns: z.any(),
+        handler: async ({id}: {id: string}) => {
+            agent.disableLmRule(id);
+            return {disabled: true, id};
         },
     });
-
-    adapter.registerCapability({
-        name: 'agent_explain',
+    
+    registry.register('agent_explain', {
         description: 'Explain a belief or goal',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                term: {type: 'string', description: 'Term to explain'},
-                type: {type: 'string', enum: ['belief', 'goal'], default: 'belief'},
-            },
-            required: ['term'],
+        params: z.object({term: z.string(), type: z.enum(['belief', 'goal']).optional()}),
+        returns: z.any(),
+        handler: async ({term, type}: {term: string; type?: 'belief' | 'goal'}) => {
+            if (type === 'goal') {
+                return agent.explainGoal(term);
+            }
+            return agent.explainBelief(term);
         },
     });
-
-    adapter.registerCapability({
-        name: 'agent_explain_nl',
-        description: 'Explain in natural language',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                term: {type: 'string', description: 'Term to explain'},
-            },
-            required: ['term'],
-        },
-    });
-
-    adapter.registerCapability({
-        name: 'agent_goal_progress',
+    
+    registry.register('agent_goal_progress', {
         description: 'Get goal progress or list active goals',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                goalId: {type: 'string', description: 'Goal ID (omit to list all)'},
-            },
+        params: z.object({goalId: z.string().optional()}),
+        returns: z.any(),
+        handler: async ({goalId}: {goalId?: string}) => {
+            if (goalId) return agent.getGoalProgress(goalId);
+            return agent.listActiveGoals();
         },
-    });
-
-    // Legacy tools for compatibility
-    adapter.registerCapability({
-        name: 'get_beliefs',
-        description: 'Get all beliefs from NAR memory',
-        inputSchema: {type: 'object', properties: {}},
-    });
-
-    adapter.registerCapability({
-        name: 'get_attention',
-        description: 'Get current attention snapshot',
-        inputSchema: {type: 'object', properties: {}},
     });
 }
