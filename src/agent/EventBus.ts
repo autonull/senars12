@@ -29,7 +29,14 @@ export interface SystemEventPayloads {
     'system:lm.rule:constitution-violation': {ruleId: string; term: string; clause: string; timestamp: number};
 }
 
-export type EventMap = AgentEventPayloads & NarEventPayloads & SystemEventPayloads;
+export interface LoopEventPayloads {
+    'perception': {source: 'startup' | 'scheduled' | 'external' | 'interrupt'; input?: string; timestamp: number; priority?: number};
+    'reasoning': {context: string; timestamp: number};
+    'action': {actions: Array<{tool: string; parameters: Record<string, unknown>; id: string}>; timestamp: number};
+    'reflection': {actions: Array<{tool: string; parameters: Record<string, unknown>; id: string}>; results: Array<{tool: string; success: boolean; result?: unknown; error?: string; id: string}>; timestamp: number};
+}
+
+export type EventMap = AgentEventPayloads & NarEventPayloads & SystemEventPayloads & LoopEventPayloads;
 export type EventKey = keyof EventMap;
 
 type EventHandler<T> = (data: T) => void;
@@ -39,7 +46,7 @@ export class EventBus {
     private readonly narUnsubscribers: Array<() => void> = [];
 
     constructor() {
-        this.emitter.setMaxListeners(50);
+        this.emitter.setMaxListeners(100);
     }
 
     emit<K extends EventKey>(event: K, data: EventMap[K]): void {
@@ -48,7 +55,6 @@ export class EventBus {
             try {
                 listener(data);
             } catch (_err) {
-                // listener errors must not break the pipeline
             }
         }
     }
@@ -66,6 +72,23 @@ export class EventBus {
 
     off<K extends EventKey>(event: K, handler: EventHandler<EventMap[K]>): void {
         this.emitter.off(event, handler as EventHandler<unknown>);
+    }
+
+    emitRaw(event: string, data: unknown): void {
+        const listeners = this.emitter.listeners(event);
+        for (const listener of listeners) {
+            try {
+                listener(data);
+            } catch (_err) {
+            }
+        }
+    }
+
+    onRaw(event: string, handler: EventHandler<unknown>): () => void {
+        this.emitter.on(event, handler as EventHandler<unknown>);
+        return () => {
+            this.emitter.off(event, handler as EventHandler<unknown>);
+        };
     }
 
     wrapNarEventBus(narBus: NarEventBus): void {

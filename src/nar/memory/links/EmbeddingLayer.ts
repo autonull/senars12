@@ -2,7 +2,7 @@ import type {Term} from '../../terms';
 import {termsEqual} from '../../terms';
 import type {LinkEntry} from './types.js';
 import {Layer} from './Layer.js';
-import {createEmbeddingGenerator} from '../embedding.js';
+import {createEmbeddingGenerator, type EmbeddingGenerator, cosineSimilarity} from '../embedding.js';
 
 export interface EmbeddingLayerConfig {
     capacity: number;
@@ -10,14 +10,23 @@ export interface EmbeddingLayerConfig {
     maxLinksPerConcept: number;
 }
 
+export interface StoredEntry {
+    id: string;
+    embedding: number[];
+    text: string;
+    metadata: Record<string, unknown>;
+}
+
 export class EmbeddingLayer extends Layer {
     private readonly similarityThreshold: number;
-    private readonly embeddingGenerator = createEmbeddingGenerator();
+    private readonly embeddingGenerator: EmbeddingGenerator;
     private readonly termEmbeddings = new Map<string, number[]>();
+    private readonly storedEntries = new Map<string, StoredEntry>();
 
     constructor(config: EmbeddingLayerConfig) {
         super('semantic', config.capacity, 'priority');
         this.similarityThreshold = config.similarityThreshold ?? 0.6;
+        this.embeddingGenerator = createEmbeddingGenerator();
     }
 
     async indexConcept(term: Term): Promise<void> {
@@ -79,6 +88,32 @@ export class EmbeddingLayer extends Layer {
 
     override applyDecay(decayRate: number): void {
         super.applyDecay(decayRate);
+    }
+
+    async store(entry: StoredEntry): Promise<void> {
+        this.storedEntries.set(entry.id, entry);
+    }
+
+    async search(queryEmbedding: number[], n: number): Promise<Array<{id: string; text: string; metadata: Record<string, unknown>; score: number}>> {
+        const results: Array<{id: string; text: string; metadata: Record<string, unknown>; score: number}> = [];
+
+        for (const [id, entry] of this.storedEntries) {
+            const similarity = cosineSimilarity(queryEmbedding, entry.embedding);
+            if (similarity > 0) {
+                results.push({id, text: entry.text, metadata: entry.metadata, score: similarity});
+            }
+        }
+
+        results.sort((a, b) => b.score - a.score);
+        return results.slice(0, n);
+    }
+
+    async getAll(): Promise<Array<{id: string; text: string; metadata: Record<string, unknown>}>> {
+        return Array.from(this.storedEntries.values()).map(e => ({
+            id: e.id,
+            text: e.text,
+            metadata: e.metadata,
+        }));
     }
 
     private cosineSimilarity(a: number[], b: number[]): number {

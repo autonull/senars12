@@ -120,12 +120,13 @@ export interface SessionSnapshot {
 }
 import type {NAR} from '../nar/nar.js';
 import type {LMClient} from '../nar/lm/types.js';
-import type {EpisodeType, EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
+import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {ContextAssemblerOpts} from '../nar/nl/context-assembler.js';
 import {ApprovalManager} from '../nar/tools/adapters/index.js';
 import type {ConversationSession} from './ConversationSession.js';
 import {Logger} from '../nar/logger/index.js';
 import {AutonomyEngine} from './AutonomyEngine.js';
+import type {AutonomousLoop} from './AutonomousLoop.js';
 import type {EventKey, EventMap} from './EventBus.js';
 
 export interface AgentOptions {
@@ -144,6 +145,7 @@ export interface AgentOptions {
     };
     approvalManager?: ApprovalManager;
     autonomyEngine?: AutonomyEngine;
+    autonomousLoop?: AutonomousLoop;
     persistKnowledge?: boolean;
     knowledgePath?: string;
     reasoningIntervalMs?: number;
@@ -212,6 +214,7 @@ export interface Agent {
     disableLmRule(id: string): void;
     setLmRulePriority(id: string, priority: number): void;
     getAutonomyEngine(): AutonomyEngine | undefined;
+    getAutonomousLoop(): AutonomousLoop | undefined;
     getRLFPState(): {enabled: boolean; policy: Record<string, number>; qValues: Record<string, number>; explorationRate: number; totalRewards: number; totalSteps: number} | null;
     resetRLFP(): void;
     provideRLFPFeedback(reward: number, context?: string): void;

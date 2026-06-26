@@ -8,6 +8,16 @@ export {EventBus} from './EventBus.js';
 export type {EventKey, EventMap} from './EventBus.js';
 export {AutonomyEngine, createAutonomyEngine} from './AutonomyEngine.js';
 export type {AutonomyEngineConfig, ReasoningJob} from './AutonomyEngine.js';
+export {AutonomousLoop, createAutonomousLoop} from './AutonomousLoop.js';
+export type {LoopState, LoopConfig, PerceptionEvent, ReasoningEvent, ActionEvent, ReflectionEvent, ToolResult, SystemState} from './AutonomousLoop.js';
+export {ContextBuilder, createDefaultContextBuilder} from './ContextBuilder.js';
+export type {ContextSection, ContextData, DriveState} from './ContextBuilder.js';
+export {ActionParser, createActionParser} from './ActionParser.js';
+export type {ToolSchema, ToolPattern} from './ActionParser.js';
+export {ReflectionEngine, createReflectionEngine} from './ReflectionEngine.js';
+export type {Evaluation, DriveImpact} from './ReflectionEngine.js';
+export {WakeScheduler, createWakeScheduler} from './WakeScheduler.js';
+export type {WakeSchedulerConfig} from './WakeScheduler.js';
 
 export {agentOptionsSchema, validateAgentOptions, AgentOptionsValidationError} from './options-schema.js';
 export type {ValidatedAgentOptions} from './options-schema.js';

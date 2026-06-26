@@ -17,6 +17,7 @@ import type {ConversationSession} from '../ConversationSession.js';
 import {createLogger, type Logger} from '../../nar/logger/index.js';
 import {EventBus, type EventKey, type EventMap} from '../EventBus.js';
 import {AutonomyEngine} from '../AutonomyEngine.js';
+import type {AutonomousLoop} from '../AutonomousLoop.js';
 import {processInput, type InputEvent, type InputProcessorDeps} from '../input-processor.js';
 import {StatsManager} from '../subservices/StatsManager.js';
 import {KnowledgeManager} from '../subservices/KnowledgeManager.js';
@@ -54,6 +55,7 @@ export class AgentImpl implements Agent {
     private throttle = 100;
     private reasoningHandle?: ReturnType<typeof setInterval>;
     private autonomyEngine?: AutonomyEngine;
+    private autonomousLoop?: AutonomousLoop;
     private recentDerivations: DerivationEntry[] = [];
     private extToolOpts: Record<string, unknown> = {};
     private contextOpts: ContextAssemblerOpts;
@@ -98,6 +100,7 @@ export class AgentImpl implements Agent {
 
         this.narQueryService = new NarQueryService(this.nar, this.generationService);
         this.autonomyEngine = opts.autonomyEngine;
+        this.autonomousLoop = opts.autonomousLoop;
 
         this.processInputDeps = {
             nar: this.nar,
@@ -289,10 +292,15 @@ export class AgentImpl implements Agent {
             });
         }
 
+        if (this.autonomousLoop) {
+            this.autonomousLoop.start().catch(err => {
+                this.logger.warn('AutonomousLoop start failed', {error: err instanceof Error ? err.message : String(err)});
+            });
+        }
         if (this.autonomyEngine) {
             this.autonomyEngine.setNotifyHandler((msg) => this.logger.debug(msg));
             this.autonomyEngine.start();
-        } else if (!this.reasoningHandle) {
+        } else if (!this.reasoningHandle && !this.autonomousLoop) {
             this.reasoningHandle = setInterval(async () => {
                 if (this.throttle === 0 || !this.nar) return;
                 const driveManager = this.nar.getDriveManager();
@@ -313,6 +321,9 @@ export class AgentImpl implements Agent {
     }
 
     stop(): void {
+        if (this.autonomousLoop) {
+            this.autonomousLoop.stop();
+        }
         if (this.autonomyEngine) {
             this.autonomyEngine.stop();
         } else if (this.reasoningHandle) {
@@ -393,6 +404,10 @@ export class AgentImpl implements Agent {
 
     getAutonomyEngine(): AutonomyEngine | undefined {
         return this.autonomyEngine;
+    }
+
+    getAutonomousLoop(): AutonomousLoop | undefined {
+        return this.autonomousLoop;
     }
 
     getRLFPState(): {enabled: boolean; policy: Record<string, number>; qValues: Record<string, number>; explorationRate: number; totalRewards: number; totalSteps: number} | null {
