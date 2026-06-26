@@ -1,7 +1,6 @@
 import type {Task} from '../../types';
 import {createSecondaryTask} from '../../types';
-import type {Memory} from '../../memory';
-import type {Concept} from '../../memory';
+import type {Concept, Memory} from '../../memory';
 import type {Strategy} from '../strategy.js';
 import type {Term} from '../../terms';
 

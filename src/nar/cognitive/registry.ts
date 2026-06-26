@@ -8,34 +8,34 @@ import type {
     StrategyRegistry,
     StrategyType
 } from '../strategies';
-import {ConfigurationError} from '../types';
 import {
+    AllSelector,
+    AnytimeDerivation,
+    CompositeAttention,
+    DefaultDerivation,
     DiverseSampling,
+    DiverseSelector,
+    FocusedDerivation,
     GoalBiasedSampling,
+    GoalRelevanceAttention,
     NoveltySampling,
     PrioritySampling,
+    PrioritySelector,
+    RotationSelector,
+    SampledDerivation,
+    SimpleAttention,
+    SpreadingActivation,
     TopNSampling
 } from '../strategies';
-import {
-    AnytimeDerivation,
-    DefaultDerivation,
-    FocusedDerivation,
-    SampledDerivation
-} from '../strategies';
-import {AllSelector, DiverseSelector, PrioritySelector, RotationSelector} from '../strategies';
-import {
-    CompositeAttention,
-    GoalRelevanceAttention,
-    SimpleAttention,
-    SpreadingActivation
-} from '../strategies';
-import {BagStrategy, ExhaustiveStrategy} from '../reason';
+import {ConfigurationError} from '../types';
 import {
     AdaptiveStrategy,
     AnalogicalStrategy,
+    BagStrategy,
     CompositeStrategy,
     DecompositionStrategy,
     DefaultFormationStrategy,
+    ExhaustiveStrategy,
     GoalDrivenStrategy,
     PrologStrategy,
     ResolutionStrategy,

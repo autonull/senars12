@@ -12,9 +12,8 @@ import type {
     ToolStatistics
 } from './types';
 import {errorResult} from './types';
-import {ToolError} from '../types';
+import {EventBus, ToolError} from '../types';
 import {errMsg} from '../utils';
-import {EventBus} from '../types';
 import {createLogger} from '../logger';
 
 const logger = createLogger({scope: 'ToolManager'});

@@ -1,9 +1,6 @@
-import type {Connection, IOMessage} from '../io';
+import type {AuthManager, CommandRegistry, Connection, ConnectionManager, IOMessage} from '../io';
 import {type MessageContext, MessageRouter} from '../io';
 import type {Agent} from './agent.js';
-import type {AuthManager} from '../io';
-import type {CommandRegistry} from '../io';
-import type {ConnectionManager} from '../io';
 import type {SessionManager} from './SessionManager.js';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {resolveReplyTarget} from '../io/connections/reply-target.js';

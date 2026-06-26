@@ -6,11 +6,10 @@
 import type {NARConfig} from './nar.js';
 import {NAR} from './nar.js';
 import type {LMClient} from './lm';
+import {createSeNARSRegistry, type SeNARSRegistry, setupDefaultLMClient} from './lm';
 import type {RLFPLearner} from './rlfp';
 import type {CoreConfig} from './types';
 import {DEFAULT_CONFIG, EventBus} from './types';
-import {setupDefaultLMClient} from './lm';
-import {createSeNARSRegistry, type SeNARSRegistry} from './lm';
 import {CognitiveRegistry} from './cognitive';
 import type {CognitiveParameters} from './config/cognitive-parameters';
 import {DEFAULT_COGNITIVE_PARAMETERS, mergeParameters, RESEARCH_COGNITIVE_CONFIG} from './config/cognitive-parameters';

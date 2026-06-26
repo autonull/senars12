@@ -1,11 +1,7 @@
 import {describe, expect, it} from '@jest/globals';
-import {createAgent} from '../../../src';
-import {createSession} from '../../../src/agent';
-import {buildAgentTools} from '../../../src';
-import {abortSession, createStreamingAgentDispatch} from '../../../src/agent';
-import {MessageRouter} from '../../../src';
-import {InMemorySessionManager} from '../../../src/agent';
 import type {Connection, IOMessage, Logger} from '../../../src';
+import {buildAgentTools, createAgent, MessageRouter} from '../../../src';
+import {abortSession, createSession, createStreamingAgentDispatch, InMemorySessionManager} from '../../../src/agent';
 import type {LMClient} from '../../../src/nar/lm';
 import {EpisodicMemory} from '../../../src/nar/memory/EpisodicMemory.js';
 import {mkdtempSync} from 'fs';

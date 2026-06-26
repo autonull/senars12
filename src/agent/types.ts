@@ -1,5 +1,4 @@
-import type {Task} from '../nar';
-import type {NAR} from '../nar';
+import type {NAR, Task} from '../nar';
 import type {LMClient} from '../nar/lm';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {ContextAssemblerOpts} from '../nar/nl';

@@ -1,21 +1,17 @@
 #!/usr/bin/env tsx
 import {createInterface} from 'readline';
-import {type Agent, createAgent, createAutonomyEngine} from '../agent';
+import type {ConversationSession} from '../agent';
+import {type Agent, agentConfigToOptions, createAgent, createAutonomyEngine, JsonlSessionManager} from '../agent';
+import type {NAR} from '../nar';
 import {SeNARSFactory} from '../nar';
-import {createSeNARSRegistry} from '../nar/lm';
-import {setupDefaultLMClient} from '../nar/lm';
+import type {LMClient} from '../nar/lm';
+import {createSeNARSRegistry, setupDefaultLMClient} from '../nar/lm';
 import {formatLMConfig, resolveLMConfig} from '../nar/lm/env-config.js';
 import {createLogger} from '../nar/logger';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import {DEFAULT_NAR_CONFIG} from '../config';
+import {DEFAULT_NAR_CONFIG, loadConfigFromEnv} from '../config';
 import {assertValidEnv} from '../utils/env-validate.js';
 import {type CLICommand, QUIT_SENTINEL} from '../io/connections/cli.js';
-import type {LMClient} from '../nar/lm';
-import type {NAR} from '../nar';
-import {loadConfigFromEnv} from '../config';
-import {agentConfigToOptions} from '../agent';
-import {JsonlSessionManager} from '../agent';
-import type {ConversationSession} from '../agent';
 
 assertValidEnv();
 

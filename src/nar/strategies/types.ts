@@ -1,5 +1,4 @@
-import type {Memory} from '../memory';
-import type {Concept} from '../memory';
+import type {Concept, Memory} from '../memory';
 import type {Task} from '../types';
 import type {RuleProcessor} from '../rules';
 import type {LMRule} from '../lm';

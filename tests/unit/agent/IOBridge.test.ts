@@ -1,27 +1,24 @@
 import {describe, expect, it, jest} from '@jest/globals';
-import {bindAgentToConnection} from '../../../src/agent';
-import {createConnectionConfigsFromEnv} from '../../../src/agent';
 import {
+    bindAgentToConnection,
     createAgentDispatch,
     createAuthMiddleware,
     createCommandInterceptor,
+    createConnectionConfigsFromEnv,
     createErrorBoundary,
     createRateLimiter,
+    createSession,
     createSessionBinder,
+    InMemorySessionManager,
+    JsonlSessionManager,
     originExtractor,
-    resolveSessionKey,
+    resolveSessionKey
 } from '../../../src/agent';
-import {InMemorySessionManager, JsonlSessionManager} from '../../../src/agent';
-import {createSession} from '../../../src/agent';
-import {CommandRegistry} from '../../../src';
-import {AuthManager} from '../../../src';
-import {MessageRouter} from '../../../src';
+import type {Connection, IOMessage, Logger, NAR} from '../../../src';
+import {AuthManager, CommandRegistry, createAgent, MessageRouter} from '../../../src';
 import {SeNARSFactory} from '../../../src/nar';
 import {EpisodicMemory} from '../../../src/nar/memory/EpisodicMemory.js';
-import type {Connection, IOMessage, Logger} from '../../../src';
-import type {NAR} from '../../../src';
 import type {LMClient} from '../../../src/nar/lm';
-import {createAgent} from '../../../src';
 import {mkdtempSync} from 'fs';
 import {tmpdir} from 'os';
 import {join} from 'path';

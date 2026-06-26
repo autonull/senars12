@@ -13,12 +13,10 @@ import {
     type TaskType
 } from './types';
 import type {Term} from './terms';
-import {termsEqual} from './terms';
+import {termsEqual, Truth} from './terms';
 import type {Truth as TruthType} from './terms/truth.js';
-import {Truth} from './terms';
-import type {LMClient} from './lm';
+import type {LMClient, SeNARSRegistry} from './lm';
 import {LMRules} from './lm';
-import type {SeNARSRegistry} from './lm';
 import {QueryAPI, ReasoningTrace} from './query';
 import {errMsg} from './utils';
 import {MetricsCollector} from './metrics';
@@ -28,8 +26,8 @@ import {discoverTools, ToolManager} from './tools';
 import {BaseComponent} from './lifecycle';
 import {ReasoningAboutReasoning} from './self';
 import {RLFPLearner} from './rlfp';
-import {CognitiveController} from './cognitive';
 import type {CognitiveRegistry} from './cognitive';
+import {CognitiveController} from './cognitive';
 import type {CognitiveParameters} from './config/cognitive-parameters';
 import type {AttentionModel} from './strategies';
 import {SimpleAttention} from './strategies';

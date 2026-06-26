@@ -5,9 +5,9 @@
  * Requires a running IRC server or will skip if not available.
  */
 
-import {IRCConnection} from '../src/io/connections/irc.ts';
-import type {ConnectionConfig, ConnectionDeps} from '../src/io/types.js';
-import {createLogger} from '../src/nar/logger/index.js';
+import type {ConnectionConfig, ConnectionDeps} from '../src';
+import {IRCConnection} from '../src';
+import {createLogger} from '../src/nar/logger';
 
 const logger = createLogger({scope: 'test:irc'});
 

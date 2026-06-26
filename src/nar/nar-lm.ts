@@ -1,7 +1,5 @@
-import type {LMClient} from './lm';
-import {BidirectionalFeedbackLoop, ProactiveEnricher} from './lm';
-import type {SeNARSRegistry} from './lm';
-import {getQualityModel} from './lm';
+import type {LMClient, SeNARSRegistry} from './lm';
+import {BidirectionalFeedbackLoop, getQualityModel, ProactiveEnricher} from './lm';
 import type {Memory} from './memory';
 import type {Task} from './types';
 

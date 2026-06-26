@@ -1,8 +1,7 @@
 import type {Term} from '../terms';
-import {Truth} from '../terms';
-import {createTimestamp} from '../types';
-import {termParser, termsEqual} from '../terms';
+import {termParser, termsEqual, Truth} from '../terms';
 import type {Stamp, Task, TaskType, TermFilter} from '../types';
+import {createTimestamp} from '../types';
 import type {Concept} from '../memory';
 import {createLogger} from '../logger';
 

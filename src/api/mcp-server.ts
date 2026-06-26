@@ -14,10 +14,8 @@ import {
     ListToolsRequestSchema,
     ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import {EnhancedMCPAdapter} from './mcp';
 import type {SchemaTransformer} from './mcp';
-import {getSchemaTransformer} from './mcp';
-import {CapabilityDescriptor} from './mcp';
+import {CapabilityDescriptor, EnhancedMCPAdapter, getSchemaTransformer} from './mcp';
 import {createLogger, type Logger} from '../nar/logger';
 import {errMsg, toError} from '../nar/utils';
 

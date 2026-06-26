@@ -5,9 +5,7 @@
 
 import {afterEach, beforeEach, describe, expect, it} from '@jest/globals';
 import {z} from 'zod';
-import {APIRegistry} from '../../src/api';
-import {EnhancedMCPAdapter} from '../../src/api';
-import {SchemaTransformer} from '../../src/api';
+import {APIRegistry, EnhancedMCPAdapter, SchemaTransformer} from '../../src/api';
 import {SeNARSMCPServer} from '../../src/api/mcp-server.js';
 
 describe('MCP Adapter', () => {

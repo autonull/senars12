@@ -1,7 +1,7 @@
 import {type Agent, type AgentOptions, createAgent} from './agent.js';
+import type {NAR} from '../nar';
 import {SeNARSFactory} from '../nar';
 import {DEFAULT_NAR_CONFIG} from '../config';
-import type {NAR} from '../nar';
 import type {LMClient} from '../nar/lm';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 

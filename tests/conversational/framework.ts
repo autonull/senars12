@@ -1,7 +1,7 @@
+import type {NAR} from '../../src';
 import {type Agent, type AgentOptions, createAgent} from '../../src';
 import {type ConversationSession, createSession} from '../../src/agent';
 import {SeNARSFactory} from '../../src/nar';
-import type {NAR} from '../../src';
 import type {LMClient} from '../../src/nar/lm';
 
 export interface ProbeExpectations {

@@ -3,8 +3,7 @@
  * Enables iterative exploration of reasoning system capabilities
  */
 
-import type {NAR} from '../nar';
-import type {Task} from '../nar';
+import type {NAR, Task} from '../nar';
 import {ReasoningTrace} from '../nar/query';
 import {extractSymbols, termParser, termsEqual} from '../nar/terms';
 

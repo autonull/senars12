@@ -1,9 +1,14 @@
-import type {MessageContext, MessageMiddleware} from '../io';
-import type {IOMessage, Logger} from '../io';
-import type {AuthManager} from '../io';
-import type {CommandContext, CommandRegistry} from '../io';
+import type {
+    AuthManager,
+    CommandContext,
+    CommandRegistry,
+    ConnectionManager,
+    IOMessage,
+    Logger,
+    MessageContext,
+    MessageMiddleware
+} from '../io';
 import type {NAR} from '../nar';
-import type {ConnectionManager} from '../io';
 import type {SessionManager} from './SessionManager.js';
 import type {ConversationSession} from './ConversationSession.js';
 import type {Agent} from './agent.js';

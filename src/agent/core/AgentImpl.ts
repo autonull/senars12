@@ -1,10 +1,13 @@
 import type {NAR} from '../../nar';
 
 import type {EpisodeType, EpisodicMemory} from '../../nar/memory/EpisodicMemory.js';
-import {ContextAssembler, type ContextAssemblerOpts} from '../../nar/nl';
-import {NLUnderstandingService} from '../../nar/nl';
-import {NLGenerationService} from '../../nar/nl';
-import {TranslationCache} from '../../nar/nl';
+import {
+    ContextAssembler,
+    type ContextAssemblerOpts,
+    NLGenerationService,
+    NLUnderstandingService,
+    TranslationCache
+} from '../../nar/nl';
 import {ApprovalManager, createGeneralTools, createNARSTools,} from '../../nar/tools/adapters';
 import {ModelRunner} from '../model/ModelRunner.js';
 import {buildAgentTools} from '../tools.js';

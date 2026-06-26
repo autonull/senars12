@@ -1,14 +1,16 @@
-import {CommandRegistry} from '../io';
-import {coreCommands} from '../io';
-import {connectionCommands} from '../io';
-import {memoryCommands} from '../io';
-import {narCommands} from '../io';
-import {selfCommands} from '../io';
-import {lmCommands} from '../io';
-import {rlfpCommands} from '../io';
-import {configCommands} from '../io';
-import {episodesCommands} from '../io';
-import {authCommands} from '../io';
+import {
+    authCommands,
+    CommandRegistry,
+    configCommands,
+    connectionCommands,
+    coreCommands,
+    episodesCommands,
+    lmCommands,
+    memoryCommands,
+    narCommands,
+    rlfpCommands,
+    selfCommands
+} from '../io';
 
 /**
  * Register all built-in command sets with the registry. Commands read their

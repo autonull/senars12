@@ -4,8 +4,7 @@
 
 import {makeId} from '../utils';
 import type {Increment, Nat, Timestamp} from '../types';
-import {createTimestamp} from '../types';
-import {DEPTH_MAX} from '../types';
+import {createTimestamp, DEPTH_MAX} from '../types';
 
 export type Source = 'INPUT' | 'DERIVED' | 'CONSTITUTION' | 'LM' | 'EXTERNAL_MCP';
 

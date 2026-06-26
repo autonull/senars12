@@ -5,11 +5,9 @@ import type {Budget, Task} from '../types';
 import {NEUTRAL_BUDGET} from '../types';
 import {MemoryIndex} from './memory-index.js';
 import {Focus} from './focus.js';
-import {Archive} from './lifecycle';
-import {MemoryScorer} from './pressure';
-import {MemoryConsolidation} from './pressure';
 import type {ForgettingPolicy} from './lifecycle';
-import {Forgetting} from './lifecycle';
+import {Archive, Forgetting} from './lifecycle';
+import {MemoryConsolidation, MemoryScorer} from './pressure';
 import {LinkManager} from './links';
 import {LINK} from '../constants.js';
 

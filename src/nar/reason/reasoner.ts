@@ -3,8 +3,7 @@ import type {Memory} from '../memory';
 import type {RuleProcessor} from '../rules';
 import type {Strategy} from './strategy.js';
 import {type InferenceConfig, InferenceController} from './inference-controller.js';
-import {PrioritySampling} from '../strategies';
-import {DefaultDerivation} from '../strategies';
+import {DefaultDerivation, PrioritySampling} from '../strategies';
 
 export interface ReasonerConfig extends Pick<CoreConfig, 'cpuThrottleMs' | 'maxDerivationDepth' | 'maxDerivationsPerStep'> {
     enableCircularDetection?: boolean;

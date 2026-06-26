@@ -1,6 +1,5 @@
 import {beforeEach, describe, expect, test} from '@jest/globals';
-import {TranslationCache} from '../../../src/nar/nl';
-import {ContextAssembler} from '../../../src/nar/nl';
+import {ContextAssembler, TranslationCache} from '../../../src/nar/nl';
 import type {NAR} from '../../../src';
 
 describe('ContextAssembler', () => {

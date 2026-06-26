@@ -7,25 +7,32 @@
  * ENABLE_MCP=true to opt in to additional transports.
  */
 
-import {createAgent} from '../agent';
-import {createAutonomyEngine} from '../agent';
-import {ConnectionManager} from '../io';
-import {AuthManager} from '../io';
-import {CommandRegistry} from '../io';
-import {CLIConnection, HTTPConnection, IRCConnection, MCPConnection, WSConnection} from '../io';
-import {bindAgentToConnection} from '../agent';
-import {agentConfigToOptions, createConnectionConfigsFromEnv} from '../agent';
-import {JsonlSessionManager} from '../agent';
-import {registerAllCommands} from '../agent';
+import {
+    agentConfigToOptions,
+    bindAgentToConnection,
+    createAgent,
+    createAutonomyEngine,
+    createConnectionConfigsFromEnv,
+    JsonlSessionManager,
+    registerAllCommands
+} from '../agent';
+import {
+    AuthManager,
+    CLIConnection,
+    CommandRegistry,
+    ConnectionManager,
+    HTTPConnection,
+    IRCConnection,
+    MCPConnection,
+    WSConnection
+} from '../io';
 import {NLGenerationService} from '../nar/nl';
 import {SeNARSFactory} from '../nar';
-import {createSeNARSRegistry} from '../nar/lm';
-import {setupDefaultLMClient} from '../nar/lm';
+import {createSeNARSRegistry, setupDefaultLMClient} from '../nar/lm';
 import {resolveLMConfig} from '../nar/lm/env-config.js';
 import {createLogger} from '../nar/logger';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import {DEFAULT_NAR_CONFIG} from '../config';
-import {loadConfigFromEnv} from '../config';
+import {DEFAULT_NAR_CONFIG, loadConfigFromEnv} from '../config';
 import {setupGracefulShutdown} from '../utils';
 import {assertValidEnv} from '../utils/env-validate.js';
 import {mkdir} from 'node:fs/promises';

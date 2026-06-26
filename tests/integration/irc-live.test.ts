@@ -3,15 +3,12 @@ import {createServer, type Server, type Socket} from 'node:net';
 import {mkdtempSync, rmSync} from 'fs';
 import {tmpdir} from 'os';
 import {join} from 'path';
-import {createAgent} from '../../src';
+import type {NAR} from '../../src';
+import {CommandRegistry, createAgent, IRCConnection} from '../../src';
 import {SeNARSFactory} from '../../src/nar';
-import {bindAgentToConnection} from '../../src/agent';
-import {IRCConnection} from '../../src';
-import {CommandRegistry} from '../../src';
-import {InMemorySessionManager} from '../../src/agent';
+import {bindAgentToConnection, InMemorySessionManager} from '../../src/agent';
 import {EpisodicMemory} from '../../src/nar/memory/EpisodicMemory.js';
 import type {LMClient} from '../../src/nar/lm';
-import type {NAR} from '../../src';
 
 class MockIRCServer {
     public port = 0;
@@ -169,5 +166,5 @@ describe('IRC live integration', () => {
         await new Promise(r => setTimeout(r, 6000));
 
         expect(receivedBotMessages.length).toBeGreaterThan(0);
-    }, 30000);
+    }, 10000);
 });

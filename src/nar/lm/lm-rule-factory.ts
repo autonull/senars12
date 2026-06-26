@@ -3,13 +3,12 @@
  * Consolidates rules.ts, dynamic-rules.ts, and rule-factory-v2.ts presets into a single factory
  */
 import type {Term} from '../terms';
-import {Truth} from '../terms';
+import {calculateSimilarity, Truth} from '../terms';
 import type {Task, TaskType} from '../types';
 import {createBudget, createTask} from '../types';
 import {LMRule} from './LMRule.js';
 import type {LMClient, LMRuleConfig} from './types.js';
 import {LMResponseParser} from './parser.js';
-import {calculateSimilarity} from '../terms';
 import type {ZodSchema} from 'zod';
 import {
     AnalogySchema,
