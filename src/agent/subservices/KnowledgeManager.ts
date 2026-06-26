@@ -3,8 +3,8 @@ import path from 'node:path';
 
 export class KnowledgeManager {
     private knowledge = new Map<string, string>();
-    private knowledgePath: string;
-    private persistKnowledge: boolean;
+    private readonly knowledgePath: string;
+    private readonly persistKnowledge: boolean;
 
     constructor(opts: { knowledgePath?: string, persistKnowledge?: boolean } = {}) {
         this.knowledgePath = opts.knowledgePath ?? '.cache/agent-knowledge.json';

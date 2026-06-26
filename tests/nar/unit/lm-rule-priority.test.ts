@@ -120,6 +120,6 @@ describe('RuleProcessor LM Rule Priority', () => {
             setEventBus: jest.fn(),
         };
         processor.registerLMRule(failingRule);
-        await expect(processor.process(singlePremise(makeInput('A'), makeInput('B')))).toBeDefined();
+        expect(processor.process(singlePremise(makeInput('A'), makeInput('B')))).toBeDefined();
     });
 });

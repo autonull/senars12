@@ -58,7 +58,7 @@ export class ExperimentRunner {
     }
 
     async runDiagnostic(input: string): Promise<DiagnosticReport> {
-        await this.nar.clearMemory();
+        this.nar.clearMemory();
         await this.nar.input(input);
         await this.nar.run(5);
 

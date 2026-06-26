@@ -45,7 +45,7 @@ function makeConn(): TestConn {
     const sent: Array<{ target: string; text: string }> = [];
     const messages: IOMessage[] = [];
     const handlers: MessageHandler[] = [];
-    const conn: TestConn = {
+    return {
         id: 'conn-test',
         name: 'TestConn',
         type: 'test',
@@ -71,7 +71,6 @@ function makeConn(): TestConn {
         disconnect: async () => undefined,
         reconnect: async () => undefined,
     };
-    return conn;
 }
 
 function makeMessage(text: string, origin = 'test:direct:alice', sender = 'alice'): IOMessage {

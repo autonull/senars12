@@ -72,7 +72,7 @@ export class NAR extends BaseComponent {
     readonly self?: ReasoningAboutReasoning;
     rlfp?: RLFPLearner;
     cognitiveController?: CognitiveController;
-    private driveManager?: DriveManager;
+    private readonly driveManager?: DriveManager;
     private readonly systemEventBus: AgentEventBus;
 
     private readonly io: NARIO;

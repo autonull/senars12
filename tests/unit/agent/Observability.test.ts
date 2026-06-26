@@ -43,8 +43,7 @@ describe('Agent EventEmitter lifecycle', () => {
     });
 
     it('emits suspend/resume on start/stop', () => {
-        const nar = SeNARSFactory.createForTesting({maxConcepts: 5});
-        const agent = createAgent({nar});
+        const agent = createAgent({nar: SeNARSFactory.createForTesting({maxConcepts: 5})});
         const events: string[] = [];
         agent.on('agent:resume', () => events.push('resume'));
         agent.on('agent:suspend', () => events.push('suspend'));

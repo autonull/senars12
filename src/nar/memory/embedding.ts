@@ -26,8 +26,7 @@ export class TransformersEmbeddingGenerator implements EmbeddingGenerator {
             const {pipeline} = await import('@huggingface/transformers');
             const pipe = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
             this.model = async (text: string, opts: PipelineOptions) => {
-                const result = await pipe(text, opts) as unknown as { data: IterableIterator<number> };
-                return result;
+                return await pipe(text, opts) as unknown as { data: IterableIterator<number> };
             };
         }
 

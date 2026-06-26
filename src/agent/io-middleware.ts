@@ -193,8 +193,7 @@ export function createSessionBinder(manager: SessionManager): MessageMiddleware 
     return async (message, context, next) => {
         const bridgeCtx = context as BridgeContext;
         const key = bridgeCtx.sessionKey ?? resolveSessionKey(message);
-        const session = manager.getOrCreate(key);
-        bridgeCtx.session = session;
+        bridgeCtx.session = manager.getOrCreate(key);
         await next();
     };
 }

@@ -10,7 +10,7 @@ export class HTTPConnection extends BaseConnection {
     override readonly type = 'http';
     override readonly logger = createLogger({scope: 'io:http'});
     private server: http.Server | null = null;
-    private port: number;
+    private readonly port: number;
     private apiKeys = new ApiKeyManager();
     private pendingRequests = new Map<string, (text: string) => void>();
 

@@ -37,7 +37,7 @@ describe('ModelRunner', () => {
     it('returns empty result when no LM client', async () => {
         const runner = new ModelRunner({});
         const composed = makeComposed({}, [{role: 'user', content: 'hi'}]);
-        const events: unknown[] = [];
+        //const events: unknown[] = [];
         const result = await (async () => {
             let r: Awaited<ReturnType<typeof drain>> | undefined;
             const it = runner.run(composed);
@@ -47,7 +47,7 @@ describe('ModelRunner', () => {
                     r = value as Awaited<ReturnType<typeof drain>>;
                     break;
                 }
-                events.push(value);
+                //events.push(value);
             }
             return r!;
         })();

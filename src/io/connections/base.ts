@@ -23,7 +23,7 @@ export abstract class BaseConnection implements Connection {
     protected logger!: Logger;
     private queues: Map<string, Promise<unknown>> = new Map();
 
-    constructor(config: ConnectionConfig, _deps: ConnectionDeps) {
+    protected constructor(config: ConnectionConfig, _deps: ConnectionDeps) {
         this.config = config;
         this.emit = _deps.emit;
         this.id = config.id;

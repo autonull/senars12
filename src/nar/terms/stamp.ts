@@ -17,7 +17,7 @@ export interface Stamp<D extends Nat = 0> {
 }
 
 export const Stamp = {
-    createInput(): Stamp<0> {
+    createInput(): Stamp {
         return Object.freeze({
             id: makeId(),
             creationTime: createTimestamp(),
@@ -27,7 +27,7 @@ export const Stamp = {
         });
     },
 
-    createInputWithId(id: string): Stamp<0> {
+    createInputWithId(id: string): Stamp {
         return Object.freeze({
             id,
             creationTime: createTimestamp(),

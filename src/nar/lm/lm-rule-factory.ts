@@ -328,8 +328,8 @@ interface LMRuleFactoryConfig extends Partial<LMRuleConfig> {
 }
 
 export class LMRuleFactory {
-    private config: LMRuleFactoryConfig;
-    private lm: LMClient | null;
+    private readonly config: LMRuleFactoryConfig;
+    private readonly lm: LMClient | null;
 
     constructor(lm: LMClient | null, config: LMRuleFactoryConfig = {}) {
         this.lm = lm;

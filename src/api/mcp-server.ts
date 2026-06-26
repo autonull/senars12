@@ -35,7 +35,7 @@ export interface MCPServerConfig {
  */
 export class SeNARSMCPServer {
     private server: Server;
-    private adapter: EnhancedMCPAdapter;
+    private readonly adapter: EnhancedMCPAdapter;
     private config: Required<MCPServerConfig>;
     private logger: Logger;
     private schemaTransformer: SchemaTransformer;

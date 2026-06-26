@@ -33,32 +33,32 @@ const MIN_REASON_STEPS_PER_TICK = 1;
 const MAX_RECENT_DERIVATIONS = 50;
 
 export class AgentImpl implements Agent {
-    private nar?: NAR;
-    private episodicMemory?: EpisodicMemory;
-    private logger: Logger;
+    private readonly nar?: NAR;
+    private readonly episodicMemory?: EpisodicMemory;
+    private readonly logger: Logger;
 
-    private runner: ModelRunner;
+    private readonly runner: ModelRunner;
     private knowledgeManager: KnowledgeManager;
-    private sessionOrchestrator: SessionOrchestrator;
-    private eventBus: EventBus;
+    private readonly sessionOrchestrator: SessionOrchestrator;
+    private readonly eventBus: EventBus;
     private approvalManager: ApprovalManager;
-    private translationCache: TranslationCache;
-    private contextAssembler?: ContextAssembler;
-    private understandingService?: NLUnderstandingService;
-    private generationService?: NLGenerationService;
-    private statsManager: StatsManager;
-    private promptBuilder: PromptBuilder;
+    private readonly translationCache: TranslationCache;
+    private readonly contextAssembler?: ContextAssembler;
+    private readonly understandingService?: NLUnderstandingService;
+    private readonly generationService?: NLGenerationService;
+    private readonly statsManager: StatsManager;
+    private readonly promptBuilder: PromptBuilder;
     private narQueryService: NarQueryService;
     private lmChatService: LMChatService;
 
     private throttle = 100;
     private reasoningHandle?: ReturnType<typeof setInterval>;
-    private autonomyEngine?: AutonomyEngine;
-    private autonomousLoop?: AutonomousLoop;
+    private readonly autonomyEngine?: AutonomyEngine;
+    private readonly autonomousLoop?: AutonomousLoop;
     private recentDerivations: DerivationEntry[] = [];
-    private extToolOpts: Record<string, unknown> = {};
-    private contextOpts: ContextAssemblerOpts;
-    private processInputDeps: InputProcessorDeps;
+    private readonly extToolOpts: Record<string, unknown> = {};
+    private readonly contextOpts: ContextAssemblerOpts;
+    private readonly processInputDeps: InputProcessorDeps;
 
     constructor(opts: AgentOptions) {
         this.nar = opts.nar;
@@ -169,7 +169,7 @@ export class AgentImpl implements Agent {
         } else {
             await this.nar?.believe(narsese);
         }
-        this.safeLog('belief_added', narsese);
+        await this.safeLog('belief_added', narsese);
     }
 
     async recall(query?: string, limit = 10): Promise<Array<{ timestamp: number; type: string; content: string }>> {

@@ -182,8 +182,7 @@ describe('AIKR Compliance', () => {
 
             let partialResults = 0;
             try {
-                const results = await nar2.run(100);
-                partialResults = results;
+                partialResults = await nar2.run(100);
             } catch {
             }
 

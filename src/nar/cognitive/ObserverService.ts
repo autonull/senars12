@@ -102,7 +102,7 @@ export class ObserverService {
             case 'consolidate':
                 if (this.lmClient) {
                     const lm = this.lmClient;
-                    await nar.memory.consolidate({
+                    nar.memory.consolidate({
                         lm: {
                             generateObject: async (opts: { prompt: string; schema: unknown }) => {
                                 const text = await lm.generateText(opts.prompt);

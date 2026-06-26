@@ -59,8 +59,7 @@ export class ContextAssembler {
         };
 
         // Prune proportionally if over budget
-        const pruned = this.pruneToTokenBudget(assembled, tokenBudget, input);
-        return pruned;
+        return this.pruneToTokenBudget(assembled, tokenBudget, input);
     }
 
     private pruneToTokenBudget(

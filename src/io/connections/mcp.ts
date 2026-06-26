@@ -7,7 +7,7 @@ import {makeId} from '../../nar/utils';
 export class MCPConnection extends BaseConnection {
     override readonly type = 'mcp';
     override readonly logger = createLogger({scope: 'io:mcp'});
-    private transport: 'stdio' | 'sse' = 'stdio';
+    private readonly transport: 'stdio' | 'sse' = 'stdio';
     private process: ReturnType<typeof import('child_process').spawn> | null = null;
     private tools: Map<string, { description: string; inputSchema: Record<string, unknown> }> = new Map();
     private pendingToolCalls = new Map<string, (result: MCPToolResult) => void>();

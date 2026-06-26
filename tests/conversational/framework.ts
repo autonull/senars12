@@ -78,11 +78,11 @@ function createSilentLogger() {
 export class ConversationalTestHarness {
     private agent: Agent | undefined;
     private nar: NAR | undefined;
-    private session: ConversationSession;
-    private lmClient: LMClient | undefined;
-    private agentOptions: Partial<AgentOptions>;
-    private verbose: boolean;
-    private timeoutMs: number;
+    private readonly session: ConversationSession;
+    private readonly lmClient: LMClient | undefined;
+    private readonly agentOptions: Partial<AgentOptions>;
+    private readonly verbose: boolean;
+    private readonly timeoutMs: number;
     private lmCallCount = 0;
 
     constructor(opts: HarnessOptions = {}) {

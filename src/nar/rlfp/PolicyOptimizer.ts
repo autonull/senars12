@@ -35,7 +35,7 @@ export class PolicyOptimizer {
         strategyUsed: string;
     }> = [];
     private rewardModel: RewardModel;
-    private config: Required<PolicyConfig>;
+    private readonly config: Required<PolicyConfig>;
 
     constructor(rewardModel: RewardModel, config: PolicyConfig = {}) {
         this.rewardModel = rewardModel;

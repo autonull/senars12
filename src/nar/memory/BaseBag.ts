@@ -43,7 +43,7 @@ export abstract class BaseBag<T extends BagMetadata> {
     protected stats: BagStats = {additions: 0, removals: 0, hits: 0, misses: 0};
     protected onOverflow?: (priority: number, bag: BaseBag<T>) => void;
 
-    constructor(options: BagOptions) {
+    protected constructor(options: BagOptions) {
         this.capacity = options.capacity;
         this.overflowBehavior = options.overflowBehavior ?? 'reject';
         this.onOverflow = options.onOverflow;

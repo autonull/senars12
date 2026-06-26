@@ -10,7 +10,7 @@ import {CognitiveRegistry} from './registry';
 
 export class CognitiveController {
     private currentParams: CognitiveParameters;
-    private inferenceController: InferenceController;
+    private readonly inferenceController: InferenceController;
     private cycleCount = 0;
     private readonly adaptInterval: number;
 

@@ -87,7 +87,7 @@ export class ModelRunner {
 
     async* run(composed: ComposedRequest, signal?: AbortSignal): AsyncGenerator<ModelEvent, ModelRunResult> {
         if (!this.model) {
-            const empty: ModelRunResult = {
+            return {
                 text: '',
                 toolCalls: [],
                 artifacts: [],
@@ -95,7 +95,6 @@ export class ModelRunner {
                 messages: composed.messages,
                 usage: {inputTokens: 0, outputTokens: 0, totalTokens: 0}
             };
-            return empty;
         }
 
         const messages: Array<{ role: 'user' | 'assistant' | 'system' | 'tool'; content: string | unknown[] }> =
@@ -125,7 +124,7 @@ export class ModelRunner {
                 });
             } catch (e) {
                 const message = errMsg(e);
-                const failure: ModelRunResult = {
+                return {
                     text: message,
                     toolCalls: allCalls,
                     artifacts: allArtifacts,
@@ -133,7 +132,6 @@ export class ModelRunner {
                     messages,
                     usage: {inputTokens: totalInput, outputTokens: totalOutput, totalTokens: totalInput + totalOutput}
                 };
-                return failure;
             }
 
             if (result.usage) {

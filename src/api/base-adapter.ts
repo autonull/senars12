@@ -19,7 +19,7 @@ export abstract class BaseAdapter {
     protected readonly registry: APIRegistry;
     protected readonly logger: Logger;
 
-    constructor(scope: string) {
+    protected constructor(scope: string) {
         this.registry = APIRegistry.getInstance();
         this.logger = createLogger({scope});
     }

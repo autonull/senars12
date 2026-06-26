@@ -58,7 +58,7 @@ function findKnowledgeGaps(beliefs: BeliefInfo[]): string[] {
 }
 
 export class NLGenerationService {
-    private structuredModel: ReturnType<typeof getStructuredModel>;
+    private readonly structuredModel: ReturnType<typeof getStructuredModel>;
 
     constructor(registry: SeNARSRegistry) {
         this.structuredModel = getStructuredModel(registry);

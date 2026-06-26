@@ -20,7 +20,7 @@ export class WSConnection extends BaseConnection {
     private server: WebSocketServer | null = null;
     private clients = new Map<string, WSClient>();
     private eventSubscriptions = new Map<string, Set<WebSocket>>();
-    private port: number;
+    private readonly port: number;
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);

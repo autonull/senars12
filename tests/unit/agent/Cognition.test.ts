@@ -86,7 +86,7 @@ describe('Session-scoped instructions (agent_instruct path)', () => {
 describe('Tool humanization middleware', () => {
     function makeConn(): Connection & { sent: Array<{ target: string; text: string }> } {
         const sent: Array<{ target: string; text: string }> = [];
-        const conn = {
+        return {
             id: 'conn-humanize',
             name: 'TestConn',
             type: 'test',
@@ -105,7 +105,6 @@ describe('Tool humanization middleware', () => {
             disconnect: async () => undefined,
             reconnect: async () => undefined,
         };
-        return conn;
     }
 
     function makeMessage(text: string): IOMessage {

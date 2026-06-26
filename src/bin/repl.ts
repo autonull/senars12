@@ -142,7 +142,7 @@ const buildCommands = (nar: NAR, agent: Agent, lmClient: LMClient, sessionManage
     },
     {
         name: 'sessions', description: 'List saved sessions', execute: async () => {
-            const sessions = await sessionManager.size();
+            const sessions = sessionManager.size();
             return `\n--- ${sessions} Session(s) ---`;
         },
     },

@@ -13,8 +13,7 @@ interface StrategyConfig {
 
 export const createStrategy = (config: StrategyConfig): Strategy => {
     const {name, sampleSize, filter, truthFilter, limit = 5} = config;
-
-    const strategy = {
+    return {
         name,
         sampleSize,
         limit,
@@ -27,6 +26,4 @@ export const createStrategy = (config: StrategyConfig): Strategy => {
             });
         }
     } as Strategy & { sampleSize: number; limit: number };
-
-    return strategy;
 };

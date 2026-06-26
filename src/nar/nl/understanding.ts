@@ -55,7 +55,7 @@ function validateNarsese(text: string): boolean {
 
 export class NLUnderstandingService {
     private cache: TranslationCache;
-    private structuredModel: ReturnType<typeof getStructuredModel>;
+    private readonly structuredModel: ReturnType<typeof getStructuredModel>;
     private structuredOnly: boolean;
 
     constructor(
