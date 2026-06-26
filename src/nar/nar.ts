@@ -1,3 +1,5 @@
+import {promises as fs} from 'node:fs';
+import path from 'node:path';
 import type {Concept} from './memory';
 import {Memory} from './memory';
 import {WorkingMemory} from './memory/WorkingMemory.js';
@@ -13,8 +15,7 @@ import {
     type TaskType
 } from './types';
 import type {Term} from './terms';
-import {termsEqual, Truth} from './terms';
-import type {Truth as TruthType} from './terms/truth.js';
+import {Stamp, termParser, termsEqual, Truth, type TruthType} from './terms';
 import type {LMClient, SeNARSRegistry} from './lm';
 import {LMRules} from './lm';
 import {QueryAPI, ReasoningTrace} from './query';
@@ -63,13 +64,13 @@ export interface NARConfig extends CoreConfig {
 
 export class NAR extends BaseComponent {
     readonly memory: Memory;
-    readonly workingMemory!: WorkingMemory;
+    readonly workingMemory: WorkingMemory;
     readonly taskManager: TaskManager;
     readonly reasoner: Reasoner;
     readonly query: QueryAPI;
     readonly traceAPI: ReasoningTrace;
     readonly tools: ToolManager;
-    readonly self?: ReasoningAboutReasoning;
+    self?: ReasoningAboutReasoning;
     rlfp?: RLFPLearner;
     cognitiveController?: CognitiveController;
     private readonly driveManager?: DriveManager;
@@ -218,7 +219,7 @@ export class NAR extends BaseComponent {
         this.memory.setConfig(updates);
     }
 
-// Component accessors
+    // Component accessors
     getLMClient(): LMClient | undefined {
         return this._lmClient;
     }
@@ -483,50 +484,62 @@ export class NAR extends BaseComponent {
     }
 
     private getStatePath(filename: string): string {
-        const path = require('path');
         const base = this.config.statePath ?? '.cache/nar-state';
         return path.resolve(base, filename);
+    }
+
+    private async readJsonIfExists<T>(filename: string): Promise<T | null> {
+        const target = this.getStatePath(filename);
+        try {
+            const content = await fs.readFile(target, 'utf-8');
+            return JSON.parse(content) as T;
+        } catch (e: any) {
+            if (e?.code !== 'ENOENT') throw e;
+            return null;
+        }
+    }
+
+    private serializeTask(task: Task) {
+        return {
+            term: task.term.toString(),
+            truth: task.truth ? Truth.create(task.truth.f, task.truth.c) : undefined,
+            stamp: task.stamp,
+        };
+    }
+
+    private rehydrateTask(record: {term: string; truth?: TruthType; stamp?: any}, type: TaskType) {
+        const parsed = termParser.parse(record.term);
+        return parsed && {
+            term: parsed,
+            type,
+            truth: record.truth ?? Truth.NEUTRAL,
+            budget: {priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
+            stamp: record.stamp ?? Stamp.createInput(),
+            occurrenceTime: Date.now() as any,
+            derived: false,
+        };
     }
 
     private async saveState(): Promise<void> {
         if (!this.config.persistState) return;
         try {
-            const fs = require('fs').promises;
-            const path = require('path');
-
-            const beliefs = this.query.getBeliefs().map(b => ({
-                term: b.term.toString(),
-                truth: b.truth ? Truth.create(b.truth.f, b.truth.c) : undefined,
-                stamp: b.stamp,
-            }));
-            const goals = this.query.getGoals().map(g => ({
-                term: g.term.toString(),
-                truth: g.truth ? Truth.create(g.truth.f, g.truth.c) : undefined,
-                stamp: g.stamp,
-            }));
-            const questions = this.query.getQuestions().map(q => ({
-                term: q.term.toString(),
-                truth: q.truth ? Truth.create(q.truth.f, q.truth.c) : undefined,
-                stamp: q.stamp,
-            }));
-            const attention = this.attentionReport();
             const driveStates = this.driveManager?.getAllStates() ?? [];
             const drives: Record<string, number> = {};
-            for (const ds of driveStates) {
-                drives[ds.spec.id] = ds.currentIntensity;
-            }
+            for (const ds of driveStates) drives[ds.spec.id] = ds.currentIntensity;
 
-            const baseDir = path.dirname(this.getStatePath('beliefs.json'));
-            await fs.mkdir(baseDir, {recursive: true});
-            await fs.writeFile(this.getStatePath('beliefs.json'), JSON.stringify(beliefs, null, 2), 'utf-8');
-            await fs.writeFile(this.getStatePath('goals.json'), JSON.stringify(goals, null, 2), 'utf-8');
-            await fs.writeFile(this.getStatePath('questions.json'), JSON.stringify(questions, null, 2), 'utf-8');
-            await fs.writeFile(this.getStatePath('attention.json'), JSON.stringify(attention, null, 2), 'utf-8');
-            await fs.writeFile(this.getStatePath('drives.json'), JSON.stringify(drives, null, 2), 'utf-8');
+            const files: Array<[string, unknown]> = [
+                ['beliefs.json', this.query.getBeliefs().map(b => this.serializeTask(b))],
+                ['goals.json', this.query.getGoals().map(g => this.serializeTask(g))],
+                ['questions.json', this.query.getQuestions().map(q => this.serializeTask(q))],
+                ['attention.json', this.attentionReport()],
+                ['drives.json', drives],
+                ['lm-rules.json', this.processor.serializeLMRules()],
+            ];
 
-            // Save LM Rule state
-            const lmRuleState = this.processor.serializeLMRules();
-            await fs.writeFile(this.getStatePath('lm-rules.json'), JSON.stringify(lmRuleState, null, 2), 'utf-8');
+            await fs.mkdir(path.dirname(this.getStatePath(files[0]![0])), {recursive: true});
+            await Promise.all(files.map(([name, data]) =>
+                fs.writeFile(this.getStatePath(name), JSON.stringify(data, null, 2), 'utf-8')
+            ));
         } catch (e) {
             this.logger.warn('NAR state save failed', {error: errMsg(e)});
         }
@@ -535,103 +548,32 @@ export class NAR extends BaseComponent {
     private async loadState(): Promise<void> {
         if (!this.config.persistState) return;
         try {
-            const fs = require('fs').promises;
-
-            const {termParser} = await import('./terms/index.js');
-            const {Truth} = await import('./terms/truth.js');
-            const {Stamp} = await import('./terms/stamp.js');
-
-// Load beliefs
-            const beliefsPath = this.getStatePath('beliefs.json');
-            if (await fs.access(beliefsPath).then(() => true).catch(() => false)) {
-                const content = await fs.readFile(beliefsPath, 'utf-8');
-                const beliefs = JSON.parse(content);
-                for (const b of beliefs) {
-                    const parsed = termParser.parse(b.term);
-                    if (parsed) {
-                        const task = {
-                            term: parsed,
-                            type: 'belief' as const,
-                            truth: b.truth ?? Truth.NEUTRAL,
-                            budget: {priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-                            stamp: b.stamp ?? Stamp.createInput(),
-                            occurrenceTime: Date.now() as any,
-                            derived: false,
-                        };
-                        this.taskManager.addTask(task);
-                    }
+            const taskFiles: Array<[string, TaskType]> = [
+                ['beliefs.json', 'belief'],
+                ['goals.json', 'goal'],
+                ['questions.json', 'question'],
+            ];
+            for (const [name, type] of taskFiles) {
+                const records = await this.readJsonIfExists<any[]>(name);
+                if (!records) continue;
+                for (const record of records) {
+                    const task = this.rehydrateTask(record, type);
+                    if (task) this.taskManager.addTask(task);
                 }
             }
 
-            // Load goals
-            const goalsPath = this.getStatePath('goals.json');
-            if (await fs.access(goalsPath).then(() => true).catch(() => false)) {
-                const content = await fs.readFile(goalsPath, 'utf-8');
-                const goals = JSON.parse(content);
-                for (const g of goals) {
-                    const parsed = termParser.parse(g.term);
-                    if (parsed) {
-                        const task = {
-                            term: parsed,
-                            type: 'goal' as const,
-                            truth: g.truth ?? Truth.NEUTRAL,
-                            budget: {priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-                            stamp: g.stamp ?? Stamp.createInput(),
-                            occurrenceTime: Date.now() as any,
-                            derived: false,
-                        };
-                        this.taskManager.addTask(task);
-                    }
+            const drives = await this.readJsonIfExists<Record<string, number>>('drives.json');
+            if (this.driveManager && drives) {
+                for (const [driveId, value] of Object.entries(drives)) {
+                    const currentIntensity = this.driveManager.getState(driveId)?.currentIntensity ?? 0;
+                    this.driveManager.stimulate(driveId, Number(value) - currentIntensity);
                 }
             }
 
-            // Load questions
-            const questionsPath = this.getStatePath('questions.json');
-            if (await fs.access(questionsPath).then(() => true).catch(() => false)) {
-                const content = await fs.readFile(questionsPath, 'utf-8');
-                const questions = JSON.parse(content);
-                for (const q of questions) {
-                    const parsed = termParser.parse(q.term);
-                    if (parsed) {
-                        const task = {
-                            term: parsed,
-                            type: 'question' as const,
-                            truth: q.truth ?? Truth.NEUTRAL,
-                            budget: {priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-                            stamp: q.stamp ?? Stamp.createInput(),
-                            occurrenceTime: Date.now() as any,
-                            derived: false,
-                        };
-                        this.taskManager.addTask(task);
-                    }
-                }
-            }
-
-            // Load drives
-            const drivesPath = this.getStatePath('drives.json');
-            if (await fs.access(drivesPath).then(() => true).catch(() => false)) {
-                const content = await fs.readFile(drivesPath, 'utf-8');
-                const drives = JSON.parse(content);
-                if (this.driveManager && drives) {
-                    for (const [driveId, value] of Object.entries(drives)) {
-                        const currentState = this.driveManager.getState(driveId);
-                        const currentIntensity = currentState?.currentIntensity ?? 0;
-                        const targetIntensity = Number(value);
-                        const diff = targetIntensity - currentIntensity;
-                        this.driveManager.stimulate(driveId, diff);
-                    }
-                }
-            }
+            const lmRuleState = await this.readJsonIfExists<{rules: any[]}>('lm-rules.json');
+            if (lmRuleState) this.processor.deserializeLMRules(lmRuleState);
 
             this.logger.info('NAR state loaded');
-
-            // Load LM Rule state
-            const lmRulesPath = this.getStatePath('lm-rules.json');
-            if (await fs.access(lmRulesPath).then(() => true).catch(() => false)) {
-                const content = await fs.readFile(lmRulesPath, 'utf-8');
-                const lmRuleState = JSON.parse(content);
-                this.processor.deserializeLMRules(lmRuleState);
-            }
         } catch (e) {
             this.logger.warn('NAR state load failed', {error: errMsg(e)});
         }
@@ -655,7 +597,7 @@ export class NAR extends BaseComponent {
             this.initializeTools();
         }
         if (this.config.enableSelf) {
-            Object.assign(this, {self: new ReasoningAboutReasoning(this, {})});
+            this.self = new ReasoningAboutReasoning(this, {});
         }
     }
 
@@ -691,14 +633,6 @@ export class NAR extends BaseComponent {
             rule.setEventBus(this.eventBus);
             rule.setNAR(this);
             rule.setToolDispatcher(toolDispatcher);
-            // Enable tools for rules that benefit from tool access
-            if (rule.id === 'lm-goal-decomposition' || rule.id === 'lm-hypothesis-generation' || rule.id === 'lm-analogical-reasoning') {
-                (rule as any).enableTools = true;
-            }
-            // Enable constitution awareness for belief-modifying rules
-            if (rule.id === 'lm-belief-revision' || rule.id === 'lm-goal-decomposition' || rule.id === 'lm-hypothesis-generation') {
-                (rule as any).constitutionAware = true;
-            }
             this.processor.registerLMRule(rule);
         }
         this._lmInitialized = true;
@@ -723,14 +657,8 @@ export class NAR extends BaseComponent {
 
     private contradicts(a: Term, b: Term): boolean {
         if (termsEqual(a, b)) return true;
-        if (a.kind === 'negation') {
-            const [aArg] = a.args;
-            return !!aArg && termsEqual(aArg, b);
-        }
-        if (b.kind === 'negation') {
-            const [bArg] = b.args;
-            return !!bArg && termsEqual(bArg, a);
-        }
-        return false;
+        const [aArg] = a.kind === 'negation' ? a.args : [];
+        const [bArg] = b.kind === 'negation' ? b.args : [];
+        return (!!aArg && termsEqual(aArg, b)) || (!!bArg && termsEqual(bArg, a));
     }
 }

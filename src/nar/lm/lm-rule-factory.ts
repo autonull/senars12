@@ -37,6 +37,8 @@ export interface LMRuleDefinition {
     multiline?: boolean;
     activationCondition?: (primary: Term, secondary?: Term, context?: Record<string, unknown>) => boolean;
     schema?: ZodSchema;
+    enableTools?: boolean;
+    constitutionAware?: boolean;
 }
 
 const NARSESE_INSTRUCTIONS = `
@@ -129,7 +131,8 @@ const ruleDefs: LMRuleDefinition[] = [
         taskType: 'belief',
         budget: 0.7,
         activationCondition: hasConflictingBeliefs,
-        schema: BeliefRevisionSchema
+        schema: BeliefRevisionSchema,
+        constitutionAware: true
     },
     {
         id: 'lm-goal-decomposition',
@@ -140,7 +143,9 @@ const ruleDefs: LMRuleDefinition[] = [
         budget: 0.8,
         singlePremise: true,
         activationCondition: isComplexGoal,
-        schema: GoalDecompositionSchema
+        schema: GoalDecompositionSchema,
+        enableTools: true,
+        constitutionAware: true
     },
     {
         id: 'lm-hypothesis-generation',
@@ -150,7 +155,9 @@ const ruleDefs: LMRuleDefinition[] = [
         taskType: 'belief',
         budget: 0.6,
         activationCondition: hasLowConfidence,
-        schema: HypothesisSchema
+        schema: HypothesisSchema,
+        enableTools: true,
+        constitutionAware: true
     },
     {
         id: 'lm-explanation-generation',
@@ -169,7 +176,8 @@ const ruleDefs: LMRuleDefinition[] = [
         taskType: 'belief',
         budget: 0.7,
         activationCondition: hasStructuralSimilarityNoOverlap,
-        schema: AnalogySchema
+        schema: AnalogySchema,
+        enableTools: true
     },
     {
         id: 'lm-meta-reasoning',
@@ -390,226 +398,58 @@ export class LMRuleFactory {
         return this;
     }
 
-    narseseTranslation(): LMRule {
-        return LMRuleFactory.from(this.lm)
-            .id('lm-narsese-translation')
-            .name('LMNarseseTranslationRule')
-            .description('Translates natural language to Narsese')
-            .priority(0.9)
-            .taskType('belief')
-            .budget(0.9)
-            .build();
-    }
-
-    beliefRevision(): LMRule {
-        return LMRuleFactory.from(this.lm)
-            .id('lm-belief-revision')
-            .name('LMBeliefRevisionRule')
-            .description('Revises belief confidence based on context')
-            .priority(0.8)
-            .taskType('belief')
-            .budget(0.7)
-            .activation(hasConflictingBeliefs)
-            .build();
-    }
-
-    goalDecomposition(): LMRule {
-        return LMRuleFactory.from(this.lm)
-            .id('lm-goal-decomposition')
-            .name('LMGoalDecompositionRule')
-            .description('Decomposes complex goals into subgoals')
-            .priority(0.85)
-            .taskType('goal')
-            .budget(0.8)
-            .singlePremise(true)
-            .activation(isComplexGoal)
-            .build();
-    }
-
-    hypothesisGeneration(): LMRule {
-        return LMRuleFactory.from(this.lm)
-            .id('lm-hypothesis-generation')
-            .name('LMHypothesisGenerationRule')
-            .description('Generates hypotheses from observations')
-            .priority(0.75)
-            .taskType('belief')
-            .budget(0.6)
-            .activation(hasLowConfidence)
-            .build();
-    }
-
-    explanationGeneration(): LMRule {
-        return LMRuleFactory.from(this.lm)
-            .id('lm-explanation-generation')
-            .name('LMExplanationGenerationRule')
-            .description('Generates explanations for beliefs')
-            .priority(0.7)
-            .taskType('belief')
-            .budget(0.65)
-            .build();
-    }
-
-    analogicalReasoning(): LMRule {
-        return LMRuleFactory.from(this.lm)
-            .id('lm-analogical-reasoning')
-            .name('LMAnalogicalReasoningRule')
-            .description('Performs analogical reasoning between concepts')
-            .priority(0.8)
-            .taskType('belief')
-            .budget(0.7)
-            .activation(hasStructuralSimilarityNoOverlap)
-            .build();
-    }
-
-    metaReasoning(): LMRule {
-        return LMRuleFactory.from(this.lm)
-            .id('lm-meta-reasoning')
-            .name('LMMetaReasoningGuidanceRule')
-            .description('Provides meta-level reasoning guidance')
-            .priority(0.75)
-            .taskType('belief')
-            .budget(0.65)
-            .build();
-    }
-
-    uncertaintyCalibration(): LMRule {
-        return LMRuleFactory.from(this.lm)
-            .id('lm-uncertainty-calibration')
-            .name('LMUncertaintyCalibrationRule')
-            .description('Calibrates uncertainty in beliefs')
-            .priority(0.7)
-            .taskType('belief')
-            .budget(0.6)
-            .build();
-    }
-
-    schemaInduction(): LMRule {
-        return LMRuleFactory.from(this.lm)
-            .id('lm-schema-induction')
-            .name('LMSchemaInductionRule')
-            .description('Induces schemas from examples')
-            .priority(0.75)
-            .taskType('belief')
-            .budget(0.65)
-            .build();
-    }
-
-    temporalCausal(): LMRule {
-        return LMRuleFactory.from(this.lm)
-            .id('lm-temporal-causal')
-            .name('LMTemporalCausalModelingRule')
-            .description('Models temporal and causal relationships')
-            .priority(0.8)
-            .taskType('belief')
-            .budget(0.7)
-            .build();
-    }
-
-    variableGrounding(): LMRule {
-        return LMRuleFactory.from(this.lm)
-            .id('lm-variable-grounding')
-            .name('LMVariableGroundingRule')
-            .description('Grounds variables in concrete instances')
-            .priority(0.7)
-            .taskType('belief')
-            .budget(0.65)
-            .activation(hasVariable)
-            .build();
-    }
-
-    conceptElaboration(): LMRule {
-        return LMRuleFactory.from(this.lm)
-            .id('lm-concept-elaboration')
-            .name('LMConceptElaborationRule')
-            .description('Elaborates on concept properties')
-            .priority(0.75)
-            .taskType('belief')
-            .budget(0.7)
-            .activation(isUnderconnected)
-            .build();
-    }
-
-    interactiveClarification(): LMRule {
-        return LMRuleFactory.from(this.lm)
-            .id('lm-interactive-clarification')
-            .name('LMInteractiveClarificationRule')
-            .description('Seeks clarification for ambiguous inputs')
-            .priority(0.7)
-            .taskType('question')
-            .budget(0.65)
-            .build();
-    }
-
-    curiosityQuestion(): LMRule {
-        return createRule(this.lm, ruleDefs.find(d => d.id === 'lm-curiosity-question')!);
-    }
-
-    v2Hypothesis(): LMRule {
-        return createRule(this.lm, ruleDefs.find(d => d.id === 'lm-v2-hypothesis')!);
-    }
-
-    v2Explanation(): LMRule {
-        return createRule(this.lm, ruleDefs.find(d => d.id === 'lm-v2-explanation')!);
-    }
-
-    v2Analogy(): LMRule {
-        return createRule(this.lm, ruleDefs.find(d => d.id === 'lm-v2-analogy')!);
-    }
-
-    v2Causal(): LMRule {
-        return createRule(this.lm, ruleDefs.find(d => d.id === 'lm-v2-causal')!);
-    }
-
-    v2Schema(): LMRule {
-        return createRule(this.lm, ruleDefs.find(d => d.id === 'lm-v2-schema')!);
-    }
+    narseseTranslation(): LMRule { return this.preset('lm-narsese-translation'); }
+    beliefRevision(): LMRule { return this.preset('lm-belief-revision'); }
+    goalDecomposition(): LMRule { return this.preset('lm-goal-decomposition'); }
+    hypothesisGeneration(): LMRule { return this.preset('lm-hypothesis-generation'); }
+    explanationGeneration(): LMRule { return this.preset('lm-explanation-generation'); }
+    analogicalReasoning(): LMRule { return this.preset('lm-analogical-reasoning'); }
+    metaReasoning(): LMRule { return this.preset('lm-meta-reasoning'); }
+    uncertaintyCalibration(): LMRule { return this.preset('lm-uncertainty-calibration'); }
+    schemaInduction(): LMRule { return this.preset('lm-schema-induction'); }
+    temporalCausal(): LMRule { return this.preset('lm-temporal-causal'); }
+    variableGrounding(): LMRule { return this.preset('lm-variable-grounding'); }
+    conceptElaboration(): LMRule { return this.preset('lm-concept-elaboration'); }
+    interactiveClarification(): LMRule { return this.preset('lm-interactive-clarification'); }
+    curiosityQuestion(): LMRule { return this.preset('lm-curiosity-question'); }
+    v2Hypothesis(): LMRule { return this.preset('lm-v2-hypothesis'); }
+    v2Explanation(): LMRule { return this.preset('lm-v2-explanation'); }
+    v2Analogy(): LMRule { return this.preset('lm-v2-analogy'); }
+    v2Causal(): LMRule { return this.preset('lm-v2-causal'); }
+    v2Schema(): LMRule { return this.preset('lm-v2-schema'); }
 
     createAll(): LMRule[] {
-        return [
-            this.narseseTranslation(),
-            this.beliefRevision(),
-            this.goalDecomposition(),
-            this.hypothesisGeneration(),
-            this.explanationGeneration(),
-            this.analogicalReasoning(),
-            this.metaReasoning(),
-            this.uncertaintyCalibration(),
-            this.schemaInduction(),
-            this.temporalCausal(),
-            this.variableGrounding(),
-            this.conceptElaboration(),
-            this.curiosityQuestion(),
-            this.interactiveClarification(),
-            this.v2Hypothesis(),
-            this.v2Explanation(),
-            this.v2Analogy(),
-            this.v2Causal(),
-            this.v2Schema(),
-        ];
+        return ruleDefs.map(d => createRule(this.lm, d));
     }
 
     build(): LMRule {
         const id = this.config.id;
         if (!id) throw new Error('LMRuleFactory: id is required when building custom rules');
         const def = ruleDefs.find(d => d.id === id);
-        if (def) {
-            return createRule(this.lm, def, this.config);
-        }
-        const taskType = this.config.taskType ?? 'belief';
-        const budget = this.config.budget ?? 0.7;
-        return new LMRule(id, this.lm, {
-            name: this.config.name ?? id,
-            description: this.config.description ?? 'Custom LM rule',
-            priority: this.config.priority ?? 0.8,
-            singlePremise: this.config.singlePremise ?? true,
-            activationCondition: this.config.activationCondition,
-            promptTemplate: this.config.promptTemplate ?? `Reason about: {{primaryTerm}}`,
-            taskGenerator: this.config.multiline
-                ? (r: unknown) => parseResponse(String(r), taskType, budget)
-                : createTaskGen(taskType, budget)
-        });
+        if (def) return createRule(this.lm, def, this.config);
+        return createCustomRule(id, this.lm, this.config);
+    }
+
+    private preset(id: string): LMRule {
+        return createRule(this.lm, getRuleDef(id), this.config);
     }
 }
+
+const createCustomRule = (id: string, lm: LMClient | null, config: LMRuleFactoryConfig): LMRule => {
+    const taskType = config.taskType ?? 'belief';
+    const budget = config.budget ?? 0.7;
+    return new LMRule(id, lm, {
+        name: config.name ?? id,
+        description: config.description ?? 'Custom LM rule',
+        priority: config.priority ?? 0.8,
+        singlePremise: config.singlePremise ?? true,
+        activationCondition: config.activationCondition,
+        promptTemplate: config.promptTemplate ?? `Reason about: {{primaryTerm}}`,
+        taskGenerator: config.multiline
+            ? (r: unknown) => parseResponse(String(r), taskType, budget)
+            : createTaskGen(taskType, budget)
+    });
+};
 
 const createRule = (lm: LMClient | null, def: LMRuleDefinition, config: Partial<LMRuleConfig> = {}): LMRule => {
     const taskType = def.taskType ?? 'belief';
@@ -624,29 +464,26 @@ const createRule = (lm: LMClient | null, def: LMRuleDefinition, config: Partial<
         promptTemplate: `${NARSESE_INSTRUCTIONS}\n\n${prompts[def.id]}`,
         taskType,
         outputSchema: def.schema,
+        enableTools: def.enableTools,
+        constitutionAware: def.constitutionAware,
         taskGenerator: def.multiline
             ? (r: unknown) => parseResponse(String(r), taskType, budget)
             : createTaskGen(taskType, budget)
     });
 };
 
-const getRuleDef = (index: number): LMRuleDefinition => {
-    const def = ruleDefs[index];
-    if (!def) throw new Error(`Rule definition at index ${index} not found`);
+const getRuleDef = (id: string): LMRuleDefinition => {
+    const def = ruleDefs.find(d => d.id === id);
+    if (!def) throw new Error(`Rule definition '${id}' not found`);
     return def;
 };
 
 // Backward compatibility - LMRules object
 export const LMRules = Object.freeze({
-    create: (index: number, lm: LMClient | null, config?: Partial<LMRuleConfig>): LMRule =>
-        createRule(lm, getRuleDef(index), config),
-    createById: (id: string, lm: LMClient | null, config?: Partial<LMRuleConfig>): LMRule | undefined => {
-        const def = ruleDefs.find(d => d.id === id);
-        return def ? createRule(lm, def, config) : undefined;
-    },
+    createById: (id: string, lm: LMClient | null, config?: Partial<LMRuleConfig>): LMRule =>
+        createRule(lm, getRuleDef(id), config),
     createAll: (lm: LMClient | null, config?: Partial<LMRuleConfig>): LMRule[] =>
         ruleDefs.map(d => createRule(lm, d, config)),
-    getRuleDef,
     ruleDefs
 });
 
