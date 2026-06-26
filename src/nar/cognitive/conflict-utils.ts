@@ -1,4 +1,4 @@
-import type {Task, Term} from '../types/index.js';
+import type {Task, Term} from '../types';
 
 export const findConflicts = (beliefs: Task[]): Array<{ a: Term; b: Term }> => {
     const byTerm = new Map<string, Array<{ term: Term; f: number }>>();

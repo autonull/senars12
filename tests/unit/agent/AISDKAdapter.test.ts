@@ -1,6 +1,6 @@
 import {describe, expect, it} from '@jest/globals';
-import {AISDKAdapter} from '../../../src/nar/lm/adapters/AISDKAdapter.js';
-import type {LMClient} from '../../../src/nar/lm/types.js';
+import {AISDKAdapter} from '../../../src/nar/lm/adapters';
+import type {LMClient} from '../../../src/nar/lm';
 
 class CannedLMClient implements LMClient {
     readonly provider = 'canned';

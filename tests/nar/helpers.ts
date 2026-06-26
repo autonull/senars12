@@ -3,7 +3,7 @@
  * DRY patterns for task creation, term building, and test assertions
  */
 
-import type {Budget, Task, TaskType, Term, Truth as TruthType} from '../../src/nar/types';
+import type {Budget, Task, TaskType, Term, Truth as TruthType} from '../../src/nar';
 import {createBudget, Stamp, TermBuilder, Truth} from '../../src/nar';
 
 // ============================================================================

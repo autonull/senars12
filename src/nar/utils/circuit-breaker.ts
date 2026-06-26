@@ -1,5 +1,5 @@
-import {OperationError} from '../types/core.js';
-import {createLogger} from '../logger/index.js';
+import {OperationError} from '../types';
+import {createLogger} from '../logger';
 
 const logger = createLogger({scope: 'circuit-breaker'});
 

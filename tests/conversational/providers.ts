@@ -1,4 +1,4 @@
-import type {LMClient} from '../../src/nar/lm/types.js';
+import type {LMClient} from '../../src/nar/lm';
 import {TransformersLMClient} from '../../src/nar/lm/transformers-client.js';
 
 export type LMProvider = 'transformers' | 'ollama' | 'anthropic' | 'mock';

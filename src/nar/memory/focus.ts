@@ -1,8 +1,8 @@
-import {clamp01} from '../utils/index.js';
+import {clamp01} from '../utils';
 import type {Concept} from './concept.js';
-import type {Task} from '../types/index.js';
+import type {Task} from '../types';
 import {TermMap} from '../terms';
-import type {AttentionModel} from '../strategies/types.js';
+import type {AttentionModel} from '../strategies';
 
 export interface FocusConfig {
     maxConcepts: number;

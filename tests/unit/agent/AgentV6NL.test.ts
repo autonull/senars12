@@ -1,9 +1,9 @@
 import {afterEach, beforeEach, describe, expect, it} from '@jest/globals';
-import {createAgent} from '../../../src/agent/agent.js';
-import {SeNARSFactory} from '../../../src/nar/index.js';
+import {createAgent} from '../../../src';
+import {SeNARSFactory} from '../../../src/nar';
 import {EpisodicMemory} from '../../../src/nar/memory/EpisodicMemory.js';
-import type {LMClient} from '../../../src/nar/lm/types.js';
-import type {NAR} from '../../../src/nar/nar.js';
+import type {LMClient} from '../../../src/nar/lm';
+import type {NAR} from '../../../src';
 import {mkdtempSync, rmSync} from 'fs';
 import {tmpdir} from 'os';
 import {join} from 'path';

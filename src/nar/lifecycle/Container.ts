@@ -1,5 +1,5 @@
 import {BaseComponent} from './BaseComponent.js';
-import {ConfigurationError} from '../types/core.js';
+import {ConfigurationError} from '../types';
 
 export interface ComponentDefinition {
     name: string;

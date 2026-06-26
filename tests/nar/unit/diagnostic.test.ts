@@ -9,8 +9,8 @@
  */
 
 import {beforeEach, describe, expect, it} from '@jest/globals';
-import {NAR} from '../../../src/nar/index.js';
-import {isTautology, termParser, validateTaskTerm} from '../../../src/nar/terms/index.js';
+import {NAR} from '../../../src';
+import {isTautology, termParser, validateTaskTerm} from '../../../src/nar/terms';
 
 describe('Diagnostic: Tautology Detection', () => {
     it('should detect self-inheritance as tautology', () => {

@@ -2,7 +2,7 @@ import type {Term} from './types.js';
 import {termsEqual} from './accessors.js';
 import {getTermComplexity} from './complexity.js';
 import {serializeTerm} from './serialize.js';
-import {jaccard} from '../utils/similarity.js';
+import {jaccard} from '../utils';
 
 export const getTermSimilarity = (t1: Term, t2: Term): number => {
     if (termsEqual(t1, t2)) return 1.0;

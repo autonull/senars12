@@ -1,6 +1,6 @@
 import type {Connection, IOMessage} from './types.js';
-import type {NAR} from '../nar/nar.js';
-import type {ConversationSession} from '../agent/ConversationSession.js';
+import type {NAR} from '../nar';
+import type {ConversationSession} from '../agent';
 import type {ConnectionManager} from './connection-manager.js';
 
 export interface MessageContext {

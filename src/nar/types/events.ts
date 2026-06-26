@@ -1,6 +1,6 @@
 import type {Term, Truth} from '../terms';
-import type {Ambiguity, TaskBatch} from '../nl/understanding.js';
-import type {CognitiveAction, CognitiveState} from '../cognitive/ObserverService.js';
+import type {Ambiguity, TaskBatch} from '../nl';
+import type {CognitiveAction, CognitiveState} from '../cognitive';
 
 export interface EventMap {
     [key: string]: unknown;

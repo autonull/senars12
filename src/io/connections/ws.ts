@@ -1,9 +1,9 @@
 import {WebSocket, WebSocketServer} from 'ws';
 import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
-import {createLogger} from '../../nar/logger/index.js';
+import {createLogger} from '../../nar/logger';
 import {startWSServer} from '../utils/http.js';
-import {makeId} from '../../nar/utils/index.js';
+import {makeId} from '../../nar/utils';
 import {
     broadcastToSubscribers,
     cleanupWSClient,

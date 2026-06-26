@@ -3,10 +3,10 @@
  * Enables iterative exploration of reasoning system capabilities
  */
 
-import type {NAR} from '../nar/index.js';
-import type {Task} from '../nar/types/index.js';
-import {ReasoningTrace} from '../nar/query/index.js';
-import {extractSymbols, termParser, termsEqual} from '../nar/terms/index.js';
+import type {NAR} from '../nar';
+import type {Task} from '../nar';
+import {ReasoningTrace} from '../nar/query';
+import {extractSymbols, termParser, termsEqual} from '../nar/terms';
 
 export interface ExperimentResult {
     input: string;

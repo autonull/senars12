@@ -1,11 +1,11 @@
 import type {CognitiveParameters} from '../config/cognitive-parameters';
-import type {Memory} from '../memory/memory.js';
-import type {RuleProcessor} from '../rules/processor.js';
+import type {Memory} from '../memory';
+import type {RuleProcessor} from '../rules';
 import type {MetricsCollector} from '../metrics';
 import type {RLFPLearner} from '../rlfp';
 import {InferenceController} from '../reason/inference-controller';
-import type {Strategy} from '../reason/strategy';
-import type {DerivationStrategy, LMRuleSelector, SamplingStrategy, StrategyType} from '../strategies/types.js';
+import type {Strategy} from '../reason';
+import type {DerivationStrategy, LMRuleSelector, SamplingStrategy, StrategyType} from '../strategies';
 import {CognitiveRegistry} from './registry';
 
 export class CognitiveController {

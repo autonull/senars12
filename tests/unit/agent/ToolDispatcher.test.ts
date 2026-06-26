@@ -1,5 +1,5 @@
 import {describe, expect, it} from '@jest/globals';
-import {dispatchToolCalls} from '../../../src/agent/model/ToolDispatcher.js';
+import {dispatchToolCalls} from '../../../src/agent';
 
 describe('ToolDispatcher', () => {
     it('returns artifacts for a successful tool call', async () => {

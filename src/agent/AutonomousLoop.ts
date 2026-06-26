@@ -1,14 +1,14 @@
 import {EventEmitter} from 'node:events';
 import type {Agent} from './types.js';
-import type {NAR} from '../nar/nar.js';
-import {errMsg, makeId} from '../nar/utils/index.js';
-import {createLogger, type Logger} from '../nar/logger/index.js';
+import type {NAR} from '../nar';
+import {errMsg, makeId} from '../nar/utils';
+import {createLogger, type Logger} from '../nar/logger';
 import type {TemporalEmbeddingMemory} from '../nar/memory/TemporalEmbeddingMemory.js';
 import type {ContextBuilder, ContextData, DriveState, ToolCall} from './ContextBuilder.js';
 import type {ActionParser} from './ActionParser.js';
 import type {ReflectionEngine} from './ReflectionEngine.js';
 import type {WakeScheduler} from './WakeScheduler.js';
-import type {DriveManager} from '../nar/drives/manager.js';
+import type {DriveManager} from '../nar/drives';
 
 export type LoopState = 'idle' | 'perceiving' | 'reasoning' | 'acting' | 'reflecting' | 'sleeping';
 

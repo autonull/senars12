@@ -1,4 +1,4 @@
-import type {NARConfig} from '../nar/nar.js';
+import type {NARConfig} from '../nar';
 import type {AppConfig, BotConfig, BotProfile} from './schema.js';
 import {appConfigSchema, botConfigSchema, botProfileSchema} from './schema.js';
 

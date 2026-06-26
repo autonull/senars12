@@ -7,29 +7,29 @@ import type {
     Strategy,
     StrategyRegistry,
     StrategyType
-} from '../strategies/types.js';
-import {ConfigurationError} from '../types/core.js';
+} from '../strategies';
+import {ConfigurationError} from '../types';
 import {
     DiverseSampling,
     GoalBiasedSampling,
     NoveltySampling,
     PrioritySampling,
     TopNSampling
-} from '../strategies/sampling/index.js';
+} from '../strategies';
 import {
     AnytimeDerivation,
     DefaultDerivation,
     FocusedDerivation,
     SampledDerivation
-} from '../strategies/derivation/index.js';
-import {AllSelector, DiverseSelector, PrioritySelector, RotationSelector} from '../strategies/lm-selectors/index.js';
+} from '../strategies';
+import {AllSelector, DiverseSelector, PrioritySelector, RotationSelector} from '../strategies';
 import {
     CompositeAttention,
     GoalRelevanceAttention,
     SimpleAttention,
     SpreadingActivation
-} from '../strategies/attention/index.js';
-import {BagStrategy, ExhaustiveStrategy} from '../reason/strategy';
+} from '../strategies';
+import {BagStrategy, ExhaustiveStrategy} from '../reason';
 import {
     AdaptiveStrategy,
     AnalogicalStrategy,
@@ -41,7 +41,7 @@ import {
     ResolutionStrategy,
     TaskMatchStrategy,
     TermLinkStrategy
-} from '../reason/strategies';
+} from '../reason';
 
 type StrategyImpl = SamplingStrategy | Strategy | DerivationStrategy | LMRuleSelector | AttentionModel;
 type StrategyMap = Map<string, StrategyImpl>;

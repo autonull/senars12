@@ -1,6 +1,6 @@
 import type {CognitiveParameters} from '../config/cognitive-parameters';
 import {DEFAULT_COGNITIVE_PARAMETERS, mergeParameters} from '../config/cognitive-parameters';
-import type {MetricsSummary, SearchSpace} from '../strategies/types.js';
+import type {MetricsSummary, SearchSpace} from '../strategies';
 import type {Task} from '../types';
 import type {NAR} from '../nar';
 import type {CognitiveRegistry} from './registry';

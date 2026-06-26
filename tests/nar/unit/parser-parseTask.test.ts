@@ -1,5 +1,5 @@
 import {describe, expect, it} from '@jest/globals';
-import {termParser} from '../../../src/nar/terms/index.js';
+import {termParser} from '../../../src/nar';
 
 describe('termParser.parseTask()', () => {
     it('parses (cat --> animal). as belief', () => {

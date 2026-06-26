@@ -1,5 +1,5 @@
 import {SeNARSFactory} from '../src/nar/factory.js';
-import {createSeNARSRegistry} from '../src/nar/lm/providers.js';
+import {createSeNARSRegistry} from '../src/nar/lm/index.ts';
 import {createInterface} from 'node:readline';
 
 process.stderr.write('NAR init...\n');

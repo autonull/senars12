@@ -9,7 +9,7 @@ import {createBudget, createTask} from '../types';
 import {LMRule} from './LMRule.js';
 import type {LMClient, LMRuleConfig} from './types.js';
 import {LMResponseParser} from './parser.js';
-import {calculateSimilarity} from '../terms/utils.js';
+import {calculateSimilarity} from '../terms';
 import type {ZodSchema} from 'zod';
 import {
     AnalogySchema,
@@ -25,7 +25,7 @@ import {
     TranslationSchema,
     UncertaintySchema,
     VariableGroundingSchema,
-} from '../nl/schemas.js';
+} from '../nl';
 
 export interface LMRuleDefinition {
     id: string;

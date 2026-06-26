@@ -1,7 +1,7 @@
 import type {LMClient} from './types.js';
 import type {ModelCapability, ModelRegistry, ModelRegistryEntry} from './model-registry.js';
 import {errMsg} from '../utils';
-import {createLogger, type Logger} from '../logger/index.js';
+import {createLogger, type Logger} from '../logger';
 
 export interface BenchmarkTask {
     id: string;

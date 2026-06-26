@@ -1,7 +1,7 @@
-import type {LMClient} from '../../nar/lm/types.js';
-import {adapt, type AISDKLanguageModel} from '../../nar/lm/adapters/index.js';
+import type {LMClient} from '../../nar/lm';
+import {adapt, type AISDKLanguageModel} from '../../nar/lm/adapters';
 import {dispatchToolCalls, type ReasoningArtifact, type ToolCall, type ToolError} from './ToolDispatcher.js';
-import {errMsg} from '../../nar/utils/index.js';
+import {errMsg} from '../../nar/utils';
 
 export interface ComposedRequest {
     system: string;

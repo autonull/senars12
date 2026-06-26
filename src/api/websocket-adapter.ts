@@ -5,7 +5,7 @@
 
 import {WebSocket, WebSocketServer} from 'ws';
 import {BaseAdapter, errorResponse, successResponse} from './base-adapter.js';
-import {errMsg, makeId} from '../nar/utils/index.js';
+import {errMsg, makeId} from '../nar/utils';
 import {
     broadcastToSubscribers,
     cleanupWSClient,

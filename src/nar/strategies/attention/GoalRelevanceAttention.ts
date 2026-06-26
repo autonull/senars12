@@ -1,7 +1,7 @@
-import type {Concept, Memory} from '../../memory/index.js';
+import type {Concept, Memory} from '../../memory';
 import type {AttentionContext} from '../types.js';
 import {SimpleAttention} from './SimpleAttention.js';
-import {wordOverlap} from '../../utils/index.js';
+import {wordOverlap} from '../../utils';
 
 export class GoalRelevanceAttention extends SimpleAttention {
     override readonly metadata = {name: 'goal-relevance', description: 'Boost proportional to goal term overlap'};

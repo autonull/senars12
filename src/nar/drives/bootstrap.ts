@@ -1,4 +1,4 @@
-import type {TaskType} from '../types/index.js';
+import type {TaskType} from '../types';
 
 export interface BootstrapGoal {
     narsese: string;

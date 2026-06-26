@@ -1,5 +1,5 @@
 import type {Concept} from '../concept.js';
-import {clamp01} from '../../utils/index.js';
+import {clamp01} from '../../utils';
 
 export interface ScorerConfig {
     noveltyWeight: number;

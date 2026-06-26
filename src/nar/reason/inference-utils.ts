@@ -1,7 +1,7 @@
-import type {Task} from '../types/core.js';
-import {createBudget} from '../types/core.js';
-import type {RuleResult} from '../rules/processor.js';
-import {Stamp} from '../terms/stamp.js';
+import type {Task} from '../types';
+import {createBudget} from '../types';
+import type {RuleResult} from '../rules';
+import {Stamp} from '../terms';
 
 const MAX_RECENT_STAMPS = 1000;
 

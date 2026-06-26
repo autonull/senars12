@@ -1,4 +1,4 @@
-import {clamp01} from '../utils/index.js';
+import {clamp01} from '../utils';
 import type {NAR} from '../nar.js';
 import {BUILTIN_DRIVES} from './builtin.js';
 import type {DriveSpec, DriveState} from './types.js';

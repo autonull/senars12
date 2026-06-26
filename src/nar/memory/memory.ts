@@ -2,21 +2,21 @@ import {Concept, type ConceptMergeResult, type ConceptTaskType} from './concept.
 import type {Term} from '../terms';
 import {calculateSimilarity, Stamp, TermMap, Truth} from '../terms';
 import type {Budget, Task} from '../types';
-import {NEUTRAL_BUDGET} from '../types/core.js';
+import {NEUTRAL_BUDGET} from '../types';
 import {MemoryIndex} from './memory-index.js';
 import {Focus} from './focus.js';
-import {Archive} from './lifecycle/archive.js';
-import {MemoryScorer} from './pressure/scorer.js';
-import {MemoryConsolidation} from './pressure/consolidation.js';
-import type {ForgettingPolicy} from './lifecycle/forgetting.js';
-import {Forgetting} from './lifecycle/forgetting.js';
+import {Archive} from './lifecycle';
+import {MemoryScorer} from './pressure';
+import {MemoryConsolidation} from './pressure';
+import type {ForgettingPolicy} from './lifecycle';
+import {Forgetting} from './lifecycle';
 import {LinkManager} from './links';
 import {LINK} from '../constants.js';
 
 import type {MemoryHealth} from './health.js';
-import {calculateConceptStats} from './state/statistics.js';
-import type {AttentionModel} from '../strategies/types.js';
-import {SimpleAttention} from '../strategies/attention/index.js';
+import {calculateConceptStats} from './state';
+import type {AttentionModel} from '../strategies';
+import {SimpleAttention} from '../strategies';
 
 export interface MemoryConfig {
     maxConcepts?: number;

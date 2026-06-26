@@ -5,13 +5,13 @@ import type {Reasoner} from './reason';
 import {BagStrategy} from './reason';
 import type {NARConfig} from './nar';
 import type {PolicyOptimizer, RLFPLearner} from './rlfp';
-import type {CognitiveController} from './cognitive/controller';
-import type {DriveManager} from './drives/index.js';
+import type {CognitiveController} from './cognitive';
+import type {DriveManager} from './drives';
 import {createPipeline, MemoryPremiseSource} from './stream';
-import {PhaseTimer} from './trace/index.js';
-import {createLogger} from './logger/index.js';
-import {errMsg} from './utils/index.js';
-import type {EventBus} from '../agent/EventBus.js';
+import {PhaseTimer} from './trace';
+import {createLogger} from './logger';
+import {errMsg} from './utils';
+import type {EventBus} from '../agent';
 import type {ReasoningAboutReasoning} from './self';
 
 export class NARExecution {

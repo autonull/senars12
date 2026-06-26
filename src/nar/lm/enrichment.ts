@@ -3,8 +3,8 @@ import type {Memory} from '../memory';
 import type {Term} from '../terms';
 import {createBudget, type Task} from '../types';
 import {findUnderconnectedConcepts, parseEnrichmentResponse} from './enrichment-utils.js';
-import {createLogger, type Logger} from '../logger/index.js';
-import {errMsg} from '../utils/index.js';
+import {createLogger, type Logger} from '../logger';
+import {errMsg} from '../utils';
 
 export interface EnricherConfig {
     enableProactiveEnrichment: boolean;

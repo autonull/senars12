@@ -1,7 +1,7 @@
 import type {Concept} from './concept.js';
 import type {Term} from '../terms';
 import {extractSymbols, TermMap, termsEqual} from '../terms';
-import {jaccard} from '../utils/similarity.js';
+import {jaccard} from '../utils';
 import {addToSet} from '../utils/collections.js';
 
 export interface MemoryIndexConfig {

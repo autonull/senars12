@@ -1,5 +1,5 @@
 import type {LMClient} from './types.js';
-import {createLogger, type Logger} from '../logger/index.js';
+import {createLogger, type Logger} from '../logger';
 
 export type ModelProvider = 'anthropic' | 'openai' | 'ollama' | 'mock' | 'transformers';
 

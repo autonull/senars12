@@ -1,5 +1,5 @@
 import {resolveReplyTarget} from '../../../src/io/connections/reply-target.js';
-import type {Connection, IOMessage} from '../../../src/io/types.js';
+import type {Connection, IOMessage} from '../../../src';
 
 class FakeConn implements Partial<Connection> {
     state = 'connected' as const;

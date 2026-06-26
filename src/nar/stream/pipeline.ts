@@ -1,9 +1,9 @@
-import {createTimestamp} from '../types/core.js';
+import {createTimestamp} from '../types';
 import type {Task} from '../types';
 import {createBudget, createTask} from '../types';
 import type {Memory} from '../memory';
 import type {Strategy} from '../reason';
-import {throttleGenerator} from '../utils/index.js';
+import {throttleGenerator} from '../utils';
 
 export type PremiseSource = AsyncGenerator<Task, void, void>;
 

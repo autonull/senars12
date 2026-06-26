@@ -1,5 +1,5 @@
-import type {NAR} from '../../nar/nar.js';
-import type {NLGenerationService} from '../../nar/nl/generation.js';
+import type {NAR} from '../../nar';
+import type {NLGenerationService} from '../../nar/nl';
 
 export class NarQueryService {
     constructor(

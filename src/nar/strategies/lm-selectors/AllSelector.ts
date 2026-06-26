@@ -1,4 +1,4 @@
-import type {LMRule} from '../../lm/index.js';
+import type {LMRule} from '../../lm';
 import type {LMRuleSelectionContext, LMRuleSelector} from '../types.js';
 
 export class AllSelector implements LMRuleSelector {

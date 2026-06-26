@@ -2,8 +2,8 @@ import http, {type IncomingMessage, type ServerResponse} from 'http';
 import {URL} from 'url';
 import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
-import {createLogger} from '../../nar/logger/index.js';
-import {makeId} from '../../nar/utils/index.js';
+import {createLogger} from '../../nar/logger';
+import {makeId} from '../../nar/utils';
 import {ApiKeyManager, parseHttpBody, setCORSHeaders, startHttpServer} from '../utils/http.js';
 
 export class HTTPConnection extends BaseConnection {

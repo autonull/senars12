@@ -5,7 +5,7 @@ import {createRequire} from 'node:module';
 import {TermFactory} from './factory.js';
 import type {Term} from './types.js';
 import {Truth} from './truth.js';
-import {errMsg} from '../utils/index.js';
+import {errMsg} from '../utils';
 
 const require = createRequire(import.meta.url);
 const peggyModule: { parse: (input: string, options?: unknown) => unknown } = require('./peggy-generated.cjs');

@@ -15,12 +15,12 @@ import {
 import type {Term} from './terms';
 import {termsEqual} from './terms';
 import type {Truth as TruthType} from './terms/truth.js';
-import {Truth} from './terms/truth.js';
+import {Truth} from './terms';
 import type {LMClient} from './lm';
 import {LMRules} from './lm';
-import type {SeNARSRegistry} from './lm/providers.js';
+import type {SeNARSRegistry} from './lm';
 import {QueryAPI, ReasoningTrace} from './query';
-import {errMsg} from './utils/index.js';
+import {errMsg} from './utils';
 import {MetricsCollector} from './metrics';
 import {createLogger} from './logger';
 import type {Tool, ToolResult} from './tools';
@@ -28,15 +28,15 @@ import {discoverTools, ToolManager} from './tools';
 import {BaseComponent} from './lifecycle';
 import {ReasoningAboutReasoning} from './self';
 import {RLFPLearner} from './rlfp';
-import {CognitiveController} from './cognitive/controller';
-import type {CognitiveRegistry} from './cognitive/registry';
+import {CognitiveController} from './cognitive';
+import type {CognitiveRegistry} from './cognitive';
 import type {CognitiveParameters} from './config/cognitive-parameters';
-import type {AttentionModel} from './strategies/types.js';
-import {SimpleAttention} from './strategies/attention/index.js';
+import type {AttentionModel} from './strategies';
+import {SimpleAttention} from './strategies';
 import {NARIO} from './nar-io';
 import {NARExecution} from './nar-execution';
 import {NARLM} from './nar-lm';
-import {createBootstrapTasks, DriveManager} from './drives/index.js';
+import {createBootstrapTasks, DriveManager} from './drives';
 import {EventBus as AgentEventBus} from '../agent/EventBus.js';
 
 export interface RLFPConfig {

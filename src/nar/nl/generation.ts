@@ -1,6 +1,6 @@
 import {generateObject, generateText} from 'ai';
-import type {SeNARSRegistry} from '../lm/providers.js';
-import {getStructuredModel} from '../lm/providers.js';
+import type {SeNARSRegistry} from '../lm';
+import {getStructuredModel} from '../lm';
 import {GenerationOutputSchema} from './schemas.js';
 import {buildGenerationPrompt} from './prompts/generation-v1.js';
 

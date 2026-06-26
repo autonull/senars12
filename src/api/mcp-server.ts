@@ -14,12 +14,12 @@ import {
     ListToolsRequestSchema,
     ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import {EnhancedMCPAdapter} from './mcp/enhanced-adapter.js';
-import type {SchemaTransformer} from './mcp/schema-transformer.js';
-import {getSchemaTransformer} from './mcp/schema-transformer.js';
-import {CapabilityDescriptor} from './mcp/types.js';
-import {createLogger, type Logger} from '../nar/logger/index.js';
-import {errMsg, toError} from '../nar/utils/helpers.js';
+import {EnhancedMCPAdapter} from './mcp';
+import type {SchemaTransformer} from './mcp';
+import {getSchemaTransformer} from './mcp';
+import {CapabilityDescriptor} from './mcp';
+import {createLogger, type Logger} from '../nar/logger';
+import {errMsg, toError} from '../nar/utils';
 
 /**
  * MCP Server Configuration

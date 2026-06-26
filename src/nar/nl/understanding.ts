@@ -1,8 +1,8 @@
 import {generateObject, generateText} from 'ai';
-import type {SeNARSRegistry} from '../lm/providers.js';
-import {getStructuredModel} from '../lm/providers.js';
-import {termParser} from '../terms/index.js';
-import {errMsg} from '../utils/index.js';
+import type {SeNARSRegistry} from '../lm';
+import {getStructuredModel} from '../lm';
+import {termParser} from '../terms';
+import {errMsg} from '../utils';
 import type {TranslationCache, TranslationCacheEntry} from './cache.js';
 import {TaskBatchSchema} from './schemas.js';
 import {buildUnderstandingPrompt} from './prompts/understanding-v1.js';

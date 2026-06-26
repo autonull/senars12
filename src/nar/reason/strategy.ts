@@ -2,7 +2,7 @@ import type {Task} from '../types';
 import {createSecondaryTask} from '../types';
 import {Memory} from '../memory';
 import {extractSymbols, termsEqual} from '../terms';
-import type {ComponentMetadata} from '../strategies/types.js';
+import type {ComponentMetadata} from '../strategies';
 
 const MIN_DERIVATION_PRIORITY = 0.05;
 

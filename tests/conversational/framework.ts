@@ -1,8 +1,8 @@
-import {type Agent, type AgentOptions, createAgent} from '../../src/agent/agent.js';
-import {type ConversationSession, createSession} from '../../src/agent/ConversationSession.js';
-import {SeNARSFactory} from '../../src/nar/index.js';
-import type {NAR} from '../../src/nar/nar.js';
-import type {LMClient} from '../../src/nar/lm/types.js';
+import {type Agent, type AgentOptions, createAgent} from '../../src';
+import {type ConversationSession, createSession} from '../../src/agent';
+import {SeNARSFactory} from '../../src/nar';
+import type {NAR} from '../../src';
+import type {LMClient} from '../../src/nar/lm';
 
 export interface ProbeExpectations {
     responseContains?: string[];

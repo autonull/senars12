@@ -1,8 +1,8 @@
-import type {Memory} from '../memory/index.js';
-import type {Concept} from '../memory/concept.js';
-import type {Task} from '../types/core.js';
-import type {RuleProcessor} from '../rules/processor.js';
-import type {LMRule} from '../lm/index.js';
+import type {Memory} from '../memory';
+import type {Concept} from '../memory';
+import type {Task} from '../types';
+import type {RuleProcessor} from '../rules';
+import type {LMRule} from '../lm';
 
 // ── Shared ───────────────────────────────────
 export interface ComponentMetadata {

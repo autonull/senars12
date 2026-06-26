@@ -5,8 +5,8 @@
  */
 
 import type {NAR} from '../nar.js';
-import type {LMClient} from '../lm/types.js';
-import {EventBus} from '../types/events.js';
+import type {LMClient} from '../lm';
+import {EventBus} from '../types';
 import {countContradictions as countContradictionsImpl, findConflicts, termOverlap} from './conflict-utils.js';
 
 export type CognitiveState = 'normal' | 'confused' | 'bored' | 'overloaded' | 'idle';

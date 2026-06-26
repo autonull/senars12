@@ -1,4 +1,4 @@
-import type {Concept, Memory} from '../../memory/index.js';
+import type {Concept, Memory} from '../../memory';
 import type {SamplingStrategy} from '../types.js';
 
 export class PrioritySampling implements SamplingStrategy {

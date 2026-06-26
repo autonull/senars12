@@ -1,10 +1,10 @@
 import {describe, expect, it} from '@jest/globals';
-import {createAgent} from '../../../src/agent/agent.js';
-import {SeNARSFactory} from '../../../src/nar/index.js';
-import {createSession} from '../../../src/agent/ConversationSession.js';
-import {ModelRunner, truncateArtifact} from '../../../src/agent/model/ModelRunner.js';
-import {EventBus} from '../../../src/agent/EventBus.js';
-import type {LMClient} from '../../../src/nar/lm/types.js';
+import {createAgent} from '../../../src';
+import {SeNARSFactory} from '../../../src/nar';
+import {createSession} from '../../../src/agent';
+import {ModelRunner, truncateArtifact} from '../../../src/agent';
+import {EventBus} from '../../../src/agent';
+import type {LMClient} from '../../../src/nar/lm';
 
 const scriptedLM: LMClient = {
     provider: 'scripted',

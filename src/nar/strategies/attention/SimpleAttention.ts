@@ -1,4 +1,4 @@
-import type {Concept, Memory} from '../../memory/index.js';
+import type {Concept, Memory} from '../../memory';
 import type {AttentionContext, AttentionModel} from '../types.js';
 
 export class SimpleAttention implements AttentionModel {

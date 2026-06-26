@@ -1,6 +1,6 @@
 import http, {type IncomingMessage} from 'http';
 import type {WebSocketServer} from 'ws';
-import type {Logger} from '../../nar/logger/index.js';
+import type {Logger} from '../../nar/logger';
 
 export interface ServerStartupOptions {
     port: number;

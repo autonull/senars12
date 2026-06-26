@@ -1,4 +1,4 @@
-import {createLogger} from '../logger/index.js';
+import {createLogger} from '../logger';
 
 const logger = createLogger({scope: 'lm:env'});
 

@@ -2,7 +2,7 @@
  * Command history management
  */
 import {existsSync, promises as fs} from 'fs';
-import {errMsg} from '../nar/utils/index.js';
+import {errMsg} from '../nar/utils';
 
 const HISTFILE = process.env.SENARS_HISTFILE || '/tmp/senars_history';
 const MAX_HISTORY = 1000;

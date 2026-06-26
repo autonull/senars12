@@ -1,11 +1,11 @@
-import type {Task} from '../nar/types';
-import type {NAR} from '../nar/nar.js';
-import type {LMClient} from '../nar/lm/types.js';
+import type {Task} from '../nar';
+import type {NAR} from '../nar';
+import type {LMClient} from '../nar/lm';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import {ContextAssemblerOpts} from '../nar/nl/context-assembler.js';
-import {ApprovalManager} from '../nar/tools/adapters/index.js';
+import {ContextAssemblerOpts} from '../nar/nl';
+import {ApprovalManager} from '../nar/tools/adapters';
 import type {ConversationSession} from './ConversationSession.js';
-import {Logger} from '../nar/logger/index.js';
+import {Logger} from '../nar/logger';
 import {AutonomyEngine} from './AutonomyEngine.js';
 import type {AutonomousLoop} from './AutonomousLoop.js';
 import type {EventKey, EventMap} from './EventBus.js';

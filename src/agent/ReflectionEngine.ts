@@ -1,7 +1,7 @@
-import {clamp01} from '../nar/utils/index.js';
-import type {DriveManager} from '../nar/drives/manager.js';
+import {clamp01} from '../nar/utils';
+import type {DriveManager} from '../nar/drives';
 import type {TemporalEmbeddingMemory} from '../nar/memory/TemporalEmbeddingMemory.js';
-import {createLogger, type Logger} from '../nar/logger/index.js';
+import {createLogger, type Logger} from '../nar/logger';
 
 export interface Evaluation {
     successRate: number;

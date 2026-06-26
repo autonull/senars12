@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, jest, test} from '@jest/globals';
-import {type RuleInput, RuleProcessor} from '../../../src/nar/rules/processor';
+import {type RuleInput, RuleProcessor} from '../../../src/nar/rules';
 import {Memory, TermBuilder} from '../../../src/nar';
 
 // Helper to create a RuleInput from a term string

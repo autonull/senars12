@@ -1,4 +1,4 @@
-import type {Concept} from '../../memory/index.js';
+import type {Concept} from '../../memory';
 import type {AttentionContext} from '../types.js';
 import {SimpleAttention} from './SimpleAttention.js';
 

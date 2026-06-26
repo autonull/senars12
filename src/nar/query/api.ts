@@ -1,6 +1,6 @@
-import type {Term} from '../terms/index.js';
-import {Truth} from '../terms/truth.js';
-import {createTimestamp} from '../types/core.js';
+import type {Term} from '../terms';
+import {Truth} from '../terms';
+import {createTimestamp} from '../types';
 import {termParser, termsEqual} from '../terms';
 import type {Stamp, Task, TaskType, TermFilter} from '../types';
 import type {Concept} from '../memory';

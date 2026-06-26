@@ -1,5 +1,5 @@
-import type {NAR} from '../nar/nar.js';
-import type {Memory} from '../nar/memory/index.js';
+import type {NAR} from './nar';
+import type {Memory} from './memory';
 
 export enum SourceQuality {
     PRIMARY = 0.9,

@@ -1,4 +1,4 @@
-import type {NAR} from '../nar/nar.js';
+import type {NAR} from '../nar';
 
 export type ConnectionState =
     | 'idle' | 'connecting' | 'connected'

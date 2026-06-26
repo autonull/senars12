@@ -7,7 +7,7 @@ import type {ChatOptions, ChatStreamEvent} from '../types.js';
 import {EventBus} from '../EventBus.js';
 import {StatsManager} from '../subservices/StatsManager.js';
 import {appendSessionTurns, type InputEvent, type InputProcessorDeps, processInput} from '../input-processor.js';
-import {errMsg} from '../../nar/utils/index.js';
+import {errMsg} from '../../nar/utils';
 import type {EpisodeType} from '../../nar/memory/EpisodicMemory.js';
 
 type EventPayload = {

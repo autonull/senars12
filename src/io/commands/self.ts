@@ -1,6 +1,6 @@
 import type {CommandDefinition} from './registry.js';
-import type {NAR} from '../../nar/nar.js';
-import type {ReasoningAboutReasoning} from '../../nar/self/ReasoningAboutReasoning.js';
+import type {NAR} from '../../nar';
+import type {ReasoningAboutReasoning} from '../../nar/self';
 import {requireNar} from './utils.js';
 
 interface ExtendedNAR extends NAR {

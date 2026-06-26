@@ -1,5 +1,5 @@
 import {WebSocket} from 'ws';
-import {makeId, toError} from '../../nar/utils/index.js';
+import {makeId, toError} from '../../nar/utils';
 
 export interface WSClient {
     ws: WebSocket;

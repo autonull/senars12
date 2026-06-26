@@ -6,7 +6,7 @@ import {
     DEFAULT_SESSION_HISTORY_LIMIT,
     type SessionMessage,
 } from './ConversationSession.js';
-import {createLogger, type Logger} from '../nar/logger/index.js';
+import {createLogger, type Logger} from '../nar/logger';
 
 export interface SessionManager {
     getOrCreate(key: string): ConversationSession;

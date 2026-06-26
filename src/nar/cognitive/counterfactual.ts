@@ -1,6 +1,6 @@
 import type {NAR} from '../nar.js';
 import {counterfactual} from '../reason/counterfactual.js';
-import {atom} from '../terms/factory.js';
+import {atom} from '../terms';
 
 export async function runCounterfactual(
     termStr: string,

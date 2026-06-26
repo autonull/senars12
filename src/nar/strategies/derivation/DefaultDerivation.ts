@@ -1,6 +1,6 @@
-import type {Task} from '../../types/core.js';
-import {createBudget} from '../../types/core.js';
-import type {RuleInput, RuleProcessor, RuleResult} from '../../rules/processor.js';
+import type {Task} from '../../types';
+import {createBudget} from '../../types';
+import type {RuleInput, RuleProcessor, RuleResult} from '../../rules';
 import type {DerivationContext, DerivationStrategy} from '../types.js';
 
 export const toTask = (r: RuleResult): Task => ({

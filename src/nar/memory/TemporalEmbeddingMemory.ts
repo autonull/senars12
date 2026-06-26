@@ -2,7 +2,7 @@ import {promises as fs} from 'node:fs';
 import {join} from 'node:path';
 import {EmbeddingLayer} from './links/EmbeddingLayer.js';
 import {createEmbeddingGenerator, type EmbeddingGenerator} from './embedding.js';
-import {makeId} from '../utils/index.js';
+import {makeId} from '../utils';
 
 export interface EpisodeMetadata {
     timestamp: number;

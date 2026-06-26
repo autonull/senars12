@@ -1,14 +1,14 @@
-import type {MessageContext, MessageMiddleware} from '../io/router.js';
-import type {IOMessage, Logger} from '../io/types.js';
-import type {AuthManager} from '../io/auth.js';
-import type {CommandContext, CommandRegistry} from '../io/commands/registry.js';
-import type {NAR} from '../nar/nar.js';
-import type {ConnectionManager} from '../io/connection-manager.js';
+import type {MessageContext, MessageMiddleware} from '../io';
+import type {IOMessage, Logger} from '../io';
+import type {AuthManager} from '../io';
+import type {CommandContext, CommandRegistry} from '../io';
+import type {NAR} from '../nar';
+import type {ConnectionManager} from '../io';
 import type {SessionManager} from './SessionManager.js';
 import type {ConversationSession} from './ConversationSession.js';
 import type {Agent} from './agent.js';
-import type {GenerationInput, NLGenerationService} from '../nar/nl/generation.js';
-import {errMsg, toError} from '../nar/utils/helpers.js';
+import type {GenerationInput, NLGenerationService} from '../nar/nl';
+import {errMsg, toError} from '../nar/utils';
 
 /**
  * Mutable runtime context extending MessageContext.

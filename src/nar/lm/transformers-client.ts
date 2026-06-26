@@ -11,9 +11,9 @@
  */
 
 import type {LMClient, LMClientStats} from './types.js';
-import {createLogger} from '../logger/index.js';
-import {CircuitBreaker} from '../utils/circuit-breaker.js';
-import {OperationError} from '../types/core.js';
+import {createLogger} from '../logger';
+import {CircuitBreaker} from '../utils';
+import {OperationError} from '../types';
 
 export const DEFAULT_TRANSFORMERS_MODEL = 'HuggingFaceTB/SmolLM2-135M-Instruct';
 

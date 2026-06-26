@@ -1,4 +1,4 @@
-import {clamp01} from './utils/index.js';
+import {clamp01} from './utils';
 
 export type ActionTier = 'ACT' | 'HYPOTHESIZE' | 'IGNORE';
 

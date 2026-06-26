@@ -1,14 +1,14 @@
-import {CommandRegistry} from '../io/commands/registry.js';
-import {coreCommands} from '../io/commands/core.js';
-import {connectionCommands} from '../io/commands/connection.js';
-import {memoryCommands} from '../io/commands/memory.js';
-import {narCommands} from '../io/commands/nar.js';
-import {selfCommands} from '../io/commands/self.js';
-import {lmCommands} from '../io/commands/lm.js';
-import {rlfpCommands} from '../io/commands/rlfp.js';
-import {configCommands} from '../io/commands/config.js';
-import {episodesCommands} from '../io/commands/episodes.js';
-import {authCommands} from '../io/commands/auth.js';
+import {CommandRegistry} from '../io';
+import {coreCommands} from '../io';
+import {connectionCommands} from '../io';
+import {memoryCommands} from '../io';
+import {narCommands} from '../io';
+import {selfCommands} from '../io';
+import {lmCommands} from '../io';
+import {rlfpCommands} from '../io';
+import {configCommands} from '../io';
+import {episodesCommands} from '../io';
+import {authCommands} from '../io';
 
 /**
  * Register all built-in command sets with the registry. Commands read their

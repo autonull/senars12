@@ -1,6 +1,6 @@
 import type {Episode, TemporalEmbeddingMemory} from '../nar/memory/TemporalEmbeddingMemory.js';
-import type {DriveManager} from '../nar/drives/manager.js';
-import {createLogger, type Logger} from '../nar/logger/index.js';
+import type {DriveManager} from '../nar/drives';
+import {createLogger, type Logger} from '../nar/logger';
 
 export interface ContextSection {
     name: string;

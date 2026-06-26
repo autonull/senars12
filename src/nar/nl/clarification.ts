@@ -1,7 +1,7 @@
 import type {LanguageModel} from 'ai';
 import {generateObject} from 'ai';
-import {type ClarificationResult, ClarificationSchema} from '../nl/schemas.js';
-import type {Ambiguity} from '../nl/understanding.js';
+import {type ClarificationResult, ClarificationSchema} from './schemas';
+import type {Ambiguity} from './understanding';
 
 export type BotContext = Record<string, unknown>;
 

@@ -5,9 +5,9 @@
 
 import {SeNARSMCPServer} from '../api/mcp-server.js';
 import {registerAgentAPI, registerNARToolsAsMCP} from '../api/mcp-tools.js';
-import {createNAR} from '../nar/factory.js';
-import {createAgent} from '../agent/index.js';
-import {loadConfig} from '../config/index.js';
+import {createNAR} from '../nar';
+import {createAgent} from '../agent';
+import {loadConfig} from '../config';
 import {z} from 'zod';
 
 const config = {

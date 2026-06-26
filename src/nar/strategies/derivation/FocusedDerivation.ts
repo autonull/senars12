@@ -1,8 +1,8 @@
-import type {Task} from '../../types/core.js';
-import type {RuleProcessor} from '../../rules/processor.js';
+import type {Task} from '../../types';
+import type {RuleProcessor} from '../../rules';
 import type {DerivationContext} from '../types.js';
 import {DefaultDerivation} from './DefaultDerivation.js';
-import {wordOverlap} from '../../utils/index.js';
+import {wordOverlap} from '../../utils';
 
 const SPLIT_PATTERN = /[\s_()<>]+/;
 

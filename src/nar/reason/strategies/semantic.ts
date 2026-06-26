@@ -1,9 +1,9 @@
-import type {Task} from '../../types/index.js';
-import {createSecondaryTask} from '../../types/index.js';
-import type {Memory} from '../../memory/index.js';
-import type {Concept} from '../../memory/concept.js';
+import type {Task} from '../../types';
+import {createSecondaryTask} from '../../types';
+import type {Memory} from '../../memory';
+import type {Concept} from '../../memory';
 import type {Strategy} from '../strategy.js';
-import type {Term} from '../../terms/index.js';
+import type {Term} from '../../terms';
 
 interface SemanticStrategyConfig {
     minSimilarity?: number;

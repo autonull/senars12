@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import type {AgentOptions} from './agent.js';
-import type {AgentSectionConfig} from '../config/schema.js';
-import type {ConnectionConfig} from '../io/types.js';
+import type {AgentSectionConfig} from '../config';
+import type {ConnectionConfig} from '../io';
 
 const contextOptsSchema = z.object({
     attention: z.union([z.boolean(), z.array(z.string())]).optional(),

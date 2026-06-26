@@ -1,9 +1,9 @@
-import type {NAR} from '../nar/nar.js';
-import type {ParseTaskResult} from '../nar/terms/index.js';
-import {termParser} from '../nar/terms/index.js';
-import type {NLUnderstandingService, TaskBatch} from '../nar/nl/understanding.js';
-import type {GenerationInput, NLGenerationService} from '../nar/nl/generation.js';
-import type {ContextAssembler, ContextAssemblerOpts} from '../nar/nl/context-assembler.js';
+import type {NAR} from '../nar';
+import type {ParseTaskResult} from '../nar/terms';
+import {termParser} from '../nar';
+import type {NLUnderstandingService, TaskBatch} from '../nar/nl';
+import type {GenerationInput, NLGenerationService} from '../nar/nl';
+import type {ContextAssembler, ContextAssemblerOpts} from '../nar/nl';
 import type {ConversationSession} from './ConversationSession.js';
 import {appendTurn, DEFAULT_SESSION_HISTORY_LIMIT, trimHistory} from './ConversationSession.js';
 import {formatHistoryAsMessages} from './chat-history.js';

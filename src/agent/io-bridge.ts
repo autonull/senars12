@@ -1,14 +1,14 @@
-import type {Connection, IOMessage} from '../io/types.js';
-import {type MessageContext, MessageRouter} from '../io/router.js';
+import type {Connection, IOMessage} from '../io';
+import {type MessageContext, MessageRouter} from '../io';
 import type {Agent} from './agent.js';
-import type {AuthManager} from '../io/auth.js';
-import type {CommandRegistry} from '../io/commands/registry.js';
-import type {ConnectionManager} from '../io/connection-manager.js';
+import type {AuthManager} from '../io';
+import type {CommandRegistry} from '../io';
+import type {ConnectionManager} from '../io';
 import type {SessionManager} from './SessionManager.js';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {resolveReplyTarget} from '../io/connections/reply-target.js';
-import type {NLGenerationService} from '../nar/nl/generation.js';
-import {createLogger} from '../nar/logger/index.js';
+import type {NLGenerationService} from '../nar/nl';
+import {createLogger} from '../nar/logger';
 import {
     compose,
     createAuthMiddleware,

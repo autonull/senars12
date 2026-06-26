@@ -1,5 +1,5 @@
 import {EventEmitter} from 'node:events';
-import {createLogger, type Logger} from '../nar/logger/index.js';
+import {createLogger, type Logger} from '../nar/logger';
 
 export interface WakeSchedulerConfig {
     baseIntervalMs: number;

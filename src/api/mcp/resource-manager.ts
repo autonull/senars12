@@ -4,8 +4,8 @@
  */
 
 import {ResourceDescriptor} from './types.js';
-import {createLogger, type Logger} from '../../nar/logger/index.js';
-import {toError} from '../../nar/utils/helpers.js';
+import {createLogger, type Logger} from '../../nar/logger';
+import {toError} from '../../nar/utils';
 
 /**
  * Resource content structure

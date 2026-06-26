@@ -1,7 +1,7 @@
 import type {Schema, Tool, ToolResult} from './types';
 import {errorResult} from './types';
 import {tool} from './decorator.js';
-import {sleep} from '../utils/index.js';
+import {sleep} from '../utils';
 
 @tool({
     name: 'sleep',

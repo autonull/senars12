@@ -5,9 +5,9 @@
 
 import {BaseAdapter, errorResponse} from './base-adapter.js';
 import {z} from 'zod';
-import {SchemaTransformer} from './mcp/schema-transformer.js';
-import {errMsg} from '../nar/utils/helpers.js';
-import type {MCPToolCall, MCPToolResult} from './mcp/types.js';
+import {SchemaTransformer} from './mcp';
+import {errMsg} from '../nar/utils';
+import type {MCPToolCall, MCPToolResult} from './mcp';
 
 export interface MCPTool {
     name: string;

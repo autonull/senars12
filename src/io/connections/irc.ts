@@ -1,7 +1,7 @@
 import irc, {Client as IRCClient} from 'irc';
 import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
-import {createLogger} from '../../nar/logger/index.js';
+import {createLogger} from '../../nar/logger';
 
 export interface IRCConnectionConfig {
     server: string;

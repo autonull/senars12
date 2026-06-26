@@ -1,7 +1,7 @@
 import {describe, expect, it} from '@jest/globals';
-import type {ComposedRequest, ReasoningArtifact} from '../../../src/agent/model/ModelRunner.js';
-import {ModelRunner} from '../../../src/agent/model/ModelRunner.js';
-import type {LMClient} from '../../../src/nar/lm/types.js';
+import type {ComposedRequest, ReasoningArtifact} from '../../../src/agent';
+import {ModelRunner} from '../../../src/agent';
+import type {LMClient} from '../../../src/nar/lm';
 
 class ScriptedLMClient implements LMClient {
     readonly provider = 'scripted';

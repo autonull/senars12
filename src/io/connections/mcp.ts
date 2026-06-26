@@ -1,8 +1,8 @@
 import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
-import {createLogger} from '../../nar/logger/index.js';
-import type {MCPToolResult} from '../../api/mcp/types.js';
-import {makeId} from '../../nar/utils/index.js';
+import {createLogger} from '../../nar/logger';
+import type {MCPToolResult} from '../../api';
+import {makeId} from '../../nar/utils';
 
 export class MCPConnection extends BaseConnection {
     override readonly type = 'mcp';

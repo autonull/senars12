@@ -1,4 +1,4 @@
-import type {NAR} from '../../nar/nar.js';
+import type {NAR} from '../../nar';
 import type {Connection} from '../types.js';
 import type {ConnectionManager} from '../connection-manager.js';
 

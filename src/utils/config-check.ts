@@ -1,4 +1,4 @@
-import {createLogger} from '../nar/logger/index.js';
+import {createLogger} from '../nar/logger';
 import {formatLMConfig, resolveLMConfig} from '../nar/lm/env-config.js';
 
 const logger = createLogger({scope: 'config:check'});

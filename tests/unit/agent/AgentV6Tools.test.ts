@@ -1,5 +1,5 @@
 import {describe, expect, it} from '@jest/globals';
-import {buildAgentTools} from '../../../src/agent/tools.js';
+import {buildAgentTools} from '../../../src';
 import {z} from 'zod';
 
 function callTool(tools: Record<string, unknown>, name: string, args: Record<string, unknown>): unknown {

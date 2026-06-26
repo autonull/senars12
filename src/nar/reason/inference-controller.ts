@@ -2,11 +2,11 @@
  * Inference Controller - Orchestrates task sampling, secondary selection, and rule firing
  */
 
-import type {Task} from '../types/core.js';
-import type {Memory} from '../memory/memory.js';
-import type {RuleInput, RuleProcessor, RuleResult} from '../rules/processor.js';
+import type {Task} from '../types';
+import type {Memory} from '../memory';
+import type {RuleInput, RuleProcessor, RuleResult} from '../rules';
 import type {Strategy} from './strategy.js';
-import type {DerivationContext, DerivationStrategy, SamplingStrategy} from '../strategies/types.js';
+import type {DerivationContext, DerivationStrategy, SamplingStrategy} from '../strategies';
 import {createBeliefTask, createCircularDetector, createDerivedTask, exceedsDepthLimit} from './inference-utils.js';
 
 export interface InferenceConfig {

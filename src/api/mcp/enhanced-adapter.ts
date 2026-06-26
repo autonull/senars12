@@ -6,7 +6,7 @@
 import {MCPAdapter as BaseMCPAdapter} from '../mcp-adapter.js';
 import {CapabilityDescriptor, ExecutionContext, ExecutionResult, LogEntry, ProgressUpdate,} from './types.js';
 import {getSchemaTransformer} from './schema-transformer.js';
-import {errMsg} from '../../nar/utils/helpers.js';
+import {errMsg} from '../../nar/utils';
 
 export type ProgressReporter = (update: ProgressUpdate) => void;
 

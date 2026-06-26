@@ -1,4 +1,4 @@
-import {createLogger, type Logger} from '../nar/logger/index.js';
+import {createLogger, type Logger} from '../nar/logger';
 import {APIRegistry} from './registry.js';
 
 export interface APIResponse {

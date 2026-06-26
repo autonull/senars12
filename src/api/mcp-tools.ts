@@ -1,6 +1,6 @@
-import type {NAR} from '../nar/nar.js';
-import type {Agent} from '../agent/agent.js';
-import type {EnhancedMCPAdapter} from './mcp/enhanced-adapter.js';
+import type {NAR} from '../nar';
+import type {Agent} from '../agent';
+import type {EnhancedMCPAdapter} from './mcp';
 import {z} from 'zod';
 import {promises as fs} from 'node:fs';
 

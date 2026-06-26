@@ -7,13 +7,13 @@
  * - Store as higher-order concepts with variables
  * - LM proposes, NARS validates, both adopt
  */
-import type {LMClient} from '../lm/types.js';
+import type {LMClient} from '../lm';
 import type {Memory} from '../memory';
 import type {Term} from '../terms';
 import {Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
-import {createLogger, type Logger} from '../logger/index.js';
-import {clamp01, errMsg} from '../utils/index.js';
+import {createLogger, type Logger} from '../logger';
+import {clamp01, errMsg} from '../utils';
 
 export interface SchemaPattern {
     id: string;

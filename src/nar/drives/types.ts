@@ -1,4 +1,4 @@
-import type {Truth} from '../terms/truth.js';
+import type {Truth} from '../terms';
 
 export interface DriveSpec {
     id: string;

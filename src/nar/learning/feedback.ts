@@ -1,7 +1,7 @@
-import type {Task} from '../types/index.js';
-import type {TranslationCache} from '../nl/cache.js';
-import type {RLFPLearner} from '../rlfp/RLFPLearner.js';
-import {getPredicate, getSubject, isOperation, isTautology} from '../terms/index.js';
+import type {Task} from '../types';
+import type {TranslationCache} from '../nl';
+import type {RLFPLearner} from '../rlfp';
+import {getPredicate, getSubject, isOperation, isTautology} from '../terms';
 
 interface DerivationResult {
     steps?: number;

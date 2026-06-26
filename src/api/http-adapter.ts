@@ -7,7 +7,7 @@ import {IncomingMessage, ServerResponse} from 'http';
 import {URL} from 'url';
 import {randomBytes} from 'crypto';
 import {BaseAdapter, errorResponse} from './base-adapter.js';
-import {errMsg} from '../nar/utils/helpers.js';
+import {errMsg} from '../nar/utils';
 import {ApiKeyManager, parseHttpBody, setCORSHeaders} from '../io/utils/http.js';
 
 export interface HTTPAdapterConfig {

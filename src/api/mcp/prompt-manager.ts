@@ -4,7 +4,7 @@
  */
 
 import {MCPContent, MCPMessage, PromptArgument, PromptTemplate} from './types.js';
-import {createLogger, type Logger} from '../../nar/logger/index.js';
+import {createLogger, type Logger} from '../../nar/logger';
 
 /**
  * Prompt renderer interface

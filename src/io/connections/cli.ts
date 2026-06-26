@@ -1,7 +1,7 @@
 import {createInterface, type Interface} from 'readline';
 import type {ConnectionConfig, ConnectionDeps, IOMessage} from '../types.js';
 import {BaseConnection} from './base.js';
-import {createLogger} from '../../nar/logger/index.js';
+import {createLogger} from '../../nar/logger';
 
 export interface CLICommand {
     readonly name: string;

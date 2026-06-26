@@ -7,10 +7,10 @@ import {type RegisteredRule, RuleIndex, RuleRegistry} from './types.js';
 import {Truth, type Truth as TruthType} from '../terms/truth.js';
 import type {LMRule} from '../lm';
 import type {LMRuleStats} from '../lm/types.js';
-import type {LMRuleSelector} from '../strategies/types.js';
+import type {LMRuleSelector} from '../strategies';
 import {EventBus} from '../types';
-import {toError} from '../utils/helpers.js';
-import type {Memory} from '../memory/memory.js';
+import {toError} from '../utils';
+import type {Memory} from '../memory';
 import type {NAR} from '../nar.js';
 import {buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput} from './rule-utils.js';
 

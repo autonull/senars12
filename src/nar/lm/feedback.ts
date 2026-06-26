@@ -4,8 +4,8 @@ import type {Term} from '../terms';
 import {Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
 import {findUnderconnectedConceptsFromTasks, parseEnrichmentResponse} from './enrichment-utils.js';
-import {createLogger, type Logger} from '../logger/index.js';
-import {clamp01, errMsg} from '../utils/index.js';
+import {createLogger, type Logger} from '../logger';
+import {clamp01, errMsg} from '../utils';
 
 export interface FeedbackConfig {
     enableBidirectionalFeedback: boolean;

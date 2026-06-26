@@ -1,6 +1,6 @@
 import type {Term} from './types.js';
 import {termsEqual} from './accessors.js';
-import {jaccard} from '../utils/similarity.js';
+import {jaccard} from '../utils';
 
 export const extractSymbols = (term: Term, symbols = new Set<string>()): Set<string> => {
     if ('symbol' in term && typeof term.symbol === 'string') symbols.add(term.symbol);

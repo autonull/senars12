@@ -1,6 +1,6 @@
 import type {Term} from '../terms';
 import {Truth} from '../terms';
-import type {Task} from '../types/index.js';
+import type {Task} from '../types';
 import {createBudget, createTask} from '../types';
 import {LMResponseParser} from './parser.js';
 

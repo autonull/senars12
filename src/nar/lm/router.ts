@@ -1,6 +1,6 @@
 import type {LMClient} from './types.js';
 import type {ModelRegistry, ModelRegistryEntry} from './model-registry.js';
-import {createLogger, type Logger} from '../logger/index.js';
+import {createLogger, type Logger} from '../logger';
 
 export interface RoutingStrategy {
     type: 'speed' | 'quality' | 'cost' | 'balanced' | 'custom';

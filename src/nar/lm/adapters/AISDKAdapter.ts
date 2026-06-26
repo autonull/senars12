@@ -1,5 +1,5 @@
 import type {LMClient, LMConfig} from '../types.js';
-import {createLogger} from '../../logger/index.js';
+import {createLogger} from '../../logger';
 import type {V2Tool} from './prompt-utils.js';
 import {buildJsonToolSystemPrompt, extractSystemPrompt, formatV2Prompt} from './prompt-utils.js';
 

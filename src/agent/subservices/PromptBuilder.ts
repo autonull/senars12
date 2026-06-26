@@ -1,8 +1,8 @@
-import type {NAR} from '../../nar/nar.js';
+import type {NAR} from '../../nar';
 import type {ConversationSession} from '../ConversationSession.js';
 import type {DerivationEntry} from '../agent.js';
 import type {SessionOrchestrator} from './SessionOrchestrator.js';
-import type {ContextAssemblerOpts} from '../../nar/nl/context-assembler.js';
+import type {ContextAssemblerOpts} from '../../nar/nl';
 
 export class PromptBuilder {
     constructor(

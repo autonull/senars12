@@ -1,5 +1,5 @@
-import type {NAR} from '../../nar/nar.js';
-import {errMsg} from '../../nar/utils/index.js';
+import type {NAR} from '../../nar';
+import {errMsg} from '../../nar/utils';
 
 export interface ReasoningArtifact {
     type: 'derivation' | 'tool_result' | 'belief_added' | 'question_answered';

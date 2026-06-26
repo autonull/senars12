@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {makeId} from '../nar/utils/index.js';
+import {makeId} from '../nar/utils';
 
 export interface ToolCall {
     tool: string;

@@ -3,9 +3,9 @@
  * Tests for REPL command handling and input processing
  */
 
-import {NAR} from '../../../src/nar/nar.js';
-import {SeNARSFactory} from '../../../src/nar/factory.js';
-import {DEFAULT_NAR_CONFIG} from '../../../src/config/defaults.js';
+import {NAR} from '../../../src';
+import {SeNARSFactory} from '../../../src/nar';
+import {DEFAULT_NAR_CONFIG} from '../../../src/config';
 
 describe('SeNARSCLI Command Handlers', () => {
     let nar: NAR;

@@ -7,26 +7,26 @@
  * ENABLE_MCP=true to opt in to additional transports.
  */
 
-import {createAgent} from '../agent/agent.js';
-import {createAutonomyEngine} from '../agent/index.js';
-import {ConnectionManager} from '../io/connection-manager.js';
-import {AuthManager} from '../io/auth.js';
-import {CommandRegistry} from '../io/commands/registry.js';
-import {CLIConnection, HTTPConnection, IRCConnection, MCPConnection, WSConnection} from '../io/index.js';
-import {bindAgentToConnection} from '../agent/io-bridge.js';
-import {agentConfigToOptions, createConnectionConfigsFromEnv} from '../agent/options-schema.js';
-import {JsonlSessionManager} from '../agent/SessionManager.js';
-import {registerAllCommands} from '../agent/register-commands.js';
-import {NLGenerationService} from '../nar/nl/generation.js';
-import {SeNARSFactory} from '../nar/index.js';
-import {createSeNARSRegistry} from '../nar/lm/providers.js';
-import {setupDefaultLMClient} from '../nar/lm/defaults.js';
+import {createAgent} from '../agent';
+import {createAutonomyEngine} from '../agent';
+import {ConnectionManager} from '../io';
+import {AuthManager} from '../io';
+import {CommandRegistry} from '../io';
+import {CLIConnection, HTTPConnection, IRCConnection, MCPConnection, WSConnection} from '../io';
+import {bindAgentToConnection} from '../agent';
+import {agentConfigToOptions, createConnectionConfigsFromEnv} from '../agent';
+import {JsonlSessionManager} from '../agent';
+import {registerAllCommands} from '../agent';
+import {NLGenerationService} from '../nar/nl';
+import {SeNARSFactory} from '../nar';
+import {createSeNARSRegistry} from '../nar/lm';
+import {setupDefaultLMClient} from '../nar/lm';
 import {resolveLMConfig} from '../nar/lm/env-config.js';
-import {createLogger} from '../nar/logger/index.js';
+import {createLogger} from '../nar/logger';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
-import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
-import {loadConfigFromEnv} from '../config/index.js';
-import {setupGracefulShutdown} from '../utils/shutdown.js';
+import {DEFAULT_NAR_CONFIG} from '../config';
+import {loadConfigFromEnv} from '../config';
+import {setupGracefulShutdown} from '../utils';
 import {assertValidEnv} from '../utils/env-validate.js';
 import {mkdir} from 'node:fs/promises';
 

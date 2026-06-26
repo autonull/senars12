@@ -1,4 +1,4 @@
-import {termParser} from '../../../src/nar/terms/index.js';
+import {termParser} from '../../../src/nar';
 
 describe('TermParser', () => {
     describe('Variable Support', () => {

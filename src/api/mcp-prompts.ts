@@ -1,4 +1,4 @@
-import type {EnhancedMCPAdapter} from './mcp/enhanced-adapter.js';
+import type {EnhancedMCPAdapter} from './mcp';
 
 export function registerMCPPrompts(adapter: EnhancedMCPAdapter): void {
     adapter.registerCapability({

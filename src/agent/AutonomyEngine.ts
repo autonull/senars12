@@ -1,6 +1,6 @@
-import type {NAR} from '../nar/nar.js';
+import type {NAR} from '../nar';
 import type {EventBus, EventMap} from './EventBus.js';
-import {createLogger, type Logger} from '../nar/logger/index.js';
+import {createLogger, type Logger} from '../nar/logger';
 
 export interface AutonomyEngineConfig {
     maxStepsPerTick: number;

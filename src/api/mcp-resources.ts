@@ -1,6 +1,6 @@
-import type {EnhancedMCPAdapter} from './mcp/enhanced-adapter.js';
-import type {NAR} from '../nar/nar.js';
-import type {Agent} from '../agent/agent.js';
+import type {EnhancedMCPAdapter} from './mcp';
+import type {NAR} from '../nar';
+import type {Agent} from '../agent';
 
 export interface MCPResourceContext {
     nar: NAR;

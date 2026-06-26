@@ -1,16 +1,16 @@
-import type {NAR} from '../../nar/nar.js';
+import type {NAR} from '../../nar';
 
 import type {EpisodeType, EpisodicMemory} from '../../nar/memory/EpisodicMemory.js';
-import {ContextAssembler, type ContextAssemblerOpts} from '../../nar/nl/context-assembler.js';
-import {NLUnderstandingService} from '../../nar/nl/understanding.js';
-import {NLGenerationService} from '../../nar/nl/generation.js';
-import {TranslationCache} from '../../nar/nl/cache.js';
-import {ApprovalManager, createGeneralTools, createNARSTools,} from '../../nar/tools/adapters/index.js';
+import {ContextAssembler, type ContextAssemblerOpts} from '../../nar/nl';
+import {NLUnderstandingService} from '../../nar/nl';
+import {NLGenerationService} from '../../nar/nl';
+import {TranslationCache} from '../../nar/nl';
+import {ApprovalManager, createGeneralTools, createNARSTools,} from '../../nar/tools/adapters';
 import {ModelRunner} from '../model/ModelRunner.js';
 import {buildAgentTools} from '../tools.js';
 import type {ConversationSession} from '../ConversationSession.js';
 
-import {createLogger, type Logger} from '../../nar/logger/index.js';
+import {createLogger, type Logger} from '../../nar/logger';
 import {EventBus, type EventKey, type EventMap} from '../EventBus.js';
 import {AutonomyEngine} from '../AutonomyEngine.js';
 import type {AutonomousLoop} from '../AutonomousLoop.js';
