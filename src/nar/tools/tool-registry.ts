@@ -226,7 +226,7 @@ export class ToolManager {
       name: tool.name,
       description: tool.description,
       capabilities: tool.capabilities,
-      tags: [],
+      tags: tool.tags ?? [],
       version: '1.0.0'
     };
     this.toolDescriptors.set(tool.name, resolvedDescriptor);
@@ -242,47 +242,36 @@ export class ToolManager {
     this.emit('tool:unregister', {name} as never);
   }
 
+  private emitState(name: string, state: LifecycleState): void {
+    this.emit(`tool:${state === 'running' ? 'init' : state}`, {name, state});
+  }
+
   async initializeTool(name: string): Promise<boolean> {
     const tool = this.get(name);
-    const state = this.lifecycleState.get(name);
-    if (!tool || state === 'running' || state === 'disposed') return false;
+    const ls = this.lifecycleState.get(name);
+    if (!tool || ls === 'running' || ls === 'disposed') return false;
 
-    try {
-      if (tool.capabilities?.requiresPermissions &&
-        !tool.capabilities.requiresPermissions.every(p => this.allowedPermissions.has(p))) {
-        return false;
-      }
-      this.lifecycleState.set(name, 'running');
-      this.emit('tool:init', {name, state: 'running'} as any);
-      return true;
-    } catch (error) {
-      logger.warn(`Tool initialization failed for ${name}: ${error}`);
+    if (tool.capabilities?.requiresPermissions &&
+      !tool.capabilities.requiresPermissions.every(p => this.allowedPermissions.has(p))) {
       return false;
     }
+    this.lifecycleState.set(name, 'running');
+    this.emitState(name, 'running');
+    return true;
   }
 
   async stopTool(name: string): Promise<boolean> {
     if (this.lifecycleState.get(name) !== 'running') return false;
-    try {
-      this.lifecycleState.set(name, 'stopped');
-      this.emit('tool:stop', {name, state: 'stopped'} as any);
-      return true;
-    } catch (error) {
-      logger.warn(`Tool stop failed for ${name}: ${error}`);
-      return false;
-    }
+    this.lifecycleState.set(name, 'stopped');
+    this.emitState(name, 'stopped');
+    return true;
   }
 
   async disposeTool(name: string): Promise<boolean> {
     if (this.lifecycleState.get(name) === 'disposed') return true;
-    try {
-      this.lifecycleState.set(name, 'disposed');
-      this.emit('tool:dispose', {name, state: 'disposed'} as any);
-      return true;
-    } catch (error) {
-      logger.warn(`Tool disposal failed for ${name}: ${error}`);
-      return false;
-    }
+    this.lifecycleState.set(name, 'disposed');
+    this.emitState(name, 'disposed');
+    return true;
   }
 
   getToolDescriptor(name: string): ToolDescriptor | undefined {
@@ -294,14 +283,12 @@ export class ToolManager {
     if (!filter) return all;
 
     return all.filter(desc => {
-      if (filter.tags && !filter.tags.every(tag => this.toolDescriptors.get(desc.name)?.tags?.includes(tag))) {
-        return false;
-      }
+      if (filter.tags && !filter.tags.every(tag => desc.tags?.includes(tag))) return false;
       if (filter.capabilities) {
         const caps = desc.capabilities;
         if (!caps) return false;
-        if (filter.capabilities.includes('pure') && !caps.pure) return false;
-        if (filter.capabilities.includes('readOnly') && !caps.readOnly) return false;
+        if (filter.capabilities.some(c => c === 'pure' && !caps.pure)) return false;
+        if (filter.capabilities.some(c => c === 'readOnly' && !caps.readOnly)) return false;
       }
       return true;
     });
@@ -379,6 +366,7 @@ export class ToolManager {
         try {
             const result = await this.registry.execute(name, args, context);
             const duration = Date.now() - startTime;
+            const resultEvent: ToolEvent = {type: 'tool_result', ...baseEvent, result, timestamp: Date.now(), duration};
 
             if (budget) {
                 budget.totalDuration = (budget.totalDuration || 0) + duration;
@@ -388,7 +376,6 @@ export class ToolManager {
                 }
             }
 
-            const resultEvent: ToolEvent = {type: 'tool_result', ...baseEvent, result, timestamp: Date.now(), duration};
             this.updateStatistics(name, result, duration);
             this.emit('tool:result', resultEvent);
             this.addToHistory(resultEvent);
@@ -396,15 +383,10 @@ export class ToolManager {
         } catch (error) {
             const duration = Date.now() - startTime;
             const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-            const errorResult = {success: false, content: null, error: errorMsg};
-            const errorEvent: ToolEvent = {
-                type: 'tool_error', ...baseEvent,
-                result: errorResult,
-                timestamp: Date.now(),
-                duration
-            };
+            const result = {success: false, content: null, error: errorMsg};
+            const errorEvent: ToolEvent = {type: 'tool_error', ...baseEvent, result, timestamp: Date.now(), duration};
 
-            this.updateStatistics(name, errorResult, duration);
+            this.updateStatistics(name, result, duration);
             this.emit('tool:error', errorEvent);
             this.addToHistory(errorEvent);
             throw error;

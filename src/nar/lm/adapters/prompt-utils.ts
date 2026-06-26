@@ -35,7 +35,7 @@ const ROLE_PREFIX: Record<V2Role, string> = {
     tool: 'Tool',
 };
 
-function textFromContent(content: string | Array<Record<string, unknown>>): string {
+export function textFromContent(content: string | Array<Record<string, unknown>>): string {
     if (typeof content === 'string') return content;
     const parts: string[] = [];
     for (const part of content) {

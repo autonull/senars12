@@ -7,24 +7,12 @@ import {BaseAdapter} from './base-adapter.js';
 import {z} from 'zod';
 import {SchemaTransformer} from './mcp/schema-transformer.js';
 import {errMsg} from '../nar/utils/helpers.js';
+import type {MCPToolCall, MCPToolResult} from './mcp/types.js';
 
 export interface MCPTool {
     name: string;
     description: string;
     inputSchema: Record<string, unknown>;
-}
-
-export interface MCPToolResult {
-    content: Array<{
-        type: string;
-        text: string;
-    }>;
-    isError?: boolean;
-}
-
-export interface MCPToolCall {
-    name: string;
-    arguments?: Record<string, unknown>;
 }
 
 export class MCPAdapter extends BaseAdapter {

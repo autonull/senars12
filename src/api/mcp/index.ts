@@ -26,7 +26,8 @@ export * from './schema-transformer.js';
 
 // Base adapter
 export {MCPAdapter} from '../mcp-adapter.js';
-export type {MCPTool, MCPToolResult, MCPToolCall} from '../mcp-adapter.js';
+export type {MCPTool} from '../mcp-adapter.js';
+export type {MCPToolResult, MCPToolCall} from './types.js';
 
 // Enhanced adapter with advanced features
 export * from './enhanced-adapter.js';

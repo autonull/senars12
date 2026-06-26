@@ -1,19 +1,7 @@
 import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
 import {createLogger} from '../../nar/logger/index.js';
-
-export interface MCPToolResult {
-    content: Array<{
-        type: string;
-        text: string;
-    }>;
-    isError?: boolean;
-}
-
-export interface MCPToolCall {
-    name: string;
-    arguments?: Record<string, unknown>;
-}
+import type {MCPToolCall, MCPToolResult} from '../../api/mcp/types.js';
 
 export class MCPConnection extends BaseConnection {
     override readonly id: string;

@@ -21,23 +21,18 @@ export class PromptBuilder {
         const constitution = this.nar?.getConstitution?.() ?? [];
         if (constitution.length > 0) {
             parts.push('## Constitution');
-            for (const b of constitution) {
-                parts.push((b as {term: {toString(): string}}).term.toString());
-            }
+            for (const b of constitution) parts.push((b as {term: {toString(): string}}).term.toString());
         }
 
         if (instruction) {
-            parts.push('## Instructions');
-            parts.push(instruction);
+            parts.push('## Instructions', instruction);
         }
 
         if (session) {
             const pad = this.sessionOrchestrator.getScratchpad(session);
             if (pad && pad.size > 0) {
                 parts.push('## Session Context');
-                for (const [k, v] of pad) {
-                    parts.push(`${k}: ${v}`);
-                }
+                for (const [k, v] of pad) parts.push(`${k}: ${v}`);
             }
         }
 
@@ -49,50 +44,42 @@ export class PromptBuilder {
             }
         }
 
-        if (this.nar && this.contextAssembler) {
-            const nlContext = this.contextAssembler.assemble(this.nar, input, this.contextOpts);
-            const stateParts: string[] = [];
-            if (nlContext.beliefs && nlContext.beliefs.length > 0) {
-                stateParts.push('Related beliefs:');
-                for (const b of nlContext.beliefs) {
-                    stateParts.push(`  ${b}`);
-                }
-            }
-            if (nlContext.activeGoals && nlContext.activeGoals.length > 0) {
-                stateParts.push('Active goals:');
-                for (const g of nlContext.activeGoals) {
-                    stateParts.push(`  ${g}`);
-                }
-            }
-            if (nlContext.recentDerivations && nlContext.recentDerivations.length > 0) {
-                stateParts.push('Recent derivations:');
-                for (const d of nlContext.recentDerivations) {
-                    stateParts.push(`  ${d}`);
-                }
-            }
-            if (nlContext.memoryHealth) {
-                stateParts.push(`Memory: ${nlContext.memoryHealth.totalConcepts} concepts, pressure ${(nlContext.memoryHealth.pressure * 100).toFixed(0)}%`);
-            }
-            const driveManager = this.nar.getDriveManager?.();
-            if (driveManager) {
-                const activeDrives = driveManager.getAllStates().filter(d => d.isActive);
-                if (activeDrives.length > 0) {
-                    stateParts.push('Active Drives:');
-                    for (const d of activeDrives) {
-                        stateParts.push(`  ${d.spec.id}: intensity ${(d.currentIntensity * 100).toFixed(0)}%`);
-                    }
-                }
-            }
+        const cognitive = this.buildCognitiveState(input);
+        if (cognitive) parts.push('## Cognitive State', cognitive);
 
-            if (stateParts.length > 0) {
-                parts.push('## Cognitive State');
-                parts.push(stateParts.join('\n'));
+        parts.push('## Tool Use Strategy', 'Think step by step. Use tools when needed. Be concise.');
+
+        return parts.join('\n\n');
+    }
+
+    private buildCognitiveState(input: string): string | null {
+        if (!this.nar || !this.contextAssembler) return null;
+        const nlContext = this.contextAssembler.assemble(this.nar, input, this.contextOpts);
+        const lines: string[] = [];
+
+        const addSection = (label: string, items: string[]) => {
+            if (items.length === 0) return;
+            lines.push(`${label}:`);
+            for (const item of items) lines.push(`  ${item}`);
+        };
+
+        addSection('Related beliefs', nlContext.beliefs ?? []);
+        addSection('Active goals', nlContext.activeGoals ?? []);
+        addSection('Recent derivations', nlContext.recentDerivations ?? []);
+
+        if (nlContext.memoryHealth) {
+            lines.push(`Memory: ${nlContext.memoryHealth.totalConcepts} concepts, pressure ${(nlContext.memoryHealth.pressure * 100).toFixed(0)}%`);
+        }
+
+        const driveManager = this.nar.getDriveManager?.();
+        if (driveManager) {
+            const activeDrives = driveManager.getAllStates().filter(d => d.isActive);
+            if (activeDrives.length > 0) {
+                lines.push('Active Drives:');
+                for (const d of activeDrives) lines.push(`  ${d.spec.id}: intensity ${(d.currentIntensity * 100).toFixed(0)}%`);
             }
         }
 
-        parts.push('## Tool Use Strategy');
-        parts.push('Think step by step. Use tools when needed. Be concise.');
-
-        return parts.join('\n\n');
+        return lines.length > 0 ? lines.join('\n') : null;
     }
 }

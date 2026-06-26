@@ -5,6 +5,23 @@
 
 import {JSONSchema7} from 'json-schema';
 
+// ---------------------------------------------------------------------------
+// Shared MCP Tool types (used by both api/ and io/ layers)
+// ---------------------------------------------------------------------------
+
+export interface MCPToolResult {
+    content: Array<{
+        type: string;
+        text: string;
+    }>;
+    isError?: boolean;
+}
+
+export interface MCPToolCall {
+    name: string;
+    arguments?: Record<string, unknown>;
+}
+
 /**
  * Abstract capability descriptor (aligned with MCP tool schema)
  */

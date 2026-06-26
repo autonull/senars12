@@ -1,6 +1,7 @@
 import type {LMClient, LMConfig} from '../types.js';
 import {createLogger} from '../../logger/index.js';
-import {extractSystemPrompt, buildJsonToolSystemPrompt, type V2Tool} from './prompt-utils.js';
+import type {V2Tool} from './prompt-utils.js';
+import {extractSystemPrompt, buildJsonToolSystemPrompt, textFromContent} from './prompt-utils.js';
 
 const logger = createLogger({scope: 'lm:adapter'});
 
@@ -190,27 +191,6 @@ function renderPrompt(
         blocks.push(`### ${role}\n${text}`);
     }
     return blocks.join('\n\n');
-}
-
-function textFromContent(content: string | Array<Record<string, unknown>>): string {
-    if (typeof content === 'string') return content;
-    const parts: string[] = [];
-    for (const part of content) {
-        const type = part.type as string;
-        if (type === 'text' && typeof part.text === 'string') {
-            parts.push(part.text);
-        } else if (type === 'tool-call' || type === 'tool_use') {
-            const name = (part.toolName ?? part.name) as string | undefined;
-            const args = (part.input ?? part.args) as Record<string, unknown> | undefined;
-            parts.push(`[calling tool ${name ?? '?'}: ${JSON.stringify(args ?? {})}]`);
-        } else if (type === 'tool-result') {
-            const name = (part.toolName ?? part.name) as string | undefined;
-            parts.push(`[tool ${name ?? '?'} returned: ${JSON.stringify(part.result ?? part.output ?? '')}]`);
-        } else if (type === 'reasoning' && typeof part.text === 'string') {
-            parts.push(`[reasoning: ${part.text}]`);
-        }
-    }
-    return parts.join('');
 }
 
 const TOOL_CALL_MARKER = '"name"';

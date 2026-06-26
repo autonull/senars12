@@ -57,14 +57,6 @@ export interface LMClient {
 
     generateText(prompt: string, options?: LMConfig & { signal?: AbortSignal }): Promise<string>;
 
-    generateTextWithCache?(prompt: string, options?: LMConfig): Promise<string>;
-
-    getCachedResponse?(prompt: string): string | undefined;
-
-    clearCache?(): void;
-
-    getCost?(): { tokens: number; cost: number };
-
     setModel?(model: string): void;
 
     getStats?(): LMClientStats;

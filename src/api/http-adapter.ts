@@ -97,8 +97,13 @@ export class HTTPAdapter extends BaseAdapter {
 
         try {
             const body = await this.parseBody(req);
-            const handlerName = url.pathname.slice(1);
+            if (body === null) {
+                res.statusCode = 400;
+                res.end(JSON.stringify(errorResponse('INVALID_JSON', 'Invalid JSON body')));
+                return;
+            }
 
+            const handlerName = url.pathname.slice(1);
             if (!this.registry.hasHandler(handlerName)) {
                 res.statusCode = 404;
                 res.end(JSON.stringify(errorResponse('HANDLER_NOT_FOUND', 'Handler not found')));
@@ -129,14 +134,13 @@ export class HTTPAdapter extends BaseAdapter {
         return false;
     }
 
-    private async parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+    private async parseBody(req: IncomingMessage): Promise<Record<string, unknown> | null> {
         if (req.method === 'GET' || req.method === 'HEAD') return {};
         try {
             const body = await parseHttpBody(req);
             return body ? JSON.parse(body) : {};
-        } catch (e) {
-            console.error('JSON parse failed:', e);
-            return {};
+        } catch {
+            return null;
         }
     }
 }
