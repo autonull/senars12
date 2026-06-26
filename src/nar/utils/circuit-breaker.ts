@@ -31,7 +31,7 @@ export class CircuitBreaker {
                 this.failures = 0;
             } else {
                 logger.warn('Circuit breaker execution rejected: circuit is open');
-                throw new OperationError('Circuit breaker is open', { state: this.state });
+                throw new OperationError('Circuit breaker is open', {state: this.state});
             }
         }
 

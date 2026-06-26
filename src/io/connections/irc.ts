@@ -59,7 +59,18 @@ export class IRCConnection extends BaseConnection {
         this.setState('connecting');
 
         return new Promise((resolve, reject) => {
-            const {port, username, realname, password, channels, tls, sasl, autoReconnectMaxRetries, server, nick} = this.ircConfig;
+            const {
+                port,
+                username,
+                realname,
+                password,
+                channels,
+                tls,
+                sasl,
+                autoReconnectMaxRetries,
+                server,
+                nick
+            } = this.ircConfig;
 
             this.client = new irc.Client(server, nick, {
                 port, userName: username, realName: realname, password: password || undefined,
@@ -68,7 +79,10 @@ export class IRCConnection extends BaseConnection {
                 retryCount: autoReconnectMaxRetries, retryDelay: 2000,
             });
 
-            const failTimeout = setTimeout(() => { reject(new Error('Connection timeout')); this.dispose(); }, 10000);
+            const failTimeout = setTimeout(() => {
+                reject(new Error('Connection timeout'));
+                this.dispose();
+            }, 10000);
 
             this.client.on('registered', () => {
                 clearTimeout(failTimeout);

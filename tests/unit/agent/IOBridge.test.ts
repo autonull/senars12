@@ -1,14 +1,14 @@
-import {describe, it, expect, jest} from '@jest/globals';
+import {describe, expect, it, jest} from '@jest/globals';
 import {bindAgentToConnection} from '../../../src/agent/io-bridge.js';
 import {createConnectionConfigsFromEnv} from '../../../src/agent/options-schema.js';
 import {
-    createErrorBoundary,
-    originExtractor,
-    createCommandInterceptor,
-    createRateLimiter,
-    createSessionBinder,
     createAgentDispatch,
     createAuthMiddleware,
+    createCommandInterceptor,
+    createErrorBoundary,
+    createRateLimiter,
+    createSessionBinder,
+    originExtractor,
     resolveSessionKey,
 } from '../../../src/agent/io-middleware.js';
 import {InMemorySessionManager, JsonlSessionManager} from '../../../src/agent/SessionManager.js';
@@ -40,12 +40,12 @@ const scriptedLM: LMClient = {
 type MessageHandler = (m: IOMessage) => Promise<void>;
 type TestConn = Connection & {
     messages: IOMessage[];
-    sent: Array<{target: string; text: string}>;
+    sent: Array<{ target: string; text: string }>;
     handlers: MessageHandler[];
 };
 
 function makeConn(): TestConn {
-    const sent: Array<{target: string; text: string}> = [];
+    const sent: Array<{ target: string; text: string }> = [];
     const messages: IOMessage[] = [];
     const handlers: MessageHandler[] = [];
     const conn: TestConn = {
@@ -56,8 +56,12 @@ function makeConn(): TestConn {
         messages,
         sent,
         handlers,
-        send: async (target, text) => { sent.push({target, text}); },
-        onMessage: (h) => { handlers.push(h); },
+        send: async (target, text) => {
+            sent.push({target, text});
+        },
+        onMessage: (h) => {
+            handlers.push(h);
+        },
         removeMessageHandler: (h) => {
             const idx = handlers.indexOf(h);
             if (idx >= 0) handlers.splice(idx, 1);
@@ -93,7 +97,7 @@ describe('originExtractor', () => {
         router.use(originExtractor);
         let observed: string | undefined;
         router.use(async (_msg, ctx) => {
-            observed = (ctx as {sessionKey?: string}).sessionKey;
+            observed = (ctx as { sessionKey?: string }).sessionKey;
         });
         const conn = makeConn();
         const context = {connection: conn, nar: fakeNar, respond: noopRespond};
@@ -190,7 +194,12 @@ describe('createSessionBinder', () => {
 describe('createAgentDispatch', () => {
     it('calls chatWithHistory when session present', async () => {
         const nar = SeNARSFactory.createForTesting({maxConcepts: 10});
-        const ep = new EpisodicMemory({enabled: true, basePath: mkdtempSync(join(tmpdir(), 'ep-')), retentionDays: 1, maxEntriesPerFile: 100});
+        const ep = new EpisodicMemory({
+            enabled: true,
+            basePath: mkdtempSync(join(tmpdir(), 'ep-')),
+            retentionDays: 1,
+            maxEntriesPerFile: 100
+        });
         const agent = createAgent({nar, lmClient: scriptedLM, episodicMemory: ep});
         const session = createSession('test:direct:alice');
         const mw = createAgentDispatch(agent);
@@ -245,7 +254,12 @@ describe('createAuthMiddleware', () => {
 describe('bindAgentToConnection end-to-end', () => {
     it('routes message → response, updates session', async () => {
         const nar = SeNARSFactory.createForTesting({maxConcepts: 10});
-        const ep = new EpisodicMemory({enabled: true, basePath: mkdtempSync(join(tmpdir(), 'ep-')), retentionDays: 1, maxEntriesPerFile: 100});
+        const ep = new EpisodicMemory({
+            enabled: true,
+            basePath: mkdtempSync(join(tmpdir(), 'ep-')),
+            retentionDays: 1,
+            maxEntriesPerFile: 100
+        });
         const agent = createAgent({nar, lmClient: scriptedLM, episodicMemory: ep});
         const sessionManager = new InMemorySessionManager();
         const conn = makeConn();
@@ -263,7 +277,12 @@ describe('bindAgentToConnection end-to-end', () => {
 
     it('responds to /help through registry', async () => {
         const nar = SeNARSFactory.createForTesting({maxConcepts: 10});
-        const ep = new EpisodicMemory({enabled: true, basePath: mkdtempSync(join(tmpdir(), 'ep-')), retentionDays: 1, maxEntriesPerFile: 100});
+        const ep = new EpisodicMemory({
+            enabled: true,
+            basePath: mkdtempSync(join(tmpdir(), 'ep-')),
+            retentionDays: 1,
+            maxEntriesPerFile: 100
+        });
         const agent = createAgent({nar, lmClient: scriptedLM, episodicMemory: ep});
         const sessionManager = new InMemorySessionManager();
         const registry = new CommandRegistry();
@@ -303,14 +322,16 @@ describe('resolveSessionKey', () => {
 });
 
 describe('createErrorBoundary', () => {
-    function makeLogger(): Logger & {errors: Array<{message: string; error?: Error}>} {
-        const errors: Array<{message: string; error?: Error}> = [];
+    function makeLogger(): Logger & { errors: Array<{ message: string; error?: Error }> } {
+        const errors: Array<{ message: string; error?: Error }> = [];
         return {
             errors,
             debug: () => undefined,
             info: () => undefined,
             warn: () => undefined,
-            error: (message, error) => { errors.push({message, error}); },
+            error: (message, error) => {
+                errors.push({message, error});
+            },
             child: () => makeLogger(),
         };
     }
@@ -321,7 +342,9 @@ describe('createErrorBoundary', () => {
         const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
         const boom = new Error('kaboom');
         const ctx = {connection: makeConn(), respond};
-        await mw(makeMessage('x'), ctx, async () => { throw boom; });
+        await mw(makeMessage('x'), ctx, async () => {
+            throw boom;
+        });
         expect(respond).toHaveBeenCalledWith('Error: kaboom');
         expect(logger.errors[0]?.message).toContain('middleware pipeline error');
         expect(logger.errors[0]?.error).toBe(boom);

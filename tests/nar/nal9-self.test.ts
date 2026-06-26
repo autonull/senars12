@@ -18,12 +18,12 @@ describe('NAL9 Self/Control Rules', () => {
         });
     });
 
-  // DISABLED: BOT7 §1.1 — creates spurious predictive negations
-  describe('errorPatternDetection', () => {
-    test('is disabled to prevent spurious predictive negations', () => {
-      expect(NALExtendedRules.errorPatternDetection).toBeUndefined();
+    // DISABLED: BOT7 §1.1 — creates spurious predictive negations
+    describe('errorPatternDetection', () => {
+        test('is disabled to prevent spurious predictive negations', () => {
+            expect(NALExtendedRules.errorPatternDetection).toBeUndefined();
+        });
     });
-  });
 
     // DISABLED: BOT7 §1.1 — embeds operations in inheritance predicates
     describe('utilityEstimation', () => {

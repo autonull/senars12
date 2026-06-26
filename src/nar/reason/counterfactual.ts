@@ -18,7 +18,7 @@ export async function counterfactual(
 ): Promise<CounterfactualReport> {
     const beliefsBefore = nar.getBeliefs().map(b => ({
         term: b.term.toString(),
-        truth: b.truth ? { ...b.truth } : undefined,
+        truth: b.truth ? {...b.truth} : undefined,
     }));
 
     const originalBelief = beliefsBefore.find(b => b.term === term.toString());

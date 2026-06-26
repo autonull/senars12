@@ -2,11 +2,11 @@ import {tool} from 'ai';
 import {z} from 'zod';
 import {spawn} from 'node:child_process';
 import {readFile, writeFile} from 'node:fs/promises';
-import {resolve, normalize} from 'node:path';
+import {normalize, resolve} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import type {EpisodicMemory} from '../../memory/EpisodicMemory.js';
-import {createEmbeddingGenerator, cosineSimilarity} from '../../memory/embedding.js';
 import type {EmbeddingGenerator} from '../../memory/embedding.js';
+import {cosineSimilarity, createEmbeddingGenerator} from '../../memory/embedding.js';
 
 // --- web_search ---
 
@@ -26,7 +26,10 @@ export function createWebSearchTools(deps: WebSearchDeps = {}) {
             }),
             execute: async ({query, count}) => {
                 if (!apiKey) {
-                    return {error: 'Web search is not configured. Set BRAVE_API_KEY or WEB_SEARCH_API_KEY.', results: []};
+                    return {
+                        error: 'Web search is not configured. Set BRAVE_API_KEY or WEB_SEARCH_API_KEY.',
+                        results: []
+                    };
                 }
                 try {
                     const url = new URL('https://api.search.brave.com/res/v1/web/search');
@@ -41,7 +44,7 @@ export function createWebSearchTools(deps: WebSearchDeps = {}) {
                     });
                     if (!response.ok) throw new Error(`Search API error: ${response.status}`);
                     const data = (await response.json()) as {
-                        web?: {results?: Array<{title: string; url: string; description: string}>};
+                        web?: { results?: Array<{ title: string; url: string; description: string }> };
                     };
                     const results = (data.web?.results ?? []).map(r => ({
                         title: r.title, url: r.url, snippet: r.description,
@@ -82,7 +85,9 @@ export function createHTTPFetchTools() {
                     });
                     const bodyText = await response.text();
                     const responseHeaders: Record<string, string> = {};
-                    response.headers.forEach((value, key) => { responseHeaders[key] = value; });
+                    response.headers.forEach((value, key) => {
+                        responseHeaders[key] = value;
+                    });
                     return {
                         status: response.status,
                         statusText: response.statusText,
@@ -138,7 +143,9 @@ export function createCodeExecTools(deps: CodeExecDeps = {}) {
                     const stderr: Buffer[] = [];
                     let truncated = false;
 
-                    const collect = (buffer: Buffer[], target: Buffer[], byteCount: {value: number}, maxBytes: number) => {
+                    const collect = (buffer: Buffer[], target: Buffer[], byteCount: {
+                        value: number
+                    }, maxBytes: number) => {
                         return (data: Buffer) => {
                             const remaining = maxBytes - byteCount.value;
                             if (remaining <= 0) {
@@ -172,7 +179,14 @@ export function createCodeExecTools(deps: CodeExecDeps = {}) {
 
                     child.on('error', (err) => {
                         clearTimeout(timer);
-                        resolve({error: String(err), exitCode: -1, stdout: '', stderr: '', duration: Date.now() - startTime, truncated: false});
+                        resolve({
+                            error: String(err),
+                            exitCode: -1,
+                            stdout: '',
+                            stderr: '',
+                            duration: Date.now() - startTime,
+                            truncated: false
+                        });
                     });
                 });
             },
@@ -211,7 +225,10 @@ export function createFileSystemTools(deps: FileSystemDeps) {
                     const resolvedPath = enforceWorkspaceScope(path, deps.workspaceRoot);
                     const stat = await import('node:fs/promises').then(m => m.stat(resolvedPath));
                     if (!stat.isFile()) return {error: 'Not a file', path};
-                    if (stat.size > maxReadSize) return {error: `File too large (${stat.size} bytes, max ${maxReadSize})`, path};
+                    if (stat.size > maxReadSize) return {
+                        error: `File too large (${stat.size} bytes, max ${maxReadSize})`,
+                        path
+                    };
                     const content = await readFile(resolvedPath, 'utf-8');
                     return {content, path, size: content.length};
                 } catch (error) {
@@ -275,13 +292,19 @@ export function createRagQueryTools(deps: RagQueryDeps) {
                         return {results: [], count: 0};
                     }
                     const queryEmbedding = await embedder.generate(query);
-                    const scored: Array<{episode: {timestamp: number; type: string; content: string}; score: number}> = [];
+                    const scored: Array<{
+                        episode: { timestamp: number; type: string; content: string };
+                        score: number
+                    }> = [];
                     for (const ep of episodes) {
                         const text = `${ep.content} ${Object.values(ep.metadata ?? {}).join(' ')}`;
                         const emb = await embedder.generate(text);
                         const score = cosineSimilarity(queryEmbedding, emb);
                         if (score > 0.05) {
-                            scored.push({episode: {timestamp: ep.timestamp, type: ep.type, content: ep.content}, score});
+                            scored.push({
+                                episode: {timestamp: ep.timestamp, type: ep.type, content: ep.content},
+                                score
+                            });
                         }
                     }
                     scored.sort((a, b) => b.score - a.score);

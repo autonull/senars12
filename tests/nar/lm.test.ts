@@ -26,10 +26,10 @@ describe('LMResponseParser', () => {
             expect(result.error).toBe('Empty response');
         });
 
-  test('extracts term from text with surrounding content', () => {
-    const result = LMResponseParser.parse('(bird --> animal)');
-    expect(result.valid).toBe(true);
-  });
+        test('extracts term from text with surrounding content', () => {
+            const result = LMResponseParser.parse('(bird --> animal)');
+            expect(result.valid).toBe(true);
+        });
 
         test('extracts similarity from text', () => {
             const result = LMResponseParser.parse('(A <-> B)');
@@ -37,10 +37,10 @@ describe('LMResponseParser', () => {
             expect(result.term.kind).toBe('similarity');
         });
 
-  test('handles malformed JSON gracefully', () => {
-    const result = LMResponseParser.parse('(A --> B)');
-    expect(result.valid).toBe(true);
-  });
+        test('handles malformed JSON gracefully', () => {
+            const result = LMResponseParser.parse('(A --> B)');
+            expect(result.valid).toBe(true);
+        });
     });
 
     describe('validate', () => {
@@ -48,9 +48,9 @@ describe('LMResponseParser', () => {
             expect(LMResponseParser.validate('(A --> B)').valid).toBe(true);
         });
 
-  test('validates Narsese implication', () => {
-    expect(LMResponseParser.validate('(A ==> B)').valid).toBe(true);
-  });
+        test('validates Narsese implication', () => {
+            expect(LMResponseParser.validate('(A ==> B)').valid).toBe(true);
+        });
 
         test('validates Narsese similarity', () => {
             expect(LMResponseParser.validate('(A <-> B)').valid).toBe(true);

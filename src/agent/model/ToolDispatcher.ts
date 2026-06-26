@@ -53,7 +53,11 @@ export async function dispatchToolCalls(calls: ToolCall[], deps: ToolDispatcherD
     for (const call of calls) {
         const tool = deps.tools[call.toolName] as ExecutableTool | undefined;
         if (!tool?.execute) {
-            errors.push({toolCallId: call.toolCallId, toolName: call.toolName, message: `Tool ${call.toolName} not found or not executable`});
+            errors.push({
+                toolCallId: call.toolCallId,
+                toolName: call.toolName,
+                message: `Tool ${call.toolName} not found or not executable`
+            });
             continue;
         }
         let result: unknown;
@@ -77,9 +81,9 @@ export async function dispatchToolCalls(calls: ToolCall[], deps: ToolDispatcherD
         });
 
         if (call.toolName === 'nar_believe' && isBeliefSuccess(result)) {
-            const r = result as {statement?: unknown};
+            const r = result as { statement?: unknown };
             const statement = r.statement;
-            const fallback = (call.args as {statement?: unknown}).statement;
+            const fallback = (call.args as { statement?: unknown }).statement;
             const content = typeof statement === 'string' ? statement : JSON.stringify(statement ?? fallback ?? '');
             artifacts.push({
                 type: 'belief_added',
@@ -94,7 +98,7 @@ export async function dispatchToolCalls(calls: ToolCall[], deps: ToolDispatcherD
 }
 
 function isBeliefSuccess(result: unknown): boolean {
-    return typeof result === 'object' && result !== null && (result as {success?: unknown}).success === true;
+    return typeof result === 'object' && result !== null && (result as { success?: unknown }).success === true;
 }
 
 function summarize(result: unknown): string {

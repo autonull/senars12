@@ -1,12 +1,14 @@
 import type {Concept, Memory} from '../../memory';
 import type {Task} from '../../types';
 import {createSecondaryTask} from '../../types';
-import {termsEqual, extractSymbols} from '../../terms';
+import {extractSymbols, termsEqual} from '../../terms';
 
 const hasSharedAtoms = (term1: Task['term'], term2: Task['term']): boolean => {
     const atoms1 = extractSymbols(term1);
     const atoms2 = extractSymbols(term2);
-    for (const a of atoms1) { if (atoms2.has(a)) return true; }
+    for (const a of atoms1) {
+        if (atoms2.has(a)) return true;
+    }
     return false;
 };
 

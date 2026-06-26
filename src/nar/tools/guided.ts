@@ -4,12 +4,12 @@ import {termParser, Truth} from '../terms';
 import {createBudget} from '../types';
 
 export class ToolGuidedReasoning {
-  constructor(
-    private memory: Memory,
-    private toolManager: ToolManager
-  ) {
-    // Event handling via EventBus would go here if needed
-  }
+    constructor(
+        private memory: Memory,
+        private toolManager: ToolManager
+    ) {
+        // Event handling via EventBus would go here if needed
+    }
 
     async executeToolAndReason(toolName: string, args: Record<string, unknown>): Promise<boolean> {
         try {

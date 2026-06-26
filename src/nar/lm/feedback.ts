@@ -5,7 +5,7 @@ import {Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
 import {findUnderconnectedConceptsFromTasks, parseEnrichmentResponse} from './enrichment-utils.js';
 import {createLogger, type Logger} from '../logger/index.js';
-import {errMsg, clamp01} from '../utils/index.js';
+import {clamp01, errMsg} from '../utils/index.js';
 
 export interface FeedbackConfig {
     enableBidirectionalFeedback: boolean;
@@ -341,10 +341,10 @@ Respond with JSON:
             if (!Array.isArray(obj.patterns)) return [];
 
             return obj.patterns
-                .filter((p: unknown): p is {pattern: string; type: string; confidence: number; examples: string[]} =>
+                .filter((p: unknown): p is { pattern: string; type: string; confidence: number; examples: string[] } =>
                     typeof p === 'object' && p !== null && 'pattern' in p && 'type' in p
                 )
-                .map((p: {pattern: string; type: string; confidence?: number; examples?: string[]}) => ({
+                .map((p: { pattern: string; type: string; confidence?: number; examples?: string[] }) => ({
                     pattern: p.pattern,
                     type: p.type,
                     confidence: clamp01(p.confidence ?? 0.5),

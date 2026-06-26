@@ -1,20 +1,26 @@
 import {join} from 'node:path';
 import {promises as fs} from 'node:fs';
 import {
-    createSession,
     type ConversationSession,
-    type SessionMessage,
+    createSession,
     DEFAULT_SESSION_HISTORY_LIMIT,
+    type SessionMessage,
 } from './ConversationSession.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
 
 export interface SessionManager {
     getOrCreate(key: string): ConversationSession;
+
     markDirty(session: ConversationSession): Promise<void>;
+
     evictExpired(ttlMs: number): number;
+
     snapshot(): Promise<void>;
+
     restore(): Promise<void>;
+
     size(): number;
+
     close(): Promise<void>;
 }
 
@@ -207,7 +213,9 @@ export class JsonlSessionManager implements SessionManager {
             await this.writeQueue;
             const keyCopy = key;
             this.writeQueue = this.writeSession(session)
-                .then(() => { this.dirty.delete(keyCopy); })
+                .then(() => {
+                    this.dirty.delete(keyCopy);
+                })
                 .catch(err => {
                     this.dirty.delete(keyCopy);
                     this.logger.error('session flush failed', err instanceof Error ? err : new Error(String(err)), {key: keyCopy});

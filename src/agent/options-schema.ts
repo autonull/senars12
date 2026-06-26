@@ -1,4 +1,7 @@
 import {z} from 'zod';
+import type {AgentOptions} from './agent.js';
+import type {AgentSectionConfig} from '../config/schema.js';
+import type {ConnectionConfig} from '../io/types.js';
 
 const contextOptsSchema = z.object({
     attention: z.union([z.boolean(), z.array(z.string())]).optional(),
@@ -35,6 +38,7 @@ export type ValidatedAgentOptions = z.infer<typeof agentOptionsSchema>;
 
 export class AgentOptionsValidationError extends Error {
     override name = 'AgentOptionsValidationError' as const;
+
     constructor(message: string, readonly issues: z.ZodIssue[]) {
         super(message);
     }
@@ -50,10 +54,6 @@ export const validateAgentOptions = (opts: unknown): ValidatedAgentOptions => {
     }
     return result.data;
 };
-
-import type {AgentOptions} from './agent.js';
-import type {AgentSectionConfig} from '../config/schema.js';
-import type {ConnectionConfig} from '../io/types.js';
 
 export const agentConfigToOptions = (config: AgentSectionConfig): Partial<AgentOptions> => {
     const out: Partial<AgentOptions> = {

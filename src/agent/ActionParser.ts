@@ -46,28 +46,11 @@ export class ActionParser {
         return this.parseNaturalLanguage(output);
     }
 
-    private parseNaturalLanguage(output: string): ToolCall[] {
-        const calls: ToolCall[] = [];
-
-        for (const pattern of this.toolPatterns) {
-            const matches = output.matchAll(pattern.regex);
-            for (const match of matches) {
-                calls.push({
-                    tool: pattern.tool,
-                    parameters: pattern.extractParams(match),
-                    id: makeId(),
-                });
-            }
-        }
-
-        return calls;
-    }
-
     addToolPattern(pattern: ToolPattern): void {
         this.toolPatterns.push(pattern);
     }
 
-    validateToolCall(call: ToolCall): {valid: boolean; errors: string[]} {
+    validateToolCall(call: ToolCall): { valid: boolean; errors: string[] } {
         const schema = this.toolSchemas.get(call.tool);
         if (!schema) {
             return {valid: false, errors: [`Unknown tool: ${call.tool}`]};
@@ -83,6 +66,23 @@ export class ActionParser {
 
     getRegisteredTools(): string[] {
         return Array.from(this.toolSchemas.keys());
+    }
+
+    private parseNaturalLanguage(output: string): ToolCall[] {
+        const calls: ToolCall[] = [];
+
+        for (const pattern of this.toolPatterns) {
+            const matches = output.matchAll(pattern.regex);
+            for (const match of matches) {
+                calls.push({
+                    tool: pattern.tool,
+                    parameters: pattern.extractParams(match),
+                    id: makeId(),
+                });
+            }
+        }
+
+        return calls;
     }
 }
 

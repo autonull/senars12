@@ -204,7 +204,10 @@ export const appConfigSchema = z.object({
     }).default({...capabilitiesDefaults, lm: {...capabilitiesDefaults.lm}, senars: {...capabilitiesDefaults.senars}}),
     core: narCoreSchema.default({...narCoreDefaults}),
     agent: agentSectionSchema,
-    bot: botConfigSchema.default({...botConfigDefaults, lmRules: {...botConfigDefaults.lmRules, rules: [...botConfigDefaults.lmRules.rules]}}),
+    bot: botConfigSchema.default({
+        ...botConfigDefaults,
+        lmRules: {...botConfigDefaults.lmRules, rules: [...botConfigDefaults.lmRules.rules]}
+    }),
     connections: z.record(z.string(), z.unknown()).default(() => ({})),
 });
 

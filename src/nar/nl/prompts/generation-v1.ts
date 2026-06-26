@@ -1,18 +1,18 @@
 export interface ConflictInfo {
-    belief: {term: string; truth?: {frequency: number; confidence: number}};
-    conflictWith: {term: string; truth?: {frequency: number; confidence: number}};
+    belief: { term: string; truth?: { frequency: number; confidence: number } };
+    conflictWith: { term: string; truth?: { frequency: number; confidence: number } };
     type: 'direct' | 'frequency' | 'implication';
 }
 
 export function buildGenerationPrompt(opts: {
     query: string;
-    beliefs: Array<{term: string; truth?: {frequency: number; confidence: number}}>;
+    beliefs: Array<{ term: string; truth?: { frequency: number; confidence: number } }>;
     conflicts: ConflictInfo[];
     derivationSteps?: number;
     reasoningType?: string;
     keyPremises?: string[];
     gaps?: string[];
-    userProfile?: {expertise: string; verbosity: string};
+    userProfile?: { expertise: string; verbosity: string };
 }): string {
     const parts: string[] = [];
 
@@ -63,7 +63,7 @@ export function buildGenerationPrompt(opts: {
     return parts.join('\n');
 }
 
-export function buildClarificationPrompt(input: string, ambiguity: {type: string; options: string[]}): string {
+export function buildClarificationPrompt(input: string, ambiguity: { type: string; options: string[] }): string {
     return [
         'The user input is ambiguous and needs clarification.',
         `Input: "${input}"`,

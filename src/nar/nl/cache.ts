@@ -5,7 +5,7 @@ export interface TranslationCacheEntry {
 }
 
 export interface TranslationResult {
-    beliefs: Array<{narsese: string; truth?: {f: number; c: number}}>;
+    beliefs: Array<{ narsese: string; truth?: { f: number; c: number } }>;
     questions: string[];
     goals: string[];
     summary: string;
@@ -24,7 +24,7 @@ export class TranslationCache {
     private ttlMs = 60 * 60 * 1000; // 1 hour
     private flushTimer?: NodeJS.Timeout;
 
-    constructor(opts?: {maxSize?: number; flushInterval?: number; ttlMs?: number; basePath?: string}) {
+    constructor(opts?: { maxSize?: number; flushInterval?: number; ttlMs?: number; basePath?: string }) {
         if (opts?.maxSize) this.maxSize = opts.maxSize;
         if (opts?.flushInterval) this.flushInterval = opts.flushInterval;
         if (opts?.ttlMs) this.ttlMs = opts.ttlMs;
@@ -34,19 +34,12 @@ export class TranslationCache {
         }
     }
 
-    private startAutoFlush(basePath: string): void {
-        this.flushTimer = setInterval(() => {
-            this.saveToFile(basePath);
-        }, 5 * 60 * 1000); // Auto-save every 5 minutes
-        this.flushTimer.unref();
-    }
-
     record(nl: string, result: TranslationResult | string): void {
         if (this.cache.size >= this.maxSize) {
             const oldest = this.cache.keys().next().value;
             if (oldest) this.cache.delete(oldest);
         }
-        this.cache.set(nl.toLowerCase(), { nl, result, timestamp: Date.now() });
+        this.cache.set(nl.toLowerCase(), {nl, result, timestamp: Date.now()});
 
         this.flushCounter++;
         if (this.flushCounter >= this.flushInterval) {
@@ -128,5 +121,12 @@ export class TranslationCache {
             clearInterval(this.flushTimer);
             this.flushTimer = undefined;
         }
+    }
+
+    private startAutoFlush(basePath: string): void {
+        this.flushTimer = setInterval(() => {
+            this.saveToFile(basePath);
+        }, 5 * 60 * 1000); // Auto-save every 5 minutes
+        this.flushTimer.unref();
     }
 }

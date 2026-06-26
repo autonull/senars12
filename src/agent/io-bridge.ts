@@ -1,5 +1,5 @@
 import type {Connection, IOMessage} from '../io/types.js';
-import {MessageRouter, type MessageContext} from '../io/router.js';
+import {type MessageContext, MessageRouter} from '../io/router.js';
 import type {Agent} from './agent.js';
 import type {AuthManager} from '../io/auth.js';
 import type {CommandRegistry} from '../io/commands/registry.js';
@@ -10,16 +10,16 @@ import {resolveReplyTarget} from '../io/connections/reply-target.js';
 import type {NLGenerationService} from '../nar/nl/generation.js';
 import {createLogger} from '../nar/logger/index.js';
 import {
-    createErrorBoundary,
-    originExtractor,
+    compose,
     createAuthMiddleware,
     createCommandInterceptor,
+    createErrorBoundary,
+    createNarseseOutputHumanization,
+    createNarsTraceAnnotator,
     createRateLimiter,
     createSessionBinder,
     createStreamingAgentDispatch,
-    createNarsTraceAnnotator,
-    createNarseseOutputHumanization,
-    compose,
+    originExtractor,
 } from './io-middleware.js';
 
 export interface BridgeOptions {

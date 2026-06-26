@@ -10,7 +10,7 @@ import {createMockLMClient} from './mock-client.js';
 import {createLogger} from '../logger/index.js';
 import {OperationError} from '../types/core.js';
 import type {LanguageModel} from 'ai';
-import {TransformersLMClient, DEFAULT_TRANSFORMERS_MODEL} from './transformers-client.js';
+import {DEFAULT_TRANSFORMERS_MODEL, TransformersLMClient} from './transformers-client.js';
 import {resolveLMConfig} from './env-config.js';
 
 export const DEFAULT_COMPACT_MODEL = DEFAULT_TRANSFORMERS_MODEL;
@@ -60,54 +60,59 @@ export interface TurnkeyConfig {
 }
 
 class OllamaLMClient implements LMClient {
-  readonly provider = 'ollama';
-  readonly model: string;
-  available = true;
-  private modelInstance?: LanguageModel;
-  private initializing?: Promise<void>;
-  private readonly logger = createLogger({scope: 'lm:ollama'});
+    readonly provider = 'ollama';
+    readonly model: string;
+    available = true;
+    private modelInstance?: LanguageModel;
+    private initializing?: Promise<void>;
+    private readonly logger = createLogger({scope: 'lm:ollama'});
 
-  constructor(modelId: string = 'llama3.2') {
-    this.model = modelId;
-  }
-
-  async init(): Promise<void> {
-    await this.ensureInitialized();
-  }
-
-  async generateText(prompt: string, _options?: any): Promise<string> {
-    await this.ensureInitialized();
-    if (!this.modelInstance) {
-      throw new OperationError('Ollama model not initialized');
+    constructor(modelId: string = 'llama3.2') {
+        this.model = modelId;
     }
-    try {
-      const result = await (this.modelInstance as any).doGenerate({inputFormat: 'prompt', mode: {type: 'regular'}, prompt: [{role: 'user', content: [{type: 'text', text: prompt}]}], rawPrompt: undefined});
-      return result.content?.[0]?.text ?? '';
-    } catch (error: any) {
-      throw new OperationError(
-        `Ollama generation failed: ${error.message}`,
-        {provider: 'ollama', model: this.model, cause: error.message}
-      );
-    }
-  }
 
-  private async ensureInitialized(): Promise<void> {
-    if (this.modelInstance) return;
-    if (this.initializing) return this.initializing;
-    this.initializing = (async () => {
-      try {
-        const {ollama} = await import('ollama-ai-provider-v2');
-        this.modelInstance = ollama(this.model) as unknown as LanguageModel;
-      } catch (error) {
-        this.available = false;
-        this.logger.error('Failed to initialize Ollama', error as Error);
-        throw error;
-      } finally {
-        this.initializing = undefined;
-      }
-    })();
-    return this.initializing;
-  }
+    async init(): Promise<void> {
+        await this.ensureInitialized();
+    }
+
+    async generateText(prompt: string, _options?: any): Promise<string> {
+        await this.ensureInitialized();
+        if (!this.modelInstance) {
+            throw new OperationError('Ollama model not initialized');
+        }
+        try {
+            const result = await (this.modelInstance as any).doGenerate({
+                inputFormat: 'prompt',
+                mode: {type: 'regular'},
+                prompt: [{role: 'user', content: [{type: 'text', text: prompt}]}],
+                rawPrompt: undefined
+            });
+            return result.content?.[0]?.text ?? '';
+        } catch (error: any) {
+            throw new OperationError(
+                `Ollama generation failed: ${error.message}`,
+                {provider: 'ollama', model: this.model, cause: error.message}
+            );
+        }
+    }
+
+    private async ensureInitialized(): Promise<void> {
+        if (this.modelInstance) return;
+        if (this.initializing) return this.initializing;
+        this.initializing = (async () => {
+            try {
+                const {ollama} = await import('ollama-ai-provider-v2');
+                this.modelInstance = ollama(this.model) as unknown as LanguageModel;
+            } catch (error) {
+                this.available = false;
+                this.logger.error('Failed to initialize Ollama', error as Error);
+                throw error;
+            } finally {
+                this.initializing = undefined;
+            }
+        })();
+        return this.initializing;
+    }
 }
 
 export function createTransformersEntry(): ModelRegistryEntry {

@@ -1,15 +1,15 @@
 #!/usr/bin/env tsx
 import {createInterface} from 'readline';
-import {createAgent, type Agent, createAutonomyEngine} from '../agent/index.js';
+import {type Agent, createAgent, createAutonomyEngine} from '../agent/index.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {createSeNARSRegistry} from '../nar/lm/providers.js';
 import {setupDefaultLMClient} from '../nar/lm/defaults.js';
-import {resolveLMConfig, formatLMConfig} from '../nar/lm/env-config.js';
+import {formatLMConfig, resolveLMConfig} from '../nar/lm/env-config.js';
 import {createLogger} from '../nar/logger/index.js';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
 import {assertValidEnv} from '../utils/env-validate.js';
-import {QUIT_SENTINEL, type CLICommand} from '../io/connections/cli.js';
+import {type CLICommand, QUIT_SENTINEL} from '../io/connections/cli.js';
 import type {LMClient} from '../nar/lm/types.js';
 import type {NAR} from '../nar/nar.js';
 import {loadConfigFromEnv} from '../config/index.js';
@@ -133,7 +133,8 @@ const buildCommands = (nar: NAR, agent: Agent, lmClient: LMClient, sessionManage
             return `Stored: ${key}`;
         },
     },
-    {name: 'recall', description: 'Search episodic memory', execute: async (args) => {
+    {
+        name: 'recall', description: 'Search episodic memory', execute: async (args) => {
             const episodes = await agent.recall(args.trim() || undefined);
             const lines = [`\n--- ${episodes.length} Episode(s) ---`];
             for (const e of episodes) {
@@ -188,7 +189,12 @@ const buildCommands = (nar: NAR, agent: Agent, lmClient: LMClient, sessionManage
             return lines.join('\n');
         },
     },
-    {name: 'clear', description: 'Clear screen', execute: () => { console.clear(); return ''; }},
+    {
+        name: 'clear', description: 'Clear screen', execute: () => {
+            console.clear();
+            return '';
+        }
+    },
 ];
 
 async function readlineLoop(args: {
@@ -224,7 +230,10 @@ async function readlineLoop(args: {
         rl.prompt();
         rl.on('line', async (line) => {
             const keep = await handle(line);
-            if (!keep) { rl.close(); return; }
+            if (!keep) {
+                rl.close();
+                return;
+            }
             rl.prompt();
         });
         rl.on('close', () => resolve());
@@ -265,9 +274,9 @@ async function main() {
     const appConfig = await loadConfigFromEnv();
 
     const externalTools = {
-        webSearch: { apiKey: process.env.BRAVE_API_KEY ?? process.env.TAVILY_API_KEY },
-        codeExec: { maxTimeout: 10000, maxOutputBytes: 1024 * 1024 },
-        fs: { maxReadSize: 1024 * 1024 },
+        webSearch: {apiKey: process.env.BRAVE_API_KEY ?? process.env.TAVILY_API_KEY},
+        codeExec: {maxTimeout: 10000, maxOutputBytes: 1024 * 1024},
+        fs: {maxReadSize: 1024 * 1024},
     };
 
     const agent = createAgent({
@@ -290,13 +299,15 @@ async function main() {
 
     // Build commands with session manager reference
     const getSession = () => currentSession;
-    const setSession = (s: ConversationSession) => { currentSession = s; };
+    const setSession = (s: ConversationSession) => {
+        currentSession = s;
+    };
     const commands = buildCommands(nar, agent, lmClient, sessionManager, getSession, setSession);
 
     await readlineLoop({
         prompt: 'senars> ',
         commands,
-        onInput: async (text: string) => agent.chat(text, { session: currentSession }),
+        onInput: async (text: string) => agent.chat(text, {session: currentSession}),
     });
 
     // Stop the agent (which stops AutonomyEngine)

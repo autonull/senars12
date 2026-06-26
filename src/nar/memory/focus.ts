@@ -44,7 +44,7 @@ export class Focus {
                 return;
             }
         }
-        this.concepts.set(concept.term, { concept, priority: concept.priority });
+        this.concepts.set(concept.term, {concept, priority: concept.priority});
     }
 
     removeFromFocus(concept: Concept): boolean {
@@ -67,7 +67,7 @@ export class Focus {
     }
 
     boostTopic(topic: string, factor = 2.0, ttl = 50): void {
-        this.topicBoosts.set(topic.toLowerCase(), { factor, ttl });
+        this.topicBoosts.set(topic.toLowerCase(), {factor, ttl});
     }
 
     getActiveGoals(): Task[] {

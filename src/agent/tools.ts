@@ -4,8 +4,8 @@ import {tool} from 'ai';
 export interface AgentToolDeps {
     know: (key: string, value: string) => void;
     knowGet: (key: string) => string | undefined;
-    knowList: () => Array<{key: string; value: string}>;
-    recall: (query?: string, limit?: number) => Promise<Array<{timestamp: number; type: string; content: string}>>;
+    knowList: () => Array<{ key: string; value: string }>;
+    recall: (query?: string, limit?: number) => Promise<Array<{ timestamp: number; type: string; content: string }>>;
     setInstructions?: (mode: 'append' | 'replace', instructions: string) => void;
     getSessionInfo?: () => {
         messageCount: number;

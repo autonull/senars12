@@ -1,5 +1,5 @@
-import {createAgent, type Agent, type AgentOptions} from '../../src/agent/agent.js';
-import {createSession, type ConversationSession} from '../../src/agent/ConversationSession.js';
+import {type Agent, type AgentOptions, createAgent} from '../../src/agent/agent.js';
+import {type ConversationSession, createSession} from '../../src/agent/ConversationSession.js';
 import {SeNARSFactory} from '../../src/nar/index.js';
 import type {NAR} from '../../src/nar/nar.js';
 import type {LMClient} from '../../src/nar/lm/types.js';
@@ -17,11 +17,11 @@ export interface ProbeExpectations {
     expectLmRuleFired?: string[];
     expectBeliefCountChange?: number;
     expectNoAgentLmCall?: boolean;
-    expectDriveChanged?: {driveId: string; minDelta: number};
+    expectDriveChanged?: { driveId: string; minDelta: number };
     expectProactiveEvent?: string;
     expectNarDerivations?: number;
-    expectRLFPState?: {explorationRate?: number; policyChanged?: boolean};
-    expectExplanationChain?: {minPremises: number; minConfidence: number};
+    expectRLFPState?: { explorationRate?: number; policyChanged?: boolean };
+    expectExplanationChain?: { minPremises: number; minConfidence: number };
 }
 
 export interface ProbeResult {
@@ -29,7 +29,7 @@ export interface ProbeResult {
     response: string;
     narseseParsed: boolean;
     nlTranslated: boolean;
-    toolCalls: Array<{name: string; args: unknown}>;
+    toolCalls: Array<{ name: string; args: unknown }>;
     beliefsBefore: number;
     beliefsAfter: number;
     derivations: number;
@@ -130,14 +130,6 @@ export class ConversationalTestHarness {
         return this.nar;
     }
 
-    private getBeliefCount(): number {
-        return this.nar?.getBeliefs().length ?? 0;
-    }
-
-    private getDerivationCount(): number {
-        return this.agent?.getRecentDerivations().length ?? 0;
-    }
-
     async probe(input: string, expectations?: ProbeExpectations): Promise<ProbeResult> {
         if (!this.agent) throw new Error('Harness not set up — call setup() first');
 
@@ -146,7 +138,7 @@ export class ConversationalTestHarness {
         const lmBefore = this.lmCallCount;
         const errors: string[] = [];
         const startTime = Date.now();
-        const toolCalls: Array<{name: string; args: unknown}> = [];
+        const toolCalls: Array<{ name: string; args: unknown }> = [];
 
         const effectiveTimeout = expectations?.maxDurationMs ?? this.timeoutMs;
         const timeoutController = new AbortController();
@@ -154,7 +146,11 @@ export class ConversationalTestHarness {
 
         let response = '';
         try {
-            const stream = this.agent.chat(input, { stream: true, session: this.session, signal: timeoutController.signal});
+            const stream = this.agent.chat(input, {
+                stream: true,
+                session: this.session,
+                signal: timeoutController.signal
+            });
             let next = await stream.next();
             while (!next.done) {
                 const ev = next.value;
@@ -231,6 +227,14 @@ export class ConversationalTestHarness {
             failed,
             durationMs: Date.now() - startTime,
         };
+    }
+
+    private getBeliefCount(): number {
+        return this.nar?.getBeliefs().length ?? 0;
+    }
+
+    private getDerivationCount(): number {
+        return this.agent?.getRecentDerivations().length ?? 0;
     }
 
     private evaluateProbe(result: ProbeResult, expect?: ProbeExpectations): boolean {

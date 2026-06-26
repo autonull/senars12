@@ -1,7 +1,7 @@
 import {EventEmitter} from 'node:events';
 import type {Agent} from './types.js';
 import type {NAR} from '../nar/nar.js';
-import {makeId, errMsg} from '../nar/utils/index.js';
+import {errMsg, makeId} from '../nar/utils/index.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
 import type {TemporalEmbeddingMemory} from '../nar/memory/TemporalEmbeddingMemory.js';
 import type {ContextBuilder, ContextData, DriveState, ToolCall} from './ContextBuilder.js';
@@ -53,7 +53,7 @@ export interface ToolResult {
 export interface SystemState {
     narState: string;
     autonomyRunning: boolean;
-    memoryStats: {size: number; capacity: number};
+    memoryStats: { size: number; capacity: number };
     timestamp: number;
 }
 
@@ -102,6 +102,40 @@ export class AutonomousLoop {
         };
 
         this.setupEventHandlers();
+    }
+
+    async start(): Promise<void> {
+        this.logger.info('Starting AutonomousLoop');
+        this.emitter.emit('perception', {source: 'startup', timestamp: Date.now()});
+
+        this.wakeScheduler.on('wake', () => {
+            this.emitter.emit('perception', {source: 'scheduled', timestamp: Date.now()});
+        });
+
+        this.wakeScheduler.start();
+    }
+
+    stop(): void {
+        this.logger.info('Stopping AutonomousLoop');
+        this.wakeScheduler.stop();
+        this.emitter.removeAllListeners();
+    }
+
+    getState(): LoopState {
+        return this.state;
+    }
+
+    getEmitter(): EventEmitter {
+        return this.emitter;
+    }
+
+    async triggerPerception(input: string, priority = 0): Promise<void> {
+        this.emitter.emit('perception', {
+            source: 'external',
+            input,
+            timestamp: Date.now(),
+            priority,
+        });
     }
 
     private setupEventHandlers(): void {
@@ -244,40 +278,6 @@ export class AutonomousLoop {
             memoryStats: {size: 0, capacity: 0},
             timestamp: Date.now(),
         };
-    }
-
-    async start(): Promise<void> {
-        this.logger.info('Starting AutonomousLoop');
-        this.emitter.emit('perception', {source: 'startup', timestamp: Date.now()});
-
-        this.wakeScheduler.on('wake', () => {
-            this.emitter.emit('perception', {source: 'scheduled', timestamp: Date.now()});
-        });
-
-        this.wakeScheduler.start();
-    }
-
-    stop(): void {
-        this.logger.info('Stopping AutonomousLoop');
-        this.wakeScheduler.stop();
-        this.emitter.removeAllListeners();
-    }
-
-    getState(): LoopState {
-        return this.state;
-    }
-
-    getEmitter(): EventEmitter {
-        return this.emitter;
-    }
-
-    async triggerPerception(input: string, priority = 0): Promise<void> {
-        this.emitter.emit('perception', {
-            source: 'external',
-            input,
-            timestamp: Date.now(),
-            priority,
-        });
     }
 }
 

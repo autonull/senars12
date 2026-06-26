@@ -34,13 +34,13 @@ pnpm pi --provider ollama --model mistral:7b "prompt"
 
 ## In Pi Session
 
-| Command | Description |
-|---------|-------------|
-| `/mcp` | Interactive MCP panel |
-| `/mcp tools` | List all SeNARS tools |
-| `/mcp reconnect` | Reconnect MCP servers |
-| `mcp({search: "query"})` | Search tools |
-| `mcp({tool: "name", args: '{"key": "val"}'})` | Call tool |
+| Command                                       | Description           |
+|-----------------------------------------------|-----------------------|
+| `/mcp`                                        | Interactive MCP panel |
+| `/mcp tools`                                  | List all SeNARS tools |
+| `/mcp reconnect`                              | Reconnect MCP servers |
+| `mcp({search: "query"})`                      | Search tools          |
+| `mcp({tool: "name", args: '{"key": "val"}'})` | Call tool             |
 
 ## How It Works
 
@@ -74,6 +74,7 @@ The `.mcp.json` in project root configures SeNARS as an MCP server:
 ## Adding More MCP Servers
 
 Edit `.mcp.json` or run `/mcp setup` in Pi to add servers like:
+
 - `npx -y @modelcontextprotocol/server-github`
 - `npx -y @modelcontextprotocol/server-postgres`
 - Any npm MCP server
@@ -81,6 +82,7 @@ Edit `.mcp.json` or run `/mcp setup` in Pi to add servers like:
 ## Other Providers
 
 Pi supports many providers via `--provider` flag:
+
 - `ollama` (local, HTTP API) - **Default for SeNARS**
 - `openrouter` - Access 100+ models
 - `anthropic` - Claude models

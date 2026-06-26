@@ -20,7 +20,8 @@ system that thinks like humans do: fluidly, adaptively, and resourcefully, while
 
 - **Anytime** ⏱️ — Interruptible execution at any point
 - **Interruptible** ⏸️ — Cooperative yielding to event loop
-- **AIKR** 📚 — Assumption of Insufficient Knowledge Resources: Memory/attention/bag capacity, derivation depth enforced by types, CPU throttling, backpressure
+- **AIKR** 📚 — Assumption of Insufficient Knowledge Resources: Memory/attention/bag capacity, derivation depth enforced
+  by types, CPU throttling, backpressure
 
 ### 🎨 Zero-Cost Abstractions
 
@@ -71,8 +72,8 @@ pnpm run lint
 
 ## 🤖 Run the bot on IRC
 
-The `pnpm bot` command starts a multi-transport agent that drives a
-single SeNARS agent through IRC, CLI, and WebSocket. Three commands:
+The `pnpm bot` command starts a multi-transport agent that drives a single SeNARS agent through IRC, CLI, and WebSocket.
+Three commands:
 
 ```bash
 cp .env.example .env       # fill in your LM provider credentials
@@ -80,8 +81,8 @@ pnpm bot                    # IRC + WS by default
 ```
 
 Default behavior: connects to `irc.libera.chat#senars` as `senars-bot`
-and starts a WebSocket server on `ws://localhost:8765`. Friends can
-join the IRC channel and chat, or connect their bots to the WebSocket.
+and starts a WebSocket server on `ws://localhost:8765`. Friends can join the IRC channel and chat, or connect their bots
+to the WebSocket.
 
 To enable HTTP (REST) too: set `ENABLE_HTTP=true` in `.env`. See
 `docs/bot-api.md` for the bot-to-bot API and `docs/manual-test-irc.md`
@@ -104,9 +105,8 @@ pnpm run test --coverage
 
 ### End-to-end smoke scripts
 
-End-to-end smokes are spawned as child processes from Jest (the VM breaks
-ONNX's cross-realm Float32Array checks). They can also be run directly
-once the model weights are cached locally.
+End-to-end smokes are spawned as child processes from Jest (the VM breaks ONNX's cross-realm Float32Array checks). They
+can also be run directly once the model weights are cached locally.
 
 ```bash
 # Real-LM agent.executeEpisode end-to-end (used by tests/integration/execute-turn.test.ts)
@@ -117,10 +117,8 @@ pnpm exec tsx scripts/cli-smoke.ts
 ```
 
 The `cli-smoke` script seeds NARS with `(cat --> animal)` and
-`(animal --> living)`, then runs three probes that exercise the
-neurosymbolic loop end-to-end against the real
-`TransformersLMClient`. It prints one log line per probe and exits
-non-zero if any check fails.
+`(animal --> living)`, then runs three probes that exercise the neurosymbolic loop end-to-end against the real
+`TransformersLMClient`. It prints one log line per probe and exits non-zero if any check fails.
 
 ---
 

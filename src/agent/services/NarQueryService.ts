@@ -5,21 +5,7 @@ export class NarQueryService {
     constructor(
         private nar: NAR | undefined,
         private generationService: NLGenerationService | undefined
-    ) {}
-
-    private async explainTerm(term: string) {
-        if (!this.nar) return null;
-        const {termParser} = await import('../../nar/terms/index.js');
-        const parsed = termParser.parse(term);
-        if (!parsed) return null;
-        const result = this.nar.query.query(parsed, {truthRange: [0, 1], limit: 1});
-        if (!result.beliefs.length) return null;
-        const item = result.beliefs[0]!;
-        return {
-            explanation: item.term.toString(),
-            confidence: item.truth?.c ?? 0,
-            premises: [item.term.toString()],
-        };
+    ) {
     }
 
     async explainBelief(term: string) {
@@ -98,5 +84,20 @@ export class NarQueryService {
         } catch {
             return null;
         }
+    }
+
+    private async explainTerm(term: string) {
+        if (!this.nar) return null;
+        const {termParser} = await import('../../nar/terms/index.js');
+        const parsed = termParser.parse(term);
+        if (!parsed) return null;
+        const result = this.nar.query.query(parsed, {truthRange: [0, 1], limit: 1});
+        if (!result.beliefs.length) return null;
+        const item = result.beliefs[0]!;
+        return {
+            explanation: item.term.toString(),
+            confidence: item.truth?.c ?? 0,
+            premises: [item.term.toString()],
+        };
     }
 }

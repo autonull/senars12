@@ -126,7 +126,7 @@ export class EpisodicMemory {
 
     async clear(): Promise<void> {
         try {
-            await fs.rm(this.config.basePath, { recursive: true, force: true });
+            await fs.rm(this.config.basePath, {recursive: true, force: true});
         } catch {
             // Directory may not exist
         }
@@ -135,11 +135,11 @@ export class EpisodicMemory {
     }
 
     async recallRecent(limit = 5): Promise<Episode[]> {
-        return this.getEpisodes({ limit, type: 'input' });
+        return this.getEpisodes({limit, type: 'input'});
     }
 
     async getRecentSummary(limit = 10): Promise<string> {
-        const episodes = await this.getEpisodes({ limit });
+        const episodes = await this.getEpisodes({limit});
         if (episodes.length === 0) return 'No recent episodes.';
 
         const recent = episodes.slice(0, 5);

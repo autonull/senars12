@@ -2,19 +2,42 @@ import {resolveReplyTarget} from '../../../src/io/connections/reply-target.js';
 import type {Connection, IOMessage} from '../../../src/io/types.js';
 
 class FakeConn implements Partial<Connection> {
-    constructor(public readonly id: string, public readonly type: string) {}
     state = 'connected' as const;
     name = 'fake';
-    async connect() {}
-    async disconnect() {}
-    async reconnect() {}
-    async send() {}
-    onMessage() {}
-    removeMessageHandler() {}
-    onStateChange() {}
-    onError() {}
-    getStatus() { return {state: this.state, messageCount: 0, errorCount: 0}; }
-    async reconfigure() {}
+
+    constructor(public readonly id: string, public readonly type: string) {
+    }
+
+    async connect() {
+    }
+
+    async disconnect() {
+    }
+
+    async reconnect() {
+    }
+
+    async send() {
+    }
+
+    onMessage() {
+    }
+
+    removeMessageHandler() {
+    }
+
+    onStateChange() {
+    }
+
+    onError() {
+    }
+
+    getStatus() {
+        return {state: this.state, messageCount: 0, errorCount: 0};
+    }
+
+    async reconfigure() {
+    }
 }
 
 const msg = (overrides: Partial<IOMessage>): IOMessage => ({

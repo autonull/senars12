@@ -1,5 +1,5 @@
 import {ConversationalTestHarness, type Scenario, type ScenarioResult} from './framework.js';
-import {resolveTestLMClient, resolveProvider, describeProvider} from './providers.js';
+import {describeProvider, resolveProvider, resolveTestLMClient} from './providers.js';
 import {buildReport, formatHumanReadable, formatJson} from './report.js';
 
 import basicChat from './scenarios/basic-chat.js';

@@ -2,6 +2,7 @@ import {clamp01} from '../nar/utils/index.js';
 import type {DriveManager} from '../nar/drives/manager.js';
 import type {TemporalEmbeddingMemory} from '../nar/memory/TemporalEmbeddingMemory.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
+
 export interface Evaluation {
     successRate: number;
     errors: string[];
@@ -15,8 +16,8 @@ export interface DriveImpact {
 }
 
 export interface ReflectionEvent {
-    actions: Array<{tool: string; parameters: Record<string, unknown>; id: string}>;
-    results: Array<{tool: string; success: boolean; result?: unknown; error?: string; id: string}>;
+    actions: Array<{ tool: string; parameters: Record<string, unknown>; id: string }>;
+    results: Array<{ tool: string; success: boolean; result?: unknown; error?: string; id: string }>;
     timestamp: number;
 }
 
@@ -103,7 +104,11 @@ export class ReflectionEngine {
             const state = this.driveManager.getState(impact.drive);
             if (state) {
                 state.currentIntensity = clamp01(state.currentIntensity + impact.impact);
-                this.logger.debug('Drive updated', {drive: impact.drive, newIntensity: state.currentIntensity, impact: impact.impact});
+                this.logger.debug('Drive updated', {
+                    drive: impact.drive,
+                    newIntensity: state.currentIntensity,
+                    impact: impact.impact
+                });
             }
         }
     }

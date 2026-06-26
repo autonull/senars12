@@ -1,4 +1,4 @@
-import {describe, it, expect, beforeEach} from '@jest/globals';
+import {describe, expect, it} from '@jest/globals';
 import {AISDKAdapter} from '../../../src/nar/lm/adapters/AISDKAdapter.js';
 import type {LMClient} from '../../../src/nar/lm/types.js';
 
@@ -7,7 +7,10 @@ class CannedLMClient implements LMClient {
     readonly model = 'canned-1';
     readonly available = true;
     calls: string[] = [];
-    constructor(private readonly response: string) {}
+
+    constructor(private readonly response: string) {
+    }
+
     async generateText(prompt: string): Promise<string> {
         this.calls.push(prompt);
         return this.response;
@@ -28,7 +31,7 @@ function passthroughSchema() {
 function strictEchoSchema() {
     return {
         safeParse: (raw: unknown) => {
-            const r = raw as {text?: unknown};
+            const r = raw as { text?: unknown };
             if (typeof r?.text !== 'string') {
                 return {success: false, error: {issues: [{code: 'invalid_type', path: ['text']}]}};
             }
@@ -149,7 +152,7 @@ describe('AISDKAdapter', () => {
                 if (done) break;
                 events.push(value);
             }
-            const types = events.map(e => (e as {type: string}).type);
+            const types = events.map(e => (e as { type: string }).type);
             expect(types).toContain('text-delta');
             expect(types).toContain('finish');
         });
@@ -168,7 +171,7 @@ describe('AISDKAdapter', () => {
                 if (done) break;
                 events.push(value);
             }
-            const toolCall = events.find(e => (e as {type: string}).type === 'tool-call');
+            const toolCall = events.find(e => (e as { type: string }).type === 'tool-call');
             expect(toolCall).toBeDefined();
         });
     });

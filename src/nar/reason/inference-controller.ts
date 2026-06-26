@@ -6,8 +6,8 @@ import type {Task} from '../types/core.js';
 import type {Memory} from '../memory/memory.js';
 import type {RuleInput, RuleProcessor, RuleResult} from '../rules/processor.js';
 import type {Strategy} from './strategy.js';
-import type {SamplingStrategy, DerivationStrategy, DerivationContext} from '../strategies/types.js';
-import {createDerivedTask, createBeliefTask, exceedsDepthLimit, createCircularDetector} from './inference-utils.js';
+import type {DerivationContext, DerivationStrategy, SamplingStrategy} from '../strategies/types.js';
+import {createBeliefTask, createCircularDetector, createDerivedTask, exceedsDepthLimit} from './inference-utils.js';
 
 export interface InferenceConfig {
     maxDerivationsPerStep: number;
@@ -33,7 +33,8 @@ export class InferenceController {
         private strategy: Strategy,
         private derivationStrategy: DerivationStrategy,
         private readonly config: InferenceConfig
-    ) {}
+    ) {
+    }
 
     reconfigure(updates: {
         samplingStrategy?: SamplingStrategy;
@@ -120,6 +121,18 @@ export class InferenceController {
         }
     }
 
+    getStats(): { derivations: number; lmRulesFired: number; syncRulesFired: number } {
+        return {
+            derivations: this.derivationCount,
+            lmRulesFired: this.lmRulesFiredCount,
+            syncRulesFired: this.syncRulesFiredCount
+        };
+    }
+
+    resetCircularDetection(): void {
+        this.circularDetector.reset();
+    }
+
     private async* fireSinglePremiseRules(task: Task, signal?: AbortSignal): AsyncGenerator<Task> {
         const p1: RuleInput = {term: task.term, truth: task.truth, stamp: task.stamp};
         const maxDepth = this.config.maxDerivationDepth ?? 10;
@@ -163,17 +176,5 @@ export class InferenceController {
     private isCircular(task: Task): boolean {
         if (!this.config.enableCircularDetection) return false;
         return this.circularDetector.isCircular(task);
-    }
-
-    getStats(): {derivations: number; lmRulesFired: number; syncRulesFired: number} {
-        return {
-            derivations: this.derivationCount,
-            lmRulesFired: this.lmRulesFiredCount,
-            syncRulesFired: this.syncRulesFiredCount
-        };
-    }
-
-    resetCircularDetection(): void {
-        this.circularDetector.reset();
     }
 }

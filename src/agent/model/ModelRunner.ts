@@ -1,31 +1,35 @@
 import type {LMClient} from '../../nar/lm/types.js';
 import {adapt, type AISDKLanguageModel} from '../../nar/lm/adapters/index.js';
-import {dispatchToolCalls, type ToolCall, type ReasoningArtifact, type ToolError} from './ToolDispatcher.js';
+import {dispatchToolCalls, type ReasoningArtifact, type ToolCall, type ToolError} from './ToolDispatcher.js';
 import {errMsg} from '../../nar/utils/index.js';
 
 export interface ComposedRequest {
     system: string;
-    messages: Array<{role: 'user' | 'assistant' | 'system' | 'tool'; content: string | unknown[]; timestamp?: number}>;
+    messages: Array<{
+        role: 'user' | 'assistant' | 'system' | 'tool';
+        content: string | unknown[];
+        timestamp?: number
+    }>;
     tools: Record<string, unknown>;
     ctxHash: string;
     snapshot: unknown;
-    budget: {systemTokens: number; historyTokens: number; snapshotTokens: number; total: number; maxTokens: number};
+    budget: { systemTokens: number; historyTokens: number; snapshotTokens: number; total: number; maxTokens: number };
 }
 
 export type ModelEvent =
-    | {kind: 'text-delta'; text: string}
-    | {kind: 'tool-call'; call: ToolCall}
-    | {kind: 'tool-result'; call: ToolCall; result: unknown}
-    | {kind: 'tool-error'; call: ToolCall; error: string}
-    | {kind: 'finish'; text: string; toolCalls: ToolCall[]};
+    | { kind: 'text-delta'; text: string }
+    | { kind: 'tool-call'; call: ToolCall }
+    | { kind: 'tool-result'; call: ToolCall; result: unknown }
+    | { kind: 'tool-error'; call: ToolCall; error: string }
+    | { kind: 'finish'; text: string; toolCalls: ToolCall[] };
 
 export interface ModelRunResult {
     text: string;
     toolCalls: ToolCall[];
     artifacts: ReasoningArtifact[];
     errors: ToolError[];
-    messages: Array<{role: 'user' | 'assistant' | 'system' | 'tool'; content: string | unknown[]}>;
-    usage: {inputTokens: number; outputTokens: number; totalTokens: number};
+    messages: Array<{ role: 'user' | 'assistant' | 'system' | 'tool'; content: string | unknown[] }>;
+    usage: { inputTokens: number; outputTokens: number; totalTokens: number };
 }
 
 export interface ModelRunnerDeps {
@@ -81,13 +85,20 @@ export class ModelRunner {
         return this.model !== undefined;
     }
 
-    async *run(composed: ComposedRequest, signal?: AbortSignal): AsyncGenerator<ModelEvent, ModelRunResult> {
+    async* run(composed: ComposedRequest, signal?: AbortSignal): AsyncGenerator<ModelEvent, ModelRunResult> {
         if (!this.model) {
-            const empty: ModelRunResult = {text: '', toolCalls: [], artifacts: [], errors: [], messages: composed.messages, usage: {inputTokens: 0, outputTokens: 0, totalTokens: 0}};
+            const empty: ModelRunResult = {
+                text: '',
+                toolCalls: [],
+                artifacts: [],
+                errors: [],
+                messages: composed.messages,
+                usage: {inputTokens: 0, outputTokens: 0, totalTokens: 0}
+            };
             return empty;
         }
 
-        const messages: Array<{role: 'user' | 'assistant' | 'system' | 'tool'; content: string | unknown[]}> =
+        const messages: Array<{ role: 'user' | 'assistant' | 'system' | 'tool'; content: string | unknown[] }> =
             composed.messages.map(m => ({role: m.role, content: m.content as string | unknown[]}));
 
         const allCalls: ToolCall[] = [];
@@ -114,7 +125,14 @@ export class ModelRunner {
                 });
             } catch (e) {
                 const message = errMsg(e);
-                const failure: ModelRunResult = {text: message, toolCalls: allCalls, artifacts: allArtifacts, errors: allErrors, messages, usage: {inputTokens: totalInput, outputTokens: totalOutput, totalTokens: totalInput + totalOutput}};
+                const failure: ModelRunResult = {
+                    text: message,
+                    toolCalls: allCalls,
+                    artifacts: allArtifacts,
+                    errors: allErrors,
+                    messages,
+                    usage: {inputTokens: totalInput, outputTokens: totalOutput, totalTokens: totalInput + totalOutput}
+                };
                 return failure;
             }
 
@@ -124,7 +142,7 @@ export class ModelRunner {
             }
 
             let stepText = '';
-            const stepToolCalls: Array<{toolCallId: string; toolName: string; input: unknown}> = [];
+            const stepToolCalls: Array<{ toolCallId: string; toolName: string; input: unknown }> = [];
             for (const part of result.content) {
                 if (part.type === 'text') {
                     stepText += part.text;
@@ -158,7 +176,12 @@ export class ModelRunner {
                 role: 'assistant',
                 content: [
                     ...(stepText ? [{type: 'text', text: stepText}] : []),
-                    ...mapped.map(c => ({type: 'tool-call', toolCallId: c.toolCallId, toolName: c.toolName, input: c.args})),
+                    ...mapped.map(c => ({
+                        type: 'tool-call',
+                        toolCallId: c.toolCallId,
+                        toolName: c.toolName,
+                        input: c.args
+                    })),
                 ] as unknown[],
             });
 
@@ -211,14 +234,29 @@ export class ModelRunner {
         }
 
         yield {kind: 'finish', text, toolCalls: allCalls};
-        return {text, toolCalls: allCalls, artifacts: allArtifacts, errors: allErrors, messages, usage: {inputTokens: totalInput, outputTokens: totalOutput, totalTokens: totalInput + totalOutput}};
+        return {
+            text,
+            toolCalls: allCalls,
+            artifacts: allArtifacts,
+            errors: allErrors,
+            messages,
+            usage: {inputTokens: totalInput, outputTokens: totalOutput, totalTokens: totalInput + totalOutput}
+        };
     }
 }
 
-function toToolArray(tools: Record<string, unknown>): Array<{type: string; name: string; description?: string; inputSchema?: unknown}> {
+function toToolArray(tools: Record<string, unknown>): Array<{
+    type: string;
+    name: string;
+    description?: string;
+    inputSchema?: unknown
+}> {
     return Object.entries(tools).map(([name, def]) => {
-        const d = def as {description?: string; inputSchema?: unknown} | undefined;
-        return {type: 'function', name, ...(d?.description ? {description: d.description} : {}), ...(d?.inputSchema ? {inputSchema: d.inputSchema} : {})};
+        const d = def as { description?: string; inputSchema?: unknown } | undefined;
+        return {
+            type: 'function',
+            name, ...(d?.description ? {description: d.description} : {}), ...(d?.inputSchema ? {inputSchema: d.inputSchema} : {})
+        };
     });
 }
 
@@ -232,7 +270,12 @@ export function truncateArtifact(
     if (truncated === artifact.metadata.result) return artifact;
     return {
         ...artifact,
-        metadata: {...(artifact.metadata ?? {}), result: truncated, truncated: true, originalSize: estimateSize(artifact.metadata.result)},
+        metadata: {
+            ...(artifact.metadata ?? {}),
+            result: truncated,
+            truncated: true,
+            originalSize: estimateSize(artifact.metadata.result)
+        },
     };
 }
 

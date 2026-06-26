@@ -12,23 +12,6 @@ export class KnowledgeManager {
         this.loadKnowledge();
     }
 
-    private loadKnowledge(): void {
-        if (!this.persistKnowledge) return;
-        try {
-            if (fs.existsSync(this.knowledgePath)) {
-                const data = fs.readFileSync(this.knowledgePath, 'utf8');
-                const parsed = JSON.parse(data);
-                for (const [k, v] of Object.entries(parsed)) {
-                    if (typeof k === 'string' && typeof v === 'string') {
-                        this.knowledge.set(k, v);
-                    }
-                }
-            }
-        } catch {
-            // fail silently on load
-        }
-    }
-
     saveKnowledge(): void {
         if (!this.persistKnowledge) return;
         try {
@@ -52,11 +35,28 @@ export class KnowledgeManager {
         return this.knowledge.get(key);
     }
 
-    knowList(): Array<{key: string; value: string}> {
+    knowList(): Array<{ key: string; value: string }> {
         return [...this.knowledge.entries()].map(([key, value]) => ({key, value}));
     }
 
     getMap(): Map<string, string> {
         return this.knowledge;
+    }
+
+    private loadKnowledge(): void {
+        if (!this.persistKnowledge) return;
+        try {
+            if (fs.existsSync(this.knowledgePath)) {
+                const data = fs.readFileSync(this.knowledgePath, 'utf8');
+                const parsed = JSON.parse(data);
+                for (const [k, v] of Object.entries(parsed)) {
+                    if (typeof k === 'string' && typeof v === 'string') {
+                        this.knowledge.set(k, v);
+                    }
+                }
+            }
+        } catch {
+            // fail silently on load
+        }
     }
 }

@@ -12,7 +12,8 @@ export class PromptBuilder {
         private nar: NAR | undefined,
         private contextAssembler: any | undefined,
         private contextOpts: ContextAssemblerOpts
-    ) {}
+    ) {
+    }
 
     async buildSystemPrompt(input: string, session?: ConversationSession): Promise<string> {
         const instruction = session ? this.sessionOrchestrator.getSessionInstructions(session) : this.systemInstructions;
@@ -21,7 +22,7 @@ export class PromptBuilder {
         const constitution = this.nar?.getConstitution?.() ?? [];
         if (constitution.length > 0) {
             parts.push('## Constitution');
-            for (const b of constitution) parts.push((b as {term: {toString(): string}}).term.toString());
+            for (const b of constitution) parts.push((b as { term: { toString(): string } }).term.toString());
         }
 
         if (instruction) {

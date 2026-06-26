@@ -9,6 +9,7 @@ export interface EpisodeMetadata {
     type: 'episode' | 'reflection' | 'observation';
     source: string;
     tags?: string[];
+
     [key: string]: unknown;
 }
 
@@ -36,7 +37,9 @@ export class TemporalEmbeddingMemory {
         await this.loadIndex();
     }
 
-    async store(text: string, metadata: Omit<EpisodeMetadata, 'timestamp' | 'type'> & {type?: 'episode' | 'reflection' | 'observation'}): Promise<void> {
+    async store(text: string, metadata: Omit<EpisodeMetadata, 'timestamp' | 'type'> & {
+        type?: 'episode' | 'reflection' | 'observation'
+    }): Promise<void> {
         const embedding = await this.embeddingGenerator.generate(text);
         const id = makeId();
         const episodeMetadata: EpisodeMetadata = {
@@ -89,7 +92,7 @@ export class TemporalEmbeddingMemory {
         const semanticResults = await this.queryRelevant(query, n * 2);
         const temporalResults = await this.queryTemporal(timestamp, 3600000, n * 2);
 
-        const combined = new Map<string, {episode: Episode; score: number}>();
+        const combined = new Map<string, { episode: Episode; score: number }>();
 
         semanticResults.forEach((ep, i) => {
             const score = (1 - i / semanticResults.length) * 0.6;

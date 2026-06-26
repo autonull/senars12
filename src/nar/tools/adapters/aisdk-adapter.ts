@@ -2,17 +2,27 @@ import {tool} from 'ai';
 import {z} from 'zod';
 
 export interface NARSToolDeps {
+    workingMemory: { size(): number };
+
     input(statement: string, type?: string, truth?: unknown): Promise<void>;
-    queryTerm(term: unknown, filter?: unknown): {beliefs: unknown[]};
+
+    queryTerm(term: unknown, filter?: unknown): { beliefs: unknown[] };
+
     getQuestions(): unknown[];
+
     getGoals(): unknown[];
+
     run(steps: number): Promise<number>;
-    getStatistics(): {totalConcepts: number; totalTasks: number};
+
+    getStatistics(): { totalConcepts: number; totalTasks: number };
+
     getBeliefs(): unknown[];
-    attentionReport(): {concepts: unknown[]; total: number};
+
+    attentionReport(): { concepts: unknown[]; total: number };
+
     getConstitution(): unknown[];
+
     checkConstitutionViolation(belief: unknown): boolean;
-    workingMemory: {size(): number};
 }
 
 export interface NARSToolsOptions {
@@ -155,7 +165,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
                 }).optional(),
             }),
             execute: async ({limit = 20, filter}) => {
-                let beliefs = nar.getBeliefs() as Array<{term: {toString(): string}; truth?: {c: number}}>;
+                let beliefs = nar.getBeliefs() as Array<{ term: { toString(): string }; truth?: { c: number } }>;
 
                 if (filter?.term) {
                     beliefs = beliefs.filter(b => b.term.toString().includes(filter.term!));
@@ -330,8 +340,8 @@ export function createWorkingMemoryTools(wm: {
 }
 
 export function createGeneralTools(deps: {
-    nar?: {queryTerm(term: unknown, filter?: unknown): {beliefs: unknown[]}};
-    episodicMemory?: {getEpisodes(options: {limit: number; type?: string}): Promise<unknown[]>};
+    nar?: { queryTerm(term: unknown, filter?: unknown): { beliefs: unknown[] } };
+    episodicMemory?: { getEpisodes(options: { limit: number; type?: string }): Promise<unknown[]> };
 }) {
     return {
         calculate: tool({

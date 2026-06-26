@@ -1,11 +1,11 @@
 import type {Task} from '../types/index.js';
 import type {TranslationCache} from '../nl/cache.js';
 import type {RLFPLearner} from '../rlfp/RLFPLearner.js';
-import {isTautology, isOperation, getSubject, getPredicate} from '../terms/index.js';
+import {getPredicate, getSubject, isOperation, isTautology} from '../terms/index.js';
 
 interface DerivationResult {
     steps?: number;
-    newBeliefs: Array<{term: string}>;
+    newBeliefs: Array<{ term: string }>;
 }
 
 export interface CorrectionEntry {
@@ -50,7 +50,7 @@ export class FeedbackLearner {
         });
 
         this.translationCache?.record(originalNL, {
-            beliefs: [{ narsese: correctedNarsese }],
+            beliefs: [{narsese: correctedNarsese}],
             questions: [],
             goals: [],
             summary: originalNL,
@@ -62,7 +62,7 @@ export class FeedbackLearner {
     onDerivationOutcome(derivation: DerivationResult, outcome: 'accepted' | 'rejected'): void {
         const ruleIds = this.extractRuleIds(derivation);
         for (const ruleId of ruleIds) {
-            const stats = this.ruleStats.get(ruleId) ?? { accepted: 0, rejected: 0 };
+            const stats = this.ruleStats.get(ruleId) ?? {accepted: 0, rejected: 0};
             stats[outcome]++;
             this.ruleStats.set(ruleId, stats);
         }
@@ -80,12 +80,16 @@ export class FeedbackLearner {
         return Math.max(0.1, Math.min(1.0, base + (rate - 0.5) * 0.2));
     }
 
-    getStats(): { corrections: number; rulesTracked: number; topCorrections: Array<{ pattern: string; count: number }> } {
+    getStats(): {
+        corrections: number;
+        rulesTracked: number;
+        topCorrections: Array<{ pattern: string; count: number }>
+    } {
         const entries = [...this.corrections.values()].sort((a, b) => b.count - a.count);
         return {
             corrections: this.corrections.size,
             rulesTracked: this.ruleStats.size,
-            topCorrections: entries.slice(0, 5).map(e => ({ pattern: e.pattern, count: e.count })),
+            topCorrections: entries.slice(0, 5).map(e => ({pattern: e.pattern, count: e.count})),
         };
     }
 
@@ -115,30 +119,30 @@ export class FeedbackLearner {
 
 export function validateLMOutput(task: Task, memory: { getBeliefs: () => Task[] }): ValidationResult {
     if (!task.term) {
-        return { valid: false, reason: 'Malformed term' };
+        return {valid: false, reason: 'Malformed term'};
     }
 
     if (isTautology(task.term)) {
-        return { valid: false, reason: 'Tautology' };
+        return {valid: false, reason: 'Tautology'};
     }
 
     if (task.type === 'belief' && isOperation(task.term)) {
-        return { valid: false, reason: 'Operation in declarative' };
+        return {valid: false, reason: 'Operation in declarative'};
     }
 
     if (task.type === 'belief' && task.term.args && task.term.args.length > 0) {
         const s = getSubject(task.term);
         const p = getPredicate(task.term);
-        if (s && isOperation(s)) return { valid: false, reason: 'Operation in subject' };
-        if (p && isOperation(p)) return { valid: false, reason: 'Operation in predicate' };
+        if (s && isOperation(s)) return {valid: false, reason: 'Operation in subject'};
+        if (p && isOperation(p)) return {valid: false, reason: 'Operation in predicate'};
     }
 
     const conflicts = findConflicts(task.term, memory);
     if (conflicts.length > 0 && task.truth && task.truth.c < 0.3) {
-        return { valid: false, reason: `Conflicts with ${conflicts.length} beliefs` };
+        return {valid: false, reason: `Conflicts with ${conflicts.length} beliefs`};
     }
 
-    return { valid: true };
+    return {valid: true};
 }
 
 function findConflicts(term: { toString: () => string }, memory: { getBeliefs: () => Task[] }): Task[] {

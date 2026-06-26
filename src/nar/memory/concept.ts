@@ -1,6 +1,6 @@
 import type {Term, Truth} from '../terms';
-import {Bag} from './bag.js';
 import {extractSymbols, Stamp, TermMap, termsEqual, TermSet} from '../terms';
+import {Bag} from './bag.js';
 import {jaccard} from '../utils/similarity.js';
 import {Truth as TruthOps} from '../terms/truth.js';
 import type {Budget, TaskType} from '../types';

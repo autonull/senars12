@@ -2,12 +2,12 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-"moduleResolution": "bundler",
-"lib": [
-"ES2023"
-],
-"jsx": "react-jsx",
-"strict": true,
+    "moduleResolution": "bundler",
+    "lib": [
+      "ES2023"
+    ],
+    "jsx": "react-jsx",
+    "strict": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
     "strictBindCallApply": true,
@@ -26,11 +26,11 @@
     ],
     "verbatimModuleSyntax": false
   },
-"include": [
-"src/**/*.ts",
-"src/**/*.tsx",
-"src/lm/adapters/**/*.ts"
-],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/lm/adapters/**/*.ts"
+  ],
   "exclude": [
     "node_modules",
     "dist"

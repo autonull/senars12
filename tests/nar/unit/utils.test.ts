@@ -1,4 +1,16 @@
-import {clamp, clamp01, computeHash, ensureArray, fnv1a, isNil, makeId, safeDiv, sleep, compact, wordOverlap} from '../../../src/nar/utils';
+import {
+    clamp,
+    clamp01,
+    compact,
+    computeHash,
+    ensureArray,
+    fnv1a,
+    isNil,
+    makeId,
+    safeDiv,
+    sleep,
+    wordOverlap
+} from '../../../src/nar/utils';
 
 describe('Utility Functions', () => {
     describe('clamp', () => {

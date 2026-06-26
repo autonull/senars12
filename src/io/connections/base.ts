@@ -21,12 +21,55 @@ export abstract class BaseConnection implements Connection {
     protected readonly config: ConnectionConfig;
     protected readonly emit: (event: string, data: unknown) => void;
     protected logger!: Logger;
+    private queues: Map<string, Promise<unknown>> = new Map();
 
     constructor(config: ConnectionConfig, _deps: ConnectionDeps) {
         this.config = config;
         this.emit = _deps.emit;
         this.id = config.id;
         this.name = (config.config.name as string) ?? 'Connection';
+    }
+
+    private _state: ConnectionState = 'disconnected';
+
+    get state(): ConnectionState {
+        return this._state;
+    }
+
+    abstract connect(): Promise<void>;
+
+    abstract disconnect(reason?: string): Promise<void>;
+
+    abstract send(target: string, text: string): Promise<void>;
+
+    async reconnect(): Promise<void> {
+        if (this.state === 'connected') return;
+        await this.disconnect('reconnect');
+        await this.connect();
+    }
+
+    onMessage(handler: (message: IOMessage) => Promise<void>): void {
+        this.messageHandlers.push(handler);
+    }
+
+    removeMessageHandler(handler: (message: IOMessage) => Promise<void>): void {
+        this.messageHandlers = this.messageHandlers.filter(h => h !== handler);
+    }
+
+    onStateChange(handler: (state: ConnectionState, prev: ConnectionState) => void): void {
+        this.stateChangeHandlers.push(handler);
+    }
+
+    onError(handler: (error: ConnectionError) => void): void {
+        this.errorHandlers.push(handler);
+    }
+
+    getStatus(): { state: ConnectionState; messageCount: number; errorCount: number } {
+        return {state: this.state, messageCount: this.messageCount, errorCount: this.errorCount};
+    }
+
+    async reconfigure(config: Record<string, unknown>): Promise<void> {
+        Object.assign(this.config.config, config);
     }
 
     protected createMessage(sender: string, text: string, metadata?: Record<string, unknown>): IOMessage {
@@ -41,33 +84,6 @@ export abstract class BaseConnection implements Connection {
     protected isDisconnected(): boolean {
         return this._state === 'disconnected' || this._state === 'idle';
     }
-
-    private _state: ConnectionState = 'disconnected';
-
-    get state(): ConnectionState { return this._state; }
-
-    abstract connect(): Promise<void>;
-    abstract disconnect(reason?: string): Promise<void>;
-    abstract send(target: string, text: string): Promise<void>;
-
-    async reconnect(): Promise<void> {
-        if (this.state === 'connected') return;
-        await this.disconnect('reconnect');
-        await this.connect();
-    }
-
-    onMessage(handler: (message: IOMessage) => Promise<void>): void { this.messageHandlers.push(handler); }
-    removeMessageHandler(handler: (message: IOMessage) => Promise<void>): void {
-        this.messageHandlers = this.messageHandlers.filter(h => h !== handler);
-    }
-    onStateChange(handler: (state: ConnectionState, prev: ConnectionState) => void): void { this.stateChangeHandlers.push(handler); }
-    onError(handler: (error: ConnectionError) => void): void { this.errorHandlers.push(handler); }
-
-    getStatus(): { state: ConnectionState; messageCount: number; errorCount: number } {
-        return { state: this.state, messageCount: this.messageCount, errorCount: this.errorCount };
-    }
-
-    async reconfigure(config: Record<string, unknown>): Promise<void> { Object.assign(this.config.config, config); }
 
     protected setState(value: ConnectionState): void {
         const prev = this._state;
@@ -90,8 +106,6 @@ export abstract class BaseConnection implements Connection {
                 if (this.queues.get(origin) === next) this.queues.delete(origin);
             });
     }
-
-    private queues: Map<string, Promise<unknown>> = new Map();
 
     protected handleError(error: ConnectionError): void {
         this.errorCount++;

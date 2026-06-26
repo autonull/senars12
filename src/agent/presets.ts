@@ -1,4 +1,4 @@
-import {createAgent, type Agent, type AgentOptions} from './agent.js';
+import {type Agent, type AgentOptions, createAgent} from './agent.js';
 import {SeNARSFactory} from '../nar/index.js';
 import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
 import type {NAR} from '../nar/nar.js';

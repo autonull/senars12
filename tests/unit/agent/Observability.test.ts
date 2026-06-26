@@ -1,8 +1,8 @@
-import {describe, it, expect} from '@jest/globals';
+import {describe, expect, it} from '@jest/globals';
 import {createAgent} from '../../../src/agent/agent.js';
 import {SeNARSFactory} from '../../../src/nar/index.js';
 import {createSession} from '../../../src/agent/ConversationSession.js';
-import {truncateArtifact, ModelRunner} from '../../../src/agent/model/ModelRunner.js';
+import {ModelRunner, truncateArtifact} from '../../../src/agent/model/ModelRunner.js';
 import {EventBus} from '../../../src/agent/EventBus.js';
 import type {LMClient} from '../../../src/nar/lm/types.js';
 
@@ -59,7 +59,9 @@ describe('Agent EventEmitter lifecycle', () => {
     it('off() removes a listener', async () => {
         const agent = createAgent({lmClient: scriptedLM});
         let count = 0;
-        const handler = (): void => { count++; };
+        const handler = (): void => {
+            count++;
+        };
         agent.on('agent:process:start', handler);
         await agent.chat('hello');
         expect(count).toBe(1);
@@ -93,7 +95,9 @@ describe('EventBus', () => {
     it('on() returns an unsubscribe function', () => {
         const bus = new EventBus();
         let count = 0;
-        const unsub = bus.on('agent:resume', () => { count++; });
+        const unsub = bus.on('agent:resume', () => {
+            count++;
+        });
         bus.emit('agent:resume', {timestamp: 1});
         bus.emit('agent:resume', {timestamp: 2});
         expect(count).toBe(2);
@@ -106,8 +110,13 @@ describe('EventBus', () => {
         const bus = new EventBus();
         let firstRan = false;
         let secondRan = false;
-        bus.on('agent:resume', () => { firstRan = true; throw new Error('boom'); });
-        bus.on('agent:resume', () => { secondRan = true; });
+        bus.on('agent:resume', () => {
+            firstRan = true;
+            throw new Error('boom');
+        });
+        bus.on('agent:resume', () => {
+            secondRan = true;
+        });
         bus.emit('agent:resume', {timestamp: 1});
         expect(firstRan).toBe(true);
         expect(secondRan).toBe(true);
@@ -116,23 +125,42 @@ describe('EventBus', () => {
 
 describe('truncateArtifact', () => {
     it('returns the artifact unchanged when result is small', () => {
-        const artifact = {type: 'tool_result' as const, content: 'small', timestamp: 1, metadata: {toolCallId: 't1', result: {ok: true}}};
+        const artifact = {
+            type: 'tool_result' as const,
+            content: 'small',
+            timestamp: 1,
+            metadata: {toolCallId: 't1', result: {ok: true}}
+        };
         expect(truncateArtifact(artifact, 20, 8000)).toBe(artifact);
     });
 
     it('truncates large arrays', () => {
-        const big = {type: 'tool_result' as const, content: 'big', timestamp: 1, metadata: {toolCallId: 't1', result: Array.from({length: 100}, (_, i) => i)}};
+        const big = {
+            type: 'tool_result' as const,
+            content: 'big',
+            timestamp: 1,
+            metadata: {toolCallId: 't1', result: Array.from({length: 100}, (_, i) => i)}
+        };
         const out = truncateArtifact(big, 5, 8000);
-        const result = (out.metadata as {result: unknown}).result as {entries: number[]; count: number; truncated: boolean};
+        const result = (out.metadata as { result: unknown }).result as {
+            entries: number[];
+            count: number;
+            truncated: boolean
+        };
         expect(result.entries).toHaveLength(5);
         expect(result.count).toBe(100);
         expect(result.truncated).toBe(true);
     });
 
     it('truncates large strings', () => {
-        const big = {type: 'tool_result' as const, content: 'big', timestamp: 1, metadata: {toolCallId: 't1', result: 'x'.repeat(20_000)}};
+        const big = {
+            type: 'tool_result' as const,
+            content: 'big',
+            timestamp: 1,
+            metadata: {toolCallId: 't1', result: 'x'.repeat(20_000)}
+        };
         const out = truncateArtifact(big, 20, 1000);
-        const result = (out.metadata as {result: string}).result;
+        const result = (out.metadata as { result: string }).result;
         expect(result.length).toBeLessThanOrEqual(1000);
     });
 });
@@ -155,17 +183,36 @@ describe('ModelRunner tool result cap', () => {
             },
         };
         const runner = new ModelRunner({lmClient: bigLM, maxLoops: 1, maxToolResultEntries: 5});
-        const composed = {system: '', messages: [{role: 'user' as const, content: 'go'}], tools, ctxHash: 'h', snapshot: null, budget: {systemTokens: 0, historyTokens: 0, snapshotTokens: 0, total: 0, maxTokens: 0}};
+        const composed = {
+            system: '',
+            messages: [{role: 'user' as const, content: 'go'}],
+            tools,
+            ctxHash: 'h',
+            snapshot: null,
+            budget: {systemTokens: 0, historyTokens: 0, snapshotTokens: 0, total: 0, maxTokens: 0}
+        };
         const iter = runner.run(composed);
-        type Res = {text: string; toolCalls: unknown[]; artifacts: unknown[]; errors: unknown[]; messages: Array<{role: string; content: unknown}>; usage: unknown};
+        type Res = {
+            text: string;
+            toolCalls: unknown[];
+            artifacts: unknown[];
+            errors: unknown[];
+            messages: Array<{ role: string; content: unknown }>;
+            usage: unknown
+        };
         let result: Res | undefined;
         while (true) {
             const {done, value} = await iter.next();
-            if (done) {result = value as Res; break;}
+            if (done) {
+                result = value as Res;
+                break;
+            }
         }
         const toolMsg = result?.messages.find(m => m.role === 'tool' && Array.isArray(m.content));
         expect(toolMsg).toBeDefined();
-        const toolContent = (toolMsg as {content: Array<{type: string; result: {entries: unknown[]; truncated: boolean}}>}).content;
+        const toolContent = (toolMsg as {
+            content: Array<{ type: string; result: { entries: unknown[]; truncated: boolean } }>
+        }).content;
         const first = toolContent[0];
         expect(first).toBeDefined();
         if (first) {
@@ -181,11 +228,14 @@ describe('Agent with chatStream', () => {
         const session = createSession('test:wm:alice');
         const events: string[] = [];
         agent.on('agent:process:complete', p => events.push(`done:${p.output.length}`));
-        const iter = agent.chat('hello world', { stream: true, session });
+        const iter = agent.chat('hello world', {stream: true, session});
         let finalText = '';
         while (true) {
             const next = await iter.next();
-            if (next.done) {finalText = next.value; break;}
+            if (next.done) {
+                finalText = next.value;
+                break;
+            }
         }
         expect(finalText).toBe('Hi!');
         expect(events.length).toBe(1);

@@ -60,7 +60,7 @@ function testIRCConnection() {
     const connection = new IRCConnection(connectionConfig, deps);
 
     // Track messages
-    const messages: Array<{sender: string; text: string; channel: string}> = [];
+    const messages: Array<{ sender: string; text: string; channel: string }> = [];
     const errors: Error[] = [];
 
     connection.onMessage(async (message) => {
@@ -89,7 +89,8 @@ function testMessageCreation() {
     console.log('Testing message creation...');
 
     const mockNar = {} as any;
-    const emit = () => {};
+    const emit = () => {
+    };
     const logger = createLogger({scope: 'test:irc-msg'});
 
     const connectionConfig: ConnectionConfig = {
@@ -99,7 +100,7 @@ function testMessageCreation() {
         config: TEST_CONFIG,
     };
 
-    const deps: ConnectionDeps = { nar: mockNar, emit, logger };
+    const deps: ConnectionDeps = {nar: mockNar, emit, logger};
     const connection = new IRCConnection(connectionConfig, deps);
 
     // Test creating a message
@@ -128,7 +129,8 @@ function testConnectionStates() {
     console.log('Testing connection state management...');
 
     const mockNar = {} as any;
-    const emit = () => {};
+    const emit = () => {
+    };
     const logger = createLogger({scope: 'test:irc-state'});
 
     const connectionConfig: ConnectionConfig = {
@@ -138,7 +140,7 @@ function testConnectionStates() {
         config: TEST_CONFIG,
     };
 
-    const deps: ConnectionDeps = { nar: mockNar, emit, logger };
+    const deps: ConnectionDeps = {nar: mockNar, emit, logger};
     const connection = new IRCConnection(connectionConfig, deps);
 
     // Check initial state

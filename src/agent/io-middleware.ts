@@ -1,4 +1,4 @@
-import type {MessageMiddleware, MessageContext} from '../io/router.js';
+import type {MessageContext, MessageMiddleware} from '../io/router.js';
 import type {IOMessage, Logger} from '../io/types.js';
 import type {AuthManager} from '../io/auth.js';
 import type {CommandContext, CommandRegistry} from '../io/commands/registry.js';
@@ -7,7 +7,7 @@ import type {ConnectionManager} from '../io/connection-manager.js';
 import type {SessionManager} from './SessionManager.js';
 import type {ConversationSession} from './ConversationSession.js';
 import type {Agent} from './agent.js';
-import type {NLGenerationService, GenerationInput} from '../nar/nl/generation.js';
+import type {GenerationInput, NLGenerationService} from '../nar/nl/generation.js';
 import {errMsg, toError} from '../nar/utils/helpers.js';
 
 /**
@@ -27,6 +27,7 @@ export interface BridgeContext extends MessageContext {
 export function compose(...middlewares: MessageMiddleware[]): MessageMiddleware {
     return async (message, context, next) => {
         let index = -1;
+
         async function dispatch(i: number): Promise<void> {
             if (i <= index) throw new Error('next() called multiple times');
             index = i;
@@ -39,6 +40,7 @@ export function compose(...middlewares: MessageMiddleware[]): MessageMiddleware 
                 await fn(message, context, dispatch.bind(null, i + 1));
             }
         }
+
         await dispatch(0);
     };
 }
@@ -159,7 +161,7 @@ export function createCommandInterceptor(registry: CommandRegistry): MessageMidd
 }
 
 export function createRateLimiter(perMinute: number): MessageMiddleware {
-    const buckets = new Map<string, {tokens: number; lastRefill: number}>();
+    const buckets = new Map<string, { tokens: number; lastRefill: number }>();
     const refillRate = perMinute / 60_000;
     return async (message, context, next) => {
         const bridgeCtx = context as BridgeContext;
@@ -196,7 +198,7 @@ export function createAgentDispatch(agent: Agent): MessageMiddleware {
     return async (message, context, _next) => {
         const bridgeCtx = context as BridgeContext;
         const reply = bridgeCtx.session
-            ? await agent.chat(message.text, { session: bridgeCtx.session })
+            ? await agent.chat(message.text, {session: bridgeCtx.session})
             : await agent.chat(message.text);
         await context.respond(reply);
     };
@@ -219,7 +221,9 @@ const getSessionState = (session: ConversationSession): DispatchState => {
     return state;
 };
 
-export function createStreamingAgentDispatch(agent: Agent, logger: Logger, opts: {humanizeTools?: boolean} = {}): MessageMiddleware {
+export function createStreamingAgentDispatch(agent: Agent, logger: Logger, opts: {
+    humanizeTools?: boolean
+} = {}): MessageMiddleware {
     const humanize = opts.humanizeTools ?? true;
     return async (message, context, _next) => {
         const bridgeCtx = context as BridgeContext;
@@ -354,7 +358,7 @@ export function createNarseseOutputHumanization(generationService: NLGenerationS
         }
         const sessionRef: ConversationSession = bridgeCtx.session;
         const originalRespond = context.respond;
-        (context as {respond: typeof originalRespond}).respond = async (text: string) => {
+        (context as { respond: typeof originalRespond }).respond = async (text: string) => {
             let toSend = text;
             if (NARSESE_OUTPUT_RE.test(text)) {
                 try {
@@ -376,14 +380,15 @@ export function createNarseseOutputHumanization(generationService: NLGenerationS
                             }
                         }
                     }
-                } catch { /* keep original text on failure */ }
+                } catch { /* keep original text on failure */
+                }
             }
             return originalRespond(toSend);
         };
         try {
             await next();
         } finally {
-            (context as {respond: typeof originalRespond}).respond = originalRespond;
+            (context as { respond: typeof originalRespond }).respond = originalRespond;
         }
     };
 }

@@ -1,8 +1,7 @@
 # Manual IRC Test Protocol
 
-A 9-step smoke test to verify the SeNARS bot is working end-to-end on
-Libera.Chat. Run after any change to the IO bridge, transport layer, or
-NL translation middleware.
+A 9-step smoke test to verify the SeNARS bot is working end-to-end on Libera.Chat. Run after any change to the IO
+bridge, transport layer, or NL translation middleware.
 
 ## Setup
 
@@ -11,6 +10,7 @@ NL translation middleware.
 3. `pnpm bot`
 
 The bot should log:
+
 ```
 [bot] Configured connections: irc:irc-main, websocket:ws-main
 [bot] IRC connected to irc.libera.chat
@@ -100,15 +100,11 @@ you> /quit
 senars-bot> Goodbye!
 ```
 
-The bot continues running. The `/quit` command disconnects the IRC
-connection, not the process.
+The bot continues running. The `/quit` command disconnects the IRC connection, not the process.
 
 ## Troubleshooting
 
-- **Bot doesn't appear in channel**: Check the IRC connection log;
-  Libera.Chat may have rate-limited or banned the nick.
-- **Translation fails**: Check `ENABLE_NL_TRANSLATION` is unset (defaults
-  to enabled). If your LM is slow, translation latency will be visible
-  in the response.
-- **Sessions not persisting**: Check `.cache/sessions/` exists and is
-  writable.
+- **Bot doesn't appear in channel**: Check the IRC connection log; Libera.Chat may have rate-limited or banned the nick.
+- **Translation fails**: Check `ENABLE_NL_TRANSLATION` is unset (defaults to enabled). If your LM is slow, translation
+  latency will be visible in the response.
+- **Sessions not persisting**: Check `.cache/sessions/` exists and is writable.

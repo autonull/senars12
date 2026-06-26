@@ -39,12 +39,12 @@ const BOOLEAN_ENV_VARS = new Set([
 
 export interface ValidationResult {
     readonly unknown: ReadonlyArray<string>;
-    readonly mistyped: ReadonlyArray<{name: string; reason: string}>;
+    readonly mistyped: ReadonlyArray<{ name: string; reason: string }>;
 }
 
 export const validateEnv = (): ValidationResult => {
     const unknown: string[] = [];
-    const mistyped: {name: string; reason: string}[] = [];
+    const mistyped: { name: string; reason: string }[] = [];
 
     for (const [name, value] of Object.entries(process.env)) {
         if (value === undefined) continue;

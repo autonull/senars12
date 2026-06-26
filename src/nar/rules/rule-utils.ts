@@ -1,5 +1,5 @@
-import type {Term, StampType} from '../terms';
-import {Stamp as StampFactory, getSubject, getPredicate, isOperation, isTautology} from '../terms';
+import type {StampType, Term} from '../terms';
+import {getPredicate, getSubject, isOperation, isTautology, Stamp as StampFactory} from '../terms';
 import {Truth, type Truth as TruthType} from '../terms/truth.js';
 import type {TruthFn} from './types.js';
 import type {RuleInput, RuleResult} from './processor.js';

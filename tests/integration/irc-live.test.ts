@@ -1,4 +1,4 @@
-import {describe, it, expect, beforeAll, afterAll} from '@jest/globals';
+import {afterAll, beforeAll, describe, expect, it} from '@jest/globals';
 import {createServer, type Server, type Socket} from 'node:net';
 import {mkdtempSync, rmSync} from 'fs';
 import {tmpdir} from 'os';
@@ -14,10 +14,10 @@ import type {LMClient} from '../../src/nar/lm/types.js';
 import type {NAR} from '../../src/nar/nar.js';
 
 class MockIRCServer {
-    private server: Server;
-    private sockets: Socket[] = [];
     public port = 0;
     public onClientMessage: ((from: string, to: string, text: string) => void) | null = null;
+    private server: Server;
+    private sockets: Socket[] = [];
     private nicks: Map<Socket, string> = new Map();
 
     constructor() {
@@ -107,7 +107,12 @@ describe('IRC live integration', () => {
     });
 
     it('connects bot to mock IRC and exchanges messages', async () => {
-        const episodicMemory = new EpisodicMemory({enabled: true, basePath: tempDir, retentionDays: 1, maxEntriesPerFile: 100});
+        const episodicMemory = new EpisodicMemory({
+            enabled: true,
+            basePath: tempDir,
+            retentionDays: 1,
+            maxEntriesPerFile: 100
+        });
         nar = SeNARSFactory.createForTesting({maxConcepts: 20});
         const agent = createAgent({nar, lmClient: scriptedLM, episodicMemory});
         const sessionManager = new InMemorySessionManager();
@@ -122,13 +127,25 @@ describe('IRC live integration', () => {
             child: () => noopLogger,
         };
 
-        const receivedBotMessages: Array<{text: string}> = [];
+        const receivedBotMessages: Array<{ text: string }> = [];
         mockServer.onClientMessage = (from, _to, text) => {
             if (from === 'senars-bot') receivedBotMessages.push({text});
         };
 
         conn = new IRCConnection(
-            {id: 'irc-test', enabled: true, type: 'irc', config: {server: '127.0.0.1', port: mockServer.port, nick: 'senars-bot', channels: ['#test'], tls: false, floodProtectionDelay: 100}},
+            {
+                id: 'irc-test',
+                enabled: true,
+                type: 'irc',
+                config: {
+                    server: '127.0.0.1',
+                    port: mockServer.port,
+                    nick: 'senars-bot',
+                    channels: ['#test'],
+                    tls: false,
+                    floodProtectionDelay: 100
+                }
+            },
             {nar, emit: () => undefined, logger: noopLogger},
         );
         await conn.connect();
@@ -143,7 +160,7 @@ describe('IRC live integration', () => {
         await new Promise(r => setTimeout(r, 6000));
 
         // Send a PRIVMSG to the bot from a fictional alice user
-        const botSock = (mockServer as unknown as {sockets: Socket[]}).sockets[0];
+        const botSock = (mockServer as unknown as { sockets: Socket[] }).sockets[0];
         if (botSock) {
             mockServer.send(botSock, 'alice', '#test', 'hello there');
         }

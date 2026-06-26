@@ -1,6 +1,6 @@
-import {generateObject} from 'ai';
 import type {LanguageModel} from 'ai';
-import {ClarificationSchema, type ClarificationResult} from '../nl/schemas.js';
+import {generateObject} from 'ai';
+import {type ClarificationResult, ClarificationSchema} from '../nl/schemas.js';
 import type {Ambiguity} from '../nl/understanding.js';
 
 export type BotContext = Record<string, unknown>;
@@ -25,7 +25,7 @@ export class ClarificationHandler {
         }
 
         try {
-            const { object } = await generateObject({
+            const {object} = await generateObject({
                 model,
                 prompt: `The input "${input}" is ambiguous. Possible interpretations: ${ambiguity.options.join(', ')}. Generate a clarifying question and return the options.`,
                 schema: ClarificationSchema,
@@ -92,7 +92,7 @@ export async function generateClarificationWithLM(
     ambiguity: Ambiguity,
     model: LanguageModel,
 ): Promise<ClarificationResult> {
-    const { object } = await generateObject({
+    const {object} = await generateObject({
         model,
         prompt: buildClarificationPrompt(input, ambiguity),
         schema: ClarificationSchema,

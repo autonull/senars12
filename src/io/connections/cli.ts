@@ -95,6 +95,12 @@ export class CLIConnection extends BaseConnection {
         }
     }
 
+    protected override handleMessage = (message: IOMessage): void => {
+        const handlers = this.messageHandlers.slice();
+        Promise.allSettled(handlers.map(h => h(message)))
+            .catch(err => this.logger.error(`Message handler error`, err as Error));
+    };
+
     private async tryCommand(rest: string): Promise<boolean> {
         const parts = rest.split(/\s+/);
         const cmdName = parts[0] ?? '';
@@ -115,10 +121,4 @@ export class CLIConnection extends BaseConnection {
         }
         return true;
     }
-
-    protected override handleMessage = (message: IOMessage): void => {
-        const handlers = this.messageHandlers.slice();
-        Promise.allSettled(handlers.map(h => h(message)))
-            .catch(err => this.logger.error(`Message handler error`, err as Error));
-    };
 }

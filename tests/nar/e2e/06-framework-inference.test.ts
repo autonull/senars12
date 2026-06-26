@@ -153,10 +153,10 @@ describeReasoning('Complex Reasoning Patterns', [
         ],
         cycles: 15,
         expect: [
-expectDerivation('(A --> E)', {
-minFrequency: 0.5,
-minConfidence: 0.49
-})
+            expectDerivation('(A --> E)', {
+                minFrequency: 0.5,
+                minConfidence: 0.49
+            })
         ]
     },
     {

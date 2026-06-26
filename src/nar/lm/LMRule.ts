@@ -50,59 +50,59 @@ export interface LMRuleConfigV2<In = unknown, Out = unknown> extends Omit<LMRule
 }
 
 export class LMRule {
-  readonly id: string;
-  readonly name: string;
-  readonly description: string;
-  readonly category: string;
-  readonly priority: number;
-  readonly sync = false as const;
-  readonly taskType: TaskType;
+    readonly id: string;
+    readonly name: string;
+    readonly description: string;
+    readonly category: string;
+    readonly priority: number;
+    readonly sync = false as const;
+    readonly taskType: TaskType;
 
-  private enabled: boolean;
-  private readonly lm: LMClient | null;
-  private readonly baseConfig: LMRuleConfig;
-  private readonly v2Config: LMRuleConfigV2;
-  private readonly circuitBreaker: CircuitBreaker;
-  private eventBus: NarEventBus | null;
-  private systemEventBus: AgentEventBus | null = null;
-  private stats: LMExecutionStats = defaultStats();
-  private structuredModel: LanguageModel | null = null;
-  private toolDispatcher?: (tool: string, args: Record<string, unknown>) => Promise<unknown>;
-  private readonly enableTools: boolean;
-  private readonly constitutionAware: boolean;
-  private nar?: {checkConstitutionViolation(task: Task): boolean; getConstitution(): Task[]};
-  private readonly outputSchema?: ZodSchema;
-  private readonly inputSchema?: ZodSchema;
-  private readonly validateFn?: (output: unknown) => ValidationResult;
-  private readonly v2PromptFn?: (input: unknown, context: LMContext) => string;
+    private enabled: boolean;
+    private readonly lm: LMClient | null;
+    private readonly baseConfig: LMRuleConfig;
+    private readonly v2Config: LMRuleConfigV2;
+    private readonly circuitBreaker: CircuitBreaker;
+    private eventBus: NarEventBus | null;
+    private systemEventBus: AgentEventBus | null = null;
+    private stats: LMExecutionStats = defaultStats();
+    private structuredModel: LanguageModel | null = null;
+    private toolDispatcher?: (tool: string, args: Record<string, unknown>) => Promise<unknown>;
+    private readonly enableTools: boolean;
+    private readonly constitutionAware: boolean;
+    private nar?: { checkConstitutionViolation(task: Task): boolean; getConstitution(): Task[] };
+    private readonly outputSchema?: ZodSchema;
+    private readonly inputSchema?: ZodSchema;
+    private readonly validateFn?: (output: unknown) => ValidationResult;
+    private readonly v2PromptFn?: (input: unknown, context: LMContext) => string;
 
-  constructor(id: string, lm: LMClient | null, config: LMRuleConfig | LMRuleConfigV2 = {}) {
-    this.id = id;
-    this.name = config.name ?? id;
-    this.description = config.description ?? 'LM-based inference rule';
-    this.category = config.category ?? 'general';
-    this.priority = config.priority ?? 1.0;
-    this.taskType = (config as LMRuleConfigV2).taskType ?? 'belief';
-    this.enabled = config.enabled ?? true;
-    this.lm = lm;
-    this.v2Config = config as LMRuleConfigV2;
-    this.baseConfig = config as LMRuleConfig;
-    this.outputSchema = (config as LMRuleConfigV2).outputSchema;
-    this.inputSchema = (config as LMRuleConfigV2).inputSchema;
-    this.validateFn = (config as LMRuleConfigV2).validate;
-    this.constitutionAware = (config as LMRuleConfigV2).constitutionAware ?? false;
-    const tpl = config.promptTemplate;
-    if (typeof tpl === 'function' && !(tpl as unknown as {primary?: unknown}).primary) {
-        // v2-style function prompt — check arity
-        const fnStr = tpl.toString();
-        if (fnStr.includes('context') && !fnStr.includes('secondary')) {
-            this.v2PromptFn = tpl as (input: unknown, context: LMContext) => string;
+    constructor(id: string, lm: LMClient | null, config: LMRuleConfig | LMRuleConfigV2 = {}) {
+        this.id = id;
+        this.name = config.name ?? id;
+        this.description = config.description ?? 'LM-based inference rule';
+        this.category = config.category ?? 'general';
+        this.priority = config.priority ?? 1.0;
+        this.taskType = (config as LMRuleConfigV2).taskType ?? 'belief';
+        this.enabled = config.enabled ?? true;
+        this.lm = lm;
+        this.v2Config = config as LMRuleConfigV2;
+        this.baseConfig = config as LMRuleConfig;
+        this.outputSchema = (config as LMRuleConfigV2).outputSchema;
+        this.inputSchema = (config as LMRuleConfigV2).inputSchema;
+        this.validateFn = (config as LMRuleConfigV2).validate;
+        this.constitutionAware = (config as LMRuleConfigV2).constitutionAware ?? false;
+        const tpl = config.promptTemplate;
+        if (typeof tpl === 'function' && !(tpl as unknown as { primary?: unknown }).primary) {
+            // v2-style function prompt — check arity
+            const fnStr = tpl.toString();
+            if (fnStr.includes('context') && !fnStr.includes('secondary')) {
+                this.v2PromptFn = tpl as (input: unknown, context: LMContext) => string;
+            }
         }
+        this.circuitBreaker = new CircuitBreaker({failureThreshold: 5, resetTimeoutMs: 60000, halfOpenRequests: 3});
+        this.eventBus = null;
+        this.enableTools = (config as LMRuleConfigV2).enableTools ?? false;
     }
-    this.circuitBreaker = new CircuitBreaker({failureThreshold: 5, resetTimeoutMs: 60000, halfOpenRequests: 3});
-    this.eventBus = null;
-    this.enableTools = (config as LMRuleConfigV2).enableTools ?? false;
-  }
 
     setEventBus(eventBus: NarEventBus): void {
         this.eventBus = eventBus;
@@ -116,7 +116,7 @@ export class LMRule {
         this.structuredModel = model;
     }
 
-    setNAR(nar: {checkConstitutionViolation(task: Task): boolean; getConstitution(): Task[]}): void {
+    setNAR(nar: { checkConstitutionViolation(task: Task): boolean; getConstitution(): Task[] }): void {
         this.nar = nar;
     }
 
@@ -124,23 +124,19 @@ export class LMRule {
         this.toolDispatcher = dispatcher;
     }
 
-canApply(primary: Term, secondary?: Term, context?: Record<string, unknown>): boolean {
-    return !this.getSkipReason(primary, secondary, context);
-}
-
-private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, unknown>): AgentEventMap['system:lm.rule:skipped']['reason'] | null {
-    if (!this.enabled) return 'disabled';
-    if (this.circuitBreaker.getState() === 'open') return 'circuit_open';
-    if (!this.lm || !primary) return 'disabled';
-    if (!this.baseConfig.singlePremise && !secondary) return 'single_premise_missing';
-    if (this.baseConfig.activationCondition && !this.baseConfig.activationCondition(primary, secondary, context)) return 'activation_failed';
-    return null;
-}
+    canApply(primary: Term, secondary?: Term, context?: Record<string, unknown>): boolean {
+        return !this.getSkipReason(primary, secondary, context);
+    }
 
     async apply(primary: Term, secondary?: Term, context?: Record<string, unknown>, signal?: AbortSignal): Promise<Task[]> {
         const skipReason = this.getSkipReason(primary, secondary, context);
         if (skipReason || signal?.aborted) {
-            if (skipReason) this.emitSystemEvent('system:lm.rule:skipped', {ruleId: this.id, ruleName: this.name, reason: skipReason, timestamp: Date.now()});
+            if (skipReason) this.emitSystemEvent('system:lm.rule:skipped', {
+                ruleId: this.id,
+                ruleName: this.name,
+                reason: skipReason,
+                timestamp: Date.now()
+            });
             return [];
         }
 
@@ -155,7 +151,12 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
             const usedStructured = !!(this.structuredModel && this.outputSchema);
             if (usedStructured) {
                 response = await this.executeStructured(prompt, signal);
-                this.emitSystemEvent('system:lm.rule:structured', {ruleId: this.id, schema: this.outputSchema!.description ?? 'unknown', output: response, timestamp: Date.now()});
+                this.emitSystemEvent('system:lm.rule:structured', {
+                    ruleId: this.id,
+                    schema: this.outputSchema!.description ?? 'unknown',
+                    output: response,
+                    timestamp: Date.now()
+                });
             } else {
                 response = await this.executeLM(prompt, signal);
             }
@@ -165,13 +166,18 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
                 try {
                     const parsed = JSON.parse(response);
                     if (parsed && typeof parsed === 'object' && 'tool' in parsed && 'args' in parsed) {
-                        const {tool, args} = parsed as {tool: string; args: Record<string, unknown>};
+                        const {tool, args} = parsed as { tool: string; args: Record<string, unknown> };
                         const toolResult = await this.toolDispatcher(tool, args);
                         // Re-run with tool result as context
                         const toolContext = {...context, toolResult};
                         const toolPrompt = this.generatePrompt(primary, secondary, this.buildLMContext(primary, secondary, toolContext), toolContext);
                         response = await this.executeStructured(toolPrompt, signal);
-                        this.emitSystemEvent('system:lm.rule:structured', {ruleId: this.id, schema: this.outputSchema!.description ?? 'unknown', output: response, timestamp: Date.now()});
+                        this.emitSystemEvent('system:lm.rule:structured', {
+                            ruleId: this.id,
+                            schema: this.outputSchema!.description ?? 'unknown',
+                            output: response,
+                            timestamp: Date.now()
+                        });
                     }
                 } catch {
                     // Not valid JSON or no tool call, continue with original response
@@ -231,6 +237,15 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
         this.stats = defaultStats();
     }
 
+    private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, unknown>): AgentEventMap['system:lm.rule:skipped']['reason'] | null {
+        if (!this.enabled) return 'disabled';
+        if (this.circuitBreaker.getState() === 'open') return 'circuit_open';
+        if (!this.lm || !primary) return 'disabled';
+        if (!this.baseConfig.singlePremise && !secondary) return 'single_premise_missing';
+        if (this.baseConfig.activationCondition && !this.baseConfig.activationCondition(primary, secondary, context)) return 'activation_failed';
+        return null;
+    }
+
     private buildLMContext(primary: Term, secondary?: Term, context?: Record<string, unknown>): LMContext {
         return {
             memorySnapshot: context?.memorySnapshot as string,
@@ -277,95 +292,115 @@ private getSkipReason(primary: Term, secondary?: Term, context?: Record<string, 
         });
     }
 
-  private generatePrompt(primary: Term, secondary: Term | undefined, lmContext: LMContext, context?: Record<string, unknown>): string {
-    if (this.v2PromptFn) {
-        return this.v2PromptFn({primary: primary.toString(), secondary: secondary?.toString(), context} as never, lmContext);
-    }
-    const template = this.baseConfig.promptTemplate;
-    if (typeof template === 'function') {
-        return template(primary, secondary, context);
-    }
-    if (typeof template === 'string') return this.fillTemplate(template, primary, secondary);
-    return `Reason about: ${primary.toString()}`;
-  }
-
-  private fillTemplate(template: string, primary: Term, secondary?: Term): string {
-    return template.replaceAll('{{primaryTerm}}', primary.toString()).replaceAll('{{secondaryTerm}}', secondary?.toString() ?? '');
-  }
-
-  private processAndGenerate(response: string, primary: Term, secondary: Term | undefined, lmContext: LMContext, context?: Record<string, unknown>): Task[] {
-    if (this.outputSchema) {
-        return this.processStructuredResponse(response, primary, secondary, lmContext);
-    }
-    const processed = this.processResponse(response, primary, secondary, context);
-    return this.generateTasks(processed, primary, secondary, context);
-  }
-
-  private processStructuredResponse(response: string, primary: Term, _secondary: Term | undefined, _lmContext: LMContext): Task[] {
-    let parsed: unknown;
-    try {
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {response};
-    } catch {
-        parsed = {response};
+    private generatePrompt(primary: Term, secondary: Term | undefined, lmContext: LMContext, context?: Record<string, unknown>): string {
+        if (this.v2PromptFn) {
+            return this.v2PromptFn({
+                primary: primary.toString(),
+                secondary: secondary?.toString(),
+                context
+            } as never, lmContext);
+        }
+        const template = this.baseConfig.promptTemplate;
+        if (typeof template === 'function') {
+            return template(primary, secondary, context);
+        }
+        if (typeof template === 'string') return this.fillTemplate(template, primary, secondary);
+        return `Reason about: ${primary.toString()}`;
     }
 
-    if (this.validateFn) {
-        const validation = this.validateFn(parsed);
-        if (!validation.valid) return [];
+    private fillTemplate(template: string, primary: Term, secondary?: Term): string {
+        return template.replaceAll('{{primaryTerm}}', primary.toString()).replaceAll('{{secondaryTerm}}', secondary?.toString() ?? '');
     }
 
-    return this.generateTasksFromStructured(parsed as Record<string, unknown>, primary);
-  }
-
-  private generateTasksFromStructured(output: Record<string, unknown>, primary: Term): Task[] {
-    if (Array.isArray(output?.tasks)) {
-        return (output.tasks as Array<{narsese: string; truth?: {f: number; c: number}}>).map(t => {
-            const parsed = LMResponseParser.parse(t.narsese);
-            return createTask(parsed.valid && parsed.term ? parsed.term : primary, this.taskType, parsed.truth);
-        });
+    private processAndGenerate(response: string, primary: Term, secondary: Term | undefined, lmContext: LMContext, context?: Record<string, unknown>): Task[] {
+        if (this.outputSchema) {
+            return this.processStructuredResponse(response, primary, secondary, lmContext);
+        }
+        const processed = this.processResponse(response, primary, secondary, context);
+        return this.generateTasks(processed, primary, secondary, context);
     }
-    const narsese = (output?.narsese as string) ?? (output?.response as string) ?? primary.toString();
-    const parsed = LMResponseParser.parse(narsese);
-    return [createTask(parsed.valid && parsed.term ? parsed.term : primary, this.taskType, parsed.truth)];
-  }
 
-  private processResponse(response: string, primary: Term, secondary: Term | undefined, context?: Record<string, unknown>): unknown {
-    const repaired = tryRepairAndParse(response, (r) => r, 'narsese') ?? response;
-    return this.baseConfig.responseProcessor ? this.baseConfig.responseProcessor(repaired, primary, secondary, context) : repaired;
-  }
+    private processStructuredResponse(response: string, primary: Term, _secondary: Term | undefined, _lmContext: LMContext): Task[] {
+        let parsed: unknown;
+        try {
+            const jsonMatch = response.match(/\{[\s\S]*\}/);
+            parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {response};
+        } catch {
+            parsed = {response};
+        }
 
-  private generateTasks(processed: unknown, primary: Term, secondary: Term | undefined, context?: Record<string, unknown>): Task[] {
-    if (this.baseConfig.taskGenerator) return this.baseConfig.taskGenerator(processed, primary, secondary, context);
-    if (Array.isArray(processed)) return processed.map(p => this.taskFromProcessed(p, primary));
-    return [this.taskFromProcessed(processed, primary)];
-  }
+        if (this.validateFn) {
+            const validation = this.validateFn(parsed);
+            if (!validation.valid) return [];
+        }
 
-  private taskFromProcessed(processed: unknown, primary: Term): Task {
-    if (typeof processed === 'string') {
-      const parsed = LMResponseParser.parse(processed);
-      if (parsed.valid && parsed.term) {
-        const task = createTask(parsed.term, this.taskType, parsed.truth, parsed.confidence != null ? {priority: parsed.confidence, durability: 0.8, quality: 0.9, cycles: 0, depth: 0} : undefined);
+        return this.generateTasksFromStructured(parsed as Record<string, unknown>, primary);
+    }
+
+    private generateTasksFromStructured(output: Record<string, unknown>, primary: Term): Task[] {
+        if (Array.isArray(output?.tasks)) {
+            return (output.tasks as Array<{ narsese: string; truth?: { f: number; c: number } }>).map(t => {
+                const parsed = LMResponseParser.parse(t.narsese);
+                return createTask(parsed.valid && parsed.term ? parsed.term : primary, this.taskType, parsed.truth);
+            });
+        }
+        const narsese = (output?.narsese as string) ?? (output?.response as string) ?? primary.toString();
+        const parsed = LMResponseParser.parse(narsese);
+        return [createTask(parsed.valid && parsed.term ? parsed.term : primary, this.taskType, parsed.truth)];
+    }
+
+    private processResponse(response: string, primary: Term, secondary: Term | undefined, context?: Record<string, unknown>): unknown {
+        const repaired = tryRepairAndParse(response, (r) => r, 'narsese') ?? response;
+        return this.baseConfig.responseProcessor ? this.baseConfig.responseProcessor(repaired, primary, secondary, context) : repaired;
+    }
+
+    private generateTasks(processed: unknown, primary: Term, secondary: Term | undefined, context?: Record<string, unknown>): Task[] {
+        if (this.baseConfig.taskGenerator) return this.baseConfig.taskGenerator(processed, primary, secondary, context);
+        if (Array.isArray(processed)) return processed.map(p => this.taskFromProcessed(p, primary));
+        return [this.taskFromProcessed(processed, primary)];
+    }
+
+    private taskFromProcessed(processed: unknown, primary: Term): Task {
+        if (typeof processed === 'string') {
+            const parsed = LMResponseParser.parse(processed);
+            if (parsed.valid && parsed.term) {
+                const task = createTask(parsed.term, this.taskType, parsed.truth, parsed.confidence != null ? {
+                    priority: parsed.confidence,
+                    durability: 0.8,
+                    quality: 0.9,
+                    cycles: 0,
+                    depth: 0
+                } : undefined);
+                if (this.constitutionAware && this.nar && this.nar.checkConstitutionViolation(task)) {
+                    this.emitSystemEvent('system:lm.rule:constitution-violation', {
+                        ruleId: this.id,
+                        term: parsed.term.toString(),
+                        clause: 'constitution conflict',
+                        timestamp: Date.now()
+                    });
+                    return createTask(primary, this.taskType, Truth.NEUTRAL);
+                }
+                return task;
+            }
+        }
+
+        const term = (processed as Partial<Task> & { term?: Term }).term ?? primary;
+        const type = (processed as Partial<Task> & { type?: TaskType }).type ?? this.taskType;
+        const truth = (processed as Partial<Task> & { truth?: TruthType }).truth ?? Truth.NEUTRAL;
+        const budget = (processed as Partial<Task> & { budget?: Budget }).budget;
+
+        const task = createTask(term, type, truth, budget ?? undefined);
         if (this.constitutionAware && this.nar && this.nar.checkConstitutionViolation(task)) {
-            this.emitSystemEvent('system:lm.rule:constitution-violation', {ruleId: this.id, term: parsed.term.toString(), clause: 'constitution conflict', timestamp: Date.now()});
+            this.emitSystemEvent('system:lm.rule:constitution-violation', {
+                ruleId: this.id,
+                term: term.toString(),
+                clause: 'constitution conflict',
+                timestamp: Date.now()
+            });
             return createTask(primary, this.taskType, Truth.NEUTRAL);
         }
         return task;
-      }
     }
-
-    const term = (processed as Partial<Task> & {term?: Term}).term ?? primary;
-    const type = (processed as Partial<Task> & {type?: TaskType}).type ?? this.taskType;
-    const truth = (processed as Partial<Task> & {truth?: TruthType}).truth ?? Truth.NEUTRAL;
-    const budget = (processed as Partial<Task> & {budget?: Budget}).budget;
-
-    const task = createTask(term, type, truth, budget ?? undefined);
-    if (this.constitutionAware && this.nar && this.nar.checkConstitutionViolation(task)) {
-        this.emitSystemEvent('system:lm.rule:constitution-violation', {ruleId: this.id, term: term.toString(), clause: 'constitution conflict', timestamp: Date.now()});
-        return createTask(primary, this.taskType, Truth.NEUTRAL);
-    }
-    return task;
-  }
 
     private recordSuccess(duration: number, tokens: number): void {
         this.stats.totalCalls++;

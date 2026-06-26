@@ -12,15 +12,15 @@ import {DEFAULT_CONFIG, EventBus} from './types';
 import {setupDefaultLMClient} from './lm/defaults.js';
 import {createSeNARSRegistry, type SeNARSRegistry} from './lm/providers.js';
 import {CognitiveRegistry} from './cognitive/registry';
-import {DEFAULT_COGNITIVE_PARAMETERS, RESEARCH_COGNITIVE_CONFIG, mergeParameters} from './config/cognitive-parameters';
 import type {CognitiveParameters} from './config/cognitive-parameters';
+import {DEFAULT_COGNITIVE_PARAMETERS, mergeParameters, RESEARCH_COGNITIVE_CONFIG} from './config/cognitive-parameters';
 
 export interface SeNARSOptions {
-  core?: Partial<CoreConfig>;
-  lmClient?: LMClient;
-  providerRegistry?: SeNARSRegistry;
-  enableLMRules?: boolean;
-  eventBus?: EventBus;
+    core?: Partial<CoreConfig>;
+    lmClient?: LMClient;
+    providerRegistry?: SeNARSRegistry;
+    enableLMRules?: boolean;
+    eventBus?: EventBus;
 }
 
 export interface SeNARSConfig {
@@ -64,19 +64,19 @@ const TEST_CONFIG: CoreConfig = {
 };
 
 export class SeNARSFactory {
-  static createDefault(options: SeNARSOptions = {}): NAR {
-    const registry = options.providerRegistry ?? createSeNARSRegistry();
-    const lmClient = options.lmClient ?? setupDefaultLMClient();
-    const eventBus = options.eventBus ?? new EventBus();
-    const config: NARConfig & { eventBus?: EventBus } = {
-      ...DEFAULT_CONFIG, ...options.core,
-      enableLMRules: options.enableLMRules ?? true,
-      lmClient,
-      providerRegistry: registry,
-      eventBus,
-    };
-    return new NAR(config);
-  }
+    static createDefault(options: SeNARSOptions = {}): NAR {
+        const registry = options.providerRegistry ?? createSeNARSRegistry();
+        const lmClient = options.lmClient ?? setupDefaultLMClient();
+        const eventBus = options.eventBus ?? new EventBus();
+        const config: NARConfig & { eventBus?: EventBus } = {
+            ...DEFAULT_CONFIG, ...options.core,
+            enableLMRules: options.enableLMRules ?? true,
+            lmClient,
+            providerRegistry: registry,
+            eventBus,
+        };
+        return new NAR(config);
+    }
 
     static fromConfig(config: SeNARSConfig, lmClient?: LMClient | null, registry?: SeNARSRegistry | null): NAR {
         const narConfig: NARConfig = {
@@ -122,11 +122,11 @@ export class SeNARSFactory {
             strategies: {
                 ...DEFAULT_COGNITIVE_PARAMETERS.strategies,
                 ...params?.strategies,
-                sampling:   { ...DEFAULT_COGNITIVE_PARAMETERS.strategies.sampling, ...params?.strategies?.sampling },
-                premise:    { ...DEFAULT_COGNITIVE_PARAMETERS.strategies.premise, ...params?.strategies?.premise },
-                derivation: { ...DEFAULT_COGNITIVE_PARAMETERS.strategies.derivation, ...params?.strategies?.derivation },
-                lmRule:     { ...DEFAULT_COGNITIVE_PARAMETERS.strategies.lmRule, ...params?.strategies?.lmRule },
-                attention:  { ...DEFAULT_COGNITIVE_PARAMETERS.strategies.attention, ...params?.strategies?.attention }
+                sampling: {...DEFAULT_COGNITIVE_PARAMETERS.strategies.sampling, ...params?.strategies?.sampling},
+                premise: {...DEFAULT_COGNITIVE_PARAMETERS.strategies.premise, ...params?.strategies?.premise},
+                derivation: {...DEFAULT_COGNITIVE_PARAMETERS.strategies.derivation, ...params?.strategies?.derivation},
+                lmRule: {...DEFAULT_COGNITIVE_PARAMETERS.strategies.lmRule, ...params?.strategies?.lmRule},
+                attention: {...DEFAULT_COGNITIVE_PARAMETERS.strategies.attention, ...params?.strategies?.attention}
             }
         });
 
@@ -151,11 +151,11 @@ export class SeNARSFactory {
     static createCognitiveFast(): NAR {
         return SeNARSFactory.createWithStrategies({
             strategies: {
-                premise: { type: 'bag' },
-                lmRule: { type: 'priority', maxRules: 3 },
-                derivation: { type: 'focused' },
-                attention: { type: 'simple' },
-                sampling: { type: 'top-n' }
+                premise: {type: 'bag'},
+                lmRule: {type: 'priority', maxRules: 3},
+                derivation: {type: 'focused'},
+                attention: {type: 'simple'},
+                sampling: {type: 'top-n'}
             }
         });
     }
@@ -164,7 +164,7 @@ export class SeNARSFactory {
     static createCognitiveResearch(): NAR {
         const registry = new CognitiveRegistry();
         registry.initializeDefaults();
-        return SeNARSFactory.createWithStrategies(RESEARCH_COGNITIVE_CONFIG, { registry });
+        return SeNARSFactory.createWithStrategies(RESEARCH_COGNITIVE_CONFIG, {registry});
     }
 }
 

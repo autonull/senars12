@@ -1,4 +1,4 @@
-import {describe, it, expect, beforeEach, afterEach} from '@jest/globals';
+import {afterEach, beforeEach, describe, expect, it} from '@jest/globals';
 import {createAgent} from '../../../src/agent/agent.js';
 import {SeNARSFactory} from '../../../src/nar/index.js';
 import {EpisodicMemory} from '../../../src/nar/memory/EpisodicMemory.js';

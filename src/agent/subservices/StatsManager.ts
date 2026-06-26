@@ -13,7 +13,11 @@ export class StatsManager {
         startedAt: Date.now(),
     };
 
-    recordStats(status: 'success' | 'failure', durationMs: number, tokens?: {inputTokens: number; outputTokens: number; totalTokens: number}): void {
+    recordStats(status: 'success' | 'failure', durationMs: number, tokens?: {
+        inputTokens: number;
+        outputTokens: number;
+        totalTokens: number
+    }): void {
         this.stats.totalChats++;
         if (status === 'success') this.stats.successfulChats++;
         else this.stats.failedChats++;
@@ -29,6 +33,6 @@ export class StatsManager {
     }
 
     getStats(): AgentStats {
-        return { ...this.stats };
+        return {...this.stats};
     }
 }

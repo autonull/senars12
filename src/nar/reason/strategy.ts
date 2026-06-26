@@ -1,7 +1,7 @@
 import type {Task} from '../types';
 import {createSecondaryTask} from '../types';
 import {Memory} from '../memory';
-import {termsEqual, extractSymbols} from '../terms';
+import {extractSymbols, termsEqual} from '../terms';
 import type {ComponentMetadata} from '../strategies/types.js';
 
 const MIN_DERIVATION_PRIORITY = 0.05;
@@ -9,7 +9,9 @@ const MIN_DERIVATION_PRIORITY = 0.05;
 const hasSharedAtoms = (term1: Task['term'], term2: Task['term']): boolean => {
     const atoms1 = extractSymbols(term1);
     const atoms2 = extractSymbols(term2);
-    for (const a of atoms1) { if (atoms2.has(a)) return true; }
+    for (const a of atoms1) {
+        if (atoms2.has(a)) return true;
+    }
     return false;
 };
 
@@ -23,7 +25,7 @@ export interface Strategy {
 }
 
 export const BagStrategy: Strategy = {
-    metadata: { name: 'bag', description: 'Sample 10 concepts, filter by shared atoms and derivation history' },
+    metadata: {name: 'bag', description: 'Sample 10 concepts, filter by shared atoms and derivation history'},
     name: 'bag',
     selectSecondary: (task: Task, memory: Memory): Task[] =>
         memory.sample(10)
@@ -35,7 +37,9 @@ export const BagStrategy: Strategy = {
                 if (belief.stamp.id === task.stamp.id) return false;
                 const t1 = new Set(task.stamp.derivations ?? []);
                 const t2 = new Set(belief.stamp.derivations ?? []);
-                for (const id of t1) { if (t2.has(id)) return false; }
+                for (const id of t1) {
+                    if (t2.has(id)) return false;
+                }
                 return true;
             })
             .map(c => createSecondaryTask(c.term, c.priority, c.beliefBag.peek()?.truth, 'belief'))
@@ -43,7 +47,7 @@ export const BagStrategy: Strategy = {
 };
 
 export const ExhaustiveStrategy: Strategy = {
-    metadata: { name: 'exhaustive', description: 'Sample 100 concepts, filter by shared atoms' },
+    metadata: {name: 'exhaustive', description: 'Sample 100 concepts, filter by shared atoms'},
     name: 'exhaustive',
     selectSecondary: (task: Task, memory: Memory): Task[] =>
         memory.sample(100)

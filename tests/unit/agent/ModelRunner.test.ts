@@ -1,6 +1,6 @@
-import {describe, it, expect} from '@jest/globals';
-import {ModelRunner} from '../../../src/agent/model/ModelRunner.js';
+import {describe, expect, it} from '@jest/globals';
 import type {ComposedRequest, ReasoningArtifact} from '../../../src/agent/model/ModelRunner.js';
+import {ModelRunner} from '../../../src/agent/model/ModelRunner.js';
 import type {LMClient} from '../../../src/nar/lm/types.js';
 
 class ScriptedLMClient implements LMClient {
@@ -8,7 +8,10 @@ class ScriptedLMClient implements LMClient {
     readonly model = 'scripted-1';
     readonly available = true;
     public callIndex = 0;
-    constructor(private readonly script: string[]) {}
+
+    constructor(private readonly script: string[]) {
+    }
+
     async generateText(_prompt: string): Promise<string> {
         const out = this.script[this.callIndex] ?? '';
         this.callIndex++;
@@ -16,7 +19,10 @@ class ScriptedLMClient implements LMClient {
     }
 }
 
-function makeComposed(tools: Record<string, unknown>, messages: Array<{role: 'user' | 'assistant' | 'system' | 'tool'; content: string | unknown[]}>): ComposedRequest {
+function makeComposed(tools: Record<string, unknown>, messages: Array<{
+    role: 'user' | 'assistant' | 'system' | 'tool';
+    content: string | unknown[]
+}>): ComposedRequest {
     return {
         system: 'You are helpful.',
         messages,
@@ -54,7 +60,7 @@ describe('ModelRunner', () => {
         const client = new ScriptedLMClient(['Hello there.']);
         const runner = new ModelRunner({lmClient: client, maxLoops: 3});
         const composed = makeComposed({}, [{role: 'user', content: 'greet me'}]);
-        const events: {kind: string; text?: string}[] = [];
+        const events: { kind: string; text?: string }[] = [];
         const result = await drain(runner, composed, events);
         expect(result.text).toBe('Hello there.');
         const textDeltas = events.filter(e => e.kind === 'text-delta');
@@ -68,7 +74,10 @@ describe('ModelRunner', () => {
             nar_believe: {
                 description: 'Add a belief',
                 inputSchema: {safeParse: (raw: unknown) => ({success: true, data: raw})},
-                execute: async (args: Record<string, unknown>) => ({success: true, statement: (args as {statement: string}).statement}),
+                execute: async (args: Record<string, unknown>) => ({
+                    success: true,
+                    statement: (args as { statement: string }).statement
+                }),
             },
         };
         const client = new ScriptedLMClient([
@@ -77,7 +86,7 @@ describe('ModelRunner', () => {
         ]);
         const runner = new ModelRunner({lmClient: client, maxLoops: 5});
         const composed = makeComposed(tools, [{role: 'user', content: 'learn this'}]);
-        const events: {kind: string; [k: string]: unknown}[] = [];
+        const events: { kind: string; [k: string]: unknown }[] = [];
         const result = await drain(runner, composed, events);
         expect(result.toolCalls.length).toBe(1);
         expect(result.toolCalls[0]?.toolName).toBe('nar_believe');
@@ -91,7 +100,7 @@ describe('ModelRunner', () => {
         const toolResultMsg = result.messages.find(m => m.role === 'tool' && Array.isArray(m.content));
         expect(toolResultMsg).toBeDefined();
         if (Array.isArray(toolResultMsg?.content)) {
-            const firstPart = toolResultMsg.content[0] as {type: string; toolCallId?: string};
+            const firstPart = toolResultMsg.content[0] as { type: string; toolCallId?: string };
             expect(firstPart.type).toBe('tool-result');
             expect(firstPart.toolCallId).toBeDefined();
         }
@@ -147,13 +156,15 @@ describe('ModelRunner', () => {
             boom: {
                 description: 'explodes',
                 inputSchema: {safeParse: (raw: unknown) => ({success: true, data: raw})},
-                execute: async () => { throw new Error('kapow'); },
+                execute: async () => {
+                    throw new Error('kapow');
+                },
             },
         };
         const client = new ScriptedLMClient(['{"name": "boom", "arguments": {}}', 'ok.']);
         const runner = new ModelRunner({lmClient: client, maxLoops: 3});
         const composed = makeComposed(tools, [{role: 'user', content: 'go'}]);
-        const events: {kind: string; [k: string]: unknown}[] = [];
+        const events: { kind: string; [k: string]: unknown }[] = [];
         const result = await drain(runner, composed, events);
         expect(result.errors.length).toBe(1);
         expect(result.errors[0]?.message).toContain('kapow');
@@ -171,11 +182,25 @@ describe('ModelRunner', () => {
     });
 });
 
-type Drainable = {run: (c: ComposedRequest, s?: AbortSignal) => AsyncGenerator<unknown, {text: string; toolCalls: Array<{toolName: string; args: Record<string, unknown>}>; artifacts: ReasoningArtifact[]; errors: Array<{message: string}>; messages: Array<{role: string; content: string | unknown[]}>}, void>};
+type Drainable = {
+    run: (c: ComposedRequest, s?: AbortSignal) => AsyncGenerator<unknown, {
+        text: string;
+        toolCalls: Array<{ toolName: string; args: Record<string, unknown> }>;
+        artifacts: ReasoningArtifact[];
+        errors: Array<{ message: string }>;
+        messages: Array<{ role: string; content: string | unknown[] }>
+    }, void>
+};
 
 async function drain(runner: Drainable, composed: ComposedRequest, events: unknown[]) {
     const iter = runner.run(composed);
-    let final: {text: string; toolCalls: Array<{toolName: string; args: Record<string, unknown>}>; artifacts: ReasoningArtifact[]; errors: Array<{message: string}>; messages: Array<{role: string; content: string | unknown[]}>} | undefined;
+    let final: {
+        text: string;
+        toolCalls: Array<{ toolName: string; args: Record<string, unknown> }>;
+        artifacts: ReasoningArtifact[];
+        errors: Array<{ message: string }>;
+        messages: Array<{ role: string; content: string | unknown[] }>
+    } | undefined;
     while (true) {
         const {value, done} = await iter.next();
         if (done) {

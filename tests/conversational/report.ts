@@ -1,4 +1,4 @@
-import type {ScenarioResult, ProbeResult} from './framework.js';
+import type {ProbeResult, ScenarioResult} from './framework.js';
 import type {LMProvider} from './providers.js';
 
 export interface TestReport {
@@ -12,7 +12,7 @@ export interface TestReport {
         failed: number;
         durationMs: number;
     }>;
-    totals: {passed: number; failed: number; durationMs: number};
+    totals: { passed: number; failed: number; durationMs: number };
 }
 
 export function buildReport(

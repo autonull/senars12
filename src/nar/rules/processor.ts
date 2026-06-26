@@ -3,7 +3,7 @@
  */
 
 import type {StampType, Term} from '../terms';
-import {type RegisteredRule, RuleIndex, RuleRegistry, type TruthFn} from './types.js';
+import {type RegisteredRule, RuleIndex, RuleRegistry} from './types.js';
 import {Truth, type Truth as TruthType} from '../terms/truth.js';
 import type {LMRule} from '../lm';
 import type {LMRuleStats} from '../lm/types.js';
@@ -12,7 +12,7 @@ import {EventBus} from '../types';
 import {toError} from '../utils/helpers.js';
 import type {Memory} from '../memory/memory.js';
 import type {NAR} from '../nar.js';
-import {deriveStamp, NEUTRAL_FN, validateRuleOutput, buildResult} from './rule-utils.js';
+import {buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput} from './rule-utils.js';
 
 interface LMRuleExecutionEntry {
     ruleName: string;
@@ -52,7 +52,7 @@ export class RuleProcessor {
         (rules ?? RuleRegistry.getAll()).forEach(rule => this.ruleIndex.register(rule));
     }
 
-    setConfig(config: {memory?: Memory; nar?: NAR}): void {
+    setConfig(config: { memory?: Memory; nar?: NAR }): void {
         if (config.memory) this.memory = config.memory;
         if (config.nar) this.nar = config.nar;
     }
@@ -88,13 +88,13 @@ export class RuleProcessor {
         this.executionLog = [];
     }
 
-    serializeLMRules(): {rules: LMRuleStats[]} {
+    serializeLMRules(): { rules: LMRuleStats[] } {
         return {
             rules: this.lmRules.map(r => r.getStats()),
         };
     }
 
-    deserializeLMRules(data: {rules: LMRuleStats[]}): void {
+    deserializeLMRules(data: { rules: LMRuleStats[] }): void {
         for (const ruleData of data.rules) {
             const rule = this.lmRules.find(r => r.id === ruleData.id);
             if (rule) {
@@ -109,7 +109,10 @@ export class RuleProcessor {
         }
     }
 
-    async* processLMRules(p1: RuleInput, p2?: RuleInput, opts?: {signal?: AbortSignal; singlePremise?: boolean}): AsyncGenerator<RuleResult> {
+    async* processLMRules(p1: RuleInput, p2?: RuleInput, opts?: {
+        signal?: AbortSignal;
+        singlePremise?: boolean
+    }): AsyncGenerator<RuleResult> {
         yield* this.processLMRulesImpl(p1, p2, opts);
     }
 
@@ -167,7 +170,10 @@ export class RuleProcessor {
         return this.resultBuffer;
     }
 
-    private async* processLMRulesImpl(p1: RuleInput, p2?: RuleInput, opts?: {signal?: AbortSignal; singlePremise?: boolean}): AsyncGenerator<RuleResult> {
+    private async* processLMRulesImpl(p1: RuleInput, p2?: RuleInput, opts?: {
+        signal?: AbortSignal;
+        singlePremise?: boolean
+    }): AsyncGenerator<RuleResult> {
         if (this.lmRules.length === 0 || opts?.signal?.aborted) return;
 
         const isSinglePremise = opts?.singlePremise ?? !p2;
@@ -248,11 +254,23 @@ export class RuleProcessor {
                     stamp: derivedStamp,
                     priority: lmRule.priority
                 } as RuleResult));
-                this.executionLog.push({ruleName: lmRule.name, status: result.length > 0 ? 'fired' : 'timeout', durationMs: Date.now() - startTime, tasksProduced: result.length, timestamp: Date.now()});
+                this.executionLog.push({
+                    ruleName: lmRule.name,
+                    status: result.length > 0 ? 'fired' : 'timeout',
+                    durationMs: Date.now() - startTime,
+                    tasksProduced: result.length,
+                    timestamp: Date.now()
+                });
                 return result;
             } catch (error) {
                 this.handleRuleError(error, lmRule.id);
-                this.executionLog.push({ruleName: lmRule.name, status: 'timeout', durationMs: Date.now() - startTime, tasksProduced: 0, timestamp: Date.now()});
+                this.executionLog.push({
+                    ruleName: lmRule.name,
+                    status: 'timeout',
+                    durationMs: Date.now() - startTime,
+                    tasksProduced: 0,
+                    timestamp: Date.now()
+                });
                 return [];
             }
         }));

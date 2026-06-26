@@ -98,7 +98,7 @@ describe('Tool Framework', () => {
 
         it('should emit events on tool execution', async () => {
             const eventBus = new EventBus();
-            const manager = new ToolManager({ eventBus });
+            const manager = new ToolManager({eventBus});
             manager.register(new SleepTool());
 
             const events: string[] = [];

@@ -61,10 +61,6 @@ export class WakeScheduler extends EventEmitter {
         this.timer.unref?.();
     }
 
-    private scheduleNext(): void {
-        this.scheduleWake(this.currentInterval);
-    }
-
     setUrgency(urgency: number): void {
         const factor = 1 - urgency * this.config.driveUrgencyFactor;
         this.currentInterval = Math.max(this.config.minIntervalMs, Math.min(this.config.maxIntervalMs, this.config.baseIntervalMs * factor));
@@ -79,6 +75,10 @@ export class WakeScheduler extends EventEmitter {
 
     isRunning(): boolean {
         return this.running;
+    }
+
+    private scheduleNext(): void {
+        this.scheduleWake(this.currentInterval);
     }
 }
 

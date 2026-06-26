@@ -21,9 +21,9 @@ export interface Coreference {
 }
 
 export interface TaskBatch {
-    beliefs: Array<{narsese: string; truth?: {f: number; c: number}; source: 'user' | 'inferred'}>;
-    questions: Array<{narsese: string; context?: string}>;
-    goals: Array<{narsese: string; priority?: number}>;
+    beliefs: Array<{ narsese: string; truth?: { f: number; c: number }; source: 'user' | 'inferred' }>;
+    questions: Array<{ narsese: string; context?: string }>;
+    goals: Array<{ narsese: string; priority?: number }>;
     meta: {
         detectedIntent: 'chat' | 'command' | 'reasoning' | 'learning';
         ambiguities: Ambiguity[];
@@ -36,7 +36,7 @@ export interface TaskBatch {
 export interface NLContext {
     beliefs?: string[];
     recentDerivations?: string[];
-    memoryHealth?: {pressure: number; totalConcepts: number};
+    memoryHealth?: { pressure: number; totalConcepts: number };
     activeGoals?: string[];
     recentExamples?: TranslationCacheEntry[];
 }
@@ -61,7 +61,7 @@ export class NLUnderstandingService {
     constructor(
         registry: SeNARSRegistry,
         cache: TranslationCache,
-        opts?: {structuredOnly?: boolean},
+        opts?: { structuredOnly?: boolean },
     ) {
         this.cache = cache;
         this.structuredModel = getStructuredModel(registry);
@@ -181,9 +181,9 @@ export class NLUnderstandingService {
 
     private extractNarseseFromText(text: string, input: string): TaskBatch {
         // Heuristic: extract valid Narsese from text response
-        const beliefs: Array<{narsese: string; truth?: {f: number; c: number}; source: 'user' | 'inferred'}> = [];
-        const questions: Array<{narsese: string; context?: string}> = [];
-        const goals: Array<{narsese: string; priority?: number}> = [];
+        const beliefs: Array<{ narsese: string; truth?: { f: number; c: number }; source: 'user' | 'inferred' }> = [];
+        const questions: Array<{ narsese: string; context?: string }> = [];
+        const goals: Array<{ narsese: string; priority?: number }> = [];
 
         // Look for Narsese patterns like (A --> B), (A => B), ?(A --> B), !(A)
         const narsesePattern = /[\(<][^\)>]*[\)>]/g;
@@ -214,7 +214,11 @@ export class NLUnderstandingService {
         };
     }
 
-    private toTaskBatch(result: {beliefs: Array<{narsese: string; truth?: {f: number; c: number}}>; questions: string[]; goals: string[]}): TaskBatch {
+    private toTaskBatch(result: {
+        beliefs: Array<{ narsese: string; truth?: { f: number; c: number } }>;
+        questions: string[];
+        goals: string[]
+    }): TaskBatch {
         return {
             beliefs: result.beliefs.map(b => ({...b, source: 'user' as const})),
             questions: result.questions.map(q => ({narsese: q})),

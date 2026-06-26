@@ -1,4 +1,16 @@
-import type {Schema, Tool, ToolCapabilities, ToolChainResult, ToolChainStep, ToolContext, ToolEvent, ToolFilter, ToolRegistry, ToolResult, ToolStatistics} from './types';
+import type {
+    Schema,
+    Tool,
+    ToolCapabilities,
+    ToolChainResult,
+    ToolChainStep,
+    ToolContext,
+    ToolEvent,
+    ToolFilter,
+    ToolRegistry,
+    ToolResult,
+    ToolStatistics
+} from './types';
 import {errorResult} from './types';
 import {ToolError} from '../types';
 import {errMsg} from '../utils';
@@ -6,7 +18,6 @@ import {EventBus} from '../types/events.js';
 import {createLogger} from '../logger';
 
 const logger = createLogger({scope: 'ToolManager'});
-
 
 
 type LifecycleState = 'initialized' | 'running' | 'stopped' | 'disposed';
@@ -184,116 +195,108 @@ export class Registry implements ToolRegistry {
 }
 
 export interface ToolDescriptor {
-  name: string;
-  description: string;
-  capabilities?: ToolCapabilities;
-  tags?: string[];
-  version?: string;
+    name: string;
+    description: string;
+    capabilities?: ToolCapabilities;
+    tags?: string[];
+    version?: string;
 }
 
 export class ToolManager {
-  private readonly registry = new Registry();
-  private executionHistory: ToolEvent[] = [];
-  private readonly statistics = new Map<string, ToolStatistics>();
-  private readonly allowedPermissions = new Set<string>();
-  private readonly toolDescriptors = new Map<string, ToolDescriptor>();
-  private readonly lifecycleState = new Map<string, LifecycleState>();
-  private readonly maxHistory = 100;
-  private readonly sandboxMode: boolean;
-  private eventBus?: EventBus;
+    private readonly registry = new Registry();
+    private executionHistory: ToolEvent[] = [];
+    private readonly statistics = new Map<string, ToolStatistics>();
+    private readonly allowedPermissions = new Set<string>();
+    private readonly toolDescriptors = new Map<string, ToolDescriptor>();
+    private readonly lifecycleState = new Map<string, LifecycleState>();
+    private readonly maxHistory = 100;
+    private readonly sandboxMode: boolean;
+    private eventBus?: EventBus;
 
-  constructor(options?: { sandboxMode?: boolean; allowedPermissions?: string[]; eventBus?: EventBus }) {
-    this.sandboxMode = options?.sandboxMode ?? false;
-    this.eventBus = options?.eventBus;
-    options?.allowedPermissions?.forEach(p => this.allowedPermissions.add(p));
-  }
-
-  setEventBus(eventBus: EventBus): void {
-    this.eventBus = eventBus;
-  }
-
-  on(event: string, callback: (data: unknown) => void): void {
-    this.eventBus?.on(event as never, callback);
-  }
-
-  private emit(event: string, data: unknown): void {
-    this.eventBus?.emit(event as never, data as never);
-  }
-
-  register(tool: Tool, descriptor?: ToolDescriptor): void {
-    this.registry.register(tool);
-    this.lifecycleState.set(tool.name, 'initialized');
-    const resolvedDescriptor = descriptor ?? {
-      name: tool.name,
-      description: tool.description,
-      capabilities: tool.capabilities,
-      tags: tool.tags ?? [],
-      version: '1.0.0'
-    };
-    this.toolDescriptors.set(tool.name, resolvedDescriptor);
-    this.emit('tool:register', {name: tool.name, descriptor: resolvedDescriptor} as never);
-  }
-
-  unregister(name: string): void {
-    this.stopTool(name);
-    this.registry.unregister(name);
-    this.statistics.delete(name);
-    this.lifecycleState.delete(name);
-    this.toolDescriptors.delete(name);
-    this.emit('tool:unregister', {name} as never);
-  }
-
-  private emitState(name: string, state: LifecycleState): void {
-    this.emit(`tool:${state === 'running' ? 'init' : state}`, {name, state});
-  }
-
-  async initializeTool(name: string): Promise<boolean> {
-    const tool = this.get(name);
-    const ls = this.lifecycleState.get(name);
-    if (!tool || ls === 'running' || ls === 'disposed') return false;
-
-    if (tool.capabilities?.requiresPermissions &&
-      !tool.capabilities.requiresPermissions.every(p => this.allowedPermissions.has(p))) {
-      return false;
+    constructor(options?: { sandboxMode?: boolean; allowedPermissions?: string[]; eventBus?: EventBus }) {
+        this.sandboxMode = options?.sandboxMode ?? false;
+        this.eventBus = options?.eventBus;
+        options?.allowedPermissions?.forEach(p => this.allowedPermissions.add(p));
     }
-    this.lifecycleState.set(name, 'running');
-    this.emitState(name, 'running');
-    return true;
-  }
 
-  async stopTool(name: string): Promise<boolean> {
-    if (this.lifecycleState.get(name) !== 'running') return false;
-    this.lifecycleState.set(name, 'stopped');
-    this.emitState(name, 'stopped');
-    return true;
-  }
+    setEventBus(eventBus: EventBus): void {
+        this.eventBus = eventBus;
+    }
 
-  async disposeTool(name: string): Promise<boolean> {
-    if (this.lifecycleState.get(name) === 'disposed') return true;
-    this.lifecycleState.set(name, 'disposed');
-    this.emitState(name, 'disposed');
-    return true;
-  }
+    on(event: string, callback: (data: unknown) => void): void {
+        this.eventBus?.on(event as never, callback);
+    }
 
-  getToolDescriptor(name: string): ToolDescriptor | undefined {
-    return this.toolDescriptors.get(name);
-  }
+    register(tool: Tool, descriptor?: ToolDescriptor): void {
+        this.registry.register(tool);
+        this.lifecycleState.set(tool.name, 'initialized');
+        const resolvedDescriptor = descriptor ?? {
+            name: tool.name,
+            description: tool.description,
+            capabilities: tool.capabilities,
+            tags: tool.tags ?? [],
+            version: '1.0.0'
+        };
+        this.toolDescriptors.set(tool.name, resolvedDescriptor);
+        this.emit('tool:register', {name: tool.name, descriptor: resolvedDescriptor} as never);
+    }
 
-  discoverTools(filter?: { tags?: string[]; capabilities?: string[] }): ToolDescriptor[] {
-    const all = Array.from(this.toolDescriptors.values());
-    if (!filter) return all;
+    unregister(name: string): void {
+        this.stopTool(name);
+        this.registry.unregister(name);
+        this.statistics.delete(name);
+        this.lifecycleState.delete(name);
+        this.toolDescriptors.delete(name);
+        this.emit('tool:unregister', {name} as never);
+    }
 
-    return all.filter(desc => {
-      if (filter.tags && !filter.tags.every(tag => desc.tags?.includes(tag))) return false;
-      if (filter.capabilities) {
-        const caps = desc.capabilities;
-        if (!caps) return false;
-        if (filter.capabilities.some(c => c === 'pure' && !caps.pure)) return false;
-        if (filter.capabilities.some(c => c === 'readOnly' && !caps.readOnly)) return false;
-      }
-      return true;
-    });
-  }
+    async initializeTool(name: string): Promise<boolean> {
+        const tool = this.get(name);
+        const ls = this.lifecycleState.get(name);
+        if (!tool || ls === 'running' || ls === 'disposed') return false;
+
+        if (tool.capabilities?.requiresPermissions &&
+            !tool.capabilities.requiresPermissions.every(p => this.allowedPermissions.has(p))) {
+            return false;
+        }
+        this.lifecycleState.set(name, 'running');
+        this.emitState(name, 'running');
+        return true;
+    }
+
+    async stopTool(name: string): Promise<boolean> {
+        if (this.lifecycleState.get(name) !== 'running') return false;
+        this.lifecycleState.set(name, 'stopped');
+        this.emitState(name, 'stopped');
+        return true;
+    }
+
+    async disposeTool(name: string): Promise<boolean> {
+        if (this.lifecycleState.get(name) === 'disposed') return true;
+        this.lifecycleState.set(name, 'disposed');
+        this.emitState(name, 'disposed');
+        return true;
+    }
+
+    getToolDescriptor(name: string): ToolDescriptor | undefined {
+        return this.toolDescriptors.get(name);
+    }
+
+    discoverTools(filter?: { tags?: string[]; capabilities?: string[] }): ToolDescriptor[] {
+        const all = Array.from(this.toolDescriptors.values());
+        if (!filter) return all;
+
+        return all.filter(desc => {
+            if (filter.tags && !filter.tags.every(tag => desc.tags?.includes(tag))) return false;
+            if (filter.capabilities) {
+                const caps = desc.capabilities;
+                if (!caps) return false;
+                if (filter.capabilities.some(c => c === 'pure' && !caps.pure)) return false;
+                if (filter.capabilities.some(c => c === 'readOnly' && !caps.readOnly)) return false;
+            }
+            return true;
+        });
+    }
 
     resolveConflict(tools: string[], context?: { preference?: 'first' | 'best' | 'random' }): string | null {
         if (tools.length <= 1) return tools[0] ?? null;
@@ -424,6 +427,14 @@ export class ToolManager {
 
     async shutdown(): Promise<void> {
         await Promise.all(Array.from(this.lifecycleState.keys()).map(name => this.disposeTool(name)));
+    }
+
+    private emit(event: string, data: unknown): void {
+        this.eventBus?.emit(event as never, data as never);
+    }
+
+    private emitState(name: string, state: LifecycleState): void {
+        this.emit(`tool:${state === 'running' ? 'init' : state}`, {name, state});
     }
 
     private initializeStatistics(name: string): void {

@@ -1,11 +1,15 @@
 import type {NAR} from '../nar.js';
 import {MetacognitiveMonitor} from '../cognitive/MetacognitiveMonitor.js';
-import {type MetaCognitiveResult, type MonitorState, SelfAnalyzerService as SelfAnalyzer} from '../cognitive/SelfAnalyzerService.js';
+import {
+    type MetaCognitiveResult,
+    type MonitorState,
+    SelfAnalyzerService as SelfAnalyzer
+} from '../cognitive/SelfAnalyzerService.js';
 import {createLogger} from '../logger';
 
 export interface GapReport {
     missingRules: string[];
-    lowConfidenceBeliefs: Array<{term: string; f: number; c: number}>;
+    lowConfidenceBeliefs: Array<{ term: string; f: number; c: number }>;
     repeatedFailures: string[];
 }
 

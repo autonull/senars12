@@ -1,6 +1,6 @@
 import {Concept, type ConceptMergeResult, type ConceptTaskType} from './concept.js';
-import type {Term, Truth as TruthType} from '../terms';
-import {Stamp, calculateSimilarity, TermMap, Truth} from '../terms';
+import type {Term} from '../terms';
+import {calculateSimilarity, Stamp, TermMap, Truth} from '../terms';
 import type {Budget, Task} from '../types';
 import {NEUTRAL_BUDGET} from '../types/core.js';
 import {MemoryIndex} from './memory-index.js';
@@ -220,13 +220,6 @@ export class Memory {
         return false;
     }
 
-    private decayAll(): void {
-        for (const concept of this.concepts.values()) {
-            const decay = this.attentionModel.decay(concept, 1, this.config.activationDecayRate);
-            if (decay !== 0) concept.priority = Math.max(0, concept.priority - decay);
-        }
-    }
-
     sample(limit: number): Concept[] {
         this.decayAll();
         return [...this.concepts.values()]
@@ -234,13 +227,20 @@ export class Memory {
             .slice(0, limit);
     }
 
-    consolidate(opts?: { lm?: { generateObject: (opts: { prompt: string; schema: unknown }) => Promise<{ object: { name: string; definition: string } }> }; cycleCount?: number }): void {
+    consolidate(opts?: {
+        lm?: {
+            generateObject: (opts: { prompt: string; schema: unknown }) => Promise<{
+                object: { name: string; definition: string }
+            }>
+        };
+        cycleCount?: number
+    }): void {
         if (++this.cyclesSinceConsolidation < this.config.consolidationInterval) return;
         this.cyclesSinceConsolidation = 0;
 
         this.attentionModel.tick(this, opts?.cycleCount ?? this.cyclesSinceConsolidation);
 
-        const { linkDecayRate, maxConcepts } = this.config;
+        const {linkDecayRate, maxConcepts} = this.config;
 
         this.decayAll();
 
@@ -249,10 +249,10 @@ export class Memory {
             const candidates = [...this.concepts.values()].filter(c => c.totalTasks === 0);
             candidates.sort((a, b) => a.priority - b.priority);
             const toArchiveCount = Math.ceil(candidates.length * Math.min(0.3, capacityPressure - 0.5));
-            const toRemoveCount = capacityPressure > 0.9 
-                ? Math.ceil(candidates.length * Math.min(0.2, capacityPressure - 0.8)) 
+            const toRemoveCount = capacityPressure > 0.9
+                ? Math.ceil(candidates.length * Math.min(0.2, capacityPressure - 0.8))
                 : 0;
-            
+
             for (let i = 0; i < toArchiveCount && i < candidates.length; i++) {
                 this.archiveConcept(candidates[i]!);
             }
@@ -265,24 +265,6 @@ export class Memory {
 
         if (opts?.lm) {
             this.lmAssistedConsolidate(opts.lm);
-        }
-    }
-
-    private async lmAssistedConsolidate(lm: { generateObject: (opts: { prompt: string; schema: unknown }) => Promise<{ object: { name: string; definition: string } }> }): Promise<void> {
-        const clusters = this.findDenseClusters();
-        for (const cluster of clusters) {
-            if (cluster.concepts.length >= 3 && !cluster.hasAbstract) {
-                try {
-                    const conceptNames = cluster.concepts.map(c => c.term.toString());
-                    const result = await lm.generateObject({
-                        prompt: `Abstract category for: ${conceptNames.join(', ')}?`,
-                        schema: { type: 'object', properties: { name: { type: 'string' }, definition: { type: 'string' } } },
-                    });
-                    this.createAbstractConcept(result.object.name, cluster.concepts);
-                } catch {
-                    // LM abstraction failed, continue without it
-                }
-            }
         }
     }
 
@@ -307,39 +289,13 @@ export class Memory {
         return clusters;
     }
 
-    private bfsCluster(start: Concept, minStrength: number, visited: Set<string>): Concept[] {
-        const cluster: Concept[] = [];
-        const queue: Concept[] = [start];
-        const startKey = start.term.toString();
-        visited.add(startKey);
-
-        while (queue.length > 0) {
-            const current = queue.shift()!;
-            cluster.push(current);
-
-            const links = this.linkManager.getLinks(current.term);
-            for (const link of links) {
-                if (link.priority < minStrength) continue;
-                const target = this.concepts.get(link.targetTerm);
-                if (!target) continue;
-                const targetKey = target.term.toString();
-                if (visited.has(targetKey)) continue;
-
-                visited.add(targetKey);
-                queue.push(target);
-            }
-        }
-
-        return cluster;
-    }
-
     createAbstractConcept(name: string, sourceConcepts: Concept[]): Concept {
-        const { atom } = require('../terms/factory.js');
+        const {atom} = require('../terms/factory.js');
         const abstractTerm = atom(name);
         const concept = this.addConcept(abstractTerm);
 
         for (const source of sourceConcepts) {
-            this.linkManager.addLink(abstractTerm, source.term, { type: 'term-link', priority: 0.7 });
+            this.linkManager.addLink(abstractTerm, source.term, {type: 'term-link', priority: 0.7});
         }
 
         return concept;
@@ -451,6 +407,61 @@ export class Memory {
         const scored = allConcepts.map((concept) => ({concept, similarity: calculateSimilarity(concept.term, term)}));
         scored.sort((a, b) => b.similarity - a.similarity);
         return scored.slice(0, limit).map((s) => s.concept);
+    }
+
+    private decayAll(): void {
+        for (const concept of this.concepts.values()) {
+            const decay = this.attentionModel.decay(concept, 1, this.config.activationDecayRate);
+            if (decay !== 0) concept.priority = Math.max(0, concept.priority - decay);
+        }
+    }
+
+    private async lmAssistedConsolidate(lm: {
+        generateObject: (opts: { prompt: string; schema: unknown }) => Promise<{
+            object: { name: string; definition: string }
+        }>
+    }): Promise<void> {
+        const clusters = this.findDenseClusters();
+        for (const cluster of clusters) {
+            if (cluster.concepts.length >= 3 && !cluster.hasAbstract) {
+                try {
+                    const conceptNames = cluster.concepts.map(c => c.term.toString());
+                    const result = await lm.generateObject({
+                        prompt: `Abstract category for: ${conceptNames.join(', ')}?`,
+                        schema: {type: 'object', properties: {name: {type: 'string'}, definition: {type: 'string'}}},
+                    });
+                    this.createAbstractConcept(result.object.name, cluster.concepts);
+                } catch {
+                    // LM abstraction failed, continue without it
+                }
+            }
+        }
+    }
+
+    private bfsCluster(start: Concept, minStrength: number, visited: Set<string>): Concept[] {
+        const cluster: Concept[] = [];
+        const queue: Concept[] = [start];
+        const startKey = start.term.toString();
+        visited.add(startKey);
+
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            cluster.push(current);
+
+            const links = this.linkManager.getLinks(current.term);
+            for (const link of links) {
+                if (link.priority < minStrength) continue;
+                const target = this.concepts.get(link.targetTerm);
+                if (!target) continue;
+                const targetKey = target.term.toString();
+                if (visited.has(targetKey)) continue;
+
+                visited.add(targetKey);
+                queue.push(target);
+            }
+        }
+
+        return cluster;
     }
 
     private applyForgetting(): void {

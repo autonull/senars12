@@ -124,7 +124,13 @@ export class QueryAPI {
             type: 'belief',
             truth: belief.truth ? Truth.create(belief.truth.f, belief.truth.c) : Truth.NEUTRAL,
             budget: {priority, durability: 0.8, quality: 0.9, cycles: 0, depth: 0},
-            stamp: belief.stamp ?? ({id: '', creationTime: 0, source: 'INPUT' as const, derivations: [], depth: 0} as any),
+            stamp: belief.stamp ?? ({
+                id: '',
+                creationTime: 0,
+                source: 'INPUT' as const,
+                derivations: [],
+                depth: 0
+            } as any),
             occurrenceTime: createTimestamp(0),
             derived: false
         };

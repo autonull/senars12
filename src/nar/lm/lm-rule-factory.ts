@@ -12,10 +12,19 @@ import {LMResponseParser} from './parser.js';
 import {calculateSimilarity} from '../terms/utils.js';
 import type {ZodSchema} from 'zod';
 import {
-    TranslationSchema, ExplanationSchema, GoalDecompositionSchema, HypothesisSchema,
-    AnalogySchema, MetaReasoningSchema, UncertaintySchema, SchemaInductionSchema,
-    TemporalCausalSchema, VariableGroundingSchema, ConceptElaborationSchema,
-    BeliefRevisionSchema, QuestionGenerationSchema,
+    AnalogySchema,
+    BeliefRevisionSchema,
+    ConceptElaborationSchema,
+    ExplanationSchema,
+    GoalDecompositionSchema,
+    HypothesisSchema,
+    MetaReasoningSchema,
+    QuestionGenerationSchema,
+    SchemaInductionSchema,
+    TemporalCausalSchema,
+    TranslationSchema,
+    UncertaintySchema,
+    VariableGroundingSchema,
 } from '../nl/schemas.js';
 
 export interface LMRuleDefinition {
@@ -104,26 +113,184 @@ export const hasHighCuriosity = (_primary: Term, _secondary?: Term, ctx?: Record
 
 // Preset rule definitions
 const ruleDefs: LMRuleDefinition[] = [
-    {id: 'lm-narsese-translation', name: 'LMNarseseTranslationRule', description: 'Translates natural language to Narsese', priority: 0.9, taskType: 'belief', budget: 0.9, schema: TranslationSchema},
-    {id: 'lm-belief-revision', name: 'LMBeliefRevisionRule', description: 'Revises belief confidence based on context', priority: 0.8, taskType: 'belief', budget: 0.7, activationCondition: hasConflictingBeliefs, schema: BeliefRevisionSchema},
-    {id: 'lm-goal-decomposition', name: 'LMGoalDecompositionRule', description: 'Decomposes complex goals into subgoals', priority: 0.85, taskType: 'goal', budget: 0.8, singlePremise: true, activationCondition: isComplexGoal, schema: GoalDecompositionSchema},
-    {id: 'lm-hypothesis-generation', name: 'LMHypothesisGenerationRule', description: 'Generates hypotheses from observations', priority: 0.75, taskType: 'belief', budget: 0.6, activationCondition: hasLowConfidence, schema: HypothesisSchema},
-    {id: 'lm-explanation-generation', name: 'LMExplanationGenerationRule', description: 'Generates explanations for beliefs', priority: 0.7, taskType: 'belief', budget: 0.65, schema: ExplanationSchema},
-    {id: 'lm-analogical-reasoning', name: 'LMAnalogicalReasoningRule', description: 'Performs analogical reasoning between concepts', priority: 0.8, taskType: 'belief', budget: 0.7, activationCondition: hasStructuralSimilarityNoOverlap, schema: AnalogySchema},
-    {id: 'lm-meta-reasoning', name: 'LMMetaReasoningGuidanceRule', description: 'Provides meta-level reasoning guidance', priority: 0.75, taskType: 'belief', budget: 0.65, schema: MetaReasoningSchema},
-    {id: 'lm-uncertainty-calibration', name: 'LMUncertaintyCalibrationRule', description: 'Calibrates uncertainty in beliefs', priority: 0.7, taskType: 'belief', budget: 0.6, schema: UncertaintySchema},
-    {id: 'lm-schema-induction', name: 'LMSchemaInductionRule', description: 'Induces schemas from examples', priority: 0.75, taskType: 'belief', budget: 0.65, schema: SchemaInductionSchema},
-    {id: 'lm-temporal-causal', name: 'LMTemporalCausalModelingRule', description: 'Models temporal and causal relationships', priority: 0.8, taskType: 'belief', budget: 0.7, schema: TemporalCausalSchema},
-    {id: 'lm-variable-grounding', name: 'LMVariableGroundingRule', description: 'Grounds variables in concrete instances', priority: 0.7, taskType: 'belief', budget: 0.65, activationCondition: (p) => hasVariable(p), schema: VariableGroundingSchema},
-    {id: 'lm-concept-elaboration', name: 'LMConceptElaborationRule', description: 'Elaborates on concept properties', priority: 0.75, taskType: 'belief', budget: 0.7, activationCondition: isUnderconnected, schema: ConceptElaborationSchema},
-    {id: 'lm-curiosity-question', name: 'LMCuriosityQuestionRule', description: 'Generates questions driven by curiosity', priority: 0.7, taskType: 'question', budget: 0.65, singlePremise: true, activationCondition: hasHighCuriosity, schema: QuestionGenerationSchema},
-    {id: 'lm-interactive-clarification', name: 'LMInteractiveClarificationRule', description: 'Seeks clarification for ambiguous inputs', priority: 0.7, taskType: 'question', budget: 0.65},
+    {
+        id: 'lm-narsese-translation',
+        name: 'LMNarseseTranslationRule',
+        description: 'Translates natural language to Narsese',
+        priority: 0.9,
+        taskType: 'belief',
+        budget: 0.9,
+        schema: TranslationSchema
+    },
+    {
+        id: 'lm-belief-revision',
+        name: 'LMBeliefRevisionRule',
+        description: 'Revises belief confidence based on context',
+        priority: 0.8,
+        taskType: 'belief',
+        budget: 0.7,
+        activationCondition: hasConflictingBeliefs,
+        schema: BeliefRevisionSchema
+    },
+    {
+        id: 'lm-goal-decomposition',
+        name: 'LMGoalDecompositionRule',
+        description: 'Decomposes complex goals into subgoals',
+        priority: 0.85,
+        taskType: 'goal',
+        budget: 0.8,
+        singlePremise: true,
+        activationCondition: isComplexGoal,
+        schema: GoalDecompositionSchema
+    },
+    {
+        id: 'lm-hypothesis-generation',
+        name: 'LMHypothesisGenerationRule',
+        description: 'Generates hypotheses from observations',
+        priority: 0.75,
+        taskType: 'belief',
+        budget: 0.6,
+        activationCondition: hasLowConfidence,
+        schema: HypothesisSchema
+    },
+    {
+        id: 'lm-explanation-generation',
+        name: 'LMExplanationGenerationRule',
+        description: 'Generates explanations for beliefs',
+        priority: 0.7,
+        taskType: 'belief',
+        budget: 0.65,
+        schema: ExplanationSchema
+    },
+    {
+        id: 'lm-analogical-reasoning',
+        name: 'LMAnalogicalReasoningRule',
+        description: 'Performs analogical reasoning between concepts',
+        priority: 0.8,
+        taskType: 'belief',
+        budget: 0.7,
+        activationCondition: hasStructuralSimilarityNoOverlap,
+        schema: AnalogySchema
+    },
+    {
+        id: 'lm-meta-reasoning',
+        name: 'LMMetaReasoningGuidanceRule',
+        description: 'Provides meta-level reasoning guidance',
+        priority: 0.75,
+        taskType: 'belief',
+        budget: 0.65,
+        schema: MetaReasoningSchema
+    },
+    {
+        id: 'lm-uncertainty-calibration',
+        name: 'LMUncertaintyCalibrationRule',
+        description: 'Calibrates uncertainty in beliefs',
+        priority: 0.7,
+        taskType: 'belief',
+        budget: 0.6,
+        schema: UncertaintySchema
+    },
+    {
+        id: 'lm-schema-induction',
+        name: 'LMSchemaInductionRule',
+        description: 'Induces schemas from examples',
+        priority: 0.75,
+        taskType: 'belief',
+        budget: 0.65,
+        schema: SchemaInductionSchema
+    },
+    {
+        id: 'lm-temporal-causal',
+        name: 'LMTemporalCausalModelingRule',
+        description: 'Models temporal and causal relationships',
+        priority: 0.8,
+        taskType: 'belief',
+        budget: 0.7,
+        schema: TemporalCausalSchema
+    },
+    {
+        id: 'lm-variable-grounding',
+        name: 'LMVariableGroundingRule',
+        description: 'Grounds variables in concrete instances',
+        priority: 0.7,
+        taskType: 'belief',
+        budget: 0.65,
+        activationCondition: (p) => hasVariable(p),
+        schema: VariableGroundingSchema
+    },
+    {
+        id: 'lm-concept-elaboration',
+        name: 'LMConceptElaborationRule',
+        description: 'Elaborates on concept properties',
+        priority: 0.75,
+        taskType: 'belief',
+        budget: 0.7,
+        activationCondition: isUnderconnected,
+        schema: ConceptElaborationSchema
+    },
+    {
+        id: 'lm-curiosity-question',
+        name: 'LMCuriosityQuestionRule',
+        description: 'Generates questions driven by curiosity',
+        priority: 0.7,
+        taskType: 'question',
+        budget: 0.65,
+        singlePremise: true,
+        activationCondition: hasHighCuriosity,
+        schema: QuestionGenerationSchema
+    },
+    {
+        id: 'lm-interactive-clarification',
+        name: 'LMInteractiveClarificationRule',
+        description: 'Seeks clarification for ambiguous inputs',
+        priority: 0.7,
+        taskType: 'question',
+        budget: 0.65
+    },
     // V2 preset rules (merged from rule-factory-v2.ts)
-    {id: 'lm-v2-hypothesis', name: 'LMV2HypothesisRule', description: 'Generates typed hypotheses with truth values', priority: 0.75, taskType: 'belief', singlePremise: true, schema: HypothesisSchema},
-    {id: 'lm-v2-explanation', name: 'LMV2ExplanationRule', description: 'Generates typed explanations with key premises', priority: 0.7, taskType: 'belief', singlePremise: true, schema: ExplanationSchema},
-    {id: 'lm-v2-analogy', name: 'LMV2AnalogyRule', description: 'Finds structural analogies between concepts', priority: 0.8, taskType: 'belief', schema: AnalogySchema},
-    {id: 'lm-v2-causal', name: 'LMV2CausalRule', description: 'Models causal relationships', priority: 0.8, taskType: 'belief', schema: TemporalCausalSchema},
-    {id: 'lm-v2-schema', name: 'LMV2SchemaRule', description: 'Induces reusable schemas from patterns', priority: 0.75, taskType: 'belief', singlePremise: true, schema: SchemaInductionSchema},
+    {
+        id: 'lm-v2-hypothesis',
+        name: 'LMV2HypothesisRule',
+        description: 'Generates typed hypotheses with truth values',
+        priority: 0.75,
+        taskType: 'belief',
+        singlePremise: true,
+        schema: HypothesisSchema
+    },
+    {
+        id: 'lm-v2-explanation',
+        name: 'LMV2ExplanationRule',
+        description: 'Generates typed explanations with key premises',
+        priority: 0.7,
+        taskType: 'belief',
+        singlePremise: true,
+        schema: ExplanationSchema
+    },
+    {
+        id: 'lm-v2-analogy',
+        name: 'LMV2AnalogyRule',
+        description: 'Finds structural analogies between concepts',
+        priority: 0.8,
+        taskType: 'belief',
+        schema: AnalogySchema
+    },
+    {
+        id: 'lm-v2-causal',
+        name: 'LMV2CausalRule',
+        description: 'Models causal relationships',
+        priority: 0.8,
+        taskType: 'belief',
+        schema: TemporalCausalSchema
+    },
+    {
+        id: 'lm-v2-schema',
+        name: 'LMV2SchemaRule',
+        description: 'Induces reusable schemas from patterns',
+        priority: 0.75,
+        taskType: 'belief',
+        singlePremise: true,
+        schema: SchemaInductionSchema
+    },
 ];
 
 const prompts: Record<string, string> = {
@@ -174,16 +341,55 @@ export class LMRuleFactory {
         return new LMRuleFactory(lm);
     }
 
-    id(id: string): this { this.config.id = id; return this; }
-    name(name: string): this { this.config.name = name; return this; }
-    description(desc: string): this { this.config.description = desc; return this; }
-    priority(p: number): this { this.config.priority = p; return this; }
-    prompt(template: string): this { this.config.promptTemplate = template; return this; }
-    taskType(type: TaskType): this { this.config.taskType = type; return this; }
-    budget(b: number): this { this.config.budget = b; return this; }
-    multiline(ml: boolean): this { this.config.multiline = ml; return this; }
-    activation(fn: (primary: Term, secondary?: Term, context?: Record<string, unknown>) => boolean): this { this.config.activationCondition = fn; return this; }
-    singlePremise(sp: boolean): this { this.config.singlePremise = sp; return this; }
+    id(id: string): this {
+        this.config.id = id;
+        return this;
+    }
+
+    name(name: string): this {
+        this.config.name = name;
+        return this;
+    }
+
+    description(desc: string): this {
+        this.config.description = desc;
+        return this;
+    }
+
+    priority(p: number): this {
+        this.config.priority = p;
+        return this;
+    }
+
+    prompt(template: string): this {
+        this.config.promptTemplate = template;
+        return this;
+    }
+
+    taskType(type: TaskType): this {
+        this.config.taskType = type;
+        return this;
+    }
+
+    budget(b: number): this {
+        this.config.budget = b;
+        return this;
+    }
+
+    multiline(ml: boolean): this {
+        this.config.multiline = ml;
+        return this;
+    }
+
+    activation(fn: (primary: Term, secondary?: Term, context?: Record<string, unknown>) => boolean): this {
+        this.config.activationCondition = fn;
+        return this;
+    }
+
+    singlePremise(sp: boolean): this {
+        this.config.singlePremise = sp;
+        return this;
+    }
 
     narseseTranslation(): LMRule {
         return LMRuleFactory.from(this.lm)

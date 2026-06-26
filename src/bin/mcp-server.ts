@@ -4,7 +4,7 @@
  */
 
 import {SeNARSMCPServer} from '../api/mcp-server.js';
-import {registerNARToolsAsMCP, registerAgentAPI} from '../api/mcp-tools.js';
+import {registerAgentAPI, registerNARToolsAsMCP} from '../api/mcp-tools.js';
 import {createNAR} from '../nar/factory.js';
 import {createAgent} from '../agent/index.js';
 import {loadConfig} from '../config/index.js';
@@ -23,12 +23,12 @@ async function initialize() {
     const appConfig = await loadConfig();
     const nar = await createNAR(appConfig);
     const agent = createAgent({nar});
-    
+
     // Register NAR tools
     registerNARToolsAsMCP(nar, server.getAdapter());
     // Register Agent API tools
     registerAgentAPI(agent, server.getAdapter());
-    
+
     // Register legacy tools
     const registry = server.getAdapter()['registry'];
     registry.register('get_beliefs', {
@@ -37,14 +37,14 @@ async function initialize() {
         returns: z.any(),
         handler: async () => nar.getBeliefs(),
     });
-    
+
     registry.register('get_attention', {
         description: 'Get current attention snapshot',
         params: z.object({}),
         returns: z.any(),
         handler: async () => ({attention: 'N/A'}),
     });
-    
+
     await server.start();
     console.error('SeNARS MCP Server started on stdio');
     console.error('Tools registered:', server.getAdapter().getTools().map(t => t.name).join(', '));

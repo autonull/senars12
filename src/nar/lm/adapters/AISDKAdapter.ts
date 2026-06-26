@@ -1,7 +1,7 @@
 import type {LMClient, LMConfig} from '../types.js';
 import {createLogger} from '../../logger/index.js';
 import type {V2Tool} from './prompt-utils.js';
-import {extractSystemPrompt, buildJsonToolSystemPrompt, formatV2Prompt} from './prompt-utils.js';
+import {buildJsonToolSystemPrompt, extractSystemPrompt, formatV2Prompt} from './prompt-utils.js';
 
 const logger = createLogger({scope: 'lm:adapter'});
 
@@ -30,6 +30,7 @@ export interface AISDKLanguageModel {
     provider: string;
     defaultObjectGenerationMode: 'json' | 'tool';
     supportedUrls: Record<string, RegExp[]>;
+
     doGenerate(options: {
         prompt: Array<{
             role: 'system' | 'user' | 'assistant' | 'tool';
@@ -47,12 +48,13 @@ export interface AISDKLanguageModel {
         }>;
     }): Promise<{
         content: Array<
-            | {type: 'text'; text: string}
-            | {type: 'tool-call'; toolCallId: string; toolName: string; input: unknown}
+            | { type: 'text'; text: string }
+            | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
         >;
         finishReason: 'stop' | 'length' | 'content-filter' | 'error' | 'tool-calls' | 'other';
-        usage: {inputTokens: number; outputTokens: number; totalTokens: number};
+        usage: { inputTokens: number; outputTokens: number; totalTokens: number };
     }>;
+
     doStream(options: {
         prompt: Array<{
             role: 'system' | 'user' | 'assistant' | 'tool';
@@ -70,12 +72,16 @@ export interface AISDKLanguageModel {
         }>;
     }): Promise<{
         stream: ReadableStream<
-            | {type: 'text-delta'; id: string; text: string}
-            | {type: 'tool-call'; toolCallId: string; toolName: string; input: unknown}
-            | {type: 'finish'; finishReason: string; usage: {inputTokens: number; outputTokens: number; totalTokens: number}}
+            | { type: 'text-delta'; id: string; text: string }
+            | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
+            | {
+            type: 'finish';
+            finishReason: string;
+            usage: { inputTokens: number; outputTokens: number; totalTokens: number }
+        }
         >;
         finishReason: 'stop' | 'length' | 'content-filter' | 'error' | 'tool-calls' | 'other';
-        usage: {inputTokens: number; outputTokens: number; totalTokens: number};
+        usage: { inputTokens: number; outputTokens: number; totalTokens: number };
     }>;
 }
 
@@ -96,7 +102,7 @@ export class AISDKAdapter implements AISDKLanguageModel {
         const tools = (options.tools ?? []) as V2Tool[];
         const mergedSystem = buildJsonToolSystemPrompt(system, tools);
 
-        const config: LMConfig & {signal?: AbortSignal} = {
+        const config: LMConfig & { signal?: AbortSignal } = {
             ...(options.maxOutputTokens !== undefined ? {maxTokens: options.maxOutputTokens} : {}),
             ...(options.temperature !== undefined ? {temperature: options.temperature} : {}),
             ...(options.abortSignal ? {signal: options.abortSignal} : {}),
@@ -120,15 +126,20 @@ export class AISDKAdapter implements AISDKLanguageModel {
 
         const {cleanText, toolCalls} = extractToolCalls(text, tools);
         const content: Array<
-            | {type: 'text'; text: string}
-            | {type: 'tool-call'; toolCallId: string; toolName: string; input: unknown}
+            | { type: 'text'; text: string }
+            | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
         > = [];
 
         if (cleanText.trim()) {
             content.push({type: 'text' as const, text: cleanText.trimEnd()});
         }
         for (const tc of toolCalls) {
-            content.push({type: 'tool-call' as const, toolCallId: tc.toolCallId, toolName: tc.toolName, input: tc.input});
+            content.push({
+                type: 'tool-call' as const,
+                toolCallId: tc.toolCallId,
+                toolName: tc.toolName,
+                input: tc.input
+            });
         }
 
         const usage = estimateUsage(promptText, text);
@@ -147,14 +158,21 @@ export class AISDKAdapter implements AISDKLanguageModel {
         } | {
             type: 'tool-call'; toolCallId: string; toolName: string; input: unknown;
         } | {
-            type: 'finish'; finishReason: string; usage: {inputTokens: number; outputTokens: number; totalTokens: number};
+            type: 'finish';
+            finishReason: string;
+            usage: { inputTokens: number; outputTokens: number; totalTokens: number };
         }>({
             start(controller) {
                 for (const part of result.content) {
                     if (part.type === 'text') {
                         controller.enqueue({type: 'text-delta', id: '1', text: part.text});
                     } else {
-                        controller.enqueue({type: 'tool-call', toolCallId: part.toolCallId, toolName: part.toolName, input: part.input});
+                        controller.enqueue({
+                            type: 'tool-call',
+                            toolCallId: part.toolCallId,
+                            toolName: part.toolName,
+                            input: part.input
+                        });
                     }
                 }
                 controller.enqueue({type: 'finish', finishReason: result.finishReason, usage: result.usage});
@@ -191,7 +209,7 @@ interface ToolCallExtraction {
     toolCalls: ExtractedToolCall[];
 }
 
-function findBalancedJsonObject(text: string, start: number): {end: number} | null {
+function findBalancedJsonObject(text: string, start: number): { end: number } | null {
     if (text[start] !== '{') return null;
     let depth = 1;
     for (let i = start + 1; i < text.length; i++) {
@@ -205,7 +223,7 @@ function findBalancedJsonObject(text: string, start: number): {end: number} | nu
     return null;
 }
 
-function extractToolCalls(text: string, tools: Array<{name: string; inputSchema?: unknown}>): ToolCallExtraction {
+function extractToolCalls(text: string, tools: Array<{ name: string; inputSchema?: unknown }>): ToolCallExtraction {
     const toolCalls: ExtractedToolCall[] = [];
     const usedSpans: Array<[number, number]> = [];
 
@@ -270,7 +288,11 @@ function safeParseJson(s: string): unknown {
 
 function validateArgs(raw: Record<string, unknown>, schema: unknown): Record<string, unknown> {
     if (!schema || typeof schema !== 'object') return raw;
-    const candidate = schema as {safeParse?: (input: unknown) => {success: boolean; data?: unknown; error?: unknown}; parse?: (input: unknown) => unknown; _zod?: {def?: {shape?: Record<string, unknown>}}};
+    const candidate = schema as {
+        safeParse?: (input: unknown) => { success: boolean; data?: unknown; error?: unknown };
+        parse?: (input: unknown) => unknown;
+        _zod?: { def?: { shape?: Record<string, unknown> } }
+    };
     if (typeof candidate.safeParse !== 'function') return raw;
     const result = candidate.safeParse(raw);
     if (result.success) return (result.data as Record<string, unknown>) ?? raw;
@@ -281,7 +303,7 @@ function validateArgs(raw: Record<string, unknown>, schema: unknown): Record<str
 }
 
 function coerceOptionalFields(raw: Record<string, unknown>, schema: unknown): Record<string, unknown> {
-    const shape = (schema as {_zod?: {def?: {shape?: Record<string, unknown>}}})?._zod?.def?.shape;
+    const shape = (schema as { _zod?: { def?: { shape?: Record<string, unknown> } } })?._zod?.def?.shape;
     const knownKeys = shape && typeof shape === 'object' ? new Set(Object.keys(shape)) : null;
     if (!knownKeys) return raw;
     const out: Record<string, unknown> = {};
@@ -310,7 +332,11 @@ function estimateTokens(text: string): number {
     return Math.max(1, Math.ceil(text.length / 4));
 }
 
-function estimateUsage(prompt: string, response: string): {inputTokens: number; outputTokens: number; totalTokens: number} {
+function estimateUsage(prompt: string, response: string): {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number
+} {
     const input = estimateTokens(prompt);
     const output = estimateTokens(response);
     return {inputTokens: input, outputTokens: output, totalTokens: input + output};

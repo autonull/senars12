@@ -1,7 +1,7 @@
 import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
 import {createLogger} from '../../nar/logger/index.js';
-import type {MCPToolCall, MCPToolResult} from '../../api/mcp/types.js';
+import type {MCPToolResult} from '../../api/mcp/types.js';
 import {makeId} from '../../nar/utils/index.js';
 
 export class MCPConnection extends BaseConnection {
@@ -191,7 +191,7 @@ export class MCPConnection extends BaseConnection {
             this.pendingToolCalls.delete(id);
             clearTimeout(this.toolCallTimeouts.get(id));
             this.toolCallTimeouts.delete(id);
-            const result = data.result as {content: Array<{type: string, text: string}>, isError?: boolean};
+            const result = data.result as { content: Array<{ type: string, text: string }>, isError?: boolean };
             resolve(result);
             return;
         }

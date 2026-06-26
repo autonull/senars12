@@ -90,6 +90,33 @@ export class RLFPLearner {
         return lastError ? {success: false, count, error: lastError} : {success: true, count};
     }
 
+    /**
+     * Provide external reward feedback (e.g., from user) to update policy
+     * @param reward - Reward value between -1 and 1
+     * @param context - Optional context about what the reward is for
+     */
+    reward(reward: number, context?: string): void {
+        const clampedReward = Math.max(-1, Math.min(1, reward));
+        // Create a minimal trajectory step for the reward
+        const trajectory: TrajectoryStep[] = [{
+            type: 'reward_feedback',
+            timestamp: Date.now(),
+            data: {reward: clampedReward, context},
+        }];
+        // Record outcome with a special strategy name for feedback
+        this.policyOptimizer.recordOutcome(trajectory, 'user_feedback');
+    }
+
+    /**
+     * Reset the RLFPLearner state
+     */
+    reset(): void {
+        this.policyOptimizer.reset();
+        this._preferenceCollector.clear();
+        this._trajectoryCount = 0;
+        this._lastOptimizeTime = undefined;
+    }
+
     private prepareTrainingEntry(pref: PreferenceData): TrainingEntry | null {
         const promptStep = pref.trajectoryA.find(s => s.type === 'llm_prompt');
         const prompt = promptStep?.data || 'unknown_prompt';
@@ -125,32 +152,5 @@ export class RLFPLearner {
         } catch (error) {
             throw new OperationError(`RLFPLearner write error: ${(error as Error).message}`, {file: this.outputFile});
         }
-    }
-
-    /**
-     * Provide external reward feedback (e.g., from user) to update policy
-     * @param reward - Reward value between -1 and 1
-     * @param context - Optional context about what the reward is for
-     */
-    reward(reward: number, context?: string): void {
-        const clampedReward = Math.max(-1, Math.min(1, reward));
-        // Create a minimal trajectory step for the reward
-        const trajectory: TrajectoryStep[] = [{
-            type: 'reward_feedback',
-            timestamp: Date.now(),
-            data: {reward: clampedReward, context},
-        }];
-        // Record outcome with a special strategy name for feedback
-        this.policyOptimizer.recordOutcome(trajectory, 'user_feedback');
-    }
-
-    /**
-     * Reset the RLFPLearner state
-     */
-    reset(): void {
-        this.policyOptimizer.reset();
-        this._preferenceCollector.clear();
-        this._trajectoryCount = 0;
-        this._lastOptimizeTime = undefined;
     }
 }

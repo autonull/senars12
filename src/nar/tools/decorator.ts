@@ -14,7 +14,7 @@ export interface ToolMetadata {
 type ToolConstructor = new (...args: any[]) => Tool;
 type ToolFactory = (deps: Record<string, unknown>) => Tool;
 
-const TOOL_REGISTRY = new Map<string, {factory: ToolFactory; metadata: ToolMetadata}>();
+const TOOL_REGISTRY = new Map<string, { factory: ToolFactory; metadata: ToolMetadata }>();
 
 export function tool(metadata: ToolMetadata) {
     return <T extends ToolConstructor>(constructor: T): T => {

@@ -25,21 +25,21 @@ export class TransformersLMClient implements LMClient {
     available = true;
     private modelInstance?: {
         doGenerate(options: {
-            prompt: Array<{role: string; content: Array<{type: 'text'; text: string}>}>;
+            prompt: Array<{ role: string; content: Array<{ type: 'text'; text: string }> }>;
             maxOutputTokens?: number;
             temperature?: number;
             abortSignal?: AbortSignal;
         }): Promise<{
-            content?: Array<{type: 'text'; text: string}>;
+            content?: Array<{ type: 'text'; text: string }>;
         }>;
-        createSessionWithProgress?: (cb: (p: {progress: number}) => void) => Promise<unknown>;
+        createSessionWithProgress?: (cb: (p: { progress: number }) => void) => Promise<unknown>;
     };
     private initializing?: Promise<void>;
     private readonly queue: Array<() => void> = [];
     private running = 0;
     private readonly maxConcurrent = 1;
     private readonly inferenceTimeoutMs = 300_000;
-    private readonly circuitBreaker = new CircuitBreaker({ failureThreshold: 3, resetTimeoutMs: 300000 });
+    private readonly circuitBreaker = new CircuitBreaker({failureThreshold: 3, resetTimeoutMs: 300000});
     private stats: LMClientStats = {
         totalCalls: 0, successfulCalls: 0, failedCalls: 0, timeoutCount: 0,
         totalDuration: 0, averageDuration: 0, queueDepth: 0, queueHighWater: 0,
@@ -57,7 +57,11 @@ export class TransformersLMClient implements LMClient {
         return {...this.stats, queueDepth: this.queue.length};
     }
 
-    async generateText(prompt: string, options?: {signal?: AbortSignal; maxTokens?: number; temperature?: number}): Promise<string> {
+    async generateText(prompt: string, options?: {
+        signal?: AbortSignal;
+        maxTokens?: number;
+        temperature?: number
+    }): Promise<string> {
         if (!this.available || this.circuitBreaker.getState() === 'open') return '';
         const startTime = Date.now();
         this.stats.totalCalls++;
@@ -91,7 +95,7 @@ export class TransformersLMClient implements LMClient {
 
             if (this.circuitBreaker.getState() === 'open') {
                 this.available = false;
-                const err = error as Error & {stack?: string};
+                const err = error as Error & { stack?: string };
                 logger.error('generateText failed, LM unavailable due to open circuit breaker', err);
             }
 
@@ -158,10 +162,10 @@ export class TransformersLMClient implements LMClient {
             try {
                 const {transformersJS} = await import('@browser-ai/transformers-js');
                 const model = transformersJS(this.model, {device: 'cpu'}) as TransformersLMClient['modelInstance'] & {
-                    createSessionWithProgress?: (cb: (p: {progress: number}) => void) => Promise<unknown>;
+                    createSessionWithProgress?: (cb: (p: { progress: number }) => void) => Promise<unknown>;
                 };
                 logger.info('Loading Transformers.js model (may download weights on first run)...');
-                await model.createSessionWithProgress?.((p: {progress: number}) => {
+                await model.createSessionWithProgress?.((p: { progress: number }) => {
                     const pct = Math.round(p.progress * 100);
                     if (pct % 10 === 0) logger.info(`Model download: ${pct}%`);
                 });

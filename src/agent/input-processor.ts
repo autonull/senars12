@@ -1,10 +1,10 @@
 import type {NAR} from '../nar/nar.js';
 import type {ParseTaskResult} from '../nar/terms/index.js';
+import {termParser} from '../nar/terms/index.js';
 import type {NLUnderstandingService, TaskBatch} from '../nar/nl/understanding.js';
-import type {NLGenerationService, GenerationInput} from '../nar/nl/generation.js';
+import type {GenerationInput, NLGenerationService} from '../nar/nl/generation.js';
 import type {ContextAssembler, ContextAssemblerOpts} from '../nar/nl/context-assembler.js';
 import type {ConversationSession} from './ConversationSession.js';
-import {termParser} from '../nar/terms/index.js';
 import {appendTurn, DEFAULT_SESSION_HISTORY_LIMIT, trimHistory} from './ConversationSession.js';
 import {formatHistoryAsMessages} from './chat-history.js';
 
@@ -21,14 +21,14 @@ export interface InputProcessorDeps {
 }
 
 export type InputEvent =
-    | {kind: 'narsese-input'; text: string; taskType: string}
-    | {kind: 'question-response'; text: string}
-    | {kind: 'drive-adjusted'; text: string; driveId: string; amount: number}
-    | {kind: 'nl-translated'; text: string}
-    | {kind: 'lm-dispatch'; text: string; usage?: {inputTokens: number; outputTokens: number; totalTokens: number}}
-    | {kind: 'clarify'; text: string}
-    | {kind: 'error'; text: string}
-    | {kind: 'no-nar'; text: string};
+    | { kind: 'narsese-input'; text: string; taskType: string }
+    | { kind: 'question-response'; text: string }
+    | { kind: 'drive-adjusted'; text: string; driveId: string; amount: number }
+    | { kind: 'nl-translated'; text: string }
+    | { kind: 'lm-dispatch'; text: string; usage?: { inputTokens: number; outputTokens: number; totalTokens: number } }
+    | { kind: 'clarify'; text: string }
+    | { kind: 'error'; text: string }
+    | { kind: 'no-nar'; text: string };
 
 export interface ProcessInputOpts {
     signal?: AbortSignal;
@@ -60,7 +60,7 @@ function formatTaskBatchResult(batch: TaskBatch): string {
     return parts.join('\n') || 'Understood.';
 }
 
-function formatBelief(b: {term: {toString(): string}; truth?: {f: number; c: number}}): string {
+function formatBelief(b: { term: { toString(): string }; truth?: { f: number; c: number } }): string {
     const truth = b.truth ? ` (f=${b.truth.f.toFixed(2)} c=${b.truth.c.toFixed(2)})` : '';
     return `${b.term.toString()}${truth}`;
 }
@@ -68,7 +68,7 @@ function formatBelief(b: {term: {toString(): string}; truth?: {f: number; c: num
 async function generateReasonedResponse(
     generationService: NLGenerationService | undefined,
     input: string,
-    beliefs: Array<{term: {toString(): string}; truth?: {f: number; c: number}}>,
+    beliefs: Array<{ term: { toString(): string }; truth?: { f: number; c: number } }>,
 ): Promise<string | null> {
     if (!generationService || beliefs.length === 0) return null;
     try {
@@ -96,7 +96,7 @@ async function tryNlTranslation(
     contextAssembler: ContextAssembler | undefined,
     contextOpts: ContextAssemblerOpts,
     input: string,
-): Promise<{text: string; batch: TaskBatch} | {kind: 'clarify'; text: string} | null> {
+): Promise<{ text: string; batch: TaskBatch } | { kind: 'clarify'; text: string } | null> {
     if (!understandingService || !nar) return null;
     try {
         const nlContext = contextAssembler?.assemble(nar, input, contextOpts);
@@ -143,7 +143,15 @@ export async function* processInput(
     input: string,
     opts: ProcessInputOpts = {},
 ): AsyncGenerator<InputEvent, string> {
-    const {nar, hasLmModel, understandingService, generationService, contextAssembler, contextOpts, autonomyEngine} = deps;
+    const {
+        nar,
+        hasLmModel,
+        understandingService,
+        generationService,
+        contextAssembler,
+        contextOpts,
+        autonomyEngine
+    } = deps;
     const {session, historyLimit = DEFAULT_SESSION_HISTORY_LIMIT} = opts;
 
     // Pause background reasoning during user input processing
@@ -203,7 +211,7 @@ export async function* processInput(
             return text;
         }
 
-        let historyMessages: Array<{role: 'user' | 'assistant' | 'system'; content: string}> | undefined;
+        let historyMessages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> | undefined;
         if (session) {
             historyMessages = formatHistoryAsMessages(session.history, historyLimit);
             historyMessages.push({role: 'user', content: input});

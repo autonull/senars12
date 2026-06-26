@@ -7,12 +7,11 @@ import {WebSocket, WebSocketServer} from 'ws';
 import {BaseAdapter, errorResponse, successResponse} from './base-adapter.js';
 import {errMsg, makeId} from '../nar/utils/index.js';
 import {
-    createWSClient,
+    broadcastToSubscribers,
     cleanupWSClient,
-    sendWSMessage,
+    createWSClient,
     subscribeToEvents,
     unsubscribeFromEvents,
-    broadcastToSubscribers,
     type WSClient,
 } from '../io/utils/websocket.js';
 
@@ -79,7 +78,10 @@ export class WebSocketAdapter extends BaseAdapter {
     async stop(): Promise<void> {
         return new Promise((resolve) => {
             if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
-            if (!this.server) { resolve(); return; }
+            if (!this.server) {
+                resolve();
+                return;
+            }
 
             for (const client of this.clients.values()) {
                 cleanupWSClient(client);

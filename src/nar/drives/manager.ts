@@ -36,11 +36,6 @@ export class DriveManager {
         }
     }
 
-    private injectDriveGoal(spec: DriveSpec, truth: {f: number; c: number}): void {
-        const narsese = `(self --> ${spec.goalProperty})! :${truth.f.toFixed(2)}:${truth.c.toFixed(2)}`;
-        this.nar.input(narsese, 'goal', truth as any);
-    }
-
     stimulate(driveId: string, amount: number): void {
         const state = this.states.get(driveId);
         if (state) {
@@ -75,5 +70,10 @@ export class DriveManager {
             }
         }
         return count > 0 ? total / count : 0;
+    }
+
+    private injectDriveGoal(spec: DriveSpec, truth: { f: number; c: number }): void {
+        const narsese = `(self --> ${spec.goalProperty})! :${truth.f.toFixed(2)}:${truth.c.toFixed(2)}`;
+        this.nar.input(narsese, 'goal', truth as any);
     }
 }

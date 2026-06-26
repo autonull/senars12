@@ -1,8 +1,7 @@
-import {describe, it, expect, beforeEach, afterEach} from '@jest/globals';
+import {afterEach, beforeEach, describe, expect, it} from '@jest/globals';
 import {createAgent} from '../../../src/agent/agent.js';
 import {SeNARSFactory} from '../../../src/nar/index.js';
 import {EpisodicMemory} from '../../../src/nar/memory/EpisodicMemory.js';
-import {ModelRunner} from '../../../src/agent/model/ModelRunner.js';
 import type {LMClient} from '../../../src/nar/lm/types.js';
 import type {NAR} from '../../../src/nar/nar.js';
 import {mkdtempSync, rmSync} from 'fs';
@@ -15,7 +14,9 @@ import {join} from 'path';
  *  - Subsequent calls within the same chat() see the tool result and emit final text
  *  - Across chat() calls, conversation state is forgotten (only per-call)
  */
-function makeStatefulLM(responses: Array<string | {tool: string; args: Record<string, unknown>} | {text: string}>): LMClient {
+function makeStatefulLM(responses: Array<string | { tool: string; args: Record<string, unknown> } | {
+    text: string
+}>): LMClient {
     let callIndex = 0;
     return {
         provider: 'scripted',
@@ -46,7 +47,7 @@ describe('Agent v6 — NL integration (real ModelRunner loop)', () => {
     beforeEach(() => {
         nar = SeNARSFactory.createForTesting({maxConcepts: 50});
         ep = makeEpisodicMemory();
-        basePath = (ep as unknown as {config: {basePath: string}}).config.basePath;
+        basePath = (ep as unknown as { config: { basePath: string } }).config.basePath;
     });
 
     afterEach(() => {

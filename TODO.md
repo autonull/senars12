@@ -1,17 +1,18 @@
-Focus on **capabilities** rather than implementation details. SeNARS already has strong foundations; the goal is to integrate them into a cohesive autonomous loop.
+Focus on **capabilities** rather than implementation details. SeNARS already has strong foundations; the goal is to
+integrate them into a cohesive autonomous loop.
 
 OmegaClaw: [https://github.com/asi-alliance/OmegaClaw-Core](https://github.com/asi-alliance/OmegaClaw-Core)  
 Hackathon: [https://deep-projects.ai/hackathon/ai-agents-that-understand-our-individual-and-collective-goals/](https://deep-projects.ai/hackathon/ai-agents-that-understand-our-individual-and-collective-goals/)
 
 ## Core Capability Gaps (vs OmegaClaw)
 
-| Capability | OmegaClaw Approach | SeNARS-Native Approach |
-| :---- | :---- | :---- |
-| Continuous operation | Recursive `omegaclaw(k)` loop | Event-driven with wake/sleep state machine |
-| Memory retrieval | Vector DB \+ temporal episodes | EmbeddingLayer \+ temporal indexing |
-| Action execution | S-expression parsing | Structured tool calls with validation |
-| Self-correction | Error state in prompt | Reflection events \+ drive adjustment |
-| Context construction | Fixed template sections | Dynamic context assembly from multiple sources |
+| Capability           | OmegaClaw Approach             | SeNARS-Native Approach                         |
+|:---------------------|:-------------------------------|:-----------------------------------------------|
+| Continuous operation | Recursive `omegaclaw(k)` loop  | Event-driven with wake/sleep state machine     |
+| Memory retrieval     | Vector DB \+ temporal episodes | EmbeddingLayer \+ temporal indexing            |
+| Action execution     | S-expression parsing           | Structured tool calls with validation          |
+| Self-correction      | Error state in prompt          | Reflection events \+ drive adjustment          |
+| Context construction | Fixed template sections        | Dynamic context assembly from multiple sources |
 
 ---
 
@@ -23,15 +24,13 @@ Replace recursive loop with event bus architecture:
 
 export class AutonomousLoop {
 
-  private eventBus: EventBus;
+private eventBus: EventBus;
 
-  private state: 'idle' | 'perceiving' | 'reasoning' | 'acting' | 'reflecting' | 'sleeping';
+private state: 'idle' | 'perceiving' | 'reasoning' | 'acting' | 'reflecting' | 'sleeping';
 
-  private wakeScheduler: WakeScheduler;
+private wakeScheduler: WakeScheduler;
 
-  
-
-  constructor(private agent: Agent, config: LoopConfig) {
+constructor (private agent: Agent, config: LoopConfig) {
 
     this.eventBus \= new EventBus();
 
@@ -39,9 +38,9 @@ export class AutonomousLoop {
 
     this.setupEventHandlers();
 
-  }
+}
 
-  private setupEventHandlers() {
+private setupEventHandlers () {
 
     // Perception: external input or scheduled wake
 
@@ -93,9 +92,9 @@ export class AutonomousLoop {
 
     });
 
-  }
+}
 
-  async start() {
+async start () {
 
     this.eventBus.emit('perception', { source: 'startup' });
 
@@ -109,9 +108,9 @@ export class AutonomousLoop {
 
     });
 
-  }
+}
 
-  private async buildContext(event: PerceptionEvent): Promise\<Context\> {
+private async buildContext (event: PerceptionEvent): Promise\<Context\> {
 
     return {
 
@@ -127,9 +126,9 @@ export class AutonomousLoop {
 
     };
 
-  }
+}
 
-  private async reflect(event: ReflectionEvent) {
+private async reflect (event: ReflectionEvent) {
 
     // Update drives based on action outcomes
 
@@ -151,11 +150,12 @@ export class AutonomousLoop {
 
     }
 
-  }
+}
 
 }
 
-**Why this is better**: Decouples concerns, allows parallel processing, easier to extend with new event types (e.g., `interrupt`, `priority_override`).
+**Why this is better**: Decouples concerns, allows parallel processing, easier to extend with new event types (e.g.,
+`interrupt`, `priority_override`).
 
 ---
 
@@ -167,9 +167,9 @@ Leverage existing `EmbeddingLayer` with temporal indexing:
 
 export class TemporalEmbeddingMemory {
 
-  constructor(private embeddingLayer: EmbeddingLayer) {}
+constructor (private embeddingLayer: EmbeddingLayer) {}
 
-  async store(text: string, metadata: EpisodeMetadata): Promise\<void\> {
+async store (text: string, metadata: EpisodeMetadata): Promise\<void\> {
 
     const embedding \= await this.embeddingLayer.embed(text);
 
@@ -193,9 +193,9 @@ export class TemporalEmbeddingMemory {
 
     });
 
-  }
+}
 
-  async queryRelevant(query: string, n: number \= 10): Promise\<Episode\[\]\> {
+async queryRelevant (query: string, n: number \= 10): Promise\<Episode\[\]\> {
 
     const queryEmbedding \= await this.embeddingLayer.embed(query);
 
@@ -211,9 +211,9 @@ export class TemporalEmbeddingMemory {
 
     }));
 
-  }
+}
 
-  async queryTemporal(timestamp: number, windowMs: number, n: number \= 20): Promise\<Episode\[\]\> {
+async queryTemporal (timestamp: number, windowMs: number, n: number \= 20): Promise\<Episode\[\]\> {
 
     // Temporal window search: find episodes near timestamp
 
@@ -233,9 +233,9 @@ export class TemporalEmbeddingMemory {
 
       .slice(0, n);
 
-  }
+}
 
-  async queryHybrid(query: string, timestamp: number, n: number \= 20): Promise\<Episode\[\]\> {
+async queryHybrid (query: string, timestamp: number, n: number \= 20): Promise\<Episode\[\]\> {
 
     // Combine semantic \+ temporal relevance
 
@@ -289,11 +289,12 @@ export class TemporalEmbeddingMemory {
 
       .map(x \=\> x.episode);
 
-  }
+}
 
 }
 
-**Why this exceeds OmegaClaw**: Hybrid semantic+temporal search is more sophisticated than separate `remember`/`episodes` commands.
+**Why this exceeds OmegaClaw**: Hybrid semantic+temporal search is more sophisticated than separate `remember`/
+`episodes` commands.
 
 ---
 
@@ -305,19 +306,19 @@ Use JSON schema for tool calls:
 
 export interface ToolCall {
 
-  tool: string;
+tool: string;
 
-  parameters: Record\<string, any\>;
+parameters: Record\<string, any\>;
 
-  id: string;
+id: string;
 
 }
 
 export class ActionParser {
 
-  // Parse LLM output expecting JSON tool calls
+// Parse LLM output expecting JSON tool calls
 
-  parse(output: string): ToolCall\[\] {
+parse (output: string): ToolCall\[\] {
 
     // Try JSON extraction first
 
@@ -353,9 +354,9 @@ export class ActionParser {
 
     return this.parseNaturalLanguage(output);
 
-  }
+}
 
-  private parseNaturalLanguage(output: string): ToolCall\[\] {
+private parseNaturalLanguage (output: string): ToolCall\[\] {
 
     // Extract tool calls from natural language
 
@@ -391,7 +392,7 @@ export class ActionParser {
 
     return calls;
 
-  }
+}
 
 }
 
@@ -407,17 +408,17 @@ Replace fixed template with composable context:
 
 export class ContextBuilder {
 
-  private sections: ContextSection\[\] \= \[\];
+private sections: ContextSection\[\] \= \[\];
 
-  addSection(section: ContextSection): this {
+addSection (section: ContextSection): this {
 
     this.sections.push(section);
 
     return this;
 
-  }
+}
 
-  async build(perception: PerceptionEvent): Promise\<string\> {
+async build (perception: PerceptionEvent): Promise\<string\> {
 
     const parts: string\[\] \= \[\];
 
@@ -443,7 +444,7 @@ export class ContextBuilder {
 
     return parts.join('\\n\\n');
 
-  }
+}
 
 }
 
@@ -451,15 +452,11 @@ export class ContextBuilder {
 
 export class DriveSection implements ContextSection {
 
-  name \= 'Current Drives';
+name \= 'Current Drives';
 
-  
+async isRelevant (): Promise\<boolean\> { return true; }
 
-  async isRelevant(): Promise\<boolean\> { return true; }
-
-  
-
-  async render(perception: PerceptionEvent): Promise\<string\> {
+async render (perception: PerceptionEvent): Promise\<string\> {
 
     const drives \= perception.agent.getDriveStates();
 
@@ -471,29 +468,23 @@ export class DriveSection implements ContextSection {
 
       .join('\\n');
 
-  }
+}
 
 }
 
 export class MemorySection implements ContextSection {
 
-  name \= 'Relevant Memories';
+name \= 'Relevant Memories';
 
-  
+constructor (private memory: TemporalEmbeddingMemory) {}
 
-  constructor(private memory: TemporalEmbeddingMemory) {}
-
-  
-
-  async isRelevant(perception: PerceptionEvent): Promise\<boolean\> {
+async isRelevant (perception: PerceptionEvent): Promise\<boolean\> {
 
     return perception.input.length \> 0;
 
-  }
+}
 
-  
-
-  async render(perception: PerceptionEvent): Promise\<string\> {
+async render (perception: PerceptionEvent): Promise\<string\> {
 
     const memories \= await this.memory.queryHybrid(
 
@@ -507,25 +498,21 @@ export class MemorySection implements ContextSection {
 
     return memories.map(m \=\> \`- ${m.text} (relevance: ${m.relevance.toFixed(2)})\`).join('\\n');
 
-  }
+}
 
 }
 
 export class ToolResultsSection implements ContextSection {
 
-  name \= 'Recent Tool Results';
+name \= 'Recent Tool Results';
 
-  
-
-  async isRelevant(perception: PerceptionEvent): Promise\<boolean\> {
+async isRelevant (perception: PerceptionEvent): Promise\<boolean\> {
 
     return perception.recentResults.length \> 0;
 
-  }
+}
 
-  
-
-  async render(perception: PerceptionEvent): Promise\<string\> {
+async render (perception: PerceptionEvent): Promise\<string\> {
 
     return perception.recentResults
 
@@ -535,7 +522,7 @@ export class ToolResultsSection implements ContextSection {
 
       .join('\\n\\n');
 
-  }
+}
 
 }
 
@@ -549,7 +536,7 @@ export class ToolResultsSection implements ContextSection {
 
 export class ReflectionEngine {
 
-  constructor(
+constructor (
 
     private driveManager: DriveManager,
 
@@ -557,9 +544,9 @@ export class ReflectionEngine {
 
     private strategyManager: StrategyManager
 
-  ) {}
+) {}
 
-  async reflect(event: ReflectionEvent): Promise\<void\> {
+async reflect (event: ReflectionEvent): Promise\<void\> {
 
     // Evaluate action outcomes
 
@@ -587,9 +574,9 @@ export class ReflectionEngine {
 
     }
 
-  }
+}
 
-  private evaluateOutcomes(event: ReflectionEvent): Evaluation {
+private evaluateOutcomes (event: ReflectionEvent): Evaluation {
 
     const successes \= event.results.filter(r \=\> r.success).length;
 
@@ -609,9 +596,9 @@ export class ReflectionEngine {
 
     };
 
-  }
+}
 
-  private calculateDriveImpact(event: ReflectionEvent): DriveImpact\[\] {
+private calculateDriveImpact (event: ReflectionEvent): DriveImpact\[\] {
 
     // Map action outcomes to drive changes
 
@@ -629,7 +616,7 @@ export class ReflectionEngine {
 
     }).filter(x \=\> x \!== null);
 
-  }
+}
 
 }
 
@@ -637,20 +624,22 @@ export class ReflectionEngine {
 
 ## Implementation Priority
 
-1. **AutonomousLoop with event bus** \- Core architecture  
-2. **TemporalEmbeddingMemory** \- Leverage existing EmbeddingLayer  
-3. **ContextBuilder with sections** \- Dynamic context assembly  
-4. **ActionParser with JSON** \- Structured tool calls  
-5. **ReflectionEngine** \- Self-correction loop  
+1. **AutonomousLoop with event bus** \- Core architecture
+2. **TemporalEmbeddingMemory** \- Leverage existing EmbeddingLayer
+3. **ContextBuilder with sections** \- Dynamic context assembly
+4. **ActionParser with JSON** \- Structured tool calls
+5. **ReflectionEngine** \- Self-correction loop
 6. **WakeScheduler** \- Autonomous wake/sleep cycles
 
-This achieves OmegaClaw's capabilities (continuous operation, memory, tool execution, self-correction) while maintaining SeNARS's TypeScript type safety, event-driven architecture, and extensibility.
+This achieves OmegaClaw's capabilities (continuous operation, memory, tool execution, self-correction) while maintaining
+SeNARS's TypeScript type safety, event-driven architecture, and extensibility.
 
 # SeNARS Post-Integration Vision
 
 ## The Core Shift
 
-From **reactive tool** → **autonomous cognitive agent** that pursues goals across time, self-regulates via drives, and improves through reflection.
+From **reactive tool** → **autonomous cognitive agent** that pursues goals across time, self-regulates via drives, and
+improves through reflection.
 
 ---
 
@@ -660,56 +649,63 @@ From **reactive tool** → **autonomous cognitive agent** that pursues goals acr
 
 The agent doesn't just respond—it *acts on its own*.
 
-- **Scenario**: User says "Research quantum computing advances." Agent breaks this into sub-goals, schedules web searches over hours, stores findings in embedding memory, and reports back when drive satisfaction threshold is met.  
+- **Scenario**: User says "Research quantum computing advances." Agent breaks this into sub-goals, schedules web
+  searches over hours, stores findings in embedding memory, and reports back when drive satisfaction threshold is met.
 - **Enabler**: `WakeScheduler` \+ `DriveManager` \+ event loop.
 
   ### **2\. Temporal+Semantic Memory Recall**
 
 Not just "what's similar" but "what's similar *and* when it happened."
 
-- **Scenario**: User asks "What did we discuss about project X last month?" Hybrid query retrieves episodes by semantic match *and* temporal proximity—surfacing forgotten context.  
+- **Scenario**: User asks "What did we discuss about project X last month?" Hybrid query retrieves episodes by semantic
+  match *and* temporal proximity—surfacing forgotten context.
 - **Enabler**: `TemporalEmbeddingMemory.queryHybrid()`.
 
   ### **3\. Self-Correcting Behavior**
 
 Failures feed back into strategy, not just error messages.
 
-- **Scenario**: Tool `web_search` fails 3 times with same query pattern. Reflection engine detects low success rate, adjusts strategy (e.g., reformulate query), and updates drive weights to deprioritize that approach.  
+- **Scenario**: Tool `web_search` fails 3 times with same query pattern. Reflection engine detects low success rate,
+  adjusts strategy (e.g., reformulate query), and updates drive weights to deprioritize that approach.
 - **Enabler**: `ReflectionEngine` \+ `StrategyManager`.
 
   ### **4\. Interruptible, Prioritized Reasoning**
 
 Event-driven architecture means urgent inputs override current work.
 
-- **Scenario**: Agent is mid-research when user sends "STOP, new priority: fix bug in X." Current loop yields, context shifts, drives rebalance.  
+- **Scenario**: Agent is mid-research when user sends "STOP, new priority: fix bug in X." Current loop yields, context
+  shifts, drives rebalance.
 - **Enabler**: `EventBus` with priority channels.
 
   ### **5\. Composable Context Awareness**
 
 Context isn't a fixed template—it's assembled from whatever's relevant.
 
-- **Scenario**: During debugging, context includes recent tool errors \+ relevant code snippets from memory \+ current drive states. During casual chat, it includes conversation history \+ user preferences. Same agent, different cognitive states.  
+- **Scenario**: During debugging, context includes recent tool errors \+ relevant code snippets from memory \+ current
+  drive states. During casual chat, it includes conversation history \+ user preferences. Same agent, different
+  cognitive states.
 - **Enabler**: `ContextBuilder` with pluggable sections.
 
   ### **6\. Drive-Based Motivation**
 
 Actions aren't random—they're motivated by internal needs.
 
-- **Scenario**: "Curiosity" drive increases after encountering unknown term → agent autonomously researches it. "Accuracy" drive increases after a mistake → agent double-checks future outputs.  
+- **Scenario**: "Curiosity" drive increases after encountering unknown term → agent autonomously researches it.
+  "Accuracy" drive increases after a mistake → agent double-checks future outputs.
 - **Enabler**: `DriveManager` integrated into reflection loop.
 
 ---
 
 ## What This Enables (vs OmegaClaw)
 
-| Capability | OmegaClaw | SeNARS (post-integration) |
-| :---- | :---- | :---- |
-| **Long-running tasks** | Manual loop control | Autonomous wake/sleep with drive-based termination |
-| **Memory** | Separate semantic \+ temporal | Unified hybrid retrieval |
-| **Error handling** | Error in prompt → retry | Strategy adjustment \+ drive rebalancing |
-| **Extensibility** | Add S-expression skills | Plug in context sections \+ event handlers |
-| **Concurrency** | Single-threaded recursive loop | Event-driven, parallel perception/reasoning |
-| **Goal understanding** | Implicit via prompts | Explicit drive system with measurable satisfaction |
+| Capability             | OmegaClaw                      | SeNARS (post-integration)                          |
+|:-----------------------|:-------------------------------|:---------------------------------------------------|
+| **Long-running tasks** | Manual loop control            | Autonomous wake/sleep with drive-based termination |
+| **Memory**             | Separate semantic \+ temporal  | Unified hybrid retrieval                           |
+| **Error handling**     | Error in prompt → retry        | Strategy adjustment \+ drive rebalancing           |
+| **Extensibility**      | Add S-expression skills        | Plug in context sections \+ event handlers         |
+| **Concurrency**        | Single-threaded recursive loop | Event-driven, parallel perception/reasoning        |
+| **Goal understanding** | Implicit via prompts           | Explicit drive system with measurable satisfaction |
 
 ---
 
@@ -719,11 +715,13 @@ The hackathon theme is **"AI agents that understand our individual and collectiv
 
 SeNARS's drive system makes this *literal*:
 
-- **Individual goals** \= drive states (what this agent wants *right now*)  
-- **Collective goals** \= shared drive configurations across multiple agents (via MCP)  
+- **Individual goals** \= drive states (what this agent wants *right now*)
+- **Collective goals** \= shared drive configurations across multiple agents (via MCP)
 - **Understanding** \= the reflection loop that aligns actions with drive satisfaction over time
 
-**Demo pitch**: "SeNARS doesn't just execute tasks—it has *motivations*. Watch it autonomously pursue a research goal, self-correct when tools fail, remember context across sessions, and explain *why* it took each action based on its current drives."
+**Demo pitch**: "SeNARS doesn't just execute tasks—it has *motivations*. Watch it autonomously pursue a research goal,
+self-correct when tools fail, remember context across sessions, and explain *why* it took each action based on its
+current drives."
 
 ---
 
@@ -731,20 +729,26 @@ SeNARS's drive system makes this *literal*:
 
 Post-integration, SeNARS becomes:
 
-- A **cognitive architecture** (not just an agent framework)  
-- **Self-improving** (reflection → strategy updates → better future performance)  
-- **Explainable** (actions trace back to drives \+ memories)  
+- A **cognitive architecture** (not just an agent framework)
+- **Self-improving** (reflection → strategy updates → better future performance)
+- **Explainable** (actions trace back to drives \+ memories)
 - **Composable** (new capabilities \= new context sections \+ event handlers)
 
-This isn't OmegaClaw in TypeScript—it's a more flexible, extensible, and theoretically grounded autonomous agent that *happens* to match OmegaClaw's capabilities while exceeding them in architecture.
+This isn't OmegaClaw in TypeScript—it's a more flexible, extensible, and theoretically grounded autonomous agent that
+*happens* to match OmegaClaw's capabilities while exceeding them in architecture.
 
 ### **Minor Refinements/Suggestions**
 
-* **EventBus**: Consider a priority queue (e.g., using priority field in events) or separate channels (high-priority, background) for urgent vs. maintenance tasks.  
-* **State Machine**: Add guards/transitions (e.g., timeout from reasoning → reflecting on long LLM calls). Use a small finite state machine library or simple switch if lightweight.  
-* **ActionParser**: JSON-first is good. Add schema validation (Zod or JSON Schema) before execution. Fallback natural language parsing is useful during transition.  
-* **Temporal Query**: For large memories, avoid getAll()—implement indexed time-range queries in EmbeddingLayer (e.g., via additional metadata filters or a separate time-sorted index).  
-* **Reflection**: Tie more tightly to NAR (e.g., record contradictions as Narsese, derive meta-beliefs about strategy success).  
-* **WakeScheduler**: Exponential backoff \+ drive-based wake frequency (high urgency \= more frequent wakes).  
+* **EventBus**: Consider a priority queue (e.g., using priority field in events) or separate channels (high-priority,
+  background) for urgent vs. maintenance tasks.
+* **State Machine**: Add guards/transitions (e.g., timeout from reasoning → reflecting on long LLM calls). Use a small
+  finite state machine library or simple switch if lightweight.
+* **ActionParser**: JSON-first is good. Add schema validation (Zod or JSON Schema) before execution. Fallback natural
+  language parsing is useful during transition.
+* **Temporal Query**: For large memories, avoid getAll ()—implement indexed time-range queries in EmbeddingLayer (e.g.,
+  via additional metadata filters or a separate time-sorted index).
+* **Reflection**: Tie more tightly to NAR (e.g., record contradictions as Narsese, derive meta-beliefs about strategy
+  success).
+* **WakeScheduler**: Exponential backoff \+ drive-based wake frequency (high urgency \= more frequent wakes).
 * **Error Handling**: Global uncaught error handler that emits reflection with failure context.
 

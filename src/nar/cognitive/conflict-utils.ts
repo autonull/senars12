@@ -1,7 +1,7 @@
 import type {Task, Term} from '../types/index.js';
 
-export const findConflicts = (beliefs: Task[]): Array<{a: Term; b: Term}> => {
-    const byTerm = new Map<string, Array<{term: Term; f: number}>>();
+export const findConflicts = (beliefs: Task[]): Array<{ a: Term; b: Term }> => {
+    const byTerm = new Map<string, Array<{ term: Term; f: number }>>();
     for (const b of beliefs) {
         if (!b.truth) continue;
         const key = b.term.toString();
@@ -9,7 +9,7 @@ export const findConflicts = (beliefs: Task[]): Array<{a: Term; b: Term}> => {
         list.push({term: b.term as Term, f: b.truth.f});
         byTerm.set(key, list);
     }
-    const conflicts: Array<{a: Term; b: Term}> = [];
+    const conflicts: Array<{ a: Term; b: Term }> = [];
     for (const truths of byTerm.values()) {
         for (let i = 0; i < truths.length; i++) {
             for (let j = i + 1; j < truths.length; j++) {

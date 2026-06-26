@@ -12,9 +12,9 @@ import {createAutonomyEngine} from '../agent/index.js';
 import {ConnectionManager} from '../io/connection-manager.js';
 import {AuthManager} from '../io/auth.js';
 import {CommandRegistry} from '../io/commands/registry.js';
-import {CLIConnection, IRCConnection, WSConnection, HTTPConnection, MCPConnection} from '../io/index.js';
+import {CLIConnection, HTTPConnection, IRCConnection, MCPConnection, WSConnection} from '../io/index.js';
 import {bindAgentToConnection} from '../agent/io-bridge.js';
-import {createConnectionConfigsFromEnv} from '../agent/options-schema.js';
+import {agentConfigToOptions, createConnectionConfigsFromEnv} from '../agent/options-schema.js';
 import {JsonlSessionManager} from '../agent/SessionManager.js';
 import {registerAllCommands} from '../agent/register-commands.js';
 import {NLGenerationService} from '../nar/nl/generation.js';
@@ -26,7 +26,6 @@ import {createLogger} from '../nar/logger/index.js';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {DEFAULT_NAR_CONFIG} from '../config/defaults.js';
 import {loadConfigFromEnv} from '../config/index.js';
-import {agentConfigToOptions} from '../agent/options-schema.js';
 import {setupGracefulShutdown} from '../utils/shutdown.js';
 import {assertValidEnv} from '../utils/env-validate.js';
 import {mkdir} from 'node:fs/promises';
@@ -60,9 +59,9 @@ async function main(): Promise<void> {
     autonomyEngine.setNotifyHandler((msg) => logger.debug(`[Autonomy] ${msg}`));
 
     const externalTools = {
-        webSearch: { apiKey: process.env.BRAVE_API_KEY ?? process.env.TAVILY_API_KEY },
-        codeExec: { maxTimeout: 10000, maxOutputBytes: 1024 * 1024 },
-        fs: { maxReadSize: 1024 * 1024 },
+        webSearch: {apiKey: process.env.BRAVE_API_KEY ?? process.env.TAVILY_API_KEY},
+        codeExec: {maxTimeout: 10000, maxOutputBytes: 1024 * 1024},
+        fs: {maxReadSize: 1024 * 1024},
     };
 
     const agentOptions = {
@@ -100,7 +99,10 @@ async function main(): Promise<void> {
     cm.registerFactory({type: 'mcp', create: cfg => new MCPConnection(cfg, {nar, emit: () => undefined, logger})});
 
     const configs = createConnectionConfigsFromEnv();
-    logger.info(`Configured connections: ${configs.map((c: {type: string; id: string}) => `${c.type}:${c.id}`).join(', ') || '(none)'}`);
+    logger.info(`Configured connections: ${configs.map((c: {
+        type: string;
+        id: string
+    }) => `${c.type}:${c.id}`).join(', ') || '(none)'}`);
 
     for (const cfg of configs) {
         try {

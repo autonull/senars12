@@ -13,7 +13,7 @@ import type {Term} from '../terms';
 import {Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
 import {createLogger, type Logger} from '../logger/index.js';
-import {errMsg, clamp01} from '../utils/index.js';
+import {clamp01, errMsg} from '../utils/index.js';
 
 export interface SchemaPattern {
     id: string;
@@ -93,6 +93,26 @@ export class SchemaInductor {
         return this.schemas.get(id);
     }
 
+    applySchema(schemaId: string, terms: Record<string, string>): Task | null {
+        const schema = this.schemas.get(schemaId);
+        if (!schema) return null;
+
+        let result = schema.template;
+        for (const [variable, value] of Object.entries(terms)) {
+            result = result.replaceAll(variable, value);
+        }
+
+        schema.usageCount++;
+        schema.lastUsed = Date.now();
+
+        return createTask(
+            {kind: 'atom' as const, symbol: result} as Term,
+            'belief',
+            Truth.create(0.7, schema.confidence * 0.8),
+            createBudget(0.6, 0.7),
+        );
+    }
+
     private extractPatterns(derivations: Task[]): Task[][] {
         const chains: Task[][] = [];
         let current: Task[] = [];
@@ -165,7 +185,12 @@ Respond with JSON:
         };
     }
 
-    private parseSchemaResponse(response: string): {pattern: string; type: string; confidence: number; variables: string[]} | null {
+    private parseSchemaResponse(response: string): {
+        pattern: string;
+        type: string;
+        confidence: number;
+        variables: string[]
+    } | null {
         try {
             const jsonMatch = response.match(/\{[\s\S]*\}/);
             if (!jsonMatch) return null;
@@ -190,26 +215,6 @@ Respond with JSON:
         for (const s of toRemove) {
             this.schemas.delete(s.id);
         }
-    }
-
-    applySchema(schemaId: string, terms: Record<string, string>): Task | null {
-        const schema = this.schemas.get(schemaId);
-        if (!schema) return null;
-
-        let result = schema.template;
-        for (const [variable, value] of Object.entries(terms)) {
-            result = result.replaceAll(variable, value);
-        }
-
-        schema.usageCount++;
-        schema.lastUsed = Date.now();
-
-        return createTask(
-            {kind: 'atom' as const, symbol: result} as Term,
-            'belief',
-            Truth.create(0.7, schema.confidence * 0.8),
-            createBudget(0.6, 0.7),
-        );
     }
 }
 

@@ -36,11 +36,11 @@ export const createDerivedTask = (result: RuleResult): Task => ({
 });
 
 interface BeliefBagLike {
-    peek?: () => {truth?: Task['truth']; stamp?: Task['stamp']} | undefined;
+    peek?: () => { truth?: Task['truth']; stamp?: Task['stamp'] } | undefined;
 }
 
 export const createBeliefTask = (
-    concept: {term: Task['term']; priority: number; beliefBag?: BeliefBagLike},
+    concept: { term: Task['term']; priority: number; beliefBag?: BeliefBagLike },
 ): Task | null => {
     const belief = concept.beliefBag?.peek?.();
     if (!belief || !belief.truth) return null;

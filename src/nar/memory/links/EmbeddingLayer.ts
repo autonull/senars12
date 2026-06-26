@@ -2,7 +2,7 @@ import type {Term} from '../../terms';
 import {termsEqual} from '../../terms';
 import type {LinkEntry} from './types.js';
 import {Layer} from './Layer.js';
-import {createEmbeddingGenerator, type EmbeddingGenerator, cosineSimilarity} from '../embedding.js';
+import {cosineSimilarity, createEmbeddingGenerator, type EmbeddingGenerator} from '../embedding.js';
 
 export interface EmbeddingLayerConfig {
     capacity: number;
@@ -94,8 +94,13 @@ export class EmbeddingLayer extends Layer {
         this.storedEntries.set(entry.id, entry);
     }
 
-    async search(queryEmbedding: number[], n: number): Promise<Array<{id: string; text: string; metadata: Record<string, unknown>; score: number}>> {
-        const results: Array<{id: string; text: string; metadata: Record<string, unknown>; score: number}> = [];
+    async search(queryEmbedding: number[], n: number): Promise<Array<{
+        id: string;
+        text: string;
+        metadata: Record<string, unknown>;
+        score: number
+    }>> {
+        const results: Array<{ id: string; text: string; metadata: Record<string, unknown>; score: number }> = [];
 
         for (const [id, entry] of this.storedEntries) {
             const similarity = cosineSimilarity(queryEmbedding, entry.embedding);
@@ -108,7 +113,7 @@ export class EmbeddingLayer extends Layer {
         return results.slice(0, n);
     }
 
-    async getAll(): Promise<Array<{id: string; text: string; metadata: Record<string, unknown>}>> {
+    async getAll(): Promise<Array<{ id: string; text: string; metadata: Record<string, unknown> }>> {
         return Array.from(this.storedEntries.values()).map(e => ({
             id: e.id,
             text: e.text,

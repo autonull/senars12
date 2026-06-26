@@ -1,10 +1,12 @@
-import type {TemporalEmbeddingMemory, Episode} from '../nar/memory/TemporalEmbeddingMemory.js';
+import type {Episode, TemporalEmbeddingMemory} from '../nar/memory/TemporalEmbeddingMemory.js';
 import type {DriveManager} from '../nar/drives/manager.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
 
 export interface ContextSection {
     name: string;
+
     isRelevant(context: ContextData): Promise<boolean>;
+
     render(context: ContextData): Promise<string>;
 }
 
@@ -32,7 +34,7 @@ export interface ToolCall {
 export interface SystemState {
     narState: string;
     autonomyRunning: boolean;
-    memoryStats: {size: number; capacity: number};
+    memoryStats: { size: number; capacity: number };
     timestamp: number;
 }
 
@@ -68,7 +70,8 @@ export class ContextBuilder {
 export class DriveSection implements ContextSection {
     name = 'Current Drives';
 
-    constructor(private readonly driveManager: DriveManager) {}
+    constructor(private readonly driveManager: DriveManager) {
+    }
 
     async isRelevant(): Promise<boolean> {
         return true;
@@ -85,7 +88,8 @@ export class DriveSection implements ContextSection {
 export class MemorySection implements ContextSection {
     name = 'Relevant Memories';
 
-    constructor(private readonly memory: TemporalEmbeddingMemory) {}
+    constructor(private readonly memory: TemporalEmbeddingMemory) {
+    }
 
     async isRelevant(context: ContextData): Promise<boolean> {
         return context.memories.length > 0;

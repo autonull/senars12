@@ -24,7 +24,7 @@ export const BOOTSTRAP_GOALS: BootstrapGoal[] = [
     },
 ];
 
-export function createBootstrapTasks(): Array<{term: string; type: TaskType; truth?: {f: number; c: number}}> {
+export function createBootstrapTasks(): Array<{ term: string; type: TaskType; truth?: { f: number; c: number } }> {
     return BOOTSTRAP_GOALS.map(g => ({
         term: g.narsese,
         type: g.type,
@@ -32,7 +32,7 @@ export function createBootstrapTasks(): Array<{term: string; type: TaskType; tru
     }));
 }
 
-function extractTruth(narsese: string): {f: number; c: number} | undefined {
+function extractTruth(narsese: string): { f: number; c: number } | undefined {
     const match = narsese.match(/:(\d+\.\d+):(\d+\.\d+)/);
     if (match && match[1] && match[2]) {
         return {

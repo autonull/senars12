@@ -49,7 +49,7 @@ export class SemanticStrategy implements Strategy {
                 + embeddingSim * this.config.embeddingWeight
                 + priorityScore * this.config.priorityWeight;
 
-            return { concept: c, score };
+            return {concept: c, score};
         });
 
         return scored
@@ -60,13 +60,15 @@ export class SemanticStrategy implements Strategy {
     }
 
     private getLinkStrength(linkManager: NonNullable<ReturnType<Memory['getLinkManager']>>, primary: Term, targetStr: string): number {
-        const links = linkManager.getLinks(primary, { minPriority: 0 });
+        const links = linkManager.getLinks(primary, {minPriority: 0});
         const match = links.find(l => l.targetTerm.toString() === targetStr);
         return match ? match.priority : 0;
     }
 
     private getEmbeddingSimilarity(memory: Memory, termA: string, termB: string): number {
-        const memWithEmbedding = memory as Memory & { getEmbeddingLayer?: () => { similarity: (a: string, b: string) => number } | null };
+        const memWithEmbedding = memory as Memory & {
+            getEmbeddingLayer?: () => { similarity: (a: string, b: string) => number } | null
+        };
         const embeddingLayer = memWithEmbedding.getEmbeddingLayer?.();
         if (!embeddingLayer?.similarity) return 0;
         return embeddingLayer.similarity(termA, termB);
@@ -77,7 +79,7 @@ export class SemanticStrategy implements Strategy {
         return createSecondaryTask(
             concept.term,
             concept.priority,
-            belief?.truth ? { f: belief.truth.f, c: belief.truth.c } : undefined,
+            belief?.truth ? {f: belief.truth.f, c: belief.truth.c} : undefined,
             'belief',
         );
     }

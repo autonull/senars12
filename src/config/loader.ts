@@ -1,7 +1,7 @@
 import {promises as fs} from 'fs';
 import {resolve} from 'path';
-import {appConfigSchema} from './schema.js';
 import type {AppConfig} from './schema.js';
+import {appConfigSchema} from './schema.js';
 
 export type {AppConfig, BotConfig, BotProfile, NarCoreConfig, LmConfig} from './schema.js';
 

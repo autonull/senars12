@@ -2,7 +2,7 @@ import type {CoreConfig, Task} from '../types';
 import type {Memory} from '../memory';
 import type {RuleProcessor} from '../rules';
 import type {Strategy} from './strategy.js';
-import {InferenceController, type InferenceConfig} from './inference-controller.js';
+import {type InferenceConfig, InferenceController} from './inference-controller.js';
 import {PrioritySampling} from '../strategies/sampling/index.js';
 import {DefaultDerivation} from '../strategies/derivation/index.js';
 

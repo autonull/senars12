@@ -6,7 +6,7 @@ import {buildGenerationPrompt} from './prompts/generation-v1.js';
 
 export interface BeliefInfo {
     term: string;
-    truth?: {frequency: number; confidence: number};
+    truth?: { frequency: number; confidence: number };
 }
 
 export interface DerivationTrace {
@@ -26,7 +26,7 @@ export interface GenerationInput {
     derivation: DerivationTrace | null;
     beliefs: BeliefInfo[];
     conflicts: ConflictInfo[];
-    userProfile?: {expertise: 'lay' | 'technical'; verbosity: 'concise' | 'detailed'};
+    userProfile?: { expertise: 'lay' | 'technical'; verbosity: 'concise' | 'detailed' };
 }
 
 export interface GenerationOutput {

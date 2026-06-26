@@ -70,7 +70,7 @@ export class ContextAssembler {
     ): NLContext {
         const inputTokens = estimateTokens(input);
         const availableBudget = tokenBudget - inputTokens - 500; // Reserve tokens for response
-        
+
         if (availableBudget <= 0) {
             return {
                 beliefs: [],
@@ -87,10 +87,10 @@ export class ContextAssembler {
         const goalsText = (context.activeGoals ?? []).join('\n');
         const examplesText = (context.recentExamples ?? []).map(e => e.nl).join('\n');
 
-        const currentTokens = 
-            estimateTokens(beliefsText) + 
-            estimateTokens(derivationsText) + 
-            estimateTokens(goalsText) + 
+        const currentTokens =
+            estimateTokens(beliefsText) +
+            estimateTokens(derivationsText) +
+            estimateTokens(goalsText) +
             estimateTokens(examplesText);
 
         if (currentTokens <= availableBudget) {
@@ -149,7 +149,7 @@ export class ContextAssembler {
 
     private extractRecentDerivations(nar: NAR, max: number): string[] {
         const beliefs = nar.getBeliefs();
-        
+
         // Quality filter: confidence > 0.5, frequency > 0.1
         // Deduplicate by term
         const seen = new Set<string>();
@@ -178,7 +178,7 @@ export class ContextAssembler {
         return goals.slice(0, max).map(g => g.term.toString());
     }
 
-    private extractMemoryHealth(nar: NAR): {pressure: number; totalConcepts: number} {
+    private extractMemoryHealth(nar: NAR): { pressure: number; totalConcepts: number } {
         const stats = nar.getStatistics();
         return {
             pressure: stats.memoryPressure,

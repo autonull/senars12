@@ -9,4 +9,12 @@ export {
     ApprovalManager,
     createHumanApprovalTool,
 } from './external-tools.js';
-export type {WebSearchDeps, CodeExecDeps, FileSystemDeps, RagQueryDeps, ApprovalManagerOptions, ApprovalRequest, ApprovalResult} from './external-tools.js';
+export type {
+    WebSearchDeps,
+    CodeExecDeps,
+    FileSystemDeps,
+    RagQueryDeps,
+    ApprovalManagerOptions,
+    ApprovalRequest,
+    ApprovalResult
+} from './external-tools.js';

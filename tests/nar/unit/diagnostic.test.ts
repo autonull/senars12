@@ -8,9 +8,9 @@
  * - Input validation
  */
 
-import {describe, expect, it, beforeEach} from '@jest/globals';
+import {beforeEach, describe, expect, it} from '@jest/globals';
 import {NAR} from '../../../src/nar/index.js';
-import {termsEqual, isTautology, validateTaskTerm, termParser} from '../../../src/nar/terms/index.js';
+import {isTautology, termParser, validateTaskTerm} from '../../../src/nar/terms/index.js';
 
 describe('Diagnostic: Tautology Detection', () => {
     it('should detect self-inheritance as tautology', () => {

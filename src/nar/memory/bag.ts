@@ -80,11 +80,9 @@ const SAMPLE_FN: Record<string, (heap: BagItem<unknown>[], obj: Record<string, u
 };
 
 
-
-
 export class Bag<T> extends BaseBag<{ priority: number; createdAt: number; lastAccessedAt: number }> {
-    private heap: BagItem<T>[] = [];
     public _totalPriority = 0;
+    private heap: BagItem<T>[] = [];
 
     constructor(capacity: number, options?: {
         overflowBehavior?: 'reject' | 'replace-lowest' | 'merge';
@@ -193,13 +191,13 @@ export class Bag<T> extends BaseBag<{ priority: number; createdAt: number; lastA
         this.heap = this.heap.slice(0, maxSize);
     }
 
-  peek(): T | undefined {
-    return this.heap[0]?.item;
-  }
+    peek(): T | undefined {
+        return this.heap[0]?.item;
+    }
 
-  getItems(): T[] {
-    return this.heap.map(h => h.item);
-  }
+    getItems(): T[] {
+        return this.heap.map(h => h.item);
+    }
 
     remove(item: T): boolean {
         const idx = this.heap.findIndex(h => h.item === item);

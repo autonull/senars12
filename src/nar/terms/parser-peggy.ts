@@ -8,7 +8,7 @@ import {Truth} from './truth.js';
 import {errMsg} from '../utils/index.js';
 
 const require = createRequire(import.meta.url);
-const peggyModule: {parse: (input: string, options?: unknown) => unknown} = require('./peggy-generated.cjs');
+const peggyModule: { parse: (input: string, options?: unknown) => unknown } = require('./peggy-generated.cjs');
 const peggyParse = peggyModule.parse;
 
 export interface ParserResult {
@@ -96,7 +96,7 @@ export class TermParser {
             ? Truth.create(
                 parseFloat(truthMatch[1] ?? truthMatch[3] ?? '0.5'),
                 parseFloat(truthMatch[2] ?? truthMatch[4] ?? '0.9')
-              )
+            )
             : undefined;
         let termStr = truthMatch ? trimmed.slice(0, -truthMatch[0].length).trim() : trimmed;
 
@@ -111,7 +111,11 @@ export class TermParser {
 
         try {
             const result: unknown = peggyParse(trimmed, {termFactory: this.termFactory});
-            const r = result as {term?: Term; punctuation?: string; truthValue?: {frequency: number; confidence: number}} | null;
+            const r = result as {
+                term?: Term;
+                punctuation?: string;
+                truthValue?: { frequency: number; confidence: number }
+            } | null;
             if (!r || !r.term || !r.punctuation) return null;
 
             const punc = r.punctuation;

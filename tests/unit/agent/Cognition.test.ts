@@ -1,9 +1,8 @@
-import {describe, it, expect} from '@jest/globals';
+import {describe, expect, it} from '@jest/globals';
 import {createAgent} from '../../../src/agent/agent.js';
 import {createSession} from '../../../src/agent/ConversationSession.js';
-import {SeNARSFactory} from '../../../src/nar/index.js';
 import {buildAgentTools} from '../../../src/agent/tools.js';
-import {createStreamingAgentDispatch, abortSession} from '../../../src/agent/io-middleware.js';
+import {abortSession, createStreamingAgentDispatch} from '../../../src/agent/io-middleware.js';
 import {MessageRouter} from '../../../src/io/router.js';
 import {InMemorySessionManager} from '../../../src/agent/SessionManager.js';
 import type {Connection, IOMessage, Logger} from '../../../src/io/types.js';
@@ -51,7 +50,7 @@ describe('Agent tools: agent_instruct and get_session_info', () => {
     it('agent_instruct appends when mode=append and replaces when mode=replace', async () => {
         const agent = createAgent({lmClient: scriptedLM});
         const session = createSession('test:tools:alice');
-        const tools = (agent as unknown as {chatWithHistory: typeof agent.chatWithHistory}).chatWithHistory;
+        const tools = (agent as unknown as { chatWithHistory: typeof agent.chatWithHistory }).chatWithHistory;
         // We can't invoke the tool directly through the public surface; we verify via the setInstructions hook
         // by directly calling buildTools through agent's buildTools via the chat path
         // Instead, verify the tool is registered and its execute function works:
@@ -89,15 +88,17 @@ describe('Session-scoped instructions (agent_instruct path)', () => {
 });
 
 describe('Tool humanization middleware', () => {
-    function makeConn(): Connection & {sent: Array<{target: string; text: string}>} {
-        const sent: Array<{target: string; text: string}> = [];
+    function makeConn(): Connection & { sent: Array<{ target: string; text: string }> } {
+        const sent: Array<{ target: string; text: string }> = [];
         const conn = {
             id: 'conn-humanize',
             name: 'TestConn',
             type: 'test',
             state: 'connected' as const,
             sent,
-            send: async (target: string, text: string) => { sent.push({target, text}); },
+            send: async (target: string, text: string) => {
+                sent.push({target, text});
+            },
             onMessage: () => undefined,
             removeMessageHandler: () => undefined,
             onStateChange: () => undefined,
@@ -116,7 +117,12 @@ describe('Tool humanization middleware', () => {
     }
 
     it('produces a humanized confirmation when a tool call fires', async () => {
-        const ep = new EpisodicMemory({enabled: true, basePath: mkdtempSync(join(tmpdir(), 'ep-')), retentionDays: 1, maxEntriesPerFile: 100});
+        const ep = new EpisodicMemory({
+            enabled: true,
+            basePath: mkdtempSync(join(tmpdir(), 'ep-')),
+            retentionDays: 1,
+            maxEntriesPerFile: 100
+        });
         const agent = createAgent({lmClient: scriptedLM, episodicMemory: ep});
         const session = createSession('test:humanize:alice');
         // Directly set session instructions via the buildTools hook

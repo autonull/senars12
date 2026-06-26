@@ -1,4 +1,4 @@
-import {describe, it, expect} from '@jest/globals';
+import {describe, expect, it} from '@jest/globals';
 import {dispatchToolCalls} from '../../../src/agent/model/ToolDispatcher.js';
 
 describe('ToolDispatcher', () => {
@@ -43,7 +43,13 @@ describe('ToolDispatcher', () => {
     });
 
     it('surfaces tool exceptions as errors', async () => {
-        const tools = {boom: {execute: async () => { throw new Error('kapow'); }}};
+        const tools = {
+            boom: {
+                execute: async () => {
+                    throw new Error('kapow');
+                }
+            }
+        };
         const result = await dispatchToolCalls(
             [{toolName: 'boom', toolCallId: 'b1', args: {}}],
             {tools},

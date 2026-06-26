@@ -1,4 +1,4 @@
-import {describe, expect, test, beforeEach} from '@jest/globals';
+import {beforeEach, describe, expect, test} from '@jest/globals';
 import {TranslationCache} from '../../../src/nar/nl/cache.js';
 import {ContextAssembler} from '../../../src/nar/nl/context-assembler.js';
 import type {NAR} from '../../../src/nar/nar.js';

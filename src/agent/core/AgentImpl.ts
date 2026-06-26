@@ -5,11 +5,7 @@ import {ContextAssembler, type ContextAssemblerOpts} from '../../nar/nl/context-
 import {NLUnderstandingService} from '../../nar/nl/understanding.js';
 import {NLGenerationService} from '../../nar/nl/generation.js';
 import {TranslationCache} from '../../nar/nl/cache.js';
-import {
-    createNARSTools,
-    createGeneralTools,
-    ApprovalManager,
-} from '../../nar/tools/adapters/index.js';
+import {ApprovalManager, createGeneralTools, createNARSTools,} from '../../nar/tools/adapters/index.js';
 import {ModelRunner} from '../model/ModelRunner.js';
 import {buildAgentTools} from '../tools.js';
 import type {ConversationSession} from '../ConversationSession.js';
@@ -18,13 +14,13 @@ import {createLogger, type Logger} from '../../nar/logger/index.js';
 import {EventBus, type EventKey, type EventMap} from '../EventBus.js';
 import {AutonomyEngine} from '../AutonomyEngine.js';
 import type {AutonomousLoop} from '../AutonomousLoop.js';
-import {processInput, type InputEvent, type InputProcessorDeps} from '../input-processor.js';
+import {type InputEvent, type InputProcessorDeps, processInput} from '../input-processor.js';
 import {StatsManager} from '../subservices/StatsManager.js';
 import {KnowledgeManager} from '../subservices/KnowledgeManager.js';
 import {SessionOrchestrator} from '../subservices/SessionOrchestrator.js';
 import {PromptBuilder} from '../subservices/PromptBuilder.js';
 
-import type {Agent, AgentOptions, ChatOptions, ChatStreamEvent, AgentStats, DerivationEntry} from '../types.js';
+import type {Agent, AgentOptions, AgentStats, ChatOptions, ChatStreamEvent, DerivationEntry} from '../types.js';
 import {NarQueryService} from '../services/NarQueryService.js';
 import {LMChatService} from '../services/LMChatService.js';
 
@@ -123,96 +119,10 @@ export class AgentImpl implements Agent {
         );
     }
 
-    private safeLog(type: EpisodeType, content: string, metadata: Record<string, unknown> = {}): Promise<void> {
-        if (!this.episodicMemory) return Promise.resolve();
-        return this.episodicMemory.log(type, content, metadata).catch(err => {
-            this.logger.warn('episodic memory log failed', {
-                type,
-                error: err instanceof Error ? err.message : String(err),
-            });
-        });
-    }
+    chat(input: string, opts: ChatOptions & { stream: true }): AsyncGenerator<ChatStreamEvent, string>;
 
-    private async captureDerivations(count: number): Promise<void> {
-        if (!this.nar || count <= 0) return;
-        try {
-            const beliefs = this.nar.getBeliefs();
-            const recent = beliefs.slice(-count);
-            for (const b of recent) {
-                const entry: DerivationEntry = {
-                    term: b.term.toString(),
-                    truth: b.truth ? {f: b.truth.f, c: b.truth.c} : undefined,
-                    timestamp: Date.now(),
-                };
-                this.recentDerivations.push(entry);
-            }
-            if (this.recentDerivations.length > MAX_RECENT_DERIVATIONS) {
-                this.recentDerivations.splice(0, this.recentDerivations.length - MAX_RECENT_DERIVATIONS);
-            }
-        } catch {
-            // derivation capture is best-effort
-        }
-    }
+    chat(input: string, opts?: ChatOptions & { stream?: false }): Promise<string>;
 
-    private buildTools(session?: ConversationSession): Record<string, unknown> {
-        const tools: Record<string, unknown> = {};
-        if (this.nar) {
-            Object.assign(tools, createNARSTools(this.nar as Parameters<typeof createNARSTools>[0]));
-            Object.assign(tools, createGeneralTools({
-                nar: this.nar as Parameters<typeof createGeneralTools>[0]['nar'],
-                episodicMemory: this.episodicMemory as Parameters<typeof createGeneralTools>[0]['episodicMemory'],
-            }));
-        }
-        Object.assign(tools, buildAgentTools({
-            know: (k: string, v: string) => this.know(k, v),
-            knowGet: (k: string) => this.knowGet(k),
-            knowList: () => this.knowList(),
-            recall: (q?: string, l?: number) => this.recall(q, l),
-            setInstructions: session ? (mode, instructions) => {
-                this.sessionOrchestrator.setSessionInstructions(session, mode, instructions);
-            } : undefined,
-            getSessionInfo: session ? () => ({
-                messageCount: session.history.length,
-                createdAt: session.createdAt,
-                pinnedBeliefs: [...session.pinnedBeliefs],
-            }) : undefined,
-        }));
-
-        if (session) {
-            const pad = this.sessionOrchestrator.getScratchpad(session);
-            if (pad) {
-                Object.assign(tools, {
-                    set_context: {
-                        description: 'Store a key-value pair in the session scratchpad for this conversation.',
-                        inputSchema: {type: 'object', properties: {key: {type: 'string'}, value: {type: 'string'}}, required: ['key', 'value']},
-                        execute: ({key, value}: {key: string; value: string}) => { pad.set(key, value); return {stored: true, key}; },
-                    },
-                    get_context: {
-                        description: 'Retrieve a value from the session scratchpad.',
-                        inputSchema: {type: 'object', properties: {key: {type: 'string'}}, required: ['key']},
-                        execute: ({key}: {key: string}) => {
-                            const value = pad.get(key);
-                            return value !== undefined ? {found: true, key, value} : {found: false, key};
-                        },
-                    },
-                    list_context: {
-                        description: 'List all entries in the session scratchpad.',
-                        inputSchema: {type: 'object', properties: {}},
-                        execute: () => ({entries: [...pad.entries()].map(([k, v]) => ({key: k, value: v}))}),
-                    },
-                });
-            }
-        }
-
-        if (this.extToolOpts) {
-            Object.assign(tools, this.extToolOpts);
-        }
-
-        return tools;
-    }
-
-    chat(input: string, opts: ChatOptions & {stream: true}): AsyncGenerator<ChatStreamEvent, string>;
-    chat(input: string, opts?: ChatOptions & {stream?: false}): Promise<string>;
     chat(input: string, opts: ChatOptions = {}): any {
         if (opts.stream) {
             return this.lmChatService.chatStream(input, opts.session, opts);
@@ -227,7 +137,7 @@ export class AgentImpl implements Agent {
         return this.lmChatService.chatWithHistory(input, session, opts);
     }
 
-    async *chatStream(
+    async* chatStream(
         input: string,
         session?: ConversationSession,
         opts: ChatOptions = {},
@@ -259,7 +169,7 @@ export class AgentImpl implements Agent {
         this.safeLog('belief_added', narsese);
     }
 
-    async recall(query?: string, limit = 10): Promise<Array<{timestamp: number; type: string; content: string}>> {
+    async recall(query?: string, limit = 10): Promise<Array<{ timestamp: number; type: string; content: string }>> {
         if (!this.episodicMemory) return [];
         const episodes = await this.episodicMemory.getEpisodes({limit}).catch(() => []);
         const q = query?.toLowerCase();
@@ -276,12 +186,13 @@ export class AgentImpl implements Agent {
         return this.knowledgeManager.knowGet(key);
     }
 
-    knowList(): Array<{key: string; value: string}> {
+    knowList(): Array<{ key: string; value: string }> {
         return this.knowledgeManager.knowList();
     }
 
     start(): () => void {
-        if (!this.nar) return () => {};
+        if (!this.nar) return () => {
+        };
         if (this.nar.state === 'created') {
             this.nar.initialize().then(() => this.nar!.start()).catch(err => {
                 this.logger.warn('NAR lifecycle failed', {error: err instanceof Error ? err.message : String(err)});
@@ -379,7 +290,7 @@ export class AgentImpl implements Agent {
         return this.approvalManager.resolveApproval(id, approved, reason);
     }
 
-    getPendingApprovals(): Array<{id: string; request: string; createdAt: number}> {
+    getPendingApprovals(): Array<{ id: string; request: string; createdAt: number }> {
         return this.approvalManager.getPending().map(r => ({id: r.id, request: r.request, createdAt: r.createdAt}));
     }
 
@@ -401,7 +312,7 @@ export class AgentImpl implements Agent {
 
     setLmRulePriority(id: string, priority: number): void {
         const rule = this.nar?.getProcessor().getLMRule?.(id);
-        if (rule && 'priority' in rule) (rule as {priority: number}).priority = priority;
+        if (rule && 'priority' in rule) (rule as { priority: number }).priority = priority;
     }
 
     getAutonomyEngine(): AutonomyEngine | undefined {
@@ -412,7 +323,14 @@ export class AgentImpl implements Agent {
         return this.autonomousLoop;
     }
 
-    getRLFPState(): {enabled: boolean; policy: Record<string, number>; qValues: Record<string, number>; explorationRate: number; totalRewards: number; totalSteps: number} | null {
+    getRLFPState(): {
+        enabled: boolean;
+        policy: Record<string, number>;
+        qValues: Record<string, number>;
+        explorationRate: number;
+        totalRewards: number;
+        totalSteps: number
+    } | null {
         const rlfp = this.nar?.getRLFP?.() as unknown as {
             policyOptimizerPublic?: {
                 getAllStrategies?: () => string[];
@@ -449,7 +367,7 @@ export class AgentImpl implements Agent {
         }
     }
 
-    getSelfReasoning(): {qualityScore: number; consistency: number; gaps: string[]; suggestions: string[]} | null {
+    getSelfReasoning(): { qualityScore: number; consistency: number; gaps: string[]; suggestions: string[] } | null {
         return this.nar?.getSelfAnalyzer?.() ? {
             qualityScore: 0,
             consistency: 0,
@@ -458,7 +376,7 @@ export class AgentImpl implements Agent {
         } : null;
     }
 
-    getReasoningQuality(): {overall: number; coherence: number; relevance: number; completeness: number} | null {
+    getReasoningQuality(): { overall: number; coherence: number; relevance: number; completeness: number } | null {
         return this.nar?.getSelfAnalyzer?.() ? {
             overall: 0,
             coherence: 0,
@@ -492,18 +410,120 @@ export class AgentImpl implements Agent {
     }
 
     on<K extends EventKey>(event: K, listener: (payload: EventMap[K]) => void): () => void;
+
     on<K extends keyof EventMap>(event: K, listener: (payload: EventMap[K]) => void): () => void;
+
     on(event: string, listener: (...args: any[]) => void): () => void {
         const unsubAgent = this.eventBus.on(event as any, listener);
         const systemEventBus = this.nar?.getEventBus?.();
         const unsubSystem = systemEventBus?.on(event as any, listener);
-        return () => { unsubAgent(); unsubSystem?.(); };
+        return () => {
+            unsubAgent();
+            unsubSystem?.();
+        };
     }
 
     off<K extends EventKey>(event: K, listener: (payload: EventMap[K]) => void): void;
+
     off<K extends keyof EventMap>(event: K, listener: (payload: EventMap[K]) => void): void;
+
     off(event: string, listener: (...args: any[]) => void): void {
         this.eventBus.off(event as any, listener);
         this.nar?.getEventBus?.()?.off(event as any, listener);
+    }
+
+    private safeLog(type: EpisodeType, content: string, metadata: Record<string, unknown> = {}): Promise<void> {
+        if (!this.episodicMemory) return Promise.resolve();
+        return this.episodicMemory.log(type, content, metadata).catch(err => {
+            this.logger.warn('episodic memory log failed', {
+                type,
+                error: err instanceof Error ? err.message : String(err),
+            });
+        });
+    }
+
+    private async captureDerivations(count: number): Promise<void> {
+        if (!this.nar || count <= 0) return;
+        try {
+            const beliefs = this.nar.getBeliefs();
+            const recent = beliefs.slice(-count);
+            for (const b of recent) {
+                const entry: DerivationEntry = {
+                    term: b.term.toString(),
+                    truth: b.truth ? {f: b.truth.f, c: b.truth.c} : undefined,
+                    timestamp: Date.now(),
+                };
+                this.recentDerivations.push(entry);
+            }
+            if (this.recentDerivations.length > MAX_RECENT_DERIVATIONS) {
+                this.recentDerivations.splice(0, this.recentDerivations.length - MAX_RECENT_DERIVATIONS);
+            }
+        } catch {
+            // derivation capture is best-effort
+        }
+    }
+
+    private buildTools(session?: ConversationSession): Record<string, unknown> {
+        const tools: Record<string, unknown> = {};
+        if (this.nar) {
+            Object.assign(tools, createNARSTools(this.nar as Parameters<typeof createNARSTools>[0]));
+            Object.assign(tools, createGeneralTools({
+                nar: this.nar as Parameters<typeof createGeneralTools>[0]['nar'],
+                episodicMemory: this.episodicMemory as Parameters<typeof createGeneralTools>[0]['episodicMemory'],
+            }));
+        }
+        Object.assign(tools, buildAgentTools({
+            know: (k: string, v: string) => this.know(k, v),
+            knowGet: (k: string) => this.knowGet(k),
+            knowList: () => this.knowList(),
+            recall: (q?: string, l?: number) => this.recall(q, l),
+            setInstructions: session ? (mode, instructions) => {
+                this.sessionOrchestrator.setSessionInstructions(session, mode, instructions);
+            } : undefined,
+            getSessionInfo: session ? () => ({
+                messageCount: session.history.length,
+                createdAt: session.createdAt,
+                pinnedBeliefs: [...session.pinnedBeliefs],
+            }) : undefined,
+        }));
+
+        if (session) {
+            const pad = this.sessionOrchestrator.getScratchpad(session);
+            if (pad) {
+                Object.assign(tools, {
+                    set_context: {
+                        description: 'Store a key-value pair in the session scratchpad for this conversation.',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {key: {type: 'string'}, value: {type: 'string'}},
+                            required: ['key', 'value']
+                        },
+                        execute: ({key, value}: { key: string; value: string }) => {
+                            pad.set(key, value);
+                            return {stored: true, key};
+                        },
+                    },
+                    get_context: {
+                        description: 'Retrieve a value from the session scratchpad.',
+                        inputSchema: {type: 'object', properties: {key: {type: 'string'}}, required: ['key']},
+                        execute: ({key}: { key: string }) => {
+                            const value = pad.get(key);
+                            return value !== undefined ? {found: true, key, value} : {found: false, key};
+                        },
+                    },
+                    list_context: {
+                        description: 'List all entries in the session scratchpad.',
+                        inputSchema: {type: 'object', properties: {}},
+                        execute: () => ({entries: [...pad.entries()].map(([k, v]) => ({key: k, value: v}))}),
+                    },
+                });
+            }
+        }
+
+        if (this.extToolOpts) {
+            Object.assign(tools, this.extToolOpts);
+        }
+
+        return tools;
     }
 }

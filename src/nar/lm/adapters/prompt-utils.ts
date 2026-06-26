@@ -61,7 +61,7 @@ export function textFromContent(content: string | Array<Record<string, unknown>>
  * (role: 'system') or via the call-level `system` option; this helper
  * handles both. The system prompt is removed from the returned list.
  */
-export function extractSystemPrompt(prompt: V2Message[]): {system: string; messages: V2Message[]} {
+export function extractSystemPrompt(prompt: V2Message[]): { system: string; messages: V2Message[] } {
     let system = '';
     const messages: V2Message[] = [];
     for (const msg of prompt) {
