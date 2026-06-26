@@ -54,7 +54,8 @@ export class EventBus {
         for (const listener of listeners) {
             try {
                 listener(data);
-            } catch (_err) {
+            } catch (err) {
+                console.error(`[agent:eventbus] listener for "${event}" threw:`, err);
             }
         }
     }
@@ -92,10 +93,10 @@ export class EventBus {
             this.emitter.emit('nar:concept:activated', {term: d.term?.toString?.() ?? '', priority: d.priority, timestamp: ts()});
         });
         const unsub3 = narBus.on('lm-rule:executed', (d) => {
-            this.emitter.emit('system:system:lm.rule:applied', {ruleId: d.ruleId, ruleName: d.ruleId, primaryTerm: '', tasksProduced: d.tasksGenerated, durationMs: d.durationMs, timestamp: ts()});
+            this.emitter.emit('system:lm.rule:applied', {ruleId: d.ruleId, ruleName: d.ruleId, primaryTerm: '', tasksProduced: d.tasksGenerated, durationMs: d.durationMs, timestamp: ts()});
         });
         const unsub4 = narBus.on('lm-rule:failed', (d) => {
-            this.emitter.emit('system:system:lm.rule:skipped', {ruleId: d.ruleId, ruleName: d.ruleId, reason: 'activation_failed', timestamp: ts()});
+            this.emitter.emit('system:lm.rule:skipped', {ruleId: d.ruleId, ruleName: d.ruleId, reason: 'activation_failed', timestamp: ts()});
         });
         this.narUnsubscribers.push(unsub1, unsub2, unsub3, unsub4);
     }

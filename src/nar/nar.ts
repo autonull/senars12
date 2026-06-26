@@ -418,11 +418,15 @@ getMetricsCollector(): MetricsCollector {
 
 reconfigure(params: CognitiveParameters): void {
   if (!this.cognitiveController) {
-    throw new Error('NAR was not created with cognitive architecture enabled');
+    throw new ConfigurationError(
+      'NAR was not created with cognitive architecture enabled'
+    );
   }
   const registry = this.config.strategyRegistry;
   if (!registry) {
-    throw new Error('NAR has no strategy registry — cannot reconfigure');
+    throw new ConfigurationError(
+      'NAR has no strategy registry — cannot reconfigure'
+    );
   }
   this.cognitiveController = new CognitiveController(
     registry,

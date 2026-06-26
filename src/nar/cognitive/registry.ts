@@ -1,4 +1,5 @@
 import type {SamplingStrategy, Strategy, DerivationStrategy, LMRuleSelector, AttentionModel, StrategyRegistry, StrategyType, ComponentMetadata} from '../strategies/types.js';
+import {ConfigurationError} from '../types/core.js';
 import {PrioritySampling, TopNSampling, NoveltySampling, GoalBiasedSampling, DiverseSampling} from '../strategies/sampling/index.js';
 import {DefaultDerivation, AnytimeDerivation, FocusedDerivation, SampledDerivation} from '../strategies/derivation/index.js';
 import {AllSelector, PrioritySelector, RotationSelector, DiverseSelector} from '../strategies/lm-selectors/index.js';
@@ -23,13 +24,23 @@ export class CognitiveRegistry implements StrategyRegistry {
   };
 
   register(type: StrategyType, name: string, impl: StrategyImpl): void {
-    if (this.stores[type].has(name)) throw new Error(`'${name}' already registered for ${type}`);
+    if (this.stores[type].has(name)) {
+      throw new ConfigurationError(
+        `'${name}' already registered for ${type}`,
+        {type, name}
+      );
+    }
     this.stores[type].set(name, impl);
   }
 
   get<T>(type: StrategyType, name: string): T {
     const impl = this.stores[type].get(name);
-    if (!impl) throw new Error(`No ${type} strategy named '${name}'`);
+    if (!impl) {
+      throw new ConfigurationError(
+        `No ${type} strategy named '${name}'`,
+        {type, name}
+      );
+    }
     return impl as T;
   }
 

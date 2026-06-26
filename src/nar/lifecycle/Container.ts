@@ -1,4 +1,5 @@
 import {BaseComponent} from './BaseComponent.js';
+import {ConfigurationError} from '../types/core.js';
 
 export interface ComponentDefinition {
     name: string;
@@ -22,7 +23,10 @@ export class Container {
 
     register(_definition: ComponentDefinition | ValueDefinition): void {
         if (this.definitions.has(_definition.name)) {
-            throw new Error(`Component or value '${_definition.name}' is already registered`);
+            throw new ConfigurationError(
+                `Component or value '${_definition.name}' is already registered`,
+                {name: _definition.name}
+            );
         }
         this.definitions.set(_definition.name, _definition);
     }
@@ -34,7 +38,10 @@ export class Container {
 
         const definition = this.definitions.get(name);
         if (!definition) {
-            throw new Error(`Component or value '${name}' not found`);
+            throw new ConfigurationError(
+                `Component or value '${name}' not found`,
+                {name}
+            );
         }
 
         if (definition.type === 'value') {
@@ -42,7 +49,10 @@ export class Container {
             return definition.value as T;
         }
 
-        throw new Error(`Component '${name}' must be initialized before use`);
+        throw new ConfigurationError(
+            `Component '${name}' must be initialized before use`,
+            {name}
+        );
     }
 
     async initialize(name: string): Promise<void> {
@@ -52,7 +62,10 @@ export class Container {
 
         const definition = this.definitions.get(name);
         if (!definition) {
-            throw new Error(`Component '${name}' not found`);
+            throw new ConfigurationError(
+                `Component '${name}' not found`,
+                {name}
+            );
         }
 
         if (definition.type === 'value') {

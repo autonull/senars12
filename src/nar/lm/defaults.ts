@@ -8,6 +8,7 @@ import type {ModelCapability, ModelRegistry, ModelRegistryEntry} from './model-r
 import {defaultModelRegistry} from './model-registry.js';
 import {createMockLMClient} from './mock-client.js';
 import {createLogger} from '../logger/index.js';
+import {OperationError} from '../types/core.js';
 import type {LanguageModel} from 'ai';
 import {TransformersLMClient, DEFAULT_TRANSFORMERS_MODEL} from './transformers-client.js';
 import {resolveLMConfig} from './env-config.js';
@@ -76,12 +77,17 @@ class OllamaLMClient implements LMClient {
 
   async generateText(prompt: string, _options?: any): Promise<string> {
     await this.ensureInitialized();
-    if (!this.modelInstance) throw new Error('Ollama model not initialized');
+    if (!this.modelInstance) {
+      throw new OperationError('Ollama model not initialized');
+    }
     try {
       const result = await (this.modelInstance as any).doGenerate({inputFormat: 'prompt', mode: {type: 'regular'}, prompt: [{role: 'user', content: [{type: 'text', text: prompt}]}], rawPrompt: undefined});
       return result.content?.[0]?.text ?? '';
     } catch (error: any) {
-      throw new Error(`Ollama generation failed: ${error.message}`);
+      throw new OperationError(
+        `Ollama generation failed: ${error.message}`,
+        {provider: 'ollama', model: this.model, cause: error.message}
+      );
     }
   }
 
