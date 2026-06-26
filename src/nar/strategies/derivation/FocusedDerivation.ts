@@ -2,6 +2,9 @@ import type {Task} from '../../types/core.js';
 import type {RuleProcessor} from '../../rules/processor.js';
 import type {DerivationContext} from '../types.js';
 import {DefaultDerivation} from './DefaultDerivation.js';
+import {wordOverlap} from '../../utils/index.js';
+
+const SPLIT_PATTERN = /[\s_()<>]+/;
 
 export class FocusedDerivation extends DefaultDerivation {
   override readonly metadata = { name: 'focused', description: 'Prioritize high-relevance secondaries' };
@@ -18,10 +21,6 @@ export class FocusedDerivation extends DefaultDerivation {
   private sharedAtomScore(a: Task, b: Task): number {
     const aStr = a.term.toString();
     const bStr = b.term.toString();
-    const aWords = new Set(aStr.toLowerCase().split(/[\s_()<>]+/).filter(Boolean));
-    const bWords = new Set(bStr.toLowerCase().split(/[\s_()<>]+/).filter(Boolean));
-    let overlap = 0;
-    for (const w of aWords) { if (bWords.has(w)) overlap++; }
-    return overlap / Math.max(aWords.size, bWords.size, 1);
+    return wordOverlap(aStr, bStr, SPLIT_PATTERN);
   }
 }

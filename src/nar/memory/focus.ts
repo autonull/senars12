@@ -1,3 +1,4 @@
+import {clamp01} from '../utils/index.js';
 import type {Concept} from './concept.js';
 import type {Task} from '../types/index.js';
 import {TermMap} from '../terms';
@@ -62,7 +63,7 @@ export class Focus {
         const entry = this.concepts.get(concept.term);
         if (!entry) return;
 
-        entry.priority = Math.max(0, Math.min(1, entry.priority + delta));
+        entry.priority = clamp01(entry.priority + delta);
     }
 
     boostTopic(topic: string, factor = 2.0, ttl = 50): void {

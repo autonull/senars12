@@ -1,3 +1,5 @@
+import {sleep} from './helpers.js';
+
 export interface ThrottleConfig {
     intervalMs: number;
     burst: number;
@@ -20,7 +22,7 @@ export class Throttle {
                 this.tokens--;
                 return;
             }
-            await new Promise(r => setTimeout(r, this.config.intervalMs));
+            await sleep(this.config.intervalMs);
         }
     }
 
@@ -51,10 +53,12 @@ export function createThrottle(config?: Partial<ThrottleConfig>): Throttle {
 
 export async function* throttleGenerator<T>(
     gen: AsyncGenerator<T>,
-    intervalMs: number
+    intervalMs: number,
+    shouldStop?: () => boolean
 ): AsyncGenerator<T> {
     let lastYield = Date.now();
     for await (const value of gen) {
+        if (shouldStop?.()) break;
         yield value;
         if (Date.now() - lastYield > intervalMs) {
             await new Promise(r => setTimeout(r, 0));

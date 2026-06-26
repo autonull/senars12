@@ -1,6 +1,7 @@
 import type {LMClient} from '../../nar/lm/types.js';
 import {adapt, type AISDKLanguageModel} from '../../nar/lm/adapters/index.js';
 import {dispatchToolCalls, type ToolCall, type ReasoningArtifact, type ToolError} from './ToolDispatcher.js';
+import {errMsg} from '../../nar/utils/index.js';
 
 export interface ComposedRequest {
     system: string;
@@ -112,7 +113,7 @@ export class ModelRunner {
                     ...(signal ? {abortSignal: signal} : {}),
                 });
             } catch (e) {
-                const message = e instanceof Error ? e.message : String(e);
+                const message = errMsg(e);
                 const failure: ModelRunResult = {text: message, toolCalls: allCalls, artifacts: allArtifacts, errors: allErrors, messages, usage: {inputTokens: totalInput, outputTokens: totalOutput, totalTokens: totalInput + totalOutput}};
                 return failure;
             }

@@ -21,8 +21,6 @@ export interface IRCConnectionConfig {
 }
 
 export class IRCConnection extends BaseConnection {
-    override readonly id: string;
-    override readonly name: string;
     override readonly type = 'irc';
     override readonly logger = createLogger({scope: 'io:irc'});
     private client: IRCClient | null = null;
@@ -35,7 +33,6 @@ export class IRCConnection extends BaseConnection {
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);
-        this.id = config.id;
         const cfg = config.config as unknown as IRCConnectionConfig;
         const nick = cfg.nick ?? 'senars';
         this.name = nick;

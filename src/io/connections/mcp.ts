@@ -2,10 +2,9 @@ import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
 import {createLogger} from '../../nar/logger/index.js';
 import type {MCPToolCall, MCPToolResult} from '../../api/mcp/types.js';
+import {makeId} from '../../nar/utils/index.js';
 
 export class MCPConnection extends BaseConnection {
-    override readonly id: string;
-    override readonly name: string;
     override readonly type = 'mcp';
     override readonly logger = createLogger({scope: 'io:mcp'});
     private transport: 'stdio' | 'sse' = 'stdio';
@@ -16,7 +15,6 @@ export class MCPConnection extends BaseConnection {
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);
-        this.id = config.id;
         this.name = config.config.name as string ?? 'MCP';
         this.transport = (config.config.transport as 'stdio' | 'sse') ?? 'stdio';
     }
@@ -55,7 +53,7 @@ export class MCPConnection extends BaseConnection {
 
         const message = {
             jsonrpc: '2.0',
-            id: crypto.randomUUID(),
+            id: makeId(),
             method: operation,
             params: {
                 name: toolName,
@@ -68,7 +66,7 @@ export class MCPConnection extends BaseConnection {
 
     async callTool(name: string, args: Record<string, unknown>): Promise<MCPToolResult> {
         return new Promise((resolve) => {
-            const id = crypto.randomUUID();
+            const id = makeId();
             const message = {
                 jsonrpc: '2.0',
                 id,
@@ -216,7 +214,7 @@ export class MCPConnection extends BaseConnection {
 
         const message = {
             jsonrpc: '2.0',
-            id: crypto.randomUUID(),
+            id: makeId(),
             method: 'tools/list',
             params: {},
         };

@@ -1,4 +1,5 @@
 import {WebSocket} from 'ws';
+import {makeId, toError} from '../../nar/utils/index.js';
 
 export interface WSClient {
     ws: WebSocket;
@@ -17,7 +18,7 @@ export interface WSClientOptions {
 
 export const createWSClient = (
     ws: WebSocket,
-    id: string = crypto.randomUUID(),
+    id: string = makeId(),
     options: WSClientOptions = {}
 ): WSClient => {
     const {heartbeatInterval = 30000, onMessage, onClose, onError} = options;
@@ -34,7 +35,7 @@ export const createWSClient = (
         try {
             onMessage?.(JSON.parse(data.toString()), client);
         } catch (e) {
-            onError?.(e instanceof Error ? e : new Error(String(e)), client);
+            onError?.(toError(e), client);
         }
     });
 

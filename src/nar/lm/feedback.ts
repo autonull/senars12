@@ -5,7 +5,7 @@ import {Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
 import {findUnderconnectedConceptsFromTasks, parseEnrichmentResponse} from './enrichment-utils.js';
 import {createLogger, type Logger} from '../logger/index.js';
-import {errMsg} from '../utils/index.js';
+import {errMsg, clamp01} from '../utils/index.js';
 
 export interface FeedbackConfig {
     enableBidirectionalFeedback: boolean;
@@ -250,8 +250,8 @@ Respond with JSON:
 
             if (obj.revisedTruth) {
                 revisedTruth = Truth.create(
-                    Math.max(0, Math.min(1, obj.revisedTruth.f)),
-                    Math.max(0, Math.min(1, obj.revisedTruth.c))
+                    clamp01(obj.revisedTruth.f),
+                    clamp01(obj.revisedTruth.c)
                 );
             } else if (hypothesis.truth) {
                 const t = hypothesis.truth;
@@ -347,7 +347,7 @@ Respond with JSON:
                 .map((p: {pattern: string; type: string; confidence?: number; examples?: string[]}) => ({
                     pattern: p.pattern,
                     type: p.type,
-                    confidence: Math.max(0, Math.min(1, p.confidence ?? 0.5)),
+                    confidence: clamp01(p.confidence ?? 0.5),
                     examples: p.examples ?? [],
                 }));
         } catch {

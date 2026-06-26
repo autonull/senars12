@@ -13,6 +13,7 @@ import type {LMClient} from './lm';
 import {LMRules} from './lm';
 import type {SeNARSRegistry} from './lm/providers.js';
 import {QueryAPI, ReasoningTrace} from './query';
+import {errMsg} from './utils/index.js';
 import {MetricsCollector} from './metrics';
 import {createLogger} from './logger';
 import type {Tool, ToolResult} from './tools';
@@ -184,7 +185,7 @@ export class NAR extends BaseComponent {
             const lmRuleState = this.processor.serializeLMRules();
             await fs.writeFile(this.getStatePath('lm-rules.json'), JSON.stringify(lmRuleState, null, 2), 'utf-8');
         } catch (e) {
-            this.logger.warn('NAR state save failed', {error: e instanceof Error ? e.message : String(e)});
+            this.logger.warn('NAR state save failed', {error: errMsg(e)});
         }
     }
 
@@ -289,7 +290,7 @@ export class NAR extends BaseComponent {
                 this.processor.deserializeLMRules(lmRuleState);
             }
         } catch (e) {
-            this.logger.warn('NAR state load failed', {error: e instanceof Error ? e.message : String(e)});
+            this.logger.warn('NAR state load failed', {error: errMsg(e)});
         }
     }
 

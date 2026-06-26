@@ -1,4 +1,5 @@
 import type {Concept} from '../concept.js';
+import {clamp01} from '../../utils/index.js';
 
 export interface ScorerConfig {
     noveltyWeight: number;
@@ -39,7 +40,7 @@ export class MemoryScorer {
             activation * this.config.activationWeight +
             recency * this.config.recencyWeight;
 
-        return Math.max(0, Math.min(1, score));
+        return clamp01(score);
     }
 
     scoreForRetrieval(concept: Concept, _query?: Record<string, unknown>): number {

@@ -19,7 +19,7 @@ import type {SchemaTransformer} from './mcp/schema-transformer.js';
 import {getSchemaTransformer} from './mcp/schema-transformer.js';
 import {CapabilityDescriptor} from './mcp/types.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
-import {toError} from '../nar/utils/helpers.js';
+import {errMsg, toError} from '../nar/utils/helpers.js';
 
 /**
  * MCP Server Configuration
@@ -229,17 +229,10 @@ export class SeNARSMCPServer {
                                 text: JSON.stringify(
                                     {
                                         type: 'error',
-                                        error: {
-                                            code: 'EXECUTION_ERROR',
-                                            message:
-                                                error instanceof Error
-                                                    ? error.message
-                                                    : String(error),
-                                        },
+                                        error: {code: 'EXECUTION_ERROR', message: errMsg(error)},
                                         timestamp: Date.now(),
                                     },
-                                    null,
-                                    2
+                                    null, 2
                                 ),
                             },
                         ],

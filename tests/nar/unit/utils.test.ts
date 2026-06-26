@@ -1,4 +1,4 @@
-import {clamp, computeHash, ensureArray, fnv1a, isNil, makeId, safeDiv} from '../../../src/nar/utils';
+import {clamp, clamp01, computeHash, ensureArray, fnv1a, isNil, makeId, safeDiv, sleep, compact, wordOverlap} from '../../../src/nar/utils';
 
 describe('Utility Functions', () => {
     describe('clamp', () => {
@@ -220,6 +220,66 @@ describe('Utility Functions', () => {
             const hashes = Array.from({length: count}, (_, i) => fnv1a(`input${i}`));
             const uniqueHashes = new Set(hashes);
             expect(uniqueHashes.size).toBeGreaterThan(count * 0.9);
+        });
+    });
+
+    describe('sleep', () => {
+        test('resolves after specified duration', async () => {
+            const start = Date.now();
+            await sleep(10);
+            const elapsed = Date.now() - start;
+            expect(elapsed).toBeGreaterThanOrEqual(8);
+        });
+
+        test('returns void promise', async () => {
+            const result = sleep(5);
+            expect(result).toBeInstanceOf(Promise);
+            await expect(result).resolves.toBeUndefined();
+        });
+    });
+
+    describe('clamp01', () => {
+        test.each`
+      value   | expected
+      ${0.5}  | ${0.5}
+      ${-0.5} | ${0}
+      ${1.5}  | ${1}
+      ${0}    | ${0}
+      ${1}    | ${1}
+    `('clamps $value to [0,1] = $expected', ({value, expected}) => {
+            expect(clamp01(value)).toBe(expected);
+        });
+    });
+
+    describe('compact', () => {
+        test('filters falsy values', () => {
+            expect(compact([1, 0, 2, '', 3, null, 4, undefined])).toEqual([1, 2, 3, 4]);
+        });
+
+        test('handles all falsy', () => {
+            expect(compact([0, '', false, null, undefined])).toEqual([]);
+        });
+
+        test('handles all truthy', () => {
+            expect(compact([1, 2, 3])).toEqual([1, 2, 3]);
+        });
+    });
+
+    describe('wordOverlap', () => {
+        test('computes jaccard similarity for word overlap', () => {
+            expect(wordOverlap('hello world', 'world hello')).toBeCloseTo(1);
+            expect(wordOverlap('hello world', 'goodbye world')).toBeCloseTo(0.5);
+            expect(wordOverlap('abc', 'xyz')).toBe(0);
+        });
+
+        test('handles empty strings', () => {
+            expect(wordOverlap('', '')).toBe(0);
+            expect(wordOverlap('hello', '')).toBe(0);
+            expect(wordOverlap('', 'world')).toBe(0);
+        });
+
+        test('is case insensitive', () => {
+            expect(wordOverlap('HELLO World', 'hello WORLD')).toBeCloseTo(1);
         });
     });
 });

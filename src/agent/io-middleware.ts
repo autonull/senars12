@@ -8,6 +8,7 @@ import type {SessionManager} from './SessionManager.js';
 import type {ConversationSession} from './ConversationSession.js';
 import type {Agent} from './agent.js';
 import type {NLGenerationService, GenerationInput} from '../nar/nl/generation.js';
+import {errMsg, toError} from '../nar/utils/helpers.js';
 
 /**
  * Mutable runtime context extending MessageContext.
@@ -85,7 +86,7 @@ export function createErrorBoundary(logger: Logger): MessageMiddleware {
         try {
             await next();
         } catch (e) {
-            const err = e instanceof Error ? e : new Error(String(e));
+            const err = toError(e);
             logger.error('middleware pipeline error', err, {
                 connection: context.connection.id,
                 origin: message.origin,
@@ -152,8 +153,7 @@ export function createCommandInterceptor(registry: CommandRegistry): MessageMidd
             }
             await context.respond(result);
         } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e);
-            await context.respond(`Error: ${msg}`);
+            await context.respond(`Error: ${errMsg(e)}`);
         }
     };
 }
@@ -267,7 +267,7 @@ export function createStreamingAgentDispatch(agent: Agent, logger: Logger, opts:
                 await respondText(finalText);
             }
         } catch (e) {
-            const err = e instanceof Error ? e : new Error(String(e));
+            const err = toError(e);
             logger.error('streaming dispatch error', err, {sessionKey: session?.key});
             try {
                 await respondText(`Error: ${err.message}`);

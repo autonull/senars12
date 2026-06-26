@@ -7,34 +7,27 @@ export class NarQueryService {
         private generationService: NLGenerationService | undefined
     ) {}
 
-    async explainBelief(term: string) {
+    private async explainTerm(term: string) {
         if (!this.nar) return null;
         const {termParser} = await import('../../nar/terms/index.js');
         const parsed = termParser.parse(term);
         if (!parsed) return null;
         const result = this.nar.query.query(parsed, {truthRange: [0, 1], limit: 1});
         if (!result.beliefs.length) return null;
-        const belief = result.beliefs[0]!;
+        const item = result.beliefs[0]!;
         return {
-            explanation: belief.term.toString(),
-            confidence: belief.truth?.c ?? 0,
-            premises: [belief.term.toString()],
+            explanation: item.term.toString(),
+            confidence: item.truth?.c ?? 0,
+            premises: [item.term.toString()],
         };
     }
 
+    async explainBelief(term: string) {
+        return this.explainTerm(term);
+    }
+
     async explainGoal(term: string) {
-        if (!this.nar) return null;
-        const {termParser} = await import('../../nar/terms/index.js');
-        const parsed = termParser.parse(term);
-        if (!parsed) return null;
-        const result = this.nar.query.query(parsed, {truthRange: [0, 1], limit: 1});
-        if (!result.beliefs.length) return null;
-        const goal = result.beliefs[0]!;
-        return {
-            explanation: goal.term.toString(),
-            confidence: goal.truth?.c ?? 0,
-            premises: [goal.term.toString()],
-        };
+        return this.explainTerm(term);
     }
 
     async traceRule(ruleId: string, term: string) {

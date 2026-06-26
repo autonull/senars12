@@ -2,6 +2,7 @@ import {generateObject, generateText} from 'ai';
 import type {SeNARSRegistry} from '../lm/providers.js';
 import {getStructuredModel} from '../lm/providers.js';
 import {termParser} from '../terms/index.js';
+import {errMsg} from '../utils/index.js';
 import type {TranslationCache, TranslationCacheEntry} from './cache.js';
 import {TaskBatchSchema} from './schemas.js';
 import {buildUnderstandingPrompt} from './prompts/understanding-v1.js';
@@ -93,7 +94,7 @@ export class NLUnderstandingService {
                 }
                 lastError = 'No valid output produced';
             } catch (e) {
-                lastError = e instanceof Error ? e.message : String(e);
+                lastError = errMsg(e);
             }
         }
 

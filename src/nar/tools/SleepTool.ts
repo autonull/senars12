@@ -1,6 +1,7 @@
 import type {Schema, Tool, ToolResult} from './types';
 import {errorResult} from './types';
 import {tool} from './decorator.js';
+import {sleep} from '../utils/index.js';
 
 @tool({
     name: 'sleep',
@@ -19,7 +20,7 @@ export class SleepTool implements Tool {
     async execute(args: Record<string, unknown>): Promise<ToolResult> {
         const {duration} = args as { duration: number };
         try {
-            await new Promise(resolve => setTimeout(resolve, duration));
+            await sleep(duration);
             return {success: true, content: {slept: duration}};
         } catch (error) {
             return errorResult(error);

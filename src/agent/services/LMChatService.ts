@@ -8,13 +8,18 @@ import type {ChatOptions, ChatStreamEvent} from '../types.js';
 import {EventBus} from '../EventBus.js';
 import {StatsManager} from '../subservices/StatsManager.js';
 import {processInput, appendSessionTurns, type InputEvent, type InputProcessorDeps} from '../input-processor.js';
+import {errMsg} from '../../nar/utils/index.js';
 import type {EpisodeType} from '../../nar/memory/EpisodicMemory.js';
 
-const toEventTokens = (u: {inputTokens: number; outputTokens: number; totalTokens: number}) => ({
-    input: u.inputTokens,
-    output: u.outputTokens,
-    total: u.totalTokens,
-});
+type EventPayload = {
+    input: string;
+    output?: string;
+    sessionKey?: string;
+    error?: string;
+    durationMs?: number;
+    tokens?: {input: number; output: number; total: number};
+    timestamp: number;
+};
 
 export class LMChatService {
     constructor(
@@ -26,6 +31,20 @@ export class LMChatService {
         private safeLog: (type: EpisodeType, content: string, metadata?: Record<string, unknown>) => Promise<void>,
         private processInputDeps: InputProcessorDeps
     ) {}
+
+    private recordSuccess(input: string, output: string, startTime: number, usage?: {inputTokens: number; outputTokens: number; totalTokens: number}, sessionKey?: string): void {
+        const durationMs = Date.now() - startTime;
+        this.statsManager.recordStats('success', durationMs, usage);
+        const payload: EventPayload = {input, output, durationMs, timestamp: Date.now()};
+        if (sessionKey) payload.sessionKey = sessionKey;
+        if (usage) payload.tokens = {input: usage.inputTokens, output: usage.outputTokens, total: usage.totalTokens};
+        this.eventBus.emit('agent:process:complete', payload as any);
+    }
+
+    private recordError(input: string, startTime: number, error: string, sessionKey?: string): void {
+        this.statsManager.recordStats('failure', Date.now() - startTime);
+        this.eventBus.emit('agent:process:error', {input, error, timestamp: Date.now(), ...(sessionKey ? {sessionKey} : {})});
+    }
 
     private async buildComposedRequest(input: string, historyMessages?: Array<{role: 'user' | 'assistant' | 'system' | 'tool'; content: string}>, session?: ConversationSession) {
         const system = await this.promptBuilder.buildSystemPrompt(input, session);
@@ -68,21 +87,17 @@ export class LMChatService {
 
             if (event?.kind === 'lm-dispatch') {
                 const dispatch = await this.dispatchToLM(input, opts);
-                const response = dispatch.text;
-                await this.safeLog('response', response);
-                this.statsManager.recordStats('success', Date.now() - startTime, dispatch.usage);
-                this.eventBus.emit('agent:process:complete', {input, output: response, durationMs: Date.now() - startTime, ...(dispatch.usage ? {tokens: toEventTokens(dispatch.usage)} : {}), timestamp: Date.now()});
-                return response;
+                await this.safeLog('response', dispatch.text);
+                this.recordSuccess(input, dispatch.text, startTime, dispatch.usage);
+                return dispatch.text;
             }
 
             await this.safeLog('response', text);
-            this.statsManager.recordStats('success', Date.now() - startTime);
-            this.eventBus.emit('agent:process:complete', {input, output: text, durationMs: Date.now() - startTime, timestamp: Date.now()});
+            this.recordSuccess(input, text, startTime);
             return text;
         } catch (e) {
-            const err = e instanceof Error ? e.message : String(e);
-            this.statsManager.recordStats('failure', Date.now() - startTime);
-            this.eventBus.emit('agent:process:error', {input, error: err, timestamp: Date.now()});
+            const err = errMsg(e);
+            this.recordError(input, startTime, err);
             throw e;
         }
     }
@@ -106,20 +121,17 @@ export class LMChatService {
                 const usage = next.value?.usage;
                 appendSessionTurns(session, input, reply, historyLimit);
                 await this.safeLog('response', reply, {session: session.key});
-                this.statsManager.recordStats('success', Date.now() - startTime, usage);
-                this.eventBus.emit('agent:process:complete', {input, output: reply, sessionKey: session.key, durationMs: Date.now() - startTime, ...(usage ? {tokens: toEventTokens(usage)} : {}), timestamp: Date.now()});
+                this.recordSuccess(input, reply, startTime, usage, session.key);
                 return reply;
             }
 
             appendSessionTurns(session, input, text, historyLimit);
             await this.safeLog('response', text, {session: session.key});
-            this.statsManager.recordStats('success', Date.now() - startTime);
-            this.eventBus.emit('agent:process:complete', {input, output: text, sessionKey: session.key, durationMs: Date.now() - startTime, timestamp: Date.now()});
+            this.recordSuccess(input, text, startTime, undefined, session.key);
             return text;
         } catch (e) {
-            const err = e instanceof Error ? e.message : String(e);
-            this.statsManager.recordStats('failure', Date.now() - startTime);
-            this.eventBus.emit('agent:process:error', {input, sessionKey: session.key, error: err, timestamp: Date.now()});
+            const err = errMsg(e);
+            this.recordError(input, startTime, err, session.key);
             throw e;
         }
     }
@@ -179,15 +191,14 @@ export class LMChatService {
             return final;
         } catch (e) {
             didError = true;
-            errorMessage = e instanceof Error ? e.message : String(e);
+            errorMessage = errMsg(e);
             yield {kind: 'error', error: errorMessage};
             return final;
         } finally {
-            this.statsManager.recordStats(didError ? 'failure' : 'success', Date.now() - startTime, streamUsage);
             if (didError) {
-                this.eventBus.emit('agent:process:error', {input, ...(session ? {sessionKey: session.key} : {}), error: errorMessage ?? 'unknown', timestamp: Date.now()});
+                this.recordError(input, startTime, errorMessage ?? 'unknown', session?.key);
             } else {
-                this.eventBus.emit('agent:process:complete', {input, output: final, ...(session ? {sessionKey: session.key} : {}), durationMs: Date.now() - startTime, ...(streamUsage ? {tokens: toEventTokens(streamUsage)} : {}), timestamp: Date.now()});
+                this.recordSuccess(input, final, startTime, streamUsage, session?.key);
             }
         }
     }

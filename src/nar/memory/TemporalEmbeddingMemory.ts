@@ -1,7 +1,8 @@
-import {EmbeddingLayer} from './links/EmbeddingLayer.js';
-import {createEmbeddingGenerator, type EmbeddingGenerator} from './embedding.js';
 import {promises as fs} from 'node:fs';
 import {join} from 'node:path';
+import {EmbeddingLayer} from './links/EmbeddingLayer.js';
+import {createEmbeddingGenerator, type EmbeddingGenerator} from './embedding.js';
+import {makeId} from '../utils/index.js';
 
 export interface EpisodeMetadata {
     timestamp: number;
@@ -37,7 +38,7 @@ export class TemporalEmbeddingMemory {
 
     async store(text: string, metadata: Omit<EpisodeMetadata, 'timestamp' | 'type'> & {type?: 'episode' | 'reflection' | 'observation'}): Promise<void> {
         const embedding = await this.embeddingGenerator.generate(text);
-        const id = crypto.randomUUID();
+        const id = makeId();
         const episodeMetadata: EpisodeMetadata = {
             ...metadata,
             timestamp: Date.now(),

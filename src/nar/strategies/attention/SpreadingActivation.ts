@@ -17,5 +17,4 @@ export class SpreadingActivation extends SimpleAttention {
     return boost;
   }
 
-  override tick(_memory: Memory, _cycleCount: number): void {}
 }

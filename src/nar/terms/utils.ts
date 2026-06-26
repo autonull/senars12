@@ -12,9 +12,7 @@ export const extractSymbols = (term: Term, symbols = new Set<string>()): Set<str
     return symbols;
 };
 
-export const jaccardSimilarity = (setA: Set<string>, setB: Set<string>): number => jaccard(setA, setB);
-
 export const calculateSimilarity = (conceptTerm: Term, targetTerm: Term): number => {
     if (termsEqual(conceptTerm, targetTerm)) return 1;
-    return jaccardSimilarity(extractSymbols(conceptTerm), extractSymbols(targetTerm));
+    return jaccard(extractSymbols(conceptTerm), extractSymbols(targetTerm));
 };

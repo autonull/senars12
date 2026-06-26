@@ -60,8 +60,6 @@ TRUE: Object.freeze({f: 1.0 as Frequency, c: 0.9 as Confidence}) as Truth,
 FALSE: Object.freeze({f: 0.0 as Frequency, c: 0.9 as Confidence}) as Truth,
 NEUTRAL: Object.freeze({f: 0.5 as Frequency, c: 0.9 as Confidence}) as Truth,
 MAX_CONFIDENCE,
-    safeDiv: (a: number, b: number): number => Math.abs(b) < 1e-9 ? 0 : a / b,
-
     negation: truthOps.unary((f, c) => [1 - f, c]),
     conversion: truthOps.unary((f, c) => [f, f * c]),
     expectation: (t: Truth): number => t.c * (t.f - 0.5) + 0.5,

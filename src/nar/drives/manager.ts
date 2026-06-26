@@ -1,3 +1,4 @@
+import {clamp01} from '../utils/index.js';
 import type {NAR} from '../nar.js';
 import {BUILTIN_DRIVES} from './builtin.js';
 import type {DriveSpec, DriveState} from './types.js';
@@ -25,7 +26,7 @@ export class DriveManager {
             const error = state.spec.targetIntensity - state.currentIntensity;
             state.currentIntensity += error * 0.1;
             state.currentIntensity *= 1 - state.spec.decayRate;
-            state.currentIntensity = Math.max(0, Math.min(1, state.currentIntensity));
+            state.currentIntensity = clamp01(state.currentIntensity);
 
             state.isActive = state.currentIntensity >= state.spec.activationThreshold;
 

@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {makeId} from '../nar/utils/index.js';
 
 export interface ToolCall {
     tool: string;
@@ -35,7 +36,7 @@ export class ActionParser {
                     return calls.map((c: any) => ({
                         tool: c.tool || c.name,
                         parameters: c.parameters || c.args || {},
-                        id: c.id || crypto.randomUUID(),
+                        id: c.id || makeId(),
                     })).filter(c => c.tool);
                 }
             } catch {
@@ -54,7 +55,7 @@ export class ActionParser {
                 calls.push({
                     tool: pattern.tool,
                     parameters: pattern.extractParams(match),
-                    id: crypto.randomUUID(),
+                    id: makeId(),
                 });
             }
         }

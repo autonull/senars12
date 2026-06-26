@@ -1,4 +1,5 @@
 import type {NAR} from '../../nar/nar.js';
+import {errMsg} from '../../nar/utils/index.js';
 
 export interface ReasoningArtifact {
     type: 'derivation' | 'tool_result' | 'belief_added' | 'question_answered';
@@ -59,7 +60,7 @@ export async function dispatchToolCalls(calls: ToolCall[], deps: ToolDispatcherD
         try {
             result = await tool.execute(call.args);
         } catch (e) {
-            const message = e instanceof Error ? e.message : String(e);
+            const message = errMsg(e);
             const fields = Object.keys(call.args);
             const hint = fields.length
                 ? ` (provided fields: ${fields.join(', ')})`

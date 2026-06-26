@@ -68,7 +68,7 @@ export {TermSet} from './term-set.js';
 export {TermCollection} from './term-collection.js';
 
 // Utilities
-export {extractSymbols, jaccardSimilarity, calculateSimilarity} from './utils.js';
+export {extractSymbols, calculateSimilarity} from './utils.js';
 
 // Validation
 export {isTautology, isInvalidTaskTerm, validateTaskTerm} from './validation.js';

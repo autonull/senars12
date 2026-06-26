@@ -3,7 +3,7 @@
  * Adapts registry handlers to MCP tools
  */
 
-import {BaseAdapter} from './base-adapter.js';
+import {BaseAdapter, errorResponse} from './base-adapter.js';
 import {z} from 'zod';
 import {SchemaTransformer} from './mcp/schema-transformer.js';
 import {errMsg} from '../nar/utils/helpers.js';
@@ -59,11 +59,7 @@ export class MCPAdapter extends BaseAdapter {
             return {
                 content: [{
                     type: 'text',
-                    text: JSON.stringify({
-                        type: 'error',
-                        error: {code: 'HANDLER_ERROR', message: errMsg(error)},
-                        timestamp: Date.now()
-                    }, null, 2)
+                    text: JSON.stringify(errorResponse('HANDLER_ERROR', errMsg(error)), null, 2),
                 }],
                 isError: true,
             };

@@ -1,6 +1,7 @@
 import type {Term, Truth} from '../terms';
 import {Bag} from './bag.js';
-import {extractSymbols, jaccardSimilarity, Stamp, TermMap, termsEqual, TermSet} from '../terms';
+import {extractSymbols, Stamp, TermMap, termsEqual, TermSet} from '../terms';
+import {jaccard} from '../utils/similarity.js';
 import {Truth as TruthOps} from '../terms/truth.js';
 import type {Budget, TaskType} from '../types';
 import {LINK} from '../constants.js';
@@ -63,7 +64,7 @@ export class Concept {
     }
 
     set priority(value: number) {
-        this._priority = Math.max(0, Math.min(1, value));
+        this._priority = clamp01(value);
     }
 
     get key(): Term {
@@ -243,7 +244,7 @@ export class Concept {
     }
 
     private calculateTermSimilarity(other: Term): number {
-        return termsEqual(this.term, other) ? 1 : jaccardSimilarity(extractSymbols(this.term), extractSymbols(other));
+        return termsEqual(this.term, other) ? 1 : jaccard(extractSymbols(this.term), extractSymbols(other));
     }
 
     private calculateTaskOverlap(other: Concept): number {

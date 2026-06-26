@@ -3,11 +3,10 @@ import {URL} from 'url';
 import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
 import {createLogger} from '../../nar/logger/index.js';
+import {makeId} from '../../nar/utils/index.js';
 import {ApiKeyManager, parseHttpBody, setCORSHeaders, startHttpServer} from '../utils/http.js';
 
 export class HTTPConnection extends BaseConnection {
-    override readonly id: string;
-    override readonly name: string;
     override readonly type = 'http';
     override readonly logger = createLogger({scope: 'io:http'});
     private server: http.Server | null = null;
@@ -17,7 +16,6 @@ export class HTTPConnection extends BaseConnection {
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);
-        this.id = config.id;
         this.name = config.config.name as string ?? 'HTTP';
         this.port = (config.config.port as number) ?? 8080;
         const apiKey = config.config.apiKey as string;
@@ -104,7 +102,7 @@ export class HTTPConnection extends BaseConnection {
         }
 
         // Ensure the ID of the HTTP request is used as the target for resolution
-        const requestId = crypto.randomUUID();
+        const requestId = makeId();
 
         // The target to respond to will be the requestId
         const ioMessage = this.createMessage(requestId,

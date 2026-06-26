@@ -1,4 +1,5 @@
 import type {Schema, Tool, ToolCapabilities, ToolChainResult, ToolChainStep, ToolContext, ToolEvent, ToolFilter, ToolRegistry, ToolResult, ToolStatistics} from './types';
+import {errorResult} from './types';
 import {ToolError} from '../types';
 import {errMsg} from '../utils';
 import {EventBus} from '../types/events.js';
@@ -6,7 +7,7 @@ import {createLogger} from '../logger';
 
 const logger = createLogger({scope: 'ToolManager'});
 
-const failureResult = (error: string): ToolResult => ({success: false, content: null, error});
+
 
 type LifecycleState = 'initialized' | 'running' | 'stopped' | 'disposed';
 
@@ -337,17 +338,17 @@ export class ToolManager {
     async execute(name: string, args: Record<string, unknown>, context?: ToolContext): Promise<ToolResult> {
         const startTime = Date.now();
         const tool = this.get(name);
-        if (!tool) return failureResult(`Tool '${name}' not found`);
+        if (!tool) return errorResult(`Tool '${name}' not found`);
 
         const state = this.lifecycleState.get(name);
         if (state !== 'running' && state !== 'initialized') {
-            return failureResult(`Tool '${name}' is not running (state: ${state})`);
+            return errorResult(`Tool '${name}' is not running (state: ${state})`);
         }
 
         if (this.sandboxMode && context?.permissions) {
             const required = tool.capabilities?.requiresPermissions || [];
             if (!required.every(p => context.permissions?.has(p))) {
-                return failureResult(`Missing required permissions: ${required.join(', ')}`);
+                return errorResult(`Missing required permissions: ${required.join(', ')}`);
             }
         }
 
@@ -355,7 +356,7 @@ export class ToolManager {
         if (budget) {
             budget.executions = (budget.executions || 0) + 1;
             if (budget.maxExecutions && budget.executions > budget.maxExecutions) {
-                return failureResult('Execution budget exceeded');
+                return errorResult('Execution budget exceeded');
             }
         }
 

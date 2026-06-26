@@ -1,9 +1,12 @@
 import type {Concept, Memory} from '../../memory/index.js';
 import type {AttentionContext} from '../types.js';
 import {SimpleAttention} from './SimpleAttention.js';
+import {wordOverlap} from '../../utils/index.js';
 
 export class GoalRelevanceAttention extends SimpleAttention {
   override readonly metadata = { name: 'goal-relevance', description: 'Boost proportional to goal term overlap' };
+
+  private readonly SPLIT_PATTERN = /[\s_()<>]+/;
 
   override prime(concept: Concept, ctx: AttentionContext): number {
     const boost = super.prime(concept, ctx);
@@ -18,18 +21,9 @@ export class GoalRelevanceAttention extends SimpleAttention {
     let maxOverlap = 0;
     for (const goal of goals) {
       const goalStr = goal.term.toString().toLowerCase();
-      const overlap = this.stringSimilarity(termStr, goalStr);
+      const overlap = wordOverlap(termStr, goalStr, this.SPLIT_PATTERN) || 0;
       if (overlap > maxOverlap) maxOverlap = overlap;
     }
     return maxOverlap;
-  }
-
-  private stringSimilarity(a: string, b: string): number {
-    const aWords = new Set(a.split(/[\s_()<>]+/).filter(Boolean));
-    const bWords = new Set(b.split(/[\s_()<>]+/).filter(Boolean));
-    if (aWords.size === 0 || bWords.size === 0) return 0;
-    let overlap = 0;
-    for (const w of aWords) { if (bWords.has(w)) overlap++; }
-    return overlap / Math.max(aWords.size, bWords.size);
   }
 }

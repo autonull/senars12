@@ -1,5 +1,5 @@
 import type {CommandDefinition} from './registry.js';
-import {requireManager} from './utils.js';
+import {requireManager, singleArgCmd} from './utils.js';
 
 export const connectionCommands: CommandDefinition[] = [
     {
@@ -89,4 +89,3 @@ export const connectionCommands: CommandDefinition[] = [
     }
 ];
 
-import {singleArgCmd} from './utils.js';

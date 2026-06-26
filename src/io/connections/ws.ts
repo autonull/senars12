@@ -3,6 +3,7 @@ import type {ConnectionConfig, ConnectionDeps} from '../types.js';
 import {BaseConnection} from './base.js';
 import {createLogger} from '../../nar/logger/index.js';
 import {startWSServer} from '../utils/http.js';
+import {makeId} from '../../nar/utils/index.js';
 import {
     broadcastToSubscribers,
     cleanupWSClient,
@@ -14,8 +15,6 @@ import {
 } from '../utils/websocket.js';
 
 export class WSConnection extends BaseConnection {
-    override readonly id: string;
-    override readonly name: string;
     override readonly type = 'websocket';
     override readonly logger = createLogger({scope: 'io:ws'});
     private server: WebSocketServer | null = null;
@@ -25,7 +24,6 @@ export class WSConnection extends BaseConnection {
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);
-        this.id = config.id;
         this.name = config.config.name as string ?? 'WebSocket';
         this.port = (config.config.port as number) ?? 8765;
     }
@@ -78,7 +76,7 @@ export class WSConnection extends BaseConnection {
         broadcastToSubscribers(this.eventSubscriptions.get(event), event, data);
 
     private handleNewClient(ws: WebSocket): void {
-        const id = crypto.randomUUID();
+        const id = makeId();
         const client: WSClient = {
             ws, id,
             subscriptions: new Set(),

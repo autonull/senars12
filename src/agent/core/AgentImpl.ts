@@ -331,7 +331,9 @@ export class AgentImpl implements Agent {
             this.reasoningHandle = undefined;
         }
         if (this.nar && (this.nar.state === 'started' || this.nar.state === 'initialized')) {
-            this.nar.stop().catch(() => {});
+            this.nar.stop().catch(err => {
+                this.logger.warn('NAR stop failed', {error: err.message});
+            });
         }
         this.knowledgeManager.saveKnowledge();
         this.eventBus.emit('agent:suspend', {timestamp: Date.now()});

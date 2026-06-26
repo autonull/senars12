@@ -11,6 +11,7 @@ import type {DriveManager} from './drives/index.js';
 import {createPipeline, MemoryPremiseSource} from './stream';
 import {PhaseTimer} from './trace/index.js';
 import {createLogger} from './logger/index.js';
+import {errMsg} from './utils/index.js';
 import type {EventBus} from '../agent/EventBus.js';
 import type {ReasoningAboutReasoning} from './self';
 
@@ -124,7 +125,7 @@ export class NARExecution {
             this.phaseTimer.end();
           }
         } catch (e) {
-          this.logger.warn('Self-assessment failed', {error: e instanceof Error ? e.message : String(e)});
+          this.logger.warn('Self-assessment failed', {error: errMsg(e)});
         }
         this.phaseTimer.end();
       }

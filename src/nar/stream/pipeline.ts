@@ -3,6 +3,7 @@ import type {Task} from '../types';
 import {createBudget, createTask} from '../types';
 import type {Memory} from '../memory';
 import type {Strategy} from '../reason';
+import {throttleGenerator} from '../utils/index.js';
 
 export type PremiseSource = AsyncGenerator<Task, void, void>;
 
@@ -139,23 +140,7 @@ export async function* createPipeline(
     }
 }
 
-export async function* throttled<T>(
-    gen: AsyncGenerator<T>,
-    intervalMs: number,
-    shouldStop?: () => boolean
-): AsyncGenerator<T> {
-    let lastYield = Date.now();
-
-    for await (const value of gen) {
-        if (shouldStop?.()) break;
-        yield value;
-
-        if (Date.now() - lastYield > intervalMs) {
-            await new Promise(r => setTimeout(r, 0));
-            lastYield = Date.now();
-        }
-    }
-}
+export {throttleGenerator as throttled};
 
 export async function* backpressureAware<T>(
     gen: AsyncGenerator<T>,

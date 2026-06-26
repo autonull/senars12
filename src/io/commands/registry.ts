@@ -36,10 +36,6 @@ export class CommandRegistry {
         return cmd.execute(args, context);
     }
 
-    list(): ReadonlyMap<string, CommandDefinition> {
-        return this._commands;
-    }
-
     get commands(): ReadonlyMap<string, CommandDefinition> {
         return this._commands;
     }

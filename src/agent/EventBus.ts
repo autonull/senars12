@@ -75,20 +75,11 @@ export class EventBus {
     }
 
     emitRaw(event: string, data: unknown): void {
-        const listeners = this.emitter.listeners(event);
-        for (const listener of listeners) {
-            try {
-                listener(data);
-            } catch (_err) {
-            }
-        }
+        this.emit(event as EventKey, data as EventMap[EventKey]);
     }
 
     onRaw(event: string, handler: EventHandler<unknown>): () => void {
-        this.emitter.on(event, handler as EventHandler<unknown>);
-        return () => {
-            this.emitter.off(event, handler as EventHandler<unknown>);
-        };
+        return this.on(event as EventKey, handler as EventHandler<EventMap[EventKey]>);
     }
 
     wrapNarEventBus(narBus: NarEventBus): void {

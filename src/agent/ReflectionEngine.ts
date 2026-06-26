@@ -1,3 +1,4 @@
+import {clamp01} from '../nar/utils/index.js';
 import type {DriveManager} from '../nar/drives/manager.js';
 import type {TemporalEmbeddingMemory} from '../nar/memory/TemporalEmbeddingMemory.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
@@ -101,7 +102,7 @@ export class ReflectionEngine {
         for (const impact of evaluation.driveImpact) {
             const state = this.driveManager.getState(impact.drive);
             if (state) {
-                state.currentIntensity = Math.max(0, Math.min(1, state.currentIntensity + impact.impact));
+                state.currentIntensity = clamp01(state.currentIntensity + impact.impact);
                 this.logger.debug('Drive updated', {drive: impact.drive, newIntensity: state.currentIntensity, impact: impact.impact});
             }
         }

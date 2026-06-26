@@ -1,3 +1,5 @@
+import {clamp01} from './utils/index.js';
+
 export type ActionTier = 'ACT' | 'HYPOTHESIZE' | 'IGNORE';
 
 export class OrchestrationGuide {
@@ -21,7 +23,7 @@ export class OrchestrationGuide {
   calibrateLLMConfidence(truth: {f: number; c: number}): {f: number; c: number} {
     return {
       f: truth.f,
-      c: Math.max(0, Math.min(1, truth.c - 0.15)),
+      c: clamp01(truth.c - 0.15),
     };
   }
 

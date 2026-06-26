@@ -1,9 +1,6 @@
 import {Truth} from '../terms/truth.js';
+import {clamp} from '../utils/index.js';
 import type {DriveSpec} from './types.js';
-
-function clamp(v: number, min: number, max: number): number {
-    return Math.max(min, Math.min(max, v));
-}
 
 export const BUILTIN_DRIVES: DriveSpec[] = [
     {

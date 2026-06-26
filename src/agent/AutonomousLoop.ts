@@ -1,6 +1,7 @@
 import {EventEmitter} from 'node:events';
 import type {Agent} from './types.js';
 import type {NAR} from '../nar/nar.js';
+import {makeId, errMsg} from '../nar/utils/index.js';
 import {createLogger, type Logger} from '../nar/logger/index.js';
 import type {TemporalEmbeddingMemory} from '../nar/memory/TemporalEmbeddingMemory.js';
 import type {ContextBuilder, ContextData, DriveState, ToolCall} from './ContextBuilder.js';
@@ -124,11 +125,11 @@ export class AutonomousLoop {
                 this.pendingActions = actions;
                 this.emitter.emit('action', {actions, timestamp: Date.now()});
             } catch (err) {
-                const errMsg = err instanceof Error ? err.message : String(err);
-                this.logger.error('Reasoning failed', undefined, {error: errMsg});
+                const errText = errMsg(err);
+                this.logger.error('Reasoning failed', undefined, {error: errText});
                 this.emitter.emit('reflection', {
                     actions: [],
-                    results: [{tool: 'llm', success: false, error: errMsg, id: crypto.randomUUID()}],
+                    results: [{tool: 'llm', success: false, error: errText, id: makeId()}],
                     timestamp: Date.now(),
                 });
             }

@@ -1,7 +1,7 @@
 import type {LMClient, LMConfig} from '../types.js';
 import {createLogger} from '../../logger/index.js';
 import type {V2Tool} from './prompt-utils.js';
-import {extractSystemPrompt, buildJsonToolSystemPrompt, textFromContent} from './prompt-utils.js';
+import {extractSystemPrompt, buildJsonToolSystemPrompt, formatV2Prompt} from './prompt-utils.js';
 
 const logger = createLogger({scope: 'lm:adapter'});
 
@@ -104,7 +104,7 @@ export class AISDKAdapter implements AISDKLanguageModel {
 
         let promptText: string;
         try {
-            promptText = renderPrompt(messages, mergedSystem);
+            promptText = formatV2Prompt(messages, mergedSystem);
         } catch (error) {
             logger.error('Prompt rendering failed', error as Error);
             promptText = mergedSystem;
@@ -174,24 +174,9 @@ export function adapt(client: LMClient): AISDKLanguageModel {
 }
 
 // ---------------------------------------------------------------------------
-// Internals: prompt rendering and tool-call extraction. Kept private to the
+// Internals: tool-call extraction. Kept private to the
 // adapter so the rest of the system can ignore the LM's flat-prompt nature.
 // ---------------------------------------------------------------------------
-
-function renderPrompt(
-    messages: Array<{role: string; content: string | Array<Record<string, unknown>>}>,
-    system: string,
-): string {
-    const blocks: string[] = [];
-    if (system.trim()) blocks.push(`### System\n${system.trim()}`);
-    for (const msg of messages) {
-        const text = textFromContent(msg.content);
-        if (!text) continue;
-        const role = msg.role === 'tool' ? 'Tool' : msg.role === 'user' ? 'Human' : msg.role === 'assistant' ? 'Assistant' : 'System';
-        blocks.push(`### ${role}\n${text}`);
-    }
-    return blocks.join('\n\n');
-}
 
 const TOOL_CALL_MARKER = '"name"';
 

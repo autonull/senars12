@@ -1,6 +1,7 @@
 import type {Concept} from './concept.js';
 import type {Term} from '../terms';
-import {extractSymbols, jaccardSimilarity, TermMap, termsEqual} from '../terms';
+import {extractSymbols, TermMap, termsEqual} from '../terms';
+import {jaccard} from '../utils/similarity.js';
 import {addToSet} from '../utils/collections.js';
 
 export interface MemoryIndexConfig {
@@ -285,6 +286,6 @@ export class MemoryIndex {
 
     private calculateClusterSimilarity(cluster: SimilarityCluster, term: Term): number {
         if (termsEqual(cluster.representative.term, term)) return 1;
-        return jaccardSimilarity(extractSymbols(cluster.representative.term), extractSymbols(term));
+        return jaccard(extractSymbols(cluster.representative.term), extractSymbols(term));
     }
 }

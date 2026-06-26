@@ -5,7 +5,7 @@
 
 import {WebSocket, WebSocketServer} from 'ws';
 import {BaseAdapter, errorResponse, successResponse} from './base-adapter.js';
-import {errMsg} from '../nar/utils/helpers.js';
+import {errMsg, makeId} from '../nar/utils/index.js';
 import {
     createWSClient,
     cleanupWSClient,
@@ -103,7 +103,7 @@ export class WebSocketAdapter extends BaseAdapter {
     }
 
     private handleConnection(ws: WebSocket): void {
-        const client = createWSClient(ws, crypto.randomUUID(), {
+        const client = createWSClient(ws, makeId(), {
             heartbeatInterval: this.config.heartbeatInterval,
             onMessage: (msg, cl) => {
                 const wm = msg as unknown as WSMessage;

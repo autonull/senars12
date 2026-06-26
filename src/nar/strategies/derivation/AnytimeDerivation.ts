@@ -1,25 +1,13 @@
 import type {Task} from '../../types/core.js';
 import type {RuleProcessor, RuleInput} from '../../rules/processor.js';
-import type {DerivationStrategy, DerivationContext} from '../types.js';
-import {toTask} from './DefaultDerivation.js';
+import type {DerivationContext} from '../types.js';
+import {DefaultDerivation, toTask} from './DefaultDerivation.js';
 
-export class AnytimeDerivation implements DerivationStrategy {
-  readonly metadata = { name: 'anytime', description: 'Yield as results become available, stop early if signal aborted' };
+export class AnytimeDerivation extends DefaultDerivation {
+  override readonly metadata = { name: 'anytime', description: 'Yield as results become available, stop early if signal aborted' };
 
-  async *derive(primary: Task, secondaries: Task[], processor: RuleProcessor, ctx: DerivationContext): AsyncGenerator<Task> {
+  override async *derive(primary: Task, secondaries: Task[], processor: RuleProcessor, ctx: DerivationContext): AsyncGenerator<Task> {
     if (ctx.signal?.aborted) return;
-    if (secondaries.length > 0) {
-      for (const secondary of secondaries) {
-        if (ctx.signal?.aborted) return;
-        const p1: RuleInput = { term: primary.term, truth: primary.truth, stamp: primary.stamp };
-        const p2: RuleInput = { term: secondary.term, truth: secondary.truth, stamp: secondary.stamp };
-
-        for (const result of processor.processSync(p1, p2)) yield toTask(result);
-        for await (const result of processor.processLMRules(p1, p2, {signal: ctx.signal})) yield toTask(result);
-      }
-    } else if (ctx.singlePremiseEnabled) {
-      const p1: RuleInput = { term: primary.term, truth: primary.truth, stamp: primary.stamp };
-      for await (const result of processor.processLMRules(p1, undefined, {signal: ctx.signal, singlePremise: true})) yield toTask(result);
-    }
+    yield* super.derive(primary, secondaries, processor, ctx);
   }
 }

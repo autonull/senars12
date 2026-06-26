@@ -13,7 +13,7 @@ import type {Term} from '../terms';
 import {Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
 import {createLogger, type Logger} from '../logger/index.js';
-import {errMsg} from '../utils/index.js';
+import {errMsg, clamp01} from '../utils/index.js';
 
 export interface SchemaPattern {
     id: string;
@@ -174,7 +174,7 @@ Respond with JSON:
             return {
                 pattern: obj.pattern,
                 type: obj.type ?? 'unknown',
-                confidence: Math.max(0, Math.min(1, obj.confidence ?? 0.5)),
+                confidence: clamp01(obj.confidence ?? 0.5),
                 variables: obj.variables,
             };
         } catch {

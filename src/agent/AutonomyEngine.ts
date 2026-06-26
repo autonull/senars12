@@ -128,8 +128,8 @@ export class AutonomyEngine {
             Math.round(this.config.minStepsPerTick + (this.config.maxStepsPerTick - this.config.minStepsPerTick) * urgency)
         );
 
-        if (!this.paused && this.running) {
-            this.requestReasoning(steps).catch(() => {});
+if (!this.paused && this.running) {
+            this.requestReasoning(steps).catch(err => this.logger.warn('drive change reasoning failed', err));
         }
 
         this.notify(`Drive changed: ${data.drive} urgency=${urgency.toFixed(2)}, scheduling ${steps} steps`);
@@ -141,8 +141,8 @@ export class AutonomyEngine {
 
     private handleConflict(data: EventMap['nar:conflict:detected']): void {
         this.notify(`Conflict detected: ${data.term} conflicts with ${data.conflictWith}`);
-        if (!this.paused && this.running) {
-            this.requestReasoning(this.config.maxStepsPerTick).catch(() => {});
+if (!this.paused && this.running) {
+            this.requestReasoning(this.config.maxStepsPerTick).catch(err => this.logger.warn('conflict reasoning failed', err));
         }
     }
 

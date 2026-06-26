@@ -4,13 +4,14 @@ import type {
     ConnectionDeps,
     ConnectionError,
     ConnectionState,
-    IOMessage
+    IOMessage,
+    Logger,
 } from '../types.js';
 import {ConnectionError as ConnError} from '../types.js';
 
 export abstract class BaseConnection implements Connection {
-    abstract readonly id: string;
-    abstract readonly name: string;
+    id: string;
+    name: string;
     abstract readonly type: string;
     protected messageHandlers: Array<(message: IOMessage) => Promise<void>> = [];
     protected stateChangeHandlers: Array<(state: ConnectionState, prev: ConnectionState) => void> = [];
@@ -19,12 +20,13 @@ export abstract class BaseConnection implements Connection {
     protected errorCount = 0;
     protected readonly config: ConnectionConfig;
     protected readonly emit: (event: string, data: unknown) => void;
-    protected readonly logger: ConnectionDeps['logger'];
+    protected logger!: Logger;
 
-    constructor(config: ConnectionConfig, deps: ConnectionDeps) {
+    constructor(config: ConnectionConfig, _deps: ConnectionDeps) {
         this.config = config;
-        this.emit = deps.emit;
-        this.logger = deps.logger;
+        this.emit = _deps.emit;
+        this.id = config.id;
+        this.name = (config.config.name as string) ?? 'Connection';
     }
 
     protected createMessage(sender: string, text: string, metadata?: Record<string, unknown>): IOMessage {

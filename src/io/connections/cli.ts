@@ -14,8 +14,6 @@ export const QUIT_SENTINEL = '__CLI_QUIT__';
 const isQuit = (result: string): boolean => result === QUIT_SENTINEL;
 
 export class CLIConnection extends BaseConnection {
-    override readonly id: string;
-    override readonly name: string;
     override readonly type = 'cli';
     override readonly logger = createLogger({scope: 'io:cli'});
     private rl: Interface | null = null;
@@ -24,7 +22,6 @@ export class CLIConnection extends BaseConnection {
 
     constructor(config: ConnectionConfig, deps: ConnectionDeps) {
         super(config, deps);
-        this.id = config.id;
         this.name = (config.config.name as string) ?? 'CLI';
         this.sendFn = (config.config.sendFn as ((text: string) => void)) ?? ((text) => console.log(text));
         this.commands = new Map();

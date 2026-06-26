@@ -2,6 +2,7 @@ import {promises as fs} from 'node:fs';
 import {TrajectoryStep} from './ReasoningTrajectoryLogger.js';
 import {extractTrajectoryFeatures} from './utils.js';
 import {OperationError} from '../types';
+import {clamp01} from '../utils/index.js';
 
 export interface PreferenceData {
     trajectoryA: TrajectoryStep[];
@@ -147,7 +148,7 @@ export class PreferenceCollector {
     }
 
     setImplicitWeight(weight: number): void {
-        this.implicitWeight = Math.max(0, Math.min(1, weight));
+        this.implicitWeight = clamp01(weight);
     }
 
     getImplicitWeight(): number {
