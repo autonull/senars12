@@ -22,6 +22,8 @@ import {StatsManager} from '../subservices/StatsManager.js';
 import {KnowledgeManager} from '../subservices/KnowledgeManager.js';
 import {SessionOrchestrator} from '../subservices/SessionOrchestrator.js';
 import {PromptBuilder} from '../subservices/PromptBuilder.js';
+import {tool} from 'ai';
+import {z} from 'zod';
 
 import type {Agent, AgentOptions, AgentStats, ChatOptions, ChatStreamEvent, DerivationEntry, LMService} from '../types.js';
 import {NarQueryService} from '../services/NarQueryService.js';
@@ -494,31 +496,32 @@ export class AgentImpl implements Agent {
             const pad = this.sessionOrchestrator.getScratchpad(session);
             if (pad) {
                 Object.assign(tools, {
-                    set_context: {
+                    set_context: tool({
                         description: 'Store a key-value pair in the session scratchpad for this conversation.',
-                        inputSchema: {
-                            type: 'object',
-                            properties: {key: {type: 'string'}, value: {type: 'string'}},
-                            required: ['key', 'value']
-                        },
+                        inputSchema: z.object({
+                            key: z.string().describe('The key to store'),
+                            value: z.string().describe('The value to store'),
+                        }),
                         execute: ({key, value}: { key: string; value: string }) => {
                             pad.set(key, value);
                             return {stored: true, key};
                         },
-                    },
-                    get_context: {
+                    }),
+                    get_context: tool({
                         description: 'Retrieve a value from the session scratchpad.',
-                        inputSchema: {type: 'object', properties: {key: {type: 'string'}}, required: ['key']},
+                        inputSchema: z.object({
+                            key: z.string().describe('The key to look up'),
+                        }),
                         execute: ({key}: { key: string }) => {
                             const value = pad.get(key);
                             return value !== undefined ? {found: true, key, value} : {found: false, key};
                         },
-                    },
-                    list_context: {
+                    }),
+                    list_context: tool({
                         description: 'List all entries in the session scratchpad.',
-                        inputSchema: {type: 'object', properties: {}},
+                        inputSchema: z.object({}),
                         execute: () => ({entries: [...pad.entries()].map(([k, v]) => ({key: k, value: v}))}),
-                    },
+                    }),
                 });
             }
         }

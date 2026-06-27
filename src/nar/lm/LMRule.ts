@@ -1,15 +1,14 @@
 import type {Term} from '../terms';
-import {Truth} from '../terms';
+import {termParser, Truth} from '../terms';
 import type {Budget, Task, TaskType} from '../types';
 import {createTask, EventBus as NarEventBus} from '../types';
-import type {LMExecutionStats, LMRuleConfig, LMRuleStats} from './types.js';
+import type {LMExecutionStats, LMRuleConfig, LMRuleStats} from './lm-service.js';
 import {CircuitBreaker, errMsg} from '../utils';
 import type {Truth as TruthType} from '../terms/truth.js';
-import {LMResponseParser} from './parser.js';
 
 import type {ZodSchema} from 'zod';
 import type {EventBus as AgentEventBus, EventMap as AgentEventMap} from '../../agent/EventBus.js';
-import {generateObject, type LanguageModel} from 'ai';
+import {generateObject, type LanguageModel, zodSchema} from 'ai';
 import {LMService} from './lm-service.js';
 
 const defaultStats = (): LMExecutionStats => ({
@@ -287,7 +286,7 @@ export class LMRule {
             const result = await generateObject({
                 model: this.structuredModel!,
                 prompt,
-                schema: this.outputSchema!,
+                schema: zodSchema(this.outputSchema!),
             });
             return JSON.stringify(result.object);
         });
@@ -418,5 +417,117 @@ export class LMRule {
         this.stats.totalDuration += duration;
         this.stats.averageDuration = this.stats.totalDuration / this.stats.totalCalls;
         this.stats.successRate = this.stats.successfulCalls / this.stats.totalCalls;
+    }
+}
+
+export interface ParsedLMResponse {
+    term: Term;
+    truth: TruthType;
+    confidence?: number;
+    raw: string;
+    valid: boolean;
+    error?: string;
+}
+
+export interface StructuredLMOutput {
+    narsese: string;
+    truth?: { f: number; c: number };
+    confidence?: number;
+}
+
+export const LMResponseParser = {
+    parse(response: string): ParsedLMResponse {
+        if (!response || response.trim() === '') {
+            return {
+                term: termParser.parse('TRUE'),
+                truth: Truth.NEUTRAL,
+                valid: false,
+                raw: response,
+                error: 'Empty response'
+            };
+        }
+        try {
+            const structured = extractStructuredOutput(response);
+            if (structured) {
+                const {term, truth} = termParser.parseWithTruth(structured.narsese);
+                const finalTruth = structured.truth
+                    ? Truth.create(structured.truth.f, structured.truth.c)
+                    : (truth ?? Truth.NEUTRAL);
+                return {term, truth: finalTruth, confidence: structured.confidence, raw: response, valid: true};
+            }
+            const plainText = response.trim();
+            const {term, truth} = termParser.parseWithTruth(plainText);
+            return {term, truth: truth ?? Truth.NEUTRAL, raw: response, valid: true};
+        } catch (error) {
+            return {
+                term: termParser.parse('TRUE'),
+                truth: Truth.NEUTRAL,
+                valid: false,
+                raw: response,
+                error: errMsg(error)
+            };
+        }
+    },
+
+    validate(response: string): ParsedLMResponse {
+        if (!response || response.trim() === '') {
+            return {
+                term: termParser.parse('TRUE'),
+                truth: Truth.NEUTRAL,
+                valid: false,
+                raw: response,
+                error: 'Empty response'
+            };
+        }
+        const trimmed = response.trim();
+        if (trimmed.startsWith('{')) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (parsed.narsese) {
+                    const {term, truth} = termParser.parseWithTruth(parsed.narsese);
+                    const finalTruth = parsed.truth
+                        ? Truth.create(parsed.truth.f, parsed.truth.c)
+                        : (truth ?? Truth.NEUTRAL);
+                    return {term, truth: finalTruth, raw: response, valid: true};
+                }
+                return {
+                    term: termParser.parse('TRUE'),
+                    truth: Truth.NEUTRAL,
+                    valid: false,
+                    raw: response,
+                    error: 'Missing narsese field in JSON'
+                };
+            } catch {
+                return {
+                    term: termParser.parse('TRUE'),
+                    truth: Truth.NEUTRAL,
+                    valid: false,
+                    raw: response,
+                    error: 'Invalid JSON in response'
+                };
+            }
+        }
+        try {
+            const {term, truth} = termParser.parseWithTruth(trimmed);
+            return {term, truth: truth ?? Truth.NEUTRAL, raw: response, valid: true};
+        } catch {
+            return {
+                term: termParser.parse('TRUE'),
+                truth: Truth.NEUTRAL,
+                valid: false,
+                raw: response,
+                error: 'Invalid Narsese syntax'
+            };
+        }
+    },
+};
+
+function extractStructuredOutput(response: string): StructuredLMOutput | null {
+    const jsonMatch = response.match(/\{[\s\S]*"narsese"\s*:[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    try {
+        return JSON.parse(jsonMatch[0]);
+    } catch {
+        return null;
     }
 }

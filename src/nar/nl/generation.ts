@@ -1,9 +1,8 @@
-import {generateText} from 'ai';
+import {generateText, generateObject, zodSchema} from 'ai';
 import type {LanguageModel} from 'ai';
 import type {SeNARSRegistry} from '../lm';
 import {getModelForTask} from '../lm';
 import type {ZodSchema} from 'zod';
-import {generateObject} from 'ai';
 import {GenerationOutputSchema} from './schemas.js';
 import {buildGenerationPrompt} from './prompts/generation-v1.js';
 
@@ -92,7 +91,7 @@ export class NLGenerationService {
             const {object} = await generateObject({
                 model: this.model,
                 prompt,
-                schema: GenerationOutputSchema as ZodSchema<GenerationOutput>,
+                schema: zodSchema(GenerationOutputSchema),
             });
 
             return {

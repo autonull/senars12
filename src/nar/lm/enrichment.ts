@@ -5,7 +5,7 @@ import {Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
 import {createLogger, type Logger} from '../logger';
 import {errMsg} from '../utils';
-import {LMResponseParser} from './parser.js';
+import {LMResponseParser} from './LMRule.js';
 
 export interface EnricherConfig {
     enableProactiveEnrichment: boolean;

@@ -6,7 +6,7 @@ import type {StampType, Term} from '../terms';
 import {type RegisteredRule, RuleIndex, RuleRegistry} from './types.js';
 import {Truth, type Truth as TruthType} from '../terms/truth.js';
 import type {LMRule} from '../lm';
-import type {LMRuleStats} from '../lm/types.js';
+import type {LMRuleStats} from '../lm/lm-service.js';
 import type {LMRuleSelector} from '../strategies';
 import {EventBus} from '../types';
 import {toError} from '../utils';

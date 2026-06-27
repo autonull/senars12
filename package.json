@@ -33,6 +33,7 @@
     "@ai-sdk/openai-compatible": "^1.0.41",
     "@ai-sdk/provider": "^4.0.0",
     "@browser-ai/transformers-js": "2.2.2",
+    "@huggingface/transformers": "^4.2.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/blessed": "^0.1.27",
     "@types/react": "^19.2.14",

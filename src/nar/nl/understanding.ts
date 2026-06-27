@@ -1,4 +1,4 @@
-import {generateText} from 'ai';
+import {generateText, generateObject, zodSchema} from 'ai';
 import type {LanguageModel} from 'ai';
 import type {SeNARSRegistry} from '../lm';
 import {getModelForTask} from '../lm';
@@ -6,7 +6,6 @@ import type {TranslationCache, TranslationCacheEntry} from './cache.js';
 import {TaskBatchSchema} from './schemas.js';
 import {buildUnderstandingPrompt} from './prompts/understanding-v1.js';
 import type {ZodSchema} from 'zod';
-import {generateObject} from 'ai';
 
 export interface Ambiguity {
     type: 'parse' | 'intent' | 'term' | 'reference';
@@ -110,7 +109,7 @@ export class NLUnderstandingService {
             const result = await generateObject({
                 model: this.model,
                 prompt,
-                schema: TaskBatchSchema as ZodSchema<TaskBatch>,
+                schema: zodSchema(TaskBatchSchema as ZodSchema<TaskBatch>),
             });
             return result.object as TaskBatch;
         } catch {

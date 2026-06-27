@@ -1,5 +1,5 @@
 import type {LanguageModel} from 'ai';
-import {generateObject} from 'ai';
+import {generateObject, zodSchema} from 'ai';
 import {type ClarificationResult, ClarificationSchema} from './schemas';
 import type {Ambiguity} from './understanding';
 
@@ -28,7 +28,7 @@ export class ClarificationHandler {
             const {object} = await generateObject({
                 model,
                 prompt: `The input "${input}" is ambiguous. Possible interpretations: ${ambiguity.options.join(', ')}. Generate a clarifying question and return the options.`,
-                schema: ClarificationSchema,
+                schema: zodSchema(ClarificationSchema),
             });
 
             const request: ClarificationRequest = {
@@ -95,7 +95,7 @@ export async function generateClarificationWithLM(
     const {object} = await generateObject({
         model,
         prompt: buildClarificationPrompt(input, ambiguity),
-        schema: ClarificationSchema,
+        schema: zodSchema(ClarificationSchema),
     });
     return object;
 }

@@ -6,10 +6,9 @@ import type {Term} from '../terms';
 import {calculateSimilarity, Truth} from '../terms';
 import type {Task, TaskType} from '../types';
 import {createBudget, createTask} from '../types';
-import {LMRule} from './LMRule.js';
-import type {LMRuleConfig} from './types.js';
+import {LMRule, LMResponseParser} from './LMRule.js';
+import type {LMRuleConfig} from './lm-service.js';
 import {LMService} from './lm-service.js';
-import {LMResponseParser} from './parser.js';
 import type {ZodSchema} from 'zod';
 import {
     AnalogySchema,

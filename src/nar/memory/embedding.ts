@@ -1,19 +1,17 @@
+import {TransformersJSEmbeddingModel} from '@browser-ai/transformers-js';
+
 export interface EmbeddingGenerator {
     dimension: number;
-
     generate(text: string): Promise<number[]>;
 }
 
-type PipelineOptions = { pooling: 'mean' | 'none' | 'cls' | 'first_token' | 'eos' | 'last_token'; normalize: boolean };
-type PipelineFn = (text: string, options: PipelineOptions) => Promise<{ data: IterableIterator<number> }>;
-
 export class TransformersEmbeddingGenerator implements EmbeddingGenerator {
-    dimension = 384;
-    private model: PipelineFn | null = null;
+    readonly dimension = 384;
+    private model: TransformersJSEmbeddingModel | null = null;
     private readonly cache = new Map<string, number[]>();
     private readonly cacheSize: number;
 
-    constructor(_modelName = 'Xenova/all-MiniLM-L6-v2', cacheSize = 1000) {
+    constructor(cacheSize = 1000) {
         this.cacheSize = cacheSize;
     }
 
@@ -23,15 +21,15 @@ export class TransformersEmbeddingGenerator implements EmbeddingGenerator {
         }
 
         if (!this.model) {
-            const {pipeline} = await import('@huggingface/transformers');
-            const pipe = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-            this.model = async (text: string, opts: PipelineOptions) => {
-                return await pipe(text, opts) as unknown as { data: IterableIterator<number> };
-            };
+            this.model = new TransformersJSEmbeddingModel('Xenova/all-MiniLM-L6-v2', {
+                device: 'cpu',
+                normalize: true,
+                pooling: 'mean',
+            });
         }
 
-        const output = await this.model(text, {pooling: 'mean', normalize: true});
-        const embedding = Array.from(output.data);
+        const result = await this.model.doEmbed({values: [text]});
+        const embedding = result.embeddings[0] ?? [];
 
         if (this.cache.size >= this.cacheSize) {
             const firstKey = this.cache.keys().next().value;

@@ -1,7 +1,7 @@
 import {createProviderRegistry, customProvider} from 'ai';
 import {createOpenAICompatible} from '@ai-sdk/openai-compatible';
 import {transformersJS} from '@browser-ai/transformers-js';
-import {createMockLanguageModel} from './mock-provider.js';
+import {createMockLanguageModel} from './lm-service.js';
 
 export const BUILTIN_CHAT_MODEL = 'HuggingFaceTB/SmolLM2-135M-Instruct';
 export const BUILTIN_COMPACT_MODEL = 'Xenova/gpt-2';

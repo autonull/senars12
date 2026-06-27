@@ -98,7 +98,6 @@ export class ModelRunner {
         let totalInput = 0;
         let totalOutput = 0;
 
-        const toolsArray = toToolArray(composed.tools);
         const messages = this.toMessages(composed);
 
         for (let loop = 0; loop < this.maxLoops; loop++) {
@@ -108,9 +107,9 @@ export class ModelRunner {
                 const result = await generateText({
                     model,
                     messages,
-                    system: composed.system || undefined,
+                    instructions: composed.system || undefined,
                     allowSystemInMessages: true,
-                    tools: toolsArray.length > 0 ? toolsToToolSet(toolsArray) : undefined,
+                    tools: Object.keys(composed.tools).length > 0 ? composed.tools : undefined,
                     maxOutputTokens: this.maxOutputTokens,
                     abortSignal: signal,
                 } as any);
@@ -147,26 +146,4 @@ export class ModelRunner {
             usage: {inputTokens: totalInput, outputTokens: totalOutput, totalTokens: totalInput + totalOutput}
         };
     }
-}
-
-function toToolArray(tools: Record<string, unknown>): Array<{ type: string; name: string; description?: string; inputSchema?: unknown }> {
-    return Object.entries(tools).map(([name, def]) => {
-        const d = def as { description?: string; inputSchema?: unknown } | undefined;
-        return {
-            type: 'function',
-            name, ...(d?.description ? {description: d.description} : {}), ...(d?.inputSchema ? {inputSchema: d.inputSchema} : {})
-        };
-    });
-}
-
-function toolsToToolSet(tools: Array<{ type: string; name: string; description?: string; inputSchema?: unknown }>) {
-    const toolSet: Record<string, any> = {};
-    for (const t of tools) {
-        toolSet[t.name] = {
-            description: t.description,
-            inputSchema: t.inputSchema,
-            execute: async () => ({}),
-        };
-    }
-    return toolSet;
 }
