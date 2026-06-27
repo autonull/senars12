@@ -44,3 +44,29 @@ export const $telemetry = atom<TelemetryData>({
 });
 export const $connectionState = atom<'connecting' | 'connected' | 'reconnecting' | 'disconnected'>('connecting');
 export const $lastSeqId = atom<number | null>(null);
+
+// Expose test API for store / connection introspection
+if (typeof window !== 'undefined') {
+  const w = window as any;
+  w.__testApi = w.__testApi || {};
+  w.__testApi.store = {
+    getState: (path: string) => {
+      const stores: Record<string, () => any> = {
+        'chat': () => $chat.get(),
+        'streamingDelta': () => $streamingDelta.get(),
+        'graphNodes': () => $graphNodes.get(),
+        'graphEdges': () => $graphEdges.get(),
+        'graphMeta': () => $graphMeta.get(),
+        'workingMemory': () => $workingMemory.get(),
+        'config': () => $config.get(),
+        'telemetry': () => $telemetry.get(),
+        'connectionState': () => $connectionState.get(),
+        'lastSeqId': () => $lastSeqId.get(),
+      };
+      return stores[path]?.() ?? undefined;
+    },
+  };
+  w.__testApi.connection = {
+    getState: () => $connectionState.get(),
+  };
+}

@@ -16,6 +16,19 @@ export class BeliefGraph extends LitElement {
   private unsubNodes = $graphNodes.subscribe(() => this.syncGraph());
   private unsubEdges = $graphEdges.subscribe(() => this.syncGraph());
 
+  override connectedCallback() {
+    super.connectedCallback();
+    const w = window as any;
+    w.__testApi = w.__testApi || {};
+    w.__testApi.graph = {
+      getNodeCount: () => this.cy?.nodes().length ?? 0,
+      getEdgeCount: () => this.cy?.edges().length ?? 0,
+      getNodeData: (id: string) => this.cy?.getElementById(id).data() ?? null,
+      getAllNodeIds: () => this.cy?.nodes().map(n => n.id()) ?? [],
+      clickNode: (id: string) => this.cy?.getElementById(id).emit('tap'),
+    };
+  }
+
   override disconnectedCallback() {
     this.unsubNodes();
     this.unsubEdges();

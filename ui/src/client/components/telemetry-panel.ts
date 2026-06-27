@@ -19,6 +19,15 @@ export class TelemetryPanel extends LitElement {
     .mem { color: var(--accent-magenta); }
   `;
 
+  override connectedCallback() {
+    super.connectedCallback();
+    const w = window as any;
+    w.__testApi = w.__testApi || {};
+    w.__testApi.telemetry = {
+      getData: () => $telemetry.get(),
+    };
+  }
+
   override disconnectedCallback() {
     this.unsub();
     cancelAnimationFrame(this.rafId);

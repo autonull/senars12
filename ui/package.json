@@ -7,11 +7,19 @@
     "dev:client": "vite dev --config vite.config.ts",
     "dev:server": "tsup --watch src/server/index.ts --format esm --onSuccess 'node dist/server/index.js'",
     "build:client": "vite build --config vite.config.ts",
+    "build:client:test": "NODE_ENV=test vite build --mode test --config vite.config.ts",
     "build:server": "tsup src/server/index.ts",
     "dev": "concurrently -n server,client 'pnpm:dev:server' 'pnpm:dev:client'",
     "build": "pnpm build:client && pnpm build:server",
     "start": "node dist/server/index.js",
-    "typecheck": "tsc --noEmit"
+    "start:test": "pnpm build:client:test && pnpm build:server && NODE_ENV=test node dist/server/index.js",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test --config tests/playwright.config.ts",
+    "test:e2e:ui": "playwright test --config tests/playwright.config.ts --ui",
+    "test:e2e:debug": "playwright test --config tests/playwright.config.ts --debug",
+    "test:e2e:smoke": "playwright test tests/scenarios/smoke --config tests/playwright.config.ts",
+    "test:e2e:critical": "playwright test --config tests/playwright.config.ts --grep @critical",
+    "test:visual:update": "playwright test --config tests/playwright.config.ts --update-snapshots"
   },
   "dependencies": {
     "@fastify/static": "^8.0.0",
@@ -26,8 +34,9 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "concurrently": "^9.0.0",
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.19.19",
+    "concurrently": "^9.0.0",
     "tsup": "^8.3.0",
     "typescript": "^5.9.3",
     "vite": "^6.0.0"

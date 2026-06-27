@@ -36,6 +36,16 @@ export class ChatConsole extends LitElement {
     button { background: var(--accent-cyan); color: var(--bg-void); border: none; padding: 0 1rem; font-weight: bold; cursor: pointer; font-family: var(--font-ui); font-size: 0.8rem; }
   `;
 
+  override connectedCallback() {
+    super.connectedCallback();
+    const w = window as any;
+    w.__testApi = w.__testApi || {};
+    w.__testApi.chat = {
+      getMessages: () => $chat.get(),
+      getStreamingDelta: () => $streamingDelta.get(),
+    };
+  }
+
   override disconnectedCallback() {
     this.unsubChat();
     this.unsubStream();

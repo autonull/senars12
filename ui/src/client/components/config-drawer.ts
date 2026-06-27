@@ -19,6 +19,15 @@ export class ConfigDrawer extends LitElement {
     .val { float: right; color: var(--accent-cyan); }
   `;
 
+  override connectedCallback() {
+    super.connectedCallback();
+    const w = window as any;
+    w.__testApi = w.__testApi || {};
+    w.__testApi.config = {
+      getConfig: () => $config.get(),
+    };
+  }
+
   override disconnectedCallback() {
     this.unsub();
     super.disconnectedCallback();

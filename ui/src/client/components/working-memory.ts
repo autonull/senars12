@@ -15,6 +15,15 @@ export class WorkingMemory extends LitElement {
     .empty { font-family: var(--font-data); font-size: 0.65rem; color: var(--text-dim); }
   `;
 
+  override connectedCallback() {
+    super.connectedCallback();
+    const w = window as any;
+    w.__testApi = w.__testApi || {};
+    w.__testApi.workingMemory = {
+      getTerms: () => $workingMemory.get().map((item: any) => item.id ?? item.term ?? item.concept ?? ''),
+    };
+  }
+
   override disconnectedCallback() {
     this.unsub();
     super.disconnectedCallback();
