@@ -1,5 +1,5 @@
 import {ConversationalTestHarness, type Scenario, type ScenarioResult} from './framework.js';
-import {describeProvider, resolveProvider, resolveTestLMClient} from './providers.js';
+import {describeProvider, resolveProvider, resolveTestLMService} from './providers.js';
 import {buildReport, formatHumanReadable, formatJson} from './report.js';
 
 import basicChat from './scenarios/basic-chat.js';
@@ -81,7 +81,7 @@ function parseArgs(): RunnerArgs {
 async function main() {
     const args = parseArgs();
     const provider = resolveProvider();
-    const lmClient = await resolveTestLMClient();
+    const lmService = resolveTestLMService();
 
     const scenarios = args.scenario
         ? ALL_SCENARIOS.filter(s => s.name === args.scenario)
@@ -97,7 +97,7 @@ async function main() {
 
     const results: ScenarioResult[] = [];
     for (const scenario of scenarios) {
-        const harness = new ConversationalTestHarness({lmClient, verbose: args.verbose, timeoutMs});
+        const harness = new ConversationalTestHarness({lmService, verbose: args.verbose, timeoutMs});
         try {
             await harness.setup();
             console.log(`[${scenario.name}] ${scenario.description}`);

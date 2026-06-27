@@ -295,40 +295,57 @@ Implements AI SDK v7 `LanguageModelV2` interface with canned responses for testi
 ### Phase 5: Verify
 1. ✅ `pnpm typecheck` — zero errors
 2. ⏳ `pnpm lint` — zero warnings (has pre-existing warnings unrelated to LM)
-3. ⏳ `pnpm test:unit` — 32 failed, 660 passed
-4. ⏳ `LM_PROVIDER=mock pnpm test:cognitive`
+3. ✅ `pnpm test:unit` — all 696 tests pass
+4. ⏳ `LM_PROVIDER=mock pnpm test:conversational` — **BLOCKED** on mock provider fix
 5. ⏳ Manual: `LM_PROVIDER=ollama pnpm repl`
 
 ## Acceptance Criteria
 
-- [ ] `src/nar/lm/` LOC < 1500 (currently 2239)
+- [ ] `src/nar/lm/` LOC < 1500 (currently 2341) - relaxed target
 - [ ] `src/nar/lm/` files ≤ 8 (currently 11)
 - [x] `pnpm typecheck` passes
-- [ ] `pnpm test:unit` passes
-- [ ] `pnpm test:cognitive` (mock) passes
-- [ ] `grep -r "LMClient"` returns 0 matches in `src/` (only in method names like `getLMClient()`, acceptable)
+- [x] `pnpm test:unit` passes (696 tests)
+- [ ] `LM_PROVIDER=mock pnpm test:conversational` passes - **BLOCKED** see "Critical Issue" below
+- [x] `grep -r "LMClient"` returns 0 matches in `src/` (only in method names like `getLMClient()`, acceptable)
 - [x] `grep -r "anthropic\|Anthropic"` returns 0 matches in `src/`
 - [x] `grep -r "ollama-ai-provider"` returns 0 matches in `src/`
 - [ ] `pnpm repl` starts and processes input with `LM_PROVIDER=mock`
 
-## Progress Summary
+## Critical Issue: Mock Provider AI SDK v7 Compatibility
 
-### Completed (Phase 0-1)
-- Removed `ANTHROPIC_API_KEY` from `src/utils/env-validate.ts`
-- Removed `LMClient` type from `src/nar/lm/types.ts`
-- Updated `src/nar/cognitive/ObserverService.ts` to use `LMService`
-- Updated `src/nar/learning/schema-induction.ts` to use `LMService`
-- Updated `src/bin/repl.ts` to use `createLMService`
-- Updated `src/nar/factory.ts` to use `createLMService`
-- Cleaned up `src/nar/lm/index.ts` exports (removed LMClient, setupDefaultLMClient)
-- Simplified `src/nar/lm/env-config.ts`
-- `pnpm typecheck` and `pnpm build` pass
+The mock provider (`src/nar/lm/mock-provider.ts`) returns `specificationVersion: 'v2'` but AI SDK v7's `generateText` expects v4 models. The error "schema is not a function" occurs when calling the mock model. Need to either:
 
-### Remaining Work
-- Delete `src/nar/lm/response-repair.ts` (now unused)
-- Delete `src/nar/lm/enrichment-utils.ts` (can be merged into enrichment.ts)
-- Fix test failures (32 tests failing)
-- Run `pnpm test:cognitive` to verify mock provider works
+1. **Option A**: Update mock provider to v4 format (implement full `LanguageModel` interface with `doGenerate`/`doStream`)
+2. **Option B**: Use `wrapLanguageModel` from AI SDK to wrap the v2 model
+
+The registry now correctly respects `LM_PROVIDER` env var:
+- `mock`: Creates registry with only mock models
+- `transformers`: Creates registry with only transformers models  
+- `ollama` (default): Creates registry with Ollama as primary, transformers/fallback
+
+Test harness fix applied: `tests/conversational/runner.ts` now passes `lmService` to harness, and `tests/conversational/framework.ts` correctly forwards to both NAR and Agent.
+
+## Remaining Work
+
+- **Fix mock provider AI SDK v7 compatibility**: `wrapLanguageModel` requires `middleware` as a `LanguageModelMiddleware` object, not a function. The mock provider currently shows "schema is not a function" when used with `generateText`. Need to pass `defaultSettingsMiddleware` correctly or implement v4 model directly.
+
+- Delete legacy files (verified missing):
+  - `src/nar/lm/response-repair.ts` - does NOT exist, can skip
+  - `src/nar/lm/enrichment-utils.ts` - does NOT exist, can skip
+
+- Reduce file count in `src/nar/lm/` (11 files currently, target 8) - consider merging parser.ts into enrichment.ts or lm-service.ts
+
+## Current Status
+
+- `pnpm typecheck` passes
+- `pnpm test:unit` passes (696 tests)
+- `LM_PROVIDER=mock pnpm test:conversational` BLOCKED on mock provider fix
+
+## Key Findings
+
+1. **Registry respects `LM_PROVIDER`**: `createSeNARSRegistry()` now creates appropriate provider chains based on env var
+2. **Test harness working**: `tests/conversational/framework.ts` and `runner.ts` correctly pass `lmService` to both NAR and Agent
+3. **Mock provider issue**: AI SDK v7's `generateText` calls `wrapLanguageModel` which expects `middleware.settings` to be a function - need to investigate the middleware signature
 
 ## Risks & Mitigations
 

@@ -3,20 +3,18 @@ import type {NAR} from '../../../src';
 import {createAgent} from '../../../src';
 import {SeNARSFactory} from '../../../src/nar';
 import {EpisodicMemory} from '../../../src/nar/memory/EpisodicMemory.js';
-import type {LMClient} from '../../../src/nar/lm';
+import {createMockLMService} from '../../../src/nar/lm';
 import {mkdtempSync, rmSync} from 'fs';
 import {tmpdir} from 'os';
 import {join} from 'path';
 
-const scriptedLM: LMClient = {
-    provider: 'scripted',
-    model: 'scripted-1',
+const scriptedLM = createMockLMService({
     available: true,
-    async generateText(prompt: string) {
+    generateTextFn: async (prompt: string) => {
         if (prompt.toLowerCase().includes('hello')) return 'Hi there!';
         return 'Mock response.';
     },
-};
+});
 
 function makeEpisodicMemory(): EpisodicMemory {
     const basePath = mkdtempSync(join(tmpdir(), 'episodic-'));
@@ -38,7 +36,7 @@ describe('Agent (v6 harness)', () => {
 
     it('feeds Narsese belief directly to NAR without LM', async () => {
         const ep = makeEpisodicMemory();
-        const agent = createAgent({nar, lmClient: scriptedLM, episodicMemory: ep});
+        const agent = createAgent({nar, lmService: scriptedLM, episodicMemory: ep});
         const text = await agent.chat('(cat --> animal).');
         expect(text).toContain('(cat --> animal)');
         expect(nar.getBeliefs().length).toBeGreaterThan(0);
@@ -47,7 +45,7 @@ describe('Agent (v6 harness)', () => {
 
     it('parses goal (!) correctly', async () => {
         const ep = makeEpisodicMemory();
-        const agent = createAgent({nar, lmClient: scriptedLM, episodicMemory: ep});
+        const agent = createAgent({nar, lmService: scriptedLM, episodicMemory: ep});
         const text = await agent.chat('(call_mom)!');
         expect(text).toContain('+ (call_mom)!');
         expect(nar.getGoals().length).toBeGreaterThan(0);
@@ -56,7 +54,7 @@ describe('Agent (v6 harness)', () => {
 
     it('parses question (?) and checks existing beliefs', async () => {
         const ep = makeEpisodicMemory();
-        const agent = createAgent({nar, lmClient: scriptedLM, episodicMemory: ep});
+        const agent = createAgent({nar, lmService: scriptedLM, episodicMemory: ep});
         await nar.input('(cat --> animal).');
         const text = await agent.chat('(cat --> ?)?');
         expect(text).toMatch(/cat/);
@@ -65,7 +63,7 @@ describe('Agent (v6 harness)', () => {
 
     it('rejects invalid Narsese and falls back to LM', async () => {
         const ep = makeEpisodicMemory();
-        const agent = createAgent({nar, lmClient: scriptedLM, episodicMemory: ep});
+        const agent = createAgent({nar, lmService: scriptedLM, episodicMemory: ep});
         const text = await agent.chat('hello world');
         expect(text).toBe('Hi there!');
         rmSync(ep['config'].basePath, {recursive: true, force: true});
@@ -81,7 +79,7 @@ describe('Agent (v6 harness)', () => {
 
     it('recall() searches episodic memory after chat', async () => {
         const ep = makeEpisodicMemory();
-        const agent = createAgent({nar, lmClient: scriptedLM, episodicMemory: ep});
+        const agent = createAgent({nar, lmService: scriptedLM, episodicMemory: ep});
         await agent.chat('hello there friend');
         await new Promise(r => setTimeout(r, 50));
         const episodes = await agent.recall('hello');
@@ -120,7 +118,7 @@ describe('Agent (v6 harness)', () => {
     // ── Context ─────────────────────────────────────────────
 
     it('works without NAR (NL still goes to LM)', async () => {
-        const agent = createAgent({lmClient: scriptedLM});
+        const agent = createAgent({lmService: scriptedLM});
         const text = await agent.chat('hello');
         expect(text).toBe('Hi there!');
     });
@@ -134,13 +132,13 @@ describe('Agent (v6 harness)', () => {
     });
 
     it('works without NAR (LM only)', async () => {
-        const agent = createAgent({lmClient: scriptedLM});
+        const agent = createAgent({lmService: scriptedLM});
         const text = await agent.chat('hello');
         expect(text).toBe('Hi there!');
     });
 
     it('works without episodic memory', async () => {
-        const agent = createAgent({nar, lmClient: scriptedLM});
+        const agent = createAgent({nar, lmService: scriptedLM});
         const text = await agent.chat('hello');
         expect(text).toBe('Hi there!');
     });

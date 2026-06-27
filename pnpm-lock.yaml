@@ -17,9 +17,6 @@ importers:
       '@browser-ai/transformers-js':
         specifier: 2.2.2
         version: 2.2.2(@huggingface/transformers@3.8.1)(ai@7.0.2(zod@4.4.3))
-      '@huggingface/transformers':
-        specifier: ^3.0.0
-        version: 3.8.1
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.3)

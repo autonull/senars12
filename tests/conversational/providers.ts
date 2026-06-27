@@ -2,6 +2,7 @@ import type {LanguageModel} from 'ai';
 import {generateText, generateObject} from 'ai';
 import type {ZodSchema} from 'zod';
 import {createSeNARSRegistry, getModelForTask} from '../../src/nar/lm';
+import {LMService} from '../../src/nar/lm';
 
 export type LMProvider = 'transformers' | 'ollama' | 'mock';
 
@@ -11,23 +12,9 @@ export function resolveProvider(): LMProvider {
     return 'mock';
 }
 
-export function resolveTestLMService(): { generateText: (prompt: string) => Promise<string>, generateObject: <T>(prompt: string, schema: ZodSchema<T>) => Promise<T> } {
-    const provider = resolveProvider();
+export function resolveTestLMService(): LMService {
     const registry = createSeNARSRegistry();
-    const model = getModelForTask(registry, 'fast') as LanguageModel;
-
-    return {
-        async generateText(prompt: string) {
-            if (!model) return 'No model available';
-            const {text} = await generateText({model, prompt});
-            return text;
-        },
-        async generateObject<T>(prompt: string, schema: ZodSchema<T>) {
-            if (!model) throw new Error('No model available');
-            const {object} = await generateObject({model, prompt, schema});
-            return object;
-        },
-    };
+    return new LMService(registry);
 }
 
 export function describeProvider(): string {

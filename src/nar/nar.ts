@@ -17,7 +17,7 @@ import {
 import type {Term} from './terms';
 import {Stamp, termParser, termsEqual, Truth, type TruthType} from './terms';
 import type {SeNARSRegistry, LMService} from './lm';
-import {LMRules} from './lm';
+import {getModelForTask, LMRules} from './lm';
 import {QueryAPI, ReasoningTrace} from './query';
 import {errMsg} from './utils';
 import {MetricsCollector} from './metrics';
@@ -566,8 +566,12 @@ export class NAR extends BaseComponent {
     }
 
     private getModelWithFallback(prefix: string) {
-        return this._registry?.languageModel(`local:${prefix}`)
-            ?? this._registry?.languageModel('builtin:compact');
+        if (!this._registry) return undefined;
+        try {
+            return (this._registry as any).languageModel(`local:${prefix}`);
+        } catch {
+            return (this._registry as any).languageModel('builtin:compact');
+        }
     }
 
     private initializeOptionalFeatures(): void {
@@ -599,7 +603,7 @@ export class NAR extends BaseComponent {
     private initializeLMRules(lmService: LMService): void {
         const lmRules = LMRules.createAll(lmService as any);
         const structuredModel = this._registry
-            ? this._registry.languageModel('local:quality')
+            ? getModelForTask(this._registry, 'structured')
             : undefined;
 
         const toolDispatcher = async (tool: string, args: Record<string, unknown>) => {

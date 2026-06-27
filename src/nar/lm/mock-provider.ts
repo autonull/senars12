@@ -1,48 +1,44 @@
-import type {LanguageModelV2, LanguageModelV2CallOptions, LanguageModelV2Content, LanguageModelV2FinishReason, LanguageModelV2StreamPart, LanguageModelV2TextPart} from '@ai-sdk/provider';
+import {wrapLanguageModel, defaultSettingsMiddleware} from 'ai';
 
-export function createMockLanguageModel(): LanguageModelV2 {
-    return {
-        specificationVersion: 'v2',
-        provider: 'mock',
-        modelId: 'mock',
-        supportedUrls: {},
-        
-        doGenerate: async (options: LanguageModelV2CallOptions) => {
-            const key = extractTextFromPrompt(options.prompt);
-            const responseText = 'Mock response for: ' + key.slice(0, 50);
-            const content: LanguageModelV2Content[] = [{type: 'text', text: responseText}];
-            return {
-                content,
-                finishReason: 'stop' as LanguageModelV2FinishReason,
-                usage: {inputTokens: 0, outputTokens: responseText.length, totalTokens: responseText.length},
-                warnings: [],
-            };
-        },
-        
-        doStream: async (options: LanguageModelV2CallOptions) => {
-            const key = extractTextFromPrompt(options.prompt);
-            const responseText = 'Mock response for: ' + key.slice(0, 50);
-            const stream = new ReadableStream<LanguageModelV2StreamPart>({
-                start(controller) {
-                    controller.enqueue({type: 'text-delta', id: '0', delta: responseText});
-                    controller.enqueue({type: 'finish', finishReason: 'stop', usage: {
-                        inputTokens: 0,
-                        outputTokens: responseText.length,
-                        totalTokens: responseText.length
-                    }});
-                    controller.close();
+export function createMockLanguageModel(generateTextFn?: (prompt: string) => string | Promise<string>) {
+    return wrapLanguageModel({
+        model: {specificationVersion: 'v2', provider: 'mock', modelId: 'mock', supportedUrls: {},
+            doGenerate: async (options: {prompt: unknown; responseFormat?: any; tools?: any}) => {
+                const key = extractTextFromPrompt(options.prompt);
+                let responseText = generateTextFn ? await generateTextFn(key) : 'Mock response: ' + key.slice(0, 50);
+
+                if (options.responseFormat?.type === 'json') {
+                    try {
+                        responseText = JSON.stringify({result: 'mock', data: responseText.slice(0, 100)});
+                    } catch {
+                        responseText = '{"result": "mock"}';
+                    }
+                } else if (options.tools?.length) {
+                    responseText = '{"tool": "mock", "args": {}}';
                 }
-            });
-            return {stream};
-        },
-    };
+
+                return {content: [{type: 'text', text: responseText}], finishReason: 'stop', usage: {inputTokens: 0, outputTokens: responseText.length, totalTokens: responseText.length}, warnings: []};
+            },
+            doStream: async (options: {prompt: unknown}) => {
+                const key = extractTextFromPrompt(options.prompt);
+                const responseText = generateTextFn ? await generateTextFn(key) : 'Mock response: ' + key.slice(0, 50);
+                const stream = new ReadableStream({
+                    start(controller) {
+                        controller.enqueue({type: 'text-delta', id: '0', delta: responseText});
+                        controller.enqueue({type: 'finish', finishReason: 'stop', usage: {inputTokens: 0, outputTokens: responseText.length, totalTokens: responseText.length}});
+                        controller.close();
+                    }
+                });
+                return {stream};
+            },
+        } as any,
+        middleware: defaultSettingsMiddleware({settings: {}}),
+        modelId: 'mock',
+        providerId: 'mock',
+    });
 }
 
-function extractTextFromPrompt(prompt: LanguageModelV2CallOptions['prompt']): string {
+function extractTextFromPrompt(prompt: unknown): string {
     if (!prompt) return '';
-    return prompt.map(msg => 
-        Array.isArray(msg.content)
-            ? msg.content.map(c => c.type === 'text' ? (c as LanguageModelV2TextPart).text : '').join('')
-            : ''
-    ).join('');
+    return (prompt as any[]).map((msg: any) => Array.isArray(msg.content) ? (msg.content as any[]).map((c: any) => c.type === 'text' ? c.text : '').join('') : '').join('');
 }

@@ -103,8 +103,10 @@ export class SeNARSFactory {
         return new NAR({...BOT_CONFIG, maxConcepts: options?.maxConcepts ?? BOT_CONFIG.maxConcepts});
     }
 
-    static createForTesting(options?: { maxConcepts?: number }): NAR {
-        return new NAR({...TEST_CONFIG, maxConcepts: options?.maxConcepts ?? TEST_CONFIG.maxConcepts});
+    static createForTesting(options?: { maxConcepts?: number; lmService?: LMService }): NAR {
+        const lmService = options?.lmService;
+        const registry = createSeNARSRegistry();
+        return new NAR({...TEST_CONFIG, maxConcepts: options?.maxConcepts ?? TEST_CONFIG.maxConcepts, lmService, providerRegistry: registry});
     }
 
     /** Create NAR with cognitive architecture enabled */

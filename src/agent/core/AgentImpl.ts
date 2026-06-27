@@ -67,7 +67,7 @@ export class AgentImpl implements Agent {
         this.extToolOpts = (opts.externalTools as Record<string, unknown>) ?? {};
         this.contextOpts = opts.context ?? {};
 
-        this.runner = new ModelRunner({lmService: opts.lmClient as any as LMService, maxLoops: opts.maxLoops ?? 5});
+        this.runner = new ModelRunner({lmService: opts.lmService, maxLoops: opts.maxLoops ?? 5});
         this.knowledgeManager = new KnowledgeManager({
             knowledgePath: opts.knowledgePath ?? '.cache/agent-knowledge.json',
             persistKnowledge: opts.persistKnowledge ?? false,

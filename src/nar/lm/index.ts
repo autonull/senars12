@@ -9,7 +9,7 @@ export {ProactiveEnricher, createProactiveEnricher} from './enrichment.js';
 export type {EnricherConfig, EnrichmentResult} from './enrichment.js';
 export {createSeNARSRegistry, getModelForTask, getQualityModel} from './providers.js';
 export type {SeNARSRegistry, LMTask} from './providers.js';
-export {LMService, createLMService} from './lm-service.js';
+export {LMService, createLMService, createMockLMService} from './lm-service.js';
 export {resolveLMConfig, formatLMConfig} from './env-config.js';
 export type {ResolvedLMConfig, ResolvedProvider} from './env-config.js';
 export {createMockLanguageModel} from './mock-provider.js';

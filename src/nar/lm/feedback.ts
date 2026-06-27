@@ -1,12 +1,11 @@
-import {type SeNARSRegistry, type LMTask, getModelForTask} from './providers.js';
 import {LMService} from './lm-service.js';
 import type {Memory} from '../memory';
 import type {Term} from '../terms';
 import {Truth} from '../terms';
 import {createBudget, createTask, type Task} from '../types';
-import {findUnderconnectedConceptsFromTasks, parseEnrichmentResponse} from './enrichment-utils.js';
-import {createLogger, type Logger} from '../logger';
+import {createLogger} from '../logger';
 import {clamp01, errMsg} from '../utils';
+import {parseEnrichmentResponse} from './enrichment.js';
 
 export interface FeedbackConfig {
     enableBidirectionalFeedback: boolean;
@@ -49,7 +48,7 @@ export class BidirectionalFeedbackLoop {
     private readonly memory: Memory;
     private readonly lmService: LMService;
     private readonly config: FeedbackConfig;
-    private readonly logger: Logger;
+    private readonly logger: ReturnType<typeof createLogger>;
     private pendingValidations: Map<string, ValidationFeedback> = new Map();
     private recentPatterns: ExtractedPattern[] = [];
 
@@ -154,30 +153,30 @@ Respond with JSON:
         }
     }
 
-    async enrichContextWithDerivations(derivations: Task[]): Promise<void> {
-        if (!this.config.enableContextEnrichment || derivations.length === 0) {
-            return;
-        }
+async enrichContextWithDerivations(derivations: Task[]): Promise<void> {
+		if (!this.config.enableContextEnrichment || derivations.length === 0) {
+			return;
+		}
 
-        const underconnectedConcepts = findUnderconnectedConceptsFromTasks(
-            derivations,
-            term => this.memory.getConcept(term)
-        );
+		for (const derivation of derivations.slice(0, this.config.maxContextConcepts)) {
+			try {
+				const concept = this.memory.getConcept(derivation.term);
+				if (!concept) continue;
+				const connectionCount = concept.beliefBag.size + concept.questionBag.size + concept.goalBag.size;
+				if (connectionCount >= 3) continue;
 
-        for (const concept of underconnectedConcepts.slice(0, this.config.maxContextConcepts)) {
-            try {
-                const enrichmentPrompt = this.buildEnrichmentPrompt(concept.term, derivations);
-                const response = await this.lmService.generateText(enrichmentPrompt);
-                const bridgingHypotheses = parseEnrichmentResponse(response).hypotheses;
+				const enrichmentPrompt = this.buildEnrichmentPrompt(derivation.term, derivations);
+				const response = await this.lmService.generateText(enrichmentPrompt, {task: 'structured'});
+				const bridgingHypotheses = parseEnrichmentResponse(response).hypotheses;
 
-                for (const hyp of bridgingHypotheses) {
-                    this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget, hyp.stamp);
-                }
-            } catch (error) {
-                this.logger.warn(`Failed to enrich context for concept: ${concept.term.toString()} - ${errMsg(error)}`);
-            }
-        }
-    }
+				for (const hyp of bridgingHypotheses) {
+					this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget, hyp.stamp);
+				}
+			} catch (error) {
+				this.logger.warn(`Failed to enrich context for concept: ${errMsg(error)}`);
+			}
+		}
+	}
 
     getPendingValidations(): ValidationFeedback[] {
         return Array.from(this.pendingValidations.values());

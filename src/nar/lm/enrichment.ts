@@ -1,10 +1,11 @@
 import {LMService} from './lm-service.js';
 import type {Memory} from '../memory';
 import type {Term} from '../terms';
-import {createBudget, type Task} from '../types';
-import {findUnderconnectedConcepts, parseEnrichmentResponse} from './enrichment-utils.js';
+import {Truth} from '../terms';
+import {createBudget, createTask, type Task} from '../types';
 import {createLogger, type Logger} from '../logger';
 import {errMsg} from '../utils';
+import {LMResponseParser} from './parser.js';
 
 export interface EnricherConfig {
     enableProactiveEnrichment: boolean;
@@ -20,6 +21,64 @@ export interface EnrichmentResult {
     hypotheses: Task[];
     bridges: Task[];
     explanations: string[];
+}
+
+interface ConceptConnections {
+    term: Term;
+    connections: number;
+}
+
+interface HasBags {
+    term: Term;
+    beliefBag: { size: number };
+    questionBag: { size: number };
+    goalBag: { size: number };
+}
+
+function findUnderconnectedConcepts(
+    concepts: Iterable<HasBags>,
+    minConnections: number
+): ConceptConnections[] {
+    const result: ConceptConnections[] = [];
+
+    for (const concept of concepts) {
+        const connectionCount =
+            concept.beliefBag.size +
+            concept.questionBag.size +
+            concept.goalBag.size;
+
+        if (connectionCount < minConnections) {
+            result.push({term: concept.term, connections: connectionCount});
+        }
+    }
+
+    return result.sort((a, b) => a.connections - b.connections);
+}
+
+export function parseEnrichmentResponse(response: string, defaultTruth?: Truth): {
+    hypotheses: Task[];
+    bridges: Task[]
+} {
+    const lines = response.split('\n').filter(l => l.trim());
+    const hypotheses: Task[] = [];
+    const bridges: Task[] = [];
+    const truth = defaultTruth ?? Truth.TRUE;
+
+    for (const line of lines) {
+        const parsed = LMResponseParser.parse(line);
+        if (parsed.valid && parsed.term) {
+            const taskTruth = parsed.truth ?? truth;
+            const task = createTask(parsed.term, 'belief', taskTruth, createBudget(0.4, 0.8));
+
+            if (line.includes('-->') || line.includes('<->')) {
+                hypotheses.push(task);
+            } else {
+                bridges.push(task);
+            }
+        }
+    }
+
+    return {hypotheses, bridges};
 }
 
 export class ProactiveEnricher {

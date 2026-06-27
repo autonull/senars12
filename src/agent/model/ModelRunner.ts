@@ -64,11 +64,7 @@ export class ModelRunner {
     }
 
     private toMessages(composed: ComposedRequest): any[] {
-        const msgs = composed.messages.map(m => ({role: m.role, content: m.content}));
-        if (composed.system) {
-            return [{role: 'system', content: composed.system}, ...msgs];
-        }
-        return msgs;
+        return composed.messages.map(m => ({role: m.role, content: m.content}));
     }
 
     async* run(composed: ComposedRequest, signal?: AbortSignal): AsyncGenerator<ModelEvent, ModelRunResult> {
@@ -112,10 +108,12 @@ export class ModelRunner {
                 const result = await generateText({
                     model,
                     messages,
+                    system: composed.system || undefined,
+                    allowSystemInMessages: true,
                     tools: toolsArray.length > 0 ? toolsToToolSet(toolsArray) : undefined,
                     maxOutputTokens: this.maxOutputTokens,
                     abortSignal: signal,
-                });
+                } as any);
 
                 text = result.text;
                 if (result.usage) {

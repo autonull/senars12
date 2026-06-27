@@ -15,7 +15,7 @@ const contextOptsSchema = z.object({
 
 export const agentOptionsSchema = z.object({
     nar: z.unknown().optional(),
-    lmClient: z.unknown().optional(),
+    lmService: z.unknown().optional(),
     episodicMemory: z.unknown().optional(),
     systemInstructions: z.string().min(1).max(16_000).optional(),
     context: contextOptsSchema.optional(),

@@ -2,7 +2,8 @@ import type {NAR} from '../../src';
 import {type Agent, type AgentOptions, createAgent} from '../../src';
 import {type ConversationSession, createSession} from '../../src/agent';
 import {SeNARSFactory} from '../../src/nar';
-import type {LMClient} from '../../src/nar/lm';
+import type {LMService} from '../../src/nar/lm';
+import {ModelRunner} from '../../src/agent/model/ModelRunner.js';
 
 export interface ProbeExpectations {
     responseContains?: string[];
@@ -59,10 +60,25 @@ export interface ScenarioResult {
 }
 
 export interface HarnessOptions {
-    lmClient?: LMClient;
+    lmService?: LMService;
     agentOptions?: Partial<AgentOptions>;
     verbose?: boolean;
     timeoutMs?: number;
+}
+
+function createTrackingLM(lm?: LMService): LMService | undefined {
+    if (!lm) return undefined;
+    return new Proxy(lm, {
+        get(target, prop) {
+            if (prop === 'generateText') {
+                return async (prompt: string, opts?: any) => {
+                    // tracking happens in the harness via event bus
+                    return target.generateText(prompt, opts);
+                };
+            }
+            return (target as any)[prop];
+        }
+    });
 }
 
 function createSilentLogger() {
@@ -79,14 +95,14 @@ export class ConversationalTestHarness {
     private agent: Agent | undefined;
     private nar: NAR | undefined;
     private readonly session: ConversationSession;
-    private readonly lmClient: LMClient | undefined;
+    private readonly lmService: LMService | undefined;
     private readonly agentOptions: Partial<AgentOptions>;
     private readonly verbose: boolean;
     private readonly timeoutMs: number;
     private lmCallCount = 0;
 
     constructor(opts: HarnessOptions = {}) {
-        this.lmClient = opts.lmClient;
+        this.lmService = opts.lmService;
         this.agentOptions = opts.agentOptions ?? {};
         this.verbose = opts.verbose ?? false;
         this.timeoutMs = opts.timeoutMs ?? 30_000;
@@ -94,23 +110,13 @@ export class ConversationalTestHarness {
     }
 
     async setup(): Promise<void> {
-        this.nar = SeNARSFactory.createForTesting();
+        this.nar = SeNARSFactory.createForTesting({lmService: this.lmService});
         await this.nar.initialize();
         await this.nar.start();
 
-        const trackingLM: LMClient | undefined = this.lmClient
-            ? {
-                ...this.lmClient,
-                generateText: async (prompt: string, opts?: Parameters<LMClient['generateText']>[1]) => {
-                    this.lmCallCount++;
-                    return this.lmClient!.generateText(prompt, opts);
-                },
-            }
-            : undefined;
-
         this.agent = createAgent({
             nar: this.nar,
-            lmClient: trackingLM,
+            lmService: this.lmService,
             logger: createSilentLogger() as never,
             ...this.agentOptions,
         });
