@@ -7,54 +7,79 @@ import fastifyWebSocket from '@fastify/websocket';
 import type WebSocket from 'ws';
 import type { Agent } from '../../../src/agent/types.js';
 import type { NAR } from '../../../src/nar/nar.js';
+import { handleConnection, type NarAdapter } from './gateway.js';
+import { computeActiveSubgraph } from './projection.js';
+import type { IncomingFromServer } from '../shared/protocol.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-interface ConfigField {
-  type: 'slider' | 'dropdown' | 'text' | 'toggle';
-  label: string;
-  value: number | string | boolean;
-  options?: string[];
-  min?: number;
-  max?: number;
-}
-
-const configState: Record<string, ConfigField> = {
-  'llm.temperature': { type: 'slider', label: 'LLM Temperature', value: 0.7, min: 0, max: 2 },
-  'nars.revision_rate': { type: 'slider', label: 'NARS Revision Rate', value: 0.5, min: 0, max: 1 },
+const configState: Record<string, any> = {
+  'llm.temperature': { type: 'slider', label: 'LLM Temperature', value: 0.7, min: 0, max: 2, step: 0.1 },
+  'nars.revision_rate': { type: 'slider', label: 'NARS Revision Rate', value: 0.5, min: 0, max: 1, step: 0.1 },
+  'nars.max_concepts': { type: 'text', label: 'Max Concepts', value: '1000' },
 };
 
-const configHandlers: Record<string, (v: number | string | boolean, nar: NAR) => void> = {};
+function buildNarAdapter(nar: NAR): NarAdapter {
+  return {
+    listConcepts() {
+      return nar.listConcepts().map((c: any) => ({
+        term: c.term.toString(),
+        priority: c.priority ?? 0.5,
+        confidence: c.confidence ?? 0.9,
+        getLinks() {
+          return c.getLinks().map((l: any) => ({
+            target: l.concept.term.toString(),
+            strength: l.strength ?? 0.5,
+          }));
+        },
+      }));
+    },
+    getSystemEventBus() {
+      return nar.getSystemEventBus();
+    },
+    attentionReport() {
+      const report = nar.attentionReport();
+      return { concepts: report.concepts.map((c: any) => ({ term: c.term, priority: c.priority })) };
+    },
+    getDriveManager(): ReturnType<NarAdapter['getDriveManager']> {
+      const dm = nar.getDriveManager?.();
+      if (!dm) return undefined;
+      return {
+        getAllStates() {
+          return dm.getAllStates().map((d: any) => ({
+            spec: { id: String(d.spec.id), name: String(d.spec.name) },
+            currentIntensity: Number(d.currentIntensity),
+            isActive: Boolean(d.isActive),
+          }));
+        },
+      };
+    },
+    getConfigSchema() {
+      return configState;
+    },
+    setConfig(key: string, value: any) {
+      if (key in configState) {
+        configState[key] = { ...configState[key], value };
+      }
+    },
+  };
+}
 
-function buildGraphElements(nar: NAR): any[] {
-  const concepts = nar.listConcepts();
-  const elements: any[] = [];
-  const nodeIds = new Set<string>();
-
-  for (const c of concepts) {
-    const id = c.term.toString();
-    nodeIds.add(id);
-    elements.push({
-      group: 'nodes',
-      data: {
-        id,
-        color: c.priority > 0.5 ? '#00f3ff' : '#334155',
-        size: Math.max(10, c.priority * 40),
-      },
-    });
-  }
-
-  for (const c of concepts) {
-    const src = c.term.toString();
-    for (const link of c.getLinks()) {
-      const tgt = link.concept.term.toString();
-      if (nodeIds.has(tgt)) {
-        elements.push({ group: 'edges', data: { source: src, target: tgt } });
+async function onChat(content: string, send: (msg: IncomingFromServer) => void, agent: Agent) {
+  try {
+    const stream = agent.chat(content, { stream: true });
+    for await (const event of stream) {
+      if (event.kind === 'text-delta') {
+        send({ type: 'chat.agent.stream', delta: event.text ?? '' });
+      } else if (event.kind === 'finish') {
+        send({ type: 'chat.agent.complete', content: event.text ?? '' });
+      } else if (event.kind === 'error') {
+        send({ type: 'chat.agent.complete', content: `Error: ${event.error}` });
       }
     }
+  } catch (e) {
+    send({ type: 'chat.agent.complete', content: `Error: ${e instanceof Error ? e.message : String(e)}` });
   }
-
-  return elements;
 }
 
 export async function startWebUI(nar: NAR, agent: Agent): Promise<FastifyInstance> {
@@ -67,102 +92,101 @@ export async function startWebUI(nar: NAR, agent: Agent): Promise<FastifyInstanc
 
   fastify.register(fastifyWebSocket);
 
+  const narAdapter = buildNarAdapter(nar);
+
   fastify.get('/ws', { websocket: true }, (socket: WebSocket) => {
     socket.send(JSON.stringify({ type: 'config.schema', data: configState }));
 
+    const proj = computeActiveSubgraph(narAdapter.listConcepts(), null, { maxNodes: 300, maxEdges: 600, maxHops: 2 });
+    const ops: any[] = [
+      ...proj.nodes.map(n => ({ action: 'add_node' as const, id: n.id, data: { priority: n.priority, confidence: n.confidence } })),
+      ...proj.edges.map(e => ({ action: 'add_edge' as const, source: e.source, target: e.target, data: { weight: e.weight } })),
+    ];
     socket.send(JSON.stringify({
-      type: 'cognitive.update',
+      type: 'cognitive.delta',
       module: 'belief_graph',
-      data: { elements: buildGraphElements(nar) },
+      ops,
+      meta: proj.truncated ? { truncated: true, total_hidden: proj.total_hidden } : undefined,
     }));
 
     const report = nar.attentionReport();
     socket.send(JSON.stringify({
-      type: 'cognitive.update',
+      type: 'cognitive.delta',
       module: 'working_memory',
-      data: { concepts: report.concepts, total: report.total },
+      ops: report.concepts.map((c: any) => ({
+        action: 'add_node' as const,
+        id: c.term.toString(),
+        data: { priority: c.priority, confidence: 0.9 },
+      })),
     }));
 
-    const drives = nar.getDriveManager()?.getAllStates();
+    const drives = narAdapter.getDriveManager()?.getAllStates();
     if (drives) {
       socket.send(JSON.stringify({
-        type: 'cognitive.update',
-        module: 'drives',
-        data: drives.map(d => ({ id: d.spec.id, name: d.spec.name, intensity: d.currentIntensity, active: d.isActive })),
+        type: 'cognitive.delta',
+        module: 'stream_reasoner',
+        ops: drives.map(d => ({
+          action: 'add_node' as const,
+          id: d.spec.id,
+          data: { priority: d.currentIntensity, confidence: 1 },
+        })),
       }));
     }
+
+    handleConnection(socket, narAdapter, (content, send) => onChat(content, send, agent));
 
     const sysBus = nar.getSystemEventBus();
     const unsubs = [
       sysBus.on('nar:derivation', () => {
+        const proj = computeActiveSubgraph(narAdapter.listConcepts(), null, { maxNodes: 300, maxEdges: 600, maxHops: 2 });
         socket.send(JSON.stringify({
-          type: 'cognitive.update',
+          type: 'cognitive.delta',
           module: 'belief_graph',
-          data: { elements: buildGraphElements(nar) },
+          ops: proj.nodes.map(n => ({
+            action: 'add_node' as const,
+            id: n.id,
+            data: { priority: n.priority, confidence: n.confidence },
+          })),
+          meta: proj.truncated ? { truncated: true, total_hidden: proj.total_hidden } : undefined,
         }));
       }),
       sysBus.on('nar:concept:activated', (d: any) => {
+        const term = typeof d.term === 'object' ? d.term.toString() : String(d.term);
         socket.send(JSON.stringify({
-          type: 'cognitive.update',
+          type: 'cognitive.delta',
           module: 'working_memory',
-          data: { concept: d.term, priority: d.priority },
+          ops: [{ action: 'add_node' as const, id: term, data: { priority: d.priority ?? 0.5, confidence: 0.9 } }],
         }));
       }),
       sysBus.on('nar:reasoning:cycle', (d: any) => {
         socket.send(JSON.stringify({
-          type: 'cognitive.update',
+          type: 'cognitive.delta',
           module: 'stream_reasoner',
-          data: { cycle: d.cycle, derived: d.derived },
+          ops: [{ action: 'add_node' as const, id: 'cycle', data: { priority: d.cycle ?? 0, confidence: 1 } }],
         }));
       }),
       sysBus.on('nar:drive:changed', (d: any) => {
         socket.send(JSON.stringify({
-          type: 'cognitive.update',
-          module: 'drives',
-          data: [{ id: d.drive, urgency: d.urgency }],
+          type: 'cognitive.delta',
+          module: 'stream_reasoner',
+          ops: [{ action: 'add_node' as const, id: d.drive ?? 'drive', data: { priority: d.urgency ?? 0, confidence: 1 } }],
         }));
       }),
       agent.on('agent:process:start', (d: any) => {
         socket.send(JSON.stringify({
-          type: 'cognitive.update',
+          type: 'cognitive.delta',
           module: 'stream_reasoner',
-          data: { status: 'processing', input: d.input, timestamp: d.timestamp },
+          ops: [{ action: 'add_node' as const, id: 'status', data: { priority: 1, confidence: 1 } }],
         }));
       }),
       agent.on('agent:process:complete', (d: any) => {
         socket.send(JSON.stringify({
-          type: 'cognitive.update',
+          type: 'cognitive.delta',
           module: 'stream_reasoner',
-          data: { status: 'complete', durationMs: d.durationMs, timestamp: d.timestamp },
+          ops: [{ action: 'add_node' as const, id: 'status', data: { priority: 0, confidence: 0 } }],
         }));
       }),
     ];
-
-    socket.on('message', async (raw) => {
-      try {
-        const msg = JSON.parse(raw.toString());
-        if (msg.type === 'chat.user') {
-          const stream = agent.chat(msg.content, { stream: true });
-          for await (const event of stream) {
-            if (event.kind === 'text-delta') {
-              socket.send(JSON.stringify({ type: 'chat.agent.stream', delta: event.text }));
-            } else if (event.kind === 'finish') {
-              socket.send(JSON.stringify({ type: 'chat.agent.complete', content: event.text }));
-            } else if (event.kind === 'error') {
-              socket.send(JSON.stringify({ type: 'chat.agent.complete', content: `Error: ${event.error}` }));
-            }
-          }
-        } else if (msg.type === 'config.set') {
-          fastify.log.info(`Config update: ${msg.key} = ${msg.value}`);
-          if (msg.key in configState) {
-            configState[msg.key]!.value = msg.value;
-          }
-          configHandlers[msg.key]?.(msg.value, nar);
-        }
-      } catch (e) {
-        fastify.log.error({ err: e }, 'WS message error');
-      }
-    });
 
     socket.on('close', () => { for (const u of unsubs) u(); });
   });

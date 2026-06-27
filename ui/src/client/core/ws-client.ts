@@ -1,106 +1,68 @@
-import { IncomingMessage } from '../../shared/protocol.js';
+import { z } from 'zod';
+import { IncomingFromServer, SyncRequest } from '../../shared/protocol.js';
+import { $connectionState, $lastSeqId } from './store.js';
+import { applyServerMessage } from './store-bindings.js';
+import type { IncomingFromServer as IncomingFromServerType } from '../../shared/protocol.js';
 
-type MessageHandler = (msg: any) => void;
-type StatusHandler = (status: string) => void;
+const WS_URL = `ws://${location.host}/ws`;
+const RECONNECT_BASE_MS = 500;
+const RECONNECT_MAX_MS = 10000;
 
-class WsClient {
-  private ws: WebSocket | null = null;
-  private handlers = new Map<string, Set<MessageHandler>>();
-  private statusHandlers = new Set<StatusHandler>();
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private pendingMessages: string[] = [];
-  private _status: 'connected' | 'disconnected' | 'connecting' = 'disconnected';
+let socket: WebSocket | null = null;
+let reconnectAttempt = 0;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let pingInterval: ReturnType<typeof setInterval> | null = null;
 
-  get status() { return this._status; }
+export function connect() {
+  $connectionState.set(socket ? 'reconnecting' : 'connecting');
+  socket = new WebSocket(WS_URL);
 
-  private setStatus(s: typeof WsClient.prototype._status) {
-    if (this._status === s) return;
-    this._status = s;
-    for (const h of this.statusHandlers) h(s);
-  }
-
-  onStatusChange(h: StatusHandler) { this.statusHandlers.add(h); }
-
-  offStatusChange(h: StatusHandler) { this.statusHandlers.delete(h); }
-
-  connect(url = `ws://${location.host}/ws`) {
-    if (this.ws?.readyState === WebSocket.OPEN) return;
-    this.setStatus('connecting');
-    this.ws = new WebSocket(url);
-
-    this.ws.onopen = () => {
-      this.setStatus('connected');
-      for (const msg of this.pendingMessages) {
-        this.ws?.send(msg);
-      }
-      this.pendingMessages = [];
+  socket.onopen = () => {
+    reconnectAttempt = 0;
+    $connectionState.set('connected');
+    const req: z.infer<typeof SyncRequest> = {
+      type: 'sync.request',
+      last_seq_id: $lastSeqId.get(),
     };
+    socket!.send(JSON.stringify(req));
+    pingInterval = setInterval(() => {
+      socket!.send(JSON.stringify({ type: 'ping', t0: performance.now() }));
+    }, 5000);
+  };
 
-    this.ws.onmessage = (event) => {
-      let parsed: any;
-      try {
-        parsed = JSON.parse(event.data);
-      } catch {
-        console.error('[ws] Failed to parse message');
-        return;
-      }
-
-      const result = IncomingMessage.safeParse(parsed);
-      if (!result.success) {
-        console.error('[ws] Zod validation failed:', result.error);
-        return;
-      }
-
-      const msg = result.data;
-      const typeHandlers = this.handlers.get(msg.type);
-      if (typeHandlers) {
-        for (const handler of typeHandlers) {
-          handler(msg);
-        }
-      }
-    };
-
-    this.ws.onclose = () => {
-      this.ws = null;
-      this.setStatus('disconnected');
-      this.reconnectTimer = setTimeout(() => {
-        this.setStatus('connecting');
-        this.connect(url);
-      }, 3000);
-    };
-
-    this.ws.onerror = () => {
-      this.ws?.close();
-    };
-  }
-
-  on(type: string, handler: MessageHandler) {
-    if (!this.handlers.has(type)) {
-      this.handlers.set(type, new Set());
+  socket.onmessage = (ev) => {
+    if (ev.data === 'pong') return;
+    const raw = JSON.parse(ev.data as string);
+    const parsed = IncomingFromServer.safeParse(raw);
+    if (!parsed.success) {
+      console.error('[WS] Malformed message dropped:', parsed.error, raw);
+      return;
     }
-    this.handlers.get(type)!.add(handler);
-  }
+    applyServerMessage(parsed.data as IncomingFromServerType);
+  };
 
-  off(type: string, handler: MessageHandler) {
-    this.handlers.get(type)?.delete(handler);
-  }
+  socket.onclose = () => {
+    $connectionState.set('reconnecting');
+    if (pingInterval) clearInterval(pingInterval);
+    scheduleReconnect();
+  };
 
-  send(msg: object) {
-    const raw = JSON.stringify(msg);
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(raw);
-    } else {
-      this.pendingMessages.push(raw);
-    }
-  }
-
-  disconnect() {
-    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-    this.ws?.close();
-    this.ws = null;
-    this.setStatus('disconnected');
-  }
+  socket.onerror = () => socket?.close();
 }
 
-export const wsClient = new WsClient();
-wsClient.connect();
+function scheduleReconnect() {
+  const delay = Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * 2 ** reconnectAttempt++);
+  reconnectTimer = setTimeout(connect, delay);
+}
+
+export function send(msg: Record<string, unknown>) {
+  if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(msg));
+}
+
+export function disconnect() {
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  if (pingInterval) clearInterval(pingInterval);
+  socket?.close();
+  socket = null;
+  $connectionState.set('disconnected');
+}
