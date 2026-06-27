@@ -1,6 +1,6 @@
 export {createAgent} from './agent.js';
 export type {Agent, AgentOptions, ChatOptions, ChatStreamEvent, AgentStats} from './agent.js';
-export {ModelRunner, truncateArtifact} from './model/ModelRunner.js';
+export {ModelRunner} from './model/ModelRunner.js';
 export type {ComposedRequest, ModelEvent, ModelRunResult, ModelRunnerDeps} from './model/ModelRunner.js';
 export {dispatchToolCalls} from './model/ToolDispatcher.js';
 export type {ToolCall, ToolDispatchResult, ToolError, ReasoningArtifact} from './model/ToolDispatcher.js';

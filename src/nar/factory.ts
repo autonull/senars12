@@ -5,8 +5,8 @@
 
 import type {NARConfig} from './nar.js';
 import {NAR} from './nar.js';
-import type {LMClient} from './lm';
-import {createSeNARSRegistry, type SeNARSRegistry, setupDefaultLMClient} from './lm';
+import type {LMService} from './lm/lm-service.js';
+import {createSeNARSRegistry, type SeNARSRegistry, createLMService} from './lm';
 import type {RLFPLearner} from './rlfp';
 import type {CoreConfig} from './types';
 import {DEFAULT_CONFIG, EventBus} from './types';
@@ -16,7 +16,7 @@ import {DEFAULT_COGNITIVE_PARAMETERS, mergeParameters, RESEARCH_COGNITIVE_CONFIG
 
 export interface SeNARSOptions {
     core?: Partial<CoreConfig>;
-    lmClient?: LMClient;
+    lmService?: LMService;
     providerRegistry?: SeNARSRegistry;
     enableLMRules?: boolean;
     eventBus?: EventBus;
@@ -65,23 +65,23 @@ const TEST_CONFIG: CoreConfig = {
 export class SeNARSFactory {
     static createDefault(options: SeNARSOptions = {}): NAR {
         const registry = options.providerRegistry ?? createSeNARSRegistry();
-        const lmClient = options.lmClient ?? setupDefaultLMClient();
+        const lmService = options.lmService ?? createLMService();
         const eventBus = options.eventBus ?? new EventBus();
-        const config: NARConfig & { eventBus?: EventBus } = {
+        const config = {
             ...DEFAULT_CONFIG, ...options.core,
             enableLMRules: options.enableLMRules ?? true,
-            lmClient,
+            lmService,
             providerRegistry: registry,
             eventBus,
-        };
+        } as NARConfig & { eventBus?: EventBus };
         return new NAR(config);
     }
 
-    static fromConfig(config: SeNARSConfig, lmClient?: LMClient | null, registry?: SeNARSRegistry | null): NAR {
+    static fromConfig(config: SeNARSConfig, lmService?: LMService | null, registry?: SeNARSRegistry | null): NAR {
         const narConfig: NARConfig = {
             ...config.nar,
             enableLMRules: config.lm?.enabled ?? false,
-            lmClient: config.lm?.enabled ? lmClient ?? setupDefaultLMClient() : undefined,
+            lmService: config.lm?.enabled ? lmService ?? createLMService() : undefined,
             providerRegistry: registry ?? createSeNARSRegistry(),
         };
         return new NAR(narConfig);

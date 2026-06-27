@@ -23,7 +23,7 @@ import {KnowledgeManager} from '../subservices/KnowledgeManager.js';
 import {SessionOrchestrator} from '../subservices/SessionOrchestrator.js';
 import {PromptBuilder} from '../subservices/PromptBuilder.js';
 
-import type {Agent, AgentOptions, AgentStats, ChatOptions, ChatStreamEvent, DerivationEntry} from '../types.js';
+import type {Agent, AgentOptions, AgentStats, ChatOptions, ChatStreamEvent, DerivationEntry, LMService} from '../types.js';
 import {NarQueryService} from '../services/NarQueryService.js';
 import {LMChatService} from '../services/LMChatService.js';
 
@@ -67,7 +67,7 @@ export class AgentImpl implements Agent {
         this.extToolOpts = (opts.externalTools as Record<string, unknown>) ?? {};
         this.contextOpts = opts.context ?? {};
 
-        this.runner = new ModelRunner({lmClient: opts.lmClient, maxLoops: opts.maxLoops ?? 5});
+        this.runner = new ModelRunner({lmService: opts.lmClient as any as LMService, maxLoops: opts.maxLoops ?? 5});
         this.knowledgeManager = new KnowledgeManager({
             knowledgePath: opts.knowledgePath ?? '.cache/agent-knowledge.json',
             persistKnowledge: opts.persistKnowledge ?? false,

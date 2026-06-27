@@ -2,14 +2,15 @@ import type {Term} from '../terms';
 import {Truth} from '../terms';
 import type {Budget, Task, TaskType} from '../types';
 import {createTask, EventBus as NarEventBus} from '../types';
-import type {LMClient, LMExecutionStats, LMRuleConfig, LMRuleStats} from './types.js';
+import type {LMExecutionStats, LMRuleConfig, LMRuleStats} from './types.js';
 import {CircuitBreaker, errMsg} from '../utils';
 import type {Truth as TruthType} from '../terms/truth.js';
 import {LMResponseParser} from './parser.js';
-import {tryRepairAndParse} from './response-repair.js';
+
 import type {ZodSchema} from 'zod';
 import type {EventBus as AgentEventBus, EventMap as AgentEventMap} from '../../agent/EventBus.js';
 import {generateObject, type LanguageModel} from 'ai';
+import {LMService} from './lm-service.js';
 
 const defaultStats = (): LMExecutionStats => ({
     totalCalls: 0, successfulCalls: 0, failedCalls: 0, totalDuration: 0,
@@ -59,7 +60,7 @@ export class LMRule {
     readonly taskType: TaskType;
 
     private enabled: boolean;
-    private readonly lm: LMClient | null;
+    private readonly lm: LMService | null;
     private readonly baseConfig: LMRuleConfig;
     private readonly v2Config: LMRuleConfigV2;
     private readonly circuitBreaker: CircuitBreaker;
@@ -76,7 +77,7 @@ export class LMRule {
     private readonly validateFn?: (output: unknown) => ValidationResult;
     private readonly v2PromptFn?: (input: unknown, context: LMContext) => string;
 
-    constructor(id: string, lm: LMClient | null, config: LMRuleConfig | LMRuleConfigV2 = {}) {
+    constructor(id: string, lm: LMService | null, config: LMRuleConfig | LMRuleConfigV2 = {}) {
         this.id = id;
         this.name = config.name ?? id;
         this.description = config.description ?? 'LM-based inference rule';
@@ -350,12 +351,12 @@ export class LMRule {
     }
 
     private processResponse(response: string, primary: Term, secondary: Term | undefined, context?: Record<string, unknown>): unknown {
-        const repaired = tryRepairAndParse(response, (r) => r, 'narsese') ?? response;
+        const repaired = response;
         return this.baseConfig.responseProcessor ? this.baseConfig.responseProcessor(repaired, primary, secondary, context) : repaired;
     }
 
     private generateTasks(processed: unknown, primary: Term, secondary: Term | undefined, context?: Record<string, unknown>): Task[] {
-        if (this.baseConfig.taskGenerator) return this.baseConfig.taskGenerator(processed, primary, secondary, context);
+        if (this.baseConfig.taskGenerator) return this.baseConfig.taskGenerator(processed, primary, secondary, context) as Task[];
         if (Array.isArray(processed)) return processed.map(p => this.taskFromProcessed(p, primary));
         return [this.taskFromProcessed(processed, primary)];
     }

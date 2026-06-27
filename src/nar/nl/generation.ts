@@ -1,6 +1,9 @@
-import {generateObject, generateText} from 'ai';
+import {generateText} from 'ai';
+import type {LanguageModel} from 'ai';
 import type {SeNARSRegistry} from '../lm';
-import {getStructuredModel} from '../lm';
+import {getModelForTask} from '../lm';
+import type {ZodSchema} from 'zod';
+import {generateObject} from 'ai';
 import {GenerationOutputSchema} from './schemas.js';
 import {buildGenerationPrompt} from './prompts/generation-v1.js';
 
@@ -58,14 +61,14 @@ function findKnowledgeGaps(beliefs: BeliefInfo[]): string[] {
 }
 
 export class NLGenerationService {
-    private readonly structuredModel: ReturnType<typeof getStructuredModel>;
+    private readonly model: LanguageModel;
 
     constructor(registry: SeNARSRegistry) {
-        this.structuredModel = getStructuredModel(registry);
+        this.model = getModelForTask(registry, 'structured') as LanguageModel;
     }
 
     async generate(input: GenerationInput): Promise<GenerationOutput> {
-        if (!this.structuredModel) {
+        if (!this.model) {
             return this.fallbackGenerate(input);
         }
 
@@ -85,12 +88,11 @@ export class NLGenerationService {
             userProfile: input.userProfile,
         });
 
-        // Fallback chain: generateObject → generateText+regex → template fallback
         try {
             const {object} = await generateObject({
-                model: this.structuredModel,
+                model: this.model,
                 prompt,
-                schema: GenerationOutputSchema,
+                schema: GenerationOutputSchema as ZodSchema<GenerationOutput>,
             });
 
             return {
@@ -104,25 +106,6 @@ export class NLGenerationService {
                 },
             };
         } catch {
-            // Level 2: generateText + regex extraction
-            try {
-                const textResult = await generateText({
-                    model: this.structuredModel,
-                    prompt: prompt + '\n\nRespond with a natural language answer, confidence (0-1), and followup questions as JSON: {"response": "...", "confidence": 0.8, "suggestedFollowups": ["..."]}',
-                });
-                const jsonMatch = textResult.text.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    const parsed = JSON.parse(jsonMatch[0]);
-                    return {
-                        response: parsed.response ?? '',
-                        confidence: parsed.confidence ?? 0.5,
-                        suggestedFollowups: parsed.suggestedFollowups ?? [],
-                        meta: {reasoningType, keyPremises, gaps},
-                    };
-                }
-            } catch {
-                // Level 3: template fallback
-            }
             return this.fallbackGenerate(input);
         }
     }

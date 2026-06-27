@@ -2,7 +2,7 @@ import {type Agent, type AgentOptions, createAgent} from './agent.js';
 import type {NAR} from '../nar';
 import {SeNARSFactory} from '../nar';
 import {DEFAULT_NAR_CONFIG} from '../config';
-import type {LMClient} from '../nar/lm';
+import type {LMService} from '../nar/lm';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 
 export type AgentPresetName = 'minimal' | 'chat' | 'lm-only' | 'full';
@@ -10,13 +10,13 @@ export type AgentPresetName = 'minimal' | 'chat' | 'lm-only' | 'full';
 export interface AgentPresetResult {
     agent: Agent;
     nar: NAR | undefined;
-    lmClient: LMClient | undefined;
+    lmService: LMService | undefined;
     episodicMemory: EpisodicMemory | undefined;
 }
 
 export interface AgentPresetDeps {
     nar?: NAR;
-    lmClient?: LMClient;
+    lmService?: LMService;
     episodicMemory?: EpisodicMemory;
     systemInstructions?: string;
     baseOptions?: Partial<AgentOptions>;
@@ -33,43 +33,43 @@ export function createAgentPreset(preset: AgentPresetName, deps: AgentPresetDeps
                 nar,
                 maxLoops: 0,
             });
-            return {agent, nar, lmClient: undefined, episodicMemory: undefined};
+            return {agent, nar, lmService: undefined, episodicMemory: undefined};
         }
         case 'chat': {
-            const nar = deps.nar ?? SeNARSFactory.createDefault({...DEFAULT_NAR_CONFIG, lmClient: deps.lmClient});
+            const nar = deps.nar ?? SeNARSFactory.createDefault({...DEFAULT_NAR_CONFIG, lmService: deps.lmService});
             const ep = deps.episodicMemory ?? createDefaultEpisodicMemory();
-            const lmClient = deps.lmClient;
+            const lmService = deps.lmService;
             const agent = createAgent({
                 ...(deps.baseOptions ?? {}),
                 nar,
                 episodicMemory: ep,
-                ...(lmClient ? {lmClient} : {}),
+                ...(lmService ? {lmService} : {}),
                 ...(deps.systemInstructions ? {systemInstructions: deps.systemInstructions} : {}),
             });
-            return {agent, nar, lmClient, episodicMemory: ep};
+            return {agent, nar, lmService, episodicMemory: ep};
         }
         case 'lm-only': {
-            const lmClient = deps.lmClient;
-            if (!lmClient) throw new Error('lm-only preset requires deps.lmClient');
+            const lmService = deps.lmService;
+            if (!lmService) throw new Error('lm-only preset requires deps.lmService');
             const agent = createAgent({
                 ...(deps.baseOptions ?? {}),
-                lmClient,
+                lmService,
                 ...(deps.systemInstructions ? {systemInstructions: deps.systemInstructions} : {systemInstructions: NARSESE_FALLBACK}),
             });
-            return {agent, nar: undefined, lmClient, episodicMemory: deps.episodicMemory};
+            return {agent, nar: undefined, lmService, episodicMemory: deps.episodicMemory};
         }
         case 'full': {
-            const nar = deps.nar ?? SeNARSFactory.createDefault({...DEFAULT_NAR_CONFIG, lmClient: deps.lmClient});
-            const lmClient = deps.lmClient;
+            const nar = deps.nar ?? SeNARSFactory.createDefault({...DEFAULT_NAR_CONFIG, lmService: deps.lmService});
+            const lmService = deps.lmService;
             const ep = deps.episodicMemory ?? createDefaultEpisodicMemory();
             const agent = createAgent({
                 ...(deps.baseOptions ?? {}),
                 nar,
                 episodicMemory: ep,
-                ...(lmClient ? {lmClient} : {}),
+                ...(lmService ? {lmService} : {}),
                 ...(deps.systemInstructions ? {systemInstructions: deps.systemInstructions} : {}),
             });
-            return {agent, nar, lmClient, episodicMemory: ep};
+            return {agent, nar, lmService, episodicMemory: ep};
         }
     }
 }

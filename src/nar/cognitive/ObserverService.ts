@@ -5,7 +5,7 @@
  */
 
 import type {NAR} from '../nar.js';
-import type {LMClient} from '../lm';
+import type {LMService} from '../lm/lm-service.js';
 import {EventBus} from '../types';
 import {countContradictions as countContradictionsImpl, findConflicts, termOverlap} from './conflict-utils.js';
 
@@ -23,7 +23,7 @@ export interface ObserverReport {
 }
 
 export class ObserverService {
-    private lmClient: LMClient | null = null;
+    private lmClient: LMService | null = null;
     private eventBus?: EventBus;
 
     constructor(eventBus?: EventBus) {
@@ -34,7 +34,7 @@ export class ObserverService {
         this.eventBus = eventBus;
     }
 
-    setLMClient(lm: LMClient | null): void {
+    setLMClient(lm: LMService | null): void {
         this.lmClient = lm;
     }
 

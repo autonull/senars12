@@ -5,6 +5,7 @@ import type {SessionManager} from './SessionManager.js';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {resolveReplyTarget} from '../io/connections/reply-target.js';
 import type {NLGenerationService} from '../nar/nl';
+import type {NLUnderstandingService} from '../nar/nl/understanding.js';
 import {createLogger} from '../nar/logger';
 import {
     compose,
@@ -26,6 +27,7 @@ export interface BridgeOptions {
     episodicMemory?: EpisodicMemory;
     rateLimitPerMinute?: number;
     generationService?: NLGenerationService;
+    understandingService?: NLUnderstandingService;
     manager?: ConnectionManager;
     enableNarseseHumanization?: boolean;
     enableNarsTrace?: boolean;

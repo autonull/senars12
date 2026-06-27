@@ -1,5 +1,5 @@
 import type {NAR, Task} from '../nar';
-import type {LMClient} from '../nar/lm';
+import type {LMService} from '../nar/lm';
 import type {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
 import {ContextAssemblerOpts} from '../nar/nl';
 import {ApprovalManager} from '../nar/tools/adapters';
@@ -8,6 +8,8 @@ import {Logger} from '../nar/logger';
 import {AutonomyEngine} from './AutonomyEngine.js';
 import type {AutonomousLoop} from './AutonomousLoop.js';
 import type {EventKey, EventMap} from './EventBus.js';
+
+export type {LMService} from '../nar/lm';
 
 export interface RLFPState {
     enabled: boolean;
@@ -137,7 +139,8 @@ export interface SessionSnapshot {
 
 export interface AgentOptions {
     nar?: NAR;
-    lmClient?: LMClient;
+    lmService?: LMService;
+    lmClient?: LMService;
     episodicMemory?: EpisodicMemory;
     systemInstructions?: string;
     context?: ContextAssemblerOpts;

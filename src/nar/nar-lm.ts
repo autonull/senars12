@@ -1,7 +1,8 @@
-import type {LMClient, SeNARSRegistry} from './lm';
+import type {SeNARSRegistry} from './lm';
 import {BidirectionalFeedbackLoop, getQualityModel, ProactiveEnricher} from './lm';
 import type {Memory} from './memory';
 import type {Task} from './types';
+import type {LMService} from './lm';
 
 export interface LMEnrichmentStats {
     cycles: number;
@@ -20,16 +21,16 @@ export class NARLM {
     constructor(
         private readonly memory: Memory,
         private readonly registry?: SeNARSRegistry,
-        lmClient?: LMClient,
+        lmService?: LMService,
         enableBidirectionalFeedback?: boolean,
         enableProactiveEnrichment?: boolean,
     ) {
-        if (lmClient) {
+        if (lmService) {
             if (enableBidirectionalFeedback) {
-                this.feedbackLoop = new BidirectionalFeedbackLoop(memory, lmClient);
+                this.feedbackLoop = new BidirectionalFeedbackLoop(memory, lmService);
             }
             if (enableProactiveEnrichment) {
-                this.enricher = new ProactiveEnricher(memory, lmClient);
+                this.enricher = new ProactiveEnricher(memory, lmService);
             }
         }
     }

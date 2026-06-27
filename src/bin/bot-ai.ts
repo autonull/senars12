@@ -26,12 +26,13 @@ import {
     MCPConnection,
     WSConnection
 } from '../io';
-import {NLGenerationService} from '../nar/nl';
+import {NLGenerationService, NLUnderstandingService} from '../nar/nl';
 import {SeNARSFactory} from '../nar';
-import {createSeNARSRegistry, setupDefaultLMClient} from '../nar/lm';
+import {createSeNARSRegistry, getModelForTask} from '../nar/lm';
 import {resolveLMConfig} from '../nar/lm/env-config.js';
 import {createLogger} from '../nar/logger';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
+import {TranslationCache} from '../nar/nl/cache.js';
 import {DEFAULT_NAR_CONFIG, loadConfigFromEnv} from '../config';
 import {setupGracefulShutdown} from '../utils';
 import {assertValidEnv} from '../utils/env-validate.js';
@@ -45,12 +46,10 @@ async function main(): Promise<void> {
     const config = await loadConfigFromEnv();
 
     const registry = createSeNARSRegistry();
-    const lmClient = setupDefaultLMClient();
     const lmConfig = resolveLMConfig();
     const nar = SeNARSFactory.createDefault({
         ...DEFAULT_NAR_CONFIG,
         providerRegistry: registry,
-        lmClient,
     });
 
     const episodicMemory = new EpisodicMemory({
@@ -60,7 +59,6 @@ async function main(): Promise<void> {
         retentionDays: parseInt(process.env.EPISODIC_RETENTION_DAYS || '30'),
     });
 
-    // Create and configure AutonomyEngine
     const systemEventBus = nar.getSystemEventBus();
     const autonomyEngine = createAutonomyEngine(nar, systemEventBus);
     autonomyEngine.setNotifyHandler((msg) => logger.debug(`[Autonomy] ${msg}`));
@@ -71,16 +69,14 @@ async function main(): Promise<void> {
         fs: {maxReadSize: 1024 * 1024},
     };
 
-    const agentOptions = {
+    const agent = createAgent({
         nar,
-        lmClient,
         episodicMemory,
         autonomyEngine,
         externalTools,
         workspaceRoot: process.cwd(),
         ...agentConfigToOptions(config.agent)
-    };
-    const agent = createAgent(agentOptions);
+    });
 
     await mkdir('.cache/sessions', {recursive: true}).catch(() => undefined);
     const sessionManager = new JsonlSessionManager({basePath: '.cache/sessions'});
@@ -96,7 +92,9 @@ async function main(): Promise<void> {
     const commandRegistry = new CommandRegistry();
     registerAllCommands(commandRegistry);
 
+    const translationCache = new TranslationCache({basePath: '.cache/translation-cache'});
     const generationService = new NLGenerationService(registry);
+    const understandingService = new NLUnderstandingService(registry, translationCache, {structuredOnly: true});
 
     const cm = new ConnectionManager(logger);
     cm.registerFactory({type: 'cli', create: cfg => new CLIConnection(cfg, {nar, emit: () => undefined, logger})});
@@ -120,6 +118,7 @@ async function main(): Promise<void> {
                 sessionManager,
                 episodicMemory,
                 generationService,
+                understandingService,
                 manager: cm,
                 enableNarseseHumanization: config.agent.enableNarseseHumanization,
             });
@@ -140,7 +139,7 @@ async function main(): Promise<void> {
         logger.info('Bot stopped');
     }, logger);
 
-    logger.info(`Bot ready: ${configs.length} connection(s), mode=${lmClient ? 'full' : 'senars-only'}`);
+    logger.info(`Bot ready: ${configs.length} connection(s)`);
     logger.info(`LM: ${lmConfig.provider} ${lmConfig.model}`);
     logger.info(`Try: IRC ${process.env.IRC_SERVER ?? 'irc.libera.chat'} #${(process.env.IRC_CHANNELS ?? '#senars').split(',')[0]}, or ws://localhost:${process.env.WS_PORT ?? '8765'}`);
 }

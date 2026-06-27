@@ -1,11 +1,12 @@
-import {generateObject, generateText} from 'ai';
+import {generateText} from 'ai';
+import type {LanguageModel} from 'ai';
 import type {SeNARSRegistry} from '../lm';
-import {getStructuredModel} from '../lm';
-import {termParser} from '../terms';
-import {errMsg} from '../utils';
+import {getModelForTask} from '../lm';
 import type {TranslationCache, TranslationCacheEntry} from './cache.js';
 import {TaskBatchSchema} from './schemas.js';
 import {buildUnderstandingPrompt} from './prompts/understanding-v1.js';
+import type {ZodSchema} from 'zod';
+import {generateObject} from 'ai';
 
 export interface Ambiguity {
     type: 'parse' | 'intent' | 'term' | 'reference';
@@ -46,6 +47,7 @@ function validateNarsese(text: string): boolean {
     const cleaned = text.replace(/^`+|`+$/g, '').trim();
     if (!cleaned) return false;
     try {
+        const {termParser} = require('../terms');
         termParser.parse(cleaned);
         return true;
     } catch {
@@ -54,17 +56,15 @@ function validateNarsese(text: string): boolean {
 }
 
 export class NLUnderstandingService {
-    private cache: TranslationCache;
-    private readonly structuredModel: ReturnType<typeof getStructuredModel>;
+    private readonly model: LanguageModel;
     private structuredOnly: boolean;
 
     constructor(
         registry: SeNARSRegistry,
-        cache: TranslationCache,
+        _cache: TranslationCache,
         opts?: { structuredOnly?: boolean },
     ) {
-        this.cache = cache;
-        this.structuredModel = getStructuredModel(registry);
+        this.model = getModelForTask(registry, 'structured') as LanguageModel;
         this.structuredOnly = opts?.structuredOnly ?? true;
     }
 
@@ -73,28 +73,17 @@ export class NLUnderstandingService {
         ctx?: NLContext,
         maxRetries = 2,
     ): Promise<TaskBatch | null> {
-        const cached = this.cache.get(input);
-        if (cached && typeof cached !== 'string') {
-            return this.toTaskBatch(cached);
-        }
-
         let lastError: string | null = null;
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
                 const result = await this.translateWithLM(input, ctx, lastError);
                 if (result) {
-                    this.cache.record(input, {
-                        beliefs: result.beliefs.map(b => ({narsese: b.narsese, truth: b.truth})),
-                        questions: result.questions.map(q => q.narsese),
-                        goals: result.goals.map(g => g.narsese),
-                        summary: input,
-                    });
                     return result;
                 }
                 lastError = 'No valid output produced';
             } catch (e) {
-                lastError = errMsg(e);
+                lastError = e instanceof Error ? e.message : String(e);
             }
         }
 
@@ -106,7 +95,7 @@ export class NLUnderstandingService {
         ctx?: NLContext,
         lastError?: string | null,
     ): Promise<TaskBatch | null> {
-        if (!this.structuredModel) return null;
+        if (!this.model) return null;
 
         const prompt = buildUnderstandingPrompt(input, {
             beliefs: ctx?.beliefs,
@@ -117,75 +106,44 @@ export class NLUnderstandingService {
                 : undefined,
         });
 
-        // Fallback chain: generateObject → generateText+JSON.parse → raw Narsese heuristics
-        let object: TaskBatch | null = null;
-
-        // Level 1: generateObject (structured output)
         try {
             const result = await generateObject({
-                model: this.structuredModel,
+                model: this.model,
                 prompt,
-                schema: TaskBatchSchema,
+                schema: TaskBatchSchema as ZodSchema<TaskBatch>,
             });
-            object = result.object as TaskBatch;
+            return result.object as TaskBatch;
         } catch {
-            // Level 2: generateText + JSON.parse
             try {
                 const textResult = await generateText({
-                    model: this.structuredModel,
+                    model: this.model,
                     prompt: prompt + '\n\nRespond with valid JSON only.',
                 });
                 const jsonMatch = textResult.text.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
-                    object = JSON.parse(jsonMatch[0]) as TaskBatch;
+                    return JSON.parse(jsonMatch[0]) as TaskBatch;
                 }
             } catch {
-                // Level 3: raw Narsese heuristics - extract Narsese from text
                 try {
                     const textResult = await generateText({
-                        model: this.structuredModel,
+                        model: this.model,
                         prompt: prompt + '\n\nRespond with Narsese statements only.',
                     });
-                    object = this.extractNarseseFromText(textResult.text, input);
+                    return this.extractNarseseFromText(textResult.text, input);
                 } catch {
                     return null;
                 }
             }
         }
 
-        if (!object) return null;
-
-        const validBeliefs = (object.beliefs ?? [])
-            .filter(b => validateNarsese(b.narsese))
-            .map(b => ({...b, source: b.source as 'user' | 'inferred'}));
-
-        const validQuestions = (object.questions ?? []).filter(q => validateNarsese(q.narsese));
-        const validGoals = (object.goals ?? []).filter(g => validateNarsese(g.narsese));
-
-        if (validBeliefs.length === 0 && validQuestions.length === 0 && validGoals.length === 0) {
-            return null;
-        }
-
-        return {
-            beliefs: validBeliefs,
-            questions: validQuestions,
-            goals: validGoals,
-            meta: {
-                detectedIntent: object.meta?.detectedIntent as TaskBatch['meta']['detectedIntent'] ?? 'reasoning',
-                ambiguities: object.meta?.ambiguities as unknown as Ambiguity[] ?? [],
-                coreferences: object.meta?.coreferences as unknown as Coreference[] ?? [],
-                implicitContext: object.meta?.implicitContext ?? [],
-            },
-        };
+        return null;
     }
 
     private extractNarseseFromText(text: string, input: string): TaskBatch {
-        // Heuristic: extract valid Narsese from text response
         const beliefs: Array<{ narsese: string; truth?: { f: number; c: number }; source: 'user' | 'inferred' }> = [];
         const questions: Array<{ narsese: string; context?: string }> = [];
         const goals: Array<{ narsese: string; priority?: number }> = [];
 
-        // Look for Narsese patterns like (A --> B), (A => B), ?(A --> B), !(A)
         const narsesePattern = /[\(<][^\)>]*[\)>]/g;
         const matches = text.match(narsesePattern) ?? [];
 
@@ -207,24 +165,6 @@ export class NLUnderstandingService {
             goals,
             meta: {
                 detectedIntent: 'learning',
-                ambiguities: [],
-                coreferences: [],
-                implicitContext: [],
-            },
-        };
-    }
-
-    private toTaskBatch(result: {
-        beliefs: Array<{ narsese: string; truth?: { f: number; c: number } }>;
-        questions: string[];
-        goals: string[]
-    }): TaskBatch {
-        return {
-            beliefs: result.beliefs.map(b => ({...b, source: 'user' as const})),
-            questions: result.questions.map(q => ({narsese: q})),
-            goals: result.goals.map(g => ({narsese: g})),
-            meta: {
-                detectedIntent: 'reasoning',
                 ambiguities: [],
                 coreferences: [],
                 implicitContext: [],

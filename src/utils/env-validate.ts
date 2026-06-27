@@ -3,7 +3,7 @@ import {createLogger} from '../nar/logger';
 const logger = createLogger({scope: 'env:validate'});
 
 const KNOWN_ENV_VARS = new Set([
-    'LM_PROVIDER', 'LM_MODEL', 'OLLAMA_HOST', 'OLLAMA_MODEL', 'ANTHROPIC_API_KEY',
+    'LM_PROVIDER', 'LM_MODEL', 'OLLAMA_HOST', 'OLLAMA_MODEL',
     'EPISODIC_MEMORY_PATH', 'EPISODIC_RETENTION_DAYS', 'AGENT_INSTRUCTIONS',
     'AUTO_TRIGGER_REASONING', 'REASONING_THRESHOLD', 'REASONING_COOLDOWN', 'MAX_REASONING_STEPS',
     'SENARS_AUTONOMY_BROADCAST',
@@ -49,7 +49,7 @@ export const validateEnv = (): ValidationResult => {
     for (const [name, value] of Object.entries(process.env)) {
         if (value === undefined) continue;
         if (!name.startsWith('SENARS_') && !name.startsWith('LM_') && !name.startsWith('OLLAMA_') &&
-            !name.startsWith('ANTHROPIC_') && !name.startsWith('EPISODIC_') && !name.startsWith('AGENT_') &&
+            !name.startsWith('EPISODIC_') && !name.startsWith('AGENT_') &&
             !name.startsWith('AUTO_') && !name.startsWith('REASONING_') && !name.startsWith('MAX_') &&
             name !== 'DEBUG') {
             continue;

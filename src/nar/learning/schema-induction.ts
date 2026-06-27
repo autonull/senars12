@@ -7,7 +7,7 @@
  * - Store as higher-order concepts with variables
  * - LM proposes, NARS validates, both adopt
  */
-import type {LMClient} from '../lm';
+import type {LMService} from '../lm/lm-service.js';
 import type {Memory} from '../memory';
 import type {Term} from '../terms';
 import {Truth} from '../terms';
@@ -49,13 +49,13 @@ const DEFAULT_CONFIG: SchemaInductionConfig = {
 
 export class SchemaInductor {
     private readonly memory: Memory;
-    private readonly lmClient: LMClient;
+    private readonly lmClient: LMService;
     private readonly config: SchemaInductionConfig;
     private readonly logger: Logger;
     private schemas = new Map<string, SchemaPattern>();
     private lastInductionTime = 0;
 
-    constructor(memory: Memory, lmClient: LMClient, config: Partial<SchemaInductionConfig> = {}) {
+    constructor(memory: Memory, lmClient: LMService, config: Partial<SchemaInductionConfig> = {}) {
         this.memory = memory;
         this.lmClient = lmClient;
         this.config = {...DEFAULT_CONFIG, ...config};
@@ -218,6 +218,6 @@ Respond with JSON:
     }
 }
 
-export const createSchemaInductor = (memory: Memory, lmClient: LMClient, config?: Partial<SchemaInductionConfig>): SchemaInductor => {
+export const createSchemaInductor = (memory: Memory, lmClient: LMService, config?: Partial<SchemaInductionConfig>): SchemaInductor => {
     return new SchemaInductor(memory, lmClient, config);
 };

@@ -4,8 +4,7 @@ import type {ConversationSession} from '../agent';
 import {type Agent, agentConfigToOptions, createAgent, createAutonomyEngine, JsonlSessionManager} from '../agent';
 import type {NAR} from '../nar';
 import {SeNARSFactory} from '../nar';
-import type {LMClient} from '../nar/lm';
-import {createSeNARSRegistry, setupDefaultLMClient} from '../nar/lm';
+import {createSeNARSRegistry, createLMService} from '../nar/lm';
 import {formatLMConfig, resolveLMConfig} from '../nar/lm/env-config.js';
 import {createLogger} from '../nar/logger';
 import {EpisodicMemory} from '../nar/memory/EpisodicMemory.js';
@@ -38,20 +37,20 @@ Commands:
 Just type natural language to chat, or Narsese to feed NAR directly!
 `;
 
-const buildCommands = (nar: NAR, agent: Agent, lmClient: LMClient, sessionManager: JsonlSessionManager, getSession: () => ConversationSession, setSession: (s: ConversationSession) => void): CLICommand[] => [
+const buildCommands = (nar: NAR, agent: Agent, lmService: ReturnType<typeof createLMService>, sessionManager: JsonlSessionManager, getSession: () => ConversationSession, setSession: (s: ConversationSession) => void): CLICommand[] => [
     {name: 'help', description: 'Show help', execute: () => HELP},
     {name: 'quit', description: 'Exit the REPL', execute: () => QUIT_SENTINEL},
     {
         name: 'stats', description: 'Show NAR and LM statistics', execute: () => {
             const stats = nar.getStatistics();
-            const lmStats = lmClient.getStats?.();
+            const lmStats = lmService.getStats();
             return [
                 '\n--- NAR Statistics ---',
                 `Concepts: ${stats.totalConcepts}`,
                 `Tasks: ${stats.totalTasks}`,
                 '\n--- LM Statistics ---',
-                `Provider: ${lmClient.provider ?? 'unknown'}`,
-                `Model:    ${lmClient.model ?? 'unknown'}`,
+                `Provider: ${lmService.provider ?? 'unknown'}`,
+                `Model:    ${lmService.model ?? 'unknown'}`,
                 ...(lmStats ? [
                     `Total calls: ${lmStats.totalCalls}`,
                     `Successful:  ${lmStats.successfulCalls}`,
@@ -165,7 +164,7 @@ const buildCommands = (nar: NAR, agent: Agent, lmClient: LMClient, sessionManage
     {
         name: 'status', description: 'Agent and NAR status', execute: () => {
             const stats = nar.getStatistics();
-            const lmStats = lmClient.getStats?.();
+            const lmStats = lmService.getStats();
             const lines = [
                 `\n--- Agent Status ---`,
                 `Throttle: ${agent.getThrottle()}%`,
@@ -173,8 +172,8 @@ const buildCommands = (nar: NAR, agent: Agent, lmClient: LMClient, sessionManage
                 `Concepts: ${stats.totalConcepts}`,
                 `Tasks: ${stats.totalTasks}`,
                 `\n--- LM ---`,
-                `Provider: ${lmClient.provider ?? 'unknown'}`,
-                `Model: ${lmClient.model ?? 'unknown'}`,
+                `Provider: ${lmService.provider ?? 'unknown'}`,
+                `Model: ${lmService.model ?? 'unknown'}`,
             ];
             if (lmStats) {
                 lines.push(`Calls: ${lmStats.totalCalls} (${lmStats.successfulCalls} ok, ${lmStats.failedCalls} fail)`);
@@ -243,11 +242,11 @@ async function main() {
     console.log('=================================\n');
 
     const registry = createSeNARSRegistry();
-    const lmClient = setupDefaultLMClient();
+    const lmService = createLMService();
     const nar = SeNARSFactory.createDefault({
         ...DEFAULT_NAR_CONFIG,
         providerRegistry: registry,
-        lmClient,
+        lmService,
     });
 
     const episodicMemory = new EpisodicMemory({
@@ -277,7 +276,7 @@ async function main() {
 
     const agent = createAgent({
         nar,
-        lmClient,
+        lmService,
         episodicMemory,
         autonomyEngine,
         externalTools,
@@ -298,7 +297,7 @@ async function main() {
     const setSession = (s: ConversationSession) => {
         currentSession = s;
     };
-    const commands = buildCommands(nar, agent, lmClient, sessionManager, getSession, setSession);
+    const commands = buildCommands(nar, agent, lmService, sessionManager, getSession, setSession);
 
     await readlineLoop({
         prompt: 'senars> ',

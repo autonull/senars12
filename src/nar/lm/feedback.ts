@@ -1,4 +1,5 @@
-import type {LMClient} from './types.js';
+import {type SeNARSRegistry, type LMTask, getModelForTask} from './providers.js';
+import {LMService} from './lm-service.js';
 import type {Memory} from '../memory';
 import type {Term} from '../terms';
 import {Truth} from '../terms';
@@ -46,15 +47,15 @@ export interface ExtractedPattern {
 
 export class BidirectionalFeedbackLoop {
     private readonly memory: Memory;
-    private readonly lmClient: LMClient;
+    private readonly lmService: LMService;
     private readonly config: FeedbackConfig;
     private readonly logger: Logger;
     private pendingValidations: Map<string, ValidationFeedback> = new Map();
     private recentPatterns: ExtractedPattern[] = [];
 
-    constructor(memory: Memory, lmClient: LMClient, config: Partial<FeedbackConfig> = {}) {
+    constructor(memory: Memory, lmService: LMService, config: Partial<FeedbackConfig> = {}) {
         this.memory = memory;
-        this.lmClient = lmClient;
+        this.lmService = lmService;
         this.logger = createLogger({scope: 'lm:feedback'});
         this.config = {
             enableBidirectionalFeedback: true,
@@ -78,7 +79,7 @@ export class BidirectionalFeedbackLoop {
         const validationPrompt = this.buildStructuredValidationPrompt(hypothesis, context);
 
         try {
-            const response = await this.lmClient.generateText(validationPrompt);
+            const response = await this.lmService.generateText(validationPrompt);
             const validation = this.parseStructuredValidation(response, hypothesis, context);
 
             if (validation) {
@@ -110,7 +111,7 @@ Provide a JSON response:
 }`;
 
         try {
-            const response = await this.lmClient.generateText(prompt);
+            const response = await this.lmService.generateText(prompt);
             return this.parseContradictionExplanation(response, beliefA, beliefB);
         } catch (error) {
             this.logger.warn(`Failed to explain contradiction: ${errMsg(error)}`);
@@ -140,7 +141,7 @@ Respond with JSON:
 }`;
 
         try {
-            const response = await this.lmClient.generateText(prompt);
+            const response = await this.lmService.generateText(prompt);
             const patterns = this.parsePatterns(response);
             this.recentPatterns.push(...patterns);
             if (this.recentPatterns.length > 20) {
@@ -166,7 +167,7 @@ Respond with JSON:
         for (const concept of underconnectedConcepts.slice(0, this.config.maxContextConcepts)) {
             try {
                 const enrichmentPrompt = this.buildEnrichmentPrompt(concept.term, derivations);
-                const response = await this.lmClient.generateText(enrichmentPrompt);
+                const response = await this.lmService.generateText(enrichmentPrompt);
                 const bridgingHypotheses = parseEnrichmentResponse(response).hypotheses;
 
                 for (const hyp of bridgingHypotheses) {
@@ -377,6 +378,6 @@ Respond in Narsese format, one per line.`;
     }
 }
 
-export const createBidirectionalFeedbackLoop = (memory: Memory, lmClient: LMClient, config?: Partial<FeedbackConfig>): BidirectionalFeedbackLoop => {
-    return new BidirectionalFeedbackLoop(memory, lmClient, config);
+export const createBidirectionalFeedbackLoop = (memory: Memory, lmService: LMService, config?: Partial<FeedbackConfig>): BidirectionalFeedbackLoop => {
+    return new BidirectionalFeedbackLoop(memory, lmService, config);
 };

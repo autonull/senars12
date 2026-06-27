@@ -1,4 +1,4 @@
-import type {LMClient} from './types.js';
+import {LMService} from './lm-service.js';
 import type {Memory} from '../memory';
 import type {Term} from '../terms';
 import {createBudget, type Task} from '../types';
@@ -24,16 +24,16 @@ export interface EnrichmentResult {
 
 export class ProactiveEnricher {
     private readonly memory: Memory;
-    private readonly lmClient: LMClient;
+    private readonly lmService: LMService;
     private readonly config: EnricherConfig;
     private readonly logger: Logger;
     private enrichmentTimer?: NodeJS.Timeout;
     private enrichmentCycle: number = 0;
     private results: EnrichmentResult[] = [];
 
-    constructor(memory: Memory, lmClient: LMClient, config: Partial<EnricherConfig> = {}) {
+    constructor(memory: Memory, lmService: LMService, config: Partial<EnricherConfig> = {}) {
         this.memory = memory;
-        this.lmClient = lmClient;
+        this.lmService = lmService;
         this.logger = createLogger({scope: 'lm:enrichment'});
         this.config = {
             enableProactiveEnrichment: true,
@@ -99,7 +99,7 @@ ${chainStr}
 Provide a clear, concise explanation of what was derived and why.`;
 
         try {
-            const response = await this.lmClient.generateText(prompt);
+            const response = await this.lmService.generateText(prompt);
             return response.trim();
         } catch (error) {
             // expected: LM call may fail due to network/provider issues
@@ -137,7 +137,7 @@ Question: ${question}
 Answer the question based on the available knowledge. If the answer cannot be determined from the context, say "I don't have enough information to answer this."`;
 
         try {
-            const response = await this.lmClient.generateText(prompt);
+            const response = await this.lmService.generateText(prompt);
             return response.trim();
         } catch (error) {
             // expected: LM call may fail due to network/provider issues
@@ -177,7 +177,7 @@ Answer the question based on the available knowledge. If the answer cannot be de
         let bridges: Task[] = [];
 
         try {
-            const response = await this.lmClient.generateText(hypothesisPrompt);
+            const response = await this.lmService.generateText(hypothesisPrompt);
             const parsed = parseEnrichmentResponse(response);
             hypotheses = parsed.hypotheses;
             bridges = parsed.bridges;
@@ -206,6 +206,6 @@ Respond in Narsese format, one statement per line.`;
     }
 }
 
-export const createProactiveEnricher = (memory: Memory, lmClient: LMClient, config?: Partial<EnricherConfig>): ProactiveEnricher => {
-    return new ProactiveEnricher(memory, lmClient, config);
+export const createProactiveEnricher = (memory: Memory, lmService: LMService, config?: Partial<EnricherConfig>): ProactiveEnricher => {
+    return new ProactiveEnricher(memory, lmService, config);
 };

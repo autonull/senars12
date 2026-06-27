@@ -16,7 +16,7 @@ import {
 } from './types';
 import type {Term} from './terms';
 import {Stamp, termParser, termsEqual, Truth, type TruthType} from './terms';
-import type {LMClient, SeNARSRegistry} from './lm';
+import type {SeNARSRegistry, LMService} from './lm';
 import {LMRules} from './lm';
 import {QueryAPI, ReasoningTrace} from './query';
 import {errMsg} from './utils';
@@ -43,7 +43,7 @@ export interface RLFPConfig {
 }
 
 export interface NARConfig extends CoreConfig {
-    lmClient?: LMClient;
+    lmService?: LMService;
     providerRegistry?: SeNARSRegistry;
     enableLMRules?: boolean;
     enableTools?: boolean;
@@ -56,7 +56,6 @@ export interface NARConfig extends CoreConfig {
     persistState?: boolean;
     statePath?: string;
 
-    /** Cognitive architecture configuration (Phase 3+) */
     cognitiveParams?: CognitiveParameters;
     strategyRegistry?: CognitiveRegistry;
     adaptationInterval?: number;
@@ -82,7 +81,7 @@ export class NAR extends BaseComponent {
     private readonly config: NARConfig;
     private readonly processor: RuleProcessor;
     private readonly _metricsCollector: MetricsCollector;
-    private readonly _lmClient?: LMClient;
+    private readonly _lmService?: LMService;
     private readonly _registry?: SeNARSRegistry;
     private _lmInitialized = false;
     private _toolsInitialized = false;
@@ -106,12 +105,11 @@ export class NAR extends BaseComponent {
         this.traceAPI = new ReasoningTrace(this.memory);
         this.tools = new ToolManager({eventBus});
         this.workingMemory = new WorkingMemory();
-        this._lmClient = this.config.lmClient;
+        this._lmService = this.config.lmService;
         this._registry = this.config.providerRegistry;
 
         if (this.config.enableRLFP) this.rlfp = new RLFPLearner({});
 
-        // Cognitive architecture — wire CognitiveController when params + registry are provided
         if (config.cognitiveParams && config.strategyRegistry) {
             this.cognitiveController = new CognitiveController(
                 config.strategyRegistry,
@@ -129,7 +127,7 @@ export class NAR extends BaseComponent {
         this.systemEventBus = new AgentEventBus();
         this.systemEventBus.wrapNarEventBus(eventBus);
         this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.rlfp?.policyOptimizerPublic, this.cognitiveController, this.driveManager, this.systemEventBus, this.self);
-        this.lm = new NARLM(this.memory, this._registry, this.config.lmClient, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment);
+        this.lm = new NARLM(this.memory, this._registry, this.config.lmService, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment);
         this._metricsCollector = metrics;
 
         this.driveManager = new DriveManager(this as any);
@@ -166,7 +164,6 @@ export class NAR extends BaseComponent {
         this.logger.info('NAR disposed');
     }
 
-    // Input methods
     async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
         return this.io.input(input, type, truth);
     }
@@ -183,7 +180,6 @@ export class NAR extends BaseComponent {
         return this.io.question(input);
     }
 
-    // Execution
     async run(steps = 1): Promise<number> {
         return this.execution.run(steps);
     }
@@ -192,7 +188,6 @@ export class NAR extends BaseComponent {
         yield* this.execution.runStream(steps, maxResults);
     }
 
-    // Memory access
     getConcept(term: Term): Concept | undefined {
         return this.memory.getConcept(term);
     }
@@ -209,7 +204,6 @@ export class NAR extends BaseComponent {
         return this.memory.getStatistics();
     }
 
-    // Configuration
     getConfig(): NARConfig {
         return {...this.config};
     }
@@ -219,9 +213,8 @@ export class NAR extends BaseComponent {
         this.memory.setConfig(updates);
     }
 
-    // Component accessors
-    getLMClient(): LMClient | undefined {
-        return this._lmClient;
+    getLMClient(): LMService | undefined {
+        return this._lmService;
     }
 
     getProviderRegistry(): SeNARSRegistry | undefined {
@@ -304,7 +297,7 @@ export class NAR extends BaseComponent {
     }
 
     getLMClientStats() {
-        return this._lmClient?.getStats?.();
+        return this._lmService?.getStats?.();
     }
 
     getLMRuleExecutionLog() {
@@ -323,7 +316,6 @@ export class NAR extends BaseComponent {
         return this.getModelWithFallback('fast');
     }
 
-    // Constitution
     setConstitution(beliefs: Task[]): void {
         this._constitution = beliefs.map(b => ({...b, stamp: {...b.stamp, source: 'CONSTITUTION' as const}}));
     }
@@ -336,7 +328,6 @@ export class NAR extends BaseComponent {
         return this._constitution.some(c => this.contradicts(belief.term, c.term));
     }
 
-    // Attention
     attentionReport(): { concepts: Array<{ term: string; priority: number }>; total: number } {
         const concepts = this.memory.listConcepts();
         const sorted = concepts.map(c => ({
@@ -346,14 +337,12 @@ export class NAR extends BaseComponent {
         return {concepts: sorted, total: concepts.length};
     }
 
-    // Domain loading
     loadDomain(domain: { name: string; beliefs: string[] }): void {
         for (const belief of domain.beliefs) this.io.input(belief);
     }
 
-    // Natural language processing
     async askNaturalLanguage(question: string): Promise<string> {
-        const lm = this._lmClient;
+        const lm = this._lmService;
         if (!lm) return 'LM client not configured';
 
         const translatePrompt = `Convert this natural language question to Narsese query format. Only output the Narsese, nothing else. Question: "${question}"`;
@@ -375,7 +364,6 @@ export class NAR extends BaseComponent {
         return lm.generateText(explainPrompt);
     }
 
-    // Query API delegation
     getBeliefs(filter?: Record<string, unknown>): Task[] {
         return this.query.getBeliefs(filter);
     }
@@ -396,7 +384,6 @@ export class NAR extends BaseComponent {
         return this.query.ask(question);
     }
 
-    // Trace API delegation
     getDerivationHistory(task: Task) {
         return this.traceAPI.getDerivationHistory(task);
     }
@@ -409,7 +396,6 @@ export class NAR extends BaseComponent {
         return this.traceAPI.explain(conclusion);
     }
 
-    // Metrics
     recordRuleExecution(ruleId: string, success: boolean, duration: number) {
         this._metricsCollector.recordRuleExecution(ruleId, success, duration);
     }
@@ -426,13 +412,11 @@ export class NAR extends BaseComponent {
         return this._metricsCollector.getSummary();
     }
 
-    // LM initialization
     async initializeLM(): Promise<void> {
-        if (this._lmInitialized || !this.config.lmClient) return;
-        this.initializeLMRules(this.config.lmClient);
+        if (this._lmInitialized || !this._lmService) return;
+        this.initializeLMRules(this._lmService);
     }
 
-    // Tool execution
     async executeTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
         return this.tools.execute(name, args);
     }
@@ -441,7 +425,6 @@ export class NAR extends BaseComponent {
         return this.tools.list();
     }
 
-    // Serialization
     export() {
         return this.io.export();
     }
@@ -466,7 +449,6 @@ export class NAR extends BaseComponent {
         await this.io.loadMemoryState(state);
     }
 
-    // LM methods
     async processHypothesisWithFeedback(hypothesis: Task): Promise<boolean> {
         return this.lm.processHypothesisWithFeedback(hypothesis);
     }
@@ -584,14 +566,13 @@ export class NAR extends BaseComponent {
     }
 
     private getModelWithFallback(prefix: string) {
-        return this._registry?.languageModel(`cloud:${prefix}`)
-            ?? this._registry?.languageModel(`local:${prefix}`)
+        return this._registry?.languageModel(`local:${prefix}`)
             ?? this._registry?.languageModel('builtin:compact');
     }
 
     private initializeOptionalFeatures(): void {
-        if (this.config.enableLMRules && this.config.lmClient) {
-            this.initializeLMRules(this.config.lmClient);
+        if (this.config.enableLMRules && this.config.lmService) {
+            this.initializeLMRules(this.config.lmService);
         }
         if (this.config.enableTools) {
             this.initializeTools();
@@ -615,14 +596,12 @@ export class NAR extends BaseComponent {
         return config;
     }
 
-    private initializeLMRules(lmClient: LMClient): void {
-        const lmRules = LMRules.createAll(lmClient);
+    private initializeLMRules(lmService: LMService): void {
+        const lmRules = LMRules.createAll(lmService as any);
         const structuredModel = this._registry
-            ? this._registry.languageModel('cloud:quality')
-            ?? this._registry.languageModel('local:quality')
+            ? this._registry.languageModel('local:quality')
             : undefined;
 
-        // Create tool dispatcher for LM rules that need tool access
         const toolDispatcher = async (tool: string, args: Record<string, unknown>) => {
             return this.executeTool(tool, args);
         };

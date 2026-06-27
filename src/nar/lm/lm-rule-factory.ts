@@ -7,7 +7,8 @@ import {calculateSimilarity, Truth} from '../terms';
 import type {Task, TaskType} from '../types';
 import {createBudget, createTask} from '../types';
 import {LMRule} from './LMRule.js';
-import type {LMClient, LMRuleConfig} from './types.js';
+import type {LMRuleConfig} from './types.js';
+import {LMService} from './lm-service.js';
 import {LMResponseParser} from './parser.js';
 import type {ZodSchema} from 'zod';
 import {
@@ -322,7 +323,7 @@ const prompts: Record<string, string> = {
     'lm-v2-schema': 'You are a schema induction system. Pattern: {{primaryTerm}}. Induce a reusable schema. Respond with JSON: {"schema": "...", "instances": ["..."], "confidence": 0.8}',
 };
 
-interface LMRuleFactoryConfig extends Partial<LMRuleConfig> {
+interface LMRuleFactoryConfig {
     id?: string;
     name?: string;
     description?: string;
@@ -337,14 +338,14 @@ interface LMRuleFactoryConfig extends Partial<LMRuleConfig> {
 
 export class LMRuleFactory {
     private readonly config: LMRuleFactoryConfig;
-    private readonly lm: LMClient | null;
+    private readonly lm: LMService | null;
 
-    constructor(lm: LMClient | null, config: LMRuleFactoryConfig = {}) {
+    constructor(lm: LMService | null, config: LMRuleFactoryConfig = {}) {
         this.lm = lm;
         this.config = config;
     }
 
-    static from(lm: LMClient | null): LMRuleFactory {
+    static from(lm: LMService | null): LMRuleFactory {
         return new LMRuleFactory(lm);
     }
 
@@ -435,7 +436,7 @@ export class LMRuleFactory {
     }
 }
 
-const createCustomRule = (id: string, lm: LMClient | null, config: LMRuleFactoryConfig): LMRule => {
+const createCustomRule = (id: string, lm: LMService | null, config: LMRuleFactoryConfig): LMRule => {
     const taskType = config.taskType ?? 'belief';
     const budget = config.budget ?? 0.7;
     return new LMRule(id, lm, {
@@ -451,7 +452,7 @@ const createCustomRule = (id: string, lm: LMClient | null, config: LMRuleFactory
     });
 };
 
-const createRule = (lm: LMClient | null, def: LMRuleDefinition, config: Partial<LMRuleConfig> = {}): LMRule => {
+const createRule = (lm: LMService | null, def: LMRuleDefinition, config: Partial<LMRuleConfig> = {}): LMRule => {
     const taskType = def.taskType ?? 'belief';
     const budget = def.budget ?? 0.7;
     return new LMRule(def.id, lm, {
@@ -480,9 +481,9 @@ const getRuleDef = (id: string): LMRuleDefinition => {
 
 // Backward compatibility - LMRules object
 export const LMRules = Object.freeze({
-    createById: (id: string, lm: LMClient | null, config?: Partial<LMRuleConfig>): LMRule =>
+    createById: (id: string, lm: LMService | null, config?: Partial<LMRuleConfig>): LMRule =>
         createRule(lm, getRuleDef(id), config),
-    createAll: (lm: LMClient | null, config?: Partial<LMRuleConfig>): LMRule[] =>
+    createAll: (lm: LMService | null, config?: Partial<LMRuleConfig>): LMRule[] =>
         ruleDefs.map(d => createRule(lm, d, config)),
     ruleDefs
 });
@@ -504,10 +505,10 @@ export interface ValidationRule {
 }
 
 export class DynamicLMRuleGenerator {
-    private readonly lm: LMClient;
+    private readonly lm: LMService;
     private readonly baseConfig: Partial<LMRuleConfig>;
 
-    constructor(lm: LMClient, baseConfig?: Partial<LMRuleConfig>) {
+    constructor(lm: LMService, baseConfig?: Partial<LMRuleConfig>) {
         this.lm = lm;
         this.baseConfig = baseConfig ?? {};
     }
@@ -638,7 +639,7 @@ Respond with JSON only:
 export class CompositeLMRule extends LMRule {
     private readonly componentRules: LMRule[] = [];
 
-    constructor(id: string, lm: LMClient, config: LMRuleConfig) {
+    constructor(id: string, lm: LMService, config: LMRuleConfig) {
         super(id, lm, config);
     }
 
@@ -666,10 +667,10 @@ export class CompositeLMRule extends LMRule {
     }
 }
 
-export const createDynamicRuleGenerator = (lm: LMClient, baseConfig?: Partial<LMRuleConfig>): DynamicLMRuleGenerator => {
+export const createDynamicRuleGenerator = (lm: LMService, baseConfig?: Partial<LMRuleConfig>): DynamicLMRuleGenerator => {
     return new DynamicLMRuleGenerator(lm, baseConfig);
 };
 
-export const createCompositeRule = (id: string, lm: LMClient, config: LMRuleConfig): CompositeLMRule => {
+export const createCompositeRule = (id: string, lm: LMService, config: LMRuleConfig): CompositeLMRule => {
     return new CompositeLMRule(id, lm, config);
 };
