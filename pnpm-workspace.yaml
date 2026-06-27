@@ -1,3 +1,6 @@
+packages:
+  - 'ui'
+
 allowBuilds:
   '@google/genai': true
   '@swc/core': set this to true or false

@@ -130,6 +130,13 @@ async function main(): Promise<void> {
 
     agent.start();
 
+    if (process.env.ENABLE_WEB_UI) {
+        const {startWebUI} = await import('../../ui/src/server/index.js');
+        startWebUI(nar, agent).catch(err => {
+            logger.error('Web UI failed to start', err as Error);
+        });
+    }
+
     setupGracefulShutdown(async () => {
         logger.info('Shutting down...');
         await sessionManager.snapshot();

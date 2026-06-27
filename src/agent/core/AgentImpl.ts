@@ -420,7 +420,7 @@ export class AgentImpl implements Agent {
 
     on(event: string, listener: (...args: any[]) => void): () => void {
         const unsubAgent = this.eventBus.on(event as any, listener);
-        const systemEventBus = this.nar?.getEventBus?.();
+        const systemEventBus = this.nar?.getSystemEventBus?.();
         const unsubSystem = systemEventBus?.on(event as any, listener);
         return () => {
             unsubAgent();

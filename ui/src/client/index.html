@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SeNARS Cognitive HUD</title>
+  <link rel="stylesheet" href="./core/theme.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.0/styles/atom-one-dark.min.css">
+</head>
+<body>
+  <div id="status-dot" style="position:fixed;top:10px;right:10px;width:8px;height:8px;border-radius:50%;background:#475569;z-index:100;transition:background 0.3s;box-shadow:0 0 4px rgba(0,0,0,0.5);"></div>
+
+  <div style="display: grid; grid-template-columns: 1fr 300px; grid-template-rows: 1fr; height: 100vh;">
+    <div style="display: flex; flex-direction: column; border-right: 1px solid var(--border-dim);">
+      <cognitive-hud style="height: 60%; border-bottom: 1px solid var(--border-dim);"></cognitive-hud>
+      <chat-console style="height: 40%;"></chat-console>
+    </div>
+    <config-drawer></config-drawer>
+  </div>
+
+  <script type="module" src="./core/ws-client.ts"></script>
+  <script type="module">
+    import { wsClient } from './core/ws-client.js';
+    const dot = document.getElementById('status-dot');
+    if (dot) {
+      const colors = { connected: '#00f3ff', connecting: '#ffb000', disconnected: '#475569' };
+      wsClient.onStatusChange((s) => { dot.style.background = colors[s] ?? colors.disconnected; });
+      dot.style.background = colors[wsClient.status] ?? colors.disconnected;
+    }
+  </script>
+  <script type="module" src="./components/chat-console.ts"></script>
+  <script type="module" src="./components/config-drawer.ts"></script>
+  <script type="module" src="./components/cognitive-hud.ts"></script>
+</body>
+</html>
