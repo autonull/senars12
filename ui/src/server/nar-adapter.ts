@@ -3,6 +3,31 @@ import type { ConfigFieldType } from '../shared/protocol.js';
 import type { NarAdapter } from './gateway.js';
 import { findConflicts } from '../../../src/nar/cognitive/conflict-utils.js';
 
+interface ConceptLike {
+  term: { toString(): string } | string;
+  priority?: number;
+  confidence?: number;
+  getLinks(): Array<{ concept: { term: { toString(): string } | string }; strength?: number }>;
+}
+
+interface BeliefLike {
+  a: { toString(): string };
+  b: { toString(): string };
+}
+
+interface AttentionReport {
+  concepts: Array<{ term: string; priority: number }>;
+}
+
+interface DriveManager {
+  getAllStates(): Array<{ spec: { id: string | number; name: string }; currentIntensity: number; isActive: boolean }>;
+}
+
+interface MetricsSummary {
+  system?: { totalSteps: number };
+  lm?: { tokenUsage: { total: number } };
+}
+
 class ConfigManager {
   private state: Record<string, ConfigFieldType> = {
     'llm.provider': { type: 'dropdown', label: 'LM Provider', value: 'openai', options: ['openai', 'anthropic', 'google', 'groq', 'ollama', 'custom'] },
@@ -35,7 +60,7 @@ class ConfigManager {
   }
 }
 
-function mapConcept(c: any, conflictTerms: Set<string>) {
+function mapConcept(c: ConceptLike, conflictTerms: Set<string>) {
   const termStr = c.term.toString();
   const lensData = conflictTerms.has(termStr) ? { score: 1, color: 'rgba(255, 0, 255, 1)', size: 50 } : undefined;
 
@@ -45,7 +70,7 @@ function mapConcept(c: any, conflictTerms: Set<string>) {
     confidence: c.confidence ?? 0.9,
     lensData,
     getLinks() {
-      return c.getLinks().map((l: any) => ({ target: l.concept.term.toString(), strength: l.strength ?? 0.5 }));
+      return c.getLinks().map((l) => ({ target: l.concept.term.toString(), strength: l.strength ?? 0.5 }));
     },
   };
 }
@@ -55,9 +80,9 @@ export function buildNarAdapter(nar: NAR): NarAdapter {
 
   return {
     listConcepts() {
-      const concepts = nar.listConcepts();
-      const beliefs = nar.getBeliefs();
-      const conflicts = findConflicts(beliefs);
+      const concepts = nar.listConcepts() as unknown as ConceptLike[];
+      const beliefs = nar.getBeliefs() as unknown;
+      const conflicts = findConflicts(beliefs as never);
       const conflictTerms = new Set<string>();
       for (const c of conflicts) {
         conflictTerms.add(c.a.toString());
@@ -67,15 +92,15 @@ export function buildNarAdapter(nar: NAR): NarAdapter {
     },
     getSystemEventBus() { return nar.getSystemEventBus(); },
     attentionReport() {
-      const report = nar.attentionReport();
-      return { concepts: report.concepts.map((c: any) => ({ term: c.term, priority: c.priority })) };
+      const report = nar.attentionReport() as AttentionReport;
+      return { concepts: report.concepts.map((c) => ({ term: c.term, priority: c.priority })) };
     },
     getDriveManager(): ReturnType<NarAdapter['getDriveManager']> {
-      const dm = nar.getDriveManager?.();
+      const dm = nar.getDriveManager?.() as DriveManager | undefined;
       if (!dm) return undefined;
       return {
         getAllStates() {
-          return dm.getAllStates().map((d: any) => ({
+          return dm.getAllStates().map((d) => ({
             spec: { id: String(d.spec.id), name: String(d.spec.name) },
             currentIntensity: Number(d.currentIntensity),
             isActive: Boolean(d.isActive),
@@ -92,7 +117,7 @@ export function createTelemetryEmitter(nar: NAR, send: (msg: { type: 'telemetry'
   let cycleCount = 0;
   let lastTick = Date.now();
   const timer = setInterval(() => {
-    const summary = nar.getMetrics();
+    const summary = nar.getMetrics() as MetricsSummary;
     const cycleDelta = (summary.system?.totalSteps ?? 0) - cycleCount;
     cycleCount = summary.system?.totalSteps ?? 0;
     const elapsed = (Date.now() - lastTick) / 1000;

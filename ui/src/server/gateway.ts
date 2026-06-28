@@ -18,10 +18,12 @@ interface PendingChatResponse {
 
 let pendingChatResponse: PendingChatResponse | null = null;
 
+/** Stores a pending chat response for test injection. */
 export function setPendingChatResponse(stream: string, complete: string) {
   pendingChatResponse = { stream, complete };
 }
 
+/** Consumes and clears the pending chat response. */
 export function consumePendingChatResponse(): PendingChatResponse | undefined {
   if (!pendingChatResponse) return undefined;
   const response = pendingChatResponse;
@@ -50,6 +52,7 @@ export interface NarAdapter {
 
 type SendFn = (msg: IncomingFromServer) => void;
 
+/** Handles an incoming WebSocket connection and routes messages to handlers. */
 export function handleConnection(
   socket: WebSocket,
   nar: NarAdapter,

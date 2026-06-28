@@ -1,21 +1,10 @@
 import type { IncomingFromServer, GraphOp, ChatMessage, GraphNodeData } from '../../shared/protocol.js';
-import { edgeKey } from '../../shared/utils.js';
+import { edgeKey, generateId, extractTerm } from '../../shared/utils.js';
+import type { Core } from 'cytoscape';
 import { $chatMessages, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $lastSeqId, $activeLens, $workingMemory } from './store.js';
-import type { CognitiveMeta } from './store.js';
+import type { CognitiveMeta, TelemetryData } from './store.js';
 
 const TELEMETRY_WINDOW = 300;
-
-let msgCounter = 0;
-function generateId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${++msgCounter}-${Math.random().toString(36).slice(2, 6)}`;
-}
-
-function extractTerm(content: string): string | undefined {
-  const trimmed = content.trim();
-  if (!trimmed) return undefined;
-  const words = trimmed.split(/\s+/);
-  return words[0]?.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || undefined;
-}
 
 function renderMessageHtml(msg: ChatMessage): string {
   const roleClass = `msg-${msg.role}`;
@@ -23,6 +12,7 @@ function renderMessageHtml(msg: ChatMessage): string {
   return `<div class="graph-message ${roleClass}" data-id="${msg.id}">${content}</div>`;
 }
 
+/** Adds a user chat message to the store and triggers graph update. */
 export function addUserMessage(content: string): void {
   const chat: ChatMessage = {
     id: generateId('user'),
@@ -40,7 +30,8 @@ export function addUserMessage(content: string): void {
   $chatMessages.set([...$chatMessages.get(), chat]);
 }
 
-export function applyServerMessage(msg: IncomingFromServer, cy?: any): void {
+/** Applies an incoming server message to the client state and optionally updates the graph. */
+export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
   switch (msg.type) {
     case 'chat.agent.stream':
       $streamingDelta.set($streamingDelta.get() + msg.delta);
@@ -107,16 +98,16 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: any): void {
   }
 }
 
-function applyFullSnapshot(data: { graph: { nodes: any[]; edges: any[] }; workingMemory: any[]; config: Record<string, any> }, cy?: any): void {
-  const nodes = new Map<string, GraphNodeData>(data.graph.nodes.map((n) => [n.id, n as GraphNodeData]));
+function applyFullSnapshot(data: { graph: { nodes: GraphNodeData[]; edges: Record<string, any>[] }; workingMemory: (string | { id: string })[]; config: Record<string, any> }, cy?: Core): void {
+  const nodes = new Map<string, GraphNodeData>(data.graph.nodes.map((n) => [n.id, n]));
   const edges = new Map<string, Record<string, any>>(data.graph.edges.map((e) => [edgeKey(e.source, e.target), e]));
   $graphNodes.set(nodes);
   $graphEdges.set(edges);
   $config.set(data.config);
-  $workingMemory.set(data.workingMemory?.map((item: any) => typeof item === 'object' ? item.id : String(item)) ?? []);
+  $workingMemory.set(data.workingMemory?.map((item) => typeof item === 'object' ? item.id : String(item)) ?? []);
 }
 
-function applyGraphOps(ops: GraphOp[], cy?: any): void {
+function applyGraphOps(ops: GraphOp[], cy?: Core): void {
   const nodes = new Map($graphNodes.get());
   const edges = new Map($graphEdges.get());
   for (const op of ops) {
@@ -157,8 +148,13 @@ function applyGraphOps(ops: GraphOp[], cy?: any): void {
   $graphEdges.set(edges);
 }
 
-const pushWindow = (arr: number[], v: number) =>
-  arr.length >= TELEMETRY_WINDOW ? [...arr.slice(arr.length - TELEMETRY_WINDOW + 1), v] : [...arr, v];
+function pushWindow(arr: number[], v: number): number[] {
+  if (arr.length >= TELEMETRY_WINDOW) {
+    arr.shift();
+  }
+  arr.push(v);
+  return arr;
+}
 
 function appendTelemetry(msg: { metrics: { reasoning_hz: number; tokens_per_sec: number; memory_mb: number; ws_latency_ms: number } }): void {
   const t = $telemetry.get();
@@ -170,7 +166,7 @@ function appendTelemetry(msg: { metrics: { reasoning_hz: number; tokens_per_sec:
   });
 }
 
-function addConfigMetaNode(cy: any, config: Record<string, any>): void {
+function addConfigMetaNode(cy: Core, config: Record<string, any>): void {
   cy.add({
     group: 'nodes',
     data: {

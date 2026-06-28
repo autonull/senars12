@@ -1,11 +1,18 @@
 import type { WebSocket } from 'ws';
 import type { Agent } from '../../../src/agent/types.js';
-import type { GraphOp, IncomingFromServer, Lens } from '../shared/protocol.js';
+import type { GraphOp, IncomingFromServer, Lens, GraphNodeData } from '../shared/protocol.js';
 import type { NarAdapter } from './gateway.js';
 import { computeActiveSubgraph } from './projection.js';
 import { DEFAULT_PROJECTION } from './config.js';
-import { createNodeOp, createEdgeOp } from './graph-factory.js';
 import { buildLensGraphOps } from './lenses.js';
+
+function createNodeOp(id: string, data: GraphNodeData): GraphOp {
+  return { action: 'add_node' as const, id, data };
+}
+
+function createEdgeOp(source: string, target: string, weight: number, type = 'semantic'): GraphOp {
+  return { action: 'add_edge' as const, source, target, data: { weight, type, directed: true } };
+}
 
 const cn = (id: string, label: string, priority: number, confidence: number, lensData?: { score: number; color: string; size: number }) =>
   createNodeOp(id, { id, label, priority, confidence, nodeType: 'concept', lensData });
@@ -32,7 +39,7 @@ function beliefGraphDelta(adapter: NarAdapter, lens?: Lens): { ops: GraphOp[]; m
 }
 
 function workingMemoryDelta(adapter: NarAdapter): GraphOp[] {
-  return adapter.attentionReport().concepts.map((c: any) =>
+  return adapter.attentionReport().concepts.map((c) =>
     cn(c.term.toString(), c.term.toString(), c.priority, 0.9)
   );
 }
@@ -61,14 +68,14 @@ export function subscribeNarEvents(socket: WebSocket, adapter: NarAdapter, curre
       const { ops, meta } = beliefGraphDelta(adapter, currentLens());
       send(socket, { type: 'cognitive.delta', seqId: ++seqId, lens: currentLens(), ops, meta });
     }),
-    bus.on('nar:concept:activated', (d: any) => {
-      const term = typeof d.term === 'object' ? d.term.toString() : String(d.term);
+    bus.on('nar:concept:activated', (d: { term?: unknown; priority?: number }) => {
+      const term = d.term ? (typeof d.term === 'object' ? d.term.toString() : String(d.term)) : '';
       send(socket, { type: 'cognitive.delta', seqId: ++seqId, lens: 'belief', ops: [cn(term, term, d.priority ?? 0.5, 0.9)] });
     }),
-    bus.on('nar:reasoning:cycle', (d: any) => {
+    bus.on('nar:reasoning:cycle', (d: { cycle?: number }) => {
       send(socket, { type: 'cognitive.delta', seqId: ++seqId, lens: 'belief', ops: [cn('cycle', 'cycle', d.cycle ?? 0, 1)] });
     }),
-    bus.on('nar:drive:changed', (d: any) => {
+    bus.on('nar:drive:changed', (d: { drive?: string; urgency?: number }) => {
       const id = d.drive ?? 'drive';
       send(socket, { type: 'cognitive.delta', seqId: ++seqId, lens: 'belief', ops: [cn(id, id, d.urgency ?? 0, 1)] });
     }),

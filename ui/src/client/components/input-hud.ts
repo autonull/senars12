@@ -1,9 +1,7 @@
 import { html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $streamingDelta } from '../core/store.js';
-import { send } from '../core/ws-client.js';
-import { addUserMessage } from '../core/store-bindings.js';
-import { BaseComponent } from '../core/base-component.js';
+import { $streamingDelta, send, addUserMessage } from '../core/index.js';
+import { BaseComponent } from '../core/index.js';
 
 @customElement('input-hud')
 export class InputHUD extends BaseComponent {

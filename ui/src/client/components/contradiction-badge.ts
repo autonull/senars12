@@ -1,7 +1,7 @@
 import { html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $graphNodes } from '../core/store.js';
-import { BaseComponent } from '../core/base-component.js';
+import { $graphNodes } from '../core/index.js';
+import { BaseComponent } from '../core/index.js';
 
 @customElement('contradiction-badge')
 export class ContradictionBadge extends BaseComponent {

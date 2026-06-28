@@ -1,7 +1,7 @@
 import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { $telemetry, mountTestApi } from '../core/store.js';
-import { BaseComponent } from '../core/base-component.js';
+import { $telemetry, mountTestApi } from '../core/index.js';
+import { BaseComponent } from '../core/index.js';
 
 interface TelemetrySeries { values: number[]; color: string; label: string }
 

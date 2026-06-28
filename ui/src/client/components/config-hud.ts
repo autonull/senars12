@@ -1,8 +1,7 @@
 import { html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $config, $configOpen } from '../core/store.js';
-import { send } from '../core/ws-client.js';
-import { BaseComponent } from '../core/base-component.js';
+import { $config, $configOpen, send } from '../core/index.js';
+import { BaseComponent } from '../core/index.js';
 import type { ConfigFieldType } from '../../shared/protocol.js';
 
 const updateConfig = (key: string, value: unknown) => {

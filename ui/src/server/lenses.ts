@@ -1,17 +1,18 @@
 import type { NarAdapter } from './gateway.js';
-import type { GraphOp, Lens } from '../shared/protocol.js';
-import { edgeKey } from '../shared/utils.js';
+import type { GraphOp, Lens, GraphNodeData } from '../shared/protocol.js';
+import { edgeKey, LENS_COLORS_HEX } from '../shared/index.js';
 import { computeActiveSubgraph } from './projection.js';
 import { DEFAULT_PROJECTION } from './config.js';
-import { createNodeOp, createEdgeOp } from './graph-factory.js';
+
+function createNodeOp(id: string, data: GraphNodeData): GraphOp {
+  return { action: 'add_node' as const, id, data };
+}
+
+function createEdgeOp(source: string, target: string, weight: number, type = 'semantic'): GraphOp {
+  return { action: 'add_edge' as const, source, target, data: { weight, type, directed: true } };
+}
 
 type LensScorer = (concept: { term: string; priority: number; confidence: number; getLinks: () => Array<{ target: string; strength: number }> }, allConcepts: unknown[]) => number;
-
-const LENS_COLORS_HEX: Record<Lens, string> = {
-  belief: '#00f3ff',
-  goal: '#ff0055',
-  contradiction: '#ff00ff',
-};
 
 function termOverlap(a: string, b: string): number {
   if (a === b) return 1;

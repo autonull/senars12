@@ -1,9 +1,8 @@
 import cytoscape, { type Core } from 'cytoscape';
 import { html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $chatMessages, $graphNodes, $graphEdges, $graphMeta, $activeLens, $selectedNodeId, $viewport, mountTestApi } from '../core/store.js';
-import { send } from '../core/ws-client.js';
-import { BaseComponent } from '../core/base-component.js';
+import { $activeLens, $chatMessages, $configOpen, $graphEdges, $graphMeta, $graphNodes, $selectedNodeId, $viewport, mountTestApi, send } from '../core/index.js';
+import { BaseComponent } from '../core/index.js';
 import { edgeKey } from '../../shared/utils.js';
 import type { GraphNodeData, ChatMessage } from '../../shared/protocol.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';

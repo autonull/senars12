@@ -1,17 +1,11 @@
 import { html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import type { Lens } from '../../shared/protocol.js';
-import { $activeLens } from '../core/store.js';
-import { send } from '../core/ws-client.js';
-import { BaseComponent } from '../core/base-component.js';
-import { LENS_COLORS, LENS_LABELS } from '../constants.js';
+import { $activeLens, send } from '../core/index.js';
+import { BaseComponent } from '../core/index.js';
+import { LENS_COLORS, LENS_LABELS, LENS_DESCRIPTIONS } from '../constants.js';
 
 const LENSES: Lens[] = ['belief', 'goal', 'contradiction'];
-const LENS_DESCRIPTIONS: Record<Lens, string> = {
-  belief: 'What the system knows',
-  goal: 'What the system wants',
-  contradiction: 'Where beliefs conflict',
-};
 
 @customElement('lens-selector')
 export class LensSelector extends BaseComponent {
