@@ -1,6 +1,5 @@
 import http from 'http';
 import type { NAR } from '../../../src/nar/nar.js';
-import type { NarAdapter } from './gateway.js';
 import { setPendingChatResponse } from './gateway.js';
 
 interface MockRequest { body: any; method: string; url: string; headers: http.IncomingHttpHeaders }
@@ -106,4 +105,4 @@ function readJsonBody(req: http.IncomingMessage): Promise<any> {
   });
 }
 
-export type { NarAdapter };
+

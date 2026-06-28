@@ -1,7 +1,8 @@
-import { LitElement, html, css } from 'lit';
+import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { $config, mountTestApi } from '../core/store.js';
 import { send } from '../core/ws-client.js';
+import { BaseComponent } from '../core/base-component.js';
 
 const updateConfig = (key: string, value: unknown) => {
   const cfg = $config.get();
@@ -34,9 +35,7 @@ const renderField = (field: any, key: string) => html`
 `;
 
 @customElement('config-drawer')
-export class ConfigDrawer extends LitElement {
-  private unsub = $config.subscribe(() => this.requestUpdate());
-
+export class ConfigDrawer extends BaseComponent {
   static override styles = css`
     :host { display: block; background: var(--bg-panel-solid); border-left: 1px solid var(--border-dim); padding: 1rem; overflow-y: auto; }
     h2 { font-family: var(--font-data); color: var(--accent-amber); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 2px; margin: 0 0 1rem 0; }
@@ -51,12 +50,8 @@ export class ConfigDrawer extends LitElement {
 
   override connectedCallback() {
     super.connectedCallback();
+    this.watch($config);
     mountTestApi('config', { getConfig: () => $config.get() });
-  }
-
-  override disconnectedCallback() {
-    this.unsub();
-    super.disconnectedCallback();
   }
 
   override render() {

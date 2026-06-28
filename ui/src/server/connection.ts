@@ -1,6 +1,5 @@
 import type { WebSocket } from 'ws';
 import type { Agent } from '../../../src/agent/types.js';
-import type { NAR } from '../../../src/nar/nar.js';
 import type { GraphOpType, IncomingFromServer, Lens } from '../shared/protocol.js';
 import type { NarAdapter } from './gateway.js';
 import { computeActiveSubgraph, type ProjectionOptions } from './projection.js';
@@ -64,7 +63,7 @@ function driveDelta(adapter: NarAdapter): GraphOpType[] | null {
   }));
 }
 
-export function sendInitialState(socket: WebSocket, adapter: NarAdapter, nar: NAR, lens?: Lens): void {
+export function sendInitialState(socket: WebSocket, adapter: NarAdapter, lens?: Lens): void {
   send(socket, { type: 'config.schema', data: adapter.getConfigSchema() });
 
   const initial = beliefGraphDelta(adapter, lens);

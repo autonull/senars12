@@ -17,16 +17,17 @@ exposeTestApi();
 connect();
 initOnboarding();
 
-const STYLES: Record<string, string> = {
-  connected: '--status-bg: #00f3ff; --status-glow: 0 0 8px rgba(0,243,255,0.6)',
-  connecting: '--status-bg: #ffb000; --status-glow: 0 0 8px rgba(255,176,0,0.4)',
-  reconnecting: '--status-bg: #ffb000; --status-glow: 0 0 8px rgba(255,176,0,0.4)',
-  disconnected: '--status-bg: #475569; --status-glow: none',
+const STATUS_BAR_CSS: Record<string, string> = {
+  connected: '#00f3ff; --sg:0 0 8px rgba(0,243,255,0.6)',
+  connecting: '#ffb000; --sg:0 0 8px rgba(255,176,0,0.4)',
+  reconnecting: '#ffb000; --sg:0 0 8px rgba(255,176,0,0.4)',
+  disconnected: '#475569; --sg:none',
 };
 
 $connectionState.subscribe((state) => {
+  const s = STATUS_BAR_CSS[state] ?? STATUS_BAR_CSS.disconnected;
   const bar = document.getElementById('status-bar') as HTMLElement | null;
   const label = document.getElementById('status-label') as HTMLElement | null;
-  if (bar) bar.style.cssText = `position:fixed;top:0;left:0;right:0;height:2px;z-index:100;transition:background 0.3s;${STYLES[state] ?? STYLES.disconnected}`;
+  if (bar) bar.style.cssText = `position:fixed;top:0;left:0;right:0;height:2px;z-index:100;transition:background .3s;background:${s}`;
   if (label) label.textContent = state;
 });

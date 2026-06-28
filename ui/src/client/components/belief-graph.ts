@@ -1,8 +1,9 @@
 import cytoscape, { type Core } from 'cytoscape';
-import { LitElement, html, css } from 'lit';
+import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { $graphNodes, $graphEdges, $graphMeta, $activeLens, $selectedMessageId, $focusTerm, mountTestApi } from '../core/store.js';
 import type { GraphNodeData } from '../../shared/protocol.js';
+import { BaseComponent } from '../core/base-component.js';
 
 const LENS_COLORS: Record<string, string> = {
   belief: '#00f3ff', goal: '#ff0055', contradiction: '#ff00ff',
@@ -11,9 +12,8 @@ const LENS_COLORS: Record<string, string> = {
 const CHAT_NODE_STYLE = { 'shape': 'round-rectangle', 'border-color': '#00f3ff', 'border-width': 1.5 };
 
 @customElement('belief-graph')
-export class BeliefGraph extends LitElement {
+export class BeliefGraph extends BaseComponent {
   private cy: Core | null = null;
-  private unsubs: Array<() => void> = [];
 
   static override styles = css`
     :host { display: block; position: relative; flex: 1; background: var(--bg-void); min-height: 0; }
@@ -23,12 +23,10 @@ export class BeliefGraph extends LitElement {
 
   override connectedCallback() {
     super.connectedCallback();
-    this.unsubs = [
-      $graphNodes.subscribe(() => this.syncGraph()),
-      $graphEdges.subscribe(() => this.syncGraph()),
-      $activeLens.subscribe(() => this.applyLens()),
-      $selectedMessageId.subscribe((id) => this.centerOnNode(id)),
-    ];
+    this.watchWith($graphNodes, () => this.syncGraph());
+    this.watchWith($graphEdges, () => this.syncGraph());
+    this.watchWith($activeLens, () => this.applyLens());
+    this.watchWith($selectedMessageId, (id) => this.centerOnNode(id));
     mountTestApi('graph', {
       getNodeCount: () => this.cy?.nodes().length ?? 0,
       getEdgeCount: () => this.cy?.edges().length ?? 0,
@@ -39,9 +37,8 @@ export class BeliefGraph extends LitElement {
   }
 
   override disconnectedCallback() {
-    this.unsubs.forEach((u) => u());
-    this.cy?.destroy();
     super.disconnectedCallback();
+    this.cy?.destroy();
   }
 
   override firstUpdated() {

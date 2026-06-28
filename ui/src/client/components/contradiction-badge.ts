@@ -1,21 +1,13 @@
-import { LitElement, html, css } from 'lit';
+import { html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { $graphNodes } from '../core/store.js';
+import { BaseComponent } from '../core/base-component.js';
 
 @customElement('contradiction-badge')
-export class ContradictionBadge extends LitElement {
+export class ContradictionBadge extends BaseComponent {
   @state() private count = 0;
   @state() private pulsing = false;
   private prevCount = 0;
-  private unsub = $graphNodes.subscribe(() => {
-    this.count = this.countContradictions();
-    if (this.count > this.prevCount) {
-      this.pulsing = true;
-      setTimeout(() => { this.pulsing = false; this.requestUpdate(); }, 3000);
-    }
-    this.prevCount = this.count;
-    this.requestUpdate();
-  });
 
   static override styles = css`
     :host { display: inline-flex; align-items: center; }
@@ -25,9 +17,17 @@ export class ContradictionBadge extends LitElement {
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
   `;
 
-  override disconnectedCallback() {
-    this.unsub();
-    super.disconnectedCallback();
+  override connectedCallback() {
+    super.connectedCallback();
+    this.watchWith($graphNodes, () => {
+      this.count = this.countContradictions();
+      if (this.count > this.prevCount) {
+        this.pulsing = true;
+        setTimeout(() => { this.pulsing = false; this.requestUpdate(); }, 3000);
+      }
+      this.prevCount = this.count;
+      this.requestUpdate();
+    });
   }
 
   private countContradictions(): number {

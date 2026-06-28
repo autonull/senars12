@@ -1,12 +1,13 @@
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js';
-import { LitElement, html, css } from 'lit';
+import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import { $chat, $streamingDelta, $selectedMessageId, $focusTerm, mountTestApi } from '../core/store.js';
 import { send } from '../core/ws-client.js';
 import { addUserMessage } from '../core/store-bindings.js';
+import { BaseComponent } from '../core/base-component.js';
 
 marked.use(markedHighlight({
   langPrefix: 'hljs language-',
@@ -16,10 +17,7 @@ marked.use(markedHighlight({
 }));
 
 @customElement('chat-console')
-export class ChatConsole extends LitElement {
-  private unsubChat = $chat.subscribe(() => this.requestUpdate());
-  private unsubStream = $streamingDelta.subscribe(() => this.requestUpdate());
-
+export class ChatConsole extends BaseComponent {
   static override styles = css`
     :host { display: flex; flex-direction: column; background: var(--bg-panel); border: 1px solid var(--border-dim); }
     .messages { flex: 1; overflow-y: auto; padding: 0.75rem; font-family: var(--font-ui); }
@@ -41,16 +39,12 @@ export class ChatConsole extends LitElement {
 
   override connectedCallback() {
     super.connectedCallback();
+    this.watch($chat);
+    this.watch($streamingDelta);
     mountTestApi('chat', {
       getMessages: () => $chat.get(),
       getStreamingDelta: () => $streamingDelta.get(),
     });
-  }
-
-  override disconnectedCallback() {
-    this.unsubChat();
-    this.unsubStream();
-    super.disconnectedCallback();
   }
 
   private renderMarkdown = (text: string) => {

@@ -1,12 +1,12 @@
-import { LitElement, html, css } from 'lit';
+import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { $workingMemory, $graphMeta, mountTestApi } from '../core/store.js';
+import { BaseComponent } from '../core/base-component.js';
 
 const getItemLabel = (i: any) => i.id ?? i.concept ?? i.term ?? '';
 
 @customElement('working-memory')
-export class WorkingMemory extends LitElement {
-  private unsub = $workingMemory.subscribe(() => this.requestUpdate());
+export class WorkingMemory extends BaseComponent {
 
   static override styles = css`
     :host { display: block; background: var(--bg-panel); border-top: 1px solid var(--border-dim); padding: 0.5rem; }
@@ -19,12 +19,8 @@ export class WorkingMemory extends LitElement {
 
   override connectedCallback() {
     super.connectedCallback();
+    this.watch($workingMemory);
     mountTestApi('workingMemory', { getTerms: () => $workingMemory.get().map(getItemLabel) });
-  }
-
-  override disconnectedCallback() {
-    this.unsub();
-    super.disconnectedCallback();
   }
 
   override render() {

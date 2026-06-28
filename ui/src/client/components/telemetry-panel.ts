@@ -1,13 +1,15 @@
-import { LitElement, html, css } from 'lit';
+import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { $telemetry, mountTestApi } from '../core/store.js';
+import { BaseComponent } from '../core/base-component.js';
+
+interface TelemetrySeries { values: number[]; color: string; label: string }
 
 @customElement('telemetry-panel')
-export class TelemetryPanel extends LitElement {
+export class TelemetryPanel extends BaseComponent {
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
   private rafId = 0;
-  private unsub = $telemetry.subscribe(() => this.scheduleDraw());
 
   static override styles = css`
     :host { display: block; background: var(--bg-panel); border-top: 1px solid var(--border-dim); position: relative; }
@@ -17,13 +19,13 @@ export class TelemetryPanel extends LitElement {
 
   override connectedCallback() {
     super.connectedCallback();
+    this.watchWith($telemetry, () => this.scheduleDraw());
     mountTestApi('telemetry', { getData: () => $telemetry.get() });
   }
 
   override disconnectedCallback() {
-    this.unsub();
-    cancelAnimationFrame(this.rafId);
     super.disconnectedCallback();
+    cancelAnimationFrame(this.rafId);
   }
 
   private scheduleDraw() {
@@ -54,7 +56,7 @@ export class TelemetryPanel extends LitElement {
     ctx.clearRect(0, 0, w, h);
 
     const { reasoning_hz, tokens_per_sec, memory_mb } = $telemetry.get();
-    const series: Array<{ values: number[]; color: string; label: string }> = [
+    const series: TelemetrySeries[] = [
       { values: reasoning_hz, color: '#ffb000', label: 'hz' },
       { values: tokens_per_sec, color: '#00f3ff', label: 'tps' },
       { values: memory_mb, color: '#ff0055', label: 'mem' },

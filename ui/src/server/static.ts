@@ -5,7 +5,6 @@ import path from 'path';
 
 const NOT_FOUND = 404;
 const OK = 200;
-const CLIENT_DIST = path.join('dist', 'client');
 
 export function createStaticHandler(distRoot: string) {
   const indexPath = path.join(distRoot, 'index.html');
@@ -43,4 +42,4 @@ function sendFile(res: http.ServerResponse, filePath: string): Promise<void> {
   });
 }
 
-export { CLIENT_DIST };
+

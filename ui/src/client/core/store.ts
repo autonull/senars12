@@ -1,8 +1,18 @@
 import type { ChatMessage, Lens, GraphNodeData } from '../../shared/protocol.js';
 
 type Listener<T> = (value: T) => void;
+type Unsubscriber = () => void;
 
-class Atom<T> {
+interface Readable<T> {
+  get(): T;
+  subscribe(fn: Listener<T>): Unsubscriber;
+}
+
+interface Writable<T> extends Readable<T> {
+  set(value: T): void;
+}
+
+class Atom<T> implements Writable<T> {
   private _value: T;
   private listeners = new Set<Listener<T>>();
 
@@ -15,7 +25,7 @@ class Atom<T> {
     for (const fn of this.listeners) fn(value);
   }
 
-  subscribe(fn: Listener<T>): () => void {
+  subscribe(fn: Listener<T>): Unsubscriber {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
   }
@@ -23,14 +33,14 @@ class Atom<T> {
 
 const atom = <T>(initial: T) => new Atom(initial);
 
-class Computed<T> {
+class Computed<T> implements Readable<T> {
   private _value: T;
   private listeners = new Set<Listener<T>>();
-  private unsubs: Array<() => void> = [];
+  private unsubs: Unsubscriber[] = [];
 
-  constructor(deps: Array<Atom<any>>, compute: (...values: any[]) => T) {
+  constructor(deps: Readable<any>[], compute: (...values: any[]) => T) {
     this._value = compute(...deps.map(d => d.get()));
-    this.unsubs = deps.map((dep, i) =>
+    this.unsubs = deps.map((dep) =>
       dep.subscribe(() => {
         this._value = compute(...deps.map(d => d.get()));
         for (const fn of this.listeners) fn(this._value);
@@ -40,7 +50,7 @@ class Computed<T> {
 
   get() { return this._value; }
 
-  subscribe(fn: Listener<T>): () => void {
+  subscribe(fn: Listener<T>): Unsubscriber {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
   }
@@ -48,7 +58,7 @@ class Computed<T> {
   destroy() { this.unsubs.forEach(u => u()); }
 }
 
-const computed = <T>(deps: Array<Atom<any>>, fn: (...values: any[]) => T) => new Computed(deps, fn);
+const computed = <T>(deps: Readable<any>[], fn: (...values: any[]) => T) => new Computed(deps, fn);
 
 export interface TelemetryData {
   reasoning_hz: number[];
@@ -86,7 +96,7 @@ export const $visibleNodes = computed([$graphNodes, $activeLens], (nodes: Map<st
 });
 
 export const $visibleEdges = computed(
-  [$graphEdges, $visibleNodes as unknown as Atom<Map<string, GraphNodeData>>],
+  [$graphEdges, $visibleNodes],
   (edges: Map<string, any>, nodes: Map<string, GraphNodeData>) => {
     const nodeIds = new Set(nodes.keys());
     return new Map(

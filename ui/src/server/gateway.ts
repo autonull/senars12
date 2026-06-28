@@ -109,11 +109,13 @@ function handleSync(
   send: (m: IncomingFromServer) => void,
   nar: NarAdapter,
 ) {
-  if (lastSeqId === null || buffer.length === 0 || buffer[buffer.length - 1]!.seq - lastSeqId > buffer.length) {
+  const bufLen = buffer.length;
+  const lastEntry = bufLen > 0 ? buffer[bufLen - 1]! : null;
+  if (lastSeqId === null || bufLen === 0 || lastEntry!.seq - lastSeqId > bufLen) {
     const concepts = nar.listConcepts();
     const config = nar.getConfigSchema();
     const report = nar.attentionReport();
-    const seq_id = buffer.length > 0 ? buffer[buffer.length - 1]!.seq : 0;
+    const seq_id = lastEntry?.seq ?? 0;
     send({
       type: 'state.snapshot',
       seq_id,

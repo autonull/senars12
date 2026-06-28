@@ -1,10 +1,10 @@
-import { LitElement, html, css } from 'lit';
+import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { $focusTerm, $chat, $selectedMessageId } from '../core/store.js';
+import { BaseComponent } from '../core/base-component.js';
 
 @customElement('concept-thread')
-export class ConceptThread extends LitElement {
-  private unsubs = [$focusTerm.subscribe(() => this.requestUpdate()), $chat.subscribe(() => this.requestUpdate())];
+export class ConceptThread extends BaseComponent {
 
   static override styles = css`
     :host { display: block; background: var(--bg-panel); border-left: 1px solid var(--border-dim); overflow-y: auto; }
@@ -18,9 +18,10 @@ export class ConceptThread extends LitElement {
     .msg:hover { border-left-color: var(--accent-cyan); }
   `;
 
-  override disconnectedCallback() {
-    this.unsubs.forEach(u => u());
-    super.disconnectedCallback();
+  override connectedCallback() {
+    super.connectedCallback();
+    this.watch($focusTerm);
+    this.watch($chat);
   }
 
   private onMessageClick(msgId: string) {

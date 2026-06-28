@@ -46,7 +46,7 @@ function startHttpServer(adapter: NarAdapter, nar: NAR, agent: Agent, port: numb
   });
 
   const wss = new WebSocketServer({ server });
-  wss.on('connection', (socket) => bindSocket(socket, adapter, nar, agent));
+  wss.on('connection', (socket) => bindSocket(socket, adapter, agent));
 
   return new Promise((resolve) => {
     server.listen(port, '0.0.0.0', () => {
@@ -59,14 +59,14 @@ function startHttpServer(adapter: NarAdapter, nar: NAR, agent: Agent, port: numb
   });
 }
 
-function bindSocket(socket: WebSocket, adapter: NarAdapter, nar: NAR, agent: Agent): void {
+function bindSocket(socket: WebSocket, adapter: NarAdapter, agent: Agent): void {
   let currentLens: Lens = 'belief';
 
-  sendInitialState(socket, adapter, nar, currentLens);
+  sendInitialState(socket, adapter, currentLens);
 
   handleConnection(socket, adapter, (content, send) => onChat(content, send, agent), (lens) => {
     currentLens = lens;
-    sendInitialState(socket, adapter, nar, currentLens);
+    sendInitialState(socket, adapter, currentLens);
   });
 
   const unsubscribe = subscribeSocket(socket, adapter, agent, () => currentLens);
