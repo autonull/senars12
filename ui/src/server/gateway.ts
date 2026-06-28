@@ -47,7 +47,7 @@ export interface NarAdapter {
   setConfig(key: string, value: any): void;
 }
 
-export function handleConnection(socket: WebSocket, nar: NarAdapter, onChat: (content: string, send: (msg: IncomingFromServer) => void) => void, onLensChange?: (lens: Lens) => void) {
+export function handleConnection(socket: WebSocket, nar: NarAdapter, onChat: (content: string, send: (msg: IncomingFromServer) => void) => void, onLensChange?: (lens: Lens) => void, onFocusChange?: (term: string) => void) {
   const limiter = new RateLimiter({ chat: 5, config: 10 });
   let lastSeqId = 0;
   const eventBuffer: EventBufferEntry[] = [];
@@ -76,7 +76,7 @@ export function handleConnection(socket: WebSocket, nar: NarAdapter, onChat: (co
   socket.on('message', (raw) => {
     const validation = validateClientMessage(raw.toString());
     if (!validation.success) {
-      send({ type: 'chat.agent.complete', content: `Error: ${validation.error.message}` });
+      // drop invalid messages silently; log only in debug
       return;
     }
     const msg = validation.data;
@@ -94,6 +94,9 @@ export function handleConnection(socket: WebSocket, nar: NarAdapter, onChat: (co
     }
     if (msg.type === 'sync.request') {
       handleSync(msg.last_seq_id, eventBuffer, send, nar);
+    }
+    if (msg.type === 'focus.set') {
+      onFocusChange?.(msg.term);
     }
   });
 
@@ -120,7 +123,7 @@ function handleSync(
       seq_id,
       data: {
         graph: {
-          nodes: concepts.map(c => ({ id: c.term, priority: c.priority, confidence: c.confidence })),
+          nodes: concepts.map(c => ({ id: c.term, label: c.term, priority: c.priority, confidence: c.confidence, nodeType: 'concept' })),
           edges: concepts.flatMap(c =>
             c.getLinks().map(l => ({ source: c.term, target: l.target, weight: l.strength })),
           ),

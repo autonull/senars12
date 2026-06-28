@@ -49,7 +49,7 @@ export const $streamingDelta = atom<string>('');
 export const $graphNodes = atom<Map<string, GraphNodeData>>(new Map());
 export const $graphEdges = atom<Map<string, Record<string, any>>>(new Map());
 export const $graphMeta = atom<CognitiveMeta>({ truncated: false, total_hidden: 0 });
-export const $workingMemory = atom<any[]>([]);
+export const $focus = atom<any[]>([]);
 export const $config = atom<Record<string, any>>({});
 export const $telemetry = atom<TelemetryData>({
   reasoning_hz: [], tokens_per_sec: [], memory_mb: [], ws_latency_ms: [],
@@ -60,17 +60,16 @@ export const $lastSeqId = atom<number | null>(null);
 export const $activeLens = atom<Lens>('belief');
 export const $focusTerm = atom<string | null>(null);
 export const $selectedMessageId = atom<string | null>(null);
-export const $userLevel = atom<'simple' | 'full'>('simple');
 
 
 
 type ReadableAtom<T> = { get(): T };
 const storeAtoms = {
   chat: $chat, streamingDelta: $streamingDelta, graphNodes: $graphNodes,
-  graphEdges: $graphEdges, graphMeta: $graphMeta, workingMemory: $workingMemory,
+  graphEdges: $graphEdges, graphMeta: $graphMeta, focus: $focus,
   config: $config, telemetry: $telemetry, connectionState: $connectionState,
   lastSeqId: $lastSeqId, activeLens: $activeLens, focusTerm: $focusTerm,
-  selectedMessageId: $selectedMessageId, userLevel: $userLevel,
+  selectedMessageId: $selectedMessageId,
 } satisfies Record<string, ReadableAtom<unknown>>;
 
 export type TestApiStorePath = keyof typeof storeAtoms;

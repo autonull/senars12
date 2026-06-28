@@ -6,12 +6,10 @@ import { applyServerMessage } from './store-bindings.js';
 const WS_URL = `ws://${location.host}/ws`;
 const RECONNECT_BASE_MS = 500;
 const RECONNECT_MAX_MS = 10_000;
-const PING_INTERVAL_MS = 5_000;
 
 let socket: WebSocket | null = null;
 let reconnectAttempt = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-let pingInterval: ReturnType<typeof setInterval> | null = null;
 
 export function connect(): void {
   $connectionState.set(socket ? 'reconnecting' : 'connecting');
@@ -21,9 +19,6 @@ export function connect(): void {
     reconnectAttempt = 0;
     $connectionState.set('connected');
     socket!.send(JSON.stringify({ type: 'sync.request', last_seq_id: $lastSeqId.get() } satisfies z.infer<typeof SyncRequest>));
-    pingInterval = setInterval(() => {
-      socket?.send(JSON.stringify({ type: 'ping', t0: performance.now() }));
-    }, PING_INTERVAL_MS);
   };
 
   socket.onmessage = (ev) => {
@@ -38,7 +33,6 @@ export function connect(): void {
 
   socket.onclose = () => {
     $connectionState.set('reconnecting');
-    if (pingInterval) clearInterval(pingInterval);
     scheduleReconnect();
   };
 
@@ -57,7 +51,6 @@ export function send(msg: Record<string, unknown>): void {
 
 export function disconnect(): void {
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-  if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
   socket?.close();
   socket = null;
   $connectionState.set('disconnected');

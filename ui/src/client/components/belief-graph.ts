@@ -2,6 +2,7 @@ import cytoscape, { type Core } from 'cytoscape';
 import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { $graphNodes, $graphEdges, $graphMeta, $activeLens, $selectedMessageId, $focusTerm, mountTestApi } from '../core/store.js';
+import { send } from '../core/ws-client.js';
 import { BaseComponent } from '../core/base-component.js';
 import { LENS_COLORS } from '../constants.js';
 import { edgeKey } from '../../shared/utils.js';
@@ -86,6 +87,7 @@ export class BeliefGraph extends BaseComponent {
       const term = node.data('term') || id;
       $selectedMessageId.set(id);
       $focusTerm.set(term);
+      send({ type: 'focus.set', term });
     });
 
     this.applyLens();

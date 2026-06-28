@@ -1,6 +1,6 @@
 import type { IncomingFromServer, GraphOpType, ChatMessage, GraphNodeData } from '../../shared/protocol.js';
 import { edgeKey } from '../../shared/utils.js';
-import { $chat, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $lastSeqId, $workingMemory } from './store.js';
+import { $chat, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $lastSeqId, $focus } from './store.js';
 import type { CognitiveMeta } from './store.js';
 
 const TELEMETRY_WINDOW = 300;
@@ -55,7 +55,8 @@ export function applyServerMessage(msg: IncomingFromServer): void {
     case 'cognitive.delta':
       if (msg.seq_id != null) $lastSeqId.set(msg.seq_id);
       if (msg.module === 'belief_graph') applyGraphOps(msg.ops, msg.meta);
-      else if (msg.module === 'working_memory') applyWorkingMemoryOps(msg.ops);
+      else if (msg.module === 'working_memory') applyFocusOps(msg.ops);
+      else if (msg.module === 'stream_reasoner') applyGraphOps(msg.ops, msg.meta);
       break;
     case 'config.schema':
       $config.set(msg.data);
@@ -78,7 +79,7 @@ function applyFullSnapshot(data: { graph: { nodes: any[]; edges: any[] }; workin
   const edges = new Map<string, Record<string, any>>(data.graph.edges.map((e) => [edgeKey(e.source, e.target), e]));
   $graphNodes.set(nodes);
   $graphEdges.set(edges);
-  $workingMemory.set(data.working_memory);
+  $focus.set(data.working_memory);
   $config.set(data.config);
 }
 
@@ -111,15 +112,15 @@ function applyGraphOps(ops: GraphOpType[], meta?: { truncated?: boolean; total_h
   if (meta) $graphMeta.set({ truncated: meta.truncated ?? false, total_hidden: meta.total_hidden ?? 0 } satisfies CognitiveMeta);
 }
 
-function applyWorkingMemoryOps(ops: any[]): void {
+function applyFocusOps(ops: any[]): void {
   const removed = new Set<string>();
   const additions: any[] = [];
   for (const op of ops) {
     if (op.action === 'add_node') additions.push({ id: op.id, ...op.data });
     else if (op.action === 'remove_node') removed.add(op.id);
   }
-  $workingMemory.set([
-    ...$workingMemory.get().filter((x: any) => !removed.has(x.id)),
+  $focus.set([
+    ...$focus.get().filter((x: any) => !removed.has(x.id)),
     ...additions,
   ]);
 }

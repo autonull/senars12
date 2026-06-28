@@ -1,6 +1,6 @@
 import { html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $userLevel, $focusTerm, $connectionState } from '../core/store.js';
+import { $focusTerm, $connectionState } from '../core/store.js';
 import { BaseComponent } from '../core/base-component.js';
 import { CONNECTION_COLORS } from '../constants.js';
 import './belief-graph.js';
@@ -9,6 +9,8 @@ import './config-drawer.js';
 import './lens-selector.js';
 import './concept-thread.js';
 import './contradiction-badge.js';
+import './focus-panel.js';
+import './telemetry-panel.js';
 
 @customElement('app-layout')
 export class AppLayout extends BaseComponent {
@@ -16,7 +18,7 @@ export class AppLayout extends BaseComponent {
   @state() private configOpen = false;
 
   static override styles = css`
-    :host { display: grid; height: 100vh; grid-template-columns: 1fr; grid-template-rows: 32px 1fr; background: var(--bg-void); }
+    :host { display: grid; height: 100vh; grid-template-columns: 1fr; grid-template-rows: 32px 1fr auto auto; background: var(--bg-void); }
     .status-bar { display: flex; align-items: center; gap: 8px; padding: 0 8px; background: var(--bg-panel-solid); border-bottom: 1px solid var(--border-dim); font-family: var(--font-data); font-size: 0.7rem; color: var(--text-dim); }
     .status-bar .spacer { flex: 1; }
     .content { display: flex; flex-direction: row; min-height: 0; overflow: hidden; }
@@ -40,7 +42,6 @@ export class AppLayout extends BaseComponent {
   override connectedCallback() {
     super.connectedCallback();
     this.watch($connectionState);
-    this.watch($userLevel);
     this.watch($focusTerm);
   }
 
@@ -49,18 +50,17 @@ export class AppLayout extends BaseComponent {
 
   override render() {
     const state = $connectionState.get();
-    const isFull = $userLevel.get() === 'full';
-    const showThread = isFull && $focusTerm.get() !== null;
+    const showThread = $focusTerm.get() !== null;
     const showRightPanel = showThread || this.configOpen;
 
     return html`
       <div class="status-bar">
-        <lens-selector style="display:${isFull ? 'inline-block' : 'none'}"></lens-selector>
+        <lens-selector></lens-selector>
         <button class="gear-btn ${this.configOpen ? 'active' : ''}"
           data-testid="config-toggle"
           @click=${this.toggleConfig} title="Configuration">⚙</button>
         <div class="spacer"></div>
-        <contradiction-badge style="display:${isFull ? 'inline-flex' : 'none'}"></contradiction-badge>
+        <contradiction-badge></contradiction-badge>
         <span style="color:${CONNECTION_COLORS[state]};font-size:0.55rem">${state === 'connected' ? '⬤' : state === 'disconnected' ? '○' : '◌'}</span>
         <span>${state}</span>
       </div>
@@ -86,6 +86,8 @@ export class AppLayout extends BaseComponent {
           </div>
         ` : ''}
       </div>
+      <focus-panel></focus-panel>
+      <telemetry-panel></telemetry-panel>
     `;
   }
 }

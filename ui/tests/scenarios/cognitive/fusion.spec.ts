@@ -41,27 +41,7 @@ test.describe('Chat↔Graph Fusion', () => {
     expect(await testApi.getStoreState('selectedMessageId')).toBe('penguin');
   });
 
-  test('progressive onboarding upgrades to full after 5 messages', async ({ chat, testControl, testApi }) => {
-    expect(await testApi.getStoreState('userLevel')).toBe('simple');
-
-    for (let i = 0; i < 5; i++) {
-      await testControl.injectChatResponse('...', `Response ${i}.`);
-      await chat.sendMessage(`Msg ${i}`);
-      await chat.waitForResponse();
-    }
-
-    await expect(async () => {
-      expect(await testApi.getStoreState('userLevel')).toBe('full');
-    }).toPass({ timeout: 3000 });
-  });
-
-  test('concept thread appears on message click in full mode', async ({ chat, testControl, testApi, page }) => {
-    for (let i = 0; i < 5; i++) {
-      await testControl.injectChatResponse('...', `Response ${i}.`);
-      await chat.sendMessage(`Msg ${i}`);
-      await chat.waitForResponse();
-    }
-
+  test('concept thread appears on message click', async ({ chat, testControl, page }) => {
     await testControl.injectChatResponse('Thinking...', 'Quantum mechanics describes nature at the smallest scales.');
     await chat.sendMessage('Explain quantum');
     await chat.waitForResponse();
@@ -69,18 +49,6 @@ test.describe('Chat↔Graph Fusion', () => {
     await page.locator('chat-console').locator('[data-testid="message"]').last().click();
 
     await expect(page.locator('concept-thread')).toBeVisible({ timeout: 3000 });
-  });
-
-  test('lens selector becomes visible after full mode upgrade', async ({ chat, testControl, testApi, page }) => {
-    await expect(page.locator('lens-selector')).not.toBeVisible();
-
-    for (let i = 0; i < 5; i++) {
-      await testControl.injectChatResponse('...', `Response ${i}.`);
-      await chat.sendMessage(`Msg ${i}`);
-      await chat.waitForResponse();
-    }
-
-    await expect(page.locator('lens-selector')).toBeVisible({ timeout: 3000 });
   });
 
   test('graph updates when new NAR derivations arrive', async ({ graph, testControl }) => {

@@ -65,8 +65,10 @@ export class ChatConsole extends BaseComponent {
     const msgs = $chat.get();
     const msg = msgs[index];
     if (!msg) return;
+    const term = msg.term ?? msg.content.slice(0, 40);
     $selectedMessageId.set(msg.id);
-    $focusTerm.set(msg.term ?? msg.content.slice(0, 40));
+    $focusTerm.set(term);
+    send({ type: 'focus.set', term });
   }
 
   override render() {

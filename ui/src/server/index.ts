@@ -63,13 +63,21 @@ function startHttpServer(adapter: NarAdapter, nar: NAR, agent: Agent, port: numb
 
 function bindSocket(socket: WebSocket, adapter: NarAdapter, agent: Agent): void {
   let currentLens: Lens = 'belief';
+  let focusTerm: string | null = null;
 
   sendInitialState(socket, adapter, currentLens);
 
-  handleConnection(socket, adapter, (content, send) => onChat(content, send, agent), (lens) => {
-    currentLens = lens;
-    sendInitialState(socket, adapter, currentLens);
-  });
+  handleConnection(socket, adapter,
+    (content, send) => onChat(content, send, agent),
+    (lens) => {
+      currentLens = lens;
+      sendInitialState(socket, adapter, currentLens);
+    },
+    (term) => {
+      focusTerm = term;
+      // Server acknowledged focus change; future: compute focused projection
+    },
+  );
 
   const unsubscribe = subscribeSocket(socket, adapter, agent, () => currentLens);
   socket.on('close', unsubscribe);

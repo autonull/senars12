@@ -52,6 +52,47 @@ describe('Event System', () => {
         nar.eventBus.emit('test.unsub', {});
         expect(count).toBe(1);
     });
+
+    it('system event bus emits nar:derivation on believe()', async () => {
+        const systemBus = nar.getSystemEventBus();
+        const derivations: string[] = [];
+        systemBus.on('nar:derivation', (d: any) => derivations.push(d.term));
+
+        await nar.believe('bird. %0.9;0.9%');
+        expect(derivations.length).toBe(1);
+        expect(derivations[0]).toBe('bird');
+    });
+
+    it('system event bus emits nar:concept:activated on believe()', async () => {
+        const systemBus = nar.getSystemEventBus();
+        const activated: { term: string; priority: number }[] = [];
+        systemBus.on('nar:concept:activated', (d: any) => activated.push({ term: d.term, priority: d.priority }));
+
+        await nar.believe('bird. %0.9;0.9%');
+        expect(activated.length).toBe(1);
+        expect(activated[0].term).toBe('bird');
+        expect(activated[0].priority).toBeCloseTo(0.81, 2); // truth.f * truth.c = 0.9 * 0.9
+    });
+
+    it('system event bus emits derivation on goal()', async () => {
+        const systemBus = nar.getSystemEventBus();
+        const derivations: string[] = [];
+        systemBus.on('nar:derivation', (d: any) => derivations.push(d.term));
+
+        await nar.goal('find_treasure. %0.8;0.8%');
+        expect(derivations.length).toBe(1);
+        expect(derivations[0]).toBe('find_treasure');
+    });
+
+    it('system event bus emits derivation on question()', async () => {
+        const systemBus = nar.getSystemEventBus();
+        const derivations: string[] = [];
+        systemBus.on('nar:derivation', (d: any) => derivations.push(d.term));
+
+        await nar.question('where_is_treasure?');
+        expect(derivations.length).toBe(1);
+        expect(derivations[0]).toBe('where_is_treasure');
+    });
 });
 
 describe('Error Handling', () => {

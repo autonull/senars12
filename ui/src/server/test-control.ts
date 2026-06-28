@@ -30,17 +30,16 @@ function createTestControlApi(nar: NAR): Record<string, TestHandler> {
       setPendingChatResponse(req.body.stream, req.body.complete);
       return { success: true };
     },
-    async injectDerivation(req, reply) {
-      const { conclusion, frequency = 0.85, confidence = 0.9 } = req.body;
-      const termStr = `${conclusion}. %${frequency};${confidence}%`;
-      try {
-        await nar.believe(termStr);
-      } catch (e) {
-        return reply.status(500).send({ error: String(e) });
-      }
-      nar.getSystemEventBus().emit('nar:derivation', { term: conclusion, confidence: frequency, timestamp: Date.now() });
-      return { success: true };
-    },
+async injectDerivation(req, reply) {
+       const { conclusion, frequency = 0.85, confidence = 0.9 } = req.body;
+       const termStr = `${conclusion}. %${frequency};${confidence}%`;
+       try {
+         await nar.believe(termStr);
+       } catch (e) {
+         return reply.status(500).send({ error: String(e) });
+       }
+       return { success: true };
+     },
     getState() {
       return {
         concepts: nar.listConcepts().map((c: any) => ({

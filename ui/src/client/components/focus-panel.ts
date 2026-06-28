@@ -1,13 +1,13 @@
 import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { $workingMemory, $graphMeta, mountTestApi } from '../core/store.js';
+import { $focus, $graphMeta, mountTestApi } from '../core/store.js';
 import { BaseComponent } from '../core/base-component.js';
 
 interface Item { id?: string; concept?: string; term?: string; priority?: number }
 const getItemLabel = (i: Item) => i.id ?? i.concept ?? i.term ?? '';
 
-@customElement('working-memory')
-export class WorkingMemory extends BaseComponent {
+@customElement('focus-panel')
+export class FocusPanel extends BaseComponent {
 
   static override styles = css`
     :host { display: block; background: var(--bg-panel); border-top: 1px solid var(--border-dim); padding: 0.5rem; }
@@ -20,15 +20,15 @@ export class WorkingMemory extends BaseComponent {
 
   override connectedCallback() {
     super.connectedCallback();
-    this.watch($workingMemory);
-    mountTestApi('workingMemory', { getTerms: () => $workingMemory.get().map(getItemLabel) });
+    this.watch($focus);
+    mountTestApi('focus', { getTerms: () => $focus.get().map(getItemLabel) });
   }
 
   override render() {
-    const items = $workingMemory.get();
+    const items = $focus.get();
     const meta = $graphMeta.get();
     return html`
-      <div class="header">Working Memory ${meta.truncated ? html`<span style="color:var(--accent-amber)">(truncated)</span>` : ''}</div>
+      <div class="header">Focus ${meta.truncated ? html`<span style="color:var(--accent-amber)">(truncated)</span>` : ''}</div>
       <div class="items">
         ${items.length ? items.map((i: Item) => html`<span class="chip">${getItemLabel(i)}<span class="p">${(i.priority ?? 0).toFixed(2)}</span></span>`) : html`<span class="empty">—</span>`}
       </div>

@@ -122,9 +122,10 @@ export class NAR extends BaseComponent {
             );
         }
 
-        this.io = new NARIO(this.memory, this.taskManager, this.config);
+this.io = new NARIO(this.memory, this.taskManager, this.config);
         this.io.setEventBus(eventBus);
         this.systemEventBus = new AgentEventBus();
+        this.io.setSystemEventBus(this.systemEventBus);
         this.systemEventBus.wrapNarEventBus(eventBus);
         this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.rlfp?.policyOptimizerPublic, this.cognitiveController, this.driveManager, this.systemEventBus, this.self);
         this.lm = new NARLM(this.memory, this._registry, this.config.lmService, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment);

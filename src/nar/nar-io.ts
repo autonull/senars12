@@ -8,6 +8,7 @@ import type {TaskManager} from './task';
 import type {Memory} from './memory';
 import type {CognitiveParameters} from './config/cognitive-parameters.js';
 import {promises as fs} from 'node:fs';
+import type {EventBus as AgentEventBus} from '../agent/EventBus.js';
 
 interface SerializedNARState {
     concepts: Array<{ term: string; priority: number }>;
@@ -17,6 +18,7 @@ interface SerializedNARState {
 
 export class NARIO {
     private _eventBus: EventBus | null = null;
+    private _systemEventBus: AgentEventBus | null = null;
     private cognitiveParams?: CognitiveParameters;
 
     constructor(
@@ -32,6 +34,10 @@ export class NARIO {
 
     setEventBus(eventBus: EventBus): void {
         this._eventBus = eventBus;
+    }
+
+    setSystemEventBus(bus: AgentEventBus): void {
+        this._systemEventBus = bus;
     }
 
     async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
@@ -104,12 +110,25 @@ export class NARIO {
         }
     }
 
-    private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void { // system boundary — IO tasks may lack truth
+    private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void {
         const budget = createBudget(truth.f * truth.c);
+        const wasNew = !this.memory.getConcept(term);
         this.memory.addTask(term, type, truth, budget);
 
-// Boost priority of related concepts to enable LM enhancement
-// This implements attention priming - concepts mentioned become more active
+        if (wasNew) {
+            const ts = () => Date.now();
+            this._systemEventBus?.emit('nar:concept:activated', {
+                term: term.toString(),
+                priority: budget.priority,
+                timestamp: ts(),
+            });
+            this._systemEventBus?.emit('nar:derivation', {
+                term: term.toString(),
+                confidence: truth.f,
+                timestamp: ts(),
+            });
+        }
+
         if (this.cognitiveParams?.attention.autoPrime ?? true) {
             this.primeAttention(term);
         }

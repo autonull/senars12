@@ -3,7 +3,11 @@ import type { ConfigFieldType } from '../shared/protocol.js';
 import type { NarAdapter } from './gateway.js';
 
 const configState: Record<string, ConfigFieldType> = {
-  'llm.temperature': { type: 'slider', label: 'LLM Temperature', value: 0.7, min: 0, max: 2, step: 0.1 },
+  'llm.provider': { type: 'dropdown', label: 'LM Provider', value: 'openai', options: ['openai', 'anthropic', 'google', 'groq', 'ollama', 'custom'] },
+  'llm.model': { type: 'text', label: 'Model', value: 'gpt-4o' },
+  'llm.api_key': { type: 'text', label: 'API Key', value: '' },
+  'llm.base_url': { type: 'text', label: 'API Base URL', value: '' },
+  'llm.temperature': { type: 'slider', label: 'Temperature', value: 0.7, min: 0, max: 2, step: 0.1 },
   'nars.revision_rate': { type: 'slider', label: 'NARS Revision Rate', value: 0.5, min: 0, max: 1, step: 0.1 },
   'nars.max_concepts': { type: 'text', label: 'Max Concepts', value: '1000' },
 };
