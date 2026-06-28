@@ -1,11 +1,12 @@
 import cytoscape, { type Core } from 'cytoscape';
 import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { $graphNodes, $graphEdges, $graphMeta } from '../core/store.js';
+import { $graphNodes, $graphEdges, $graphMeta, mountTestApi } from '../core/store.js';
 
 @customElement('belief-graph')
 export class BeliefGraph extends LitElement {
   private cy: Core | null = null;
+  private unsubs: Array<() => void> = [];
 
   static override styles = css`
     :host { display: block; position: relative; flex: 1; background: var(--bg-void); min-height: 0; }
@@ -13,36 +14,28 @@ export class BeliefGraph extends LitElement {
     .warning { position: absolute; bottom: 8px; left: 8px; background: rgba(255, 176, 0, 0.1); border-left: 2px solid var(--accent-amber); padding: 4px 8px; font-family: var(--font-data); font-size: 0.65rem; color: var(--accent-amber); pointer-events: none; }
   `;
 
-  private unsubNodes = $graphNodes.subscribe(() => this.syncGraph());
-  private unsubEdges = $graphEdges.subscribe(() => this.syncGraph());
-
-  constructor() {
-    super();
-    console.log('BeliefGraph constructor');
-  }
-
   override connectedCallback() {
     super.connectedCallback();
-    console.log('BeliefGraph connectedCallback');
-    const w = window as any;
-    w.__testApi = w.__testApi || {};
-    w.__testApi.graph = {
+    this.unsubs = [
+      $graphNodes.subscribe(() => this.syncGraph()),
+      $graphEdges.subscribe(() => this.syncGraph()),
+    ];
+    mountTestApi('graph', {
       getNodeCount: () => this.cy?.nodes().length ?? 0,
       getEdgeCount: () => this.cy?.edges().length ?? 0,
       getNodeData: (id: string) => this.cy?.getElementById(id).data() ?? null,
-      getAllNodeIds: () => this.cy?.nodes().map(n => n.id()) ?? [],
+      getAllNodeIds: () => this.cy?.nodes().map((n) => n.id()) ?? [],
       clickNode: (id: string) => this.cy?.getElementById(id).emit('tap'),
-    };
+    });
   }
 
   override disconnectedCallback() {
-    this.unsubNodes();
-    this.unsubEdges();
+    this.unsubs.forEach((u) => u());
+    this.cy?.destroy();
     super.disconnectedCallback();
   }
 
   override firstUpdated() {
-    console.log('BeliefGraph firstUpdated');
     const container = this.shadowRoot?.getElementById('graph');
     if (!container) return;
 
@@ -64,13 +57,10 @@ export class BeliefGraph extends LitElement {
             'text-valign': 'bottom',
             'text-halign': 'center',
             'text-margin-y': 4,
-            'border-opacity': 'mapData(confidence, 0, 1, 0.3, 1)',
+            'border-opacity': 'mapData(confidence, 0, 1, 0.3, 1)' as any,
           },
         },
-        {
-          selector: 'node:active',
-          style: { 'border-color': '#ffb000', 'border-width': 3 } as any,
-        },
+        { selector: 'node:active', style: { 'border-color': '#ffb000', 'border-width': 3 as any } },
         {
           selector: 'edge',
           style: {
@@ -90,42 +80,34 @@ export class BeliefGraph extends LitElement {
 
   private syncGraph() {
     if (!this.cy) return;
+    const cy = this.cy;
     const nodes = $graphNodes.get();
     const edges = $graphEdges.get();
 
-    this.cy.batch(() => {
-      const cyNodes = this.cy!.nodes();
-      const cyEdges = this.cy!.edges();
-
-      const currentNodeIds = new Set(cyNodes.map(n => n.id()));
+    cy.batch(() => {
+      const currentNodeIds = new Set(cy.nodes().map((n) => n.id()));
       for (const [id, data] of nodes) {
-        if (currentNodeIds.has(id)) {
-          this.cy!.getElementById(id).data(data);
-        } else {
-          this.cy!.add({ group: 'nodes', data: { id, color: '#00f3ff', ...data } });
-        }
+        if (currentNodeIds.has(id)) cy.getElementById(id).data(data);
+        else cy.add({ group: 'nodes', data: { id, color: '#00f3ff', ...data } });
       }
       for (const id of currentNodeIds) {
-        if (!nodes.has(id)) this.cy!.getElementById(id).remove();
+        if (!nodes.has(id)) cy.getElementById(id).remove();
       }
 
-      const currentEdgeKeys = new Set(cyEdges.map(e => `${e.data('source')}->${e.data('target')}`));
+      const currentEdgeKeys = new Set(cy.edges().map((e) => `${e.data('source')}->${e.data('target')}`));
       for (const [key, data] of edges) {
-        if (!currentEdgeKeys.has(key)) {
-          this.cy!.add({ group: 'edges', data: { ...data } });
-        }
+        if (!currentEdgeKeys.has(key)) cy.add({ group: 'edges', data: { ...data } });
       }
-      for (const e of cyEdges) {
+      for (const e of cy.edges()) {
         const key = `${e.data('source')}->${e.data('target')}`;
         if (!edges.has(key)) e.remove();
       }
     });
 
-    this.cy.layout({ name: 'cose', animate: true, animationDuration: 300, fit: true, padding: 20 }).run();
+    cy.layout({ name: 'cose', animate: true, animationDuration: 300, fit: true, padding: 20 }).run();
   }
 
   override render() {
-    console.log('BeliefGraph render');
     const meta = $graphMeta.get();
     return html`
       <div id="graph"></div>

@@ -1,6 +1,8 @@
 import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { $workingMemory, $graphMeta } from '../core/store.js';
+import { $workingMemory, $graphMeta, mountTestApi } from '../core/store.js';
+
+const getItemLabel = (i: any) => i.id ?? i.concept ?? i.term ?? '';
 
 @customElement('working-memory')
 export class WorkingMemory extends LitElement {
@@ -17,11 +19,7 @@ export class WorkingMemory extends LitElement {
 
   override connectedCallback() {
     super.connectedCallback();
-    const w = window as any;
-    w.__testApi = w.__testApi || {};
-    w.__testApi.workingMemory = {
-      getTerms: () => $workingMemory.get().map((item: any) => item.id ?? item.term ?? item.concept ?? ''),
-    };
+    mountTestApi('workingMemory', { getTerms: () => $workingMemory.get().map(getItemLabel) });
   }
 
   override disconnectedCallback() {
@@ -35,9 +33,8 @@ export class WorkingMemory extends LitElement {
     return html`
       <div class="header">Working Memory ${meta.truncated ? html`<span style="color:var(--accent-amber)">(truncated)</span>` : ''}</div>
       <div class="items">
-        ${items.length === 0 ? html`<span class="empty">—</span>` : items.map((i: any) => html`
-          <span class="chip">${i.id ?? i.concept ?? i.term}<span class="p">${(i.priority ?? 0).toFixed(2)}</span></span>
-        `)}
+        ${items.length === 0 ? html`<span class="empty">—</span>` : ''}
+        ${items.map((i) => html`<span class="chip">${getItemLabel(i)}<span class="p">${(i.priority ?? 0).toFixed(2)}</span></span>`)}
       </div>
     `;
   }

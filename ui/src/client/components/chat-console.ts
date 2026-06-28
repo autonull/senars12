@@ -4,12 +4,12 @@ import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
-import { $chat, $streamingDelta } from '../core/store.js';
+import { $chat, $streamingDelta, mountTestApi } from '../core/store.js';
 import { send } from '../core/ws-client.js';
 
 marked.use(markedHighlight({
   langPrefix: 'hljs language-',
-  highlight(code: string, lang: string) {
+  highlight(code, lang) {
     return hljs.highlightAuto(code, lang ? [lang] : undefined).value;
   },
 }));
@@ -38,12 +38,10 @@ export class ChatConsole extends LitElement {
 
   override connectedCallback() {
     super.connectedCallback();
-    const w = window as any;
-    w.__testApi = w.__testApi || {};
-    w.__testApi.chat = {
+    mountTestApi('chat', {
       getMessages: () => $chat.get(),
       getStreamingDelta: () => $streamingDelta.get(),
-    };
+    });
   }
 
   override disconnectedCallback() {
@@ -52,14 +50,13 @@ export class ChatConsole extends LitElement {
     super.disconnectedCallback();
   }
 
-  private renderMarkdown(text: string) {
-    const raw = marked.parse(text, { async: false }) as string;
-    const clean = DOMPurify.sanitize(raw);
+  private renderMarkdown = (text: string) => {
+    const clean = DOMPurify.sanitize(marked.parse(text, { async: false }) as string);
     return html`<div .innerHTML=${clean}></div>`;
-  }
+  };
 
   private sendMessage() {
-    const input = this.shadowRoot!.querySelector('input')!;
+    const input = this.shadowRoot!.querySelector('input') as HTMLInputElement;
     const content = input.value.trim();
     if (!content) return;
     $chat.set([...$chat.get(), { role: 'user', content }]);
@@ -74,12 +71,12 @@ export class ChatConsole extends LitElement {
     return html`
       <div class="messages">
         ${!hasMessages ? html`<div class="empty">Awaiting signal...</div>` : ''}
-        ${msgs.map(m => html`<div class="msg ${m.role}" data-testid="message" data-role="${m.role}">${this.renderMarkdown(m.content)}</div>`)}
+        ${msgs.map((m) => html`<div class="msg ${m.role}" data-testid="message" data-role="${m.role}">${this.renderMarkdown(m.content)}</div>`)}
         ${delta ? html`<div class="msg agent" data-testid="message" data-role="agent">${this.renderMarkdown(delta)}<span class="cursor">▊</span></div>` : ''}
       </div>
       <div class="input-area">
         <input @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.sendMessage()} placeholder="Query the agent..." />
-        <button @click=${this.sendMessage}>SEND</button>
+        <button @click=${() => this.sendMessage()}>SEND</button>
       </div>
     `;
   }

@@ -4,9 +4,7 @@ class Atom<T> {
   private _value: T;
   private listeners = new Set<Listener<T>>();
 
-  constructor(initial: T) {
-    this._value = initial;
-  }
+  constructor(initial: T) { this._value = initial; }
 
   get() { return this._value; }
 
@@ -15,15 +13,13 @@ class Atom<T> {
     for (const fn of this.listeners) fn(value);
   }
 
-  subscribe(fn: Listener<T>) {
+  subscribe(fn: Listener<T>): () => void {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
   }
 }
 
-function atom<T>(initial: T) {
-  return new Atom(initial);
-}
+const atom = <T>(initial: T) => new Atom(initial);
 
 export interface TelemetryData {
   reasoning_hz: number[];
@@ -32,11 +28,13 @@ export interface TelemetryData {
   ws_latency_ms: number[];
 }
 
+export interface CognitiveMeta { truncated: boolean; total_hidden: number }
+
 export const $chat = atom<Array<{ role: 'user' | 'agent'; content: string }>>([]);
 export const $streamingDelta = atom<string>('');
 export const $graphNodes = atom<Map<string, Record<string, any>>>(new Map());
 export const $graphEdges = atom<Map<string, Record<string, any>>>(new Map());
-export const $graphMeta = atom<{ truncated: boolean; total_hidden: number }>({ truncated: false, total_hidden: 0 });
+export const $graphMeta = atom<CognitiveMeta>({ truncated: false, total_hidden: 0 });
 export const $workingMemory = atom<any[]>([]);
 export const $config = atom<Record<string, any>>({});
 export const $telemetry = atom<TelemetryData>({
@@ -45,27 +43,29 @@ export const $telemetry = atom<TelemetryData>({
 export const $connectionState = atom<'connecting' | 'connected' | 'reconnecting' | 'disconnected'>('connecting');
 export const $lastSeqId = atom<number | null>(null);
 
-export function exposeTestApi() {
-  const w = window as any;
-  w.__testApi = w.__testApi || {};
-  w.__testApi.store = {
-    getState: (path: string) => {
-      const stores: Record<string, () => any> = {
-        'chat': () => $chat.get(),
-        'streamingDelta': () => $streamingDelta.get(),
-        'graphNodes': () => $graphNodes.get(),
-        'graphEdges': () => $graphEdges.get(),
-        'graphMeta': () => $graphMeta.get(),
-        'workingMemory': () => $workingMemory.get(),
-        'config': () => $config.get(),
-        'telemetry': () => $telemetry.get(),
-        'connectionState': () => $connectionState.get(),
-        'lastSeqId': () => $lastSeqId.get(),
-      };
-      return stores[path]?.() ?? undefined;
-    },
-  };
-  w.__testApi.connection = {
-    getState: () => $connectionState.get(),
-  };
+export type TestApiStorePath =
+  | 'chat' | 'streamingDelta' | 'graphNodes' | 'graphEdges' | 'graphMeta'
+  | 'workingMemory' | 'config' | 'telemetry' | 'connectionState' | 'lastSeqId';
+
+const STORE_READERS: Record<TestApiStorePath, () => unknown> = {
+  chat: () => $chat.get(),
+  streamingDelta: () => $streamingDelta.get(),
+  graphNodes: () => $graphNodes.get(),
+  graphEdges: () => $graphEdges.get(),
+  graphMeta: () => $graphMeta.get(),
+  workingMemory: () => $workingMemory.get(),
+  config: () => $config.get(),
+  telemetry: () => $telemetry.get(),
+  connectionState: () => $connectionState.get(),
+  lastSeqId: () => $lastSeqId.get(),
+};
+
+export function mountTestApi<T>(namespace: string, api: T): void {
+  const w = window as unknown as { __testApi?: Record<string, unknown> };
+  w.__testApi = { ...w.__testApi, [namespace]: api };
+}
+
+export function exposeTestApi(): void {
+  mountTestApi('store', { getState: (path: string) => STORE_READERS[path as TestApiStorePath]?.() });
+  mountTestApi('connection', { getState: () => $connectionState.get() });
 }
