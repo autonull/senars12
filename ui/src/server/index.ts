@@ -50,7 +50,9 @@ function startHttpServer(adapter: NarAdapter, nar: NAR, agent: Agent, port: numb
 
   return new Promise((resolve) => {
     server.listen(port, '0.0.0.0', () => {
-      console.log(`UI server running on http://localhost:${port}`);
+      console.log(`Backend (HTTP+WS) bound to 0.0.0.0:${port}
+  Dev mode: Vite at http://localhost:5173 → proxies /ws and /test to :${port}
+  Production: serves client from dist/; open http://0.0.0.0:${port}`);
       resolve({
         close: () => new Promise<void>((done) => wss.close(() => server.close(() => done()))),
         address: () => ({ port }),

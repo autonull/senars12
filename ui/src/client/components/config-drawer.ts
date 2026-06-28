@@ -3,6 +3,7 @@ import { customElement } from 'lit/decorators.js';
 import { $config, mountTestApi } from '../core/store.js';
 import { send } from '../core/ws-client.js';
 import { BaseComponent } from '../core/base-component.js';
+import type { ConfigFieldType } from '../../shared/protocol.js';
 
 const updateConfig = (key: string, value: unknown) => {
   const cfg = $config.get();
@@ -10,29 +11,19 @@ const updateConfig = (key: string, value: unknown) => {
   send({ type: 'config.set', key, value });
 };
 
-const renderField = (field: any, key: string) => html`
-  <div class="field" data-testid="field-${key}">
-    <label>${field.label} <span class="val">${field.value}</span></label>
-    ${field.type === 'slider' ? html`
-      <input type="range" min=${field.min ?? 0} max=${field.max ?? 1} step=${field.step ?? 0.1}
-        .value=${field.value} @input=${(e: Event) => updateConfig(key, parseFloat((e.target as HTMLInputElement).value))} />
-    ` : ''}
-    ${field.type === 'dropdown' ? html`
-      <select @change=${(e: Event) => updateConfig(key, (e.target as HTMLSelectElement).value)}>
-        ${field.options?.map?.((o: string) => html`<option value=${o} ?selected=${o === String(field.value)}>${o}</option>`)}
-      </select>
-    ` : ''}
-    ${field.type === 'text' ? html`
-      <input type="text" .value=${field.value} @change=${(e: Event) => updateConfig(key, (e.target as HTMLInputElement).value)} />
-    ` : ''}
-    ${field.type === 'toggle' ? html`
-      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
-        <input type="checkbox" ?checked=${field.value} @change=${(e: Event) => updateConfig(key, (e.target as HTMLInputElement).checked)} />
-        <span style="color:var(--text-primary);text-transform:none;">Enabled</span>
-      </label>
-    ` : ''}
-  </div>
-`;
+type FieldRenderer = (f: ConfigFieldType, k: string) => unknown;
+const FIELD_RENDERERS: Record<string, FieldRenderer> = {
+  slider: (f, k) => html`<input type="range" min=${f.min ?? 0} max=${f.max ?? 1} step=${f.step ?? 0.1}
+    .value=${f.value} @input=${(e: Event) => updateConfig(k, parseFloat((e.target as HTMLInputElement).value))} />`,
+  dropdown: (f, k) => html`<select @change=${(e: Event) => updateConfig(k, (e.target as HTMLSelectElement).value)}>
+    ${f.options?.map((o: string) => html`<option value=${o} ?selected=${o === String(f.value)}>${o}</option>`)}
+  </select>`,
+  text: (f, k) => html`<input type="text" .value=${f.value} @change=${(e: Event) => updateConfig(k, (e.target as HTMLInputElement).value)} />`,
+  toggle: (f, k) => html`<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+    <input type="checkbox" ?checked=${f.value} @change=${(e: Event) => updateConfig(k, (e.target as HTMLInputElement).checked)} />
+    <span style="color:var(--text-primary);text-transform:none;">Enabled</span>
+  </label>`,
+};
 
 @customElement('config-drawer')
 export class ConfigDrawer extends BaseComponent {
@@ -56,10 +47,14 @@ export class ConfigDrawer extends BaseComponent {
 
   override render() {
     const cfg = $config.get();
+    const entries = Object.entries(cfg);
     return html`
       <h2>System Config</h2>
-      ${Object.keys(cfg).length === 0 ? html`<div class="empty">Awaiting config schema...</div>` : ''}
-      ${Object.entries(cfg).map(([k, v]) => renderField(v, k))}
+      ${!entries.length ? html`<div class="empty">Awaiting config schema...</div>` : entries.map(([k, f]) => html`
+        <div class="field" data-testid="field-${k}">
+          <label>${f.label} <span class="val">${f.value}</span></label>
+          ${FIELD_RENDERERS[f.type]?.(f, k)}
+        </div>`)}
     `;
   }
 }

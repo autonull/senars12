@@ -1,5 +1,4 @@
 import { WebSocket } from 'ws';
-import { IncomingFromClient } from '../shared/protocol.js';
 import { RateLimiter } from './rate-limiter.js';
 import { validateClientMessage } from './validators.js';
 import type { Lens, IncomingFromServer } from '../shared/protocol.js';

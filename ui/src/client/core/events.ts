@@ -1,14 +1,11 @@
-type EventHandler = (...args: any[]) => void;
+export class EventBus {
+  private handlers = new Map<string, Set<(...args: any[]) => void>>();
 
-class EventBus {
-  private handlers = new Map<string, Set<EventHandler>>();
-
-  on(event: string, fn: EventHandler) {
-    if (!this.handlers.has(event)) this.handlers.set(event, new Set());
-    this.handlers.get(event)!.add(fn);
+  on(event: string, fn: (...args: any[]) => void) {
+    (this.handlers.get(event) ?? this.handlers.set(event, new Set()).get(event)!).add(fn);
   }
 
-  off(event: string, fn: EventHandler) {
+  off(event: string, fn: (...args: any[]) => void) {
     this.handlers.get(event)?.delete(fn);
   }
 

@@ -16,8 +16,10 @@ export function computeActiveSubgraph(
   focusTerm: string | null,
   opts: ProjectionOptions,
 ): ProjectionResult {
+  const conceptMap = new Map(concepts.map(c => [c.term, c]));
+
   const seeds = focusTerm
-    ? concepts.filter(c => c.term === focusTerm)
+    ? conceptMap.has(focusTerm) ? [{ term: focusTerm }] : []
     : [...concepts].sort((a, b) => b.priority - a.priority).slice(0, 50);
 
   const visited = new Set<string>();
@@ -28,7 +30,7 @@ export function computeActiveSubgraph(
     const { term, depth } = queue.shift()!;
     if (visited.has(term)) continue;
     visited.add(term);
-    const concept = concepts.find(c => c.term === term);
+    const concept = conceptMap.get(term);
     if (!concept) continue;
     candidates.push({ term, priority: concept.priority, confidence: concept.confidence, depth });
     if (depth < opts.maxHops) {
@@ -45,7 +47,7 @@ export function computeActiveSubgraph(
 
   const edges: Array<{ source: string; target: string; weight: number }> = [];
   for (const node of selected) {
-    const concept = concepts.find(c => c.term === node.term);
+    const concept = conceptMap.get(node.term);
     if (!concept) continue;
     for (const link of concept.getLinks()) {
       if (nodeSet.has(link.target) && edges.length < opts.maxEdges) {

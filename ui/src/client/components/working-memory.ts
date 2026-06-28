@@ -3,7 +3,8 @@ import { customElement } from 'lit/decorators.js';
 import { $workingMemory, $graphMeta, mountTestApi } from '../core/store.js';
 import { BaseComponent } from '../core/base-component.js';
 
-const getItemLabel = (i: any) => i.id ?? i.concept ?? i.term ?? '';
+interface Item { id?: string; concept?: string; term?: string; priority?: number }
+const getItemLabel = (i: Item) => i.id ?? i.concept ?? i.term ?? '';
 
 @customElement('working-memory')
 export class WorkingMemory extends BaseComponent {
@@ -29,8 +30,7 @@ export class WorkingMemory extends BaseComponent {
     return html`
       <div class="header">Working Memory ${meta.truncated ? html`<span style="color:var(--accent-amber)">(truncated)</span>` : ''}</div>
       <div class="items">
-        ${items.length === 0 ? html`<span class="empty">—</span>` : ''}
-        ${items.map((i) => html`<span class="chip">${getItemLabel(i)}<span class="p">${(i.priority ?? 0).toFixed(2)}</span></span>`)}
+        ${items.length ? items.map((i: Item) => html`<span class="chip">${getItemLabel(i)}<span class="p">${(i.priority ?? 0).toFixed(2)}</span></span>`) : html`<span class="empty">—</span>`}
       </div>
     `;
   }

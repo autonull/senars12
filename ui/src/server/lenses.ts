@@ -1,8 +1,9 @@
 import type { NarAdapter } from './gateway.js';
 import type { GraphOpType, Lens } from '../shared/protocol.js';
-import { computeActiveSubgraph, type ProjectionOptions } from './projection.js';
-
-const DEFAULT_PROJECTION: ProjectionOptions = { maxNodes: 300, maxEdges: 600, maxHops: 2 };
+import { edgeKey } from '../shared/utils.js';
+import { computeActiveSubgraph } from './projection.js';
+import { DEFAULT_PROJECTION } from './config.js';
+import { createNodeOp, createEdgeOp } from './graph-factory.js';
 
 type LensScorer = (concept: { term: string; priority: number; confidence: number; getLinks: () => Array<{ target: string; strength: number }> }, allConcepts: any[]) => number;
 
@@ -50,14 +51,8 @@ export function buildLensGraphOps(adapter: NarAdapter, lens: Lens): { ops: Graph
     const proj = computeActiveSubgraph(concepts, null, DEFAULT_PROJECTION);
     return {
       ops: [
-        ...proj.nodes.map((n) => ({
-          action: 'add_node' as const, id: n.id,
-          data: { id: n.id, label: n.id, priority: n.priority, confidence: n.confidence, nodeType: 'concept' as const },
-        })),
-        ...proj.edges.map((e) => ({
-          action: 'add_edge' as const, source: e.source, target: e.target,
-          data: { weight: e.weight, type: 'semantic' as const },
-        })),
+        ...proj.nodes.map((n) => createNodeOp(n.id, { id: n.id, label: n.id, priority: n.priority, confidence: n.confidence, nodeType: 'concept' })),
+        ...proj.edges.map((e) => createEdgeOp(e.source, e.target, e.weight)),
       ],
       meta: proj.truncated ? { truncated: true, total_hidden: proj.total_hidden } : undefined,
     };
@@ -71,34 +66,24 @@ export function buildLensGraphOps(adapter: NarAdapter, lens: Lens): { ops: Graph
   const maxScore = Math.max(...scored.map((s) => s.score), 0.01);
   const nodeIds = new Set(scored.map((s) => s.concept.term));
 
-  const ops: GraphOpType[] = scored.map(({ concept, score }) => ({
-    action: 'add_node' as const,
-    id: concept.term,
-    data: {
-      id: concept.term,
-      label: concept.term,
-      priority: concept.priority,
-      confidence: concept.confidence,
-      nodeType: 'concept' as const,
+  const ops: GraphOpType[] = scored.map(({ concept, score }) =>
+    createNodeOp(concept.term, {
+      id: concept.term, label: concept.term, priority: concept.priority, confidence: concept.confidence,
+      nodeType: 'concept',
       lensData: {
         score: score / maxScore,
         color: getLensColor(lens, score / maxScore),
         size: 10 + 40 * (score / maxScore),
       },
-    },
-  }));
+    })
+  );
 
   const edgeSet = new Set<string>();
   for (const { concept } of scored) {
     for (const link of concept.getLinks()) {
-      if (nodeIds.has(link.target) && !edgeSet.has(`${concept.term}->${link.target}`)) {
-        edgeSet.add(`${concept.term}->${link.target}`);
-        ops.push({
-          action: 'add_edge' as const,
-          source: concept.term,
-          target: link.target,
-          data: { weight: link.strength, type: 'semantic' },
-        });
+      if (nodeIds.has(link.target) && !edgeSet.has(edgeKey(concept.term, link.target))) {
+        edgeSet.add(edgeKey(concept.term, link.target));
+        ops.push(createEdgeOp(concept.term, link.target, link.strength));
       }
     }
   }

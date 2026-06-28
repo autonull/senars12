@@ -2,12 +2,9 @@ import cytoscape, { type Core } from 'cytoscape';
 import { html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { $graphNodes, $graphEdges, $graphMeta, $activeLens, $selectedMessageId, $focusTerm, mountTestApi } from '../core/store.js';
-import type { GraphNodeData } from '../../shared/protocol.js';
 import { BaseComponent } from '../core/base-component.js';
-
-const LENS_COLORS: Record<string, string> = {
-  belief: '#00f3ff', goal: '#ff0055', contradiction: '#ff00ff',
-};
+import { LENS_COLORS } from '../constants.js';
+import { edgeKey } from '../../shared/utils.js';
 
 const CHAT_NODE_STYLE = { 'shape': 'round-rectangle', 'border-color': '#00f3ff', 'border-width': 1.5 };
 
@@ -107,47 +104,52 @@ export class BeliefGraph extends BaseComponent {
     setTimeout(() => node.style({ 'border-width': 2, 'border-color': '#00f3ff' }), 1000);
   }
 
+  private savePositions() {
+    const positions = new Map<string, { x: number; y: number }>();
+    if (this.cy) this.cy.nodes().forEach((n) => { positions.set(n.id(), n.position()); });
+    return positions;
+  }
+
+  private restorePositions(positions: Map<string, { x: number; y: number }>) {
+    if (!this.cy) return;
+    this.cy.nodes().forEach((n) => {
+      const pos = positions.get(n.id());
+      if (pos) n.position(pos);
+    });
+  }
+
   private applyLens() {
     const cy = this.cy;
     if (!cy) return;
     const lens = $activeLens.get();
-
-    const positions = new Map<string, { x: number; y: number }>();
-    cy.nodes().forEach((n) => { positions.set(n.id(), n.position()); });
+    const positions = this.savePositions();
 
     cy.batch(() => {
       cy.nodes().forEach((node) => {
         const ld = node.data('lensData');
         if (ld) {
           node.style({
-            'background-color': ld.color,
-            width: ld.size,
-            height: ld.size,
+            'background-color': ld.color, width: ld.size, height: ld.size,
             opacity: 0.5 + 0.5 * Math.min(1, ld.score),
             'transition-property': 'background-color, width, height, opacity',
             'transition-duration': '0.25s',
           });
         } else {
-          const baseColor = LENS_COLORS[lens] ?? '#00f3ff';
           node.style({
-            'background-color': baseColor,
+            'background-color': LENS_COLORS[lens] ?? '#00f3ff',
             opacity: 0.15,
             'transition-property': 'background-color, opacity',
             'transition-duration': '0.25s',
           });
         }
       });
-
       cy.edges().forEach((edge) => {
         const srcData = edge.source().data('lensData');
         edge.style('opacity', srcData ? 0.1 + 0.9 * srcData.score : 0.02);
       });
     });
 
-    cy.nodes().forEach((n) => {
-      const pos = positions.get(n.id());
-      if (pos) n.position(pos);
-    });
+    this.restorePositions(positions);
   }
 
   private syncGraph() {
@@ -155,14 +157,13 @@ export class BeliefGraph extends BaseComponent {
     const cy = this.cy;
     const nodes = $graphNodes.get();
     const edges = $graphEdges.get();
-    const oldPositions = new Map<string, { x: number; y: number }>();
+    const oldPositions = this.savePositions();
 
     cy.batch(() => {
       const currentIds = new Set(cy.nodes().map((n) => n.id()));
 
       for (const [nodeId, nd] of nodes) {
         if (currentIds.has(nodeId)) {
-          oldPositions.set(nodeId, cy.getElementById(nodeId).position());
           cy.getElementById(nodeId).data(nd);
         } else {
           const nodeType = nd.nodeType === 'message' ? 'message' : 'concept';
@@ -176,20 +177,17 @@ export class BeliefGraph extends BaseComponent {
         if (!nodes.has(nid)) cy.getElementById(nid).remove();
       }
 
-      const currentEdgeKeys = new Set(cy.edges().map((e) => `${e.data('source')}->${e.data('target')}`));
+      const currentEdgeKeys = new Set(cy.edges().map((e) => edgeKey(e.data('source'), e.data('target'))));
       for (const [key, ed] of edges) {
         if (!currentEdgeKeys.has(key)) cy.add({ group: 'edges', data: { ...ed } });
       }
       for (const e of cy.edges()) {
-        const key = `${e.data('source')}->${e.data('target')}`;
+        const key = edgeKey(e.data('source'), e.data('target'));
         if (!edges.has(key)) e.remove();
       }
     });
 
-    for (const [nid, pos] of oldPositions) {
-      const el = cy.getElementById(nid);
-      if (el.length) el.position(pos);
-    }
+    this.restorePositions(oldPositions);
 
     const firstLayout = cy.nodes().length <= 1;
     cy.layout({ name: 'cose', animate: true, animationDuration: 300, fit: firstLayout, padding: 20 }).run();

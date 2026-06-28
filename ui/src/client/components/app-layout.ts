@@ -2,16 +2,13 @@ import { html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { $userLevel, $focusTerm, $connectionState } from '../core/store.js';
 import { BaseComponent } from '../core/base-component.js';
-import './cognitive-hud.js';
+import { CONNECTION_COLORS } from '../constants.js';
+import './belief-graph.js';
 import './chat-console.js';
 import './config-drawer.js';
 import './lens-selector.js';
 import './concept-thread.js';
 import './contradiction-badge.js';
-
-const CONNECTION_COLORS: Record<string, string> = {
-  connected: '#00f3ff', connecting: '#ffb000', reconnecting: '#ffb000', disconnected: '#475569',
-};
 
 @customElement('app-layout')
 export class AppLayout extends BaseComponent {
@@ -25,7 +22,7 @@ export class AppLayout extends BaseComponent {
     .content { display: flex; flex-direction: row; min-height: 0; overflow: hidden; }
     .primary-zone { flex: 1; display: flex; flex-direction: row; min-width: 0; }
     .graph-area { flex: 1; min-width: 0; display: flex; flex-direction: row; }
-    .graph-area > cognitive-hud { flex: 1; min-height: 0; }
+    .graph-area > belief-graph { flex: 1; min-height: 0; }
     .chat-panel { width: 300px; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid var(--border-dim); transition: width 0.2s, opacity 0.2s; overflow: hidden; }
     .chat-panel.collapsed { width: 28px; min-width: 28px; }
     .chat-panel.collapsed > chat-console { opacity: 0; pointer-events: none; }
@@ -76,7 +73,7 @@ export class AppLayout extends BaseComponent {
             ${this.chatCollapsed ? '◀' : '▶'}
           </div>
           <div class="graph-area">
-            <cognitive-hud></cognitive-hud>
+            <belief-graph style="width:100%;height:100%;"></belief-graph>
           </div>
         </div>
         ${showRightPanel ? html`

@@ -27,6 +27,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
+    "web": "pnpm --dir ui dev",
     "build": "tsc"
   },
   "dependencies": {

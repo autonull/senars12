@@ -49,19 +49,19 @@ export const test = base.extend<SenarsFixtures>({
     await monitor.assertWithinBudget();
   },
 
-  chat: async ({ page, testApi }, use) => {
+  chat: async ({ page }, use) => {
     await use(new ChatConsole(page));
   },
 
-  config: async ({ page, testApi }, use) => {
+  config: async ({ page }, use) => {
     await use(new ConfigDrawer(page));
   },
 
-  graph: async ({ page, testApi }, use) => {
+  graph: async ({ page }, use) => {
     await use(new BeliefGraph(page));
   },
 
-  telemetry: async ({ page, testApi }, use) => {
+  telemetry: async ({ page }, use) => {
     await use(new TelemetryPanel(page));
   },
 });

@@ -17,21 +17,12 @@ export class TestApiClient {
     );
   }
 
-  // Wait for specific component test API
-  async waitForGraphApi() {
-    await this.page.waitForFunction(() => (window as any).__testApi?.graph !== undefined, { timeout: 10000 });
-  }
-
-  async waitForWorkingMemoryApi() {
-    await this.page.waitForFunction(() => (window as any).__testApi?.workingMemory !== undefined, { timeout: 10000 });
-  }
-
-  async waitForConfigApi() {
-    await this.page.waitForFunction(() => (window as any).__testApi?.config !== undefined, { timeout: 10000 });
-  }
-
-  async waitForTelemetryApi() {
-    await this.page.waitForFunction(() => (window as any).__testApi?.telemetry !== undefined, { timeout: 10000 });
+  async waitForComponentApi(component: string) {
+    await this.page.waitForFunction(
+      (name: string) => (window as any).__testApi?.[name] !== undefined,
+      component,
+      { timeout: 10000 }
+    );
   }
 
   async getGraphNodeCount(): Promise<number> {

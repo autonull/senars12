@@ -1,9 +1,9 @@
 import type { IncomingFromServer, GraphOpType, ChatMessage, GraphNodeData } from '../../shared/protocol.js';
+import { edgeKey } from '../../shared/utils.js';
 import { $chat, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $lastSeqId, $workingMemory } from './store.js';
 import type { CognitiveMeta } from './store.js';
 
 const TELEMETRY_WINDOW = 300;
-const edgeKey = (source: string, target: string) => `${source}->${target}`;
 
 let msgCounter = 0;
 function generateId(prefix: string): string {

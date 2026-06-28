@@ -2,11 +2,14 @@ import type { WebSocket } from 'ws';
 import type { Agent } from '../../../src/agent/types.js';
 import type { GraphOpType, IncomingFromServer, Lens } from '../shared/protocol.js';
 import type { NarAdapter } from './gateway.js';
-import { computeActiveSubgraph, type ProjectionOptions } from './projection.js';
+import { computeActiveSubgraph } from './projection.js';
+import { DEFAULT_PROJECTION } from './config.js';
+import { createNodeOp, createEdgeOp } from './graph-factory.js';
 import { buildLensGraphOps } from './lenses.js';
 
-const DEFAULT_PROJECTION: ProjectionOptions = { maxNodes: 300, maxEdges: 600, maxHops: 2 };
 type DeltaModule = 'belief_graph' | 'working_memory' | 'stream_reasoner';
+const cn = (id: string, label: string, priority: number, confidence: number) =>
+  createNodeOp(id, { id, label, priority, confidence, nodeType: 'concept' });
 
 export function send(socket: WebSocket, msg: IncomingFromServer): void {
   socket.send(JSON.stringify(msg));
@@ -23,54 +26,30 @@ export function sendDelta(
 }
 
 function beliefGraphDelta(adapter: NarAdapter, lens?: Lens): { ops: GraphOpType[]; meta?: { truncated: boolean; total_hidden: number } } {
-  if (lens) {
-    return buildLensGraphOps(adapter, lens);
-  }
+  if (lens) return buildLensGraphOps(adapter, lens);
   const proj = computeActiveSubgraph(adapter.listConcepts(), null, DEFAULT_PROJECTION);
-  const ops: GraphOpType[] = [
-    ...proj.nodes.map((n) => ({
-      action: 'add_node' as const,
-      id: n.id,
-      data: {
-        id: n.id, label: n.id, priority: n.priority, confidence: n.confidence,
-        nodeType: 'concept' as const,
-      },
-    })),
-    ...proj.edges.map((e) => ({
-      action: 'add_edge' as const,
-      source: e.source, target: e.target,
-      data: { weight: e.weight, type: 'semantic' },
-    })),
-  ];
-  return { ops, meta: proj.truncated ? { truncated: true, total_hidden: proj.total_hidden } : undefined };
+  return {
+    ops: [...proj.nodes.map((n) => cn(n.id, n.id, n.priority, n.confidence)), ...proj.edges.map((e) => createEdgeOp(e.source, e.target, e.weight))],
+    meta: proj.truncated ? { truncated: true, total_hidden: proj.total_hidden } : undefined,
+  };
 }
 
 function workingMemoryDelta(adapter: NarAdapter): GraphOpType[] {
-  return adapter.attentionReport().concepts.map((c: any) => ({
-    action: 'add_node' as const,
-    id: c.term.toString(),
-    data: { id: c.term.toString(), label: c.term.toString(), priority: c.priority, confidence: 0.9, nodeType: 'concept' as const },
-  }));
+  return adapter.attentionReport().concepts.map((c: any) =>
+    cn(c.term.toString(), c.term.toString(), c.priority, 0.9)
+  );
 }
 
 function driveDelta(adapter: NarAdapter): GraphOpType[] | null {
   const drives = adapter.getDriveManager()?.getAllStates();
-  if (!drives) return null;
-  return drives.map((d) => ({
-    action: 'add_node' as const,
-    id: d.spec.id,
-    data: { id: d.spec.id, label: d.spec.name, priority: d.currentIntensity, confidence: 1, nodeType: 'concept' as const },
-  }));
+  return drives?.map((d) => cn(d.spec.id, d.spec.name, d.currentIntensity, 1)) ?? null;
 }
 
 export function sendInitialState(socket: WebSocket, adapter: NarAdapter, lens?: Lens): void {
   send(socket, { type: 'config.schema', data: adapter.getConfigSchema() });
-
-  const initial = beliefGraphDelta(adapter, lens);
-  sendDelta(socket, 'belief_graph', initial.ops, initial.meta, lens);
-
+  const bg = beliefGraphDelta(adapter, lens);
+  sendDelta(socket, 'belief_graph', bg.ops, bg.meta, lens);
   sendDelta(socket, 'working_memory', workingMemoryDelta(adapter));
-
   const drives = driveDelta(adapter);
   if (drives) sendDelta(socket, 'stream_reasoner', drives);
 }
@@ -86,32 +65,20 @@ export function subscribeNarEvents(socket: WebSocket, adapter: NarAdapter, curre
     }),
     bus.on('nar:concept:activated', (d: any) => {
       const term = typeof d.term === 'object' ? d.term.toString() : String(d.term);
-      sendDelta(socket, 'working_memory', [{
-        action: 'add_node', id: term,
-        data: { id: term, label: term, priority: d.priority ?? 0.5, confidence: 0.9, nodeType: 'concept' as const },
-      }]);
+      sendDelta(socket, 'working_memory', [cn(term, term, d.priority ?? 0.5, 0.9)]);
     }),
     bus.on('nar:reasoning:cycle', (d: any) => {
-      sendDelta(socket, 'stream_reasoner', [{
-        action: 'add_node', id: 'cycle',
-        data: { id: 'cycle', label: 'cycle', priority: d.cycle ?? 0, confidence: 1, nodeType: 'concept' as const },
-      }]);
+      sendDelta(socket, 'stream_reasoner', [cn('cycle', 'cycle', d.cycle ?? 0, 1)]);
     }),
     bus.on('nar:drive:changed', (d: any) => {
-      sendDelta(socket, 'stream_reasoner', [{
-        action: 'add_node', id: d.drive ?? 'drive',
-        data: { id: d.drive ?? 'drive', label: d.drive ?? 'drive', priority: d.urgency ?? 0, confidence: 1, nodeType: 'concept' as const },
-      }]);
+      const id = d.drive ?? 'drive';
+      sendDelta(socket, 'stream_reasoner', [cn(id, id, d.urgency ?? 0, 1)]);
     }),
   ];
 }
 
 function subscribeAgentEvents(socket: WebSocket, agent: Agent): Unsubscribe[] {
-  const emitStatus = (priority: number) =>
-    sendDelta(socket, 'stream_reasoner', [{
-      action: 'add_node', id: 'status',
-      data: { id: 'status', label: 'status', priority, confidence: 1, nodeType: 'concept' as const },
-    }]);
+  const emitStatus = (p: number) => sendDelta(socket, 'stream_reasoner', [cn('status', 'status', p, 1)]);
   return [
     agent.on('agent:process:start', () => emitStatus(1)),
     agent.on('agent:process:complete', () => emitStatus(0)),

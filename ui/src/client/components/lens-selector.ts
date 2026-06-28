@@ -1,13 +1,13 @@
-import { LitElement, html, css } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import { html, css } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import type { Lens } from '../../shared/protocol.js';
 import { $activeLens } from '../core/store.js';
 import { send } from '../core/ws-client.js';
-
-const LENS_LABELS: Record<string, string> = { belief: 'Beliefs', goal: 'Goals', contradiction: 'Conflicts' };
-const LENS_COLORS: Record<string, string> = { belief: '#00f3ff', goal: '#ff0055', contradiction: '#ff00ff' };
+import { BaseComponent } from '../core/base-component.js';
+import { LENS_COLORS, LENS_LABELS } from '../constants.js';
 
 @customElement('lens-selector')
-export class LensSelector extends LitElement {
+export class LensSelector extends BaseComponent {
   static override styles = css`
     :host { display: inline-block; position: relative; }
     .badge { display: flex; align-items: center; gap: 6px; background: var(--bg-panel); border: 1px solid var(--border-dim); border-radius: 4px; padding: 3px 8px; cursor: pointer; font-family: var(--font-data); font-size: 0.7rem; color: var(--text-primary); }
@@ -21,15 +21,15 @@ export class LensSelector extends LitElement {
     .desc { font-size: 0.65rem; opacity: 0.5; }
   `;
 
-  private open = false;
+  @state() private open = false;
 
-  private toggle() { this.open = !this.open; this.requestUpdate(); }
+  private toggle() { this.open = !this.open; }
 
-  private close() { this.open = false; this.requestUpdate(); }
+  private close() { this.open = false; }
 
-  private selectLens(lens: string) {
-    $activeLens.set(lens as any);
-    send({ type: 'lens.set', lens: lens as any });
+  private selectLens(lens: Lens) {
+    $activeLens.set(lens);
+    send({ type: 'lens.set', lens });
     this.close();
   }
 
@@ -43,7 +43,7 @@ export class LensSelector extends LitElement {
       </div>
       ${this.open ? html`
         <div class="dropdown">
-          ${['belief', 'goal', 'contradiction'].map((l) => html`
+          ${(['belief', 'goal', 'contradiction'] as Lens[]).map((l) => html`
             <button class="option ${l === activeLens ? 'active' : ''}" @click=${() => this.selectLens(l)}>
               <span class="dot" style="background: ${LENS_COLORS[l]}"></span>
               <span>${LENS_LABELS[l]}</span>

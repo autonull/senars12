@@ -13,7 +13,7 @@ export class BeliefGraph {
   }
 
   private async ensureGraphApi() {
-    await this.testApi.waitForGraphApi();
+    await this.testApi.waitForComponentApi('graph');
   }
 
   async getNodeCount(): Promise<number> {

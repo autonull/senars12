@@ -32,8 +32,8 @@ export class ContradictionBadge extends BaseComponent {
 
   private countContradictions(): number {
     let count = 0;
-    for (const [, node] of $graphNodes.get()) {
-      if ((node.nodeType as string) === 'contradiction' || (node.lensData?.color?.includes('ff00ff'))) count++;
+    for (const n of $graphNodes.get().values()) {
+      if (n.lensData?.color?.includes('ff00ff')) count++;
     }
     return count;
   }

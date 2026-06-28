@@ -43,7 +43,7 @@ export const Lens = z.enum(['belief', 'goal', 'contradiction']);
 export type Lens = z.infer<typeof Lens>;
 
 // === Cognitive Delta (with lens) ===
-export const CognitiveDelta = z.object({
+const CognitiveDelta = z.object({
   type: z.literal('cognitive.delta'),
   module: z.enum(['belief_graph', 'working_memory', 'stream_reasoner']),
   seq_id: z.number().optional(),
@@ -53,9 +53,9 @@ export const CognitiveDelta = z.object({
 });
 
 // === Chat ===
-export const ChatUserMsg = z.object({ type: z.literal('chat.user'), content: z.string().min(1).max(10000) });
-export const ChatAgentStream = z.object({ type: z.literal('chat.agent.stream'), delta: z.string() });
-export const ChatAgentComplete = z.object({ type: z.literal('chat.agent.complete'), content: z.string(), messageId: z.string().optional() });
+const ChatUserMsg = z.object({ type: z.literal('chat.user'), content: z.string().min(1).max(10000) });
+const ChatAgentStream = z.object({ type: z.literal('chat.agent.stream'), delta: z.string() });
+const ChatAgentComplete = z.object({ type: z.literal('chat.agent.complete'), content: z.string(), messageId: z.string().optional() });
 
 // === Configuration ===
 export const ConfigField = z.object({
@@ -63,29 +63,29 @@ export const ConfigField = z.object({
   label: z.string(), value: z.any(), options: z.array(z.string()).optional(),
   min: z.number().optional(), max: z.number().optional(), step: z.number().optional(),
 });
-export const ConfigSchemaMsg = z.object({ type: z.literal('config.schema'), data: z.record(z.string(), ConfigField) });
-export const ConfigSetMsg = z.object({ type: z.literal('config.set'), key: z.string(), value: z.any() });
+const ConfigSchemaMsg = z.object({ type: z.literal('config.schema'), data: z.record(z.string(), ConfigField) });
+const ConfigSetMsg = z.object({ type: z.literal('config.set'), key: z.string(), value: z.any() });
 
 // === Synchronization ===
 export const SyncRequest = z.object({ type: z.literal('sync.request'), last_seq_id: z.number().nullable() });
-export const StateSnapshot = z.object({
+const StateSnapshot = z.object({
   type: z.literal('state.snapshot'), seq_id: z.number(),
   data: z.object({
     graph: z.object({ nodes: z.array(z.any()), edges: z.array(z.any()) }),
     working_memory: z.array(z.any()), config: z.record(z.string(), ConfigField),
   }),
 });
-export const SeqAck = z.object({ type: z.literal('seq.ack'), seq_id: z.number() });
+const SeqAck = z.object({ type: z.literal('seq.ack'), seq_id: z.number() });
 
 // === Telemetry ===
-export const TelemetryMsg = z.object({
+const TelemetryMsg = z.object({
   type: z.literal('telemetry'), ts: z.number(),
   metrics: z.object({ reasoning_hz: z.number(), tokens_per_sec: z.number(), memory_mb: z.number(), ws_latency_ms: z.number() }),
 });
 
 // === Client Commands ===
-export const LensSet = z.object({ type: z.literal('lens.set'), lens: Lens });
-export const FocusSet = z.object({ type: z.literal('focus.set'), term: z.string() });
+const LensSet = z.object({ type: z.literal('lens.set'), lens: Lens });
+const FocusSet = z.object({ type: z.literal('focus.set'), term: z.string() });
 
 // === Master unions ===
 export const IncomingFromClient = z.discriminatedUnion('type', [

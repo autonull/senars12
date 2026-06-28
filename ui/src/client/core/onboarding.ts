@@ -1,4 +1,4 @@
-import { $userLevel, $chat, $focusTerm, $selectedMessageId } from '../core/store.js';
+import { $userLevel, $chat, $focusTerm } from '../core/store.js';
 
 let initialized = false;
 

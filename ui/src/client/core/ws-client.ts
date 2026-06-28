@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IncomingFromServer, SyncRequest, type IncomingFromServer as IncomingFromServerType } from '../../shared/protocol.js';
+import { IncomingFromServer, SyncRequest, type IncomingFromServer as IncomingMessage } from '../../shared/protocol.js';
 import { $connectionState, $lastSeqId } from './store.js';
 import { applyServerMessage } from './store-bindings.js';
 
@@ -33,7 +33,7 @@ export function connect(): void {
       console.error('[WS] Malformed message dropped:', parsed.error, ev.data);
       return;
     }
-    applyServerMessage(parsed.data as IncomingFromServerType);
+    applyServerMessage(parsed.data as IncomingMessage);
   };
 
   socket.onclose = () => {
