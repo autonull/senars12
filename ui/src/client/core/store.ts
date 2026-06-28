@@ -1,3 +1,5 @@
+import type { ChatMessage, Lens, GraphNodeData } from '../../shared/protocol.js';
+
 type Listener<T> = (value: T) => void;
 
 class Atom<T> {
@@ -21,6 +23,33 @@ class Atom<T> {
 
 const atom = <T>(initial: T) => new Atom(initial);
 
+class Computed<T> {
+  private _value: T;
+  private listeners = new Set<Listener<T>>();
+  private unsubs: Array<() => void> = [];
+
+  constructor(deps: Array<Atom<any>>, compute: (...values: any[]) => T) {
+    this._value = compute(...deps.map(d => d.get()));
+    this.unsubs = deps.map((dep, i) =>
+      dep.subscribe(() => {
+        this._value = compute(...deps.map(d => d.get()));
+        for (const fn of this.listeners) fn(this._value);
+      })
+    );
+  }
+
+  get() { return this._value; }
+
+  subscribe(fn: Listener<T>): () => void {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  }
+
+  destroy() { this.unsubs.forEach(u => u()); }
+}
+
+const computed = <T>(deps: Array<Atom<any>>, fn: (...values: any[]) => T) => new Computed(deps, fn);
+
 export interface TelemetryData {
   reasoning_hz: number[];
   tokens_per_sec: number[];
@@ -30,9 +59,9 @@ export interface TelemetryData {
 
 export interface CognitiveMeta { truncated: boolean; total_hidden: number }
 
-export const $chat = atom<Array<{ role: 'user' | 'agent'; content: string }>>([]);
+export const $chat = atom<ChatMessage[]>([]);
 export const $streamingDelta = atom<string>('');
-export const $graphNodes = atom<Map<string, Record<string, any>>>(new Map());
+export const $graphNodes = atom<Map<string, GraphNodeData>>(new Map());
 export const $graphEdges = atom<Map<string, Record<string, any>>>(new Map());
 export const $graphMeta = atom<CognitiveMeta>({ truncated: false, total_hidden: 0 });
 export const $workingMemory = atom<any[]>([]);
@@ -43,10 +72,29 @@ export const $telemetry = atom<TelemetryData>({
 export const $connectionState = atom<'connecting' | 'connected' | 'reconnecting' | 'disconnected'>('connecting');
 export const $lastSeqId = atom<number | null>(null);
 
-export const $activeLens = atom<'belief' | 'goal' | 'contradiction'>('belief');
+export const $activeLens = atom<Lens>('belief');
 export const $focusTerm = atom<string | null>(null);
 export const $selectedMessageId = atom<string | null>(null);
 export const $userLevel = atom<'simple' | 'full'>('simple');
+
+export const $visibleNodes = computed([$graphNodes, $activeLens], (nodes: Map<string, GraphNodeData>, lens: string) => {
+  const entries = Array.from(nodes.entries());
+  const scored = entries
+    .map(([id, n]) => ({ id, node: n, score: n.lensData?.score ?? 0.5 }))
+    .sort((a, b) => b.score - a.score);
+  return new Map(scored.map(s => [s.id, s.node]));
+});
+
+export const $visibleEdges = computed(
+  [$graphEdges, $visibleNodes as unknown as Atom<Map<string, GraphNodeData>>],
+  (edges: Map<string, any>, nodes: Map<string, GraphNodeData>) => {
+    const nodeIds = new Set(nodes.keys());
+    return new Map(
+      Array.from(edges.entries())
+        .filter(([, e]) => nodeIds.has(e.source) && nodeIds.has(e.target))
+    );
+  }
+);
 
 export type TestApiStorePath =
   | 'chat' | 'streamingDelta' | 'graphNodes' | 'graphEdges' | 'graphMeta'

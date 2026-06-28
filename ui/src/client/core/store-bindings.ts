@@ -1,19 +1,57 @@
-import type { IncomingFromServer, GraphOpType } from '../../shared/protocol.js';
+import type { IncomingFromServer, GraphOpType, ChatMessage, GraphNodeData } from '../../shared/protocol.js';
 import { $chat, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $lastSeqId, $workingMemory } from './store.js';
 import type { CognitiveMeta } from './store.js';
 
 const TELEMETRY_WINDOW = 300;
 const edgeKey = (source: string, target: string) => `${source}->${target}`;
 
+let msgCounter = 0;
+function generateId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${++msgCounter}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function extractTerm(content: string): string | undefined {
+  const trimmed = content.trim();
+  if (!trimmed) return undefined;
+  const words = trimmed.split(/\s+/);
+  return words[0]?.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || undefined;
+}
+
+export function addUserMessage(content: string): void {
+  const chat: ChatMessage = {
+    id: generateId('user'),
+    role: 'user',
+    content,
+    timestamp: Date.now(),
+    term: extractTerm(content),
+    supports: [],
+    contradicts: [],
+    derivesFrom: [],
+  };
+  $chat.set([...$chat.get(), chat]);
+}
+
 export function applyServerMessage(msg: IncomingFromServer): void {
   switch (msg.type) {
     case 'chat.agent.stream':
       $streamingDelta.set($streamingDelta.get() + msg.delta);
       break;
-    case 'chat.agent.complete':
-      $chat.set([...$chat.get(), { role: 'agent', content: msg.content }]);
+    case 'chat.agent.complete': {
+      const id = msg.messageId ?? generateId('agent');
+      const chat: ChatMessage = {
+        id,
+        role: 'agent',
+        content: msg.content,
+        timestamp: Date.now(),
+        term: extractTerm(msg.content),
+        supports: [],
+        contradicts: [],
+        derivesFrom: [],
+      };
+      $chat.set([...$chat.get(), chat]);
       $streamingDelta.set('');
       break;
+    }
     case 'cognitive.delta':
       if (msg.seq_id != null) $lastSeqId.set(msg.seq_id);
       if (msg.module === 'belief_graph') applyGraphOps(msg.ops, msg.meta);
@@ -36,7 +74,7 @@ export function applyServerMessage(msg: IncomingFromServer): void {
 }
 
 function applyFullSnapshot(data: { graph: { nodes: any[]; edges: any[] }; working_memory: any[]; config: Record<string, any> }): void {
-  const nodes = new Map<string, Record<string, any>>(data.graph.nodes.map((n) => [n.id, n]));
+  const nodes = new Map<string, GraphNodeData>(data.graph.nodes.map((n) => [n.id, n as GraphNodeData]));
   const edges = new Map<string, Record<string, any>>(data.graph.edges.map((e) => [edgeKey(e.source, e.target), e]));
   $graphNodes.set(nodes);
   $graphEdges.set(edges);
@@ -50,11 +88,13 @@ function applyGraphOps(ops: GraphOpType[], meta?: { truncated?: boolean; total_h
   for (const op of ops) {
     switch (op.action) {
       case 'add_node':
-        nodes.set(op.id, { ...op.data, id: op.id });
+        nodes.set(op.id, op.data);
         break;
-      case 'update_node':
-        nodes.set(op.id, { ...nodes.get(op.id), ...op.data });
+      case 'update_node': {
+        const existing = nodes.get(op.id);
+        if (existing) nodes.set(op.id, { ...existing, ...op.data } as GraphNodeData);
         break;
+      }
       case 'remove_node':
         nodes.delete(op.id);
         break;

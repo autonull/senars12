@@ -1,11 +1,14 @@
 import cytoscape, { type Core } from 'cytoscape';
 import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { $graphNodes, $graphEdges, $graphMeta, $activeLens, $selectedMessageId, mountTestApi } from '../core/store.js';
+import { $graphNodes, $graphEdges, $graphMeta, $activeLens, $selectedMessageId, $focusTerm, mountTestApi } from '../core/store.js';
+import type { GraphNodeData } from '../../shared/protocol.js';
 
 const LENS_COLORS: Record<string, string> = {
   belief: '#00f3ff', goal: '#ff0055', contradiction: '#ff00ff',
 };
+
+const CHAT_NODE_STYLE = { 'shape': 'round-rectangle', 'border-color': '#00f3ff', 'border-width': 1.5 };
 
 @customElement('belief-graph')
 export class BeliefGraph extends LitElement {
@@ -24,6 +27,7 @@ export class BeliefGraph extends LitElement {
       $graphNodes.subscribe(() => this.syncGraph()),
       $graphEdges.subscribe(() => this.syncGraph()),
       $activeLens.subscribe(() => this.applyLens()),
+      $selectedMessageId.subscribe((id) => this.centerOnNode(id)),
     ];
     mountTestApi('graph', {
       getNodeCount: () => this.cy?.nodes().length ?? 0,
@@ -83,11 +87,27 @@ export class BeliefGraph extends LitElement {
     });
 
     this.cy.on('tap', 'node', (evt) => {
-      const id = evt.target.id();
+      const node = evt.target;
+      const id = node.id();
+      const term = node.data('term') || id;
       $selectedMessageId.set(id);
+      $focusTerm.set(term);
     });
 
     this.applyLens();
+  }
+
+  private centerOnNode(id: string | null) {
+    if (!id || !this.cy) return;
+    const node = this.cy.getElementById(id);
+    if (!node.length) return;
+    this.cy.animate({
+      center: { eles: node },
+      zoom: 2,
+      duration: 300,
+    });
+    node.style({ 'border-color': '#00f3ff', 'border-width': 4 });
+    setTimeout(() => node.style({ 'border-width': 2, 'border-color': '#00f3ff' }), 1000);
   }
 
   private applyLens() {
@@ -141,24 +161,27 @@ export class BeliefGraph extends LitElement {
     const oldPositions = new Map<string, { x: number; y: number }>();
 
     cy.batch(() => {
-      const currentNodeIds = new Set(cy.nodes().map((n) => n.id()));
+      const currentIds = new Set(cy.nodes().map((n) => n.id()));
 
-      for (const [id, data] of nodes) {
-        if (currentNodeIds.has(id)) {
-          oldPositions.set(id, cy.getElementById(id).position());
-          cy.getElementById(id).data(data);
+      for (const [nodeId, nd] of nodes) {
+        if (currentIds.has(nodeId)) {
+          oldPositions.set(nodeId, cy.getElementById(nodeId).position());
+          cy.getElementById(nodeId).data(nd);
         } else {
-          cy.add({ group: 'nodes', data: { id, color: '#00f3ff', ...data } });
+          const nodeType = nd.nodeType === 'message' ? 'message' : 'concept';
+          const data = { id: nodeId, color: '#00f3ff', term: nd.term, nodeType, priority: nd.priority, confidence: nd.confidence, lensData: nd.lensData };
+          cy.add({ group: 'nodes', data, classes: nodeType === 'message' ? 'chat-message-node' : '' });
+          if (nodeType === 'message') cy.getElementById(nodeId).style(CHAT_NODE_STYLE);
         }
       }
 
-      for (const id of currentNodeIds) {
-        if (!nodes.has(id)) cy.getElementById(id).remove();
+      for (const nid of currentIds) {
+        if (!nodes.has(nid)) cy.getElementById(nid).remove();
       }
 
       const currentEdgeKeys = new Set(cy.edges().map((e) => `${e.data('source')}->${e.data('target')}`));
-      for (const [key, data] of edges) {
-        if (!currentEdgeKeys.has(key)) cy.add({ group: 'edges', data: { ...data } });
+      for (const [key, ed] of edges) {
+        if (!currentEdgeKeys.has(key)) cy.add({ group: 'edges', data: { ...ed } });
       }
       for (const e of cy.edges()) {
         const key = `${e.data('source')}->${e.data('target')}`;
@@ -166,12 +189,13 @@ export class BeliefGraph extends LitElement {
       }
     });
 
-    for (const [id, pos] of oldPositions) {
-      const el = cy.getElementById(id);
+    for (const [nid, pos] of oldPositions) {
+      const el = cy.getElementById(nid);
       if (el.length) el.position(pos);
     }
 
-    cy.layout({ name: 'cose', animate: true, animationDuration: 300, fit: true, padding: 20 }).run();
+    const firstLayout = cy.nodes().length <= 1;
+    cy.layout({ name: 'cose', animate: true, animationDuration: 300, fit: firstLayout, padding: 20 }).run();
     this.applyLens();
   }
 

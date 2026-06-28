@@ -6,6 +6,7 @@ import { marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import { $chat, $streamingDelta, $selectedMessageId, $focusTerm, mountTestApi } from '../core/store.js';
 import { send } from '../core/ws-client.js';
+import { addUserMessage } from '../core/store-bindings.js';
 
 marked.use(markedHighlight({
   langPrefix: 'hljs language-',
@@ -61,7 +62,7 @@ export class ChatConsole extends LitElement {
     const input = this.shadowRoot!.querySelector('input') as HTMLInputElement;
     const content = input.value.trim();
     if (!content) return;
-    $chat.set([...$chat.get(), { role: 'user', content }]);
+    addUserMessage(content);
     send({ type: 'chat.user', content });
     input.value = '';
   }
@@ -70,8 +71,8 @@ export class ChatConsole extends LitElement {
     const msgs = $chat.get();
     const msg = msgs[index];
     if (!msg) return;
-    $selectedMessageId.set(`${index}`);
-    $focusTerm.set(msg.content.slice(0, 40));
+    $selectedMessageId.set(msg.id);
+    $focusTerm.set(msg.term ?? msg.content.slice(0, 40));
   }
 
   override render() {

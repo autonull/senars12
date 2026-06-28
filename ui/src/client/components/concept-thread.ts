@@ -4,7 +4,7 @@ import { $focusTerm, $chat, $selectedMessageId } from '../core/store.js';
 
 @customElement('concept-thread')
 export class ConceptThread extends LitElement {
-  private unsub = $focusTerm.subscribe(() => this.requestUpdate());
+  private unsubs = [$focusTerm.subscribe(() => this.requestUpdate()), $chat.subscribe(() => this.requestUpdate())];
 
   static override styles = css`
     :host { display: block; background: var(--bg-panel); border-left: 1px solid var(--border-dim); overflow-y: auto; }
@@ -19,19 +19,19 @@ export class ConceptThread extends LitElement {
   `;
 
   override disconnectedCallback() {
-    this.unsub();
+    this.unsubs.forEach(u => u());
     super.disconnectedCallback();
   }
 
-  private onMessageClick(index: number) {
-    $selectedMessageId.set(`${index}`);
+  private onMessageClick(msgId: string) {
+    $selectedMessageId.set(msgId);
   }
 
   override render() {
     const term = $focusTerm.get();
     if (!term) return html``;
 
-    const related = $chat.get().filter((m) => m.content.toLowerCase().includes(term.toLowerCase()));
+    const related = $chat.get().filter((m) => (m.term && m.term.toLowerCase().includes(term.toLowerCase())) || m.content.toLowerCase().includes(term.toLowerCase()));
     return html`
       <div class="panel">
         <div class="header">
@@ -39,8 +39,8 @@ export class ConceptThread extends LitElement {
           <button class="close" @click=${() => $focusTerm.set(null)}>✕</button>
         </div>
         ${related.length === 0 ? html`<div class="empty">No related messages</div>` : ''}
-        ${related.map((m, i) => html`
-          <div class="msg" @click=${() => this.onMessageClick(i)}>
+        ${related.map((m) => html`
+          <div class="msg" @click=${() => this.onMessageClick(m.id)}>
             <div style="font-size:0.65rem;opacity:0.5;margin-bottom:2px;color:${m.role === 'user' ? 'var(--accent-cyan)' : 'var(--accent-magenta)'}">${m.role}</div>
             ${m.content.slice(0, 200)}${m.content.length > 200 ? '...' : ''}
           </div>
