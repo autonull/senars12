@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { WebSocketServer, type WebSocket } from 'ws';
 import type { Agent } from '../../../src/agent/types.js';
 import type { NAR } from '../../../src/nar/nar.js';
+import type { Lens } from '../shared/protocol.js';
 import { onChat } from './chat.js';
 import { sendInitialState, subscribeSocket } from './connection.js';
 import { handleConnection, type NarAdapter } from './gateway.js';
@@ -59,9 +60,16 @@ function startHttpServer(adapter: NarAdapter, nar: NAR, agent: Agent, port: numb
 }
 
 function bindSocket(socket: WebSocket, adapter: NarAdapter, nar: NAR, agent: Agent): void {
-  sendInitialState(socket, adapter, nar);
-  handleConnection(socket, adapter, (content, send) => onChat(content, send, agent));
-  const unsubscribe = subscribeSocket(socket, adapter, agent);
+  let currentLens: Lens = 'belief';
+
+  sendInitialState(socket, adapter, nar, currentLens);
+
+  handleConnection(socket, adapter, (content, send) => onChat(content, send, agent), (lens) => {
+    currentLens = lens;
+    sendInitialState(socket, adapter, nar, currentLens);
+  });
+
+  const unsubscribe = subscribeSocket(socket, adapter, agent, () => currentLens);
   socket.on('close', unsubscribe);
 }
 

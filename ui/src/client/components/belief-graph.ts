@@ -1,7 +1,11 @@
 import cytoscape, { type Core } from 'cytoscape';
 import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
-import { $graphNodes, $graphEdges, $graphMeta, mountTestApi } from '../core/store.js';
+import { $graphNodes, $graphEdges, $graphMeta, $activeLens, $selectedMessageId, mountTestApi } from '../core/store.js';
+
+const LENS_COLORS: Record<string, string> = {
+  belief: '#00f3ff', goal: '#ff0055', contradiction: '#ff00ff',
+};
 
 @customElement('belief-graph')
 export class BeliefGraph extends LitElement {
@@ -19,6 +23,7 @@ export class BeliefGraph extends LitElement {
     this.unsubs = [
       $graphNodes.subscribe(() => this.syncGraph()),
       $graphEdges.subscribe(() => this.syncGraph()),
+      $activeLens.subscribe(() => this.applyLens()),
     ];
     mountTestApi('graph', {
       getNodeCount: () => this.cy?.nodes().length ?? 0,
@@ -76,6 +81,56 @@ export class BeliefGraph extends LitElement {
       layout: { name: 'cose', animate: false },
       wheelSensitivity: 0.3,
     });
+
+    this.cy.on('tap', 'node', (evt) => {
+      const id = evt.target.id();
+      $selectedMessageId.set(id);
+    });
+
+    this.applyLens();
+  }
+
+  private applyLens() {
+    const cy = this.cy;
+    if (!cy) return;
+    const lens = $activeLens.get();
+
+    const positions = new Map<string, { x: number; y: number }>();
+    cy.nodes().forEach((n) => { positions.set(n.id(), n.position()); });
+
+    cy.batch(() => {
+      cy.nodes().forEach((node) => {
+        const ld = node.data('lensData');
+        if (ld) {
+          node.style({
+            'background-color': ld.color,
+            width: ld.size,
+            height: ld.size,
+            opacity: 0.5 + 0.5 * Math.min(1, ld.score),
+            'transition-property': 'background-color, width, height, opacity',
+            'transition-duration': '0.25s',
+          });
+        } else {
+          const baseColor = LENS_COLORS[lens] ?? '#00f3ff';
+          node.style({
+            'background-color': baseColor,
+            opacity: 0.15,
+            'transition-property': 'background-color, opacity',
+            'transition-duration': '0.25s',
+          });
+        }
+      });
+
+      cy.edges().forEach((edge) => {
+        const srcData = edge.source().data('lensData');
+        edge.style('opacity', srcData ? 0.1 + 0.9 * srcData.score : 0.02);
+      });
+    });
+
+    cy.nodes().forEach((n) => {
+      const pos = positions.get(n.id());
+      if (pos) n.position(pos);
+    });
   }
 
   private syncGraph() {
@@ -83,13 +138,20 @@ export class BeliefGraph extends LitElement {
     const cy = this.cy;
     const nodes = $graphNodes.get();
     const edges = $graphEdges.get();
+    const oldPositions = new Map<string, { x: number; y: number }>();
 
     cy.batch(() => {
       const currentNodeIds = new Set(cy.nodes().map((n) => n.id()));
+
       for (const [id, data] of nodes) {
-        if (currentNodeIds.has(id)) cy.getElementById(id).data(data);
-        else cy.add({ group: 'nodes', data: { id, color: '#00f3ff', ...data } });
+        if (currentNodeIds.has(id)) {
+          oldPositions.set(id, cy.getElementById(id).position());
+          cy.getElementById(id).data(data);
+        } else {
+          cy.add({ group: 'nodes', data: { id, color: '#00f3ff', ...data } });
+        }
       }
+
       for (const id of currentNodeIds) {
         if (!nodes.has(id)) cy.getElementById(id).remove();
       }
@@ -104,14 +166,20 @@ export class BeliefGraph extends LitElement {
       }
     });
 
+    for (const [id, pos] of oldPositions) {
+      const el = cy.getElementById(id);
+      if (el.length) el.position(pos);
+    }
+
     cy.layout({ name: 'cose', animate: true, animationDuration: 300, fit: true, padding: 20 }).run();
+    this.applyLens();
   }
 
   override render() {
     const meta = $graphMeta.get();
     return html`
       <div id="graph"></div>
-      ${meta.truncated ? html`<div class="warning">▼ ${meta.total_hidden} lower-priority concepts hidden</div>` : ''}
+      ${meta?.truncated ? html`<div class="warning">▼ ${meta.total_hidden} lower-priority concepts hidden</div>` : ''}
     `;
   }
 }

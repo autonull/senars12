@@ -4,7 +4,7 @@ import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
-import { $chat, $streamingDelta, mountTestApi } from '../core/store.js';
+import { $chat, $streamingDelta, $selectedMessageId, $focusTerm, mountTestApi } from '../core/store.js';
 import { send } from '../core/ws-client.js';
 
 marked.use(markedHighlight({
@@ -23,9 +23,11 @@ export class ChatConsole extends LitElement {
     :host { display: flex; flex-direction: column; background: var(--bg-panel); border: 1px solid var(--border-dim); }
     .messages { flex: 1; overflow-y: auto; padding: 0.75rem; font-family: var(--font-ui); }
     .empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-dim); font-family: var(--font-data); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
-    .msg { margin-bottom: 0.75rem; line-height: 1.6; font-size: 0.85rem; }
+    .msg { margin-bottom: 0.75rem; line-height: 1.6; font-size: 0.85rem; cursor: pointer; transition: opacity 0.2s; }
+    .msg:hover { opacity: 0.8; }
     .msg.user { color: var(--accent-cyan); font-weight: 500; }
     .msg.agent { color: var(--text-primary); }
+    .msg.selected { border-left: 2px solid var(--accent-cyan); padding-left: 0.5rem; }
     .msg pre { background: var(--bg-void); padding: 0.75rem; border-radius: 4px; border-left: 2px solid var(--accent-amber); overflow-x: auto; margin: 0.5rem 0; }
     .msg code { font-family: var(--font-data); font-size: 0.85em; }
     .cursor { animation: blink 1s step-end infinite; color: var(--accent-cyan); }
@@ -64,6 +66,14 @@ export class ChatConsole extends LitElement {
     input.value = '';
   }
 
+  private onMessageClick(index: number) {
+    const msgs = $chat.get();
+    const msg = msgs[index];
+    if (!msg) return;
+    $selectedMessageId.set(`${index}`);
+    $focusTerm.set(msg.content.slice(0, 40));
+  }
+
   override render() {
     const msgs = $chat.get();
     const delta = $streamingDelta.get();
@@ -71,7 +81,10 @@ export class ChatConsole extends LitElement {
     return html`
       <div class="messages">
         ${!hasMessages ? html`<div class="empty">Awaiting signal...</div>` : ''}
-        ${msgs.map((m) => html`<div class="msg ${m.role}" data-testid="message" data-role="${m.role}">${this.renderMarkdown(m.content)}</div>`)}
+        ${msgs.map((m, i) => html`
+          <div class="msg ${m.role}" data-testid="message" data-role="${m.role}" @click=${() => this.onMessageClick(i)}>
+            ${this.renderMarkdown(m.content)}
+          </div>`)}
         ${delta ? html`<div class="msg agent" data-testid="message" data-role="agent">${this.renderMarkdown(delta)}<span class="cursor">▊</span></div>` : ''}
       </div>
       <div class="input-area">

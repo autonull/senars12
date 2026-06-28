@@ -2,7 +2,7 @@ import { WebSocket } from 'ws';
 import { IncomingFromClient } from '../shared/protocol.js';
 import { RateLimiter } from './rate-limiter.js';
 import { validateClientMessage } from './validators.js';
-import type { IncomingFromServer } from '../shared/protocol.js';
+import type { Lens, IncomingFromServer } from '../shared/protocol.js';
 
 const MAX_BUFFER_BYTES = 1_048_576;
 const HEARTBEAT_INTERVAL_MS = 30_000;
@@ -48,7 +48,7 @@ export interface NarAdapter {
   setConfig(key: string, value: any): void;
 }
 
-export function handleConnection(socket: WebSocket, nar: NarAdapter, onChat: (content: string, send: (msg: IncomingFromServer) => void) => void) {
+export function handleConnection(socket: WebSocket, nar: NarAdapter, onChat: (content: string, send: (msg: IncomingFromServer) => void) => void, onLensChange?: (lens: Lens) => void) {
   const limiter = new RateLimiter({ chat: 5, config: 10 });
   let lastSeqId = 0;
   const eventBuffer: EventBufferEntry[] = [];
@@ -89,6 +89,9 @@ export function handleConnection(socket: WebSocket, nar: NarAdapter, onChat: (co
     if (msg.type === 'config.set') {
       if (!limiter.consume('config')) return;
       nar.setConfig(msg.key, msg.value);
+    }
+    if (msg.type === 'lens.set') {
+      onLensChange?.(msg.lens);
     }
     if (msg.type === 'sync.request') {
       handleSync(msg.last_seq_id, eventBuffer, send, nar);

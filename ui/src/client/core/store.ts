@@ -43,9 +43,15 @@ export const $telemetry = atom<TelemetryData>({
 export const $connectionState = atom<'connecting' | 'connected' | 'reconnecting' | 'disconnected'>('connecting');
 export const $lastSeqId = atom<number | null>(null);
 
+export const $activeLens = atom<'belief' | 'goal' | 'contradiction'>('belief');
+export const $focusTerm = atom<string | null>(null);
+export const $selectedMessageId = atom<string | null>(null);
+export const $userLevel = atom<'simple' | 'full'>('simple');
+
 export type TestApiStorePath =
   | 'chat' | 'streamingDelta' | 'graphNodes' | 'graphEdges' | 'graphMeta'
-  | 'workingMemory' | 'config' | 'telemetry' | 'connectionState' | 'lastSeqId';
+  | 'workingMemory' | 'config' | 'telemetry' | 'connectionState' | 'lastSeqId'
+  | 'activeLens' | 'focusTerm' | 'selectedMessageId' | 'userLevel';
 
 const STORE_READERS: Record<TestApiStorePath, () => unknown> = {
   chat: () => $chat.get(),
@@ -58,6 +64,10 @@ const STORE_READERS: Record<TestApiStorePath, () => unknown> = {
   telemetry: () => $telemetry.get(),
   connectionState: () => $connectionState.get(),
   lastSeqId: () => $lastSeqId.get(),
+  activeLens: () => $activeLens.get(),
+  focusTerm: () => $focusTerm.get(),
+  selectedMessageId: () => $selectedMessageId.get(),
+  userLevel: () => $userLevel.get(),
 };
 
 export function mountTestApi<T>(namespace: string, api: T): void {

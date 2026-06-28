@@ -50,7 +50,7 @@ function applyGraphOps(ops: GraphOpType[], meta?: { truncated?: boolean; total_h
   for (const op of ops) {
     switch (op.action) {
       case 'add_node':
-        nodes.set(op.id, { id: op.id, ...op.data });
+        nodes.set(op.id, { ...op.data, id: op.id });
         break;
       case 'update_node':
         nodes.set(op.id, { ...nodes.get(op.id), ...op.data });

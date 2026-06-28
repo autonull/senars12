@@ -1,5 +1,6 @@
 import { $connectionState, exposeTestApi } from './core/store.js';
 import { connect } from './core/ws-client.js';
+import { initOnboarding } from './core/onboarding.js';
 
 import './components/app-layout.js';
 import './components/belief-graph.js';
@@ -8,9 +9,13 @@ import './components/cognitive-hud.js';
 import './components/config-drawer.js';
 import './components/telemetry-panel.js';
 import './components/working-memory.js';
+import './components/lens-selector.js';
+import './components/concept-thread.js';
+import './components/contradiction-badge.js';
 
 exposeTestApi();
 connect();
+initOnboarding();
 
 const STYLES: Record<string, string> = {
   connected: '--status-bg: #00f3ff; --status-glow: 0 0 8px rgba(0,243,255,0.6)',
