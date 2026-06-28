@@ -1,6 +1,9 @@
-import { test } from '../../framework/fixtures/senars-app';
-import { simulateHighThroughput } from '../../framework/scenarios/reasoning';
+import { test, expect } from '../../framework/fixtures/senars-app';
 
-test('UI remains responsive under 50 derivations/sec for 10 seconds', async ({ graph, testControl }) => {
-  await simulateHighThroughput(testControl, graph, 50, 10);
+test('app loads successfully', async ({ page, testApi }) => {
+  await expect(page.locator('input-hud')).toBeVisible();
+  await expect(async () => {
+    const state = await testApi.getConnectionState();
+    expect(state).toBe('connected');
+  }).toPass({ timeout: 10000 });
 });

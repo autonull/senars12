@@ -1,6 +1,6 @@
-import type { IncomingFromServer, GraphOpType, ChatMessage, GraphNodeData, Lens } from '../../shared/protocol.js';
+import type { IncomingFromServer, GraphOp, ChatMessage, GraphNodeData, Lens } from '../../shared/protocol.js';
 import { edgeKey } from '../../shared/utils.js';
-import { $chat, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $lastSeqId, $focus, $activeLens } from './store.js';
+import { $chatMessages, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $lastSeqId, $activeLens } from './store.js';
 import type { CognitiveMeta } from './store.js';
 
 const TELEMETRY_WINDOW = 300;
@@ -17,114 +17,139 @@ function extractTerm(content: string): string | undefined {
   return words[0]?.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || undefined;
 }
 
+function renderMessageHtml(msg: ChatMessage): string {
+  const roleClass = `msg-${msg.role}`;
+  const content = msg.html ?? msg.content;
+  return `<div class="graph-message ${roleClass}" data-id="${msg.id}">${content}</div>`;
+}
+
 export function addUserMessage(content: string): void {
   const chat: ChatMessage = {
     id: generateId('user'),
     role: 'user',
     content,
+    html: renderMessageHtml({ id: '', role: 'user', content, timestamp: Date.now(), parentId: null, threadRootId: '', supports: [], contradicts: [], derivesFrom: [] }),
     timestamp: Date.now(),
     term: extractTerm(content),
+    parentId: null,
+    threadRootId: generateId('thread'),
     supports: [],
     contradicts: [],
     derivesFrom: [],
   };
-  $chat.set([...$chat.get(), chat]);
+  $chatMessages.set([...$chatMessages.get(), chat]);
 }
 
-export function applyServerMessage(msg: IncomingFromServer): void {
+export function applyServerMessage(msg: IncomingFromServer, cy?: any): void {
   switch (msg.type) {
     case 'chat.agent.stream':
       $streamingDelta.set($streamingDelta.get() + msg.delta);
       break;
+
     case 'chat.agent.complete': {
       const id = msg.messageId ?? generateId('agent');
-      const chat: ChatMessage = {
+      const html = msg.html ?? renderMessageHtml({ id, role: 'agent', content: msg.content, timestamp: Date.now(), parentId: null, threadRootId: id, supports: [], contradicts: [], derivesFrom: [] });
+      const chatMsg: ChatMessage = {
         id,
         role: 'agent',
         content: msg.content,
+        html,
         timestamp: Date.now(),
         term: extractTerm(msg.content),
+        parentId: null,
+        threadRootId: id,
         supports: [],
         contradicts: [],
         derivesFrom: [],
       };
-      $chat.set([...$chat.get(), chat]);
+      $chatMessages.set([...$chatMessages.get(), chatMsg]);
+
+      if (cy) {
+        cy.add({
+          group: 'nodes',
+          data: {
+            id,
+            label: msg.content.slice(0, 40) + (msg.content.length > 40 ? '…' : ''),
+            html: chatMsg.html,
+            term: extractTerm(msg.content),
+            priority: 0.8,
+            confidence: 1.0,
+            nodeType: 'message',
+            layout: { threadIndex: $chatMessages.get().length },
+          },
+          classes: 'chat-message-node',
+        });
+      }
       $streamingDelta.set('');
       break;
     }
+
     case 'cognitive.delta':
-      if (msg.seq_id != null) $lastSeqId.set(msg.seq_id);
-      const lens = msg.lens ?? $activeLens.get();
-      if (msg.module === 'belief_graph') applyGraphOps(msg.ops, msg.meta, lens);
-      else if (msg.module === 'working_memory') applyFocusOps(msg.ops);
-      else if (msg.module === 'stream_reasoner') applyGraphOps(msg.ops, msg.meta, lens);
+      applyGraphOps(msg.ops, cy);
+      $lastSeqId.set(msg.seqId);
+      if (msg.lens) $activeLens.set(msg.lens);
+      if (msg.meta) $graphMeta.set({ truncated: msg.meta.truncated ?? false, totalHidden: msg.meta.totalHidden ?? 0 });
       break;
+
     case 'config.schema':
       $config.set(msg.data);
+      if (cy) addConfigMetaNode(cy, msg.data);
       break;
+
     case 'state.snapshot':
-      $lastSeqId.set(msg.seq_id);
-      applyFullSnapshot(msg.data);
-      break;
-    case 'seq.ack':
-      $lastSeqId.set(msg.seq_id);
-      break;
-    case 'telemetry':
-      appendTelemetry(msg);
+      $lastSeqId.set(msg.seqId);
+      applyFullSnapshot(msg.data, cy);
       break;
   }
 }
 
-function applyFullSnapshot(data: { graph: { nodes: any[]; edges: any[] }; working_memory: any[]; config: Record<string, any> }): void {
+function applyFullSnapshot(data: { graph: { nodes: any[]; edges: any[] }; workingMemory: any[]; config: Record<string, any> }, cy?: any): void {
   const nodes = new Map<string, GraphNodeData>(data.graph.nodes.map((n) => [n.id, n as GraphNodeData]));
   const edges = new Map<string, Record<string, any>>(data.graph.edges.map((e) => [edgeKey(e.source, e.target), e]));
   $graphNodes.set(nodes);
   $graphEdges.set(edges);
-  $focus.set(data.working_memory);
   $config.set(data.config);
 }
 
-function applyGraphOps(ops: GraphOpType[], meta?: { truncated?: boolean; total_hidden?: number }, lens?: Lens): void {
+function applyGraphOps(ops: GraphOp[], cy?: any): void {
   const nodes = new Map($graphNodes.get());
   const edges = new Map($graphEdges.get());
   for (const op of ops) {
     switch (op.action) {
       case 'add_node':
         nodes.set(op.id, op.data);
+        if (cy) cy.add({ group: 'nodes', data: op.data });
         break;
       case 'update_node': {
         const existing = nodes.get(op.id);
-        if (existing) nodes.set(op.id, { ...existing, ...op.data, lensData: op.data.lensData ?? existing.lensData } as GraphNodeData);
+        if (existing) {
+          const updated = { ...existing, ...op.data, lensData: op.data.lensData ?? existing.lensData } as GraphNodeData;
+          nodes.set(op.id, updated);
+        }
+        if (cy) {
+          const node = cy.getElementById(op.id);
+          if (node.length) node.data({ ...node.data(), ...op.data });
+        }
         break;
       }
       case 'remove_node':
         nodes.delete(op.id);
+        if (cy) cy.getElementById(op.id).remove();
         break;
-      case 'add_edge':
-        edges.set(edgeKey(op.source, op.target), { source: op.source, target: op.target, ...op.data });
+      case 'add_edge': {
+        const edgeData = { ...op.data, source: op.source, target: op.target };
+        edges.set(edgeKey(op.source, op.target), edgeData);
+        if (cy) cy.add({ group: 'edges', data: edgeData });
         break;
+      }
       case 'remove_edge':
         edges.delete(edgeKey(op.source, op.target));
+        if (cy) cy.edges(`[source="${op.source}"][target="${op.target}"]`).remove();
         break;
     }
   }
   $graphNodes.set(nodes);
   $graphEdges.set(edges);
-  if (meta) $graphMeta.set({ truncated: meta.truncated ?? false, total_hidden: meta.total_hidden ?? 0 } satisfies CognitiveMeta);
-  if (lens) $activeLens.set(lens);
-}
-
-function applyFocusOps(ops: any[]): void {
-  const removed = new Set<string>();
-  const additions: any[] = [];
-  for (const op of ops) {
-    if (op.action === 'add_node') additions.push({ id: op.id, ...op.data });
-    else if (op.action === 'remove_node') removed.add(op.id);
-  }
-  $focus.set([
-    ...$focus.get().filter((x: any) => !removed.has(x.id)),
-    ...additions,
-  ]);
 }
 
 const pushWindow = (arr: number[], v: number) =>
@@ -137,5 +162,21 @@ function appendTelemetry(msg: { metrics: { reasoning_hz: number; tokens_per_sec:
     tokens_per_sec: pushWindow(t.tokens_per_sec, msg.metrics.tokens_per_sec),
     memory_mb: pushWindow(t.memory_mb, msg.metrics.memory_mb),
     ws_latency_ms: pushWindow(t.ws_latency_ms, msg.metrics.ws_latency_ms),
+  });
+}
+
+function addConfigMetaNode(cy: any, config: Record<string, any>): void {
+  cy.add({
+    group: 'nodes',
+    data: {
+      id: 'meta:config',
+      label: '⚙ Config',
+      html: '<div class="graph-message msg-system">Configuration</div>',
+      nodeType: 'config',
+      priority: 1.0,
+      confidence: 1.0,
+      layout: { x: 500, y: -500 },
+    },
+    classes: 'chat-message-node',
   });
 }

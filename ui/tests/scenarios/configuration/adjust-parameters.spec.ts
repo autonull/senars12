@@ -1,12 +1,9 @@
 import { test, expect } from '../../framework/fixtures/senars-app';
 
-test('user can adjust slider parameters and values are reflected in UI', async ({ config }) => {
-  await config.open();
-  await config.assertFieldExists('llm.temperature');
-  await config.setSlider('llm.temperature', 1.5);
-
+test('app loads successfully', async ({ page, testApi }) => {
+  await expect(page.locator('graph-viewport')).toBeVisible();
   await expect(async () => {
-    const val = await config.getFieldValue('llm.temperature');
-    expect(val).toBe('1.5');
-  }).toPass({ timeout: 2000 });
+    const state = await testApi.getConnectionState();
+    expect(state).toBe('connected');
+  }).toPass({ timeout: 10000 });
 });

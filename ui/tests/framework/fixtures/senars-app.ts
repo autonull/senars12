@@ -3,20 +3,12 @@ import { TestControl } from '../utils/test-control';
 import { ErrorMonitor } from './error-monitor';
 import { PerfMonitor } from '../utils/perf';
 import { TestApiClient } from '../utils/test-api';
-import { ChatConsole } from '../components/chat.console';
-import { ConfigDrawer } from '../components/config.drawer';
-import { BeliefGraph } from '../components/belief.graph';
-import { TelemetryPanel } from '../components/telemetry.panel';
 
 type SenarsFixtures = {
   testControl: TestControl;
   testApi: TestApiClient;
   errorMonitor: ErrorMonitor;
   perfMonitor: PerfMonitor;
-  chat: ChatConsole;
-  config: ConfigDrawer;
-  graph: BeliefGraph;
-  telemetry: TelemetryPanel;
 };
 
 export const test = base.extend<SenarsFixtures>({
@@ -47,22 +39,6 @@ export const test = base.extend<SenarsFixtures>({
     await monitor.start();
     await use(monitor);
     await monitor.assertWithinBudget();
-  },
-
-  chat: async ({ page }, use) => {
-    await use(new ChatConsole(page));
-  },
-
-  config: async ({ page }, use) => {
-    await use(new ConfigDrawer(page));
-  },
-
-  graph: async ({ page }, use) => {
-    await use(new BeliefGraph(page));
-  },
-
-  telemetry: async ({ page }, use) => {
-    await use(new TelemetryPanel(page));
   },
 });
 

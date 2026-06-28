@@ -94,7 +94,7 @@ export function handleConnection(socket: WebSocket, nar: NarAdapter, onChat: (co
       onLensChange?.(msg.lens);
     }
     if (msg.type === 'sync.request') {
-      handleSync(msg.last_seq_id, eventBuffer, send, nar);
+      handleSync(msg.lastSeqId, eventBuffer, send, nar);
     }
     if (msg.type === 'focus.set') {
       onFocusChange?.(msg.term);
@@ -118,10 +118,10 @@ function handleSync(
     const concepts = nar.listConcepts();
     const config = nar.getConfigSchema();
     const report = nar.attentionReport();
-    const seq_id = lastEntry?.seq ?? 0;
+    const seqId = lastEntry?.seq ?? 0;
     send({
       type: 'state.snapshot',
-      seq_id,
+      seqId,
       data: {
         graph: {
           nodes: concepts.map(c => ({
@@ -136,11 +136,11 @@ function handleSync(
             c.getLinks().map(l => ({ source: c.term, target: l.target, weight: l.strength })),
           ),
         },
-        working_memory: report.concepts.map(c => ({ id: c.term, priority: c.priority })),
+        workingMemory: report.concepts.map(c => ({ id: c.term, priority: c.priority })),
         config,
       },
     });
-  } else {
+} else {
     for (const entry of buffer) {
       if (entry.seq > lastSeqId) send(entry.msg);
     }

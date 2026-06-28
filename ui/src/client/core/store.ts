@@ -33,8 +33,6 @@ class Atom<T> implements Writable<T> {
 
 const atom = <T>(initial: T) => new Atom(initial);
 
-
-
 export interface TelemetryData {
   reasoning_hz: number[];
   tokens_per_sec: number[];
@@ -42,14 +40,13 @@ export interface TelemetryData {
   ws_latency_ms: number[];
 }
 
-export interface CognitiveMeta { truncated: boolean; total_hidden: number }
+export interface CognitiveMeta { truncated: boolean; totalHidden: number }
 
-export const $chat = atom<ChatMessage[]>([]);
+export const $chatMessages = atom<ChatMessage[]>([]);
 export const $streamingDelta = atom<string>('');
 export const $graphNodes = atom<Map<string, GraphNodeData>>(new Map());
 export const $graphEdges = atom<Map<string, Record<string, any>>>(new Map());
-export const $graphMeta = atom<CognitiveMeta>({ truncated: false, total_hidden: 0 });
-export const $focus = atom<any[]>([]);
+export const $graphMeta = atom<CognitiveMeta>({ truncated: false, totalHidden: 0 });
 export const $config = atom<Record<string, any>>({});
 export const $telemetry = atom<TelemetryData>({
   reasoning_hz: [], tokens_per_sec: [], memory_mb: [], ws_latency_ms: [],
@@ -59,17 +56,17 @@ export const $lastSeqId = atom<number | null>(null);
 
 export const $activeLens = atom<Lens>('belief');
 export const $focusTerm = atom<string | null>(null);
-export const $selectedMessageId = atom<string | null>(null);
-
+export const $selectedNodeId = atom<string | null>(null);
+export const $viewport = atom<{ x: number; y: number; zoom: number }>({ x: 0, y: 0, zoom: 1 });
+export const $configOpen = atom<boolean>(false);
 
 
 type ReadableAtom<T> = { get(): T };
 const storeAtoms = {
-  chat: $chat, streamingDelta: $streamingDelta, graphNodes: $graphNodes,
-  graphEdges: $graphEdges, graphMeta: $graphMeta, focus: $focus,
-  config: $config, telemetry: $telemetry, connectionState: $connectionState,
-  lastSeqId: $lastSeqId, activeLens: $activeLens, focusTerm: $focusTerm,
-  selectedMessageId: $selectedMessageId,
+  chatMessages: $chatMessages, streamingDelta: $streamingDelta, graphNodes: $graphNodes,
+  graphEdges: $graphEdges, graphMeta: $graphMeta, config: $config, telemetry: $telemetry,
+  connectionState: $connectionState, lastSeqId: $lastSeqId, activeLens: $activeLens,
+  focusTerm: $focusTerm, selectedNodeId: $selectedNodeId, viewport: $viewport,
 } satisfies Record<string, ReadableAtom<unknown>>;
 
 export type TestApiStorePath = keyof typeof storeAtoms;

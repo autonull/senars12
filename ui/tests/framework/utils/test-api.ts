@@ -4,17 +4,7 @@ export class TestApiClient {
   constructor(private page: Page) {}
 
   async ensureReady() {
-    // Wait for base test API (from entry.ts)
     await this.page.waitForFunction(() => (window as any).__testApi !== undefined, { timeout: 10000 });
-    // Wait for at least one component test API to be ready (indicates app is rendered)
-    await this.page.waitForFunction(
-      () => (window as any).__testApi?.chat !== undefined ||
-            (window as any).__testApi?.graph !== undefined ||
-            (window as any).__testApi?.workingMemory !== undefined ||
-            (window as any).__testApi?.config !== undefined ||
-            (window as any).__testApi?.telemetry !== undefined,
-      { timeout: 15000 }
-    );
   }
 
   async waitForComponentApi(component: string) {

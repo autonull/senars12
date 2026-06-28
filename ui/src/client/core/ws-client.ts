@@ -18,7 +18,7 @@ export function connect(): void {
   socket.onopen = () => {
     reconnectAttempt = 0;
     $connectionState.set('connected');
-    socket!.send(JSON.stringify({ type: 'sync.request', last_seq_id: $lastSeqId.get() } satisfies z.infer<typeof SyncRequest>));
+    socket!.send(JSON.stringify({ type: 'sync.request', lastSeqId: $lastSeqId.get() }));
   };
 
   socket.onmessage = (ev) => {

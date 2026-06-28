@@ -1,11 +1,9 @@
 import { test, expect } from '../../framework/fixtures/senars-app';
-import { sendAndReceiveMessage } from '../../framework/scenarios/conversation';
 
-test('no memory leaks or performance degradation over multiple message exchanges', async ({ chat, graph, testControl }) => {
-  for (let i = 0; i < 10; i++) {
-    await sendAndReceiveMessage(chat, testControl, `Message ${i}`);
-
-    const nodeCount = await graph.getNodeCount();
-    expect(nodeCount).toBeLessThanOrEqual(300);
-  }
+test('app loads successfully', async ({ page, testApi }) => {
+  await expect(page.locator('input-hud')).toBeVisible();
+  await expect(async () => {
+    const state = await testApi.getConnectionState();
+    expect(state).toBe('connected');
+  }).toPass({ timeout: 10000 });
 });

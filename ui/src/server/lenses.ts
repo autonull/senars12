@@ -1,5 +1,5 @@
 import type { NarAdapter } from './gateway.js';
-import type { GraphOpType, Lens } from '../shared/protocol.js';
+import type { GraphOp, Lens } from '../shared/protocol.js';
 import { edgeKey } from '../shared/utils.js';
 import { computeActiveSubgraph } from './projection.js';
 import { DEFAULT_PROJECTION } from './config.js';
@@ -44,7 +44,7 @@ const lensScorers: Record<string, LensScorer> = {
   },
 };
 
-export function buildLensGraphOps(adapter: NarAdapter, lens: Lens): { ops: GraphOpType[]; meta?: { truncated: boolean; total_hidden: number } } {
+export function buildLensGraphOps(adapter: NarAdapter, lens: Lens): { ops: GraphOp[]; meta?: { truncated: boolean; totalHidden: number } } {
   const scorer = lensScorers[lens];
   const concepts = adapter.listConcepts();
   if (!scorer) {
@@ -54,7 +54,7 @@ export function buildLensGraphOps(adapter: NarAdapter, lens: Lens): { ops: Graph
         ...proj.nodes.map((n) => createNodeOp(n.id, { id: n.id, label: n.id, priority: n.priority, confidence: n.confidence, nodeType: 'concept' })),
         ...proj.edges.map((e) => createEdgeOp(e.source, e.target, e.weight)),
       ],
-      meta: proj.truncated ? { truncated: true, total_hidden: proj.total_hidden } : undefined,
+      meta: proj.truncated ? { truncated: true, totalHidden: proj.total_hidden } : undefined,
     };
   }
 
@@ -66,7 +66,7 @@ export function buildLensGraphOps(adapter: NarAdapter, lens: Lens): { ops: Graph
   const maxScore = Math.max(...scored.map((s) => s.score), 0.01);
   const nodeIds = new Set(scored.map((s) => s.concept.term));
 
-  const ops: GraphOpType[] = scored.map(({ concept, score }) =>
+  const ops: GraphOp[] = scored.map(({ concept, score }) =>
     createNodeOp(concept.term, {
       id: concept.term, label: concept.term, priority: concept.priority, confidence: concept.confidence,
       nodeType: 'concept',
@@ -91,7 +91,7 @@ export function buildLensGraphOps(adapter: NarAdapter, lens: Lens): { ops: Graph
   return {
     ops,
     meta: concepts.length > DEFAULT_PROJECTION.maxNodes
-      ? { truncated: true, total_hidden: concepts.length - scored.length }
+      ? { truncated: true, totalHidden: concepts.length - scored.length }
       : undefined,
   };
 }

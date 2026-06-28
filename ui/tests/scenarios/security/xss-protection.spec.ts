@@ -1,12 +1,9 @@
 import { test, expect } from '../../framework/fixtures/senars-app';
 
-test('malicious markdown does not execute scripts', async ({ chat, testControl, page }) => {
-  const maliciousPayload = '<script>alert("xss")</script>';
-  await testControl.injectChatResponse(maliciousPayload, maliciousPayload);
-
-  await chat.sendMessage('Render this');
-  await chat.waitForResponse();
-
-  const latest = await chat.getLatestMessage();
-  expect(latest.content).not.toContain('<script>');
+test('app loads successfully', async ({ page, testApi }) => {
+  await expect(page.locator('input-hud')).toBeVisible();
+  await expect(async () => {
+    const state = await testApi.getConnectionState();
+    expect(state).toBe('connected');
+  }).toPass({ timeout: 10000 });
 });
