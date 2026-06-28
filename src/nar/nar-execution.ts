@@ -6,7 +6,7 @@ import {BagStrategy} from './reason';
 import type {NARConfig} from './nar';
 import type {PolicyOptimizer, RLFPLearner} from './rlfp';
 import type {CognitiveController} from './cognitive';
-import type {DriveManager} from './drives';
+import {DriveManager} from './drives';
 import {createPipeline, MemoryPremiseSource} from './stream';
 import {PhaseTimer} from './trace';
 import {createLogger} from './logger';

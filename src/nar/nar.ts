@@ -72,7 +72,7 @@ export class NAR extends BaseComponent {
     self?: ReasoningAboutReasoning;
     rlfp?: RLFPLearner;
     cognitiveController?: CognitiveController;
-    private readonly driveManager?: DriveManager;
+    driveManager?: DriveManager;
     private readonly systemEventBus: AgentEventBus;
 
     private readonly io: NARIO;
@@ -127,11 +127,11 @@ this.io = new NARIO(this.memory, this.taskManager, this.config);
         this.systemEventBus = new AgentEventBus();
         this.io.setSystemEventBus(this.systemEventBus);
         this.systemEventBus.wrapNarEventBus(eventBus);
+        this.driveManager = new DriveManager(this as any);
+        this.driveManager.setSystemEventBus(this.systemEventBus);
         this.execution = new NARExecution(this.memory, this.taskManager, this.reasoner, this.config, this.rlfp, this.rlfp?.policyOptimizerPublic, this.cognitiveController, this.driveManager, this.systemEventBus, this.self);
         this.lm = new NARLM(this.memory, this._registry, this.config.lmService, this.config.enableBidirectionalFeedback, this.config.enableProactiveEnrichment);
         this._metricsCollector = metrics;
-
-        this.driveManager = new DriveManager(this as any);
 
         this.initializeOptionalFeatures();
     }

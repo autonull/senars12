@@ -115,17 +115,15 @@ export class NARIO {
         const wasNew = !this.memory.getConcept(term);
         this.memory.addTask(term, type, truth, budget);
 
-        if (wasNew) {
-            const ts = () => Date.now();
-            this._systemEventBus?.emit('nar:concept:activated', {
-                term: term.toString(),
-                priority: budget.priority,
-                timestamp: ts(),
+        if (wasNew && this._eventBus) {
+            this._eventBus.emit('concept:created', {
+                term,
+                priority: budget.priority
             });
             this._systemEventBus?.emit('nar:derivation', {
                 term: term.toString(),
                 confidence: truth.f,
-                timestamp: ts(),
+                timestamp: Date.now(),
             });
         }
 

@@ -8,7 +8,7 @@ import type { Lens } from '../shared/protocol.js';
 import { onChat } from './chat.js';
 import { sendInitialState, subscribeSocket } from './connection.js';
 import { handleConnection, type NarAdapter } from './gateway.js';
-import { buildNarAdapter } from './nar-adapter.js';
+import { buildNarAdapter, createTelemetryEmitter } from './nar-adapter.js';
 import { createStaticHandler } from './static.js';
 import { createTestControlHandler } from './test-control.js';
 
@@ -46,7 +46,7 @@ function startHttpServer(adapter: NarAdapter, nar: NAR, agent: Agent, port: numb
   });
 
   const wss = new WebSocketServer({ server });
-  wss.on('connection', (socket) => bindSocket(socket, adapter, agent));
+  wss.on('connection', (socket) => bindSocket(socket, adapter, nar, agent));
 
   return new Promise((resolve) => {
     server.listen(port, '0.0.0.0', () => {
@@ -61,11 +61,14 @@ function startHttpServer(adapter: NarAdapter, nar: NAR, agent: Agent, port: numb
   });
 }
 
-function bindSocket(socket: WebSocket, adapter: NarAdapter, agent: Agent): void {
+function bindSocket(socket: WebSocket, adapter: NarAdapter, nar: NAR, agent: Agent): void {
   let currentLens: Lens = 'belief';
   let focusTerm: string | null = null;
 
   sendInitialState(socket, adapter, currentLens);
+
+  const sendMsg = (msg: any) => socket.send(JSON.stringify(msg));
+  const stopTelemetry = createTelemetryEmitter(nar, sendMsg);
 
   handleConnection(socket, adapter,
     (content, send) => onChat(content, send, agent),
@@ -75,12 +78,14 @@ function bindSocket(socket: WebSocket, adapter: NarAdapter, agent: Agent): void 
     },
     (term) => {
       focusTerm = term;
-      // Server acknowledged focus change; future: compute focused projection
     },
   );
 
   const unsubscribe = subscribeSocket(socket, adapter, agent, () => currentLens);
-  socket.on('close', unsubscribe);
+  socket.on('close', () => {
+    unsubscribe();
+    stopTelemetry();
+  });
 }
 
 async function main(): Promise<void> {

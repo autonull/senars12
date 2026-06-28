@@ -8,8 +8,8 @@ import { createNodeOp, createEdgeOp } from './graph-factory.js';
 import { buildLensGraphOps } from './lenses.js';
 
 type DeltaModule = 'belief_graph' | 'working_memory' | 'stream_reasoner';
-const cn = (id: string, label: string, priority: number, confidence: number) =>
-  createNodeOp(id, { id, label, priority, confidence, nodeType: 'concept' });
+const cn = (id: string, label: string, priority: number, confidence: number, lensData?: { score: number; color: string; size: number }) =>
+  createNodeOp(id, { id, label, priority, confidence, nodeType: 'concept', lensData });
 
 export function send(socket: WebSocket, msg: IncomingFromServer): void {
   socket.send(JSON.stringify(msg));
@@ -27,9 +27,17 @@ export function sendDelta(
 
 function beliefGraphDelta(adapter: NarAdapter, lens?: Lens): { ops: GraphOpType[]; meta?: { truncated: boolean; total_hidden: number } } {
   if (lens) return buildLensGraphOps(adapter, lens);
-  const proj = computeActiveSubgraph(adapter.listConcepts(), null, DEFAULT_PROJECTION);
+  const concepts = adapter.listConcepts();
+  const proj = computeActiveSubgraph(concepts, null, DEFAULT_PROJECTION);
+  const nodeSet = new Set(proj.nodes.map(n => n.id));
+
   return {
-    ops: [...proj.nodes.map((n) => cn(n.id, n.id, n.priority, n.confidence)), ...proj.edges.map((e) => createEdgeOp(e.source, e.target, e.weight))],
+    ops: [
+      ...concepts.filter(c => nodeSet.has(c.term)).map((c) =>
+        cn(c.term, c.term, c.priority, c.confidence, c.lensData)
+      ),
+      ...proj.edges.map((e) => createEdgeOp(e.source, e.target, e.weight)),
+    ],
     meta: proj.truncated ? { truncated: true, total_hidden: proj.total_hidden } : undefined,
   };
 }

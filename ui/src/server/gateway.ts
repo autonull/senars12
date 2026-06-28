@@ -34,6 +34,7 @@ export interface NarAdapter {
     term: string;
     priority: number;
     confidence: number;
+    lensData?: { score: number; color: string; size: number };
     getLinks(): Array<{ target: string; strength: number }>;
   }>;
   getSystemEventBus(): {
@@ -123,7 +124,14 @@ function handleSync(
       seq_id,
       data: {
         graph: {
-          nodes: concepts.map(c => ({ id: c.term, label: c.term, priority: c.priority, confidence: c.confidence, nodeType: 'concept' })),
+          nodes: concepts.map(c => ({
+            id: c.term,
+            label: c.term,
+            priority: c.priority,
+            confidence: c.confidence,
+            nodeType: 'concept',
+            lensData: c.lensData,
+          })),
           edges: concepts.flatMap(c =>
             c.getLinks().map(l => ({ source: c.term, target: l.target, weight: l.strength })),
           ),

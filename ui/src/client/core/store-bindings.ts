@@ -1,6 +1,6 @@
-import type { IncomingFromServer, GraphOpType, ChatMessage, GraphNodeData } from '../../shared/protocol.js';
+import type { IncomingFromServer, GraphOpType, ChatMessage, GraphNodeData, Lens } from '../../shared/protocol.js';
 import { edgeKey } from '../../shared/utils.js';
-import { $chat, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $lastSeqId, $focus } from './store.js';
+import { $chat, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $lastSeqId, $focus, $activeLens } from './store.js';
 import type { CognitiveMeta } from './store.js';
 
 const TELEMETRY_WINDOW = 300;
@@ -54,9 +54,10 @@ export function applyServerMessage(msg: IncomingFromServer): void {
     }
     case 'cognitive.delta':
       if (msg.seq_id != null) $lastSeqId.set(msg.seq_id);
-      if (msg.module === 'belief_graph') applyGraphOps(msg.ops, msg.meta);
+      const lens = msg.lens ?? $activeLens.get();
+      if (msg.module === 'belief_graph') applyGraphOps(msg.ops, msg.meta, lens);
       else if (msg.module === 'working_memory') applyFocusOps(msg.ops);
-      else if (msg.module === 'stream_reasoner') applyGraphOps(msg.ops, msg.meta);
+      else if (msg.module === 'stream_reasoner') applyGraphOps(msg.ops, msg.meta, lens);
       break;
     case 'config.schema':
       $config.set(msg.data);
@@ -83,7 +84,7 @@ function applyFullSnapshot(data: { graph: { nodes: any[]; edges: any[] }; workin
   $config.set(data.config);
 }
 
-function applyGraphOps(ops: GraphOpType[], meta?: { truncated?: boolean; total_hidden?: number }): void {
+function applyGraphOps(ops: GraphOpType[], meta?: { truncated?: boolean; total_hidden?: number }, lens?: Lens): void {
   const nodes = new Map($graphNodes.get());
   const edges = new Map($graphEdges.get());
   for (const op of ops) {
@@ -93,7 +94,7 @@ function applyGraphOps(ops: GraphOpType[], meta?: { truncated?: boolean; total_h
         break;
       case 'update_node': {
         const existing = nodes.get(op.id);
-        if (existing) nodes.set(op.id, { ...existing, ...op.data } as GraphNodeData);
+        if (existing) nodes.set(op.id, { ...existing, ...op.data, lensData: op.data.lensData ?? existing.lensData } as GraphNodeData);
         break;
       }
       case 'remove_node':
@@ -110,6 +111,7 @@ function applyGraphOps(ops: GraphOpType[], meta?: { truncated?: boolean; total_h
   $graphNodes.set(nodes);
   $graphEdges.set(edges);
   if (meta) $graphMeta.set({ truncated: meta.truncated ?? false, total_hidden: meta.total_hidden ?? 0 } satisfies CognitiveMeta);
+  if (lens) $activeLens.set(lens);
 }
 
 function applyFocusOps(ops: any[]): void {

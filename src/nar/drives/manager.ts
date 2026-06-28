@@ -2,10 +2,12 @@ import {clamp01} from '../utils';
 import type {NAR} from '../nar.js';
 import {BUILTIN_DRIVES} from './builtin.js';
 import type {DriveSpec, DriveState} from './types.js';
+import type {EventBus as AgentEventBus} from '../../agent/EventBus.js';
 
 export class DriveManager {
     private states = new Map<string, DriveState>();
     private nar: NAR;
+    private systemEventBus: AgentEventBus | null = null;
 
     constructor(nar: NAR) {
         this.nar = nar;
@@ -17,6 +19,10 @@ export class DriveManager {
                 isActive: true,
             });
         }
+    }
+
+    setSystemEventBus(bus: AgentEventBus): void {
+        this.systemEventBus = bus;
     }
 
     updateCycle(): void {
@@ -39,8 +45,16 @@ export class DriveManager {
     stimulate(driveId: string, amount: number): void {
         const state = this.states.get(driveId);
         if (state) {
+            const prevIntensity = state.currentIntensity;
             state.currentIntensity = Math.min(1, state.currentIntensity + amount);
             state.lastStimulation = Date.now();
+            if (amount !== 0 && this.systemEventBus) {
+                this.systemEventBus.emit('nar:drive:changed', {
+                    drive: driveId,
+                    urgency: Math.abs(state.currentIntensity - prevIntensity),
+                    timestamp: Date.now()
+                });
+            }
         }
     }
 
