@@ -84,22 +84,28 @@ const StateSnapshot = z.object({
   }),
 });
 
-// === Viewport Sync ===
 const ViewportSet = z.object({ type: z.literal('viewport.set'), x: z.number(), y: z.number(), zoom: z.number() });
 
-// === Lens/Commands ===
+const TelemetryMsg = z.object({
+  type: z.literal('telemetry'),
+  metrics: z.object({
+    reasoning_hz: z.number(),
+    tokens_per_sec: z.number(),
+    memory_mb: z.number(),
+    ws_latency_ms: z.number(),
+  }),
+});
+
 const LensSet = z.object({ type: z.literal('lens.set'), lens: Lens });
 const FocusSet = z.object({ type: z.literal('focus.set'), term: z.string() });
 
-// === Master unions ===
 export const IncomingFromClient = z.discriminatedUnion('type', [
   ChatUserMsg, ConfigSetMsg, SyncRequest, LensSet, FocusSet, ViewportSet,
 ]);
 export const IncomingFromServer = z.discriminatedUnion('type', [
   ChatAgentStream, ChatAgentComplete, CognitiveDelta,
-  ConfigSchemaMsg, StateSnapshot,
+  ConfigSchemaMsg, StateSnapshot, TelemetryMsg,
 ]);
-
 export type IncomingFromClient = z.infer<typeof IncomingFromClient>;
 export type IncomingFromServer = z.infer<typeof IncomingFromServer>;
 export type ConfigFieldType = z.infer<typeof ConfigField>;

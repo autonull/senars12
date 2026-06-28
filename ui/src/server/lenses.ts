@@ -5,7 +5,13 @@ import { computeActiveSubgraph } from './projection.js';
 import { DEFAULT_PROJECTION } from './config.js';
 import { createNodeOp, createEdgeOp } from './graph-factory.js';
 
-type LensScorer = (concept: { term: string; priority: number; confidence: number; getLinks: () => Array<{ target: string; strength: number }> }, allConcepts: any[]) => number;
+type LensScorer = (concept: { term: string; priority: number; confidence: number; getLinks: () => Array<{ target: string; strength: number }> }, allConcepts: unknown[]) => number;
+
+const LENS_COLORS_HEX: Record<Lens, string> = {
+  belief: '#00f3ff',
+  goal: '#ff0055',
+  contradiction: '#ff00ff',
+};
 
 function termOverlap(a: string, b: string): number {
   if (a === b) return 1;
@@ -17,11 +23,18 @@ function termOverlap(a: string, b: string): number {
   return n / Math.max(aw.size, bw.size);
 }
 
-function getLensColor(lens: string, intensity: number): string {
-  const colors: Record<string, [number, number, number]> = {
-    belief: [0, 243, 255], goal: [255, 0, 85], contradiction: [255, 0, 255],
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = hex.slice(1);
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
   };
-  const [r, g, b] = colors[lens] ?? [100, 100, 100];
+}
+
+function getLensColor(lens: string, intensity: number): string {
+  const hex = LENS_COLORS_HEX[lens as Lens] ?? '#646964';
+  const { r, g, b } = hexToRgb(hex);
   return `rgba(${r}, ${g}, ${b}, ${0.3 + 0.7 * intensity})`;
 }
 

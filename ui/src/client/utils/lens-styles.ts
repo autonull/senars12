@@ -1,10 +1,9 @@
 import type { Core } from 'cytoscape';
 import { LENS_COLORS } from '../constants.js';
 
-export function applyLensStyles(cy: Core, activeLens: string): void {
-  const positions = new Map<string, { x: number; y: number }>();
-  cy.nodes().forEach(n => { positions.set(n.id(), n.position()); });
+const BASE_FALLBACK_COLOR = '#00f3ff';
 
+export function applyLensStyles(cy: Core, activeLens: string): void {
   cy.startBatch();
   cy.nodes().forEach(node => {
     const ld = node.data('lensData');
@@ -17,7 +16,7 @@ export function applyLensStyles(cy: Core, activeLens: string): void {
       });
     } else {
       node.style({
-        'background-color': LENS_COLORS[activeLens] ?? '#00f3ff',
+        'background-color': LENS_COLORS[activeLens] ?? BASE_FALLBACK_COLOR,
         opacity: 0.15,
         'transition-property': 'background-color, opacity',
         'transition-duration': '0.25s',
@@ -29,9 +28,4 @@ export function applyLensStyles(cy: Core, activeLens: string): void {
     edge.style('opacity', 0.05 + 0.9 * srcScore);
   });
   cy.endBatch();
-
-  positions.forEach((pos, id) => {
-    const node = cy.getElementById(id);
-    if (node.length) node.position(pos);
-  });
 }

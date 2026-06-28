@@ -1,6 +1,6 @@
-import type { IncomingFromServer, GraphOp, ChatMessage, GraphNodeData, Lens } from '../../shared/protocol.js';
+import type { IncomingFromServer, GraphOp, ChatMessage, GraphNodeData } from '../../shared/protocol.js';
 import { edgeKey } from '../../shared/utils.js';
-import { $chatMessages, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $lastSeqId, $activeLens } from './store.js';
+import { $chatMessages, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $lastSeqId, $activeLens, $workingMemory } from './store.js';
 import type { CognitiveMeta } from './store.js';
 
 const TELEMETRY_WINDOW = 300;
@@ -100,6 +100,10 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: any): void {
       $lastSeqId.set(msg.seqId);
       applyFullSnapshot(msg.data, cy);
       break;
+
+    case 'telemetry':
+      appendTelemetry(msg);
+      break;
   }
 }
 
@@ -109,6 +113,7 @@ function applyFullSnapshot(data: { graph: { nodes: any[]; edges: any[] }; workin
   $graphNodes.set(nodes);
   $graphEdges.set(edges);
   $config.set(data.config);
+  $workingMemory.set(data.workingMemory?.map((item: any) => typeof item === 'object' ? item.id : String(item)) ?? []);
 }
 
 function applyGraphOps(ops: GraphOp[], cy?: any): void {

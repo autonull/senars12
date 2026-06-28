@@ -59,7 +59,7 @@ export const $focusTerm = atom<string | null>(null);
 export const $selectedNodeId = atom<string | null>(null);
 export const $viewport = atom<{ x: number; y: number; zoom: number }>({ x: 0, y: 0, zoom: 1 });
 export const $configOpen = atom<boolean>(false);
-
+export const $workingMemory = atom<string[]>([]);
 
 type ReadableAtom<T> = { get(): T };
 const storeAtoms = {
@@ -67,6 +67,7 @@ const storeAtoms = {
   graphEdges: $graphEdges, graphMeta: $graphMeta, config: $config, telemetry: $telemetry,
   connectionState: $connectionState, lastSeqId: $lastSeqId, activeLens: $activeLens,
   focusTerm: $focusTerm, selectedNodeId: $selectedNodeId, viewport: $viewport,
+  workingMemory: $workingMemory,
 } satisfies Record<string, ReadableAtom<unknown>>;
 
 export type TestApiStorePath = keyof typeof storeAtoms;

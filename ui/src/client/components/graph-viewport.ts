@@ -4,23 +4,13 @@ import { customElement, state } from 'lit/decorators.js';
 import { $chatMessages, $graphNodes, $graphEdges, $graphMeta, $activeLens, $selectedNodeId, $viewport, mountTestApi } from '../core/store.js';
 import { send } from '../core/ws-client.js';
 import { BaseComponent } from '../core/base-component.js';
-import { LENS_COLORS } from '../constants.js';
 import { edgeKey } from '../../shared/utils.js';
 import type { GraphNodeData, ChatMessage } from '../../shared/protocol.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
-import { computeHtmlLabels } from '../utils/html-labels.js';
+import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels.js';
 import { applyLensStyles } from '../utils/lens-styles.js';
 
-const CHAT_NODE_STYLE = { 'shape': 'round-rectangle', 'border-color': '#00f3ff', 'border-width': 1.5 };
-
-interface HtmlLabelData {
-  id: string;
-  html: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+const CHAT_NODE_STYLE = { shape: 'round-rectangle', 'border-color': '#00f3ff', 'border-width': 1.5 };
 
 @customElement('graph-viewport')
 export class GraphViewport extends BaseComponent {

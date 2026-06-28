@@ -1,5 +1,4 @@
-import { z } from 'zod';
-import { IncomingFromServer, SyncRequest, type IncomingFromServer as IncomingMessage } from '../../shared/protocol.js';
+import { IncomingFromServer, type IncomingFromServer as IncomingMessage } from '../../shared/protocol.js';
 import { $connectionState, $lastSeqId } from './store.js';
 import { applyServerMessage } from './store-bindings.js';
 

@@ -6,6 +6,13 @@ import { send } from '../core/ws-client.js';
 import { BaseComponent } from '../core/base-component.js';
 import { LENS_COLORS, LENS_LABELS } from '../constants.js';
 
+const LENSES: Lens[] = ['belief', 'goal', 'contradiction'];
+const LENS_DESCRIPTIONS: Record<Lens, string> = {
+  belief: 'What the system knows',
+  goal: 'What the system wants',
+  contradiction: 'Where beliefs conflict',
+};
+
 @customElement('lens-selector')
 export class LensSelector extends BaseComponent {
   @state() private open = false;
@@ -42,11 +49,11 @@ export class LensSelector extends BaseComponent {
       </div>
       ${this.open ? html`
         <div class="dropdown">
-          ${(['belief', 'goal', 'contradiction'] as Lens[]).map((l) => html`
+          ${LENSES.map((l) => html`
             <button class="option ${l === activeLens ? 'active' : ''}" @click=${() => this.selectLens(l)}>
               <span class="dot" style="background: ${LENS_COLORS[l]}"></span>
               <span>${LENS_LABELS[l]}</span>
-              <span class="desc">${l === 'belief' ? 'What the system knows' : l === 'goal' ? 'What the system wants' : 'Where beliefs conflict'}</span>
+              <span class="desc">${LENS_DESCRIPTIONS[l]}</span>
             </button>
           `)}
         </div>

@@ -1,6 +1,5 @@
 import { $connectionState, exposeTestApi } from './core/store.js';
 import { connect } from './core/ws-client.js';
-import { CONNECTION_COLORS } from './constants.js';
 
 import './components/app-layout.js';
 import './components/graph-viewport.js';
