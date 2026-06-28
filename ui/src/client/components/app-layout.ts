@@ -1,7 +1,6 @@
 import { html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $connectionState, $focusTerm, $config, $activeLens, $configOpen } from '../core/store.js';
-import { send } from '../core/ws-client.js';
+import { $connectionState, $configOpen } from '../core/store.js';
 import { BaseComponent } from '../core/base-component.js';
 import { CONNECTION_COLORS } from '../constants.js';
 import './graph-viewport.js';
@@ -27,7 +26,6 @@ export class AppLayout extends BaseComponent {
   override connectedCallback() {
     super.connectedCallback();
     this.watch($connectionState);
-    this.watch($focusTerm);
     this.watch($configOpen);
   }
 

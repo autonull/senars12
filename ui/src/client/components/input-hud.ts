@@ -14,7 +14,6 @@ export class InputHUD extends BaseComponent {
     :host { display: block; position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; }
     .hud-input { background: var(--bg-panel-solid); border-top: 1px solid var(--border-dim); padding: 8px 12px; display: flex; gap: 8px; max-width: 900px; margin: 0 auto; }
     .input-wrapper { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-    .model-select { font-family: var(--font-data); font-size: 0.7rem; background: var(--bg-void); border: 1px solid var(--border-dim); color: var(--text-primary); padding: 4px 8px; border-radius: 3px; }
     textarea { background: var(--bg-void); border: 1px solid var(--border-dim); color: var(--text-primary); padding: 8px 12px; font-family: var(--font-ui); font-size: 0.85rem; line-height: 1.5; border-radius: 6px; resize: none; outline: none; transition: border-color 0.2s, box-shadow 0.2s; min-height: 44px; }
     textarea:focus { border-color: var(--accent-cyan); box-shadow: var(--glow-cyan); }
     .send-btn { align-self: flex-end; background: var(--accent-cyan); color: var(--bg-void); border: none; padding: 8px 16px; font-weight: 600; cursor: pointer; font-family: var(--font-ui); font-size: 0.8rem; border-radius: 4px; transition: background 0.2s; }
@@ -40,11 +39,6 @@ export class InputHUD extends BaseComponent {
     return html`
       <div class="hud-input">
         <div class="input-wrapper">
-          <select class="model-select" @change=${(e: Event) => this.model = (e.target as HTMLSelectElement).value}>
-            <option value="WebLLM">🧠 WebLLM</option>
-            <option value="Ollama">🦙 Ollama</option>
-            <option value="OpenAI">🔗 OpenAI</option>
-          </select>
           <textarea
             class="chat-input"
             placeholder="Ask SeNARS…"
@@ -60,6 +54,4 @@ export class InputHUD extends BaseComponent {
       </div>
     `;
   }
-
-  @state() private model = 'WebLLM';
 }

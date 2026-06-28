@@ -7,6 +7,9 @@ import { BaseComponent } from '../core/base-component.js';
 import { LENS_COLORS } from '../constants.js';
 import { edgeKey } from '../../shared/utils.js';
 import type { GraphNodeData, ChatMessage } from '../../shared/protocol.js';
+import { layoutConversationThread } from '../utils/graph-layout.js';
+import { computeHtmlLabels } from '../utils/html-labels.js';
+import { applyLensStyles } from '../utils/lens-styles.js';
 
 const CHAT_NODE_STYLE = { 'shape': 'round-rectangle', 'border-color': '#00f3ff', 'border-width': 1.5 };
 
@@ -30,7 +33,7 @@ export class GraphViewport extends BaseComponent {
     #cy-container { width: 100%; height: 100%; }
     .warning { position: absolute; bottom: 8px; left: 8px; background: rgba(255, 176, 0, 0.1); border-left: 2px solid var(--accent-amber); padding: 4px 8px; font-family: var(--font-data); font-size: 0.65rem; color: var(--accent-amber); pointer-events: none; }
     .html-label { position: absolute; pointer-events: auto; overflow: hidden; background: transparent; z-index: 100; }
-    .html-label .graph-message { transform-origin: top left top left; }
+    .html-label .graph-message { transform-origin: top left; }
   `;
 
   override connectedCallback() {
@@ -118,21 +121,8 @@ export class GraphViewport extends BaseComponent {
   }
 
   private renderHtmlLabels() {
-    if (!this.cy || this.cy.zoom() < 1.0) {
-      this.htmlLabels.clear();
-      this.requestUpdate();
-      return;
-    }
-    const newLabels = new Map<string, HtmlLabelData>();
-    this.cy.nodes('.html-enabled').forEach(node => {
-      const html = node.data('html');
-      if (!html) return;
-      const pos = node.renderedPosition();
-      const w = node.renderedOuterWidth();
-      const h = node.renderedOuterHeight();
-      newLabels.set(node.id(), { id: node.id(), html, x: pos.x - w / 2, y: pos.y - h / 2, width: w, height: h });
-    });
-    this.htmlLabels = newLabels;
+    if (!this.cy) return;
+    this.htmlLabels = computeHtmlLabels(this.cy);
     this.requestUpdate();
   }
 
@@ -161,41 +151,7 @@ export class GraphViewport extends BaseComponent {
 
   private applyLensStyles() {
     if (!this.cy) return;
-    const cy = this.cy;
-    const lens = $activeLens.get();
-    const positions = this.savePositions();
-
-    cy.batch(() => {
-      cy.nodes().forEach((node) => {
-        const ld = node.data('lensData');
-        if (ld) {
-          node.style({
-            'background-color': ld.color, width: ld.size, height: ld.size,
-            opacity: 0.3 + 0.7 * Math.min(1, ld.score),
-            'transition-property': 'background-color, width, height, opacity',
-            'transition-duration': '0.25s',
-          });
-        } else {
-          node.style({
-            'background-color': LENS_COLORS[lens] ?? '#00f3ff',
-            opacity: 0.15,
-            'transition-property': 'background-color, opacity',
-            'transition-duration': '0.25s',
-          });
-        }
-      });
-      cy.edges().forEach((edge) => {
-        const srcScore = edge.source().data('lensData')?.score ?? 0;
-        edge.style('opacity', 0.05 + 0.9 * srcScore);
-      });
-    });
-
-    this.restorePositions(positions);
-  }
-
-  private layoutConversationThread() {
-    if (!this.cy) return;
-    layoutConversationThread(this.cy, $chatMessages.get());
+    applyLensStyles(this.cy, $activeLens.get());
   }
 
   private restoreViewport(vp: { x: number; y: number; zoom: number }) {
@@ -241,7 +197,7 @@ export class GraphViewport extends BaseComponent {
     });
 
     this.restorePositions(oldPositions);
-    this.layoutConversationThread();
+    layoutConversationThread(cy, $chatMessages.get());
     this.applyLensStyles();
 
     const firstLayout = cy.nodes().length <= 1;
@@ -258,27 +214,4 @@ export class GraphViewport extends BaseComponent {
       `)}
     `;
   }
-}
-
-export function layoutConversationThread(cy: Core, messages: ChatMessage[]) {
-  const threadNodes = cy.nodes('[nodeType="message"]').sort((a, b) =>
-    (a.data('layout')?.threadIndex ?? 0) - (b.data('layout')?.threadIndex ?? 0)
-  );
-
-  const baseX = 0, baseY = -200, spacing = 180;
-  threadNodes.forEach((node, i) => {
-    node.position({ x: baseX, y: baseY + i * spacing });
-    if (i > 0) {
-      const prev = threadNodes[i - 1];
-      if (prev) {
-        if (cy.getElementById(`thread_${prev.id()}_${node.id()}`).empty()) {
-          cy.add({
-            group: 'edges',
-            data: { id: `thread_${prev.id()}_${node.id()}`, source: prev.id(), target: node.id(), type: 'thread', directed: true },
-            classes: 'thread-edge',
-          });
-        }
-      }
-    }
-  });
 }

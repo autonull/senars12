@@ -48,7 +48,15 @@ export interface NarAdapter {
   setConfig(key: string, value: any): void;
 }
 
-export function handleConnection(socket: WebSocket, nar: NarAdapter, onChat: (content: string, send: (msg: IncomingFromServer) => void) => void, onLensChange?: (lens: Lens) => void, onFocusChange?: (term: string) => void) {
+type SendFn = (msg: IncomingFromServer) => void;
+
+export function handleConnection(
+  socket: WebSocket,
+  nar: NarAdapter,
+  onChat: (content: string, send: SendFn) => void,
+  onLensChange?: (lens: Lens) => void,
+  onFocusChange?: (term: string) => void,
+): void {
   const limiter = new RateLimiter({ chat: 5, config: 10 });
   let lastSeqId = 0;
   const eventBuffer: EventBufferEntry[] = [];
@@ -109,9 +117,9 @@ export function handleConnection(socket: WebSocket, nar: NarAdapter, onChat: (co
 function handleSync(
   lastSeqId: number | null,
   buffer: EventBufferEntry[],
-  send: (m: IncomingFromServer) => void,
+  send: SendFn,
   nar: NarAdapter,
-) {
+): void {
   const bufLen = buffer.length;
   const lastEntry = bufLen > 0 ? buffer[bufLen - 1]! : null;
   if (lastSeqId === null || bufLen === 0 || lastEntry!.seq - lastSeqId > bufLen) {
@@ -124,7 +132,7 @@ function handleSync(
       seqId,
       data: {
         graph: {
-          nodes: concepts.map(c => ({
+          nodes: concepts.map((c) => ({
             id: c.term,
             label: c.term,
             priority: c.priority,
@@ -132,15 +140,15 @@ function handleSync(
             nodeType: 'concept',
             lensData: c.lensData,
           })),
-          edges: concepts.flatMap(c =>
-            c.getLinks().map(l => ({ source: c.term, target: l.target, weight: l.strength })),
+          edges: concepts.flatMap((c) =>
+            c.getLinks().map((l) => ({ source: c.term, target: l.target, weight: l.strength })),
           ),
         },
-        workingMemory: report.concepts.map(c => ({ id: c.term, priority: c.priority })),
+        workingMemory: report.concepts.map((c) => ({ id: c.term, priority: c.priority })),
         config,
       },
     });
-} else {
+  } else {
     for (const entry of buffer) {
       if (entry.seq > lastSeqId) send(entry.msg);
     }

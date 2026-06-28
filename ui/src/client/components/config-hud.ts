@@ -1,6 +1,6 @@
 import { html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $config, $focusTerm, $configOpen } from '../core/store.js';
+import { $config, $configOpen } from '../core/store.js';
 import { send } from '../core/ws-client.js';
 import { BaseComponent } from '../core/base-component.js';
 import type { ConfigFieldType } from '../../shared/protocol.js';

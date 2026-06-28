@@ -6,7 +6,7 @@ import type { Agent } from '../../../src/agent/types.js';
 import type { NAR } from '../../../src/nar/nar.js';
 import type { Lens } from '../shared/protocol.js';
 import { onChat } from './chat.js';
-import { sendInitialState, subscribeSocket } from './connection.js';
+import { sendInitialState, subscribeSocket } from './socket-handler.js';
 import { handleConnection, type NarAdapter } from './gateway.js';
 import { buildNarAdapter, createTelemetryEmitter } from './nar-adapter.js';
 import { createStaticHandler } from './static.js';

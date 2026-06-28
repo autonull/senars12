@@ -6,6 +6,14 @@ export default defineConfig({
   build: {
     outDir: '../../dist/client',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          cytoscape: ['cytoscape'],
+          lit: ['lit'],
+        },
+      },
+    },
   },
   server: {
     host: '0.0.0.0',
