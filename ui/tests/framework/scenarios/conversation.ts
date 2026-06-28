@@ -16,10 +16,13 @@ export async function sendAndReceiveMessage(
   const initialCount = await chat.getMessageCount();
   await chat.sendMessage(userMessage);
 
+  // Wait for agent response by polling for message count increase and agent role
   await expect(async () => {
     const count = await chat.getMessageCount();
     expect(count).toBeGreaterThan(initialCount);
-  }).toPass({ timeout: 5000 });
+    const latest = await chat.getLatestMessage();
+    expect(latest.role).toBe('agent');
+  }).toPass({ timeout: 10000 });
 
   await chat.waitForResponse();
 

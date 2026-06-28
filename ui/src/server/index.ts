@@ -2,13 +2,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { fileURLToPath as fileURLToPathImport } from 'url';
 import type { Agent } from '../../../src/agent/types.js';
 import type { NAR } from '../../../src/nar/nar.js';
 import { handleConnection, type NarAdapter, consumePendingChatResponse } from './gateway.js';
 import { computeActiveSubgraph } from './projection.js';
 import type { IncomingFromServer } from '../shared/protocol.js';
-import { registerTestControl } from './test-control.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -68,6 +66,8 @@ async function onChat(content: string, send: (msg: IncomingFromServer) => void, 
   const pending = consumePendingChatResponse();
   if (pending) {
     if (pending.stream) send({ type: 'chat.agent.stream', delta: pending.stream });
+    // Delay to allow streaming to be visible in tests
+    await new Promise(resolve => setTimeout(resolve, 200));
     if (pending.complete) send({ type: 'chat.agent.complete', content: pending.complete });
     return;
   }

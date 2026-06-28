@@ -12,7 +12,7 @@ console.log(x);
 
 And a [link](https://example.com).`;
 
-  await testControl.injectChatResponse('', markdownResponse);
+  await testControl.injectChatResponse('Rendering markdown... ', markdownResponse);
   await chat.sendMessage('Render this');
   await chat.waitForResponse();
 
@@ -23,6 +23,6 @@ And a [link](https://example.com).`;
   const codeBlock = page.locator('chat-console pre code').last();
   await expect(codeBlock).toBeVisible();
 
-  const link = page.locator('chat-console a[href="https://example.com"]') .last();
+  const link = page.locator('chat-console a[href="https://example.com"]').last();
   await expect(link).toBeVisible();
 });
