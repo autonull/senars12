@@ -1,0 +1,34 @@
+// "Course correction"
+//   Time = { Task | Later }
+
+
+shouldAny {
+    C, X, belief("+p"), cond(C,--X) |- --X, (Goal:SuperConductWeakPP, Time:TaskRel)
+    C, X, belief("-p"), cond(C,  X) |-   X, (Goal:SuperConductWeakPN, Time:TaskRel)
+
+//    C, X, belief("+p"), cond(C,--X) |- --X, (Goal:ExemplificationPP, Time:TaskRel)
+//    C, X, belief("-p"), cond(C,  X) |-   X, (Goal:ExemplificationPN, Time:TaskRel)
+}
+
+
+////Unipolar version
+//should {
+//    C, X, belief("+p"), condStart(C,--X) |- --X, (Goal:ExemplificationPP, Time:Task)
+//    C, X, belief("-p"), condStart(C,  X) |-   X, (Goal:ExemplificationPN, Time:Task)
+//}
+
+////Bipolar version
+//should {
+//    C, X, task("+p"), belief("+p"), condStart(C,--X) |- --X, (Goal:ExemplificationPP, Time:Task)
+//    C, X, task("+p"), belief("-p"), condStart(C,  X) |-   X, (Goal:ExemplificationPN, Time:Task)
+//}
+//shouldnt {
+//    D, X, task("-p"), belief("+p"), condStart(D,  X) |- --X, (Goal:ExemplificationNP, Time:Task)
+//    D, X, task("-p"), belief("-p"), condStart(D,--X) |-   X, (Goal:ExemplificationNN, Time:Task)
+//}
+
+
+//should_otherwise {
+//    D, X, --seq(D), cond(D,  X) |- --condWithoutAny(D,  X), (Goal:PresumeNPX, Time:Task)
+//    D, X, --seq(D), cond(D,--X) |- --condWithoutAny(D,--X), (Goal:PresumeNNX, Time:Task)
+//}

@@ -1,0 +1,57 @@
+//counter-evidence elimination
+
+conditional_elimination_pred_disj {
+   (M ==> D), (M ==> S), cond(D,  S), --var({M,S}), dtUnify(),--seq(D)    |- --(M ==> condWithoutAny(D,   S)), (Belief:DivideNP, Time:Task)
+   (M ==> D), (M ==> S), cond(D,--S), --var({M,S}), dtUnify(),--seq(D)    |- --(M ==> condWithoutAny(D, --S)), (Belief:DivideNN, Time:Task)
+     (M ==> S), (M ==> D), cond(D,  S), --var({M,S}), dtUnify(),--seq(D)  |- --(M ==> condWithoutAny(D,   S)), (Belief:DividePNX, Time:Belief)
+     (M ==> S), (M ==> D), cond(D,--S), --var({M,S}), dtUnify(),--seq(D)  |- --(M ==> condWithoutAny(D, --S)), (Belief:DivideNNX, Time:Belief)
+}
+
+
+//impl_conditional_elimination_pred_conj {
+////   //counter-evidence:
+////   (M ==> C), (M ==> S), cond(C,  S), --var({M,S}), dtUnify()   |- (M ==> condWithoutAny(C,  S)), (Belief:SupposeStrongPN,  Time:Belief)
+////     (M ==> S), (M ==> C), cond(C,  S), --var({M,S}), dtUnify() |- (M ==> condWithoutAny(C,  S)), (Belief:SupposeStrongNP,  Time:Task)
+////   (M ==> C), (M ==> S), cond(C,--S), --var({M,S}), dtUnify()   |- (M ==> condWithoutAny(C,--S)), (Belief:SupposeStrongPP,  Time:Belief)
+////     (M ==> S), (M ==> C), cond(C,--S), --var({M,S}), dtUnify() |- (M ==> condWithoutAny(C,--S)), (Belief:SupposeStrongPP,  Time:Task)
+//
+//   (M ==> C), (M ==> S), cond(C,  S), --var({M,S}), dtUnify()   |-   (M ==> condWithoutAny(C,  S)), (Belief:DividePN, Time:Task)
+//   (M ==> C), (M ==> S), cond(C,--S), --var({M,S}), dtUnify()   |-   (M ==> condWithoutAny(C,--S)), (Belief:DividePP, Time:Task)
+//     (M ==> S), (M ==> C), cond(C,  S), --var({M,S}), dtUnify() |-   (M ==> condWithoutAny(C,  S)), (Belief:DivideNPX, Time:Belief)
+//     (M ==> S), (M ==> C), cond(C,--S), --var({M,S}), dtUnify() |-   (M ==> condWithoutAny(C,--S)), (Belief:DividePPX, Time:Belief)
+//
+////   (M ==> C), (M ==> S), cond(C,  S), --var({M,S})   |-   (M ==> condWithoutAny(C,  S)), (Belief:DividePP,  Time:Belief)
+////     (M ==> S), (M ==> C), cond(C,  S), --var({M,S}) |-   (M ==> condWithoutAny(C,  S)), (Belief:DividePPX,  Time:Task)
+////   (M ==> C), (M ==> S), cond(C,--S), --var({M,S})   |-   (M ==> condWithoutAny(C,--S)), (Belief:DividePN,  Time:Belief)
+////     (M ==> S), (M ==> C), cond(C,--S), --var({M,S}) |-   (M ==> condWithoutAny(C,--S)), (Belief:DivideNPX,  Time:Task)
+//}
+
+//impl_conditional_decompose_subj_conj {
+//   //counter-evidence:
+//   (C ==> M), (S ==> M), cond(C,  S), --var({M,S}), dtUnify()   |- (condWithoutAny(C,  S) ==> M), (Belief:ConductPN,  Time:Belief)
+//   (C ==> M), (S ==> M), cond(C,--S), --var({M,S}), dtUnify()   |- (condWithoutAny(C,--S) ==> M), (Belief:ConductPP,  Time:Belief)
+//}
+
+
+
+//impl_conditional_decompose_subj_conj {
+//     (--S ==> M), (C ==> M), cond(C,  S), --var({M,S}), dtUnify() |- (condWithoutAny(C,  S) ==> M), (Belief:Mix, Time:Belief)
+//     (  S ==> M), (C ==> M), cond(C,--S), --var({M,S}), dtUnify() |- (condWithoutAny(C,--S) ==> M), (Belief:Mix, Time:Belief)
+//       (C ==> M), (--S ==> M), cond(C,  S), --var({M,S}), dtUnify() |- (condWithoutAny(C,  S) ==> M), (Belief:Mix, Time:Task)
+//       (C ==> M), (  S ==> M), cond(C,--S), --var({M,S}), dtUnify() |- (condWithoutAny(C,--S) ==> M), (Belief:Mix, Time:Task)
+//}
+//
+//impl_conditional_decompose_subj_disj {
+//    //TODO C -> D
+//     (  S ==> M), (--C ==> M), cond(C,  S), --var({M,S}), dtUnify() |- (--condWithoutAny(C,  S) ==> M), (Belief:Mix, Time:Belief)
+//     (--S ==> M), (--C ==> M), cond(C,--S), --var({M,S}), dtUnify() |- (--condWithoutAny(C,--S) ==> M), (Belief:Mix, Time:Belief)
+//       (--C ==> M), (  S ==> M), cond(C,  S), --var({M,S}), dtUnify() |- (--condWithoutAny(C,  S) ==> M), (Belief:Mix, Time:Task)
+//       (--C ==> M), (--S ==> M), cond(C,--S), --var({M,S}), dtUnify() |- (--condWithoutAny(C,--S) ==> M), (Belief:Mix, Time:Task)
+//}
+
+
+//question_impl_conj_induct {
+//    C, (  A ==> X), condPN(C,X), task("?@")  |-  (  A ==> C), (Punctuation:Question)
+//    C, (  X ==> A), condPN(C,X), task("?@")  |-  (  C ==> A), (Punctuation:Question)
+//    C, (  X ==> A), condPN(C,X), task("?@")  |-  (--C ==> A), (Punctuation:Question)
+//}

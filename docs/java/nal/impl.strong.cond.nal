@@ -1,0 +1,93 @@
+
+//TODO check that these conditions are not too permissive
+
+preBeliefDisj {
+      (--D ==> Z), X, belief("+p") |-  unisubst(Z,unifiableSubEvent(D,--X),--X,"$"),  (Belief:PrePPX, Time:BeliefRel)
+   X, (--D ==> Z),    task("+p")   |-  unisubst(Z,unifiableSubEvent(D,--X),--X,"$"),  (Belief:PrePP, Time:TaskRel)
+      (--D ==> Z), X, belief("-p") |-  unisubst(Z,unifiableSubEvent(D,  X),  X,"$"),  (Belief:PrePNX, Time:BeliefRel)
+   X, (--D ==> Z),    task("-p")   |-  unisubst(Z,unifiableSubEvent(D,  X),  X,"$"),  (Belief:PreNP, Time:TaskRel)
+
+//       (--D ==> A), X, cond(D,--X) |- A, (Belief:PrePPX,  Time:BeliefRel)
+//    X, (--D ==> A),    cond(D,--X) |- A, (Belief:PrePP, Time:TaskRel)
+//       (--D ==> A), X, cond(D,  X) |- A, (Belief:PrePNX,  Time:BeliefRel)
+//    X, (--D ==> A),    cond(D,  X) |- A, (Belief:PreNP, Time:TaskRel)
+}
+
+preGoalDisj {
+   X, (--D ==> Z), task("+p")  |-  unisubst(Z,unifiableSubEvent(D,--X),--X,"$"),  (Goal:PreWeakPP, Time:TaskRel)
+   X, (--D ==> Z), task("-p")  |-  unisubst(Z,unifiableSubEvent(D,  X),  X,"$"),  (Goal:PreWeakNP, Time:TaskRel)
+
+//    X, (--D ==> A),    cond(D,--X) |- A, (Goal:PreWeakPP, Time:TaskRel)
+//    X, (--D ==> A),    cond(D,  X) |- A, (Goal:PreWeakNP, Time:TaskRel)
+
+}
+
+postBeliefDisj {
+   //postConj & postDisj may not be logical without additional weakness to compensate for including possibly unrelated conditions in the result
+   //TODO unifiableSubterm variant
+      (X ==> D), A, cond(D, --A), belief("+p"), --var(X) |-  X, (Belief:PostWeakNPX, Time:BeliefRel)
+   A, (X ==> D),    cond(D, --A), task("+p"), --var(X) |-  X, (Belief:PostWeakPN, Time:TaskRel)
+      (X ==> D), A, cond(D,   A), belief("-p"), --var(X) |-  X, (Belief:PostWeakNNX, Time:BeliefRel)
+   A, (X ==> D),    cond(D,   A), task("-p"), --var(X) |-  X, (Belief:PostWeakNN, Time:TaskRel)
+}
+
+//postGoalDisj {
+//   ////postConj & postDisj may not be logical without additional weakness to compensate for including possibly unrelated conditions in the result
+//   //TODO unifiableSubterm variant
+//   A, (X ==> D),  cond(D, --A), --var(X) |-    X, (Goal:NeedPN, Time:TaskRel)
+//   A, (X ==> D),  cond(D,   A), --var(X) |-    X, (Goal:NeedNN, Time:TaskRel)
+//}
+
+//postGoalConjAnti {
+//   //anti-condition (refutation): only valid for Post Goal due to symmetric truth fn:
+//   // TODO test
+//   A, (X ==> C),  cond(C,   A), --var(X) |-  --X, (Goal:NeedNP, Time:TaskRel)
+//   A, (X ==> C),  cond(C, --A), --var(X) |-  --X, (Goal:NeedPP, Time:TaskRel)
+//
+////   A, (X ==> C),  cond(C,   A), --var(X) |-  --X, (Goal:PostNP, Time:TaskRel)
+////   A, (X ==> C),  cond(C, --A), --var(X) |-  --X, (Goal:PostPP, Time:TaskRel)
+//}
+
+
+
+//-----------------------------
+
+//postBelief_cond {
+//    X, (Z ==> C),    --seq(C) |-  unisubst(Z,unifiableSubEvent(C,  X),  X,"$"),  (Belief:PostWeakPP, Time:TaskRel)
+//    X, (Z ==> C),    --seq(C) |-  unisubst(Z,unifiableSubEvent(C,--X),--X,"$"),  (Belief:PostWeakNP, Time:TaskRel)
+//       (Z ==> C), X, --seq(C) |-  unisubst(Z,unifiableSubEvent(C,  X),  X,"$"),  (Belief:PostWeakPPX, Time:BeliefRel)
+//       (Z ==> C), X, --seq(C) |-  unisubst(Z,unifiableSubEvent(C,--X),--X,"$"),  (Belief:PostWeakPNX, Time:BeliefRel)
+//}
+//postGoal_cond {
+//    X, (Z ==> C), --seq(C)    |-  noEventPN(unisubst(Z,unifiableSubEvent(C,  X),  X,"$"),X),  (Goal:NeedPP, Time:TaskRel)
+//    X, (Z ==> C), --seq(C)    |-  noEventPN(unisubst(Z,unifiableSubEvent(C,--X),--X,"$"),X),  (Goal:NeedNP, Time:TaskRel)
+//}
+
+
+
+
+//pre_disj_belief {
+//   A, (--B ==> X), --is(B,"--"), cond(B, --A), --var(X), --eqPN(X,A)   |-  X, (Belief:PrePP, Time:TaskRel)
+//   A, (--B ==> X), --is(B,"--"), cond(B,   A), --var(X), --eqPN(X,A)   |-  X, (Belief:PreNP, Time:TaskRel)
+//
+//     (--B ==> X), A, --is(B,"--"), cond(B, --A), --var(X), --eqPN(X,A)   |-  X, (Belief:PrePPX, Time:BeliefRel)
+//     (--B ==> X), A, --is(B,"--"), cond(B,   A), --var(X), --eqPN(X,A)   |-  X, (Belief:PrePNX, Time:BeliefRel)
+//}
+
+//pre_disj_goal {
+//   A, (--B ==> X), --is(B,"--"), cond(B, --A), --var(X), --eqPN(X,A)   |-  X, (Goal:PreWeakPP, Time:TaskRel)
+//   A, (--B ==> X), --is(B,"--"), cond(B,   A), --var(X), --eqPN(X,A)   |-  X, (Goal:PreWeakNP, Time:TaskRel)
+//}
+
+
+//postConj {
+//
+//   A, (X ==> B),  cond(B,   A), --var(X), --eqPN(X,A), --eqPN(X,B) |-  X, (Belief:PostWeakPP, Time:TaskRel)
+//   A, (X ==> B),  cond(B, --A), --var(X), --eqPN(X,A), --eqPN(X,B) |-  X, (Belief:PostWeakNP, Time:TaskRel)
+//
+//     (X ==> B), A,  cond(B,   A), --var(X), --eqPN(X,A), --eqPN(X,B) |-  X, (Belief:PostWeakPPX, Time:BeliefRel)
+//     (X ==> B), A,  cond(B, --A), --var(X), --eqPN(X,A), --eqPN(X,B) |-  X, (Belief:PostWeakPNX, Time:BeliefRel)
+//
+//   A, (X ==> B),  cond(B,   A), --var(X), --eqPN(X,A), --eqPN(X,B) |-    X, (Goal:PostPP, Time:TaskRel)
+//   A, (X ==> B),  cond(B, --A), --var(X), --eqPN(X,A), --eqPN(X,B) |-    X, (Goal:PostNP, Time:TaskRel)
+//}

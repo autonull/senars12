@@ -1,0 +1,91 @@
+
+goalBeliefInduct {
+    X, Y, --cond(Y,X), --cond(Y,--X) |-  (polarizeTask(X) && polarizeBelief(Y)), (Goal:ExemplificationDD)
+
+    //X, C, is(C,"&&"), --cond(C, X), --cond(C, --X) |-  (polarizeTask(X) && polarizeBelief(C)), (Goal:DeductionWeakDD, Time:TaskRel)
+
+//    X, C, is(C,"&&"), --cond(C, X), --cond(C, --X) |-  (polarizeTask(X) && C), (Goal:DeductionWeakDP, Time:TaskRel)
+//    X, C, is(C,"&&"), --cond(C, X), --cond(C, --X) |-  (polarizeTask(X) && negateConds(C)), (Goal:DeductionWeakDN, Time:TaskRel)
+
+//    X, C, --cond(C, X), --cond(C, --X) |-    (  C &&   X), (Goal:DeductionWeakPP, Time:TaskRel)
+//    X, C, --cond(C, X), --cond(C, --X) |-    (  C && --X), (Goal:DeductionWeakNP, Time:TaskRel)
+//    X, D, --cond(D, X), --cond(D, --X) |-    (--D &&   X), (Goal:DeductionWeakPN, Time:TaskRel)
+//    X, D, --cond(D, X), --cond(D, --X) |-    (--D && --X), (Goal:DeductionWeakNN, Time:TaskRel)
+}
+
+//goalConjInduction {
+//    X, C, cond(C,   X), --cond(C, --X)    |-      C, (Goal:ExemplificationPP, Time:TaskRel)
+//    X, C, cond(C, --X), --cond(C,   X)    |-      C, (Goal:ExemplificationNP, Time:TaskRel)
+//    X, C, cond(C, --X), --cond(C,   X)    |-    --C, (Goal:ExemplificationPP, Time:TaskRel)
+//    X, C, cond(C,   X), --cond(C, --X)    |-    --C, (Goal:ExemplificationNP, Time:TaskRel)
+//}
+
+//goalInduction {
+//    X, Y, neq(X,Y), --is(X,"==>"), --is(Y,"==>") |-    (  polarizeTask(X) && polarizeBelief(Y)), (Goal:DeductionWeakDD, Time:TaskRel)
+////    X, Y, neq(X,Y), --is(X,"==>"), --is(Y,"==>") |-  --(--polarizeTask(X) && polarizeBelief(Y)), (Goal:ConductWeakDD, Time:Task)
+//
+//    //X, Y, neq(X,Y), --is(X,"==>"), --is(Y,"==>") |-    (  polarizeTask(X) && Y), (Goal:DeductionWeakDP, Time:Task)
+//    //X, Y, neq(X,Y), --is(X,"==>"), --is(Y,"==>") |-    (  polarizeTask(X) && --Y), (Goal:DeductionWeakDN, Time:Task)
+//    //X, Y, neq(X,Y), --is(X,"==>"), --is(Y,"==>") |-  --(--polarizeTask(X) && Y), (Goal:DeductionWeakDP, Time:Task)
+//    //X, Y, neq(X,Y), --is(X,"==>"), --is(Y,"==>") |-  --(--polarizeTask(X) && --Y), (Goal:DeductionWeakDN, Time:Task)
+//
+//}
+
+//nal3_curiosity {
+//   (X --> P), (X --> S), task("!"), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P) |- (X --> (polarizeTask(P) & polarizeBelief(S))), (Goal:ConductWeakDD)
+//   (X --> P), (X --> S), task("!"), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P) |- (X --> (polarizeTask(P) | polarizeBelief(S))), (Goal:ConductWeakDD)
+//   (P --> X), (S --> X), task("!"), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P) |- ((polarizeTask(P) & polarizeBelief(S)) --> X), (Goal:ConductWeakDD)
+//   (P --> X), (S --> X), task("!"), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P) |- ((polarizeTask(P) | polarizeBelief(S)) --> X), (Goal:ConductWeakDD)
+//}
+//nal6_curiosity {
+//   P, S, task("!"), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P) |- (polarizeTask(P) & polarizeBelief(S)), (Goal:ConductWeakDD)
+//   P, S, task("!"), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P) |- (polarizeTask(P) | polarizeBelief(S)), (Goal:ConductWeakDD)
+//}
+
+
+
+
+
+
+//goalPresupposition {
+//    //pre-suppose a goal as belief
+//
+//    //optimism
+//    X, X, task("!") |-   X, (Belief:StructuralReduction, Punctuation:Belief, Time:Task)
+//
+//    //pessimism
+//    X, X, task("!") |- --X, (Belief:StructuralReduction, Punctuation:Belief, Time:Task)
+//
+//}
+
+
+//curiosity
+//X, X, task(".") |- X, (Goal:StructuralReduction, Time:Task)
+//X, Y, hasBelief(), task("@") |- (polarizeRandom(X) && polarizeBelief(Y)), (Punctuation:Goal, Goal:BeliefStructuralReduction, Time:Task)
+
+
+//conjunction goal induction
+//G, X, task("!"), hasBelief() |- (polarizeTask(G) && polarizeBelief(X)), (Goal:DeductionWeakDD, Time:TaskRel)
+
+//G, B, task("!")  |- (polarizeTask(G) && polarizeBelief(B)), (Punctuation:Goal, Goal:Intersection, Time:Sequence)
+//G, B, task("!")  |- (polarizeTask(G) && polarizeRandom(B)), (Punctuation:Goal, Goal:StructuralReduction, Time:Task)
+
+//G, C, eventOf(C,G), --eventOfNeg(C,G), task("!") |- C, (Goal:Deduction, Time:TaskRel)
+//G, C, eventOfNeg(C,G), --eventOf(C,G), task("!") |- C, (Goal:DeductionN, Time:TaskRel)
+
+//goal -> impl question  induction
+//G, B, task("@")  |- (polarizeBelief(B) ==> G), (Punctuation:Question)
+
+
+////nal3 goal induction
+//  (X --> Z), ((&,X,A..+) --> Z) |- ((&,X,A..+) --> Z), (Goal:ConductWeak)
+//  (X --> Z), ((|,X,A..+) --> Z) |- ((|,X,A..+) --> Z), (Goal:Conduct)
+//    (Z --> X), (Z --> (&,X,A..+)) |- (Z --> (&,X,A..+)), (Goal:Conduct)
+//    (Z --> X), (Z --> (|,X,A..+)) |- (Z --> (|,X,A..+)), (Goal:ConductWeak)
+//
+////general implication/conj induction
+//    (C ==> Z), X |- ((C && X) ==> Z), (Belief:InductionPP)
+//    (C ==> Z), X |- ((C && --X) ==> Z), (Belief:InductionPN)
+//
+//X, (Y==>X), task("!") |- (Y &&   X), (Goal:Intersection)
+//X, (Y==>X), task("!") |- (Y && --X), (Goal:IntersectionNN)

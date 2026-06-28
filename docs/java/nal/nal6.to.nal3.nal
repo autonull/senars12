@@ -1,0 +1,69 @@
+//NAL6 -> NAL3 bridge
+
+  (  (A-->X) &&   (B-->X)), X, neqRCom(A,B) |- ((A && B)-->X), (Punctuation:Ask, Time:Task)
+  (  (A-->X) && --(B-->X)), X, neqRCom(A,B) |- ((A && --B)-->X), (Punctuation:Ask, Time:Task)
+  (--(A-->X) &&   (B-->X)), X, neqRCom(A,B) |- ((--A && B)-->X), (Punctuation:Ask, Time:Task)
+  (--(A-->X) && --(B-->X)), X, neqRCom(A,B) |- ((--A && --B)-->X), (Punctuation:Ask, Time:Task)
+
+  (  (X-->A) &&   (X-->B)), X, neqRCom(A,B) |- (X-->(A && B)), (Punctuation:Ask, Time:Task)
+  (  (X-->A) && --(X-->B)), X, neqRCom(A,B) |- (X-->(A && --B)), (Punctuation:Ask, Time:Task)
+  (--(X-->A) &&   (X-->B)), X, neqRCom(A,B) |- (X-->(--A && B)), (Punctuation:Ask, Time:Task)
+  (--(X-->A) && --(X-->B)), X, neqRCom(A,B) |- (X-->(--A && --B)), (Punctuation:Ask, Time:Task)
+
+
+////drill-down impl/sect induction
+//((X-->Z) ==> A), (S-->Z), is(S,"||"), sub(S,X)  |- ((S-->Z) ==> A), (Belief:Induction)
+//  (--(X-->Z) ==> A), (S-->Z), is(S,"||"), sub(S,X)  |- (--(S-->Z) ==> A), (Belief:InductionPN)
+//((Z-->X) ==> A), (Z-->S), is(S,"&&"), sub(S,X)  |- ((Z-->S) ==> A), (Belief:Induction)
+//  (--(Z-->X) ==> A), (Z-->S), is(S,"&&"), sub(S,X)  |- (--(Z-->S) ==> A), (Belief:InductionPN)
+
+    //TODO for predicate
+
+
+
+//  ((A-->X) && (B-->X)),   X, neqRCom(A,B)  |- ((A|B)-->X), (Punctuation:Ask)
+//(--(A-->X) && --(B-->X)), X, neqRCom(A,B)  |- ((A&B)-->X), (Punctuation:Ask)
+    //TODO n-ary conj
+    //((A<->X) && (B<->X)),   X, neq(A,B)  |- ((A|B)<->X), (Belief:StructuralReduction, Goal:StructuralReduction, Time:TaskRange)
+    //(--(A<->X) && --(B<->X)), X, neq(A,B)  |- ((A&B)<->X), (Belief:StructuralReductionN, Goal:StructuralReductionN, Time:TaskRange)
+
+//  ((X-->A) && (X-->B)),   X, neqRCom(A,B)  |- (X-->(A&B)), (Punctuation:Ask)
+//(--(X-->A) && --(X-->B)), X, neqRCom(A,B)  |- (X-->(A|B)), (Punctuation:Ask)
+
+//disjoint hypothesis
+//(X && --Y), (--X && Y), neqRCom(X,Y)  |- --(X<->Y), (Belief:Intersection)
+//(&&,Y,--Z,A..+), X, neqRCom(Y,Z), task(".")         |- ((&&,A..+) ==> --(Y<->Z)), (Belief:StructuralDeduction)
+//  (&&,Y,--Z,A..+), X, neqRCom(Y,Z), task("!")         |- ((&&,A..+) ==> --(Y<->Z)), (Belief:StructuralDeduction)
+
+//specific difference of two conjunctions
+// (&&,X,A..+), (&&,Y,A..+), neqRCom(X,Y), --is(A,"==>"), --is(B,"==>"), --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>")     |- (X~Y), (Punctuation:Ask, Time:TaskRange)
+ //(&&,X,A..+), (&&,Y,A..+), neqRCom(X,Y), --is(A,"==>"), --is(B,"==>"), --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>")     |- (Y~X), (Punctuation:Ask, Time:TaskRange)
+
+
+//comparators
+//(A ==> X), (B ==> X), neqRCom(A,B), task("."), --is(A,"==>"), --is(B,"==>"), --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>") |- ((A ~ B) ==> X), (Punctuation:Question)
+//  (--A ==> X), (--B ==> X), neqRCom(A,B), task("."), --is(A,"==>"), --is(B,"==>"), --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>") |- (--(A ~ B) ==> X), (Punctuation:Question)
+//(A ==> X), (B ==> X), neqRCom(A,B), task("."), --is(A,"==>"), --is(B,"==>"), --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>") |- ((B ~ A) ==> X), (Punctuation:Question)
+//  (--A ==> X), (--B ==> X), neqRCom(A,B), task("."), --is(A,"==>"), --is(B,"==>"), --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>") |- (--(B ~ A) ==> X), (Punctuation:Question)
+//(X ==> A), (X ==> B), neqRCom(A,B), task("."), --is(A,"==>"), --is(B,"==>"), --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>") |- (X ==> (A ~ B)), (Punctuation:Question)
+//(X ==> A), (X ==> B), neqRCom(A,B), task("."), --is(A,"==>"), --is(B,"==>"), --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>") |- (X ==> (B ~ A)), (Punctuation:Question)
+
+//identity?
+//  ((X-->A) ~ (X-->B)),   X, neqRCom(A,B), --is(A,"==>"), --is(B,"==>"), --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>")  |- (X-->(A-B)), (Belief:StructuralReduction, Goal:StructuralReduction)
+//  ((A-->X) ~ (B-->X)),   X, neqRCom(A,B), --is(A,"==>"), --is(B,"==>"), --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>")  |- ((A~B)-->X), (Belief:StructuralReduction, Goal:StructuralReduction)
+
+////conj/sect equivalence tagging
+//(&&,X,Y,A..*), (&&,X,Y,A..*), neqRCom(X,Y)  |- ((&&,X,Y,A..*)-->(X&Y)), (Belief:Identity,Goal:Identity)
+//    //--eqNeg(X,Y),
+//(&&,X,Y,A..*), (&&,X,Y,A..*), neqRCom(X,Y)  |- ((X|Y)-->(&&,X,Y,A..*)), (Belief:Identity,Goal:Identity)
+
+
+////TODO n-ary
+//  ((X-->A) && (Y-->A)), A     |- (((X-->A)&&(Y-->A))-->A), (Belief:StructuralDeduction)
+//(--(X-->A) && (Y-->A)), A   |- ((--(X-->A)&&(Y-->A))-->A), (Belief:StructuralDeduction)
+//(--(X-->A) && --(Y-->A)), A |- ((--(X-->A)&&--(Y-->A))-->A), (Belief:StructuralDeduction)
+//
+//
+////TODO
+////((x && a) <-> (x && b)) => (a <-> b)
+////((x && a) <-> (x && b)) => ((a <-> b)&&x)

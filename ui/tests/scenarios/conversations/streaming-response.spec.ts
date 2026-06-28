@@ -1,8 +1,8 @@
 import { test, expect } from '../../framework/fixtures/senars-app';
 import { sendAndReceiveMessage } from '../../framework/scenarios/conversation';
 
-test('agent response streams text incrementally', async ({ chat, ws }) => {
-  ws.injectChatResponse('Here is a streaming response... ', 'Here is a streaming response... and it is complete.');
+test('agent response streams text incrementally', async ({ chat, testControl }) => {
+  await testControl.injectChatResponse('Here is a streaming response... ', 'Here is a streaming response... and it is complete.');
 
   await chat.sendMessage('Tell me something');
 

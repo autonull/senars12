@@ -1,0 +1,24 @@
+if_composition {
+    //TODO check if this (DeductionDD) works for negative impl's
+    //(  X ==> A), (--X ==> B), --is(X,"--"), neq(A,B), --eqPN(X,A), --eqPN(X,B) |-  debug(IF(X, polarizeTask(A), polarizeBelief(B))), (Belief:DeductionDD, Time:Union)
+    //(--X ==> B), (  X ==> A), --is(X,"--"), neq(A,B), --eqPN(X,A), --eqPN(X,B) |-  IF(X, polarizeTask(A), polarizeBelief(B)), (Belief:DeductionDD, Time:Union)
+
+    //(A ==> X), (B ==> X), neq(A,B), --eqPN(X,A), --eqPN(X,B) |-  debug(IF(X, A, B)), (Belief:Xor, Time:Union)
+
+    //(X&&A), (--X&&B),  --seq(taskTerm), --seq(taskTerm), --is(X,"--"), neq(A,B), --eqPN(X,A), --eqPN(X,B) |-  debug(if(X, A, B)), (Belief:DeductionDD, Time:Union)
+    //TODO reversal
+}
+
+if_combine_cause {
+    IF(X,A,Z), IF(Y,A,Z), neq(X,Y) |- IF((X || Y), A, Z), (Belief:DeductionPP, Time:Union)
+}
+
+if_combine_effect {
+    IF(X,A,Z), IF(X,B,Z), neq(A,B) |- IF(X, (A && B), Z), (Belief:DeductionPP, Time:Union)
+    IF(X,A,Z), IF(X,A,Y), neq(Y,Z) |- IF(X, A, (Y && Z)), (Belief:DeductionPP, Time:Union)
+}
+
+//if_strong_deduction {
+//    Y, IF(X,A,B) |-   debug(unisubst(A, X, Y)), (Belief:DeductionPP, Goal:DeductionPP)
+//    Y, IF(X,A,B) |-   debug(unisubst(B, X, Y)), (Belief:DeductionNP, Goal:DeductionNP)
+//}

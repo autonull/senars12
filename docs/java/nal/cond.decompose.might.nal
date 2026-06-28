@@ -1,0 +1,71 @@
+might {
+    //predictive goal: during|afterOrDuring  + weak - for co-occurring since maybe coincidental not causal
+    //uses the conj belief to predict present or future goals
+
+    X, C, task("+p"), cond(C,  X)  |-   afterOrDuring(C,  X), (Goal:ExemplificationPP, Time:Later)
+    X, C, task("-p"), cond(C,--X)  |-   afterOrDuring(C,--X), (Goal:ExemplificationNP, Time:Later)
+}
+//mightnt {
+//    //MODE A:
+//    X, C, task("-p"), cond(C,  X)  |- --afterOrDuring(C,  X), (Goal:ExemplificationNP, Time:Later)
+//    X, C, task("+p"), cond(C,--X)  |- --afterOrDuring(C,--X), (Goal:ExemplificationPP, Time:Later)
+//
+//    //MODE B:
+//    //X, C, task("-p"), cond(C,  X)  |- negateConds(afterOrDuring(C,  X)), (Goal:ExemplificationNP, Time:Later)
+//    //X, C, task("+p"), cond(C,--X)  |- negateConds(afterOrDuring(C,--X)), (Goal:ExemplificationPP, Time:Later)
+//
+//}
+
+
+//might_belief {
+//    //predictive goal: during|afterOrDuring  + weak - for co-occurring since maybe coincidental not causal
+//    //uses the conj belief to predict present or future goals
+//
+//    X, C, task("+p"), seq(C), cond(C,  X)  |-   afterOrDuring(C,  X), (Belief:ExemplificationPP, Time:Later)
+//    X, C, task("-p"), seq(C), cond(C,--X)  |-   afterOrDuring(C,--X), (Belief:ExemplificationNP, Time:Later)
+//}
+
+
+
+//    X, C, task("+p"), cond(C,  X)  |-   during(C,  X), (Goal:ExemplificationPP, Time:Task)
+//    X, C, task("-p"), cond(C,--X)  |-   during(C,--X), (Goal:ExemplificationNP, Time:Task)
+//    X, C, task("-p"), cond(C,  X)  |- --during(C,  X), (Goal:ExemplificationNP, Time:Task)
+//    X, C, task("+p"), cond(C,--X)  |- --during(C,--X), (Goal:ExemplificationPP, Time:Task)
+
+//    X, C, cond(C,  X)  |-   during(C,  X), (Goal:SuperConductWeakPP, Time:Task)
+//    X, C, cond(C,--X)  |-   during(C,--X), (Goal:SuperConductWeakNP, Time:Task)
+
+
+//might {
+//    //associative goal
+//    //TODO was: PresumeWeak
+//
+//    X, C, cond(C,  X), --condLast(C,  X) |- condWithoutAny(C,  X), (Goal:MustWeakPP, Time:TaskRel)
+//    X, C, cond(C,--X), --condLast(C,--X) |- condWithoutAny(C,--X), (Goal:MustWeakNP, Time:TaskRel)
+//
+////    X, C, --seq(C), cond(C,  X) |- condWithoutAny(C,  X), (Goal:MustWeakPP, Time:Task)
+////    X, C, --seq(C), cond(C,--X) |- condWithoutAny(C,--X), (Goal:MustWeakNP, Time:Task)
+//
+////    X, C, --seq(C), cond(C,  X) |- condWithoutAny(C,  X), (Goal:SupposePP, Time:Task)
+////    X, C, --seq(C), cond(C,--X) |- condWithoutAny(C,--X), (Goal:SupposeNP, Time:Task)
+//
+////    X, C, --seq(C), cond(C,  X) |- condWithoutAny(C,  X), (Goal:SupposePP, Time:Later)
+////    X, C, --seq(C), cond(C,--X) |- condWithoutAny(C,--X), (Goal:SupposeNP, Time:Later)
+//}
+//
+//might_not {
+//    //associative avoid; guilt by association
+//    X, C, cond(C,  X), --condLast(C,  X) |- --condWithoutAny(C,  X), (Goal:MustWeakNP, Time:TaskRel)
+//    X, C, cond(C,--X), --condLast(C,--X) |- --condWithoutAny(C,--X), (Goal:MustWeakPP, Time:TaskRel)
+//
+////    X, C, --seq(C), cond(C,  X) |- --condWithoutAny(C,  X), (Goal:MustWeakNP, Time:Task)
+////    X, C, --seq(C), cond(C,--X) |- --condWithoutAny(C,--X), (Goal:MustWeakPP, Time:Task)
+//
+////    X, C, --seq(C), cond(C,  X) |- negateConds(condWithoutAny(C,  X)), (Goal:SupposeNP, Time:Task)
+////    X, C, --seq(C), cond(C,--X) |- negateConds(condWithoutAny(C,--X)), (Goal:SupposePP, Time:Task)
+//
+////    X, C, --seq(C), cond(C,  X) |- negateConds(condWithoutAny(C,  X)), (Goal:SupposeNP, Time:Later)
+////    X, C, --seq(C), cond(C,--X) |- negateConds(condWithoutAny(C,--X)), (Goal:SupposePP, Time:Later)
+//
+//
+//}

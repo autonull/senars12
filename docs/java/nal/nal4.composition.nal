@@ -1,0 +1,7 @@
+compositionOnBothSidesOfStatement {
+    //TODO this may need restrictions on equal positioning of the occurring subterms
+    (A --> B), (X --> Y), sub(A,X), sub(B,Y), subsMin(A,1), subsMin(B,1), is(A,"*"), is(B,"*"), task("?") |- (A --> B), (Belief:BeliefStructuralReduction, Punctuation:Belief, Time:Task)
+      (A --> B), (X --> Y), sub(A,--X), sub(B,--Y), subsMin(A,1), subsMin(B,1), is(A,"*"), is(B,"*"), task("?") |- (A --> B), (Belief:BeliefStructuralReduction, Punctuation:Belief, Time:Task)
+      (A --> B), (X --> Y), sub(A,--X), sub(B,Y), subsMin(A,1), subsMin(B,1), is(A,"*"), is(B,"*"), task("?") |- --(A --> B), (Belief:BeliefStructuralReduction, Punctuation:Belief, Time:Task)
+      (A --> B), (X --> Y), sub(A,X), sub(B,--Y), subsMin(A,1), subsMin(B,1), is(A,"*"), is(B,"*"), task("?") |- --(A --> B), (Belief:BeliefStructuralReduction, Punctuation:Belief, Time:Task)
+}

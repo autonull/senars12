@@ -1,7 +1,7 @@
 import { test, expect } from '../../framework/fixtures/senars-app';
 
-test('user can send message using keyboard (Enter key)', async ({ chat, ws }) => {
-  ws.injectChatResponse('', 'Keyboard response');
+test('user can send message using keyboard (Enter key)', async ({ chat, testControl }) => {
+  await testControl.injectChatResponse('', 'Keyboard response');
 
   await chat.sendMessage('Keyboard test');
   await chat.waitForResponse();

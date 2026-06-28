@@ -1,0 +1,300 @@
+//conjunction/disjunction decomposition
+//   see: https://en.wikipedia.org/wiki/Imperative_logic#Ross.27_Paradox
+
+//conj_belief_decompose {
+//    C, X, cond(C,  X), --is(X,"="), belief("+p"),task("+p") |- condWithoutAny(C,   X), (Belief:DividePP,  Time:BeliefRel)
+//      X, C, cond(C,  X), --is(X,"="), task("+p"),belief("+p") |- condWithoutAny(C,   X), (Belief:DividePPX, Time:TaskRel)
+//    C, X, cond(C,--X), --is(X,"="), belief("-p"),task("+p") |- condWithoutAny(C, --X), (Belief:DividePN,  Time:BeliefRel)
+//      X, C, cond(C,--X), --is(X,"="), task("-p"),belief("+p") |- condWithoutAny(C, --X), (Belief:DivideNPX, Time:TaskRel)
+//}
+
+disj_belief_decompose {
+    D, X, cond(D,  X), --is(X,"="), belief("+p") |-  --condWithoutAny(D,   X), (Belief:DivideNP,  Time:BeliefRel)
+      X, D, cond(D,  X), --is(X,"="), task("+p") |-  --condWithoutAny(D,   X), (Belief:DividePNX, Time:TaskRel)
+    D, X, cond(D,--X), --is(X,"="), belief("-p") |-  --condWithoutAny(D, --X), (Belief:DivideNN,  Time:BeliefRel)
+      X, D, cond(D,--X), --is(X,"="), task("-p") |-  --condWithoutAny(D, --X), (Belief:DivideNNX, Time:TaskRel)
+////    D, X, cond(D,  X), --is(X,"="), belief("+p") |-  --condWithoutAny(D,   X), (Belief:DivideNP,  Time:BeliefRel)
+////      X, D, cond(D,  X), --is(X,"="), task("+p") |-  --condWithoutAny(D,   X), (Belief:DividePNX, Time:TaskRel)
+////    D, X, cond(D,--X), --is(X,"="), belief("-p") |-  --condWithoutAny(D, --X), (Belief:DivideNN,  Time:BeliefRel)
+////      X, D, cond(D,--X), --is(X,"="), task("-p") |-  --condWithoutAny(D, --X), (Belief:DivideNNX, Time:TaskRel)
+}
+
+
+
+cond_question_decompose {
+    C, X, condPN(C,X), --var(X), --hasBelief(), --is(X,"=")     |-  X,  (Punctuation:AskAsk, Time:TaskRel)
+    C, X, condPN(C,X),             hasBelief(), --is(X,"=")     |-  condWithoutAnyPN(C,X),  (Punctuation:AskAsk, Time:BeliefRel)
+}
+
+//cond_question_to_impl_fwd {
+//  //how do the other conditions in C determine subcondition X
+//  X, C, task("?"), condPN(C,X)  |-  (condWithoutAllPN(C,X) ==> X),  (Punctuation:Question, Time:Task)
+//}
+
+//cond_quest_to_impl_rev {
+//  X, C, task("@"), condPN(C,X)  |-  (polarizeRandom(X) ==> condWithoutAllPN(C,X)),  (Punctuation:Question, Time:Task)
+//}
+
+
+//cond_question_induction {
+//  X, C, condPN(C,X), hasBelief()         |-  C,  (Punctuation:AskAsk, Time:TaskRel)
+//  //X, C, condFirstPN(C,X), hasBelief()         |-  condWithoutAllPN(C,X),  (Punctuation:AskAsk, Time:TaskRel)
+//  //X, C, condPN(C,X)         |-  condWithoutAnyPN(C,X),  (Punctuation:AskAsk, Time:TaskRel)
+//}
+
+
+cond_question_induction_unify {
+    //see analogy.anonymous.conj.nal/anonymous_analogy_conj_question
+    X, C, --cond(C,  X), hasBelief(), belief("+p")    |-  unisubst(C,unifiableSubEvent(C,  X),  X,novel),  (Punctuation:AskAsk, Time:TaskRel)
+    X, C, --cond(C,--X), hasBelief(), belief("-p")    |-  unisubst(C,unifiableSubEvent(C,--X),--X,novel),  (Punctuation:AskAsk, Time:TaskRel)
+}
+
+//cond_question_decompose_unify {
+//    C, X, --var(X), --cond(C,  X), --hasBelief()  |-  unisubst(C,unifiableSubEvent(C,  X),  X, novel), (Punctuation:AskAsk, Time:Task)
+//    C, X, --var(X), --cond(C,--X), --hasBelief()  |-  unisubst(C,unifiableSubEvent(C,--X),--X, novel), (Punctuation:AskAsk, Time:Task)
+//}
+
+
+
+//and_belief_decompose_depr {
+//    C, X, cond(C,  X) |- condWithoutAny(C,   X), (Belief:DividePP,  Time:BeliefRel)
+//    C, X, cond(C,--X) |- condWithoutAny(C, --X), (Belief:DividePN,  Time:BeliefRel)
+//      X, C, cond(C,  X) |- condWithoutAny(C,   X), (Belief:DividePPX, Time:TaskRel)
+//      X, C, cond(C,--X) |- condWithoutAny(C, --X), (Belief:DivideNPX, Time:TaskRel)
+
+//    C, X, cond(C,  X) |- condWithoutAny(C,   X), (Belief:DividePP,  Time:TaskRel)
+//    C, X, cond(C,--X) |- condWithoutAny(C, --X), (Belief:DividePN,  Time:TaskRel)
+//      X, C, cond(C,  X) |- condWithoutAny(C,   X), (Belief:DividePPX, Time:BeliefRel)
+//      X, C, cond(C,--X) |- condWithoutAny(C, --X), (Belief:DivideNPX, Time:BeliefRel)
+//}
+
+//or_belief_decompose_depr {
+//    D, X, cond(D,  X) |-  --condWithoutAny(D,   X), (Belief:DivideNP,  Time:BeliefRel)
+//    D, X, cond(D,--X) |-  --condWithoutAny(D, --X), (Belief:DivideNN,  Time:BeliefRel)
+//      X, D, cond(D,  X) |-  --condWithoutAny(D,   X), (Belief:DividePNX, Time:TaskRel)
+//      X, D, cond(D,--X) |-  --condWithoutAny(D, --X), (Belief:DivideNNX, Time:TaskRel)
+
+//    D, X, cond(D,  X) |-  --condWithoutAny(D,   X), (Belief:DivideNP,  Time:TaskRel)
+//    D, X, cond(D,--X) |-  --condWithoutAny(D, --X), (Belief:DivideNN,  Time:TaskRel)
+//      X, D, cond(D,  X) |-  --condWithoutAny(D,   X), (Belief:DividePNX, Time:BeliefRel)
+//      X, D, cond(D,--X) |-  --condWithoutAny(D, --X), (Belief:DivideNNX, Time:BeliefRel)
+//}
+
+//or_belief_decompose_suppose {
+//    D, X, cond(D,  X) |-  --condWithoutAny(D,   X), (Belief:SupposeStrongNP,  Time:BeliefRel)
+//    D, X, cond(D,--X) |-  --condWithoutAny(D, --X), (Belief:SupposeStrongNN,  Time:BeliefRel)
+//      X, D, cond(D,  X) |-  --condWithoutAny(D,   X), (Belief:SupposeStrongPN, Time:TaskRel)
+//      X, D, cond(D,--X) |-  --condWithoutAny(D, --X), (Belief:SupposeStrongNN, Time:TaskRel)
+//}
+
+
+//    X, C, seq(C)               |-  negateConds(before(C, --X)), (Goal:DeductionPP, Time:TaskRel)
+//    X, C, seq(C)               |-  negateConds(before(C,   X)), (Goal:DeductionNP, Time:TaskRel)
+
+
+
+//questionSortCircuitAnswer {
+//    C, X, task("?"), par(C), eventOf(C,X)      |-   --C,  (Belief:BeliefStructuralDeductionPN, Punctuation:Belief, Time:Task)
+//    C, X, task("?"), par(C), eventOfNeg(C,X)   |-   --C,  (Belief:BeliefStructuralDeductionPP, Punctuation:Belief, Time:Task)
+//}
+//TODO other short-circuits, involving ==> etc
+
+//beliefSeqUnification {
+//    C, X, is(C,"&&")               |- conjWithoutUnify(C, X), (Belief:StructuralDeduction, Goal:StructuralDeduction, Time:TaskRel)
+//    C, X, is(C,"&&"), has(C,"--")  |- conjWithoutUnify(C, --X), (Belief:StructuralDeduction, Goal:StructuralDeduction, Time:TaskRel)
+//}
+
+//conjunction_decompose_toggle {
+//      C, X, eventOf(C,X), par(C)                     |-    X, (Goal:AbductionPN, Time:TaskRel)
+//      C, X, eventOfNeg(C,X), par(C)                  |-  --X, (Goal:AbductionPP, Time:TaskRel)
+//}
+
+
+
+//      X, C, has(C,"--")                                    |-    --before(C, --X),        (  Goal:DeductionPP,     Time:TaskRel)
+//      X, C                                                 |-    --before(C,   X),        (  Goal:DeductionNP,     Time:TaskRel)
+//    X, C, has(C,"--")                                    |-  negateConds(before(C, --X)),        (  Goal:DeductionRecursivePP,     Time:TaskRel)
+//    X, C                                                 |-  negateConds(before(C,   X)),        (  Goal:DeductionRecursiveNP,     Time:TaskRel)
+
+
+//    C, X                                                 |-  conjWithoutUnify(C,   X),  (  Goal:DeductionPP, Time:BeliefRel)
+//    C, X, has(C,"--")                                    |-  conjWithoutUnify(C, --X),  (  Goal:DeductionPN, Time:BeliefRel)
+//    C, X                                                 |-  --conjWithoutUnify(C,   X),  (  Goal:DeductionNP, Time:BeliefRel)
+//    C, X, has(C,"--")                                    |-  --conjWithoutUnify(C, --X),  (  Goal:DeductionNN, Time:BeliefRel)
+//    C, X                                                 |-  conjWithoutUnify(C,   X),  (  Goal:DeductionPP, Time:TaskRel)
+//    C, X, has(C,"--")                                    |-  conjWithoutUnify(C, --X),  (  Goal:DeductionPN, Time:TaskRel)
+//    C, X                                                 |-  --conjWithoutUnify(C,   X),  (  Goal:DeductionNP, Time:TaskRel)
+//    C, X, has(C,"--")                                    |-  --conjWithoutUnify(C, --X),  (  Goal:DeductionNN, Time:TaskRel)
+
+
+
+
+//      X, C                                                 |-  --before(C,   X),        (  Goal:DeductionNP,     Time:TaskRel)
+        //X, C                                                 |-  negateConds(before(C,   X)),        (  Goal:DeductionNP,     Time:TaskImmediate)
+//      X, C, has(C,"--")                                    |-  --before(C, --X),        (  Goal:DeductionPP,     Time:TaskRel)
+        //X, C, has(C,"--")                                    |-  negateConds(before(C, --X)),        (  Goal:DeductionPP,     Time:TaskImmediate)
+
+
+    //goal prediction/anticipation
+//    X, C, --eventOfNeg(C,X), seq(C)           |-  after(C,   X),         (  Goal:DeductionWeakPP, Time:TaskRel)
+    //X, C, --eventOf(C,X), seq(C) |-  negateConds(after(C, X)),         (  Goal:DeductionRecursiveWeakNP, Time:TaskRel)
+//    X, C, has(C,"--"), --eventOf(C,X), seq(C) |-  after(C, --X),         (  Goal:DeductionWeakNP, Time:TaskRel)
+    //X, C, has(C,"--"), --eventOfNeg(C,X), seq(C)           |-  negateConds(after(C, --X)),         (  Goal:DeductionRecursiveWeakPP, Time:TaskRel)
+
+//    X, D, seq(C)                     |-  --before(D,   X),  (Belief:DeductionPN, Goal:DeductionPN, Time:TaskRel)
+//    X, D, has(D,"--"), seq(C)        |-  --before(D, --X),  (Belief:DeductionNN, Goal:DeductionNN, Time:TaskRel)
+//      X, D, seq(C)                     |-  --after(D,   X),  (Belief:DeductionPN, Time:TaskRel)
+//      X, D, has(D,"--"), seq(C)        |-  --after(D, --X),  (Belief:DeductionNN, Time:TaskRel)
+
+      //X, C, is(C,"&&")                    |-  before(C,   X),  (Belief:DividePPX, Time:TaskRel)
+        //X, C, is(C,"&&"), has(C,"--")       |-  before(C, --X),  (Belief:DivideNPX, Time:TaskRel) //<- PNX ?
+
+    //TODO nal3 shortcut - decompose trailing intersection/union event
+
+
+
+
+    //TODO test and write predicate version:
+      //(C==>Y), X, --var(X)         |-  polarizeTask((after(C,  polarizeBelief(X)) ==> Y)),       (Belief:DeductionDepolarized)
+      //(--C==>Y), X, --var(X)       |-  polarizeTask(--(after(C,  --polarizeBelief(X)) ==> Y)),       (Belief:DeductionDepolarized)
+     // (--D==>Y), X, --var(X) |- polarizeTask((--unisubst(D,unifiableSubEvent(D,polarizeBelief(X)),polarizeBelief(X),"#") ==> Y)), (Belief:DeductionDepolarized, Goal:DeductionDepolarized)
+
+
+
+//Conditional implication decomposition
+//  Original:
+//    (S ==> M), ((&&,S,A_1..n) ==> M) |- ((&&,A_1..n) ==> M), (Truth:DeductionNegativePositivePositive, Order:ForAllSame, SequenceIntervals:FromBelief)
+//    (S ==> M), ((||,S,A_1..n) ==> M) |- ((||,A_1..n) ==> M), (Truth:DeductionPositiveNegativeNegative, Order:ForAllSame)
+//    (M ==> S), (M ==> (&&,S,A_1..n)) |- (M ==> (&&,A_1..n)), (Truth:DeductionPositiveNegativeNegative, Order:ForAllSame, SequenceIntervals:FromBelief)
+//    (M ==> S), (M ==> (||,S,A_1..n)) |- (M ==> (||,A_1..n)), (Truth:DeductionNegativePositivePositive, Order:ForAllSame)
+
+
+
+    //implication short-circuit doubt TODO
+//    (--C==>Y), X, eventOf(C,X)    |- --(Y && C), (Belief:IntersectionPN)
+//    (Y==>C), X, eventOf(C,X)    |- --(Y && C), (Belief:IntersectionPN)
+//    (Y==>C), X, eventOfNeg(C,X) |-   (Y==>C), (Belief:IntersectionPP)
+
+//Y, C, neq(Y,C), is(C,"&&"), --var(Y)              |- unisubst(C,unifiableSubEvent(C,Y),Y), (Belief:Deduction, Time:TaskRel)
+//Y, C, neq(Y,C), is(C,"&&"), --var(Y), has(C,"--") |- unisubst(C,unifiableSubEvent(C,--Y),--Y), (Belief:DeductionN, Time:TaskRel)
+//  (B ==> (&&,X,A..+)), Y, --var(X),--var(Y), hasBelief()  |- polarizeTask(unisubst((B ==> (&&,X,A..+)),X,polarizeBelief(Y)),novel), (Belief:DeductionDepolarized, Time:BeliefRel, Time:Task)
+//  ((&&,X,A..+) ==> B), Y, --var(X),--var(Y), hasBelief()  |- polarizeTask(unisubst(((&&,X,A..+) ==> B),X,polarizeBelief(Y)),novel), (Belief:DeductionDepolarized, Time:BeliefRel, Time:Task)
+
+      //(B ==> (&&,X,A..+)), Y, --var(X),--var(Y)  |- polarizeTask(unisubst((B ==> (&&,A..+)),X,polarizeBelief(Y))), (Belief:DeductionDepolarized, Time:BeliefRel)
+      //((&&,X,A..+) ==> B), Y, --var(X),--var(Y)  |- polarizeTask(unisubst(((&&,A..+) ==> B),X,polarizeBelief(Y))), (Belief:DeductionDepolarized, Time:BeliefRel)
+
+//TODO test
+//beliefDisjunctionElimination_virtual {
+////    (C==>Y), X          |-  polarizeTask((conjWithoutUnify(C,   X) ==> Y)),        (  Belief:DeductionDP, Time:BeliefRel)
+////    (C==>Y), X          |-  polarizeTask((conjWithoutUnify(C, --X) ==> Y)),        (  Belief:DeductionDN, Time:BeliefRel)
+////    (--D==>Y), X        |-  polarizeTask((--conjWithoutUnify(D,   X) ==> Y)),        (  Belief:DeductionDP, Time:BeliefRel)
+////    (--D==>Y), X        |-  polarizeTask((--conjWithoutUnify(D, --X) ==> Y)),        (  Belief:DeductionDN, Time:BeliefRel)
+//    (Y==>D), X          |-    (Y ==> --before(D,   X)),        (  Belief:DeductionNP, Time:BeliefRel)
+//    (Y==>D), X          |-    (Y ==> --before(D, --X)),        (  Belief:DeductionNN, Time:BeliefRel)
+//}
+
+
+
+//C, X, --var(X), hasBelief()                  |- conjWithoutUnify(C,  polarizeBelief(X)), (Punctuation:AskAsk, Time:BeliefRel)
+//  C, X, --var(X), hasBelief()                  |- before(C,  polarizeBelief(X)), (Punctuation:AskAsk, Time:BeliefRel)
+//  C, X, --var(X), hasBelief(), seq(C) |- after(C,  polarizeBelief(X)), (Punctuation:AskAsk, Time:BeliefRel)
+
+
+
+//impl_conj_disj_subj_question_decomposition {
+//    (    C ==> A), X, eventOfPN(C,X), --var(X), task("?")  |- (   condWithoutAnyPN(C,  X) ==> A), (Punctuation:Question, Time:Task)
+//
+//    (  --D ==> A), X, eventOfNeg(D,X), --var(X), task("?")  |- ( X ==> A), (Punctuation:Question, Time:Task)
+//    (  --D ==> A), X, eventOf(D,X), --var(X), task("?")     |- ( --X ==> A), (Punctuation:Question, Time:Task)
+//}
+
+          //(  --D ==> A), X, eventOfNeg(D,X) |- (  X ==> A), (Punctuation:AskAll, Time:Task)
+          //(  --D ==> A), X, eventOf(D,X)    |- (--X ==> A), (Punctuation:AskAll, Time:Task)
+
+        //(A ==> C), (A ==> C), task("?"), --var(C)                 |- C, (Punctuation:Question)
+        //(C ==> A), (C ==> A), task("?"), --var(C), --eqPN(A,C)    |- C, (Punctuation:Question)
+
+        //conditional impl abduction TODO test
+//        (A ==> C), X, eventOf(C,X), --var(X)     |-   (A ==> conjWithoutUnify(C,  X)), (Belief:AbductionPP, Time:BeliefRel)
+//        (A ==> C), X, eventOfNeg(C,X), --var(X)  |-   (A ==> conjWithoutUnify(C,--X)), (Belief:AbductionPN, Time:BeliefRel)
+//        (A ==> C), X, eventOfNeg(C,X), --var(X)  |- --(A ==> conjWithoutUnify(C,--X)), (Belief:AbductionNN, Time:BeliefRel)
+//        (A ==> C), X, eventOf(C,X), --var(X)     |- --(A ==> conjWithoutUnify(C,  X)), (Belief:AbductionNP, Time:BeliefRel)
+
+//conditional deduction
+//(  C ==> A), X, eventOf(C,X), --var(X)     |- polarizeTask((  conjWithoutUnify(C,  X) ==> A)), (Belief:DeductionDP, Time:BeliefRel)
+//(  C ==> A), X, eventOfNeg(C,X), --var(X)  |- polarizeTask((  conjWithoutUnify(C,--X) ==> A)), (Belief:DeductionDN, Time:BeliefRel)
+//(--D ==> A), X, eventOfNeg(D,X), --var(X)  |- polarizeTask((--conjWithoutUnify(D,--X) ==> A)), (Belief:DeductionDN, Time:BeliefRel)
+//(--D ==> A), X, eventOf(D,X), --var(X)     |- polarizeTask((--conjWithoutUnify(D,  X) ==> A)), (Belief:DeductionDP, Time:BeliefRel)
+
+//contradiction_neutralize {
+//
+//    (  (&&,P,A..+) ==> X), (  (&&,N,A..+) ==> X), eqNeg(P,N)     |-   (  (&&,A..+) ==> X), (Belief:IntersectionPB, Time:Task)
+//    (--(&&,P,A..+) ==> X), (--(&&,N,A..+) ==> X), eqNeg(P,N)     |-   (--(&&,A..+) ==> X), (Belief:IntersectionPB, Time:Task)
+////    (  (&&,Y,A..+) ==> X), (  (&&,Z,A..+) ==> X), eqNeg(Y,Z)     |-   (  (&&,A..+) ==> X), (Belief:DeductionPP)
+////    (  (&&,Y,A..+) ==> X), (  (&&,Z,A..+) ==> X), eqNeg(Y,Z)     |- --(  (&&,A..+) ==> X), (Belief:DeductionNN)
+////    (--(&&,Y,A..+) ==> X), (--(&&,Z,A..+) ==> X), eqNeg(Y,Z)     |-   (--(&&,A..+) ==> X), (Belief:DeductionPP)
+////    (--(&&,Y,A..+) ==> X), (--(&&,Z,A..+) ==> X), eqNeg(Y,Z)     |- --(--(&&,A..+) ==> X), (Belief:DeductionNN)
+//
+//    (X ==> (&&,Y,A..+)), (X ==> (&&,Z,A..+)), eqNeg(Y,Z)     |- ( X ==> (&&,A..+)), (Belief:UnionPB)
+//    (P ==> X), (N ==> X), eqNeg(P,N), --var(X)             |- (#1 ==> X), (Belief:UnionPB)
+//    //(P ==> X), (N ==> X), eqNeg(P,N), --var(X)                       |-   (#1 ==> X), (Belief:DeductionPP)
+//    //(P ==> X), (N ==> X), eqNeg(P,N), --var(X)                       |- --(#1 ==> X), (Belief:DeductionNN)
+//}
+
+
+//(M --> I), X, eventOfPN(I,X)  |-   polarizeTask((M --> condWithoutAnyPN(I,X))), (Belief:StructuralDeduction,Goal:StructuralDeduction)
+//(I --> M), X, eventOfPN(I,X)  |-   polarizeTask((condWithoutAnyPN(I,X) --> M)), (Belief:StructuralDeduction,Goal:StructuralDeduction)
+  //(I <-> M), X, eventOfPN(I,X)  |-   polarizeTask((condWithoutAnyPN(I,X) <-> M)), (Belief:StructuralDeductionDD)
+
+//Self Factor
+//(X --> Y), (X --> Y), eventCommon(X,Y)  |-  (condWithoutAny(X,Y) --> condWithoutAny(Y,X)), (Belief:StructuralDeduction)
+//  (X <-> Y), (X <-> Y), eventCommon(X,Y)  |-  (condWithoutAny(X,Y) <-> condWithoutAny(Y,X)), (Belief:StructuralDeduction)
+
+
+//implConditional_decompose {
+//    //(  C ==> A), X, eventOfPN(C,X)    |- (  condWithoutAny(C,  polarizeBelief(X))==>A), (Belief:InductionPD, Time:BeliefRel)
+//    (  C ==> A), X, eventOf(C,X) |- (  condWithoutAny(C,X)==>A), (Belief:InductionPP, Time:BeliefRel)
+//    (  C ==> A), X, eventOfNeg(C,X) |- (  condWithoutAny(C,--X)==>A), (Belief:InductionPN, Time:BeliefRel)
+//}
+
+//could_old_misc {
+
+//    X, C, cond(C,  X), --cond(C,--X) |-    conjWithoutFirst(C,   X), (Goal:UniductWeakPP, Time:EitherRel)
+//    X, C, cond(C,--X), --cond(C,  X) |-    conjWithoutFirst(C, --X), (Goal:UniductWeakNP, Time:EitherRel)
+
+//    X, C, cond(C,  X), --cond(C,--X) |-    conjWithoutFirst(C,   X), (Goal:ExemplificationPP, Time:EitherRel)
+//    X, C, cond(C,--X), --cond(C,  X) |-    conjWithoutFirst(C, --X), (Goal:ExemplificationNP, Time:EitherRel)
+//        X, C, cond(C,  X), --cond(C,--X) |-    --conjWithoutFirst(C,   X), (Goal:ExemplificationNP, Time:EitherRel)
+//        X, C, cond(C,--X), --cond(C,  X) |-    --conjWithoutFirst(C, --X), (Goal:ExemplificationPP, Time:EitherRel)
+
+
+//    X, C, cond(C,  X)   |-    after(C,   X), (Goal:ConductWeakPP, Time:TaskRel)
+//    X, C, cond(C,--X)   |-    after(C, --X), (Goal:ConductWeakNP, Time:TaskRel)
+
+//    X, C, cond(C,  X)   |-    after(C,   X), (Goal:ExemplificationPP, Time:TaskRel)
+//    X, C, cond(C,--X)   |-    after(C, --X), (Goal:ExemplificationNP, Time:TaskRel)
+//        X, C, cond(C,--X)   |-    --after(C, --X), (Goal:ExemplificationPP, Time:TaskRel)
+//        X, C, cond(C,  X)   |-    --after(C,   X), (Goal:ExemplificationNP, Time:TaskRel)
+
+//    X, C, cond(C,  X)   |-  --after(C,   X), (Goal:ExemplificationNN, Time:TaskRel)
+//    X, C, cond(C,--X)   |-  --after(C, --X), (Goal:ExemplificationPN, Time:TaskRel)
+//        X, C, cond(C,--X)   |-  after(C, --X), (Goal:ExemplificationNN, Time:TaskRel)
+//        X, C, cond(C,  X)   |-  after(C,   X), (Goal:ExemplificationPN, Time:TaskRel)
+
+
+
+//    X, C, --seq(C), cond(C,  X)   |-    condWithoutAll(C,   X), (Goal:ExemplificationPP, Time:Either)
+//    X, C, --seq(C), cond(C,--X)   |-    condWithoutAll(C, --X), (Goal:ExemplificationNP, Time:Either)
+
+//    X, C, --seq(C), cond(C,  X)      |-    conjWithoutFirst(C,   X), (Goal:ConductWeakPP, Time:Either)
+//    X, C, --seq(C), cond(C,--X)      |-    conjWithoutFirst(C, --X), (Goal:ConductWeakNP, Time:Either)
+
+//}
+
+//sim_question_decompose {
+//    (C<->A), X, --var({A,X}), condPN(C,X)      |-  (A<->condWithoutAllPN(C,  X)), (Punctuation:AskAsk)
+//}
+
+//sim_question_induction {
+//    (X<->A), (C<->A), --var({A,X})  |-  (A<->condWithoutAnyPN(C,X)),  (Punctuation:AskAsk)
+//}

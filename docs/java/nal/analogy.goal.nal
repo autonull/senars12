@@ -1,0 +1,56 @@
+
+sim_goal_transitive_spread {
+    (A-->X), (X<->Y), --var({X,A,Y})  |- (A-->Y), (Goal:BiductWeakX, Time:Belief)
+    (X-->A), (X<->Y), --var({X,A,Y})  |- (Y-->A), (Goal:BiductWeakX, Time:Belief)
+
+//  probably redundant; rely on regular sim goal decomposition:
+//    (X<->Y), (A-->X), --var({X,A,B})  |- (A-->Y), (Goal:BiductWeakX)
+//    (X<->Y), (X-->A), --var({X,A,B})  |- (Y-->A), (Goal:BiductWeakX)
+}
+
+//sim_goal_induction {
+//    (X --> Y), (Y --> X), --var({X,Y})  |-   (X <-> Y), (Goal:BiductWeakX)
+//    //(X <-> Y), (X --> Y), --var({X,Y})  |-   debug((Y --> X)), (Goal:BiductWeakPPX)
+//}
+
+//sim_goal_commutive_spread {
+//    (X-->Y), (X<->Y), --var({X,Y})  |- (Y-->X), (Goal:BiductX)
+//}
+
+
+
+//sim_goal_transitive_spread_outer {
+//    ((A-->X)-->(B-->X)), (X<->Y), --var({X,Y,A,B}), neqRCom(A,Y), neqRCom(B,Y)  |- ((A-->Y)-->(B-->Y)), (Goal:Analogy)
+//    ((X-->A)-->(X-->B)), (X<->Y), --var({X,Y,A,B}), neqRCom(A,Y), neqRCom(B,Y)  |- ((Y-->A)-->(Y-->B)), (Goal:Analogy)
+//}
+
+//impl_transitive_spread {
+//    (  A ==> X), (X <-> B), --var({X,A,B})  |- (  A ==> B), (Belief:ConductWeak)
+//
+//    (  X ==> A), (X <-> B), --var({X,A,B})  |- (  B ==> A), (Belief:ConductWeak)
+//    (--X ==> A), (X <-> B), --var({X,A,B})  |- (--B ==> A), (Belief:ConductWeak)
+//}
+
+//sim_transitive_spread_x {
+////    (A --> X), (X <-> B)  |- (A --> B), (Goal:ConductWeak)
+////    (X --> A), (X <-> B)  |- (B --> A), (Goal:ConductWeak)
+//
+////    (A --> X), (X <-> B)  |- polarizeBelief((A --> B)), (Goal:ConductWeakPD)
+////    (X --> A), (X <-> B)  |- polarizeBelief((B --> A)), (Goal:ConductWeakPD)
+//
+////        X,     (X <-> Y)  |-     Y,     (Goal:ConductWeak)
+//
+////    (A --> X), (Y <-> B)  |- unisubst((A --> B), X, Y), (Goal:ConductWeak)
+////    (X --> A), (Y <-> B)  |- unisubst((B --> A), X, Y), (Goal:ConductWeak)
+//
+////    (A --> X), (Y <-> B)  |- unisubst((A --> B), X, Y, novel), (Belief:ConductWeak)
+////    (X --> A), (Y <-> B)  |- unisubst((B --> A), X, Y, novel), (Belief:ConductWeak)
+//
+//    ////    (A --> X), (X <-> Y)  |- polarizeTask((A --> Y)), (Goal:DeductionWeakDP)
+//    ////    (X --> A), (X <-> Y)  |- polarizeTask((Y --> A)), (Goal:DeductionWeakDP)
+//    //
+//    ////    (A --> X), (X <-> Y)  |- polarizeTask(polarizeBelief((A --> Y))), (Goal:DeductionWeakDD)
+//    ////    (X --> A), (X <-> Y)  |- polarizeTask(polarizeBelief((Y --> A))), (Goal:DeductionWeakDD)
+//    //
+//    //    //(A <-> X), (X <-> Y), neq(A,Y)  |- polarizeTask(polarizeBelief((A <-> Y))), (Goal:DeductionWeakDD)
+//}

@@ -1,14 +1,14 @@
 import { expect } from '@playwright/test';
 import { ChatConsole } from '../components/chat.console';
-import { WsInterceptor } from '../fixtures/ws-interceptor';
+import { TestControl } from '../utils/test-control';
 
 export async function sendAndReceiveMessage(
   chat: ChatConsole,
-  ws: WsInterceptor,
+  testControl: TestControl,
   userMessage: string,
   expectedResponsePattern?: RegExp
 ) {
-  ws.injectChatResponse(
+  await testControl.injectChatResponse(
     `Processing "${userMessage}"... `,
     `Processed: ${userMessage}. Analysis complete.`
   );
@@ -35,7 +35,7 @@ export async function sendAndReceiveMessage(
 
 export async function establishConversation(
   chat: ChatConsole,
-  ws: WsInterceptor,
+  testControl: TestControl,
   turns: number = 3
 ) {
   const messages = [
@@ -45,6 +45,6 @@ export async function establishConversation(
   ];
 
   for (let i = 0; i < Math.min(turns, messages.length); i++) {
-    await sendAndReceiveMessage(chat, ws, messages[i]!);
+    await sendAndReceiveMessage(chat, testControl, messages[i]!);
   }
 }

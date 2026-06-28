@@ -12,6 +12,24 @@ interface EventBufferEntry {
   msg: IncomingFromServer;
 }
 
+interface PendingChatResponse {
+  stream: string;
+  complete: string;
+}
+
+let pendingChatResponse: PendingChatResponse | null = null;
+
+export function setPendingChatResponse(stream: string, complete: string) {
+  pendingChatResponse = { stream, complete };
+}
+
+export function consumePendingChatResponse(): PendingChatResponse | undefined {
+  if (!pendingChatResponse) return undefined;
+  const response = pendingChatResponse;
+  pendingChatResponse = null;
+  return response;
+}
+
 export interface NarAdapter {
   listConcepts(): Array<{
     term: string;

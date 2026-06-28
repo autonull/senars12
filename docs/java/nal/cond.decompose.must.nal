@@ -1,0 +1,193 @@
+// creates a past-tense desire vortex
+
+// should goal event decomp be weaker than strong impl goal deduction ?
+
+// which makes sense because impl will have an exact conclusion truth, while must, using exemplification, amplifies to freq=1
+//      that should be considered incremental fine-tuning to be revised into a hopefully more accurate future inducted implication
+
+// "Needs must when the devil drives."
+
+// Time:
+//   TaskRel - sequences start in the past, "back-wheel drive"
+//   Later
+//   Task    - sequences start now, "front-wheel drive"
+//   TaskToTaskRel - TODO - union from TaskRel to Task, dividing evidence in proportion to sequence length
+
+must_conj {
+    X, C, seq(C), --condStart(C,  X), task("+p"), cond(C,  X)  |-   before(C,  X), (Goal:ExemplificationStrongPP, Time:TaskRel)
+    X, C, seq(C), --condStart(C,--X), task("-p"), cond(C,--X)  |-   before(C,--X), (Goal:ExemplificationStrongNP, Time:TaskRel)
+
+//    X, C, task("+p"), belief("+p"), cond(C,  X)  |-   before(C,  X), (Goal:ExemplificationStrongPP, Time:Later)
+//    X, C, task("-p"), belief("+p"), cond(C,--X)  |-   before(C,--X), (Goal:ExemplificationStrongNP, Time:Later)
+}
+mustnt_conj {
+
+    //MODE A:
+    X, C, seq(C), --condStart(C,  X), task("-p"), cond(C,  X) |-  --before(C,  X), (Goal:ExemplificationStrongNP, Time:TaskRel)
+    X, C, seq(C), --condStart(C,--X), task("+p"), cond(C,--X) |-  --before(C,--X), (Goal:ExemplificationStrongPP, Time:TaskRel)
+
+    //MODE B:
+    //X, C, seq(C), --condStart(C,  X), task("-p"), cond(C,  X) |-  negateConds(before(C,  X)), (Goal:ExemplificationStrongNP, Time:TaskRel)
+    //X, C, seq(C), --condStart(C,--X), task("+p"), cond(C,--X) |-  negateConds(before(C,--X)), (Goal:ExemplificationStrongPP, Time:TaskRel)
+
+}
+
+//must_disj {
+//    X, D, belief("-p"), task("+p"), cond(D,  X)  |- --beforeOrDuring(D,  X), (Goal:ExemplificationStrongPN, Time:TaskRel)
+//    X, D, belief("-p"), task("-p"), cond(D,--X)  |- --beforeOrDuring(D,--X), (Goal:ExemplificationStrongNN, Time:TaskRel)
+//}
+//mustnt_disj {
+//    X, D, belief("-p"), task("+p"), cond(D,  X)  |-   beforeOrDuring(D,  X), (Goal:ExemplificationStrongPN, Time:TaskRel)
+//    X, D, belief("-p"), task("-p"), cond(D,--X)  |-   beforeOrDuring(D,--X), (Goal:ExemplificationStrongNN, Time:TaskRel)
+//}
+
+
+//must_disj {
+//    //elimination
+//    X, D  |- --before(D,   X), (Goal:MustPN, Time:TaskRel)
+//    X, D  |- --before(D, --X), (Goal:MustNN, Time:TaskRel)
+//
+////    X, D, seq(D)  |- --condWithoutAllPN(before(D,   X),X), (Goal:MustPN, Time:TaskRel)
+////    X, D, seq(D)  |- --condWithoutAllPN(before(D, --X),X), (Goal:MustNN, Time:TaskRel)
+//
+//////    X, D, seq(D)  |- condWithoutAllPN(before(D,   X),X), (Goal:MustPN, Time:TaskRel)
+//////    X, D, seq(D)  |- condWithoutAllPN(before(D, --X),X), (Goal:MustNN, Time:TaskRel)
+////
+//
+//}
+
+//mustnt_disj {
+//    X, D, seq(D) |-    condWithoutAllPN(before(D,   X),X), (Goal:MustPN, Time:TaskRel)
+//    X, D, seq(D) |-    condWithoutAllPN(before(D, --X),X), (Goal:MustNN, Time:TaskRel)
+//
+////    X, D, seq(D) |-    before(D,   X), (Goal:SupposeStrongPN, Time:TaskRel)
+////    X, D, seq(D) |-    before(D, --X), (Goal:SupposeStrongNN, Time:TaskRel)
+//
+////    X, D, seq(D) |-    before(D,   X), (Goal:PresumePN, Time:TaskRel)
+////    X, D, seq(D) |-    before(D, --X), (Goal:PresumeNN, Time:TaskRel)
+//
+////    X, D, seq(D) |- --negateConds(condWithoutAllPN(before(D,   X),X)), (Goal:SupposeStrongPN, Time:TaskRel)
+////    X, D, seq(D) |- --negateConds(condWithoutAllPN(before(D, --X),X)), (Goal:SupposeStrongNN, Time:TaskRel)
+//}
+
+//must_conj_disj {
+//    //TODO ConductHalf with polarity filter like Presume, but with freq like Conduct
+//    X, C, seq(C)  |-   condWithoutAllPN(before(C,   X),X), (Goal:ConductPPX, Time:TaskRel)
+//    X, C, seq(C)  |-   condWithoutAllPN(before(C, --X),X), (Goal:ConductNPX, Time:TaskRel)
+//}
+
+
+
+////    X, C, seq(C) |- negateConds(condWithoutAllPN(before(C, --X),X)), (Goal:PresumePP, Time:TaskRel)
+////    X, C, seq(C) |- negateConds(condWithoutAllPN(before(C,   X),X)), (Goal:PresumeNP, Time:TaskRel)
+
+//must_or_must_not {
+//    X, C, cond(C,  X), seq(C)  |-    condWithoutAllPN(before(C,   X),X), (Goal:SemiConductWeakPP, Time:TaskRel)
+//    X, C, cond(C,--X), seq(C)  |-    condWithoutAllPN(before(C, --X),X), (Goal:SemiConductWeakNP, Time:TaskRel)
+//}
+
+//    X, C, seq(C) |- --condWithoutAllPN(before(C, --X),X), (Goal:PresumePP, Time:TaskRel)
+//    X, C, seq(C) |- --condWithoutAllPN(before(C,   X),X), (Goal:PresumeNP, Time:TaskRel)
+
+
+//    X, C, seq(C), condLast(C,  X) |- before(C,   X), (Goal:PresumePP, Time:TaskRel)
+//    X, C, seq(C), condLast(C,--X) |- before(C, --X), (Goal:PresumeNP, Time:TaskRel)
+
+//    X, C, seq(C) |- before(C,   X), (Goal:SupposeStrongPP, Time:TaskRel)
+//    X, C, seq(C) |- before(C, --X), (Goal:SupposeStrongNP, Time:TaskRel)
+
+//    X, C, seq(C)  |-    condWithoutAllPN(before(C,   X),X), (Goal:ExemplificationStrongPP, Time:TaskRel)
+//    X, C, seq(C)  |-    condWithoutAllPN(before(C, --X),X), (Goal:ExemplificationStrongNP, Time:TaskRel)
+
+//    X, C, seq(C), --cond(C, --X), --condFirst(C,  X)  |-    condWithoutAllPN(beforeUnify(C,   X),X), (Goal:ExemplificationStrongPP, Time:TaskRel)
+//    X, C, seq(C), --cond(C,   X), --condFirst(C,--X)  |-    condWithoutAllPN(beforeUnify(C, --X),X), (Goal:ExemplificationStrongNP, Time:TaskRel)
+
+
+//    X, C, seq(C)  |-    beforeUnify(C,   X), (Goal:ExemplificationStrongPP, Time:TaskRel)
+//    X, C, seq(C)  |-    beforeUnify(C, --X), (Goal:ExemplificationStrongNP, Time:TaskRel)
+
+
+//    X, C, cond(C,  X), --cond(C,--X), seq(C)  |-    before(C,   X), (Goal:SupposePP, Time:TaskRel)
+//    X, C, cond(C,--X), --cond(C,  X), seq(C)  |-    before(C, --X), (Goal:SupposeNP, Time:TaskRel)
+
+//    X, C, cond(C,  X), seq(C)  |-    condWithoutAllPN(before(C,   X),X), (Goal:ExemplificationStrongPP, Time:TaskRel)
+//    X, C, cond(C,--X), seq(C)  |-    condWithoutAllPN(before(C, --X),X), (Goal:ExemplificationStrongNP, Time:TaskRel)
+
+
+//    X, C, cond(C,  X), seq(C)  |-    condWithoutAllPN(before(C,   X),X), (Goal:ExemplificationPP, Time:TaskRel)
+//    X, C, cond(C,--X), seq(C)  |-    condWithoutAllPN(before(C, --X),X), (Goal:ExemplificationNP, Time:TaskRel)
+
+
+        //    X, C, seq(C), condLast(C,--X) |- --before(C, --X), (Goal:PresumePP, Time:TaskRel)
+        //    X, C, seq(C), condLast(C,  X) |- --before(C,   X), (Goal:PresumeNP, Time:TaskRel)
+
+        //    X, C, seq(C) |-  --before(C, --X), (Goal:SupposeStrongPP, Time:TaskRel)
+        //    X, C, seq(C) |-  --before(C,   X), (Goal:SupposeStrongNP, Time:TaskRel)
+
+        //    X, C, seq(C) |-  --condWithoutAllPN(before(C, --X),X), (Goal:ExemplificationStrongPP, Time:TaskRel)
+        //    X, C, seq(C) |-  --condWithoutAllPN(before(C,   X),X), (Goal:ExemplificationStrongNP, Time:TaskRel)
+
+        //    X, C, seq(C), --cond(C,   X), --condFirst(C,--X)  |-  --condWithoutAllPN(beforeUnify(C, --X),X), (Goal:ExemplificationStrongPP, Time:TaskRel)
+        //    X, C, seq(C), --cond(C, --X), --condFirst(C,  X)  |-  --condWithoutAllPN(beforeUnify(C,   X),X), (Goal:ExemplificationStrongNP, Time:TaskRel)
+
+        //    X, C, seq(C)  |-  --beforeUnify(C, --X), (Goal:ExemplificationStrongPP, Time:TaskRel)
+        //    X, C, seq(C)  |-  --beforeUnify(C,   X), (Goal:ExemplificationStrongNP, Time:TaskRel)
+
+
+        //    X, C, cond(C,--X), --cond(C,  X), seq(C)  |-  --before(C, --X), (Goal:SupposePP, Time:TaskRel)
+        //    X, C, cond(C,  X), --cond(C,--X), seq(C)  |-  --before(C,   X), (Goal:SupposeNP, Time:TaskRel)
+
+        //    X, C, cond(C,--X), seq(C)  |-  --condWithoutAllPN(before(C, --X),X), (Goal:ExemplificationStrongPP, Time:TaskRel)
+        //    X, C, cond(C,  X), seq(C)  |-  --condWithoutAllPN(before(C,   X),X), (Goal:ExemplificationStrongNP, Time:TaskRel)
+
+        //    X, C, cond(C,--X), seq(C)  |-  --condWithoutAllPN(before(C, --X),X), (Goal:ExemplificationPP, Time:TaskRel)
+        //    X, C, cond(C,  X), seq(C)  |-  --condWithoutAllPN(before(C,   X),X), (Goal:ExemplificationNP, Time:TaskRel)
+
+
+
+
+//    X, C, cond(C,  X), --cond(C, --X)  |-   beforeOrDuring(C,   X), (Goal:PresumePP, Time:EitherRel)
+//    X, C, cond(C,--X), --cond(C,   X)  |-   beforeOrDuring(C, --X), (Goal:PresumeNP, Time:EitherRel)
+
+//      X, C, --seq(C), cond(C,  X)  |-   condWithoutAll(C,   X), (Goal:PresumeWeakPP, Time:Task)
+//      X, C, --seq(C), cond(C,--X)  |-   condWithoutAll(C, --X), (Goal:PresumeWeakNP, Time:Task)
+
+//    X, C, seq(C)  |-   condWithoutAllPN(before(C,   X), X), (Goal:PresumePP, Time:Task)
+//    X, C, seq(C)  |-   condWithoutAllPN(before(C, --X), X), (Goal:PresumeNP, Time:Task)
+//      X, C, --seq(C), cond(C,  X)  |-   condWithoutAll(C,   X), (Goal:PresumeWeakPP, Time:Task)
+//      X, C, --seq(C), cond(C,--X)  |-   condWithoutAll(C, --X), (Goal:PresumeWeakNP, Time:Task)
+
+//    X, C  |-   condWithoutAllPN(before(C,   X), X), (Goal:PresumePP, Time:Task)
+//    X, C  |-   condWithoutAllPN(before(C, --X), X), (Goal:PresumeNP, Time:Task)
+
+//    X, C  |-   condWithoutAllPN(before(C,   X), X), (Goal:PresumePP, Time:TaskRel)
+//    X, C  |-   condWithoutAllPN(before(C, --X), X), (Goal:PresumeNP, Time:TaskRel)
+
+//    X, C, seq(C)  |-   before(C,   X), (Goal:PresumePP, Time:TaskRel)
+//    X, C, seq(C)  |-   before(C, --X), (Goal:PresumeNP, Time:TaskRel)
+
+
+//    X, C, seq(C)  |-   condWithoutAllPN(before(C,   X),X), (Goal:PresumePP, Time:TaskRel)
+//    X, C, seq(C)  |-   condWithoutAllPN(before(C, --X),X), (Goal:PresumeNP, Time:TaskRel)
+
+//    X, C, seq(C)  |-   condWithoutAllPN(before(C,   X),X), (Goal:SupposeStrongPP, Time:TaskRel)
+//    X, C, seq(C)  |-   condWithoutAllPN(before(C, --X),X), (Goal:SupposeStrongNP, Time:TaskRel)
+
+//    X, C, seq(C)  |-   before(C,   X), (Goal:PresumePP, Time:TaskRel)
+//    X, C, seq(C)  |-   before(C, --X), (Goal:PresumeNP, Time:TaskRel)
+
+
+//    X, C, cond(C,  X), --cond(C,--X) |-  negateConds(before(C,  X)), (Goal:ExemplificationStrongNP, Time:Later)
+//    X, C, cond(C,--X), --cond(C,  X) |-  negateConds(before(C,--X)), (Goal:ExemplificationStrongPP, Time:Later)
+
+//    X, C, cond(C,  X), --cond(C,--X) |-  negateConds(condWithoutAll(beforeOrDuring(C,  X),  X)), (Goal:ExemplificationStrongNP, Time:TaskRel)
+//    X, C, cond(C,--X), --cond(C,  X) |-  negateConds(condWithoutAll(beforeOrDuring(C,--X),--X)), (Goal:ExemplificationStrongPP, Time:TaskRel)
+//        //oscillation special case
+//        X, C, cond(C,  X), cond(C,--X)  |-   negateConds(condWithoutAll(beforeOrDuring(after(C,--X),  X),--X)), (Goal:ExemplificationStrongNP, Time:TaskRel)
+//        X, C, cond(C,--X), cond(C,  X)  |-   negateConds(condWithoutAll(beforeOrDuring(after(C,  X),--X),  X)), (Goal:ExemplificationStrongPP, Time:TaskRel)
+
+    //    X, C, cond(C,   X), --cond(C, --X) |-  --beforeOrDuring(C,   X),  (Goal:PresumeNP, Time:EitherRel)
+    //    X, C, cond(C, --X), --cond(C,   X) |-  --beforeOrDuring(C, --X),  (Goal:PresumePP, Time:EitherRel)
+
+//    X, C, cond(C,   X), --cond(C, --X) |-  negateConds(beforeOrDuring(C,   X)),  (Goal:PresumeNP, Time:TaskRel)
+//    X, C, cond(C, --X), --cond(C,   X) |-  negateConds(beforeOrDuring(C, --X)),  (Goal:PresumePP, Time:TaskRel)

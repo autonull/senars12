@@ -74,8 +74,8 @@ export class ChatConsole extends LitElement {
     return html`
       <div class="messages">
         ${!hasMessages ? html`<div class="empty">Awaiting signal...</div>` : ''}
-        ${msgs.map(m => html`<div class="msg ${m.role}">${this.renderMarkdown(m.content)}</div>`)}
-        ${delta ? html`<div class="msg agent">${this.renderMarkdown(delta)}<span class="cursor">▊</span></div>` : ''}
+        ${msgs.map(m => html`<div class="msg ${m.role}" data-testid="message" data-role="${m.role}">${this.renderMarkdown(m.content)}</div>`)}
+        ${delta ? html`<div class="msg agent" data-testid="message" data-role="agent">${this.renderMarkdown(delta)}<span class="cursor">▊</span></div>` : ''}
       </div>
       <div class="input-area">
         <input @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.sendMessage()} placeholder="Query the agent..." />

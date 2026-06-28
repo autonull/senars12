@@ -2,12 +2,12 @@ import { test, expect } from '../../framework/fixtures/senars-app';
 import { sendAndReceiveMessage } from '../../framework/scenarios/conversation';
 import { simulateNetworkDrop, waitForReconnection } from '../../framework/scenarios/network';
 
-test('UI reconnects and reconciles state after network drop', async ({ chat, graph, ws, testApi }) => {
-  await sendAndReceiveMessage(chat, ws, 'Hello');
+test('UI reconnects and reconciles state after network drop', async ({ chat, graph, page, testApi, testControl }) => {
+  await sendAndReceiveMessage(chat, testControl, 'Hello');
   const messageCountBefore = await chat.getMessageCount();
   const nodeCountBefore = await graph.getNodeCount();
 
-  await simulateNetworkDrop(ws, 3000);
+  await simulateNetworkDrop(page, 3000);
 
   await waitForReconnection(testApi);
 

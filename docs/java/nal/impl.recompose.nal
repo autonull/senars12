@@ -1,0 +1,193 @@
+//conditional_deduction_pred_conj {
+//   //TODO D -> C
+//   (M ==> D), (M ==> S),cond(D, S),  --var({M,S})    |-   (M ==>   condWithoutAny(D,   S)), (Belief:DividePP, Time:Belief)
+//     (M ==> S), (M ==> D),cond(D, S),  --var({M,S})  |-   (M ==>   condWithoutAny(D,   S)), (Belief:DividePPX, Time:Task)
+//   (M ==> D), (M ==> S),cond(D,--S),  --var({M,S})    |-   (M ==>   condWithoutAny(D, --S)), (Belief:DividePN, Time:Belief)
+//     (M ==> S), (M ==> D),cond(D,--S),  --var({M,S})  |-   (M ==>   condWithoutAny(D, --S)), (Belief:DivideNPX, Time:Task)
+//}
+
+conditional_deduction_pred_disj {
+   (M ==> D), (M ==> S), cond(D, S), --var({M,S}), dtUnify(),--seq(D)     |-   (M ==> --condWithoutAny(D,   S)), (Belief:DivideNP)
+     (M ==> S), (M ==> D), cond(D, S), --var({M,S}), dtUnify(),--seq(D)   |-   (M ==> --condWithoutAny(D,   S)), (Belief:DividePNX)
+   (M ==> D), (M ==> S), cond(D,--S), --var({M,S}), dtUnify(),--seq(D)    |-   (M ==> --condWithoutAny(D, --S)), (Belief:DivideNN)
+     (M ==> S), (M ==> D), cond(D,--S), --var({M,S}), dtUnify(),--seq(D)  |-   (M ==> --condWithoutAny(D, --S)), (Belief:DivideNNX)
+}
+
+conditional_induction_and {
+//            .believe("((x && a) ==> z)")
+//              .believe("(a ==> y)", 0.9f, 0.9f)
+//              .mustBelieve(cycles, "((x && y) ==> z)", 1.00f, 0.73f);
+    (C ==> Z), (  A ==> Y), cond(C,  A), --is(A,"--"), --var({Z,A}), dtUnify(),--seq(C) |- ((condWithoutAny(C,  A) && Y) ==> Z), (Belief:ConductWeakPP)
+      (C ==> Z), (  A ==> Y), cond(C,  A), --is(A,"--"), --var({Z,A}), dtUnify(),--seq(C) |- ((condWithoutAny(C,  A) && --Y) ==> Z), (Belief:ConductWeakPN)
+    (C ==> Z), (--A ==> Y), cond(C,--A), --is(A,"--"), --var({Z,A}), dtUnify(),--seq(C) |- ((condWithoutAny(C,--A) && Y) ==> Z), (Belief:ConductWeakPP)
+      (C ==> Z), (--A ==> Y), cond(C,--A), --is(A,"--"), --var({Z,A}), dtUnify(),--seq(C) |- ((condWithoutAny(C,--A) && --Y) ==> Z), (Belief:ConductWeakPN)
+
+      (  A ==> Y), (C ==> Z), cond(C,  A), --is(A,"--"), --var({Z,A}), dtUnify(),--seq(C) |- ((condWithoutAny(C,  A) && Y) ==> Z), (Belief:ConductWeakPPX)
+        (  A ==> Y), (C ==> Z), cond(C,  A), --is(A,"--"), --var({Z,A}), dtUnify(),--seq(C) |- ((condWithoutAny(C,  A) && --Y) ==> Z), (Belief:ConductWeakNPX)
+      (--A ==> Y), (C ==> Z), cond(C,--A), --is(A,"--"), --var({Z,A}), dtUnify(),--seq(C) |- ((condWithoutAny(C,--A) && Y) ==> Z), (Belief:ConductWeakPPX)
+        (--A ==> Y), (C ==> Z), cond(C,--A), --is(A,"--"), --var({Z,A}), dtUnify(),--seq(C) |- ((condWithoutAny(C,--A) && --Y) ==> Z), (Belief:ConductWeakNPX)
+}
+
+conditional_induction_or {
+    (--D ==> Z), (  A ==> Y), cond(D,--A), --is(A,"--"),--is(D,"--"), --var({Z,A}), dtUnify(),--seq(D) |- (  Y ==> Z), (Belief:ConductWeakPP)
+      (--D ==> Z), (  A ==> Y), cond(D,--A), --is(A,"--"),--is(D,"--"), --var({Z,A}), dtUnify(),--seq(D) |- (--Y ==> Z), (Belief:ConductWeakPN)
+    (--D ==> Z), (--A ==> Y), cond(D,  A), --is(A,"--"),--is(D,"--"), --var({Z,A}), dtUnify(),--seq(D) |- (  Y ==> Z), (Belief:ConductWeakPP)
+      (--D ==> Z), (--A ==> Y), cond(D,  A), --is(A,"--"),--is(D,"--"), --var({Z,A}), dtUnify(),--seq(D) |- (--Y ==> Z), (Belief:ConductWeakPN)
+
+    (  A ==> Y), (--D ==> Z), cond(D,--A), --is(A,"--"),--is(D,"--"), --var({Z,A}), dtUnify(),--seq(D) |- (  Y ==> Z), (Belief:ConductWeakPPX)
+      (  A ==> Y), (--D ==> Z), cond(D,--A), --is(A,"--"),--is(D,"--"), --var({Z,A}), dtUnify(),--seq(D) |- (--Y ==> Z), (Belief:ConductWeakNPX)
+    (--A ==> Y), (--D ==> Z), cond(D,  A), --is(A,"--"),--is(D,"--"), --var({Z,A}), dtUnify(),--seq(D) |- (  Y ==> Z), (Belief:ConductWeakPPX)
+      (--A ==> Y), (--D ==> Z) , cond(D,  A), --is(A,"--"),--is(D,"--"), --var({Z,A}), dtUnify(),--seq(D) |- (--Y ==> Z), (Belief:ConductWeakNPX)
+
+}
+
+//conditional_induction_reverse_and {
+//    //weak:
+//    (C ==> Z), (  Y ==> A), cond(C,  A), --var({Z,A}) |- ((condWithoutAny(C,  A) && Y) ==> Z), (Belief:BiductWeakPPX, Time:Belief)
+//    (C ==> Z), (  Y ==> A), cond(C,--A), --var({Z,A}) |- ((condWithoutAny(C,--A) && Y) ==> Z), (Belief:BiductWeakPNX, Time:Belief)
+//      (  Y ==> A), (C ==> Z), cond(C,  A), --var({Z,A}) |- ((condWithoutAny(C,  A) && Y) ==> Z), (Belief:BiductWeakPP, Time:Task)
+//      (  Y ==> A), (C ==> Z), cond(C,--A), --var({Z,A}) |- ((condWithoutAny(C,--A) && Y) ==> Z), (Belief:BiductWeakPN, Time:Task)
+//}
+
+//impl_conj_reduce {
+//    //TODO dtParallel for Task?
+//    (X &&   (Y ==> Z)), X, --var(X) |-   ((X && Y) ==> Z), (Belief:StructuralDeduction)
+//    (X && --(Y ==> Z)), X, --var(X) |- --((X && Y) ==> Z), (Belief:StructuralDeduction)
+//}
+
+//TODO conditional_induction_weak_or { }
+
+//conditional_multi_deduction {
+//    (Z ==> C), (  A ==> Y), cond(C,  A), --is(A,"--"), --var({Z,X,A}) |- (Z ==> (condWithoutAny(C,  A) &&   Y)), (Belief:BiductPPX, Time:Task)
+//    (Z ==> C), (  A ==> Y), cond(C,  A), --is(A,"--"), --var({Z,X,A}) |- (Z ==> (condWithoutAny(C,  A) && --Y)), (Belief:BiductPNX, Time:Task)
+//      (Z ==> C), (--A ==> Y), cond(C,--A), --is(A,"--"), --var({Z,X,A}) |- (Z ==> (condWithoutAny(C,--A) &&   Y)), (Belief:BiductPPX, Time:Task)
+//      (Z ==> C), (--A ==> Y), cond(C,--A), --is(A,"--"), --var({Z,X,A}) |- (Z ==> (condWithoutAny(C,--A) && --Y)), (Belief:BiductPNX, Time:Task)
+//
+//    //TODO swaps
+//}
+
+
+//conditional_abduction {
+//    //(C ==> Z), (X ==> Z)   |-   condWithoutAny(unisubst(C,unifiableSubEvent(C,X),X), X), (Belief:AbductionSym)
+//    (C ==> Z), (X ==> Z), --var({Z,X})   |-   conjWithoutUnify(C,X), (Belief:AbductionSym)
+//    (X ==> Z), (C ==> Z), --var({Z,X})   |-   conjWithoutUnify(C,X), (Belief:AbductionSymX, Time:Belief)
+//
+//    (--D ==> Z), (  X ==> Z), --var({Z,X}), cond(D,--X)   |-   X, (Belief:AbductionSym)
+//    (  X ==> Z), (--D ==> Z), --var({Z,X}), cond(D,--X)   |-   X, (Belief:AbductionSymX, Time:Belief)
+//
+//}
+
+//conditional_deduction_subj_revision {
+//   (S ==> M), (--D ==> M), cond(D, --S)    |-    (--condWithoutAny(D,--S) ==> M), (Belief:DivideNPX)
+//   (S ==> M), (--D ==> M), cond(D, --S)    |-  --(--condWithoutAny(D,--S) ==> M), (Belief:DividePNX)
+//}
+
+
+//    (C ==> Z), (X ==> Z)   |-   conjWithoutIndepEvents(unisubst(C,unifiableSubEvent(C,X),X)), (Belief:AbductionPB)
+//    //(C ==> Z), (X ==> Z)   |-   conjWithoutIndepEvents(unisubst(C,unifiableSubEvent(C,X),X)), (Belief:AbductionNN)
+//
+//    //TODO test:
+//    (--D ==> Z), (X ==> Z)   |- --conjWithoutIndepEvents(unisubst(D,unifiableSubEvent(D,--X),--X)), (Belief:AbductionPB)
+//    //(--D ==> Z), (X ==> Z)   |- --conjWithoutIndepEvents(unisubst(D,unifiableSubEvent(D,--X),--X)), (Belief:AbductionNN)
+
+////
+////    (C ==> X), (E ==> X), eventOf(C,E)      |-    condWithoutAny(C,E), (Belief:AbductionPB)
+////       //(E ==> X), (C ==> X), eventOf(C,E)    |-    condWithoutAny(C,E), (Belief:AbductionPBX)
+////    //TODO disj form
+////    (--D ==> X), (E ==> X), eventOf(D,E)    |-  --condWithoutAny(D,E), (Belief:AbductionPB)
+//
+//  //((&&,B,A..+) ==> X), (E ==> Y)          |-    unisubst((&&,A..+),(polarizeTask(X) && B),(polarizeBelief(Y) && E)), (Belief:AbductionDDRel)
+//
+////        ((&&,M,X,A..*) ==> C), (Y ==> C) |- unisubst((M ==> C),X,Y), (Belief:AbductionPB)
+////        ((&&,M,A..+) ==> X), ((&&,A..+) ==> Y) |- unisubst((M ==> X),X,Y,"$"), (Belief:AbductionPB)
+////          (--(&&,M,A..+) ==> X), (--(&&,A..+) ==> Y) |- unisubst((--M ==> X),X,Y,"$"), (Belief:AbductionPB)
+////        ((&&,M,A..+) ==> X), ((&&,A..+) ==> Y) |- unisubst((M ==> Y),Y,X,"$"), (Belief:AbductionPB)
+////          (--(&&,M,A..+) ==> X), (--(&&,A..+) ==> Y) |- unisubst((--M ==> Y),Y,X,"$"), (Belief:AbductionPB)
+////
+
+//   original:   ((&&,M,A_1..n) ==> C), M, not_implication_or_equivalence(M) |- ((&&,A_1..n) ==> C), (Truth:Deduction, Order:ForAllSame)
+//   original:   ((&&,M,A_1..n) ==> C), (A ==> M) |- ((&&,A,A_1..n) ==> C), (Truth:Deduction, Order:ForAllSame)
+//   original:   ((&&,M,A_1..n) ==> C), ((&&,A_1..n) ==> C) |- M, (Truth:Abduction, Order:ForAllSame)
+//   original:   ((&&,A,A_1..n) ==> C), (A ==> M) |- ((&&,M,A_1..n) ==> C), (Truth:Abduction, Order:ForAllSame)
+//   original:   ((&&,A_1..n) =\> C), M, not_implication_or_equivalence(M) |- ((&&,M,A_1..n) =\> C), (Truth:Induction)
+//   original:   ((&&,M,A_1..n) ==> C), ((&&,A,A_1..n) ==> C) |- (A ==> M), (Truth:Induction, Order:ForAllSame)
+
+        //((&&,M,A..+) ==> C), M,                  |- ((&&,A..+) ==> C), (Belief:Deduction)
+
+        //((&&,M,A..+) ==> C), (B ==> M), neq(B,M) |- ((&&,B,A..+) ==> C), (Belief:Deduction)
+
+                //((&&,M,A..+) ==> Y), ((&&,A..+) ==> Y)          |- M, (Belief:AbductionPB)
+                //((&&,M,A) ==> Y),    (A ==> Y)                  |- M, (Belief:AbductionPB)
+                    //(--(&&,M,A..+) ==> Y), (--(&&,A..+) ==> Y)  |- M, (Belief:AbductionPB)
+                    //(--(&&,M,A) ==> Y),    (--A ==> Y)          |- M, (Belief:AbductionPB)
+
+            //(C ==> (&&,X,A..+)), (C ==> (&&,Y,A..+))   |- (X ==> Y), (Belief:Abduction)
+            //(C ==> (&&,X,A..+)), (C ==> (&&,Y,A..+))   |- (Y ==> X), (Belief:Abduction)
+
+        //    ((&&,X,A..+) ==> C), ((&&,Y,A..+) ==> C)   |- (X ==> Y), (Belief:Induction)
+        //    ((&&,X,A..+) ==> C), ((&&,Y,A..+) ==> C)   |- (Y ==> X), (Belief:Induction)
+        //        (--(&&,X,A..+) ==> C), (--(&&,Y,A..+) ==> C)   |- (X ==> Y), (Belief:Induction)
+        //        (--(&&,X,A..+) ==> C), (--(&&,Y,A..+) ==> C)   |- (Y ==> X), (Belief:Induction)
+        //        //(--(&&,X,A..+) ==> C), ((&&,Y,A..+) ==> C)  ???
+        //        //(--(&&,X,A..+) ==> C), ((&&,Y,A..+) ==> C)  ???
+
+
+//Conjunction_Anti-Contradiction {
+//  TODO this isnt right find the original rule with A..+ in belief term
+//    //: ((X&&A)==>C) and ((--X&&A)==>C)  |-  (A==>C), since X or --X doesnt make a difference
+//    ((&&,X,A..+) ==> C), (D ==> C), eventOfNeg(D,X)  |- ((&&,A..+) ==> C), (Belief:InductionPB)
+//        (--(&&,X,A..+) ==> C), (--D ==> C), eventOfNeg(D,X)  |- ((--,(&&,A..+)) ==> C), (Belief:InductionPB)
+//    (C ==> (&&,X,A..+)), (C ==> D), eventOfNeg(D,X)  |- (C ==> (&&,A..+)), (Belief:AbductionPB)
+//}
+
+
+
+
+//impl_disj_question_decomposition {
+//    (A ==> X), (A ==> D), task("?"), cond(D,--X)  |-    (A ==> X), (Belief:BeliefStructuralDeductionPN)
+//    (A ==> X), (A ==> D), task("?"), cond(D,  X)  |-  --(A ==> X), (Belief:BeliefStructuralDeductionPN)
+//}
+
+//impl_deduction_transform_subj{
+//    (C ==> Z), (Y ==> Z)    |- unisubst((C ==> Z),unifiableSubEvent(C,  Y),  Y,novel), (Belief:ConductPP)
+//    (C ==> Z), (Y ==> Z)    |- unisubst((C ==> Z),unifiableSubEvent(C,--Y),--Y,novel), (Belief:ConductPN)
+//        (--D ==> Z), (Y ==> Z)    |- unisubst((--D ==> Z),unifiableSubEvent(D,--Y),--Y,novel), (Belief:ConductPP)
+//        (--D ==> Z), (Y ==> Z)    |- unisubst((--D ==> Z),unifiableSubEvent(D,  Y),  Y,novel), (Belief:ConductPN)
+//}
+//impl_deduction_transform_pred {
+//    (Z ==> C), (Z ==> Y)    |- unisubst((Z ==> C),unifiableSubEvent(C,  Y),  Y,novel), (Belief:ConductPP)
+//    (Z ==> C), (Z ==> Y)    |- unisubst((Z ==> C),unifiableSubEvent(C,--Y),--Y,novel), (Belief:ConductPN)
+//        //TODO disj?
+//}
+
+
+//
+
+//   (--S ==> M), (C ==> M), cond(C,  S)    |-   --(C ==> M), (Belief:DeductionPP)
+//   (  S ==> M), (C ==> M), cond(C,--S)    |-   --(C ==> M), (Belief:DeductionPP)
+//   (--S ==> M), (C ==> M), cond(C,  S)    |-     (C ==> M), (Belief:DeductionNN)
+//   (  S ==> M), (C ==> M), cond(C,--S)    |-     (C ==> M), (Belief:DeductionNN)
+//
+//   (  S ==> M), (C ==> M), cond(C,  S)    |-   --(C ==> M), (Belief:DeductionNP)
+//   (--S ==> M), (C ==> M), cond(C,--S)    |-   --(C ==> M), (Belief:DeductionNP)
+//   (  S ==> M), (C ==> M), cond(C,  S)    |-     (C ==> M), (Belief:DeductionPN)
+//   (--S ==> M), (C ==> M), cond(C,--S)    |-     (C ==> M), (Belief:DeductionPN)
+//conditional_abduction_by_dependent_variable {
+//
+//    ((X --> R) ==> Z), ((&&,(#Y --> B),(#Y --> R),A..*) ==> Z)  |- (X --> B), (Belief:AbductionPB)
+//        (--(X --> R) ==> Z), ((&&,(#Y --> B),--(#Y --> R),A..*) ==> Z) |- (X --> B), (Belief:AbductionPB)
+//}
+
+
+
+
+
+//
+//conditional_deduction_pred_revision {
+//    //TODO test
+//   (M ==> S), (M ==> C), cond(C,   S)    |-    (M ==> condWithoutAny(C,  S)), (Belief:DivideNPX)
+//   (M ==> S), (M ==> C), cond(C, --S)    |-    (M ==> condWithoutAny(C,--S)), (Belief:DividePPX)
+//
+//   (M ==> S), (M ==> C), cond(C,   S)    |-  --(M ==> condWithoutAny(C,--S)), (Belief:DivideNNX)
+//   (M ==> S), (M ==> C), cond(C, --S)    |-  --(M ==> condWithoutAny(C,  S)), (Belief:DividePNX)
+//}

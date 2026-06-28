@@ -1,0 +1,61 @@
+sect_goal_expansion {
+    (S --> X), S, task("!"), --var({X,S}), --hasVar(S), --is(S,"&&") |- ((polarizeTask(S) & ?Z)-->X), (Punctuation:Quest, Time:Task)
+    (X --> S), S, task("!"), --var({X,S}), --hasVar(S), --is(S,"&&") |- (X-->(polarizeTask(S) & ?Z)), (Punctuation:Quest, Time:Task)
+}
+
+
+
+//component invert to question
+//this isnt helpful and very noisy
+//     (M --> C), M, is(C,"&&"), task("!")  |- (M-->negateRandomSubterm(C)), (Punctuation:Quest, Time:Task)
+//     (C --> M), M, is(C,"&&"), task("!")  |- (negateRandomSubterm(C)-->M), (Punctuation:Quest, Time:Task)
+
+
+//    (M --> P), (M --> S), --var(P), --var(S), neqRCom(S,P), notSetsOrDifferentSets(S,P) |- unisubst((M --> P), S, P, novel), (Punctuation:AskAll, Time:Compose)
+//    (P --> M), (S --> M), --var(P), --var(S), neqRCom(S,P), notSetsOrDifferentSets(S,P) |- unisubst((P --> M), S, P, novel), (Punctuation:AskAll, Time:Compose)
+
+////composition on both sides of a statement:
+
+//    ((&,X,A..+) --> (&,Y,A..+)), (X --> Y), task("?") |- ((&,X,A..+) --> (&,Y,A..+)), (Belief:BeliefStructuralDeduction, Punctuation:Belief)
+//    ((|,X,A..+) --> (|,Y,A..+)), (X --> Y), task("?") |- ((|,X,A..+) --> (|,Y,A..+)), (Belief:BeliefStructuralDeduction, Punctuation:Belief)
+
+//    ((A - S) --> (B - S)), (A --> B), task("?") |- ((A-S) --> (B-S)), (Belief:BeliefStructuralDeduction, Punctuation:Belief)
+//    ((A ~ S) --> (B ~ S)), (A --> B), task("?") |- ((A~S) --> (B~S)), (Belief:BeliefStructuralDeduction, Punctuation:Belief)
+//    ((S - A) --> (S - B)), (B --> A), task("?") |- ((S-A) --> (S-B)), (Belief:BeliefStructuralDeduction, Punctuation:Belief)
+//    ((S ~ A) --> (S ~ B)), (B --> A), task("?") |- ((S~A) --> (S~B)), (Belief:BeliefStructuralDeduction, Punctuation:Belief)
+
+//sect drill-down questions
+//TODO fix this should not +-  $.17 ((a &&+- b)-->(&&,a,c,?1))? {820: 1©}
+//(S --> X), X, is(S,"&&") |- ((S & ?Z)-->X), (Punctuation:Ask)
+//(X --> S), X, is(S,"&&") |- (X-->(S & ?Z)), (Punctuation:Ask)
+    //(S --> X), X, is(S,"||") |- ((S | ?Z)-->X), (Punctuation:Ask)
+    //(X --> S), X, is(S,"||") |- (X-->(S | ?Z)), (Punctuation:Ask)
+
+
+        //(W --> (A|B)), W |- (W --> (A-B)), (Punctuation:Ask)
+        //((A&B) --> W), W |- ((A~B) --> W), (Punctuation:Ask)
+      //(A&B), A |- (A~B), (Punctuation:Ask)
+
+
+
+
+////composition on one side of a statement:
+//    (W --> S), (W --> B), task("?"), is(S,"&&"), sub(S,B) |- (W --> S), (Belief:BeliefStructuralDeduction, Punctuation:Belief, Time:Intersect)
+//    (S --> W), (B --> W), task("?"), is(S,"||"), sub(S,B) |- (S --> W), (Belief:BeliefStructuralDeduction, Punctuation:Belief, Time:Intersect)
+
+    //(W --> (S-B)), (W --> B), task("?") |- (W --> (S-B)), (Belief:BeliefStructuralDifference, Punctuation:Belief, Time:Task)
+    //((S~B) --> W), (B --> W), task("?") |- ((S~B) --> W), (Belief:BeliefStructuralDifference, Punctuation:Belief, Time:Task)
+        //(S~B), B, task("?") |- (S~B), (Belief:BeliefStructuralDifference, Punctuation:Belief)
+
+    //(?1 --> S), (X --> S), task("?"), neq(X,?1) |- ((X | ?1) --> S), (Punctuation:Question)
+    //(?1 --> S), (X --> S), task("?"), neq(X,?1) |- ((X & ?1) --> S), (Punctuation:Question)
+    //(S --> ?1), (S --> X), task("?"), neq(X,?1) |- (S --> (X | ?1)), (Punctuation:Question)
+    //(S --> ?1), (S --> X), task("?"), neq(X,?1) |- (S --> (X & ?1)), (Punctuation:Question)
+    //(?1 --> S), (X --> S), task("?"), neq(X,?1) |- ((X - ?1) --> S), (Punctuation:Question)
+      //  (?1 --> S), (X --> S), task("?"), neq(X,?1) |- ((?1 - X) --> S), (Punctuation:Question)
+    //(?1 --> S), (X --> S), task("?"), neq(X,?1) |- ((X ~ ?1) --> S), (Punctuation:Question)
+      //  (?1 --> S), (X --> S), task("?"), neq(X,?1) |- ((?1 ~ X) --> S), (Punctuation:Question)
+    //(S --> ?1), (S --> X), task("?"), neq(X,?1) |- (S --> (X - ?1)), (Punctuation:Question)
+      //  (S --> ?1), (S --> X), task("?"), neq(X,?1) |- (S --> (?1 - X)), (Punctuation:Question)
+    //(S --> ?1), (S --> X), task("?"), neq(X,?1) |- (S --> (X ~ ?1)), (Punctuation:Question)
+      //  (S --> ?1), (S --> X), task("?"), neq(X,?1) |- (S --> (?1 ~ X)), (Punctuation:Question)

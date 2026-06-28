@@ -1,0 +1,188 @@
+
+//
+//impl_question_unify {
+//
+//   B, (  C ==> A),    task("?@"), --is(B,"==>")              |- unisubst((  C ==> A),A,B,novel),        (Punctuation:Question, Time:Task)
+//      (  C ==> A), B, task("?"), --is(B,"==>"), hasBelief()               |- unisubst((  C ==> A),A,B,novel),  (Punctuation:Question, Time:Task)
+//   B, (  A ==> C),    task("?@"), --is(B,"==>"), --is(A,"--")    |- unisubst((  A ==> C),A,B,novel),        (Punctuation:Question, Time:Task)
+//      (  A ==> C), B, task("?"), --is(B,"==>"), hasBelief(), --is(A,"--") |- unisubst((  A ==> C),A,B,novel),  (Punctuation:Question, Time:Task)
+//   B, (--A ==> C),    task("?@"), --is(B,"==>")                 |- unisubst((--A ==> C),A,B,novel),        (Punctuation:Question, Time:Task)
+//      (--A ==> C), B, task("?"), --is(B,"==>"), hasBelief()               |- unisubst((--A ==> C),A,B,novel),  (Punctuation:Question, Time:Task)
+//}
+
+
+impl_quest_to_question {
+    W, (X ==> Y),--eqPN(W,Y), task("@"), eqPN(X,W)    |- Y, (Punctuation:Question, Time:TaskRel)
+    Y, (X ==> Y),--eqPN(Y,X), task("@")               |- X, (Punctuation:Question, Time:TaskRel)
+}
+
+
+//   B, (  C ==> A), --is(B,"==>")     |- unisubst(C,A,B), (Punctuation:AskAsk, Time:Task)
+//      (  C ==> A), B, --is(B,"==>")  |- unisubst(C,A,B), (Punctuation:AskAsk, Time:BeliefRel)
+//   B, (  A ==> C), --is(B,"==>")     |- unisubst(C,A,B), (Punctuation:AskAsk, Time:Task)
+//      (  A ==> C), B, --is(B,"==>")  |- unisubst(C,A,B), (Punctuation:AskAsk, Time:BeliefRel)
+//   B, (--A ==> C), --is(B,"==>")     |- unisubst(C,A,B), (Punctuation:AskAsk, Time:Task)
+//      (--A ==> C), B, --is(B,"==>")  |- unisubst(C,A,B), (Punctuation:AskAsk, Time:BeliefRel)
+
+
+//impl_contraposition_question {
+//    (A ==> B), B, task("?"), neqPN(A,B), hasBelief()   |-  (polarizeBelief(B) ==> A), (Punctuation:Question, Time:Task)
+//}
+
+//impl_conj_question_decompose {
+//    (  C ==> A), X, task("?"), eventOfPN(C,X), hasBelief()   |-     (  condWithoutAnyPN(C, X)==>A), (Punctuation:Question, Time:Task)
+//    (--C ==> A), X, task("?"), eventOfPN(C,X), hasBelief()   |-     (--condWithoutAnyPN(C, X)==>A), (Punctuation:Question, Time:Task)
+//    (  A ==> C), X, task("?"), eventOfPN(C,X), hasBelief()   |- (A ==> condWithoutAnyPN(C,  X)), (Punctuation:Question, Time:Task)
+//}
+
+
+//    (  C ==> A), X, eventOfPN(C,X)  |-    condWithoutAnyPN(C,  X),      (Punctuation:AskAsk, Time:Task)
+//    (--C ==> A), X, eventOfPN(C,X)  |-    condWithoutAnyPN(C,  X),      (Punctuation:AskAsk, Time:Task)
+
+//    X, (   C ==> A), eventOfPN(C,X)  |-    condWithoutAnyPN(C,  X),      (Punctuation:AskAsk, Time:Task)
+//    X, ( --C ==> A), eventOfPN(C,X)  |-    condWithoutAnyPN(C,  X),      (Punctuation:AskAsk, Time:Task)
+
+//    X, (A ==> C),       eventOfPN(C,X)   |- (A ==> condWithoutAnyPN(C,  X)), (Punctuation:AskAsk, Time:Task)
+//        X, (  C ==> A), eventOfPN(C,X)   |-     (  condWithoutAnyPN(C, X)==>A), (Punctuation:AskAsk, Time:Task)
+//        X, (--C ==> A), eventOfPN(C,X)   |-     (--condWithoutAnyPN(C, X)==>A), (Punctuation:AskAsk, Time:Task)
+
+
+//conditional_deduction_subj_questions {
+//  (C ==> M), (S ==> M), eventOfPN(C,S)                |-  (    condWithoutAnyPN(C, S) ==> M), (Punctuation:AskAsk, Time:Compose)
+//    (S ==> M), (   C ==> M), eventOfPN(C,S)                |-  (    condWithoutAnyPN(C, S) ==> M), (Punctuation:AskAsk, Time:Compose)
+//  ( --D ==> M), (S ==> M), eventOfPN(D,S)                |-  (  --condWithoutAnyPN(D, S) ==> M), (Punctuation:AskAsk, Time:Compose)
+//    (S ==> M), ( --D ==> M), eventOfPN(D,S)                |-  (  --condWithoutAnyPN(D, S) ==> M), (Punctuation:AskAsk, Time:Compose)
+//}
+//
+//
+//
+//conditional_deduction_pred_questions {
+//  (M ==> D), (M ==> S), eventOfPN(D,S)                 |-   (M ==> condWithoutAnyPN(D,   S)), (Punctuation:AskAsk, Time:Compose)
+//    (M ==> S), (M ==> D), eventOfPN(D,S)                 |-   (M ==> condWithoutAnyPN(D,   S)), (Punctuation:AskAsk, Time:Compose)
+//}
+
+//questionImplBelief_DrillDown {
+//    X, (A==>C), eventOfPN(C,X), task("?@")    |-    (A==>condWithoutAnyPN(C, X)),  (Punctuation:Question, Time:TaskRel)
+//    X, (C==>A), eventOfPN(C,X), task("?@")    |-    (condWithoutAnyPN(C, X)==>A),  (Punctuation:Question, Time:TaskRel)
+//    X, (--C==>A), eventOfPN(C,X), task("?@")  |-  (--condWithoutAnyPN(C, X)==>A),  (Punctuation:Question, Time:TaskRel)
+//}
+
+//X, C, eventOfPN(C,X)  |-    C,  (Punctuation:AskAsk, Time:TaskRel)
+
+
+//anonymous_deduction_and_abduction {
+//    X, (V ==> X), task("?"), isUnneg(V,"#"), --var(X)     |- X, (Belief:BeliefStructuralReduction, Time:TaskRel)
+//
+//        X, (X ==> V), task("?"), is(V,"#"), --var(X)      |- X,   (Belief:BeliefStructuralAbduction, Time:TaskRel)
+//        X, (--X ==> V), task("?"), is(V,"#"), --var(X)    |- --X, (Belief:BeliefStructuralAbduction, Time:TaskRel)
+//}
+
+//contrast_conjunction_with_contradiction {
+//    //Conjunction containing both pos/neg X drill-down question
+//    C, X, eventOf(C,X), eventOfNeg(C,X) |- (condWithoutAnyPN(X) ==> X), (Punctuation:AskAll)
+//     X, C, eventOf(C,X), eventOfNeg(C,X) |- (condWithoutAnyPN(X) ==> X), (Punctuation:AskAll)
+//}
+
+
+
+
+//  B, (C ==> X), --var(X), hasBelief() |- unisubst(X,C,B), (Punctuation:AskAsk, Time:BeliefRel)
+//     (C ==> X), B, --var(X), hasBelief() |- unisubst(X,C,B), (Punctuation:AskAsk, Time:TaskRel)
+//    B, (--C ==> X), --var(X), hasBelief() |- unisubst(X,C,B), (Punctuation:AskAsk, Time:BeliefRel)
+//       (--C ==> X), B, --var(X), hasBelief() |- unisubst(X,C,B), (Punctuation:AskAsk, Time:TaskRel)
+//  B, (X ==> C), --var(X), hasBelief() |- unisubst(X,C,B), (Punctuation:AskAsk, Time:BeliefRel)
+//    (X ==> C), B, --var(X), hasBelief() |- unisubst(X,C,B), (Punctuation:AskAsk, Time:TaskRel)
+
+//    B, (X ==> A), --var(X), --is(B,"==>"), is(A,"&&") |- unisubst(X,unifiableSubEvent(A,B),B), (Punctuation:Ask, Time:Task)
+//      B, (X ==> A), --var(X), --is(B,"==>"), is(A,"&&"), has(A,"--") |- unisubst(X,unifiableSubEvent(A,--B),--B), (Punctuation:Ask, Time:Task)
+//    B, (A ==> X), --var(X), --is(B,"==>"), is(A,"&&") |- unisubst(X,unifiableSubEvent(A,B),B), (Punctuation:Ask, Time:Task)
+//      B, (A ==> X), --var(X), --is(B,"==>"), is(A,"&&"), has(A,"--") |- unisubst(X,unifiableSubEvent(A,--B),--B), (Punctuation:Ask, Time:Task)
+//           B, (--A ==> X), --var(X), --is(B,"==>"), is(A,"&&") |- unisubst(X,unifiableSubEvent(A,B),B), (Punctuation:Ask, Time:Task)
+//              B, (--A ==> X), --var(X), --is(B,"==>"), is(A,"&&"), has(A,"--") |- unisubst(X,unifiableSubEvent(A,--B),--B), (Punctuation:Ask, Time:Task)
+
+//  (C ==> X), B, neq(B,C), task("."), --var(B) |- unisubst((C ==> X),C,B,novel), (Punctuation:Question, Time:Task)
+//    (--C ==> X), B, neq(B,C), task("."), --var(B) |- unisubst((--C ==> X),C,B,novel), (Punctuation:Question, Time:Task)
+//  (X ==> C), B, neq(B,C), task("."), --var(B) |- unisubst((X ==> C),C,B,novel), (Punctuation:Question, Time:Task)
+
+
+
+
+////Contraposition to Disjunction
+//    (--S ==> P), (--S ==> P) |- (S || P), (Belief:StructuralDeduction)
+//    (S ==> N),   (S ==> P)   |- (S || P), (Belief:StructuralDeductionN)
+
+
+//Hypothesize Subcondition Identity
+//      hypothesize that two subconditions which unify actually refer to the same target,
+//      eliminating the variable and simplifying the statement
+
+//      ex: ((f(x) && f($1)) ==> g($1))  |-   (f(x) ==> g(x))
+
+//    ((&&,X,Y,A..*) ==> Z), X, neq(X,Y), --var(X), --var(Y)   |- unisubst(((&&,X,Y,A..*) ==> Z),X,Y,novel), (Belief:StructuralReduction)
+//      ((&&,X,--Y,A..*) ==> Z), X, --var(X), --var(Y)   |- unisubst(((&&,X,--Y,A..*) ==> Z),X,Y,novel), (Belief:StructuralReduction)
+//    (Z ==> (&&,X,Y,A..*)), X, neq(X,Y), --var(X), --var(Y)    |- unisubst((Z ==> (&&,X,Y,A..*)),X,Y,novel), (Belief:StructuralReduction)
+//      (Z ==> (&&,X,--Y,A..*)), X, --var(X), --var(Y)    |- unisubst((Z ==> (&&,X,--Y,A..*)),X,Y,novel), (Belief:StructuralReduction)
+//
+//    (&&,X,Y,A..*), X, neq(X,Y), --var(X), --var(Y)       |- unisubst((&&,X,Y,A..*),X,Y,novel), (Belief:StructuralDeduction, Goal:StructuralDeduction)
+//      (&&,X,--Y,A..*), X, --var(X), --var(Y)   |- unisubst((&&,X,--Y,A..*),X,Y,novel), (Belief:StructuralDeduction, Goal:StructuralDeduction)
+
+////implication comparison: common cause or common effect
+//(X==>Z), (Y==>Z), neqPN(X,Y), hasBelief(), task(".") |- ((X && --Y) ==> Z), (Punctuation:Question, Time:Task)
+//(X==>Z), (Y==>Z), neqPN(X,Y), hasBelief(), task(".") |- ((--X && Y) ==> Z), (Punctuation:Question, Time:Task)
+//(Z==>X), (Z==>Y), neqPN(X,Y), hasBelief(), task(".") |- (Z ==> (X && --Y)), (Punctuation:Question, Time:Task)
+//(Z==>X), (Z==>Y), neqPN(X,Y), hasBelief(), task(".") |- (Z ==> (--X && Y)), (Punctuation:Question, Time:Task)
+//
+////conjunction comparison: common event
+//(X && Z), (Y && Z), neqPN(X,Y), neq(X,Z), neq(Y,Z), hasBelief() |- (X && --Y), (Punctuation:Ask, Time:Compose)
+//(X && Z), (Y && Z), neqPN(X,Y), neq(X,Z), neq(Y,Z), hasBelief() |- (Y && --X), (Punctuation:Ask, Time:Compose)
+
+//mutex induction from conjunction events
+//    (&&,X,--Y,A..*), X, task(".") |- (X ==> --Y), (Belief:StructuralDeduction)
+
+//implication to similarity (equivalence emulation)
+//    (P ==> S), (S ==> P), task(".")   |-   (S <-> P),  (Punctuation:Question)
+//    (P ==> S), (--S ==> P), task(".") |- (--S <-> P),  (Punctuation:Question)
+
+    //all these are probably wrong:
+        //(--P ==> S), (S ==> P),  task("?") |- (--P ==> --S), (Belief:ConversionPN, Punctuation:Belief)
+        //(P ==> S), (--S ==> P),  task("?") |- (P ==> --S), (Belief:Conversion, Punctuation:Belief)
+        //(P ==> S), (S ==> P),        task("?") |- ((--,%P) ==> S), (Belief:ConversionPN, Punctuation:Belief)
+        //(P ==> S), ((--,%S) ==> P),  task("?") |- (--,((--,%P) ==> S)), (Belief:ConversionPN, Punctuation:Belief)
+
+//and the backward inference driven forward inference:
+
+
+//experimental:
+    //([A] <-> {B}), (A <-> B), task("?") |- ([A] <-> {B}), (Belief:BeliefIdentity, Punctuation:Belief)
+    //({A} <-> [B]), (A <-> B), task("?") |- ({A} <-> [B]), (Belief:BeliefIdentity, Punctuation:Belief)
+    //([A] --> {B}), (A <-> B), task("?") |- ([A] --> {B}), (Belief:BeliefIdentity, Punctuation:Belief)
+    //({A} --> [B]), (A <-> B), task("?") |- ({A} --> [B]), (Belief:BeliefIdentity, Punctuation:Belief)
+
+
+//NAL3:
+
+//TODO these may produce invalid beliefs if the input contains a query variable, this can be filtered before the rule is processed:
+
+
+
+//disjunction
+   //(&&,--B,A..+), B, task("?") |- (--,((&&,A..+) && --B)), (Belief:BeliefStructuralDeduction, Punctuation:Belief)
+
+////composition on both sides of a statement  TODO - quests handling of these
+    //((A..+) --> Z), (X --> Y), task("?") |- ((A..+) --> substitute((A..+),X,Y,novel)), (Belief:BeliefStructuralDeduction, Punctuation:Belief)
+        //contains(A..+,X),
+    //(Z --> (A..+)), (X --> Y), task("?") |- (substitute((A..+),X,Y,novel) --> (A..+)), (Belief:BeliefStructuralDeduction, Punctuation:Belief)
+
+    //((A..+) <-> Z), (X <-> Y), task("?") |- ((A..+) <-> substitute((A..+),X,Y,novel)), (Belief:BeliefStructuralDeduction, Punctuation:Belief)
+        //this one needs reviewed, it might need to be subIfUnified, and other problems
+
+
+
+
+////implication of intersection to difference question
+//    //TODO implement with only an op comparison (X ==> D) and a swap functor subSwap2(D), it would be simpler to match
+//    (X ==> (A&B)), X, task("?")  |- (X ==> (A~B)), (Punctuation:Question)
+//    ((A&B) ==> X), X, task("?")  |- ((A~B) ==> X), (Punctuation:Question)
+//      (--(A&B) ==> X), X, task("?")  |- (--(A~B) ==> X), (Punctuation:Question)
+
+//    Z, (X==>Y), task("?"), neq(Y,Z) |- unisubst((X ==> Y), Y, Z, "$", novel), (Belief:BeliefStructuralReduction, Punctuation:Belief)

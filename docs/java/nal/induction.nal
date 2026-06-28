@@ -1,0 +1,155 @@
+//General Induction and Temporal Induction
+//  When P and then S happened according to an observation, by induction (weak) it may be that alyways after P, usually S happens.
+//      According to reductions: For implications, the predicate may be allowed an implication, but not subject
+
+//I, I, is(I,"==>") |- varIntro(I), (Punctuation:Identity, Time:Task)
+//C, C, is(C,"&&")  |- varIntro(C), (Punctuation:Identity, Time:Task)
+
+
+//TODO depvar self unify revision
+//X, Y, neqRoot(X,Y) |- uniSubst(X, X, Y), (Belief:Identity)
+
+//See: TemporalInduction.java
+
+//##################################
+
+////belief form:
+//B, A, --is(A,"==>") |- polarizeTask((polarizeBelief(A) ==> B)), (Belief:InductionDD, Time:Sequence)
+////B, A, --is(A,"==>") |-          polarizeTask((  A ==> B)), (Belief:InductionDP, Time:BeliefRelative)
+////B, A, --is(A,"==>") |-          polarizeTask((--A ==> B)), (Belief:InductionDN, Time:BeliefRelative)
+////B, A, --is(A,"==>") |-          (A ==> B), (Belief:InductionPP, Time:BeliefRelative)
+////B, A, --is(A,"==>") |-          (--A ==> B), (Belief:InductionPN, Time:BeliefRelative)
+////B, A, --is(A,"==>") |-          (A ==> --B), (Belief:InductionNP, Time:BeliefRelative)
+////B, A, --is(A,"==>") |-          (--A ==> --B), (Belief:InductionNN, Time:BeliefRelative)
+//
+////B, A, --is(A,"==>") |- polarizeTask(varIntro((polarizeBelief(A) ==> B))), (Belief:InductionDD, Time:BeliefRelative)
+//
+////question form:
+////B, A, task("?"), --is(A,"==>"), --is(B,"==>"), hasBelief() |-          (polarizeBelief(A) ==> B), (Punctuation:Question, Time:BeliefRelative)
+////B, A, task("?"), --is(A,"==>"), --is(B,"==>"), hasBelief() |- varIntro((polarizeBelief(A) ==> B)), (Punctuation:Question, Time:BeliefRelative)
+//
+//
+//
+//
+////##################################
+//
+////belief form:
+//B, A, --is(B,"==>") |-          polarizeBelief((polarizeTask(B) ==> A)), (Belief:AbductionDD, Time:Sequence)
+////B, A, --is(B,"==>") |-          polarizeBelief((  B ==> A)), (Belief:AbductionPD, Time:TaskRelative)
+////B, A, --is(B,"==>") |-          polarizeBelief((--B ==> A)), (Belief:AbductionND, Time:TaskRelative)
+//
+////B, A, --is(B,"==>") |- polarizeBelief(varIntro((polarizeTask(B) ==> A))), (Belief:AbductionDD, Time:TaskRelative)
+//
+////question form:
+////B, A, task("."), --is(B,"==>"), hasBelief() |-          polarizeBelief((polarizeTask(B) ==> A)), (Punctuation:Question, Time:TaskRelative)
+////B, A, task("."), --is(B,"==>"), hasBelief() |- varIntro(polarizeBelief((polarizeTask(B) ==> A))), (Punctuation:Question, Time:TaskRelative)
+//
+//        //B, A, --is(B,"==>") |- (--B ==> A), (Belief:AbductionN, Time:TaskRelative, Also:VarIntro)
+//
+//
+//
+//
+////##################################
+////belief form:
+//B, A, --is(A,"==>"), --is(B,"==>")  |-          (polarizeTask(B) && polarizeBelief(A)), (Belief:IntersectionDD, Time:Sequence)
+////B, A, --is(A,"==>"), --is(B,"==>")  |-          (polarizeTask(B) || polarizeBelief(A)), (Belief:UnionDD, Time:Sequence)
+//
+////B, A, --is(A,"==>"), --is(B,"==>")  |-          (B && A), (Belief:IntersectionPP, Time:Sequence)
+////B, A, --is(A,"==>"), --is(B,"==>")  |-          (B && --A), (Belief:IntersectionPN, Time:Sequence)
+////B, A, --is(A,"==>"), --is(B,"==>")  |-          (--B && A), (Belief:IntersectionNP, Time:Sequence)
+////B, A, --is(A,"==>"), --is(B,"==>")  |-          (--B && --A), (Belief:IntersectionNN, Time:Sequence)
+//
+//    //B, A, --is(A,"==>"), --is(B,"==>")  |-          (B || A), (Belief:Union, Time:Sequence)
+//
+////B, A, --is(A,"==>"), --is(B,"==>")  |- varIntro((polarizeTask(B) && polarizeBelief(A))), (Belief:IntersectionDD, Time:Sequence)
+////B, A, --is(A,"==>"), --is(B,"==>")  |- varIntro((polarizeTask(B) || polarizeBelief(A))), (Belief:UnionDD, Time:Sequence)
+//
+////question induction
+////B, A, --is(A,"==>"), --is(B,"==>"), neqRCom(B,A), hasBelief()  |-          (polarizeRandom(B) && polarizeBelief(A)), (Punctuation:AskAsk, Time:TaskRel)
+////  B, A, --is(A,"==>"), --is(B,"==>"), neqRCom(B,A)  |-          (B || A), (Punctuation:AskAsk, Time:TaskRel)
+////B, A, --is(A,"==>"), --is(B,"==>"), neqRCom(B,A), hasBelief()  |- varIntro((polarizeRandom(B) && polarizeBelief(A))), (Punctuation:AskAsk, Time:TaskRel)
+////  B, A, --is(A,"==>"), --is(B,"==>"), neqRCom(B,A)  |- varIntro((B || A)), (Punctuation:AskAsk, Time:TaskRel)
+//
+////B, A, --is(A,"==>"), --is(B,"==>")  |-          (polarizeTask(B) && polarizeBelief(A)), (Punctuation:AskAsk, Time:TaskRel)
+////  B, A, --is(A,"==>"), --is(B,"==>")  |-          (polarizeTask(B) || polarizeBelief(A)), (Punctuation:AskAsk, Time:TaskRel)
+////B, A, --is(A,"==>"), --is(B,"==>")  |- varIntro((polarizeTask(B) && polarizeBelief(A))), (Punctuation:AskAsk, Time:TaskRel)
+////  B, A, --is(A,"==>"), --is(B,"==>")  |- varIntro((polarizeTask(B) || polarizeBelief(A))), (Punctuation:AskAsk, Time:TaskRel)
+//
+////implication question absorber
+////(X==>Y), A, --is(A,"==>"), neq(Y,A)  |-  (X ==> (polarizeRandom(Y) && polarizeBelief(A))), (Punctuation:AskAsk, Time:TaskRel)
+//      //A, (X==>Y), --is(A,"==>")  |-  (X ==> (polarizeRandom(Y) && polarizeBelief(A))), (Punctuation:AskAsk, Time:TaskRel)
+//    //(X==>Y), A, --is(A,"==>")  |-  (X ==> (polarizeRandom(Y) || polarizeBelief(A))), (Punctuation:AskAsk, Time:TaskRel)
+//      //A, (X==>Y), --is(A,"==>")  |-  (X ==> (polarizeRandom(Y) || polarizeBelief(A))), (Punctuation:AskAsk, Time:TaskRel)
+////(X==>Y), A, --is(A,"==>"), neq(Y,A)  |-  ((X && polarizeBelief(A)) ==> Y),   (Punctuation:AskAsk, Time:TaskRel)
+//      //A, (X==>Y), --is(A,"==>")  |-  ((X && polarizeBelief(A)) ==> Y),   (Punctuation:AskAsk, Time:TaskRel)
+//    //(X==>Y), A, --is(A,"==>")  |-  ((X || polarizeBelief(A)) ==> Y),   (Punctuation:AskAsk, Time:TaskRel)
+//      //A, (X==>Y), --is(A,"==>")  |-  ((X || polarizeBelief(A)) ==> Y),   (Punctuation:AskAsk, Time:TaskRel)
+//
+////question + quest form:
+//    //B, A, --is(A,"==>"), --is(B,"==>"), task("."), hasBelief()  |-          (polarizeTask(B) && polarizeBelief(A)), (Punctuation:Question, Time:Sequence)
+//    //B, A, --is(A,"==>"), --is(B,"==>"), task("."), hasBelief()  |- varIntro((polarizeTask(B) && polarizeBelief(A))), (Punctuation:Question, Time:Sequence)
+//
+//    //B, A, --is(A,"==>"), --is(B,"==>")  |- (polarizeTask(B) && polarizeBelief(A)), (Goal:IntersectionDepolarized, Time:Sequence)
+//
+//
+//    //(A==>B), (C==>D)     |- ((A && C) ==> (polarizeTask(B) && polarizeBelief(D))), (Belief:IntersectionDepolarized, Also:VarIntro)
+//
+//      //B, A, --is(A,"==>"), --is(B,"==>"), --is(A,"&&"), --is(B,"&&")   |- (polarize(B,task) || polarize(A,belief)), (Belief:UnionDepolarized, Time:Relative, Also:VarIntro)
+//
+//        //experiment
+//        //G, B, neq(G,B), task("!") |- (polarize(G, task) && polarize(B, belief)), (Goal:IntersectionDepolarized, Time:Relative)
+//          //G, B, neq(G,B), task("!") |- (--polarize(G, task) && polarize(B, belief)), (Goal:IntersectionDepolarized, Time:Relative)
+//
+//
+//    //B, A, neqOrInhCommon(A,B) |- (polarize(B,task) & polarize(A,belief)), (Belief:IntersectionDepolarized, Time:Intersect)
+//    //B, A, --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>"), neqOrInhCommon(A,B) |- (polarize(B,task) ~ polarize(A,belief)), (Belief:DifferenceDepolarized, Time:Intersect)
+//    //B, A, --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>"), neqOrInhCommon(A,B) |- (polarize(A,belief) ~ polarize(B,task)), (Belief:DifferenceReverseDepolarized, Time:Intersect)
+//
+//
+//
+//
+//
+//
+////    B, A, --is(A,"~"), --is(B,"~"), --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>"), neqRCom(A,B) |- (B ~ A), (Belief:Difference, Also:VarIntro)
+////    B, A, --is(A,"~"), --is(B,"~"), --has(A,"&&"), --has(B,"&&"), --has(A,"==>"), --has(B,"==>"), neqRCom(A,B) |- (A ~ B), (Belief:DifferenceReverse, Also:VarIntro)
+//
+//        //B, A, task("."), neqRCom(A,B)     |- (--,((--,polarize(B,task)) &&+- (--,polarize(A,belief)))), (Belief:UnionDepolarized)
+//
+//        //B, A, task("."), time(dtEvents), --is(A,"==>"),--is(B,"==>")                            |- (B &&+- A), (Belief:Intersection)
+//        //B, A, task("."), neqAndCom(A,B),  --is(A,"==>"),--is(B,"==>")  |- varIntro((--,((--,polarize(B,task)) &&+- (--,polarize(A,belief))))), (Belief:UnionDepolarized)
+//
+//        //B, A, task("."), time(dtEventsOrEternals), neqAndCom(A,B), --is(A,"==>"),--is(B,"==>")  |- varIntro((B &&+- A)), (Belief:Intersection)
+//
+//
+//
+////    B, A, task("."), time(dtEvents),                             --is(A,"==>"),--is(B,"==>") |- (A ==> B), (Belief:Induction)
+////    B, A, task("."), time(dtEventsOrEternals), neqAndCom(A,B),     --is(A,"==>"),--is(B,"==>") |- varIntro((A ==> B)), (Belief:Induction)
+////        B, A, task(negative), task("."), time(dtEvents),                          --is(A,"==>"),--is(B,"==>") |- ((--,%A) ==> B), (Belief:InductionN)
+////        B, A, task(negative), task("."), time(dtEventsOrEternals), neqAndCom(A,B), --is(A,"==>"),--is(B,"==>") |- varIntro(((--,%A) ==> B)), (Belief:InductionN)
+//
+////    B, A, belief(positive), task("."), time(dtEvents),                                --is(B,"==>"),--is(A,"==>") |- (B ==> A), (Belief:Abduction)
+////    B, A, belief(positive), task("."), time(dtEventsOrEternals), neqAndCom(A,B),       --is(A,"==>"),--is(B,"==>") |- varIntro((B ==> A)), (Belief:Abduction)
+////        B, A, belief(negative), task("."), time(dtEvents),                            --is(B,"==>"),--is(A,"==>") |- ((--,%B) ==> A), (Belief:AbductionPN)
+////        B, A, belief(negative), task("."), time(dtEventsOrEternals), neqAndCom(A,B),   --is(A,"==>"),--is(B,"==>") |- varIntro(((--,%B) ==> A)), (Belief:AbductionPN)
+//
+//
+//
+//
+////NAL3 difference comparator
+//
+//        //the hasNoDiffs constraint is not entirely necessary;
+//        //for now it is just meant to prevent derivations like:
+//        //  (tetris(5,13)~(((5,13)~(3,13))-->tetris)).
+//
+//
+//
+//    //S || P: //should be covered more accurataely by the above cases
+//    //S, P, time(dtAfter), task("."), neqCom(P,S) |- (--,((--,%S) &&+- (--,%P))), (Belief:Union)
+//    //S, P, time(dtEventsOrEternals), task("."), neqAndCom(P,S) |- (--,varIntro(((--,%S) &&+- (--,%P)))), (Belief:Union)
+//
+//
+////backward temporal induction
+////    (A ==> B), A, time(decomposeTask), task("?") |- B, (Punctuation:Question)
+////    ((--,%A) ==> B), A, time(decomposeTask), task("?") |- B, (Punctuation:Question)
+////    (A ==> B), B, time(decomposeTask), task("?") |- A, (Punctuation:Question)
+//    //(A <=> B), A, time(decomposeTask), task("?") |- B, (Punctuation:Question)

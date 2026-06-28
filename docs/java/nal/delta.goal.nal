@@ -1,0 +1,16 @@
+//TODO may need to be weaker: SupposeWeak
+delta_goal {
+    /\G,  G, task("+"), belief("-p")  |-     G, (Goal:SupposePN, Time:Later)
+    /\G,  G, task("-"), belief("+p")  |-   --G, (Goal:SupposeNP, Time:Later)
+}
+
+delta_goal_induction {
+    G,  G,   task("+"), belief("-p")  |-    /\G, (Goal:SamenessPN, Time:Later)
+    G,  G,   task("-"), belief("+p")  |-  --/\G, (Goal:SamenessNP, Time:Later)
+}
+
+
+//delta_conj_goal {
+//    /\C,  G, cond(C,   G)  |-   G, (Goal:ExemplificationPN)
+//    /\C,  G, cond(C, --G)  |- --G, (Goal:ExemplificationPP)
+//}

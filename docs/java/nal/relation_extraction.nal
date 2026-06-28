@@ -1,0 +1,56 @@
+relation_extraction_inh_inh {
+  ((A-->B)-->(A-->C)), A, --var({A,B,C})  |- debug((A --> (B --> C))), (Belief:StructuralReduction)
+  ((B-->A)-->(C-->A)), A, --var({A,B,C})  |- debug(((B --> C) --> A)), (Belief:StructuralReduction)
+}
+
+//relation_extraction_sim {
+    //(X --> (S --> P)), (X --> (P --> S))   |- (X --> (S <-> P)),       (Belief:Intersection)
+    //((S --> P) --> X), ((P --> S) --> X)   |- (      (S <-> P) --> X), (Belief:Intersection)
+//}
+
+//relation_extraction_inh_transitive {
+//  ((A-->B)-->(B-->C)), ((A-->B)-->(B-->C)), neq(A,B),neq(B,C) |- debug(((A,B) --> (C,B))), (Belief:StructuralReduction)
+//  ((B-->A)-->(C-->B)), ((B-->A)-->(C-->B)), neq(A,B),neq(B,C) |- ((B,A) --> (B,C)), (Belief:StructuralReduction)
+//
+//
+//}
+
+//relation_injection_inh {
+//  (A-->B), (A --> (B-->C)) |- debug(((A-->B) --> (A-->C))), (Belief:Biduct)
+//     //(A --> (B-->C)), (A-->B)  |- ((A-->B) --> (A-->C)), (Belief:)
+//  (B-->A), ((B-->C) --> A) |- ((B-->A) --> (C-->A)), (Belief:Biduct)
+//     //((B-->C) --> A), (B-->A) |- ((B-->A) --> (C-->A)), (Belief:)
+//  (A-->C), (A --> (B-->C)) |- ((A-->B) --> (A-->C)), (Belief:Biduct)
+//     //(A --> (B-->C)), (A-->C) |- ((A-->B) --> (A-->C)), (Belief:)
+//  (C-->A), ((B-->C) --> A) |- ((B-->A) --> (C-->A)), (Belief:Biduct)
+//     //((B-->C) --> A), (C-->A) |- ((B-->A) --> (C-->A)), (Belief:)
+//}
+
+
+analogy_inh_reduce {
+
+//        ((A-->B) --> (C-->A)), A |- (B --> C), (Belief:StructuralDeductionWeak)
+//        ((B-->A) --> (A-->C)), A |- (B --> C), (Belief:StructuralDeductionWeak)
+//          //((B<->A) --> (C<->A)), A, --var(A) |- (B --> C), (Belief:StructuralDeductionWeak)
+//
+      ((A-->B) --> (A-->C)), ((A-->B) --> (A-->C)) |- (B --> C), (Punctuation:AskAsk)
+      ((B-->A) --> (C-->A)), ((B-->A) --> (C-->A)) |- (B --> C), (Punctuation:AskAsk)
+        ((A-->B) --> (C-->A)), ((A-->B) --> (C-->A)) |- (B --> C), (Punctuation:AskAsk)
+        ((B-->A) --> (A-->C)), ((B-->A) --> (A-->C)) |- (B --> C), (Punctuation:AskAsk)
+//          //((B<->A) --> (C<->A)), A, --var(A) |- (B --> C), (Punctuation:AskAsk)
+//}
+}
+
+analogy_sim_reduce {
+//     ((A-->B) <-> (A-->C)), ((A-->B) <-> (A-->C)) |- (B <-> C), (Belief:StructuralReductionWeak)
+//      ((B-->A) <-> (C-->A)), ((B-->A) <-> (C-->A)) |- (B <-> C), (Belief:StructuralReductionWeak)
+//        ((A-->B) <-> (C-->A)), ((A-->B) <-> (C-->A)) |- (B <-> C), (Belief:StructuralReductionWeak)
+//        ((B-->A) <-> (A-->C)), ((B-->A) <-> (A-->C)) |- (B <-> C), (Belief:StructuralReductionWeak)
+//          //((B<->A) <-> (C<->A)), ((B<->A) <-> (C<->A)) |- (B <-> C), (Belief:StructuralDeductionWeak)
+//
+      ((A-->B) <-> (A-->C)), ((A-->B) <-> (A-->C)) |- (B <-> C), (Punctuation:AskAsk)
+      ((B-->A) <-> (C-->A)), ((B-->A) <-> (C-->A)) |- (B <-> C), (Punctuation:AskAsk)
+        ((A-->B) <-> (C-->A)), ((A-->B) <-> (C-->A)) |- (B <-> C), (Punctuation:AskAsk)
+        ((B-->A) <-> (A-->C)), ((B-->A) <-> (A-->C)) |- (B <-> C), (Punctuation:AskAsk)
+//          //((B<->A) <-> (C<->A)), ((B<->A) <-> (C<->A)) |- (B <-> C), (Punctuation:AskAsk)
+}

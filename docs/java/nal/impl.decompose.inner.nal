@@ -1,0 +1,20 @@
+impl_belief_conj_pred_free_structural_decomposition_belief_subj {
+
+
+
+    (  A ==> C), X, condPN(C,X), --var({X,A}) |-   (A ==> conjWithoutFirstPN(C,  X)), (Belief:StructuralDeductionP)
+    //(  A ==> C), X, condPN(C,X), --var({X,A}) |- --(A ==> conjWithoutFirstPN(C,  X)), (Belief:StructuralDeductionN)
+
+}
+
+//impl_belief_subj_disj_structural_decomposition {
+//
+//    //direct:
+//    (--D ==> A), X, condFirst(D, --X), --var({X,A}) |- (  X ==> A), (Belief:StructuralReduction)
+//    (--D ==> A), X, condFirst(D,   X), --var({X,A}) |- (--X ==> A), (Belief:StructuralReduction)
+//
+//}
+
+//impl_belief_subj_conj_structural_decomposition {
+//    (  C ==> A), X, condPN(C,X), --var({X,A}), --eqPN(C,A) |- (  conjWithoutFirstPN(C,X) ==> A), (Belief:StructuralReduction)
+//}

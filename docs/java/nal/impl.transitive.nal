@@ -1,0 +1,22 @@
+//TODO conjWithout need condOf and condWithoutAll/conjWithoutFirst, etc
+
+impl_combine_pred_conj {
+    (C ==> X), (Y ==> Z), cond(C,Y), --var({X,Y,Z}) |- (( condWithoutAny(C,Y) &&   Z) ==> X), (Belief:ConductPP)
+    (C ==> X), (Y ==> Z), cond(C,Y), --var({X,Y,Z}) |- (( condWithoutAny(C,Y) && --Z) ==> X), (Belief:ConductPN)
+      (Y ==> Z), (C ==> X), cond(C,Y), --var({X,Y,Z}) |- (( condWithoutAny(C,Y) &&   Z) ==> X), (Belief:ConductPPX, Time:Belief)
+      (Y ==> Z), (C ==> X), cond(C,Y), --var({X,Y,Z}) |- (( condWithoutAny(C,Y) && --Z) ==> X), (Belief:ConductNPX, Time:Belief)
+}
+
+impl_combine_pred_disj {
+    (--D ==> X), (Y ==> Z), cond(D,--Y), --var({X,Y,Z}) |- (  Z ==> X), (Belief:ConductPP)
+    (--D ==> X), (Y ==> Z), cond(D,  Y), --var({X,Y,Z}) |- (--Z ==> X), (Belief:ConductPN)
+    //TODO reverse
+}
+
+impl_combine_subj_conj {
+    //TODO condOf, conjWithout
+    (C ==> Z), (B ==> X), cond(C,X), --var({Z,X,B})      |-   ((condWithoutAny(C,  X) && B) ==>   Z), (Belief:ConductPP, Time:Belief)
+    (C ==> Z), (B ==> X), cond(C,--X), --var({Z,X,B})      |-   ((condWithoutAny(C,--X) && B) ==>   Z), (Belief:ConductPN, Time:Belief)
+      (B ==> X), (C ==> Z), cond(C,X),--var({Z,X,B})      |-   ((condWithoutAny(C,  X) && B) ==>   Z), (Belief:ConductPPX, Time:Task)
+      (B ==> X), (C ==> Z), cond(C,--X),--var({Z,X,B})      |-   ((condWithoutAny(C,--X) && B) ==>   Z), (Belief:ConductNPX, Time:Task)
+}

@@ -1,0 +1,9 @@
+impl_disj_equivalence {
+    //(p ==> q)  |-  (--p || q)
+
+    --(--X ||   Y), (X==>Y), task("?") |- (--X ||   Y), (Belief:BeliefStructuralDeductionPP, Punctuation:Belief)
+    --(--X || --Y), (X==>Y), task("?") |- (--X || --Y), (Belief:BeliefStructuralDeductionPN, Punctuation:Belief)
+
+    //(X==>Y), --(--X||Y), task("?") |- ( X ==> Y), (Belief:BeliefStructuralReductionPN, Punctuation:Belief)
+
+}

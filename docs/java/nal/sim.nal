@@ -1,0 +1,59 @@
+coheritance {
+    (S --> P), (P --> S), --var({S,P}), neqRCom(S,P) |- (S <-> P), (Belief:Intersection, Time:Union)
+}
+
+comparison_belief {
+    (S --> M), (P --> M), --var({M,S,P}), neqRCom(S,P) |- (S <-> P), (Belief:Comparison, Time:Union)
+    (M --> S), (M --> P), --var({M,S,P}), neqRCom(S,P) |- (S <-> P), (Belief:Comparison, Time:Union)
+}
+comparison_question {
+    (S --> M), (P --> M), --var({M,S,P}),   neqRCom(S,P) |- (S <-> P), (Punctuation:AskAsk)
+    (M --> S), (M --> P), --var({M,S,P}),   neqRCom(S,P) |- (S <-> P), (Punctuation:AskAsk)
+}
+
+resemblance_belief {
+    (S <-> M), (M <-> P), --var({M,S,P}), neqRCom(S,P) |- (S <-> P), (Belief:Resemblance, Time:Union)
+}
+resemblance_question {
+    (S <-> M), (M <-> P), --var({M,S,P}), neqRCom(S,P) |- (S <-> P), (Punctuation:AskAsk)
+}
+
+//analogy_belief {
+//    (M --> P), (S <-> M),  --var({M,S,P}), neqRCom(S,P) |- (S --> P), (Belief:Analogy, Time:Task)
+//      (S <-> M), (M --> P), --var({M,S,P}), neqRCom(S,P) |- (S --> P), (Belief:AnalogyX, Time:Belief)
+//    (P --> M), (S <-> M),  --var({M,S,P}), neqRCom(S,P) |- (P --> S), (Belief:Analogy, Time:Task)
+//      (S <-> M), (P --> M), --var({M,S,P}), neqRCom(S,P) |- (P --> S), (Belief:AnalogyX, Time:Belief)
+//}
+//analogy_question {
+//    (M --> P), (S <-> M),  --var({M,S,P}), neqRCom(S,P) |- (S --> P), (Punctuation:AskAsk)
+//    (P --> M), (S <-> M),  --var({M,S,P}), neqRCom(S,P) |- (P --> S), (Punctuation:AskAsk)
+//}
+
+
+//comparison_belief_outer {
+//    (S --> M), (P --> M), --var({M,S,P}), neqRCom(S,P) |- ((S-->M)<->(P-->M)), (Belief:Comparison, Time:Union)
+//    (M --> S), (M --> P), --var({M,S,P}), neqRCom(S,P) |- ((M-->S)<->(M-->P)), (Belief:Comparison, Time:Union)
+//}
+
+//comparison_belief_inner {
+//    ((S-->M)<->(P-->M)), ((S-->M)<->(P-->M)), --var({M,S,P}) |- (S <-> P), (Belief:StructuralReduction, Goal:StructuralReduction)
+//    ((M-->S)<->(M-->P)), ((M-->S)<->(M-->P)), --var({M,S,P}) |- (S <-> P), (Belief:StructuralReduction, Goal:StructuralReduction)
+//
+//    //((M<->S)<->(M<->P)), ((M<->S)<->(M<->P)), --var({M,S,P}), neqRCom(S,P) |- (S <-> P), (Belief:StructuralReduction, Goal:StructuralReduction)
+//}
+
+
+//comparison_question_outer {
+//    (S --> M), (P --> M), --var({S,P}),   neqRCom(S,P), hasBelief() |- ((S-->M)<->(P-->M)), (Punctuation:AskAsk)
+//    (M --> S), (M --> P), --var({S,P}),   neqRCom(S,P), hasBelief() |- ((M-->S)<->(M-->P)), (Punctuation:AskAsk)
+//}
+//
+//comparison_question_inner {
+//    ((S-->M)<->(P-->M)), ((S-->M)<->(P-->M)), --var({S,P}), hasBelief() |- (S <-> P), (Punctuation:AskAsk)
+//    ((M-->S)<->(M-->P)), ((M-->S)<->(M-->P)), --var({S,P}), hasBelief() |- (S <-> P), (Punctuation:AskAsk)
+//}
+
+//comparison_question_subcondition {
+//    (A --> B), (A --> C), condPN(C,B)    |- (B <-> condWithoutAnyPN(C,B)), (Punctuation:AskAsk)
+//    (B --> A), (C --> A), condPN(C,B)    |- (B <-> condWithoutAnyPN(C,B)), (Punctuation:AskAsk)
+//}

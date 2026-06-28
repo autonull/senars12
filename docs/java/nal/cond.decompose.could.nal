@@ -1,0 +1,33 @@
+
+could {
+    //could/might/may
+    //responsible for:
+    //  --goal prediction
+    //  --(some) curiosity
+    //  --superstition (which will tend to be 50% correct)
+//    X, C, cond(C,  X), --seq(C) |-              condWithoutAny(C,   X),  (Goal:BiductWeakerPPX, Time:Would)
+//    X, C, cond(C,--X), --seq(C) |-              condWithoutAny(C, --X),  (Goal:BiductWeakerNPX, Time:Would)
+
+    X, C, task("+p"), cond(C,  X) |-              after(C,   X),  (Goal:BiductWeakerPPX, Time:TaskRel)
+    X, C, task("-p"), cond(C,--X) |-              after(C, --X),  (Goal:BiductWeakerNPX, Time:TaskRel)
+//        X, C, cond(C,--X) |-            --after(C, --X),  (Goal:BiductWeakerPPX, Time:TaskRel)
+//        X, C, cond(C,  X) |-            --after(C,   X),  (Goal:BiductWeakerNPX, Time:TaskRel)
+
+}
+
+//couldnt {
+//    X, C, cond(C,--X), --seq(C)  |- --condWithoutAny(C, --X), (Goal:BiductWeakerPP)
+//    X, C, cond(C,  X), --seq(C)  |- --condWithoutAny(C,   X), (Goal:BiductWeakerNP)
+////    X, C, cond(C,--X), --seq(C)  |- negateConds(condWithoutAny(C, --X)), (Goal:ExemplificationWeakPP)
+////    X, C, cond(C,  X), --seq(C)  |- negateConds(condWithoutAny(C,   X)), (Goal:ExemplificationWeakNP)
+//}
+
+//couldPN {
+//    //could/might/may
+//    //responsible for:
+//    //  --goal prediction
+//    //  --(some) curiosity
+//    //  --superstition (which will tend to be 50% correct)
+//    X, C, cond(C,  X), --seq(C)  |-   polarizeTask(condWithoutAny(C,   X)), (Goal:ExemplificationWeakDP)
+//    X, C, cond(C,--X), --seq(C)  |- --polarizeTask(condWithoutAny(C, --X)), (Goal:ExemplificationWeakDP)
+//}

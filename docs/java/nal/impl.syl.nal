@@ -1,0 +1,311 @@
+//// implication-based syllogism ////////////////////////////////////////////////////////////////////////////////////
+//       (A ==> B) ------- (B ==> C)
+//            \               /
+//             \             /
+//              \           /
+//               \         /
+//                (A ==> C)
+
+    //"Please note that the temporal order in the conclusion of a weak rule is
+    //not necessarily the same as the order in the premises, given the hypothetical
+    //nature of such a rule."
+
+    //If after S M happens, and after M then P happens, so S then P happens
+
+impl_conduct {
+   (  S ==> X), (  X ==> P), --var(X) |-  implSyl(S,P,1,1,i), (Belief:ConductPPX)
+   (  X ==> P), (  S ==> X), --var(X) |-  implSyl(S,P,1,1,o), (Belief:ConductPP)
+   (  S ==> X), (--X ==> P), --var(X) |-  implSyl(S,P,1,1,i), (Belief:ConductNPX)
+   (--X ==> P), (  S ==> X), --var(X) |-  implSyl(S,P,1,1,o), (Belief:ConductPN)
+}
+
+impl_Deduction_question_fwd_extended {
+      //HACK TODO eliminate the ceq, replace with individual rules for correct usage of p/n 5th and 6th args subterm with cond()
+      (S ==> X), (Y ==> P), --var({X,Y}), --eqPN(S,P), ceqPN(X,Y),--taskBeliefEq() |- implSyl(S,P,1,1,i), (Punctuation:AskAsk)
+      (X ==> P), (S ==> Y), --var({X,Y}), --eqPN(S,P), ceqPN(X,Y),--taskBeliefEq() |- implSyl(S,P,1,1,o), (Punctuation:AskAsk)
+}
+
+
+//impl_deduction {
+//
+//    (S ==> X),   (  X ==> P), --var({X,S,P})    |-    implSyl(S,P,1,1,i), (Belief:DeductionPP, Time:Belief)
+//    (S ==> X),   (  X ==> P), --var({X,S,P})    |-  --implSyl(S,P,1,1,i), (Belief:DeductionPN, Time:Belief)
+//      //&&
+//      //(S ==> Y),   (  X ==> P), neq(X,Y), cond(Y,  X), --seq(Y), --var({X,Y,S,P})    |-  implSyl(S,P,1,1,i), (Belief:BiductPP)
+//      //(S ==> Y),   (--X ==> P), neq(X,Y), cond(Y,--X), --seq(Y), --var({X,Y,S,P})    |-  implSyl(S,P,1,1,i), (Belief:BiductPP)
+//
+//    (  X ==> P), (S ==> X), --var({X,S,P})    |-    implSyl(S,P,1,1,o), (Belief:DeductionPPX, Time:Task)
+//    (  X ==> P), (S ==> X), --var({X,S,P})    |-  --implSyl(S,P,1,1,o), (Belief:DeductionNPX, Time:Task)
+//
+//      //&&
+//      //(  X ==> P), (S ==> Y),   neq(X,Y), cond(Y,  X), --seq(Y), --var({X,Y,S,P})    |-  implSyl(S,P,1,1,i), (Belief:BiductPPX)
+//      //(--X ==> P), (S ==> Y),   neq(X,Y), cond(Y,--X), --seq(Y), --var({X,Y,S,P})    |-  implSyl(S,P,1,1,i), (Belief:BiductPPX)
+//
+//
+//   (S ==> X),   (--X ==> P), --var({X,S,P})    |-    implSyl(S,P,1,1,i), (Belief:DeductionNP, Time:Belief)
+//   (S ==> X),   (--X ==> P), --var({X,S,P})    |-  --implSyl(S,P,1,1,i), (Belief:DeductionNN, Time:Belief)
+//      //||
+//      //(S ==> X),   (--Y ==> P), neq(X,Y), cond(Y,--X), --seq(Y), --var({X,Y,S,P})    |-  implSyl(S,P,1,1,i), (Belief:BiductPP)
+//      //(S ==> X),   (--Y ==> P), neq(X,Y), cond(Y,  X), --seq(Y), --var({X,Y,S,P})    |-  implSyl(S,P,1,1,i), (Belief:BiductNP)
+//
+//
+//   (--X ==> P), (S ==> X), --var({X,S,P})    |-    implSyl(S,P,1,1,o), (Belief:DeductionPNX, Time:Task)
+//   (--X ==> P), (S ==> X), --var({X,S,P})    |-  --implSyl(S,P,1,1,o), (Belief:DeductionNNX, Time:Task)
+//      //||
+//      //(--Y ==> P), (S ==> X),   neq(X,Y), cond(Y,--X), --seq(Y), --var({X,Y,S,P})    |-  implSyl(S,P,1,1,i), (Belief:BiductPPX)
+//      //(--Y ==> P), (S ==> X),   neq(X,Y), cond(Y,  X), --seq(Y), --var({X,Y,S,P})    |-  implSyl(S,P,1,1,i), (Belief:BiductPNX)
+//
+//}
+
+//impl_biduct {
+//   (  S ==> X), (  X ==> P), --var({S,P,X}) |-  implSyl(S,P,1,1,i), (Belief:BiductPP)
+//   (  X ==> P), (  S ==> X), --var({S,P,X}) |-  implSyl(S,P,1,1,o), (Belief:BiductPPX)
+//   (  S ==> X), (--X ==> P), --var({S,P,X}) |-  implSyl(S,P,1,1,i), (Belief:BiductNP)
+//   (--X ==> P), (  S ==> X), --var({S,P,X}) |-  implSyl(S,P,1,1,o), (Belief:BiductPNX)
+//}
+
+
+//impl_Bi_deduction_extended {
+//      //&&
+//      (S ==> Y),   (  X ==> P),  cond(Y,  X),  --var({X,Y})    |-  implSyl(S,P,1,1,i), (Belief:BiductPP)
+//        (S ==> X),   (  Y ==> P),  cond(Y,  X),  --var({X,Y})    |-  implSyl(S,P,1,1,i), (Belief:BiductPP)
+//        (S ==> X),   (  Y ==> P),  cond(Y,--X),  --var({X,Y})    |-  implSyl(S,P,1,1,i,n,p), (Belief:BiductNP)
+//      //&&
+//      (  X ==> P), (S ==> Y),   cond(Y,  X), --var({X,Y})    |-  implSyl(S,P,1,1,o), (Belief:BiductPPX)
+//        (  Y ==> P), (S ==> X),   cond(Y,  X), --var({X,Y})    |-  implSyl(S,P,1,1,o), (Belief:BiductPPX)
+//        (  Y ==> P), (S ==> X),   cond(Y,--X), --var({X,Y})    |-  implSyl(S,P,1,1,o,p,n), (Belief:BiductPNX)
+//
+////      //||
+////      //TODO ImplSyl seq?
+////      (S ==> X),   (--Y ==> P),  cond(Y,--X),  --var({X,Y}), --seq(Y)    |-  implSyl(S,P,1,1,i), (Belief:BiductPP)
+////      (S ==> X),   (--Y ==> P),  cond(Y,  X),  --var({X,Y}), --seq(Y)    |-  implSyl(S,P,1,1,i), (Belief:BiductNP)
+////        (S ==> Y),   (  X ==> P),  cond(Y,--X),  --var({X,Y}), --seq(Y)    |-  implSyl(S,P,1,1,i), (Belief:BiductNP)
+//
+////      //||
+////      //TODO ImplSyl seq?
+////      (--Y ==> P), (S ==> X),   cond(Y,--X), --seq(Y), --var({X,Y})    |-  implSyl(S,P,1,1,o), (Belief:BiductPPX)
+////      (--Y ==> P), (S ==> X),   cond(Y,  X), --seq(Y), --var({X,Y})    |-  implSyl(S,P,1,1,o), (Belief:BiductPNX)
+//}
+
+
+
+//impl_Deduction_question_fwd {
+//      (S ==> X), (Y ==> P), --var({X,Y}), eqPN(X,Y), --eqPN(S,P) |- implSyl(S,P,1,1,i), (Punctuation:AskAsk)
+//      (Y ==> P), (S ==> X), --var({X,Y}), eqPN(X,Y), --eqPN(S,P) |- implSyl(S,P,1,1,o), (Punctuation:AskAsk)
+//}
+
+//impl_Deduction_question_rev {
+//    (S ==> P), (S ==> X), neq(S,P), --eqPN(X,P), --eqPN(S,X), --var(S)  |- (polarizeRandom(X) ==> P), (Punctuation:AskAsk)
+//    (S ==> P), (X ==> P), neq(S,P), --eqPN(X,S), --eqPN(S,X), --var(P)  |- (  S ==> X), (Punctuation:AskAsk)
+//
+//}
+
+
+//impl_Induction_Abduction_pred__conj_sym {
+//
+//    //&&
+//    (B ==> X), (A ==> Y), cond(Y,  X), --seq(Y), --var({X,Y,A,B})  |- implSyl(B,A,1,-1,p), (Belief:AbductionPP)
+//    (B ==> X), (A ==> Y), cond(Y,--X), --seq(Y), --var({X,Y,A,B})  |- implSyl(B,A,1,-1,p), (Belief:AbductionNP)
+//    (B ==> X), (A ==> Y), cond(Y,  X), --seq(Y), --var({X,Y,A,B})  |- implSyl(A,B,-1,1,p), (Belief:InductionPP)
+//    (B ==> X), (A ==> Y), cond(Y,--X), --seq(Y), --var({X,Y,A,B})  |- implSyl(A,B,-1,1,p), (Belief:InductionNP)
+
+//    (B ==> Y), (A ==> X), cond(Y,  X), --seq(Y), --var({X,Y,A,B})  |- implSyl(B,A,1,-1,p), (Belief:AbductionPP)
+//    (B ==> Y), (A ==> X), cond(Y,--X), --seq(Y), --var({X,Y,A,B})  |- implSyl(B,A,1,-1,p), (Belief:AbductionPN)
+//    (B ==> Y), (A ==> X), cond(Y,  X), --seq(Y), --var({X,Y,A,B})  |- implSyl(A,B,-1,1,p), (Belief:InductionPP)
+//    (B ==> Y), (A ==> X), cond(Y,--X), --seq(Y), --var({X,Y,A,B})  |- implSyl(A,B,-1,1,p), (Belief:InductionPN)
+//}
+
+//impl_Induction_Abduction_pred_sym {
+////TODO check In/Ab direction
+//    (B ==> X), (A ==> X), --var({X,A,B})  |- implSyl(B,A,1,-1,p), (Belief:InductionSym)
+//    (B ==> X), (A ==> X), --var({X,A,B})  |- implSyl(A,B,-1,1,p), (Belief:AbductionSym)
+//}
+
+impl_Induction_Abduction_pred {
+    //TODO check In/Ab direction
+//    (B ==> X), (A ==> X), --var({X,A,B})  |- implSyl(B,A,1,-1,p), (Belief:AbductionPP)
+//    (B ==> X), (A ==> X), --var({X,A,B})  |- implSyl(A,B,-1,1,p), (Belief:InductionPP)
+//        (B ==> X), (A ==> X), --var({X,A,B})  |- implSyl(B,A,1,-1,p), (Belief:AbductionNN)
+//        (B ==> X), (A ==> X), --var({X,A,B})  |- implSyl(A,B,-1,1,p), (Belief:InductionNN)
+
+    //TODO Same might be equivalent to PostWeak, as an alignment comparison
+    (B ==> X), (A ==> X), --var(X)  |- implSyl(B,A,1,-1,p), (Belief:Sameness)
+    (B ==> X), (A ==> X), --var(X)  |- implSyl(A,B,-1,1,p), (Belief:Sameness)
+
+}
+
+//impl_Induction_Abduction_pred_extended {
+//    //&& X->Y
+//    (B ==> X), (A ==> Y), cond(Y,  X), --var({X,Y,A,B})  |- implSyl(B,A,1,-1,p), (Belief:AbductionPP)
+//    (B ==> X), (A ==> Y), cond(Y,  X), --var({X,Y,A,B})  |- implSyl(A,B,-1,1,p), (Belief:InductionPP)
+//    (B ==> X), (A ==> Y), cond(Y,--X), --var({X,Y,A,B})  |- implSyl(B,A,1,-1,p,n,p), (Belief:AbductionNP)
+//    (B ==> X), (A ==> Y), cond(Y,--X), --var({X,Y,A,B})  |- implSyl(A,B,-1,1,p,n,p), (Belief:InductionNP)
+//
+////    //|| X->Y
+////    (B ==> X), (A ==> Y), cond(Y,  X), --var({X,Y,A,B})  |- implSyl(B,A,1,-1,p), (Belief:InductionNN)
+////    (B ==> X), (A ==> Y), cond(Y,  X), --var({X,Y,A,B})  |- implSyl(A,B,-1,1,p), (Belief:AbductionNN)
+////    (B ==> X), (A ==> Y), cond(Y,--X), --var({X,Y,A,B})  |- implSyl(B,A,1,-1,p), (Belief:InductionPN)
+////    (B ==> X), (A ==> Y), cond(Y,--X), --var({X,Y,A,B})  |- implSyl(A,B,-1,1,p), (Belief:AbductionPN)
+//
+//    //&& Y<-X
+//    (B ==> Y), (A ==> X), cond(Y,  X), --var({X,Y,A,B})  |- implSyl(B,A,1,-1,p), (Belief:AbductionPP)
+//    (B ==> Y), (A ==> X), cond(Y,  X), --var({X,Y,A,B})  |- implSyl(A,B,-1,1,p), (Belief:InductionPP)
+//    (B ==> Y), (A ==> X), cond(Y,--X), --var({X,Y,A,B})  |- implSyl(B,A,1,-1,p,p,n), (Belief:AbductionPN)
+//    (B ==> Y), (A ==> X), cond(Y,--X), --var({X,Y,A,B})  |- implSyl(A,B,-1,1,p,p,n), (Belief:InductionPN)
+//
+////    //|| Y<-X
+////    (B ==> Y), (A ==> X), cond(Y,  X), --var({X,Y,A,B})  |- implSyl(B,A,1,-1,p), (Belief:InductionNN)
+////    (B ==> Y), (A ==> X), cond(Y,  X), --var({X,Y,A,B})  |- implSyl(A,B,-1,1,p), (Belief:AbductionNN)
+////    (B ==> Y), (A ==> X), cond(Y,--X), --var({X,Y,A,B})  |- implSyl(B,A,1,-1,p), (Belief:InductionNP)
+////    (B ==> Y), (A ==> X), cond(Y,--X), --var({X,Y,A,B})  |- implSyl(A,B,-1,1,p), (Belief:AbductionNP)
+//
+//}
+
+impl_Induction_Abduction_subj {
+    (X ==> B), (X ==> A), --var(X)  |- implSyl(  B,A,-1,1,s), (Belief:AbductionPP)
+    (X ==> B), (X ==> A), --var(X)  |- implSyl(--B,A,-1,1,s), (Belief:AbductionNP)
+    (X ==> B), (X ==> A), --var(X)  |- implSyl(  A,B,1,-1,s), (Belief:InductionPP)
+    (X ==> B), (X ==> A), --var(X)  |- implSyl(--A,B,1,-1,s), (Belief:InductionPN)
+}
+//impl_Induction_Abduction_subj_extended {
+//    //&& X->Y
+//    (  X ==> B), (  Y ==> A), cond(Y, X), --var({X,Y,A,B})  |- implSyl(  B,A,-1,1,s), (Belief:AbductionPP)
+//     (  X ==> B), (  Y ==> A), cond(Y, X), --var({X,Y,A,B}) |- implSyl(--B,A,-1,1,s), (Belief:AbductionNP)
+//    (  X ==> B), (  Y ==> A), cond(Y,  X), --var({X,Y,A,B})  |- implSyl(  A,B,1,-1,s), (Belief:InductionPP)
+//     (  X ==> B), (  Y ==> A), cond(Y,  X), --var({X,Y,A,B}) |- implSyl(--A,B,1,-1,s), (Belief:InductionPN)
+//
+//    //&& Y<-X
+//    //TODO has a bug? see impl_induction_subj_subcond
+//    (  Y ==> B), (  X ==> A), cond(Y, X), --var({X,Y,A,B})  |- implSyl(  B,A,-1,1,s), (Belief:AbductionPP)
+//     (  Y ==> B), (  X ==> A), cond(Y, X), --var({X,Y,A,B}) |- implSyl(--B,A,-1,1,s), (Belief:AbductionNP)
+//    (  Y ==> B), (  X ==> A), cond(Y, X), --var({X,Y,A,B})  |- implSyl(  A,B,1,-1,s), (Belief:InductionPP)
+//     (  Y ==> B), (  X ==> A), cond(Y, X), --var({X,Y,A,B}) |- implSyl(--A,B,1,-1,s), (Belief:InductionPN)
+//
+////    //|| X->Y
+////    (  X ==> B), (--Y ==> A), cond(Y, --X), --seq(Y), --var({X,Y,A,B})  |- implSyl(  B,A,-1,1,s), (Belief:AbductionPP)
+////     (  X ==> B), (--Y ==> A), cond(Y, --X), --seq(Y), --var({X,Y,A,B}) |- implSyl(--B,A,-1,1,s), (Belief:AbductionNP)
+////    (  X ==> B), (--Y ==> A), cond(Y, --X), --seq(Y), --var({X,Y,A,B})  |- implSyl(  A,B,1,-1,s), (Belief:InductionPP)
+////     (  X ==> B), (--Y ==> A), cond(Y, --X), --seq(Y), --var({X,Y,A,B}) |- implSyl(--A,B,1,-1,s), (Belief:InductionPN)
+//
+////    //|| Y<-X TODO
+////    ( --Y ==> B), (X ==> A), cond(Y, --X), --seq(Y), --var({X,Y,A,B})  |- implSyl(  B,A,-1,1,s), (Belief:AbductionPP)
+////     (  --Y ==> B), (X ==> A), cond(Y, --X), --seq(Y), --var({X,Y,A,B}) |- implSyl(--B,A,-1,1,s), (Belief:AbductionNP)
+////    (--Y ==> B), (X ==> A), cond(Y, --X), --seq(Y), --var({X,Y,A,B})  |- implSyl(  A,B,1,-1,s), (Belief:InductionPP)
+////     (--Y ==> B), (X ==> A), cond(Y, --X), --seq(Y), --var({X,Y,A,B}) |- implSyl(--A,B,1,-1,s), (Belief:InductionPN)
+//
+//}
+
+
+//impl_Induction_Abduction_question_subj_rev {
+//     (A ==> B), (X ==> C), --var({B,C}), ceqPN(B,C), neq(A,B), --eqPN(X,A), --eqPN(X,B), --eqPN(X,C)   |- (  X ==> A), (Punctuation:AskAsk)
+////       (A ==> C), (X ==> B), ceqdeq(B,C), --eqPN(B,C), neqRCom(X,A), --var(B)   |- (  X ==> A), (Punctuation:AskAsk)
+//     //TODO others?
+//     //(C ==> A), (X ==> B), eqPN(B,C), neqRCom(X,A), --var({A,B,X})   |- (  X ==> A), (Punctuation:AskAsk)
+//       //(C ==> A), (X ==> B), ceqdeq(B,C), --eqPN(B,C), neqRCom(X,A), --var({A,B,X})   |- (  X ==> A), (Punctuation:AskAsk)
+//}
+//impl_Induction_Abduction_question_pred_rev {
+//    (B ==> A), (C ==> X), --var({B,C}), ceqPN(B,C), neq(A,B), --eqPN(X,A), --eqPN(X,B), --eqPN(X,C)   |- (polarizeRandom(A) ==> X), (Punctuation:AskAsk)
+//     //(C ==> A), (B ==> X), deq(B,C), neqRCom(X,A), --var(B)   |- (polarizeRandom(A) ==> X), (Punctuation:AskAsk)
+//     //TODO others?
+//     //(A ==> C), (B ==> X), deq(B,C), neqRCom(X,A), --var({A,B,X})   |- (  A ==> X), (Punctuation:AskAsk)
+//}
+
+impl_Induction_Abduction_question_subj_fwd {
+    (X ==> A), (Y ==> Z), --var({X,Y}), --eqPN(A,Z), ceqPN(X,Y), --taskBeliefEq()   |- implSyl(polarizeRandom(A),Z,-1,1,s), (Punctuation:AskAsk)
+    (X ==> A), (Y ==> Z), --var({X,Y}), --eqPN(A,Z), ceqPN(X,Y), --taskBeliefEq()   |- implSyl(polarizeRandom(Z),A,1,-1,s), (Punctuation:AskAsk)
+
+//    (E ==> A), (F ==> Z), ceqPN(E,F), --eqPN(A,Z),--eqPN(A,E),--eqPN(A,F),--eqPN(Z,E),--eqPN(Z,F), --var({A,E,F,Z})   |- (polarizeRandom(A) ==> Z), (Punctuation:AskAsk)
+//    (E ==> A), (F ==> Z), ceqPN(E,F), --eqPN(A,Z),--eqPN(A,E),--eqPN(A,F),--eqPN(Z,E),--eqPN(Z,F), --var({A,E,F,Z})   |- (polarizeRandom(Z) ==> A), (Punctuation:AskAsk)
+}
+
+impl_Induction_Abduction_question_pred_fwd {
+    (A ==> X), (Z ==> Y), --var({X,Y}), --eqPN(A,Z), ceqPN(X,Y), --taskBeliefEq()   |- implSyl(A,Z,1,-1,p), (Punctuation:AskAsk)
+    (A ==> X), (Z ==> Y), --var({X,Y}), --eqPN(A,Z), ceqPN(X,Y), --taskBeliefEq()   |- implSyl(Z,A,-1,1,p), (Punctuation:AskAsk)
+
+//    (A ==> E), (Z ==> F), ceqPN(E,F), --eqPN(A,Z),--eqPN(A,E),--eqPN(A,F),--eqPN(Z,E),--eqPN(Z,F), --var({A,E,F,Z})   |- (  A ==> Z), (Punctuation:AskAsk)
+//    (A ==> E), (Z ==> F), ceqPN(E,F), --eqPN(A,Z),--eqPN(A,E),--eqPN(A,F),--eqPN(Z,E),--eqPN(Z,F), --var({A,E,F,Z})   |- (  Z ==> A), (Punctuation:AskAsk)
+}
+
+impl_Exemplification {
+    (P ==> X), (X ==> S),     --var(X) |- implSyl(  S,P,-1,-1,i), (Belief:ExemplificationPP)
+      (  X ==> S), (P ==> X), --var(X) |- implSyl(  S,P,-1,-1,o), (Belief:ExemplificationPP)
+
+    (P ==> X), (X ==> S),     --var(X) |- implSyl(--S,P,-1,-1,i), (Belief:ExemplificationPN)
+      (  X ==> S), (P ==> X), --var(X) |- implSyl(--S,P,-1,-1,o), (Belief:ExemplificationNP)
+
+    (P ==> X), (--X ==> S),   --var(X) |- implSyl(  S,P,-1,-1,i), (Belief:ExemplificationNP)
+      (--X ==> S), (P ==> X), --var(X) |- implSyl(  S,P,-1,-1,o), (Belief:ExemplificationPN)
+
+    (P ==> X), (--X ==> S),   --var(X) |- implSyl(--S,P,-1,-1,i), (Belief:ExemplificationNN)
+      (--X ==> S), (P ==> X), --var(X) |- implSyl(--S,P,-1,-1,o), (Belief:ExemplificationNN)
+}
+
+//impl_Exemplification_extended {
+//      //&&
+//      (P ==> Y),   (  X ==> S),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,i), (Belief:ExemplificationPP)
+//      (P ==> X),   (  Y ==> S),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,i), (Belief:ExemplificationPP)
+//      (X ==> S),   (  P ==> Y),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,o), (Belief:ExemplificationPP)
+//      (Y ==> S),   (  P ==> X),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,o), (Belief:ExemplificationPP)
+////      //||
+////      (P ==> Y),     (--X ==> S),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,i), (Belief:ExemplificationNP)
+////      (P ==> X),     (--Y ==> S),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,i), (Belief:ExemplificationNP)
+////      (--X ==> S),   (  P ==> Y),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,o), (Belief:ExemplificationPN)
+////      (--Y ==> S),   (  P ==> X),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,o), (Belief:ExemplificationPN)
+//
+//      //&&
+//      (P ==> Y),   (  X ==> S),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,i), (Belief:ExemplificationPN)
+//      (P ==> X),   (  Y ==> S),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,i), (Belief:ExemplificationPN)
+//      (X ==> S),   (  P ==> Y),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,o), (Belief:ExemplificationNP)
+//      (Y ==> S),   (  P ==> X),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,o), (Belief:ExemplificationNP)
+////      //||
+////      (P ==> Y),     (--X ==> S),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,i), (Belief:ExemplificationNN)
+////      (P ==> X),     (--Y ==> S),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,i), (Belief:ExemplificationNN)
+////      (--X ==> S),   (  P ==> Y),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,o), (Belief:ExemplificationNN)
+////      (--Y ==> S),   (  P ==> X),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,o), (Belief:ExemplificationNN)
+//
+//      //&&
+//      //TODO any redundancies cond(Y,X||--X)?
+//      (  P ==> Y), (--X ==> S),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,i), (Belief:ExemplificationPP)
+//      (  P ==> X), (  Y ==> S),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,i,n,p), (Belief:ExemplificationNP)
+//      (--X ==> S), (  P ==> Y),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,o), (Belief:ExemplificationPP)
+//      (  Y ==> S), (  P ==> X),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,o,p,n), (Belief:ExemplificationPN)
+////      //||
+////      (  P ==> Y), (  X ==> S),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,i), (Belief:ExemplificationNP)
+////      (  P ==> X), (--Y ==> S),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,i), (Belief:ExemplificationPP)
+////      (  X ==> S), (  P ==> Y),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,o), (Belief:ExemplificationPN)
+////      (--Y ==> S), (  P ==> X),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(S,P,-1,-1,o), (Belief:ExemplificationPP)
+//      //&&
+//      //TODO any redundancies cond(Y,X||--X)?
+//      (  P ==> Y), (--X ==> S),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,i), (Belief:ExemplificationPN)
+//      (  P ==> X), (  Y ==> S),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,i,n,p), (Belief:ExemplificationNN)
+//      (--X ==> S), (  P ==> Y),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,o), (Belief:ExemplificationNP)
+//      (  Y ==> S), (  P ==> X),  cond(Y,--X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,o,p,n), (Belief:ExemplificationNN)
+////      //||
+////      (  P ==> Y), (  X ==> S),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,i), (Belief:ExemplificationNN)
+////      (  P ==> X), (--Y ==> S),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,i), (Belief:ExemplificationPN)
+////      (  X ==> S), (  P ==> Y),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,o), (Belief:ExemplificationPN)
+////      (--Y ==> S), (  P ==> X),  cond(Y,  X),  --var({X,Y,S,P})    |-  implSyl(--S,P,-1,-1,o), (Belief:ExemplificationNP)
+//
+//}
+
+
+//impl_Exemplification_question_rev {
+//    (  S ==> P), (R ==> X), ceqPN(P,R), --eqPN(S,X),neqRCom(S,X),neq(S,P),--eqPN(X,R),--eqPN(S,R), --var({P,R}) |- (X ==> S), (Punctuation:AskAsk)
+//    (  Z ==> P), (X ==> S), ceqPN(S,Z), --eqPN(S,X),neqRCom(P,X),neq(S,P),--eqPN(X,R),--eqPN(S,R), --var({S,Z}) |- (P ==> X), (Punctuation:AskAsk)
+//}
+//impl_Exemplification_question_fwd {
+//      (P ==> X), (Y ==> S), --var({X,Y}), eqPN(X,Y), --eqPN(S,P) |- implSyl(polarizeRandom(S),P,-1,-1,i), (Punctuation:AskAsk)
+//      (Y ==> P), (S ==> X), --var({X,Y}), eqPN(X,Y), --eqPN(S,P) |- implSyl(polarizeRandom(S),P,-1,-1,o), (Punctuation:AskAsk)
+//}
+impl_Exemplification_question_fwd_extended {
+     //HACK TODO eliminate the ceq, replace with individual rules for correct usage of p/n 5th and 6th args subterm with cond()
+     (P ==> X), (Y ==> S), --var({X,Y}), --eqPN(S,P), ceqPN(X,Y), --taskBeliefEq() |- implSyl(polarizeRandom(S),P,-1,-1,i), (Punctuation:AskAsk)
+     (Y ==> S), (P ==> X), --var({X,Y}), --eqPN(S,P), ceqPN(X,Y), --taskBeliefEq() |- implSyl(polarizeRandom(S),P,-1,-1,o), (Punctuation:AskAsk)
+
+//    (P ==> X), (Y ==> S), ceqdeq(X,Y), --var({S,Y,P}) |- (S ==> P), (Punctuation:AskAsk)
+//    (Y ==> S), (P ==> X), ceqdeq(X,Y), --var({S,Y,P}) |- (S ==> P), (Punctuation:AskAsk)
+}
+
+
+
+

@@ -1,0 +1,15 @@
+delta_conj_introduction {
+    C, X, --taskEternal(),  task("."),seq(C), cond(C,X),cond(C,--X),--hasBelief()             |- ΔX, (Belief:Dynamic, Time:TaskSeq)
+
+    //X, C, --beliefEternal(),task("."), seq(C), cond(C,X), cond(C,--X), hasBelief()            |- ΔX, (Belief:Dynamic, Time:Union)
+    //X, C, --beliefEternal(),task("."),seq(C), cond(C,X),cond(C,--X), hasBelief()            |- ΔX, (Belief:Dynamic, Time:Belief)
+    //C, X, --taskEternal(),  task("."),seq(C), cond(C,X),cond(C,--X)                         |- ΔX, (Belief:Dynamic, Time:Task)
+
+      //X, C, --taskEternal(),--beliefEternal(),condPN(C,X),hasBelief(),task("."),--overlap() |- ΔX, (Belief:Dynamic, Time:TaskBeliefSpan)
+      //C, X, --taskEternal(),--beliefEternal(),condPN(C,X),hasBelief(),task("."),--overlap() |- ΔX, (Belief:Dynamic, Time:TaskBeliefSpan)
+}
+
+//TODO Time:BeliefImplDT
+//delta_impl_introduction {
+//    X, (A ==> B), --beliefEternal(),task("."), eq(X,B), eqPN(A,B), hasBelief()            |- ΔX, (Belief:Dynamic, Time:TaskBeliefImplDT)
+//}

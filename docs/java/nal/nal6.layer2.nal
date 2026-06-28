@@ -1,0 +1,110 @@
+
+
+impl_Second_Layer_Deduction {
+
+    (C ==> X), B, par(C)    |-   retransform((  conjWithoutUnify(C,   B) ==>   X)), (Belief:DeductionPP, Time:Task)
+      (C ==> X), B, par(C)  |-   retransform((  conjWithoutUnify(C,   B) ==> --X)), (Belief:DeductionNP, Time:Task)
+    (C ==> X), B, par(C)    |-   retransform((  conjWithoutUnify(C, --B) ==>   X)), (Belief:DeductionPN, Time:Task)
+      (C ==> X), B, par(C)  |-   retransform((  conjWithoutUnify(C, --B) ==> --X)), (Belief:DeductionNN, Time:Task)
+
+    //TODO check polarity
+    //    (--D ==> X), B, par(D)    |- retransform((--conjWithoutUnify(D,   B) ==>     X)), (Belief:DeductionPP, Time:Task)
+    //      (--D ==> X), B, par(D)  |- retransform((--conjWithoutUnify(D,   B) ==>   --X)), (Belief:DeductionNP, Time:Task)
+    //    (--D ==> X), B, par(D)    |- retransform((--conjWithoutUnify(D, --B) ==>     X)), (Belief:DeductionPN, Time:Task)
+    //      (--D ==> X), B, par(D)  |- retransform((--conjWithoutUnify(D, --B) ==>   --X)), (Belief:DeductionNN, Time:Task)
+
+    (X ==> C), B, par(C)    |-   retransform((X ==>   conjWithoutUnify(C,   B))), (Belief:DeductionPP, Time:Task)
+    (X ==> C), B, par(C)    |-   retransform((X ==>   conjWithoutUnify(C, --B))), (Belief:DeductionPN, Time:Task)
+    //TODO check polarity
+    //    (X ==> D), B, par(D)    |-   retransform((X ==> --conjWithoutUnify(D,   B))), (Belief:DeductionNP, Time:Task)
+    //    (X ==> D), B, par(D)    |-   retransform((X ==> --conjWithoutUnify(D, --B))), (Belief:DeductionNN, Time:Task)
+
+        //TODO check polarity
+        //(X ==> D), B, par(D), eventOfNeg(D,B)    |-   retransform((X ==> --B)), (Belief:DeductionNN, Time:Task)
+        //(X ==> D), B, par(D), eventOf(C,B)    |-   retransform((X ==>   B)), (Belief:DeductionNP, Time:Task)
+
+//    B, (C ==> X), is(C,"&&")                 |-   unisubst((C==>X), unifiableSubEvent(C,B),   B, novel), (Belief:PrePP, Time:TaskRel)
+//    B, (C ==> X), is(C,"&&"), has(C,"--")    |-   unisubst((C==>X), unifiableSubEvent(C,--B),  --B, novel), (Belief:PreNP, Time:TaskRel)
+//
+//    B, (--C ==> X), is(C,"&&")                 |-   unisubst((--C==>X), unifiableSubEvent(C,B),   B, novel), (Belief:PreNP, Time:TaskRel)
+//    B, (--C ==> X), is(C,"&&"), has(C,"--")    |-   unisubst((--C==>X), unifiableSubEvent(C,--B),  --B, novel), (Belief:PrePP, Time:TaskRel)
+//
+//    B, (X ==> C), is(C,"&&")                 |-     unisubst((X==>C), unifiableSubEvent(C,  B),    B, novel), (Belief:DeductionPP, Time:TaskRel)
+//    B, (X ==> C), is(C,"&&"), has(C,"--")    |-     unisubst((X==>C), unifiableSubEvent(C,--B),  --B, novel), (Belief:DeductionNP, Time:TaskRel)
+//    B, (X ==> C), is(C,"&&")                 |-   --unisubst((X==>C), unifiableSubEvent(C,--B),  --B, novel), (Belief:DeductionPN, Time:TaskRel)
+//    B, (X ==> C), is(C,"&&"), has(C,"--")    |-   --unisubst((X==>C), unifiableSubEvent(C,  B),    B, novel), (Belief:DeductionNN, Time:TaskRel)
+//
+
+//    B, (C ==> X), par(C), neq(B,X)  |-   polarizeBelief((conjWithoutUnify(C, B)==>X)), (Belief:DeductionPD, Time:Task)
+//    B, (C ==> X), par(C), neq(B,X)  |-   polarizeBelief((conjWithoutUnify(C, --B)==>X)), (Belief:DeductionND, Time:Task)
+
+//    (C ==> X), B, par(C), neq(B,X)  |-   polarizeBelief((conjWithoutUnify(C, B)==>X)), (Belief:DeductionDP, Time:Task)
+//    (C ==> X), B, par(C), neq(B,X)  |-   polarizeBelief((conjWithoutUnify(C, --B)==>X)), (Belief:DeductionDN, Time:Task)
+
+//    B, (--C ==> X), par(C), neq(B,X)  |-   polarizeBelief(--(conjWithoutUnify(C, B)==>X)), (Belief:DeductionND, Time:Task)
+//    B, (--C ==> X), par(C), neq(B,X)  |-   polarizeBelief(--(conjWithoutUnify(C, --B)==>X)), (Belief:DeductionPD, Time:Task)
+//
+//    B, (X ==> C), par(C), neq(B,X)  |-   polarizeBelief((X ==> conjWithoutUnify(C, B))), (Belief:DeductionPD, Time:Task)
+//    B, (X ==> C), par(C), neq(B,X)  |-   polarizeBelief((X ==> conjWithoutUnify(C, --B))), (Belief:DeductionND, Time:Task)
+
+//   B, ((&&,C,A..+) ==> X), --var(C)       |-   unisubst(((&&,A..+)==>polarizeBelief(X)), C,  polarizeTask(B)), (Belief:DeductionDD, Time:TaskRel)
+}
+//impl_Second_Layer_Deduction_to_conj {
+//   B, ((&&,C,A..+) ==> X), --var(C)       |-   unisubst((&&,polarizeBelief(X),A..+), C, polarizeTask(B)), (Belief:DeductionDD, Time:TaskRel)
+       //B, (A ==> X), is(A,"&&")       |-   conjWithoutUnify((polarizeBelief(X) && A),polarizeTask(B)), (Belief:DeductionDD, Time:TaskRel)
+    //   B, ((&&,C,A..+) ==> X), neq(B,C), --var(C)       |-   unisubst((&&,X,A..+),C,  polarizeTask(B)), (Belief:DeductionDP, Time:TaskRel)
+    //   B, ((&&,C,A..+) ==> X), neq(B,C), --var(C)       |-   unisubst((&&,--X,A..+),C,  polarizeTask(B)), (Belief:DeductionDN, Time:TaskRel)
+//}
+
+
+
+//    (B --> K),     (&&,A..+,   (($Y --> K) ==> C)) |- substitute((C && A..+), $Y, B), (Belief:Deduction)
+//        (B --> K), (&&,A..+, (--($Y --> K) ==> C)) |- substitute((C && A..+), $Y, B), (Belief:DeductionN)
+//    (K --> B),     (&&,A..+,   ((K --> $Y) ==> C)) |- substitute((C && A..+), $Y, B), (Belief:Deduction)
+//        (K --> B), (&&,A..+, (--(K --> $Y) ==> C)) |- substitute((C && A..+), $Y, B), (Belief:DeductionN)
+      //(K --> B), (&&,(#X --> L),((K --> $Y) ==> A)) |- substitute(((#X --> L) && A), $Y, B), (Belief:Deduction)
+        //(K --> B), (&&,(#X --> L),((--,(K --> $Y)) ==> A)) |- substitute(((#X --> L) && A), $Y, B), (Belief:DeductionN)
+
+
+
+//    (Y --> P), (&&,(X-->P),A..+), neq(X,Y) |- unisubst((&&,A..+), X,Y,novel), (Belief:Deduction)
+//        (Y --> P), (&&,--(X-->P),A..+), neq(X,Y) |- unisubst((&&,A..+), X,Y,novel), (Belief:DeductionN)
+
+
+    //(Y --> P), (&&,(X-->P),A..+),neq(X,Y) |- unisubst((&&,(X-->P),A..+), X,Y,novel), (Belief:Deduction)
+        //(Y --> P), (&&,--(X-->P),A..+),neq(X,Y) |- unisubst((&&,--(X-->P),A..+), X,Y,novel), (Belief:DeductionN)
+      //(P --> Y), (&&,(P-->X),A..+),neq(X,Y) |- unisubst((&&,(P-->X),A..+), X,Y,novel), (Belief:Deduction)
+        //  (P --> Y), (&&,--(P-->X),A..+),neq(X,Y) |- unisubst((&&,--(P-->X),A..+), X,Y,novel), (Belief:DeductionN)
+
+//      Y, ((&&,X,A..+) ==> Z), neq(X,Y) |- unisubst(((&&,X,A..+) ==> Z), X,Y,novel), (Belief:Deduction)
+      //(P --> Y), ((&&,(P-->X),A..+) ==> Z),neq(X,Y) |- unisubst(((&&,(P-->X),A..+) ==> Z), X,Y,novel), (Belief:Deduction)
+          //(P --> Y), ((&&,--(P-->X),A..+) ==> Z),neq(X,Y) |- unisubst(((&&,--(P-->X),A..+) ==> Z), X,Y,novel), (Belief:DeductionN)
+
+//      Y, (Z ==> (&&,X,A..+)),neq(X,Y) |- unisubst((Z ==> (&&,X,A..+)), X,Y,novel), (Belief:Deduction)
+      //(P --> Y), (Z ==> (&&,(P-->X),A..+)),neq(X,Y) |- unisubst((Z ==> (&&,(P-->X),A..+)), X,Y,novel), (Belief:Deduction)
+        //(P --> Y), (Z ==> (&&,--(P-->X),A..+)),neq(X,Y) |- unisubst((Z ==> (&&,--(P-->X),A..+)), X,Y,novel), (Belief:DeductionN)
+
+
+
+// conditional deduction "An inverse inference has been implemented as a form of deduction" https://code.google.com/p/open-nars/issues/detail?id=40&can=1
+
+//    (U --> L), ((&&,(#X --> L),(#X --> R),A..*) ==> Z), neq(U,R) |- substitute((((&&,A..*) && (U --> R)) ==> Z),#X,U), (Belief:Deduction)
+//        (U --> L), ((&&,--(#X --> L),(#X --> R),A..*) ==> Z), neq(U,R) |- substitute((((&&,A..*) && (U --> R)) ==> Z),#X,U), (Belief:DeductionN)
+
+
+
+
+//conditional_abduction_by_dependent_variable {
+//
+//    ((X --> R) ==> Z), ((&&,(#Y --> B),(#Y --> R),A..*) ==> Z)  |- (X --> B), (Belief:AbductionPB)
+//        (--(X --> R) ==> Z), ((&&,(#Y --> B),--(#Y --> R),A..*) ==> Z) |- (X --> B), (Belief:AbductionPB)
+//}
+
+
+//second_level_variable_elimination {
+//
+//    (B --> K), (($X --> L) ==> (&&,(#Y --> K),A..+)) |- substitute((($X --> L) ==> (&&,A..+)),#Y,B), (Belief:AnonymousAnalogy)
+//        (B --> K), (($X --> L) ==> (&&,--(#Y --> K),A..+)) |- substitute((($X --> L) ==> (&&,A..+)),#Y,B), (Belief:AnonymousAnalogyN)
+//    (K --> B), ((L --> $X) ==> (&&,(K --> #Y),A..+)) |- substitute(((L --> $X) ==> (&&,A..+)),#Y,B), (Belief:AnonymousAnalogy)
+//        (K --> B), ((L --> $X) ==> (&&,--(K --> #Y),A..+)) |- substitute(((L --> $X) ==> (&&,A..+)),#Y,B), (Belief:AnonymousAnalogyN)
+//}

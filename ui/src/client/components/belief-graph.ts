@@ -16,8 +16,14 @@ export class BeliefGraph extends LitElement {
   private unsubNodes = $graphNodes.subscribe(() => this.syncGraph());
   private unsubEdges = $graphEdges.subscribe(() => this.syncGraph());
 
+  constructor() {
+    super();
+    console.log('BeliefGraph constructor');
+  }
+
   override connectedCallback() {
     super.connectedCallback();
+    console.log('BeliefGraph connectedCallback');
     const w = window as any;
     w.__testApi = w.__testApi || {};
     w.__testApi.graph = {
@@ -36,6 +42,7 @@ export class BeliefGraph extends LitElement {
   }
 
   override firstUpdated() {
+    console.log('BeliefGraph firstUpdated');
     const container = this.shadowRoot?.getElementById('graph');
     if (!container) return;
 
@@ -118,6 +125,7 @@ export class BeliefGraph extends LitElement {
   }
 
   override render() {
+    console.log('BeliefGraph render');
     const meta = $graphMeta.get();
     return html`
       <div id="graph"></div>

@@ -1,0 +1,15 @@
+
+impl_conj_subj_question_decompose {
+    //(  C ==> A), X, task("?"), condPN(C,X), --eqPN(C,A), --var(X), --eqPN(X,A) |-  (  conjWithoutFirstPN(C,X) ==> A), (Punctuation:Question, Time:TaskRel)
+    (  C ==> A), X, task("?"), cond(C,  X), --var(X) |-  (    X ==> A), (Punctuation:Question, Time:TaskRel)
+    (  C ==> A), X, task("?"), cond(C,--X), --var(X) |-  (  --X ==> A), (Punctuation:Question, Time:TaskRel)
+}
+impl_disj_subj_question_decompose {
+      //(--D ==> A), X, task("?"), condPN(D,X), --eqPN(D,A), --var(X), --eqPN(X,A) |-  (--conjWithoutFirstPN(D,X) ==> A), (Punctuation:Question, Time:TaskRel)
+        (--D ==> A), X, task("?"), cond(D,--X), --var(X) |-  (  X ==> A), (Punctuation:Question, Time:TaskRel)
+        (--D ==> A), X, task("?"), cond(D,  X), --var(X) |-  (--X ==> A), (Punctuation:Question, Time:TaskRel)
+}
+impl_conj_pred_question_decompose {
+    //(  A ==> C), X, task("?"), condPN(C,X), --eqPN(C,A), --var(X), --eqPN(X,A) |-  (  A ==> conjWithoutFirstPN(C,X)), (Punctuation:Question, Time:TaskRel)
+        (  A ==> C), X, task("?"), condPN(C,X), --var(X) |-  (  A ==> X), (Punctuation:Question, Time:TaskRel)
+}

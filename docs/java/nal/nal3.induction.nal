@@ -1,0 +1,11 @@
+
+//Intersection Induction
+//Theorem 24 (NAL Specification)
+//  (S-->P) |- ((S & X) --> (P | X))
+//  (S-->P) |- ((S | X) --> (P & X))
+//  (S<->P) |- ((S & X) <-> (P | X))
+//  (S<->P) |- ((S | X) <-> (P & X))
+(S-->P), X, neq(X,S), neq(X,P) |- polarizeTask(((S & polarizeBelief(X)) --> (P | polarizeBelief(X)))), (Belief:UnionDD)
+(S-->P), X, neq(X,S), neq(X,P) |- polarizeTask(((S | polarizeBelief(X)) --> (P & polarizeBelief(X)))), (Belief:IntersectionDD)
+(S<->P), X, neq(X,S), neq(X,P) |- polarizeTask(((S & polarizeBelief(X)) <-> (P | polarizeBelief(X)))), (Belief:UnionDD)
+(S<->P), X, neq(X,S), neq(X,P) |- polarizeTask(((S | polarizeBelief(X)) <-> (P & polarizeBelief(X)))), (Belief:IntersectionDD)

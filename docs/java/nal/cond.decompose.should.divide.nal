@@ -1,0 +1,10 @@
+//experimental
+should_or_shouldnt {
+    //"should" (parallel) / "should first" (sequence)
+    //corrects opposing belief
+
+    //Time:Task || Time:NearestNow
+   C, X, --seq(C), cond(C,  X) |-     X, (Goal:SemiConductWeakPN, Time:Task)
+   C, X, --seq(C), cond(C,--X) |-   --X, (Goal:SemiConductWeakPP, Time:Task)
+
+}

@@ -1,0 +1,44 @@
+analogy_mutate_by_sim {
+    Z, (X <-> Y), --is(Z,"<->"), --var({X,Y}), in(Z,X), neqRCom(Z,Y), hasBelief()  |- substitute(Z, X, Y, novel), (Punctuation:AskAsk)
+    //Z, (X <-> Y), --is(Z,"<->"), --var({X,Y}), in(Z,X), neq(Z,Y), neqRCom(Z,X), neqRCom(Z,Y)  |- unisubst(X, Z, Y, novel), (Punctuation:AskAsk)
+    //Z, (X <-> Y), --var(X), --var(Y), in(Z,X), --in(Y,Z), neq(Z,Y)  |- substitute(Z, X, Y, novel), (Belief:ConductWeak, Goal:ConductWeak)
+//      Z, (X <-> Y), --var(X), --var(Y), in(Z,X), --in(Y,Z), neq(Z,Y)  |- substitute(Z, X,   polarizeBelief(Y), novel), (Punctuation:Ask)
+}
+
+analogy_mutate_by_impl {
+    //TODO the --is(Z,"==>") prevents a feedback loop that could also be detected if "Z == (Y==>X)"
+    Z, (Y==>X), --has(Z,"==>"), --var({X,Y}), --seq(X), --seq(Y), in(Z,X), --eqPN(Z,Y), hasBelief()  |- substitute(Z, X, Y, novel), (Punctuation:AskAsk)
+      Z, (Y==>X), --has(Z,"==>"), --var({X,Y}), --seq(X), --seq(Y), in(Z,--X), --eqPN(Z,Y), hasBelief()  |- substitute(Z, --X, --Y, novel), (Punctuation:AskAsk)
+    Z, (X==>Y), --has(Z,"==>"), --var({X,Y}), --seq(X), --seq(Y), in(Z,X), --eqPN(Z,Y), hasBelief()  |- substitute(Z, X, Y, novel), (Punctuation:AskAsk)
+
+
+      //HACK for impl transformations ?
+      //(A==>B), (Y==>X), --eqPN(A,Y), --eqPN(B,X), --var({X,Y}), in(A,X), --eqPN(X,Y), hasBelief()  |- substitute(taskTerm, X, Y, novel), (Punctuation:AskAsk)
+      //(A==>B), (Y==>X), --eqPN(A,Y), --eqPN(B,X), --var({X,Y}), in(B,X), --eqPN(X,Y), hasBelief()  |- substitute(taskTerm, X, Y, novel), (Punctuation:AskAsk)
+
+//    Z, (X ==> Y), --var({X,Y}), in(Z,X), --in(Y,Z), neq(Z,Y), --eqPN(X,Y)  |- substitute(Z, X, polarizeRandom(Y), novel), (Punctuation:Ask)
+}
+
+
+//anonymous_analogy_sim_belief {
+//    C, (A<->B), --is(C,"<->"), in(C,A)               |-  substitute(C, A, B, novel), (Belief:ConductWeakPP, Time:Belief)
+//    //C, (A<->B), --is(C,"<->"), in(C,A)               |-  substitute(C, A, --B, novel), (Belief:ConductWeakPN, Time:Task)
+//   //C, (A<->B), condPN(C,A), --condPN(C,B)               |-  debug(replace(C, A, B)), (Belief:ConductWeakPP, Time:Task)
+//}
+
+//anonymous_analogy_inh_belief {
+//   C, (A-->B), condPN(C,B)               |-  debug(replace(C, B, A)), (Belief:ConductWeakPP, Time:Task)
+//   C, (A-->B), condPN(C,A)               |-  debug(replace(C, A, B)), (Belief:ConductWeakPP, Time:Task)
+//
+//}
+
+//analogy_impl_to_sim {
+//    ((X-->Z) ==> (Y-->Z)),     Z, --var({X,Y,Z}), neq(X,Y), neqRCom(X,Y) |- (X<->Y), (Punctuation:Ask)
+//      (--(X-->Z) ==> (Y-->Z)), Z, --var({X,Y,Z}), neq(X,Y), neqRCom(X,Y) |- (X<->Y), (Punctuation:Ask)
+//    ((Z-->X) ==> (Z-->Y)),     Z, --var({X,Y,Z}), neq(X,Y), neqRCom(X,Y) |- (X<->Y), (Punctuation:Ask)
+//      (--(Z-->X) ==> (Z-->Y)), Z, --var({X,Y,Z}), neq(X,Y), neqRCom(X,Y) |- (X<->Y), (Punctuation:Ask)
+//}
+
+//sim_expansion {
+//    (X <-> Y), Y, --var({X,Y}), --has(Y,"?"), --has(X,"?") |- (X <-> (Y & ?1)), (Punctuation:Ask)
+//}

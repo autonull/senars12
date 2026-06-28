@@ -1,0 +1,22 @@
+// "Would Have (Would've)" - derives preceding subgoals that would lead to a goaled belief
+// The conditional tense, "would have", is used to express what could or would happen under certain conditions.
+
+//wouldve_bipolar {
+//    C, X, cond(C,  X), --condStart(C,   X), seq(C) |-  before(C,  X), (Goal:SuperConductWeakPP, Time:TaskRel)
+//    C, X, cond(C,--X), --condStart(C, --X), seq(C) |-  before(C,--X), (Goal:SuperConductWeakPN, Time:TaskRel)
+//}
+
+wouldve {
+    C, X, belief("+p"), cond(C,  X), --condStart(C,   X), seq(C) |-  before(C,  X), (Goal:ExemplificationPP, Time:TaskRel)
+    C, X, belief("-p"), cond(C,--X), --condStart(C, --X), seq(C) |-  before(C,--X), (Goal:ExemplificationPN, Time:TaskRel)
+}
+//wouldve_p {
+//    C, X, task("+p"), belief("+p"), cond(C,  X), --condStart(C,   X), seq(C) |-    before(C,  X), (Goal:ExemplificationPP, Time:TaskRel)
+//    C, X, task("+p"), belief("-p"), cond(C,--X), --condStart(C, --X), seq(C) |-    before(C,--X), (Goal:ExemplificationPN, Time:TaskRel)
+//}
+//wouldve_n {
+//    D, X, task("-p"), belief("+p"), cond(D,  X), --condStart(D,   X), seq(D) |-  --before(D,  X), (Goal:ExemplificationNP, Time:TaskRel)
+//    D, X, task("-p"), belief("-p"), cond(D,--X), --condStart(D, --X), seq(D) |-  --before(D,--X), (Goal:ExemplificationNN, Time:TaskRel)
+//}
+//TODO wouldve_n
+

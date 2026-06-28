@@ -1,0 +1,18 @@
+impl_combine_self {
+    //bulk simultaneous
+    //(A ==> B), (A ==> B), eventIntersectContainer(A,B), taskBeliefEq(), neq(A,B), --var({A,B}), --seq(A), --seq(B), --hasBelief()   |- implWithoutCommonEvents(taskTerm), (Belief:StructuralReduction)
+
+    //one condition per iteration
+    (A ==> B), X, --seq(A), --seq(B), cond(A,  X), cond(B,  X), --cond(A,B), --cond(B,A), --var({A,B}), --hasBelief()   |- (condWithoutAll(A,  X) ==> condWithoutAll(B,  X)), (Belief:StructuralReduction)
+    (A ==> B), X, --seq(A), --seq(B), cond(A,--X), cond(B,--X), --cond(A,B), --cond(B,A), --var({A,B}), --hasBelief()   |- (condWithoutAll(A,--X) ==> condWithoutAll(B,--X)), (Belief:StructuralReduction)
+}
+
+
+
+//    (A ==> B), (A ==> B), eventIntersectContainer(A,B), --eqPN(A,B), --var({A,B})       |-   (  condWithoutAll(A,B) ==> condWithoutAll(B,A)), (Belief:StructuralDeductionP)
+//    (A ==> B), (A ==> B), eventIntersectContainer(A,B), --eqPN(A,B), --var({A,B})       |- --(  condWithoutAll(A,B) ==> condWithoutAll(B,A)), (Belief:StructuralDeductionN)
+
+      //TODO for disj, maybe need to negate the events:
+//    (A ==> B), (A ==> B), eventIntersectContainer(A,B), --eqPN(A,B), --var({A,B})       |- (  condWithoutAll(A,B) ==>+- condWithoutAll(B,A)), (Punctuation:AskAsk)
+//      (--A ==> B), (--A ==> B), eventIntersectContainer(A,B), --eqPN(A,B), --var({A,B}) |- (--condWithoutAll(A,B) ==>+- condWithoutAll(B,A)), (Punctuation:AskAsk)
+

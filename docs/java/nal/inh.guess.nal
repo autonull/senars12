@@ -1,0 +1,81 @@
+
+//inh_Backwards_Inference {
+//    (X-->A), (Y-->A), neq(X,Y), is(X,"?") |- (Y --> X), (Punctuation:AskAsk)
+//     (X-->A), (Y-->A), neq(X,Y), is(X,"?") |- (X --> Y), (Punctuation:AskAsk)
+//    (A-->X), (A-->Y), neq(X,Y), is(X,"?") |- (X --> Y), (Punctuation:AskAsk)
+//     (A-->X), (A-->Y), neq(X,Y), is(X,"?") |- (Y --> X), (Punctuation:AskAsk)
+//}
+
+//recursive_inh_decomposition {
+////TODO questions
+//    ((A-->B)-->C), (A-->B) |- polarizeTask((A-->C)), (Belief:StructuralDeductionDD, Goal:StructuralDeductionDD)
+//    ((A-->B)-->C), (A-->B) |- polarizeTask((B-->C)), (Belief:StructuralDeductionDD, Goal:StructuralDeductionDD)
+//    (C-->(A-->B)), (A-->B) |- polarizeTask((C-->A)), (Belief:StructuralDeductionDD, Goal:StructuralDeductionDD)
+//    (C-->(A-->B)), (A-->B) |- polarizeTask((C-->B)), (Belief:StructuralDeductionDD, Goal:StructuralDeductionDD)
+//}
+
+
+
+    //(S <-> P), P  |- (S --> P), (Belief:Identity, Goal:Identity)
+    //(S --> P), (S <-> P),  task("?"),  hasBelief() |- (S --> P),   (Belief:BeliefStructuralIntersection, Punctuation:Belief, Time:Belief)
+      //(S --> P), (--S <-> P),   task("?") |- (--S --> P),   (Belief:BeliefStructuralDeduction, Punctuation:Belief)
+      //(S --> P),   (S <-> --P), task("?") |- (S --> --P),   (Belief:BeliefStructuralDeduction, Punctuation:Belief)
+
+    //(S --> P), (S <-> P), task("@") |- (S --> P),   (Goal:BeliefStructuralDeduction, Punctuation:Goal)
+
+//Inheritance_Similarity_via_belief_abduction {
+//    (S --> P), (S <-> P), task("?"), --var(S), --var(P) |- (S --> P), (Belief:BeliefStructuralAbduction, Punctuation:Belief, Time:Belief)
+//}
+
+
+//    (S <-> P), (S --> P), task("?") |- (--,(S <-> P)),   (Belief:BeliefStructuralAbduction, Punctuation:Belief)
+
+////inheritance transform
+//    X, (S --> P), task("?"), in(X,P), neq(X,S) |- (X <-> substitute(X,P,S,novel)),   (Belief:BeliefStructuralAbduction, Punctuation:Belief)
+//    X, (S --> P), task("?"), in(X,S), neq(X,P) |- (X <-> substitute(X,S,P,novel)),   (Belief:BeliefStructuralAbduction, Punctuation:Belief)
+    //X, (S --> P), task("?"), in(X,P) |- substitute(X,P,S,novel),   (Belief:BeliefStructuralAbduction, Punctuation:Belief)
+    //X, (S --> P), task("?"), in(X,S) |- substitute(X,S,P,novel),   (Belief:BeliefStructuralAbduction, Punctuation:Belief)
+
+
+    //(X --> Y), Y, task("?"), --is(X,"?"), --is(Y,"?") |- (?1 --> Y),   (Punctuation:Question)
+        //(X --> Y), Y, task("@"), --is(X,"?"), --is(Y,"?") |- (?1 --> Y),   (Punctuation:Quest)
+    //(Y --> X), Y, task("?"), --is(X,"?"), --is(Y,"?") |- (Y --> ?1),   (Punctuation:Question)
+        //(Y --> X), Y, task("@"), --is(X,"?"), --is(Y,"?") |- (Y --> ?1),   (Punctuation:Quest)
+
+    //(A --> X), (B --> X), task("?"), neq(A,B) |- unisubst((A --> X), A, B, novel),   (Belief:BeliefStructuralReduction, Punctuation:Belief)
+    //(X --> A), (X --> B), task("?"), neq(A,B) |- unisubst((X --> A), A, B, novel),   (Belief:BeliefStructuralReduction, Punctuation:Belief)
+
+    //(X --> Y), (Z --> W), sub(Y,Z), task(".") |- (X --> W),   (Punctuation:Question)
+
+    //(X --> Q), (Y --> Z), task("?"), is(Q,"?"), neq(X,Y) |- (X <-> Y),   (Punctuation:Question)
+        //(X --> Q), (Y --> Z), task("?"), is(Q,"?"), neq(X,Y) |- (X --> Z),   (Punctuation:Question)
+    //(Q --> X), (Z --> Y), task("?"), is(Q,"?"), neq(X,Y), neq(Q,Z) |- (X <-> Y),   (Punctuation:Question)
+        //(Q --> X), (Z --> Y), task("?"), is(Q,"?"), neq(X,Y), neq(Q,Z) |- (Z --> X),   (Punctuation:Question)
+
+
+
+//NAL1-------------
+//Conversion
+    //(P --> S), (S --> P), task("?") |- (P --> S),   (Belief:Conversion, Punctuation:Belief)
+      //(P --> S), (S --> P), task("?"), belief(negative) |- (--,(P --> S)),   (Belief:ConversionPN, Punctuation:Belief)
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //(X <-> Y), X, task("?") |- (Y-->X),   (Punctuation:Question)
+    //(X <-> Y), Y, task("?") |- (X-->Y),   (Punctuation:Question)
+    //(X <-> Y), X, task("?") |- Y,   (Punctuation:Question)
+    //(X <-> Y), X, task("@") |- Y,   (Punctuation:Quest)
+
+
+
+/////////    (S <-> --P), (P <-> --S) |- (--S <-> --P), (Belief:Intersection)

@@ -1,0 +1,162 @@
+\documentclass{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{authblk}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% Geometry settings
+\geometry{a4paper, margin=1in}
+
+% Hyperref settings
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={SeNARS: Semantic Non-Axiomatic Reasoning System},
+    pdfpagemode=FullScreen,
+}
+
+% Title and Author
+\title{Semantic Non-Axiomatic Reasoning System (SeNARS)}
+\author{The SeNARS Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+    \small \textbf{License:} This work is licensed under a Creative Commons Attribution 4.0 International License (CC-BY-4.0).
+\end{center}
+
+\begin{abstract}
+We present SeNARS (Semantic Non-Axiomatic Reasoning System), a hybrid neuro-symbolic reasoning architecture designed to bridge the gap between rigorous logical inference and the fluid, semantic capabilities of Large Language Models (LLMs). Unlike traditional symbolic systems that struggle with semantic ambiguity, or pure neural models that lack logical consistency and transparency, SeNARS implements a continuous, stream-based dataflow architecture. It processes streams of premises into conclusions using a non-blocking pipeline that orchestrates synchronous Non-Axiomatic Logic (NAL) rules alongside asynchronous neural queries. This paper details the system's core architecture, including its dual-memory system (focus vs. long-term), layer-based extensibility via vector embeddings, and novel "deliberate incompleteness" design philosophy, which aims to serve as a substrate for a future industrial ecosystem of cognitive architectures rather than a monolithic end-user application.
+\end{abstract}
+
+\section{Introduction \& Motivation}
+
+The field of Artificial Intelligence is currently bifurcated into two dominant paradigms: symbolic AI and connectionist (neural) AI. Symbolic systems, exemplified by logic programming and classical NARS (Non-Axiomatic Reasoning System), offer transparency, rigor, and the ability to reason from insufficient knowledge (AIKR). However, they often struggle with the rich, ambiguous semantics of natural language and the "common sense" breadth that modern neural models possess. Conversely, Large Language Models (LLMs) demonstrate remarkable semantic understanding and generative capabilities but suffer from hallucinations, lack of logical consistency, and opacity in their decision-making processes.
+
+SeNARS is motivated by the need for a unified substrate that combines the strengths of both paradigms. It is not merely a hybrid system but a \textit{stream reasoner}—an observable platform where logical structure constrains and guides neural intuition, and neural semantic understanding grounds logical symbols. By integrating NAL's ability to handle uncertainty with the semantic breadth of LLMs, SeNARS aims to create a system that is both logically sound and semantically rich.
+
+\section{Background}
+
+\subsection{Non-Axiomatic Logic (NAL)}
+Non-Axiomatic Logic, developed by Pei Wang, is a logic system designed for reasoning under the Assumption of Insufficient Knowledge and Resources (AIKR). Unlike classical axiomatic logics, NAL does not assume a consistent, complete set of axioms. Instead, truth is defined as "experience-grounded," represented by a tuple of \textit{frequency} (positive evidence) and \textit{confidence} (stability of the estimate). This allows NARS to revise its beliefs in light of new evidence, making it inherently adaptive.
+
+\subsection{Large Language Models (LLMs)}
+LLMs have revolutionized AI with their ability to process and generate human-like text. However, they operate fundamentally as statistical predictors, lacking an inherent concept of "truth" or logical implication. In SeNARS, LLMs are treated not as oracles, but as noisy, high-bandwidth sensors and heuristic engines that provide semantic grounding and candidate inferences, which are then subject to the system's logical control loops.
+
+\section{SeNARS Architecture}
+
+SeNARS is built as a continuous, stream-based dataflow architecture. Its core design ensures that the reasoning process is observable, interruptible, and resource-aware.
+
+\subsection{Stream Reasoner Pipeline}
+The heart of SeNARS is the Stream Reasoner, which transforms streams of premises into streams of conclusions. The pipeline consists of four primary stages:
+
+\begin{enumerate}
+    \item \textbf{PremiseSource}: Generates a continuous stream of primary premises (Tasks) from Memory. The default implementation, \texttt{TaskBagPremiseSource}, employs a \texttt{randomWeightedSelect} algorithm to mix multiple sampling objectives dynamically:
+    \begin{itemize}
+        \item \textit{Priority}: Samples tasks based on their urgency and importance.
+        \item \textit{Recency}: Favors tasks closest to a target time (temporal locality).
+        \item \textit{Punctuation}: Prioritizes Goals (\texttt{!}) and Questions (\texttt{?}) to drive active reasoning.
+        \item \textit{Novelty}: Selects tasks with lower derivation depth to encourage exploration.
+    \end{itemize}
+    
+    \item \textbf{Strategy}: Pairs primary premises with suitable secondary premises (beliefs) from the system's knowledge base. Strategies like \texttt{BagStrategy} or \texttt{PrologStrategy} determine how these pairs are formed, supporting both forward inference and backward chaining.
+    
+    \item \textbf{RuleProcessor}: A non-blocking engine that consumes premise pairs and dispatches them to registered rules. It manages an \texttt{asyncResultsQueue} with a configurable backpressure mechanism (\texttt{backpressureThreshold}, \texttt{backpressureInterval}) to prevent the system from being overwhelmed by asynchronous LLM responses.
+    
+    \item \textbf{RuleExecutor}: Indexes rules and performs guard analysis to optimize execution. It handles both synchronous NAL rules (executed immediately) and asynchronous LLM rules (dispatched to external providers).
+\end{enumerate}
+
+\subsection{Dual Memory Architecture}
+To manage the trade-off between responsiveness and capacity, SeNARS employs a dual memory system:
+\begin{itemize}
+    \item \textbf{Focus (Short-term Memory)}: A high-priority, limited-capacity buffer (implemented as a \texttt{Set} of \texttt{Concept}s) for immediate processing.
+    \item \textbf{Long-term Memory}: A persistent store (implemented as a \texttt{Map}) for the bulk of the system's knowledge.
+\end{itemize}
+A \texttt{MemoryConsolidation} process runs periodically, moving information between these layers based on activation thresholds and usage statistics. Concepts are scored by a \texttt{MemoryScorer} that evaluates their activation, quality, and utility.
+
+\subsection{Layer-Based Extensibility}
+SeNARS introduces a "Layer" abstraction to manage different types of associations between concepts. 
+\begin{itemize}
+    \item \textbf{TermLayer}: Handles structural logical links based on term composition.
+    \item \textbf{EmbeddingLayer}: Utilizes vector embeddings (e.g., via \texttt{text-embedding-ada-002} or HuggingFace transformers) to calculate cosine similarity between concepts. This allows the system to retrieve semantically related concepts even if they share no common symbols, effectively grounding the symbolic reasoning in a continuous semantic space.
+\end{itemize}
+
+\subsection{Hybrid Neuro-Symbolic Integration}
+LLMs are integrated into the reasoning loop via \texttt{LMRule}s, which are treated as standard asynchronous inference rules. The \texttt{LMRuleFactory} allows for the creation of specialized rules such as:
+\begin{itemize}
+    \item \textbf{InferenceRule}: Generates logical conclusions from premises.
+    \item \textbf{HypothesisRule}: Proposes explanations for observed facts.
+    \item \textbf{CausalAnalysisRule}: Analyzes temporal and causal relationships.
+\end{itemize}
+To ensure robustness, all LLM interactions are guarded by a \texttt{CircuitBreaker} pattern, which monitors failure rates and temporarily disables the neural path if the external provider becomes unstable, allowing the system to degrade gracefully to pure symbolic reasoning.
+
+\section{Current Prototype Status}
+
+The current implementation of SeNARS is a robust Node.js application featuring:
+\begin{itemize}
+    \item A fully functional \textbf{EventBus} for decoupled component communication.
+    \item A \textbf{Text User Interface (TUI)} for direct interaction and monitoring.
+    \item A \textbf{Web UI} (React/Vite) for visualizing the reasoning graph and memory state.
+    \item Integration with multiple LLM providers (OpenAI, Anthropic, Ollama) via a circuit-breaker pattern.
+    \item Comprehensive test coverage, ensuring the stability of the core reasoning stream and observation contracts.
+\end{itemize}
+
+\section{Deliberate Incompleteness as Design Choice}
+
+A critical philosophical distinction of SeNARS is its "deliberate incompleteness." The system is not intended to be a finished, monolithic end-user application. Instead, it is built to be a \textit{substrate}—the common seed for a future industrial ecosystem of cognitive architectures.
+
+The core reasoning stream, observation contract, and hybrid integration are engineered to be stable and extensible. However, higher-level features are intentionally left rough or minimal. This design choice encourages divergence: different groups can fork SeNARS to build radically different species of AI—from minimal edge reasoners to high-agency planners or distributed multi-agent societies. By avoiding over-specification of the "application" layer, SeNARS maximizes its evolutionary potential.
+
+\section{Future Directions \& Open Challenges}
+
+\subsection{Reinforcement Learning from Preferences (RLFP)}
+We are actively developing an RLFP framework to teach SeNARS "how to think." The \texttt{Reasoner} already includes hooks for \texttt{consumerFeedbackHandlers}, which capture reasoning trajectories. By soliciting user feedback (preferences between different reasoning paths), we aim to train a policy model that guides the system's discretionary choices—such as which rule to apply or which memory to focus on—aligning the system's internal thought processes with human values of coherence and insight.
+
+\subsection{Distributed Multi-Agent Societies}
+Future work involves scaling SeNARS from a single agent to a distributed society of agents. This involves standardizing protocols for inter-agent communication, knowledge sharing, and collaborative problem solving, leveraging the system's inherent stream-based architecture.
+
+\section{Conclusion}
+
+SeNARS represents a step towards a new class of AI systems that are both logically rigorous and semantically aware. By architecting for observability, modularity, and evolutionary growth, we hope to provide a foundation upon which the research community can build the next generation of cognitive architectures. We explicitly invite collaborators to fork, break, and grow this system into the species of AI they need.
+
+\bibliographystyle{plain}
+\begin{thebibliography}{9}
+
+\bibitem{wang2006nars}
+Pei Wang.
+\textit{Rigid Flexibility: The Logic of Intelligence}.
+Springer, 2006.
+
+\bibitem{wang2013nars}
+Pei Wang.
+\textit{Non-Axiomatic Logic: A Model of Intelligent Reasoning}.
+World Scientific, 2013.
+
+\bibitem{wei2022chain}
+Jason Wei, et al.
+"Chain-of-Thought Prompting Elicits Reasoning in Large Language Models."
+\textit{Advances in Neural Information Processing Systems}, 2022.
+
+\bibitem{vaswani2017attention}
+Ashish Vaswani, et al.
+"Attention Is All You Need."
+\textit{Advances in Neural Information Processing Systems}, 2017.
+
+\end{thebibliography}
+
+\end{document}

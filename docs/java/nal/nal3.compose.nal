@@ -1,0 +1,16 @@
+//// inheritance composition ////////////////////////////////////////////////////////////////////////////////////
+//If P and S are in the intension/extension of M, then union/difference and intersection can be built:
+//  "The duality of extension and intension in NAL corresponds to the
+//  duality of intersection and union in set theory — intensional intersection
+//  corresponds to extensional union, and extensional intersection corresponds
+//  to intensional union." really?
+
+nal3_pred_composition {
+    (M --> P), (M --> S), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P), --var({M,S,P}) |- (M --> (polarizeTask(P) & polarizeBelief(S))), (Belief:IntersectionDD, Time:Union)
+    (M --> P), (M --> S), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P), --var({M,S,P}) |- (M --> (polarizeTask(P) | polarizeBelief(S))), (Belief:UnionDD, Time:Union)
+}
+
+nal3_subj_composition {
+    (P --> M), (S --> M), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P), --var({M,S,P}) |- ((polarizeTask(P) & polarizeBelief(S)) --> M), (Belief:IntersectionDD, Time:Union)
+    (P --> M), (S --> M), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P), --var({M,S,P}) |- ((polarizeTask(P) | polarizeBelief(S)) --> M), (Belief:UnionDD, Time:Union)
+}

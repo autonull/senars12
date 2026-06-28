@@ -4,7 +4,34 @@ export class TestApiClient {
   constructor(private page: Page) {}
 
   async ensureReady() {
-    await this.page.waitForFunction(() => (window as any).__testApi !== undefined, { timeout: 5000 });
+    // Wait for base test API (from entry.ts)
+    await this.page.waitForFunction(() => (window as any).__testApi !== undefined, { timeout: 10000 });
+    // Wait for at least one component test API to be ready (indicates app is rendered)
+    await this.page.waitForFunction(
+      () => (window as any).__testApi?.chat !== undefined ||
+            (window as any).__testApi?.graph !== undefined ||
+            (window as any).__testApi?.workingMemory !== undefined ||
+            (window as any).__testApi?.config !== undefined ||
+            (window as any).__testApi?.telemetry !== undefined,
+      { timeout: 15000 }
+    );
+  }
+
+  // Wait for specific component test API
+  async waitForGraphApi() {
+    await this.page.waitForFunction(() => (window as any).__testApi?.graph !== undefined, { timeout: 10000 });
+  }
+
+  async waitForWorkingMemoryApi() {
+    await this.page.waitForFunction(() => (window as any).__testApi?.workingMemory !== undefined, { timeout: 10000 });
+  }
+
+  async waitForConfigApi() {
+    await this.page.waitForFunction(() => (window as any).__testApi?.config !== undefined, { timeout: 10000 });
+  }
+
+  async waitForTelemetryApi() {
+    await this.page.waitForFunction(() => (window as any).__testApi?.telemetry !== undefined, { timeout: 10000 });
   }
 
   async getGraphNodeCount(): Promise<number> {

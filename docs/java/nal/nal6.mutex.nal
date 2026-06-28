@@ -1,0 +1,89 @@
+inhMutex {
+    //TODO one rule that uses correct ellipsis globbing
+    (A --> X),  (A --> Y), mutexable(X,Y)                       |-  (A --> mutex(X,Y)), (Belief:IntersectionPP)
+    (X --> A),  (Y --> A), mutexable(X,Y)                       |-  (mutex(X,Y) --> A), (Belief:IntersectionPP)
+    //(A --> (&&,X,--Y)),  (A --> (&&,Y,--X)),   --eqPN(X,Y),--var(X),--var(Y)                     |-  (A --> --(&&,X,Y)), (Belief:IntersectionPP)
+      //(A --> (&&,X,--Y,B)),  (A --> (&&,Y,--X,C)),   --eqPN(X,Y),--var(X),--var(Y),--eqNeg(B,C)  |-    (A --> (&&,--(&&,X,Y),(B||C))), (Belief:IntersectionPP)
+    //((&&,X,--Y)-->A),  ((&&,Y,--X)-->A),   --eqPN(X,Y),--var(X),--var(Y)                         |-  (--(&&,X,Y)-->A), (Belief:IntersectionPP)
+      //((&&,X,--Y,B) --> A),  ((&&,Y,--X,C) --> A),   --eqPN(X,Y),--var(X),--var(Y),--eqNeg(B,C)  |-    ((&&,--(&&,X,Y),(B||C)) --> A), (Belief:IntersectionPP)
+}
+
+conjMutex {
+    //TODO one rule that uses correct ellipsis globbing
+    //(&&,X,--Y),   (&&,Y,--X),   --eqPN(X,Y),--var(X),--var(Y)    |-    --(&&,X,Y), (Belief:IntersectionPP)
+      //(&&,X,--Y,A), (&&,Y,--X,B), --eqPN(X,Y),--var(X),--var(Y),--eqNeg(A,B)    |-    (--(&&,X,Y) && (A||B)), (Belief:IntersectionPP)
+
+    X, Y, mutexable(X,Y), --seq(X), --seq(Y)  |- mutex(X,Y), (Belief:IntersectionPP)
+
+    //(&&,X,--Y,A..+), (&&,Y,--X,B..+)  |- --((&&,A..+) && (&&,B..+)), (Belief:Intersection, Time:Compose)
+
+    //(&&,X,--Y), (&&,Y,--X), neqPN(X,Y)                |-    --(X ==> Y), (Belief:DeductionWeakPP, Time:Compose)
+    //(&&,X,--Y), (&&,Y,--X), neqPN(X,Y)                |-    --(Y ==> X), (Belief:DeductionWeakPP, Time:Compose)
+
+    //(&&,X,--Y,Z), (&&,Y,--X,Z), --eqPN(X,Y)                |-    (&&,--(X && Y),Z), (Belief:DeductionPP, Time:Compose)
+}
+
+//postDuctionMutex {
+//    //TODO one rule that uses correct ellipsis globbing
+//    (Z ==> (&&,X,--Y)),   (Z ==> (&&,Y,--X)),   --eqPN(X,Y),--var(X),--var(Y)  |-  (Z ==> --(&&,X,Y)), (Belief:IntersectionPP)
+//      (Z ==> (&&,X,--Y,A)), (Z ==> (&&,Y,--X,A)), --eqPN(X,Y),--var(X),--var(Y)  |-  (Z ==> (--(&&,X,Y) && A)), (Belief:IntersectionPP)
+//}
+
+//preDuctionConjMutex {
+//      ((&&,X,--Y,Z)==>W), ((&&,Y,--X,Z)==>W), --eqPN(X,Y)                |-    ((&&,--(X && Y),Z) ==>   W), (Belief:DeductionPP, Time:Compose)
+//      ((&&,X,--Y,Z)==>W), ((&&,Y,--X,Z)==>W), --eqPN(X,Y)                |-  --((&&,--(X && Y),Z) ==>   W), (Belief:DeductionNN, Time:Compose)
+//}
+//preDuctionMutex {
+//    (P ==> M), (S ==> M)  |-   --(P && S), (Belief:DeductionPN, Time:Compose)
+//    (P ==> M), (S ==> M)  |-   --(P && S), (Belief:DeductionNP, Time:Compose)
+//}
+
+
+//mutex_induction {
+//    //(&&,X,--Y,A..*), (&&,Y,--X,A..*)
+//    (&&,X,--Y,A..*), (&&,Y,--X,A..*), neqPN(X,Y)                     |- (&&,--(X && Y),A..*), (Belief:IntersectionPB, Time:Compose)
+//    (&&,X,--Y,A..*), C, eventOf(C,Y), eventOfNeg(C, X), neqPN(X,Y)   |- --(X && Y), (Belief:IntersectionPB, Time:Compose)
+//        //    (--(&&,X,A..+) ==> Z), C, eventOf(C,X), eventOf(C,Z) |- --(&&,A..+), (Belief:Abduction, Time:Compose)
+//
+//
+//    (&&,X,--Y), (X && Y), eventOf(C, Y), eventOfNeg(C, X), neqPN(X,Y)   |-  (  X ==> --Y), (Belief:DeductionPP, Time:Compose)
+//    (&&,X,--Y,A..*), C, eventOf(C, Y), eventOfNeg(C, X), neqPN(X,Y)   |-  (--Y ==>   X), (Belief:DeductionPP, Time:Compose)
+//
+//
+
+//          (((&&,X,--Y) &&+- Z)==>W), (((&&,--X,Y) &&+- Z)==>W), neqPN(X,Y)  |-    ((--(X && Y) &&+- Z) ==>   W), (Belief:DeductionPP, Time:Compose)
+
+//        //    (  (&&,X,--Y,A..*)==>Z), (  (&&,Y,--X,A..*)==>Z)     |- (  (&&,--(X && Y),A..*) ==> --Z), (Belief:IntersectionNN, Time:Compose)
+//        //    (--(&&,X,--Y,A..*)==>Z), (--(&&,Y,--X,A..*)==>Z)     |- (--(&&,--(X && Y),A..*) ==>   Z), (Belief:IntersectionPP, Time:Compose)
+//        //    (--(&&,X,--Y,A..*)==>Z), (--(&&,Y,--X,A..*)==>Z)     |- (--(&&,--(X && Y),A..*) ==> --Z), (Belief:IntersectionNN, Time:Compose)
+//}
+
+
+
+
+
+
+
+
+    //(C ==> X), (E ==> Y), eventOf(C,E)      |-    unisubst(--condWithoutAny(C,E),X,Y), (Belief:AbductionXOR, Time:Compose)
+        //TODO disj
+
+
+//    //Anti-conditional Abduction via Multi-conditional Syllogism
+//    (C ==> X), (E ==> Y), neqPN(C,E)      |-    unisubst(--(C&&E), X, Y), (Belief:DeductionWeakPN, Time:Compose)
+//    (C ==> X), (E ==> Y), neqPN(C,E)      |-    unisubst(--(C&&E), X, Y), (Belief:DeductionWeakNP, Time:Compose)
+
+
+//        (C ==> Z), (X ==> M), eventOf(C,X) |- ((condWithoutAny(C,X) &&   M) ==> Z), (Belief:InductionPB)
+//        (C ==> Z), (X ==> M), eventOf(C,X) |- ((condWithoutAny(C,X) && --M) ==> Z), (Belief:InductionPBPN)
+
+    //general implication induction SUSPECT
+    //(A ==> B), X, --eqPN(A,X), --is(X,"==>")  |- polarizeTask(((A && polarizeBelief(X)) ==> B)), (Belief:InductionDD)
+
+
+
+////Union reduction
+//    (&&,X,A..+), (&&,--X,A..+)                 |-   (&&,A..+), (Belief:UnionPP, Time:Compose)
+//      (&&,X,A..+), (&&,--X,A..+)               |- --(&&,A..+), (Belief:UnionNN, Time:Compose)
+//    (&&,--X,A..+), (&&,X,A..+)                 |-   (&&,A..+), (Belief:UnionPP, Time:Compose)
+//      (&&,--X,A..+), (&&,X,A..+)               |- --(&&,A..+), (Belief:UnionNN, Time:Compose)

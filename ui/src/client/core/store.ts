@@ -45,8 +45,7 @@ export const $telemetry = atom<TelemetryData>({
 export const $connectionState = atom<'connecting' | 'connected' | 'reconnecting' | 'disconnected'>('connecting');
 export const $lastSeqId = atom<number | null>(null);
 
-// Expose test API for store / connection introspection
-if (typeof window !== 'undefined') {
+export function exposeTestApi() {
   const w = window as any;
   w.__testApi = w.__testApi || {};
   w.__testApi.store = {

@@ -1,0 +1,26 @@
+
+//X, X, task("@"), --has(X,"?") |- X,       (Goal:Curiosity, Punctuation:Goal, Time:TaskInstant)
+//X, X, task("?"), --has(X,"?") |- X,       (Belief:Curiosity, Punctuation:Belief, Time:TaskInstant)
+
+
+//curiosity
+//G, B, task("@")  |- B, (Goal:Curiosity, Punctuation:Goal)
+//G, B, task("@")  |- (polarize(B,belief)==>G), (Belief:Curiosity, Punctuation:Goal)
+G, B, task("!")  |- (polarizeTask(G) && polarizeBelief(B)), (Goal:ConductWeak, Punctuation:Goal, Time:TaskRel)
+  G, B, task("@")  |- (polarizeRandom(G) && polarizeBelief(B)), (Goal:BeliefStructuralReduction, Punctuation:Goal, Time:TaskRel)
+
+
+
+//X, Y, task("@"), neq(X,Y), --has(X,"?"), --has(Y,"?") |- (X && Y),  (Goal:Curiosity, Punctuation:Goal, Time:TaskInstant)
+//X, Y, task("@"), neq(X,Y), --has(X,"?"), --has(Y,"?") |- (X && --Y),  (Goal:Curiosity, Punctuation:Goal, Time:TaskInstant)
+//X, Y, task("@"), neq(X,Y), --has(X,"?"), --has(Y,"?") |- (--X && Y),  (Goal:Curiosity, Punctuation:Goal, Time:TaskInstant)
+//X, Y, task("@"), neq(X,Y), --has(X,"?"), --has(Y,"?") |- (--X && --Y),  (Goal:Curiosity, Punctuation:Goal, Time:TaskInstant)
+
+//X, Y, task("!"), --has(X,"?"), --has(Y,"?") |- (X &| Y),  (Goal:Curiosity, Punctuation:Goal, Time:TaskInstant)
+//X, Y, task("!"), --has(X,"?"), --has(Y,"?") |- (X &| --Y),  (Goal:Curiosity, Punctuation:Goal, Time:TaskInstant)
+
+//X, X, task("!"), |- (X &| ?1),       (Punctuation:Quest)
+
+
+//self-fulfilling prophecy: should I?  i believe it is. then i want it to be. (weakly)
+    //G, G, task("@") |- G, (Goal:BeliefStructuralReduction, Punctuation:Goal)

@@ -47,7 +47,7 @@ export class ConfigDrawer extends LitElement {
       <h2>System Config</h2>
       ${entries.length === 0 ? html`<div class="empty">Awaiting config schema...</div>` : ''}
       ${entries.map(([key, field]: [string, any]) => html`
-        <div class="field">
+        <div class="field" data-testid="field-${key}">
           <label>${field.label} <span class="val">${field.value}</span></label>
           ${field.type === 'slider' ? html`
             <input type="range" min=${field.min ?? 0} max=${field.max ?? 1} step=${field.step ?? 0.1}

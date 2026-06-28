@@ -1,0 +1,6 @@
+// A ==> B   =>  (--A ||+- B)   =>   --(A &&+- --B)
+//TODO use ||+- syntax
+impl_decompose_or {
+    (A ==> B), (A ==> B), task("+p"), --eqPN(A,B), --var({A,B}), --hasBelief()   |- --(A &&+- --B), (Belief:StructuralDeductionP)
+    (A ==> B), (A ==> B), task("-p"), --eqPN(A,B), --var({A,B}), --hasBelief()   |- --(A &&+-   B), (Belief:StructuralDeductionN)
+}

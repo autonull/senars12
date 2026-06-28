@@ -1,0 +1,42 @@
+//HACK: neq(A,X), --seq(C)
+//   is temporary fix to prevent a defect in TimeGraph, ex:
+//    $.23 ((--,pa) ==>-60 pr). 85750⋈85780 %.85;.28% {85791: üOWga;ýOWga}
+//        $.13 ((--,pa) ==>-760 ((--,pr) &&+60 (--,pa))). 85750⋈85780 %.12;.35% {85791: üOWga;ýOWga}
+//        $.97 pa. 85750⋈86080 %.19;.79% {: üOWga;ýOWga}
+
+
+impl_specific_decompose_pred_conj {
+       (  A ==> C), X, cond(C,  X), neq(A,X) |-   (A ==> condWithoutAny(C,  X)), (Belief:DividePP,   Time:Belief)
+    X, (  A ==> C),    cond(C,  X), neq(A,X) |-   (A ==> condWithoutAny(C,  X)), (Belief:DividePPX,  Time:Task)
+       (  A ==> C), X, cond(C,--X), neq(A,X) |-   (A ==> condWithoutAny(C,--X)), (Belief:DividePN,   Time:Belief)
+    X, (  A ==> C),    cond(C,--X), neq(A,X) |-   (A ==> condWithoutAny(C,--X)), (Belief:DivideNPX,  Time:Task)
+}
+
+impl_specific_decompose_subj_conj {
+       (  C ==> A), X, cond(C,  X), neq(A,X) |- (  condWithoutAny(C,  X) ==> A), (Belief:ConductPP,  Time:Belief)
+    X, (  C ==> A),    cond(C,  X), neq(A,X) |- (  condWithoutAny(C,  X) ==> A), (Belief:ConductPPX, Time:Task)
+       (  C ==> A), X, cond(C,--X), neq(A,X) |- (  condWithoutAny(C,--X) ==> A), (Belief:ConductPN,  Time:Belief)
+    X, (  C ==> A),    cond(C,--X), neq(A,X) |- (  condWithoutAny(C,--X) ==> A), (Belief:ConductNPX, Time:Task)
+}
+
+impl_specific_decompose_subj_disj {
+       (--D ==> A), X, cond(D,--X), neq(A,X) |- (--condWithoutAny(D,--X) ==> A), (Belief:ConductPN,  Time:Belief)
+    X, (--D ==> A),    cond(D,--X), neq(A,X) |- (--condWithoutAny(D,--X) ==> A), (Belief:ConductNPX, Time:Task)
+       (--D ==> A), X, cond(D,  X), neq(A,X) |- (--condWithoutAny(D,  X) ==> A), (Belief:ConductPP,  Time:Belief)
+    X, (--D ==> A),    cond(D,  X), neq(A,X) |- (--condWithoutAny(D,  X) ==> A), (Belief:ConductPPX, Time:Task)
+}
+
+
+////SUSPECT:
+//impl_specific_decompose_pred_disj {
+//       (  A ==> D), X, condStart(D,  X) |- --(A ==> condWithoutAny(D,  X)), (Belief:DivideNP,   Time:Belief)
+//    X, (  A ==> D),    condStart(D,  X) |- --(A ==> condWithoutAny(D,  X)), (Belief:DividePNX,  Time:Task)
+//       (  A ==> D), X, condStart(D,--X) |- --(A ==> condWithoutAny(D,--X)), (Belief:DivideNN,   Time:Belief)
+//    X, (  A ==> D),    condStart(D,--X) |- --(A ==> condWithoutAny(D,--X)), (Belief:DivideNNX,  Time:Task)
+//
+////       (  A ==> D), X, cond(D,  X) |-   (A ==> --X), (Belief:DivideNN,   Time:Belief)
+////    X, (  A ==> D),    cond(D,  X) |-   (A ==> --X), (Belief:DivideNNX,  Time:Task)
+////       (  A ==> D), X, cond(D,--X) |-   (A ==>   X), (Belief:DivideNP,   Time:Belief)
+////    X, (  A ==> D),    cond(D,--X) |-   (A ==>   X), (Belief:DividePNX,  Time:Task)
+//
+//}

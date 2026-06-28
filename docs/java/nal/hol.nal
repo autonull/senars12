@@ -1,0 +1,90 @@
+//Higher-Order Logic Bridges
+
+impl_to_similarity {
+    //<a ==> c> <b ==> c>. |- <a <-> b>. %F_cmp%
+    (X ==> Z), (Y ==> Z), --var(Z), --var(X), --var(Y), neqRCom(X,Y) |- (X <-> Y), (Belief:ComparisonSymmetric)
+    (Z ==> X), (Z ==> Y), --var(Z), --var(X), --var(Y), neqRCom(X,Y) |- (polarizeTask(X) <-> polarizeBelief(Y)), (Belief:ComparisonSymmetricDD)
+    (W ==> X), (Y ==> Z), --var(Z), --var(X), --var(Y), eqPN(Z,W), neqRCom(X,Y) |- (polarizeTask(X) <-> Y), (Belief:ComparisonSymmetricDP)
+}
+impl_question_to_similarity_question {
+    (X ==> Z), (Y ==> Z), --var(Z), --var(X), --var(Y), neqRCom(X,Y) |- (X <-> Y), (Punctuation:AskAsk, Time:Task)
+    (Z ==> X), (Z ==> Y), --var(Z), --var(X), --var(Y), neqRCom(X,Y) |- (X <-> Y), (Punctuation:AskAsk, Time:Task)
+    (W ==> X), (Y ==> Z), --var(Z), --var(X), --var(Y), eqPN(Z,W), neqRCom(X,Y) |- (X <-> Y), (Punctuation:AskAsk, Time:Task)
+}
+//
+//relation_introduction {
+//   (A --> C), (B --> D), neq(A,B), neq(C,D) |- ((A,B) --> (C,D)), (Belief:Intersection)
+//   (A --> C), (A --> D), neq(C,D)           |- ((A,A) --> {C,D}), (Belief:Intersection)
+//   (C --> A), (D --> A), neq(C,D)           |- ({C,D} --> (A,A)), (Belief:Intersection)
+//}
+//product_equivalences {
+//    //NAL Specification Table 11.9 - Product Equivalences
+//    //TODO n-ary
+//    ((A,B)-->(X,Y)), ((A,B)-->(X,Y))            |- ((A --> X) && (B --> Y)), (Belief:StructuralDeduction, Goal:StructuralDeduction)
+//     ((A,B)-->(X,Y)), ((A,B)-->(X,Y))            |- (--(A --> X) && --(B --> Y)), (Belief:StructuralDeductionN, Goal:StructuralDeductionN)
+//    ((A,B)<->(X,Y)), ((A,B)<->(X,Y))            |- ((A <-> X) && (B <-> Y)), (Belief:StructuralDeduction, Goal:StructuralDeduction)
+//     ((A,B)<->(X,Y)), ((A,B)<->(X,Y))            |- (--(A <-> X) && --(B <-> Y)), (Belief:StructuralDeductionN, Goal:StructuralDeductionN)
+//
+//     ((A,B,C)-->(X,Y,Z)), ((A,B,C)-->(X,Y,Z))    |- (&&, (A --> X), (B --> Y), (C --> Z)), (Belief:StructuralDeduction, Goal:StructuralDeduction)
+//      ((A,B,C)-->(X,Y,Z)), ((A,B,C)-->(X,Y,Z))    |- (&&, --(A --> X), --(B --> Y), --(C --> Z)), (Belief:StructuralDeductionN, Goal:StructuralDeductionN)
+//     ((A,B,C)<->(X,Y,Z)), ((A,B,C)<->(X,Y,Z))    |- (&&, (A <-> X), (B <-> Y), (C <-> Z)), (Belief:StructuralDeduction, Goal:StructuralDeduction)
+//      ((A,B,C)<->(X,Y,Z)), ((A,B,C)<->(X,Y,Z))    |- (&&, --(A <-> X), --(B <-> Y), --(C <-> Z)), (Belief:StructuralDeductionN, Goal:StructuralDeductionN)
+//}
+   //          #_#R[(A --> C) (B --> D) |- ((* A B) --> (* C D)) :post (:t/intersection)] //            ;this one cant be allowed due to control reasons:
+   //          #R[(A --> C) (A --> D) |- ((* A A) --> (* C D)) :post (:t/intersection)]
+   //         #R[(A --> C) (B --> C) |- ((* A B) --> (* C C)) :post (:t/intersection)]
+   //         #R[({A} --> C) (A --> D) |- ((* {A} A) --> (* C D)) :post (:t/intersection)]
+   //          #R[(A --> C) ({A} --> D) |- ((* A {A}) --> (* C D)) :post (:t/intersection)]
+   //         #R[(A --> [C]) (B --> C) |- ((* A B) --> (* [C] C)) :post (:t/intersection)]
+   //         #R[(A --> C) (B --> [C]) |- ((* A B) --> (* C [C])) :post (:t/intersection)]
+
+
+//inheritance_splice_into_impl {
+//    (X==>Y), X, task("."), --var(Y)   |- (  (?1-->X) ==> Y), (Punctuation:Question, Time:Task)
+//    (--X==>Y), X, task("."), --var(Y) |- (--(?1-->X) ==> Y), (Punctuation:Question, Time:Task)
+//    (X==>Y), Y, task("."), --var(Y)   |- (X ==> (?1 --> Y)), (Punctuation:Question, Time:Task)
+//}
+
+//TODO make a conj factoring predicate to reduce this to single rule
+//   ((A-->X) && (B-->X)), X        |-       (    polarizeTask((  (A-->X) &&   (B-->X)))-->X), (Belief:StructuralDeductionDepolarized)
+//     (  (A-->X) && --(B-->X)), X        |- (    polarizeTask((  (A-->X) && --(B-->X)))-->X), (Belief:StructuralDeductionDepolarized)
+//     (--(A-->X) && --(B-->X)), X        |- (    polarizeTask((--(A-->X) && --(B-->X)))-->X), (Belief:StructuralDeductionDepolarized)
+//   ((X-->A) && (X-->B)), X              |- (X-->polarizeTask((  (X-->A) &&   (X-->B)))),     (Belief:StructuralDeductionDepolarized)
+//     (  (X-->A) && --(X-->B)), X        |- (X-->polarizeTask((  (X-->A) && --(X-->B)))),     (Belief:StructuralDeductionDepolarized)
+//     (--(X-->A) && --(X-->B)), X        |- (X-->polarizeTask((--(X-->A) && --(X-->B)))),     (Belief:StructuralDeductionDepolarized)
+//   ((A<->X) && (B<->X)), X              |- (polarizeTask((  (A<->X) &&   (B<->X)))<->X), (Belief:StructuralDeductionDepolarized)
+//     (  (A<->X) && --(B<->X)), X        |- (polarizeTask((  (A<->X) && --(B<->X)))<->X), (Belief:StructuralDeductionDepolarized)
+//     (--(A<->X) && --(B<->X)), X        |- (polarizeTask((--(A<->X) && --(B<->X)))<->X), (Belief:StructuralDeductionDepolarized)
+//   ((X-->A) && (B-->X)), X              |- (polarizeTask((  (X-->A) &&   (B-->X)))<->X), (Belief:StructuralDeductionDepolarized)
+//     (  (X-->A) && --(B-->X)), X        |- (polarizeTask((  (X-->A) && --(B-->X)))<->X), (Belief:StructuralDeductionDepolarized)
+//     (--(X-->A) &&   (B-->X)), X        |- (polarizeTask((--(X-->A) &&   (B-->X)))<->X), (Belief:StructuralDeductionDepolarized)
+//     (--(X-->A) && --(B-->X)), X        |- (polarizeTask((--(X-->A) && --(B-->X)))<->X), (Belief:StructuralDeductionDepolarized)
+
+
+//    X, (X-->Y), task("."), --var(Y)   |- ((?1-->Y) ==> X), (Punctuation:Question, Time:Task)
+//      X, (X-->Y), task("."), --var(Y) |- (--(?1-->Y) ==> X), (Punctuation:Question, Time:Task)
+//    X, (Y-->X), task("."), --var(Y)   |- ((Y-->?1) ==> X), (Punctuation:Question, Time:Task)
+//      X, (Y-->X), task("."), --var(Y) |- (--(Y-->?1) ==> X), (Punctuation:Question, Time:Task)
+
+
+
+//impl/sim
+  //(X ==> Z), (Y ==> Z), neq(X,Y) |- (polarizeTask((X==>Z)) <-> polarizeBelief((Y==>Z))), (Belief:ComparisonSymmetricDD)
+  //(Z ==> X), (Z ==> Y), neq(X,Y) |- (polarizeTask((Z==>X)) <-> polarizeBelief((Z==>Y))), (Belief:ComparisonSymmetricDepolarized)
+
+//sim/impl = impl/sim in reverse
+//  (X <-> Y), Y, task(all)             |- (polarizeRandom(X) ==> Y), (Punctuation:Question, Time:Task)
+//  ((A,X) <-> (B,X)), (A,X), task(all) |- (A ==> X), (Punctuation:Question, Time:Task)
+//  ((X,A) <-> (X,B)), (X,A), task(all) |- (X ==> A), (Punctuation:Question, Time:Task)
+
+
+//distinction question - an attempt to elucidate the difference between similar/dissimilar concepts
+//    (X <-> Y), X, --var(X), --var(Y) |- (X <-> (  Y && ?1)), (Punctuation:AskAsk)
+//    (X <-> Y), X, --var(X), --var(Y) |- (X <-> (--Y && ?1)), (Punctuation:AskAsk)
+//     (X <-> Y), X |- (X <-> (polarizeRandom(Y) && ?1)), (Punctuation:Ask)
+
+//  (A ==> B), (A --> C)  |- polarizeTask((C ==> B)), (Belief:DeductionDP, Time:Task)
+//  (A ==> B), (C --> A)  |- polarizeTask((C ==> B)), (Belief:DeductionDP, Time:Task)
+//
+//  (B ==> A), (A --> C)  |- polarizeTask((B ==> C)), (Belief:DeductionDP, Time:Task)
+//  (B ==> A), (C --> A)  |- polarizeTask((B ==> C)), (Belief:DeductionDP, Time:Task)

@@ -1,0 +1,74 @@
+inh_deduction_goal_reverse {
+
+
+    (S --> P), (M --> P), --var({M,P})    |-   (S --> M), (Goal:SupposePN, Time:Later)
+    (S --> P), (S --> M), --var({M,S})    |-   (M --> P), (Goal:SupposePN, Time:Later)
+    (S --> P), (M --> P), --var({M,P})    |- --(S --> M), (Goal:SupposeNP, Time:Later)
+    (S --> P), (S --> M), --var({M,S})    |- --(M --> P), (Goal:SupposeNP, Time:Later)
+
+//    (S --> P), (M --> P), --var(M)    |-   (S --> M), (Goal:DivideWeakPP)
+//        (S --> P), (S --> M), --var(M)    |-   (M --> P), (Goal:DivideWeakPP)
+
+//    (S --> P), (M --> P), --var({S,P,M})    |-   (S --> M), (Goal:DivideWeakPP)
+//        (S --> P), (S --> M), --var({S,P,M})    |-   (M --> P), (Goal:DivideWeakPP)
+
+
+//    (S --> P), (M --> P), --var({S,P,M})    |-   (S --> M), (Goal:DivideWeakPP)
+//    (S --> P), (S --> M), --var({S,P,M})    |-   (M --> P), (Goal:DivideWeakPP)
+//    (S --> P), (M --> P), --var({S,P,M})    |- --(S --> M), (Goal:DivideWeakNN)
+//    (S --> P), (S --> M), --var({S,P,M})    |- --(M --> P), (Goal:DivideWeakNN)
+
+//    (S --> P), (M --> P), --var({S,P,M}), neq(S,M)    |-   (S --> M), (Goal:BiductWeakX)
+//    (S --> P), (S --> M), --var({S,P,M}), neq(P,M)    |-   (M --> P), (Goal:BiductWeakX)
+
+//    //fwd
+//    (S --> M), (S --> P), --var({S,P,M})    |-   (M --> P), (Goal:BiductWeakX)
+//    (M --> P), (S --> P), --var({S,P,M})    |-   (S --> M), (Goal:BiductWeakX)
+//
+
+}
+inh_abduction_goal {
+  //rev
+  (A --> X), (A --> B), --var({X,A,B})  |-   (B --> X), (Goal:BiductWeakPPX, Time:Later)
+    (X --> B), (A --> B), --var({X,A,B})  |-   (A --> X), (Goal:BiductWeakPPX, Time:Later)
+//  (X --> A), (A --> B), --var({X,A,B})  |-   debug((X --> B)), (Goal:BiductWeakPPX, Time:Later)
+//    (X --> B), (A --> B), --var({X,A,B})  |-   debug((X --> A)), (Goal:BiductWeakPPX, Time:Later)
+
+  //fwd
+  (B --> X), (A --> X),--var({X,A,B})    |- (A --> B), (Goal:Induction, Time:Later)
+  (X --> B), (X --> A),--var({X,A,B})    |- (A --> B), (Goal:Induction, Time:Later)
+}
+
+//inh_exemplification_goal_reverse {
+//    (P --> S), (M --> P), --var({S,P,M})    |-   (S --> M), (Goal:Exemplification)
+//        (P --> S), (S --> M), --var({S,P,M})    |-   (M --> P), (Goal:Exemplification)
+//}
+
+//inh_deduction_quest {
+//    (S --> P), (M --> P), task("@"), --var({S,P,M})    |-   (S --> M), (Punctuation:Quest)
+//    (S --> P), (S --> M), task("@"), --var({S,P,M})    |-   (M --> P), (Punctuation:Quest)
+//
+//    (S --> M), (S --> P), task("@"), --var({S,P,M})    |-   (M --> P), (Punctuation:Quest)
+//    (M --> P), (S --> P), task("@"), --var({S,P,M})    |-   (S --> M), (Punctuation:Quest)
+//
+////    (S --> X), (M --> X), --var({S,X,M}), task("!")    |-   (S --> M), (Punctuation:Quest)
+////    (X --> P), (X --> M), --var({X,P,M}), task("!")    |-   (M --> P), (Punctuation:Quest)
+//
+////    (S --> X), (M --> Y), ceqPN(X,Y), --var({S,X,Y,M}), task("!")    |-   (S --> M), (Punctuation:Quest)
+////    (X --> P), (Y --> M), ceqPN(X,Y), --var({X,Y,P,M}), task("!")    |-   (M --> P), (Punctuation:Quest)
+//
+//      //goal's belief -> quest
+////      (S --> M), (M --> P), task("!")  |-   (M --> P), (Punctuation:Quest)
+////      (M --> P), (S --> M), task("!")  |-   (S --> M), (Punctuation:Quest)
+//}
+
+//inh_abduction_goal_to_quest {
+//      (A --> B), (B --> X), task("!"), --var(B)    |-   (A --> X), (Punctuation:Quest)
+//      (B --> A), (B --> X), task("!"), --var(B)    |-   (A --> X), (Punctuation:Quest)
+//
+//      (A --> B), (X --> B), task("!"), --var(B)    |-   (X --> A), (Punctuation:Quest)
+//      (B --> A), (X --> B), task("!"), --var(B)    |-   (X --> A), (Punctuation:Quest)
+//
+//      //(A --> B), (A --> C), task("!"), neq(B,C)  |-   (A --> C), (Punctuation:Quest)
+//      //(B --> A), (C --> A), task("!"), neq(B,C)  |-   (C --> A), (Punctuation:Quest)
+//}

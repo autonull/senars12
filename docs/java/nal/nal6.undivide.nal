@@ -1,0 +1,11 @@
+conditional_deduction_undivide_revision {
+   D, S, cond(D,   S)    |-   D, (Belief:UndividePP, Time:Belief)
+   D, S, cond(D, --S)    |-   D, (Belief:UndividePN, Time:Belief)
+      S, D, cond(D,   S)    |-   D, (Belief:UndividePPX, Time:Task)
+      S, D, cond(D, --S)    |-   D, (Belief:UndivideNPX, Time:Task)
+
+   (M ==> D), (M ==> S), cond(D,   S)    |-   (M ==> D), (Belief:UndividePP, Time:Belief)
+   (M ==> D), (M ==> S), cond(D, --S)    |-   (M ==> D), (Belief:UndividePN, Time:Belief)
+      (M ==> S), (M ==> D), cond(D,   S)    |-   (M ==> D), (Belief:UndividePPX, Time:Task)
+      (M ==> S), (M ==> D), cond(D, --S)    |-   (M ==> D), (Belief:UndivideNPX, Time:Task)
+}

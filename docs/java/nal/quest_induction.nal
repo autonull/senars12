@@ -1,0 +1,18 @@
+implPreGoalComponentQuest {
+   //answering the resulting quest will determine whether C! can be derived
+   B, (  A ==> C), --var({C,A}), --eqPN(C,B), condPN(A,  B), task("!")  |-   A, (Punctuation:Quest, Time:TaskRel)
+   B, (--A ==> C), --var({C,A}), --eqPN(C,B), condPN(A,  B), task("!")  |-   A, (Punctuation:Quest, Time:TaskRel)
+}
+
+implPostGoalComponentQuest {
+   //answering the resulting quest will determine whether C! can be derived
+   B, (  C ==> A), --var({C,A}), --eqPN(C,B), condPN(A,  B), task("!")  |-   A, (Punctuation:Quest, Time:TaskRel)
+}
+
+conjGoalComponentQuest {
+   //answering the resulting quest will determine whether A! can be derived
+   B,  A, condPN(A,  B), task("!")  |-   A, (Punctuation:Quest, Time:TaskRel)
+
+   //B,  A, --seq(A), condPN(A,  B), task("!")  |-   A, (Punctuation:Quest)
+
+}

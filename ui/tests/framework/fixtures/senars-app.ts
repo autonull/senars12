@@ -1,5 +1,5 @@
-import { test as base } from '@playwright/test';
-import { WsInterceptor } from './ws-interceptor';
+import { test as base, request } from '@playwright/test';
+import { TestControl } from '../utils/test-control';
 import { ErrorMonitor } from './error-monitor';
 import { PerfMonitor } from '../utils/perf';
 import { TestApiClient } from '../utils/test-api';
@@ -9,7 +9,7 @@ import { BeliefGraph } from '../components/belief.graph';
 import { TelemetryPanel } from '../components/telemetry.panel';
 
 type SenarsFixtures = {
-  ws: WsInterceptor;
+  testControl: TestControl;
   testApi: TestApiClient;
   errorMonitor: ErrorMonitor;
   perfMonitor: PerfMonitor;
@@ -20,13 +20,16 @@ type SenarsFixtures = {
 };
 
 export const test = base.extend<SenarsFixtures>({
-  ws: async ({ page }, use) => {
-    const interceptor = new WsInterceptor(page);
-    await interceptor.attach();
-    await use(interceptor);
+  testControl: async ({}, use) => {
+    const context = await request.newContext();
+    const control = new TestControl(context);
+    await control.reset();
+    await use(control);
+    await context.dispose();
   },
 
   testApi: async ({ page }, use) => {
+    await page.goto('/');
     const client = new TestApiClient(page);
     await client.ensureReady();
     await use(client);
@@ -46,19 +49,19 @@ export const test = base.extend<SenarsFixtures>({
     await monitor.assertWithinBudget();
   },
 
-  chat: async ({ page }, use) => {
+  chat: async ({ page, testApi }, use) => {
     await use(new ChatConsole(page));
   },
 
-  config: async ({ page }, use) => {
+  config: async ({ page, testApi }, use) => {
     await use(new ConfigDrawer(page));
   },
 
-  graph: async ({ page }, use) => {
+  graph: async ({ page, testApi }, use) => {
     await use(new BeliefGraph(page));
   },
 
-  telemetry: async ({ page }, use) => {
+  telemetry: async ({ page, testApi }, use) => {
     await use(new TelemetryPanel(page));
   },
 });

@@ -1,0 +1,101 @@
+impl_question_pre {
+    //(  A ==> B), X, --var(X), eqPN(A,X), neq(B,X), --hasBelief() |- X, (Punctuation:AskAsk)
+
+    //reverse+unify
+    (  A ==> B), X, --var({X,A,B}), --eqPN(A,B), --hasBelief() |- unisubst(B,X,A), (Punctuation:AskAsk)
+    (--A ==> B), X, --var({X,A,B}), --eqPN(A,B), --hasBelief() |- unisubst(B,X,A), (Punctuation:AskAsk)
+}
+//impl_question_pre_opposite {
+//    (  A ==> B), X, --var(B), eqPN(A,X), neq(B,X), hasBelief() |- B, (Punctuation:AskAsk, Time:BeliefRel)
+//}
+impl_question_post {
+      //(B ==> A), A, --var(A), --eqPN(A,B), --hasBelief() |- A, (Punctuation:AskAsk)
+
+      //reverse+unify
+      (B ==> A), X, --var({X,A,B}), --eqPN(A,B), --hasBelief() |- unisubst(B,X,A), (Punctuation:AskAsk)
+}
+//impl_question_post_opposite {
+//      (B ==> A), A, --var(B), --eqPN(A,B), hasBelief() |- B, (Punctuation:AskAsk, Time:BeliefRel)
+//}
+
+question_impl_induction_post {
+   B, (X ==> A), task("?@"), neq(B,X), --var(A), hasBelief()                |- unisubst(beliefTerm,A,B,novel), (Punctuation:Question)
+      (X ==> A), B, task("?"), neq(B,X), --var({A,B}), hasBelief()          |- unisubst(taskTerm,A,B,novel), (Punctuation:Question)
+}
+
+question_impl_induction_pre {
+   B,  (  X ==> C),    task("?@"), --is(X,"--"), --var({X}), neq(B,C), hasBelief()   |-   unisubst(beliefTerm,X,B,novel),  (Punctuation:Question)
+       (  X ==> C), B, task("?"),  --is(X,"--"), --var({X,B}), neq(B,C), hasBelief() |-   unisubst(taskTerm,X,B,novel),  (Punctuation:Question)
+   B,  (--X ==> C),    task("?@"), --is(X,"--"), --var({X}), neq(B,C), hasBelief()   |-   unisubst(beliefTerm,X,B,novel),  (Punctuation:Question)
+       (--X ==> C), B, task("?"),  --is(X,"--"), --var({X,B}), neq(B,C), hasBelief() |-   unisubst(taskTerm,X,B,novel),  (Punctuation:Question)
+}
+
+question_impl_Decomposition_rev {
+   B, (X ==> A), neq(B,X), --var({X,A}), hasBelief()  |- unisubst(X,A,B), (Punctuation:AskAsk, Time:Pre)
+}
+
+question_impl_Decomposition_fwd {
+   B, (  A ==> X), neq(B,X), --var({X,A}), --is(A,"--"), hasBelief() |- unisubst(X,A,B), (Punctuation:AskAsk, Time:Post)
+   B, (--A ==> X), neq(B,X), --var({X,A}), --is(A,"--"), hasBelief() |- unisubst(X,A,B), (Punctuation:AskAsk, Time:Post)
+}
+
+question_impl_Decomposition_rev_cond {
+   //B, (X ==> C), neq(B,X), --var(X), condPN(C,B)  |- X, (Punctuation:AskAsk, Time:TaskRel)
+   B, (X ==> C), task("?@"), neq(B,X), --var(X), condPN(C,B), hasBelief()  |- (X ==> B), (Punctuation:Question)
+}
+
+question_impl_Decomposition_fwd_cond {
+   //B, (  C ==> X), neq(B,X), --var(X), condPN(C,B) |- X, (Punctuation:AskAsk, Time:TaskRel)
+   B, (  C ==> X), task("?@"), neq(B,X), --var(X), cond(C,  B), hasBelief() |- (  B==>X), (Punctuation:Question)
+   B, (  C ==> X), task("?@"), neq(B,X), --var(X), cond(C,--B), hasBelief() |- (--B==>X), (Punctuation:Question)
+
+   //B, (--C ==> X), neq(B,X), --var(X), condPN(C,B) |- X, (Punctuation:AskAsk, Time:TaskRel)
+   B, (--C ==> X), task("?@"), neq(B,X), --var(X), cond(C,  B), hasBelief() |- (--B==>X), (Punctuation:Question)
+   B, (--C ==> X), task("?@"), neq(B,X), --var(X), cond(C,--B), hasBelief() |- (  B==>X), (Punctuation:Question)
+}
+
+
+
+preBeliefUnify {
+        (  X ==> C), B, belief("+p"),--is(X,"--"), --var({X}) |-   unisubst(C,X,B,"$", novel),  (Belief:PreRecursivePPX, Time:BeliefRel)
+     B, (  X ==> C),    task("+p"),--is(X,"--"), --var({X}) |-   unisubst(C,X,B,"$", novel),  (Belief:PreRecursivePP, Time:TaskRel)
+        (--X ==> C), B, belief("-p"),--is(X,"--"), --var({X}) |-   unisubst(C,X,B,"$", novel),  (Belief:PreRecursivePNX, Time:BeliefRel)
+     B, (--X ==> C),    task("-p"),--is(X,"--"), --var({X}) |-   unisubst(C,X,B,"$", novel),  (Belief:PreRecursiveNP, Time:TaskRel)
+}
+
+preBelief {
+        (  B ==> C), B,  belief("+p"), --is(B,"--"),--var(C)      |-   C,  (Belief:PrePPX, Time:BeliefRel)
+     B, (  B ==> C),     task("+p"), --is(B,"--"),--var(C)      |-   C,  (Belief:PrePP,  Time:TaskRel)
+        (--B ==> C), B,  belief("-p"), --is(B,"--"),--var(C)      |-   C,  (Belief:PrePNX, Time:BeliefRel)
+     B, (--B ==> C),     task("-p"), --is(B,"--"),--var(C)      |-   C,  (Belief:PreNP,  Time:TaskRel)
+}
+
+
+preGoal {
+    //TaskRel/TaskBoth/Task
+    //unisubst(.., .., .., "$")
+    //, --condPN(C,X)
+    X, (  A ==> C),--is(A,"--"), task("+p"), --eqPN(A,C), --var({C,A}) |-  unisubst(C,A,X,"$"), (Goal:PreWeakPP, Time:TaskRel)
+    X, (--A ==> C),--is(A,"--"), task("-p"),--eqPN(A,C), --var({C,A}) |-  unisubst(C,A,X,"$"), (Goal:PreWeakNP, Time:TaskRel)
+
+//    X, (  A ==> C),--is(A,"--"), --var({A}), neq(C,A), neq(C,X) |-  noEventPN(unisubst(C,A,X,"$"),X), (Goal:PreWeakPP, Time:TaskRel)
+//    X, (--A ==> C),--is(A,"--"), --var({A}), neq(C,A), neq(C,X) |-  noEventPN(unisubst(C,A,X,"$"),X), (Goal:PreWeakNP, Time:TaskRel)
+}
+
+
+
+postBelief {
+    B, (C ==> A),    --var({C,A})  |- unisubst(C,A,B,"$"), (Belief:PostWeakPP, Time:TaskRel)
+       (C ==> A), B, --var({C,A})  |- unisubst(C,A,B,"$"), (Belief:PostWeakPPX, Time:BeliefRel)
+}
+
+postGoal {
+   //TaskRel/TaskBoth/Task , --condPN(C,X)
+   X, (C ==> A), --var({C,A}), --eqPN(A,C)       |-     unisubst(C,A,X,"$"), (Goal:NeedPP, Time:TaskRel)
+   //X, (C ==> A), --var(A), --eqPN(C,A)       |-     noEventPN(unisubst(C,A,X,"$"),X), (Goal:NeedPP, Time:TaskRel)
+}
+
+//postGoal_immediate {
+//   //immediate:
+//   X, (C ==> A), --var({C,A}), neq(C,A), --taskEternal()  |-     unisubst(C,A,X,"$"), (Goal:NeedPP, Time:Task)
+//}

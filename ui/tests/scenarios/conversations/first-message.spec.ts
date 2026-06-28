@@ -1,9 +1,9 @@
 import { test, expect } from '../../framework/fixtures/senars-app';
 import { sendAndReceiveMessage } from '../../framework/scenarios/conversation';
 
-test('user can send first message and receive streamed response', async ({ chat, ws }) => {
+test('user can send first message and receive streamed response', async ({ chat, testControl }) => {
   const response = await sendAndReceiveMessage(
-    chat, ws,
+    chat, testControl,
     'Analyze the current state',
     /processed.*analysis complete/i
   );

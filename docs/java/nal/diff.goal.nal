@@ -1,0 +1,19 @@
+diff_infer_goal {
+    X, (Y<~>X), --var(Y)     |-    Y,     (Goal:DiffGoalPP, Time:Task)
+    //the reversal, incase it's necessary since we assume use of the canonical order of the <~> components in calculating the freq
+    Y, (Y<~>X), --var(X)     |-    X,     (Goal:DiffGoalPN, Time:Task)
+}
+
+//same_goal {
+//    (S <~> P), S        , --var(P)     |-    P,         (Goal:PolarductX)
+//    //(S <-> P), Z        , --var({S,P}) |-    unisubst(P, S, Z, "$"),   (Goal:PolarductWeakX)
+//}
+
+//sim_decompose_inh_symmetric_goal {
+//    (S --> P), (S <-> P), --var({S,P}) |-    (P --> S), (Goal:PolarductWeak)
+//}
+
+
+//sim_inh_symmetric_goal {
+//    (S <-> P), (S --> P), --var({S,P}) |-    (P --> S), (Goal:PolarductWeakX, Time:Belief)
+//}

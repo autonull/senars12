@@ -1,0 +1,31 @@
+//TODO for correct timing, these may need to be predicates like implWithoutCommonEvents
+
+////precondition/post-condition combiner inference rule (variable_unification6):
+////        <patham9>
+////      this rule says:
+////        if two different precondition conjunctions, with a common element lead to the same conclusion,
+////        it might be that these different preconditions in the specific conjunctions imply each other
+////        because the premises can be swapped for this rule and it is still valid
+impl_combine_subj {
+  (  A ==> X), (  B ==> X), --seq(A), --seq(B), eventIntersect(A,B), --eqPN(A,B), --var(X) |-   (condWithoutAll(A,B) ==> condWithoutAll(B,A)), (Belief:Sameness, Time:Union)
+  (  A ==> X), (  B ==> X), --seq(A), --seq(B), eventIntersect(A,B), --eqPN(A,B), --var(X) |-   (condWithoutAll(B,A) ==> condWithoutAll(A,B)), (Belief:Sameness, Time:Union)
+
+//  (  A ==> X), (  B ==> X), --seq(A), --seq(B), eventIntersect(A,B), --eqPN(A,B), --var({A,B,X}) |-   (condWithoutAll(A,B) ==> condWithoutAll(B,A)), (Belief:Abduction)
+//  (  A ==> X), (  B ==> X), --seq(A), --seq(B), eventIntersect(A,B), --eqPN(A,B), --var({A,B,X}) |-   (condWithoutAll(B,A) ==> condWithoutAll(A,B)), (Belief:Induction)
+  //(  A ==> X), (  B ==> X), eventIntersect(A,B), --eqPN(A,B), --var({A,B,X}) |- --(condWithoutAll(A,B) ==> condWithoutAll(B,A)), (Belief:AbductionSymPN)
+
+//TODO test
+//  (--A ==> X), (--B ==> X), --seq(A), --seq(B), eventIntersect(A,B), --eqPN(A,B), --var({A,B,X}) |-   (--condWithoutAll(A,B) ==> --condWithoutAll(B,A)), (Belief:AbductionSymPP)
+//  //(--A ==> X), (--B ==> X), eventIntersect(A,B), --eqPN(A,B), --var({A,B,X}) |- --(--condWithoutAll(A,B) ==> --condWithoutAll(B,A)), (Belief:AbductionSymPN)
+
+//XOR..
+    //(A ==> X), (B ==> X), eventCommon(A,B), neq(A,B), neq(A,X), neq(B,X) |- (condWithoutAll(A,B) ==> --condWithoutAll(B,A)), (Belief:InductionXOR)
+}
+
+impl_combine_pred {
+
+    (X ==> A), (X ==> B), --seq(A), --seq(B), eventIntersect(A,B), --eqPN(A,B), --var({A,B,X}) |-   (condWithoutAll(A,B) ==> condWithoutAll(B,A)), (Belief:Abduction, Time:Union)
+    (X ==> A), (X ==> B), --seq(A), --seq(B), eventIntersect(A,B), --eqPN(A,B), --var({A,B,X}) |-   (condWithoutAll(B,A) ==> condWithoutAll(A,B)), (Belief:Induction, Time:Union)
+    //(X ==> A), (X ==> B), eventIntersect(A,B), --eqPN(A,B), --var({A,B,X}) |- --(condWithoutAll(A,B) ==> condWithoutAll(B,A)), (Belief:AbductionSymPN)
+
+}

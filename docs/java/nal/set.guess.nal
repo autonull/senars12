@@ -1,0 +1,43 @@
+
+//NAL2------------
+//Set Questions
+set_questions_to_belief {
+    //was: BeliefIdentity
+    ([A] <-> [B]), (A <-> B), task("?") |- ([A] <-> [B]), (Belief:BeliefStructuralReduction, Punctuation:Belief, Time:Belief)
+    ({A} <-> {B}), (A <-> B), task("?") |- ({A} <-> {B}), (Belief:BeliefStructuralReduction, Punctuation:Belief, Time:Belief)
+      ([A] <-> [B]), (A <-> B), task("@"), hasBelief() |- (A <-> B), (Punctuation:Quest)
+      ({A} <-> {B}), (A <-> B), task("@"), hasBelief() |- (A <-> B), (Punctuation:Quest)
+
+    ([A] --> [B]), (A --> B), task("?") |- ([A] --> [B]), (Belief:BeliefStructuralReduction, Punctuation:Belief, Time:Belief)
+    ({A} --> {B}), (A --> B), task("?") |- ({A} --> {B}), (Belief:BeliefStructuralReduction, Punctuation:Belief, Time:Belief)
+      ([A] --> [B]), (A --> B), task("@"), hasBelief() |- (A --> B), (Punctuation:Quest)
+      ({A} --> {B}), (A --> B), task("@"), hasBelief() |- (A --> B), (Punctuation:Quest)
+}
+//single element set unwrap
+setUnwrapSingleElement {
+    ({E} --> X),  X, --var(E)  |- (E --> X), (Belief:StructuralReduction, Goal:StructuralReduction)
+    (X --> [I]),  X, --var(I)  |- (X --> I), (Belief:StructuralReduction, Goal:StructuralReduction)
+}
+
+
+////Set Definition Unwrap
+//setUnwrapDefinition {
+//    ({S} <-> {P}), ({S} <-> {P}) |- (S <-> P), (Belief:Identity, Goal:Identity)
+//    ([S] <-> [P]), ({S} <-> {P}) |- (S <-> P), (Belief:Identity, Goal:Identity)
+//}
+
+//similarity_to_set {
+//    (X<->Z), (Y<->Z), neq(X,Y), notSetsOrDifferentSets(S,P) |- ({X,Y}<->Z), (Belief:IntersectionPB, Time:Compose)
+//}
+
+//2-element set choice unwrap to disjunction (dichotomy)
+//    (X-->Y),  ({A,B}-->Y), task("?@")   |- ((A-->Y) || (B-->Y))
+//    (Y-->X),  (Y-->[A,B]), task("?@")   |- ((Y-->A) || (Y-->B))
+
+
+////induct lift depvar-containing INH to NAL2: an existential quantifier variable implies a collection of satisfiable answers
+//(Y --> X), (Y --> Z), is(X,"#")  |- (Y --> {X,Z}), (Belief:Intersection)
+//(X --> Y), (Z --> Y), is(X,"#")  |- ({X,Z} --> Y), (Belief:Union)
+
+//Set-in-Conjunction Decomposition
+    //TODO

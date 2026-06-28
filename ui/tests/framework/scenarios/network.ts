@@ -1,9 +1,11 @@
-import { expect } from '@playwright/test';
-import { WsInterceptor } from '../fixtures/ws-interceptor';
+import { expect, Page } from '@playwright/test';
 import { TestApiClient } from '../utils/test-api';
 
-export async function simulateNetworkDrop(ws: WsInterceptor, durationMs: number) {
-  await ws.simulateDrop(durationMs);
+export async function simulateNetworkDrop(page: Page, durationMs: number) {
+  await page.route('**/ws', async route => {
+    await new Promise(resolve => setTimeout(resolve, durationMs));
+    await route.abort();
+  });
 }
 
 export async function waitForReconnection(testApi: TestApiClient, timeout = 10000) {

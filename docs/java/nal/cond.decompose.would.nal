@@ -1,0 +1,45 @@
+//if weak, as opposed to strong which 'would' be 'will'
+//"nar plans, god laughs"
+  //Later: eventual, async
+  //BeliefRel: belief-relative "evident" detach strong, async
+  //TaskRel:  goal-relative "predictive" detach weak
+
+
+//polar separate Would
+would_p {
+    C, X, task("+p"), belief("+p"), condStart(C,  X) |-    after(C,  X), (Goal:ExemplificationStrongPP, Time:Later)
+    C, X, task("+p"), belief("-p"), condStart(C,--X) |-    after(C,--X), (Goal:ExemplificationStrongPN, Time:Later)
+//    C, X, belief("+p"), condStart(C,  X) |-    after(C,  X), (Goal:ExemplificationStrongPP, Time:Later)
+//    C, X, belief("-p"), condStart(C,--X) |-    after(C,--X), (Goal:ExemplificationStrongPN, Time:Later)
+}
+would_n {
+    D, X, task("-p"), belief("+p"), condStart(D,  X) |-  --after(D,  X), (Goal:ExemplificationStrongNP, Time:Later)
+    D, X, task("-p"), belief("-p"), condStart(D,--X) |-  --after(D,--X), (Goal:ExemplificationStrongNN, Time:Later)
+}
+
+//would_unipolar {
+//    C, X, belief("+p"), condStart(C,  X) |-    after(C,  X), (Goal:ExemplificationStrongPP, Time:Later)
+//    C, X, belief("-p"), condStart(C,--X) |-    after(C,--X), (Goal:ExemplificationStrongPN, Time:Later)
+//}
+
+////Bipolar unified Would
+//would_pn {
+//
+//    C, X, condStart(C,  X) |-   afterOrDuring(C,  X), (Goal:SuperConductPP, Time:Later)
+//    C, X, condStart(C,--X) |-   afterOrDuring(C,--X), (Goal:SuperConductPN, Time:Later)
+//
+////    C, X, belief("+p"), condStart(C,  X) |-    afterOrDuring(C,  X), (Goal:SuperConductPP, Time:Later)
+////    C, X, belief("-p"), condStart(C,--X) |-    afterOrDuring(C,--X), (Goal:SuperConductPN, Time:Later)
+//
+////    C, X, condStart(C,  X) |-    after(C,  X), (Goal:SuperConductPP, Time:Later)
+////    C, X, condStart(C,--X) |-    after(C,--X), (Goal:SuperConductPN, Time:Later)
+//
+//}
+
+
+
+
+//wouldPN {
+//    C, X, belief("+p"), condStart(C,  X) |-    after(C,  X), (Goal:ConductPP, Time:Later)
+//    C, X, belief("-p"), condStart(C,--X) |-    after(C,--X), (Goal:ConductPN, Time:Later)
+//}

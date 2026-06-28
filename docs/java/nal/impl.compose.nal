@@ -1,0 +1,109 @@
+//impl composition
+//note: the question variations of these are responsible for creating terms that can be truthed dynamically. so they are important
+//
+// the 'pre' and 'post' here are not necessarily time-based but refer to the subj and pred of the impl, respectively
+// since the impl can be reverse (negative dt)
+
+//ORIGINALLY:
+//    //(P ==> M), (S ==> M), neq(P,S)  |-   ((P || S) ==> M), (Belief:IntersectionPP)
+//    //(P ==> M), (S ==> M), neq(P,S)  |-   ((P && S) ==> M), (Belief:UnionPP)
+
+
+//preDuction_question {
+//    (A ==> C), (B ==> C), --var(B), neq(A,B), --seq(A), --seq(B), --cond(A,B), --cond(B,A) |- (polarizeRandom((polarizeRandom(A) &&+- polarizeRandom(B))) ==>+- C), (Punctuation:AskAsk)
+//}
+
+preDuction_disj {
+    (S ==> M), (P ==> M), --var({S,P,M})  |- implConj(S,P,M,d,s), (Belief:Mix, Time:Union)
+    //(A ==> C), (B ==> C), --var(C), neq(A,B), --cond(A,B), --cond(B,A) |- ( (A||B) ==> C), (Belief:Mix)
+    //(A ==> C), (B ==> C) |- ( (A||B) ==> C), (Belief:Mix)
+
+//    (  (A && X) ==> C), (  (A && Y) ==> C), eqNeg(X,Y),--var({A,X}) |- (  A ==> C), (Belief:Mix)
+//    (--(A && X) ==> C), (--(A && Y) ==> C), eqNeg(X,Y),--var({A,X}) |- (--A ==> C), (Belief:Mix)
+//
+//    (P ==> M), (S ==> M), neq(P,S)  |-    ((P || S) ==> M), (Belief:DeductionSym)
+//
+}
+
+//preDuction_common {
+//    //TODO allow for isolating any common subsequence (not just parallel &&)
+//    (  S ==> M), (  P ==> M), --var({S,P,M}), eventIntersectContainer(S,P), neq(S,P), --seq(S), --seq(P), dtUnify()  |- implConj(  condIntersect(S,P),true,M,c,s), (Belief:MixWeak, Time:Union)
+//    //Probably wrong:
+//    (--S ==> M), (--P ==> M), --var({S,P,M}), eventIntersectContainer(S,P), neq(S,P), --seq(S), --seq(P), dtUnify()  |- implConj(--condIntersect(S,P),true,M,c,s), (Belief:MixWeak, Time:Union)
+//}
+
+
+postDuction_conj {
+  //TODO --varUnneg(M)
+  (M ==> S), (M ==> P), --var({S,P,M}) |-   implConj(  polarizeTask(S),  polarizeBelief(P), M, c, p), (Belief:IntersectionDD, Time:Union)
+  //    (M ==> P), (M ==> S), --var({S,P})  |- (M ==> (polarizeTask(P) && polarizeBelief(S))), (Belief:IntersectionDD)
+}
+
+postDuction_disj {
+  (M ==> S), (M ==> P), --var({M,S,P}) |- --implConj(--polarizeTask(S),--polarizeBelief(P), M, c, p), (Belief:UnionDD, Time:Union)
+  //    (M ==> P), (M ==> S), --var({S,P})  |- (M ==> (polarizeTask(P) || polarizeBelief(S))), (Belief:UnionDD)
+}
+
+//postDuction_Question_PolaritySwap {
+//    (M ==> (X && Y)), (M ==> (--X && --Y)), --var({M,X,Y}), --eqPN(X,Y)  |- (M ==> (X && --Y)), (Punctuation:AskAsk)
+//}
+//conj_Question_PolaritySwap {
+//    (X && Y), (--X && --Y), --var({X,Y}), --eqPN(X,Y) |- (X && --Y), (Punctuation:AskAsk)
+//}
+
+preQuestion {
+    //(S&P)...
+    (S ==> M), (P ==> M), task("?"), hasBelief(), neq(S,P), --var({S,P,M})  |- implConj(S,P,M,c,s), (Punctuation:Question)
+
+    //(S|P)...
+    (S ==> M), (P ==> M), task("?"), hasBelief(), neq(S,P), --var({S,P,M})  |- implConj(S,P,M,d,s), (Punctuation:Question)
+
+
+    //(S ==> M), (P ==> M), task("?"), hasBelief(), --var({S,P,M})  |- implConj(polarizeRandom(S), polarizeRandom(P),M,d,s), (Punctuation:Question)
+//    (S ==> M), (P ==> M), task("?"), --var(M), --eqPN(M,P), --eqPN(M,S)                                        |- implCompose(  S,  P,M,c,s), (Punctuation:Question)
+//    (S ==> M), (P ==> M), task("?"), --var(M), --eqPN(M,P), --eqPN(M,S), --seq(P)                     |- implCompose(  S,--P,M,c,s), (Punctuation:Question)
+//    (S ==> M), (P ==> M), task("?"), --var(M), --eqPN(M,P), --eqPN(M,S), --seq(S)                     |- implCompose(--S,  P,M,c,s), (Punctuation:Question)
+//    (S ==> M), (P ==> M), task("?"), --var(M), --eqPN(M,P), --eqPN(M,S), --seq(P), --seq(S)  |- implCompose(--S,--P,M,c,s), (Punctuation:Question)
+        //(P ==> M), (S ==> M), task("?")  |- (P || S), (Punctuation:Question)
+        //(P ==> M), (S ==> M), task("?")  |- (P && S), (Punctuation:Question)
+
+    //(P ==> M), (P ==> M), task("?"), --eqPN(M,P), --seq(P),  |- ((P && --P) ==> M), (Punctuation:Question)
+}
+
+postQuestion {
+    (M ==> S), (M ==> P), task("?"), hasBelief(), --var({S,P,M}) |- implConj(polarizeRandom(S), polarizeBelief(P),M,c,p), (Punctuation:Question)
+    //(M ==> S), (M ==> P), task("?"), hasBelief(), --var({S,P,M}) |- implConj(polarizeRandom(S), polarizeRandom(P),M,c,p), (Punctuation:Question)
+
+//    (M ==> S), (M ==> P), task("?"), --var(M), --eqPN(M,P), --eqPN(M,S)                                        |- implCompose(  S,  P,M,c,p), (Punctuation:Question)
+//    (M ==> S), (M ==> P), task("?"), --var(M), --eqPN(M,P), --eqPN(M,S), --seq(P)                     |- implCompose(  S,--P,M,c,p), (Punctuation:Question)
+//    (M ==> S), (M ==> P), task("?"), --var(M), --eqPN(M,P), --eqPN(M,S), --seq(S)                     |- implCompose(--S,  P,M,c,p), (Punctuation:Question)
+//    (M ==> S), (M ==> P), task("?"), --var(M), --eqPN(M,P), --eqPN(M,S), --seq(P), --seq(S)  |- implCompose(--S,--P,M,c,p), (Punctuation:Question)
+
+//    (M ==> S), (M ==> P), task("?"), --var(M), --eqPN(M,P), --eqPN(M,S)  |- implCompose(polarizeRandom(S),polarizeRandom(P),M,c,p), (Punctuation:Question)
+
+}
+
+//postQuestionNegate {
+//    //questions negated precondition
+//    (M ==> P), (N ==> S), eqNeg(M,N), task("?")  |- (N ==> (P && S)), (Punctuation:Question)
+//    (M ==> P), (N ==> S), eqNeg(M,N), task("?")  |- (N ==> (P || S)), (Punctuation:Question)
+//}
+
+
+//postDuctionEliminateContradictingCondition {
+//    //TODO A..+
+//    (  A ==> (X && B)), (  A ==> (Y && B)), eqNeg(X,Y)  |- (  A ==> B), (Belief:IntersectionPB)
+//    (  (A && X) ==> B), (  (A && Y) ==> B), eqNeg(X,Y)  |- (  A ==> B), (Belief:IntersectionPB)
+//    (--(A && X) ==> B), (--(A && Y) ==> B), eqNeg(X,Y)  |- (--A ==> B), (Belief:IntersectionPB)
+//}
+
+
+//post_always {
+//    (A ==> Y), (B ==> Y), eqNeg(A,B)  |-    Y, (Belief:DeductionPP)
+//    (A ==> Y), (B ==> Y), eqNeg(A,B)  |-  --Y, (Belief:DeductionNN)
+//}
+//
+//pre_never {
+//    (X ==> Y), (X ==> Y)  |-  --X, (Belief:DeductionPN)
+//    (X ==> Y), (X ==> Y)  |-  --X, (Belief:DeductionNP)
+//}

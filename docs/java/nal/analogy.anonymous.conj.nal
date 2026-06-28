@@ -1,0 +1,13 @@
+anonymous_analogy_conj_unify_belief {
+
+  C, X, belief("+p"),   hasVars(C,X)               |-  unisubst(C, unifiableSubEvent(C,  X),   X, novel), (Belief:ConductWeakPP, Time:BeliefRel)
+  C, X, belief("-p"),   hasVars(C,X),has(C,"--")   |-  unisubst(C, unifiableSubEvent(C,--X), --X, novel), (Belief:ConductWeakPN, Time:BeliefRel)
+
+//     X, C, hasVars(C,X)               |-  unisubst(C, unifiableSubEvent(C,  X),   X, novel), (Belief:BiductPP,  Time:TaskRel)
+//     X, C, hasVars(C,X),has(C,"--")   |-  unisubst(C, unifiableSubEvent(C,--X), --X, novel), (Belief:BiductNP,  Time:TaskRel)
+}
+
+anonymous_analogy_conj_unify_question {
+  C, X, --var(X), hasVars(C,X)   |-  unisubst(C, unifiableSubEventPN(C,  X), X, novel), (Punctuation:AskAsk)
+  X, C, --var(X), hasVars(C,X)   |-  unisubst(C, unifiableSubEventPN(C,  X), X, novel), (Punctuation:AskAsk)
+}

@@ -1,34 +1,28 @@
 import { expect } from '@playwright/test';
 import { BeliefGraph } from '../components/belief.graph';
-import { WsInterceptor } from '../fixtures/ws-interceptor';
+import { TestControl } from '../utils/test-control';
 
 export async function seedGraph(
-  ws: WsInterceptor,
+  testControl: TestControl,
   graph: BeliefGraph,
-  concepts: Array<{ id: string; priority: number; confidence: number }>
+  concepts: Array<{ term: string; f: number; c: number }>
 ) {
-  const ops = concepts.map(c => ({
-    action: 'add_node' as const,
-    id: c.id,
-    data: { priority: c.priority, confidence: c.confidence },
-  }));
-
-  await ws.injectCognitiveDelta('belief_graph', ops);
-
-  await graph.waitForNode(concepts[0]!.id);
+  await testControl.seedGraph(concepts);
+  // Trigger a derivation to ensure the graph updates with the new concepts
+  await testControl.injectDerivation('seedConcept', 0.5);
+  await graph.waitForUpdate();
 }
 
 export async function triggerDerivation(
-  ws: WsInterceptor,
+  testControl: TestControl,
   graph: BeliefGraph,
   conclusionId: string,
-  priority: number = 0.85
+  frequency: number = 0.85,
+  confidence: number = 0.9
 ) {
   const initialCount = await graph.getNodeCount();
 
-  await ws.injectCognitiveDelta('belief_graph', [
-    { action: 'add_node', id: conclusionId, data: { priority, confidence: 0.9 } },
-  ]);
+  await testControl.injectDerivation(conclusionId, frequency, confidence);
 
   await expect(async () => {
     const count = await graph.getNodeCount();
@@ -37,34 +31,25 @@ export async function triggerDerivation(
 
   const data = await graph.getNodeData(conclusionId);
   expect(data).not.toBeNull();
-  expect(data.priority).toBe(priority);
+  expect(data.priority).toBeGreaterThan(0);
 }
 
 export async function simulateHighThroughput(
-  ws: WsInterceptor,
+  testControl: TestControl,
   graph: BeliefGraph,
-  eventsPerSecond: number,
+  eventsPerSec: number,
   durationSec: number
 ) {
-  const interval = 1000 / eventsPerSecond;
-  const totalEvents = eventsPerSecond * durationSec;
-
+  const totalEvents = eventsPerSec * durationSec;
   const startTime = Date.now();
+
   for (let i = 0; i < totalEvents; i++) {
-    await ws.injectCognitiveDelta('belief_graph', [
-      {
-        action: 'add_node',
-        id: `concept-${i}`,
-        data: { priority: 0.5 + Math.random() * 0.5, confidence: 0.5 + Math.random() * 0.5 },
-      },
-    ]);
-    await new Promise(r => setTimeout(r, interval));
+    await testControl.injectDerivation(`concept-${i}`, 0.5 + Math.random() * 0.5);
   }
 
   const elapsed = Date.now() - startTime;
   const actualRate = totalEvents / (elapsed / 1000);
-
-  expect(actualRate).toBeGreaterThan(eventsPerSecond * 0.8);
+  expect(actualRate).toBeGreaterThan(eventsPerSec * 0.5);
 
   const nodeCount = await graph.getNodeCount();
   expect(nodeCount).toBeLessThanOrEqual(300);

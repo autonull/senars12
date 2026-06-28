@@ -1,0 +1,32 @@
+anonymous_analogy_impl_subj_question {
+       (  C==>A), X, --var(A), --condPN(C,X),hasVars(C,X), hasBelief()     |-     unisubst(taskTerm, unifiableSubEventPN(C,    X),     X, novel), (Punctuation:AskAsk)
+       (--C==>A), X, --var(A), --condPN(C,X),hasVars(C,X), hasBelief()     |-     unisubst(taskTerm, unifiableSubEventPN(C,    X),     X, novel), (Punctuation:AskAsk)
+}
+
+anonymous_analogy_impl_pred_question {
+       (  A==>C), X, --var(A), --condPN(C,X),hasVars(C,X), hasBelief()     |-     unisubst(taskTerm, unifiableSubEventPN(C,    X),     X, novel), (Punctuation:AskAsk)
+}
+
+anonymous_analogy_impl_subj {
+
+       (  C==>A), X, belief("+p"), --var(A), --condPN(C,X),hasVars(C,X)                 |-     unisubst(taskTerm, unifiableSubEvent(C,    X),     X, novel), (Belief:ConductPP)
+       (  C==>A), X, belief("-p"), --var(A), --condPN(C,X),hasVars(C,X),has(C,"--")     |-     unisubst(taskTerm, unifiableSubEvent(C,  --X),   --X, novel), (Belief:ConductPN)
+       (--C==>A), X, belief("-p"), --var(A), --condPN(C,X),hasVars(C,X),has(C,"--")     |-     unisubst(taskTerm, unifiableSubEvent(C,  --X),   --X, novel), (Belief:ConductPP)
+       (--C==>A), X, belief("+p"), --var(A), --condPN(C,X),hasVars(C,X)                 |-     unisubst(taskTerm, unifiableSubEvent(C,    X),     X, novel), (Belief:ConductPN)
+
+    X, (  C==>A), task("+p"),    --var(A), --condPN(C,X),hasVars(C,X)                 |-     unisubst(beliefTerm, unifiableSubEvent(C,    X),     X, novel), (Belief:ConductPPX, Time:Belief)
+    X, (  C==>A), task("-p"),    --var(A), --condPN(C,X),hasVars(C,X),has(C,"--")     |-     unisubst(beliefTerm, unifiableSubEvent(C,  --X),   --X, novel), (Belief:ConductPNX, Time:Belief)
+    X, (--C==>A), task("-p"),    --var(A), --condPN(C,X),hasVars(C,X),has(C,"--")     |-     unisubst(beliefTerm, unifiableSubEvent(C,  --X),   --X, novel), (Belief:ConductPPX, Time:Belief)
+    X, (--C==>A), task("+p"),    --var(A), --condPN(C,X),hasVars(C,X)                 |-     unisubst(beliefTerm, unifiableSubEvent(C,    X),     X, novel), (Belief:ConductPNX, Time:Belief)
+}
+
+anonymous_analogy_impl_pred {
+
+//(  A==>B), X, --var(A), hasVars(B,X)             |-  unisubst(taskTerm, B,     X, novel), (Belief:ConductPP)
+
+       (  A==>C), X, belief("+p"), --var(A), --condPN(C,X),hasVars(C,X)             |-  unisubst(taskTerm, unifiableSubEvent(C,    X),     X, novel), (Belief:ConductPP)
+       (  A==>C), X, belief("-p"), --var(A), --condPN(C,X),hasVars(C,X),has(C,"--") |-  unisubst(taskTerm, unifiableSubEvent(C,  --X),   --X, novel), (Belief:ConductPN)
+
+    X, (  A==>C), task("+p"),    --var(A), --condPN(C,X),hasVars(C,X)             |-  unisubst(beliefTerm, unifiableSubEvent(C,    X),     X, novel), (Belief:ConductPPX, Time:Belief)
+    X, (  A==>C), task("-p"),    --var(A), --condPN(C,X),hasVars(C,X),has(C,"--") |-  unisubst(beliefTerm, unifiableSubEvent(C,  --X),   --X, novel), (Belief:ConductPNX, Time:Belief)
+}

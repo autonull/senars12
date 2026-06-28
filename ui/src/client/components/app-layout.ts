@@ -1,5 +1,14 @@
 import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
+// Import child components to ensure they're defined before this component renders
+import './cognitive-hud.js';
+import './chat-console.js';
+import './config-drawer.js';
+import './working-memory.js';
+import './telemetry-panel.js';
+import { exposeTestApi } from '../core/store.js';
+import { connect } from '../core/ws-client.js';
+import { $connectionState } from '../core/store.js';
 
 @customElement('app-layout')
 export class AppLayout extends LitElement {

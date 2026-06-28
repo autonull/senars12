@@ -1,0 +1,20 @@
+// Contraposition
+//    a→b == ¬b→¬a		# contra positition [Lex contrapositionis]
+// "If not smoking causes health, being not healthy may be the result of smoking"
+
+contraposition {
+    (--B ==> A), (  A ==> B), task("?"), --eqPN(A,B)  |- (--B ==>   A), (Belief:ContrapositionPP, Punctuation:Belief, Time:Belief)
+    (  B ==> A), (  A ==> B), task("?"), --eqPN(A,B)  |- (  B ==>   A), (Belief:ContrapositionPN, Punctuation:Belief, Time:Belief)
+    //(--B ==> A), (--A ==> B), task("?"), --eqPN(A,B)  |- (--B ==> --A), (Belief:ContrapositionPP, Punctuation:Belief, Time:Belief)
+    //(  B ==> A), (--A ==> B), task("?"), --eqPN(A,B)  |- (  B ==> --A), (Belief:ContrapositionPN, Punctuation:Belief, Time:Belief)
+}
+
+
+//contraposition_question_prompt {
+    //prompts dynamic contraposition
+    //(--Y ==> X), (X==>Y),     task("?"),  --is(Y,"--"), --var(X), --var(Y) |- debug((--X ==> Y)), (Punctuation:Question)
+     //   X, (Y ==> X), task("?@"), --is(Y,"--"), --var(Y)             |- (--X ==> Y), (Punctuation:Question)
+
+    //(Y ==> X), (Y ==> X), --is(Y,"--"), --is(X,"?"), --has(Y,"?")      |- (--X ==> Y), (Punctuation:AskAsk)
+      //X, (Y ==> X)--is(Y,"--"),       |- (--X ==> Y), (Punctuation:AskAsk)
+//}

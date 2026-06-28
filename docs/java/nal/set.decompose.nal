@@ -1,0 +1,23 @@
+
+single_premise_Set_Decomposition {
+    (C --> X), Y, is(X,{"{","["}), subPN(X,Y), subsMin(X,2) |- (C --> withoutPN(X,Y)), (Belief:StructuralReduction)
+    (X --> C), Y, is(X,{"{","["}), subPN(X,Y), subsMin(X,2) |- (withoutPN(X,Y) --> C), (Belief:StructuralReduction)
+}
+
+//Set Question Decomposition
+set_question_decompose {
+    ({E}-->X), (S-->X), task("?"), is(S,"{"), sub(S,E), subsMin(S,2) |- ({E} --> X), (Belief:BeliefStructuralReduction, Time:Belief)
+      ([E]-->X), (S-->X), task("?"), is(S,"["), sub(S,E), subsMin(S,2) |- ([E] --> X), (Belief:BeliefStructuralReduction, Time:Belief)
+    (X-->{E}), (X-->S), task("?"), is(S,"{"), sub(S,E), subsMin(S,2) |- (X-->{E}), (Belief:BeliefStructuralReduction, Time:Belief)
+      (X-->[E]), (X-->S), task("?"), is(S,"["), sub(S,E), subsMin(S,2) |- (X-->[E]), (Belief:BeliefStructuralReduction, Time:Belief)
+}
+
+////Set Un-recurser
+//    ({ (V-->K), A..* }-->M), M |- ({V} --> (M,K)), (Belief:StructuralDeduction, Goal:StructuralDeduction)
+
+
+//Nothing is more specific than a instance, so its similar
+//    ({P} <-> S),  S  |- (S --> {P}), (Belief:Identity, Goal:Identity)
+
+//nothing is more general than a property, so its similar
+//    ([S] <-> P),  P  |- ([S] --> P), (Belief:Identity, Goal:Identity)

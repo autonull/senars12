@@ -1,0 +1,29 @@
+delta_impl_induction {
+    X, (Y  ==> X),task("."),--taskEternal(),--is(X,"Δ"),eqPN(X,Y), hasBelief() |- /\X, (Punctuation:Question)
+}
+
+delta_extra_induction {
+    (Y ==> /\X), X, task("."), --taskEternal(), --eqPN(X,Y), hasBelief() |- /\Y, (Punctuation:Question, Time:BeliefRel)
+    //C, X, task("."), is(X,"Δ"),condPN(C,X),--taskEternal(), hasBelief() |- /\condWithoutAllPN(C,X), (Punctuation:Question)
+}
+
+delta_introduction_aggressive {
+    Y, (X==>Y), task("."), taskTemporal(), --eqPN(X,Y),--var({X,Y}),--is(Y,"Δ") |- /\Y, (Punctuation:Question)
+}
+
+
+//        {
+//            //d.addAll(new DeltaIntroduction());
+//            //TODO eternal filter
+//            //TODO DeltaIntroduction.add(d);
+//            d.add(
+//
+//                /*                        vvv prevents 2nd deriv  */
+//                "Y, (X==>Y), task(\".\"), taskTemporal(), --eqPN(X,Y),--var({X,Y}),--is(Y,\"Δ\"), --seq(Y) |- /\\Y, (Punctuation:Question)"
+//
+//                //"Y, (X==>Y), task(\".\"), taskTemporal(), --eqPN(X,Y),--var({X,Y}) |- /\\Y, (Punctuation:Question)"
+//                //"Y, (X==>Y), taskTemporal(), --eqPN(X,Y),--var({X,Y}) |- /\\Y, (Punctuation:Ask)"
+//                //"Y, (X==>Y), task(\".!\"), --eqPN(X,Y),--var({X,Y}) |- (X ==> /\\Y), (Punctuation:Question)"
+//                //"(X==>Y), (X==>Y), task(\".\"), --eqPN(X,Y),--var({X,Y}) |- debug(/\\Y), (Punctuation:Ask)"
+//            );
+//        }

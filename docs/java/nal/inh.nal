@@ -1,0 +1,110 @@
+// inheritance-based syllogism
+//
+//       (A --> B) ------- (B --> C)
+//            \               /
+//             \             /
+//              \           /
+//               \         /
+//                (A --> C)
+
+inh_deduction_bidi {
+  (S --> M), (M --> P),--var({S,M,P})   |- (S --> P), (Belief:ConductX, Time:Union)
+    (M --> P), (S --> M),--var({S,M,P}) |- (S --> P), (Belief:Conduct, Time:Union)
+//  (S --> M), (M --> P),--var({S,M,P})   |- (S --> P), (Belief:BiductX)
+//    (M --> P), (S --> M),--var({S,M,P}) |- (S --> P), (Belief:Biduct)
+}
+//inh_deduction {
+//  (S --> M), (M --> P),--var(M)    |-     (S --> P), (Belief:DeductionPP)
+//    (M --> P), (S --> M),--var(M)  |-     (S --> P), (Belief:DeductionPP)
+//}
+
+//inh_deduction_Neg {
+//  //logical?
+//  (S --> M), (M --> P),--var({S,M,P})    |-   --(S --> P), (Belief:DeductionNN)
+//    (M --> P), (S --> M),--var({S,M,P})  |-   --(S --> P), (Belief:DeductionNN)
+//}
+
+//inh_deduction_misc {
+//  (S --> M), (M --> P),--var({S,M,P})    |-   --(S --> P), (Belief:DeductionPN)
+//    (M --> P), (S --> M),--var({S,M,P})  |-   --(S --> P), (Belief:DeductionNP)
+
+//  (S --> X), (Y --> P), ceq(X,Y), --var({X,Y})    |-     (S --> P), (Belief:Deduction)
+//    (Y --> P), (S --> X), ceq(X,Y), --var({X,Y})  |-     (S --> P), (Belief:Deduction)
+
+//}
+
+
+//inh_deduction_question_fwd_ceq {
+//       (S --> X), (Y --> P), ceqPN(X,Y), --var({X,Y}), hasBelief()  |- (S --> P), (Punctuation:AskAsk)
+//       (Y --> P), (S --> X), ceqPN(X,Y), --var({X,Y}), hasBelief()  |- (S --> P), (Punctuation:AskAsk)
+//}
+
+//inh_deduction_question_rev {
+//       (X --> P), (X --> M), --var(X), hasBelief()  |- (M --> P), (Punctuation:AskAsk)
+//       (S --> X), (M --> X), --var(X), hasBelief()  |- (S --> M), (Punctuation:AskAsk)
+//}
+
+inh_deduction_question_rev_ceq {
+       (X --> P), (Y --> M), ceqPN(X,Y), --var({X,Y}), hasBelief(), --taskBeliefEq()   |- (M --> P), (Punctuation:AskAsk)
+       (S --> X), (M --> Y), ceqPN(X,Y), --var({X,Y}), hasBelief(), --taskBeliefEq()   |- (S --> M), (Punctuation:AskAsk)
+//       (Z --> P), (S --> M), ceq(Z,S), --var({S,Z,M,P})  |- (M --> P), (Punctuation:AskAsk)
+//       (S --> Q), (M --> P), ceq(Q,P), --var({S,M,P,Q})  |- (S --> M), (Punctuation:AskAsk)
+}
+
+
+
+inh_abduction {
+    //AbductionX = Induction
+    //TODO check in/ab ordering
+    (B --> X), (A --> X),--var({X,A,B})      |- (A --> B), (Belief:AbductionX, Time:Union)
+    (B --> X), (A --> X),--var({X,A,B})      |- (B --> A), (Belief:Abduction, Time:Union)
+//    (B --> X), (A --> X),--var({X,A,B})      |- --(A --> B), (Belief:InductionNN)
+//    (B --> X), (A --> X),--var({X,A,B})      |- --(B --> A), (Belief:AbductionNN)
+
+    (X --> B), (X --> A),--var({X,A,B})      |- (A --> B), (Belief:AbductionX, Time:Union)
+    (X --> B), (X --> A),--var({X,A,B})      |- (B --> A), (Belief:Abduction, Time:Union)
+//    (X --> B), (X --> A),--var({X,A,B})      |- --(A --> B), (Belief:InductionNN)
+//    (X --> B), (X --> A),--var({X,A,B})      |- --(B --> A), (Belief:AbductionNN)
+
+}
+
+inh_abduction_question_rev {
+        //reverse (hierarchical)
+        (B --> X), (A --> Y), ceqPN(X,Y),--var({X,Y}),neq(B,Y), hasBelief(), --taskBeliefEq()     |- (A --> B), (Punctuation:AskAsk)
+        (X --> C), (A --> Y), ceqPN(X,Y),--var({X,Y}),neq(A,X), hasBelief(), --taskBeliefEq()     |- (A --> C), (Punctuation:AskAsk)
+        (X --> B), (Y --> A), ceqPN(X,Y),--var({X,Y}),neq(B,Y), hasBelief(), --taskBeliefEq()     |- (B --> A), (Punctuation:AskAsk)
+        (C --> X), (Y --> A), ceqPN(X,Y),--var({X,Y}),neq(A,X), hasBelief(), --taskBeliefEq()     |- (C --> A), (Punctuation:AskAsk)
+}
+//inh_abduction_question_fwd {
+//        //fwd heterarchical
+//        (X --> B), (X --> C), --var({Y,B,C})    |- (B --> C), (Punctuation:AskAsk)
+//        (X --> B), (X --> C), --var({Y,B,C})    |- (C --> B), (Punctuation:AskAsk)
+//        (B --> X), (C --> X), --var({Y,B,C})    |- (B --> C), (Punctuation:AskAsk)
+//        (B --> X), (C --> X), --var({Y,B,C})    |- (C --> B), (Punctuation:AskAsk)
+////        (X --> B), (Y --> C), ceq(X,Y), --var({Y,B,C})    |- (B --> C), (Punctuation:AskAsk)
+////        (X --> B), (Y --> C), ceq(X,Y), --var({Y,B,C})    |- (C --> B), (Punctuation:AskAsk)
+////        (B --> X), (C --> Y), ceq(X,Y), --var({Y,B,C})    |- (B --> C), (Punctuation:AskAsk)
+////        (B --> X), (C --> Y), ceq(X,Y), --var({Y,B,C})    |- (C --> B), (Punctuation:AskAsk)
+//}
+
+
+//inh_Exemplification {
+//    (S --> M), (M --> P),--var({S,M,P})   |-   (P --> S), (Belief:ExemplificationPP, Time:Union)
+//    (M --> P), (S --> M),--var({S,M,P})   |-   (P --> S), (Belief:ExemplificationPP, Time:Union)
+//}
+
+//inh_Exemplification_Neg {
+//    //logical?
+//    (S --> M), (M --> P),--var({S,M,P})   |-  --(P --> S), (Belief:ExemplificationNN)
+//    (M --> P), (S --> M),--var({S,M,P})   |-  --(P --> S), (Belief:ExemplificationNN)
+//}
+
+inh_Exemplification_question_rev {
+    (P --> X), (Y --> M), ceqPN(X,Y), --var({X,Y,M,P}), hasBelief()   |- (M --> P), (Punctuation:AskAsk)
+    (X --> S), (M --> Y), ceqPN(X,Y), --var({X,Y,M,S}), hasBelief()   |- (S --> M), (Punctuation:AskAsk)
+}
+
+//inh_Exemplification_question_fwd {
+//    (S --> M), (M --> P), --var({S,M,P})   |- (P --> S), (Punctuation:AskAsk)
+//    (M --> P), (S --> M), --var({S,M,P})   |- (P --> S), (Punctuation:AskAsk)
+//}

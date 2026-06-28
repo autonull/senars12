@@ -1,0 +1,146 @@
+start_goal_conj {
+     C, X, task("+p"),condFirst(C,  X),--hasBelief(),--hasVar(X)  |-    X, (Goal:StructuralExemplificationWeak, Time:Task)
+     C, X, task("+p"),condFirst(C,--X),--hasBelief(),--hasVar(X)  |-  --X, (Goal:StructuralExemplificationWeak, Time:Task)
+}
+
+//start_goal_disj {
+//     D, X, task("-p"),condFirst(D,--X),--seq(D),--hasBelief(),--hasVar(X)  |-    X, (Goal:StructuralExemplificationWeakNP, Time:Task)
+//     D, X, task("-p"),condFirst(D,  X),--seq(D),--hasBelief(),--hasVar(X)  |-  --X, (Goal:StructuralExemplificationWeakNP, Time:Task)
+//}
+
+
+//conj_decompose_any {
+   //'classic' free structural deduction (permute)
+   //C, X, condPN(C,X), --hasBelief()   |-   condWithoutAnyPN(C,X), (Belief:StructuralDeduction, Time:TaskRel)
+   //C, X, --seq(C), condPN(C,X)      |-    condWithoutAnyPN(C,X), (Belief:StructuralDeduction)
+//}
+
+
+     //C, X, condFirst(C,  X),--hasBelief()  |-   condWithoutAny(C,  X), (Goal:StructuralExemplificationWeak, Time:TaskRel)
+     //C, X, condFirst(C,--X),--hasBelief()  |-   condWithoutAny(C,--X), (Goal:StructuralExemplificationWeak, Time:TaskRel)
+
+//     C, X, --seq(C), condStart(C,  X),--hasBelief() |-    X, (Goal:StructuralExemplification, Time:Task)
+//     C, X, --seq(C), condStart(C,--X),--hasBelief() |-  --X, (Goal:StructuralExemplification, Time:Task)
+//     C, X,   seq(C), condFirst(C,  X),--hasBelief() |-    X, (Goal:StructuralExemplification, Time:Task)
+//     C, X,   seq(C), condFirst(C,--X),--hasBelief() |-  --X, (Goal:StructuralExemplification, Time:Task)
+
+
+//anti_initiative {
+//     D, X, task("-p"), condStart(D,  X),--hasBelief() |-  --X, (Goal:StructuralExemplificationN, Time:Task)
+//     D, X, task("-p"), condStart(D,--X),--hasBelief() |-    X, (Goal:StructuralExemplificationN, Time:Task)
+//
+////     C, X, --seq(C), condStart(C,  X),--hasBelief() |-  --X, (Goal:StructuralExemplificationN, Time:Task)
+////     C, X, --seq(C), condStart(C,--X),--hasBelief() |-    X, (Goal:StructuralExemplificationN, Time:Task)
+////     C, X,   seq(C), condFirst(C,  X),--hasBelief() |-  --X, (Goal:StructuralExemplificationN, Time:Task)
+////     C, X,   seq(C), condFirst(C,--X),--hasBelief() |-    X, (Goal:StructuralExemplificationN, Time:Task)
+//}
+
+//tenacity {
+//     //tenacity, or follow-through
+//     C, X, --condStart(C,  X), cond(C,  X),--hasBelief(), --var(X) |-    X, (Goal:StructuralExemplificationWeak, Time:TaskRel)
+//     C, X, --condStart(C,--X), cond(C,--X),--hasBelief(), --var(X) |-  --X, (Goal:StructuralExemplificationWeak, Time:TaskRel)
+//}
+
+
+
+//cond_predict_belief {
+//     C, X, cond(C,  X),--hasBelief(), --var(X) |-    X, (Belief:StructuralExemplificationWeak, Time:TaskRel)
+//     C, X, cond(C,--X),--hasBelief(), --var(X) |-  --X, (Belief:StructuralExemplificationWeak, Time:TaskRel)
+//}
+
+  //"detachment"
+//  C, X, condStart(C,  X),--var(X),--has(X,"&&"),--has(X,"#"), --hasBelief() |-    X, (Goal:StructuralDeduction, Time:Task)
+//  C, X, condStart(C,--X),--var(X),--has(X,"&&"),--has(X,"#"), --hasBelief() |-  --X, (Goal:StructuralDeduction, Time:Task)
+
+  //direct decomposition
+
+//   C, X, condStart(C,  X),--hasBelief() |-    X, (Goal:StructuralExemplification, Time:Task)
+//   C, X, condStart(C,--X),--hasBelief() |-  --X, (Goal:StructuralExemplification, Time:Task)
+
+//   C, X, condStart(C,  X),--hasBelief() |-    X, (Goal:StructuralDeduction, Time:Task)
+//   C, X, condStart(C,--X),--hasBelief() |-  --X, (Goal:StructuralDeduction, Time:Task)
+
+//  C, X, condStart(C,  X),--hasVar(C),--var(X),--hasBelief() |-    X, (Goal:StructuralDeduction, Time:Task)
+//  C, X, condStart(C,--X),--hasVar(C),--var(X),--hasBelief() |-  --X, (Goal:StructuralDeduction, Time:Task)
+
+//      //variable decomposition (classic)
+//      C, X, condStartPN(C,  X),hasAny(C,{"$","#","?","="}),--hasBelief() |-  condWithoutAnyPN(C,X), (Goal:StructuralDeduction, Time:Task)
+
+//  C, X, seq(C),condFirst(C,  X),--has(X,"&&"),--has(X,"#"),--var(X), --hasBelief() |-    X, (Goal:StructuralIntersection, Time:Task)
+//  C, X, seq(C),condFirst(C,--X),--has(X,"&&"),--has(X,"#"),--var(X), --hasBelief() |-  --X, (Goal:StructuralIntersection, Time:Task)
+//  C, X, --seq(C),cond(C,  X),--has(X,"&&"),--has(X,"#"), --var(X), --hasBelief() |-    X, (Goal:StructuralIntersection, Time:Task)
+//  C, X, --seq(C),cond(C,--X),--has(X,"&&"),--has(X,"#"), --var(X), --hasBelief() |-  --X, (Goal:StructuralIntersection, Time:Task)
+
+
+//  C, X, condFirst(C,  X),--var(X),--has(X,"&&"),--has(X,"#"), --hasBelief() |-    polarizeTask(X), (Goal:StructuralExemplificationDD, Time:Task)
+//  C, X, condFirst(C,--X),--var(X),--has(X,"&&"),--has(X,"#"), --hasBelief() |-  --polarizeTask(X), (Goal:StructuralExemplificationDD, Time:Task)
+
+//  C, X, condFirst(C,  X),--var(X),--has(X,"&&"),--has(X,"#"), --hasBelief() |-    X, (Goal:StructuralDeduction, Time:Task)
+//  C, X, condFirst(C,--X),--var(X),--has(X,"&&"),--has(X,"#"), --hasBelief() |-  --X, (Goal:StructuralDeduction, Time:Task)
+//  C, X, condFirst(C,  X),--var(X),--has(X,"&&"),--has(X,"#"), --hasBelief() |-    X, (Goal:StructuralExemplification, Time:Task)
+//  C, X, condFirst(C,--X),--var(X),--has(X,"&&"),--has(X,"#"), --hasBelief() |-  --X, (Goal:StructuralExemplification, Time:Task)
+
+//  C, X, condFirst(C,  X),--var(X),--has(X,"&&"),--has(X,"#"), --hasBelief() |-    polarizeTask(X), (Goal:StructuralDeductionDD, Time:Task)
+//  C, X, condFirst(C,--X),--var(X),--has(X,"&&"),--has(X,"#"), --hasBelief() |-  --polarizeTask(X), (Goal:StructuralDeductionDD, Time:Task)
+
+//  C, X, condFirst(C,  X),seq(C),--var(X),--has(X,"&&"),--has(X,"#"), --hasBelief() |-    X, (Goal:StructuralDeduction, Time:Task)
+//  C, X, condFirst(C,--X),seq(C),--var(X),--has(X,"&&"),--has(X,"#"), --hasBelief() |-  --X, (Goal:StructuralDeduction, Time:Task)
+
+
+//conj_goal_free_structural_decompose {
+//
+//   //direct bipolar:
+//     C, X, cond(C,  X), --var(X), --has(X,"&&"), --has(X,"#") |- polarizeTask(  X), (Goal:StructuralDeductionDD, Time:TaskRel)
+//     C, X, cond(C,--X), --var(X), --has(X,"&&"), --has(X,"#") |- polarizeTask(--X), (Goal:StructuralDeductionDD, Time:TaskRel)
+//
+////   //direct unipolar conj:
+////     C, X, cond(C,  X), --var(X), --has(X,"&&"), --has(X,"#") |-   X, (Goal:StructuralDeduction, Time:TaskRel)
+////     C, X, cond(C,--X), --var(X), --has(X,"&&"), --has(X,"#") |- --X, (Goal:StructuralDeduction, Time:TaskRel)
+//
+////    //direct unipolar disj:
+////        C, X, cond(C,  X), --var(X), --has(X,"&&"), --has(X,"#") |- --X, (Goal:StructuralDeductionN, Time:TaskRel)
+////        C, X, cond(C,--X), --var(X), --has(X,"&&"), --has(X,"#") |-   X, (Goal:StructuralDeductionN, Time:TaskRel)
+//
+//   //classic grouped:
+//   //C, X, --seq(C), condPN(C,  X), --var(X) |-  conjWithoutFirstPN(C,  X), (Goal:StructuralDeduction)
+//}
+
+
+
+
+//conj_decompose_any_by_question {
+//   X, C, task("?"), condPN(C,X)    |-    condWithoutAnyPN(C,X), (Belief:BeliefStructuralDeduction, Time:BeliefRel)
+//}
+
+//disj_belief_decompose_any {
+//    D, X, condPN(D,X)   |-   --condWithoutAnyPN(D,X), (Belief:StructuralDeductionN, Time:TaskRel)
+//}
+
+//disj_free_decomposition {
+//    //goals only:
+//    D, X, eventOfNeg(D,X), par(D), --var(X)    |-   X, (Goal:StructuralDeductionN)
+//    D, X, eventOf(D,X), par(D), --var(X)       |- --X, (Goal:StructuralDeductionN)
+//
+////    D, X, eventOfNeg(D,X), par(D), --var(X)    |-   X, (Belief:StructuralDeductionN, Goal:StructuralDeductionN)
+////    D, X, eventOf(D,X), par(D), --var(X)       |- --X, (Belief:StructuralDeductionN, Goal:StructuralDeductionN)
+//}
+
+
+
+//disj_belief_free_structural_decompose {
+//    C, X, --seq(C), condPN(C, X), --has(X,"&&") |-  --conjWithoutFirstPN(C,  X), (Belief:StructuralDeductionN)
+//}
+
+
+
+//conj_goal_conditional_structural_decompose {
+//     C, X, --seq(C), cond(C,  X) |-     X, (Goal:ExemplificationStrongPN)
+//     C, X, --seq(C), cond(C,--X) |-   --X, (Goal:ExemplificationStrongPP)
+//}
+
+
+//ORany {
+//    //free structural deduction
+//    C, X, --seq(C), cond(C,--X), --var(X) |-       X, (Belief:StructuralDeductionN, Goal:StructuralDeductionN)
+//    C, X, --seq(C), cond(C,  X), --var(X) |-     --X, (Belief:StructuralDeductionN, Goal:StructuralDeductionN)
+//}

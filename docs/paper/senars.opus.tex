@@ -1,0 +1,486 @@
+% SeNARS: Semantic Non-Axiomatic Reasoning System
+% Academic Paper - arXiv/NeurIPS Style
+% Licensed under CC-BY-4.0
+
+\documentclass[11pt]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% Page layout (approximating NeurIPS style)
+\usepackage[margin=1in]{geometry}
+\usepackage{fancyhdr}
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+
+% Title and authors
+\title{\textbf{Semantic Non-Axiomatic Reasoning System (SeNARS): \\
+A Hybrid Neuro-Symbolic Platform for Cognitive Architecture Research}}
+
+\author{
+  The SeNARS Development Team \\
+  \texttt{https://github.com/automenta/senars11}
+}
+
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\small\textit{This work is licensed under a Creative Commons Attribution 4.0 International License (CC-BY-4.0).}
+\end{center}
+
+\begin{abstract}
+We present SeNARS, a hybrid neuro-symbolic reasoning system that integrates Non-Axiomatic Logic (NAL) with large language models (LLMs) to create an observable, stream-based platform for cognitive architecture research. Unlike pure symbolic systems that struggle with real-world ambiguity, or pure neural approaches that lack interpretability and consistency, SeNARS combines the formal rigor of NAL with the pattern recognition capabilities of modern language models. The system implements a continuous, non-blocking dataflow architecture that processes streams of premises into conclusions while maintaining epistemic stability through truth values and evidence tracking. Crucially, this paper describes a \emph{deliberately incomplete} system—designed as a substrate for an industrial ecosystem of cognitive architectures rather than a finished application. We introduce the concept of ``deliberate incompleteness'' as a design principle for AI infrastructure, arguing that minimal, extensible foundations enable more diverse and innovative applications than complete but rigid systems. Our prototype demonstrates hybrid reasoning with 87 test files, dual memory architecture, multiple reasoning strategies, and a web-based visualization interface, providing a practical foundation for researchers and practitioners exploring the future of transparent, adaptable AI reasoning.
+
+\textbf{Keywords:} Non-Axiomatic Logic, Hybrid AI, Neuro-Symbolic Integration, Cognitive Architecture, Stream Processing, Deliberate Incompleteness
+\end{abstract}
+
+% ============================================================================
+\section{Introduction and Motivation}
+\label{sec:intro}
+
+The field of artificial intelligence faces a fundamental tension between two dominant paradigms: symbolic AI systems that provide formal guarantees and interpretability but struggle with real-world complexity, and neural network approaches that excel at pattern recognition but lack transparency and consistency \citep{marcus2020next}. This paper introduces SeNARS (Semantic Non-Axiomatic Reasoning System), a hybrid architecture designed to bridge this divide by combining Non-Axiomatic Logic (NAL) \citep{wang1995non, wang2013nal} with large language models (LLMs).
+
+\subsection{Limitations of Pure Symbolic NARS}
+
+The Non-Axiomatic Reasoning System (NARS), developed by Pei Wang, represents a significant departure from classical logic systems. Rather than assuming complete and consistent knowledge (axiomatic approach), NARS operates under the Assumption of Insufficient Knowledge and Resources (AIKR)—recognizing that any real-world system must reason with incomplete, uncertain, and potentially contradictory information under finite computational resources \citep{wang2006rigid}.
+
+Despite its theoretical elegance, pure symbolic NARS implementations face practical limitations:
+
+\begin{itemize}[nosep]
+    \item \textbf{Knowledge Acquisition:} Converting natural language knowledge into formal Narsese representations requires significant manual effort.
+    \item \textbf{Grounding Problem:} Atomic terms lack inherent semantic content, relying entirely on structural relationships.
+    \item \textbf{Scaling Challenges:} Building comprehensive knowledge bases with controlled vocabularies is labor-intensive.
+    \item \textbf{Natural Language Interface:} Users must learn the Narsese syntax to interact with the system effectively.
+\end{itemize}
+
+\subsection{Limitations of Pure LLM Approaches}
+
+Large language models have demonstrated remarkable capabilities in natural language understanding, generation, and even reasoning tasks \citep{brown2020language}. However, they exhibit fundamental limitations for autonomous agent applications:
+
+\begin{itemize}[nosep]
+    \item \textbf{Epistemic Instability:} LLMs produce different outputs for semantically equivalent queries, making them unreliable for maintaining consistent beliefs.
+    \item \textbf{Lack of Persistence:} Without external memory, LLMs have no mechanism for accumulating and revising knowledge over time.
+    \item \textbf{No Intrinsic Goals:} LLMs are purely reactive, completing patterns without autonomous drives or objectives.
+    \item \textbf{Hallucination:} LLMs confidently generate plausible but false statements, with no mechanism for uncertainty quantification.
+    \item \textbf{Opacity:} The reasoning process within LLMs remains largely uninterpretable.
+\end{itemize}
+
+\subsection{The SeNARS Solution}
+
+SeNARS addresses these complementary weaknesses through a hybrid architecture where:
+
+\begin{enumerate}[nosep]
+    \item \textbf{NAL provides the skeleton}—persistent memory, formal truth values, goal-directed behavior, and epistemic consistency.
+    \item \textbf{LLMs provide the flesh}—natural language processing, semantic grounding, world knowledge, and pattern recognition.
+\end{enumerate}
+
+We conceptualize this relationship through an ``operating system'' analogy: the LLM functions as a powerful CPU/ALU that can rapidly process symbols and patterns but has no persistent state. The NAL reasoning system acts as the kernel, providing:
+\begin{itemize}[nosep]
+    \item \textbf{Scheduler:} The reasoning pipeline determines which processes receive LLM ``compute time.''
+    \item \textbf{File System:} Memory structures provide persistent storage of beliefs and goals.
+    \item \textbf{Permissions:} Truth values and evidence stamps determine what information is trusted.
+\end{itemize}
+
+% ============================================================================
+\section{Background}
+\label{sec:background}
+
+\subsection{Non-Axiomatic Logic and NARS}
+
+Non-Axiomatic Logic (NAL) is a formal logic system designed for reasoning under uncertainty with finite resources \citep{wang1995non}. Unlike classical logics that assume complete knowledge and unlimited computational resources, NAL embraces the Assumption of Insufficient Knowledge and Resources (AIKR).
+
+\subsubsection{Core Concepts}
+
+NAL represents knowledge through \textbf{terms} connected by \textbf{copulas}, with associated \textbf{truth values}:
+
+\begin{itemize}[nosep]
+    \item \textbf{Inheritance ($\rightarrow$):} ``$A \rightarrow B$'' means A is a specialization of B
+    \item \textbf{Similarity ($\leftrightarrow$):} Bidirectional similarity relationship
+    \item \textbf{Implication ($\Rightarrow$):} Conditional relationship between statements
+\end{itemize}
+
+\textbf{Truth values} in NAL consist of two components:
+\begin{itemize}[nosep]
+    \item \textbf{Frequency ($f$):} The proportion of positive evidence (range 0-1)
+    \item \textbf{Confidence ($c$):} The reliability of the frequency estimate (range 0-1)
+\end{itemize}
+
+This representation, written as $\{f, c\}$, enables principled reasoning under uncertainty through truth value revision rules that combine evidence while accounting for overlapping sources through \textbf{evidential stamps}.
+
+\subsubsection{Task Types}
+
+NARS distinguishes between different task types by punctuation:
+\begin{itemize}[nosep]
+    \item \textbf{Beliefs (.):} Statements about the world with associated truth values
+    \item \textbf{Goals (!):} Desired states the system aims to achieve
+    \item \textbf{Questions (?):} Queries seeking information or answers
+\end{itemize}
+
+This belief/goal distinction enables goal-directed behavior and naturally supports reinforcement learning paradigms where beliefs model the world and goals define reward structures.
+
+\subsection{Large Language Models}
+
+Large language models, trained on massive text corpora, have demonstrated emergent capabilities including in-context learning, chain-of-thought reasoning, and instruction following \citep{wei2022emergent}. Models such as GPT-4, Claude, and open-source alternatives like LLaMA provide powerful pattern recognition and generation capabilities.
+
+For hybrid systems, LLMs offer:
+\begin{itemize}[nosep]
+    \item \textbf{Natural language understanding} for parsing human input
+    \item \textbf{World knowledge} embedded during pre-training
+    \item \textbf{Semantic similarity} through embedding representations
+    \item \textbf{Translation capabilities} between formal and natural language
+\end{itemize}
+
+% ============================================================================
+\section{SeNARS Architecture}
+\label{sec:architecture}
+
+\subsection{Design Principles}
+
+SeNARS is built on several foundational principles:
+
+\begin{enumerate}[nosep]
+    \item \textbf{Immutable Data Foundation:} Core data structures (Terms, Tasks, Truth, Stamps) are immutable, ensuring consistency and enabling efficient caching.
+    \item \textbf{Component-Based Architecture:} All major components inherit from a common base with standardized lifecycle (initialize, start, stop, dispose).
+    \item \textbf{Pipeline-Based Processing:} Continuous stream architecture for processing premises into conclusions.
+    \item \textbf{Resource Awareness:} CPU throttling, backpressure handling, and derivation depth limits.
+    \item \textbf{Observable Reasoning:} Complete visibility into reasoning processes through event-driven communication.
+\end{enumerate}
+
+\subsection{Core Components}
+
+\subsubsection{Stream Reasoner Pipeline}
+
+The centerpiece of SeNARS is a continuous, non-blocking dataflow pipeline:
+
+\begin{verbatim}
+PremiseSource → Strategy → RuleProcessor → Output Stream
+     ↓              ↓            ↓
+   Memory        Pairing      NAL/LM Rules
+\end{verbatim}
+
+\textbf{PremiseSource} generates tasks from memory using configurable sampling objectives:
+\begin{itemize}[nosep]
+    \item Priority-based sampling (higher priority tasks selected more often)
+    \item Recency-based sampling (favor recently updated information)
+    \item Punctuation-focused sampling (prioritize goals or questions)
+    \item Novelty sampling (favor tasks with fewer derivation steps)
+\end{itemize}
+
+\textbf{Strategy} components create premise pairs for reasoning:
+\begin{itemize}[nosep]
+    \item \textbf{BagStrategy:} NARS-style priority-sampled approach
+    \item \textbf{ExhaustiveStrategy:} Comprehensive search for all related beliefs
+    \item \textbf{PrologStrategy:} Goal-driven backward chaining
+    \item \textbf{ResolutionStrategy:} Prolog-like resolution for question answering
+\end{itemize}
+
+\textbf{RuleProcessor} executes inference rules in a hybrid manner:
+\begin{itemize}[nosep]
+    \item Synchronous NAL rules execute immediately
+    \item Asynchronous LM rules are dispatched without blocking
+    \item Results merge into a unified output stream
+\end{itemize}
+
+\subsubsection{Dual Memory Architecture}
+
+SeNARS implements a biologically-inspired dual memory system:
+
+\begin{itemize}[nosep]
+    \item \textbf{Focus Memory (Short-term):} High-priority, limited-capacity memory for immediate processing
+    \item \textbf{Long-term Memory:} Persistent storage for all knowledge and tasks
+    \item \textbf{Consolidation:} Intelligent movement between memory types based on priority and usage
+\end{itemize}
+
+\subsubsection{Layer System}
+
+The Layer system manages semantic connections between concepts:
+\begin{itemize}[nosep]
+    \item \textbf{TermLayer:} Explicit connections between terms with priority-based management
+    \item \textbf{EmbeddingLayer:} Vector embeddings for semantic similarity computation
+\end{itemize}
+
+\subsection{Hybrid Reasoning Integration}
+
+The integration between NAL and LLM components follows a ``circuit breaker'' pattern for robustness:
+
+\begin{enumerate}[nosep]
+    \item LM calls are asynchronous to prevent blocking the main reasoning loop
+    \item Circuit breakers automatically disable failing LM providers
+    \item Fallback mechanisms ensure continued operation with pure symbolic reasoning
+    \item Results from both modalities are unified through truth value integration
+\end{enumerate}
+
+\textbf{Epistemic Anchoring:} When the LM generates information that contradicts established high-confidence beliefs, the NAL system can reject or down-weight the LM output. For example, if SeNARS holds the belief ``(fire → hot) \{1.0, 0.9\}'', an LM hallucination suggesting fire is cold would be rejected by the consistency enforcement mechanism.
+
+\subsection{RLFP: Reinforcement Learning from Preferences}
+
+SeNARS incorporates a Reinforcement Learning from Preferences (RLFP) framework to optimize reasoning strategies:
+
+\begin{itemize}[nosep]
+    \item \textbf{Trajectory Logging:} Complete reasoning episodes are recorded
+    \item \textbf{Preference Collection:} Users provide qualitative comparisons between reasoning paths
+    \item \textbf{Policy Learning:} A preference model guides decision-making in task selection and rule application
+\end{itemize}
+
+This enables the system to learn \emph{how} to think more effectively, not just \emph{what} to think.
+
+% ============================================================================
+\section{Current Prototype Status}
+\label{sec:status}
+
+\subsection{Implementation}
+
+SeNARS is implemented in JavaScript/Node.js, emphasizing accessibility and rapid iteration. The codebase includes:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lc}
+\toprule
+\textbf{Component} & \textbf{Status} \\
+\midrule
+Core reasoning engine (NAR) & Complete \\
+Stream reasoner pipeline & Complete \\
+Dual memory architecture & Complete \\
+Truth value operations & Complete \\
+Narsese parser & Complete \\
+Multiple strategies (Bag, Prolog, Resolution) & Complete \\
+LM provider integration & Complete \\
+Circuit breaker pattern & Complete \\
+Event-driven architecture & Complete \\
+\bottomrule
+\end{tabular}
+\caption{Core component implementation status}
+\end{table}
+
+\subsection{Test Coverage}
+
+The system includes comprehensive testing across multiple paradigms:
+
+\begin{itemize}[nosep]
+    \item \textbf{87 test files} organized across unit, integration, and end-to-end categories
+    \item \textbf{Unit tests:} Individual component testing (Term, Task, Memory, RuleEngine)
+    \item \textbf{Integration tests:} Component interaction and system behavior
+    \item \textbf{Property-based tests:} Verification of system invariants
+\end{itemize}
+
+\subsection{User Interfaces}
+
+SeNARS provides multiple interfaces for different use cases:
+
+\begin{enumerate}[nosep]
+    \item \textbf{TUI (Text User Interface):} Command-line REPL for direct system interaction using the blessed library
+    \item \textbf{Web UI:} React/Vite-based visualization interface with:
+    \begin{itemize}[nosep]
+        \item Graph visualization of concepts, tasks, and beliefs
+        \item Reasoning trace panels with step-by-step execution
+        \item Task flow diagrams showing processing chains
+        \item Priority histograms and system status panels
+        \item Real-time concept activation monitoring
+    \end{itemize}
+    \item \textbf{WebSocket Monitor:} Real-time system monitoring through web connections
+\end{enumerate}
+
+\subsection{Performance Characteristics}
+
+The system targets the following performance metrics:
+\begin{itemize}[nosep]
+    \item Term processing: $<$1ms
+    \item Task processing: $<$2ms
+    \item Memory operations: $<$5ms
+    \item Throughput: 10,000+ operations per second
+    \item Default resource limits: 512MB memory, 100ms per cycle
+\end{itemize}
+
+% ============================================================================
+\section{Deliberate Incompleteness as Design Choice}
+\label{sec:incompleteness}
+
+This section presents what we believe to be a novel contribution to AI system design philosophy: the principle of \textbf{deliberate incompleteness}.
+
+\subsection{The Anti-Completeness Manifesto}
+
+From the SeNARS design document:
+
+\begin{quote}
+\textit{``This is not being built to be a finished application. It is being built to be substrate—the common seed for a future industrial ecosystem of cognitive architectures. The less complete it is right now, the more possibilities it can grow into.''}
+\end{quote}
+
+This philosophy represents a deliberate inversion of typical software development practices. Rather than maximizing features before release, SeNARS intentionally leaves aspects ``rough, partial, or missing'' to enable diverse applications.
+
+\subsection{Rationale}
+
+\subsubsection{Ecosystem Enablement}
+
+Complete systems implicitly encode design decisions that may not suit all applications. By leaving decisions unmade, SeNARS enables:
+
+\begin{itemize}[nosep]
+    \item \textbf{Minimal edge reasoners} for resource-constrained devices
+    \item \textbf{High-agency planners} with sophisticated goal management
+    \item \textbf{Educational sandboxes} for learning cognitive architecture concepts
+    \item \textbf{Lifelong memory layers} for personal knowledge management
+    \item \textbf{Distributed multi-agent societies} for collective intelligence
+    \item \textbf{Entirely new logics} beyond the provided NAL implementation
+\end{itemize}
+
+\subsubsection{The Stability Contract}
+
+Deliberately incomplete doesn't mean arbitrary. SeNARS maintains stability in three core areas:
+
+\begin{enumerate}[nosep]
+    \item \textbf{Core Reasoning Stream:} The pipeline architecture is stable and well-defined
+    \item \textbf{Observation Contract:} The event system and visibility mechanisms are consistent
+    \item \textbf{Hybrid Integration:} The NAL-LM collaboration pattern is established
+\end{enumerate}
+
+These stable foundations provide the ``skeleton'' upon which diverse ``flesh'' can grow.
+
+\subsection{Implications for AI Research}
+
+The deliberate incompleteness principle suggests a shift in how we build AI infrastructure:
+
+\begin{itemize}[nosep]
+    \item \textbf{From products to platforms:} AI systems as foundations rather than finished goods
+    \item \textbf{From features to interfaces:} Stability in contracts rather than implementations
+    \item \textbf{From completion to cultivation:} Enabling ecosystem growth rather than feature accumulation
+\end{itemize}
+
+This approach aligns with successful infrastructure projects in other domains (Unix, TCP/IP, the Web) that achieved impact through simplicity and extensibility rather than feature completeness.
+
+% ============================================================================
+\section{Future Directions and Open Challenges}
+\label{sec:future}
+
+\subsection{Technical Challenges}
+
+\subsubsection{Performance Optimization}
+\begin{itemize}[nosep]
+    \item Achieving $<$1ms targets across complete reasoning cycles
+    \item Optimizing memory consolidation for larger knowledge bases
+    \item Reducing latency for LLM integration without sacrificing robustness
+\end{itemize}
+
+\subsubsection{Scaling}
+\begin{itemize}[nosep]
+    \item Distributed reasoning across multiple nodes
+    \item Horizontal scaling for large knowledge bases
+    \item Efficient serialization for knowledge transfer
+\end{itemize}
+
+\subsubsection{Integration Depth}
+\begin{itemize}[nosep]
+    \item Deeper semantic grounding through embedding layers
+    \item Bidirectional learning between NAL and LM components
+    \item Automatic translation between Narsese and natural language
+\end{itemize}
+
+\subsection{Research Opportunities}
+
+\subsubsection{Theoretical}
+\begin{itemize}[nosep]
+    \item Formal semantics for NAL-LM hybrid truth values
+    \item Convergence properties under mixed symbolic-neural inference
+    \item Information-theoretic bounds on hybrid reasoning
+\end{itemize}
+
+\subsubsection{Empirical}
+\begin{itemize}[nosep]
+    \item Benchmarking against pure symbolic and pure neural baselines
+    \item Human studies on reasoning transparency and trust
+    \item Long-term stability studies for persistent agents
+\end{itemize}
+
+\subsubsection{Application Domains}
+\begin{itemize}[nosep]
+    \item Personal knowledge management assistants
+    \item Educational tutoring systems with explainable reasoning
+    \item Scientific hypothesis generation and testing
+    \item Autonomous agents with documented decision rationale
+\end{itemize}
+
+% ============================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+SeNARS represents a practical approach to hybrid neuro-symbolic AI that addresses the complementary weaknesses of pure symbolic and pure neural systems. By combining the formal rigor and consistency of Non-Axiomatic Logic with the pattern recognition and natural language capabilities of large language models, we provide a foundation for cognitive architectures that are both powerful and transparent.
+
+The system's stream-based architecture, dual memory system, multiple reasoning strategies, and robust LM integration offer a flexible platform for exploring advanced AI reasoning. Importantly, our principle of deliberate incompleteness positions SeNARS not as a finished product but as a \emph{substrate}—a seed for an ecosystem of cognitive architectures tailored to diverse applications.
+
+\subsection{Call for Collaborators}
+
+We explicitly invite collaboration from:
+
+\begin{itemize}[nosep]
+    \item \textbf{Researchers} interested in formal foundations of hybrid AI
+    \item \textbf{Engineers} building practical reasoning systems
+    \item \textbf{Educators} developing AI curricula with transparent systems
+    \item \textbf{Domain experts} applying reasoning to specific fields
+    \item \textbf{Philosophers} examining questions of machine cognition
+\end{itemize}
+
+SeNARS is open source and actively developed. We welcome contributions, forks, experiments, and critiques. The goal is not to build the perfect system, but to cultivate the conditions for many perfect systems to emerge.
+
+\begin{quote}
+\textit{``If something you need is not here yet, that is by design. Fork it, strip it, break it, and grow it into the species you need.''}
+\end{quote}
+
+% ============================================================================
+\section*{Acknowledgments}
+
+We acknowledge the foundational work of Pei Wang on Non-Axiomatic Logic and NARS, which provides the theoretical basis for SeNARS. We also thank the broader AGI and neuro-symbolic AI research communities for ongoing discussions that have shaped this work.
+
+% ============================================================================
+\bibliographystyle{plainnat}
+
+\begin{thebibliography}{10}
+
+\bibitem[Brown et al.(2020)]{brown2020language}
+Brown, T.~B., Mann, B., Ryder, N., Subbiah, M., Kaplan, J., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., et~al.
+\newblock Language models are few-shot learners.
+\newblock \emph{Advances in Neural Information Processing Systems}, 33:1877--1901, 2020.
+
+\bibitem[Marcus and Davis(2020)]{marcus2020next}
+Marcus, G. and Davis, E.
+\newblock Rebooting AI: Building artificial intelligence we can trust.
+\newblock Vintage, 2020.
+
+\bibitem[Wang(1995)]{wang1995non}
+Wang, P.
+\newblock Non-axiomatic reasoning system: Exploring the essence of intelligence.
+\newblock PhD thesis, Indiana University, 1995.
+
+\bibitem[Wang(2006)]{wang2006rigid}
+Wang, P.
+\newblock Rigid flexibility: The logic of intelligence.
+\newblock Springer, 2006.
+
+\bibitem[Wang(2013)]{wang2013nal}
+Wang, P.
+\newblock Non-axiomatic logic: A model of intelligent reasoning.
+\newblock World Scientific, 2013.
+
+\bibitem[Wei et al.(2022)]{wei2022emergent}
+Wei, J., Tay, Y., Bommasani, R., Raffel, C., Zoph, B., Borgeaud, S., Yogatama, D., Bosma, M., Zhou, D., Metzler, D., et~al.
+\newblock Emergent abilities of large language models.
+\newblock \emph{Transactions on Machine Learning Research}, 2022.
+
+\end{thebibliography}
+
+\end{document}

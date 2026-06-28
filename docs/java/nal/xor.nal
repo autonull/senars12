@@ -1,0 +1,83 @@
+xor_belief_compose {
+//    (X && --Y), (--X &&   Y), conjParallelTaskBelief(), --is(X,"&&"), --is(X,"==>"), --is(Y,"&&"), --is(Y,"==>"), --var({X,Y})     |-  xor:{unneg(X),unneg(Y)},  (Belief:DeductionPP)
+    ((X && --Y)-->A), ((--X &&   Y)-->A), --eqPN(X,Y), --is(X,"&&"), --is(X,"==>"), --is(Y,"&&"), --is(Y,"==>"), --var({A,X,Y}) |-     debug((({unneg(X),unneg(Y)}-->xor) --> A)),  (Belief:DeductionPP)
+    (A-->(X && --Y)), (A-->(--X &&   Y)), --eqPN(X,Y), --is(X,"&&"), --is(X,"==>"), --is(Y,"&&"), --is(Y,"==>"), --var({A,X,Y}) |-     debug((A --> ({unneg(X),unneg(Y)}-->xor))),  (Belief:DeductionPP)
+
+    //(X &&   Y), (  X && --Y), conjParallelTaskBelief(), --is(X,"&&"), --is(X,"==>"), --is(Y,"&&"), --is(Y,"==>") |- (--,xor:{unneg(X),unneg(Y)}), (Belief:DeductionPP)
+    //(X &&   Y), (--X && --Y), --eqPN(X,Y) |- --xor({X,Y}), (Belief:DeductionPP)
+}
+
+xor_belief_decompose {
+    (X-->A), (({X,Y}-->xor)-->A)                      |- --(Y --> A), (Belief:DividePPX)
+    (X-->A), (({X,Y}-->xor)-->A)                      |-   (Y --> A), (Belief:DividePNX)
+
+    (A-->X), (A-->({X,Y}-->xor))                      |- --(A --> Y), (Belief:DividePPX)
+    (A-->X), (A-->({X,Y}-->xor))                      |-   (A --> Y), (Belief:DividePNX)
+
+//    xor:{X,Y}, X                      |- --Y, (Belief:DividePP, Time:Belief)
+//    xor:{X,Y}, X                      |-   Y, (Belief:DividePN, Time:Belief)
+//      X, xor:{X,Y}                    |- --Y, (Belief:DividePPX)
+//      X, xor:{X,Y}                    |-   Y, (Belief:DivideNPX)
+}
+//eqv_decompose_belief{
+//    eqv:{X,Y}, X                      |-   Y, (Belief:DividePP, Time:Belief)
+//    eqv:{X,Y}, X                      |- --Y, (Belief:DividePN, Time:Belief)
+//      X, eqv:{X,Y}                    |-   Y, (Belief:DividePPX)
+//      X, eqv:{X,Y}                    |- --Y, (Belief:DivideNPX)
+//}
+
+
+//    (X && --Y), xor:{X,Y}                |- (--X && Y), (Belief:DividePPX, Time:Task)
+//    (--X && Y), xor:{X,Y}                |- (X && --Y), (Belief:DividePPX, Time:Task)
+//      xor:{X,Y}, (X && --Y)               |- (--X && Y), (Belief:DividePP, Time:Belief)
+//      xor:{X,Y}, (--X && Y)               |- (X && --Y), (Belief:DividePP, Time:Belief)
+
+//eqv_xor_transitive {
+//    xor:{A,B}, xor:{A,C}, --eqPN(B,C)        |- eqv:{B,C}, (Belief:DeductionWeakPP)
+//    eqv:{A,B}, eqv:{A,C}, --eqPN(B,C)        |- eqv:{B,C}, (Belief:DeductionWeakPP)
+//
+//    //conflict revision
+////    eqv:X, xor:X        |- --eqv:X, (Belief:DeductionWeakPP, Time:Task)
+////    xor:X, eqv:X        |- --xor:X, (Belief:DeductionWeakPP, Time:Task)
+////    eqv:{A,B}, xor:{A,B}, --eqPN(A,B)        |- --xor:{A,B}, (Belief:DeductionWeakPP)
+////    xor:{A,B}, eqv:{A,B}, --eqPN(A,B)        |- --eqv:{A,B}, (Belief:DeductionWeakPP)
+//
+//
+//}
+
+//xor_eqv_goal {
+//    X, xor:{X,Y} |- --Y, (Goal:ConductPP)
+//    X, eqv:{X,Y} |-   Y, (Goal:ConductPP)
+//
+//
+//}
+
+eqv_compose {
+    (X && Y), (--X && --Y), conjParallelTaskBelief(), --is(X,"&&"),--is(X,"==>"),--is(Y,"&&"),--is(Y,"==>") |-   eqv:{unneg(X),unneg(Y)}, (Belief:DeductionPP)
+//    (X && Y), (--X && --Y), --eqPN(X,Y), --is(X,"&&"),--is(X,"==>"),--is(Y,"&&"),--is(Y,"==>") |- (--,eqv:{unneg(X),unneg(Y)}), (Belief:IntersectionPN)
+//    (X && Y), (--X && --Y), --eqPN(X,Y), --is(X,"&&"),--is(X,"==>"),--is(Y,"&&"),--is(Y,"==>") |- (--,eqv:{unneg(X),unneg(Y)}), (Belief:IntersectionNP)
+
+    (X && Y), (  X && --Y), conjParallelTaskBelief(), --is(X,"&&"),--is(X,"==>"),--is(Y,"&&"),--is(Y,"==>") |- (--,eqv:{unneg(X),unneg(Y)}), (Belief:DeductionPP)
+
+//      eqv:{  X,Y}, X                      |-   Y, (Belief:DividePP, Time:Belief)
+//      eqv:{  X,Y}, X                      |- --Y, (Belief:DividePN, Time:Belief)
+//
+//    (  X &&   Y), eqv:{X,Y}             |- (--X && --Y), (Belief:DividePPX, Time:Task)
+//    (--X && --Y), eqv:{X,Y}             |- (  X &&   Y), (Belief:DividePPX, Time:Task)
+
+//      eqv:{X,Y}, (  X &&   Y)           |- (--X && --Y), (Belief:DividePP, Time:Belief)
+//      eqv:{X,Y}, (--X && --Y)           |- (  X &&   Y), (Belief:DividePP, Time:Belief)
+
+//    (X && Y), eqv:{X,Y}, hasBelief()    |- (--X && --Y), (Punctuation:AskAsk)
+//    (--X && --Y), eqv:{X,Y}, hasBelief()|- (X && Y), (Punctuation:AskAsk)
+
+    //TODO questions etc..
+}
+
+eqv_xor_ask {
+    X, eqv:{X,Y}           |- Y, (Punctuation:AskAsk)
+    X, xor:{X,Y}           |- Y, (Punctuation:AskAsk)
+//    (X && --Y), xor:{X,Y}, hasBelief()  |- (--X && Y), (Punctuation:AskAsk)
+//    (--X && Y), xor:{X,Y}, hasBelief()  |- (X && --Y), (Punctuation:AskAsk)
+
+}

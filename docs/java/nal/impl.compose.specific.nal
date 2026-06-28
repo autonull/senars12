@@ -1,0 +1,13 @@
+
+//TODO decide if this can be described as abductive
+
+impl_specific_compose_subj_conj {
+    //TODO internal and occurrence timing needs tested
+    X, (Y ==> A),    --is(X,"==>"), --eqPN(X,Y), --condPN(Y,X), --condPN(A,X), neq(X,A), neq(Y,A) |- ((  polarizeTask(X) && Y) ==> A), (Belief:ConductDPX, Time:Task)
+       //(Y ==> A), X, --is(X,"==>"), --eqPN(X,Y), --condPN(Y,X), --condPN(A,X), neq(X,A), neq(Y,A) |- ((polarizeBelief(X) && Y) ==> A), (Belief:ConductPD,  Time:Task)
+}
+
+//impl_specific_compose_pred_conj {
+//    X, (A ==> Y),    --var({A,Y}), neq(X,Y) |- (A ==> (  polarizeTask(X) && polarizeBelief(Y))), (Belief:IntersectionDD, Time:TaskRel)
+//       (A ==> Y), X, --var({A,Y}), neq(X,Y) |- (A ==> (polarizeBelief(X) &&   polarizeTask(Y))), (Belief:IntersectionDD, Time:BeliefRel)
+//}

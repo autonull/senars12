@@ -1,0 +1,18 @@
+nal3_goal_to_quest {
+   (X --> P), (X --> S), task("!"), --var({X,S,P}), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P) |- (X --> (polarizeTask(P) & polarizeBelief(S))), (Punctuation:Quest)
+   (P --> X), (S --> X), task("!"), --var({X,S,P}), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P) |- ((polarizeTask(P) & polarizeBelief(S)) --> X), (Punctuation:Quest)
+
+////       (X --> P), (Y --> S), task("!"), ceq(X,Y), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P) |- (X --> (polarizeTask(P) & polarizeRandom(S))), (Punctuation:Quest)
+////       (P --> X), (S --> Y), task("!"), ceq(X,Y), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P) |- ((polarizeTask(P) & polarizeRandom(S)) --> X), (Punctuation:Quest)
+
+////       (M --> P), (M --> S), task("!"), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P) |- (M --> (P & S)), (Punctuation:Quest)
+////       (M --> P), (M --> S), task("!"), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P) |- (M --> (P | S)), (Punctuation:Quest)
+////       (P --> M), (S --> M), task("!"), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P) |- ((P & S) --> M), (Punctuation:Quest)
+////       (P --> M), (S --> M), task("!"), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P), notSetsOrDifferentSets(S,P) |- ((P | S) --> M), (Punctuation:Quest)
+}
+
+//dangerous unless 'S' is actual a belief. otherwise if structural a belief may not exist and it will emit garbage
+//nal6_goal_to_quest {
+//   P, S, task("!"), neq(S,P), --eventOfPN(P,S),--eventOfPN(S,P) |- (polarizeTask(P) & polarizeBelief(S)), (Punctuation:Quest)
+//}
+

@@ -12,27 +12,37 @@ export class BeliefGraph {
     this.testApi = new TestApiClient(page);
   }
 
+  private async ensureGraphApi() {
+    await this.testApi.waitForGraphApi();
+  }
+
   async getNodeCount(): Promise<number> {
+    await this.ensureGraphApi();
     return this.testApi.getGraphNodeCount();
   }
 
   async getEdgeCount(): Promise<number> {
+    await this.ensureGraphApi();
     return this.testApi.getGraphEdgeCount();
   }
 
   async getNodeData(nodeId: string): Promise<any> {
+    await this.ensureGraphApi();
     return this.testApi.getNodeData(nodeId);
   }
 
   async clickNode(nodeId: string): Promise<void> {
+    await this.ensureGraphApi();
     await this.testApi.clickNode(nodeId);
   }
 
   async getAllNodeIds(): Promise<string[]> {
+    await this.ensureGraphApi();
     return this.testApi.getAllNodeIds();
   }
 
   async waitForUpdate(timeout = 5000) {
+    await this.ensureGraphApi();
     await expect(async () => {
       const count = await this.getNodeCount();
       expect(count).toBeGreaterThan(0);
@@ -40,6 +50,7 @@ export class BeliefGraph {
   }
 
   async waitForNode(nodeId: string, timeout = 5000) {
+    await this.ensureGraphApi();
     await expect(async () => {
       const data = await this.getNodeData(nodeId);
       expect(data).not.toBeNull();

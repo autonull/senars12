@@ -1,0 +1,33 @@
+eq_associativity {
+    (X=Y), (Y=Z), --eqPN(X,Z),--var(X),--var(Y),--var(Z)   |-   (X=Z), (Belief:DeductionPP)
+    (X=Y), (Y=Z), --eqPN(X,Z),--var(X),--var(Y),--var(Z)   |- --(X=Z), (Belief:DeductionNP)
+    (X=Y), (Y=Z), --eqPN(X,Z),--var(X),--var(Y),--var(Z)   |- --(X=Z), (Belief:DeductionPN)
+}
+
+eq_transform {
+    Z, (X=Y), --var(X), --var(Y), in(Z,X) |- subst(Z, X, Y), (Belief:Conduct, Goal:Conduct)
+}
+
+eq_goal_support {
+    X, (X=Y),--var(Y)   |-   Y, (Goal:ConductPP)
+    //X, (X=Y)   |- --Y, (Goal:ConductPN)
+}
+
+eq_question {
+    X,     (X=Y), --eqPN(X,Y)       |- Y,     (Punctuation:AskAsk)
+    (X=Y), (Y=Z), --eqPN(X,Z)       |- (X=Z), (Punctuation:AskAsk)
+}
+
+//eq_search {
+//    (X=Y), (X=Y), task("!"),--var(X),--var(Y), --has(X,"?"), --has(Y,"?")  |-   ((X && ?1) = (Y && ?2)), (Punctuation:Quest)
+//}
+
+//equal_value_disj {
+//    //TODO move this to equal.nal
+//    (X && equal(Z,A)),  (X && equal(Z, B)), --eqPN(A,B), in(X,Z)   |-  (X && equal(Z, (A||B))), (Belief:DeductionPP, Time:Compose)
+//    //HACK
+//    (X && equal(Z,A)),  (X && equal(B, Z)), --eqPN(A,B), in(X,Z)   |-  (X && equal(Z, (A||B))), (Belief:DeductionPP, Time:Compose)
+//    (X && equal(A,Z)),  (X && equal(Z, B)), --eqPN(A,B), in(X,Z)   |-  (X && equal(Z, (A||B))), (Belief:DeductionPP, Time:Compose)
+//    (X && equal(A,Z)),  (X && equal(B, Z)), --eqPN(A,B), in(X,Z)   |-  (X && equal(Z, (A||B))), (Belief:DeductionPP, Time:Compose)
+//
+//}

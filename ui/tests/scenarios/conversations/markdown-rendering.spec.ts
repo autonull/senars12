@@ -1,6 +1,6 @@
 import { test, expect } from '../../framework/fixtures/senars-app';
 
-test('agent responses render markdown correctly', async ({ chat, ws, page }) => {
+test('agent responses render markdown correctly', async ({ chat, testControl, page }) => {
   const markdownResponse = `# Analysis
 
 Here is a **bold** statement and a code block:
@@ -12,7 +12,7 @@ console.log(x);
 
 And a [link](https://example.com).`;
 
-  ws.injectChatResponse('', markdownResponse);
+  await testControl.injectChatResponse('', markdownResponse);
   await chat.sendMessage('Render this');
   await chat.waitForResponse();
 
@@ -23,6 +23,6 @@ And a [link](https://example.com).`;
   const codeBlock = page.locator('chat-console pre code').last();
   await expect(codeBlock).toBeVisible();
 
-  const link = page.locator('chat-console a[href="https://example.com"]').last();
+  const link = page.locator('chat-console a[href="https://example.com"]') .last();
   await expect(link).toBeVisible();
 });

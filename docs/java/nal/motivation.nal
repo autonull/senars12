@@ -1,0 +1,400 @@
+goal_to_quest_unify {
+    //goal to "how" questions.  this enables other motivation rules
+    //this variant only transforms variable-containing goals by novel unification with beliefTerm
+    G, H, task("!"), neq(G,H), --has(G,"==>"), --is(G,"&&"), hasVar(G)  |-   unisubst(G, G, H, novel), (Punctuation:Quest)
+}
+
+//goal_to_quest_all {
+//    //goal to "how" questions.  this enables other motivation rules
+//    //this variant is aggressive since it will apply to any single premise goal.
+//    G, G, task("!"), --has(G,"==>"), --is(G,"&&")  |-   G, (Punctuation:Quest)
+//}
+
+//quest_to_impl_how_question {
+//    G, G, task("@"), --has(G,"==>"), --seq(G)  |-   (?Z ==> G), (Punctuation:Question)
+//}
+
+
+
+//and_then {
+//    G, G, task("!"), --has(G,"==>"), --seq(G)  |-   debug((polarizeTask(G) ==> ?Z)), (Punctuation:Question)
+//    //G, G, task("!"), --has(G,"==>"), --seq(G)  |-   debug((  G ==> ?Z)), (Punctuation:Question)
+//    //G, G, task("!"), --has(G,"==>"), --seq(G)  |-   debug((--G ==> ?Z)), (Punctuation:Question)
+////    G, G, --seq(G),--has(G,"==>")   |-   (  G ==>+- ?Z), (Punctuation:AskAsk)
+////    G, G, --seq(G),--has(G,"==>")   |-   (--G ==>+- ?Z), (Punctuation:AskAsk)
+//}
+
+//goal_to_quest {
+//    G, G, task("!"), --seq(G)    |-  G, (Punctuation:Quest)
+//}
+
+
+//hope {
+//    //"what i want will be"
+//    C, X, task("!")  |-  after(C,   X), (Punctuation:Belief, Belief:ExemplificationPP, Time:TaskRel)
+//    C, X, task("!")  |-  after(C, --X), (Punctuation:Belief, Belief:ExemplificationPN, Time:TaskRel)
+//}
+//
+//fear {
+//    //"what i want will NOT be"
+//    C, X, task("!")  |-  --after(C,   X), (Punctuation:Belief, Belief:CouldPP, Time:TaskRel)
+//    C, X, task("!")  |-  --after(C, --X), (Punctuation:Belief, Belief:CouldPN, Time:TaskRel)
+//}
+
+
+
+//what_sustains_or_toggles {
+//    G, (Q ==> G), task("!"), is(Q,"?") |- ((  G &&+- ?Z) ==>+- G), (Punctuation:Question)
+//    G, (Q ==> G), task("!"), is(Q,"?") |- ((--G &&+- ?Z) ==>+- G), (Punctuation:Question)
+////    G, (Q ==> G), task("!"), is(Q,"?") |- ((G && ?Z) &&+- --G), (Punctuation:Question)
+//}
+
+//inh_question_contagious_induction {
+//   (X --> Y), (X --> Z), neq(Y,Z),--eventOfPN(Z,Y),--eventOfPN(Y,Z)  |- (X --> Z), (Punctuation:AskAsk)
+//   (Y --> X), (Z --> X), neq(Y,Z),--eventOfPN(Z,Y),--eventOfPN(Y,Z)  |- (Z --> X), (Punctuation:AskAsk)
+//}
+
+//inh_question_contagious_deduction {
+//   (Y --> X), (X --> Z)  |- (Y --> Z), (Punctuation:AskAsk)
+//   //(Y --> X), (X --> Z)  |- (X --> Z), (Punctuation:AskAsk)
+//   //(X --> Z), (Y --> X)  |- (Y --> X), (Punctuation:AskAsk)
+//}
+
+//quest_collapse_goal_oscillation {
+//    //invert goal's anti-events in conj also containing the goal for a quest that 'fixes' the conjunction to achieve the goal and not its opposite
+//    C, X, seq(C), task("!"), eventOf(C,X), eventOf(C,--X), --var(X) |- replace(C, --X,   X), (Punctuation:Quest, Time:TaskRel)
+//    C, X, seq(C), task("!"), eventOf(C,X), eventOf(C,--X), --var(X) |- replace(C,   X, --X), (Punctuation:Quest, Time:TaskRel)
+//
+//    //TODO: X, (A ==> C) ...
+//    //TODO: X, (  C ==> A) ...
+//    //TODO: X, (--D ==> A) ...
+//}
+
+//quest_to_impl_question_induction {
+//    Q, X, task("@"), --hasVar(Q), --hasVar(X), neq(Q,X), --in(Q,X), --in(X,Q), --is(Q,"==>"), --is(X,{"&&","==>"}) |- (polarizeRandom(X) ==>+- Q), (Punctuation:Question)
+//
+////    G, (Q ==> G), task("!"), is(Q,"?") |-           (  G ==>+- ?Z), (Punctuation:Question)
+////    G, (Q ==> G), task("!"), is(Q,"?") |-           (--G ==>+- ?Z), (Punctuation:Question)
+//}
+
+
+
+
+    //should what with goal/non-goal
+    //G, B, task("@"), neq(G,B), --is(B,"==>") |- (polarizeBelief(B) ==> G), (Punctuation:Question)
+//    G, B, task("@"), neq(G,B), --is(B,"==>") |- (polarizeTask(G) && polarizeBelief(B)), (Punctuation:Quest)
+
+
+
+
+
+//misc_how_goal {
+
+    //what if? opposite
+    //G, (X ==> Y), task("@"), in(X, G), --has(X,"?"), --has(Y, "?"), --eqPN(X,G), --eqPN(Y,G) |- (subst(X, G, --G) ==> ?Z), (Punctuation:Question)
+    //G, (Y ==> X), task("@"), in(X, G), --has(X,"?"), --has(Y, "?"), --eqPN(X,G), --eqPN(Y,G) |- (?Z ==> subst(X, G, --G)), (Punctuation:Question)
+
+    //how to escape inversion loop
+    //X, (--X ==>+- X), task("@"), --has(X, "?") |-  (X ==>+- (X && ?Z)), (Punctuation:Question)
+      //X, (--X  &&+- X), task("!") |-  (X  &&+- (X && ?Z)), (Punctuation:QuestRel)
+
+
+    //how to escape goal inversion sub-condition inversion loop
+    //(X&&Y), (B==>A), task("!"), eventOf(A,X), eventOf(A,Y), eventOf(B,--X), eventOf(B,Y) |-  ((Y && condWithoutAny(B,--X))==>(A && ?Z)), (Punctuation:QuestionRel)
+
+    //find sustain/inversion condition
+    //(X ==> G), (X ==> G), task("?"), is(X,"?"), --has(G,"?"), --var(G) |- ((polarizeRandom(G) && X) ==>+- G), (Punctuation:Question)
+    //G, G, task("@") |- ((polarizeRandom(G) && ?Z) ==>+- G), (Punctuation:Question)
+
+
+    //G, G, task("!") |-  (polarizeBelief(G) ==> ?Z) , (Punctuation:Question)
+    //G, G, task("!") |-  (?Z ==> G) , (Punctuation:QuestionImmediate)
+    //G, G, task("!") |-  (?Z && polarizeTask(G)), (Punctuation:Question)
+
+
+    //want toggle?
+    //G, C, task("@"), eventOf(C,G), eventOf(C,--G) |- condWithoutAny(condWithoutAny(C,G),--G), (Punctuation:Quest)
+
+    //find solution to hypothetical undesired case
+    //G, G, task("@") |- ((--G && ?Z) &&+- G), (Punctuation:Quest)
+
+    //hypothesize goal fix (bridge from Goal to Belief) "where there is a will there is a way"
+    //G, G, task("!") |- (#X ==> G), (Punctuation:Belief, Belief:StructuralReduction)
+    //G, (?1 ==> G), task("!") |- ( #X ==>  G),  (Punctuation:Belief, Belief:StructuralReduction)
+
+    //conj goal decompose to quest
+    //TODO for NAL3's
+    //C, X, eventOf(C,X), task("!"), eventOfPN(C,X)    |- condWithoutAny(C, X), (Punctuation:QuestRel)
+    //C, X, eventOfNeg(C,X), task("!"), eventOfPN(C,X) |- condWithoutAny(C, --X), (Punctuation:QuestRel)
+
+//}
+
+//intersection_quest_bifurcate_comparison {
+////    //2-ary
+////    ((X & Y)-->A), A |- (((X & --Y)-->A) && --((--X & Y)-->A)), (Punctuation:AskAsk)
+////    (A-->(X & Y)), A |- ((A-->(X & --Y)) && --(A-->(--X & Y))), (Punctuation:AskAsk)
+//}
+//intersection_component_flip {
+//    //n-ary
+//    (C-->A), X, eventOf(C,X) |- ((--X & condWithoutAny(C,X))-->A), (Punctuation:AskAsk)
+//}
+
+//motivation_misc {
+    //invariant introduction
+    //(A ==> B), (A ==> B), task("?"), --has(A,"?"), --has(B,"?"), --var(A), --var(B), --eqPN(A,B)       |- ((  A &&   $Z) ==>+- ($Z && B)), (Punctuation:Question)
+
+    //covariant introduction
+    //(A ==> B), (A ==> B), task("?"), --has(A,"?"), --has(B,"?"), --var(A), --var(B), --eqPN(A,B)       |- ((  A && --$Z) ==>+- ($Z && B)), (Punctuation:Question)
+
+    //implication look-ahead
+    //(A ==> B), B, task("?"), --var(A), --var(B), --eqPN(A,B), --has(B, "?") |- (A ==> (polarizeBelief(B) && ?Z)), (Punctuation:Question)
+
+    //implication look-behind
+    //(A ==> B), Z, task("?"), eqPN(A,Z), --var(A), --var(B), --eqPN(A,B), --has(A,"?") |- ((A && ?Z) ==> B), (Punctuation:Question)
+
+    //implication alternate bypass
+    //(X ==> Y), B, task("?"), --var(X), --var(Y), --eqPN(X,Y), --has(B,"?"), neq(B,Y), neq(B,X) |- ((polarizeBelief(B) && ?Z) ==> Y), (Punctuation:Question)
+
+    //goal pre-plan
+    //G, B, task("@"), neq(G,B), --eventOf(G,B),--eventOfNeg(G,B), --is(B,"==>")      |-  ((polarizeBelief(B) && ?Z) ==> G), (Punctuation:Question)
+
+    //does inverted context result in goal?
+    //G, C, task("!"), eventOfPN(G,C)    |-  (negateConds(condWithoutAnyPN(C,G)) ==> G), (Punctuation:Question)
+
+
+        //(A ==> B), Z, task("?"), eqPN(A,Z), --var(A), --var(B), --has(B,"?"), neq(A,B)    |- (A ==> (B && ?Z)), (Punctuation:Question)
+//      (A ==> B), (A ==> B), task("?"), --has(A,"?"), --has(B,"?"), --var(A), --var(B), --eqPN(A,B)       |- ((--A &&   ?Z) ==>+- (?Z && B)), (Punctuation:Question)
+//      (A ==> B), (A ==> B), task("?"), --has(A,"?"), --has(B,"?"), --var(A), --var(B), --eqPN(A,B)       |- ((--A && --?Z) ==>+- (?Z && B)), (Punctuation:Question)
+
+    //inh expand
+    //(A --> B), (A --> B), task("?"), --var(A), --var(B)                |- (polarizeRandom((A --> $1)) ==> ($1 --> B)), (Punctuation:Question)
+    //(A --> B), (A --> B), task("?"), --var(A), --var(B)                |- (polarizeRandom(($1 --> B)) ==> (A --> $1)), (Punctuation:Question)
+        //(A --> B), (A --> B), --var(A), --var(B)                |- (polarizeRandom((A --> ?Z)) && polarizeRandom((?Z --> B))), (Punctuation:Ask)
+
+    //inh inversion
+    //(A --> B), (A --> B), --var(A), --var(B)                |- (polarizeRandom((B --> ?Z)) && polarizeRandom((?Z --> A))), (Punctuation:Ask)
+
+    //sim expansion
+//    (A <-> B), (A <-> B), --var(A), --var(B), task(".")         |- (polarizeRandom((A <-> $1)) ==> ($1 <-> B)), (Punctuation:Question)
+//    (A <-> B), (A <-> B), --var(A), --var(B), task(".")         |- (polarizeRandom((B <-> $1)) ==> ($1 <-> A)), (Punctuation:Question)
+    //(A <-> B), (A <-> B), --var(A), --var(B)         |- (polarizeRandom((A <-> ?Z)) && polarizeRandom((?Z <-> B))), (Punctuation:Ask)
+
+
+
+//}
+
+//goal_impl_to_quest {
+//    W, (X ==> Y),    task("!"), eqPN(X,W)     |- Y, (Punctuation:QuestRel)
+//    Y, (X ==> Y),    task("!")                |- Y, (Punctuation:QuestRel)
+//}
+
+//impl_quest_conj_induction {
+//    W, (X ==> Y),    task("@"), eqPN(X,W)     |- (X && polarizeBelief(Y)), (Punctuation:QuestRel)
+//    Y, (X ==> Y),    task("@")                |- (X && polarizeRandom(Y)), (Punctuation:QuestRel)
+//}
+
+//goal_conj_inversion {
+//    //hypothesizes about the conjunction 'corrected' or 'incorrected' w/ respect to goal task and its polarity
+//    X, C, task("!"), eventOf(C,  X) |-  subst(C, X, --X), (Punctuation:QuestRel)
+//    X, C, task("!"), eventOf(C,--X) |-  subst(C, --X, X), (Punctuation:QuestRel)
+//}
+
+
+
+//goal_conj_belief_Induction_to_quest {
+//    X, C, par(C), eventOfPN(C, X), task("!")           |-      C, (Punctuation:QuestRel)
+//}
+
+
+
+//quest to 'how' impl question
+//    B, X, task("@"), --is(B,"==>") |- (polarizeBelief(X) ==> B), (Punctuation:QuestionRel)
+     //B, X, task("@"), --is(B,"==>") |- (polarizeRandom(B) ==> X), (Punctuation:Question)
+//     B, C, task("@"), is(C,"&&"), --is(B,"==>") |- (C ==> B), (Punctuation:Question)
+
+////result of goal/non-goal
+//G, G, task("!") |-         (polarizeRandom(G) ==> ?Z), (Punctuation:Question)
+
+//    //anti-specific deduction: "conjunction contraposition"
+//    G, C, eventOfNeg(C,G), --var(G)    |-   (  G && --condWithoutAny(C,--G)), (Goal:DeductionWeakPPRel)
+//    G, C, eventOf(C,G), --var(G)       |-   (--G && --condWithoutAny(C,  G)), (Goal:DeductionWeakNPRel)
+    //    G, C, eventOfNeg(C,G), --var(G)    |-   (  G && negateConds(condWithoutAny(C,--G))), (Goal:DeductionWeakPPRel)
+    //    G, C, eventOf(C,G), --var(G)       |-   (--G && negateConds(condWithoutAny(C,  G))), (Goal:DeductionWeakNPRel)
+
+//Inheritance -> Quest - generally a plain inheritance is underivable.  here it is reflected into a quest about its desirability
+//(A-->B), (A-->B), task("."), --var(A), --var(B) |- (A-->B), (Punctuation:Quest)
+
+//Inheritance belief splitter to quest (punc crossover)
+//(A-->B), (A-->B), task("."), --var(A), --var(B) |- ((?Z-->B) && (A-->?2)), (Punctuation:Quest)
+//Inheritance goal splitter to question (punc crossover)
+//(A-->B), (A-->B), task("!"), --var(A), --var(B) |- ((?Z-->B) && (A-->?2)), (Punctuation:Question)
+
+//Question Induction
+//  X, C, eventOfPN(C,X) |- C, (Punctuation:AskAskRel)
+//  X, C, eventOfPN(C,X), --is(X,"==>"), task("?@") |- (polarizeRandom(condWithoutAnyPN(C,X))==>X), (Punctuation:QuestionRel)
+    //TODO unified conj question
+
+
+
+//    //hypothesize goal cause (bridge from Goal to Belief) "where there is a will there is a way"
+//    G, G, task("!") |- (#X ==> G), (Punctuation:Belief, Belief:StructuralReduction)
+      //generalized context-specific case
+//      G, B, task("!"), neq(G,B) |- ((#X && polarizeBelief(B)) ==> G), (Punctuation:Belief, Belief:StructuralReduction)
+
+    //hypothesize goal consequence (bridge from Goal to Belief)
+//    G, G, task("!") |- (polarizeTask(G) ==> #X), (Punctuation:Belief, Belief:StructuralDeductionDD)
+
+//    //hypothesize goal co-occurrence (bridge from Goal to Belief)
+//    G, G, task("!") |-   (  polarizeTask(G) && #X), (Punctuation:Belief, Belief:StructuralDeductionDepolarized)
+//    G, G, task("!") |- --(--polarizeTask(G) && #X), (Punctuation:Belief, Belief:StructuralDeductionDepolarized)
+//    G, G, task("!") |-   (  polarizeTask(G) && #X), (Punctuation:Goal, Goal:StructuralDeductionDepolarized)
+//    G, G, task("!") |- --(--polarizeTask(G) && #X), (Punctuation:Goal, Goal:StructuralDeductionDepolarized)
+
+
+    //correct goal
+    //G, G, task("!") |-         ((--polarizeTask(G) && ?Z) ==> G) , (Punctuation:Question)
+
+    //compare what occurrs with goal and what doesnt
+    //G, G, task("!") |-         (( ?Z && polarizeTask(G)) <-> ( ?2 && --polarizeTask(G))) , (Punctuation:Question)
+
+
+
+    //result of achieving/non-achieving goal and current belief
+    //G, B, task("!") |-        ((polarizeRandom(G) && B) ==> ?Z), (Punctuation:Question)
+
+
+    //bifurcate plan
+    //G, B, task("@"), --is(B,"?"), neqPN(G,B)   |-  (polarizeRandom(G) && polarizeBelief(B)), (Punctuation:Quest)
+
+    //bifurcate conj
+    //(X && Y), (X && Y) |- ((X && ?Z) && --(Y && ?2)), (Punctuation:Ask)
+
+
+
+    //sequence possibility quest
+    //C, X, task("@"), eventOfPN(C,X) |-  (condWithoutAnyPN(C,X) && ?Z), (Punctuation:Quest)
+
+    //rectify goal inversion
+    //G, (G && --G), task("!") |- (?X ==> (polarizeTask(G) && polarizeTask(G))) , (Punctuation:Question, Time:BeliefRelative)
+
+
+    //avoidance TODO
+//    G, C, task("!"), eventOf(C,G)    |- (--C ==> ?Z), (Punctuation:Question)
+//    G, C, task("!"), eventOfNeg(C,G) |- (--C ==> ?Z), (Punctuation:Question)
+
+
+    //conj quest to impl question
+    //(G && C), B, eqNeg(C,B), task("@"), --is(B,"==>") |-  (polarizeBelief(B) ==> G), (Punctuation:Question, Time:BeliefRelative)
+     //(G && B), B, task("@") |-  (G ==> B), (Punctuation:Question)
+     //(G && B), B, task("@") |-  (--G ==> B), (Punctuation:Question)
+
+
+//contrasting conjunction to implication
+//TODO test
+//    (A&&B),      (A && --B)  |- (A ==> B), (Belief:IntersectionPN)
+//    (A && --B),  (A && B)    |- (A ==> B), (Belief:IntersectionNP)
+
+//"what is the difference" between what co-occurrs with goal and non-goal
+//    (&&,G,X,A..*), (&&,H,Y,B..*), eqNeg(G,H), neq(X,Y)  |- ((polarizeRandom(X) && polarizeRandom(Y)) --> ?Z), (Punctuation:Ask)
+
+
+//    //anti-conjunction containing anti-goal
+//    G, C, eventOfNeg(C,G), --eventOf(C,G)  |- (  G && negateConds(before(C,--G))), (Punctuation:AskRel)
+//    G, C, eventOf(C,G), --eventOfNeg(C,G)  |- (--G && negateConds(before(C,  G))),   (Punctuation:AskRel)
+//    //    G, C, eventOfNeg(C,G), --eventOf(C,G), neq(G,C)  |- (  G && negateConds(before(C,--G))), (Goal:DeductionWeakPPRel)
+//    //    G, C, eventOf(C,G), --eventOfNeg(C,G), neq(G,C)  |- (--G && negateConds(before(C,  G))),   (Goal:DeductionWeakNPRel)
+//    G, C, eventOfNeg(C,G), --eventOf(C,G)  |- (  G && --before(C,--G)), (Punctuation:AskRel)
+//    G, C, eventOf(C,G), --eventOfNeg(C,G)  |- (--G && --before(C,  G)),   (Punctuation:AskRel)
+//    //    G, C, eventOfNeg(C,G), --eventOf(C,G), neq(G,C)  |- (  G && --before(C,--G)), (Goal:DeductionWeakPPRel)
+//    //    G, C, eventOf(C,G), --eventOfNeg(C,G), neq(G,C)  |- (--G && --before(C,G)),   (Goal:DeductionWeakNPRel)
+
+
+
+//inverted condition question/quest TODO: invertAll(C,X)..
+    //C, X, eventOfPN(C,X)   |- invertAll(C,X), (Punctuation:Ask)
+        //C, X, eventOfNeg(C,X)  |- substitute(C,--X,X), (Punctuation:Ask)
+
+    //G, (&&,  G,X,A..*), task("!")     |-    ((X && A..*) ==> G),  (Belief:Conduct)
+    //G, (&&,--G,X,A..*), task("!")     |-  --((X && A..*) ==> G),  (Belief:ConductN)
+
+
+    //X, C, eventOfPN(C,X), task("!")   |- condWithoutAnyPN(C,X),   (Punctuation:Quest)
+
+//--
+
+//    X, Y, task("!") |-          (polarize(Y,belief) ==> X), (Punctuation:Question, Time:Relative)
+//    X, Y, task("!") |-                           (X ==> Y), (Punctuation:Question, Time:Relative)
+//    X, Y, task("!") |-                         (--X ==> Y), (Punctuation:Question, Time:Relative)
+//    X, Y, task("!") |-           (X && polarize(Y,belief)), (Punctuation:Quest, Time:Relative)
+//    X, Y, task("!") |-         (--X && polarize(Y,belief)), (Punctuation:Quest, Time:Relative)
+//
+//    X, Y, task("!") |-           (X && polarize(Y,belief)), (Punctuation:Question, Time:Relative)
+//    X, Y, task("!") |-           (--X && polarize(Y,belief)), (Punctuation:Question, Time:Relative)
+//
+////- ---
+//    X, Y, task("@") |-          (polarize(Y,belief) ==> X), (Punctuation:Question, Time:Relative)
+//    X, Y, task("@") |-                           (X ==> Y), (Punctuation:Question, Time:Relative)
+//    X, Y, task("@") |-                         (--X ==> Y), (Punctuation:Question, Time:Relative)
+//    X, Y, task("@") |-           (X && polarize(Y,belief)), (Punctuation:Quest, Time:Relative)
+//    X, Y, task("@") |-         (--X && polarize(Y,belief)), (Punctuation:Quest, Time:Relative)
+//
+//    X, Y, task("@") |-           (X && polarize(Y,belief)), (Punctuation:Question, Time:Relative)
+//    X, Y, task("@") |-           (--X && polarize(Y,belief)), (Punctuation:Question, Time:Relative)
+
+
+
+
+//curiosity emulation
+//G, A, task("!")  |- (polarize(G,task) && polarize(A,belief)), (Goal:ConductWeakDepolarized, Time:Relative, Also:VarIntro)
+    //G, A, task("!")  |- (polarize(G,task) && --polarize(A,belief)), (Goal:ConductWeakDepolarized, Time:Relative, Also:VarIntro)
+//G, A, task("!")  |- (polarize(G,task) && --polarize(A,belief)), (Punctuation:Quest, Time:Relative, Also:VarIntro)
+
+
+
+
+    //X, (Y==>X), task("!"), neq(X,Y)      |-          Y, (Punctuation:Quest)
+
+    //X, (Y==>X), task("!"), neq(X,Y)      |-          Y, (Punctuation:Question)
+    //X, (Y==>X), task("!"), neq(X,Y)      |-          (?Z && Y), (Punctuation:Question)
+    //X, (Y==>X), task("!"), neq(X,Y)      |-          (?Z && --Y), (Punctuation:Question)
+    //X, (Y==>X), task("!"), neq(X,Y)      |-          (?Z ==> Y), (Punctuation:Question)
+
+    //X, (X==>Y), task("!"), neq(X,Y)         |- Y, (Punctuation:Quest)
+    //X, (--X==>Y), task("!"), neq(X,Y)       |- Y, (Punctuation:Quest)
+    //X, (X && Y), task("!"), neqUnneg(X,Y)   |- Y, (Punctuation:Quest)
+    //X, (--X && Y), task("!"), neqUnneg(X,Y) |- Y, (Punctuation:Quest)
+
+//general impl question induction
+    //(X ==> Y), Z, task("?")       |- ((X &&   Z) ==> Y), (Punctuation:Question)
+    //(X ==> Y), Z, task("?")       |- ((X && --Z) ==> Y), (Punctuation:Question)
+
+
+//goal sub-condition preference compare
+//   (X-->A), (Y-->A), neqRoot(X,Y), --var(X), --var(Y), --var(A), task("!") |- (((polarizeTask(X) && Y) ~ (polarizeTask(X) && --Y)) --> A), (Punctuation:Quest)
+//   (X-->A), (Y-->A), neqRoot(X,Y), --var(X), --var(Y), --var(A), task("!") |- (((polarizeTask(X) && --Y) ~ (polarizeTask(X) && Y)) --> A), (Punctuation:Quest)
+//   (A-->X), (A-->Y), neqRoot(X,Y), --var(X), --var(Y), --var(A), task("!") |- (A --> ((polarizeTask(X) && Y) - (polarizeTask(X) && --Y))), (Punctuation:Quest)
+//   (A-->X), (A-->Y), neqRoot(X,Y), --var(X), --var(Y), --var(A), task("!") |- (A --> ((polarizeTask(X) && --Y) - (polarizeTask(X) && Y))), (Punctuation:Quest)
+
+//similarity goal comparator TODO bifurcate a similarity to determine which half is more desirable
+   //(X<->A), (Y<->A), ...
+
+//what else? impl question <- spammy
+    //(A ==> Y), (B ==> Y), task("?") |- (?Z ==> Y), (Punctuation:Question)
+    //(X ==> A), (X ==> B), task("?") |- (X ==> ?Z), (Punctuation:Question)
+
+    //changing goal context/non-context
+    //G, G, task("!") |-         ((polarizeTask(G) && ?Z) ==> (polarizeTask(G) && ?2)), (Punctuation:Question)
+      //G, Y, task("!") |-         ((G || ?Z) && (G || ?2)), (Punctuation:Quest)
+    //changing non-goal context
+    //G, G, task("!") |-         ((--polarizeTask(G) && ?Z) ==> (--polarizeTask(G) && ?2)), (Punctuation:Question)
+      //G, Y, task("!") |-         ((--G || ?Z) && (--G || ?2)), (Punctuation:Quest)
+
+//inheritance to impl question/quest
+    //(A-->P), (B-->P)  |- (polarize((A-->P),task) ==> (B-->P)), (Punctuation:Ask)
+    //(S-->A), (S-->B)  |- (polarize((S-->A),task) ==> (S-->B)), (Punctuation:Ask)
+
+//goal search
+    //(X-->Y), X, task("!") |-          (?Z ==> (X-->Y)), (Punctuation:Question)
+    //(X-->Y), X, task("!") |-          ((X-->Y) ==> ?Z), (Punctuation:Question)
+    //(X-->Y), X, task("!") |-        (--(X-->Y) ==> ?Z), (Punctuation:Question)
+    //(X-->Y), X, task("!") |-         (?Z && --(X-->Y)), (Punctuation:Question)

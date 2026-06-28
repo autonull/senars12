@@ -1,0 +1,42 @@
+
+impl_conduct_inner_subj_disj {
+    //TODO implSyl ?
+    //TODO unify
+      (B ==> X), (--D ==> Z),   cond(D, --X), --var({Z,X,B}), neq(B,Z)   |-   (B ==> Z), (Belief:ConductPPX)
+    (--D ==> Z),   (B ==> X),   cond(D, --X), --var({Z,X,B}), neq(B,Z)   |-   (B ==> Z), (Belief:ConductPP)
+      (B ==> X), (--D ==> Z),   cond(D,   X), --var({Z,X,B}), neq(B,Z)   |-   (B ==> Z), (Belief:ConductNPX)
+    (--D ==> Z),   (B ==> X),   cond(D,   X), --var({Z,X,B}), neq(B,Z)   |-   (B ==> Z), (Belief:ConductPN)
+}
+
+impl_conduct_inner_pred_conj {
+    //TODO implSyl ?
+    (B ==> C),   (X ==> Z),     cond(C, X), --var({Z,X,B}), neq(B,Z)   |-   (B ==> Z), (Belief:ConductPPX)
+    (X ==> Z),   (B ==> C),     cond(C, X), --var({Z,X,B}), neq(B,Z)   |-   (B ==> Z), (Belief:ConductPP)
+}
+
+impl_conduct_pred_conj {
+      (S ==> Y),   (  X ==> P), cond(Y,  X), --var({X,Y,S,P})    |-  implSyl(S,P,1,1,i), (Belief:ConductPPX)
+      (S ==> Y),   (--X ==> P), cond(Y,--X), --var({X,Y,S,P})    |-  implSyl(S,P,1,1,i), (Belief:ConductPPX)
+}
+impl_conduct_subj_disj {
+      (S ==> X),   (--Y ==> P), cond(Y,--X), --var({X,Y,S,P})    |-  implSyl(S,P,1,1,i), (Belief:ConductPPX)
+      (S ==> X),   (--Y ==> P), cond(Y,  X), --var({X,Y,S,P})    |-  implSyl(S,P,1,1,i), (Belief:ConductNPX)
+}
+
+impl_Deduction_cond_question_fwd_specific {
+        (S ==> X),  (  Y ==> P),  cond(Y,  X),  --var({X,Y})    |-  ((S &&   X) ==> P), (Punctuation:AskAsk)
+        (S ==> X),  (  Y ==> P),  cond(Y,--X),  --var({X,Y})    |-  ((S && --X) ==> P), (Punctuation:AskAsk)
+
+        (S ==> Y),  (  X ==> P),  cond(Y,  X),  --var({X,Y})    |-  ((S &&   X) ==> P), (Punctuation:AskAsk)
+        (S ==> Y),  (--X ==> P),  cond(Y,--X),  --var({X,Y})    |-  ((S && --X) ==> P), (Punctuation:AskAsk)
+}
+
+//impl_Deduction_cond_fwd_specific {
+//        (S ==> X),  (  Y ==> P),  cond(Y,  X),  --var({X,Y})    |-  ((S &&   X) ==> P), (Belief:ConductPP, Time:Union)
+//        (S ==> X),  (  Y ==> P),  cond(Y,--X),  --var({X,Y})    |-  ((S && --X) ==> P), (Belief:ConductNP, Time:Union)
+//
+//        (S ==> Y),  (  X ==> P),  cond(Y,  X),  --var({X,Y})    |-  ((S &&   X) ==> P), (Belief:ConductPP, Time:Union)
+//        (S ==> Y),  (--X ==> P),  cond(Y,--X),  --var({X,Y})    |-  ((S && --X) ==> P), (Belief:ConductPP, Time:Union)
+//}
+
+

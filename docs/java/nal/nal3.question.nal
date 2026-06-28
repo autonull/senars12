@@ -1,0 +1,12 @@
+nal3_question_compose {
+    (M --> P), (M --> S), neqRCom(S,P), --var(M), notSetsOrDifferentSets(S,P), hasBelief() |- (M --> (polarizeRandom(P) & polarizeRandom(S))), (Punctuation:AskAsk)
+    (P --> M), (S --> M), neqRCom(S,P), --var(M), notSetsOrDifferentSets(S,P), hasBelief() |- ((polarizeRandom(P) & polarizeRandom(S)) --> M), (Punctuation:AskAsk)
+
+//    (M --> P), (M --> S), neqRCom(S,P), --var({M,P,S}), notSetsOrDifferentSets(S,P) |- (M --> (polarizeRandom(P) & polarizeRandom(S))), (Punctuation:AskHowAsk)
+//    (P --> M), (S --> M), neqRCom(S,P), --var({M,P,S}), notSetsOrDifferentSets(S,P) |- ((polarizeRandom(P) & polarizeRandom(S)) --> M), (Punctuation:AskHowAsk)
+
+//    (M --> P), (M --> S), neqRCom(S,P), --var({M,P,S}), notSetsOrDifferentSets(S,P) |- (M --> (P & S)), (Punctuation:AskAsk)
+//    (M --> P), (M --> S), neqRCom(S,P), --var({M,P,S}), notSetsOrDifferentSets(S,P) |- (M --> (P | S)), (Punctuation:AskAsk)
+//    (P --> M), (S --> M), neqRCom(S,P), --var({M,P,S}), notSetsOrDifferentSets(S,P) |- ((P & S) --> M), (Punctuation:AskAsk)
+//    (P --> M), (S --> M), neqRCom(S,P), --var({M,P,S}), notSetsOrDifferentSets(S,P) |- ((P | S) --> M), (Punctuation:AskAsk)
+}

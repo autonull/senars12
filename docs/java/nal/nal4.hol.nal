@@ -1,0 +1,32 @@
+//NAL4 higher order
+
+
+single_element_product_wrap_by_question {
+   ((X)-->(Y)), (X-->Y), task("?") |- ((X)-->(Y)), (Belief:BeliefStructuralReduction, Punctuation:Belief)
+     //((X)<->(Y)), (X<->Y), task("?") |- ((X)<->(Y)), (Belief:BeliefStructuralReduction, Punctuation:Belief)
+}
+//single_element_product_unwrap_by_question {
+//   (X-->Y), ((X)-->(Y)), task("?") |- (X-->Y), (Belief:BeliefStructuralReduction, Punctuation:Belief, Time:Belief)
+//     (X<->Y), ((X)<->(Y)), task("?") |- (X<->Y), (Belief:BeliefStructuralReduction, Punctuation:Belief, Time:Belief)
+//}
+single_element_product_unwrap_structural {
+   ((X)-->(Y)), ((X)-->(Y)) |- (X --> Y), (Belief:StructuralReduction)
+   //((X)<->(Y)), ((X)<->(Y)) |- polarizeBelief((X<->Y)), (Belief:BeliefStructuralReductionDD, Time:Task)
+}
+
+inh_prod_select_1_of_2 {
+    ((X,P)-->(Y,P)), ((X,P)-->(Y,P)), var(P), --is(X,"/"), --is(Y,"/") |- (X --> Y), (Belief:StructuralReduction)
+    ((P,X)-->(P,Y)), ((P,X)-->(P,Y)), var(P), --is(X,"/"), --is(Y,"/") |- (X --> Y), (Belief:StructuralReduction)
+
+//    (Z:(X,P) --> Z:(Y,P)), Z, --is(X,"/"), --is(Y,"/") |- (X --> Y), (Belief:StructuralReduction, Goal:StructuralReduction)
+//    (Z:(P,X) --> Z:(P,Y)), Z, --is(X,"/"), --is(Y,"/") |- (X --> Y), (Belief:StructuralReduction, Goal:StructuralReduction)
+//    ((Z-->(X,P)) --> (Z-->(Y,P))), Z, --is(X,"/"), --is(Y,"/") |- (X --> Y), (Belief:StructuralReduction, Goal:StructuralReduction)
+//    ((Z-->(P,X)) --> (Z-->(P,Y))), Z, --is(X,"/"), --is(Y,"/") |- (X --> Y), (Belief:StructuralReduction, Goal:StructuralReduction)
+
+}
+inh_prod_select_1_of_3 {
+    ((X,P,Q)-->(Y,P,Q)), ((X,P,Q)-->(Y,P,Q)), var({P,Q}), --is(X,"/"), --is(Y,"/") |- (X --> Y), (Belief:StructuralReduction)
+    ((P,X,Q)-->(P,Y,Q)), ((P,X,Q)-->(P,Y,Q)), var({P,Q}), --is(X,"/"), --is(Y,"/") |- (X --> Y), (Belief:StructuralReduction)
+    ((P,Q,X)-->(P,Q,Y)), ((P,Q,X)-->(P,Q,Y)), var({P,Q}), --is(X,"/"), --is(Y,"/") |- (X --> Y), (Belief:StructuralReduction)
+}
+//TODO 3, 4... etc
