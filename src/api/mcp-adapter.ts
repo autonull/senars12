@@ -5,9 +5,9 @@
 
 import type { z } from 'zod';
 import { errMsg } from '../../nar/src/utils';
-import { BaseAdapter, errorResponse } from './base-adapter.js';
-import type { MCPToolCall, MCPToolResult } from './mcp';
-import { SchemaTransformer } from './mcp';
+import { SchemaTransformer } from './mcp/schema-transformer.js';
+import type { MCPToolCall, MCPToolResult } from './mcp/types.js';
+import { UnifiedAdapter, errorResponse } from './unified-adapter.js';
 
 export interface MCPTool {
   name: string;
@@ -15,11 +15,14 @@ export interface MCPTool {
   inputSchema: Record<string, unknown>;
 }
 
-export class MCPAdapter extends BaseAdapter {
+export class MCPAdapter extends UnifiedAdapter {
   protected schemaTransformer: SchemaTransformer;
 
   constructor() {
-    super('api:mcp');
+    super({
+      transport: 'mcp',
+      loggerScope: 'api:mcp',
+    });
     this.schemaTransformer = new SchemaTransformer();
   }
 
@@ -93,5 +96,14 @@ export class MCPAdapter extends BaseAdapter {
    */
   protected zodToJSONSchema(schema: z.ZodSchema | unknown): Record<string, unknown> {
     return this.schemaTransformer.toJSONSchema(schema) as Record<string, unknown>;
+  }
+
+  async start(): Promise<void> {
+    // MCP adapter doesn't need to start a server - it's used by MCPServer
+    this.isRunning = true;
+  }
+
+  async stop(): Promise<void> {
+    this.isRunning = false;
   }
 }

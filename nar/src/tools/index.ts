@@ -1,4 +1,4 @@
-import { errorResult, createToolEvent } from './types.js';
+import { createToolEvent, errorResult } from './types.js';
 export { errorResult, createToolEvent };
 
 import { Registry, ToolManager } from './tool-registry.js';
@@ -18,17 +18,17 @@ export { TimerTool };
 
 // Type re-exports for TypeScript consumers
 export type {
-    Tool,
-    ToolCapabilities,
-    ToolContext,
-    ToolBudget,
-    ToolRegistry,
-    ToolFilter,
-    ToolChainStep,
-    ToolChainResult,
-    ToolResult,
-    Schema,
-    SchemaProperty,
-    ToolEvent,
-    ToolStatistics
+  Tool,
+  ToolCapabilities,
+  ToolContext,
+  ToolBudget,
+  ToolRegistry,
+  ToolFilter,
+  ToolChainStep,
+  ToolChainResult,
+  ToolResult,
+  Schema,
+  SchemaProperty,
+  ToolEvent,
+  ToolStatistics,
 } from './types.js';

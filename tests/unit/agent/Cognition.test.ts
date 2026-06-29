@@ -2,9 +2,6 @@ import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
-import type { Connection, IOMessage } from '../../../src/io/types.js';
-import type { Logger } from '../../../nar/src/logger';
-import { MessageRouter } from '../../../src/io';
 import { buildAgentTools, createAgent } from '../../../agent/src';
 import {
   InMemorySessionManager,
@@ -13,7 +10,10 @@ import {
   createStreamingAgentDispatch,
 } from '../../../agent/src';
 import { createMockLMService } from '../../../nar/src/lm';
+import type { Logger } from '../../../nar/src/logger';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
+import { MessageRouter } from '../../../src/io';
+import type { Connection, IOMessage } from '../../../src/io/types.js';
 
 const scriptedLM = createMockLMService({
   available: true,

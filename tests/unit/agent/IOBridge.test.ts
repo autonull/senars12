@@ -2,8 +2,6 @@ import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { describe, expect, it, vi } from 'vitest';
-import type { Connection, IOMessage, Logger, NAR } from '../../../src';
-import { AuthManager, CommandRegistry, MessageRouter } from '../../../src/io';
 import { createAgent } from '../../../agent/src';
 import {
   InMemorySessionManager,
@@ -23,6 +21,8 @@ import {
 import { SeNARSFactory } from '../../../nar/src';
 import { createMockLMService } from '../../../nar/src/lm';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
+import type { Connection, IOMessage, Logger, NAR } from '../../../src';
+import { AuthManager, CommandRegistry, MessageRouter } from '../../../src/io';
 
 const scriptedLM = createMockLMService({
   available: true,

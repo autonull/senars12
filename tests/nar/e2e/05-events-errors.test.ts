@@ -1,8 +1,8 @@
+import { TermBuilder, Truth } from '../../../nar/src';
 /**
  * Event System & Error Handling Tests
  */
 import { NAR } from '../../../src';
-import { TermBuilder, Truth } from '../../../nar/src';
 
 describe('Event System', () => {
   let nar: NAR;

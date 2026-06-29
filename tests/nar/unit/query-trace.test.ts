@@ -3,7 +3,6 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { NAR } from '../../../src';
 import { termParser } from '../../../nar/src';
 import {
   QueryAPI,
@@ -11,6 +10,7 @@ import {
   createQueryAPI,
   createReasoningTrace,
 } from '../../../nar/src/query';
+import { NAR } from '../../../src';
 
 describe('QueryAPI', () => {
   let nar: NAR;

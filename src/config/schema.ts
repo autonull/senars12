@@ -1,5 +1,19 @@
 import { z } from 'zod';
 
+const envBool = (key: string) =>
+  z
+    .string()
+    .optional()
+    .transform((v) => v?.toLowerCase() === 'true' || v === '1')
+    .pipe(z.boolean());
+const envNumber = (key: string) =>
+  z
+    .string()
+    .optional()
+    .transform((v) => (v ? Number.parseFloat(v) : undefined))
+    .pipe(z.number().optional());
+const envString = (key: string) => z.string().optional();
+
 const narCoreDefaults = {
   maxConcepts: 100,
   activationDecayRate: 0.01,
@@ -130,6 +144,7 @@ const capabilitiesDefaults = {
   lm: lmDefaults,
   senars: senarsCapabilityDefaults,
 };
+
 const botConfigDefaults = {
   reasoning: reasoningDefaults,
   streaming: streamingDefaults,

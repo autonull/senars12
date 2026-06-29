@@ -3,13 +3,13 @@ import { type Server, type Socket, createServer } from 'node:net';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { NAR } from '../../nar/src';
-import { CommandRegistry, IRCConnection } from '../../src/io';
 import { createAgent } from '../../agent/src';
 import { InMemorySessionManager, bindAgentToConnection } from '../../agent/src';
+import type { NAR } from '../../nar/src';
 import { SeNARSFactory } from '../../nar/src';
 import type { LMClient } from '../../nar/src/lm';
 import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
+import { CommandRegistry, IRCConnection } from '../../src/io';
 
 class MockIRCServer {
   public port = 0;

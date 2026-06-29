@@ -1,8 +1,8 @@
+import { TermBuilder, Truth, termsEqual } from '../../../nar/src';
 /**
  * Term System Tests - Canonicalization, Hashing, and Structural Sharing
  */
 import { NAR } from '../../../src';
-import { TermBuilder, Truth, termsEqual } from '../../../nar/src';
 
 describe('Term System', () => {
   let nar: NAR; // eslint-disable-line @typescript-eslint/no-unused-vars

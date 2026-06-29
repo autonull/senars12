@@ -1,4 +1,4 @@
-import { describe, expect, vi, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { BoundedBag } from '../../../nar/src';
 
 describe('BoundedBag', () => {

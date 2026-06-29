@@ -1,3 +1,8 @@
+/**
+ * Legacy Base Adapter (deprecated - use UnifiedAdapter)
+ * Kept for backward compatibility during migration
+ */
+
 import { type Logger, createLogger } from '../../nar/src/logger';
 import { APIRegistry } from './registry.js';
 
@@ -23,6 +28,9 @@ export const errorResponse = (code: string, message: string, id?: string): APIRe
   timestamp: Date.now(),
 });
 
+/**
+ * @deprecated Use UnifiedAdapter from './unified-adapter.ts' instead
+ */
 export abstract class BaseAdapter {
   protected readonly registry: APIRegistry;
   protected readonly logger: Logger;

@@ -1,74 +1,59 @@
-import { promises as fs } from 'fs';
-import { resolve } from 'path';
+import { promises as fs } from 'node:fs';
+import { resolve } from 'node:path';
 import type { AppConfig } from './schema.js';
 import { appConfigSchema } from './schema.js';
 
 export type { AppConfig, BotConfig, BotProfile, NarCoreConfig, LmConfig } from './schema.js';
 
-const ENV_OVERRIDES: Record<string, (env: string) => unknown> = {
-  SENARS_LM_ENABLED: (v) => v.toLowerCase() === 'true' || v === '1',
-  SENARS_LM_PROVIDER: (v) => v,
-  SENARS_LM_MODEL: (v) => v,
-  SENARS_SENARS_ENABLED: (v) => v.toLowerCase() === 'true' || v === '1',
-  SENARS_REASONING_AUTO_TRIGGER: (v) => v.toLowerCase() === 'true' || v === '1',
-  SENARS_REASONING_TRIGGER_THRESHOLD: (v) => Number.parseFloat(v),
-  SENARS_STREAMING_ENABLED: (v) => v.toLowerCase() === 'true' || v === '1',
-  SENARS_TUI_COLORS: (v) => v.toLowerCase() === 'true' || v === '1',
-  SENARS_TUI_TYPING_INDICATOR: (v) => v.toLowerCase() === 'true' || v === '1',
-};
+const envConfig = {
+  SENARS_LM_ENABLED: 'capabilities.lm.enabled',
+  SENARS_LM_PROVIDER: 'capabilities.lm.provider',
+  SENARS_LM_MODEL: 'capabilities.lm.model',
+  SENARS_SENARS_ENABLED: 'capabilities.senars.enabled',
+  SENARS_REASONING_AUTO_TRIGGER: 'bot.reasoning.autoTrigger',
+  SENARS_REASONING_TRIGGER_THRESHOLD: 'bot.reasoning.triggerThreshold',
+  SENARS_STREAMING_ENABLED: 'bot.streaming.enabled',
+  SENARS_TUI_COLORS: 'bot.tui.colors',
+  SENARS_TUI_TYPING_INDICATOR: 'bot.tui.typingIndicator',
+} as const;
 
-const applyEnvOverrides = (raw: Record<string, unknown>): Record<string, unknown> => {
+function setNested(obj: Record<string, unknown>, path: string, value: unknown): void {
+  const keys = path.split('.');
+  let current: Record<string, unknown> = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    const key = keys[i];
+    if (key === undefined) continue;
+    if (!(key in current) || typeof current[key] !== 'object' || current[key] === null) {
+      current[key] = {};
+    }
+    current = current[key] as Record<string, unknown>;
+  }
+  const lastKey = keys[keys.length - 1];
+  if (lastKey !== undefined) {
+    current[lastKey] = value;
+  }
+}
+
+function parseEnvValue(key: string, value: string): unknown {
+  if (value.toLowerCase() === 'true' || value === '1') return true;
+  if (value.toLowerCase() === 'false' || value === '0') return false;
+  const num = Number(value);
+  if (!Number.isNaN(num)) return num;
+  return value;
+}
+
+function applyEnvOverrides(raw: Record<string, unknown>): Record<string, unknown> {
   const out = { ...raw };
-  const caps = (out.capabilities as Record<string, unknown> | undefined) ?? {};
-  const lm = { ...((caps.lm as Record<string, unknown> | undefined) ?? {}) };
-  const senars = { ...((caps.senars as Record<string, unknown> | undefined) ?? {}) };
-  const reasoning = {
-    ...(((out.bot as Record<string, unknown> | undefined)?.reasoning as
-      | Record<string, unknown>
-      | undefined) ?? {}),
-  };
-  const streaming = {
-    ...(((out.bot as Record<string, unknown> | undefined)?.streaming as
-      | Record<string, unknown>
-      | undefined) ?? {}),
-  };
-  const tui = {
-    ...(((out.bot as Record<string, unknown> | undefined)?.tui as
-      | Record<string, unknown>
-      | undefined) ?? {}),
-  };
 
-  if (process.env.SENARS_LM_ENABLED)
-    lm.enabled = ENV_OVERRIDES['SENARS_LM_ENABLED']!(process.env.SENARS_LM_ENABLED);
-  if (process.env.SENARS_LM_PROVIDER) lm.provider = process.env.SENARS_LM_PROVIDER;
-  if (process.env.SENARS_LM_MODEL) lm.model = process.env.SENARS_LM_MODEL;
-  if (process.env.SENARS_SENARS_ENABLED)
-    senars.enabled = ENV_OVERRIDES['SENARS_SENARS_ENABLED']!(process.env.SENARS_SENARS_ENABLED);
-  if (process.env.SENARS_REASONING_AUTO_TRIGGER)
-    reasoning.autoTrigger = ENV_OVERRIDES['SENARS_REASONING_AUTO_TRIGGER']!(
-      process.env.SENARS_REASONING_AUTO_TRIGGER
-    );
-  if (process.env.SENARS_REASONING_TRIGGER_THRESHOLD)
-    reasoning.triggerThreshold = ENV_OVERRIDES['SENARS_REASONING_TRIGGER_THRESHOLD']!(
-      process.env.SENARS_REASONING_TRIGGER_THRESHOLD
-    );
-  if (process.env.SENARS_STREAMING_ENABLED)
-    streaming.enabled = ENV_OVERRIDES['SENARS_STREAMING_ENABLED']!(
-      process.env.SENARS_STREAMING_ENABLED
-    );
-  if (process.env.SENARS_TUI_COLORS)
-    tui.colors = ENV_OVERRIDES['SENARS_TUI_COLORS']!(process.env.SENARS_TUI_COLORS);
-  if (process.env.SENARS_TUI_TYPING_INDICATOR)
-    tui.typingIndicator = ENV_OVERRIDES['SENARS_TUI_TYPING_INDICATOR']!(
-      process.env.SENARS_TUI_TYPING_INDICATOR
-    );
+  for (const [envKey, configPath] of Object.entries(envConfig)) {
+    const envValue = process.env[envKey];
+    if (envValue !== undefined) {
+      setNested(out, configPath, parseEnvValue(envKey, envValue));
+    }
+  }
 
-  return {
-    ...out,
-    capabilities: { ...caps, lm, senars },
-    bot: { ...((out.bot as Record<string, unknown> | undefined) ?? {}), reasoning, streaming, tui },
-  };
-};
+  return out;
+}
 
 const deepMerge = <T>(defaults: T, overrides: Partial<T> | undefined): T => {
   if (!overrides) return defaults;

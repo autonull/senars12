@@ -3,11 +3,11 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { NAR } from '../../../src';
 import { Reasoner, RuleProcessor, TaskManager, TermBuilder, Truth } from '../../../nar/src';
 import { NARIO } from '../../../nar/src/nar-io.js';
 import { NARLM } from '../../../nar/src/nar-lm.js';
 import { createStrategy } from '../../../nar/src/reason';
+import { NAR } from '../../../src';
 
 describe('Reasoner', () => {
   let nar: NAR;

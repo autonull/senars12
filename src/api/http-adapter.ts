@@ -1,14 +1,14 @@
 /**
- * HTTP Adapter for Unified API Registry
- * Adapts HTTP requests to registry handlers
+ * Unified HTTP Adapter
+ * Uses the new unified adapter pattern
  */
 
-import { randomBytes } from 'crypto';
-import type { IncomingMessage, ServerResponse } from 'http';
-import { URL } from 'url';
+import { randomBytes } from 'node:crypto';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { URL } from 'node:url';
 import { errMsg } from '../../nar/src/utils';
 import { ApiKeyManager, parseHttpBody, setCORSHeaders } from '../io/utils/http.js';
-import { BaseAdapter, errorResponse } from './base-adapter.js';
+import { APIResponse, UnifiedAdapter, errorResponse, successResponse } from './unified-adapter.js';
 
 export interface HTTPAdapterConfig {
   port?: number;
@@ -22,20 +22,26 @@ interface RateLimitState {
   resetTime: number;
 }
 
-export class HTTPAdapter extends BaseAdapter {
-  private config: Required<HTTPAdapterConfig>;
+export class HTTPAdapter extends UnifiedAdapter {
+  private httpConfig: Required<HTTPAdapterConfig>;
   private rateLimitState = new Map<string, RateLimitState>();
   private apiKeys = new ApiKeyManager();
+  private server: ReturnType<typeof import('node:http').createServer> | null = null;
 
-  constructor(registry?: any, config: HTTPAdapterConfig = {}) {
-    super('api:http');
-    this.config = {
+  constructor(config: HTTPAdapterConfig = {}) {
+    super({
+      transport: 'http',
+      loggerScope: 'api:http',
+      port: config.port ?? 8080,
+    });
+
+    this.httpConfig = {
       port: config.port ?? 8080,
       apiKey: config.apiKey ?? randomBytes(32).toString('hex'),
       enableCors: config.enableCors ?? true,
       rateLimit: config.rateLimit ?? { windowMs: 60000, maxRequests: 100 },
     };
-    if (this.config.apiKey) this.apiKeys.add(this.config.apiKey);
+    if (this.httpConfig.apiKey) this.apiKeys.add(this.httpConfig.apiKey);
   }
 
   addApiKey(key: string): void {
@@ -50,11 +56,52 @@ export class HTTPAdapter extends BaseAdapter {
     return this.registry.getOpenAPISpec();
   }
 
-  async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  async start(): Promise<void> {
+    const { createServer } = await import('node:http');
+
+    return new Promise((resolve, reject) => {
+      try {
+        this.server = createServer((req: IncomingMessage, res: ServerResponse) => {
+          this.handleRequest(req, res).catch((err) => {
+            this.logger.error('Request handler error', err);
+          });
+        });
+
+        this.server.on('listening', () => {
+          this.logger.info(`HTTP adapter listening on port ${this.httpConfig.port}`);
+          this.isRunning = true;
+          resolve();
+        });
+
+        this.server.on('error', (error: Error) => {
+          this.logger.error('HTTP adapter error', error);
+          reject(error);
+        });
+
+        this.server.listen(this.httpConfig.port);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  async stop(): Promise<void> {
+    if (!this.server) return;
+
+    return new Promise((resolve) => {
+      this.server?.close(() => {
+        this.isRunning = false;
+        this.logger.info('HTTP adapter closed');
+        resolve();
+      });
+    });
+  }
+
+  private async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url || '/', 'http://localhost');
     const method = req.method || 'GET';
 
-    if (this.config.enableCors) setCORSHeaders(res);
+    if (this.httpConfig.enableCors) setCORSHeaders(res);
     res.setHeader('Content-Type', 'application/json');
 
     if (method === 'OPTIONS') {
@@ -80,17 +127,11 @@ export class HTTPAdapter extends BaseAdapter {
       const apiKey = req.headers['x-api-key'] as string;
       if (!this.apiKeys.has(apiKey)) {
         res.statusCode = 401;
-        res.end(
-          JSON.stringify({
-            type: 'error',
-            error: { code: 'UNAUTHORIZED', message: 'Unauthorized' },
-            timestamp: Date.now(),
-          })
-        );
+        res.end(JSON.stringify(errorResponse('UNAUTHORIZED', 'Unauthorized')));
         return;
       }
 
-      if (this.config.rateLimit && this.checkRateLimit(apiKey || 'anonymous')) {
+      if (this.httpConfig.rateLimit && this.checkRateLimit(apiKey || 'anonymous')) {
         res.statusCode = 429;
         res.end(JSON.stringify(errorResponse('RATE_LIMIT_EXCEEDED', 'Rate limit exceeded')));
         return;
@@ -114,7 +155,7 @@ export class HTTPAdapter extends BaseAdapter {
 
       const result = await this.registry.invoke(handlerName, body);
       res.statusCode = 200;
-      res.end(JSON.stringify(result));
+      res.end(JSON.stringify(successResponse(result as Record<string, unknown>)));
     } catch (error: unknown) {
       res.statusCode = 400;
       res.end(JSON.stringify(errorResponse('HANDLER_ERROR', errMsg(error))));
@@ -124,7 +165,7 @@ export class HTTPAdapter extends BaseAdapter {
   private checkRateLimit(key: string): boolean {
     const now = Date.now();
     const state = this.rateLimitState.get(key);
-    const { windowMs, maxRequests } = this.config.rateLimit;
+    const { windowMs, maxRequests } = this.httpConfig.rateLimit;
 
     if (!state || now > state.resetTime) {
       this.rateLimitState.set(key, { count: 1, resetTime: now + windowMs });

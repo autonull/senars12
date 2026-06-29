@@ -9,8 +9,8 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { NAR } from '../../../src';
 import { isTautology, termParser, validateTaskTerm } from '../../../nar/src/terms';
+import { NAR } from '../../../src';
 
 describe('Diagnostic: Tautology Detection', () => {
   it('should detect self-inheritance as tautology', () => {

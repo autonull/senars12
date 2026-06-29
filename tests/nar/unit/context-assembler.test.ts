@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vitest';
-import type { NAR } from '../../../src';
 import { ContextAssembler, TranslationCache } from '../../../nar/src/nl';
+import type { NAR } from '../../../src';
 
 describe('ContextAssembler', () => {
   let cache: TranslationCache;

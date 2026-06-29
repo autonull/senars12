@@ -1,10 +1,13 @@
-import type {Concept, Memory} from '../../memory';
-import type {SamplingStrategy} from '../types.js';
+import type { Concept, Memory } from '../../memory';
+import type { SamplingStrategy } from '../types.js';
 
 export class PrioritySampling implements SamplingStrategy {
-    readonly metadata = {name: 'priority', description: 'Priority-weighted sampling (current default)'};
+  readonly metadata = {
+    name: 'priority',
+    description: 'Priority-weighted sampling (current default)',
+  };
 
-    sample(memory: Memory, count: number): Concept[] {
-        return memory.sample(count);
-    }
+  sample(memory: Memory, count: number): Concept[] {
+    return memory.sample(count);
+  }
 }

@@ -1,8 +1,8 @@
+import { TermBuilder, Truth } from '../../../nar/src';
 /**
  * Memory Operations Tests - Concept formation, activation, decay, consolidation
  */
 import { NAR } from '../../../src';
-import { TermBuilder, Truth } from '../../../nar/src';
 
 describe('Memory Operations', () => {
   let nar: NAR;

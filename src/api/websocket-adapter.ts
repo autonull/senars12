@@ -1,6 +1,6 @@
 /**
- * WebSocket Adapter for Unified API Registry
- * Adapts WebSocket messages to registry handlers
+ * Unified WebSocket Adapter
+ * Uses the new unified adapter pattern
  */
 
 import { type WebSocket, WebSocketServer } from 'ws';
@@ -13,7 +13,7 @@ import {
   subscribeToEvents,
   unsubscribeFromEvents,
 } from '../io/utils/websocket.js';
-import { BaseAdapter, errorResponse, successResponse } from './base-adapter.js';
+import { APIResponse, UnifiedAdapter, errorResponse, successResponse } from './unified-adapter.js';
 
 interface WSMessage {
   type: string;
@@ -28,16 +28,20 @@ export interface WebSocketAdapterConfig {
   idleTimeout?: number;
 }
 
-export class WebSocketAdapter extends BaseAdapter {
+export class WebSocketAdapter extends UnifiedAdapter {
   private server: WebSocketServer | null = null;
   private clients: Map<string, WSClient> = new Map();
   private eventSubscriptions: Map<string, Set<WebSocket>> = new Map();
-  private config: Required<WebSocketAdapterConfig>;
+  private wsConfig: Required<WebSocketAdapterConfig>;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(registry?: any, config: WebSocketAdapterConfig = {}) {
-    super('api:websocket');
-    this.config = {
+  constructor(config: WebSocketAdapterConfig = {}) {
+    super({
+      transport: 'websocket',
+      loggerScope: 'api:websocket',
+      port: config.port ?? 8765,
+    });
+    this.wsConfig = {
       port: config.port ?? 8765,
       maxClients: config.maxClients ?? 100,
       heartbeatInterval: config.heartbeatInterval ?? 30000,
@@ -48,10 +52,11 @@ export class WebSocketAdapter extends BaseAdapter {
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        this.server = new WebSocketServer({ port: this.config.port });
+        this.server = new WebSocketServer({ port: this.wsConfig.port });
 
         this.server.on('listening', () => {
-          this.logger.info(`WebSocket adapter listening on port ${this.config.port}`);
+          this.logger.info(`WebSocket adapter listening on port ${this.wsConfig.port}`);
+          this.isRunning = true;
           resolve();
         });
 
@@ -61,7 +66,7 @@ export class WebSocketAdapter extends BaseAdapter {
         });
 
         this.server.on('connection', (ws) => {
-          if (this.clients.size >= this.config.maxClients) {
+          if (this.clients.size >= this.wsConfig.maxClients) {
             ws.close(1013, 'Server full');
             return;
           }
@@ -70,7 +75,7 @@ export class WebSocketAdapter extends BaseAdapter {
 
         this.heartbeatTimer = setInterval(
           () => this.checkHeartbeat(),
-          this.config.heartbeatInterval
+          this.wsConfig.heartbeatInterval
         );
       } catch (error) {
         reject(error);
@@ -94,6 +99,7 @@ export class WebSocketAdapter extends BaseAdapter {
 
       this.server.close(() => {
         this.logger.info('WebSocket adapter closed');
+        this.isRunning = false;
         resolve();
       });
     });
@@ -109,7 +115,7 @@ export class WebSocketAdapter extends BaseAdapter {
 
   private handleConnection(ws: WebSocket): void {
     const client = createWSClient(ws, makeId(), {
-      heartbeatInterval: this.config.heartbeatInterval,
+      heartbeatInterval: this.wsConfig.heartbeatInterval,
       onMessage: (msg, cl) => {
         const wm = msg as unknown as WSMessage;
         this.handleMessage(ws, wm, cl).catch((error) => {
@@ -133,7 +139,7 @@ export class WebSocketAdapter extends BaseAdapter {
   private checkHeartbeat(): void {
     const now = Date.now();
     for (const [id, client] of this.clients) {
-      if (now - client.lastSeen > this.config.idleTimeout) {
+      if (now - client.lastSeen > this.wsConfig.idleTimeout) {
         cleanupWSClient(client, 1000, 'Idle timeout');
         this.clients.delete(id);
         this.logger.info(`Client ${id} idle timeout`);

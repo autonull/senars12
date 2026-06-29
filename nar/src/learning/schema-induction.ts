@@ -7,143 +7,143 @@
  * - Store as higher-order concepts with variables
  * - LM proposes, NARS validates, both adopt
  */
-import type {LMService} from '../lm/lm-service.js';
-import type {Memory} from '../memory';
-import type {Term} from '../terms';
-import {Truth} from '../terms';
-import {createBudget, createTask, type Task} from '../types';
-import {createLogger, type Logger} from '../logger';
-import {clamp01, errMsg} from '../utils';
+import type { LMService } from '../lm/lm-service.js';
+import { type Logger, createLogger } from '../logger';
+import type { Memory } from '../memory';
+import type { Term } from '../terms';
+import { Truth } from '../terms';
+import { type Task, createBudget, createTask } from '../types';
+import { clamp01, errMsg } from '../utils';
 
 export interface SchemaPattern {
-    id: string;
-    template: string;
-    variables: string[];
-    examples: string[];
-    confidence: number;
-    usageCount: number;
-    lastUsed: number;
+  id: string;
+  template: string;
+  variables: string[];
+  examples: string[];
+  confidence: number;
+  usageCount: number;
+  lastUsed: number;
 }
 
 export interface InductionResult {
-    schema: SchemaPattern;
-    instances: string[];
-    confidence: number;
+  schema: SchemaPattern;
+  instances: string[];
+  confidence: number;
 }
 
 export interface SchemaInductionConfig {
-    enableSchemaInduction: boolean;
-    minDerivationSteps: number;
-    minConfidenceForInduction: number;
-    maxSchemas: number;
-    inductionIntervalMs: number;
+  enableSchemaInduction: boolean;
+  minDerivationSteps: number;
+  minConfidenceForInduction: number;
+  maxSchemas: number;
+  inductionIntervalMs: number;
 }
 
 const DEFAULT_CONFIG: SchemaInductionConfig = {
-    enableSchemaInduction: true,
-    minDerivationSteps: 3,
-    minConfidenceForInduction: 0.6,
-    maxSchemas: 50,
-    inductionIntervalMs: 300_000,
+  enableSchemaInduction: true,
+  minDerivationSteps: 3,
+  minConfidenceForInduction: 0.6,
+  maxSchemas: 50,
+  inductionIntervalMs: 300_000,
 };
 
 export class SchemaInductor {
-    private readonly memory: Memory;
-    private readonly lmClient: LMService;
-    private readonly config: SchemaInductionConfig;
-    private readonly logger: Logger;
-    private schemas = new Map<string, SchemaPattern>();
-    private lastInductionTime = 0;
+  private readonly memory: Memory;
+  private readonly lmClient: LMService;
+  private readonly config: SchemaInductionConfig;
+  private readonly logger: Logger;
+  private schemas = new Map<string, SchemaPattern>();
+  private lastInductionTime = 0;
 
-    constructor(memory: Memory, lmClient: LMService, config: Partial<SchemaInductionConfig> = {}) {
-        this.memory = memory;
-        this.lmClient = lmClient;
-        this.config = {...DEFAULT_CONFIG, ...config};
-        this.logger = createLogger({scope: 'learning:schema-induction'});
+  constructor(memory: Memory, lmClient: LMService, config: Partial<SchemaInductionConfig> = {}) {
+    this.memory = memory;
+    this.lmClient = lmClient;
+    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.logger = createLogger({ scope: 'learning:schema-induction' });
+  }
+
+  async induceFromDerivations(derivations: Task[]): Promise<InductionResult[]> {
+    if (!this.config.enableSchemaInduction || derivations.length === 0) return [];
+
+    const now = Date.now();
+    if (now - this.lastInductionTime < this.config.inductionIntervalMs) return [];
+    this.lastInductionTime = now;
+
+    const patterns = this.extractPatterns(derivations);
+    if (patterns.length === 0) return [];
+
+    const results: InductionResult[] = [];
+    for (const pattern of patterns) {
+      try {
+        const induced = await this.induceSchema(pattern);
+        if (induced) results.push(induced);
+      } catch (error) {
+        this.logger.warn(`Schema induction failed: ${errMsg(error)}`);
+      }
     }
 
-    async induceFromDerivations(derivations: Task[]): Promise<InductionResult[]> {
-        if (!this.config.enableSchemaInduction || derivations.length === 0) return [];
+    return results;
+  }
 
-        const now = Date.now();
-        if (now - this.lastInductionTime < this.config.inductionIntervalMs) return [];
-        this.lastInductionTime = now;
+  getSchemas(): SchemaPattern[] {
+    return Array.from(this.schemas.values());
+  }
 
-        const patterns = this.extractPatterns(derivations);
-        if (patterns.length === 0) return [];
+  getSchema(id: string): SchemaPattern | undefined {
+    return this.schemas.get(id);
+  }
 
-        const results: InductionResult[] = [];
-        for (const pattern of patterns) {
-            try {
-                const induced = await this.induceSchema(pattern);
-                if (induced) results.push(induced);
-            } catch (error) {
-                this.logger.warn(`Schema induction failed: ${errMsg(error)}`);
-            }
+  applySchema(schemaId: string, terms: Record<string, string>): Task | null {
+    const schema = this.schemas.get(schemaId);
+    if (!schema) return null;
+
+    let result = schema.template;
+    for (const [variable, value] of Object.entries(terms)) {
+      result = result.replaceAll(variable, value);
+    }
+
+    schema.usageCount++;
+    schema.lastUsed = Date.now();
+
+    return createTask(
+      { kind: 'atom' as const, symbol: result } as Term,
+      'belief',
+      Truth.create(0.7, schema.confidence * 0.8),
+      createBudget(0.6, 0.7)
+    );
+  }
+
+  private extractPatterns(derivations: Task[]): Task[][] {
+    const chains: Task[][] = [];
+    let current: Task[] = [];
+
+    for (const d of derivations) {
+      if (!d.truth) continue;
+      const confidence = d.truth.f * d.truth.c;
+      if (confidence < this.config.minConfidenceForInduction) continue;
+
+      if (current.length > 0) {
+        const lastTerm = current[current.length - 1]!.term.toString();
+        const dTerm = d.term.toString();
+        if (dTerm.includes(lastTerm) || lastTerm.includes(dTerm.split('-->')[0]?.trim() || '')) {
+          current.push(d);
+          continue;
         }
-
-        return results;
+      }
+      if (current.length >= this.config.minDerivationSteps) {
+        chains.push(current);
+      }
+      current = [d];
     }
+    if (current.length >= this.config.minDerivationSteps) chains.push(current);
 
-    getSchemas(): SchemaPattern[] {
-        return Array.from(this.schemas.values());
-    }
+    return chains;
+  }
 
-    getSchema(id: string): SchemaPattern | undefined {
-        return this.schemas.get(id);
-    }
+  private async induceSchema(chain: Task[]): Promise<InductionResult | null> {
+    const chainStr = chain.map((t) => t.term.toString()).join(' → ');
 
-    applySchema(schemaId: string, terms: Record<string, string>): Task | null {
-        const schema = this.schemas.get(schemaId);
-        if (!schema) return null;
-
-        let result = schema.template;
-        for (const [variable, value] of Object.entries(terms)) {
-            result = result.replaceAll(variable, value);
-        }
-
-        schema.usageCount++;
-        schema.lastUsed = Date.now();
-
-        return createTask(
-            {kind: 'atom' as const, symbol: result} as Term,
-            'belief',
-            Truth.create(0.7, schema.confidence * 0.8),
-            createBudget(0.6, 0.7),
-        );
-    }
-
-    private extractPatterns(derivations: Task[]): Task[][] {
-        const chains: Task[][] = [];
-        let current: Task[] = [];
-
-        for (const d of derivations) {
-            if (!d.truth) continue;
-            const confidence = d.truth.f * d.truth.c;
-            if (confidence < this.config.minConfidenceForInduction) continue;
-
-            if (current.length > 0) {
-                const lastTerm = current[current.length - 1]!.term.toString();
-                const dTerm = d.term.toString();
-                if (dTerm.includes(lastTerm) || lastTerm.includes(dTerm.split('-->')[0]?.trim() || '')) {
-                    current.push(d);
-                    continue;
-                }
-            }
-            if (current.length >= this.config.minDerivationSteps) {
-                chains.push(current);
-            }
-            current = [d];
-        }
-        if (current.length >= this.config.minDerivationSteps) chains.push(current);
-
-        return chains;
-    }
-
-    private async induceSchema(chain: Task[]): Promise<InductionResult | null> {
-        const chainStr = chain.map(t => t.term.toString()).join(' → ');
-
-        const prompt = `Analyze this derivation chain and extract a reusable schema pattern.
+    const prompt = `Analyze this derivation chain and extract a reusable schema pattern.
 
 Chain: ${chainStr}
 
@@ -160,64 +160,69 @@ Respond with JSON:
   "variables": ["?A", "?B", "?C"]
 }`;
 
-        const response = await this.lmClient.generateText(prompt);
-        const parsed = this.parseSchemaResponse(response);
-        if (!parsed) return null;
+    const response = await this.lmClient.generateText(prompt);
+    const parsed = this.parseSchemaResponse(response);
+    if (!parsed) return null;
 
-        const id = `schema-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const schema: SchemaPattern = {
-            id,
-            template: parsed.pattern,
-            variables: parsed.variables,
-            examples: [chainStr],
-            confidence: parsed.confidence,
-            usageCount: 0,
-            lastUsed: Date.now(),
-        };
+    const id = `schema-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const schema: SchemaPattern = {
+      id,
+      template: parsed.pattern,
+      variables: parsed.variables,
+      examples: [chainStr],
+      confidence: parsed.confidence,
+      usageCount: 0,
+      lastUsed: Date.now(),
+    };
 
-        this.schemas.set(id, schema);
-        this.enforceMaxSchemas();
+    this.schemas.set(id, schema);
+    this.enforceMaxSchemas();
 
-        return {
-            schema,
-            instances: chain.map(t => t.term.toString()),
-            confidence: parsed.confidence,
-        };
+    return {
+      schema,
+      instances: chain.map((t) => t.term.toString()),
+      confidence: parsed.confidence,
+    };
+  }
+
+  private parseSchemaResponse(response: string): {
+    pattern: string;
+    type: string;
+    confidence: number;
+    variables: string[];
+  } | null {
+    try {
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return null;
+      const obj = JSON.parse(jsonMatch[0]);
+      if (!obj.pattern || !obj.variables) return null;
+      return {
+        pattern: obj.pattern,
+        type: obj.type ?? 'unknown',
+        confidence: clamp01(obj.confidence ?? 0.5),
+        variables: obj.variables,
+      };
+    } catch {
+      return null;
     }
+  }
 
-    private parseSchemaResponse(response: string): {
-        pattern: string;
-        type: string;
-        confidence: number;
-        variables: string[]
-    } | null {
-        try {
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) return null;
-            const obj = JSON.parse(jsonMatch[0]);
-            if (!obj.pattern || !obj.variables) return null;
-            return {
-                pattern: obj.pattern,
-                type: obj.type ?? 'unknown',
-                confidence: clamp01(obj.confidence ?? 0.5),
-                variables: obj.variables,
-            };
-        } catch {
-            return null;
-        }
+  private enforceMaxSchemas(): void {
+    if (this.schemas.size <= this.config.maxSchemas) return;
+    const sorted = Array.from(this.schemas.values()).sort(
+      (a, b) => a.usageCount - b.usageCount || a.confidence - b.confidence
+    );
+    const toRemove = sorted.slice(0, this.schemas.size - this.config.maxSchemas);
+    for (const s of toRemove) {
+      this.schemas.delete(s.id);
     }
-
-    private enforceMaxSchemas(): void {
-        if (this.schemas.size <= this.config.maxSchemas) return;
-        const sorted = Array.from(this.schemas.values())
-            .sort((a, b) => a.usageCount - b.usageCount || a.confidence - b.confidence);
-        const toRemove = sorted.slice(0, this.schemas.size - this.config.maxSchemas);
-        for (const s of toRemove) {
-            this.schemas.delete(s.id);
-        }
-    }
+  }
 }
 
-export const createSchemaInductor = (memory: Memory, lmClient: LMService, config?: Partial<SchemaInductionConfig>): SchemaInductor => {
-    return new SchemaInductor(memory, lmClient, config);
+export const createSchemaInductor = (
+  memory: Memory,
+  lmClient: LMService,
+  config?: Partial<SchemaInductionConfig>
+): SchemaInductor => {
+  return new SchemaInductor(memory, lmClient, config);
 };

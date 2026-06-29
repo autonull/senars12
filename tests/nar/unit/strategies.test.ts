@@ -4,7 +4,6 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { NAR } from '../../../src';
 import {
   AdaptiveStrategy,
   AnalogicalStrategy,
@@ -19,6 +18,7 @@ import {
   TermLinkStrategy,
   createStrategy,
 } from '../../../nar/src/reason';
+import { NAR } from '../../../src';
 import type { Strategy } from '../strategy.js';
 
 describe('Core Strategies', () => {

@@ -1,7 +1,7 @@
-import type { NAR } from '../../nar/src';
 import { type Agent, type AgentOptions, createAgent } from '../../agent/src';
 import { type ConversationSession, createSession } from '../../agent/src';
 import { ModelRunner } from '../../agent/src/model/ModelRunner.js';
+import type { NAR } from '../../nar/src';
 import { SeNARSFactory } from '../../nar/src';
 import type { LMService } from '../../nar/src/lm';
 

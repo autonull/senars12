@@ -1,8 +1,8 @@
+import { TermBuilder, Truth } from '../../../nar/src';
 /**
  * Inference Rules Tests - Deduction, Induction, Abduction
  */
 import { NAR } from '../../../src';
-import { TermBuilder, Truth } from '../../../nar/src';
 
 describe('Inference Rules', () => {
   let nar: NAR;

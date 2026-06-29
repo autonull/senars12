@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, vi, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { Memory, TermBuilder } from '../../../nar/src';
 import { type RuleInput, RuleProcessor } from '../../../nar/src/rules';
 
