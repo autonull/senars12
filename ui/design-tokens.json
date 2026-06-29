@@ -1,0 +1,202 @@
+{
+  "colors": {
+    "primitive": {
+      "void": "#000000",
+      "void-hover": "#0a0a0a",
+      "void-active": "#111111",
+      "panel": "#0d0d0d",
+      "panel-solid": "#0a0a0a",
+      "panel-hover": "#141414",
+      "border-dim": "#1a1a1a",
+      "border-default": "#2a2a2a",
+      "border-bright": "#3a3a3a",
+      "text-primary": "#e8e8e8",
+      "text-secondary": "#a0a0a0",
+      "text-dim": "#6a6a6a",
+      "text-inverse": "#000000",
+      "accent-cyan": "#00f3ff",
+      "accent-cyan-dim": "#00c5cc",
+      "accent-cyan-subtle": "#003d40",
+      "accent-magenta": "#ff00aa",
+      "accent-magenta-dim": "#cc0088",
+      "accent-amber": "#ffaa00",
+      "accent-amber-dim": "#cc8800",
+      "focus-ring": "#00f3ff",
+      "error": "#ff4444",
+      "warning": "#ffaa00",
+      "success": "#00cc88",
+      "info": "#00aaff"
+    },
+    "semantic": {
+      "bg-base": "{colors.primitive.void}",
+      "bg-panel": "{colors.primitive.panel}",
+      "bg-panel-solid": "{colors.primitive.panel-solid}",
+      "bg-panel-hover": "{colors.primitive.panel-hover}",
+      "bg-elevated": "{colors.primitive.void-hover}",
+      "border-subtle": "{colors.primitive.border-dim}",
+      "border-default": "{colors.primitive.border-default}",
+      "border-focus": "{colors.primitive.focus-ring}",
+      "text-primary": "{colors.primitive.text-primary}",
+      "text-secondary": "{colors.primitive.text-secondary}",
+      "text-muted": "{colors.primitive.text-dim}",
+      "text-on-accent": "{colors.primitive.text-inverse}",
+      "status-connected": "{colors.primitive.success}",
+      "status-connecting": "{colors.primitive.info}",
+      "status-reconnecting": "{colors.primitive.warning}",
+      "status-disconnected": "{colors.primitive.error}",
+      "focus-ring": "{colors.primitive.focus-ring}",
+      "accent-primary": "{colors.primitive.accent-cyan}",
+      "accent-primary-dim": "{colors.primitive.accent-cyan-dim}",
+      "accent-primary-subtle": "{colors.primitive.accent-cyan-subtle}"
+    },
+    "cognitiveLens": {
+      "belief": {
+        "primary": "{colors.primitive.accent-cyan}",
+        "dim": "{colors.primitive.accent-cyan-dim}",
+        "subtle": "{colors.primitive.accent-cyan-subtle}",
+        "bg": "{colors.primitive.accent-cyan-subtle}"
+      },
+      "goal": {
+        "primary": "{colors.primitive.accent-magenta}",
+        "dim": "{colors.primitive.accent-magenta-dim}",
+        "subtle": "rgba(255, 0, 170, 0.1)",
+        "bg": "rgba(255, 0, 170, 0.1)"
+      },
+      "contradiction": {
+        "primary": "{colors.primitive.accent-amber}",
+        "dim": "{colors.primitive.accent-amber-dim}",
+        "subtle": "rgba(255, 170, 0, 0.1)",
+        "bg": "rgba(255, 170, 0, 0.1)"
+      }
+    },
+    "status": {
+      "connected": "{colors.semantic.status-connected}",
+      "connecting": "{colors.semantic.status-connecting}",
+      "reconnecting": "{colors.semantic.status-reconnecting}",
+      "disconnected": "{colors.semantic.status-disconnected}"
+    }
+  },
+  "spacing": {
+    "scale": {
+      "0": "0",
+      "1": "2px",
+      "2": "4px",
+      "3": "8px",
+      "4": "12px",
+      "5": "16px",
+      "6": "24px",
+      "7": "32px",
+      "8": "48px",
+      "9": "64px"
+    },
+    "component": {
+      "panel-padding": "{spacing.scale.4}",
+      "panel-gap": "{spacing.scale.3}",
+      "button-padding-x": "{spacing.scale.3}",
+      "button-padding-y": "{spacing.scale.1}",
+      "input-padding-x": "{spacing.scale.3}",
+      "input-padding-y": "{spacing.scale.2}",
+      "toolbar-gap": "{spacing.scale.2}",
+      "toolbar-padding": "{spacing.scale.3}",
+      "tooltip-gap": "{spacing.scale.2}",
+      "badge-gap": "{spacing.scale.1}"
+    }
+  },
+  "typography": {
+    "fontFamilies": {
+      "ui": "\"IBM Plex Sans\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+      "data": "\"IBM Plex Mono\", \"SF Mono\", \"Fira Code\", monospace",
+      "mono": "\"IBM Plex Mono\", monospace"
+    },
+    "scale": {
+      "xs": "0.625rem",
+      "sm": "0.75rem",
+      "base": "0.875rem",
+      "lg": "1rem",
+      "xl": "1.125rem",
+      "2xl": "1.25rem",
+      "3xl": "1.5rem"
+    },
+    "lineHeights": {
+      "tight": "1.2",
+      "normal": "1.5",
+      "relaxed": "1.75"
+    },
+    "fontWeights": {
+      "normal": "400",
+      "medium": "500",
+      "semibold": "600",
+      "bold": "700"
+    }
+  },
+  "motion": {
+    "durations": {
+      "instant": "0ms",
+      "fast": "100ms",
+      "normal": "200ms",
+      "slow": "300ms",
+      "slower": "500ms"
+    },
+    "easings": {
+      "ease": "ease",
+      "ease-in": "cubic-bezier(0.4, 0, 1, 1)",
+      "ease-out": "cubic-bezier(0, 0, 0.2, 1)",
+      "ease-in-out": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "spring": "cubic-bezier(0.34, 1.56, 0.64, 1)"
+    },
+    "reducedMotion": {
+      "durations": {
+        "fast": "0ms",
+        "normal": "0ms",
+        "slow": "0ms",
+        "slower": "0ms"
+      }
+    }
+  },
+  "zIndex": {
+    "layers": {
+      "base": "0",
+      "dropdown": "100",
+      "tooltip": "200",
+      "panel": "300",
+      "modal": "400",
+      "toast": "500",
+      "palette": "600"
+    }
+  },
+  "breakpoints": {
+    "mobile": "640px",
+    "tablet": "1024px",
+    "desktop": "1280px",
+    "wide": "1536px"
+  },
+  "borderRadius": {
+    "scale": {
+      "none": "0",
+      "sm": "2px",
+      "md": "4px",
+      "lg": "8px",
+      "xl": "12px",
+      "full": "9999px"
+    },
+    "component": {
+      "button": "{borderRadius.scale.md}",
+      "input": "{borderRadius.scale.md}",
+      "panel": "{borderRadius.scale.lg}",
+      "tooltip": "{borderRadius.scale.sm}",
+      "badge": "{borderRadius.scale.full}"
+    }
+  },
+  "shadows": {
+    "panel": "0 4px 16px rgba(0, 0, 0, 0.4)",
+    "panel-hover": "0 8px 24px rgba(0, 0, 0, 0.5)",
+    "modal": "0 16px 48px rgba(0, 0, 0, 0.6)",
+    "tooltip": "0 2px 8px rgba(0, 0, 0, 0.4)",
+    "focus": "0 0 0 3px {colors.primitive.focus-ring}"
+  },
+  "transitions": {
+    "fast": "{motion.durations.fast} {motion.easings.ease-out}",
+    "normal": "{motion.durations.normal} {motion.easings.ease-out}",
+    "slow": "{motion.durations.slow} {motion.easings.ease-out}"
+  }
+}

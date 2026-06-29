@@ -1,44 +1,17 @@
+/* Migration aliases: old variable names → new design tokens */
 :root {
-  --bg-void: #05070a;
-  --bg-panel: rgba(15, 20, 28, 0.85);
-  --bg-panel-solid: #0f141c;
-
-  --border-dim: rgba(255, 255, 255, 0.05);
-  --border-active: rgba(0, 255, 255, 0.3);
-
-  --accent-cyan: #00f3ff;
-  --accent-amber: #ffb000;
-  --accent-magenta: #ff0055;
-  --text-primary: #e2e8f0;
-  --text-dim: #64748b;
-
-  --font-ui: 'Inter', system-ui, sans-serif;
-  --font-data: 'JetBrains Mono', 'Fira Code', monospace;
-
-  --glow-cyan: 0 0 10px rgba(0, 243, 255, 0.4);
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --bg-void: var(--colors-semantic-bg-base);
+  --bg-panel: var(--colors-semantic-bg-panel);
+  --bg-panel-solid: var(--colors-semantic-bg-panel-solid);
+  --bg-panel-hover: var(--colors-semantic-bg-panel-hover);
+  --border-dim: var(--colors-semantic-border-subtle);
+  --border-active: var(--colors-semantic-border-focus);
+  --accent-cyan: var(--colors-semantic-accent-primary);
+  --accent-amber: var(--colors-primitive-warning);
+  --accent-magenta: var(--colors-cognitiveLens-goal-primary);
+  --text-primary: var(--colors-semantic-text-primary);
+  --text-dim: var(--colors-semantic-text-muted);
+  --font-ui: var(--typography-fontFamilies-ui);
+  --font-data: var(--typography-fontFamilies-data);
+  --transition-fast: var(--transitions-fast);
 }
-
-*, *::before, *::after { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  background: var(--bg-void);
-  color: var(--text-primary);
-  font-family: var(--font-ui);
-  overflow: hidden;
-  height: 100vh;
-  -webkit-font-smoothing: antialiased;
-}
-
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-dim); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
-
-.markdown-body p { margin: 0 0 0.5rem 0; }
-.markdown-body p:last-child { margin-bottom: 0; }
-.markdown-body pre { margin: 0.5rem 0; }
-.markdown-body code { font-family: var(--font-data); }
-.markdown-body a { color: var(--accent-cyan); }
-.markdown-body ul, .markdown-body ol { margin: 0.25rem 0; padding-left: 1.25rem; }

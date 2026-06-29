@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:tokens": "tsx scripts/build-tokens.ts",
+    "prebuild": "pnpm build:tokens",
     "dev:client": "vite dev --config vite.config.ts",
     "dev:server": "NODE_ENV=test tsx src/server/index.ts",
     "dev:test": "NODE_ENV=test concurrently -n server,client 'pnpm:dev:server' 'pnpm:dev:client'",

@@ -1,0 +1,11 @@
+/* theme.css - single entry point for all styles */
+/* Loaded in this order: reset, tokens, base, primitives, utilities */
+/* Feature components use `@layer components` for their own styles */
+
+@layer reset, tokens, base, primitives, components, utilities;
+
+@import url('./reset.css') layer(reset);
+@import url('./tokens.css') layer(tokens);
+@import url('./base.css') layer(base);
+@import url('./primitives.css') layer(primitives);
+@import url('./utilities.css') layer(utilities);

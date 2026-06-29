@@ -1,56 +1,185 @@
 import { html, css } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { $connectionState, $configOpen } from '../core/store.js';
+import { customElement } from 'lit/decorators.js';
+import { $connectionState, $graphNodes, $panels, $selectedNodeId } from '../core/index.js';
 import { BaseComponent } from '../core/base-component.js';
-import { CONNECTION_COLORS } from '../constants.js';
 import './graph-viewport.js';
-import './lens-selector.js';
+import './graph-toolbar.js';
 import './input-hud.js';
 import './config-hud.js';
-import './contradiction-badge.js';
 import './telemetry-panel.js';
+import './contradiction-badge.js';
+import './connection-banner.js';
+import './error-boundary.js';
+import './node-detail-drawer.js';
+import './chat-history-panel.js';
+import './primitives/empty-state.js';
 
 @customElement('app-layout')
 export class AppLayout extends BaseComponent {
   static override styles = css`
-    :host { display: grid; height: 100vh; grid-template-rows: 48px 1fr 60px; background: var(--bg-void); }
-    .status-bar { display: flex; align-items: center; gap: 8px; padding: 0 12px; background: var(--bg-panel-solid); border-bottom: 1px solid var(--border-dim); font-family: var(--font-data); font-size: 0.7rem; color: var(--text-dim); z-index: 100; }
-    .status-bar .spacer { flex: 1; }
-    .gear-btn { display: flex; align-items: center; gap: 4px; background: none; border: 1px solid var(--border-dim); border-radius: 3px; color: var(--text-dim); font-family: var(--font-data); font-size: 0.7rem; padding: 2px 6px; cursor: pointer; }
-    .gear-btn:hover { color: var(--accent-cyan); border-color: var(--accent-cyan); }
-    .gear-btn.active { color: var(--accent-cyan); border-color: var(--accent-cyan); background: rgba(0,243,255,0.1); }
-    .graph-canvas { position: relative; width: 100%; height: 100%; }
-    graph-viewport { width: 100%; height: 100%; }
+    :host {
+      display: grid; height: 100vh;
+      grid-template-rows: auto 44px 1fr auto;
+      grid-template-areas:
+        "banner"
+        "toolbar"
+        "body"
+        "bottom";
+      container-type: inline-size;
+      container-name: app;
+    }
+
+    /* Connection banner row */
+    .banner-area { grid-area: banner; }
+
+    /* Toolbar row */
+    .toolbar-area { grid-area: toolbar; }
+
+    /* Main body: graph + panels */
+    .body-area {
+      grid-area: body; display: flex; min-height: 0;
+      position: relative; overflow: hidden;
+    }
+    .graph-area {
+      flex: 1; min-width: 0; position: relative;
+      display: flex; flex-direction: column;
+    }
+    graph-viewport { flex: 1; min-height: 0; }
+
+    /* Panels docked left/right/bottom */
+    .panel-left { flex-shrink: 0; overflow: hidden; border-right: 1px solid var(--colors-semantic-border-subtle); }
+    .panel-right { flex-shrink: 0; overflow: hidden; border-left: 1px solid var(--colors-semantic-border-subtle); }
+    .panel-bottom { position: absolute; bottom: 0; left: 0; right: 0; z-index: var(--zIndex-layers-panel); overflow: hidden; border-top: 1px solid var(--colors-semantic-border-subtle); }
+
+    /* Bottom row: input + telemetry */
+    .bottom-area {
+      grid-area: bottom; display: flex; flex-direction: column;
+    }
+
+    /* Empty state overlay on graph */
+    .empty-overlay {
+      position: absolute; inset: 0; display: flex;
+      align-items: center; justify-content: center;
+      background: var(--colors-semantic-bg-base);
+      z-index: 1;
+    }
+
+    /* Container query breakpoints */
+    @container app (max-width: 640px) {
+      .body-area { flex-direction: column; }
+      .panel-left, .panel-right { border: none; border-bottom: 1px solid var(--colors-semantic-border-subtle); }
+    }
+
+    @container app (min-width: 641px) and (max-width: 1024px) {
+      .panel-left { max-width: 280px; }
+      .panel-right { max-width: 320px; }
+    }
   `;
 
   override connectedCallback() {
     super.connectedCallback();
     this.watch($connectionState);
-    this.watch($configOpen);
+    this.watch($panels);
+    this.watch($graphNodes);
+    this.watch($selectedNodeId);
   }
 
-  private toggleConfig() { $configOpen.set(!$configOpen.get()); }
+  private getPanelStyle(id: string): string {
+    const panel = $panels.get().get(id);
+    if (!panel || !panel.open) return 'width:0;overflow:hidden;';
+    return `width:${panel.size}px;`;
+  }
 
   override render() {
-    const state = $connectionState.get();
-    const configOpen = $configOpen.get();
+    const panels = $panels.get();
+    const configPanel = panels.get('config');
+    const searchPanel = panels.get('search');
+    const telemetryPanel = panels.get('telemetry');
+    const chatPanel = panels.get('chat');
+    const hasNodes = $graphNodes.get().size > 0;
+
     return html`
-  <div class="status-bar">
-    <lens-selector></lens-selector>
-    <button class="gear-btn ${configOpen ? 'active' : ''}"
-      data-testid="config-toggle"
-      @click=${this.toggleConfig} title="Configuration">⚙</button>
-    <div class="spacer"></div>
-    <contradiction-badge></contradiction-badge>
-    <span style="color:${CONNECTION_COLORS[state]};font-size:0.55rem">${state === 'connected' ? '⬤' : state === 'disconnected' ? '○' : '◌'}</span>
-    <span>${state}</span>
-  </div>
-  <div class="graph-canvas">
-    <graph-viewport></graph-viewport>
-  </div>
-  <input-hud></input-hud>
-  <config-hud></config-hud>
-  <telemetry-panel></telemetry-panel>
-`;
+      <div class="banner-area">
+        <connection-banner></connection-banner>
+      </div>
+
+      <div class="toolbar-area">
+        <graph-toolbar></graph-toolbar>
+      </div>
+
+      <div class="body-area">
+        ${searchPanel?.open ? html`
+          <div class="panel-left" style=${this.getPanelStyle('search')}>
+            <s-panel heading="Search" docked="left" closable @s-close=${() => this.togglePanel('search')}>
+              <s-input type="search" placeholder="Search concepts…"></s-input>
+              ${!hasNodes ? html`<s-empty-state icon="🔍" heading="No concepts" description="Send a message to populate the graph" size="sm"></s-empty-state>` : ''}
+            </s-panel>
+          </div>
+        ` : ''}
+
+        <div class="graph-area">
+          ${!hasNodes ? html`
+            <div class="empty-overlay">
+              <s-empty-state icon="🧠" heading="SeNARS Cognitive HUD" description="Send a message to start populating the knowledge graph" size="lg">
+                <s-button variant="primary" slot="action" @click=${this.focusInput}>Send a message</s-button>
+              </s-empty-state>
+            </div>
+          ` : ''}
+          <graph-viewport></graph-viewport>
+        </div>
+
+        ${configPanel?.open ? html`
+          <div class="panel-right" style=${this.getPanelStyle('config')}>
+            <s-panel heading="Configuration" docked="right" closable @s-close=${() => this.togglePanel('config')}>
+              <config-hud></config-hud>
+            </s-panel>
+          </div>
+        ` : ''}
+
+        ${$selectedNodeId.get() ? html`
+          <div class="panel-right" style="width:300px;overflow:hidden;border-left:1px solid var(--colors-semantic-border-subtle);">
+            <s-panel heading="Node Detail" docked="right" closable @s-close=${() => $selectedNodeId.set(null)}>
+              <node-detail-drawer></node-detail-drawer>
+            </s-panel>
+          </div>
+        ` : ''}
+
+        ${chatPanel?.open ? html`
+          <div class="panel-right" style=${this.getPanelStyle('chat')}>
+            <s-panel heading="Chat History" docked="right" closable @s-close=${() => this.togglePanel('chat')}>
+              <chat-history-panel></chat-history-panel>
+            </s-panel>
+          </div>
+        ` : ''}
+
+        ${telemetryPanel?.open ? html`
+          <div class="panel-bottom" style="height:${telemetryPanel.size}px">
+            <s-panel heading="Telemetry" docked="bottom" closable noPad @s-close=${() => this.togglePanel('telemetry')}>
+              <telemetry-panel></telemetry-panel>
+            </s-panel>
+          </div>
+        ` : ''}
+      </div>
+
+      <div class="bottom-area">
+        <input-hud></input-hud>
+      </div>
+
+      <error-boundary></error-boundary>
+    `;
+  }
+
+  private togglePanel(id: string) {
+    const panels = new Map($panels.get());
+    const panel = panels.get(id);
+    if (panel) {
+      panels.set(id, { ...panel, open: !panel.open });
+      $panels.set(panels);
+    }
+  }
+
+  private focusInput() {
+    const hud = this.shadowRoot?.querySelector('input-hud');
+    (hud as any)?.focusInput?.();
   }
 }

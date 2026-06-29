@@ -11,7 +11,18 @@ export default defineConfig({
         manualChunks: {
           cytoscape: ['cytoscape'],
           lit: ['lit'],
+          vendor: ['marked', 'marked-highlight', 'highlight.js', 'dompurify'],
         },
+      },
+    },
+    // Target modern browsers for smaller bundles
+    target: 'es2020',
+    // Minify aggressively
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: false,
+        drop_debugger: true,
       },
     },
   },

@@ -1,8 +1,8 @@
 import type { IncomingFromServer, GraphOp, ChatMessage, GraphNodeData } from '../../shared/protocol.js';
 import { edgeKey, generateId, extractTerm } from '../../shared/utils.js';
 import type { Core } from 'cytoscape';
-import { $chatMessages, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $lastSeqId, $activeLens, $workingMemory } from './store.js';
-import type { CognitiveMeta, TelemetryData } from './store.js';
+import { $chatMessages, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $cognitiveMetrics, $lastSeqId, $activeLens, $workingMemory } from './store.js';
+import type { CognitiveMeta, TelemetryData, CognitiveMetricsData } from './store.js';
 
 const TELEMETRY_WINDOW = 300;
 
@@ -156,7 +156,7 @@ function pushWindow(arr: number[], v: number): number[] {
   return arr;
 }
 
-function appendTelemetry(msg: { metrics: { reasoning_hz: number; tokens_per_sec: number; memory_mb: number; ws_latency_ms: number } }): void {
+function appendTelemetry(msg: { metrics: { reasoning_hz: number; tokens_per_sec: number; memory_mb: number; ws_latency_ms: number }; cognitive?: CognitiveMetricsData }): void {
   const t = $telemetry.get();
   $telemetry.set({
     reasoning_hz: pushWindow(t.reasoning_hz, msg.metrics.reasoning_hz),
@@ -164,6 +164,7 @@ function appendTelemetry(msg: { metrics: { reasoning_hz: number; tokens_per_sec:
     memory_mb: pushWindow(t.memory_mb, msg.metrics.memory_mb),
     ws_latency_ms: pushWindow(t.ws_latency_ms, msg.metrics.ws_latency_ms),
   });
+  if (msg.cognitive) $cognitiveMetrics.set(msg.cognitive);
 }
 
 function addConfigMetaNode(cy: Core, config: Record<string, any>): void {

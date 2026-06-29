@@ -1,78 +1,260 @@
 import { html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $config, $configOpen, send } from '../core/index.js';
+import { classMap } from 'lit/directives/class-map.js';
+import { $config, send } from '../core/index.js';
 import { BaseComponent } from '../core/index.js';
 import type { ConfigFieldType } from '../../shared/protocol.js';
+import './config-profiles.js';
 
-const updateConfig = (key: string, value: unknown) => {
+type ConfigCategory = 'llm' | 'nars' | 'system' | 'advanced';
+
+interface ValidationResult { valid: boolean; message?: string }
+
+const CATEGORY_LABELS: Record<ConfigCategory, string> = {
+  llm: 'Language Model',
+  nars: 'NARS Reasoning',
+  system: 'System',
+  advanced: 'Advanced',
+};
+
+const CATEGORY_ORDER: ConfigCategory[] = ['llm', 'nars', 'system', 'advanced'];
+
+function validateField(field: ConfigFieldType, value: unknown): ValidationResult {
+  const v = field.validation;
+  if (!v) return { valid: true };
+  if (typeof value === 'number') {
+    if (v.min != null && value < v.min) return { valid: false, message: `Minimum ${v.min}` };
+    if (v.max != null && value > v.max) return { valid: false, message: `Maximum ${v.max}` };
+  }
+  if (typeof value === 'string' && v.pattern) {
+    if (!new RegExp(v.pattern).test(value)) return { valid: false, message: `Must match ${v.pattern}` };
+  }
+  return { valid: true };
+}
+
+function categoryForKey(key: string): ConfigCategory {
+  if (key.startsWith('llm.') || key.startsWith('llm_')) return 'llm';
+  if (key.startsWith('nars.') || key.startsWith('nars_')) return 'nars';
+  if (key.startsWith('sys.') || key.startsWith('sys_')) return 'system';
+  return 'advanced';
+}
+
+function updateConfig(key: string, value: unknown) {
   const cfg = $config.get();
   $config.set({ ...cfg, [key]: { ...cfg[key], value } });
   send({ type: 'config.set', key, value });
-};
-
-const FIELD_RENDERERS: Record<string, (f: ConfigFieldType, k: string) => unknown> = {
-  slider: (f, k) => html`<input type="range" min=${f.min ?? 0} max=${f.max ?? 1} step=${f.step ?? 0.1}
-    .value=${f.value} @input=${(e: Event) => updateConfig(k, parseFloat((e.target as HTMLInputElement).value))} />`,
-  dropdown: (f, k) => html`<select @change=${(e: Event) => updateConfig(k, (e.target as HTMLSelectElement).value)}>
-    ${f.options?.map((o: string) => html`<option value=${o} ?selected=${o === String(f.value)}>${o}</option>`)}
-  </select>`,
-  text: (f, k) => html`<input type="text" .value=${f.value} @change=${(e: Event) => updateConfig(k, (e.target as HTMLInputElement).value)} />`,
-  toggle: (f, k) => html`<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
-    <input type="checkbox" ?checked=${f.value} @change=${(e: Event) => updateConfig(k, (e.target as HTMLInputElement).checked)} />
-    <span style="color:var(--text-primary);text-transform:none;">Enabled</span>
-  </label>`,
-};
+}
 
 @customElement('config-hud')
 export class ConfigHUD extends BaseComponent {
+  @state() private dirtyFields = new Set<string>();
+  @state() private collapsedCategories = new Set<string>();
+  @state() private validationErrors = new Map<string, string>();
+  @state() private profileSelector = false;
+
+  private validateDebounce: Record<string, number> = {};
+
   static override styles = css`
-    :host { display: block; position: fixed; top: 48px; right: 0; bottom: 60px; z-index: 200; pointer-events: none; }
-    .hud-config { pointer-events: auto; }
-    .hud-config-trigger { position: absolute; top: 8px; right: 8px; }
-    .icon-btn { background: var(--bg-panel); border: 1px solid var(--border-dim); border-radius: 4px; padding: 6px 10px; cursor: pointer; color: var(--text-dim); font-size: 1rem; transition: all 0.2s; }
-    .icon-btn:hover { color: var(--accent-cyan); border-color: var(--accent-cyan); background: rgba(0,243,255,0.1); }
-    .hud-config-panel { position: absolute; top: 0; right: 0; width: 320px; max-height: 100%; background: var(--bg-panel-solid); border-left: 1px solid var(--border-dim); padding: 1rem; overflow-y: auto; animation: slideIn 0.2s ease; }
-    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-    .config-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-dim); }
-    .config-header h3 { font-family: var(--font-data); color: var(--accent-amber); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 2px; margin: 0; }
-    .config-grid { display: flex; flex-direction: column; gap: 1rem; }
-    .field label { display: block; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.25rem; font-family: var(--font-data); text-transform: uppercase; }
-    input[type=range] { width: 100%; accent-color: var(--accent-cyan); }
-    select, input[type=text] { width: 100%; background: var(--bg-void); border: 1px solid var(--border-dim); color: var(--text-primary); padding: 0.4rem; font-family: var(--font-data); font-size: 0.75rem; outline: none; border-radius: 3px; }
-    select:focus, input[type=text]:focus { border-color: var(--accent-cyan); }
+    :host { display: block; }
+    .hud-config { display: flex; flex-direction: column; height: 100%; }
+    .config-scroll { flex: 1; overflow-y: auto; padding: var(--spacing-scale-3); }
+    .config-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-scale-2); }
+    .config-header h3 { font-family: var(--typography-fontFamilies-data); color: var(--colors-cognitiveLens-contradiction-primary); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 2px; margin: 0; }
+    .config-header-actions { display: flex; gap: var(--spacing-scale-1); }
+    .icon-btn { background: transparent; border: 1px solid var(--colors-semantic-border-subtle); border-radius: var(--borderRadius-component-button); padding: 2px 8px; cursor: pointer; color: var(--colors-semantic-text-muted); font-size: 0.75rem; font-family: var(--typography-fontFamilies-ui); transition: var(--transitions-fast); }
+    .icon-btn:hover { color: var(--colors-semantic-accent-primary); border-color: var(--colors-semantic-accent-primary); }
+    .dirty-indicator { color: var(--colors-cognitiveLens-contradiction-primary); font-size: var(--typography-scale-xs); padding: 2px 0; }
+
+    .category { margin-bottom: var(--spacing-scale-3); }
+    .category-header { display: flex; align-items: center; gap: var(--spacing-scale-2); cursor: pointer; padding: var(--spacing-scale-2) 0; user-select: none; border-bottom: 1px solid var(--colors-semantic-border-subtle); }
+    .category-header:hover { opacity: 0.8; }
+    .category-header h4 { font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); text-transform: uppercase; letter-spacing: 1px; color: var(--colors-semantic-text-secondary); margin: 0; flex: 1; }
+    .category-fields { display: flex; flex-direction: column; gap: var(--spacing-scale-2); padding-top: var(--spacing-scale-2); }
+    .category-fields.collapsed { display: none; }
+
+    .field { display: flex; flex-direction: column; gap: 2px; }
+    .field-header { display: flex; align-items: center; justify-content: space-between; }
+    .field label { font-size: 0.7rem; color: var(--colors-semantic-text-muted); font-family: var(--typography-fontFamilies-data); text-transform: uppercase; letter-spacing: 0.05em; }
+    .field-description { font-size: 0.65rem; color: var(--colors-semantic-text-muted); line-height: 1.4; }
+    .field.dirty label { color: var(--colors-cognitiveLens-contradiction-primary); }
+    .field.dirty .field-value { outline: 1px solid var(--colors-cognitiveLens-contradiction-primary); outline-offset: 1px; border-radius: 2px; }
+    .field.error label { color: var(--colors-primitive-error); }
+    .field-error { font-size: 0.65rem; color: var(--colors-primitive-error); }
+
+    input[type=range] { width: 100%; accent-color: var(--colors-semantic-accent-primary); }
+    select, input[type=text], input[type=number] { width: 100%; background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle); color: var(--colors-semantic-text-primary); padding: var(--spacing-scale-2) var(--spacing-scale-3); font-family: var(--typography-fontFamilies-data); font-size: 0.7rem; outline: none; border-radius: var(--borderRadius-component-input); box-sizing: border-box; }
+    select:focus, input:focus { border-color: var(--colors-semantic-border-focus); }
+
+    .field-value { display: flex; align-items: center; gap: var(--spacing-scale-2); }
+    .field-value .val { font-size: 0.7rem; color: var(--colors-semantic-text-secondary); font-family: var(--typography-fontFamilies-data); min-width: 24px; text-align: right; }
+
+    .reset-all { text-align: right; padding: var(--spacing-scale-2) 0; border-top: 1px solid var(--colors-semantic-border-subtle); margin-top: var(--spacing-scale-2); }
+    .reset-all button { background: transparent; border: none; color: var(--colors-semantic-text-muted); font-size: 0.7rem; cursor: pointer; font-family: var(--typography-fontFamilies-ui); }
+    .reset-all button:hover { color: var(--colors-primitive-error); }
+
+    .dirty-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--colors-cognitiveLens-contradiction-primary); display: inline-block; }
   `;
 
   override connectedCallback() {
     super.connectedCallback();
     this.watch($config);
-    this.watch($configOpen);
+  }
+
+  private closePanel() {
+    this.dispatchEvent(new CustomEvent('s-close', { bubbles: true, composed: true }));
+  }
+
+  private getCategory(field: ConfigFieldType, key: string): ConfigCategory {
+    return field.category ?? categoryForKey(key);
+  }
+
+  private handleChange(key: string, value: unknown) {
+    const cfg = $config.get();
+    const field = cfg[key] as ConfigFieldType;
+    if (!field) return;
+
+    const result = validateField(field, value);
+    if (!result.valid) {
+      this.validationErrors.set(key, result.message!);
+    } else {
+      this.validationErrors.delete(key);
+    }
+    this.dirtyFields.add(key);
+    this.requestUpdate();
+
+    if (this.validateDebounce[key]) clearTimeout(this.validateDebounce[key]);
+    this.validateDebounce[key] = window.setTimeout(() => {
+      updateConfig(key, value);
+    }, 300);
+  }
+
+  private resetCategory(cat: ConfigCategory) {
+    const cfg = $config.get();
+    for (const [key, field] of Object.entries(cfg)) {
+      if (this.getCategory(field, key) === cat) {
+        this.dirtyFields.delete(key);
+        this.validationErrors.delete(key);
+      }
+    }
+    this.requestUpdate();
+  }
+
+  private resetAll() {
+    this.dirtyFields.clear();
+    this.validationErrors.clear();
+    this.requestUpdate();
+  }
+
+  private toggleCategory(cat: string) {
+    if (this.collapsedCategories.has(cat)) this.collapsedCategories.delete(cat);
+    else this.collapsedCategories.add(cat);
+    this.requestUpdate();
+  }
+
+  private renderField(field: ConfigFieldType, key: string): unknown {
+    const isDirty = this.dirtyFields.has(key);
+    const error = this.validationErrors.get(key);
+    const val = field.value;
+    const desc = field.description;
+
+    const input = field.type === 'slider' ? html`
+      <div class="field-value">
+        <input type="range" min=${field.min ?? 0} max=${field.max ?? 1} step=${field.step ?? 0.1}
+          .value=${val} @input=${(e: Event) => this.handleChange(key, parseFloat((e.target as HTMLInputElement).value))} />
+        <span class="val">${typeof val === 'number' ? val.toFixed(2) : val}</span>
+      </div>`
+    : field.type === 'dropdown' ? html`
+      <div class="field-value">
+        <select @change=${(e: Event) => this.handleChange(key, (e.target as HTMLSelectElement).value)}>
+          ${field.options?.map((o) => html`<option value=${o} ?selected=${o === String(val)}>${o}</option>`)}
+        </select>
+      </div>`
+    : field.type === 'toggle' ? html`
+      <div class="field-value">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+          <input type="checkbox" ?checked=${val} @change=${(e: Event) => this.handleChange(key, (e.target as HTMLInputElement).checked)} />
+          <span style="color:var(--colors-semantic-text-primary);font-size:0.75rem;">${val ? 'Enabled' : 'Disabled'}</span>
+        </label>
+      </div>`
+    : html`
+      <div class="field-value">
+        <input type=${field.type === 'text' ? 'text' : 'number'} .value=${val}
+          @change=${(e: Event) => this.handleChange(key, (e.target as HTMLInputElement).value)} />
+      </div>`;
+
+    return html`
+      <div class="field ${classMap({ dirty: isDirty, error: !!error })}">
+        <div class="field-header">
+          <label>${field.label} ${isDirty ? html`<span class="dirty-dot"></span>` : ''}</label>
+        </div>
+        ${desc ? html`<span class="field-description">${desc}</span>` : ''}
+        ${input}
+        ${error ? html`<span class="field-error">${error}</span>` : ''}
+      </div>`;
+  }
+
+  private groupByCategory(): Map<ConfigCategory, [string, ConfigFieldType][]> {
+    const cfg = $config.get();
+    const groups = new Map<ConfigCategory, [string, ConfigFieldType][]>();
+    for (const cat of CATEGORY_ORDER) groups.set(cat, []);
+    for (const [key, field] of Object.entries(cfg)) {
+      const cat = this.getCategory(field, key);
+      groups.get(cat)?.push([key, field]);
+    }
+    return groups;
+  }
+
+  private countDirtyInCategory(cat: ConfigCategory): number {
+    const cfg = $config.get();
+    let count = 0;
+    for (const key of this.dirtyFields) {
+      const field = cfg[key];
+      if (field && this.getCategory(field, key) === cat) count++;
+    }
+    return count;
   }
 
   override render() {
-    const open = $configOpen.get();
     return html`
       <div class="hud-config">
-        ${!open ? html`
-          <div class="hud-config-trigger">
-            <button class="icon-btn" title="Configuration" @click=${() => $configOpen.set(true)}>⚙</button>
+        <div class="config-header">
+          <h3>Configuration</h3>
+          <div class="config-header-actions">
+            ${this.dirtyFields.size > 0 ? html`<span class="dirty-indicator">${this.dirtyFields.size} unsaved</span>` : ''}
+            <button class="icon-btn" @click=${() => this.profileSelector = !this.profileSelector} title="Profiles">Profiles</button>
+            <button class="icon-btn" @click=${this.closePanel} title="Close">✕</button>
           </div>
-        ` : ''}
-        ${open ? html`
-          <div class="hud-config-panel">
-            <div class="config-header">
-              <h3>SeNARS Configuration</h3>
-              <button class="icon-btn" @click=${() => $configOpen.set(false)} title="Close">✕</button>
+        </div>
+
+        ${this.profileSelector ? html`<config-profiles></config-profiles>` : ''}
+
+        <div class="config-scroll">
+          ${[...this.groupByCategory().entries()].map(([cat, fields]) => {
+            if (fields.length === 0) return '';
+            const collapsed = this.collapsedCategories.has(cat);
+            const dirtyCount = this.countDirtyInCategory(cat);
+            return html`
+              <div class="category">
+                <div class="category-header" @click=${() => this.toggleCategory(cat)}>
+                  <span>${collapsed ? '▸' : '▾'}</span>
+                  <h4>${CATEGORY_LABELS[cat]}</h4>
+                  ${dirtyCount > 0 ? html`<span class="dirty-dot"></span>` : ''}
+                  <button class="icon-btn" @click=${(e: Event) => { e.stopPropagation(); this.resetCategory(cat); }} size="sm">Reset</button>
+                </div>
+                <div class="category-fields ${collapsed ? 'collapsed' : ''}">
+                  ${fields.map(([key, f]) => this.renderField(f, key))}
+                </div>
+              </div>`;
+          })}
+          ${this.dirtyFields.size > 0 ? html`
+            <div class="reset-all">
+              <button @click=${this.resetAll}>Reset all fields</button>
             </div>
-            <div class="config-grid">
-              ${Object.entries($config.get()).map(([k, f]) => html`
-                <div class="field" data-testid="field-${k}">
-                  <label>${f.label} <span style="float:right;color:var(--accent-cyan)">${f.value}</span></label>
-                  ${FIELD_RENDERERS[f.type]?.(f, k)}
-                </div>`)}
-            </div>
-          </div>
-        ` : ''}
+          ` : ''}
+        </div>
       </div>
     `;
   }
 }
+
+declare global { interface HTMLElementTagNameMap { 'config-hud': ConfigHUD; } }

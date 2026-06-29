@@ -1,6 +1,16 @@
+export { AppLayout } from './app-layout.js';
+export { GraphToolbar } from './graph-toolbar.js';
+export { ConnectionBanner } from './connection-banner.js';
+export { ErrorBoundary } from './error-boundary.js';
 export { GraphViewport } from './graph-viewport.js';
 export { InputHUD } from './input-hud.js';
 export { TelemetryPanel } from './telemetry-panel.js';
+export { CognitiveMetrics } from './cognitive-metrics.js';
 export { ContradictionBadge } from './contradiction-badge.js';
 export { ConfigHUD } from './config-hud.js';
+export { ConfigProfiles } from './config-profiles.js';
+export { ChatHistoryPanel } from './chat-history-panel.js';
 export { LensSelector } from './lens-selector.js';
+export { LensController } from './lens-controller.js';
+export { NodeDetailDrawer } from './node-detail-drawer.js';
+export { GraphMinimap } from './graph-minimap.js';

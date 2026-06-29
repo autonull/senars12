@@ -113,9 +113,10 @@ export function buildNarAdapter(nar: NAR): NarAdapter {
   };
 }
 
-export function createTelemetryEmitter(nar: NAR, send: (msg: { type: 'telemetry'; metrics: { reasoning_hz: number; tokens_per_sec: number; memory_mb: number; ws_latency_ms: number } }) => void, intervalMs = 1000): () => void {
+export function createTelemetryEmitter(nar: NAR, send: (msg: { type: 'telemetry'; metrics: { reasoning_hz: number; tokens_per_sec: number; memory_mb: number; ws_latency_ms: number }; cognitive?: { activeConcepts: number; totalConcepts: number; derivationsPerSec: number; contradictionCount: number; workingMemorySize: number; goalUrgencyDistribution?: Record<string, number> } }) => void, intervalMs = 1000): () => void {
   let cycleCount = 0;
   let lastTick = Date.now();
+  let lastConceptCount = 0;
   const timer = setInterval(() => {
     const summary = nar.getMetrics() as MetricsSummary;
     const cycleDelta = (summary.system?.totalSteps ?? 0) - cycleCount;
@@ -123,7 +124,23 @@ export function createTelemetryEmitter(nar: NAR, send: (msg: { type: 'telemetry'
     const elapsed = (Date.now() - lastTick) / 1000;
     lastTick = Date.now();
 
-    send({
+    let concepts: ConceptLike[] = [];
+    try { concepts = nar.listConcepts() as unknown as ConceptLike[]; } catch {}
+    const totalConcepts = concepts.length;
+    const activeConcepts = concepts.filter((c) => (c.priority ?? 0) > 0.5).length;
+    const derivationsPerSec = elapsed > 0 ? (cycleDelta * 0.3) / elapsed : 0;
+
+    let beliefs: BeliefLike[] = [];
+    let contradictionCount = 0;
+    try {
+      beliefs = nar.getBeliefs() as unknown as BeliefLike[];
+      const conflicts = findConflicts(beliefs as never);
+      contradictionCount = conflicts.length;
+    } catch {}
+
+    const workingMemorySize = totalConcepts;
+
+    const msg: Parameters<typeof send>[0] = {
       type: 'telemetry',
       metrics: {
         reasoning_hz: elapsed > 0 ? cycleDelta / elapsed : 0,
@@ -131,7 +148,21 @@ export function createTelemetryEmitter(nar: NAR, send: (msg: { type: 'telemetry'
         memory_mb: process.memoryUsage().heapUsed / 1024 / 1024,
         ws_latency_ms: 0,
       },
-    });
+      cognitive: {
+        activeConcepts,
+        totalConcepts,
+        derivationsPerSec,
+        contradictionCount,
+        workingMemorySize,
+        goalUrgencyDistribution: {
+          high: concepts.filter((c) => (c.priority ?? 0) > 0.8).length,
+          medium: concepts.filter((c) => (c.priority ?? 0) > 0.5 && (c.priority ?? 0) <= 0.8).length,
+          low: concepts.filter((c) => (c.priority ?? 0) <= 0.5).length,
+        },
+      },
+    };
+
+    send(msg);
   }, intervalMs);
   return () => clearInterval(timer);
 }

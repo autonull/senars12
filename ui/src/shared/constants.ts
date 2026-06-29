@@ -1,8 +1,8 @@
 /** Hex color codes for each cognitive lens. */
 export const LENS_COLORS_HEX: Record<string, string> = {
   belief: '#00f3ff',
-  goal: '#ff0055',
-  contradiction: '#ff00ff',
+  goal: '#ff00aa',
+  contradiction: '#ffaa00',
 };
 
 /** Human-readable labels for each cognitive lens. */
@@ -14,10 +14,10 @@ export const LENS_LABELS: Record<string, string> = {
 
 /** Color coding for WebSocket connection states. */
 export const CONNECTION_COLORS: Record<string, string> = {
-  connected: '#00f3ff',
-  connecting: '#ffb000',
-  reconnecting: '#ffb000',
-  disconnected: '#475569',
+  connected: '#00cc88',
+  connecting: '#00aaff',
+  reconnecting: '#ffaa00',
+  disconnected: '#ff4444',
 };
 
 /** Short descriptions for each cognitive lens shown in the UI. */

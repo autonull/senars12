@@ -70,6 +70,13 @@ export const ConfigField = z.object({
   type: z.enum(['slider', 'dropdown', 'text', 'toggle']),
   label: z.string(), value: z.any(), options: z.array(z.string()).optional(),
   min: z.number().optional(), max: z.number().optional(), step: z.number().optional(),
+  description: z.string().optional(),
+  category: z.enum(['llm', 'nars', 'system', 'advanced']).optional(),
+  validation: z.object({
+    pattern: z.string().optional(),
+    min: z.number().optional(),
+    max: z.number().optional(),
+  }).optional(),
 });
 const ConfigSchemaMsg = z.object({ type: z.literal('config.schema'), data: z.record(z.string(), ConfigField) });
 const ConfigSetMsg = z.object({ type: z.literal('config.set'), key: z.string(), value: z.any() });
@@ -86,6 +93,15 @@ const StateSnapshot = z.object({
 
 const ViewportSet = z.object({ type: z.literal('viewport.set'), x: z.number(), y: z.number(), zoom: z.number() });
 
+const CognitiveMetrics = z.object({
+  activeConcepts: z.number(),
+  totalConcepts: z.number(),
+  derivationsPerSec: z.number(),
+  contradictionCount: z.number(),
+  workingMemorySize: z.number(),
+  goalUrgencyDistribution: z.record(z.string(), z.number()).optional(),
+});
+
 const TelemetryMsg = z.object({
   type: z.literal('telemetry'),
   metrics: z.object({
@@ -94,6 +110,7 @@ const TelemetryMsg = z.object({
     memory_mb: z.number(),
     ws_latency_ms: z.number(),
   }),
+  cognitive: CognitiveMetrics.optional(),
 });
 
 const LensSet = z.object({ type: z.literal('lens.set'), lens: Lens });
