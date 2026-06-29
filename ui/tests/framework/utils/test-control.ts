@@ -1,7 +1,7 @@
 import type {APIRequestContext} from '@playwright/test';
 
 export class TestControl {
-    private baseUrl: string;
+    private readonly baseUrl: string;
 
     constructor(private context: APIRequestContext) {
         this.baseUrl = process.env.TEST_SERVER_URL || 'http://localhost:3000';

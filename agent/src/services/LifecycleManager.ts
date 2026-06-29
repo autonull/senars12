@@ -30,7 +30,7 @@ export class LifecycleManager {
     private readonly autonomyEngine?: AutonomyEngine;
     private readonly autonomousLoop?: AutonomousLoop;
     private readonly logger: Logger;
-    private config: RequiredConfig;
+    private readonly config: RequiredConfig;
     private reasoningHandle?: ReturnType<typeof setInterval>;
 
     constructor(config: LifecycleManagerConfig) {

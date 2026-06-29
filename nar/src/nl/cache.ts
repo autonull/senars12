@@ -18,10 +18,10 @@ export interface SerializedCache {
 
 export class TranslationCache {
     private cache = new Map<string, TranslationCacheEntry>();
-    private maxSize = 500;
+    private readonly maxSize = 500;
     private flushCounter = 0;
-    private flushInterval = 100;
-    private ttlMs: number = 60 * 60 * 1000; // 1 hour
+    private readonly flushInterval = 100;
+    private readonly ttlMs: number = 60 * 60 * 1000; // 1 hour
     private flushTimer?: NodeJS.Timeout;
 
     constructor(opts?: {
