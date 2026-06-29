@@ -4,11 +4,11 @@
  * Run with: pnpm exec tsx benchmarks/rule-dispatch.ts
  */
 
-import {atom, RuleProcessor, TermBuilder, Truth} from '../src';
+import { RuleProcessor, TermBuilder, Truth, atom } from '../src';
 
 const processor = new RuleProcessor();
-const t1 = {term: TermBuilder.inheritance(atom('A'), atom('B')), truth: Truth.TRUE};
-const t2 = {term: TermBuilder.inheritance(atom('B'), atom('C')), truth: Truth.TRUE};
+const t1 = { term: TermBuilder.inheritance(atom('A'), atom('B')), truth: Truth.TRUE };
+const t2 = { term: TermBuilder.inheritance(atom('B'), atom('C')), truth: Truth.TRUE };
 
 console.log('SeNARS12 Rule Dispatch Benchmark');
 console.log('================================\n');
@@ -18,17 +18,17 @@ const measurements: number[] = [];
 
 // Multiple measurement runs
 for (let run = 0; run < 5; run++) {
-    // Warmup
-    for (let i = 0; i < 500; i++) {
-        processor.processSync(t1, t2);
-    }
+  // Warmup
+  for (let i = 0; i < 500; i++) {
+    processor.processSync(t1, t2);
+  }
 
-    const start = performance.now();
-    for (let i = 0; i < iterations; i++) {
-        processor.processSync(t1, t2);
-    }
-    const elapsed = (performance.now() - start) * 1000;
-    measurements.push(elapsed / iterations);
+  const start = performance.now();
+  for (let i = 0; i < iterations; i++) {
+    processor.processSync(t1, t2);
+  }
+  const elapsed = (performance.now() - start) * 1000;
+  measurements.push(elapsed / iterations);
 }
 
 const avg = measurements.reduce((a, b) => a + b, 0) / measurements.length;
@@ -45,8 +45,8 @@ console.log(`\nTarget: <10 μs`);
 console.log(`Status: ${min < 10 ? '✅ PASS' : '❌ FAIL'}`);
 
 if (max > 20) {
-    console.log(`\n⚠️  Warning: High variance detected (${(max - min).toFixed(2)} μs range)`);
-    console.log('   Run multiple times for stable measurements');
+  console.log(`\n⚠️  Warning: High variance detected (${(max - min).toFixed(2)} μs range)`);
+  console.log('   Run multiple times for stable measurements');
 }
 
 process.exit(min < 10 ? 0 : 1);

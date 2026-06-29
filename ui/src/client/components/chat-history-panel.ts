@@ -1,15 +1,15 @@
 import DOMPurify from 'dompurify';
-import {css, html} from 'lit';
-import {customElement, state} from 'lit/decorators.js';
-import {classMap} from 'lit/directives/class-map.js';
-import {unsafeHTML} from 'lit/directives/unsafe-html.js';
-import {marked} from 'marked';
-import type {ChatMessage} from '../../shared/protocol.js';
-import {$chatMessages, $focusTerm, $streamingDelta, BaseComponent, send} from '../core/index.js';
+import { css, html } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { marked } from 'marked';
+import type { ChatMessage } from '../../shared/protocol.js';
+import { $chatMessages, $focusTerm, $streamingDelta, BaseComponent, send } from '../core/index.js';
 
 @customElement('chat-history-panel')
 export class ChatHistoryPanel extends BaseComponent {
-    static override styles = css`
+  static override styles = css`
     :host { display: flex; flex-direction: column; height: 100%; }
     .chat-scroll { flex: 1; overflow-y: auto; padding: var(--spacing-scale-2); display: flex; flex-direction: column; gap: var(--spacing-scale-3); }
     .chat-scroll::-webkit-scrollbar { width: 4px; }
@@ -47,44 +47,44 @@ export class ChatHistoryPanel extends BaseComponent {
     .focus-btn { cursor: pointer; color: var(--colors-semantic-accent-primary); text-decoration: underline; text-decoration-style: dotted; transition: var(--transitions-fast); }
     .focus-btn:hover { color: var(--colors-semantic-accent-primary-dim); }
   `;
-    @state() private autoScroll = true;
+  @state() private autoScroll = true;
 
-    override connectedCallback() {
-        super.connectedCallback();
-        this.watch($chatMessages);
-        this.watch($streamingDelta);
-    }
+  override connectedCallback() {
+    super.connectedCallback();
+    this.watch($chatMessages);
+    this.watch($streamingDelta);
+  }
 
-    override updated() {
-        if (this.autoScroll) this.scrollToBottom();
-    }
+  override updated() {
+    if (this.autoScroll) this.scrollToBottom();
+  }
 
-    override render() {
-        const messages = $chatMessages.get();
-        const streaming = $streamingDelta.get();
-        const hasContent = messages.length > 0 || streaming;
+  override render() {
+    const messages = $chatMessages.get();
+    const streaming = $streamingDelta.get();
+    const hasContent = messages.length > 0 || streaming;
 
-        if (!hasContent) {
-            return html`
+    if (!hasContent) {
+      return html`
         <div class="empty">
           <s-empty-state icon="💬" heading="No messages" description="Ask a question to start a conversation" size="sm"></s-empty-state>
         </div>`;
-        }
+    }
 
-        return html`
+    return html`
       <div class="chat-scroll" @scroll=${this.handleScroll}>
         ${messages.map((msg, i) => {
-            const prev = i > 0 ? messages[i - 1] : null;
-            const prevDay = prev ? new Date(prev.timestamp).toDateString() : null;
-            const curDay = new Date(msg.timestamp).toDateString();
-            const showDivider = prevDay && prevDay !== curDay;
-            return html`
+          const prev = i > 0 ? messages[i - 1] : null;
+          const prevDay = prev ? new Date(prev.timestamp).toDateString() : null;
+          const curDay = new Date(msg.timestamp).toDateString();
+          const showDivider = prevDay && prevDay !== curDay;
+          return html`
             ${showDivider ? html`<div class="divider"><span class="divider-line"></span>${curDay}</div>` : ''}
             ${this.renderMessage(msg)}`;
         })}
         ${
-            streaming
-                ? html`
+          streaming
+            ? html`
           <div class="message streaming">
             <div class="msg-header">
               <span class="msg-role">agent</span>
@@ -93,70 +93,70 @@ export class ChatHistoryPanel extends BaseComponent {
             <div class="msg-body agent">${streaming}</div>
           </div>
         `
-                : ''
+            : ''
         }
       </div>`;
+  }
+
+  private scrollToBottom() {
+    requestAnimationFrame(() => {
+      const scroll = this.shadowRoot?.querySelector('.chat-scroll');
+      if (scroll) scroll.scrollTop = scroll.scrollHeight;
+    });
+  }
+
+  private handleScroll(e: Event) {
+    const el = e.target as HTMLElement;
+    this.autoScroll = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  }
+
+  private formatTime(ts: number): string {
+    const d = new Date(ts);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  private renderMarkdown(content: string): string {
+    const raw = marked.parse(content, { async: false }) as string;
+    return DOMPurify.sanitize(raw);
+  }
+
+  private focusTerm(term: string) {
+    $focusTerm.set(term);
+    send({ type: 'focus.set', term });
+  }
+
+  private async copyMessage(msg: ChatMessage) {
+    try {
+      await navigator.clipboard.writeText(msg.content);
+    } catch {
+      /* clipboard unavailable */
     }
+  }
 
-    private scrollToBottom() {
-        requestAnimationFrame(() => {
-            const scroll = this.shadowRoot?.querySelector('.chat-scroll');
-            if (scroll) scroll.scrollTop = scroll.scrollHeight;
-        });
-    }
+  private regenerate(msg: ChatMessage) {
+    send({ type: 'chat.user', content: msg.content });
+  }
 
-    private handleScroll(e: Event) {
-        const el = e.target as HTMLElement;
-        this.autoScroll = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-    }
+  private renderMessage(msg: ChatMessage): unknown {
+    const isAgent = msg.role === 'agent';
+    const content = isAgent ? this.renderMarkdown(msg.content) : msg.content;
+    const focusTerm = msg.term;
+    const hasFocusTerm = !!focusTerm;
 
-    private formatTime(ts: number): string {
-        const d = new Date(ts);
-        return d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-    }
-
-    private renderMarkdown(content: string): string {
-        const raw = marked.parse(content, {async: false}) as string;
-        return DOMPurify.sanitize(raw);
-    }
-
-    private focusTerm(term: string) {
-        $focusTerm.set(term);
-        send({type: 'focus.set', term});
-    }
-
-    private async copyMessage(msg: ChatMessage) {
-        try {
-            await navigator.clipboard.writeText(msg.content);
-        } catch {
-            /* clipboard unavailable */
-        }
-    }
-
-    private regenerate(msg: ChatMessage) {
-        send({type: 'chat.user', content: msg.content});
-    }
-
-    private renderMessage(msg: ChatMessage): unknown {
-        const isAgent = msg.role === 'agent';
-        const content = isAgent ? this.renderMarkdown(msg.content) : msg.content;
-        const focusTerm = msg.term;
-        const hasFocusTerm = !!focusTerm;
-
-        return html`
+    return html`
       <div class="message">
         <div class="msg-header">
           <span class="msg-role">${msg.role}</span>
           <span class="msg-time">${this.formatTime(msg.timestamp)}</span>
           ${
             hasFocusTerm
-                ? html`
+              ? html`
             <span class="focus-btn" @click=${() => this.focusTerm(msg.term!)}>@${msg.term}</span>
           `
-                : ''
-        }
+              : ''
+          }
         </div>
-        <div class="msg-body ${classMap({[msg.role]: true})}">
+        <div class="msg-body ${classMap({ [msg.role]: true })}">
           ${isAgent ? unsafeHTML(content) : content}
         </div>
         <div class="msg-actions">
@@ -164,11 +164,11 @@ export class ChatHistoryPanel extends BaseComponent {
           ${isAgent ? html`<button @click=${() => this.regenerate(msg)} title="Regenerate">Regenerate</button>` : ''}
         </div>
       </div>`;
-    }
+  }
 }
 
 declare global {
-    interface HTMLElementTagNameMap {
-        'chat-history-panel': ChatHistoryPanel;
-    }
+  interface HTMLElementTagNameMap {
+    'chat-history-panel': ChatHistoryPanel;
+  }
 }

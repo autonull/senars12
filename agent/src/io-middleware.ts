@@ -1,20 +1,20 @@
-import type {NAR} from '../../nar/src';
-import type {GenerationInput, NLGenerationService} from '../../nar/src/nl';
-import {errMsg, toError} from '../../nar/src/utils';
+import type { NAR } from '../../nar/src';
+import type { GenerationInput, NLGenerationService } from '../../nar/src/nl';
+import { errMsg, toError } from '../../nar/src/utils';
 import type {
-    AuthManager,
-    CommandContext,
-    CommandRegistry,
-    ConnectionManager,
-    IOMessage,
-    Logger,
-    MessageContext,
-    MessageMiddleware,
+  AuthManager,
+  CommandContext,
+  CommandRegistry,
+  ConnectionManager,
+  IOMessage,
+  Logger,
+  MessageContext,
+  MessageMiddleware,
 } from '../../src/io';
-import type {ConversationSession} from './ConversationSession.js';
-import type {SessionManager} from './SessionManager.js';
-import type {Agent} from './agent.js';
-import {NARSESE_OUTPUT_RE, processStreamingEvents,} from './utils/humanize.js';
+import type { ConversationSession } from './ConversationSession.js';
+import type { SessionManager } from './SessionManager.js';
+import type { Agent } from './agent.js';
+import { NARSESE_OUTPUT_RE, processStreamingEvents } from './utils/humanize.js';
 
 /**
  * Mutable runtime context extending MessageContext.
@@ -24,354 +24,354 @@ import {NARSESE_OUTPUT_RE, processStreamingEvents,} from './utils/humanize.js';
  * gains new fields, add them here too to keep the mutable variant in sync.
  */
 export interface BridgeContext extends MessageContext {
-    sessionKey?: string;
-    session?: ConversationSession;
-    manager?: ConnectionManager;
+  sessionKey?: string;
+  session?: ConversationSession;
+  manager?: ConnectionManager;
 }
 
 /** Middleware composition utility */
 export function compose(...middlewares: MessageMiddleware[]): MessageMiddleware {
-    return async (message, context, next) => {
-        let index = -1;
+  return async (message, context, next) => {
+    let index = -1;
 
-        async function dispatch(i: number): Promise<void> {
-            if (i <= index) throw new Error('next() called multiple times');
-            index = i;
-            const fn = middlewares[i];
-            if (i === middlewares.length) {
-                if (next) await next();
-                return;
-            }
-            if (fn) {
-                await fn(message, context, dispatch.bind(null, i + 1));
-            }
-        }
+    async function dispatch(i: number): Promise<void> {
+      if (i <= index) throw new Error('next() called multiple times');
+      index = i;
+      const fn = middlewares[i];
+      if (i === middlewares.length) {
+        if (next) await next();
+        return;
+      }
+      if (fn) {
+        await fn(message, context, dispatch.bind(null, i + 1));
+      }
+    }
 
-        await dispatch(0);
-    };
+    await dispatch(0);
+  };
 }
 
 /** Conditional middleware execution */
 export function conditional(
-    condition: (message: IOMessage, context: MessageContext) => boolean | Promise<boolean>,
-    middleware: MessageMiddleware
+  condition: (message: IOMessage, context: MessageContext) => boolean | Promise<boolean>,
+  middleware: MessageMiddleware
 ): MessageMiddleware {
-    return async (message, context, next) => {
-        if (await condition(message, context)) {
-            await middleware(message, context, next);
-        } else {
-            await next();
-        }
-    };
+  return async (message, context, next) => {
+    if (await condition(message, context)) {
+      await middleware(message, context, next);
+    } else {
+      await next();
+    }
+  };
 }
 
 /** Timeout middleware */
 export function timeout(ms: number, fallbackResponse = 'Request timed out') {
-    return async (
-        message: import('../../src/io').IOMessage,
-        context: import('../../src/io').MessageContext,
-        next: () => Promise<void>
-    ) => {
-        const timeoutPromise = new Promise<void>((_, reject) =>
-            setTimeout(() => reject(new Error(fallbackResponse)), ms)
-        );
-        try {
-            await Promise.race([next(), timeoutPromise]);
-        } catch (e) {
-            if (e instanceof Error && e.message === fallbackResponse) {
-                await context.respond(fallbackResponse);
-            } else {
-                throw e;
-            }
-        }
-    };
+  return async (
+    message: import('../../src/io').IOMessage,
+    context: import('../../src/io').MessageContext,
+    next: () => Promise<void>
+  ) => {
+    const timeoutPromise = new Promise<void>((_, reject) =>
+      setTimeout(() => reject(new Error(fallbackResponse)), ms)
+    );
+    try {
+      await Promise.race([next(), timeoutPromise]);
+    } catch (e) {
+      if (e instanceof Error && e.message === fallbackResponse) {
+        await context.respond(fallbackResponse);
+      } else {
+        throw e;
+      }
+    }
+  };
 }
 
 export function resolveSessionKey(message: IOMessage): string {
-    return message.origin;
+  return message.origin;
 }
 
 export function originExtractor(
-    message: IOMessage,
-    context: MessageContext,
-    next: () => Promise<void>
+  message: IOMessage,
+  context: MessageContext,
+  next: () => Promise<void>
 ): Promise<void> {
-    (context as BridgeContext).sessionKey = resolveSessionKey(message);
-    return next();
+  (context as BridgeContext).sessionKey = resolveSessionKey(message);
+  return next();
 }
 
 export function createErrorBoundary(logger: Logger): MessageMiddleware {
-    return async (message, context, next) => {
-        try {
-            await next();
-        } catch (e) {
-            const err = toError(e);
-            logger.error('middleware pipeline error', err, {
-                connection: context.connection.id,
-                origin: message.origin,
-                sender: message.sender,
-            });
-            try {
-                await context.respond(`Error: ${err.message}`);
-            } catch (respondErr) {
-                logger.error('failed to send error response', respondErr as Error, {
-                    connection: context.connection.id,
-                });
-            }
-        }
-    };
+  return async (message, context, next) => {
+    try {
+      await next();
+    } catch (e) {
+      const err = toError(e);
+      logger.error('middleware pipeline error', err, {
+        connection: context.connection.id,
+        origin: message.origin,
+        sender: message.sender,
+      });
+      try {
+        await context.respond(`Error: ${err.message}`);
+      } catch (respondErr) {
+        logger.error('failed to send error response', respondErr as Error, {
+          connection: context.connection.id,
+        });
+      }
+    }
+  };
 }
 
 export function createAuthMiddleware(auth: AuthManager): MessageMiddleware {
-    return async (message, context, next) => {
-        const connId = context.connection.id;
-        const result = auth.checkAuth(connId, message.sender, message.text);
-        if (result === 'ignore') return;
-        if (result === 'auth_bound') {
-            auth.bindUser(connId, message.sender);
-            await context.respond(`Authenticated as ${message.sender}.`);
-            return;
-        }
-        await next();
-    };
+  return async (message, context, next) => {
+    const connId = context.connection.id;
+    const result = auth.checkAuth(connId, message.sender, message.text);
+    if (result === 'ignore') return;
+    if (result === 'auth_bound') {
+      auth.bindUser(connId, message.sender);
+      await context.respond(`Authenticated as ${message.sender}.`);
+      return;
+    }
+    await next();
+  };
 }
 
 export function createCommandInterceptor(registry: CommandRegistry): MessageMiddleware {
-    return async (message, context, next) => {
-        const text = message.text.trim();
-        if (!text.startsWith('/') && !text.startsWith('.')) {
-            await next();
-            return;
-        }
+  return async (message, context, next) => {
+    const text = message.text.trim();
+    if (!text.startsWith('/') && !text.startsWith('.')) {
+      await next();
+      return;
+    }
 
-        const parts = text.slice(1).split(/\s+/);
-        const cmd = parts[0] ?? '';
-        const args = parts.slice(1);
-        const bridgeCtx = context as BridgeContext;
-        const commandContext: CommandContext = {
-            connection: context.connection,
-            ...(context.nar ? {nar: context.nar} : {}),
-            ...(bridgeCtx.manager ? {manager: bridgeCtx.manager} : {}),
-        };
-        try {
-            let result: string;
-            try {
-                result = await registry.execute(cmd, args, commandContext);
-            } catch (bareErr) {
-                // Support commands registered with leading "/" or "." (e.g. "/help")
-                if (bareErr instanceof Error && bareErr.message.startsWith('Unknown command')) {
-                    result = await registry.execute(`/${cmd}`, args, commandContext);
-                } else {
-                    throw bareErr;
-                }
-            }
-            if (result === '__CLI_QUIT__') {
-                await context.respond('Goodbye!');
-                await context.connection.disconnect('quit');
-                return;
-            }
-            await context.respond(result);
-        } catch (e) {
-            await context.respond(`Error: ${errMsg(e)}`);
-        }
+    const parts = text.slice(1).split(/\s+/);
+    const cmd = parts[0] ?? '';
+    const args = parts.slice(1);
+    const bridgeCtx = context as BridgeContext;
+    const commandContext: CommandContext = {
+      connection: context.connection,
+      ...(context.nar ? { nar: context.nar } : {}),
+      ...(bridgeCtx.manager ? { manager: bridgeCtx.manager } : {}),
     };
+    try {
+      let result: string;
+      try {
+        result = await registry.execute(cmd, args, commandContext);
+      } catch (bareErr) {
+        // Support commands registered with leading "/" or "." (e.g. "/help")
+        if (bareErr instanceof Error && bareErr.message.startsWith('Unknown command')) {
+          result = await registry.execute(`/${cmd}`, args, commandContext);
+        } else {
+          throw bareErr;
+        }
+      }
+      if (result === '__CLI_QUIT__') {
+        await context.respond('Goodbye!');
+        await context.connection.disconnect('quit');
+        return;
+      }
+      await context.respond(result);
+    } catch (e) {
+      await context.respond(`Error: ${errMsg(e)}`);
+    }
+  };
 }
 
 export function createRateLimiter(perMinute: number): MessageMiddleware {
-    const buckets = new Map<string, { tokens: number; lastRefill: number }>();
-    const refillRate = perMinute / 60_000;
-    return async (message, context, next) => {
-        const bridgeCtx = context as BridgeContext;
-        const key = bridgeCtx.sessionKey ?? resolveSessionKey(message);
-        const now = Date.now();
-        let bucket = buckets.get(key);
-        if (!bucket) {
-            bucket = {tokens: perMinute, lastRefill: now};
-            buckets.set(key, bucket);
-        }
-        const elapsed = now - bucket.lastRefill;
-        bucket.tokens = Math.min(perMinute, bucket.tokens + elapsed * refillRate);
-        bucket.lastRefill = now;
-        if (bucket.tokens < 1) {
-            await context.respond('Rate limit exceeded. Slow down.');
-            return;
-        }
-        bucket.tokens -= 1;
-        await next();
-    };
+  const buckets = new Map<string, { tokens: number; lastRefill: number }>();
+  const refillRate = perMinute / 60_000;
+  return async (message, context, next) => {
+    const bridgeCtx = context as BridgeContext;
+    const key = bridgeCtx.sessionKey ?? resolveSessionKey(message);
+    const now = Date.now();
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = { tokens: perMinute, lastRefill: now };
+      buckets.set(key, bucket);
+    }
+    const elapsed = now - bucket.lastRefill;
+    bucket.tokens = Math.min(perMinute, bucket.tokens + elapsed * refillRate);
+    bucket.lastRefill = now;
+    if (bucket.tokens < 1) {
+      await context.respond('Rate limit exceeded. Slow down.');
+      return;
+    }
+    bucket.tokens -= 1;
+    await next();
+  };
 }
 
 export function createSessionBinder(manager: SessionManager): MessageMiddleware {
-    return async (message, context, next) => {
-        const bridgeCtx = context as BridgeContext;
-        const key = bridgeCtx.sessionKey ?? resolveSessionKey(message);
-        bridgeCtx.session = manager.getOrCreate(key);
-        await next();
-    };
+  return async (message, context, next) => {
+    const bridgeCtx = context as BridgeContext;
+    const key = bridgeCtx.sessionKey ?? resolveSessionKey(message);
+    bridgeCtx.session = manager.getOrCreate(key);
+    await next();
+  };
 }
 
 export function createAgentDispatch(agent: Agent): MessageMiddleware {
-    return async (message, context, _next) => {
-        const bridgeCtx = context as BridgeContext;
-        const reply = bridgeCtx.session
-            ? await agent.chat(message.text, {session: bridgeCtx.session})
-            : await agent.chat(message.text);
-        await context.respond(reply);
-    };
+  return async (message, context, _next) => {
+    const bridgeCtx = context as BridgeContext;
+    const reply = bridgeCtx.session
+      ? await agent.chat(message.text, { session: bridgeCtx.session })
+      : await agent.chat(message.text);
+    await context.respond(reply);
+  };
 }
 
 interface DispatchState {
-    controller: AbortController;
+  controller: AbortController;
 }
 
 const sessionStates = new WeakMap<ConversationSession, DispatchState>();
 
 const getSessionState = (session: ConversationSession): DispatchState => {
-    let state = sessionStates.get(session);
-    if (!state) {
-        state = {
-            controller: new AbortController(),
-        };
-        sessionStates.set(session, state);
-    }
-    return state;
+  let state = sessionStates.get(session);
+  if (!state) {
+    state = {
+      controller: new AbortController(),
+    };
+    sessionStates.set(session, state);
+  }
+  return state;
 };
 
 export function createStreamingAgentDispatch(
-    agent: Agent,
-    logger: Logger,
-    opts: {
-        humanizeTools?: boolean;
-    } = {}
+  agent: Agent,
+  logger: Logger,
+  opts: {
+    humanizeTools?: boolean;
+  } = {}
 ): MessageMiddleware {
-    const humanize = opts.humanizeTools ?? true;
-    return async (message, context, _next) => {
-        const bridgeCtx = context as BridgeContext;
-        const session = bridgeCtx.session;
+  const humanize = opts.humanizeTools ?? true;
+  return async (message, context, _next) => {
+    const bridgeCtx = context as BridgeContext;
+    const session = bridgeCtx.session;
 
-        const state = session
-            ? getSessionState(session)
-            : {
-                controller: new AbortController(),
-            };
+    const state = session
+      ? getSessionState(session)
+      : {
+          controller: new AbortController(),
+        };
 
-        const previous = state.controller;
-        const nextController = new AbortController();
-        state.controller = nextController;
-        previous.abort();
+    const previous = state.controller;
+    const nextController = new AbortController();
+    state.controller = nextController;
+    previous.abort();
 
-        try {
-            const iter = agent.chat(message.text, {
-                stream: true,
-                session,
-                signal: nextController.signal,
-            });
+    try {
+      const iter = agent.chat(message.text, {
+        stream: true,
+        session,
+        signal: nextController.signal,
+      });
 
-            await processStreamingEvents(iter, {
-                humanizeTools: humanize,
-                onTextDelta: async (text: string) => {
-                    await context.respond(text);
-                },
-                onError: async (error: string) => {
-                    logger.warn('chatStream emitted error event', {error});
-                    await context.respond(`Error: ${error}`);
-                },
-                onAborted: async () => {
-                    logger.debug('chatStream aborted by signal', {sessionKey: session?.key});
-                },
-            });
-        } catch (e) {
-            const err = toError(e);
-            logger.error('streaming dispatch error', err, {sessionKey: session?.key});
-            try {
-                await context.respond(`Error: ${err.message}`);
-            } catch (respondErr) {
-                logger.error('failed to send error response', respondErr as Error, {
-                    sessionKey: session?.key,
-                });
-            }
-        }
-    };
+      await processStreamingEvents(iter, {
+        humanizeTools: humanize,
+        onTextDelta: async (text: string) => {
+          await context.respond(text);
+        },
+        onError: async (error: string) => {
+          logger.warn('chatStream emitted error event', { error });
+          await context.respond(`Error: ${error}`);
+        },
+        onAborted: async () => {
+          logger.debug('chatStream aborted by signal', { sessionKey: session?.key });
+        },
+      });
+    } catch (e) {
+      const err = toError(e);
+      logger.error('streaming dispatch error', err, { sessionKey: session?.key });
+      try {
+        await context.respond(`Error: ${err.message}`);
+      } catch (respondErr) {
+        logger.error('failed to send error response', respondErr as Error, {
+          sessionKey: session?.key,
+        });
+      }
+    }
+  };
 }
 
 export function abortSession(session: ConversationSession): void {
-    const state = sessionStates.get(session);
-    state?.controller.abort();
+  const state = sessionStates.get(session);
+  state?.controller.abort();
 }
 
 export function clearSessionState(session: ConversationSession): void {
-    const state = sessionStates.get(session);
-    state?.controller.abort();
-    sessionStates.delete(session);
+  const state = sessionStates.get(session);
+  state?.controller.abort();
+  sessionStates.delete(session);
 }
 
 export function createNarsTraceAnnotator(nar: NAR): MessageMiddleware {
-    let lastAttention = new Set<string>();
-    return async (_message, context, next) => {
-        await next();
-        const report = nar.attentionReport();
-        const newTerms = report.concepts
-            .filter((c) => !lastAttention.has(c.term))
-            .slice(0, 5)
-            .map((c) => c.term);
-        if (newTerms.length > 0) {
-            const bridgeCtx = context as BridgeContext;
-            const session = bridgeCtx.session;
-            if (session && session.history.length > 0) {
-                const last = session.history[session.history.length - 1];
-                if (last && last.role === 'assistant') {
-                    last.content = `${last.content}\n[NARS: derived ${newTerms.join(', ')}]`;
-                    last.metadata = {...(last.metadata ?? {}), trace: newTerms};
-                }
-            }
-            lastAttention = new Set(report.concepts.map((c) => c.term));
+  let lastAttention = new Set<string>();
+  return async (_message, context, next) => {
+    await next();
+    const report = nar.attentionReport();
+    const newTerms = report.concepts
+      .filter((c) => !lastAttention.has(c.term))
+      .slice(0, 5)
+      .map((c) => c.term);
+    if (newTerms.length > 0) {
+      const bridgeCtx = context as BridgeContext;
+      const session = bridgeCtx.session;
+      if (session && session.history.length > 0) {
+        const last = session.history[session.history.length - 1];
+        if (last && last.role === 'assistant') {
+          last.content = `${last.content}\n[NARS: derived ${newTerms.join(', ')}]`;
+          last.metadata = { ...(last.metadata ?? {}), trace: newTerms };
         }
-    };
+      }
+      lastAttention = new Set(report.concepts.map((c) => c.term));
+    }
+  };
 }
 
 export function createNarseseOutputHumanization(
-    generationService: NLGenerationService
+  generationService: NLGenerationService
 ): MessageMiddleware {
-    return async (_message, context, next) => {
-        const bridgeCtx = context as BridgeContext;
-        if (!bridgeCtx.session) {
-            await next();
-            return;
-        }
-        const sessionRef: ConversationSession = bridgeCtx.session;
-        const originalRespond = context.respond;
-        (context as { respond: typeof originalRespond }).respond = async (text: string) => {
-            let toSend = text;
-            if (NARSESE_OUTPUT_RE.test(text)) {
-                try {
-                    const genInput: GenerationInput = {
-                        query: text,
-                        derivation: null,
-                        beliefs: [],
-                        conflicts: [],
-                    };
-                    const output = await generationService.generate(genInput);
-                    if (output?.response && output.response !== text) {
-                        toSend = output.response;
-                        for (let i = sessionRef.history.length - 1; i >= 0; i--) {
-                            const m = sessionRef.history[i];
-                            if (m && m.role === 'assistant') {
-                                m.content = output.response;
-                                m.metadata = {...(m.metadata ?? {}), narsese: text, humanized: true};
-                                break;
-                            }
-                        }
-                    }
-                } catch {
-                    /* keep original text on failure */
-                }
-            }
-            return originalRespond(toSend);
-        };
+  return async (_message, context, next) => {
+    const bridgeCtx = context as BridgeContext;
+    if (!bridgeCtx.session) {
+      await next();
+      return;
+    }
+    const sessionRef: ConversationSession = bridgeCtx.session;
+    const originalRespond = context.respond;
+    (context as { respond: typeof originalRespond }).respond = async (text: string) => {
+      let toSend = text;
+      if (NARSESE_OUTPUT_RE.test(text)) {
         try {
-            await next();
-        } finally {
-            (context as { respond: typeof originalRespond }).respond = originalRespond;
+          const genInput: GenerationInput = {
+            query: text,
+            derivation: null,
+            beliefs: [],
+            conflicts: [],
+          };
+          const output = await generationService.generate(genInput);
+          if (output?.response && output.response !== text) {
+            toSend = output.response;
+            for (let i = sessionRef.history.length - 1; i >= 0; i--) {
+              const m = sessionRef.history[i];
+              if (m && m.role === 'assistant') {
+                m.content = output.response;
+                m.metadata = { ...(m.metadata ?? {}), narsese: text, humanized: true };
+                break;
+              }
+            }
+          }
+        } catch {
+          /* keep original text on failure */
         }
+      }
+      return originalRespond(toSend);
     };
+    try {
+      await next();
+    } finally {
+      (context as { respond: typeof originalRespond }).respond = originalRespond;
+    }
+  };
 }

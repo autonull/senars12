@@ -1,12 +1,12 @@
-import {css, html, LitElement} from 'lit';
-import {customElement, property} from 'lit/decorators.js';
-import {classMap} from 'lit/directives/class-map.js';
+import { LitElement, css, html } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
 
 type BannerVariant = 'info' | 'warning' | 'error' | 'success';
 
 @customElement('s-banner')
 export class SBanner extends LitElement {
-    static override styles = css`
+  static override styles = css`
     :host { display: block; }
     .banner { display: flex; align-items: center; gap: var(--spacing-scale-3); padding: var(--spacing-scale-3) var(--spacing-scale-4); font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-sm); line-height: var(--typography-lineHeights-normal); }
     .info { background: rgba(0, 170, 255, 0.1); color: var(--colors-primitive-info); border-bottom: 1px solid rgba(0, 170, 255, 0.2); }
@@ -19,26 +19,26 @@ export class SBanner extends LitElement {
     .icon { flex-shrink: 0; }
   `;
 
-    @property({type: String}) variant: BannerVariant = 'info';
-    @property({type: Boolean}) dismissible = false;
+  @property({ type: String }) variant: BannerVariant = 'info';
+  @property({ type: Boolean }) dismissible = false;
 
-    override render() {
-        return html`
-      <div class="banner ${classMap({[this.variant]: true})}">
+  override render() {
+    return html`
+      <div class="banner ${classMap({ [this.variant]: true })}">
         <span class="icon"><slot name="icon"></slot></span>
         <span class="message"><slot></slot></span>
         ${this.dismissible ? html`<button class="dismiss" @click=${this.handleDismiss} aria-label="Dismiss">&times;</button>` : ''}
       </div>
     `;
-    }
+  }
 
-    private handleDismiss() {
-        this.dispatchEvent(new CustomEvent('s-dismiss', {bubbles: true, composed: true}));
-    }
+  private handleDismiss() {
+    this.dispatchEvent(new CustomEvent('s-dismiss', { bubbles: true, composed: true }));
+  }
 }
 
 declare global {
-    interface HTMLElementTagNameMap {
-        's-banner': SBanner;
-    }
+  interface HTMLElementTagNameMap {
+    's-banner': SBanner;
+  }
 }

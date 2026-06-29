@@ -1,7 +1,7 @@
-import {css, html} from 'lit';
-import {customElement} from 'lit/decorators.js';
-import {BaseComponent} from '../core/base-component.js';
-import {$connectionState, $graphNodes, $panels, $selectedNodeId} from '../core/index.js';
+import { css, html } from 'lit';
+import { customElement } from 'lit/decorators.js';
+import { BaseComponent } from '../core/base-component.js';
+import { $connectionState, $graphNodes, $panels, $selectedNodeId } from '../core/index.js';
 import './graph-viewport.js';
 import './graph-toolbar.js';
 import './input-hud.js';
@@ -16,7 +16,7 @@ import './primitives/empty-state.js';
 
 @customElement('app-layout')
 export class AppLayout extends BaseComponent {
-    static override styles = css`
+  static override styles = css`
     :host {
       display: grid; height: 100vh;
       grid-template-rows: auto 44px 1fr auto;
@@ -76,23 +76,23 @@ export class AppLayout extends BaseComponent {
     }
   `;
 
-    override connectedCallback() {
-        super.connectedCallback();
-        this.watch($connectionState);
-        this.watch($panels);
-        this.watch($graphNodes);
-        this.watch($selectedNodeId);
-    }
+  override connectedCallback() {
+    super.connectedCallback();
+    this.watch($connectionState);
+    this.watch($panels);
+    this.watch($graphNodes);
+    this.watch($selectedNodeId);
+  }
 
-    override render() {
-        const panels = $panels.get();
-        const configPanel = panels.get('config');
-        const searchPanel = panels.get('search');
-        const telemetryPanel = panels.get('telemetry');
-        const chatPanel = panels.get('chat');
-        const hasNodes = $graphNodes.get().size > 0;
+  override render() {
+    const panels = $panels.get();
+    const configPanel = panels.get('config');
+    const searchPanel = panels.get('search');
+    const telemetryPanel = panels.get('telemetry');
+    const chatPanel = panels.get('chat');
+    const hasNodes = $graphNodes.get().size > 0;
 
-        return html`
+    return html`
       <div class="banner-area">
         <connection-banner></connection-banner>
       </div>
@@ -103,8 +103,8 @@ export class AppLayout extends BaseComponent {
 
       <div class="body-area">
         ${
-            searchPanel?.open
-                ? html`
+          searchPanel?.open
+            ? html`
           <div class="panel-left" style=${this.getPanelStyle('search')}>
             <s-panel heading="Search" docked="left" closable @s-close=${() => this.togglePanel('search')}>
               <s-input type="search" placeholder="Search concepts…"></s-input>
@@ -112,70 +112,70 @@ export class AppLayout extends BaseComponent {
             </s-panel>
           </div>
         `
-                : ''
+            : ''
         }
 
         <div class="graph-area">
           ${
             !hasNodes
-                ? html`
+              ? html`
             <div class="empty-overlay">
               <s-empty-state icon="🧠" heading="SeNARS Cognitive HUD" description="Send a message to start populating the knowledge graph" size="lg">
                 <s-button variant="primary" slot="action" @click=${this.focusInput}>Send a message</s-button>
               </s-empty-state>
             </div>
           `
-                : ''
-        }
+              : ''
+          }
           <graph-viewport></graph-viewport>
         </div>
 
         ${
-            configPanel?.open
-                ? html`
+          configPanel?.open
+            ? html`
           <div class="panel-right" style=${this.getPanelStyle('config')}>
             <s-panel heading="Configuration" docked="right" closable @s-close=${() => this.togglePanel('config')}>
               <config-hud></config-hud>
             </s-panel>
           </div>
         `
-                : ''
+            : ''
         }
 
         ${
-            $selectedNodeId.get()
-                ? html`
+          $selectedNodeId.get()
+            ? html`
           <div class="panel-right" style="width:300px;overflow:hidden;border-left:1px solid var(--colors-semantic-border-subtle);">
             <s-panel heading="Node Detail" docked="right" closable @s-close=${() => $selectedNodeId.set(null)}>
               <node-detail-drawer></node-detail-drawer>
             </s-panel>
           </div>
         `
-                : ''
+            : ''
         }
 
         ${
-            chatPanel?.open
-                ? html`
+          chatPanel?.open
+            ? html`
           <div class="panel-right" style=${this.getPanelStyle('chat')}>
             <s-panel heading="Chat History" docked="right" closable @s-close=${() => this.togglePanel('chat')}>
               <chat-history-panel></chat-history-panel>
             </s-panel>
           </div>
         `
-                : ''
+            : ''
         }
 
         ${
-            telemetryPanel?.open
-                ? html`
+          telemetryPanel?.open
+            ? html`
           <div class="panel-bottom" style="height:${telemetryPanel.size}px">
             <s-panel heading="Telemetry" docked="bottom" closable noPad @s-close=${() => this.togglePanel('telemetry')}>
               <telemetry-panel></telemetry-panel>
             </s-panel>
           </div>
         `
-                : ''
+            : ''
         }
       </div>
 
@@ -185,25 +185,25 @@ export class AppLayout extends BaseComponent {
 
       <error-boundary></error-boundary>
     `;
-    }
+  }
 
-    private getPanelStyle(id: string): string {
-        const panel = $panels.get().get(id);
-        if (!panel || !panel.open) return 'width:0;overflow:hidden;';
-        return `width:${panel.size}px;`;
-    }
+  private getPanelStyle(id: string): string {
+    const panel = $panels.get().get(id);
+    if (!panel || !panel.open) return 'width:0;overflow:hidden;';
+    return `width:${panel.size}px;`;
+  }
 
-    private togglePanel(id: string) {
-        const panels = new Map($panels.get());
-        const panel = panels.get(id);
-        if (panel) {
-            panels.set(id, {...panel, open: !panel.open});
-            $panels.set(panels);
-        }
+  private togglePanel(id: string) {
+    const panels = new Map($panels.get());
+    const panel = panels.get(id);
+    if (panel) {
+      panels.set(id, { ...panel, open: !panel.open });
+      $panels.set(panels);
     }
+  }
 
-    private focusInput() {
-        const hud = this.shadowRoot?.querySelector('input-hud');
-        (hud as any)?.focusInput?.();
-    }
+  private focusInput() {
+    const hud = this.shadowRoot?.querySelector('input-hud');
+    (hud as any)?.focusInput?.();
+  }
 }

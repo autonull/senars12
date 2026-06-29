@@ -1,102 +1,102 @@
 // Core types - exported first
 export type {
-    Term,
-    AtomicTerm,
-    CompoundTerm,
-    TruthType,
-    Source,
-    Task,
-    TaskType,
-    Budget,
-    CoreConfig,
-    Hash,
-    TermSymbol,
+  Term,
+  AtomicTerm,
+  CompoundTerm,
+  TruthType,
+  Source,
+  Task,
+  TaskType,
+  Budget,
+  CoreConfig,
+  Hash,
+  TermSymbol,
 } from './types/core.js';
 
 export {
-    createBudget,
-    createTask,
-    createSecondaryTask,
-    success,
-    failure,
-    isSuccess,
-    isFailure,
-    DEFAULT_CONFIG,
-    NARError,
-    ValidationError,
-    ConfigurationError,
-    OperationError,
-    ToolError,
+  createBudget,
+  createTask,
+  createSecondaryTask,
+  success,
+  failure,
+  isSuccess,
+  isFailure,
+  DEFAULT_CONFIG,
+  NARError,
+  ValidationError,
+  ConfigurationError,
+  OperationError,
+  ToolError,
 } from './types/core.js';
 
-export {Stamp} from './terms/stamp.js';
+export { Stamp } from './terms/stamp.js';
 
 // Terms
-export {TermBuilder, freeze, atom, serializeTerm} from './terms/index.js';
-export {Truth, isTruthEqual} from './terms/truth.js';
-export {termParser, TermParser} from './terms/index.js';
+export { TermBuilder, freeze, atom, serializeTerm } from './terms/index.js';
+export { Truth, isTruthEqual } from './terms/truth.js';
+export { termParser, TermParser } from './terms/index.js';
 export {
-    isVariableSymbol,
-    isAtomic,
-    isCompound,
-    getTermArgs,
-    getTermArg,
-    termsEqual,
-    isInheritance,
-    isSimilarity,
-    isImplication,
-    isEquivalence,
-    isConjunction,
-    isDisjunction,
-    isNegation,
-    getSubject,
-    getPredicate,
-    getAntecedent,
-    getConsequent,
-    getArgs,
-    sameKind,
+  isVariableSymbol,
+  isAtomic,
+  isCompound,
+  getTermArgs,
+  getTermArg,
+  termsEqual,
+  isInheritance,
+  isSimilarity,
+  isImplication,
+  isEquivalence,
+  isConjunction,
+  isDisjunction,
+  isNegation,
+  getSubject,
+  getPredicate,
+  getAntecedent,
+  getConsequent,
+  getArgs,
+  sameKind,
 } from './terms/index.js';
 
 // Rules
-export type {RegisteredRule, RulePattern, RuleFn, RuleResult} from './rules/index.js';
-export {RuleRegistry, RuleIndex, createRulePattern} from './rules/index.js';
-export {RuleProcessor} from './rules/index.js';
-export {NALRules} from './rules/index.js';
-export {NALExtendedRules} from './rules/index.js';
+export type { RegisteredRule, RulePattern, RuleFn, RuleResult } from './rules/index.js';
+export { RuleRegistry, RuleIndex, createRulePattern } from './rules/index.js';
+export { RuleProcessor } from './rules/index.js';
+export { NALRules } from './rules/index.js';
+export { NALExtendedRules } from './rules/index.js';
 
 // Memory
-export {Concept} from './memory/index.js';
-export type {ConceptTaskType} from './memory/index.js';
-export {Bag, BoundedBag} from './memory/index.js';
-export {Memory} from './memory/index.js';
-export type {MemoryConfig} from './memory/index.js';
+export { Concept } from './memory/index.js';
+export type { ConceptTaskType } from './memory/index.js';
+export { Bag, BoundedBag } from './memory/index.js';
+export { Memory } from './memory/index.js';
+export type { MemoryConfig } from './memory/index.js';
 
 // Task
-export {TaskManager} from './task/index.js';
+export { TaskManager } from './task/index.js';
 
 // Reason
-export type {Strategy} from './reason/index.js';
-export {BagStrategy, ExhaustiveStrategy} from './reason/index.js';
-export {Reasoner} from './reason/index.js';
-export type {ReasonerConfig} from './reason/index.js';
+export type { Strategy } from './reason/index.js';
+export { BagStrategy, ExhaustiveStrategy } from './reason/index.js';
+export { Reasoner } from './reason/index.js';
+export type { ReasonerConfig } from './reason/index.js';
 
 // Main NAR class
-export {NAR} from './nar.js';
-export type {NARConfig, RLFPConfig} from './nar.js';
+export { NAR } from './nar.js';
+export type { NARConfig, RLFPConfig } from './nar.js';
 
 // Factory for creating NAR instances
-export {SeNARSFactory, createNAR, createMinimalNAR} from './factory.js';
-export type {SeNARSOptions, SeNARSConfig} from './factory.js';
+export { SeNARSFactory, createNAR, createMinimalNAR } from './factory.js';
+export type { SeNARSOptions, SeNARSConfig } from './factory.js';
 
 // Lifecycle
-export {BaseComponent} from './lifecycle/BaseComponent.js';
-export type {ComponentState, ComponentContext} from './lifecycle/BaseComponent.js';
-export {Container} from './lifecycle/Container.js';
-export type {ComponentDefinition, ValueDefinition, Definition} from './lifecycle/Container.js';
+export { BaseComponent } from './lifecycle/BaseComponent.js';
+export type { ComponentState, ComponentContext } from './lifecycle/BaseComponent.js';
+export { Container } from './lifecycle/Container.js';
+export type { ComponentDefinition, ValueDefinition, Definition } from './lifecycle/Container.js';
 
 // NL Translation
 export * from './nl/schemas.js';
 
 // Cognitive
-export {Observer, runCounterfactual} from './cognitive/index.js';
-export type {CognitiveState, CognitiveAction, ObserverReport} from './cognitive/index.js';
+export { Observer, runCounterfactual } from './cognitive/index.js';
+export type { CognitiveState, CognitiveAction, ObserverReport } from './cognitive/index.js';
