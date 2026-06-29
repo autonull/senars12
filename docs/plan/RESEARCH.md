@@ -8,14 +8,17 @@
 
 ## Executive Summary
 
-SeNARS (Semantic Non-Axiomatic Reasoning System) is a unique research platform positioned at the intersection of **formal logic**, **neural language models**, and **cognitive architecture**. It offers fertile ground for publishable research, novel product development, and competitive advantage in AI applications requiring:
+SeNARS (Semantic Non-Axiomatic Reasoning System) is a unique research platform positioned at the intersection of
+**formal logic**, **neural language models**, and **cognitive architecture**. It offers fertile ground for publishable
+research, novel product development, and competitive advantage in AI applications requiring:
 
 - **Consistency** that LLMs cannot guarantee
-- **Memory** that persists beyond context windows  
+- **Memory** that persists beyond context windows
 - **Explainability** via derivation traces
 - **Uncertainty quantification** via truth values
 
-This document outlines **research directions**, **experimental protocols**, and **exploitation strategies** for both academic and commercial contexts.
+This document outlines **research directions**, **experimental protocols**, and **exploitation strategies** for both
+academic and commercial contexts.
 
 ---
 
@@ -58,6 +61,7 @@ SYSTEMS │  Systems       │                                     │    Symbol
 **Research Question**: How do LM-generated beliefs interact with NAL truth revision?
 
 **Methodology**:
+
 1. Inject LM-derived beliefs with calibrated confidence
 2. Measure truth value stability under revision
 3. Compare convergence properties to pure NAL
@@ -67,6 +71,7 @@ SYSTEMS │  Systems       │                                     │    Symbol
 **Publication Venues**: IJCAI, AAAI, AGI Conference
 
 **Experiments**:
+
 ```javascript
 // Experiment: LM Belief Integration Dynamics
 const brain = new NAR({ lm: { enabled: true } });
@@ -85,6 +90,7 @@ brain.input('(penguin --> bird).');          // Known fact
 **Research Question**: Optimal resource allocation under the Assumption of Insufficient Knowledge and Resources.
 
 **Methodology**:
+
 1. Vary `cpuThrottleInterval`, `maxDerivationDepth`, `memory.capacity`
 2. Measure answer quality vs. computational budget
 3. Derive Pareto frontiers for different task types
@@ -102,6 +108,7 @@ brain.input('(penguin --> bird).');          // Known fact
 SeNARS implements Tensor Logic (Domingos, 2025) enabling gradient-based learning of logical rules.
 
 **Methodology**:
+
 1. Create benchmark suite of reasoning tasks
 2. Compare pure NAL, pure Tensor, and hybrid approaches
 3. Identify task characteristics favoring each modality
@@ -121,6 +128,7 @@ SeNARS implements Tensor Logic (Domingos, 2025) enabling gradient-based learning
 SeNARS includes infrastructure for teaching the system *how* to think.
 
 **Methodology**:
+
 1. Collect reasoning trajectory annotations (`ReasoningTrajectoryLogger`)
 2. Train preference models on path comparisons (`RLFPLearner`)
 3. Measure improved task performance after RLFP training
@@ -130,6 +138,7 @@ SeNARS includes infrastructure for teaching the system *how* to think.
 **Publication Venues**: AAAI, NeurIPS (RLHF workshop), HRI
 
 **Experimental Setup**:
+
 ```javascript
 // RLFP Experiment Protocol
 import { ReasoningTrajectoryLogger, PreferenceCollector, RLFPLearner } from './agent/src/rlfp';
@@ -159,6 +168,7 @@ nar.setReasoningPolicy(learner.getPolicy());
 **Research Question**: Optimal consolidation strategies for focus/long-term memory.
 
 **Methodology**:
+
 1. Vary consolidation parameters (`focus.size`, `diversityFactor`, `promotionThreshold`)
 2. Track knowledge retention and retrieval accuracy
 3. Compare to psychological models (Atkinson-Shiffrin, Baddeley)
@@ -174,6 +184,7 @@ nar.setReasoningPolicy(learner.getPolicy());
 **Research Question**: How does the Belief-Goal distinction enable autonomous agency?
 
 **Methodology**:
+
 1. Define goal hierarchies with varying urgency/importance
 2. Measure goal achievement rate under resource constraints
 3. Compare to BDI architectures and utility-maximizing agents
@@ -191,6 +202,7 @@ nar.setReasoningPolicy(learner.getPolicy());
 **Research Question**: Can SeNARS eliminate LLM contradictions in multi-turn conversations?
 
 **Methodology**:
+
 1. Create contradiction-inducing prompt sequences
 2. Compare standalone LLM vs. SeNARS-grounded LLM
 3. Measure contradiction rate, answer stability
@@ -200,6 +212,7 @@ nar.setReasoningPolicy(learner.getPolicy());
 **Publication Venues**: ACL, EMNLP, EACL
 
 **Benchmark Script**:
+
 ```javascript
 // Consistency Benchmark
 const scenarios = [
@@ -225,6 +238,7 @@ for (const scenario of scenarios) {
 **Domains**: Healthcare (FDA), Finance (GDPR Art. 22), Legal (AI Act)
 
 **Methodology**:
+
 1. Map SeNARS derivation traces to regulatory explainability requirements
 2. Conduct user studies with domain experts
 3. Measure explanation satisfaction and trust calibration
@@ -240,11 +254,13 @@ for (const scenario of scenarios) {
 **Research Question**: What implicit knowledge can SeNARS discover from explicit statements?
 
 **Methodology**:
+
 1. Input domain knowledge (medical, legal, scientific)
 2. Query for derived implications
 3. Validate discoveries with domain experts
 
 **Experiment**:
+
 ```javascript
 // Knowledge Discovery Experiment
 brain.learn('(aspirin --> antiplatelet).');
@@ -263,14 +279,14 @@ const insights = brain.query('(aspirin --> ?consequence)?');
 
 ### Application Domain Matrix
 
-| Domain | SeNARS Advantage | Target Market | Revenue Model |
-|--------|-----------------|---------------|---------------|
-| **Legal Tech** | Explainable precedent reasoning | Law firms, courts | SaaS, licensing |
-| **Healthcare AI** | Consistent diagnostic support | Hospitals, EMR vendors | Enterprise licensing |
-| **Finance/Compliance** | Auditable decision-making | Banks, regulators | Enterprise + consulting |
-| **Education** | Observable reasoning pedagogy | EdTech, universities | Platform licensing |
-| **Industrial IoT** | Consistent sensor fusion | Manufacturing, energy | Embedded licensing |
-| **Autonomous Systems** | Goal-driven planning | Robotics, drones | Licensing + integration |
+| Domain                 | SeNARS Advantage                | Target Market          | Revenue Model           |
+|------------------------|---------------------------------|------------------------|-------------------------|
+| **Legal Tech**         | Explainable precedent reasoning | Law firms, courts      | SaaS, licensing         |
+| **Healthcare AI**      | Consistent diagnostic support   | Hospitals, EMR vendors | Enterprise licensing    |
+| **Finance/Compliance** | Auditable decision-making       | Banks, regulators      | Enterprise + consulting |
+| **Education**          | Observable reasoning pedagogy   | EdTech, universities   | Platform licensing      |
+| **Industrial IoT**     | Consistent sensor fusion        | Manufacturing, energy  | Embedded licensing      |
+| **Autonomous Systems** | Goal-driven planning            | Robotics, drones       | Licensing + integration |
 
 ---
 
@@ -293,6 +309,7 @@ const insights = brain.query('(aspirin --> ?consequence)?');
 **Value Proposition**: Consistent, memory-persistent LLM applications.
 
 **Integration**:
+
 ```javascript
 // LangChain Tool Integration
 import { SeNARSTool } from 'senars/adapters/langchain';
@@ -350,14 +367,15 @@ dependencies:
 
 ### B2. Competitive Positioning
 
-| Competitor | Weakness SeNARS Addresses |
-|------------|---------------------------|
-| **Pure LLMs (GPT, Claude)** | No persistence, contradictions, no proof |
-| **Rule Engines (Drools, CLIPS)** | No learning, no uncertainty handling |
-| **Knowledge Graphs (Neo4j)** | No autonomous inference, no goals |
-| **Expert Systems (legacy)** | Brittleness, maintenance burden |
+| Competitor                       | Weakness SeNARS Addresses                |
+|----------------------------------|------------------------------------------|
+| **Pure LLMs (GPT, Claude)**      | No persistence, contradictions, no proof |
+| **Rule Engines (Drools, CLIPS)** | No learning, no uncertainty handling     |
+| **Knowledge Graphs (Neo4j)**     | No autonomous inference, no goals        |
+| **Expert Systems (legacy)**      | Brittleness, maintenance burden          |
 
 **SeNARS Defensible Advantages**:
+
 1. **Hybrid reasoning** — NAL + LM + Tensor Logic
 2. **Built-in RLFP** — Learns *how* to reason better
 3. **Open substrate** — Fork and customize freely
@@ -369,13 +387,13 @@ dependencies:
 
 **Open Core Model**:
 
-| Component | License | Revenue Opportunity |
-|-----------|---------|---------------------|
-| SeNARS Core | Open Source (MIT/Apache) | Community adoption |
-| Enterprise Connectors | Commercial | Licensing fees |
-| Cloud Deployment | Hosted | SaaS subscriptions |
-| Support & Training | Services | Consulting revenue |
-| Certified Knowledge Packs | Curated | Content licensing |
+| Component                 | License                  | Revenue Opportunity |
+|---------------------------|--------------------------|---------------------|
+| SeNARS Core               | Open Source (MIT/Apache) | Community adoption  |
+| Enterprise Connectors     | Commercial               | Licensing fees      |
+| Cloud Deployment          | Hosted                   | SaaS subscriptions  |
+| Support & Training        | Services                 | Consulting revenue  |
+| Certified Knowledge Packs | Curated                  | Content licensing   |
 
 **Academic Licensing**: Free for research with citation requirements.
 
@@ -388,6 +406,7 @@ dependencies:
 **Name**: SeNARS-Bench
 
 **Tasks**:
+
 1. **Consistency** — Answer stability across reformulations
 2. **Memory** — Knowledge retention across sessions
 3. **Explainability** — Derivation trace quality
@@ -395,6 +414,7 @@ dependencies:
 5. **Discovery** — Novel derivation rate
 
 **Execution**:
+
 ```bash
 npm run benchmark          # Full suite
 npm run benchmark:consistency
@@ -407,16 +427,19 @@ npm run benchmark:speed
 ### Protocol 2: User Studies
 
 **Study A: Explainability Satisfaction**
+
 - Population: Domain experts (N=30+)
 - Task: Evaluate SeNARS explanations vs. LLM explanations
 - Measures: Satisfaction (Likert), trust calibration, task completion
 
 **Study B: Learning Effectiveness**
-- Population: Students (N=50+)  
+
+- Population: Students (N=50+)
 - Task: Learn reasoning concepts with/without SeNARS visualization
 - Measures: Concept retention, transfer to new problems
 
 **Study C: RLFP Annotation Quality**
+
 - Population: MTurk/Prolific (N=100+)
 - Task: Pairwise preference judgments on reasoning traces
 - Measures: Inter-annotator agreement, policy improvement
@@ -426,18 +449,21 @@ npm run benchmark:speed
 ### Protocol 3: Ablation Studies
 
 **Variables**:
+
 - LM enabled/disabled
 - RLFP trained/untrained
 - Tensor Logic enabled/disabled
 - Strategy: Bag / Prolog / Goal-Driven / Analogical
 
 **Metrics**:
+
 - Answer accuracy
 - Reasoning depth
 - Computational cost
 - Explanation quality
 
 **Execution**:
+
 ```javascript
 const strategies = ['BagStrategy', 'PrologStrategy', 'GoalDrivenStrategy'];
 const configs = [
@@ -492,53 +518,54 @@ for (const strategy of strategies) {
 
 ### Year 1: Foundation
 
-| Quarter | Academic Focus | Business Focus |
-|---------|----------------|----------------|
-| Q1 | Establish benchmark suite, submit first paper | Pilot with 2-3 design partners |
-| Q2 | RLFP user study | Enterprise connector development |
-| Q3 | Tensor Logic comparison study | First SaaS beta |
-| Q4 | Workshop at AGI/AAAI | Commercial launch |
+| Quarter | Academic Focus                                | Business Focus                   |
+|---------|-----------------------------------------------|----------------------------------|
+| Q1      | Establish benchmark suite, submit first paper | Pilot with 2-3 design partners   |
+| Q2      | RLFP user study                               | Enterprise connector development |
+| Q3      | Tensor Logic comparison study                 | First SaaS beta                  |
+| Q4      | Workshop at AGI/AAAI                          | Commercial launch                |
 
 ### Year 2: Expansion
 
-| Quarter | Academic Focus | Business Focus |
-|---------|----------------|----------------|
-| Q1 | Multi-domain transfer study | Vertical solution (legal/medical) |
-| Q2 | Cognitive architecture comparison | Certification partnership |
-| Q3 | Distributed reasoning | Enterprise scaling |
-| Q4 | Comprehensive survey paper | Market expansion |
+| Quarter | Academic Focus                    | Business Focus                    |
+|---------|-----------------------------------|-----------------------------------|
+| Q1      | Multi-domain transfer study       | Vertical solution (legal/medical) |
+| Q2      | Cognitive architecture comparison | Certification partnership         |
+| Q3      | Distributed reasoning             | Enterprise scaling                |
+| Q4      | Comprehensive survey paper        | Market expansion                  |
 
 ---
 
 ## Appendix A: Key Files Reference
 
-| Research Area | Key Files |
-|---------------|-----------|
-| Core Reasoning | `core/src/nar/NAR.js`, `core/src/reason/` |
-| Truth & Logic | `core/src/Truth.js`, `core/src/Stamp.js` |
-| Memory | `core/src/memory/Memory.js`, `core/src/memory/Focus.js` |
+| Research Area  | Key Files                                               |
+|----------------|---------------------------------------------------------|
+| Core Reasoning | `core/src/nar/NAR.js`, `core/src/reason/`               |
+| Truth & Logic  | `core/src/Truth.js`, `core/src/Stamp.js`                |
+| Memory         | `core/src/memory/Memory.js`, `core/src/memory/Focus.js` |
 | LM Integration | `core/src/lm/LM.js`, `core/src/lm/NarseseTranslator.js` |
-| RLFP | `agent/src/rlfp/` |
-| Tensor Logic | `core/src/functor/Tensor.js` |
-| Strategies | `core/src/reason/strategy/` |
-| MCP Server | `agent/src/mcp/` |
-| Benchmarks | `benchmarks/` |
-| Tests | `tests/` |
+| RLFP           | `agent/src/rlfp/`                                       |
+| Tensor Logic   | `core/src/functor/Tensor.js`                            |
+| Strategies     | `core/src/reason/strategy/`                             |
+| MCP Server     | `agent/src/mcp/`                                        |
+| Benchmarks     | `benchmarks/`                                           |
+| Tests          | `tests/`                                                |
 
 ---
 
 ## Appendix B: Publication Target Summary
 
-| Venue | Type | Deadline | SeNARS Topics |
-|-------|------|----------|---------------|
-| IJCAI | Conference | Jan | Resource-bounded reasoning, NAL theory |
-| AAAI | Conference | Sep | RLFP, cognitive architecture |
-| NeurIPS | Conference | May | Tensor Logic, neural-symbolic |
-| ACL | Conference | Jan | LLM grounding, consistency |
-| AGI | Conference | Various | Full system, philosophy |
-| FAccT | Conference | Jan | Explainability, fairness |
-| AAMAS | Conference | Oct | Goal-driven agents, multi-agent |
+| Venue   | Type       | Deadline | SeNARS Topics                          |
+|---------|------------|----------|----------------------------------------|
+| IJCAI   | Conference | Jan      | Resource-bounded reasoning, NAL theory |
+| AAAI    | Conference | Sep      | RLFP, cognitive architecture           |
+| NeurIPS | Conference | May      | Tensor Logic, neural-symbolic          |
+| ACL     | Conference | Jan      | LLM grounding, consistency             |
+| AGI     | Conference | Various  | Full system, philosophy                |
+| FAccT   | Conference | Jan      | Explainability, fairness               |
+| AAMAS   | Conference | Oct      | Goal-driven agents, multi-agent        |
 
 ---
 
-> **The unique opportunity**: SeNARS is one of few systems offering hybrid reasoning with explainability, consistency, AND adaptability. The research space is open. The applications are underexplored. Move fast.
+> **The unique opportunity**: SeNARS is one of few systems offering hybrid reasoning with explainability, consistency,
+> AND adaptability. The research space is open. The applications are underexplored. Move fast.

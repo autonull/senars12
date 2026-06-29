@@ -111,25 +111,25 @@ Netention 4 consists of:
     - **Definition**: Simple data containers representing user tasks or ideas.
     - **Schema**:
 
-      const NoteSchema \= z.object({
+      const NoteSchema \= z.object ({
 
-      id: z.string().uuid(),
+      id: z.string ().uuid (),
 
-      type: z.literal("Note"),
+      type: z.literal ("Note"),
 
-      title: z.string(),
+      title: z.string (),
 
-      content: z.string(),
+      content: z.string (),
 
-      status: z.enum(\["pending", "active", "completed", "archived"\]),
+      status: z.enum (\["pending", "active", "completed", "archived"\]),
 
-      priority: z.number().int().default(0),
+      priority: z.number ().int ().default (0),
 
-      createdAt: z.string().datetime(),
+      createdAt: z.string ().datetime (),
 
-      updatedAt: z.string().datetime(),
+      updatedAt: z.string ().datetime (),
 
-      relationships: z.array(z.object({ targetId: z.string().uuid(), type: z.string() })),
+      relationships: z.array (z.object ({ targetId: z.string ().uuid (), type: z.string () })),
 
       });
 
@@ -145,13 +145,13 @@ Netention 4 consists of:
         - Maintains a system-wide context via `BufferMemory`.
         - **Code**:
 
-          const { OpenAIFunctionsAgent, AgentExecutor } \= require("langchain/agents");
+          const { OpenAIFunctionsAgent, AgentExecutor } \= require ("langchain/agents");
 
-          const { BufferMemory } \= require("langchain/memory");
+          const { BufferMemory } \= require ("langchain/memory");
 
           class SystemAgent {
 
-          constructor() {
+          constructor () {
 
               this.memory \= new BufferMemory({ returnMessages: true });  
             
@@ -177,7 +177,7 @@ Netention 4 consists of:
 
           }
 
-          async processNote(noteId) {
+          async processNote (noteId) {
 
               const note \= await db.getNote(noteId);  
             
@@ -187,7 +187,7 @@ Netention 4 consists of:
 
           }
 
-          async generatePlan(note) {
+          async generatePlan (note) {
 
               const prompt \= \`Generate a JSON plan for: ${note.title}\\nContent: ${note.content}\`;  
             
@@ -208,13 +208,13 @@ Netention 4 consists of:
     - **Definition**: Dynamic workflows represented as graphs, generated and managed by LangChain.js chains.
     - **Structure**: Stored as JSON within the database, linked to notes via relationships.
 
-      const PlanSchema \= z.object({
+      const PlanSchema \= z.object ({
 
-      id: z.string().uuid(),
+      id: z.string ().uuid (),
 
-      noteId: z.string().uuid(),
+      noteId: z.string ().uuid (),
 
-      steps: z.array(z.object({
+      steps: z.array (z.object ({
 
           id: z.string().uuid(),  
         
@@ -230,7 +230,7 @@ Netention 4 consists of:
 
       })),
 
-      priority: z.number().int().default(0),
+      priority: z.number ().int ().default (0),
 
       });
 
@@ -247,7 +247,7 @@ Netention 4 consists of:
         - `summarize`: Text summarization via LLM.
     - **Implementation**:
 
-      const { Tool } \= require("langchain/tools");
+      const { Tool } \= require ("langchain/tools");
 
       class SummarizeTool extends Tool {
 
@@ -255,7 +255,7 @@ Netention 4 consists of:
 
       description \= "Summarizes text content";
 
-      async \_call(input) {
+      async \_call (input) {
 
           const llm \= new ChatOpenAI();  
         
@@ -267,9 +267,9 @@ Netention 4 consists of:
 
       }
 
-      function initializeTools() {
+      function initializeTools () {
 
-      return \[new SummarizeTool(), /\* other tools \*/\];
+      return \[new SummarizeTool (), /\* other tools \*/\];
 
       }
 
@@ -312,11 +312,11 @@ Netention 4 consists of:
         - **Code Enhancement**: Refactors code using LLM analysis, constrained by predefined rules.
     - **Implementation**:
 
-      async function selfImprove() {
+      async function selfImprove () {
 
-      const analysis \= await this.executor.run("Analyze system performance and suggest improvements");
+      const analysis \= await this.executor.run ("Analyze system performance and suggest improvements");
 
-      const improvements \= JSON.parse(analysis);
+      const improvements \= JSON.parse (analysis);
 
       for (const imp of improvements) {
 
@@ -413,8 +413,8 @@ First, let’s dissect the key components and concepts from Documents 1, 2, and 
   introduced the concept, Document 2 detailed it, and Document 3 made it recursive.
 - **Graph-Based Planning**: A flexible, anticipatory approach to task management, evolving from a concept (Doc 1\) to a
   detailed implementation (Doc 2\) and a self-evolving mechanism (Doc 3).
-- **Agents**: Intelligent engines driving notes, growing from basic interpreters (Doc 1\) to full-featured components (
-  Doc 2\) and self-improving entities (Doc 3).
+- **Agents**: Intelligent engines driving notes, growing from basic interpreters (Doc 1\) to full-featured components
+  (Doc 2\) and self-improving entities (Doc 3).
 - **Tools**: Extensible modular functionalities, consistently present but varying in implementation (structured in Docs
   1 and 2, bootstrapped in Doc 3).
 - **LLM Integration**: A reasoning backbone, abstracted in Doc 1, specified in Doc 2, and pivotal for self-evolution in
@@ -528,13 +528,13 @@ empowerment.
     - **Tools**: LangChain.js tools (e.g., web search) plus custom tools defined as smart files.
 - **Example Chain**:
 
-  const chain \= new LLMChain({
+  const chain \= new LLMChain ({
 
-  llm: new OpenAI({ modelName: "gpt-4" }),
+  llm: new OpenAI ({ modelName: "gpt-4" }),
 
-  prompt: PromptTemplate.fromTemplate("Given {content}, create a plan: {goals}"),
+  prompt: PromptTemplate.fromTemplate ("Given {content}, create a plan: {goals}"),
 
-  memory: new BufferMemory(),
+  memory: new BufferMemory (),
 
   });
 
@@ -689,17 +689,17 @@ netention4/
 
 #### **Core Code Snippet**
 
-const { LLMChain } \= require("langchain/chains");
+const { LLMChain } \= require ("langchain/chains");
 
-const { OpenAI } \= require("langchain/llms/openai");
+const { OpenAI } \= require ("langchain/llms/openai");
 
-const chokidar \= require("chokidar");
+const chokidar \= require ("chokidar");
 
-const fs \= require("fs/promises");
+const fs \= require ("fs/promises");
 
 class FileManager {
 
-constructor() {
+constructor () {
 
     this.files \= new Map();
 
@@ -709,7 +709,7 @@ constructor() {
 
 }
 
-async handleChange(event, path) {
+async handleChange (event, path) {
 
     if (event \=== "add" || event \=== "change") {
 
@@ -727,7 +727,7 @@ async handleChange(event, path) {
 
 class SmartFileExecutor {
 
-static async run(file) {
+static async run (file) {
 
     const llm \= new OpenAI({ modelName: "gpt-4" });
 
@@ -753,7 +753,7 @@ static async run(file) {
 
 }
 
-const manager \= new FileManager();
+const manager \= new FileManager ();
 
 ---
 

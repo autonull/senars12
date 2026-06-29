@@ -47,11 +47,11 @@ outlines for clarity.
 ### 2. Notes (Financial Actors)
 
 - **New Types**:
-  | Type | Purpose | Example Content |
-  |-----------------|----------------------------------|-------------------------------------|
-  | `Revenue`       | Generates income | `{ strategy: "crypto_trading" }`    |
-  | `CostOptimizer` | Reduces operational costs | `{ target: "llm_usage", method: "prompt_optimization" }` |
-  | `Investment`    | Allocates funds for growth | `{ amount: 1000, target: "tool_dev" }` |
+  | Type | Purpose | Example
+  Content | |-----------------|----------------------------------|-------------------------------------| |
+  `Revenue`       | Generates income | `{ strategy: "crypto_trading" }`    | | `CostOptimizer` | Reduces operational
+  costs | `{ target: "llm_usage", method: "prompt_optimization" }` | | `Investment`    | Allocates funds for growth |
+  `{ amount: 1000, target: "tool_dev" }` |
 - **Unification**: All financial activities are Notes, integrating seamlessly with tasks, tools, and plans.
 
 ### 3. Agents (Financial Strategists)
@@ -62,12 +62,12 @@ outlines for clarity.
 ### 4. Tools (Financial Arsenal)
 
 - **New Tools**:
-  | Tool Name | Description | Inputs | Outputs |
-  |-------------------|--------------------------------------|----------------------------|--------------------------|
-  | `tradeCrypto`     | Executes cryptocurrency trades | `{ pair: string, amount: number }` | `{ profit: number }`    |
-  | `optimizePrompt`  | Reduces LLM token usage | `{ prompt: string }`       | `{ optimized: string }`  |
-  | `marketAnalysis`  | Analyzes market trends | `{ asset: string }`        | `{ prediction: number }` |
-  | `allocateFunds`   | Distributes funds to Notes | `{ amount: number, noteId: string }` | `{ success: boolean }` |
+  | Tool Name | Description | Inputs |
+  Outputs | |-------------------|--------------------------------------|----------------------------|--------------------------| |
+  `tradeCrypto`     | Executes cryptocurrency trades | `{ pair: string, amount: number }` | `{ profit: number }`    | |
+  `optimizePrompt`  | Reduces LLM token usage | `{ prompt: string }`       | `{ optimized: string }`  | |
+  `marketAnalysis`  | Analyzes market trends | `{ asset: string }`        | `{ prediction: number }` | |
+  `allocateFunds`   | Distributes funds to Notes | `{ amount: number, noteId: string }` | `{ success: boolean }` |
 - **Unification**: Tools enable Notes to act on financial strategies, extending the system’s capabilities.
 
 ### 5. Plans (Profit-Driven Workflows)

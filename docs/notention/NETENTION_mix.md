@@ -243,8 +243,8 @@ Netention offers a range of features categorized by the core components they enh
 * **Scenario-Based Branching:**
     * **Functionality:** Plans can include branches to handle different scenarios or contingencies, allowing the Agent
       to dynamically choose execution paths based on real-time conditions.
-    * **Implementation Details:** Plan graph edges can represent conditional branches. The Agent evaluates conditions (
-      e.g., using Tools to check external data) and selects the appropriate branch to follow in the Plan graph.
+    * **Implementation Details:** Plan graph edges can represent conditional branches. The Agent evaluates conditions
+      (e.g., using Tools to check external data) and selects the appropriate branch to follow in the Plan graph.
 * **Goal-Oriented Planning:**
     * **Functionality:** Plans are primarily driven by high-level goals and desired outcomes, providing flexibility in
       the specific steps and actions taken to achieve those goals.
@@ -257,8 +257,8 @@ Netention offers a range of features categorized by the core components they enh
 * **Diverse Toolset:**
     * **Functionality:** Netention provides a wide range of built-in Tools covering common tasks and functionalities.
     * **Implementation Details:** Includes Tools for Web Search, File System Operations, Data Analysis and Processing,
-      User Interaction, System Monitoring, Calendar Integration, Email Integration, Task Management, Code Execution (
-      sandboxed), and Graph Data Manipulation.
+      User Interaction, System Monitoring, Calendar Integration, Email Integration, Task Management, Code Execution
+      (sandboxed), and Graph Data Manipulation.
 * **Extensible Tool Architecture:**
     * **Functionality:** The system is designed to be easily extensible with new Tools, allowing users and developers to
       add custom functionalities through a plugin architecture.
@@ -584,8 +584,8 @@ The unpacking process is an iterative loop driven by the bootstrapping agent:
           description's goals and constraints. For example, "Does this code minimize external dependencies?" or "Is this
           code structured in a modular way?".
         * **Self-Reflection**: Use the LLM to check the code for best-practices, and efficiency.
-    * **Code Storage:** If the code passes evaluation, the agent uses `file_write` to save it to the appropriate file (
-      e.g., `agent.js`, `tools.js`, `plan.js`).
+    * **Code Storage:** If the code passes evaluation, the agent uses `file_write` to save it to the appropriate file
+      (e.g., `agent.js`, `tools.js`, `plan.js`).
     * **Plan Update:**  The agent updates the plan based on the results. This might involve:
         * Marking the current step as complete.
         * Adding new sub-steps based on the generated code (e.g., if a new module was created, add steps to implement
@@ -735,8 +735,8 @@ Let's illustrate with a simplified example of how the bootstrapping agent might 
 
 5. **Code Evaluation:** The bootstrapping agent would:
     * Check for syntax errors.
-    * Use the LLM to analyze if the code aligns with the seed description and the prompt.  ("Does this code implement
-      the required methods?", "Is it well-documented?", "Does it follow JavaScript best practices?").
+    * Use the LLM to analyze if the code aligns with the seed description and the prompt. ("Does this code implement the
+      required methods?", "Is it well-documented?", "Does it follow JavaScript best practices?").
     * Potentially generate simple test cases.
 
 6. **Code Storage:** If the code passes evaluation, it's saved to `note.js`.
@@ -787,14 +787,14 @@ The core dynamic of Netention is a continuous loop of:
 
 1. **User Interaction:** The user creates a Note (defining a task, idea, or piece of information) or interacts with an
    existing Note (providing feedback, answering questions, modifying content).
-2. **Agent Interpretation:** The agent associated with the Note interprets the user's input and the Note's current
-   state (content, plan, memory).
+2. **Agent Interpretation:** The agent associated with the Note interprets the user's input and the Note's current state
+   (content, plan, memory).
 3. **Planning:** The agent updates the Note's Plan, potentially creating new steps, modifying existing steps, or
    adjusting dependencies. This is **anticipatory planning**, meaning the agent tries to foresee potential outcomes and
    create branches in the plan to handle different scenarios. The Plan is a *graph*, not a linear sequence.
-4. **Tool Selection:** The agent selects the appropriate Tool(s) to execute the next step(s) in the Plan. Tool selection
-   is driven by the Plan and the agent's understanding of the current context.
-5. **Tool Execution:** The **Executor** manages the execution of the selected Tool(s). This is inherently asynchronous,
+4. **Tool Selection:** The agent selects the appropriate Tool (s) to execute the next step (s) in the Plan. Tool
+   selection is driven by the Plan and the agent's understanding of the current context.
+5. **Tool Execution:** The **Executor** manages the execution of the selected Tool (s). This is inherently asynchronous,
    as many tools will involve interacting with external systems (LLMs, web services, the file system).
 6. **Result Incorporation:** The results of Tool execution are incorporated into the Note's Memory and used to update
    the Plan's status. This might involve marking steps as complete, failed, or waiting for user input.
@@ -1118,8 +1118,7 @@ This API defines how external applications (like the UI) can interact with Neten
     * After the initial plan is created, the agent can analyze the plan steps and use the LLM to *infer* dependencies
       between them.
         * Prompt:  "Analyze this plan: \[plan]. Are there any implicit dependencies between the steps? Return a JSON
-          array
-          of dependencies, where each dependency is an object: `{ dependentStep: number, dependsOnStep: number}`".
+          array of dependencies, where each dependency is an object: `{ dependentStep: number, dependsOnStep: number}`".
     * Add edges to the plan's graph representation based on the inferred dependencies.
 
 5. **Plan Storage:**
@@ -1194,7 +1193,7 @@ decide which tool (if any) to use for the current plan step. This is done throug
     * The current step's description.
     * Instructions to select the most appropriate tool, or to respond with a reasoning step if no tool is needed.
 2. **LLM Response:** The LLM responds with either:
-    * A `tool_calls` array, indicating which tool(s) to use and their arguments.
+    * A `tool_calls` array, indicating which tool (s) to use and their arguments.
     * Text content, representing a reasoning step or a decision not to use a tool.
 3. **Agent Interpretation:** The agent parses the LLM response and either executes the tool calls (via `agent.act()`) or
    updates its memory with the reasoning step.
@@ -1391,8 +1390,8 @@ This expands on the previous unpacking description, adding more concrete steps.
 
     6. **Full Agent, Executor, etc.:**
         * **Steps:** "Generate code for the full `Agent` class," "Generate code for the `Executor` class," etc.
-        * **Prompts:** Similar to the previous steps, but now the prompts can refer to the already generated code (
-          e.g., "The `Agent` class should use the `Executor` class to execute tools").
+        * **Prompts:** Similar to the previous steps, but now the prompts can refer to the already generated code (e.g.,
+          "The `Agent` class should use the `Executor` class to execute tools").
         * **Generate, Evaluate, Write, Update.**
 
     7. **Graph Database Integration:**
@@ -1599,8 +1598,8 @@ manage *anything*, including its own ongoing development.
     * `domain`: null. // It is it's own domain.
 
 * **Ur-Agent (Primordial Agent):**  The minimal agent embedded within the Primordial Note. It's *not* fundamentally
-  different from other agents, but it has a very limited initial set of capabilities. Its primary job is to execute
-  the "Evolve Netention" plan.
+  different from other agents, but it has a very limited initial set of capabilities. Its primary job is to execute the
+  "Evolve Netention" plan.
     * `id`: A unique UUID.
     * `noteId`:  The ID of the Primordial Note.
     * `config`:  Basic configuration (e.g., LLM API key).
@@ -1894,7 +1893,7 @@ const PlanStepSchema = z.object({
       and resource availability).
     * Before executing a step, check resource limits (memory, LLM tokens, etc.). If limits are exceeded, trigger
       forgetting mechanisms or delay the step.
-* **Agent.think():**  The prompt sent to the LLM can include information about the current priority of the Note and
+* **Agent.think ():**  The prompt sent to the LLM can include information about the current priority of the Note and
   Plan, influencing the LLM's choice of actions and tools. The prompt can also ask the LLM to *suggest* a priority for
   the next step.
 * **Memory Management:** The `MemoryManager` periodically checks memory usage and triggers forgetting mechanisms when
@@ -1980,8 +1979,8 @@ constantly being refined and expanded *by* the system.
 
 * **Focus:** Building the foundational elements of the system.
 * **Key Milestones:**
-    * **Schema Definition:** Generate Zod schemas for `Note`, `Plan`, `PlanStep`, `Message`, `Tool`, and `Domain`. (
-      These schemas are initially defined *within* the Primordial Note's content but are then externalized into
+    * **Schema Definition:** Generate Zod schemas for `Note`, `Plan`, `PlanStep`, `Message`, `Tool`, and `Domain`.
+      (These schemas are initially defined *within* the Primordial Note's content but are then externalized into
       `schemas.js`).
     * **Core Classes (Minimal):** Generate basic JavaScript code for the `Note`, `Plan`, `Agent` (a simplified version),
       and `Executor` classes. These initial versions will have limited functionality.
@@ -2036,8 +2035,8 @@ constantly being refined and expanded *by* the system.
       identifies areas for improvement. It generates new code to refactor existing modules, improve code clarity, and
       optimize performance.
     * **Algorithm Optimization:** The system can analyze and improve its own algorithms (e.g., the plan execution
-      algorithm, the prioritization algorithm). This might involve generating new code, or even modifying the
-      metamodel (within the defined constraints).
+      algorithm, the prioritization algorithm). This might involve generating new code, or even modifying the metamodel
+      (within the defined constraints).
     * **UI Enhancement:** The system gradually improves the user interface, adding new features and making it more
       intuitive and user-friendly.
     * **Tool Refinement:** Existing tools are improved and made more robust.
@@ -2551,8 +2550,8 @@ Netention offers a range of features categorized by the core components they enh
 * **Scenario-Based Branching:**
     * **Functionality:** Plans can include branches to handle different scenarios or contingencies, allowing the Agent
       to dynamically choose execution paths based on real-time conditions.
-    * **Implementation Details:** Plan graph edges can represent conditional branches. The Agent evaluates conditions (
-      e.g., using Tools to check external data) and selects the appropriate branch to follow in the Plan graph.
+    * **Implementation Details:** Plan graph edges can represent conditional branches. The Agent evaluates conditions
+      (e.g., using Tools to check external data) and selects the appropriate branch to follow in the Plan graph.
 * **Goal-Oriented Planning:**
     * **Functionality:** Plans are primarily driven by high-level goals and desired outcomes, providing flexibility in
       the specific steps and actions taken to achieve those goals.
@@ -2565,8 +2564,8 @@ Netention offers a range of features categorized by the core components they enh
 * **Diverse Toolset:**
     * **Functionality:** Netention provides a wide range of built-in Tools covering common tasks and functionalities.
     * **Implementation Details:** Includes Tools for Web Search, File System Operations, Data Analysis and Processing,
-      User Interaction, System Monitoring, Calendar Integration, Email Integration, Task Management, Code Execution (
-      sandboxed), and Graph Data Manipulation.
+      User Interaction, System Monitoring, Calendar Integration, Email Integration, Task Management, Code Execution
+      (sandboxed), and Graph Data Manipulation.
 * **Extensible Tool Architecture:**
     * **Functionality:** The system is designed to be easily extensible with new Tools, allowing users and developers to
       add custom functionalities through a plugin architecture.
@@ -2916,8 +2915,8 @@ Feedback = //...
    ultimately a Note.
 
 2. **Relationships as Glue:**  The `Relationship` object connects `ActiveNotes`. Dependencies in a Plan are
-   `Relationships`. Domain tagging is a `Relationship`. The connection between a Note and its conversation history (
-   Messages) is a `Relationship`.
+   `Relationships`. Domain tagging is a `Relationship`. The connection between a Note and its conversation history
+   (Messages) is a `Relationship`.
 
 3. **Agent as Behavior:** The `Agent` is not a separate entity but a *behavior* associated with an `ActiveNote`. This
    simplifies the model; there aren't "Agents" running around, but rather Notes exhibiting "Agent-like" behavior.

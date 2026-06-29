@@ -1,14 +1,16 @@
 # SENI: Search for Extra NARS Intelligence
 
 > **Mission Control for Compound Intelligence Emergence**
-> 
+>
 > *"Because watching benchmark scores tick up shouldn't feel like watching paint dry."*
 
 ---
 
 ## Executive Summary
 
-SENI is a gamified research dashboard that transforms SeNARS benchmark evaluation into an engaging, continuous observatory. It completely subsumes and extends the [agentic_superintelligence.md](agentic_superintelligence.md) plan by wrapping the autonomous RLFP loop in an interactive mission control interface.
+SENI is a gamified research dashboard that transforms SeNARS benchmark evaluation into an engaging, continuous
+observatory. It completely subsumes and extends the [agentic_superintelligence.md](agentic_superintelligence.md) plan by
+wrapping the autonomous RLFP loop in an interactive mission control interface.
 
 **What SENI Delivers:**
 
@@ -18,15 +20,18 @@ SENI is a gamified research dashboard that transforms SeNARS benchmark evaluatio
 4. **Gamification Layer** — Achievements, streaks, milestones, and leaderboards to sustain researcher engagement
 5. **Scientific Rigor** — Full reproducibility logging, export capabilities, and annotation tools
 
-**Key Differentiator**: SENI makes the inevitably long autonomous runs *watchable and exciting* rather than a chore to endure.
+**Key Differentiator**: SENI makes the inevitably long autonomous runs *watchable and exciting* rather than a chore to
+endure.
 
 ---
 
 ## The Vision
 
-SENI transforms the clinical process of evaluating benchmark performance into an **engaging, continuous observatory** — a live mission control for witnessing (and steering) the emergence of compound intelligence.
+SENI transforms the clinical process of evaluating benchmark performance into an **engaging, continuous observatory** —
+a live mission control for witnessing (and steering) the emergence of compound intelligence.
 
-Instead of running benchmarks → waiting → reading logs → repeat, researchers interact with a **living dashboard** that makes the search for intelligence as captivating as SETI made the search for extraterrestrial signals.
+Instead of running benchmarks → waiting → reading logs → repeat, researchers interact with a **living dashboard** that
+makes the search for intelligence as captivating as SETI made the search for extraterrestrial signals.
 
 ---
 
@@ -34,15 +39,17 @@ Instead of running benchmarks → waiting → reading logs → repeat, researche
 
 ### The SETI Metaphor
 
-Just as SETI researchers stare at spectrograms hoping for that one signal spike, SENI researchers watch for **intelligence breakthroughs** — sudden jumps in benchmark scores, novel reasoning patterns, or unexpected epistemic stability.
+Just as SETI researchers stare at spectrograms hoping for that one signal spike, SENI researchers watch for
+**intelligence breakthroughs** — sudden jumps in benchmark scores, novel reasoning patterns, or unexpected epistemic
+stability.
 
-| SETI | SENI |
-|------|------|
-| Radio telescope array | SeNARS reasoning engine |
-| Signal-to-noise ratio | Benchmark score trajectories |
-| Candidate signals | Promising reasoning traces |
-| Verification protocols | Cross-benchmark validation |
-| Drake Equation | Intelligence Emergence Metrics |
+| SETI                   | SENI                           |
+|------------------------|--------------------------------|
+| Radio telescope array  | SeNARS reasoning engine        |
+| Signal-to-noise ratio  | Benchmark score trajectories   |
+| Candidate signals      | Promising reasoning traces     |
+| Verification protocols | Cross-benchmark validation     |
+| Drake Equation         | Intelligence Emergence Metrics |
 
 ### The Gamification Layer
 
@@ -120,20 +127,20 @@ Score Trajectory: BFCL Single-Turn
 
 ### 🏅 Achievements & Milestones
 
-| Badge | Name | Criteria | Status |
-|-------|------|----------|--------|
-| 🥉 | First Contact | Complete first benchmark run | ✅ Unlocked |
-| 🥈 | Signal Detected | BFCL ≥70% | ✅ Unlocked |
-| 🥇 | Strong Signal | BFCL ≥85% | 🔒 72.4% → 85% |
-| 💎 | Epistemic Rock | Stability ≥95% | 🔒 94.2% → 95% |
-| 🔥 | Marathon | 24hr uninterrupted run | 🔒 18h 42m |
-| 🌟 | Eureka | Novel discovery flagged | ✅ Unlocked × 3 |
-| 🚀 | Lift Off | 10,000 cycles in one day | ✅ Unlocked |
-| 🌌 | Deep Space | 100,000 cumulative cycles | 🔒 47,293 |
-| 🧠 | Compound Mind | Measurable RLFP improvement | 🔒 Pending |
-| 🎯 | Consistency King | 5 consecutive stable runs | 🔒 3/5 |
-| 🔮 | Oracle | 10 correct predictions logged | 🔒 7/10 |
-| 🌐 | Polyglot | Pass benchmarks in 3 domains | 🔒 2/3 |
+| Badge | Name             | Criteria                      | Status          |
+|-------|------------------|-------------------------------|-----------------|
+| 🥉    | First Contact    | Complete first benchmark run  | ✅ Unlocked     |
+| 🥈    | Signal Detected  | BFCL ≥70%                     | ✅ Unlocked     |
+| 🥇    | Strong Signal    | BFCL ≥85%                     | 🔒 72.4% → 85%  |
+| 💎    | Epistemic Rock   | Stability ≥95%                | 🔒 94.2% → 95%  |
+| 🔥    | Marathon         | 24hr uninterrupted run        | 🔒 18h 42m      |
+| 🌟    | Eureka           | Novel discovery flagged       | ✅ Unlocked × 3 |
+| 🚀    | Lift Off         | 10,000 cycles in one day      | ✅ Unlocked     |
+| 🌌    | Deep Space       | 100,000 cumulative cycles     | 🔒 47,293       |
+| 🧠    | Compound Mind    | Measurable RLFP improvement   | 🔒 Pending      |
+| 🎯    | Consistency King | 5 consecutive stable runs     | 🔒 3/5          |
+| 🔮    | Oracle           | 10 correct predictions logged | 🔒 7/10         |
+| 🌐    | Polyglot         | Pass benchmarks in 3 domains  | 🔒 2/3          |
 
 ### 🧠 Concept Explorer
 
@@ -251,15 +258,16 @@ Define and launch autonomous multi-day benchmark runs:
 
 SENI tracks progress across industry-standard benchmarks, ordered by difficulty:
 
-| Level | Benchmark | Description | Baseline | Stretch | Unique SeNARS Value |
-|-------|-----------|-------------|----------|---------|--------------------|
-| 1 | BFCL Single-Turn | Simple function calls | ≥70% | ≥85% | NAL grounds function selection |
-| 2 | BFCL Multi-Turn (V3) | Stateful tool sequences | ≥60% | ≥75% | Episodic memory consistency |
-| 3 | AgentBench (KG/DB/OS) | Multi-environment tasks | ≥50% | ≥65% | Hybrid reasoning excels at KG |
-| 4 | GAIA Level 1 | Real-world multi-tool | Baseline | ≥40% | Long-horizon stability |
-| 5 | Epistemic Stability | SeNARS-specific | ≥90% | ≥98% | **Unique differentiator** |
+| Level | Benchmark             | Description             | Baseline | Stretch | Unique SeNARS Value            |
+|-------|-----------------------|-------------------------|----------|---------|--------------------------------|
+| 1     | BFCL Single-Turn      | Simple function calls   | ≥70%     | ≥85%    | NAL grounds function selection |
+| 2     | BFCL Multi-Turn (V3)  | Stateful tool sequences | ≥60%     | ≥75%    | Episodic memory consistency    |
+| 3     | AgentBench (KG/DB/OS) | Multi-environment tasks | ≥50%     | ≥65%    | Hybrid reasoning excels at KG  |
+| 4     | GAIA Level 1          | Real-world multi-tool   | Baseline | ≥40%    | Long-horizon stability         |
+| 5     | Epistemic Stability   | SeNARS-specific         | ≥90%     | ≥98%    | **Unique differentiator**      |
 
-> **Strategic Focus**: Epistemic stability is SeNARS's competitive advantage. Beating LLM-only baselines on *consistency* is more valuable than matching them on raw accuracy.
+> **Strategic Focus**: Epistemic stability is SeNARS's competitive advantage. Beating LLM-only baselines on
+> *consistency* is more valuable than matching them on raw accuracy.
 
 ---
 
@@ -306,12 +314,12 @@ export class Expedition {
 
 The BFCL, AgentBench, and GAIA harnesses become "signal processors" that feed the dashboard:
 
-| Original Component | SENI Component | Enhancement |
-|--------------------|----------------|-------------|
-| `BFCLHarness` | `BFCLSignal` | Streaming results, live score updates |
+| Original Component   | SENI Component     | Enhancement                                  |
+|----------------------|--------------------|----------------------------------------------|
+| `BFCLHarness`        | `BFCLSignal`       | Streaming results, live score updates        |
 | `AgentBench Harness` | `AgentBenchSignal` | Category breakdowns, per-environment metrics |
-| `EpistemicStability` | `StabilityMonitor` | Continuous health indicator |
-| `run_benchmarks.js` | `ExpeditionRunner` | Orchestrates multi-benchmark runs |
+| `EpistemicStability` | `StabilityMonitor` | Continuous health indicator                  |
+| `run_benchmarks.js`  | `ExpeditionRunner` | Orchestrates multi-benchmark runs            |
 
 ### 3. LLM Evaluator → **Discovery Detector**
 
@@ -343,17 +351,17 @@ class DiscoveryDetector extends LLMEvaluator {
 
 The 9 MCP tools become the backend for the dashboard:
 
-| MCP Tool | Dashboard Use |
-|----------|---------------|
-| `ping` | Health indicator (green/red light) |
-| `reason` | Live reasoning trace panel |
-| `memory-query` | Concept explorer widget |
-| `get-trace` | Discovery log content |
-| `teach` | Manual knowledge injection modal |
-| `set-goal` | Custom goal testing interface |
-| `execute-tool` | Agent action replay |
-| `get-focus` | Attention visualization |
-| `evaluate_js` | Advanced debugging console |
+| MCP Tool       | Dashboard Use                      |
+|----------------|------------------------------------|
+| `ping`         | Health indicator (green/red light) |
+| `reason`       | Live reasoning trace panel         |
+| `memory-query` | Concept explorer widget            |
+| `get-trace`    | Discovery log content              |
+| `teach`        | Manual knowledge injection modal   |
+| `set-goal`     | Custom goal testing interface      |
+| `execute-tool` | Agent action replay                |
+| `get-focus`    | Attention visualization            |
+| `evaluate_js`  | Advanced debugging console         |
 
 ### 5. Success Metrics → **Milestone Tracker**
 
@@ -456,24 +464,24 @@ seni/
 
 ### Data Persistence
 
-| Data Type | Storage | Retention |
-|-----------|---------|----------|
-| Expedition logs | `data/expeditions/{id}.json` | Permanent |
-| Discoveries | `data/discoveries/{id}.json` | Permanent |
-| Benchmark scores | SQLite / JSON | Rolling 90 days raw, aggregates permanent |
-| Reasoning traces | Circular buffer (configurable) | Last 10,000 traces |
-| Achievements | `data/achievements.json` | Permanent |
+| Data Type        | Storage                        | Retention                                 |
+|------------------|--------------------------------|-------------------------------------------|
+| Expedition logs  | `data/expeditions/{id}.json`   | Permanent                                 |
+| Discoveries      | `data/discoveries/{id}.json`   | Permanent                                 |
+| Benchmark scores | SQLite / JSON                  | Rolling 90 days raw, aggregates permanent |
+| Reasoning traces | Circular buffer (configurable) | Last 10,000 traces                        |
+| Achievements     | `data/achievements.json`       | Permanent                                 |
 
 ### WebSocket Events
 
-| Event | Payload | Frequency |
-|-------|---------|----------|
-| `cycle` | `{cycleId, goal, score, trace}` | Per reasoning cycle |
-| `progress` | `{cycles, scores, health, streak}` | Every 10 cycles |
-| `discovery` | `{id, tags, trace, score, why}` | When flagged |
-| `achievement` | `{badge, name, timestamp}` | When unlocked |
-| `alert` | `{type, message, severity}` | On safety events |
-| `benchmark` | `{name, score, delta, details}` | Per benchmark run |
+| Event         | Payload                            | Frequency           |
+|---------------|------------------------------------|---------------------|
+| `cycle`       | `{cycleId, goal, score, trace}`    | Per reasoning cycle |
+| `progress`    | `{cycles, scores, health, streak}` | Every 10 cycles     |
+| `discovery`   | `{id, tags, trace, score, why}`    | When flagged        |
+| `achievement` | `{badge, name, timestamp}`         | When unlocked       |
+| `alert`       | `{type, message, severity}`        | On safety events    |
+| `benchmark`   | `{name, score, delta, details}`    | Per benchmark run   |
 
 ---
 
@@ -482,6 +490,7 @@ seni/
 ### 1. The Signal-to-Noise Game
 
 Every benchmark run is framed as "listening for signals":
+
 - **Noise**: Failed inferences, low-score traces, resource waste
 - **Signal**: High-score traces, novel derivations, stable beliefs
 - **SNR Meter**: Ratio displayed prominently — goal is to improve SNR over time
@@ -489,6 +498,7 @@ Every benchmark run is framed as "listening for signals":
 ### 2. Expedition Naming
 
 Encourage researchers to name their autonomous runs:
+
 - "Operation Deep Thought"
 - "The Long Night"
 - "Epistemic Endurance"
@@ -499,6 +509,7 @@ Names appear in leaderboards and achievement unlocks.
 ### 3. Discovery Collections
 
 Curate galleries of interesting discoveries:
+
 - **"Greatest Hits"**: Top 10 highest-scoring traces of all time
 - **"Weird Science"**: Unusual but valid reasoning paths
 - **"Cross-Domain Champions"**: Best analogical transfers
@@ -507,6 +518,7 @@ Curate galleries of interesting discoveries:
 ### 4. Alert Sonification (Optional)
 
 Play sounds for events:
+
 - 🔔 New discovery (gentle chime)
 - 🚀 Achievement unlocked (celebratory sound)
 - ⚠️ Alignment drift (warning tone)
@@ -518,45 +530,45 @@ Play sounds for events:
 
 ### For Researchers
 
-| Problem | SENI Solution |
-|---------|---------------|
+| Problem           | SENI Solution                             |
+|-------------------|-------------------------------------------|
 | Benchmark fatigue | Gamified engagement keeps motivation high |
-| Log file hell | Visual dashboard surfaces what matters |
-| Missing patterns | Auto-discovery flags novel reasoning |
-| Context switching | Single dashboard shows everything |
-| Boring waits | Live updates make progress visible |
+| Log file hell     | Visual dashboard surfaces what matters    |
+| Missing patterns  | Auto-discovery flags novel reasoning      |
+| Context switching | Single dashboard shows everything         |
+| Boring waits      | Live updates make progress visible        |
 
 ### For the Science
 
-| Scientific Need | How SENI Helps |
-|-----------------|----------------|
+| Scientific Need | How SENI Helps                          |
+|-----------------|-----------------------------------------|
 | Reproducibility | Expeditions are logged with full config |
-| Comparison | Leaderboards enable run comparisons |
-| Annotation | Discovery log supports researcher notes |
-| Export | All data exportable for papers |
-| Validation | Cross-benchmark correlation visible |
+| Comparison      | Leaderboards enable run comparisons     |
+| Annotation      | Discovery log supports researcher notes |
+| Export          | All data exportable for papers          |
+| Validation      | Cross-benchmark correlation visible     |
 
 ### For SeNARS Development
 
-| Development Need | Benefit |
-|------------------|---------|
-| Debugging | Live trace makes issues visible |
-| Tuning | Quick feedback on config changes |
-| Progress tracking | Milestones show capability growth |
-| Demo-ready | Impressive visuals for presentations |
-| Collaborative | Teams can watch same dashboard |
+| Development Need  | Benefit                              |
+|-------------------|--------------------------------------|
+| Debugging         | Live trace makes issues visible      |
+| Tuning            | Quick feedback on config changes     |
+| Progress tracking | Milestones show capability growth    |
+| Demo-ready        | Impressive visuals for presentations |
+| Collaborative     | Teams can watch same dashboard       |
 
 ---
 
 ## Implementation Timeline
 
-| Phase | Duration | Deliverables |
-|-------|----------|--------------|
-| **1. Foundation** | Week 1 | WebSocket gateway, basic dashboard skeleton, Score Trajectory panel |
-| **2. Expeditions** | Week 2 | Expedition engine, launcher UI, live trace panel |
-| **3. Discovery** | Week 3 | Discovery detector, discovery log, pattern flagging |
-| **4. Gamification** | Week 4 | Achievements, milestones, streaks, leaderboards |
-| **5. Polish** | Week 5 | Dark mode aesthetic, sonification, export, demo mode |
+| Phase               | Duration | Deliverables                                                        |
+|---------------------|----------|---------------------------------------------------------------------|
+| **1. Foundation**   | Week 1   | WebSocket gateway, basic dashboard skeleton, Score Trajectory panel |
+| **2. Expeditions**  | Week 2   | Expedition engine, launcher UI, live trace panel                    |
+| **3. Discovery**    | Week 3   | Discovery detector, discovery log, pattern flagging                 |
+| **4. Gamification** | Week 4   | Achievements, milestones, streaks, leaderboards                     |
+| **5. Polish**       | Week 5   | Dark mode aesthetic, sonification, export, demo mode                |
 
 ---
 
@@ -592,43 +604,45 @@ SENI inherits and extends the safety architecture from `agentic_superintelligenc
 ((self --> modification) --> (constrained_by * safety))! {1.0, 1.0}
 ```
 
-These **immutable beliefs** cannot be overridden by inference. The `{1.0, 1.0}` truth value means absolute frequency and confidence — the epistemic anchor.
+These **immutable beliefs** cannot be overridden by inference. The `{1.0, 1.0}` truth value means absolute frequency and
+confidence — the epistemic anchor.
 
 ### Safety Gates
 
-| Gate | Trigger | Action | Dashboard Display |
-|------|---------|--------|------------------|
-| Alignment Drift | LLM eval <50% avg | Pause expedition | 🔴 Red alert banner |
-| Resource Runaway | >1GB RAM or CPU >80% | AIKR throttle | ⚠️ Yellow warning |
-| Epistemic Instability | Stability <80% | Alert + optional pause | 📉 Stability drop indicator |
-| Constitutional Violation | Invariant contradicted | Hard stop | 🛑 Full stop modal |
+| Gate                     | Trigger                | Action                 | Dashboard Display           |
+|--------------------------|------------------------|------------------------|-----------------------------|
+| Alignment Drift          | LLM eval <50% avg      | Pause expedition       | 🔴 Red alert banner         |
+| Resource Runaway         | >1GB RAM or CPU >80%   | AIKR throttle          | ⚠️ Yellow warning           |
+| Epistemic Instability    | Stability <80%         | Alert + optional pause | 📉 Stability drop indicator |
+| Constitutional Violation | Invariant contradicted | Hard stop              | 🛑 Full stop modal          |
 
 ### Self-Modification Scope
 
-| Level | Capability | Status | Gate |
-|-------|-----------|--------|------|
-| 1 | Read-only analysis | ✅ Safe | None |
-| 2 | Belief modification | ✅ Core | Constitutional invariants |
-| 3 | Preference model updates | ✅ RLFP | Alignment drift check |
-| 4 | Propose code changes | 🔄 Future | Human review required |
+| Level | Capability               | Status    | Gate                      |
+|-------|--------------------------|-----------|---------------------------|
+| 1     | Read-only analysis       | ✅ Safe   | None                      |
+| 2     | Belief modification      | ✅ Core   | Constitutional invariants |
+| 3     | Preference model updates | ✅ RLFP   | Alignment drift check     |
+| 4     | Propose code changes     | 🔄 Future | Human review required     |
 
 ---
 
 ## Pivot Strategies
 
-| Scenario | Indicator | Automatic Response | Human Escalation |
-|----------|-----------|-------------------|------------------|
-| Translation layer failure | BFCL <40% | Switch to keyword matching | Review function_translator |
-| RLFP not improving | No improvement 7 days | Increase rubric diversity | Audit preference pairs |
-| Epistemic drift | Constitutional fallback >50% | Reduce batch size | Human audit sample |
-| AgentBench too hard | OS/DB <30% | Focus on KG only | Adjust expectations |
-| LLM API failure | >5 consecutive errors | Switch to Ollama local | Check API keys |
+| Scenario                  | Indicator                    | Automatic Response         | Human Escalation           |
+|---------------------------|------------------------------|----------------------------|----------------------------|
+| Translation layer failure | BFCL <40%                    | Switch to keyword matching | Review function_translator |
+| RLFP not improving        | No improvement 7 days        | Increase rubric diversity  | Audit preference pairs     |
+| Epistemic drift           | Constitutional fallback >50% | Reduce batch size          | Human audit sample         |
+| AgentBench too hard       | OS/DB <30%                   | Focus on KG only           | Adjust expectations        |
+| LLM API failure           | >5 consecutive errors        | Switch to Ollama local     | Check API keys             |
 
 ---
 
 ## The Drake Equation for Intelligence
 
-Just as the Drake Equation estimates extraterrestrial civilizations, SENI proposes the **Intelligence Emergence Equation**:
+Just as the Drake Equation estimates extraterrestrial civilizations, SENI proposes the **Intelligence Emergence
+Equation**:
 
 ```
 I = N × f_r × f_s × f_e × L
@@ -645,7 +659,7 @@ Where:
 
 ### Dashboard Visualization
 
-The **I(t) Meter** is prominently displayed:
+The **I (t) Meter** is prominently displayed:
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
@@ -687,14 +701,14 @@ SENI supports multi-researcher workflows:
 
 ### Features
 
-| Feature | Description |
-|---------|-------------|
-| **Shared View** | Multiple researchers watch same expedition in real-time |
-| **Annotations** | Add notes to discoveries, visible to team |
-| **Starring** | Flag discoveries for team review |
-| **Activity Feed** | See what teammates are doing |
-| **Permissions** | View-only vs. expedition control roles |
-| **Export Sharing** | Generate shareable links to discovery collections |
+| Feature            | Description                                             |
+|--------------------|---------------------------------------------------------|
+| **Shared View**    | Multiple researchers watch same expedition in real-time |
+| **Annotations**    | Add notes to discoveries, visible to team               |
+| **Starring**       | Flag discoveries for team review                        |
+| **Activity Feed**  | See what teammates are doing                            |
+| **Permissions**    | View-only vs. expedition control roles                  |
+| **Export Sharing** | Generate shareable links to discovery collections       |
 
 ### Research Log
 
@@ -728,24 +742,26 @@ Automatic changelog for scientific reproducibility:
 
 ## Conclusion
 
-SENI transforms benchmark evaluation from a chore into an adventure. By gamifying the process, researchers stay engaged during the long autonomous runs that compound intelligence requires.
+SENI transforms benchmark evaluation from a chore into an adventure. By gamifying the process, researchers stay engaged
+during the long autonomous runs that compound intelligence requires.
 
 ### What SENI Provides
 
-| Capability | Benefit |
-|------------|---------|
-| **Visibility** | See what's happening in real-time |
-| **Motivation** | Achievements and milestones sustain engagement |
-| **Discovery** | Auto-flagging surfaces interesting results |
-| **Collaboration** | Shared dashboard enables team research |
-| **Reproducibility** | Full logging supports scientific rigor |
-| **Safety** | Constitutional invariants and safety gates |
+| Capability          | Benefit                                        |
+|---------------------|------------------------------------------------|
+| **Visibility**      | See what's happening in real-time              |
+| **Motivation**      | Achievements and milestones sustain engagement |
+| **Discovery**       | Auto-flagging surfaces interesting results     |
+| **Collaboration**   | Shared dashboard enables team research         |
+| **Reproducibility** | Full logging supports scientific rigor         |
+| **Safety**          | Constitutional invariants and safety gates     |
 
 ### Why This Matters
 
 > *"The difference between SETI and staring at static is knowing what to look for."*
 
 SENI provides that focus. It tells researchers:
+
 - **What's improving** — score trajectories and velocity
 - **What's interesting** — auto-flagged discoveries
 - **What's concerning** — safety gate alerts

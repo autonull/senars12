@@ -1,14 +1,18 @@
 # EVOLVE: Evolutionary Learning via Optimized Reasoning and Validation Engine
 
-> **Mission**: Transform SeNARS reasoning rules into a self-improving system through supervisor-guided optimization, RLFP principles, and SENI-inspired observation.
+> **Mission**: Transform SeNARS reasoning rules into a self-improving system through supervisor-guided optimization,
+> RLFP principles, and SENI-inspired observation.
 
 ---
 
 ## Executive Summary
 
-EVOLVE generalizes `ruminate.js` into a comprehensive **reasoning rule optimization system**. A supervisor LLM evaluates rule configurations, examines outputs, and proposes improvements—creating a continuous loop where reasoning gets better over time.
+EVOLVE generalizes `ruminate.js` into a comprehensive **reasoning rule optimization system**. A supervisor LLM evaluates
+rule configurations, examines outputs, and proposes improvements—creating a continuous loop where reasoning gets better
+over time.
 
 **Core Capabilities:**
+
 1. **Supervisor-Guided Optimization** — LLM evaluates and proposes rule changes via tool-use
 2. **Multi-Model Architecture** — Separate models for supervision (powerful) and reasoning (fast/small)
 3. **Rule Versioning** — Git-based tracking of rule configurations and experiment histories
@@ -21,7 +25,8 @@ EVOLVE generalizes `ruminate.js` into a comprehensive **reasoning rule optimizat
 
 ### Why EVOLVE?
 
-Current LM rules in SeNARS have static prompts that may be suboptimal. Manual tuning is slow and doesn't scale. EVOLVE automates this:
+Current LM rules in SeNARS have static prompts that may be suboptimal. Manual tuning is slow and doesn't scale. EVOLVE
+automates this:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -39,12 +44,12 @@ Current LM rules in SeNARS have static prompts that may be suboptimal. Manual tu
 
 ### Ultimate Potential
 
-| Capability | Description |
-|------------|-------------|
-| **Self-Improving Reasoning** | Rules that get better without human intervention |
-| **Domain Adaptation** | Auto-tune rules for specific problem domains |
-| **Emergent Strategies** | Discover novel reasoning patterns through exploration |
-| **Compound Intelligence** | Measurable trajectory through benchmark space |
+| Capability                   | Description                                           |
+|------------------------------|-------------------------------------------------------|
+| **Self-Improving Reasoning** | Rules that get better without human intervention      |
+| **Domain Adaptation**        | Auto-tune rules for specific problem domains          |
+| **Emergent Strategies**      | Discover novel reasoning patterns through exploration |
+| **Compound Intelligence**    | Measurable trajectory through benchmark space         |
 
 ---
 
@@ -392,14 +397,14 @@ export class DiversityMaintainer {
 
 ### Current LM Rules (Starting Point)
 
-| Rule | File | Prompt Quality | Priority |
-|------|------|---------------|----------|
-| `hypothesis-generation` | `LMHypothesisGenerationRule.js` | Basic | High |
-| `goal-decomposition` | `LMGoalDecompositionRule.js` | Good | High |
-| `narsese-translation` | `LMNarseseTranslationRule.js` | Minimal | Critical |
-| `concept-elaboration` | `LMConceptElaborationRule.js` | Basic | Medium |
-| `belief-revision` | `LMBeliefRevisionRule.js` | Basic | Medium |
-| `explanation-generation` | `LMExplanationGenerationRule.js` | Good | Low |
+| Rule                     | File                             | Prompt Quality | Priority |
+|--------------------------|----------------------------------|----------------|----------|
+| `hypothesis-generation`  | `LMHypothesisGenerationRule.js`  | Basic          | High     |
+| `goal-decomposition`     | `LMGoalDecompositionRule.js`     | Good           | High     |
+| `narsese-translation`    | `LMNarseseTranslationRule.js`    | Minimal        | Critical |
+| `concept-elaboration`    | `LMConceptElaborationRule.js`    | Basic          | Medium   |
+| `belief-revision`        | `LMBeliefRevisionRule.js`        | Basic          | Medium   |
+| `explanation-generation` | `LMExplanationGenerationRule.js` | Good           | Low      |
 
 ### Bidirectional NAL↔LM Conversion
 
@@ -628,14 +633,14 @@ export class LogController {
 
 ### Recommended Datasets
 
-| Dataset | Source | Purpose | Adaptation |
-|---------|--------|---------|------------|
-| **BFCL** | Berkeley | Function calling | Test NAL→JSON translation |
-| **AgentBench** | THUDM | Multi-environment | Knowledge graph reasoning focus |
-| **CommonsenseQA** | HuggingFace | Commonsense | Convert to Narsese assertions |
-| **ARC Challenge** | AI2 | Science reasoning | Test inference chains |
-| **LogiQA** | HuggingFace | Logical reasoning | Direct Narsese mapping |
-| **Wason Selection** | Custom | Rule-based logic | NAL syllogism validation |
+| Dataset             | Source      | Purpose           | Adaptation                      |
+|---------------------|-------------|-------------------|---------------------------------|
+| **BFCL**            | Berkeley    | Function calling  | Test NAL→JSON translation       |
+| **AgentBench**      | THUDM       | Multi-environment | Knowledge graph reasoning focus |
+| **CommonsenseQA**   | HuggingFace | Commonsense       | Convert to Narsese assertions   |
+| **ARC Challenge**   | AI2         | Science reasoning | Test inference chains           |
+| **LogiQA**          | HuggingFace | Logical reasoning | Direct Narsese mapping          |
+| **Wason Selection** | Custom      | Rule-based logic  | NAL syllogism validation        |
 
 ### Dataset Adapters
 
@@ -711,13 +716,13 @@ evolve/
 
 ## Implementation Timeline
 
-| Phase | Duration | Deliverables |
-|-------|----------|--------------|
-| **1. Foundation** | Week 1 | `Evolver.js`, `Supervisor.js` with basic tools, `LogController.js` |
-| **2. Versioning** | Week 2 | `RuleVersioner.js`, git integration, rollback support |
-| **3. Strategies** | Week 3 | Genetic, Bayesian, diversity strategies |
-| **4. Dashboard** | Week 4 | SENI integration, approval queue, experiment viewer |
-| **5. RLFP** | Week 5 | Full RLFP integration, trajectory comparison UI |
+| Phase             | Duration | Deliverables                                                       |
+|-------------------|----------|--------------------------------------------------------------------|
+| **1. Foundation** | Week 1   | `Evolver.js`, `Supervisor.js` with basic tools, `LogController.js` |
+| **2. Versioning** | Week 2   | `RuleVersioner.js`, git integration, rollback support              |
+| **3. Strategies** | Week 3   | Genetic, Bayesian, diversity strategies                            |
+| **4. Dashboard**  | Week 4   | SENI integration, approval queue, experiment viewer                |
+| **5. RLFP**       | Week 5   | Full RLFP integration, trajectory comparison UI                    |
 
 ---
 

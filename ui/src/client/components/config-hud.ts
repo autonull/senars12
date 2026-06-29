@@ -1,64 +1,56 @@
-import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { classMap } from 'lit/directives/class-map.js';
-import type { ConfigFieldType } from '../../shared/protocol.js';
-import { $config, send } from '../core/index.js';
-import { BaseComponent } from '../core/index.js';
+import {css, html} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import type {ConfigFieldType} from '../../shared/protocol.js';
+import {$config, BaseComponent, send} from '../core/index.js';
 import './config-profiles.js';
 
 type ConfigCategory = 'llm' | 'nars' | 'system' | 'advanced';
 
 interface ValidationResult {
-  valid: boolean;
-  message?: string;
+    valid: boolean;
+    message?: string;
 }
 
 const CATEGORY_LABELS: Record<ConfigCategory, string> = {
-  llm: 'Language Model',
-  nars: 'NARS Reasoning',
-  system: 'System',
-  advanced: 'Advanced',
+    llm: 'Language Model',
+    nars: 'NARS Reasoning',
+    system: 'System',
+    advanced: 'Advanced',
 };
 
 const CATEGORY_ORDER: ConfigCategory[] = ['llm', 'nars', 'system', 'advanced'];
 
 function validateField(field: ConfigFieldType, value: unknown): ValidationResult {
-  const v = field.validation;
-  if (!v) return { valid: true };
-  if (typeof value === 'number') {
-    if (v.min != null && value < v.min) return { valid: false, message: `Minimum ${v.min}` };
-    if (v.max != null && value > v.max) return { valid: false, message: `Maximum ${v.max}` };
-  }
-  if (typeof value === 'string' && v.pattern) {
-    if (!new RegExp(v.pattern).test(value))
-      return { valid: false, message: `Must match ${v.pattern}` };
-  }
-  return { valid: true };
+    const v = field.validation;
+    if (!v) return {valid: true};
+    if (typeof value === 'number') {
+        if (v.min != null && value < v.min) return {valid: false, message: `Minimum ${v.min}`};
+        if (v.max != null && value > v.max) return {valid: false, message: `Maximum ${v.max}`};
+    }
+    if (typeof value === 'string' && v.pattern) {
+        if (!new RegExp(v.pattern).test(value))
+            return {valid: false, message: `Must match ${v.pattern}`};
+    }
+    return {valid: true};
 }
 
 function categoryForKey(key: string): ConfigCategory {
-  if (key.startsWith('llm.') || key.startsWith('llm_')) return 'llm';
-  if (key.startsWith('nars.') || key.startsWith('nars_')) return 'nars';
-  if (key.startsWith('sys.') || key.startsWith('sys_')) return 'system';
-  return 'advanced';
+    if (key.startsWith('llm.') || key.startsWith('llm_')) return 'llm';
+    if (key.startsWith('nars.') || key.startsWith('nars_')) return 'nars';
+    if (key.startsWith('sys.') || key.startsWith('sys_')) return 'system';
+    return 'advanced';
 }
 
 function updateConfig(key: string, value: unknown) {
-  const cfg = $config.get();
-  $config.set({ ...cfg, [key]: { ...cfg[key], value } });
-  send({ type: 'config.set', key, value });
+    const cfg = $config.get();
+    $config.set({...cfg, [key]: {...cfg[key], value}});
+    send({type: 'config.set', key, value});
 }
 
 @customElement('config-hud')
 export class ConfigHUD extends BaseComponent {
-  @state() private dirtyFields = new Set<string>();
-  @state() private collapsedCategories = new Set<string>();
-  @state() private validationErrors = new Map<string, string>();
-  @state() private profileSelector = false;
-
-  private validateDebounce: Record<string, number> = {};
-
-  static override styles = css`
+    static override styles = css`
     :host { display: block; }
     .hud-config { display: flex; flex-direction: column; height: 100%; }
     .config-scroll { flex: 1; overflow-y: auto; padding: var(--spacing-scale-3); }
@@ -98,132 +90,19 @@ export class ConfigHUD extends BaseComponent {
 
     .dirty-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--colors-cognitiveLens-contradiction-primary); display: inline-block; }
   `;
+    @state() private dirtyFields = new Set<string>();
+    @state() private collapsedCategories = new Set<string>();
+    @state() private validationErrors = new Map<string, string>();
+    @state() private profileSelector = false;
+    private validateDebounce: Record<string, number> = {};
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.watch($config);
-  }
-
-  private closePanel() {
-    this.dispatchEvent(new CustomEvent('s-close', { bubbles: true, composed: true }));
-  }
-
-  private getCategory(field: ConfigFieldType, key: string): ConfigCategory {
-    return field.category ?? categoryForKey(key);
-  }
-
-  private handleChange(key: string, value: unknown) {
-    const cfg = $config.get();
-    const field = cfg[key] as ConfigFieldType;
-    if (!field) return;
-
-    const result = validateField(field, value);
-    if (!result.valid) {
-      this.validationErrors.set(key, result.message!);
-    } else {
-      this.validationErrors.delete(key);
+    override connectedCallback() {
+        super.connectedCallback();
+        this.watch($config);
     }
-    this.dirtyFields.add(key);
-    this.requestUpdate();
 
-    if (this.validateDebounce[key]) clearTimeout(this.validateDebounce[key]);
-    this.validateDebounce[key] = window.setTimeout(() => {
-      updateConfig(key, value);
-    }, 300);
-  }
-
-  private resetCategory(cat: ConfigCategory) {
-    const cfg = $config.get();
-    for (const [key, field] of Object.entries(cfg)) {
-      if (this.getCategory(field, key) === cat) {
-        this.dirtyFields.delete(key);
-        this.validationErrors.delete(key);
-      }
-    }
-    this.requestUpdate();
-  }
-
-  private resetAll() {
-    this.dirtyFields.clear();
-    this.validationErrors.clear();
-    this.requestUpdate();
-  }
-
-  private toggleCategory(cat: string) {
-    if (this.collapsedCategories.has(cat)) this.collapsedCategories.delete(cat);
-    else this.collapsedCategories.add(cat);
-    this.requestUpdate();
-  }
-
-  private renderField(field: ConfigFieldType, key: string): unknown {
-    const isDirty = this.dirtyFields.has(key);
-    const error = this.validationErrors.get(key);
-    const val = field.value;
-    const desc = field.description;
-
-    const input =
-      field.type === 'slider'
-        ? html`
-      <div class="field-value">
-        <input type="range" min=${field.min ?? 0} max=${field.max ?? 1} step=${field.step ?? 0.1}
-          .value=${val} @input=${(e: Event) => this.handleChange(key, Number.parseFloat((e.target as HTMLInputElement).value))} />
-        <span class="val">${typeof val === 'number' ? val.toFixed(2) : val}</span>
-      </div>`
-        : field.type === 'dropdown'
-          ? html`
-      <div class="field-value">
-        <select @change=${(e: Event) => this.handleChange(key, (e.target as HTMLSelectElement).value)}>
-          ${field.options?.map((o) => html`<option value=${o} ?selected=${o === String(val)}>${o}</option>`)}
-        </select>
-      </div>`
-          : field.type === 'toggle'
-            ? html`
-      <div class="field-value">
-        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
-          <input type="checkbox" ?checked=${val} @change=${(e: Event) => this.handleChange(key, (e.target as HTMLInputElement).checked)} />
-          <span style="color:var(--colors-semantic-text-primary);font-size:0.75rem;">${val ? 'Enabled' : 'Disabled'}</span>
-        </label>
-      </div>`
-            : html`
-      <div class="field-value">
-        <input type=${field.type === 'text' ? 'text' : 'number'} .value=${val}
-          @change=${(e: Event) => this.handleChange(key, (e.target as HTMLInputElement).value)} />
-      </div>`;
-
-    return html`
-      <div class="field ${classMap({ dirty: isDirty, error: !!error })}">
-        <div class="field-header">
-          <label>${field.label} ${isDirty ? html`<span class="dirty-dot"></span>` : ''}</label>
-        </div>
-        ${desc ? html`<span class="field-description">${desc}</span>` : ''}
-        ${input}
-        ${error ? html`<span class="field-error">${error}</span>` : ''}
-      </div>`;
-  }
-
-  private groupByCategory(): Map<ConfigCategory, [string, ConfigFieldType][]> {
-    const cfg = $config.get();
-    const groups = new Map<ConfigCategory, [string, ConfigFieldType][]>();
-    for (const cat of CATEGORY_ORDER) groups.set(cat, []);
-    for (const [key, field] of Object.entries(cfg)) {
-      const cat = this.getCategory(field, key);
-      groups.get(cat)?.push([key, field]);
-    }
-    return groups;
-  }
-
-  private countDirtyInCategory(cat: ConfigCategory): number {
-    const cfg = $config.get();
-    let count = 0;
-    for (const key of this.dirtyFields) {
-      const field = cfg[key];
-      if (field && this.getCategory(field, key) === cat) count++;
-    }
-    return count;
-  }
-
-  override render() {
-    return html`
+    override render() {
+        return html`
       <div class="hud-config">
         <div class="config-header">
           <h3>Configuration</h3>
@@ -248,32 +127,150 @@ export class ConfigHUD extends BaseComponent {
                   <h4>${CATEGORY_LABELS[cat]}</h4>
                   ${dirtyCount > 0 ? html`<span class="dirty-dot"></span>` : ''}
                   <button class="icon-btn" @click=${(e: Event) => {
-                    e.stopPropagation();
-                    this.resetCategory(cat);
-                  }} size="sm">Reset</button>
+                e.stopPropagation();
+                this.resetCategory(cat);
+            }} size="sm">Reset</button>
                 </div>
                 <div class="category-fields ${collapsed ? 'collapsed' : ''}">
                   ${fields.map(([key, f]) => this.renderField(f, key))}
                 </div>
               </div>`;
-          })}
+        })}
           ${
             this.dirtyFields.size > 0
-              ? html`
+                ? html`
             <div class="reset-all">
               <button @click=${this.resetAll}>Reset all fields</button>
             </div>
           `
-              : ''
-          }
+                : ''
+        }
         </div>
       </div>
     `;
-  }
+    }
+
+    private closePanel() {
+        this.dispatchEvent(new CustomEvent('s-close', {bubbles: true, composed: true}));
+    }
+
+    private getCategory(field: ConfigFieldType, key: string): ConfigCategory {
+        return field.category ?? categoryForKey(key);
+    }
+
+    private handleChange(key: string, value: unknown) {
+        const cfg = $config.get();
+        const field = cfg[key] as ConfigFieldType;
+        if (!field) return;
+
+        const result = validateField(field, value);
+        if (!result.valid) {
+            this.validationErrors.set(key, result.message!);
+        } else {
+            this.validationErrors.delete(key);
+        }
+        this.dirtyFields.add(key);
+        this.requestUpdate();
+
+        if (this.validateDebounce[key]) clearTimeout(this.validateDebounce[key]);
+        this.validateDebounce[key] = window.setTimeout(() => {
+            updateConfig(key, value);
+        }, 300);
+    }
+
+    private resetCategory(cat: ConfigCategory) {
+        const cfg = $config.get();
+        for (const [key, field] of Object.entries(cfg)) {
+            if (this.getCategory(field, key) === cat) {
+                this.dirtyFields.delete(key);
+                this.validationErrors.delete(key);
+            }
+        }
+        this.requestUpdate();
+    }
+
+    private resetAll() {
+        this.dirtyFields.clear();
+        this.validationErrors.clear();
+        this.requestUpdate();
+    }
+
+    private toggleCategory(cat: string) {
+        if (this.collapsedCategories.has(cat)) this.collapsedCategories.delete(cat);
+        else this.collapsedCategories.add(cat);
+        this.requestUpdate();
+    }
+
+    private renderField(field: ConfigFieldType, key: string): unknown {
+        const isDirty = this.dirtyFields.has(key);
+        const error = this.validationErrors.get(key);
+        const val = field.value;
+        const desc = field.description;
+
+        const input =
+            field.type === 'slider'
+                ? html`
+      <div class="field-value">
+        <input type="range" min=${field.min ?? 0} max=${field.max ?? 1} step=${field.step ?? 0.1}
+          .value=${val} @input=${(e: Event) => this.handleChange(key, Number.parseFloat((e.target as HTMLInputElement).value))} />
+        <span class="val">${typeof val === 'number' ? val.toFixed(2) : val}</span>
+      </div>`
+                : field.type === 'dropdown'
+                    ? html`
+      <div class="field-value">
+        <select @change=${(e: Event) => this.handleChange(key, (e.target as HTMLSelectElement).value)}>
+          ${field.options?.map((o) => html`<option value=${o} ?selected=${o === String(val)}>${o}</option>`)}
+        </select>
+      </div>`
+                    : field.type === 'toggle'
+                        ? html`
+      <div class="field-value">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+          <input type="checkbox" ?checked=${val} @change=${(e: Event) => this.handleChange(key, (e.target as HTMLInputElement).checked)} />
+          <span style="color:var(--colors-semantic-text-primary);font-size:0.75rem;">${val ? 'Enabled' : 'Disabled'}</span>
+        </label>
+      </div>`
+                        : html`
+      <div class="field-value">
+        <input type=${field.type === 'text' ? 'text' : 'number'} .value=${val}
+          @change=${(e: Event) => this.handleChange(key, (e.target as HTMLInputElement).value)} />
+      </div>`;
+
+        return html`
+      <div class="field ${classMap({dirty: isDirty, error: !!error})}">
+        <div class="field-header">
+          <label>${field.label} ${isDirty ? html`<span class="dirty-dot"></span>` : ''}</label>
+        </div>
+        ${desc ? html`<span class="field-description">${desc}</span>` : ''}
+        ${input}
+        ${error ? html`<span class="field-error">${error}</span>` : ''}
+      </div>`;
+    }
+
+    private groupByCategory(): Map<ConfigCategory, [string, ConfigFieldType][]> {
+        const cfg = $config.get();
+        const groups = new Map<ConfigCategory, [string, ConfigFieldType][]>();
+        for (const cat of CATEGORY_ORDER) groups.set(cat, []);
+        for (const [key, field] of Object.entries(cfg)) {
+            const cat = this.getCategory(field, key);
+            groups.get(cat)?.push([key, field]);
+        }
+        return groups;
+    }
+
+    private countDirtyInCategory(cat: ConfigCategory): number {
+        const cfg = $config.get();
+        let count = 0;
+        for (const key of this.dirtyFields) {
+            const field = cfg[key];
+            if (field && this.getCategory(field, key) === cat) count++;
+        }
+        return count;
+    }
 }
 
 declare global {
-  interface HTMLElementTagNameMap {
-    'config-hud': ConfigHUD;
-  }
+    interface HTMLElementTagNameMap {
+        'config-hud': ConfigHUD;
+    }
 }

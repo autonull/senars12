@@ -947,8 +947,8 @@ class NoteImpl {
 * **Self-Monitoring Notes**: Notes monitor their own resource consumption during `run()` and `reflect()` cycles.
 * **Dynamic Priority Adjustment**: Notes reduce their own `priority` if they exceed `resourceBudget` or become dormant.
   High-priority Notes can boost their priority or request more resources (if available system-wide).
-* **Memory Summarization/Forgetting (Self-Triggered)**: Notes trigger their own memory summarization or forgetting
-  logic (using `summarize` and `learn` Tools) when `memoryUsage` approaches `resourceBudget.memoryBytes`.
+* **Memory Summarization/Forgetting (Self-Triggered)**: Notes trigger their own memory summarization or forgetting logic
+  (using `summarize` and `learn` Tools) when `memoryUsage` approaches `resourceBudget.memoryBytes`.
 * **Token Budget Enforcement**: LangChain callbacks (or custom wrappers around LLM calls) track token usage per Note.
   Notes throttle or switch to cheaper LLMs when budget is exceeded.
 
@@ -1476,8 +1476,8 @@ create a self-evolving, intelligent knowledge network.
     * **Key Integrations**:
         * **Note.logic**: Often contains a LangChain `Runnable` specification (JSON or YAML) defining the Note's
           behavior as a chain or agent.
-        * **Note.run()**: Uses `AgentExecutor` (or `Runnable.invoke()`) to execute the Note's `logic`.
-        * **Note.reflect()**: Uses LLM calls (via `ChatOpenAI` or other models) for self-analysis and state updates.
+        * **Note.run ()**: Uses `AgentExecutor` (or `Runnable.invoke()`) to execute the Note's `logic`.
+        * **Note.reflect ()**: Uses LLM calls (via `ChatOpenAI` or other models) for self-analysis and state updates.
         * **Tools**: All tools extend the LangChain `Tool` class, making them usable within LangChain agents and chains.
         * **Memory**: Leverages LangChain memory modules (e.g., `BufferMemory`, `VectorStoreRetrieverMemory`) for
           Note-specific context.

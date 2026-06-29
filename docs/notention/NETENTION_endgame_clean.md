@@ -256,15 +256,15 @@ class Note {
 
 ## **Comparison to Designs**
 
-| Feature             | Doc 1 | Doc 2 | Doc 3 | v5  |
-|---------------------|-------|-------|-------|-----|
-| Unified Notes       | ✓     | ✗     | ✓     | ✓   |
-| Self-Evolution      | ✗     | ✗     | ✓     | ✓   |
-| Graph Planning      | ✓     | ✓     | ✓     | ✓   |
-| Implicit Assistance | ✓     | ✓     | ✗     | ✓   |
-| Flow UI             | ✗     | ✓     | ✓     | ✓   |
-| Resource Efficiency | ✗     | ✗     | ✓     | ✓   |
-| Dependency Leverage | ✗     | ✓     | ✓     | ✓++ |
+| Feature             | Doc 1 | Doc 2 | Doc 3 | v5   |
+|---------------------|-------|-------|-------|------|
+| Unified Notes       | ✓    | ✗    | ✓    | ✓   |
+| Self-Evolution      | ✗    | ✗    | ✓    | ✓   |
+| Graph Planning      | ✓    | ✓    | ✓    | ✓   |
+| Implicit Assistance | ✓    | ✓    | ✗    | ✓   |
+| Flow UI             | ✗    | ✓    | ✓    | ✓   |
+| Resource Efficiency | ✗    | ✗    | ✓    | ✓   |
+| Dependency Leverage | ✗    | ✓    | ✓    | ✓++ |
 
 - **v5 Edge**: Hyper-recursive, minimal LOC, reality-spanning tools.
 
@@ -1673,15 +1673,11 @@ continuous open loop, with components interacting via the Note graph and tools.
 
 - **Structure**: Notes with `content.execute` (e.g., JS or LLM call).
 - **Key Tools**:
-  | Tool | Function | Inputs |
-  |-----------------|-----------------------------------|-----------------------|
-  | `spawn`         | Creates new Notes | `{content: any}`     |
-  | `ml_train`      | Trains ML models | `{modelType, data}`  |
-  | `ml_predict`    | Predicts with ML | `{modelId, input}`   |
-  | `astar`         | A* pathfinding | `{startId, goalId}`  |
-  | `test_gen`      | Generates unit tests | `{code, targetId}`   |
-  | `test_run`      | Runs unit tests | `{testId}`           |
-  | `graph_search`  | Searches graph | `{startId, query}`   |
+  | Tool | Function | Inputs | |-----------------|-----------------------------------|-----------------------| |
+  `spawn`         | Creates new Notes | `{content: any}`     | | `ml_train`      | Trains ML models |
+  `{modelType, data}`  | | `ml_predict`    | Predicts with ML | `{modelId, input}`   | | `astar`         | A*
+  pathfinding | `{startId, goalId}`  | | `test_gen`      | Generates unit tests | `{code, targetId}`   | |
+  `test_run`      | Runs unit tests | `{testId}`           | | `graph_search`  | Searches graph | `{startId, query}`   |
 
 ### **3. Graph**
 

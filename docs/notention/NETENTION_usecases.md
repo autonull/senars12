@@ -144,17 +144,11 @@ playground for creativity and control.
 
 Available commands:
 create <type> <title>  - Creates a new note (Task, Note, Prompt, Plan, Exploration, Suggestion).
-list [type]            - Lists notes, optionally filtered by type. Defaults to Task List
-show <id>              - Shows details of a note.
-edit <id> <field> "<value>" - Edits a note's field (content, title, logic, priority).
-run <id>               - Activates and runs a note.
-delete <id>            - Deletes a note.
-breakdown <task_id>    - Initiates task breakdown for the given task.
-link <note_id1> <note_id2> - Creates a link between two notes.
-accept <suggestion_id> - Accepts a suggestion.
-reject <suggestion_id> - Rejects a suggestion.
-refine <prompt_id>      - Refines a prompt.
-prioritize <ui_note_id>   - Run a prioritization task on the given UI Note.
-more suggestions <exploration_id> - Request more suggestions from an exploration.
-help - Shows this help message.
+list [type]            - Lists notes, optionally filtered by type. Defaults to Task List show <id>              - Shows
+details of a note. edit <id> <field> "<value>" - Edits a note's field (content, title, logic, priority).
+run <id>               - Activates and runs a note. delete <id>            - Deletes a note. breakdown <task_id>    -
+Initiates task breakdown for the given task. link <note_id1> <note_id2> - Creates a link between two notes. accept <
+suggestion_id> - Accepts a suggestion. reject <suggestion_id> - Rejects a suggestion. refine <prompt_id>      - Refines
+a prompt. prioritize <ui_note_id>   - Run a prioritization task on the given UI Note. more suggestions <
+exploration_id> - Request more suggestions from an exploration. help - Shows this help message.
 `);

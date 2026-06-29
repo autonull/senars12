@@ -1,12 +1,11 @@
-import { css, html } from 'lit';
-import { customElement } from 'lit/decorators.js';
-import { $cognitiveMetrics } from '../core/index.js';
-import { BaseComponent } from '../core/index.js';
-import { TOKEN_COLORS } from '../utils/token-colors.js';
+import {css, html} from 'lit';
+import {customElement} from 'lit/decorators.js';
+import {$cognitiveMetrics, BaseComponent} from '../core/index.js';
+import {TOKEN_COLORS} from '../utils/token-colors.js';
 
 @customElement('cognitive-metrics')
 export class CognitiveMetrics extends BaseComponent {
-  static override styles = css`
+    static override styles = css`
     :host {
       display: block; padding: var(--spacing-scale-2) var(--spacing-scale-3);
       border-top: 1px solid var(--colors-semantic-border-subtle);
@@ -56,31 +55,31 @@ export class CognitiveMetrics extends BaseComponent {
     }
   `;
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.watch($cognitiveMetrics);
-  }
+    override connectedCallback() {
+        super.connectedCallback();
+        this.watch($cognitiveMetrics);
+    }
 
-  override render() {
-    const m = $cognitiveMetrics.get();
-    if (!m) return html``;
+    override render() {
+        const m = $cognitiveMetrics.get();
+        if (!m) return html``;
 
-    const cards = [
-      { label: 'Active Concepts', value: m.activeConcepts, color: TOKEN_COLORS.accentCyan },
-      { label: 'Total Concepts', value: m.totalConcepts, color: TOKEN_COLORS.textSecondary },
-      {
-        label: 'Derivations/s',
-        value: m.derivationsPerSec.toFixed(1),
-        color: TOKEN_COLORS.accentAmber,
-      },
-      { label: 'Contradictions', value: m.contradictionCount, color: TOKEN_COLORS.error },
-      { label: 'Working Mem', value: m.workingMemorySize, color: TOKEN_COLORS.accentMagenta },
-    ];
+        const cards = [
+            {label: 'Active Concepts', value: m.activeConcepts, color: TOKEN_COLORS.accentCyan},
+            {label: 'Total Concepts', value: m.totalConcepts, color: TOKEN_COLORS.textSecondary},
+            {
+                label: 'Derivations/s',
+                value: m.derivationsPerSec.toFixed(1),
+                color: TOKEN_COLORS.accentAmber,
+            },
+            {label: 'Contradictions', value: m.contradictionCount, color: TOKEN_COLORS.error},
+            {label: 'Working Mem', value: m.workingMemorySize, color: TOKEN_COLORS.accentMagenta},
+        ];
 
-    return html`
+        return html`
       <div class="cards">
         ${cards.map(
-          (c) => html`
+            (c) => html`
           <div class="card">
             <span class="card-label">${c.label}</span>
             <span class="card-value">${c.value}</span>
@@ -89,31 +88,31 @@ export class CognitiveMetrics extends BaseComponent {
         `
         )}
         ${
-          m.goalUrgencyDistribution
-            ? html`
+            m.goalUrgencyDistribution
+                ? html`
           <div class="card">
             <span class="card-label">Urgency</span>
             <div class="urgency-list">
               ${Object.entries(m.goalUrgencyDistribution).map(
-                ([k, v]) => html`
+                    ([k, v]) => html`
                 <div class="urgency-item">
                   <span class="urgency-dot" style="background:${k === 'high' ? TOKEN_COLORS.error : k === 'medium' ? TOKEN_COLORS.accentAmber : TOKEN_COLORS.success}"></span>
                   <span class="urgency-value">${v}</span>
                 </div>
               `
-              )}
+                )}
             </div>
           </div>
         `
-            : ''
+                : ''
         }
       </div>
     `;
-  }
+    }
 }
 
 declare global {
-  interface HTMLElementTagNameMap {
-    'cognitive-metrics': CognitiveMetrics;
-  }
+    interface HTMLElementTagNameMap {
+        'cognitive-metrics': CognitiveMetrics;
+    }
 }

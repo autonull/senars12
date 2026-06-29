@@ -1,16 +1,10 @@
-import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { $graphFilter, $graphNodes } from '../core/index.js';
-import { BaseComponent } from '../core/index.js';
+import {css, html} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
+import {$graphFilter, $graphNodes, BaseComponent} from '../core/index.js';
 
 @customElement('contradiction-badge')
 export class ContradictionBadge extends BaseComponent {
-  @state() private count = 0;
-  @state() private pulsing = false;
-  @state() private filterActive = false;
-  private prevCount = 0;
-
-  static override styles = css`
+    static override styles = css`
     :host { display: inline-flex; align-items: center; }
     .badge {
       display: flex; align-items: center; gap: 4px;
@@ -30,45 +24,33 @@ export class ContradictionBadge extends BaseComponent {
     .badge.pulse { animation: pulse 1s ease-in-out 3; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
   `;
+    @state() private count = 0;
+    @state() private pulsing = false;
+    @state() private filterActive = false;
+    private prevCount = 0;
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.watchWith($graphNodes, () => {
-      this.count = this.countContradictions();
-      if (this.count > this.prevCount) {
-        this.pulsing = true;
-        setTimeout(() => {
-          this.pulsing = false;
-          this.requestUpdate();
-        }, 3000);
-      }
-      this.prevCount = this.count;
-      this.requestUpdate();
-    });
-    this.watchWith($graphFilter, (filter) => {
-      this.filterActive = filter === 'contradiction';
-    });
-  }
-
-  private countContradictions(): number {
-    let count = 0;
-    for (const n of $graphNodes.get().values()) {
-      if (n.lensData?.color?.includes('ffaa00') || n.lensData?.color?.includes('ffb000')) count++;
+    override connectedCallback() {
+        super.connectedCallback();
+        this.watchWith($graphNodes, () => {
+            this.count = this.countContradictions();
+            if (this.count > this.prevCount) {
+                this.pulsing = true;
+                setTimeout(() => {
+                    this.pulsing = false;
+                    this.requestUpdate();
+                }, 3000);
+            }
+            this.prevCount = this.count;
+            this.requestUpdate();
+        });
+        this.watchWith($graphFilter, (filter) => {
+            this.filterActive = filter === 'contradiction';
+        });
     }
-    return count;
-  }
 
-  private handleClick() {
-    if (this.filterActive) {
-      $graphFilter.set(null);
-    } else {
-      $graphFilter.set('contradiction');
-    }
-  }
-
-  override render() {
-    if (this.count === 0) return html``;
-    return html`
+    override render() {
+        if (this.count === 0) return html``;
+        return html`
       <div class="badge ${this.pulsing ? 'pulse' : ''} ${this.filterActive ? 'filter-active' : ''}"
         title="${this.filterActive ? 'Show all nodes' : `Filter to ${this.count} contradiction(s)`}"
         @click=${this.handleClick} role="button" tabindex="0">
@@ -76,5 +58,21 @@ export class ContradictionBadge extends BaseComponent {
         <span>${this.count}</span>
       </div>
     `;
-  }
+    }
+
+    private countContradictions(): number {
+        let count = 0;
+        for (const n of $graphNodes.get().values()) {
+            if (n.lensData?.color?.includes('ffaa00') || n.lensData?.color?.includes('ffb000')) count++;
+        }
+        return count;
+    }
+
+    private handleClick() {
+        if (this.filterActive) {
+            $graphFilter.set(null);
+        } else {
+            $graphFilter.set('contradiction');
+        }
+    }
 }

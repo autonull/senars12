@@ -2,14 +2,15 @@
 
 > "From Substrate to Ecosystem: Maximizing Value, Usability, and Reach."
 
-This document outlines the strategic plan to elevate SeNARS from a promising research prototype into a robust, high-value AI platform.
+This document outlines the strategic plan to elevate SeNARS from a promising research prototype into a robust,
+high-value AI platform.
 
 ## Guiding Principles
 
-1.  **Usability First**: Complexity should be opt-in. The "Happy Path" must be zero-friction.
-2.  **Demonstrable Value**: Every feature must have a corresponding "Show, Don't Tell" demo.
-3.  **Research Enablement**: Tools that make the *invisible* reasoning process *visible* and *measurable*.
-4.  **Ecosystem Ready**: Designed for extension, embedding, and community growth.
+1. **Usability First**: Complexity should be opt-in. The "Happy Path" must be zero-friction.
+2. **Demonstrable Value**: Every feature must have a corresponding "Show, Don't Tell" demo.
+3. **Research Enablement**: Tools that make the *invisible* reasoning process *visible* and *measurable*.
+4. **Ecosystem Ready**: Designed for extension, embedding, and community growth.
 
 ---
 
@@ -97,6 +98,6 @@ This document outlines the strategic plan to elevate SeNARS from a promising res
 
 ## Immediate Next Steps (The "Now")
 
-1.  **Benchmark Baseline**: Establish current performance numbers.
-2.  **UI "Hello World"**: Get the `ui/` directory to a "deployable" state with basic graph viz.
-3.  **RLFP Prototype**: Implement the first end-to-end feedback loop.
+1. **Benchmark Baseline**: Establish current performance numbers.
+2. **UI "Hello World"**: Get the `ui/` directory to a "deployable" state with basic graph viz.
+3. **RLFP Prototype**: Implement the first end-to-end feedback loop.

@@ -2,9 +2,8 @@
 
 ## Overview
 
-This document provides the comprehensive plan for SeNARS as a
-turnkey autonomous entity that self-improves with optional user cooperation. The system is designed for general-purpose
-cognitive tasks across any domain.
+This document provides the comprehensive plan for SeNARS as a turnkey autonomous entity that self-improves with optional
+user cooperation. The system is designed for general-purpose cognitive tasks across any domain.
 
 This plan is organized across multiple documents:
 

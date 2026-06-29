@@ -71,23 +71,23 @@ sub-Notes to handle sub-tasks, creating a fractal-like structure of intelligent 
 
 - **Role Extension**: Adds a suite of tools for computer interaction, implemented as Notes with executable logic.
 - **New Tools**:
-  | Tool Name | Description | Input Schema | Output Schema | Implementation Details |
-  |-------------------|--------------------------------------------------|----------------------------------------|----------------------------------------|-----------------------------------------|
-  | `fileRead`        | Reads a file’s contents | `{ path: string }`                    |
-  `{ content: string }`                  | Uses Deno/Node.js `fs` module |
-  | `fileWrite`       | Writes content to a file | `{ path: string, content: string }`   |
-  `{ success: boolean }`                 | Uses Deno/Node.js `fs` module |
-  | `execProgram`     | Executes a system command or program | `{ command: string, args: string[] }` |
-  `{ output: string, exitCode: number }` | Uses `child_process` or Deno `run`      |
-  | `webBrowse`       | Navigates to a URL and retrieves content | `{ url: string }`                     |
-  `{ html: string }`                     | Uses `fetch` or headless browser (e.g., Puppeteer) |
-  | `webPost`         | Submits data to a web endpoint | `{ url: string, data: any }`          |
-  `{ response: string }`                 | Uses `fetch` with POST method |
-  | `appControl`      | Interacts with an application (e.g., via API)   | `{ app: string, action: string, args: any }` |
-  `{ result: any }`                | Platform-specific (e.g., AppleScript, Windows COM) |
-  | `systemMonitor`   | Watches for OS events (e.g., file changes)      | `{ eventType: string, path: string }` |
-  `{ event: any }`                       | Uses `chokidar` or OS-specific APIs |
-  | `notifyUser`      | Sends a notification to the user | `{ message: string }`                 |
+  | Tool Name | Description | Input Schema | Output Schema | Implementation
+  Details | |-------------------|--------------------------------------------------|----------------------------------------|----------------------------------------|-----------------------------------------| |
+  `fileRead`        | Reads a file’s contents | `{ path: string }`                    |
+  `{ content: string }`                  | Uses Deno/Node.js `fs` module | | `fileWrite`       | Writes content to a
+  file | `{ path: string, content: string }`   |
+  `{ success: boolean }`                 | Uses Deno/Node.js `fs` module | | `execProgram`     | Executes a system
+  command or program | `{ command: string, args: string[] }` |
+  `{ output: string, exitCode: number }` | Uses `child_process` or Deno `run`      | | `webBrowse`       | Navigates to
+  a URL and retrieves content | `{ url: string }`                     |
+  `{ html: string }`                     | Uses `fetch` or headless browser (e.g., Puppeteer) | | `webPost`         |
+  Submits data to a web endpoint | `{ url: string, data: any }`          |
+  `{ response: string }`                 | Uses `fetch` with POST method | | `appControl`      | Interacts with an
+  application (e.g., via API)   | `{ app: string, action: string, args: any }` |
+  `{ result: any }`                | Platform-specific (e.g., AppleScript, Windows COM) | | `systemMonitor`   | Watches
+  for OS events (e.g., file changes)      | `{ eventType: string, path: string }` |
+  `{ event: any }`                       | Uses `chokidar` or OS-specific APIs | | `notifyUser`      | Sends a
+  notification to the user | `{ message: string }`                 |
   `{ success: boolean }`                 | Uses OS notification APIs (e.g., `node-notifier`) |
 
 - **Unification**: These tools are Notes (`type: "Tool"`) with `logic` fields, seamlessly integrated into the system,

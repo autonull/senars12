@@ -231,8 +231,8 @@ all driven by a seamless interplay of human guidance and AI autonomy.
     - **Structure**: `{ id, noteId, config, tools, memory, think(), act(), run() }`
     - **Functionality**: Interprets note content, manages plans, selects tools, and adapts based on memory and user
       feedback.
-    - **Unified Behavior**: All agents (including the Ur-Agent) share a common lifecycle: think (reason via LLM), act (
-      execute tools), and run (continuous loop).
+    - **Unified Behavior**: All agents (including the Ur-Agent) share a common lifecycle: think (reason via LLM), act
+      (execute tools), and run (continuous loop).
 
 
 3. **Plan**
@@ -387,8 +387,8 @@ and serves users seamlessly, all while embodying the elegance of recursive self-
 
 Below is a new version of Netention that integrates the best design features from Documents 1, 2, and 3, while
 simplifying the design without sacrificing functionality. This version aims to combine the innovative concepts (active
-notes, graph-based planning), detailed architecture (comprehensive components, specific UI), and self-evolution (
-recursive unification) into a cohesive, streamlined system. Additionally, I’ll rename "Ur-Agent" and "Primordial Note"
+notes, graph-based planning), detailed architecture (comprehensive components, specific UI), and self-evolution
+(recursive unification) into a cohesive, streamlined system. Additionally, I’ll rename "Ur-Agent" and "Primordial Note"
 to more intuitive and evocative terms: **"CoreMind"** (replacing Ur-Agent) and **"GenesisNote"** (replacing Primordial
 Note).
 
@@ -419,12 +419,12 @@ Note).
 
   #### **2\. GenesisNote with CoreMind**
 
-- **Description**: The system begins with a single **GenesisNote**, containing the initial system description (
-  metamodel) and a **CoreMind**—a minimal agent that drives self-evolution (from Doc 3).
+- **Description**: The system begins with a single **GenesisNote**, containing the initial system description
+  (metamodel) and a **CoreMind**—a minimal agent that drives self-evolution (from Doc 3).
 - **Simplification**: The GenesisNote is a regular Note with a special role, eliminating the need for a separate "seed"
   construct. CoreMind is a lightweight agent that grows in capability, avoiding a complex hardcoded bootstrapper.
-- **Integration**: Incorporates the self-unification loop (Doc 3\) while aligning with the detailed agent
-  functionality (Doc 2).
+- **Integration**: Incorporates the self-unification loop (Doc 3\) while aligning with the detailed agent functionality
+  (Doc 2).
 
   #### **3\. Graph-Based Anticipatory Planning**
 
@@ -445,8 +445,8 @@ Note).
 
   #### **5\. Implicit Assistance**
 
-- **Description**: The system provides subtle, context-aware support to enhance user productivity without intrusion (
-  from Doc 1, implied in Doc 2).
+- **Description**: The system provides subtle, context-aware support to enhance user productivity without intrusion
+  (from Doc 1, implied in Doc 2).
 - **Simplification**: Integrated into CoreMind’s behavior, using LLM-driven reasoning to offer assistance via
   notifications or suggestions within Notes.
 - **Integration**: Explicitly included from Doc 1, supported by Doc 2’s user interaction features, and emergent in Doc
@@ -463,16 +463,16 @@ Note).
 
   #### **7\. LLM Integration**
 
-- **Description**: LLMs drive reasoning, planning, and code generation, abstracted for flexibility across providers (
-  from Docs 1, 2, 3).
+- **Description**: LLMs drive reasoning, planning, and code generation, abstracted for flexibility across providers
+  (from Docs 1, 2, 3).
 - **Simplification**: A single "LLMNote" encapsulates the interface, reducing abstraction layers while retaining
   provider-agnostic capabilities.
 - **Integration**: Combines abstraction (Doc 1), detailed functionality (Doc 2), and self-evolution engine (Doc 3).
 
   #### **8\. Memory Management**
 
-- **Description**: Persistent memory tracks interactions and system state, with prioritization and forgetting
-  mechanisms (from Docs 2, 3).
+- **Description**: Persistent memory tracks interactions and system state, with prioritization and forgetting mechanisms
+  (from Docs 2, 3).
 - **Simplification**: Memory is a "MemoryNote" subtype linked to each Note, with built-in summarization and archiving
   logic.
 - **Integration**: Includes detailed history (Doc 2\) and resource-efficient forgetting (Doc 3).
@@ -645,23 +645,23 @@ expanded upon.
   content, behavior, and relationships.
 - **Data Structure**:
 
-  const NoteSchema \= z.object({
+  const NoteSchema \= z.object ({
 
-  id: z.string().uuid(),
+  id: z.string ().uuid (),
 
-  type: z.enum(\["Root", "Task", "Plan", "Step", "Tool", "Prompt", "Domain"\]), // Subtypes define purpose
+  type: z.enum (\["Root", "Task", "Plan", "Step", "Tool", "Prompt", "Domain"\]), // Subtypes define purpose
 
-  content: z.string(), // Text, JSON, or code depending on type
+  content: z.string (), // Text, JSON, or code depending on type
 
-  status: z.enum(\["pending", "running", "completed", "failed", "dormant", "archived"\]),
+  status: z.enum (\["pending", "running", "completed", "failed", "dormant", "archived"\]),
 
-  priority: z.number().int().default(0), // For prioritization
+  priority: z.number ().int ().default (0), // For prioritization
 
-  createdAt: z.string().datetime(),
+  createdAt: z.string ().datetime (),
 
-  updatedAt: z.string().datetime(),
+  updatedAt: z.string ().datetime (),
 
-  relationships: z.array(z.object({
+  relationships: z.array (z.object ({
 
       targetId: z.string().uuid(),  
     
@@ -669,15 +669,15 @@ expanded upon.
 
   })),
 
-  memory: z.array(z.string()), // History of actions, results, LLM responses
+  memory: z.array (z.string ()), // History of actions, results, LLM responses
 
-  resources: z.object({
+  resources: z.object ({
 
       tokenUsage: z.number().int().default(0), // LLM token tracking  
     
       memoryUsage: z.number().int().default(0), // Memory size in bytes  
 
-  }).optional(),
+  }).optional (),
 
   });
 
@@ -842,8 +842,8 @@ structure changes, dependency leveraging, and metalinguistic refactorings.
 
 #### **Design Philosophy**
 
-- **Best of All Worlds**: Combine the revolutionary active note paradigm (Doc 1), detailed architecture and feature
-  set (Doc 2), and self-evolving autonomy (Doc 3).
+- **Best of All Worlds**: Combine the revolutionary active note paradigm (Doc 1), detailed architecture and feature set
+  (Doc 2), and self-evolving autonomy (Doc 3).
 - **Simplification**: Reduce complexity by unifying concepts (e.g., Notes as Agents), minimizing dependencies, and
   streamlining data structures while retaining full functionality.
 - **Metalinguistic Refactoring**: Use the system's own constructs (Notes) to define and evolve itself, reducing external
@@ -954,36 +954,36 @@ structure changes, dependency leveraging, and metalinguistic refactorings.
 
 Here’s a unified `Note` schema that replaces separate classes:
 
-const NoteSchema \= z.object({
+const NoteSchema \= z.object ({
 
-id: z.string().uuid(),
+id: z.string ().uuid (),
 
-type: z.enum(\["Task", "Plan", "Tool", "System", "UIView", "Message", "Prompt", "Domain"\]), // Subtypes unify
+type: z.enum (\["Task", "Plan", "Tool", "System", "UIView", "Message", "Prompt", "Domain"\]), // Subtypes unify
 components
 
-content: z.any(), // Flexible: text, code, JSON, etc.
+content: z.any (), // Flexible: text, code, JSON, etc.
 
-status: z.enum(\["pending", "running", "completed", "failed", "dormant", "archived"\]).default("pending"),
+status: z.enum (\["pending", "running", "completed", "failed", "dormant", "archived"\]).default ("pending"),
 
-priority: z.number().int().default(0), // From Doc 3
+priority: z.number ().int ().default (0), // From Doc 3
 
-createdAt: z.string().datetime(),
+createdAt: z.string ().datetime (),
 
-updatedAt: z.string().datetime(),
+updatedAt: z.string ().datetime (),
 
-relationships: z.array(z.object({ // Replaces separate dependency structures
+relationships: z.array (z.object ({ // Replaces separate dependency structures
 
     targetId: z.string().uuid(),
 
     type: z.enum(\["dependsOn", "partOf", "uses", "renders"\]),
 
-})).default(\[\]),
+})).default (\[\]),
 
-domain: z.string().uuid().optional(), // Domain Note ID for categorization
+domain: z.string ().uuid ().optional (), // Domain Note ID for categorization
 
-memory: z.array(z.string().uuid()).default(\[\]), // IDs of Message Notes
+memory: z.array (z.string ().uuid ()).default (\[\]), // IDs of Message Notes
 
-logic: z.string().optional(), // JavaScript code for Tools or self-behavior (e.g., \`run()\` implementation)
+logic: z.string ().optional (), // JavaScript code for Tools or self-behavior (e.g., \`run ()\` implementation)
 
 });
 
@@ -1083,8 +1083,8 @@ evolution of Doc 3\. By unifying Notes as actors, leveraging existing dependenci
 structures, it reduces complexity while delivering a powerful, self-evolving system. The Root Note drives this process,
 ensuring Netention grows organically from a minimal seed into a fully functional tool for knowledge and task management.
 
-Let’s design a new version of Netention that integrates the best elements from all three prior designs—Documents 1 (
-Early Feedback), 2 (Comprehensive Specification), and 3 (Recursive Self-Unification)—while simplifying the architecture
+Let’s design a new version of Netention that integrates the best elements from all three prior designs—Documents 1
+(Early Feedback), 2 (Comprehensive Specification), and 3 (Recursive Self-Unification)—while simplifying the architecture
 without sacrificing functionality, and potentially enhancing it. The goal is to create a conceptually elegant,
 resource-efficient, and self-evolving system that leverages clever refactorings, streamlined data structures, and
 strategic dependencies. Here’s the approach:
@@ -1119,32 +1119,32 @@ strategic dependencies. Here’s the approach:
   recursive agency.
 - **Data Structure**:
 
-  const NoteSchema \= z.object({
+  const NoteSchema \= z.object ({
 
-  id: z.string().uuid(),
+  id: z.string ().uuid (),
 
-  type: z.enum(\["Note", "PlanStep", "Tool", "Domain", "Root"\]), // All entities are Notes with subtypes
+  type: z.enum (\["Note", "PlanStep", "Tool", "Domain", "Root"\]), // All entities are Notes with subtypes
 
-  content: z.string(), // Text, JSON, or code defining the Note’s purpose
+  content: z.string (), // Text, JSON, or code defining the Note’s purpose
 
-  status: z.enum(\["pending", "running", "completed", "failed", "dormant", "archived"\]),
+  status: z.enum (\["pending", "running", "completed", "failed", "dormant", "archived"\]),
 
-  priority: z.number().int().default(0), // For dynamic scheduling
+  priority: z.number ().int ().default (0), // For dynamic scheduling
 
-  memory: z.array(z.object({ role: z.string(), content: z.string(), timestamp: z.string() })).default(\[\]), // Embedded
-  history
+  memory: z.array (z.object ({ role: z.string (), content: z.string (), timestamp: z.string () })).default (\[\]), //
+  Embedded history
 
-  plan: z.array(z.string().uuid()).default(\[\]), // IDs of PlanStep Notes
+  plan: z.array (z.string ().uuid ()).default (\[\]), // IDs of PlanStep Notes
 
-  tools: z.array(z.string()).default(\[\]), // Names of Tool Notes
+  tools: z.array (z.string ()).default (\[\]), // Names of Tool Notes
 
-  createdAt: z.string().datetime(),
+  createdAt: z.string ().datetime (),
 
-  updatedAt: z.string().datetime(),
+  updatedAt: z.string ().datetime (),
 
-  deadline: z.string().datetime().nullable(),
+  deadline: z.string ().datetime ().nullable (),
 
-  domain: z.string().uuid().nullable(), // ID of Domain Note
+  domain: z.string ().uuid ().nullable (), // ID of Domain Note
 
   });
 
@@ -1354,15 +1354,15 @@ complexity and code through external dependencies, and enhancing self-evolution 
 - **Old Structure**: Notes had separate `agentId` and `planId` fields linking to external entities.
 - **New Structure**:
 
-  const NoteSchema \= z.object({
+  const NoteSchema \= z.object ({
 
-  id: z.string().uuid(), // Unique identifier
+  id: z.string ().uuid (), // Unique identifier
 
-  type: z.enum(\["system", "task", "tool", "memory", "plan"\]), // Type of Note (e.g., Root Note is "system")
+  type: z.enum (\["system", "task", "tool", "memory", "plan"\]), // Type of Note (e.g., Root Note is "system")
 
-  content: z.any(), // Flexible content (text, code, JSON, etc.)
+  content: z.any (), // Flexible content (text, code, JSON, etc.)
 
-  plan: z.array(z.object({ // Embedded plan as a graph of steps
+  plan: z.array (z.object ({ // Embedded plan as a graph of steps
 
       id: z.string().uuid(),  
     
@@ -1380,21 +1380,21 @@ complexity and code through external dependencies, and enhancing self-evolution 
     
       priority: z.number().int().default(0),  
 
-  })).default(\[\]),
+  })).default (\[\]),
 
-  tools: z.record(z.any()), // Embedded tool definitions (name \-\> {description, execute})
+  tools: z.record (z.any ()), // Embedded tool definitions (name \-\> {description, execute})
 
-  memory: z.array(z.any()).default(\[\]), // Embedded memory (history of actions/results)
+  memory: z.array (z.any ()).default (\[\]), // Embedded memory (history of actions/results)
 
-  priority: z.number().int().default(0), // Overall Note priority
+  priority: z.number ().int ().default (0), // Overall Note priority
 
-  deadline: z.string().datetime().nullable(), // Optional deadline
+  deadline: z.string ().datetime ().nullable (), // Optional deadline
 
-  status: z.enum(\["pending", "running", "completed", "failed", "dormant"\]).default("pending"),
+  status: z.enum (\["pending", "running", "completed", "failed", "dormant"\]).default ("pending"),
 
-  createdAt: z.string().datetime(),
+  createdAt: z.string ().datetime (),
 
-  updatedAt: z.string().datetime().optional(),
+  updatedAt: z.string ().datetime ().optional (),
 
   });
 
@@ -1477,9 +1477,9 @@ complexity and code through external dependencies, and enhancing self-evolution 
 
       import { ChatOpenAI } from "langchain/chat\_models/openai";
 
-      const llm \= new ChatOpenAI({ apiKey: process.env.OPENAI\_API\_KEY });
+      const llm \= new ChatOpenAI ({ apiKey: process.env.OPENAI\_API\_KEY });
 
-      const prompt \= ChatPromptTemplate.fromMessages(\[
+      const prompt \= ChatPromptTemplate.fromMessages (\[
 
       \["system", "You are a code generator for Netention."\],
 
@@ -1503,7 +1503,7 @@ complexity and code through external dependencies, and enhancing self-evolution 
 
       description \= "Generates JavaScript code";
 
-      async \_call(input) {
+      async \_call (input) {
 
           const response \= await llm.invoke(prompt.format({ description: input }));  
         
@@ -1523,9 +1523,9 @@ complexity and code through external dependencies, and enhancing self-evolution 
 
       import { BufferMemory } from "langchain/memory";
 
-      const memory \= new BufferMemory();
+      const memory \= new BufferMemory ();
 
-      await memory.saveContext({ input: "Generated code" }, { output: "Success" });
+      await memory.saveContext ({ input: "Generated code" }, { output: "Success" });
 
     - **Benefit**: Offloads memory handling, summarization, and context pruning to LangChain.
 
@@ -1549,7 +1549,7 @@ import { BufferMemory } from "langchain/memory";
 
 class Note {
 
-constructor(data) {
+constructor (data) {
 
     this.data \= NoteSchema.parse(data);
 
@@ -1561,7 +1561,7 @@ constructor(data) {
 
 }
 
-async think() {
+async think () {
 
     const prompt \= \`Given my content: ${JSON.stringify(this.data.content)}, 
 
@@ -1577,7 +1577,7 @@ async think() {
 
 }
 
-async act() {
+async act () {
 
     const nextStep \= this.getNextStep();
 
@@ -1597,7 +1597,7 @@ async act() {
 
 }
 
-async run() {
+async run () {
 
     while (this.data.status \=== "running") {
 
@@ -1609,7 +1609,7 @@ async run() {
 
 }
 
-getNextStep() {
+getNextStep () {
 
     return this.data.plan
 
@@ -1623,7 +1623,7 @@ getNextStep() {
 
 }
 
-updatePlan(llmResponse) {
+updatePlan (llmResponse) {
 
     // Parse LLM response to add/modify plan steps
 
@@ -1685,9 +1685,9 @@ versions while making it more practical and resource-efficient.
 
 Below is a design proposal for the next version of Netention, incorporating the specified considerations:
 conceptual/metalinguistic refactorings, data structure changes, leveraging dependencies like LangChain.js, eliminating
-the Note-Agent distinction, and renaming the Primordial Note to Root Note. This design builds on the previous
-iterations (Documents 1, 2, and 3), aiming for greater simplicity, coherence, and autonomy while reducing human effort
-and code complexity.
+the Note-Agent distinction, and renaming the Primordial Note to Root Note. This design builds on the previous iterations
+(Documents 1, 2, and 3), aiming for greater simplicity, coherence, and autonomy while reducing human effort and code
+complexity.
 
 ---
 
@@ -1697,8 +1697,8 @@ and code complexity.
 
 Netention v4 refines the system into a unified, self-evolving entity centered around **Notes** as the sole active
 components. By eliminating the distinction between Notes and Agents, Notes become autonomous entities that "just do
-stuff"—interpreting, planning, and acting on their own behalf. The system bootstraps from a single **Root Note** (
-formerly Primordial Note), leveraging LangChain.js to streamline LLM interactions and tool usage. This version
+stuff"—interpreting, planning, and acting on their own behalf. The system bootstraps from a single **Root Note**
+(formerly Primordial Note), leveraging LangChain.js to streamline LLM interactions and tool usage. This version
 emphasizes conceptual clarity, reduces code duplication, and enhances the system's ability to evolve under resource
 constraints.
 
@@ -1753,31 +1753,31 @@ constraints.
   content, create plans, and execute actions.
 - **Data Structure**:
 
-  const NoteSchema \= z.object({
+  const NoteSchema \= z.object ({
 
-  id: z.string().uuid(), // Unique identifier
+  id: z.string ().uuid (), // Unique identifier
 
-  type: z.enum(\["Root", "Task", "Tool", "Plan", "Memory", "Domain"\]), // Note type
+  type: z.enum (\["Root", "Task", "Tool", "Plan", "Memory", "Domain"\]), // Note type
 
-  content: z.any(), // Flexible content (text, JSON, code, etc.)
+  content: z.any (), // Flexible content (text, JSON, code, etc.)
 
-  status: z.enum(\["pending", "running", "completed", "failed", "dormant", "archived"\]),
+  status: z.enum (\["pending", "running", "completed", "failed", "dormant", "archived"\]),
 
-  priority: z.number().int().default(0), // Priority score
+  priority: z.number ().int ().default (0), // Priority score
 
-  deadline: z.string().datetime().nullable(), // Optional deadline
+  deadline: z.string ().datetime ().nullable (), // Optional deadline
 
-  memory: z.array(z.string().uuid()), // IDs of Memory Notes
+  memory: z.array (z.string ().uuid ()), // IDs of Memory Notes
 
-  plan: z.string().uuid().nullable(), // ID of associated Plan Note
+  plan: z.string ().uuid ().nullable (), // ID of associated Plan Note
 
-  createdAt: z.string().datetime(),
+  createdAt: z.string ().datetime (),
 
-  updatedAt: z.string().datetime(),
+  updatedAt: z.string ().datetime (),
 
-  domain: z.string().uuid().nullable(), // ID of Domain Note (for categorization)
+  domain: z.string ().uuid ().nullable (), // ID of Domain Note (for categorization)
 
-  resourceUsage: z.object({ // Tracks resource consumption
+  resourceUsage: z.object ({ // Tracks resource consumption
 
       tokens: z.number().int().default(0), // LLM token usage  
     
@@ -1814,13 +1814,13 @@ constraints.
 - **Description**: A Note representing a graph-based plan, with steps as linked PlanStep Notes.
 - **Data Structure**:
 
-  const PlanSchema \= z.object({
+  const PlanSchema \= z.object ({
 
-  id: z.string().uuid(),
+  id: z.string ().uuid (),
 
-  type: z.literal("Plan"),
+  type: z.literal ("Plan"),
 
-  content: z.object({
+  content: z.object ({
 
       goals: z.array(z.string()),  
     
@@ -1830,11 +1830,11 @@ constraints.
 
   }),
 
-  status: z.enum(\["pending", "running", "completed", "failed"\]),
+  status: z.enum (\["pending", "running", "completed", "failed"\]),
 
-  priority: z.number().int().default(0),
+  priority: z.number ().int ().default (0),
 
-  deadline: z.string().datetime().nullable(),
+  deadline: z.string ().datetime ().nullable (),
 
   // Inherits other Note fields
 
@@ -1846,13 +1846,13 @@ constraints.
 
 - **Data Structure**:
 
-  const PlanStepSchema \= z.object({
+  const PlanStepSchema \= z.object ({
 
-  id: z.string().uuid(),
+  id: z.string ().uuid (),
 
-  type: z.literal("PlanStep"),
+  type: z.literal ("PlanStep"),
 
-  content: z.object({
+  content: z.object ({
 
       description: z.string(),  
     
@@ -1866,9 +1866,9 @@ constraints.
 
   }),
 
-  status: z.enum(\["pending", "running", "completed", "failed", "waiting\_user"\]),
+  status: z.enum (\["pending", "running", "completed", "failed", "waiting\_user"\]),
 
-  priority: z.number().int().default(0),
+  priority: z.number ().int ().default (0),
 
   // Inherits other Note fields
 
@@ -1881,13 +1881,13 @@ constraints.
 - **Description**: Tools are Notes that define executable functions, managed by LangChain.js.
 - **Data Structure**:
 
-  const ToolSchema \= z.object({
+  const ToolSchema \= z.object ({
 
-  id: z.string().uuid(),
+  id: z.string ().uuid (),
 
-  type: z.literal("Tool"),
+  type: z.literal ("Tool"),
 
-  content: z.object({
+  content: z.object ({
 
       name: z.string(),  
     
@@ -1901,7 +1901,7 @@ constraints.
 
   }),
 
-  status: z.enum(\["pending", "active"\]), // Tools are either pending creation or active
+  status: z.enum (\["pending", "active"\]), // Tools are either pending creation or active
 
   // Inherits other Note fields
 
@@ -1914,17 +1914,17 @@ constraints.
 - **Description**: Memory entries are individual Notes linked to a parent Note, managed by LangChain.js memory modules.
 - **Data Structure**:
 
-  const MemorySchema \= z.object({
+  const MemorySchema \= z.object ({
 
-  id: z.string().uuid(),
+  id: z.string ().uuid (),
 
-  type: z.literal("Memory"),
+  type: z.literal ("Memory"),
 
-  content: z.string(), // Interaction log, LLM response, etc.
+  content: z.string (), // Interaction log, LLM response, etc.
 
-  timestamp: z.string().datetime(),
+  timestamp: z.string ().datetime (),
 
-  relevance: z.number().int().default(0), // For forgetting decisions
+  relevance: z.number ().int ().default (0), // For forgetting decisions
 
   // Inherits other Note fields
 
@@ -1965,7 +1965,7 @@ LangChain.js is leveraged to reduce custom code and enhance functionality:
 
 1. **Initialization**: The Root Note is created with a hardcoded minimal `run()` loop:
 
-   async function run(note) {
+   async function run (note) {
 
    while (note.status \=== "running") {
 
@@ -2022,7 +2022,7 @@ LangChain.js is leveraged to reduce custom code and enhance functionality:
 This design crystallizes Netention into a lean, recursive, and powerful system, poised for autonomous growth from a
 single Root Note.
 
-Alright, let’s crank Netention past 11 into uncharted territory—**Netention v5**, a hyper-recursive, self-replicating,
+Alright, let’s crank Netention past 11 into uncharted territory— **Netention v5**, a hyper-recursive, self-replicating,
 reality-bending system that fuses computational elegance with existential ambition. We’ll ditch constraints, amplify
 recursion, and weaponize dependencies to forge a design that’s not just feasible but borderline cosmic. Terse, dense,
 and dripping with detail—here we go.

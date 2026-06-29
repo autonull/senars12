@@ -1,36 +1,31 @@
-import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import {css, html} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
 import {
-  $activeLens,
-  $connectionState,
-  $graphNodes,
-  $lensLayout,
-  $panels,
-  $selectedNodeIds,
-  $urlState,
-  $viewport,
-  eventBus,
-  send,
+    $activeLens,
+    $connectionState,
+    $graphNodes,
+    $lensLayout,
+    $panels,
+    $selectedNodeIds,
+    $urlState,
+    $viewport,
+    BaseComponent,
+    eventBus,
+    send,
 } from '../core/index.js';
-import { BaseComponent } from '../core/index.js';
 import './contradiction-badge.js';
 import './lens-controller.js';
 
 const STATUS_COLORS: Record<string, string> = {
-  connected: 'var(--colors-semantic-status-connected)',
-  connecting: 'var(--colors-semantic-status-connecting)',
-  reconnecting: 'var(--colors-semantic-status-reconnecting)',
-  disconnected: 'var(--colors-semantic-status-disconnected)',
+    connected: 'var(--colors-semantic-status-connected)',
+    connecting: 'var(--colors-semantic-status-connecting)',
+    reconnecting: 'var(--colors-semantic-status-reconnecting)',
+    disconnected: 'var(--colors-semantic-status-disconnected)',
 };
 
 @customElement('graph-toolbar')
 export class GraphToolbar extends BaseComponent {
-  @state() private zoom = 1;
-  @state() private searchQuery = '';
-  @state() private multiSelectCount = 0;
-  @state() private layoutName = 'cose';
-
-  static override styles = css`
+    static override styles = css`
     :host {
       display: flex; align-items: center; height: 44px; padding: 0 var(--spacing-scale-3);
       gap: var(--spacing-scale-2); background: var(--colors-semantic-bg-panel-solid);
@@ -83,90 +78,35 @@ export class GraphToolbar extends BaseComponent {
     }
     .multi-select-btn:hover { background: var(--colors-semantic-accent-primary); color: var(--colors-semantic-text-on-accent); }
   `;
+    @state() private zoom = 1;
+    @state() private searchQuery = '';
+    @state() private multiSelectCount = 0;
+    @state() private layoutName = 'cose';
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.watch($activeLens);
-    this.watch($connectionState);
-    this.watchWith($viewport, (vp) => {
-      this.zoom = vp.zoom;
-    });
-    this.watchWith($selectedNodeIds, (ids) => {
-      this.multiSelectCount = ids.size;
-    });
-    this.watchWith($activeLens, (lens) => {
-      this.layoutName = $lensLayout.get()[lens] ?? 'cose';
-    });
-    this.watchWith($lensLayout, (layouts) => {
-      this.layoutName = layouts[$activeLens.get()] ?? 'cose';
-    });
-  }
-
-  private handleSearch(e: Event) {
-    const value = (e.target as HTMLInputElement).value;
-    this.searchQuery = value;
-    const urlState = $urlState.get();
-    $urlState.set({ ...urlState, search: value || undefined });
-    eventBus.emit('graph:search', value);
-  }
-
-  private zoomIn() {
-    eventBus.emit('graph:zoom-in');
-  }
-  private zoomOut() {
-    eventBus.emit('graph:zoom-out');
-  }
-  private fitGraph() {
-    eventBus.emit('graph:fit');
-  }
-  private selectLayout(e: Event) {
-    eventBus.emit('graph:layout', (e.target as HTMLSelectElement).value);
-  }
-  private toggleMinimap() {
-    eventBus.emit('graph:minimap-toggle');
-  }
-
-  private togglePanel(id: string) {
-    const panels = new Map($panels.get());
-    const panel = panels.get(id);
-    if (panel) {
-      panels.set(id, { ...panel, open: !panel.open });
-      $panels.set(panels);
+    override connectedCallback() {
+        super.connectedCallback();
+        this.watch($activeLens);
+        this.watch($connectionState);
+        this.watchWith($viewport, (vp) => {
+            this.zoom = vp.zoom;
+        });
+        this.watchWith($selectedNodeIds, (ids) => {
+            this.multiSelectCount = ids.size;
+        });
+        this.watchWith($activeLens, (lens) => {
+            this.layoutName = $lensLayout.get()[lens] ?? 'cose';
+        });
+        this.watchWith($lensLayout, (layouts) => {
+            this.layoutName = layouts[$activeLens.get()] ?? 'cose';
+        });
     }
-  }
 
-  // Multi-select bulk actions
-  private focusSelected() {
-    const ids = $selectedNodeIds.get();
-    if (ids.size > 0) {
-      // Send first selected as focus
-      const first = ids.values().next().value;
-      if (first) {
-        const node = $graphNodes.get().get(first);
-        if (node?.term) send({ type: 'focus.set', term: node.term });
-      }
-    }
-  }
+    override render() {
+        const activeLens = $activeLens.get();
+        const state = $connectionState.get();
+        const configOpen = $panels.get().get('config')?.open;
 
-  private hideSelected() {
-    const ids = $selectedNodeIds.get();
-    if (ids.size === 0) return;
-    const nodes = new Map($graphNodes.get());
-    for (const id of ids) nodes.delete(id);
-    $graphNodes.set(nodes);
-    $selectedNodeIds.set(new Set());
-  }
-
-  private clearSelection() {
-    $selectedNodeIds.set(new Set());
-  }
-
-  override render() {
-    const activeLens = $activeLens.get();
-    const state = $connectionState.get();
-    const configOpen = $panels.get().get('config')?.open;
-
-    return html`
+        return html`
       <div class="zoom-group">
         <button class="toolbar-btn icon" @click=${this.zoomOut} title="Zoom out" aria-label="Zoom out">−</button>
         <span class="zoom-pct">${Math.round(this.zoom * 100)}%</span>
@@ -197,8 +137,8 @@ export class GraphToolbar extends BaseComponent {
       <button class="toolbar-btn" @click=${this.toggleMinimap} title="Toggle minimap">Minimap</button>
 
       ${
-        this.multiSelectCount > 0
-          ? html`
+            this.multiSelectCount > 0
+                ? html`
         <div class="divider"></div>
         <div class="multi-select-bar">
           <span class="multi-select-count">${this.multiSelectCount}</span>
@@ -207,8 +147,8 @@ export class GraphToolbar extends BaseComponent {
           <button class="multi-select-btn" @click=${this.clearSelection}>Clear</button>
         </div>
       `
-          : ''
-      }
+                : ''
+        }
 
       <div class="spacer"></div>
 
@@ -224,11 +164,74 @@ export class GraphToolbar extends BaseComponent {
         <span style="color:var(--colors-semantic-text-muted)">${state}</span>
       </div>
     `;
-  }
+    }
+
+    private handleSearch(e: Event) {
+        const value = (e.target as HTMLInputElement).value;
+        this.searchQuery = value;
+        const urlState = $urlState.get();
+        $urlState.set({...urlState, search: value || undefined});
+        eventBus.emit('graph:search', value);
+    }
+
+    private zoomIn() {
+        eventBus.emit('graph:zoom-in');
+    }
+
+    private zoomOut() {
+        eventBus.emit('graph:zoom-out');
+    }
+
+    private fitGraph() {
+        eventBus.emit('graph:fit');
+    }
+
+    private selectLayout(e: Event) {
+        eventBus.emit('graph:layout', (e.target as HTMLSelectElement).value);
+    }
+
+    private toggleMinimap() {
+        eventBus.emit('graph:minimap-toggle');
+    }
+
+    private togglePanel(id: string) {
+        const panels = new Map($panels.get());
+        const panel = panels.get(id);
+        if (panel) {
+            panels.set(id, {...panel, open: !panel.open});
+            $panels.set(panels);
+        }
+    }
+
+    // Multi-select bulk actions
+    private focusSelected() {
+        const ids = $selectedNodeIds.get();
+        if (ids.size > 0) {
+            // Send first selected as focus
+            const first = ids.values().next().value;
+            if (first) {
+                const node = $graphNodes.get().get(first);
+                if (node?.term) send({type: 'focus.set', term: node.term});
+            }
+        }
+    }
+
+    private hideSelected() {
+        const ids = $selectedNodeIds.get();
+        if (ids.size === 0) return;
+        const nodes = new Map($graphNodes.get());
+        for (const id of ids) nodes.delete(id);
+        $graphNodes.set(nodes);
+        $selectedNodeIds.set(new Set());
+    }
+
+    private clearSelection() {
+        $selectedNodeIds.set(new Set());
+    }
 }
 
 declare global {
-  interface HTMLElementTagNameMap {
-    'graph-toolbar': GraphToolbar;
-  }
+    interface HTMLElementTagNameMap {
+        'graph-toolbar': GraphToolbar;
+    }
 }

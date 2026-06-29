@@ -3,199 +3,195 @@
  * Separates configuration from construction
  */
 
-import { CognitiveRegistry } from './cognitive';
-import type { CognitiveParameters } from './config/cognitive-parameters';
-import {
-  DEFAULT_COGNITIVE_PARAMETERS,
-  RESEARCH_COGNITIVE_CONFIG,
-  mergeParameters,
-} from './config/cognitive-parameters';
-import { type SeNARSRegistry, createLMService, createSeNARSRegistry } from './lm';
-import type { LMService } from './lm/lm-service.js';
-import type { NARConfig } from './nar.js';
-import { NAR } from './nar.js';
-import type { RLFPLearner } from './rlfp';
-import type { CoreConfig } from './types';
-import { DEFAULT_CONFIG, EventBus } from './types';
+import {CognitiveRegistry} from './cognitive';
+import type {CognitiveParameters} from './config/cognitive-parameters';
+import {DEFAULT_COGNITIVE_PARAMETERS, mergeParameters, RESEARCH_COGNITIVE_CONFIG,} from './config/cognitive-parameters';
+import {createLMService, createSeNARSRegistry, type SeNARSRegistry} from './lm';
+import type {LMService} from './lm/lm-service.js';
+import type {NARConfig} from './nar.js';
+import {NAR} from './nar.js';
+import type {RLFPLearner} from './rlfp';
+import type {CoreConfig} from './types';
+import {DEFAULT_CONFIG, EventBus} from './types';
 
 export interface SeNARSOptions {
-  core?: Partial<CoreConfig>;
-  lmService?: LMService;
-  providerRegistry?: SeNARSRegistry;
-  enableLMRules?: boolean;
-  eventBus?: EventBus;
+    core?: Partial<CoreConfig>;
+    lmService?: LMService;
+    providerRegistry?: SeNARSRegistry;
+    enableLMRules?: boolean;
+    eventBus?: EventBus;
 }
 
 export interface SeNARSConfig {
-  name: string;
-  version: string;
-  nar: NARConfig;
-  lm?: {
-    enabled: boolean;
-    provider: string;
-    model?: string;
-  };
+    name: string;
+    version: string;
+    nar: NARConfig;
+    lm?: {
+        enabled: boolean;
+        provider: string;
+        model?: string;
+    };
 }
 
 export interface CognitiveOptions {
-  registry?: CognitiveRegistry;
-  core?: Partial<CoreConfig>;
-  adaptationInterval?: number;
-  rlfp?: RLFPLearner;
+    registry?: CognitiveRegistry;
+    core?: Partial<CoreConfig>;
+    adaptationInterval?: number;
+    rlfp?: RLFPLearner;
 }
 
 const MINIMAL_CONFIG: CoreConfig = {
-  ...DEFAULT_CONFIG,
-  maxConcepts: 100,
-  cpuThrottleMs: 0,
-  maxDerivationsPerStep: 100,
+    ...DEFAULT_CONFIG,
+    maxConcepts: 100,
+    cpuThrottleMs: 0,
+    maxDerivationsPerStep: 100,
 };
 const CLI_CONFIG: CoreConfig = {
-  ...DEFAULT_CONFIG,
-  maxConcepts: 200,
-  cpuThrottleMs: 0,
-  maxDerivationsPerStep: 100,
+    ...DEFAULT_CONFIG,
+    maxConcepts: 200,
+    cpuThrottleMs: 0,
+    maxDerivationsPerStep: 100,
 };
-const BOT_CONFIG: CoreConfig = { ...DEFAULT_CONFIG };
+const BOT_CONFIG: CoreConfig = {...DEFAULT_CONFIG};
 const TEST_CONFIG: CoreConfig = {
-  ...DEFAULT_CONFIG,
-  maxConcepts: 100,
-  activationDecayRate: 0,
-  consolidationInterval: 1000,
-  cpuThrottleMs: 0,
-  maxDerivationDepth: 20,
+    ...DEFAULT_CONFIG,
+    maxConcepts: 100,
+    activationDecayRate: 0,
+    consolidationInterval: 1000,
+    cpuThrottleMs: 0,
+    maxDerivationDepth: 20,
 };
 
 export class SeNARSFactory {
-  static createDefault(options: SeNARSOptions = {}): NAR {
-    const registry = options.providerRegistry ?? createSeNARSRegistry();
-    const lmService = options.lmService ?? createLMService();
-    const eventBus = options.eventBus ?? new EventBus();
-    const config = {
-      ...DEFAULT_CONFIG,
-      ...options.core,
-      enableLMRules: options.enableLMRules ?? true,
-      lmService,
-      providerRegistry: registry,
-      eventBus,
-    } as NARConfig & { eventBus?: EventBus };
-    return new NAR(config);
-  }
+    static createDefault(options: SeNARSOptions = {}): NAR {
+        const registry = options.providerRegistry ?? createSeNARSRegistry();
+        const lmService = options.lmService ?? createLMService();
+        const eventBus = options.eventBus ?? new EventBus();
+        const config = {
+            ...DEFAULT_CONFIG,
+            ...options.core,
+            enableLMRules: options.enableLMRules ?? true,
+            lmService,
+            providerRegistry: registry,
+            eventBus,
+        } as NARConfig & { eventBus?: EventBus };
+        return new NAR(config);
+    }
 
-  static fromConfig(
-    config: SeNARSConfig,
-    lmService?: LMService | null,
-    registry?: SeNARSRegistry | null
-  ): NAR {
-    const narConfig: NARConfig = {
-      ...config.nar,
-      enableLMRules: config.lm?.enabled ?? false,
-      lmService: config.lm?.enabled ? (lmService ?? createLMService()) : undefined,
-      providerRegistry: registry ?? createSeNARSRegistry(),
-    };
-    return new NAR(narConfig);
-  }
+    static fromConfig(
+        config: SeNARSConfig,
+        lmService?: LMService | null,
+        registry?: SeNARSRegistry | null
+    ): NAR {
+        const narConfig: NARConfig = {
+            ...config.nar,
+            enableLMRules: config.lm?.enabled ?? false,
+            lmService: config.lm?.enabled ? (lmService ?? createLMService()) : undefined,
+            providerRegistry: registry ?? createSeNARSRegistry(),
+        };
+        return new NAR(narConfig);
+    }
 
-  static createMinimal(): NAR {
-    return new NAR(MINIMAL_CONFIG);
-  }
+    static createMinimal(): NAR {
+        return new NAR(MINIMAL_CONFIG);
+    }
 
-  static createForCLI(options?: { maxConcepts?: number; maxDerivationDepth?: number }): NAR {
-    return new NAR({
-      ...CLI_CONFIG,
-      maxConcepts: options?.maxConcepts ?? CLI_CONFIG.maxConcepts,
-      maxDerivationDepth: options?.maxDerivationDepth ?? CLI_CONFIG.maxDerivationDepth,
-    });
-  }
+    static createForCLI(options?: { maxConcepts?: number; maxDerivationDepth?: number }): NAR {
+        return new NAR({
+            ...CLI_CONFIG,
+            maxConcepts: options?.maxConcepts ?? CLI_CONFIG.maxConcepts,
+            maxDerivationDepth: options?.maxDerivationDepth ?? CLI_CONFIG.maxDerivationDepth,
+        });
+    }
 
-  static createForBot(options?: { maxConcepts?: number }): NAR {
-    return new NAR({ ...BOT_CONFIG, maxConcepts: options?.maxConcepts ?? BOT_CONFIG.maxConcepts });
-  }
+    static createForBot(options?: { maxConcepts?: number }): NAR {
+        return new NAR({...BOT_CONFIG, maxConcepts: options?.maxConcepts ?? BOT_CONFIG.maxConcepts});
+    }
 
-  static createForTesting(options?: { maxConcepts?: number; lmService?: LMService }): NAR {
-    const lmService = options?.lmService;
-    const registry = createSeNARSRegistry();
-    return new NAR({
-      ...TEST_CONFIG,
-      maxConcepts: options?.maxConcepts ?? TEST_CONFIG.maxConcepts,
-      lmService,
-      providerRegistry: registry,
-    });
-  }
+    static createForTesting(options?: { maxConcepts?: number; lmService?: LMService }): NAR {
+        const lmService = options?.lmService;
+        const registry = createSeNARSRegistry();
+        return new NAR({
+            ...TEST_CONFIG,
+            maxConcepts: options?.maxConcepts ?? TEST_CONFIG.maxConcepts,
+            lmService,
+            providerRegistry: registry,
+        });
+    }
 
-  /** Create NAR with cognitive architecture enabled */
-  static createWithStrategies(
-    params?: Partial<CognitiveParameters>,
-    options?: CognitiveOptions
-  ): NAR {
-    const registry = options?.registry ?? new CognitiveRegistry();
-    registry.initializeDefaults();
+    /** Create NAR with cognitive architecture enabled */
+    static createWithStrategies(
+        params?: Partial<CognitiveParameters>,
+        options?: CognitiveOptions
+    ): NAR {
+        const registry = options?.registry ?? new CognitiveRegistry();
+        registry.initializeDefaults();
 
-    const merged = mergeParameters({
-      ...DEFAULT_COGNITIVE_PARAMETERS,
-      ...params,
-      strategies: {
-        ...DEFAULT_COGNITIVE_PARAMETERS.strategies,
-        ...params?.strategies,
-        sampling: {
-          ...DEFAULT_COGNITIVE_PARAMETERS.strategies.sampling,
-          ...params?.strategies?.sampling,
-        },
-        premise: {
-          ...DEFAULT_COGNITIVE_PARAMETERS.strategies.premise,
-          ...params?.strategies?.premise,
-        },
-        derivation: {
-          ...DEFAULT_COGNITIVE_PARAMETERS.strategies.derivation,
-          ...params?.strategies?.derivation,
-        },
-        lmRule: {
-          ...DEFAULT_COGNITIVE_PARAMETERS.strategies.lmRule,
-          ...params?.strategies?.lmRule,
-        },
-        attention: {
-          ...DEFAULT_COGNITIVE_PARAMETERS.strategies.attention,
-          ...params?.strategies?.attention,
-        },
-      },
-    });
+        const merged = mergeParameters({
+            ...DEFAULT_COGNITIVE_PARAMETERS,
+            ...params,
+            strategies: {
+                ...DEFAULT_COGNITIVE_PARAMETERS.strategies,
+                ...params?.strategies,
+                sampling: {
+                    ...DEFAULT_COGNITIVE_PARAMETERS.strategies.sampling,
+                    ...params?.strategies?.sampling,
+                },
+                premise: {
+                    ...DEFAULT_COGNITIVE_PARAMETERS.strategies.premise,
+                    ...params?.strategies?.premise,
+                },
+                derivation: {
+                    ...DEFAULT_COGNITIVE_PARAMETERS.strategies.derivation,
+                    ...params?.strategies?.derivation,
+                },
+                lmRule: {
+                    ...DEFAULT_COGNITIVE_PARAMETERS.strategies.lmRule,
+                    ...params?.strategies?.lmRule,
+                },
+                attention: {
+                    ...DEFAULT_COGNITIVE_PARAMETERS.strategies.attention,
+                    ...params?.strategies?.attention,
+                },
+            },
+        });
 
-    const nar = new NAR({
-      ...DEFAULT_CONFIG,
-      ...options?.core,
-      cognitiveParams: merged,
-      strategyRegistry: registry,
-      adaptationInterval: options?.adaptationInterval ?? 50,
-    });
+        const nar = new NAR({
+            ...DEFAULT_CONFIG,
+            ...options?.core,
+            cognitiveParams: merged,
+            strategyRegistry: registry,
+            adaptationInterval: options?.adaptationInterval ?? 50,
+        });
 
-    if (options?.rlfp) nar.setRLFP(options.rlfp);
-    return nar;
-  }
+        if (options?.rlfp) nar.setRLFP(options.rlfp);
+        return nar;
+    }
 
-  /** Default cognitive NAR — balanced for general use */
-  static createCognitiveDefault(): NAR {
-    return SeNARSFactory.createWithStrategies();
-  }
+    /** Default cognitive NAR — balanced for general use */
+    static createCognitiveDefault(): NAR {
+        return SeNARSFactory.createWithStrategies();
+    }
 
-  /** Fast inference — minimal LM, focused derivation, top-n sampling */
-  static createCognitiveFast(): NAR {
-    return SeNARSFactory.createWithStrategies({
-      strategies: {
-        premise: { type: 'bag' },
-        lmRule: { type: 'priority', maxRules: 3 },
-        derivation: { type: 'focused' },
-        attention: { type: 'simple' },
-        sampling: { type: 'top-n' },
-      },
-    });
-  }
+    /** Fast inference — minimal LM, focused derivation, top-n sampling */
+    static createCognitiveFast(): NAR {
+        return SeNARSFactory.createWithStrategies({
+            strategies: {
+                premise: {type: 'bag'},
+                lmRule: {type: 'priority', maxRules: 3},
+                derivation: {type: 'focused'},
+                attention: {type: 'simple'},
+                sampling: {type: 'top-n'},
+            },
+        });
+    }
 
-  /** Research mode — all tracing enabled, diverse strategies registered */
-  static createCognitiveResearch(): NAR {
-    const registry = new CognitiveRegistry();
-    registry.initializeDefaults();
-    return SeNARSFactory.createWithStrategies(RESEARCH_COGNITIVE_CONFIG, { registry });
-  }
+    /** Research mode — all tracing enabled, diverse strategies registered */
+    static createCognitiveResearch(): NAR {
+        const registry = new CognitiveRegistry();
+        registry.initializeDefaults();
+        return SeNARSFactory.createWithStrategies(RESEARCH_COGNITIVE_CONFIG, {registry});
+    }
 }
 
 export const createNAR = SeNARSFactory.createDefault;

@@ -6,17 +6,18 @@
 
 ## Overview
 
-SeNARS has working NAL reasoning, 889 tests, and a Truth-Tensor bridge. What's missing is **visibility** — making it easy to see, use, and extend. This roadmap builds the **IDE + Lab** environment that showcases SeNARS capabilities.
+SeNARS has working NAL reasoning, 889 tests, and a Truth-Tensor bridge. What's missing is **visibility** — making it
+easy to see, use, and extend. This roadmap builds the **IDE + Lab** environment that showcases SeNARS capabilities.
 
 ### Core Deliverables
 
-| Deliverable | Purpose | Status |
-|-------------|---------|--------|
-| `npx senars demo` | 60-second value proof | ✅ Complete |
-| `SeNARS.js` facade | Simple API | ✅ Complete |
-| IDE | Development environment | Planned |
-| Lab | Experiment runner | Planned |
-| NARL Benchmark | Scientific proof | Scaffold exists |
+| Deliverable        | Purpose                 | Status          |
+|--------------------|-------------------------|-----------------|
+| `npx senars demo`  | 60-second value proof   | ✅ Complete     |
+| `SeNARS.js` facade | Simple API              | ✅ Complete     |
+| IDE                | Development environment | Planned         |
+| Lab                | Experiment runner       | Planned         |
+| NARL Benchmark     | Scientific proof        | Scaffold exists |
 
 ---
 
@@ -35,6 +36,7 @@ SeNARS has working NAL reasoning, 889 tests, and a Truth-Tensor bridge. What's m
 > **Objective**: Demonstrate that LM is not an external service, but an **internal reasoning rule**.
 
 When you input `"Cats are mammals".`:
+
 1. This becomes an **atomic term belief** in NAL
 2. The `LMNarseseTranslationRule` **fires automatically** as a reasoning rule
 3. The LM translates → `<cat --> mammal>.` appears as a derived task
@@ -46,13 +48,13 @@ This is fundamentally different from "LLM with tools" — the LM is **inside the
 
 Each mode showcases a different LM rule:
 
-| Mode | LM Rule | Shows |
-|------|---------|-------|
-| **translate** | `LMNarseseTranslationRule` | NL → Narsese as internal rule |
-| **elaborate** | `LMConceptElaborationRule` | LM adds commonsense properties |
-| **analogize** | `LMAnalogicalReasoningRule` | Problem-solving via analogy |
-| **explain** | `LMExplanationGenerationRule` | Narsese → NL explanation |
-| **hybrid** | All combined | Full pipeline demo |
+| Mode          | LM Rule                       | Shows                          |
+|---------------|-------------------------------|--------------------------------|
+| **translate** | `LMNarseseTranslationRule`    | NL → Narsese as internal rule  |
+| **elaborate** | `LMConceptElaborationRule`    | LM adds commonsense properties |
+| **analogize** | `LMAnalogicalReasoningRule`   | Problem-solving via analogy    |
+| **explain**   | `LMExplanationGenerationRule` | Narsese → NL explanation       |
+| **hybrid**    | All combined                  | Full pipeline demo             |
 
 ### Console UI (with colors and emojis)
 
@@ -111,16 +113,19 @@ node examples/demo-hybrid.js --verbose
 ### Example Scenarios
 
 **1. Translation Mode** — Shows LM-as-rule for NL→Narsese
+
 ```javascript
 inputs: ['"Dogs are loyal animals"', '"Birds can fly"', '"Is water wet?"']
 ```
 
 **2. Elaboration Mode** — LM generates commonsense
+
 ```javascript
 inputs: ['coffee', 'penguin']  // → <coffee --> [hot]>. <penguin --> bird>.
 ```
 
 **3. Syllogism + Explanation** — Classic logic with LM explanation
+
 ```javascript
 facts: ['(socrates --> man).', '(man --> mortal).'],
 query: '(socrates --> mortal)?',
@@ -128,6 +133,7 @@ explain: true
 ```
 
 **4. Full Pipeline** — NL question → NAL reasoning → NL answer
+
 ```javascript
 facts: ['"Penguins are birds"', '"Birds are animals"'],
 query: '"Are penguins animals?"'
@@ -135,23 +141,23 @@ query: '"Are penguins animals?"'
 
 ### Why This Is Unique
 
-| Other Systems | SeNARS |
-|--------------|--------|
-| LLM calls external tools | LM **is** a reasoning rule |
-| One-shot responses | Continuous inference cycles |
-| No confidence | Computed truth values |
-| Black box | Visible proof chains |
-| Inconsistent | Logically constrained |
+| Other Systems            | SeNARS                      |
+|--------------------------|-----------------------------|
+| LLM calls external tools | LM **is** a reasoning rule  |
+| One-shot responses       | Continuous inference cycles |
+| No confidence            | Computed truth values       |
+| Black box                | Visible proof chains        |
+| Inconsistent             | Logically constrained       |
 
 ### Timeline
 
-| Task | Effort | Status |
-|------|--------|--------|
-| Create `examples/demo-hybrid.js` | 3 hrs | [ ] |
-| Implement demo modes | 2 hrs | [ ] |
-| Add CLI argument parsing | 1 hr | [ ] |
-| Test all scenarios | 1 hr | [ ] |
-| **Total** | **~7 hrs** | |
+| Task                             | Effort     | Status |
+|----------------------------------|------------|--------|
+| Create `examples/demo-hybrid.js` | 3 hrs      | [ ]    |
+| Implement demo modes             | 2 hrs      | [ ]    |
+| Add CLI argument parsing         | 1 hr       | [ ]    |
+| Test all scenarios               | 1 hr       | [ ]    |
+| **Total**                        | **~7 hrs** |        |
 
 ### Files
 
@@ -167,7 +173,8 @@ query: '"Are penguins animals?"'
 >
 > **Objective**: Demonstrate neuro-symbolic synergy with transparent visualization.
 
-This is the demo that proves SeNARS is different. Natural language in, reasoned answer out, with **visible proof chains** and **explainable confidence**.
+This is the demo that proves SeNARS is different. Natural language in, reasoned answer out, with **visible proof
+chains** and **explainable confidence**.
 
 ### The Flow
 
@@ -253,6 +260,7 @@ The Lab displays **every step** in real-time:
 ### Implementation Components
 
 **[NEW] `core/src/hybrid/HybridReasoner.js`**
+
 ```javascript
 export class HybridReasoner {
     constructor(seNARS, lmProvider) {
@@ -276,12 +284,14 @@ export class HybridReasoner {
 ```
 
 **[NEW] `ui/src/components/lab/HybridDemo.js`**
+
 - Four-panel layout: Input, Parsing, Reasoning, Explanation
 - Live streaming of each phase
 - Proof tree visualization
 - Timing breakdowns
 
 **[NEW] `ui/lab/demos/H_hybrid.json`** — Demo configuration
+
 ```json
 {
     "id": "H",
@@ -305,26 +315,26 @@ export class HybridReasoner {
 
 ### Why This Demo Wins
 
-| Aspect | LLM-Only | SeNARS Hybrid |
-|--------|----------|---------------|
-| Answer | "Penguins are not mammals" | Same |
-| Confidence | None / hallucinated | 70% (computed) |
-| Proof | None | Full derivation chain |
-| Explainability | Black box | Transparent steps |
-| Consistency | May contradict | Logically guaranteed |
-| Offline | No (API required) | Yes (Transformers.js) |
+| Aspect         | LLM-Only                   | SeNARS Hybrid         |
+|----------------|----------------------------|-----------------------|
+| Answer         | "Penguins are not mammals" | Same                  |
+| Confidence     | None / hallucinated        | 70% (computed)        |
+| Proof          | None                       | Full derivation chain |
+| Explainability | Black box                  | Transparent steps     |
+| Consistency    | May contradict             | Logically guaranteed  |
+| Offline        | No (API required)          | Yes (Transformers.js) |
 
 ### Timeline
 
-| Task | Effort | Status |
-|------|--------|--------|
-| `HybridReasoner.js` class | 2 hrs | [ ] |
-| NL→Narsese prompt tuning | 2 hrs | [ ] |
-| Result→Explanation prompt | 1 hr | [ ] |
-| `HybridDemo.js` UI component | 3 hrs | [ ] |
-| Lab integration | 2 hrs | [ ] |
-| Test & polish | 2 hrs | [ ] |
-| **Total** | **~12 hrs** | |
+| Task                         | Effort      | Status |
+|------------------------------|-------------|--------|
+| `HybridReasoner.js` class    | 2 hrs       | [ ]    |
+| NL→Narsese prompt tuning     | 2 hrs       | [ ]    |
+| Result→Explanation prompt    | 1 hr        | [ ]    |
+| `HybridDemo.js` UI component | 3 hrs       | [ ]    |
+| Lab integration              | 2 hrs       | [ ]    |
+| Test & polish                | 2 hrs       | [ ]    |
+| **Total**                    | **~12 hrs** |        |
 
 ---
 
@@ -332,7 +342,8 @@ export class HybridReasoner {
 
 ### Vision
 
-The SeNARS **IDE** is a complete development environment for NAL reasoning. The **Lab** is an integrated experimentation mode for running demos, benchmarks, and autonomous explorations.
+The SeNARS **IDE** is a complete development environment for NAL reasoning. The **Lab** is an integrated experimentation
+mode for running demos, benchmarks, and autonomous explorations.
 
 ### Directory Structure
 
@@ -464,6 +475,7 @@ events.subscribe('belief_added', (b) => updateBeliefs(b));
 ### ProofTree.js
 
 Renders derivation chains as interactive trees:
+
 - Expandable nodes
 - Hover for truth values
 - Click to inspect term
@@ -471,6 +483,7 @@ Renders derivation chains as interactive trees:
 ### TermView.js
 
 Renders Narsese terms with proper formatting:
+
 - Copulas: `-->`, `<->`, `==>`, `<=>`, etc.
 - Compounds: `(&, ...)`, `(|, ...)`, `(-, ...)`
 - Variables: `$x`, `#y`, `?z`
@@ -479,6 +492,7 @@ Renders Narsese terms with proper formatting:
 ### TruthDisplay.js
 
 Truth value display with visual confidence:
+
 - Frequency bar (0-1)
 - Confidence indicator
 - Expectation calculation
@@ -563,6 +577,7 @@ runner.on('complete', (results) => showResults(results));
 ### LiveTrace.js
 
 Real-time inference display:
+
 - Streaming derivations
 - Filter by rule type
 - Highlight key inferences
@@ -572,6 +587,7 @@ Real-time inference display:
 ### ScoreChart.js
 
 Performance visualization:
+
 - Time-series plot
 - Multiple metrics (accuracy, confidence, throughput)
 - Comparison overlays (SeNARS vs baseline)
@@ -581,6 +597,7 @@ Performance visualization:
 ### DiscoveryLog.js
 
 Notable inference collection:
+
 - Auto-flagged interesting derivations
 - Manual bookmarking
 - Filter by novelty score
@@ -607,6 +624,7 @@ const achievements = [
 ### Editor.js
 
 Narsese editor with:
+
 - Syntax highlighting (terms, copulas, truth values)
 - Auto-complete for common patterns
 - Inline error display
@@ -616,6 +634,7 @@ Narsese editor with:
 ### Console.js
 
 Interactive REPL:
+
 - Command history (up/down arrows)
 - Multi-line input
 - Output formatting
@@ -624,6 +643,7 @@ Interactive REPL:
 ### BeliefBrowser.js
 
 Query and explore beliefs:
+
 - Search by term
 - Filter by truth value range
 - Sort by confidence, recency
@@ -632,6 +652,7 @@ Query and explore beliefs:
 ### ConceptExplorer.js
 
 Memory visualization:
+
 - Concept network graph
 - Term relationships
 - Priority heatmap
@@ -640,6 +661,7 @@ Memory visualization:
 ### Debugger.js
 
 Step-through reasoning:
+
 - Breakpoints on terms/rules
 - Step forward/backward
 - Inspect premise selection
@@ -653,18 +675,18 @@ Step-through reasoning:
 
 Each of 10 levels gets:
 
-| Level | Name | Tests | Edge Cases |
-|-------|------|-------|------------|
-| 1 | Trace | 5 | Missing term, empty chain |
-| 2 | Revise | 4 | Conflicting evidence, revision order |
-| 3 | Persist | 4 | Large memory, cross-query consistency |
-| 4 | Cause | 5 | Multi-hop chains, temporal ordering |
-| 5 | Resist | 6 | Various injection patterns |
-| 6 | Uncertain | 5 | Confidence math, degradation rates |
-| 7 | Analog | 4 | Structural similarity, transfer |
-| 8 | Meta | 4 | Self-reference, introspection |
-| 9 | Bound | 5 | Resource limits, graceful degradation |
-| 10 | Compose | 5 | Novel combinations, creativity |
+| Level | Name      | Tests | Edge Cases                            |
+|-------|-----------|-------|---------------------------------------|
+| 1     | Trace     | 5     | Missing term, empty chain             |
+| 2     | Revise    | 4     | Conflicting evidence, revision order  |
+| 3     | Persist   | 4     | Large memory, cross-query consistency |
+| 4     | Cause     | 5     | Multi-hop chains, temporal ordering   |
+| 5     | Resist    | 6     | Various injection patterns            |
+| 6     | Uncertain | 5     | Confidence math, degradation rates    |
+| 7     | Analog    | 4     | Structural similarity, transfer       |
+| 8     | Meta      | 4     | Self-reference, introspection         |
+| 9     | Bound     | 5     | Resource limits, graceful degradation |
+| 10    | Compose   | 5     | Novel combinations, creativity        |
 
 ### LLM Baseline
 
@@ -683,6 +705,7 @@ const results = await baseline.runNARL();
 ### Report Generation
 
 Auto-generate markdown reports:
+
 - Executive summary
 - Level-by-level comparison
 - Charts (mermaid)
@@ -695,22 +718,23 @@ Auto-generate markdown reports:
 
 ### Demo Categories
 
-| ID | Category | Description | Priority |
-|----|----------|-------------|----------|
-| **H** | **Hybrid** | **NAL+LM neuro-symbolic reasoning** | **P0** 🎯 |
-| A | Explainability | Inference audit trail | P0 |
-| C | Uncertainty | Confidence propagation | P0 |
-| E | Adversarial | Prompt injection resistance | P0 |
-| B | Temporal | Event ordering and causality | P1 |
-| D | Memory | Cross-session persistence | P1 |
-| J | Compositional | Novel concept combinations | P1 |
-| L | Resource-Bounded | AIKR graceful degradation | P1 |
-| F | Analogical | A:B::C:? reasoning | P2 |
-| G | Meta-Cognition | Self-reasoning | P2 |
-| I | Learning | RLFP improvement | P2 |
-| K | Multi-Agent | Collaborative reasoning | P3 |
+| ID    | Category         | Description                         | Priority  |
+|-------|------------------|-------------------------------------|-----------|
+| **H** | **Hybrid**       | **NAL+LM neuro-symbolic reasoning** | **P0** 🎯 |
+| A     | Explainability   | Inference audit trail               | P0        |
+| C     | Uncertainty      | Confidence propagation              | P0        |
+| E     | Adversarial      | Prompt injection resistance         | P0        |
+| B     | Temporal         | Event ordering and causality        | P1        |
+| D     | Memory           | Cross-session persistence           | P1        |
+| J     | Compositional    | Novel concept combinations          | P1        |
+| L     | Resource-Bounded | AIKR graceful degradation           | P1        |
+| F     | Analogical       | A:B::C:? reasoning                  | P2        |
+| G     | Meta-Cognition   | Self-reasoning                      | P2        |
+| I     | Learning         | RLFP improvement                    | P2        |
+| K     | Multi-Agent      | Collaborative reasoning             | P3        |
 
-**Note**: Demo H (Hybrid) is the killer demo — all other demos should link back to it to show the neuro-symbolic advantage.
+**Note**: Demo H (Hybrid) is the killer demo — all other demos should link back to it to show the neuro-symbolic
+advantage.
 
 ### Demo Development Pattern
 
@@ -788,14 +812,14 @@ Phase 0 ✅ → Phase 0.4 → Phase 0.5 → Phase 1.1 → Phase 1.2 → Phase 2 
 
 **Goal**: Working hybrid NAL+LM demo in terminal
 
-| Task | Hours | Dependency |
-|------|-------|------------|
-| `HybridReasoner.js` class | 2 | None |
-| NL→Narsese prompt engineering | 2 | HybridReasoner |
-| Result→Explanation prompt | 1 | HybridReasoner |
-| `examples/hybrid-demo.js` | 2 | All above |
-| Test with 5+ queries | 1 | Demo script |
-| **Sprint 1 Total** | **8 hrs** | |
+| Task                          | Hours     | Dependency     |
+|-------------------------------|-----------|----------------|
+| `HybridReasoner.js` class     | 2         | None           |
+| NL→Narsese prompt engineering | 2         | HybridReasoner |
+| Result→Explanation prompt     | 1         | HybridReasoner |
+| `examples/hybrid-demo.js`     | 2         | All above      |
+| Test with 5+ queries          | 1         | Demo script    |
+| **Sprint 1 Total**            | **8 hrs** |                |
 
 **Deliverable**: `npx senars demo hybrid` works in terminal
 
@@ -805,18 +829,18 @@ Phase 0 ✅ → Phase 0.4 → Phase 0.5 → Phase 1.1 → Phase 1.2 → Phase 2 
 
 **Goal**: Basic Lab UI with hybrid demo visualization
 
-| Task | Hours | Dependency |
-|------|-------|------------|
-| `ui/server/ws/gateway.js` | 3 | None |
-| `EventStream.js` (shared) | 2 | WebSocket |
-| `TermView.js` (shared) | 2 | None |
-| `TruthDisplay.js` (shared) | 1 | None |
-| `ProofTree.js` (shared) | 4 | TermView |
-| `LabRunner.js` | 4 | EventStream |
-| `HybridDemo.js` | 4 | All shared |
-| Lab layout + routing | 3 | HybridDemo |
-| CLI `npx senars lab` | 2 | Lab UI |
-| **Sprint 2 Total** | **25 hrs** | |
+| Task                       | Hours      | Dependency  |
+|----------------------------|------------|-------------|
+| `ui/server/ws/gateway.js`  | 3          | None        |
+| `EventStream.js` (shared)  | 2          | WebSocket   |
+| `TermView.js` (shared)     | 2          | None        |
+| `TruthDisplay.js` (shared) | 1          | None        |
+| `ProofTree.js` (shared)    | 4          | TermView    |
+| `LabRunner.js`             | 4          | EventStream |
+| `HybridDemo.js`            | 4          | All shared  |
+| Lab layout + routing       | 3          | HybridDemo  |
+| CLI `npx senars lab`       | 2          | Lab UI      |
+| **Sprint 2 Total**         | **25 hrs** |             |
 
 **Deliverable**: `npx senars lab` opens browser with hybrid demo
 
@@ -826,16 +850,16 @@ Phase 0 ✅ → Phase 0.4 → Phase 0.5 → Phase 1.1 → Phase 1.2 → Phase 2 
 
 **Goal**: Complete Lab experience with all visualizations
 
-| Task | Hours | Dependency |
-|------|-------|------------|
-| `LiveTrace.js` | 4 | EventStream |
-| `ScoreChart.js` | 4 | None |
-| `DiscoveryLog.js` | 3 | LiveTrace |
-| Demo config schema | 2 | LabRunner |
-| P0 demo configs (A, C, E) | 4 | Schema |
-| `npx senars lab demo <id>` | 2 | Demos |
-| Achievements system | 3 | LabRunner |
-| **Sprint 3 Total** | **22 hrs** | |
+| Task                       | Hours      | Dependency  |
+|----------------------------|------------|-------------|
+| `LiveTrace.js`             | 4          | EventStream |
+| `ScoreChart.js`            | 4          | None        |
+| `DiscoveryLog.js`          | 3          | LiveTrace   |
+| Demo config schema         | 2          | LabRunner   |
+| P0 demo configs (A, C, E)  | 4          | Schema      |
+| `npx senars lab demo <id>` | 2          | Demos       |
+| Achievements system        | 3          | LabRunner   |
+| **Sprint 3 Total**         | **22 hrs** |             |
 
 **Deliverable**: All P0 demos runnable in Lab with full visualization
 
@@ -845,15 +869,15 @@ Phase 0 ✅ → Phase 0.4 → Phase 0.5 → Phase 1.1 → Phase 1.2 → Phase 2 
 
 **Goal**: Publication-ready NARL benchmark
 
-| Task | Hours | Dependency |
-|------|-------|------------|
-| Enhance Level 1-5 tests | 4 | None |
-| Enhance Level 6-10 tests | 4 | None |
-| LLM baseline runner | 4 | None |
-| Report generator | 4 | Test results |
-| Lab benchmark integration | 3 | LabRunner |
-| `npx senars lab benchmark narl` | 2 | All above |
-| **Sprint 4 Total** | **21 hrs** | |
+| Task                            | Hours      | Dependency   |
+|---------------------------------|------------|--------------|
+| Enhance Level 1-5 tests         | 4          | None         |
+| Enhance Level 6-10 tests        | 4          | None         |
+| LLM baseline runner             | 4          | None         |
+| Report generator                | 4          | Test results |
+| Lab benchmark integration       | 3          | LabRunner    |
+| `npx senars lab benchmark narl` | 2          | All above    |
+| **Sprint 4 Total**              | **21 hrs** |              |
 
 **Deliverable**: NARL runs in Lab with comparison reports
 
@@ -863,15 +887,15 @@ Phase 0 ✅ → Phase 0.4 → Phase 0.5 → Phase 1.1 → Phase 1.2 → Phase 2 
 
 **Goal**: Basic IDE for Narsese development
 
-| Task | Hours | Dependency |
-|------|-------|------------|
-| `Editor.js` with syntax highlighting | 8 | None |
-| `Console.js` REPL | 4 | EventStream |
-| `BeliefBrowser.js` | 4 | TermView |
-| `Timeline.js` | 4 | EventStream |
-| IDE layout + panels | 4 | Components |
-| `npx senars ide` | 2 | IDE UI |
-| **Sprint 5 Total** | **26 hrs** | |
+| Task                                 | Hours      | Dependency  |
+|--------------------------------------|------------|-------------|
+| `Editor.js` with syntax highlighting | 8          | None        |
+| `Console.js` REPL                    | 4          | EventStream |
+| `BeliefBrowser.js`                   | 4          | TermView    |
+| `Timeline.js`                        | 4          | EventStream |
+| IDE layout + panels                  | 4          | Components  |
+| `npx senars ide`                     | 2          | IDE UI      |
+| **Sprint 5 Total**                   | **26 hrs** |             |
 
 **Deliverable**: Basic IDE for interactive Narsese development
 
@@ -881,14 +905,14 @@ Phase 0 ✅ → Phase 0.4 → Phase 0.5 → Phase 1.1 → Phase 1.2 → Phase 2 
 
 **Goal**: Autonomous long-running exploration
 
-| Task | Hours | Dependency |
-|------|-------|------------|
-| Expedition runner | 6 | LabRunner |
-| RLFP loop integration | 6 | Expedition runner |
-| Checkpointing | 4 | Runner |
-| Dashboard integration | 4 | Lab UI |
-| `npx senars lab expedition` | 2 | All above |
-| **Sprint 6 Total** | **22 hrs** | |
+| Task                        | Hours      | Dependency        |
+|-----------------------------|------------|-------------------|
+| Expedition runner           | 6          | LabRunner         |
+| RLFP loop integration       | 6          | Expedition runner |
+| Checkpointing               | 4          | Runner            |
+| Dashboard integration       | 4          | Lab UI            |
+| `npx senars lab expedition` | 2          | All above         |
+| **Sprint 6 Total**          | **22 hrs** |                   |
 
 **Deliverable**: 24-hour autonomous expeditions with live dashboard
 
@@ -896,14 +920,14 @@ Phase 0 ✅ → Phase 0.4 → Phase 0.5 → Phase 1.1 → Phase 1.2 → Phase 2 
 
 ### Total Timeline
 
-| Sprint | Duration | Cumulative |
-|--------|----------|------------|
-| 1: Killer Demo | 1 day | Day 1 |
-| 2: Lab Foundation | 3 days | Day 4 |
-| 3: Lab Polish | 3 days | Day 7 |
-| 4: NARL | 4 days | Day 11 |
-| 5: IDE | 7 days | Day 18 |
-| 6: Expeditions | 7 days | Day 25 |
+| Sprint            | Duration | Cumulative |
+|-------------------|----------|------------|
+| 1: Killer Demo    | 1 day    | Day 1      |
+| 2: Lab Foundation | 3 days   | Day 4      |
+| 3: Lab Polish     | 3 days   | Day 7      |
+| 4: NARL           | 4 days   | Day 11     |
+| 5: IDE            | 7 days   | Day 18     |
+| 6: Expeditions    | 7 days   | Day 25     |
 
 **Total**: ~25 working days (~5 weeks)
 
@@ -930,6 +954,7 @@ npx senars lab
 ## Implementation Checklist
 
 ### Phase 0.4: Hybrid Demo — LM as Reasoning Rule
+
 - [ ] `examples/demo-hybrid.js` — Main demo script
 - [ ] Implement demo modes (translate, elaborate, analogize, explain, hybrid)
 - [ ] Add CLI argument parsing (--mode, --input, --verbose)
@@ -937,12 +962,14 @@ npx senars lab
 - [ ] Test all example scenarios
 
 ### Phase 0.5: Hybrid Demo
+
 - [ ] `core/src/hybrid/HybridReasoner.js`
 - [ ] `core/src/hybrid/prompts.js` (NL→Narsese, Result→Explanation)
 - [ ] `examples/hybrid-demo.js`
 - [ ] `ui/lab/demos/H_hybrid.json`
 
 ### Phase 1.1: Shared Components
+
 - [ ] `ui/server/ws/gateway.js`
 - [ ] `ui/src/components/shared/EventStream.js`
 - [ ] `ui/src/components/shared/ProofTree.js`
@@ -950,6 +977,7 @@ npx senars lab
 - [ ] `ui/src/components/shared/TruthDisplay.js`
 
 ### Phase 1.2: Lab Components
+
 - [ ] `ui/src/components/lab/LabRunner.js`
 - [ ] `ui/src/components/lab/HybridDemo.js`
 - [ ] `ui/src/components/lab/LiveTrace.js`
@@ -959,6 +987,7 @@ npx senars lab
 - [ ] CLI: `npx senars lab`
 
 ### Phase 1.3: IDE Components
+
 - [ ] `ui/src/components/ide/Editor.js`
 - [ ] `ui/src/components/ide/Console.js`
 - [ ] `ui/src/components/ide/BeliefBrowser.js`
@@ -966,6 +995,7 @@ npx senars lab
 - [ ] CLI: `npx senars ide`
 
 ### Phase 2: NARL Enhancement
+
 - [ ] Enhanced tests (3+ per level)
 - [ ] Edge case coverage
 - [ ] `benchmarks/narl/llm_baseline.js`
@@ -973,6 +1003,7 @@ npx senars lab
 - [ ] Lab integration
 
 ### Phase 3: Demo Configs
+
 - [ ] `ui/lab/demos/A_explainability.json`
 - [ ] `ui/lab/demos/C_uncertainty.json`
 - [ ] `ui/lab/demos/E_adversarial.json`
@@ -980,6 +1011,7 @@ npx senars lab
 - [ ] Remaining P1/P2 demos
 
 ### Phase 4: Expeditions
+
 - [ ] Expedition runner class
 - [ ] RLFP loop wrapper
 - [ ] Checkpointing system
@@ -1032,16 +1064,16 @@ export default {
 
 ## Success Metrics
 
-| Metric | Now | 30 Days | 90 Days |
-|--------|-----|---------|---------|
-| Demo works | ✅ | ✅ | ✅ |
-| **Hybrid demo** | ❌ | ✅ 🎯 | ✅ |
-| Lab deployed | ❌ | ✅ | ✅ |
-| IDE deployed | ❌ | Partial | ✅ |
-| NARL avg | ~80% | ≥85% | ≥95% |
-| P0 demos | 0/4 | 4/4 | 4/4 |
-| All demos | 0/12 | 6/12 | 12/12 |
-| npm downloads | ? | 500 | 2000 |
+| Metric          | Now  | 30 Days | 90 Days |
+|-----------------|------|---------|---------|
+| Demo works      | ✅   | ✅      | ✅      |
+| **Hybrid demo** | ❌   | ✅ 🎯   | ✅      |
+| Lab deployed    | ❌   | ✅      | ✅      |
+| IDE deployed    | ❌   | Partial | ✅      |
+| NARL avg        | ~80% | ≥85%    | ≥95%    |
+| P0 demos        | 0/4  | 4/4     | 4/4     |
+| All demos       | 0/12 | 6/12    | 12/12   |
+| npm downloads   | ?    | 500     | 2000    |
 
 ---
 
@@ -1050,33 +1082,39 @@ export default {
 **Phase 0** ✅: Quick wins (demo, facade)
 
 **Phase 0.4** 🔬: **Hybrid Demo — LM as Reasoning Rule**
+
 - LM rules fire *inside* NAL reasoning, not externally
 - Demo modes: translate, elaborate, analogize, explain, hybrid
 - Colored console output with emojis
 - ~7 hours to complete
 
 **Phase 0.5** 🎯: **Hybrid NAL+LM Demo** — The killer demo
+
 - Natural language in, reasoned answer out
 - Transparent proof chains in Lab UI
 - Offline Transformers.js integration
 - ~12 hours to complete
 
 **Phase 1**: IDE + Lab foundation
+
 - Shared components enable everything
 - Lab runner unifies all experiment types
 - IDE provides development environment
 
 **Phase 2**: NARL benchmark
+
 - Scientific proof of capabilities
 - LLM comparison baseline
 - Auto-generated reports
 
 **Phase 3**: Prototype demos
+
 - 12 categories proving compound intelligence (including Hybrid)
 - Config-driven, easy to extend
 - Narrative-driven for communication
 
 **Phase 4**: Autonomous expeditions
+
 - Long-running exploration
 - RLFP integration
 - Discovery-focused

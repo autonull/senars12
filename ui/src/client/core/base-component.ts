@@ -1,24 +1,24 @@
-import { LitElement } from 'lit';
+import {LitElement} from 'lit';
 
 type Unsubscriber = () => void;
 
 export class BaseComponent extends LitElement {
-  private unsubs: Unsubscriber[] = [];
+    private unsubs: Unsubscriber[] = [];
 
-  protected watch(source: { subscribe(fn: () => void): Unsubscriber }): void {
-    this.unsubs.push(source.subscribe(() => this.requestUpdate()));
-  }
+    override disconnectedCallback(): void {
+        this.unsubs.forEach((u) => u());
+        this.unsubs = [];
+        super.disconnectedCallback();
+    }
 
-  protected watchWith<T>(
-    source: { subscribe(fn: (v: T) => void): Unsubscriber },
-    fn: (v: T) => void
-  ): void {
-    this.unsubs.push(source.subscribe(fn));
-  }
+    protected watch(source: { subscribe(fn: () => void): Unsubscriber }): void {
+        this.unsubs.push(source.subscribe(() => this.requestUpdate()));
+    }
 
-  override disconnectedCallback(): void {
-    this.unsubs.forEach((u) => u());
-    this.unsubs = [];
-    super.disconnectedCallback();
-  }
+    protected watchWith<T>(
+        source: { subscribe(fn: (v: T) => void): Unsubscriber },
+        fn: (v: T) => void
+    ): void {
+        this.unsubs.push(source.subscribe(fn));
+    }
 }

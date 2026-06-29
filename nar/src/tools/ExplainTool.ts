@@ -1,121 +1,122 @@
-import type { Concept, Memory } from '../memory';
-import { termParser } from '../terms';
-import { tool } from './decorator.js';
-import type { Schema, Tool, ToolContext, ToolResult } from './types';
-import { errorResult } from './types';
+import type {Concept, Memory} from '../memory';
+import {termParser} from '../terms';
+import {tool} from './decorator.js';
+import type {Schema, Tool, ToolContext, ToolResult} from './types';
+import {errorResult} from './types';
 
 @tool({
-  name: 'explain',
-  description: 'Generate human-readable explanation for a belief or derivation',
-  capabilities: { pure: false, readOnly: true },
+    name: 'explain',
+    description: 'Generate human-readable explanation for a belief or derivation',
+    capabilities: {pure: false, readOnly: true},
 })
 export class ExplainTool implements Tool {
-  readonly name = 'explain';
-  readonly description = 'Generate human-readable explanation for a belief or derivation';
-  readonly parameters: Schema = {
-    type: 'object',
-    properties: {
-      term: { type: 'string', description: 'Term or concept to explain' },
-      includeDerivations: { type: 'boolean', description: 'Include derivation history' },
-      includeEvidence: { type: 'boolean', description: 'Include supporting/conflicting evidence' },
-    },
-    required: ['term'],
-  };
-
-  constructor(private memory: Memory) {}
-
-  async execute(args: Record<string, unknown>, _context?: ToolContext): Promise<ToolResult> {
-    const {
-      term: termStr,
-      includeDerivations = true,
-      includeEvidence = true,
-    } = args as {
-      term: string;
-      includeDerivations?: boolean;
-      includeEvidence?: boolean;
-    };
-
-    try {
-      const _term = termParser.parse(termStr);
-      const concept = this.findConcept(termStr);
-
-      if (!concept) {
-        return {
-          success: false,
-          content: null,
-          error: `Concept '${termStr}' not found in memory`,
-        };
-      }
-
-      const explanation = this.generateExplanation(concept, includeDerivations, includeEvidence);
-
-      return {
-        success: true,
-        content: explanation,
-        metadata: {
-          term: concept.term.toString(),
-          priority: concept.priority,
+    readonly name = 'explain';
+    readonly description = 'Generate human-readable explanation for a belief or derivation';
+    readonly parameters: Schema = {
+        type: 'object',
+        properties: {
+            term: {type: 'string', description: 'Term or concept to explain'},
+            includeDerivations: {type: 'boolean', description: 'Include derivation history'},
+            includeEvidence: {type: 'boolean', description: 'Include supporting/conflicting evidence'},
         },
-      };
-    } catch (error) {
-      return errorResult(error);
-    }
-  }
-
-  private findConcept(termStr: string): Concept | undefined {
-    const concepts = this.memory.findConcepts(termStr, 1);
-    return concepts[0];
-  }
-
-  private generateExplanation(
-    concept: Concept,
-    includeDerivations: boolean,
-    includeEvidence: boolean
-  ): Record<string, unknown> {
-    const explanation: Record<string, unknown> = {
-      term: concept.term.toString(),
-      priority: concept.priority,
-      totalTasks: concept.totalTasks,
-      summary: this.generateSummary(concept),
+        required: ['term'],
     };
 
-    if (includeDerivations) {
-      explanation.derivations = this.getDerivationInfo(concept);
+    constructor(private memory: Memory) {
     }
 
-    if (includeEvidence) {
-      explanation.evidence = this.getEvidence(concept);
+    async execute(args: Record<string, unknown>, _context?: ToolContext): Promise<ToolResult> {
+        const {
+            term: termStr,
+            includeDerivations = true,
+            includeEvidence = true,
+        } = args as {
+            term: string;
+            includeDerivations?: boolean;
+            includeEvidence?: boolean;
+        };
+
+        try {
+            const _term = termParser.parse(termStr);
+            const concept = this.findConcept(termStr);
+
+            if (!concept) {
+                return {
+                    success: false,
+                    content: null,
+                    error: `Concept '${termStr}' not found in memory`,
+                };
+            }
+
+            const explanation = this.generateExplanation(concept, includeDerivations, includeEvidence);
+
+            return {
+                success: true,
+                content: explanation,
+                metadata: {
+                    term: concept.term.toString(),
+                    priority: concept.priority,
+                },
+            };
+        } catch (error) {
+            return errorResult(error);
+        }
     }
 
-    return explanation;
-  }
-
-  private generateSummary(concept: Concept): string {
-    const priority = concept.priority;
-
-    let summary = `The concept "${concept.term.toString()}" has priority ${priority.toFixed(2)}`;
-
-    if (priority > 0.8) {
-      summary += ' (high priority)';
-    } else if (priority > 0.5) {
-      summary += ' (moderate priority)';
-    } else {
-      summary += ' (low priority)';
+    private findConcept(termStr: string): Concept | undefined {
+        const concepts = this.memory.findConcepts(termStr, 1);
+        return concepts[0];
     }
 
-    return summary + '.';
-  }
+    private generateExplanation(
+        concept: Concept,
+        includeDerivations: boolean,
+        includeEvidence: boolean
+    ): Record<string, unknown> {
+        const explanation: Record<string, unknown> = {
+            term: concept.term.toString(),
+            priority: concept.priority,
+            totalTasks: concept.totalTasks,
+            summary: this.generateSummary(concept),
+        };
 
-  private getDerivationInfo(_concept: Concept): unknown {
-    return {
-      status: 'derivations not tracked at concept level',
-    };
-  }
+        if (includeDerivations) {
+            explanation.derivations = this.getDerivationInfo(concept);
+        }
 
-  private getEvidence(_concept: Concept): { supporting: unknown[]; conflicting: unknown[] } {
-    return {
-      supporting: [],
-      conflicting: [],
-    };
-  }
+        if (includeEvidence) {
+            explanation.evidence = this.getEvidence(concept);
+        }
+
+        return explanation;
+    }
+
+    private generateSummary(concept: Concept): string {
+        const priority = concept.priority;
+
+        let summary = `The concept "${concept.term.toString()}" has priority ${priority.toFixed(2)}`;
+
+        if (priority > 0.8) {
+            summary += ' (high priority)';
+        } else if (priority > 0.5) {
+            summary += ' (moderate priority)';
+        } else {
+            summary += ' (low priority)';
+        }
+
+        return summary + '.';
+    }
+
+    private getDerivationInfo(_concept: Concept): unknown {
+        return {
+            status: 'derivations not tracked at concept level',
+        };
+    }
+
+    private getEvidence(_concept: Concept): { supporting: unknown[]; conflicting: unknown[] } {
+        return {
+            supporting: [],
+            conflicting: [],
+        };
+    }
 }

@@ -168,9 +168,8 @@ flowchart TD
     * Temporal urgency and recency factors
     * Truth value certainty and confidence levels
     * Potential for generating valuable insights
-    * System resource allocation policies
-      The `Cycle`'s `_selectFocusSet` method then selects the top-priority tasks to form the cognitive focus for the
-      current cycle.
+    * System resource allocation policies The `Cycle`'s `_selectFocusSet` method then selects the top-priority tasks to
+      form the cognitive focus for the current cycle.
 
 3. **Symbolic Reasoning & Inference**: The **`Reasoner`** module processes the `focusSet`, applying its extensive
    library of inference rules (from `core/reasoner/rules`) to derive new `Task`s (conclusions). This includes:

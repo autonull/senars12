@@ -43,8 +43,8 @@ schemas (name, description, parameters, returns), wrapped as code APIs in execut
 | **Adapter.js** (SeNARS ↔ MCP translation)    | MCP's tool wrappers: Converts schemas to code functions (e.g., TypeScript interfaces for inputs/outputs) and handles bidirectional translation.                            | Bridges SeNARS' internal logic to MCP's universal format; preserves context (e.g., state via workspace files) during translations. |
 | **Safety.js** (Universal validation)         | MCP's built-in safeguards: Sandboxed execution, tokenization for PII (e.g., `[EMAIL_1]` placeholders), and schema enforcement.                                             | Unified layer for all traffic; e.g., validate inputs/outputs across client/server modes.                                           |
 
-This architecture ensures "invisible performance overhead," as MCP's code execution processes loops, filters, and
-joins (e.g., filtering 10,000 spreadsheet rows to show only 5) in the environment, not the model.
+This architecture ensures "invisible performance overhead," as MCP's code execution processes loops, filters, and joins
+(e.g., filtering 10,000 spreadsheet rows to show only 5) in the environment, not the model.
 
 ### Core Abstraction: MCPManager
 
@@ -52,10 +52,10 @@ MCP's client inherently manages both discovery/execution (client concerns) and r
 via a shared protocol, with features like connection pooling (persistent sessions) and lifecycle hooks.
 
 - **Application**: SeNARS' MCPManager can extend MCP's SDK to unify these, e.g., using
-  `callMCPTool<ReturnType>(toolName, input)` for client calls and server endpoints for provisioning. Safety/monitoring (
-  e.g., resource quotas) applies universally, as in MCP's sandboxed environments. Code execution fits here by generating
-  a "file tree" of tools, allowing the manager to dynamically import and execute them—e.g., SeNARS agents write code to
-  resume stateful tasks from `./workspace/` files.
+  `callMCPTool<ReturnType>(toolName, input)` for client calls and server endpoints for provisioning. Safety/monitoring
+  (e.g., resource quotas) applies universally, as in MCP's sandboxed environments. Code execution fits here by
+  generating a "file tree" of tools, allowing the manager to dynamically import and execute them—e.g., SeNARS agents
+  write code to resume stateful tasks from `./workspace/` files.
 
 ### Implementation: 4 Focused Steps
 

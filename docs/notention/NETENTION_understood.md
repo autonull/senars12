@@ -29,14 +29,14 @@ The core dynamic of Netention is a continuous loop of:
 
 1. **User Interaction:** The user creates a Note (defining a task, idea, or piece of information) or interacts with an
    existing Note (providing feedback, answering questions, modifying content).
-2. **Agent Interpretation:** The agent associated with the Note interprets the user's input and the Note's current
-   state (content, plan, memory).
+2. **Agent Interpretation:** The agent associated with the Note interprets the user's input and the Note's current state
+   (content, plan, memory).
 3. **Planning:** The agent updates the Note's Plan, potentially creating new steps, modifying existing steps, or
    adjusting dependencies. This is **anticipatory planning**, meaning the agent tries to foresee potential outcomes and
    create branches in the plan to handle different scenarios. The Plan is a *graph*, not a linear sequence.
-4. **Tool Selection:** The agent selects the appropriate Tool(s) to execute the next step(s) in the Plan. Tool selection
-   is driven by the Plan and the agent's understanding of the current context.
-5. **Tool Execution:** The **Executor** manages the execution of the selected Tool(s). This is inherently asynchronous,
+4. **Tool Selection:** The agent selects the appropriate Tool (s) to execute the next step (s) in the Plan. Tool
+   selection is driven by the Plan and the agent's understanding of the current context.
+5. **Tool Execution:** The **Executor** manages the execution of the selected Tool (s). This is inherently asynchronous,
    as many tools will involve interacting with external systems (LLMs, web services, the file system).
 6. **Result Incorporation:** The results of Tool execution are incorporated into the Note's Memory and used to update
    the Plan's status. This might involve marking steps as complete, failed, or waiting for user input.

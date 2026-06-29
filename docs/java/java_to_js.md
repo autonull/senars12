@@ -77,12 +77,12 @@ const ASSOCIATIVE_OPERATORS = new Set(['&', '|', '||', '&&']);
 
 | Category          | Files                                  | Can Migrate Without Temporal   |
 |-------------------|----------------------------------------|--------------------------------|
-| **Structural**    | `inh.nal`, `sim.nal`                   | ✅ Yes                          |
-| **Sets**          | `set.*.nal` (3 files)                  | ✅ Yes                          |
-| **Conversion**    | `conversion.nal`, `contraposition.nal` | ✅ Yes                          |
+| **Structural**    | `inh.nal`, `sim.nal`                   | ✅ Yes                         |
+| **Sets**          | `set.*.nal` (3 files)                  | ✅ Yes                         |
+| **Conversion**    | `conversion.nal`, `contraposition.nal` | ✅ Yes                         |
 | **Analogy**       | `analogy.*.nal` (3 files)              | ⚠️ Partial (some use temporal) |
 | **Implication**   | `impl.syl.nal`, `impl.strong.nal`      | ⚠️ Partial                     |
-| **Decomposition** | `cond.decompose.*.nal` (5 files)       | ❌ Heavy temporal               |
+| **Decomposition** | `cond.decompose.*.nal` (5 files)       | ❌ Heavy temporal              |
 | **Composition**   | `impl.compose.nal`                     | ⚠️ Partial                     |
 
 ---

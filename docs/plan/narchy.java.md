@@ -4,7 +4,7 @@
 
 ## TODO
 
-- Delta operator: d(freq)/dt
+- Delta operator: d (freq)/dt
 - Temporal logic: prediction, induction, projection
 - Goal logic: could, would, should, ...
 - Temporal Conj (Sequences) and Disj

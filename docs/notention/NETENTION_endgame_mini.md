@@ -84,7 +84,7 @@ Here's a simplified design, leveraging this conceptual shift:
           queued if the limit is reached.
         * This limit is the *only* system-wide concurrency control.
 
-3. **Note.run() (Simplified)**:
+3. **Note.run () (Simplified)**:
     * Loads the `Runnable` from `this.data.logic`.
     * Invokes the `Runnable` using `runnable.invoke({ note: this })`, passing the *current* Note instance as context.
       The `Runnable` has *full access* to the Note's data, including methods to modify it.
@@ -218,8 +218,8 @@ Here's an analysis of the strengths, followed by a few suggestions and considera
 * **Concurrency Control (Details)**:  The mention of `p-limit` for concurrency control is good. Expand slightly on
   *where* this concurrency limit is enforced. Is it within the global event handler? Within the `NoteImpl.run()` method?
   A brief code snippet or pseudocode illustrating this would be helpful.
-* **`index.js` Responsibilities**:  The `index.js` file (or equivalent entry point) now has very few responsibilities (
-  initialize `FileManager`, load/run Root Note). Explicitly list these responsibilities to emphasize the minimalism of
+* **`index.js` Responsibilities**:  The `index.js` file (or equivalent entry point) now has very few responsibilities
+  (initialize `FileManager`, load/run Root Note). Explicitly list these responsibilities to emphasize the minimalism of
   the bootstrap code.
 * **Filesystem Structure Conventions**: While mentioned, explicitly document the *conventions* for the filesystem
   structure (e.g., `/notes/` for Task/Plan/Data Notes, `/tools/` for Tool Notes, `/ui/` for UI Notes, `/memory/` for
@@ -791,7 +791,7 @@ Here's an analysis of the strengths and some suggestions for further refinement:
   *where* this is used in the `index.js` pseudocode (likely wrapping the `runNote()` call within the file change
   handler).
 * **Note Metadata Cache (Justification)**:  Clearly explain the purpose of the `noteMetadataCache`. Why is it needed if
-  Note instances are created on demand?  (Answer: To avoid redundant filesystem reads for frequently accessed Note
+  Note instances are created on demand? (Answer: To avoid redundant filesystem reads for frequently accessed Note
   metadata, especially during graph traversal and dependency resolution.)
 * **Root Note Startup (Robustness)**: The `initializeSystem()` function includes logic to create the `root.json` file if
   it doesn't exist. This is good, but consider adding more robust error handling here. What happens if the file creation
@@ -801,9 +801,9 @@ Here's an analysis of the strengths and some suggestions for further refinement:
   simply load the Tool Note (using `loadNoteData()`) and then access its `logic` field (which should be a LangChain
   `Tool`)? Provide a brief pseudocode example of this within a `Runnable` configuration.
 * **UI Interaction:** Explain more about how the UI would trigger changes.
-* **Testing**:  While self-testing is integrated, briefly outline a strategy for testing the *core* system components (
-  e.g., the file watching logic, the `loadRunnable()` function, the error handling in `index.js`). These would likely be
-  traditional unit/integration tests, *not* self-generated tests.
+* **Testing**:  While self-testing is integrated, briefly outline a strategy for testing the *core* system components
+  (e.g., the file watching logic, the `loadRunnable()` function, the error handling in `index.js`). These would likely
+  be traditional unit/integration tests, *not* self-generated tests.
 * **Further Examples:** Provide an example of how `schedule`, `reflect`, `debug` would be implemented.
 
 The radical simplification presented in this revision is highly compelling. By making these suggested refinements,

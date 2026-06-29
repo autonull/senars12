@@ -579,12 +579,9 @@ agentic systems (e.g., **LangChain Agents**, **AutoGPT**, **BabyAGI**, **Microso
 #### 2. **Agentic Autonomy with Goal-Driven Loops**
 
 - **Agent Modes**:
-  | Mode | Behavior |
-  |------|---------|
-  | `interactive` | User-driven input → response |
-  | `autonomous` | Goal-directed task pursuit (e.g., “solve X”) |
-  | `exploratory` | Self-generated questions to improve knowledge |
-  | `metacognitive` | Reflects on own reasoning, suggests optimizations |
+  | Mode | Behavior | |------|---------| | `interactive` | User-driven input → response | | `autonomous` | Goal-directed
+  task pursuit (e.g., “solve X”) | | `exploratory` | Self-generated questions to improve knowledge | | `metacognitive` |
+  Reflects on own reasoning, suggests optimizations |
 
 - **Goal Stack**:
   ```narsese
@@ -605,11 +602,9 @@ agentic systems (e.g., **LangChain Agents**, **AutoGPT**, **BabyAGI**, **Microso
     - **Fallback**: Circuit breaker → pure NAL
 
 - **Examples of Interoperability**:
-  | Scenario | NAL | LM | Output |
-  |--------|-----|-----|--------|
-  | Analogy | `<bird --> flyer>` | “What flies like a bird?” | `<bat --> flyer>?` |
-  | Explanation | `<A --> B>.` | “Why?” | Step-by-step chain |
-  | Pattern Discovery | Sparse data | Embeddings | New `<X --> Y>` |
+  | Scenario | NAL | LM | Output | |--------|-----|-----|--------| | Analogy | `<bird --> flyer>` | “What flies like a
+  bird?” | `<bat --> flyer>?` | | Explanation | `<A --> B>.` | “Why?” | Step-by-step chain | | Pattern Discovery |
+  Sparse data | Embeddings | New `<X --> Y>` |
 
 #### 4. **Observable Compound Intelligence**
 

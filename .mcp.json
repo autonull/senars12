@@ -2,7 +2,9 @@
   "mcpServers": {
     "senars": {
       "command": "pnpm",
-      "args": ["mcp"],
+      "args": [
+        "mcp"
+      ],
       "cwd": ".",
       "lifecycle": "lazy",
       "directTools": true

@@ -61,7 +61,7 @@ The `Focus` class is refactored to contain **all** mutable state required for a 
 * **Terms/Tasks:** Shared by reference (Immutable).
 * **Priority Queues:** Cloned (Mutable).
 * **Policy:** Cloned (Mutable).
-* **Cost:** O(N) where N is the size of the Focus buffer (very fast).
+* **Cost:** O (N) where N is the size of the Focus buffer (very fast).
 
 ---
 
@@ -162,8 +162,8 @@ This component subscribes to the `EventBus` and the `ControlSurface`. It handles
 
 ## 5. The Policy Arbiter (`src/reasoning/PolicyArbiter.js`)
 
-This is the integration point where "How to Think" is decided. It sits inside the `Cycle` and consults the `Focus` (
-Session) configuration to make decisions.
+This is the integration point where "How to Think" is decided. It sits inside the `Cycle` and consults the `Focus`
+(Session) configuration to make decisions.
 
 **Decision Flow:**
 

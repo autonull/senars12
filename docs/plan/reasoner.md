@@ -9,8 +9,8 @@ autonomous, long-running operation. The core principles remain the same, with an
 * **Continuous Processing:** The system should be able to operate as a continuous, non-blocking pipeline, processing
   information as it becomes available, rather than being purely iterative or request-driven.
 * **Resource-Awareness:** The system must explicitly manage computational resources (CPU, memory, derivation depth) to
-  ensure stable, long-term operation, directly adhering to the Assumption of Insufficient Knowledge and Resources (
-  AIKR).
+  ensure stable, long-term operation, directly adhering to the Assumption of Insufficient Knowledge and Resources
+  (AIKR).
 
 The Reasoner is reconceptualized as a pipeline that transforms streams of premises into a stream of conclusions.
 
@@ -135,8 +135,8 @@ The `Reasoner` is now a stateful service that manages the continuous reasoning p
 * Implement resource constraints:
     * **CPU Throttle:** Ensure the reasoning loop yields to the event loop periodically to avoid blocking and control
       CPU usage.
-    * **Derivation Depth Limit:** Enforce a maximum derivation depth on `Stamp`s to keep the derivation graph finite (
-      AIKR).
+    * **Derivation Depth Limit:** Enforce a maximum derivation depth on `Stamp`s to keep the derivation graph finite
+      (AIKR).
 
   ### **3.3. `RuleExecutor` (Previously `RuleIndexer`)**
 
@@ -147,8 +147,8 @@ optimizer for the entire rule set.
 
 * Index all registered rules for fast retrieval (e.g., using a Trie).
 * **Analyze and Optimize Symbolic Guards:**
-    * **Deduplication & Ordering:** Analyze the `guards` of all rules to build a shared decision tree. Common checks (
-      e.g., `term.isCompound`) are performed only once.
+    * **Deduplication & Ordering:** Analyze the `guards` of all rules to build a shared decision tree. Common checks
+      (e.g., `term.isCompound`) are performed only once.
     * **Subsumption:** Detect if one rule is a more specific version of another, allowing the engine to prioritize or
       prune rules intelligently.
     * **Folding:** Pre-evaluate parts of guards that are constant.
@@ -219,7 +219,7 @@ This architecture provides richer hooks for self-optimization:
 ## PremiseSources
 
 Create a \`class PremiseSources extends PremiseSource\`: a \`Bag\` of \`PremiseSource\`s, that uses the Bag's sampling
-capabilities to sample from the sources in proportion.  (This is an extra for future usage; the design doesn't depend on
+capabilities to sample from the sources in proportion. (This is an extra for future usage; the design doesn't depend on
 it.)
 
 This revised design represents a significant step towards a more robust, performant, and intelligent Reasoner, fully
@@ -235,7 +235,7 @@ class PremiseSource {
 
 \*/
 
-constructor(memory, samplingObjectives);
+constructor (memory, samplingObjectives);
 
 /\*\*
 
@@ -245,28 +245,28 @@ constructor(memory, samplingObjectives);
 
 \*/
 
-stream();
+stream ();
 
 }  
 class Reasoner {
 
-constructor(premiseSource, strategy, ruleProcessor, config);
+constructor (premiseSource, strategy, ruleProcessor, config);
 
 /\*\* The stream of newly derived tasks. \*/
 
-get outputStream(): AsyncGenerator\<Task\>;
+get outputStream (): AsyncGenerator\<Task\>;
 
 /\*\* Starts the continuous reasoning process. \*/
 
-start();
+start ();
 
 /\*\* Stops the continuous reasoning process. \*/
 
-stop();
+stop ();
 
 /\*\* Executes a single reasoning step. Useful for debugging and iterative mode. \*/
 
-async step();
+async step ();
 
 }
 
@@ -444,8 +444,8 @@ and fixed.
 **Root Cause Analysis:**
 The `TaskBagPremiseSource`, which is responsible for feeding tasks into the reasoning pipeline, was incorrectly
 connected to the `TaskManager`. The `TaskManager` orchestrates tasks but does not contain the priority-sampled `taskBag`
-that the reasoner needs to draw from. The correct source of high-priority tasks for reasoning is the `Focus` component (
-the system's short-term memory).
+that the reasoner needs to draw from. The correct source of high-priority tasks for reasoning is the `Focus` component
+(the system's short-term memory).
 
 **Solution:**
 The initialization code in `src/nar/NAR.js` was modified. The `TaskBagPremiseSource` is now instantiated with
@@ -538,7 +538,7 @@ input through derivation and back to the system:
 
 **Task Lifecycle Completion:**
 
-- [x] Input tasks reach Focus component properly via NAR.input() method
+- [x] Input tasks reach Focus component properly via NAR.input () method
 - [x] Focus tasks properly accessible by TaskBagPremiseSource for primary premises
 - [x] Strategy properly selects secondary premises from Focus tasks
 - [x] Derived tasks are added back to system components (TaskManager and Focus)
@@ -589,7 +589,7 @@ input through derivation and back to the system:
 
 **Task Lifecycle Completion:**
 
-- [x] Input tasks reach Focus component properly via NAR.input() method
+- [x] Input tasks reach Focus component properly via NAR.input () method
 - [x] Focus tasks properly accessible by TaskBagPremiseSource for primary premises
 - [x] Strategy properly selects secondary premises from Focus tasks
 - [x] Derived tasks are added back to system components (TaskManager and Focus)

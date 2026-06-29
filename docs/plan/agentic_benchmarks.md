@@ -1,11 +1,21 @@
 ### Comprehensive Survey of Agentic AI Benchmarks (as of December 2025)
 
-Agentic AI benchmarks evaluate large language models (LLMs) and systems in autonomous, multi-step tasks involving **planning**, **tool use**, **reasoning**, **interaction with environments**, and **decision-making** under uncertainty. Unlike traditional LLM benchmarks (e.g., MMLU for knowledge recall), agentic ones emphasize end-to-end success in dynamic, real-world-like scenarios.
+Agentic AI benchmarks evaluate large language models (LLMs) and systems in autonomous, multi-step tasks involving
+**planning**, **tool use**, **reasoning**, **interaction with environments**, and **decision-making** under uncertainty.
+Unlike traditional LLM benchmarks (e.g., MMLU for knowledge recall), agentic ones emphasize end-to-end success in
+dynamic, real-world-like scenarios.
 
-This survey organizes benchmarks by **difficulty level**, from trivial/sanity-check sets (ideal for debugging tool calling and basic pipelines) to frontier challenges (long-horizon, high-risk, or domain-specific tasks where even state-of-the-art models like GPT-5.2, Claude Opus 4.5, or Gemini 3 achieve <70% success). Metrics typically include success rate (task completion), accuracy (e.g., AST-based for function calls), efficiency (tokens/steps), and reliability (over multiple runs).
+This survey organizes benchmarks by **difficulty level**, from trivial/sanity-check sets (ideal for debugging tool
+calling and basic pipelines) to frontier challenges (long-horizon, high-risk, or domain-specific tasks where even
+state-of-the-art models like GPT-5.2, Claude Opus 4.5, or Gemini 3 achieve <70% success). Metrics typically include
+success rate (task completion), accuracy (e.g., AST-based for function calls), efficiency (tokens/steps), and
+reliability (over multiple runs).
 
 #### Level 1: Trivial / Sanity-Check Benchmarks
-These are small, low-step tasks designed for quick validation of core agent components like function calling, basic reasoning, and tool selection. They catch obvious failures (e.g., hallucinated tools) and serve as debugging tools during development.
+
+These are small, low-step tasks designed for quick validation of core agent components like function calling, basic
+reasoning, and tool selection. They catch obvious failures (e.g., hallucinated tools) and serve as debugging tools
+during development.
 
 - **Berkeley Function Calling Leaderboard (BFCL) Single-Turn Subsets** (V1–V4 basics)  
   Simple, expert-curated single function calls across APIs. Tests basic tool invocation without multi-step reasoning.  
@@ -13,7 +23,8 @@ These are small, low-step tasks designed for quick validation of core agent comp
   Use: Sanity check for tool-calling reliability; top models near 99% on simple cases.
 
 - **LangChain Tool-Use Benchmarks** (e.g., basic environments)  
-  Short tasks testing planning overrides, function calling, and bias correction (e.g., simple object relationships or single-tool queries).  
+  Short tasks testing planning overrides, function calling, and bias correction (e.g., simple object relationships or
+  single-tool queries).  
   Metrics: Success on 1–3 step trajectories.  
   Use: Prerequisite checks; even GPT-4 occasionally fails trivial trajectories.
 
@@ -25,7 +36,9 @@ These are small, low-step tasks designed for quick validation of core agent comp
 These sets are essential for sanity testing: if an agent fails here, it will struggle elsewhere.
 
 #### Level 2: Introductory / Moderate Difficulty
-Tasks require 2–10 steps, basic multi-turn interaction, or simple environments. Success rates for frontier models: 60–90%.
+
+Tasks require 2–10 steps, basic multi-turn interaction, or simple environments. Success rates for frontier models:
+60–90%.
 
 - **BFCL Multi-Turn (V3–V4)**  
   Stateful multi-step function calls, including clarification and sequential tools.  
@@ -47,10 +60,13 @@ Tasks require 2–10 steps, basic multi-turn interaction, or simple environments
   Metrics: Tool choice accuracy.
 
 #### Level 3: Advanced / Real-World Difficulty
-Longer horizons (10–50 steps), realistic websites/APIs, multi-modality, or policy constraints. Success rates: 40–70% for top models; humans ~80–90%.
+
+Longer horizons (10–50 steps), realistic websites/APIs, multi-modality, or policy constraints. Success rates: 40–70% for
+top models; humans ~80–90%.
 
 - **GAIA**  
-  466 real-world questions requiring reasoning, tools, multimodality (images/files), web browsing. Levels 1–3 by step count.  
+  466 real-world questions requiring reasoning, tools, multimodality (images/files), web browsing. Levels 1–3 by step
+  count.  
   Metrics: Exact match (top agents ~70–75% in late 2025; humans 92%).  
   Use: General assistant proficiency; resistant to contamination.
 
@@ -70,7 +86,9 @@ Longer horizons (10–50 steps), realistic websites/APIs, multi-modality, or pol
   Use: Building blocks for real agents.
 
 #### Level 4: Frontier / High-Difficulty Benchmarks
-Extreme long-horizon planning, scientific/coding depth, or specialized domains. Success rates often <50%; reveal persistent gaps in robustness.
+
+Extreme long-horizon planning, scientific/coding depth, or specialized domains. Success rates often <50%; reveal
+persistent gaps in robustness.
 
 - **MLAgentBench / MLE-Bench**  
   End-to-end ML engineering (CIFAR improvement, Kaggle competitions).  
@@ -95,9 +113,12 @@ Extreme long-horizon planning, scientific/coding depth, or specialized domains. 
 Other notables: ColBench (collaborative reasoning), Context-Bench (long-context agents).
 
 ### Trends and Insights (2025)
+
 - Rapid progress: Web tasks improved from ~14% (early 2024) to ~60–75%.
 - Persistent challenges: Long-horizon (>50 steps), memory, error recovery, hallucination in tools.
 - Best practices: Use Agentic Benchmark Checklist (ABC) for rigor; combine categories for holistic eval.
-- Training/Validation: Trivial sets for debugging; moderate/advanced for fine-tuning trajectories; frontier for measuring generalization.
+- Training/Validation: Trivial sets for debugging; moderate/advanced for fine-tuning trajectories; frontier for
+  measuring generalization.
 
-These benchmarks drive agentic AI toward reliable, human-level autonomy, with 2025 marking accelerated gains in tool integration and reasoning.
+These benchmarks drive agentic AI toward reliable, human-level autonomy, with 2025 marking accelerated gains in tool
+integration and reasoning.

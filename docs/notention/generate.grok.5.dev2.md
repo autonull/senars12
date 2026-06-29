@@ -11,8 +11,9 @@ to a cohesive, functional system. Below, I outline a unified design for this age
 
 The **Software Developer Agent** is an Active Note (`type: "Developer"`) within Netention, embodying the roles of a
 requirements analyst, coder, and tester. It leverages the system's unified Note framework to autonomously evolve
-Netention from a starting specification, balancing exploration (requirements gathering) and exploitation (
-implementation). Its cleverness lies in a **recursive, fractal-like strategy** that mirrors software development itself:
+Netention from a starting specification, balancing exploration (requirements gathering) and exploitation
+(implementation). Its cleverness lies in a **recursive, fractal-like strategy** that mirrors software development
+itself:
 starting with a seed specification, it generates micro-specifications, implements them, tests them, and uses the results
 to refine higher-level requirements—all in a self-sustaining loop.
 

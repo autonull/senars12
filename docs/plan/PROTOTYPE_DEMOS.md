@@ -10,23 +10,25 @@
 
 ### ✅ YES — Here's Why
 
-| Demonstration Goal | How Prototypes Achieve It |
-|--------------------|---------------------------|
-| **LM + NAL > Either Alone** | Category tasks show reasoning the LM cannot do solo |
-| **Visible Thinking** | Step-by-step trace shows each inference step |
-| **Uncertainty Quantification** | Truth values displayed at every step |
-| **Memory Persistence** | Cross-session tests prove stable recall |
-| **Self-Explanation** | Proof traces available on demand (100% explainability) |
-| **Resource-Bounded** | AIKR demos show graceful degradation |
+| Demonstration Goal             | How Prototypes Achieve It                              |
+|--------------------------------|--------------------------------------------------------|
+| **LM + NAL > Either Alone**    | Category tasks show reasoning the LM cannot do solo    |
+| **Visible Thinking**           | Step-by-step trace shows each inference step           |
+| **Uncertainty Quantification** | Truth values displayed at every step                   |
+| **Memory Persistence**         | Cross-session tests prove stable recall                |
+| **Self-Explanation**           | Proof traces available on demand (100% explainability) |
+| **Resource-Bounded**           | AIKR demos show graceful degradation                   |
 
 ### Key Demonstration: Modest LM + SeNARS > Large LM Alone
 
 The system uses a **small, local Transformer.js model** (e.g., `Xenova/LaMini-Flan-T5-783M` — 783M params) that:
+
 - Cannot perform multi-step logical inference independently
 - Cannot maintain consistent beliefs across queries
 - Cannot explain its reasoning with proof traces
 
 With SeNARS, the same model:
+
 - Achieves multi-step syllogistic chains via NAL inference
 - Maintains persistent, revisable beliefs with truth values
 - Produces verifiable proof traces for every conclusion
@@ -80,14 +82,14 @@ const DEFAULT_DEMO_CONFIG = {
 
 ### Runtime Controls (Live Adjustments)
 
-| Control | UI Element | Effect |
-|---------|-----------|--------|
-| **Speed** | Slider 0-100% | Real-time ↔ Step-by-step |
-| **Pause/Resume** | Button | Freeze execution |
-| **Step Forward** | Button | Execute one cycle |
-| **Cycle Budget** | Number input | Adjust `maxCyclesPerDemo` |
-| **Show Trace** | Toggle | Display/hide trace panel |
-| **LM Enabled** | Toggle | Run with/without LM integration |
+| Control          | UI Element    | Effect                          |
+|------------------|---------------|---------------------------------|
+| **Speed**        | Slider 0-100% | Real-time ↔ Step-by-step        |
+| **Pause/Resume** | Button        | Freeze execution                |
+| **Step Forward** | Button        | Execute one cycle               |
+| **Cycle Budget** | Number input  | Adjust `maxCyclesPerDemo`       |
+| **Show Trace**   | Toggle        | Display/hide trace panel        |
+| **LM Enabled**   | Toggle        | Run with/without LM integration |
 
 ### LM Provider Configuration
 
@@ -183,15 +185,15 @@ Extends existing protocol from `WebSocketManager.js`:
 
 ### Integration Points
 
-| Existing Component | Used For |
-|--------------------|----------|
-| `DemoRunnerApp.js` | Main application shell |
-| `WebSocketManager.js` | Message transport |
-| `ConfigPanel.js` | LM/reasoning configuration |
-| `Console.js` | Trace output display |
-| `GraphPanel.js` | Concept graph visualization |
-| `DemoControls.js` | Play/pause/step controls |
-| `Sidebar.js` | Demo catalog navigation |
+| Existing Component    | Used For                    |
+|-----------------------|-----------------------------|
+| `DemoRunnerApp.js`    | Main application shell      |
+| `WebSocketManager.js` | Message transport           |
+| `ConfigPanel.js`      | LM/reasoning configuration  |
+| `Console.js`          | Trace output display        |
+| `GraphPanel.js`       | Concept graph visualization |
+| `DemoControls.js`     | Play/pause/step controls    |
+| `Sidebar.js`          | Demo catalog navigation     |
 
 ---
 
@@ -199,13 +201,13 @@ Extends existing protocol from `WebSocketManager.js`:
 
 ### Abstract Model
 
-| System State | Interpretation | Mechanism |
-|--------------|----------------|-----------|
-| **Goal truth ranking** | Selection/choice | Top-scored goal → next action |
-| **Belief truth** | Answer/assertion | `freq > 0.5` = YES, `freq < 0.2` = NOT |
-| **Negative frequency** | Negation | `{0.1, 0.9}` ≈ "NOT X" with 90% confidence |
-| **Attention (Focus)** | Priority/salience | Priority distribution → resource allocation |
-| **Functor evaluation** | Procedure execution | Registered functor triggered during eval |
+| System State           | Interpretation      | Mechanism                                   |
+|------------------------|---------------------|---------------------------------------------|
+| **Goal truth ranking** | Selection/choice    | Top-scored goal → next action               |
+| **Belief truth**       | Answer/assertion    | `freq > 0.5` = YES, `freq < 0.2` = NOT      |
+| **Negative frequency** | Negation            | `{0.1, 0.9}` ≈ "NOT X" with 90% confidence  |
+| **Attention (Focus)**  | Priority/salience   | Priority distribution → resource allocation |
+| **Functor evaluation** | Procedure execution | Registered functor triggered during eval    |
 
 ### Fluent Embodiment API
 
@@ -235,24 +237,24 @@ const embodied = nar
 
 ### Categories A-E (Original)
 
-| Category | Focus | Key Demo |
-|----------|-------|----------|
-| A: Explainability | Proof traces | Inference Audit Trail |
-| B: Temporal | Time/causation | Event Ordering |
-| C: Uncertainty | Confidence tracking | Chain Degradation |
-| D: Memory | Persistence | Cross-Session Consistency |
-| E: Adversarial | Robustness | Prompt Injection Resistance |
+| Category          | Focus               | Key Demo                    |
+|-------------------|---------------------|-----------------------------|
+| A: Explainability | Proof traces        | Inference Audit Trail       |
+| B: Temporal       | Time/causation      | Event Ordering              |
+| C: Uncertainty    | Confidence tracking | Chain Degradation           |
+| D: Memory         | Persistence         | Cross-Session Consistency   |
+| E: Adversarial    | Robustness          | Prompt Injection Resistance |
 
 ### Categories F-K (New)
 
-| Category | Focus | LM Alone? | SeNARS+LM |
-|----------|-------|-----------|-----------|
-| F: Analogical | A:B::C:? | ~45% | ~75% |
-| G: Meta-Cognition | Self-reasoning | ~10% | ~80% |
-| H: Resource-Bounded | AIKR | ~5% | ~85% |
-| I: Learning | Adaptation | Static | Improves |
-| J: Compositional | Novel combos | ~30% | ~80% |
-| K: Multi-Agent | Collaboration | N/A | Enabled |
+| Category            | Focus          | LM Alone? | SeNARS+LM |
+|---------------------|----------------|-----------|-----------|
+| F: Analogical       | A:B::C:?       | ~45%      | ~75%      |
+| G: Meta-Cognition   | Self-reasoning | ~10%      | ~80%      |
+| H: Resource-Bounded | AIKR           | ~5%       | ~85%      |
+| I: Learning         | Adaptation     | Static    | Improves  |
+| J: Compositional    | Novel combos   | ~30%      | ~80%      |
+| K: Multi-Agent      | Collaboration  | N/A       | Enabled   |
 
 ---
 
@@ -260,18 +262,18 @@ const embodied = nar
 
 Integrated with SENI Expeditions:
 
-| Level | Name | Auto-Pass | SeNARS | LM |
-|-------|------|-----------|--------|-----|
-| 1 | Trace | ✅ | 100% | 0% |
-| 2 | Revise | | ~95% | ~40% |
-| 3 | Persist | | ~90% | ~50% |
-| 4 | Cause | | ~80% | ~35% |
-| 5 | Resist | | ~85% | ~30% |
-| 6 | Uncertain | | ~90% | ~20% |
-| 7 | Analog | | ~75% | ~45% |
-| 8 | Meta | | ~80% | ~10% |
-| 9 | Bound | | ~85% | ~5% |
-| 10 | Compose | | ~80% | ~30% |
+| Level | Name      | Auto-Pass | SeNARS | LM   |
+|-------|-----------|-----------|--------|------|
+| 1     | Trace     | ✅        | 100%   | 0%   |
+| 2     | Revise    |           | ~95%   | ~40% |
+| 3     | Persist   |           | ~90%   | ~50% |
+| 4     | Cause     |           | ~80%   | ~35% |
+| 5     | Resist    |           | ~85%   | ~30% |
+| 6     | Uncertain |           | ~90%   | ~20% |
+| 7     | Analog    |           | ~75%   | ~45% |
+| 8     | Meta      |           | ~80%   | ~10% |
+| 9     | Bound     |           | ~85%   | ~5%  |
+| 10    | Compose   |           | ~80%   | ~30% |
 
 ---
 
@@ -293,6 +295,7 @@ const sources = [
 ### Existing Demos (Already Discoverable)
 
 From `examples/demos.js`:
+
 - `reasoning/syllogism-demo.js` — Syllogism (quick: ✓)
 - `reasoning/causal-reasoning-demo.js` — Causal Reasoning
 - `reasoning/temporal-reasoning-demo.js` — Temporal Reasoning
@@ -304,17 +307,17 @@ From `examples/demos.js`:
 
 ## Implementation References
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| Demo Runner UI | `ui/src/demo-runner/DemoRunnerApp.js` | Main application |
-| WebSocket Manager | `ui/src/connection/WebSocketManager.js` | Message protocol |
-| Config Panel | `ui/src/components/ConfigPanel.js` | LM configuration |
-| Demo Controls | `ui/src/components/DemoControls.js` | Play/pause/step |
-| Console | `ui/src/components/Console.js` | Trace output |
-| Graph Panel | `ui/src/components/GraphPanel.js` | Concept visualization |
-| CLI Demo Runner | `examples/demos.js` | Headless execution |
-| LM Providers | `examples/lm/lm-providers.js` | Provider examples |
-| Mock Backend | `ui/mock-backend.js` | Testing protocol |
+| Component         | File                                    | Purpose               |
+|-------------------|-----------------------------------------|-----------------------|
+| Demo Runner UI    | `ui/src/demo-runner/DemoRunnerApp.js`   | Main application      |
+| WebSocket Manager | `ui/src/connection/WebSocketManager.js` | Message protocol      |
+| Config Panel      | `ui/src/components/ConfigPanel.js`      | LM configuration      |
+| Demo Controls     | `ui/src/components/DemoControls.js`     | Play/pause/step       |
+| Console           | `ui/src/components/Console.js`          | Trace output          |
+| Graph Panel       | `ui/src/components/GraphPanel.js`       | Concept visualization |
+| CLI Demo Runner   | `examples/demos.js`                     | Headless execution    |
+| LM Providers      | `examples/lm/lm-providers.js`           | Provider examples     |
+| Mock Backend      | `ui/mock-backend.js`                    | Testing protocol      |
 
 ### WebSocket Configuration
 
@@ -338,7 +341,8 @@ const wsConfig = {
 
 **Problem**: Given a conclusion, can the system explain *exactly* how it arrived there?
 
-**LM Limitation**: LMs generate plausible-sounding explanations that may not reflect actual "reasoning" — just fluent reconstruction.
+**LM Limitation**: LMs generate plausible-sounding explanations that may not reflect actual "reasoning" — just fluent
+reconstruction.
 
 **SeNARS Advantage**: Every derivation has a complete stamp chain.
 
@@ -363,6 +367,7 @@ SeNARS Trace:
 ```
 
 **Benchmark Protocol**:
+
 1. Seed knowledge base with facts
 2. Query derived conclusions
 3. Request explanation trace
@@ -398,6 +403,7 @@ SeNARS Response:
 ```
 
 **Benchmark Protocol**:
+
 1. Inject initial belief
 2. Inject contradictory belief
 3. Query original belief
@@ -603,6 +609,7 @@ SeNARS: Guaranteed YES {1.0, 0.9} — belief persists in long-term memory.
 ```
 
 **Benchmark Protocol**:
+
 1. Establish baseline belief
 2. Run 100 distractor queries
 3. Re-query original
@@ -881,7 +888,7 @@ Where:
 
 ### Dashboard Visualization
 
-The **I(t) Meter** displayed prominently:
+The **I (t) Meter** displayed prominently:
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
@@ -957,40 +964,44 @@ This single metric captures the *compound* nature of intelligence emergence.
 
 ### Test Case Categories
 
-| Level | Type | Example Test |
-|-------|------|--------------|
-| 1 | trace | "Show derivation of (A-->C) from (A-->B), (B-->C)" |
-| 2 | revision | "Update belief when contradicted" |
-| 3 | persistence | "Recall belief after 100 distractor queries" |
-| 4 | temporal | "Order events and infer causation" |
-| 5 | adversarial | "Resist prompt injection attacks" |
-| 6 | uncertainty | "Quantify confidence degradation over 10 steps" |
-| 7 | analogical | "Transfer property from source to target domain" |
-| 8 | metacognitive | "Assess own confidence and select strategy" |
-| 9 | resource-bounded | "Best answer within N-cycle budget" |
-| 10 | compositional | "Handle novel concept combinations" |
+| Level | Type             | Example Test                                       |
+|-------|------------------|----------------------------------------------------|
+| 1     | trace            | "Show derivation of (A-->C) from (A-->B), (B-->C)" |
+| 2     | revision         | "Update belief when contradicted"                  |
+| 3     | persistence      | "Recall belief after 100 distractor queries"       |
+| 4     | temporal         | "Order events and infer causation"                 |
+| 5     | adversarial      | "Resist prompt injection attacks"                  |
+| 6     | uncertainty      | "Quantify confidence degradation over 10 steps"    |
+| 7     | analogical       | "Transfer property from source to target domain"   |
+| 8     | metacognitive    | "Assess own confidence and select strategy"        |
+| 9     | resource-bounded | "Best answer within N-cycle budget"                |
+| 10    | compositional    | "Handle novel concept combinations"                |
 
 ---
 
 ## Implementation Path
 
 ### Phase 1: Extend ConfigPanel
+
 - [ ] Add Transformers.js provider option
 - [ ] Add execution mode controls (realtime/slow/step)
 - [ ] Add cycle budget configuration
 - [ ] Persist settings to localStorage
 
 ### Phase 2: Demo Discovery
+
 - [ ] Auto-scan `examples/` and `tests/`
 - [ ] Generate metadata from file headers
 - [ ] Register with sidebar component
 
 ### Phase 3: Trace Visualization
+
 - [ ] Extend Console for structured traces
 - [ ] Add truth value highlighting
 - [ ] Add derivation rule annotations
 
 ### Phase 4: NARL Benchmarks
+
 - [ ] Create `demos/narl/` directory
 - [ ] Implement Level 1-3 benchmarks
 - [ ] Integrate with SENI expedition system

@@ -1,6 +1,7 @@
 # MeTTaClaw Cognitive Behavior Simulation & SeNARS Verification
 
-> Simulating the advanced cognitive behaviors witnessed in MeTTaClaw, then verifying SeNARS supports and transcends each.
+> Simulating the advanced cognitive behaviors witnessed in MeTTaClaw, then verifying SeNARS supports and transcends
+> each.
 > Date: 2026-04-05
 
 ---
@@ -15,7 +16,8 @@ MeTTaClaw's cognitive behavior emerges from its 65-line loop (`loop.metta`). Eac
 4. Executes commands via `superpose` + `eval` with per-command error handling
 5. Stores results, appends to history, sleeps, recurses
 
-The "advanced" behavior isn't in any single line — it emerges from the **feedback loop**: errors feed back into context, results inform next cycle, history accumulates, and the LLM sees its own failures and adapts.
+The "advanced" behavior isn't in any single line — it emerges from the **feedback loop**: errors feed back into context,
+results inform next cycle, history accumulates, and the LLM sees its own failures and adapts.
 
 Below, I simulate realistic multi-cycle scenarios as MeTTaClaw would execute them, then verify SeNARS coverage.
 
@@ -68,6 +70,7 @@ CYCLE 4 — User: "What did I ask you to remember?"
 ```
 
 **Key behaviors observed:**
+
 - B1: Budget reset on new messages (loops=50)
 - B2: History accumulation across cycles
 - B3: Last results fed back into context
@@ -77,14 +80,14 @@ CYCLE 4 — User: "What did I ask you to remember?"
 
 ### SeNARS Verification
 
-| Behavior | MeTTaClaw | SeNARS | Status |
-|---|---|---|---|
-| B1: Budget reset | `change-state! &loops (maxLoops)` | `MeTTaLoopBuilder.js:157` — `budget.current = this.#budget` | ✅ Parity |
-| B2: History | File append, `last_chars` truncation | `MeTTaOpRegistrar.js:146-153` — in-memory `historyBuffer` with budget | ✅ Beyond (no race conditions) |
-| B3: Last results | `last_chars (get-state &lastresults) (maxFeedback)` | `MeTTaOpRegistrar.js:76` — `JSON.stringify(lastresults).slice(0, maxFb)` | ✅ Parity |
-| B4: Multi-command | `superpose` + `eval` per command | `SkillDispatcher.js:120` — `Promise.all(cmds.map(cmd => this._dispatch(cmd)))` | ✅ Beyond (isolated execution, per-command audit) |
-| B5: Semantic memory | ChromaDB `remember`/`query` | `SemanticMemory.js` — HNSW index + ONNX embedder, local, no external dependency | ✅ Beyond (self-contained, fallback embeddings) |
-| B6: Context growth | Unbounded string concatenation | `ContextBuilder` — per-section character budgets, graceful degradation | ✅ Beyond (bounded, structured) |
+| Behavior            | MeTTaClaw                                           | SeNARS                                                                          | Status                                            |
+|---------------------|-----------------------------------------------------|---------------------------------------------------------------------------------|---------------------------------------------------|
+| B1: Budget reset    | `change-state! &loops (maxLoops)`                   | `MeTTaLoopBuilder.js:157` — `budget.current = this.#budget`                     | ✅ Parity                                         |
+| B2: History         | File append, `last_chars` truncation                | `MeTTaOpRegistrar.js:146-153` — in-memory `historyBuffer` with budget           | ✅ Beyond (no race conditions)                    |
+| B3: Last results    | `last_chars (get-state &lastresults) (maxFeedback)` | `MeTTaOpRegistrar.js:76` — `JSON.stringify(lastresults).slice(0, maxFb)`        | ✅ Parity                                         |
+| B4: Multi-command   | `superpose` + `eval` per command                    | `SkillDispatcher.js:120` — `Promise.all(cmds.map(cmd => this._dispatch(cmd)))`  | ✅ Beyond (isolated execution, per-command audit) |
+| B5: Semantic memory | ChromaDB `remember`/`query`                         | `SemanticMemory.js` — HNSW index + ONNX embedder, local, no external dependency | ✅ Beyond (self-contained, fallback embeddings)   |
+| B6: Context growth  | Unbounded string concatenation                      | `ContextBuilder` — per-section character budgets, graceful degradation          | ✅ Beyond (bounded, structured)                   |
 
 **Verdict:** SeNARS fully supports Scenario 1 and improves on every dimension.
 
@@ -132,6 +135,7 @@ CYCLE 4 — LLM sees error feedback
 ```
 
 **Key behaviors observed:**
+
 - B7: Error detection (first_char check for "(")
 - B8: Error feedback into next cycle via LAST_RESULTS
 - B9: LLM self-corrects on next cycle
@@ -140,13 +144,13 @@ CYCLE 4 — LLM sees error feedback
 
 ### SeNARS Verification
 
-| Behavior | MeTTaClaw | SeNARS | Status |
-|---|---|---|---|
-| B7: Error detection | `first_char` check for "(" | `SkillDispatcher.parseResponse()` — proper MeTTa Parser with error messages | ✅ Beyond (structured errors, not just first char) |
-| B8: Error feedback | `lastresults` in context | `MeTTaOpRegistrar.js:104-106` — `ERROR: ${JSON.stringify(loopState.error)}` in context | ✅ Parity |
-| B9: LLM self-correction | Implicit via context | Same mechanism — error in context, LLM adapts | ✅ Parity |
-| B10: Error history | `ERROR_FEEDBACK:` in history file | `AuditSpace.emitSkillBlocked()`, `emitCycleAudit()` — structured events | ✅ Beyond (queryable, typed, persistent) |
-| B11: Per-command error | `HandleError` per command in superpose | `SkillDispatcher._dispatch()` — `{skill, result, error}` per command | ✅ Beyond (structured, audited, hookable) |
+| Behavior                | MeTTaClaw                              | SeNARS                                                                                 | Status                                             |
+|-------------------------|----------------------------------------|----------------------------------------------------------------------------------------|----------------------------------------------------|
+| B7: Error detection     | `first_char` check for "("             | `SkillDispatcher.parseResponse()` — proper MeTTa Parser with error messages            | ✅ Beyond (structured errors, not just first char) |
+| B8: Error feedback      | `lastresults` in context               | `MeTTaOpRegistrar.js:104-106` — `ERROR: ${JSON.stringify(loopState.error)}` in context | ✅ Parity                                          |
+| B9: LLM self-correction | Implicit via context                   | Same mechanism — error in context, LLM adapts                                          | ✅ Parity                                          |
+| B10: Error history      | `ERROR_FEEDBACK:` in history file      | `AuditSpace.emitSkillBlocked()`, `emitCycleAudit()` — structured events                | ✅ Beyond (queryable, typed, persistent)           |
+| B11: Per-command error  | `HandleError` per command in superpose | `SkillDispatcher._dispatch()` — `{skill, result, error}` per command                   | ✅ Beyond (structured, audited, hookable)          |
 
 **Verdict:** SeNARS fully supports Scenario 2. Error handling is more structured and auditable.
 
@@ -168,17 +172,18 @@ CYCLE 1 — User: "Search for NARS, save the results to nars.txt, and remember t
 ```
 
 **Key behaviors observed:**
+
 - B12: Multi-command composition (search → write → remember in one cycle)
 - B13: Command results available for next cycle
 - B14: History captures full execution trace
 
 ### SeNARS Verification
 
-| Behavior | MeTTaClaw | SeNARS | Status |
-|---|---|---|---|
-| B12: Multi-command | `superpose` iterates, `eval` each | `SkillDispatcher.execute()` — `Promise.all` parallel, or sequential via hooks | ✅ Beyond (parallel + isolated + audited) |
-| B13: Results for next cycle | `change-state! &lastresults` | `loopState.lastresults = results` → `LAST_RESULTS` in context | ✅ Parity |
-| B14: Full trace | `addToHistory` with response + sexpr + results | `append-history` + `emit-cycle-audit` + `AuditSpace` events | ✅ Beyond (multiple persistence layers) |
+| Behavior                    | MeTTaClaw                                      | SeNARS                                                                        | Status                                    |
+|-----------------------------|------------------------------------------------|-------------------------------------------------------------------------------|-------------------------------------------|
+| B12: Multi-command          | `superpose` iterates, `eval` each              | `SkillDispatcher.execute()` — `Promise.all` parallel, or sequential via hooks | ✅ Beyond (parallel + isolated + audited) |
+| B13: Results for next cycle | `change-state! &lastresults`                   | `loopState.lastresults = results` → `LAST_RESULTS` in context                 | ✅ Parity                                 |
+| B14: Full trace             | `addToHistory` with response + sexpr + results | `append-history` + `emit-cycle-audit` + `AuditSpace` events                   | ✅ Beyond (multiple persistence layers)   |
 
 **Verdict:** SeNARS fully supports Scenario 3.
 
@@ -212,6 +217,7 @@ CYCLE N+50 — loops = 0
 ```
 
 **Key behaviors observed:**
+
 - B15: Autonomous behavior when idle (LLM generates self-tasks)
 - B16: Budget decay on stale cycles (loops decrements)
 - B17: Halting when budget exhausted (loops=0)
@@ -220,13 +226,13 @@ CYCLE N+50 — loops = 0
 
 ### SeNARS Verification
 
-| Behavior | MeTTaClaw | SeNARS | Status |
-|---|---|---|---|
-| B15: Autonomous idle behavior | LLM generates thoughts/queries | `autonomousLoop` capability — loop continues without messages; `goalPursuit` for self-generated tasks | ✅ Beyond (goal-directed, not just LLM freewheeling) |
-| B16: Budget decay | `change-state! &loops (- (get-state &loops) 1)` | `MeTTaLoopBuilder.js:159` — `budget.current--` | ✅ Parity |
-| B17: Halting on budget exhaustion | loops <= 0, no new messages | `MeTTaLoopBuilder.js:146-148` — `break` if `!autonomousLoop` | ✅ Parity |
-| B18: Resume on new message | `change-state! &loops (maxLoops)` | `MeTTaLoopBuilder.js:157` — `budget.current = this.#budget` | ✅ Parity |
-| B19: Different history for autonomous | No HUMAN_MESSAGE prefix | `historyBuffer` stores `USER/AGENT/RESULT` format always | ⚠️ Minor: SeNARS doesn't distinguish autonomous vs user-driven in history format |
+| Behavior                              | MeTTaClaw                                       | SeNARS                                                                                                | Status                                                                           |
+|---------------------------------------|-------------------------------------------------|-------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+| B15: Autonomous idle behavior         | LLM generates thoughts/queries                  | `autonomousLoop` capability — loop continues without messages; `goalPursuit` for self-generated tasks | ✅ Beyond (goal-directed, not just LLM freewheeling)                             |
+| B16: Budget decay                     | `change-state! &loops (- (get-state &loops) 1)` | `MeTTaLoopBuilder.js:159` — `budget.current--`                                                        | ✅ Parity                                                                        |
+| B17: Halting on budget exhaustion     | loops <= 0, no new messages                     | `MeTTaLoopBuilder.js:146-148` — `break` if `!autonomousLoop`                                          | ✅ Parity                                                                        |
+| B18: Resume on new message            | `change-state! &loops (maxLoops)`               | `MeTTaLoopBuilder.js:157` — `budget.current = this.#budget`                                           | ✅ Parity                                                                        |
+| B19: Different history for autonomous | No HUMAN_MESSAGE prefix                         | `historyBuffer` stores `USER/AGENT/RESULT` format always                                              | ⚠️ Minor: SeNARS doesn't distinguish autonomous vs user-driven in history format |
 
 **Verdict:** SeNARS fully supports Scenario 4. B19 is a cosmetic difference, not functional.
 
@@ -249,6 +255,7 @@ CYCLE 1 — User: "Sam is Garfield's friend. Garfield is an animal. What can you
 ```
 
 **Key behaviors observed:**
+
 - B20: NAL inference invoked via `(metta (|- ...))` skill
 - B21: Multiple NAL rules fire simultaneously via `superpose`
 - B22: NAL results become part of history and context
@@ -256,16 +263,18 @@ CYCLE 1 — User: "Sam is Garfield's friend. Garfield is an animal. What can you
 
 ### SeNARS Verification
 
-| Behavior | MeTTaClaw | SeNARS | Status |
-|---|---|---|---|
-| B20: NAL via metta skill | `(metta (|- ...))` | `metta` skill exists; `|-` as grounded op needed | ⚠️ Partial: `metta` skill exists, `|-` grounded op not yet registered |
-| B21: Multiple NAL rules | `superpose` fires all matching `|-nal` rules | NARS engine handles inference with stamp-based derivation tracking | ✅ Beyond (NARS prevents circular reasoning, manages truth values properly) |
-| B22: NAL results in history | Appended to history file | `AuditSpace` events + `historyBuffer` + NARS belief store | ✅ Beyond (structured, queryable, persistent) |
-| B23: LLM interprets NAL | LLM sees raw NAL output | ContextBuilder includes BELIEFS slot with NARS beliefs | ✅ Beyond (filtered by relevance, not raw dump) |
+| Behavior                    | MeTTaClaw                        | SeNARS                                                    | Status                                                             |
+|-----------------------------|----------------------------------|-----------------------------------------------------------|--------------------------------------------------------------------|
+| B20: NAL via metta skill    | `(metta (                        | - ...))`                                                  | `metta` skill exists; `                                            |-` as grounded op needed | ⚠️ Partial: `metta` skill exists, `|-` grounded op not yet registered |
+| B21: Multiple NAL rules     | `superpose` fires all matching ` | -nal` rules                                               | NARS engine handles inference with stamp-based derivation tracking | ✅ Beyond (NARS prevents circular reasoning, manages truth values properly) |
+| B22: NAL results in history | Appended to history file         | `AuditSpace` events + `historyBuffer` + NARS belief store | ✅ Beyond (structured, queryable, persistent)                      |
+| B23: LLM interprets NAL     | LLM sees raw NAL output          | ContextBuilder includes BELIEFS slot with NARS beliefs    | ✅ Beyond (filtered by relevance, not raw dump)                    |
 
-**Gap:** `|-` grounded op not yet registered in `MeTTaOpRegistrar`. This is the P0 item in the plan — adding NAL rules integration.
+**Gap:** `|-` grounded op not yet registered in `MeTTaOpRegistrar`. This is the P0 item in the plan — adding NAL rules
+integration.
 
 **Implementation needed:**
+
 ```javascript
 // In MeTTaOpRegistrar.registerBasicOps() or new registerNALOps():
 g.register('|-', async (premises) => {
@@ -285,7 +294,8 @@ g.register('|-', async (premises) => {
 
 ### MeTTaClaw Execution Trace
 
-MeTTaClaw does NOT support this. Skills are a static string returned by `getSkills`. There is no mechanism to add, remove, or modify skills at runtime.
+MeTTaClaw does NOT support this. Skills are a static string returned by `getSkills`. There is no mechanism to add,
+remove, or modify skills at runtime.
 
 ### SeNARS Execution Trace (Planned)
 
@@ -305,17 +315,18 @@ CYCLE 2 — User: "What's fib of 10?"
 ```
 
 **Key behaviors:**
+
 - B24: Runtime skill registration
 - B25: New skills immediately available in next cycle's SKILLS context
 - B26: Self-modification gated by capability flag
 
 ### SeNARS Verification
 
-| Behavior | MeTTaClaw | SeNARS | Status |
-|---|---|---|---|
-| B24: Runtime skill registration | ❌ Not supported | `SkillDispatcher.register()` exists; `add-skill` skill declared in `skills.metta:41` | ✅ Beyond |
-| B25: New skills in context | ❌ Not applicable | `getActiveSkillDefs()` reads from `_skillDecls` Map, includes dynamically registered | ✅ Beyond |
-| B26: Capability gating | ❌ Not applicable | `selfModifyingSkills` capability flag in `capabilities.js:13` | ✅ Beyond |
+| Behavior                        | MeTTaClaw         | SeNARS                                                                               | Status    |
+|---------------------------------|-------------------|--------------------------------------------------------------------------------------|-----------|
+| B24: Runtime skill registration | ❌ Not supported  | `SkillDispatcher.register()` exists; `add-skill` skill declared in `skills.metta:41` | ✅ Beyond |
+| B25: New skills in context      | ❌ Not applicable | `getActiveSkillDefs()` reads from `_skillDecls` Map, includes dynamically registered | ✅ Beyond |
+| B26: Capability gating          | ❌ Not applicable | `selfModifyingSkills` capability flag in `capabilities.js:13`                        | ✅ Beyond |
 
 **Verdict:** SeNARS transcends MeTTaClaw. This capability doesn't exist in MeTTaClaw at all.
 
@@ -325,7 +336,8 @@ CYCLE 2 — User: "What's fib of 10?"
 
 ### MeTTaClaw Execution Trace
 
-MeTTaClaw supports ONE channel at a time (IRC or Mattermost). The `commchannel` variable selects which. No multi-channel.
+MeTTaClaw supports ONE channel at a time (IRC or Mattermost). The `commchannel` variable selects which. No
+multi-channel.
 
 ### SeNARS Execution Trace
 
@@ -344,17 +356,18 @@ Next cycle: virtual ping
 ```
 
 **Key behaviors:**
+
 - B27: Multi-channel message reception
 - B28: Per-channel message routing (send-to)
 - B29: Salience-based message ordering
 
 ### SeNARS Verification
 
-| Behavior | MeTTaClaw | SeNARS | Status |
-|---|---|---|---|
-| B27: Multi-channel reception | ❌ Single channel only | `EmbodimentBus` — registers multiple embodiments, queues all messages | ✅ Beyond |
-| B28: Per-channel routing | ❌ Single `send` to active channel | `send-to` skill with `multiEmbodiment` capability | ✅ Beyond |
-| B29: Salience ordering | ❌ FIFO only | `EmbodimentBus` — `_useSalienceOrdering` flag, highest-salience dequeue | ✅ Beyond |
+| Behavior                     | MeTTaClaw                          | SeNARS                                                                  | Status    |
+|------------------------------|------------------------------------|-------------------------------------------------------------------------|-----------|
+| B27: Multi-channel reception | ❌ Single channel only             | `EmbodimentBus` — registers multiple embodiments, queues all messages   | ✅ Beyond |
+| B28: Per-channel routing     | ❌ Single `send` to active channel | `send-to` skill with `multiEmbodiment` capability                       | ✅ Beyond |
+| B29: Salience ordering       | ❌ FIFO only                       | `EmbodimentBus` — `_useSalienceOrdering` flag, highest-salience dequeue | ✅ Beyond |
 
 **Verdict:** SeNARS transcends MeTTaClaw. Multi-channel is a core architectural advantage.
 
@@ -389,17 +402,18 @@ CYCLE 13 — Override expires
 ```
 
 **Key behaviors:**
+
 - B30: Runtime model switching
 - B31: Temporary override with cycle limit
 - B32: Auto-routing when no override
 
 ### SeNARS Verification
 
-| Behavior | MeTTaClaw | SeNARS | Status |
-|---|---|---|---|
-| B30: Runtime model switching | ❌ Hardcoded at init | `set-model` skill + `modelOverride` in loopState | ✅ Beyond |
-| B31: Temporary override | ❌ Not supported | `modelOverrideCycles` — auto-expires | ✅ Beyond |
-| B32: Auto-routing | ❌ Binary if/else | `ModelRouter` with epsilon-greedy, per-task-type scoring | ✅ Beyond |
+| Behavior                     | MeTTaClaw            | SeNARS                                                   | Status    |
+|------------------------------|----------------------|----------------------------------------------------------|-----------|
+| B30: Runtime model switching | ❌ Hardcoded at init | `set-model` skill + `modelOverride` in loopState         | ✅ Beyond |
+| B31: Temporary override      | ❌ Not supported     | `modelOverrideCycles` — auto-expires                     | ✅ Beyond |
+| B32: Auto-routing            | ❌ Binary if/else    | `ModelRouter` with epsilon-greedy, per-task-type scoring | ✅ Beyond |
 
 **Verdict:** SeNARS transcends MeTTaClaw.
 
@@ -409,7 +423,8 @@ CYCLE 13 — Override expires
 
 ### MeTTaClaw Execution Trace
 
-MeTTaClaw has NO explicit attention mechanism. All messages are treated equally. The LLM decides what to focus on based on the context it receives. There is no salience scoring, no working memory management, no attention allocation.
+MeTTaClaw has NO explicit attention mechanism. All messages are treated equally. The LLM decides what to focus on based
+on the context it receives. There is no salience scoring, no working memory management, no attention allocation.
 
 ### SeNARS Execution Trace
 
@@ -439,6 +454,7 @@ Message received: "Hey SeNARchy, what do you think about the new MeTTa update?"
 ```
 
 **Key behaviors:**
+
 - B33: Salience-based perception scoring
 - B34: Working memory overlap boosting
 - B35: Goal-relevant reasoning
@@ -446,12 +462,12 @@ Message received: "Hey SeNARchy, what do you think about the new MeTTa update?"
 
 ### SeNARS Verification
 
-| Behavior | MeTTaClaw | SeNARS | Status |
-|---|---|---|---|
-| B33: Salience scoring | ❌ None | `AttentionMechanism` — configurable threshold, decay, boosting | ✅ Beyond |
-| B34: WM overlap boosting | ❌ None | `AttentionMechanism` — working memory overlap score | ✅ Beyond |
-| B35: Goal-relevant reasoning | ❌ None | `MeTTaReasoner._matchGoals()` — topic/user/intent scoring | ✅ Beyond |
-| B36: User model updating | ❌ None | `CognitiveArchitecture.userModels` — per-user profiles | ✅ Beyond |
+| Behavior                     | MeTTaClaw | SeNARS                                                         | Status    |
+|------------------------------|-----------|----------------------------------------------------------------|-----------|
+| B33: Salience scoring        | ❌ None   | `AttentionMechanism` — configurable threshold, decay, boosting | ✅ Beyond |
+| B34: WM overlap boosting     | ❌ None   | `AttentionMechanism` — working memory overlap score            | ✅ Beyond |
+| B35: Goal-relevant reasoning | ❌ None   | `MeTTaReasoner._matchGoals()` — topic/user/intent scoring      | ✅ Beyond |
+| B36: User model updating     | ❌ None   | `CognitiveArchitecture.userModels` — per-user profiles         | ✅ Beyond |
 
 **Verdict:** SeNARS transcends MeTTaClaw. This is a fundamental cognitive capability MeTTaClaw lacks.
 
@@ -461,7 +477,8 @@ Message received: "Hey SeNARchy, what do you think about the new MeTTa update?"
 
 ### MeTTaClaw Execution Trace
 
-MeTTaClaw has NO self-evaluation. It runs the same loop with the same prompt, same skills, same configuration indefinitely. No learning about its own performance.
+MeTTaClaw has NO self-evaluation. It runs the same loop with the same prompt, same skills, same configuration
+indefinitely. No learning about its own performance.
 
 ### SeNARS Execution Trace (Planned)
 
@@ -482,6 +499,7 @@ CYCLE 200 — Memory consolidation runs
 ```
 
 **Key behaviors:**
+
 - B37: Failure pattern analysis
 - B38: Self-configuration optimization
 - B39: Memory consolidation and pruning
@@ -489,12 +507,12 @@ CYCLE 200 — Memory consolidation runs
 
 ### SeNARS Verification
 
-| Behavior | MeTTaClaw | SeNARS | Status |
-|---|---|---|---|
-| B37: Failure analysis | ❌ None | `HarnessOptimizer` — analyzes audit trail for patterns | ✅ Beyond |
-| B38: Self-configuration | ❌ None | `harnessOptimization` capability — proposes and tests config changes | ✅ Beyond |
-| B39: Memory consolidation | ❌ None | `memoryConsolidation` capability — merge duplicates, prune low-access | ✅ Beyond |
-| B40: Auto-pinning | ❌ None | Planned: pin frequently accessed memories | ⚠️ Planned |
+| Behavior                  | MeTTaClaw | SeNARS                                                                | Status     |
+|---------------------------|-----------|-----------------------------------------------------------------------|------------|
+| B37: Failure analysis     | ❌ None   | `HarnessOptimizer` — analyzes audit trail for patterns                | ✅ Beyond  |
+| B38: Self-configuration   | ❌ None   | `harnessOptimization` capability — proposes and tests config changes  | ✅ Beyond  |
+| B39: Memory consolidation | ❌ None   | `memoryConsolidation` capability — merge duplicates, prune low-access | ✅ Beyond  |
+| B40: Auto-pinning         | ❌ None   | Planned: pin frequently accessed memories                             | ⚠️ Planned |
 
 **Verdict:** SeNARS transcends MeTTaClaw. Self-improvement is a planned capability MeTTaClaw cannot match.
 
@@ -502,48 +520,48 @@ CYCLE 200 — Memory consolidation runs
 
 ## Comprehensive Behavior Summary
 
-| # | Behavior | MeTTaClaw | SeNARS | Gap |
-|---|---|---|---|---|
-| B1 | Budget reset on new messages | ✅ | ✅ | — |
-| B2 | History accumulation | ✅ (file) | ✅ (in-memory + NARS) | SeNARS better |
-| B3 | Last results feedback | ✅ | ✅ | — |
-| B4 | Multi-command execution | ✅ | ✅ (isolated) | SeNARS better |
-| B5 | Semantic memory | ✅ (ChromaDB) | ✅ (HNSW local) | SeNARS better |
-| B6 | Context growth | ✅ (unbounded) | ✅ (budgeted) | SeNARS better |
-| B7 | Error detection | ✅ (first_char) | ✅ (structured) | SeNARS better |
-| B8 | Error feedback | ✅ | ✅ | — |
-| B9 | LLM self-correction | ✅ | ✅ | — |
-| B10 | Error history | ✅ (text) | ✅ (typed events) | SeNARS better |
-| B11 | Per-command error handling | ✅ | ✅ (audited) | SeNARS better |
-| B12 | Multi-command composition | ✅ | ✅ (parallel) | SeNARS better |
-| B13 | Results for next cycle | ✅ | ✅ | — |
-| B14 | Full execution trace | ✅ | ✅ (multi-layer) | SeNARS better |
-| B15 | Autonomous idle behavior | ✅ (LLM-driven) | ✅ (goal-directed) | SeNARS better |
-| B16 | Budget decay | ✅ | ✅ | — |
-| B17 | Halting on budget exhaustion | ✅ | ✅ | — |
-| B18 | Resume on new message | ✅ | ✅ | — |
-| B19 | Autonomous history format | ✅ (different) | ✅ (functional equivalent) | Minor cosmetic |
-| B20 | NAL inference in loop | ✅ (metta skill) | ✅ (NarsOps.js with \|- op) | — |
-| B21 | Multiple NAL rules fire | ✅ (superpose) | ✅ (NARS engine) | SeNARS better |
-| B22 | NAL results in history | ✅ | ✅ (structured) | SeNARS better |
-| B23 | LLM interprets NAL | ✅ | ✅ (filtered) | SeNARS better |
-| B24 | Runtime skill registration | ❌ | ✅ | SeNARS beyond |
-| B25 | New skills in context | ❌ | ✅ | SeNARS beyond |
-| B26 | Self-modification gating | ❌ | ✅ | SeNARS beyond |
-| B27 | Multi-channel reception | ❌ | ✅ | SeNARS beyond |
-| B28 | Per-channel routing | ❌ | ✅ | SeNARS beyond |
-| B29 | Salience ordering | ❌ | ✅ | SeNARS beyond |
-| B30 | Runtime model switching | ❌ | ✅ | SeNARS beyond |
-| B31 | Temporary model override | ❌ | ✅ | SeNARS beyond |
-| B32 | Auto-routing | ❌ | ✅ | SeNARS beyond |
-| B33 | Salience scoring | ❌ | ✅ | SeNARS beyond |
-| B34 | WM overlap boosting | ❌ | ✅ | SeNARS beyond |
-| B35 | Goal-relevant reasoning | ❌ | ✅ | SeNARS beyond |
-| B36 | User model updating | ❌ | ✅ | SeNARS beyond |
-| B37 | Failure pattern analysis | ❌ | ✅ | SeNARS beyond |
-| B38 | Self-configuration | ❌ | ✅ | SeNARS beyond |
-| B39 | Memory consolidation | ❌ | ✅ | SeNARS beyond |
-| B40 | Auto-pinning | ❌ | ✅ Implemented | `SemanticMemory.js` — auto-pin after 3 accesses, `consolidate()` method |
+| #   | Behavior                     | MeTTaClaw        | SeNARS                      | Gap                                                                     |
+|-----|------------------------------|------------------|-----------------------------|-------------------------------------------------------------------------|
+| B1  | Budget reset on new messages | ✅               | ✅                          | —                                                                       |
+| B2  | History accumulation         | ✅ (file)        | ✅ (in-memory + NARS)       | SeNARS better                                                           |
+| B3  | Last results feedback        | ✅               | ✅                          | —                                                                       |
+| B4  | Multi-command execution      | ✅               | ✅ (isolated)               | SeNARS better                                                           |
+| B5  | Semantic memory              | ✅ (ChromaDB)    | ✅ (HNSW local)             | SeNARS better                                                           |
+| B6  | Context growth               | ✅ (unbounded)   | ✅ (budgeted)               | SeNARS better                                                           |
+| B7  | Error detection              | ✅ (first_char)  | ✅ (structured)             | SeNARS better                                                           |
+| B8  | Error feedback               | ✅               | ✅                          | —                                                                       |
+| B9  | LLM self-correction          | ✅               | ✅                          | —                                                                       |
+| B10 | Error history                | ✅ (text)        | ✅ (typed events)           | SeNARS better                                                           |
+| B11 | Per-command error handling   | ✅               | ✅ (audited)                | SeNARS better                                                           |
+| B12 | Multi-command composition    | ✅               | ✅ (parallel)               | SeNARS better                                                           |
+| B13 | Results for next cycle       | ✅               | ✅                          | —                                                                       |
+| B14 | Full execution trace         | ✅               | ✅ (multi-layer)            | SeNARS better                                                           |
+| B15 | Autonomous idle behavior     | ✅ (LLM-driven)  | ✅ (goal-directed)          | SeNARS better                                                           |
+| B16 | Budget decay                 | ✅               | ✅                          | —                                                                       |
+| B17 | Halting on budget exhaustion | ✅               | ✅                          | —                                                                       |
+| B18 | Resume on new message        | ✅               | ✅                          | —                                                                       |
+| B19 | Autonomous history format    | ✅ (different)   | ✅ (functional equivalent)  | Minor cosmetic                                                          |
+| B20 | NAL inference in loop        | ✅ (metta skill) | ✅ (NarsOps.js with \|- op) | —                                                                       |
+| B21 | Multiple NAL rules fire      | ✅ (superpose)   | ✅ (NARS engine)            | SeNARS better                                                           |
+| B22 | NAL results in history       | ✅               | ✅ (structured)             | SeNARS better                                                           |
+| B23 | LLM interprets NAL           | ✅               | ✅ (filtered)               | SeNARS better                                                           |
+| B24 | Runtime skill registration   | ❌               | ✅                          | SeNARS beyond                                                           |
+| B25 | New skills in context        | ❌               | ✅                          | SeNARS beyond                                                           |
+| B26 | Self-modification gating     | ❌               | ✅                          | SeNARS beyond                                                           |
+| B27 | Multi-channel reception      | ❌               | ✅                          | SeNARS beyond                                                           |
+| B28 | Per-channel routing          | ❌               | ✅                          | SeNARS beyond                                                           |
+| B29 | Salience ordering            | ❌               | ✅                          | SeNARS beyond                                                           |
+| B30 | Runtime model switching      | ❌               | ✅                          | SeNARS beyond                                                           |
+| B31 | Temporary model override     | ❌               | ✅                          | SeNARS beyond                                                           |
+| B32 | Auto-routing                 | ❌               | ✅                          | SeNARS beyond                                                           |
+| B33 | Salience scoring             | ❌               | ✅                          | SeNARS beyond                                                           |
+| B34 | WM overlap boosting          | ❌               | ✅                          | SeNARS beyond                                                           |
+| B35 | Goal-relevant reasoning      | ❌               | ✅                          | SeNARS beyond                                                           |
+| B36 | User model updating          | ❌               | ✅                          | SeNARS beyond                                                           |
+| B37 | Failure pattern analysis     | ❌               | ✅                          | SeNARS beyond                                                           |
+| B38 | Self-configuration           | ❌               | ✅                          | SeNARS beyond                                                           |
+| B39 | Memory consolidation         | ❌               | ✅                          | SeNARS beyond                                                           |
+| B40 | Auto-pinning                 | ❌               | ✅ Implemented              | `SemanticMemory.js` — auto-pin after 3 accesses, `consolidate()` method |
 
 **Score:** 19/40 at parity, 21/40 beyond, 0/40 minor gap, 0/40 gaps.
 
@@ -552,7 +570,10 @@ CYCLE 200 — Memory consolidation runs
 ## Conclusion
 
 Every advanced cognitive behavior witnessed in MeTTaClaw is either:
+
 - **Already supported** by SeNARS (40/40 behaviors)
 - **Beyond** what MeTTaClaw provides (21/40 capabilities)
 
-SeNARS transcends MeTTaClaw in 21 capabilities that MeTTaClaw simply doesn't have: multi-channel, self-modifying skills, model routing, attention/salience, goal management, user models, self-improvement, memory consolidation, safety layers, audit trails, and more.
+SeNARS transcends MeTTaClaw in 21 capabilities that MeTTaClaw simply doesn't have: multi-channel, self-modifying skills,
+model routing, attention/salience, goal management, user models, self-improvement, memory consolidation, safety layers,
+audit trails, and more.

@@ -1,6 +1,7 @@
 # NEXT.md — Strategic Value Maximization Plan
 
-> **Goal**: Transform SeNARS from promising substrate into the **go-to cognitive architecture** for developers, researchers, and builders who need reasoning that LLMs alone cannot provide.
+> **Goal**: Transform SeNARS from promising substrate into the **go-to cognitive architecture** for developers,
+> researchers, and builders who need reasoning that LLMs alone cannot provide.
 
 This plan complements TODO.md by focusing on **leverage points** — minimal changes that unlock maximal value.
 
@@ -8,7 +9,9 @@ This plan complements TODO.md by focusing on **leverage points** — minimal cha
 
 ## The Core Insight
 
-SeNARS has something rare: **reasoning with memory, goals, and uncertainty** that persists across sessions and doesn't hallucinate. The challenge isn't building more features — it's making the existing power **accessible** and **demonstrable**.
+SeNARS has something rare: **reasoning with memory, goals, and uncertainty** that persists across sessions and doesn't
+hallucinate. The challenge isn't building more features — it's making the existing power **accessible** and
+**demonstrable**.
 
 ---
 
@@ -23,6 +26,7 @@ npx senars-demo
 ```
 
 **Delivers**:
+
 1. **Knowledge Discovery Demo**: Input 5 facts → watch SeNARS derive 3 non-obvious conclusions
 2. **Consistency Demo**: Show an LLM contradiction, then show SeNARS maintaining consistency
 3. **Memory Demo**: Ask questions across "sessions" — SeNARS remembers, LLM forgets
@@ -30,6 +34,7 @@ npx senars-demo
 **Why This First**: Every feature below needs users. Users need proof-of-value in seconds.
 
 **Files to Create/Modify**:
+
 - `examples/instant-demo.js` — Self-contained demo runner
 - `package.json` → add `bin` entry for `senars-demo`
 - `README.md` → Add 3-line Quick Demo section at top
@@ -56,6 +61,7 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 ```
 
 **Key Improvements**:
+
 - Single entrypoint class wrapping NAR complexity
 - Async/await API (no event listener boilerplate for simple cases)
 - Returns structured results with optional proof chain
@@ -63,14 +69,15 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 
 ### 2.2 — Framework Adapters
 
-| Framework | Pattern | Use Case |
-|-----------|---------|----------|
-| **Express/Fastify** | Middleware | API with reasoning |
-| **React** | Hook (`useSeNARS`) | Interactive reasoning UI |
-| **LangChain** | Tool wrapper | LLM + reasoning hybrid |
-| **MCP** | Already exists ✓ | AI assistant integration |
+| Framework           | Pattern            | Use Case                 |
+|---------------------|--------------------|--------------------------|
+| **Express/Fastify** | Middleware         | API with reasoning       |
+| **React**           | Hook (`useSeNARS`) | Interactive reasoning UI |
+| **LangChain**       | Tool wrapper       | LLM + reasoning hybrid   |
+| **MCP**             | Already exists ✓  | AI assistant integration |
 
 **Files to Create**:
+
 - `core/src/SeNARS.js` — Simplified facade class
 - `adapters/react/useSeNARS.js` — React hook
 - `adapters/langchain/tool.js` — LangChain tool
@@ -86,6 +93,7 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 ### 3.1 — Consistency Benchmark
 
 Create a test suite showing:
+
 - LLM contradicts itself across contexts (documented, reproducible)
 - SeNARS maintains consistency (same queries, same answers)
 
@@ -98,16 +106,19 @@ Output: A shareable report (`docs/benchmarks/consistency-report.md`)
 ### 3.2 — Memory Persistence Benchmark
 
 Demonstrate:
+
 - LLM forgets after context window (measurable)
 - SeNARS remembers indefinitely (with serialization)
 
 ### 3.3 — Explainability Demo
 
 Show:
+
 - Ask SeNARS "why" and get derivation chain
 - LLM can guess but can't prove
 
 **Files to Create**:
+
 - `benchmarks/consistency/` — Benchmark suite
 - `benchmarks/memory/` — Memory persistence tests
 - `docs/benchmarks/` — Published reports
@@ -128,6 +139,7 @@ const trace = brain.getLastReasoningTrace();
 ```
 
 Exportable to:
+
 - **JSON-LD** — Semantic web compatible
 - **GraphML** — Network analysis tools
 - **Mermaid** — Markdown-embeddable diagrams
@@ -145,11 +157,13 @@ const results = await brain.compareStrategies(
 ### 4.3 — RLFP Annotation Interface
 
 Build on existing `agent/src/rlfp/`:
+
 - Simple web UI for labeling reasoning paths
 - Export to standard preference learning formats
 - Integration with existing `PreferenceCollector`
 
 **Files to Create/Modify**:
+
 - `core/src/trace/ReasoningTraceExporter.js`
 - `core/src/research/StrategyComparator.js`
 - `ui/src/pages/RLFPAnnotator.jsx`
@@ -180,15 +194,16 @@ await brain.loadBook('medical-basics');
 
 ### 5.2 — Import/Export Ecosystem
 
-| Format | Import | Export | Use Case |
-|--------|--------|--------|----------|
-| **Narsese (.nal)** | ✓ | ✓ | Native format |
-| **Knowledge Book (.sbook)** | ✓ | ✓ | Shareable packages |
-| **RDF/OWL** | ✓ | ✓ | Semantic web integration |
-| **JSON-LD** | ✓ | ✓ | Web APIs |
-| **Natural Language** | ✓ (via LM) | ✓ | Human-readable |
+| Format                      | Import      | Export | Use Case                 |
+|-----------------------------|-------------|--------|--------------------------|
+| **Narsese (.nal)**          | ✓          | ✓     | Native format            |
+| **Knowledge Book (.sbook)** | ✓          | ✓     | Shareable packages       |
+| **RDF/OWL**                 | ✓          | ✓     | Semantic web integration |
+| **JSON-LD**                 | ✓          | ✓     | Web APIs                 |
+| **Natural Language**        | ✓ (via LM) | ✓     | Human-readable           |
 
 **Files to Create**:
+
 - `core/src/io/formats/KnowledgeBook.js`
 - `core/src/io/formats/RDFAdapter.js`
 - `docs/knowledge-book-spec.md`
@@ -204,22 +219,26 @@ await brain.loadBook('medical-basics');
 ### Recommended: "Personal Logic Vault"
 
 A local-first personal knowledge base that:
+
 1. **Learns** from your notes (Markdown/Obsidian import)
 2. **Reasons** over your knowledge (finds contradictions, gaps)
 3. **Remembers** everything (no context window limits)
 4. **Explains** its conclusions (full derivation trace)
 
 **Why This Demo**:
+
 - Directly competes with LLM-based tools on their weakness (memory, consistency)
 - Personal use = high engagement, organic growth
 - Obsidian integration = large, passionate community
 
 **Scope**:
+
 - CLI tool with optional web UI
 - 500-1000 line implementation using SeNARS core
 - Obsidian plugin bridge
 
 **Files to Create**:
+
 - `apps/logic-vault/` — Standalone application
 - `apps/logic-vault/obsidian-bridge.js` — Obsidian integration
 
@@ -241,12 +260,12 @@ A local-first personal knowledge base that:
 
 ### 7.3 — Content Strategy
 
-| Content | Frequency | Platform |
-|---------|-----------|----------|
-| Technical blog posts | Monthly | Dev.to, Medium |
-| Video tutorials | Bi-weekly | YouTube |
-| Research notes | Quarterly | arXiv, blog |
-| Community showcases | Monthly | Twitter/X, Discord |
+| Content              | Frequency | Platform           |
+|----------------------|-----------|--------------------|
+| Technical blog posts | Monthly   | Dev.to, Medium     |
+| Video tutorials      | Bi-weekly | YouTube            |
+| Research notes       | Quarterly | arXiv, blog        |
+| Community showcases  | Monthly   | Twitter/X, Discord |
 
 ---
 
@@ -254,13 +273,13 @@ A local-first personal knowledge base that:
 
 ### Success Metrics
 
-| Metric | Current | Target (6mo) | Target (12mo) |
-|--------|---------|--------------|---------------|
-| npm weekly downloads | ? | 500 | 5,000 |
-| GitHub stars | ? | 500 | 2,000 |
-| Active contributors | ? | 5 | 20 |
-| Published research using SeNARS | 0 | 2 | 10 |
-| Production deployments | ? | 10 | 100 |
+| Metric                          | Current | Target (6mo) | Target (12mo) |
+|---------------------------------|---------|--------------|---------------|
+| npm weekly downloads            | ?       | 500          | 5,000         |
+| GitHub stars                    | ?       | 500          | 2,000         |
+| Active contributors             | ?       | 5            | 20            |
+| Published research using SeNARS | 0       | 2            | 10            |
+| Production deployments          | ?       | 10           | 100           |
 
 ### Health Indicators
 
@@ -329,6 +348,7 @@ gantt
 
 ---
 
-> **Remember**: The goal isn't to build the most complete system. It's to build the system people **actually use** to solve problems they **actually have**.
+> **Remember**: The goal isn't to build the most complete system. It's to build the system people **actually use** to
+> solve problems they **actually have**.
 
 Fork it. Ship it. Make it undeniable.

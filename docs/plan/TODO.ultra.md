@@ -409,8 +409,7 @@ Before any work, ask:
 4. **Does this keep the core simple?** (Complexity is debt)
 5. **Would we be proud of this?** (Quality matters)
 
-If yes to all → proceed.
-If no to any → reconsider.
+If yes to all → proceed. If no to any → reconsider.
 
 ---
 

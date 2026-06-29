@@ -23,9 +23,8 @@ Title:
 Author line: SeNARS Developers
 
 Immediately under the title:
-This work is licensed under a Creative Commons Attribution 4.0 International License (CC-BY-4.0).
-Code is released under AGPL-3.0.
-Contact: https://github.com/automenta/senars11
+This work is licensed under a Creative Commons Attribution 4.0 International License (CC-BY-4.0). Code is released under
+AGPL-3.0. Contact: https://github.com/automenta/senars11
 
 Abstract (180–220 words)
 

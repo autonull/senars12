@@ -1,34 +1,35 @@
-import { createToolEvent, errorResult } from './types.js';
-export { errorResult, createToolEvent };
+import {createToolEvent, errorResult} from './types.js';
+import {Registry, ToolManager} from './tool-registry.js';
+import {discoverTools} from './decorator.js';
+import {ExplainTool} from './ExplainTool.js';
+import {SleepTool} from './SleepTool.js';
+import {TimerTool} from './TimerTool.js';
 
-import { Registry, ToolManager } from './tool-registry.js';
-export { Registry, ToolManager };
+export {errorResult, createToolEvent};
 
-import { discoverTools } from './decorator.js';
-export { discoverTools };
+export {Registry, ToolManager};
 
-import { ExplainTool } from './ExplainTool.js';
-export { ExplainTool };
+export {discoverTools};
 
-import { SleepTool } from './SleepTool.js';
-export { SleepTool };
+export {ExplainTool};
 
-import { TimerTool } from './TimerTool.js';
-export { TimerTool };
+export {SleepTool};
+
+export {TimerTool};
 
 // Type re-exports for TypeScript consumers
 export type {
-  Tool,
-  ToolCapabilities,
-  ToolContext,
-  ToolBudget,
-  ToolRegistry,
-  ToolFilter,
-  ToolChainStep,
-  ToolChainResult,
-  ToolResult,
-  Schema,
-  SchemaProperty,
-  ToolEvent,
-  ToolStatistics,
+    Tool,
+    ToolCapabilities,
+    ToolContext,
+    ToolBudget,
+    ToolRegistry,
+    ToolFilter,
+    ToolChainStep,
+    ToolChainResult,
+    ToolResult,
+    Schema,
+    SchemaProperty,
+    ToolEvent,
+    ToolStatistics,
 } from './types.js';

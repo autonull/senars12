@@ -17,8 +17,8 @@ Netention becomes a proactive system that:
 - **Captures Screenshots**: Monitors the user’s screen periodically or on demand.
 - **Analyzes Visual Content**: Uses a vision model to interpret screenshot content (e.g., text, UI elements, images).
 - **Maintains Screenshot History**: Stores a time-ordered sequence of screenshots as Memory Notes.
-- **Inffers Long-Term Goals**: Reasons across screenshot history to identify patterns and predict user objectives (
-  e.g., "User is researching AI" → automate related tasks).
+- **Inffers Long-Term Goals**: Reasons across screenshot history to identify patterns and predict user objectives (e.g.,
+  "User is researching AI" → automate related tasks).
 
 This capability unifies visual perception with Netention’s existing autonomy, enabling it to understand and act on the
 user’s digital environment holistically.
@@ -69,15 +69,15 @@ user’s digital environment holistically.
 ### 5. Tools (Vision and Screenshot Focus)
 
 - **New Tools**:
-  | Tool Name | Description | Input Schema | Output Schema | Implementation Details |
-  |--------------------|--------------------------------------------------|----------------------------------------|----------------------------------------|-----------------------------------------|
-  | `captureScreenshot`| Captures the current screen | `{ outputPath: string }`              |
-  `{ imagePath: string }`                | Uses `screenshot-desktop` or OS APIs |
-  | `analyzeScreenshot`| Analyzes screenshot with vision model | `{ imagePath: string }`               |
-  `{ description: string, elements: any }` | Calls GPT-4V or CLIP API |
-  | `inferGoals`       | Infers user goals from screenshot history | `{ screenshotIds: string[] }`         |
-  `{ goals: string[] }`                  | LLM reasoning over descriptions |
-  | `storeScreenshot`  | Stores screenshot and metadata as a Note | `{ imagePath: string, timestamp: string }` |
+  | Tool Name | Description | Input Schema | Output Schema | Implementation
+  Details | |--------------------|--------------------------------------------------|----------------------------------------|----------------------------------------|-----------------------------------------| |
+  `captureScreenshot`| Captures the current screen | `{ outputPath: string }`              |
+  `{ imagePath: string }`                | Uses `screenshot-desktop` or OS APIs | | `analyzeScreenshot`| Analyzes
+  screenshot with vision model | `{ imagePath: string }`               |
+  `{ description: string, elements: any }` | Calls GPT-4V or CLIP API | | `inferGoals`       | Infers user goals from
+  screenshot history | `{ screenshotIds: string[] }`         |
+  `{ goals: string[] }`                  | LLM reasoning over descriptions | | `storeScreenshot`  | Stores screenshot
+  and metadata as a Note | `{ imagePath: string, timestamp: string }` |
   `{ noteId: string }`             | Creates Screenshot Note |
 
 - **Unification**: These tools are Notes (`type: "Tool"`) with `logic`, callable by Agents to process visual data.
@@ -385,7 +385,8 @@ system.start();
 ## Conclusion
 
 By integrating a vision model to reason about screenshots and their history, Netention gains a powerful new dimension of
-autonomy. It unifies visual perception with its existing framework, enabling the system to infer long-term user goals (
-e.g., research, project planning) and act proactively. The enhanced seed, with vision tools like `captureScreenshot` and
+autonomy. It unifies visual perception with its existing framework, enabling the system to infer long-term user goals
+(e.g., research, project planning) and act proactively. The enhanced seed, with vision tools like `captureScreenshot`
+and
 `analyzeScreenshot`, ensures this capability is baked into the system from the start, making Netention a truly
 ubiquitous, intelligent assistant that understands and anticipates user needs across the digital landscape.

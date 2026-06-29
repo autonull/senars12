@@ -1,12 +1,14 @@
 # Compound Intelligence Bootstrap
 
-> **Objective**: Demonstrable, tangible **compound intelligence emergence** via validated benchmark performance on industry-standard agentic evaluations, using maximum-leverage interventions on existing SeNARS infrastructure.
+> **Objective**: Demonstrable, tangible **compound intelligence emergence** via validated benchmark performance on
+> industry-standard agentic evaluations, using maximum-leverage interventions on existing SeNARS infrastructure.
 
 ---
 
 ## Executive Summary
 
-This plan closes the self-improvement loop in SeNARS by connecting the existing RLFP infrastructure (trajectory logging, preference collection, policy adaptation) into an autonomous continuous learning cycle. The result is a system that:
+This plan closes the self-improvement loop in SeNARS by connecting the existing RLFP infrastructure (trajectory logging,
+preference collection, policy adaptation) into an autonomous continuous learning cycle. The result is a system that:
 
 1. **Learns to reason better over time** — Autonomous RLFP loop runs 10K+ cycles/day
 2. **Proves the hybrid thesis** — Standard benchmarks demonstrate NAL+LM > either alone
@@ -20,15 +22,15 @@ This plan closes the self-improvement loop in SeNARS by connecting the existing 
 
 ### What Already Works (99.8% test pass rate)
 
-| Component | Location | Status |
-|-----------|----------|--------|
-| Stream Reasoner | `core/src/reason/` | ✅ 100ms non-blocking cycle |
-| Tensor.backward() | `core/src/functor/Tensor.js` | ✅ Autograd operational |
-| MCP Server | `agent/src/mcp/Server.js` | ✅ 6 tools exposed |
-| RLFP Learner | `agent/src/rlfp/RLFPLearner.js` | ✅ Writes training data |
-| Trajectory Logger | `agent/src/rlfp/ReasoningTrajectoryLogger.js` | ✅ Records full traces |
-| LM Integration | `agent/src/lm/LMIntegration.js` | ✅ NAL↔NL translation |
-| ReasoningPolicyAdapter | `agent/src/rlfp/ReasoningPolicyAdapter.js` | ✅ Policy layer exists |
+| Component              | Location                                      | Status                      |
+|------------------------|-----------------------------------------------|-----------------------------|
+| Stream Reasoner        | `core/src/reason/`                            | ✅ 100ms non-blocking cycle |
+| Tensor.backward()      | `core/src/functor/Tensor.js`                  | ✅ Autograd operational     |
+| MCP Server             | `agent/src/mcp/Server.js`                     | ✅ 6 tools exposed          |
+| RLFP Learner           | `agent/src/rlfp/RLFPLearner.js`               | ✅ Writes training data     |
+| Trajectory Logger      | `agent/src/rlfp/ReasoningTrajectoryLogger.js` | ✅ Records full traces      |
+| LM Integration         | `agent/src/lm/LMIntegration.js`               | ✅ NAL↔NL translation       |
+| ReasoningPolicyAdapter | `agent/src/rlfp/ReasoningPolicyAdapter.js`    | ✅ Policy layer exists      |
 
 ### Existing MCP Tools (Ready Now)
 
@@ -44,14 +46,14 @@ evaluate_js({code})             // Sandboxed JS execution
 
 ### Gap Analysis
 
-| Gap | Severity | Effort to Close |
-|-----|----------|-----------------|
-| No standard benchmark harness | **CRITICAL** | ~200 lines |
-| RLFP loop not autonomous | HIGH | ~80 lines |
-| NAL↔Function Call translator | HIGH | ~80 lines |
-| LLM evaluator wrapper missing | HIGH | ~60 lines |
-| MCP lacks `teach` and `trace` tools | MEDIUM | ~50 lines |
-| No epistemic stability test | MEDIUM | ~40 lines |
+| Gap                                 | Severity     | Effort to Close |
+|-------------------------------------|--------------|-----------------|
+| No standard benchmark harness       | **CRITICAL** | ~200 lines      |
+| RLFP loop not autonomous            | HIGH         | ~80 lines       |
+| NAL↔Function Call translator        | HIGH         | ~80 lines       |
+| LLM evaluator wrapper missing       | HIGH         | ~60 lines       |
+| MCP lacks `teach` and `trace` tools | MEDIUM       | ~50 lines       |
+| No epistemic stability test         | MEDIUM       | ~40 lines       |
 
 ---
 
@@ -59,7 +61,8 @@ evaluate_js({code})             // Sandboxed JS execution
 
 ### 1. Autonomous RLFP Loop
 
-**Current State**: 
+**Current State**:
+
 - `ReasoningTrajectoryLogger` records traces via event subscriptions
 - `RLFPLearner.updateModel()` writes training data to JSONL
 - `ReasoningPolicyAdapter` can consume preference models
@@ -142,14 +145,15 @@ const delay = ms => new Promise(r => setTimeout(r, ms));
 
 **RLFP Layer Integration** (per README.vision.md):
 
-| Layer | Component | Role in Loop |
-|-------|-----------|--------------|
-| Data | `ReasoningTrajectoryLogger` | Records reasoning episodes |
-| Data | `LLMEvaluator` | Generates preference signals |
-| Learning | `RLFPLearner` | Trains preference model |
-| Policy | `ReasoningPolicyAdapter` | Guides FocusManager, RuleEngine decisions |
+| Layer    | Component                   | Role in Loop                              |
+|----------|-----------------------------|-------------------------------------------|
+| Data     | `ReasoningTrajectoryLogger` | Records reasoning episodes                |
+| Data     | `LLMEvaluator`              | Generates preference signals              |
+| Learning | `RLFPLearner`               | Trains preference model                   |
+| Policy   | `ReasoningPolicyAdapter`    | Guides FocusManager, RuleEngine decisions |
 
 **Alternatives**:
+
 - **Alternative A**: Use existing `PreferenceCollector` with human review (slower, higher quality)
 - **Alternative B**: Pure constitutional evaluation without LLM (faster, less nuanced)
 - **Recommended**: Hybrid — LLM-as-judge for fast iteration, human audit weekly
@@ -158,22 +162,22 @@ const delay = ms => new Promise(r => setTimeout(r, ms));
 
 **LLM Cost Budget**:
 
-| Provider | Model | Cost/Eval | Daily Cost (10K cycles) |
-|----------|-------|-----------|------------------------|
-| Ollama (local) | llama3.2 | $0 | $0 |
-| OpenAI | gpt-4o-mini | ~$0.001 | ~$10/day |
-| Anthropic | claude-3-haiku | ~$0.0005 | ~$5/day |
+| Provider       | Model          | Cost/Eval | Daily Cost (10K cycles) |
+|----------------|----------------|-----------|-------------------------|
+| Ollama (local) | llama3.2       | $0        | $0                      |
+| OpenAI         | gpt-4o-mini    | ~$0.001   | ~$10/day                |
+| Anthropic      | claude-3-haiku | ~$0.0005  | ~$5/day                 |
 
 **Recommendation**: Use Ollama locally for development, cloud models for weekly verification runs.
 
 **Concerns & Mitigations**:
 
-| Concern | Mitigation |
-|---------|-----------|
-| LLM API costs | Local Ollama default, cloud for verification |
-| Rate limits | Batch evaluations, exponential backoff |
+| Concern        | Mitigation                                       |
+|----------------|--------------------------------------------------|
+| LLM API costs  | Local Ollama default, cloud for verification     |
+| Rate limits    | Batch evaluations, exponential backoff           |
 | Reward hacking | Novelty penalty in rubric, diverse goal sampling |
-| Model drift | Constitutional invariants block unsafe beliefs |
+| Model drift    | Constitutional invariants block unsafe beliefs   |
 
 ---
 
@@ -353,9 +357,11 @@ function sampleN(arr, n) {
 
 ### 2. NAL ↔ Function Call Translation Layer
 
-**Critical Bridge**: This layer enables SeNARS to participate in function-calling benchmarks (BFCL) and tool-use evaluations.
+**Critical Bridge**: This layer enables SeNARS to participate in function-calling benchmarks (BFCL) and tool-use
+evaluations.
 
-**Design Philosophy**: SeNARS provides the *reasoning* about which function to call and why. The LM integration handles *surface form* translation.
+**Design Philosophy**: SeNARS provides the *reasoning* about which function to call and why. The LM integration handles
+*surface form* translation.
 
 ```javascript
 // agent/src/mcp/function_translator.js (~80 lines)
@@ -508,6 +514,7 @@ this.server.tool(
 ```
 
 **Result**: Any AI assistant (Claude, Cursor, Cline) can:
+
 1. Teach SeNARS knowledge via `teach`
 2. Set goals via `set-goal`
 3. Reason via existing `reason`
@@ -516,34 +523,36 @@ this.server.tool(
 
 **Tool Summary (9 total)**:
 
-| Tool | Purpose | Category |
-|------|---------|----------|
-| `ping` | Health check | System |
-| `reason` | Execute reasoning cycles | Core |
-| `memory-query` | Query concept store | Core |
-| `execute-tool` | External tool invocation | Agentic |
-| `get-focus` | Inspect attention buffer | Debug |
-| `evaluate_js` | Sandboxed JS execution | Agentic |
-| `teach` | Add beliefs | Core |
-| `set-goal` | Set goals | Core |
-| `get-trace` | Retrieve reasoning trace | Debug |
+| Tool           | Purpose                  | Category |
+|----------------|--------------------------|----------|
+| `ping`         | Health check             | System   |
+| `reason`       | Execute reasoning cycles | Core     |
+| `memory-query` | Query concept store      | Core     |
+| `execute-tool` | External tool invocation | Agentic  |
+| `get-focus`    | Inspect attention buffer | Debug    |
+| `evaluate_js`  | Sandboxed JS execution   | Agentic  |
+| `teach`        | Add beliefs              | Core     |
+| `set-goal`     | Set goals                | Core     |
+| `get-trace`    | Retrieve reasoning trace | Debug    |
 
 ---
 
 ### 4. Standard Benchmark Integration
 
-**Rationale**: Scientific credibility requires demonstrating proficiency on **industry-standard benchmarks**, not custom tests.
+**Rationale**: Scientific credibility requires demonstrating proficiency on **industry-standard benchmarks**, not custom
+tests.
 
 **Benchmark Ladder** (ordered by difficulty):
 
-| Level | Benchmark | Tasks | Baseline Target | Stretch Target | Timeline |
-|-------|-----------|-------|-----------------|----------------|----------|
-| 1 | BFCL Single-Turn | Simple function calls | ≥70% AST match | ≥85% | Week 1-2 |
-| 2 | BFCL Multi-Turn (V3) | Stateful tool sequences | ≥60% | ≥75% | Week 2-3 |
-| 3 | AgentBench (subset) | OS, DB, KG environments | ≥50% | ≥65% | Week 3-4 |
-| 4 | GAIA Level 1 | Real-world multi-tool | Baseline only | ≥40% | Week 4+ |
+| Level | Benchmark            | Tasks                   | Baseline Target | Stretch Target | Timeline |
+|-------|----------------------|-------------------------|-----------------|----------------|----------|
+| 1     | BFCL Single-Turn     | Simple function calls   | ≥70% AST match  | ≥85%           | Week 1-2 |
+| 2     | BFCL Multi-Turn (V3) | Stateful tool sequences | ≥60%            | ≥75%           | Week 2-3 |
+| 3     | AgentBench (subset)  | OS, DB, KG environments | ≥50%            | ≥65%           | Week 3-4 |
+| 4     | GAIA Level 1         | Real-world multi-tool   | Baseline only   | ≥40%           | Week 4+  |
 
-> **Note**: Targets are intentionally conservative. The goal is to *measure first*, then improve. Beating LLM-only baselines on specific categories (multi-step reasoning, consistency) is more valuable than overall score.
+> **Note**: Targets are intentionally conservative. The goal is to *measure first*, then improve. Beating LLM-only
+> baselines on specific categories (multi-step reasoning, consistency) is more valuable than overall score.
 
 **Implementation**:
 
@@ -725,20 +734,20 @@ describe('Epistemic Stability', () => {
 
 ## Implementation Schedule
 
-| Week | Phase | Actions | Deliverables | Pivot Criteria |
-|------|-------|---------|--------------|----------------|
-| **1** | **Baseline** | Setup harnesses, run initial benchmarks | Baseline scores for BFCL, harness working | If harness setup takes >3 days: simplify to single benchmark |
-| | | Implement `function_translator.js` | NAL↔JSON translation working | |
-| | | Add MCP tools (teach, set-goal, get-trace) | 9 tools available | |
-| **2** | **RLFP** | Implement `autonomous_loop.js` | 10K cycles/day running | If BFCL <50%: prioritize translation layer fixes |
-| | | Implement `llm_evaluator.js` | Synthetic evaluation working | |
-| | | BFCL Multi-Turn evaluation | Score ≥60% | |
-| **3** | **Scale** | AgentBench subset setup | Harness for OS/DB/KG | If Multi-Turn <50%: focus on stateful reasoning |
-| | | Run autonomous loop for 7 days | 70K+ cycles completed | |
-| | | Epistemic stability tests | SeNARS > LLM-only on consistency | |
-| **4** | **Demonstrate** | GAIA Level 1 baseline | Initial scores | |
-| | | Compile results | Scientific report draft | |
-| | | Policy adapter integration | Measurable improvement from RLFP | |
+| Week  | Phase           | Actions                                    | Deliverables                              | Pivot Criteria                                               |
+|-------|-----------------|--------------------------------------------|-------------------------------------------|--------------------------------------------------------------|
+| **1** | **Baseline**    | Setup harnesses, run initial benchmarks    | Baseline scores for BFCL, harness working | If harness setup takes >3 days: simplify to single benchmark |
+|       |                 | Implement `function_translator.js`         | NAL↔JSON translation working              |                                                              |
+|       |                 | Add MCP tools (teach, set-goal, get-trace) | 9 tools available                         |                                                              |
+| **2** | **RLFP**        | Implement `autonomous_loop.js`             | 10K cycles/day running                    | If BFCL <50%: prioritize translation layer fixes             |
+|       |                 | Implement `llm_evaluator.js`               | Synthetic evaluation working              |                                                              |
+|       |                 | BFCL Multi-Turn evaluation                 | Score ≥60%                                |                                                              |
+| **3** | **Scale**       | AgentBench subset setup                    | Harness for OS/DB/KG                      | If Multi-Turn <50%: focus on stateful reasoning              |
+|       |                 | Run autonomous loop for 7 days             | 70K+ cycles completed                     |                                                              |
+|       |                 | Epistemic stability tests                  | SeNARS > LLM-only on consistency          |                                                              |
+| **4** | **Demonstrate** | GAIA Level 1 baseline                      | Initial scores                            |                                                              |
+|       |                 | Compile results                            | Scientific report draft                   |                                                              |
+|       |                 | Policy adapter integration                 | Measurable improvement from RLFP          |                                                              |
 
 > **Key Insight**: Week 1 focuses on *measurement infrastructure*. Knowing where we stand enables targeted improvement.
 
@@ -746,12 +755,12 @@ describe('Epistemic Stability', () => {
 
 ## Pivot Strategies
 
-| Scenario | Indicator | Pivot Action |
-|----------|-----------|--------------|
-| Translation layer fails | BFCL <40% | Simplify to keyword matching, add LM-assisted translation |
-| RLFP not improving | No score improvement over 7 days | Increase rubric diversity, add human-in-loop sampling |
-| Epistemic drift | Constitutional fallback triggers >50% | Reduce batch size, increase human audit frequency |
-| AgentBench too hard | OS/DB scores <30% | Focus on KG environment only (closer to NAL strengths) |
+| Scenario                | Indicator                             | Pivot Action                                              |
+|-------------------------|---------------------------------------|-----------------------------------------------------------|
+| Translation layer fails | BFCL <40%                             | Simplify to keyword matching, add LM-assisted translation |
+| RLFP not improving      | No score improvement over 7 days      | Increase rubric diversity, add human-in-loop sampling     |
+| Epistemic drift         | Constitutional fallback triggers >50% | Reduce batch size, increase human audit frequency         |
+| AgentBench too hard     | OS/DB scores <30%                     | Focus on KG environment only (closer to NAL strengths)    |
 
 ---
 
@@ -814,6 +823,7 @@ tests/agentic/
 ```
 
 **Optional (for production LLM evaluation)**:
+
 - Ollama installed locally (free, recommended for dev)
 - OpenAI API key (for verification runs)
 
@@ -836,6 +846,7 @@ tests/agentic/
 ```
 
 **Usage**:
+
 ```bash
 # First-time setup: download benchmark datasets
 npm run bench:setup
@@ -857,15 +868,15 @@ npm run rlfp:autonomous
 
 ## Success Metrics
 
-| Metric | Week 1 | Week 2 | Week 3 | Week 4 |
-|--------|--------|--------|--------|--------|
-| **BFCL Single-Turn** | Baseline | ≥70% | ≥75% | ≥80% |
-| **BFCL Multi-Turn** | — | ≥60% | ≥65% | ≥70% |
-| **AgentBench (avg)** | — | — | ≥50% | ≥55% |
-| **Epistemic Stability** | Baseline | ≥90% | ≥95% | ≥95% |
-| **GAIA Level 1** | — | — | — | Baseline |
-| **Autonomous cycles/day** | — | 10,000 | 25,000 | 50,000+ |
-| **MCP tools available** | 9 | 9 | 9 | 9 |
+| Metric                    | Week 1   | Week 2 | Week 3 | Week 4   |
+|---------------------------|----------|--------|--------|----------|
+| **BFCL Single-Turn**      | Baseline | ≥70%   | ≥75%   | ≥80%     |
+| **BFCL Multi-Turn**       | —        | ≥60%   | ≥65%   | ≥70%     |
+| **AgentBench (avg)**      | —        | —      | ≥50%   | ≥55%     |
+| **Epistemic Stability**   | Baseline | ≥90%   | ≥95%   | ≥95%     |
+| **GAIA Level 1**          | —        | —      | —      | Baseline |
+| **Autonomous cycles/day** | —        | 10,000 | 25,000 | 50,000+  |
+| **MCP tools available**   | 9        | 9      | 9      | 9        |
 
 > **Primary Success Indicators**:
 > 1. Epistemic stability significantly higher than LLM-only (SeNARS's unique value)
@@ -877,18 +888,19 @@ npm run rlfp:autonomous
 ## Safety Architecture
 
 ### Existing Safeguards
+
 - `Safety.validateInput()` — PII scrubbing, injection prevention
 - Circuit breakers in LM integration
 - AIKR resource limits in Reasoner
 
 ### Additional Gates
 
-| Gate | Trigger | Action |
-|------|---------|--------|
-| Alignment drift | LLM eval <50% on rubric | Pause loop, flag for review |
-| Resource runaway | >1GB RAM or CPU >80% sustained | AIKR throttle kicks in |
-| Self-mod regression | Test failure after code change | Rollback, log, alert |
-| Prompt injection | Constitutional invariant violated | Hard stop, human review |
+| Gate                | Trigger                           | Action                      |
+|---------------------|-----------------------------------|-----------------------------|
+| Alignment drift     | LLM eval <50% on rubric           | Pause loop, flag for review |
+| Resource runaway    | >1GB RAM or CPU >80% sustained    | AIKR throttle kicks in      |
+| Self-mod regression | Test failure after code change    | Rollback, log, alert        |
+| Prompt injection    | Constitutional invariant violated | Hard stop, human review     |
 
 ### Constitutional Invariants (from existing design)
 
@@ -897,19 +909,20 @@ npm run rlfp:autonomous
 ((self --> modification) --> (constrained_by * safety))! {1.0, 1.0}
 ```
 
-These are **immutable beliefs** that cannot be overridden by inference. The `{1.0, 1.0}` truth value means absolute frequency and absolute confidence — the epistemic anchor.
+These are **immutable beliefs** that cannot be overridden by inference. The `{1.0, 1.0}` truth value means absolute
+frequency and absolute confidence — the epistemic anchor.
 
 ---
 
 ## Self-Modification Scope
 
-| Level | Capability | Status | Gate |
-|-------|-----------|--------|------|
-| 1 | Read-only code analysis | ✅ Safe | None |
-| 2 | Narsese belief modification | ✅ Core | Constitutional invariants |
-| 3 | Preference model updates | ✅ RLFP | Alignment drift check |
-| 4 | Propose code changes | 🔄 Planned | Human review required |
-| 5 | Autonomous code modification | ❌ Future | Test gate + human approval |
+| Level | Capability                   | Status     | Gate                       |
+|-------|------------------------------|------------|----------------------------|
+| 1     | Read-only code analysis      | ✅ Safe    | None                       |
+| 2     | Narsese belief modification  | ✅ Core    | Constitutional invariants  |
+| 3     | Preference model updates     | ✅ RLFP    | Alignment drift check      |
+| 4     | Propose code changes         | 🔄 Planned | Human review required      |
+| 5     | Autonomous code modification | ❌ Future  | Test gate + human approval |
 
 > **Principle**: SeNARS modifies *knowledge* autonomously. It *proposes* code modifications for human review.
 
@@ -917,25 +930,25 @@ These are **immutable beliefs** that cannot be overridden by inference. The `{1.
 
 ## Open Questions (Resolved)
 
-| Question | Resolution |
-|----------|-----------|
-| LLM Provider? | Local Ollama (llama3.2) for dev, cloud for verification |
-| Cycle Rate? | 10K/day achievable (7/min with batching) |
-| Self-Modification Scope? | Knowledge: autonomous. Code: human-gated. |
-| Benchmark Adoption? | Standard benchmarks first (BFCL), SeNARS-specific (epistemic) second |
+| Question                 | Resolution                                                           |
+|--------------------------|----------------------------------------------------------------------|
+| LLM Provider?            | Local Ollama (llama3.2) for dev, cloud for verification              |
+| Cycle Rate?              | 10K/day achievable (7/min with batching)                             |
+| Self-Modification Scope? | Knowledge: autonomous. Code: human-gated.                            |
+| Benchmark Adoption?      | Standard benchmarks first (BFCL), SeNARS-specific (epistemic) second |
 
 ---
 
 ## References
 
-| Resource | Purpose |
-|----------|---------|
-| [BFCL Leaderboard](https://berkeleyfunction.ai/) | Function-calling benchmarks |
-| [AgentBench](https://github.com/THUDM/AgentBench) | Multi-environment agent eval |
-| [GAIA](https://huggingface.co/datasets/gaia-benchmark) | Real-world assistant tasks |
-| [MCP Spec](https://modelcontextprotocol.io/) | AI assistant integration |
-| [README.vision.md](README.vision.md) | SeNARS cognitive architecture |
-| [agent/src/rlfp/README.md](agent/src/rlfp/README.md) | RLFP implementation details |
+| Resource                                               | Purpose                       |
+|--------------------------------------------------------|-------------------------------|
+| [BFCL Leaderboard](https://berkeleyfunction.ai/)       | Function-calling benchmarks   |
+| [AgentBench](https://github.com/THUDM/AgentBench)      | Multi-environment agent eval  |
+| [GAIA](https://huggingface.co/datasets/gaia-benchmark) | Real-world assistant tasks    |
+| [MCP Spec](https://modelcontextprotocol.io/)           | AI assistant integration      |
+| [README.vision.md](README.vision.md)                   | SeNARS cognitive architecture |
+| [agent/src/rlfp/README.md](agent/src/rlfp/README.md)   | RLFP implementation details   |
 
 ---
 
@@ -949,4 +962,5 @@ These are **immutable beliefs** that cannot be overridden by inference. The `{1.
 6. **Compound Intelligence** — RLFP loop enables genuine self-improvement
 7. **Unique Advantage** — Epistemic stability is SeNARS's differentiator vs pure LLMs
 
-> *"Compound intelligence is not about matching LLMs on their terms. It's about demonstrating capabilities they structurally cannot achieve: consistency, epistemic stability, and self-improving reasoning."*
+> *"Compound intelligence is not about matching LLMs on their terms. It's about demonstrating capabilities they
+structurally cannot achieve: consistency, epistemic stability, and self-improving reasoning."*

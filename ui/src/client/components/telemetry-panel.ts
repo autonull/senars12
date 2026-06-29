@@ -1,40 +1,24 @@
-import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { classMap } from 'lit/directives/class-map.js';
-import { $cognitiveMetrics, $telemetry, mountTestApi } from '../core/index.js';
-import { BaseComponent } from '../core/index.js';
-import { TOKEN_COLORS, cssToken } from '../utils/token-colors.js';
+import {css, html} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {$cognitiveMetrics, $telemetry, BaseComponent, mountTestApi} from '../core/index.js';
+import {cssToken, TOKEN_COLORS} from '../utils/token-colors.js';
 
 interface TelemetrySeries {
-  key: string;
-  values: number[];
-  color: string;
-  label: string;
-  unit: string;
+    key: string;
+    values: number[];
+    color: string;
+    label: string;
+    unit: string;
 }
+
 type TimeRange = '1m' | '5m' | '15m' | '1h';
-const RANGE_POINTS: Record<TimeRange, number> = { '1m': 60, '5m': 300, '15m': 900, '1h': 3600 };
+const RANGE_POINTS: Record<TimeRange, number> = {'1m': 60, '5m': 300, '15m': 900, '1h': 3600};
 const ALL_METRICS = ['reasoning_hz', 'tokens_per_sec', 'memory_mb', 'ws_latency_ms'] as const;
 
 @customElement('telemetry-panel')
 export class TelemetryPanel extends BaseComponent {
-  private canvas: HTMLCanvasElement | null = null;
-  private ctx: CanvasRenderingContext2D | null = null;
-  private rafId = 0;
-  private hoverTimer: ReturnType<typeof setTimeout> | null = null;
-
-  @state() private range: TimeRange = '5m';
-  @state() private visibleMetrics = new Set<string>([
-    'reasoning_hz',
-    'tokens_per_sec',
-    'memory_mb',
-  ]);
-  @state() private hoverValue: { x: number; label: string; value: number; unit: string } | null =
-    null;
-  @state() private fullscreen = false;
-  @state() private showExportMenu = false;
-
-  static override styles = css`
+    static override styles = css`
     :host {
       display: block; background: var(--colors-semantic-bg-panel);
       border-top: 1px solid var(--colors-semantic-border-subtle);
@@ -154,222 +138,58 @@ export class TelemetryPanel extends BaseComponent {
     .legend-label { color: var(--colors-semantic-text-muted); }
     .legend-value { font-variant-numeric: tabular-nums; }
   `;
+    private canvas: HTMLCanvasElement | null = null;
+    private ctx: CanvasRenderingContext2D | null = null;
+    private rafId = 0;
+    private hoverTimer: ReturnType<typeof setTimeout> | null = null;
+    @state() private range: TimeRange = '5m';
+    @state() private visibleMetrics = new Set<string>([
+        'reasoning_hz',
+        'tokens_per_sec',
+        'memory_mb',
+    ]);
+    @state() private hoverValue: { x: number; label: string; value: number; unit: string } | null =
+        null;
+    @state() private fullscreen = false;
+    @state() private showExportMenu = false;
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.watchWith($telemetry, () => this.scheduleDraw());
-    mountTestApi('telemetry', {
-      getData: () => $telemetry.get(),
-      getRange: () => this.range,
-      setRange: (r: TimeRange) => {
-        this.range = r;
-        this.requestUpdate();
-      },
-    });
-  }
-
-  override disconnectedCallback() {
-    super.disconnectedCallback();
-    cancelAnimationFrame(this.rafId);
-  }
-
-  private scheduleDraw() {
-    cancelAnimationFrame(this.rafId);
-    this.rafId = requestAnimationFrame(() => this.draw());
-  }
-
-  override firstUpdated() {
-    this.canvas = this.shadowRoot?.getElementById('telemetry-canvas') as HTMLCanvasElement;
-    if (this.canvas) this.ctx = this.canvas.getContext('2d');
-    this.draw();
-  }
-
-  private getValues(key: string): number[] {
-    const data = $telemetry.get();
-    const values = data[key as keyof typeof data] as number[] | undefined;
-    if (!values) return [];
-    const points = RANGE_POINTS[this.range];
-    return values.length > points ? values.slice(-points) : values;
-  }
-
-  private getSeries(): TelemetrySeries[] {
-    const meta: Record<
-      (typeof ALL_METRICS)[number],
-      { label: string; color: string; unit: string }
-    > = {
-      reasoning_hz: { label: 'Hz', color: TOKEN_COLORS.warning, unit: 'Hz' },
-      tokens_per_sec: { label: 'TPS', color: TOKEN_COLORS.accentCyan, unit: 'tps' },
-      memory_mb: { label: 'Mem', color: TOKEN_COLORS.accentMagenta, unit: 'MB' },
-      ws_latency_ms: { label: 'Lat', color: TOKEN_COLORS.info, unit: 'ms' },
-    };
-    return ALL_METRICS.filter((k) => this.visibleMetrics.has(k)).map((key) => {
-      const m = meta[key];
-      return {
-        key,
-        values: this.getValues(key),
-        color: m.color,
-        label: m.label,
-        unit: m.unit,
-      };
-    });
-  }
-
-  private draw() {
-    if (!this.canvas || !this.ctx) return;
-    const rect = this.canvas.getBoundingClientRect();
-    const dpr = devicePixelRatio;
-    const h = this.fullscreen ? this.canvas.clientHeight || 300 : 120;
-    this.canvas.width = rect.width * dpr;
-    this.canvas.height = h * dpr;
-    this.canvas.style.width = `${rect.width}px`;
-    this.canvas.style.height = `${h}px`;
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    this.renderChart(rect.width, h);
-  }
-
-  private renderChart(w: number, h: number) {
-    const ctx = this.ctx!;
-    ctx.clearRect(0, 0, w, h);
-
-    const pad = { top: 16, bottom: 4, left: 4, right: 4 };
-    const chartW = w - pad.left - pad.right;
-    const chartH = h - pad.top - pad.bottom;
-
-    const series = this.getSeries();
-    if (series.length === 0) return;
-
-    // Draw grid lines
-    ctx.strokeStyle = cssToken('--colors-semantic-border-subtle', TOKEN_COLORS.borderDim) + '4D';
-    ctx.lineWidth = 0.5;
-    for (let i = 0; i < 4; i++) {
-      const y = pad.top + (chartH / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(pad.left, y);
-      ctx.lineTo(w - pad.right, y);
-      ctx.stroke();
+    override connectedCallback() {
+        super.connectedCallback();
+        this.watchWith($telemetry, () => this.scheduleDraw());
+        mountTestApi('telemetry', {
+            getData: () => $telemetry.get(),
+            getRange: () => this.range,
+            setRange: (r: TimeRange) => {
+                this.range = r;
+                this.requestUpdate();
+            },
+        });
     }
 
-    // Draw each series
-    for (const { values, color } of series) {
-      if (values.length < 2) continue;
-      const max = Math.max(...values, 1);
-      const step = chartW / Math.max(values.length - 1, 1);
-
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      for (let i = 0; i < values.length; i++) {
-        const x = pad.left + i * step;
-        const y = pad.top + chartH - (values[i]! / max) * chartH;
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-
-      // Draw fill under line
-      ctx.fillStyle = color + '1A';
-      ctx.beginPath();
-      ctx.moveTo(pad.left, pad.top + chartH);
-      for (let i = 0; i < values.length; i++) {
-        const x = pad.left + i * step;
-        const y = pad.top + chartH - (values[i]! / max) * chartH;
-        ctx.lineTo(x, y);
-      }
-      ctx.lineTo(pad.left + (values.length - 1) * step, pad.top + chartH);
-      ctx.closePath();
-      ctx.fill();
+    override disconnectedCallback() {
+        super.disconnectedCallback();
+        cancelAnimationFrame(this.rafId);
     }
-  }
 
-  private handleCanvasMove(e: MouseEvent) {
-    if (!this.canvas) return;
-    const rect = this.canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const series = this.getSeries();
-    for (const { values, label, unit } of series) {
-      if (values.length < 2) continue;
-      const chartW = rect.width - 8;
-      const step = chartW / Math.max(values.length - 1, 1);
-      const idx = Math.round(x / step);
-      if (idx >= 0 && idx < values.length) {
-        this.hoverValue = { x: e.clientX - rect.left, label, value: values[idx]!, unit };
-        break;
-      }
+    override firstUpdated() {
+        this.canvas = this.shadowRoot?.getElementById('telemetry-canvas') as HTMLCanvasElement;
+        if (this.canvas) this.ctx = this.canvas.getContext('2d');
+        this.draw();
     }
-  }
 
-  private handleCanvasLeave() {
-    this.hoverValue = null;
-  }
+    override render() {
+        const tooltip = this.hoverValue;
+        const cognitive = $cognitiveMetrics.get();
 
-  private toggleMetric(key: string) {
-    const next = new Set(this.visibleMetrics);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
-    this.visibleMetrics = next;
-    this.scheduleDraw();
-  }
-
-  private setRange(range: TimeRange) {
-    this.range = range;
-    this.scheduleDraw();
-  }
-
-  private toggleFullscreen() {
-    this.fullscreen = !this.fullscreen;
-    requestAnimationFrame(() => this.draw());
-  }
-
-  private exportCSV() {
-    const data = $telemetry.get();
-    const points = RANGE_POINTS[this.range];
-    const len = Math.min(...ALL_METRICS.map((k) => (data[k] as number[]).length), points);
-    const start = data.reasoning_hz.length - len;
-    let csv = 'index,' + ALL_METRICS.join(',') + '\n';
-    for (let i = 0; i < len; i++) {
-      const idx = start + i;
-      csv += `${i},${ALL_METRICS.map((k) => (data[k as keyof typeof data] as number[])?.[idx] ?? '').join(',')}\n`;
-    }
-    this.downloadFile(csv, 'telemetry.csv', 'text/csv');
-    this.showExportMenu = false;
-  }
-
-  private exportJSON() {
-    const data = $telemetry.get();
-    const points = RANGE_POINTS[this.range];
-    const sliced: Record<string, number[]> = {};
-    for (const k of ALL_METRICS) {
-      const arr = data[k] as number[];
-      sliced[k] = arr.length > points ? arr.slice(-points) : [...arr];
-    }
-    this.downloadFile(JSON.stringify(sliced, null, 2), 'telemetry.json', 'application/json');
-    this.showExportMenu = false;
-  }
-
-  private downloadFile(content: string, filename: string, mime: string) {
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  override render() {
-    const tooltip = this.hoverValue;
-    const cognitive = $cognitiveMetrics.get();
-
-    const panel = html`
+        const panel = html`
       <div class="toolbar">
         <span class="toolbar-label">Range</span>
         <div class="toolbar-group">
           ${(['1m', '5m', '15m', '1h'] as TimeRange[]).map(
             (r) => html`
-            <button class="range-btn ${classMap({ active: this.range === r })}" @click=${() => this.setRange(r)}>${r}</button>
+            <button class="range-btn ${classMap({active: this.range === r})}" @click=${() => this.setRange(r)}>${r}</button>
           `
-          )}
+        )}
         </div>
 
         <div class="sep"></div>
@@ -378,20 +198,20 @@ export class TelemetryPanel extends BaseComponent {
         <div class="toolbar-group">
           ${ALL_METRICS.map((k) => {
             const m =
-              k === 'reasoning_hz'
-                ? { label: 'Hz', color: TOKEN_COLORS.warning }
-                : k === 'tokens_per_sec'
-                  ? { label: 'TPS', color: TOKEN_COLORS.accentCyan }
-                  : k === 'memory_mb'
-                    ? { label: 'Mem', color: TOKEN_COLORS.accentMagenta }
-                    : { label: 'Lat', color: TOKEN_COLORS.info };
+                k === 'reasoning_hz'
+                    ? {label: 'Hz', color: TOKEN_COLORS.warning}
+                    : k === 'tokens_per_sec'
+                        ? {label: 'TPS', color: TOKEN_COLORS.accentCyan}
+                        : k === 'memory_mb'
+                            ? {label: 'Mem', color: TOKEN_COLORS.accentMagenta}
+                            : {label: 'Lat', color: TOKEN_COLORS.info};
             return html`
               <button class="metric-toggle ${this.visibleMetrics.has(k) ? 'on' : 'off'}" @click=${() => this.toggleMetric(k)}>
                 <span class="dot" style="background:${m.color}"></span>
                 ${m.label}
               </button>
             `;
-          })}
+        })}
         </div>
 
         <div class="sep"></div>
@@ -402,14 +222,14 @@ export class TelemetryPanel extends BaseComponent {
           </button>
           ${
             this.showExportMenu
-              ? html`
+                ? html`
             <div class="export-menu">
               <button class="export-item" @click=${this.exportCSV}>Export CSV</button>
               <button class="export-item" @click=${this.exportJSON}>Export JSON</button>
             </div>
           `
-              : ''
-          }
+                : ''
+        }
           <button class="action-btn" @click=${this.toggleFullscreen}>
             ${this.fullscreen ? 'Exit' : 'Fullscreen'}
           </button>
@@ -423,27 +243,27 @@ export class TelemetryPanel extends BaseComponent {
         </canvas>
 
         ${
-          tooltip
-            ? html`
+            tooltip
+                ? html`
           <div class="hover-tooltip" style="left:${tooltip.x}px;top:110px">
             ${tooltip.label}: ${tooltip.value.toFixed(2)} ${tooltip.unit}
           </div>
         `
-            : ''
+                : ''
         }
 
         ${
-          cognitive
-            ? html`
+            cognitive
+                ? html`
           <cognitive-metrics></cognitive-metrics>
         `
-            : ''
+                : ''
         }
       </div>
     `;
 
-    if (this.fullscreen) {
-      return html`
+        if (this.fullscreen) {
+            return html`
         <div class="fullscreen-overlay">
           <div class="fullscreen-header">
             <span class="fullscreen-title">Telemetry — Fullscreen</span>
@@ -454,8 +274,186 @@ export class TelemetryPanel extends BaseComponent {
           </div>
         </div>
       `;
+        }
+
+        return panel;
     }
 
-    return panel;
-  }
+    private scheduleDraw() {
+        cancelAnimationFrame(this.rafId);
+        this.rafId = requestAnimationFrame(() => this.draw());
+    }
+
+    private getValues(key: string): number[] {
+        const data = $telemetry.get();
+        const values = data[key as keyof typeof data] as number[] | undefined;
+        if (!values) return [];
+        const points = RANGE_POINTS[this.range];
+        return values.length > points ? values.slice(-points) : values;
+    }
+
+    private getSeries(): TelemetrySeries[] {
+        const meta: Record<
+            (typeof ALL_METRICS)[number],
+            { label: string; color: string; unit: string }
+        > = {
+            reasoning_hz: {label: 'Hz', color: TOKEN_COLORS.warning, unit: 'Hz'},
+            tokens_per_sec: {label: 'TPS', color: TOKEN_COLORS.accentCyan, unit: 'tps'},
+            memory_mb: {label: 'Mem', color: TOKEN_COLORS.accentMagenta, unit: 'MB'},
+            ws_latency_ms: {label: 'Lat', color: TOKEN_COLORS.info, unit: 'ms'},
+        };
+        return ALL_METRICS.filter((k) => this.visibleMetrics.has(k)).map((key) => {
+            const m = meta[key];
+            return {
+                key,
+                values: this.getValues(key),
+                color: m.color,
+                label: m.label,
+                unit: m.unit,
+            };
+        });
+    }
+
+    private draw() {
+        if (!this.canvas || !this.ctx) return;
+        const rect = this.canvas.getBoundingClientRect();
+        const dpr = devicePixelRatio;
+        const h = this.fullscreen ? this.canvas.clientHeight || 300 : 120;
+        this.canvas.width = rect.width * dpr;
+        this.canvas.height = h * dpr;
+        this.canvas.style.width = `${rect.width}px`;
+        this.canvas.style.height = `${h}px`;
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        this.renderChart(rect.width, h);
+    }
+
+    private renderChart(w: number, h: number) {
+        const ctx = this.ctx!;
+        ctx.clearRect(0, 0, w, h);
+
+        const pad = {top: 16, bottom: 4, left: 4, right: 4};
+        const chartW = w - pad.left - pad.right;
+        const chartH = h - pad.top - pad.bottom;
+
+        const series = this.getSeries();
+        if (series.length === 0) return;
+
+        // Draw grid lines
+        ctx.strokeStyle = cssToken('--colors-semantic-border-subtle', TOKEN_COLORS.borderDim) + '4D';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < 4; i++) {
+            const y = pad.top + (chartH / 4) * i;
+            ctx.beginPath();
+            ctx.moveTo(pad.left, y);
+            ctx.lineTo(w - pad.right, y);
+            ctx.stroke();
+        }
+
+        // Draw each series
+        for (const {values, color} of series) {
+            if (values.length < 2) continue;
+            const max = Math.max(...values, 1);
+            const step = chartW / Math.max(values.length - 1, 1);
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (let i = 0; i < values.length; i++) {
+                const x = pad.left + i * step;
+                const y = pad.top + chartH - (values[i]! / max) * chartH;
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Draw fill under line
+            ctx.fillStyle = color + '1A';
+            ctx.beginPath();
+            ctx.moveTo(pad.left, pad.top + chartH);
+            for (let i = 0; i < values.length; i++) {
+                const x = pad.left + i * step;
+                const y = pad.top + chartH - (values[i]! / max) * chartH;
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo(pad.left + (values.length - 1) * step, pad.top + chartH);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+
+    private handleCanvasMove(e: MouseEvent) {
+        if (!this.canvas) return;
+        const rect = this.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const series = this.getSeries();
+        for (const {values, label, unit} of series) {
+            if (values.length < 2) continue;
+            const chartW = rect.width - 8;
+            const step = chartW / Math.max(values.length - 1, 1);
+            const idx = Math.round(x / step);
+            if (idx >= 0 && idx < values.length) {
+                this.hoverValue = {x: e.clientX - rect.left, label, value: values[idx]!, unit};
+                break;
+            }
+        }
+    }
+
+    private handleCanvasLeave() {
+        this.hoverValue = null;
+    }
+
+    private toggleMetric(key: string) {
+        const next = new Set(this.visibleMetrics);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        this.visibleMetrics = next;
+        this.scheduleDraw();
+    }
+
+    private setRange(range: TimeRange) {
+        this.range = range;
+        this.scheduleDraw();
+    }
+
+    private toggleFullscreen() {
+        this.fullscreen = !this.fullscreen;
+        requestAnimationFrame(() => this.draw());
+    }
+
+    private exportCSV() {
+        const data = $telemetry.get();
+        const points = RANGE_POINTS[this.range];
+        const len = Math.min(...ALL_METRICS.map((k) => (data[k] as number[]).length), points);
+        const start = data.reasoning_hz.length - len;
+        let csv = 'index,' + ALL_METRICS.join(',') + '\n';
+        for (let i = 0; i < len; i++) {
+            const idx = start + i;
+            csv += `${i},${ALL_METRICS.map((k) => (data[k as keyof typeof data] as number[])?.[idx] ?? '').join(',')}\n`;
+        }
+        this.downloadFile(csv, 'telemetry.csv', 'text/csv');
+        this.showExportMenu = false;
+    }
+
+    private exportJSON() {
+        const data = $telemetry.get();
+        const points = RANGE_POINTS[this.range];
+        const sliced: Record<string, number[]> = {};
+        for (const k of ALL_METRICS) {
+            const arr = data[k] as number[];
+            sliced[k] = arr.length > points ? arr.slice(-points) : [...arr];
+        }
+        this.downloadFile(JSON.stringify(sliced, null, 2), 'telemetry.json', 'application/json');
+        this.showExportMenu = false;
+    }
+
+    private downloadFile(content: string, filename: string, mime: string) {
+        const blob = new Blob([content], {type: mime});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
 }

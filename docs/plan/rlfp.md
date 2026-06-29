@@ -518,7 +518,7 @@ Below is a concrete design broken into layers, with pointers to specific SeNARS 
 In SeNARS, “how to think” is not just output but *internal control*:
 
 - Which task to pick from Focus next (FocusSetSelector / Bag)
-- Which inference rule(s) to apply (RuleEngine)
+- Which inference rule (s) to apply (RuleEngine)
 - When to query LM vs pure NAL (LMRuleFactory / ModelSelector)
 - How aggressively to explore vs exploit (e.g., priority decay, consolidation thresholds)
 - How to structure internal explanations / derivations (Stamp chains, reasoning traces)
@@ -984,8 +984,8 @@ function.
       conclusion. This is the most direct form of teaching "how to think."
     * **Automated Metrics (Indirect Feedback):** A set of internal, quantifiable metrics that evaluate reasoning
       quality. These act as a proxy for human judgment.
-        * *Example Metric:* "Inference Coherence Score" – measures how well new beliefs fit with existing knowledge (
-          e.g., low contradiction rate, high support from diverse evidence bases).
+        * *Example Metric:* "Inference Coherence Score" – measures how well new beliefs fit with existing knowledge
+          (e.g., low contradiction rate, high support from diverse evidence bases).
         * *Example Metric:* "Knowledge Compression Ratio" – how efficiently new compound terms or abstractions reduce
           the overall complexity of the knowledge base without losing information.
         * *Example Metric:* "Novelty of Insight" – how unexpected yet valid a derived belief is, relative to existing
@@ -996,8 +996,8 @@ function.
     * **Hybrid Oracle:** A combination of human feedback for high-level strategic preferences and automated metrics for
       low-level efficiency/coherence preferences.
 6. **Reward Function (Learned):** RLFP algorithms (e.g., based on Bradley-Terry model, preference ranking) learn a
-   *reward function* $R(s, a)$ that predicts the human/defined preferences. This learned reward function then guides the
-   agent's policy $\\pi(a|s)$ towards preferred reasoning behaviors.
+   *reward function* $R (s, a)$ that predicts the human/defined preferences. This learned reward function then guides
+   the agent's policy $\\pi (a|s)$ towards preferred reasoning behaviors.
 
 ---
 
@@ -1017,8 +1017,8 @@ SeNARS's observability is key. We need to log detailed reasoning traces.
     * `inference_quality_assessed(inference_id, metrics)` (e.g., coherence, novelty, utility)
     * `reasoning_path_terminated(task_id, outcome)` (e.g., conclusion reached, no further inferences, resource
       exhausted)
-2. **Structured Logging:** Each event should include a unique `trace_id` linking it to a specific reasoning episode (
-   from initial input to termination). Log relevant `State` information (as defined above) at the start of each trace
+2. **Structured Logging:** Each event should include a unique `trace_id` linking it to a specific reasoning episode
+   (from initial input to termination). Log relevant `State` information (as defined above) at the start of each trace
    and after significant actions.
 3. **Visualization UI Integration:** The UI (`ui/`, `tui/`) should allow users to replay these traces, inspect
    intermediate steps, and compare different reasoning paths for the same input.
@@ -1030,9 +1030,9 @@ This is the "teacher" component. It needs to be integrated into the system's wor
 1. **Human Preference Interface (UI):**
     * **Side-by-Side Comparison:** Present users with two (or more) alternative reasoning traces for the same initial
       input. For example, "SeNARS tried two ways to answer this question. Which path do you think was better? Why?"
-    * **Criteria Guidance:** Provide users with criteria to evaluate (e.g., "Which path led to a more certain
-      answer?", "Which path discovered a more novel connection?", "Which path was more efficient?", "Which path seemed
-      more logically sound?"). This helps them articulate *how* they are evaluating "good thinking."
+    * **Criteria Guidance:** Provide users with criteria to evaluate (e.g., "Which path led to a more certain answer?",
+      "Which path discovered a more novel connection?", "Which path was more efficient?", "Which path seemed more
+      logically sound?"). This helps them articulate *how* they are evaluating "good thinking."
     * **Direct Action Feedback:** Allow users to say "I prefer when SeNARS uses Rule X in this context" or "I prefer
       when SeNARS forms this kind of compound term."
     * **Feedback on LM Use:** "Was the LM's contribution helpful here?" or "Should SeNARS have consulted the LM
@@ -1045,8 +1045,8 @@ This is the "teacher" component. It needs to be integrated into the system's wor
       new information or connections, or is it just a restatement?
     * **Efficiency Tracker:** Measures processing time, memory footprint, and number of inference steps for a given
       trace.
-    * **Abstraction Quality Evaluator:** If a new compound term is formed, does it genuinely simplify future
-      reasoning? (e.g., by reducing the number of individual inferences needed for related queries).
+    * **Abstraction Quality Evaluator:** If a new compound term is formed, does it genuinely simplify future reasoning?
+      (e.g., by reducing the number of individual inferences needed for related queries).
     * **LM Utility Evaluator:** Compares the truth value/confidence of beliefs *before* and *after* an LM interaction,
       factoring in the cost (latency, tokens).
     * **Diversity Promoter:** Rewards reasoning paths that explore different conceptual areas or utilize different rule
@@ -1061,7 +1061,7 @@ This component learns from the aggregated preferences and updates SeNARS's meta-
 
 1. **Preference Learning Model:** Implement a core RLFP algorithm (e.g., a neural network or a probabilistic model like
    a Gaussian Process Preference Learning model) that takes `(State, Action)` pairs (or full trajectory snippets) as
-   input and outputs a predicted "preference score" or a learned reward $R(s,a)$.
+   input and outputs a predicted "preference score" or a learned reward $R (s,a)$.
     * *Input:* Vectorized representation of the `State` (e.g., embeddings of relevant terms, priority distributions,
       recent action history) and the `Action` (e.g., rule ID, LM prompt type, memory operation).
     * *Training:* Trained on the collected pairwise preference data. The model learns to predict which `(State, Action)`
@@ -1225,13 +1225,13 @@ Extend the `EventBus` to emit detailed reasoning traces:
 
 class PreferenceCollector extends BaseComponent {
 
-constructor() {
+constructor () {
 
     this.traceBuffer \= new Map(); // traceId → {state, action, outcome}
 
 }
 
-captureDecision(traceId, context) {
+captureDecision (traceId, context) {
 
     // Record: What was the reasoning state?
 
@@ -1287,7 +1287,7 @@ Leverage `EmbeddingLayer` to create vector representations of *reasoning states*
 
 class ReasoningEmbedding {
 
-constructor(taskEmbedding, focusEmbedding, ruleEmbedding) {
+constructor (taskEmbedding, focusEmbedding, ruleEmbedding) {
 
     // Combines semantic content with structural reasoning context
 
@@ -1295,7 +1295,7 @@ constructor(taskEmbedding, focusEmbedding, ruleEmbedding) {
 
 }
 
-computeCompositeEmbedding() {
+computeCompositeEmbedding () {
 
     // Task Term embedding \+ Focus set activation pattern \+ Rule type encoding
 
@@ -1315,7 +1315,7 @@ class PreferenceModel extends BaseComponent {
 
 // Trains a small neural network to predict preference scores
 
-async train(preferences) {
+async train (preferences) {
 
     // Input: \[{embedding, preferenceScore, feedbackType}, ...\]
 
@@ -1323,7 +1323,7 @@ async train(preferences) {
 
 }
 
-predictScore(reasoningContext) {
+predictScore (reasoningContext) {
 
     // Returns expected preference for a candidate reasoning action
 
@@ -1339,7 +1339,7 @@ Extend `Truth` to incorporate preference-weighted confidence:
 
 class PreferenceAdjustedTruth extends Truth {
 
-constructor(frequency, confidence, preferenceWeight \= 1.0) {
+constructor (frequency, confidence, preferenceWeight \= 1.0) {
 
     super(frequency, confidence);
 
@@ -1347,7 +1347,7 @@ constructor(frequency, confidence, preferenceWeight \= 1.0) {
 
 }
 
-getEffectiveConfidence() {
+getEffectiveConfidence () {
 
     // Confidence boosted for reasoning patterns humans prefer
 
@@ -1367,7 +1367,7 @@ Modify `RuleEngine` to use a **learned selection policy**:
 
 class AdaptiveRuleEngine extends BaseComponent {
 
-selectRule(task, applicableRules) {
+selectRule (task, applicableRules) {
 
     // Instead of fixed priority, consult PreferenceModel
 
@@ -1403,7 +1403,7 @@ Replace fixed priority decay with **preference-driven attention**:
 
 class AdaptiveFocus extends Focus {
 
-updatePriority(task, outcomeFeedback) {
+updatePriority (task, outcomeFeedback) {
 
     // If task led to preferred conclusions, increase its priority
 
@@ -1425,7 +1425,7 @@ At the end of each `Cycle`, evaluate the *reasoning path quality*:
 
 class MetaCognitiveEvaluator {
 
-evaluateCycle(cycleTrace) {
+evaluateCycle (cycleTrace) {
 
     // Score the entire reasoning chain:
 
@@ -1548,9 +1548,9 @@ feedbackWeight: 0.1 // How much preferences influence decisions
 
 // 2\. Extend Cycle.js (5 lines)
 
-async selectTask() {
+async selectTask () {
 
-const task \= await super.selectTask();
+const task \= await super.selectTask ();
 
 if (this.preferenceModel) {
 
@@ -1566,9 +1566,9 @@ return task;
 
 commands\[':feedback'\] \= (args) \=\> {
 
-const \[traceId, score\] \= args.split(' ');
+const \[traceId, score\] \= args.split (' ');
 
-memory.input(\`\<${traceId} \--\> preferred\>\!{${score}, 0.9}.\`);
+memory.input (\`\<${traceId} \--\> preferred\>\!{${score}, 0.9}.\`);
 
 };
 
@@ -1720,8 +1720,8 @@ The process is continuous:
 
 1. **Generate**: SeNARS receives an input and generates several alternative reasoning trajectories/outputs.
 2. **Evaluate (Human)**: A human provides preference feedback on these alternatives via the UI.
-3. **Learn (RM)**: The Preference Model (LM/NAL-based) is updated based on human feedback, refining its understanding
-   of "good thinking."
+3. **Learn (RM)**: The Preference Model (LM/NAL-based) is updated based on human feedback, refining its understanding of
+   "good thinking."
 4. **Adapt (Policy)**: SeNARS's internal reasoning policy (task prioritization, rule selection, belief updates) adapts
    to maximize the `desire` signal from the updated RM.
 5. **Repeat**: SeNARS generates new reasoning, incorporating its refined "thinking," leading to further evaluation and

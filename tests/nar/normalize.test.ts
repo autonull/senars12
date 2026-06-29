@@ -1,12 +1,12 @@
-import { TermBuilder, normalize, termsEqual } from '../../nar/src/terms';
+import {normalize, TermBuilder, termsEqual} from '../../nar/src/terms';
 
 test('normalize sorts conjunction args', () => {
-  const a = TermBuilder.atom('A');
-  const b = TermBuilder.atom('B');
+    const a = TermBuilder.atom('A');
+    const b = TermBuilder.atom('B');
 
-  const malformed: any = { kind: 'conjunction', args: [b, a] };
+    const malformed: any = {kind: 'conjunction', args: [b, a]};
 
-  const normalized = normalize(malformed);
-  expect(termsEqual((normalized as any).args[0], a)).toBe(true);
-  expect(termsEqual((normalized as any).args[1], b)).toBe(true);
+    const normalized = normalize(malformed);
+    expect(termsEqual((normalized as any).args[0], a)).toBe(true);
+    expect(termsEqual((normalized as any).args[1], b)).toBe(true);
 });

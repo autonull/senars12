@@ -8,24 +8,24 @@
 
 ### 1.1 Core Philosophy
 
-| Principle | Rationale |
-|-----------|-----------|
-| **Unified Language** | Single language (JS) eliminates FFI complexity and impedance mismatch |
-| **Functional Essence** | Categorize by *what* things do, not *how* original was structured |
-| **Defer Optimization** | Working proof-of-concept before any performance work |
-| **Modern JS** | ES modules, async/await, iterators, functional patterns |
-| **Composable** | Small, focused modules that combine cleanly |
+| Principle              | Rationale                                                             |
+|------------------------|-----------------------------------------------------------------------|
+| **Unified Language**   | Single language (JS) eliminates FFI complexity and impedance mismatch |
+| **Functional Essence** | Categorize by *what* things do, not *how* original was structured     |
+| **Defer Optimization** | Working proof-of-concept before any performance work                  |
+| **Modern JS**          | ES modules, async/await, iterators, functional patterns               |
+| **Composable**         | Small, focused modules that combine cleanly                           |
 
 ### 1.2 Departures from OpenCog
 
-| OpenCog Issue | Our Approach |
-|---------------|--------------|
-| Multi-language stack (Rust/C++/Python) | Pure JavaScript |
-| Separate triemap/WAM/ZAM backends | Single unified interpreter |
-| Atomspace as separate component | Space integrated with interpreter |
-| Complex FFI grounding | Native JS function registry |
-| Scattered inference algorithms | Single inference module |
-| Premature optimization (MORK) | Simple first, optimize later |
+| OpenCog Issue                          | Our Approach                      |
+|----------------------------------------|-----------------------------------|
+| Multi-language stack (Rust/C++/Python) | Pure JavaScript                   |
+| Separate triemap/WAM/ZAM backends      | Single unified interpreter        |
+| Atomspace as separate component        | Space integrated with interpreter |
+| Complex FFI grounding                  | Native JS function registry       |
+| Scattered inference algorithms         | Single inference module           |
+| Premature optimization (MORK)          | Simple first, optimize later      |
 
 ---
 
@@ -34,6 +34,7 @@
 ### 2.1 Unified Architecture
 
 **Conceptual MeTTa Architecture:**
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │                 MeTTaInterpreter                     │
@@ -52,6 +53,7 @@
 ```
 
 **Integration with SeNARS:**
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │                    SeNARS System                     │
@@ -74,9 +76,11 @@
 
 ### 2.2 Module Structure
 
-> **Note**: This specification shows conceptual organization. Actual implementation in `core/src/metta/` uses SeNARS `Term` objects and `BaseMeTTaComponent` pattern.
+> **Note**: This specification shows conceptual organization. Actual implementation in `core/src/metta/` uses SeNARS
+> `Term` objects and `BaseMeTTaComponent` pattern.
 
 **Current Implementation:**
+
 ```
 core/src/metta/
 ├── MeTTaInterpreter.js      # Main orchestration & public API
@@ -98,6 +102,7 @@ core/src/metta/
 ```
 
 **Conceptual Modules** (used in this spec for clarity):
+
 ```
 Atom → kernel/Term.js
 Space → kernel/Space.js
@@ -114,6 +119,7 @@ Stdlib → stdlib/*.metta
 All MeTTa components extend `BaseMeTTaComponent` (which extends SeNARS `BaseComponent`):
 
 **Inheritance Hierarchy:**
+
 ```
 BaseComponent (SeNARS)
     ↓
@@ -194,6 +200,7 @@ class MatchEngine extends BaseMeTTaComponent {
 ```
 
 **Key Benefits:**
+
 - **Metrics**: Automatic operation timing and counting
 - **Events**: Standardized event emission for observability
 - **Logging**: Structured logging with component context
@@ -204,7 +211,8 @@ class MatchEngine extends BaseMeTTaComponent {
 
 ## 3. Term Representation
 
-> **Conceptual vs Actual**: This specification uses a conceptual `Atom` class for clarity. Actual implementation uses SeNARS `Term` via `TermFactory`.
+> **Conceptual vs Actual**: This specification uses a conceptual `Atom` class for clarity. Actual implementation uses
+> SeNARS `Term` via `TermFactory`.
 
 ### 3.1 Conceptual Atom Class (For Specification Clarity)
 
@@ -280,20 +288,21 @@ class MeTTaComponent extends BaseMeTTaComponent {
 
 ### 3.3 Conceptual vs Actual Mappings
 
-| Conceptual (Spec) | Actual (Implementation) | Notes |
-|-------------------|-------------------------|-------|
-| `Atom.symbol('foo')` | `termFactory.atomic('foo')` | Creates atomic term |
-| `Atom.variable('$x')` | `termFactory.variable('$x')` | Creates variable |
-| `Atom.expr(a, b, c)` | `termFactory.compound('^', [a, b, c])` | Creates compound with operator |
-| `atom.isSymbol` | `term.operator === null && !term.isVariable` | Check atomic |
-| `atom.isVariable` | `term.isVariable` | Check variable |
-| `atom.isExpression` | `term.operator !== null` | Check compound |
-| `atom.head()` | `term.components[0]` | First element |
-| `atom.tail()` | `term.components.slice(1)` | Rest of elements |
+| Conceptual (Spec)     | Actual (Implementation)                      | Notes                          |
+|-----------------------|----------------------------------------------|--------------------------------|
+| `Atom.symbol('foo')`  | `termFactory.atomic('foo')`                  | Creates atomic term            |
+| `Atom.variable('$x')` | `termFactory.variable('$x')`                 | Creates variable               |
+| `Atom.expr(a, b, c)`  | `termFactory.compound('^', [a, b, c])`       | Creates compound with operator |
+| `atom.isSymbol`       | `term.operator === null && !term.isVariable` | Check atomic                   |
+| `atom.isVariable`     | `term.isVariable`                            | Check variable                 |
+| `atom.isExpression`   | `term.operator !== null`                     | Check compound                 |
+| `atom.head()`         | `term.components[0]`                         | First element                  |
+| `atom.tail()`         | `term.components.slice(1)`                   | Rest of elements               |
 
 ### 3.4 Example: Creating MeTTa Terms
 
 **Conceptual (Spec):**
+
 ```javascript
 const rule = Atom.expr(
   Atom.symbol('='),
@@ -303,6 +312,7 @@ const rule = Atom.expr(
 ```
 
 **Actual (Implementation):**
+
 ```javascript
 const rule = termFactory.compound('=', [
   termFactory.compound('greet', [termFactory.variable('$name')]),
@@ -311,6 +321,7 @@ const rule = termFactory.compound('=', [
 ```
 
 **Or simply:**
+
 ```javascript
 // Use MeTTaInterpreter.load() which parses MeTTa syntax
 metta.load('(= (greet $name) (Hello $name))');
@@ -488,7 +499,8 @@ class HybridQuery {
 
 ## 5. Unification Engine (MatchEngine)
 
-> **Implementation**: Unification logic in `helpers/MeTTaHelpers.js`, wrapped by `MatchEngine` class for metrics and events.
+> **Implementation**: Unification logic in `helpers/MeTTaHelpers.js`, wrapped by `MatchEngine` class for metrics and
+> events.
 
 ### 5.1 MatchEngine Class
 
@@ -624,6 +636,7 @@ class Context {
 ```
 
 **Example:**
+
 ```metta
 (= $x 1)  ; Global in space
 
@@ -724,13 +737,13 @@ class Reducer {
 
 **Special Forms (Lazy Evaluation):**
 
-| Form | Evaluation |
-|------|------------|
-| `if` | Condition evaluated, then only one branch |
-| `quote` | Arguments **not** evaluated |
-| `lambda` | Body **not** evaluated until applied |
-| `let` | Bindings evaluated, body evaluated in new scope |
-| `match` | Pattern **not** evaluated, terms are |
+| Form     | Evaluation                                      |
+|----------|-------------------------------------------------|
+| `if`     | Condition evaluated, then only one branch       |
+| `quote`  | Arguments **not** evaluated                     |
+| `lambda` | Body **not** evaluated until applied            |
+| `let`    | Bindings evaluated, body evaluated in new scope |
+| `match`  | Pattern **not** evaluated, terms are            |
 
 ### 6.3 Match Implementation
 
@@ -934,7 +947,8 @@ class Reducer {
 
 ## 7. Nondeterminism
 
-> **Implementation**: Uses object-based superpositions (not generators) for compatibility and simplicity. Generators remain a future optimization option.
+> **Implementation**: Uses object-based superpositions (not generators) for compatibility and simplicity. Generators
+> remain a future optimization option.
 
 ### 7.1 Object-Based Design
 
@@ -1113,6 +1127,7 @@ const notRed = nondet.filterSuperpose(colors, c =>
 ### 7.3 Memory Efficiency
 
 Object-based approach provides:
+
 - **Simplicity**: Easy to implement and debug
 - **Compatibility**: Works with existing Term objects
 - **Eager evaluation**: All values computed upfront (fine for small sets)
@@ -1182,6 +1197,7 @@ class Types {
 ### 8.2 No Mandatory Type Checking
 
 Types are opt-in:
+
 - Declare types with `(: x Type)`
 - Check fails silently unless configured to throw
 - Enables gradual adoption
@@ -1463,6 +1479,7 @@ class PatternMiner {
 ## 13. Implementation Phases
 
 ### Phase 1: Core (Week 1-2)
+
 - [x] `Atom.js` — Atom representation
 - [ ] `Space.js` — Knowledge storage
 - [ ] `Unify.js` — Pattern matching
@@ -1470,17 +1487,20 @@ class PatternMiner {
 - [ ] `Reduce.js` — Basic evaluation
 
 ### Phase 2: Features (Week 3-4)
+
 - [ ] `Nondet.js` — Superposition/collapse
 - [ ] `Types.js` — Gradual typing
 - [ ] `Grounded.js` — Native functions
 - [ ] `Interpreter.js` — Orchestration
 
 ### Phase 3: Inference (Week 5-6)
+
 - [ ] Forward chaining
 - [ ] Backward chaining
 - [ ] Self-modification examples
 
 ### Phase 4: Integration (Week 7-8)
+
 - [ ] REPL interface
 - [ ] Test suite
 - [ ] Documentation
@@ -1492,37 +1512,37 @@ class PatternMiner {
 
 ### 14.1 Core
 
-| Operation | Syntax | Description |
-|-----------|--------|-------------|
-| **Define** | `(= pattern result)` | Add rewrite rule |
-| **Type** | `(: symbol Type)` | Declare type |
-| **Eval** | `(! expr)` | Force evaluation |
-| **Match** | `(match &space pattern template)` | Pattern query |
+| Operation  | Syntax                            | Description      |
+|------------|-----------------------------------|------------------|
+| **Define** | `(= pattern result)`              | Add rewrite rule |
+| **Type**   | `(: symbol Type)`                 | Declare type     |
+| **Eval**   | `(! expr)`                        | Force evaluation |
+| **Match**  | `(match &space pattern template)` | Pattern query    |
 
 ### 14.2 Space
 
-| Operation | Description |
-|-----------|-------------|
-| `(addAtom &space atom)` | Add atom |
-| `(remAtom &space atom)` | Remove atom |
-| `(get-atoms &space)` | Get all atoms |
-| `&self` | Current space reference |
+| Operation               | Description             |
+|-------------------------|-------------------------|
+| `(addAtom &space atom)` | Add atom                |
+| `(remAtom &space atom)` | Remove atom             |
+| `(get-atoms &space)`    | Get all atoms           |
+| `&self`                 | Current space reference |
 
 ### 14.3 Control
 
-| Operation | Description |
-|-----------|-------------|
+| Operation             | Description |
+|-----------------------|-------------|
 | `(if cond then else)` | Conditional |
-| `(superpose (a b c))` | All values |
-| `(collapse expr)` | One value |
+| `(superpose (a b c))` | All values  |
+| `(collapse expr)`     | One value   |
 
 ### 14.4 Arithmetic
 
-| Op | Description |
-|----|-------------|
-| `+`, `-`, `*`, `/`, `%` | Math |
-| `<`, `>`, `==`, `!=` | Comparison |
-| `and`, `or`, `not` | Logic |
+| Op                      | Description |
+|-------------------------|-------------|
+| `+`, `-`, `*`, `/`, `%` | Math        |
+| `<`, `>`, `==`, `!=`    | Comparison  |
+| `and`, `or`, `not`      | Logic       |
 
 ### 14.5 List Operations
 
@@ -1700,14 +1720,14 @@ class Grounded {
 
 **Core stdlib to implement:**
 
-| Module | Functions |
-|--------|-----------|
-| **math.metta** | `sqrt`, `pow`, `sin`, `cos`, `tan`, `atan`, `log`, `exp`, `abs`, `min`, `max`, `floor`, `ceil`, `round` |
-| **list.metta** | `map`, `filter`, `reduce`, `fold`, `zip`, `range`, `take`, `drop`, `flatten` |
-| **string.metta** | All str-* functions above |
-| **logic.metta** | `and`, `or`, `not`, `xor`, `implies`, `iff` |
-| **control.metta** | `when`, `unless`, `cond`, `do`, `begin` |
-| **space.metta** | `query`, `find-all`, `count-atoms`, `filter-atoms` |
+| Module            | Functions                                                                                               |
+|-------------------|---------------------------------------------------------------------------------------------------------|
+| **math.metta**    | `sqrt`, `pow`, `sin`, `cos`, `tan`, `atan`, `log`, `exp`, `abs`, `min`, `max`, `floor`, `ceil`, `round` |
+| **list.metta**    | `map`, `filter`, `reduce`, `fold`, `zip`, `range`, `take`, `drop`, `flatten`                            |
+| **string.metta**  | All str-* functions above                                                                               |
+| **logic.metta**   | `and`, `or`, `not`, `xor`, `implies`, `iff`                                                             |
+| **control.metta** | `when`, `unless`, `cond`, `do`, `begin`                                                                 |
+| **space.metta**   | `query`, `find-all`, `count-atoms`, `filter-atoms`                                                      |
 
 **Example Standard Library Definitions:**
 
@@ -1766,15 +1786,15 @@ class MeTTa {
 }
 ```
 
-
-
 ### Hello World
+
 ```metta
 (= (greet $name) (Hello $name))
 !(greet World)
 ```
 
 ### Factorial
+
 ```metta
 (= (fact 0) 1)
 (= (fact $n) (* $n (fact (- $n 1))))
@@ -1782,6 +1802,7 @@ class MeTTa {
 ```
 
 ### Pattern Matching
+
 ```metta
 (parent Alice Bob)
 (parent Bob Charlie)
@@ -1793,12 +1814,14 @@ class MeTTa {
 ```
 
 ### Nondeterminism
+
 ```metta
 (= (color) (superpose (red green blue)))
 !(collapse (color))
 ```
 
 ### Self-Modification
+
 ```metta
 (= (learn $fact) (addAtom &self $fact))
 !(learn (knows Alice math))
@@ -2034,15 +2057,15 @@ Total: ~820 LOC for complete implementation
 
 ## 18. Non-Goals (For Now)
 
-| Feature | Why Deferred |
-|---------|--------------|
-| Distributed atomspace | Premature; single-process first |
-| Persistent storage | Use JSON serialization if needed |
-| JVM/WASM backends | JS is the backend |
-| PLN truth values | Add as atoms when needed |
-| Pattern mining | After core is stable |
-| Performance optimization | After proof-of-concept |
-| IDE integration | After REPL works |
+| Feature                  | Why Deferred                     |
+|--------------------------|----------------------------------|
+| Distributed atomspace    | Premature; single-process first  |
+| Persistent storage       | Use JSON serialization if needed |
+| JVM/WASM backends        | JS is the backend                |
+| PLN truth values         | Add as atoms when needed         |
+| Pattern mining           | After core is stable             |
+| Performance optimization | After proof-of-concept           |
+| IDE integration          | After REPL works                 |
 
 ---
 
@@ -2091,14 +2114,14 @@ class TypeError extends MeTTaError {
 
 ### 19.2 Error Handling Strategy
 
-| Scenario | Strategy |
-|----------|----------|
-| **Parse errors** | Throw immediately with position |
-| **Unification failures** | Return `null` (normal flow) |
-| **Type mismatches** | Warn or throw based on config |
-| **Reduction loops** | Throw after max steps |
-| **Grounded function errors** | Propagate or wrap |
-| **Resource exhaustion** | Throw with context |
+| Scenario                     | Strategy                        |
+|------------------------------|---------------------------------|
+| **Parse errors**             | Throw immediately with position |
+| **Unification failures**     | Return `null` (normal flow)     |
+| **Type mismatches**          | Warn or throw based on config   |
+| **Reduction loops**          | Throw after max steps           |
+| **Grounded function errors** | Propagate or wrap               |
+| **Resource exhaustion**      | Throw with context              |
 
 ### 19.3 Graceful Degradation
 
@@ -2190,13 +2213,13 @@ describe('MeTTa Core', () => {
 
 ### 20.2 Test Categories
 
-| Category | Focus | Tools |
-|----------|-------|-------|
-| **Unit** | Individual functions | Vitest |
-| **Integration** | Component interaction | Vitest |
-| **End-to-end** | Full programs | Example suite |
-| **Property** | Invariants (unification idempotence) | fast-check |
-| **Performance** | Benchmarks (later) | hyperfine |
+| Category        | Focus                                | Tools         |
+|-----------------|--------------------------------------|---------------|
+| **Unit**        | Individual functions                 | Vitest        |
+| **Integration** | Component interaction                | Vitest        |
+| **End-to-end**  | Full programs                        | Example suite |
+| **Property**    | Invariants (unification idempotence) | fast-check    |
+| **Performance** | Benchmarks (later)                   | hyperfine     |
 
 ### 20.3 Coverage Goals
 
@@ -2669,11 +2692,11 @@ class Nondet {
 
 ### 27.1 Concerns
 
-| Issue | Mitigation |
-|-------|------------|
-| **Atom duplication** | Interning/atom table for deduplication |
-| **Large spaces** | Weak references for unused atoms |
-| **Deep recursion** | Tail call optimization (limited in JS) |
+| Issue                | Mitigation                              |
+|----------------------|-----------------------------------------|
+| **Atom duplication** | Interning/atom table for deduplication  |
+| **Large spaces**     | Weak references for unused atoms        |
+| **Deep recursion**   | Tail call optimization (limited in JS)  |
 | **Generator memory** | Consume generators eagerly or in chunks |
 
 ### 27.2 Atom Interning
@@ -2979,32 +3002,32 @@ class HybridReasoner {
 
 ### 32.1 Design Tradeoffs
 
-| Choice | Benefit | Cost |
-|--------|---------|------|
-| **Single Atom class** | Simpler, unified | No type safety |
+| Choice                     | Benefit                | Cost              |
+|----------------------------|------------------------|-------------------|
+| **Single Atom class**      | Simpler, unified       | No type safety    |
 | **Generator-based nondet** | Lazy, memory efficient | More complex flow |
-| **No mandatory types** | Easier adoption | Runtime errors |
-| **Simple Set for space** | Easy to implement | O(n) queries |
-| **Defer optimization** | Faster development | Slower execution |
+| **No mandatory types**     | Easier adoption        | Runtime errors    |
+| **Simple Set for space**   | Easy to implement      | O(n) queries      |
+| **Defer optimization**     | Faster development     | Slower execution  |
 
 ### 32.2 Known Limitations
 
-| Limitation | Workaround | Future Fix |
-|------------|------------|------------|
-| **Deep recursion** | Iterative rewrites | Trampoline/CPS |
-| **Large spaces** | Limit atom count | Indices/pagination |
-| **No tail-call optimization** | JS limitation | Worker threads |
-| **Synchronous by default** | Use `*Async` methods | Full async core |
-| **No distributed atomspace** | Single process | ZMQ/WebSocket sync |
+| Limitation                    | Workaround           | Future Fix         |
+|-------------------------------|----------------------|--------------------|
+| **Deep recursion**            | Iterative rewrites   | Trampoline/CPS     |
+| **Large spaces**              | Limit atom count     | Indices/pagination |
+| **No tail-call optimization** | JS limitation        | Worker threads     |
+| **Synchronous by default**    | Use `*Async` methods | Full async core    |
+| **No distributed atomspace**  | Single process       | ZMQ/WebSocket sync |
 
 ### 32.3 Security Concerns
 
-| Concern | Mitigation |
-|---------|------------|
-| **Code injection** | Parse untrusted input carefully |
-| **Resource exhaustion** | Limits on space size, reduction steps |
-| **Grounded function safety** | Whitelist/sandbox grounded functions |
-| **Module imports** | Validate URLs, use CSP in browser |
+| Concern                      | Mitigation                            |
+|------------------------------|---------------------------------------|
+| **Code injection**           | Parse untrusted input carefully       |
+| **Resource exhaustion**      | Limits on space size, reduction steps |
+| **Grounded function safety** | Whitelist/sandbox grounded functions  |
+| **Module imports**           | Validate URLs, use CSP in browser     |
 
 ---
 
@@ -3071,19 +3094,20 @@ a3 === a4;        // true (same object)
 ### 34.1 When to Optimize
 
 **Don't optimize until:**
+
 - Core functionality works
 - Test suite passes
 - Real benchmarks show bottlenecks
 
 **Then consider:**
 
-| Optimization | Impact | Complexity |
-|--------------|--------|------------|
-| Atom interning | High (reduce memory) | Medium |
-| Space indices | High (faster queries) | Medium |
-| Compiled patterns | Medium (faster matching) | High |
-| Worker threads | Medium (parallelism) | High |
-| WASM core | Low (marginal speedup) | Very High |
+| Optimization      | Impact                   | Complexity |
+|-------------------|--------------------------|------------|
+| Atom interning    | High (reduce memory)     | Medium     |
+| Space indices     | High (faster queries)    | Medium     |
+| Compiled patterns | Medium (faster matching) | High       |
+| Worker threads    | Medium (parallelism)     | High       |
+| WASM core         | Low (marginal speedup)   | Very High  |
 
 ### 34.2 Profiling Hooks
 
@@ -3114,28 +3138,28 @@ class MeTTa {
 
 ### 35.1 Theoretical Foundations
 
-| Resource | Topic |
-|----------|-------|
+| Resource                                             | Topic                          |
+|------------------------------------------------------|--------------------------------|
 | [arXiv:2112.08272](https://arxiv.org/abs/2112.08272) | Reflective metagraph rewriting |
-| [arXiv:2310.18318](https://arxiv.org/abs/2310.18318) | OpenCog Hyperon framework |
-| [MeTTa Language](https://metta-lang.dev) | Official documentation |
+| [arXiv:2310.18318](https://arxiv.org/abs/2310.18318) | OpenCog Hyperon framework      |
+| [MeTTa Language](https://metta-lang.dev)             | Official documentation         |
 
 ### 35.2 Implementation References
 
-| Project | Relevance |
-|---------|-----------|
-| OpenCog Hyperon | Original Rust/C++ implementation |
-| hyperon-experimental | Reference interpreter |
-| metta-wam | Prolog WAM backend |
+| Project              | Relevance                        |
+|----------------------|----------------------------------|
+| OpenCog Hyperon      | Original Rust/C++ implementation |
+| hyperon-experimental | Reference interpreter            |
+| metta-wam            | Prolog WAM backend               |
 
 ### 35.3 Related Systems
 
-| System | Similarity |
-|--------|------------|
-| Prolog | Unification, pattern matching |
+| System     | Similarity                     |
+|------------|--------------------------------|
+| Prolog     | Unification, pattern matching  |
 | miniKanren | Relational programming, nondet |
-| Scheme | S-expressions, macros |
-| Datalog | Logic programming, fixed-point |
+| Scheme     | S-expressions, macros          |
+| Datalog    | Logic programming, fixed-point |
 
 ---
 
@@ -3144,8 +3168,9 @@ class MeTTa {
 ### 36.1 From Existing Core
 
 Current `core/src/metta/` already has:
+
 - ✓ `MeTTaInterpreter.js` → Becomes `Interpreter.js`
-- ✓ `MeTTaSpace.js` → Becomes `Space.js`  
+- ✓ `MeTTaSpace.js` → Becomes `Space.js`
 - ✓ `MatchEngine.js` → Absorbed into `Unify.js`
 - ✓ `ReductionEngine.js` → Becomes `Reduce.js`
 - ✓ `NonDeterminism.js` → Becomes `Nondet.js`
@@ -3154,13 +3179,13 @@ Current `core/src/metta/` already has:
 
 ### 36.2 Changes Required
 
-| File | Changes |
-|------|---------|
-| All | Remove `BaseMeTTaComponent` dependency |
-| `MeTTaSpace` | Simplify to pure `Space` (remove SeNARS coupling) |
-| `MatchEngine` | Extract to standalone `unify()`/`substitute()` |
-| Types | Remove `TypeChecker.js` duplicate |
-| Parser | Extract from interpreter to `Parser.js` |
+| File          | Changes                                           |
+|---------------|---------------------------------------------------|
+| All           | Remove `BaseMeTTaComponent` dependency            |
+| `MeTTaSpace`  | Simplify to pure `Space` (remove SeNARS coupling) |
+| `MatchEngine` | Extract to standalone `unify()`/`substitute()`    |
+| Types         | Remove `TypeChecker.js` duplicate                 |
+| Parser        | Extract from interpreter to `Parser.js`           |
 
 ### 36.3 Backward Compatibility
 
@@ -3180,6 +3205,7 @@ export class MeTTaInterpreter extends MeTTa {
 ## 37. Roadmap
 
 ### Week 1-2: Core Foundation
+
 - [x] Review existing implementation
 - [ ] Refactor `Atom.js` (unified class)
 - [ ] Extract `Unify.js` from `MatchEngine`
@@ -3187,6 +3213,7 @@ export class MeTTaInterpreter extends MeTTa {
 - [ ] Extract `Parser.js`
 
 ### Week 3-4: Integration
+
 - [ ] Unify `Reduce.js`
 - [ ] Simplify `Nondet.js` (generators)
 - [ ] Simplify `Types.js`
@@ -3194,12 +3221,14 @@ export class MeTTaInterpreter extends MeTTa {
 - [ ] Create `Interpreter.js` orchestration
 
 ### Week 5-6: Features
+
 - [ ] `Inference.js` module
 - [ ] Module system (`import!`)
 - [ ] Macro expansion
 - [ ] Error handling
 
 ### Week 7-8: Tooling
+
 - [ ] REPL
 - [ ] CLI tool
 - [ ] Test suite
@@ -3207,6 +3236,7 @@ export class MeTTaInterpreter extends MeTTa {
 - [ ] Example programs
 
 ### Week 9+: Polish
+
 - [ ] SeNARS integration
 - [ ] Performance profiling
 - [ ] Optimization (if needed)
@@ -3216,7 +3246,8 @@ export class MeTTaInterpreter extends MeTTa {
 
 ## 38. Probabilistic Logic Networks (PLN) — Optional Extension
 
-> **Note**: PLN is optional since SeNARS already provides NAL (Non-Axiomatic Logic) for reasoning. PLN extends capabilities for probabilistic/uncertain inference scenarios not covered by NAL.
+> **Note**: PLN is optional since SeNARS already provides NAL (Non-Axiomatic Logic) for reasoning. PLN extends
+> capabilities for probabilistic/uncertain inference scenarios not covered by NAL.
 
 ### 38.1 Truth Value Representation
 
@@ -3287,13 +3318,13 @@ class PLNExtension {
 
 ### 38.3 PLN vs NAL
 
-| Feature | NAL (SeNARS) | PLN (MeTTa Extension) |
-|---------|--------------|----------------------|
-| **Primary use** | Real-time reasoning | Knowledge integration |
-| **Truth values** | Built-in | Symbolic atoms |
-| **Temporal** | Yes (events) | Limited |
-| **Self-control** | Priority/budget | Not included |
-| **When to use** | Agent reasoning | Knowledge graphs, ontologies |
+| Feature          | NAL (SeNARS)        | PLN (MeTTa Extension)        |
+|------------------|---------------------|------------------------------|
+| **Primary use**  | Real-time reasoning | Knowledge integration        |
+| **Truth values** | Built-in            | Symbolic atoms               |
+| **Temporal**     | Yes (events)        | Limited                      |
+| **Self-control** | Priority/budget     | Not included                 |
+| **When to use**  | Agent reasoning     | Knowledge graphs, ontologies |
 
 ### 38.4 Integration with SeNARS NAL
 
@@ -3330,7 +3361,8 @@ class PLNNALBridge {
 
 ## 39. Architecture Alignment Notes
 
-> **Important**: MeTTa is implemented **within** SeNARS, not as a standalone system. The specification should align with existing SeNARS patterns.
+> **Important**: MeTTa is implemented **within** SeNARS, not as a standalone system. The specification should align with
+> existing SeNARS patterns.
 
 ### 39.1 Term Representation
 
@@ -3398,8 +3430,9 @@ superpose(...values) {
 ### 39.4 Performance Deferral
 
 All performance optimization is deferred until functional prototype is complete:
+
 - MORK-level optimization: **Deferred**
-- Distributed atomspace: **Deferred**  
+- Distributed atomspace: **Deferred**
 - Triemap indexing: **Deferred**
 - Worker threads: **Deferred**
 

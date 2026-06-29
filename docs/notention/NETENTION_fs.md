@@ -9,7 +9,7 @@ design is dense, terse, and packed with detail as requested.
 
 ## **Conceptual Refactorings**
 
-- **Unify(Note, Agent) \=\> Note**: Eliminate the Agent as a separate entity. A `Note` is inherently an agent—its
+- **Unify (Note, Agent) \=\> Note**: Eliminate the Agent as a separate entity. A `Note` is inherently an agent—its
   behavior (planning, execution, reflection) is intrinsic, driven by its `Plan` and `Tools`. This unification simplifies
   the metamodel: a Note *is* its own intelligence, reducing abstraction layers.
 - **Rename 'Primordial Note' to 'Root Note'**: Reflects its role as the origin of the system without implying a
@@ -35,12 +35,12 @@ design is dense, terse, and packed with detail as requested.
 
 - **Fields**:
     - `id`: UUID, unique within its context.
-    - `type`: Enum(`Root`, `Task`, `Tool`, `Prompt`, `Memory`, `Domain`), extensible via self-definition.
+    - `type`: Enum (`Root`, `Task`, `Tool`, `Prompt`, `Memory`, `Domain`), extensible via self-definition.
     - `content`: JSON (text, code, data), schema-validated by `type`.
     - `graph`: Subgraph reference (edges to other Notes), stored as adjacency list.
     - `plan`: Embedded `Plan` object or `null`.
     - `priority`: Int (0-100), dynamic, influences execution order.
-    - `status`: Enum(`pending`, `active`, `done`, `failed`, `dormant`), lifecycle state.
+    - `status`: Enum (`pending`, `active`, `done`, `failed`, `dormant`), lifecycle state.
     - `memory`: Array of `Memory` Notes, capped with forgetting logic.
     - `tools`: Map of `Tool` Notes, locally scoped.
     - `context`: Optional parent `Note` ID, defines recursion level (`null` for Root).
@@ -66,7 +66,7 @@ design is dense, terse, and packed with detail as requested.
     - `args`: JSON, tool inputs.
     - `deps`: Array of `PlanStep` IDs, dependency graph.
     - `result`: JSON or `null`, output of execution.
-    - `status`: Enum(`pending`, `running`, `done`, `failed`).
+    - `status`: Enum (`pending`, `running`, `done`, `failed`).
     - `priority`: Int, derived from Plan/Note.
 - **Meaning**: Atomic action within a Plan, executed by a Tool.
 
@@ -84,7 +84,7 @@ design is dense, terse, and packed with detail as requested.
 
 - **Fields**:
     - `id`: UUID.
-    - `role`: Enum(`user`, `system`, `tool`, `reflection`), source of entry.
+    - `role`: Enum (`user`, `system`, `tool`, `reflection`), source of entry.
     - `content`: JSON, event or state snapshot.
     - `ts`: Timestamp, creation time.
     - `relevance`: Float (0-1), LLM-assessed, drives forgetting.

@@ -246,8 +246,8 @@ Netention offers a range of features categorized by the core components they enh
 * **Scenario-Based Branching:**
     * **Functionality:** Plans can include branches to handle different scenarios or contingencies, allowing the Agent
       to dynamically choose execution paths based on real-time conditions.
-    * **Implementation Details:** Plan graph edges can represent conditional branches. The Agent evaluates conditions (
-      e.g., using Tools to check external data) and selects the appropriate branch to follow in the Plan graph.
+    * **Implementation Details:** Plan graph edges can represent conditional branches. The Agent evaluates conditions
+      (e.g., using Tools to check external data) and selects the appropriate branch to follow in the Plan graph.
 * **Goal-Oriented Planning:**
     * **Functionality:** Plans are primarily driven by high-level goals and desired outcomes, providing flexibility in
       the specific steps and actions taken to achieve those goals.
@@ -260,8 +260,8 @@ Netention offers a range of features categorized by the core components they enh
 * **Diverse Toolset:**
     * **Functionality:** Netention provides a wide range of built-in Tools covering common tasks and functionalities.
     * **Implementation Details:** Includes Tools for Web Search, File System Operations, Data Analysis and Processing,
-      User Interaction, System Monitoring, Calendar Integration, Email Integration, Task Management, Code Execution (
-      sandboxed), and Graph Data Manipulation.
+      User Interaction, System Monitoring, Calendar Integration, Email Integration, Task Management, Code Execution
+      (sandboxed), and Graph Data Manipulation.
 * **Extensible Tool Architecture:**
     * **Functionality:** The system is designed to be easily extensible with new Tools, allowing users and developers to
       add custom functionalities through a plugin architecture.
@@ -611,8 +611,8 @@ Feedback = //...
    ultimately a Note.
 
 2. **Relationships as Glue:**  The `Relationship` object connects `ActiveNotes`. Dependencies in a Plan are
-   `Relationships`. Domain tagging is a `Relationship`. The connection between a Note and its conversation history (
-   Messages) is a `Relationship`.
+   `Relationships`. Domain tagging is a `Relationship`. The connection between a Note and its conversation history
+   (Messages) is a `Relationship`.
 
 3. **Agent as Behavior:** The `Agent` is not a separate entity but a *behavior* associated with an `ActiveNote`. This
    simplifies the model; there aren't "Agents" running around, but rather Notes exhibiting "Agent-like" behavior.

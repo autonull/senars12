@@ -1,12 +1,11 @@
-import { LitElement, css, html } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { classMap } from 'lit/directives/class-map.js';
+import {css, html, LitElement} from 'lit';
+import {customElement, property} from 'lit/decorators.js';
 
 type SpinnerVariant = 'inline' | 'overlay';
 
 @customElement('s-spinner')
 export class SSpinner extends LitElement {
-  static override styles = css`
+    static override styles = css`
     :host { display: inline-flex; }
     .spinner { display: inline-flex; align-items: center; justify-content: center; }
     .overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: var(--zIndex-layers-modal); }
@@ -15,19 +14,19 @@ export class SSpinner extends LitElement {
     @keyframes spin { to { transform: rotate(360deg); } }
   `;
 
-  @property({ type: String }) variant: SpinnerVariant = 'inline';
+    @property({type: String}) variant: SpinnerVariant = 'inline';
 
-  override render() {
-    const content = html`<div class="ring"></div>`;
-    if (this.variant === 'overlay') {
-      return html`<div class="spinner overlay">${content}</div>`;
+    override render() {
+        const content = html`<div class="ring"></div>`;
+        if (this.variant === 'overlay') {
+            return html`<div class="spinner overlay">${content}</div>`;
+        }
+        return html`<div class="spinner">${content}</div>`;
     }
-    return html`<div class="spinner">${content}</div>`;
-  }
 }
 
 declare global {
-  interface HTMLElementTagNameMap {
-    's-spinner': SSpinner;
-  }
+    interface HTMLElementTagNameMap {
+        's-spinner': SSpinner;
+    }
 }

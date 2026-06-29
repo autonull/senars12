@@ -60,8 +60,8 @@ Now, let’s distill these components into their essential principles and rethin
 
 1. **Unified Entity**: Combine notes and agents into a single concept—let’s call it a **"Node"**—that encapsulates data,
    behavior, and context.
-2. **Graph as Everything**: Make the graph not just a planning tool but the system’s entire structure—every element (
-   nodes, tools, memory) is a graph node or edge.
+2. **Graph as Everything**: Make the graph not just a planning tool but the system’s entire structure—every element
+   (nodes, tools, memory) is a graph node or edge.
 3. **LLM as Core Driver**: Elevate the LLM from a tool to the system’s primary intelligence, with minimal scaffolding.
 4. **Emergent Tools**: Replace rigid tool registries with tools that emerge as nodes within the graph.
 5. **Memory as Graph State**: Redefine memory as the evolving state of the graph, not a separate log.

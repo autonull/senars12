@@ -3,57 +3,57 @@
  * Handles self-analysis and reasoning quality assessment
  */
 
-import type { NAR } from '../../../nar/src';
-import type { Logger } from '../../../nar/src/logger';
-import { createLogger } from '../../../nar/src/logger';
+import type {NAR} from '../../../nar/src';
+import type {Logger} from '../../../nar/src/logger';
+import {createLogger} from '../../../nar/src/logger';
 
 export interface SelfReasoningState {
-  qualityScore: number;
-  consistency: number;
-  gaps: string[];
-  suggestions: string[];
+    qualityScore: number;
+    consistency: number;
+    gaps: string[];
+    suggestions: string[];
 }
 
 export interface QualityMetrics {
-  overall: number;
-  coherence: number;
-  relevance: number;
-  completeness: number;
+    overall: number;
+    coherence: number;
+    relevance: number;
+    completeness: number;
 }
 
 export interface SelfReasoningServiceConfig {
-  nar?: NAR;
-  logger?: Logger;
+    nar?: NAR;
+    logger?: Logger;
 }
 
 export class SelfReasoningService {
-  private readonly nar?: NAR;
-  private readonly logger: Logger;
+    private readonly nar?: NAR;
+    private readonly logger: Logger;
 
-  constructor(config: SelfReasoningServiceConfig = {}) {
-    this.nar = config.nar;
-    this.logger = config.logger ?? createLogger({ scope: 'agent:self-reasoning' });
-  }
+    constructor(config: SelfReasoningServiceConfig = {}) {
+        this.nar = config.nar;
+        this.logger = config.logger ?? createLogger({scope: 'agent:self-reasoning'});
+    }
 
-  getSelfReasoning(): SelfReasoningState | null {
-    return this.nar?.getSelfAnalyzer?.()
-      ? {
-          qualityScore: 0,
-          consistency: 0,
-          gaps: [],
-          suggestions: [],
-        }
-      : null;
-  }
+    getSelfReasoning(): SelfReasoningState | null {
+        return this.nar?.getSelfAnalyzer?.()
+            ? {
+                qualityScore: 0,
+                consistency: 0,
+                gaps: [],
+                suggestions: [],
+            }
+            : null;
+    }
 
-  getReasoningQuality(): QualityMetrics | null {
-    return this.nar?.getSelfAnalyzer?.()
-      ? {
-          overall: 0,
-          coherence: 0,
-          relevance: 0,
-          completeness: 0,
-        }
-      : null;
-  }
+    getReasoningQuality(): QualityMetrics | null {
+        return this.nar?.getSelfAnalyzer?.()
+            ? {
+                overall: 0,
+                coherence: 0,
+                relevance: 0,
+                completeness: 0,
+            }
+            : null;
+    }
 }

@@ -20,7 +20,7 @@ intervention. Think of it as a digital organism: rooted in a single "Root Note,"
 
 ### **Conceptual / Metalinguistic Refactorings**
 
-1. **Unify(Note, Agent) \=\> Note**
+1. **Unify (Note, Agent) \=\> Note**
 
     - **Concept**: Eliminate the distinction between `Note` and `Agent`. Every `Note` is inherently an agent—capable of
       reasoning, planning, and acting. This unifies behavior and data into a single entity, simplifying the system’s
@@ -40,8 +40,8 @@ intervention. Think of it as a digital organism: rooted in a single "Root Note,"
 
 3. **Metalinguistic Shift: Notes as Programs**
 
-    - **Concept**: Reframe `Notes` as executable programs within a unified runtime. Each `Note` defines its own
-      behavior (via a `plan`) and can modify itself or other `Notes`, making the system a distributed, self-programming
+    - **Concept**: Reframe `Notes` as executable programs within a unified runtime. Each `Note` defines its own behavior
+      (via a `plan`) and can modify itself or other `Notes`, making the system a distributed, self-programming
       environment.
     - **Implication**: This elevates the system to a metalinguistic level where `Notes` are both data and code, enabling
       recursive self-definition and evolution without external scaffolding.
@@ -64,35 +64,35 @@ intervention. Think of it as a digital organism: rooted in a single "Root Note,"
     - **Old Structure**: Separate `Note` (data) and `Agent` (behavior), linked by IDs.
     - **New Structure**:
 
-      const NoteSchema \= z.object({
+      const NoteSchema \= z.object ({
 
-      id: z.string().uuid(),
+      id: z.string ().uuid (),
 
-      type: z.enum(\["root", "task", "knowledge", "tool", "plan", "domain"\]), // Flexible typing
+      type: z.enum (\["root", "task", "knowledge", "tool", "plan", "domain"\]), // Flexible typing
 
-      content: z.any(), // Text, code, JSON, etc.
+      content: z.any (), // Text, code, JSON, etc.
 
-      status: z.enum(\["pending", "running", "completed", "failed", "dormant", "archived"\]),
+      status: z.enum (\["pending", "running", "completed", "failed", "dormant", "archived"\]),
 
-      createdAt: z.string().datetime(),
+      createdAt: z.string ().datetime (),
 
-      updatedAt: z.string().datetime(),
+      updatedAt: z.string ().datetime (),
 
-      plan: PlanSchema.optional(), // Embedded plan (graph of steps)
+      plan: PlanSchema.optional (), // Embedded plan (graph of steps)
 
-      memory: z.array(MessageSchema), // Persistent interaction history
+      memory: z.array (MessageSchema), // Persistent interaction history
 
-      tools: z.array(ToolSchema), // Embedded tools specific to this Note
+      tools: z.array (ToolSchema), // Embedded tools specific to this Note
 
-      priority: z.number().int().default(0), // For scheduling and resource allocation
+      priority: z.number ().int ().default (0), // For scheduling and resource allocation
 
-      deadline: z.string().datetime().nullable(),
+      deadline: z.string ().datetime ().nullable (),
 
-      memoryUsage: z.number().int().default(0), // Tracks resource footprint
+      memoryUsage: z.number ().int ().default (0), // Tracks resource footprint
 
-      dependencies: z.array(z.string().uuid()), // Links to other Notes
+      dependencies: z.array (z.string ().uuid ()), // Links to other Notes
 
-      domainId: z.string().uuid().nullable(), // Categorization link
+      domainId: z.string ().uuid ().nullable (), // Categorization link
 
       });
 
@@ -107,9 +107,9 @@ intervention. Think of it as a digital organism: rooted in a single "Root Note,"
     - **New Structure**: Embedded within `Note`, simplified to a list of steps with implicit graph behavior via
       dependencies.
 
-      const PlanSchema \= z.object({
+      const PlanSchema \= z.object ({
 
-      steps: z.array(z.object({
+      steps: z.array (z.object ({
 
           id: z.string().uuid(),  
         
@@ -140,17 +140,17 @@ intervention. Think of it as a digital organism: rooted in a single "Root Note,"
     - **Old Structure**: Defined in a separate registry with static schemas.
     - **New Structure**: Embedded within `Notes`, allowing context-specific customization.
 
-      const ToolSchema \= z.object({
+      const ToolSchema \= z.object ({
 
-      name: z.string(),
+      name: z.string (),
 
-      description: z.string(),
+      description: z.string (),
 
-      execute: z.function().args(z.any()).returns(z.any()), // Dynamic function
+      execute: z.function ().args (z.any ()).returns (z.any ()), // Dynamic function
 
-      inputSchema: z.any().optional(), // Optional for flexibility
+      inputSchema: z.any ().optional (), // Optional for flexibility
 
-      outputSchema: z.any().optional(),
+      outputSchema: z.any ().optional (),
 
       });
 
@@ -163,19 +163,19 @@ intervention. Think of it as a digital organism: rooted in a single "Root Note,"
     - **Old Structure**: Simple array of messages.
     - **New Structure**: Enriched with metadata for better pruning and retrieval.
 
-      const MessageSchema \= z.object({
+      const MessageSchema \= z.object ({
 
-      id: z.string().uuid(),
+      id: z.string ().uuid (),
 
-      role: z.enum(\["user", "system", "note", "tool"\]),
+      role: z.enum (\["user", "system", "note", "tool"\]),
 
-      content: z.any(),
+      content: z.any (),
 
-      timestamp: z.string().datetime(),
+      timestamp: z.string ().datetime (),
 
-      relevance: z.number().min(0).max(1).default(0.5), // For forgetting prioritization
+      relevance: z.number ().min (0).max (1).default (0.5), // For forgetting prioritization
 
-      toolCall: z.object({ name: z.string(), args: z.any(), result: z.any() }).optional(),
+      toolCall: z.object ({ name: z.string (), args: z.any (), result: z.any () }).optional (),
 
       });
 
@@ -331,7 +331,7 @@ embedded contexts, simplifying the design and amplifying its power.
 
 ### **Conceptual and Metalinguistic Refactorings**
 
-1. **Unify(Note, Agent) \=\> Note**:
+1. **Unify (Note, Agent) \=\> Note**:
 
     - **Rationale**: Agents were previously distinct entities managing Notes. By unifying them, a Note becomes a
       self-contained unit with intrinsic intelligence, reducing redundancy and aligning with recursive design.
@@ -371,15 +371,15 @@ embedded contexts, simplifying the design and amplifying its power.
 
 #### **Note (Unified Structure)**
 
-const NoteSchema \= z.object({
+const NoteSchema \= z.object ({
 
-id: z.string().uuid(), // Unique identifier
+id: z.string ().uuid (), // Unique identifier
 
-type: z.enum(\["Root", "Task", "Tool", "Plan", "Memory", "Domain"\]), // Note type
+type: z.enum (\["Root", "Task", "Tool", "Plan", "Memory", "Domain"\]), // Note type
 
-content: z.any(), // Flexible content (text, code, JSON, etc.)
+content: z.any (), // Flexible content (text, code, JSON, etc.)
 
-behavior: z.object({ // Replaces separate Agent; defines intelligence
+behavior: z.object ({ // Replaces separate Agent; defines intelligence
 
     promptTemplate: z.string(),         // LangChain.js prompt template for reasoning
 
@@ -389,7 +389,7 @@ behavior: z.object({ // Replaces separate Agent; defines intelligence
 
 }),
 
-state: z.object({ // Dynamic runtime state
+state: z.object ({ // Dynamic runtime state
 
     status: z.enum(\["pending", "running", "completed", "failed", "dormant", "archived"\]),
 
@@ -399,7 +399,7 @@ state: z.object({ // Dynamic runtime state
 
 }),
 
-metadata: z.object({ // Contextual metadata
+metadata: z.object ({ // Contextual metadata
 
     createdAt: z.string().datetime(),
 
@@ -411,9 +411,9 @@ metadata: z.object({ // Contextual metadata
 
 }),
 
-priority: z.number().int().default(0), // Overall Note priority
+priority: z.number ().int ().default (0), // Overall Note priority
 
-resourceUsage: z.number().int().default(0), // Tracks memory/token usage
+resourceUsage: z.number ().int ().default (0), // Tracks memory/token usage
 
 });
 
@@ -650,35 +650,35 @@ as needed.
 
 ### **Note**
 
-const NoteSchema \= z.object({
+const NoteSchema \= z.object ({
 
-id: z.string().uuid(), // Unique identifier
+id: z.string ().uuid (), // Unique identifier
 
-type: z.enum(\["Note", "Plan", "Tool", "Domain"\]), // Polymorphic type
+type: z.enum (\["Note", "Plan", "Tool", "Domain"\]), // Polymorphic type
 
-title: z.string(), // Human-readable identifier
+title: z.string (), // Human-readable identifier
 
-content: z.any(), // Flexible content (text, code, JSON, etc.)
+content: z.any (), // Flexible content (text, code, JSON, etc.)
 
-context: z.string().uuid().nullable(), // Parent Note ID (null for root)
+context: z.string ().uuid ().nullable (), // Parent Note ID (null for root)
 
-subNotes: z.array(z.string().uuid()), // IDs of embedded Notes (plans, tools, etc.)
+subNotes: z.array (z.string ().uuid ()), // IDs of embedded Notes (plans, tools, etc.)
 
-status: z.enum(\["pending", "running", "completed", "failed", "dormant", "archived"\]),
+status: z.enum (\["pending", "running", "completed", "failed", "dormant", "archived"\]),
 
-priority: z.number().int().default(0), // Dynamic priority score
+priority: z.number ().int ().default (0), // Dynamic priority score
 
-deadline: z.string().datetime().nullable(), // Optional deadline
+deadline: z.string ().datetime ().nullable (), // Optional deadline
 
-memory: z.array(z.any()), // Contextual memory (LangChain.js-managed)
+memory: z.array (z.any ()), // Contextual memory (LangChain.js-managed)
 
-tools: z.record(z.any()), // Embedded tool definitions (name \-\> schema/execute)
+tools: z.record (z.any ()), // Embedded tool definitions (name \-\> schema/execute)
 
-createdAt: z.string().datetime(),
+createdAt: z.string ().datetime (),
 
-updatedAt: z.string().datetime(),
+updatedAt: z.string ().datetime (),
 
-resourceUsage: z.object({ // Track resource consumption
+resourceUsage: z.object ({ // Track resource consumption
 
     memory: z.number().int().default(0),
 
@@ -704,13 +704,13 @@ resourceUsage: z.object({ // Track resource consumption
 
   ### **PlanStep (as a Note Subtype)**
 
-const PlanStepSchema \= NoteSchema.extend({
+const PlanStepSchema \= NoteSchema.extend ({
 
-type: z.literal("PlanStep"),
+type: z.literal ("PlanStep"),
 
-stepNumber: z.number().int(),
+stepNumber: z.number ().int (),
 
-dependencies: z.array(z.string().uuid()), // IDs of dependent PlanStep Notes
+dependencies: z.array (z.string ().uuid ()), // IDs of dependent PlanStep Notes
 
 });
 
@@ -848,7 +848,7 @@ external dependencies to minimize code and maximize autonomy, with a **Zooming U
 
 ## **Conceptual / Metalinguistic Refactorings**
 
-1. **Unify(Note, Agent) \=\> Note**
+1. **Unify (Note, Agent) \=\> Note**
 
     - **Old**: Note (data) \+ Agent (behavior) were distinct, linked by `agentId`.
     - **New**: Note *is* the agent. Behavior (planning, execution) is intrinsic, defined by `logic` (code or LLM
@@ -877,17 +877,17 @@ external dependencies to minimize code and maximize autonomy, with a **Zooming U
 
 ### **Note**
 
-const NoteSchema \= z.object({
+const NoteSchema \= z.object ({
 
-id: z.string().uuid(), // Unique identifier
+id: z.string ().uuid (), // Unique identifier
 
-type: z.enum(\["Root", "Task", "Tool", "Plan", "Memory", "Domain"\]), // Note type
+type: z.enum (\["Root", "Task", "Tool", "Plan", "Memory", "Domain"\]), // Note type
 
-content: z.any(), // Data: text, code, JSON, etc.
+content: z.any (), // Data: text, code, JSON, etc.
 
-logic: z.string().optional(), // Executable behavior (JS or LLM prompt)
+logic: z.string ().optional (), // Executable behavior (JS or LLM prompt)
 
-state: z.object({ // Dynamic state
+state: z.object ({ // Dynamic state
 
     status: z.enum(\["pending", "running", "completed", "failed", "dormant"\]),
 
@@ -897,11 +897,11 @@ state: z.object({ // Dynamic state
 
 }),
 
-context: z.string().uuid().optional(), // Parent Note ID (virtual context)
+context: z.string ().uuid ().optional (), // Parent Note ID (virtual context)
 
-createdAt: z.string().datetime(),
+createdAt: z.string ().datetime (),
 
-updatedAt: z.string().datetime(),
+updatedAt: z.string ().datetime (),
 
 });
 
@@ -975,11 +975,11 @@ updatedAt: z.string().datetime(),
 
 1. **Root Note Creation**: Single Note with `type: "Root"`, `content` as metamodel (schemas, rules), `logic` as:
 
-   async function bootstrap() {
+   async function bootstrap () {
 
    const root \= this; // Self-reference
 
-   const subNotes \= await langChain.agentExecutor.run({
+   const subNotes \= await langChain.agentExecutor.run ({
 
        prompt: "Generate core Notes (Task, Tool, Memory) from metamodel",  
      
@@ -989,7 +989,7 @@ updatedAt: z.string().datetime(),
 
    });
 
-   await graphDB.put(subNotes.map(n \=\> ({ subject: root.id, predicate: "contains", object: n.id })));
+   await graphDB.put (subNotes.map (n \=\> ({ subject: root.id, predicate: "contains", object: n.id })));
 
    }
 
@@ -1015,11 +1015,11 @@ updatedAt: z.string().datetime(),
 
   ### **Implementation**
 
-const ui \= cytoscape({
+const ui \= cytoscape ({
 
-container: document.getElementById("graph"),
+container: document.getElementById ("graph"),
 
-elements: graphDB.queryNotes().map(n \=\> ({
+elements: graphDB.queryNotes ().map (n \=\> ({
 
     data: { id: n.id, label: n.type },
 
@@ -1027,15 +1027,15 @@ elements: graphDB.queryNotes().map(n \=\> ({
 
 })),
 
-style: \[{ selector: "node", style: { "content": "data(label)", "transform": "scale(var(--zoom))" } }\]
+style: \[{ selector: "node", style: { "content": "data (label)", "transform": "scale (var (--zoom))" } }\]
 
 });
 
-ui.on("zoom", () \=\> {
+ui.on ("zoom", () \=\> {
 
-const zoom \= ui.zoom();
+const zoom \= ui.zoom ();
 
-ui.nodes().forEach(n \=\> n.style("display", zoom \> 0.5 ? "element" : "none")); // Detail toggle
+ui.nodes ().forEach (n \=\> n.style ("display", zoom \> 0.5 ? "element" : "none")); // Detail toggle
 
 });
 

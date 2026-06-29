@@ -10,8 +10,8 @@ can be applied to manage and execute user-defined goals across any domain.
 
 ### Project Initialization
 
-1. **Plan Ingestion**: Provide your project plans, goals, or specifications in natural language or structured formats (
-   Markdown, JSON, YAML)
+1. **Plan Ingestion**: Provide your project plans, goals, or specifications in natural language or structured formats
+   (Markdown, JSON, YAML)
 
 2. **Goal Extraction**: SeNARS automatically parses and identifies key objectives, milestones, and deliverables
 

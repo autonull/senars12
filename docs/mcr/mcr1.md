@@ -194,9 +194,9 @@ node mcr.js
 The server will start, typically on `http://localhost:8080` (or your configured `MCR_SERVER_PORT`).
 
 **5. Access the MCR Workbench:**
-Open your web browser and navigate to `http://localhost:8080` (or your configured server address).
-You should see the MCR Workbench interface, which allows you to manage sessions, interact with the reasoner, and access
-system analysis tools.
+Open your web browser and navigate to `http://localhost:8080` (or your configured server address). You should see the
+MCR Workbench interface, which allows you to manage sessions, interact with the reasoner, and access system analysis
+tools.
 
 The previous CLI and TUI interfaces (`./cli.js`, `chat.js`) have been **removed** and their functionality is now
 integrated into the MCR Workbench.
@@ -261,8 +261,8 @@ The primary way to use MCR is by running its server.
   Then run: `npm run start-mcr`
 
 **Programmatic API Interaction:**
-Once the MCR server is running, your application interacts with it via WebSockets.
-Refer to the **🔌 API Reference** section below for details.
+Once the MCR server is running, your application interacts with it via WebSockets. Refer to the **🔌 API Reference**
+section below for details.
 
 ## 🔌 API Reference
 
@@ -530,8 +530,8 @@ MCR uses Jest for backend tests and Vitest for UI tests.
 
 #### Debugging Configuration
 
-MCR uses an environment variable `MCR_DEBUG_LEVEL` to control the verbosity of debug information in API responses (
-specifically within the `debugInfo` field of results from tools like `session.query` or `session.explainQuery`).
+MCR uses an environment variable `MCR_DEBUG_LEVEL` to control the verbosity of debug information in API responses
+(specifically within the `debugInfo` field of results from tools like `session.query` or `session.explainQuery`).
 
 - **`MCR_DEBUG_LEVEL`**: Set this in your `.env` file.
     - `none` (Default): No detailed debug information is included in API responses.
@@ -605,8 +605,8 @@ process runs asynchronously (typically offline), augmenting the pool of availabl
     - **Runtime Optimizer:** Integrated directly into `mcrService.js` to select the optimal strategy for a given live
       input _at the moment of execution_.
     - **Data-Driven Decisions:** It performs a quick analysis of the input text (e.g., using keywords) to classify its
-      intent. It then queries the `Performance Database` for the strategy that has historically performed the best (
-      based on success metrics, cost, and latency) for that specific input class and the currently configured LLM.
+      intent. It then queries the `Performance Database` for the strategy that has historically performed the best
+      (based on success metrics, cost, and latency) for that specific input class and the currently configured LLM.
     - **Fallback Mechanism:** If the router cannot find a suitable specialized strategy, it falls back to the default
       configured strategy, ensuring robust operation.
 
@@ -718,8 +718,7 @@ find or create the most effective ones for different tasks.
 ## 🧪 Demos
 
 Predefined demonstrations of MCR's capabilities can be run from the **MCR Workbench** (Interactive Session Mode -> Demos
-tab).
-(Note: Server-side tools `demo.list` and `demo.run`, and the UI implementation for listing and running demos are
+tab). (Note: Server-side tools `demo.list` and `demo.run`, and the UI implementation for listing and running demos are
 currently TODO items from the refactoring plan.)
 
 The previous standalone demo runner (`demo.js`) has been removed.
@@ -778,8 +777,8 @@ MCR provides scripts to accelerate development and testing by leveraging LLMs to
 
 - **Arguments:**
     - `--domain` (alias `-d`): The subject domain for the ontology. (Required)
-    - `--instructions` (alias `-i`): Specific instructions for the LLM on the content, style, and scope of the
-      ontology. (Required)
+    - `--instructions` (alias `-i`): Specific instructions for the LLM on the content, style, and scope of the ontology.
+      (Required)
     - `--provider` (alias `-p`): Optional LLM provider.
     - `--model` (alias `-m`): Optional specific model name.
 - **Output:** Saves a new Prolog file (e.g., `mythologyGeneratedOntology.pl`) to the `ontologies/` directory.
@@ -837,21 +836,12 @@ To add support for a new LLM provider (e.g., "MyNewLLM"):
       // const { SomeApiClient } = require('some-llm-sdk');
 
       const MyNewLlmProvider = {
-   name: 'mynewllm',
-   async generate(systemPrompt, userPrompt, options = {}) {
-   // const apiKey = config.llm.mynewllm.apiKey; // Get from config
-   // const model = config.llm.mynewllm.model;
-   // if (!apiKey) throw new Error('MyNewLLM API key not configured');
-   logger.debug(
-   `MyNewLlmProvider generating text with model: ${model}`,
-   { systemPrompt, userPrompt, options }
-   );
-   // ... logic to call the LLM API ...
-   // return generatedText;
-   throw new Error('MyNewLlmProvider not implemented yet');
-   },
-   };
-   module.exports = MyNewLlmProvider;
+   name: 'mynewllm', async generate (systemPrompt, userPrompt, options = {}) { // const apiKey =
+   config.llm.mynewllm.apiKey; // Get from config // const model = config.llm.mynewllm.model; // if (!apiKey) throw new
+   Error ('MyNewLLM API key not configured'); logger.debug (
+   `MyNewLlmProvider generating text with model: ${model}`, { systemPrompt, userPrompt, options }
+   ); // ... logic to call the LLM API ... // return generatedText; throw new Error ('MyNewLlmProvider not implemented
+   yet'); }, }; module.exports = MyNewLlmProvider;
      ```
 
 2. **Register in `src/llmService.js`**:

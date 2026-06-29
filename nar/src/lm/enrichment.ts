@@ -1,283 +1,283 @@
-import { type Logger, createLogger } from '../logger';
-import type { Memory } from '../memory';
-import type { Term } from '../terms';
-import { Truth } from '../terms';
-import { type Task, createBudget, createTask } from '../types';
-import { errMsg } from '../utils';
-import { LMResponseParser } from './LMRule.js';
-import type { LMService } from './lm-service.js';
+import {createLogger, type Logger} from '../logger';
+import type {Memory} from '../memory';
+import type {Term} from '../terms';
+import {Truth} from '../terms';
+import {createBudget, createTask, type Task} from '../types';
+import {errMsg} from '../utils';
+import {LMResponseParser} from './LMRule.js';
+import type {LMService} from './lm-service.js';
 
 export interface EnricherConfig {
-  enableProactiveEnrichment: boolean;
-  enrichmentIntervalMs: number;
-  maxConceptsPerCycle: number;
-  minConnectionsForEnrichment: number;
-  enableExplanationGeneration: boolean;
-  enableQAService: boolean;
+    enableProactiveEnrichment: boolean;
+    enrichmentIntervalMs: number;
+    maxConceptsPerCycle: number;
+    minConnectionsForEnrichment: number;
+    enableExplanationGeneration: boolean;
+    enableQAService: boolean;
 }
 
 export interface EnrichmentResult {
-  concept: Term;
-  hypotheses: Task[];
-  bridges: Task[];
-  explanations: string[];
+    concept: Term;
+    hypotheses: Task[];
+    bridges: Task[];
+    explanations: string[];
 }
 
 interface ConceptConnections {
-  term: Term;
-  connections: number;
+    term: Term;
+    connections: number;
 }
 
 interface HasBags {
-  term: Term;
-  beliefBag: { size: number };
-  questionBag: { size: number };
-  goalBag: { size: number };
+    term: Term;
+    beliefBag: { size: number };
+    questionBag: { size: number };
+    goalBag: { size: number };
 }
 
 function findUnderconnectedConcepts(
-  concepts: Iterable<HasBags>,
-  minConnections: number
+    concepts: Iterable<HasBags>,
+    minConnections: number
 ): ConceptConnections[] {
-  const result: ConceptConnections[] = [];
+    const result: ConceptConnections[] = [];
 
-  for (const concept of concepts) {
-    const connectionCount =
-      concept.beliefBag.size + concept.questionBag.size + concept.goalBag.size;
+    for (const concept of concepts) {
+        const connectionCount =
+            concept.beliefBag.size + concept.questionBag.size + concept.goalBag.size;
 
-    if (connectionCount < minConnections) {
-      result.push({ term: concept.term, connections: connectionCount });
+        if (connectionCount < minConnections) {
+            result.push({term: concept.term, connections: connectionCount});
+        }
     }
-  }
 
-  return result.sort((a, b) => a.connections - b.connections);
+    return result.sort((a, b) => a.connections - b.connections);
 }
 
 export function parseEnrichmentResponse(
-  response: string,
-  defaultTruth?: Truth
+    response: string,
+    defaultTruth?: Truth
 ): {
-  hypotheses: Task[];
-  bridges: Task[];
+    hypotheses: Task[];
+    bridges: Task[];
 } {
-  const lines = response.split('\n').filter((l) => l.trim());
-  const hypotheses: Task[] = [];
-  const bridges: Task[] = [];
-  const truth = defaultTruth ?? Truth.TRUE;
+    const lines = response.split('\n').filter((l) => l.trim());
+    const hypotheses: Task[] = [];
+    const bridges: Task[] = [];
+    const truth = defaultTruth ?? Truth.TRUE;
 
-  for (const line of lines) {
-    const parsed = LMResponseParser.parse(line);
-    if (parsed.valid && parsed.term) {
-      const taskTruth = parsed.truth ?? truth;
-      const task = createTask(parsed.term, 'belief', taskTruth, createBudget(0.4, 0.8));
+    for (const line of lines) {
+        const parsed = LMResponseParser.parse(line);
+        if (parsed.valid && parsed.term) {
+            const taskTruth = parsed.truth ?? truth;
+            const task = createTask(parsed.term, 'belief', taskTruth, createBudget(0.4, 0.8));
 
-      if (line.includes('-->') || line.includes('<->')) {
-        hypotheses.push(task);
-      } else {
-        bridges.push(task);
-      }
+            if (line.includes('-->') || line.includes('<->')) {
+                hypotheses.push(task);
+            } else {
+                bridges.push(task);
+            }
+        }
     }
-  }
 
-  return { hypotheses, bridges };
+    return {hypotheses, bridges};
 }
 
 export class ProactiveEnricher {
-  private readonly memory: Memory;
-  private readonly lmService: LMService;
-  private readonly config: EnricherConfig;
-  private readonly logger: Logger;
-  private enrichmentTimer?: NodeJS.Timeout;
-  private enrichmentCycle = 0;
-  private results: EnrichmentResult[] = [];
+    private readonly memory: Memory;
+    private readonly lmService: LMService;
+    private readonly config: EnricherConfig;
+    private readonly logger: Logger;
+    private enrichmentTimer?: NodeJS.Timeout;
+    private enrichmentCycle = 0;
+    private results: EnrichmentResult[] = [];
 
-  constructor(memory: Memory, lmService: LMService, config: Partial<EnricherConfig> = {}) {
-    this.memory = memory;
-    this.lmService = lmService;
-    this.logger = createLogger({ scope: 'lm:enrichment' });
-    this.config = {
-      enableProactiveEnrichment: true,
-      enrichmentIntervalMs: 60000,
-      maxConceptsPerCycle: 10,
-      minConnectionsForEnrichment: 2,
-      enableExplanationGeneration: true,
-      enableQAService: true,
-      ...config,
-    };
-  }
-
-  start(): void {
-    if (this.config.enableProactiveEnrichment) {
-      this.enrichmentTimer = setInterval(
-        () => this.runEnrichmentCycle(),
-        this.config.enrichmentIntervalMs
-      );
+    constructor(memory: Memory, lmService: LMService, config: Partial<EnricherConfig> = {}) {
+        this.memory = memory;
+        this.lmService = lmService;
+        this.logger = createLogger({scope: 'lm:enrichment'});
+        this.config = {
+            enableProactiveEnrichment: true,
+            enrichmentIntervalMs: 60000,
+            maxConceptsPerCycle: 10,
+            minConnectionsForEnrichment: 2,
+            enableExplanationGeneration: true,
+            enableQAService: true,
+            ...config,
+        };
     }
-  }
 
-  stop(): void {
-    if (this.enrichmentTimer) {
-      clearInterval(this.enrichmentTimer);
-      this.enrichmentTimer = undefined;
-    }
-  }
-
-  async runEnrichmentCycle(): Promise<EnrichmentResult[]> {
-    const cycleResults: EnrichmentResult[] = [];
-    this.enrichmentCycle++;
-
-    const underconnectedConcepts = findUnderconnectedConcepts(
-      this.memory.listConcepts(),
-      this.config.minConnectionsForEnrichment
-    );
-
-    for (const conceptData of underconnectedConcepts.slice(0, this.config.maxConceptsPerCycle)) {
-      try {
-        const result = await this.enrichConcept(conceptData.term);
-        if (result.hypotheses.length > 0 || result.bridges.length > 0) {
-          cycleResults.push(result);
-          this.results.push(result);
+    start(): void {
+        if (this.config.enableProactiveEnrichment) {
+            this.enrichmentTimer = setInterval(
+                () => this.runEnrichmentCycle(),
+                this.config.enrichmentIntervalMs
+            );
         }
-      } catch (error) {
-        // expected: LM call may fail due to network/provider issues — skip this concept
-        this.logger.warn(
-          `Failed to enrich concept: ${conceptData.term.toString()} - ${errMsg(error)}`
+    }
+
+    stop(): void {
+        if (this.enrichmentTimer) {
+            clearInterval(this.enrichmentTimer);
+            this.enrichmentTimer = undefined;
+        }
+    }
+
+    async runEnrichmentCycle(): Promise<EnrichmentResult[]> {
+        const cycleResults: EnrichmentResult[] = [];
+        this.enrichmentCycle++;
+
+        const underconnectedConcepts = findUnderconnectedConcepts(
+            this.memory.listConcepts(),
+            this.config.minConnectionsForEnrichment
         );
-      }
+
+        for (const conceptData of underconnectedConcepts.slice(0, this.config.maxConceptsPerCycle)) {
+            try {
+                const result = await this.enrichConcept(conceptData.term);
+                if (result.hypotheses.length > 0 || result.bridges.length > 0) {
+                    cycleResults.push(result);
+                    this.results.push(result);
+                }
+            } catch (error) {
+                // expected: LM call may fail due to network/provider issues — skip this concept
+                this.logger.warn(
+                    `Failed to enrich concept: ${conceptData.term.toString()} - ${errMsg(error)}`
+                );
+            }
+        }
+
+        return cycleResults;
     }
 
-    return cycleResults;
-  }
+    async generateExplanation(derivationChain: Task[]): Promise<string> {
+        if (!this.config.enableExplanationGeneration) {
+            return '';
+        }
 
-  async generateExplanation(derivationChain: Task[]): Promise<string> {
-    if (!this.config.enableExplanationGeneration) {
-      return '';
-    }
-
-    const chainStr = derivationChain.map((t) => t.term.toString()).join(' -> ');
-    const prompt = `Explain the following reasoning chain in natural language:
+        const chainStr = derivationChain.map((t) => t.term.toString()).join(' -> ');
+        const prompt = `Explain the following reasoning chain in natural language:
 ${chainStr}
 
 Provide a clear, concise explanation of what was derived and why.`;
 
-    try {
-      const response = await this.lmService.generateText(prompt);
-      return response.trim();
-    } catch (error) {
-      // expected: LM call may fail due to network/provider issues
-      this.logger.warn(`Failed to generate explanation: ${errMsg(error)}`);
-      return '';
-    }
-  }
-
-  async answerQuestion(question: string, _context?: Task[]): Promise<string> {
-    if (!this.config.enableQAService) {
-      return '';
+        try {
+            const response = await this.lmService.generateText(prompt);
+            return response.trim();
+        } catch (error) {
+            // expected: LM call may fail due to network/provider issues
+            this.logger.warn(`Failed to generate explanation: ${errMsg(error)}`);
+            return '';
+        }
     }
 
-    const memoryContext = this.memory
-      .listConcepts()
-      .slice(0, 20)
-      .map((c) => {
-        const belief = c.beliefBag.peek();
-        if (!belief || !belief.truth || !belief.stamp) return null;
-        return {
-          term: c.term,
-          type: 'belief' as const,
-          truth: belief.truth,
-          budget: createBudget(0.5),
-          stamp: belief.stamp,
-          occurrenceTime: Date.now(),
-          derived: false,
-        };
-      })
-      .filter((t) => t !== null) as Task[];
+    async answerQuestion(question: string, _context?: Task[]): Promise<string> {
+        if (!this.config.enableQAService) {
+            return '';
+        }
 
-    const contextStr = memoryContext.map((t) => `${t.term.toString()}: ${t.truth.f}`).join('\n');
+        const memoryContext = this.memory
+            .listConcepts()
+            .slice(0, 20)
+            .map((c) => {
+                const belief = c.beliefBag.peek();
+                if (!belief || !belief.truth || !belief.stamp) return null;
+                return {
+                    term: c.term,
+                    type: 'belief' as const,
+                    truth: belief.truth,
+                    budget: createBudget(0.5),
+                    stamp: belief.stamp,
+                    occurrenceTime: Date.now(),
+                    derived: false,
+                };
+            })
+            .filter((t) => t !== null) as Task[];
 
-    const prompt = `Given the following knowledge from memory:
+        const contextStr = memoryContext.map((t) => `${t.term.toString()}: ${t.truth.f}`).join('\n');
+
+        const prompt = `Given the following knowledge from memory:
 ${contextStr}
 
 Question: ${question}
 
 Answer the question based on the available knowledge. If the answer cannot be determined from the context, say "I don't have enough information to answer this."`;
 
-    try {
-      const response = await this.lmService.generateText(prompt);
-      return response.trim();
-    } catch (error) {
-      // expected: LM call may fail due to network/provider issues
-      this.logger.warn(`Failed to answer question: ${errMsg(error)}`);
-      return '';
-    }
-  }
-
-  getEnrichmentHistory(): EnrichmentResult[] {
-    return this.results;
-  }
-
-  clearHistory(): void {
-    this.results = [];
-  }
-
-  getStats(): {
-    enrichmentCycles: number;
-    totalConceptsEnriched: number;
-    totalHypothesesGenerated: number;
-    totalBridgesCreated: number;
-  } {
-    const totalHypotheses = this.results.reduce((sum, r) => sum + r.hypotheses.length, 0);
-    const totalBridges = this.results.reduce((sum, r) => r.bridges.length, 0);
-
-    return {
-      enrichmentCycles: this.enrichmentCycle,
-      totalConceptsEnriched: this.results.length,
-      totalHypothesesGenerated: totalHypotheses,
-      totalBridgesCreated: totalBridges,
-    };
-  }
-
-  private async enrichConcept(term: Term): Promise<EnrichmentResult> {
-    const hypothesisPrompt = this.buildHypothesisPrompt(term);
-    let hypotheses: Task[] = [];
-    let bridges: Task[] = [];
-
-    try {
-      const response = await this.lmService.generateText(hypothesisPrompt);
-      const parsed = parseEnrichmentResponse(response);
-      hypotheses = parsed.hypotheses;
-      bridges = parsed.bridges;
-    } catch (error) {
-      // expected: LM call may fail due to network/provider issues
-      this.logger.warn(
-        `Failed to generate hypotheses for term: ${term.toString()} - ${errMsg(error)}`
-      );
+        try {
+            const response = await this.lmService.generateText(prompt);
+            return response.trim();
+        } catch (error) {
+            // expected: LM call may fail due to network/provider issues
+            this.logger.warn(`Failed to answer question: ${errMsg(error)}`);
+            return '';
+        }
     }
 
-    for (const hyp of hypotheses) {
-      this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget, hyp.stamp);
+    getEnrichmentHistory(): EnrichmentResult[] {
+        return this.results;
     }
 
-    for (const bridge of bridges) {
-      this.memory.addTask(bridge.term, bridge.type, bridge.truth, bridge.budget, bridge.stamp);
+    clearHistory(): void {
+        this.results = [];
     }
 
-    return { concept: term, hypotheses, bridges, explanations: [] };
-  }
+    getStats(): {
+        enrichmentCycles: number;
+        totalConceptsEnriched: number;
+        totalHypothesesGenerated: number;
+        totalBridgesCreated: number;
+    } {
+        const totalHypotheses = this.results.reduce((sum, r) => sum + r.hypotheses.length, 0);
+        const totalBridges = this.results.reduce((sum, r) => r.bridges.length, 0);
 
-  private buildHypothesisPrompt(term: Term): string {
-    return `Given the concept "${term.toString()}", suggest:
+        return {
+            enrichmentCycles: this.enrichmentCycle,
+            totalConceptsEnriched: this.results.length,
+            totalHypothesesGenerated: totalHypotheses,
+            totalBridgesCreated: totalBridges,
+        };
+    }
+
+    private async enrichConcept(term: Term): Promise<EnrichmentResult> {
+        const hypothesisPrompt = this.buildHypothesisPrompt(term);
+        let hypotheses: Task[] = [];
+        let bridges: Task[] = [];
+
+        try {
+            const response = await this.lmService.generateText(hypothesisPrompt);
+            const parsed = parseEnrichmentResponse(response);
+            hypotheses = parsed.hypotheses;
+            bridges = parsed.bridges;
+        } catch (error) {
+            // expected: LM call may fail due to network/provider issues
+            this.logger.warn(
+                `Failed to generate hypotheses for term: ${term.toString()} - ${errMsg(error)}`
+            );
+        }
+
+        for (const hyp of hypotheses) {
+            this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget, hyp.stamp);
+        }
+
+        for (const bridge of bridges) {
+            this.memory.addTask(bridge.term, bridge.type, bridge.truth, bridge.budget, bridge.stamp);
+        }
+
+        return {concept: term, hypotheses, bridges, explanations: []};
+    }
+
+    private buildHypothesisPrompt(term: Term): string {
+        return `Given the concept "${term.toString()}", suggest:
 1. One bridging hypothesis that connects this concept to other concepts
 2. One property or implication involving this concept
 
 Respond in Narsese format, one statement per line.`;
-  }
+    }
 }
 
 export const createProactiveEnricher = (
-  memory: Memory,
-  lmService: LMService,
-  config?: Partial<EnricherConfig>
+    memory: Memory,
+    lmService: LMService,
+    config?: Partial<EnricherConfig>
 ): ProactiveEnricher => {
-  return new ProactiveEnricher(memory, lmService, config);
+    return new ProactiveEnricher(memory, lmService, config);
 };

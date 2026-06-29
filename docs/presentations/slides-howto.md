@@ -25,8 +25,8 @@
 
 * **Show, Don't Tell:** Every slide should demonstrate a truth rather than state it. The technology's power should be a
   conclusion the audience reaches, not a claim you make.
-* **Progressive Disclosure:** The deck is structured in modules. An investor can get the core idea in the first module (
-  3 slides) and stop. If intrigued, they can continue through each module for deeper understanding of the technology,
+* **Progressive Disclosure:** The deck is structured in modules. An investor can get the core idea in the first module
+  (3 slides) and stop. If intrigued, they can continue through each module for deeper understanding of the technology,
   market, and plan.
 * **Confidence Through Clarity:** The minimalism isn't just aesthetic; it's a strategic tool. It implies the technology
   is so fundamental that it doesn't need hype or jargon.
@@ -77,8 +77,8 @@ The deck is broken into four modules, each answering a fundamental question.
     * **A GIF:** Showing a complex problem being solved in real-time, impossibly fast.
     * **A Code Snippet:** 3-4 lines of your code achieving something that would normally take hundreds of lines, with
       the stunning output shown next to it.
-    * **A Data Visualization:** A "before" and "after" chart showing a massive performance gain (e.g., a bar chart
-      with "Current SOTA: 10 hours" next to "[Our Tech]: 1 second").
+    * **A Data Visualization:** A "before" and "after" chart showing a massive performance gain (e.g., a bar chart with
+      "Current SOTA: 10 hours" next to "[Our Tech]: 1 second").
 * **Caption:** One line. "Protein folding in milliseconds." or "1000-city logistics, solved instantly."
 
 ---
@@ -167,13 +167,12 @@ The deck is broken into four modules, each answering a fundamental question.
 #### **Slide 10: The Roadmap**
 
 * **Title:** Accelerating the Future
-* **Visual:** A simple table with 3 columns.
-  | Focus Area | Now (Prototype)                 | Next 18 Months (With Funding)                               |
-  | ----------------- | ------------------------------- | ----------------------------------------------------------- |
-  | **Core Tech**     | Proof of Concept | Hardened Algorithm, 100x Scalability, Formal Verifications |
-  | **Platform**      | Basic API | Robust SDK, Rich Tooling, Cloud-Native Integrations |
-  | **Community**     | Academic Papers | Dev Relations, Documentation, First User Conference |
-  | **Commercial**    | N/A | 2-3 Strategic Development Partnerships (Pilots)             |
+* **Visual:** A simple table with 3 columns. | Focus Area | Now (Prototype)                 | Next 18 Months (With
+  Funding)                               | | ----------------- | ------------------------------- | ----------------------------------------------------------- | |
+  **Core Tech**     | Proof of Concept | Hardened Algorithm, 100x Scalability, Formal Verifications | |
+  **Platform**      | Basic API | Robust SDK, Rich Tooling, Cloud-Native Integrations | | **Community**     | Academic
+  Papers | Dev Relations, Documentation, First User Conference | | **Commercial**    | N/A | 2-3 Strategic Development
+  Partnerships (Pilots)             |
 
 #### **Slide 11: The Ask**
 

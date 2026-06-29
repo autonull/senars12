@@ -54,7 +54,7 @@ NAL reasoning framework. This creates a powerful combination of neural language 
 Each LM rule implements four key functions:
 
 - `condition`: Determines if rule applies to premises
-- `prompt`: Generates LLM prompt from premise(s)
+- `prompt`: Generates LLM prompt from premise (s)
 - `process`: Post-processes LLM response
 - `generate`: Creates new tasks from processed output
 

@@ -39,8 +39,8 @@ creative insight generation, addressing the critical need for both analytical pr
 
 **Advanced Capabilities:**
 
-* **Multi-Modal Integration**: The system processes structured data (databases, spreadsheets), unstructured text (
-  reports, articles), and temporal sequences (time-series data) simultaneously, creating unified knowledge
+* **Multi-Modal Integration**: The system processes structured data (databases, spreadsheets), unstructured text
+  (reports, articles), and temporal sequences (time-series data) simultaneously, creating unified knowledge
   representations.
 * **Causal Discovery**: Beyond correlation detection, SeNARS identifies potential causal relationships in data using its
   temporal reasoning capabilities, supporting better decision-making and predictive modeling.

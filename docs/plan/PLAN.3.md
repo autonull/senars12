@@ -22,9 +22,8 @@ understand, and improve its own operations**, making it a true learning system.
 ## Current Status
 
 All phases are considered complete, establishing a sophisticated foundation with a core reasoning engine, observability
-tools, a
-UI, LM integration, and comprehensive metacognitive capabilities. The system already implements all the self-leveraging
-architecture described in this plan.
+tools, a UI, LM integration, and comprehensive metacognitive capabilities. The system already implements all the
+self-leveraging architecture described in this plan.
 
 ---
 

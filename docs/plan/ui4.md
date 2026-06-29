@@ -137,8 +137,8 @@ to the user.
       enforced convention.
 
 - **Problem**: **Cytoscape Performance**. Graphs with thousands of elements can become slow.
-    - **Mitigation**: Proactively use `cy.batch()` for all updates from the start. Use simple, efficient styles (
-      Appendix D). Defer features like animations. If performance is still an issue, the `GraphController` will need to
+    - **Mitigation**: Proactively use `cy.batch()` for all updates from the start. Use simple, efficient styles
+      (Appendix D). Defer features like animations. If performance is still an issue, the `GraphController` will need to
       be updated to only render a subset of the data provided by the `StateStore`.
 
 - **Problem**: **Data Validation**. Malformed data from the server or unexpected event structures could crash the

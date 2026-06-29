@@ -1,12 +1,12 @@
-import { LitElement, css, html } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { classMap } from 'lit/directives/class-map.js';
+import {css, html, LitElement} from 'lit';
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 
 type EmptySize = 'sm' | 'md' | 'lg';
 
 @customElement('s-empty-state')
 export class SEmptyState extends LitElement {
-  static override styles = css`
+    static override styles = css`
     :host { display: flex; align-items: center; justify-content: center; }
     .container { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-scale-4); text-align: center; max-width: 280px; }
     .icon { color: var(--colors-semantic-text-muted); opacity: 0.5; }
@@ -18,26 +18,26 @@ export class SEmptyState extends LitElement {
     .action { margin-top: var(--spacing-scale-2); }
   `;
 
-  @property({ type: String }) icon = '';
-  @property({ type: String }) heading = '';
-  @property({ type: String }) description = '';
-  @property({ type: String }) size: EmptySize = 'md';
+    @property({type: String}) icon = '';
+    @property({type: String}) heading = '';
+    @property({type: String}) description = '';
+    @property({type: String}) size: EmptySize = 'md';
 
-  override render() {
-    return html`
+    override render() {
+        return html`
       <div class="container">
-        ${this.icon ? html`<div class="icon ${classMap({ [this.size]: true })}">${this.icon}</div>` : ''}
+        ${this.icon ? html`<div class="icon ${classMap({[this.size]: true})}">${this.icon}</div>` : ''}
         ${this.heading ? html`<div class="title">${this.heading}</div>` : ''}
         ${this.description ? html`<div class="description">${this.description}</div>` : ''}
         <div class="action"><slot name="action"></slot></div>
         <slot></slot>
       </div>
     `;
-  }
+    }
 }
 
 declare global {
-  interface HTMLElementTagNameMap {
-    's-empty-state': SEmptyState;
-  }
+    interface HTMLElementTagNameMap {
+        's-empty-state': SEmptyState;
+    }
 }

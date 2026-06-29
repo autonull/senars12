@@ -19,6 +19,7 @@ node examples/wow.js
 ```
 
 **Does**:
+
 1. Inputs 4 facts → derives 2 hidden conclusions
 2. Shows the reasoning trace (LLMs can't do this)
 3. Proves memory across "sessions"
@@ -26,6 +27,7 @@ node examples/wow.js
 **Effort**: One ~100-line file. Update README with 3 lines pointing to it.
 
 **Files**:
+
 - `examples/wow.js` — The demo
 - `README.md` — Add "## See It Work" section
 
@@ -49,6 +51,7 @@ const a = b.ask('(whiskers --> ?x)?');
 **Effort**: Wrapper around existing NAR (~150 lines). No new logic.
 
 **Files**:
+
 - `core/src/Brain.js` — Simple facade
 - `core/src/index.js` — Export it
 
@@ -60,15 +63,16 @@ const a = b.ask('(whiskers --> ?x)?');
 
 Create `docs/vs-llm.md`:
 
-| Scenario | LLM | SeNARS |
-|----------|-----|--------|
-| Same question, different context | Contradicts itself | Consistent |
-| 10 sessions later | Forgot everything | Remembers |
-| "Why did you conclude X?" | Guesses | Shows proof |
+| Scenario                         | LLM                | SeNARS      |
+|----------------------------------|--------------------|-------------|
+| Same question, different context | Contradicts itself | Consistent  |
+| 10 sessions later                | Forgot everything  | Remembers   |
+| "Why did you conclude X?"        | Guesses            | Shows proof |
 
 Include reproducible scripts that generate these results.
 
 **Files**:
+
 - `docs/vs-llm.md` — The comparison document
 - `benchmarks/consistency-test.js` — Reproducible test
 
@@ -78,12 +82,12 @@ Include reproducible scripts that generate these results.
 
 If the three wins land well, add these:
 
-| Accelerator | Effort | Impact |
-|-------------|--------|--------|
-| `npx senars` binary | 2 hours | Instant access |
-| Knowledge Book format | 3 days | Shareable knowledge |
-| React hook | 2 days | Web developer reach |
-| Obsidian plugin | 1 week | Passionate community |
+| Accelerator           | Effort  | Impact               |
+|-----------------------|---------|----------------------|
+| `npx senars` binary   | 2 hours | Instant access       |
+| Knowledge Book format | 3 days  | Shareable knowledge  |
+| React hook            | 2 days  | Web developer reach  |
+| Obsidian plugin       | 1 week  | Passionate community |
 
 ---
 
@@ -110,7 +114,7 @@ Week 4: Polish, npx binary, write blog post
 
 ---
 
-## Success = 
+## Success =
 
 1. Someone runs `node examples/wow.js` and shares it
 2. Someone uses `Brain` class in their project

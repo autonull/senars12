@@ -1,7 +1,7 @@
 # **SeNARS Desktop UI Experiments: Actionable Prototype Plan**
 
 > **Objective**: Develop **two minimal, self-contained prototypes** in parallel within the monorepo to evaluate *
-*webview-based** and **native widget-based** desktop UIs.  
+> *webview-based** and **native widget-based** desktop UIs.  
 > Both connect to the local SeNARS engine via WebSocket and implement **core functionality**:
 > - Snapshot-based graph view
 > - Live update toggle

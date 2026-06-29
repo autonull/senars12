@@ -163,12 +163,12 @@ Explainable AI (XAI) is the key to unlocking high-value markets:
 
 ## SeNARS Competitive Edge
 
-| Feature            | Pure LLMs                 | Traditional Symbolic AI  | **SeNARS**                   |
-|--------------------|---------------------------|--------------------------|------------------------------|
-| **Explainability** | ⬛️ Low                    | ✅ High                   | ✅ **High**                   |
-| **Adaptability**   | 🟨 Medium                 | ⬛️ Low                   | ✅ **High**                   |
+| Feature            | Pure LLMs                  | Traditional Symbolic AI  | **SeNARS**                    |
+|--------------------|----------------------------|--------------------------|-------------------------------|
+| **Explainability** | ⬛️ Low                     | ✅ High                  | ✅ **High**                   |
+| **Adaptability**   | 🟨 Medium                  | ⬛️ Low                   | ✅ **High**                   |
 | **Creativity**     | ✅ High                    | ⬛️ Low                   | ✅ **High**                   |
-| **Logical Rigor**  | 🟨 Medium                 | ✅ High                   | ✅ **High**                   |
+| **Logical Rigor**  | 🟨 Medium                  | ✅ High                  | ✅ **High**                   |
 | **Verdict**        | ✨ Creative but Unreliable | 🧱 Rigid but Explainable | ✅ **Transparent & Powerful** |
 
 ---
@@ -424,12 +424,10 @@ Each cycle is a complete reasoning loop, ensuring continuous learning and adapta
 SeNARS implements a pragmatic attention mechanism that focuses computational resources like a stream of consciousness.
 
 Priority calculation factors:
-| Factor | Description | Impact |
-|--------|-------------|--------|
-| **Truth Value** | Confidence and frequency | Higher confidence = higher priority |
-| **Complexity** | Structural complexity | Lower complexity = higher priority |
-| **Relevance** | Relationship to active goals | More relevant = higher priority |
-| **Temporal Factors** | Recency and urgency | More recent/urgent = higher priority |
+| Factor | Description | Impact | |--------|-------------|--------| | **Truth Value** | Confidence and frequency |
+Higher confidence = higher priority | | **Complexity** | Structural complexity | Lower complexity = higher priority | |
+**Relevance** | Relationship to active goals | More relevant = higher priority | | **Temporal Factors** | Recency and
+urgency | More recent/urgent = higher priority |
 
 SeNARS implements rigorous, explainable reasoning through formal inference rules:
 

@@ -1,49 +1,44 @@
-import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import type { Lens } from '../../shared/protocol.js';
-import { LENS_COLORS, LENS_DESCRIPTIONS, LENS_LABELS } from '../constants.js';
-import { $activeLens, $graphNodes, eventBus, send } from '../core/index.js';
-import { BaseComponent } from '../core/index.js';
+import {css, html} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
+import type {Lens} from '../../shared/protocol.js';
+import {LENS_COLORS} from '../constants.js';
+import {$activeLens, $graphNodes, BaseComponent, eventBus, send} from '../core/index.js';
 
 export interface LensDef {
-  id: Lens;
-  label: string;
-  description: string;
-  colorToken: string;
-  defaultLayout: string;
+    id: Lens;
+    label: string;
+    description: string;
+    colorToken: string;
+    defaultLayout: string;
 }
 
 export const LENS_DEFS: LensDef[] = [
-  {
-    id: 'belief',
-    label: 'Beliefs',
-    description: 'What the system knows',
-    colorToken: 'lens.belief',
-    defaultLayout: 'cose',
-  },
-  {
-    id: 'goal',
-    label: 'Goals',
-    description: 'What the system wants',
-    colorToken: 'lens.goal',
-    defaultLayout: 'concentric',
-  },
-  {
-    id: 'contradiction',
-    label: 'Conflicts',
-    description: 'Where beliefs conflict',
-    colorToken: 'lens.contradiction',
-    defaultLayout: 'breadthfirst',
-  },
+    {
+        id: 'belief',
+        label: 'Beliefs',
+        description: 'What the system knows',
+        colorToken: 'lens.belief',
+        defaultLayout: 'cose',
+    },
+    {
+        id: 'goal',
+        label: 'Goals',
+        description: 'What the system wants',
+        colorToken: 'lens.goal',
+        defaultLayout: 'concentric',
+    },
+    {
+        id: 'contradiction',
+        label: 'Conflicts',
+        description: 'Where beliefs conflict',
+        colorToken: 'lens.contradiction',
+        defaultLayout: 'breadthfirst',
+    },
 ];
 
 @customElement('lens-controller')
 export class LensController extends BaseComponent {
-  @state() private activePopover: Lens | null = null;
-  @state() private nodeCounts: Record<string, number> = { belief: 0, goal: 0, contradiction: 0 };
-  private popoverTimer: ReturnType<typeof setTimeout> | null = null;
-
-  static override styles = css`
+    static override styles = css`
     :host { display: contents; }
     .lens-group { display: flex; gap: 1px; border-radius: var(--borderRadius-component-button); overflow: visible; border: 1px solid var(--colors-semantic-border-subtle); }
     .lens-btn { padding: 2px 8px; border: none; background: transparent; color: var(--colors-semantic-text-muted); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); cursor: pointer; transition: var(--transitions-fast); position: relative; }
@@ -68,57 +63,23 @@ export class LensController extends BaseComponent {
     .popover-count { font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-secondary); display: flex; justify-content: space-between; gap: var(--spacing-scale-4); }
     .popover-count span:first-child { color: var(--colors-semantic-text-muted); }
   `;
+    @state() private activePopover: Lens | null = null;
+    @state() private nodeCounts: Record<string, number> = {belief: 0, goal: 0, contradiction: 0};
+    private popoverTimer: ReturnType<typeof setTimeout> | null = null;
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.watch($activeLens);
-    this.watchWith($graphNodes, () => this.updateNodeCounts());
-    this.updateNodeCounts();
-  }
-
-  private updateNodeCounts() {
-    const nodes = $graphNodes.get();
-    const counts: Record<string, number> = { belief: 0, goal: 0, contradiction: 0 };
-    for (const n of nodes.values()) {
-      if (n.lensData) {
-        const color = n.lensData.color.toLowerCase();
-        if (color.includes('00f3ff') || color.includes('cyan')) counts['belief']!++;
-        else if (color.includes('ff00aa') || color.includes('magenta')) counts['goal']!++;
-        else if (color.includes('ffaa00') || color.includes('amber') || color.includes('ffb000'))
-          counts['contradiction']!++;
-      }
+    override connectedCallback() {
+        super.connectedCallback();
+        this.watch($activeLens);
+        this.watchWith($graphNodes, () => this.updateNodeCounts());
+        this.updateNodeCounts();
     }
-    this.nodeCounts = counts;
-  }
 
-  private onEnter(lens: Lens) {
-    if (this.popoverTimer) clearTimeout(this.popoverTimer);
-    this.activePopover = lens;
-  }
-
-  private onLeave() {
-    this.popoverTimer = setTimeout(() => {
-      this.activePopover = null;
-    }, 200);
-  }
-
-  private onPopoverEnter() {
-    if (this.popoverTimer) clearTimeout(this.popoverTimer);
-  }
-
-  private selectLens(lens: Lens) {
-    $activeLens.set(lens);
-    send({ type: 'lens.set', lens });
-    eventBus.emit('lens:changed', lens);
-    this.activePopover = null;
-  }
-
-  override render() {
-    const activeLens = $activeLens.get();
-    return html`
+    override render() {
+        const activeLens = $activeLens.get();
+        return html`
       <div class="lens-group" role="tablist" aria-label="Cognitive lens">
         ${LENS_DEFS.map(
-          (def) => html`
+            (def) => html`
           <div style="position:relative;display:inline-block" @mouseenter=${() => this.onEnter(def.id)} @mouseleave=${this.onLeave}>
             <button class="lens-btn ${def.id} ${def.id === activeLens ? 'active' : ''}"
               role="tab" aria-selected=${def.id === activeLens}
@@ -126,8 +87,8 @@ export class LensController extends BaseComponent {
               ${def.label}
             </button>
             ${
-              this.activePopover === def.id
-                ? html`
+                this.activePopover === def.id
+                    ? html`
               <div class="popover" @mouseenter=${this.onPopoverEnter} @mouseleave=${this.onLeave}>
                 <div class="popover-header">
                   <span class="popover-swatch" style="background:${LENS_COLORS[def.id]}"></span>
@@ -140,18 +101,55 @@ export class LensController extends BaseComponent {
                 </div>
               </div>
             `
-                : ''
+                    : ''
             }
           </div>
         `
         )}
       </div>
     `;
-  }
+    }
+
+    private updateNodeCounts() {
+        const nodes = $graphNodes.get();
+        const counts: Record<string, number> = {belief: 0, goal: 0, contradiction: 0};
+        for (const n of nodes.values()) {
+            if (n.lensData) {
+                const color = n.lensData.color.toLowerCase();
+                if (color.includes('00f3ff') || color.includes('cyan')) counts['belief']!++;
+                else if (color.includes('ff00aa') || color.includes('magenta')) counts['goal']!++;
+                else if (color.includes('ffaa00') || color.includes('amber') || color.includes('ffb000'))
+                    counts['contradiction']!++;
+            }
+        }
+        this.nodeCounts = counts;
+    }
+
+    private onEnter(lens: Lens) {
+        if (this.popoverTimer) clearTimeout(this.popoverTimer);
+        this.activePopover = lens;
+    }
+
+    private onLeave() {
+        this.popoverTimer = setTimeout(() => {
+            this.activePopover = null;
+        }, 200);
+    }
+
+    private onPopoverEnter() {
+        if (this.popoverTimer) clearTimeout(this.popoverTimer);
+    }
+
+    private selectLens(lens: Lens) {
+        $activeLens.set(lens);
+        send({type: 'lens.set', lens});
+        eventBus.emit('lens:changed', lens);
+        this.activePopover = null;
+    }
 }
 
 declare global {
-  interface HTMLElementTagNameMap {
-    'lens-controller': LensController;
-  }
+    interface HTMLElementTagNameMap {
+        'lens-controller': LensController;
+    }
 }

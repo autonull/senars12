@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SeNARS Cognitive HUD</title>
-  <link rel="stylesheet" href="./styles/theme.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.0/styles/atom-one-dark.min.css">
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>SeNARS Cognitive HUD</title>
+    <link href="./styles/theme.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.0/styles/atom-one-dark.min.css"
+          rel="stylesheet">
 </head>
 <body>
-  <div id="status-bar" style="position:fixed;top:0;left:0;right:0;height:2px;z-index:100;transition:background 0.3s, box-shadow 0.3s;"></div>
-  <app-layout></app-layout>
+<div id="status-bar"
+     style="position:fixed;top:0;left:0;right:0;height:2px;z-index:100;transition:background 0.3s, box-shadow 0.3s;"></div>
+<app-layout></app-layout>
 
-  <script type="module">
+<script type="module">
     import './entry.ts';
-  </script>
+</script>
 </body>
 </html>

@@ -303,5 +303,5 @@ SeNARS should *ride* these waves, not fight them.
 
 ---
 
-*This plan optimizes for one
-thing: **getting SeNARS into the hands of people who will make it brilliant in ways we can't imagine.***
+*This plan optimizes for one thing: **getting SeNARS into the hands of people who will make it brilliant in ways we
+can't imagine.***
