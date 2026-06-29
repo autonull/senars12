@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, jest, test } from '@jest/globals';
+import { beforeEach, describe, expect, vi, test } from 'vitest';
 import { Memory, TermBuilder } from '../../../nar/src';
 import { type RuleInput, RuleProcessor } from '../../../nar/src/rules';
 
@@ -41,9 +41,9 @@ describe('RuleProcessor LM Rule Priority', () => {
       name: 'Test LM Rule',
       priority: 1.0,
       sync: false,
-      apply: jest.fn(() => Promise.resolve([])),
-      canApply: jest.fn(() => true),
-      setEventBus: jest.fn(),
+      apply: vi.fn(() => Promise.resolve([])),
+      canApply: vi.fn(() => true),
+      setEventBus: vi.fn(),
     };
   });
 
@@ -115,9 +115,9 @@ describe('RuleProcessor LM Rule Priority', () => {
       name: 'Failing LM Rule',
       priority: 1.0,
       sync: false,
-      apply: jest.fn(() => Promise.reject(new Error('LM failure'))),
-      canApply: jest.fn(() => true),
-      setEventBus: jest.fn(),
+      apply: vi.fn(() => Promise.reject(new Error('LM failure'))),
+      canApply: vi.fn(() => true),
+      setEventBus: vi.fn(),
     };
     processor.registerLMRule(failingRule);
     expect(processor.process(singlePremise(makeInput('A'), makeInput('B')))).toBeDefined();

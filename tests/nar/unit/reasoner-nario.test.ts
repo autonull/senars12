@@ -2,7 +2,7 @@
  * Reasoner, NARLM, and NARIO Tests
  */
 
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { NAR } from '../../../src';
 import { Reasoner, RuleProcessor, TaskManager, TermBuilder, Truth } from '../../../nar/src';
 import { NARIO } from '../../../nar/src/nar-io.js';

@@ -1,12 +1,12 @@
-import { beforeEach, describe, expect, jest, test } from '@jest/globals';
+import { beforeEach, describe, expect, vi, test } from 'vitest';
 import { BUILTIN_DRIVES, DriveManager, createBootstrapTasks } from '../../../nar/src/drives';
 
 describe('DriveManager', () => {
-  let mockNar: { input: jest.Mock };
+  let mockNar: { input: vi.Mock };
   let manager: DriveManager;
 
   beforeEach(() => {
-    mockNar = { input: jest.fn() };
+    mockNar = { input: vi.fn() };
     manager = new DriveManager(mockNar as any);
   });
 

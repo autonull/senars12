@@ -2,7 +2,7 @@
  * REPL pipe mode tests
  */
 
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 
 describe('REPL Pipe Mode', () => {
   it('should detect pipe mode when stdin is not TTY', () => {

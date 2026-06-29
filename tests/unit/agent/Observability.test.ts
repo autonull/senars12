@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { createAgent } from '../../../agent/src';
 import { EventBus, ModelRunner, createSession } from '../../../agent/src';
 import { SeNARSFactory } from '../../../nar/src';

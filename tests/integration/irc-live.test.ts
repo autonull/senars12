@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'fs';
 import { type Server, type Socket, createServer } from 'node:net';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { NAR } from '../../nar/src';
 import { CommandRegistry, IRCConnection } from '../../src/io';
 import { createAgent } from '../../agent/src';

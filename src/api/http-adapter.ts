@@ -6,8 +6,8 @@
 import { randomBytes } from 'crypto';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { URL } from 'url';
-import { ApiKeyManager, parseHttpBody, setCORSHeaders } from '../io/utils/http.js';
 import { errMsg } from '../../nar/src/utils';
+import { ApiKeyManager, parseHttpBody, setCORSHeaders } from '../io/utils/http.js';
 import { BaseAdapter, errorResponse } from './base-adapter.js';
 
 export interface HTTPAdapterConfig {

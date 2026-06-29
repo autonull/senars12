@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { describe, expect, it, jest } from '@jest/globals';
+import { describe, expect, it, vi } from 'vitest';
 import type { Connection, IOMessage, Logger, NAR } from '../../../src';
 import { AuthManager, CommandRegistry, MessageRouter } from '../../../src/io';
 import { createAgent } from '../../../agent/src';
@@ -111,8 +111,8 @@ describe('createCommandInterceptor', () => {
       execute: async () => 'HELP TEXT',
     });
     const conn = makeConn();
-    const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
-    const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    const next = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const mw = createCommandInterceptor(registry);
     const ctx = { connection: conn, nar: fakeNar, respond };
     await mw(makeMessage('/help'), ctx, next);
@@ -123,8 +123,8 @@ describe('createCommandInterceptor', () => {
   it('responds with error on unknown command', async () => {
     const registry = new CommandRegistry();
     const conn = makeConn();
-    const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
-    const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    const next = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const mw = createCommandInterceptor(registry);
     const ctx = { connection: conn, nar: fakeNar, respond };
     await mw(makeMessage('/bad'), ctx, next);
@@ -135,8 +135,8 @@ describe('createCommandInterceptor', () => {
   it('passes through plain text (no command)', async () => {
     const registry = new CommandRegistry();
     const conn = makeConn();
-    const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
-    const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    const next = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const mw = createCommandInterceptor(registry);
     const ctx = { connection: conn, nar: fakeNar, respond };
     await mw(makeMessage('hello there'), ctx, next);
@@ -153,8 +153,8 @@ describe('createCommandInterceptor', () => {
       execute: async () => '__CLI_QUIT__',
     });
     const conn = makeConn();
-    const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
-    const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    const next = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const mw = createCommandInterceptor(registry);
     const ctx = { connection: conn, nar: fakeNar, respond };
     await mw(makeMessage('/quit'), ctx, next);
@@ -167,8 +167,8 @@ describe('createRateLimiter', () => {
   it('drops messages over the threshold', async () => {
     const mw = createRateLimiter(2);
     const conn = makeConn();
-    const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
-    const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    const next = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const ctx = { connection: conn, nar: fakeNar, respond };
     const msg = makeMessage('m');
     await mw(msg, ctx, next);
@@ -209,7 +209,7 @@ describe('createAgentDispatch', () => {
     const session = createSession('test:direct:alice');
     const mw = createAgentDispatch(agent);
     const conn = makeConn();
-    const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
     const ctx = { connection: conn, nar, respond, session };
     await mw(makeMessage('hello'), ctx, async () => undefined);
     expect(respond).toHaveBeenCalled();
@@ -221,7 +221,7 @@ describe('createAgentDispatch', () => {
 describe('createAuthMiddleware', () => {
   it('allows open connections', async () => {
     const auth = new AuthManager();
-    const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const next = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const mw = createAuthMiddleware(auth);
     const conn = makeConn();
     const ctx = { connection: conn, nar: fakeNar, respond: noopRespond };
@@ -234,8 +234,8 @@ describe('createAuthMiddleware', () => {
     auth.setSecret('conn-test', 's3cr3t');
     const mw = createAuthMiddleware(auth);
     const conn = makeConn();
-    const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
-    const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    const next = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const ctx = { connection: conn, nar: fakeNar, respond };
     await mw(makeMessage('.auth s3cr3t'), ctx, next);
     expect(respond).toHaveBeenCalledWith(expect.stringContaining('Authenticated'));
@@ -247,8 +247,8 @@ describe('createAuthMiddleware', () => {
     auth.setSecret('conn-test', 's3cr3t');
     const mw = createAuthMiddleware(auth);
     const conn = makeConn();
-    const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
-    const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    const next = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const ctx = { connection: conn, nar: fakeNar, respond };
     await mw(makeMessage('hi'), ctx, next);
     expect(next).not.toHaveBeenCalled();
@@ -344,7 +344,7 @@ describe('createErrorBoundary', () => {
   it('catches errors from downstream middleware and sends fallback response', async () => {
     const logger = makeLogger();
     const mw = createErrorBoundary(logger);
-    const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
     const boom = new Error('kaboom');
     const ctx = { connection: makeConn(), respond };
     await mw(makeMessage('x'), ctx, async () => {
@@ -358,8 +358,8 @@ describe('createErrorBoundary', () => {
   it('passes through when no error', async () => {
     const logger = makeLogger();
     const mw = createErrorBoundary(logger);
-    const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
-    const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    const next = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const ctx = { connection: makeConn(), respond };
     await mw(makeMessage('x'), ctx, next);
     expect(next).toHaveBeenCalled();
@@ -382,8 +382,8 @@ describe('CommandContext with no manager', () => {
     });
     const mw = createCommandInterceptor(registry);
     const conn = makeConn();
-    const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
-    const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    const next = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const ctx = { connection: conn, respond };
     await mw(makeMessage('/connections'), ctx, next);
     expect(respond).toHaveBeenCalledWith(
@@ -402,8 +402,8 @@ describe('CommandContext with no manager', () => {
     });
     const mw = createCommandInterceptor(registry);
     const conn = makeConn();
-    const respond = jest.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
-    const next = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
+    const next = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
     const ctx = { connection: conn, respond };
     await mw(makeMessage('/help'), ctx, next);
     expect(respond).toHaveBeenCalledWith(expect.stringContaining('Commands:'));

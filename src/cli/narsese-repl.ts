@@ -3,9 +3,9 @@
  */
 
 import { createInterface } from 'readline';
-import { DEFAULT_NAR_CONFIG } from '../config';
 import { SeNARSFactory } from '../../nar/src';
 import { createLogger } from '../../nar/src/logger';
+import { DEFAULT_NAR_CONFIG } from '../config';
 
 const logger = createLogger({ scope: 'cli:narsese' });
 

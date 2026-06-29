@@ -2,7 +2,7 @@
  * EventBus Tests
  */
 
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventBus } from '../../../nar/src/types';
 import type { NAREventMap } from '../../../nar/src/types/events.js';
 
@@ -23,7 +23,7 @@ describe('EventBus', () => {
 
   describe('on() - Subscribe to events', () => {
     it('should subscribe to event', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       const unsubscribe = eventBus.on('error', callback);
 
       expect(unsubscribe).toBeDefined();
@@ -31,7 +31,7 @@ describe('EventBus', () => {
     });
 
     it('should call listener on emit', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       eventBus.on('error', callback);
 
       const error = new Error('test error');
@@ -41,8 +41,8 @@ describe('EventBus', () => {
     });
 
     it('should handle multiple listeners', () => {
-      const callback1 = jest.fn();
-      const callback2 = jest.fn();
+      const callback1 = vi.fn();
+      const callback2 = vi.fn();
 
       eventBus.on('error', callback1);
       eventBus.on('error', callback2);
@@ -55,7 +55,7 @@ describe('EventBus', () => {
     });
 
     it('should return unsubscribe function', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       const unsubscribe = eventBus.on('error', callback);
 
       unsubscribe();
@@ -69,7 +69,7 @@ describe('EventBus', () => {
 
   describe('once() - One-time subscription', () => {
     it('should call listener only once', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       eventBus.once('error', callback);
 
       eventBus.emit('error', { error: new Error('first') });
@@ -79,7 +79,7 @@ describe('EventBus', () => {
     });
 
     it('should remove listener after first call', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       eventBus.once('error', callback);
 
       eventBus.emit('error', { error: new Error('test') });
@@ -89,7 +89,7 @@ describe('EventBus', () => {
     });
 
     it('should return unsubscribe function', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       const unsubscribe = eventBus.once('error', callback);
 
       unsubscribe();
@@ -101,7 +101,7 @@ describe('EventBus', () => {
 
   describe('off() - Unsubscribe from events', () => {
     it('should remove listener', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       eventBus.on('error', callback);
 
       eventBus.off('error', callback);
@@ -111,8 +111,8 @@ describe('EventBus', () => {
     });
 
     it('should not affect other listeners', () => {
-      const callback1 = jest.fn();
-      const callback2 = jest.fn();
+      const callback1 = vi.fn();
+      const callback2 = vi.fn();
 
       eventBus.on('error', callback1);
       eventBus.on('error', callback2);
@@ -139,7 +139,7 @@ describe('EventBus', () => {
 
   describe('emit() - Emit events', () => {
     it('should emit event with correct parameters', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       eventBus.on('error', callback);
 
       const error = new Error('test error');
@@ -156,8 +156,8 @@ describe('EventBus', () => {
     });
 
     it('should handle multiple event types', () => {
-      const errorCallback = jest.fn();
-      const cycleCallback = jest.fn();
+      const errorCallback = vi.fn();
+      const cycleCallback = vi.fn();
 
       eventBus.on('error', errorCallback);
       eventBus.on('cycle:start', cycleCallback);
@@ -221,7 +221,7 @@ describe('EventBus', () => {
     });
 
     it('should allow re-subscription after clear', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       eventBus.on('error', callback);
       eventBus.clear();
       eventBus.on('error', callback);
@@ -233,7 +233,7 @@ describe('EventBus', () => {
 
   describe('Event Types', () => {
     it('should handle rule:applied event', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       eventBus.on('rule:applied', callback);
 
       const term = { kind: 'inheritance' as const, symbol: 'test' };
@@ -249,7 +249,7 @@ describe('EventBus', () => {
     });
 
     it('should handle concept:created event', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       eventBus.on('concept:created', callback);
 
       const term = { kind: 'inheritance' as const, symbol: 'test' };
@@ -262,7 +262,7 @@ describe('EventBus', () => {
     });
 
     it('should handle concept:removed event', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       eventBus.on('concept:removed', callback);
 
       const term = { kind: 'inheritance' as const, symbol: 'test' };
@@ -275,7 +275,7 @@ describe('EventBus', () => {
     });
 
     it('should handle memory:pressure event', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       eventBus.on('memory:pressure', callback);
 
       eventBus.emit('memory:pressure', {
@@ -287,8 +287,8 @@ describe('EventBus', () => {
     });
 
     it('should handle cycle:start and cycle:end events', () => {
-      const startCallback = jest.fn();
-      const endCallback = jest.fn();
+      const startCallback = vi.fn();
+      const endCallback = vi.fn();
 
       eventBus.on('cycle:start', startCallback);
       eventBus.on('cycle:end', endCallback);
@@ -303,7 +303,7 @@ describe('EventBus', () => {
 
   describe('Edge Cases', () => {
     it('should handle listener errors gracefully', () => {
-      const errorCallback = jest.fn();
+      const errorCallback = vi.fn();
       const errorFn = () => {
         throw new Error('Listener error');
       };
@@ -319,7 +319,7 @@ describe('EventBus', () => {
     });
 
     it('should handle rapid subscribe/unsubscribe', () => {
-      const callbacks = Array.from({ length: 10 }, () => jest.fn());
+      const callbacks = Array.from({ length: 10 }, () => vi.fn());
 
       callbacks.forEach((cb) => {
         eventBus.on('error', cb);
@@ -358,7 +358,7 @@ describe('EventBus with Custom Event Map', () => {
 
   it('should work with custom event types', () => {
     const eventBus = new EventBus<CustomEventMap>();
-    const callback = jest.fn();
+    const callback = vi.fn();
 
     eventBus.on('custom:event', callback);
     eventBus.emit('custom:event', { data: 'test' });

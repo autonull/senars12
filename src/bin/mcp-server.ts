@@ -5,10 +5,10 @@
 
 import { z } from 'zod';
 import { createAgent } from '../../agent/src';
+import { createNAR } from '../../nar/src';
 import { SeNARSMCPServer } from '../api/mcp-server.js';
 import { registerAgentAPI, registerNARToolsAsMCP } from '../api/mcp-tools.js';
 import { loadConfig } from '../config';
-import { createNAR } from '../../nar/src';
 
 const config = {
   name: 'senars-mcp',

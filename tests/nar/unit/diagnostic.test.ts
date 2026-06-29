@@ -8,7 +8,7 @@
  * - Input validation
  */
 
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { NAR } from '../../../src';
 import { isTautology, termParser, validateTaskTerm } from '../../../nar/src/terms';
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import type { Memory } from '../../nar/src';
 import { BagStrategy, SeNARSFactory } from '../../nar/src';
 import {

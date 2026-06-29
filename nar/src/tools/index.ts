@@ -1,3 +1,22 @@
+import { errorResult, createToolEvent } from './types.js';
+export { errorResult, createToolEvent };
+
+import { Registry, ToolManager } from './tool-registry.js';
+export { Registry, ToolManager };
+
+import { discoverTools } from './decorator.js';
+export { discoverTools };
+
+import { ExplainTool } from './ExplainTool.js';
+export { ExplainTool };
+
+import { SleepTool } from './SleepTool.js';
+export { SleepTool };
+
+import { TimerTool } from './TimerTool.js';
+export { TimerTool };
+
+// Type re-exports for TypeScript consumers
 export type {
     Tool,
     ToolCapabilities,
@@ -13,9 +32,3 @@ export type {
     ToolEvent,
     ToolStatistics
 } from './types.js';
-export {errorResult, createToolEvent} from './types.js';
-export {Registry, ToolManager} from './tool-registry.js';
-export {discoverTools} from './decorator.js';
-export {ExplainTool} from './ExplainTool.js';
-export {SleepTool} from './SleepTool.js';
-export {TimerTool} from './TimerTool.js';

@@ -1,4 +1,4 @@
-import { describe, expect, jest, test } from '@jest/globals';
+import { describe, expect, vi, test } from 'vitest';
 import {
   BagStrategy,
   DEFAULT_CONFIG,
@@ -22,8 +22,8 @@ const createMockProcessor = () => ({
 
 const createMockRLFP = (): RLFPLearner =>
   ({
-    optimize: jest.fn(),
-    updateModel: jest.fn(),
+    optimize: vi.fn(),
+    updateModel: vi.fn(),
     policyOptimizerPublic: {} as any,
   }) as unknown as RLFPLearner;
 
@@ -71,7 +71,7 @@ describe('NARExecution', () => {
     });
 
     test('calls memory.consolidate()', async () => {
-      const consolidateSpy = jest.spyOn(memory, 'consolidate');
+      const consolidateSpy = vi.spyOn(memory, 'consolidate');
       memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
 
       await execution.run(1);

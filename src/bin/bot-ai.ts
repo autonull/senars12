@@ -17,6 +17,13 @@ import {
   createConnectionConfigsFromEnv,
   registerAllCommands,
 } from '../../agent/src';
+import { SeNARSFactory } from '../../nar/src';
+import { createSeNARSRegistry, getModelForTask } from '../../nar/src/lm';
+import { resolveLMConfig } from '../../nar/src/lm/env-config.js';
+import { createLogger } from '../../nar/src/logger';
+import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
+import { NLGenerationService, NLUnderstandingService } from '../../nar/src/nl';
+import { TranslationCache } from '../../nar/src/nl/cache.js';
 import { DEFAULT_NAR_CONFIG, loadConfigFromEnv } from '../config';
 import {
   AuthManager,
@@ -28,13 +35,6 @@ import {
   MCPConnection,
   WSConnection,
 } from '../io';
-import { SeNARSFactory } from '../../nar/src';
-import { createSeNARSRegistry, getModelForTask } from '../../nar/src/lm';
-import { resolveLMConfig } from '../../nar/src/lm/env-config.js';
-import { createLogger } from '../../nar/src/logger';
-import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
-import { NLGenerationService, NLUnderstandingService } from '../../nar/src/nl';
-import { TranslationCache } from '../../nar/src/nl/cache.js';
 import { setupGracefulShutdown } from '../utils';
 import { assertValidEnv } from '../utils/env-validate.js';
 

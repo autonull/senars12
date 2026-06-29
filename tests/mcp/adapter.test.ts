@@ -3,7 +3,7 @@
  * Tests for MCP protocol compliance and functionality
  */
 
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { APIRegistry, EnhancedMCPAdapter, SchemaTransformer } from '../../src/api';
 import { SeNARSMCPServer } from '../../src/api/mcp-server.js';

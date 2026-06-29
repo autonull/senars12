@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { Memory, TermBuilder } from '../../../nar/src';
 
 describe('Phase 5: Memory Integration', () => {

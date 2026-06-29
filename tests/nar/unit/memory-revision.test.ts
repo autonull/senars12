@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { Concept, Memory, TermBuilder, Truth, createBudget } from '../../../nar/src';
 
 describe('Phase 5.5: Belief Revision and Deduplication', () => {

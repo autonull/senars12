@@ -3,7 +3,7 @@
  * Tests for fundamental inference rules: deduction, induction, abduction
  */
 
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { assertReasoning, createPremise, describeReasoning, expectDerivation } from '../framework';
 
 describeReasoning('NAL1 Core Rules', [

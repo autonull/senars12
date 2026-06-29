@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import type { ComposedRequest } from '../../../agent/src';
 import { ModelRunner } from '../../../agent/src';
 import { createMockLMService } from '../../../nar/src/lm';

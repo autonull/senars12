@@ -1,4 +1,4 @@
-import { describe, expect, jest, test } from '@jest/globals';
+import { describe, expect, vi, test } from 'vitest';
 import { BoundedBag } from '../../../nar/src';
 
 describe('BoundedBag', () => {
@@ -14,7 +14,7 @@ describe('BoundedBag', () => {
     });
 
     test('onOverflow callback NOT called - currently not invoked by add method', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       const bag = new BoundedBag<{ id: string }>(2, {
         overflowBehavior: 'reject',
         onOverflow: callback,
@@ -26,7 +26,7 @@ describe('BoundedBag', () => {
     });
 
     test('onOverflow not called when bag not full', () => {
-      const callback = jest.fn();
+      const callback = vi.fn();
       const bag = new BoundedBag<{ id: string }>(5, { onOverflow: callback });
       bag.add({ id: 'a' }, 0.5);
       bag.add({ id: 'b' }, 0.6);

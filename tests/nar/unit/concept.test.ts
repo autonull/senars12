@@ -2,7 +2,7 @@
  * Concept Tests - Refactored for DRY and Coverage
  */
 
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { Concept, Stamp, TermBuilder, Truth } from '../../../nar/src';
 
 describe('Concept', () => {

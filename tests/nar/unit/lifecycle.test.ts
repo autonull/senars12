@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import { BaseComponent, Container } from '../../../nar/src';
 import { createLogger } from '../../../nar/src/logger';
 import { MetricsCollector } from '../../../nar/src/metrics';

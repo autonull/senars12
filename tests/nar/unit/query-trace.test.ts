@@ -2,7 +2,7 @@
  * QueryAPI and ReasoningTrace Tests
  */
 
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { NAR } from '../../../src';
 import { termParser } from '../../../nar/src';
 import {

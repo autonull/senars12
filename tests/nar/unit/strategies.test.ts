@@ -3,7 +3,7 @@
  * Tests for all 13 reasoning strategies in SeNARS12
  */
 
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { NAR } from '../../../src';
 import {
   AdaptiveStrategy,

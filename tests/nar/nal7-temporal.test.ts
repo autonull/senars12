@@ -1,4 +1,4 @@
-import { describe, expect, test } from '@jest/globals';
+import { describe, expect, test } from 'vitest';
 import { NALExtendedRules, TermBuilder } from '../../nar/src';
 
 describe('NAL7 Temporal Rules', () => {

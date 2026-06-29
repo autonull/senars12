@@ -1,6 +1,6 @@
-import type { MCPToolResult } from '../../api';
 import { createLogger } from '../../../nar/src/logger';
 import { makeId } from '../../../nar/src/utils';
+import type { MCPToolResult } from '../../api';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { BaseConnection } from './base.js';
 

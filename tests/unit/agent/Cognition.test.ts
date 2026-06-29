@@ -1,7 +1,7 @@
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it } from 'vitest';
 import type { Connection, IOMessage } from '../../../src/io/types.js';
 import type { Logger } from '../../../nar/src/logger';
 import { MessageRouter } from '../../../src/io';

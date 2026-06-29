@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { NAR } from '../../../nar/src';
 import { createAgent } from '../../../agent/src';
 import { SeNARSFactory } from '../../../nar/src';

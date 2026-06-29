@@ -4,6 +4,7 @@
  */
 
 import { type WebSocket, WebSocketServer } from 'ws';
+import { errMsg, makeId } from '../../nar/src/utils';
 import {
   type WSClient,
   broadcastToSubscribers,
@@ -12,7 +13,6 @@ import {
   subscribeToEvents,
   unsubscribeFromEvents,
 } from '../io/utils/websocket.js';
-import { errMsg, makeId } from '../../nar/src/utils';
 import { BaseAdapter, errorResponse, successResponse } from './base-adapter.js';
 
 interface WSMessage {

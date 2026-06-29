@@ -8,14 +8,14 @@ import {
   createAgent,
   createAutonomyEngine,
 } from '../../agent/src';
-import { DEFAULT_NAR_CONFIG, loadConfigFromEnv } from '../config';
-import { type CLICommand, QUIT_SENTINEL } from '../io/connections/cli.js';
 import type { NAR } from '../../nar/src';
 import { SeNARSFactory } from '../../nar/src';
 import { createLMService, createSeNARSRegistry } from '../../nar/src/lm';
 import { formatLMConfig, resolveLMConfig } from '../../nar/src/lm/env-config.js';
 import { createLogger } from '../../nar/src/logger';
 import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
+import { DEFAULT_NAR_CONFIG, loadConfigFromEnv } from '../config';
+import { type CLICommand, QUIT_SENTINEL } from '../io/connections/cli.js';
 import { assertValidEnv } from '../utils/env-validate.js';
 
 assertValidEnv();
