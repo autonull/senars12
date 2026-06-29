@@ -6,16 +6,11 @@
 import type { Logger } from '../../../nar/src/logger';
 import { createLogger } from '../../../nar/src/logger';
 import { ApprovalManager } from '../../../nar/src/tools/adapters';
+import type { PendingApproval } from '../types.js';
 
 export interface ApprovalServiceConfig {
   approvalManager?: ApprovalManager;
   logger?: Logger;
-}
-
-export interface PendingApproval {
-  id: string;
-  request: string;
-  createdAt: number;
 }
 
 export class ApprovalService {

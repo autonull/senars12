@@ -97,14 +97,13 @@ export { ToolBuilder, type ToolBuilderConfig } from './services/ToolBuilder.js';
 export {
   SelfReasoningService,
   type SelfReasoningServiceConfig,
-  type SelfReasoningState,
-  type QualityMetrics,
 } from './services/SelfReasoningService.js';
+export type { SelfReasoningState, QualityMetrics } from './types.js';
 export {
   ApprovalService,
   type ApprovalServiceConfig,
-  type PendingApproval,
 } from './services/ApprovalService.js';
+export type { PendingApproval } from './types.js';
 export { LMChatService } from './services/LMChatService.js';
 export { NarQueryService } from './services/NarQueryService.js';
 

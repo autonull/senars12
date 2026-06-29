@@ -25,6 +25,7 @@ import { StatsManager } from '../subservices/StatsManager.js';
 
 import { LMChatService } from '../services/LMChatService.js';
 import { NarQueryService } from '../services/NarQueryService.js';
+import { SelfReasoningService } from '../services/SelfReasoningService.js';
 import type {
   Agent,
   AgentOptions,
@@ -32,6 +33,7 @@ import type {
   ChatOptions,
   ChatStreamEvent,
   DerivationEntry,
+  PendingApproval,
 } from '../types.js';
 
 const MAX_RECENT_DERIVATIONS = 50;
@@ -54,6 +56,7 @@ export class AgentImpl implements Agent {
   private readonly promptBuilder: PromptBuilder;
   private narQueryService: NarQueryService;
   private lmChatService: LMChatService;
+  private selfReasoningService: SelfReasoningService;
 
   private readonly autonomyEngine?: AutonomyEngine;
   private readonly autonomousLoop?: AutonomousLoop;
@@ -128,6 +131,11 @@ export class AgentImpl implements Agent {
       this.safeLog.bind(this),
       this.processInputDeps
     );
+
+    this.selfReasoningService = new SelfReasoningService({
+      nar: this.nar,
+      logger: this.logger,
+    });
 
     this.lifecycleManager = new LifecycleManager({
       nar: this.nar,
@@ -287,7 +295,7 @@ export class AgentImpl implements Agent {
     return this.approvalManager.resolveApproval(id, approved, reason);
   }
 
-  getPendingApprovals(): Array<{ id: string; request: string; createdAt: number }> {
+  getPendingApprovals(): PendingApproval[] {
     return this.approvalManager
       .getPending()
       .map((r) => ({ id: r.id, request: r.request, createdAt: r.createdAt }));
@@ -376,14 +384,7 @@ export class AgentImpl implements Agent {
     gaps: string[];
     suggestions: string[];
   } | null {
-    return this.nar?.getSelfAnalyzer?.()
-      ? {
-          qualityScore: 0,
-          consistency: 0,
-          gaps: [],
-          suggestions: [],
-        }
-      : null;
+    return this.selfReasoningService.getSelfReasoning();
   }
 
   getReasoningQuality(): {
@@ -392,14 +393,7 @@ export class AgentImpl implements Agent {
     relevance: number;
     completeness: number;
   } | null {
-    return this.nar?.getSelfAnalyzer?.()
-      ? {
-          overall: 0,
-          coherence: 0,
-          relevance: 0,
-          completeness: 0,
-        }
-      : null;
+    return this.selfReasoningService.getReasoningQuality();
   }
 
   explainBelief(term: string) {

@@ -11,6 +11,12 @@ import type { EventKey, EventMap } from './EventBus.js';
 
 export type { LMService } from '../../nar/src/lm';
 
+export interface PendingApproval {
+  id: string;
+  request: string;
+  createdAt: number;
+}
+
 export interface RLFPState {
   enabled: boolean;
   policy: Record<string, number>;
@@ -252,7 +258,7 @@ export interface Agent {
 
   resolveApproval(id: string, approved: boolean, reason?: string): boolean;
 
-  getPendingApprovals(): Array<{ id: string; request: string; createdAt: number }>;
+  getPendingApprovals(): PendingApproval[];
 
   getLmRuleStats(): Array<{
     id: string;

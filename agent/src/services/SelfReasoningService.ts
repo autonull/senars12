@@ -6,20 +6,7 @@
 import type { NAR } from '../../../nar/src';
 import type { Logger } from '../../../nar/src/logger';
 import { createLogger } from '../../../nar/src/logger';
-
-export interface SelfReasoningState {
-  qualityScore: number;
-  consistency: number;
-  gaps: string[];
-  suggestions: string[];
-}
-
-export interface QualityMetrics {
-  overall: number;
-  coherence: number;
-  relevance: number;
-  completeness: number;
-}
+import type { SelfReasoningState, QualityMetrics } from '../types.js';
 
 export interface SelfReasoningServiceConfig {
   nar?: NAR;
