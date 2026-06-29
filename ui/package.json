@@ -1,8 +1,14 @@
 {
-  "name": "senars-ui",
+  "name": "@senars/ui",
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
   "scripts": {
     "build:tokens": "tsx scripts/build-tokens.ts",
     "prebuild": "pnpm build:tokens",

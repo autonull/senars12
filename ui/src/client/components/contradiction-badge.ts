@@ -1,6 +1,6 @@
-import { html, css } from 'lit';
+import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $graphNodes, $graphFilter } from '../core/index.js';
+import { $graphFilter, $graphNodes } from '../core/index.js';
 import { BaseComponent } from '../core/index.js';
 
 @customElement('contradiction-badge')
@@ -37,7 +37,10 @@ export class ContradictionBadge extends BaseComponent {
       this.count = this.countContradictions();
       if (this.count > this.prevCount) {
         this.pulsing = true;
-        setTimeout(() => { this.pulsing = false; this.requestUpdate(); }, 3000);
+        setTimeout(() => {
+          this.pulsing = false;
+          this.requestUpdate();
+        }, 3000);
       }
       this.prevCount = this.count;
       this.requestUpdate();

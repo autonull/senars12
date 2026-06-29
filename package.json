@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.0.9",
+  "packageManager": "pnpm@11.9.0",
   "bin": {
     "senars": "./dist/cli/repl.js",
     "senars-mcp": "./dist/bin/mcp-server.js"
   },
   "scripts": {
-    "dev": "tsx --watch src/index.ts",
+    "dev": "turbo run dev",
     "start": "tsx src/index.ts",
     "repl": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/repl.ts",
     "bot": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/bot-ai.ts",
@@ -18,17 +18,18 @@
     "mcp": "NODE_NO_WARNINGS=1 tsx src/bin/mcp-server.ts",
     "pi": "bash scripts/pi-agent.sh",
     "pi:install": "npx pi install npm:pi-mcp-adapter",
-    "test": "NODE_NO_WARNINGS=1 NODE_OPTIONS='--experimental-vm-modules' pnpm exec jest --config jest.config.cjs",
-    "test:unit": "NODE_NO_WARNINGS=1 NODE_OPTIONS='--experimental-vm-modules' pnpm exec jest --config jest.unit.config.cjs",
-    "test:integration": "NODE_NO_WARNINGS=1 NODE_OPTIONS='--experimental-vm-modules' pnpm exec jest --config jest.config.cjs --testPathPattern=tests/integration --forceExit",
-    "test:cognitive": "NODE_NO_WARNINGS=1 LM_PROVIDER=mock pnpm test:conversational",
-    "test:cognitive:real": "NODE_NO_WARNINGS=1 pnpm test:conversational",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --dir tests/unit",
+    "test:integration": "vitest run --dir tests/integration",
+    "test:cognitive": "LM_PROVIDER=mock vitest run --dir tests/cognitive",
+    "test:cognitive:real": "vitest run --dir tests/cognitive",
     "test:conversational": "NODE_NO_WARNINGS=1 tsx tests/conversational/runner.ts",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "typecheck": "turbo run typecheck",
     "web": "pnpm --dir ui dev",
-    "build": "tsc"
+    "build": "turbo run build"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^1.0.41",
@@ -59,6 +60,7 @@
     "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.8.0",
     "@earendil-works/pi-coding-agent": "^0.79.9",
     "@types/irc": "^0.5.4",
     "@types/jest": "^29.5.14",
@@ -74,6 +76,8 @@
     "pi-mcp-adapter": "^2.10.0",
     "ts-jest": "^29.4.9",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "turbo": "^2.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^1.6.0"
   }
 }

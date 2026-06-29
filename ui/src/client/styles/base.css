@@ -11,10 +11,20 @@
   }
 
   /* Custom scrollbar */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--colors-semantic-border-default); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--colors-semantic-border-focus); }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--colors-semantic-border-default);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--colors-semantic-border-focus);
+  }
 
   /* Focus visible ring */
   :focus-visible {
@@ -34,7 +44,9 @@
 
   /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    *,
+    *::before,
+    *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
@@ -45,7 +57,9 @@
       transition: none !important;
     }
     /* Disable panel slide transitions */
-    .panel-left, .panel-right, .panel-bottom {
+    .panel-left,
+    .panel-right,
+    .panel-bottom {
       transition: none !important;
     }
     /* Disable typewriter effect in chat */
@@ -65,8 +79,13 @@
       --colors-semantic-text-muted: var(--colors-semantic-text-secondary);
     }
     /* Increase border contrast for all panels */
-    .panel-left, .panel-right, .panel-bottom,
-    s-panel, .toolbar, .card, .context-menu {
+    .panel-left,
+    .panel-right,
+    .panel-bottom,
+    s-panel,
+    .toolbar,
+    .card,
+    .context-menu {
       border-width: 2px !important;
     }
     /* Ensure focus ring is highly visible */

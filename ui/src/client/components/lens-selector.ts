@@ -1,9 +1,9 @@
-import { html, css } from 'lit';
+import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import type { Lens } from '../../shared/protocol.js';
+import { LENS_COLORS, LENS_DESCRIPTIONS, LENS_LABELS } from '../constants.js';
 import { $activeLens, send } from '../core/index.js';
 import { BaseComponent } from '../core/index.js';
-import { LENS_COLORS, LENS_LABELS, LENS_DESCRIPTIONS } from '../constants.js';
 
 const LENSES: Lens[] = ['belief', 'goal', 'contradiction'];
 
@@ -24,8 +24,12 @@ export class LensSelector extends BaseComponent {
     .desc { font-size: 0.65rem; opacity: 0.5; }
   `;
 
-  private toggle() { this.open = !this.open; }
-  private close() { this.open = false; }
+  private toggle() {
+    this.open = !this.open;
+  }
+  private close() {
+    this.open = false;
+  }
 
   private selectLens(lens: Lens) {
     $activeLens.set(lens);
@@ -41,17 +45,23 @@ export class LensSelector extends BaseComponent {
         ${LENS_LABELS[activeLens]}
         <span class="arrow">${this.open ? '▲' : '▼'}</span>
       </div>
-      ${this.open ? html`
+      ${
+        this.open
+          ? html`
         <div class="dropdown">
-          ${LENSES.map((l) => html`
+          ${LENSES.map(
+            (l) => html`
             <button class="option ${l === activeLens ? 'active' : ''}" @click=${() => this.selectLens(l)}>
               <span class="dot" style="background: ${LENS_COLORS[l]}"></span>
               <span>${LENS_LABELS[l]}</span>
               <span class="desc">${LENS_DESCRIPTIONS[l]}</span>
             </button>
-          `)}
+          `
+          )}
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     `;
   }
 }

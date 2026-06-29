@@ -1,4 +1,4 @@
-import { html, css, LitElement } from 'lit';
+import { LitElement, css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 
@@ -23,7 +23,10 @@ export class STooltip extends LitElement {
 
   private handleMouseEnter() {
     if (this.trigger === 'delayed') {
-      this.showTimer = window.setTimeout(() => { this.visible = true; this.requestUpdate(); }, 500);
+      this.showTimer = window.setTimeout(() => {
+        this.visible = true;
+        this.requestUpdate();
+      }, 500);
     } else {
       this.visible = true;
       this.requestUpdate();
@@ -31,14 +34,23 @@ export class STooltip extends LitElement {
   }
 
   private handleMouseLeave() {
-    if (this.showTimer) { clearTimeout(this.showTimer); this.showTimer = undefined; }
+    if (this.showTimer) {
+      clearTimeout(this.showTimer);
+      this.showTimer = undefined;
+    }
     this.visible = false;
     this.requestUpdate();
   }
 
   override render() {
     return html`
-      <div class="trigger" @mouseenter=${this.handleMouseEnter} @mouseleave=${this.handleMouseLeave} @focus=${() => { this.visible = true; this.requestUpdate(); }} @blur=${() => { this.visible = false; this.requestUpdate(); }}>
+      <div class="trigger" @mouseenter=${this.handleMouseEnter} @mouseleave=${this.handleMouseLeave} @focus=${() => {
+        this.visible = true;
+        this.requestUpdate();
+      }} @blur=${() => {
+        this.visible = false;
+        this.requestUpdate();
+      }}>
         <slot></slot>
         <div class="tooltip ${classMap({ hidden: !this.visible })}">${this.text}</div>
       </div>
@@ -46,4 +58,8 @@ export class STooltip extends LitElement {
   }
 }
 
-declare global { interface HTMLElementTagNameMap { 's-tooltip': STooltip; } }
+declare global {
+  interface HTMLElementTagNameMap {
+    's-tooltip': STooltip;
+  }
+}

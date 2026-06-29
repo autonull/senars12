@@ -1,7 +1,9 @@
-import { readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { dirname, resolve } from 'path';
 
-interface TokenTree { [key: string]: unknown }
+interface TokenTree {
+  [key: string]: unknown;
+}
 type FlatTokens = Record<string, string>;
 
 function resolveRefs(value: string, flat: FlatTokens, visited = new Set<string>()): string {
@@ -52,16 +54,21 @@ function generate(filePath: string) {
   });
 
   const cssContent = cssEntries.map(([k, v]) => `  ${k}: ${v};`).join('\n');
-  writeFileSync(resolve(cssDir, 'tokens.css'), `/* Auto-generated from design-tokens.json */\n:root {\n${cssContent}\n}\n`);
+  writeFileSync(
+    resolve(cssDir, 'tokens.css'),
+    `/* Auto-generated from design-tokens.json */\n:root {\n${cssContent}\n}\n`
+  );
   console.log('-> Generated tokens.css');
 
   const tsContent = `// Auto-generated from design-tokens.json
 export const tokens = {
-${Object.entries(flat).map(([path, value]) => {
-  const k = toTsKey(path);
-  const v = resolveRefs(value, flat);
-  return `  '${k}': '${v}' as const,`;
-}).join('\n')}
+${Object.entries(flat)
+  .map(([path, value]) => {
+    const k = toTsKey(path);
+    const v = resolveRefs(value, flat);
+    return `  '${k}': '${v}' as const,`;
+  })
+  .join('\n')}
 } as const;
 
 export type TokenPath = keyof typeof tokens;

@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 const ALLOWED_ERRORS = [
   /DevTools failed to load source map/,
@@ -21,7 +21,7 @@ export class ErrorMonitor {
     this.page.on('console', (msg) => {
       if (msg.type() === 'error') {
         const text = msg.text();
-        if (!ALLOWED_ERRORS.some(re => re.test(text))) {
+        if (!ALLOWED_ERRORS.some((re) => re.test(text))) {
           this.consoleErrors.push(text);
         }
       }
@@ -43,13 +43,15 @@ export class ErrorMonitor {
     this.unhandledRejections.push(...rejections);
 
     const allErrors: Array<{ type: string; message: string; stack?: string }> = [
-      ...this.uncaughtExceptions.map(e => ({ type: 'uncaught_exception', ...e })),
-      ...this.consoleErrors.map(e => ({ type: 'console_error', message: e })),
-      ...this.unhandledRejections.map(e => ({ type: 'unhandled_rejection', ...e })),
+      ...this.uncaughtExceptions.map((e) => ({ type: 'uncaught_exception', ...e })),
+      ...this.consoleErrors.map((e) => ({ type: 'console_error', message: e })),
+      ...this.unhandledRejections.map((e) => ({ type: 'unhandled_rejection', ...e })),
     ];
 
     if (allErrors.length > 0) {
-      const summary = allErrors.map(e => `  [${e.type}] ${e.message}${e.stack ? '\n' + e.stack : ''}`).join('\n');
+      const summary = allErrors
+        .map((e) => `  [${e.type}] ${e.message}${e.stack ? '\n' + e.stack : ''}`)
+        .join('\n');
       throw new Error(`Test failed: ${allErrors.length} unexpected error(s):\n${summary}`);
     }
   }

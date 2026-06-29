@@ -1,13 +1,13 @@
-import { html, css } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import { classMap } from 'lit/directives/class-map.js';
-import { BaseComponent } from '../core/index.js';
-import { $chatMessages, $streamingDelta, $focusTerm } from '../core/index.js';
-import { send } from '../core/index.js';
-import type { ChatMessage } from '../../shared/protocol.js';
-import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { css, html } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { classMap } from 'lit/directives/class-map.js';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { marked } from 'marked';
+import type { ChatMessage } from '../../shared/protocol.js';
+import { BaseComponent } from '../core/index.js';
+import { $chatMessages, $focusTerm, $streamingDelta } from '../core/index.js';
+import { send } from '../core/index.js';
 
 @customElement('chat-history-panel')
 export class ChatHistoryPanel extends BaseComponent {
@@ -88,7 +88,9 @@ export class ChatHistoryPanel extends BaseComponent {
   private async copyMessage(msg: ChatMessage) {
     try {
       await navigator.clipboard.writeText(msg.content);
-    } catch { /* clipboard unavailable */ }
+    } catch {
+      /* clipboard unavailable */
+    }
   }
 
   private regenerate(msg: ChatMessage) {
@@ -106,9 +108,13 @@ export class ChatHistoryPanel extends BaseComponent {
         <div class="msg-header">
           <span class="msg-role">${msg.role}</span>
           <span class="msg-time">${this.formatTime(msg.timestamp)}</span>
-          ${hasFocusTerm ? html`
+          ${
+            hasFocusTerm
+              ? html`
             <span class="focus-btn" @click=${() => this.focusTerm(msg.term!)}>@${msg.term}</span>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
         <div class="msg-body ${classMap({ [msg.role]: true })}">
           ${isAgent ? unsafeHTML(content) : content}
@@ -147,7 +153,9 @@ export class ChatHistoryPanel extends BaseComponent {
             ${showDivider ? html`<div class="divider"><span class="divider-line"></span>${curDay}</div>` : ''}
             ${this.renderMessage(msg)}`;
         })}
-        ${streaming ? html`
+        ${
+          streaming
+            ? html`
           <div class="message streaming">
             <div class="msg-header">
               <span class="msg-role">agent</span>
@@ -155,9 +163,15 @@ export class ChatHistoryPanel extends BaseComponent {
             </div>
             <div class="msg-body agent">${streaming}</div>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>`;
   }
 }
 
-declare global { interface HTMLElementTagNameMap { 'chat-history-panel': ChatHistoryPanel; } }
+declare global {
+  interface HTMLElementTagNameMap {
+    'chat-history-panel': ChatHistoryPanel;
+  }
+}

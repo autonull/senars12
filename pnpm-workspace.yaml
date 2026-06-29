@@ -1,7 +1,10 @@
 packages:
+  - 'nar'
+  - 'agent'
   - 'ui'
 
 allowBuilds:
+  '@biomejs/biome': true
   '@google/genai': true
   '@swc/core': set this to true or false
   esbuild: true

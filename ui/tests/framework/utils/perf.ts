@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 export class PerfMonitor {
   constructor(private page: Page) {}
@@ -34,13 +34,13 @@ export class PerfMonitor {
     if (severeDrops.length > 5) {
       throw new Error(
         `Performance degradation: ${severeDrops.length} severe frame drops (>100ms). ` +
-        `Worst: ${Math.max(...severeDrops).toFixed(2)}ms`
+          `Worst: ${Math.max(...severeDrops).toFixed(2)}ms`
       );
     }
 
     if (drops.length > frameTimes.length * 0.1) {
       throw new Error(
-        `Excessive frame drops: ${(drops.length / frameTimes.length * 100).toFixed(1)}% of frames exceeded 33ms`
+        `Excessive frame drops: ${((drops.length / frameTimes.length) * 100).toFixed(1)}% of frames exceeded 33ms`
       );
     }
 
@@ -49,10 +49,10 @@ export class PerfMonitor {
       const endNodes = nodeCounts[nodeCounts.length - 1];
       const growth = (endNodes - startNodes) / startNodes;
 
-      if (growth > 0.20) {
+      if (growth > 0.2) {
         throw new Error(
           `Potential memory leak: DOM node count grew by ${(growth * 100).toFixed(1)}% ` +
-          `(${startNodes} → ${endNodes} nodes)`
+            `(${startNodes} → ${endNodes} nodes)`
         );
       }
     }

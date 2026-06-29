@@ -1,4 +1,4 @@
-import { html, css } from 'lit';
+import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { $connectionState } from '../core/index.js';
 import { BaseComponent } from '../core/index.js';
@@ -55,7 +55,9 @@ export class ConnectionBanner extends BaseComponent {
     }
   }
 
-  private handleDismiss() { this.dismissed = true; }
+  private handleDismiss() {
+    this.dismissed = true;
+  }
   private handleRetry() {
     import('../core/ws-client.js').then(({ connect }) => connect());
     this.dismissed = true;
@@ -65,9 +67,10 @@ export class ConnectionBanner extends BaseComponent {
     const state = $connectionState.get();
     if (state === 'connected' || this.dismissed || !MESSAGES[state]) return '';
 
-    const message = state === 'reconnecting'
-      ? `Connection lost. Reconnecting in ${this.reconnectCountdown}s…`
-      : MESSAGES[state];
+    const message =
+      state === 'reconnecting'
+        ? `Connection lost. Reconnecting in ${this.reconnectCountdown}s…`
+        : MESSAGES[state];
 
     return html`
       <s-banner variant=${state === 'disconnected' ? 'error' : state === 'reconnecting' ? 'warning' : 'info'} dismissible @s-dismiss=${this.handleDismiss}>
@@ -80,5 +83,7 @@ export class ConnectionBanner extends BaseComponent {
 }
 
 declare global {
-  interface HTMLElementTagNameMap { 'connection-banner': ConnectionBanner; }
+  interface HTMLElementTagNameMap {
+    'connection-banner': ConnectionBanner;
+  }
 }

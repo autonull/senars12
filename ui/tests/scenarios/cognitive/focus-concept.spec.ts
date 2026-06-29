@@ -1,4 +1,4 @@
-import { test, expect } from '../../framework/fixtures/senars-app';
+import { expect, test } from '../../framework/fixtures/senars-app';
 
 test('cognitive features load', async ({ page, testApi }) => {
   await expect(page.locator('graph-viewport')).toBeVisible();

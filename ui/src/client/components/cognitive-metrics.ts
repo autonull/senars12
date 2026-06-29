@@ -1,4 +1,4 @@
-import { html, css } from 'lit';
+import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { $cognitiveMetrics } from '../core/index.js';
 import { BaseComponent } from '../core/index.js';
@@ -68,36 +68,52 @@ export class CognitiveMetrics extends BaseComponent {
     const cards = [
       { label: 'Active Concepts', value: m.activeConcepts, color: TOKEN_COLORS.accentCyan },
       { label: 'Total Concepts', value: m.totalConcepts, color: TOKEN_COLORS.textSecondary },
-      { label: 'Derivations/s', value: m.derivationsPerSec.toFixed(1), color: TOKEN_COLORS.accentAmber },
+      {
+        label: 'Derivations/s',
+        value: m.derivationsPerSec.toFixed(1),
+        color: TOKEN_COLORS.accentAmber,
+      },
       { label: 'Contradictions', value: m.contradictionCount, color: TOKEN_COLORS.error },
       { label: 'Working Mem', value: m.workingMemorySize, color: TOKEN_COLORS.accentMagenta },
     ];
 
     return html`
       <div class="cards">
-        ${cards.map((c) => html`
+        ${cards.map(
+          (c) => html`
           <div class="card">
             <span class="card-label">${c.label}</span>
             <span class="card-value">${c.value}</span>
             <div class="card-indicator" style="background:${c.color}"></div>
           </div>
-        `)}
-        ${m.goalUrgencyDistribution ? html`
+        `
+        )}
+        ${
+          m.goalUrgencyDistribution
+            ? html`
           <div class="card">
             <span class="card-label">Urgency</span>
             <div class="urgency-list">
-              ${Object.entries(m.goalUrgencyDistribution).map(([k, v]) => html`
+              ${Object.entries(m.goalUrgencyDistribution).map(
+                ([k, v]) => html`
                 <div class="urgency-item">
                   <span class="urgency-dot" style="background:${k === 'high' ? TOKEN_COLORS.error : k === 'medium' ? TOKEN_COLORS.accentAmber : TOKEN_COLORS.success}"></span>
                   <span class="urgency-value">${v}</span>
                 </div>
-              `)}
+              `
+              )}
             </div>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     `;
   }
 }
 
-declare global { interface HTMLElementTagNameMap { 'cognitive-metrics': CognitiveMetrics; } }
+declare global {
+  interface HTMLElementTagNameMap {
+    'cognitive-metrics': CognitiveMetrics;
+  }
+}

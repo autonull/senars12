@@ -1,1 +1,1 @@
-export {setupGracefulShutdown} from './shutdown.js';
+export { setupGracefulShutdown } from './shutdown.js';

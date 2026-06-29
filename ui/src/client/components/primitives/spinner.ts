@@ -1,4 +1,4 @@
-import { html, css, LitElement } from 'lit';
+import { LitElement, css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 
@@ -26,4 +26,8 @@ export class SSpinner extends LitElement {
   }
 }
 
-declare global { interface HTMLElementTagNameMap { 's-spinner': SSpinner; } }
+declare global {
+  interface HTMLElementTagNameMap {
+    's-spinner': SSpinner;
+  }
+}

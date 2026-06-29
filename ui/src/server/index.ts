@@ -1,14 +1,14 @@
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { WebSocketServer, type WebSocket } from 'ws';
-import type { Agent } from '../../../src/agent/types.js';
-import type { NAR } from '../../../src/nar/nar.js';
+import { type WebSocket, WebSocketServer } from 'ws';
+import type { Agent } from '../../../agent/src/types.js';
+import type { NAR } from '../../../nar/src/nar.js';
 import type { Lens } from '../shared/protocol.js';
 import { onChat } from './chat.js';
-import { sendInitialState, subscribeSocket } from './socket-handler.js';
-import { handleConnection, type NarAdapter } from './gateway.js';
+import { type NarAdapter, handleConnection } from './gateway.js';
 import { buildNarAdapter, createTelemetryEmitter } from './nar-adapter.js';
+import { sendInitialState, subscribeSocket } from './socket-handler.js';
 import { createStaticHandler } from './static.js';
 import { createTestControlHandler } from './test-control.js';
 
@@ -22,20 +22,32 @@ export interface TestServer {
 
 export async function startWebUI(nar: NAR, agent: Agent): Promise<TestServer> {
   const adapter = buildNarAdapter(nar);
-  return startHttpServer(adapter, nar, agent, DEFAULT_PORT, path.join(__dirname, '..', '..', 'dist', 'client'));
+  return startHttpServer(
+    adapter,
+    nar,
+    agent,
+    DEFAULT_PORT,
+    path.join(__dirname, '..', '..', 'dist', 'client')
+  );
 }
 
 export async function startWebUIWithOptions(
   nar: NAR,
   agent: Agent,
-  options: { port?: number; clientDist?: string } = {},
+  options: { port?: number; clientDist?: string } = {}
 ): Promise<TestServer> {
   const adapter = buildNarAdapter(nar);
   const distRoot = options.clientDist ?? path.join(__dirname, '..', '..', 'dist', 'client');
   return startHttpServer(adapter, nar, agent, options.port ?? DEFAULT_PORT, distRoot);
 }
 
-function startHttpServer(adapter: NarAdapter, nar: NAR, agent: Agent, port: number, distRoot: string): Promise<TestServer> {
+function startHttpServer(
+  adapter: NarAdapter,
+  nar: NAR,
+  agent: Agent,
+  port: number,
+  distRoot: string
+): Promise<TestServer> {
   const handleTestControl = createTestControlHandler(nar);
   const handleHttp = createStaticHandler(distRoot);
 
@@ -70,7 +82,9 @@ function bindSocket(socket: WebSocket, adapter: NarAdapter, nar: NAR, agent: Age
   const sendMsg = (msg: any) => socket.send(JSON.stringify(msg));
   const stopTelemetry = createTelemetryEmitter(nar, sendMsg);
 
-  handleConnection(socket, adapter,
+  handleConnection(
+    socket,
+    adapter,
     (content, send) => onChat(content, send, agent),
     (lens) => {
       currentLens = lens;
@@ -78,7 +92,7 @@ function bindSocket(socket: WebSocket, adapter: NarAdapter, nar: NAR, agent: Age
     },
     (term) => {
       focusTerm = term;
-    },
+    }
   );
 
   const unsubscribe = subscribeSocket(socket, adapter, agent, () => currentLens);
@@ -89,8 +103,8 @@ function bindSocket(socket: WebSocket, adapter: NarAdapter, nar: NAR, agent: Age
 }
 
 async function main(): Promise<void> {
-  const { SeNARSFactory } = await import('../../../src/nar/factory.js');
-  const { createAgent } = await import('../../../src/agent/agent.js');
+  const { SeNARSFactory } = await import('../../../nar/src/factory.js');
+  const { createAgent } = await import('../../../agent/src/agent.js');
   const { DEFAULT_NAR_CONFIG } = await import('../../../src/config/index.js');
 
   const nar = SeNARSFactory.createDefault({ ...DEFAULT_NAR_CONFIG });

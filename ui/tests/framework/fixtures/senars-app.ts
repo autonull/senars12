@@ -1,8 +1,8 @@
 import { test as base, request } from '@playwright/test';
-import { TestControl } from '../utils/test-control';
-import { ErrorMonitor } from './error-monitor';
 import { PerfMonitor } from '../utils/perf';
 import { TestApiClient } from '../utils/test-api';
+import { TestControl } from '../utils/test-control';
+import { ErrorMonitor } from './error-monitor';
 
 type SenarsFixtures = {
   testControl: TestControl;

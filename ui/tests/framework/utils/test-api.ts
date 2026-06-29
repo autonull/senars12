@@ -1,10 +1,12 @@
-import { Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 export class TestApiClient {
   constructor(private page: Page) {}
 
   async ensureReady() {
-    await this.page.waitForFunction(() => (window as any).__testApi !== undefined, { timeout: 10000 });
+    await this.page.waitForFunction(() => (window as any).__testApi !== undefined, {
+      timeout: 10000,
+    });
   }
 
   async waitForComponentApi(component: string) {

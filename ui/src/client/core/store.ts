@@ -1,4 +1,4 @@
-import type { ChatMessage, Lens, GraphNodeData } from '../../shared/protocol.js';
+import type { ChatMessage, GraphNodeData, Lens } from '../../shared/protocol.js';
 
 type Listener<T> = (value: T) => void;
 type Unsubscriber = () => void;
@@ -16,9 +16,13 @@ class Atom<T> implements Writable<T> {
   private _value: T;
   private listeners = new Set<Listener<T>>();
 
-  constructor(initial: T) { this._value = initial; }
+  constructor(initial: T) {
+    this._value = initial;
+  }
 
-  get() { return this._value; }
+  get() {
+    return this._value;
+  }
 
   set(value: T) {
     this._value = value;
@@ -49,7 +53,10 @@ export interface CognitiveMetricsData {
   goalUrgencyDistribution?: Record<string, number>;
 }
 
-export interface CognitiveMeta { truncated: boolean; totalHidden: number }
+export interface CognitiveMeta {
+  truncated: boolean;
+  totalHidden: number;
+}
 
 // --- Existing atoms ---
 export const $chatMessages = atom<ChatMessage[]>([]);
@@ -59,10 +66,15 @@ export const $graphEdges = atom<Map<string, Record<string, any>>>(new Map());
 export const $graphMeta = atom<CognitiveMeta>({ truncated: false, totalHidden: 0 });
 export const $config = atom<Record<string, any>>({});
 export const $telemetry = atom<TelemetryData>({
-  reasoning_hz: [], tokens_per_sec: [], memory_mb: [], ws_latency_ms: [],
+  reasoning_hz: [],
+  tokens_per_sec: [],
+  memory_mb: [],
+  ws_latency_ms: [],
 });
 export const $cognitiveMetrics = atom<CognitiveMetricsData | null>(null);
-export const $connectionState = atom<'connecting' | 'connected' | 'reconnecting' | 'disconnected'>('connecting');
+export const $connectionState = atom<'connecting' | 'connected' | 'reconnecting' | 'disconnected'>(
+  'connecting'
+);
 export const $lastSeqId = atom<number | null>(null);
 
 export const $activeLens = atom<Lens>('belief');
@@ -100,12 +112,14 @@ export interface PanelState {
   order: number;
 }
 
-export const $panels = atom<Map<string, PanelState>>(new Map([
-  ['config', { id: 'config', open: false, docked: 'right', size: 320, order: 0 }],
-  ['telemetry', { id: 'telemetry', open: true, docked: 'bottom', size: 200, order: 0 }],
-  ['chat', { id: 'chat', open: false, docked: 'right', size: 360, order: 1 }],
-  ['search', { id: 'search', open: false, docked: 'left', size: 280, order: 0 }],
-]));
+export const $panels = atom<Map<string, PanelState>>(
+  new Map([
+    ['config', { id: 'config', open: false, docked: 'right', size: 320, order: 0 }],
+    ['telemetry', { id: 'telemetry', open: true, docked: 'bottom', size: 200, order: 0 }],
+    ['chat', { id: 'chat', open: false, docked: 'right', size: 360, order: 1 }],
+    ['search', { id: 'search', open: false, docked: 'left', size: 280, order: 0 }],
+  ])
+);
 
 // Migration alias: $configOpen → $panels.get('config').open
 export const $configOpen = {
@@ -113,9 +127,13 @@ export const $configOpen = {
   set: (open: boolean) => {
     const panels = new Map($panels.get());
     const panel = panels.get('config');
-    if (panel) { panels.set('config', { ...panel, open }); $panels.set(panels); }
+    if (panel) {
+      panels.set('config', { ...panel, open });
+      $panels.set(panels);
+    }
   },
-  subscribe: (fn: (value: boolean) => void) => $panels.subscribe((p) => fn(p.get('config')?.open ?? false)),
+  subscribe: (fn: (value: boolean) => void) =>
+    $panels.subscribe((p) => fn(p.get('config')?.open ?? false)),
 };
 
 // --- Phase 0: URL State ---
@@ -144,8 +162,17 @@ function parseHash(): Partial<UrlState> {
   const vp = params.get('viewport');
   if (vp) {
     const parts = vp.split(',').map(Number);
-    const x = parts[0], y = parts[1], z = parts[2];
-    if (typeof x === 'number' && typeof y === 'number' && typeof z === 'number' && !isNaN(x) && !isNaN(y) && !isNaN(z)) {
+    const x = parts[0],
+      y = parts[1],
+      z = parts[2];
+    if (
+      typeof x === 'number' &&
+      typeof y === 'number' &&
+      typeof z === 'number' &&
+      !isNaN(x) &&
+      !isNaN(y) &&
+      !isNaN(z)
+    ) {
       state.viewport = { x, y, zoom: z };
     }
   }
@@ -160,7 +187,8 @@ function serializeHash(state: UrlState): string {
   const params = new URLSearchParams();
   params.set('lens', state.lens);
   if (state.focus) params.set('focus', state.focus);
-  if (state.viewport) params.set('viewport', `${state.viewport.x},${state.viewport.y},${state.viewport.zoom}`);
+  if (state.viewport)
+    params.set('viewport', `${state.viewport.x},${state.viewport.y},${state.viewport.zoom}`);
   if (state.search) params.set('search', state.search);
   if (state.panels?.length) params.set('panels', state.panels.join(','));
   return params.toString();
@@ -197,13 +225,26 @@ $urlState.subscribe((state) => syncUrlFromState(state));
 // --- Phase 0: Test API ---
 type ReadableAtom<T> = { get(): T };
 const storeAtoms = {
-  chatMessages: $chatMessages, streamingDelta: $streamingDelta, graphNodes: $graphNodes,
-  graphEdges: $graphEdges, graphMeta: $graphMeta, config: $config, telemetry: $telemetry,
+  chatMessages: $chatMessages,
+  streamingDelta: $streamingDelta,
+  graphNodes: $graphNodes,
+  graphEdges: $graphEdges,
+  graphMeta: $graphMeta,
+  config: $config,
+  telemetry: $telemetry,
   cognitiveMetrics: $cognitiveMetrics,
-  connectionState: $connectionState, lastSeqId: $lastSeqId, activeLens: $activeLens,
-  focusTerm: $focusTerm, selectedNodeId: $selectedNodeId, viewport: $viewport,
-  workingMemory: $workingMemory, panels: $panels, urlState: $urlState,
-  selectedNodeIds: $selectedNodeIds, lensViewport: $lensViewport, graphFilter: $graphFilter,
+  connectionState: $connectionState,
+  lastSeqId: $lastSeqId,
+  activeLens: $activeLens,
+  focusTerm: $focusTerm,
+  selectedNodeId: $selectedNodeId,
+  viewport: $viewport,
+  workingMemory: $workingMemory,
+  panels: $panels,
+  urlState: $urlState,
+  selectedNodeIds: $selectedNodeIds,
+  lensViewport: $lensViewport,
+  graphFilter: $graphFilter,
   lensLayout: $lensLayout,
 } satisfies Record<string, ReadableAtom<unknown>>;
 
@@ -215,6 +256,8 @@ export function mountTestApi<T>(namespace: string, api: T): void {
 }
 
 export function exposeTestApi(): void {
-  mountTestApi('store', { getState: (path: string) => storeAtoms[path as TestApiStorePath]?.get() });
+  mountTestApi('store', {
+    getState: (path: string) => storeAtoms[path as TestApiStorePath]?.get(),
+  });
   mountTestApi('connection', { getState: () => $connectionState.get() });
 }

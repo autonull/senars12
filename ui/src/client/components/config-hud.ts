@@ -1,14 +1,17 @@
-import { html, css } from 'lit';
+import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
+import type { ConfigFieldType } from '../../shared/protocol.js';
 import { $config, send } from '../core/index.js';
 import { BaseComponent } from '../core/index.js';
-import type { ConfigFieldType } from '../../shared/protocol.js';
 import './config-profiles.js';
 
 type ConfigCategory = 'llm' | 'nars' | 'system' | 'advanced';
 
-interface ValidationResult { valid: boolean; message?: string }
+interface ValidationResult {
+  valid: boolean;
+  message?: string;
+}
 
 const CATEGORY_LABELS: Record<ConfigCategory, string> = {
   llm: 'Language Model',
@@ -27,7 +30,8 @@ function validateField(field: ConfigFieldType, value: unknown): ValidationResult
     if (v.max != null && value > v.max) return { valid: false, message: `Maximum ${v.max}` };
   }
   if (typeof value === 'string' && v.pattern) {
-    if (!new RegExp(v.pattern).test(value)) return { valid: false, message: `Must match ${v.pattern}` };
+    if (!new RegExp(v.pattern).test(value))
+      return { valid: false, message: `Must match ${v.pattern}` };
   }
   return { valid: true };
 }
@@ -157,26 +161,30 @@ export class ConfigHUD extends BaseComponent {
     const val = field.value;
     const desc = field.description;
 
-    const input = field.type === 'slider' ? html`
+    const input =
+      field.type === 'slider'
+        ? html`
       <div class="field-value">
         <input type="range" min=${field.min ?? 0} max=${field.max ?? 1} step=${field.step ?? 0.1}
-          .value=${val} @input=${(e: Event) => this.handleChange(key, parseFloat((e.target as HTMLInputElement).value))} />
+          .value=${val} @input=${(e: Event) => this.handleChange(key, Number.parseFloat((e.target as HTMLInputElement).value))} />
         <span class="val">${typeof val === 'number' ? val.toFixed(2) : val}</span>
       </div>`
-    : field.type === 'dropdown' ? html`
+        : field.type === 'dropdown'
+          ? html`
       <div class="field-value">
         <select @change=${(e: Event) => this.handleChange(key, (e.target as HTMLSelectElement).value)}>
           ${field.options?.map((o) => html`<option value=${o} ?selected=${o === String(val)}>${o}</option>`)}
         </select>
       </div>`
-    : field.type === 'toggle' ? html`
+          : field.type === 'toggle'
+            ? html`
       <div class="field-value">
         <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
           <input type="checkbox" ?checked=${val} @change=${(e: Event) => this.handleChange(key, (e.target as HTMLInputElement).checked)} />
           <span style="color:var(--colors-semantic-text-primary);font-size:0.75rem;">${val ? 'Enabled' : 'Disabled'}</span>
         </label>
       </div>`
-    : html`
+            : html`
       <div class="field-value">
         <input type=${field.type === 'text' ? 'text' : 'number'} .value=${val}
           @change=${(e: Event) => this.handleChange(key, (e.target as HTMLInputElement).value)} />
@@ -221,7 +229,7 @@ export class ConfigHUD extends BaseComponent {
           <h3>Configuration</h3>
           <div class="config-header-actions">
             ${this.dirtyFields.size > 0 ? html`<span class="dirty-indicator">${this.dirtyFields.size} unsaved</span>` : ''}
-            <button class="icon-btn" @click=${() => this.profileSelector = !this.profileSelector} title="Profiles">Profiles</button>
+            <button class="icon-btn" @click=${() => (this.profileSelector = !this.profileSelector)} title="Profiles">Profiles</button>
             <button class="icon-btn" @click=${this.closePanel} title="Close">✕</button>
           </div>
         </div>
@@ -239,22 +247,33 @@ export class ConfigHUD extends BaseComponent {
                   <span>${collapsed ? '▸' : '▾'}</span>
                   <h4>${CATEGORY_LABELS[cat]}</h4>
                   ${dirtyCount > 0 ? html`<span class="dirty-dot"></span>` : ''}
-                  <button class="icon-btn" @click=${(e: Event) => { e.stopPropagation(); this.resetCategory(cat); }} size="sm">Reset</button>
+                  <button class="icon-btn" @click=${(e: Event) => {
+                    e.stopPropagation();
+                    this.resetCategory(cat);
+                  }} size="sm">Reset</button>
                 </div>
                 <div class="category-fields ${collapsed ? 'collapsed' : ''}">
                   ${fields.map(([key, f]) => this.renderField(f, key))}
                 </div>
               </div>`;
           })}
-          ${this.dirtyFields.size > 0 ? html`
+          ${
+            this.dirtyFields.size > 0
+              ? html`
             <div class="reset-all">
               <button @click=${this.resetAll}>Reset all fields</button>
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
       </div>
     `;
   }
 }
 
-declare global { interface HTMLElementTagNameMap { 'config-hud': ConfigHUD; } }
+declare global {
+  interface HTMLElementTagNameMap {
+    'config-hud': ConfigHUD;
+  }
+}

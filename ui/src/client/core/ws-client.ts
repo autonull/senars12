@@ -1,6 +1,9 @@
-import { IncomingFromServer, type IncomingFromServer as IncomingMessage } from '../../shared/protocol.js';
-import { $connectionState, $lastSeqId } from './store.js';
+import {
+  IncomingFromServer,
+  type IncomingFromServer as IncomingMessage,
+} from '../../shared/protocol.js';
 import { applyServerMessage } from './store-bindings.js';
+import { $connectionState, $lastSeqId } from './store.js';
 
 const WS_URL = `ws://${location.host}/ws`;
 const RECONNECT_BASE_MS = 500;
@@ -41,7 +44,10 @@ export function connect(): void {
 function scheduleReconnect(): void {
   if (reconnectTimer) return;
   const delay = Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * 2 ** reconnectAttempt++);
-  reconnectTimer = setTimeout(() => { reconnectTimer = null; connect(); }, delay);
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    connect();
+  }, delay);
 }
 
 export function send(msg: Record<string, unknown>): void {
@@ -49,7 +55,10 @@ export function send(msg: Record<string, unknown>): void {
 }
 
 export function disconnect(): void {
-  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
   socket?.close();
   socket = null;
   $connectionState.set('disconnected');

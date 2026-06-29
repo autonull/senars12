@@ -5,7 +5,8 @@
 export class FocusTrap {
   private previousActive: Element | null = null;
   private container: HTMLElement;
-  private focusableSelector = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  private focusableSelector =
+    'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
   private handler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(container: HTMLElement) {
@@ -14,7 +15,9 @@ export class FocusTrap {
   }
 
   activate() {
-    const focusable = Array.from(this.container.querySelectorAll<HTMLElement>(this.focusableSelector));
+    const focusable = Array.from(
+      this.container.querySelectorAll<HTMLElement>(this.focusableSelector)
+    );
     focusable[0]?.focus();
 
     this.handler = (e: KeyboardEvent) => {

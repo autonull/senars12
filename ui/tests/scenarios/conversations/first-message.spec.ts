@@ -1,4 +1,4 @@
-import { test, expect } from '../../framework/fixtures/senars-app';
+import { expect, test } from '../../framework/fixtures/senars-app';
 
 test('app loads successfully', async ({ page, testApi }) => {
   await expect(page.locator('input-hud')).toBeVisible();

@@ -19,9 +19,7 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
 
-  projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-  ],
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 
   webServer: {
     command: 'NODE_ENV=test pnpm start:test',

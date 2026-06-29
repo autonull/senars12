@@ -1,4 +1,4 @@
-import { html, css } from 'lit';
+import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { BaseComponent } from '../core/index.js';
 import './primitives/button.js';
@@ -79,7 +79,9 @@ export class ErrorBoundary extends BaseComponent {
     import('../core/ws-client.js').then(({ connect }) => connect());
   }
 
-  private reload() { window.location.reload(); }
+  private reload() {
+    window.location.reload();
+  }
 
   private toggleDetail(id: number) {
     this.showDetail = this.showDetail === id ? null : id;
@@ -97,12 +99,16 @@ export class ErrorBoundary extends BaseComponent {
             <span class="title">Something went wrong</span>
           </div>
           <div class="message">${latest.message}</div>
-          ${latest.detail ? html`
+          ${
+            latest.detail
+              ? html`
             <button class="detail-toggle" @click=${() => this.toggleDetail(latest.id)}>
               ${this.showDetail === latest.id ? 'Hide' : 'Show'} technical details
             </button>
             ${this.showDetail === latest.id ? html`<div class="detail">${latest.detail}</div>` : ''}
-          ` : ''}
+          `
+              : ''
+          }
           <div class="actions">
             <s-button variant="primary" @click=${this.retry}>Retry</s-button>
             <s-button variant="secondary" @click=${this.reload}>Reload</s-button>
@@ -115,5 +121,7 @@ export class ErrorBoundary extends BaseComponent {
 }
 
 declare global {
-  interface HTMLElementTagNameMap { 'error-boundary': ErrorBoundary; }
+  interface HTMLElementTagNameMap {
+    'error-boundary': ErrorBoundary;
+  }
 }

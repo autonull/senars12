@@ -1,4 +1,4 @@
-import { html, css, LitElement } from 'lit';
+import { LitElement, css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 
 type InputType = 'text' | 'search' | 'textarea' | 'select' | 'slider' | 'toggle';
@@ -28,15 +28,18 @@ export class SInput extends LitElement {
   private handleInput(e: Event) {
     const target = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
     this.value = target.value;
-    this.dispatchEvent(new CustomEvent('s-change', { detail: { value: this.value }, bubbles: true, composed: true }));
+    this.dispatchEvent(
+      new CustomEvent('s-change', { detail: { value: this.value }, bubbles: true, composed: true })
+    );
   }
 
   override render() {
-    const inputEl = this.type === 'textarea'
-      ? html`<textarea .value=${this.value} ?disabled=${this.disabled} placeholder=${this.placeholder} @input=${this.handleInput}></textarea>`
-      : this.type === 'select'
-        ? html`<select .value=${this.value} ?disabled=${this.disabled} @input=${this.handleInput}><slot></slot></select>`
-        : html`<input type=${this.type} .value=${this.value} ?disabled=${this.disabled} placeholder=${this.placeholder} @input=${this.handleInput}>`;
+    const inputEl =
+      this.type === 'textarea'
+        ? html`<textarea .value=${this.value} ?disabled=${this.disabled} placeholder=${this.placeholder} @input=${this.handleInput}></textarea>`
+        : this.type === 'select'
+          ? html`<select .value=${this.value} ?disabled=${this.disabled} @input=${this.handleInput}><slot></slot></select>`
+          : html`<input type=${this.type} .value=${this.value} ?disabled=${this.disabled} placeholder=${this.placeholder} @input=${this.handleInput}>`;
 
     return html`
       ${this.label ? html`<label>${this.label}</label>` : ''}
@@ -47,4 +50,8 @@ export class SInput extends LitElement {
   }
 }
 
-declare global { interface HTMLElementTagNameMap { 's-input': SInput; } }
+declare global {
+  interface HTMLElementTagNameMap {
+    's-input': SInput;
+  }
+}

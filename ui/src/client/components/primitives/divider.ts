@@ -1,4 +1,4 @@
-import { html, css, LitElement } from 'lit';
+import { LitElement, css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 
@@ -19,4 +19,8 @@ export class SDivider extends LitElement {
   }
 }
 
-declare global { interface HTMLElementTagNameMap { 's-divider': SDivider; } }
+declare global {
+  interface HTMLElementTagNameMap {
+    's-divider': SDivider;
+  }
+}

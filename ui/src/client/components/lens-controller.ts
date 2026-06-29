@@ -1,9 +1,9 @@
-import { html, css } from 'lit';
+import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import type { Lens } from '../../shared/protocol.js';
-import { $activeLens, $graphNodes, send, eventBus } from '../core/index.js';
+import { LENS_COLORS, LENS_DESCRIPTIONS, LENS_LABELS } from '../constants.js';
+import { $activeLens, $graphNodes, eventBus, send } from '../core/index.js';
 import { BaseComponent } from '../core/index.js';
-import { LENS_COLORS, LENS_LABELS, LENS_DESCRIPTIONS } from '../constants.js';
 
 export interface LensDef {
   id: Lens;
@@ -14,9 +14,27 @@ export interface LensDef {
 }
 
 export const LENS_DEFS: LensDef[] = [
-  { id: 'belief', label: 'Beliefs', description: 'What the system knows', colorToken: 'lens.belief', defaultLayout: 'cose' },
-  { id: 'goal', label: 'Goals', description: 'What the system wants', colorToken: 'lens.goal', defaultLayout: 'concentric' },
-  { id: 'contradiction', label: 'Conflicts', description: 'Where beliefs conflict', colorToken: 'lens.contradiction', defaultLayout: 'breadthfirst' },
+  {
+    id: 'belief',
+    label: 'Beliefs',
+    description: 'What the system knows',
+    colorToken: 'lens.belief',
+    defaultLayout: 'cose',
+  },
+  {
+    id: 'goal',
+    label: 'Goals',
+    description: 'What the system wants',
+    colorToken: 'lens.goal',
+    defaultLayout: 'concentric',
+  },
+  {
+    id: 'contradiction',
+    label: 'Conflicts',
+    description: 'Where beliefs conflict',
+    colorToken: 'lens.contradiction',
+    defaultLayout: 'breadthfirst',
+  },
 ];
 
 @customElement('lens-controller')
@@ -66,7 +84,8 @@ export class LensController extends BaseComponent {
         const color = n.lensData.color.toLowerCase();
         if (color.includes('00f3ff') || color.includes('cyan')) counts['belief']!++;
         else if (color.includes('ff00aa') || color.includes('magenta')) counts['goal']!++;
-        else if (color.includes('ffaa00') || color.includes('amber') || color.includes('ffb000')) counts['contradiction']!++;
+        else if (color.includes('ffaa00') || color.includes('amber') || color.includes('ffb000'))
+          counts['contradiction']!++;
       }
     }
     this.nodeCounts = counts;
@@ -78,7 +97,9 @@ export class LensController extends BaseComponent {
   }
 
   private onLeave() {
-    this.popoverTimer = setTimeout(() => { this.activePopover = null; }, 200);
+    this.popoverTimer = setTimeout(() => {
+      this.activePopover = null;
+    }, 200);
   }
 
   private onPopoverEnter() {
@@ -96,14 +117,17 @@ export class LensController extends BaseComponent {
     const activeLens = $activeLens.get();
     return html`
       <div class="lens-group" role="tablist" aria-label="Cognitive lens">
-        ${LENS_DEFS.map(def => html`
+        ${LENS_DEFS.map(
+          (def) => html`
           <div style="position:relative;display:inline-block" @mouseenter=${() => this.onEnter(def.id)} @mouseleave=${this.onLeave}>
             <button class="lens-btn ${def.id} ${def.id === activeLens ? 'active' : ''}"
               role="tab" aria-selected=${def.id === activeLens}
               @click=${() => this.selectLens(def.id)}>
               ${def.label}
             </button>
-            ${this.activePopover === def.id ? html`
+            ${
+              this.activePopover === def.id
+                ? html`
               <div class="popover" @mouseenter=${this.onPopoverEnter} @mouseleave=${this.onLeave}>
                 <div class="popover-header">
                   <span class="popover-swatch" style="background:${LENS_COLORS[def.id]}"></span>
@@ -115,14 +139,19 @@ export class LensController extends BaseComponent {
                   <span>${this.nodeCounts[def.id] ?? 0}</span>
                 </div>
               </div>
-            ` : ''}
+            `
+                : ''
+            }
           </div>
-        `)}
+        `
+        )}
       </div>
     `;
   }
 }
 
 declare global {
-  interface HTMLElementTagNameMap { 'lens-controller': LensController; }
+  interface HTMLElementTagNameMap {
+    'lens-controller': LensController;
+  }
 }

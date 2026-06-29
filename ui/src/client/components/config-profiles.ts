@@ -1,4 +1,4 @@
-import { html, css } from 'lit';
+import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { BaseComponent } from '../core/index.js';
 import { $config } from '../core/index.js';
@@ -15,8 +15,22 @@ const ACTIVE_KEY = 'senars:activeProfile';
 
 const BUILTIN_PROFILES: ConfigProfile[] = [
   { name: 'Default', description: 'Balanced NARS configuration', values: {}, builtin: true },
-  { name: 'Research', description: 'High derivation throughput, low decay', values: { 'nars.derivationBudget': 200, 'nars.decayRate': 0.5, 'nars.forgetThreshold': 0.05 }, builtin: true },
-  { name: 'Creative', description: 'High novelty, low confidence threshold', values: { 'llm.temperature': 0.9, 'nars.confidenceThreshold': 0.3, 'nars.derivationBudget': 150 }, builtin: true },
+  {
+    name: 'Research',
+    description: 'High derivation throughput, low decay',
+    values: { 'nars.derivationBudget': 200, 'nars.decayRate': 0.5, 'nars.forgetThreshold': 0.05 },
+    builtin: true,
+  },
+  {
+    name: 'Creative',
+    description: 'High novelty, low confidence threshold',
+    values: {
+      'llm.temperature': 0.9,
+      'nars.confidenceThreshold': 0.3,
+      'nars.derivationBudget': 150,
+    },
+    builtin: true,
+  },
 ];
 
 function loadProfiles(): ConfigProfile[] {
@@ -24,7 +38,9 @@ function loadProfiles(): ConfigProfile[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     const custom: ConfigProfile[] = raw ? JSON.parse(raw) : [];
     return [...BUILTIN_PROFILES, ...custom.filter((p) => !p.builtin)];
-  } catch { return [...BUILTIN_PROFILES]; }
+  } catch {
+    return [...BUILTIN_PROFILES];
+  }
 }
 
 function saveProfiles(profiles: ConfigProfile[]): void {
@@ -78,7 +94,9 @@ export class ConfigProfiles extends BaseComponent {
       if (updated[key]) updated[key] = { ...updated[key], value };
     }
     $config.set(updated);
-    this.dispatchEvent(new CustomEvent('profile-change', { detail: { profile }, bubbles: true, composed: true }));
+    this.dispatchEvent(
+      new CustomEvent('profile-change', { detail: { profile }, bubbles: true, composed: true })
+    );
   }
 
   private saveAsProfile() {
@@ -89,7 +107,10 @@ export class ConfigProfiles extends BaseComponent {
     for (const [key, field] of Object.entries(cfg)) {
       values[key] = field.value;
     }
-    this.profiles = [...this.profiles.filter((p) => p.name !== name), { name, description: 'Custom profile', values }];
+    this.profiles = [
+      ...this.profiles.filter((p) => p.name !== name),
+      { name, description: 'Custom profile', values },
+    ];
     saveProfiles(this.profiles);
     this.activeProfile = name;
     saveActiveProfile(name);
@@ -106,11 +127,17 @@ export class ConfigProfiles extends BaseComponent {
 
   private handleExport() {
     const cfg = $config.get();
-    const data = JSON.stringify({ profiles: this.profiles.filter((p) => !p.builtin), config: cfg }, null, 2);
+    const data = JSON.stringify(
+      { profiles: this.profiles.filter((p) => !p.builtin), config: cfg },
+      null,
+      2
+    );
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `senars-profiles-${Date.now()}.json`; a.click();
+    a.href = url;
+    a.download = `senars-profiles-${Date.now()}.json`;
+    a.click();
     URL.revokeObjectURL(url);
   }
 
@@ -118,7 +145,10 @@ export class ConfigProfiles extends BaseComponent {
     try {
       const data = JSON.parse(text);
       if (data.profiles) {
-        this.profiles = [...BUILTIN_PROFILES, ...data.profiles.filter((p: ConfigProfile) => !p.builtin)];
+        this.profiles = [
+          ...BUILTIN_PROFILES,
+          ...data.profiles.filter((p: ConfigProfile) => !p.builtin),
+        ];
         saveProfiles(this.profiles);
       }
       if (data.config) $config.set(data.config);
@@ -134,28 +164,45 @@ export class ConfigProfiles extends BaseComponent {
       <div class="profile-bar">
         <label>Profile</label>
         <select @change=${(e: Event) => this.selectProfile((e.target as HTMLSelectElement).value)}>
-          ${this.profiles.map((p) => html`
+          ${this.profiles.map(
+            (p) => html`
             <option value=${p.name} ?selected=${p.name === this.activeProfile}>${p.name}</option>
-          `)}
+          `
+          )}
         </select>
         <div class="profile-actions">
           <button @click=${this.saveAsProfile} title="Save current config as profile">+ Save</button>
-          <button @click=${() => { this.showExport = !this.showExport; this.importError = ''; }} title="Export/Import profiles">
+          <button @click=${() => {
+            this.showExport = !this.showExport;
+            this.importError = '';
+          }} title="Export/Import profiles">
             ${this.showExport ? '✕' : '⇅'}
           </button>
-          ${this.profiles.find((p) => p.name === this.activeProfile && !p.builtin) ? html`
+          ${
+            this.profiles.find((p) => p.name === this.activeProfile && !p.builtin)
+              ? html`
             <button @click=${() => this.deleteProfile(this.activeProfile)} title="Delete profile">🗑</button>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
       </div>
-      ${this.showExport ? html`
+      ${
+        this.showExport
+          ? html`
         <div class="export-area">
           <s-divider></s-divider>
           <export-import .profiles=${this.profiles} .onImport=${(t: string) => this.handleImport(t)} .onExport=${() => this.handleExport()}></export-import>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     `;
   }
 }
 
-declare global { interface HTMLElementTagNameMap { 'config-profiles': ConfigProfiles; } }
+declare global {
+  interface HTMLElementTagNameMap {
+    'config-profiles': ConfigProfiles;
+  }
+}

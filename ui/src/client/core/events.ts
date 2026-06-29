@@ -10,7 +10,7 @@ export class EventBus {
   }
 
   emit(event: string, ...args: any[]) {
-    this.handlers.get(event)?.forEach(fn => fn(...args));
+    this.handlers.get(event)?.forEach((fn) => fn(...args));
   }
 }
 

@@ -1,8 +1,25 @@
-import type { IncomingFromServer, GraphOp, ChatMessage, GraphNodeData } from '../../shared/protocol.js';
-import { edgeKey, generateId, extractTerm } from '../../shared/utils.js';
 import type { Core } from 'cytoscape';
-import { $chatMessages, $streamingDelta, $graphNodes, $graphEdges, $graphMeta, $config, $telemetry, $cognitiveMetrics, $lastSeqId, $activeLens, $workingMemory } from './store.js';
-import type { CognitiveMeta, TelemetryData, CognitiveMetricsData } from './store.js';
+import type {
+  ChatMessage,
+  GraphNodeData,
+  GraphOp,
+  IncomingFromServer,
+} from '../../shared/protocol.js';
+import { edgeKey, extractTerm, generateId } from '../../shared/utils.js';
+import {
+  $activeLens,
+  $chatMessages,
+  $cognitiveMetrics,
+  $config,
+  $graphEdges,
+  $graphMeta,
+  $graphNodes,
+  $lastSeqId,
+  $streamingDelta,
+  $telemetry,
+  $workingMemory,
+} from './store.js';
+import type { CognitiveMeta, CognitiveMetricsData, TelemetryData } from './store.js';
 
 const TELEMETRY_WINDOW = 300;
 
@@ -18,7 +35,17 @@ export function addUserMessage(content: string): void {
     id: generateId('user'),
     role: 'user',
     content,
-    html: renderMessageHtml({ id: '', role: 'user', content, timestamp: Date.now(), parentId: null, threadRootId: '', supports: [], contradicts: [], derivesFrom: [] }),
+    html: renderMessageHtml({
+      id: '',
+      role: 'user',
+      content,
+      timestamp: Date.now(),
+      parentId: null,
+      threadRootId: '',
+      supports: [],
+      contradicts: [],
+      derivesFrom: [],
+    }),
     timestamp: Date.now(),
     term: extractTerm(content),
     parentId: null,
@@ -39,7 +66,19 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
 
     case 'chat.agent.complete': {
       const id = msg.messageId ?? generateId('agent');
-      const html = msg.html ?? renderMessageHtml({ id, role: 'agent', content: msg.content, timestamp: Date.now(), parentId: null, threadRootId: id, supports: [], contradicts: [], derivesFrom: [] });
+      const html =
+        msg.html ??
+        renderMessageHtml({
+          id,
+          role: 'agent',
+          content: msg.content,
+          timestamp: Date.now(),
+          parentId: null,
+          threadRootId: id,
+          supports: [],
+          contradicts: [],
+          derivesFrom: [],
+        });
       const chatMsg: ChatMessage = {
         id,
         role: 'agent',
@@ -79,7 +118,11 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
       applyGraphOps(msg.ops, cy);
       $lastSeqId.set(msg.seqId);
       if (msg.lens) $activeLens.set(msg.lens);
-      if (msg.meta) $graphMeta.set({ truncated: msg.meta.truncated ?? false, totalHidden: msg.meta.totalHidden ?? 0 });
+      if (msg.meta)
+        $graphMeta.set({
+          truncated: msg.meta.truncated ?? false,
+          totalHidden: msg.meta.totalHidden ?? 0,
+        });
       break;
 
     case 'config.schema':
@@ -98,13 +141,24 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
   }
 }
 
-function applyFullSnapshot(data: { graph: { nodes: GraphNodeData[]; edges: Record<string, any>[] }; workingMemory: (string | { id: string })[]; config: Record<string, any> }, cy?: Core): void {
+function applyFullSnapshot(
+  data: {
+    graph: { nodes: GraphNodeData[]; edges: Record<string, any>[] };
+    workingMemory: (string | { id: string })[];
+    config: Record<string, any>;
+  },
+  cy?: Core
+): void {
   const nodes = new Map<string, GraphNodeData>(data.graph.nodes.map((n) => [n.id, n]));
-  const edges = new Map<string, Record<string, any>>(data.graph.edges.map((e) => [edgeKey(e.source, e.target), e]));
+  const edges = new Map<string, Record<string, any>>(
+    data.graph.edges.map((e) => [edgeKey(e.source, e.target), e])
+  );
   $graphNodes.set(nodes);
   $graphEdges.set(edges);
   $config.set(data.config);
-  $workingMemory.set(data.workingMemory?.map((item) => typeof item === 'object' ? item.id : String(item)) ?? []);
+  $workingMemory.set(
+    data.workingMemory?.map((item) => (typeof item === 'object' ? item.id : String(item))) ?? []
+  );
 }
 
 function applyGraphOps(ops: GraphOp[], cy?: Core): void {
@@ -119,7 +173,11 @@ function applyGraphOps(ops: GraphOp[], cy?: Core): void {
       case 'update_node': {
         const existing = nodes.get(op.id);
         if (existing) {
-          const updated = { ...existing, ...op.data, lensData: op.data.lensData ?? existing.lensData } as GraphNodeData;
+          const updated = {
+            ...existing,
+            ...op.data,
+            lensData: op.data.lensData ?? existing.lensData,
+          } as GraphNodeData;
           nodes.set(op.id, updated);
         }
         if (cy) {
@@ -156,7 +214,15 @@ function pushWindow(arr: number[], v: number): number[] {
   return arr;
 }
 
-function appendTelemetry(msg: { metrics: { reasoning_hz: number; tokens_per_sec: number; memory_mb: number; ws_latency_ms: number }; cognitive?: CognitiveMetricsData }): void {
+function appendTelemetry(msg: {
+  metrics: {
+    reasoning_hz: number;
+    tokens_per_sec: number;
+    memory_mb: number;
+    ws_latency_ms: number;
+  };
+  cognitive?: CognitiveMetricsData;
+}): void {
   const t = $telemetry.get();
   $telemetry.set({
     reasoning_hz: pushWindow(t.reasoning_hz, msg.metrics.reasoning_hz),

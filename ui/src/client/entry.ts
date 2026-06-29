@@ -1,6 +1,6 @@
-import { $connectionState, $activeLens, exposeTestApi, hydrateFromUrl } from './core/store.js';
-import { connect } from './core/ws-client.js';
 import { Announcer } from './core/announcer.js';
+import { $activeLens, $connectionState, exposeTestApi, hydrateFromUrl } from './core/store.js';
+import { connect } from './core/ws-client.js';
 
 // Phase 0: Design system & primitives
 import './styles/theme.css';

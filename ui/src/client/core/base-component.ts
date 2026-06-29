@@ -9,7 +9,10 @@ export class BaseComponent extends LitElement {
     this.unsubs.push(source.subscribe(() => this.requestUpdate()));
   }
 
-  protected watchWith<T>(source: { subscribe(fn: (v: T) => void): Unsubscriber }, fn: (v: T) => void): void {
+  protected watchWith<T>(
+    source: { subscribe(fn: (v: T) => void): Unsubscriber },
+    fn: (v: T) => void
+  ): void {
     this.unsubs.push(source.subscribe(fn));
   }
 

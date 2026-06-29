@@ -1,8 +1,15 @@
-import { html, css } from 'lit';
+import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $graphNodes, $graphEdges, $selectedNodeId, $focusTerm, $selectedNodeIds, send } from '../core/index.js';
-import { BaseComponent } from '../core/index.js';
 import type { GraphNodeData } from '../../shared/protocol.js';
+import {
+  $focusTerm,
+  $graphEdges,
+  $graphNodes,
+  $selectedNodeId,
+  $selectedNodeIds,
+  send,
+} from '../core/index.js';
+import { BaseComponent } from '../core/index.js';
 
 type TabId = 'overview' | 'links' | 'actions';
 
@@ -50,7 +57,11 @@ export class NodeDetailDrawer extends BaseComponent {
   }
 
   private getLinks() {
-    if (!this.node) return { in: [] as { id: string; label: string; type: string }[], out: [] as { id: string; label: string; type: string }[] };
+    if (!this.node)
+      return {
+        in: [] as { id: string; label: string; type: string }[],
+        out: [] as { id: string; label: string; type: string }[],
+      };
     const edges = $graphEdges.get();
     const inLinks: { id: string; label: string; type: string }[] = [];
     const outLinks: { id: string; label: string; type: string }[] = [];
@@ -61,14 +72,22 @@ export class NodeDetailDrawer extends BaseComponent {
       if (ed.source === this.node.id) {
         const target = nodes.get(ed.target);
         const label = target?.label ?? ed.target;
-        if (!filter || label.toLowerCase().includes(filter) || (ed.type ?? '').toLowerCase().includes(filter)) {
+        if (
+          !filter ||
+          label.toLowerCase().includes(filter) ||
+          (ed.type ?? '').toLowerCase().includes(filter)
+        ) {
           outLinks.push({ id: ed.target, label, type: ed.type ?? 'relation' });
         }
       }
       if (ed.target === this.node.id) {
         const source = nodes.get(ed.source);
         const label = source?.label ?? ed.source;
-        if (!filter || label.toLowerCase().includes(filter) || (ed.type ?? '').toLowerCase().includes(filter)) {
+        if (
+          !filter ||
+          label.toLowerCase().includes(filter) ||
+          (ed.type ?? '').toLowerCase().includes(filter)
+        ) {
           inLinks.push({ id: ed.source, label, type: ed.type ?? 'relation' });
         }
       }
@@ -109,11 +128,13 @@ export class NodeDetailDrawer extends BaseComponent {
 
     return html`
       <div class="tabs">
-        ${(['overview', 'links', 'actions'] as const).map(tab => html`
-          <button class="tab ${this.activeTab === tab ? 'active' : ''}" @click=${() => this.activeTab = tab}>
+        ${(['overview', 'links', 'actions'] as const).map(
+          (tab) => html`
+          <button class="tab ${this.activeTab === tab ? 'active' : ''}" @click=${() => (this.activeTab = tab)}>
             ${tab === 'overview' ? 'Overview' : tab === 'links' ? 'Links' : 'Actions'}
           </button>
-        `)}
+        `
+        )}
       </div>
       <div class="content">
         ${this.activeTab === 'overview' ? this.renderOverview() : ''}
@@ -143,21 +164,38 @@ export class NodeDetailDrawer extends BaseComponent {
   private renderLinks() {
     const { in: inLinks, out: outLinks } = this.getLinks();
     return html`
-      <input class="link-filter" type="text" placeholder="Filter links…" .value=${this.linkFilter} @input=${(e: Event) => { this.linkFilter = (e.target as HTMLInputElement).value; this.requestUpdate(); }} />
+      <input class="link-filter" type="text" placeholder="Filter links…" .value=${this.linkFilter} @input=${(
+        e: Event
+      ) => {
+        this.linkFilter = (e.target as HTMLInputElement).value;
+        this.requestUpdate();
+      }} />
       <div class="section-title">Outgoing (${outLinks.length})</div>
-      ${outLinks.length === 0 ? html`<div class="empty">No outgoing links</div>` : outLinks.map(l => html`
+      ${
+        outLinks.length === 0
+          ? html`<div class="empty">No outgoing links</div>`
+          : outLinks.map(
+              (l) => html`
         <div class="link-item" @click=${() => this.focusNode(l.id)}>
           <span class="link-type">${l.type}</span>
           <span>${l.label}</span>
         </div>
-      `)}
+      `
+            )
+      }
       <div class="section-title">Incoming (${inLinks.length})</div>
-      ${inLinks.length === 0 ? html`<div class="empty">No incoming links</div>` : inLinks.map(l => html`
+      ${
+        inLinks.length === 0
+          ? html`<div class="empty">No incoming links</div>`
+          : inLinks.map(
+              (l) => html`
         <div class="link-item" @click=${() => this.focusNode(l.id)}>
           <span class="link-type">${l.type}</span>
           <span>${l.label}</span>
         </div>
-      `)}
+      `
+            )
+      }
     `;
   }
 
@@ -197,5 +235,7 @@ export class NodeDetailDrawer extends BaseComponent {
 }
 
 declare global {
-  interface HTMLElementTagNameMap { 'node-detail-drawer': NodeDetailDrawer; }
+  interface HTMLElementTagNameMap {
+    'node-detail-drawer': NodeDetailDrawer;
+  }
 }

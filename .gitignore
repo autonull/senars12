@@ -47,3 +47,4 @@ verification/
 .agents
 .env
 .cache
+.turbo

@@ -1,6 +1,6 @@
-import { html, css } from 'lit';
+import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $graphNodes, $graphEdges, $viewport, eventBus } from '../core/index.js';
+import { $graphEdges, $graphNodes, $viewport, eventBus } from '../core/index.js';
 import { BaseComponent } from '../core/index.js';
 import { TOKEN_COLORS, cssToken } from '../utils/token-colors.js';
 
@@ -26,7 +26,10 @@ export class GraphMinimap extends BaseComponent {
     this.watchWith($graphNodes, () => this.scheduleDraw());
     this.watchWith($graphEdges, () => this.scheduleDraw());
     this.watchWith($viewport, () => this.scheduleDraw());
-    eventBus.on('graph:minimap-toggle', () => { this.visible = !this.visible; this.scheduleDraw(); });
+    eventBus.on('graph:minimap-toggle', () => {
+      this.visible = !this.visible;
+      this.scheduleDraw();
+    });
   }
 
   override disconnectedCallback() {
@@ -62,7 +65,10 @@ export class GraphMinimap extends BaseComponent {
     if (nodes.size === 0) return;
 
     // Compute bounds
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let minX = Number.POSITIVE_INFINITY,
+      minY = Number.POSITIVE_INFINITY,
+      maxX = Number.NEGATIVE_INFINITY,
+      maxY = Number.NEGATIVE_INFINITY;
     const positions = new Map<string, { x: number; y: number }>();
 
     // Parse positions from graph data or edges
@@ -132,7 +138,10 @@ export class GraphMinimap extends BaseComponent {
 
     // Convert minimap coords back to graph coords
     const nodes = $graphNodes.get();
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let minX = Number.POSITIVE_INFINITY,
+      minY = Number.POSITIVE_INFINITY,
+      maxX = Number.NEGATIVE_INFINITY,
+      maxY = Number.NEGATIVE_INFINITY;
     for (const [, nd] of nodes) {
       const px = nd.layout?.x ?? 0;
       const py = nd.layout?.y ?? 0;
@@ -143,7 +152,10 @@ export class GraphMinimap extends BaseComponent {
     }
     const rangeX = Math.max(maxX - minX, 1);
     const rangeY = Math.max(maxY - minY, 1);
-    const scale = Math.min((MINIMAP_SIZE - PADDING * 2) / rangeX, (MINIMAP_SIZE - PADDING * 2) / rangeY);
+    const scale = Math.min(
+      (MINIMAP_SIZE - PADDING * 2) / rangeX,
+      (MINIMAP_SIZE - PADDING * 2) / rangeY
+    );
 
     const graphX = minX + (x - PADDING) / scale;
     const graphY = minY + (y - PADDING) / scale;
@@ -153,17 +165,26 @@ export class GraphMinimap extends BaseComponent {
 
   override render() {
     return html`
-      ${this.visible ? html`
+      ${
+        this.visible
+          ? html`
         <div class="minimap-container">
           <canvas id="minimap-canvas" width=${MINIMAP_SIZE} height=${MINIMAP_SIZE} @click=${this.handleClick}></canvas>
         </div>
-      ` : html`
-        <button class="minimap-toggle" @click=${() => { this.visible = true; this.scheduleDraw(); }} title="Show minimap">🗺</button>
-      `}
+      `
+          : html`
+        <button class="minimap-toggle" @click=${() => {
+          this.visible = true;
+          this.scheduleDraw();
+        }} title="Show minimap">🗺</button>
+      `
+      }
     `;
   }
 }
 
 declare global {
-  interface HTMLElementTagNameMap { 'graph-minimap': GraphMinimap; }
+  interface HTMLElementTagNameMap {
+    'graph-minimap': GraphMinimap;
+  }
 }

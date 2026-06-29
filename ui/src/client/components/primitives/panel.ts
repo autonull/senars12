@@ -1,4 +1,4 @@
-import { html, css, LitElement } from 'lit';
+import { LitElement, css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 
@@ -31,7 +31,9 @@ export class SPanel extends LitElement {
   override render() {
     return html`
       <div class=${classMap({ [`docked-${this.docked}`]: true })}>
-        ${this.heading ? html`
+        ${
+          this.heading
+            ? html`
           <div class="header">
             <span class="heading">${this.heading}</span>
             <div class="actions">
@@ -39,7 +41,9 @@ export class SPanel extends LitElement {
               ${this.closable ? html`<s-button variant="icon" size="sm" @click=${this.handleClose}>&times;</s-button>` : ''}
             </div>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
         <div class="content ${this.noPad ? 'no-pad' : ''}">
           <slot></slot>
         </div>
@@ -48,4 +52,8 @@ export class SPanel extends LitElement {
   }
 }
 
-declare global { interface HTMLElementTagNameMap { 's-panel': SPanel; } }
+declare global {
+  interface HTMLElementTagNameMap {
+    's-panel': SPanel;
+  }
+}

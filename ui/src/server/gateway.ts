@@ -1,7 +1,7 @@
-import { WebSocket } from 'ws';
+import type { WebSocket } from 'ws';
+import type { IncomingFromServer, Lens } from '../shared/protocol.js';
 import { RateLimiter } from './rate-limiter.js';
 import { validateClientMessage } from './validators.js';
-import type { Lens, IncomingFromServer } from '../shared/protocol.js';
 
 const MAX_BUFFER_BYTES = 1_048_576;
 const HEARTBEAT_INTERVAL_MS = 30_000;
@@ -43,9 +43,15 @@ export interface NarAdapter {
     on(event: string, handler: (...args: any[]) => void): () => void;
   };
   attentionReport(): { concepts: Array<{ term: string; priority: number }> };
-  getDriveManager(): {
-    getAllStates(): Array<{ spec: { id: string; name: string }; currentIntensity: number; isActive: boolean }>;
-  } | undefined;
+  getDriveManager():
+    | {
+        getAllStates(): Array<{
+          spec: { id: string; name: string };
+          currentIntensity: number;
+          isActive: boolean;
+        }>;
+      }
+    | undefined;
   getConfigSchema(): Record<string, any>;
   setConfig(key: string, value: any): void;
 }
@@ -58,7 +64,7 @@ export function handleConnection(
   nar: NarAdapter,
   onChat: (content: string, send: SendFn) => void,
   onLensChange?: (lens: Lens) => void,
-  onFocusChange?: (term: string) => void,
+  onFocusChange?: (term: string) => void
 ): void {
   const limiter = new RateLimiter({ chat: 5, config: 10 });
   let lastSeqId = 0;
@@ -66,7 +72,9 @@ export function handleConnection(
   const MAX_BUFFER_SIZE = 1000;
 
   let alive = true;
-  socket.on('pong', () => { alive = true; });
+  socket.on('pong', () => {
+    alive = true;
+  });
   const heartbeat = setInterval(() => {
     if (!alive) return socket.terminate();
     alive = false;
@@ -121,7 +129,7 @@ function handleSync(
   lastSeqId: number | null,
   buffer: EventBufferEntry[],
   send: SendFn,
-  nar: NarAdapter,
+  nar: NarAdapter
 ): void {
   const bufLen = buffer.length;
   const lastEntry = bufLen > 0 ? buffer[bufLen - 1]! : null;
@@ -144,7 +152,7 @@ function handleSync(
             lensData: c.lensData,
           })),
           edges: concepts.flatMap((c) =>
-            c.getLinks().map((l) => ({ source: c.term, target: l.target, weight: l.strength })),
+            c.getLinks().map((l) => ({ source: c.term, target: l.target, weight: l.strength }))
           ),
         },
         workingMemory: report.concepts.map((c) => ({ id: c.term, priority: c.priority })),

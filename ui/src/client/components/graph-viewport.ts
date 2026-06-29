@@ -1,18 +1,38 @@
 import cytoscape, { type Core } from 'cytoscape';
-import { html, css } from 'lit';
+import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $activeLens, $chatMessages, $graphEdges, $graphMeta, $graphNodes, $selectedNodeId, $selectedNodeIds, $focusTerm, $viewport, $lensViewport, $graphFilter, $lensLayout, mountTestApi, send, eventBus } from '../core/index.js';
-import { BaseComponent } from '../core/index.js';
-import { TOKEN_COLORS } from '../utils/token-colors.js';
+import type { ChatMessage, GraphNodeData } from '../../shared/protocol.js';
 import { edgeKey } from '../../shared/utils.js';
-import type { GraphNodeData, ChatMessage } from '../../shared/protocol.js';
+import {
+  $activeLens,
+  $chatMessages,
+  $focusTerm,
+  $graphEdges,
+  $graphFilter,
+  $graphMeta,
+  $graphNodes,
+  $lensLayout,
+  $lensViewport,
+  $selectedNodeId,
+  $selectedNodeIds,
+  $viewport,
+  eventBus,
+  mountTestApi,
+  send,
+} from '../core/index.js';
+import { BaseComponent } from '../core/index.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
-import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels.js';
-import { applyLensStyles } from '../utils/lens-styles.js';
+import { type HtmlLabelData, computeHtmlLabels } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
+import { applyLensStyles } from '../utils/lens-styles.js';
+import { TOKEN_COLORS } from '../utils/token-colors.js';
 import './graph-minimap.js';
 
-const CHAT_NODE_STYLE = { shape: 'round-rectangle', 'border-color': TOKEN_COLORS.accentCyan, 'border-width': 1.5 };
+const CHAT_NODE_STYLE = {
+  shape: 'round-rectangle',
+  'border-color': TOKEN_COLORS.accentCyan,
+  'border-width': 1.5,
+};
 
 @customElement('graph-viewport')
 export class GraphViewport extends BaseComponent {
@@ -105,22 +125,26 @@ export class GraphViewport extends BaseComponent {
       container,
       style: this.getBaseStyle(),
       layout: { name: 'preset', fit: false },
-      minZoom: 0.1, maxZoom: 10,
+      minZoom: 0.1,
+      maxZoom: 10,
       wheelSensitivity: 0.15,
       boxSelectionEnabled: false,
     });
 
     this.cy.on('render', () => this.renderHtmlLabels());
-    this.cy.on('viewport', this.throttle(() => {
-      const vp = { x: this.cy!.pan().x, y: this.cy!.pan().y, zoom: this.cy!.zoom() };
-      $viewport.set(vp);
-      // Persist per-lens viewport
-      const lens = $activeLens.get();
-      const all = { ...$lensViewport.get(), [lens]: vp };
-      $lensViewport.set(all);
-      // Apply LOD based on zoom level
-      this.applyLOD(vp.zoom);
-    }, 100));
+    this.cy.on(
+      'viewport',
+      this.throttle(() => {
+        const vp = { x: this.cy!.pan().x, y: this.cy!.pan().y, zoom: this.cy!.zoom() };
+        $viewport.set(vp);
+        // Persist per-lens viewport
+        const lens = $activeLens.get();
+        const all = { ...$lensViewport.get(), [lens]: vp };
+        $lensViewport.set(all);
+        // Apply LOD based on zoom level
+        this.applyLOD(vp.zoom);
+      }, 100)
+    );
 
     // Click: select + center + open detail drawer
     this.cy.on('tap', 'node', (evt) => {
@@ -222,10 +246,36 @@ export class GraphViewport extends BaseComponent {
     this.contextTarget = null;
   }
 
-  private contextFocus() { if (this.contextTarget) { $selectedNodeId.set(this.contextTarget); send({ type: 'focus.set', term: this.contextTarget }); } this.closeContextMenu(); }
-  private contextPin() { if (this.contextTarget) { const ids = new Set($selectedNodeIds.get()); ids.add(this.contextTarget); $selectedNodeIds.set(ids); } this.closeContextMenu(); }
-  private contextHide() { if (this.contextTarget) { const nodes = new Map($graphNodes.get()); nodes.delete(this.contextTarget); $graphNodes.set(nodes); } this.closeContextMenu(); }
-  private contextCopy() { if (this.contextTarget) { const nd = $graphNodes.get().get(this.contextTarget); if (nd?.term) navigator.clipboard.writeText(nd.term).catch(() => {}); } this.closeContextMenu(); }
+  private contextFocus() {
+    if (this.contextTarget) {
+      $selectedNodeId.set(this.contextTarget);
+      send({ type: 'focus.set', term: this.contextTarget });
+    }
+    this.closeContextMenu();
+  }
+  private contextPin() {
+    if (this.contextTarget) {
+      const ids = new Set($selectedNodeIds.get());
+      ids.add(this.contextTarget);
+      $selectedNodeIds.set(ids);
+    }
+    this.closeContextMenu();
+  }
+  private contextHide() {
+    if (this.contextTarget) {
+      const nodes = new Map($graphNodes.get());
+      nodes.delete(this.contextTarget);
+      $graphNodes.set(nodes);
+    }
+    this.closeContextMenu();
+  }
+  private contextCopy() {
+    if (this.contextTarget) {
+      const nd = $graphNodes.get().get(this.contextTarget);
+      if (nd?.term) navigator.clipboard.writeText(nd.term).catch(() => {});
+    }
+    this.closeContextMenu();
+  }
 
   /** Apply Level-of-Detail based on zoom level to maintain performance. */
   private applyLOD(zoom: number) {
@@ -243,41 +293,87 @@ export class GraphViewport extends BaseComponent {
     let last = 0;
     return () => {
       const now = Date.now();
-      if (now - last >= ms) { last = now; fn(); }
+      if (now - last >= ms) {
+        last = now;
+        fn();
+      }
     };
   }
 
   private getBaseStyle(): any[] {
     return [
-      { selector: 'node', style: {
-        'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
-        'color': TOKEN_COLORS.textPrimary, 'text-outline-width': 2, 'text-outline-color': TOKEN_COLORS.void,
-        'font-size': '11px', 'font-family': 'JetBrains Mono, monospace',
-        'transition-property': 'background-color, width, height, opacity, border-color, border-width',
-        'transition-duration': '0.25s',
-      }},
-      { selector: 'node.html-enabled', style: { 'label': '' }},
-      { selector: 'edge', style: {
-        'width': 1.5, 'line-color': TOKEN_COLORS.borderDefault, 'target-arrow-color': TOKEN_COLORS.borderDefault,
-        'target-arrow-shape': 'triangle', 'curve-style': 'bezier', 'opacity': 0.3,
-      }},
-      { selector: 'edge.thread-edge', style: {
-        'line-color': TOKEN_COLORS.accentCyan, 'width': 2, 'line-style': 'dotted',
-        'target-arrow-shape': 'none', 'opacity': 0.6,
-      }},
-      { selector: 'edge[type="derivation"]', style: {
-        'line-color': TOKEN_COLORS.warning, 'line-style': 'dashed', 'width': 2,
-        'target-arrow-shape': 'vee', 'curve-style': 'unbundled-bezier',
-      }},
-      { selector: '.focused', style: {
-        'border-width': 3, 'border-color': TOKEN_COLORS.accentCyan, 'z-index': 999,
-      }},
-      { selector: '.selected', style: {
-        'border-width': 3, 'border-color': TOKEN_COLORS.accentCyan, 'z-index': 998,
-      }},
-      { selector: '.multi-selected', style: {
-        'border-width': 2, 'border-color': TOKEN_COLORS.accentAmber, 'z-index': 997,
-      }},
+      {
+        selector: 'node',
+        style: {
+          label: 'data(label)',
+          'text-valign': 'center',
+          'text-halign': 'center',
+          color: TOKEN_COLORS.textPrimary,
+          'text-outline-width': 2,
+          'text-outline-color': TOKEN_COLORS.void,
+          'font-size': '11px',
+          'font-family': 'JetBrains Mono, monospace',
+          'transition-property':
+            'background-color, width, height, opacity, border-color, border-width',
+          'transition-duration': '0.25s',
+        },
+      },
+      { selector: 'node.html-enabled', style: { label: '' } },
+      {
+        selector: 'edge',
+        style: {
+          width: 1.5,
+          'line-color': TOKEN_COLORS.borderDefault,
+          'target-arrow-color': TOKEN_COLORS.borderDefault,
+          'target-arrow-shape': 'triangle',
+          'curve-style': 'bezier',
+          opacity: 0.3,
+        },
+      },
+      {
+        selector: 'edge.thread-edge',
+        style: {
+          'line-color': TOKEN_COLORS.accentCyan,
+          width: 2,
+          'line-style': 'dotted',
+          'target-arrow-shape': 'none',
+          opacity: 0.6,
+        },
+      },
+      {
+        selector: 'edge[type="derivation"]',
+        style: {
+          'line-color': TOKEN_COLORS.warning,
+          'line-style': 'dashed',
+          width: 2,
+          'target-arrow-shape': 'vee',
+          'curve-style': 'unbundled-bezier',
+        },
+      },
+      {
+        selector: '.focused',
+        style: {
+          'border-width': 3,
+          'border-color': TOKEN_COLORS.accentCyan,
+          'z-index': 999,
+        },
+      },
+      {
+        selector: '.selected',
+        style: {
+          'border-width': 3,
+          'border-color': TOKEN_COLORS.accentCyan,
+          'z-index': 998,
+        },
+      },
+      {
+        selector: '.multi-selected',
+        style: {
+          'border-width': 2,
+          'border-color': TOKEN_COLORS.accentAmber,
+          'z-index': 997,
+        },
+      },
     ];
   }
 
@@ -305,7 +401,10 @@ export class GraphViewport extends BaseComponent {
 
   private savePositions() {
     const positions = new Map<string, { x: number; y: number }>();
-    if (this.cy) this.cy.nodes().forEach((n) => { positions.set(n.id(), n.position()); });
+    if (this.cy)
+      this.cy.nodes().forEach((n) => {
+        positions.set(n.id(), n.position());
+      });
     return positions;
   }
 
@@ -328,7 +427,8 @@ export class GraphViewport extends BaseComponent {
     this.cy.nodes().forEach((n) => {
       if (filter === 'contradiction') {
         const ld = n.data('lensData');
-        const isContradiction = ld && (ld.color?.includes('ffaa00') || ld.color?.includes('ffb000'));
+        const isContradiction =
+          ld && (ld.color?.includes('ffaa00') || ld.color?.includes('ffb000'));
         n.style('display', isContradiction ? 'element' : 'none');
       } else {
         n.style('display', 'element');
@@ -369,8 +469,21 @@ export class GraphViewport extends BaseComponent {
           cy.getElementById(nodeId).data(nd);
         } else {
           const nodeType = nd.nodeType === 'message' ? 'message' : 'concept';
-          const data = { id: nodeId, color: TOKEN_COLORS.accentCyan, term: nd.term, nodeType, priority: nd.priority, confidence: nd.confidence, lensData: nd.lensData, label: nd.label };
-          cy.add({ group: 'nodes', data, classes: nodeType === 'message' ? 'chat-message-node' : '' });
+          const data = {
+            id: nodeId,
+            color: TOKEN_COLORS.accentCyan,
+            term: nd.term,
+            nodeType,
+            priority: nd.priority,
+            confidence: nd.confidence,
+            lensData: nd.lensData,
+            label: nd.label,
+          };
+          cy.add({
+            group: 'nodes',
+            data,
+            classes: nodeType === 'message' ? 'chat-message-node' : '',
+          });
           if (nodeType === 'message') cy.getElementById(nodeId).style(CHAT_NODE_STYLE);
         }
       }
@@ -379,7 +492,9 @@ export class GraphViewport extends BaseComponent {
         if (!nodes.has(nid)) cy.getElementById(nid).remove();
       }
 
-      const currentEdgeKeys = new Set(cy.edges().map((e) => edgeKey(e.data('source'), e.data('target'))));
+      const currentEdgeKeys = new Set(
+        cy.edges().map((e) => edgeKey(e.data('source'), e.data('target')))
+      );
       for (const [key, ed] of edges) {
         if (!currentEdgeKeys.has(key)) cy.add({ group: 'edges', data: { ...ed } });
       }
@@ -418,13 +533,21 @@ export class GraphViewport extends BaseComponent {
     return html`
       <div id="cy-container" @click=${this.closeContextMenu}></div>
       ${meta?.truncated ? html`<div class="warning">▼ ${meta.totalHidden} lower-priority concepts hidden</div>` : ''}
-      ${Array.from(this.htmlLabels.values()).map(d => html`
+      ${Array.from(this.htmlLabels.values()).map(
+        (d) => html`
         <div class="html-label" style="left:${d.x}px;top:${d.y}px;width:${d.width}px;height:${d.height}px" .innerHTML=${d.html}></div>
-      `)}
-      ${this.tooltip ? html`
+      `
+      )}
+      ${
+        this.tooltip
+          ? html`
         <div class="tooltip" style="left:${this.tooltip.x}px;top:${this.tooltip.y}px" .innerHTML=${this.tooltip.content}></div>
-      ` : ''}
-      ${this.contextMenu ? html`
+      `
+          : ''
+      }
+      ${
+        this.contextMenu
+          ? html`
         <div class="context-menu" style="left:${this.contextMenu.x}px;top:${this.contextMenu.y}px">
           <button class="context-item" @click=${this.contextFocus}>Focus Term</button>
           <button class="context-item" @click=${this.contextPin}>Pin to Selection</button>
@@ -432,7 +555,9 @@ export class GraphViewport extends BaseComponent {
           <div class="context-divider"></div>
           <button class="context-item" @click=${this.contextCopy}>Copy Term</button>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
       <graph-minimap></graph-minimap>
     `;
   }

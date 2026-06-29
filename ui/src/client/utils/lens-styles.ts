@@ -5,11 +5,13 @@ const BASE_FALLBACK_COLOR = '#00f3ff';
 
 export function applyLensStyles(cy: Core, activeLens: string): void {
   cy.startBatch();
-  cy.nodes().forEach(node => {
+  cy.nodes().forEach((node) => {
     const ld = node.data('lensData');
     if (ld) {
       node.style({
-        'background-color': ld.color, width: ld.size, height: ld.size,
+        'background-color': ld.color,
+        width: ld.size,
+        height: ld.size,
         opacity: 0.3 + 0.7 * Math.min(1, ld.score),
         'transition-property': 'background-color, width, height, opacity',
         'transition-duration': '0.25s',
@@ -23,7 +25,7 @@ export function applyLensStyles(cy: Core, activeLens: string): void {
       });
     }
   });
-  cy.edges().forEach(edge => {
+  cy.edges().forEach((edge) => {
     const srcScore = edge.source().data('lensData')?.score ?? 0;
     edge.style('opacity', 0.05 + 0.9 * srcScore);
   });

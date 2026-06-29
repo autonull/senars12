@@ -1,9 +1,17 @@
-import http from 'http';
-import type { NAR } from '../../../src/nar/nar.js';
+import type http from 'http';
+import type { NAR } from '../../../nar/src/nar.js';
 import { setPendingChatResponse } from './gateway.js';
 
-interface MockRequest { body: unknown; method: string; url: string; headers: http.IncomingHttpHeaders }
-interface MockReply { status(code: number): { send(data: unknown): void }; send(data: unknown): void }
+interface MockRequest {
+  body: unknown;
+  method: string;
+  url: string;
+  headers: http.IncomingHttpHeaders;
+}
+interface MockReply {
+  status(code: number): { send(data: unknown): void };
+  send(data: unknown): void;
+}
 
 type TestHandler = (req: MockRequest, reply: MockReply) => unknown | Promise<unknown>;
 
@@ -16,9 +24,18 @@ const ROUTES: Record<string, HandlerKey> = {
   '/test/reset': 'reset',
 };
 
-interface SeedGraphBody { concepts: Array<{ term: string; f: number; c: number }> }
-interface InjectChatBody { stream: string; complete: string }
-interface InjectDerivationBody { conclusion: string; frequency?: number; confidence?: number }
+interface SeedGraphBody {
+  concepts: Array<{ term: string; f: number; c: number }>;
+}
+interface InjectChatBody {
+  stream: string;
+  complete: string;
+}
+interface InjectDerivationBody {
+  conclusion: string;
+  frequency?: number;
+  confidence?: number;
+}
 
 function createTestControlApi(nar: NAR): Record<HandlerKey, TestHandler> {
   return {
@@ -61,13 +78,18 @@ function asReply(res: http.ServerResponse): MockReply {
     res.writeHead(code, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(data));
   };
-  return { status: (code: number) => ({ send: (data: unknown) => sendJson(code, data) }), send: (data: unknown) => sendJson(200, data) };
+  return {
+    status: (code: number) => ({ send: (data: unknown) => sendJson(code, data) }),
+    send: (data: unknown) => sendJson(200, data),
+  };
 }
 
 function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
   return new Promise((resolve) => {
     let body = '';
-    req.on('data', (chunk) => { body += chunk; });
+    req.on('data', (chunk) => {
+      body += chunk;
+    });
     req.on('end', () => resolve(body ? JSON.parse(body) : {}));
   });
 }
@@ -75,7 +97,11 @@ function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
 export function createTestControlHandler(nar: NAR) {
   const api = createTestControlApi(nar);
 
-  return async (req: http.IncomingMessage, res: http.ServerResponse, pathname: string): Promise<void> => {
+  return async (
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    pathname: string
+  ): Promise<void> => {
     const handlerKey = ROUTES[pathname];
     if (!handlerKey || (req.method !== 'GET' && req.method !== 'POST')) {
       res.writeHead(404);
@@ -86,10 +112,15 @@ export function createTestControlHandler(nar: NAR) {
     const handler = api[handlerKey];
     try {
       const body = await readJsonBody(req);
-      const result = await handler({ body, method: req.method ?? 'GET', url: pathname, headers: req.headers }, asReply(res));
+      const result = await handler(
+        { body, method: req.method ?? 'GET', url: pathname, headers: req.headers },
+        asReply(res)
+      );
       if (result !== undefined) asReply(res).send(result);
     } catch (e) {
-      asReply(res).status(500).send({ error: String(e) });
+      asReply(res)
+        .status(500)
+        .send({ error: String(e) });
     }
   };
 }

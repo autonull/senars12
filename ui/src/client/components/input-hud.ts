@@ -1,22 +1,40 @@
-import { html, css } from 'lit';
+import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
-import { $streamingDelta, $graphNodes, send, addUserMessage } from '../core/index.js';
+import { $graphNodes, $streamingDelta, addUserMessage, send } from '../core/index.js';
 import { BaseComponent } from '../core/index.js';
 
-interface SlashCommand { id: string; label: string; action: () => void }
+interface SlashCommand {
+  id: string;
+  label: string;
+  action: () => void;
+}
 
 const SLASH_COMMANDS: SlashCommand[] = [
-  { id: '/lens', label: '/lens belief|goal|contradiction — Switch cognitive lens', action: () => {} },
+  {
+    id: '/lens',
+    label: '/lens belief|goal|contradiction — Switch cognitive lens',
+    action: () => {},
+  },
   { id: '/focus', label: '/focus <term> — Focus on a concept', action: () => {} },
   { id: '/config', label: '/config <key> <value> — Set a config value', action: () => {} },
-  { id: '/clear', label: '/clear — Clear chat history', action: () => { location.reload(); } },
+  {
+    id: '/clear',
+    label: '/clear — Clear chat history',
+    action: () => {
+      location.reload();
+    },
+  },
   { id: '/help', label: '/help — Show available commands', action: () => {} },
 ];
 
 const MAX_HISTORY = 50;
 
-interface Suggestion { id: string; label: string; type: 'slash' | 'mention' }
+interface Suggestion {
+  id: string;
+  label: string;
+  type: 'slash' | 'mention';
+}
 
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
@@ -78,7 +96,9 @@ export class InputHUD extends BaseComponent {
   }
 
   private getSuggestions(text: string): Suggestion[] {
-    const cursor = (this.shadowRoot?.querySelector('textarea') as HTMLTextAreaElement)?.selectionStart ?? text.length;
+    const cursor =
+      (this.shadowRoot?.querySelector('textarea') as HTMLTextAreaElement)?.selectionStart ??
+      text.length;
     const before = text.slice(0, cursor);
     const after = text.slice(cursor);
 
@@ -86,9 +106,11 @@ export class InputHUD extends BaseComponent {
     const slashPrefix = slashMatch?.[2];
     if (slashPrefix) {
       const query = slashPrefix.toLowerCase();
-      return SLASH_COMMANDS
-        .filter((c) => c.id.startsWith(query))
-        .map((c) => ({ id: c.id, label: c.label, type: 'slash' as const }));
+      return SLASH_COMMANDS.filter((c) => c.id.startsWith(query)).map((c) => ({
+        id: c.id,
+        label: c.label,
+        type: 'slash' as const,
+      }));
     }
 
     const atMatch = before.match(/(^|\s)(@\w*)$/);
@@ -97,7 +119,10 @@ export class InputHUD extends BaseComponent {
       const query = atPrefix.slice(1).toLowerCase();
       const nodes = $graphNodes.get();
       return [...nodes.entries()]
-        .filter(([_, n]) => n && ((n.label?.toLowerCase().includes(query)) || (n.term?.toLowerCase().includes(query))))
+        .filter(
+          ([_, n]) =>
+            n && (n.label?.toLowerCase().includes(query) || n.term?.toLowerCase().includes(query))
+        )
         .slice(0, 10)
         .map(([id, n]) => ({ id, label: n.term ?? n.label ?? id, type: 'mention' as const }));
     }
@@ -109,11 +134,19 @@ export class InputHUD extends BaseComponent {
     const ta = this.shadowRoot?.querySelector('textarea') as HTMLTextAreaElement;
     const cursor = ta?.selectionStart ?? this.textareaValue.length;
     const before = this.textareaValue.slice(0, cursor);
-    const prefix = sug.type === 'slash' ? before.replace(/\/\w*$/, sug.id) : before.replace(/@\w*$/, `@${sug.label} `);
+    const prefix =
+      sug.type === 'slash'
+        ? before.replace(/\/\w*$/, sug.id)
+        : before.replace(/@\w*$/, `@${sug.label} `);
     this.textareaValue = prefix + this.textareaValue.slice(cursor);
     this.showSuggestions = false;
     this.suggestions = [];
-    requestAnimationFrame(() => { if (ta) { ta.focus(); this.autoResize(ta); } });
+    requestAnimationFrame(() => {
+      if (ta) {
+        ta.focus();
+        this.autoResize(ta);
+      }
+    });
   }
 
   private sendMessage() {
@@ -150,7 +183,11 @@ export class InputHUD extends BaseComponent {
     }
 
     if (e.key === 'Escape') {
-      if (this.showSuggestions) { this.showSuggestions = false; this.suggestions = []; return; }
+      if (this.showSuggestions) {
+        this.showSuggestions = false;
+        this.suggestions = [];
+        return;
+      }
       ta.blur();
       return;
     }
@@ -204,25 +241,36 @@ export class InputHUD extends BaseComponent {
     return html`
       <div class="hud-input">
         <div class="input-wrapper">
-          ${this.showSuggestions ? html`
+          ${
+            this.showSuggestions
+              ? html`
             <div class="suggestions">
-              ${this.suggestions.map((s, i) => html`
+              ${this.suggestions.map(
+                (s, i) => html`
                 <div class="suggestion ${classMap({ selected: i === this.suggestionIndex })}"
                   @mousedown=${() => this.applySuggestion(s)}
-                  @mouseenter=${() => this.suggestionIndex = i}>
+                  @mouseenter=${() => (this.suggestionIndex = i)}>
                   <span class="suggestion-type">${s.type}</span>
                   <span>${s.label}</span>
                 </div>
-              `)}
+              `
+              )}
             </div>
-          ` : ''}
+          `
+              : ''
+          }
           <textarea
             class="chat-input"
             placeholder="Ask SeNARS…"
             .value=${streamingDelta || this.textareaValue}
             @keydown=${this.onKeyDown}
-            @focus=${() => this.composing = true}
-            @blur=${() => { this.composing = false; setTimeout(() => { this.showSuggestions = false; }, 200); }}
+            @focus=${() => (this.composing = true)}
+            @blur=${() => {
+              this.composing = false;
+              setTimeout(() => {
+                this.showSuggestions = false;
+              }, 200);
+            }}
             @input=${this.onInput}
           ></textarea>
           <div class="hud-footer">
@@ -231,7 +279,12 @@ export class InputHUD extends BaseComponent {
           </div>
         </div>
         <div class="actions">
-          <button @click=${() => { if (canHistoryUp) { historyIndex = Math.max(0, historyIndex - 1); this.textareaValue = inputHistory[historyIndex] ?? ''; } }} ?disabled=${!canHistoryUp} title="History">▲</button>
+          <button @click=${() => {
+            if (canHistoryUp) {
+              historyIndex = Math.max(0, historyIndex - 1);
+              this.textareaValue = inputHistory[historyIndex] ?? '';
+            }
+          }} ?disabled=${!canHistoryUp} title="History">▲</button>
           <button class="send-btn" @click=${this.sendMessage} ?disabled=${!hasContent}>Send</button>
         </div>
       </div>
@@ -239,4 +292,8 @@ export class InputHUD extends BaseComponent {
   }
 }
 
-declare global { interface HTMLElementTagNameMap { 'input-hud': InputHUD; } }
+declare global {
+  interface HTMLElementTagNameMap {
+    'input-hud': InputHUD;
+  }
+}

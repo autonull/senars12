@@ -1,6 +1,17 @@
-import { html, css } from 'lit';
+import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $activeLens, $connectionState, $panels, $urlState, $viewport, $selectedNodeIds, $graphNodes, $lensLayout, send, eventBus } from '../core/index.js';
+import {
+  $activeLens,
+  $connectionState,
+  $graphNodes,
+  $lensLayout,
+  $panels,
+  $selectedNodeIds,
+  $urlState,
+  $viewport,
+  eventBus,
+  send,
+} from '../core/index.js';
 import { BaseComponent } from '../core/index.js';
 import './contradiction-badge.js';
 import './lens-controller.js';
@@ -77,10 +88,18 @@ export class GraphToolbar extends BaseComponent {
     super.connectedCallback();
     this.watch($activeLens);
     this.watch($connectionState);
-    this.watchWith($viewport, (vp) => { this.zoom = vp.zoom; });
-    this.watchWith($selectedNodeIds, (ids) => { this.multiSelectCount = ids.size; });
-    this.watchWith($activeLens, (lens) => { this.layoutName = $lensLayout.get()[lens] ?? 'cose'; });
-    this.watchWith($lensLayout, (layouts) => { this.layoutName = layouts[$activeLens.get()] ?? 'cose'; });
+    this.watchWith($viewport, (vp) => {
+      this.zoom = vp.zoom;
+    });
+    this.watchWith($selectedNodeIds, (ids) => {
+      this.multiSelectCount = ids.size;
+    });
+    this.watchWith($activeLens, (lens) => {
+      this.layoutName = $lensLayout.get()[lens] ?? 'cose';
+    });
+    this.watchWith($lensLayout, (layouts) => {
+      this.layoutName = layouts[$activeLens.get()] ?? 'cose';
+    });
   }
 
   private handleSearch(e: Event) {
@@ -91,11 +110,21 @@ export class GraphToolbar extends BaseComponent {
     eventBus.emit('graph:search', value);
   }
 
-  private zoomIn() { eventBus.emit('graph:zoom-in'); }
-  private zoomOut() { eventBus.emit('graph:zoom-out'); }
-  private fitGraph() { eventBus.emit('graph:fit'); }
-  private selectLayout(e: Event) { eventBus.emit('graph:layout', (e.target as HTMLSelectElement).value); }
-  private toggleMinimap() { eventBus.emit('graph:minimap-toggle'); }
+  private zoomIn() {
+    eventBus.emit('graph:zoom-in');
+  }
+  private zoomOut() {
+    eventBus.emit('graph:zoom-out');
+  }
+  private fitGraph() {
+    eventBus.emit('graph:fit');
+  }
+  private selectLayout(e: Event) {
+    eventBus.emit('graph:layout', (e.target as HTMLSelectElement).value);
+  }
+  private toggleMinimap() {
+    eventBus.emit('graph:minimap-toggle');
+  }
 
   private togglePanel(id: string) {
     const panels = new Map($panels.get());
@@ -167,7 +196,9 @@ export class GraphToolbar extends BaseComponent {
 
       <button class="toolbar-btn" @click=${this.toggleMinimap} title="Toggle minimap">Minimap</button>
 
-      ${this.multiSelectCount > 0 ? html`
+      ${
+        this.multiSelectCount > 0
+          ? html`
         <div class="divider"></div>
         <div class="multi-select-bar">
           <span class="multi-select-count">${this.multiSelectCount}</span>
@@ -175,7 +206,9 @@ export class GraphToolbar extends BaseComponent {
           <button class="multi-select-btn" @click=${this.hideSelected}>Hide</button>
           <button class="multi-select-btn" @click=${this.clearSelection}>Clear</button>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <div class="spacer"></div>
 
@@ -195,5 +228,7 @@ export class GraphToolbar extends BaseComponent {
 }
 
 declare global {
-  interface HTMLElementTagNameMap { 'graph-toolbar': GraphToolbar; }
+  interface HTMLElementTagNameMap {
+    'graph-toolbar': GraphToolbar;
+  }
 }
