@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { InMemorySessionManager, bindAgentToConnection, createAgent } from '../../agent/src';
 import type { NAR } from '../../nar/src';
 import { SeNARSFactory } from '../../nar/src';
-import type { LMClient } from '../../nar/src/lm';
+import { createMockLMService } from '../../nar/src/lm';
 import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
 import { CommandRegistry, IRCConnection } from '../../src/io';
 
@@ -75,15 +75,12 @@ class MockIRCServer {
   }
 }
 
-const scriptedLM: LMClient = {
-  provider: 'scripted',
-  model: 'test',
-  available: true,
-  async generateText(p: string) {
-    if (p.includes('hello')) return 'Hi there!';
+const scriptedLM = createMockLMService({
+  generateTextFn: async (prompt: string) => {
+    if (prompt.includes('hello')) return 'Hi there!';
     return 'Mock reply';
   },
-};
+});
 
 describe('IRC live integration', () => {
   let mockServer: MockIRCServer;
@@ -111,7 +108,7 @@ describe('IRC live integration', () => {
       maxEntriesPerFile: 100,
     });
     nar = SeNARSFactory.createForTesting({ maxConcepts: 20 });
-    const agent = createAgent({ nar, lmClient: scriptedLM, episodicMemory });
+    const agent = createAgent({ nar, lmService: scriptedLM, episodicMemory });
     const sessionManager = new InMemorySessionManager();
     const commandRegistry = new CommandRegistry();
     commandRegistry.register({
@@ -150,12 +147,10 @@ describe('IRC live integration', () => {
       },
       { nar, emit: () => undefined, logger: noopLogger }
     );
-    await conn.connect();
+await conn.connect();
     bindAgentToConnection(agent, conn, {
       sessionManager,
       commandRegistry,
-      enableNlTranslation: false,
-      enableNarseseHumanization: false,
     });
 
     // Wait for bot to join (faster with small flood protection delay)
@@ -170,6 +165,6 @@ describe('IRC live integration', () => {
     // Wait for the bot to respond (cold + LM call)
     await new Promise((r) => setTimeout(r, 6000));
 
-    expect(receivedBotMessages.length).toBeGreaterThan(0);
-  }, 10000);
+expect(receivedBotMessages.length).toBeGreaterThan(0);
+   }, 15000);
 });

@@ -497,6 +497,9 @@ function peg$parse(input, options) {
   }
 
   function peg$f22(head, tail) {
+    if (typeof tail === 'string') {
+      return options.termFactory.atom(head + tail);
+    }
     return options.termFactory.atom(head + tail.join(''));
   }
 

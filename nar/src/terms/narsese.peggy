@@ -121,9 +121,9 @@ AtomicTerm "atomic term"
   / chars:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+) { return options.termFactory.atom(chars); }
 
 HyphenatedAtom "hyphenated atom"
-  = head:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+) tail:$("-" [^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+)+ {
-      return options.termFactory.atom(head + tail.join(''));
-    }
+   = head:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+) tail:$("-" [^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+)+ {
+       return options.termFactory.atom(head + tail.join(''));
+     }
 
 StringLiteral
   = '"' chars:$([^"]*) '"' { return options.termFactory.atom('"' + chars + '"'); }

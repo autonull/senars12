@@ -9,7 +9,6 @@ import {
   NLUnderstandingService,
   TranslationCache,
 } from '../../../nar/src/nl';
-import { ApprovalManager } from '../../../nar/src/tools/adapters';
 import type { AutonomousLoop } from '../AutonomousLoop.js';
 import type { AutonomyEngine } from '../AutonomyEngine.js';
 import type { ConversationSession } from '../ConversationSession.js';
@@ -18,6 +17,7 @@ import { type InputEvent, type InputProcessorDeps, processInput } from '../input
 import { ModelRunner } from '../model/ModelRunner.js';
 import { LifecycleManager } from '../services/LifecycleManager.js';
 import { ToolBuilder } from '../services/ToolBuilder.js';
+import { ApprovalService } from '../services/ApprovalService.js';
 import { KnowledgeManager } from '../subservices/KnowledgeManager.js';
 import { PromptBuilder } from '../subservices/PromptBuilder.js';
 import { SessionOrchestrator } from '../subservices/SessionOrchestrator.js';
@@ -47,7 +47,7 @@ export class AgentImpl implements Agent {
   private knowledgeManager: KnowledgeManager;
   private readonly sessionOrchestrator: SessionOrchestrator;
   private readonly eventBus: EventBus;
-  private approvalManager: ApprovalManager;
+  private approvalService: ApprovalService;
   private readonly translationCache: TranslationCache;
   private readonly contextAssembler?: ContextAssembler;
   private readonly understandingService?: NLUnderstandingService;
@@ -80,10 +80,10 @@ export class AgentImpl implements Agent {
       persistKnowledge: opts.persistKnowledge ?? false,
     });
 
-    this.sessionOrchestrator = new SessionOrchestrator();
-    this.eventBus = new EventBus();
-    this.approvalManager = opts.approvalManager ?? new ApprovalManager();
-    this.translationCache = new TranslationCache({
+this.sessionOrchestrator = new SessionOrchestrator();
+     this.eventBus = new EventBus();
+     this.approvalService = new ApprovalService({ approvalManager: opts.approvalManager });
+     this.translationCache = new TranslationCache({
       basePath: process.env.TRANSLATION_CACHE_PATH ?? '.cache/translation-cache',
     });
 
@@ -291,15 +291,13 @@ export class AgentImpl implements Agent {
     return [...this.recentDerivations];
   }
 
-  resolveApproval(id: string, approved: boolean, reason?: string): boolean {
-    return this.approvalManager.resolveApproval(id, approved, reason);
-  }
+resolveApproval(id: string, approved: boolean, reason?: string): boolean {
+     return this.approvalService.resolveApproval(id, approved, reason);
+   }
 
-  getPendingApprovals(): PendingApproval[] {
-    return this.approvalManager
-      .getPending()
-      .map((r) => ({ id: r.id, request: r.request, createdAt: r.createdAt }));
-  }
+   getPendingApprovals(): PendingApproval[] {
+     return this.approvalService.getPendingApprovals();
+   }
 
   getLmRuleStats() {
     return this.nar?.getProcessor().getLmRuleStats?.() ?? [];

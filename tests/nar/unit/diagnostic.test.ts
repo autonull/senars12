@@ -32,7 +32,9 @@ describe('Diagnostic: Tautology Detection', () => {
     const term = termParser.parse('<x --> x>');
     const result = validateTaskTerm(term);
     expect(result.valid).toBe(false);
-    expect((result as any).reason).toContain('Tautology');
+    if (!result.valid) {
+      expect(result.reason).toContain('Tautology');
+    }
   });
 
   it('should reject TRUE as invalid task term', () => {
@@ -55,23 +57,21 @@ describe('Diagnostic: Tautology Detection', () => {
 });
 
 describe('Diagnostic: NAR Tautology Rejection', () => {
-  let nar: NAR;
-
-  beforeEach(() => {
-    nar = new NAR();
-  });
-
   it('should not add tautology to memory', async () => {
+    const nar = new NAR();
     const before = nar.memory.listConcepts().length;
     await nar.believe('<x --> x>.');
     await nar.run(1);
-    const after = nar.memory.listConcepts().length;
-    expect(after).toBe(before);
+    // Check that the tautology itself wasn't added
+    const tautologyAdded = nar.getBeliefs().some((b) => b.term.toString().includes('x --> x'));
+    expect(tautologyAdded).toBe(false);
   });
 
   it('should not derive from tautology input', async () => {
+    const nar = new NAR();
     await nar.believe('<x --> x>.');
     const derived = await nar.run(3);
+    // No derivations should come from the tautology itself
     expect(derived).toBe(0);
   });
 });

@@ -64,7 +64,10 @@ export class ToolBuilder {
       Object.assign(tools, this.config.extToolOpts);
     }
 
-    return tools;
+    // Filter out any undefined tool values (e.g., session-scoped tools without session)
+    return Object.fromEntries(
+      Object.entries(tools).filter(([, v]) => v !== undefined)
+    );
   }
 
   private buildAgentTools(session?: ConversationSession): Record<string, unknown> {
