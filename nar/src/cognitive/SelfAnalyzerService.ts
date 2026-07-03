@@ -452,8 +452,8 @@ export class SelfAnalyzerService {
     const goals = this.nar.getGoals?.() ?? [];
     const relevantBeliefs = beliefs.filter((b) =>
       goals.some((g) => {
-        const subject = getSubject(g.term)?.toString();
-        return subject && b.term.toString().includes(subject);
+        const subject = getSubject(g.term);
+        return subject && containsSubterm(b.term, subject);
       })
     ).length;
     const relevance = goals.length > 0 ? Math.min(1, relevantBeliefs / goals.length) : 0.5;

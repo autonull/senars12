@@ -1,7 +1,7 @@
 import { createLogger } from '../logger';
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
-import { Truth, termParser, termsEqual } from '../terms';
+import { Truth, termParser, termsEqual, TermMap } from '../terms';
 import type { Stamp, Task, TaskType, TermFilter } from '../types';
 import { createTimestamp } from '../types';
 
@@ -220,7 +220,6 @@ export class QueryAPI {
     if (!filter) return tasks;
 
     return tasks.filter((task) => {
-      if (filter.pattern && task.term.toString() !== filter.pattern.toString()) return false;
       if (filter.truthRange) {
         const [min, max] = filter.truthRange;
         const confidence = task.truth.f * task.truth.c;
@@ -233,7 +232,8 @@ export class QueryAPI {
   }
 
   private matchesPattern(task: Task, pattern: string): boolean {
-    return task.term.toString() === pattern;
+    const parsed = termParser.parse(pattern);
+    return parsed ? termsEqual(task.term, parsed) : task.term.toString() === pattern;
   }
 
   private limitResults(tasks: Task[], limit?: number): Task[] {

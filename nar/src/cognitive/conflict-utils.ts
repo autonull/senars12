@@ -1,13 +1,14 @@
-import type { Task, Term } from '../types';
+import type { Term } from '../terms';
+import { TermMap } from '../terms';
+import type { Task } from '../types';
 
 export const findConflicts = (beliefs: Task[]): Array<{ a: Term; b: Term }> => {
-  const byTerm = new Map<string, Array<{ term: Term; f: number }>>();
+  const byTerm = new TermMap<Array<{ term: Term; f: number }>>();
   for (const b of beliefs) {
     if (!b.truth) continue;
-    const key = b.term.toString();
-    const list = byTerm.get(key) ?? [];
-    list.push({ term: b.term as Term, f: b.truth.f });
-    byTerm.set(key, list);
+    const list = byTerm.get(b.term) ?? [];
+    list.push({ term: b.term, f: b.truth.f });
+    byTerm.set(b.term, list);
   }
   const conflicts: Array<{ a: Term; b: Term }> = [];
   for (const truths of byTerm.values()) {

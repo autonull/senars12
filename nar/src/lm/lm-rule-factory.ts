@@ -19,7 +19,7 @@ import {
  * Consolidates rules.ts, dynamic-rules.ts, and rule-factory-v2.ts presets into a single factory
  */
 import type { Term } from '../terms';
-import { Truth, calculateSimilarity } from '../terms';
+import { isConjunction, isDisjunction, isInheritance, sharesSymbol, visitTerms, Truth, calculateSimilarity } from '../terms';
 import type { Task, TaskType } from '../types';
 import { createBudget, createTask } from '../types';
 import { LMResponseParser, LMRule } from './LMRule.js';
@@ -120,17 +120,18 @@ export const hasConflictingBeliefs = (
 };
 
 export const isComplexGoal = (primary: Term): boolean => {
-  const str = primary.toString();
-  return str.includes('&') || str.includes('|') || (str.match(/-->/g) ?? []).length > 1;
+  if (isConjunction(primary) || isDisjunction(primary)) return true;
+  let inheritanceCount = 0;
+  visitTerms(primary, (t) => {
+    if (isInheritance(t)) inheritanceCount++;
+  });
+  return inheritanceCount > 1;
 };
 
 export const hasStructuralSimilarityNoOverlap = (primary: Term, secondary?: Term): boolean => {
   if (!secondary) return false;
-  const pAtoms = new Set(primary.toString().match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []);
-  const sAtoms = new Set(secondary.toString().match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []);
   const sim = calculateSimilarity(primary, secondary);
-  const overlap = [...pAtoms].filter((a) => sAtoms.has(a)).length;
-  return sim > 0.6 && overlap === 0;
+  return sim > 0.6 && !sharesSymbol(primary, secondary);
 };
 
 export const hasHighCuriosity = (

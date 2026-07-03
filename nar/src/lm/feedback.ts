@@ -1,7 +1,7 @@
 import { createLogger } from '../logger';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
-import { Truth } from '../terms';
+import { TermMap, Truth } from '../terms';
 import { type Task, createBudget, createTask } from '../types';
 import { clamp01, errMsg } from '../utils';
 import { parseEnrichmentResponse } from './enrichment.js';
@@ -49,7 +49,7 @@ export class BidirectionalFeedbackLoop {
   private readonly lmService: LMService;
   private readonly config: FeedbackConfig;
   private readonly logger: ReturnType<typeof createLogger>;
-  private pendingValidations: Map<string, ValidationFeedback> = new Map();
+  private pendingValidations: TermMap<ValidationFeedback> = new TermMap();
   private recentPatterns: ExtractedPattern[] = [];
 
   constructor(memory: Memory, lmService: LMService, config: Partial<FeedbackConfig> = {}) {
@@ -83,7 +83,7 @@ export class BidirectionalFeedbackLoop {
 
       if (validation) {
         await this.injectValidationResult(validation);
-        this.pendingValidations.set(hypothesis.term.toString(), validation);
+        this.pendingValidations.set(hypothesis.term, validation);
       }
 
       return validation;

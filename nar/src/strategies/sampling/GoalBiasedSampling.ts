@@ -1,4 +1,5 @@
 import type { Concept, Memory } from '../../memory';
+import { containsSubterm } from '../../terms';
 import type { SamplingStrategy } from '../types.js';
 
 export class GoalBiasedSampling implements SamplingStrategy {
@@ -9,14 +10,15 @@ export class GoalBiasedSampling implements SamplingStrategy {
 
   sample(memory: Memory, count: number): Concept[] {
     const goals = memory.getGoals();
-    const goalsStr = goals.map((g) => g.term.toString().toLowerCase());
     return memory
       .listConcepts()
       .map((c) => ({
         concept: c,
         score:
           c.priority *
-          (goalsStr.some((g: string) => c.term.toString().toLowerCase().includes(g)) ? 1.5 : 1.0),
+          (goals.some((g) => containsSubterm(c.term, g.term) || containsSubterm(g.term, c.term))
+            ? 1.5
+            : 1.0),
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, count)

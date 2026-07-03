@@ -1,4 +1,5 @@
 import type { NAR } from '../nar.js';
+import { TermSet } from '../terms';
 import type { TranslationCache, TranslationCacheEntry } from './cache.js';
 import type { NLContext } from './understanding.js';
 
@@ -153,15 +154,14 @@ export class ContextAssembler {
 
     // Quality filter: confidence > 0.5, frequency > 0.1
     // Deduplicate by term
-    const seen = new Set<string>();
+    const seen = new TermSet();
     const filtered = beliefs
       .filter((b) => {
         if (!b.truth) return false;
         if (b.truth.c <= 0.5) return false;
         if (b.truth.f <= 0.1) return false;
-        const termStr = b.term.toString();
-        if (seen.has(termStr)) return false;
-        seen.add(termStr);
+        if (seen.has(b.term)) return false;
+        seen.add(b.term);
         return true;
       })
       .slice(-max);

@@ -12,6 +12,7 @@ import {
   findConflicts,
   termOverlap,
 } from './conflict-utils.js';
+import { termsEqual } from '../terms';
 
 export type CognitiveState = 'normal' | 'confused' | 'bored' | 'overloaded' | 'idle';
 export type CognitiveAction =
@@ -200,7 +201,7 @@ export class ObserverService {
         .filter((c) => c !== concept && termOverlap(termStr, c.term.toString()))
         .slice(0, 3);
       for (const r of related) {
-        if (!concept.getLinks().some((l) => l.concept.term.toString() === r.term.toString())) {
+        if (!concept.getLinks().some((l) => termsEqual(l.concept.term, r.term))) {
           nar.memory
             .getLinkManager()
             .addLink(concept.term, r.term, { type: 'term-link', priority: 0.5 });

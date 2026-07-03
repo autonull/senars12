@@ -1,10 +1,8 @@
 import type { RuleProcessor } from '../../rules';
 import type { Task } from '../../types';
-import { wordOverlap } from '../../utils';
+import { sharesSymbol } from '../../terms';
 import type { DerivationContext } from '../types.js';
 import { DefaultDerivation } from './DefaultDerivation.js';
-
-const SPLIT_PATTERN = /[\s_()<>]+/;
 
 export class FocusedDerivation extends DefaultDerivation {
   override readonly metadata = {
@@ -27,8 +25,6 @@ export class FocusedDerivation extends DefaultDerivation {
   }
 
   private sharedAtomScore(a: Task, b: Task): number {
-    const aStr = a.term.toString();
-    const bStr = b.term.toString();
-    return wordOverlap(aStr, bStr, SPLIT_PATTERN);
+      return sharesSymbol(a.term, b.term) ? 1 : 0;
   }
 }

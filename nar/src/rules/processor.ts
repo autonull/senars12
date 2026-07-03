@@ -8,7 +8,7 @@ import type { Memory } from '../memory';
 import type { NAR } from '../nar.js';
 import type { LMRuleSelector } from '../strategies';
 import type { StampType, Term } from '../terms';
-import { Truth, type Truth as TruthType } from '../terms/truth.js';
+import { Truth, type Truth as TruthType } from '../terms';
 import type { EventBus } from '../types';
 import { toError } from '../utils';
 import { NEUTRAL_FN, buildResult, deriveStamp, validateRuleOutput } from './rule-utils.js';
@@ -159,7 +159,6 @@ export class RuleProcessor {
         const result = rule.apply([p1.term, p2.term]);
         if (result && validateRuleOutput(result, [p1.term, p2.term])) {
           const rs = result.toString();
-          // Skip results that duplicate a premise term — prevents revision corruption
           if (rs === p1s || rs === p2s) continue;
           const rr = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
           const existing = seen.get(rs);

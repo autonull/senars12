@@ -1,6 +1,6 @@
 import { LINK } from '../constants.js';
 import type { Term } from '../terms';
-import { Stamp, TermMap, Truth, calculateSimilarity, mentionsSymbol } from '../terms';
+import { Stamp, TermMap, TermSet, Truth, calculateSimilarity, mentionsSymbol } from '../terms';
 import type { Budget, Task } from '../types';
 import { NEUTRAL_BUDGET } from '../types';
 import { Concept, type ConceptMergeResult, type ConceptTaskType } from './concept.js';
@@ -288,12 +288,11 @@ export class Memory {
     minLinkStrength = 0.5
   ): Array<{ concepts: Concept[]; hasAbstract: boolean }> {
     const clusters: Array<{ concepts: Concept[]; hasAbstract: boolean }> = [];
-    const visited = new Set<string>();
+    const visited = new TermSet();
     const allConcepts = this.listConcepts();
 
     for (const concept of allConcepts) {
-      const key = concept.term.toString();
-      if (visited.has(key)) continue;
+      if (visited.has(concept.term)) continue;
 
       const cluster = this.bfsCluster(concept, minLinkStrength, visited);
       if (cluster.length >= minSize) {
@@ -464,11 +463,10 @@ export class Memory {
     }
   }
 
-  private bfsCluster(start: Concept, minStrength: number, visited: Set<string>): Concept[] {
+  private bfsCluster(start: Concept, minStrength: number, visited: TermSet): Concept[] {
     const cluster: Concept[] = [];
     const queue: Concept[] = [start];
-    const startKey = start.term.toString();
-    visited.add(startKey);
+    visited.add(start.term);
 
     while (queue.length > 0) {
       const current = queue.shift()!;
@@ -479,10 +477,9 @@ export class Memory {
         if (link.priority < minStrength) continue;
         const target = this.concepts.get(link.targetTerm);
         if (!target) continue;
-        const targetKey = target.term.toString();
-        if (visited.has(targetKey)) continue;
+        if (visited.has(target.term)) continue;
 
-        visited.add(targetKey);
+        visited.add(target.term);
         queue.push(target);
       }
     }

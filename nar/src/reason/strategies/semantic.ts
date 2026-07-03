@@ -1,5 +1,6 @@
 import type { Concept, Memory } from '../../memory';
 import type { Term } from '../../terms';
+import { termsEqual } from '../../terms';
 import type { Task } from '../../types';
 import { createSecondaryTask } from '../../types';
 import type { Strategy } from '../strategy.js';
@@ -29,7 +30,7 @@ export class SemanticStrategy implements Strategy {
   selectSecondary(task: Task, memory: Memory): Task[] {
     const candidates = memory
       .listConcepts()
-      .filter((c) => c.term.toString() !== task.term.toString());
+      .filter((c) => !termsEqual(c.term, task.term));
     return this.scoreAndSelect(task.term, candidates, memory);
   }
 
@@ -38,10 +39,9 @@ export class SemanticStrategy implements Strategy {
     const primaryStr = primary.toString();
 
     const scored = candidates.map((c) => {
-      const termStr = c.term.toString();
-      const linkStrength = linkManager ? this.getLinkStrength(linkManager, primary, termStr) : 0;
+      const linkStrength = linkManager ? this.getLinkStrength(linkManager, primary, c.term) : 0;
 
-      const embeddingSim = this.getEmbeddingSimilarity(memory, primaryStr, termStr);
+      const embeddingSim = this.getEmbeddingSimilarity(memory, primaryStr, c.term.toString());
       const priorityScore = c.priority;
 
       const score =
@@ -62,10 +62,10 @@ export class SemanticStrategy implements Strategy {
   private getLinkStrength(
     linkManager: NonNullable<ReturnType<Memory['getLinkManager']>>,
     primary: Term,
-    targetStr: string
+    target: Term
   ): number {
     const links = linkManager.getLinks(primary, { minPriority: 0 });
-    const match = links.find((l) => l.targetTerm.toString() === targetStr);
+    const match = links.find((l) => termsEqual(l.targetTerm, target));
     return match ? match.priority : 0;
   }
 

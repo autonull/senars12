@@ -1,5 +1,5 @@
-import type { NAR } from '../../nar/src';
-import { termParser } from '../../nar/src';
+import type { NAR, Term } from '../../nar/src';
+import { containsSubterm, termParser } from '../../nar/src';
 import type {
   ContextAssembler,
   ContextAssemblerOpts,
@@ -176,10 +176,9 @@ export async function* processInput(
     if (task) {
       await nar?.input(task.term, task.taskType, task.truth);
       if (task.taskType === 'question') {
-        const needle = task.term.toString();
         const existing = nar
           ?.getBeliefs()
-          .find((b) => b.term.toString().toLowerCase().includes(needle.toLowerCase()));
+          .find((b) => containsSubterm(b.term, task.term));
         if (existing) {
           const reasoned = await generateReasonedResponse(generationService, input, [
             existing as any,

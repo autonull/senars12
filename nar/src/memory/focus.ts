@@ -1,5 +1,5 @@
 import type { AttentionModel } from '../strategies';
-import { TermMap } from '../terms';
+import { containsSubterm, TermMap } from '../terms';
 import type { Task } from '../types';
 import { clamp01 } from '../utils';
 import type { Concept } from './concept.js';
@@ -96,8 +96,7 @@ export class Focus {
     }
 
     for (const goal of this.activeGoals) {
-      const goalStr = goal.term.toString().toLowerCase();
-      if (termStr.includes(goalStr) || goalStr.includes(termStr)) {
+      if (containsSubterm(concept.term, goal.term) || containsSubterm(goal.term, concept.term)) {
         p *= 1.5;
       }
     }

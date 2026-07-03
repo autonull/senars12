@@ -1,6 +1,6 @@
 import type { NAR } from '../nar.js';
 import type { Term } from '../terms';
-import { Truth, getSubject } from '../terms';
+import { TermSet, Truth, containsSubterm, getSubject } from '../terms';
 
 export interface CounterfactualReport {
   possible: boolean;
@@ -17,11 +17,11 @@ export async function counterfactual(
   steps = 5
 ): Promise<CounterfactualReport> {
   const beliefsBefore = nar.getBeliefs().map((b) => ({
-    term: b.term.toString(),
+    term: b.term,
     truth: b.truth ? { ...b.truth } : undefined,
   }));
 
-  const originalBelief = beliefsBefore.find((b) => b.term === term.toString());
+  const originalBelief = beliefsBefore.find((b) => b.term === term);
   if (!originalBelief) {
     return {
       possible: false,
@@ -40,20 +40,21 @@ export async function counterfactual(
     await nar.believe(term, negatedTruth);
     await nar.run(steps);
 
-    const beliefsAfter = nar.getBeliefs().map((b) => b.term.toString());
-    const beforeSet = new Set(beliefsBefore.map((b) => b.term));
+    const beliefsAfter = nar.getBeliefs().map((b) => b.term);
+    const beforeSet = new TermSet();
+    for (const b of beliefsBefore) beforeSet.add(b.term);
 
     const changed = beliefsAfter.filter((b) => !beforeSet.has(b));
-    const subjectStr = getSubject(term)?.toString() ?? '';
-    const dependent = subjectStr
-      ? beliefsAfter.filter((b) => b.includes(subjectStr))
+    const subject = getSubject(term);
+    const dependent = subject
+      ? beliefsAfter.filter((b) => containsSubterm(b, subject))
       : beliefsAfter;
 
     return {
       possible: true,
-      original: originalBelief.term,
-      whatWouldChange: changed.slice(0, 10),
-      dependentBeliefs: dependent.slice(0, 5),
+      original: originalBelief.term.toString(),
+      whatWouldChange: changed.slice(0, 10).map((t) => t.toString()),
+      dependentBeliefs: dependent.slice(0, 5).map((t) => t.toString()),
     };
   } finally {
     if (originalTruth) {
