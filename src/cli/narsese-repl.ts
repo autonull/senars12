@@ -3,8 +3,9 @@
  */
 
 import { createInterface } from 'readline';
-import { SeNARSFactory } from '../../nar/src';
+import { containsSubterm, SeNARSFactory, termParser } from '../../nar/src';
 import { createLogger } from '../../nar/src/logger';
+import { errMsg } from '../../nar/src/utils';
 import { DEFAULT_NAR_CONFIG } from '../config';
 
 const logger = createLogger({ scope: 'cli:narsese' });
@@ -34,11 +35,12 @@ async function main() {
         await nar.input(input, 'goal');
         console.log(`[GOAL ACCEPTED] ${input}`);
       } else if (input.endsWith('?')) {
+        const parsed = termParser.parse(clean);
         const match = nar.getBeliefs().find(
           (b: {
             term: { toString: () => string };
             truth?: { f: number; c: number };
-          }) => b.term.toString().includes(clean.split('-->')[0] ?? clean)
+          }) => parsed ? containsSubterm(b.term as any, parsed) : false
         );
         console.log(
           match
@@ -51,7 +53,7 @@ async function main() {
         console.log(`[BELIEF ACCEPTED] ${clean} | Derived ${derived} concepts`);
       }
     } catch (err) {
-      console.error(`Error processing input: ${err instanceof Error ? err.message : String(err)}`);
+      console.error(`Error processing input: ${errMsg(err)}`);
     }
     rl.prompt();
   }).on('close', () => {

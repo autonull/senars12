@@ -222,7 +222,7 @@ export class AutonomousLoop {
         results.push({
           tool: action.tool,
           success: false,
-          error: err instanceof Error ? err.message : String(err),
+          error: errMsg(err),
           id: action.id,
         });
       }

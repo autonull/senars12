@@ -1,5 +1,6 @@
 import type { NAR } from '../../../nar/src';
 import type { NLGenerationService } from '../../../nar/src/nl';
+import { containsSubterm, getSubject } from '../../../nar/src/terms';
 
 export class NarQueryService {
   constructor(
@@ -35,9 +36,10 @@ export class NarQueryService {
     );
     if (!goal) return null;
     const beliefs = this.nar.getBeliefs?.() ?? [];
-    const relatedBeliefs = beliefs.filter((b) =>
-      b.term.toString().includes(goal.term.toString().split('-->')[0]?.trim() ?? '')
-    );
+    const goalSubject = getSubject(goal.term);
+    const relatedBeliefs = goalSubject
+      ? beliefs.filter((b) => containsSubterm(b.term, goalSubject))
+      : [];
     const progress = Math.min(1, relatedBeliefs.length / Math.max(1, goals.length));
     const status: 'completed' | 'active' | 'failed' = progress >= 1 ? 'completed' : 'active';
     return {
@@ -53,9 +55,10 @@ export class NarQueryService {
     const goals = this.nar.getGoals?.() ?? [];
     const beliefs = this.nar.getBeliefs?.() ?? [];
     return goals.map((g) => {
-      const relatedBeliefs = beliefs.filter((b) =>
-        b.term.toString().includes(g.term.toString().split('-->')[0]?.trim() ?? '')
-      );
+      const goalSubject = getSubject(g.term);
+      const relatedBeliefs = goalSubject
+        ? beliefs.filter((b) => containsSubterm(b.term, goalSubject))
+        : [];
       const progress = Math.min(1, relatedBeliefs.length / Math.max(1, goals.length));
       const status = progress >= 1 ? 'completed' : progress > 0 ? 'active' : 'active';
       return {

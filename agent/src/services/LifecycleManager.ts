@@ -7,6 +7,7 @@ import type { NAR } from '../../../nar/src';
 import type { Logger } from '../../../nar/src/logger';
 import { createLogger } from '../../../nar/src/logger';
 import type { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
+import { clamp, errMsg } from '../../../nar/src/utils';
 import type { AutonomousLoop } from '../AutonomousLoop.js';
 import type { AutonomyEngine } from '../AutonomyEngine.js';
 
@@ -63,29 +64,21 @@ export class LifecycleManager {
         .initialize()
         .then(() => {
           this.nar?.start().catch((err) => {
-            this.logger.warn('NAR start failed', {
-              error: err instanceof Error ? err.message : String(err),
-            });
+            this.logger.warn('NAR start failed', { error: errMsg(err) });
           });
         })
         .catch((err) => {
-          this.logger.warn('NAR lifecycle failed', {
-            error: err instanceof Error ? err.message : String(err),
-          });
+          this.logger.warn('NAR lifecycle failed', { error: errMsg(err) });
         });
     } else if (this.nar.state === 'initialized') {
       this.nar.start().catch((err) => {
-        this.logger.warn('NAR start failed', {
-          error: err instanceof Error ? err.message : String(err),
-        });
+        this.logger.warn('NAR start failed', { error: errMsg(err) });
       });
     }
 
     if (this.autonomousLoop) {
       this.autonomousLoop.start().catch((err) => {
-        this.logger.warn('AutonomousLoop start failed', {
-          error: err instanceof Error ? err.message : String(err),
-        });
+        this.logger.warn('AutonomousLoop start failed', { error: errMsg(err) });
       });
     }
     if (this.autonomyEngine) {
@@ -124,7 +117,7 @@ export class LifecycleManager {
   }
 
   setThrottle(percent: number): void {
-    this.config.throttle = Math.max(0, Math.min(100, percent));
+    this.config.throttle = clamp(percent, 0, 100);
   }
 
   getThrottle(): number {

@@ -1,5 +1,6 @@
 import { type Interface, createInterface } from 'readline';
 import { createLogger } from '../../../nar/src/logger';
+import { errMsg } from '../../../nar/src/utils';
 import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../types.js';
 import { BaseConnection } from './base.js';
 
@@ -118,7 +119,7 @@ export class CLIConnection extends BaseConnection {
       }
       if (result) this.sendFn(result);
     } catch (err) {
-      this.sendFn(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      this.sendFn(`Error: ${errMsg(err)}`);
     }
     return true;
   }

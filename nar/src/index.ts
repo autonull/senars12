@@ -55,6 +55,10 @@ export {
   getConsequent,
   getArgs,
   sameKind,
+  visitTerms,
+  containsSubterm,
+  sharesSymbol,
+  mentionsSymbol,
 } from './terms/index.js';
 
 // Rules

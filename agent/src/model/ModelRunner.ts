@@ -160,6 +160,13 @@ export class ModelRunner {
     };
   }
 
+  async runToCompletion(composed: ComposedRequest, signal?: AbortSignal): Promise<ModelRunResult> {
+    const iter = this.run(composed, signal);
+    let next = await iter.next();
+    while (!next.done) next = await iter.next();
+    return next.value;
+  }
+
   private toMessages(composed: ComposedRequest): any[] {
     return composed.messages.map((m) => ({ role: m.role, content: m.content }));
   }

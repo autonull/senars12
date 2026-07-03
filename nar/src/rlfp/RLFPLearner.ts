@@ -1,5 +1,6 @@
 import { appendFileSync } from 'node:fs';
 import { OperationError } from '../types';
+import { clamp } from '../utils';
 import { PolicyOptimizer } from './PolicyOptimizer.js';
 import { PreferenceCollector, type PreferenceData } from './PreferenceCollector.js';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
@@ -100,7 +101,7 @@ export class RLFPLearner {
    * @param context - Optional context about what the reward is for
    */
   reward(reward: number, context?: string): void {
-    const clampedReward = Math.max(-1, Math.min(1, reward));
+    const clampedReward = clamp(reward, -1, 1);
     // Create a minimal trajectory step for the reward
     const trajectory: TrajectoryStep[] = [
       {

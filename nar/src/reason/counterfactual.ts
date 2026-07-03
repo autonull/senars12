@@ -1,6 +1,6 @@
 import type { NAR } from '../nar.js';
 import type { Term } from '../terms';
-import { Truth } from '../terms';
+import { Truth, getSubject } from '../terms';
 
 export interface CounterfactualReport {
   possible: boolean;
@@ -44,9 +44,10 @@ export async function counterfactual(
     const beforeSet = new Set(beliefsBefore.map((b) => b.term));
 
     const changed = beliefsAfter.filter((b) => !beforeSet.has(b));
-    const dependent = beliefsAfter.filter((b) =>
-      b.includes(term.toString().split('-->')[0]?.replace('(', '') ?? '')
-    );
+    const subjectStr = getSubject(term)?.toString() ?? '';
+    const dependent = subjectStr
+      ? beliefsAfter.filter((b) => b.includes(subjectStr))
+      : beliefsAfter;
 
     return {
       possible: true,

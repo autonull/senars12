@@ -8,6 +8,7 @@ import {
 import type { NAR } from '../../nar/src';
 import { SeNARSFactory } from '../../nar/src';
 import type { LMService } from '../../nar/src/lm';
+import { errMsg } from '../../nar/src/utils';
 
 export interface ProbeExpectations {
   responseContains?: string[];
@@ -174,7 +175,7 @@ export class ConversationalTestHarness {
       }
       response = next.value ?? '';
     } catch (e) {
-      errors.push(e instanceof Error ? e.message : String(e));
+      errors.push(errMsg(e));
     } finally {
       clearTimeout(timeoutHandle);
     }

@@ -136,6 +136,8 @@ export const Truth = {
   w2c,
 
   serialize: (t: Truth): string => `%${t.f.toFixed(4)};${t.c.toFixed(4)}%`,
+  format: (t: Truth, fractionDigits = 2): string =>
+    `(f=${t.f.toFixed(fractionDigits)}, c=${t.c.toFixed(fractionDigits)})`,
   deserialize: (s: string): Truth | null => {
     const match = s.match(/%\s*([0-9.]+)\s*;\s*([0-9.]+)\s*%/);
     return match

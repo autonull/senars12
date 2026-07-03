@@ -67,6 +67,10 @@ export {
   getArgs,
   termsEqual,
   sameKind,
+  visitTerms,
+  containsSubterm,
+  sharesSymbol,
+  mentionsSymbol,
 } from './accessors.js';
 
 // Term-based collections

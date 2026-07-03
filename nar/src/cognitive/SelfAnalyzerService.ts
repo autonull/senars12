@@ -9,7 +9,8 @@ import type { MetricsCollector } from '../metrics';
 import type { NAR } from '../nar.js';
 import type { Optimizations } from '../self/SelfOptimizer';
 import { SelfOptimizer } from '../self/SelfOptimizer';
-import { isCompound } from '../terms';
+import { isCompound, getSubject, containsSubterm } from '../terms';
+import { errMsg } from '../utils';
 import type { MetacognitiveMonitor, ReasoningStep } from './MetacognitiveMonitor.js';
 
 export interface SelfAnalyzerConfig {
@@ -315,7 +316,7 @@ export class SelfAnalyzerService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: errMsg(error),
         timestamp: Date.now(),
         monitorState: this.monitor.getMonitorState(),
       };
@@ -333,7 +334,7 @@ export class SelfAnalyzerService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: errMsg(error),
         timestamp: Date.now(),
       };
     }
@@ -450,14 +451,17 @@ export class SelfAnalyzerService {
     // Relevance: based on active goals and belief alignment
     const goals = this.nar.getGoals?.() ?? [];
     const relevantBeliefs = beliefs.filter((b) =>
-      goals.some((g) => b.term.toString().includes(g.term.toString().split('-->')[0]?.trim() ?? ''))
+      goals.some((g) => {
+        const subject = getSubject(g.term)?.toString();
+        return subject && b.term.toString().includes(subject);
+      })
     ).length;
     const relevance = goals.length > 0 ? Math.min(1, relevantBeliefs / goals.length) : 0.5;
 
     // Completeness: based on question resolution rate
     const questions = this.nar.getQuestions?.() ?? [];
     const answeredQuestions = questions.filter((q) =>
-      beliefs.some((b) => b.term.toString().includes(q.term.toString().replace('?', '').trim()))
+      beliefs.some((b) => containsSubterm(b.term, q.term))
     ).length;
     const completeness = questions.length > 0 ? answeredQuestions / questions.length : 0.5;
 

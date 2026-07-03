@@ -11,7 +11,7 @@ import type { LMService } from '../lm/lm-service.js';
 import { type Logger, createLogger } from '../logger';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
-import { Truth } from '../terms';
+import { Truth, getSubject } from '../terms';
 import { type Task, createBudget, createTask } from '../types';
 import { clamp01, errMsg } from '../utils';
 
@@ -125,7 +125,7 @@ export class SchemaInductor {
       if (current.length > 0) {
         const lastTerm = current[current.length - 1]!.term.toString();
         const dTerm = d.term.toString();
-        if (dTerm.includes(lastTerm) || lastTerm.includes(dTerm.split('-->')[0]?.trim() || '')) {
+        if (dTerm.includes(lastTerm) || lastTerm.includes(getSubject(d.term)?.toString() || '')) {
           current.push(d);
           continue;
         }

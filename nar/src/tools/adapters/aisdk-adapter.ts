@@ -1,5 +1,7 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import type { Term } from '../../terms';
+import { mentionsSymbol } from '../../terms';
 
 export interface NARSToolDeps {
   workingMemory: { size(): number };
@@ -180,7 +182,7 @@ export function createNARSTools(nar: NARSToolDeps, options: NARSToolsOptions = {
         }>;
 
         if (filter?.term) {
-          beliefs = beliefs.filter((b) => b.term.toString().includes(filter.term!));
+          beliefs = beliefs.filter((b) => mentionsSymbol(b.term as Term, filter.term!));
         }
         if (filter?.minConfidence) {
           beliefs = beliefs.filter((b) => b.truth && b.truth.c >= filter.minConfidence!);

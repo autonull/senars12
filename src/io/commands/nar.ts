@@ -1,5 +1,6 @@
 import type { CommandDefinition } from './registry.js';
 import { requireNar } from './utils.js';
+import { mentionsSymbol } from '../../../nar/src/terms';
 
 export const narCommands: CommandDefinition[] = [
   {
@@ -45,7 +46,7 @@ export const narCommands: CommandDefinition[] = [
         if (beliefs.length === 0) return `No beliefs found for: ${termStr}`;
         const matchingConcept = nar.nar
           .listConcepts()
-          .find((c) => c.term.toString().includes(termStr));
+          .find((c) => mentionsSymbol(c.term, termStr));
         const term = matchingConcept?.term;
         if (!term) return `No term found for: ${termStr}`;
         const trace = nar.nar.traceTerm(term);

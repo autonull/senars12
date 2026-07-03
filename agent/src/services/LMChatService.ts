@@ -58,8 +58,7 @@ export class LMChatService {
       this.recordSuccess(input, text, startTime);
       return text;
     } catch (e) {
-      const err = errMsg(e);
-      this.recordError(input, startTime, err);
+      this.recordError(input, startTime, errMsg(e));
       throw e;
     }
   }
@@ -88,14 +87,11 @@ export class LMChatService {
         const historyMessages = formatHistoryAsMessages(session.history, historyLimit);
         historyMessages.push({ role: 'user', content: input });
         const composed = await this.buildComposedRequest(input, historyMessages, session);
-        const iter = this.runner.run(composed, opts.signal);
-        let next = await iter.next();
-        while (!next.done) next = await iter.next();
-        const reply = next.value?.text ?? '';
-        const usage = next.value?.usage;
+        const result = await this.runner.runToCompletion(composed, opts.signal);
+        const reply = result.text;
         appendSessionTurns(session, input, reply, historyLimit);
         await this.safeLog('response', reply, { session: session.key });
-        this.recordSuccess(input, reply, startTime, usage, session.key);
+        this.recordSuccess(input, reply, startTime, result.usage, session.key);
         return reply;
       }
 
@@ -104,8 +100,7 @@ export class LMChatService {
       this.recordSuccess(input, text, startTime, undefined, session.key);
       return text;
     } catch (e) {
-      const err = errMsg(e);
-      this.recordError(input, startTime, err, session.key);
+      this.recordError(input, startTime, errMsg(e), session.key);
       throw e;
     }
   }
@@ -263,12 +258,10 @@ export class LMChatService {
   }> {
     if (!this.runner.hasModel()) return { text: 'No LM configured — Narsese input only.' };
     const composed = await this.buildComposedRequest(input, undefined, opts.session);
-    const iter = this.runner.run(composed, opts.signal);
-    let next = await iter.next();
-    while (!next.done) next = await iter.next();
+    const result = await this.runner.runToCompletion(composed, opts.signal);
     return {
-      text: next.value?.text ?? '',
-      ...(next.value?.usage ? { usage: next.value.usage } : {}),
+      text: result.text,
+      ...(result.usage.totalTokens > 0 ? { usage: result.usage } : {}),
     };
   }
 

@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid';
+import { errMsg } from '../../../nar/src/utils';
 import type { Agent } from '../../../agent/src/types.js';
 import type { IncomingFromServer } from '../shared/protocol.js';
 import { consumePendingChatResponse } from './gateway.js';
@@ -38,10 +39,11 @@ export async function onChat(
         });
     }
   } catch (e) {
+    const errText = errMsg(e);
     send({
       type: 'chat.agent.complete',
-      content: `Error: ${e instanceof Error ? e.message : String(e)}`,
-      html: renderHtml(`Error: ${e instanceof Error ? e.message : String(e)}`),
+      content: `Error: ${errText}`,
+      html: renderHtml(`Error: ${errText}`),
       messageId,
     });
   }

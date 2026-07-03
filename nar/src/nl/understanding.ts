@@ -3,6 +3,7 @@ import { generateObject, generateText, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
 import type { SeNARSRegistry } from '../lm';
 import { getModelForTask } from '../lm';
+import { errMsg } from '../utils';
 import type { TranslationCache, TranslationCacheEntry } from './cache.js';
 import { buildUnderstandingPrompt } from './prompts/understanding-v1.js';
 import { TaskBatchSchema } from './schemas.js';
@@ -82,7 +83,7 @@ export class NLUnderstandingService {
         }
         lastError = 'No valid output produced';
       } catch (e) {
-        lastError = e instanceof Error ? e.message : String(e);
+        lastError = errMsg(e);
       }
     }
 

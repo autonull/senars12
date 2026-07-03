@@ -2,6 +2,7 @@ import type { TranslationCache } from '../nl';
 import type { RLFPLearner } from '../rlfp';
 import { getPredicate, getSubject, isOperation, isTautology } from '../terms';
 import type { Task } from '../types';
+import { clamp } from '../utils';
 
 interface DerivationResult {
   steps?: number;
@@ -77,7 +78,7 @@ export class FeedbackLearner {
     const stats = this.ruleStats.get(ruleId);
     if (!stats || stats.accepted + stats.rejected < 5) return base;
     const rate = stats.accepted / (stats.accepted + stats.rejected);
-    return Math.max(0.1, Math.min(1.0, base + (rate - 0.5) * 0.2));
+    return clamp(base + (rate - 0.5) * 0.2, 0.1, 1.0);
   }
 
   getStats(): {

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { type WebSocket, WebSocketServer } from 'ws';
 import type { Agent } from '../../../agent/src/types.js';
 import type { NAR } from '../../../nar/src/nar.js';
+import { errMsg } from '../../../nar/src/utils';
 import type { Lens } from '../shared/protocol.js';
 import { onChat } from './chat.js';
 import { type NarAdapter, handleConnection } from './gateway.js';
@@ -124,7 +125,7 @@ async function main(): Promise<void> {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((err) => {
-    process.stderr.write(`UI server failed: ${err instanceof Error ? err.message : String(err)}\n`);
+    process.stderr.write(`UI server failed: ${errMsg(err)}\n`);
     process.exit(1);
   });
 }

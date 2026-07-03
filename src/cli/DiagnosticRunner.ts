@@ -6,6 +6,8 @@
 import type { NAR, Task } from '../../nar/src';
 import { ReasoningTrace } from '../../nar/src/query';
 import { extractSymbols, termParser, termsEqual } from '../../nar/src/terms';
+import { mentionsSymbol } from '../../nar/src/terms';
+import { errMsg } from '../../nar/src/utils';
 
 export interface ExperimentResult {
   input: string;
@@ -44,7 +46,7 @@ export class ExperimentRunner {
         errors,
       };
     } catch (error) {
-      errors.push(error instanceof Error ? error.message : String(error));
+      errors.push(errMsg(error));
       return {
         input,
         derivations: [],
@@ -64,7 +66,7 @@ export class ExperimentRunner {
     const beliefs = this.nar.getBeliefs();
 
     const operationMisuse = beliefs.some(
-      (b) => b.term.toString().includes('^') && b.term.kind === 'inheritance'
+      (b) => mentionsSymbol(b.term, '^') && b.term.kind === 'inheritance'
     );
 
     const spuriousDerivations = beliefs.filter((b) => {
@@ -126,7 +128,7 @@ export class ExperimentRunner {
       const result = trace.explain(belief as Task);
       return result.why;
     } catch (error) {
-      return `Error: ${error instanceof Error ? error.message : String(error)}`;
+      return `Error: ${errMsg(error)}`;
     }
   }
 }

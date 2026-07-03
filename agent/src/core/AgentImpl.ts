@@ -9,6 +9,7 @@ import {
   NLUnderstandingService,
   TranslationCache,
 } from '../../../nar/src/nl';
+import { errMsg } from '../../../nar/src/utils';
 import type { AutonomousLoop } from '../AutonomousLoop.js';
 import type { AutonomyEngine } from '../AutonomyEngine.js';
 import type { ConversationSession } from '../ConversationSession.js';
@@ -80,10 +81,10 @@ export class AgentImpl implements Agent {
       persistKnowledge: opts.persistKnowledge ?? false,
     });
 
-this.sessionOrchestrator = new SessionOrchestrator();
-     this.eventBus = new EventBus();
-     this.approvalService = new ApprovalService({ approvalManager: opts.approvalManager });
-     this.translationCache = new TranslationCache({
+    this.sessionOrchestrator = new SessionOrchestrator();
+    this.eventBus = new EventBus();
+    this.approvalService = new ApprovalService({ approvalManager: opts.approvalManager });
+    this.translationCache = new TranslationCache({
       basePath: process.env.TRANSLATION_CACHE_PATH ?? '.cache/translation-cache',
     });
 
@@ -291,13 +292,13 @@ this.sessionOrchestrator = new SessionOrchestrator();
     return [...this.recentDerivations];
   }
 
-resolveApproval(id: string, approved: boolean, reason?: string): boolean {
-     return this.approvalService.resolveApproval(id, approved, reason);
-   }
+  resolveApproval(id: string, approved: boolean, reason?: string): boolean {
+    return this.approvalService.resolveApproval(id, approved, reason);
+  }
 
-   getPendingApprovals(): PendingApproval[] {
-     return this.approvalService.getPendingApprovals();
-   }
+  getPendingApprovals(): PendingApproval[] {
+    return this.approvalService.getPendingApprovals();
+  }
 
   getLmRuleStats() {
     return this.nar?.getProcessor().getLmRuleStats?.() ?? [];
@@ -448,10 +449,7 @@ resolveApproval(id: string, approved: boolean, reason?: string): boolean {
   ): Promise<void> {
     if (!this.episodicMemory) return Promise.resolve();
     return this.episodicMemory.log(type, content, metadata).catch((err) => {
-      this.logger.warn('episodic memory log failed', {
-        type,
-        error: err instanceof Error ? err.message : String(err),
-      });
+      this.logger.warn('episodic memory log failed', { type, error: errMsg(err) });
     });
   }
 

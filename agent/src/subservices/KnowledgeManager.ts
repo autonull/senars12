@@ -16,9 +16,7 @@ export class KnowledgeManager {
     if (!this.persistKnowledge) return;
     try {
       const dir = path.dirname(this.knowledgePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
+      fs.mkdirSync(dir, { recursive: true });
       const obj = Object.fromEntries(this.knowledge);
       fs.writeFileSync(this.knowledgePath, JSON.stringify(obj, null, 2), 'utf8');
     } catch {
@@ -37,10 +35,6 @@ export class KnowledgeManager {
 
   knowList(): Array<{ key: string; value: string }> {
     return [...this.knowledge.entries()].map(([key, value]) => ({ key, value }));
-  }
-
-  getMap(): Map<string, string> {
-    return this.knowledge;
   }
 
   private loadKnowledge(): void {

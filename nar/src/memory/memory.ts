@@ -1,6 +1,6 @@
 import { LINK } from '../constants.js';
 import type { Term } from '../terms';
-import { Stamp, TermMap, Truth, calculateSimilarity } from '../terms';
+import { Stamp, TermMap, Truth, calculateSimilarity, mentionsSymbol } from '../terms';
 import type { Budget, Task } from '../types';
 import { NEUTRAL_BUDGET } from '../types';
 import { Concept, type ConceptMergeResult, type ConceptTaskType } from './concept.js';
@@ -300,7 +300,7 @@ export class Memory {
         clusters.push({
           concepts: cluster,
           hasAbstract: cluster.some(
-            (c) => c.term.toString().includes('abstract') || c.term.toString().includes('category')
+            (c) => mentionsSymbol(c.term, 'abstract') || mentionsSymbol(c.term, 'category')
           ),
         });
       }

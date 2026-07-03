@@ -1,4 +1,5 @@
 import type { CompoundTerm, OperatorKey, Term } from './types.js';
+import { isAtomic } from './types.js';
 
 export const isType = <K extends OperatorKey>(k: K, t: Term): t is CompoundTerm<K> => t.kind === k;
 
@@ -68,4 +69,39 @@ export const termsEqual = (a: Term, b: Term): boolean => {
     if (!termsEqual(aArgs[i]!, bArgs[i]!)) return false;
   }
   return true;
+};
+
+export const visitTerms = (term: Term, fn: (t: Term) => void): void => {
+  fn(term);
+  if ('args' in term && Array.isArray(term.args)) {
+    for (const arg of term.args) {
+      visitTerms(arg as Term, fn);
+    }
+  }
+};
+
+export const containsSubterm = (term: Term, target: Term): boolean => {
+  if (termsEqual(term, target)) return true;
+  const args = 'args' in term && Array.isArray(term.args) ? term.args : [];
+  return args.some((a) => containsSubterm(a as Term, target));
+};
+
+export const sharesSymbol = (a: Term, b: Term): boolean => {
+  const aSyms = collectAtomicSymbols(a);
+  const bSyms = collectAtomicSymbols(b);
+  for (const s of aSyms) if (bSyms.has(s)) return true;
+  return false;
+};
+
+export const mentionsSymbol = (term: Term, symbol: string): boolean => {
+  if ('symbol' in term && term.symbol === symbol) return true;
+  const args = 'args' in term && Array.isArray(term.args) ? term.args : [];
+  return args.some((a) => mentionsSymbol(a as Term, symbol));
+};
+
+const collectAtomicSymbols = (term: Term, set = new Set<string>()): Set<string> => {
+  if (isAtomic(term)) { set.add(term.symbol); return set; }
+  const args = 'args' in term && Array.isArray(term.args) ? term.args : [];
+  for (const arg of args) collectAtomicSymbols(arg as Term, set);
+  return set;
 };

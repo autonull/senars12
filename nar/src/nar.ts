@@ -25,7 +25,7 @@ import type { AttentionModel } from './strategies';
 import { SimpleAttention } from './strategies';
 import { TaskManager } from './task';
 import type { Term } from './terms';
-import { Stamp, Truth, type TruthType, termParser, termsEqual } from './terms';
+import { Stamp, Truth, type TruthType, containsSubterm, getSubject, termParser, termsEqual } from './terms';
 import type { Tool, ToolResult } from './tools';
 import { ToolManager, discoverTools } from './tools';
 import {
@@ -374,22 +374,23 @@ export class NAR extends BaseComponent {
     const translatePrompt = `Convert this natural language question to Narsese query format. Only output the Narsese, nothing else. Question: "${question}"`;
     const narsese = await lm.generateText(translatePrompt);
     const cleaned = narsese.trim().replace(/^<|>$/g, '').trim();
+    const queryTerm = termParser.parse(cleaned);
+    const subjectTerm = queryTerm ? getSubject(queryTerm) : undefined;
 
     await this.io.input(cleaned + '?');
     await this.run(5);
 
     const beliefs = this.query.getBeliefs();
-    const relevant = beliefs.filter((b) =>
-      b.term
-        .toString()
-        .toLowerCase()
-        .includes(cleaned.split('-->')[0]?.trim() || '')
-    );
+    const relevant = subjectTerm
+      ? beliefs.filter((b) => containsSubterm(b.term, subjectTerm))
+      : queryTerm
+        ? beliefs.filter((b) => containsSubterm(b.term, queryTerm))
+        : beliefs;
 
     if (relevant.length === 0) return "I don't have enough knowledge to answer that.";
 
     const best = relevant[0]!;
-    const result = `${best.term.toString()} (f=${best.truth.f.toFixed(2)}, c=${best.truth.c.toFixed(2)})`;
+    const result = `${best.term.toString()} ${Truth.format(best.truth)}`;
     const explainPrompt = `Convert this Narsese result to a natural language answer. Narsese: ${result} Question: "${question}" Only output the answer, nothing else.`;
 
     return lm.generateText(explainPrompt);
