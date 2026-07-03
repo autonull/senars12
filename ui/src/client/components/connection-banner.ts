@@ -27,8 +27,8 @@ export class ConnectionBanner extends BaseComponent {
 
   override connectedCallback() {
     super.connectedCallback();
+    this.watch($connectionState);
     this.watchWith($connectionState, (state) => {
-      this.dismissed = false;
       if (state === 'reconnecting') {
         this.reconnectCountdown = 3;
         this.clearCountdown();

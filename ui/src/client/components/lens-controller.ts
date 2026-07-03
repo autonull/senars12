@@ -114,13 +114,11 @@ export class LensController extends BaseComponent {
     const nodes = $graphNodes.get();
     const counts: Record<string, number> = { belief: 0, goal: 0, contradiction: 0 };
     for (const n of nodes.values()) {
-      if (n.lensData) {
-        const color = n.lensData.color.toLowerCase();
-        if (color.includes('00f3ff') || color.includes('cyan')) counts['belief']!++;
-        else if (color.includes('ff00aa') || color.includes('magenta')) counts['goal']!++;
-        else if (color.includes('ffaa00') || color.includes('amber') || color.includes('ffb000'))
-          counts['contradiction']!++;
-      }
+      const color = n.lensData?.color?.toLowerCase();
+      if (!color) continue;
+      if (color.includes('00f3ff') || color.includes('cyan')) counts.belief!++;
+      else if (color.includes('ff00aa') || color.includes('magenta')) counts.goal!++;
+      else if (color.includes('ffaa00') || color.includes('amber') || color.includes('ffb000')) counts.contradiction!++;
     }
     this.nodeCounts = counts;
   }

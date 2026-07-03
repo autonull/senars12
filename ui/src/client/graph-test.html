@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Graph Viewport — Standalone Test</title>
+  <link href="./styles/theme.css" rel="stylesheet" />
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #0d0f14; }
+    #container { width: 100vw; height: 100vh; }
+    #controls {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 8px; z-index: 999;
+    }
+    #controls button {
+      padding: 8px 16px; border: 1px solid #333; border-radius: 6px;
+      background: #1a1d24; color: #ccc; cursor: pointer; font-family: monospace;
+    }
+    #controls button:hover { border-color: #4466cc; color: #fff; }
+    #status {
+      position: fixed; top: 8px; left: 8px; z-index: 999;
+      font-family: monospace; font-size: 0.65rem; color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div id="status">graph-viewport: <span id="state">loading…</span></div>
+  <div id="container"></div>
+  <div id="controls">
+    <button id="btn-inject">Inject test nodes</button>
+    <button id="btn-clear">Clear</button>
+    <button id="btn-resize">Force resize</button>
+    <button id="btn-inspect">Inspect</button>
+  </div>
+
+  <script type="module">
+    import './styles/theme.css';
+    import './components/graph-viewport.js';
+    import { $graphNodes, $graphEdges, $selectedNodeId } from './core/store.js';
+
+    const container = document.getElementById('container');
+    const el = document.createElement('graph-viewport');
+    el.style.cssText = 'display:block;width:100%;height:100%';
+    container.appendChild(el);
+
+    document.getElementById('state').textContent = 'element created, awaiting firstUpdated';
+
+    // Wait for component upgrade
+    await customElements.whenDefined('graph-viewport');
+    document.getElementById('state').textContent = 'graph-viewport defined';
+    // Wait one frame for Lit to render
+    await new Promise(r => setTimeout(r, 100));
+    document.getElementById('state').textContent = `ready — shadowRoot: ${!!el.shadowRoot}, cy-container: ${!!el.shadowRoot?.getElementById('cy-container')}`;
+
+    document.getElementById('btn-inject').onclick = () => {
+      const nodes = new Map();
+      for (let i = 1; i <= 10; i++) {
+        const id = `node-${i}`;
+        nodes.set(id, {
+          term: `Concept ${i}`,
+          priority: Math.random(),
+          confidence: Math.random(),
+          nodeType: 'concept',
+          label: `N${i}`,
+          lensData: {},
+        });
+      }
+      const edges = new Map();
+      for (let i = 2; i <= 10; i++) {
+        const key = `e-${i}`;
+        edges.set(key, {
+          source: `node-${i - 1}`,
+          target: `node-${i}`,
+          weight: Math.random(),
+          type: 'association',
+        });
+      }
+      $graphNodes.set(nodes);
+      $graphEdges.set(edges);
+      document.getElementById('state').textContent = `injected ${nodes.size} nodes, ${edges.size} edges`;
+    };
+
+    document.getElementById('btn-clear').onclick = () => {
+      $graphNodes.set(new Map());
+      $graphEdges.set(new Map());
+      document.getElementById('state').textContent = 'cleared';
+    };
+
+    document.getElementById('btn-resize').onclick = () => {
+      const cy = el.shadowRoot?.querySelector('canvas')?.parentElement?.__cytoscape;
+      if (cy) {
+        cy.resize();
+        cy.fit();
+        document.getElementById('state').textContent = 'cy.resize() + cy.fit() called';
+      } else {
+        document.getElementById('state').textContent = 'no cytoscape instance found';
+      }
+    };
+
+    document.getElementById('btn-inspect').onclick = () => {
+      const sr = el.shadowRoot;
+      const info = {
+        tag: el.tagName,
+        shadowRoot: !!sr,
+        hostDisplay: getComputedStyle(el).display,
+        hostWidth: el.offsetWidth,
+        hostHeight: el.offsetHeight,
+        cyContainer: !!sr?.getElementById('cy-container'),
+        cyContainerWidth: sr?.getElementById('cy-container')?.offsetWidth,
+        cyContainerHeight: sr?.getElementById('cy-container')?.offsetHeight,
+        canvas: !!sr?.querySelector('canvas'),
+        canvasWidth: sr?.querySelector('canvas')?.width,
+        canvasHeight: sr?.querySelector('canvas')?.height,
+        children: Array.from(el.children).map(c => c.tagName),
+        parentTag: el.parentElement?.tagName,
+        parentWidth: el.parentElement?.offsetWidth,
+        parentHeight: el.parentElement?.offsetHeight,
+      };
+      document.getElementById('state').textContent = JSON.stringify(info, null, 2);
+      console.log('INSPECT:', info);
+    };
+  </script>
+</body>
+</html>

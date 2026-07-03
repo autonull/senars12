@@ -37,7 +37,7 @@ const CHAT_NODE_STYLE = {
 export class GraphViewport extends BaseComponent {
   static override styles = css`
     :host { display: block; position: relative; flex: 1; background: var(--colors-semantic-bg-base); min-height: 0; }
-    #cy-container { width: 100%; height: 100%; }
+    #cy-container { width: 100%; height: 100%; position: relative; }
     .warning { position: absolute; bottom: 8px; left: 8px; background: rgba(255, 176, 0, 0.1); border-left: 2px solid var(--colors-primitive-warning); padding: 4px 8px; font-family: var(--typography-fontFamilies-data); font-size: 0.65rem; color: var(--colors-primitive-warning); pointer-events: none; }
     .html-label { position: absolute; pointer-events: auto; overflow: hidden; background: transparent; z-index: 100; }
     .html-label .graph-message { transform-origin: top left; }
@@ -86,7 +86,8 @@ export class GraphViewport extends BaseComponent {
     this.watchWith($graphNodes, () => this.syncGraph());
     this.watchWith($graphEdges, () => this.syncGraph());
     this.watchWith($activeLens, () => {
-      this.applyLensStyles();
+      if (!this.cy) return;
+      applyLensStyles(this.cy, $activeLens.get());
       this.restoreLensViewport();
     });
     this.watchWith($selectedNodeId, (id) => this.centerOnNode(id));
@@ -99,6 +100,10 @@ export class GraphViewport extends BaseComponent {
       getNodeData: (id: string) => this.cy?.getElementById(id).data() ?? null,
       getAllNodeIds: () => this.cy?.nodes().map((n) => n.id()) ?? [],
       clickNode: (id: string) => this.cy?.getElementById(id).emit('tap'),
+      setGraphData: (nodes: Map<string, any>, edges: Map<string, any>) => {
+        $graphNodes.set(nodes);
+        $graphEdges.set(edges);
+      },
     });
   }
 
@@ -118,7 +123,7 @@ export class GraphViewport extends BaseComponent {
       layout: { name: 'preset', fit: false },
       minZoom: 0.1,
       maxZoom: 10,
-      wheelSensitivity: 0.15,
+      wheelSensitivity: 1,
       boxSelectionEnabled: false,
     });
 
@@ -318,11 +323,15 @@ export class GraphViewport extends BaseComponent {
   private applyLOD(zoom: number) {
     if (!this.cy) return;
     const showLabels = zoom >= this.LOD_LABEL_ZOOM;
-    const thinEdges = zoom < this.LOD_EDGE_THIN_ZOOM;
 
     this.cy.batch(() => {
-      this.cy!.nodes().style('label', showLabels ? 'data(label)' : '');
-      this.cy!.edges().style('width', thinEdges ? 0.5 : 1.5);
+      if (showLabels) {
+        this.cy!.nodes().removeStyle('label');
+        this.cy!.edges().style('width', 1.5);
+      } else {
+        this.cy!.nodes().style('label', '');
+        this.cy!.edges().style('width', 0.5);
+      }
     });
   }
 
@@ -502,8 +511,9 @@ export class GraphViewport extends BaseComponent {
       const currentIds = new Set(cy.nodes().map((n) => n.id()));
 
       for (const [nodeId, nd] of nodes) {
-        if (currentIds.has(nodeId)) {
-          cy.getElementById(nodeId).data(nd);
+        const el = currentIds.has(nodeId) ? cy.getElementById(nodeId) : null;
+        if (el) {
+          el.data(nd);
         } else {
           const nodeType = nd.nodeType === 'message' ? 'message' : 'concept';
           const data = {
@@ -515,14 +525,14 @@ export class GraphViewport extends BaseComponent {
             confidence: nd.confidence,
             lensData: nd.lensData,
             label: nd.label,
+            html: nd.html,
           };
-          cy.add({
-            group: 'nodes',
-            data,
-            classes: nodeType === 'message' ? 'chat-message-node' : '',
-          });
-          if (nodeType === 'message') cy.getElementById(nodeId).style(CHAT_NODE_STYLE);
+          const classes = nodeType === 'message' ? 'chat-message-node' : '';
+          cy.add({ group: 'nodes', data, classes });
         }
+        const nEl = el ?? cy.getElementById(nodeId);
+        if (nd.html) nEl.addClass('html-enabled');
+        else nEl.removeClass('html-enabled');
       }
 
       for (const nid of currentIds) {
@@ -539,12 +549,12 @@ export class GraphViewport extends BaseComponent {
         const key = edgeKey(e.data('source'), e.data('target'));
         if (!edges.has(key)) e.remove();
       }
-    });
 
-    this.restorePositions(oldPositions);
-    layoutConversationThread(cy, $chatMessages.get());
-    this.applyLensStyles();
-    this.applyGraphFilter();
+      this.restorePositions(oldPositions);
+      layoutConversationThread(cy, $chatMessages.get());
+      this.applyLensStyles();
+      this.applyGraphFilter();
+    });
 
     // Update multi-select styles
     cy.nodes().removeClass('multi-selected');

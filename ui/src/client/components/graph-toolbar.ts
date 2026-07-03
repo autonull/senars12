@@ -87,6 +87,7 @@ export class GraphToolbar extends BaseComponent {
     super.connectedCallback();
     this.watch($activeLens);
     this.watch($connectionState);
+    this.watch($panels);
     this.watchWith($viewport, (vp) => {
       this.zoom = vp.zoom;
     });
@@ -105,6 +106,7 @@ export class GraphToolbar extends BaseComponent {
     const activeLens = $activeLens.get();
     const state = $connectionState.get();
     const configOpen = $panels.get().get('config')?.open;
+    const telemetryOpen = $panels.get().get('telemetry')?.open;
 
     return html`
       <div class="zoom-group">
@@ -154,6 +156,8 @@ export class GraphToolbar extends BaseComponent {
 
       <button class="toolbar-btn ${configOpen ? 'active' : ''}"
         @click=${() => this.togglePanel('config')} title="Toggle configuration panel">Config</button>
+
+      <button class="toolbar-btn ${telemetryOpen ? 'active' : ''}" @click=${() => this.togglePanel('telemetry')} title="Toggle telemetry panel">Telemetry</button>
 
       <contradiction-badge></contradiction-badge>
 
