@@ -143,7 +143,7 @@ export class NARExecution {
     this.memory.consolidate({ cycleCount: this._cycleCount });
     this.phaseTimer.end();
 
-    this.logger.info('run complete', { steps, cycles: this._cycleCount, derived });
+    this.logger.debug('run complete', { steps, cycles: this._cycleCount, derived });
     return derived;
   }
 

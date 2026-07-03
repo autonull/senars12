@@ -154,7 +154,7 @@ await conn.connect();
     });
 
     // Wait for bot to join (faster with small flood protection delay)
-    await new Promise((r) => setTimeout(r, 6000));
+    await new Promise((r) => setTimeout(r, 1000));
 
     // Send a PRIVMSG to the bot from a fictional alice user
     const botSock = (mockServer as unknown as { sockets: Socket[] }).sockets[0];
@@ -163,8 +163,8 @@ await conn.connect();
     }
 
     // Wait for the bot to respond (cold + LM call)
-    await new Promise((r) => setTimeout(r, 6000));
+    await new Promise((r) => setTimeout(r, 1000));
 
 expect(receivedBotMessages.length).toBeGreaterThan(0);
-   }, 15000);
+   }, 3000);
 });
