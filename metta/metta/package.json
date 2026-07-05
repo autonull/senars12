@@ -1,0 +1,22 @@
+{
+  "name": "@senars/metta",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./Parser.js": "./src/Parser.js",
+    "./MeTTaInterpreter.js": "./src/MeTTaInterpreter.js",
+    "./MeTTa.js": "./src/MeTTa.js",
+    "./kernel/*.js": "./src/kernel/*.js",
+    "./extensions/*.js": "./src/extensions/*.js",
+    "./config/*.js": "./src/config/*.js",
+    "./stdlib/*.js": "./src/stdlib/*.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@senars/core": "workspace:*",
+    "@senars/tensor": "workspace:*",
+    "canvas": "^2.11.2"
+  }
+}

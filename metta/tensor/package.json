@@ -1,0 +1,14 @@
+{
+  "name": "@senars/tensor",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./*.js": "./src/*.js",
+    "./backends/*.js": "./src/backends/*.js"
+  },
+  "dependencies": {
+    "@senars/core": "workspace:*"
+  }
+}
