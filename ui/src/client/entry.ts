@@ -26,6 +26,7 @@ import './components/graph-minimap.js';
 // Phase 4: Chat & Config enhancements
 import './components/chat-history-panel.js';
 import './components/config-profiles.js';
+import './components/lens-designer.js';
 
 // Phase 5: Observability
 import './components/cognitive-metrics.js';

@@ -41,10 +41,20 @@ class LayoutRegistryImpl {
     cy.layout(layoutOpts).run();
   }
 
-  /** Returns true if topology changed significantly (new nodes > 20%). */
-  shouldRelayout(prevNodeCount: number, currentNodeCount: number): boolean {
+  /** Returns true if topology changed significantly — new nodes > threshold (default 20%) and at least K seeds touched. */
+  shouldRelayout(
+    prevNodeCount: number,
+    currentNodeCount: number,
+    threshold = 0.2,
+    minSeedNodes = 3,
+  ): boolean {
     if (prevNodeCount === 0) return true;
-    return (currentNodeCount - prevNodeCount) / prevNodeCount > 0.2;
+    const delta = currentNodeCount - prevNodeCount;
+    const ratio = delta / prevNodeCount;
+    // Small absolute changes with few new nodes don't trigger re-layout
+    if (delta > 0 && delta <= minSeedNodes && ratio <= 0.1) return false;
+    if (delta < 0 && -delta <= minSeedNodes && ratio >= -0.1) return false;
+    return Math.abs(ratio) > threshold;
   }
 }
 
@@ -120,8 +130,7 @@ layoutRegistry.register({
     fit: (opts?.fit as boolean) ?? false,
     padding: 20,
     concentric: (node: any) => {
-      const ld = node.data('lensData');
-      return ld?.score ?? node.data('priority') ?? 0;
+      return node.data('priority') ?? node.data('confidence') ?? 0;
     },
     levelWidth: () => 1,
     ...opts,

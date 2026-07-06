@@ -26,3 +26,42 @@ export const LENS_DESCRIPTIONS: Record<string, string> = {
   goal: 'What the system wants',
   contradiction: 'Where beliefs conflict',
 };
+
+/** NAR-native edge types and their UI labels. */
+export const EDGE_TYPES: Record<string, string> = {
+  inheritance: 'Inheritance',
+  similarity: 'Similarity',
+  implication: 'Implication',
+  equivalence: 'Equivalence',
+  derivation: 'Derivation',
+  semantic: 'Semantic',
+  relation: 'Relation',
+};
+
+/** Human-readable labels for edge types (aliased from EDGE_TYPES for convenience). */
+export const EDGE_LABELS: Record<string, string> = EDGE_TYPES;
+
+/** Returns the UI label for an edge type, falling back to the raw type string. */
+export function edgeTypeLabel(type: string): string {
+  return EDGE_TYPES[type] ?? type;
+}
+
+/** Lens field descriptor for dynamic field discovery. */
+export interface LensFieldDescriptor {
+  key: string;
+  label: string;
+  type: 'number' | 'boolean' | 'string' | 'object';
+}
+
+/** Available fields for lens mapping, shared between server schema and designer. */
+export const LENS_FIELDS: LensFieldDescriptor[] = [
+  { key: 'priority',          label: 'Priority',          type: 'number'  },
+  { key: 'confidence',        label: 'Confidence',        type: 'number'  },
+  { key: 'isContradiction',   label: 'Is Contradiction',  type: 'boolean' },
+  { key: 'truth',             label: 'Truth (frequency)', type: 'object'  },
+  { key: 'occurrenceTime',    label: 'Occurrence Time',   type: 'number'  },
+  { key: 'goalRelevance',     label: 'Goal Relevance',    type: 'number'  },
+  { key: 'nodeType',          label: 'Node Type',         type: 'string'  },
+  { key: 'edgeType',          label: 'Edge Type',         type: 'string'  },
+  { key: 'weight',            label: 'Edge Weight',       type: 'number'  },
+];

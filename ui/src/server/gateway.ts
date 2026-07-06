@@ -1,4 +1,6 @@
 import type { WebSocket } from 'ws';
+import type { LensSpec } from '../shared/lens-schema.js';
+import { LensSpecSchema, BUILTIN_LENS_IDS, builtinLensSpecs } from '../shared/lens-schema.js';
 import type { IncomingFromServer, Lens } from '../shared/protocol.js';
 import { RateLimiter } from './rate-limiter.js';
 import { validateClientMessage } from './validators.js';
@@ -36,7 +38,7 @@ export interface NarAdapter {
     term: string;
     priority: number;
     confidence: number;
-    lensData?: { score: number; color: string; size: number };
+    isContradiction?: boolean;
     getLinks(): Array<{ target: string; strength: number }>;
   }>;
 
@@ -59,9 +61,36 @@ export interface NarAdapter {
   getConfigSchema(): Record<string, any>;
 
   setConfig(key: string, value: any): void;
+
+  setNodeTruth(id: string, truth: { frequency: number; confidence: number }): void;
+
+  getRevisionHistory(term: string): Array<{
+    truth: { frequency: number; confidence: number };
+    stampId: string;
+    timestamp: number;
+    source: 'input' | 'derivation' | 'revision' | 'inference';
+  }>;
 }
 
-type SendFn = (msg: IncomingFromServer) => void;
+/** In-memory lens registry shared across connections. */
+export const lensRegistry: Map<string, LensSpec> = new Map();
+
+/** Initialise the registry with built-in lenses. */
+export function initLensRegistry(): void {
+  for (const spec of builtinLensSpecs()) {
+    lensRegistry.set(spec.id, spec);
+  }
+}
+
+/** Register a user-defined lens. Returns null on validation failure. */
+export function registerServerLens(spec: LensSpec): LensSpec | null {
+  const parsed = LensSpecSchema.safeParse(spec);
+  if (!parsed.success) return null;
+  lensRegistry.set(parsed.data.id, parsed.data);
+  return parsed.data;
+}
+
+export type SendFn = (msg: IncomingFromServer) => void;
 
 /** Handles an incoming WebSocket connection and routes messages to handlers. */
 export function handleConnection(
@@ -69,7 +98,8 @@ export function handleConnection(
   nar: NarAdapter,
   onChat: (content: string, send: SendFn) => void,
   onLensChange?: (lens: Lens) => void,
-  onFocusChange?: (term: string) => void
+  onFocusChange?: (term: string) => void,
+  onLensDefine?: (spec: LensSpec, send: SendFn) => void
 ): void {
   const limiter = new RateLimiter({ chat: 5, config: 10 });
   let lastSeqId = 0;
@@ -123,7 +153,29 @@ export function handleConnection(
     if (msg.type === 'focus.set') {
       onFocusChange?.(msg.term);
     }
-  });
+    if (msg.type === 'object.set') {
+      if (msg.kind === 'node' && msg.patch.truth) {
+        nar.setNodeTruth(msg.id, msg.patch.truth);
+      }
+      if (msg.kind === 'edge') {
+        if (msg.patch.truth) nar.setNodeTruth?.(msg.id, msg.patch.truth);
+      }
+    }
+    if (msg.type === 'node.set') {
+      if (msg.patch.truth) nar.setNodeTruth(msg.id, msg.patch.truth);
+    }
+if (msg.type === 'lens.define') {
+       const valid = LensSpecSchema.safeParse(msg.lens);
+       if (valid.success) {
+         registerServerLens(valid.data);
+         onLensDefine?.(valid.data, send);
+       }
+     }
+     if (msg.type === 'node.history.request') {
+       const history = nar.getRevisionHistory(msg.term);
+       send({ type: 'node.history', term: msg.term, history });
+     }
+   });
 
   socket.on('close', () => {
     clearInterval(heartbeat);
@@ -154,7 +206,7 @@ function handleSync(
             priority: c.priority,
             confidence: c.confidence,
             nodeType: 'concept',
-            lensData: c.lensData,
+            isContradiction: c.isContradiction,
           })),
           edges: concepts.flatMap((c) =>
             c.getLinks().map((l) => ({ source: c.term, target: l.target, weight: l.strength }))

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { LensSpec } from './lens-schema.js';
 
 // === Chat Messages (also serve as graph nodes) ===
 export const ChatMessage = z.object({
@@ -18,6 +19,12 @@ export const ChatMessage = z.object({
 });
 export type ChatMessage = z.infer<typeof ChatMessage>;
 
+export const TruthValue = z.object({
+  frequency: z.number().min(0).max(1),
+  confidence: z.number().min(0).max(1),
+});
+export type TruthValue = z.infer<typeof TruthValue>;
+
 // === Graph Node with lens-encoded visual data ===
 export const GraphNodeData = z.object({
   id: z.string(),
@@ -27,6 +34,10 @@ export const GraphNodeData = z.object({
   priority: z.number(),
   confidence: z.number(),
   punctuation: z.enum(['.', '!', '?']).optional(),
+  truth: TruthValue.optional(),
+  isContradiction: z.boolean().optional(),
+  occurrenceTime: z.number().optional(),
+  goalRelevance: z.number().optional(),
   nodeType: z.enum(['message', 'concept', 'derivation', 'goal', 'question', 'config', 'meta']),
   lensData: z.object({ score: z.number(), color: z.string(), size: z.number() }).optional(),
   layout: z
@@ -54,8 +65,8 @@ export const GraphOp = z.discriminatedUnion('action', [
 ]);
 export type GraphOp = z.infer<typeof GraphOp>;
 
-// === Lens ===
-export const Lens = z.enum(['belief', 'goal', 'contradiction']);
+// === Lens (extensible string — builtins: 'belief', 'goal', 'contradiction') ===
+export const Lens = z.string();
 export type Lens = z.infer<typeof Lens>;
 
 // === Cognitive Delta (with lens) ===
@@ -152,6 +163,92 @@ const TelemetryMsg = z.object({
 const LensSet = z.object({ type: z.literal('lens.set'), lens: Lens });
 const FocusSet = z.object({ type: z.literal('focus.set'), term: z.string() });
 
+const ObjectSetMsg = z.object({
+  type: z.literal('object.set'),
+  kind: z.enum(['node', 'edge']),
+  id: z.string(),
+  patch: z.object({
+    truth: TruthValue.optional(),
+    type: z.string().optional(),
+    priority: z.number().min(0).max(1).optional(),
+    confidence: z.number().min(0).max(1).optional(),
+  }),
+});
+
+const NodeSetMsg = z.object({
+  type: z.literal('node.set'),
+  id: z.string(),
+  patch: z.object({
+    truth: TruthValue.optional(),
+    priority: z.number().min(0).max(1).optional(),
+    confidence: z.number().min(0).max(1).optional(),
+  }),
+});
+
+// === Phase 4: Lens Registry messages ===
+// Server pushes full list of available lens specs on connect and on changes.
+// Uses z.array(z.unknown()) to avoid circular dep between protocol.ts and lens-schema.ts.
+// Validation is performed server-side via LensSpecSchema before broadcasting.
+const LensListMsg = z.object({
+  type: z.literal('lens.list'),
+  lenses: z.array(z.object({
+    id: z.string(),
+    label: z.string(),
+    description: z.string(),
+    modulation: z.any(),
+  })),
+});
+
+// Client sends a new lens definition; server validates and broadcasts.
+const LensDefineMsg = z.object({
+  type: z.literal('lens.define'),
+  lens: z.object({
+    id: z.string(),
+    label: z.string(),
+    description: z.string(),
+    modulation: z.any(),
+  }),
+});
+
+// Server broadcasts a newly defined lens to all clients.
+const LensDefinedMsg = z.object({
+  type: z.literal('lens.defined'),
+  lens: z.object({
+    id: z.string(),
+    label: z.string(),
+    description: z.string(),
+    modulation: z.any(),
+  }),
+});
+
+// Server sends the list of available lens fields for the designer.
+const LensFieldsMsg = z.object({
+  type: z.literal('lens.fields'),
+  fields: z.array(z.object({
+    key: z.string(),
+    label: z.string(),
+    type: z.enum(['number', 'boolean', 'string', 'object']),
+  })),
+});
+
+const NodeHistoryRequestMsg = z.object({
+  type: z.literal('node.history.request'),
+  term: z.string(),
+});
+
+const NodeHistoryMsg = z.object({
+  type: z.literal('node.history'),
+  term: z.string(),
+  history: z.array(
+    z.object({
+      truth: TruthValue,
+      stampId: z.string(),
+      timestamp: z.number(),
+      source: z.enum(['input', 'derivation', 'revision', 'inference']),
+    })
+  ),
+});
+
 export const IncomingFromClient = z.discriminatedUnion('type', [
   ChatUserMsg,
   ConfigSetMsg,
@@ -159,6 +256,10 @@ export const IncomingFromClient = z.discriminatedUnion('type', [
   LensSet,
   FocusSet,
   ViewportSet,
+  ObjectSetMsg,
+  NodeSetMsg,
+  LensDefineMsg,
+  NodeHistoryRequestMsg,
 ]);
 export const IncomingFromServer = z.discriminatedUnion('type', [
   ChatAgentStream,
@@ -167,6 +268,10 @@ export const IncomingFromServer = z.discriminatedUnion('type', [
   ConfigSchemaMsg,
   StateSnapshot,
   TelemetryMsg,
+  LensListMsg,
+  LensDefinedMsg,
+  LensFieldsMsg,
+  NodeHistoryMsg,
 ]);
 export type IncomingFromClient = z.infer<typeof IncomingFromClient>;
 export type IncomingFromServer = z.infer<typeof IncomingFromServer>;

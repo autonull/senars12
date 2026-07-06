@@ -126,8 +126,8 @@ export class GraphMinimap extends BaseComponent {
       if (!pos) continue;
       const cx = px(pos.x);
       const cy = py(pos.y);
-      const r = Math.max(2, (nd.lensData?.size ?? 20) * scale * 0.5);
-      ctx.fillStyle = nd.lensData?.color ?? TOKEN_COLORS.accentCyan;
+      const r = Math.max(2, (10 + 30 * nd.priority) * scale * 0.5);
+      ctx.fillStyle = nd.isContradiction ? '#ffaa00' : TOKEN_COLORS.accentCyan;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fill();

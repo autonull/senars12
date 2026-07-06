@@ -12,18 +12,21 @@ import {
   $graphNodes,
   $lensLayout,
   $lensViewport,
+  $selectedEdgeId,
   $selectedNodeId,
   $selectedNodeIds,
+  $view,
   $viewport,
   BaseComponent,
   eventBus,
+  evaluateLens,
   mountTestApi,
   send,
 } from '../core/index.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
 import { type HtmlLabelData, computeHtmlLabels } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
-import { applyLensStyles } from '../utils/lens-styles.js';
+import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
 import { TOKEN_COLORS } from '../utils/token-colors.js';
 import './graph-minimap.js';
 
@@ -87,8 +90,15 @@ export class GraphViewport extends BaseComponent {
     this.watchWith($graphEdges, () => this.syncGraph());
     this.watchWith($activeLens, () => {
       if (!this.cy) return;
-      applyLensStyles(this.cy, $activeLens.get());
+      clearNodeStyles(this.cy);
+      const delta = evaluateLens();
+      applyDelta(this.cy, delta);
       this.restoreLensViewport();
+    });
+    this.watchWith($view, () => {
+      if (!this.cy) return;
+      const delta = evaluateLens();
+      applyDelta(this.cy, delta);
     });
     this.watchWith($selectedNodeId, (id) => this.centerOnNode(id));
     this.watchWith($viewport, (vp) => this.restoreViewport(vp));
@@ -98,8 +108,17 @@ export class GraphViewport extends BaseComponent {
       getNodeCount: () => this.cy?.nodes().length ?? 0,
       getEdgeCount: () => this.cy?.edges().length ?? 0,
       getNodeData: (id: string) => this.cy?.getElementById(id).data() ?? null,
+      getEdgeData: (source: string, target: string) => {
+        const key = `${source}->${target}`;
+        return $graphEdges.get().get(key) ?? null;
+      },
       getAllNodeIds: () => this.cy?.nodes().map((n) => n.id()) ?? [],
+      getAllEdgeIds: () => this.cy?.edges().map((e) => `${e.data('source')}->${e.data('target')}`) ?? [],
       clickNode: (id: string) => this.cy?.getElementById(id).emit('tap'),
+      clickEdge: (source: string, target: string) => {
+        const edge = this.cy?.edges(`[source="${source}"][target="${target}"]`);
+        if (edge?.length) edge.emit('tap');
+      },
       setGraphData: (nodes: Map<string, any>, edges: Map<string, any>) => {
         $graphNodes.set(nodes);
         $graphEdges.set(edges);
@@ -160,9 +179,21 @@ export class GraphViewport extends BaseComponent {
     this.cy.on('tap', (evt) => {
       if (evt.target === this.cy) {
         $selectedNodeId.set(null);
+        $selectedEdgeId.set(null);
         $selectedNodeIds.set(new Set());
         this.closeContextMenu();
       }
+    });
+
+    // Tap on edge: select and open drawer
+    this.cy.on('tap', 'edge', (evt) => {
+      const edge = evt.target;
+      const source = edge.data('source');
+      const target = edge.data('target');
+      const key = `${source}->${target}`;
+      $selectedEdgeId.set(key);
+      $selectedNodeId.set(null);
+      $selectedNodeIds.set(new Set());
     });
 
     // Double-click: focus term
@@ -204,7 +235,9 @@ export class GraphViewport extends BaseComponent {
       this.requestUpdate();
     });
 
-    this.applyLensStyles();
+    const initialDelta = evaluateLens();
+    clearNodeStyles(this.cy);
+    applyDelta(this.cy, initialDelta);
   }
 
   override render() {
@@ -253,14 +286,12 @@ export class GraphViewport extends BaseComponent {
   private buildTooltipContent(data: Record<string, any>): string {
     const p = (data.priority ?? 0).toFixed(3);
     const c = (data.confidence ?? 0).toFixed(3);
-    const score = data.lensData?.score?.toFixed(3) ?? '—';
     const term = data.term ?? data.label ?? data.id;
     const degree = this.cy?.getElementById(data.id).degree() ?? 0;
     return `<div class="tooltip-row"><span class="tooltip-label">${term}</span></div>
 <div class="tooltip-divider"></div>
 <div class="tooltip-row"><span class="tooltip-label">Priority</span><span class="tooltip-value">${p}</span></div>
 <div class="tooltip-row"><span class="tooltip-label">Confidence</span><span class="tooltip-value">${c}</span></div>
-<div class="tooltip-row"><span class="tooltip-label">Score</span><span class="tooltip-value">${score}</span></div>
 <div class="tooltip-row"><span class="tooltip-label">Degree</span><span class="tooltip-value">${degree}</span></div>`;
   }
 
@@ -462,24 +493,16 @@ export class GraphViewport extends BaseComponent {
     });
   }
 
-  private applyLensStyles() {
-    if (!this.cy) return;
-    applyLensStyles(this.cy, $activeLens.get());
-  }
-
   private applyGraphFilter() {
     if (!this.cy) return;
     const filter = $graphFilter.get();
-    this.cy.nodes().forEach((n) => {
+    for (const n of this.cy.nodes()) {
       if (filter === 'contradiction') {
-        const ld = n.data('lensData');
-        const isContradiction =
-          ld && (ld.color?.includes('ffaa00') || ld.color?.includes('ffb000'));
-        n.style('display', isContradiction ? 'element' : 'none');
+        n.style('display', n.data('isContradiction') ? 'element' : 'none');
       } else {
         n.style('display', 'element');
       }
-    });
+    }
   }
 
   private restoreViewport(vp: { x: number; y: number; zoom: number }) {
@@ -523,7 +546,7 @@ export class GraphViewport extends BaseComponent {
             nodeType,
             priority: nd.priority,
             confidence: nd.confidence,
-            lensData: nd.lensData,
+            isContradiction: nd.isContradiction,
             label: nd.label,
             html: nd.html,
           };
@@ -552,7 +575,9 @@ export class GraphViewport extends BaseComponent {
 
       this.restorePositions(oldPositions);
       layoutConversationThread(cy, $chatMessages.get());
-      this.applyLensStyles();
+      const delta = evaluateLens();
+      clearNodeStyles(cy);
+      applyDelta(cy, delta);
       this.applyGraphFilter();
     });
 

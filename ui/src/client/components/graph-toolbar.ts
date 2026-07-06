@@ -1,5 +1,6 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import type { ViewportMode } from '../core/index.js';
 import {
   $activeLens,
   $connectionState,
@@ -9,6 +10,7 @@ import {
   $selectedNodeIds,
   $urlState,
   $viewport,
+  $viewportMode,
   BaseComponent,
   eventBus,
   send,
@@ -82,12 +84,14 @@ export class GraphToolbar extends BaseComponent {
   @state() private searchQuery = '';
   @state() private multiSelectCount = 0;
   @state() private layoutName = 'cose';
+  @state() private viewportMode: ViewportMode = '2d';
 
   override connectedCallback() {
     super.connectedCallback();
     this.watch($activeLens);
     this.watch($connectionState);
     this.watch($panels);
+    this.watch($viewportMode);
     this.watchWith($viewport, (vp) => {
       this.zoom = vp.zoom;
     });
@@ -100,6 +104,14 @@ export class GraphToolbar extends BaseComponent {
     this.watchWith($lensLayout, (layouts) => {
       this.layoutName = layouts[$activeLens.get()] ?? 'cose';
     });
+    this.watchWith($viewportMode, (mode) => {
+      this.viewportMode = mode;
+    });
+  }
+
+  private toggleViewportMode() {
+    const current = $viewportMode.get();
+    $viewportMode.set(current === '2d' ? '3d' : '2d');
   }
 
   override render() {
@@ -107,6 +119,7 @@ export class GraphToolbar extends BaseComponent {
     const state = $connectionState.get();
     const configOpen = $panels.get().get('config')?.open;
     const telemetryOpen = $panels.get().get('telemetry')?.open;
+    const lensDesignerOpen = $panels.get().get('lens-designer')?.open;
 
     return html`
       <div class="zoom-group">
@@ -138,6 +151,9 @@ export class GraphToolbar extends BaseComponent {
 
       <button class="toolbar-btn" @click=${this.toggleMinimap} title="Toggle minimap">Minimap</button>
 
+      <button class="toolbar-btn ${this.viewportMode === '3d' ? 'active' : ''}"
+        @click=${this.toggleViewportMode} title="Toggle 2D/3D viewport">3D</button>
+
       ${
         this.multiSelectCount > 0
           ? html`
@@ -156,6 +172,9 @@ export class GraphToolbar extends BaseComponent {
 
       <button class="toolbar-btn ${configOpen ? 'active' : ''}"
         @click=${() => this.togglePanel('config')} title="Toggle configuration panel">Config</button>
+
+      <button class="toolbar-btn ${lensDesignerOpen ? 'active' : ''}"
+        @click=${() => this.togglePanel('lens-designer')} title="Open Lens Designer">Design</button>
 
       <button class="toolbar-btn ${telemetryOpen ? 'active' : ''}" @click=${() => this.togglePanel('telemetry')} title="Toggle telemetry panel">Telemetry</button>
 

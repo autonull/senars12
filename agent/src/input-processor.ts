@@ -49,6 +49,21 @@ function tryParseNarsese(input: string): ParseTaskResult | null {
   return termParser.parseTask(input);
 }
 
+function tryParseMultiNarsese(input: string): ParseTaskResult[] | null {
+  const statements = input
+    .split(';')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && !s.startsWith(';;'));
+  if (statements.length <= 1) return null;
+  const results: ParseTaskResult[] = [];
+  for (const stmt of statements) {
+    const task = termParser.parseTask(stmt);
+    if (!task) return null;
+    results.push(task);
+  }
+  return results;
+}
+
 function formatTaskBatchResult(batch: TaskBatch): string {
   const parts: string[] = [];
   if (batch.beliefs.length > 0) {
@@ -172,6 +187,20 @@ export async function* processInput(
   autonomyEngine?.pause();
 
   try {
+    // Multi-clause Narsese input: "sky is blue; sky is not green"
+    const multiTask = tryParseMultiNarsese(input);
+    if (multiTask) {
+      const texts: string[] = [];
+      for (const task of multiTask) {
+        await nar?.input(task.term, task.taskType, task.truth);
+        const text = task.term.toString();
+        texts.push(text);
+        yield { kind: 'narsese-input', text, taskType: task.taskType };
+      }
+      const joined = texts.join('; ');
+      return `+ ${joined}`;
+    }
+
     const task = tryParseNarsese(input);
     if (task) {
       await nar?.input(task.term, task.taskType, task.truth);

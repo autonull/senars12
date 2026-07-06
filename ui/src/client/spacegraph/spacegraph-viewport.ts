@@ -13,13 +13,15 @@ import {
   $lensViewport,
   $selectedNodeId,
   $selectedNodeIds,
+  $view,
   $viewport,
   eventBus,
+  evaluateLens,
   mountTestApi,
   send,
 } from '../core/index.js';
 import { edgeKey } from '../../shared/utils.js';
-import { applyLensStyles } from '../utils/lens-styles.js';
+import { applyDelta, clearNodeStyles, checkUnsupportedChannels } from './adapter-3d.js';
 import { TOKEN_COLORS } from '../utils/token-colors.js';
 
 // Dynamic import SpaceGraphJS (source-level via Vite alias)
@@ -47,12 +49,6 @@ const CHAT_NODE_STYLE = {
   'border-width': 1.5,
 };
 
-const LENS_COLOR_MAP: Record<string, string> = {
-  belief: '#00f3ff',
-  goal: '#ff00aa',
-  contradiction: '#ffaa00',
-};
-
 @customElement('spacegraph-viewport')
 export class SpaceGraphViewport extends BaseComponent {
   static override styles = css`
@@ -71,14 +67,28 @@ export class SpaceGraphViewport extends BaseComponent {
   @state() private tooltip: { x: number; y: number; content: string } | null = null;
   private tooltipTimer: ReturnType<typeof setTimeout> | null = null;
   private prevNodeCount = 0;
+  @state() private unsupportedChannelsWarning: string | null = null;
 
   override connectedCallback() {
     super.connectedCallback();
     this.watchWith($graphNodes, () => this.syncGraph());
     this.watchWith($graphEdges, () => this.syncGraph());
     this.watchWith($activeLens, () => {
-      this.applyLensStyles();
+      clearNodeStyles(this.sg!);
+      const delta = evaluateLens();
+      const isEdge = (id: string) => $graphEdges.get().has(id);
+      const unsupported = checkUnsupportedChannels(delta, isEdge);
+      this.showUnsupportedWarning(unsupported);
+      applyDelta({ sg: this.sg!, updatePosition: (id, pos) => this.updatePosition(id, pos) }, delta);
       this.restoreLensViewport();
+    });
+    this.watchWith($view, () => {
+      if (!this.sg) return;
+      const delta = evaluateLens();
+      const isEdge = (id: string) => $graphEdges.get().has(id);
+      const unsupported = checkUnsupportedChannels(delta, isEdge);
+      this.showUnsupportedWarning(unsupported);
+      applyDelta({ sg: this.sg, updatePosition: (id, pos) => this.updatePosition(id, pos) }, delta);
     });
     this.watchWith($selectedNodeId, (id) => this.centerOnNode(id));
     this.watchWith($viewport, (vp) => this.restoreViewport(vp));
@@ -91,6 +101,12 @@ export class SpaceGraphViewport extends BaseComponent {
       getAllNodeIds: () => this.sg?.nodes.map(n => n.id) ?? [],
       clickNode: (id: string) => this.sg?.getNode(id)?.object?.dispatchEvent?.(new Event('click')),
     });
+  }
+
+  private showUnsupportedWarning(channels: string[]): void {
+    this.unsupportedChannelsWarning = channels.length > 0
+      ? `Unsupported channels: ${channels.join(', ')}`
+      : null;
   }
 
   override disconnectedCallback() {
@@ -160,46 +176,11 @@ export class SpaceGraphViewport extends BaseComponent {
   }
 
   private handleNodeUpdate(node: any, changes: any): void {
-    // Update visual properties based on lens data
-    if (changes.lensData && node.object) {
-      this.updateNodeVisuals(node, changes.lensData);
-    }
+    // Visual updates handled by modulation pipeline — no-op
   }
 
   private handleNodeRemove(nodeId: string): void {
     // Clean up
-  }
-
-  private updateNodeVisuals(node: any, lensData: any): void {
-    if (!node.object) return;
-    if (node.object.material) {
-      node.object.material.color.set(lensData.color);
-      node.object.material.opacity = 0.3 + 0.7 * Math.min(1, lensData.score);
-      node.object.material.needsUpdate = true;
-    }
-    // Scale mesh
-    const scale = lensData.size / 40;
-    node.object.scale.setScalar(scale);
-  }
-
-  private applyLensStyles(): void {
-    if (!this.sg) return;
-    const activeLens = $activeLens.get();
-    const lensColor = LENS_COLOR_MAP[activeLens] ?? LENS_COLOR_MAP.belief;
-
-    this.sg.forNodes((node: any) => {
-      const ld = node.data?.lensData;
-      if (ld) {
-        node.object.material.color.set(ld.color);
-        node.object.material.opacity = 0.3 + 0.7 * Math.min(1, ld.score);
-        const scale = ld.size / 40;
-        node.object.scale.setScalar(scale);
-      } else {
-        node.object.material.color.set(lensColor);
-        node.object.material.opacity = 0.15;
-        node.object.scale.setScalar(1);
-      }
-    });
   }
 
   private applyGraphFilter(): void {
@@ -207,9 +188,7 @@ export class SpaceGraphViewport extends BaseComponent {
     const filter = $graphFilter.get();
     this.sg.forNodes((node: any) => {
       if (filter === 'contradiction') {
-        const ld = node.data?.lensData;
-        const isContradiction = ld && (ld.color?.includes('ffaa00') || ld.color?.includes('ffb000'));
-        node.object.visible = !!isContradiction;
+        node.object.visible = !!node.data?.isContradiction;
       } else {
         node.object.visible = true;
       }
@@ -269,14 +248,14 @@ export class SpaceGraphViewport extends BaseComponent {
           : [0, 0, 0];
 
         const nodeData: Record<string, unknown> = {
-          color: nd.lensData?.color ?? TOKEN_COLORS.accentCyan,
+          color: TOKEN_COLORS.accentCyan,
           priority: nd.priority,
           confidence: nd.confidence,
-          lensData: nd.lensData,
+          isContradiction: nd.isContradiction,
           label: nd.label,
           html: nd.html,
           shape: 'sphere',
-          size: nd.lensData?.size ?? 40,
+          size: 40,
         };
 
         if (nodeType === 'HtmlNode' && nd.html) {
@@ -320,8 +299,13 @@ export class SpaceGraphViewport extends BaseComponent {
       }
     }
 
-    // Apply lens styles after sync
-    this.applyLensStyles();
+    // Apply modulation pipeline after sync
+    clearNodeStyles(this.sg);
+    const delta = evaluateLens();
+    const isEdgeCheck = (id: string) => $graphEdges.get().has(id);
+    const unsupported = checkUnsupportedChannels(delta, isEdgeCheck);
+    this.showUnsupportedWarning(unsupported);
+    applyDelta({ sg: this.sg, updatePosition: (id, pos) => this.updatePosition(id, pos) }, delta);
     this.applyGraphFilter();
 
     // Run layout if needed
@@ -345,11 +329,19 @@ export class SpaceGraphViewport extends BaseComponent {
     return Math.abs(newCount - oldCount) > Math.max(5, oldCount * 0.2);
   }
 
+  private updatePosition(id: string, position: [number, number, number]): void {
+    const node = this.sg?.getNode(id);
+    if (node?.object) {
+      this.sg?.update({ nodes: [{ id, position }] });
+    }
+  }
+
   override render() {
     const meta = $graphMeta.get();
     return html`
       <div id="sg-container" @click=${() => { this.sg?.deselectAll(); $selectedNodeId.set(null); }}></div>
       ${meta?.truncated ? html`<div class="warning">▼ ${meta.totalHidden} lower-priority concepts hidden</div>` : ''}
+      ${this.unsupportedChannelsWarning ? html`<div class="warning">${this.unsupportedChannelsWarning}</div>` : ''}
       ${
         this.tooltip
           ? html`

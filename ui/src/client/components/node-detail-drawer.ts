@@ -1,17 +1,24 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import type { GraphNodeData } from '../../shared/protocol.js';
+import { EDGE_TYPES, edgeTypeLabel } from '../../shared/constants.js';
 import {
   $focusTerm,
   $graphEdges,
   $graphNodes,
+  $nodeHistory,
+  $selectedEdgeId,
   $selectedNodeId,
   $selectedNodeIds,
+  $view,
+  type RevisionEntry,
   BaseComponent,
   send,
+  updateEdgeData,
+  updateNodeData,
 } from '../core/index.js';
 
-type TabId = 'overview' | 'links' | 'actions';
+type TabId = 'overview' | 'links' | 'actions' | 'edge' | 'history';
 
 @customElement('node-detail-drawer')
 export class NodeDetailDrawer extends BaseComponent {
@@ -37,33 +44,151 @@ export class NodeDetailDrawer extends BaseComponent {
   `;
   @state() private activeTab: TabId = 'overview';
   @state() private node: GraphNodeData | null = null;
+  @state() private edgeData: Record<string, unknown> | null = null;
+  @state() private history: RevisionEntry[] = [];
   @state() private linkFilter = '';
+  @state() private truthFrequency = 0.5;
+  @state() private truthConfidence = 0.9;
+  @state() private edgeTruthFrequency = 0.5;
+  @state() private edgeType = 'inheritance';
+  private truthDebounce: ReturnType<typeof setTimeout> | null = null;
+  private edgeTruthDebounce: ReturnType<typeof setTimeout> | null = null;
 
   override connectedCallback() {
     super.connectedCallback();
     this.watchWith($selectedNodeId, (id) => {
+      this.edgeData = null;
       if (id) {
         this.node = $graphNodes.get().get(id) ?? null;
+        this.syncTruth();
         this.activeTab = 'overview';
       } else {
         this.node = null;
       }
     });
+    this.watchWith($selectedEdgeId, (id) => {
+      this.node = null;
+      if (id) {
+        this.edgeData = $graphEdges.get().get(id) ?? null;
+        this.syncEdgeTruth();
+        this.activeTab = 'edge';
+      } else {
+        this.edgeData = null;
+      }
+    });
     this.watchWith($graphNodes, () => {
       const id = $selectedNodeId.get();
-      if (id) this.node = $graphNodes.get().get(id) ?? null;
+      if (id) {
+        this.node = $graphNodes.get().get(id) ?? null;
+        this.syncTruth();
+      }
+    });
+    this.watchWith($graphEdges, () => {
+      const id = $selectedEdgeId.get();
+      if (id) {
+        this.edgeData = $graphEdges.get().get(id) ?? null;
+        this.syncEdgeTruth();
+      }
+    });
+    this.watchWith($nodeHistory, (history) => {
+      this.history = history;
     });
   }
 
+  private syncEdgeTruth() {
+    const ed = this.edgeData;
+    if (ed) {
+      this.edgeTruthFrequency = (ed.weight as number) ?? 0.5;
+      this.edgeType = (ed.type as string) ?? 'inheritance';
+    } else {
+      this.edgeTruthFrequency = 0.5;
+      this.edgeType = 'inheritance';
+    }
+  }
+
+  private onEdgeTruthInput(e: Event) {
+    const f = Number.parseFloat((e.target as HTMLInputElement).value);
+    this.edgeTruthFrequency = f;
+    const ed = this.edgeData;
+    if (!ed) return;
+    const key = `${ed.source}->${ed.target}`;
+    updateEdgeData(key, { weight: f });
+    if (this.edgeTruthDebounce) clearTimeout(this.edgeTruthDebounce);
+    this.edgeTruthDebounce = setTimeout(() => {
+      send({
+        type: 'object.set',
+        kind: 'edge',
+        id: key,
+        patch: { truth: { frequency: f, confidence: (ed.confidence as number) ?? 0.9 } },
+      });
+    }, 120);
+  }
+
+  private onEdgeTypeChange(e: Event) {
+    const t = (e.target as HTMLSelectElement).value;
+    this.edgeType = t;
+    const ed = this.edgeData;
+    if (!ed) return;
+    const key = `${ed.source}->${ed.target}`;
+    updateEdgeData(key, { type: t });
+    send({ type: 'object.set', kind: 'edge', id: key, patch: { type: t } });
+  }
+
+  private syncTruth() {
+    const n = this.node;
+    if (n?.truth) {
+      this.truthFrequency = n.truth.frequency;
+      this.truthConfidence = n.truth.confidence;
+    } else {
+      this.truthFrequency = 0.5;
+      this.truthConfidence = 0.9;
+    }
+  }
+
+  private truthToColor(f: number): string {
+    const hue = Math.round(f * 120);
+    return `hsl(${hue}, 70%, 50%)`;
+  }
+
+  private onTruthInput(e: Event) {
+    const f = Number.parseFloat((e.target as HTMLInputElement).value);
+    this.truthFrequency = f;
+    const node = this.node;
+    if (!node) return;
+    updateNodeData(node.id, {
+      truth: { frequency: f, confidence: this.truthConfidence },
+    });
+    if (this.truthDebounce) clearTimeout(this.truthDebounce);
+    this.truthDebounce = setTimeout(() => {
+      send({
+        type: 'object.set',
+        kind: 'node',
+        id: node.id,
+        patch: { truth: { frequency: f, confidence: this.truthConfidence } },
+      });
+    }, 120);
+  }
+
   override render() {
-    if (!this.node) return html``;
+    if (!this.node && !this.edgeData) return html``;
+
+    if (this.edgeData && !this.node) {
+      return html`
+        <div class="tabs">
+          <button class="tab active">Edge</button>
+        </div>
+        <div class="content">
+          ${this.renderEdge()}
+        </div>
+      `;
+    }
 
     return html`
       <div class="tabs">
-        ${(['overview', 'links', 'actions'] as const).map(
+        ${(['overview', 'links', 'actions', 'history'] as const).map(
           (tab) => html`
           <button class="tab ${this.activeTab === tab ? 'active' : ''}" @click=${() => (this.activeTab = tab)}>
-            ${tab === 'overview' ? 'Overview' : tab === 'links' ? 'Links' : 'Actions'}
+            ${tab === 'overview' ? 'Overview' : tab === 'links' ? 'Links' : tab === 'history' ? 'History' : 'Actions'}
           </button>
         `
         )}
@@ -72,8 +197,14 @@ export class NodeDetailDrawer extends BaseComponent {
         ${this.activeTab === 'overview' ? this.renderOverview() : ''}
         ${this.activeTab === 'links' ? this.renderLinks() : ''}
         ${this.activeTab === 'actions' ? this.renderActions() : ''}
+        ${this.activeTab === 'history' ? this.renderHistory() : ''}
       </div>
     `;
+  }
+
+  private fetchHistory() {
+    if (!this.node?.term) return;
+    send({ type: 'node.history.request', term: this.node.term });
   }
 
   private getLinks() {
@@ -145,18 +276,58 @@ export class NodeDetailDrawer extends BaseComponent {
 
   private renderOverview() {
     const n = this.node!;
-    const lensScore = n.lensData?.score?.toFixed(3) ?? '—';
-    const lensColor = n.lensData?.color ?? '—';
+    const truthColor = this.truthToColor(this.truthFrequency);
     return html`
       <div class="section-title">Node Details</div>
       <div class="field"><span class="field-label">Term</span><span class="field-value">${n.term ?? n.label ?? n.id}</span></div>
       <div class="field"><span class="field-label">Type</span><span class="field-value">${n.nodeType}</span></div>
       <div class="field"><span class="field-label">Priority</span><span class="field-value">${n.priority?.toFixed(3) ?? '—'}</span></div>
       <div class="field"><span class="field-label">Confidence</span><span class="field-value">${n.confidence?.toFixed(3) ?? '—'}</span></div>
-      <div class="section-title">Lens Scores</div>
-      <div class="field"><span class="field-label">Score</span><span class="field-value">${lensScore}</span></div>
-      <div class="field"><span class="field-label">Color</span><span class="field-value"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${lensColor};vertical-align:middle;margin-right:4px"></span>${lensColor}</span></div>
+      ${n.isContradiction ? html`<div class="field"><span class="field-label">Contradiction</span><span class="field-value" style="color:#ffaa00">⚠ Detected</span></div>` : ''}
+      <div class="section-title">Truth Value</div>
+      <div class="field">
+        <span class="field-label">Frequency</span>
+        <span class="field-value" style="display:flex;align-items:center;gap:6px">
+          <input type="range" min="0" max="1" step="0.01" .value=${String(this.truthFrequency)} @input=${this.onTruthInput} style="width:80px;accent-color:${truthColor}" />
+          <span style="color:${truthColor};font-weight:bold">${this.truthFrequency.toFixed(2)}</span>
+          <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${truthColor}"></span>
+        </span>
+      </div>
+      <div class="field"><span class="field-label">Confidence</span><span class="field-value">${this.truthConfidence.toFixed(3)}</span></div>
       ${n.punctuation ? html`<div class="field"><span class="field-label">Punctuation</span><span class="field-value">${n.punctuation}</span></div>` : ''}
+    `;
+  }
+
+  private renderEdge() {
+    const ed = this.edgeData!;
+    const hasTruth = ed.weight !== undefined;
+    const nodes = $graphNodes.get();
+    const sourceLabel = nodes.get(ed.source as string)?.label ?? (ed.source as string);
+    const targetLabel = nodes.get(ed.target as string)?.label ?? (ed.target as string);
+    return html`
+      <div class="section-title">Edge Details</div>
+      <div class="field"><span class="field-label">Source</span><span class="field-value">${sourceLabel}</span></div>
+      <div class="field"><span class="field-label">Target</span><span class="field-value">${targetLabel}</span></div>
+      <div class="field">
+        <span class="field-label">Type</span>
+        <span class="field-value">
+          <select @change=${this.onEdgeTypeChange} style="background:var(--colors-semantic-bg-base);color:var(--colors-semantic-text-primary);border:1px solid var(--colors-semantic-border-subtle);border-radius:var(--borderRadius-component-input);font-family:var(--typography-fontFamilies-data);font-size:var(--typography-scale-xs);padding:var(--spacing-scale-1)">
+            ${Object.entries(EDGE_TYPES).map(
+              ([val, label]) => html`
+            <option value=${val} ?selected=${this.edgeType === val}>${label}</option>
+            `
+            )}
+          </select>
+        </span>
+      </div>
+      <div class="section-title">Weight</div>
+      <div class="field">
+        <span class="field-label">Strength</span>
+        <span class="field-value" style="display:flex;align-items:center;gap:6px">
+          <input type="range" min="0" max="1" step="0.01" .value=${String(this.edgeTruthFrequency)} @input=${this.onEdgeTruthInput} style="width:80px;accent-color:var(--colors-semantic-accent-primary)" />
+          <span style="font-weight:bold">${this.edgeTruthFrequency.toFixed(2)}</span>
+        </span>
+      </div>
     `;
   }
 
@@ -207,6 +378,28 @@ export class NodeDetailDrawer extends BaseComponent {
       <button class="action-btn" @click=${this.hideNode}>Hide from Graph</button>
       <button class="action-btn" @click=${this.exportSubgraph}>Export Subgraph</button>
     `;
+  }
+
+  private renderHistory() {
+    if (this.history.length === 0) {
+      return html`<div class="empty">No history available</div>`;
+    }
+    return html`
+      <div class="section-title">Revision History</div>
+      ${this.history.map((entry) => html`
+        <div class="field">
+          <span class="field-label">${new Date(entry.timestamp).toLocaleTimeString()}</span>
+          <span class="field-value">
+            f=${entry.truth.frequency.toFixed(2)} c=${entry.truth.confidence.toFixed(2)}
+            <button @click=${() => this.seekToTime(entry.timestamp)}>Seek</button>
+          </span>
+        </div>
+      `)}
+    `;
+  }
+
+  private seekToTime(t: number) {
+    $view.set({ ...$view.get(), timeline: { t } });
   }
 
   private focusOnNode() {

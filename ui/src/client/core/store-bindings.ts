@@ -1,25 +1,29 @@
 import type { Core } from 'cytoscape';
 import type {
-  ChatMessage,
-  GraphNodeData,
-  GraphOp,
-  IncomingFromServer,
+   ChatMessage,
+   GraphNodeData,
+   GraphOp,
+   IncomingFromServer,
 } from '../../shared/protocol.js';
 import { edgeKey, extractTerm, generateId } from '../../shared/utils.js';
-import type { CognitiveMetricsData } from './store.js';
+import type { CognitiveMetricsData, RevisionEntry } from './store.js';
 import {
-  $activeLens,
-  $chatMessages,
-  $cognitiveMetrics,
-  $config,
-  $graphEdges,
-  $graphMeta,
-  $graphNodes,
-  $lastSeqId,
-  $streamingDelta,
-  $telemetry,
-  $workingMemory,
-} from './store.js';
+   $activeLens,
+   $chatMessages,
+   $cognitiveMetrics,
+   $config,
+   $graphEdges,
+   $graphMeta,
+   $graphNodes,
+   $lastSeqId,
+   $lensFields,
+   $lensRegistry,
+   $nodeHistory,
+   $streamingDelta,
+   $telemetry,
+   $workingMemory,
+   registerLens,
+ } from './store.js';
 
 const TELEMETRY_WINDOW = 300;
 
@@ -138,6 +142,24 @@ export function applyServerMessage(msg: IncomingFromServer, cy?: Core): void {
     case 'telemetry':
       appendTelemetry(msg);
       break;
+
+    case 'lens.list':
+      for (const spec of msg.lenses) {
+        registerLens(spec);
+      }
+      break;
+
+    case 'lens.defined':
+      registerLens(msg.lens);
+      break;
+
+    case 'lens.fields':
+      $lensFields.set(msg.fields);
+      break;
+
+    case 'node.history':
+      $nodeHistory.set(msg.history);
+      break;
   }
 }
 
@@ -173,11 +195,7 @@ function applyGraphOps(ops: GraphOp[], cy?: Core): void {
       case 'update_node': {
         const existing = nodes.get(op.id);
         if (existing) {
-          const updated = {
-            ...existing,
-            ...op.data,
-            lensData: op.data.lensData ?? existing.lensData,
-          } as GraphNodeData;
+          const updated = { ...existing, ...op.data } as GraphNodeData;
           nodes.set(op.id, updated);
         }
         if (cy) {

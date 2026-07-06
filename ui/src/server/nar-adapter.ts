@@ -1,6 +1,8 @@
 import { findConflicts } from '../../../nar/src/cognitive/conflict-utils.js';
 import type { NAR } from '../../../nar/src/nar.js';
-import type { ConfigFieldType } from '../shared/protocol.js';
+import { Truth } from '../../../nar/src/terms/truth.js';
+import { termParser } from '../../../nar/src/terms/parser-peggy.js';
+import type { ConfigFieldType, TruthValue } from '../shared/protocol.js';
 import type { NarAdapter } from './gateway.js';
 
 interface ConceptLike {
@@ -88,15 +90,12 @@ class ConfigManager {
 
 function mapConcept(c: ConceptLike, conflictTerms: Set<string>) {
   const termStr = c.term.toString();
-  const lensData = conflictTerms.has(termStr)
-    ? { score: 1, color: 'rgba(255, 0, 255, 1)', size: 50 }
-    : undefined;
 
   return {
     term: termStr,
     priority: c.priority ?? 0.5,
     confidence: c.confidence ?? 0.9,
-    lensData,
+    isContradiction: conflictTerms.has(termStr),
     getLinks() {
       return c
         .getLinks()
@@ -144,7 +143,52 @@ export function buildNarAdapter(nar: NAR): NarAdapter {
     setConfig(key: string, value: unknown) {
       config.setConfig(key, value, nar);
     },
-  };
+setNodeTruth(id: string, t: { frequency: number; confidence: number }) {
+       try {
+         const term = termParser.parse(id);
+         const truth = Truth.create(t.frequency, t.confidence);
+         nar.believe(term, truth).catch(() => {});
+       } catch {
+         // term parse failure — silently drop
+       }
+     },
+    getRevisionHistory(termStr: string) {
+       try {
+         const term = termParser.parse(termStr);
+         const concept = nar.getConcept(term);
+         if (!concept || !concept.beliefBag) {
+           return [];
+         }
+         const history: {
+           truth: TruthValue;
+           stampId: string;
+           timestamp: number;
+           source: 'input' | 'derivation' | 'revision' | 'inference';
+         }[] = [];
+         for (const belief of concept.beliefBag.toArray()) {
+           const entry = belief as {
+             truth?: { f: number; c: number };
+             stamp?: { id: string; source?: string };
+             occurrenceTime?: number;
+           };
+           if (entry.truth && entry.stamp) {
+             const source = entry.stamp.source === 'INPUT' ? 'input' :
+               entry.stamp.source === 'DERIVED' ? 'derivation' :
+               entry.stamp.source === 'LM' ? 'inference' : 'revision';
+             history.push({
+               truth: { frequency: entry.truth.f, confidence: entry.truth.c },
+               stampId: entry.stamp.id,
+               timestamp: entry.occurrenceTime ?? Date.now(),
+               source,
+             });
+           }
+         }
+         return history.sort((a, b) => a.timestamp - b.timestamp);
+       } catch {
+         return [];
+       }
+     },
+   };
 }
 
 export function createTelemetryEmitter(

@@ -5,11 +5,12 @@ import { type WebSocket, WebSocketServer } from 'ws';
 import type { Agent } from '../../../agent/src/types.js';
 import type { NAR } from '../../../nar/src/nar.js';
 import { errMsg } from '../../../nar/src/utils';
-import type { Lens } from '../shared/protocol.js';
+import type { LensSpec } from '../shared/lens-schema.js';
+import type { IncomingFromServer, Lens } from '../shared/protocol.js';
 import { onChat } from './chat.js';
-import { type NarAdapter, handleConnection } from './gateway.js';
+import { type NarAdapter, handleConnection, initLensRegistry } from './gateway.js';
 import { buildNarAdapter, createTelemetryEmitter } from './nar-adapter.js';
-import { sendInitialState, subscribeSocket } from './socket-handler.js';
+import { sendInitialState, sendLensList, broadcastLensDefined, subscribeSocket } from './socket-handler.js';
 import { createStaticHandler } from './static.js';
 import { createTestControlHandler } from './test-control.js';
 
@@ -24,6 +25,7 @@ export interface TestServer {
 
 export async function startWebUI(nar: NAR, agent: Agent): Promise<TestServer> {
   const adapter = buildNarAdapter(nar);
+  initLensRegistry();
   return startHttpServer(
     adapter,
     nar,
@@ -60,7 +62,24 @@ function startHttpServer(
   });
 
   const wss = new WebSocketServer({ server });
-  wss.on('connection', (socket) => bindSocket(socket, adapter, nar, agent));
+
+  // Track all connected sockets for broadcasting
+  const connections = new Set<WebSocket>();
+  function broadcast(msg: IncomingFromServer): void {
+    const payload = JSON.stringify(msg);
+    for (const sock of connections) {
+      if (sock.readyState === sock.OPEN) sock.send(payload);
+    }
+  }
+
+  wss.on('connection', (socket) => {
+    connections.add(socket);
+    bindSocket(socket, adapter, nar, agent, (spec) => {
+      broadcastLensDefined(broadcast, spec);
+      sendLensList(broadcast);
+    });
+    socket.on('close', () => connections.delete(socket));
+  });
 
   return new Promise((resolve) => {
     server.listen(port, '0.0.0.0', () => {
@@ -75,7 +94,13 @@ function startHttpServer(
   });
 }
 
-function bindSocket(socket: WebSocket, adapter: NarAdapter, nar: NAR, agent: Agent): void {
+function bindSocket(
+  socket: WebSocket,
+  adapter: NarAdapter,
+  nar: NAR,
+  agent: Agent,
+  onLensDefine?: (spec: LensSpec) => void
+): void {
   let currentLens: Lens = 'belief';
   let focusTerm: string | null = null;
 
@@ -94,6 +119,9 @@ function bindSocket(socket: WebSocket, adapter: NarAdapter, nar: NAR, agent: Age
     },
     (term) => {
       focusTerm = term;
+    },
+    (spec, _send) => {
+      onLensDefine?.(spec);
     }
   );
 

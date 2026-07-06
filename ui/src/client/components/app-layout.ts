@@ -1,17 +1,20 @@
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
-import { $connectionState, $graphNodes, $panels, $selectedNodeId } from '../core/index.js';
+import { $connectionState, $graphNodes, $panels, $selectedNodeId, $viewportMode } from '../core/index.js';
 import './graph-viewport.js';
+import '../spacegraph/spacegraph-viewport.js';
 import './graph-toolbar.js';
 import './input-hud.js';
 import './config-hud.js';
 import './telemetry-panel.js';
+import './timeline-scrubber.js';
 import './contradiction-badge.js';
 import './connection-banner.js';
 import './error-boundary.js';
 import './node-detail-drawer.js';
 import './chat-history-panel.js';
+import './lens-designer.js';
 import './primitives/empty-state.js';
 
 @customElement('app-layout')
@@ -29,13 +32,8 @@ export class AppLayout extends BaseComponent {
       container-name: app;
     }
 
-    /* Connection banner row */
     .banner-area { grid-area: banner; }
-
-    /* Toolbar row */
     .toolbar-area { grid-area: toolbar; }
-
-    /* Main body: graph + panels */
     .body-area {
       grid-area: body; display: flex; min-height: 0;
       position: relative; overflow: hidden;
@@ -45,18 +43,14 @@ export class AppLayout extends BaseComponent {
       display: flex; flex-direction: column;
     }
     graph-viewport { flex: 1; min-height: 0; }
+    spacegraph-viewport { flex: 1; min-height: 0; }
 
-    /* Panels docked left/right/bottom */
     .panel-left { flex-shrink: 0; overflow: hidden; border-right: 1px solid var(--colors-semantic-border-subtle); }
     .panel-right { flex-shrink: 0; overflow: hidden; border-left: 1px solid var(--colors-semantic-border-subtle); }
     .panel-bottom { position: absolute; bottom: 0; left: 0; right: 0; z-index: var(--zIndex-layers-panel); overflow: hidden; border-top: 1px solid var(--colors-semantic-border-subtle); }
 
-    /* Bottom row: input + telemetry */
-    .bottom-area {
-      grid-area: bottom; display: flex; flex-direction: column;
-    }
+    .bottom-area { grid-area: bottom; display: flex; flex-direction: column; }
 
-    /* Empty state overlay on graph */
     .empty-overlay {
       position: absolute; inset: 0; display: flex;
       align-items: center; justify-content: center;
@@ -64,7 +58,6 @@ export class AppLayout extends BaseComponent {
       z-index: 1;
     }
 
-    /* Container query breakpoints */
     @container app (max-width: 640px) {
       .body-area { flex-direction: column; }
       .panel-left, .panel-right { border: none; border-bottom: 1px solid var(--colors-semantic-border-subtle); }
@@ -82,6 +75,7 @@ export class AppLayout extends BaseComponent {
     this.watch($panels);
     this.watch($graphNodes);
     this.watch($selectedNodeId);
+    this.watch($viewportMode);
   }
 
   override render() {
@@ -90,6 +84,7 @@ export class AppLayout extends BaseComponent {
     const searchPanel = panels.get('search');
     const telemetryPanel = panels.get('telemetry');
     const chatPanel = panels.get('chat');
+    const lensDesignerPanel = panels.get('lens-designer');
     const hasNodes = $graphNodes.get().size > 0;
 
     return html`
@@ -127,7 +122,9 @@ export class AppLayout extends BaseComponent {
           `
               : ''
           }
-          <graph-viewport></graph-viewport>
+          ${$viewportMode.get() === '3d'
+            ? html`<spacegraph-viewport></spacegraph-viewport>`
+            : html`<graph-viewport></graph-viewport>`}
         </div>
 
         ${
@@ -167,6 +164,18 @@ export class AppLayout extends BaseComponent {
         }
 
         ${
+          lensDesignerPanel?.open
+            ? html`
+          <div class="panel-right" style=${this.getPanelStyle('lens-designer')}>
+            <s-panel heading="Lens Designer" docked="right" closable @s-close=${() => this.togglePanel('lens-designer')}>
+              <lens-designer></lens-designer>
+            </s-panel>
+          </div>
+        `
+            : ''
+        }
+
+        ${
           telemetryPanel?.open
             ? html`
           <div class="panel-bottom" style="height:${telemetryPanel.size}px">
@@ -181,6 +190,10 @@ export class AppLayout extends BaseComponent {
 
       <div class="bottom-area">
         <input-hud></input-hud>
+      </div>
+
+      <div style="position:absolute;bottom:44px;left:0;right:0;height:60px;z-index:var(--zIndex-layers-panel)">
+        <timeline-scrubber></timeline-scrubber>
       </div>
 
       <error-boundary></error-boundary>
@@ -204,6 +217,6 @@ export class AppLayout extends BaseComponent {
 
   private focusInput() {
     const hud = this.shadowRoot?.querySelector('input-hud');
-    (hud as any)?.focusInput?.();
+    (hud as { focusInput?: () => void })?.focusInput?.();
   }
 }

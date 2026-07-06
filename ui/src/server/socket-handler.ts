@@ -1,8 +1,11 @@
 import type { WebSocket } from 'ws';
 import type { Agent } from '../../../agent/src/types.js';
 import type { GraphNodeData, GraphOp, IncomingFromServer, Lens } from '../shared/protocol.js';
+import type { LensSpec } from '../shared/lens-schema.js';
+import { LENS_FIELDS } from '../shared/constants.js';
 import { DEFAULT_PROJECTION } from './config.js';
-import type { NarAdapter } from './gateway.js';
+import type { NarAdapter, SendFn } from './gateway.js';
+import { lensRegistry } from './gateway.js';
 import { buildLensGraphOps } from './lenses.js';
 import { computeActiveSubgraph } from './projection.js';
 
@@ -19,8 +22,8 @@ const cn = (
   label: string,
   priority: number,
   confidence: number,
-  lensData?: { score: number; color: string; size: number }
-) => createNodeOp(id, { id, label, priority, confidence, nodeType: 'concept', lensData });
+  extra?: Partial<Pick<GraphNodeData, 'isContradiction'>>
+) => createNodeOp(id, { id, label, priority, confidence, nodeType: 'concept', ...extra });
 
 export function send(socket: WebSocket, msg: IncomingFromServer): void {
   socket.send(JSON.stringify(msg));
@@ -39,7 +42,7 @@ function beliefGraphDelta(
     ops: [
       ...concepts
         .filter((c) => nodeSet.has(c.term))
-        .map((c) => cn(c.term, c.term, c.priority, c.confidence, c.lensData)),
+        .map((c) => cn(c.term, c.term, c.priority, c.confidence, { isContradiction: c.isContradiction })),
       ...proj.edges.map((e) => createEdgeOp(e.source, e.target, e.weight)),
     ],
     meta: proj.truncated ? { truncated: true, totalHidden: proj.total_hidden } : undefined,
@@ -57,8 +60,39 @@ function driveDelta(adapter: NarAdapter): GraphOp[] | null {
   return drives?.map((d) => cn(d.spec.id, d.spec.name, d.currentIntensity, 1)) ?? null;
 }
 
+/** Send the full lens registry to a socket. */
+export function sendLensList(socket: WebSocket | ((msg: IncomingFromServer) => void)): void {
+  const lenses: LensSpec[] = [];
+  for (const spec of lensRegistry.values()) {
+    lenses.push(spec);
+  }
+  const msg = { type: 'lens.list' as const, lenses: lenses as unknown as LensSpec[] };
+  if (typeof socket === 'function') {
+    socket(msg as IncomingFromServer);
+  } else {
+    send(socket, msg as IncomingFromServer);
+  }
+}
+
+/** Broadcast a lens.defined message — for use with send functions. */
+export function broadcastLensDefined(sendFn: (msg: IncomingFromServer) => void, spec: LensSpec): void {
+  sendFn({ type: 'lens.defined', lens: spec } as IncomingFromServer);
+}
+
+/** Send the available lens fields for the designer. */
+function sendLensFields(socket: WebSocket | ((msg: IncomingFromServer) => void)): void {
+  const msg: IncomingFromServer = { type: 'lens.fields', fields: LENS_FIELDS } as IncomingFromServer;
+  if (typeof socket === 'function') {
+    socket(msg);
+  } else {
+    send(socket, msg);
+  }
+}
+
 export function sendInitialState(socket: WebSocket, adapter: NarAdapter, lens?: Lens): void {
   send(socket, { type: 'config.schema', data: adapter.getConfigSchema() });
+  sendLensList(socket);
+  sendLensFields(socket);
   const bg = beliefGraphDelta(adapter, lens);
   send(socket, {
     type: 'cognitive.delta',
@@ -94,11 +128,13 @@ export function subscribeNarEvents(
     }),
     bus.on('nar:concept:activated', (d: { term?: unknown; priority?: number }) => {
       const term = d.term ? (typeof d.term === 'object' ? d.term.toString() : String(d.term)) : '';
+      const concepts = adapter.listConcepts();
+      const concept = concepts.find((c) => c.term === term);
       send(socket, {
         type: 'cognitive.delta',
         seqId: ++seqId,
         lens: 'belief',
-        ops: [cn(term, term, d.priority ?? 0.5, 0.9)],
+        ops: [cn(term, term, d.priority ?? 0.5, concept?.confidence ?? 0.9, { isContradiction: concept?.isContradiction })],
       });
     }),
     bus.on('nar:reasoning:cycle', (d: { cycle?: number }) => {
