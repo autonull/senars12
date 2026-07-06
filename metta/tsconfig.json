@@ -12,6 +12,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "lib": ["ES2024", "DOM"],
+    "preserveConstEnums": true,
     "types": ["node"]
   },
   "include": ["src/**/*"],

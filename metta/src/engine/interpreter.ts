@@ -2,10 +2,7 @@ import { Effect } from 'effect';
 import { EGraph, type RewriteRule } from './egraph.js';
 import type { MeTTaAtom } from '../types/ast.js';
 import type { MeTTaSpace } from '../types/space.js';
-
-export class MeTTaError extends Error {
-  override readonly name: string = 'MeTTaError';
-}
+import { MeTTaError, ErrorCode } from '../core/errors.js';
 
 export class MeTTaInterpreter {
   private readonly egraph = new EGraph();
@@ -20,7 +17,7 @@ export class MeTTaInterpreter {
     return Effect.gen(function*() {
       const space = yield* Effect.fromNullable(spaces.get(spaceId));
       if (!space) {
-        return yield* Effect.fail(new MeTTaError(`Space ${spaceId} not found`));
+        return yield* Effect.fail(new MeTTaError(ErrorCode.SPACE_NOT_FOUND, `Space ${spaceId} not found`));
       }
 
       const matches: MeTTaAtom[] = [];
@@ -29,7 +26,7 @@ export class MeTTaInterpreter {
       }
 
       if (matches.length === 0) {
-        return yield* Effect.fail(new MeTTaError('No match found'));
+        return yield* Effect.fail(new MeTTaError(ErrorCode.UNEXPECTED_TOKEN, 'No match found'));
       }
       return matches[0] ?? null;
     });

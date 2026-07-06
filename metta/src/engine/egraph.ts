@@ -1,5 +1,6 @@
 import { Set as ImmSet, Map as ImmMap } from 'immutable';
 import type { MeTTaAtom } from '../types/ast.js';
+import { hashAtom } from '../core/hash.js';
 
 interface EClass {
   readonly id: number;
@@ -94,7 +95,7 @@ export class EGraph {
   }
 
   private hashKey(atom: MeTTaAtom): string {
-    return JSON.stringify(atom);
+    return String(hashAtom(atom));
   }
 
   private nextId(): number {

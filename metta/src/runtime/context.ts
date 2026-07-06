@@ -1,18 +1,12 @@
 import { Effect } from 'effect';
-import { MeTTaInterpreter, MeTTaError } from '../engine/interpreter.js';
+import { MeTTaInterpreter } from '../engine/interpreter.js';
 import type { MeTTaAtom } from '../types/ast.js';
+import { MeTTaError, ErrorCode } from '../core/errors.js';
 
 export interface MeTTaContext {
   readonly maxSteps: number;
   readonly timeout: number;
   readonly memoryLimit: number;
-}
-
-class TimeoutError extends MeTTaError {
-  constructor() {
-    super('Execution timed out');
-    Object.defineProperty(this, 'name', { value: 'TimeoutError' });
-  }
 }
 
 export class MeTTaRuntime {
@@ -26,7 +20,7 @@ export class MeTTaRuntime {
       return yield* Effect.race(
         interpreter.evaluate(program, 'default'),
         Effect.sleep(ctx.timeout).pipe(
-          Effect.flatMap(() => Effect.fail(new TimeoutError())),
+          Effect.flatMap(() => Effect.fail(new MeTTaError(ErrorCode.TIMEOUT, 'Execution timed out'))),
         ),
       );
     });

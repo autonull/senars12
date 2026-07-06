@@ -1,19 +1,6 @@
-import * as v from 'valibot';
+import { MeTTaError, ErrorCode } from '../core/errors.js';
 import type { MeTTaAtom } from '../types/ast.js';
-
-const BaseAtomSchema = v.union([
-  v.object({ type: v.literal('symbol'), value: v.string() }),
-  v.object({ type: v.literal('variable'), name: v.string() }),
-  v.object({ type: v.literal('number'), value: v.number() }),
-]);
-
-const AtomSchema: v.GenericSchema<MeTTaAtom> = v.lazy(() =>
-  v.union([
-    BaseAtomSchema,
-    v.object({ type: v.literal('expression'), items: v.array(AtomSchema) }),
-    v.object({ type: v.literal('grounded'), value: v.unknown(), typeHint: v.string() }),
-  ]) as v.GenericSchema<MeTTaAtom>
-);
+import { sym, varr, num } from '../types/ast.js';
 
 function tokenize(input: string): string[] {
   const tokens: string[] = [];
@@ -21,7 +8,10 @@ function tokenize(input: string): string[] {
   while (i < input.length) {
     const c = input[i];
     if (!c) break;
-    if (/\s/.test(c)) { i++; continue; }
+    if (/\s/.test(c)) {
+      i++;
+      continue;
+    }
     if (c === '(' || c === ')') {
       tokens.push(c);
       i++;
@@ -39,29 +29,33 @@ function tokenize(input: string): string[] {
   return tokens;
 }
 
-function parseTokens(tokens: string[], pos = { i: 0 }): MeTTaAtom {
+function parseTokens(tokens: string[], pos: { i: number } = { i: 0 }): MeTTaAtom {
   const token = tokens[pos.i];
-  if (!token) throw new Error('Unexpected end of input');
+  if (!token) throw new MeTTaError(ErrorCode.UNEXPECTED_TOKEN, 'Unexpected end of input');
   if (token === '(') {
     pos.i++;
     const items: MeTTaAtom[] = [];
     while (pos.i < tokens.length && tokens[pos.i] !== ')') {
       items.push(parseTokens(tokens, pos));
     }
-    if (tokens[pos.i] !== ')') throw new Error('Unmatched opening paren');
+    if (tokens[pos.i] !== ')') throw new MeTTaError(ErrorCode.UNMATCHED_PAREN, 'Unmatched opening paren');
     pos.i++;
-    return { type: 'expression', items };
+    if (items.length === 0) {
+      return sym('Nil');
+    }
+    const operator = items[0] as MeTTaAtom;
+    const args = items.slice(1);
+    return { kind: 4, operator, args };
   }
   pos.i++;
-  if (token.startsWith('$')) return { type: 'variable', name: token };
-  const num = Number(token);
-  if (!Number.isNaN(num)) return { type: 'number', value: num };
-  return { type: 'symbol', value: token };
+  if (token.startsWith('$')) return varr(token);
+  const n = Number(token);
+  if (!Number.isNaN(n)) return num(n);
+  return sym(token);
 }
 
 export function parseMeTTa(input: string): MeTTaAtom {
   const tokens = tokenize(input);
-  if (tokens.length === 0) throw new Error('Empty input');
-  const ast = parseTokens(tokens);
-  return v.parse(AtomSchema, ast) as MeTTaAtom;
+  if (tokens.length === 0) throw new MeTTaError(ErrorCode.UNEXPECTED_TOKEN, 'Empty input');
+  return parseTokens(tokens);
 }

@@ -3,11 +3,12 @@ import type { MeTTaAtom } from '../types/ast.js';
 
 const MeTTaAtomSchema: v.GenericSchema<MeTTaAtom> = v.lazy(() =>
   v.union([
-    v.object({ type: v.literal('symbol'), value: v.string() }),
-    v.object({ type: v.literal('variable'), name: v.string() }),
-    v.object({ type: v.literal('number'), value: v.number() }),
-    v.object({ type: v.literal('expression'), items: v.array(MeTTaAtomSchema) }),
-    v.object({ type: v.literal('grounded'), value: v.unknown(), typeHint: v.string() }),
+    v.object({ kind: v.literal(0), value: v.string() }),
+    v.object({ kind: v.literal(1), name: v.string() }),
+    v.object({ kind: v.literal(2), value: v.number() }),
+    v.object({ kind: v.literal(3), value: v.string() }),
+    v.object({ kind: v.literal(4), operator: MeTTaAtomSchema, args: v.array(MeTTaAtomSchema) }),
+    v.object({ kind: v.literal(5), op: v.string(), args: v.array(MeTTaAtomSchema) }),
   ]) as v.GenericSchema<MeTTaAtom>
 );
 

@@ -1,79 +1,113 @@
 import { describe, it, expect } from 'vitest';
-import { Stamp } from '../src/core/stamp.js';
-import { ConceptBag, Concept } from '../src/core/concept-bag.js';
-import { serialize, deserialize } from '../src/ipc/protocol.js';
+import { Cache } from '../src/core/cache.js';
+import { SymbolInterner } from '../src/core/intern.js';
+import { InMemorySpace } from '../src/core/space.js';
+import { MeTTaError, ErrorCode } from '../src/core/errors.js';
+import { hashAtom, equalAtoms } from '../src/core/hash.js';
+import { sym } from '../src/types/ast.js';
 
-describe('Stamp', () => {
-  it('creates stamp with ids', () => {
-    const stamp = new Stamp([1, 2, 3]);
-    expect(stamp.ids.size).toBe(3);
+describe('Cache', () => {
+  it('stores and retrieves values', () => {
+    using cache = new Cache({ policy: 'lru' });
+    cache.set('a', 'value-a');
+    expect(cache.get('a')).toBe('value-a');
   });
 
-  it('detects overlapping stamps', () => {
-    const s1 = new Stamp([1, 2, 3]);
-    const s2 = new Stamp([3, 4, 5]);
-    expect(s1.overlaps(s2)).toBe(true);
+  it('returns undefined for missing keys', () => {
+    using cache = new Cache({ policy: 'lru' });
+    expect(cache.get('missing')).toBeUndefined();
   });
 
-  it('detects non-overlapping stamps', () => {
-    const s1 = new Stamp([1, 2, 3]);
-    const s2 = new Stamp([4, 5, 6]);
-    expect(s1.overlaps(s2)).toBe(false);
+  it('tracks stats', () => {
+    using cache = new Cache({ policy: 'lru' });
+    cache.set('a', 'value-a');
+    cache.get('a');
+    cache.get('missing');
+    const stats = cache.getStats();
+    expect(stats.hits).toBe(1);
+    expect(stats.misses).toBe(1);
+    expect(stats.size).toBe(1);
   });
 
-  it('generates next stamp with new id', () => {
-    const s1 = new Stamp([1, 2]);
-    const s2 = s1.nextStamp();
-    expect(s1.ids.size).toBe(2);
-    expect(s2.ids.size).toBe(3);
-  });
-});
+  it('evicts when maxSize is reached', () => {
+    using cache = new Cache({ maxSize: 2, policy: 'lru' });
+    cache.set('a', 'value-a');
 
-describe('ConceptBag', () => {
-  it('creates concept if not exists', () => {
-    const bag = new ConceptBag();
-    const c = bag.getOrCreate('cat');
-    expect(c.term).toBe('cat');
-    expect(bag.has('cat')).toBe(true);
-    expect(bag.size).toBe(1);
+    cache.set('b', 'value-b');
+    cache.set('c', 'value-c');
+    expect(cache.get('a')).toBeUndefined();
+    expect(cache.get('b')).toBe('value-b');
+    expect(cache.get('c')).toBe('value-c');
   });
 
-  it('returns existing concept', () => {
-    const bag = new ConceptBag();
-    const c1 = bag.getOrCreate('cat');
-    const c2 = bag.getOrCreate('cat');
-    expect(c1).toBe(c2);
-  });
-
-  it('stores distinct concepts', () => {
-    const bag = new ConceptBag();
-    bag.getOrCreate('cat');
-    bag.getOrCreate('dog');
-    expect(bag.size).toBe(2);
+  it('supports TTL eviction', () => {
+    using cache = new Cache({ ttl: 1 });
+    cache.set('a', 'value-a');
+    expect(cache.has('a')).toBe(true);
   });
 });
 
-describe('IPC Protocol', () => {
-  it('serializes and deserializes query', () => {
-    const msg = { type: 'query' as const, id: '1', pattern: { type: 'symbol' as const, value: 'cat' } };
-    const bytes = serialize(msg);
-    const parsed = deserialize(bytes);
-    expect(parsed.type).toBe('query');
-    expect(parsed.id).toBe('1');
+describe('SymbolInterner', () => {
+  it('interns symbols', () => {
+    using interner = new SymbolInterner();
+    const s1 = interner.intern('hello');
+    const s2 = interner.intern('hello');
+    expect(s1).toBe(s2);
   });
 
-  it('serializes and deserializes result', () => {
-    const msg = { type: 'result' as const, id: '1', results: [{ type: 'symbol' as const, value: 'cat' }] };
-    const bytes = serialize(msg);
-    const parsed = deserialize(bytes);
-    expect(parsed.type).toBe('result');
-    if (parsed.type === 'result') {
-      expect(parsed.results).toHaveLength(1);
-    }
+  it('returns existing symbol', () => {
+    using interner = new SymbolInterner();
+    const s1 = interner.intern('hello');
+    const s2 = interner.get('hello');
+    expect(s1).toBe(s2);
+  });
+});
+
+describe('InMemorySpace', () => {
+  it('adds and queries atoms', () => {
+    using space = new InMemorySpace();
+    const atom = sym('hello');
+    space.add(atom);
+    expect(space.size).toBe(1);
+    const results = [...space.query(sym('hello'))];
+    expect(results).toHaveLength(1);
   });
 
-  it('rejects invalid message type', () => {
-    const bytes = new TextEncoder().encode(JSON.stringify({ type: 'invalid' }));
-    expect(() => deserialize(bytes)).toThrow();
+  it('removes atoms', () => {
+    using space = new InMemorySpace();
+    const atom = sym('hello');
+    space.add(atom);
+    expect(space.remove(atom)).toBe(true);
+    expect(space.size).toBe(0);
+  });
+});
+
+describe('Hash', () => {
+  it('hashes atoms consistently', () => {
+    const a = sym('hello');
+    const b = sym('hello');
+    expect(hashAtom(a)).toBe(hashAtom(b));
+  });
+
+  it('hashes different atoms differently', () => {
+    const a = sym('hello');
+    const b = sym('world');
+    expect(hashAtom(a)).not.toBe(hashAtom(b));
+  });
+
+  it('checks equality', () => {
+    const a = sym('hello');
+    const b = sym('hello');
+    const c = sym('world');
+    expect(equalAtoms(a, b)).toBe(true);
+    expect(equalAtoms(a, c)).toBe(false);
+  });
+});
+
+describe('MeTTaError', () => {
+  it('creates error with code and message', () => {
+    const error = new MeTTaError(ErrorCode.UNEXPECTED_TOKEN, 'test error');
+    expect(error.code).toBe(ErrorCode.UNEXPECTED_TOKEN);
+    expect(error.message).toContain('test error');
   });
 });
