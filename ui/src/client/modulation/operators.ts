@@ -8,12 +8,6 @@ export function evaluateModulation(mod: Modulation, item: Item, view: View): Del
 
 function applyModulation(mod: Modulation, item: Item, view: View, out: Delta): void {
   switch (mod.op) {
-    case 'leaf':
-      break;
-    case 'const':
-      break;
-    case 'field':
-      break;
     case 'channel':
       applyChannel(mod.channel, mod.child, item, view, out);
       break;
@@ -26,8 +20,6 @@ function applyModulation(mod: Modulation, item: Item, view: View, out: Delta): v
       for (const child of mod.children) {
         applyModulation(child, item, view, out);
       }
-      break;
-    case 'memo':
       break;
   }
 }
@@ -57,15 +49,9 @@ function resolveModulationValue(mod: Modulation, item: Item, view: View): Channe
       const raw = item[mod.field];
       return mod.map ? mod.map(raw) : (raw as ChannelValue);
     }
-    case 'leaf':
-      return undefined;
     default:
       return undefined;
   }
-}
-
-export function leaf(field: keyof Item): Modulation {
-  return { op: 'leaf', field };
 }
 
 export function konst(value: ChannelValue): Modulation {

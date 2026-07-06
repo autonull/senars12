@@ -28,7 +28,7 @@ interface EdgeStyleChanges {
   'target-arrow-color'?: string;
 }
 
-function channelToStyles(id: string, channels: Partial<Record<Channel, ChannelValue>>): StyleChanges {
+function channelToStyles(channels: Partial<Record<Channel, ChannelValue>>): StyleChanges {
   const styles: StyleChanges = {};
   for (const [ch, value] of Object.entries(channels)) {
     switch (ch as Channel) {
@@ -62,7 +62,7 @@ function channelToStyles(id: string, channels: Partial<Record<Channel, ChannelVa
   return styles;
 }
 
-function edgeChannelToStyles(id: string, channels: Partial<Record<Channel, ChannelValue>>): EdgeStyleChanges {
+function edgeChannelToStyles(channels: Partial<Record<Channel, ChannelValue>>): EdgeStyleChanges {
   const styles: EdgeStyleChanges = {};
   for (const [ch, value] of Object.entries(channels)) {
     switch (ch as Channel) {
@@ -91,7 +91,7 @@ export function applyDelta(cy: Core, delta: Delta): void {
       const el = cy.getElementById(id);
       if (!el.length) continue;
       const isEdge = el.isEdge();
-      const styles = isEdge ? edgeChannelToStyles(id, channels) : channelToStyles(id, channels);
+      const styles = isEdge ? edgeChannelToStyles(channels) : channelToStyles(channels);
       el.style(styles as Record<string, unknown>);
     }
   });

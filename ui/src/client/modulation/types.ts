@@ -54,7 +54,6 @@ export interface Lens {
 }
 
 export type Modulation =
-  | { op: 'leaf'; field: keyof Item }
   | { op: 'const'; value: ChannelValue }
   | { op: 'field'; field: keyof Item; map?: (v: unknown) => ChannelValue }
   | { op: 'channel'; channel: Channel; child: Modulation }
