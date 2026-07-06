@@ -1,21 +1,18 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2024",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": false,
+    "exactOptionalPropertyTypes": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "lib": ["ESNext"],
-    "types": ["node"],
-    "noEmit": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true
+    "lib": ["ES2024", "DOM"],
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

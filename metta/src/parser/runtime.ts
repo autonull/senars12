@@ -11,7 +11,8 @@ const AtomSchema: v.GenericSchema<MeTTaAtom> = v.lazy(() =>
   v.union([
     BaseAtomSchema,
     v.object({ type: v.literal('expression'), items: v.array(AtomSchema) }),
-  ])
+    v.object({ type: v.literal('grounded'), value: v.unknown(), typeHint: v.string() }),
+  ]) as v.GenericSchema<MeTTaAtom>
 );
 
 function tokenize(input: string): string[] {
@@ -62,5 +63,5 @@ export function parseMeTTa(input: string): MeTTaAtom {
   const tokens = tokenize(input);
   if (tokens.length === 0) throw new Error('Empty input');
   const ast = parseTokens(tokens);
-  return v.parse(AtomSchema, ast);
+  return v.parse(AtomSchema, ast) as MeTTaAtom;
 }

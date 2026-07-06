@@ -13,3 +13,12 @@ export const isExpression = (atom: MeTTaAtom): atom is Extract<MeTTaAtom, { type
 
 export const isVariable = (atom: MeTTaAtom): atom is Extract<MeTTaAtom, { type: 'variable' }> =>
   atom.type === 'variable';
+
+export const isGround = (atom: MeTTaAtom): atom is Extract<MeTTaAtom, { type: 'grounded' }> =>
+  atom.type === 'grounded';
+
+export const isSymbolType = (atom: MeTTaAtom): atom is Extract<MeTTaAtom, { type: 'symbol' }> =>
+  atom.type === 'symbol';
+
+export const isNumberType = (atom: MeTTaAtom): atom is Extract<MeTTaAtom, { type: 'number' }> =>
+  atom.type === 'number';

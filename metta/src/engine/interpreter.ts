@@ -8,21 +8,17 @@ export class MeTTaError extends Error {
 }
 
 export class MeTTaInterpreter {
-  private readonly egraph: EGraph;
-  private readonly spaces: Map<string, MeTTaSpace> = new Map();
-
-  constructor() {
-    this.egraph = new EGraph();
-  }
+  private readonly egraph = new EGraph();
+  private readonly spaces = new Map<string, MeTTaSpace>();
 
   addSpace(space: MeTTaSpace): void {
     this.spaces.set(space.id, space);
   }
 
   evaluate(program: MeTTaAtom, spaceId: string) {
-    const self = this;
+    const spaces = this.spaces;
     return Effect.gen(function*() {
-      const space = yield* Effect.fromNullable(self.spaces.get(spaceId));
+      const space = yield* Effect.fromNullable(spaces.get(spaceId));
       if (!space) {
         return yield* Effect.fail(new MeTTaError(`Space ${spaceId} not found`));
       }
@@ -35,15 +31,7 @@ export class MeTTaInterpreter {
       if (matches.length === 0) {
         return yield* Effect.fail(new MeTTaError('No match found'));
       }
-      return matches[0]!;
+      return matches[0] ?? null;
     });
-  }
-
-  private match(_pattern: MeTTaAtom, _space: MeTTaSpace): MeTTaAtom[] {
-    return [];
-  }
-
-  private getRules(_space: MeTTaSpace): RewriteRule[] {
-    return [];
   }
 }
