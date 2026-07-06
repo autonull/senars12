@@ -2,6 +2,7 @@ packages:
   - 'nar'
   - 'agent'
   - 'ui'
+  - 'metta'
 
 allowBuilds:
   '@biomejs/biome': true

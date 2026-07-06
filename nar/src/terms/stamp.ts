@@ -1,10 +1,12 @@
-/**
- * Stamp system for tracking derivation history
- */
-
+import { Temporal } from '@js-temporal/polyfill';
 import type { Increment, Nat, Timestamp } from '../types';
-import { DEPTH_MAX, createTimestamp } from '../types';
+import { DEPTH_MAX } from '../types';
 import { makeId } from '../utils';
+
+const toMicroseconds = (instant: Temporal.Instant): Timestamp => {
+  const nanos = BigInt(instant.epochNanoseconds);
+  return Number(nanos / 1000n) as Timestamp;
+};
 
 export type Source = 'INPUT' | 'DERIVED' | 'CONSTITUTION' | 'LM' | 'EXTERNAL_MCP';
 
@@ -20,7 +22,7 @@ export const Stamp = {
   createInput(): Stamp {
     return Object.freeze({
       id: makeId(),
-      creationTime: createTimestamp(),
+      creationTime: toMicroseconds(Temporal.Now.instant()),
       source: 'INPUT' as const,
       derivations: [],
       depth: 0,
@@ -30,7 +32,7 @@ export const Stamp = {
   createInputWithId(id: string): Stamp {
     return Object.freeze({
       id,
-      creationTime: createTimestamp(),
+      creationTime: toMicroseconds(Temporal.Now.instant()),
       source: 'INPUT' as const,
       derivations: [],
       depth: 0,
@@ -44,7 +46,7 @@ export const Stamp = {
     if (parentStamps.length === 0) {
       return Object.freeze({
         id: makeId(),
-        creationTime: createTimestamp(),
+        creationTime: toMicroseconds(Temporal.Now.instant()),
         source,
         derivations: [],
         depth: 0 as Increment<D>,
@@ -69,13 +71,11 @@ export const Stamp = {
     }
 
     if (seenEvidence.size < totalCount) {
-      // Deduplicate if identical parent
       const uniqueParents = new Set(parentStamps.map((s) => s.id));
       if (uniqueParents.size === 1 && parentStamps.length > 1) {
-        // Return just one of the parents if they are identical
         return Object.freeze({
           id: makeId(),
-          creationTime: createTimestamp(),
+          creationTime: toMicroseconds(Temporal.Now.instant()),
           source,
           derivations: Array.from(seenEvidence),
           depth: (maxDepth + 1) as Increment<D>,
@@ -86,7 +86,7 @@ export const Stamp = {
 
     return Object.freeze({
       id: makeId(),
-      creationTime: createTimestamp(),
+      creationTime: toMicroseconds(Temporal.Now.instant()),
       source,
       derivations: Array.from(seenEvidence),
       depth: (maxDepth + 1) as Increment<D>,
@@ -99,4 +99,15 @@ export const Stamp = {
     stamps.reduce((max, s) => Math.max(max, s.depth), 0),
 
   canDerive: (stamps: readonly Stamp[]): boolean => Stamp.getMaxDepth(stamps) < DEPTH_MAX,
+
+  overlaps: <D1 extends Nat, D2 extends Nat>(a: Stamp<D1>, b: Stamp<D2>): boolean => {
+    if (a.id === b.id) return true;
+    const bIds = new Set<string>(b.derivations);
+    bIds.add(b.id);
+    for (const id of a.derivations) {
+      if (bIds.has(id)) return true;
+    }
+    bIds.add(a.id);
+    return false;
+  },
 };

@@ -85,4 +85,28 @@ describe('Stamp', () => {
       expect(Stamp.getMaxDepth([])).toBe(0);
     });
   });
+
+  describe('overlaps', () => {
+    test('returns true for identical stamp ids', () => {
+      const s = Stamp.createInput();
+      expect(Stamp.overlaps(s, s)).toBe(true);
+    });
+
+    test('returns true when derivations share an ancestor id', () => {
+      const root = Stamp.createInput();
+      const a = Stamp.derive([root])!;
+      const b = Stamp.derive([root])!;
+      expect(Stamp.overlaps(a, b)).toBe(true);
+    });
+
+    test('returns false for independent derivation lineages', () => {
+      const a = Stamp.derive([Stamp.createInput()])!;
+      const b = Stamp.derive([Stamp.createInput()])!;
+      expect(Stamp.overlaps(a, b)).toBe(false);
+    });
+
+    test('returns false for two independent input stamps', () => {
+      expect(Stamp.overlaps(Stamp.createInput(), Stamp.createInput())).toBe(false);
+    });
+  });
 });

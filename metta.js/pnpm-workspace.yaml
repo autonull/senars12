@@ -1,0 +1,6 @@
+packages:
+  - 'core'
+  - 'tensor'
+  - 'metta-js'
+
+# metta.ts is now the main metta/ package in workspace root

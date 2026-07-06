@@ -1,6 +1,7 @@
 import type { Memory } from '../memory';
 import type { ComponentMetadata } from '../strategies';
 import { extractSymbols, termsEqual } from '../terms';
+import { Stamp } from '../terms/stamp.js';
 import type { Task } from '../types';
 import { createSecondaryTask } from '../types';
 
@@ -38,13 +39,7 @@ export const BagStrategy: Strategy = {
       .filter((c) => {
         const belief = c.beliefBag.peek();
         if (!belief?.stamp || !task.stamp) return true;
-        if (belief.stamp.id === task.stamp.id) return false;
-        const t1 = new Set(task.stamp.derivations ?? []);
-        const t2 = new Set(belief.stamp.derivations ?? []);
-        for (const id of t1) {
-          if (t2.has(id)) return false;
-        }
-        return true;
+        return !Stamp.overlaps(belief.stamp, task.stamp);
       })
       .map((c) => createSecondaryTask(c.term, c.priority, c.beliefBag.peek()?.truth, 'belief'))
       .filter((t) => t.budget.priority >= MIN_DERIVATION_PRIORITY),

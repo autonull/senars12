@@ -1,5 +1,5 @@
 {
-  "name": "@senars/metta",
+  "name": "@senars/metta.js",
   "version": "1.0.0",
   "type": "module",
   "main": "src/index.js",
