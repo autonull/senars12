@@ -1100,3 +1100,105 @@ This plan delivers a modern, type-safe, high-performance MeTTa interpreter that:
 
 The key insight is that TypeScript's advanced features allow us to eliminate entire categories of boilerplate that existed in the JS version, resulting in code that is **simpler, more maintainable, and more elegant** while being **faster and more type-safe**.
 
+---
+
+### Critical Issues & Improvements
+
+#### 1. Cache Implementation (Biggest Red Flag)
+Your current `Cache` is elegant but has performance traps:
+
+- **LRU/LFU eviction** doing `Array.from().sort()` on every `set()` when full is **O(n log n)** — catastrophic at 10k+ size.
+- **Fix**: Use a proper `LRUCache` implementation (doubly-linked list + Map) or `lru-cache` package for the hot path. Keep your unified interface, but delegate policy implementations.
+
+**Recommendation**:
+```ts
+export class Cache<V> implements Disposable {
+  private impl: MapBasedCache<V> | WeakRefCache<V>;
+
+  constructor(opts: CacheOptions<V> = {}) {
+    this.impl = opts.weakRefs 
+      ? new WeakRefCache(opts)
+      : new MapBasedCache(opts); // contains optimized LRU/LFU/etc.
+  }
+}
+```
+
+Also consider `quick-lru` or rolling your own minimal high-perf version for tree-shaking.
+
+#### 2. Atom Representation — Make It Even Better
+Current design is great, but add these:
+
+```ts
+export type MeTTaAtom = 
+  | SymbolAtom 
+  | VariableAtom 
+  | NumberAtom 
+  | StringAtom 
+  | ExpressionAtom 
+  | GroundedAtom;
+
+export const hashAtom = (a: MeTTaAtom): string => { /* FNV-1a or xxHash */ };
+export const equalAtoms = (a: MeTTaAtom, b: MeTTaAtom): boolean => { /* structural */ };
+```
+
+Make `ExpressionAtom` use a **frozen tuple** for `args` and consider a small-object pool for very common small expressions (common in reduction).
+
+`GroundedAtom` should probably hold the *name* + a reference to the op registry rather than the full op object for better serialization/IPC.
+
+#### 3. Configuration Merging
+Your `createConfig` has a classic shallow-merge bug on nested objects.
+
+**Better**:
+```ts
+import { merge } from 'es-toolkit'; // or lodash.merge, or tiny custom deepMerge
+
+export function createConfig(overrides: Partial<MeTTaConfig> = {}): MeTTaConfig {
+  return merge(defaultConfig, overrides) satisfies MeTTaConfig;
+}
+```
+
+Or write a 10-line typed deep merge if you want zero deps.
+
+#### 4. Decorators
+The decorator example is too naive (it doesn't actually register properly in the current form).
+
+**Better approach** (stage 3 decorators + metadata):
+
+Use `Symbol.metadata` + a module-level registry, or better — a **decorator factory that returns the op definition** and lets you collect them via a `registerOps()` call. This is cleaner for bundlers/tree-shaking.
+
+Alternatively, use **effector** or **ts-pattern** style for some operations if decorators feel too magical.
+
+### Additional High-Value Suggestions
+
+**1. Parser Strategy**
+- Don’t write a single hand-rolled parser if you want speed + correctness. Use **Nearley.js** + custom tokenizer or **lezer** (from CodeMirror) for excellent error recovery and performance.
+- Or go full hardcore: write a hand-optimized recursive descent with **zero regex** for maximum speed.
+- Or use `peggy` like we use in SeNARS?
+
+**2. E-Graph**
+This is the hardest part. Strongly consider porting or heavily inspiring from:
+- `egraph` TypeScript implementations
+
+Equality saturation is notoriously subtle. Make the e-graph the *core* data structure early.
+
+**3. Performance Reality Check**
+Your stretch targets are aggressive. Prioritize:
+1. Symbol interning + structural hashing
+2. Fast path for common patterns (`(+ $x $y)` etc.)
+3. E-graph rewrites
+4. JIT only for *very* hot inner loops
+
+**4. Developer Experience Wins**
+- `create-metta` CLI with templates.
+- Excellent error messages with context (you already have `context` in errors — use it).
+
+**5. Testing**
+- Use **fast-check** for property-based testing on unification and reduction. This will catch bugs that normal tests miss.
+- Add **fuzzing** of the parser with random valid MeTTa programs.
+
+### Minor Polish
+- Use `brand` + `Extract` patterns more for nominal types.
+- Consider `ts-pattern` for atom matching — it’s excellent with discriminated unions.
+- Make everything `export type` where possible for better bundler support.
+- Add `/// <reference ...>` or proper module augmentation for grounded ops.
+
