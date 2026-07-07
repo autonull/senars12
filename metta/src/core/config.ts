@@ -93,5 +93,5 @@ export function createConfig(overrides: Partial<MeTTaConfig> = {}): MeTTaConfig 
     concurrency: { ...defaultConfig.concurrency, ...overrides.concurrency },
     types: { ...defaultConfig.types, ...overrides.types },
     debug: { ...defaultConfig.debug, ...overrides.debug },
-  };
+  } satisfies MeTTaConfig;
 }

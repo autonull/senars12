@@ -81,6 +81,6 @@ function matches(atom: MeTTaAtom, pattern: MeTTaAtom): boolean {
       return true;
     }
     default:
-      return true;
+      return false;
   }
 }

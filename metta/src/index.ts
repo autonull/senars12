@@ -1,11 +1,13 @@
 export type { MeTTaAtom, SymbolAtom, VariableAtom, NumberAtom, StringAtom, ExpressionAtom, GroundedAtom } from './types/ast.js';
 export { AtomKind, sym, varr, num, str, expr, isSymbol, isVariable, isNumber, isString, isExpression, isGrounded } from './types/ast.js';
 export type { MeTTaSpace, ImmutableSpace } from './types/space.js';
+export type { VariableName, OperationName, TypeName, Keyword, ValidateAtomType } from './types/syntax.js';
 export { parseMeTTa } from './parser/runtime.js';
 export { EGraph, type RewriteRule } from './engine/egraph.js';
 export { MeTTaInterpreter } from './engine/interpreter.js';
 export { ReductionPipeline } from './engine/reduce.js';
 export { unify, applySubst, type Substitution } from './engine/unify.js';
+export { PatternMatcher } from './engine/match.js';
 export { registerOp, getOp, hasOp, clearOps, defineOp, type GroundedOp } from './core/ops.js';
 export type { IPCMessage } from './ipc/protocol.js';
 export { serialize, deserialize } from './ipc/protocol.js';
