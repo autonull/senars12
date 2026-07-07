@@ -1,24 +1,67 @@
+import { Effect } from 'effect';
 import type { MeTTaAtom } from '../types/ast.js';
+import type { Space } from '../core/space.js';
+import { MeTTaError, ErrorCode } from '../core/errors.js';
 
-export interface Space extends Disposable {
-  readonly id: string;
-  add(atom: MeTTaAtom): void;
-  remove(atom: MeTTaAtom): boolean;
-  query(pattern: MeTTaAtom): Generator<MeTTaAtom>;
-  readonly size: number;
-  readonly atoms: ReadonlyArray<MeTTaAtom>;
+export interface PersistedSpaceData {
+  id: string;
+  atoms: MeTTaAtom[];
+  timestamp: number;
 }
 
-export class InMemorySpace implements Space {
+export interface PersistentSpaceOptions {
+  readonly storageDir: string;
+  readonly autoSave?: boolean;
+  readonly saveInterval?: number;
+}
+
+export class PersistentSpace implements Space {
   readonly id: string;
   private readonly _atoms: MeTTaAtom[] = [];
+  private readonly opts: PersistentSpaceOptions;
+  private saveTimer: ReturnType<typeof setInterval> | undefined;
 
-  constructor(id = 'default') {
+  constructor(id: string, opts: PersistentSpaceOptions) {
     this.id = id;
+    this.opts = { autoSave: true, saveInterval: 5000, ...opts };
+  }
+
+  async load(): Promise<void> {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const file = path.join(this.opts.storageDir, `${this.id}.metta.json`);
+    
+    try {
+      const data = await fs.readFile(file, 'utf-8');
+      const parsed: PersistedSpaceData = JSON.parse(data);
+      this._atoms.push(...parsed.atoms);
+    } catch {
+      return;
+    }
+  }
+
+  private async persist(): Promise<void> {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const file = path.join(this.opts.storageDir, `${this.id}.metta.json`);
+    
+    const data: PersistedSpaceData = {
+      id: this.id,
+      atoms: this._atoms,
+      timestamp: Date.now(),
+    };
+    
+    await fs.mkdir(this.opts.storageDir, { recursive: true });
+    await fs.writeFile(file, JSON.stringify(data, null, 2));
   }
 
   add(atom: MeTTaAtom): void {
     this._atoms.push(atom);
+    if (this.opts.autoSave && !this.saveTimer) {
+      this.saveTimer = setInterval(async () => {
+        await this.persist();
+      }, this.opts.saveInterval);
+    }
   }
 
   remove(atom: MeTTaAtom): boolean {
@@ -45,7 +88,10 @@ export class InMemorySpace implements Space {
   }
 
   [Symbol.dispose](): void {
-    this._atoms.length = 0;
+    if (this.saveTimer) {
+      clearInterval(this.saveTimer);
+      this.saveTimer = undefined;
+    }
   }
 }
 

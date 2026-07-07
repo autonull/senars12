@@ -10,7 +10,7 @@ export { registerOp, getOp, hasOp, clearOps, defineOp, type GroundedOp } from '.
 export type { IPCMessage } from './ipc/protocol.js';
 export { serialize, deserialize } from './ipc/protocol.js';
 export { SharedMemoryQueue } from './ipc/shared-memory.js';
-export { MeTTaRuntime, type MeTTaContext } from './runtime/context.js';
+export type { MeTTaContext } from './runtime/context.js';
 export { Stamp } from './core/stamp.js';
 export { ConceptBag, Concept } from './core/concept-bag.js';
 export { Cache, type EvictionPolicy, type CacheOptions, type CacheStats } from './core/cache.js';
@@ -23,3 +23,8 @@ export type { Type, TypeVar, TypeCon, TypeFun, TypeScheme, TypeEnv, Subst } from
 export { TypeKind, typevar, typecon, typefun, isTypeVar, isTypeCon, isTypeFun } from './types/type.js';
 export { TypeChecker, unifyTypes, occursCheck, composeSubst, freshType, resetTypeIds } from './types/inference.js';
 export { bootstrapStdLib } from './stdlib/index.js';
+export { PersistentSpace, type PersistedSpaceData, type PersistentSpaceOptions } from './extensions/persistent-space.js';
+export { MeTTaBuilder, MeTTaRuntime, createMeTTa } from './runtime/builder.js';
+export { JITCompiler, globalJIT } from './performance/jit.js';
+export type { ParallelOptions } from './performance/parallel.js';
+export { parallelReduce, parallelMap } from './performance/parallel.js';
