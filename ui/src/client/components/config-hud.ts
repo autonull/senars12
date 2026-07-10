@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
-import type { ConfigFieldType } from '../../shared/protocol.js';
+import type { ConfigFieldType } from '@senars/core';
 import { $config, BaseComponent, send } from '../core/index.js';
 import './config-profiles.js';
 

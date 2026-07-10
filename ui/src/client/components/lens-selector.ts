@@ -1,6 +1,6 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import type { Lens } from '../../shared/protocol.js';
+import type { Lens } from '@senars/core';
 import { LENS_COLORS, LENS_DESCRIPTIONS, LENS_LABELS } from '../constants.js';
 import { $activeLens, BaseComponent, send } from '../core/index.js';
 

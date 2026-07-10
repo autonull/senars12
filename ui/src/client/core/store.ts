@@ -1,6 +1,6 @@
 import type { LensSpec } from '../../shared/lens-schema.js';
 import { isBuiltinLens } from '../../shared/lens-schema.js';
-import type { ChatMessage, GraphNodeData, Lens } from '../../shared/protocol.js';
+import type { ChatMessage, GraphNodeData, Lens } from '@senars/core';
 import { beliefLens, compile, contradictionLens, goalLens } from '../modulation/compile.js';
 import { timeGate } from '../modulation/composition.js';
 import { evaluate } from '../modulation/evaluate.js';

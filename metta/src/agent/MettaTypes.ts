@@ -1,4 +1,4 @@
-import type { AgentCapabilities, CognitiveEvent, Connection } from '@senars/core';
+import type { AgentCapabilities, CognitiveEvent, Connection, ChatOptions, ChatStreamEvent } from '@senars/core';
 import type { MeTTaAtom } from '../types/ast.js';
 
 export interface SkillFeedback {
@@ -43,11 +43,24 @@ export interface PromptContext {
   readonly maxSkillResultsChars: number;
 }
 
+export interface EpisodicEntry {
+  readonly timestamp: string;
+  readonly humanMessage: string;
+  readonly response: string;
+  readonly sexpr?: string;
+  readonly errorFeedback?: string;
+}
+
 export interface MettaAgent {
   start(): void;
   stop(): void;
 
   submit(input: string, correlationId: string): void;
+  chat(input: string, opts?: ChatOptions): Promise<string> | AsyncGenerator<ChatStreamEvent, string>;
+  appendToHistory(entry: EpisodicEntry): Promise<void>;
+
+  getEpisodes(aroundTime?: string, lines?: number): Promise<EpisodicEntry[]>;
+  getEpisodesByTime(timeStr: string, contextLines?: number): Promise<string>;
 
   on(event: string | '*', handler: (event: CognitiveEvent) => void): void;
   off(event: string | '*', handler: (event: CognitiveEvent) => void): void;

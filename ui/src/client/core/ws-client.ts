@@ -1,7 +1,7 @@
 import {
   IncomingFromServer,
   type IncomingFromServer as IncomingMessage,
-} from '../../shared/protocol.js';
+} from '@senars/core';
 import { applyServerMessage } from './store-bindings.js';
 import { $connectionState, $lastSeqId } from './store.js';
 

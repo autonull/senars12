@@ -4,7 +4,7 @@ import type {
   GraphNodeData,
   GraphOp,
   IncomingFromServer,
-} from '../../shared/protocol.js';
+} from '@senars/core';
 import { edgeKey, extractTerm, generateId } from '../../shared/utils.js';
 import type { CognitiveMetricsData, RevisionEntry } from './store.js';
 import {

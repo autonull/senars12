@@ -110,8 +110,9 @@ export const GraphNodeDataView = z.object({
 });
 export type GraphNodeDataView = z.infer<typeof GraphNodeDataView>;
 
-export const GraphNodeData = GraphNodeDataStrict;
-export type GraphNodeData = z.infer<typeof GraphNodeDataStrict>;
+export const GraphNodeData = GraphNodeDataView;
+export type GraphNodeData = z.infer<typeof GraphNodeDataView>;
+export type GraphNodeDataStrict = z.infer<typeof GraphNodeDataStrict>;
 
 // --- Agent Capabilities (for UI negotiation) ---
 

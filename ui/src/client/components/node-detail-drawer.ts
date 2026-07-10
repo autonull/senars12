@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { EDGE_TYPES, edgeTypeLabel } from '../../shared/constants.js';
-import type { GraphNodeData } from '../../shared/protocol.js';
+import type { GraphNodeData } from '@senars/core';
 import {
   $focusTerm,
   $graphEdges,
@@ -155,7 +155,8 @@ export class NodeDetailDrawer extends BaseComponent {
     this.truthFrequency = f;
     const node = this.node;
     if (!node) return;
-    updateNodeData(node.id, {
+    const nodeId = node.id ?? '';
+    updateNodeData(nodeId, {
       truth: { frequency: f, confidence: this.truthConfidence },
     });
     if (this.truthDebounce) clearTimeout(this.truthDebounce);
@@ -163,7 +164,7 @@ export class NodeDetailDrawer extends BaseComponent {
       send({
         type: 'object.set',
         kind: 'node',
-        id: node.id,
+        id: nodeId,
         patch: { truth: { frequency: f, confidence: this.truthConfidence } },
       });
     }, 120);
@@ -187,7 +188,7 @@ export class NodeDetailDrawer extends BaseComponent {
       <div class="tabs">
         ${(['overview', 'links', 'actions', 'history'] as const).map(
           (tab) => html`
-          <button class="tab ${this.activeTab === tab ? 'active' : ''}" @click=${() => (this.activeTab = tab)}>
+          <button class="tab ${this.activeTab === tab ? 'active' : ''}" @click=${() => { this.activeTab = tab; }}>
             ${tab === 'overview' ? 'Overview' : tab === 'links' ? 'Links' : tab === 'history' ? 'History' : 'Actions'}
           </button>
         `
@@ -260,7 +261,7 @@ export class NodeDetailDrawer extends BaseComponent {
   private pinNode() {
     if (this.node) {
       const ids = new Set($selectedNodeIds.get());
-      ids.add(this.node.id);
+      ids.add(this.node.id ?? '');
       $selectedNodeIds.set(ids);
     }
   }
@@ -268,18 +269,20 @@ export class NodeDetailDrawer extends BaseComponent {
   private hideNode() {
     if (this.node) {
       const nodes = new Map($graphNodes.get());
-      nodes.delete(this.node.id);
+      nodes.delete(this.node.id ?? '');
       $graphNodes.set(nodes);
       $selectedNodeId.set(null);
     }
   }
 
   private renderOverview() {
-    const n = this.node!;
+    const n = this.node;
+    if (!n) return html``;
+    const nodeId = n.id ?? '';
     const truthColor = this.truthToColor(this.truthFrequency);
     return html`
       <div class="section-title">Node Details</div>
-      <div class="field"><span class="field-label">Term</span><span class="field-value">${n.term ?? n.label ?? n.id}</span></div>
+      <div class="field"><span class="field-label">Term</span><span class="field-value">${n.term ?? n.label ?? nodeId}</span></div>
       <div class="field"><span class="field-label">Type</span><span class="field-value">${n.nodeType}</span></div>
       <div class="field"><span class="field-label">Priority</span><span class="field-value">${n.priority?.toFixed(3) ?? '—'}</span></div>
       <div class="field"><span class="field-label">Confidence</span><span class="field-value">${n.confidence?.toFixed(3) ?? '—'}</span></div>
@@ -299,7 +302,8 @@ export class NodeDetailDrawer extends BaseComponent {
   }
 
   private renderEdge() {
-    const ed = this.edgeData!;
+    const ed = this.edgeData;
+    if (!ed) return html``;
     const hasTruth = ed.weight !== undefined;
     const nodes = $graphNodes.get();
     const sourceLabel = nodes.get(ed.source as string)?.label ?? (ed.source as string);
@@ -422,7 +426,8 @@ export class NodeDetailDrawer extends BaseComponent {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `subgraph-${this.node?.id ?? 'export'}.json`;
+    const nodeId = this.node?.id ?? 'export';
+    a.download = `subgraph-${nodeId}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }

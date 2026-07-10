@@ -37,7 +37,7 @@ export type {
   Tool as ChatTool,
 } from './ChatService.js';
 export { createChatService } from './ChatService.js';
-export type { GraphNodeData, ConfigFieldType, GraphOpType } from './Protocol.js';
+export type { GraphNodeData, ConfigFieldType, GraphOpType, GraphNodeDataStrict } from './Protocol.js';
 export {
   GraphOp,
   CognitiveDelta,
@@ -46,6 +46,10 @@ export {
   NarConceptNode,
   MettaAtomNode,
   MettaSkillNode,
+  ChatMessage,
+  IncomingFromClient,
+  IncomingFromServer,
+  Lens,
 } from './Protocol.js';
 export type { ValidatedAgentOptions } from './Options.js';
 export {
