@@ -29,7 +29,7 @@ function applyChannel(
   child: Modulation,
   item: Item,
   view: View,
-  out: Delta,
+  out: Delta
 ): void {
   const value = resolveModulationValue(child, item, view);
   if (value === undefined) return;
@@ -58,10 +58,7 @@ export function konst(value: ChannelValue): Modulation {
   return { op: 'const', value };
 }
 
-export function field(
-  f: keyof Item,
-  map?: (v: unknown) => ChannelValue,
-): Modulation {
+export function field(f: keyof Item, map?: (v: unknown) => ChannelValue): Modulation {
   return { op: 'field', field: f, map };
 }
 
@@ -71,7 +68,7 @@ export function channel(ch: Channel, child: Modulation): Modulation {
 
 export function when(
   predicate: (item: Item, view: View) => boolean,
-  child: Modulation,
+  child: Modulation
 ): Modulation {
   return { op: 'when', predicate, child };
 }

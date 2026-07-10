@@ -1,17 +1,23 @@
-import type { CognitiveEvent, AgentCapabilities, Connection } from '@senars/core';
-import { createMeTTa, type MeTTaRuntime } from '../runtime/builder.js';
-import { parseMeTTa } from '../parser/runtime.js';
-import { InMemorySpace } from '../core/space.js';
-import type { MettaAgentOptions, MettaLoopConfig, HealthStatus, MettaAgent as MettaAgentInterface, SkillFeedback } from './MettaTypes.js';
-import { DEFAULT_LOOP_CONFIG } from './MettaTypes.js';
+import type { AgentCapabilities, CognitiveEvent, Connection } from '@senars/core';
 import type { GroundedOp } from '../core/ops.js';
+import { InMemorySpace } from '../core/space.js';
+import { parseMeTTa } from '../parser/runtime.js';
+import { type MeTTaRuntime, createMeTTa } from '../runtime/builder.js';
 import type { MeTTaAtom } from '../types/ast.js';
-import { MettaSkills } from './MettaSkills.js';
-import { MettaLoop } from './MettaLoop.js';
 import { MettaHistory } from './MettaHistory.js';
-import { MettaPromptBuilder } from './MettaPromptBuilder.js';
-import { MettaLTM } from './MettaLTM.js';
 import { MettaKnowledge } from './MettaKnowledge.js';
+import { MettaLTM } from './MettaLTM.js';
+import { MettaLoop } from './MettaLoop.js';
+import { MettaPromptBuilder } from './MettaPromptBuilder.js';
+import { MettaSkills } from './MettaSkills.js';
+import type {
+  HealthStatus,
+  MettaAgent as MettaAgentInterface,
+  MettaAgentOptions,
+  MettaLoopConfig,
+  SkillFeedback,
+} from './MettaTypes.js';
+import { DEFAULT_LOOP_CONFIG } from './MettaTypes.js';
 import { PolicyEngine } from './PolicyEngine.js';
 
 export class MettaAgent implements MettaAgentInterface {
@@ -52,7 +58,7 @@ export class MettaAgent implements MettaAgentInterface {
       this.#history,
       this.#promptBuilder,
       (e) => this.#emitCognitive(e),
-      this.#loopConfig,
+      this.#loopConfig
     );
     this.#loop.run().catch(console.error);
   }

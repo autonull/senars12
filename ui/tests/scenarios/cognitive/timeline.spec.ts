@@ -1,19 +1,12 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
 test.describe('Temporal Gate: timeline scrubber and revision history', () => {
-  test('scrub timeline to view time-gated node visibility', async ({
-    page,
-    testApi,
-  }) => {
+  test('scrub timeline to view time-gated node visibility', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect
-      .async(() => testApi.getConnectionState())
-      .toPass({ timeout: 10000 });
+    await expect.async(() => testApi.getConnectionState()).toPass({ timeout: 10000 });
 
     // Wait for initial graph to load
-    await expect
-      .async(() => testApi.getGraphNodeCount())
-      .toBeGreaterThan(0, { timeout: 15000 });
+    await expect.async(() => testApi.getGraphNodeCount()).toBeGreaterThan(0, { timeout: 15000 });
 
     // Get current node count and check timeline scrubber exists
     const nodeCount = await testApi.getGraphNodeCount();
@@ -40,18 +33,11 @@ test.describe('Temporal Gate: timeline scrubber and revision history', () => {
     await expect(scrubber).toBeVisible();
   });
 
-  test('node history tab displays revision entries', async ({
-    page,
-    testApi,
-  }) => {
+  test('node history tab displays revision entries', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect
-      .async(() => testApi.getConnectionState())
-      .toPass({ timeout: 10000 });
+    await expect.async(() => testApi.getConnectionState()).toPass({ timeout: 10000 });
 
-    await expect
-      .async(() => testApi.getGraphNodeCount())
-      .toBeGreaterThan(0, { timeout: 15000 });
+    await expect.async(() => testApi.getGraphNodeCount()).toBeGreaterThan(0, { timeout: 15000 });
 
     // Click on a node
     const ids = await testApi.getAllNodeIds();

@@ -7,7 +7,7 @@
  * @param {number} ms - Duration in milliseconds
  * @returns {Promise<void>}
  */
-export const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Create a timeout promise
@@ -16,7 +16,7 @@ export const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * @returns {Promise<never>} Promise that rejects after timeout
  */
 export const timeout = (ms, message = 'Operation timed out') =>
-    new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms));
+  new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms));
 
 /**
  * Race a promise against a timeout
@@ -26,7 +26,7 @@ export const timeout = (ms, message = 'Operation timed out') =>
  * @returns {Promise} Promise that rejects on timeout
  */
 export const withTimeout = async (promise, ms, message = 'Operation timed out') =>
-    Promise.race([promise, timeout(ms, message)]);
+  Promise.race([promise, timeout(ms, message)]);
 
 /**
  * Async iterator with delay
@@ -35,10 +35,12 @@ export const withTimeout = async (promise, ms, message = 'Operation timed out') 
  * @returns {AsyncGenerator}
  */
 export async function* asyncIteratorWithDelay(items, delay = 0) {
-    for (const item of items) {
-        if (delay > 0) {await sleep(delay);}
-        yield item;
+  for (const item of items) {
+    if (delay > 0) {
+      await sleep(delay);
     }
+    yield item;
+  }
 }
 
 /**
@@ -50,13 +52,15 @@ export async function* asyncIteratorWithDelay(items, delay = 0) {
  * @returns {Promise<boolean>} True if condition met, false if timeout
  */
 export async function waitForCondition(condition, options = {}) {
-    const { timeout: timeoutMs = 5000, interval = 100 } = options;
-    const startTime = Date.now();
-    while (Date.now() - startTime < timeoutMs) {
-        if (condition()) {return true;}
-        await sleep(interval);
+  const { timeout: timeoutMs = 5000, interval = 100 } = options;
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeoutMs) {
+    if (condition()) {
+      return true;
     }
-    return false;
+    await sleep(interval);
+  }
+  return false;
 }
 
 /**
@@ -70,20 +74,22 @@ export async function waitForCondition(condition, options = {}) {
  * @returns {Promise} Result of operation
  */
 export async function retry(operation, options = {}) {
-    const { maxRetries = 3, backoff = 100, exponential = true, onError = null } = options;
-    let lastError;
+  const { maxRetries = 3, backoff = 100, exponential = true, onError = null } = options;
+  let lastError;
 
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-            return await operation();
-        } catch (error) {
-            lastError = error;
-            onError?.(error, attempt, maxRetries);
-            if (attempt === maxRetries) {break;}
-            await sleep(exponential ? backoff * Math.pow(2, attempt) : backoff);
-        }
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      onError?.(error, attempt, maxRetries);
+      if (attempt === maxRetries) {
+        break;
+      }
+      await sleep(exponential ? backoff * Math.pow(2, attempt) : backoff);
     }
-    throw lastError;
+  }
+  throw lastError;
 }
 
 /**

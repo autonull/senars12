@@ -2,13 +2,13 @@ import { mkdtempSync, rmSync } from 'fs';
 import { type Server, type Socket, createServer } from 'node:net';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { CommandRegistry, IRCConnection } from '@senars/io';
 import { InMemorySessionManager, bindAgentToConnection, createAgent } from '@senars/nar/agent';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { NAR } from '../../nar/src';
 import { SeNARSFactory } from '../../nar/src';
 import { createMockLMService } from '../../nar/src/lm';
 import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
-import { CommandRegistry, IRCConnection } from '@senars/io';
 
 class MockIRCServer {
   public port = 0;
@@ -145,9 +145,9 @@ describe('IRC live integration', () => {
           floodProtectionDelay: 100,
         },
       },
-      { nar, emit: () => undefined, logger: noopLogger }
+      { emit: () => undefined, logger: noopLogger }
     );
-await conn.connect();
+    await conn.connect();
     bindAgentToConnection(agent, conn, {
       sessionManager,
       commandRegistry,
@@ -165,6 +165,6 @@ await conn.connect();
     // Wait for the bot to respond (cold + LM call)
     await new Promise((r) => setTimeout(r, 1000));
 
-expect(receivedBotMessages.length).toBeGreaterThan(0);
-   }, 3000);
+    expect(receivedBotMessages.length).toBeGreaterThan(0);
+  }, 3000);
 });

@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import type { ComposedRequest } from '@senars/nar/agent';
 import { ModelRunner } from '@senars/nar/agent';
+import { describe, expect, it } from 'vitest';
 import { createMockLMService } from '../../../nar/src/lm';
 
 function makeComposed(

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import {chromium} from 'playwright';
-import fs from 'fs/promises';
 import path from 'path';
-import {fileURLToPath} from 'url';
+import { fileURLToPath } from 'url';
+import fs from 'fs/promises';
+import { chromium } from 'playwright';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,45 +16,45 @@ let outputDir = path.join(rootDir, 'test-results');
 // Parse args
 const args = process.argv.slice(2);
 for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--input' && args[i + 1]) {
-        screenshotsDir = path.resolve(process.cwd(), args[i + 1]);
-        i++;
-    } else if (args[i] === '--output' && args[i + 1]) {
-        outputDir = path.resolve(process.cwd(), args[i + 1]);
-        i++;
-    }
+  if (args[i] === '--input' && args[i + 1]) {
+    screenshotsDir = path.resolve(process.cwd(), args[i + 1]);
+    i++;
+  } else if (args[i] === '--output' && args[i + 1]) {
+    outputDir = path.resolve(process.cwd(), args[i + 1]);
+    i++;
+  }
 }
 
 async function generateComposite() {
-    console.log(`Generating composite image...`);
-    console.log(`Input: ${screenshotsDir}`);
-    console.log(`Output: ${outputDir}`);
+  console.log(`Generating composite image...`);
+  console.log(`Input: ${screenshotsDir}`);
+  console.log(`Output: ${outputDir}`);
 
+  try {
+    // Ensure output dir exists
+    await fs.mkdir(outputDir, { recursive: true });
+
+    // Check if screenshots directory exists
     try {
-        // Ensure output dir exists
-        await fs.mkdir(outputDir, {recursive: true});
+      await fs.access(screenshotsDir);
+    } catch {
+      console.error('❌ Screenshots directory not found.');
+      process.exit(1);
+    }
 
-        // Check if screenshots directory exists
-        try {
-            await fs.access(screenshotsDir);
-        } catch {
-            console.error('❌ Screenshots directory not found.');
-            process.exit(1);
-        }
+    // Get all png files
+    const files = await fs.readdir(screenshotsDir);
+    const images = files.filter((f) => f.endsWith('.png')).sort();
 
-        // Get all png files
-        const files = await fs.readdir(screenshotsDir);
-        const images = files.filter(f => f.endsWith('.png')).sort();
+    if (images.length === 0) {
+      console.error('❌ No screenshots found to generate composite.');
+      process.exit(1);
+    }
 
-        if (images.length === 0) {
-            console.error('❌ No screenshots found to generate composite.');
-            process.exit(1);
-        }
+    console.log(`Found ${images.length} images.`);
 
-        console.log(`Found ${images.length} images.`);
-
-        // Create HTML content
-        const htmlContent = `
+    // Create HTML content
+    const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -99,51 +99,54 @@ async function generateComposite() {
 <body>
     <h1>SeNARS Demo Trajectory</h1>
     <div class="grid">
-        ${images.map(img => `
+        ${images
+          .map(
+            (img) => `
             <div class="card">
                 <img src="${path.relative(outputDir, path.join(screenshotsDir, img))}" loading="lazy" alt="${img}">
                 <div class="card-info">${img}</div>
             </div>
-        `).join('')}
+        `
+          )
+          .join('')}
     </div>
 </body>
 </html>
         `;
 
-        const htmlPath = path.join(outputDir, 'composite.html');
-        await fs.writeFile(htmlPath, htmlContent);
-        console.log(`✓ HTML generated at ${htmlPath}`);
+    const htmlPath = path.join(outputDir, 'composite.html');
+    await fs.writeFile(htmlPath, htmlContent);
+    console.log(`✓ HTML generated at ${htmlPath}`);
 
-        // Launch browser to capture the composite
-        const browser = await chromium.launch({headless: true});
-        const context = await browser.newContext({
-            viewport: {width: 1920, height: 1080}, // Start with a reasonable size
-            deviceScaleFactor: 1
-        });
-        const page = await context.newPage();
+    // Launch browser to capture the composite
+    const browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext({
+      viewport: { width: 1920, height: 1080 }, // Start with a reasonable size
+      deviceScaleFactor: 1,
+    });
+    const page = await context.newPage();
 
-        // Navigate to local file
-        await page.goto(`file://${htmlPath}`, {waitUntil: 'networkidle'});
+    // Navigate to local file
+    await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle' });
 
-        // Calculate height needed
-        const bodyHandle = await page.$('body');
-        const boundingBox = await bodyHandle.boundingBox();
-        const height = boundingBox.height + 40; // Add padding
+    // Calculate height needed
+    const bodyHandle = await page.$('body');
+    const boundingBox = await bodyHandle.boundingBox();
+    const height = boundingBox.height + 40; // Add padding
 
-        // Resize viewport to fit full content
-        await page.setViewportSize({width: 1920, height: Math.ceil(height)});
+    // Resize viewport to fit full content
+    await page.setViewportSize({ width: 1920, height: Math.ceil(height) });
 
-        const outputPath = path.join(outputDir, 'composite.png');
-        await page.screenshot({path: outputPath, fullPage: true});
+    const outputPath = path.join(outputDir, 'composite.png');
+    await page.screenshot({ path: outputPath, fullPage: true });
 
-        console.log(`✓ Composite image saved to ${outputPath}`);
+    console.log(`✓ Composite image saved to ${outputPath}`);
 
-        await browser.close();
-
-    } catch (error) {
-        console.error('❌ Error generating composite:', error);
-        process.exit(1);
-    }
+    await browser.close();
+  } catch (error) {
+    console.error('❌ Error generating composite:', error);
+    process.exit(1);
+  }
 }
 
 generateComposite();

@@ -97,7 +97,7 @@ export abstract class BaseComponent {
     const validTransitions = VALID_TRANSITIONS[this._state];
     if (!validTransitions.includes(state)) {
       throw new Error(
-        `Invalid state transition from ${this._state} to ${state}. Valid transitions: ${validTransitions.join(', ')}`,
+        `Invalid state transition from ${this._state} to ${state}. Valid transitions: ${validTransitions.join(', ')}`
       );
     }
     this._state = state;

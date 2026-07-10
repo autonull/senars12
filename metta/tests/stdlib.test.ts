@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { bootstrapStdLib, getOp, clearOps } from '../src/index.js';
-import { sym, num, expr } from '../src/index.js';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { bootstrapStdLib, clearOps, getOp } from '../src/index.js';
+import { expr, num, sym } from '../src/index.js';
 
 beforeEach(() => {
   clearOps();

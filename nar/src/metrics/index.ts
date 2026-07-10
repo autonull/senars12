@@ -226,7 +226,14 @@ export class MetricsCollector implements CoreMetrics {
 
   gauge(name: string, value: number, tags?: Record<string, unknown>): void {
     if (name === 'concepts' && tags?.count) {
-      this.updateMemoryStats({ conceptCount: value, beliefCount: 0, goalCount: 0, questionCount: 0, activationDistribution: { min: 0, max: 0, average: 0 }, forgettingRate: 0 });
+      this.updateMemoryStats({
+        conceptCount: value,
+        beliefCount: 0,
+        goalCount: 0,
+        questionCount: 0,
+        activationDistribution: { min: 0, max: 0, average: 0 },
+        forgettingRate: 0,
+      });
     }
   }
 

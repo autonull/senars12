@@ -1,6 +1,6 @@
-import type { MeTTaAtom, SymbolAtom, StringAtom } from '../types/ast.js';
-import { sym, expr, str } from '../types/ast.js';
 import type { Space } from '../core/space.js';
+import type { MeTTaAtom, StringAtom, SymbolAtom } from '../types/ast.js';
+import { expr, str, sym } from '../types/ast.js';
 
 export interface EpisodicEntry {
   readonly timestamp: string;
@@ -19,21 +19,13 @@ export class MettaEpisodicMemory {
 
   append(entry: EpisodicEntry): void {
     const ts = entry.timestamp;
-    this.#space.add(
-      expr(sym('episode'), str(ts), sym('human'), str(entry.humanMessage))
-    );
-    this.#space.add(
-      expr(sym('episode'), str(ts), sym('response'), str(entry.response))
-    );
+    this.#space.add(expr(sym('episode'), str(ts), sym('human'), str(entry.humanMessage)));
+    this.#space.add(expr(sym('episode'), str(ts), sym('response'), str(entry.response)));
     if (entry.sexpr) {
-      this.#space.add(
-        expr(sym('episode'), str(ts), sym('sexpr'), str(entry.sexpr))
-      );
+      this.#space.add(expr(sym('episode'), str(ts), sym('sexpr'), str(entry.sexpr)));
     }
     if (entry.errorFeedback) {
-      this.#space.add(
-        expr(sym('episode'), str(ts), sym('error'), str(entry.errorFeedback))
-      );
+      this.#space.add(expr(sym('episode'), str(ts), sym('error'), str(entry.errorFeedback)));
     }
   }
 
@@ -63,9 +55,12 @@ export class MettaEpisodicMemory {
 
   getEpisodesByTime(timeStr: string, contextLines = 20): string {
     const episodes = this.getEpisodes(timeStr, contextLines);
-    return episodes.map(e =>
-      `${e.timestamp}\nHUMAN_MESSAGE: ${e.humanMessage}\n${e.response}${e.errorFeedback ? `\nERROR_FEEDBACK: ${e.errorFeedback}` : ''}`
-    ).join('\n\n');
+    return episodes
+      .map(
+        (e) =>
+          `${e.timestamp}\nHUMAN_MESSAGE: ${e.humanMessage}\n${e.response}${e.errorFeedback ? `\nERROR_FEEDBACK: ${e.errorFeedback}` : ''}`
+      )
+      .join('\n\n');
   }
 
   #getAllEntries(): EpisodicEntry[] {
@@ -108,6 +103,10 @@ export class MettaEpisodicMemory {
     if (keyName === 'error') {
       return { timestamp: ts, humanMessage: '', response: '', errorFeedback: val };
     }
-    return { timestamp: ts, humanMessage: keyName === 'human' ? val : '', response: keyName === 'response' ? val : '' };
+    return {
+      timestamp: ts,
+      humanMessage: keyName === 'human' ? val : '',
+      response: keyName === 'response' ? val : '',
+    };
   }
 }

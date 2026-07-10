@@ -1,8 +1,8 @@
 import { Effect } from 'effect';
-import type { MeTTaAtom, ExpressionAtom } from '../types/ast.js';
-import type { MeTTaSpace } from '../types/space.js';
-import { MeTTaError, ErrorCode } from '../core/errors.js';
+import { ErrorCode, MeTTaError } from '../core/errors.js';
 import { getOp } from '../core/ops.js';
+import type { ExpressionAtom, MeTTaAtom } from '../types/ast.js';
+import type { MeTTaSpace } from '../types/space.js';
 import { ReductionPipeline } from './reduce.js';
 
 export class MeTTaInterpreter {
@@ -21,13 +21,13 @@ export class MeTTaInterpreter {
 
     let current = program;
     const maxSteps = 10000;
-    
+
     for (let i = 0; i < maxSteps; i++) {
       const reduced = this.reduce(current);
       if (reduced === current) break;
       current = reduced;
     }
-    
+
     return Effect.succeed(current);
   }
 

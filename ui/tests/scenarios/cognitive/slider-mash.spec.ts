@@ -7,14 +7,10 @@ test.describe('Slider Mash: frame budget on rapid truth adjustment', () => {
     perfMonitor,
   }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect
-      .async(() => testApi.getConnectionState())
-      .toPass({ timeout: 10000 });
+    await expect.async(() => testApi.getConnectionState()).toPass({ timeout: 10000 });
 
     // Wait for initial graph nodes
-    await expect
-      .async(() => testApi.getGraphNodeCount())
-      .toBeGreaterThan(0, { timeout: 15000 });
+    await expect.async(() => testApi.getGraphNodeCount()).toBeGreaterThan(0, { timeout: 15000 });
 
     // Type a sentence
     const textarea = page.locator('input-hud textarea');
@@ -31,10 +27,8 @@ test.describe('Slider Mash: frame budget on rapid truth adjustment', () => {
     // Click the first node to open the drawer
     const ids = await testApi.getAllNodeIds();
     const targetId =
-      ids.find(
-        (id: string) =>
-          id.includes('$sky') || id.includes('sky') || id.includes('blue')
-      ) ?? ids[0];
+      ids.find((id: string) => id.includes('$sky') || id.includes('sky') || id.includes('blue')) ??
+      ids[0];
     await testApi.clickNode(targetId);
 
     // Find the truth slider

@@ -17,9 +17,10 @@ export class MettaPromptBuilder {
   }
 
   build(ctx: PromptContext): string {
-    const skillResults = ctx.skillResults.length > ctx.maxSkillResultsChars
-      ? ctx.skillResults.slice(0, ctx.maxSkillResultsChars) + '\n... [truncated]'
-      : ctx.skillResults;
+    const skillResults =
+      ctx.skillResults.length > ctx.maxSkillResultsChars
+        ? ctx.skillResults.slice(0, ctx.maxSkillResultsChars) + '\n... [truncated]'
+        : ctx.skillResults;
 
     return [
       ctx.systemPrompt,

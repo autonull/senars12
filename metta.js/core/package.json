@@ -13,9 +13,7 @@
     "./src/*": "./src/*.js",
     "./src/*.js": "./src/*.js"
   },
-  "files": [
-    "src"
-  ],
+  "files": ["src"],
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
     "@langchain/core": "^1.1.38",

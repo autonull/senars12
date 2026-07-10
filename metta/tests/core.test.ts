@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Cache } from '../src/core/cache.js';
+import { ErrorCode, MeTTaError } from '../src/core/errors.js';
+import { equalAtoms, hashAtom } from '../src/core/hash.js';
 import { SymbolInterner } from '../src/core/intern.js';
 import { InMemorySpace } from '../src/core/space.js';
-import { MeTTaError, ErrorCode } from '../src/core/errors.js';
-import { hashAtom, equalAtoms } from '../src/core/hash.js';
-import { sym, varr, num, expr, str } from '../src/types/ast.js';
+import { expr, num, str, sym, varr } from '../src/types/ast.js';
 
 describe('Cache', () => {
   it('stores and retrieves values', () => {
@@ -44,7 +44,7 @@ describe('Cache', () => {
     using cache = new Cache({ ttl: 50 });
     cache.set('a', 'value-a');
     expect(cache.has('a')).toBe(true);
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 100));
     expect(cache.has('a')).toBe(false);
   });
 
@@ -76,7 +76,13 @@ describe('Cache', () => {
 
   it('calls onEvict callback', () => {
     let evicted: { key: string; value: string } | undefined;
-    using cache = new Cache({ maxSize: 1, policy: 'fifo', onEvict: (k, v) => { evicted = { key: k, value: v }; } });
+    using cache = new Cache({
+      maxSize: 1,
+      policy: 'fifo',
+      onEvict: (k, v) => {
+        evicted = { key: k, value: v };
+      },
+    });
     cache.set('a', 'value-a');
     cache.set('b', 'value-b');
     expect(evicted?.key).toBe('a');

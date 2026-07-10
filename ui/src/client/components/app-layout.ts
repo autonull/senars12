@@ -1,7 +1,13 @@
 import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
-import { $connectionState, $graphNodes, $panels, $selectedNodeId, $viewportMode } from '../core/index.js';
+import {
+  $connectionState,
+  $graphNodes,
+  $panels,
+  $selectedNodeId,
+  $viewportMode,
+} from '../core/index.js';
 import './graph-viewport.js';
 import '../spacegraph/spacegraph-viewport.js';
 import './graph-toolbar.js';
@@ -122,9 +128,11 @@ export class AppLayout extends BaseComponent {
           `
               : ''
           }
-          ${$viewportMode.get() === '3d'
-            ? html`<spacegraph-viewport></spacegraph-viewport>`
-            : html`<graph-viewport></graph-viewport>`}
+          ${
+            $viewportMode.get() === '3d'
+              ? html`<spacegraph-viewport></spacegraph-viewport>`
+              : html`<graph-viewport></graph-viewport>`
+          }
         </div>
 
         ${

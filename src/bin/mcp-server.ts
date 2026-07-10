@@ -3,8 +3,8 @@
  * Runs the SeNARS MCP Server with NAR tools registered
  */
 
-import { z } from 'zod';
 import { createAgent } from '@senars/nar/agent';
+import { z } from 'zod';
 import { createNAR } from '../../nar/src';
 import { SeNARSMCPServer } from '../api/mcp-server.js';
 import { registerAgentAPI, registerNARToolsAsMCP } from '../api/mcp-tools.js';

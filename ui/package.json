@@ -30,6 +30,8 @@
     "test:visual:update": "playwright test --config tests/playwright.config.ts --update-snapshots"
   },
   "dependencies": {
+    "@senars/core": "workspace:*",
+    "@senars/nar": "workspace:*",
     "@monaco-editor/loader": "^1.7.0",
     "chart.js": "^4.5.1",
     "cytoscape": "^3.30.0",

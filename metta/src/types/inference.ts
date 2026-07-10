@@ -1,10 +1,24 @@
-import type { MeTTaAtom, ExpressionAtom } from '../types/ast.js';
+import type { ExpressionAtom, MeTTaAtom } from '../types/ast.js';
 import { AtomKind } from '../types/ast.js';
-import { type Type, type TypeEnv, type Subst, type TypeScheme, TypeKind, typevar, typecon, typefun, isTypeVar, type TypeVar, type TypeFun } from './type.js';
+import {
+  type Subst,
+  type Type,
+  type TypeEnv,
+  type TypeFun,
+  TypeKind,
+  type TypeScheme,
+  type TypeVar,
+  isTypeVar,
+  typecon,
+  typefun,
+  typevar,
+} from './type.js';
 
 let nextTypeId = 0;
 export const freshType = (): TypeVar => typevar(nextTypeId++);
-export const resetTypeIds = () => { nextTypeId = 0; };
+export const resetTypeIds = () => {
+  nextTypeId = 0;
+};
 
 export const applyTypeSubst = (t: Type, s: Subst): Type => {
   if (isTypeVar(t)) {
@@ -56,20 +70,20 @@ export type TypedExpr = { atom: MeTTaAtom; type: Type };
 
 export class TypeChecker {
   private env: TypeEnv = new Map();
-  
+
   constructor(initialEnv?: TypeEnv) {
     if (initialEnv) this.env = new Map(initialEnv);
   }
-  
+
   addBinding(name: string, scheme: TypeScheme): void {
     this.env.set(name, scheme);
   }
-  
+
   infer(atom: MeTTaAtom): { type: Type; subst: Subst } | null {
     const result = this.inferType(atom, new Map());
     return result ? { type: applyTypeSubst(result.type, result.subst), subst: result.subst } : null;
   }
-  
+
   private inferType(atom: MeTTaAtom, subst: Subst): { type: Type; subst: Subst } | null {
     if (atom.kind === AtomKind.Variable) {
       const scheme = this.env.get(atom.name);
@@ -94,7 +108,7 @@ export class TypeChecker {
     }
     return null;
   }
-  
+
   private instantiate(scheme: TypeScheme): { type: Type; subst: Subst } {
     const subst: Subst = new Map();
     const freshVars = scheme.vars.map(() => freshType());
@@ -105,24 +119,24 @@ export class TypeChecker {
     });
     return { type: applyTypeSubst(scheme.type, varSubst), subst };
   }
-  
+
   private inferExpr(expr: ExpressionAtom, subst: Subst): { type: Type; subst: Subst } | null {
     const opResult = this.inferType(expr.operator, subst);
     if (!opResult) return null;
-    
+
     const argResults: { type: Type; subst: Subst }[] = [];
     for (const arg of expr.args) {
       const argResult = this.inferType(arg, opResult.subst);
       if (!argResult) return null;
       argResults.push(argResult);
     }
-    
+
     const opType = applyTypeSubst(opResult.type, opResult.subst);
     if (opType.kind !== TypeKind.Fun) return null;
-    
+
     const argType = argResults[0]?.type;
     if (!argType) return null;
-    
+
     const argSubst = unifyTypes(opType.from, argType, opResult.subst);
     if (!argSubst) return null;
     return { type: opType.to, subst: argSubst };

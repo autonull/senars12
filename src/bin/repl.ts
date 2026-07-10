@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import { createInterface } from 'readline';
+import { type CLICommand, QUIT_SENTINEL } from '@senars/io/connections/cli';
 import type { ConversationSession } from '@senars/nar/agent';
 import {
   type Agent,
@@ -15,7 +16,6 @@ import { formatLMConfig, resolveLMConfig } from '../../nar/src/lm/env-config.js'
 import { createLogger } from '../../nar/src/logger';
 import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
 import { DEFAULT_NAR_CONFIG, loadConfigFromEnv } from '../config';
-import { type CLICommand, QUIT_SENTINEL } from '@senars/io/connections/cli';
 import { assertValidEnv } from '../utils/env-validate.js';
 
 assertValidEnv();

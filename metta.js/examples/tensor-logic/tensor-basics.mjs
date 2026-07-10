@@ -1,10 +1,13 @@
-import {T} from '../../core/src/functor/backends/NativeBackend.js';
+import { T } from '../../core/src/functor/backends/NativeBackend.js';
 
 console.log('--- Tensor Basics ---');
 
 // 1. Creation
 const t1 = T.tensor([1, 2, 3, 4]);
-const t2 = T.tensor([[1, 2], [3, 4]]);
+const t2 = T.tensor([
+  [1, 2],
+  [3, 4],
+]);
 const t3 = T.randn([2, 3]);
 
 console.log('t1:', t1.toString());
@@ -26,7 +29,10 @@ const t7 = T.matmul(t2, t5);
 console.log('t2 @ t2.T:', t7.toString());
 
 // 4. Broadcasting
-const t8 = T.tensor([[1, 2, 3], [4, 5, 6]]);
+const t8 = T.tensor([
+  [1, 2, 3],
+  [4, 5, 6],
+]);
 const t9 = T.tensor([1, 0, 1]);
 const t10 = T.add(t8, t9);
 console.log('Broadcasting add:', t10.toString());

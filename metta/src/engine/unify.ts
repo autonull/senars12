@@ -1,9 +1,13 @@
-import type { MeTTaAtom, VariableAtom, ExpressionAtom } from '../types/ast.js';
+import type { ExpressionAtom, MeTTaAtom, VariableAtom } from '../types/ast.js';
 import { isVariable } from '../types/ast.js';
 
 export type Substitution = Map<string, MeTTaAtom>;
 
-export function unify(a: MeTTaAtom, b: MeTTaAtom, subst: Substitution = new Map()): Substitution | null {
+export function unify(
+  a: MeTTaAtom,
+  b: MeTTaAtom,
+  subst: Substitution = new Map()
+): Substitution | null {
   if (isVariable(a) && subst.has(a.name)) {
     return unify(subst.get(a.name) as MeTTaAtom, b, subst);
   }
@@ -104,12 +108,12 @@ export function applySubst(atom: MeTTaAtom, subst: Substitution): MeTTaAtom {
     case 4: {
       const expr = atom as ExpressionAtom;
       const newOp = applySubst(expr.operator, subst);
-      const newArgs = expr.args.map(arg => applySubst(arg as MeTTaAtom, subst));
+      const newArgs = expr.args.map((arg) => applySubst(arg as MeTTaAtom, subst));
       return { kind: 4, operator: newOp, args: newArgs };
     }
     case 5: {
       const grounded = atom as { op: string; args: readonly MeTTaAtom[] };
-      const newArgs = grounded.args.map(arg => applySubst(arg as MeTTaAtom, subst));
+      const newArgs = grounded.args.map((arg) => applySubst(arg as MeTTaAtom, subst));
       return { kind: 5, op: grounded.op, args: newArgs };
     }
     default:

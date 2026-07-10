@@ -1,10 +1,10 @@
-import type { ChatMessage, GraphNodeData, Lens } from '../../shared/protocol.js';
 import type { LensSpec } from '../../shared/lens-schema.js';
 import { isBuiltinLens } from '../../shared/lens-schema.js';
-import type { Delta, Item, Lens as ModulationLens, View, Modulation } from '../modulation/types.js';
-import { evaluate } from '../modulation/evaluate.js';
-import { beliefLens, goalLens, contradictionLens, compile } from '../modulation/compile.js';
+import type { ChatMessage, GraphNodeData, Lens } from '../../shared/protocol.js';
+import { beliefLens, compile, contradictionLens, goalLens } from '../modulation/compile.js';
 import { timeGate } from '../modulation/composition.js';
+import { evaluate } from '../modulation/evaluate.js';
+import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
 
 type Listener<T> = (value: T) => void;
 type Unsubscriber = () => void;
@@ -116,7 +116,9 @@ function detectViewFlags(): View['flags'] {
   return {
     reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     highContrast: window.matchMedia('(prefers-contrast: more)').matches,
-    prefersColorScheme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+    prefersColorScheme: window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light',
   };
 }
 
@@ -147,12 +149,15 @@ export const $nodeHistory = atom<RevisionEntry[]>([]);
 function graphNodeToItem(id: string, nd: GraphNodeData): Item {
   return {
     id,
-    priority: nd.priority,
-    confidence: nd.confidence,
+    priority: nd.priority ?? 0.5,
+    confidence: nd.confidence ?? 0.9,
     nodeType: nd.nodeType,
     isContradiction: nd.isContradiction,
-    truth: nd.truth ? { frequency: nd.truth.frequency, confidence: nd.truth.confidence } : undefined,
+    truth: nd.truth
+      ? { frequency: nd.truth.frequency, confidence: nd.truth.confidence }
+      : undefined,
     occurrenceTime: nd.occurrenceTime,
+    goalRelevance: nd.goalRelevance,
   };
 }
 
@@ -162,7 +167,9 @@ function graphEdgeToItem(id: string, ed: Record<string, any>): Item {
     priority: ed.priority ?? 0.5,
     confidence: ed.confidence ?? 0.9,
     nodeType: 'edge',
-    truth: ed.truth ? { frequency: ed.truth.frequency, confidence: ed.truth.confidence } : undefined,
+    truth: ed.truth
+      ? { frequency: ed.truth.frequency, confidence: ed.truth.confidence }
+      : undefined,
     edgeType: ed.type,
     weight: ed.weight,
     source: ed.source,
@@ -223,9 +230,13 @@ export function getLensSpec(id: string): LensSpec | undefined {
   const builtin: Record<string, Pick<LensSpec, 'id' | 'label' | 'description'>> = {
     belief: { id: 'belief', label: 'Beliefs', description: 'What the system knows' },
     goal: { id: 'goal', label: 'Goals', description: 'What the system wants' },
-    contradiction: { id: 'contradiction', label: 'Conflicts', description: 'Where beliefs conflict' },
+    contradiction: {
+      id: 'contradiction',
+      label: 'Conflicts',
+      description: 'Where beliefs conflict',
+    },
   };
-  return $lensRegistry.get().get(id) ?? builtin[id] as LensSpec | undefined;
+  return $lensRegistry.get().get(id) ?? (builtin[id] as LensSpec | undefined);
 }
 
 export function getActiveLensModulation(): Modulation {
@@ -247,18 +258,18 @@ const LENS_MODULATION_MAP: Record<string, Modulation> = {
 };
 
 export function evaluateLens(): Delta {
-   const items = getItems();
-   const lensId = $activeLens.get();
-   const baseMod = getActiveLensModulation();
-   const mod = timeGate(baseMod);
-   const lens: ModulationLens = {
-     id: lensId,
-     label: '',
-     description: '',
-     modulation: mod,
-   };
-   return evaluate(items, lens, $view.get());
- }
+  const items = getItems();
+  const lensId = $activeLens.get();
+  const baseMod = getActiveLensModulation();
+  const mod = timeGate(baseMod);
+  const lens: ModulationLens = {
+    id: lensId,
+    label: '',
+    description: '',
+    modulation: mod,
+  };
+  return evaluate(items, lens, $view.get());
+}
 
 // --- Phase 3: Per-lens layout selection ---
 export const $lensLayout = atom<Record<string, string>>({
@@ -287,7 +298,10 @@ export const $panels = atom<Map<string, PanelState>>(
 );
 
 /** Optimistically patch an edge's data in $graphEdges. Returns the updated edge data or undefined. */
-export function updateEdgeData(id: string, patch: Record<string, unknown>): Record<string, unknown> | undefined {
+export function updateEdgeData(
+  id: string,
+  patch: Record<string, unknown>
+): Record<string, unknown> | undefined {
   const edges = new Map($graphEdges.get());
   const existing = edges.get(id);
   if (!existing) return undefined;
@@ -298,7 +312,10 @@ export function updateEdgeData(id: string, patch: Record<string, unknown>): Reco
 }
 
 /** Optimistically patch a node's data in $graphNodes. Returns the updated node or undefined. */
-export function updateNodeData(id: string, patch: Partial<GraphNodeData>): GraphNodeData | undefined {
+export function updateNodeData(
+  id: string,
+  patch: Partial<GraphNodeData>
+): GraphNodeData | undefined {
   const nodes = new Map($graphNodes.get());
   const existing = nodes.get(id);
   if (!existing) return undefined;
@@ -412,33 +429,33 @@ $urlState.subscribe((state) => syncUrlFromState(state));
 // --- Phase 0: Test API ---
 type ReadableAtom<T> = { get(): T };
 const storeAtoms = {
-   chatMessages: $chatMessages,
-   streamingDelta: $streamingDelta,
-   graphNodes: $graphNodes,
-   graphEdges: $graphEdges,
-   graphMeta: $graphMeta,
-   config: $config,
-   telemetry: $telemetry,
-   cognitiveMetrics: $cognitiveMetrics,
-   connectionState: $connectionState,
-   lastSeqId: $lastSeqId,
-   activeLens: $activeLens,
-   focusTerm: $focusTerm,
-   selectedNodeId: $selectedNodeId,
-   selectedEdgeId: $selectedEdgeId,
-   viewport: $viewport,
-   workingMemory: $workingMemory,
-   panels: $panels,
-   urlState: $urlState,
-   selectedNodeIds: $selectedNodeIds,
-   lensViewport: $lensViewport,
-   graphFilter: $graphFilter,
-   lensLayout: $lensLayout,
-   lensRegistry: $lensRegistry,
-lensFields: $lensFields,
-    nodeHistory: $nodeHistory,
-    viewportMode: $viewportMode,
-  } satisfies Record<string, ReadableAtom<unknown>>;
+  chatMessages: $chatMessages,
+  streamingDelta: $streamingDelta,
+  graphNodes: $graphNodes,
+  graphEdges: $graphEdges,
+  graphMeta: $graphMeta,
+  config: $config,
+  telemetry: $telemetry,
+  cognitiveMetrics: $cognitiveMetrics,
+  connectionState: $connectionState,
+  lastSeqId: $lastSeqId,
+  activeLens: $activeLens,
+  focusTerm: $focusTerm,
+  selectedNodeId: $selectedNodeId,
+  selectedEdgeId: $selectedEdgeId,
+  viewport: $viewport,
+  workingMemory: $workingMemory,
+  panels: $panels,
+  urlState: $urlState,
+  selectedNodeIds: $selectedNodeIds,
+  lensViewport: $lensViewport,
+  graphFilter: $graphFilter,
+  lensLayout: $lensLayout,
+  lensRegistry: $lensRegistry,
+  lensFields: $lensFields,
+  nodeHistory: $nodeHistory,
+  viewportMode: $viewportMode,
+} satisfies Record<string, ReadableAtom<unknown>>;
 
 export type TestApiStorePath = keyof typeof storeAtoms;
 

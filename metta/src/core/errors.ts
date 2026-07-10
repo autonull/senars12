@@ -27,7 +27,7 @@ export class MeTTaError extends Error {
     readonly code: ErrorCode,
     message: string,
     readonly context?: Record<string, unknown>,
-    readonly cause?: Error
+    readonly underlyingError?: Error
   ) {
     super(`[${code}] ${message}`);
     this.name = 'MeTTaError';

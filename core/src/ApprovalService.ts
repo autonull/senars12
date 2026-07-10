@@ -11,7 +11,12 @@ export interface ApprovalManager {
 
 export interface ApprovalServiceConfig {
   approvalManager?: ApprovalManager;
-  logger?: { debug: (msg: string, ctx?: unknown) => void; info: (msg: string, ctx?: unknown) => void; warn: (msg: string, ctx?: unknown) => void; error: (msg: string, err?: unknown, ctx?: unknown) => void };
+  logger?: {
+    debug: (msg: string, ctx?: unknown) => void;
+    info: (msg: string, ctx?: unknown) => void;
+    warn: (msg: string, ctx?: unknown) => void;
+    error: (msg: string, err?: unknown, ctx?: unknown) => void;
+  };
 }
 
 export class ApprovalService {
@@ -20,8 +25,12 @@ export class ApprovalService {
 
   constructor(config: ApprovalServiceConfig = {}) {
     this.approvalManager = config.approvalManager ?? {
-      resolveApproval() { return false; },
-      getPending() { return []; },
+      resolveApproval() {
+        return false;
+      },
+      getPending() {
+        return [];
+      },
     };
     this.logger = config.logger ?? consoleLogger;
   }
@@ -47,5 +56,6 @@ const consoleLogger = {
   debug: (msg: string, ctx?: unknown) => console.debug(`[approval] ${msg}`, ctx),
   info: (msg: string, ctx?: unknown) => console.info(`[approval] ${msg}`, ctx),
   warn: (msg: string, ctx?: unknown) => console.warn(`[approval] ${msg}`, ctx),
-  error: (msg: string, err?: unknown, ctx?: unknown) => console.error(`[approval] ${msg}`, err, ctx),
+  error: (msg: string, err?: unknown, ctx?: unknown) =>
+    console.error(`[approval] ${msg}`, err, ctx),
 };

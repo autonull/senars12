@@ -16,14 +16,15 @@ import type { ConversationSession } from '../ConversationSession.js';
 import { EventBus, type EventKey, type EventMap } from '../EventBus.js';
 import { type InputEvent, type InputProcessorDeps, processInput } from '../input-processor.js';
 import { ModelRunner } from '../model/ModelRunner.js';
+import { ApprovalService } from '../services/ApprovalService.js';
 import { LifecycleManager } from '../services/LifecycleManager.js';
 import { ToolBuilder } from '../services/ToolBuilder.js';
-import { ApprovalService } from '../services/ApprovalService.js';
 import { KnowledgeManager } from '../subservices/KnowledgeManager.js';
 import { PromptBuilder } from '../subservices/PromptBuilder.js';
 import { SessionOrchestrator } from '../subservices/SessionOrchestrator.js';
 import { StatsManager } from '../subservices/StatsManager.js';
 
+import type { AgentCapabilities, CognitiveEvent, Connection } from '@senars/core';
 import { LMChatService } from '../services/LMChatService.js';
 import { NarQueryService } from '../services/NarQueryService.js';
 import { SelfReasoningService } from '../services/SelfReasoningService.js';
@@ -36,7 +37,6 @@ import type {
   DerivationEntry,
   PendingApproval,
 } from '../types.js';
-import type { CognitiveEvent, AgentCapabilities, Connection } from '@senars/core';
 
 const MAX_RECENT_DERIVATIONS = 50;
 
@@ -474,27 +474,43 @@ export class AgentImpl implements Agent {
     this.#emitCognitive(event);
 
     // Delegate to the existing input processing pipeline
-    this.chat(input).catch((err) => {
-      this.logger.error('submit: chat failed', err as Error);
-    }).finally(() => {
-      this.#currentCorrelationId = null;
-    });
+    this.chat(input)
+      .catch((err) => {
+        this.logger.error('submit: chat failed', err as Error);
+      })
+      .finally(() => {
+        this.#currentCorrelationId = null;
+      });
   }
 
-  health(): { status: 'healthy' | 'degraded' | 'stuck' | 'crashed'; lastCycle: number; cycleCount: number; errorRate: number } {
+  health(): {
+    status: 'healthy' | 'degraded' | 'stuck' | 'crashed';
+    lastCycle: number;
+    cycleCount: number;
+    errorRate: number;
+  } {
     const stats = this.statsManager.getStats();
     const now = Date.now();
     const startedAt = (stats as any).startedAt;
     const startedTime = typeof startedAt === 'number' ? startedAt : now;
     const timeSinceActivity = now - startedTime;
-    const cycleCount = typeof (stats as any).totalCycles === 'number' ? (stats as any).totalCycles : 0;
+    const cycleCount =
+      typeof (stats as any).totalCycles === 'number' ? (stats as any).totalCycles : 0;
     const errorRate = typeof (stats as any).errorRate === 'number' ? (stats as any).errorRate : 0;
 
     if (timeSinceActivity > 300_000 && cycleCount === 0) {
       return { status: 'stuck', lastCycle: 0, cycleCount: 0, errorRate: 0.5 };
     }
     if (errorRate > 0.1) {
-      return { status: 'degraded', lastCycle: typeof (stats as any).lastCycleTimestamp === 'number' ? (stats as any).lastCycleTimestamp : 0, cycleCount, errorRate };
+      return {
+        status: 'degraded',
+        lastCycle:
+          typeof (stats as any).lastCycleTimestamp === 'number'
+            ? (stats as any).lastCycleTimestamp
+            : 0,
+        cycleCount,
+        errorRate,
+      };
     }
     return { status: 'healthy', lastCycle: now, cycleCount, errorRate: 0 };
   }

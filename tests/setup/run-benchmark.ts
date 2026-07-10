@@ -63,12 +63,10 @@ process.stdout.write(
   JSON.stringify(
     Object.entries(globalBenchData).map(([name, timings]) => ({
       name,
-      mean: Array.isArray(timings)
-        ? timings.reduce((a, b) => a + b, 0) / timings.length
-        : timings,
+      mean: Array.isArray(timings) ? timings.reduce((a, b) => a + b, 0) / timings.length : timings,
       count: timings.length,
     })),
     '\n',
-    '\n',
-  ),
+    '\n'
+  )
 );

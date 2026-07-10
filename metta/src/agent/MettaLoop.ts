@@ -1,12 +1,12 @@
 import type { CognitiveEvent } from '@senars/core';
+import { parseMeTTa } from '../parser/runtime.js';
 import type { MeTTaRuntime } from '../runtime/builder.js';
-import type { MettaLoopConfig, SkillFeedback } from './MettaTypes.js';
-import { DEFAULT_LOOP_CONFIG } from './MettaTypes.js';
 import { MettaCommandParser } from './MettaCommandParser.js';
-import type { MettaSkills } from './MettaSkills.js';
 import type { MettaHistory } from './MettaHistory.js';
 import type { MettaPromptBuilder } from './MettaPromptBuilder.js';
-import { parseMeTTa } from '../parser/runtime.js';
+import type { MettaSkills } from './MettaSkills.js';
+import type { MettaLoopConfig, SkillFeedback } from './MettaTypes.js';
+import { DEFAULT_LOOP_CONFIG } from './MettaTypes.js';
 
 export class MettaLoop {
   #runtime: MeTTaRuntime;
@@ -29,7 +29,7 @@ export class MettaLoop {
     history: MettaHistory,
     promptBuilder: MettaPromptBuilder,
     emitCognitive: (event: CognitiveEvent) => void,
-    config: Partial<MettaLoopConfig> = {},
+    config: Partial<MettaLoopConfig> = {}
   ) {
     this.#runtime = runtime;
     this.#skills = skills;
@@ -63,7 +63,7 @@ export class MettaLoop {
       if (this.#loopsSinceInput >= this.#config.maxWakeLoops) {
         await this.#sleepUntilWakeup();
       } else {
-        await new Promise(r => setTimeout(r, this.#config.sleepInterval * 1000));
+        await new Promise((r) => setTimeout(r, this.#config.sleepInterval * 1000));
         if (hasInput) this.#loopsSinceInput++;
       }
     }
@@ -86,7 +86,10 @@ export class MettaLoop {
 
     const prompt = this.#promptBuilder.build({
       systemPrompt: this.#promptBuilder.getSystemPrompt(),
-      skills: this.#skills.getAllFeedback().map(f => `- ${f.skill}: ${f.lastResult}`).join('\n'),
+      skills: this.#skills
+        .getAllFeedback()
+        .map((f) => `- ${f.skill}: ${f.lastResult}`)
+        .join('\n'),
       skillResults: this.#skills.getRecentResults(this.#config.skillResultsChars),
       history: this.#history.toPromptLines(20),
       time: new Date().toISOString(),
@@ -134,14 +137,29 @@ export class MettaLoop {
     switch (cmd.command) {
       case 'send': {
         const target = cmd.args[0]?.replace(/^"|"$/g, '') ?? '';
-        if (target) this.#emitCognitive({ engine: 'metta', type: 'derivation', term: `SEND: ${target}`, confidence: 1, timestamp: Date.now(), correlationId: this.#correlationId });
+        if (target)
+          this.#emitCognitive({
+            engine: 'metta',
+            type: 'derivation',
+            term: `SEND: ${target}`,
+            confidence: 1,
+            timestamp: Date.now(),
+            correlationId: this.#correlationId,
+          });
         break;
       }
       case 'remember': {
         const atomStr = cmd.args[0]?.replace(/^"|"$/g, '') ?? '';
         if (atomStr) {
           const atom = parseMeTTa(atomStr);
-          this.#emitCognitive({ engine: 'metta', type: 'derivation', term: atomStr, confidence: 1, timestamp: Date.now(), correlationId: this.#correlationId });
+          this.#emitCognitive({
+            engine: 'metta',
+            type: 'derivation',
+            term: atomStr,
+            confidence: 1,
+            timestamp: Date.now(),
+            correlationId: this.#correlationId,
+          });
         }
         break;
       }
@@ -149,7 +167,14 @@ export class MettaLoop {
         const sexpr = cmd.args[0]?.replace(/^"|"$/g, '') ?? '';
         if (sexpr) {
           const atom = parseMeTTa(sexpr);
-          this.#emitCognitive({ engine: 'metta', type: 'derivation', term: sexpr, confidence: 1, timestamp: Date.now(), correlationId: this.#correlationId });
+          this.#emitCognitive({
+            engine: 'metta',
+            type: 'derivation',
+            term: sexpr,
+            confidence: 1,
+            timestamp: Date.now(),
+            correlationId: this.#correlationId,
+          });
         }
         break;
       }
@@ -178,7 +203,9 @@ export class MettaLoop {
     while (this.#running) {
       const elapsed = (Date.now() - this.#idleSince) / 1000;
       if (elapsed >= this.#config.wakeupInterval) break;
-      await new Promise(r => setTimeout(r, Math.min(1000, (this.#config.wakeupInterval - elapsed) * 1000)));
+      await new Promise((r) =>
+        setTimeout(r, Math.min(1000, (this.#config.wakeupInterval - elapsed) * 1000))
+      );
     }
     this.#loopsSinceInput = 0;
     this.#idleSince = 0;

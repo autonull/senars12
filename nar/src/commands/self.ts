@@ -1,9 +1,13 @@
 import type { CommandDefinition } from '@senars/core/command-types';
 import type { NAR } from '../nar.js';
-import type { ReasoningAboutReasoning } from '../self';
+import type { ReasoningAboutReasoning } from '../self/ReasoningAboutReasoning.js';
 
 interface ExtendedNAR extends NAR {
   _reasoningAboutReasoning?: ReasoningAboutReasoning;
+}
+
+function resolveRar(ctx: unknown): ReasoningAboutReasoning | undefined {
+  return (ctx as { nar?: ExtendedNAR })?.nar?._reasoningAboutReasoning;
 }
 
 export const selfCommands: CommandDefinition[] = [
@@ -13,12 +17,9 @@ export const selfCommands: CommandDefinition[] = [
     description: 'Show self-reasoning state',
     usage: '/self',
     execute: async (_args, ctx) => {
-      const nar = (ctx as any).nar as ExtendedNAR | undefined;
-      if (!nar) return 'NAR not configured';
-      const rar = nar._reasoningAboutReasoning;
+      const rar = resolveRar(ctx);
       if (!rar) return 'Self-reasoning not configured';
-      const state = rar.getState();
-      return `Self state: ${JSON.stringify(state, null, 2)}`;
+      return `Self state: ${JSON.stringify(rar.getReasoningState(), null, 2)}`;
     },
   },
   {
@@ -27,12 +28,12 @@ export const selfCommands: CommandDefinition[] = [
     description: 'Trigger a self-reflection cycle',
     usage: '/self-reflect',
     execute: async (_args, ctx) => {
-      const nar = (ctx as any).nar as ExtendedNAR | undefined;
-      if (!nar) return 'NAR not configured';
-      const rar = nar._reasoningAboutReasoning;
+      const rar = resolveRar(ctx);
       if (!rar) return 'Self-reasoning not configured';
-      const result = await rar.reflect();
-      return `Reflection: ${result ? result.summary : 'no insights'}`;
+      const result = await rar.performMetaCognitiveReasoning();
+      if (!result.success) return `Reflection failed${result.error ? `: ${result.error}` : ''}`;
+      const tasks = result.tasksProcessed ?? 0;
+      return `Reflection complete: ${tasks} meta-task(s) processed at ${new Date(result.timestamp ?? Date.now()).toISOString()}`;
     },
   },
   {
@@ -41,26 +42,23 @@ export const selfCommands: CommandDefinition[] = [
     description: 'Show self-reasoning metrics',
     usage: '/self-metrics',
     execute: async (_args, ctx) => {
-      const nar = (ctx as any).nar as ExtendedNAR | undefined;
-      if (!nar) return 'NAR not configured';
-      const rar = nar._reasoningAboutReasoning;
+      const rar = resolveRar(ctx);
       if (!rar) return 'Self-reasoning not configured';
-      const metrics = rar.getMetrics();
-      return `Metrics: ${JSON.stringify(metrics, null, 2)}`;
+      const analysis = await rar.getSystemAnalysis();
+      return `Metrics: ${JSON.stringify(analysis, null, 2)}`;
     },
   },
   {
     name: '/self-history',
     aliases: ['.self-history'],
-    description: 'Show self-reasoning history',
+    description: 'Show self-reasoning trace',
     usage: '/self-history',
     execute: async (_args, ctx) => {
-      const nar = (ctx as any).nar as ExtendedNAR | undefined;
-      if (!nar) return 'NAR not configured';
-      const rar = nar._reasoningAboutReasoning;
+      const rar = resolveRar(ctx);
       if (!rar) return 'Self-reasoning not configured';
-      const history = rar.getHistory();
-      return history.map((h: any) => `[${h.timestamp}] ${h.summary}`).join('\n');
+      const trace = rar.getReasoningTrace();
+      if (Array.isArray(trace) && trace.length === 0) return 'No reasoning trace';
+      return trace.map((h: unknown, i: number) => `[${i + 1}] ${JSON.stringify(h)}`).join('\n');
     },
   },
 ];

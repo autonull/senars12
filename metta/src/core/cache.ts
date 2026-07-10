@@ -192,12 +192,10 @@ class MapBasedCache<V> implements Disposable {
 
     switch (policy) {
       case 'lru':
-        victim = [...this.store.entries()]
-          .sort((a, b) => a[1].accessed - b[1].accessed)[0]?.[0];
+        victim = [...this.store.entries()].sort((a, b) => a[1].accessed - b[1].accessed)[0]?.[0];
         break;
       case 'lfu':
-        victim = [...this.store.entries()]
-          .sort((a, b) => a[1].hits - b[1].hits)[0]?.[0];
+        victim = [...this.store.entries()].sort((a, b) => a[1].hits - b[1].hits)[0]?.[0];
         break;
       case 'fifo':
         victim = this.store.keys().next().value;
@@ -219,9 +217,7 @@ export class Cache<V> implements Disposable {
   private impl: LRUCacheImpl<V> | MapBasedCache<V>;
 
   constructor(private readonly opts: CacheOptions<V> = {}) {
-    this.impl = opts.policy === 'lru'
-      ? new LRUCacheImpl(opts)
-      : new MapBasedCache(opts);
+    this.impl = opts.policy === 'lru' ? new LRUCacheImpl(opts) : new MapBasedCache(opts);
   }
 
   get(key: string): V | undefined {

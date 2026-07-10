@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { defineOp, registerOp } from '../src/core/ops.js';
 import { ReductionPipeline } from '../src/engine/reduce.js';
-import { registerOp, defineOp } from '../src/core/ops.js';
-import { sym, num, expr, varr } from '../src/types/ast.js';
+import { expr, num, sym, varr } from '../src/types/ast.js';
 
 describe('ReductionPipeline', () => {
   it('reduces symbols to themselves', () => {
@@ -31,8 +31,11 @@ describe('ReductionPipeline', () => {
   });
 
   it('executes registered operations', () => {
-    registerOp('double', defineOp('double', (n: ReturnType<typeof num>) => num(n.value * 2)));
-    
+    registerOp(
+      'double',
+      defineOp('double', (n: ReturnType<typeof num>) => num(n.value * 2))
+    );
+
     const pipeline = new ReductionPipeline();
     const result = pipeline.reduce(expr(sym('double'), num(5)));
     expect(result.kind).toBe(2);

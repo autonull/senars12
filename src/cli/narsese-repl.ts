@@ -3,7 +3,7 @@
  */
 
 import { createInterface } from 'readline';
-import { containsSubterm, SeNARSFactory, termParser } from '../../nar/src';
+import { SeNARSFactory, containsSubterm, termParser } from '../../nar/src';
 import { createLogger } from '../../nar/src/logger';
 import { errMsg } from '../../nar/src/utils';
 import { DEFAULT_NAR_CONFIG } from '../config';
@@ -40,7 +40,7 @@ async function main() {
           (b: {
             term: { toString: () => string };
             truth?: { f: number; c: number };
-          }) => parsed ? containsSubterm(b.term as any, parsed) : false
+          }) => (parsed ? containsSubterm(b.term as any, parsed) : false)
         );
         console.log(
           match

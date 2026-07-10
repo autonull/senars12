@@ -1,7 +1,8 @@
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { describe, expect, it } from 'vitest';
+import { MessageRouter } from '@senars/io';
+import type { Connection, IOMessage } from '@senars/io';
 import {
   InMemorySessionManager,
   abortSession,
@@ -10,11 +11,10 @@ import {
   createSession,
   createStreamingAgentDispatch,
 } from '@senars/nar/agent';
+import { describe, expect, it } from 'vitest';
 import { createMockLMService } from '../../../nar/src/lm';
 import type { Logger } from '../../../nar/src/logger';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
-import { MessageRouter } from '@senars/io';
-import type { Connection, IOMessage } from '@senars/io';
 
 const scriptedLM = createMockLMService({
   available: true,

@@ -9,6 +9,16 @@
 
 import { mkdir } from 'node:fs/promises';
 import {
+  AuthManager,
+  CLIConnection,
+  CommandRegistry,
+  ConnectionManager,
+  HTTPConnection,
+  IRCConnection,
+  MCPConnection,
+  WSConnection,
+} from '@senars/io';
+import {
   JsonlSessionManager,
   agentConfigToOptions,
   bindAgentToConnection,
@@ -25,16 +35,6 @@ import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
 import { NLGenerationService, NLUnderstandingService } from '../../nar/src/nl';
 import { TranslationCache } from '../../nar/src/nl/cache.js';
 import { DEFAULT_NAR_CONFIG, loadConfigFromEnv } from '../config';
-import {
-  AuthManager,
-  CLIConnection,
-  CommandRegistry,
-  ConnectionManager,
-  HTTPConnection,
-  IRCConnection,
-  MCPConnection,
-  WSConnection,
-} from '@senars/io';
 import { setupGracefulShutdown } from '../utils';
 import { assertValidEnv } from '../utils/env-validate.js';
 
@@ -100,27 +100,27 @@ async function main(): Promise<void> {
     structuredOnly: true,
   });
 
-  const cm = new ConnectionManager(logger);
-  cm.registerFactory({
-    type: 'cli',
-    create: (cfg) => new CLIConnection(cfg, { nar, emit: () => undefined, logger }),
-  });
-  cm.registerFactory({
-    type: 'irc',
-    create: (cfg) => new IRCConnection(cfg, { nar, emit: () => undefined, logger }),
-  });
-  cm.registerFactory({
-    type: 'websocket',
-    create: (cfg) => new WSConnection(cfg, { nar, emit: () => undefined, logger }),
-  });
-  cm.registerFactory({
-    type: 'http',
-    create: (cfg) => new HTTPConnection(cfg, { nar, emit: () => undefined, logger }),
-  });
-  cm.registerFactory({
-    type: 'mcp',
-    create: (cfg) => new MCPConnection(cfg, { nar, emit: () => undefined, logger }),
-  });
+const cm = new ConnectionManager();
+   cm.registerFactory({
+     type: 'cli',
+     create: (cfg) => new CLIConnection(cfg, { emit: () => undefined, logger }),
+   });
+   cm.registerFactory({
+     type: 'irc',
+     create: (cfg) => new IRCConnection(cfg, { emit: () => undefined, logger }),
+   });
+   cm.registerFactory({
+     type: 'websocket',
+     create: (cfg) => new WSConnection(cfg, { emit: () => undefined, logger }),
+   });
+   cm.registerFactory({
+     type: 'http',
+     create: (cfg) => new HTTPConnection(cfg, { emit: () => undefined, logger }),
+   });
+   cm.registerFactory({
+     type: 'mcp',
+     create: (cfg) => new MCPConnection(cfg, { emit: () => undefined, logger }),
+   });
 
   const configs = createConnectionConfigsFromEnv();
   logger.info(
@@ -138,7 +138,7 @@ async function main(): Promise<void> {
 
   for (const cfg of configs) {
     try {
-      const conn = await cm.addConnection(cfg, { nar, emit: () => undefined, logger });
+      const conn = await cm.addConnection(cfg, { emit: () => undefined, logger });
       bindAgentToConnection(agent, conn, {
         auth,
         commandRegistry,
@@ -159,7 +159,7 @@ async function main(): Promise<void> {
 
   if (process.env.ENABLE_WEB_UI) {
     const { startWebUI } = await import('../../ui/src/server/index.js');
-    startWebUI(nar, agent).catch((err) => {
+    startWebUI(agent).catch((err) => {
       logger.error('Web UI failed to start', err as Error);
     });
   }

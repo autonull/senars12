@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { EGraph, type RewriteRule } from '../src/engine/egraph.js';
-import { sym, num, expr } from '../src/index.js';
+import { expr, num, sym } from '../src/index.js';
 
 describe('EGraph', () => {
   it('adds atoms and returns id', () => {
@@ -29,18 +29,18 @@ describe('EGraph', () => {
 
     const rule: RewriteRule = {
       name: 'to-expr',
-      match: (atom) => atom.kind === 2 ? expr(sym('val'), num(atom.value)) : null,
+      match: (atom) => (atom.kind === 2 ? expr(sym('val'), num(atom.value)) : null),
     };
 
     egraph.saturate([rule]);
-    const extracted = egraph.extract(id, _ => 0);
+    const extracted = egraph.extract(id, (_) => 0);
     expect(extracted.kind).toBe(4);
   });
 
   it('extracts atom with cost function', () => {
     const egraph = new EGraph();
     const id = egraph.add(sym('a'));
-    const extracted = egraph.extract(id, a => a.kind === 0 ? 1 : 0);
+    const extracted = egraph.extract(id, (a) => (a.kind === 0 ? 1 : 0));
     expect(extracted.kind).toBe(0);
   });
 });

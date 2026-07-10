@@ -1,12 +1,8 @@
 import type { Channel, ChannelValue, Delta } from '../modulation/types.js';
 
-export const SUPPORT_3D: Set<Channel> = new Set([
-  'color', 'opacity', 'size', 'label', 'z',
-]);
+export const SUPPORT_3D: Set<Channel> = new Set(['color', 'opacity', 'size', 'label', 'z']);
 
-export const SUPPORT_3D_EDGES: Set<Channel> = new Set([
-  'color', 'width', 'opacity', 'edge-color',
-]);
+export const SUPPORT_3D_EDGES: Set<Channel> = new Set(['color', 'width', 'opacity', 'edge-color']);
 
 export function checkUnsupportedChannels(delta: Delta, isEdge: (id: string) => boolean): Channel[] {
   const unsupported: Channel[] = [];
@@ -20,8 +16,14 @@ export function checkUnsupportedChannels(delta: Delta, isEdge: (id: string) => b
 }
 
 function applyNodeVisuals(
-  node: { object?: { material?: { color: { set: (c: string) => void }; opacity: number; needsUpdate: boolean }; scale: { setScalar: (s: number) => void } }; data?: Record<string, unknown> },
-  channels: Partial<Record<Channel, ChannelValue>>,
+  node: {
+    object?: {
+      material?: { color: { set: (c: string) => void }; opacity: number; needsUpdate: boolean };
+      scale: { setScalar: (s: number) => void };
+    };
+    data?: Record<string, unknown>;
+  },
+  channels: Partial<Record<Channel, ChannelValue>>
 ): void {
   if (!node.object) return;
 
@@ -49,8 +51,11 @@ function applyNodeVisuals(
 }
 
 function applyEdgeVisuals(
-  edge: { object?: { material?: { color: { set: (c: string) => void }; opacity: number } }; width?: number },
-  channels: Partial<Record<Channel, ChannelValue>>,
+  edge: {
+    object?: { material?: { color: { set: (c: string) => void }; opacity: number } };
+    width?: number;
+  },
+  channels: Partial<Record<Channel, ChannelValue>>
 ): void {
   for (const [ch, value] of Object.entries(channels)) {
     switch (ch as Channel) {
@@ -73,8 +78,13 @@ function applyEdgeVisuals(
 }
 
 export function applyDelta(
-  sg: { forNodes: (fn: (node: any) => void) => void; getNode?: (id: string) => any; getEdge?: (id: string) => any; updatePosition?: (id: string, position: [number, number, number]) => void },
-  delta: Delta,
+  sg: {
+    forNodes: (fn: (node: any) => void) => void;
+    getNode?: (id: string) => any;
+    getEdge?: (id: string) => any;
+    updatePosition?: (id: string, position: [number, number, number]) => void;
+  },
+  delta: Delta
 ): void {
   for (const [id, channels] of delta) {
     const edge = sg.getEdge ? sg.getEdge(id) : undefined;
@@ -95,9 +105,7 @@ export function applyDelta(
   }
 }
 
-export function clearNodeStyles(
-  sg: { forNodes: (fn: (node: any) => void) => void },
-): void {
+export function clearNodeStyles(sg: { forNodes: (fn: (node: any) => void) => void }): void {
   sg.forNodes((node: any) => {
     if (!node.object) return;
     if (node.object.material) {

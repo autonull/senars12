@@ -1,3 +1,3 @@
-import {configSchema, validateConfig, validateConfigWithDefaults} from './ConfigSchemas.js';
+import { configSchema, validateConfig, validateConfigWithDefaults } from './ConfigSchemas.js';
 
-export {validateConfig, validateConfigWithDefaults, configSchema};
+export { validateConfig, validateConfigWithDefaults, configSchema };

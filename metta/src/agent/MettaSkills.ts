@@ -1,5 +1,5 @@
 import type { GroundedOp } from '../core/ops.js';
-import { registerOp, getOp } from '../core/ops.js';
+import { getOp, registerOp } from '../core/ops.js';
 import type { MeTTaAtom } from '../types/ast.js';
 import type { SkillFeedback } from './MettaTypes.js';
 
@@ -47,7 +47,7 @@ export class MettaSkills {
     return [...this.#feedback.values()]
       .sort((a, b) => b.callCount - a.callCount)
       .slice(0, limit)
-      .map(f => `${f.skill}: ${f.lastResult}`)
+      .map((f) => `${f.skill}: ${f.lastResult}`)
       .join('\n');
   }
 

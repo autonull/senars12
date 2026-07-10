@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import { edgeKey } from '../../shared/utils.js';
 import { BaseComponent } from '../core/base-component.js';
 import {
   $activeLens,
@@ -15,17 +16,16 @@ import {
   $selectedNodeIds,
   $view,
   $viewport,
-  eventBus,
   evaluateLens,
+  eventBus,
   mountTestApi,
   send,
 } from '../core/index.js';
-import { edgeKey } from '../../shared/utils.js';
-import { applyDelta, clearNodeStyles, checkUnsupportedChannels } from './adapter-3d.js';
 import { TOKEN_COLORS } from '../utils/token-colors.js';
+import { applyDelta, checkUnsupportedChannels, clearNodeStyles } from './adapter-3d.js';
 
 // Dynamic import SpaceGraphJS (source-level via Vite alias)
-import { SpaceGraph, ForceLayout, HtmlNode, ShapeNode, Edge, Wire } from 'spacegraphjs';
+import { Edge, ForceLayout, HtmlNode, ShapeNode, SpaceGraph, Wire } from 'spacegraphjs';
 
 interface NodeSpec3D {
   id: string;
@@ -79,7 +79,10 @@ export class SpaceGraphViewport extends BaseComponent {
       const isEdge = (id: string) => $graphEdges.get().has(id);
       const unsupported = checkUnsupportedChannels(delta, isEdge);
       this.showUnsupportedWarning(unsupported);
-      applyDelta({ sg: this.sg!, updatePosition: (id, pos) => this.updatePosition(id, pos) }, delta);
+      applyDelta(
+        { sg: this.sg!, updatePosition: (id, pos) => this.updatePosition(id, pos) },
+        delta
+      );
       this.restoreLensViewport();
     });
     this.watchWith($view, () => {
@@ -98,15 +101,14 @@ export class SpaceGraphViewport extends BaseComponent {
       getNodeCount: () => this.sg?.nodeCount ?? 0,
       getEdgeCount: () => this.sg?.edgeCount ?? 0,
       getNodeData: (id: string) => this.sg?.getNode(id)?.data ?? null,
-      getAllNodeIds: () => this.sg?.nodes.map(n => n.id) ?? [],
+      getAllNodeIds: () => this.sg?.nodes.map((n) => n.id) ?? [],
       clickNode: (id: string) => this.sg?.getNode(id)?.object?.dispatchEvent?.(new Event('click')),
     });
   }
 
   private showUnsupportedWarning(channels: string[]): void {
-    this.unsupportedChannelsWarning = channels.length > 0
-      ? `Unsupported channels: ${channels.join(', ')}`
-      : null;
+    this.unsupportedChannelsWarning =
+      channels.length > 0 ? `Unsupported channels: ${channels.join(', ')}` : null;
   }
 
   override disconnectedCallback() {
@@ -223,7 +225,7 @@ export class SpaceGraphViewport extends BaseComponent {
     const graphFilter = $graphFilter.get();
 
     // Diff and apply
-    const currentNodeIds = new Set(this.sg.nodes.map(n => n.id));
+    const currentNodeIds = new Set(this.sg.nodes.map((n) => n.id));
     const targetNodeIds = new Set(nodes.keys());
 
     // Remove nodes no longer present
@@ -273,9 +275,7 @@ export class SpaceGraphViewport extends BaseComponent {
     }
 
     // Sync edges
-    const currentEdgeKeys = new Set(
-      Array.from(this.sg.graph.edges.keys())
-    );
+    const currentEdgeKeys = new Set(Array.from(this.sg.graph.edges.keys()));
     const targetEdgeKeys = new Set(edges.keys());
 
     for (const key of currentEdgeKeys) {
@@ -339,7 +339,10 @@ export class SpaceGraphViewport extends BaseComponent {
   override render() {
     const meta = $graphMeta.get();
     return html`
-      <div id="sg-container" @click=${() => { this.sg?.deselectAll(); $selectedNodeId.set(null); }}></div>
+      <div id="sg-container" @click=${() => {
+        this.sg?.deselectAll();
+        $selectedNodeId.set(null);
+      }}></div>
       ${meta?.truncated ? html`<div class="warning">▼ ${meta.totalHidden} lower-priority concepts hidden</div>` : ''}
       ${this.unsupportedChannelsWarning ? html`<div class="warning">${this.unsupportedChannelsWarning}</div>` : ''}
       ${

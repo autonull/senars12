@@ -125,7 +125,10 @@ export class SchemaInductor {
       if (current.length > 0) {
         const lastTask = current[current.length - 1]!;
         const subject = getSubject(d.term);
-        if (containsSubterm(d.term, lastTask.term) || (subject && containsSubterm(lastTask.term, subject))) {
+        if (
+          containsSubterm(d.term, lastTask.term) ||
+          (subject && containsSubterm(lastTask.term, subject))
+        ) {
           current.push(d);
           continue;
         }

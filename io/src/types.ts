@@ -1,23 +1,19 @@
 import type {
   Connection as CoreConnection,
-  ConnectionState as CoreConnectionState,
   ConnectionConfig as CoreConnectionConfig,
   ConnectionDeps as CoreConnectionDeps,
+  ConnectionState as CoreConnectionState,
   IOMessage as CoreIOMessage,
-  Logger,
-} from '@senars/core/transport';
+  TransportDeps as CoreTransportDeps,
+} from '@senars/core';
+export { ConnectionError, Logger } from '@senars/core';
 
-import { ConnectionError as CoreConnectionError } from '@senars/core/transport';
-
-// Re-export core types directly
 export type ConnectionState = CoreConnectionState;
 export type IOMessage = CoreIOMessage;
 export type ConnectionConfig = CoreConnectionConfig;
 export type ConnectionDeps = CoreConnectionDeps;
-export { CoreConnectionError as ConnectionError };
-export type { Logger };
+export type TransportDeps = CoreTransportDeps;
 
-// Local Connection interface (matches core but with local runtime)
 export interface Connection extends CoreConnection {}
 
 export interface ConnectionFactory {

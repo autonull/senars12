@@ -1,6 +1,6 @@
-import { MeTTaError, ErrorCode } from '../core/errors.js';
+import { ErrorCode, MeTTaError } from '../core/errors.js';
 import type { MeTTaAtom } from '../types/ast.js';
-import { sym, varr, num } from '../types/ast.js';
+import { num, sym, varr } from '../types/ast.js';
 
 function tokenize(input: string): string[] {
   const tokens: string[] = [];
@@ -38,7 +38,8 @@ function parseTokens(tokens: string[], pos: { i: number } = { i: 0 }): MeTTaAtom
     while (pos.i < tokens.length && tokens[pos.i] !== ')') {
       items.push(parseTokens(tokens, pos));
     }
-    if (tokens[pos.i] !== ')') throw new MeTTaError(ErrorCode.UNMATCHED_PAREN, 'Unmatched opening paren');
+    if (tokens[pos.i] !== ')')
+      throw new MeTTaError(ErrorCode.UNMATCHED_PAREN, 'Unmatched opening paren');
     pos.i++;
     if (items.length === 0) {
       return sym('Nil');

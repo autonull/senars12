@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { EventBus, createAgent } from '@senars/nar/agent';
+import { describe, expect, it } from 'vitest';
 import { SeNARSFactory } from '../../../nar/src';
 import { createMockLMService } from '../../../nar/src/lm';
 

@@ -1,5 +1,5 @@
-import type { Item, Modulation, View } from './types.js';
 import { channel, compose, konst, when } from './operators.js';
+import type { Item, Modulation, View } from './types.js';
 
 export function timeGate(base: Modulation): Modulation {
   return compose(
@@ -9,7 +9,8 @@ export function timeGate(base: Modulation): Modulation {
       channel('opacity', konst(1.0))
     ),
     when(
-      (item: Item, view: View) => (item.occurrenceTime ?? Number.POSITIVE_INFINITY) > view.timeline.t,
+      (item: Item, view: View) =>
+        (item.occurrenceTime ?? Number.POSITIVE_INFINITY) > view.timeline.t,
       channel('opacity', konst(0.05))
     )
   );

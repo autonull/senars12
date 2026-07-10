@@ -1,8 +1,8 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { BaseComponent } from '../core/base-component.js';
-import { $graphNodes, $view, $selectedNodeId, mountTestApi } from '../core/index.js';
 import { classMap } from 'lit/directives/class-map.js';
+import { BaseComponent } from '../core/base-component.js';
+import { $graphNodes, $selectedNodeId, $view, mountTestApi } from '../core/index.js';
 
 @customElement('timeline-scrubber')
 export class TimelineScrubber extends BaseComponent {
@@ -114,7 +114,11 @@ export class TimelineScrubber extends BaseComponent {
   }
 
   private formatTime(t: number): string {
-    return new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return new Date(t).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
   }
 
   private onInput(e: Event) {
@@ -157,7 +161,8 @@ export class TimelineScrubber extends BaseComponent {
 
   override render() {
     const t = $view.get().timeline.t;
-    const percentage = this.maxTime > this.minTime ? ((t - this.minTime) / (this.maxTime - this.minTime)) * 100 : 50;
+    const percentage =
+      this.maxTime > this.minTime ? ((t - this.minTime) / (this.maxTime - this.minTime)) * 100 : 50;
     return html`
       <div class="scrubber-container">
         <span class="time-label">${this.formatTime(this.minTime)}</span>

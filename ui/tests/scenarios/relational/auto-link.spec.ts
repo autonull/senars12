@@ -6,14 +6,10 @@ test.describe('Relational Gate: auto-link', () => {
     testApi,
   }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect
-      .async(() => testApi.getConnectionState())
-      .toPass({ timeout: 10000 });
+    await expect.async(() => testApi.getConnectionState()).toPass({ timeout: 10000 });
 
     // Wait for initial graph nodes to load
-    await expect
-      .async(() => testApi.getGraphNodeCount())
-      .toBeGreaterThan(0, { timeout: 15000 });
+    await expect.async(() => testApi.getGraphNodeCount()).toBeGreaterThan(0, { timeout: 15000 });
 
     const initialNodeCount = await testApi.getGraphNodeCount();
     const initialEdgeCount = await testApi.getGraphEdgeCount();
@@ -50,13 +46,9 @@ test.describe('Relational Gate: auto-link', () => {
     testApi,
   }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect
-      .async(() => testApi.getConnectionState())
-      .toPass({ timeout: 10000 });
+    await expect.async(() => testApi.getConnectionState()).toPass({ timeout: 10000 });
 
-    await expect
-      .async(() => testApi.getGraphNodeCount())
-      .toBeGreaterThan(0, { timeout: 15000 });
+    await expect.async(() => testApi.getGraphNodeCount()).toBeGreaterThan(0, { timeout: 15000 });
 
     const initialCount = await testApi.getGraphNodeCount();
 

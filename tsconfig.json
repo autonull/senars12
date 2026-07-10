@@ -2,8 +2,19 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "types": ["node"]
+    "types": ["node"],
+    "rootDir": ".",
+    "paths": {
+      "@senars/core": ["./core/src/index.ts"],
+      "@senars/core/*": ["./core/src/*"],
+      "@senars/io": ["./io/src/index.ts"],
+      "@senars/io/*": ["./io/src/*"],
+      "@senars/nar": ["./nar/src/index.ts"],
+      "@senars/nar/*": ["./nar/src/*"],
+      "@senars/metta": ["./metta/src/index.ts"],
+      "@senars/metta/*": ["./metta/src/*"]
+    }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,9 +1,6 @@
 import type { DriveManager } from '../drives';
 import { type Logger, createLogger } from '../logger';
-import type {
-  Episode,
-  TemporalEmbeddingMemory,
-} from '../memory/TemporalEmbeddingMemory.js';
+import type { Episode, TemporalEmbeddingMemory } from '../memory/TemporalEmbeddingMemory.js';
 
 export interface ContextSection {
   name: string;

@@ -1,6 +1,6 @@
-import { Set as ImmSet, Map as ImmMap } from 'immutable';
-import type { MeTTaAtom } from '../types/ast.js';
+import { Map as ImmMap, Set as ImmSet } from 'immutable';
 import { hashAtom } from '../core/hash.js';
+import type { MeTTaAtom } from '../types/ast.js';
 
 interface EClass {
   readonly id: number;

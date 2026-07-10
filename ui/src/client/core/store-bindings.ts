@@ -1,29 +1,29 @@
 import type { Core } from 'cytoscape';
 import type {
-   ChatMessage,
-   GraphNodeData,
-   GraphOp,
-   IncomingFromServer,
+  ChatMessage,
+  GraphNodeData,
+  GraphOp,
+  IncomingFromServer,
 } from '../../shared/protocol.js';
 import { edgeKey, extractTerm, generateId } from '../../shared/utils.js';
 import type { CognitiveMetricsData, RevisionEntry } from './store.js';
 import {
-   $activeLens,
-   $chatMessages,
-   $cognitiveMetrics,
-   $config,
-   $graphEdges,
-   $graphMeta,
-   $graphNodes,
-   $lastSeqId,
-   $lensFields,
-   $lensRegistry,
-   $nodeHistory,
-   $streamingDelta,
-   $telemetry,
-   $workingMemory,
-   registerLens,
- } from './store.js';
+  $activeLens,
+  $chatMessages,
+  $cognitiveMetrics,
+  $config,
+  $graphEdges,
+  $graphMeta,
+  $graphNodes,
+  $lastSeqId,
+  $lensFields,
+  $lensRegistry,
+  $nodeHistory,
+  $streamingDelta,
+  $telemetry,
+  $workingMemory,
+  registerLens,
+} from './store.js';
 
 const TELEMETRY_WINDOW = 300;
 
@@ -171,7 +171,9 @@ function applyFullSnapshot(
   },
   cy?: Core
 ): void {
-  const nodes = new Map<string, GraphNodeData>(data.graph.nodes.map((n) => [n.id, n]));
+  const nodes = new Map<string, GraphNodeData>(
+    data.graph.nodes.map((n) => [n.id ?? crypto.randomUUID(), n] as [string, GraphNodeData])
+  );
   const edges = new Map<string, Record<string, any>>(
     data.graph.edges.map((e) => [edgeKey(e.source, e.target), e])
   );

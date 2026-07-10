@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import {spawn} from 'child_process';
-import {fileURLToPath} from 'url';
-import {dirname, join} from 'path';
+import { spawn } from 'child_process';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -10,7 +10,7 @@ const __dirname = dirname(__filename);
 const args = process.argv.slice(2);
 
 function showUsage() {
-    console.log(`
+  console.log(`
 Usage: node scripts/utils/visualize.js [options]
 
 Options:
@@ -32,8 +32,8 @@ Examples:
 }
 
 if (args.includes('--help') || args.includes('-h')) {
-    showUsage();
-    process.exit(0);
+  showUsage();
+  process.exit(0);
 }
 
 // Set defaults
@@ -47,79 +47,83 @@ let prefix = '';
 
 // Parse arguments
 for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--type' && args[i + 1]) {
-        captureType = args[i + 1];
-        i++;
-    } else if (args[i] === '--url' && args[i + 1]) {
-        url = args[i + 1];
-        i++;
-    } else if (args[i] === '--duration' && args[i + 1]) {
-        duration = args[i + 1];
-        i++;
-    } else if (args[i] === '--interval' && args[i + 1]) {
-        interval = args[i + 1];
-        i++;
-    } else if (args[i] === '--fps' && args[i + 1]) {
-        fps = args[i + 1];
-        i++;
-    } else if (args[i] === '--output' && args[i + 1]) {
-        output = args[i + 1];
-        i++;
-    } else if (args[i] === '--prefix' && args[i + 1]) {
-        prefix = args[i + 1];
-        i++;
-    }
+  if (args[i] === '--type' && args[i + 1]) {
+    captureType = args[i + 1];
+    i++;
+  } else if (args[i] === '--url' && args[i + 1]) {
+    url = args[i + 1];
+    i++;
+  } else if (args[i] === '--duration' && args[i + 1]) {
+    duration = args[i + 1];
+    i++;
+  } else if (args[i] === '--interval' && args[i + 1]) {
+    interval = args[i + 1];
+    i++;
+  } else if (args[i] === '--fps' && args[i + 1]) {
+    fps = args[i + 1];
+    i++;
+  } else if (args[i] === '--output' && args[i + 1]) {
+    output = args[i + 1];
+    i++;
+  } else if (args[i] === '--prefix' && args[i + 1]) {
+    prefix = args[i + 1];
+    i++;
+  }
 }
 
 // Set default prefix based on type if not specified
 if (!prefix) {
-    prefix = captureType;
+  prefix = captureType;
 }
 
 // Set default output based on type if not specified
 if (!output) {
-    if (['movie', 'gif'].includes(captureType)) {
-        output = `test-results/videos/demo-${captureType}.mp4`;
-        if (captureType === 'gif') {
-            output = `test-results/videos/demo-${captureType}.gif`;
-        }
-    } else {
-        output = `test-results/screenshots`;
+  if (['movie', 'gif'].includes(captureType)) {
+    output = `test-results/videos/demo-${captureType}.mp4`;
+    if (captureType === 'gif') {
+      output = `test-results/videos/demo-${captureType}.gif`;
     }
+  } else {
+    output = `test-results/screenshots`;
+  }
 }
 
 // Validate capture type
 const validTypes = ['screenshots', 'priority', 'derivations', 'all', 'movie', 'gif'];
 if (!validTypes.includes(captureType)) {
-    console.error(`Invalid capture type: ${captureType}. Valid types: ${validTypes.join(', ')}`);
-    process.exit(1);
+  console.error(`Invalid capture type: ${captureType}. Valid types: ${validTypes.join(', ')}`);
+  process.exit(1);
 }
 
 console.log(`Capturing ${captureType} from ${url} for ${duration}ms...`);
 
 // Determine the appropriate mode based on parameters
-let generatorArgs = [
-    '--type', captureType,
-    '--url', url,
-    '--duration', duration,
-    '--interval', interval
+const generatorArgs = [
+  '--type',
+  captureType,
+  '--url',
+  url,
+  '--duration',
+  duration,
+  '--interval',
+  interval,
 ];
 
 if (output) {
-    generatorArgs.push('--output', output);
+  generatorArgs.push('--output', output);
 }
 
 // Run the screenshot generator with appropriate parameters
 const child = spawn('node', ['scripts/utils/screenshot-generator.js', ...generatorArgs], {
-    stdio: 'inherit',
-    cwd: join(__dirname, '../..')
+  stdio: 'inherit',
+  cwd: join(__dirname, '../..'),
 });
 
 child.on('error', (err) => {
-    console.error(`Error capturing ${captureType}:`, err.message);
-    process.exit(1);
+  console.error(`Error capturing ${captureType}:`, err.message);
+  process.exit(1);
 });
 
 child.on('close', (code) => {
-    process.exit(code);
+  process.exit(code);
 });

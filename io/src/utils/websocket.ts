@@ -1,5 +1,5 @@
-import { WebSocket } from 'ws';
 import { makeId, toError } from '@senars/core/helpers';
+import { WebSocket } from 'ws';
 
 export interface WSClient {
   ws: WebSocket;

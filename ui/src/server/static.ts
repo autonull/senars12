@@ -11,7 +11,8 @@ export function createStaticHandler(distRoot: string) {
     const pathname = new URL(req.url ?? '/', `http://${req.headers.host}`).pathname;
 
     // SpaceGraph experimental entry
-    if (pathname === '/spacegraph' || pathname === '/spacegraph/') return sendFile(res, spacegraphIndexPath);
+    if (pathname === '/spacegraph' || pathname === '/spacegraph/')
+      return sendFile(res, spacegraphIndexPath);
     if (pathname.startsWith('/spacegraph/')) {
       const fullPath = path.join(distRoot, pathname.slice(1));
       return fs.promises

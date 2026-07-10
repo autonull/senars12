@@ -45,7 +45,9 @@ test.describe('Spatial Gate: 2D/3D parity', () => {
       const api = (window as Record<string, unknown>).__testApi as
         | Record<string, unknown>
         | undefined;
-      return Number(((api?.spacegraph as Record<string, unknown> | undefined)?.getNodeCount?.() ?? 0));
+      return Number(
+        (api?.spacegraph as Record<string, unknown> | undefined)?.getNodeCount?.() ?? 0
+      );
     });
     expect(count).toBeGreaterThanOrEqual(0);
   });
@@ -57,7 +59,11 @@ test.describe('Spatial Gate: 2D/3D parity', () => {
       const api = (window as Record<string, unknown>).__testApi as
         | Record<string, unknown>
         | undefined;
-      return String((api?.store as { getState?: (p: string) => unknown } | undefined)?.getState?.('viewportMode') ?? '2d');
+      return String(
+        (api?.store as { getState?: (p: string) => unknown } | undefined)?.getState?.(
+          'viewportMode'
+        ) ?? '2d'
+      );
     });
 
     if (currentMode !== '2d') {

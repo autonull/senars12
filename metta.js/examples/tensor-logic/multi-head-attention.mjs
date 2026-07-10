@@ -1,9 +1,9 @@
+import { Linear, Module, MultiHeadAttention } from '../../core/src/functor/Module.js';
 /**
  * Multi-Head Attention Demo — Self-attention transformer block
  * Run: node examples/tensor-logic/multi-head-attention.mjs
  */
-import {T} from '../../core/src/functor/backends/NativeBackend.js';
-import {Linear, Module, MultiHeadAttention} from '../../core/src/functor/Module.js';
+import { T } from '../../core/src/functor/backends/NativeBackend.js';
 
 console.log('=== Tensor Logic: Multi-Head Attention ===\n');
 
@@ -43,9 +43,11 @@ console.log('Attention scores shape:', scores.shape, '→ [seq, seq]');
 const scale = Math.sqrt(mha.dModel);
 const weights = T.softmax(T.div(scores, scale), 1);
 console.log('Attention weights (softmax):');
-weights.toArray().forEach((row, i) =>
-    console.log(`  Token ${i} attends to: [${row.map(v => v.toFixed(2)).join(', ')}]`)
-);
+weights
+  .toArray()
+  .forEach((row, i) =>
+    console.log(`  Token ${i} attends to: [${row.map((v) => v.toFixed(2)).join(', ')}]`)
+  );
 
 // Train/eval mode
 console.log('\n--- Train/Eval Mode ---');
@@ -64,26 +66,28 @@ console.log('Keys:', Object.keys(state).slice(0, 4).join(', ') + '...');
 console.log('\n--- Simple Transformer Block ---');
 
 class TransformerBlock extends Module {
-    constructor(dModel, numHeads) {
-        super();
-        this.backend = T;
-        this.attn = this.registerModule('attn', new MultiHeadAttention(dModel, numHeads));
-        this.ff = this.registerModule('ff', new Linear(dModel, dModel));
-    }
+  constructor(dModel, numHeads) {
+    super();
+    this.backend = T;
+    this.attn = this.registerModule('attn', new MultiHeadAttention(dModel, numHeads));
+    this.ff = this.registerModule('ff', new Linear(dModel, dModel));
+  }
 
-    forward(x) {
-        // Self-attention with residual
-        const attended = T.add(x, this.attn.forward(x));
-        // Feedforward with residual (simplified - no LayerNorm)
-        return T.add(attended, T.relu(this.ff.forward(attended)));
-    }
+  forward(x) {
+    // Self-attention with residual
+    const attended = T.add(x, this.attn.forward(x));
+    // Feedforward with residual (simplified - no LayerNorm)
+    return T.add(attended, T.relu(this.ff.forward(attended)));
+  }
 }
 
 const block = new TransformerBlock(8, 2);
 console.log(`TransformerBlock parameters: ${block.parameters().length}`);
 
-const blockInput = T.randn([4, 8]);  // 4 tokens, 8 dims
+const blockInput = T.randn([4, 8]); // 4 tokens, 8 dims
 const blockOutput = block.forward(blockInput);
-console.log(`Block input: [${blockInput.shape.join(', ')}] → output: [${blockOutput.shape.join(', ')}]`);
+console.log(
+  `Block input: [${blockInput.shape.join(', ')}] → output: [${blockOutput.shape.join(', ')}]`
+);
 
 console.log('\n✅ Multi-Head Attention demo complete!');

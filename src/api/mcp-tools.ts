@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
-import { z } from 'zod';
 import type { Agent } from '@senars/nar/agent';
+import { z } from 'zod';
 import type { NAR } from '../../nar/src';
 import type { EnhancedMCPAdapter } from './mcp';
 

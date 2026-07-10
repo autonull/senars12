@@ -42,7 +42,7 @@ export class PolicyEngine {
     if (sandbox && !filepath.startsWith(sandbox)) {
       return { allowed: false, reason: `File "${filepath}" is outside sandbox "${sandbox}"` };
     }
-    if (this.#policy.denyFiles?.some(d => filepath.includes(d))) {
+    if (this.#policy.denyFiles?.some((d) => filepath.includes(d))) {
       return { allowed: false, reason: `File "${filepath}" matches deny pattern` };
     }
     return { allowed: true };

@@ -1,5 +1,5 @@
+import type { ConnectionConfig } from '@senars/core';
 import type { AgentSectionConfig } from '../../../src/config';
-import type { ConnectionConfig } from '@senars/io';
 import type { AgentOptions } from './agent.js';
 
 // Re-export schema + validation from @senars/core
@@ -8,8 +8,8 @@ export {
   validateAgentOptions,
   AgentOptionsValidationError,
   contextOptsSchema,
-} from '@senars/core/options';
-export type { ValidatedAgentOptions } from '@senars/core/options';
+} from '@senars/core';
+export type { ValidatedAgentOptions } from '@senars/core';
 
 export const agentConfigToOptions = (config: AgentSectionConfig): Partial<AgentOptions> => {
   const out: Partial<AgentOptions> = {

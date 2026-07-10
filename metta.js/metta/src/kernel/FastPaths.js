@@ -6,7 +6,7 @@
  * V8 can inline these checks and cache the results
  */
 
-import {configManager} from '../config/config.js';
+import { configManager } from '../config/config.js';
 
 // Type tag constants for fast dispatch
 export const TYPE_SYMBOL = 1;
@@ -22,7 +22,7 @@ const VARIABLE_NAME_REGEX = /^[?$]/;
  * Extracted as shared function to avoid regex recompilation
  */
 export function isVariableName(name) {
-    return VARIABLE_NAME_REGEX.test(name);
+  return VARIABLE_NAME_REGEX.test(name);
 }
 
 /**
@@ -33,34 +33,34 @@ export function isVariableName(name) {
  * @returns {number} Type tag constant
  */
 export function getTypeTag(term) {
-    if (!term) {
-        return 0;
-    }
-
-    // Fast path: pre-computed type tag (Q3: stable shapes)
-    if (term._typeTag !== undefined) {
-        return term._typeTag;
-    }
-
-    // Fallback: compute from type string (backward compatibility)
-    if (term.type === 'atom') {
-        if (!term.operator) {
-            // Symbol or variable - check name
-            return isVariableName(term.name) ? TYPE_VARIABLE : TYPE_SYMBOL;
-        }
-        // Has operator but is atom type - treat as variable
-        return TYPE_VARIABLE;
-    }
-
-    if (term.type === 'compound') {
-        return TYPE_EXPRESSION;
-    }
-
-    if (term.type === 'grounded') {
-        return TYPE_GROUNDED;
-    }
-
+  if (!term) {
     return 0;
+  }
+
+  // Fast path: pre-computed type tag (Q3: stable shapes)
+  if (term._typeTag !== undefined) {
+    return term._typeTag;
+  }
+
+  // Fallback: compute from type string (backward compatibility)
+  if (term.type === 'atom') {
+    if (!term.operator) {
+      // Symbol or variable - check name
+      return isVariableName(term.name) ? TYPE_VARIABLE : TYPE_SYMBOL;
+    }
+    // Has operator but is atom type - treat as variable
+    return TYPE_VARIABLE;
+  }
+
+  if (term.type === 'compound') {
+    return TYPE_EXPRESSION;
+  }
+
+  if (term.type === 'grounded') {
+    return TYPE_GROUNDED;
+  }
+
+  return 0;
 }
 
 /**
@@ -68,50 +68,50 @@ export function getTypeTag(term) {
  * Monomorphic fast path for V8 optimization
  */
 export function isSymbol(term) {
-    if (!configManager.get('fastPaths')) {
-        // Optimization disabled - use legacy check
-        return term?.type === 'atom' && !term.operator && !isVariableName(term.name);
-    }
+  if (!configManager.get('fastPaths')) {
+    // Optimization disabled - use legacy check
+    return term?.type === 'atom' && !term.operator && !isVariableName(term.name);
+  }
 
-    // Fast path: type tag comparison (integer comparison, ~1 CPU cycle)
-    const tag = getTypeTag(term);
-    return tag === TYPE_SYMBOL;
+  // Fast path: type tag comparison (integer comparison, ~1 CPU cycle)
+  const tag = getTypeTag(term);
+  return tag === TYPE_SYMBOL;
 }
 
 /**
  * Type guard: is variable?
  */
 export function isVariable(term) {
-    if (!configManager.get('fastPaths')) {
-        return term?.type === 'atom' && isVariableName(term.name);
-    }
+  if (!configManager.get('fastPaths')) {
+    return term?.type === 'atom' && isVariableName(term.name);
+  }
 
-    const tag = getTypeTag(term);
-    return tag === TYPE_VARIABLE;
+  const tag = getTypeTag(term);
+  return tag === TYPE_VARIABLE;
 }
 
 /**
  * Type guard: is expression?
  */
 export function isExpression(term) {
-    if (!configManager.get('fastPaths')) {
-        return term?.type === 'compound';
-    }
+  if (!configManager.get('fastPaths')) {
+    return term?.type === 'compound';
+  }
 
-    const tag = getTypeTag(term);
-    return tag === TYPE_EXPRESSION;
+  const tag = getTypeTag(term);
+  return tag === TYPE_EXPRESSION;
 }
 
 /**
  * Type guard: is grounded?
  */
 export function isGrounded(term) {
-    if (!configManager.get('fastPaths')) {
-        return term?.type === 'grounded';
-    }
+  if (!configManager.get('fastPaths')) {
+    return term?.type === 'grounded';
+  }
 
-    const tag = getTypeTag(term);
-    return tag === TYPE_GROUNDED;
+  const tag = getTypeTag(term);
+  return tag === TYPE_GROUNDED;
 }
 
 /**
@@ -120,12 +120,12 @@ export function isGrounded(term) {
  * (In practice, V8 does this automatically, but explicit hints can help)
  */
 export function LIKELY(cond) {
-    return cond;
+  return cond;
 }
 
 /**
  * Branch hint: mark unlikely condition
  */
 export function UNLIKELY(cond) {
-    return cond;
+  return cond;
 }

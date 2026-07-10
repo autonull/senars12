@@ -14,10 +14,10 @@ import {
   registerLens,
   send,
 } from '../core/index.js';
-import { evaluate } from '../modulation/evaluate.js';
 import { compile } from '../modulation/compile.js';
-import { getMemoCache } from '../modulation/memo.js';
 import { beliefLens } from '../modulation/compile.js';
+import { evaluate } from '../modulation/evaluate.js';
+import { getMemoCache } from '../modulation/memo.js';
 import type { Delta } from '../modulation/types.js';
 
 /** Fields available for lens mapping, with type info for the UI. */
@@ -91,18 +91,19 @@ function mappingsToModulationSpec(mappings: Mapping[]): ModulationSpec {
       const num = Number.parseFloat(m.constValue);
       child = { op: 'const', value: Number.isNaN(num) ? m.constValue : num };
     } else {
-      child = m.map
-        ? { op: 'field', field: m.field, map: m.map }
-        : { op: 'field', field: m.field };
+      child = m.map ? { op: 'field', field: m.field, map: m.map } : { op: 'field', field: m.field };
     }
     children.push({ op: 'channel', channel: m.channel, child });
   }
-  return children.length === 1 ? children[0] as ModulationSpec : { op: 'union', children };
+  return children.length === 1 ? (children[0] as ModulationSpec) : { op: 'union', children };
 }
 
 function buildLensSpec(name: string, description: string, mappings: Mapping[]): LensSpec {
   return {
-    id: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+    id: name
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, ''),
     label: name,
     description,
     modulation: mappingsToModulationSpec(mappings),
@@ -207,40 +208,53 @@ export class LensDesigner extends BaseComponent {
           <option value="const">Const</option>
         </select>
 
-        ${m.op === 'field' ? html`
+        ${
+          m.op === 'field'
+            ? html`
           <select @change=${(e: Event) => this.updateMapping(i, 'field', (e.target as HTMLSelectElement).value)}
             style="flex:1" .value=${m.field}>
-            ${this.fieldOptions.map(f => html`<option value=${f.key}>${f.label}</option>`)}
+            ${this.fieldOptions.map((f) => html`<option value=${f.key}>${f.label}</option>`)}
           </select>
-        ` : html`
+        `
+            : html`
           <input type="text" placeholder="Value…" style="flex:1" .value=${m.constValue}
             @input=${(e: Event) => this.updateMapping(i, 'constValue', (e.target as HTMLInputElement).value)} />
-        `}
+        `
+        }
 
         <span style="color:var(--colors-semantic-text-muted)">→</span>
 
         <select @change=${(e: Event) => this.updateMapping(i, 'channel', (e.target as HTMLSelectElement).value)}
           style="flex:1" .value=${m.channel}>
-          ${CHANNEL_OPTIONS.map(c => html`<option value=${c.key}>${c.label}</option>`)}
+          ${CHANNEL_OPTIONS.map((c) => html`<option value=${c.key}>${c.label}</option>`)}
         </select>
 
-        ${m.op === 'field' ? html`
+        ${
+          m.op === 'field'
+            ? html`
           <select @change=${(e: Event) => this.updateMapping(i, 'map', (e.target as HTMLSelectElement).value)}
             style="flex:1.5" .value=${m.map}>
-            ${SCALE_MAP_OPTIONS.map(s => html`<option value=${s.key}>${s.label}</option>`)}
+            ${SCALE_MAP_OPTIONS.map((s) => html`<option value=${s.key}>${s.label}</option>`)}
           </select>
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${this.mappings.length > 1 ? html`
+        ${
+          this.mappings.length > 1
+            ? html`
           <button class="remove-btn" @click=${() => this.removeMapping(i)} title="Remove">✕</button>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     `;
   }
 
   private renderPreview() {
     const stats = this.computePreviewStats();
-    if (!stats) return html`<div style="color:var(--colors-semantic-text-muted);padding:var(--spacing-scale-2)">No nodes to preview (send a message first)</div>`;
+    if (!stats)
+      return html`<div style="color:var(--colors-semantic-text-muted);padding:var(--spacing-scale-2)">No nodes to preview (send a message first)</div>`;
 
     return html`
       <div class="preview-stats">
@@ -252,21 +266,34 @@ export class LensDesigner extends BaseComponent {
           <span class="preview-stat-label">Channels</span>
           <span class="preview-stat-value">${stats.channelCount}</span>
         </div>
-        ${stats.colorSample ? html`
+        ${
+          stats.colorSample
+            ? html`
         <div class="preview-stat">
           <span class="preview-stat-label">Sample Color</span>
           <span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:${stats.colorSample};border:1px solid var(--colors-semantic-border-subtle)"></span>
-        </div>` : ''}
-        ${stats.sizeSample !== undefined ? html`
+        </div>`
+            : ''
+        }
+        ${
+          stats.sizeSample !== undefined
+            ? html`
         <div class="preview-stat">
           <span class="preview-stat-label">Sample Size</span>
           <span class="preview-stat-value">${stats.sizeSample.toFixed(0)}</span>
-        </div>` : ''}
+        </div>`
+            : ''
+        }
       </div>
     `;
   }
 
-  private computePreviewStats(): { nodeCount: number; channelCount: number; colorSample?: string; sizeSample?: number } | null {
+  private computePreviewStats(): {
+    nodeCount: number;
+    channelCount: number;
+    colorSample?: string;
+    sizeSample?: number;
+  } | null {
     if (!this.previewDelta || this.previewDelta.size === 0) return null;
     const entries = Array.from(this.previewDelta.entries());
     const firstEntry = entries[0]?.[1];
@@ -291,7 +318,7 @@ export class LensDesigner extends BaseComponent {
   }
 
   private updateMapping(index: number, key: keyof Mapping, value: string) {
-    const mappings = this.mappings.map(m => ({ ...m }));
+    const mappings = this.mappings.map((m) => ({ ...m }));
     const target = mappings[index];
     if (target) {
       (target as Record<string, string>)[key] = value;
@@ -313,7 +340,12 @@ export class LensDesigner extends BaseComponent {
     const spec = buildLensSpec(this.name || 'preview', this.description, this.mappings);
     const parsed = LensSpecSchema.safeParse(spec);
     if (!parsed.success) {
-      this.validationError = parsed.error.issues.map((e: { path: (string | symbol | number)[]; message: string }) => `${String(e.path.join('.'))}: ${e.message}`).join('; ');
+      this.validationError = parsed.error.issues
+        .map(
+          (e: { path: (string | symbol | number)[]; message: string }) =>
+            `${String(e.path.join('.'))}: ${e.message}`
+        )
+        .join('; ');
       this.previewJson = JSON.stringify(spec.modulation, null, 2);
       this.previewDelta = null;
       return;
@@ -328,8 +360,15 @@ export class LensDesigner extends BaseComponent {
         return;
       }
       const modulated = compile(spec as Parameters<typeof compile>[0]);
-      const view = { flags: { reducedMotion: false, highContrast: false, prefersColorScheme: 'dark' as const }, timeline: { t: Number.POSITIVE_INFINITY } };
-      const delta = evaluate(items, { id: spec.id, label: spec.label, description: spec.description, modulation: modulated }, view);
+      const view = {
+        flags: { reducedMotion: false, highContrast: false, prefersColorScheme: 'dark' as const },
+        timeline: { t: Number.POSITIVE_INFINITY },
+      };
+      const delta = evaluate(
+        items,
+        { id: spec.id, label: spec.label, description: spec.description, modulation: modulated },
+        view
+      );
       this.previewDelta = delta;
       this.nodeCount = items.length;
     } catch {
@@ -343,7 +382,12 @@ export class LensDesigner extends BaseComponent {
     const spec = buildLensSpec(this.name, this.description, this.mappings);
     const parsed = LensSpecSchema.safeParse(spec);
     if (!parsed.success) {
-      this.validationError = parsed.error.issues.map((e: { path: (string | symbol | number)[]; message: string }) => `${String(e.path.join('.'))}: ${e.message}`).join('; ');
+      this.validationError = parsed.error.issues
+        .map(
+          (e: { path: (string | symbol | number)[]; message: string }) =>
+            `${String(e.path.join('.'))}: ${e.message}`
+        )
+        .join('; ');
       return;
     }
 

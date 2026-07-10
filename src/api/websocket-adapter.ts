@@ -3,8 +3,6 @@
  * Uses the new unified adapter pattern
  */
 
-import { type WebSocket, WebSocketServer } from 'ws';
-import { errMsg, makeId } from '../../nar/src/utils';
 import {
   type WSClient,
   broadcastToSubscribers,
@@ -13,6 +11,8 @@ import {
   subscribeToEvents,
   unsubscribeFromEvents,
 } from '@senars/io/utils/websocket';
+import { type WebSocket, WebSocketServer } from 'ws';
+import { errMsg, makeId } from '../../nar/src/utils';
 import { UnifiedAdapter, errorResponse, successResponse } from './unified-adapter.js';
 
 interface WSMessage {

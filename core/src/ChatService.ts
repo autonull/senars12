@@ -1,5 +1,5 @@
-import type { ModelRunner } from './ModelRunner.js';
 import type { CognitiveEvent } from './CognitiveEvent.js';
+import type { ModelRunner } from './ModelRunner.js';
 
 export interface Tool {
   readonly name: string;
@@ -71,7 +71,12 @@ export function createChatService<TCtx extends ChatContext>(deps: ChatServiceDep
           } else if (event.kind === 'tool-call') {
             yield { kind: 'tool-call', toolName: event.call.toolName, toolArgs: event.call.args };
           } else if (event.kind === 'tool-result') {
-            yield { kind: 'tool-result', toolName: event.call.toolName, toolArgs: event.call.args, toolResult: event.result };
+            yield {
+              kind: 'tool-result',
+              toolName: event.call.toolName,
+              toolArgs: event.call.args,
+              toolResult: event.result,
+            };
           } else if (event.kind === 'finish') {
             break;
           }

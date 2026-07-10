@@ -24,10 +24,12 @@ export const TruthValue = z.object({
 });
 export type TruthValue = z.infer<typeof TruthValue>;
 
-// --- Multi-Engine Graph Node Data ---
+// --- Multi-Engine Graph Node Data (discriminated union) ---
 
 export const NarConceptNode = z.object({
   nodeType: z.literal('nar:concept'),
+  id: z.string().optional(),
+  label: z.string().optional(),
   term: z.string(),
   priority: z.number(),
   confidence: z.number(),
@@ -36,11 +38,21 @@ export const NarConceptNode = z.object({
   occurrenceTime: z.number().optional(),
   goalRelevance: z.number().optional(),
   lensData: z.object({ score: z.number(), color: z.string(), size: z.number() }).optional(),
-  layout: z.object({ x: z.number().optional(), y: z.number().optional(), threadIndex: z.number().optional() }).optional(),
+  layout: z
+    .object({
+      x: z.number().optional(),
+      y: z.number().optional(),
+      threadIndex: z.number().optional(),
+    })
+    .optional(),
+  html: z.string().optional(),
+  punctuation: z.enum(['.', '!', '?']).optional(),
 });
 
 export const MettaAtomNode = z.object({
   nodeType: z.literal('metta:atom'),
+  id: z.string().optional(),
+  label: z.string().optional(),
   atom: z.string(),
   type: z.string().optional(),
   space: z.string(),
@@ -50,6 +62,8 @@ export const MettaAtomNode = z.object({
 
 export const MettaSkillNode = z.object({
   nodeType: z.literal('metta:skill'),
+  id: z.string().optional(),
+  label: z.string().optional(),
   skill: z.string(),
   args: z.array(z.string()),
   result: z.string(),
@@ -58,12 +72,46 @@ export const MettaSkillNode = z.object({
   layout: z.object({ x: z.number().optional(), y: z.number().optional() }).optional(),
 });
 
-export const GraphNodeData = z.discriminatedUnion('nodeType', [
+// Discriminated union for strict validation
+export const GraphNodeDataStrict = z.discriminatedUnion('nodeType', [
   NarConceptNode,
   MettaAtomNode,
   MettaSkillNode,
 ]);
-export type GraphNodeData = z.infer<typeof GraphNodeData>;
+
+// Flat view type for UI rendering (all engine-specific fields optional)
+export const GraphNodeDataView = z.object({
+  id: z.string().optional(),
+  label: z.string().optional(),
+  term: z.string().optional(),
+  atom: z.string().optional(),
+  skill: z.string().optional(),
+  priority: z.number().optional(),
+  confidence: z.number().optional(),
+  truth: TruthValue.optional(),
+  isContradiction: z.boolean().optional(),
+  occurrenceTime: z.number().optional(),
+  goalRelevance: z.number().optional(),
+  lensData: z.object({ score: z.number(), color: z.string(), size: z.number() }).optional(),
+  layout: z
+    .object({
+      x: z.number().optional(),
+      y: z.number().optional(),
+      threadIndex: z.number().optional(),
+    })
+    .optional(),
+  nodeType: z.enum(['nar:concept', 'metta:atom', 'metta:skill']),
+  html: z.string().optional(),
+  punctuation: z.enum(['.', '!', '?']).optional(),
+  space: z.string().optional(),
+  durationMs: z.number().optional(),
+  args: z.array(z.string()).optional(),
+  type: z.string().optional(),
+});
+export type GraphNodeDataView = z.infer<typeof GraphNodeDataView>;
+
+export const GraphNodeData = GraphNodeDataStrict;
+export type GraphNodeData = z.infer<typeof GraphNodeDataStrict>;
 
 // --- Agent Capabilities (for UI negotiation) ---
 
@@ -85,8 +133,12 @@ export type AgentCapabilities = z.infer<typeof AgentCapabilities>;
 
 // === Graph Operations (Delta) ===
 export const GraphOp = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('add_node'), id: z.string(), data: GraphNodeData }),
-  z.object({ action: z.literal('update_node'), id: z.string(), data: z.record(z.string(), z.unknown()) }),
+  z.object({ action: z.literal('add_node'), id: z.string(), data: GraphNodeDataView }),
+  z.object({
+    action: z.literal('update_node'),
+    id: z.string(),
+    data: GraphNodeDataView,
+  }),
   z.object({ action: z.literal('remove_node'), id: z.string() }),
   z.object({
     action: z.literal('add_edge'),
@@ -108,7 +160,9 @@ export const CognitiveDelta = z.object({
   seqId: z.number(),
   lens: Lens,
   ops: z.array(GraphOp),
-  meta: z.object({ truncated: z.boolean().optional(), totalHidden: z.number().optional() }).optional(),
+  meta: z
+    .object({ truncated: z.boolean().optional(), totalHidden: z.number().optional() })
+    .optional(),
 });
 
 // === Chat ===
@@ -116,7 +170,10 @@ export const ChatUserMsg = z.object({
   type: z.literal('chat.user'),
   content: z.string().min(1).max(10000),
 });
-export const ChatAgentStream = z.object({ type: z.literal('chat.agent.stream'), delta: z.string() });
+export const ChatAgentStream = z.object({
+  type: z.literal('chat.agent.stream'),
+  delta: z.string(),
+});
 export const ChatAgentComplete = z.object({
   type: z.literal('chat.agent.complete'),
   content: z.string(),
@@ -135,13 +192,29 @@ export const ConfigField = z.object({
   step: z.number().optional(),
   description: z.string().optional(),
   category: z.enum(['llm', 'nars', 'system', 'advanced']).optional(),
-  validation: z.object({ pattern: z.string().optional(), min: z.number().optional(), max: z.number().optional() }).optional(),
+  validation: z
+    .object({
+      pattern: z.string().optional(),
+      min: z.number().optional(),
+      max: z.number().optional(),
+    })
+    .optional(),
 });
-export const ConfigSchemaMsg = z.object({ type: z.literal('config.schema'), data: z.record(z.string(), ConfigField) });
-export const ConfigSetMsg = z.object({ type: z.literal('config.set'), key: z.string(), value: z.any() });
+export const ConfigSchemaMsg = z.object({
+  type: z.literal('config.schema'),
+  data: z.record(z.string(), ConfigField),
+});
+export const ConfigSetMsg = z.object({
+  type: z.literal('config.set'),
+  key: z.string(),
+  value: z.any(),
+});
 
 // === Synchronization ===
-export const SyncRequest = z.object({ type: z.literal('sync.request'), lastSeqId: z.number().nullable() });
+export const SyncRequest = z.object({
+  type: z.literal('sync.request'),
+  lastSeqId: z.number().nullable(),
+});
 export const StateSnapshot = z.object({
   type: z.literal('state.snapshot'),
   seqId: z.number(),
@@ -152,7 +225,12 @@ export const StateSnapshot = z.object({
   }),
 });
 
-export const ViewportSet = z.object({ type: z.literal('viewport.set'), x: z.number(), y: z.number(), zoom: z.number() });
+export const ViewportSet = z.object({
+  type: z.literal('viewport.set'),
+  x: z.number(),
+  y: z.number(),
+  zoom: z.number(),
+});
 
 export const CognitiveMetrics = z.object({
   activeConcepts: z.number(),
@@ -202,12 +280,14 @@ export const NodeSetMsg = z.object({
 // === Lens Registry messages ===
 export const LensListMsg = z.object({
   type: z.literal('lens.list'),
-  lenses: z.array(z.object({
-    id: z.string(),
-    label: z.string(),
-    description: z.string(),
-    modulation: z.any(),
-  })),
+  lenses: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      description: z.string(),
+      modulation: z.any(),
+    })
+  ),
 });
 
 export const LensDefineMsg = z.object({
@@ -232,24 +312,31 @@ export const LensDefinedMsg = z.object({
 
 export const LensFieldsMsg = z.object({
   type: z.literal('lens.fields'),
-  fields: z.array(z.object({
-    key: z.string(),
-    label: z.string(),
-    type: z.enum(['number', 'boolean', 'string', 'object']),
-  })),
+  fields: z.array(
+    z.object({
+      key: z.string(),
+      label: z.string(),
+      type: z.enum(['number', 'boolean', 'string', 'object']),
+    })
+  ),
 });
 
-export const NodeHistoryRequestMsg = z.object({ type: z.literal('node.history.request'), term: z.string() });
+export const NodeHistoryRequestMsg = z.object({
+  type: z.literal('node.history.request'),
+  term: z.string(),
+});
 
 export const NodeHistoryMsg = z.object({
   type: z.literal('node.history'),
   term: z.string(),
-  history: z.array(z.object({
-    truth: TruthValue,
-    stampId: z.string(),
-    timestamp: z.number(),
-    source: z.enum(['input', 'derivation', 'revision', 'inference']),
-  })),
+  history: z.array(
+    z.object({
+      truth: TruthValue,
+      stampId: z.string(),
+      timestamp: z.number(),
+      source: z.enum(['input', 'derivation', 'revision', 'inference']),
+    })
+  ),
 });
 
 export const IncomingFromClient = z.discriminatedUnion('type', [

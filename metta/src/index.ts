@@ -1,7 +1,34 @@
-export type { MeTTaAtom, SymbolAtom, VariableAtom, NumberAtom, StringAtom, ExpressionAtom, GroundedAtom } from './types/ast.js';
-export { AtomKind, sym, varr, num, str, expr, isSymbol, isVariable, isNumber, isString, isExpression, isGrounded } from './types/ast.js';
+export type {
+  MeTTaAtom,
+  SymbolAtom,
+  VariableAtom,
+  NumberAtom,
+  StringAtom,
+  ExpressionAtom,
+  GroundedAtom,
+} from './types/ast.js';
+export {
+  AtomKind,
+  sym,
+  varr,
+  num,
+  str,
+  expr,
+  isSymbol,
+  isVariable,
+  isNumber,
+  isString,
+  isExpression,
+  isGrounded,
+} from './types/ast.js';
 export type { MeTTaSpace, ImmutableSpace } from './types/space.js';
-export type { VariableName, OperationName, TypeName, Keyword, ValidateAtomType } from './types/syntax.js';
+export type {
+  VariableName,
+  OperationName,
+  TypeName,
+  Keyword,
+  ValidateAtomType,
+} from './types/syntax.js';
 export { parseMeTTa } from './parser/runtime.js';
 export { EGraph, type RewriteRule } from './engine/egraph.js';
 export { MeTTaInterpreter } from './engine/interpreter.js';
@@ -22,10 +49,29 @@ export { MeTTaError, ErrorCode } from './core/errors.js';
 export { hashAtom, equalAtoms } from './core/hash.js';
 export { createConfig, presets, type MeTTaConfig } from './core/config.js';
 export type { Type, TypeVar, TypeCon, TypeFun, TypeScheme, TypeEnv, Subst } from './types/type.js';
-export { TypeKind, typevar, typecon, typefun, isTypeVar, isTypeCon, isTypeFun } from './types/type.js';
-export { TypeChecker, unifyTypes, occursCheck, composeSubst, freshType, resetTypeIds } from './types/inference.js';
+export {
+  TypeKind,
+  typevar,
+  typecon,
+  typefun,
+  isTypeVar,
+  isTypeCon,
+  isTypeFun,
+} from './types/type.js';
+export {
+  TypeChecker,
+  unifyTypes,
+  occursCheck,
+  composeSubst,
+  freshType,
+  resetTypeIds,
+} from './types/inference.js';
 export { bootstrapStdLib } from './stdlib/index.js';
-export { PersistentSpace, type PersistedSpaceData, type PersistentSpaceOptions } from './extensions/persistent-space.js';
+export {
+  PersistentSpace,
+  type PersistedSpaceData,
+  type PersistentSpaceOptions,
+} from './extensions/persistent-space.js';
 export { MeTTaBuilder, MeTTaRuntime, createMeTTa } from './runtime/builder.js';
 export { JITCompiler, globalJIT } from './performance/jit.js';
 export type { ParallelOptions } from './performance/parallel.js';

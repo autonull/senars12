@@ -1,4 +1,4 @@
-import {LMConfig} from './LMConfig.js';
+import { LMConfig } from './LMConfig.js';
 
 /**
  * @deprecated Use LMConfig directly instead
@@ -7,12 +7,12 @@ import {LMConfig} from './LMConfig.js';
  * has been removed; use LMConfig.setProvider() / LMConfig.setActive() programmatically.
  */
 export class LMConfigurator {
-    constructor() {
-        console.warn('[DEPRECATED] LMConfigurator is deprecated. Use LMConfig directly.');
-        this._config = new LMConfig();
-    }
+  constructor() {
+    console.warn('[DEPRECATED] LMConfigurator is deprecated. Use LMConfig directly.');
+    this._config = new LMConfig();
+  }
 
-    getConfig() {
-        return this._config;
-    }
+  getConfig() {
+    return this._config;
+  }
 }

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-import {exec, spawn} from 'child_process';
-import {promisify} from 'util';
-import {fileURLToPath} from 'url';
-import {dirname, join} from 'path';
-import {writeFile} from 'fs/promises';
+import { exec, spawn } from 'child_process';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+import { promisify } from 'util';
+import { writeFile } from 'fs/promises';
 
 const execAsync = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
@@ -13,7 +13,7 @@ const __dirname = dirname(__filename);
 const args = process.argv.slice(2);
 
 function showUsage() {
-    console.log(`
+  console.log(`
 Usage: node scripts/utils/performance-monitor.js [options]
 
 Options:
@@ -35,8 +35,8 @@ Examples:
 }
 
 if (args.includes('--help') || args.includes('-h')) {
-    showUsage();
-    process.exit(0);
+  showUsage();
+  process.exit(0);
 }
 
 // Parse arguments
@@ -46,87 +46,96 @@ let outputDir = 'performance-results';
 let mode = 'cli'; // cli or web
 
 for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--profile') {
-        operation = 'profile';
-    } else if (args[i] === '--monitor' && args[i + 1]) {
-        operation = 'monitor';
-        duration = parseInt(args[i + 1]);
-        i++;
-    } else if (args[i] === '--benchmark') {
-        operation = 'benchmark';
-    } else if (args[i] === '--compare') {
-        operation = 'compare';
-    } else if (args[i] === '--output' && args[i + 1]) {
-        outputDir = args[i + 1];
-        i++;
-    } else if (args[i] === '--web') {
-        mode = 'web';
-    } else if (args[i] === '--cli') {
-        mode = 'cli';
-    }
+  if (args[i] === '--profile') {
+    operation = 'profile';
+  } else if (args[i] === '--monitor' && args[i + 1]) {
+    operation = 'monitor';
+    duration = Number.parseInt(args[i + 1]);
+    i++;
+  } else if (args[i] === '--benchmark') {
+    operation = 'benchmark';
+  } else if (args[i] === '--compare') {
+    operation = 'compare';
+  } else if (args[i] === '--output' && args[i + 1]) {
+    outputDir = args[i + 1];
+    i++;
+  } else if (args[i] === '--web') {
+    mode = 'web';
+  } else if (args[i] === '--cli') {
+    mode = 'cli';
+  }
 }
 
 console.log(`Running performance operation: ${operation} in ${mode} mode`);
 
 async function runPerformanceMonitoring() {
-    try {
-        console.log(`\\n⏱️  Starting ${operation} operation in ${mode} mode...`);
+  try {
+    console.log(`\\n⏱️  Starting ${operation} operation in ${mode} mode...`);
 
-        // Create output directory
-        await execAsync(`mkdir -p ${outputDir} ${outputDir}/monitoring ${outputDir}/profiles ${outputDir}/benchmarks`);
+    // Create output directory
+    await execAsync(
+      `mkdir -p ${outputDir} ${outputDir}/monitoring ${outputDir}/profiles ${outputDir}/benchmarks`
+    );
 
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').replace('Z', '');
-        let results = {};
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, '-')
+      .replace('T', '_')
+      .replace('Z', '');
+    const results = {};
 
-        if (operation === 'profile' || operation === 'benchmark') {
-            console.log('\\n🔬 Running performance profiling...');
+    if (operation === 'profile' || operation === 'benchmark') {
+      console.log('\\n🔬 Running performance profiling...');
 
-            // Run the benchmark script if available
-            try {
-                const benchProcess = spawn('node', ['src/testing/runBenchmarks.js'], {
-                    cwd: join(__dirname, '../..'),
-                    stdio: ['pipe', 'pipe', 'pipe']
-                });
+      // Run the benchmark script if available
+      try {
+        const benchProcess = spawn('node', ['src/testing/runBenchmarks.js'], {
+          cwd: join(__dirname, '../..'),
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
 
-                let benchOutput = '';
-                benchProcess.stdout.on('data', (data) => {
-                    benchOutput += data.toString();
-                    process.stdout.write(data);
-                });
+        let benchOutput = '';
+        benchProcess.stdout.on('data', (data) => {
+          benchOutput += data.toString();
+          process.stdout.write(data);
+        });
 
-                benchProcess.stderr.on('data', (data) => {
-                    process.stderr.write(data);
-                });
+        benchProcess.stderr.on('data', (data) => {
+          process.stderr.write(data);
+        });
 
-                await new Promise((resolve) => {
-                    benchProcess.on('close', (code) => {
-                        results.benchmark = {
-                            exitCode: code,
-                            output: benchOutput,
-                            success: code === 0
-                        };
-                        resolve();
-                    });
-                });
+        await new Promise((resolve) => {
+          benchProcess.on('close', (code) => {
+            results.benchmark = {
+              exitCode: code,
+              output: benchOutput,
+              success: code === 0,
+            };
+            resolve();
+          });
+        });
 
-                // Save benchmark output
-                await writeFile(`${outputDir}/benchmarks/benchmark_${timestamp}.txt`, benchOutput);
+        // Save benchmark output
+        await writeFile(`${outputDir}/benchmarks/benchmark_${timestamp}.txt`, benchOutput);
+      } catch (error) {
+        console.error('Benchmark execution failed:', error.message);
+        results.benchmark = { success: false, error: error.message };
+      }
+    }
 
-            } catch (error) {
-                console.error('Benchmark execution failed:', error.message);
-                results.benchmark = {success: false, error: error.message};
-            }
-        }
+    if (operation === 'monitor') {
+      console.log(`\\n📊 Monitoring system performance for ${duration} seconds...`);
 
-        if (operation === 'monitor') {
-            console.log(`\\n📊 Monitoring system performance for ${duration} seconds...`);
+      // For CLI mode, run a simple test
+      if (mode === 'cli') {
+        console.log('  Running basic CLI performance test...');
 
-            // For CLI mode, run a simple test
-            if (mode === 'cli') {
-                console.log('  Running basic CLI performance test...');
-
-                const startTime = Date.now();
-                const testProcess = spawn('node', ['-e', `
+        const startTime = Date.now();
+        const testProcess = spawn(
+          'node',
+          [
+            '-e',
+            `
                     // Simple performance test
                     const start = Date.now();
                     let sum = 0;
@@ -141,79 +150,84 @@ async function runPerformanceMonitoring() {
                     for (let key in used) {
                         console.log(\`\${key}: \${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB\`);
                     }
-                `], {
-                    cwd: join(__dirname, '../..')
-                });
+                `,
+          ],
+          {
+            cwd: join(__dirname, '../..'),
+          }
+        );
 
-                let monitorOutput = '';
-                testProcess.stdout.on('data', (data) => {
-                    monitorOutput += data.toString();
-                    console.log('  ' + data.toString().trim());
-                });
+        let monitorOutput = '';
+        testProcess.stdout.on('data', (data) => {
+          monitorOutput += data.toString();
+          console.log('  ' + data.toString().trim());
+        });
 
-                await new Promise((resolve) => {
-                    testProcess.on('close', (code) => {
-                        results.monitor = {
-                            exitCode: code,
-                            output: monitorOutput,
-                            duration: duration,
-                            success: code === 0,
-                            timestamp: startTime
-                        };
-                        resolve();
-                    });
-                });
-            }
-            // For web mode, we might want to run the web UI and monitor it
-            else if (mode === 'web') {
-                console.log('  Starting web UI for performance monitoring...');
+        await new Promise((resolve) => {
+          testProcess.on('close', (code) => {
+            results.monitor = {
+              exitCode: code,
+              output: monitorOutput,
+              duration: duration,
+              success: code === 0,
+              timestamp: startTime,
+            };
+            resolve();
+          });
+        });
+      }
+      // For web mode, we might want to run the web UI and monitor it
+      else if (mode === 'web') {
+        console.log('  Starting web UI for performance monitoring...');
 
-                // This would typically involve starting the web server and monitoring it
-                // For now, we'll just note this as a future enhancement
-                results.monitor = {
-                    operation: 'web_monitoring',
-                    note: 'Web performance monitoring would start the server and monitor resource usage',
-                    duration: duration,
-                    timestamp: Date.now()
-                };
-
-                console.log('  [Web monitoring would start server and track performance]');
-            }
-        }
-
-        // Generate performance report
-        const report = {
-            timestamp: new Date().toISOString(),
-            operation: operation,
-            mode: mode,
-            duration: operation === 'monitor' ? duration : undefined,
-            results: results,
-            system: {
-                platform: process.platform,
-                arch: process.arch,
-                nodeVersion: process.version,
-                memory: process.memoryUsage()
-            }
+        // This would typically involve starting the web server and monitoring it
+        // For now, we'll just note this as a future enhancement
+        results.monitor = {
+          operation: 'web_monitoring',
+          note: 'Web performance monitoring would start the server and monitor resource usage',
+          duration: duration,
+          timestamp: Date.now(),
         };
 
-        // Write report
-        await writeFile(`${outputDir}/performance-report-${timestamp}.json`, JSON.stringify(report, null, 2));
-
-        console.log('\\n✅ Performance monitoring completed!');
-        console.log(`📊 Results saved to: ${outputDir}/`);
-
-        // Print summary to console
-        console.log('\\n📈 Summary:');
-        console.log(`  Operation: ${operation}`);
-        console.log(`  Mode: ${mode}`);
-        console.log(`  Duration: ${operation === 'monitor' ? duration + 's' : 'N/A'}`);
-        console.log(`  Timestamp: ${timestamp}`);
-        console.log(`  Results: ${outputDir}/`);
-
-    } catch (error) {
-        console.error('Error running performance monitoring:', error);
-        process.exit(1);
+        console.log('  [Web monitoring would start server and track performance]');
+      }
     }
+
+    // Generate performance report
+    const report = {
+      timestamp: new Date().toISOString(),
+      operation: operation,
+      mode: mode,
+      duration: operation === 'monitor' ? duration : undefined,
+      results: results,
+      system: {
+        platform: process.platform,
+        arch: process.arch,
+        nodeVersion: process.version,
+        memory: process.memoryUsage(),
+      },
+    };
+
+    // Write report
+    await writeFile(
+      `${outputDir}/performance-report-${timestamp}.json`,
+      JSON.stringify(report, null, 2)
+    );
+
+    console.log('\\n✅ Performance monitoring completed!');
+    console.log(`📊 Results saved to: ${outputDir}/`);
+
+    // Print summary to console
+    console.log('\\n📈 Summary:');
+    console.log(`  Operation: ${operation}`);
+    console.log(`  Mode: ${mode}`);
+    console.log(`  Duration: ${operation === 'monitor' ? duration + 's' : 'N/A'}`);
+    console.log(`  Timestamp: ${timestamp}`);
+    console.log(`  Results: ${outputDir}/`);
+  } catch (error) {
+    console.error('Error running performance monitoring:', error);
+    process.exit(1);
+  }
 }
 
 runPerformanceMonitoring();

@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { MeTTaBuilder, createMeTTa, MeTTaRuntime } from '../src/index.js';
-import { sym, num, expr } from '../src/index.js';
 import { Effect } from 'effect';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { clearOps } from '../src/core/ops.js';
+import { MeTTaBuilder, MeTTaRuntime, createMeTTa } from '../src/index.js';
+import { expr, num, sym } from '../src/index.js';
 import { bootstrapStdLib } from '../src/index.js';
 
 beforeEach(() => {
@@ -17,16 +17,12 @@ describe('MeTTaBuilder', () => {
   });
 
   it('creates runtime with custom config', () => {
-    const runtime = new MeTTaBuilder()
-      .withConfig({ maxSteps: 5000 })
-      .build();
+    const runtime = new MeTTaBuilder().withConfig({ maxSteps: 5000 }).build();
     expect(runtime).toBeInstanceOf(MeTTaRuntime);
   });
 
   it('creates runtime with custom space', () => {
-    const runtime = new MeTTaBuilder()
-      .withSpace('custom')
-      .build();
+    const runtime = new MeTTaBuilder().withSpace('custom').build();
     expect(runtime).toBeInstanceOf(MeTTaRuntime);
   });
 

@@ -1,4 +1,4 @@
-import {LMConfig} from './LMConfig.js';
+import { LMConfig } from './LMConfig.js';
 
 /**
  * @deprecated Use LMConfig.createActiveProvider() and LMConfig.bindTools() instead
@@ -17,21 +17,23 @@ import {LMConfig} from './LMConfig.js';
  *   LMConfig.bindTools(provider, agent);
  */
 export class LMProviderBuilder {
-    static create(agent, lmConfigData) {
-        console.warn('[DEPRECATED] LMProviderBuilder is deprecated. Use LMConfig.createActiveProvider() and LMConfig.bindTools() instead.');
+  static create(agent, lmConfigData) {
+    console.warn(
+      '[DEPRECATED] LMProviderBuilder is deprecated. Use LMConfig.createActiveProvider() and LMConfig.bindTools() instead.'
+    );
 
-        const config = new LMConfig();
-        const providerType = lmConfigData.provider || 'ollama';
+    const config = new LMConfig();
+    const providerType = lmConfigData.provider || 'ollama';
 
-        config.setProvider(providerType, {
-            ...lmConfigData,
-            type: providerType
-        });
-        config.setActive(providerType);
+    config.setProvider(providerType, {
+      ...lmConfigData,
+      type: providerType,
+    });
+    config.setActive(providerType);
 
-        const provider = config.createActiveProvider();
-        LMConfig.bindTools(provider, agent);
+    const provider = config.createActiveProvider();
+    LMConfig.bindTools(provider, agent);
 
-        return provider;
-    }
+    return provider;
+  }
 }

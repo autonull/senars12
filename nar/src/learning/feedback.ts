@@ -1,6 +1,15 @@
 import type { TranslationCache } from '../nl';
 import type { RLFPLearner } from '../rlfp';
-import { containsSubterm, getPredicate, getSubject, isNegation, isOperation, isTautology, termsEqual, type Term } from '../terms';
+import {
+  type Term,
+  containsSubterm,
+  getPredicate,
+  getSubject,
+  isNegation,
+  isOperation,
+  isTautology,
+  termsEqual,
+} from '../terms';
 import type { Task } from '../types';
 import { clamp } from '../utils';
 
@@ -150,10 +159,7 @@ export function validateLMOutput(
   return { valid: true };
 }
 
-function findConflicts(
-  term: Term,
-  memory: { getBeliefs: () => Task[] }
-): Task[] {
+function findConflicts(term: Term, memory: { getBeliefs: () => Task[] }): Task[] {
   return memory.getBeliefs().filter((b) => {
     if (termsEqual(b.term, term)) return true;
     if (isNegation(b.term) && containsSubterm(b.term, term)) return true;

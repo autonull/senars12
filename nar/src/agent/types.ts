@@ -1,3 +1,4 @@
+import type { AgentCapabilities, CognitiveEvent, Connection } from '@senars/core';
 import type { NAR, Task } from '..';
 import type { LMService } from '../lm';
 import type { Logger } from '../logger';
@@ -8,7 +9,6 @@ import type { AutonomousLoop } from './AutonomousLoop.js';
 import type { AutonomyEngine } from './AutonomyEngine.js';
 import type { ConversationSession } from './ConversationSession.js';
 import type { EventKey, EventMap } from './EventBus.js';
-import type { Connection, AgentCapabilities, CognitiveEvent } from '@senars/core';
 
 export type { LMService } from '../lm';
 
@@ -367,7 +367,12 @@ export interface Agent {
   on(event: string | '*', handler: (event: CognitiveEvent) => void): void;
   off(event: string | '*', handler: (event: CognitiveEvent) => void): void;
   submit(input: string, correlationId: string): void;
-  health(): { status: 'healthy' | 'degraded' | 'stuck' | 'crashed'; lastCycle: number; cycleCount: number; errorRate: number };
+  health(): {
+    status: 'healthy' | 'degraded' | 'stuck' | 'crashed';
+    lastCycle: number;
+    cycleCount: number;
+    errorRate: number;
+  };
   capabilities(): AgentCapabilities;
   mount(transport: Connection): void;
   unmount(transport: Connection): void;

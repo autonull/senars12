@@ -1,29 +1,22 @@
-import type { Connection, ConnectionConfig, ConnectionFactory, ConnectionDeps, Logger } from './types.js';
+import type {
+  Connection,
+  ConnectionConfig,
+  ConnectionDeps,
+  ConnectionFactory,
+} from './types.js';
+import { createLogger } from '@senars/core';
 
 export class ConnectionManager {
   private connections: Map<string, Connection> = new Map();
   private factories: Map<string, ConnectionFactory> = new Map();
-  private readonly logger: Logger;
-
-  constructor(logger?: Logger) {
-    this.logger = logger ?? {
-      debug: () => {},
-      info: () => {},
-      warn: () => {},
-      error: () => {},
-      child: () => this as unknown as Logger,
-    };
-  }
+  private readonly logger = createLogger({ scope: 'connections' });
 
   registerFactory(factory: ConnectionFactory): void {
     this.factories.set(factory.type, factory);
     this.logger.info(`Registered factory for connection type: ${factory.type}`);
   }
 
-  async addConnection(
-    config: ConnectionConfig,
-    deps: ConnectionDeps,
-  ): Promise<Connection> {
+  async addConnection(config: ConnectionConfig, deps: ConnectionDeps): Promise<Connection> {
     const factory = this.factories.get(config.type);
     if (!factory) {
       throw new Error(`No factory registered for connection type: ${config.type}`);

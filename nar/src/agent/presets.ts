@@ -1,8 +1,8 @@
 import type { NAR } from '..';
 import { SeNARSFactory } from '..';
+import { DEFAULT_NAR_CONFIG } from '../../../src/config';
 import type { LMService } from '../lm';
 import { EpisodicMemory } from '../memory/EpisodicMemory.js';
-import { DEFAULT_NAR_CONFIG } from '../../../src/config';
 import { type Agent, type AgentOptions, createAgent } from './agent.js';
 
 export type AgentPresetName = 'minimal' | 'chat' | 'lm-only' | 'full';

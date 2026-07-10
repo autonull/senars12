@@ -1,6 +1,6 @@
+import { ErrorCode, MeTTaError } from '../core/errors.js';
 import { parseMeTTa } from '../parser/runtime.js';
 import type { MeTTaAtom } from '../types/ast.js';
-import { MeTTaError, ErrorCode } from '../core/errors.js';
 
 export class MettaInputProcessor {
   async process(input: string): Promise<MeTTaAtom> {

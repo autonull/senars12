@@ -28,9 +28,7 @@ export class SemanticStrategy implements Strategy {
   }
 
   selectSecondary(task: Task, memory: Memory): Task[] {
-    const candidates = memory
-      .listConcepts()
-      .filter((c) => !termsEqual(c.term, task.term));
+    const candidates = memory.listConcepts().filter((c) => !termsEqual(c.term, task.term));
     return this.scoreAndSelect(task.term, candidates, memory);
   }
 

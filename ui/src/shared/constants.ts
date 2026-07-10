@@ -55,13 +55,13 @@ export interface LensFieldDescriptor {
 
 /** Available fields for lens mapping, shared between server schema and designer. */
 export const LENS_FIELDS: LensFieldDescriptor[] = [
-  { key: 'priority',          label: 'Priority',          type: 'number'  },
-  { key: 'confidence',        label: 'Confidence',        type: 'number'  },
-  { key: 'isContradiction',   label: 'Is Contradiction',  type: 'boolean' },
-  { key: 'truth',             label: 'Truth (frequency)', type: 'object'  },
-  { key: 'occurrenceTime',    label: 'Occurrence Time',   type: 'number'  },
-  { key: 'goalRelevance',     label: 'Goal Relevance',    type: 'number'  },
-  { key: 'nodeType',          label: 'Node Type',         type: 'string'  },
-  { key: 'edgeType',          label: 'Edge Type',         type: 'string'  },
-  { key: 'weight',            label: 'Edge Weight',       type: 'number'  },
+  { key: 'priority', label: 'Priority', type: 'number' },
+  { key: 'confidence', label: 'Confidence', type: 'number' },
+  { key: 'isContradiction', label: 'Is Contradiction', type: 'boolean' },
+  { key: 'truth', label: 'Truth (frequency)', type: 'object' },
+  { key: 'occurrenceTime', label: 'Occurrence Time', type: 'number' },
+  { key: 'goalRelevance', label: 'Goal Relevance', type: 'number' },
+  { key: 'nodeType', label: 'Node Type', type: 'string' },
+  { key: 'edgeType', label: 'Edge Type', type: 'string' },
+  { key: 'weight', label: 'Edge Weight', type: 'number' },
 ];

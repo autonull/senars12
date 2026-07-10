@@ -1,29 +1,29 @@
-import {afterEach, beforeEach, describe, expect, it} from '@jest/globals';
-import {MeTTaInterpreter} from '../src/index.js';
 import fs from 'fs';
 import path from 'path';
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { MeTTaInterpreter } from '../src/index.js';
 
 describe.skip('ImaginationExtension (Mind Eye)', () => {
-    let interp;
-    const testDir = path.resolve(process.cwd(), 'metta/tests/test_output_imagination');
+  let interp;
+  const testDir = path.resolve(process.cwd(), 'metta/tests/test_output_imagination');
 
-    beforeEach(() => {
-        interp = new MeTTaInterpreter();
-        if (!fs.existsSync(testDir)) {
-            fs.mkdirSync(testDir, {recursive: true});
-        }
-    });
+  beforeEach(() => {
+    interp = new MeTTaInterpreter();
+    if (!fs.existsSync(testDir)) {
+      fs.mkdirSync(testDir, { recursive: true });
+    }
+  });
 
-    afterEach(() => {
-        if (fs.existsSync(testDir)) {
-            fs.rmSync(testDir, {recursive: true, force: true});
-        }
-    });
+  afterEach(() => {
+    if (fs.existsSync(testDir)) {
+      fs.rmSync(testDir, { recursive: true, force: true });
+    }
+  });
 
-    it('should create a canvas and save an image', () => {
-        const imagePath = path.join(testDir, 'test_image.png');
+  it('should create a canvas and save an image', () => {
+    const imagePath = path.join(testDir, 'test_image.png');
 
-        interp.run(`
+    interp.run(`
             !(let $canvas (canvas-create 200 200)
                 (let $ctx (canvas-get-context $canvas)
                     (do
@@ -35,15 +35,15 @@ describe.skip('ImaginationExtension (Mind Eye)', () => {
                     )))
         `);
 
-        expect(fs.existsSync(imagePath)).toBe(true);
-        const stats = fs.statSync(imagePath);
-        expect(stats.size).toBeGreaterThan(0);
-    });
+    expect(fs.existsSync(imagePath)).toBe(true);
+    const stats = fs.statSync(imagePath);
+    expect(stats.size).toBeGreaterThan(0);
+  });
 
-    it('should create a key-framed video sequence (GIF)', async () => {
-        const videoPath = path.join(testDir, 'test_video.gif');
+  it('should create a key-framed video sequence (GIF)', async () => {
+    const videoPath = path.join(testDir, 'test_video.gif');
 
-        interp.run(`
+    interp.run(`
             !(let* (
                     ($canvas (canvas-create 100 100))
                     ($ctx (canvas-get-context $canvas))
@@ -77,11 +77,11 @@ describe.skip('ImaginationExtension (Mind Eye)', () => {
                 ))
         `);
 
-        // Wait a small amount for the stream to flush before we check file size
-        await new Promise(resolve => setTimeout(resolve, 50));
+    // Wait a small amount for the stream to flush before we check file size
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
-        expect(fs.existsSync(videoPath)).toBe(true);
-        const stats = fs.statSync(videoPath);
-        expect(stats.size).toBeGreaterThan(0);
-    });
+    expect(fs.existsSync(videoPath)).toBe(true);
+    const stats = fs.statSync(videoPath);
+    expect(stats.size).toBeGreaterThan(0);
+  });
 });

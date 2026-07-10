@@ -8,10 +8,7 @@ import type { LMExecutionStats, LMRuleConfig, LMRuleStats, LMService } from './l
 
 import { type LanguageModel, generateObject, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
-import type {
-  EventBus as AgentEventBus,
-  EventMap as AgentEventMap,
-} from '../agent/EventBus.js';
+import type { EventBus as AgentEventBus, EventMap as AgentEventMap } from '../agent/EventBus.js';
 
 const defaultStats = (): LMExecutionStats => ({
   totalCalls: 0,

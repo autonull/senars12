@@ -1,82 +1,77 @@
-import http from 'http';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { type WebSocket, WebSocketServer } from 'ws';
-import type { Agent } from '../../../nar/src/agent/index.js';
-import type { NAR } from '../../../nar/src/nar.js';
-import { errMsg } from '../../../nar/src/utils';
+import http from 'node:http';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import type { CognitiveEventSource } from '@senars/core';
+import { errMsg } from '@senars/nar/utils';
+import { WebSocket, WebSocketServer } from 'ws';
 import type { LensSpec } from '../shared/lens-schema.js';
 import type { IncomingFromServer, Lens } from '../shared/protocol.js';
 import { onChat } from './chat.js';
-import { type NarAdapter, handleConnection, initLensRegistry } from './gateway.js';
-import { buildNarAdapter, createTelemetryEmitter } from './nar-adapter.js';
-import { sendInitialState, sendLensList, broadcastLensDefined, subscribeSocket } from './socket-handler.js';
+import { type CognitiveBridge, createCognitiveBridge } from './cognitive-bridge.js';
+import { handleConnection, initLensRegistry } from './gateway.js';
 import { createStaticHandler } from './static.js';
-import { createTestControlHandler } from './test-control.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = 3000;
 
 export interface TestServer {
   close(): Promise<void>;
-
   address(): { port: number };
 }
 
-export async function startWebUI(nar: NAR, agent: Agent): Promise<TestServer> {
-  const adapter = buildNarAdapter(nar);
+export async function startWebUI(source: CognitiveEventSource): Promise<TestServer> {
+  const bridge = createCognitiveBridge();
   initLensRegistry();
   return startHttpServer(
-    adapter,
-    nar,
-    agent,
+    bridge,
+    source,
     DEFAULT_PORT,
     path.join(__dirname, '..', '..', 'dist', 'client')
   );
 }
 
 export async function startWebUIWithOptions(
-  nar: NAR,
-  agent: Agent,
+  source: CognitiveEventSource,
   options: { port?: number; clientDist?: string } = {}
 ): Promise<TestServer> {
-  const adapter = buildNarAdapter(nar);
+  const bridge = createCognitiveBridge();
   const distRoot = options.clientDist ?? path.join(__dirname, '..', '..', 'dist', 'client');
-  return startHttpServer(adapter, nar, agent, options.port ?? DEFAULT_PORT, distRoot);
+  return startHttpServer(bridge, source, options.port ?? DEFAULT_PORT, distRoot);
 }
 
 function startHttpServer(
-  adapter: NarAdapter,
-  nar: NAR,
-  agent: Agent,
+  bridge: CognitiveBridge,
+  source: CognitiveEventSource,
   port: number,
   distRoot: string
 ): Promise<TestServer> {
-  const handleTestControl = createTestControlHandler(nar);
   const handleHttp = createStaticHandler(distRoot);
 
   const server = http.createServer(async (req, res) => {
     const pathname = new URL(req.url ?? '/', `http://${req.headers.host}`).pathname;
-    if (pathname.startsWith('/test/')) return handleTestControl(req, res, pathname);
+    if (pathname.startsWith('/test/')) {
+      res.writeHead(404);
+      res.end('Not found');
+      return;
+    }
     return handleHttp(req, res);
   });
 
   const wss = new WebSocketServer({ server });
 
-  // Track all connected sockets for broadcasting
   const connections = new Set<WebSocket>();
   function broadcast(msg: IncomingFromServer): void {
     const payload = JSON.stringify(msg);
     for (const sock of connections) {
-      if (sock.readyState === sock.OPEN) sock.send(payload);
+      if (sock.readyState === WebSocket.OPEN) sock.send(payload);
     }
   }
 
-  wss.on('connection', (socket) => {
+  wss.on('connection', (socket: WebSocket) => {
     connections.add(socket);
-    bindSocket(socket, adapter, nar, agent, (spec) => {
+    bindSocket(socket, bridge, source, (spec) => {
       broadcastLensDefined(broadcast, spec);
-      sendLensList(broadcast);
+      bridge.sendLensList();
     });
     socket.on('close', () => connections.delete(socket));
   });
@@ -96,40 +91,46 @@ function startHttpServer(
 
 function bindSocket(
   socket: WebSocket,
-  adapter: NarAdapter,
-  nar: NAR,
-  agent: Agent,
+  bridge: CognitiveBridge,
+  source: CognitiveEventSource,
   onLensDefine?: (spec: LensSpec) => void
 ): void {
   let currentLens: Lens = 'belief';
   let focusTerm: string | null = null;
 
-  sendInitialState(socket, adapter, currentLens);
+  bridge.mount(source, (msg: IncomingFromServer) => {
+    if (socket.readyState === socket.OPEN) {
+      socket.send(JSON.stringify(msg));
+    }
+  });
 
-  const sendMsg = (msg: any) => socket.send(JSON.stringify(msg));
-  const stopTelemetry = createTelemetryEmitter(nar, sendMsg);
+  bridge.sendInitialState();
 
   handleConnection(
     socket,
-    adapter,
-    (content, send) => onChat(content, send, agent),
+    bridge,
+    (content, send) => onChat(content, send, source),
     (lens) => {
       currentLens = lens;
-      sendInitialState(socket, adapter, currentLens);
+      bridge.setLens(lens);
     },
     (term) => {
       focusTerm = term;
+      bridge.setFocus(term);
     },
     (spec, _send) => {
       onLensDefine?.(spec);
     }
   );
 
-  const unsubscribe = subscribeSocket(socket, adapter, agent, () => currentLens);
+  const unsubscribe = bridge.subscribeEvents(socket, () => currentLens);
   socket.on('close', () => {
     unsubscribe();
-    stopTelemetry();
   });
+}
+
+function broadcastLensDefined(sendFn: (msg: IncomingFromServer) => void, spec: LensSpec): void {
+  sendFn({ type: 'lens.defined', lens: spec } as IncomingFromServer);
 }
 
 async function main(): Promise<void> {
@@ -140,7 +141,7 @@ async function main(): Promise<void> {
   const nar = SeNARSFactory.createDefault({ ...DEFAULT_NAR_CONFIG });
   const agent = createAgent({ nar });
   agent.start();
-  const server = await startWebUI(nar, agent);
+  const server = await startWebUI(agent);
 
   const shutdown = (signal: NodeJS.Signals) => {
     console.log(`Received ${signal}, shutting down UI server...`);

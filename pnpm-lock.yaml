@@ -227,6 +227,12 @@ importers:
       '@monaco-editor/loader':
         specifier: ^1.7.0
         version: 1.7.0
+      '@senars/core':
+        specifier: workspace:*
+        version: link:../core
+      '@senars/nar':
+        specifier: workspace:*
+        version: link:../nar
       chart.js:
         specifier: ^4.5.1
         version: 4.5.1

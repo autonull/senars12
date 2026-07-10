@@ -26,8 +26,10 @@ export abstract class BaseComponent extends CoreBaseComponent {
 
   constructor(context?: Partial<CoreComponentContext>) {
     const logger: Logger = (context?.logger as Logger) ?? createLogger({ scope: 'Component' });
-    const metrics: MetricsCollector = (context?.metrics as unknown as MetricsCollector) ?? new MetricsCollector();
-    const eventBus: NarEventBus = (context?.eventBus as unknown as NarEventBus) ?? new NarEventBus();
+    const metrics: MetricsCollector =
+      (context?.metrics as unknown as MetricsCollector) ?? new MetricsCollector();
+    const eventBus: NarEventBus =
+      (context?.eventBus as unknown as NarEventBus) ?? new NarEventBus();
 
     super({ logger, metrics, eventBus } as CoreComponentContext);
 

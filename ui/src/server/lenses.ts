@@ -1,7 +1,7 @@
 import { edgeKey } from '../shared/index.js';
 import type { GraphNodeData, GraphOp, Lens } from '../shared/protocol.js';
 import { DEFAULT_PROJECTION } from './config.js';
-import type { NarAdapter } from './gateway.js';
+import type { CognitiveBridge } from './cognitive-bridge.js';
 import { computeActiveSubgraph } from './projection.js';
 
 function createNodeOp(id: string, data: GraphNodeData): GraphOp {
@@ -65,7 +65,7 @@ const lensScorers: Record<string, LensScorer> = {
 };
 
 export function buildLensGraphOps(
-  adapter: NarAdapter,
+  adapter: CognitiveBridge,
   lens: Lens
 ): { ops: GraphOp[]; meta?: { truncated: boolean; totalHidden: number } } {
   const scorer = lensScorers[lens];
@@ -80,7 +80,7 @@ export function buildLensGraphOps(
             label: n.id,
             priority: n.priority,
             confidence: n.confidence,
-            nodeType: 'concept',
+            nodeType: 'nar:concept',
           })
         ),
         ...proj.edges.map((e) => createEdgeOp(e.source, e.target, e.weight)),
@@ -102,7 +102,7 @@ export function buildLensGraphOps(
       label: concept.term,
       priority: concept.priority,
       confidence: concept.confidence,
-      nodeType: 'concept',
+      nodeType: 'nar:concept',
       isContradiction: concept.isContradiction,
     })
   );

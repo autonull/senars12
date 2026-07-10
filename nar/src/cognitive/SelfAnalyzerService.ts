@@ -9,7 +9,7 @@ import type { MetricsCollector } from '../metrics';
 import type { NAR } from '../nar.js';
 import type { Optimizations } from '../self/SelfOptimizer';
 import { SelfOptimizer } from '../self/SelfOptimizer';
-import { isCompound, getSubject, containsSubterm } from '../terms';
+import { containsSubterm, getSubject, isCompound } from '../terms';
 import { errMsg } from '../utils';
 import type { MetacognitiveMonitor, ReasoningStep } from './MetacognitiveMonitor.js';
 

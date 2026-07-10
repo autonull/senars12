@@ -18,15 +18,15 @@ import {
   $view,
   $viewport,
   BaseComponent,
-  eventBus,
   evaluateLens,
+  eventBus,
   mountTestApi,
   send,
 } from '../core/index.js';
+import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
 import { type HtmlLabelData, computeHtmlLabels } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
-import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
 import { TOKEN_COLORS } from '../utils/token-colors.js';
 import './graph-minimap.js';
 
@@ -113,7 +113,8 @@ export class GraphViewport extends BaseComponent {
         return $graphEdges.get().get(key) ?? null;
       },
       getAllNodeIds: () => this.cy?.nodes().map((n) => n.id()) ?? [],
-      getAllEdgeIds: () => this.cy?.edges().map((e) => `${e.data('source')}->${e.data('target')}`) ?? [],
+      getAllEdgeIds: () =>
+        this.cy?.edges().map((e) => `${e.data('source')}->${e.data('target')}`) ?? [],
       clickNode: (id: string) => this.cy?.getElementById(id).emit('tap'),
       clickEdge: (source: string, target: string) => {
         const edge = this.cy?.edges(`[source="${source}"][target="${target}"]`);
@@ -534,25 +535,24 @@ export class GraphViewport extends BaseComponent {
       const currentIds = new Set(cy.nodes().map((n) => n.id()));
 
       for (const [nodeId, nd] of nodes) {
-        const el = currentIds.has(nodeId) ? cy.getElementById(nodeId) : null;
-        if (el) {
-          el.data(nd);
-        } else {
-          const nodeType = nd.nodeType === 'message' ? 'message' : 'concept';
-          const data = {
-            id: nodeId,
-            color: TOKEN_COLORS.accentCyan,
-            term: nd.term,
-            nodeType,
-            priority: nd.priority,
-            confidence: nd.confidence,
-            isContradiction: nd.isContradiction,
-            label: nd.label,
-            html: nd.html,
-          };
-          const classes = nodeType === 'message' ? 'chat-message-node' : '';
-          cy.add({ group: 'nodes', data, classes });
-        }
+const el = currentIds.has(nodeId) ? cy.getElementById(nodeId) : null;
+         if (el) {
+           el.data(nd);
+         } else {
+           const data = {
+             id: nodeId,
+             color: TOKEN_COLORS.accentCyan,
+             term: nd.term,
+             nodeType: nd.nodeType,
+             priority: nd.priority,
+             confidence: nd.confidence,
+             isContradiction: nd.isContradiction,
+             label: nd.label,
+             html: nd.html,
+           };
+           const classes = '';
+           cy.add({ group: 'nodes', data, classes });
+         }
         const nEl = el ?? cy.getElementById(nodeId);
         if (nd.html) nEl.addClass('html-enabled');
         else nEl.removeClass('html-enabled');

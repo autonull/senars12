@@ -1,12 +1,10 @@
 import type { WebSocket } from 'ws';
-import type { Agent } from '../../../nar/src/agent/index.js';
-import type { GraphNodeData, GraphOp, IncomingFromServer, Lens } from '../shared/protocol.js';
-import type { LensSpec } from '../shared/lens-schema.js';
 import { LENS_FIELDS } from '../shared/constants.js';
+import type { LensSpec } from '../shared/lens-schema.js';
+import type { GraphNodeData, GraphOp, IncomingFromServer, Lens } from '../shared/protocol.js';
+import type { CognitiveBridge } from './cognitive-bridge.js';
 import { DEFAULT_PROJECTION } from './config.js';
-import type { NarAdapter, SendFn } from './gateway.js';
 import { lensRegistry } from './gateway.js';
-import { buildLensGraphOps } from './lenses.js';
 import { computeActiveSubgraph } from './projection.js';
 
 function createNodeOp(id: string, data: GraphNodeData): GraphOp {
@@ -22,41 +20,52 @@ const cn = (
   label: string,
   priority: number,
   confidence: number,
-  extra?: Partial<Pick<GraphNodeData, 'isContradiction'>>
-) => createNodeOp(id, { id, label, priority, confidence, nodeType: 'concept', ...extra });
+  extra?: Partial<GraphNodeData>
+) => createNodeOp(id, { id, label, priority, confidence, nodeType: 'nar:concept' as const, ...extra });
 
 export function send(socket: WebSocket, msg: IncomingFromServer): void {
   socket.send(JSON.stringify(msg));
 }
 
 function beliefGraphDelta(
-  adapter: NarAdapter,
+  bridge: CognitiveBridge,
   lens?: Lens
 ): { ops: GraphOp[]; meta?: { truncated: boolean; totalHidden: number } } {
-  if (lens) return buildLensGraphOps(adapter, lens);
-  const concepts = adapter.listConcepts();
-  const proj = computeActiveSubgraph(concepts, null, DEFAULT_PROJECTION);
+  if (lens) return { ops: [], meta: undefined };
+  const concepts = bridge.listConcepts();
+  const proj = computeActiveSubgraph(
+    concepts.map((c) => ({
+      term: c.term,
+      priority: c.priority,
+      confidence: c.confidence,
+      getLinks: c.getLinks,
+    })),
+    null,
+    DEFAULT_PROJECTION
+  );
   const nodeSet = new Set(proj.nodes.map((n) => n.id));
 
   return {
     ops: [
       ...concepts
         .filter((c) => nodeSet.has(c.term))
-        .map((c) => cn(c.term, c.term, c.priority, c.confidence, { isContradiction: c.isContradiction })),
+        .map((c) =>
+          cn(c.term, c.term, c.priority, c.confidence, { isContradiction: c.isContradiction })
+        ),
       ...proj.edges.map((e) => createEdgeOp(e.source, e.target, e.weight)),
     ],
     meta: proj.truncated ? { truncated: true, totalHidden: proj.total_hidden } : undefined,
   };
 }
 
-function workingMemoryDelta(adapter: NarAdapter): GraphOp[] {
-  return adapter
+function workingMemoryDelta(bridge: CognitiveBridge): GraphOp[] {
+  return bridge
     .attentionReport()
     .concepts.map((c) => cn(c.term.toString(), c.term.toString(), c.priority, 0.9));
 }
 
-function driveDelta(adapter: NarAdapter): GraphOp[] | null {
-  const drives = adapter.getDriveManager()?.getAllStates();
+function driveDelta(bridge: CognitiveBridge): GraphOp[] | null {
+  const drives = bridge.getDriveManager()?.getAllStates();
   return drives?.map((d) => cn(d.spec.id, d.spec.name, d.currentIntensity, 1)) ?? null;
 }
 
@@ -75,13 +84,19 @@ export function sendLensList(socket: WebSocket | ((msg: IncomingFromServer) => v
 }
 
 /** Broadcast a lens.defined message — for use with send functions. */
-export function broadcastLensDefined(sendFn: (msg: IncomingFromServer) => void, spec: LensSpec): void {
+export function broadcastLensDefined(
+  sendFn: (msg: IncomingFromServer) => void,
+  spec: LensSpec
+): void {
   sendFn({ type: 'lens.defined', lens: spec } as IncomingFromServer);
 }
 
 /** Send the available lens fields for the designer. */
 function sendLensFields(socket: WebSocket | ((msg: IncomingFromServer) => void)): void {
-  const msg: IncomingFromServer = { type: 'lens.fields', fields: LENS_FIELDS } as IncomingFromServer;
+  const msg: IncomingFromServer = {
+    type: 'lens.fields',
+    fields: LENS_FIELDS,
+  } as IncomingFromServer;
   if (typeof socket === 'function') {
     socket(msg);
   } else {
@@ -89,11 +104,11 @@ function sendLensFields(socket: WebSocket | ((msg: IncomingFromServer) => void))
   }
 }
 
-export function sendInitialState(socket: WebSocket, adapter: NarAdapter, lens?: Lens): void {
-  send(socket, { type: 'config.schema', data: adapter.getConfigSchema() });
+export function sendInitialState(socket: WebSocket, bridge: CognitiveBridge, lens?: Lens): void {
+  send(socket, { type: 'config.schema', data: bridge.getConfigSchema() });
   sendLensList(socket);
   sendLensFields(socket);
-  const bg = beliefGraphDelta(adapter, lens);
+  const bg = beliefGraphDelta(bridge, lens);
   send(socket, {
     type: 'cognitive.delta',
     seqId: Date.now(),
@@ -105,82 +120,80 @@ export function sendInitialState(socket: WebSocket, adapter: NarAdapter, lens?: 
     type: 'cognitive.delta',
     seqId: Date.now() + 1,
     lens: 'belief',
-    ops: workingMemoryDelta(adapter),
+    ops: workingMemoryDelta(bridge),
   });
-  const drives = driveDelta(adapter);
+  const drives = driveDelta(bridge);
   if (drives)
     send(socket, { type: 'cognitive.delta', seqId: Date.now() + 2, lens: 'belief', ops: drives });
 }
 
 type Unsubscribe = () => void;
 
-export function subscribeNarEvents(
+export function subscribeBridgeEvents(
   socket: WebSocket,
-  adapter: NarAdapter,
+  bridge: CognitiveBridge,
   currentLens: () => Lens
 ): Unsubscribe[] {
   let seqId = Date.now();
-  const bus = adapter.getSystemEventBus();
+  const bus = bridge.getSystemEventBus();
   return [
     bus.on('nar:derivation', () => {
-      const { ops, meta } = beliefGraphDelta(adapter, currentLens());
+      const { ops, meta } = beliefGraphDelta(bridge, currentLens());
       send(socket, { type: 'cognitive.delta', seqId: ++seqId, lens: currentLens(), ops, meta });
     }),
-    bus.on('nar:concept:activated', (d: { term?: unknown; priority?: number }) => {
-      const term = d.term ? (typeof d.term === 'object' ? d.term.toString() : String(d.term)) : '';
-      const concepts = adapter.listConcepts();
+    bus.on('nar:concept:activated', (...args: unknown[]) => {
+      const d = args[0] as Record<string, unknown> | undefined;
+      const termRaw = d?.term;
+      const term = termRaw && typeof termRaw === 'string' ? termRaw : '';
+      const priority = typeof d?.priority === 'number' ? d.priority : 0.5;
+      const concepts = bridge.listConcepts();
       const concept = concepts.find((c) => c.term === term);
+      const node: GraphNodeData = {
+        id: term,
+        label: term,
+        priority,
+        confidence: concept?.confidence ?? 0.9,
+        nodeType: 'nar:concept',
+        isContradiction: concept?.isContradiction ?? false,
+      };
       send(socket, {
         type: 'cognitive.delta',
         seqId: ++seqId,
         lens: 'belief',
-        ops: [cn(term, term, d.priority ?? 0.5, concept?.confidence ?? 0.9, { isContradiction: concept?.isContradiction })],
+        ops: [createNodeOp(term, node)],
       });
     }),
-    bus.on('nar:reasoning:cycle', (d: { cycle?: number }) => {
+    bus.on('nar:reasoning:cycle', (...args: unknown[]) => {
+      const d = args[0] as Record<string, unknown> | undefined;
+      const cycle = typeof d?.cycle === 'number' ? d.cycle : 0;
       send(socket, {
         type: 'cognitive.delta',
         seqId: ++seqId,
         lens: 'belief',
-        ops: [cn('cycle', 'cycle', d.cycle ?? 0, 1)],
+        ops: [cn('cycle', 'cycle', cycle, 1)],
       });
     }),
-    bus.on('nar:drive:changed', (d: { drive?: string; urgency?: number }) => {
-      const id = d.drive ?? 'drive';
+    bus.on('nar:drive:changed', (...args: unknown[]) => {
+      const d = args[0] as Record<string, unknown> | undefined;
+      const id = typeof d?.drive === 'string' ? d.drive : 'drive';
+      const urgency = typeof d?.urgency === 'number' ? d.urgency : 0;
       send(socket, {
         type: 'cognitive.delta',
         seqId: ++seqId,
         lens: 'belief',
-        ops: [cn(id, id, d.urgency ?? 0, 1)],
+        ops: [cn(id, id, urgency, 1)],
       });
     }),
-  ];
-}
-
-function subscribeAgentEvents(socket: WebSocket, agent: Agent): Unsubscribe[] {
-  let seqId = Date.now();
-  const emitStatus = (p: number) =>
-    send(socket, {
-      type: 'cognitive.delta',
-      seqId: ++seqId,
-      lens: 'belief',
-      ops: [cn('status', 'status', p, 1)],
-    });
-  return [
-    agent.on('agent:process:start', () => emitStatus(1)),
-    agent.on('agent:process:complete', () => emitStatus(0)),
   ];
 }
 
 export function subscribeSocket(
   socket: WebSocket,
-  adapter: NarAdapter,
-  agent: Agent,
+  bridge: CognitiveBridge,
   currentLens: () => Lens
 ): Unsubscribe {
-  const all = [
-    ...subscribeNarEvents(socket, adapter, currentLens),
-    ...subscribeAgentEvents(socket, agent),
-  ];
-  return () => all.forEach((u) => u());
+  const all = [...subscribeBridgeEvents(socket, bridge, currentLens)];
+  return () => {
+    for (const u of all) u();
+  };
 }

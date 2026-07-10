@@ -1,5 +1,5 @@
-import { resolveReplyTarget } from '@senars/io/connections/reply-target';
 import type { Connection, IOMessage } from '@senars/io';
+import { resolveReplyTarget } from '@senars/io/connections/reply-target';
 
 class FakeConn implements Partial<Connection> {
   state = 'connected' as const;

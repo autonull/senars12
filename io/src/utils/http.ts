@@ -1,6 +1,6 @@
 import http, { type IncomingMessage } from 'http';
-import type { WebSocketServer } from 'ws';
 import type { Logger } from '@senars/core/transport';
+import type { WebSocketServer } from 'ws';
 
 export interface ServerStartupOptions {
   port: number;

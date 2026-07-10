@@ -46,7 +46,7 @@ class LayoutRegistryImpl {
     prevNodeCount: number,
     currentNodeCount: number,
     threshold = 0.2,
-    minSeedNodes = 3,
+    minSeedNodes = 3
   ): boolean {
     if (prevNodeCount === 0) return true;
     const delta = currentNodeCount - prevNodeCount;

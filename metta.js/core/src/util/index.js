@@ -10,8 +10,8 @@ export * from './guard.js';
 export * from './pathUtils.js';
 export * from './webSocketUtils.js';
 
-export {Logger} from './Logger.js';
-export {EventBus} from './EventBus.js';
+export { Logger } from './Logger.js';
+export { EventBus } from './EventBus.js';
 
 // Deprecated compatibility stubs
 export * from './miscUtils.js';

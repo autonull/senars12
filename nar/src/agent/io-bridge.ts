@@ -1,16 +1,15 @@
+import type {
+  AuthManager,
+  CommandRegistry,
+} from '@senars/io';
+import type { Connection, IOMessage } from '@senars/core'
+import { ConnectionManager } from '@senars/io';
+import { type MessageContext, MessageRouter } from '@senars/io';
+import { resolveReplyTarget } from '@senars/io/connections/reply-target';
 import { createLogger } from '../logger';
 import type { EpisodicMemory } from '../memory/EpisodicMemory.js';
 import type { NLGenerationService } from '../nl';
 import type { NLUnderstandingService } from '../nl/understanding.js';
-import type {
-  AuthManager,
-  CommandRegistry,
-  Connection,
-  ConnectionManager,
-  IOMessage,
-} from '@senars/io';
-import { type MessageContext, MessageRouter } from '@senars/io';
-import { resolveReplyTarget } from '@senars/io/connections/reply-target';
 import type { SessionManager } from './SessionManager.js';
 import type { Agent } from './agent.js';
 import {

@@ -12,7 +12,10 @@ export const rlfpCommands: CommandDefinition[] = [
       const drives = nar.getDriveManager?.()?.getAllStates?.() ?? [];
       if (drives.length === 0) return 'No drives configured';
       return drives
-        .map((d: any) => `${d.name}: urgency=${d.urgency?.toFixed(3)}, satisfaction=${d.satisfaction?.toFixed(3)}`)
+        .map(
+          (d: any) =>
+            `${d.name}: urgency=${d.urgency?.toFixed(3)}, satisfaction=${d.satisfaction?.toFixed(3)}`
+        )
         .join('\n');
     },
   },

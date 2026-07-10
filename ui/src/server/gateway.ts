@@ -1,7 +1,8 @@
 import type { WebSocket } from 'ws';
 import type { LensSpec } from '../shared/lens-schema.js';
-import { LensSpecSchema, BUILTIN_LENS_IDS, builtinLensSpecs } from '../shared/lens-schema.js';
-import type { IncomingFromServer, Lens } from '../shared/protocol.js';
+import { BUILTIN_LENS_IDS, LensSpecSchema, builtinLensSpecs } from '../shared/lens-schema.js';
+import type { ConfigFieldType, IncomingFromServer, Lens } from '../shared/protocol.js';
+import type { CognitiveBridge } from './cognitive-bridge.js';
 import { RateLimiter } from './rate-limiter.js';
 import { validateClientMessage } from './validators.js';
 
@@ -33,45 +34,6 @@ export function consumePendingChatResponse(): PendingChatResponse | undefined {
   return response;
 }
 
-export interface NarAdapter {
-  listConcepts(): Array<{
-    term: string;
-    priority: number;
-    confidence: number;
-    isContradiction?: boolean;
-    getLinks(): Array<{ target: string; strength: number }>;
-  }>;
-
-  getSystemEventBus(): {
-    on(event: string, handler: (...args: any[]) => void): () => void;
-  };
-
-  attentionReport(): { concepts: Array<{ term: string; priority: number }> };
-
-  getDriveManager():
-    | {
-        getAllStates(): Array<{
-          spec: { id: string; name: string };
-          currentIntensity: number;
-          isActive: boolean;
-        }>;
-      }
-    | undefined;
-
-  getConfigSchema(): Record<string, any>;
-
-  setConfig(key: string, value: any): void;
-
-  setNodeTruth(id: string, truth: { frequency: number; confidence: number }): void;
-
-  getRevisionHistory(term: string): Array<{
-    truth: { frequency: number; confidence: number };
-    stampId: string;
-    timestamp: number;
-    source: 'input' | 'derivation' | 'revision' | 'inference';
-  }>;
-}
-
 /** In-memory lens registry shared across connections. */
 export const lensRegistry: Map<string, LensSpec> = new Map();
 
@@ -92,10 +54,10 @@ export function registerServerLens(spec: LensSpec): LensSpec | null {
 
 export type SendFn = (msg: IncomingFromServer) => void;
 
-/** Handles an incoming WebSocket connection and routes messages to handlers. */
+/** Handles an incoming WebSocket connection using the new CognitiveBridge. */
 export function handleConnection(
   socket: WebSocket,
-  nar: NarAdapter,
+  bridge: CognitiveBridge,
   onChat: (content: string, send: SendFn) => void,
   onLensChange?: (lens: Lens) => void,
   onFocusChange?: (term: string) => void,
@@ -131,7 +93,6 @@ export function handleConnection(
   socket.on('message', (raw) => {
     const validation = validateClientMessage(raw.toString());
     if (!validation.success) {
-      // drop invalid messages silently; log only in debug
       return;
     }
     const msg = validation.data;
@@ -142,40 +103,39 @@ export function handleConnection(
     }
     if (msg.type === 'config.set') {
       if (!limiter.consume('config')) return;
-      nar.setConfig(msg.key, msg.value);
+      bridge.setConfig(msg.key, msg.value);
     }
     if (msg.type === 'lens.set') {
       onLensChange?.(msg.lens);
     }
     if (msg.type === 'sync.request') {
-      handleSync(msg.lastSeqId, eventBuffer, send, nar);
+      handleSync(msg.lastSeqId, eventBuffer, send, bridge);
     }
     if (msg.type === 'focus.set') {
       onFocusChange?.(msg.term);
     }
     if (msg.type === 'object.set') {
       if (msg.kind === 'node' && msg.patch.truth) {
-        nar.setNodeTruth(msg.id, msg.patch.truth);
+        bridge.setNodeTruth(msg.id, msg.patch.truth);
       }
       if (msg.kind === 'edge') {
-        if (msg.patch.truth) nar.setNodeTruth?.(msg.id, msg.patch.truth);
+        if (msg.patch.truth) bridge.setNodeTruth?.(msg.id, msg.patch.truth);
       }
     }
     if (msg.type === 'node.set') {
-      if (msg.patch.truth) nar.setNodeTruth(msg.id, msg.patch.truth);
+      if (msg.patch.truth) bridge.setNodeTruth(msg.id, msg.patch.truth);
     }
-if (msg.type === 'lens.define') {
-       const valid = LensSpecSchema.safeParse(msg.lens);
-       if (valid.success) {
-         registerServerLens(valid.data);
-         onLensDefine?.(valid.data, send);
-       }
-     }
-     if (msg.type === 'node.history.request') {
-       const history = nar.getRevisionHistory(msg.term);
-       send({ type: 'node.history', term: msg.term, history });
-     }
-   });
+    if (msg.type === 'lens.define') {
+      const valid = LensSpecSchema.safeParse(msg.lens);
+      if (valid.success) {
+        registerServerLens(valid.data);
+        onLensDefine?.(valid.data, send);
+      }
+    }
+    if (msg.type === 'node.history.request') {
+      bridge.onNodeHistoryRequest(msg.term);
+    }
+  });
 
   socket.on('close', () => {
     clearInterval(heartbeat);
@@ -186,14 +146,14 @@ function handleSync(
   lastSeqId: number | null,
   buffer: EventBufferEntry[],
   send: SendFn,
-  nar: NarAdapter
+  bridge: CognitiveBridge
 ): void {
   const bufLen = buffer.length;
-  const lastEntry = bufLen > 0 ? buffer[bufLen - 1]! : null;
-  if (lastSeqId === null || bufLen === 0 || lastEntry!.seq - lastSeqId > bufLen) {
-    const concepts = nar.listConcepts();
-    const config = nar.getConfigSchema();
-    const report = nar.attentionReport();
+  const lastEntry = bufLen > 0 ? buffer[bufLen - 1] : null;
+  if (lastSeqId === null || bufLen === 0 || (lastEntry?.seq ?? 0) - lastSeqId > bufLen) {
+    const concepts = bridge.listConcepts();
+    const config = bridge.getConfigSchema();
+    const report = bridge.attentionReport();
     const seqId = lastEntry?.seq ?? 0;
     send({
       type: 'state.snapshot',

@@ -36,14 +36,16 @@ export const isBetween = (value, min, max) => value >= min && value <= max;
  * @returns {number|Object} Clamped and frozen value
  */
 export const clampAndFreeze = (obj, min = 0, max = 1) =>
-    typeof obj === 'number'
-        ? Object.freeze(clamp(obj, min, max))
-        : Object.freeze(Object.fromEntries(
-            Object.entries(obj).map(([key, value]) => [
-                key,
-                typeof value === 'number' ? clamp(value, min, max) : value
-            ])
-        ));
+  typeof obj === 'number'
+    ? Object.freeze(clamp(obj, min, max))
+    : Object.freeze(
+        Object.fromEntries(
+          Object.entries(obj).map(([key, value]) => [
+            key,
+            typeof value === 'number' ? clamp(value, min, max) : value,
+          ])
+        )
+      );
 
 /**
  * Check if value is a valid number
@@ -58,7 +60,8 @@ export const isNumber = (value) => typeof value === 'number' && !isNaN(value);
  * @param {number} decimals - Decimal places
  * @returns {number} Rounded value
  */
-export const round = (value, decimals = 2) => Number(`${Math.round(`${value}e${decimals}`)}e-${decimals}`);
+export const round = (value, decimals = 2) =>
+  Number(`${Math.round(`${value}e${decimals}`)}e-${decimals}`);
 
 /**
  * Format a number with decimals
@@ -67,7 +70,7 @@ export const round = (value, decimals = 2) => Number(`${Math.round(`${value}e${d
  * @returns {string} Formatted number
  */
 export const formatNumber = (num, decimals = 2) =>
-    typeof num === 'number' ? num.toFixed(decimals) : String(num ?? '0');
+  typeof num === 'number' ? num.toFixed(decimals) : String(num ?? '0');
 
 /**
  * Generate a random float between min and max
@@ -92,12 +95,12 @@ export const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1
  * @returns {number} Dot product
  */
 export const dotProduct = (a, b) => {
-    const len = Math.min(a.length, b.length);
-    let sum = 0;
-    for (let i = 0; i < len; i++) {
-        sum += a[i] * b[i];
-    }
-    return sum;
+  const len = Math.min(a.length, b.length);
+  let sum = 0;
+  for (let i = 0; i < len; i++) {
+    sum += a[i] * b[i];
+  }
+  return sum;
 };
 
 /**
@@ -106,11 +109,11 @@ export const dotProduct = (a, b) => {
  * @returns {number} Euclidean norm
  */
 export const euclideanNorm = (v) => {
-    let sum = 0;
-    for (let i = 0; i < v.length; i++) {
-        sum += v[i] * v[i];
-    }
-    return Math.sqrt(sum);
+  let sum = 0;
+  for (let i = 0; i < v.length; i++) {
+    sum += v[i] * v[i];
+  }
+  return Math.sqrt(sum);
 };
 
 /**
@@ -120,10 +123,10 @@ export const euclideanNorm = (v) => {
  * @returns {number} Cosine similarity (-1 to 1)
  */
 export const cosineSimilarity = (a, b) => {
-    const dot = dotProduct(a, b);
-    const normA = euclideanNorm(a);
-    const normB = euclideanNorm(b);
-    return dot / ((normA * normB) || 1);
+  const dot = dotProduct(a, b);
+  const normA = euclideanNorm(a);
+  const normB = euclideanNorm(b);
+  return dot / (normA * normB || 1);
 };
 
 /**
@@ -132,8 +135,8 @@ export const cosineSimilarity = (a, b) => {
  * @returns {number[]} Probability distribution
  */
 export const softmax = (scores) => {
-    const maxScore = Math.max(...scores, -Infinity);
-    const expScores = scores.map(s => Math.exp(s - maxScore));
-    const sumExp = expScores.reduce((a, b) => a + b, 0) || 1;
-    return expScores.map(e => e / sumExp);
+  const maxScore = Math.max(...scores, Number.NEGATIVE_INFINITY);
+  const expScores = scores.map((s) => Math.exp(s - maxScore));
+  const sumExp = expScores.reduce((a, b) => a + b, 0) || 1;
+  return expScores.map((e) => e / sumExp);
 };

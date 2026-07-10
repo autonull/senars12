@@ -1,10 +1,7 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
 test.describe('Cognitive Gate: ingest and edit', () => {
-  test('type a sentence, see a node appear, change its truth value', async ({
-    page,
-    testApi,
-  }) => {
+  test('type a sentence, see a node appear, change its truth value', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
 
     await expect(async () => {
@@ -36,7 +33,9 @@ test.describe('Cognitive Gate: ingest and edit', () => {
 
     // Get the first node and click it
     const ids = await testApi.getAllNodeIds();
-    const targetId = ids.find((id: string) => id.includes('$sky') || id.includes('sky') || id.includes('blue'));
+    const targetId = ids.find(
+      (id: string) => id.includes('$sky') || id.includes('sky') || id.includes('blue')
+    );
     const nodeId = targetId ?? (ids[0] as string);
 
     await testApi.clickNode(nodeId);

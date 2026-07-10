@@ -6,14 +6,10 @@ test.describe('Config Gate: lens designer', () => {
     testApi,
   }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect
-      .async(() => testApi.getConnectionState())
-      .toPass({ timeout: 10000 });
+    await expect.async(() => testApi.getConnectionState()).toPass({ timeout: 10000 });
 
     // Wait for initial graph nodes
-    await expect
-      .async(() => testApi.getGraphNodeCount())
-      .toBeGreaterThan(0, { timeout: 15000 });
+    await expect.async(() => testApi.getGraphNodeCount()).toBeGreaterThan(0, { timeout: 15000 });
 
     // Open the lens designer panel via the "Design" toolbar button
     const designBtn = page.locator('graph-toolbar .toolbar-btn', { hasText: 'Design' });
@@ -71,13 +67,9 @@ test.describe('Config Gate: lens designer', () => {
     testApi,
   }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect
-      .async(() => testApi.getConnectionState())
-      .toPass({ timeout: 10000 });
+    await expect.async(() => testApi.getConnectionState()).toPass({ timeout: 10000 });
 
-    await expect
-      .async(() => testApi.getGraphNodeCount())
-      .toBeGreaterThan(0, { timeout: 15000 });
+    await expect.async(() => testApi.getGraphNodeCount()).toBeGreaterThan(0, { timeout: 15000 });
 
     // Open lens designer
     const designBtn = page.locator('graph-toolbar .toolbar-btn', { hasText: 'Design' });

@@ -44,11 +44,14 @@ export class MettaHistory {
   }
 
   toPromptLines(count: number): string {
-    return this.#entries.slice(-count).map(e => {
-      let line = `${e.timestamp}\nHUMAN: ${e.humanMessage}\nRESPONSE: ${e.response}`;
-      if (e.errorFeedback) line += `\nERROR_FEEDBACK: ${e.errorFeedback}`;
-      return line;
-    }).join('\n\n');
+    return this.#entries
+      .slice(-count)
+      .map((e) => {
+        let line = `${e.timestamp}\nHUMAN: ${e.humanMessage}\nRESPONSE: ${e.response}`;
+        if (e.errorFeedback) line += `\nERROR_FEEDBACK: ${e.errorFeedback}`;
+        return line;
+      })
+      .join('\n\n');
   }
 
   getAll(): readonly EpisodicEntry[] {

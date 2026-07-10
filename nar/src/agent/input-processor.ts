@@ -206,9 +206,7 @@ export async function* processInput(
     if (task) {
       await nar?.input(task.term, task.taskType, task.truth);
       if (task.taskType === 'question') {
-        const existing = nar
-          ?.getBeliefs()
-          .find((b) => containsSubterm(b.term, task.term));
+        const existing = nar?.getBeliefs().find((b) => containsSubterm(b.term, task.term));
         if (existing) {
           const reasoned = await generateReasonedResponse(generationService, input, [
             existing as any,

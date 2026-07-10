@@ -1,5 +1,5 @@
-import irc, { type Client as IRCClient } from 'irc';
 import { createLogger } from '@senars/core/logger';
+import irc, { type Client as IRCClient } from 'irc';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { BaseConnection } from './base.js';
 

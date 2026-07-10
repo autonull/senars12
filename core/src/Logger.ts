@@ -5,7 +5,7 @@ export interface LogEntry {
   message: string;
   timestamp: number;
   scope: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   error?: Error;
 }
 
@@ -14,6 +14,14 @@ export interface LoggerConfig {
   format: 'json' | 'text';
   scope: string;
   samplingRate?: number;
+}
+
+export interface LoggerInterface {
+  debug(message: string, context?: Record<string, unknown>): void;
+  info(message: string, context?: Record<string, unknown>): void;
+  warn(message: string, context?: Record<string, unknown>): void;
+  error(message: string, error?: Error, context?: Record<string, unknown>): void;
+  child(scope: string): LoggerInterface;
 }
 
 const LOG_LEVELS: LogLevel[] = ['debug', 'info', 'warn', 'error'];
@@ -73,16 +81,31 @@ export class Logger {
     return this.config.scope;
   }
 
-  private log(level: LogLevel, message: string, context?: Record<string, any>, error?: Error): void {
+  private log(
+    level: LogLevel,
+    message: string,
+    context?: Record<string, any>,
+    error?: Error
+  ): void {
     if (LOG_LEVELS.indexOf(level) < LOG_LEVELS.indexOf(this.config.level)) return;
     if (this.config.samplingRate && Math.random() > this.config.samplingRate) return;
 
-    const entry: LogEntry = { level, message, timestamp: Date.now(), scope: this.config.scope, context, error };
+    const entry: LogEntry = {
+      level,
+      message,
+      timestamp: Date.now(),
+      scope: this.config.scope,
+      context,
+      error,
+    };
     this.emit(entry);
   }
 
   private emit(entry: LogEntry): void {
-    const output = this.config.format === 'json' ? JSON.stringify(this.serialize(entry)) : this.formatText(entry);
+    const output =
+      this.config.format === 'json'
+        ? JSON.stringify(this.serialize(entry))
+        : this.formatText(entry);
 
     if (entry.level === 'error') console.error(output);
     else if (entry.level === 'warn') console.warn(output);

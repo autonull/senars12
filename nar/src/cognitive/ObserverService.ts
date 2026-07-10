@@ -6,13 +6,13 @@
 
 import type { LMService } from '../lm/lm-service.js';
 import type { NAR } from '../nar.js';
+import { termsEqual } from '../terms';
 import type { EventBus } from '../types';
 import {
   countContradictions as countContradictionsImpl,
   findConflicts,
   termOverlap,
 } from './conflict-utils.js';
-import { termsEqual } from '../terms';
 
 export type CognitiveState = 'normal' | 'confused' | 'bored' | 'overloaded' | 'idle';
 export type CognitiveAction =

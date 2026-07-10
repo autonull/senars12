@@ -19,7 +19,15 @@ import {
  * Consolidates rules.ts, dynamic-rules.ts, and rule-factory-v2.ts presets into a single factory
  */
 import type { Term } from '../terms';
-import { isConjunction, isDisjunction, isInheritance, sharesSymbol, visitTerms, Truth, calculateSimilarity } from '../terms';
+import {
+  Truth,
+  calculateSimilarity,
+  isConjunction,
+  isDisjunction,
+  isInheritance,
+  sharesSymbol,
+  visitTerms,
+} from '../terms';
 import type { Task, TaskType } from '../types';
 import { createBudget, createTask } from '../types';
 import { LMResponseParser, LMRule } from './LMRule.js';

@@ -1,4 +1,4 @@
-import type { Connection, AgentCapabilities, CognitiveEvent } from '@senars/core';
+import type { AgentCapabilities, CognitiveEvent, Connection } from '@senars/core';
 import type { MeTTaAtom } from '../types/ast.js';
 
 export interface SkillFeedback {

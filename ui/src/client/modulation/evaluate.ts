@@ -1,7 +1,7 @@
-import type { Delta, Item, Lens, Modulation, View } from './types.js';
-import { evaluateModulation } from './operators.js';
 import { getMemoCache } from './memo.js';
 import type { MemoCache } from './memo.js';
+import { evaluateModulation } from './operators.js';
+import type { Delta, Item, Lens, Modulation, View } from './types.js';
 
 export interface EvaluateOptions {
   dirtyIds?: Set<string>;
@@ -12,7 +12,7 @@ export function evaluate(
   items: Iterable<Item>,
   lens: Lens,
   view: View,
-  options?: EvaluateOptions,
+  options?: EvaluateOptions
 ): Delta {
   const cache = options?.memoCache ?? getMemoCache();
   const dirtyIds = options?.dirtyIds;

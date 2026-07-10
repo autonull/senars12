@@ -36,7 +36,12 @@ export class MettaKnowledge {
     return `Loaded knowledge priors into space "${spaceId}"`;
   }
 
-  #chunkMarkdown(text: string, filename: string, _minChars: number, _maxChars: number): Array<{ text: string; breadcrumb: string }> {
+  #chunkMarkdown(
+    text: string,
+    filename: string,
+    _minChars: number,
+    _maxChars: number
+  ): Array<{ text: string; breadcrumb: string }> {
     const headingRegex = /^(#{1,4})\s+(.+)$/gm;
     const headingMatches = [...text.matchAll(headingRegex)];
 
@@ -68,7 +73,7 @@ export class MettaKnowledge {
       sections.push({ text: body, breadcrumb });
     }
 
-    const filtered = sections.filter(s => {
+    const filtered = sections.filter((s) => {
       const firstLine = s.text.split('\n')[0]?.toLowerCase() ?? '';
       return !firstLine.includes('table of contents');
     });

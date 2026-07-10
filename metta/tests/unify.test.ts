@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { unify, applySubst } from '../src/engine/unify.js';
-import { sym, varr, num, expr } from '../src/types/ast.js';
+import { describe, expect, it } from 'vitest';
+import { applySubst, unify } from '../src/engine/unify.js';
+import { expr, num, sym, varr } from '../src/types/ast.js';
 
 describe('Unification', () => {
   it('unifies identical symbols', () => {
@@ -26,10 +26,7 @@ describe('Unification', () => {
   });
 
   it('unifies variables in expressions', () => {
-    const result = unify(
-      expr(sym('+'), varr('$x'), num(2)),
-      expr(sym('+'), num(1), varr('$y'))
-    );
+    const result = unify(expr(sym('+'), varr('$x'), num(2)), expr(sym('+'), num(1), varr('$y')));
     expect(result).not.toBeNull();
     expect(result?.get('$x')).toEqual(num(1));
     expect(result?.get('$y')).toEqual(num(2));

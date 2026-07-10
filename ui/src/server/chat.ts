@@ -1,6 +1,6 @@
+import type { ChatOptions, ChatStreamEvent, CognitiveEventSource } from '@senars/core';
+import { errMsg } from '@senars/nar/utils';
 import { nanoid } from 'nanoid';
-import { errMsg } from '../../../nar/src/utils';
-import type { Agent } from '../../../nar/src/agent/index.js';
 import type { IncomingFromServer } from '../shared/protocol.js';
 import { consumePendingChatResponse } from './gateway.js';
 
@@ -13,30 +13,52 @@ function renderHtml(text: string): string {
 export async function onChat(
   content: string,
   send: (msg: IncomingFromServer) => void,
-  agent: Agent
+  source: CognitiveEventSource
 ): Promise<void> {
   const pending = consumePendingChatResponse();
   if (pending) return replayPending(pending, send);
 
   const messageId = nanoid();
 
+  if (!source.chat) {
+    send({
+      type: 'chat.agent.complete',
+      content: 'Chat not available for this agent',
+      html: renderHtml('Chat not available for this agent'),
+      messageId,
+    });
+    return;
+  }
+
   try {
-    for await (const event of agent.chat(content, { stream: true })) {
-      if (event.kind === 'text-delta') send({ type: 'chat.agent.stream', delta: event.text ?? '' });
-      else if (event.kind === 'finish')
-        send({
-          type: 'chat.agent.complete',
-          content: event.text ?? '',
-          html: renderHtml(event.text ?? ''),
-          messageId,
-        });
-      else if (event.kind === 'error')
-        send({
-          type: 'chat.agent.complete',
-          content: `Error: ${event.error}`,
-          html: renderHtml(`Error: ${event.error}`),
-          messageId,
-        });
+    const chatResult = source.chat(content, { stream: true });
+    if (Symbol.asyncIterator in chatResult) {
+      for await (const event of chatResult as AsyncGenerator<ChatStreamEvent, string>) {
+        if (event.kind === 'text-delta')
+          send({ type: 'chat.agent.stream', delta: event.text ?? '' });
+        else if (event.kind === 'finish')
+          send({
+            type: 'chat.agent.complete',
+            content: event.text ?? '',
+            html: renderHtml(event.text ?? ''),
+            messageId,
+          });
+        else if (event.kind === 'error')
+          send({
+            type: 'chat.agent.complete',
+            content: `Error: ${event.error}`,
+            html: renderHtml(`Error: ${event.error}`),
+            messageId,
+          });
+      }
+    } else {
+      const result = await chatResult;
+      send({
+        type: 'chat.agent.complete',
+        content: result,
+        html: renderHtml(result),
+        messageId,
+      });
     }
   } catch (e) {
     const errText = errMsg(e);

@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
-import type { MeTTaAtom } from '../types/ast.js';
+import { ErrorCode, MeTTaError } from '../core/errors.js';
 import type { Space } from '../core/space.js';
-import { MeTTaError, ErrorCode } from '../core/errors.js';
+import type { MeTTaAtom } from '../types/ast.js';
 
 export interface PersistedSpaceData {
   id: string;
@@ -30,7 +30,7 @@ export class PersistentSpace implements Space {
     const fs = await import('node:fs/promises');
     const path = await import('node:path');
     const file = path.join(this.opts.storageDir, `${this.id}.metta.json`);
-    
+
     try {
       const data = await fs.readFile(file, 'utf-8');
       const parsed: PersistedSpaceData = JSON.parse(data);
@@ -44,13 +44,13 @@ export class PersistentSpace implements Space {
     const fs = await import('node:fs/promises');
     const path = await import('node:path');
     const file = path.join(this.opts.storageDir, `${this.id}.metta.json`);
-    
+
     const data: PersistedSpaceData = {
       id: this.id,
       atoms: this._atoms,
       timestamp: Date.now(),
     };
-    
+
     await fs.mkdir(this.opts.storageDir, { recursive: true });
     await fs.writeFile(file, JSON.stringify(data, null, 2));
   }

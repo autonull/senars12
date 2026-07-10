@@ -1,16 +1,15 @@
-import type { NAR } from '..';
-import type { GenerationInput, NLGenerationService } from '../nl';
-import { errMsg, toError } from '../utils';
 import type {
   AuthManager,
   CommandContext,
   CommandRegistry,
   ConnectionManager,
-  IOMessage,
-  Logger,
   MessageContext,
   MessageMiddleware,
 } from '@senars/io';
+import type { IOMessage, Logger } from '@senars/core';
+import type { NAR } from '..';
+import type { GenerationInput, NLGenerationService } from '../nl';
+import { errMsg, toError } from '../utils';
 import type { ConversationSession } from './ConversationSession.js';
 import type { SessionManager } from './SessionManager.js';
 import type { Agent } from './agent.js';
@@ -69,7 +68,7 @@ export function conditional(
 /** Timeout middleware */
 export function timeout(ms: number, fallbackResponse = 'Request timed out') {
   return async (
-    message: import('@senars/io').IOMessage,
+    message: import('@senars/core').IOMessage,
     context: import('@senars/io').MessageContext,
     next: () => Promise<void>
   ) => {

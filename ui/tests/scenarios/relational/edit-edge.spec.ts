@@ -1,23 +1,14 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
 test.describe('Relational Gate: edit edge', () => {
-  test('tap an edge, change its type via the drawer, verify update', async ({
-    page,
-    testApi,
-  }) => {
+  test('tap an edge, change its type via the drawer, verify update', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect
-      .async(() => testApi.getConnectionState())
-      .toPass({ timeout: 10000 });
+    await expect.async(() => testApi.getConnectionState()).toPass({ timeout: 10000 });
 
     // Wait for graph to have nodes and edges
-    await expect
-      .async(() => testApi.getGraphNodeCount())
-      .toBeGreaterThan(0, { timeout: 15000 });
+    await expect.async(() => testApi.getGraphNodeCount()).toBeGreaterThan(0, { timeout: 15000 });
 
-    await expect
-      .async(() => testApi.getGraphEdgeCount())
-      .toBeGreaterThan(0, { timeout: 15000 });
+    await expect.async(() => testApi.getGraphEdgeCount()).toBeGreaterThan(0, { timeout: 15000 });
 
     // Get the first edge
     const edgeIds = await testApi.getAllEdgeIds();
@@ -51,18 +42,11 @@ test.describe('Relational Gate: edit edge', () => {
     await expect(typeSelect).toHaveValue(newType, { timeout: 3000 });
   });
 
-  test('background tap clears edge selection', async ({
-    page,
-    testApi,
-  }) => {
+  test('background tap clears edge selection', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect
-      .async(() => testApi.getConnectionState())
-      .toPass({ timeout: 10000 });
+    await expect.async(() => testApi.getConnectionState()).toPass({ timeout: 10000 });
 
-    await expect
-      .async(() => testApi.getGraphEdgeCount())
-      .toBeGreaterThan(0, { timeout: 15000 });
+    await expect.async(() => testApi.getGraphEdgeCount()).toBeGreaterThan(0, { timeout: 15000 });
 
     const edgeIds = await testApi.getAllEdgeIds();
     const [source, target] = (edgeIds[0] as string).split('->');

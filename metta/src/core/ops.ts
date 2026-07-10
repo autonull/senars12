@@ -2,7 +2,7 @@ import type { MeTTaAtom } from '../types/ast.js';
 
 export type GroundedOp<
   Args extends readonly MeTTaAtom[] = readonly MeTTaAtom[],
-  Ret extends MeTTaAtom = MeTTaAtom
+  Ret extends MeTTaAtom = MeTTaAtom,
 > = {
   readonly name: string;
   readonly execute: (...args: Args) => Ret;
@@ -28,10 +28,7 @@ export function clearOps(): void {
   ops.clear();
 }
 
-export function defineOp<
-  Args extends readonly MeTTaAtom[],
-  Ret extends MeTTaAtom
->(
+export function defineOp<Args extends readonly MeTTaAtom[], Ret extends MeTTaAtom>(
   name: string,
   impl: (...args: Args) => Ret,
   opts?: { pure?: boolean; lazy?: boolean }

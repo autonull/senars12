@@ -1,6 +1,6 @@
 import type { RuleProcessor } from '../../rules';
-import type { Task } from '../../types';
 import { sharesSymbol } from '../../terms';
+import type { Task } from '../../types';
 import type { DerivationContext } from '../types.js';
 import { DefaultDerivation } from './DefaultDerivation.js';
 
@@ -25,6 +25,6 @@ export class FocusedDerivation extends DefaultDerivation {
   }
 
   private sharedAtomScore(a: Task, b: Task): number {
-      return sharesSymbol(a.term, b.term) ? 1 : 0;
+    return sharesSymbol(a.term, b.term) ? 1 : 0;
   }
 }

@@ -1,7 +1,7 @@
 import { createLogger } from '../logger';
 import type { Concept } from '../memory';
 import type { Term } from '../terms';
-import { Truth, termParser, termsEqual, TermMap } from '../terms';
+import { TermMap, Truth, termParser, termsEqual } from '../terms';
 import type { Stamp, Task, TaskType, TermFilter } from '../types';
 import { createTimestamp } from '../types';
 

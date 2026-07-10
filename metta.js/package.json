@@ -3,11 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "core",
-    "tensor",
-    "metta"
-  ],
+  "workspaces": ["core", "tensor", "metta"],
   "packageManager": "pnpm@10.0.0",
   "bin": {
     "senars": "./scripts/cli/senars.js"
@@ -17,14 +13,7 @@
     "test:unit": "pnpm exec jest --config jest.unit.config.js --forceExit",
     "test:debug": "pnpm exec jest --detectOpenHandles"
   },
-  "keywords": [
-    "senars",
-    "agi",
-    "nars",
-    "cognitive-architecture",
-    "neuro-symbolic",
-    "reasoning"
-  ],
+  "keywords": ["senars", "agi", "nars", "cognitive-architecture", "neuro-symbolic", "reasoning"],
   "author": "Developers",
   "license": "AGPL-3.0-or-later",
   "dependencies": {

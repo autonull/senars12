@@ -6,7 +6,7 @@
  * Target: <2× MORK PathMap latency, 10-30× speedup over linear scan.
  */
 
-import {configManager, exp, PathTrie, Space, sym} from '../src/index.js';
+import {PathTrie, Space, configManager, exp, sym} from '../src/index.js';
 import {RuleIndex} from '../src/kernel/RuleIndex.js';
 
 /**

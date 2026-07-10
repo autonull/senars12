@@ -1,12 +1,20 @@
-import { benchmark } from 'benchmark';
+import type { benchmark } from 'benchmark';
 
 // Initialize a global benchmark registry for per-function profiling
-const functionProfiles: Record<string, { samples: number; mean: number; min: number; max: number }> = {};
+const functionProfiles: Record<
+  string,
+  { samples: number; mean: number; min: number; max: number }
+> = {};
 
 // Helper to register a function's benchmark results
 export function registerBenchmark(funcName: string, stats: benchmark.Stats) {
   if (!functionProfiles[funcName]) {
-    functionProfiles[funcName] = { samples: 0, mean: 0, min: Infinity, max: -Infinity };
+    functionProfiles[funcName] = {
+      samples: 0,
+      mean: 0,
+      min: Number.POSITIVE_INFINITY,
+      max: Number.NEGATIVE_INFINITY,
+    };
   }
 
   const profile = functionProfiles[funcName];
@@ -19,11 +27,11 @@ export function registerBenchmark(funcName: string, stats: benchmark.Stats) {
 // Override console.timeEnd to capture benchmarks automatically
 const originalTimeEnd = console.timeEnd;
 console.timeEnd = (name: string) => {
-  const elapsed = parseFloat(name); // Get elapsed time from time name
+  const elapsed = Number.parseFloat(name); // Get elapsed time from time name
   const match = name.match(/(\d+(\.\d+)?)/);
   if (match) {
     registerBenchmark(name, {
-      mean: parseFloat(match[1]),
+      mean: Number.parseFloat(match[1]),
       min: 0,
       max: 0,
     });
@@ -40,4 +48,3 @@ console.timeEnd = (name: string) => {
 // registerBenchmark('myFunction', { mean: end - start, min: 0, max: 0 });
 
 export { functionProfiles };
-EOF

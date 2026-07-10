@@ -1,20 +1,20 @@
-import {Tokenizer} from './parser/Tokenizer.js';
-import {InternalParser} from './parser/InternalParser.js';
+import { InternalParser } from './parser/InternalParser.js';
+import { Tokenizer } from './parser/Tokenizer.js';
 
 export class Parser {
-    #tokenizer = new Tokenizer();
+  #tokenizer = new Tokenizer();
 
-    parse(str) {
-        const tokens = this.#tokenizer.tokenize(str);
-        return tokens.length ? new InternalParser(tokens).parse() : null;
-    }
+  parse(str) {
+    const tokens = this.#tokenizer.tokenize(str);
+    return tokens.length ? new InternalParser(tokens).parse() : null;
+  }
 
-    parseProgram(str) {
-        const tokens = this.#tokenizer.tokenize(str);
-        return new InternalParser(tokens).parseProgram();
-    }
+  parseProgram(str) {
+    const tokens = this.#tokenizer.tokenize(str);
+    return new InternalParser(tokens).parseProgram();
+  }
 
-    parseExpression(str) {
-        return this.parse(str);
-    }
+  parseExpression(str) {
+    return this.parse(str);
+  }
 }

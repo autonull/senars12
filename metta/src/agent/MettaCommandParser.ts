@@ -1,11 +1,20 @@
 export const LLM_COMMANDS = [
-  'send', 'remember', 'query', 'episodes',
-  'read-file', 'write-file', 'append-file',
-  'search', 'shell', 'metta',
-  'pin', 'tavily-search', 'technical-analysis',
+  'send',
+  'remember',
+  'query',
+  'episodes',
+  'read-file',
+  'write-file',
+  'append-file',
+  'search',
+  'shell',
+  'metta',
+  'pin',
+  'tavily-search',
+  'technical-analysis',
 ] as const;
 
-export type LlmCommand = typeof LLM_COMMANDS[number];
+export type LlmCommand = (typeof LLM_COMMANDS)[number];
 
 export interface ParsedCommand {
   readonly command: LlmCommand;
@@ -15,15 +24,16 @@ export interface ParsedCommand {
 
 export class MettaCommandParser {
   parse(llmOutput: string): ParsedCommand[] {
-    const normalized = llmOutput
-      .replace(/_quote_/g, '"')
-      .replace(/_newline_/g, '\n');
+    const normalized = llmOutput.replace(/_quote_/g, '"').replace(/_newline_/g, '\n');
 
-    const lines = normalized.split('\n').map(l => l.trim()).filter((l): l is string => Boolean(l)) as string[];
+    const lines = normalized
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l): l is string => Boolean(l)) as string[];
     const merged = this.#mergeSendContinuations(lines);
 
     return merged
-      .map(line => this.#parseLine(line))
+      .map((line) => this.#parseLine(line))
       .filter((c): c is ParsedCommand => c !== null);
   }
 
@@ -129,7 +139,11 @@ export class MettaCommandParser {
   }
 
   #decodeQuoted(text: string): string | null {
-    try { return JSON.parse(text); } catch { return null; }
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
   }
 
   #findClosingQuote(str: string, start: number): number {
@@ -138,7 +152,7 @@ export class MettaCommandParser {
       const ch = str[i];
       if (!ch) break;
       if (ch === '"' && !escaped) return i;
-      escaped = (ch === '\\' && !escaped);
+      escaped = ch === '\\' && !escaped;
     }
     return str.length - 1;
   }

@@ -3,6 +3,6 @@
  */
 
 export function registerStringOps(registry) {
-    registry.register('&str-concat', (a, b) => String(a) + String(b));
-    registry.register('&to-string', a => String(a));
+  registry.register('&str-concat', (a, b) => String(a) + String(b));
+  registry.register('&to-string', (a) => String(a));
 }

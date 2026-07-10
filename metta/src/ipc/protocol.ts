@@ -1,15 +1,16 @@
 import * as v from 'valibot';
 import type { MeTTaAtom } from '../types/ast.js';
 
-const MeTTaAtomSchema: v.GenericSchema<MeTTaAtom> = v.lazy(() =>
-  v.union([
-    v.object({ kind: v.literal(0), value: v.string() }),
-    v.object({ kind: v.literal(1), name: v.string() }),
-    v.object({ kind: v.literal(2), value: v.number() }),
-    v.object({ kind: v.literal(3), value: v.string() }),
-    v.object({ kind: v.literal(4), operator: MeTTaAtomSchema, args: v.array(MeTTaAtomSchema) }),
-    v.object({ kind: v.literal(5), op: v.string(), args: v.array(MeTTaAtomSchema) }),
-  ]) as v.GenericSchema<MeTTaAtom>
+const MeTTaAtomSchema: v.GenericSchema<MeTTaAtom> = v.lazy(
+  () =>
+    v.union([
+      v.object({ kind: v.literal(0), value: v.string() }),
+      v.object({ kind: v.literal(1), name: v.string() }),
+      v.object({ kind: v.literal(2), value: v.number() }),
+      v.object({ kind: v.literal(3), value: v.string() }),
+      v.object({ kind: v.literal(4), operator: MeTTaAtomSchema, args: v.array(MeTTaAtomSchema) }),
+      v.object({ kind: v.literal(5), op: v.string(), args: v.array(MeTTaAtomSchema) }),
+    ]) as v.GenericSchema<MeTTaAtom>
 );
 
 const IPCMessageSchema = v.union([

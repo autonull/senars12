@@ -7,13 +7,13 @@ import WebSocket from 'ws';
  * @returns {Promise<boolean>} True if the port is free, false otherwise.
  */
 export function isPortFree(port) {
-    return new Promise((resolve) => {
-        const server = net.createServer();
-        server.listen(port, () => {
-            server.close(() => resolve(true));
-        });
-        server.on('error', () => resolve(false));
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.listen(port, () => {
+      server.close(() => resolve(true));
     });
+    server.on('error', () => resolve(false));
+  });
 }
 
 /**
@@ -22,11 +22,11 @@ export function isPortFree(port) {
  * @returns {Promise<number>} A free port.
  */
 export async function getFreePort(startPort) {
-    let port = startPort;
-    while (true) {
-        if (await isPortFree(port)) return port;
-        port++;
-    }
+  let port = startPort;
+  while (true) {
+    if (await isPortFree(port)) return port;
+    port++;
+  }
 }
 
 /**
@@ -36,22 +36,22 @@ export async function getFreePort(startPort) {
  * @returns {Promise<boolean>} True if connected, false if timed out.
  */
 export async function waitForWebSocket(url, timeout = 30000) {
-    const start = Date.now();
+  const start = Date.now();
 
-    while (Date.now() - start < timeout) {
-        try {
-            await new Promise((resolve, reject) => {
-                const ws = new WebSocket(url);
-                ws.on('open', () => {
-                    ws.close();
-                    resolve();
-                });
-                ws.on('error', reject);
-            });
-            return true;
-        } catch (e) {
-            await new Promise(r => setTimeout(r, 500));
-        }
+  while (Date.now() - start < timeout) {
+    try {
+      await new Promise((resolve, reject) => {
+        const ws = new WebSocket(url);
+        ws.on('open', () => {
+          ws.close();
+          resolve();
+        });
+        ws.on('error', reject);
+      });
+      return true;
+    } catch (e) {
+      await new Promise((r) => setTimeout(r, 500));
     }
-    return false;
+  }
+  return false;
 }

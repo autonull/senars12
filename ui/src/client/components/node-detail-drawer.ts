@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import type { GraphNodeData } from '../../shared/protocol.js';
 import { EDGE_TYPES, edgeTypeLabel } from '../../shared/constants.js';
+import type { GraphNodeData } from '../../shared/protocol.js';
 import {
   $focusTerm,
   $graphEdges,
@@ -11,8 +11,8 @@ import {
   $selectedNodeId,
   $selectedNodeIds,
   $view,
-  type RevisionEntry,
   BaseComponent,
+  type RevisionEntry,
   send,
   updateEdgeData,
   updateNodeData,
@@ -386,7 +386,8 @@ export class NodeDetailDrawer extends BaseComponent {
     }
     return html`
       <div class="section-title">Revision History</div>
-      ${this.history.map((entry) => html`
+      ${this.history.map(
+        (entry) => html`
         <div class="field">
           <span class="field-label">${new Date(entry.timestamp).toLocaleTimeString()}</span>
           <span class="field-value">
@@ -394,7 +395,8 @@ export class NodeDetailDrawer extends BaseComponent {
             <button @click=${() => this.seekToTime(entry.timestamp)}>Seek</button>
           </span>
         </div>
-      `)}
+      `
+      )}
     `;
   }
 

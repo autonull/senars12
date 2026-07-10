@@ -1,5 +1,5 @@
-import type { MeTTaAtom } from '../types/ast.js';
 import { hashAtom } from '../core/hash.js';
+import type { MeTTaAtom } from '../types/ast.js';
 
 export interface JitCacheEntry {
   readonly code: (...args: MeTTaAtom[]) => MeTTaAtom;
@@ -34,17 +34,20 @@ export class JITCompiler {
     return entry ? entry.count >= this.threshold : false;
   }
 
-  compile(pattern: MeTTaAtom, impl: (...args: MeTTaAtom[]) => MeTTaAtom): (...args: MeTTaAtom[]) => MeTTaAtom {
+  compile(
+    pattern: MeTTaAtom,
+    impl: (...args: MeTTaAtom[]) => MeTTaAtom
+  ): (...args: MeTTaAtom[]) => MeTTaAtom {
     const key = String(hashAtom(pattern));
     const types = extractArgTypes(pattern);
-    
+
     this.cache.set(key, {
       code: impl,
       hits: 0,
       compiledAt: Date.now(),
       argTypes: types,
     });
-    
+
     return impl;
   }
 

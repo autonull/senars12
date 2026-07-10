@@ -6,7 +6,7 @@
 import type { NAR } from '../..';
 import type { Logger } from '../../logger';
 import { createLogger } from '../../logger';
-import type { SelfReasoningState, QualityMetrics } from '../types.js';
+import type { QualityMetrics, SelfReasoningState } from '../types.js';
 
 export interface SelfReasoningServiceConfig {
   nar?: NAR;

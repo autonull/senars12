@@ -1,7 +1,13 @@
-import { describe, it, expect } from 'vitest';
-import { TypeChecker, applyTypeSubst, unifyTypes, freshType, type Type } from '../src/types/inference.js';
+import { describe, expect, it } from 'vitest';
+import { num, sym } from '../src/types/ast.js';
+import {
+  type Type,
+  TypeChecker,
+  applyTypeSubst,
+  freshType,
+  unifyTypes,
+} from '../src/types/inference.js';
 import { TypeKind } from '../src/types/type.js';
-import { sym, num } from '../src/types/ast.js';
 
 const typevar = (id: number): Type => ({ kind: TypeKind.Var, id });
 const typecon = (name: string): Type => ({ kind: TypeKind.Con, name });

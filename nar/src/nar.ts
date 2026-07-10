@@ -25,7 +25,15 @@ import type { AttentionModel } from './strategies';
 import { SimpleAttention } from './strategies';
 import { TaskManager } from './task';
 import type { Term } from './terms';
-import { Stamp, Truth, type TruthType, containsSubterm, getSubject, termParser, termsEqual } from './terms';
+import {
+  Stamp,
+  Truth,
+  type TruthType,
+  containsSubterm,
+  getSubject,
+  termParser,
+  termsEqual,
+} from './terms';
 import type { Tool, ToolResult } from './tools';
 import { ToolManager, discoverTools } from './tools';
 import {

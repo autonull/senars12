@@ -2,9 +2,18 @@
 declare module 'spacegraphjs' {
   export class SpaceGraph {
     static instances: Set<SpaceGraph>;
-    static create(container: HTMLElement | string, spec: { nodes: any[]; edges: any[] }, options?: any): Promise<SpaceGraph>;
+    static create(
+      container: HTMLElement | string,
+      spec: { nodes: any[]; edges: any[] },
+      options?: any
+    ): Promise<SpaceGraph>;
     static load(container: HTMLElement | string, data: any, options?: any): Promise<SpaceGraph>;
-    static quickGraph(container: HTMLElement | string, nodes: any[], edges?: any[], options?: any): Promise<SpaceGraph>;
+    static quickGraph(
+      container: HTMLElement | string,
+      nodes: any[],
+      edges?: any[],
+      options?: any
+    ): Promise<SpaceGraph>;
     static getContainerElement(container: string | HTMLElement): HTMLElement | null;
 
     container: HTMLElement;

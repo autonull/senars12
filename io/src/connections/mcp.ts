@@ -1,5 +1,5 @@
-import { createLogger } from '@senars/core/logger';
 import { makeId } from '@senars/core/helpers';
+import { createLogger } from '@senars/core/logger';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { BaseConnection } from './base.js';
 

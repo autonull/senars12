@@ -100,7 +100,10 @@ export const mentionsSymbol = (term: Term, symbol: string): boolean => {
 };
 
 const collectAtomicSymbols = (term: Term, set = new Set<string>()): Set<string> => {
-  if (isAtomic(term)) { set.add(term.symbol); return set; }
+  if (isAtomic(term)) {
+    set.add(term.symbol);
+    return set;
+  }
   const args = 'args' in term && Array.isArray(term.args) ? term.args : [];
   for (const arg of args) collectAtomicSymbols(arg as Term, set);
   return set;

@@ -25,20 +25,18 @@ export const TruthValue = z.object({
 });
 export type TruthValue = z.infer<typeof TruthValue>;
 
-// === Graph Node with lens-encoded visual data ===
+// === Flat view type for UI rendering (all engine-specific fields optional) ===
 export const GraphNodeData = z.object({
-  id: z.string(),
-  label: z.string(),
-  html: z.string().optional(),
+  id: z.string().optional(),
+  label: z.string().optional(),
   term: z.string().optional(),
-  priority: z.number(),
-  confidence: z.number(),
-  punctuation: z.enum(['.', '!', '?']).optional(),
+  priority: z.number().optional(),
+  confidence: z.number().optional(),
   truth: TruthValue.optional(),
   isContradiction: z.boolean().optional(),
   occurrenceTime: z.number().optional(),
   goalRelevance: z.number().optional(),
-  nodeType: z.enum(['message', 'concept', 'derivation', 'goal', 'question', 'config', 'meta']),
+  nodeType: z.enum(['nar:concept', 'metta:atom', 'metta:skill']),
   lensData: z.object({ score: z.number(), color: z.string(), size: z.number() }).optional(),
   layout: z
     .object({
@@ -47,13 +45,22 @@ export const GraphNodeData = z.object({
       threadIndex: z.number().optional(),
     })
     .optional(),
+  html: z.string().optional(),
+  punctuation: z.enum(['.', '!', '?']).optional(),
+  atom: z.string().optional(),
+  skill: z.string().optional(),
+  result: z.string().optional(),
+  space: z.string().optional(),
+  durationMs: z.number().optional(),
+  args: z.array(z.string()).optional(),
+  type: z.string().optional(),
 });
 export type GraphNodeData = z.infer<typeof GraphNodeData>;
 
 // === Graph Operations (Delta) ===
 export const GraphOp = z.discriminatedUnion('action', [
   z.object({ action: z.literal('add_node'), id: z.string(), data: GraphNodeData }),
-  z.object({ action: z.literal('update_node'), id: z.string(), data: GraphNodeData.partial() }),
+  z.object({ action: z.literal('update_node'), id: z.string(), data: GraphNodeData }),
   z.object({ action: z.literal('remove_node'), id: z.string() }),
   z.object({
     action: z.literal('add_edge'),
@@ -65,19 +72,17 @@ export const GraphOp = z.discriminatedUnion('action', [
 ]);
 export type GraphOp = z.infer<typeof GraphOp>;
 
-// === Lens (extensible string — builtins: 'belief', 'goal', 'contradiction') ===
+// === Lens ===
 export const Lens = z.string();
 export type Lens = z.infer<typeof Lens>;
 
-// === Cognitive Delta (with lens) ===
+// === Cognitive Delta ===
 export const CognitiveDelta = z.object({
   type: z.literal('cognitive.delta'),
   seqId: z.number(),
   lens: Lens,
   ops: z.array(GraphOp),
-  meta: z
-    .object({ truncated: z.boolean().optional(), totalHidden: z.number().optional() })
-    .optional(),
+  meta: z.object({ truncated: z.boolean().optional(), totalHidden: z.number().optional() }).optional(),
 });
 
 // === Chat ===
@@ -104,25 +109,14 @@ export const ConfigField = z.object({
   step: z.number().optional(),
   description: z.string().optional(),
   category: z.enum(['llm', 'nars', 'system', 'advanced']).optional(),
-  validation: z
-    .object({
-      pattern: z.string().optional(),
-      min: z.number().optional(),
-      max: z.number().optional(),
-    })
-    .optional(),
+  validation: z.object({ pattern: z.string().optional(), min: z.number().optional(), max: z.number().optional() }).optional(),
 });
-const ConfigSchemaMsg = z.object({
-  type: z.literal('config.schema'),
-  data: z.record(z.string(), ConfigField),
-});
+
+const ConfigSchemaMsg = z.object({ type: z.literal('config.schema'), data: z.record(z.string(), ConfigField) });
 const ConfigSetMsg = z.object({ type: z.literal('config.set'), key: z.string(), value: z.any() });
 
 // === Synchronization ===
-export const SyncRequest = z.object({
-  type: z.literal('sync.request'),
-  lastSeqId: z.number().nullable(),
-});
+export const SyncRequest = z.object({ type: z.literal('sync.request'), lastSeqId: z.number().nullable() });
 const StateSnapshot = z.object({
   type: z.literal('state.snapshot'),
   seqId: z.number(),
@@ -133,12 +127,7 @@ const StateSnapshot = z.object({
   }),
 });
 
-const ViewportSet = z.object({
-  type: z.literal('viewport.set'),
-  x: z.number(),
-  y: z.number(),
-  zoom: z.number(),
-});
+const ViewportSet = z.object({ type: z.literal('viewport.set'), x: z.number(), y: z.number(), zoom: z.number() });
 
 const CognitiveMetrics = z.object({
   activeConcepts: z.number(),
@@ -151,12 +140,7 @@ const CognitiveMetrics = z.object({
 
 const TelemetryMsg = z.object({
   type: z.literal('telemetry'),
-  metrics: z.object({
-    reasoning_hz: z.number(),
-    tokens_per_sec: z.number(),
-    memory_mb: z.number(),
-    ws_latency_ms: z.number(),
-  }),
+  metrics: z.object({ reasoning_hz: z.number(), tokens_per_sec: z.number(), memory_mb: z.number(), ws_latency_ms: z.number() }),
   cognitive: CognitiveMetrics.optional(),
 });
 
@@ -178,64 +162,20 @@ const ObjectSetMsg = z.object({
 const NodeSetMsg = z.object({
   type: z.literal('node.set'),
   id: z.string(),
-  patch: z.object({
-    truth: TruthValue.optional(),
-    priority: z.number().min(0).max(1).optional(),
-    confidence: z.number().min(0).max(1).optional(),
-  }),
+  patch: z.object({ truth: TruthValue.optional(), priority: z.number().min(0).max(1).optional(), confidence: z.number().min(0).max(1).optional() }),
 });
 
-// === Phase 4: Lens Registry messages ===
-// Server pushes full list of available lens specs on connect and on changes.
-// Uses z.array(z.unknown()) to avoid circular dep between protocol.ts and lens-schema.ts.
-// Validation is performed server-side via LensSpecSchema before broadcasting.
 const LensListMsg = z.object({
   type: z.literal('lens.list'),
-  lenses: z.array(z.object({
-    id: z.string(),
-    label: z.string(),
-    description: z.string(),
-    modulation: z.any(),
-  })),
+  lenses: z.array(z.object({ id: z.string(), label: z.string(), description: z.string(), modulation: z.any() })),
 });
-
-// Client sends a new lens definition; server validates and broadcasts.
-const LensDefineMsg = z.object({
-  type: z.literal('lens.define'),
-  lens: z.object({
-    id: z.string(),
-    label: z.string(),
-    description: z.string(),
-    modulation: z.any(),
-  }),
-});
-
-// Server broadcasts a newly defined lens to all clients.
-const LensDefinedMsg = z.object({
-  type: z.literal('lens.defined'),
-  lens: z.object({
-    id: z.string(),
-    label: z.string(),
-    description: z.string(),
-    modulation: z.any(),
-  }),
-});
-
-// Server sends the list of available lens fields for the designer.
+const LensDefineMsg = z.object({ type: z.literal('lens.define'), lens: z.object({ id: z.string(), label: z.string(), description: z.string(), modulation: z.any() }) });
+const LensDefinedMsg = z.object({ type: z.literal('lens.defined'), lens: z.object({ id: z.string(), label: z.string(), description: z.string(), modulation: z.any() }) });
 const LensFieldsMsg = z.object({
   type: z.literal('lens.fields'),
-  fields: z.array(z.object({
-    key: z.string(),
-    label: z.string(),
-    type: z.enum(['number', 'boolean', 'string', 'object']),
-  })),
+  fields: z.array(z.object({ key: z.string(), label: z.string(), type: z.enum(['number', 'boolean', 'string', 'object']) })),
 });
-
-const NodeHistoryRequestMsg = z.object({
-  type: z.literal('node.history.request'),
-  term: z.string(),
-});
-
+const NodeHistoryRequestMsg = z.object({ type: z.literal('node.history.request'), term: z.string() });
 const NodeHistoryMsg = z.object({
   type: z.literal('node.history'),
   term: z.string(),

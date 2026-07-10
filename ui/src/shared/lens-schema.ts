@@ -13,7 +13,11 @@ export const ModulationSchema: z.ZodType<ModulationSpec> = z.lazy(() =>
   z.discriminatedUnion('op', [
     z.object({ op: z.literal('const'), value: z.union([z.string(), z.number(), z.boolean()]) }),
     z.object({ op: z.literal('field'), field: z.string(), map: z.string().optional() }),
-    z.object({ op: z.literal('channel'), channel: z.string(), child: z.lazy(() => ModulationSchema) }),
+    z.object({
+      op: z.literal('channel'),
+      channel: z.string(),
+      child: z.lazy(() => ModulationSchema),
+    }),
     z.object({
       op: z.literal('when'),
       predicate: z.string(),
@@ -52,8 +56,16 @@ export function builtinLensSpecs(): LensSpec[] {
       modulation: {
         op: 'union',
         children: [
-          { op: 'channel', channel: 'opacity', child: { op: 'field', field: 'confidence', map: 'confidence-to-opacity' } },
-          { op: 'channel', channel: 'color', child: { op: 'field', field: 'truth', map: 'truth-to-color' } },
+          {
+            op: 'channel',
+            channel: 'opacity',
+            child: { op: 'field', field: 'confidence', map: 'confidence-to-opacity' },
+          },
+          {
+            op: 'channel',
+            channel: 'color',
+            child: { op: 'field', field: 'truth', map: 'truth-to-color' },
+          },
           { op: 'channel', channel: 'size', child: { op: 'const', value: 30 } },
         ],
       },
@@ -65,7 +77,11 @@ export function builtinLensSpecs(): LensSpec[] {
       modulation: {
         op: 'union',
         children: [
-          { op: 'channel', channel: 'size', child: { op: 'field', field: 'priority', map: 'priority-to-size' } },
+          {
+            op: 'channel',
+            channel: 'size',
+            child: { op: 'field', field: 'priority', map: 'priority-to-size' },
+          },
           { op: 'channel', channel: 'color', child: { op: 'const', value: '#00f3ff' } },
           { op: 'channel', channel: 'opacity', child: { op: 'const', value: 0.85 } },
         ],
@@ -79,11 +95,13 @@ export function builtinLensSpecs(): LensSpec[] {
         op: 'union',
         children: [
           {
-            op: 'when', predicate: 'isContradiction',
+            op: 'when',
+            predicate: 'isContradiction',
             child: { op: 'channel', channel: 'color', child: { op: 'const', value: '#ffaa00' } },
           },
           {
-            op: 'when', predicate: 'isContradiction',
+            op: 'when',
+            predicate: 'isContradiction',
             child: { op: 'channel', channel: 'stroke.dash', child: { op: 'const', value: '4 2' } },
           },
         ],
@@ -108,23 +126,41 @@ export function lensSpecToJsonSchema(): Record<string, unknown> {
         discriminator: { propertyName: 'op' },
         oneOf: [
           {
-            properties: { op: { type: 'string', enum: ['const'] }, value: { type: ['string', 'number', 'boolean'] } },
+            properties: {
+              op: { type: 'string', enum: ['const'] },
+              value: { type: ['string', 'number', 'boolean'] },
+            },
             required: ['op', 'value'],
           },
           {
-            properties: { op: { type: 'string', enum: ['field'] }, field: { type: 'string' }, map: { type: 'string' } },
+            properties: {
+              op: { type: 'string', enum: ['field'] },
+              field: { type: 'string' },
+              map: { type: 'string' },
+            },
             required: ['op', 'field'],
           },
           {
-            properties: { op: { type: 'string', enum: ['channel'] }, channel: { type: 'string' }, child: { $ref: '#/properties/modulation' } },
+            properties: {
+              op: { type: 'string', enum: ['channel'] },
+              channel: { type: 'string' },
+              child: { $ref: '#/properties/modulation' },
+            },
             required: ['op', 'channel', 'child'],
           },
           {
-            properties: { op: { type: 'string', enum: ['when'] }, predicate: { type: 'string' }, child: { $ref: '#/properties/modulation' } },
+            properties: {
+              op: { type: 'string', enum: ['when'] },
+              predicate: { type: 'string' },
+              child: { $ref: '#/properties/modulation' },
+            },
             required: ['op', 'predicate', 'child'],
           },
           {
-            properties: { op: { type: 'string', enum: ['union'] }, children: { type: 'array', items: { $ref: '#/properties/modulation' } } },
+            properties: {
+              op: { type: 'string', enum: ['union'] },
+              children: { type: 'array', items: { $ref: '#/properties/modulation' } },
+            },
             required: ['op', 'children'],
           },
         ],

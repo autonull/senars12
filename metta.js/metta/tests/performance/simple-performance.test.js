@@ -5,21 +5,21 @@
  * They are disabled by default. Run manually when needed.
  */
 
-import {MeTTaInterpreter} from '../../src/index.js';
+import { MeTTaInterpreter } from '../../src/index.js';
 
 describe.skip('Simple Performance', () => {
-    let interpreter;
+  let interpreter;
 
-    beforeEach(() => {
-        interpreter = new MeTTaInterpreter({loadStdlib: false});
-    });
+  beforeEach(() => {
+    interpreter = new MeTTaInterpreter({ loadStdlib: false });
+  });
 
-    test('basic arithmetic speed', () => {
-        const start = performance.now();
-        for (let i = 0; i < 100; i++) {
-            interpreter.run(`(^ &+ ${i} 1)`);
-        }
-        const end = performance.now();
-        expect(end - start).toBeLessThan(1000);
-    });
+  test('basic arithmetic speed', () => {
+    const start = performance.now();
+    for (let i = 0; i < 100; i++) {
+      interpreter.run(`(^ &+ ${i} 1)`);
+    }
+    const end = performance.now();
+    expect(end - start).toBeLessThan(1000);
+  });
 });

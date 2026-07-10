@@ -1,4 +1,4 @@
-export const enum AtomKind {
+export enum AtomKind {
   Symbol = 0,
   Variable = 1,
   Number = 2,

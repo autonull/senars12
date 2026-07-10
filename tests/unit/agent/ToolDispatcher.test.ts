@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { dispatchToolCalls } from '@senars/nar/agent';
+import { describe, expect, it } from 'vitest';
 
 describe('ToolDispatcher', () => {
   it('returns artifacts for a successful tool call', async () => {

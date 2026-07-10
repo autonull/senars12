@@ -2,19 +2,19 @@ import type {
   Connection,
   ConnectionConfig,
   ConnectionDeps,
-  ConnectionError,
   ConnectionState,
   IOMessage,
   Logger,
 } from '../types.js';
-import { ConnectionError as ConnError } from '../types.js';
+import { ConnectionError } from '@senars/core';
 
 export abstract class BaseConnection implements Connection {
   id: string;
   name: string;
   abstract readonly type: string;
   protected messageHandlers: Array<(message: IOMessage) => Promise<void>> = [];
-  protected stateChangeHandlers: Array<(state: ConnectionState, prev: ConnectionState) => void> = [];
+  protected stateChangeHandlers: Array<(state: ConnectionState, prev: ConnectionState) => void> =
+    [];
   protected errorHandlers: Array<(error: ConnectionError) => void> = [];
   protected messageCount = 0;
   protected errorCount = 0;
@@ -128,7 +128,7 @@ export abstract class BaseConnection implements Connection {
     recoverable: boolean,
     cause?: Error
   ): ConnectionError {
-    return new ConnError(message, this.id, code, recoverable, cause);
+    return new ConnectionError(message, this.id, code, recoverable, cause);
   }
 
   protected withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {

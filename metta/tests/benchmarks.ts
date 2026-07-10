@@ -1,9 +1,9 @@
 import { bench } from 'vitest';
-import { parseMeTTa } from '../src/parser/runtime.js';
-import { createMeTTa } from '../src/runtime/builder.js';
-import { sym, num, expr } from '../src/index.js';
 import { hashAtom } from '../src/core/hash.js';
 import { InMemorySpace } from '../src/core/space.js';
+import { expr, num, sym } from '../src/index.js';
+import { parseMeTTa } from '../src/parser/runtime.js';
+import { createMeTTa } from '../src/runtime/builder.js';
 
 bench('parse: simple expression', () => {
   parseMeTTa('(+ 1 2)');
