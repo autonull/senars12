@@ -3,12 +3,12 @@ import { type Server, type Socket, createServer } from 'node:net';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { InMemorySessionManager, bindAgentToConnection, createAgent } from '../../agent/src';
+import { InMemorySessionManager, bindAgentToConnection, createAgent } from '@senars/nar/agent';
 import type { NAR } from '../../nar/src';
 import { SeNARSFactory } from '../../nar/src';
 import { createMockLMService } from '../../nar/src/lm';
 import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
-import { CommandRegistry, IRCConnection } from '../../src/io';
+import { CommandRegistry, IRCConnection } from '@senars/io';
 
 class MockIRCServer {
   public port = 0;

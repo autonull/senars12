@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { createAgent } from '../../agent/src';
+import { createAgent } from '@senars/nar/agent';
 import { createNAR } from '../../nar/src';
 import { SeNARSMCPServer } from '../api/mcp-server.js';
 import { registerAgentAPI, registerNARToolsAsMCP } from '../api/mcp-tools.js';

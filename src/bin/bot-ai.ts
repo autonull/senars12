@@ -16,7 +16,7 @@ import {
   createAutonomyEngine,
   createConnectionConfigsFromEnv,
   registerAllCommands,
-} from '../../agent/src';
+} from '@senars/nar/agent';
 import { SeNARSFactory } from '../../nar/src';
 import { createSeNARSRegistry } from '../../nar/src/lm';
 import { resolveLMConfig } from '../../nar/src/lm/env-config.js';
@@ -34,7 +34,7 @@ import {
   IRCConnection,
   MCPConnection,
   WSConnection,
-} from '../io';
+} from '@senars/io';
 import { setupGracefulShutdown } from '../utils';
 import { assertValidEnv } from '../utils/env-validate.js';
 

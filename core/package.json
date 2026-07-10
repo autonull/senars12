@@ -1,0 +1,82 @@
+{
+  "name": "@senars/core",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./lifecycle": {
+      "types": "./src/Lifecycle.ts",
+      "import": "./src/Lifecycle.ts"
+    },
+    "./cognitive-event": {
+      "types": "./src/CognitiveEvent.ts",
+      "import": "./src/CognitiveEvent.ts"
+    },
+    "./transport": {
+      "types": "./src/Transport.ts",
+      "import": "./src/Transport.ts"
+    },
+    "./protocol": {
+      "types": "./src/Protocol.ts",
+      "import": "./src/Protocol.ts"
+    },
+    "./model": {
+      "types": "./src/ModelRunner.ts",
+      "import": "./src/ModelRunner.ts"
+    },
+    "./chat": {
+      "types": "./src/ChatService.ts",
+      "import": "./src/ChatService.ts"
+    },
+    "./options": {
+      "types": "./src/Options.ts",
+      "import": "./src/Options.ts"
+    },
+    "./session": {
+      "types": "./src/SessionOrchestrator.ts",
+      "import": "./src/SessionOrchestrator.ts"
+    },
+    "./stats": {
+      "types": "./src/StatsManager.ts",
+      "import": "./src/StatsManager.ts"
+    },
+    "./knowledge": {
+      "types": "./src/KnowledgeManager.ts",
+      "import": "./src/KnowledgeManager.ts"
+    },
+    "./approval": {
+      "types": "./src/ApprovalService.ts",
+      "import": "./src/ApprovalService.ts"
+    },
+    "./coordinator": {
+      "types": "./src/CognitiveCoordinator.ts",
+      "import": "./src/CognitiveCoordinator.ts"
+    },
+    "./logger": {
+      "types": "./src/Logger.ts",
+      "import": "./src/Logger.ts"
+    },
+    "./helpers": {
+      "types": "./src/helpers.ts",
+      "import": "./src/helpers.ts"
+    },
+    "./command-types": {
+      "types": "./src/command-types.ts",
+      "import": "./src/command-types.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ai": "^7.0.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.19"
+  }
+}

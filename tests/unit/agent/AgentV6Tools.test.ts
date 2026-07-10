@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
-import { buildAgentTools } from '../../../agent/src';
+import { buildAgentTools } from '@senars/nar/agent';
 
 function callTool(
   tools: Record<string, unknown>,

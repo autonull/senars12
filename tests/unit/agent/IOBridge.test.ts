@@ -17,12 +17,12 @@ import {
   createSessionBinder,
   originExtractor,
   resolveSessionKey,
-} from '../../../agent/src';
+} from '@senars/nar/agent';
 import { SeNARSFactory } from '../../../nar/src';
 import { createMockLMService } from '../../../nar/src/lm';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
 import type { Connection, IOMessage, Logger, NAR } from '../../../src';
-import { AuthManager, CommandRegistry, MessageRouter } from '../../../src/io';
+import { AuthManager, CommandRegistry, MessageRouter } from '@senars/io';
 
 const scriptedLM = createMockLMService({
   available: true,

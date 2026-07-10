@@ -1,0 +1,82 @@
+{
+  "name": "@senars/io",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./types": {
+      "types": "./src/types.ts",
+      "import": "./src/types.ts"
+    },
+    "./connection-manager": {
+      "types": "./src/connection-manager.ts",
+      "import": "./src/connection-manager.ts"
+    },
+    "./router": {
+      "types": "./src/router.ts",
+      "import": "./src/router.ts"
+    },
+    "./auth": {
+      "types": "./src/auth.ts",
+      "import": "./src/auth.ts"
+    },
+    "./connections/base": {
+      "types": "./src/connections/base.ts",
+      "import": "./src/connections/base.ts"
+    },
+    "./connections/cli": {
+      "types": "./src/connections/cli.ts",
+      "import": "./src/connections/cli.ts"
+    },
+    "./connections/irc": {
+      "types": "./src/connections/irc.ts",
+      "import": "./src/connections/irc.ts"
+    },
+    "./connections/ws": {
+      "types": "./src/connections/ws.ts",
+      "import": "./src/connections/ws.ts"
+    },
+    "./connections/http": {
+      "types": "./src/connections/http.ts",
+      "import": "./src/connections/http.ts"
+    },
+    "./connections/mcp": {
+      "types": "./src/connections/mcp.ts",
+      "import": "./src/connections/mcp.ts"
+    },
+    "./connections/reply-target": {
+      "types": "./src/connections/reply-target.ts",
+      "import": "./src/connections/reply-target.ts"
+    },
+    "./commands/registry": {
+      "types": "./src/commands/registry.ts",
+      "import": "./src/commands/registry.ts"
+    },
+    "./commands/connection": {
+      "types": "./src/commands/connection.ts",
+      "import": "./src/commands/connection.ts"
+    },
+    "./commands/auth": {
+      "types": "./src/commands/auth.ts",
+      "import": "./src/commands/auth.ts"
+    },
+    "./utils/http": {
+      "types": "./src/utils/http.ts",
+      "import": "./src/utils/http.ts"
+    },
+    "./utils/websocket": {
+      "types": "./src/utils/websocket.ts",
+      "import": "./src/utils/websocket.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@senars/core": "workspace:*"
+  }
+}

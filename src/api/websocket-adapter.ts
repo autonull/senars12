@@ -12,7 +12,7 @@ import {
   createWSClient,
   subscribeToEvents,
   unsubscribeFromEvents,
-} from '../io/utils/websocket.js';
+} from '@senars/io/utils/websocket';
 import { UnifiedAdapter, errorResponse, successResponse } from './unified-adapter.js';
 
 interface WSMessage {

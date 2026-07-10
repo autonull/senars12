@@ -1,5 +1,5 @@
 import type { WebSocket } from 'ws';
-import type { Agent } from '../../../agent/src/types.js';
+import type { Agent } from '../../../nar/src/agent/index.js';
 import type { GraphNodeData, GraphOp, IncomingFromServer, Lens } from '../shared/protocol.js';
 import type { LensSpec } from '../shared/lens-schema.js';
 import { LENS_FIELDS } from '../shared/constants.js';

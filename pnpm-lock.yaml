@@ -157,17 +157,30 @@ importers:
         specifier: ^4.1.9
         version: 4.1.9(@opentelemetry/api@1.9.0)(@types/node@22.19.19)(vite@6.4.3(@types/node@22.19.19)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.0))
 
-  agent:
+  core:
     dependencies:
-      '@senars/nar':
-        specifier: workspace:*
-        version: link:../nar
+      ai:
+        specifier: ^7.0.2
+        version: 7.0.2(zod@4.4.3)
       zod:
         specifier: ^4.4.3
         version: 4.4.3
+    devDependencies:
+      '@types/node':
+        specifier: ^22.19.19
+        version: 22.19.19
+
+  io:
+    dependencies:
+      '@senars/core':
+        specifier: workspace:*
+        version: link:../core
 
   metta:
     dependencies:
+      '@senars/core':
+        specifier: workspace:*
+        version: link:../core
       effect:
         specifier: ^3.0.0
         version: 3.21.4
@@ -199,6 +212,12 @@ importers:
       '@js-temporal/polyfill':
         specifier: ^0.5.1
         version: 0.5.1
+      '@senars/core':
+        specifier: workspace:*
+        version: link:../core
+      '@senars/io':
+        specifier: workspace:*
+        version: link:../io
       zod:
         specifier: ^4.4.3
         version: 4.4.3

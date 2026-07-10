@@ -11,7 +11,7 @@ import type { ZodSchema } from 'zod';
 import type {
   EventBus as AgentEventBus,
   EventMap as AgentEventMap,
-} from '../../../agent/src/EventBus.js';
+} from '../agent/EventBus.js';
 
 const defaultStats = (): LMExecutionStats => ({
   totalCalls: 0,

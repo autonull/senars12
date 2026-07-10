@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { URL } from 'node:url';
 import { errMsg } from '../../nar/src/utils';
-import { ApiKeyManager, parseHttpBody, setCORSHeaders } from '../io/utils/http.js';
+import { ApiKeyManager, parseHttpBody, setCORSHeaders } from '@senars/io/utils/http';
 import { UnifiedAdapter, errorResponse, successResponse } from './unified-adapter.js';
 
 export interface HTTPAdapterConfig {

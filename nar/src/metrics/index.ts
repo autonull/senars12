@@ -75,7 +75,9 @@ function aggregateStats(currentAvg: number, count: number, value: number): numbe
   return count > 0 ? (currentAvg * (count - 1) + value) / count : value;
 }
 
-export class MetricsCollector {
+import type { Metrics as CoreMetrics } from '@senars/core';
+
+export class MetricsCollector implements CoreMetrics {
   private startTime: number = Date.now();
   private ruleStats: Map<string, RuleStats> = new Map();
   private memoryStats: MemoryStats | null = null;
@@ -212,6 +214,24 @@ export class MetricsCollector {
       throughput: this.getThroughputStats(),
       system: this.getSystemMetrics(),
     };
+  }
+
+  // Core Metrics interface conformance
+  increment(name: string, value = 1, tags?: Record<string, unknown>): void {
+    if (name === 'derivation') this.incrementDerivations(value);
+    else if (name === 'step') this.incrementSteps(value);
+    else if (name === 'error') this.recordError();
+    else if (name === 'warning') this.recordWarning();
+  }
+
+  gauge(name: string, value: number, tags?: Record<string, unknown>): void {
+    if (name === 'concepts' && tags?.count) {
+      this.updateMemoryStats({ conceptCount: value, beliefCount: 0, goalCount: 0, questionCount: 0, activationDistribution: { min: 0, max: 0, average: 0 }, forgettingRate: 0 });
+    }
+  }
+
+  histogram(name: string, value: number, tags?: Record<string, unknown>): void {
+    // no-op for now; reserved for future latency distributions
   }
 
   reset(): void {

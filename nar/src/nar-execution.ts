@@ -1,4 +1,4 @@
-import type { EventBus } from '../../agent/src';
+import type { EventBus } from './agent/index.js';
 import type { CognitiveController } from './cognitive';
 import type { DriveManager } from './drives';
 import { createLogger } from './logger';

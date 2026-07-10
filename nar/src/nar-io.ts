@@ -1,5 +1,5 @@
 import { promises as fs } from 'node:fs';
-import type { EventBus as AgentEventBus } from '../../agent/src/EventBus.js';
+import type { EventBus as AgentEventBus } from './agent/EventBus.js';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
 import type { Memory } from './memory';
 import type { NARConfig } from './nar';

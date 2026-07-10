@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { errMsg } from '../../../nar/src/utils';
-import type { Agent } from '../../../agent/src/types.js';
+import type { Agent } from '../../../nar/src/agent/index.js';
 import type { IncomingFromServer } from '../shared/protocol.js';
 import { consumePendingChatResponse } from './gateway.js';
 

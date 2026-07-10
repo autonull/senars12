@@ -1,98 +1,38 @@
+import { BaseComponent as CoreBaseComponent } from '@senars/core';
+import type { ComponentContext as CoreComponentContext } from '@senars/core';
 import { type Logger, createLogger } from '../logger';
 import { MetricsCollector } from '../metrics';
-import { EventBus } from '../types';
+import { EventBus as NarEventBus } from '../types/events.js';
 
-export type ComponentState = 'created' | 'initialized' | 'started' | 'stopped' | 'disposed';
+export type { ComponentState } from '@senars/core';
+export type { CoreComponentContext as ComponentContext };
 
-export interface ComponentContext {
-  readonly logger: Logger;
-  readonly metrics: MetricsCollector;
-  readonly eventBus: EventBus;
-}
-
-const VALID_TRANSITIONS: Record<ComponentState, ComponentState[]> = {
-  created: ['initialized', 'disposed'],
-  initialized: ['started', 'disposed'],
-  started: ['stopped', 'disposed'],
-  stopped: ['started', 'disposed'],
-  disposed: [],
-};
-
-export abstract class BaseComponent {
+export abstract class BaseComponent extends CoreBaseComponent {
   private readonly _logger: Logger;
   private readonly _metrics: MetricsCollector;
-  private readonly _eventBus: EventBus;
+  private readonly _eventBus: NarEventBus;
 
-  constructor(context?: Partial<ComponentContext>) {
-    this._logger = context?.logger ?? createLogger({ scope: this.constructor.name });
-    this._metrics = context?.metrics ?? new MetricsCollector();
-    this._eventBus = context?.eventBus ?? new EventBus();
-  }
-
-  private _state: ComponentState = 'created';
-
-  get state(): ComponentState {
-    return this._state;
-  }
-
-  get logger(): Logger {
+  override get logger(): Logger {
     return this._logger;
   }
 
-  get metrics(): MetricsCollector {
+  override get metrics(): MetricsCollector {
     return this._metrics;
   }
 
-  get eventBus(): EventBus {
+  override get eventBus(): NarEventBus {
     return this._eventBus;
   }
 
-  async initialize(): Promise<void> {
-    if (this._state !== 'created') {
-      throw new Error(`Cannot initialize component in state: ${this._state}`);
-    }
-    this.setState('initialized');
-  }
+  constructor(context?: Partial<CoreComponentContext>) {
+    const logger: Logger = (context?.logger as Logger) ?? createLogger({ scope: 'Component' });
+    const metrics: MetricsCollector = (context?.metrics as unknown as MetricsCollector) ?? new MetricsCollector();
+    const eventBus: NarEventBus = (context?.eventBus as unknown as NarEventBus) ?? new NarEventBus();
 
-  async start(): Promise<void> {
-    if (this._state !== 'initialized') {
-      throw new Error(`Cannot start component in state: ${this._state}`);
-    }
-    this.setState('started');
-  }
+    super({ logger, metrics, eventBus } as CoreComponentContext);
 
-  async stop(): Promise<void> {
-    if (this._state !== 'started') {
-      throw new Error(`Cannot stop component in state: ${this._state}`);
-    }
-    this.setState('stopped');
-  }
-
-  async dispose(): Promise<void> {
-    if (this._state === 'disposed') {
-      return;
-    }
-    if (this._state === 'started') {
-      await this.stop();
-    }
-    this.setState('disposed');
-  }
-
-  isRunning(): boolean {
-    return this._state === 'started';
-  }
-
-  isInitialized(): boolean {
-    return this._state === 'initialized' || this._state === 'started';
-  }
-
-  protected setState(state: ComponentState): void {
-    const validTransitions = VALID_TRANSITIONS[this._state];
-    if (!validTransitions.includes(state)) {
-      throw new Error(
-        `Invalid state transition from ${this._state} to ${state}. Valid transitions: ${validTransitions.join(', ')}`
-      );
-    }
-    this._state = state;
+    this._logger = logger;
+    this._metrics = metrics;
+    this._eventBus = eventBus;
   }
 }

@@ -4,7 +4,7 @@ import {
   type ConversationSession,
   createAgent,
   createSession,
-} from '../../agent/src';
+} from '@senars/nar/agent';
 import type { NAR } from '../../nar/src';
 import { SeNARSFactory } from '../../nar/src';
 import type { LMService } from '../../nar/src/lm';

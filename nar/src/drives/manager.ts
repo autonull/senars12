@@ -1,4 +1,4 @@
-import type { EventBus as AgentEventBus } from '../../../agent/src/EventBus.js';
+import type { EventBus as AgentEventBus } from '../agent/EventBus.js';
 import type { NAR } from '../nar.js';
 import { clamp01 } from '../utils';
 import { BUILTIN_DRIVES } from './builtin.js';

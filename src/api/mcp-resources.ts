@@ -1,4 +1,4 @@
-import type { Agent } from '../../agent/src';
+import type { Agent } from '@senars/nar/agent';
 import type { NAR } from '../../nar/src';
 import type { EnhancedMCPAdapter } from './mcp';
 

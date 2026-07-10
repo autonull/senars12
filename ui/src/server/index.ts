@@ -2,7 +2,7 @@ import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { type WebSocket, WebSocketServer } from 'ws';
-import type { Agent } from '../../../agent/src/types.js';
+import type { Agent } from '../../../nar/src/agent/index.js';
 import type { NAR } from '../../../nar/src/nar.js';
 import { errMsg } from '../../../nar/src/utils';
 import type { LensSpec } from '../shared/lens-schema.js';
@@ -134,7 +134,7 @@ function bindSocket(
 
 async function main(): Promise<void> {
   const { SeNARSFactory } = await import('../../../nar/src/factory.js');
-  const { createAgent } = await import('../../../agent/src/agent.js');
+  const { createAgent } = await import('../../../nar/src/agent/agent.js');
   const { DEFAULT_NAR_CONFIG } = await import('../../../src/config/index.js');
 
   const nar = SeNARSFactory.createDefault({ ...DEFAULT_NAR_CONFIG });

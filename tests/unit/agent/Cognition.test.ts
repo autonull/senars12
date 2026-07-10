@@ -9,12 +9,12 @@ import {
   createAgent,
   createSession,
   createStreamingAgentDispatch,
-} from '../../../agent/src';
+} from '@senars/nar/agent';
 import { createMockLMService } from '../../../nar/src/lm';
 import type { Logger } from '../../../nar/src/logger';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
-import { MessageRouter } from '../../../src/io';
-import type { Connection, IOMessage } from '../../../src/io/types.js';
+import { MessageRouter } from '@senars/io';
+import type { Connection, IOMessage } from '@senars/io';
 
 const scriptedLM = createMockLMService({
   available: true,
