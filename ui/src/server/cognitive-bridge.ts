@@ -1,5 +1,7 @@
 import type { AgentCapabilities, CognitiveEvent, CognitiveEventSource } from '@senars/core';
+import { type NAR, termParser } from '@senars/nar';
 import type { WebSocket } from 'ws';
+import { LENS_FIELDS } from '../shared/constants.js';
 import type { LensSpec } from '../shared/lens-schema.js';
 import type {
   ConfigFieldType,
@@ -11,8 +13,6 @@ import type {
 import { DEFAULT_PROJECTION } from './config.js';
 import { lensRegistry } from './gateway.js';
 import { computeActiveSubgraph } from './projection.js';
-import { termParser } from '@senars/nar';
-import { LENS_FIELDS } from '../shared/constants.js';
 
 interface ConceptLike {
   id: string;
@@ -52,7 +52,7 @@ interface RelationLink {
   type: 'inheritance' | 'similarity' | 'instance';
 }
 
-const COPULA_RE = /<(.+?)\s*(-->|<->|\{--|--]|{-]|=->)\s*(.+?)>/g;
+const COPULA_RE = /[(<](.+?)\s*(-->|<->|\{--|--]|{-]|=->)\s*(.+?)[>)]/g;
 
 function parseRelations(input: string): RelationLink[] {
   const links: RelationLink[] = [];
@@ -92,14 +92,20 @@ function addRelationEdges(state: BridgeState, ops: GraphOp[], input: string): vo
 
 function deriveRelationEdges(state: BridgeState): GraphOp[] {
   const ops: GraphOp[] = [];
+  const seenNodes = new Set<string>();
   for (const concept of state.concepts.values()) {
     if (concept.nodeType !== 'nar:concept') continue;
     const rels = parseRelations(concept.label);
-    if (rels.length) console.error('[bridge] derive rel for', concept.label, rels);
     for (const rel of rels) {
-      if (state.concepts.has(rel.subject) && state.concepts.has(rel.predicate)) {
-        ops.push(createEdgeOp(rel.subject, rel.predicate, 0.6, rel.type));
+      if (!state.concepts.has(rel.subject) || !state.concepts.has(rel.predicate)) continue;
+      for (const ep of [rel.subject, rel.predicate]) {
+        if (!seenNodes.has(ep)) {
+          seenNodes.add(ep);
+          const endpoint = state.concepts.get(ep);
+          if (endpoint) ops.push(createNodeOp(ep, toGraphNodeData(endpoint)));
+        }
       }
+      ops.push(createEdgeOp(rel.subject, rel.predicate, 0.6, rel.type));
     }
   }
   return ops;
@@ -248,7 +254,6 @@ function projectCognitiveEvent(event: CognitiveEvent, state: BridgeState): Graph
     }
 
     case 'input': {
-      console.error('[bridge] input event term=', event.term);
       const inputId = `input:${event.term}:${Date.now()}`;
       const concept: ConceptLike = {
         id: inputId,
@@ -380,24 +385,25 @@ export class CognitiveBridge {
     this.#nar = nar;
   }
 
+  #onEvent = (event: CognitiveEvent): void => {
+    const ops = projectCognitiveEvent(event, this.#state);
+    if (ops.length > 0) this.#sendDelta(ops);
+  };
+
   mount(source: CognitiveEventSource, sendFn: (msg: IncomingFromServer) => void): void {
-    this.#eventSource = source;
+    if (this.#eventSource !== source) {
+      this.unmount();
+      this.#eventSource = source;
+      source.on('*', this.#onEvent);
+    }
     this.#sendFn = sendFn;
     this.#capabilities = source.capabilities();
-
-    source.on('*', (event) => {
-      const ops = projectCognitiveEvent(event, this.#state);
-      if (ops.length > 0) {
-        this.#sendDelta(ops);
-      }
-    });
-
     this.#startTelemetry();
   }
 
   unmount(): void {
     if (this.#eventSource) {
-      this.#eventSource.off('*', () => {});
+      this.#eventSource.off('*', this.#onEvent);
     }
     this.#eventSource = null;
     this.#sendFn = null;
@@ -407,15 +413,31 @@ export class CognitiveBridge {
     }
   }
 
-syncFromNAR(): void {
+  syncFromNAR(): void {
     if (!this.#nar) return;
     try {
+      const nar = this.#nar;
       const ops: GraphOp[] = [];
-      for (const concept of this.#nar.listConcepts()) {
+      const ensureRelConcept = (endpoint: string): void => {
+        if (this.#state.concepts.has(endpoint)) return;
+        const priority = this.#lookupConceptPriority(endpoint);
+        const conceptLike: ConceptLike = {
+          id: endpoint,
+          label: endpoint,
+          priority,
+          confidence: 0.9,
+          nodeType: 'nar:concept',
+          isContradiction: false,
+        };
+        this.#state.concepts.set(endpoint, conceptLike);
+        ops.push(createNodeOp(endpoint, toGraphNodeData(conceptLike)));
+      };
+
+      for (const concept of nar.listConcepts()) {
         const term = concept.term.toString();
         const rels = parseRelations(term);
         if (rels.length === 0) continue;
-        // Ensure the relation concept itself exists in state
+
         if (!this.#state.concepts.has(term)) {
           const conceptLike: ConceptLike = {
             id: term,
@@ -428,81 +450,27 @@ syncFromNAR(): void {
           this.#state.concepts.set(term, conceptLike);
           ops.push(createNodeOp(term, toGraphNodeData(conceptLike)));
         }
-        // Create endpoint nodes and edges
+
         for (const rel of rels) {
-          if (!this.#state.concepts.has(rel.subject)) {
-            let subjectConcept = null;
-            try {
-              subjectConcept = this.#nar.getConcept(termParser.parseTerm(rel.subject));
-            } catch {
-              // Ignore parse errors
-            }
-            if (subjectConcept) {
-              const conceptLike: ConceptLike = {
-                id: rel.subject,
-                label: rel.subject,
-                priority: subjectConcept.priority,
-                confidence: 0.9,
-                nodeType: 'nar:concept',
-                isContradiction: false,
-              };
-              this.#state.concepts.set(rel.subject, conceptLike);
-              ops.push(createNodeOp(rel.subject, toGraphNodeData(conceptLike)));
-            } else {
-              // Fallback: create with default values
-              const conceptLike: ConceptLike = {
-                id: rel.subject,
-                label: rel.subject,
-                priority: 0.5,
-                confidence: 0.9,
-                nodeType: 'nar:concept',
-                isContradiction: false,
-              };
-              this.#state.concepts.set(rel.subject, conceptLike);
-              ops.push(createNodeOp(rel.subject, toGraphNodeData(conceptLike)));
-            }
-          }
-          if (!this.#state.concepts.has(rel.predicate)) {
-            let predicateConcept = null;
-            try {
-              predicateConcept = this.#nar.getConcept(termParser.parseTerm(rel.predicate));
-            } catch {
-              // Ignore parse errors
-            }
-            if (predicateConcept) {
-              const conceptLike: ConceptLike = {
-                id: rel.predicate,
-                label: rel.predicate,
-                priority: predicateConcept.priority,
-                confidence: 0.9,
-                nodeType: 'nar:concept',
-                isContradiction: false,
-              };
-              this.#state.concepts.set(rel.predicate, conceptLike);
-              ops.push(createNodeOp(rel.predicate, toGraphNodeData(conceptLike)));
-            } else {
-              // Fallback: create with default values
-              const conceptLike: ConceptLike = {
-                id: rel.predicate,
-                label: rel.predicate,
-                priority: 0.5,
-                confidence: 0.9,
-                nodeType: 'nar:concept',
-                isContradiction: false,
-              };
-              this.#state.concepts.set(rel.predicate, conceptLike);
-              ops.push(createNodeOp(rel.predicate, toGraphNodeData(conceptLike)));
-            }
-          }
+          ensureRelConcept(rel.subject);
+          ensureRelConcept(rel.predicate);
           ops.push(createEdgeOp(rel.subject, rel.predicate, 0.6, rel.type));
         }
       }
-    }
-    if (ops.length > 0) {
-      this.#sendDelta(ops);
-    }
-} catch (err) {
+
+      if (ops.length > 0) this.#sendDelta(ops);
+    } catch (err) {
       console.error('[bridge] syncFromNAR error:', err);
+    }
+  }
+
+  #lookupConceptPriority(term: string): number {
+    if (!this.#nar) return 0.5;
+    try {
+      const concept = this.#nar.getConcept(termParser.parse(term));
+      return concept?.priority ?? 0.5;
+    } catch {
+      return 0.5;
     }
   }
 

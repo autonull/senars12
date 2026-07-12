@@ -12,7 +12,9 @@ type SenarsFixtures = {
 };
 
 export const test = base.extend<SenarsFixtures>({
-  testControl: async (use) => {
+  // Playwright requires the first arg to be a destructuring pattern; this fixture has no deps.
+  // biome-ignore lint/correctness/noEmptyPattern: empty destructuring is required for dependency-less fixtures
+  testControl: async ({}, use) => {
     const context = await request.newContext();
     const control = new TestControl(context);
     await control.reset();

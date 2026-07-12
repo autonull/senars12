@@ -10,5 +10,6 @@ export async function bootstrapNAR(nar: NAR): Promise<void> {
   for (const belief of BOOTSTRAP_BELIEFS) {
     await nar.believe(belief);
   }
-  await nar.run(5);
+  // Run a few reasoning cycles to generate edges from bootstrap relations
+  await nar.run(3);
 }

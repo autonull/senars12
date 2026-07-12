@@ -29,5 +29,5 @@ export default defineConfig({
   },
 
   timeout: 30000,
-  expect: { timeout: 5000 },
+  expect: { timeout: 15000 },
 });

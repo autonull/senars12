@@ -8,8 +8,8 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['ui/tests/**/*.test.ts', 'ui/tests/**/*.bench.ts'],
-    exclude: ['node_modules/**', 'ui/tests/scenarios/**'],
+    include: ['tests/**/*.test.ts'],
+    exclude: ['node_modules/**', 'tests/scenarios/**', 'tests/**/*.bench.ts'],
     environment: 'node',
     globals: true,
     benchmark: {

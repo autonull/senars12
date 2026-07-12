@@ -15,29 +15,30 @@ test.describe('Relational Gate: auto-link', () => {
     const initialEdgeCount = await testApi.getGraphEdgeCount();
 
     // Send multi-clause input that NAR can parse as Narsese
+    // Use concepts NOT in bootstrap to ensure new nodes are created
     const textarea = page.locator('input-hud textarea');
     await expect(textarea).toBeVisible({ timeout: 5000 });
-    // <bird --> animal> ; <robin --> bird> creates an inheritance chain
-    await textarea.type('<bird --> animal>. ; <robin --> bird>.');
+    // <cat --> mammal> ; <siamese --> cat> creates an inheritance chain with new concepts
+    await textarea.type('<cat --> mammal>. ; <siamese --> cat>.');
     await page.keyboard.press('Enter');
 
-    // Wait for new nodes to appear (at least 2 new concepts)
+    // Wait for new nodes to appear (at least 3: cat, mammal, siamese + input node)
     await expect
       .poll(() => testApi.getGraphNodeCount())
-      .toBeGreaterThan(initialNodeCount + 1, { timeout: 15000 });
+      .toBeGreaterThan(initialNodeCount + 2, { timeout: 15000 });
 
-    // Wait for edges to appear (at least 1 new edge from inheritance)
+    // Wait for edges to appear (at least 2 new edges from inheritance)
     await expect
       .poll(() => testApi.getGraphEdgeCount())
-      .toBeGreaterThan(initialEdgeCount, { timeout: 15000 });
+      .toBeGreaterThan(initialEdgeCount + 1, { timeout: 15000 });
 
-    // Verify at least 2 additional nodes were added
+    // Verify at least 3 additional nodes were added (cat, mammal, siamese + input node)
     const finalNodeCount = await testApi.getGraphNodeCount();
-    expect(finalNodeCount).toBeGreaterThanOrEqual(initialNodeCount + 2);
+    expect(finalNodeCount).toBeGreaterThanOrEqual(initialNodeCount + 3);
 
-    // Verify at least 1 edge auto-created (inheritance links)
+    // Verify at least 2 edges auto-created (inheritance links)
     const finalEdgeCount = await testApi.getGraphEdgeCount();
-    expect(finalEdgeCount).toBeGreaterThanOrEqual(initialEdgeCount + 1);
+    expect(finalEdgeCount).toBeGreaterThanOrEqual(initialEdgeCount + 2);
   });
 
   test('NL multi-clause sentence produces concepts via NL understanding', async ({

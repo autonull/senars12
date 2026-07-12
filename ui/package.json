@@ -22,6 +22,7 @@
     "start": "node dist/server/index.js",
     "start:test": "pnpm build:client:test && NODE_ENV=test tsx src/server/index.ts",
     "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
     "test:e2e": "playwright test --config tests/playwright.config.ts",
     "test:e2e:ui": "playwright test --config tests/playwright.config.ts --ui",
     "test:e2e:debug": "playwright test --config tests/playwright.config.ts --debug",
