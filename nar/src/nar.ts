@@ -408,6 +408,16 @@ export class NAR extends BaseComponent {
     return this.query.getBeliefs(filter);
   }
 
+  getRevisionHistory(term: Term): Array<{
+    truth: { frequency: number; confidence: number };
+    stampId: string;
+    timestamp: number;
+    source: 'input' | 'derivation' | 'revision' | 'inference';
+  }> {
+    const key = term.toString();
+    return this.memory.getRevisionHistory(key);
+  }
+
   getGoals(filter?: Record<string, unknown>): Task[] {
     return this.query.getGoals(filter);
   }

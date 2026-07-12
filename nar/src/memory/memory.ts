@@ -52,6 +52,14 @@ const DEFAULT_CONFIG: Required<MemoryConfig> = {
   linkDecayRate: 0.001,
 };
 
+export interface RevisionEntry {
+  term: string;
+  truth: { frequency: number; confidence: number };
+  stampId: string;
+  timestamp: number;
+  source: 'input' | 'derivation' | 'revision' | 'inference';
+}
+
 export interface MemoryStatistics {
   totalConcepts: number;
   totalTasks: number;
@@ -75,6 +83,8 @@ export class Memory {
   private readonly consolidation: MemoryConsolidation;
   private readonly forgetting: Forgetting;
   private readonly linkManager: LinkManager;
+  private readonly revisionLog: RevisionEntry[] = [];
+  private lastRevisionTs = 0;
   private cyclesSinceConsolidation = 0;
   private lastTimestamp = Date.now();
   private readonly healthCheckInterval: number;
@@ -199,12 +209,18 @@ export class Memory {
 
     if (this.concepts.size >= this.config.maxConcepts) this.applyForgetting();
 
-    const concept = new Concept(term);
+    const concept = new Concept(term, { onRevision: (entry) => this.recordRevision(entry) });
     this.concepts.set(term, concept);
 
     if (this.config.enableIndexing) this.index.index(concept, this.lastTimestamp);
     this.updateFocus(concept);
     return concept;
+  }
+
+  private recordRevision(entry: RevisionEntry): void {
+    const ts = Math.max(entry.timestamp, this.lastRevisionTs + 1);
+    this.lastRevisionTs = ts;
+    this.revisionLog.push({ ...entry, timestamp: ts });
   }
 
   addTask(
@@ -215,7 +231,14 @@ export class Memory {
     stamp?: Stamp
   ): boolean {
     const concept = this.getConcept(term) ?? this.addConcept(term);
-    return concept.addTask(type, { term, truth, budget, stamp: stamp ?? Stamp.createInput() });
+    const createdStamp = stamp ?? Stamp.createInput();
+    return concept.addTask(type, { term, truth, budget, stamp: createdStamp });
+  }
+
+  getRevisionHistory(term: string): RevisionEntry[] {
+    return this.revisionLog
+      .filter((entry) => entry.term === term)
+      .sort((a, b) => b.timestamp - a.timestamp);
   }
 
   removeConcept(term: Term): boolean {

@@ -90,21 +90,13 @@ function addRelationEdges(state: BridgeState, ops: GraphOp[], input: string): vo
   }
 }
 
-function deriveRelationEdges(state: BridgeState): GraphOp[] {
+function deriveRelationEdges(state: BridgeState, projected: Set<string>): GraphOp[] {
   const ops: GraphOp[] = [];
-  const seenNodes = new Set<string>();
   for (const concept of state.concepts.values()) {
     if (concept.nodeType !== 'nar:concept') continue;
     const rels = parseRelations(concept.label);
     for (const rel of rels) {
-      if (!state.concepts.has(rel.subject) || !state.concepts.has(rel.predicate)) continue;
-      for (const ep of [rel.subject, rel.predicate]) {
-        if (!seenNodes.has(ep)) {
-          seenNodes.add(ep);
-          const endpoint = state.concepts.get(ep);
-          if (endpoint) ops.push(createNodeOp(ep, toGraphNodeData(endpoint)));
-        }
-      }
+      if (!projected.has(rel.subject) || !projected.has(rel.predicate)) continue;
       ops.push(createEdgeOp(rel.subject, rel.predicate, 0.6, rel.type));
     }
   }
@@ -289,16 +281,38 @@ function scoreForLens(concept: ConceptLike, lens: Lens): number {
   }
 }
 
+type ProjectionNode = Parameters<typeof computeActiveSubgraph>[0][number];
+
+function toProjectionInput(concepts: ConceptLike[]): ProjectionNode[] {
+  return concepts.map((c) => ({
+    term: c.id,
+    priority: c.priority,
+    confidence: c.confidence,
+    getLinks: c.getLinks ?? (() => []),
+  }));
+}
+
 function buildFullGraph(
   state: BridgeState,
   lens?: Lens
 ): { ops: GraphOp[]; meta?: { truncated: boolean; totalHidden: number } } {
   const concepts = [...state.concepts.values()];
 
+  const focusIds = state.focusTerm
+    ? new Set(
+        computeActiveSubgraph(
+          toProjectionInput(concepts),
+          state.focusTerm,
+          DEFAULT_PROJECTION
+        ).nodes.map((n) => n.id)
+      )
+    : null;
+
   if (lens) {
     const scored = concepts
       .map((c) => ({ concept: c, score: scoreForLens(c, lens) }))
       .sort((a, b) => b.score - a.score)
+      .filter((s) => !focusIds || focusIds.has(s.concept.id))
       .slice(0, DEFAULT_PROJECTION.maxNodes);
 
     const nodeIds = new Set(scored.map((s) => s.concept.id));
@@ -317,7 +331,7 @@ function buildFullGraph(
 
     const truncated = concepts.length > DEFAULT_PROJECTION.maxNodes;
     return {
-      ops: [...ops, ...deriveRelationEdges(state)],
+      ops: [...ops, ...deriveRelationEdges(state, nodeIds)],
       meta: truncated
         ? { truncated: true, totalHidden: concepts.length - scored.length }
         : undefined,
@@ -325,35 +339,28 @@ function buildFullGraph(
   }
 
   const proj = computeActiveSubgraph(
-    concepts.map((c) => ({
-      term: c.id,
-      priority: c.priority,
-      confidence: c.confidence,
-      getLinks: c.getLinks ?? (() => []),
-    })),
+    toProjectionInput(concepts),
     state.focusTerm,
     DEFAULT_PROJECTION
   );
 
   const nodeIds = new Set(proj.nodes.map((n) => n.id));
   const ops: GraphOp[] = [
-    ...proj.nodes
-      .filter((n) => nodeIds.has(n.id))
-      .map((n) =>
-        createNodeOp(
-          n.id,
-          toGraphNodeData({
-            id: n.id,
-            label: n.id,
-            priority: n.priority,
-            confidence: n.confidence,
-            nodeType: 'nar:concept',
-            isContradiction: false,
-          })
-        )
-      ),
+    ...proj.nodes.map((n) =>
+      createNodeOp(
+        n.id,
+        toGraphNodeData({
+          id: n.id,
+          label: n.id,
+          priority: n.priority,
+          confidence: n.confidence,
+          nodeType: 'nar:concept',
+          isContradiction: false,
+        })
+      )
+    ),
     ...proj.edges.map((e) => createEdgeOp(e.source, e.target, e.weight)),
-    ...deriveRelationEdges(state),
+    ...deriveRelationEdges(state, nodeIds),
   ];
 
   return {
@@ -570,13 +577,18 @@ export class CognitiveBridge {
     }
   }
 
-  getRevisionHistory(_term: string): Array<{
+  getRevisionHistory(term: string): Array<{
     truth: { frequency: number; confidence: number };
     stampId: string;
     timestamp: number;
     source: 'input' | 'derivation' | 'revision' | 'inference';
   }> {
-    return [];
+    if (!this.#nar) return [];
+    try {
+      return this.#nar.getRevisionHistory(termParser.parse(term));
+    } catch {
+      return [];
+    }
   }
 
   getCapabilities(): AgentCapabilities | AgentCapabilities[] | null {
@@ -620,7 +632,12 @@ export class CognitiveBridge {
   }
 
   onNodeHistoryRequest(term: string): void {
-    this.#sendFn?.({ type: 'node.history', term, history: [] } as IncomingFromServer);
+    const history = this.getRevisionHistory(term);
+    this.#sendFn?.({
+      type: 'node.history',
+      term,
+      history,
+    } as IncomingFromServer);
   }
 
   onLensDefine(spec: LensSpec): void {

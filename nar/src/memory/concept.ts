@@ -9,6 +9,21 @@ import { Bag } from './bag.js';
 const DECAY_TIME_CONSTANT = 60000;
 const { DECAY_RATE, MIN_PRIORITY: MIN_LINK_STRENGTH } = LINK;
 
+export type RevisionCallback = (entry: {
+  term: string;
+  truth: { frequency: number; confidence: number };
+  stampId: string;
+  timestamp: number;
+  source: 'input' | 'revision';
+}) => void;
+
+export interface ConceptConfig {
+  maxBeliefs?: number;
+  maxGoals?: number;
+  maxQuestions?: number;
+  onRevision?: RevisionCallback;
+}
+
 export interface TaskData {
   readonly term: Term;
   readonly truth?: Truth;
@@ -45,6 +60,8 @@ export class Concept {
   private linkedConcepts = new TermMap<ConceptLink>();
   private subConcepts = new Set<Concept>();
   private parentConcepts = new Set<Concept>();
+  private _priority = 0;
+  private readonly onRevision?: RevisionCallback;
 
   constructor(term: Term, config: ConceptConfig = {}) {
     this.term = term;
@@ -54,9 +71,8 @@ export class Concept {
     this.createdAt = Date.now();
     this.lastAccessedAt = Date.now();
     this.lastDecayTime = Date.now();
+    this.onRevision = config.onRevision;
   }
-
-  private _priority = 0;
 
   get priority(): number {
     return this._priority;
@@ -153,7 +169,6 @@ export class Concept {
     return Array.from(this.linkedConcepts.values());
   }
 
-  // Deprecated: use getLinks() instead
   getLinkedConcepts(): Concept[] {
     return Array.from(this.linkedConcepts.values()).map((link) => link.concept);
   }
@@ -239,11 +254,29 @@ export class Concept {
         },
         data.budget.priority
       );
+      if (added && this.onRevision && existing.stamp) {
+        this.onRevision({
+          term: this.term.toString(),
+          truth: { frequency: revisedTruth.f, confidence: revisedTruth.c },
+          stampId: existing.stamp.id,
+          timestamp: Date.now(),
+          source: 'revision',
+        });
+      }
       added && this.recordAccess();
       return added;
     }
 
     const added = this.beliefBag.add(data, data.budget.priority);
+    if (added && this.onRevision && data.truth && data.stamp) {
+      this.onRevision({
+        term: this.term.toString(),
+        truth: { frequency: data.truth.f, confidence: data.truth.c },
+        stampId: data.stamp.id,
+        timestamp: Date.now(),
+        source: 'input',
+      });
+    }
     added && this.recordAccess();
     return added;
   }
@@ -278,10 +311,4 @@ export class Concept {
     const union = thisSet.size + otherSet.size - intersection;
     return union > 0 ? intersection / union : 0;
   }
-}
-
-interface ConceptConfig {
-  maxBeliefs?: number;
-  maxGoals?: number;
-  maxQuestions?: number;
 }

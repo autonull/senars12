@@ -35,214 +35,146 @@ export interface TestServer {
   address(): { port: number };
 }
 
-export async function startWebUI(source: CognitiveEventSource): Promise<TestServer> {
-  const bridge = createCognitiveBridge();
-  initLensRegistry();
-  const distRoot = path.join(__dirname, '..', '..', 'dist', 'client');
-  
-  // Create HTTP server
-  const handleHttp = createStaticHandler(distRoot);
+export interface StartUIOptions {
+  port?: number;
+  clientDist?: string;
+  nar?: NAR;
+  bootstrap?: boolean;
+}
 
-  const server = http.createServer(async (req, res) => {
-    const pathname = new URL(req.url ?? '/', `http://${req.headers.host}`).pathname;
-    if (pathname.startsWith('/test/')) {
-      res.writeHead(404);
-      res.end('Not found');
-      return;
-    }
-    return handleHttp(req, res);
-  });
+function defaultClientDist(): string {
+  return path.join(__dirname, '..', '..', 'dist', 'client');
+}
 
-  const wss = new WebSocketServer({ server });
-
-  const connections = new Set<WebSocket>();
-  function broadcast(msg: IncomingFromServer): void {
+function createBroadcast(connections: Set<WebSocket>): (msg: IncomingFromServer) => void {
+  return (msg) => {
     const payload = JSON.stringify(msg);
     for (const sock of connections) {
       if (sock.readyState === WebSocket.OPEN) sock.send(payload);
     }
-  }
-
-  bridge.mount(source, broadcast);
-
-  wss.on('connection', (socket: WebSocket) => {
-    connections.add(socket);
-    bindSocket(socket, bridge, source);
-    socket.on('close', () => connections.delete(socket));
-  });
-
-  return new Promise((resolve) => {
-    server.listen(DEFAULT_PORT, '0.0.0.0', () => {
-      console.log(`Backend (HTTP+WS) bound to 0.0.0.0:${DEFAULT_PORT}
-  Dev mode: Vite at http://localhost:5173 \u2192 proxies /ws and /test to :${DEFAULT_PORT}
-  Production: serves client from dist/; open http://0.0.0.0:${DEFAULT_PORT}`);
-      resolve({
-        close: () => new Promise<void>((done) => wss.close(() => server.close(() => done()))),
-        address: () => ({ port: DEFAULT_PORT }),
-      });
-    });
-  });
+  };
 }
 
-export async function startWebUIWithOptions(
+export async function startWebUI(
   source: CognitiveEventSource,
-  options: { port?: number; clientDist?: string } = {}
+  options: StartUIOptions = {},
 ): Promise<TestServer> {
-  const bridge = createCognitiveBridge();
-  const distRoot = options.clientDist ?? path.join(__dirname, '..', '..', 'dist', 'client');
-  
-  const handleHttp = createStaticHandler(distRoot);
-
-  const server = http.createServer(async (req, res) => {
-    const pathname = new URL(req.url ?? '/', `http://${req.headers.host}`).pathname;
-    if (pathname.startsWith('/test/')) {
-      res.writeHead(404);
-      res.end('Not found');
-      return;
-    }
-    return handleHttp(req, res);
-  });
-
-  const wss = new WebSocketServer({ server });
-
-  const connections = new Set<WebSocket>();
-  function broadcast(msg: IncomingFromServer): void {
-    const payload = JSON.stringify(msg);
-    for (const sock of connections) {
-      if (sock.readyState === WebSocket.OPEN) sock.send(payload);
-    }
-  }
-
-  bridge.mount(source, broadcast);
-
-  wss.on('connection', (socket: WebSocket) => {
-    connections.add(socket);
-    bindSocket(socket, bridge, source);
-    socket.on('close', () => connections.delete(socket));
-  });
-
-  return new Promise((resolve) => {
-    server.listen(options.port ?? DEFAULT_PORT, '0.0.0.0', () => {
-      console.log(`Backend (HTTP+WS) bound to 0.0.0.0:${options.port ?? DEFAULT_PORT}
-  Dev mode: Vite at http://localhost:5173 \u2192 proxies /ws and /test to :${options.port ?? DEFAULT_PORT}
-  Production: serves client from dist/; open http://0.0.0.0:${options.port ?? DEFAULT_PORT}`);
-      resolve({
-        close: () => new Promise<void>((done) => wss.close(() => server.close(() => done()))),
-        address: () => ({ port: options.port ?? DEFAULT_PORT }),
-      });
-    });
-  });
-}
-
-export async function startWebUIWithNAR(
-  nar: NAR,
-  source: CognitiveEventSource,
-  options: { port?: number; clientDist?: string; bootstrap?: boolean } = {}
-): Promise<TestServer> {
+  const { port = DEFAULT_PORT, clientDist, nar, bootstrap = true } = options;
   const bridge = createCognitiveBridge(nar);
   initLensRegistry();
-  const distRoot = options.clientDist ?? path.join(__dirname, '..', '..', 'dist', 'client');
+  const distRoot = clientDist ?? defaultClientDist();
 
-  // Create HTTP server FIRST so we have the broadcast function
   const handleHttp = createStaticHandler(distRoot);
   const testControlHandler = nar ? createTestControlHandler(nar) : null;
 
-  // Pause autonomy engine during bootstrap to avoid flooding events
-  const autonomy = withAutonomy(source).getAutonomyEngine?.();
+  const autonomy = nar ? withAutonomy(source).getAutonomyEngine?.() : undefined;
   autonomy?.pause();
 
   const server = http.createServer(async (req, res) => {
     const pathname = new URL(req.url ?? '/', `http://${req.headers.host}`).pathname;
-    if (pathname.startsWith('/test/')) {
-      if (pathname === '/test/reset' && req.method === 'POST') {
-        try {
-          const resetAutonomy = withAutonomy(source).getAutonomyEngine?.();
-          resetAutonomy?.pause();
+    if (!pathname.startsWith('/test/')) {
+      return handleHttp(req, res);
+    }
 
-          bridge.reset();
-          if (nar) {
-            nar.clearMemory();
-            await bootstrapNAR(nar);
-            bridge.syncFromNAR();
-          }
-
-          resetAutonomy?.resume();
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, message: 'Bridge and NAR reset' }));
-        } catch (e) {
-          res.writeHead(500);
-          res.end(JSON.stringify({ error: String(e) }));
-        }
+    if (pathname === '/test/reset' && req.method === 'POST') {
+      if (!nar) {
+        res.writeHead(404);
+        res.end('Not found');
         return;
       }
-      if (testControlHandler) {
-        return testControlHandler(req, res, pathname);
-      }
-      if (pathname === '/test/debug' && req.method === 'GET') {
+      try {
+        const resetAutonomy = withAutonomy(source).getAutonomyEngine?.();
+        resetAutonomy?.pause();
+
+        bridge.reset();
+        nar.clearMemory();
+        await bootstrapNAR(nar);
+        bridge.syncFromNAR();
+
+        resetAutonomy?.resume();
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          bridgeConcepts: bridge.listConcepts().length,
-          narConcepts: nar?.listConcepts().length,
-          bridgeEdges: bridge.listConcepts().reduce((sum, c) => sum + (c.getLinks?.()?.length ?? 0), 0),
-        }));
-        return;
+        res.end(JSON.stringify({ success: true, message: 'Bridge and NAR reset' }));
+      } catch (e) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: String(e) }));
       }
-      res.writeHead(404);
-      res.end('Not found');
       return;
     }
-    return handleHttp(req, res);
+
+    if (testControlHandler) {
+      return testControlHandler(req, res, pathname);
+    }
+
+    if (pathname === '/test/debug' && req.method === 'GET' && nar) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          bridgeConcepts: bridge.listConcepts().length,
+          narConcepts: nar.listConcepts().length,
+          bridgeEdges: bridge
+            .listConcepts()
+            .reduce((sum, c) => sum + (c.getLinks?.()?.length ?? 0), 0),
+        }),
+      );
+      return;
+    }
+
+    res.writeHead(404);
+    res.end('Not found');
   });
 
   const wss = new WebSocketServer({ server });
-
   const connections = new Set<WebSocket>();
-  function broadcast(msg: IncomingFromServer): void {
-    const payload = JSON.stringify(msg);
-    for (const sock of connections) {
-      if (sock.readyState === WebSocket.OPEN) sock.send(payload);
-    }
-  }
+  const broadcast = createBroadcast(connections);
 
-  // Mount bridge NOW so it captures bootstrap events
   bridge.mount(source, broadcast);
 
-  // Bootstrap NAR - bridge will capture events
-  if (options.bootstrap !== false) {
+  if (nar && bootstrap) {
     await bootstrapNAR(nar);
+    bridge.syncFromNAR();
   }
 
-  // Populate the bridge from NAR so the initial graph reflects bootstrap relations
-  bridge.syncFromNAR();
-
-  // Resume autonomy engine after bootstrap
   autonomy?.resume();
 
   wss.on('connection', (socket: WebSocket) => {
     connections.add(socket);
     bindSocket(socket, bridge, source, (spec) => {
-      broadcastLensDefined(broadcast, spec);
+      broadcast({ type: 'lens.defined', lens: spec } as IncomingFromServer);
       bridge.sendLensList();
     });
     socket.on('close', () => connections.delete(socket));
   });
 
   return new Promise((resolve) => {
-    server.listen(options.port ?? DEFAULT_PORT, '0.0.0.0', () => {
-      console.log(`Backend (HTTP+WS) bound to 0.0.0.0:${options.port ?? DEFAULT_PORT}
-  Dev mode: Vite at http://localhost:5173 \u2192 proxies /ws and /test to :${options.port ?? DEFAULT_PORT}
-  Production: serves client from dist/; open http://0.0.0.0:${options.port ?? DEFAULT_PORT}`);
+    server.listen(port, '0.0.0.0', () => {
+      const boundPort = (server.address() as { port: number } | null)?.port ?? port;
+      console.log(`Backend (HTTP+WS) bound to 0.0.0.0:${boundPort}
+  Dev mode: Vite at http://localhost:5173 → proxies /ws and /test to :${boundPort}
+  Production: serves client from dist/; open http://0.0.0.0:${boundPort}`);
       resolve({
         close: () => new Promise<void>((done) => wss.close(() => server.close(() => done()))),
-        address: () => ({ port: options.port ?? DEFAULT_PORT }),
+        address: () => ({ port: boundPort }),
       });
     });
-});
+  });
 }
 
-function broadcastLensDefined(sendFn: (msg: IncomingFromServer) => void, spec: LensSpec): void {
-  sendFn({ type: 'lens.defined', lens: spec } as IncomingFromServer);
+/** Compatibility wrapper: start the UI without an attached NAR. */
+export async function startWebUIWithOptions(
+  source: CognitiveEventSource,
+  options: { port?: number; clientDist?: string } = {},
+): Promise<TestServer> {
+  return startWebUI(source, options);
+}
+
+/** Compatibility wrapper: start the UI with an attached NAR and bootstrap. */
+export async function startWebUIWithNAR(
+  nar: NAR,
+  source: CognitiveEventSource,
+  options: { port?: number; clientDist?: string; bootstrap?: boolean } = {},
+): Promise<TestServer> {
+  return startWebUI(source, { ...options, nar });
 }
 
 function bindSocket(
@@ -298,7 +230,7 @@ async function main(): Promise<void> {
 
    await agent.waitForReady();
 
-   const server = await startWebUIWithNAR(nar, agent, { bootstrap: true });
+    const server = await startWebUI(agent, { nar, bootstrap: true });
 
    await autonomyEngine.requestReasoning(3);
 

@@ -2,7 +2,7 @@ import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { BaseComponent } from '../core/base-component.js';
-import { $graphNodes, $selectedNodeId, $view, mountTestApi } from '../core/index.js';
+import { $graphNodes, $nodeHistory, $selectedNodeId, $view, mountTestApi } from '../core/index.js';
 
 @customElement('timeline-scrubber')
 export class TimelineScrubber extends BaseComponent {
@@ -100,6 +100,20 @@ export class TimelineScrubber extends BaseComponent {
   }
 
   private computeTimeRange() {
+    const selectedId = $selectedNodeId.get();
+    const history = selectedId ? $nodeHistory.get() : [];
+    if (history.length > 0) {
+      let min = Number.POSITIVE_INFINITY;
+      let max = Number.NEGATIVE_INFINITY;
+      for (const h of history) {
+        min = Math.min(min, h.timestamp);
+        max = Math.max(max, h.timestamp);
+      }
+      this.minTime = min === Number.POSITIVE_INFINITY ? 0 : min;
+      this.maxTime = max === Number.NEGATIVE_INFINITY ? 100 : max;
+      return;
+    }
+
     const nodes = $graphNodes.get();
     let min = Number.POSITIVE_INFINITY;
     let max = 0;

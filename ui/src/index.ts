@@ -1,1 +1,1 @@
-export { startWebUI, startWebUIWithOptions, type TestServer } from './server/index.js';
+export { startWebUI, startWebUIWithOptions, startWebUIWithNAR, type TestServer, type StartUIOptions } from './server/index.js';

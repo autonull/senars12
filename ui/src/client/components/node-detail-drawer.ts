@@ -62,6 +62,7 @@ export class NodeDetailDrawer extends BaseComponent {
         this.node = $graphNodes.get().get(id) ?? null;
         this.syncTruth();
         this.activeTab = 'overview';
+        this.fetchHistory();
       } else {
         this.node = null;
       }

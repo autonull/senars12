@@ -23,6 +23,7 @@
     "test:watch": "vitest",
     "test:unit": "vitest run --dir tests/unit",
     "test:integration": "vitest run --dir tests/integration",
+    "test:e2e:smoke": "vitest run --dir tests/e2e",
     "test:cognitive": "LM_PROVIDER=mock vitest run --dir tests/cognitive",
     "test:cognitive:real": "vitest run --dir tests/cognitive",
     "test:conversational": "NODE_NO_WARNINGS=1 tsx tests/conversational/runner.ts",

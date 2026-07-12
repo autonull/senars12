@@ -25,6 +25,8 @@
 | ✅ | **UI components** — lens designer ✅, node detail drawer ⏸️ (NAR revision API not exposed), timeline ⏸️ (same) |
 | ✅ | **Graph edges from Narsese relations** — implemented + server-boot fixed; bridge-level behavior unit-verified; client propagation verified for auto-link tests |
 | ✅ | **`tsc --noEmit` PASSES in `ui/`** — this session: removed stray debug logs that referenced `event.term` on non-term events; introduced `withAutonomy()` helper for the NAR-agent-only `getAutonomyEngine` |
+| ✅ | **Server `startWebUI*` consolidated** — `startWebUI`/`startWebUIWithOptions`/`startWebUIWithNAR` collapsed into one `startWebUI(source, StartUIOptions)` (DRY); thin compat wrappers retained; `main()` ported |
+| ✅ | **Intermediate bridge API tests** — `tests/unit/server/bridge-api.test.ts` (13) lock in the supporting functionality the blocked E2E suites depend on (truth edit, revision history, lens/focus projection, initial-state handshake, lens define, config, state reporting, subscription lifecycle) |
 
 
 ## Phase 10.5: Relation-Edge Bugfix & Server Boot Repair (Completed)
@@ -126,6 +128,8 @@
 - `ui/tests/scenarios/metta/agent-events.spec.ts` — **NEW** MeTTa E2E tests
 - `tests/integration/multi-agent.test.ts` — **NEW** CognitiveCoordinator tests (4 tests)
 - `ui/tests/scenarios/relational/auto-link.spec.ts` — **FIXED** test input to use concepts not in bootstrap
+- `ui/src/server/index.ts` — **REFACTORED** `startWebUI`/`startWebUIWithOptions`/`startWebUIWithNAR` consolidated into `startWebUI(source, StartUIOptions)`; `main()` ported; `ui/src/index.ts` exports `startWebUIWithNAR` + `StartUIOptions`
+- `tests/unit/server/bridge-api.test.ts` — **NEW** intermediate bridge API tests (13) covering truth edit, revision history, lens/focus projection, initial-state handshake, lens define, config, state reporting, subscription lifecycle
 
 ### Outstanding (🔴) - E2E Tests Still Failing
 - `ui/tests/scenarios/relational/edit-edge.spec.ts` — edges should appear in graph after re-seed (initial edge count = 0)
@@ -182,6 +186,41 @@
 - **Revision history** — NAR `getRevisionHistory()` returns `[]` until a Stamp-chain revision API exists upstream. Blocks `timeline` history tab and the node-detail-drawer history view.
 - **`pnpm lint` (biome)** — seas of pre-existing diagnostics in `.turbo/cache/**` JSON and elsewhere (~2400 errors, mostly format). Not introduced this session; orthogonal cleanup. Consider adding `.turbo` to biome's ignore list as a separate pass.
 
+---
+
+## Session 5: Consolidation, Intermediate Tests, Status Sync
+
+### ✅ Completed This Session
+- ✅ **Refactored `ui/src/server/index.ts`** — the three near-identical `startWebUI` / `startWebUIWithOptions` / `startWebUIWithNAR` functions (~85 duplicated lines each) are now a single `startWebUI(source, options)` where `options: StartUIOptions = { port?, clientDist?, nar?, bootstrap? }`. The `/test/reset`, test-control, debug, autonomy pause/resume, and bootstrap paths are gated on `nar` presence. Thin `startWebUIWithOptions` / `startWebUIWithNAR` wrappers remain for existing callers (integration tests + `main()`); `main()` now calls `startWebUI(agent, { nar, bootstrap: true })`. `ui/src/index.ts` re-exports `startWebUIWithNAR` + `StartUIOptions`. `tsc --noEmit` green (5/5); 1001 unit tests pass (no regression).
+- ✅ **Added `tests/unit/server/bridge-api.test.ts`** (13 tests) — intermediate coverage for the supporting functionality the remaining E2E suites depend on, verifying behavior rather than fixing the Playwright specs blind:
+  - **Truth editing** — `setNodeTruth` updates concept confidence and submits `node.truth …`; no-op for unknown concepts.
+  - **Revision history** — `onNodeHistoryRequest` emits `node.history` with `[]`; `getRevisionHistory` returns `[]` (documents the current upstream-blocked contract).
+  - **Lens projection** — `setLens` re-emits a delta tagged with the chosen lens; `setFocus` centers the projection on the focused term.
+  - **Initial-state handshake** — `sendInitialState` emits `config.schema` + `lens.fields` + `lens.list` + a `cognitive.delta`.
+  - **Lens definition** — `onLensDefine` registers the lens and broadcasts `lens.defined`.
+  - **Config** — `getConfigSchema` surfaces the source capability schema; `setConfig` submits `config.set …`.
+  - **State reporting** — `listConcepts` / `attentionReport` / `getDriveManager` reflect live concepts; `reset` clears them.
+  - **Subscription lifecycle** — `subscribeEvents` registers on the source and `unsubscribe` removes it.
+
+### Known Gap Captured (not fixed — downstream of focus behavior)
+- **`setFocus` does not actually filter the node set.** `buildFullGraph` appends `deriveRelationEdges(state)` after the focused subgraph, and `deriveRelationEdges` re-adds *every* relation endpoint across all concepts (e.g. focusing `bird` still emits `cat`/`dog`). The focused term is always present (tested), but focus is not a real filter for relation-rich graphs. Candidate fix: pass the projected node-id set into `deriveRelationEdges` so it only emits edges among already-projected nodes. **Left as a follow-up** — changing it risks the `edit-edge` / `auto-link` E2E expectations and should be validated in a browser first.
+
+### Remaining Work Clarified for Future Sessions
+1. **`relational/edit-edge.spec.ts`** — confirm bootstrap relation edges reach the client (`expect.poll(() => testApi.getGraphEdgeCount()).toBeGreaterThan(0)`); the server projection is now unit-verified by `bridge-api.test.ts` (`sendInitialState` + `syncFromNAR`).
+2. **`cognitive/slider-mash.spec.ts`** — drawer render path for the truth `input[type="range"]`; unrelated to the bridge (bridge `setNodeTruth` is unit-verified).
+3. **`cognitive/timeline.spec.ts`** — history tab blocked on `getRevisionHistory() === []` (upstream). Scrubber-visibility test may pass standalone.
+4. **`metta/agent-events.spec.ts`** — `graph-viewport` not visible in LTM test; reproduce in a browser; `testControl` fixture fix is verified for other suites.
+5. **`spatial/parity.spec.ts`** — `__testApi.spacegraph` not registered / node count 0; component-level fix in the spacegraph element.
+6. **Focus filter** — see Known Gap above.
+7. **Revision history upstream** — NAR Stamp-chain revision API.
+8. **`pnpm lint` (biome)** — pre-existing `.turbo` noise; add to ignore list as a separate pass.
+
+### Test Commands
+- Unit suite: `pnpm test` (root, 1001 pass) — covers `tests/unit/**`, `tests/nar/**`, `tests/integration/**`, `tests/cli/**`.
+- Unit-only subset: `pnpm test -- tests/unit/server/` (bridge relation projection + bridge API + bridge-NAR integration).
+- Typecheck: `pnpm typecheck` (turbo: 5/5 green).
+- E2E (Playwright, `ui/`): not invoked this session — run with the UI's playwright config after the items above are addressed.
+
 ### Test Commands
 - Unit suite: `pnpm test` (root, 988 pass) — covers `tests/unit/**`, `tests/nar/**`, `tests/integration/**`, `tests/cli/**`.
 - Unit-only subset: `pnpm test -- tests/unit/server/` (the bridge + bridge-NAR integration tests).
@@ -190,4 +229,4 @@
 
 ---
 
-*Updated: 2026-07-12 (session 4) | Typecheck failure unseen by prior sessions repaired (debug logs referenced `event.term` on non-term events; `getAutonomyEngine` typed via a `withAutonomy` helper). `syncFromNAR` de-duplicated. Stray debug logs removed. 988 unit tests pass; `tsc --noEmit` green. Remaining work is E2E/client-side + the NAR revision-history upstream.*
+*Updated: 2026-07-12 (session 5) | `startWebUI*` consolidated into one `startWebUI` (DRY; compat wrappers kept). Added `tests/unit/server/bridge-api.test.ts` (13) locking in the supporting functionality the blocked E2E suites depend on. Captured the `setFocus`-does-not-filter gap as a browser-validated follow-up. No regression: 1001 unit tests pass; `tsc --noEmit` green (5/5). Remaining work is E2E/client-side + the NAR revision-history upstream + the focus-filter fix.*
