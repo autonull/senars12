@@ -249,7 +249,10 @@ export class Concept {
   }
 
   private findMatchingBelief(term: Term): TaskData | undefined {
-    return this.beliefBag.toArray().find((item) => termsEqual(item.term, term));
+    const norm = (t: Term): Term =>
+      t.kind !== 'atom' && 'args' in t && t.args?.length === 1 ? (t.args[0] as Term) : t;
+    const nTerm = norm(term);
+    return this.beliefBag.toArray().find((item) => termsEqual(norm(item.term), nTerm));
   }
 
   private calculateTermSimilarity(other: Term): number {

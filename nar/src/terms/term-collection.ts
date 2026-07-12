@@ -24,7 +24,12 @@ export abstract class TermCollection<T> {
   protected getIndex(term: Term, getItem: (i: T) => Term): number {
     const refIdx = this.refIndex.get(term);
     if (refIdx !== undefined) return refIdx;
-    return this.storage.findIndex((item) => termsEqual(getItem(item), term));
+    const termStr = term.toString();
+    let idx = this.storage.findIndex((item) => termsEqual(getItem(item), term));
+    if (idx < 0) {
+      idx = this.storage.findIndex((item) => getItem(item).toString() === termStr);
+    }
+    return idx;
   }
 
   protected setRef(term: Term, index: number): void {

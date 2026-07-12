@@ -37,4 +37,9 @@ export class TestControl {
     const response = await this.context.post(`${this.baseUrl}/test/reset`);
     return response.json();
   }
+
+  async preBootstrap() {
+    const response = await this.context.post(`${this.baseUrl}/test/pre-bootstrap`);
+    return response.json();
+  }
 }

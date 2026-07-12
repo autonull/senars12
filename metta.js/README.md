@@ -1,1 +1,1 @@
-Deprecated.  For reference.  See `/metta`.
+Deprecated, for reference.  Replaced by: `/metta`

@@ -4,12 +4,15 @@ import { fileURLToPath } from 'node:url';
 import type { CognitiveEventSource } from '@senars/core';
 import { errMsg } from '@senars/nar/utils';
 import { WebSocket, WebSocketServer } from 'ws';
-import type { LensSpec } from '../shared/lens-schema.js';
-import type { IncomingFromServer, Lens } from '../shared/protocol.js';
+import type { LensSpec } from '@senars/core/lens-schema';
+import type { IncomingFromServer, Lens } from '@senars/core/protocol';
 import { onChat } from './chat.js';
 import { type CognitiveBridge, createCognitiveBridge } from './cognitive-bridge.js';
 import { handleConnection, initLensRegistry } from './gateway.js';
 import { createStaticHandler } from './static.js';
+import { createTestControlHandler } from './test-control.js';
+import { bootstrapNAR } from './bootstrap.js';
+import type { NAR } from '@senars/nar';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = 3000;
@@ -22,12 +25,7 @@ export interface TestServer {
 export async function startWebUI(source: CognitiveEventSource): Promise<TestServer> {
   const bridge = createCognitiveBridge();
   initLensRegistry();
-  return startHttpServer(
-    bridge,
-    source,
-    DEFAULT_PORT,
-    path.join(__dirname, '..', '..', 'dist', 'client')
-  );
+  return startHttpServer(bridge, source, DEFAULT_PORT, path.join(__dirname, '..', '..', 'dist', 'client'));
 }
 
 export async function startWebUIWithOptions(
@@ -39,17 +37,70 @@ export async function startWebUIWithOptions(
   return startHttpServer(bridge, source, options.port ?? DEFAULT_PORT, distRoot);
 }
 
+export async function startWebUIWithNAR(
+  nar: NAR,
+  source: CognitiveEventSource,
+  options: { port?: number; clientDist?: string; bootstrap?: boolean } = {}
+): Promise<TestServer> {
+  const bridge = createCognitiveBridge(nar);
+  initLensRegistry();
+  const distRoot = options.clientDist ?? path.join(__dirname, '..', '..', 'dist', 'client');
+
+  // Bootstrap NAR BEFORE bridge.mount (original behavior - works for 23 tests)
+  if (options.bootstrap !== false) {
+    await bootstrapNAR(nar);
+  }
+
+  return startHttpServer(bridge, source, options.port ?? DEFAULT_PORT, distRoot, nar);
+}
+
 function startHttpServer(
   bridge: CognitiveBridge,
   source: CognitiveEventSource,
   port: number,
-  distRoot: string
+  distRoot: string,
+  nar?: NAR
 ): Promise<TestServer> {
   const handleHttp = createStaticHandler(distRoot);
+  const testControlHandler = nar ? createTestControlHandler(nar) : null;
 
   const server = http.createServer(async (req, res) => {
     const pathname = new URL(req.url ?? '/', `http://${req.headers.host}`).pathname;
     if (pathname.startsWith('/test/')) {
+      // Test control endpoints
+      if (pathname === '/test/reset' && req.method === 'POST') {
+        try {
+          console.log('[TestControl] Reset requested');
+          console.log('[TestControl] Bridge state before reset:', bridge.listConcepts().length);
+          console.log('[TestControl] NAR concepts before reset:', nar?.listConcepts().length);
+          bridge.reset();
+          if (nar) {
+            nar.clearMemory();
+            await bootstrapNAR(nar);
+            bridge.syncFromNAR();
+          }
+          console.log('[TestControl] Bridge state after reset:', bridge.listConcepts().length);
+          console.log('[TestControl] NAR concepts after reset:', nar?.listConcepts().length);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, message: 'Bridge and NAR reset' }));
+        } catch (e) {
+          res.writeHead(500);
+          res.end(JSON.stringify({ error: String(e) }));
+        }
+        return;
+      }
+      if (testControlHandler) {
+        return testControlHandler(req, res, pathname);
+      }
+      if (pathname === '/test/debug' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          bridgeConcepts: bridge.listConcepts().length,
+          narConcepts: nar?.listConcepts().length,
+          bridgeEdges: bridge.listConcepts().reduce((sum, c) => sum + (c.getLinks?.()?.length ?? 0), 0),
+        }));
+        return;
+      }
       res.writeHead(404);
       res.end('Not found');
       return;
@@ -67,8 +118,13 @@ function startHttpServer(
     }
   }
 
+  // Mount bridge immediately so it captures events from the start
+  bridge.mount(source, broadcast);
+
   wss.on('connection', (socket: WebSocket) => {
     connections.add(socket);
+    // Update bridge's sendFn to broadcast to all connections
+    bridge.mount(source, broadcast);
     bindSocket(socket, bridge, source, (spec) => {
       broadcastLensDefined(broadcast, spec);
       bridge.sendLensList();
@@ -134,23 +190,33 @@ function broadcastLensDefined(sendFn: (msg: IncomingFromServer) => void, spec: L
 }
 
 async function main(): Promise<void> {
-  const { SeNARSFactory } = await import('../../../nar/src/factory.js');
-  const { createAgent } = await import('../../../nar/src/agent/agent.js');
-  const { DEFAULT_NAR_CONFIG } = await import('../../../src/config/index.js');
+   const { SeNARSFactory } = await import('@senars/nar');
+   const { createAgent, createAutonomyEngine } = await import('@senars/nar/agent');
+   const { DEFAULT_NAR_CONFIG } = await import('../../../src/config/index.js');
 
-  const nar = SeNARSFactory.createDefault({ ...DEFAULT_NAR_CONFIG });
-  const agent = createAgent({ nar });
-  agent.start();
-  const server = await startWebUI(agent);
+   const nar = SeNARSFactory.createDefault({ ...DEFAULT_NAR_CONFIG });
 
-  const shutdown = (signal: NodeJS.Signals) => {
-    console.log(`Received ${signal}, shutting down UI server...`);
-    server.close();
-    agent.stop();
-  };
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
-}
+   const systemEventBus = nar.getSystemEventBus();
+   const autonomyEngine = createAutonomyEngine(nar, systemEventBus);
+   autonomyEngine.setNotifyHandler((msg) => console.log(`[Autonomy] ${msg}`));
+
+   const agent = createAgent({ nar, autonomyEngine });
+   agent.start();
+
+   await agent.waitForReady();
+
+   const server = await startWebUIWithNAR(nar, agent, { bootstrap: true });
+
+   await autonomyEngine.requestReasoning(3);
+
+   const shutdown = (signal: NodeJS.Signals) => {
+     console.log(`Received ${signal}, shutting down UI server...`);
+     server.close();
+     agent.stop();
+   };
+   process.on('SIGINT', shutdown);
+   process.on('SIGTERM', shutdown);
+ }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((err) => {

@@ -1,4 +1,4 @@
-import { IncomingFromClient } from '../shared/protocol.js';
+import { IncomingFromClient } from '@senars/core/protocol';
 
 export function validateClientMessage(raw: string) {
   try {

@@ -44,6 +44,7 @@
     "marked-highlight": "^2.2.0",
     "mime-types": "^3.0.2",
     "mitt": "^3.0.1",
+    "nanoid": "^5.1.0",
     "onnxruntime-web": "^1.24.2",
     "three": "^0.160.0",
     "three-mesh-bvh": "^0.9.9",

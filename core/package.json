@@ -67,6 +67,14 @@
     "./command-types": {
       "types": "./src/command-types.ts",
       "import": "./src/command-types.ts"
+    },
+    "./lens-schema": {
+      "types": "./src/lens-schema.ts",
+      "import": "./src/lens-schema.ts"
+    },
+    "./constants": {
+      "types": "./src/constants.ts",
+      "import": "./src/constants.ts"
     }
   },
   "scripts": {

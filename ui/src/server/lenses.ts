@@ -1,5 +1,5 @@
-import { edgeKey } from '../shared/index.js';
-import type { GraphNodeData, GraphOp, Lens } from '../shared/protocol.js';
+import { edgeKey } from '@senars/core/helpers';
+import type { GraphNodeData, GraphOp, Lens } from '@senars/core/protocol';
 import { DEFAULT_PROJECTION } from './config.js';
 import type { CognitiveBridge } from './cognitive-bridge.js';
 import { computeActiveSubgraph } from './projection.js';

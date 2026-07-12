@@ -12,7 +12,7 @@ type SenarsFixtures = {
 };
 
 export const test = base.extend<SenarsFixtures>({
-  testControl: async ({}, use) => {
+  testControl: async (use) => {
     const context = await request.newContext();
     const control = new TestControl(context);
     await control.reset();

@@ -1,7 +1,7 @@
 import type { WebSocket } from 'ws';
-import type { LensSpec } from '../shared/lens-schema.js';
-import { BUILTIN_LENS_IDS, LensSpecSchema, builtinLensSpecs } from '../shared/lens-schema.js';
-import type { ConfigFieldType, IncomingFromServer, Lens } from '../shared/protocol.js';
+import type { LensSpec } from '@senars/core/lens-schema';
+import { BUILTIN_LENS_IDS, LensSpecSchema, builtinLensSpecs } from '@senars/core/lens-schema';
+import type { ConfigFieldType, IncomingFromServer, Lens } from '@senars/core/protocol';
 import type { CognitiveBridge } from './cognitive-bridge.js';
 import { RateLimiter } from './rate-limiter.js';
 import { validateClientMessage } from './validators.js';

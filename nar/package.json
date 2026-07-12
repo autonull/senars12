@@ -27,6 +27,22 @@
     "./agent": {
       "types": "./src/agent/index.ts",
       "import": "./src/agent/index.ts"
+    },
+    "./lm": {
+      "types": "./src/lm/index.ts",
+      "import": "./src/lm/index.ts"
+    },
+    "./nl": {
+      "types": "./src/nl/index.ts",
+      "import": "./src/nl/index.ts"
+    },
+    "./memory": {
+      "types": "./src/memory/index.ts",
+      "import": "./src/memory/index.ts"
+    },
+    "./memory/episodic": {
+      "types": "./src/memory/EpisodicMemory.ts",
+      "import": "./src/memory/EpisodicMemory.ts"
     }
   },
   "scripts": {

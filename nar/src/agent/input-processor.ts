@@ -173,6 +173,7 @@ export async function* processInput(
   input: string,
   opts: ProcessInputOpts = {}
 ): AsyncGenerator<InputEvent, string> {
+  console.log('[processInput] Input:', input);
   const {
     nar,
     hasLmModel,
@@ -190,6 +191,7 @@ export async function* processInput(
   try {
     // Multi-clause Narsese input: "sky is blue; sky is not green"
     const multiTask = tryParseMultiNarsese(input);
+    console.log('[processInput] multiTask:', multiTask);
     if (multiTask) {
       const texts: string[] = [];
       for (const task of multiTask) {
@@ -203,6 +205,7 @@ export async function* processInput(
     }
 
     const task = tryParseNarsese(input);
+    console.log('[processInput] single task:', task);
     if (task) {
       await nar?.input(task.term, task.taskType, task.truth);
       if (task.taskType === 'question') {

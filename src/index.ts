@@ -1,5 +1,5 @@
-export { NAR } from '../nar/src/index.js';
-export type { NARConfig } from '../nar/src/index.js';
+export { NAR } from '@senars/nar';
+export type { NARConfig } from '@senars/nar';
 export {
   createAgent,
   createAgentPreset,

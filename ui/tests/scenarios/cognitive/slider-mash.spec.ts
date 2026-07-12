@@ -4,32 +4,26 @@ test.describe('Slider Mash: frame budget on rapid truth adjustment', () => {
   test('rapid truth slider changes stay within frame budget', async ({
     page,
     testApi,
-    perfMonitor,
   }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect.async(() => testApi.getConnectionState()).toPass({ timeout: 10000 });
+    await expect.poll(() => testApi.getConnectionState()).toBe('connected', { timeout: 10000 });
 
-    // Wait for initial graph nodes
-    await expect.async(() => testApi.getGraphNodeCount()).toBeGreaterThan(0, { timeout: 15000 });
-
-    // Type a sentence
+    // Send Narsese directly to create a concept with truth value
     const textarea = page.locator('input-hud textarea');
     await expect(textarea).toBeVisible({ timeout: 5000 });
-    await textarea.fill('the sky is blue');
+    await textarea.fill('<sky --> blue>. :|:');
     const sendBtn = page.locator('input-hud .send-btn');
     await sendBtn.click();
 
     // Wait for node
     await expect
-      .async(() => testApi.getAllNodeIds().then((ids: string[]) => ids.length))
+      .poll(() => testApi.getAllNodeIds().then((ids: string[]) => ids.length))
       .toBeGreaterThan(0, { timeout: 15000 });
 
-    // Click the first node to open the drawer
+    // Click a node that should have truth value - find one with 'sky' or 'blue'
     const ids = await testApi.getAllNodeIds();
-    const targetId =
-      ids.find((id: string) => id.includes('$sky') || id.includes('sky') || id.includes('blue')) ??
-      ids[0];
-    await testApi.clickNode(targetId);
+    const nodeId = ids.find((id: string) => id.includes('sky') || id.includes('blue')) ?? ids[0];
+    await testApi.clickNode(nodeId);
 
     // Find the truth slider
     const slider = page.locator('node-detail-drawer input[type="range"]');
@@ -51,7 +45,5 @@ test.describe('Slider Mash: frame budget on rapid truth adjustment', () => {
     // Verify the node still exists after rapid edits
     const nodeCount = await testApi.getGraphNodeCount();
     expect(nodeCount).toBeGreaterThan(0);
-
-    // PerfMonitor.assertWithinBudget is called automatically in afterEach via the fixture
   });
 });

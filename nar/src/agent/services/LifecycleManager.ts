@@ -36,6 +36,7 @@ export class LifecycleManager {
   private readonly logger: Logger;
   private readonly config: RequiredConfig;
   private reasoningHandle?: ReturnType<typeof setInterval>;
+  private readyPromise?: Promise<void>;
 
   constructor(config: LifecycleManagerConfig) {
     this.nar = config.nar;
@@ -57,24 +58,27 @@ export class LifecycleManager {
   }
 
   start(): () => void {
-    if (!this.nar) return () => {};
+    const nar = this.nar;
+    if (!nar) return () => {};
 
-    if (this.nar.state === 'created') {
-      this.nar
-        .initialize()
-        .then(() => {
-          this.nar?.start().catch((err) => {
-            this.logger.warn('NAR start failed', { error: errMsg(err) });
-          });
-        })
-        .catch((err) => {
-          this.logger.warn('NAR lifecycle failed', { error: errMsg(err) });
-        });
-    } else if (this.nar.state === 'initialized') {
-      this.nar.start().catch((err) => {
-        this.logger.warn('NAR start failed', { error: errMsg(err) });
-      });
-    }
+    this.readyPromise = (async () => {
+      if (nar.state === 'created') {
+        await nar.initialize();
+        await nar.start();
+      } else if (nar.state === 'initialized') {
+        await nar.start();
+      }
+
+      if (this.autonomousLoop) {
+        await this.autonomousLoop.start();
+      }
+      if (this.autonomyEngine) {
+        this.autonomyEngine.setNotifyHandler((msg) => this.logger.debug(msg));
+        this.autonomyEngine.start();
+      } else if (!this.reasoningHandle && !this.autonomousLoop) {
+        this.startBackgroundReasoning();
+      }
+    })();
 
     if (this.autonomousLoop) {
       this.autonomousLoop.start().catch((err) => {
@@ -89,6 +93,12 @@ export class LifecycleManager {
     }
 
     return () => this.stop();
+  }
+
+  async waitForReady(): Promise<void> {
+    if (this.readyPromise) {
+      await this.readyPromise;
+    }
   }
 
   stop(): void {

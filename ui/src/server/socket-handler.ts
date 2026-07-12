@@ -1,7 +1,7 @@
 import type { WebSocket } from 'ws';
-import { LENS_FIELDS } from '../shared/constants.js';
-import type { LensSpec } from '../shared/lens-schema.js';
-import type { GraphNodeData, GraphOp, IncomingFromServer, Lens } from '../shared/protocol.js';
+import { LENS_FIELDS } from '@senars/core/constants';
+import type { LensSpec } from '@senars/core/lens-schema';
+import type { GraphNodeData, GraphOp, IncomingFromServer, Lens } from '@senars/core/protocol';
 import type { CognitiveBridge } from './cognitive-bridge.js';
 import { DEFAULT_PROJECTION } from './config.js';
 import { lensRegistry } from './gateway.js';

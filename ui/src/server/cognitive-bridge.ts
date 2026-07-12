@@ -11,6 +11,8 @@ import type {
 import { DEFAULT_PROJECTION } from './config.js';
 import { lensRegistry } from './gateway.js';
 import { computeActiveSubgraph } from './projection.js';
+import { termParser } from '@senars/nar';
+import { LENS_FIELDS } from '../shared/constants.js';
 
 interface ConceptLike {
   id: string;
@@ -44,9 +46,69 @@ function createEdgeOp(source: string, target: string, weight: number, type = 'se
   return { action: 'add_edge' as const, source, target, data: { weight, type, directed: true } };
 }
 
+interface RelationLink {
+  subject: string;
+  predicate: string;
+  type: 'inheritance' | 'similarity' | 'instance';
+}
+
+const COPULA_RE = /<(.+?)\s*(-->|<->|\{--|--]|{-]|=->)\s*(.+?)>/g;
+
+function parseRelations(input: string): RelationLink[] {
+  const links: RelationLink[] = [];
+  if (!input) return links;
+  for (const stmt of input.split(';')) {
+    for (const m of stmt.matchAll(COPULA_RE)) {
+      const cop = m[2] ?? '';
+      const type: RelationLink['type'] =
+        cop === '<->' ? 'similarity' : cop === '{--' ? 'instance' : 'inheritance';
+      links.push({ subject: (m[1] ?? '').trim(), predicate: (m[3] ?? '').trim(), type });
+    }
+  }
+  return links;
+}
+
+function ensureConcept(state: BridgeState, ops: GraphOp[], id: string, label = id): void {
+  if (state.concepts.has(id)) return;
+  const concept: ConceptLike = {
+    id,
+    label,
+    priority: 0.5,
+    confidence: 0.9,
+    nodeType: 'nar:concept',
+    isContradiction: false,
+  };
+  state.concepts.set(id, concept);
+  ops.push(createNodeOp(id, toGraphNodeData(concept)));
+}
+
+function addRelationEdges(state: BridgeState, ops: GraphOp[], input: string): void {
+  for (const rel of parseRelations(input)) {
+    ensureConcept(state, ops, rel.subject);
+    ensureConcept(state, ops, rel.predicate);
+    ops.push(createEdgeOp(rel.subject, rel.predicate, 0.6, rel.type));
+  }
+}
+
+function deriveRelationEdges(state: BridgeState): GraphOp[] {
+  const ops: GraphOp[] = [];
+  for (const concept of state.concepts.values()) {
+    if (concept.nodeType !== 'nar:concept') continue;
+    const rels = parseRelations(concept.label);
+    if (rels.length) console.error('[bridge] derive rel for', concept.label, rels);
+    for (const rel of rels) {
+      if (state.concepts.has(rel.subject) && state.concepts.has(rel.predicate)) {
+        ops.push(createEdgeOp(rel.subject, rel.predicate, 0.6, rel.type));
+      }
+    }
+  }
+  return ops;
+}
+
 function toGraphNodeData(concept: ConceptLike): GraphNodeData {
   if (concept.nodeType === 'metta:skill') {
     return {
+      id: concept.id,
       nodeType: 'metta:skill',
       skill: concept.skill ?? concept.label,
       args: [],
@@ -56,12 +118,14 @@ function toGraphNodeData(concept: ConceptLike): GraphNodeData {
   }
   if (concept.nodeType === 'metta:atom') {
     return {
+      id: concept.id,
       nodeType: 'metta:atom',
       atom: concept.label,
       space: concept.space ?? 'default',
     };
   }
   return {
+    id: concept.id,
     nodeType: 'nar:concept',
     term: concept.label,
     priority: concept.priority,
@@ -86,6 +150,7 @@ function projectCognitiveEvent(event: CognitiveEvent, state: BridgeState): Graph
       };
       state.concepts.set(nodeId, concept);
       ops.push(createNodeOp(nodeId, toGraphNodeData(concept)));
+      addRelationEdges(state, ops, event.term);
       break;
     }
 
@@ -131,6 +196,7 @@ function projectCognitiveEvent(event: CognitiveEvent, state: BridgeState): Graph
       };
       state.concepts.set(event.term, concept);
       ops.push(createNodeOp(event.term, toGraphNodeData(concept)));
+      addRelationEdges(state, ops, event.term);
       break;
     }
 
@@ -150,9 +216,54 @@ function projectCognitiveEvent(event: CognitiveEvent, state: BridgeState): Graph
       break;
     }
 
-    case 'goal:resolved':
-    case 'conflict:detected':
-    case 'input':
+    case 'goal:resolved': {
+      const goalId = `goal:${event.term}`;
+      const concept: ConceptLike = {
+        id: goalId,
+        label: event.term,
+        priority: 0.5,
+        confidence: 1.0,
+        nodeType: 'nar:concept',
+        isContradiction: false,
+      };
+      state.concepts.set(goalId, concept);
+      ops.push(createNodeOp(goalId, toGraphNodeData(concept)));
+      break;
+    }
+
+    case 'conflict:detected': {
+      const conflictId = `conflict:${event.term}:${Date.now()}`;
+      const concept: ConceptLike = {
+        id: conflictId,
+        label: `${event.term} conflicts with ${event.conflictWith}`,
+        priority: 0.9,
+        confidence: 1.0,
+        nodeType: 'nar:concept',
+        isContradiction: true,
+      };
+      state.concepts.set(conflictId, concept);
+      ops.push(createNodeOp(conflictId, toGraphNodeData(concept)));
+      ops.push(createEdgeOp(event.term, event.conflictWith, 0.7, 'conflict'));
+      break;
+    }
+
+    case 'input': {
+      console.error('[bridge] input event term=', event.term);
+      const inputId = `input:${event.term}:${Date.now()}`;
+      const concept: ConceptLike = {
+        id: inputId,
+        label: event.term,
+        priority: 0.7,
+        confidence: 1.0,
+        nodeType: 'nar:concept',
+        isContradiction: false,
+      };
+      state.concepts.set(inputId, concept);
+      ops.push(createNodeOp(inputId, toGraphNodeData(concept)));
+      addRelationEdges(state, ops, event.term);
+      break;
+    }
+
     case 'health':
       break;
   }
@@ -201,7 +312,7 @@ function buildFullGraph(
 
     const truncated = concepts.length > DEFAULT_PROJECTION.maxNodes;
     return {
-      ops,
+      ops: [...ops, ...deriveRelationEdges(state)],
       meta: truncated
         ? { truncated: true, totalHidden: concepts.length - scored.length }
         : undefined,
@@ -237,6 +348,7 @@ function buildFullGraph(
         )
       ),
     ...proj.edges.map((e) => createEdgeOp(e.source, e.target, e.weight)),
+    ...deriveRelationEdges(state),
   ];
 
   return {
@@ -258,6 +370,15 @@ export class CognitiveBridge {
   #eventSource: CognitiveEventSource | null = null;
   #sendFn: ((msg: IncomingFromServer) => void) | null = null;
   #telemetryTimer: ReturnType<typeof setInterval> | null = null;
+  #nar: NAR | null = null;
+
+  constructor(nar?: NAR) {
+    this.#nar = nar ?? null;
+  }
+
+  setNAR(nar: NAR): void {
+    this.#nar = nar;
+  }
 
   mount(source: CognitiveEventSource, sendFn: (msg: IncomingFromServer) => void): void {
     this.#eventSource = source;
@@ -283,6 +404,105 @@ export class CognitiveBridge {
     if (this.#telemetryTimer) {
       clearInterval(this.#telemetryTimer);
       this.#telemetryTimer = null;
+    }
+  }
+
+syncFromNAR(): void {
+    if (!this.#nar) return;
+    try {
+      const ops: GraphOp[] = [];
+      for (const concept of this.#nar.listConcepts()) {
+        const term = concept.term.toString();
+        const rels = parseRelations(term);
+        if (rels.length === 0) continue;
+        // Ensure the relation concept itself exists in state
+        if (!this.#state.concepts.has(term)) {
+          const conceptLike: ConceptLike = {
+            id: term,
+            label: term,
+            priority: concept.priority,
+            confidence: 0.9,
+            nodeType: 'nar:concept',
+            isContradiction: false,
+          };
+          this.#state.concepts.set(term, conceptLike);
+          ops.push(createNodeOp(term, toGraphNodeData(conceptLike)));
+        }
+        // Create endpoint nodes and edges
+        for (const rel of rels) {
+          if (!this.#state.concepts.has(rel.subject)) {
+            let subjectConcept = null;
+            try {
+              subjectConcept = this.#nar.getConcept(termParser.parseTerm(rel.subject));
+            } catch {
+              // Ignore parse errors
+            }
+            if (subjectConcept) {
+              const conceptLike: ConceptLike = {
+                id: rel.subject,
+                label: rel.subject,
+                priority: subjectConcept.priority,
+                confidence: 0.9,
+                nodeType: 'nar:concept',
+                isContradiction: false,
+              };
+              this.#state.concepts.set(rel.subject, conceptLike);
+              ops.push(createNodeOp(rel.subject, toGraphNodeData(conceptLike)));
+            } else {
+              // Fallback: create with default values
+              const conceptLike: ConceptLike = {
+                id: rel.subject,
+                label: rel.subject,
+                priority: 0.5,
+                confidence: 0.9,
+                nodeType: 'nar:concept',
+                isContradiction: false,
+              };
+              this.#state.concepts.set(rel.subject, conceptLike);
+              ops.push(createNodeOp(rel.subject, toGraphNodeData(conceptLike)));
+            }
+          }
+          if (!this.#state.concepts.has(rel.predicate)) {
+            let predicateConcept = null;
+            try {
+              predicateConcept = this.#nar.getConcept(termParser.parseTerm(rel.predicate));
+            } catch {
+              // Ignore parse errors
+            }
+            if (predicateConcept) {
+              const conceptLike: ConceptLike = {
+                id: rel.predicate,
+                label: rel.predicate,
+                priority: predicateConcept.priority,
+                confidence: 0.9,
+                nodeType: 'nar:concept',
+                isContradiction: false,
+              };
+              this.#state.concepts.set(rel.predicate, conceptLike);
+              ops.push(createNodeOp(rel.predicate, toGraphNodeData(conceptLike)));
+            } else {
+              // Fallback: create with default values
+              const conceptLike: ConceptLike = {
+                id: rel.predicate,
+                label: rel.predicate,
+                priority: 0.5,
+                confidence: 0.9,
+                nodeType: 'nar:concept',
+                isContradiction: false,
+              };
+              this.#state.concepts.set(rel.predicate, conceptLike);
+              ops.push(createNodeOp(rel.predicate, toGraphNodeData(conceptLike)));
+            }
+          }
+          ops.push(createEdgeOp(rel.subject, rel.predicate, 0.6, rel.type));
+        }
+      }
+    }
+    if (ops.length > 0) {
+      this.#sendDelta(ops);
+    }
+} catch (err) {
+      console.error('[bridge] syncFromNAR error:', err);
     }
   }
 
@@ -418,6 +638,7 @@ export class CognitiveBridge {
 
   sendInitialState(): void {
     this.#sendFn?.({ type: 'config.schema', data: this.getConfigSchema() });
+    this.#sendFn?.({ type: 'lens.fields', fields: LENS_FIELDS });
     this.sendLensList();
     this.refreshView();
   }
@@ -457,6 +678,16 @@ export class CognitiveBridge {
     };
   }
 
+  reset(): void {
+    this.#state = {
+      concepts: new Map(),
+      seqId: Date.now(),
+      currentLens: 'belief',
+      focusTerm: null,
+      lastSnapshot: null,
+    };
+  }
+
   #sendDelta(ops: GraphOp[]): void {
     if (ops.length === 0) return;
     this.#sendFn?.({
@@ -493,6 +724,6 @@ export class CognitiveBridge {
   }
 }
 
-export function createCognitiveBridge(): CognitiveBridge {
-  return new CognitiveBridge();
+export function createCognitiveBridge(nar?: NAR): CognitiveBridge {
+  return new CognitiveBridge(nar);
 }

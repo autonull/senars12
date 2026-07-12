@@ -79,5 +79,11 @@ export {
   compact,
   clamp,
   clamp01,
+  edgeKey,
+  generateId,
+  extractTerm,
 } from './helpers.js';
 export type { CommandContext, CommandDefinition, CommandHandler } from './command-types.js';
+export type { LensSpec, ModulationSpec, BuiltinLens } from './lens-schema.js';
+export { ModulationSchema, LensSpecSchema, BUILTIN_LENS_IDS, isBuiltinLens, builtinLensSpecs, lensSpecToJsonSchema } from './lens-schema.js';
+export { LENS_COLORS_HEX, LENS_LABELS, CONNECTION_COLORS, LENS_DESCRIPTIONS, EDGE_TYPES, EDGE_LABELS, edgeTypeLabel, type LensFieldDescriptor, LENS_FIELDS } from './constants.js';

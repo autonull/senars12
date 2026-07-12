@@ -9,12 +9,11 @@ import {
   createAgent,
   createAutonomyEngine,
 } from '@senars/nar/agent';
-import type { NAR } from '../../nar/src';
-import { SeNARSFactory } from '../../nar/src';
-import { createLMService, createSeNARSRegistry } from '../../nar/src/lm';
-import { formatLMConfig, resolveLMConfig } from '../../nar/src/lm/env-config.js';
-import { createLogger } from '../../nar/src/logger';
-import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
+import type { NAR } from '@senars/nar';
+import { SeNARSFactory } from '@senars/nar';
+import { createLMService, createSeNARSRegistry, formatLMConfig, resolveLMConfig } from '@senars/nar/lm';
+import { createLogger } from '@senars/nar/logger';
+import { EpisodicMemory } from '@senars/nar/memory/episodic';
 import { DEFAULT_NAR_CONFIG, loadConfigFromEnv } from '../config';
 import { assertValidEnv } from '../utils/env-validate.js';
 

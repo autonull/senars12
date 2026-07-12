@@ -107,6 +107,7 @@ export const GraphNodeDataView = z.object({
   durationMs: z.number().optional(),
   args: z.array(z.string()).optional(),
   type: z.string().optional(),
+  result: z.string().optional(),
 });
 export type GraphNodeDataView = z.infer<typeof GraphNodeDataView>;
 

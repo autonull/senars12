@@ -237,6 +237,8 @@ export interface Agent {
 
   start(): () => void;
 
+  waitForReady(): Promise<void>;
+
   stop(): void;
 
   pause(): void;

@@ -1,5 +1,5 @@
 import http, { type IncomingMessage } from 'http';
-import type { Logger } from '@senars/core/transport';
+import type { Logger } from '@senars/core/logger';
 import type { WebSocketServer } from 'ws';
 
 export interface ServerStartupOptions {

@@ -254,17 +254,17 @@ function appendTelemetry(msg: {
 }
 
 function addConfigMetaNode(cy: Core, config: Record<string, any>): void {
-  cy.add({
-    group: 'nodes',
-    data: {
-      id: 'meta:config',
-      label: '⚙ Config',
-      html: '<div class="graph-message msg-system">Configuration</div>',
-      nodeType: 'config',
-      priority: 1.0,
-      confidence: 1.0,
-      layout: { x: 500, y: -500 },
-    },
-    classes: 'chat-message-node',
-  });
+  const nodeData: GraphNodeData = {
+    id: 'meta:config',
+    label: '⚙ Config',
+    html: '<div class="graph-message msg-system">Configuration</div>',
+    nodeType: 'nar:concept',
+    priority: 1.0,
+    confidence: 1.0,
+    layout: { x: 500, y: -500 },
+  };
+  const nodes = new Map($graphNodes.get());
+  nodes.set('meta:config', nodeData);
+  $graphNodes.set(nodes);
+  cy.add({ group: 'nodes', data: nodeData, classes: 'chat-message-node' });
 }

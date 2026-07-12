@@ -73,6 +73,7 @@ export class AgentImpl implements Agent {
   #cognitiveListeners = new Set<(event: CognitiveEvent) => void>();
   #transportCleanups = new Map<string, () => void>();
   #currentCorrelationId: string | null = null;
+  #narEventUnsubscribers: Array<() => void> = [];
 
   constructor(opts: AgentOptions) {
     this.nar = opts.nar;
@@ -163,6 +164,70 @@ export class AgentImpl implements Agent {
       knowList: () => this.knowList(),
       recall: (q?: string, l?: number) => this.recall(q, l),
     });
+
+    // Subscribe to NAR system events and emit as CognitiveEvents
+    this.#subscribeToNarEvents();
+  }
+
+  #subscribeToNarEvents(): void {
+    if (!this.nar) return;
+
+    const systemEventBus = this.nar.getSystemEventBus();
+    const correlationId = () => this.#currentCorrelationId ?? crypto.randomUUID();
+
+    // Cycle events (from NARExecution)
+    const cycleEndUnsub = systemEventBus.on('nar:reasoning:cycle', (data: { cycle: number; derived: number; timestamp?: number }) => {
+      this.#emitCognitive({
+        engine: 'nar',
+        type: 'cycle',
+        cycle: data.cycle,
+        derived: data.derived,
+        timestamp: data.timestamp ?? Date.now(),
+        correlationId: correlationId(),
+      });
+    });
+    this.#narEventUnsubscribers.push(cycleEndUnsub);
+
+    // Drive events (from DriveManager)
+    const driveChangedUnsub = systemEventBus.on('nar:drive:changed', (data: { drive: string; urgency: number; timestamp: number }) => {
+      this.#emitCognitive({
+        engine: 'nar',
+        type: 'drive:changed',
+        drive: data.drive,
+        urgency: data.urgency,
+        timestamp: data.timestamp,
+        correlationId: correlationId(),
+      });
+    });
+    this.#narEventUnsubscribers.push(driveChangedUnsub);
+
+    // Derivation events (from rule:applied via wrapNarEventBus)
+    const derivationUnsub = systemEventBus.on('nar:derivation', (data: { term: string; confidence: number; timestamp: number }) => {
+      this.#emitCognitive({
+        engine: 'nar',
+        type: 'derivation',
+        term: data.term,
+        confidence: data.confidence,
+        timestamp: data.timestamp,
+        correlationId: correlationId(),
+      });
+    });
+    this.#narEventUnsubscribers.push(derivationUnsub);
+
+    // Concept activated events (from concept:created via wrapNarEventBus)
+    const conceptActivatedUnsub = systemEventBus.on('nar:concept:activated', (data: { term: string; priority: number; timestamp: number }) => {
+      this.#emitCognitive({
+        engine: 'nar',
+        type: 'concept:activated',
+        term: data.term,
+        priority: data.priority,
+        timestamp: data.timestamp,
+        correlationId: correlationId(),
+      });
+    });
+    this.#narEventUnsubscribers.push(conceptActivatedUnsub);
+
+    // Note: nar:goal:resolved and nar:conflict:detected are defined in EventBus but not currently emitted by NAR core
   }
 
   chat(
@@ -173,6 +238,7 @@ export class AgentImpl implements Agent {
   chat(input: string, opts?: ChatOptions & { stream?: false }): Promise<string>;
 
   chat(input: string, opts: ChatOptions = {}): any {
+    this.#emitInputEvent(input, 'chat');
     if (opts.stream) {
       return this.lmChatService.chatStream(input, opts.session, opts);
     }
@@ -187,6 +253,7 @@ export class AgentImpl implements Agent {
     session: ConversationSession,
     opts: ChatOptions = {}
   ): Promise<string> {
+    this.#emitInputEvent(input, 'chat');
     return this.lmChatService.chatWithHistory(input, session, opts);
   }
 
@@ -195,6 +262,7 @@ export class AgentImpl implements Agent {
     session?: ConversationSession,
     opts: ChatOptions = {}
   ): AsyncGenerator<ChatStreamEvent, string> {
+    this.#emitInputEvent(input, 'chat');
     let final = '';
     for await (const event of this.lmChatService.chatStream(input, session, opts)) {
       if (event.kind === 'finish' || event.kind === 'aborted' || event.kind === 'error') {
@@ -203,6 +271,19 @@ export class AgentImpl implements Agent {
       yield event;
     }
     return final;
+  }
+
+  #emitInputEvent(input: string, source: string): void {
+    const correlationId = this.#currentCorrelationId ?? crypto.randomUUID();
+    const event: CognitiveEvent = {
+      engine: 'nar',
+      type: 'input',
+      term: input,
+      source,
+      timestamp: Date.now(),
+      correlationId,
+    };
+    this.#emitCognitive(event);
   }
 
   async believe(narsese: string): Promise<void> {
@@ -254,6 +335,10 @@ export class AgentImpl implements Agent {
       stop();
       this.stop();
     };
+  }
+
+  async waitForReady(): Promise<void> {
+    await this.lifecycleManager.waitForReady();
   }
 
   stop(): void {

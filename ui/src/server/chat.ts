@@ -1,7 +1,7 @@
 import type { ChatOptions, ChatStreamEvent, CognitiveEventSource } from '@senars/core';
 import { errMsg } from '@senars/nar/utils';
 import { nanoid } from 'nanoid';
-import type { IncomingFromServer } from '../shared/protocol.js';
+import type { IncomingFromServer } from '@senars/core/protocol';
 import { consumePendingChatResponse } from './gateway.js';
 
 const STREAM_DELAY_MS = 200;

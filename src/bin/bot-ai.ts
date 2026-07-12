@@ -27,13 +27,11 @@ import {
   createConnectionConfigsFromEnv,
   registerAllCommands,
 } from '@senars/nar/agent';
-import { SeNARSFactory } from '../../nar/src';
-import { createSeNARSRegistry } from '../../nar/src/lm';
-import { resolveLMConfig } from '../../nar/src/lm/env-config.js';
-import { createLogger } from '../../nar/src/logger';
-import { EpisodicMemory } from '../../nar/src/memory/EpisodicMemory.js';
-import { NLGenerationService, NLUnderstandingService } from '../../nar/src/nl';
-import { TranslationCache } from '../../nar/src/nl/cache.js';
+import { SeNARSFactory } from '@senars/nar';
+import { createSeNARSRegistry, resolveLMConfig } from '@senars/nar/lm';
+import { createLogger } from '@senars/nar/logger';
+import { EpisodicMemory } from '@senars/nar/memory/episodic';
+import { NLGenerationService, NLUnderstandingService, TranslationCache } from '@senars/nar/nl';
 import { DEFAULT_NAR_CONFIG, loadConfigFromEnv } from '../config';
 import { setupGracefulShutdown } from '../utils';
 import { assertValidEnv } from '../utils/env-validate.js';
