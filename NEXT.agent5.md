@@ -766,4 +766,137 @@ export async function bootstrapAgent(agent: Agent, config: AgentConfig): Promise
 
 ---
 
+## 14. Integration Findings (From Codebase Review)
+
+### 14.1 Protocol.ts Changes Required (Breaking)
+
+```typescript
+// core/src/Protocol.ts — GraphNodeDataView (lines 83-112)
+export const GraphNodeDataView = z.object({
+  // ... existing fields ...
+  nodeType: z.enum(['nar:concept', 'metta:atom', 'metta:skill']),
+  capabilities: z.array(z.string()).optional(),  // ← ADD
+});
+
+// core/src/Protocol.ts — LensSpecSchema (lines 31-36)
+export const LensSpecSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  description: z.string(),
+  modulation: ModulationSchema,
+  requires: z.array(z.string()).optional(),  // ← ADD
+});
+```
+
+- All backends must populate `capabilities` on node emission
+- Default lenses get `requires`: `belief`→`['truth-revision']`, `goal`→`['goal-management']`, `skill`→`['skill-execution']`, `memory`→`['episodic-memory','long-term-memory']`, `contradiction`→`['truth-revision']`
+
+### 14.2 AgentImpl → Agent Extraction Strategy
+
+| Current (`nar/src/agent/core/AgentImpl.ts`) | Target (`core/src/Agent.ts`) |
+|---------------------------------------------|------------------------------|
+| Hard-coded NAR dependency | `registerBackend(backend)` |
+| `chat()` → NAR's LMChatService | `chat()` → routes via `ReasoningRouter` |
+| `submit()` → NAR input pipeline | `submit()` → routes to backend(s) |
+| Direct NAR event subscription | Subscribes to *all* backend events |
+| `capabilities()` → NAR-specific | Union of all backend capabilities |
+| `getTools()` → NAR tools | Union of `backend.getTools()` |
+
+**Risk mitigation**: Keep `AgentImpl` as internal `NarBackend` implementation. New `Agent` class delegates to backends. Zero behavioral change for NAR path.
+
+### 14.3 BackendConfig Typing
+
+```typescript
+// core/src/reasoning/BackendTypes.ts
+export interface BackendConfig {
+  // Backend-specific config merged at registration
+  [key: string]: unknown;
+}
+
+// NarBackend expects:
+interface NarBackendConfig {
+  nar: NARConfig;
+  autonomy?: { enabled: boolean };
+  lmService?: LMService;
+  providerRegistry?: SeNARSRegistry;
+}
+
+// MettaBackend expects:
+interface MettaBackendConfig {
+  metta?: MettaConfig;
+  spaces?: string[];
+  autonomousLoop?: boolean;
+}
+```
+
+### 14.4 CognitiveCoordinator — Remove
+
+- Used nowhere in production (only test fixtures)
+- New `Agent` *is* the single `CognitiveEventSource`
+- Delete `core/src/CognitiveCoordinator.ts` after tests migrated
+
+### 14.5 Test Migration Scope
+
+| Test File | Action |
+|-----------|--------|
+| `tests/unit/server/cognitive-bridge.test.ts` | → `UnifiedGraphProjection` tests |
+| `tests/unit/server/bridge-api.test.ts` | → `Agent` direct tests |
+| `tests/unit/server/bridge-revision.test.ts` | → `Agent` + `NarBackend` |
+| `tests/unit/server/bridge-nar-integration.test.ts` | → `NarBackend` isolation + `Agent` |
+| `tests/e2e/webui-smoke.test.ts` | → `tests/e2e/agent-smoke.test.ts` |
+| `tests/unit/nar/agent/` | → `Agent` + `NarBackend` |
+| `tests/unit/metta/` | → `MettaBackend` tests |
+
+### 14.6 Migration Sequence (Zero-Downtime)
+
+| Step | What | Risk |
+|------|------|------|
+| 1 | Add `capabilities` to `GraphNodeDataView` + `requires` to `LensSpecSchema` | Low — additive |
+| 2 | Create `ReasoningBackend` interface + `Capability` enum in `core/src/reasoning/` | Low — new files |
+| 3 | Extract `NarBackend` from `AgentImpl` (keep `AgentImpl` working) | Medium — surgical |
+| 4 | Build `MettaBackend` with real `runtime.evaluate()` | Medium — new backend |
+| 5 | Create new `Agent` class with `registerBackend()` | Medium — new core |
+| 6 | Update `ui/src/server/index.ts` → `startAgentUI(agent)` | Low — wrapper |
+| 7 | Update `bootstrapAgent()` to register both backends | Low |
+| 8 | Update `senars.config.json` with `backends` section | Low |
+| 9 | Update UI lens filtering to use capabilities | Low |
+| 10 | Delete `CognitiveCoordinator`, `CognitiveBridge`, old bootstrap | Medium — cleanup |
+| 11 | Update all tests | High — volume |
+| 12 | Verify `pnpm bot` (IRC+WS) still works | Critical — integration |
+
+### 14.7 Remaining Risks
+
+1. **AgentImpl Extraction**: 683 lines with tight NAR coupling. Mitigation: `NarBackend` wraps `AgentImpl` internally — new `Agent` delegates to it.
+
+2. **LMChatService**: NAR-specific. Keep in `nar/src/services/` — `NarBackend` owns it.
+
+3. **ToolBuilder**: Creates NAR-specific tools. `MettaBackend.getTools()` returns its own. `Agent` unions them.
+
+4. **Event Schema**: `CognitiveEvent.engine: 'nar' | 'metta'` — backends must emit correctly.
+
+5. **Autonomy Engine**: NAR-only. `NarBackend` initializes it. `MettaAutonomousBackend` has own loop.
+
+---
+
+## 15. Convergence Verdict
+
+**We are converging.** The Agent-as-Kernel design is the stable attractor:
+
+| Plan | Core Idea | Fatal Flaw |
+|------|-----------|------------|
+| `NEXT.agent3.md` | Vertical slice: real NAR + UI | Ignores MeTTa; assumes single engine |
+| `NEXT.agent4.md` | Unified coordinator + intent classifier | Treats stub as peer; LLM in hot path; dual agents |
+| `NEXT.agent5.md` | **Agent as kernel, backends as plugins** | **None — integrates with existing architecture** |
+
+The progression was necessary: each plan exposed the next layer of reality. `agent5` is the first that:
+- Works with **existing IO channels** (IRC, CLI, WS, HTTP, MCP) unchanged
+- Preserves **all NAR capabilities** (chat, tools, drives, autonomy, revision history)
+- Makes **MeTTa real** (A1) and leaves door open for **full autonomy** (B)
+- Requires **zero UI changes** (graph, lenses, chat work via capabilities)
+- Has **clear migration path** with surgical extraction, not rewrite
+
+**No more plans needed.** The architecture is settled. Next step is implementation.
+
+---
+
 *Supersedes `NEXT.agent4.md`. Strategy: **Agent as kernel, backends as plugins.** The vertical slice is the Agent with NAR + MeTTa backends.*
