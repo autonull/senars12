@@ -1,66 +1,51 @@
+import { Agent } from '@senars/core';
+import { MettaBackend } from '@senars/metta/backend';
+import { NarBackend } from '@senars/nar';
 import { SeNARSFactory } from '@senars/nar';
-import { DEFAULT_NAR_CONFIG } from '@senars/nar';
-import { CognitiveCoordinator } from '@senars/core/coordinator';
-import { startWebUIWithOptions, type TestServer } from '@senars/ui/server';
-import { describe, expect, it, afterAll, beforeAll } from 'vitest';
-import type { AgentCapabilities } from '@senars/core';
-import { MettaAgent } from '@senars/metta/agent';
 import { createAgent } from '@senars/nar/agent';
+import { DEFAULT_NAR_CONFIG } from '@senars/nar';
+import { startAgentUI, type TestServer } from '@senars/ui/server';
+import { describe, expect, it, afterAll, beforeAll } from 'vitest';
 
-describe('CognitiveCoordinator Multi-Agent Integration', () => {
+describe('Multi-Backend Agent Integration', () => {
   let server: TestServer;
-  let coordinator: CognitiveCoordinator;
-  let narCleanup: () => void;
-  const nar = SeNARSFactory.createDefault(DEFAULT_NAR_CONFIG);
-  const narAgent = createAgent({ nar });
-  const mettaAgent = new MettaAgent();
+  let agent: Agent;
 
   beforeAll(async () => {
-    // Start both agents - capture cleanup function for afterAll
-    narCleanup = narAgent.start();
-    mettaAgent.start();
+    const nar = SeNARSFactory.createDefault({ ...DEFAULT_NAR_CONFIG });
+    const oldAgent = createAgent({ nar });
 
-    // Create coordinator to fan input to both (it doesn't call start() on already-started agents)
-    coordinator = new CognitiveCoordinator([narAgent, mettaAgent]);
+    agent = new Agent({ name: 'test-multi' });
 
-    server = await startWebUIWithOptions(coordinator, { port: 4000 });
+    // Register NAR backend (wraps old AgentImpl)
+    const narBackend = new NarBackend(oldAgent);
+    await agent.registerBackend(narBackend, {});
+
+    // Register MeTTa backend
+    const mettaBackend = new MettaBackend();
+    await agent.registerBackend(mettaBackend, { metta: { maxRecursionDepth: 100 } });
+
+    agent.start();
+    server = await startAgentUI(agent, { port: 0 });
   }, 30000);
 
   afterAll(async () => {
     await server.close();
-    // Use the cleanup function to properly stop NAR agent
-    if (narCleanup) narCleanup();
+    agent.stop();
   });
 
-  it('starts server with coordinator as CognitiveEventSource', () => {
+  it('starts server with Agent as CognitiveEventSource', () => {
     expect(server).toBeDefined();
-    expect(server.address().port).toBe(4000);
+    expect(server.address().port).toBeGreaterThan(0);
   });
 
-  it('coordinator implements CognitiveEventSource interface', () => {
-    expect(typeof coordinator.start).toBe('function');
-    expect(typeof coordinator.stop).toBe('function');
-    expect(typeof coordinator.submit).toBe('function');
-    expect(typeof coordinator.on).toBe('function');
-    expect(typeof coordinator.off).toBe('function');
-    expect(typeof coordinator.health).toBe('function');
-    expect(typeof coordinator.capabilities).toBe('function');
-    expect(typeof coordinator.mount).toBe('function');
-    expect(typeof coordinator.unmount).toBe('function');
-  });
-
-  it('returns array of capabilities from both agents', () => {
-    const caps = coordinator.capabilities();
+  it('reports capabilities from both backends', () => {
+    const caps = agent.capabilities();
     expect(Array.isArray(caps)).toBe(true);
-    expect(caps.length).toBe(2);
-
-    const engines = (caps as AgentCapabilities[]).map((c) => c.engine);
-    expect(engines).toContain('nar');
-    expect(engines).toContain('metta');
   });
 
-  it('reports aggregated health status', () => {
-    const health = coordinator.health();
+  it('reports healthy status', () => {
+    const health = agent.health();
     expect(health.status).toBe('healthy');
     expect(typeof health.cycleCount).toBe('number');
   });

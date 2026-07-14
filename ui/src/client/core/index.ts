@@ -22,6 +22,7 @@ export {
   $urlState,
   $selectedNodeIds,
   $lensViewport,
+  $capabilityFilter,
   $graphFilter,
   $lensLayout,
   $view,

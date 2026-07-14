@@ -10,31 +10,38 @@ export interface LensDef {
   description: string;
   colorToken: string;
   defaultLayout: string;
+  requires?: string[];
 }
 
-export const LENS_DEFS: LensDef[] = [
-  {
-    id: 'belief',
-    label: 'Beliefs',
-    description: 'What the system knows',
-    colorToken: 'lens.belief',
-    defaultLayout: 'cose',
-  },
-  {
-    id: 'goal',
-    label: 'Goals',
-    description: 'What the system wants',
-    colorToken: 'lens.goal',
-    defaultLayout: 'concentric',
-  },
-  {
-    id: 'contradiction',
-    label: 'Conflicts',
-    description: 'Where beliefs conflict',
-    colorToken: 'lens.contradiction',
-    defaultLayout: 'breadthfirst',
-  },
-];
+/** Lenses whose capability requirements are always satisfied (no graph dependency). */
+function buildLensDefs(): LensDef[] {
+  return [
+    {
+      id: 'belief',
+      label: 'Beliefs',
+      description: 'What the system knows',
+      colorToken: 'lens.belief',
+      defaultLayout: 'cose',
+      requires: ['truth-revision'],
+    },
+    {
+      id: 'goal',
+      label: 'Goals',
+      description: 'What the system wants',
+      colorToken: 'lens.goal',
+      defaultLayout: 'concentric',
+      requires: ['goal-management'],
+    },
+    {
+      id: 'contradiction',
+      label: 'Conflicts',
+      description: 'Where beliefs conflict',
+      colorToken: 'lens.contradiction',
+      defaultLayout: 'breadthfirst',
+      requires: ['truth-revision'],
+    },
+  ];
+}
 
 @customElement('lens-controller')
 export class LensController extends BaseComponent {
@@ -63,22 +70,47 @@ export class LensController extends BaseComponent {
     .popover-count { font-family: var(--typography-fontFamilies-ui); font-size: var(--typography-scale-xs); color: var(--colors-semantic-text-secondary); display: flex; justify-content: space-between; gap: var(--spacing-scale-4); }
     .popover-count span:first-child { color: var(--colors-semantic-text-muted); }
   `;
-  @state() private activePopover: Lens | null = null;
-  @state() private nodeCounts: Record<string, number> = { belief: 0, goal: 0, contradiction: 0 };
+  @state() private activePopover: string | null = null;
+  @state() private nodeCounts: Record<string, number> = {};
+  @state() private applicableLenses: LensDef[] = [];
   private popoverTimer: ReturnType<typeof setTimeout> | null = null;
 
   override connectedCallback() {
     super.connectedCallback();
     this.watch($activeLens);
-    this.watchWith($graphNodes, () => this.updateNodeCounts());
+    this.watchWith($graphNodes, () => {
+      this.updateApplicableLenses();
+      this.updateNodeCounts();
+    });
+    this.updateApplicableLenses();
     this.updateNodeCounts();
+  }
+
+  /** Compute which lenses are applicable based on capabilities present in graph nodes. */
+  private updateApplicableLenses() {
+    const activeCaps = new Set<string>();
+    for (const n of $graphNodes.get().values()) {
+      for (const cap of n.capabilities ?? []) {
+        activeCaps.add(cap);
+      }
+    }
+    this.applicableLenses = buildLensDefs().filter(
+      (def) => !def.requires || def.requires.every((c) => activeCaps.has(c))
+    );
+    // If current active lens is no longer applicable, fall back to first applicable
+    const current = $activeLens.get();
+    if (this.applicableLenses.length > 0 && !this.applicableLenses.some((l) => l.id === current)) {
+      $activeLens.set(this.applicableLenses[0]!.id as Lens);
+    }
   }
 
   override render() {
     const activeLens = $activeLens.get();
+    const lenses = this.applicableLenses;
+    if (lenses.length === 0) return html``;
     return html`
       <div class="lens-group" role="tablist" aria-label="Cognitive lens">
-        ${LENS_DEFS.map(
+        ${lenses.map(
           (def) => html`
           <div style="position:relative;display:inline-block" @mouseenter=${() => this.onEnter(def.id)} @mouseleave=${this.onLeave}>
             <button class="lens-btn ${def.id} ${def.id === activeLens ? 'active' : ''}"
@@ -112,11 +144,15 @@ export class LensController extends BaseComponent {
 
   private updateNodeCounts() {
     const nodes = $graphNodes.get();
-    const counts: Record<string, number> = { belief: 0, goal: 0, contradiction: 0 };
-    for (const n of nodes.values()) {
-      if (n.isContradiction) counts.contradiction!++;
-      if ((n.goalRelevance ?? 0) > 0.5) counts.goal!++;
-      counts.belief!++;
+    const counts: Record<string, number> = {};
+    for (const def of this.applicableLenses) {
+      let count = 0;
+      for (const n of nodes.values()) {
+        if (def.id === 'contradiction' && n.isContradiction) count++;
+        else if (def.id === 'goal' && (n.goalRelevance ?? 0) > 0.5) count++;
+        else count++;
+      }
+      counts[def.id] = count;
     }
     this.nodeCounts = counts;
   }

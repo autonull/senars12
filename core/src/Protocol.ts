@@ -101,6 +101,7 @@ export const GraphNodeDataView = z.object({
     })
     .optional(),
   nodeType: z.enum(['nar:concept', 'metta:atom', 'metta:skill']),
+  capabilities: z.array(z.string()).optional(),
   html: z.string().optional(),
   punctuation: z.enum(['.', '!', '?']).optional(),
   space: z.string().optional(),
@@ -288,6 +289,7 @@ export const LensListMsg = z.object({
       label: z.string(),
       description: z.string(),
       modulation: z.any(),
+      requires: z.array(z.string()).optional(),
     })
   ),
 });
@@ -299,6 +301,7 @@ export const LensDefineMsg = z.object({
     label: z.string(),
     description: z.string(),
     modulation: z.any(),
+    requires: z.array(z.string()).optional(),
   }),
 });
 
@@ -309,6 +312,7 @@ export const LensDefinedMsg = z.object({
     label: z.string(),
     description: z.string(),
     modulation: z.any(),
+    requires: z.array(z.string()).optional(),
   }),
 });
 

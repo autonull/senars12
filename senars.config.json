@@ -2,6 +2,23 @@
   "name": "senars12",
   "version": "1.0.0",
   "configVersion": "1.0",
+  "agent": {
+    "name": "senars",
+    "persona": "curious assistant"
+  },
+  "backends": {
+    "nar": {
+      "enabled": true,
+      "cyclesPerStep": 10,
+      "autonomy": { "enabled": true }
+    },
+    "metta": {
+      "enabled": true,
+      "maxRecursionDepth": 100,
+      "spaces": ["default", "episodic"],
+      "autonomousLoop": false
+    }
+  },
   "lm": {
     "provider": "transformers",
     "model": "onnx-community/Qwen2.5-1.5B-Instruct",

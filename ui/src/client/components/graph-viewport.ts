@@ -4,6 +4,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { edgeKey } from '../../shared/utils.js';
 import {
   $activeLens,
+  $capabilityFilter,
   $chatMessages,
   $focusTerm,
   $graphEdges,
@@ -103,6 +104,7 @@ export class GraphViewport extends BaseComponent {
     this.watchWith($selectedNodeId, (id) => this.centerOnNode(id));
     this.watchWith($viewport, (vp) => this.restoreViewport(vp));
     this.watchWith($graphFilter, () => this.applyGraphFilter());
+    this.watchWith($capabilityFilter, () => this.applyGraphFilter());
     eventBus.on('graph:layout', this.layoutHandler);
     mountTestApi('graph', {
       getNodeCount: () => this.cy?.nodes().length ?? 0,
@@ -497,9 +499,13 @@ export class GraphViewport extends BaseComponent {
   private applyGraphFilter() {
     if (!this.cy) return;
     const filter = $graphFilter.get();
+    const capFilter = $capabilityFilter.get();
     for (const n of this.cy.nodes()) {
       if (filter === 'contradiction') {
         n.style('display', n.data('isContradiction') ? 'element' : 'none');
+      } else if (capFilter !== 'all') {
+        const caps: string[] = n.data('capabilities') ?? [];
+        n.style('display', caps.includes(capFilter) ? 'element' : 'none');
       } else {
         n.style('display', 'element');
       }
@@ -539,17 +545,18 @@ const el = currentIds.has(nodeId) ? cy.getElementById(nodeId) : null;
          if (el) {
            el.data(nd);
          } else {
-           const data = {
-             id: nodeId,
-             color: TOKEN_COLORS.accentCyan,
-             term: nd.term,
-             nodeType: nd.nodeType,
-             priority: nd.priority,
-             confidence: nd.confidence,
-             isContradiction: nd.isContradiction,
-             label: nd.label,
-             html: nd.html,
-           };
+            const data = {
+              id: nodeId,
+              color: TOKEN_COLORS.accentCyan,
+              term: nd.term,
+              nodeType: nd.nodeType,
+              priority: nd.priority,
+              confidence: nd.confidence,
+              isContradiction: nd.isContradiction,
+              label: nd.label,
+              html: nd.html,
+              capabilities: nd.capabilities,
+            };
            const classes = '';
            cy.add({ group: 'nodes', data, classes });
          }

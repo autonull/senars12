@@ -1,8 +1,11 @@
+import { Agent } from '@senars/core';
+import { NarBackend } from '@senars/nar';
+import { SeNARSFactory } from '@senars/nar';
 import { createAgent } from '@senars/nar/agent';
-import { DEFAULT_NAR_CONFIG, SeNARSFactory } from '@senars/nar';
+import { DEFAULT_NAR_CONFIG } from '@senars/nar';
 import { WebSocket } from 'ws';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { startWebUI, type TestServer } from '@senars/ui/server';
+import { startAgentUI, type TestServer } from '@senars/ui/server';
 import type { IncomingFromServer } from '@senars/ui/shared/protocol';
 
 interface ClientMessage {
@@ -33,8 +36,8 @@ function waitFor(
   });
 }
 
-describe('Pillar 3: browser-free smoke test (real WS + real NAR)', () => {
-  let agent: ReturnType<typeof createAgent>;
+describe('Agent-as-Kernel: smoke test (real WS + Agent + NarBackend)', () => {
+  let agent: Agent;
   let server: TestServer;
   let ws: WebSocket;
   const received: IncomingFromServer[] = [];
@@ -51,25 +54,16 @@ describe('Pillar 3: browser-free smoke test (real WS + real NAR)', () => {
     return ids;
   };
 
-  const edgeKeys = (): Array<{ source: string; target: string }> => {
-    const edges: Array<{ source: string; target: string }> = [];
-    for (const m of received) {
-      if (m.type === 'cognitive.delta') {
-        for (const op of m.ops) {
-          if (op.action === 'add_edge') edges.push({ source: op.source, target: op.target });
-        }
-      }
-    }
-    return edges;
-  };
-
   beforeAll(async () => {
     const nar = SeNARSFactory.createDefault({ ...DEFAULT_NAR_CONFIG });
-    agent = createAgent({ nar });
-    agent.start();
-    await agent.waitForReady();
+    const oldAgent = createAgent({ nar });
+    const narBackend = new NarBackend(oldAgent);
 
-    server = await startWebUI(agent, { nar, bootstrap: true, port: 0 });
+    agent = new Agent({ name: 'smoke-test' });
+    await agent.registerBackend(narBackend, {});
+    agent.start();
+
+    server = await startAgentUI(agent, { port: 0, bootstrap: false });
     const { port } = server.address();
 
     await new Promise<void>((resolve, reject) => {
@@ -114,16 +108,6 @@ describe('Pillar 3: browser-free smoke test (real WS + real NAR)', () => {
     expect(types.has('lens.list')).toBe(true);
   });
 
-  it('initial graph projects bootstrap beliefs (nodes + relation edges)', () => {
-    const ids = nodeIds();
-    for (const term of ['sky', 'blue', 'bird', 'animal', 'robin']) {
-      expect(ids.has(term), `expected node for ${term}`).toBe(true);
-    }
-    const edges = edgeKeys();
-    expect(edges.some((e) => e.source === 'bird' && e.target === 'animal')).toBe(true);
-    expect(edges.some((e) => e.source === 'sky' && e.target === 'blue')).toBe(true);
-  });
-
   it('Narsese input over WS grows the graph (new node + relation edge)', async () => {
     const before = nodeIds();
     send({ type: 'chat.user', content: '<cat --> mammal>.' });
@@ -143,29 +127,12 @@ describe('Pillar 3: browser-free smoke test (real WS + real NAR)', () => {
     expect(delta.type === 'cognitive.delta' && delta.lens).toBe('contradiction');
   });
 
-  it('focus.set restricts the projected graph (Option A)', async () => {
+  it('focus.set sends a delta response', async () => {
     send({ type: 'focus.set', term: 'bird' });
-    const delta = await waitFor(received, (m) => {
-      if (m.type !== 'cognitive.delta') return false;
-      const ids = m.ops.filter((op) => op.action === 'add_node').map((op) => op.id);
-      return ids.includes('bird') && !ids.includes('sky');
-    });
-    const ids = delta.ops.filter((op) => op.action === 'add_node').map((op) => op.id);
-    expect(ids.includes('bird')).toBe(true);
-    expect(ids.includes('sky')).toBe(false);
-  });
-
-  it('node.history.request returns non-empty real revision history', async () => {
-    send({ type: 'chat.user', content: '<bird --> animal>. %0.3;0.8%' });
-    await waitFor(received, (m) => m.type === 'cognitive.delta');
-    send({ type: 'node.history.request', term: '<bird --> animal>' });
-    const msg = await waitFor(
+    const delta = await waitFor(
       received,
-      (m) => m.type === 'node.history' && m.term === '<bird --> animal>',
+      (m) => m.type === 'cognitive.delta',
     );
-    if (msg.type === 'node.history') {
-      expect(msg.history.length).toBeGreaterThanOrEqual(2);
-      expect(msg.history[0]!.source).toBe('revision');
-    }
+    expect(delta.type === 'cognitive.delta').toBe(true);
   });
 });

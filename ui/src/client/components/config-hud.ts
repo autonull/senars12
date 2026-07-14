@@ -14,7 +14,7 @@ interface ValidationResult {
 
 const CATEGORY_LABELS: Record<ConfigCategory, string> = {
   llm: 'Language Model',
-  nars: 'NARS Reasoning',
+  nars: 'Reasoning',
   system: 'System',
   advanced: 'Advanced',
 };

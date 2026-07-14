@@ -43,6 +43,10 @@
     "./memory/episodic": {
       "types": "./src/memory/EpisodicMemory.ts",
       "import": "./src/memory/EpisodicMemory.ts"
+    },
+    "./backend": {
+      "types": "./src/backend/NarBackend.ts",
+      "import": "./src/backend/NarBackend.ts"
     }
   },
   "scripts": {

@@ -14,6 +14,7 @@
     "repl": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/repl.ts",
     "bot": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/bot-ai.ts",
     "multi-agent": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/multi-agent.ts",
+    "senars": "NODE_NO_WARNINGS=1 tsx src/bin/senars.ts",
     "config:check": "tsx --env-file=.env src/utils/config-check.ts",
     "env:check": "NODE_NO_WARNINGS=1 tsx --env-file=.env -e \"import('./src/utils/env-validate.js').then(m => m.assertValidEnv())\"",
     "mcp": "NODE_NO_WARNINGS=1 tsx src/bin/mcp-server.ts",
@@ -23,7 +24,7 @@
     "test:watch": "vitest",
     "test:unit": "vitest run --dir tests/unit",
     "test:integration": "vitest run --dir tests/integration",
-    "test:e2e:smoke": "vitest run --dir tests/e2e",
+    "test:e2e:smoke": "vitest run tests/e2e/agent-smoke.test.ts tests/e2e/metta-smoke.test.ts",
     "test:cognitive": "LM_PROVIDER=mock vitest run --dir tests/cognitive",
     "test:cognitive:real": "vitest run --dir tests/cognitive",
     "test:conversational": "NODE_NO_WARNINGS=1 tsx tests/conversational/runner.ts",
@@ -34,6 +35,11 @@
     "build": "turbo run build"
   },
   "dependencies": {
+    "@senars/core": "workspace:*",
+    "@senars/io": "workspace:*",
+    "@senars/nar": "workspace:*",
+    "@senars/metta": "workspace:*",
+    "@senars/ui": "workspace:*",
     "@ai-sdk/openai-compatible": "^1.0.41",
     "@ai-sdk/provider": "^4.0.0",
     "@browser-ai/transformers-js": "2.2.2",

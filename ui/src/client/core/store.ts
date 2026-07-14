@@ -108,6 +108,10 @@ export const $graphFilter = atom<string | null>(null);
 export type ViewportMode = '2d' | '3d';
 export const $viewportMode = atom<ViewportMode>('2d');
 
+// --- Batch 4: Capability-based filtering ---
+import type { Capability } from '@senars/core';
+export const $capabilityFilter = atom<Capability | 'all'>('all');
+
 // --- Phase 2: Modulation engine atoms ---
 function detectViewFlags(): View['flags'] {
   if (typeof window === 'undefined' || !window.matchMedia) {
@@ -450,6 +454,7 @@ const storeAtoms = {
   selectedNodeIds: $selectedNodeIds,
   lensViewport: $lensViewport,
   graphFilter: $graphFilter,
+  capabilityFilter: $capabilityFilter,
   lensLayout: $lensLayout,
   lensRegistry: $lensRegistry,
   lensFields: $lensFields,

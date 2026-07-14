@@ -65,8 +65,7 @@ export { StatsManager } from './StatsManager.js';
 export { KnowledgeManager } from './KnowledgeManager.js';
 export type { PendingApproval, ApprovalManager, ApprovalServiceConfig } from './ApprovalService.js';
 export { ApprovalService } from './ApprovalService.js';
-export type { CognitiveEventSource } from './CognitiveCoordinator.js';
-export { CognitiveCoordinator } from './CognitiveCoordinator.js';
+export type { CognitiveEventSource, ChatCapable } from './CognitiveEventSource.js';
 export type { LogLevel, LogEntry, LoggerConfig } from './Logger.js';
 export { Logger, createLogger, defaultLogger } from './Logger.js';
 export {
@@ -87,3 +86,33 @@ export type { CommandContext, CommandDefinition, CommandHandler } from './comman
 export type { LensSpec, ModulationSpec, BuiltinLens } from './lens-schema.js';
 export { ModulationSchema, LensSpecSchema, BUILTIN_LENS_IDS, isBuiltinLens, builtinLensSpecs, lensSpecToJsonSchema } from './lens-schema.js';
 export { LENS_COLORS_HEX, LENS_LABELS, CONNECTION_COLORS, LENS_DESCRIPTIONS, EDGE_TYPES, EDGE_LABELS, edgeTypeLabel, type LensFieldDescriptor, LENS_FIELDS } from './constants.js';
+
+// ReasoningBackend interface
+export type { Capability } from './reasoning/Capability.js';
+export type {
+  ReasoningBackend,
+} from './reasoning/ReasoningBackend.js';
+export type {
+  BackendConfig,
+  BackendInput,
+  BackendResult,
+  BackendOutput,
+  BackendHealth,
+  BackendSnapshot,
+  GraphDelta,
+  GraphEdgeData,
+  ReasoningContext,
+  WorkingMemorySnapshot,
+  ToolInvocation,
+  ToolDefinition,
+} from './reasoning/BackendTypes.js';
+
+// Reasoning Router
+export type { RouteStep, Route } from './reasoning/ReasoningRouter.js';
+export { ReasoningRouter } from './reasoning/ReasoningRouter.js';
+
+// Agent
+export { Agent, type AgentConfig, type AgentHealth, type BackendRegistration } from './Agent.js';
+
+// Bootstrap
+export { bootstrapAgent, type BootstrapSeed, DEFAULT_SEED, DEFAULT_BOOTSTRAP_BELIEFS } from './bootstrap.js';

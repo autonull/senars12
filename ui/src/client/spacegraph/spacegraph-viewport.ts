@@ -5,6 +5,7 @@ import { edgeKey } from '../../shared/utils.js';
 import { BaseComponent } from '../core/base-component.js';
 import {
   $activeLens,
+  $capabilityFilter,
   $chatMessages,
   $focusTerm,
   $graphEdges,
@@ -96,6 +97,7 @@ export class SpaceGraphViewport extends BaseComponent {
     this.watchWith($selectedNodeId, (id) => this.centerOnNode(id));
     this.watchWith($viewport, (vp) => this.restoreViewport(vp));
     this.watchWith($graphFilter, () => this.applyGraphFilter());
+    this.watchWith($capabilityFilter, () => this.applyGraphFilter());
     eventBus.on('graph:layout', this.layoutHandler);
     mountTestApi('spacegraph', {
       getNodeCount: () => this.sg?.nodeCount ?? 0,
@@ -188,9 +190,13 @@ export class SpaceGraphViewport extends BaseComponent {
   private applyGraphFilter(): void {
     if (!this.sg) return;
     const filter = $graphFilter.get();
+    const capFilter = $capabilityFilter.get();
     this.sg.forNodes((node: any) => {
       if (filter === 'contradiction') {
         node.object.visible = !!node.data?.isContradiction;
+      } else if (capFilter !== 'all') {
+        const caps: string[] = node.data?.capabilities ?? [];
+        node.object.visible = caps.includes(capFilter);
       } else {
         node.object.visible = true;
       }

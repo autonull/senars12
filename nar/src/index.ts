@@ -101,6 +101,9 @@ export type { ComponentDefinition, ValueDefinition, Definition } from './lifecyc
 // NL Translation
 export * from './nl/schemas.js';
 
+// Backend (ReasoningBackend implementation)
+export { NarBackend } from './backend/NarBackend.js';
+
 // Cognitive
 export { Observer, runCounterfactual } from './cognitive/index.js';
 export type { CognitiveState, CognitiveAction, ObserverReport } from './cognitive/index.js';

@@ -7,6 +7,22 @@
     ".": {
       "types": "./src/index.ts",
       "import": "./src/index.ts"
+    },
+    "./server": {
+      "types": "./src/server/index.ts",
+      "import": "./src/server/index.ts"
+    },
+    "./server/*": {
+      "types": "./src/server/*.ts",
+      "import": "./src/server/*.ts"
+    },
+    "./unified-graph-projection": {
+      "types": "./src/server/UnifiedGraphProjection.ts",
+      "import": "./src/server/UnifiedGraphProjection.ts"
+    },
+    "./agent-bridge": {
+      "types": "./src/server/agent-bridge.ts",
+      "import": "./src/server/agent-bridge.ts"
     }
   },
   "scripts": {

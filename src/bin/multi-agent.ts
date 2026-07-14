@@ -1,56 +1,49 @@
 #!/usr/bin/env tsx
 /**
- * Multi-Agent SeNARS Demo
- * 
- * Demonstrates running NAR and MeTTa agents together via CognitiveCoordinator.
- * Both agents receive the same input and emit events through a shared bridge.
+ * Multi-Agent SeNARS Demo (updated for Agent-as-Kernel architecture)
+ *
+ * Demonstrates running NAR and MeTTa reasoning backends inside a single Agent.
+ * Input is routed to the appropriate backend based on capability matching.
  */
 
-import { MettaAgent } from '@senars/metta/agent';
-import { createAgent } from '@senars/nar/agent';
 import { SeNARSFactory } from '@senars/nar';
-import { DEFAULT_NAR_CONFIG } from '@senars/nar';
-import { CognitiveCoordinator } from '@senars/core/coordinator';
+import { createAgent } from '@senars/nar/agent';
+import { NarBackend } from '@senars/nar/backend';
+import { MettaBackend } from '@senars/metta/backend';
+import { Agent } from '@senars/core';
+import { DEFAULT_NAR_CONFIG } from '../config';
 import { WSConnection } from '@senars/io/connections/ws';
 import { CLIConnection } from '@senars/io/connections/cli';
 import { createLogger } from '@senars/nar/logger';
-import type { CognitiveEvent, MeTTaAtom } from '@senars/core';
+import type { CognitiveEvent } from '@senars/core';
 
-const logger = createLogger({ scope: 'multi-agent-demo' });
+const logger = createLogger({ scope: 'multi-agent' });
 
 async function main() {
+  const agent = new Agent({ name: 'senars-multi' });
+
+  // Register NAR backend
   console.log('[NAR] Initializing...');
-  const nar = SeNARSFactory.createDefault(DEFAULT_NAR_CONFIG);
-  const narAgent = createAgent({ nar });
-  narAgent.start();
+  const nar = SeNARSFactory.createDefault({ ...DEFAULT_NAR_CONFIG, maxConcepts: 100 });
+  const oldAgent = createAgent({ nar });
+  const narBackend = new NarBackend(oldAgent);
+  await agent.registerBackend(narBackend, {});
   console.log('[NAR] Ready');
 
-  // Create MeTTa agent
+  // Register MeTTa backend
   console.log('[MeTTa] Initializing...');
-  const mettaAgent = new MettaAgent();
-  mettaAgent.start();
+  const mettaBackend = new MettaBackend();
+  await agent.registerBackend(mettaBackend, { metta: { maxRecursionDepth: 100 } });
   console.log('[MeTTa] Ready');
 
-  // Create coordinator that fans input to both agents
-  const coordinator = new CognitiveCoordinator([narAgent, mettaAgent]);
-  coordinator.start();
-  console.log('[Coordinator] Ready - fanning input to both agents\n');
+  agent.start();
+  console.log(`[Agent] Ready — ${agent.getBackendIds().join(', ')} backends registered\n`);
 
-  // Register a test skill on MeTTa agent
-  mettaAgent.registerSkill('echo', {
-    name: 'echo',
-    execute: async (args: readonly MeTTaAtom[]): Promise<MeTTaAtom> => {
-      const msg = args[0]?.toString() ?? '';
-      return { type: 'symbol', value: `Echo: ${msg}` } as MeTTaAtom;
-    },
-  });
-  console.log('[MeTTa] Registered "echo" skill\n');
-
-  // Set up WebSocket transport for coordinator
+  // Set up WebSocket transport
   const wsConfig = {
     id: 'ws-demo',
     enabled: true,
-    type: 'websocket',
+    type: 'websocket' as const,
     config: { name: 'Multi-Agent WS', host: 'localhost', port: 8766 },
   };
 
@@ -60,14 +53,14 @@ async function main() {
     getSessionSpaceId: () => 'demo',
   });
 
-  coordinator.mount(wsConn);
+  agent.mount(wsConn);
   console.log('[WS] Server listening on ws://localhost:8766');
 
   // Set up CLI transport for interactive demo
   const cliConfig = {
     id: 'cli-demo',
     enabled: true,
-    type: 'cli',
+    type: 'cli' as const,
     config: { name: 'Multi-Agent CLI' },
   };
 
@@ -77,12 +70,12 @@ async function main() {
     getSessionSpaceId: () => 'demo',
   });
 
-  coordinator.mount(cliConn);
+  agent.mount(cliConn);
   console.log('[CLI] Ready for input\n');
 
-  // Subscribe to events from both agents
-  coordinator.on('*', (event: CognitiveEvent) => {
-    const engine = event.engine.toUpperCase();
+  // Subscribe to events from agent
+  agent.on('*', (event: CognitiveEvent) => {
+    const engine = event.engine?.toUpperCase() ?? '?';
     const type = event.type;
     const term = event.term?.slice(0, 80) ?? '';
     console.log(`  [${engine}] ${type}: ${term}`);
@@ -92,18 +85,16 @@ async function main() {
   console.log('Try sending messages via:');
   console.log('  - WebSocket: ws://localhost:8766');
   console.log('  - CLI: type in this terminal');
-  console.log('Both agents will process each message!\n');
+  console.log('Agent routes to NAR or MeTTa based on input content.\n');
   console.log('Press Ctrl+C to exit');
   console.log('══════════════════════════════════════════════════════════════\n');
 
   // Keep running
   process.on('SIGINT', async () => {
     console.log('\n\nShutting down...');
-    coordinator.stop();
+    agent.stop();
     await wsConn.disconnect();
     await cliConn.disconnect();
-    narAgent.stop();
-    mettaAgent.stop();
     process.exit(0);
   });
 }

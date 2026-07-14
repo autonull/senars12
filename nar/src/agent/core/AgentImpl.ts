@@ -677,7 +677,11 @@ export class AgentImpl implements Agent {
     }
   }
 
-  private buildTools(session?: ConversationSession): Record<string, unknown> {
+  setExternalToolOpts(tools: Record<string, unknown>): void {
+    Object.assign(this.extToolOpts, tools);
+  }
+
+  buildTools(session?: ConversationSession): Record<string, unknown> {
     return this.toolBuilder.buildTools(session);
   }
 }

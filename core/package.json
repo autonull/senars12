@@ -52,10 +52,6 @@
       "types": "./src/ApprovalService.ts",
       "import": "./src/ApprovalService.ts"
     },
-    "./coordinator": {
-      "types": "./src/CognitiveCoordinator.ts",
-      "import": "./src/CognitiveCoordinator.ts"
-    },
     "./logger": {
       "types": "./src/Logger.ts",
       "import": "./src/Logger.ts"
@@ -75,6 +71,30 @@
     "./constants": {
       "types": "./src/constants.ts",
       "import": "./src/constants.ts"
+    },
+    "./reasoning": {
+      "types": "./src/reasoning/ReasoningBackend.ts",
+      "import": "./src/reasoning/ReasoningBackend.ts"
+    },
+    "./reasoning/capability": {
+      "types": "./src/reasoning/Capability.ts",
+      "import": "./src/reasoning/Capability.ts"
+    },
+    "./reasoning/types": {
+      "types": "./src/reasoning/BackendTypes.ts",
+      "import": "./src/reasoning/BackendTypes.ts"
+    },
+    "./reasoning/router": {
+      "types": "./src/reasoning/ReasoningRouter.ts",
+      "import": "./src/reasoning/ReasoningRouter.ts"
+    },
+    "./agent": {
+      "types": "./src/Agent.ts",
+      "import": "./src/Agent.ts"
+    },
+    "./bootstrap": {
+      "types": "./src/bootstrap.ts",
+      "import": "./src/bootstrap.ts"
     }
   },
   "scripts": {

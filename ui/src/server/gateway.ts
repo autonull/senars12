@@ -2,7 +2,7 @@ import type { WebSocket } from 'ws';
 import type { LensSpec } from '@senars/core/lens-schema';
 import { BUILTIN_LENS_IDS, LensSpecSchema, builtinLensSpecs } from '@senars/core/lens-schema';
 import type { ConfigFieldType, IncomingFromServer, Lens } from '@senars/core/protocol';
-import type { CognitiveBridge } from './cognitive-bridge.js';
+import type { BridgeLike } from './bridge-like.js';
 import { RateLimiter } from './rate-limiter.js';
 import { validateClientMessage } from './validators.js';
 
@@ -54,10 +54,10 @@ export function registerServerLens(spec: LensSpec): LensSpec | null {
 
 export type SendFn = (msg: IncomingFromServer) => void;
 
-/** Handles an incoming WebSocket connection using the new CognitiveBridge. */
+/** Handles an incoming WebSocket connection using a BridgeLike. */
 export function handleConnection(
   socket: WebSocket,
-  bridge: CognitiveBridge,
+  bridge: BridgeLike,
   onChat: (content: string, send: SendFn) => void,
   onLensChange?: (lens: Lens) => void,
   onFocusChange?: (term: string) => void,
@@ -146,7 +146,7 @@ function handleSync(
   lastSeqId: number | null,
   buffer: EventBufferEntry[],
   send: SendFn,
-  bridge: CognitiveBridge
+  bridge: BridgeLike
 ): void {
   const bufLen = buffer.length;
   const lastEntry = bufLen > 0 ? buffer[bufLen - 1] : null;

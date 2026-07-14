@@ -20,6 +20,16 @@ import {
 
 type TabId = 'overview' | 'links' | 'actions' | 'edge' | 'history';
 
+/** Convert engine-prefixed nodeType (e.g. "nar:concept", "metta:atom") to a user-friendly label. */
+function formatNodeType(nodeType: string): string {
+  const labels: Record<string, string> = {
+    'nar:concept': 'Concept',
+    'metta:atom': 'Atom',
+    'metta:skill': 'Skill',
+  };
+  return labels[nodeType] ?? nodeType;
+}
+
 @customElement('node-detail-drawer')
 export class NodeDetailDrawer extends BaseComponent {
   static override styles = css`
@@ -284,7 +294,7 @@ export class NodeDetailDrawer extends BaseComponent {
     return html`
       <div class="section-title">Node Details</div>
       <div class="field"><span class="field-label">Term</span><span class="field-value">${n.term ?? n.label ?? nodeId}</span></div>
-      <div class="field"><span class="field-label">Type</span><span class="field-value">${n.nodeType}</span></div>
+      <div class="field"><span class="field-label">Type</span><span class="field-value">${formatNodeType(n.nodeType)}</span></div>
       <div class="field"><span class="field-label">Priority</span><span class="field-value">${n.priority?.toFixed(3) ?? '—'}</span></div>
       <div class="field"><span class="field-label">Confidence</span><span class="field-value">${n.confidence?.toFixed(3) ?? '—'}</span></div>
       ${n.isContradiction ? html`<div class="field"><span class="field-label">Contradiction</span><span class="field-value" style="color:#ffaa00">⚠ Detected</span></div>` : ''}

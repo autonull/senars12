@@ -14,6 +14,7 @@ export type {
   ChatServiceDeps,
   Session,
   CognitiveEventSource,
+  ToolDefinition,
 } from '@senars/core';
 export {
   isNarEvent,
@@ -26,7 +27,6 @@ export {
   MettaSkillNode,
   SessionOrchestrator,
   KnowledgeManager,
-  CognitiveCoordinator,
 } from '@senars/core';
 
 export { createAgent } from './agent.js';

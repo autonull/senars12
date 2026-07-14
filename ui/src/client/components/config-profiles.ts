@@ -13,7 +13,7 @@ const STORAGE_KEY = 'senars:profiles';
 const ACTIVE_KEY = 'senars:activeProfile';
 
 const BUILTIN_PROFILES: ConfigProfile[] = [
-  { name: 'Default', description: 'Balanced NARS configuration', values: {}, builtin: true },
+  { name: 'Default', description: 'Balanced configuration', values: {}, builtin: true },
   {
     name: 'Research',
     description: 'High derivation throughput, low decay',

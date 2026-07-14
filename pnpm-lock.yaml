@@ -23,6 +23,21 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.3)
+      '@senars/core':
+        specifier: workspace:*
+        version: link:core
+      '@senars/io':
+        specifier: workspace:*
+        version: link:io
+      '@senars/metta':
+        specifier: workspace:*
+        version: link:metta
+      '@senars/nar':
+        specifier: workspace:*
+        version: link:nar
+      '@senars/ui':
+        specifier: workspace:*
+        version: link:ui
       '@types/blessed':
         specifier: ^0.1.27
         version: 0.1.27

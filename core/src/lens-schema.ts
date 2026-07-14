@@ -33,6 +33,7 @@ export const LensSpecSchema = z.object({
   label: z.string().min(1),
   description: z.string(),
   modulation: ModulationSchema,
+  requires: z.array(z.string()).optional(),
 });
 
 export type LensSpec = z.infer<typeof LensSpecSchema>;
@@ -46,13 +47,14 @@ export function isBuiltinLens(id: string): id is BuiltinLens {
   return BUILTIN_LENS_IDS.includes(id as BuiltinLens);
 }
 
-/** Build the three built-in lens specs that mirror compile.ts built-in lenses. */
+/** Build the built-in lens specs with capability requirements. */
 export function builtinLensSpecs(): LensSpec[] {
   return [
     {
       id: 'belief',
       label: 'Beliefs',
       description: 'What the system knows — color by truth frequency, opacity by confidence',
+      requires: ['truth-revision'],
       modulation: {
         op: 'union',
         children: [
@@ -74,6 +76,7 @@ export function builtinLensSpecs(): LensSpec[] {
       id: 'goal',
       label: 'Goals',
       description: 'What the system wants — size by priority',
+      requires: ['goal-management'],
       modulation: {
         op: 'union',
         children: [
@@ -91,6 +94,7 @@ export function builtinLensSpecs(): LensSpec[] {
       id: 'contradiction',
       label: 'Conflicts',
       description: 'Where beliefs conflict — highlight with orange and dashed stroke',
+      requires: ['truth-revision'],
       modulation: {
         op: 'union',
         children: [

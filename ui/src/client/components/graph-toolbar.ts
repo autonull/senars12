@@ -3,6 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import type { ViewportMode } from '../core/index.js';
 import {
   $activeLens,
+  $capabilityFilter,
   $connectionState,
   $graphNodes,
   $lensLayout,
@@ -15,8 +16,20 @@ import {
   eventBus,
   send,
 } from '../core/index.js';
+import type { Capability } from '@senars/core';
 import './contradiction-badge.js';
 import './lens-controller.js';
+
+/** Capability display labels (short names for UI badges). */
+const CAPABILITY_LABELS: Record<string, string> = {
+  'truth-revision': 'belief',
+  'goal-management': 'goal',
+  'skill-execution': 'skill',
+  'pattern-match': 'match',
+  inheritance: 'inherit',
+  'episodic-memory': 'memory',
+  'long-term-memory': 'ltm',
+};
 
 const STATUS_COLORS: Record<string, string> = {
   connected: 'var(--colors-semantic-status-connected)',
@@ -79,12 +92,25 @@ export class GraphToolbar extends BaseComponent {
       cursor: pointer; transition: var(--transitions-fast);
     }
     .multi-select-btn:hover { background: var(--colors-semantic-accent-primary); color: var(--colors-semantic-text-on-accent); }
+
+    /* Capability badges */
+    .capability-badges { display: flex; align-items: center; gap: 3px; }
+    .cap-badge {
+      display: inline-block; padding: 1px 5px; border-radius: 3px;
+      background: var(--colors-semantic-bg-base); border: 1px solid var(--colors-semantic-border-subtle);
+      color: var(--colors-semantic-text-secondary); font-family: var(--typography-fontFamilies-data);
+      font-size: 10px; line-height: 1.4; white-space: nowrap; cursor: pointer;
+      transition: var(--transitions-fast);
+    }
+    .cap-badge:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
+    .cap-badge.active { background: var(--colors-semantic-accent-primary-subtle); border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
   `;
   @state() private zoom = 1;
   @state() private searchQuery = '';
   @state() private multiSelectCount = 0;
   @state() private layoutName = 'cose';
   @state() private viewportMode: ViewportMode = '2d';
+  @state() private activeCapabilities: string[] = [];
 
   override connectedCallback() {
     super.connectedCallback();
@@ -107,6 +133,30 @@ export class GraphToolbar extends BaseComponent {
     this.watchWith($viewportMode, (mode) => {
       this.viewportMode = mode;
     });
+    this.watchWith($graphNodes, () => this.updateCapabilities());
+    this.updateCapabilities();
+  }
+
+  /** Extract unique capabilities from graph nodes for badge display. */
+  private updateCapabilities() {
+    const seen = new Set<string>();
+    const caps: string[] = [];
+    for (const n of $graphNodes.get().values()) {
+      for (const c of n.capabilities ?? []) {
+        if (!seen.has(c)) {
+          seen.add(c);
+          caps.push(c);
+        }
+      }
+    }
+    this.activeCapabilities = caps.sort();
+    // Re-trigger render so active state reflects current filter
+    this.requestUpdate();
+  }
+
+  private toggleCapabilityFilter(cap: Capability) {
+    const current = $capabilityFilter.get();
+    $capabilityFilter.set(current === cap ? 'all' : cap);
   }
 
   private toggleViewportMode() {
@@ -137,6 +187,21 @@ export class GraphToolbar extends BaseComponent {
       <div class="divider"></div>
 
       <lens-controller></lens-controller>
+
+      ${
+        this.activeCapabilities.length > 0
+          ? html`<div class="capability-badges">${this.activeCapabilities.map(
+              (c) => {
+                const active = $capabilityFilter.get() === c;
+                return html`<span class="cap-badge ${active ? 'active' : ''}"
+                  title="${c}"
+                  @click=${() => this.toggleCapabilityFilter(c as Capability)}
+                  role="button"
+                  tabindex="0">${CAPABILITY_LABELS[c] ?? c}</span>`;
+              }
+            )}</div>`
+          : ''
+      }
 
       <div class="divider"></div>
 
