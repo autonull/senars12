@@ -23,6 +23,10 @@
     "./agent-bridge": {
       "types": "./src/server/agent-bridge.ts",
       "import": "./src/server/agent-bridge.ts"
+    },
+    "./backend": {
+      "types": "./src/backend/VisualizationBackend.ts",
+      "import": "./src/backend/VisualizationBackend.ts"
     }
   },
   "scripts": {

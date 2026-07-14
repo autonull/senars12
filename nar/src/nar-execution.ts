@@ -1,4 +1,4 @@
-import type { EventBus } from './agent/index.js';
+import type { EventBus as NarEventBus } from './types/events.js';
 import type { CognitiveController } from './cognitive';
 import type { DriveManager } from './drives';
 import { createLogger } from './logger';
@@ -28,7 +28,7 @@ export class NARExecution {
     private readonly policyOptimizer?: PolicyOptimizer,
     private readonly cognitiveController?: CognitiveController,
     private readonly driveManager?: DriveManager,
-    private readonly systemEventBus?: EventBus,
+    private readonly systemEventBus?: NarEventBus,
     private readonly self?: ReasoningAboutReasoning
   ) {}
 

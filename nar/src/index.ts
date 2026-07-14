@@ -102,7 +102,7 @@ export type { ComponentDefinition, ValueDefinition, Definition } from './lifecyc
 export * from './nl/schemas.js';
 
 // Backend (ReasoningBackend implementation)
-export { NarBackend } from './backend/NarBackend.js';
+export { NarBackend } from './backend/NarBackendV2.js';
 
 // Cognitive
 export { Observer, runCounterfactual } from './cognitive/index.js';

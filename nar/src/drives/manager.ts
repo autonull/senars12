@@ -1,13 +1,14 @@
-import type { EventBus as AgentEventBus } from '../agent/EventBus.js';
+import type { EventBus as InternalEventBus } from '../types/events.js';
 import type { NAR } from '../nar.js';
 import { clamp01 } from '../utils';
 import { BUILTIN_DRIVES } from './builtin.js';
 import type { DriveSpec, DriveState } from './types.js';
+import { Truth } from '../terms/truth.js';
 
 export class DriveManager {
   private states = new Map<string, DriveState>();
   private nar: NAR;
-  private systemEventBus: AgentEventBus | null = null;
+  private systemEventBus: InternalEventBus | null = null;
 
   constructor(nar: NAR) {
     this.nar = nar;
@@ -21,7 +22,7 @@ export class DriveManager {
     }
   }
 
-  setSystemEventBus(bus: AgentEventBus): void {
+  setSystemEventBus(bus: InternalEventBus): void {
     this.systemEventBus = bus;
   }
 
@@ -88,6 +89,6 @@ export class DriveManager {
 
   private injectDriveGoal(spec: DriveSpec, truth: { f: number; c: number }): void {
     const narsese = `(self --> ${spec.goalProperty})! :${truth.f.toFixed(2)}:${truth.c.toFixed(2)}`;
-    this.nar.input(narsese, 'goal', truth as any);
+    this.nar.input(narsese, 'goal', Truth.create(truth.f, truth.c));
   }
 }

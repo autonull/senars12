@@ -21,8 +21,8 @@
       "import": "./src/agent/index.ts"
     },
     "./backend": {
-      "types": "./src/backend/MettaBackend.ts",
-      "import": "./src/backend/MettaBackend.ts"
+      "types": "./src/backend/MettaBackendV2.ts",
+      "import": "./src/backend/MettaBackendV2.ts"
     }
   },
   "scripts": {

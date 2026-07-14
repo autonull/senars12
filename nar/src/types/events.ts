@@ -96,7 +96,17 @@ export interface NAREventMap extends EventMap {
   'agent:process:complete': { result: any; durationMs: number };
   'agent:suspend': { cycleCount: number; lastActivity: number };
   'agent:resume': { cycleCount: number; lastActivity: number };
-}
+  // System LM rule events
+  'system:lm.rule:applied': { ruleId: string; ruleName: string; durationMs: number; output: string; timestamp: number };
+  'system:lm.rule:skipped': { ruleId: string; ruleName: string; reason: string; timestamp: number };
+  'system:lm.rule:structured': { ruleId: string; schema: string; output: string; timestamp: number };
+  'system:lm.rule:tool:called': { ruleId: string; tool: string; args: Record<string, unknown>; timestamp: number };
+  'system:lm.rule:tool:result': { ruleId: string; tool: string; result: unknown; timestamp: number };
+  'system:lm.rule:failed': { ruleId: string; ruleName: string; error: string; durationMs: number; timestamp: number };
+  'system:lm.rule:circuit:open': { ruleId: string; ruleName: string; timestamp: number };
+  'system:lm.rule:circuit:half-open': { ruleId: string; ruleName: string; timestamp: number };
+  'system:lm.rule:circuit:closed': { ruleId: string; ruleName: string; timestamp: number };
+  }
 
 export type EventReceiver<T> = (params: T) => void;
 export type EventUnsubscribe = () => void;

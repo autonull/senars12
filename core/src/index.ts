@@ -87,32 +87,13 @@ export type { LensSpec, ModulationSpec, BuiltinLens } from './lens-schema.js';
 export { ModulationSchema, LensSpecSchema, BUILTIN_LENS_IDS, isBuiltinLens, builtinLensSpecs, lensSpecToJsonSchema } from './lens-schema.js';
 export { LENS_COLORS_HEX, LENS_LABELS, CONNECTION_COLORS, LENS_DESCRIPTIONS, EDGE_TYPES, EDGE_LABELS, edgeTypeLabel, type LensFieldDescriptor, LENS_FIELDS } from './constants.js';
 
-// ReasoningBackend interface
-export type { Capability } from './reasoning/Capability.js';
-export type {
-  ReasoningBackend,
-} from './reasoning/ReasoningBackend.js';
-export type {
-  BackendConfig,
-  BackendInput,
-  BackendResult,
-  BackendOutput,
-  BackendHealth,
-  BackendSnapshot,
-  GraphDelta,
-  GraphEdgeData,
-  ReasoningContext,
-  WorkingMemorySnapshot,
-  ToolInvocation,
-  ToolDefinition,
-} from './reasoning/BackendTypes.js';
-
-// Reasoning Router
-export type { RouteStep, Route } from './reasoning/ReasoningRouter.js';
-export { ReasoningRouter } from './reasoning/ReasoningRouter.js';
-
-// Agent
-export { Agent, type AgentConfig, type AgentHealth, type BackendRegistration } from './Agent.js';
-
-// Bootstrap
-export { bootstrapAgent, type BootstrapSeed, DEFAULT_SEED, DEFAULT_BOOTSTRAP_BELIEFS } from './bootstrap.js';
+export type { EventLog, EventLogConfig, EventLogError, InMemoryEventLog } from './eventlog/index.js';
+export type { CognitiveEvent as NewCognitiveEvent } from './events/EventTypes.js';
+export { validatePayload, PayloadSchemas } from './events/EventTypes.js';
+export { projectGraph, projectChat, projectLens } from './events/Projections.js';
+export type { Backend, BackendManifest, ToolDefinition } from './backend/Backend.js';
+export { Capability } from './capability/Capability.js';
+export { CapabilityRegistryImpl, type CapabilityRegistry } from './capability/CapabilityRegistry.js';
+export type { ConfigView, ConfigEvent, ConfigSchema } from './config/Config.js';
+export { ConfigViewImpl } from './config/ConfigView.js';
+export { Kernel } from './kernel/Kernel.js';

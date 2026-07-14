@@ -73,7 +73,7 @@ export {
   type PersistentSpaceOptions,
 } from './extensions/persistent-space.js';
 export { MeTTaBuilder, MeTTaRuntime, createMeTTa } from './runtime/builder.js';
-export { MettaBackend } from './backend/MettaBackend.js';
+export { MettaBackend } from './backend/MettaBackendV2.js';
 export { JITCompiler, globalJIT } from './performance/jit.js';
 export type { ParallelOptions } from './performance/parallel.js';
 export { parallelReduce, parallelMap } from './performance/parallel.js';

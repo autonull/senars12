@@ -1,6 +1,5 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { EventBus as AgentEventBus } from './agent/EventBus.js';
 import type { CognitiveRegistry } from './cognitive';
 import { CognitiveController } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
@@ -81,7 +80,7 @@ export class NAR extends BaseComponent {
   rlfp?: RLFPLearner;
   cognitiveController?: CognitiveController;
   driveManager?: DriveManager;
-  private readonly systemEventBus: AgentEventBus;
+  private readonly systemEventBus: NarEventBus;
 
   private readonly io: NARIO;
   private execution: NARExecution;
@@ -132,9 +131,8 @@ export class NAR extends BaseComponent {
 
     this.io = new NARIO(this.memory, this.taskManager, this.config);
     this.io.setEventBus(eventBus);
-    this.systemEventBus = new AgentEventBus();
+    this.systemEventBus = new NarEventBus();
     this.io.setSystemEventBus(this.systemEventBus);
-    this.systemEventBus.wrapNarEventBus(eventBus);
     this.driveManager = new DriveManager(this as any);
     this.driveManager.setSystemEventBus(this.systemEventBus);
     this.execution = new NARExecution(
@@ -275,7 +273,7 @@ export class NAR extends BaseComponent {
     return this.eventBus;
   }
 
-  getSystemEventBus(): AgentEventBus {
+  getSystemEventBus(): NarEventBus {
     return this.systemEventBus;
   }
 

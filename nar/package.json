@@ -45,8 +45,8 @@
       "import": "./src/memory/EpisodicMemory.ts"
     },
     "./backend": {
-      "types": "./src/backend/NarBackend.ts",
-      "import": "./src/backend/NarBackend.ts"
+      "types": "./src/backend/NarBackendV2.ts",
+      "import": "./src/backend/NarBackendV2.ts"
     }
   },
   "scripts": {
@@ -54,9 +54,10 @@
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1",
     "@senars/core": "workspace:*",
     "@senars/io": "workspace:*",
-    "zod": "^4.4.3",
-    "@js-temporal/polyfill": "^0.5.1"
+    "ulid": "^3.0.2",
+    "zod": "^4.4.3"
   }
 }

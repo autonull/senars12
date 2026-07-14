@@ -37,7 +37,7 @@ export {
   isFailure,
 } from './core.js';
 export { EventBus } from './events.js';
-export type { EventMap, EventReceiver, EventUnsubscribe } from './events.js';
+export type { EventMap, NAREventMap, EventReceiver, EventUnsubscribe } from './events.js';
 export { DEPTH_MAX, DEPTH_DEFAULT } from './depth.js';
 export type { Nat, BoundedNat, Increment, Decrement, Bounded } from './depth.js';
 export type { TermFilter, TruthFilter, QueryOptions } from './core.js';

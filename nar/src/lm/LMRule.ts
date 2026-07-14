@@ -2,13 +2,12 @@ import type { Term } from '../terms';
 import { Truth, termParser } from '../terms';
 import type { Truth as TruthType } from '../terms/truth.js';
 import type { Budget, Task, TaskType } from '../types';
-import { type EventBus as NarEventBus, createTask } from '../types';
+import { type EventBus as NarEventBus, type NAREventMap, createTask } from '../types';
 import { CircuitBreaker, errMsg } from '../utils';
 import type { LMExecutionStats, LMRuleConfig, LMRuleStats, LMService } from './lm-service.js';
 
 import { type LanguageModel, generateObject, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
-import type { EventBus as AgentEventBus, EventMap as AgentEventMap } from '../agent/EventBus.js';
 
 const defaultStats = (): LMExecutionStats => ({
   totalCalls: 0,
@@ -71,7 +70,7 @@ export class LMRule {
   private readonly v2Config: LMRuleConfigV2;
   private readonly circuitBreaker: CircuitBreaker;
   private eventBus: NarEventBus | null;
-  private systemEventBus: AgentEventBus | null = null;
+  private systemEventBus: NarEventBus | null = null;
   private stats: LMExecutionStats = defaultStats();
   private structuredModel: LanguageModel | null = null;
   private toolDispatcher?: (tool: string, args: Record<string, unknown>) => Promise<unknown>;
@@ -119,7 +118,7 @@ export class LMRule {
     this.eventBus = eventBus;
   }
 
-  setSystemEventBus(bus: AgentEventBus): void {
+  setSystemEventBus(bus: NarEventBus): void {
     this.systemEventBus = bus;
   }
 
@@ -232,7 +231,7 @@ export class LMRule {
 
       const tasks = this.processAndGenerate(response, primary, secondary, lmContext, context);
       this.recordSuccess(duration, prompt.length + response.length);
-      this.emitSystemEvent('system:lm.rule:applied' as keyof AgentEventMap, {
+      this.emitSystemEvent('system:lm.rule:applied' as keyof NAREventMap, {
         ruleId: this.id,
         ruleName: this.name,
         primaryTerm: primary.toString(),
@@ -284,7 +283,7 @@ export class LMRule {
     primary: Term,
     secondary?: Term,
     context?: Record<string, unknown>
-  ): AgentEventMap['system:lm.rule:skipped']['reason'] | null {
+  ): NAREventMap['system:lm.rule:skipped']['reason'] | null {
     if (!this.enabled) return 'disabled';
     if (this.circuitBreaker.getState() === 'open') return 'circuit_open';
     if (!this.lm || !primary) return 'disabled';
@@ -323,8 +322,8 @@ export class LMRule {
     if (this.eventBus) this.eventBus.emit(eventName, data);
   }
 
-  private emitSystemEvent<K extends keyof AgentEventMap>(event: K, data: AgentEventMap[K]): void {
-    if (this.systemEventBus) this.systemEventBus.emit(event, data);
+  private emitSystemEvent(event: keyof NAREventMap, data: unknown): void {
+    if (this.systemEventBus) this.systemEventBus.emit(event as string, data);
   }
 
   private async executeLM(prompt: string, signal?: AbortSignal): Promise<string> {

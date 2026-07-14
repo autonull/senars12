@@ -8,6 +8,34 @@
       "types": "./src/index.ts",
       "import": "./src/index.ts"
     },
+    "./eventlog": {
+      "types": "./src/eventlog/index.ts",
+      "import": "./src/eventlog/index.ts"
+    },
+    "./events": {
+      "types": "./src/events/EventTypes.ts",
+      "import": "./src/events/EventTypes.ts"
+    },
+    "./projections": {
+      "types": "./src/events/Projections.ts",
+      "import": "./src/events/Projections.ts"
+    },
+    "./backend": {
+      "types": "./src/backend/Backend.ts",
+      "import": "./src/backend/Backend.ts"
+    },
+    "./capability": {
+      "types": "./src/capability/Capability.ts",
+      "import": "./src/capability/Capability.ts"
+    },
+    "./config": {
+      "types": "./src/config/Config.ts",
+      "import": "./src/config/Config.ts"
+    },
+    "./kernel": {
+      "types": "./src/kernel/Kernel.ts",
+      "import": "./src/kernel/Kernel.ts"
+    },
     "./lifecycle": {
       "types": "./src/Lifecycle.ts",
       "import": "./src/Lifecycle.ts"
@@ -71,30 +99,6 @@
     "./constants": {
       "types": "./src/constants.ts",
       "import": "./src/constants.ts"
-    },
-    "./reasoning": {
-      "types": "./src/reasoning/ReasoningBackend.ts",
-      "import": "./src/reasoning/ReasoningBackend.ts"
-    },
-    "./reasoning/capability": {
-      "types": "./src/reasoning/Capability.ts",
-      "import": "./src/reasoning/Capability.ts"
-    },
-    "./reasoning/types": {
-      "types": "./src/reasoning/BackendTypes.ts",
-      "import": "./src/reasoning/BackendTypes.ts"
-    },
-    "./reasoning/router": {
-      "types": "./src/reasoning/ReasoningRouter.ts",
-      "import": "./src/reasoning/ReasoningRouter.ts"
-    },
-    "./agent": {
-      "types": "./src/Agent.ts",
-      "import": "./src/Agent.ts"
-    },
-    "./bootstrap": {
-      "types": "./src/bootstrap.ts",
-      "import": "./src/bootstrap.ts"
     }
   },
   "scripts": {
@@ -102,6 +106,7 @@
   },
   "dependencies": {
     "ai": "^7.0.2",
+    "ulid": "^3.0.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 import { promises as fs } from 'node:fs';
-import type { EventBus as AgentEventBus } from './agent/EventBus.js';
+import type { EventBus as NarEventBus } from './types/events.js';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
 import type { Memory } from './memory';
 import type { NARConfig } from './nar';
@@ -18,7 +18,7 @@ interface SerializedNARState {
 
 export class NARIO {
   private _eventBus: EventBus | null = null;
-  private _systemEventBus: AgentEventBus | null = null;
+  private _systemEventBus: NarEventBus | null = null;
   private cognitiveParams?: CognitiveParameters;
 
   constructor(
@@ -35,7 +35,7 @@ export class NARIO {
     this._eventBus = eventBus;
   }
 
-  setSystemEventBus(bus: AgentEventBus): void {
+  setSystemEventBus(bus: NarEventBus): void {
     this._systemEventBus = bus;
   }
 
