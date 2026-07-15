@@ -12,6 +12,10 @@
       "types": "./src/eventlog/index.ts",
       "import": "./src/eventlog/index.ts"
     },
+    "./sqlite-eventlog": {
+      "types": "./src/eventlog/SqliteEventLog.ts",
+      "import": "./src/eventlog/SqliteEventLog.ts"
+    },
     "./events": {
       "types": "./src/events/EventTypes.ts",
       "import": "./src/events/EventTypes.ts"
@@ -23,6 +27,18 @@
     "./backend": {
       "types": "./src/backend/Backend.ts",
       "import": "./src/backend/Backend.ts"
+    },
+    "./fact-projection": {
+      "types": "./src/events/FactProjection.ts",
+      "import": "./src/events/FactProjection.ts"
+    },
+    "./event-backend": {
+      "types": "./src/backend/EventBackend.ts",
+      "import": "./src/backend/EventBackend.ts"
+    },
+    "./tool-provider": {
+      "types": "./src/capability/ToolProvider.ts",
+      "import": "./src/capability/ToolProvider.ts"
     },
     "./capability": {
       "types": "./src/capability/Capability.ts",
@@ -106,10 +122,12 @@
   },
   "dependencies": {
     "ai": "^7.0.2",
+    "better-sqlite3": "^12.11.1",
     "ulid": "^3.0.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.19.19"
   }
 }

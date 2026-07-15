@@ -13,6 +13,8 @@ export interface EventLog {
   getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]>;
 
   getSnapshot<T>(projectionName: string, version: number): Promise<T | null>;
+
+  saveSnapshot<T>(projectionName: string, version: number, data: T): Promise<void>;
 }
 
 export class EventLogError extends Error {

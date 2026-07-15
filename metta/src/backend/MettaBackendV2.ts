@@ -1,15 +1,17 @@
 import { Effect } from 'effect';
 import type { EventLog } from '@senars/core/eventlog';
 import type { ConfigView } from '@senars/core/config';
-import type { Backend, BackendManifest } from '@senars/core/backend';
-import type { Capability } from '@senars/core/capability';
+import type { CognitiveEvent } from '@senars/core/events';
+import { EventBackend } from '@senars/core/event-backend';
+import type { BackendManifest, ToolDefinition } from '@senars/core/backend';
+import type { ToolProvider, ToolResult } from '@senars/core/tool-provider';
 import { createMeTTa, type MeTTaRuntime } from '../runtime/builder.js';
 import type { MeTTaAtom, ExpressionAtom } from '../types/ast.js';
 import { AtomKind, isExpression } from '../types/ast.js';
 import { parseMeTTa } from '../parser/runtime.js';
 import { Capability as Cap } from '@senars/core/capability';
 
-const METTA_CAPABILITIES: ReadonlySet<Capability> = new Set([
+const METTA_CAPABILITIES: ReadonlySet<Cap> = new Set([
   Cap.PatternMatch, Cap.Rewrite, Cap.Query, Cap.MultiSpace, Cap.SkillExecution,
   Cap.LongTermMemory, Cap.EpisodicMemory,
 ]);
@@ -30,7 +32,7 @@ function atomToString(atom: MeTTaAtom): string {
   }
 }
 
-export class MettaBackend implements Backend {
+export class MettaBackend extends EventBackend implements ToolProvider {
   readonly id = 'metta';
   readonly manifest: BackendManifest = {
     id: 'metta',
@@ -42,36 +44,25 @@ export class MettaBackend implements Backend {
   };
 
   #runtime: MeTTaRuntime | null = null;
-  #log: EventLog | null = null;
 
-  async initialize(log: EventLog, _config: ConfigView): Promise<void> {
-    this.#log = log;
+  override async initialize(log: EventLog, _config: ConfigView): Promise<void> {
     this.#runtime = createMeTTa();
-    this.#processEvents();
+    await super.initialize(log, _config);
   }
 
-  #processEvents(): void {
-    (async () => {
-      for await (const event of this.#log!.subscribe({ types: [...this.manifest.handles] })) {
-        await this.#process(event);
-      }
-    })();
-  }
-
-  async shutdown(): Promise<void> {
+  override async shutdown(): Promise<void> {
     this.#runtime = null;
-    this.#log = null;
   }
 
-  async #process(event: { type: string; payload: unknown; correlationId: string; id: string }): Promise<void> {
-    if (!this.#runtime || !this.#log) return;
+  protected override async process(event: CognitiveEvent): Promise<void> {
+    if (!this.#runtime) return;
     switch (event.type) {
       case 'input.user': {
         const text = (event.payload as { text: string }).text;
         if (!text.startsWith('metta:')) break;
         const program = parseMeTTa(text.slice(6));
         const result = await Effect.runPromise(this.#runtime.evaluate(program));
-        await this.#log.append({
+        await this.log.append({
           type: 'atom.derived',
           payload: { atom: atomToString(result), space: 'default' },
           correlationId: event.correlationId,
@@ -83,7 +74,33 @@ export class MettaBackend implements Backend {
     }
   }
 
-  getTools(): Array<{ name: string; description: string; schema: Record<string, unknown>; backendId: string }> {
+  async executeTool(name: string, args: Record<string, unknown>, _correlationId?: string): Promise<ToolResult> {
+    if (!this.#runtime) return { success: false, content: null, error: 'MettaBackend not initialized' };
+    try {
+      switch (name) {
+        case 'metta-match':
+        case 'metta-query': {
+          const pattern = String(args.pattern ?? '');
+          const program = parseMeTTa(pattern);
+          const result = await Effect.runPromise(this.#runtime.evaluate(program));
+          return { success: true, content: atomToString(result) };
+        }
+        case 'metta-rewrite': {
+          const rule = String(args.rule ?? '');
+          const target = String(args.target ?? '');
+          const program = parseMeTTa(`(rewrite ${rule} ${target})`);
+          const result = await Effect.runPromise(this.#runtime.evaluate(program));
+          return { success: true, content: atomToString(result) };
+        }
+        default:
+          return { success: false, content: null, error: `Unknown tool: ${name}` };
+      }
+    } catch (e) {
+      return { success: false, content: null, error: String(e) };
+    }
+  }
+
+  getTools(): ToolDefinition[] {
     return [
       { name: 'metta-match', description: 'Pattern match in MeTTa space', schema: { pattern: 'string', space: { type: 'string', optional: true } }, backendId: 'metta' },
       { name: 'metta-rewrite', description: 'Apply rewrite rule', schema: { rule: 'string', target: 'string', space: { type: 'string', optional: true } }, backendId: 'metta' },

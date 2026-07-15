@@ -16,6 +16,7 @@ export class InMemoryEventLog implements EventLog {
   #subscribers: Set<Subscription> = new Set();
   #config: Required<EventLogConfig>;
   #closed = false;
+  #snapshots = new Map<string, Map<number, unknown>>();
 
   constructor(config: EventLogConfig = {}) {
     this.#config = {
@@ -139,8 +140,20 @@ export class InMemoryEventLog implements EventLog {
     return this.#events.slice(startIdx, endIdx);
   }
 
-  async getSnapshot<T>(_projectionName: string, _version: number): Promise<T | null> {
-    return null;
+  async getSnapshot<T>(projectionName: string, version: number): Promise<T | null> {
+    const versions = this.#snapshots.get(projectionName);
+    if (!versions) return null;
+    const data = versions.get(version);
+    return (data ?? null) as T | null;
+  }
+
+  async saveSnapshot<T>(projectionName: string, version: number, data: T): Promise<void> {
+    let versions = this.#snapshots.get(projectionName);
+    if (!versions) {
+      versions = new Map();
+      this.#snapshots.set(projectionName, versions);
+    }
+    versions.set(version, data);
   }
 
   async close(): Promise<void> {
