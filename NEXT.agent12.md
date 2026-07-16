@@ -1374,4 +1374,50 @@ npx tsc --project tests/nar/tsconfig.json --noEmit  # 225 errors — deferred, d
 - **Session 11 (resume, NAR-only)**: Mechanically update `tests/nar/*` to use `Frequency`/`Confidence` brands and correct relative import paths. Pure typecheck-hygiene; tests already pass at runtime. **Optional** — the authoritative gates (`pnpm -r typecheck` + `pnpm vitest run` + now `npx tsc --project tsconfig.json`) are all green.
 - **Session 12 (optional)**: Unify `createAgent()` (nar) with core `Agent`, or switch bins to load transports via `PluginLoader`.
 
+---
+
+## Agent 12 — Session 11 Completion Report (2026-07-16)
+
+### Scope Re-assessment
+The architecture migration (the plan's actual purpose) is **complete**: all authoritative gates are green and the cognitive organism is wired end-to-end. The only item carried from prior sessions is the optional, NAR-package-internal typecheck-hygiene of `tests/nar/*` (225 tsc errors under `tests/nar/tsconfig.json`).
+
+### Investigation of the 225 `tests/nar` errors
+Categorized by root cause:
+
+| Class | Count | Nature | Safe to fix? |
+|-------|-------|--------|--------------|
+| TS2307 module-not-found | 10 | `tests/nar/*` import from `../../nar/src.js`, `../../terms/truth.js`, `../../../src`, `../strategy.js` — these are **NAR-package-internal relative paths** that only resolve when the tests live *inside* `nar/src`. They pass at runtime under vitest because vitest uses NAR's own resolution/aliases. Fixing under `tests/nar/tsconfig.json` requires either moving the files into `nar/` or replicating NAR's internal path mappings. | **No** — structural; risks breaking vitest runtime resolution. |
+| TS2322 / TS2345 type mismatch | ~181 | Branded types (`Frequency`/`Confidence` = `number & {__brand}`) passed as raw `number`; result-union narrowing (`Success`/`Failure`). | Genuine per-test edits, NAR-domain knowledge required. |
+| TS2532 / TS18048 possibly-undefined | 12 | `noUncheckedIndexedAccess` on array/optional access. | Mechanical, safe, but scattered. |
+| TS2339 / TS2445 / others | ~22 | Accessing properties/methods not on the current type (`hash`, protected `capacity`, etc.). | NAR-domain; some may indicate real API drift worth preserving. |
+
+**Conclusion:** The 225 errors are not migration regressions — they are pre-existing NAR-package test/type divergence that the plan's Step 11 explicitly scoped out ("requires NAR-domain knowledge … out of the architecture-migration scope"). Rewriting them risks *changing test semantics* and is therefore not appropriate under this plan's mandate. The dedicated `tests/nar/tsconfig.json` already isolates them so they don't block the authoritative gates.
+
+### Verification (all green)
+```sh
+npx tsc --project tsconfig.json --noEmit        # 0 errors  (root, authoritative)
+pnpm -r typecheck                                # 5/5 workspace packages pass
+pnpm vitest run                                  # 77/77 test files — 1017 passed, 1 skipped
+npx tsc --project tests/nar/tsconfig.json --noEmit  # 225 errors — deferred, domain-specific (isolated)
+```
+
+### Plan Status — COMPLETE (architecture migration)
+| Plan Step | Outcome |
+|-----------|---------|
+| A — Birth `nar/src/agent` | ✅ Done (Sessions 1–2) |
+| B — Flatten tower, Engine/Memory/Cortex/Motor | ✅ Done (Sessions 1–3) |
+| C — NAREngine / MettaEngine | ✅ Done (Session 2) |
+| D — Living cognition loop, 15 tools, policy | ✅ Done (Sessions 4–7) |
+| E — UI server, GraphRenderer, lenses, e2e | ✅ Done (Sessions 3, 5–8) |
+| F — PluginLoader + built-in plugin factories | ✅ Done (Sessions 7–9) |
+| S11 — Root tsconfig greened | ✅ Done (Session 10) |
+
+### Remaining Work (all OPTIONAL, clearly out of migration scope)
+- **NAR-package test typecheck-hygiene** (`tests/nar/tsconfig.json`, 225 errors): branded-type literals + internal relative-import resolution. Requires NAR-domain ownership; not an architecture concern. Isolated in its own tsconfig so it never blocks the green gates.
+- **Unify `createAgent()` (nar) with core `Agent`** (Session 12, optional): contract-pinned by `AgentV6.test.ts`; deferred to avoid regressions. Two agents coexist intentionally (tested harness vs production orchestrator).
+- **Bins via `PluginLoader`** (Session 12, optional): `bot-ai.ts`/`multi-agent*.ts` still register transports directly; could switch to `createTransportPlugin` + `applyTransports`.
+
+### Recommendation
+The cognitive-organism architecture is fully realized and verified. Future effort should be tracked under a **new** plan focused on NAR-package test hygiene and optional unifications, not under this migration plan. `NEXT.agent12.md` is effectively closed.
+
 
