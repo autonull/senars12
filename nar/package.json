@@ -24,10 +24,6 @@
       "types": "./src/commands/index.ts",
       "import": "./src/commands/index.ts"
     },
-    "./agent": {
-      "types": "./src/agent/index.ts",
-      "import": "./src/agent/index.ts"
-    },
     "./lm": {
       "types": "./src/lm/index.ts",
       "import": "./src/lm/index.ts"

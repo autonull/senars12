@@ -80,10 +80,6 @@
       "types": "./src/Options.ts",
       "import": "./src/Options.ts"
     },
-    "./session": {
-      "types": "./src/SessionOrchestrator.ts",
-      "import": "./src/SessionOrchestrator.ts"
-    },
     "./stats": {
       "types": "./src/StatsManager.ts",
       "import": "./src/StatsManager.ts"
@@ -115,6 +111,26 @@
     "./constants": {
       "types": "./src/constants.ts",
       "import": "./src/constants.ts"
+    },
+    "./agent": {
+      "types": "./src/Agent.ts",
+      "import": "./src/Agent.ts"
+    },
+    "./agent-bridge": {
+      "types": "./src/AgentBridge.ts",
+      "import": "./src/AgentBridge.ts"
+    },
+    "./memory": {
+      "types": "./src/memory/index.ts",
+      "import": "./src/memory/index.ts"
+    },
+    "./plugin": {
+      "types": "./src/Plugin.ts",
+      "import": "./src/Plugin.ts"
+    },
+    "./policy": {
+      "types": "./src/PolicyEngine.ts",
+      "import": "./src/PolicyEngine.ts"
     }
   },
   "scripts": {

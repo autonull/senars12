@@ -1,3 +1,10 @@
+export { Agent, type AgentOptions, type HealthStatus, type SkillDefinition } from './Agent.js';
+export { AgentBridge, type BridgeEvent, type BridgeDelta } from './AgentBridge.js';
+export type { SenarsPlugin, PluginContext } from './Plugin.js';
+export { PolicyEngine, type PolicyRule } from './PolicyEngine.js';
+export { MemoryService } from './memory/MemoryService.js';
+export type { MemoryEntry, MemoryQuery } from './memory/types.js';
+
 export {
   BaseComponent,
   type ComponentState,
@@ -58,8 +65,6 @@ export {
   AgentOptionsValidationError,
   contextOptsSchema,
 } from './Options.js';
-export type { Session } from './SessionOrchestrator.js';
-export { SessionOrchestrator } from './SessionOrchestrator.js';
 export type { AgentStats } from './StatsManager.js';
 export { StatsManager } from './StatsManager.js';
 export { KnowledgeManager } from './KnowledgeManager.js';
