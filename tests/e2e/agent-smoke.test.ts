@@ -96,9 +96,15 @@ describe('Agent-as-Kernel: smoke test (real WS + Agent + NAREngine)', () => {
 
   it('Narsese input over WS grows the graph (new node + relation edge)', async () => {
     send({ type: 'chat.user', content: '<cat --> mammal>.' });
-    await waitFor(received, (m) => m.type === 'cognitive.delta');
+    const nodeId = (o: { action: string; id?: string }): string | undefined =>
+      'id' in o ? o.id : undefined;
+    await waitFor(received, (m) =>
+      m.type === 'cognitive.delta' && m.ops.some((o) => nodeId(o)?.includes('mammal')),
+    );
     const deltas = received.filter((m) => m.type === 'cognitive.delta');
     expect(deltas.length).toBeGreaterThanOrEqual(1);
+    const nodeIds = deltas.flatMap((m) => m.ops.map((o) => nodeId(o)).filter((id): id is string => !!id));
+    expect(nodeIds.some((id) => id.includes('cat') || id.includes('mammal'))).toBe(true);
   });
 
   it('lens.set re-emits a delta tagged with the chosen lens', async () => {

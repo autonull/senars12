@@ -1,7 +1,6 @@
-import type { ComposedRequest } from '@senars/nar/agent';
+import type { ComposedRequest, ModelProvider } from '@senars/core';
 import { ModelRunner } from '@senars/nar/agent';
 import { describe, expect, it } from 'vitest';
-import { createMockLMService } from '../../../nar/src/lm';
 
 function makeComposed(
   messages: Array<{
@@ -20,7 +19,7 @@ function makeComposed(
 }
 
 describe('ModelRunner', () => {
-  it('returns empty result when no LM service', async () => {
+  it('returns empty result when no model provider', async () => {
     const runner = new ModelRunner({});
     const composed = makeComposed([{ role: 'user', content: 'hi' }]);
     const iter = runner.run(composed);
@@ -47,14 +46,18 @@ describe('ModelRunner', () => {
   });
 
   it('returns fallback when no model available', async () => {
-    const mockLM = createMockLMService({ available: false, generateTextFn: () => 'Test' });
-    const runner = new ModelRunner({ lmService: mockLM as any, maxLoops: 3 });
+    const provider: ModelProvider = { available: true, getModel: () => undefined };
+    const runner = new ModelRunner({ modelProvider: provider, maxLoops: 3 });
     const composed = makeComposed([{ role: 'user', content: 'greet me' }]);
     const iter = runner.run(composed);
+    let result: { text: string } | undefined;
     while (true) {
-      const { done } = await iter.next();
-      if (done) break;
+      const { value, done } = await iter.next();
+      if (done) {
+        result = value as { text: string };
+        break;
+      }
     }
-    // When no model, the runner returns early with "No model available"
+    expect(result?.text).toBe('No model available');
   });
 });

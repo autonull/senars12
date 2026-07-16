@@ -13,8 +13,14 @@ import {
 } from '@senars/nar/agent';
 import { describe, expect, it } from 'vitest';
 import { createMockLMService } from '../../../nar/src/lm';
-import type { Logger } from '../../../nar/src/logger';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
+
+type DispatchLogger = {
+  debug: (msg: string, ...args: unknown[]) => void;
+  info: (msg: string, ...args: unknown[]) => void;
+  warn: (msg: string, ...args: unknown[]) => void;
+  error: (msg: string, ...args: unknown[]) => void;
+};
 
 const scriptedLM = createMockLMService({
   available: true,
@@ -27,13 +33,12 @@ const scriptedLM = createMockLMService({
   },
 });
 
-function silentLogger(): Logger {
+function silentLogger(): DispatchLogger {
   return {
     debug: () => undefined,
     info: () => undefined,
     warn: () => undefined,
     error: () => undefined,
-    child: () => silentLogger(),
   };
 }
 
@@ -53,12 +58,10 @@ describe('Agent tools: agent_instruct and get_session_info', () => {
 
   it('agent_instruct appends when mode=append and replaces when mode=replace', async () => {
     const agent = createAgent({ lmService: scriptedLM });
+    void agent;
     const session = createSession('test:tools:alice');
-    const tools = (agent as unknown as { chatWithHistory: typeof agent.chatWithHistory })
-      .chatWithHistory;
-    // We can't invoke the tool directly through the public surface; we verify via the setInstructions hook
-    // by directly calling buildTools through agent's buildTools via the chat path
-    // Instead, verify the tool is registered and its execute function works:
+    void session;
+    // We verify the tool is registered and its execute function works via buildAgentTools:
     const built = buildAgentTools({
       know: () => undefined,
       knowGet: () => undefined,
@@ -72,7 +75,6 @@ describe('Agent tools: agent_instruct and get_session_info', () => {
       getSessionInfo: () => ({ messageCount: 1, createdAt: 0, pinnedBeliefs: [] }),
     });
     expect(Object.keys(built).sort()).toContain('agent_instruct');
-    void tools;
   });
 });
 

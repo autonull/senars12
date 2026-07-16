@@ -16,8 +16,12 @@ describe('Agent EventEmitter lifecycle', () => {
   it('emits process:start + process:complete around chat()', async () => {
     const agent = createAgent({ lmService: scriptedLM });
     const events: string[] = [];
-    agent.on('agent:process:start', (p) => events.push(`start:${p.input}`));
-    agent.on('agent:process:complete', (p) => events.push(`complete:${p.output}:${p.durationMs}`));
+    agent.on('agent:process:start', (p: unknown) =>
+      events.push(`start:${(p as { input: string }).input}`)
+    );
+    agent.on('agent:process:complete', (p: unknown) =>
+      events.push(`complete:${(p as { output: string; durationMs: number }).output}:${(p as { output: string; durationMs: number }).durationMs}`)
+    );
     await agent.chat('hello');
     expect(events).toHaveLength(2);
     expect(events[0]).toBe('start:hello');
@@ -27,7 +31,7 @@ describe('Agent EventEmitter lifecycle', () => {
   it('emits process:error on failure', async () => {
     const agent = createAgent({ lmService: scriptedLM });
     const errors: string[] = [];
-    agent.on('agent:process:error', (p) => errors.push(p.error));
+    agent.on('agent:process:error', (p: unknown) => errors.push((p as { error: string }).error));
     await expect(
       (async () => {
         const fakeRunner = agent;

@@ -1,7 +1,13 @@
 export { Agent, type AgentOptions, type HealthStatus, type SkillDefinition, type ParsedCommand } from './Agent.js';
 export { AgentBridge, type BridgeEvent, type BridgeDelta } from './AgentBridge.js';
 export type { SenarsPlugin, PluginContext, TransportFactory } from './Plugin.js';
-export { PluginLoader, PluginLoadError } from './PluginLoader.js';
+export { PluginLoader, PluginLoadError, type TransportRegistry } from './PluginLoader.js';
+export {
+  createTransportPlugin,
+  createLensPlugin,
+  createToolPlugin,
+  builtinLensPlugins,
+} from './plugins/index.js';
 export { PolicyEngine, type PolicyRule } from './PolicyEngine.js';
 export { MemoryService } from './memory/MemoryService.js';
 export type { MemoryEntry, MemoryQuery } from './memory/types.js';

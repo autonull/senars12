@@ -110,12 +110,12 @@ describe('SqliteEventLog', () => {
 
     const range = await log.getRange(e1.id, e3.id);
     expect(range).toHaveLength(2);
-    expect(range[0].id).toBe(e2.id);
-    expect(range[1].id).toBe(e3.id);
+    expect(range[0]!.id).toBe(e2.id);
+    expect(range[1]!.id).toBe(e3.id);
 
     const fromE2 = await log.getRange(e1.id);
     expect(fromE2).toHaveLength(2);
-    expect(fromE2[0].id).toBe(e2.id);
+    expect(fromE2[0]!.id).toBe(e2.id);
   });
 
   it('getRange without toId returns all events after fromId', async () => {
@@ -228,7 +228,7 @@ describe('SqliteEventLog', () => {
 
     const allRange = await log2.getRange('');
     expect(allRange).toHaveLength(1);
-    expect(allRange[0].payload).toEqual({ text: 'persist' });
+    expect(allRange[0]!.payload).toEqual({ text: 'persist' });
 
     await log2.close();
   });

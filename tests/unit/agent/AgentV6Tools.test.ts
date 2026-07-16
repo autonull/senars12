@@ -86,7 +86,7 @@ describe('Agent tools', () => {
       knowList: () => [],
       recall: async (query, limit) => {
         received = { query, limit };
-        return [{ timestamp: 1, type: 'input', content: 'hi' }];
+        return [{ timestamp: 1, type: 'input', content: 'hi', metadata: {} }];
       },
     });
     const result = (await callTool(tools, 'recall', { query: 'cat', limit: 5 })) as Array<{

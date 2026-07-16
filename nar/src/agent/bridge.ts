@@ -97,9 +97,9 @@ export function bindAgentToConnection(
   return () => conn.removeMessageHandler(handler);
 }
 
-export function originExtractor(msg: IOMessage, ctx: MessageContext, next: () => Promise<void>): void {
+export function originExtractor(msg: IOMessage, ctx: MessageContext, next: () => Promise<void>): Promise<void> {
   ctxAsRecord(ctx).sessionKey = resolveSessionKey(msg);
-  next();
+  return next();
 }
 
 export function resolveSessionKey(msg: IOMessage): string {

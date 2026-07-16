@@ -374,7 +374,7 @@ export function createStreamingAgentDispatch(
   agent: ReturnType<typeof createAgent>,
   logger: { debug: (msg: string, ...args: unknown[]) => void; info: (msg: string, ...args: unknown[]) => void; warn: (msg: string, ...args: unknown[]) => void; error: (msg: string, ...args: unknown[]) => void },
   opts?: { humanizeTools?: boolean }
-): (msg: { text: string; origin: string }, ctx: Record<string, unknown>, next: () => Promise<void>) => Promise<void> {
+): import('@senars/io').MessageMiddleware {
   return async (msg, ctx, next) => {
     const respond = ctx.respond as ((text: string) => Promise<void>) | undefined;
     try {

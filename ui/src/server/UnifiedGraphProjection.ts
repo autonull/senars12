@@ -1,4 +1,5 @@
 import type { GraphOp, IncomingFromServer, GraphNodeData } from '@senars/core';
+import { builtinLensSpecs } from '@senars/core';
 
 export type GraphDelta = { nodes: GraphNodeData[]; edges: Array<{ source: string; target: string; type: string }> };
 
@@ -48,12 +49,13 @@ export class UnifiedGraphProjection {
 
     this.#emitAll({
       type: 'lens.list',
-      lenses: [
-        { id: 'belief', label: 'Belief', description: 'Current convictions' },
-        { id: 'goal', label: 'Goal', description: 'Active drives' },
-        { id: 'contradiction', label: 'Contradiction', description: 'Tension pairs' },
-        { id: 'temporal', label: 'Temporal', description: 'Time-ordered view' },
-      ],
+      lenses: builtinLensSpecs().map((spec) => ({
+        id: spec.id,
+        label: spec.label,
+        description: spec.description,
+        modulation: spec.modulation,
+        requires: spec.requires,
+      })),
     });
 
     this.#emitAll({

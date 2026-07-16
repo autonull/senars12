@@ -5,6 +5,11 @@ import type { CognitiveEvent } from './CognitiveEvent.js';
 import type { SenarsPlugin, TransportFactory } from './Plugin.js';
 import type { LensSpec } from './lens-schema.js';
 
+/** Minimal surface of a connection manager that accepts plugin transports. */
+export interface TransportRegistry {
+  registerFactory(factory: TransportFactory): void;
+}
+
 export class PluginLoadError extends Error {
   constructor(public readonly pluginId: string, cause: unknown) {
     super(`Failed to load plugin "${pluginId}": ${cause instanceof Error ? cause.message : String(cause)}`);
@@ -39,6 +44,11 @@ export class PluginLoader {
     return [...this.#transports.values()];
   }
 
+  /** Registers all plugin-provided transports into a connection manager. */
+  applyTransports(registry: TransportRegistry): void {
+    for (const factory of this.#transports.values()) registry.registerFactory(factory);
+  }
+
   async load(plugins: SenarsPlugin[]): Promise<void> {
     for (const plugin of plugins) {
       try {
@@ -47,6 +57,41 @@ export class PluginLoader {
         throw new PluginLoadError(plugin.id, e);
       }
     }
+  }
+
+  /**
+   * Discovers plugins from module specifiers and activates them.
+   * Each specifier must resolve to a module exporting a `SenarsPlugin`
+   * (as default or named `plugin`).
+   */
+  async discover(specifiers: string[]): Promise<void> {
+    const plugins: SenarsPlugin[] = [];
+    for (const spec of specifiers) {
+      try {
+        const mod = await import(spec) as Record<string, unknown>;
+        const candidate = (mod.plugin ?? mod.default) as SenarsPlugin | undefined;
+        if (!candidate?.id) {
+          throw new Error(`module "${spec}" does not export a SenarsPlugin`);
+        }
+        plugins.push(candidate);
+      } catch (e) {
+        throw new PluginLoadError(spec, e);
+      }
+    }
+    await this.load(plugins);
+  }
+
+  /**
+   * Discovers plugin specifiers declared under `senars.plugins` in a
+   * package.json (absolute path) and activates each.
+   */
+  async discoverFromManifest(manifestPath: string): Promise<void> {
+    const fs = await import('node:fs');
+    if (!fs.existsSync(manifestPath)) return;
+    const raw = fs.readFileSync(manifestPath, 'utf8');
+    const manifest = JSON.parse(raw) as { 'senars'?: { plugins?: string[] } };
+    const specifiers = manifest.senars?.plugins ?? [];
+    await this.discover(specifiers);
   }
 
   activate(plugin: SenarsPlugin): void {

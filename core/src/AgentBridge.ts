@@ -85,16 +85,18 @@ export class AgentBridge {
 
   #project(event: CognitiveEvent): BridgeEvent | null {
     if (event.type === 'derivation') {
+      const nodeId = event.term ? `derivation-${event.term}` : `derivation-${Date.now()}`;
       return {
         type: 'cognitive.delta',
         seqId: Date.now(),
         lens: 'belief',
         ops: [{
           action: 'add_node',
-          id: `derivation-${Date.now()}`,
+          id: nodeId,
           data: {
             nodeType: 'metta:atom',
             atom: event.term,
+            term: event.term,
             type: 'derivation',
             space: 'default',
           },

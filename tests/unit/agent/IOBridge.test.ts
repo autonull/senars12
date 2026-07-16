@@ -22,7 +22,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { SeNARSFactory } from '../../../nar/src';
 import { createMockLMService } from '../../../nar/src/lm';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
-import type { Connection, IOMessage, Logger, NAR } from '../../../src';
+import type { Connection, IOMessage } from '@senars/io';
+import type { NAR } from '@senars/nar';
+import type { Logger } from '@senars/core';
+import { createLogger } from '@senars/core';
 
 const scriptedLM = createMockLMService({
   available: true,
@@ -327,22 +330,17 @@ describe('resolveSessionKey', () => {
 });
 
 describe('createErrorBoundary', () => {
-  function makeLogger(): Logger & { errors: Array<{ message: string; error?: Error }> } {
+  function makeLogger(): { logger: Logger; errors: Array<{ message: string; error?: Error }> } {
     const errors: Array<{ message: string; error?: Error }> = [];
-    return {
-      errors,
-      debug: () => undefined,
-      info: () => undefined,
-      warn: () => undefined,
-      error: (message, error) => {
-        errors.push({ message, error });
-      },
-      child: () => makeLogger(),
-    };
+    const logger = createLogger({ scope: 'test-error-boundary' });
+    vi.spyOn(logger, 'error').mockImplementation((message: string, error?: Error) => {
+      errors.push({ message, error });
+    });
+    return { logger, errors };
   }
 
   it('catches errors from downstream middleware and sends fallback response', async () => {
-    const logger = makeLogger();
+    const { logger, errors } = makeLogger();
     const mw = createErrorBoundary(logger);
     const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
     const boom = new Error('kaboom');
@@ -351,12 +349,12 @@ describe('createErrorBoundary', () => {
       throw boom;
     });
     expect(respond).toHaveBeenCalledWith('Error: kaboom');
-    expect(logger.errors[0]?.message).toContain('middleware pipeline error');
-    expect(logger.errors[0]?.error).toBe(boom);
+    expect(errors[0]?.message).toContain('middleware pipeline error');
+    expect(errors[0]?.error).toBe(boom);
   });
 
   it('passes through when no error', async () => {
-    const logger = makeLogger();
+    const { logger } = makeLogger();
     const mw = createErrorBoundary(logger);
     const respond = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
     const next = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);

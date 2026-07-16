@@ -3,10 +3,13 @@ import type { Agent } from './Agent.js';
 import type { Engine, EngineId } from './engine/Engine.js';
 import type { ToolSpec } from './motor/ToolRegistry.js';
 import type { LensSpec } from './lens-schema.js';
+import type { Connection, ConnectionConfig, ConnectionDeps } from './Transport.js';
 
+/** A plugin-provided transport: a named factory that builds a connection. */
 export interface TransportFactory {
-  id: string;
-  create(): unknown;
+  readonly id: string;
+  readonly type: string;
+  create(config: ConnectionConfig, deps: ConnectionDeps): Connection;
 }
 
 /**

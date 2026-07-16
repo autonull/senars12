@@ -14,7 +14,7 @@ describe('MCP Adapter', () => {
 
   beforeEach(() => {
     registry = APIRegistry.getInstance();
-    adapter = new EnhancedMCPAdapter(registry);
+    adapter = new EnhancedMCPAdapter();
   });
 
   afterEach(() => {
@@ -79,7 +79,7 @@ describe('MCP Adapter', () => {
         name: 'test-capability',
         description: 'A test capability',
         inputSchema: {
-          type: 'object',
+          type: 'object' as const,
           properties: {},
         },
       };
@@ -88,7 +88,7 @@ describe('MCP Adapter', () => {
       const capabilities = adapter.listCapabilities();
 
       expect(capabilities).toHaveLength(1);
-      expect(capabilities[0].name).toBe('test-capability');
+      expect(capabilities[0]?.name).toBe('test-capability');
     });
 
     it('should unregister capabilities', () => {
@@ -96,7 +96,7 @@ describe('MCP Adapter', () => {
         name: 'temp-capability',
         description: 'Temporary',
         inputSchema: {
-          type: 'object',
+          type: 'object' as const,
           properties: {},
         },
       };
@@ -113,7 +113,7 @@ describe('MCP Adapter', () => {
         name: 'named-capability',
         description: 'Named capability',
         inputSchema: {
-          type: 'object',
+          type: 'object' as const,
           properties: {},
         },
       };
@@ -203,7 +203,7 @@ describe('MCP Server', () => {
   let server: SeNARSMCPServer;
 
   beforeEach(() => {
-    server = new SeNARSMCPServer(undefined, {
+    server = new SeNARSMCPServer({
       name: 'test-server',
       version: '1.0.0-test',
     });

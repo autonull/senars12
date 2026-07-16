@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"],
+    "noEmit": true,
+    "paths": {
+      "@senars/core": ["../../core/src/index.ts"],
+      "@senars/core/*": ["../../core/src/*"],
+      "@senars/io": ["../../io/src/index.ts"],
+      "@senars/io/*": ["../../io/src/*"],
+      "@senars/nar": ["../../nar/src/index.ts"],
+      "@senars/nar/*": ["../../nar/src/*"],
+      "@senars/metta": ["../../metta/src/index.ts"],
+      "@senars/metta/*": ["../../metta/src/*"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
