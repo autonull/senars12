@@ -157,23 +157,18 @@ export class ConversationalTestHarness {
 
     let response = '';
     try {
-      const stream = this.agent.chat(input, {
-        stream: true,
+      const stream = this.agent.chatStream(input, {
         session: this.session,
         signal: timeoutController.signal,
       });
-      let next = await stream.next();
-      while (!next.done) {
-        const ev = next.value;
+      for await (const ev of stream) {
         if (ev.kind === 'tool-call' && ev.toolName) {
           toolCalls.push({ name: ev.toolName, args: ev.toolArgs });
         }
         if (ev.kind === 'error') {
           errors.push(ev.error ?? 'unknown stream error');
         }
-        next = await stream.next();
       }
-      response = next.value ?? '';
     } catch (e) {
       errors.push(errMsg(e));
     } finally {

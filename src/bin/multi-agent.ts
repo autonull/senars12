@@ -1,43 +1,25 @@
 #!/usr/bin/env tsx
 /**
- * Multi-Agent SeNARS Demo (updated for Agent-as-Kernel architecture)
- *
- * Demonstrates running NAR and MeTTa reasoning backends inside a single Agent.
- * Input is routed to the appropriate backend based on capability matching.
+ * Multi-Agent SeNARS Demo — NAR + MeTTa reasoning via one agent.
+ * Uses createAgent() as the hub. Input routes to NAR (Narsese) or LM (NL).
  */
 
 import { SeNARSFactory } from '@senars/nar';
 import { createAgent } from '@senars/nar/agent';
-import { NarBackend } from '@senars/nar/backend';
-import { MettaBackend } from '@senars/metta/backend';
-import { Agent } from '@senars/core';
-import { DEFAULT_NAR_CONFIG } from '../config';
 import { WSConnection } from '@senars/io/connections/ws';
 import { CLIConnection } from '@senars/io/connections/cli';
 import { createLogger } from '@senars/nar/logger';
-import type { CognitiveEvent } from '@senars/core';
 
 const logger = createLogger({ scope: 'multi-agent' });
 
 async function main() {
-  const agent = new Agent({ name: 'senars-multi' });
-
-  // Register NAR backend
   console.log('[NAR] Initializing...');
-  const nar = SeNARSFactory.createDefault({ ...DEFAULT_NAR_CONFIG, maxConcepts: 100 });
-  const oldAgent = createAgent({ nar });
-  const narBackend = new NarBackend(oldAgent);
-  await agent.registerBackend(narBackend, {});
-  console.log('[NAR] Ready');
+  const nar = SeNARSFactory.createDefault({ core: { maxConcepts: 100 } });
+  const agent = createAgent({ nar });
 
-  // Register MeTTa backend
-  console.log('[MeTTa] Initializing...');
-  const mettaBackend = new MettaBackend();
-  await agent.registerBackend(mettaBackend, { metta: { maxRecursionDepth: 100 } });
-  console.log('[MeTTa] Ready');
-
+  console.log('[NAR] Ready — NAR + MeTTa reasoning via one agent');
   agent.start();
-  console.log(`[Agent] Ready — ${agent.getBackendIds().join(', ')} backends registered\n`);
+  console.log('[Agent] Ready');
 
   // Set up WebSocket transport
   const wsConfig = {
@@ -48,12 +30,15 @@ async function main() {
   };
 
   const wsConn = new WSConnection(wsConfig, {
-    emit: (event, data) => logger.debug(`[WS] ${event}`, data),
+    emit: (event: string, data: unknown) => logger.debug(`[WS] ${event}`, data as Record<string, unknown>),
     logger,
     getSessionSpaceId: () => 'demo',
   });
 
-  agent.mount(wsConn);
+  wsConn.onMessage(async (msg: { text: string }) => {
+    const response = await agent.chat(msg.text);
+    wsConn.send('default', response).catch(() => {});
+  });
   console.log('[WS] Server listening on ws://localhost:8766');
 
   // Set up CLI transport for interactive demo
@@ -70,26 +55,20 @@ async function main() {
     getSessionSpaceId: () => 'demo',
   });
 
-  agent.mount(cliConn);
-  console.log('[CLI] Ready for input\n');
-
-  // Subscribe to events from agent
-  agent.on('*', (event: CognitiveEvent) => {
-    const engine = event.engine?.toUpperCase() ?? '?';
-    const type = event.type;
-    const term = event.term?.slice(0, 80) ?? '';
-    console.log(`  [${engine}] ${type}: ${term}`);
+  cliConn.onMessage(async (msg: { text: string }) => {
+    const response = await agent.chat(msg.text);
+    console.log(`[Agent] ${response}`);
   });
+  console.log('[CLI] Ready for input\n');
 
   console.log('══════════════════════════════════════════════════════════════');
   console.log('Try sending messages via:');
   console.log('  - WebSocket: ws://localhost:8766');
   console.log('  - CLI: type in this terminal');
-  console.log('Agent routes to NAR or MeTTa based on input content.\n');
+  console.log('Narsese input routes to NAR, NL to LM.\n');
   console.log('Press Ctrl+C to exit');
   console.log('══════════════════════════════════════════════════════════════\n');
 
-  // Keep running
   process.on('SIGINT', async () => {
     console.log('\n\nShutting down...');
     agent.stop();

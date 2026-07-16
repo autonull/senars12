@@ -1,24 +1,17 @@
 #!/usr/bin/env tsx
-import { Kernel } from '@senars/core';
-import { NarBackend } from '@senars/nar/backend';
-import { MettaBackend } from '@senars/metta/backend';
-import { VisualizationBackend } from '@senars/ui/backend';
-import { InMemoryEventLog } from '@senars/core/eventlog';
+import { createAgent } from '@senars/nar/agent';
+import { SeNARSFactory } from '@senars/nar';
 
-const log = new InMemoryEventLog();
-const kernel = new Kernel(log);
+const nar = SeNARSFactory.createForTesting({ maxConcepts: 100 });
+const agent = createAgent({ nar });
 
-await kernel.register(new NarBackend());
-await kernel.register(new MettaBackend());
-await kernel.register(new VisualizationBackend());
+agent.start();
 
-await kernel.start('./senars.config.json');
-
-console.log('SeNARS running. Event log:', log);
+console.log('SeNARS running.');
 console.log('UI at http://localhost:8765');
 
 process.on('SIGINT', async () => {
   console.log('\n\nShutting down...');
-  await kernel.stop();
+  agent.stop();
   process.exit(0);
 });

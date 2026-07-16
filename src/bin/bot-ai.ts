@@ -27,9 +27,8 @@ import {
   createConnectionConfigsFromEnv,
   registerAllCommands,
 } from '@senars/nar/agent';
-import { NarBackend } from '@senars/nar/backend';
-import { SeNARSFactory } from '@senars/nar';
 import { Agent } from '@senars/core';
+import { SeNARSFactory } from '@senars/nar';
 import { createSeNARSRegistry, resolveLMConfig } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
 import { EpisodicMemory } from '@senars/nar/memory/episodic';
@@ -138,7 +137,7 @@ const cm = new ConnectionManager();
 
   for (const cfg of configs) {
     try {
-      const conn = await cm.addConnection(cfg, { emit: () => undefined, logger });
+      const conn = await cm.addConnection(cfg as unknown as import('@senars/core').ConnectionConfig, { emit: () => undefined, logger });
       bindAgentToConnection(agent, conn, {
         auth,
         commandRegistry,
@@ -159,8 +158,7 @@ const cm = new ConnectionManager();
 
   if (process.env.ENABLE_WEB_UI) {
     const { startAgentUI } = await import('../../ui/src/server/index.js');
-    const uiAgent = new Agent({ name: 'senars-bot' });
-    await uiAgent.registerBackend(new NarBackend(agent), {});
+    const uiAgent = new Agent({ id: 'senars-bot' });
     uiAgent.start();
     startAgentUI(uiAgent).catch((err) => {
       logger.error('Web UI failed to start', err as Error);

@@ -1,9 +1,14 @@
-export { Agent, type AgentOptions, type HealthStatus, type SkillDefinition } from './Agent.js';
+export { Agent, type AgentOptions, type HealthStatus, type SkillDefinition, type ParsedCommand } from './Agent.js';
 export { AgentBridge, type BridgeEvent, type BridgeDelta } from './AgentBridge.js';
-export type { SenarsPlugin, PluginContext } from './Plugin.js';
+export type { SenarsPlugin, PluginContext, TransportFactory } from './Plugin.js';
+export { PluginLoader, PluginLoadError } from './PluginLoader.js';
 export { PolicyEngine, type PolicyRule } from './PolicyEngine.js';
 export { MemoryService } from './memory/MemoryService.js';
 export type { MemoryEntry, MemoryQuery } from './memory/types.js';
+export type { Engine, EngineId, CognitiveStimulus, Context, Derivation, ToolResult } from './engine/Engine.js';
+export { ToolRegistry, type ToolSpec, type ToolFn, type SkillFeedback } from './motor/ToolRegistry.js';
+export { BUILTIN_TOOLS, registerBuiltinTools, type CmdArgSet } from './motor/builtin-tools.js';
+export { LLMCortex, type CortexSynthesizeRequest, type CortexSynthesizeResponse, type PromptBuilder } from './cortex/LLMCortex.js';
 
 export {
   BaseComponent,
@@ -98,11 +103,5 @@ export type { CognitiveEvent as NewCognitiveEvent } from './events/EventTypes.js
 export { validatePayload, PayloadSchemas } from './events/EventTypes.js';
 export { projectGraph, projectChat, projectLens } from './events/Projections.js';
 export { projectFact, type UnifiedFact } from './events/FactProjection.js';
-export type { Backend, BackendManifest, ToolDefinition } from './backend/Backend.js';
-export { EventBackend } from './backend/EventBackend.js';
-export { Capability } from './capability/Capability.js';
-export { CapabilityRegistryImpl, type CapabilityRegistry } from './capability/CapabilityRegistry.js';
-export type { ToolProvider } from './capability/ToolProvider.js';
 export type { ConfigView, ConfigEvent, ConfigSchema } from './config/Config.js';
 export { ConfigViewImpl } from './config/ConfigView.js';
-export { Kernel, type BackendHealth, type KernelMetrics } from './kernel/Kernel.js';

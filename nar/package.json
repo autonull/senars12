@@ -40,9 +40,21 @@
       "types": "./src/memory/EpisodicMemory.ts",
       "import": "./src/memory/EpisodicMemory.ts"
     },
-    "./backend": {
-      "types": "./src/backend/NarBackendV2.ts",
-      "import": "./src/backend/NarBackendV2.ts"
+    "./agent": {
+      "types": "./src/agent/index.ts",
+      "import": "./src/agent/index.ts"
+    },
+    "./agent/*": {
+      "types": "./src/agent/*.ts",
+      "import": "./src/agent/*.ts"
+    },
+    "./engine": {
+      "types": "./src/engine/index.ts",
+      "import": "./src/engine/index.ts"
+    },
+    "./engine/*": {
+      "types": "./src/engine/*.ts",
+      "import": "./src/engine/*.ts"
     }
   },
   "scripts": {

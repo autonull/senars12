@@ -1,11 +1,11 @@
-import type { GraphNodeData, IncomingFromServer } from '@senars/ui/shared/protocol';
+import type { GraphNodeData, IncomingFromServer } from '@senars/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   $graphEdges,
   $graphNodes,
   $nodeHistory,
-} from '@senars/ui/client/core/store';
-import { applyServerMessage } from '@senars/ui/client/core/store-bindings';
+} from '../../ui/src/client/core/store.js';
+import { applyServerMessage } from '../../ui/src/client/core/store-bindings.js';
 
 function node(id: string, term: string): { action: 'add_node'; id: string; data: GraphNodeData } {
   return {
@@ -15,13 +15,8 @@ function node(id: string, term: string): { action: 'add_node'; id: string; data:
   };
 }
 
-function edge(source: string, target: string): {
-  action: 'add_edge';
-  source: string;
-  target: string;
-  data: Record<string, unknown>;
-} {
-  return { action: 'add_edge', source, target, data: { weight: 0.6, type: 'inheritance' } };
+function edge(source: string, target: string) {
+  return { action: 'add_edge' as const, source, target, data: { weight: 0.6, type: 'inheritance', directed: true } };
 }
 
 const TRANSCRIPT: IncomingFromServer[] = [
@@ -80,9 +75,8 @@ describe('Pillar 3 (client): shared store consumes the live transcript', () => {
   it('populates the node history from node.history (drawer scrubber source)', () => {
     const history = $nodeHistory.get();
     expect(history.length).toBe(2);
-    const second = history[1];
-    expect(second.source).toBe('revision');
-    expect(second.truth.frequency).toBeCloseTo(0.6, 5);
+    expect(history[1]?.source).toBe('revision');
+    expect(history[1]?.truth.frequency).toBeCloseTo(0.6, 5);
   });
 
   it('delta ops are cumulative across messages (live growth)', () => {

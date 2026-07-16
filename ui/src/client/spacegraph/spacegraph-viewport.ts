@@ -15,7 +15,6 @@ import {
   $lensViewport,
   $selectedNodeId,
   $selectedNodeIds,
-  $view,
   $viewport,
   evaluateLens,
   eventBus,
@@ -24,6 +23,7 @@ import {
 } from '../core/index.js';
 import { TOKEN_COLORS } from '../utils/token-colors.js';
 import { applyDelta, checkUnsupportedChannels, clearNodeStyles } from './adapter-3d.js';
+import { GraphRenderer } from '../core/graph-renderer.js';
 
 // Dynamic import SpaceGraphJS (source-level via Vite alias)
 import { Edge, ForceLayout, HtmlNode, ShapeNode, SpaceGraph, Wire } from 'spacegraphjs';
@@ -72,32 +72,25 @@ export class SpaceGraphViewport extends BaseComponent {
 
   override connectedCallback() {
     super.connectedCallback();
-    this.watchWith($graphNodes, () => this.syncGraph());
-    this.watchWith($graphEdges, () => this.syncGraph());
-    this.watchWith($activeLens, () => {
-      clearNodeStyles(this.sg!);
-      const delta = evaluateLens();
-      const isEdge = (id: string) => $graphEdges.get().has(id);
-      const unsupported = checkUnsupportedChannels(delta, isEdge);
-      this.showUnsupportedWarning(unsupported);
-      applyDelta(
-        { sg: this.sg!, updatePosition: (id, pos) => this.updatePosition(id, pos) },
-        delta
-      );
-      this.restoreLensViewport();
+    const renderer = new GraphRenderer(this.watchWith.bind(this), {
+      syncGraph: () => this.syncGraph(),
+      applyLens: () => {
+        const sg = this.sg;
+        if (!sg) return;
+        clearNodeStyles(sg);
+        const delta = evaluateLens();
+        const isEdge = (id: string) => $graphEdges.get().has(id);
+        const unsupported = checkUnsupportedChannels(delta, isEdge);
+        this.showUnsupportedWarning(unsupported);
+        applyDelta({ sg, updatePosition: (id, pos) => this.updatePosition(id, pos) }, delta);
+        this.restoreLensViewport();
+      },
+      applyGraphFilter: () => this.applyGraphFilter(),
+      restoreViewport: (vp) => this.restoreViewport(vp),
+      centerOnNode: (id) => this.centerOnNode(id),
+      onLayout: (layoutName) => this.layoutHandler(layoutName),
     });
-    this.watchWith($view, () => {
-      if (!this.sg) return;
-      const delta = evaluateLens();
-      const isEdge = (id: string) => $graphEdges.get().has(id);
-      const unsupported = checkUnsupportedChannels(delta, isEdge);
-      this.showUnsupportedWarning(unsupported);
-      applyDelta({ sg: this.sg, updatePosition: (id, pos) => this.updatePosition(id, pos) }, delta);
-    });
-    this.watchWith($selectedNodeId, (id) => this.centerOnNode(id));
-    this.watchWith($viewport, (vp) => this.restoreViewport(vp));
-    this.watchWith($graphFilter, () => this.applyGraphFilter());
-    this.watchWith($capabilityFilter, () => this.applyGraphFilter());
+    renderer.connect();
     eventBus.on('graph:layout', this.layoutHandler);
     mountTestApi('spacegraph', {
       getNodeCount: () => this.sg?.nodeCount ?? 0,

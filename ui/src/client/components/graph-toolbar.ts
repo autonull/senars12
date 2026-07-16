@@ -16,7 +16,6 @@ import {
   eventBus,
   send,
 } from '../core/index.js';
-import type { Capability } from '@senars/core';
 import './contradiction-badge.js';
 import './lens-controller.js';
 
@@ -154,7 +153,7 @@ export class GraphToolbar extends BaseComponent {
     this.requestUpdate();
   }
 
-  private toggleCapabilityFilter(cap: Capability) {
+  private toggleCapabilityFilter(cap: string) {
     const current = $capabilityFilter.get();
     $capabilityFilter.set(current === cap ? 'all' : cap);
   }
@@ -195,7 +194,7 @@ export class GraphToolbar extends BaseComponent {
                 const active = $capabilityFilter.get() === c;
                 return html`<span class="cap-badge ${active ? 'active' : ''}"
                   title="${c}"
-                  @click=${() => this.toggleCapabilityFilter(c as Capability)}
+                  @click=${() => this.toggleCapabilityFilter(c)}
                   role="button"
                   tabindex="0">${CAPABILITY_LABELS[c] ?? c}</span>`;
               }

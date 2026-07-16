@@ -1,7 +1,7 @@
 import type { LensSpec } from '../../shared/lens-schema.js';
 import { isBuiltinLens } from '../../shared/lens-schema.js';
 import type { ChatMessage, GraphNodeData, Lens } from '@senars/core';
-import { beliefLens, compile, contradictionLens, goalLens } from '../modulation/compile.js';
+import { beliefLens, compile, contradictionLens, goalLens, temporalLens } from '../modulation/compile.js';
 import { timeGate } from '../modulation/composition.js';
 import { evaluate } from '../modulation/evaluate.js';
 import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
@@ -109,8 +109,7 @@ export type ViewportMode = '2d' | '3d';
 export const $viewportMode = atom<ViewportMode>('2d');
 
 // --- Batch 4: Capability-based filtering ---
-import type { Capability } from '@senars/core';
-export const $capabilityFilter = atom<Capability | 'all'>('all');
+export const $capabilityFilter = atom<string | 'all'>('all');
 
 // --- Phase 2: Modulation engine atoms ---
 function detectViewFlags(): View['flags'] {
@@ -259,6 +258,7 @@ const LENS_MODULATION_MAP: Record<string, Modulation> = {
   belief: beliefLens(),
   goal: goalLens(),
   contradiction: contradictionLens(),
+  temporal: temporalLens(),
 };
 
 export function evaluateLens(): Delta {
@@ -280,6 +280,7 @@ export const $lensLayout = atom<Record<string, string>>({
   belief: 'cose',
   goal: 'concentric',
   contradiction: 'breadthfirst',
+  temporal: 'preset',
 });
 
 // --- Phase 0: Panel Registry ---

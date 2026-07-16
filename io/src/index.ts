@@ -1,4 +1,5 @@
 export { ConnectionError } from './types.js';
+export type { Connection, ConnectionConfig, ConnectionDeps, ConnectionState, ConnectionFactory, IOMessage } from './types.js';
 export { ConnectionManager } from './connection-manager.js';
 export { MessageRouter } from './router.js';
 export type { MessageContext, MessageMiddleware } from './router.js';

@@ -1,31 +1,24 @@
 import { Agent } from '@senars/core';
-import { MettaBackend } from '@senars/metta/backend';
-import { NarBackend } from '@senars/nar';
-import { SeNARSFactory } from '@senars/nar';
-import { createAgent } from '@senars/nar/agent';
-import { DEFAULT_NAR_CONFIG } from '@senars/nar';
-import { startAgentUI, type TestServer } from '@senars/ui/server';
+import { NAREngine } from '@senars/nar/engine/NAREngine';
+import { MettaEngine } from '@senars/metta/engine/MettaEngine';
 import { describe, expect, it, afterAll, beforeAll } from 'vitest';
+import { startAgentUI, type TestServer } from '@senars/ui/server';
 
-describe('Multi-Backend Agent Integration', () => {
+describe('Multi-Engine Agent Integration', () => {
   let server: TestServer;
   let agent: Agent;
 
   beforeAll(async () => {
-    const nar = SeNARSFactory.createDefault({ ...DEFAULT_NAR_CONFIG });
-    const oldAgent = createAgent({ nar });
+    const narEngine = new NAREngine();
+    await narEngine.initialize();
+    const mettaEngine = new MettaEngine();
+    await mettaEngine.initialize();
 
-    agent = new Agent({ name: 'test-multi' });
-
-    // Register NAR backend (wraps old AgentImpl)
-    const narBackend = new NarBackend(oldAgent);
-    await agent.registerBackend(narBackend, {});
-
-    // Register MeTTa backend
-    const mettaBackend = new MettaBackend();
-    await agent.registerBackend(mettaBackend, { metta: { maxRecursionDepth: 100 } });
-
+    agent = new Agent({ id: 'test-multi' });
+    agent.registerEngine('nar', narEngine);
+    agent.registerEngine('metta', mettaEngine);
     agent.start();
+
     server = await startAgentUI(agent, { port: 0 });
   }, 30000);
 
@@ -34,14 +27,15 @@ describe('Multi-Backend Agent Integration', () => {
     agent.stop();
   });
 
-  it('starts server with Agent as CognitiveEventSource', () => {
+  it('starts server with Agent', () => {
     expect(server).toBeDefined();
     expect(server.address().port).toBeGreaterThan(0);
   });
 
-  it('reports capabilities from both backends', () => {
+  it('reports capabilities', () => {
     const caps = agent.capabilities();
-    expect(Array.isArray(caps)).toBe(true);
+    expect(caps).toBeDefined();
+    expect(caps.supports.chat).toBe(true);
   });
 
   it('reports healthy status', () => {

@@ -3,8 +3,9 @@ export { MettaSkills } from './MettaSkills.js';
 export { MettaPromptBuilder } from './MettaPromptBuilder.js';
 export { MettaInputProcessor } from './MettaInputProcessor.js';
 export { MettaCommandParser, LLM_COMMANDS } from './MettaCommandParser.js';
+export { MettaEngine } from '../engine/MettaEngine.js';
 export { createChannelOps } from './MettaChannelOps.js';
-export { PolicyEngine } from './PolicyEngine.js';
+export { PolicyEngine } from '@senars/core';
 
 export type {
   MettaAgent as MettaAgentInterface,

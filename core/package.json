@@ -24,33 +24,13 @@
       "types": "./src/events/Projections.ts",
       "import": "./src/events/Projections.ts"
     },
-    "./backend": {
-      "types": "./src/backend/Backend.ts",
-      "import": "./src/backend/Backend.ts"
-    },
     "./fact-projection": {
       "types": "./src/events/FactProjection.ts",
       "import": "./src/events/FactProjection.ts"
     },
-    "./event-backend": {
-      "types": "./src/backend/EventBackend.ts",
-      "import": "./src/backend/EventBackend.ts"
-    },
-    "./tool-provider": {
-      "types": "./src/capability/ToolProvider.ts",
-      "import": "./src/capability/ToolProvider.ts"
-    },
-    "./capability": {
-      "types": "./src/capability/Capability.ts",
-      "import": "./src/capability/Capability.ts"
-    },
     "./config": {
       "types": "./src/config/Config.ts",
       "import": "./src/config/Config.ts"
-    },
-    "./kernel": {
-      "types": "./src/kernel/Kernel.ts",
-      "import": "./src/kernel/Kernel.ts"
     },
     "./lifecycle": {
       "types": "./src/Lifecycle.ts",
@@ -115,6 +95,10 @@
     "./agent": {
       "types": "./src/Agent.ts",
       "import": "./src/Agent.ts"
+    },
+    "./engine": {
+      "types": "./src/engine/Engine.ts",
+      "import": "./src/engine/Engine.ts"
     },
     "./agent-bridge": {
       "types": "./src/AgentBridge.ts",

@@ -28,7 +28,6 @@ describe('MettaAgent Conversational Scenarios', () => {
   it('handles skill-related queries (no LM = empty response)', async () => {
     // Register a simple skill first
     agent.registerSkill('time', {
-      name: 'time',
       execute: async () => new Date().toISOString(),
     });
 

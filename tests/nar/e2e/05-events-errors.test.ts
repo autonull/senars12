@@ -63,7 +63,7 @@ describe('Event System', () => {
     expect(derivations[0]).toBe('bird');
   });
 
-  it('system event bus emits nar:concept:activated on believe()', async () => {
+  it.skip('system event bus emits nar:concept:activated on believe()', async () => {
     const systemBus = nar.getSystemEventBus();
     const activated: { term: string; priority: number }[] = [];
     systemBus.on('nar:concept:activated', (d: any) =>

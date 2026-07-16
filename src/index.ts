@@ -4,7 +4,6 @@ export {
   createAgent,
   createAgentPreset,
   agentConfigToOptions,
-  validateAgentOptions,
   buildAgentTools,
 } from '@senars/nar/agent';
 export type {

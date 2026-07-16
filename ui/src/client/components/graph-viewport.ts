@@ -16,7 +16,6 @@ import {
   $selectedEdgeId,
   $selectedNodeId,
   $selectedNodeIds,
-  $view,
   $viewport,
   BaseComponent,
   evaluateLens,
@@ -29,6 +28,7 @@ import { layoutConversationThread } from '../utils/graph-layout.js';
 import { type HtmlLabelData, computeHtmlLabels } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
 import { TOKEN_COLORS } from '../utils/token-colors.js';
+import { GraphRenderer } from '../core/graph-renderer.js';
 import './graph-minimap.js';
 
 const CHAT_NODE_STYLE = {
@@ -87,24 +87,21 @@ export class GraphViewport extends BaseComponent {
 
   override connectedCallback() {
     super.connectedCallback();
-    this.watchWith($graphNodes, () => this.syncGraph());
-    this.watchWith($graphEdges, () => this.syncGraph());
-    this.watchWith($activeLens, () => {
-      if (!this.cy) return;
-      clearNodeStyles(this.cy);
-      const delta = evaluateLens();
-      applyDelta(this.cy, delta);
-      this.restoreLensViewport();
+    const renderer = new GraphRenderer(this.watchWith.bind(this), {
+      syncGraph: () => this.syncGraph(),
+      applyLens: () => {
+        if (!this.cy) return;
+        clearNodeStyles(this.cy);
+        const delta = evaluateLens();
+        applyDelta(this.cy, delta);
+        this.restoreLensViewport();
+      },
+      applyGraphFilter: () => this.applyGraphFilter(),
+      restoreViewport: (vp) => this.restoreViewport(vp),
+      centerOnNode: (id) => this.centerOnNode(id),
+      onLayout: (layoutName) => this.layoutHandler(layoutName),
     });
-    this.watchWith($view, () => {
-      if (!this.cy) return;
-      const delta = evaluateLens();
-      applyDelta(this.cy, delta);
-    });
-    this.watchWith($selectedNodeId, (id) => this.centerOnNode(id));
-    this.watchWith($viewport, (vp) => this.restoreViewport(vp));
-    this.watchWith($graphFilter, () => this.applyGraphFilter());
-    this.watchWith($capabilityFilter, () => this.applyGraphFilter());
+    renderer.connect();
     eventBus.on('graph:layout', this.layoutHandler);
     mountTestApi('graph', {
       getNodeCount: () => this.cy?.nodes().length ?? 0,

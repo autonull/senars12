@@ -8,7 +8,7 @@ export class MettaAgent {
   readonly #agent: Agent;
 
   constructor(opts: MettaAgentOptions = {}) {
-    const coreOpts: AgentOptions = { metta: true };
+    const coreOpts: AgentOptions = {};
     if (opts.loopConfig) coreOpts.id = `metta-${Date.now()}`;
     this.#agent = new Agent(coreOpts);
   }

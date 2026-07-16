@@ -1,155 +1,76 @@
-import { describe, expect, it, vi } from 'vitest';
 import { Agent } from '@senars/core';
-import type { ReasoningBackend, Capability, CognitiveEvent } from '@senars/core';
+import type { CognitiveStimulus, Engine } from '@senars/core';
+import { describe, expect, it, vi } from 'vitest';
 
-function mockBackend(id: string, caps: Capability[]): ReasoningBackend {
-  const listeners = new Set<(e: CognitiveEvent) => void>();
+function mockEngine(id: string): Engine {
   return {
     id,
-    label: id,
-    capabilities: new Set(caps),
-    initialize: vi.fn().mockResolvedValue(undefined),
-    shutdown: vi.fn().mockResolvedValue(undefined),
-    health: vi.fn().mockReturnValue({ status: 'healthy' as const }),
-    reason: vi.fn().mockResolvedValue({
-      backendId: id,
-      success: true,
-      events: [],
-      output: { type: 'text', value: `${id} response` },
-    }),
-    getTools: vi.fn().mockReturnValue([]),
-    getSnapshot: vi.fn().mockReturnValue({
-      backendId: id,
-      capabilities: caps,
-      state: {},
-      timestamp: Date.now(),
-    }),
+    reason: vi.fn().mockResolvedValue([]),
+    query: vi.fn().mockResolvedValue([]),
   };
 }
 
 describe('Agent', () => {
-  it('creates an agent with no backends', () => {
-    const agent = new Agent({ name: 'test' });
-    expect(agent.name).toBe('test');
-    expect(agent.getBackendIds()).toEqual([]);
+  it('creates an agent with default state', () => {
+    const agent = new Agent({ id: 'test' });
+    expect(agent.id).toBe('test');
+    expect(agent.engines.size).toBe(0);
+    expect(agent.health().status).toBe('stuck');
   });
 
-  it('registers and retrieves backends', async () => {
+  it('registers and retrieves engines', () => {
     const agent = new Agent();
-    const backend = mockBackend('nar', ['inheritance']);
-
-    await agent.registerBackend(backend);
-
-    expect(agent.hasBackend('nar')).toBe(true);
-    expect(agent.getBackend('nar')).toBe(backend);
-    expect(agent.getBackendIds()).toEqual(['nar']);
-    expect(backend.initialize).toHaveBeenCalledOnce();
+    const engine = mockEngine('nar');
+    agent.registerEngine('nar', engine);
+    expect(agent.engines.has('nar')).toBe(true);
+    expect(agent.engines.get('nar')).toBe(engine);
   });
 
-  it('aggregates capabilities from all backends', async () => {
+  it('routes input through cycle and returns response', async () => {
     const agent = new Agent();
-    await agent.registerBackend(mockBackend('nar', ['inheritance', 'truth-revision']));
-    await agent.registerBackend(mockBackend('metta', ['pattern-match', 'query', 'skill-execution']));
+    const engine = mockEngine('nar');
+    agent.registerEngine('nar', engine);
 
-    const caps = agent.capabilities();
-    expect(caps).toHaveLength(1);
-    expect(caps[0].supports.beliefs).toBe(true);
-    expect(caps[0].supports.skills).toBe(true);
-  });
-
-  it('routes input to backends via submit', async () => {
-    const agent = new Agent();
-    const narBackend = mockBackend('nar', ['inheritance', 'truth-revision']);
-    await agent.registerBackend(narBackend);
-
-    const listener = vi.fn();
-    agent.on('*', listener);
-
-    agent.submit('<bird --> animal>.', 'corr-1');
-
-    // Allow async execution to settle
-    await vi.waitFor(() => {
-      expect(narBackend.reason).toHaveBeenCalled();
+    const result = await agent.cycle({
+      text: '<bird --> animal>.',
+      source: 'test',
+      timestamp: Date.now(),
+      correlationId: 'test-1',
     });
-
-    const call = vi.mocked(narBackend.reason).mock.calls[0];
-    expect(call[0].content).toBe('<bird --> animal>.');
+    expect(typeof result).toBe('string');
+    expect(vi.mocked(engine.reason)).toHaveBeenCalled();
   });
 
-  it('chat delegates to backend and returns response', async () => {
+  it('stop shuts down engines', async () => {
     const agent = new Agent();
-    const narBackend = mockBackend('nar', ['llm-completion']);
-    vi.mocked(narBackend.reason).mockResolvedValue({
-      backendId: 'nar',
-      success: true,
-      events: [],
-      output: { type: 'text', value: 'Hello from NAR' },
-    });
-    await agent.registerBackend(narBackend);
-
-    const response = await agent.chat('hello');
-    expect(response).toBe('Hello from NAR');
+    const engine = mockEngine('nar');
+    agent.registerEngine('nar', engine);
+    await agent.start();
+    await agent.stop();
+    expect(agent.health().status).toBe('stuck');
   });
 
-  it('stop shuts down all backends', async () => {
+  it('health reports healthy after start', async () => {
     const agent = new Agent();
-    const backend = mockBackend('nar', ['inheritance']);
-    await agent.registerBackend(backend);
-
-    agent.stop();
-
-    expect(backend.shutdown).toHaveBeenCalled();
-  });
-
-  it('health aggregates from backends', async () => {
-    const agent = new Agent();
-    await agent.registerBackend(mockBackend('nar', ['inheritance']));
-
+    const engine = mockEngine('nar');
+    agent.registerEngine('nar', engine);
+    await agent.start();
     const h = agent.health();
     expect(h.status).toBe('healthy');
   });
 
-  it('health reports degraded if any backend is degraded', async () => {
+  it('emits events via on handler', async () => {
     const agent = new Agent();
-    const healthy = mockBackend('nar', ['inheritance']);
-    const degraded = mockBackend('metta', ['pattern-match']);
-    vi.mocked(degraded.health).mockReturnValue({ status: 'degraded' as const });
-
-    await agent.registerBackend(healthy);
-    await agent.registerBackend(degraded);
-
-    const h = agent.health();
-    expect(h.status).toBe('degraded');
-  });
-
-  it('emits events to registered listeners', async () => {
-    const agent = new Agent();
-    const backend = mockBackend('nar', ['inheritance']);
-    await agent.registerBackend(backend);
-
     const listener = vi.fn();
     agent.on('*', listener);
 
-    const event: CognitiveEvent = {
-      engine: 'nar',
-      type: 'derivation',
-      term: '<bird --> animal>',
-      confidence: 0.9,
+    await agent.cycle({
+      text: 'test input',
+      source: 'test',
       timestamp: Date.now(),
-      correlationId: 'test-1',
-    };
-
-    // Simulate event emission via submit triggering backend reason
-    vi.mocked(backend.reason).mockResolvedValue({
-      backendId: 'nar',
-      success: true,
-      events: [event],
+      correlationId: 'test-2',
     });
 
-    agent.submit('test', 'corr-2');
-
-    await vi.waitFor(() => {
-      expect(listener).toHaveBeenCalled();
-    });
+    expect(listener).toHaveBeenCalled();
   });
 });

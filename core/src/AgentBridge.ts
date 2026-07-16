@@ -13,7 +13,7 @@ export interface BridgeDelta {
   }>;
 }
 
-export type BridgeEvent = BridgeDelta | { type: 'chat.message'; message: ChatMessage; engine: string };
+export type BridgeEvent = BridgeDelta | { type: 'chat.message'; message: ChatMessage; engine: string } | { type: string; [key: string]: unknown };
 
 export class AgentBridge {
   readonly agent: Agent;
@@ -30,6 +30,57 @@ export class AgentBridge {
   onEvent(handler: (event: BridgeEvent) => void): () => void {
     this.#listeners.add(handler);
     return () => this.#listeners.delete(handler);
+  }
+
+  projectFromMessage(msg: Record<string, unknown>): BridgeEvent | null {
+    const type = msg.type as string | undefined;
+
+    if (type === 'chat.user') {
+      return {
+        type: 'cognitive.delta',
+        seqId: Date.now(),
+        lens: 'belief',
+        ops: [{
+          action: 'add_node',
+          id: `input-${Date.now()}`,
+          data: {
+            nodeType: 'nar:concept',
+            term: msg.content as string,
+            priority: 1.0,
+            confidence: 1.0,
+          },
+        }],
+      };
+    }
+
+    if (type === 'lens.set') {
+      return {
+        type: 'cognitive.delta',
+        seqId: Date.now(),
+        lens: msg.lens as string,
+        ops: [],
+      };
+    }
+
+    if (type === 'focus.set') {
+      return {
+        type: 'cognitive.delta',
+        seqId: Date.now(),
+        lens: 'belief',
+        ops: [{
+          action: 'add_node',
+          id: `focus-${Date.now()}`,
+          data: {
+            nodeType: 'nar:concept',
+            term: msg.term as string,
+            priority: 1.0,
+            confidence: 1.0,
+          },
+        }],
+      };
+    }
+
+    return null;
   }
 
   #project(event: CognitiveEvent): BridgeEvent | null {

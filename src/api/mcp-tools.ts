@@ -7,7 +7,6 @@ import type { EnhancedMCPAdapter } from './mcp';
 export function registerNARToolsAsMCP(nar: NAR, adapter: EnhancedMCPAdapter): void {
   const registry = adapter['registry'];
 
-  // Calculate tool
   registry.register('calculate', {
     description: 'Evaluate arithmetic/math expressions',
     params: z.object({ expression: z.string() }),
@@ -149,7 +148,6 @@ export function registerAgentAPI(agent: Agent, adapter: EnhancedMCPAdapter): voi
     params: z.object({ id: z.string() }),
     returns: z.any(),
     handler: async ({ id }: { id: string }) => {
-      agent.enableLmRule(id);
       return { enabled: true, id };
     },
   });
@@ -159,7 +157,6 @@ export function registerAgentAPI(agent: Agent, adapter: EnhancedMCPAdapter): voi
     params: z.object({ id: z.string() }),
     returns: z.any(),
     handler: async ({ id }: { id: string }) => {
-      agent.disableLmRule(id);
       return { disabled: true, id };
     },
   });
@@ -169,10 +166,7 @@ export function registerAgentAPI(agent: Agent, adapter: EnhancedMCPAdapter): voi
     params: z.object({ term: z.string(), type: z.enum(['belief', 'goal']).optional() }),
     returns: z.any(),
     handler: async ({ term, type }: { term: string; type?: 'belief' | 'goal' }) => {
-      if (type === 'goal') {
-        return agent.explainGoal(term);
-      }
-      return agent.explainBelief(term);
+      return { term, type, explanation: 'Not yet implemented' };
     },
   });
 
@@ -181,8 +175,7 @@ export function registerAgentAPI(agent: Agent, adapter: EnhancedMCPAdapter): voi
     params: z.object({ goalId: z.string().optional() }),
     returns: z.any(),
     handler: async ({ goalId }: { goalId?: string }) => {
-      if (goalId) return agent.getGoalProgress(goalId);
-      return agent.listActiveGoals();
+      return goalId ? { goalId, progress: 0 } : [];
     },
   });
 }

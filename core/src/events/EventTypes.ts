@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import type { Capability } from '../capability/Capability.js';
 
 const BaseEventSchema = z.object({
   id: z.string().ulid(),
