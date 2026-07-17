@@ -19,7 +19,7 @@ export { TermBuilder, freeze, TermFactory } from './factory.js';
 export { atom } from './factory.js';
 
 // Serialization
-export { serializeTerm, deserializeTerm } from './serialize.js';
+export { serializeTerm, deserializeTerm, toNarsese, fromNarsese } from './serialize.js';
 
 // Complexity and similarity
 export { getTermComplexity } from './complexity.js';

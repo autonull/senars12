@@ -75,8 +75,9 @@ export type {
   Tool as ChatTool,
 } from './ChatService.js';
 export { createChatService } from './ChatService.js';
-export type { GraphNodeData, ConfigFieldType, GraphOpType, GraphNodeDataStrict } from './Protocol.js';
 export {
+  GraphNodeData,
+  GraphNodeDataStrict,
   GraphOp,
   CognitiveDelta,
   ConfigField,
@@ -88,8 +89,12 @@ export {
   IncomingFromClient,
   IncomingFromServer,
   Lens,
-} from './Protocol.js';
+} from './protocol/index.js';
+export type { ConfigFieldType, GraphOpType } from './protocol/index.js';
 export type { ValidatedAgentOptions } from './Options.js';
+/**
+ * @deprecated Use `import { agentOptionsSchema, validateAgentOptions, AgentOptionsValidationError, contextOptsSchema } from '@senars/util/config'` instead.
+ */
 export {
   agentOptionsSchema,
   validateAgentOptions,
@@ -125,5 +130,8 @@ export { LENS_COLORS_HEX, LENS_LABELS, CONNECTION_COLORS, LENS_DESCRIPTIONS, EDG
 
 export type { EventLog, EventLogConfig, EventLogError, SqliteEventLogConfig } from './eventlog/index.js';
 export { InMemoryEventLog, SqliteEventLog } from './eventlog/index.js';
+/**
+ * @deprecated Use `import type { ConfigView, ConfigEvent, ConfigSchema } from '@senars/util/config'` instead.
+ */
 export type { ConfigView, ConfigEvent, ConfigSchema } from './config/Config.js';
 export { ConfigViewImpl } from './config/ConfigView.js';

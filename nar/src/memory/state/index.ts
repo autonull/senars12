@@ -1,4 +1,4 @@
-export { serialize, deserialize, validate, repair } from './serialization.js';
+export { serialize, deserialize, validate, repair, V1, MEMORY_VERSION } from './serialization.js';
 export type {
   SerializedMemory,
   SerializedConcept,
@@ -7,3 +7,4 @@ export type {
 } from './serialization.js';
 export { calculateConceptStats } from './statistics.js';
 export type { ConceptStats } from './statistics.js';
+export { detectVersion, loadMemoryState } from './migration.js';

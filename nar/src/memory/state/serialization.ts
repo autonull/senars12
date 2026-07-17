@@ -32,7 +32,15 @@ export interface SerializedTask {
   budget: number;
 }
 
-const MEMORY_VERSION = 1;
+export const MEMORY_VERSION = 1;
+
+export const V1 = {
+  version: MEMORY_VERSION,
+  serialize,
+  deserialize,
+  validate,
+  repair,
+} as const;
 
 export function serialize(memory: Memory): SerializedMemory {
   const concepts: SerializedConcept[] = [];
@@ -64,8 +72,6 @@ function termToString(term: Term): string {
   if (!term) return 'unknown';
   try {
     // system boundary — term structure varies across memory versions
-    const sym = (term as any).symbol;
-    if (sym) return sym;
     return term.kind === 'atom' ? term.symbol : term.kind;
   } catch {
     return term.kind;

@@ -114,6 +114,7 @@ export default defineConfig({
       { find: /^@senars\/util\/commands$/, replacement: resolve(__dirname, './util/src/commands/index.ts') },
       { find: /^@senars\/util\/events$/, replacement: resolve(__dirname, './util/src/events/index.ts') },
       { find: /^@senars\/util\/memory$/, replacement: resolve(__dirname, './util/src/memory/in-memory-session-manager.ts') },
+      { find: /^@senars\/util\/config$/, replacement: resolve(__dirname, './util/src/config/index.ts') },
     ],
   },
 });

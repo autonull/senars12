@@ -1,5 +1,5 @@
 import type { ChatOptions, ChatStreamEvent, CognitiveEvent } from './CognitiveEvent.js';
-import type { AgentCapabilities } from './Protocol.js';
+import type { AgentCapabilities } from './protocol/index.js';
 import type { Connection } from './Transport.js';
 
 export interface ChatCapable {

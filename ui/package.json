@@ -20,10 +20,6 @@
       "types": "./src/server/UnifiedGraphProjection.ts",
       "import": "./src/server/UnifiedGraphProjection.ts"
     },
-    "./agent-bridge": {
-      "types": "./src/server/agent-bridge.ts",
-      "import": "./src/server/agent-bridge.ts"
-    },
     "./shared": {
       "types": "./src/shared/index.ts",
       "import": "./src/shared/index.ts"

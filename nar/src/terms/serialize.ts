@@ -78,3 +78,16 @@ export const deserializeTerm = (s: string): Term | null => {
     return null;
   }
 };
+
+/**
+ * Canonical term → Narsese string API. Delegates to {@link serializeTerm}.
+ * @public
+ */
+export const toNarsese = (term: Term): string => serializeTerm(term);
+
+/**
+ * Canonical Narsese string → Term API. Delegates to {@link deserializeTerm}.
+ * Returns `null` when the input is not parseable.
+ * @public
+ */
+export const fromNarsese = (s: string): Term | null => deserializeTerm(s);

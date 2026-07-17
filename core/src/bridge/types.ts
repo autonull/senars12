@@ -1,4 +1,4 @@
-import type { ChatMessage } from '../Protocol.js';
+import type { ChatMessage } from '../protocol/index.js';
 
 export interface BridgeDelta {
   type: 'cognitive.delta';

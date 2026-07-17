@@ -1,6 +1,6 @@
 import type { EventLog } from '../eventlog/EventLog.js';
 import type { CognitiveEvent } from '../CognitiveEvent.js';
-import type { ConfigView, ConfigEvent } from './Config.js';
+import type { ConfigView, ConfigEvent } from '@senars/util/config';
 
 export class ConfigViewImpl implements ConfigView {
   #log: EventLog;

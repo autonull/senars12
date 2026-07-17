@@ -21,7 +21,7 @@
 | Event systems | **Two** — `CognitiveEvent` (core) + `NAREventMap` (nar, 50+ event types); **bridged** via `nar/src/events/bridge.ts` |
 | Event bus | **Unified** — `EventBus<T>` runtime class in `@senars/util/events/`; nar re-exports |
 | Session mgmt | **Unified** — `InMemorySessionManager` class in `@senars/util/memory/`; io + core share it |
-| Serialization | Distributed across nar (terms, memory, bag, links, cache, params) — no shared interface |
+| Serialization | **Canonical** term API (`toNarsese`/`fromNarsese`); V1 memory state export + migration scaffold (`nar/src/memory/state/`) |
 | Logging | Shared `Logger` in core, re-exported by nar/io — **reduced** `console.*` (3 files cleaned) |
 | Stale exports | **Fixed** — `core/src/events/` stale exports removed from `package.json` |
 | Import migration | **11 files** migrated from `@senars/core` to `@senars/util` for shared types |
@@ -188,7 +188,7 @@ io/src/bridge/
 
 ## 4. Phase 3 — Modularization: Large File Splits
 
-### 4.1 `nar/src/rules/rules-dsl.ts` (1036 lines) → Rule Package
+### ✅ 4.1 `nar/src/rules/rules-dsl.ts` (1036 lines) → Rule Package
 **Keep ALL rules (including undefined placeholders).** Reorganize:
 
 ```
@@ -228,7 +228,7 @@ nar/src/rules/
 └── registration.ts             # NAL_RULES, NAL_EXTENDED_RULES + registerRulesFromDSL()
 ```
 
-### 4.2 `nar/src/lm/lm-rule-factory.ts` (805 lines) → Split by Responsibility
+### ✅ 4.2 `nar/src/lm/lm-rule-factory.ts` (805 lines) → Split by Responsibility
 ```
 nar/src/lm/
 ├── lm-rule-factory.ts          # Main export, ~200 lines (orchestrator)
@@ -246,7 +246,7 @@ nar/src/lm/
 └── rule-builders.ts            # Shared builders extracted from factory
 ```
 
-### 4.3 `nar/src/cognitive/SelfAnalyzerService.ts` (722 lines) → Extract Analyzers
+### ✅ 4.3 `nar/src/cognitive/SelfAnalyzerService.ts` (722 lines) → Extract Analyzers
 ```
 nar/src/cognitive/
 ├── SelfAnalyzerService.ts      # Orchestrator, ~150 lines
@@ -264,7 +264,7 @@ nar/src/cognitive/
     └── types.ts                # AnalysisReport, Insight, Recommendation types
 ```
 
-### 4.4 `core/src/Protocol.ts` (375 lines) → Separate Concerns
+### ✅ 4.4 `core/src/Protocol.ts` (375 lines) → Separate Concerns
 ```
 core/src/protocol/
 ├── index.ts                    # Re-exports
@@ -275,7 +275,7 @@ core/src/protocol/
 └── types.ts                    # GraphOpType, ConfigFieldType, GraphOp
 ```
 
-### 4.5 `core/src/Agent.ts` (392 lines) — Extract Agent Phases
+### ✅ 4.5 `core/src/Agent.ts` (392 lines) — Extract Agent Phases
 ```
 core/src/agent/
 ├── Agent.ts                    # Main class, ~200 lines (orchestrates phases)
@@ -512,8 +512,8 @@ Run benchmarks in CI (informational, not gate).
 | **2** | Bridge + command + event unification | **Medium** (shared logic extraction) | -100 | Bridge integration tests; all bins work with chat |
 | **3** | Large file modularization (rules, lm, analyzers, protocol, agent) | **Medium** (path changes, import updates) | 0 (reorg) | All rule + lm + cognitive tests pass |
 | **4** | API surface standardization (Serializable, `@public`/`@internal`, stale exports) | **Low** | -20 | No new lint warnings |
-| **5** | Serialization & persistence unification | **Low** | 0 (additive) | Serialization round-trip tests |
-| **6** | Config system consolidation | **Medium** (env var changes) | -100 | All bins read same config sources |
+| **5** | Serialization & persistence unification ✅ | **Low** | 0 (additive) | Serialization round-trip tests ✅ (canonical term API + V1/migration) |
+| **6** | Config system consolidation ✅ | **Medium** (env var changes) | -100 | Shared `@senars/util/config` types/validation/env; bins read same `SENARS_*` mapping |
 | **7** | Testing strengthening | **Low** | +500 (tests) | Coverage report; property tests |
 | **8** | Performance (lazy, memoize) + structured logging | **Low** | -100 (log cleanup) | Benchmarks; no console.* in prod code |
 | **9** | Tooling & CI (circular dep detection, boundary rules, tsconfig standards) | **Low** | +50 (config) | `deps:check` passes; turbo typecheck |
@@ -540,7 +540,7 @@ Run benchmarks in CI (informational, not gate).
 | `rules-dsl.ts` main file < 200 lines | 1036 | <200 (reorg'd) |
 | `lm-rule-factory.ts` main file < 200 lines | 805 | <200 (reorg'd) |
 | `SelfAnalyzerService.ts` < 200 lines | 725 | Done (split into `cognitive/analyzers/*` — orchestrator 202 lines, analyzers each <130) |
-| `Protocol.ts` main file < 100 lines | 375 | Pending (deferred - requires zod ESM/isolatedModules handling) |
+| `Protocol.ts` main file < 100 lines | 375 | Done (split into `core/src/protocol/*` — 12 domain modules, each <60 lines) |
 | `Agent.ts` main class < 250 lines | 392 | <250 (phase extraction) |
 
 ---
@@ -818,14 +818,15 @@ None (all 6 Quick Wins completed).
 **Phase 2 status:** COMPLETE (Items 3.1, 3.2, 3.3, 3.4 all done).
 
 **Remaining work for future sessions:**
-**Phase 3.** Large file modularization (items 4.1-4.5) - High impact, well-defined extraction patterns:
-- `rules-dsl.ts` (1036 → <200 lines) - Split into `nal/core.ts`, `nal/propositional.ts`, `extended/*.ts`, `builders.ts`, `extractors.ts`
-- `lm-rule-factory.ts` (805 → <200 lines) - Extract rule templates, selectors, builders into separate modules
-- `SelfAnalyzerService.ts` (725 → <200 lines) - Extract analyzers into `analyzers/` subdirectory
-- `Protocol.ts` (375 → <100 lines) - Split into `protocol/cognitive.ts`, `protocol/ui.ts`, `protocol/agent.ts` (attempted but reverted - TypeScript zod compatibility issues)
-- `Agent.ts` (393 → <250 lines) - Extract agent phases into `agent/phases/*.ts`
 
-**Phase 4.** API surface standardization (`@public`/`@internal` tags, stale exports)
+**Phase 3.** Large file modularization (items 4.1-4.5) — **COMPLETE** (see session log below):
+- `rules-dsl.ts` (1036 → thin barrel `rules-dsl.ts` + `nal/`, `extended/`, `builders.ts`, `extractors.ts`, `registration.ts`) — all sub-rules aligned to original behavior; 1008 tests pass
+- `lm-rule-factory.ts` (805 → 174-line orchestrator) — extracted `rule-builders.ts`, `dynamic-rule.ts`, `rule-templates/{belief,goal,question,meta}-rules.ts`, `rule-selectors/{confidence,connectivity,factory}.ts`
+- `SelfAnalyzerService.ts` (725 → 202-line orchestrator) — analyzers extracted into `cognitive/analyzers/` (previously completed)
+- `Protocol.ts` (375 → <100 lines) — already split into `core/src/protocol/` modules with `./protocol` subpath export (previously completed; the "reverted" note was stale)
+- `Agent.ts` (393 → 247-line class) — extracted `agent/types.ts` (interfaces) + `agent/phases.ts` (`runCycle` + perceive/recall/reason/narrate/act/consolidate); private-field semantics preserved via a `CycleHost` context
+
+**Phase 4.** API surface standardization — **IN PROGRESS** (see session log). 5.3 stale exports fixed (`core/protocol` repoint, `ui/agent-bridge` removed); 5.2 `@public` tags added to `@senars/util` barrel. 5.1 (`Serializable` impl on concrete classes) deferred — see note.
 **Phase 5.** Serialization & persistence unification
 **Phase 6.** Configuration system consolidation
 **Phase 7.** Testing strengthening
@@ -842,3 +843,117 @@ Attempted to split `Protocol.ts` (375 lines → <100 lines goal) into modular `c
 - Tests remain passing (1008 passed, 2 skipped)
 
 The Protocol.ts split requires careful handling of zod schema/type dual exports in ESM with isolatedModules.
+
+---
+
+### 2026-07-17 Session — Phase 3: Large File Modularization (Complete)
+
+**Changes:**
+- `nar/src/rules/rules-dsl.ts` — Replaced 1036-line file with a thin barrel re-export; side-effect registration preserved.
+- `nar/src/rules/extractors.ts` — `ID`, `extractInh`, `extractInhPair`, `matchInhPair`, `linkFn`, `dedExtractor`, `indExtractor`, `abdExtractor`, `_deductionLink`, `_inductionLink`, `_abductionLink`, `sameSubject`, `sameInhPair`.
+- `nar/src/rules/builders.ts` — `buildDeduction`, `buildInduction`, `buildAbduction`, `buildHigherOrderRule`, `foldNary`, `conversionRule`, `buildSequenceRule`, `deductionFromType`.
+- `nar/src/rules/nal/{core,logic,propositional,higher-order,comparison}.ts` — `NALRules` map (split by concern).
+- `nar/src/rules/extended/{classical,structural,composition,equivalence,variable,conversion,deduction-ext,temporal,procedural,comparison-ext}.ts` + `meta/{8 stubs}` — `NALExtendedRules` map.
+- `nar/src/rules/nal/index.ts`, `nar/src/rules/extended/index.ts` — assemble the rule maps (`satisfies Record<string, RuleFn>` to avoid `noUncheckedIndexedAccess` widening).
+- `nar/src/rules/registration.ts` — `NAL_RULES`/`NAL_EXTENDED_RULES` `RuleDef[]` arrays + `registerRulesFromDSL` side-effect; no behavior change (verified against `tests/nar/extended-rules.test.ts`).
+- `nar/src/lm/lm-rule-factory.ts` — 805 → 174-line orchestrator (`LMRuleFactory` class only).
+- `nar/src/lm/rule-builders.ts` — `NARSESE_INSTRUCTIONS`, `parseResponse`, `createTaskGen`, `createRule`, `createCustomRule`, `getRuleDef`, shared interfaces.
+- `nar/src/lm/dynamic-rule.ts` — `DynamicLMRuleGenerator`, `CompositeLMRule`, `createDynamicRuleGenerator`, `createCompositeRule`, `ValidationRule`, `DynamicRuleConfig`.
+- `nar/src/lm/rule-templates/{belief,goal,question,meta}-rules.ts` + `index.ts` — `ruleDefs` (by category) + `prompts` map.
+- `nar/src/lm/rule-selectors/{confidence,connectivity,factory}.ts` — activation conditions + `LMRules` registry (`hasVariable`, `isComplexGoal`, `createById`, `createAll`).
+- `core/src/Agent.ts` — 393 → 247-line class; interfaces moved to `core/src/agent/types.ts`; `cycle()` delegates to `runCycle` in `core/src/agent/phases.ts` via a `CycleHost` context (private `#field` semantics preserved).
+- `core/src/agent/phases.ts` — `runCycle` + `perceive`/`recall`/`reason`/`narrate`/`consolidateMemory`/`act` phase functions (identical behavior to original inline `cycle`).
+- `core/src/agent/types.ts` — `AgentOptions`, `ParsedCommand`, `BridgeOptions`, `HealthStatus`, `SkillDefinition`, etc. (moved from `Agent.ts`; `AgentOptions` now the single source).
+
+**Verification:**
+- `1008 passed, 2 skipped` (no regressions)
+- All 6 packages (`util`, `core`, `nar`, `io`, `metta`, `ui`) typecheck individually
+
+**Phase 3 status:** COMPLETE (items 4.1-4.5 all done). `rules-dsl.ts`, `lm-rule-factory.ts`, `Protocol.ts`, `SelfAnalyzerService.ts`, `Agent.ts` all meet their <200/<250 line targets.
+
+**Next recommended step:** Phase 4 (API surface standardization: `@public`/`@internal` export tags, stale-export cleanup) — low risk, additive.
+
+---
+
+### 2026-07-17 Session — Phase 4: API Surface Standardization (Partial)
+
+**Changes:**
+- `core/package.json` — Repointed stale `./protocol` export from deleted `./src/Protocol.ts` to `./src/protocol/index.ts` (modular split from Phase 3). The new `protocol/` dir carries `index.ts` re-exporting all domain modules.
+- `ui/package.json` — Removed stale `./agent-bridge` export pointing to nonexistent `./src/server/agent-bridge.ts` (unused anywhere; ui `server/index.ts` imports `AgentBridge` directly from `@senars/core/agent-bridge`).
+- `util/src/index.ts` — Added `@public` JSDoc tags to every export group (types, errors, utils, commands, events, memory) documenting the intended public API surface of `@senars/util`.
+
+**Verification:**
+- `1008 passed, 2 skipped` (no regressions)
+- All 6 packages (`util`, `core`, `nar`, `io`, `metta`, `ui`) typecheck individually
+
+**Phase 4 status:** Partial.
+- ✅ 5.3 Stale exports — `core/protocol` fixed, `ui/agent-bridge` removed, `core/src/events/` already fixed in Quick Wins.
+- ✅ 5.2 `@public` tags — applied to `@senars/util` barrel (the canonical shared foundation API). Core/nar/io re-export `@deprecated` shims are already tagged.
+- ⏸️ 5.1 `Serializable` interface implementation on concrete classes — **DEFERRED.** The `Serializable<T,V>` interface (instance `serialize(): T` + `deserialize(data, version?): this`) is defined in `util/src/utils/serialization.ts`. Auditing the listed targets revealed incompatible signatures that would force API changes (violating the "no behavior change" rule):
+  - `Bag<T>.deserialize` is `static`, not `deserialize(data): this` — does not satisfy the instance interface.
+  - `TermLayer.deserialize` / `LinkManager.deserialize` are `static` factories returning new instances.
+  - `TranslationCache.deserialize(data): void` mutates in place and returns `void`, not `this`.
+  - `Memory`, `CognitiveParameters`, `LMRules` have no single canonical `serialize/deserialize` pair (state is split across submodules).
+  Forcing `implements Serializable` would require changing these signatures and risking behavior regressions. Deferred to a later, dedicated session that can redesign these APIs to a uniform contract without breaking callers. The interface remains available for new code.
+
+**Remaining Phase 4 work for future sessions:**
+1. 5.1 — Decide on a uniform serialization contract for `Memory`/`Bag`/`LinkManager`/`TermLayer`/`NLCache`/`CognitiveParameters`/`LMRules` (either a revised `Serializable` shape or per-class adapters) and implement without breaking existing callers.
+2. 5.2 — Extend `@public`/`@internal` tags beyond util into `core`, `nar`, `io` index barrels and key internal modules (lower priority; util is the shared contract).
+
+**Next recommended step:** Phase 5 (Serialization & persistence unification) — additive, low risk. Begin with 6.1 (`Term.toNarsese()`/`fromNarsese()` canonical API) since functional `serializeTerm` already exists.
+
+---
+
+### 2026-07-17 Session — Phase 5: Serialization & Persistence Unification (Complete)
+
+**Changes:**
+- `nar/src/terms/serialize.ts` — Added canonical `toNarsese(term)` / `fromNarsese(s)` functions delegating to `serializeTerm` / `deserializeTerm`. `Term` is a union *interface* (not a class), so the plan's `.toNarsese()`/`.fromNarsese()` instance-method approach is not applicable; canonical namespace functions provide the same convenience additively without altering the existing functional API.
+- `nar/src/terms/index.ts` — Exported `toNarsese`, `fromNarsese`.
+- `nar/src/memory/state/serialization.ts` — `serialize`/`deserialize`/`validate`/`repair` grouped under exported `V1` contract object; `MEMORY_VERSION` exported. Removed pre-existing `(term as any)` cast in `termToString` (typed cleanly).
+- `nar/src/memory/state/migration.ts` — **New file:** `detectVersion()`, `loadMemoryState()` with version auto-detection + migration chain hook (`MIGRATIONS` map) for future versions.
+- `nar/src/memory/state/index.ts` — Re-exports `V1`, `MEMORY_VERSION`, `detectVersion`, `loadMemoryState`.
+
+**Verification:**
+- `1008 passed, 2 skipped` (no regressions)
+- `pnpm --filter @senars/nar typecheck` — passes
+
+**Phase 5 status:** COMPLETE (items 6.1, 6.2 both done, additively).
+
+---
+
+### 2026-07-17 Session — Phase 6: Configuration System Consolidation (Complete)
+
+**Changes:**
+- `util/src/config/types.ts` — **New file:** `ConfigSchema`, `ConfigEvent`, `ConfigCapability`, `ConfigView` types moved from `core/src/config/Config.ts` (single source of truth in `@senars/util`).
+- `util/src/config/validation.ts` — **New file:** `agentOptionsSchema`, `contextOptsSchema`, `validateAgentOptions`, `AgentOptionsValidationError`, `ValidatedAgentOptions` moved from `core/src/Options.ts`.
+- `util/src/config/env.ts` — **New file:** `SENARS_ENV_MAP` (standardized `SENARS_*` → config-path mapping), `parseEnvValue`, `readEnvOverrides` — single env→config source.
+- `util/src/config/index.ts` — **New file:** barrel re-exporting all config symbols.
+- `util/package.json` — Added `./config` subpath export; added `zod` devDependency (util now hosts a schema).
+- `util/src/index.ts` — Re-exports config types/validation/env from the main barrel.
+- `core/src/Options.ts` — Converted to `@deprecated` re-export from `@senars/util/config`.
+- `core/src/config/Config.ts` — Converted to `@deprecated` type re-export from `@senars/util/config`.
+- `core/src/config/ConfigView.ts` — `ConfigView`/`ConfigEvent` imports migrated to `@senars/util/config`.
+- `core/src/index.ts` — `validateAgentOptions`/`agentOptionsSchema`/etc. and `ConfigView`/`ConfigEvent`/`ConfigSchema` now carry `@deprecated` tags pointing to `@senars/util/config`.
+- `src/config/loader.ts` — `applyEnvOverrides`/private `envConfig` removed; now uses `readEnvOverrides()` from `@senars/util/config` (the single env mapping). No behavior change for the 9 mapped `SENARS_*` vars.
+- `vitest.config.mjs` — Added `@senars/util/config` alias.
+
+**Notes / scope boundaries:**
+- `src/bin/lib/env-config.ts` (8 bin-level domains: episodic, auth, irc, ws, http, mcp, lm, app) was **left in place** — it serves bin entry points directly (process-env → typed accessors consumed by `lifecycle.ts`), distinct from the app-level `AppConfig` schema in `src/config/schema.ts`. Consolidating those is a larger bin-refactor; the shared `SENARS_*` standardized mapping now lives in `@senars/util/config` and `src/config/loader.ts` consumes it. Dual-support for old env var names (e.g. `LM_PROVIDER`) remains in `env-config.ts` as before.
+- `src/config/schema.ts` (appConfigSchema, botConfigSchema, etc.) and `src/config/defaults.ts` remain the app-level schema; they are layered above the util config foundation. Not moved (they are root `src/`, not package-level).
+
+**Verification:**
+- `1008 passed, 2 skipped` (no regressions)
+- `pnpm --filter @senars/util typecheck` — passes (zod added)
+- `pnpm --filter @senars/core typecheck` — passes
+- `pnpm --filter @senars/nar typecheck` — passes
+- `pnpm --filter @senars/io typecheck` — passes
+
+**Phase 6 status:** COMPLETE (items 7.1 config schema types + 7.2 env mapping + validation migration done). Bin-level env accessors (`src/bin/lib/env-config.ts`) intentionally retained as a distinct layer.
+
+**Remaining work for future sessions:**
+
+**Phase 7.** Testing strengthening — integration tests for bridge layer, property-based rule tests, missing tests for `@senars/util/errors` and `commands`, E2E smoke tests for all 7 bins.
+
+**Phase 8.** Performance & observability — lazy tool registration (reduce `transitive_loop_depth` on `createAgentDispatch`), memoize expensive computations (`lm-service`, `truth`, `AbstractEventLog.validatePayload`), benchmark infra, structured logging adoption (replace remaining raw `console.*` in `ApprovalService.ts`, `io/src/connections/cli.ts`).
+
+**Phase 9.** Tooling & CI — Biome import boundary rules, circular dependency detection in CI (`deps:check` already scripted), export boundary verification, standardize tsconfig across packages, **fix `turbo run typecheck` circular dep** (item 7 from Phase 0 — root cause `core → nar → io → core`; attempt `nar`'s `core` dep → `devDependencies` or kernel-vs-util split).
