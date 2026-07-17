@@ -40,7 +40,7 @@
 │  • Motor: ToolRegistry + PolicyEngine                               │
 │  • Bridge: AgentBridge → UI                                         │
 │  • The living cycle(): perceive→recall→reason→narrate→act→consolidate│
-│  • Emits CognitiveEvent (UI Bridge consumes)                        │
+│  • Emits UnifiedCognitiveEvent (UI Bridge consumes)                 │
 │  • on/off('*') for all cognitive events                             │
 │  • replaySession(events) for session restore                        │
 └─────────────────────────┬───────────────────────────────────────────┘
@@ -102,7 +102,7 @@ export type { ParsedCommand, LlmCommand } from './MettaCommandParser.js';
 | `nar/src/agent/tools.ts` | `buildAgentTools` — move to `core/src/motor/` | **MOVE** |
 | `nar/src/agent/types.ts` | Type exports — consolidate into Core Agent | **CONSOLIDATE** |
 | `core/src/engine/Engine.ts` `absorb`/`persist`/`load` optional methods | Unused stubs | **REMOVE** from interface |
-| `core/src/events/*` | New event system, unused by Agent | **DELETE** (Agent uses `CognitiveEvent`) |
+| `core/src/events/*` | New event system, unused by Agent | **DELETE** (Agent uses `UnifiedCognitiveEvent`) |
 | `AutonomyEngine` stub (`createAutonomyEngine` in `nar/src/agent/index.ts`) | Does nothing, bins pass it but never use it | **DELETE** |
 | `core/src/backend/`, `core/src/capability/` | Already gone | ✅ |
 | `ui/src/backend/VisualizationBackend.ts`, `ui/src/shared/protocol.ts` | Already gone | ✅ |
@@ -112,7 +112,7 @@ export type { ParsedCommand, LlmCommand } from './MettaCommandParser.js';
 
 ## 3. Refactoring Opportunities — Architectural Elegance
 
-These refactorings are **internal improvements** with **zero public API changes** (via barrel re-exports). Apply alongside unification for maximum clarity.
+*These are **internal improvements** with **zero public API changes** (via barrel re-exports). Apply alongside unification for maximum clarity.*
 
 ### 3.1 EventLog Base Class — Unify InMemory + Sqlite (~150 LOC saved)
 
@@ -123,9 +123,9 @@ export abstract class AbstractEventLog implements EventLog {
   protected readonly #snapshots = new Map<string, Map<number, unknown>>();
   protected #closed = false;
 
-  async append(event: Omit<CognitiveEvent, 'id' | 'timestamp'>): Promise<CognitiveEvent> {
+  async append(event: Omit<UnifiedCognitiveEvent, 'id' | 'timestamp'>): Promise<UnifiedCognitiveEvent> {
     validatePayload(event.type, event.payload);
-    const full = { ...event, id: this.generateId(), timestamp: Date.now() } as CognitiveEvent;
+    const full = { ...event, id: this.generateId(), timestamp: Date.now() } as UnifiedCognitiveEvent;
     await this.doAppend(full);
     this.#notify(full);
     return full;
@@ -145,19 +145,21 @@ export abstract class AbstractEventLog implements EventLog {
   }
 
   abstract generateId(): string;
-  protected abstract doAppend(event: CognitiveEvent): Promise<void>;
-  abstract getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]>;
+  protected abstract doAppend(event: UnifiedCognitiveEvent): Promise<void>;
+  abstract getRange(fromId: string, toId?: string): Promise<UnifiedCognitiveEvent[]>;
   abstract close(): Promise<void>;
   abstract get size(): number;
-  abstract get events(): ReadonlyArray<CognitiveEvent>;
+  abstract get events(): ReadonlyArray<UnifiedCognitiveEvent>;
 
-  protected #notify(event: CognitiveEvent) { 
+  protected #notify(event: UnifiedCognitiveEvent) { 
     for (const h of this.#subscribers) { try { h(event); } catch {} } 
   }
 }
 ```
 
 **Result**: `InMemoryEventLog` ~30 lines (array push), `SqliteEventLog` ~80 lines (SQL only). Shared subscription/snapshot/validation logic in base.
+
+---
 
 ### 3.2 BaseEngine — Standardize Lifecycle (~40 LOC saved)
 
@@ -193,6 +195,8 @@ export abstract class BaseEngine implements Engine {
 ```
 
 **Result**: `NAREngine`/`MettaEngine` implement only `doInitialize`/`doShutdown`/`doAbsorb` + `reason`/`query`.
+
+---
 
 ### 3.3 Unified CognitiveEvent — Single Event Type (Eliminates Dual System)
 
@@ -236,12 +240,13 @@ export type CognitivePayload =
   | { type: 'memory.consolidate'; correlationId: string }
   | { type: 'system.bootstrap'; backendIds: string[] };
 
-// Type guards
 export const isEventType = <T extends CognitiveEventType>(type: T) => 
   (e: UnifiedCognitiveEvent): e is Extract<UnifiedCognitiveEvent, { type: T }> => e.type === type;
 ```
 
 **Migration**: `EventLog.append()` takes `UnifiedCognitiveEvent`; `AgentBridge` subscribes to `EventLog` (not `Agent.on('*')`); `Agent.cycle()` calls `log.append()` which notifies subscribers.
+
+---
 
 ### 3.4 AgentCore Extraction — Single Cognitive Cycle (~500 LOC saved)
 
@@ -345,10 +350,13 @@ export class AgentCore {
   getRecentDerivations(): Derivation[] {
     return this.memory.recent(50).filter(e => e.type === 'derivation').map(e => e.payload as Derivation);
   }
-
   // ... existing methods
 }
 ```
+
+**Result**: Single cognitive cycle. NAR/Metta agents become thin factories.
+
+---
 
 ### 3.5 FeedbackRegistry — Unify Tool + Engine Feedback
 
@@ -387,12 +395,13 @@ export class FeedbackRegistry {
 // Engine.absorb() records to FeedbackRegistry
 ```
 
+---
+
 ### 3.6 BaseConnection Enhancements — Reconnect + Outbox
 
 ```typescript
 // io/src/connections/BaseConnection.ts — STRENGTHEN
 abstract class BaseConnection implements Connection {
-  // ... existing ...
   protected #outbox: Array<{ target: string; text: string; resolve: () => void; reject: (e: Error) => void }> = [];
 
   async send(target: string, text: string): Promise<void> {
@@ -405,6 +414,8 @@ abstract class BaseConnection implements Connection {
   protected abstract doSend(target: string, text: string): Promise<void>;
 }
 ```
+
+---
 
 ### 3.7 TieredMemoryService — Explicit Tiers
 
@@ -432,8 +443,11 @@ export class TieredMemoryService {
   }
   registerTier(tier: MemoryTier) { /* insert by priority */ }
   async query(q: MemoryQuery) { for (const t of this.#tiers) { const r = await t.query(q); if (r.length) return r; } return []; }
+  async append(e: Omit<MemoryEntry, 'id' | 'timestamp'>) { /* ... */ }
 }
 ```
+
+---
 
 ### 3.8 Barrel Files — Re-Exports Instead of Moves
 
@@ -447,11 +461,16 @@ export { ToolRegistry, type ToolSpec, type ToolFn, type SkillFeedback } from './
 export { FeedbackRegistry, type FeedbackEntry } from '../feedback/FeedbackRegistry.js';
 export { BUILTIN_TOOLS, registerBuiltinTools, type CmdArgSet } from './builtin-tools.js';
 
-// core/src/eventlog/index.ts (ALREADY EXISTS — good)
 // core/src/memory/index.ts (NEW)
 export { MemoryService, type MemoryEntry, type MemoryQuery } from './MemoryService.js';
 export { TieredMemoryService, type MemoryTier } from './TieredMemoryService.js';
+
+// core/src/eventlog/index.ts (ALREADY EXISTS — good pattern)
 ```
+
+**Benefit**: Zero breaking changes. Consumers import from `@senars/core/engine` or `@senars/core/motor`.
+
+---
 
 ### 3.9 Type-Safe Config — Zod Schemas
 
@@ -472,61 +491,35 @@ export const agentConfigSchema = z.object({
 
 ## 4. Phased Implementation Plan (Optimized)
 
-### Phase 0 — Prerequisites (15 min)
+### Phase 0 — Prerequisites (15 min) ⚡ DO FIRST
 ```bash
 # 1. Move helpers to Core BEFORE rewriting createAgent
-mkdir -p core/src/cortex core/src/motor core/src/feedback core/src/config
+mkdir -p core/src/cortex core/src/motor core/src/feedback core/src/config core/src/events
 mv nar/src/agent/cortex.ts core/src/cortex/createCortexFromLM.ts
 mv nar/src/agent/session.ts core/src/memory/SessionManager.ts
 mv nar/src/agent/tools.ts core/src/motor/buildAgentTools.ts
-# Extract isNarsese from nar/src/agent/index.ts → core/src/helpers.ts (add export)
-
-# 2. Fix mcp-server.ts import
+# Extract isNarsese from nar/src/agent/index.ts → core/src/helpers.ts
+# Fix mcp-server.ts import
 sed -i "s|../../nar/src|@senars/nar|" src/bin/mcp-server.ts
-
-# 3. Create barrel files
-cat > core/src/engine/index.ts <<'EOF'
-export { Engine, type EngineId, type CognitiveStimulus, type Context, type Derivation, type ToolResult } from './Engine.js';
-export { BaseEngine } from './BaseEngine.js';
-EOF
-
-cat > core/src/motor/index.ts <<'EOF'
-export { ToolRegistry, type ToolSpec, type ToolFn, type SkillFeedback } from './ToolRegistry.js';
-export { BUILTIN_TOOLS, registerBuiltinTools, type CmdArgSet } from './builtin-tools.js';
-EOF
 ```
-
-**Verify:** `pnpm -r typecheck`
-
----
-
-### Phase 1 — Refactoring Foundations (2-3 hrs, CAN PARALLELIZE)
-
-| Task | File | Effort |
-|------|------|--------|
-| AbstractEventLog | `core/src/eventlog/AbstractEventLog.ts` | 1h |
-| BaseEngine | `core/src/engine/BaseEngine.ts` | 30m |
-| UnifiedCognitiveEvent + type guards | `core/src/events/UnifiedEvent.ts` | 1h |
-| FeedbackRegistry | `core/src/feedback/FeedbackRegistry.ts` | 30m |
-| BaseConnection enhancements | `io/src/connections/BaseConnection.ts` | 45m |
-| TieredMemoryService | `core/src/memory/TieredMemoryService.ts` | 45m |
-| AgentCore | `core/src/AgentCore.ts` | 1h |
-
-**Verify after each:** `pnpm -r typecheck`
+**Verify**: `pnpm -r typecheck` — all clean.
 
 ---
 
-### Phase 2 — Rewrite `createAgent` (Critical Path, 2-3 hrs)
+### Phase 1 — Rewrite `createAgent` (Critical Path, 2-3 hrs) 🎯
+
+**File**: `nar/src/agent/index.ts` → **rewrite completely**
 
 ```typescript
-// nar/src/agent/index.ts — REWRITE
-import { AgentCore } from '@senars/core/AgentCore.js';
+// nar/src/agent/index.ts
+import { Agent } from '@senars/core';
 import { NAREngine } from '../engine/NAREngine.js';
 import { MettaEngine } from '@senars/metta/engine/MettaEngine.js';
 import { createCortexFromLM } from '@senars/core/cortex/createCortexFromLM.js';
 import { SqliteEventLog, InMemoryEventLog } from '@senars/core';
 import { JsonlSessionManager } from '@senars/core/memory/SessionManager.js';
 import { isNarsese } from '@senars/core/helpers.js';
+import type { LMService, EpisodicMemory, NAR } from '@senars/nar';
 
 export interface CreateAgentConfig {
   nar?: NAR;
@@ -536,131 +529,278 @@ export interface CreateAgentConfig {
   sessionId?: string;
   externalTools?: Record<string, unknown>;
   throttle?: number;
-  promptBuilder?: PromptBuilder;
+  promptBuilder?: import('@senars/core').PromptBuilder;
 }
 
-export function createAgent(config: CreateAgentConfig = {}): AgentCore {
-  const log = config.persistence ? new SqliteEventLog({ path: config.persistence.path }) : new InMemoryEventLog();
-  const cortex = config.lmService ? createCortexFromLM(config.lmService, config.promptBuilder) : undefined;
-  
-  const core = new AgentCore({
+export function createAgent(config: CreateAgentConfig = {}): Agent {
+  // 1. EventLog
+  const log = config.persistence
+    ? new SqliteEventLog({ path: config.persistence.path })
+    : new InMemoryEventLog();
+
+  // 2. Cortex
+  const cortex = config.lmService
+    ? createCortexFromLM(config.lmService, config.promptBuilder)
+    : undefined;
+
+  // 3. Core Agent
+  const agent = new Agent({
     log,
     cortex,
     commandParser: (text: string) => new MettaCommandParser().parse(text),
     builtinTools: true,
   });
 
+  // 4. Engines
   const narEngine = new NAREngine(config.nar);
   const mettaEngine = new MettaEngine();
-  core.engines.set('nar', narEngine);
-  core.engines.set('metta', mettaEngine);
+  agent.registerEngine('nar', narEngine);
+  agent.registerEngine('metta', mettaEngine);
 
+  // 5. Session restore BEFORE start()
   if (config.sessionId) {
     const sessionManager = new JsonlSessionManager({ basePath: '.cache/sessions' });
     await sessionManager.restore();
-    await core.replaySession(sessionManager.getSession(config.sessionId)?.events ?? []);
-    (core as any).#sessionManager = sessionManager;
+    const events = sessionManager.getSession(config.sessionId)?.events ?? [];
+    await agent.replaySession(events);
   }
 
-  await core.start();
-  attachNarApi(core, config, narEngine);
-  return core;
+  // 6. Initialize
+  await agent.start();
+
+  // 7. Attach NAR-specific API
+  attachNarApi(agent, config, narEngine);
+
+  return agent;
 }
 
-function attachNarApi(agent: AgentCore, config: CreateAgentConfig, narEngine: NAREngine): void {
-  // ... same as before, using agent.memory, agent.engines, agent.motor, agent.policy ...
+function attachNarApi(agent: Agent, config: CreateAgentConfig, narEngine: NAREngine): void {
+  const knowStore = new Map<string, string>();
+  let throttle = Math.min(100, Math.max(0, config.throttle ?? 100));
+
+  const originalChat = agent.chat.bind(agent);
+  (agent as any).chat = async (text: string, opts?: any) => {
+    const trimmed = text.trim();
+    if (!trimmed) return '';
+
+    if (isNarsese(trimmed) && narEngine) {
+      if (trimmed.endsWith('?') || trimmed.endsWith('？')) {
+        await narEngine.nar.question(trimmed);
+        await narEngine.nar.run(5);
+        return `Question queued: ${trimmed}`;
+      }
+      if (trimmed.endsWith('!')) {
+        await narEngine.nar.goal(trimmed);
+        await narEngine.nar.run(3);
+        return `+ ${trimmed}`;
+      }
+      await narEngine.nar.believe(trimmed);
+      await narEngine.nar.run(3);
+      const beliefs = narEngine.nar.getBeliefs();
+      const last = beliefs[beliefs.length - 1];
+      return last ? `+ ${last.term}.` : `+ ${trimmed}`;
+    }
+    return originalChat(trimmed, opts);
+  };
+
+  (agent as any).believe = async (text: string) => {
+    if (isNarsese(text) && narEngine) {
+      await narEngine.nar.believe(text);
+      await narEngine.nar.run(3);
+    }
+  };
+  (agent as any).recall = async (query?: string, limit?: number) => {
+    if (!config.episodicMemory) return [];
+    return config.episodicMemory.getEpisodes({ limit: limit ?? 50 })
+      .filter(e => !query || e.content.toLowerCase().includes(query.toLowerCase()));
+  };
+  (agent as any).know = (key: string, value: string) => { knowStore.set(key, value); };
+  (agent as any).knowGet = (key: string) => knowStore.get(key);
+  (agent as any).knowList = () => [...knowStore.entries()].map(([k, v]) => ({ key: k, value: v }));
+  (agent as any).setThrottle = (n: number) => { throttle = Math.min(100, Math.max(0, n)); };
+  (agent as any).getThrottle = () => throttle;
+  (agent as any).getNAR = () => narEngine?.nar;
+  (agent as any).getEpisodicMemory = () => config.episodicMemory;
+  (agent as any).getRecentDerivations = () => agent.getRecentDerivations();
 }
 ```
 
-**Verification:** `pnpm vitest run tests/unit/agent` — **ALL PASS**
+**Core `Agent` additions** (`core/src/Agent.ts`):
+```typescript
+// Add to Agent class:
+async replaySession(events: UnifiedCognitiveEvent[]): Promise<void> {
+  for (const evt of events) await this.log.append(evt);
+}
+getRecentDerivations(): Derivation[] {
+  return this.memory.recent(50).filter(e => e.type === 'derivation').map(e => e.payload as Derivation);
+}
+// Ensure start() calls engine.initialize(), stop() calls engine.shutdown() + memory.persist()
+```
+
+**Verification**: `pnpm vitest run tests/unit/agent` — **ALL PASS** (no test changes).
 
 ---
 
-### Phase 3 — Move Helpers + Delete Cruft (1-2 hrs)
+### Phase 2 — Move Helpers to Core; Delete Cruft (1-2 hrs)
 
 ```bash
-# 1. Move helpers to Core (already done in Phase 0, verify)
-# 2. Delete cruft
-rm metta/src/agent/{MettaAgent,MettaChannelOps,MettaInputProcessor,MettaTypes,MettaPromptBuilder,MettaSkills}.ts
-rm nar/src/agent/{bridge,cortex,session,tools,types}.ts
-rm -rf core/src/events  # old event system
+# 1. createCortexFromLM (already moved in Phase 0, verify)
+# 2. JsonlSessionManager
+mv nar/src/agent/session.ts core/src/memory/SessionManager.ts
+# Update imports inside
 
-# 3. Update barrel exports
-cat > metta/src/agent/index.ts <<'EOF'
-export { MettaCommandParser, LLM_COMMANDS } from './MettaCommandParser.js';
-export { MettaEngine } from '../engine/MettaEngine.js';
-export type { ParsedCommand, LlmCommand } from './MettaCommandParser.js';
-EOF
+# 3. buildAgentTools
+mkdir -p core/src/motor
+mv nar/src/agent/tools.ts core/src/motor/buildAgentTools.ts
 
+# 4. isNarsese helper → core/src/helpers.ts (already done in Phase 0)
+
+# 5. Delete nar/src/agent/{cortex,session,tools,types}.ts
+rm nar/src/agent/{cortex,session,tools,types}.ts
+
+# 6. Update nar/src/agent/index.ts re-exports
 cat > nar/src/agent/index.ts <<'EOF'
 export { createAgent } from './index.js';
 export { createCortexFromLM } from '@senars/core/cortex';
 export { JsonlSessionManager, createSession } from '@senars/core/memory';
 export { buildAgentTools } from '@senars/core/motor';
 export { 
-  bindAgentToConnection, createAgentDispatch, createAuthMiddleware,
-  createCommandInterceptor, createSessionBinder, createConnectionConfigsFromEnv,
-  createErrorBoundary, createRateLimiter, originExtractor, resolveSessionKey 
+  bindAgentToConnection, 
+  createAgentDispatch, 
+  createAuthMiddleware, 
+  createCommandInterceptor, 
+  createSessionBinder, 
+  createConnectionConfigsFromEnv, 
+  createErrorBoundary, 
+  createRateLimiter, 
+  originExtractor, 
+  resolveSessionKey 
 } from '@senars/io';
 EOF
 
-# 4. Update metta engines to extend BaseEngine
-# 4. Update EventLog implementations to extend AbstractEventLog
+# 7. Delete cruft
+rm metta/src/agent/{MettaAgent,MettaChannelOps,MettaInputProcessor,MettaTypes,MettaPromptBuilder,MettaSkills}.ts
+rm -rf core/src/events
+rm nar/src/agent/bridge.ts
+
+# 8. Update metta/src/agent/index.ts
+cat > metta/src/agent/index.ts <<'EOF'
+export { MettaCommandParser, LLM_COMMANDS } from './MettaCommandParser.js';
+export { MettaEngine } from '../engine/MettaEngine.js';
+export type { ParsedCommand, LlmCommand } from './MettaCommandParser.js';
+EOF
 ```
 
-**Verification:** `pnpm -r typecheck` + `pnpm vitest run tests/unit/agent tests/unit/core`
+**Verify**: `pnpm -r typecheck` + `pnpm vitest run tests/unit/agent tests/unit/core`
 
 ---
 
-### Phase 4 — Core Agent Enhancements (30 min)
+### Phase 3 — Core `Agent` Enhancements (30 min)
 
 ```typescript
-// core/src/AgentCore.ts additions (already in Phase 1, verify):
-// - getRecentDerivations()
-// - replaySession(events)
-// - start() calls engine.initialize()
-// - stop() calls memory.persist() + engine.shutdown()
+// core/src/Agent.ts — ensure:
+async start(): Promise<void> {
+  if (this.#started) return;
+  this.#started = true;
+  for (const engine of this.engines.values()) {
+    if ('initialize' in engine && typeof engine.initialize === 'function') {
+      await engine.initialize();
+    }
+  }
+  await this.memory.load();
+}
+
+async stop(): Promise<void> {
+  if (!this.#started) return;
+  this.#started = false;
+  await this.memory.persist();
+  for (const transport of this.#transports.values()) {
+    await transport.disconnect('agent stopping');
+  }
+  for (const engine of this.engines.values()) {
+    if ('shutdown' in engine && typeof engine.shutdown === 'function') {
+      await engine.shutdown();
+    }
+  }
+}
+
+// Engine interface — REMOVE optional absorb/persist/load
+export interface Engine {
+  readonly id: EngineId;
+  reason(stimulus: CognitiveStimulus, context: Context): Promise<Derivation[]>;
+  query(pattern: string): Promise<unknown[]>;
+}
 ```
 
-**Verification:** `pnpm vitest run tests/unit/core tests/e2e/agent-smoke`
+**Verify**: `pnpm vitest run tests/unit/core tests/e2e/agent-smoke`
 
 ---
 
-### Phase 5 — Fix Bins (30 min)
+### Phase 4 — Fix Bins (30 min)
 
 | Bin | Change |
 |-----|--------|
-| `senars.ts` | `const agent = createAgent({ nar }); await startAgentUI(agent, {port: 8765});` |
-| `bot-ai.ts` | **Remove dummy `new Agent()` for UI**; use main `agent` for `startAgentUI`; remove `autonomyEngine` |
+| `senars.ts` | Start UI: `const agent = createAgent({ nar }); await startAgentUI(agent, {port: 8765});` |
+| `bot-ai.ts` | **Remove dummy `new Agent()` for UI** (lines 159-166); use main `agent` for `startAgentUI`; remove `autonomyEngine` |
 | `repl.ts` | Use `createAgent`; remove `autonomyEngine`; session via `config.sessionId` |
 | `multi-agent*.ts` | Use `createAgent`; no other changes |
 | `mcp-server.ts` | Import fixed in Phase 0; use `createAgent({ nar })` |
 
+**Verify**: Each bin runs without error.
+
 ---
 
-### Phase 5 — `temporal` Lens (15 min)
+### Phase 5 — `temporal` Lens (15 min) 📸 **CAPTURE POINT**
 
 ```typescript
 // core/src/lens-schema.ts + ui/src/shared/lens-schema.ts
 export const BUILTIN_LENS_IDS = ['belief', 'goal', 'contradiction', 'temporal'] as const;
-export function builtinLensSpecs(): LensSpec[] { /* ... existing 3 + temporal spec */ }
+
+export function builtinLensSpecs(): LensSpec[] {
+  return [
+    // ... existing three specs ...
+    {
+      id: 'temporal',
+      label: 'Timeline',
+      description: 'Replay cognitive events over time',
+      requires: ['event-log'],
+      modulation: {
+        op: 'union',
+        children: [
+          { op: 'channel', channel: 'time', child: { op: 'field', field: 'timestamp' } },
+          { op: 'channel', channel: 'opacity', child: { op: 'const', value: 0.6 } },
+        ],
+      },
+    },
+  ];
+}
 ```
+
+**Verify**: `pnpm vitest run tests/e2e/agent-smoke.test.ts` — lens.list returns 4 entries.
 
 ---
 
 ### Phase 6 — Memory Consolidation + Sqlite (1-2 hrs)
 
 ```typescript
-// core/src/memory/MemoryService.ts (or TieredMemoryService)
+// core/src/memory/MemoryService.ts
 async consolidate(correlationId: string): Promise<void> {
   const recent = this.#working.filter(e => e.correlationId === correlationId);
   for (const entry of recent) {
     const salience = (entry.payload as any).salience ?? 0.5;
-    if (salience > 0.7 && this.#log) await this.#log.append({ type: 'memory.consolidated', payload: entry, correlationId });
+    if (salience > 0.7 && this.#log) {
+      await this.#log.append({ type: 'memory.consolidated', payload: entry, correlationId });
+    }
   }
-  for (const engine of this.#engines?.values() ?? []) await engine.persist?.();
+  for (const engine of this.#engines?.values() ?? []) {
+    await engine.persist?.();
+  }
 }
 ```
+
+**SqliteEventLog**: Already exists. `createAgent` uses it when `config.persistence` provided.
+
+**Verify**: Start agent, add beliefs, `agent.stop()`, restart with same persistence path → beliefs recovered.
 
 ---
 
@@ -668,10 +808,15 @@ async consolidate(correlationId: string): Promise<void> {
 
 ```typescript
 // In createAgent:
-import { agentConfigSchema } from '@senars/config/TypedConfig';
-const validated = agentConfigSchema.parse(config);
-// Map to CreateAgentConfig
+import { appConfigSchema } from '@senars/config/schema';
+
+export function createAgent(config: CreateAgentConfig = {}): Agent {
+  const validated = appConfigSchema.parse(config);
+  // map validated → CreateAgentConfig
+}
 ```
+
+**CLI**: `senars --config file.json` already works via `loadConfigFromEnv()`.
 
 ---
 
@@ -679,85 +824,224 @@ const validated = agentConfigSchema.parse(config);
 
 ```typescript
 // core/src/observability/Metrics.ts (NEW)
-// AgentCore integration: metrics.record('cycleLatency', Date.now() - start)
-// Correlation IDs: propagate cid through log.append, bridge, WS
+export class Metrics {
+  #counters = new Map<string, number>();
+  #histograms = new Map<string, number[]>();
+
+  inc(name: string, value = 1) { this.#counters.set(name, (this.#counters.get(name) ?? 0) + value); }
+  record(name: string, value: number) { const arr = this.#histograms.get(name) ?? []; arr.push(value); this.#histograms.set(name, arr); }
+  get(name: string) { return this.#counters.get(name) ?? 0; }
+  getHistogram(name: string) { return this.#histograms.get(name) ?? []; }
+  toJSON() {
+    const out: Record<string, any> = {};
+    for (const [k, v] of this.#counters) out[k] = v;
+    for (const [k, v] of this.#histograms) {
+      const s = [...v].sort((a,b) => a-b);
+      out[`${k}_count`] = s.length;
+      out[`${k}_sum`] = s.reduce((a,b) => a+b, 0);
+      out[`${k}_avg`] = s.length ? out[`${k}_sum`] / s.length : 0;
+      out[`${k}_p50`] = s[Math.floor(s.length * 0.5)] ?? 0;
+      out[`${k}_p95`] = s[Math.floor(s.length * 0.95)] ?? 0;
+      out[`${k}_p99`] = s[Math.floor(s.length * 0.99)] ?? 0;
+    }
+    return out;
+  }
+}
 ```
+
+**Agent integration**:
+```typescript
+// core/src/Agent.ts
+readonly metrics = new Metrics();
+
+async cycle(stimulus: CognitiveStimulus): Promise<string> {
+  const start = Date.now();
+  const cid = crypto.randomUUID();
+  try { /* ... */ }
+  finally { this.metrics.record('cycleLatency', Date.now() - start); this.metrics.inc('cycleCount'); }
+}
+```
+
+**Correlation IDs**: `cycle()` generates `cid`; propagate to `log.append()`, `bridge`, WS messages.
 
 ---
 
 ### Phase 9 — Security + Resilience (1 hr)
 
 ```typescript
-// Rate limiting in ConnectionManager (token bucket)
-// Tool allowlist in ToolRegistry.execute()
-// Auth via AuthManager on transports
-// Graceful degradation in createAgent chat override
+// Rate limiting in ConnectionManager (per connection)
+const buckets = new Map<string, { tokens: number; lastRefill: number }>();
+
+function checkRateLimit(connId: string, maxPerSec: number): boolean {
+  const now = Date.now();
+  const bucket = buckets.get(connId) ?? { tokens: maxPerSec, lastRefill: now };
+  const elapsed = (now - bucket.lastRefill) / 1000;
+  bucket.tokens = Math.min(maxPerSec, bucket.tokens + elapsed * maxPerSec);
+  if (bucket.tokens >= 1) {
+    bucket.tokens -= 1;
+    bucket.lastRefill = now;
+    buckets.set(connId, bucket);
+    return true;
+  }
+  buckets.set(connId, bucket);
+  return false;
+}
 ```
+
+```typescript
+// ToolRegistry.execute() — allowlist check
+if (name === 'shell' || name === 'read-file' || name === 'write-file') {
+  const policy = this.#policy?.getConfig?.();
+  if (policy?.allowedCommands && name === 'shell') {
+    const cmd = args.args?.[0] as string;
+    if (!policy.allowedCommands.some(c => cmd.startsWith(c))) return { success: false, content: null, error: 'Command not allowed' };
+  }
+  if (policy?.allowedPaths && (name === 'read-file' || name === 'write-file')) {
+    const path = args.args?.[0] as string;
+    if (!policy.allowedPaths.some(p => path.startsWith(p))) return { success: false, content: null, error: 'Path not allowed' };
+  }
+}
+```
+
+**Auth**: Reuse `AuthManager` from `@senars/io`. Add `auth` config to transport factories.
+
+**Graceful degradation**: In `createAgent` chat override: if LM unavailable → NAR-only; if NAR down → LM-only.
 
 ---
 
-### Phase 10 — Sessions + REPL (45 min)
+### Phase 10 — Sessions + REPL Polish (45 min)
 
 ```typescript
-// createAgent: sessionManager.restore() + core.replaySession()
-// AgentCore.stop(): sessionManager.snapshot()
-// REPL: history, completion, colors
+// In createAgent:
+if (config.sessionId) {
+  const sessionManager = new JsonlSessionManager({ basePath: '.cache/sessions' });
+  await sessionManager.restore();
+  await agent.replaySession(sessionManager.getSession(config.sessionId)?.events ?? []);
+  (agent as any).#sessionManager = sessionManager;
+}
 ```
+
+```typescript
+// Agent.stop()
+async stop(): Promise<void> {
+  // ... existing ...
+  const sessionManager = (this as any).#sessionManager;
+  if (sessionManager) await sessionManager.snapshot();
+}
+```
+
+**REPL polish**: Add history file (`~/.senars/repl_history`), Tab completion (from `motor.list()` + NAR terms), ANSI colors in `repl.ts`.
 
 ---
 
 ### Phase 11 — Tool/Parser Fix (5 min)
 
 ```typescript
-// metta/src/agent/MettaCommandParser.ts: add 'technical-analysis' to LLM_COMMANDS
+// metta/src/agent/MettaCommandParser.ts
+export const LLM_COMMANDS = [
+  'send', 'remember', 'query', 'episodes', 'read-file', 'write-file',
+  'append-file', 'search', 'shell', 'metta', 'pin', 'tavily-search',
+  'technical-analysis',  // ADD
+] as const;
 ```
 
 ---
 
-### Phase 12 — Test Updates (15 min)
+### Phase 12 — Test Updates + Docs (15 min)
 
 ```typescript
 // tests/integration/metta-transports.test.ts + metta-conversation.test.ts
-// import { Agent } from '@senars/core'; const agent = new AgentCore({...}) or createAgent({...})
+// import { MettaAgent } from '@senars/metta/agent';
+// → import { Agent } from '@senars/core';
+// let agent: MettaAgent;
+// → let agent: Agent;
+// agent = new MettaAgent();
+// → agent = new Agent();  // or createAgent({ nar: SeNARSFactory.createForTesting() })
 ```
 
----
-
-### Phase 13 — Docs (30 min)
-
-Create `ARCHITECTURE.md` documenting unified design.
+**Docs**: Create `ARCHITECTURE.md` documenting unified design.
 
 ---
 
-## 5. Execution Order (Verifiable)
+## 5. Integration Test Capture — Phase 5 📸
+
+**When**: After Phase 5 (`temporal` lens + e2e passing) — first demo-ready system.
+
+**What**: Lightweight JSON/Text capture in `agent-smoke.test.ts`:
+
+```typescript
+// tests/e2e/agent-smoke.test.ts — ADD
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const CAPTURE_DIR = join(__dirname, '../../captures', `agent-smoke-${Date.now()}`);
+mkdirSync(CAPTURE_DIR, { recursive: true });
+
+function capture(name: string, data: unknown) {
+  writeFileSync(join(CAPTURE_DIR, `${name}.json`), JSON.stringify(data, null, 2));
+}
+
+function captureSummary(label: string, events: IncomingFromServer[]) {
+  const summary = {
+    label,
+    timestamp: new Date().toISOString(),
+    eventCounts: events.reduce((acc, e) => { acc[e.type] = (acc[e.type] || 0) + 1; return acc; }, {}),
+    graphDeltas: events
+      .filter(e => e.type === 'cognitive.delta')
+      .flatMap(e => e.ops)
+      .map(op => `${op.action}:${op.id}`),
+  };
+  writeFileSync(join(CAPTURE_DIR, `summary-${label}.txt`), JSON.stringify(summary, null, 2));
+}
+
+// In test setup:
+const received: IncomingFromServer[] = [];
+ws.on('message', (raw) => {
+  const event = JSON.parse(raw.toString()) as IncomingFromServer;
+  received.push(event);
+  capture(`event-${event.type}-${Date.now()}`, event);
+});
+
+// Capture key moments:
+captureSummary('initial-handshake', received.filter(e => ['config.schema','lens.list','lens.fields'].includes(e.type)));
+captureSummary('post-narsese-graph', received.filter(e => e.type === 'cognitive.delta'));
+captureSummary('lens-switch', received.filter(e => e.type === 'cognitive.delta' && e.lens === 'contradiction'));
+```
+
+**Why Phase 5?** First complete UI + live agent + 4 lenses. Captures verify handshake, Narsese→graph growth, lens/focus switching.
+
+**Output**: `captures/agent-smoke-<timestamp>/` with JSON events + text summaries. Zero dependencies, CI-friendly.
+
+---
+
+## 6. Execution Order (Verifiable)
 
 | Phase | Steps | Verification |
 |-------|-------|--------------|
-| **0** | Move helpers (cortex, session, tools, isNarsese) to Core; fix mcp-server import; create barrel files | `pnpm -r typecheck` |
-| **1** | Refactoring foundations (AbstractEventLog, BaseEngine, UnifiedEvent, FeedbackRegistry, BaseConnection, TieredMemory, AgentCore) | `pnpm -r typecheck` after each |
-| **2** | Rewrite `createAgent` → returns `AgentCore` | `pnpm vitest run tests/unit/agent` — **ALL PASS** |
-| **3** | Move helpers to Core; delete cruft; update barrel exports | `pnpm -r typecheck` + all tests |
-| **4** | Core `AgentCore` enhancements verified | `pnpm vitest run tests/unit/core tests/e2e/agent-smoke` |
-| **5** | Fix bins | Each bin runs |
-| **6** | `temporal` lens | `pnpm vitest run tests/e2e/agent-smoke` |
-| **7** | Memory `consolidate()` + SqliteEventLog wiring | Restart recovers beliefs |
-| **8** | Config unification | `senars --config` works |
-| **9** | `Metrics.ts` + correlation IDs | Structured logs + JSON metrics |
-| **10** | Rate-limit + allowlist + auth + degradation | Failure injection tests |
-| **11** | Sessions in `createAgent` + REPL polish | REPL session persists |
-| **12** | Add `technical-analysis` to `LLM_COMMANDS` | `pnpm -r typecheck` |
-| **13** | Update 2 tests: `metta-transports`, `metta-conversation` → use `AgentCore` | All tests green |
-| **14** | `ARCHITECTURE.md` | Doc exists |
+| **0** | Move helpers (cortex, session, tools, isNarsese) to Core; fix mcp-server import | `pnpm -r typecheck` |
+| **1** | Rewrite `createAgent` → returns Core `Agent` | `pnpm vitest run tests/unit/agent` — **ALL PASS** |
+| **2** | Move helpers to Core; delete cruft files | `pnpm -r typecheck` + all tests |
+| **3** | Core `Agent` enhancements (`replaySession`, `getRecentDerivations`, `start`/`stop` wiring) | `pnpm vitest run tests/unit/core tests/e2e/agent-smoke` |
+| **4** | Fix bins (`senars`, `bot-ai`, `repl`, `multi-agent*`, `mcp-server`) | Each bin runs |
+| **5** | `temporal` lens | `pnpm vitest run tests/e2e/agent-smoke` + **capture output** 📸 |
+| **6** | Memory `consolidate()` + SqliteEventLog wiring | Restart recovers beliefs |
+| **7** | Config unification on `src/config` | `senars --config` works |
+| **8** | `Metrics.ts` + correlation IDs | Structured logs + JSON metrics |
+| **9** | Rate-limit + allowlist + auth + degradation | Failure injection tests |
+| **10** | Sessions in `createAgent` + REPL polish | REPL session persists |
+| **11** | Add `technical-analysis` to `LLM_COMMANDS` | `pnpm -r typecheck` |
+| **12** | Update 2 tests (`metta-transports`, `metta-conversation`) → use Core `Agent` | All tests green |
+| **13** | `ARCHITECTURE.md` documenting unified design | Doc exists |
 
-**Demo-ready after Phase 4** (unified `AgentCore` + e2e tests pass).
+**Demo-ready after Phase 4** (unified agent + e2e tests pass).
 
 ---
 
-## 6. Success Criteria (Proven by Tests, No Mocks)
+## 7. Success Criteria (Proven by Tests, No Mocks)
 
 | Metric | Target |
 |--------|--------|
-| **Single Agent class** | Only `core/src/AgentCore.ts` exports `AgentCore` |
+| **Single Agent class** | Only `core/src/Agent.ts` exports `Agent` |
 | **Single factory** | Only `nar/src/agent/index.ts` exports `createAgent` |
 | All 7 bins run | `senars`, `bot-ai`, `multi-agent`, `multi-agent-demo`, `repl`, `mcp-server` |
 | TypeScript | 0 errors, 5/5 packages |
@@ -774,27 +1058,10 @@ Create `ARCHITECTURE.md` documenting unified design.
 
 ---
 
-## 7. Philosophy
+## 8. Philosophy
 
 > **A cognitive agent is not a class. It is a process.**
 >
-> We had two classes pretending to be one process. Now we have **one core** (`AgentCore`) that **is** the process, and **one factory** (`createAgent`) that configures it. The EventLog is its nervous system. MemoryService is its hippocampus. Engines are its reasoning organs. Cortex is its voice. Motor is its hands. Bridge is its eyes. Plugins are its microbiome.
+> We had two classes pretending to be one process. Now we have **one class** (`Agent`) that **is** the process, and **one factory** (`createAgent`) that configures it. The EventLog is its nervous system. MemoryService is its hippocampus. Engines are its reasoning organs. Cortex is its voice. Motor is its hands. Bridge is its eyes. Plugins are its microbiome.
 >
 > **No duality. No compatibility layers. No dead code. One living organism.**
-
----
-
-## 8. Refactoring Impact Summary
-
-| Refactoring | LOC Saved | Risk | Clarity Gain |
-|-------------|-----------|------|--------------|
-| AbstractEventLog | -150 | Low | Single subscription/snapshot logic |
-| BaseEngine | -40 | Low | Standardized lifecycle |
-| UnifiedCognitiveEvent | ~0 | Medium | Single event type, Zod validation |
-| AgentCore | -500 | Medium | Single cognitive cycle |
-| FeedbackRegistry | ~0 | Low | Unified tool/engine learning signal |
-| BaseConnection | +50 | Low | Reconnect/outbox built-in |
-| TieredMemoryService | ~0 | Low | Explicit, testable tiers |
-| Barrel re-exports | ~0 | Zero | Clean imports, no file moves |
-
-**Total net reduction: ~740 LOC removed. Architecture unified. Maintainability maximized.**
