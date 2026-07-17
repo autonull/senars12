@@ -1,14 +1,8 @@
 #!/usr/bin/env tsx
-import { createInterface } from 'readline';
+import { createInterface } from 'node:readline';
 import { type CLICommand, QUIT_SENTINEL } from '@senars/io/connections/cli';
-import type { ConversationSession } from '@senars/nar/agent';
-import {
-  type Agent,
-  JsonlSessionManager,
-  agentConfigToOptions,
-  createAgent,
-  createAutonomyEngine,
-} from '@senars/nar/agent';
+import { JsonlSessionManager, type ConversationSession } from '@senars/core/memory';
+import { createAgent, type Agent } from '@senars/nar/agent';
 import type { NAR } from '@senars/nar';
 import { SeNARSFactory } from '@senars/nar';
 import { createLMService, createSeNARSRegistry, formatLMConfig, resolveLMConfig } from '@senars/nar/lm';
@@ -83,8 +77,9 @@ const buildCommands = (
       const beliefs = nar.getBeliefs();
       const lines = [`\n--- ${beliefs.length} Belief(s) ---`];
       for (const b of beliefs.slice(0, 20)) {
+        const termStr = b.term?.toString?.() ?? String(b.term);
         const truth = b.truth ? ` f=${b.truth.f.toFixed(2)} c=${b.truth.c.toFixed(2)}` : '';
-        lines.push(`  ${b.term?.toString?.() ?? String(b.term)}${truth}`);
+        lines.push(`  ${termStr}${truth}`);
       }
       if (beliefs.length > 20) lines.push(`  ... and ${beliefs.length - 20} more`);
       return lines.join('\n');
@@ -123,7 +118,7 @@ const buildCommands = (
       const episodes = await agent.recall(undefined, limit);
       const lines = [`\n--- ${episodes.length} Recent Episode(s) ---`];
       for (const e of episodes) {
-        const preview = e.content.length > 60 ? e.content.slice(0, 59) + '…' : e.content;
+        const preview = e.content.length > 60 ? `${e.content.slice(0, 59)}...` : e.content;
         lines.push(`  [${e.type}] ${preview}`);
       }
       return lines.join('\n');
@@ -139,7 +134,7 @@ const buildCommands = (
         if (!entries.length) return '\n  (empty)';
         const lines = [`\n--- ${entries.length} Knowledge Entry/Entries ---`];
         for (const { key, value } of entries) {
-          const preview = value.length > 60 ? value.slice(0, 59) + '…' : value;
+          const preview = value.length > 60 ? `${value.slice(0, 59)}...` : value;
           lines.push(`  ${key}: ${preview}`);
         }
         return lines.join('\n');
@@ -161,7 +156,7 @@ const buildCommands = (
       const episodes = await agent.recall(args.trim() || undefined);
       const lines = [`\n--- ${episodes.length} Episode(s) ---`];
       for (const e of episodes) {
-        const preview = e.content.length > 60 ? e.content.slice(0, 59) + '…' : e.content;
+        const preview = e.content.length > 60 ? `${e.content.slice(0, 59)}...` : e.content;
         lines.push(`  [${e.type}] ${preview}`);
       }
       return lines.join('\n');
@@ -190,7 +185,7 @@ const buildCommands = (
     description: 'Get/set reasoning throttle',
     execute: (args) => {
       const n = Number.parseInt(args);
-      if (isNaN(n)) return `Throttle: ${agent.getThrottle()}%`;
+      if (Number.isNaN(n)) return `Throttle: ${agent.getThrottle()}%`;
       agent.setThrottle(n);
       return `Throttle set to ${agent.getThrottle()}%`;
     },
@@ -202,12 +197,12 @@ const buildCommands = (
       const stats = nar.getStatistics();
       const lmStats = lmService.getStats();
       const lines = [
-        `\n--- Agent Status ---`,
+        '\n--- Agent Status ---',
         `Throttle: ${agent.getThrottle()}%`,
-        `\n--- NAR ---`,
+        '\n--- NAR ---',
         `Concepts: ${stats.totalConcepts}`,
         `Tasks: ${stats.totalTasks}`,
-        `\n--- LM ---`,
+        '\n--- LM ---',
         `Provider: ${lmService.provider ?? 'unknown'}`,
         `Model: ${lmService.model ?? 'unknown'}`,
       ];
@@ -218,7 +213,7 @@ const buildCommands = (
         lines.push(`Avg: ${lmStats.averageDuration.toFixed(0)}ms`);
       }
       const knowledge = agent.knowList();
-      lines.push(`\n--- Knowledge ---`, `${knowledge.length} entries`);
+      lines.push('\n--- Knowledge ---', `${knowledge.length} entries`);
       return lines.join('\n');
     },
   },
@@ -279,6 +274,14 @@ async function readlineLoop(args: {
   });
 }
 
+async function collectChat(agent: Agent, input: string): Promise<string> {
+  let result = '';
+  for await (const evt of agent.chat(input)) {
+    if (evt.kind === 'text-delta' && evt.text) result += evt.text;
+  }
+  return result;
+}
+
 async function main() {
   const lmConfig = resolveLMConfig();
   console.log('=== Resolved LM Configuration ===');
@@ -300,36 +303,16 @@ async function main() {
     retentionDays: Number.parseInt(process.env.EPISODIC_RETENTION_DAYS || '30'),
   });
 
-  // Create and configure AutonomyEngine
-  const systemEventBus = nar.getSystemEventBus();
-  const autonomyEngine = createAutonomyEngine(nar, systemEventBus);
-  autonomyEngine.setNotifyHandler((msg) => console.log(`[Autonomy] ${msg}`));
-
   // Create and restore session manager
   const sessionManager = new JsonlSessionManager({ basePath: '.cache/sessions' });
   await sessionManager.restore();
   let currentSession = sessionManager.getOrCreate('default');
 
-  const appConfig = await loadConfigFromEnv();
-
-  const externalTools = {
-    webSearch: { apiKey: process.env.BRAVE_API_KEY ?? process.env.TAVILY_API_KEY },
-    codeExec: { maxTimeout: 10000, maxOutputBytes: 1024 * 1024 },
-    fs: { maxReadSize: 1024 * 1024 },
-  };
-
-  const agent = createAgent({
+  const agent = await createAgent({
     nar,
     lmService,
     episodicMemory,
-    autonomyEngine,
-    externalTools,
-    workspaceRoot: process.cwd(),
-    ...agentConfigToOptions(appConfig.agent),
   });
-
-  // Start the agent (which starts AutonomyEngine)
-  agent.start();
 
   console.log('\n╔══════════════════════════════════════════════════╗');
   console.log('║ SeNARS REPL - Neuro-Symbolic Reasoning CLI    ║');
@@ -346,11 +329,10 @@ async function main() {
   await readlineLoop({
     prompt: 'senars> ',
     commands,
-    onInput: async (text: string) => agent.chat(text, { session: currentSession }),
+    onInput: async (text: string) => collectChat(agent, text),
   });
 
-  // Stop the agent (which stops AutonomyEngine)
-  agent.stop();
+  await agent.stop();
   await sessionManager.snapshot();
   await sessionManager.close();
 

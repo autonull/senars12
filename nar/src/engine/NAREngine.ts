@@ -1,14 +1,16 @@
 import type { CognitiveStimulus, Context, Derivation, Engine, EngineId, ToolResult } from '@senars/core/engine';
+import { BaseEngine } from '@senars/core/engine/base';
 import { NAR } from '../nar.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
 
-export class NAREngine implements Engine {
+export class NAREngine extends BaseEngine {
   readonly id: EngineId = 'nar';
   readonly provides = new Set(['reasoning', 'query', 'belief-maintenance']);
 
   #nar: NAR;
 
   constructor(nar?: NAR) {
+    super();
     this.#nar = nar ?? new NAR(DEFAULT_CONFIG);
   }
 
@@ -16,14 +18,14 @@ export class NAREngine implements Engine {
     return this.#nar;
   }
 
-  async initialize(): Promise<void> {
+  protected async doInitialize(): Promise<void> {
     if (!this.#nar.isRunning()) {
       await this.#nar.initialize();
       await this.#nar.start();
     }
   }
 
-  async shutdown(): Promise<void> {
+  protected async doShutdown(): Promise<void> {
     if (this.#nar.isRunning()) {
       await this.#nar.stop();
     }
@@ -72,7 +74,7 @@ export class NAREngine implements Engine {
     return beliefs.filter((b) => b.term.toString().toLowerCase().includes(lower));
   }
 
-  absorb(result: ToolResult): void {
+  protected override doAbsorb(result: ToolResult): void {
     // NAR can learn from tool results in future
   }
 

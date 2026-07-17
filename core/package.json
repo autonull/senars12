@@ -100,6 +100,10 @@
       "types": "./src/engine/Engine.ts",
       "import": "./src/engine/Engine.ts"
     },
+    "./engine/base": {
+      "types": "./src/engine/BaseEngine.ts",
+      "import": "./src/engine/BaseEngine.ts"
+    },
     "./agent-bridge": {
       "types": "./src/AgentBridge.ts",
       "import": "./src/AgentBridge.ts"

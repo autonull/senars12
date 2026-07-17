@@ -2,6 +2,7 @@ import { monotonicFactory } from 'ulid';
 
 const ulid = monotonicFactory();
 import Database from 'better-sqlite3';
+import { AbstractEventLog } from './AbstractEventLog.js';
 import type { EventLog, EventLogConfig, CognitiveEvent } from './EventLog.js';
 import { EventLogError } from './EventLog.js';
 
@@ -26,13 +27,14 @@ interface Row {
   causation_id: string | null;
 }
 
-export class SqliteEventLog implements EventLog {
+export class SqliteEventLog extends AbstractEventLog {
   #db: Database.Database;
   #subscribers: Set<Subscription> = new Set();
   #config: Required<SqliteEventLogConfig>;
   #closed = false;
 
   constructor(config: SqliteEventLogConfig) {
+    super();
     this.#config = {
       maxEvents: config.maxEvents ?? 100_000,
       maxEventSize: config.maxEventSize ?? 1024 * 1024,
@@ -67,14 +69,14 @@ export class SqliteEventLog implements EventLog {
     `);
   }
 
-  async append(event: Omit<CognitiveEvent, 'id' | 'timestamp'>): Promise<CognitiveEvent> {
+  generateId(): string {
+    return ulid();
+  }
+
+  protected async doAppend(fullEvent: CognitiveEvent): Promise<void> {
     if (this.#closed) {
       throw new EventLogError('UNAVAILABLE', 'Event log is closed');
     }
-
-    const id = ulid();
-    const timestamp = Date.now();
-    const fullEvent = { ...event, id, timestamp } as CognitiveEvent;
 
     const eventSize = JSON.stringify(fullEvent).length;
     if (eventSize > this.#config.maxEventSize) {
@@ -94,10 +96,9 @@ export class SqliteEventLog implements EventLog {
         `INSERT INTO events (id, type, payload, timestamp, correlation_id, causation_id)
          VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .run(id, event.type, JSON.stringify(event.payload), timestamp, event.correlationId ?? null, event.causationId ?? null);
+      .run(fullEvent.id, fullEvent.type, JSON.stringify(fullEvent.payload), fullEvent.timestamp, fullEvent.correlationId ?? null, fullEvent.causationId ?? null);
 
-    this.#notifySubscribers(fullEvent);
-    return fullEvent;
+    this.#notify(fullEvent);
   }
 
   #rowToEvent(row: Row): CognitiveEvent {
@@ -111,7 +112,7 @@ export class SqliteEventLog implements EventLog {
     } as CognitiveEvent;
   }
 
-  #notifySubscribers(event: CognitiveEvent): void {
+  #notify(event: CognitiveEvent): void {
     for (const sub of this.#subscribers) {
       if (sub.fromId && sub.fromId >= (event.id ?? '')) continue;
       if (sub.types && !sub.types.has(event.type)) continue;
@@ -125,7 +126,7 @@ export class SqliteEventLog implements EventLog {
     }
   }
 
-  subscribe(options?: {
+  override subscribe(options?: {
     filter?: (event: CognitiveEvent) => boolean;
     fromId?: string;
     types?: string[];
@@ -144,24 +145,27 @@ export class SqliteEventLog implements EventLog {
 
     this.#subscribers.add(subscription);
 
+    let initialEvents: CognitiveEvent[] = [];
     if (options?.fromId) {
-      const rows = this.#db
-        .prepare('SELECT * FROM events WHERE id > ? ORDER BY id')
-        .all(options.fromId) as Row[];
-      for (const row of rows) {
-        const event = this.#rowToEvent(row);
-        if (typesSet && !typesSet.has(event.type)) continue;
-        if (options.filter && !options.filter(event)) continue;
-        queue.push(event);
-      }
+      this.getRange(options.fromId).then((events) => {
+        initialEvents = events;
+        for (const event of events) {
+          if (typesSet && !typesSet.has(event.type)) continue;
+          if (options.filter && !options.filter(event)) continue;
+          queue.push(event);
+        }
+      });
     }
-
-    const subscribers = this.#subscribers;
 
     return {
       [Symbol.asyncIterator]() {
         return {
           async next(): Promise<IteratorResult<CognitiveEvent>> {
+            // Wait for initial events if needed
+            while (initialEvents.length > 0) {
+              // just wait for the promise to resolve
+              await new Promise((r) => setTimeout(r, 0));
+            }
             while (queue.length > 0) {
               const nextEvent = queue.shift();
               if (nextEvent) return { value: nextEvent, done: false };
@@ -169,13 +173,13 @@ export class SqliteEventLog implements EventLog {
             if (closed) {
               return { value: undefined, done: true };
             }
-            return new Promise<IteratorResult<CognitiveEvent>>(res => {
+            return new Promise<IteratorResult<CognitiveEvent>>((res) => {
               subscription.resolver = res;
             });
           },
           async return(): Promise<IteratorResult<CognitiveEvent>> {
             closed = true;
-            subscribers.delete(subscription);
+            subscription.resolver = null;
             return { value: undefined, done: true };
           },
         };
@@ -190,20 +194,7 @@ export class SqliteEventLog implements EventLog {
         : 'SELECT * FROM events WHERE id > ? ORDER BY id'
     );
     const rows = toId ? stmt.all(fromId, toId) : stmt.all(fromId);
-    return (rows as Row[]).map(row => this.#rowToEvent(row));
-  }
-
-  async getSnapshot<T>(projectionName: string, version: number): Promise<T | null> {
-    const row = this.#db
-      .prepare('SELECT data FROM snapshots WHERE name = ? AND version = ?')
-      .get(projectionName, version) as { data: string } | undefined;
-    return row ? (JSON.parse(row.data) as T) : null;
-  }
-
-  async saveSnapshot<T>(projectionName: string, version: number, data: T): Promise<void> {
-    this.#db
-      .prepare('INSERT OR REPLACE INTO snapshots (name, version, data) VALUES (?, ?, ?)')
-      .run(projectionName, version, JSON.stringify(data));
+    return (rows as Row[]).map((row) => this.#rowToEvent(row));
   }
 
   async close(): Promise<void> {
@@ -218,5 +209,10 @@ export class SqliteEventLog implements EventLog {
   get size(): number {
     const row = this.#db.prepare('SELECT COUNT(*) as c FROM events').get() as { c: number };
     return row.c;
+  }
+
+  get events(): ReadonlyArray<CognitiveEvent> {
+    const rows = this.#db.prepare('SELECT * FROM events ORDER BY id').all() as Row[];
+    return rows.map((row) => this.#rowToEvent(row));
   }
 }

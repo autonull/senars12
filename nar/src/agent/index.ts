@@ -8,6 +8,7 @@ import { isNarsese } from '@senars/core/helpers';
 import type { LMService } from '@senars/nar';
 import type { EpisodicMemory } from '@senars/nar';
 import type { NAR } from '@senars/nar';
+import type { ChatStreamEvent } from '@senars/core';
 
 export interface CreateAgentConfig {
   nar?: NAR;
@@ -21,7 +22,7 @@ export interface CreateAgentConfig {
 }
 
 interface NarAgentApi {
-  chat(text: string, opts?: unknown): AsyncGenerator<{ kind: string; text?: string }>;
+  chat(text: string, opts?: unknown): AsyncGenerator<ChatStreamEvent, string>;
   believe(text: string): Promise<void>;
   recall(query?: string, limit?: number): Promise<Array<{ content: string }>>;
   know(key: string, value: string): void;
@@ -58,9 +59,9 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
   agent.registerEngine('metta', mettaEngine);
 
   await agent.start();
-  attachNarApi(agent, config, narEngine);
+  attachNarApi(agent as ExtendedAgent, config, narEngine);
 
-  return agent;
+  return agent as ExtendedAgent;
 }
 
 function attachNarApi(agent: ExtendedAgent, config: CreateAgentConfig, narEngine: NAREngine): void {
@@ -68,7 +69,7 @@ function attachNarApi(agent: ExtendedAgent, config: CreateAgentConfig, narEngine
   let throttle = Math.min(100, Math.max(0, config.throttle ?? 100));
 
   const originalChat = agent.chat.bind(agent);
-  const chatOverride = async function* (this: ExtendedAgent, text: string, opts?: unknown) {
+  const chatOverride = async function* (this: ExtendedAgent, text: string, opts?: unknown): AsyncGenerator<ChatStreamEvent, string> {
     const trimmed = text.trim();
     if (!trimmed) return '';
 
@@ -93,7 +94,8 @@ function attachNarApi(agent: ExtendedAgent, config: CreateAgentConfig, narEngine
       return result;
     }
 
-    yield* originalChat(trimmed, opts);
+    const originalResult = yield* originalChat(trimmed, opts);
+    return originalResult;
   };
   agent.chat = chatOverride.bind(agent);
 
