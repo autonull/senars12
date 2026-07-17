@@ -1,17 +1,18 @@
-import { MettaAgent } from '@senars/metta/agent';
+import { createAgent } from '@senars/nar/agent';
+import { SeNARSFactory } from '@senars/nar';
 import { describe, expect, it, afterAll, beforeAll } from 'vitest';
 import type { CognitiveEvent } from '@senars/core';
 
-describe('MettaAgent Conversational Scenarios', () => {
-  let agent: MettaAgent;
+describe('Core Agent with MettaEngine - Conversational Scenarios', () => {
+  let agent: Awaited<ReturnType<typeof createAgent>>;
 
-  beforeAll(() => {
-    agent = new MettaAgent();
-    agent.start();
+  beforeAll(async () => {
+    const nar = SeNARSFactory.createForTesting({ maxConcepts: 100 });
+    agent = await createAgent({ nar });
   });
 
-  afterAll(() => {
-    agent.stop();
+  afterAll(async () => {
+    await agent.stop();
   });
 
   it('handles basic greeting (no LM = empty response)', async () => {
@@ -42,7 +43,7 @@ describe('MettaAgent Conversational Scenarios', () => {
 
   it('processes Narsese input (no LM = empty response)', async () => {
     let response = '';
-    for await (const chunk of agent.chat('(<test --> concept>. :|: ))')) {
+    for await (const chunk of agent.chat('<test --> concept>.')) {
       if (chunk.kind === 'text-delta') {
         response += chunk.text;
       }
@@ -64,7 +65,7 @@ describe('MettaAgent Conversational Scenarios', () => {
     
     agent.off('*', handler);
     
-    const inputEvents = events.filter(e => e.type === 'input');
+    const inputEvents = events.filter(e => e.type === 'input.user');
     expect(inputEvents.length).toBeGreaterThanOrEqual(2);
   });
 

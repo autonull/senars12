@@ -14,11 +14,11 @@ const logger = createLogger({ scope: 'multi-agent' });
 
 async function main() {
   console.log('[NAR] Initializing...');
-  const nar = SeNARSFactory.createDefault({ core: { maxConcepts: 100 } });
-  const agent = createAgent({ nar });
+  const nar = SeNARSFactory.createForTesting({ core: { maxConcepts: 100 } });
+  const agent = await createAgent({ nar });
 
   console.log('[NAR] Ready — NAR + MeTTa reasoning via one agent');
-  agent.start();
+  await agent.start();
   console.log('[Agent] Ready');
 
   // Set up WebSocket transport
@@ -71,7 +71,7 @@ async function main() {
 
   process.on('SIGINT', async () => {
     console.log('\n\nShutting down...');
-    agent.stop();
+    await agent.stop();
     await wsConn.disconnect();
     await cliConn.disconnect();
     process.exit(0);

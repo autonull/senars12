@@ -196,11 +196,15 @@ export function createConnectionConfigsFromEnv(): Array<{ type: string; id: stri
     configs.push({
       type: 'irc',
       id: 'irc-main',
-      server: process.env.IRC_SERVER ?? 'irc.libera.chat',
-      port: Number(process.env.IRC_PORT) || 6697,
-      tls: true,
-      nick: process.env.IRC_NICK ?? 'senars-bot',
-      channels: (process.env.IRC_CHANNELS ?? '#senars').split(','),
+      enabled: true,
+      config: {
+        name: 'IRC Main',
+        server: process.env.IRC_SERVER ?? 'irc.libera.chat',
+        port: Number(process.env.IRC_PORT) || 6697,
+        tls: true,
+        nick: process.env.IRC_NICK ?? 'senars-bot',
+        channels: (process.env.IRC_CHANNELS ?? '#senars').split(','),
+      },
     });
   }
 
@@ -208,7 +212,11 @@ export function createConnectionConfigsFromEnv(): Array<{ type: string; id: stri
     configs.push({
       type: 'websocket',
       id: 'ws-main',
-      port: Number(process.env.WS_PORT) || 8765,
+      enabled: true,
+      config: {
+        name: 'WS Main',
+        port: Number(process.env.WS_PORT) || 8765,
+      },
     });
   }
 
@@ -216,7 +224,11 @@ export function createConnectionConfigsFromEnv(): Array<{ type: string; id: stri
     configs.push({
       type: 'http',
       id: 'http-main',
-      port: Number(process.env.HTTP_PORT) || 3000,
+      enabled: true,
+      config: {
+        name: 'HTTP Main',
+        port: Number(process.env.HTTP_PORT) || 3000,
+      },
     });
   }
 
@@ -224,7 +236,11 @@ export function createConnectionConfigsFromEnv(): Array<{ type: string; id: stri
     configs.push({
       type: 'mcp',
       id: 'mcp-main',
-      transport: process.env.MCP_TRANSPORT ?? 'stdio',
+      enabled: true,
+      config: {
+        name: 'MCP Main',
+        transport: process.env.MCP_TRANSPORT ?? 'stdio',
+      },
     });
   }
 

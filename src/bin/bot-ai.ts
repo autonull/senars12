@@ -18,16 +18,15 @@ import {
   MCPConnection,
   WSConnection,
   createConnectionConfigsFromEnv,
-} from '@senars/io';
-import {
   bindAgentToConnection,
-  createAgent,
-} from '@senars/nar/agent';
+} from '@senars/io';
+import { createAgent } from '@senars/nar/agent';
 import { Agent } from '@senars/core';
 import { SeNARSFactory } from '@senars/nar';
 import { createSeNARSRegistry, resolveLMConfig } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
-import { EpisodicMemory, JsonlSessionManager } from '@senars/core/memory';
+import { EpisodicMemory } from '@senars/nar/memory/episodic';
+import { JsonlSessionManager } from '@senars/core/memory';
 import { loadConfigFromEnv } from '../config';
 import { setupGracefulShutdown } from '../utils';
 import { assertValidEnv } from '../utils/env-validate.js';
@@ -54,7 +53,7 @@ async function main(): Promise<void> {
     retentionDays: Number.parseInt(process.env.EPISODIC_RETENTION_DAYS || '30'),
   });
 
-  const agent = createAgent({
+  const agent = await createAgent({
     nar,
     episodicMemory,
   });
@@ -121,7 +120,7 @@ async function main(): Promise<void> {
     }
   }
 
-  agent.start();
+  await agent.start();
 
   if (process.env.ENABLE_WEB_UI) {
     const { startAgentUI } = await import('../../ui/src/server/index.js');
@@ -134,7 +133,7 @@ async function main(): Promise<void> {
     logger.info('Shutting down...');
     await sessionManager.snapshot();
     await sessionManager.close();
-    agent.stop();
+    await agent.stop();
     await cm.shutdownAll();
     logger.info('Bot stopped');
   }, logger);

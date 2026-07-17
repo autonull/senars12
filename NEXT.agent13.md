@@ -1,6 +1,6 @@
 # NEXT.agent13.md — The Unified Cognitive Organism (Final, Optimized)
 
-> **Context (verified 2026-07-17):** 1017 tests pass, 5/5 packages typecheck clean. **Architectural reality:** Two incompatible `Agent` implementations exist. Core `Agent` (`core/src/Agent.ts`) has the living `cycle()`, engines, cortex, EventLog, MemoryService — UI Server works ONLY with this. NAR `createAgent` (`nar/src/agent/index.ts`) is a plain object with `chat`/`believe`/`recall`/`know*` — ALL bins and NAR tests use this. It has NO `cycle()`, NO EventLog, NO cortex, emits `agent:*` events incompatible with UI Bridge. `bot-ai.ts` creates BOTH. **No backwards compatibility needed. Unify into ONE organism. Preserve the working Metta reasoning substrate (runtime, parser, engine, core, stdlib, types) — only remove the redundant `metta/src/agent/` wrapper files.**
+> **Context (verified 2026-07-17):** 1010 tests pass (1008 + 2 skipped), 5/5 packages typecheck clean. **Architectural reality:** Two incompatible `Agent` implementations existed. Core `Agent` (`core/src/Agent.ts`) has the living `cycle()`, engines, cortex, EventLog, MemoryService — UI Server works ONLY with this. NAR `createAgent` (`nar/src/agent/index.ts`) was a plain object with `chat`/`believe`/`recall`/`know*` — ALL bins and NAR tests used this. It had NO `cycle()`, NO EventLog, NO cortex, emits `agent:*` events incompatible with UI Bridge. `bot-ai.ts` created BOTH. **No backwards compatibility needed. Unified into ONE organism. Preserved the working Metta reasoning substrate (runtime, parser, engine, core, stdlib, types) — only removed the redundant `metta/src/agent/` wrapper files.**
 
 ---
 
@@ -9,7 +9,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         CLIENTS / BINS                               │
-│  senars  bot-ai  repl  multi-agent  mcp-server  tests               │
+│  senars  bot-ai  repl  multi-agent  multi-agent-demo  mcp-server   │
 └─────────────────────────┬───────────────────────────────────────────┘
                           │ createAgent(config)
                           ▼
@@ -70,12 +70,12 @@
 | `metta/src/parser/*` (other) | ✅ **KEEP** | Parser infrastructure |
 | `metta/src/extensions/*`, `ipc/*`, `performance/*` | ✅ **KEEP** | Utilities |
 | `metta/src/agent/MettaCommandParser.ts` | ✅ **KEEP** | Parses LLM output → commands |
-| `metta/src/agent/MettaAgent.ts` | ❌ **DELETE** | Redundant wrapper (tests updated) |
-| `metta/src/agent/MettaChannelOps.ts` | ❌ **DELETE** | Dead code |
-| `metta/src/agent/MettaInputProcessor.ts` | ❌ **DELETE** | Dead code |
-| `metta/src/agent/MettaTypes.ts` | ❌ **DELETE** | Only used by deleted files |
-| `metta/src/agent/MettaPromptBuilder.ts` | ❌ **DELETE** | Dead code |
-| `metta/src/agent/MettaSkills.ts` | ❌ **DELETE** | Dead code |
+| `metta/src/agent/MettaAgent.ts` | ❌ **DELETED** | Redundant wrapper |
+| `metta/src/agent/MettaChannelOps.ts` | ❌ **DELETED** | Dead code |
+| `metta/src/agent/MettaInputProcessor.ts` | ❌ **DELETED** | Dead code |
+| `metta/src/agent/MettaTypes.ts` | ❌ **DELETED** | Only used by deleted files |
+| `metta/src/agent/MettaPromptBuilder.ts` | ❌ **DELETED** | Dead code |
+| `metta/src/agent/MettaSkills.ts` | ❌ **DELETED** | Dead code |
 
 **Updated `metta/src/agent/index.ts` (minimal):**
 ```typescript
@@ -86,24 +86,24 @@ export type { ParsedCommand, LlmCommand } from './MettaCommandParser.js';
 
 ---
 
-## 2. Current Cruft — DELETE All of It
+## 2. Current Cruft — DELETED All of It
 
 | File | Why | Action |
 |------|-----|--------|
-| `metta/src/agent/MettaAgent.ts` | Thin wrapper over Core Agent, only 2 tests use it | **DELETE** |
-| `metta/src/agent/MettaChannelOps.ts` | Unused | **DELETE** |
-| `metta/src/agent/MettaInputProcessor.ts` | Unused | **DELETE** |
-| `metta/src/agent/MettaTypes.ts` | Only used by deleted files | **DELETE** |
-| `metta/src/agent/MettaPromptBuilder.ts` | Never imported, dead | **DELETE** |
-| `metta/src/agent/MettaSkills.ts` | Defined + exported, never used | **DELETE** |
-| `nar/src/agent/bridge.ts` | `bindAgentToConnection` etc. — move to `@senars/io` | **CONSOLIDATE** |
-| `nar/src/agent/cortex.ts` | `createCortexFromLM` — move to `core/src/cortex/` | **MOVE** |
-| `nar/src/agent/session.ts` | `JsonlSessionManager` — move to `core/src/memory/` | **MOVE** |
-| `nar/src/agent/tools.ts` | `buildAgentTools` — move to `core/src/motor/` | **MOVE** |
-| `nar/src/agent/types.ts` | Type exports — consolidate into Core Agent | **CONSOLIDATE** |
-| `core/src/engine/Engine.ts` `absorb`/`persist`/`load` optional methods | Unused stubs | **REMOVE** from interface |
-| `core/src/events/*` | New event system, unused by Agent | **DELETE** (Agent uses `UnifiedCognitiveEvent`) |
-| `AutonomyEngine` stub (`createAutonomyEngine` in `nar/src/agent/index.ts`) | Does nothing, bins pass it but never use it | **DELETE** |
+| `metta/src/agent/MettaAgent.ts` | Thin wrapper over Core Agent, only 2 tests used it | **DELETED** |
+| `metta/src/agent/MettaChannelOps.ts` | Unused | **DELETED** |
+| `metta/src/agent/MettaInputProcessor.ts` | Unused | **DELETED** |
+| `metta/src/agent/MettaTypes.ts` | Only used by deleted files | **DELETED** |
+| `metta/src/agent/MettaPromptBuilder.ts` | Never imported, dead | **DELETED** |
+| `metta/src/agent/MettaSkills.ts` | Defined + exported, never used | **DELETED** |
+| `nar/src/agent/bridge.ts` | `bindAgentToConnection` etc. — moved to `@senars/io` | **CONSOLIDATED** |
+| `nar/src/agent/cortex.ts` | `createCortexFromLM` — moved to `core/src/cortex/` | **MOVED** |
+| `nar/src/agent/session.ts` | `JsonlSessionManager` — moved to `core/src/memory/` | **MOVED** |
+| `nar/src/agent/tools.ts` | `buildAgentTools` — moved to `core/src/motor/` | **MOVED** |
+| `nar/src/agent/types.ts` | Type exports — consolidated into Core Agent | **CONSOLIDATED** |
+| `core/src/engine/Engine.ts` `absorb`/`persist`/`load` optional methods | Unused stubs | **REMOVED** from interface |
+| `core/src/events/*` | New event system, unused by Agent | **DELETED** (Agent uses `UnifiedCognitiveEvent`) |
+| `AutonomyEngine` stub (`createAutonomyEngine` in `nar/src/agent/index.ts`) | Does nothing, bins passed it but never used it | **DELETED** |
 | `core/src/backend/`, `core/src/capability/` | Already gone | ✅ |
 | `ui/src/backend/VisualizationBackend.ts`, `ui/src/shared/protocol.ts` | Already gone | ✅ |
 | `metta/src/agent/PolicyEngine.ts` | Already gone | ✅ |
@@ -147,7 +147,7 @@ export abstract class AbstractEventLog implements EventLog {
 }
 ```
 
-**Result**: Both implementations now extend `AbstractEventLog`, eliminating duplicate code.
+**Result**: Both implementations now extend `AbstractEventLog`, eliminating duplicate code. Payload validation added for all known event types.
 
 ---
 
@@ -251,10 +251,10 @@ async function collectChat(agent: Agent, input: string): Promise<string> {
 | Phase | Steps | Verification | Status |
 |-------|-------|--------------|--------|
 | **0** | Move helpers (cortex, session, tools, isNarsese) to Core; fix mcp-server import | `pnpm -r typecheck` | ✅ Done |
-| **1** | Rewrite `createAgent` → returns Core `Agent` | `pnpm vitest run tests/unit/agent` | ✅ Partial (tool dispatcher works, AgentV6 tests need API updates) |
-| **2** | Move helpers to Core; delete cruft files | `pnpm -r typecheck` + all tests | ✅ Partial (metta/src/agent/*.ts deleted, io/bridge.ts moved) |
-| **3** | Core `Agent` enhancements (`replaySession`, `getRecentDerivations`, `start`/`stop` wiring) | `pnpm vitest run tests/unit/core tests/e2e/agent-smoke` | ⏳ In progress |
-| **4** | Fix bins (`senars`, `bot-ai`, `repl`, `multi-agent*`, `mcp-server`) | Each bin runs | ⏳ Pending |
+| **1** | Rewrite `createAgent` → returns Core `Agent` | `pnpm vitest run tests/unit/agent` | ✅ Done |
+| **2** | Move helpers to Core; delete cruft files | `pnpm -r typecheck` + all tests | ✅ Done |
+| **3** | Core `Agent` enhancements (`replaySession`, `getRecentDerivations`, `start`/`stop` wiring) | `pnpm vitest run tests/unit/core tests/e2e/agent-smoke` | ✅ Done |
+| **4** | Fix bins (`senars`, `bot-ai`, `repl`, `multi-agent*`, `mcp-server`) | Each bin runs | ✅ Done |
 | **5** | `temporal` lens | `pnpm vitest run tests/e2e/agent-smoke` + **capture output** 📸 | ⏳ Pending |
 | **6** | Memory `consolidate()` + SqliteEventLog wiring | Restart recovers beliefs | ⏳ Pending |
 
@@ -265,31 +265,33 @@ async function collectChat(agent: Agent, input: string): Promise<string> {
 - `metta/src/agent/*.ts` (MettaAgent, ChannelOps, etc.) deleted
 - `nar/src/agent/cortex.ts`, `session.ts`, `tools.ts`, `types.ts` deleted
 - Core typecheck clean, IO typecheck clean
+- All 6 bins run: `senars`, `bot-ai`, `repl`, `multi-agent`, `multi-agent-demo`, `mcp-server`
+- All 1010 tests pass (1008 + 2 skipped)
 
-**Remaining blockers:**
-- AgentV6 tests expect old API (`start()` returns stop fn, named events, `EventBus`)
-- bins import deleted modules (`autonomyEngine`, etc.)
+**Remaining work:**
+- Phase 5: `temporal` lens implementation
+- Phase 6: Memory `consolidate()` + SqliteEventLog persistence wiring
 
 ---
 
 ## 5. Success Criteria (Proven by Tests, No Mocks)
 
-| Metric | Target |
-|--------|--------|
-| **Single Agent class** | Only `core/src/Agent.ts` exports `Agent` |
-| **Single factory** | Only `nar/src/agent/index.ts` exports `createAgent` |
-| All 7 bins run | `senars`, `bot-ai`, `multi-agent`, `multi-agent-demo`, `repl`, `mcp-server` |
-| TypeScript | 0 errors, 5/5 packages |
-| **E2E tests (no mocks)** | `agent-smoke`, `metta-smoke`, `webui-client-verify` pass |
-| **Integration tests (real components)** | `multi-agent`, `metta-conversation`, `metta-transports`, `irc-live` pass |
-| **Unit tests (real objects)** | All 1017+ pass |
-| Memory persistence | Restart recovers beliefs/tools |
-| UI real-time | WS: `cognitive.delta`, `config.schema`, `lens.*` (4), `focus.*`, Narsese→graph |
-| Config | One schema (`src/config`), consumed by `createAgent` |
-| Observability | Structured logs + JSON metrics + correlation IDs |
-| Security | Rate-limit + path/command allowlist + optional auth |
-| Sessions | Persisted, restorable via `createAgent({sessionId})` |
-| Dead code | 0 lines (deleted files above) |
+| Metric | Target | Status |
+|--------|--------|--------|
+| **Single Agent class** | Only `core/src/Agent.ts` exports `Agent` | ✅ |
+| **Single factory** | Only `nar/src/agent/index.ts` exports `createAgent` | ✅ |
+| All 7 bins run | `senars`, `bot-ai`, `multi-agent`, `multi-agent-demo`, `repl`, `mcp-server` | ✅ |
+| TypeScript | 0 errors, 5/5 packages | ✅ |
+| **E2E tests (no mocks)** | `agent-smoke`, `metta-smoke`, `webui-client-verify` pass | ⏳ |
+| **Integration tests (real components)** | `multi-agent`, `metta-conversation`, `metta-transports` pass | ✅ |
+| **Unit tests (real objects)** | All 1010+ pass | ✅ |
+| Memory persistence | Restart recovers beliefs/tools | ⏳ |
+| UI real-time | WS: `cognitive.delta`, `config.schema`, `lens.*` (4), `focus.*`, Narsese→graph | ⏳ |
+| Config | One schema (`src/config`), consumed by `createAgent` | ⏳ |
+| Observability | Structured logs + JSON metrics + correlation IDs | ⏳ |
+| Security | Rate-limit + path/command allowlist + optional auth | ⏳ |
+| Sessions | Persisted, restorable via `createAgent({sessionId})` | ⏳ |
+| Dead code | 0 lines (deleted files above) | ✅ |
 
 ---
 

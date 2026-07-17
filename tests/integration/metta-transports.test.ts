@@ -1,4 +1,5 @@
-import { MettaAgent } from '@senars/metta/agent';
+import { createAgent } from '@senars/nar/agent';
+import { SeNARSFactory } from '@senars/nar';
 import { WSConnection } from '@senars/io/connections/ws';
 import { CLIConnection } from '@senars/io/connections/cli';
 import { describe, expect, it, afterAll, beforeAll, vi } from 'vitest';
@@ -18,16 +19,16 @@ const testDeps: ConnectionDeps = {
   getSessionSpaceId: () => 'test',
 };
 
-describe('MettaAgent + Transport Integration', () => {
-  let agent: MettaAgent;
+describe('Core Agent + Transport Integration', () => {
+  let agent: Awaited<ReturnType<typeof createAgent>>;
 
-  beforeAll(() => {
-    agent = new MettaAgent();
-    agent.start();
+  beforeAll(async () => {
+    const nar = SeNARSFactory.createForTesting({ maxConcepts: 100 });
+    agent = await createAgent({ nar });
   });
 
-  afterAll(() => {
-    agent.stop();
+  afterAll(async () => {
+    await agent.stop();
   });
 
   it('mounts and unmounts WS connection', () => {
@@ -58,7 +59,7 @@ describe('MettaAgent + Transport Integration', () => {
     expect(() => agent.unmount(cliConn)).not.toThrow();
   });
 
-it('processes submitted messages through transport', async () => {
+  it('processes submitted messages through transport', async () => {
     // Submit should not throw and should emit input event
     const events: CognitiveEvent[] = [];
     const handler = (e: CognitiveEvent) => events.push(e);
@@ -96,7 +97,7 @@ it('processes submitted messages through transport', async () => {
     expect(() => agent.unmount(cliConn)).not.toThrow();
   });
 
-  it('chat works with MettaAgent', async () => {
+  it('chat works with Core Agent', async () => {
     let response = '';
     for await (const chunk of agent.chat('What is 2+2?')) {
       if (chunk.kind === 'text-delta') {
