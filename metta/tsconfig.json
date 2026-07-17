@@ -1,16 +1,6 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2024",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "lib": ["ES2024", "DOM"],
-    "preserveConstEnums": true,
     "types": ["node"]
   },
   "include": ["src/**/*"],

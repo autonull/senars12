@@ -38,6 +38,9 @@ importers:
       '@senars/ui':
         specifier: workspace:*
         version: link:ui
+      '@senars/util':
+        specifier: workspace:*
+        version: link:util
       '@types/blessed':
         specifier: ^0.1.27
         version: 0.1.27
@@ -177,12 +180,6 @@ importers:
 
   core:
     dependencies:
-      '@senars/metta':
-        specifier: workspace:*
-        version: link:../metta
-      '@senars/nar':
-        specifier: workspace:*
-        version: link:../nar
       '@senars/util':
         specifier: workspace:*
         version: link:../util
@@ -199,6 +196,12 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
+      '@senars/metta':
+        specifier: workspace:*
+        version: link:../metta
+      '@senars/nar':
+        specifier: workspace:*
+        version: link:../nar
       '@types/better-sqlite3':
         specifier: ^7.6.13
         version: 7.6.13
@@ -350,10 +353,10 @@ importers:
         version: 9.2.3
       tsup:
         specifier: ^8.3.0
-        version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0)
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.21.0)(typescript@7.0.1-rc)(yaml@2.9.0)
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: 7.0.1-rc
+        version: 7.0.1-rc
       vite:
         specifier: ^6.0.0
         version: 6.4.3(@types/node@22.19.19)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.9.0)
@@ -9185,7 +9188,7 @@ snapshots:
 
   tslib@2.8.1: {}
 
-  tsup@8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.9.0):
+  tsup@8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.21.0)(typescript@7.0.1-rc)(yaml@2.9.0):
     dependencies:
       bundle-require: 5.1.0(esbuild@0.27.7)
       cac: 6.7.14
@@ -9206,7 +9209,7 @@ snapshots:
       tree-kill: 1.2.2
     optionalDependencies:
       postcss: 8.5.15
-      typescript: 5.9.3
+      typescript: 7.0.1-rc
     transitivePeerDependencies:
       - jiti
       - supports-color

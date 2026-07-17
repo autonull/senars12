@@ -1,3 +1,5 @@
+import type { Logger } from '../types/lifecycle.js';
+
 export type EventReceiver<T> = (params: T) => void;
 export type EventUnsubscribe = () => void;
 
@@ -6,8 +8,24 @@ interface Listener<T = unknown> {
   once: boolean;
 }
 
+const consoleLogger: Logger = {
+  debug: (msg, ctx) => console.debug(msg, ctx),
+  info: (msg, ctx) => console.info(msg, ctx),
+  warn: (msg, ctx) => console.warn(msg, ctx),
+  error: (msg, err, ctx) => console.error(msg, err, ctx),
+  child: (scope) => ({ ...consoleLogger, scope } as unknown as Logger),
+  warnOnce: (key, msg, ctx) => consoleLogger.warn(`${key}: ${msg}`, ctx),
+  deprecated: (oldSymbol, replacement, ctx) =>
+    consoleLogger.warn(`deprecated ${oldSymbol}; use ${replacement} instead`, ctx),
+};
+
 export class EventBus<T extends Record<string, unknown> = Record<string, unknown>> {
   private listeners = new Map<string, Listener[]>();
+  private readonly logger: Logger;
+
+  constructor(logger?: Logger) {
+    this.logger = logger ?? consoleLogger;
+  }
 
   on<K extends keyof T>(eventName: K & string, fn: EventReceiver<T[K]>): EventUnsubscribe {
     const listeners = this.listeners.get(eventName as string) ?? [];
@@ -42,7 +60,7 @@ export class EventBus<T extends Record<string, unknown> = Record<string, unknown
       try {
         listener.fn(params);
       } catch (error) {
-        console.error(`Event listener error for ${eventName}:`, error);
+        this.logger.error(`Event listener error for ${eventName}:`, error as Error);
       }
     }
 

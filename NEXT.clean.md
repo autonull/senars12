@@ -8,11 +8,12 @@
 
 | Metric | Status |
 |--------|--------|
-| Tests | 1008 passed, 2 skipped (1010 total) |
+| Tests | 1102 passed, 2 skipped (1104 total) |
 | TypeScript | 6/6 packages typecheck individually (`pnpm --filter <pkg> typecheck`) |
-| Turbo typecheck | Fails — circular dep core↔nar↔io (pre-existing) |
-| Bins | 7/7 run: `senars`, `bot-ai`, `repl`, `multi-agent`, `multi-agent-demo`, `mcp-server`, `sg` |
-| Lint | Biome, no eslintrc, no import boundary rules |
+| Turbo typecheck | Fails — circular dep core↔nar↔io (~303 cycles via `dpdm`, pre-existing) |
+| Bins | 7/7 run: `senars`, `bot-ai`, `repl`, `multi-agent`, `multi-agent-demo`, `mcp-server`, `sg` (regressions fixed this session) |
+| TS versions | Divergent: `ui` = 5.9.3, others = 7.0.1-rc (blocks `ui` extending `tsconfig.base.json`) |
+| Lint | Biome, no eslintrc; `noUnusedImports` set to `warn` |
 | Agent architecture | single `Agent` class (`core/src/Agent.ts`), single `createAgent` factory (`nar/src/agent/index.ts`) |
 | Packages | **6**: `core`, `nar`, `io`, `metta`, `ui`, **`util`** (+ root `src/` for bins) |
 | Dep graph | **`util → (none)`**; `core → util, nar, metta`; `nar → util, core, io`; `io → util, core`; `metta → core` |
@@ -516,7 +517,7 @@ Run benchmarks in CI (informational, not gate).
 | **6** | Config system consolidation ✅ | **Medium** (env var changes) | -100 | Shared `@senars/util/config` types/validation/env; bins read same `SENARS_*` mapping |
 | **7** | Testing strengthening | **Low** | +500 (tests) | Coverage report; property tests |
 | **8** | Performance (lazy, memoize) + structured logging | **Low** | -100 (log cleanup) | Benchmarks; no console.* in prod code |
-| **9** | Tooling & CI (circular dep detection, boundary rules, tsconfig standards) | **Low** | +50 (config) | `deps:check` passes; turbo typecheck |
+| **9** | Tooling & CI (circular dep detection, boundary rules, tsconfig standards) | **Low** | +50 (config) | `deps:check` + `exports:check` pass; turbo typecheck |
 
 **Execution rule:** Each phase must pass `pnpm run test` + `pnpm --filter <affected> typecheck` before moving to next.
 
@@ -526,17 +527,17 @@ Run benchmarks in CI (informational, not gate).
 
 | Criterion | Current | Target |
 |-----------|---------|--------|
-| All tests pass | 1010 | ≥1010 |
+| All tests pass | 1104 | ≥1010 |
 | 5/5 packages typecheck clean | ✅ | ✅ |
-| `turbo typecheck` passes | ❌ (cycle) | ✅ |
-| 7/7 bins run | ✅ | ✅ |
+| `turbo typecheck` passes | ❌ (cycle, ~303 reported by dpdm) | ✅ |
+| 7/7 bins run | ✅ (regressions fixed this session) | ✅ |
 | No duplicate code (bins, bridges, commands, errors) | ✅ (bin dedup done) | ✅ |
 | Single `ChatStreamHandler` | ✅ (extracted to core/src/bridge/ChatStreamHandler.ts) | ✅ |
 | Single `CommandRegistry` | ✅ (unified in util) | ✅ |
 | Single error hierarchy | ✅ (unified in util) | ✅ |
-| All exports tagged `@public`/`@internal` | ❌ | ✅ |
-| No raw `console.*` in prod code | ❌ (was ~5 files) → ✅ (3 cleaned, 2 structural) | ✅ |
-| Circular dep detection in CI | ❌ | ✅ |
+| All exports tagged `@public`/`@internal` | ❌ (util done; core/nar/io partial) | ✅ |
+| No raw `console.*` in prod code | ✅ (ApprovalService + EventBus migrated; cli.ts sendFn is stdout by design) | ✅ |
+| Circular dep detection in CI | ⚠️ (`deps:check` scripted; not yet a CI gate) | ✅ (`deps:check` + `exports:check` scripted; not yet wired as CI gate) |
 | `rules-dsl.ts` main file < 200 lines | 1036 | <200 (reorg'd) |
 | `lm-rule-factory.ts` main file < 200 lines | 805 | <200 (reorg'd) |
 | `SelfAnalyzerService.ts` < 200 lines | 725 | Done (split into `cognitive/analyzers/*` — orchestrator 202 lines, analyzers each <130) |
@@ -620,7 +621,7 @@ None (all 6 Quick Wins completed).
 
 **Phase 1** ✅ (Bin deduplication, env-config, lifecycle utilities — all done).
 
-**Next up:** Phase 2 (Bridge & Command unification).
+**Next up:** Phase 2 (Bridge & Command unification) — **already completed** (see session log). Current frontier: Phase 7 ✅, Phase 8 partial (lazy/memoize/benchmark deferred), Phase 9 partial (tsconfig standardization + turbo circular-dep fix deferred as high-risk structural work).
 
 ---
 
@@ -952,8 +953,205 @@ The Protocol.ts split requires careful handling of zod schema/type dual exports 
 
 **Remaining work for future sessions:**
 
-**Phase 7.** Testing strengthening — integration tests for bridge layer, property-based rule tests, missing tests for `@senars/util/errors` and `commands`, E2E smoke tests for all 7 bins.
+**Phase 7.** Testing strengthening — **COMPLETE** (see session log below). Unit tests for `@senars/util/errors`, `commands`, `events` (EventBus), `memory` (InMemorySessionManager), `utils/assert`, `utils/throttle`; integration test for `narEventToCognitive` bridge; unit test for `aggregateChatResponse` (ChatStreamHandler); property-based truth-value tests (`tests/unit/nar/truth-properties.test.ts`); NAREngine lifecycle tests (`tests/unit/nar/engine-lifecycle.test.ts`); Agent phase extraction tests (`tests/unit/core/agent-phases.test.ts`); parameterized E2E bin-lifecycle smoke tests (`tests/e2e/bin-lifecycle.test.ts`, 6 root bins sharing `createAgentFromEnv`). All items delivered.
 
-**Phase 8.** Performance & observability — lazy tool registration (reduce `transitive_loop_depth` on `createAgentDispatch`), memoize expensive computations (`lm-service`, `truth`, `AbstractEventLog.validatePayload`), benchmark infra, structured logging adoption (replace remaining raw `console.*` in `ApprovalService.ts`, `io/src/connections/cli.ts`).
+**Phase 8.** Performance & observability — structured logging adoption **DONE** (see session log): `Logger.warnOnce()`/`deprecated()` added; `ApprovalService.ts` now uses `createLogger`; `EventBus` accepts an injected `Logger` (defaults to a console fallback). `io/src/connections/cli.ts` `console.log` sendFn left intact — it is the CLI connection's actual stdout output channel, not diagnostic logging. Benchmark infrastructure **DONE** (see session log): added `tests/nar/benchmark-infra.test.ts` covering inference-cycle throughput, rule matching, memory-bag ops, term serialization round-trip, memory serialize/deserialize; wired `pnpm bench`. Remaining: lazy tool registration (reduce `transitive_loop_depth` on `createAgentDispatch`), memoize expensive computations (`lm-service`, `truth`, `AbstractEventLog.validatePayload`).
 
-**Phase 9.** Tooling & CI — Biome import boundary rules, circular dependency detection in CI (`deps:check` already scripted), export boundary verification, standardize tsconfig across packages, **fix `turbo run typecheck` circular dep** (item 7 from Phase 0 — root cause `core → nar → io → core`; attempt `nar`'s `core` dep → `devDependencies` or kernel-vs-util split).
+**Phase 9.** Tooling & CI — Biome `noUnusedImports` set to `warn` (10.1); circular dependency detection script `deps:check` already in place (10.2); **critical bin-regression fix** landed (see session log) enabling all 7 bins to run. Remaining: export boundary verification (10.3), standardize tsconfig across packages (10.4 — **BLOCKED**: `ui` uses TypeScript 5.9.3 while core/nar/io/metta/util use 7.0.1-rc; `tsconfig.base.json` declares `lib: ["ESNext","esnext.temporal"]` which 5.9.3 rejects, so `ui` cannot extend base without a TS-version alignment first), **fix `turbo run typecheck` circular dep** (10.5 — root cause `core → nar → io → core`; ~303 cycles reported by `dpdm`; attempt `nar`'s `core` dep → `devDependencies` or kernel-vs-util split). Both 10.4 and 10.5 deferred as high-risk structural work requiring TypeScript-version alignment and dependency-graph surgery.
+
+---
+
+### Session 2026-07-17 (continued) — Phase 7: Testing Strengthening (Partial)
+
+**Changes (new test files):**
+- `tests/unit/util/errors.test.ts` — `SenarsError` base (message/code/context/cause), all 9 subclasses (`ToolError`, `EngineError`, `ConfigError`, `TransportError`, `ConnectionError`, `ValidationError`, `ConfigurationError`, `OperationError`, `PolicyViolation`), `ErrorCode` union coverage.
+- `tests/unit/util/commands.test.ts` — `CommandRegistry` register/get/execute/alias/overwrite/read-only map; uses vitest mock `Connection`.
+- `tests/unit/util/events.test.ts` — `EventBus<T>` on/once/off/emit/clear/listenerCount, error isolation, no-listener silent emit.
+- `tests/unit/util/memory.test.ts` — `createSession`, `abortSession`, `InMemorySessionManager` getOrCreate/size/lastSeenAt/abort-retain.
+- `tests/unit/util/assert.test.ts` — `invariant`, `assertDefined` assertions + type narrowing.
+- `tests/unit/util/throttle.test.ts` — `Throttle` token consume/refill/cap/reset, `createThrottle`, `throttleGenerator` yield/early-stop.
+- `tests/integration/nar-events-bridge.test.ts` — `narEventToCognitive` mapping for all 9 mapped NAR events + unmapped→null + custom engine origin + exhaustive `MAPPED_NAR_EVENTS` coverage. Added `@senars/nar/events/(.*)` alias in `vitest.config.mjs`.
+- `tests/unit/core/chat-stream-handler.test.ts` — `aggregateChatResponse` concatenation, empty/undefined-delta tolerance, missing `chat` method.
+
+**Verification:**
+- `1074 passed, 2 skipped` (was 1008/2 — +66 new tests, no regressions)
+- All 6 packages typecheck individually (unchanged)
+- Added `vitest.config.mjs` alias `@senars/nar/events/(.*)` → `./nar/src/events/$1.ts`
+
+**Phase 7 status:** Partial. Core unification-layer abstractions (`@senars/util` foundation + `narEventToCognitive` + `ChatStreamHandler`) are now covered. Remaining items deferred: property-based rule expansion, parameterized E2E smoke tests for the 7 bins, NAREngine lifecycle tests, Agent-phase tests.
+
+**Next recommended step:** Phase 8 (Performance & observability) — low risk, additive. Start with structured logging adoption (replace remaining `console.*` in `ApprovalService.ts`, `io/src/connections/cli.ts`, `util/src/events/event-bus.ts`), then lazy tool registration / memoization. Alternatively continue remaining Phase 7 tests (E2E smoke, property-based).
+
+---
+
+### 2026-07-17 Session — Phase 7 completion, Phase 8 structured logging, critical bin-regression fixes
+
+**Critical pre-existing regressions discovered and fixed (these blocked ALL bins from running):**
+
+1. `src/bin/lib/env-config.ts` — Syntax error: `??` mixed with `||` without parentheses (lines 89, 96). tsx/esbuild rejected the file at import, crashing every bin that imported `lifecycle.ts`. Fixed by parenthesizing `(a ?? b) || c`.
+2. `nar/src/lm/rule-selectors/factory.ts` — Circular-import TDZ: `LMRules` (top-level `const`) eagerly read `ruleDefs` at init, but `rule-templates/*` import `hasVariable`/`isComplexGoal` back from `factory.ts`, so `ruleDefs` was in the temporal dead zone → `ReferenceError: Cannot access 'ruleDefs' before initialization`. Fixed by making `LMRules.ruleDefs` a lazy getter.
+3. `package.json` (root) — Missing `@senars/util` workspace dependency; `src/config/loader.ts` (Phase 6) imports `@senars/util/config` but the symlink `node_modules/@senars/util` did not exist, so `mcp-server` and any `src/` entry importing util failed with `ERR_MODULE_NOT_FOUND`. Added `@senars/util: workspace:*` and ran `pnpm install`.
+
+**After fixes, all 7 bins verified to run** (`senars`, `repl`, `bot-ai`, `mcp-server`, `multi-agent`, `multi-agent-demo`; `sg` lives in the separate `ui/spacegraphjs7` project). The plan's "7/7 bins run" claim was stale — these regressions had been introduced during the Phase 0–6 refactors.
+
+**Phase 8 — structured logging (DONE):**
+- `core/src/Logger.ts` — Added `warnOnce(key, message, context?)` and `deprecated(oldSymbol, replacement, context?)` to `Logger` class + `LoggerInterface`.
+- `util/src/types/lifecycle.ts` — Added `warnOnce`/`deprecated` to the shared `Logger` interface (util is the foundation contract).
+- `core/src/ApprovalService.ts` — Replaced the inline `consoleLogger` with `createLogger({ scope: 'approval' })`; `ApprovalServiceConfig.logger` now typed as `LoggerInterface`.
+- `util/src/events/event-bus.ts` — `EventBus` constructor now accepts an optional `Logger`; listener errors routed through it (defaults to a console fallback). No behavior change for `new EventBus()` callers.
+- `io/src/connections/cli.ts` `console.log` sendFn **intentionally retained** — it is the CLI connection's stdout output channel, not diagnostic logging.
+
+**Phase 9.1 — Biome:** `biome.json` `correctness.noUnusedImports` set to `"warn"` (non-blocking; repo tolerates pre-existing `any`/lint warnings and has no lint CI gate).
+
+**Phase 7 — remaining tests delivered (new files, +23 tests, no regressions):**
+- `tests/unit/nar/truth-properties.test.ts` — Property-based (fast-check): truth bounds for all binary ops, negation involutivity, deduction confidence monotonicity, revision confidence lower-bound, serialize/deserialize round-trip, expectation monotonicity in frequency.
+- `tests/unit/nar/engine-lifecycle.test.ts` — `NAREngine` initialize/start/stop/shutdown + idempotency + reason/query after init.
+- `tests/unit/core/agent-phases.test.ts` — `runCycle` exercised via a mock `CycleHost`: perceive emits `input.user`, recall queries memory, reason delegates to engines, narrate fallback appends derivations, act parses commands + respects policy, consolidate logs episodic. (Validates the Phase 3 Agent-phase extraction independently.)
+- `tests/e2e/bin-lifecycle.test.ts` — Parameterized `it.each` over the 6 root bins (each via the shared `createAgentFromEnv` substrate): start → `health().status === 'healthy'` → Narsese `chat('<cat --> mammal>.')` yields a non-empty response containing `cat` → `stop()` → `health().status === 'stuck'`. In-memory, no external services.
+
+**Verification:**
+- `1097 passed, 2 skipped` (was 1074/2 — +23 new tests, no regressions)
+- All 6 packages (`util`, `core`, `nar`, `io`, `metta`, `ui`) typecheck individually
+- All 7 bins run end-to-end (verified manually via `tsx`)
+
+**Phase 7 status:** COMPLETE. **Phase 8 status:** Partial (structured logging done; lazy registration + memoization + benchmark infra deferred). **Phase 9 status:** Partial (Biome, deps:check script, and the bin-regression fix done; tsconfig standardization + turbo circular-dep fix deferred as high-risk structural work).
+
+**Next recommended step:** Phase 8 remaining (lazy tool registration / memoization) or Phase 9.4/9.5 (tsconfig standardization; attempt the `turbo run typecheck` circular-dep fix — high risk, attempt `nar`'s `@senars/core` dep as `devDependencies` or a kernel-vs-util split, then verify `pnpm turbo run typecheck` passes without behavior change).
+
+---
+
+### Session 2026-07-17 (later) — Phase 8.3 Benchmark Infra delivered; Phase 10.4 blocked on TS-version divergence
+
+**Changes:**
+- `tests/nar/benchmark-infra.test.ts` — **New file:** 5 additive benchmark scenarios covering the plan's 9.3 targets:
+  - `inference cycle throughput` — `createMinimalNAR()` + `inputTask(createTask(...))` loop (no LM required).
+  - `rule matching throughput` — `RuleProcessor.processSync` (extends existing `benchmark.test.ts` coverage).
+  - `memory bag operations` — `Bag.add` throughput + `peek` sanity.
+  - `serialization round-trip (terms)` — `serializeTerm`/`fromNarsese` loop.
+  - `memory serialize/deserialize` — standalone `serialize(memory)` / `deserialize(state, memory)` (async).
+  - All assertions are generous upper bounds (fail only on gross regression), matching the existing `benchmark.test.ts` convention. Benchmarks are informational (not a gate).
+- `package.json` — Added `bench` script: `vitest run tests/nar/benchmark.test.ts tests/nar/benchmark-infra.test.ts`.
+- `ui/tsconfig.json` — **Attempted** to make `ui` extend `tsconfig.base.json` (plan 10.4). **Reverted:** `ui` resolves TypeScript **5.9.3**, while `core`/`nar`/`io`/`metta`/`util` resolve **7.0.1-rc**. `tsconfig.base.json` declares `lib: ["ESNext","esnext.temporal"]`, which 5.9.3 rejects (`error TS6046`) but 7.0.1-rc accepts. Forcing `ui` to extend base broke `pnpm --filter @senars/ui typecheck`. Kept `ui`'s standalone tsconfig intact — no behavior change.
+
+**Verification:**
+- `1102 passed, 2 skipped` (was 1097/2 — +5 new benchmark tests, no regressions)
+- `pnpm --filter @senars/ui typecheck` — passes (standalone config, unchanged)
+- `pnpm --filter @senars/core typecheck` — passes (7.0.1-rc accepts base lib)
+- `pnpm bench` — runs; all 5 new scenarios pass
+
+**Phase 8 status:** COMPLETE (structured logging + benchmark infrastructure done). **Phase 9 status:** Partial — 10.1 (Biome), 10.2 (`deps:check`), bin-regression fix done; 10.3 (export boundary script) not started; 10.4 (tsconfig standardization) **blocked on TS-version alignment** (`ui` 5.9.3 vs others 7.0.1-rc); 10.5 (`turbo run typecheck` circular dep) deferred as high-risk structural work.
+
+**Discovered dependency-graph facts (for future Phase 10.4/10.5 sessions):**
+- `turbo run typecheck` fails on a workspace-graph cycle: `core → nar → io → core` plus `metta → core`. `dpdm` reports ~303 internal circular imports.
+- `ui` is the odd package out on TypeScript version (5.9.3 vs 7.0.1-rc elsewhere). Any tsconfig standardization must first align `ui`'s TS version or give `ui` a base config with a 5.9.3-compatible `lib`.
+- `nar` imports runtime symbols from `@senars/core` (`cortex`, `motor`, `engine/base`, `command-types`), so moving `@senars/core` to `devDependencies` of `nar` would break runtime — the plan's proposed 10.5 fix needs a kernel-vs-util split, not a mere dependency relabel.
+
+**Next recommended step:** Phase 10.3 (export-boundary verification script) — DONE this session (see below). Phase 8 remaining (lazy tool registration / memoization) assessed as not viable without behavior-change risk — deferred with rationale. 10.4/10.5 require a dedicated, higher-risk session (TS-version alignment + dependency-graph surgery) and should not be attempted alongside other changes.
+
+---
+
+### 2026-07-17 (later) Session — Phase 10.3 Export-Boundary Verification + Phase 4.5.2 Tag Extension
+
+**Phase 10.3 — Export-boundary verification (COMPLETE):**
+- `scripts/verify-exports.ts` — **New file:** dependency-free `tsx` script that iterates every `@senars/*` package's `package.json` `exports` map and asserts each subpath target resolves to a real file on disk (handles `*` wildcard subpaths by resolving the base directory). Catches the "stale/dangling export" regression class (e.g. the prior `core/events`, `ui/agent-bridge` fixes). Exits non-zero on any dangling export, so it is CI-gate-ready.
+- `package.json` — Added `exports:check` script (`tsx scripts/verify-exports.ts`).
+- **Verification:** runs clean — `ok util / core / nar / io / metta / ui`; all subpaths resolve.
+
+**Phase 4.5.2 — `@public` tags extended into `@senars/core` barrel (COMPLETE):**
+- `core/src/index.ts` — Added concise `@public` JSDoc to every primary public runtime export (Agent, AgentBridge, PluginLoader, PolicyEngine, MemoryService, InMemorySessionManager/JsonlSessionManager, BaseEngine, ToolRegistry, FeedbackRegistry, builtin tools, buildAgentTools, LLMCortex, cortex factory, Lifecycle BaseComponent, ModelRunner, ChatService, protocol/graph exports, StatsManager, KnowledgeManager, ApprovalService, Logger, event logs). Deprecated re-export shims already carry `@deprecated` (from prior sessions); this completes the util-first tagging into the consumer-facing `core` surface. Type-only exports left untagged (lower priority per plan).
+
+**Phase 8 remaining — lazy tool registration / memoization (ASSESSED, DEFERRED with rationale):**
+- 9.1 `createAgentDispatch` high `transitive_loop_depth`: the current `io/src/bridge/ConnectionBinder.ts` `createAgentDispatch` is already a thin factory (no eager tool array); `buildAgentTools` (`core/src/motor/buildAgentTools.ts`) is already a lazy factory invoked on demand. No eager top-level tool registration remains to convert — the plan's assumption predates the Phase 3 bridge refactor.
+- 9.2 memoization targets do not match implementation:
+  - `core/src/eventlog/AbstractEventLog.ts:validatePayload` is a pure `switch` over event `type` with inline checks — there are no "validators to compile"; memoization is inapplicable.
+  - `nar/src/terms/truth.ts` truth ops are pure arithmetic; memoizing `(f,c)` pairs adds Map overhead per op for negligible gain and risks subtle divergence.
+  - `nar/src/lm/lm-service.ts` response caching per input hash would mask nondeterminism / change behavior (violates "no behavior change" non-goal).
+- Conclusion: these are better deferred to a dedicated performance session; forcing them risks regressions for no guaranteed benefit.
+
+**Verification:**
+- `1102 passed, 2 skipped` (no regressions from index edits)
+- `pnpm --filter @senars/core typecheck` — passes
+- `pnpm run exports:check` — passes (all 6 packages)
+
+**Plan status after this session:**
+- **Phase 10.3** COMPLETE (export-boundary script + npm script).
+- **Phase 4.5.2** COMPLETE for `@senars/core` (util + core barrels tagged; nar/io barrels remain lower-priority).
+- **Phase 8 (9.1/9.2)** assessed and deferred — not viable as specified without behavior change. 9.3 benchmark infra + 9.4 structured logging were already delivered in prior sessions.
+- **Phase 9.4/9.5 (10.4 tsconfig standardization, 10.5 turbo circular-dep fix)**: still deferred — require a dedicated high-risk session (TypeScript-version alignment `ui` 5.9.3 vs others 7.0.1-rc + kernel-vs-util dependency-graph surgery). Do NOT attempt alongside other changes.
+- **Phase 4.5.1 (uniform `Serializable` contract)**: still deferred — requires redesigning `Memory`/`Bag`/`LinkManager`/`TermLayer`/`NLCache`/`CognitiveParameters`/`LMRules` serialize/deserialize signatures without breaking callers.
+
+**Genuinely remaining work for future sessions (all higher-risk or require dedicated focus):**
+1. Phase 9.4 — Standardize tsconfig across packages (BLOCKED on `ui` TS-version alignment).
+2. Phase 9.5 — Fix `turbo run typecheck` circular dep (BLOCKED on kernel-vs-util split; `nar` imports runtime symbols from `@senars/core`, so merely relabeling to `devDependencies` breaks runtime).
+3. Phase 4.5.1 — Uniform `Serializable` contract for concrete classes (signature changes required; dedicated session).
+
+---
+
+### Session 2026-07-17 (later) — Phase 4.5.2 `@public` tags extended to `nar`/`io` barrels (Complete)
+
+**Changes:**
+- `nar/src/index.ts` — Added concise `@public` JSDoc to every primary public export group (core types, terms, rules, memory, task, reason, NAR class, factory, lifecycle, NL translation, cognitive, LLM service, episodic memory). Matches the `core` barrel tagging style.
+- `io/src/index.ts` — Added `@public` JSDoc to every public export (connections, command registry, bridge binding/middleware, HTTP/WS helpers, connection managers, auth).
+
+**Verification:**
+- `pnpm --filter @senars/nar typecheck` — passes
+- `pnpm --filter @senars/io typecheck` — passes
+- `pnpm test` — `1102 passed, 2 skipped` (no regressions)
+
+**Plan status after this session:**
+- **Phase 4.5.2** COMPLETE — `@public` tags now present in `@senars/util` (Phase 4), `@senars/core` (Phase 10.3 session), and `@senars/nar` + `@senars/io` (this session). The shared-foundation API surface is fully documented. Type-only exports in nar/io left untagged (lower priority per plan; runtime symbols carry the public contract).
+- **Phase 10.3** COMPLETE (export-boundary script + npm script).
+- **Phase 8 (9.1/9.2)** assessed and deferred — not viable as specified without behavior change (see prior session log). 9.3 benchmark infra + 9.4 structured logging delivered.
+- **Phase 9.4 (tsconfig standardization)** + **Phase 9.5 (turbo circular-dep fix)** still deferred — require a dedicated high-risk session (TypeScript-version alignment `ui` 5.9.3 vs others 7.0.1-rc + kernel-vs-util dependency-graph surgery). Do NOT attempt alongside other changes.
+- **Phase 4.5.1 (uniform `Serializable` contract)** still deferred — requires redesigning `Memory`/`Bag`/`LinkManager`/`TermLayer`/`NLCache`/`CognitiveParameters`/`LMRules` serialize/deserialize signatures without breaking callers.
+
+**Genuinely remaining work for future sessions (all higher-risk or require dedicated focus):**
+1. Phase 9.4 — Standardize tsconfig across packages (BLOCKED on `ui` TS-version alignment).
+2. Phase 9.5 — Fix `turbo run typecheck` circular dep (BLOCKED on kernel-vs-util split; `nar` imports runtime symbols from `@senars/core`, so merely relabeling to `devDependencies` breaks runtime).
+3. Phase 4.5.1 — Uniform `Serializable` contract for concrete classes (signature changes required; dedicated session).
+
+---
+
+### 2026-07-17 (final) Session — Phase 9.4 tsconfig standardization + Phase 9.5 turbo circular-dep fix (Complete)
+
+**Approach:** Align every package on the latest TypeScript (7.0.1-rc, matching root) and remove turbo's hard cycle error by dropping unnecessary topological ordering (all packages consume sibling *source* `.ts` via pnpm hoisting, not built `dist`).
+
+**Phase 9.4 — TypeScript version alignment + tsconfig standardization (COMPLETE):**
+- `ui/package.json` — Bumped `typescript` from `^5.9.3` → `7.0.1-rc` (now matches root + other packages). Removes the version divergence that blocked `ui` from extending `tsconfig.base.json`.
+- `ui/tsconfig.json` — Now `extends ../tsconfig.base.json` (was a standalone 5.9.3-only config). Adds `DOM`, `DOM.Iterable` to the base `lib` (frontend needs the DOM) + `experimentalDecorators`, `useDefineForClassFields: false`, `types: ["node"]`. `include`/`exclude` unchanged.
+- `ui/src/client/globals.d.ts` — **New file:** `declare module '*.css';` (Vite CSS side-effect imports need an ambient declaration under TS 7's stricter TS2882 side-effect-import checking).
+- `ui/src/client/spacegraph/spacegraph-app.ts` — **Bug fix surfaced by TS 7:** 9 side-effect imports pointed at `./connection-banner.js` etc. (siblings) but the real components live in `../components/`. Corrected all 9 paths to `../components/...`. (Pre-existing latent broken import that 5.9.3 silently tolerated; files exist, paths were wrong.)
+- `metta/tsconfig.json` — Slimmed to inherit base `noEmit`; removed the emit-specific overrides.
+- `metta/tsconfig.build.json` — **New file:** the emit config (`NodeNext`, `declaration`, `outDir: ./dist`) referenced by `metta`'s `build` script. Splits typecheck (noEmit) from build (emit) per plan 10.4.
+- `metta/package.json` — `build` script now `tsc -p tsconfig.build.json`.
+- Other packages (`util`, `core`, `nar`, `io`) already extended `tsconfig.base.json` — no change needed.
+
+**Phase 9.5 — `turbo run typecheck` circular-dep fix (COMPLETE):**
+- Diagnosis: turbo 2.10 refused to run `typecheck`/`build` because the package graph is cyclic (`core → nar → io → core`, `metta → core → metta`). `turbo` counts both `dependencies` AND `devDependencies` for cycle detection, so merely relabeling deps couldn't help.
+- `core/package.json` — `@senars/nar` and `@senars/metta` moved from `dependencies` → `devDependencies` (accurate: `core` imports them **only as `import type`** — zero runtime imports — verified via grep). More correct dependency typing; does not by itself satisfy turbo but documents the real edge.
+- `turbo.json` — Removed `dependsOn: ["^typecheck"]` from `typecheck` and `dependsOn: ["^build"]` from `build`. This drops turbo's requirement for an acyclic topological order. Safe because **every package's `exports` point to `./src/*.ts` (source), never `dist`** — consumers read sibling source via pnpm-symlinked `node_modules`, so build/typecheck ordering across packages is unnecessary.
+- Result: `pnpm turbo run typecheck` → **6 successful, 6 total** (was a hard cycle error). `pnpm turbo run build` → `metta` builds cleanly.
+
+**Pre-existing, OUT OF SCOPE failure (verified on clean HEAD via `git stash`):**
+- `pnpm --filter @senars/ui build` (`pnpm build:client`, Vite/Rollup) fails with: `../core/src/motor/builtin-tools.ts (8:12): "access" is not exported by "__vite-browser-external"`. This is a Node builtin (`fs.access`) being externalized in the browser bundle — unrelated to tsconfig/import-path changes and untouched by this session. Not addressed (would require Vite `resolve.alias`/polyfill for `fs` in `ui`; separate concern).
+
+**Verification:**
+- `pnpm turbo run typecheck` — 6/6 pass (was a hard cycle error).
+- `pnpm --filter @senars/ui typecheck` — passes (TS 7).
+- `pnpm --filter @senars/metta build` — passes (declarations emitted to `dist`).
+- `pnpm test` — `1102 passed, 2 skipped` (no regressions).
+- `pnpm run exports:check` — passes (all 6 packages).
+- `pnpm run deps:check` — runs (informational ~303 internal circular *imports* via dpdm; the package-graph turbo cycle is resolved).
+
+**Plan status after this session:**
+- **Phase 9.4 (10.4)** COMPLETE — all 6 packages on TS 7.0.1-rc; `ui` + `metta` now extend `tsconfig.base.json`; `metta` has a split `tsconfig.build.json`.
+- **Phase 9.5 (10.5)** COMPLETE — `turbo run typecheck` passes (6/6); package-graph cycle no longer blocks turbo tasks.
+- **Phase 10.1** (Biome `noUnusedImports` warn) — done in prior session.
+- **Phase 10.2** (`deps:check` script) — done in prior session.
+- **Phase 10.3** (export-boundary script) — done in prior session.
+- **Phase 4.5.1** — still deferred (uniform `Serializable` contract; signature redesign required).
+
+**Genuinely remaining work for future sessions (higher-risk / dedicated focus):**
+1. Phase 4.5.1 — Uniform `Serializable` contract for concrete classes (`Memory`/`Bag`/`LinkManager`/`TermLayer`/`NLCache`/`CognitiveParameters`/`LMRules`); signature changes required without breaking callers.
+2. (Optional, separate) Fix `ui` browser build's `fs.access` externalization in Vite config (`resolve.alias` or browser shim) — pre-existing, not a unification task.
+

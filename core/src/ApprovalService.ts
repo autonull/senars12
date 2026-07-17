@@ -1,3 +1,5 @@
+import { createLogger, type LoggerInterface } from './Logger.js';
+
 export interface PendingApproval {
   id: string;
   request: string;
@@ -11,12 +13,7 @@ export interface ApprovalManager {
 
 export interface ApprovalServiceConfig {
   approvalManager?: ApprovalManager;
-  logger?: {
-    debug: (msg: string, ctx?: unknown) => void;
-    info: (msg: string, ctx?: unknown) => void;
-    warn: (msg: string, ctx?: unknown) => void;
-    error: (msg: string, err?: unknown, ctx?: unknown) => void;
-  };
+  logger?: LoggerInterface;
 }
 
 export class ApprovalService {
@@ -32,7 +29,7 @@ export class ApprovalService {
         return [];
       },
     };
-    this.logger = config.logger ?? consoleLogger;
+    this.logger = config.logger ?? createLogger({ scope: 'approval' });
   }
 
   resolveApproval(id: string, approved: boolean, reason?: string): boolean {
@@ -51,11 +48,3 @@ export class ApprovalService {
     return this.approvalManager;
   }
 }
-
-const consoleLogger = {
-  debug: (msg: string, ctx?: unknown) => console.debug(`[approval] ${msg}`, ctx),
-  info: (msg: string, ctx?: unknown) => console.info(`[approval] ${msg}`, ctx),
-  warn: (msg: string, ctx?: unknown) => console.warn(`[approval] ${msg}`, ctx),
-  error: (msg: string, err?: unknown, ctx?: unknown) =>
-    console.error(`[approval] ${msg}`, err, ctx),
-};

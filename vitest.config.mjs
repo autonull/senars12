@@ -77,6 +77,7 @@ export default defineConfig({
       { find: /^@senars\/nar\/utils\/(.*)$/, replacement: resolve(__dirname, './nar/src/utils/$1.ts') },
       { find: /^@senars\/nar\/commands$/, replacement: resolve(__dirname, './nar/src/commands/index.ts') },
       { find: /^@senars\/nar\/commands\/(.*)$/, replacement: resolve(__dirname, './nar/src/commands/$1.ts') },
+      { find: /^@senars\/nar\/events\/(.*)$/, replacement: resolve(__dirname, './nar/src/events/$1.ts') },
       { find: /^@senars\/metta$/, replacement: resolve(__dirname, './metta/src/index.ts') },
       { find: /^@senars\/metta\/agent$/, replacement: resolve(__dirname, './metta/src/agent/index.ts') },
       { find: /^@senars\/metta\/agent\/(.*)$/, replacement: resolve(__dirname, './metta/src/agent/$1.ts') },

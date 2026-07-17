@@ -28,5 +28,7 @@ export const LMRules = Object.freeze({
     createRule(lm, getRuleDef(id), config),
   createAll: (lm: LMService | null, config?: Partial<LMRuleConfig>): LMRule[] =>
     ruleDefs.map((d) => createRule(lm, d, config)),
-  ruleDefs,
+  get ruleDefs() {
+    return ruleDefs;
+  },
 });

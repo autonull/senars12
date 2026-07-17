@@ -84,6 +84,10 @@
       "types": "./src/Agent.ts",
       "import": "./src/Agent.ts"
     },
+    "./agent/phases": {
+      "types": "./src/agent/phases.ts",
+      "import": "./src/agent/phases.ts"
+    },
     "./engine": {
       "types": "./src/engine/Engine.ts",
       "import": "./src/engine/Engine.ts"
@@ -129,11 +133,11 @@
     "better-sqlite3": "^12.11.1",
     "ulid": "^3.0.2",
     "zod": "^4.4.3",
-    "@senars/util": "workspace:*",
-    "@senars/nar": "workspace:*",
-    "@senars/metta": "workspace:*"
+    "@senars/util": "workspace:*"
   },
   "devDependencies": {
+    "@senars/nar": "workspace:*",
+    "@senars/metta": "workspace:*",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.19.19"
   }

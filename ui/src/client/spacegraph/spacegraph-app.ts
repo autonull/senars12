@@ -2,16 +2,16 @@ import { css, html } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { BaseComponent } from '../core/base-component.js';
 import { $connectionState, $graphNodes, $panels, $selectedNodeId } from '../core/index.js';
-import './connection-banner.js';
-import './error-boundary.js';
-import './graph-toolbar.js';
-import './input-hud.js';
-import './config-hud.js';
-import './telemetry-panel.js';
-import './contradiction-badge.js';
-import './chat-history-panel.js';
-import './node-detail-drawer.js';
-import './primitives/empty-state.js';
+import '../components/connection-banner.js';
+import '../components/error-boundary.js';
+import '../components/graph-toolbar.js';
+import '../components/input-hud.js';
+import '../components/config-hud.js';
+import '../components/telemetry-panel.js';
+import '../components/contradiction-badge.js';
+import '../components/chat-history-panel.js';
+import '../components/node-detail-drawer.js';
+import '../components/primitives/empty-state.js';
 import '../spacegraph/spacegraph-viewport.js';
 
 @customElement('spacegraph-app')

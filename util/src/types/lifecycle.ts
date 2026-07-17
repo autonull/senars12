@@ -6,6 +6,8 @@ export interface Logger {
   warn(message: string, context?: Record<string, unknown>): void;
   error(message: string, error?: Error, context?: Record<string, unknown>): void;
   child(scope: string): Logger;
+  warnOnce(key: string, message: string, context?: Record<string, unknown>): void;
+  deprecated(oldSymbol: string, replacement: string, context?: Record<string, unknown>): void;
 }
 
 export interface Metrics {

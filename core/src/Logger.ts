@@ -22,6 +22,8 @@ export interface LoggerInterface {
   warn(message: string, context?: Record<string, unknown>): void;
   error(message: string, error?: Error, context?: Record<string, unknown>): void;
   child(scope: string): LoggerInterface;
+  warnOnce(key: string, message: string, context?: Record<string, unknown>): void;
+  deprecated(oldSymbol: string, replacement: string, context?: Record<string, unknown>): void;
 }
 
 const LOG_LEVELS: LogLevel[] = ['debug', 'info', 'warn', 'error'];
@@ -30,6 +32,7 @@ export class Logger {
   private readonly config: LoggerConfig;
   private readonly parent?: Logger;
   private readonly children: Map<string, Logger> = new Map();
+  private readonly warnedOnce: Set<string> = new Set();
 
   constructor(config: Partial<LoggerConfig> = {}) {
     this.config = {
@@ -67,6 +70,20 @@ export class Logger {
 
   error(message: string, error?: Error, context?: Record<string, any>): void {
     this.log('error', message, context, error);
+  }
+
+  warnOnce(key: string, message: string, context?: Record<string, any>): void {
+    if (this.warnedOnce.has(key)) return;
+    this.warnedOnce.add(key);
+    this.warn(message, context);
+  }
+
+  deprecated(oldSymbol: string, replacement: string, context?: Record<string, any>): void {
+    this.warnOnce(
+      `deprecated:${oldSymbol}`,
+      `deprecated ${oldSymbol}; use ${replacement} instead`,
+      context
+    );
   }
 
   setLevel(level: LogLevel): void {

@@ -86,14 +86,14 @@ export function readIRCConfig(): IRCConfig {
 export function readWSConfig(): WSConfig {
   return {
     enabled: (process.env.ENABLE_WS ?? 'true') !== 'false',
-    port: Number.parseInt(process.env.WS_PORT ?? process.env.SENARS_WS_PORT || '8765', 10),
+    port: Number.parseInt((process.env.WS_PORT ?? process.env.SENARS_WS_PORT) || '8765', 10),
   };
 }
 
 export function readHTTPConfig(): HTTPConfig {
   return {
     enabled: (process.env.ENABLE_HTTP ?? 'false') === 'true',
-    port: Number.parseInt(process.env.HTTP_PORT ?? process.env.SENARS_HTTP_PORT || '3000', 10),
+    port: Number.parseInt((process.env.HTTP_PORT ?? process.env.SENARS_HTTP_PORT) || '3000', 10),
   };
 }
 
