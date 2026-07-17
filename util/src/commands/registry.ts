@@ -1,0 +1,28 @@
+import type { CommandContext, CommandDefinition } from './types.js';
+
+export class CommandRegistry {
+  private readonly _commands: Map<string, CommandDefinition> = new Map();
+
+  get commands(): ReadonlyMap<string, CommandDefinition> {
+    return this._commands;
+  }
+
+  register(cmd: CommandDefinition): void {
+    this._commands.set(cmd.name, cmd);
+    for (const alias of cmd.aliases ?? []) {
+      this._commands.set(alias, cmd);
+    }
+  }
+
+  async execute(name: string, args: string[], context: CommandContext): Promise<string> {
+    const cmd = this._commands.get(name);
+    if (!cmd) {
+      throw new Error(`Unknown command: ${name}`);
+    }
+    return cmd.execute(args, context);
+  }
+
+  get(name: string): CommandDefinition | undefined {
+    return this._commands.get(name);
+  }
+}

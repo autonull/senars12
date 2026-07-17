@@ -1,17 +1,11 @@
 #!/usr/bin/env tsx
-import { createAgent } from '@senars/nar/agent';
-import { SeNARSFactory } from '@senars/nar';
+import { createAgentFromEnv, runAgent } from './lib/lifecycle.js';
 
-const nar = SeNARSFactory.createForTesting({ maxConcepts: 100 });
-const agent = await createAgent({ nar });
+const { agent } = await createAgentFromEnv({
+  narConfig: { maxConcepts: 100 },
+});
 
-await agent.start();
+await runAgent(agent);
 
 console.log('SeNARS running.');
 console.log('UI at http://localhost:8765');
-
-process.on('SIGINT', async () => {
-  console.log('\n\nShutting down...');
-  await agent.stop();
-  process.exit(0);
-});

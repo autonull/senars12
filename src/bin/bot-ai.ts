@@ -20,15 +20,10 @@ import {
   createConnectionConfigsFromEnv,
   bindAgentToConnection,
 } from '@senars/io';
-import { createAgent } from '@senars/nar/agent';
-import { Agent } from '@senars/core';
-import { SeNARSFactory } from '@senars/nar';
-import { createSeNARSRegistry, resolveLMConfig } from '@senars/nar/lm';
+import { resolveLMConfig } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
-import { EpisodicMemory } from '@senars/nar/memory/episodic';
-import { JsonlSessionManager } from '@senars/core/memory';
-import { loadConfigFromEnv } from '../config';
-import { setupGracefulShutdown } from '../utils';
+import { setupGracefulShutdown, createAgentFromEnv } from './lib/lifecycle.js';
+import { readAuthConfig, readEpisodicConfig } from './lib/env-config.js';
 import { assertValidEnv } from '../utils/env-validate.js';
 
 assertValidEnv();
@@ -37,33 +32,14 @@ const logger = createLogger({ scope: 'bot' });
 
 async function main(): Promise<void> {
   await mkdir('.cache/sessions', { recursive: true }).catch(() => undefined);
-  const sessionManager = new JsonlSessionManager({ basePath: '.cache/sessions' });
-  await sessionManager.restore();
-
-  const registry = createSeNARSRegistry();
+  const { agent, sessionManager, episodicMemory } = await createAgentFromEnv();
   const lmConfig = resolveLMConfig();
-  const nar = SeNARSFactory.createDefault({
-    providerRegistry: registry,
-  });
 
-  const episodicMemory = new EpisodicMemory({
-    enabled: true,
-    maxEntriesPerFile: 100,
-    basePath: process.env.EPISODIC_MEMORY_PATH || '.cache/episodes',
-    retentionDays: Number.parseInt(process.env.EPISODIC_RETENTION_DAYS || '30'),
-  });
-
-  const agent = await createAgent({
-    nar,
-    episodicMemory,
-  });
-
+  const authCfg = readAuthConfig();
   const auth = new AuthManager();
-  if (process.env.AUTH_SECRET) {
-    for (const connId of (process.env.AUTH_CONNECTION_IDS ?? 'irc-main,http-main,ws-main').split(
-      ',',
-    )) {
-      auth.setSecret(connId.trim(), process.env.AUTH_SECRET);
+  if (authCfg.secret) {
+    for (const connId of authCfg.connectionIds) {
+      auth.setSecret(connId, authCfg.secret);
     }
   }
 
@@ -140,9 +116,7 @@ async function main(): Promise<void> {
 
   logger.info(`Bot ready: ${configs.length} connection(s)`);
   logger.info(`LM: ${lmConfig.provider} ${lmConfig.model}`);
-  logger.info(
-    `Try: IRC ${process.env.IRC_SERVER ?? 'irc.libera.chat'} #${(process.env.IRC_CHANNELS ?? '#senars').split(',')[0]}, or ws://localhost:${process.env.WS_PORT ?? '8765'}`,
-  );
+  logger.info('Try: IRC senars.libera.chat #senars, or ws://localhost:8765');
 }
 
 main().catch((err) => {

@@ -1,6 +1,9 @@
+import { createLogger } from '../logger/index.js';
 import { OPERATORS } from './operators.js';
 import { termParser } from './parser-peggy.js';
 import type { Term } from './types.js';
+
+const log = createLogger({ scope: 'serialize' });
 
 const NARY_OPS_SET = new Set(
   Object.entries(OPERATORS)
@@ -71,7 +74,7 @@ export const deserializeTerm = (s: string): Term | null => {
   try {
     return termParser.parse(s);
   } catch (e) {
-    console.error('Deserialize failed:', e);
+    log.error('Deserialize failed', e as Error);
     return null;
   }
 };

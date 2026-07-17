@@ -1,6 +1,6 @@
 import { Agent, PluginLoader, createTransportPlugin, createLensPlugin, builtinLensPlugins } from '@senars/core';
 import { describe, expect, it, vi } from 'vitest';
-import type { Connection, ConnectionConfig, ConnectionDeps, TransportRegistry } from '@senars/core';
+import type { Connection, ConnectionConfig, ConnectionDeps, TransportRegistry } from '@senars/util';
 
 function dummyConnection(config: ConnectionConfig, _deps: ConnectionDeps): Connection {
   return {

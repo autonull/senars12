@@ -1,3 +1,11 @@
+/**
+ * Asserts a condition is truthy, throwing an error with the given message if not.
+ * Use for pre/post-condition checks instead of inline `if (!x) throw`.
+ */
+export function invariant(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(message);
+}
+
 export const makeId = (): string => crypto.randomUUID();
 export const isNil = (value: unknown): value is null | undefined => value == null;
 export const ensureArray = <T>(arr: T | T[] | undefined | null): T[] =>

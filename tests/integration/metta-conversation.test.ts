@@ -1,7 +1,7 @@
 import { createAgent } from '@senars/nar/agent';
 import { SeNARSFactory } from '@senars/nar';
 import { describe, expect, it, afterAll, beforeAll } from 'vitest';
-import type { CognitiveEvent } from '@senars/core';
+import type { CognitiveEvent } from '@senars/util';
 
 describe('Core Agent with MettaEngine - Conversational Scenarios', () => {
   let agent: Awaited<ReturnType<typeof createAgent>>;

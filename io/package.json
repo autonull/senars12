@@ -77,6 +77,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@senars/util": "workspace:*",
     "@senars/core": "workspace:*"
   }
 }

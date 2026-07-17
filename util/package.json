@@ -1,0 +1,87 @@
+{
+  "name": "@senars/util",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./types/cognitive": {
+      "types": "./src/types/cognitive.ts",
+      "import": "./src/types/cognitive.ts"
+    },
+    "./types/engine": {
+      "types": "./src/types/engine.ts",
+      "import": "./src/types/engine.ts"
+    },
+    "./types/transport": {
+      "types": "./src/types/transport.ts",
+      "import": "./src/types/transport.ts"
+    },
+    "./types/lifecycle": {
+      "types": "./src/types/lifecycle.ts",
+      "import": "./src/types/lifecycle.ts"
+    },
+    "./types/events": {
+      "types": "./src/types/events.ts",
+      "import": "./src/types/events.ts"
+    },
+    "./types/agent": {
+      "types": "./src/types/agent.ts",
+      "import": "./src/types/agent.ts"
+    },
+    "./types/truth": {
+      "types": "./src/types/truth.ts",
+      "import": "./src/types/truth.ts"
+    },
+    "./types/llm": {
+      "types": "./src/types/llm.ts",
+      "import": "./src/types/llm.ts"
+    },
+    "./types/memory": {
+      "types": "./src/types/memory.ts",
+      "import": "./src/types/memory.ts"
+    },
+    "./errors": {
+      "types": "./src/errors/index.ts",
+      "import": "./src/errors/index.ts"
+    },
+    "./utils/assert": {
+      "types": "./src/utils/assert.ts",
+      "import": "./src/utils/assert.ts"
+    },
+    "./utils/id": {
+      "types": "./src/utils/id.ts",
+      "import": "./src/utils/id.ts"
+    },
+    "./utils/serialization": {
+      "types": "./src/utils/serialization.ts",
+      "import": "./src/utils/serialization.ts"
+    },
+    "./utils/throttle": {
+      "types": "./src/utils/throttle.ts",
+      "import": "./src/utils/throttle.ts"
+    },
+    "./commands": {
+      "types": "./src/commands/index.ts",
+      "import": "./src/commands/index.ts"
+    },
+    "./events": {
+      "types": "./src/events/index.ts",
+      "import": "./src/events/index.ts"
+    },
+    "./memory": {
+      "types": "./src/memory/in-memory-session-manager.ts",
+      "import": "./src/memory/in-memory-session-manager.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.19.19"
+  }
+}

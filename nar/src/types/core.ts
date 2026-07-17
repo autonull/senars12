@@ -136,52 +136,40 @@ export const createSecondaryTask = (
 // Runtime assertion for belief tasks — crash early instead of silently fabricating values
 export function assertBeliefTask(task: Task): asserts task is Task & { truth: TruthType } {
   if (task.type !== 'question' && !task.truth) {
-    throw new NARError(`Bug: ${task.type} task missing truth: ${task.term}`, 'MISSING_TRUTH', {
-      taskType: task.type,
-      term: task.term,
-    });
+    throw new Error(`Bug: ${task.type} task missing truth: ${task.term}`);
   }
 }
 
 // Error types for better error handling
-export class NARError extends Error {
-  constructor(
-    message: string,
-    public readonly code: string,
-    public readonly context?: Record<string, unknown>
-  ) {
-    super(message);
-    this.name = 'NARError';
-  }
-}
+/**
+ * @deprecated Will be removed in next major version.
+ * Use `import { SenarsError } from '@senars/util'` instead.
+ */
+export { SenarsError as NARError } from '@senars/util';
 
-export class ValidationError extends NARError {
-  constructor(message: string, context?: Record<string, unknown>) {
-    super(message, 'VALIDATION_ERROR', context);
-    this.name = 'ValidationError';
-  }
-}
+/**
+ * @deprecated Will be removed in next major version.
+ * Use `import { ValidationError } from '@senars/util'` instead.
+ */
+export { ValidationError } from '@senars/util';
 
-export class ConfigurationError extends NARError {
-  constructor(message: string, context?: Record<string, unknown>) {
-    super(message, 'CONFIGURATION_ERROR', context);
-    this.name = 'ConfigurationError';
-  }
-}
+/**
+ * @deprecated Will be removed in next major version.
+ * Use `import { ConfigurationError } from '@senars/util'` instead.
+ */
+export { ConfigurationError } from '@senars/util';
 
-export class OperationError extends NARError {
-  constructor(message: string, context?: Record<string, unknown>) {
-    super(message, 'OPERATION_ERROR', context);
-    this.name = 'OperationError';
-  }
-}
+/**
+ * @deprecated Will be removed in next major version.
+ * Use `import { OperationError } from '@senars/util'` instead.
+ */
+export { OperationError } from '@senars/util';
 
-export class ToolError extends NARError {
-  constructor(message: string, context?: Record<string, unknown>) {
-    super(message, 'TOOL_ERROR', context);
-    this.name = 'ToolError';
-  }
-}
+/**
+ * @deprecated Will be removed in next major version.
+ * Use `import { ToolError } from '@senars/util'` instead.
+ */
+export { ToolError } from '@senars/util';
 
 // Query filter types
 export interface TermFilter {

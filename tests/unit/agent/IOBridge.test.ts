@@ -25,7 +25,7 @@ import { createMockLMService } from '../../../nar/src/lm';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
 import type { Connection, IOMessage } from '@senars/io';
 import type { NAR } from '@senars/nar';
-import type { Logger } from '@senars/core';
+import type { Logger } from '@senars/util';
 import { createLogger } from '@senars/core';
 
 const scriptedLM = createMockLMService({

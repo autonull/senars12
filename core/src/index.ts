@@ -1,4 +1,9 @@
-export { Agent, type AgentOptions, type HealthStatus, type SkillDefinition, type ParsedCommand, type BridgeOptions } from './Agent.js';
+export { Agent } from './Agent.js';
+
+/**
+ * @deprecated Use `import type { AgentOptions, HealthStatus, SkillDefinition, ParsedCommand, BridgeOptions } from '@senars/util'`
+ */
+export type { AgentOptions, HealthStatus, SkillDefinition, ParsedCommand, BridgeOptions } from '@senars/util';
 export { AgentBridge, type BridgeEvent, type BridgeDelta } from './AgentBridge.js';
 export type { SenarsPlugin, PluginContext, TransportFactory } from './Plugin.js';
 export { PluginLoader, PluginLoadError, type TransportRegistry } from './PluginLoader.js';
@@ -10,10 +15,21 @@ export {
 } from './plugins/index.js';
 export { PolicyEngine, type PolicyRule } from './PolicyEngine.js';
 export { MemoryService } from './memory/MemoryService.js';
-export type { MemoryEntry, MemoryQuery, Episode, ConversationSession, SessionManager, JsonlSessionManagerConfig, AgentToolDeps } from './memory/types.js';
+export type { MemoryEntry, MemoryQuery, Episode, JsonlSessionManagerConfig, AgentToolDeps } from './memory/types.js';
+
+/**
+ * @deprecated Will be removed in next major version.
+ * Use `import type { ConversationSession, SessionManager } from '@senars/util'` instead.
+ */
+export type { ConversationSession, SessionManager } from '@senars/util';
+
 export { InMemorySessionManager, JsonlSessionManager, createSession, abortSession } from './memory/SessionManager.js';
-export type { Engine, EngineId, CognitiveStimulus, Context, Derivation, ToolResult } from './engine/Engine.js';
 export { BaseEngine } from './engine/BaseEngine.js';
+
+/**
+ * @deprecated Use `import type { Engine, EngineId, CognitiveStimulus, Context, Derivation, ToolResult } from '@senars/util'`
+ */
+export type { Engine, EngineId, CognitiveStimulus, Context, Derivation, ToolResult } from '@senars/util';
 export { ToolRegistry, type ToolSpec, type ToolFn, type SkillFeedback } from './motor/ToolRegistry.js';
 export { FeedbackRegistry, type FeedbackEntry } from './feedback/FeedbackRegistry.js';
 export { BUILTIN_TOOLS, registerBuiltinTools, type CmdArgSet } from './motor/builtin-tools.js';
@@ -22,25 +38,23 @@ export { LLMCortex, type CortexSynthesizeRequest, type CortexSynthesizeResponse,
 export { createCortexFromLM } from './cortex/createCortexFromLM.js';
 export { isNarsese } from './helpers.js';
 
-export {
-  BaseComponent,
-  type ComponentState,
-  type ComponentContext,
-  type Metrics,
-  type EventBus,
-} from './Lifecycle.js';
-export type { CognitiveEvent, CognitiveEventBase, EngineOrigin } from './CognitiveEvent.js';
-export { isNarEvent, isMettaEvent, isEventType } from './CognitiveEvent.js';
-export type {
-  Connection,
-  ConnectionState,
-  ConnectionFactory,
-  ConnectionConfig,
-  ConnectionDeps,
-  TransportDeps,
-  IOMessage,
-  MessageClassification,
-} from './Transport.js';
+export { BaseComponent } from './Lifecycle.js';
+
+/**
+ * @deprecated Use `import type { ComponentState, ComponentContext, Metrics, EventBus } from '@senars/util'`
+ */
+export type { ComponentState, ComponentContext, Metrics, EventBus } from '@senars/util';
+
+/**
+ * @deprecated Use `import type { CognitiveEvent, CognitiveEventBase, EngineOrigin } from '@senars/util'` and runtime `isNarEvent, isMettaEvent, isEventType` from `@senars/util`
+ */
+export type { CognitiveEvent, CognitiveEventBase, EngineOrigin } from '@senars/util';
+export { isNarEvent, isMettaEvent, isEventType } from '@senars/util';
+
+/**
+ * @deprecated Use `import type { Connection, ConnectionState, ConnectionFactory, ConnectionConfig, ConnectionDeps, TransportDeps, IOMessage, MessageClassification } from '@senars/util'`
+ */
+export type { Connection, ConnectionState, ConnectionFactory, ConnectionConfig, ConnectionDeps, TransportDeps, IOMessage, MessageClassification } from '@senars/util';
 export { ConnectionError } from './Transport.js';
 export type {
   ToolCall,

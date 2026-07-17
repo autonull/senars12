@@ -4,6 +4,7 @@ packages:
   - 'nar'
   - 'ui'
   - 'metta'
+  - 'util'
 
 allowBuilds:
   '@biomejs/biome': true

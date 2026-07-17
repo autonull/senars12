@@ -18,6 +18,15 @@ export interface RegisteredRule {
   truthFn?: TruthFn;
 }
 
+export interface RuleDef {
+  readonly id: string;
+  readonly description: string;
+  readonly pattern: [Term['kind'], Term['kind']];
+  readonly build: RuleFn;
+  readonly truth: keyof typeof Truth;
+  readonly priority: number;
+}
+
 export const RuleRegistry = {
   rules: new Map<string, RegisteredRule>(),
   register(rule: RegisteredRule): void {

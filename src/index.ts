@@ -32,7 +32,7 @@ export type {
   ConnectionDeps,
   ConnectionFactory,
   IOMessage,
-} from '@senars/core';
+} from '@senars/util';
 export {
   ConnectionManager,
   MessageRouter,
@@ -71,7 +71,7 @@ export type {
   CommandHandler,
   CommandContext,
 } from '@senars/io';
-export { ConnectionError as ConnError } from '@senars/core';
+export { ConnectionError as ConnError } from '@senars/util';
 
 export const VERSION = '1.0.0';
 export const NAME = 'senars12';

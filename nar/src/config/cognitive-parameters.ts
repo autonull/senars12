@@ -1,3 +1,7 @@
+import { createLogger } from '../logger/index.js';
+
+const log = createLogger({ scope: 'cognitive-params' });
+
 /**
  * Cognitive Architecture Parameters
  *
@@ -276,7 +280,7 @@ export function validateParameters(params: Partial<CognitiveParameters>): {
   }
 
   if (params.lm?.selectionStrategy) {
-    console.warn(
+    log.warn(
       'selectionStrategy in LMConfig is deprecated. Use strategies.lmRule.type instead.'
     );
   }

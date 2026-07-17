@@ -1,4 +1,5 @@
 import type { CommandDefinition } from './registry.js';
+import type { ConnectionManager } from '../connection-manager.js';
 
 export const connectionCommands: CommandDefinition[] = [
   {
@@ -7,7 +8,7 @@ export const connectionCommands: CommandDefinition[] = [
     description: 'Show all connections',
     usage: '/connections',
     execute: async (_args, ctx) => {
-      const m = ctx.manager;
+      const m = ctx.manager as ConnectionManager | undefined;
       if (!m) return 'Connection manager not configured';
       const connections = m.getConnections();
       if (connections.size === 0) return 'No active connections';
@@ -24,7 +25,7 @@ export const connectionCommands: CommandDefinition[] = [
     usage: '/connect <id> <type> [config...]',
     execute: async (args, ctx) => {
       if (args.length < 2) return 'Usage: /connect <id> <type> [config...]';
-      const m = ctx.manager;
+      const m = ctx.manager as ConnectionManager | undefined;
       if (!m) return 'Connection manager not configured';
       const [id, type, ...configParts] = args;
       const config = Object.fromEntries(
@@ -60,7 +61,7 @@ export const connectionCommands: CommandDefinition[] = [
     usage: '/disconnect <id>',
     execute: async (args, ctx) => {
       if (args.length < 1) return 'Usage: /disconnect <id>';
-      const m = ctx.manager;
+      const m = ctx.manager as ConnectionManager | undefined;
       if (!m) return 'Connection manager not configured';
       await m.removeConnection(args[0]!);
       return `Connection ${args[0]} removed`;
@@ -73,7 +74,7 @@ export const connectionCommands: CommandDefinition[] = [
     usage: '/enable <id>',
     execute: async (args, ctx) => {
       if (args.length < 1) return 'Usage: /enable <id>';
-      const m = ctx.manager;
+      const m = ctx.manager as ConnectionManager | undefined;
       if (!m) return 'Connection manager not configured';
       await m.enableConnection(args[0]!);
       return `Connection ${args[0]} enabled`;
@@ -86,7 +87,7 @@ export const connectionCommands: CommandDefinition[] = [
     usage: '/disable <id>',
     execute: async (args, ctx) => {
       if (args.length < 1) return 'Usage: /disable <id>';
-      const m = ctx.manager;
+      const m = ctx.manager as ConnectionManager | undefined;
       if (!m) return 'Connection manager not configured';
       await m.disableConnection(args[0]!);
       return `Connection ${args[0]} disabled`;
@@ -99,7 +100,7 @@ export const connectionCommands: CommandDefinition[] = [
     usage: '/reconnect <id>',
     execute: async (args, ctx) => {
       if (args.length < 1) return 'Usage: /reconnect <id>';
-      const m = ctx.manager;
+      const m = ctx.manager as ConnectionManager | undefined;
       if (!m) return 'Connection manager not configured';
       await m.reconnectConnection(args[0]!);
       return `Connection ${args[0]} reconnected`;

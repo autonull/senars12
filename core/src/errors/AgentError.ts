@@ -1,41 +1,35 @@
-export class AgentError extends Error {
-  constructor(message: string, public readonly code: string, options?: ErrorOptions) {
-    super(message, options);
-    this.name = 'AgentError';
-  }
-}
+/**
+ * @deprecated Will be removed in next major version.
+ * Use `import { SenarsError as AgentError } from '@senars/util'` instead.
+ */
+export { SenarsError as AgentError } from '@senars/util';
 
-export class EngineError extends AgentError {
-  constructor(public readonly engineId: string, message: string, options?: ErrorOptions) {
-    super(message, `ENGINE_${engineId.toUpperCase()}`, options);
-    this.name = 'EngineError';
-  }
-}
+/**
+ * @deprecated Will be removed in next major version.
+ * Use `import { EngineError } from '@senars/util'` instead.
+ */
+export { EngineError } from '@senars/util';
 
-export class ToolError extends AgentError {
-  constructor(public readonly toolName: string, message: string, options?: ErrorOptions) {
-    super(message, `TOOL_${toolName.toUpperCase()}`, options);
-    this.name = 'ToolError';
-  }
-}
+/**
+ * @deprecated Will be removed in next major version.
+ * Use `import { ToolError } from '@senars/util'` instead.
+ */
+export { ToolError } from '@senars/util';
 
-export class PolicyViolation extends AgentError {
-  constructor(public readonly command: string, reason: string, options?: ErrorOptions) {
-    super(reason, 'POLICY_VIOLATION', options);
-    this.name = 'PolicyViolation';
-  }
-}
+/**
+ * @deprecated Will be removed in next major version.
+ * Use `import { PolicyViolation } from '@senars/util'` instead.
+ */
+export { PolicyViolation } from '@senars/util';
 
-export class ConfigError extends AgentError {
-  constructor(message: string, public readonly path?: string, options?: ErrorOptions) {
-    super(message, 'CONFIG_ERROR', options);
-    this.name = 'ConfigError';
-  }
-}
+/**
+ * @deprecated Will be removed in next major version.
+ * Use `import { ConfigError } from '@senars/util'` instead.
+ */
+export { ConfigError } from '@senars/util';
 
-export class TransportError extends AgentError {
-  constructor(public readonly transportId: string, message: string, options?: ErrorOptions) {
-    super(message, `TRANSPORT_${transportId.toUpperCase()}`, options);
-    this.name = 'TransportError';
-  }
-}
+/**
+ * @deprecated Will be removed in next major version.
+ * Use `import { TransportError } from '@senars/util'` instead.
+ */
+export { TransportError } from '@senars/util';

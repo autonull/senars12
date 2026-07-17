@@ -1,10 +1,10 @@
 import { BaseComponent as CoreBaseComponent } from '@senars/core';
-import type { ComponentContext as CoreComponentContext } from '@senars/core';
+import type { ComponentContext as CoreComponentContext, ComponentState } from '@senars/util';
 import { type Logger, createLogger } from '../logger';
 import { MetricsCollector } from '../metrics';
 import { EventBus as NarEventBus } from '../types/events.js';
 
-export type { ComponentState } from '@senars/core';
+export type { ComponentState };
 export type { CoreComponentContext as ComponentContext };
 
 export abstract class BaseComponent extends CoreBaseComponent {

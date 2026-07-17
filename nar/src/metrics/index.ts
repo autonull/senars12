@@ -75,7 +75,7 @@ function aggregateStats(currentAvg: number, count: number, value: number): numbe
   return count > 0 ? (currentAvg * (count - 1) + value) / count : value;
 }
 
-import type { Metrics as CoreMetrics } from '@senars/core';
+import type { Metrics as CoreMetrics } from '@senars/util';
 
 export class MetricsCollector implements CoreMetrics {
   private startTime: number = Date.now();

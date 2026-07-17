@@ -63,6 +63,7 @@
   },
   "dependencies": {
     "@js-temporal/polyfill": "^0.5.1",
+    "@senars/util": "workspace:*",
     "@senars/core": "workspace:*",
     "@senars/io": "workspace:*",
     "ulid": "^3.0.2",

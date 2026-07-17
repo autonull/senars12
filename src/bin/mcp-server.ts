@@ -3,12 +3,15 @@
  * Runs the SeNARS MCP Server with NAR tools registered
  */
 
-import { createAgent } from '@senars/nar/agent';
 import { z } from 'zod';
 import { SeNARSFactory } from '@senars/nar';
+import { createLogger } from '@senars/nar/logger';
 import { SeNARSMCPServer } from '../api/mcp-server.js';
 import { registerAgentAPI, registerNARToolsAsMCP } from '../api/mcp-tools.js';
 import { loadConfig } from '../config';
+import { createAgentFromEnv } from './lib/lifecycle.js';
+
+const logger = createLogger({ scope: 'mcp' });
 
 const config = {
   name: 'senars-mcp',
@@ -18,19 +21,15 @@ const config = {
 
 const server = new SeNARSMCPServer(config);
 
-// Initialize NAR and Agent for tool registration
 async function initialize() {
   const appConfig = await loadConfig();
   const nar = SeNARSFactory.createDefault(appConfig);
-  const agent = createAgent({ nar });
+  const { agent } = await createAgentFromEnv();
 
-  // Register NAR tools
   registerNARToolsAsMCP(nar, server.getAdapter());
-  // Register Agent API tools
   registerAgentAPI(agent, server.getAdapter());
 
-  // Register legacy tools
-  const registry = server.getAdapter()['registry'];
+  const registry = (server.getAdapter() as Record<string, unknown>).registry;
   registry.register('get_beliefs', {
     description: 'Get all beliefs from NAR memory',
     params: z.object({}),
@@ -46,25 +45,24 @@ async function initialize() {
   });
 
   await server.start();
-  console.error('SeNARS MCP Server started on stdio');
+  logger.info('SeNARS MCP Server started on stdio');
   const tools = server.getAdapter().getTools().map((t) => t.name).join(', ');
-  console.error('Tools registered:', tools);
+  logger.info(`Tools registered: ${tools}`);
 }
 
 initialize().catch((err) => {
-  console.error('Failed to start MCP server:', err);
+  logger.error('Failed to start MCP server', err as Error);
   process.exit(1);
 });
 
-// Handle graceful shutdown
 process.on('SIGINT', async () => {
-  console.error('Shutting down...');
+  logger.info('Shutting down...');
   await server.stop();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.error('Shutting down...');
+  logger.info('Shutting down...');
   await server.stop();
   process.exit(0);
 });

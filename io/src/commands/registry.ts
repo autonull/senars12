@@ -1,44 +1,15 @@
 import type { ConnectionManager } from '../connection-manager.js';
 import type { Connection } from '../types.js';
 
+/**
+ * @deprecated Will be removed in next major version.
+ * Use `import { CommandRegistry, type CommandHandler, type CommandDefinition } from '@senars/util'` instead.
+ * io-specific CommandContext with ConnectionManager kept locally for type safety.
+ */
+export { CommandRegistry } from '@senars/util';
+export type { CommandHandler, CommandDefinition } from '@senars/util';
+
 export interface CommandContext {
   readonly connection: Connection;
   readonly manager?: ConnectionManager;
-}
-
-export type CommandHandler = (args: string[], context: CommandContext) => Promise<string>;
-
-export interface CommandDefinition {
-  readonly name: string;
-  readonly description: string;
-  readonly usage: string;
-  readonly aliases?: string[];
-  execute: CommandHandler;
-}
-
-export class CommandRegistry {
-  private readonly _commands: Map<string, CommandDefinition> = new Map();
-
-  get commands(): ReadonlyMap<string, CommandDefinition> {
-    return this._commands;
-  }
-
-  register(cmd: CommandDefinition): void {
-    this._commands.set(cmd.name, cmd);
-    for (const alias of cmd.aliases ?? []) {
-      this._commands.set(alias, cmd);
-    }
-  }
-
-  async execute(name: string, args: string[], context: CommandContext): Promise<string> {
-    const cmd = this._commands.get(name);
-    if (!cmd) {
-      throw new Error(`Unknown command: ${name}`);
-    }
-    return cmd.execute(args, context);
-  }
-
-  get(name: string): CommandDefinition | undefined {
-    return this._commands.get(name);
-  }
 }

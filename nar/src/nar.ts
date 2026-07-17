@@ -12,6 +12,7 @@ import type { Concept } from './memory';
 import { Memory } from './memory';
 import { WorkingMemory } from './memory/WorkingMemory.js';
 import { MetricsCollector } from './metrics';
+export { MetricsCollector } from './metrics';
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';

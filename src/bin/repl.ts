@@ -1,231 +1,17 @@
 #!/usr/bin/env tsx
 import { createInterface } from 'node:readline';
-import { type CLICommand, QUIT_SENTINEL } from '@senars/io/connections/cli';
-import { JsonlSessionManager, type ConversationSession } from '@senars/core/memory';
-import { createAgent, type Agent } from '@senars/nar/agent';
-import type { NAR } from '@senars/nar';
-import { SeNARSFactory } from '@senars/nar';
-import { createLMService, createSeNARSRegistry, formatLMConfig, resolveLMConfig } from '@senars/nar/lm';
+import { QUIT_SENTINEL, type CLICommand } from '@senars/io/connections/cli';
+import type { ConversationSession } from '@senars/core/memory';
+import type { Agent } from '@senars/nar/agent';
+import { formatLMConfig, resolveLMConfig } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
-import { EpisodicMemory } from '@senars/nar/memory/episodic';
-import { DEFAULT_NAR_CONFIG, loadConfigFromEnv } from '../config';
+import { buildCommands } from '../cli/commands.js';
+import { createAgentFromEnv } from './lib/lifecycle.js';
 import { assertValidEnv } from '../utils/env-validate.js';
 
 assertValidEnv();
 
 const logger = createLogger({ scope: 'repl' });
-
-const HELP = `
-SeNARS REPL - Neuro-Symbolic Reasoning CLI
-============================================
-
-Commands:
-  .help        - Show this help
-  .quit        - Exit the REPL
-  .stats       - NAR and LM statistics
-  .beliefs     - List NAR beliefs (with truth values)
-  .concepts    - List NAR concepts (with priority)
-  .attention   - Attention focus report
-  .episodes    - List recent episodes (use [n] to limit)
-  .know [k] [v]  Get/set/list knowledge
-  .recall [q]  - Search episodic memory
-  .throttle [n]  Get/set reasoning throttle (0-100%)
-  .status      - Agent + NAR + LM status
-  .clear       - Clear screen
-
-Just type natural language to chat, or Narsese to feed NAR directly!
-`;
-
-const buildCommands = (
-  nar: NAR,
-  agent: Agent,
-  lmService: ReturnType<typeof createLMService>,
-  sessionManager: JsonlSessionManager,
-  getSession: () => ConversationSession,
-  setSession: (s: ConversationSession) => void
-): CLICommand[] => [
-  { name: 'help', description: 'Show help', execute: () => HELP },
-  { name: 'quit', description: 'Exit the REPL', execute: () => QUIT_SENTINEL },
-  {
-    name: 'stats',
-    description: 'Show NAR and LM statistics',
-    execute: () => {
-      const stats = nar.getStatistics();
-      const lmStats = lmService.getStats();
-      return [
-        '\n--- NAR Statistics ---',
-        `Concepts: ${stats.totalConcepts}`,
-        `Tasks: ${stats.totalTasks}`,
-        '\n--- LM Statistics ---',
-        `Provider: ${lmService.provider ?? 'unknown'}`,
-        `Model:    ${lmService.model ?? 'unknown'}`,
-        ...(lmStats
-          ? [
-              `Total calls: ${lmStats.totalCalls}`,
-              `Successful:  ${lmStats.successfulCalls}`,
-              `Failed:      ${lmStats.failedCalls}`,
-              `Avg duration: ${lmStats.averageDuration.toFixed(2)}ms`,
-            ]
-          : ['(no stats available)']),
-      ].join('\n');
-    },
-  },
-  {
-    name: 'beliefs',
-    description: 'Show current beliefs',
-    execute: () => {
-      const beliefs = nar.getBeliefs();
-      const lines = [`\n--- ${beliefs.length} Belief(s) ---`];
-      for (const b of beliefs.slice(0, 20)) {
-        const termStr = b.term?.toString?.() ?? String(b.term);
-        const truth = b.truth ? ` f=${b.truth.f.toFixed(2)} c=${b.truth.c.toFixed(2)}` : '';
-        lines.push(`  ${termStr}${truth}`);
-      }
-      if (beliefs.length > 20) lines.push(`  ... and ${beliefs.length - 20} more`);
-      return lines.join('\n');
-    },
-  },
-  {
-    name: 'concepts',
-    description: 'Show active concepts',
-    execute: () => {
-      const concepts = nar.listConcepts();
-      const lines = [`\n--- ${concepts.length} Concept(s) ---`];
-      for (const c of concepts.slice(0, 20)) {
-        lines.push(`  ${c.term}: priority=${c.priority.toFixed(2)}`);
-      }
-      if (concepts.length > 20) lines.push(`  ... and ${concepts.length - 20} more`);
-      return lines.join('\n');
-    },
-  },
-  {
-    name: 'attention',
-    description: 'Attention focus report',
-    execute: () => {
-      const attn = nar.attentionReport();
-      const lines = [`\n--- Attention (${attn.total} total) ---`];
-      for (const c of attn.concepts.slice(0, 20)) {
-        lines.push(`  ${c.term} (p=${c.priority.toFixed(2)})`);
-      }
-      return lines.join('\n');
-    },
-  },
-  {
-    name: 'episodes',
-    description: 'List recent episodes',
-    execute: async (args) => {
-      const limit = Number.parseInt(args) || 10;
-      const episodes = await agent.recall(undefined, limit);
-      const lines = [`\n--- ${episodes.length} Recent Episode(s) ---`];
-      for (const e of episodes) {
-        const preview = e.content.length > 60 ? `${e.content.slice(0, 59)}...` : e.content;
-        lines.push(`  [${e.type}] ${preview}`);
-      }
-      return lines.join('\n');
-    },
-  },
-  {
-    name: 'know',
-    description: 'Get/set/list knowledge',
-    execute: (args) => {
-      const parts = args.trim().split(/\s+/);
-      if (!parts[0]) {
-        const entries = agent.knowList();
-        if (!entries.length) return '\n  (empty)';
-        const lines = [`\n--- ${entries.length} Knowledge Entry/Entries ---`];
-        for (const { key, value } of entries) {
-          const preview = value.length > 60 ? `${value.slice(0, 59)}...` : value;
-          lines.push(`  ${key}: ${preview}`);
-        }
-        return lines.join('\n');
-      }
-      if (parts.length === 1) {
-        const value = agent.knowGet(parts[0]);
-        return value !== undefined ? `${parts[0]}: ${value}` : `Key not found: ${parts[0]}`;
-      }
-      const key = parts[0];
-      const value = parts.slice(1).join(' ');
-      agent.know(key, value);
-      return `Stored: ${key}`;
-    },
-  },
-  {
-    name: 'recall',
-    description: 'Search episodic memory',
-    execute: async (args) => {
-      const episodes = await agent.recall(args.trim() || undefined);
-      const lines = [`\n--- ${episodes.length} Episode(s) ---`];
-      for (const e of episodes) {
-        const preview = e.content.length > 60 ? `${e.content.slice(0, 59)}...` : e.content;
-        lines.push(`  [${e.type}] ${preview}`);
-      }
-      return lines.join('\n');
-    },
-  },
-  {
-    name: 'sessions',
-    description: 'List saved sessions',
-    execute: async () => {
-      const sessions = sessionManager.size();
-      return `\n--- ${sessions} Session(s) ---`;
-    },
-  },
-  {
-    name: 'session',
-    description: 'Switch or create session',
-    execute: async (args) => {
-      const key = args.trim() || 'default';
-      const session = sessionManager.getOrCreate(key);
-      setSession(session);
-      return `Switched to session: ${key} (${session.history.length} messages)`;
-    },
-  },
-  {
-    name: 'throttle',
-    description: 'Get/set reasoning throttle',
-    execute: (args) => {
-      const n = Number.parseInt(args);
-      if (Number.isNaN(n)) return `Throttle: ${agent.getThrottle()}%`;
-      agent.setThrottle(n);
-      return `Throttle set to ${agent.getThrottle()}%`;
-    },
-  },
-  {
-    name: 'status',
-    description: 'Agent and NAR status',
-    execute: () => {
-      const stats = nar.getStatistics();
-      const lmStats = lmService.getStats();
-      const lines = [
-        '\n--- Agent Status ---',
-        `Throttle: ${agent.getThrottle()}%`,
-        '\n--- NAR ---',
-        `Concepts: ${stats.totalConcepts}`,
-        `Tasks: ${stats.totalTasks}`,
-        '\n--- LM ---',
-        `Provider: ${lmService.provider ?? 'unknown'}`,
-        `Model: ${lmService.model ?? 'unknown'}`,
-      ];
-      if (lmStats) {
-        lines.push(
-          `Calls: ${lmStats.totalCalls} (${lmStats.successfulCalls} ok, ${lmStats.failedCalls} fail)`
-        );
-        lines.push(`Avg: ${lmStats.averageDuration.toFixed(0)}ms`);
-      }
-      const knowledge = agent.knowList();
-      lines.push('\n--- Knowledge ---', `${knowledge.length} entries`);
-      return lines.join('\n');
-    },
-  },
-  {
-    name: 'clear',
-    description: 'Clear screen',
-    execute: () => {
-      console.clear();
-      return '';
-    },
-  },
-];
 
 async function readlineLoop(args: {
   prompt: string;
@@ -288,38 +74,14 @@ async function main() {
   console.log(formatLMConfig(lmConfig));
   console.log('=================================\n');
 
-  const registry = createSeNARSRegistry();
-  const lmService = createLMService();
-  const nar = SeNARSFactory.createDefault({
-    ...DEFAULT_NAR_CONFIG,
-    providerRegistry: registry,
-    lmService,
-  });
-
-  const episodicMemory = new EpisodicMemory({
-    enabled: true,
-    maxEntriesPerFile: 100,
-    basePath: process.env.EPISODIC_MEMORY_PATH || '.cache/episodes',
-    retentionDays: Number.parseInt(process.env.EPISODIC_RETENTION_DAYS || '30'),
-  });
-
-  // Create and restore session manager
-  const sessionManager = new JsonlSessionManager({ basePath: '.cache/sessions' });
-  await sessionManager.restore();
+  const { nar, agent, sessionManager, lmService } = await createAgentFromEnv();
   let currentSession = sessionManager.getOrCreate('default');
-
-  const agent = await createAgent({
-    nar,
-    lmService,
-    episodicMemory,
-  });
 
   console.log('\n╔══════════════════════════════════════════════════╗');
   console.log('║ SeNARS REPL - Neuro-Symbolic Reasoning CLI    ║');
   console.log('╚══════════════════════════════════════════════════╝\n');
   console.log('Type .help for commands, or just chat!\n');
 
-  // Build commands with session manager reference
   const getSession = () => currentSession;
   const setSession = (s: ConversationSession) => {
     currentSession = s;

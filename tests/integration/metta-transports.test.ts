@@ -3,7 +3,7 @@ import { SeNARSFactory } from '@senars/nar';
 import { WSConnection } from '@senars/io/connections/ws';
 import { CLIConnection } from '@senars/io/connections/cli';
 import { describe, expect, it, afterAll, beforeAll, vi } from 'vitest';
-import type { ConnectionConfig, ConnectionDeps, CognitiveEvent } from '@senars/core';
+import type { ConnectionConfig, ConnectionDeps, CognitiveEvent } from '@senars/util';
 
 const noopLogger = {
   debug: () => {},

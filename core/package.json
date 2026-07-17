@@ -16,18 +16,6 @@
       "types": "./src/eventlog/SqliteEventLog.ts",
       "import": "./src/eventlog/SqliteEventLog.ts"
     },
-    "./events": {
-      "types": "./src/events/EventTypes.ts",
-      "import": "./src/events/EventTypes.ts"
-    },
-    "./projections": {
-      "types": "./src/events/Projections.ts",
-      "import": "./src/events/Projections.ts"
-    },
-    "./fact-projection": {
-      "types": "./src/events/FactProjection.ts",
-      "import": "./src/events/FactProjection.ts"
-    },
     "./config": {
       "types": "./src/config/Config.ts",
       "import": "./src/config/Config.ts"
@@ -105,8 +93,12 @@
       "import": "./src/engine/BaseEngine.ts"
     },
     "./agent-bridge": {
-      "types": "./src/AgentBridge.ts",
-      "import": "./src/AgentBridge.ts"
+      "types": "./src/bridge/AgentBridge.ts",
+      "import": "./src/bridge/AgentBridge.ts"
+    },
+    "./bridge/chat-stream-handler": {
+      "types": "./src/bridge/ChatStreamHandler.ts",
+      "import": "./src/bridge/ChatStreamHandler.ts"
     },
     "./memory": {
       "types": "./src/memory/index.ts",
@@ -137,6 +129,7 @@
     "better-sqlite3": "^12.11.1",
     "ulid": "^3.0.2",
     "zod": "^4.4.3",
+    "@senars/util": "workspace:*",
     "@senars/nar": "workspace:*",
     "@senars/metta": "workspace:*"
   },

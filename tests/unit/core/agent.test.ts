@@ -1,5 +1,5 @@
 import { Agent } from '@senars/core';
-import type { CognitiveStimulus, Engine } from '@senars/core';
+import type { CognitiveStimulus, Engine } from '@senars/util';
 import { describe, expect, it, vi } from 'vitest';
 
 function mockEngine(id: string): Engine {
