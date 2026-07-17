@@ -1,4 +1,4 @@
-export { Agent, type AgentOptions, type HealthStatus, type SkillDefinition, type ParsedCommand } from './Agent.js';
+export { Agent, type AgentOptions, type HealthStatus, type SkillDefinition, type ParsedCommand, type BridgeOptions } from './Agent.js';
 export { AgentBridge, type BridgeEvent, type BridgeDelta } from './AgentBridge.js';
 export type { SenarsPlugin, PluginContext, TransportFactory } from './Plugin.js';
 export { PluginLoader, PluginLoadError, type TransportRegistry } from './PluginLoader.js';
@@ -10,11 +10,17 @@ export {
 } from './plugins/index.js';
 export { PolicyEngine, type PolicyRule } from './PolicyEngine.js';
 export { MemoryService } from './memory/MemoryService.js';
-export type { MemoryEntry, MemoryQuery } from './memory/types.js';
+export type { MemoryEntry, MemoryQuery, Episode, ConversationSession, SessionManager, JsonlSessionManagerConfig, AgentToolDeps } from './memory/types.js';
+export { InMemorySessionManager, JsonlSessionManager, createSession, abortSession } from './memory/SessionManager.js';
 export type { Engine, EngineId, CognitiveStimulus, Context, Derivation, ToolResult } from './engine/Engine.js';
+export { BaseEngine } from './engine/BaseEngine.js';
 export { ToolRegistry, type ToolSpec, type ToolFn, type SkillFeedback } from './motor/ToolRegistry.js';
+export { FeedbackRegistry, type FeedbackEntry } from './feedback/FeedbackRegistry.js';
 export { BUILTIN_TOOLS, registerBuiltinTools, type CmdArgSet } from './motor/builtin-tools.js';
+export { buildAgentTools } from './motor/buildAgentTools.js';
 export { LLMCortex, type CortexSynthesizeRequest, type CortexSynthesizeResponse, type PromptBuilder } from './cortex/LLMCortex.js';
+export { createCortexFromLM } from './cortex/createCortexFromLM.js';
+export { isNarsese } from './helpers.js';
 
 export {
   BaseComponent,
@@ -105,9 +111,5 @@ export { LENS_COLORS_HEX, LENS_LABELS, CONNECTION_COLORS, LENS_DESCRIPTIONS, EDG
 
 export type { EventLog, EventLogConfig, EventLogError, SqliteEventLogConfig } from './eventlog/index.js';
 export { InMemoryEventLog, SqliteEventLog } from './eventlog/index.js';
-export type { CognitiveEvent as NewCognitiveEvent } from './events/EventTypes.js';
-export { validatePayload, PayloadSchemas } from './events/EventTypes.js';
-export { projectGraph, projectChat, projectLens } from './events/Projections.js';
-export { projectFact, type UnifiedFact } from './events/FactProjection.js';
 export type { ConfigView, ConfigEvent, ConfigSchema } from './config/Config.js';
 export { ConfigViewImpl } from './config/ConfigView.js';

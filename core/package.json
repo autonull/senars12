@@ -108,6 +108,14 @@
       "types": "./src/memory/index.ts",
       "import": "./src/memory/index.ts"
     },
+    "./motor": {
+      "types": "./src/motor/index.ts",
+      "import": "./src/motor/index.ts"
+    },
+    "./cortex": {
+      "types": "./src/cortex/index.ts",
+      "import": "./src/cortex/index.ts"
+    },
     "./plugin": {
       "types": "./src/Plugin.ts",
       "import": "./src/Plugin.ts"
@@ -124,7 +132,9 @@
     "ai": "^7.0.2",
     "better-sqlite3": "^12.11.1",
     "ulid": "^3.0.2",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@senars/nar": "workspace:*",
+    "@senars/metta": "workspace:*"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

@@ -84,7 +84,7 @@ export class MemoryService {
           return true;
         })
         .map((e) => ({
-          id: e.id,
+          id: e.id ?? `event-${e.timestamp}`,
           type: e.type,
           payload: e.payload,
           timestamp: e.timestamp,

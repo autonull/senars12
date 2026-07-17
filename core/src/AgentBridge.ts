@@ -84,8 +84,9 @@ export class AgentBridge {
   }
 
   #project(event: CognitiveEvent): BridgeEvent | null {
-    if (event.type === 'derivation') {
-      const nodeId = event.term ? `derivation-${event.term}` : `derivation-${Date.now()}`;
+    if (event.type === 'derivation.made') {
+      const conclusion = event.payload.conclusion;
+      const nodeId = conclusion ? `derivation-${conclusion}` : `derivation-${Date.now()}`;
       return {
         type: 'cognitive.delta',
         seqId: Date.now(),
@@ -95,22 +96,22 @@ export class AgentBridge {
           id: nodeId,
           data: {
             nodeType: 'metta:atom',
-            atom: event.term,
-            term: event.term,
+            atom: conclusion,
+            term: conclusion,
             type: 'derivation',
             space: 'default',
           },
         }],
       };
     }
-    if (event.type === 'input') {
+    if (event.type === 'input.user') {
       return {
         type: 'chat.message',
         engine: event.engine,
         message: {
           id: `msg-${Date.now()}`,
           role: 'user',
-          content: event.term,
+          content: event.payload.text,
           timestamp: event.timestamp,
           parentId: null,
           threadRootId: '',

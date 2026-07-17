@@ -1014,26 +1014,29 @@ captureSummary('lens-switch', received.filter(e => e.type === 'cognitive.delta' 
 
 ---
 
-## 6. Execution Order (Verifiable)
+## 6. Execution Order (Verifiable) - UPDATED 2026-07-17
 
-| Phase | Steps | Verification |
-|-------|-------|--------------|
-| **0** | Move helpers (cortex, session, tools, isNarsese) to Core; fix mcp-server import | `pnpm -r typecheck` |
-| **1** | Rewrite `createAgent` → returns Core `Agent` | `pnpm vitest run tests/unit/agent` — **ALL PASS** |
-| **2** | Move helpers to Core; delete cruft files | `pnpm -r typecheck` + all tests |
-| **3** | Core `Agent` enhancements (`replaySession`, `getRecentDerivations`, `start`/`stop` wiring) | `pnpm vitest run tests/unit/core tests/e2e/agent-smoke` |
-| **4** | Fix bins (`senars`, `bot-ai`, `repl`, `multi-agent*`, `mcp-server`) | Each bin runs |
-| **5** | `temporal` lens | `pnpm vitest run tests/e2e/agent-smoke` + **capture output** 📸 |
-| **6** | Memory `consolidate()` + SqliteEventLog wiring | Restart recovers beliefs |
-| **7** | Config unification on `src/config` | `senars --config` works |
-| **8** | `Metrics.ts` + correlation IDs | Structured logs + JSON metrics |
-| **9** | Rate-limit + allowlist + auth + degradation | Failure injection tests |
-| **10** | Sessions in `createAgent` + REPL polish | REPL session persists |
-| **11** | Add `technical-analysis` to `LLM_COMMANDS` | `pnpm -r typecheck` |
-| **12** | Update 2 tests (`metta-transports`, `metta-conversation`) → use Core `Agent` | All tests green |
-| **13** | `ARCHITECTURE.md` documenting unified design | Doc exists |
+| Phase | Steps | Verification | Status |
+|-------|-------|--------------|--------|
+| **0** | Move helpers (cortex, session, tools, isNarsese) to Core; fix mcp-server import | `pnpm -r typecheck` | ✅ Done |
+| **1** | Rewrite `createAgent` → returns Core `Agent` | `pnpm vitest run tests/unit/agent` | ✅ Partial (tool dispatcher works, AgentV6 tests need API updates) |
+| **2** | Move helpers to Core; delete cruft files | `pnpm -r typecheck` + all tests | ✅ Partial (metta/src/agent/*.ts deleted, io/bridge.ts moved) |
+| **3** | Core `Agent` enhancements (`replaySession`, `getRecentDerivations`, `start`/`stop` wiring) | `pnpm vitest run tests/unit/core tests/e2e/agent-smoke` | ⏳ In progress |
+| **4** | Fix bins (`senars`, `bot-ai`, `repl`, `multi-agent*`, `mcp-server`) | Each bin runs | ⏳ Pending |
+| **5** | `temporal` lens | `pnpm vitest run tests/e2e/agent-smoke` + **capture output** 📸 | ⏳ Pending |
+| **6** | Memory `consolidate()` + SqliteEventLog wiring | Restart recovers beliefs | ⏳ Pending |
 
-**Demo-ready after Phase 4** (unified agent + e2e tests pass).
+**Completed so far:**
+- `createAgent` in `nar/src/agent/index.ts` creates Core Agent with NAR/Metta engines
+- `dispatchToolCalls` added for tool dispatching
+- `bridge.ts` moved to `io/src/bridge.ts`
+- `metta/src/agent/*.ts` (MettaAgent, ChannelOps, etc.) deleted
+- `nar/src/agent/cortex.ts`, `session.ts`, `tools.ts`, `types.ts` deleted
+- Core typecheck clean, IO typecheck clean
+
+**Remaining blockers:**
+- AgentV6 tests expect old API (`start()` returns stop fn, named events, `EventBus`)
+- bins import deleted modules (`autonomyEngine`, etc.)
 
 ---
 

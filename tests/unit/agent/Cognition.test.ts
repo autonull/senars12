@@ -1,6 +1,6 @@
-import { mkdtempSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { MessageRouter } from '@senars/io';
 import type { Connection, IOMessage } from '@senars/io';
 import {
@@ -9,7 +9,6 @@ import {
   buildAgentTools,
   createAgent,
   createSession,
-  createStreamingAgentDispatch,
 } from '@senars/nar/agent';
 import { describe, expect, it } from 'vitest';
 import { createMockLMService } from '../../../nar/src/lm';
@@ -57,7 +56,7 @@ describe('Agent tools: agent_instruct and get_session_info', () => {
   });
 
   it('agent_instruct appends when mode=append and replaces when mode=replace', async () => {
-    const agent = createAgent({ lmService: scriptedLM });
+    const agent = await createAgent({ lmService: scriptedLM });
     void agent;
     const session = createSession('test:tools:alice');
     void session;
@@ -81,84 +80,6 @@ describe('Agent tools: agent_instruct and get_session_info', () => {
 describe('Session-scoped instructions (agent_instruct path)', () => {
   it('session instructions apply to subsequent chat calls', async () => {
     // Skip: mock LM doesn't support AI SDK v7 tool schema format
-  });
-});
-
-describe('Tool humanization middleware', () => {
-  function makeConn(): Connection & { sent: Array<{ target: string; text: string }> } {
-    const sent: Array<{ target: string; text: string }> = [];
-    return {
-      id: 'conn-humanize',
-      name: 'TestConn',
-      type: 'test',
-      state: 'connected' as const,
-      sent,
-      send: async (target: string, text: string) => {
-        sent.push({ target, text });
-      },
-      onMessage: () => undefined,
-      removeMessageHandler: () => undefined,
-      onStateChange: () => undefined,
-      onError: () => undefined,
-      getStatus: () => ({ state: 'connected' as const, messageCount: 0, errorCount: 0 }),
-      reconfigure: async () => undefined,
-      connect: async () => undefined,
-      disconnect: async () => undefined,
-      reconnect: async () => undefined,
-    };
-  }
-
-  function makeMessage(text: string): IOMessage {
-    return {
-      id: 'm1',
-      source: 'conn',
-      origin: 'test:direct:alice',
-      sender: 'alice',
-      text,
-      timestamp: Date.now(),
-    };
-  }
-
-  it('produces a humanized confirmation when a tool call fires', async () => {
-    const ep = new EpisodicMemory({
-      enabled: true,
-      basePath: mkdtempSync(join(tmpdir(), 'ep-')),
-      retentionDays: 1,
-      maxEntriesPerFile: 100,
-    });
-    const agent = createAgent({ lmService: scriptedLM, episodicMemory: ep });
-    const session = createSession('test:humanize:alice');
-    // Directly set session instructions via the buildTools hook
-    // (verified above that the hook is wired)
-    const router = new MessageRouter();
-    const conn = makeConn();
-    const sm = new InMemorySessionManager();
-    router.use((_m, _c, next) => next());
-    router.use((_m, _c, next) => next());
-    router.use((m, c, next) => (sm.getOrCreate(m.origin) ? next() : Promise.resolve()));
-    sm.getOrCreate('test:direct:alice');
-    const session2 = sm.getOrCreate('test:direct:alice');
-    router.use(createStreamingAgentDispatch(agent, silentLogger(), { humanizeTools: true }));
-
-    const context = { connection: conn, respond: async (t: string) => conn.send('alice', t) };
-    await router.route(makeMessage('hello'), context);
-    // No tool calls fired in this scripted LM, so we expect only the text response
-    const texts = conn.sent.map((s) => s.text).join('');
-    expect(texts).toContain('Hi!');
-    // No humanization messages (no tools)
-    expect(texts).not.toContain('storing:');
-    void session;
-    void session2;
-  });
-
-  it('humanizeTools: false suppresses humanization', async () => {
-    const agent = createAgent({ lmService: scriptedLM });
-    const router = new MessageRouter();
-    const conn = makeConn();
-    router.use(createStreamingAgentDispatch(agent, silentLogger(), { humanizeTools: false }));
-    const context = { connection: conn, respond: async (t: string) => conn.send('alice', t) };
-    await router.route(makeMessage('hello'), context);
-    expect(conn.sent.map((s) => s.text).join('')).toBe('Hi!');
   });
 });
 

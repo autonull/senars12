@@ -1,7 +1,6 @@
 import { ulid } from 'ulid';
 import type { EventLog, EventLogConfig, CognitiveEvent } from './EventLog.js';
 import { EventLogError } from './EventLog.js';
-import { validatePayload } from '../events/EventTypes.js';
 
 interface Subscription {
   filter?: (e: CognitiveEvent) => boolean;
@@ -30,8 +29,6 @@ export class InMemoryEventLog implements EventLog {
       throw new EventLogError('UNAVAILABLE', 'Event log is closed');
     }
 
-    validatePayload(event.type, event.payload);
-
     const fullEvent: CognitiveEvent = {
       ...event,
       id: ulid(),
@@ -55,7 +52,7 @@ export class InMemoryEventLog implements EventLog {
 
   #notifySubscribers(event: CognitiveEvent): void {
     for (const sub of this.#subscribers) {
-      if (sub.fromId && sub.fromId >= event.id) continue;
+      if (sub.fromId && sub.fromId >= (event.id ?? '')) continue;
       if (sub.types && !sub.types.has(event.type)) continue;
       if (sub.filter && !sub.filter(event)) continue;
       sub.queue.push(event);
@@ -88,7 +85,7 @@ export class InMemoryEventLog implements EventLog {
 
     if (options?.fromId) {
       const fromId = options.fromId;
-      const startIdx = this.#events.findIndex(e => e.id > fromId);
+      const startIdx = this.#events.findIndex(e => (e.id ?? '') > fromId);
       if (startIdx >= 0) {
         for (let i = startIdx; i < this.#events.length; i++) {
           const event = this.#events[i];
@@ -128,12 +125,12 @@ export class InMemoryEventLog implements EventLog {
   }
 
   async getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]> {
-    const startIdx = this.#events.findIndex(e => e.id > fromId);
+    const startIdx = this.#events.findIndex(e => (e.id ?? '') > fromId);
     if (startIdx < 0) return [];
 
     let endIdx = this.#events.length;
     if (toId) {
-      const foundIdx = this.#events.findIndex(e => e.id > toId);
+      const foundIdx = this.#events.findIndex(e => (e.id ?? '') > toId);
       if (foundIdx >= 0) endIdx = foundIdx;
     }
 

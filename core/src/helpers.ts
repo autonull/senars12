@@ -36,3 +36,18 @@ export function extractTerm(content: string): string | undefined {
   const words = trimmed.split(/\s+/);
   return words[0]?.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) ?? undefined;
 }
+
+/**
+ * Checks if text appears to be Narsese (NARS logic syntax).
+ */
+export function isNarsese(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith('(') || trimmed.startsWith('<') || trimmed.startsWith('{') || trimmed.startsWith('[')) return true;
+  if (trimmed.includes('-->') || trimmed.includes('<->') || trimmed.includes('==>') || trimmed.includes('<=>')) return true;
+  if (trimmed.endsWith('.') || trimmed.endsWith('!') || trimmed.endsWith('?')) {
+    const body = trimmed.slice(0, -1).trim();
+    if (body.startsWith('(') || body.startsWith('<')) return true;
+  }
+  return false;
+}

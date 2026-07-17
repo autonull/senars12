@@ -1,4 +1,4 @@
-import type { LMService } from '../lm/lm-service.js';
+import type { LMService } from '@senars/nar/lm';
 import { ModelRunner, LLMCortex, type ModelProvider, type PromptBuilder } from '@senars/core';
 
 class LMServiceModelProvider implements ModelProvider {

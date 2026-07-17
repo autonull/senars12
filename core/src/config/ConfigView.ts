@@ -1,5 +1,5 @@
 import type { EventLog } from '../eventlog/EventLog.js';
-import type { CognitiveEvent } from '../events/EventTypes.js';
+import type { CognitiveEvent } from '../CognitiveEvent.js';
 import type { ConfigView, ConfigEvent } from './Config.js';
 
 export class ConfigViewImpl implements ConfigView {

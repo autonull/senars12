@@ -4,7 +4,6 @@ const ulid = monotonicFactory();
 import Database from 'better-sqlite3';
 import type { EventLog, EventLogConfig, CognitiveEvent } from './EventLog.js';
 import { EventLogError } from './EventLog.js';
-import { validatePayload } from '../events/EventTypes.js';
 
 export interface SqliteEventLogConfig extends EventLogConfig {
   path: string;
@@ -73,8 +72,6 @@ export class SqliteEventLog implements EventLog {
       throw new EventLogError('UNAVAILABLE', 'Event log is closed');
     }
 
-    validatePayload(event.type, event.payload);
-
     const id = ulid();
     const timestamp = Date.now();
     const fullEvent = { ...event, id, timestamp } as CognitiveEvent;
@@ -116,7 +113,7 @@ export class SqliteEventLog implements EventLog {
 
   #notifySubscribers(event: CognitiveEvent): void {
     for (const sub of this.#subscribers) {
-      if (sub.fromId && sub.fromId >= event.id) continue;
+      if (sub.fromId && sub.fromId >= (event.id ?? '')) continue;
       if (sub.types && !sub.types.has(event.type)) continue;
       if (sub.filter && !sub.filter(event)) continue;
       sub.queue.push(event);

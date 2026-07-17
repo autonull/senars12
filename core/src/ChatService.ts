@@ -45,11 +45,10 @@ export function createChatService<TCtx extends ChatContext>(deps: ChatServiceDep
 
       deps.onEvent({
         engine: ctx.engine,
-        type: 'input',
-        term: input,
-        source: 'chat',
+        type: 'input.user',
         timestamp: startTime,
         correlationId,
+        payload: { text: input, source: 'chat' },
       });
 
       try {
@@ -86,11 +85,10 @@ export function createChatService<TCtx extends ChatContext>(deps: ChatServiceDep
 
         deps.onEvent({
           engine: ctx.engine,
-          type: 'derivation',
-          term: finalText,
-          confidence: 1.0,
+          type: 'derivation.made',
           timestamp: Date.now(),
           correlationId,
+          payload: { rule: '', premises: [], conclusion: finalText },
         });
 
         return finalText;

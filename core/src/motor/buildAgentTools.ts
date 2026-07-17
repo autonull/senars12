@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import type { AgentToolDeps } from './types.js';
-import type { Episode } from '../memory/EpisodicMemory.js';
+import type { AgentToolDeps } from '../memory/types.js';
 
 export function buildAgentTools(deps: AgentToolDeps): Record<string, unknown> {
   return {
@@ -27,7 +26,7 @@ export function buildAgentTools(deps: AgentToolDeps): Record<string, unknown> {
     },
     recall: {
       inputSchema: z.object({ query: z.string().optional(), limit: z.number().optional() }),
-      execute: async (args: { query?: string; limit?: number }): Promise<Episode[]> => {
+      execute: async (args: { query?: string; limit?: number }): Promise<unknown[]> => {
         return deps.recall(args.query, args.limit);
       },
     },

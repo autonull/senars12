@@ -104,3 +104,10 @@ export * from './nl/schemas.js';
 // Cognitive
 export { Observer, runCounterfactual } from './cognitive/index.js';
 export type { CognitiveState, CognitiveAction, ObserverReport } from './cognitive/index.js';
+
+// LLM Service
+export { LMService, createLMService, createMockLMService } from './lm/lm-service.js';
+
+// Episodic Memory
+export { EpisodicMemory } from './memory/EpisodicMemory.js';
+export type { Episode, EpisodeType, EpisodicMemoryConfig } from './memory/EpisodicMemory.js';

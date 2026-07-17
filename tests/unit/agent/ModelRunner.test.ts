@@ -1,5 +1,5 @@
 import type { ComposedRequest, ModelProvider } from '@senars/core';
-import { ModelRunner } from '@senars/nar/agent';
+import { ModelRunner } from '@senars/core';
 import { describe, expect, it } from 'vitest';
 
 function makeComposed(

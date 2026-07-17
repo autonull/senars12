@@ -1,5 +1,5 @@
-export type { CognitiveEvent } from '../events/EventTypes.js';
-import type { CognitiveEvent } from '../events/EventTypes.js';
+export type { CognitiveEvent } from '../CognitiveEvent.js';
+import type { CognitiveEvent } from '../CognitiveEvent.js';
 
 export interface EventLog {
   append(event: Omit<CognitiveEvent, 'id' | 'timestamp'>): Promise<CognitiveEvent>;

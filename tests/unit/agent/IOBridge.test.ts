@@ -5,19 +5,20 @@ import { AuthManager, CommandRegistry, MessageRouter } from '@senars/io';
 import {
   InMemorySessionManager,
   JsonlSessionManager,
+} from '@senars/core/memory';
+import {
   bindAgentToConnection,
-  createAgent,
   createAgentDispatch,
   createAuthMiddleware,
   createCommandInterceptor,
+  createSessionBinder,
+  createRateLimiter,
   createConnectionConfigsFromEnv,
   createErrorBoundary,
-  createRateLimiter,
-  createSession,
-  createSessionBinder,
   originExtractor,
   resolveSessionKey,
-} from '@senars/nar/agent';
+} from '@senars/io';
+import { createAgent, createSession, abortSession } from '@senars/nar/agent';
 import { describe, expect, it, vi } from 'vitest';
 import { SeNARSFactory } from '../../../nar/src';
 import { createMockLMService } from '../../../nar/src/lm';
@@ -268,7 +269,7 @@ describe('bindAgentToConnection end-to-end', () => {
       retentionDays: 1,
       maxEntriesPerFile: 100,
     });
-    const agent = createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
+    const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
     const sessionManager = new InMemorySessionManager();
     const conn = makeConn();
     bindAgentToConnection(agent, conn, {
@@ -291,7 +292,7 @@ describe('bindAgentToConnection end-to-end', () => {
       retentionDays: 1,
       maxEntriesPerFile: 100,
     });
-    const agent = createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
+    const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
     const sessionManager = new InMemorySessionManager();
     const registry = new CommandRegistry();
     registry.register({ name: 'help', description: '', usage: '', execute: async () => 'HELP' });

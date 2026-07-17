@@ -1,8 +1,6 @@
-import type { Connection, IOMessage, Logger } from '@senars/core';
+import type { Connection, IOMessage, Logger, SessionManager, ConversationSession } from '@senars/core';
 import type { AuthManager, CommandRegistry, MessageContext, MessageMiddleware } from '@senars/io';
-import type { Agent, BridgeOptions, ConversationSession, SessionManager } from './types.js';
-import { createSession } from './session.js';
-import type { NAR } from '../nar.js';
+import type { Agent, BridgeOptions } from '@senars/core';
 
 function ctxAsRecord(ctx: MessageContext): Record<string, unknown> {
   return ctx as unknown as Record<string, unknown>;
@@ -24,9 +22,12 @@ export function createAgentDispatch(agent: Agent): MessageMiddleware {
       return;
     }
     session.history.push({ role: 'user', content: msg.text, timestamp: Date.now() });
-    const response = typeof agent.chat === 'function'
-      ? await (agent.chat as unknown as (text: string) => Promise<string>)(msg.text)
-      : '';
+    let response = '';
+    if (typeof agent.chat === 'function') {
+      for await (const evt of agent.chat(msg.text)) {
+        if (evt.kind === 'text-delta' && evt.text) response += evt.text;
+      }
+    }
     session.history.push({ role: 'agent', content: response, timestamp: Date.now() });
     const respond = ctxAsRecord(ctx).respond as ((text: string) => Promise<void>) | undefined;
     if (respond) await respond(response);
@@ -42,13 +43,23 @@ export function bindAgentToConnection(
   const cmdRegistry = opts.commandRegistry;
   const sessionManager: SessionManager = opts.sessionManager ?? new (class implements SessionManager {
     #sessions = new Map<string, ConversationSession>();
-    getOrCreate(key: string) {
+    getOrCreate(key: string): ConversationSession {
       let s = this.#sessions.get(key);
-      if (!s) { s = createSession(key); this.#sessions.set(key, s); }
+      if (!s) {
+        s = {
+          id: `sess-${key}`,
+          key,
+          history: [],
+          createdAt: Date.now(),
+          lastSeenAt: Date.now(),
+          metadata: {},
+        };
+        this.#sessions.set(key, s);
+      }
       return s;
     }
     size() { return this.#sessions.size; }
-  })();
+  })() as unknown as SessionManager;
 
   const handler = async (message: IOMessage) => {
     const sessionKey = resolveSessionKey(message);
@@ -70,10 +81,10 @@ export function bindAgentToConnection(
 
     if (message.text.startsWith('/') && cmdRegistry) {
       const parts = message.text.slice(1).split(/\s+/);
-      const name = parts[0]!;
+      const name = parts.at(0) ?? '';
       const args = parts.slice(1);
       try {
-        const result = await cmdRegistry.execute(name, args, { connection: conn, manager: opts.manager as any });
+        const result = await cmdRegistry.execute(name, args, { connection: conn, manager: undefined });
         if (result === '__CLI_QUIT__') {
           await respond('Goodbye!');
           conn.disconnect?.('user quit');
@@ -87,8 +98,10 @@ export function bindAgentToConnection(
     }
 
     session.history.push({ role: 'user', content: message.text, timestamp: Date.now() });
-    const nar = agentAsRecord(agent).getNAR as (() => NAR | undefined) | undefined;
-    const response = await (agent.chat as unknown as (text: string) => Promise<string>)(message.text);
+    let response = '';
+    for await (const evt of agent.chat(message.text)) {
+      if (evt.kind === 'text-delta' && evt.text) response += evt.text;
+    }
     session.history.push({ role: 'agent', content: response, timestamp: Date.now() });
     await respond(response);
   };
@@ -131,12 +144,12 @@ export function createCommandInterceptor(registry: CommandRegistry): MessageMidd
       return;
     }
     const parts = msg.text.slice(1).split(/\s+/);
-    const name = parts[0]!;
+    const name = parts.at(0) ?? '';
     const args = parts.slice(1);
     try {
       const result = await registry.execute(name, args, {
         connection: ctxAsRecord(ctx).connection as Connection,
-        manager: ctxAsRecord(ctx).manager as any,
+        manager: undefined,
       });
       if (result === '__CLI_QUIT__') {
         const respond = ctxAsRecord(ctx).respond as ((text: string) => Promise<void>) | undefined;
@@ -230,22 +243,6 @@ export function createErrorBoundary(logger: Logger): MessageMiddleware {
   };
 }
 
-export function agentConfigToOptions(config: Record<string, unknown>): Partial<import('./types.js').AgentOptions> {
-  const opts: Partial<import('./types.js').AgentOptions> = {};
-  if (typeof config.throttle === 'number') opts.throttle = config.throttle;
-  if (typeof config.enableNarseseHumanization === 'boolean') opts.enableNarseseHumanization = config.enableNarseseHumanization;
-  if (typeof config.enableNarsTrace === 'boolean') opts.enableNarsTrace = config.enableNarsTrace;
-  return opts;
-}
-
-export async function registerAllCommands(registry: CommandRegistry): Promise<void> {
-  try {
-    const io = await import('@senars/io');
-    const cmds = [...(io.connectionCommands ?? []), ...(io.authCommands ?? [])];
-    for (const cmd of cmds) {
-      registry.register(cmd as import('@senars/io').CommandDefinition);
-    }
-  } catch {
-    // commands module not available
-  }
+export async function registerAllCommands(_registry: CommandRegistry): Promise<void> {
+  // Commands are registered separately
 }

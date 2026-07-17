@@ -11,8 +11,78 @@ import type { CognitiveStimulus, Context, Derivation, ToolResult } from './engin
 import { AgentBridge } from './AgentBridge.js';
 import { PolicyEngine } from './PolicyEngine.js';
 import { ToolRegistry } from './motor/ToolRegistry.js';
-import { LLMCortex } from './cortex/LLMCortex.js';
+import type { LLMCortex } from './cortex/LLMCortex.js';
 import { registerBuiltinTools } from './motor/builtin-tools.js';
+import type { NAR } from '@senars/nar';
+import type { LMService } from '@senars/nar';
+import type { EpisodicMemory } from '@senars/nar';
+import type { AuthManager, CommandRegistry } from '@senars/io';
+import type { SessionManager, ConversationSession } from './memory/types.js';
+
+export interface ParsedCommand {
+  command: string;
+  args: string[];
+  raw: string;
+}
+
+export type AgentPresetName = 'chat' | 'reasoning' | 'autonomous' | 'irc-bot';
+
+export interface AgentPresetDeps {
+  nar?: NAR;
+  lmService?: LMService;
+  episodicMemory?: EpisodicMemory;
+  logger?: { debug: (msg: string, ...args: unknown[]) => void; info: (msg: string, ...args: unknown[]) => void; warn: (msg: string, ...args: unknown[]) => void; error: (msg: string, ...args: unknown[]) => void };
+  externalTools?: Record<string, unknown>;
+  workspaceRoot?: string;
+}
+
+export interface AgentPresetResult {
+  agent: Agent;
+  config: Partial<AgentOptions>;
+}
+
+export type ValidatedAgentOptions = Required<Pick<AgentOptions, 'cortex'>> & AgentOptions;
+
+export interface BridgeOptions {
+  auth?: AuthManager;
+  commandRegistry?: CommandRegistry;
+  sessionManager?: SessionManager;
+  episodicMemory?: EpisodicMemory;
+  generationService?: unknown;
+  understandingService?: unknown;
+  manager?: unknown;
+  enableNarseseHumanization?: boolean;
+  enableNarsTrace?: boolean;
+}
+
+export interface BridgeContext {
+  connection: Connection;
+  nar: NAR;
+  respond: (text: string) => Promise<void>;
+  session?: ConversationSession;
+}
+
+export interface AgentOptions {
+  log?: EventLog;
+  id?: string;
+  cortex?: LLMCortex;
+  commandParser?: (text: string) => ParsedCommand[];
+  builtinTools?: boolean;
+  episodicMemory?: import('@senars/nar').EpisodicMemory;
+}
+
+export interface HealthStatus {
+  readonly status: 'healthy' | 'degraded' | 'stuck' | 'crashed';
+  readonly lastCycle: number;
+  readonly cycleCount: number;
+  readonly errorRate: number;
+}
+
+export interface SkillDefinition {
+  readonly name: string;
+  readonly description?: string;
+  execute(...args: unknown[]): unknown;
+}
 
 export interface ParsedCommand {
   command: string;
@@ -26,6 +96,7 @@ export interface AgentOptions {
   cortex?: LLMCortex;
   commandParser?: (text: string) => ParsedCommand[];
   builtinTools?: boolean;
+  episodicMemory?: import('@senars/nar').EpisodicMemory;
 }
 
 export interface HealthStatus {
@@ -50,6 +121,7 @@ export class Agent {
   readonly bridge: AgentBridge;
   readonly motor: ToolRegistry;
   readonly cortex?: LLMCortex;
+  readonly episodicMemory?: import('@senars/nar').EpisodicMemory;
 
   #cognitiveListeners = new Set<(e: CognitiveEvent) => void>();
   #transports = new Map<string, Connection>();
@@ -69,14 +141,13 @@ export class Agent {
     this.bridge = new AgentBridge(this);
     this.motor = new ToolRegistry();
     this.cortex = opts.cortex;
+    this.episodicMemory = opts.episodicMemory;
     this.#commandParser = opts.commandParser;
 
-    // Wire memory to log and engines
     this.memory.connectLog(this.log);
     this.memory.connectEngines(this.engines);
     this.memory.connectMotor(this.motor);
 
-    // Register builtin tools if requested
     if (opts.builtinTools !== false) {
       registerBuiltinTools(this.motor);
     }
@@ -87,35 +158,31 @@ export class Agent {
     this.memory.connectEngines(this.engines);
   }
 
-  /** The living cognitive cycle — returns the response text */
   async cycle(stimulus: CognitiveStimulus): Promise<string> {
     this.#cycleCount++;
     this.#lastCycleTime = Date.now();
     this.#lastResponse = '';
 
-    // 1. Perceive — append to EventLog
-    this.#emitCognitive({
-      type: 'input',
+this.#emitCognitive({
       engine: 'metta',
-      term: stimulus.text,
-      source: 'cycle',
+      type: 'input.user',
       timestamp: Date.now(),
       correlationId: stimulus.correlationId,
+      payload: { text: stimulus.text, source: 'cycle' },
     });
     const cid = await this.log.append({
+      engine: 'metta',
       type: 'input.user',
       payload: { text: stimulus.text, source: stimulus.source },
       correlationId: stimulus.correlationId,
       causationId: '',
     });
 
-    // 2. Recall — gather context from memory tiers
     const working = this.memory.recent(50);
     const episodic = await this.memory.queryEpisodic();
     const semantic = await this.memory.querySemantic(stimulus.text);
     const context: Context = { working, episodic, semantic };
 
-    // 3. Reason — run engines
     const derivations: Derivation[] = [];
     for (const engine of this.engines.values()) {
       try {
@@ -126,7 +193,6 @@ export class Agent {
       }
     }
 
-    // 4. Narrate — synthesize via cortex if available
     let narrativeText = '';
     if (this.cortex) {
       const narrative = await this.cortex.synthesize({ stimulus, context, derivations });
@@ -146,18 +212,23 @@ export class Agent {
       }
     }
 
-    // 5. Act — parse narrative into commands and execute
+    // Log to episodic memory if available
+    if (this.episodicMemory && narrativeText) {
+      await this.episodicMemory.log('response', narrativeText, { correlationId: stimulus.correlationId });
+    }
+    if (this.episodicMemory && stimulus.source === 'chat') {
+      await this.episodicMemory.log('input', stimulus.text, { correlationId: stimulus.correlationId });
+    }
+
     const toolResults: Array<{ command: string; result: ToolResult }> = [];
     if (this.#commandParser && narrativeText) {
       const commands = this.#commandParser(narrativeText);
       for (const cmd of commands) {
-        // 'send' is the agent's response — capture it, don't execute
         if (cmd.command === 'send') {
           this.#lastResponse = cmd.args[0] ?? '';
           continue;
         }
 
-        // Check policy before executing
         const policyCheck = this.policy.checkCommand(cmd.command);
         if (!policyCheck.allowed) {
           const result: ToolResult = { success: false, content: null, error: policyCheck.reason ?? 'Blocked by policy' };
@@ -169,20 +240,19 @@ export class Agent {
         const result = await this.motor.execute(cmd.command, toolArgs, stimulus.correlationId);
         toolResults.push({ command: cmd.command, result });
         await this.log.append({
+          engine: 'nar',
           type: 'tool.request',
           payload: { toolName: cmd.command, args: { args: cmd.args }, timeoutMs: 30000 },
           correlationId: stimulus.correlationId,
           causationId: cid.id,
         });
-        // Feed results back to engines
         for (const engine of this.engines.values()) {
           try { engine.absorb?.(result); } catch { /* ignore */ }
         }
       }
     }
 
-    // 6. Consolidate
-    await this.memory.consolidate(cid.id);
+await this.memory.consolidate(cid.id ?? '');
     for (const tr of toolResults) {
       this.memory.append({
         type: 'tool_result',
@@ -191,40 +261,35 @@ export class Agent {
       });
     }
 
-    // 7. Project to bridge (UI)
     for (const d of derivations) {
       this.#emitCognitive({
         engine: 'nar',
-        type: 'derivation',
-        term: d.term,
-        confidence: d.truth?.confidence ?? 1.0,
+        type: 'derivation.made',
         timestamp: Date.now(),
         correlationId: stimulus.correlationId,
+        payload: { rule: '', premises: [], conclusion: d.term },
       });
     }
     for (const tr of toolResults) {
       this.#emitCognitive({
         engine: 'nar',
-        type: 'skill:executed',
-        skill: tr.command,
-        result: tr.result.success ? 'success' : tr.result.error ?? 'error',
-        durationMs: 0,
+        type: 'skill.executed',
         timestamp: Date.now(),
         correlationId: stimulus.correlationId,
+        payload: { skill: tr.command, args: [], result: tr.result.success ? 'success' : tr.result.error ?? 'error', durationMs: 0 },
       });
     }
 
-    return this.#lastResponse;
+    return this.#lastResponse || narrativeText;
   }
 
   submit(input: string, correlationId: string): void {
     this.#emitCognitive({
       engine: 'metta',
-      type: 'input',
-      term: input,
-      source: 'transport',
+      type: 'input.user',
       timestamp: Date.now(),
       correlationId,
+      payload: { text: input, source: 'transport' },
     });
   }
 
@@ -290,11 +355,10 @@ export class Agent {
   async start(): Promise<void> {
     if (this.#started) return;
     this.#started = true;
-    // Initialize all engines
     for (const engine of this.engines.values()) {
       try {
-        if ('initialize' in engine && typeof (engine as any).initialize === 'function') {
-          await (engine as any).initialize();
+        if ('initialize' in engine && typeof engine.initialize === 'function') {
+          await engine.initialize();
         }
       } catch {
         // engine init failed, continue
@@ -312,8 +376,8 @@ export class Agent {
     }
     for (const engine of this.engines.values()) {
       try {
-        if ('shutdown' in engine && typeof (engine as any).shutdown === 'function') {
-          await (engine as any).shutdown();
+        if ('shutdown' in engine && typeof engine.shutdown === 'function') {
+          await engine.shutdown();
         }
       } catch {
         // ignore
@@ -341,7 +405,15 @@ export class Agent {
     return fallback;
   }
 
-  #emitCognitive(event: CognitiveEvent): void {
+  async replaySession(events: import('./CognitiveEvent.js').CognitiveEvent[]): Promise<void> {
+    for (const evt of events) await this.log.append(evt);
+  }
+
+  getRecentDerivations(): Derivation[] {
+    return this.memory.recent(50).filter(e => e.type === 'derivation').map(e => e.payload as Derivation);
+  }
+
+    #emitCognitive(event: CognitiveEvent): void {
     for (const listener of this.#cognitiveListeners) {
       try { listener(event); } catch { /* ignore listener errors */ }
     }

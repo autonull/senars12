@@ -19,6 +19,18 @@ export type { CommandDefinition, CommandHandler, CommandContext } from './comman
 export { connectionCommands } from './commands/connection.js';
 export { authCommands } from './commands/auth.js';
 export {
+  bindAgentToConnection,
+  createAgentDispatch,
+  originExtractor,
+  resolveSessionKey,
+  createAuthMiddleware,
+  createCommandInterceptor,
+  createSessionBinder,
+  createRateLimiter,
+  createConnectionConfigsFromEnv,
+  createErrorBoundary,
+} from './bridge.js';
+export {
   startHttpServer,
   startWSServer,
   parseHttpBody,

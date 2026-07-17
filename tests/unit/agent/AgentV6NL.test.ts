@@ -32,8 +32,11 @@ describe('Agent v6 — NL integration (real ModelRunner loop)', () => {
     const lm = createMockLMService({
       generateTextFn: async () => 'Hello! How can I help you today?',
     });
-    const agent = createAgent({ nar, lmService: lm, episodicMemory: ep });
-    const reply = await agent.chat('Hello there');
+    const agent = await createAgent({ nar, lmService: lm, episodicMemory: ep });
+    let reply = '';
+    for await (const evt of agent.chat('Hello there')) {
+      if (evt.kind === 'text-delta' && evt.text) reply += evt.text;
+    }
     expect(reply).toContain('Hello');
   });
 
