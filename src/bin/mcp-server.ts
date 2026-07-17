@@ -5,7 +5,7 @@
 
 import { createAgent } from '@senars/nar/agent';
 import { z } from 'zod';
-import { createNAR } from '../../nar/src';
+import { SeNARSFactory } from '@senars/nar';
 import { SeNARSMCPServer } from '../api/mcp-server.js';
 import { registerAgentAPI, registerNARToolsAsMCP } from '../api/mcp-tools.js';
 import { loadConfig } from '../config';
@@ -21,7 +21,7 @@ const server = new SeNARSMCPServer(config);
 // Initialize NAR and Agent for tool registration
 async function initialize() {
   const appConfig = await loadConfig();
-  const nar = await createNAR(appConfig);
+  const nar = SeNARSFactory.createDefault(appConfig);
   const agent = createAgent({ nar });
 
   // Register NAR tools
@@ -47,14 +47,8 @@ async function initialize() {
 
   await server.start();
   console.error('SeNARS MCP Server started on stdio');
-  console.error(
-    'Tools registered:',
-    server
-      .getAdapter()
-      .getTools()
-      .map((t) => t.name)
-      .join(', ')
-  );
+  const tools = server.getAdapter().getTools().map((t) => t.name).join(', ');
+  console.error('Tools registered:', tools);
 }
 
 initialize().catch((err) => {

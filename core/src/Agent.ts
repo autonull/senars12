@@ -84,34 +84,6 @@ export interface SkillDefinition {
   execute(...args: unknown[]): unknown;
 }
 
-export interface ParsedCommand {
-  command: string;
-  args: string[];
-  raw: string;
-}
-
-export interface AgentOptions {
-  log?: EventLog;
-  id?: string;
-  cortex?: LLMCortex;
-  commandParser?: (text: string) => ParsedCommand[];
-  builtinTools?: boolean;
-  episodicMemory?: import('@senars/nar').EpisodicMemory;
-}
-
-export interface HealthStatus {
-  readonly status: 'healthy' | 'degraded' | 'stuck' | 'crashed';
-  readonly lastCycle: number;
-  readonly cycleCount: number;
-  readonly errorRate: number;
-}
-
-export interface SkillDefinition {
-  readonly name: string;
-  readonly description?: string;
-  execute(...args: unknown[]): unknown;
-}
-
 export class Agent {
   readonly id: string;
   readonly log: EventLog;

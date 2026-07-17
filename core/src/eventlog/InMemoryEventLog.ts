@@ -35,7 +35,6 @@ export class InMemoryEventLog extends AbstractEventLog {
     }
 
     this.#events.push(fullEvent);
-    this.notify(fullEvent);
   }
 
   async getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]> {

@@ -10,14 +10,6 @@ export interface SqliteEventLogConfig extends EventLogConfig {
   path: string;
 }
 
-interface Subscription {
-  filter?: (e: CognitiveEvent) => boolean;
-  fromId?: string;
-  types?: Set<string>;
-  queue: CognitiveEvent[];
-  resolver: ((value: IteratorResult<CognitiveEvent>) => void) | null;
-}
-
 interface Row {
   id: string;
   type: string;
@@ -29,7 +21,6 @@ interface Row {
 
 export class SqliteEventLog extends AbstractEventLog {
   #db: Database.Database;
-  #subscribers: Set<Subscription> = new Set();
   #config: Required<SqliteEventLogConfig>;
   #closed = false;
 
@@ -97,8 +88,6 @@ export class SqliteEventLog extends AbstractEventLog {
          VALUES (?, ?, ?, ?, ?, ?)`
       )
       .run(fullEvent.id, fullEvent.type, JSON.stringify(fullEvent.payload), fullEvent.timestamp, fullEvent.correlationId ?? null, fullEvent.causationId ?? null);
-
-    this.#notify(fullEvent);
   }
 
   #rowToEvent(row: Row): CognitiveEvent {
@@ -110,81 +99,6 @@ export class SqliteEventLog extends AbstractEventLog {
       correlationId: row.correlation_id ?? undefined,
       causationId: row.causation_id ?? undefined,
     } as CognitiveEvent;
-  }
-
-  #notify(event: CognitiveEvent): void {
-    for (const sub of this.#subscribers) {
-      if (sub.fromId && sub.fromId >= (event.id ?? '')) continue;
-      if (sub.types && !sub.types.has(event.type)) continue;
-      if (sub.filter && !sub.filter(event)) continue;
-      sub.queue.push(event);
-      if (sub.resolver) {
-        const resolver = sub.resolver;
-        sub.resolver = null;
-        resolver({ value: event, done: false });
-      }
-    }
-  }
-
-  override subscribe(options?: {
-    filter?: (event: CognitiveEvent) => boolean;
-    fromId?: string;
-    types?: string[];
-  }): AsyncIterable<CognitiveEvent> {
-    const typesSet = options?.types ? new Set(options.types) : undefined;
-    const queue: CognitiveEvent[] = [];
-    let closed = false;
-
-    const subscription: Subscription = {
-      filter: options?.filter,
-      fromId: options?.fromId,
-      types: typesSet,
-      queue,
-      resolver: null,
-    };
-
-    this.#subscribers.add(subscription);
-
-    let initialEvents: CognitiveEvent[] = [];
-    if (options?.fromId) {
-      this.getRange(options.fromId).then((events) => {
-        initialEvents = events;
-        for (const event of events) {
-          if (typesSet && !typesSet.has(event.type)) continue;
-          if (options.filter && !options.filter(event)) continue;
-          queue.push(event);
-        }
-      });
-    }
-
-    return {
-      [Symbol.asyncIterator]() {
-        return {
-          async next(): Promise<IteratorResult<CognitiveEvent>> {
-            // Wait for initial events if needed
-            while (initialEvents.length > 0) {
-              // just wait for the promise to resolve
-              await new Promise((r) => setTimeout(r, 0));
-            }
-            while (queue.length > 0) {
-              const nextEvent = queue.shift();
-              if (nextEvent) return { value: nextEvent, done: false };
-            }
-            if (closed) {
-              return { value: undefined, done: true };
-            }
-            return new Promise<IteratorResult<CognitiveEvent>>((res) => {
-              subscription.resolver = res;
-            });
-          },
-          async return(): Promise<IteratorResult<CognitiveEvent>> {
-            closed = true;
-            subscription.resolver = null;
-            return { value: undefined, done: true };
-          },
-        };
-      },
-    };
   }
 
   async getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]> {
@@ -199,10 +113,6 @@ export class SqliteEventLog extends AbstractEventLog {
 
   async close(): Promise<void> {
     this.#closed = true;
-    for (const sub of this.#subscribers) {
-      if (sub.resolver) sub.resolver({ value: undefined, done: true });
-    }
-    this.#subscribers.clear();
     this.#db.close();
   }
 

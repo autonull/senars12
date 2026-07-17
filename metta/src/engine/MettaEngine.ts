@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import type { CognitiveStimulus, Context, Derivation, Engine, EngineId, ToolResult } from '@senars/core/engine';
+import { BaseEngine } from '@senars/core/engine/base';
 import { createMeTTa, type MeTTaRuntime } from '../runtime/builder.js';
 import { parseMeTTa } from '../parser/runtime.js';
 import type { MeTTaAtom } from '../types/ast.js';
@@ -21,13 +22,14 @@ function atomToString(atom: MeTTaAtom): string {
   }
 }
 
-export class MettaEngine implements Engine {
+export class MettaEngine extends BaseEngine {
   readonly id: EngineId = 'metta';
   readonly provides = new Set(['pattern-match', 'rewrite', 'query', 'multi-space', 'skill-execution']);
 
   #runtime: MeTTaRuntime | null = null;
 
   constructor(runtime?: MeTTaRuntime) {
+    super();
     this.#runtime = runtime ?? null;
   }
 
@@ -35,10 +37,14 @@ export class MettaEngine implements Engine {
     return this.#runtime;
   }
 
-  initialize(): void {
+  protected async doInitialize(): Promise<void> {
     if (!this.#runtime) {
       this.#runtime = createMeTTa();
     }
+  }
+
+  protected async doShutdown(): Promise<void> {
+    // Effect runtimes don't need explicit shutdown
   }
 
   async reason(stimulus: CognitiveStimulus, context: Context): Promise<Derivation[]> {
@@ -70,7 +76,15 @@ export class MettaEngine implements Engine {
     }
   }
 
-  absorb(result: ToolResult): void {
+  protected override doAbsorb(result: ToolResult): void {
     // MeTTa can learn from tool results in future
+  }
+
+  async persist(): Promise<void> {
+    // Persistence handled by Effect runtime if needed
+  }
+
+  async load(): Promise<void> {
+    // Loading handled by Effect runtime if needed
   }
 }
