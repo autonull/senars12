@@ -62,6 +62,8 @@ export { invariant, assertDefined } from './utils/assert.js';
 export { generateId } from './utils/id.js';
 /** @public Serialization contracts for stateful components. */
 export type { Serializable, Versioned } from './utils/serialization.js';
+/** @public Uniform-contract adapters bridging legacy serialize/deserialize shapes. */
+export { asSerializable, inPlaceSerializable, factorySerializable } from './utils/serialization.js';
 /** @public Throttle utilities for stream/callback rate control. */
 export { Throttle, createThrottle, throttleGenerator } from './utils/throttle.js';
 /** @public Throttle configuration type. */
