@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       spacegraphjs: resolve(__dirname, 'spacegraphjs7/src/index.ts'),
+      '@senars/core': resolve(__dirname, '../core/src/protocol/index.ts'),
     },
   },
   build: {
@@ -26,6 +27,7 @@ export default defineConfig({
           vendor: ['marked', 'marked-highlight', 'highlight.js', 'dompurify'],
         },
       },
+      preserveEntrySignatures: 'strict',
     },
     target: 'es2020',
     minify: 'terser',
@@ -46,4 +48,27 @@ export default defineConfig({
       '/test': { target: 'http://localhost:3000' },
     },
   },
+  plugins: [
+    {
+      name: 'preserve-entry-side-effects',
+      enforce: 'pre',
+      resolveId(id, importer) {
+        if (id.endsWith('entry.ts') || id === './entry.ts' || id.includes('entry.ts')) {
+          return { id, moduleSideEffects: true };
+        }
+        return null;
+      }
+    },
+    {
+      name: 'inject-entry-import',
+      enforce: 'post',
+      generateBundle(options, bundle) {
+        for (const [name, chunk] of Object.entries(bundle)) {
+          if (chunk.type === 'chunk' && chunk.isEntry && chunk.fileName.startsWith('assets/main')) {
+            chunk.code = `import './entry.ts';\n${chunk.code}`;
+          }
+        }
+      }
+    }
+  ],
 });

@@ -1,6 +1,18 @@
 import { Announcer } from './core/announcer.js';
-import { $activeLens, $connectionState, exposeTestApi, hydrateFromUrl } from './core/store.js';
+import { $activeLens, $connectionState, hydrateFromUrl } from './core/store.js';
 import { connect } from './core/ws-client.js';
+
+// Expose test API synchronously at startup for Playwright tests
+// This must run synchronously at module evaluation time to prevent treeshaking
+(window as unknown as { __testApi?: Record<string, unknown> }).__testApi = {
+  store: {
+    getState: (path: string) => {
+      // This will be replaced by the actual store implementation when store loads
+      return undefined;
+    },
+  },
+  connection: { getState: () => undefined },
+};
 
 // Phase 0: Design system & primitives
 import './styles/theme.css';
@@ -32,6 +44,10 @@ import './components/lens-designer.js';
 import './components/cognitive-metrics.js';
 
 // Accessibility: live region announcements
+import { Announcer } from './core/announcer.js';
+import { $activeLens, $connectionState, hydrateFromUrl } from './core/store.js';
+import { connect } from './core/ws-client.js';
+
 const announcer = Announcer.getInstance();
 $connectionState.subscribe((state) => {
   if (state === 'connected') announcer.announce('Connected to SeNARS');
@@ -42,6 +58,5 @@ $activeLens.subscribe((lens) => {
   announcer.announce(`Switched to ${lens} lens`);
 });
 
-exposeTestApi();
 hydrateFromUrl();
 connect();

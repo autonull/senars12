@@ -13,8 +13,66 @@
      style="position:fixed;top:0;left:0;right:0;height:2px;z-index:100;transition:background 0.3s, box-shadow 0.3s;"></div>
 <app-layout></app-layout>
 
+<!-- Expose test API synchronously BEFORE module loads for Playwright tests -->
+<script>
+    (window as unknown as { __testApi?: Record<string, unknown> }).__testApi = {
+        store: { getState: (path: string) => undefined },
+        connection: { getState: () => undefined },
+    };
+</script>
+
 <script type="module">
-    import './entry.ts';
+    import { exposeTestApi, hydrateFromUrl } from './core/store.js';
+    import { connect } from './core/ws-client.js';
+    exposeTestApi();
+
+    (async () => {
+        const Announcer = (await import('./core/announcer.js')).Announcer;
+        const { $activeLens, $connectionState } = await import('./core/store.js');
+
+        // Phase 0: Design system & primitives
+        await import('./components/primitives/index.js');
+
+        // Phase 1: Feature components
+        await import('./components/app-layout.js');
+        await import('./components/graph-toolbar.js');
+        await import('./components/connection-banner.js');
+        await import('./components/error-boundary.js');
+        await import('./components/graph-viewport.js');
+        await import('./components/lens-selector.js');
+        await import('./components/input-hud.js');
+        await import('./components/config-hud.js');
+        await import('./components/telemetry-panel.js');
+        await import('./components/contradiction-badge.js');
+
+        // Phase 2: Graph interaction components
+        await import('./components/lens-controller.js');
+        await import('./components/node-detail-drawer.js');
+        await import('./components/graph-minimap.js');
+
+        // Phase 4: Chat & Config enhancements
+        await import('./components/chat-history-panel.js');
+        await import('./components/config-profiles.js');
+        await import('./components/lens-designer.js');
+
+        // Phase 5: Observability
+        await import('./components/cognitive-metrics.js');
+
+        // Accessibility: live region announcements
+        const announcer = (await import('./core/announcer.js')).Announcer;
+
+        $connectionState.subscribe((state) => {
+            if (state === 'connected') announcer.announce('Connected to SeNARS');
+            else if (state === 'disconnected') announcer.announce('Disconnected from SeNARS', 'assertive');
+            else if (state === 'reconnecting') announcer.announce('Reconnecting to SeNARS', 'assertive');
+        });
+        $activeLens.subscribe((lens) => {
+            announcer.announce(`Switched to ${lens} lens`);
+        });
+
+        hydrateFromUrl();
+        connect();
+    })();
 </script>
 </body>
 </html>

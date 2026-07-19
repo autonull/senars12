@@ -471,8 +471,16 @@ export function mountTestApi<T>(namespace: string, api: T): void {
 }
 
 export function exposeTestApi(): void {
-  mountTestApi('store', {
-    getState: (path: string) => storeAtoms[path as TestApiStorePath]?.get(),
-  });
-  mountTestApi('connection', { getState: () => $connectionState.get() });
+  const w = window as unknown as { __testApi?: Record<string, unknown>; __testApiExposed?: boolean };
+  w.__testApi = {
+    ...w.__testApi,
+    store: {
+      getState: (path: string) => storeAtoms[path as TestApiStorePath]?.get(),
+    },
+    connection: { getState: () => $connectionState.get() },
+  };
+  w.__testApiExposed = true;
 }
+
+// Auto-expose test API when store module is evaluated
+exposeTestApi();

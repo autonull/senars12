@@ -28,28 +28,29 @@
   "scripts": {
     "build:tokens": "tsx scripts/build-tokens.ts",
     "prebuild": "pnpm build:tokens",
+    "dev": "tsx src/server/index.ts",
     "dev:client": "vite dev --config vite.config.ts",
-    "dev:server": "NODE_ENV=test tsx src/server/index.ts",
-    "dev:test": "NODE_ENV=test concurrently -n server,client 'pnpm:dev:server' 'pnpm:dev:client'",
     "build:client": "vite build --config vite.config.ts",
     "build:client:test": "NODE_ENV=test vite build --mode test --config vite.config.ts",
-    "dev": "concurrently -n server,client 'pnpm:dev:server' 'pnpm:dev:client'",
     "build": "pnpm build:client",
     "start": "node dist/server/index.js",
     "start:test": "pnpm build:client:test && NODE_ENV=test tsx src/server/index.ts",
+    "serve:test": "NODE_ENV=test tsx src/server/index.ts",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",
-    "test:e2e": "playwright test --config tests/playwright.config.ts",
-    "test:e2e:ui": "playwright test --config tests/playwright.config.ts --ui",
-    "test:e2e:debug": "playwright test --config tests/playwright.config.ts --debug",
-    "test:e2e:smoke": "playwright test tests/scenarios/smoke --config tests/playwright.config.ts",
-    "test:e2e:critical": "playwright test --config tests/playwright.config.ts --grep @critical",
-    "test:visual:update": "playwright test --config tests/playwright.config.ts --update-snapshots"
+    "test:e2e": "pnpm build:client:test && playwright test --config tests/playwright.config.ts",
+    "test:e2e:ui": "pnpm build:client:test && playwright test --config tests/playwright.config.ts --ui",
+    "test:e2e:debug": "pnpm build:client:test && playwright test --config tests/playwright.config.ts --debug",
+    "test:e2e:smoke": "pnpm build:client:test && playwright test tests/scenarios/smoke --config tests/playwright.config.ts",
+    "test:e2e:critical": "pnpm build:client:test && playwright test --config tests/playwright.config.ts --grep @critical",
+    "test:visual:update": "pnpm build:client:test && playwright test --config tests/playwright.config.ts --update-snapshots",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@monaco-editor/loader": "^1.7.0",
     "@senars/core": "workspace:*",
     "@senars/nar": "workspace:*",
-    "@monaco-editor/loader": "^1.7.0",
     "chart.js": "^4.5.1",
     "cytoscape": "^3.30.0",
     "dompurify": "^3.2.0",
@@ -70,13 +71,24 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
+    "@storybook/addon-essentials": "8.6.14",
+    "@storybook/addon-interactions": "8.6.14",
+    "@storybook/addon-links": "8.6.14",
+    "@storybook/test": "8.6.14",
+    "@storybook/web-components-vite": "8.6.14",
     "@types/mime-types": "^3.0.1",
     "@types/node": "^22.19.19",
     "@types/three": "^0.160.0",
     "@types/ws": "^8.5.10",
-    "concurrently": "^9.0.0",
+    "concurrently": "^10.0.0",
+    "storybook": "8.6.14",
     "tsup": "^8.3.0",
     "typescript": "7.0.1-rc",
     "vite": "^6.0.0"
+  },
+  "eslintConfig": {
+    "extends": [
+      "plugin:storybook/recommended"
+    ]
   }
 }
