@@ -1,7 +1,10 @@
-import type { GraphOp, IncomingFromServer, GraphNodeData } from '@senars/core';
+import type { GraphNodeData, GraphOp, IncomingFromServer } from '@senars/core';
 import { builtinLensSpecs } from '@senars/core';
 
-export type GraphDelta = { nodes: GraphNodeData[]; edges: Array<{ source: string; target: string; type: string }> };
+export type GraphDelta = {
+  nodes: GraphNodeData[];
+  edges: Array<{ source: string; target: string; type: string }>;
+};
 
 export class UnifiedGraphProjection {
   readonly #senders = new Set<(msg: IncomingFromServer) => void>();
@@ -25,7 +28,11 @@ export class UnifiedGraphProjection {
 
     const ops: GraphOp[] = [];
     for (const node of delta.nodes) {
-      ops.push({ action: 'add_node', id: node.id ?? node.term ?? `node-${Date.now()}`, data: node });
+      ops.push({
+        action: 'add_node',
+        id: node.id ?? node.term ?? `node-${Date.now()}`,
+        data: node,
+      });
     }
 
     this.#emitAll({
@@ -94,7 +101,11 @@ export class UnifiedGraphProjection {
 
   #emitAll(msg: IncomingFromServer): void {
     for (const sender of this.#senders) {
-      try { sender(msg); } catch { /* ignore */ }
+      try {
+        sender(msg);
+      } catch {
+        /* ignore */
+      }
     }
   }
 }

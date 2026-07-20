@@ -11,7 +11,9 @@ const calcAvg = (values: number[]): number =>
 const getMemory = () =>
   typeof process.memoryUsage === 'function' ? process.memoryUsage() : ({} as NodeJS.MemoryUsage);
 
-export const analyzePerformancePatterns = (metrics: MetricsCollector | null): PerformancePatterns => {
+export const analyzePerformancePatterns = (
+  metrics: MetricsCollector | null
+): PerformancePatterns => {
   const ruleStats = metrics?.getRuleStats();
   const avgDuration = Array.isArray(ruleStats)
     ? calcAvg(ruleStats.map((s) => s.averageDuration))
@@ -44,10 +46,7 @@ export const identifySuccessfulStrategies = (metrics: MetricsCollector | null): 
     .map((s) => s.id);
 };
 
-export const analyzeTaskPatterns = (
-  nar: NAR | null,
-  metrics: MetricsCollector | null
-) => {
+export const analyzeTaskPatterns = (nar: NAR | null, metrics: MetricsCollector | null) => {
   if (!nar || !metrics) {
     return { avgProcessingTime: 0, queueDepth: 0, dropRate: 0 };
   }

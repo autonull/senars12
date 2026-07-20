@@ -1,5 +1,4 @@
-import { generateId } from '../helpers.js';
-import type { EventLog, EventLogConfig, CognitiveEvent } from './EventLog.js';
+import type { CognitiveEvent, EventLog } from './EventLog.js';
 
 export abstract class AbstractEventLog implements EventLog {
   #subscribers = new Set<Subscription>();
@@ -119,12 +118,19 @@ export abstract class AbstractEventLog implements EventLog {
     switch (type) {
       case 'input.user': {
         if (!p || typeof p.text !== 'string' || typeof p.source !== 'string') {
-          throw new Error('Invalid payload for input.user: requires { text: string, source: string }');
+          throw new Error(
+            'Invalid payload for input.user: requires { text: string, source: string }'
+          );
         }
         break;
       }
       case 'derivation.made': {
-        if (!p || typeof p.rule !== 'string' || !Array.isArray(p.premises) || typeof p.conclusion !== 'string') {
+        if (
+          !p ||
+          typeof p.rule !== 'string' ||
+          !Array.isArray(p.premises) ||
+          typeof p.conclusion !== 'string'
+        ) {
           throw new Error('Invalid payload for derivation.made');
         }
         break;
@@ -170,7 +176,9 @@ export abstract class AbstractEventLog implements EventLog {
           throw new Error(`Invalid payload for ${type}: requires { goal: string }`);
         }
         if (type === 'goal.failed' && typeof (p as Record<string, unknown>).reason !== 'string') {
-          throw new Error('Invalid payload for goal.failed: requires { goal: string, reason: string }');
+          throw new Error(
+            'Invalid payload for goal.failed: requires { goal: string, reason: string }'
+          );
         }
         break;
       }
@@ -181,7 +189,13 @@ export abstract class AbstractEventLog implements EventLog {
         break;
       }
       case 'skill.executed': {
-        if (!p || typeof p.skill !== 'string' || !Array.isArray(p.args) || typeof p.result !== 'string' || typeof p.durationMs !== 'number') {
+        if (
+          !p ||
+          typeof p.skill !== 'string' ||
+          !Array.isArray(p.args) ||
+          typeof p.result !== 'string' ||
+          typeof p.durationMs !== 'number'
+        ) {
           throw new Error('Invalid payload for skill.executed');
         }
         break;
@@ -193,7 +207,12 @@ export abstract class AbstractEventLog implements EventLog {
         break;
       }
       case 'tool.response': {
-        if (!p || typeof p.requestId !== 'string' || typeof p.toolName !== 'string' || typeof p.durationMs !== 'number') {
+        if (
+          !p ||
+          typeof p.requestId !== 'string' ||
+          typeof p.toolName !== 'string' ||
+          typeof p.durationMs !== 'number'
+        ) {
           throw new Error('Invalid payload for tool.response');
         }
         break;
@@ -241,7 +260,12 @@ export abstract class AbstractEventLog implements EventLog {
         break;
       }
       case 'health': {
-        if (!p || typeof p.status !== 'string' || typeof p.cycleCount !== 'number' || typeof p.errorRate !== 'number') {
+        if (
+          !p ||
+          typeof p.status !== 'string' ||
+          typeof p.cycleCount !== 'number' ||
+          typeof p.errorRate !== 'number'
+        ) {
           throw new Error('Invalid payload for health');
         }
         break;

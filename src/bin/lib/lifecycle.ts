@@ -2,15 +2,15 @@
  * Shared bin lifecycle utilities — agent startup, shutdown, env-based creation.
  */
 
-import type { Agent } from '@senars/nar/agent';
-import { createAgent } from '@senars/nar/agent';
+import { JsonlSessionManager } from '@senars/core/memory';
 import { SeNARSFactory } from '@senars/nar';
 import type { NARConfig } from '@senars/nar';
+import type { Agent } from '@senars/nar/agent';
+import { createAgent } from '@senars/nar/agent';
 import { createSeNARSRegistry } from '@senars/nar/lm';
 import { createLMService } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
 import { EpisodicMemory } from '@senars/nar/memory/episodic';
-import { JsonlSessionManager } from '@senars/core/memory';
 import { readEpisodicConfig } from './env-config.js';
 
 export { setupGracefulShutdown } from '../../utils/shutdown.js';
@@ -27,7 +27,9 @@ export interface AgentFromEnvResult {
   lmService: ReturnType<typeof createLMService>;
 }
 
-export async function createAgentFromEnv(options?: AgentFromEnvOptions): Promise<AgentFromEnvResult> {
+export async function createAgentFromEnv(
+  options?: AgentFromEnvOptions
+): Promise<AgentFromEnvResult> {
   const registry = createSeNARSRegistry();
   const lmService = createLMService();
   const nar = SeNARSFactory.createDefault({
@@ -60,10 +62,7 @@ export interface RunAgentOptions {
   onShutdown?: () => Promise<void>;
 }
 
-export async function runAgent(
-  agent: Agent,
-  options?: RunAgentOptions,
-): Promise<void> {
+export async function runAgent(agent: Agent, options?: RunAgentOptions): Promise<void> {
   const logger = createLogger({ scope: 'lifecycle' });
 
   await agent.start();

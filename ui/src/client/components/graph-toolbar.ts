@@ -189,16 +189,14 @@ export class GraphToolbar extends BaseComponent {
 
       ${
         this.activeCapabilities.length > 0
-          ? html`<div class="capability-badges">${this.activeCapabilities.map(
-              (c) => {
-                const active = $capabilityFilter.get() === c;
-                return html`<span class="cap-badge ${active ? 'active' : ''}"
+          ? html`<div class="capability-badges">${this.activeCapabilities.map((c) => {
+              const active = $capabilityFilter.get() === c;
+              return html`<span class="cap-badge ${active ? 'active' : ''}"
                   title="${c}"
                   @click=${() => this.toggleCapabilityFilter(c)}
                   role="button"
                   tabindex="0">${CAPABILITY_LABELS[c] ?? c}</span>`;
-              }
-            )}</div>`
+            })}</div>`
           : ''
       }
 

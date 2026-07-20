@@ -2,10 +2,10 @@
  * Dynamic LM rule generation and composite rules.
  */
 import type { Term } from '../terms';
+import type { Task } from '../types';
 import { LMRule } from './LMRule.js';
 import { LMResponseParser } from './LMRule.js';
 import type { LMRuleConfig, LMService } from './lm-service.js';
-import type { Task } from '../types';
 
 export interface ValidationRule {
   type: 'narsese' | 'json' | 'custom';

@@ -1,7 +1,7 @@
+import type { GraphNodeData } from '@senars/core';
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { EDGE_TYPES, edgeTypeLabel } from '../../shared/constants.js';
-import type { GraphNodeData } from '@senars/core';
+import { EDGE_TYPES } from '../../shared/constants.js';
 import {
   $focusTerm,
   $graphEdges,
@@ -199,7 +199,9 @@ export class NodeDetailDrawer extends BaseComponent {
       <div class="tabs">
         ${(['overview', 'links', 'actions', 'history'] as const).map(
           (tab) => html`
-          <button class="tab ${this.activeTab === tab ? 'active' : ''}" @click=${() => { this.activeTab = tab; }}>
+          <button class="tab ${this.activeTab === tab ? 'active' : ''}" @click=${() => {
+            this.activeTab = tab;
+          }}>
             ${tab === 'overview' ? 'Overview' : tab === 'links' ? 'Links' : tab === 'history' ? 'History' : 'Actions'}
           </button>
         `

@@ -4,7 +4,6 @@ import {
   type Subst,
   type Type,
   type TypeEnv,
-  type TypeFun,
   TypeKind,
   type TypeScheme,
   type TypeVar,

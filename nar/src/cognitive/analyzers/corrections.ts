@@ -1,11 +1,11 @@
 /**
  * Issue identification and corrections - extracted from SelfAnalyzerService
  */
-import type { NAR, MetricsCollector } from '../../nar.js';
+import type { MetricsCollector, NAR } from '../../nar.js';
 import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
-import type { IdentifiedIssues, CorrectionResult } from '../types.js';
-import { detectInefficientChains } from './reasoning-patterns.js';
+import type { CorrectionResult, IdentifiedIssues } from '../types.js';
 import { analyzeTaskPatterns } from './performance.js';
+import { detectInefficientChains } from './reasoning-patterns.js';
 
 export const identifyIssues = async (
   nar: NAR | null,
@@ -77,7 +77,10 @@ export const identifyIssues = async (
 export const applyCorrections = async (
   nar: NAR | null,
   issues: IdentifiedIssues,
-  optimizer: { rebalancePriorities: () => Promise<void>; applyPerformanceOptimizations: () => Promise<void> }
+  optimizer: {
+    rebalancePriorities: () => Promise<void>;
+    applyPerformanceOptimizations: () => Promise<void>;
+  }
 ): Promise<CorrectionResult> => {
   const appliedCorrections: { type: string; issue: string }[] = [];
   const pendingCorrections: { type: string; issue: string; reason: string }[] = [];

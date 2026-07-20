@@ -43,7 +43,14 @@ test.describe('MettaAgent Integration Tests', () => {
   test('MettaAgent LTM capability available', async ({ page, testControl }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
     await expect
-      .poll(() => page.evaluate(() => String((window as Record<string, unknown>).__testApi?.connection?.getState?.() ?? 'disconnected')))
+      .poll(() =>
+        page.evaluate(() =>
+          String(
+            (window as Record<string, unknown>).__testApi?.connection?.getState?.() ??
+              'disconnected'
+          )
+        )
+      )
       .toBe('connected');
 
     // Verify bootstrap created concepts

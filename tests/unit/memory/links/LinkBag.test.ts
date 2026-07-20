@@ -8,12 +8,7 @@ const atom = (symbol: string): AtomicTerm => ({
   toString: () => symbol,
 });
 
-const entry = (
-  id: string,
-  source: string,
-  target: string,
-  priority: number
-): LinkEntry => ({
+const entry = (id: string, source: string, target: string, priority: number): LinkEntry => ({
   id,
   sourceTerm: atom(source),
   targetTerm: atom(target),

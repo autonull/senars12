@@ -32,10 +32,10 @@
       "types": "./src/Transport.ts",
       "import": "./src/Transport.ts"
     },
-  "./protocol": {
-    "types": "./src/protocol/index.ts",
-    "import": "./src/protocol/index.ts"
-  },
+    "./protocol": {
+      "types": "./src/protocol/index.ts",
+      "import": "./src/protocol/index.ts"
+    },
     "./model": {
       "types": "./src/ModelRunner.ts",
       "import": "./src/ModelRunner.ts"

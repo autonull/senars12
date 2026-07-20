@@ -3,9 +3,9 @@
  * Runs the SeNARS MCP Server with NAR tools registered
  */
 
-import { z } from 'zod';
 import { SeNARSFactory } from '@senars/nar';
 import { createLogger } from '@senars/nar/logger';
+import { z } from 'zod';
 import { SeNARSMCPServer } from '../api/mcp-server.js';
 import { registerAgentAPI, registerNARToolsAsMCP } from '../api/mcp-tools.js';
 import { loadConfig } from '../config';
@@ -46,7 +46,11 @@ async function initialize() {
 
   await server.start();
   logger.info('SeNARS MCP Server started on stdio');
-  const tools = server.getAdapter().getTools().map((t) => t.name).join(', ');
+  const tools = server
+    .getAdapter()
+    .getTools()
+    .map((t) => t.name)
+    .join(', ');
   logger.info(`Tools registered: ${tools}`);
 }
 

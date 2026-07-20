@@ -1,9 +1,9 @@
+import { QuestionGenerationSchema } from '../../nl';
 /**
  * Question-oriented LM rule definitions (curiosity-driven).
  */
 import type { LMRuleDefinition } from '../rule-builders.js';
 import { hasHighCuriosity } from '../rule-selectors/confidence.js';
-import { QuestionGenerationSchema } from '../../nl';
 
 export const questionRules: LMRuleDefinition[] = [
   {

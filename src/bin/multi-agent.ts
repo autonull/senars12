@@ -7,9 +7,7 @@
 import { SeNARSFactory } from '@senars/nar';
 import { runMultiAgent } from './lib/multi-agent-runner.js';
 
-const banner = [
-  '[NAR] Initializing...',
-];
+const banner = ['[NAR] Initializing...'];
 
 runMultiAgent({
   scope: 'multi-agent',

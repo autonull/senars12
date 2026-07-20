@@ -1,10 +1,6 @@
-/**
- * Higher-order NAL rules: deduction, abduction, induction over implications.
- */
-import type { Term } from '../../terms';
 import { TermBuilder, termsEqual } from '../../terms';
-import type { RuleFn } from '../types.js';
 import { buildHigherOrderRule } from '../builders.js';
+import type { RuleFn } from '../types.js';
 
 export const higherOrderDeduction: RuleFn = buildHigherOrderRule(
   (_a1, c1, a2, _c2) => termsEqual(c1, a2),

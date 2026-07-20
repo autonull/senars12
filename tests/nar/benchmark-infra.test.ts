@@ -33,7 +33,9 @@ describe('Performance benchmarks (infrastructure)', () => {
     }
     const elapsed = performance.now() - start;
     const perOp = (elapsed * 1000) / iterations;
-    console.log(`Inference cycle (inputTask): ${perOp.toFixed(2)}μs per operation (${iterations} iterations)`);
+    console.log(
+      `Inference cycle (inputTask): ${perOp.toFixed(2)}μs per operation (${iterations} iterations)`
+    );
     expect(perOp).toBeLessThan(5000);
   });
 
@@ -80,11 +82,14 @@ describe('Performance benchmarks (infrastructure)', () => {
   test('memory serialize/deserialize', async () => {
     const { deserialize, serialize } = await import('../../nar/src/memory/state/serialization');
     const memory = new Memory();
-    memory.addTask({
-      term: TermBuilder.inheritance(atom('cat'), atom('animal')),
-      truth: Truth.TRUE,
-      stamp: Stamp.createInput(),
-    }, 'belief');
+    memory.addTask(
+      {
+        term: TermBuilder.inheritance(atom('cat'), atom('animal')),
+        truth: Truth.TRUE,
+        stamp: Stamp.createInput(),
+      },
+      'belief'
+    );
     const iterations = 200;
     const start = performance.now();
     for (let i = 0; i < iterations; i++) {
@@ -93,7 +98,9 @@ describe('Performance benchmarks (infrastructure)', () => {
     }
     const elapsed = performance.now() - start;
     const perOp = (elapsed * 1000) / iterations;
-    console.log(`Memory serialize/deserialize: ${perOp.toFixed(2)}μs per operation (${iterations} iterations)`);
+    console.log(
+      `Memory serialize/deserialize: ${perOp.toFixed(2)}μs per operation (${iterations} iterations)`
+    );
     expect(perOp).toBeLessThan(50000);
   });
 });

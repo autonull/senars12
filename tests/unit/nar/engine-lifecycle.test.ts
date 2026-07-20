@@ -44,7 +44,7 @@ describe('NAREngine lifecycle', () => {
         source: 'chat',
         timestamp: Date.now(),
       },
-      { working: [], episodic: [], semantic: [] },
+      { working: [], episodic: [], semantic: [] }
     );
     expect(Array.isArray(derivations)).toBe(true);
   });

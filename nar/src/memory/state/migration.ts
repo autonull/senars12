@@ -6,9 +6,9 @@
  * appropriate migration chain before delegating to the target deserializer.
  */
 
+import type { Memory } from '../memory.js';
 import { MEMORY_VERSION, V1 } from './serialization.js';
 import type { SerializedMemory } from './serialization.js';
-import type { Memory } from '../memory.js';
 
 export type MemoryVersion = 1;
 
@@ -27,7 +27,10 @@ function migrate(from: number, to: number, data: SerializedMemory): SerializedMe
   return current;
 }
 
-export async function loadMemoryState(data: Partial<SerializedMemory>, memory: Memory): Promise<void> {
+export async function loadMemoryState(
+  data: Partial<SerializedMemory>,
+  memory: Memory
+): Promise<void> {
   const target = detectVersion(data);
   if (target !== MEMORY_VERSION) {
     throw new Error(`Unsupported memory version: ${target}`);

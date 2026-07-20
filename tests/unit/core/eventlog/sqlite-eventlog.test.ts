@@ -1,9 +1,9 @@
 import { mkdtempSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { beforeEach, afterEach, describe, expect, it } from 'vitest';
+import { join } from 'node:path';
 import { SqliteEventLog } from '@senars/core/eventlog';
 import type { CognitiveEvent } from '@senars/core/eventlog';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 function tmpDb(): string {
   return join(mkdtempSync(join(tmpdir(), 'sqlite-eventlog-test-')), 'events.db');

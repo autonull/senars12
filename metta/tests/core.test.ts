@@ -1,10 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { Cache } from '../src/core/cache.js';
 import { ErrorCode, MeTTaError } from '../src/core/errors.js';
 import { equalAtoms, hashAtom } from '../src/core/hash.js';
 import { SymbolInterner } from '../src/core/intern.js';
 import { InMemorySpace } from '../src/core/space.js';
-import { expr, num, str, sym, varr } from '../src/types/ast.js';
+import { expr, num, str, sym } from '../src/types/ast.js';
 
 describe('Cache', () => {
   it('stores and retrieves values', () => {

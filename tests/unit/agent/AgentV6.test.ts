@@ -1,10 +1,10 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createAgent } from '../../../nar/src/agent/index.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { NAR } from '../../../nar/src';
 import { SeNARSFactory } from '../../../nar/src';
+import { createAgent } from '../../../nar/src/agent/index.js';
 import { createMockLMService } from '../../../nar/src/lm';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
 
@@ -21,7 +21,10 @@ function makeEpisodicMemory(): EpisodicMemory {
   return new EpisodicMemory({ enabled: true, basePath, retentionDays: 1, maxEntriesPerFile: 100 });
 }
 
-async function collectChat(agent: Awaited<ReturnType<typeof createAgent>>, input: string): Promise<string> {
+async function collectChat(
+  agent: Awaited<ReturnType<typeof createAgent>>,
+  input: string
+): Promise<string> {
   let result = '';
   for await (const evt of agent.chat(input)) {
     if (evt.kind === 'text-delta' && evt.text) result += evt.text;

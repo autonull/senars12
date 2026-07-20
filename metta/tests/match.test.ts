@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { InMemorySpace } from '../src/core/space.js';
 import { PatternMatcher } from '../src/engine/match.js';
-import { expr, num, sym, varr } from '../src/index.js';
+import { expr, sym, varr } from '../src/index.js';
 
 describe('PatternMatcher', () => {
   let space: InMemorySpace;

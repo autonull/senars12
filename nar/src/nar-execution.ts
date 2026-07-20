@@ -1,4 +1,3 @@
-import type { EventBus as NarEventBus } from './types/events.js';
 import type { CognitiveController } from './cognitive';
 import type { DriveManager } from './drives';
 import { createLogger } from './logger';
@@ -12,6 +11,7 @@ import { MemoryPremiseSource, createPipeline } from './stream';
 import type { TaskManager } from './task';
 import { PhaseTimer } from './trace';
 import type { Task } from './types';
+import type { EventBus as NarEventBus } from './types/events.js';
 import { errMsg } from './utils';
 
 export class NARExecution {

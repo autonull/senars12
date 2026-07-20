@@ -1,8 +1,8 @@
+import type { MetricsCollector } from '../../metrics';
 /**
  * Policy management - extracted from SelfAnalyzerService
  */
 import type { AgentPolicy } from '../types.js';
-import type { MetricsCollector } from '../../metrics';
 
 export interface PolicyManager {
   recordRoute(kind: string): void;
@@ -48,7 +48,8 @@ export const createPolicyManager = (recencyEpisodes: number): PolicyManager => {
       for (const r of recentRoutes) routeCounts.set(r, (routeCounts.get(r) ?? 0) + 1);
       const totalRoutes = Math.max(1, recentRoutes.length);
       const routingWeights: Record<string, number> = {};
-      for (const [kind, count] of routeCounts) routingWeights[kind] = Math.max(0.1, count / totalRoutes);
+      for (const [kind, count] of routeCounts)
+        routingWeights[kind] = Math.max(0.1, count / totalRoutes);
       for (const k of ['narsese-belief', 'narsese-question', 'command', 'nl', 'reason']) {
         if (!(k in routingWeights)) routingWeights[k] = 0.1;
       }

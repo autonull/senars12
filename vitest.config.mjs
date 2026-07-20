@@ -1,6 +1,6 @@
-import { defineConfig } from 'vitest/config';
-import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { defineConfig } from 'vitest/config';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -12,110 +12,350 @@ export default defineConfig({
     setupFiles: ['tests/setup/vitest-setup.ts'],
     server: {
       deps: {
-        inline: [
-          '@senars/core',
-          '@senars/io',
-          '@senars/nar',
-          '@senars/metta',
-          '@senars/util',
-        ],
+        inline: ['@senars/core', '@senars/io', '@senars/nar', '@senars/metta', '@senars/util'],
       },
     },
   },
   resolve: {
     alias: [
       { find: /^@senars\/core$/, replacement: resolve(__dirname, './core/src/index.ts') },
-      { find: /^@senars\/core\/lifecycle$/, replacement: resolve(__dirname, './core/src/Lifecycle.ts') },
-      { find: /^@senars\/core\/cognitive-event$/, replacement: resolve(__dirname, './core/src/CognitiveEvent.ts') },
-      { find: /^@senars\/core\/transport$/, replacement: resolve(__dirname, './core/src/Transport.ts') },
-      { find: /^@senars\/core\/protocol$/, replacement: resolve(__dirname, './core/src/Protocol.ts') },
-      { find: /^@senars\/core\/model$/, replacement: resolve(__dirname, './core/src/ModelRunner.ts') },
-      { find: /^@senars\/core\/chat$/, replacement: resolve(__dirname, './core/src/ChatService.ts') },
-      { find: /^@senars\/core\/options$/, replacement: resolve(__dirname, './core/src/Options.ts') },
-      { find: /^@senars\/core\/session$/, replacement: resolve(__dirname, './core/src/SessionOrchestrator.ts') },
-      { find: /^@senars\/core\/stats$/, replacement: resolve(__dirname, './core/src/StatsManager.ts') },
-      { find: /^@senars\/core\/knowledge$/, replacement: resolve(__dirname, './core/src/KnowledgeManager.ts') },
-      { find: /^@senars\/core\/approval$/, replacement: resolve(__dirname, './core/src/ApprovalService.ts') },
+      {
+        find: /^@senars\/core\/lifecycle$/,
+        replacement: resolve(__dirname, './core/src/Lifecycle.ts'),
+      },
+      {
+        find: /^@senars\/core\/cognitive-event$/,
+        replacement: resolve(__dirname, './core/src/CognitiveEvent.ts'),
+      },
+      {
+        find: /^@senars\/core\/transport$/,
+        replacement: resolve(__dirname, './core/src/Transport.ts'),
+      },
+      {
+        find: /^@senars\/core\/protocol$/,
+        replacement: resolve(__dirname, './core/src/Protocol.ts'),
+      },
+      {
+        find: /^@senars\/core\/model$/,
+        replacement: resolve(__dirname, './core/src/ModelRunner.ts'),
+      },
+      {
+        find: /^@senars\/core\/chat$/,
+        replacement: resolve(__dirname, './core/src/ChatService.ts'),
+      },
+      {
+        find: /^@senars\/core\/options$/,
+        replacement: resolve(__dirname, './core/src/Options.ts'),
+      },
+      {
+        find: /^@senars\/core\/session$/,
+        replacement: resolve(__dirname, './core/src/SessionOrchestrator.ts'),
+      },
+      {
+        find: /^@senars\/core\/stats$/,
+        replacement: resolve(__dirname, './core/src/StatsManager.ts'),
+      },
+      {
+        find: /^@senars\/core\/knowledge$/,
+        replacement: resolve(__dirname, './core/src/KnowledgeManager.ts'),
+      },
+      {
+        find: /^@senars\/core\/approval$/,
+        replacement: resolve(__dirname, './core/src/ApprovalService.ts'),
+      },
       { find: /^@senars\/core\/logger$/, replacement: resolve(__dirname, './core/src/Logger.ts') },
-      { find: /^@senars\/core\/helpers$/, replacement: resolve(__dirname, './core/src/helpers.ts') },
-      { find: /^@senars\/core\/command-types$/, replacement: resolve(__dirname, './core/src/command-types.ts') },
+      {
+        find: /^@senars\/core\/helpers$/,
+        replacement: resolve(__dirname, './core/src/helpers.ts'),
+      },
+      {
+        find: /^@senars\/core\/command-types$/,
+        replacement: resolve(__dirname, './core/src/command-types.ts'),
+      },
       { find: /^@senars\/io$/, replacement: resolve(__dirname, './io/src/index.ts') },
       { find: /^@senars\/ui$/, replacement: resolve(__dirname, './ui/src/index.ts') },
-      { find: /^@senars\/ui\/server$/, replacement: resolve(__dirname, './ui/src/server/index.ts') },
-      { find: /^@senars\/ui\/server\/(.*)$/, replacement: resolve(__dirname, './ui/src/server/$1.ts') },
-      { find: /^@senars\/ui\/client$/, replacement: resolve(__dirname, './ui/src/client/index.ts') },
-      { find: /^@senars\/ui\/client\/(.*)$/, replacement: resolve(__dirname, './ui/src/client/$1.ts') },
-      { find: /^@senars\/ui\/shared$/, replacement: resolve(__dirname, './ui/src/shared/index.ts') },
-      { find: /^@senars\/ui\/shared\/(.*)$/, replacement: resolve(__dirname, './ui/src/shared/$1.ts') },
+      {
+        find: /^@senars\/ui\/server$/,
+        replacement: resolve(__dirname, './ui/src/server/index.ts'),
+      },
+      {
+        find: /^@senars\/ui\/server\/(.*)$/,
+        replacement: resolve(__dirname, './ui/src/server/$1.ts'),
+      },
+      {
+        find: /^@senars\/ui\/client$/,
+        replacement: resolve(__dirname, './ui/src/client/index.ts'),
+      },
+      {
+        find: /^@senars\/ui\/client\/(.*)$/,
+        replacement: resolve(__dirname, './ui/src/client/$1.ts'),
+      },
+      {
+        find: /^@senars\/ui\/shared$/,
+        replacement: resolve(__dirname, './ui/src/shared/index.ts'),
+      },
+      {
+        find: /^@senars\/ui\/shared\/(.*)$/,
+        replacement: resolve(__dirname, './ui/src/shared/$1.ts'),
+      },
       { find: /^@senars\/io\/types$/, replacement: resolve(__dirname, './io/src/types.ts') },
-      { find: /^@senars\/io\/connection-manager$/, replacement: resolve(__dirname, './io/src/connection-manager.ts') },
+      {
+        find: /^@senars\/io\/connection-manager$/,
+        replacement: resolve(__dirname, './io/src/connection-manager.ts'),
+      },
       { find: /^@senars\/io\/router$/, replacement: resolve(__dirname, './io/src/router.ts') },
       { find: /^@senars\/io\/auth$/, replacement: resolve(__dirname, './io/src/auth.ts') },
-      { find: /^@senars\/io\/connections\/base$/, replacement: resolve(__dirname, './io/src/connections/base.ts') },
-      { find: /^@senars\/io\/connections\/cli$/, replacement: resolve(__dirname, './io/src/connections/cli.ts') },
-      { find: /^@senars\/io\/connections\/irc$/, replacement: resolve(__dirname, './io/src/connections/irc.ts') },
-      { find: /^@senars\/io\/connections\/ws$/, replacement: resolve(__dirname, './io/src/connections/ws.ts') },
-      { find: /^@senars\/io\/connections\/http$/, replacement: resolve(__dirname, './io/src/connections/http.ts') },
-      { find: /^@senars\/io\/connections\/mcp$/, replacement: resolve(__dirname, './io/src/connections/mcp.ts') },
-      { find: /^@senars\/io\/connections\/reply-target$/, replacement: resolve(__dirname, './io/src/connections/reply-target.ts') },
-      { find: /^@senars\/io\/commands\/registry$/, replacement: resolve(__dirname, './io/src/commands/registry.ts') },
-      { find: /^@senars\/io\/commands\/connection$/, replacement: resolve(__dirname, './io/src/commands/connection.ts') },
-      { find: /^@senars\/io\/commands\/auth$/, replacement: resolve(__dirname, './io/src/commands/auth.ts') },
-      { find: /^@senars\/io\/utils\/http$/, replacement: resolve(__dirname, './io/src/utils/http.ts') },
-      { find: /^@senars\/io\/utils\/websocket$/, replacement: resolve(__dirname, './io/src/utils/websocket.ts') },
+      {
+        find: /^@senars\/io\/connections\/base$/,
+        replacement: resolve(__dirname, './io/src/connections/base.ts'),
+      },
+      {
+        find: /^@senars\/io\/connections\/cli$/,
+        replacement: resolve(__dirname, './io/src/connections/cli.ts'),
+      },
+      {
+        find: /^@senars\/io\/connections\/irc$/,
+        replacement: resolve(__dirname, './io/src/connections/irc.ts'),
+      },
+      {
+        find: /^@senars\/io\/connections\/ws$/,
+        replacement: resolve(__dirname, './io/src/connections/ws.ts'),
+      },
+      {
+        find: /^@senars\/io\/connections\/http$/,
+        replacement: resolve(__dirname, './io/src/connections/http.ts'),
+      },
+      {
+        find: /^@senars\/io\/connections\/mcp$/,
+        replacement: resolve(__dirname, './io/src/connections/mcp.ts'),
+      },
+      {
+        find: /^@senars\/io\/connections\/reply-target$/,
+        replacement: resolve(__dirname, './io/src/connections/reply-target.ts'),
+      },
+      {
+        find: /^@senars\/io\/commands\/registry$/,
+        replacement: resolve(__dirname, './io/src/commands/registry.ts'),
+      },
+      {
+        find: /^@senars\/io\/commands\/connection$/,
+        replacement: resolve(__dirname, './io/src/commands/connection.ts'),
+      },
+      {
+        find: /^@senars\/io\/commands\/auth$/,
+        replacement: resolve(__dirname, './io/src/commands/auth.ts'),
+      },
+      {
+        find: /^@senars\/io\/utils\/http$/,
+        replacement: resolve(__dirname, './io/src/utils/http.ts'),
+      },
+      {
+        find: /^@senars\/io\/utils\/websocket$/,
+        replacement: resolve(__dirname, './io/src/utils/websocket.ts'),
+      },
       { find: /^@senars\/nar$/, replacement: resolve(__dirname, './nar/src/index.ts') },
-      { find: /^@senars\/nar\/agent$/, replacement: resolve(__dirname, './nar/src/agent/index.ts') },
-      { find: /^@senars\/nar\/agent\/(.*)$/, replacement: resolve(__dirname, './nar/src/agent/$1.ts') },
-      { find: /^@senars\/nar\/backend$/, replacement: resolve(__dirname, './nar/src/backend/NarBackend.ts') },
-      { find: /^@senars\/nar\/model$/, replacement: resolve(__dirname, './nar/src/agent/model/index.ts') },
-      { find: /^@senars\/nar\/model\/(.*)$/, replacement: resolve(__dirname, './nar/src/agent/model/$1.ts') },
-      { find: /^@senars\/nar\/schemas$/, replacement: resolve(__dirname, './nar/src/schemas/index.ts') },
-      { find: /^@senars\/nar\/schemas\/(.*)$/, replacement: resolve(__dirname, './nar/src/schemas/$1.ts') },
-      { find: /^@senars\/nar\/logger$/, replacement: resolve(__dirname, './nar/src/logger/index.ts') },
-      { find: /^@senars\/nar\/logger\/(.*)$/, replacement: resolve(__dirname, './nar/src/logger/$1.ts') },
-      { find: /^@senars\/nar\/utils$/, replacement: resolve(__dirname, './nar/src/utils/index.ts') },
-      { find: /^@senars\/nar\/utils\/(.*)$/, replacement: resolve(__dirname, './nar/src/utils/$1.ts') },
-      { find: /^@senars\/nar\/commands$/, replacement: resolve(__dirname, './nar/src/commands/index.ts') },
-      { find: /^@senars\/nar\/commands\/(.*)$/, replacement: resolve(__dirname, './nar/src/commands/$1.ts') },
-      { find: /^@senars\/nar\/events\/(.*)$/, replacement: resolve(__dirname, './nar/src/events/$1.ts') },
+      {
+        find: /^@senars\/nar\/agent$/,
+        replacement: resolve(__dirname, './nar/src/agent/index.ts'),
+      },
+      {
+        find: /^@senars\/nar\/agent\/(.*)$/,
+        replacement: resolve(__dirname, './nar/src/agent/$1.ts'),
+      },
+      {
+        find: /^@senars\/nar\/backend$/,
+        replacement: resolve(__dirname, './nar/src/backend/NarBackend.ts'),
+      },
+      {
+        find: /^@senars\/nar\/model$/,
+        replacement: resolve(__dirname, './nar/src/agent/model/index.ts'),
+      },
+      {
+        find: /^@senars\/nar\/model\/(.*)$/,
+        replacement: resolve(__dirname, './nar/src/agent/model/$1.ts'),
+      },
+      {
+        find: /^@senars\/nar\/schemas$/,
+        replacement: resolve(__dirname, './nar/src/schemas/index.ts'),
+      },
+      {
+        find: /^@senars\/nar\/schemas\/(.*)$/,
+        replacement: resolve(__dirname, './nar/src/schemas/$1.ts'),
+      },
+      {
+        find: /^@senars\/nar\/logger$/,
+        replacement: resolve(__dirname, './nar/src/logger/index.ts'),
+      },
+      {
+        find: /^@senars\/nar\/logger\/(.*)$/,
+        replacement: resolve(__dirname, './nar/src/logger/$1.ts'),
+      },
+      {
+        find: /^@senars\/nar\/utils$/,
+        replacement: resolve(__dirname, './nar/src/utils/index.ts'),
+      },
+      {
+        find: /^@senars\/nar\/utils\/(.*)$/,
+        replacement: resolve(__dirname, './nar/src/utils/$1.ts'),
+      },
+      {
+        find: /^@senars\/nar\/commands$/,
+        replacement: resolve(__dirname, './nar/src/commands/index.ts'),
+      },
+      {
+        find: /^@senars\/nar\/commands\/(.*)$/,
+        replacement: resolve(__dirname, './nar/src/commands/$1.ts'),
+      },
+      {
+        find: /^@senars\/nar\/events\/(.*)$/,
+        replacement: resolve(__dirname, './nar/src/events/$1.ts'),
+      },
       { find: /^@senars\/metta$/, replacement: resolve(__dirname, './metta/src/index.ts') },
-      { find: /^@senars\/metta\/agent$/, replacement: resolve(__dirname, './metta/src/agent/index.ts') },
-      { find: /^@senars\/metta\/agent\/(.*)$/, replacement: resolve(__dirname, './metta/src/agent/$1.ts') },
-      { find: /^@senars\/metta\/backend$/, replacement: resolve(__dirname, './metta/src/backend/MettaBackend.ts') },
-      { find: /^@senars\/metta\/parser$/, replacement: resolve(__dirname, './metta/src/parser/runtime.ts') },
-      { find: /^@senars\/metta\/parser\/(.*)$/, replacement: resolve(__dirname, './metta/src/parser/$1.ts') },
-      { find: /^@senars\/metta\/engine$/, replacement: resolve(__dirname, './metta/src/engine/egraph.ts') },
-      { find: /^@senars\/metta\/engine\/(.*)$/, replacement: resolve(__dirname, './metta/src/engine/$1.ts') },
-      { find: /^@senars\/metta\/core$/, replacement: resolve(__dirname, './metta/src/core/index.ts') },
-      { find: /^@senars\/metta\/core\/(.*)$/, replacement: resolve(__dirname, './metta/src/core/$1.ts') },
-      { find: /^@senars\/metta\/runtime$/, replacement: resolve(__dirname, './metta/src/runtime/builder.ts') },
-      { find: /^@senars\/metta\/runtime\/(.*)$/, replacement: resolve(__dirname, './metta/src/runtime/$1.ts') },
-      { find: /^@senars\/metta\/types$/, replacement: resolve(__dirname, './metta/src/types/index.ts') },
-      { find: /^@senars\/metta\/types\/(.*)$/, replacement: resolve(__dirname, './metta/src/types/$1.ts') },
-      { find: /^@senars\/metta\/stdlib$/, replacement: resolve(__dirname, './metta/src/stdlib/index.ts') },
-      { find: /^@senars\/metta\/stdlib\/(.*)$/, replacement: resolve(__dirname, './metta/src/stdlib/$1.ts') },
-      { find: /^@senars\/metta\/extensions$/, replacement: resolve(__dirname, './metta/src/extensions/index.ts') },
-      { find: /^@senars\/metta\/extensions\/(.*)$/, replacement: resolve(__dirname, './metta/src/extensions/$1.ts') },
-      { find: /^@senars\/metta\/performance$/, replacement: resolve(__dirname, './metta/src/performance/index.ts') },
-      { find: /^@senars\/metta\/performance\/(.*)$/, replacement: resolve(__dirname, './metta/src/performance/$1.ts') },
+      {
+        find: /^@senars\/metta\/agent$/,
+        replacement: resolve(__dirname, './metta/src/agent/index.ts'),
+      },
+      {
+        find: /^@senars\/metta\/agent\/(.*)$/,
+        replacement: resolve(__dirname, './metta/src/agent/$1.ts'),
+      },
+      {
+        find: /^@senars\/metta\/backend$/,
+        replacement: resolve(__dirname, './metta/src/backend/MettaBackend.ts'),
+      },
+      {
+        find: /^@senars\/metta\/parser$/,
+        replacement: resolve(__dirname, './metta/src/parser/runtime.ts'),
+      },
+      {
+        find: /^@senars\/metta\/parser\/(.*)$/,
+        replacement: resolve(__dirname, './metta/src/parser/$1.ts'),
+      },
+      {
+        find: /^@senars\/metta\/engine$/,
+        replacement: resolve(__dirname, './metta/src/engine/egraph.ts'),
+      },
+      {
+        find: /^@senars\/metta\/engine\/(.*)$/,
+        replacement: resolve(__dirname, './metta/src/engine/$1.ts'),
+      },
+      {
+        find: /^@senars\/metta\/core$/,
+        replacement: resolve(__dirname, './metta/src/core/index.ts'),
+      },
+      {
+        find: /^@senars\/metta\/core\/(.*)$/,
+        replacement: resolve(__dirname, './metta/src/core/$1.ts'),
+      },
+      {
+        find: /^@senars\/metta\/runtime$/,
+        replacement: resolve(__dirname, './metta/src/runtime/builder.ts'),
+      },
+      {
+        find: /^@senars\/metta\/runtime\/(.*)$/,
+        replacement: resolve(__dirname, './metta/src/runtime/$1.ts'),
+      },
+      {
+        find: /^@senars\/metta\/types$/,
+        replacement: resolve(__dirname, './metta/src/types/index.ts'),
+      },
+      {
+        find: /^@senars\/metta\/types\/(.*)$/,
+        replacement: resolve(__dirname, './metta/src/types/$1.ts'),
+      },
+      {
+        find: /^@senars\/metta\/stdlib$/,
+        replacement: resolve(__dirname, './metta/src/stdlib/index.ts'),
+      },
+      {
+        find: /^@senars\/metta\/stdlib\/(.*)$/,
+        replacement: resolve(__dirname, './metta/src/stdlib/$1.ts'),
+      },
+      {
+        find: /^@senars\/metta\/extensions$/,
+        replacement: resolve(__dirname, './metta/src/extensions/index.ts'),
+      },
+      {
+        find: /^@senars\/metta\/extensions\/(.*)$/,
+        replacement: resolve(__dirname, './metta/src/extensions/$1.ts'),
+      },
+      {
+        find: /^@senars\/metta\/performance$/,
+        replacement: resolve(__dirname, './metta/src/performance/index.ts'),
+      },
+      {
+        find: /^@senars\/metta\/performance\/(.*)$/,
+        replacement: resolve(__dirname, './metta/src/performance/$1.ts'),
+      },
       { find: /^@senars\/util$/, replacement: resolve(__dirname, './util/src/index.ts') },
-      { find: /^@senars\/util\/errors$/, replacement: resolve(__dirname, './util/src/errors/index.ts') },
-      { find: /^@senars\/util\/types\/cognitive$/, replacement: resolve(__dirname, './util/src/types/cognitive.ts') },
-      { find: /^@senars\/util\/types\/engine$/, replacement: resolve(__dirname, './util/src/types/engine.ts') },
-      { find: /^@senars\/util\/types\/transport$/, replacement: resolve(__dirname, './util/src/types/transport.ts') },
-      { find: /^@senars\/util\/types\/lifecycle$/, replacement: resolve(__dirname, './util/src/types/lifecycle.ts') },
-      { find: /^@senars\/util\/types\/events$/, replacement: resolve(__dirname, './util/src/types/events.ts') },
-      { find: /^@senars\/util\/types\/agent$/, replacement: resolve(__dirname, './util/src/types/agent.ts') },
-      { find: /^@senars\/util\/types\/truth$/, replacement: resolve(__dirname, './util/src/types/truth.ts') },
-      { find: /^@senars\/util\/types\/llm$/, replacement: resolve(__dirname, './util/src/types/llm.ts') },
-      { find: /^@senars\/util\/types\/memory$/, replacement: resolve(__dirname, './util/src/types/memory.ts') },
-      { find: /^@senars\/util\/utils\/assert$/, replacement: resolve(__dirname, './util/src/utils/assert.ts') },
-      { find: /^@senars\/util\/utils\/id$/, replacement: resolve(__dirname, './util/src/utils/id.ts') },
-      { find: /^@senars\/util\/utils\/throttle$/, replacement: resolve(__dirname, './util/src/utils/throttle.ts') },
-      { find: /^@senars\/util\/commands$/, replacement: resolve(__dirname, './util/src/commands/index.ts') },
-      { find: /^@senars\/util\/events$/, replacement: resolve(__dirname, './util/src/events/index.ts') },
-      { find: /^@senars\/util\/memory$/, replacement: resolve(__dirname, './util/src/memory/in-memory-session-manager.ts') },
-      { find: /^@senars\/util\/config$/, replacement: resolve(__dirname, './util/src/config/index.ts') },
+      {
+        find: /^@senars\/util\/errors$/,
+        replacement: resolve(__dirname, './util/src/errors/index.ts'),
+      },
+      {
+        find: /^@senars\/util\/types\/cognitive$/,
+        replacement: resolve(__dirname, './util/src/types/cognitive.ts'),
+      },
+      {
+        find: /^@senars\/util\/types\/engine$/,
+        replacement: resolve(__dirname, './util/src/types/engine.ts'),
+      },
+      {
+        find: /^@senars\/util\/types\/transport$/,
+        replacement: resolve(__dirname, './util/src/types/transport.ts'),
+      },
+      {
+        find: /^@senars\/util\/types\/lifecycle$/,
+        replacement: resolve(__dirname, './util/src/types/lifecycle.ts'),
+      },
+      {
+        find: /^@senars\/util\/types\/events$/,
+        replacement: resolve(__dirname, './util/src/types/events.ts'),
+      },
+      {
+        find: /^@senars\/util\/types\/agent$/,
+        replacement: resolve(__dirname, './util/src/types/agent.ts'),
+      },
+      {
+        find: /^@senars\/util\/types\/truth$/,
+        replacement: resolve(__dirname, './util/src/types/truth.ts'),
+      },
+      {
+        find: /^@senars\/util\/types\/llm$/,
+        replacement: resolve(__dirname, './util/src/types/llm.ts'),
+      },
+      {
+        find: /^@senars\/util\/types\/memory$/,
+        replacement: resolve(__dirname, './util/src/types/memory.ts'),
+      },
+      {
+        find: /^@senars\/util\/utils\/assert$/,
+        replacement: resolve(__dirname, './util/src/utils/assert.ts'),
+      },
+      {
+        find: /^@senars\/util\/utils\/id$/,
+        replacement: resolve(__dirname, './util/src/utils/id.ts'),
+      },
+      {
+        find: /^@senars\/util\/utils\/throttle$/,
+        replacement: resolve(__dirname, './util/src/utils/throttle.ts'),
+      },
+      {
+        find: /^@senars\/util\/commands$/,
+        replacement: resolve(__dirname, './util/src/commands/index.ts'),
+      },
+      {
+        find: /^@senars\/util\/events$/,
+        replacement: resolve(__dirname, './util/src/events/index.ts'),
+      },
+      {
+        find: /^@senars\/util\/memory$/,
+        replacement: resolve(__dirname, './util/src/memory/in-memory-session-manager.ts'),
+      },
+      {
+        find: /^@senars\/util\/config$/,
+        replacement: resolve(__dirname, './util/src/config/index.ts'),
+      },
     ],
   },
 });

@@ -1,7 +1,7 @@
-import type { EventLog } from '../eventlog/EventLog.js';
 import type { Engine } from '../engine/Engine.js';
-import type { ToolRegistry } from '../motor/ToolRegistry.js';
+import type { EventLog } from '../eventlog/EventLog.js';
 import { generateId } from '../helpers.js';
+import type { ToolRegistry } from '../motor/ToolRegistry.js';
 import type { MemoryEntry, MemoryQuery } from './types.js';
 
 export class MemoryService {
@@ -44,9 +44,7 @@ export class MemoryService {
   }
 
   recent(limit: number, type?: string): MemoryEntry[] {
-    const entries = type
-      ? this.#working.filter((e) => e.type === type)
-      : this.#working;
+    const entries = type ? this.#working.filter((e) => e.type === type) : this.#working;
     return entries.slice(-limit);
   }
 
@@ -66,9 +64,7 @@ export class MemoryService {
   }
 
   queryAroundTime(ts: number, windowMs: number): MemoryEntry[] {
-    return this.#working.filter(
-      (e) => Math.abs(e.timestamp - ts) <= windowMs
-    );
+    return this.#working.filter((e) => Math.abs(e.timestamp - ts) <= windowMs);
   }
 
   /** Tier 1: Episodic memory via EventLog replay */
@@ -118,13 +114,21 @@ export class MemoryService {
   /** Tier 4: Long-term persistence */
   async persist(): Promise<void> {
     for (const engine of this.#engines?.values() ?? []) {
-      try { await engine.persist?.(); } catch { /* ignore */ }
+      try {
+        await engine.persist?.();
+      } catch {
+        /* ignore */
+      }
     }
   }
 
   async load(): Promise<void> {
     for (const engine of this.#engines?.values() ?? []) {
-      try { await engine.load?.(); } catch { /* ignore */ }
+      try {
+        await engine.load?.();
+      } catch {
+        /* ignore */
+      }
     }
   }
 

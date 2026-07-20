@@ -1,7 +1,7 @@
-import { createAgent } from '@senars/nar/agent';
 import { SeNARSFactory } from '@senars/nar';
-import { describe, expect, it, afterAll, beforeAll } from 'vitest';
+import { createAgent } from '@senars/nar/agent';
 import type { CognitiveEvent } from '@senars/util';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 describe('Core Agent with MettaEngine - Conversational Scenarios', () => {
   let agent: Awaited<ReturnType<typeof createAgent>>;
@@ -54,18 +54,20 @@ describe('Core Agent with MettaEngine - Conversational Scenarios', () => {
   it('maintains conversation history via events', async () => {
     const events: CognitiveEvent[] = [];
     const handler = (e: CognitiveEvent) => events.push(e);
-    
+
     agent.on('*', handler);
-    
+
     // Need to fully consume the async generators to trigger event emission
-    for await (const _ of agent.chat('First message')) {}
-    for await (const _ of agent.chat('Second message')) {}
-    
-    await new Promise(r => setTimeout(r, 50));
-    
+    for await (const _ of agent.chat('First message')) {
+    }
+    for await (const _ of agent.chat('Second message')) {
+    }
+
+    await new Promise((r) => setTimeout(r, 50));
+
     agent.off('*', handler);
-    
-    const inputEvents = events.filter(e => e.type === 'input.user');
+
+    const inputEvents = events.filter((e) => e.type === 'input.user');
     expect(inputEvents.length).toBeGreaterThanOrEqual(2);
   });
 

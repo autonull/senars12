@@ -1,9 +1,9 @@
-import type { EventBus as InternalEventBus } from '../types/events.js';
 import type { NAR } from '../nar.js';
+import { Truth } from '../terms/truth.js';
+import type { EventBus as InternalEventBus } from '../types/events.js';
 import { clamp01 } from '../utils';
 import { BUILTIN_DRIVES } from './builtin.js';
 import type { DriveSpec, DriveState } from './types.js';
-import { Truth } from '../terms/truth.js';
 
 export class DriveManager {
   private states = new Map<string, DriveState>();

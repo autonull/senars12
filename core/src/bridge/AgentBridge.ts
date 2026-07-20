@@ -1,6 +1,6 @@
 import type { Agent } from '../Agent.js';
 import type { CognitiveEvent } from '../CognitiveEvent.js';
-import type { BridgeEvent, BridgeDelta } from './types.js';
+import type { BridgeEvent } from './types.js';
 
 export type { BridgeEvent, BridgeDelta } from './types.js';
 
@@ -29,16 +29,18 @@ export class AgentBridge {
         type: 'cognitive.delta',
         seqId: Date.now(),
         lens: 'belief',
-        ops: [{
-          action: 'add_node',
-          id: `input-${Date.now()}`,
-          data: {
-            nodeType: 'nar:concept',
-            term: msg.content as string,
-            priority: 1.0,
-            confidence: 1.0,
+        ops: [
+          {
+            action: 'add_node',
+            id: `input-${Date.now()}`,
+            data: {
+              nodeType: 'nar:concept',
+              term: msg.content as string,
+              priority: 1.0,
+              confidence: 1.0,
+            },
           },
-        }],
+        ],
       };
     }
 
@@ -56,16 +58,18 @@ export class AgentBridge {
         type: 'cognitive.delta',
         seqId: Date.now(),
         lens: 'belief',
-        ops: [{
-          action: 'add_node',
-          id: `focus-${Date.now()}`,
-          data: {
-            nodeType: 'nar:concept',
-            term: msg.term as string,
-            priority: 1.0,
-            confidence: 1.0,
+        ops: [
+          {
+            action: 'add_node',
+            id: `focus-${Date.now()}`,
+            data: {
+              nodeType: 'nar:concept',
+              term: msg.term as string,
+              priority: 1.0,
+              confidence: 1.0,
+            },
           },
-        }],
+        ],
       };
     }
 
@@ -80,17 +84,19 @@ export class AgentBridge {
         type: 'cognitive.delta',
         seqId: Date.now(),
         lens: 'belief',
-        ops: [{
-          action: 'add_node',
-          id: nodeId,
-          data: {
-            nodeType: 'metta:atom',
-            atom: conclusion,
-            term: conclusion,
-            type: 'derivation',
-            space: 'default',
+        ops: [
+          {
+            action: 'add_node',
+            id: nodeId,
+            data: {
+              nodeType: 'metta:atom',
+              atom: conclusion,
+              term: conclusion,
+              type: 'derivation',
+              space: 'default',
+            },
           },
-        }],
+        ],
       };
     }
     if (event.type === 'input.user') {
@@ -115,7 +121,11 @@ export class AgentBridge {
 
   #emit(event: BridgeEvent): void {
     for (const listener of this.#listeners) {
-      try { listener(event); } catch { /* ignore */ }
+      try {
+        listener(event);
+      } catch {
+        /* ignore */
+      }
     }
   }
 }

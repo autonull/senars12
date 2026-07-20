@@ -3,10 +3,10 @@
  * registers them on the RuleRegistry as a module side effect.
  */
 import { Truth } from '../terms';
+import { NALExtendedRules } from './extended/index.js';
+import { NALRules } from './nal/index.js';
 import { RuleRegistry, createRulePattern } from './types.js';
 import type { RuleDef, RuleFn, TruthFn } from './types.js';
-import { NALRules } from './nal/index.js';
-import { NALExtendedRules } from './extended/index.js';
 
 const _rule = (
   id: string,

@@ -1,10 +1,7 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
 test.describe('Config Gate: lens designer', () => {
-  test('open designer, create lens, commit lens successfully', async ({
-    page,
-    testApi,
-  }) => {
+  test('open designer, create lens, commit lens successfully', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
     await expect.poll(() => testApi.getConnectionState()).toBe('connected');
 

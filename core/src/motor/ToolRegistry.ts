@@ -1,8 +1,9 @@
 import type { ToolResult } from '../engine/Engine.js';
 
-export interface ToolFn {
-  (args: Record<string, unknown>, correlationId?: string): Promise<ToolResult> | ToolResult;
-}
+export type ToolFn = (
+  args: Record<string, unknown>,
+  correlationId?: string
+) => Promise<ToolResult> | ToolResult;
 
 export interface ToolSpec {
   name: string;
@@ -35,7 +36,11 @@ export class ToolRegistry {
     return [...this.#tools.values()];
   }
 
-  async execute(name: string, args: Record<string, unknown>, correlationId?: string): Promise<ToolResult> {
+  async execute(
+    name: string,
+    args: Record<string, unknown>,
+    correlationId?: string
+  ): Promise<ToolResult> {
     const tool = this.#tools.get(name);
     if (!tool) return { success: false, content: null, error: `Unknown tool: ${name}` };
 

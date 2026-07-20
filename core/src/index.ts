@@ -4,7 +4,13 @@ export { Agent } from './Agent.js';
 /**
  * @deprecated Use `import type { AgentOptions, HealthStatus, SkillDefinition, ParsedCommand, BridgeOptions } from '@senars/util'`
  */
-export type { AgentOptions, HealthStatus, SkillDefinition, ParsedCommand, BridgeOptions } from '@senars/util';
+export type {
+  AgentOptions,
+  HealthStatus,
+  SkillDefinition,
+  ParsedCommand,
+  BridgeOptions,
+} from '@senars/util';
 /** Cognitive-event → UI-delta projection bridge. @public */
 export { AgentBridge, type BridgeEvent, type BridgeDelta } from './AgentBridge.js';
 /** Plugin system types. @public */
@@ -22,7 +28,13 @@ export {
 export { PolicyEngine, type PolicyRule } from './PolicyEngine.js';
 /** Working + episodic memory service. @public */
 export { MemoryService } from './memory/MemoryService.js';
-export type { MemoryEntry, MemoryQuery, Episode, JsonlSessionManagerConfig, AgentToolDeps } from './memory/types.js';
+export type {
+  MemoryEntry,
+  MemoryQuery,
+  Episode,
+  JsonlSessionManagerConfig,
+  AgentToolDeps,
+} from './memory/types.js';
 
 /**
  * @deprecated Will be removed in next major version.
@@ -31,16 +43,33 @@ export type { MemoryEntry, MemoryQuery, Episode, JsonlSessionManagerConfig, Agen
 export type { ConversationSession, SessionManager } from '@senars/util';
 
 /** Session managers. @public */
-export { InMemorySessionManager, JsonlSessionManager, createSession, abortSession } from './memory/SessionManager.js';
+export {
+  InMemorySessionManager,
+  JsonlSessionManager,
+  createSession,
+  abortSession,
+} from './memory/SessionManager.js';
 /** Base class for reasoning engines. @public */
 export { BaseEngine } from './engine/BaseEngine.js';
 
 /**
  * @deprecated Use `import type { Engine, EngineId, CognitiveStimulus, Context, Derivation, ToolResult } from '@senars/util'`
  */
-export type { Engine, EngineId, CognitiveStimulus, Context, Derivation, ToolResult } from '@senars/util';
+export type {
+  Engine,
+  EngineId,
+  CognitiveStimulus,
+  Context,
+  Derivation,
+  ToolResult,
+} from '@senars/util';
 /** Tool registry + specs. @public */
-export { ToolRegistry, type ToolSpec, type ToolFn, type SkillFeedback } from './motor/ToolRegistry.js';
+export {
+  ToolRegistry,
+  type ToolSpec,
+  type ToolFn,
+  type SkillFeedback,
+} from './motor/ToolRegistry.js';
 /** Feedback store. @public */
 export { FeedbackRegistry, type FeedbackEntry } from './feedback/FeedbackRegistry.js';
 /** Builtin tools. @public */
@@ -48,7 +77,12 @@ export { BUILTIN_TOOLS, registerBuiltinTools, type CmdArgSet } from './motor/bui
 /** Agent tool factory. @public */
 export { buildAgentTools } from './motor/buildAgentTools.js';
 /** Narrative synthesis cortex. @public */
-export { LLMCortex, type CortexSynthesizeRequest, type CortexSynthesizeResponse, type PromptBuilder } from './cortex/LLMCortex.js';
+export {
+  LLMCortex,
+  type CortexSynthesizeRequest,
+  type CortexSynthesizeResponse,
+  type PromptBuilder,
+} from './cortex/LLMCortex.js';
 /** Cortex factory from an LM service. @public */
 export { createCortexFromLM } from './cortex/createCortexFromLM.js';
 /** Narsese predicate. @public */
@@ -71,7 +105,16 @@ export { isNarEvent, isMettaEvent, isEventType } from '@senars/util';
 /**
  * @deprecated Use `import type { Connection, ConnectionState, ConnectionFactory, ConnectionConfig, ConnectionDeps, TransportDeps, IOMessage, MessageClassification } from '@senars/util'`
  */
-export type { Connection, ConnectionState, ConnectionFactory, ConnectionConfig, ConnectionDeps, TransportDeps, IOMessage, MessageClassification } from '@senars/util';
+export type {
+  Connection,
+  ConnectionState,
+  ConnectionFactory,
+  ConnectionConfig,
+  ConnectionDeps,
+  TransportDeps,
+  IOMessage,
+  MessageClassification,
+} from '@senars/util';
 /** Transport-level connection error. @public */
 export { ConnectionError } from './Transport.js';
 /** Model runner types. @public */
@@ -156,10 +199,32 @@ export {
 } from './helpers.js';
 export type { CommandContext, CommandDefinition, CommandHandler } from './command-types.js';
 export type { LensSpec, ModulationSpec, BuiltinLens } from './lens-schema.js';
-export { ModulationSchema, LensSpecSchema, BUILTIN_LENS_IDS, isBuiltinLens, builtinLensSpecs, lensSpecToJsonSchema } from './lens-schema.js';
-export { LENS_COLORS_HEX, LENS_LABELS, CONNECTION_COLORS, LENS_DESCRIPTIONS, EDGE_TYPES, EDGE_LABELS, edgeTypeLabel, type LensFieldDescriptor, LENS_FIELDS } from './constants.js';
+export {
+  ModulationSchema,
+  LensSpecSchema,
+  BUILTIN_LENS_IDS,
+  isBuiltinLens,
+  builtinLensSpecs,
+  lensSpecToJsonSchema,
+} from './lens-schema.js';
+export {
+  LENS_COLORS_HEX,
+  LENS_LABELS,
+  CONNECTION_COLORS,
+  LENS_DESCRIPTIONS,
+  EDGE_TYPES,
+  EDGE_LABELS,
+  edgeTypeLabel,
+  type LensFieldDescriptor,
+  LENS_FIELDS,
+} from './constants.js';
 
-export type { EventLog, EventLogConfig, EventLogError, SqliteEventLogConfig } from './eventlog/index.js';
+export type {
+  EventLog,
+  EventLogConfig,
+  EventLogError,
+  SqliteEventLogConfig,
+} from './eventlog/index.js';
 /**
  * @deprecated Use `import type { ConfigView, ConfigEvent, ConfigSchema } from '@senars/util/config'` instead.
  */

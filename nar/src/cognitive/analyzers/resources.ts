@@ -2,7 +2,7 @@
  * Resource usage analysis - extracted from SelfAnalyzerService
  */
 import type { Concept } from '../../memory';
-import type { NAR, MetricsCollector } from '../../nar.js';
+import type { MetricsCollector, NAR } from '../../nar.js';
 import type { ResourceUsage } from '../types.js';
 
 const calcAvg = (values: number[]): number =>

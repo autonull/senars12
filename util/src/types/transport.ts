@@ -57,7 +57,18 @@ export interface ConnectionFactory {
 
 export interface ConnectionDeps {
   readonly emit: (event: string, data: unknown) => void;
-  readonly logger: { debug(msg: string, ctx?: Record<string, unknown>): void; info(msg: string, ctx?: Record<string, unknown>): void; warn(msg: string, ctx?: Record<string, unknown>): void; error(msg: string, err?: Error, ctx?: Record<string, unknown>): void; child(scope: string): { debug(msg: string, ctx?: Record<string, unknown>): void; info(msg: string, ctx?: Record<string, unknown>): void; warn(msg: string, ctx?: Record<string, unknown>): void; error(msg: string, err?: Error, ctx?: Record<string, unknown>): void } };
+  readonly logger: {
+    debug(msg: string, ctx?: Record<string, unknown>): void;
+    info(msg: string, ctx?: Record<string, unknown>): void;
+    warn(msg: string, ctx?: Record<string, unknown>): void;
+    error(msg: string, err?: Error, ctx?: Record<string, unknown>): void;
+    child(scope: string): {
+      debug(msg: string, ctx?: Record<string, unknown>): void;
+      info(msg: string, ctx?: Record<string, unknown>): void;
+      warn(msg: string, ctx?: Record<string, unknown>): void;
+      error(msg: string, err?: Error, ctx?: Record<string, unknown>): void;
+    };
+  };
   readonly getSessionSpaceId?: (connectionId: string) => string | undefined;
 }
 

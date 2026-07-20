@@ -1,6 +1,5 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { classMap } from 'lit/directives/class-map.js';
 import { BaseComponent } from '../core/base-component.js';
 import { $graphNodes, $nodeHistory, $selectedNodeId, $view, mountTestApi } from '../core/index.js';
 

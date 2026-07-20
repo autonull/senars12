@@ -1,5 +1,5 @@
-import type { Core } from 'cytoscape';
 import type { ChatMessage } from '@senars/core';
+import type { Core } from 'cytoscape';
 
 export function layoutConversationThread(cy: Core, messages: ChatMessage[]): void {
   const threadNodes = cy

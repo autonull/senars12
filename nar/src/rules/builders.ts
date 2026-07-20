@@ -3,9 +3,9 @@
  */
 import type { Term } from '../terms';
 import { TermBuilder, getPredicate, getSubject, termsEqual } from '../terms';
+import { ID, sameSubject } from './extractors.js';
 import { buildBinaryInhRule, buildInhRule } from './rule-builder.js';
 import type { RuleFn } from './types.js';
-import { ID, dedExtractor, indExtractor, abdExtractor, linkFn, extractInh, sameSubject, sameInhPair } from './extractors.js';
 
 export const buildDeduction = (left: Term, right: Term): Term | undefined => {
   const s = getSubject(left),

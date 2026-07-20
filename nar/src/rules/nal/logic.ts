@@ -2,10 +2,9 @@
  * Logic NAL rules: contrapositive, intersection, union, decomposition.
  */
 import type { Term } from '../../terms';
-import { TermBuilder, getSubject, getPredicate, termsEqual } from '../../terms';
-import type { RuleFn } from '../types.js';
-import { buildBinaryInhRule } from '../rule-builder.js';
+import { TermBuilder, getSubject, termsEqual } from '../../terms';
 import { foldNary } from '../builders.js';
+import type { RuleFn } from '../types.js';
 
 export const contrapositive: RuleFn = ([imp, inh]: [Term, Term]): Term | undefined => {
   if (imp.kind !== 'implication' || inh.kind !== 'inheritance') return undefined;

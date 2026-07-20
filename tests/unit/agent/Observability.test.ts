@@ -1,6 +1,6 @@
-import { createAgent } from '../../../nar/src/agent/index.js';
 import { describe, expect, it } from 'vitest';
 import { SeNARSFactory } from '../../../nar/src';
+import { createAgent } from '../../../nar/src/agent/index.js';
 import { createMockLMService } from '../../../nar/src/lm';
 
 const scriptedLM = createMockLMService({
@@ -12,7 +12,10 @@ const scriptedLM = createMockLMService({
   },
 });
 
-async function collectChat(agent: Awaited<ReturnType<typeof createAgent>>, input: string): Promise<string> {
+async function collectChat(
+  agent: Awaited<ReturnType<typeof createAgent>>,
+  input: string
+): Promise<string> {
   let result = '';
   for await (const evt of agent.chat(input)) {
     if (evt.kind === 'text-delta' && evt.text) result += evt.text;

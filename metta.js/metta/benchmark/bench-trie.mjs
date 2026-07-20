@@ -7,7 +7,6 @@
  */
 
 import {PathTrie, Space, configManager, exp, sym} from '../src/index.js';
-import {RuleIndex} from '../src/kernel/RuleIndex.js';
 
 /**
  * Generate a pattern with specific functor and arity

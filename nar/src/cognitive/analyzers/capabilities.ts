@@ -2,7 +2,7 @@
  * Capability snapshot and diff - extracted from SelfAnalyzerService
  */
 import type { NAR } from '../../nar.js';
-import type { CapabilitySnapshot, CapabilityDiff } from '../types.js';
+import type { CapabilityDiff, CapabilitySnapshot } from '../types.js';
 
 export const getCapabilitySnapshot = async (nar: NAR | null): Promise<CapabilitySnapshot> => {
   if (!nar) {

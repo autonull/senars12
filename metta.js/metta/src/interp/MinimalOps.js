@@ -3,7 +3,6 @@
  */
 
 import { reduce, reduceND, reduceNDGenerator, step } from '../kernel/Reduce.js';
-import { reduceNDAsync } from '../kernel/Reduce.js';
 import { Term } from '../kernel/Term.js';
 import { Unify } from '../kernel/Unify.js';
 

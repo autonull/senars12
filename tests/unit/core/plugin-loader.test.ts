@@ -1,6 +1,12 @@
-import { Agent, PluginLoader, createTransportPlugin, createLensPlugin, builtinLensPlugins } from '@senars/core';
-import { describe, expect, it, vi } from 'vitest';
+import {
+  Agent,
+  PluginLoader,
+  builtinLensPlugins,
+  createLensPlugin,
+  createTransportPlugin,
+} from '@senars/core';
 import type { Connection, ConnectionConfig, ConnectionDeps, TransportRegistry } from '@senars/util';
+import { describe, expect, it, vi } from 'vitest';
 
 function dummyConnection(config: ConnectionConfig, _deps: ConnectionDeps): Connection {
   return {
@@ -30,7 +36,10 @@ describe('PluginLoader integration', () => {
       type: 'cli',
       name: 'CLI Transport',
       ctor: class {
-        constructor(public config: ConnectionConfig, public deps: ConnectionDeps) {}
+        constructor(
+          public config: ConnectionConfig,
+          public deps: ConnectionDeps
+        ) {}
       } as never,
     });
     loader.load([plugin]);
@@ -66,10 +75,19 @@ describe('PluginLoader integration', () => {
     expect(transports).toHaveLength(1);
     const factory = transports[0];
     if (!factory) throw new Error('expected one transport');
-    const conn = factory.create({ id: 'x', type: 'dummy', enabled: true, config: {} }, {
-      emit: () => undefined,
-      logger: { debug() {}, info() {}, warn() {}, error() {}, child: () => ({ debug() {}, info() {}, warn() {}, error() {} }) } as never,
-    });
+    const conn = factory.create(
+      { id: 'x', type: 'dummy', enabled: true, config: {} },
+      {
+        emit: () => undefined,
+        logger: {
+          debug() {},
+          info() {},
+          warn() {},
+          error() {},
+          child: () => ({ debug() {}, info() {}, warn() {}, error() {} }),
+        } as never,
+      }
+    );
     expect(conn.type).toBe('dummy');
   });
 

@@ -1,10 +1,5 @@
-import type {
-  Connection,
-  ConnectionConfig,
-  ConnectionDeps,
-  ConnectionFactory,
-} from './types.js';
 import { createLogger } from '@senars/core';
+import type { Connection, ConnectionConfig, ConnectionDeps, ConnectionFactory } from './types.js';
 
 export class ConnectionManager {
   private connections: Map<string, Connection> = new Map();

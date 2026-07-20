@@ -1,30 +1,48 @@
-import { Effect } from 'effect';
-import type { CognitiveStimulus, Context, Derivation, Engine, EngineId, ToolResult } from '@senars/core/engine';
+import type {
+  CognitiveStimulus,
+  Context,
+  Derivation,
+  EngineId,
+  ToolResult,
+} from '@senars/core/engine';
 import { BaseEngine } from '@senars/core/engine/base';
-import { createMeTTa, type MeTTaRuntime } from '../runtime/builder.js';
+import { Effect } from 'effect';
 import { parseMeTTa } from '../parser/runtime.js';
+import { type MeTTaRuntime, createMeTTa } from '../runtime/builder.js';
 import type { MeTTaAtom } from '../types/ast.js';
 import { AtomKind, type ExpressionAtom } from '../types/ast.js';
 
 function atomToString(atom: MeTTaAtom): string {
   switch (atom.kind) {
-    case AtomKind.Symbol: return (atom as { readonly value: string }).value;
-    case AtomKind.Variable: return `$${(atom as { readonly name: string }).name}`;
-    case AtomKind.Number: return String((atom as { readonly value: number }).value);
-    case AtomKind.String: return `"${(atom as { readonly value: string }).value}"`;
+    case AtomKind.Symbol:
+      return (atom as { readonly value: string }).value;
+    case AtomKind.Variable:
+      return `$${(atom as { readonly name: string }).name}`;
+    case AtomKind.Number:
+      return String((atom as { readonly value: number }).value);
+    case AtomKind.String:
+      return `"${(atom as { readonly value: string }).value}"`;
     case AtomKind.Expression: {
       const expr = atom as ExpressionAtom;
       const args = expr.args.map((a: MeTTaAtom) => atomToString(a)).join(' ');
       return `(${atomToString(expr.operator)} ${args})`;
     }
-    case AtomKind.Grounded: return `{${(atom as { readonly op: string }).op}}`;
-    default: return String(atom);
+    case AtomKind.Grounded:
+      return `{${(atom as { readonly op: string }).op}}`;
+    default:
+      return String(atom);
   }
 }
 
 export class MettaEngine extends BaseEngine {
   readonly id: EngineId = 'metta';
-  readonly provides = new Set(['pattern-match', 'rewrite', 'query', 'multi-space', 'skill-execution']);
+  readonly provides = new Set([
+    'pattern-match',
+    'rewrite',
+    'query',
+    'multi-space',
+    'skill-execution',
+  ]);
 
   #runtime: MeTTaRuntime | null = null;
 
@@ -56,10 +74,12 @@ export class MettaEngine extends BaseEngine {
       const program = text.startsWith('metta:') ? text.slice(6) : text;
       const parsed = parseMeTTa(program);
       const result = await Effect.runPromise(this.#runtime.evaluate(parsed));
-      return [{
-        term: atomToString(result),
-        timestamp: Date.now(),
-      }];
+      return [
+        {
+          term: atomToString(result),
+          timestamp: Date.now(),
+        },
+      ];
     } catch {
       return [];
     }

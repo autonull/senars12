@@ -1,9 +1,9 @@
 import type { Agent } from './Agent.js';
-import type { Engine, EngineId } from './engine/Engine.js';
-import type { ToolSpec } from './motor/ToolRegistry.js';
 import type { CognitiveEvent } from './CognitiveEvent.js';
 import type { SenarsPlugin, TransportFactory } from './Plugin.js';
+import type { Engine, EngineId } from './engine/Engine.js';
 import type { LensSpec } from './lens-schema.js';
+import type { ToolSpec } from './motor/ToolRegistry.js';
 
 /** Minimal surface of a connection manager that accepts plugin transports. */
 export interface TransportRegistry {
@@ -11,8 +11,13 @@ export interface TransportRegistry {
 }
 
 export class PluginLoadError extends Error {
-  constructor(public readonly pluginId: string, cause: unknown) {
-    super(`Failed to load plugin "${pluginId}": ${cause instanceof Error ? cause.message : String(cause)}`);
+  constructor(
+    public readonly pluginId: string,
+    cause: unknown
+  ) {
+    super(
+      `Failed to load plugin "${pluginId}": ${cause instanceof Error ? cause.message : String(cause)}`
+    );
     this.name = 'PluginLoadError';
   }
 }
@@ -68,7 +73,7 @@ export class PluginLoader {
     const plugins: SenarsPlugin[] = [];
     for (const spec of specifiers) {
       try {
-        const mod = await import(spec) as Record<string, unknown>;
+        const mod = (await import(spec)) as Record<string, unknown>;
         const candidate = (mod.plugin ?? mod.default) as SenarsPlugin | undefined;
         if (!candidate?.id) {
           throw new Error(`module "${spec}" does not export a SenarsPlugin`);
@@ -89,7 +94,7 @@ export class PluginLoader {
     const fs = await import('node:fs');
     if (!fs.existsSync(manifestPath)) return;
     const raw = fs.readFileSync(manifestPath, 'utf8');
-    const manifest = JSON.parse(raw) as { 'senars'?: { plugins?: string[] } };
+    const manifest = JSON.parse(raw) as { senars?: { plugins?: string[] } };
     const specifiers = manifest.senars?.plugins ?? [];
     await this.discover(specifiers);
   }
@@ -103,8 +108,16 @@ export class PluginLoader {
   unload(id: string): void {
     const entry = this.#loaded.get(id);
     if (!entry) return;
-    try { entry.plugin.deactivate(); } catch { /* ignore */ }
-    try { entry.deactivate(); } catch { /* ignore */ }
+    try {
+      entry.plugin.deactivate();
+    } catch {
+      /* ignore */
+    }
+    try {
+      entry.deactivate();
+    } catch {
+      /* ignore */
+    }
     this.#loaded.delete(id);
   }
 

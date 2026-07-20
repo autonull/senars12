@@ -1,12 +1,8 @@
-/**
- * Core NAL rules: syllogistic deduction, induction, abduction, similarity.
- */
-import type { Term } from '../../terms';
 import { TermBuilder, getPredicate, getSubject, termsEqual } from '../../terms';
-import type { RuleFn } from '../types.js';
+import { buildAbduction, buildDeduction, buildInduction } from '../builders.js';
+import { _abductionLink, _deductionLink, _inductionLink } from '../extractors.js';
 import { buildBinaryInhRule } from '../rule-builder.js';
-import { _deductionLink, _inductionLink, _abductionLink } from '../extractors.js';
-import { buildDeduction, buildInduction, buildAbduction } from '../builders.js';
+import type { RuleFn } from '../types.js';
 
 export const deduction: RuleFn = buildBinaryInhRule((l, r) => _deductionLink(l, r), buildDeduction);
 export const induction: RuleFn = buildBinaryInhRule((l, r) => _inductionLink(l, r), buildInduction);

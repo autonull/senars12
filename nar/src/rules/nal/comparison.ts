@@ -4,9 +4,8 @@
  */
 import type { Term } from '../../terms';
 import { TermBuilder, termsEqual } from '../../terms';
+import { matchInhPair } from '../extractors.js';
 import type { RuleFn } from '../types.js';
-import { matchInhPair, extractInh, sameInhPair } from '../extractors.js';
-import { buildBinaryInhRule } from '../rule-builder.js';
 
 export const analogy: RuleFn = ([inh, sim]: [Term, Term]) => {
   if (inh.kind !== 'inheritance' || sim.kind !== 'similarity') return undefined;

@@ -1,8 +1,8 @@
 import { Agent } from '@senars/core';
-import { NAREngine } from '@senars/nar/engine/NAREngine';
 import { MettaEngine } from '@senars/metta/engine/MettaEngine';
-import { describe, expect, it, afterAll, beforeAll } from 'vitest';
-import { startAgentUI, type TestServer } from '@senars/ui/server';
+import { NAREngine } from '@senars/nar/engine/NAREngine';
+import { type TestServer, startAgentUI } from '@senars/ui/server';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 describe('Multi-Engine Agent Integration', () => {
   let server: TestServer;

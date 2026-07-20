@@ -1,8 +1,8 @@
-import type { Connection, IOMessage, BridgeOptions } from '@senars/util';
-import { InMemorySessionManager } from '@senars/util/memory';
 import type { Agent } from '@senars/core';
 import { aggregateChatResponse } from '@senars/core/bridge/chat-stream-handler';
 import type { MessageContext, MessageMiddleware } from '@senars/io';
+import type { BridgeOptions, Connection, IOMessage } from '@senars/util';
+import { InMemorySessionManager } from '@senars/util/memory';
 
 function ctxAsRecord(ctx: MessageContext): Record<string, unknown> {
   return ctx as unknown as Record<string, unknown>;
@@ -14,7 +14,9 @@ function msgAsRecord(msg: IOMessage): Record<string, unknown> {
 
 export function createAgentDispatch(agent: Agent): MessageMiddleware {
   return async (msg: IOMessage, ctx: MessageContext, next: () => Promise<void>) => {
-    const session = ctxAsRecord(ctx).session as { history: Array<{ role: string; content: string; timestamp: number }> } | undefined;
+    const session = ctxAsRecord(ctx).session as
+      | { history: Array<{ role: string; content: string; timestamp: number }> }
+      | undefined;
     if (!session) {
       await next();
       return;
@@ -41,7 +43,11 @@ export function bindAgentToConnection(
     const session = sessionManager.getOrCreate(sessionKey);
 
     const respond = async (text: string) => {
-      try { await conn.send(msgAsRecord(message).source as string ?? 'default', text); } catch { /* ignore */ }
+      try {
+        await conn.send((msgAsRecord(message).source as string) ?? 'default', text);
+      } catch {
+        /* ignore */
+      }
     };
 
     if (auth) {
@@ -59,7 +65,10 @@ export function bindAgentToConnection(
       const name = parts.at(0) ?? '';
       const args = parts.slice(1);
       try {
-        const result = await cmdRegistry.execute(name, args, { connection: conn, manager: undefined });
+        const result = await cmdRegistry.execute(name, args, {
+          connection: conn,
+          manager: undefined,
+        });
         if (result === '__CLI_QUIT__') {
           await respond('Goodbye!');
           conn.disconnect?.('user quit');
@@ -86,7 +95,11 @@ export function resolveSessionKey(msg: IOMessage): string {
   return msg.origin;
 }
 
-export function originExtractor(msg: IOMessage, ctx: MessageContext, next: () => Promise<void>): Promise<void> {
+export function originExtractor(
+  msg: IOMessage,
+  ctx: MessageContext,
+  next: () => Promise<void>
+): Promise<void> {
   ctxAsRecord(ctx).sessionKey = resolveSessionKey(msg);
   return next();
 }

@@ -16,14 +16,14 @@
  * as a CI gate.
  */
 
-import { readFileSync, existsSync, statSync } from "node:fs";
-import { join, dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = resolve(__dirname, "..");
+const root = resolve(__dirname, '..');
 
-const PACKAGES = ["util", "core", "nar", "io", "metta", "ui"];
+const PACKAGES = ['util', 'core', 'nar', 'io', 'metta', 'ui'];
 
 interface ExportTarget {
   types?: string;
@@ -39,15 +39,15 @@ interface PackageJson {
 }
 
 function loadPackage(pkgDir: string): PackageJson | null {
-  const pkgPath = join(root, pkgDir, "package.json");
+  const pkgPath = join(root, pkgDir, 'package.json');
   if (!existsSync(pkgPath)) return null;
-  return JSON.parse(readFileSync(pkgPath, "utf8")) as PackageJson;
+  return JSON.parse(readFileSync(pkgPath, 'utf8')) as PackageJson;
 }
 
 function targetsFor(value: ExportEntry): string[] {
-  if (typeof value === "string") return [value];
+  if (typeof value === 'string') return [value];
   const v = value as ExportTarget;
-  return [v.types, v.import, v.default].filter((x): x is string => typeof x === "string");
+  return [v.types, v.import, v.default].filter((x): x is string => typeof x === 'string');
 }
 
 function isDirectory(p: string): boolean {
@@ -65,7 +65,7 @@ function isDirectory(p: string): boolean {
  */
 function resolveTarget(pkgRoot: string, target: string): { abs: string; isWildcard: boolean } {
   const abs = join(pkgRoot, target);
-  const idx = target.indexOf("*");
+  const idx = target.indexOf('*');
   if (idx === -1) return { abs, isWildcard: false };
   const base = join(pkgRoot, target.slice(0, idx));
   return { abs: base, isWildcard: true };
@@ -78,7 +78,7 @@ function checkPackage(pkgDir: string): string[] {
   const pkgRoot = join(root, pkgDir);
 
   for (const [subpath, entry] of Object.entries(pkg.exports)) {
-    if (subpath === ".") continue;
+    if (subpath === '.') continue;
     const targets = targetsFor(entry);
     if (targets.length === 0) {
       problems.push(`${pkg.name}: export "${subpath}" has no resolvable target`);
@@ -91,7 +91,9 @@ function checkPackage(pkgDir: string): string[] {
         continue;
       }
       if (!isWildcard && isDirectory(abs)) {
-        problems.push(`${pkg.name}: export "${subpath}" -> "${target}" resolves to a directory, not a file`);
+        problems.push(
+          `${pkg.name}: export "${subpath}" -> "${target}" resolves to a directory, not a file`
+        );
       }
     }
   }
@@ -109,9 +111,9 @@ for (const pkg of PACKAGES) {
 }
 
 if (allProblems.length > 0) {
-  console.error("\nFAILED: dangling package exports detected:");
+  console.error('\nFAILED: dangling package exports detected:');
   for (const p of allProblems) console.error(`  - ${p}`);
   process.exit(1);
 }
 
-console.log("\nAll package export subpaths resolve to real files.");
+console.log('\nAll package export subpaths resolve to real files.');

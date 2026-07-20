@@ -1,10 +1,10 @@
+import type { ChatMessage } from '@senars/core';
 import DOMPurify from 'dompurify';
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { marked } from 'marked';
-import type { ChatMessage } from '@senars/core';
 import { $chatMessages, $focusTerm, $streamingDelta, BaseComponent, send } from '../core/index.js';
 
 @customElement('chat-history-panel')

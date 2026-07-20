@@ -2,6 +2,7 @@ import cytoscape, { type Core } from 'cytoscape';
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { edgeKey } from '../../shared/utils.js';
+import { GraphRenderer } from '../core/graph-renderer.js';
 import {
   $activeLens,
   $capabilityFilter,
@@ -28,7 +29,6 @@ import { layoutConversationThread } from '../utils/graph-layout.js';
 import { type HtmlLabelData, computeHtmlLabels } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
 import { TOKEN_COLORS } from '../utils/token-colors.js';
-import { GraphRenderer } from '../core/graph-renderer.js';
 import './graph-minimap.js';
 
 const CHAT_NODE_STYLE = {
@@ -538,25 +538,25 @@ export class GraphViewport extends BaseComponent {
       const currentIds = new Set(cy.nodes().map((n) => n.id()));
 
       for (const [nodeId, nd] of nodes) {
-const el = currentIds.has(nodeId) ? cy.getElementById(nodeId) : null;
-         if (el) {
-           el.data(nd);
-         } else {
-            const data = {
-              id: nodeId,
-              color: TOKEN_COLORS.accentCyan,
-              term: nd.term,
-              nodeType: nd.nodeType,
-              priority: nd.priority,
-              confidence: nd.confidence,
-              isContradiction: nd.isContradiction,
-              label: nd.label,
-              html: nd.html,
-              capabilities: nd.capabilities,
-            };
-           const classes = '';
-           cy.add({ group: 'nodes', data, classes });
-         }
+        const el = currentIds.has(nodeId) ? cy.getElementById(nodeId) : null;
+        if (el) {
+          el.data(nd);
+        } else {
+          const data = {
+            id: nodeId,
+            color: TOKEN_COLORS.accentCyan,
+            term: nd.term,
+            nodeType: nd.nodeType,
+            priority: nd.priority,
+            confidence: nd.confidence,
+            isContradiction: nd.isContradiction,
+            label: nd.label,
+            html: nd.html,
+            capabilities: nd.capabilities,
+          };
+          const classes = '';
+          cy.add({ group: 'nodes', data, classes });
+        }
         const nEl = el ?? cy.getElementById(nodeId);
         if (nd.html) nEl.addClass('html-enabled');
         else nEl.removeClass('html-enabled');

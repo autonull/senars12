@@ -12,7 +12,13 @@ function makeHost(overrides: Partial<CycleHost> = {}): CycleHost & {
   const appended: unknown[] = [];
   const consolidatedIds: string[] = [];
   const host = {
-    log: { append: vi.fn(async (e: Omit<CognitiveEvent, 'id' | 'timestamp'>) => ({ ...e, id: 'x', timestamp: 0 })) },
+    log: {
+      append: vi.fn(async (e: Omit<CognitiveEvent, 'id' | 'timestamp'>) => ({
+        ...e,
+        id: 'x',
+        timestamp: 0,
+      })),
+    },
     memory: {
       recent: vi.fn(() => []),
       queryEpisodic: vi.fn(async () => []),
@@ -30,7 +36,11 @@ function makeHost(overrides: Partial<CycleHost> = {}): CycleHost & {
     appended,
     consolidatedIds,
     ...overrides,
-  } as unknown as CycleHost & { emitted: CognitiveEvent[]; appended: unknown[]; consolidatedIds: string[] };
+  } as unknown as CycleHost & {
+    emitted: CognitiveEvent[];
+    appended: unknown[];
+    consolidatedIds: string[];
+  };
   return host;
 }
 
@@ -68,11 +78,13 @@ describe('Agent cycle phases (extracted)', () => {
   });
 
   it('narrate falls back to appending derivations when no cortex present', async () => {
-    const reason = vi.fn(async () => [{ term: 'derived', truth: { frequency: 1, confidence: 0.9 }, stamp: {} }]);
+    const reason = vi.fn(async () => [
+      { term: 'derived', truth: { frequency: 1, confidence: 0.9 }, stamp: {} },
+    ]);
     const host = makeHost({ engines: new Map([['nar', { reason } as never]]) });
     await runCycle(host, stimulus);
     const derivationAppends = host.appended.filter(
-      (e) => typeof e === 'object' && e !== null && (e as { type?: string }).type === 'derivation',
+      (e) => typeof e === 'object' && e !== null && (e as { type?: string }).type === 'derivation'
     );
     expect(derivationAppends.length).toBeGreaterThanOrEqual(1);
   });
@@ -80,7 +92,7 @@ describe('Agent cycle phases (extracted)', () => {
   it('act parses commands and executes allowed tools, respecting policy', async () => {
     const execute = vi.fn(async () => ({ success: true, content: null }));
     const checkCommand = vi.fn((cmd: string) =>
-      cmd === 'forbidden' ? { allowed: false, reason: 'nope' } : { allowed: true },
+      cmd === 'forbidden' ? { allowed: false, reason: 'nope' } : { allowed: true }
     );
     const host = makeHost({
       cortex: { synthesize: vi.fn(async () => ({ text: 'allowed' })) } as never,

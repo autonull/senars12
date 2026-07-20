@@ -53,7 +53,18 @@ export type { ConversationSession, SessionManager } from './types/memory.js';
 /** @public Discriminated error code union. */
 export type { ErrorCode } from './errors/index.js';
 /** @public Unified error hierarchy for all SeNARS packages. */
-export { SenarsError, ToolError, EngineError, ConfigError, TransportError, ConnectionError, ValidationError, ConfigurationError, OperationError, PolicyViolation } from './errors/index.js';
+export {
+  SenarsError,
+  ToolError,
+  EngineError,
+  ConfigError,
+  TransportError,
+  ConnectionError,
+  ValidationError,
+  ConfigurationError,
+  OperationError,
+  PolicyViolation,
+} from './errors/index.js';
 
 // Utils
 /** @public Assertion helpers. */
@@ -83,7 +94,11 @@ export type { EventReceiver, EventUnsubscribe } from './events/event-bus.js';
 
 // Memory
 /** @public In-memory session manager shared by io and core. */
-export { InMemorySessionManager, createSession, abortSession } from './memory/in-memory-session-manager.js';
+export {
+  InMemorySessionManager,
+  createSession,
+  abortSession,
+} from './memory/in-memory-session-manager.js';
 
 // Config
 /** @public Shared configuration types, validation, and env mapping. */

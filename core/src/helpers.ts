@@ -51,8 +51,20 @@ export function extractTerm(content: string): string | undefined {
 export function isNarsese(text: string): boolean {
   const trimmed = text.trim();
   if (!trimmed) return false;
-  if (trimmed.startsWith('(') || trimmed.startsWith('<') || trimmed.startsWith('{') || trimmed.startsWith('[')) return true;
-  if (trimmed.includes('-->') || trimmed.includes('<->') || trimmed.includes('==>') || trimmed.includes('<=>')) return true;
+  if (
+    trimmed.startsWith('(') ||
+    trimmed.startsWith('<') ||
+    trimmed.startsWith('{') ||
+    trimmed.startsWith('[')
+  )
+    return true;
+  if (
+    trimmed.includes('-->') ||
+    trimmed.includes('<->') ||
+    trimmed.includes('==>') ||
+    trimmed.includes('<=>')
+  )
+    return true;
   if (trimmed.endsWith('.') || trimmed.endsWith('!') || trimmed.endsWith('?')) {
     const body = trimmed.slice(0, -1).trim();
     if (body.startsWith('(') || body.startsWith('<')) return true;

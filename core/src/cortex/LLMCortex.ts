@@ -1,6 +1,6 @@
-import type { CognitiveStimulus, Context, Derivation } from '../engine/Engine.js';
-import type { ModelRunner, ModelEvent } from '../ModelRunner.js';
 import type { ChatStreamEvent } from '../ChatService.js';
+import type { ModelEvent, ModelRunner } from '../ModelRunner.js';
+import type { CognitiveStimulus, Context, Derivation } from '../engine/Engine.js';
 
 export interface CortexSynthesizeRequest {
   stimulus: CognitiveStimulus;
@@ -57,17 +57,30 @@ export class LLMCortex {
 
   #toChatEvent(ev: ModelEvent): ChatStreamEvent {
     switch (ev.kind) {
-      case 'text-delta': return { kind: 'text-delta', text: ev.text };
-      case 'tool-call': return { kind: 'tool-call', toolName: ev.call.toolName, toolArgs: ev.call.args };
-      case 'tool-result': return { kind: 'tool-result', toolName: ev.call.toolName, toolArgs: ev.call.args, toolResult: ev.result };
-      case 'finish': return { kind: 'finish', text: ev.text };
-      case 'tool-error': return { kind: 'error', error: ev.error };
+      case 'text-delta':
+        return { kind: 'text-delta', text: ev.text };
+      case 'tool-call':
+        return { kind: 'tool-call', toolName: ev.call.toolName, toolArgs: ev.call.args };
+      case 'tool-result':
+        return {
+          kind: 'tool-result',
+          toolName: ev.call.toolName,
+          toolArgs: ev.call.args,
+          toolResult: ev.result,
+        };
+      case 'finish':
+        return { kind: 'finish', text: ev.text };
+      case 'tool-error':
+        return { kind: 'error', error: ev.error };
     }
   }
 
   #buildDefaultPrompt(req: CortexSynthesizeRequest): string {
     const derivations = req.derivations
-      .map((d) => `- ${d.term}${d.truth ? ` (f=${d.truth.frequency.toFixed(2)}, c=${d.truth.confidence.toFixed(2)})` : ''}`)
+      .map(
+        (d) =>
+          `- ${d.term}${d.truth ? ` (f=${d.truth.frequency.toFixed(2)}, c=${d.truth.confidence.toFixed(2)})` : ''}`
+      )
       .join('\n');
 
     return [

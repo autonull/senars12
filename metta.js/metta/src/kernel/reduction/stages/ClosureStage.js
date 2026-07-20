@@ -1,4 +1,4 @@
-import { exp, isExpression } from '../../Term.js';
+import { isExpression } from '../../Term.js';
 import { ReductionStage } from './ReductionStage.js';
 
 export class ClosureStage extends ReductionStage {

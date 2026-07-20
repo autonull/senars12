@@ -1,5 +1,5 @@
 import { defineOp, registerOp } from '../core/ops.js';
-import { expr, isExpression, num, str, sym } from '../types/ast.js';
+import { expr, num, str, sym } from '../types/ast.js';
 import type { ExpressionAtom, MeTTaAtom, NumberAtom } from '../types/ast.js';
 
 const toNumber = (a: MeTTaAtom): number | null => (a.kind === 2 ? (a as NumberAtom).value : null);

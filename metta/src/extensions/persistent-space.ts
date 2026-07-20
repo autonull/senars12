@@ -1,5 +1,3 @@
-import { Effect } from 'effect';
-import { ErrorCode, MeTTaError } from '../core/errors.js';
 import type { Space } from '../core/space.js';
 import type { MeTTaAtom } from '../types/ast.js';
 

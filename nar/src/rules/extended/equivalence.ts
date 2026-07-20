@@ -2,10 +2,10 @@
  * Equivalence extended NAL rules: equivalence, variable introduction, decomposition.
  */
 import type { Term } from '../../terms';
-import { TermBuilder, getSubject, getPredicate, termsEqual } from '../../terms';
-import type { RuleFn } from '../types.js';
-import { buildInhRule } from '../rule-builder.js';
+import { TermBuilder, getPredicate, getSubject, termsEqual } from '../../terms';
 import { ID } from '../extractors.js';
+import { buildInhRule } from '../rule-builder.js';
+import type { RuleFn } from '../types.js';
 
 export const equivalence: RuleFn = ([imp1, imp2]: [Term, Term]): Term | undefined => {
   if (imp1.kind !== 'implication' || imp2.kind !== 'implication') return undefined;

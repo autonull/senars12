@@ -1,32 +1,29 @@
 import { mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { createLogger } from '@senars/core';
+import { InMemorySessionManager, JsonlSessionManager } from '@senars/core/memory';
 import { AuthManager, CommandRegistry, MessageRouter } from '@senars/io';
-import {
-  InMemorySessionManager,
-  JsonlSessionManager,
-} from '@senars/core/memory';
 import {
   bindAgentToConnection,
   createAgentDispatch,
   createAuthMiddleware,
   createCommandInterceptor,
-  createSessionBinder,
-  createRateLimiter,
   createConnectionConfigsFromEnv,
   createErrorBoundary,
+  createRateLimiter,
+  createSessionBinder,
   originExtractor,
   resolveSessionKey,
 } from '@senars/io';
-import { createAgent, createSession, abortSession } from '@senars/nar/agent';
+import type { Connection, IOMessage } from '@senars/io';
+import type { NAR } from '@senars/nar';
+import { createAgent, createSession } from '@senars/nar/agent';
+import type { Logger } from '@senars/util';
 import { describe, expect, it, vi } from 'vitest';
 import { SeNARSFactory } from '../../../nar/src';
 import { createMockLMService } from '../../../nar/src/lm';
 import { EpisodicMemory } from '../../../nar/src/memory/EpisodicMemory.js';
-import type { Connection, IOMessage } from '@senars/io';
-import type { NAR } from '@senars/nar';
-import type { Logger } from '@senars/util';
-import { createLogger } from '@senars/core';
 
 const scriptedLM = createMockLMService({
   available: true,

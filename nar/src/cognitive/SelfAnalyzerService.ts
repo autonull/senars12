@@ -1,44 +1,33 @@
-/**
- * SelfAnalyzerService - Self-analysis and optimization service (modularized)
- *
- * Uses extracted analyzers from ./analyzers/
- */
-
-import type { Concept } from '../memory';
-import type { NAR, MetricsCollector } from '../nar.js';
-import type { MetacognitiveMonitor, ReasoningStep } from './MetacognitiveMonitor.js';
-import { SelfOptimizer } from '../self/SelfOptimizer';
 import { createLogger } from '../logger/index.js';
+import type { MetricsCollector, NAR } from '../nar.js';
+import { SelfOptimizer } from '../self/SelfOptimizer';
 import { errMsg } from '../utils';
+import type { MetacognitiveMonitor } from './MetacognitiveMonitor.js';
 
 export type { MetaCognitiveResult, MonitorState } from './types.js';
 
 import type {
-  SelfAnalyzerConfig,
   AgentPolicy,
-  MetaCognitiveResult,
-  QualityAssessment,
-  CapabilitySnapshot,
   CapabilityDiff,
-  PatternAnalysis,
-  MonitorState,
-  IdentifiedIssues,
+  CapabilitySnapshot,
   CorrectionResult,
-  AppliedCorrection,
-  PendingCorrection,
+  IdentifiedIssues,
+  MetaCognitiveResult,
+  MonitorState,
+  PatternAnalysis,
   PerformancePatterns,
+  QualityAssessment,
   ResourceUsage,
+  SelfAnalyzerConfig,
 } from './types.js';
 
-import {
-  analyzeReasoningPatterns,
-} from './analyzers/reasoning-patterns.js';
+import { analyzeReasoningPatterns } from './analyzers/reasoning-patterns.js';
 
 import { assessQuality } from './analyzers/quality.js';
 
-import { getCapabilitySnapshot, diffCapabilities } from './analyzers/capabilities.js';
+import { diffCapabilities, getCapabilitySnapshot } from './analyzers/capabilities.js';
 
-import { identifyIssues, applyCorrections } from './analyzers/corrections.js';
+import { applyCorrections, identifyIssues } from './analyzers/corrections.js';
 
 import { getResourceAnalysis } from './analyzers/resources.js';
 

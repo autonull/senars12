@@ -1,5 +1,4 @@
 import { promises as fs } from 'node:fs';
-import type { EventBus as NarEventBus } from './types/events.js';
 import type { CognitiveParameters } from './config/cognitive-parameters.js';
 import type { Memory } from './memory';
 import type { NARConfig } from './nar';
@@ -9,6 +8,7 @@ import { Truth, termParser, validateTaskTerm } from './terms';
 import type { Truth as TruthType } from './terms/truth.js';
 import type { TaskType } from './types';
 import { type EventBus, createBudget } from './types';
+import type { EventBus as NarEventBus } from './types/events.js';
 
 interface SerializedNARState {
   concepts: Array<{ term: string; priority: number }>;

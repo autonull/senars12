@@ -6,8 +6,8 @@ import {
   $graphNodes,
   $lensViewport,
   $selectedNodeId,
-  $viewport,
   $view,
+  $viewport,
   evaluateLens,
 } from './index.js';
 
@@ -76,7 +76,10 @@ export class GraphRenderer {
 
   shouldRelayout(oldCount: number, newCount: number, isFirst: boolean): boolean {
     if (isFirst) return true;
-    return Math.abs(newCount - oldCount) > Math.max(LAYOUT_RELAYOUT_MIN, oldCount * LAYOUT_RELAYOUT_RATIO);
+    return (
+      Math.abs(newCount - oldCount) >
+      Math.max(LAYOUT_RELAYOUT_MIN, oldCount * LAYOUT_RELAYOUT_RATIO)
+    );
   }
 
   relayoutIfNeeded(nodeCount: number): void {

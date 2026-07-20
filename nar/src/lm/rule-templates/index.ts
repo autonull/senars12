@@ -4,8 +4,8 @@
 import type { LMRuleDefinition } from '../rule-builders.js';
 import { beliefRules } from './belief-rules.js';
 import { goalRules } from './goal-rules.js';
-import { questionRules } from './question-rules.js';
 import { metaRules } from './meta-rules.js';
+import { questionRules } from './question-rules.js';
 
 export const ruleDefs: LMRuleDefinition[] = [
   ...beliefRules,

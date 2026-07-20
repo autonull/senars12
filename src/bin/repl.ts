@@ -1,13 +1,13 @@
 #!/usr/bin/env tsx
 import { createInterface } from 'node:readline';
-import { QUIT_SENTINEL, type CLICommand } from '@senars/io/connections/cli';
 import type { ConversationSession } from '@senars/core/memory';
+import { type CLICommand, QUIT_SENTINEL } from '@senars/io/connections/cli';
 import type { Agent } from '@senars/nar/agent';
 import { formatLMConfig, resolveLMConfig } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
 import { buildCommands } from '../cli/commands.js';
-import { createAgentFromEnv } from './lib/lifecycle.js';
 import { assertValidEnv } from '../utils/env-validate.js';
+import { createAgentFromEnv } from './lib/lifecycle.js';
 
 assertValidEnv();
 

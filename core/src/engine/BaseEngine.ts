@@ -1,4 +1,11 @@
-import type { CognitiveStimulus, Context, Derivation, Engine, EngineId, ToolResult } from './Engine.js';
+import type {
+  CognitiveStimulus,
+  Context,
+  Derivation,
+  Engine,
+  EngineId,
+  ToolResult,
+} from './Engine.js';
 
 export abstract class BaseEngine implements Engine {
   abstract readonly id: EngineId;

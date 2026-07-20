@@ -1,5 +1,5 @@
-import type { CommandDefinition } from './registry.js';
 import type { ConnectionManager } from '../connection-manager.js';
+import type { CommandDefinition } from './registry.js';
 
 export const connectionCommands: CommandDefinition[] = [
   {

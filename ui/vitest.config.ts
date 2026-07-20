@@ -9,11 +9,8 @@ export default defineConfig({
   },
   test: {
     include: ['tests/**/*.test.ts'],
-    exclude: ['node_modules/**', 'tests/scenarios/**', 'tests/**/*.bench.ts'],
-    environment: 'node',
+    environment: 'jsdom',
     globals: true,
-    benchmark: {
-      include: ['ui/tests/**/*.bench.ts'],
-    },
+    setupFiles: [],
   },
 });

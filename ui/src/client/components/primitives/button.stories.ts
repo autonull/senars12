@@ -23,7 +23,8 @@ export default meta;
 type Story = StoryObj;
 
 export const Primary: Story = {
-  render: (args) => html`<s-button variant="primary" ?disabled=${args.disabled} ?loading=${args.loading}>Primary</s-button>`,
+  render: (args) =>
+    html`<s-button variant="primary" ?disabled=${args.disabled} ?loading=${args.loading}>Primary</s-button>`,
   args: { disabled: false, loading: false },
 };
 

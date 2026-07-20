@@ -1,13 +1,11 @@
 // @ts-nocheck
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { edgeKey } from '../../shared/utils.js';
 import { BaseComponent } from '../core/base-component.js';
+import { GraphRenderer } from '../core/graph-renderer.js';
 import {
   $activeLens,
   $capabilityFilter,
-  $chatMessages,
-  $focusTerm,
   $graphEdges,
   $graphFilter,
   $graphMeta,
@@ -19,14 +17,12 @@ import {
   evaluateLens,
   eventBus,
   mountTestApi,
-  send,
 } from '../core/index.js';
 import { TOKEN_COLORS } from '../utils/token-colors.js';
 import { applyDelta, checkUnsupportedChannels, clearNodeStyles } from './adapter-3d.js';
-import { GraphRenderer } from '../core/graph-renderer.js';
 
 // Dynamic import SpaceGraphJS (source-level via Vite alias)
-import { Edge, ForceLayout, HtmlNode, ShapeNode, SpaceGraph, Wire } from 'spacegraphjs';
+import { SpaceGraph } from 'spacegraphjs';
 
 interface NodeSpec3D {
   id: string;

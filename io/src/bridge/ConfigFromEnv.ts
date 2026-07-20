@@ -1,4 +1,8 @@
-export function createConnectionConfigsFromEnv(): Array<{ type: string; id: string; [key: string]: unknown }> {
+export function createConnectionConfigsFromEnv(): Array<{
+  type: string;
+  id: string;
+  [key: string]: unknown;
+}> {
   const configs: Array<{ type: string; id: string; [key: string]: unknown }> = [];
 
   if (process.env.ENABLE_IRC !== 'false') {

@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { Bag } from '@senars/nar';
 import { factorySerializable, inPlaceSerializable } from '@senars/util/utils/serialization';
+import { describe, expect, it } from 'vitest';
 
 describe('serialization adapters', () => {
   it('factorySerializable wraps Bag (static deserialize) without changing its API', () => {

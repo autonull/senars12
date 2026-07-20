@@ -76,19 +76,19 @@
     "@storybook/addon-links": "8.6.14",
     "@storybook/test": "8.6.14",
     "@storybook/web-components-vite": "8.6.14",
+    "@types/jsdom": "^28.0.3",
     "@types/mime-types": "^3.0.1",
     "@types/node": "^22.19.19",
     "@types/three": "^0.160.0",
     "@types/ws": "^8.5.10",
     "concurrently": "^10.0.0",
+    "jsdom": "^29.1.1",
     "storybook": "8.6.14",
     "tsup": "^8.3.0",
     "typescript": "7.0.1-rc",
     "vite": "^6.0.0"
   },
   "eslintConfig": {
-    "extends": [
-      "plugin:storybook/recommended"
-    ]
+    "extends": ["plugin:storybook/recommended"]
   }
 }

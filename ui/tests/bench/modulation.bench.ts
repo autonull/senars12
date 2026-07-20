@@ -1,7 +1,7 @@
 import { bench, describe } from 'vitest';
 import { beliefLens, contradictionLens } from '../../src/client/modulation/compile.js';
 import { evaluate } from '../../src/client/modulation/evaluate.js';
-import { createMemoCache, getMemoCache, resetMemoCache } from '../../src/client/modulation/memo.js';
+import { createMemoCache, resetMemoCache } from '../../src/client/modulation/memo.js';
 import { evaluateModulation } from '../../src/client/modulation/operators.js';
 import type { Item, Lens, View } from '../../src/client/modulation/types.js';
 

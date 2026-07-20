@@ -1,6 +1,6 @@
 import { ulid } from 'ulid';
 import { AbstractEventLog } from './AbstractEventLog.js';
-import type { EventLog, EventLogConfig, CognitiveEvent } from './EventLog.js';
+import type { CognitiveEvent, EventLogConfig } from './EventLog.js';
 import { EventLogError } from './EventLog.js';
 
 export class InMemoryEventLog extends AbstractEventLog {
@@ -27,7 +27,10 @@ export class InMemoryEventLog extends AbstractEventLog {
 
     const eventSize = JSON.stringify(fullEvent).length;
     if (eventSize > this.#config.maxEventSize) {
-      throw new EventLogError('INVALID_EVENT', `Event size ${eventSize} exceeds max ${this.#config.maxEventSize}`);
+      throw new EventLogError(
+        'INVALID_EVENT',
+        `Event size ${eventSize} exceeds max ${this.#config.maxEventSize}`
+      );
     }
 
     if (this.#events.length >= this.#config.maxEvents) {

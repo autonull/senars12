@@ -1,9 +1,9 @@
-import { createAgent } from '@senars/nar/agent';
-import { SeNARSFactory } from '@senars/nar';
-import { WSConnection } from '@senars/io/connections/ws';
 import { CLIConnection } from '@senars/io/connections/cli';
-import { describe, expect, it, afterAll, beforeAll, vi } from 'vitest';
-import type { ConnectionConfig, ConnectionDeps, CognitiveEvent } from '@senars/util';
+import { WSConnection } from '@senars/io/connections/ws';
+import { SeNARSFactory } from '@senars/nar';
+import { createAgent } from '@senars/nar/agent';
+import type { CognitiveEvent, ConnectionConfig, ConnectionDeps } from '@senars/util';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 const noopLogger = {
   debug: () => {},
@@ -38,7 +38,7 @@ describe('Core Agent + Transport Integration', () => {
       type: 'websocket',
       config: { name: 'Test WS', host: 'localhost', port: 0 },
     };
-    
+
     const wsConn = new WSConnection(wsConfig, testDeps);
 
     expect(() => agent.mount(wsConn)).not.toThrow();
@@ -52,7 +52,7 @@ describe('Core Agent + Transport Integration', () => {
       type: 'cli',
       config: { name: 'Test CLI' },
     };
-    
+
     const cliConn = new CLIConnection(cliConfig, testDeps);
 
     expect(() => agent.mount(cliConn)).not.toThrow();
@@ -63,10 +63,10 @@ describe('Core Agent + Transport Integration', () => {
     // Submit should not throw and should emit input event
     const events: CognitiveEvent[] = [];
     const handler = (e: CognitiveEvent) => events.push(e);
-    
+
     agent.on('*', handler);
     agent.submit('test message', 'corr-123');
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 100));
     agent.off('*', handler);
 
     // The agent emits events when there's no loop running, but with loop running

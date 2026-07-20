@@ -29,7 +29,7 @@ export class FeedbackRegistry {
 
   getSuccessRate(target: string): number {
     const e = this.#byTarget.get(target) ?? [];
-    return e.length ? e.filter(x => x.result.success).length / e.length : 1;
+    return e.length ? e.filter((x) => x.result.success).length / e.length : 1;
   }
 
   clear(): void {

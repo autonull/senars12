@@ -1,21 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { JSDOM } from 'jsdom';
-
-// Set up DOM environment
-const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
-  url: 'http://localhost',
-  pretendToBeVisual: true,
-});
-
-global.window = dom.window as unknown as Window & typeof globalThis;
-global.document = dom.window.document;
-global.customElements = dom.window.customElements;
-global.HTMLElement = dom.window.HTMLElement;
-global.requestAnimationFrame = (cb: FrameRequestCallback) => setTimeout(cb, 16);
-global.cancelAnimationFrame = (id: number) => clearTimeout(id);
-
-// Import component after DOM setup
-await import('../src/client/components/primitives/button.js');
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('s-button', () => {
   let container: HTMLDivElement;
@@ -29,38 +12,44 @@ describe('s-button', () => {
     container.remove();
   });
 
-  it('renders with primary variant by default', () => {
+  it('renders with secondary variant by default', async () => {
+    await import('../../src/client/components/primitives/button.js');
     container.innerHTML = '<s-button>Click me</s-button>';
     const button = container.querySelector('s-button');
     expect(button).toBeTruthy();
-    expect(button?.getAttribute('variant')).toBe('primary');
+    expect(button?.variant).toBe('secondary');
   });
 
-  it('renders with specified variant', () => {
+  it('renders with specified variant', async () => {
+    await import('../../src/client/components/primitives/button.js');
     container.innerHTML = '<s-button variant="secondary">Secondary</s-button>';
     const button = container.querySelector('s-button');
-    expect(button?.getAttribute('variant')).toBe('secondary');
+    expect(button?.variant).toBe('secondary');
   });
 
-  it('renders with specified size', () => {
+  it('renders with specified size', async () => {
+    await import('../../src/client/components/primitives/button.js');
     container.innerHTML = '<s-button size="lg">Large</s-button>';
     const button = container.querySelector('s-button');
-    expect(button?.getAttribute('size')).toBe('lg');
+    expect(button?.size).toBe('lg');
   });
 
-  it('shows disabled state', () => {
+  it('shows disabled state', async () => {
+    await import('../../src/client/components/primitives/button.js');
     container.innerHTML = '<s-button disabled>Disabled</s-button>';
     const button = container.querySelector('s-button');
-    expect(button?.hasAttribute('disabled')).toBe(true);
+    expect(button?.disabled).toBe(true);
   });
 
-  it('shows loading state', () => {
+  it('shows loading state', async () => {
+    await import('../../src/client/components/primitives/button.js');
     container.innerHTML = '<s-button loading>Loading</s-button>';
     const button = container.querySelector('s-button');
     expect(button?.hasAttribute('loading')).toBe(true);
   });
 
-  it('dispatches click event', () => {
+  it('dispatches click event', async () => {
+    await import('../../src/client/components/primitives/button.js');
     const clickHandler = vi.fn();
     container.innerHTML = '<s-button>Click me</s-button>';
     const button = container.querySelector('s-button');

@@ -1,7 +1,7 @@
-import type { ToolSpec } from './ToolRegistry.js';
-import type { ToolResult } from '../engine/Engine.js';
 import { execSync } from 'node:child_process';
-import { readFile, writeFile, appendFile, access } from 'node:fs/promises';
+import { access, appendFile, readFile, writeFile } from 'node:fs/promises';
+import type { ToolResult } from '../engine/Engine.js';
+import type { ToolSpec } from './ToolRegistry.js';
 
 export type CmdArgSet = Record<string, unknown>;
 
@@ -14,14 +14,21 @@ function fail(error: string): ToolResult {
 }
 
 function parseJsonArg(raw: string): string {
-  try { return JSON.parse(raw); } catch { return raw.replace(/^"|"$/g, ''); }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw.replace(/^"|"$/g, '');
+  }
 }
 
 export const BUILTIN_TOOLS: ToolSpec[] = [
   {
     name: 'send',
     description: 'Send a text response to the user',
-    inputSchema: { type: 'object', properties: { args: { type: 'array', items: { type: 'string' } } } },
+    inputSchema: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const a = args.args as string[] | undefined;
       if (!a || a.length === 0) return fail('send requires text');
@@ -31,7 +38,10 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
   {
     name: 'remember',
     description: 'Store something in episodic memory',
-    inputSchema: { type: 'object', properties: { args: { type: 'array', items: { type: 'string' } } } },
+    inputSchema: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const a = args.args as string[] | undefined;
       if (!a || a.length === 0) return fail('remember requires content');
@@ -42,7 +52,10 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
   {
     name: 'query',
     description: 'Query knowledge or memory',
-    inputSchema: { type: 'object', properties: { args: { type: 'array', items: { type: 'string' } } } },
+    inputSchema: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const a = args.args as string[] | undefined;
       if (!a || a.length === 0) return fail('query requires a search term');
@@ -52,17 +65,23 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
   {
     name: 'episodes',
     description: 'List recent episodic memories',
-    inputSchema: { type: 'object', properties: { args: { type: 'array', items: { type: 'string' } } } },
+    inputSchema: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const a = args.args as string[] | undefined;
-      const limit = a && a[0] ? parseInt(parseJsonArg(a[0]!), 10) : 10;
+      const limit = a && a[0] ? Number.parseInt(parseJsonArg(a[0]!), 10) : 10;
       return ok({ episodes: [], limit });
     },
   },
   {
     name: 'read-file',
     description: 'Read a file from the filesystem',
-    inputSchema: { type: 'object', properties: { args: { type: 'array', items: { type: 'string' } } } },
+    inputSchema: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const a = args.args as string[] | undefined;
       if (!a || a.length === 0) return fail('read-file requires a filename');
@@ -79,7 +98,10 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
   {
     name: 'write-file',
     description: 'Write content to a file',
-    inputSchema: { type: 'object', properties: { args: { type: 'array', items: { type: 'string' } } } },
+    inputSchema: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const a = args.args as string[] | undefined;
       if (!a || a.length < 2) return fail('write-file requires filename and content');
@@ -96,7 +118,10 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
   {
     name: 'append-file',
     description: 'Append content to a file',
-    inputSchema: { type: 'object', properties: { args: { type: 'array', items: { type: 'string' } } } },
+    inputSchema: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const a = args.args as string[] | undefined;
       if (!a || a.length < 2) return fail('append-file requires filename and content');
@@ -113,7 +138,10 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
   {
     name: 'search',
     description: 'Search for information (web search placeholder)',
-    inputSchema: { type: 'object', properties: { args: { type: 'array', items: { type: 'string' } } } },
+    inputSchema: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const a = args.args as string[] | undefined;
       if (!a || a.length === 0) return fail('search requires a query');
@@ -123,7 +151,10 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
   {
     name: 'shell',
     description: 'Execute a shell command',
-    inputSchema: { type: 'object', properties: { args: { type: 'array', items: { type: 'string' } } } },
+    inputSchema: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const a = args.args as string[] | undefined;
       if (!a || a.length === 0) return fail('shell requires a command');
@@ -136,8 +167,8 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
         return ok({
           command: cmd,
           exitCode: err.status ?? -1,
-          stdout: (err.stdout as string ?? '').trimEnd(),
-          stderr: (err.stderr as string ?? '').trimEnd(),
+          stdout: ((err.stdout as string) ?? '').trimEnd(),
+          stderr: ((err.stderr as string) ?? '').trimEnd(),
         });
       }
     },
@@ -145,17 +176,26 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
   {
     name: 'metta',
     description: 'Evaluate a MeTTa expression',
-    inputSchema: { type: 'object', properties: { args: { type: 'array', items: { type: 'string' } } } },
+    inputSchema: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const a = args.args as string[] | undefined;
       if (!a || a.length === 0) return fail('metta requires an expression');
-      return ok({ expression: parseJsonArg(a[0]!), result: 'metta evaluation delegated to engine' });
+      return ok({
+        expression: parseJsonArg(a[0]!),
+        result: 'metta evaluation delegated to engine',
+      });
     },
   },
   {
     name: 'pin',
     description: 'Pin a belief for retention',
-    inputSchema: { type: 'object', properties: { args: { type: 'array', items: { type: 'string' } } } },
+    inputSchema: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const a = args.args as string[] | undefined;
       if (!a || a.length === 0) return fail('pin requires content');
@@ -165,19 +205,26 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
   {
     name: 'tavily-search',
     description: 'Search the web via Tavily API',
-    inputSchema: { type: 'object', properties: { args: { type: 'array', items: { type: 'string' } } } },
+    inputSchema: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const a = args.args as string[] | undefined;
       if (!a || a.length === 0) return fail('tavily-search requires a query');
       const apiKey = process.env.TAVILY_API_KEY;
-      if (!apiKey) return ok({ query: parseJsonArg(a[0]!), results: [], note: 'TAVILY_API_KEY not set' });
+      if (!apiKey)
+        return ok({ query: parseJsonArg(a[0]!), results: [], note: 'TAVILY_API_KEY not set' });
       return ok({ query: parseJsonArg(a[0]!), results: [], type: 'tavily' });
     },
   },
   {
     name: 'technical-analysis',
     description: 'Perform technical analysis on a symbol or concept',
-    inputSchema: { type: 'object', properties: { args: { type: 'array', items: { type: 'string' } } } },
+    inputSchema: {
+      type: 'object',
+      properties: { args: { type: 'array', items: { type: 'string' } } },
+    },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
       const a = args.args as string[] | undefined;
       if (!a || a.length === 0) return fail('technical-analysis requires a target');

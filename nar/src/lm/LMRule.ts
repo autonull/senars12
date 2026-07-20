@@ -2,7 +2,7 @@ import type { Term } from '../terms';
 import { Truth, termParser } from '../terms';
 import type { Truth as TruthType } from '../terms/truth.js';
 import type { Budget, Task, TaskType } from '../types';
-import { type EventBus as NarEventBus, type NAREventMap, createTask } from '../types';
+import { type NAREventMap, type EventBus as NarEventBus, createTask } from '../types';
 import { CircuitBreaker, errMsg } from '../utils';
 import type { LMExecutionStats, LMRuleConfig, LMRuleStats, LMService } from './lm-service.js';
 

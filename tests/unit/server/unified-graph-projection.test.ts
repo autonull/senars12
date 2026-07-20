@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { UnifiedGraphProjection, type GraphDelta } from '@senars/ui/server/UnifiedGraphProjection';
 import type { GraphNodeData } from '@senars/core';
 import type { IncomingFromServer } from '@senars/core/protocol';
+import { type GraphDelta, UnifiedGraphProjection } from '@senars/ui/server/UnifiedGraphProjection';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('UnifiedGraphProjection', () => {
   let projection: UnifiedGraphProjection;

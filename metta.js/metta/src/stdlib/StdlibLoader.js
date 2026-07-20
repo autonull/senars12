@@ -1,4 +1,3 @@
-import { Logger } from '@senars/core';
 import { VirtualFS } from '../platform/browser/VirtualFS.js';
 import { getEnvironment } from '../platform/env.js';
 import { FileLoader } from '../platform/node/FileLoader.js';

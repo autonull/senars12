@@ -1,9 +1,9 @@
 import { Agent } from '@senars/core';
-import { MettaEngine } from '@senars/metta/engine/MettaEngine';
-import { WebSocket } from 'ws';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { startAgentUI, type TestServer } from '@senars/ui/server';
 import type { IncomingFromServer } from '@senars/core';
+import { MettaEngine } from '@senars/metta/engine/MettaEngine';
+import { type TestServer, startAgentUI } from '@senars/ui/server';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { WebSocket } from 'ws';
 
 interface ClientMessage {
   type: string;
@@ -13,14 +13,14 @@ interface ClientMessage {
 function waitFor(
   messages: IncomingFromServer[],
   predicate: (m: IncomingFromServer) => boolean,
-  timeoutMs = 5000,
+  timeoutMs = 5000
 ): Promise<IncomingFromServer> {
   return new Promise((resolve, reject) => {
     const found = messages.find(predicate);
     if (found) return resolve(found);
     const timer = setTimeout(
       () => reject(new Error('waitFor timed out waiting for message')),
-      timeoutMs,
+      timeoutMs
     );
     const check = setInterval(() => {
       const hit = messages.find(predicate);
@@ -75,10 +75,7 @@ describe('Agent-as-Kernel: Metta smoke test (real WS + Agent + MettaEngine)', ()
         /* already closed */
       }
     }
-    await Promise.race([
-      server.close(),
-      new Promise<void>((resolve) => setTimeout(resolve, 3000)),
-    ]);
+    await Promise.race([server.close(), new Promise<void>((resolve) => setTimeout(resolve, 3000))]);
     agent.stop();
   });
 
@@ -95,10 +92,7 @@ describe('Agent-as-Kernel: Metta smoke test (real WS + Agent + MettaEngine)', ()
 
   it('lens.set works on MeTTa graph', async () => {
     send({ type: 'lens.set', lens: 'belief' });
-    const delta = await waitFor(
-      received,
-      (m) => m.type === 'cognitive.delta' && 'lens' in m,
-    );
+    const delta = await waitFor(received, (m) => m.type === 'cognitive.delta' && 'lens' in m);
     expect(delta.type === 'cognitive.delta').toBe(true);
   });
 });

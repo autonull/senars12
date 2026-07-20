@@ -1,5 +1,3 @@
-import { Tensor } from './Tensor.js';
-
 export class LossFunctor {
   constructor(backend = null) {
     this.backend = backend;

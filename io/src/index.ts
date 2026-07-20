@@ -1,7 +1,14 @@
 /** Transport-level connection error. @public */
 export { ConnectionError } from './types.js';
 /** Connection type definitions. @public */
-export type { Connection, ConnectionConfig, ConnectionDeps, ConnectionState, ConnectionFactory, IOMessage } from './types.js';
+export type {
+  Connection,
+  ConnectionConfig,
+  ConnectionDeps,
+  ConnectionState,
+  ConnectionFactory,
+  IOMessage,
+} from './types.js';
 /** Connection registry/lookup. @public */
 export { ConnectionManager } from './connection-manager.js';
 /** Message routing + middleware pipeline. @public */

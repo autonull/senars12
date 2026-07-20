@@ -20,7 +20,8 @@ export default meta;
 type Story = StoryObj;
 
 export const Default: Story = {
-  render: (args) => html`<s-input type=${args.type} placeholder=${args.placeholder} ?disabled=${args.disabled} value=${args.value}></s-input>`,
+  render: (args) =>
+    html`<s-input type=${args.type} placeholder=${args.placeholder} ?disabled=${args.disabled} value=${args.value}></s-input>`,
   args: { type: 'text', placeholder: 'Enter text...', disabled: false, value: '' },
 };
 

@@ -1,4 +1,4 @@
-import type { ExpressionAtom, MeTTaAtom, VariableAtom } from '../types/ast.js';
+import type { ExpressionAtom, MeTTaAtom } from '../types/ast.js';
 import { isVariable } from '../types/ast.js';
 
 export type Substitution = Map<string, MeTTaAtom>;

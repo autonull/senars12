@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
+import { InMemorySessionManager, abortSession, createSession } from '@senars/util/memory';
 import type { ConversationSession, SessionManager } from '@senars/util/types/memory';
-import { InMemorySessionManager, createSession, abortSession } from '@senars/util/memory';
 
 /**
  * @deprecated Will be removed in next major version.

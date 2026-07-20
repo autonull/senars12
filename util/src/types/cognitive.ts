@@ -36,7 +36,11 @@ export type CognitiveEvent =
     })
   | (CognitiveEventBase & {
       readonly type: 'belief.revised';
-      readonly payload: { term: string; oldTruth: { frequency: number; confidence: number }; newTruth: { frequency: number; confidence: number } };
+      readonly payload: {
+        term: string;
+        oldTruth: { frequency: number; confidence: number };
+        newTruth: { frequency: number; confidence: number };
+      };
     })
   | (CognitiveEventBase & {
       readonly type: 'drive.changed';
@@ -64,7 +68,13 @@ export type CognitiveEvent =
     })
   | (CognitiveEventBase & {
       readonly type: 'tool.response';
-      readonly payload: { requestId: string; toolName: string; result?: unknown; error?: string; durationMs: number };
+      readonly payload: {
+        requestId: string;
+        toolName: string;
+        result?: unknown;
+        error?: string;
+        durationMs: number;
+      };
     })
   | (CognitiveEventBase & {
       readonly type: 'config.set';
@@ -88,7 +98,11 @@ export type CognitiveEvent =
     })
   | (CognitiveEventBase & {
       readonly type: 'bootstrap';
-      readonly payload: { beliefs?: string[]; atoms?: { atom: string; space?: string }[]; skills?: { name: string; code: string }[] };
+      readonly payload: {
+        beliefs?: string[];
+        atoms?: { atom: string; space?: string }[];
+        skills?: { name: string; code: string }[];
+      };
     })
   | (CognitiveEventBase & {
       readonly type: 'cycle';

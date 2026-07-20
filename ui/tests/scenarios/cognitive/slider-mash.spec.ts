@@ -1,10 +1,7 @@
 import { expect, test } from '../../framework/fixtures/senars-app';
 
 test.describe('Slider Mash: frame budget on rapid truth adjustment', () => {
-  test('rapid truth slider changes stay within frame budget', async ({
-    page,
-    testApi,
-  }) => {
+  test('rapid truth slider changes stay within frame budget', async ({ page, testApi }) => {
     await expect(page.locator('graph-viewport')).toBeVisible();
     await expect.poll(() => testApi.getConnectionState()).toBe('connected', { timeout: 10000 });
 

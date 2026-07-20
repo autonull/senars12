@@ -1,9 +1,12 @@
-import fc from 'fast-check';
 import { Truth } from '@senars/nar';
+import fc from 'fast-check';
 
 function truthArb() {
   return fc
-    .tuple(fc.double({ min: 0, max: 1, noNaN: true }), fc.double({ min: 0, max: 0.999, noNaN: true }))
+    .tuple(
+      fc.double({ min: 0, max: 1, noNaN: true }),
+      fc.double({ min: 0, max: 0.999, noNaN: true })
+    )
     .map(([f, c]) => Truth.create(f, c));
 }
 
@@ -36,7 +39,7 @@ describe('Truth value properties', () => {
           expect(r.c).toBeGreaterThanOrEqual(0);
           expect(r.c).toBeLessThanOrEqual(0.999);
         }
-      }),
+      })
     );
   });
 
@@ -46,7 +49,7 @@ describe('Truth value properties', () => {
         const negated = Truth.negation(t);
         const restored = Truth.negation(negated);
         expect(Truth.equals(restored, t)).toBe(true);
-      }),
+      })
     );
   });
 
@@ -56,7 +59,7 @@ describe('Truth value properties', () => {
         const r = Truth.deduction(a, b);
         expect(r.c).toBeLessThanOrEqual(a.c);
         expect(r.c).toBeLessThanOrEqual(b.c);
-      }),
+      })
     );
   });
 
@@ -65,7 +68,7 @@ describe('Truth value properties', () => {
       fc.property(truthArb(), truthArb(), (a, b) => {
         const r = Truth.revision(a, b);
         expect(r.c).toBeGreaterThanOrEqual(Math.min(a.c, b.c) - 1e-9);
-      }),
+      })
     );
   });
 
@@ -75,7 +78,7 @@ describe('Truth value properties', () => {
         const restored = Truth.deserialize(Truth.serialize(t));
         expect(restored).not.toBeNull();
         if (restored) expect(Truth.equals(restored, t)).toBe(true);
-      }),
+      })
     );
   });
 
@@ -90,8 +93,8 @@ describe('Truth value properties', () => {
           const e2 = Truth.expectation(Truth.create(f2, c));
           if (f1 <= f2) expect(e1).toBeLessThanOrEqual(e2);
           else expect(e1).toBeGreaterThanOrEqual(e2);
-        },
-      ),
+        }
+      )
     );
   });
 });

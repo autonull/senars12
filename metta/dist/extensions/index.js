@@ -1,2 +1,2 @@
-export { PersistentSpace, } from './persistent-space.js';
+export { PersistentSpace } from './persistent-space.js';
 //# sourceMappingURL=index.js.map

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 const BASE_URL = 'http://localhost:3000';
 
@@ -10,14 +10,15 @@ test.describe('screenshot verification: live graph + revision history', () => {
     await page.waitForSelector('input-hud', { timeout: 10000 });
 
     // 2. Wait for WebSocket connection and initial graph
-    await page.waitForFunction(
-      () => (window as Record<string, unknown>).__testApi !== undefined,
-      { timeout: 15000 }
-    );
+    await page.waitForFunction(() => (window as Record<string, unknown>).__testApi !== undefined, {
+      timeout: 15000,
+    });
 
     await page.waitForFunction(
       () => {
-        const api = (window as Record<string, unknown>).__testApi as Record<string, unknown> | undefined;
+        const api = (window as Record<string, unknown>).__testApi as
+          | Record<string, unknown>
+          | undefined;
         return api?.connection?.getState?.() === 'connected';
       },
       { timeout: 10000 }
@@ -25,7 +26,9 @@ test.describe('screenshot verification: live graph + revision history', () => {
 
     // 3. Verify initial nodes via test API
     const initialNodeCount = await page.evaluate(() => {
-      const api = (window as Record<string, unknown>).__testApi as Record<string, unknown> | undefined;
+      const api = (window as Record<string, unknown>).__testApi as
+        | Record<string, unknown>
+        | undefined;
       return Number(api?.graph?.getNodeCount?.() ?? 0);
     });
     console.log('Initial node count:', initialNodeCount);
@@ -33,18 +36,22 @@ test.describe('screenshot verification: live graph + revision history', () => {
 
     // 4. Get all node IDs and pick one with revision history (bird, animal, etc.)
     const allNodes = await page.evaluate(() => {
-      const api = (window as Record<string, unknown>).__testApi as Record<string, unknown> | undefined;
+      const api = (window as Record<string, unknown>).__testApi as
+        | Record<string, unknown>
+        | undefined;
       return (api?.graph?.getAllNodeIds?.() ?? []) as string[];
     });
     console.log('All nodes:', allNodes);
 
-    const targetNode = allNodes.find(n => n === 'bird' || n === 'animal' || n.includes('bird'));
+    const targetNode = allNodes.find((n) => n === 'bird' || n === 'animal' || n.includes('bird'));
     expect(targetNode).toBeTruthy();
     console.log('Target node for history:', targetNode);
 
     // 5. Click the node via test API
     await page.evaluate((id) => {
-      const api = (window as Record<string, unknown>).__testApi as Record<string, unknown> | undefined;
+      const api = (window as Record<string, unknown>).__testApi as
+        | Record<string, unknown>
+        | undefined;
       api?.graph?.clickNode?.(id);
     }, targetNode);
 
@@ -60,15 +67,20 @@ test.describe('screenshot verification: live graph + revision history', () => {
         const drawer = document.querySelector('node-detail-drawer');
         if (!drawer || !drawer.shadowRoot) return false;
         const content = drawer.shadowRoot.querySelector('.content');
-        return content && content.textContent?.includes?.('Revision History') && 
-               !content.textContent?.includes?.('No history available');
+        return (
+          content &&
+          content.textContent?.includes?.('Revision History') &&
+          !content.textContent?.includes?.('No history available')
+        );
       },
       { timeout: 10000 }
     );
 
     // 9. Also verify store-level nodeHistory is populated
     const historyState = await page.evaluate(() => {
-      const api = (window as Record<string, unknown>).__testApi as Record<string, unknown> | undefined;
+      const api = (window as Record<string, unknown>).__testApi as
+        | Record<string, unknown>
+        | undefined;
       return String(api?.store?.getState?.('nodeHistory') ?? '');
     });
     console.log('Store nodeHistory:', historyState);

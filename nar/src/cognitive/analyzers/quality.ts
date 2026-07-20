@@ -1,9 +1,5 @@
-/**
- * Quality assessment - extracted from SelfAnalyzerService
- */
-import type { Concept } from '../../memory';
 import type { NAR } from '../../nar.js';
-import { getSubject, containsSubterm } from '../../terms';
+import { containsSubterm, getSubject } from '../../terms';
 import type { QualityAssessment } from '../types.js';
 
 export const assessQuality = async (nar: NAR | null): Promise<QualityAssessment> => {

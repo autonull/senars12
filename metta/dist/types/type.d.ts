@@ -1,25 +1,25 @@
 export declare enum TypeKind {
-    Var = 0,
-    Con = 1,
-    Fun = 2
+  Var = 0,
+  Con = 1,
+  Fun = 2,
 }
 export interface TypeVar {
-    readonly kind: TypeKind.Var;
-    readonly id: number;
+  readonly kind: TypeKind.Var;
+  readonly id: number;
 }
 export interface TypeCon {
-    readonly kind: TypeKind.Con;
-    readonly name: string;
+  readonly kind: TypeKind.Con;
+  readonly name: string;
 }
 export interface TypeFun {
-    readonly kind: TypeKind.Fun;
-    readonly from: Type;
-    readonly to: Type;
+  readonly kind: TypeKind.Fun;
+  readonly from: Type;
+  readonly to: Type;
 }
 export type Type = TypeVar | TypeCon | TypeFun;
 export interface TypeScheme {
-    readonly vars: readonly number[];
-    readonly type: Type;
+  readonly vars: readonly number[];
+  readonly type: Type;
 }
 export declare const typevar: (id: number) => TypeVar;
 export declare const typecon: (name: string) => TypeCon;

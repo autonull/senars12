@@ -1,4 +1,10 @@
-import type { CognitiveStimulus, Context, Derivation, Engine, EngineId, ToolResult } from '@senars/core/engine';
+import type {
+  CognitiveStimulus,
+  Context,
+  Derivation,
+  EngineId,
+  ToolResult,
+} from '@senars/core/engine';
 import { BaseEngine } from '@senars/core/engine/base';
 import { NAR } from '../nar.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
@@ -89,8 +95,20 @@ export class NAREngine extends BaseEngine {
   #isNarsese(text: string): boolean {
     const trimmed = text.trim();
     if (!trimmed) return false;
-    if (trimmed.startsWith('(') || trimmed.startsWith('<') || trimmed.startsWith('{') || trimmed.startsWith('[')) return true;
-    if (trimmed.includes('-->') || trimmed.includes('<->') || trimmed.includes('==>') || trimmed.includes('<=>')) return true;
+    if (
+      trimmed.startsWith('(') ||
+      trimmed.startsWith('<') ||
+      trimmed.startsWith('{') ||
+      trimmed.startsWith('[')
+    )
+      return true;
+    if (
+      trimmed.includes('-->') ||
+      trimmed.includes('<->') ||
+      trimmed.includes('==>') ||
+      trimmed.includes('<=>')
+    )
+      return true;
     if (trimmed.endsWith('.') || trimmed.endsWith('!') || trimmed.endsWith('?')) {
       const body = trimmed.slice(0, -1).trim();
       if (body.startsWith('(') || body.startsWith('<')) return true;

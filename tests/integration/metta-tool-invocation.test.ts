@@ -1,5 +1,5 @@
-import { MettaEngine } from '@senars/metta/engine/MettaEngine';
 import { bootstrapStdLib, clearOps } from '@senars/metta';
+import { MettaEngine } from '@senars/metta/engine/MettaEngine';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 describe('MeTTa engine tool invocation', () => {
@@ -15,7 +15,7 @@ describe('MeTTa engine tool invocation', () => {
   it('evaluates arithmetic expressions', async () => {
     const result = await engine.reason(
       { text: 'metta:(+ 2 3)', source: 'test', timestamp: Date.now(), correlationId: 'test-1' },
-      { working: [], episodic: [], semantic: [] },
+      { working: [], episodic: [], semantic: [] }
     );
     expect(result.length).toBeGreaterThanOrEqual(1);
   });
@@ -23,7 +23,7 @@ describe('MeTTa engine tool invocation', () => {
   it('evaluates skill expressions', async () => {
     const result = await engine.reason(
       { text: 'metta:(+ 10 20)', source: 'test', timestamp: Date.now(), correlationId: 'test-2' },
-      { working: [], episodic: [], semantic: [] },
+      { working: [], episodic: [], semantic: [] }
     );
     expect(result.length).toBeGreaterThanOrEqual(1);
   });

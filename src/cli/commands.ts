@@ -1,8 +1,8 @@
+import type { Agent } from '@senars/core';
 import { QUIT_SENTINEL } from '@senars/io/connections/cli';
 import type { CLICommand } from '@senars/io/connections/cli';
-import type { ConversationSession, SessionManager } from '@senars/util/types/memory';
-import type { Agent } from '@senars/core';
 import type { NAR } from '@senars/nar';
+import type { ConversationSession, SessionManager } from '@senars/util/types/memory';
 
 export interface LMStats {
   totalCalls: number;
@@ -44,7 +44,7 @@ export function buildCommands(
   lmService: LMHandle,
   sessionManager: SessionManager,
   getSession: () => ConversationSession,
-  setSession: (session: ConversationSession) => void,
+  setSession: (session: ConversationSession) => void
 ): CLICommand[] {
   return [
     { name: 'help', description: 'Show help', execute: () => REPL_HELP },
@@ -211,7 +211,7 @@ export function buildCommands(
         ];
         if (lmStats) {
           lines.push(
-            `Calls: ${lmStats.totalCalls} (${lmStats.successfulCalls} ok, ${lmStats.failedCalls} fail)`,
+            `Calls: ${lmStats.totalCalls} (${lmStats.successfulCalls} ok, ${lmStats.failedCalls} fail)`
           );
           lines.push(`Avg: ${lmStats.averageDuration.toFixed(0)}ms`);
         }

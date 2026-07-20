@@ -17,14 +17,14 @@ import {
   IRCConnection,
   MCPConnection,
   WSConnection,
-  createConnectionConfigsFromEnv,
   bindAgentToConnection,
+  createConnectionConfigsFromEnv,
 } from '@senars/io';
 import { resolveLMConfig } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
-import { setupGracefulShutdown, createAgentFromEnv } from './lib/lifecycle.js';
-import { readAuthConfig, readEpisodicConfig } from './lib/env-config.js';
 import { assertValidEnv } from '../utils/env-validate.js';
+import { readAuthConfig } from './lib/env-config.js';
+import { createAgentFromEnv, setupGracefulShutdown } from './lib/lifecycle.js';
 
 assertValidEnv();
 
@@ -75,15 +75,18 @@ async function main(): Promise<void> {
           (c: {
             type: string;
             id: string;
-          }) => `${c.type}:${c.id}`,
+          }) => `${c.type}:${c.id}`
         )
         .join(', ') || '(none)'
-    }`,
+    }`
   );
 
   for (const cfg of configs) {
     try {
-      const conn = await cm.addConnection(cfg as unknown as import('@senars/core').ConnectionConfig, { emit: () => undefined, logger });
+      const conn = await cm.addConnection(
+        cfg as unknown as import('@senars/core').ConnectionConfig,
+        { emit: () => undefined, logger }
+      );
       bindAgentToConnection(agent, conn, {
         auth,
         commandRegistry,

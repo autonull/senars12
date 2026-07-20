@@ -6,7 +6,7 @@ import { bindingsAtomToObj, objToBindingsAtom } from '../kernel/Bindings.js';
 import { Formatter } from '../kernel/Formatter.js';
 import { match, reduceND, reduceNDAsync } from '../kernel/Reduce.js';
 // Kernel imports
-import { Term, grounded, isExpression, sym } from '../kernel/Term.js';
+import { Term, grounded, isExpression } from '../kernel/Term.js';
 import { Unify } from '../kernel/Unify.js';
 
 export function registerAdvancedOps(interpreter) {

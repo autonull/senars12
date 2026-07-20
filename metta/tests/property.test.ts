@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { applySubst, unify } from '../src/engine/unify.js';
-import { expr, num, sym, varr } from '../src/types/ast.js';
+import { sym, varr } from '../src/types/ast.js';
 
 describe('Property-based tests', () => {
   describe('Unification', () => {

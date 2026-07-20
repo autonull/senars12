@@ -1,16 +1,16 @@
+import type { EpisodicMemory } from '@senars/nar';
+import type { CognitiveEvent } from '../CognitiveEvent.js';
+import type { PolicyEngine } from '../PolicyEngine.js';
+import type { LLMCortex } from '../cortex/LLMCortex.js';
 /**
  * Agent reasoning cycle phases, extracted from Agent.cycle for modularity.
  * Behavior is identical to the original inline implementation.
  */
 import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
-import type { CognitiveEvent } from '../CognitiveEvent.js';
-import type { MemoryService } from '../memory/MemoryService.js';
-import type { EventLog } from '../eventlog/EventLog.js';
 import type { Engine } from '../engine/Engine.js';
-import type { PolicyEngine } from '../PolicyEngine.js';
+import type { EventLog } from '../eventlog/EventLog.js';
+import type { MemoryService } from '../memory/MemoryService.js';
 import type { ToolRegistry } from '../motor/ToolRegistry.js';
-import type { LLMCortex } from '../cortex/LLMCortex.js';
-import type { EpisodicMemory } from '@senars/nar';
 
 export interface CycleHost {
   readonly log: EventLog;
@@ -208,7 +208,7 @@ export const runCycle = async (host: CycleHost, stimulus: CognitiveStimulus): Pr
       payload: {
         skill: tr.command,
         args: [],
-        result: tr.result.success ? 'success' : tr.result.error ?? 'error',
+        result: tr.result.success ? 'success' : (tr.result.error ?? 'error'),
         durationMs: 0,
       },
     });

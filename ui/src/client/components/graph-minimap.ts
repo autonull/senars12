@@ -81,11 +81,11 @@ export class GraphMinimap extends BaseComponent {
     const edges = $graphEdges.get();
     if (nodes.size === 0) return;
 
-// Compute bounds
-     let minX = Number.POSITIVE_INFINITY;
-     let minY = Number.POSITIVE_INFINITY;
-     let maxX = Number.NEGATIVE_INFINITY;
-     let maxY = Number.NEGATIVE_INFINITY;
+    // Compute bounds
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
     const positions = new Map<string, { x: number; y: number }>();
 
     // Parse positions from graph data or edges
@@ -153,12 +153,12 @@ export class GraphMinimap extends BaseComponent {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-// Convert minimap coords back to graph coords
-     const nodes = $graphNodes.get();
-     let minX = Number.POSITIVE_INFINITY;
-     let minY = Number.POSITIVE_INFINITY;
-     let maxX = Number.NEGATIVE_INFINITY;
-     let maxY = Number.NEGATIVE_INFINITY;
+    // Convert minimap coords back to graph coords
+    const nodes = $graphNodes.get();
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
     for (const [, nd] of nodes) {
       const px = nd.layout?.x ?? 0;
       const py = nd.layout?.y ?? 0;

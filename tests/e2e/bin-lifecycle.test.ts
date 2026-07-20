@@ -1,5 +1,5 @@
-import { createAgentFromEnv, type AgentFromEnvOptions } from '../../src/bin/lib/lifecycle';
 import { afterEach, describe, expect, it } from 'vitest';
+import { type AgentFromEnvOptions, createAgentFromEnv } from '../../src/bin/lib/lifecycle';
 
 interface BinSpec {
   name: string;
@@ -44,6 +44,6 @@ describe('Bin lifecycle E2E (shared createAgentFromEnv substrate)', () => {
 
       await ctx.agent.stop();
       expect(ctx.agent.health().status).toBe('stuck');
-    },
+    }
   );
 });

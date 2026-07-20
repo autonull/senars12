@@ -6,18 +6,14 @@ import {
   $activeLens,
   $graphNodes,
   $lensFields,
-  $lensRegistry,
   $panels,
   BaseComponent,
-  evaluateLens,
   getItems,
   registerLens,
   send,
 } from '../core/index.js';
 import { compile } from '../modulation/compile.js';
-import { beliefLens } from '../modulation/compile.js';
 import { evaluate } from '../modulation/evaluate.js';
-import { getMemoCache } from '../modulation/memo.js';
 import type { Delta } from '../modulation/types.js';
 
 /** Fields available for lens mapping, with type info for the UI. */

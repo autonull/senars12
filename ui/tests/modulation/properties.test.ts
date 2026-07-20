@@ -10,11 +10,7 @@ import {
   when,
 } from '../../src/client/modulation/operators.js';
 import type { Channel, Delta, Item, View } from '../../src/client/modulation/types.js';
-import {
-  SUPPORT_3D,
-  SUPPORT_3D_EDGES,
-  checkUnsupportedChannels,
-} from '../../src/client/spacegraph/adapter-3d.js';
+import { checkUnsupportedChannels } from '../../src/client/spacegraph/adapter-3d.js';
 
 const defaultView: View = {
   flags: { reducedMotion: false, highContrast: false, prefersColorScheme: 'dark' },

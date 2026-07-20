@@ -1,14 +1,13 @@
 import { Agent } from '@senars/core';
-import { NAREngine } from '../engine/NAREngine.js';
-import { MettaEngine } from '@senars/metta/agent';
+import { InMemoryEventLog, SqliteEventLog } from '@senars/core';
+import type { ChatStreamEvent } from '@senars/core';
 import { createCortexFromLM } from '@senars/core/cortex';
-import { SqliteEventLog, InMemoryEventLog } from '@senars/core';
-import { JsonlSessionManager } from '@senars/core/memory';
 import { isNarsese } from '@senars/core/helpers';
+import { MettaEngine } from '@senars/metta/agent';
 import type { LMService } from '@senars/nar';
 import type { EpisodicMemory } from '@senars/nar';
 import type { NAR } from '@senars/nar';
-import type { ChatStreamEvent } from '@senars/core';
+import { NAREngine } from '../engine/NAREngine.js';
 
 export interface CreateAgentConfig {
   nar?: NAR;
@@ -42,7 +41,9 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     ? new SqliteEventLog({ path: config.persistence.path })
     : new InMemoryEventLog();
 
-  const cortex = config.lmService ? createCortexFromLM(config.lmService, config.promptBuilder) : undefined;
+  const cortex = config.lmService
+    ? createCortexFromLM(config.lmService, config.promptBuilder)
+    : undefined;
 
   const { MettaCommandParser } = await import('@senars/metta/agent');
   const agent = new Agent({
@@ -69,7 +70,11 @@ function attachNarApi(agent: ExtendedAgent, config: CreateAgentConfig, narEngine
   let throttle = Math.min(100, Math.max(0, config.throttle ?? 100));
 
   const originalChat = agent.chat.bind(agent);
-  const chatOverride = async function* (this: ExtendedAgent, text: string, opts?: unknown): AsyncGenerator<ChatStreamEvent, string> {
+  const chatOverride = async function* (
+    this: ExtendedAgent,
+    text: string,
+    opts?: unknown
+  ): AsyncGenerator<ChatStreamEvent, string> {
     const trimmed = text.trim();
     if (!trimmed) return '';
 
@@ -109,14 +114,20 @@ function attachNarApi(agent: ExtendedAgent, config: CreateAgentConfig, narEngine
   agent.recall = async (query?: string, limit?: number) => {
     if (!config.episodicMemory) return [];
     const episodes = await config.episodicMemory.getEpisodes({ limit: limit ?? 50 });
-    return episodes.filter((e: { content: string }) => !query || e.content.toLowerCase().includes(query.toLowerCase()));
+    return episodes.filter(
+      (e: { content: string }) => !query || e.content.toLowerCase().includes(query.toLowerCase())
+    );
   };
 
-  agent.know = (key: string, value: string) => { knowStore.set(key, value); };
+  agent.know = (key: string, value: string) => {
+    knowStore.set(key, value);
+  };
   agent.knowGet = (key: string) => knowStore.get(key);
   agent.knowList = () => [...knowStore.entries()].map(([k, v]) => ({ key: k, value: v }));
 
-  agent.setThrottle = (n: number) => { throttle = Math.min(100, Math.max(0, n)); };
+  agent.setThrottle = (n: number) => {
+    throttle = Math.min(100, Math.max(0, n));
+  };
   agent.getThrottle = () => throttle;
   agent.getNAR = () => narEngine?.nar;
   agent.getEpisodicMemory = () => config.episodicMemory;
@@ -125,15 +136,24 @@ function attachNarApi(agent: ExtendedAgent, config: CreateAgentConfig, narEngine
 
 export type { Agent } from '@senars/core';
 export { createCortexFromLM } from '@senars/core/cortex';
-export { InMemorySessionManager, JsonlSessionManager, createSession, abortSession } from '@senars/core/memory';
+export {
+  InMemorySessionManager,
+  JsonlSessionManager,
+  createSession,
+  abortSession,
+} from '@senars/core/memory';
 export type { JsonlSessionManagerConfig } from '@senars/core/memory';
 export { buildAgentTools } from '@senars/core/motor';
 
 export async function dispatchToolCalls(
   calls: Array<{ toolName: string; toolCallId: string; args: Record<string, unknown> }>,
-  ctx: { tools: Record<string, { execute: (args: Record<string, unknown>) => Promise<unknown> }> },
-): Promise<{ artifacts: Array<{ type: string; content?: unknown; metadata?: Record<string, unknown> }>; errors: Array<{ message: string }> }> {
-  const artifacts: Array<{ type: string; content?: unknown; metadata?: Record<string, unknown> }> = [];
+  ctx: { tools: Record<string, { execute: (args: Record<string, unknown>) => Promise<unknown> }> }
+): Promise<{
+  artifacts: Array<{ type: string; content?: unknown; metadata?: Record<string, unknown> }>;
+  errors: Array<{ message: string }>;
+}> {
+  const artifacts: Array<{ type: string; content?: unknown; metadata?: Record<string, unknown> }> =
+    [];
   const errors: Array<{ message: string }> = [];
 
   for (const call of calls) {
@@ -144,13 +164,26 @@ export async function dispatchToolCalls(
     }
     try {
       const result = await tool.execute(call.args);
-      if (call.toolName === 'nar_believe' && result && typeof result === 'object' && 'success' in result) {
+      if (
+        call.toolName === 'nar_believe' &&
+        result &&
+        typeof result === 'object' &&
+        'success' in result
+      ) {
         const r = result as Record<string, unknown>;
         if (r.success) {
-          artifacts.push({ type: 'belief_added', content: r.statement, metadata: { toolCallId: call.toolCallId } });
+          artifacts.push({
+            type: 'belief_added',
+            content: r.statement,
+            metadata: { toolCallId: call.toolCallId },
+          });
         }
       }
-      artifacts.push({ type: 'tool_result', content: result, metadata: { toolName: call.toolName, toolCallId: call.toolCallId } });
+      artifacts.push({
+        type: 'tool_result',
+        content: result,
+        metadata: { toolName: call.toolName, toolCallId: call.toolCallId },
+      });
     } catch (e: unknown) {
       errors.push({ message: (e as Error).message });
     }

@@ -4,12 +4,11 @@
  */
 import type { Term } from '../terms';
 import type { Task } from '../types';
-import { LMRule } from './LMRule.js';
-import type { LMRuleConfig, LMService } from './lm-service.js';
-import type { LMRuleDefinition, LMRuleFactoryConfig } from './rule-builders.js';
+import type { LMRule } from './LMRule.js';
+import type { LMService } from './lm-service.js';
+import type { LMRuleFactoryConfig } from './rule-builders.js';
 import { createCustomRule, createRule, getRuleDef } from './rule-builders.js';
 import { ruleDefs } from './rule-templates/index.js';
-import { LMRules } from './rule-selectors/factory.js';
 
 export { LMRules } from './rule-selectors/factory.js';
 export type { LMRuleDefinition, LMRuleFactoryConfig } from './rule-builders.js';

@@ -1,4 +1,4 @@
-import type { ExpressionAtom, MeTTaAtom, SymbolAtom } from '../types/ast.js';
+import type { MeTTaAtom } from '../types/ast.js';
 import { isExpression, isSymbol, isVariable } from '../types/ast.js';
 import type { MeTTaSpace } from '../types/space.js';
 import { type Substitution, unify } from './unify.js';

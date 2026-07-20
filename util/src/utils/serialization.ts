@@ -12,9 +12,7 @@ export interface Versioned {
  * Wraps an object that already fulfills the instance-side contract
  * (`serialize()` + `deserialize(data): this`) as {@link Serializable}.
  */
-export function asSerializable<T, V = number>(
-  target: Serializable<T, V>,
-): Serializable<T, V> {
+export function asSerializable<T, V = number>(target: Serializable<T, V>): Serializable<T, V> {
   return target;
 }
 
@@ -29,7 +27,7 @@ export function asSerializable<T, V = number>(
  */
 export function inPlaceSerializable<TData, V = number>(
   instance: { serialize(): TData; deserialize(data: TData): void },
-  version?: V,
+  version?: V
 ): Serializable<TData, V> {
   return {
     serialize: () => instance.serialize(),
@@ -59,7 +57,7 @@ export interface FactorySerializable<TData, T, V = number> extends Serializable<
 export function factorySerializable<TData, T, V = number>(
   host: { serialize(): TData; factory: (data: TData, ...args: never[]) => T },
   version?: V,
-  factoryArgs: never[] = [],
+  factoryArgs: never[] = []
 ): FactorySerializable<TData, T, V> {
   let current = undefined as unknown as T;
   const wrapper: FactorySerializable<TData, T, V> = {

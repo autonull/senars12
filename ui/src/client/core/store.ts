@@ -1,7 +1,13 @@
+import type { ChatMessage, GraphNodeData, Lens } from '@senars/core';
 import type { LensSpec } from '../../shared/lens-schema.js';
 import { isBuiltinLens } from '../../shared/lens-schema.js';
-import type { ChatMessage, GraphNodeData, Lens } from '@senars/core';
-import { beliefLens, compile, contradictionLens, goalLens, temporalLens } from '../modulation/compile.js';
+import {
+  beliefLens,
+  compile,
+  contradictionLens,
+  goalLens,
+  temporalLens,
+} from '../modulation/compile.js';
 import { timeGate } from '../modulation/composition.js';
 import { evaluate } from '../modulation/evaluate.js';
 import type { Delta, Item, Modulation, Lens as ModulationLens, View } from '../modulation/types.js';
@@ -471,7 +477,11 @@ export function mountTestApi<T>(namespace: string, api: T): void {
 }
 
 export function exposeTestApi(): void {
-  const w = window as unknown as { __testApi?: Record<string, unknown>; __testApiExposed?: boolean };
+  if (typeof window === 'undefined') return;
+  const w = window as unknown as {
+    __testApi?: Record<string, unknown>;
+    __testApiExposed?: boolean;
+  };
   w.__testApi = {
     ...w.__testApi,
     store: {
@@ -482,5 +492,5 @@ export function exposeTestApi(): void {
   w.__testApiExposed = true;
 }
 
-// Auto-expose test API when store module is evaluated
-exposeTestApi();
+// Auto-expose test API when store module is evaluated (browser only)
+if (typeof window !== 'undefined') exposeTestApi();

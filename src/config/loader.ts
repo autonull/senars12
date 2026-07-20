@@ -1,8 +1,8 @@
 import { promises as fs } from 'node:fs';
 import { resolve } from 'node:path';
+import { readEnvOverrides } from '@senars/util/config';
 import type { AppConfig } from './schema.js';
 import { appConfigSchema } from './schema.js';
-import { readEnvOverrides } from '@senars/util/config';
 
 export type { AppConfig, BotConfig, BotProfile, NarCoreConfig, LmConfig } from './schema.js';
 

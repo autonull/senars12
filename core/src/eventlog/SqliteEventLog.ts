@@ -3,7 +3,7 @@ import { monotonicFactory } from 'ulid';
 const ulid = monotonicFactory();
 import Database from 'better-sqlite3';
 import { AbstractEventLog } from './AbstractEventLog.js';
-import type { EventLog, EventLogConfig, CognitiveEvent } from './EventLog.js';
+import type { CognitiveEvent, EventLogConfig } from './EventLog.js';
 import { EventLogError } from './EventLog.js';
 
 export interface SqliteEventLogConfig extends EventLogConfig {
@@ -87,7 +87,14 @@ export class SqliteEventLog extends AbstractEventLog {
         `INSERT INTO events (id, type, payload, timestamp, correlation_id, causation_id)
          VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .run(fullEvent.id, fullEvent.type, JSON.stringify(fullEvent.payload), fullEvent.timestamp, fullEvent.correlationId ?? null, fullEvent.causationId ?? null);
+      .run(
+        fullEvent.id,
+        fullEvent.type,
+        JSON.stringify(fullEvent.payload),
+        fullEvent.timestamp,
+        fullEvent.correlationId ?? null,
+        fullEvent.causationId ?? null
+      );
   }
 
   #rowToEvent(row: Row): CognitiveEvent {

@@ -3,10 +3,10 @@
  * Shared multi-agent runner — parameterized for multi-agent.ts and multi-agent-demo.ts
  */
 
+import { CLIConnection } from '@senars/io/connections/cli';
+import { WSConnection } from '@senars/io/connections/ws';
 import type { NAR } from '@senars/nar';
 import { createAgent } from '@senars/nar/agent';
-import { WSConnection } from '@senars/io/connections/ws';
-import { CLIConnection } from '@senars/io/connections/cli';
 import { createLogger } from '@senars/nar/logger';
 
 export interface MultiAgentRunnerOptions {
@@ -38,7 +38,8 @@ export async function runMultiAgent(opts: MultiAgentRunnerOptions): Promise<void
   };
 
   const wsConn = new WSConnection(wsConfig, {
-    emit: (event: string, data: unknown) => logger.debug(`[WS] ${event}`, data as Record<string, unknown>),
+    emit: (event: string, data: unknown) =>
+      logger.debug(`[WS] ${event}`, data as Record<string, unknown>),
     logger,
     getSessionSpaceId: () => 'demo',
   });

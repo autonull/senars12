@@ -1,3 +1,4 @@
+import { ConnectionError } from '@senars/core';
 import type {
   Connection,
   ConnectionConfig,
@@ -6,7 +7,6 @@ import type {
   IOMessage,
   Logger,
 } from '../types.js';
-import { ConnectionError } from '@senars/core';
 
 export abstract class BaseConnection implements Connection {
   id: string;

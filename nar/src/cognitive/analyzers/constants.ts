@@ -10,7 +10,10 @@ export const EMPTY_PATTERN: PatternAnalysis = {
   performancePatterns: { ruleExecution: 0, memoryUsage: 0, throughput: 'stable' as const },
   resourceUsage: {
     conceptCount: 0,
-    memoryUsage: typeof process.memoryUsage === 'function' ? process.memoryUsage() : ({} as NodeJS.MemoryUsage),
+    memoryUsage:
+      typeof process.memoryUsage === 'function'
+        ? process.memoryUsage()
+        : ({} as NodeJS.MemoryUsage),
     avgConceptPriority: 0,
     highPriorityConcepts: 0,
     lowPriorityConcepts: 0,

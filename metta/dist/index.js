@@ -1,4 +1,17 @@
-export { AtomKind, sym, varr, num, str, expr, isSymbol, isVariable, isNumber, isString, isExpression, isGrounded, } from './types/ast.js';
+export {
+  AtomKind,
+  sym,
+  varr,
+  num,
+  str,
+  expr,
+  isSymbol,
+  isVariable,
+  isNumber,
+  isString,
+  isExpression,
+  isGrounded,
+} from './types/ast.js';
 export { parseMeTTa } from './parser/runtime.js';
 export { EGraph } from './engine/egraph.js';
 export { MeTTaInterpreter } from './engine/interpreter.js';
@@ -16,10 +29,25 @@ export { InMemorySpace } from './core/space.js';
 export { MeTTaError, ErrorCode } from './core/errors.js';
 export { hashAtom, equalAtoms } from './core/hash.js';
 export { createConfig, presets } from './core/config.js';
-export { TypeKind, typevar, typecon, typefun, isTypeVar, isTypeCon, isTypeFun, } from './types/type.js';
-export { TypeChecker, unifyTypes, occursCheck, composeSubst, freshType, resetTypeIds, } from './types/inference.js';
+export {
+  TypeKind,
+  typevar,
+  typecon,
+  typefun,
+  isTypeVar,
+  isTypeCon,
+  isTypeFun,
+} from './types/type.js';
+export {
+  TypeChecker,
+  unifyTypes,
+  occursCheck,
+  composeSubst,
+  freshType,
+  resetTypeIds,
+} from './types/inference.js';
 export { bootstrapStdLib } from './stdlib/index.js';
-export { PersistentSpace, } from './extensions/persistent-space.js';
+export { PersistentSpace } from './extensions/persistent-space.js';
 export { MeTTaBuilder, MeTTaRuntime, createMeTTa } from './runtime/builder.js';
 export { JITCompiler, globalJIT } from './performance/jit.js';
 export { parallelReduce, parallelMap } from './performance/parallel.js';

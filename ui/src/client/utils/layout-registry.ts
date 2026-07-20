@@ -1,5 +1,5 @@
-import type { Core, LayoutOptions } from 'cytoscape';
 import type { Lens } from '@senars/core';
+import type { Core, LayoutOptions } from 'cytoscape';
 import { $lensLayout } from '../core/index.js';
 
 export interface LayoutDefinition {

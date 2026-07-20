@@ -8,7 +8,7 @@ import type { Task, TaskType } from '../types';
 import { createBudget, createTask } from '../types';
 import { LMResponseParser, LMRule } from './LMRule.js';
 import type { LMRuleConfig, LMService } from './lm-service.js';
-import { ruleDefs, prompts } from './rule-templates/index.js';
+import { prompts, ruleDefs } from './rule-templates/index.js';
 
 export interface LMRuleDefinition {
   id: string;

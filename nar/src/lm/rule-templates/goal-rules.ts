@@ -1,9 +1,9 @@
+import { GoalDecompositionSchema } from '../../nl';
 /**
  * Goal-oriented LM rule definitions.
  */
 import type { LMRuleDefinition } from '../rule-builders.js';
 import { isComplexGoal } from '../rule-selectors/factory.js';
-import { GoalDecompositionSchema } from '../../nl';
 
 export const goalRules: LMRuleDefinition[] = [
   {

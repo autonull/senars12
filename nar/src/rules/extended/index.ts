@@ -3,16 +3,16 @@
  */
 import type { RuleFn } from '../types.js';
 import * as classical from './classical.js';
-import * as structural from './structural.js';
+import * as comparisonExt from './comparison-ext.js';
 import * as composition from './composition.js';
-import * as equivalence from './equivalence.js';
-import * as variable from './variable.js';
 import * as conversion from './conversion.js';
 import * as deductionExt from './deduction-ext.js';
-import * as temporal from './temporal.js';
-import * as procedural from './procedural.js';
-import * as comparisonExt from './comparison-ext.js';
+import * as equivalence from './equivalence.js';
 import * as meta from './meta/index.js';
+import * as procedural from './procedural.js';
+import * as structural from './structural.js';
+import * as temporal from './temporal.js';
+import * as variable from './variable.js';
 
 export const NALExtendedRules = {
   ...classical,

@@ -13,7 +13,7 @@ const consoleLogger: Logger = {
   info: (msg, ctx) => console.info(msg, ctx),
   warn: (msg, ctx) => console.warn(msg, ctx),
   error: (msg, err, ctx) => console.error(msg, err, ctx),
-  child: (scope) => ({ ...consoleLogger, scope } as unknown as Logger),
+  child: (scope) => ({ ...consoleLogger, scope }) as unknown as Logger,
   warnOnce: (key, msg, ctx) => consoleLogger.warn(`${key}: ${msg}`, ctx),
   deprecated: (oldSymbol, replacement, ctx) =>
     consoleLogger.warn(`deprecated ${oldSymbol}; use ${replacement} instead`, ctx),

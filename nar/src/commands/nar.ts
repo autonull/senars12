@@ -1,5 +1,4 @@
 import type { CommandDefinition } from '@senars/core/command-types';
-import { mentionsSymbol } from '../terms';
 
 // Copy of exact original src/io/commands/nar.ts content
 export const narCommands: CommandDefinition[] = [

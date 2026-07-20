@@ -1,7 +1,3 @@
-/**
- * V2 preset LM rule definitions (merged from rule-factory-v2.ts).
- */
-import type { LMRuleDefinition } from '../rule-builders.js';
 import {
   AnalogySchema,
   ExplanationSchema,
@@ -9,6 +5,10 @@ import {
   SchemaInductionSchema,
   TemporalCausalSchema,
 } from '../../nl';
+/**
+ * V2 preset LM rule definitions (merged from rule-factory-v2.ts).
+ */
+import type { LMRuleDefinition } from '../rule-builders.js';
 
 export const metaRules: LMRuleDefinition[] = [
   {

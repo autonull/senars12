@@ -280,9 +280,7 @@ export function validateParameters(params: Partial<CognitiveParameters>): {
   }
 
   if (params.lm?.selectionStrategy) {
-    log.warn(
-      'selectionStrategy in LMConfig is deprecated. Use strategies.lmRule.type instead.'
-    );
+    log.warn('selectionStrategy in LMConfig is deprecated. Use strategies.lmRule.type instead.');
   }
 
   return {

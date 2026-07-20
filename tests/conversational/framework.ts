@@ -155,7 +155,7 @@ export class ConversationalTestHarness {
     const timeoutController = new AbortController();
     const timeoutHandle = setTimeout(() => timeoutController.abort(), effectiveTimeout);
 
-    let response = '';
+    const response = '';
     try {
       const stream = this.agent.chatStream(input, {
         session: this.session,

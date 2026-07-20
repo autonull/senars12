@@ -1,8 +1,8 @@
 export var TypeKind;
-(function (TypeKind) {
-    TypeKind[TypeKind["Var"] = 0] = "Var";
-    TypeKind[TypeKind["Con"] = 1] = "Con";
-    TypeKind[TypeKind["Fun"] = 2] = "Fun";
+((TypeKind) => {
+  TypeKind[(TypeKind['Var'] = 0)] = 'Var';
+  TypeKind[(TypeKind['Con'] = 1)] = 'Con';
+  TypeKind[(TypeKind['Fun'] = 2)] = 'Fun';
 })(TypeKind || (TypeKind = {}));
 export const typevar = (id) => ({ kind: TypeKind.Var, id });
 export const typecon = (name) => ({ kind: TypeKind.Con, name });

@@ -1,11 +1,7 @@
 import type { GraphNodeData, IncomingFromServer } from '@senars/core';
 import { beforeEach, describe, expect, it } from 'vitest';
-import {
-  $graphEdges,
-  $graphNodes,
-  $nodeHistory,
-} from '../../ui/src/client/core/store.js';
 import { applyServerMessage } from '../../ui/src/client/core/store-bindings.js';
+import { $graphEdges, $graphNodes, $nodeHistory } from '../../ui/src/client/core/store.js';
 
 function node(id: string, term: string): { action: 'add_node'; id: string; data: GraphNodeData } {
   return {
@@ -16,7 +12,12 @@ function node(id: string, term: string): { action: 'add_node'; id: string; data:
 }
 
 function edge(source: string, target: string) {
-  return { action: 'add_edge' as const, source, target, data: { weight: 0.6, type: 'inheritance', directed: true } };
+  return {
+    action: 'add_edge' as const,
+    source,
+    target,
+    data: { weight: 0.6, type: 'inheritance', directed: true },
+  };
 }
 
 const TRANSCRIPT: IncomingFromServer[] = [

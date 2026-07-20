@@ -2,19 +2,21 @@
  * Incoming message discriminated unions + aggregate type re-exports
  */
 import { z } from 'zod';
-import { ChatUserMsg, ChatAgentStream, ChatAgentComplete } from './chat.js';
-import { ConfigSetMsg, ConfigField } from './config.js';
-import { SyncRequest, LensSet, FocusSet, ViewportSet, StateSnapshot, TelemetryMsg } from './sync.js';
+import { ChatAgentComplete, ChatAgentStream, ChatUserMsg } from './chat.js';
+import { type ConfigField, ConfigSetMsg } from './config.js';
 import { ConfigSchemaMsg } from './config.js';
 import { CognitiveDelta } from './graph-ops.js';
-import { ObjectSetMsg, NodeSetMsg } from './object-patch.js';
-import {
-  LensDefineMsg,
-  LensListMsg,
-  LensDefinedMsg,
-  LensFieldsMsg,
-} from './lens-msgs.js';
 import { NodeHistoryMsg, NodeHistoryRequestMsg } from './history.js';
+import { LensDefineMsg, LensDefinedMsg, LensFieldsMsg, LensListMsg } from './lens-msgs.js';
+import { NodeSetMsg, ObjectSetMsg } from './object-patch.js';
+import {
+  FocusSet,
+  LensSet,
+  StateSnapshot,
+  SyncRequest,
+  TelemetryMsg,
+  ViewportSet,
+} from './sync.js';
 
 export const IncomingFromClient = z.discriminatedUnion('type', [
   ChatUserMsg,

@@ -69,14 +69,18 @@ export function readEpisodicConfig(): EpisodicConfig {
 export function readAuthConfig(): AuthConfig {
   return {
     secret: process.env.AUTH_SECRET,
-    connectionIds: (process.env.AUTH_CONNECTION_IDS ?? 'irc-main,http-main,ws-main').split(',').map((s) => s.trim()),
+    connectionIds: (process.env.AUTH_CONNECTION_IDS ?? 'irc-main,http-main,ws-main')
+      .split(',')
+      .map((s) => s.trim()),
   };
 }
 
 export function readIRCConfig(): IRCConfig {
   return {
     server: process.env.IRC_SERVER ?? process.env.SENARS_IRC_SERVER ?? 'irc.libera.chat',
-    channels: (process.env.IRC_CHANNELS ?? process.env.SENARS_IRC_CHANNELS ?? '#senars').split(',').map((s) => s.trim()),
+    channels: (process.env.IRC_CHANNELS ?? process.env.SENARS_IRC_CHANNELS ?? '#senars')
+      .split(',')
+      .map((s) => s.trim()),
     nick: process.env.SENARS_IRC_NICK ?? 'senars-bot',
     port: Number.parseInt(process.env.SENARS_IRC_PORT || '6697', 10),
     authSecret: process.env.SENARS_IRC_AUTH_SECRET,

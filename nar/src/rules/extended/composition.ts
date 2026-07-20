@@ -1,10 +1,6 @@
-/**
- * Composition extended NAL rules: intersection, union, difference.
- */
-import type { Term } from '../../terms';
-import { TermBuilder, getSubject, getPredicate, termsEqual } from '../../terms';
-import type { RuleFn } from '../types.js';
+import { TermBuilder, getPredicate, getSubject, termsEqual } from '../../terms';
 import { buildBinaryInhRule } from '../rule-builder.js';
+import type { RuleFn } from '../types.js';
 
 export const intersectionComposition: RuleFn = buildBinaryInhRule(
   (inh1, inh2) => {
@@ -56,6 +52,9 @@ export const difference: RuleFn = buildBinaryInhRule(
     const pred1 = getPredicate(inh1),
       pred2 = getPredicate(inh2);
     if (!sub1 || !pred1 || !pred2) return undefined;
-    return TermBuilder.inheritance(sub1, TermBuilder.conjunction(pred1, TermBuilder.negation(pred2)));
+    return TermBuilder.inheritance(
+      sub1,
+      TermBuilder.conjunction(pred1, TermBuilder.negation(pred2))
+    );
   }
 );
