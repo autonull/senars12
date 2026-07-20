@@ -8,6 +8,9 @@ import type { Agent, CognitiveEvent } from '@senars/core';
 import type { GraphNodeData, IncomingFromServer } from '@senars/core';
 import { WebSocketServer } from 'ws';
 import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
+import { isNarsese } from '@senars/core';
+import { termParser, parseTermToEdges, DEFAULT_CONFIG } from '@senars/nar';
+import { buildConfigSchema, applyConfigField } from './config-schema.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const DIST_DIR = resolve(__dirname, '../../dist/client');
@@ -48,7 +51,8 @@ async function serveStatic(req: IncomingMessage, res: ServerResponse): Promise<b
 function handleTestEndpoints(
   req: IncomingMessage,
   res: ServerResponse,
-  projection?: UnifiedGraphProjection
+  projection?: UnifiedGraphProjection,
+  agent?: Agent
 ): boolean {
   const url = req.url || '';
   if (!url.startsWith('/test/')) return false;
@@ -110,6 +114,19 @@ function handleTestEndpoints(
     req.on('end', () => {
       const { conclusion, frequency, confidence } = JSON.parse(body);
       testState.derivations.push({ conclusion, frequency, confidence });
+      if (projection) {
+        projection.applyDelta({
+          nodes: [{
+            id: conclusion,
+            term: conclusion,
+            label: conclusion,
+            nodeType: 'nar:concept',
+            priority: frequency ?? 0.85,
+            confidence: confidence ?? 0.9,
+          }],
+          edges: [],
+        });
+      }
       res.end(JSON.stringify({ success: true }));
     });
     return true;
@@ -126,15 +143,80 @@ function handleTestEndpoints(
     return true;
   }
 
+  if (url === '/test/session-save' && req.method === 'POST') {
+    if (agent?.sessionManager) {
+      agent.sessionManager.snapshot()
+        .then(() => res.end(JSON.stringify({ success: true })))
+        .catch((e: Error) => res.end(JSON.stringify({ success: false, error: e.message })));
+    } else {
+      res.end(JSON.stringify({ success: false, error: 'No session manager' }));
+    }
+    return true;
+  }
+
+  if (url === '/test/session-load' && req.method === 'POST') {
+    if (agent?.sessionManager) {
+      agent.sessionManager.restore()
+        .then(() => res.end(JSON.stringify({ success: true })))
+        .catch((e: Error) => res.end(JSON.stringify({ success: false, error: e.message })));
+    } else {
+      res.end(JSON.stringify({ success: false, error: 'No session manager' }));
+    }
+    return true;
+  }
+
+  if (url === '/test/import-beliefs' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk: Buffer) => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const { statements } = JSON.parse(body) as { statements?: string[]; narsese?: string };
+        const lines = statements ?? (JSON.parse(body) as { narsese: string }).narsese.split('\n').map(s => s.trim()).filter(Boolean);
+        const narEngine = agent?.engines.get('nar') as { nar?: { believe: (s: string) => Promise<void>; run: (n: number) => void } } | undefined;
+        if (!narEngine?.nar?.believe) {
+          res.end(JSON.stringify({ success: false, error: 'No NAR engine with believe() available' }));
+          return;
+        }
+        for (const stmt of lines) {
+          await narEngine.nar.believe(stmt);
+          narEngine.nar.run(3);
+        }
+        res.end(JSON.stringify({ success: true, count: lines.length }));
+      } catch (e: unknown) {
+        res.end(JSON.stringify({ success: false, error: (e as Error).message }));
+      }
+    });
+    return true;
+  }
+
+  if (url === '/test/export-beliefs' && req.method === 'GET') {
+    try {
+      const narEngine = agent?.engines.get('nar') as { nar?: { getBeliefs?: () => Array<{ term: { toString(): string }; truth: { frequency: number; confidence: number } }> } } | undefined;
+      const beliefs = narEngine?.nar?.getBeliefs?.() ?? [];
+      const result = beliefs.map((b) => ({
+        term: b.term.toString(),
+        truth: { frequency: b.truth.frequency, confidence: b.truth.confidence },
+      }));
+      res.end(JSON.stringify({ beliefs: result, count: result.length }));
+    } catch (e: unknown) {
+      res.end(JSON.stringify({ success: false, error: (e as Error).message }));
+    }
+    return true;
+  }
+
   return false;
 }
 
 async function aggregateChatResponse(agent: Agent, text: string): Promise<string> {
+  console.log('[aggregateChatResponse] Called with:', text);
   let response = '';
   if (typeof agent.chat === 'function') {
+    console.log('[aggregateChatResponse] Calling agent.chat...');
     for await (const evt of agent.chat(text)) {
+      console.log('[aggregateChatResponse] Got event:', evt.kind);
       if (evt.kind === 'text-delta' && evt.text) response += evt.text;
     }
+    console.log('[aggregateChatResponse] Done, response:', response);
   }
   return response;
 }
@@ -146,9 +228,11 @@ function createServerWithProjection(agent?: Agent): {
 } {
   const projection = agent ? new UnifiedGraphProjection() : undefined;
   const seenTerms = new Set<string>();
+  let currentNarConfig = { ...DEFAULT_CONFIG };
 
   if (agent) {
     agent.on('*', (event: CognitiveEvent) => {
+      console.log('[Server] Agent event:', event.type, event.engine, event.payload?.conclusion ?? '');
       if (event.type !== 'derivation.made') return;
       const term = event.payload.conclusion;
       if (seenTerms.has(term)) return;
@@ -156,6 +240,7 @@ function createServerWithProjection(agent?: Agent): {
       const payload = event.payload as {
         conclusion: string;
         truth?: { frequency: number; confidence: number };
+        premises?: string[];
       };
       const node: GraphNodeData = {
         id: term,
@@ -166,14 +251,47 @@ function createServerWithProjection(agent?: Agent): {
         confidence: 0.9,
         truth: payload.truth,
       };
+
+      const edges: Array<{ source: string; target: string; type: string; weight?: number; directed?: boolean }> = [];
+
+      if (isNarsese(term)) {
+        try {
+          const parsedTerm = termParser.parse(term);
+          const termEdges = parseTermToEdges(parsedTerm);
+          for (const te of termEdges) {
+            edges.push({
+              source: te.source,
+              target: te.target,
+              type: te.type,
+              weight: te.weight,
+              directed: te.directed,
+            });
+          }
+        } catch {
+          console.warn('[Server] Failed to parse Narsese term for edges:', term);
+        }
+      }
+
+      if (payload.premises) {
+        for (const premise of payload.premises) {
+          edges.push({
+            source: premise,
+            target: term,
+            type: 'derivation',
+            weight: 1.0,
+            directed: true,
+          });
+        }
+      }
+
       if (projection) {
-        projection.applyDelta({ nodes: [node], edges: [] });
+        projection.applyDelta({ nodes: [node], edges });
       }
     });
   }
 
   const httpServer = createServer(async (req, res) => {
-    if (handleTestEndpoints(req, res, projection)) return;
+    if (handleTestEndpoints(req, res, projection, agent)) return;
     if (await serveStatic(req, res)) return;
     try {
       const content = await readFile(resolve(DIST_DIR, 'index.html'));
@@ -189,7 +307,7 @@ function createServerWithProjection(agent?: Agent): {
 
   wss.on('connection', (ws) => {
     for (const msg of [
-      { type: 'config.schema', data: {} },
+      { type: 'config.schema', data: buildConfigSchema(currentNarConfig) },
       { type: 'lens.fields', fields: [] },
       { type: 'lens.list', lenses: [] },
     ])
@@ -202,12 +320,19 @@ function createServerWithProjection(agent?: Agent): {
       projection.mount(sender);
       projection.sendInitialState();
 
+      ws.on('error', (e) => {
+        console.error('[WS] Connection error:', e);
+      });
+
       ws.on('message', (raw) => {
         try {
           const msg = JSON.parse(raw.toString());
+          console.log('[WS] Received message:', msg.type);
           if (msg.type === 'chat.user' && msg.content && agent) {
+            console.log('[WS] Calling aggregateChatResponse...');
             aggregateChatResponse(agent, msg.content)
               .then((response) => {
+                console.log('[WS] Got response:', response);
                 if (ws.readyState === ws.OPEN) {
                   ws.send(
                     JSON.stringify({
@@ -218,16 +343,40 @@ function createServerWithProjection(agent?: Agent): {
                   );
                 }
               })
-              .catch(() => {
-                /* ignore agent errors */
+              .catch((e) => {
+                console.error('[WS] Error in aggregateChatResponse:', e);
               });
           }
-        } catch {
-          /* malformed */
+
+          if (msg.type === 'config.set' && agent) {
+            try {
+              const narEngine = agent.engines.get('nar') as { nar?: { setConfig: (u: Record<string, unknown>) => void } } | undefined;
+              if (narEngine?.nar?.setConfig) {
+                const updates = applyConfigField(msg.key, msg.value);
+                if (updates) {
+                  narEngine.nar.setConfig(updates);
+                  Object.assign(currentNarConfig, updates);
+                  const schema = buildConfigSchema(currentNarConfig);
+                  for (const client of wss.clients) {
+                    if (client.readyState === client.OPEN) {
+                      client.send(JSON.stringify({ type: 'config.schema', data: schema }));
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              console.error('[WS] Error applying config.set:', e);
+            }
+          }
+        } catch (e) {
+          console.error('[WS] Parse error:', e);
         }
       });
 
-      ws.on('close', () => projection.unmount(sender));
+      ws.on('close', () => {
+        console.log('[WS] Connection closed');
+        projection.unmount(sender);
+      });
     } else {
       testState.connected = true;
       if (testState.concepts.length > 0) {

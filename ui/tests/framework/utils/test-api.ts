@@ -115,7 +115,11 @@ export class TestApiClient {
       const api = (window as Record<string, unknown>).__testApi as
         | Record<string, unknown>
         | undefined;
-      return String(api?.store?.getState?.(p) ?? '');
-    });
+      const val = api?.store?.getState?.(p);
+      // Use JSON.stringify for objects/arrays, String for primitives, '' for null/undefined
+      if (val === null || val === undefined) return '';
+      if (typeof val === 'object') return JSON.stringify(val);
+      return String(val);
+    }, path);
   }
 }

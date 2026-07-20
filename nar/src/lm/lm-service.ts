@@ -1,11 +1,10 @@
 import type {
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import { type LanguageModel, generateObject, generateText, streamText, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
@@ -305,29 +304,30 @@ class MockLMServiceImpl {
 
   getModel(_task: LMTask): LanguageModel | undefined {
     return {
-      specificationVersion: 'v2',
+      specificationVersion: 'v3',
       provider: this._provider,
       modelId: this._model,
       supportedUrls: {},
       doGenerate: async (options: any) => {
-        const key = extractLastUserMessage(options.messages || options.prompt || []);
+        const key = extractLastUserMessage(options.prompt || []);
         const text = this._generateTextFn ? await this._generateTextFn(key) : 'Mock response';
         return {
           content: [{ type: 'text', text }],
-          finishReason: 'stop',
+          finishReason: { unified: 'stop' },
           usage: { inputTokens: 0, outputTokens: text.length, totalTokens: text.length },
-          warnings: [],
         };
       },
       doStream: async (options: any) => {
-        const key = extractLastUserMessage(options.messages || options.prompt || []);
+        const key = extractLastUserMessage(options.prompt || []);
         const text = this._generateTextFn ? await this._generateTextFn(key) : 'Mock response';
         const stream = new ReadableStream({
           start(controller) {
+            controller.enqueue({ type: 'text-start', id: '0' });
             controller.enqueue({ type: 'text-delta', id: '0', delta: text });
+            controller.enqueue({ type: 'text-end', id: '0' });
             controller.enqueue({
               type: 'finish',
-              finishReason: 'stop',
+              finishReason: { unified: 'stop' },
               usage: { inputTokens: 0, outputTokens: text.length, totalTokens: text.length },
             });
             controller.close();
@@ -390,17 +390,16 @@ class MockLMServiceImpl {
 
 export function createMockLanguageModel(
   generateTextFn?: (prompt: string) => string | Promise<string>
-): LanguageModelV2 {
+): LanguageModelV3 {
   return {
-    specificationVersion: 'v2',
+    specificationVersion: 'v3',
     provider: 'mock',
     modelId: 'mock',
     supportedUrls: {},
-    async doGenerate(options: LanguageModelV2CallOptions): Promise<{
-      content: LanguageModelV2Content[];
-      finishReason: LanguageModelV2FinishReason;
-      usage: LanguageModelV2Usage;
-      warnings: LanguageModelV2CallWarning[];
+    async doGenerate(options: LanguageModelV3CallOptions): Promise<{
+      content: LanguageModelV3Content[];
+      finishReason: LanguageModelV3FinishReason;
+      usage: LanguageModelV3Usage;
     }> {
       const key = extractTextFromPrompt(options.prompt);
       let responseText = generateTextFn
@@ -417,29 +416,30 @@ export function createMockLanguageModel(
 
       return {
         content: [{ type: 'text', text: responseText }],
-        finishReason: 'stop',
+        finishReason: { unified: 'stop' },
         usage: {
           inputTokens: 0,
           outputTokens: responseText.length,
           totalTokens: responseText.length,
         },
-        warnings: [],
       };
     },
-    async doStream(options: LanguageModelV2CallOptions): Promise<{
-      stream: ReadableStream<LanguageModelV2StreamPart>;
+    async doStream(options: LanguageModelV3CallOptions): Promise<{
+      stream: ReadableStream<LanguageModelV3StreamPart>;
     }> {
       const key = extractTextFromPrompt(options.prompt);
       const responseText = generateTextFn
         ? await generateTextFn(key)
         : `Mock response: ${key.slice(0, 50)}`;
 
-      const stream = new ReadableStream<LanguageModelV2StreamPart>({
+      const stream = new ReadableStream<LanguageModelV3StreamPart>({
         start(controller) {
+          controller.enqueue({ type: 'text-start', id: '0' });
           controller.enqueue({ type: 'text-delta', id: '0', delta: responseText });
+          controller.enqueue({ type: 'text-end', id: '0' });
           controller.enqueue({
             type: 'finish',
-            finishReason: 'stop',
+            finishReason: { unified: 'stop' },
             usage: {
               inputTokens: 0,
               outputTokens: responseText.length,
@@ -454,7 +454,7 @@ export function createMockLanguageModel(
   };
 }
 
-function extractTextFromPrompt(prompt: LanguageModelV2CallOptions['prompt']): string {
+function extractTextFromPrompt(prompt: LanguageModelV3CallOptions['prompt']): string {
   return extractLastUserMessage(prompt ?? []);
 }
 

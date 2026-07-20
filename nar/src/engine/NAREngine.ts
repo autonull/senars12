@@ -8,16 +8,22 @@ import type {
 import { BaseEngine } from '@senars/core/engine/base';
 import { NAR } from '../nar.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
+import type { CognitiveEvent } from '@senars/core/cognitive-event';
+import { narEventToCognitive, MAPPED_NAR_EVENTS } from '../events/bridge.js';
+
+export type CognitiveEventEmitter = (event: CognitiveEvent) => void;
 
 export class NAREngine extends BaseEngine {
   readonly id: EngineId = 'nar';
   readonly provides = new Set(['reasoning', 'query', 'belief-maintenance']);
 
   #nar: NAR;
+  #emitCognitive?: CognitiveEventEmitter;
 
-  constructor(nar?: NAR) {
+  constructor(nar?: NAR, emitCognitive?: CognitiveEventEmitter) {
     super();
     this.#nar = nar ?? new NAR(DEFAULT_CONFIG);
+    this.#emitCognitive = emitCognitive;
   }
 
   get nar(): NAR {
@@ -29,6 +35,27 @@ export class NAREngine extends BaseEngine {
       await this.#nar.initialize();
       await this.#nar.start();
     }
+
+    if (this.#emitCognitive) {
+      this.#wireEventBridge();
+    }
+  }
+
+  #wireEventBridge(): void {
+    const eventBus = this.#nar.getEventBus();
+    const systemEventBus = this.#nar.getSystemEventBus();
+    const emitter = this.#emitCognitive;
+
+    for (const eventKey of MAPPED_NAR_EVENTS) {
+      const handler = (data: unknown) => {
+        const cognitive = narEventToCognitive(eventKey, data, 'nar');
+        if (cognitive && emitter) {
+          emitter(cognitive);
+        }
+      };
+      eventBus.on(eventKey as string, handler);
+      systemEventBus.on(eventKey as string, handler);
+    }
   }
 
   protected async doShutdown(): Promise<void> {
@@ -39,13 +66,17 @@ export class NAREngine extends BaseEngine {
 
   async reason(stimulus: CognitiveStimulus, context: Context): Promise<Derivation[]> {
     const text = stimulus.text;
+    console.error('[NAREngine.reason] Input:', JSON.stringify(text), 'isNarsese:', this.#isNarsese(text));
     if (!this.#isNarsese(text)) return [];
 
+    console.log('[NAREngine.reason] Processing Narsese...');
+    // Strip tense/truth markers before parsing: "statement. :|:" or "statement. :!:"
+    const clean = text.replace(/\.\s*:\|:\s*$/, '.').replace(/\.\s*:\!:\s*$/, '.');
     try {
       const timestamp = Date.now();
 
-      if (text.endsWith('?') || text.endsWith('？')) {
-        await this.#nar.question(text);
+      if (clean.endsWith('?') || clean.endsWith('？')) {
+        await this.#nar.question(clean);
         await this.#nar.run(5);
         const beliefs = this.#nar.getBeliefs();
         return beliefs.slice(-5).map((b) => ({
@@ -55,21 +86,24 @@ export class NAREngine extends BaseEngine {
         }));
       }
 
-      if (text.endsWith('!')) {
-        await this.#nar.goal(text);
+      if (clean.endsWith('!')) {
+        await this.#nar.goal(clean);
         await this.#nar.run(3);
-        return [{ term: text, timestamp }];
+        return [{ term: clean, timestamp }];
       }
 
-      await this.#nar.believe(text);
+      await this.#nar.believe(clean);
       await this.#nar.run(3);
       const beliefs = this.#nar.getBeliefs();
-      return beliefs.slice(-3).map((b) => ({
+      const derivations = beliefs.slice(-3).map((b) => ({
         term: b.term.toString(),
         truth: b.truth ? { frequency: b.truth.f, confidence: b.truth.c } : undefined,
         timestamp,
       }));
-    } catch {
+      console.log('[NAREngine.reason] Returning derivations:', derivations.map(d => d.term));
+      return derivations;
+    } catch (e) {
+      console.error('[NAREngine.reason] Error:', e);
       return [];
     }
   }

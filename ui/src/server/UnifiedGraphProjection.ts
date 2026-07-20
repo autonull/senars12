@@ -3,12 +3,13 @@ import { builtinLensSpecs } from '@senars/core';
 
 export type GraphDelta = {
   nodes: GraphNodeData[];
-  edges: Array<{ source: string; target: string; type: string }>;
+  edges: Array<{ source: string; target: string; type: string; weight?: number; directed?: boolean }>;
 };
 
 export class UnifiedGraphProjection {
   readonly #senders = new Set<(msg: IncomingFromServer) => void>();
   #nodes = new Map<string, GraphNodeData>();
+  #edges = new Map<string, { source: string; target: string; type: string; weight?: number; directed?: boolean }>();
   #currentLens = 'belief';
   #focusTerm = '';
 
@@ -26,6 +27,11 @@ export class UnifiedGraphProjection {
       this.#nodes.set(node.id ?? node.term ?? `node-${Date.now()}`, node);
     }
 
+    for (const edge of delta.edges) {
+      const edgeId = `${edge.source}->${edge.target}:${edge.type}`;
+      this.#edges.set(edgeId, edge);
+    }
+
     const ops: GraphOp[] = [];
     for (const node of delta.nodes) {
       ops.push({
@@ -35,6 +41,16 @@ export class UnifiedGraphProjection {
       });
     }
 
+    for (const edge of delta.edges) {
+      ops.push({
+        action: 'add_edge',
+        source: edge.source,
+        target: edge.target,
+        data: { weight: edge.weight ?? 1, type: edge.type, directed: edge.directed ?? true },
+      });
+    }
+
+    console.log('[Projection.applyDelta] Emitting cognitive.delta with', ops.length, 'ops');
     this.#emitAll({
       type: 'cognitive.delta',
       seqId: Date.now(),
@@ -65,13 +81,24 @@ export class UnifiedGraphProjection {
       })),
     });
 
+    const ops: GraphOp[] = [];
+    for (const [id, data] of this.#nodes) {
+      if (this.#focusTerm && id !== this.#focusTerm) continue;
+      ops.push({ action: 'add_node', id, data });
+    }
+    for (const [, edge] of this.#edges) {
+      ops.push({
+        action: 'add_edge',
+        source: edge.source,
+        target: edge.target,
+        data: { weight: edge.weight ?? 1, type: edge.type, directed: edge.directed ?? true },
+      });
+    }
     this.#emitAll({
       type: 'cognitive.delta',
       seqId: 0,
       lens: this.#currentLens,
-      ops: [...this.#nodes.entries()]
-        .filter(([id]) => !this.#focusTerm || id === this.#focusTerm)
-        .map(([id, data]) => ({ action: 'add_node' as const, id, data })),
+      ops,
     });
   }
 

@@ -1,64 +1,66 @@
 import type { EnhancedMCPAdapter } from './mcp';
+import type { SeNARSMCPServer } from './mcp-server';
 
-export function registerMCPPrompts(adapter: EnhancedMCPAdapter): void {
-  adapter.registerCapability({
-    name: 'reasoning_chain',
-    description: 'Guide for building NAL inference chains',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        premise: { type: 'string', description: 'Starting premise' },
-        target: { type: 'string', description: 'Target conclusion' },
-      },
-    } as any,
-  });
+export function registerMCPPrompts(
+  adapter: EnhancedMCPAdapter,
+  server?: SeNARSMCPServer
+): void {
+  const prompts = [
+    {
+      name: 'reasoning_chain',
+      description: 'Guide for building NAL inference chains',
+      arguments: [
+        { name: 'premise', description: 'Starting premise', required: true },
+        { name: 'target', description: 'Target conclusion', required: true },
+      ],
+    },
+    {
+      name: 'grounded_fact',
+      description: 'Template for adding externally verified facts',
+      arguments: [
+        { name: 'fact', description: 'Fact to add', required: true },
+        { name: 'source', description: 'Source of the fact' },
+        { name: 'confidence', description: 'Confidence level' },
+      ],
+    },
+    {
+      name: 'multi_cycle_task',
+      description: 'Template for multi-turn reasoning tasks',
+      arguments: [
+        { name: 'task', description: 'Task description', required: true },
+        { name: 'maxCycles', description: 'Maximum reasoning cycles' },
+      ],
+    },
+    {
+      name: 'experiment_design',
+      description: 'Template for designing parameter sweeps',
+      arguments: [
+        { name: 'type', description: 'Experiment type', required: true },
+        { name: 'parameters', description: 'Parameter ranges' },
+      ],
+    },
+    {
+      name: 'benchmark_analysis',
+      description: 'Template for analyzing benchmark results',
+      arguments: [
+        { name: 'suite', description: 'Benchmark suite ID', required: true },
+        { name: 'compareWith', description: 'Previous run ID to compare' },
+      ],
+    },
+  ];
 
-  adapter.registerCapability({
-    name: 'grounded_fact',
-    description: 'Template for adding externally verified facts',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        fact: { type: 'string', description: 'Fact to add' },
-        source: { type: 'string', description: 'Source of the fact' },
-        confidence: { type: 'number', description: 'Confidence level' },
+  for (const p of prompts) {
+    adapter.registerCapability({
+      name: p.name,
+      description: p.description,
+      inputSchema: {
+        type: 'object',
+        properties: Object.fromEntries(
+          (p.arguments ?? []).map((a) => [a.name, { type: 'string', description: a.description }])
+        ),
+        required: (p.arguments ?? []).filter((a) => a.required).map((a) => a.name),
       },
-    } as any,
-  });
-
-  adapter.registerCapability({
-    name: 'multi_cycle_task',
-    description: 'Template for multi-turn reasoning tasks',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        task: { type: 'string', description: 'Task description' },
-        maxCycles: { type: 'number', description: 'Maximum reasoning cycles' },
-      },
-    } as any,
-  });
-
-  adapter.registerCapability({
-    name: 'experiment_design',
-    description: 'Template for designing parameter sweeps',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        type: { type: 'string', description: 'Experiment type' },
-        parameters: { type: 'object', description: 'Parameter ranges' },
-      },
-    } as any,
-  });
-
-  adapter.registerCapability({
-    name: 'benchmark_analysis',
-    description: 'Template for analyzing benchmark results',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        suite: { type: 'string', description: 'Benchmark suite ID' },
-        compareWith: { type: 'string', description: 'Previous run ID to compare' },
-      },
-    } as any,
-  });
+    });
+    if (server) server.registerPrompt(p);
+  }
 }

@@ -4,7 +4,8 @@ export class TestControl {
   private readonly baseUrl: string;
 
   constructor(private context: APIRequestContext) {
-    this.baseUrl = process.env.TEST_SERVER_URL || 'http://localhost:3000';
+    // Use TEST_URL (set by Playwright config's baseURL) or fall back to the webServer port
+    this.baseUrl = process.env.TEST_SERVER_URL || process.env.TEST_URL || 'http://localhost:3456';
   }
 
   async seedGraph(concepts: Array<{ term: string; f: number; c: number }>) {

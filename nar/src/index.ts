@@ -67,6 +67,8 @@ export {
   sharesSymbol,
   mentionsSymbol,
 } from './terms/index.js';
+/** Term-to-graph-edge extraction. @public */
+export { parseTermToEdges, type TermEdge } from './terms/index.js';
 
 // Rules
 /** Rule type definitions. @public */

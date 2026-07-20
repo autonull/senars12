@@ -60,12 +60,16 @@ const reason = async (
   stimulus: CognitiveStimulus,
   context: Context
 ): Promise<Derivation[]> => {
+  console.log('[phase:reason] Called with stimulus:', stimulus.text);
   const derivations: Derivation[] = [];
   for (const engine of host.engines.values()) {
+    console.log('[phase:reason] Checking engine:', engine.id);
     try {
       const result = await engine.reason(stimulus, context);
+      console.log('[phase:reason] Engine', engine.id, 'returned:', result);
       derivations.push(...result);
-    } catch {
+    } catch (e) {
+      console.error('[phase:reason] Engine', engine.id, 'error:', e);
       // engine unavailable, continue
     }
   }

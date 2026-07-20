@@ -1,6 +1,7 @@
 import type { Agent } from '@senars/nar/agent';
 import type { NAR } from '../../nar/src';
 import type { EnhancedMCPAdapter } from './mcp';
+import type { SeNARSMCPServer } from './mcp-server';
 
 export interface MCPResourceContext {
   nar: NAR;
@@ -9,116 +10,48 @@ export interface MCPResourceContext {
 
 export function registerMCPResources(
   adapter: EnhancedMCPAdapter,
-  _context: MCPResourceContext
+  _context: MCPResourceContext,
+  server?: SeNARSMCPServer
 ): void {
-  adapter.registerCapability({
-    name: 'nar://beliefs',
-    description: 'All stored beliefs with truth values',
-    inputSchema: { type: 'object', properties: {} },
-  });
+  const resources = [
+    { uri: 'nar://beliefs', name: 'Beliefs', description: 'All stored beliefs with truth values' },
+    { uri: 'nar://concepts', name: 'Concepts', description: 'Active concepts with attention priorities' },
+    { uri: 'nar://attention', name: 'Attention', description: 'Current attention snapshot' },
+    { uri: 'nar://state', name: 'State', description: 'NAR state summary (beliefs/goals/questions/attention/drives)' },
+    { uri: 'nar://episodes', name: 'Episodes', description: 'Recent episodic memory entries' },
+    { uri: 'nar://benchmarks', name: 'Benchmarks', description: 'Benchmark history and scores' },
+    { uri: 'nar://config', name: 'Config', description: 'Current configuration' },
+    { uri: 'nar://tools', name: 'Tools', description: 'Available tools with schemas' },
+    { uri: 'sessions://list', name: 'Sessions', description: 'List all available sessions' },
+    { uri: 'knowledge://list', name: 'Knowledge', description: 'List all knowledge entries' },
+    { uri: 'lm-rules://stats', name: 'LM Rule Stats', description: 'LM Rule statistics (calls, successes, failures, circuit state)' },
+    { uri: 'lm-rules://execution-log', name: 'LM Rule Log', description: 'Recent LM Rule execution log' },
+    { uri: 'rlfp://state', name: 'RLFP State', description: 'RLFP learner state (policy, exploration rate, rewards)' },
+    { uri: 'self-reasoning://quality', name: 'Self-Reasoning Quality', description: 'Self-reasoning quality metrics' },
+  ];
 
-  adapter.registerCapability({
-    name: 'nar://concepts',
-    description: 'Active concepts with attention priorities',
-    inputSchema: { type: 'object', properties: {} },
-  });
+  for (const r of resources) {
+    adapter.registerCapability({
+      name: r.uri,
+      description: r.description,
+      inputSchema: { type: 'object', properties: {} },
+    });
+    if (server) server.registerResource(r);
+  }
 
-  adapter.registerCapability({
-    name: 'nar://attention',
-    description: 'Current attention snapshot',
-    inputSchema: { type: 'object', properties: {} },
-  });
-
-  adapter.registerCapability({
-    name: 'nar://state',
-    description: 'NAR state summary (beliefs/goals/questions/attention/drives)',
-    inputSchema: { type: 'object', properties: {} },
-  });
-
-  adapter.registerCapability({
-    name: 'nar://episodes',
-    description: 'Recent episodic memory entries',
-    inputSchema: { type: 'object', properties: {} },
-  });
-
-  adapter.registerCapability({
-    name: 'nar://benchmarks',
-    description: 'Benchmark history and scores',
-    inputSchema: { type: 'object', properties: {} },
-  });
-
-  adapter.registerCapability({
-    name: 'nar://config',
-    description: 'Current configuration',
-    inputSchema: { type: 'object', properties: {} },
-  });
-
-  adapter.registerCapability({
-    name: 'nar://tools',
-    description: 'Available tools with schemas',
-    inputSchema: { type: 'object', properties: {} },
-  });
-
-  // Session resources
-  adapter.registerCapability({
-    name: 'sessions://list',
-    description: 'List all available sessions',
-    inputSchema: { type: 'object', properties: {} },
-  });
-
-  adapter.registerCapability({
-    name: 'sessions://{key}',
-    description: 'Get session history by key',
-    inputSchema: {
-      type: 'object',
-      properties: { key: { type: 'string' } },
-      required: ['key'],
-    },
-  });
-
-  // Knowledge resources
-  adapter.registerCapability({
-    name: 'knowledge://list',
-    description: 'List all knowledge entries',
-    inputSchema: { type: 'object', properties: {} },
-  });
-
-  adapter.registerCapability({
-    name: 'knowledge://{key}',
-    description: 'Get knowledge entry by key',
-    inputSchema: {
-      type: 'object',
-      properties: { key: { type: 'string' } },
-      required: ['key'],
-    },
-  });
-
-  // LM Rules resources
-  adapter.registerCapability({
-    name: 'lm-rules://stats',
-    description: 'LM Rule statistics (calls, successes, failures, circuit state)',
-    inputSchema: { type: 'object', properties: {} },
-  });
-
-  adapter.registerCapability({
-    name: 'lm-rules://execution-log',
-    description: 'Recent LM Rule execution log',
-    inputSchema: { type: 'object', properties: {} },
-  });
-
-  // RLFP resources
-  adapter.registerCapability({
-    name: 'rlfp://state',
-    description: 'RLFP learner state (policy, exploration rate, rewards)',
-    inputSchema: { type: 'object', properties: {} },
-  });
-
-  // Self-reasoning resources
-  adapter.registerCapability({
-    name: 'self-reasoning://quality',
-    description: 'Self-reasoning quality metrics (overall, coherence, relevance, completeness)',
-    inputSchema: { type: 'object', properties: {} },
-  });
+  // Parameterized resource templates
+  if (server) {
+    server.registerResource({
+      uri: 'sessions://{key}',
+      name: 'Session by Key',
+      description: 'Get session history by key',
+    });
+    server.registerResource({
+      uri: 'knowledge://{key}',
+      name: 'Knowledge by Key',
+      description: 'Get knowledge entry by key',
+    });
+  }
 }
 
 export function getResourceContent(
@@ -128,10 +61,8 @@ export function getResourceContent(
 ): string {
   const { nar, agent } = context;
 
-  // Handle parameterized resources
   if (uri.startsWith('sessions://') && uri !== 'sessions://list') {
     const key = uri.replace('sessions://', '');
-    // Sessions would need to be accessed via session manager
     return `Session: ${key}`;
   }
 
@@ -183,7 +114,6 @@ export function getResourceContent(
       );
     }
     case 'sessions://list': {
-      // Sessions would be available via SessionManager
       return JSON.stringify([], null, 2);
     }
     case 'knowledge://list': {

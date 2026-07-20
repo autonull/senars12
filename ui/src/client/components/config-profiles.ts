@@ -1,6 +1,6 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { $config, BaseComponent } from '../core/index.js';
+import { $config, BaseComponent, send } from '../core/index.js';
 
 export interface ConfigProfile {
   name: string;
@@ -17,16 +17,16 @@ const BUILTIN_PROFILES: ConfigProfile[] = [
   {
     name: 'Research',
     description: 'High derivation throughput, low decay',
-    values: { 'nars.derivationBudget': 200, 'nars.decayRate': 0.5, 'nars.forgetThreshold': 0.05 },
+    values: { 'nars.maxDerivationsPerStep': 2000, 'nars.activationDecayRate': 0.005 },
     builtin: true,
   },
   {
     name: 'Creative',
-    description: 'High novelty, low confidence threshold',
+    description: 'High novelty, deep reasoning',
     values: {
-      'llm.temperature': 0.9,
-      'nars.confidenceThreshold': 0.3,
-      'nars.derivationBudget': 150,
+      'nars.maxDerivationDepth': 20,
+      'nars.maxConcepts': 5000,
+      'nars.consolidationInterval': 50,
     },
     builtin: true,
   },
@@ -130,7 +130,10 @@ export class ConfigProfiles extends BaseComponent {
     const cfg = $config.get();
     const updated = { ...cfg };
     for (const [key, value] of Object.entries(profile.values)) {
-      if (updated[key]) updated[key] = { ...updated[key], value };
+      if (updated[key]) {
+        updated[key] = { ...updated[key], value };
+        send({ type: 'config.set', key, value });
+      }
     }
     $config.set(updated);
     this.dispatchEvent(

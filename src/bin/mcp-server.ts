@@ -8,6 +8,8 @@ import { createLogger } from '@senars/nar/logger';
 import { z } from 'zod';
 import { SeNARSMCPServer } from '../api/mcp-server.js';
 import { registerAgentAPI, registerNARToolsAsMCP } from '../api/mcp-tools.js';
+import { registerMCPResources, getResourceContent } from '../api/mcp-resources.js';
+import { registerMCPPrompts } from '../api/mcp-prompts.js';
 import { loadConfig } from '../config';
 import { createAgentFromEnv } from './lib/lifecycle.js';
 
@@ -28,6 +30,16 @@ async function initialize() {
 
   registerNARToolsAsMCP(nar, server.getAdapter());
   registerAgentAPI(agent, server.getAdapter());
+
+  // Wire resource and prompt registrations to the MCP server
+  const context = { nar, agent };
+  registerMCPResources(server.getAdapter(), context, server);
+  registerMCPPrompts(server.getAdapter(), server);
+
+  // Set the resource content resolver to use the existing getResourceContent function
+  server.setResourceContentResolver((uri: string) =>
+    getResourceContent(server.getAdapter(), context, uri)
+  );
 
   const registry = (server.getAdapter() as Record<string, unknown>).registry;
   registry.register('get_beliefs', {

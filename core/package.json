@@ -129,15 +129,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "ai": "^7.0.2",
+    "@senars/util": "workspace:*",
+    "ai": "^7.0.31",
     "better-sqlite3": "^12.11.1",
     "ulid": "^3.0.2",
-    "zod": "^4.4.3",
-    "@senars/util": "workspace:*"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@senars/nar": "workspace:*",
     "@senars/metta": "workspace:*",
+    "@senars/nar": "workspace:*",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.19.19"
   }

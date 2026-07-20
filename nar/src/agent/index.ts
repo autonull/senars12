@@ -5,6 +5,7 @@ import { createCortexFromLM } from '@senars/core/cortex';
 import { isNarsese } from '@senars/core/helpers';
 import { MettaEngine } from '@senars/metta/agent';
 import type { LMService } from '@senars/nar';
+import type { PersistableSessionManager } from '@senars/core/memory';
 import type { EpisodicMemory } from '@senars/nar';
 import type { NAR } from '@senars/nar';
 import { NAREngine } from '../engine/NAREngine.js';
@@ -18,6 +19,7 @@ export interface CreateAgentConfig {
   externalTools?: Record<string, unknown>;
   throttle?: number;
   promptBuilder?: import('@senars/core').PromptBuilder;
+  sessionManager?: PersistableSessionManager;
 }
 
 interface NarAgentApi {
@@ -52,9 +54,10 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     commandParser: (text: string) => new MettaCommandParser().parse(text),
     builtinTools: true,
     episodicMemory: config.episodicMemory,
+    sessionManager: config.sessionManager,
   });
 
-  const narEngine = new NAREngine(config.nar);
+  const narEngine = new NAREngine(config.nar, agent.emitCognitive.bind(agent));
   const mettaEngine = new MettaEngine();
   agent.registerEngine('nar', narEngine);
   agent.registerEngine('metta', mettaEngine);
@@ -78,7 +81,9 @@ function attachNarApi(agent: ExtendedAgent, config: CreateAgentConfig, narEngine
     const trimmed = text.trim();
     if (!trimmed) return '';
 
+    console.log('[nar-agent] chatOverride called with:', trimmed, 'isNarsese:', isNarsese(trimmed));
     if (isNarsese(trimmed) && narEngine) {
+      console.log('[nar-agent] Processing as Narsese');
       let result = '';
       if (trimmed.endsWith('?') || trimmed.endsWith('？')) {
         await narEngine.nar.question(trimmed);
@@ -95,10 +100,12 @@ function attachNarApi(agent: ExtendedAgent, config: CreateAgentConfig, narEngine
         const last = beliefs[beliefs.length - 1];
         result = last ? `+ ${last.term}.` : `+ ${trimmed}`;
       }
+      console.log('[nar-agent] Result:', result);
       yield { kind: 'text-delta', text: result };
       return result;
     }
 
+    console.log('[nar-agent] Falling back to originalChat');
     const originalResult = yield* originalChat(trimmed, opts);
     return originalResult;
   };

@@ -102,7 +102,7 @@ export class NAR extends BaseComponent {
 
     super({ logger, metrics, eventBus });
 
-    this.config = this.validateConfig(config);
+    this.config = { ...this.validateConfig(config) };
     this.memory = new Memory(this.config, { attentionModel: this.createAttentionModel(config) });
     this.processor = new RuleProcessor();
     this.processor.setConfig({ memory: this.memory, nar: this });

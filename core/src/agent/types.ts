@@ -11,7 +11,7 @@ import type { LLMCortex } from '../cortex/LLMCortex.js';
 import type { Engine } from '../engine/Engine.js';
 import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
 import type { EventLog } from '../eventlog/EventLog.js';
-import type { ConversationSession, SessionManager } from '../memory/types.js';
+import type { ConversationSession, PersistableSessionManager, SessionManager } from '../memory/types.js';
 import type { AgentCapabilities } from '../protocol/index.js';
 
 export type { CognitiveStimulus, Context, Derivation, ToolResult };
@@ -23,6 +23,7 @@ export interface AgentOptions {
   commandParser?: (text: string) => ParsedCommand[];
   builtinTools?: boolean;
   episodicMemory?: EpisodicMemory;
+  sessionManager?: PersistableSessionManager;
 }
 
 export interface ParsedCommand {

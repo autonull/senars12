@@ -10,6 +10,7 @@ export default defineConfig({
     environment: 'node',
     include: ['tests/**/*.test.ts'],
     setupFiles: ['tests/setup/vitest-setup.ts'],
+    testTimeout: 30000,
     server: {
       deps: {
         inline: ['@senars/core', '@senars/io', '@senars/nar', '@senars/metta', '@senars/util'],

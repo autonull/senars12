@@ -83,3 +83,6 @@ export { extractSymbols, calculateSimilarity } from './utils.js';
 
 // Validation
 export { isTautology, isInvalidTaskTerm, validateTaskTerm } from './validation.js';
+
+// Term edges
+export { parseTermToEdges, type TermEdge } from './term-edges.js';

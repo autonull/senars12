@@ -48,7 +48,7 @@ class Atom<T> implements Writable<T> {
   }
 }
 
-const atom = <T>(initial: T) => new Atom(initial);
+export const atom = <T>(initial: T) => new Atom(initial);
 
 export interface TelemetryData {
   reasoning_hz: number[];

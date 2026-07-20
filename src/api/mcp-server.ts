@@ -19,6 +19,23 @@ import { errMsg, toError } from '../../nar/src/utils';
 import type { SchemaTransformer } from './mcp';
 import { type CapabilityDescriptor, EnhancedMCPAdapter, getSchemaTransformer } from './mcp';
 
+export interface MCPResource {
+  uri: string;
+  name: string;
+  description?: string;
+  mimeType?: string;
+}
+
+export interface MCPPrompt {
+  name: string;
+  description?: string;
+  arguments?: Array<{
+    name: string;
+    description?: string;
+    required?: boolean;
+  }>;
+}
+
 /**
  * MCP Server Configuration
  */
@@ -40,6 +57,9 @@ export class SeNARSMCPServer {
   private logger: Logger;
   private schemaTransformer: SchemaTransformer;
   private isRunning = false;
+  private resources = new Map<string, MCPResource>();
+  private prompts = new Map<string, MCPPrompt>();
+  private resourceContentResolver: ((uri: string) => string) | null = null;
 
   constructor(config: MCPServerConfig = {}) {
     this.adapter = new EnhancedMCPAdapter();
@@ -53,7 +73,6 @@ export class SeNARSMCPServer {
       transport: config.transport ?? 'stdio',
     };
 
-    // Initialize MCP server with capabilities
     const capabilities: ServerCapabilities = {
       tools: {
         listChanged: true,
@@ -78,8 +97,19 @@ export class SeNARSMCPServer {
       }
     );
 
-    // Register handlers
     this.registerHandlers();
+  }
+
+  registerResource(resource: MCPResource): void {
+    this.resources.set(resource.uri, resource);
+  }
+
+  registerPrompt(prompt: MCPPrompt): void {
+    this.prompts.set(prompt.name, prompt);
+  }
+
+  setResourceContentResolver(fn: (uri: string) => string): void {
+    this.resourceContentResolver = fn;
   }
 
   /**
@@ -95,34 +125,32 @@ export class SeNARSMCPServer {
     this.logger.info(`Transport: ${this.config.transport}`);
 
     try {
-      // Select transport
-      let transport;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let transport: any;
 
       switch (this.config.transport) {
         case 'stdio':
           transport = new StdioServerTransport();
           break;
         case 'sse':
-          // SSE transport would be implemented here
           this.logger.warn('SSE transport not yet implemented');
           return;
         case 'http':
-          // HTTP transport would be implemented here
           this.logger.warn('HTTP transport not yet implemented');
           return;
         default:
           throw new Error(`Unknown transport: ${this.config.transport}`);
       }
 
-      // Connect server to transport
       await this.server.connect(transport);
 
       this.isRunning = true;
       this.logger.info('MCP Server started successfully');
 
-      // Log available tools
       const tools = this.adapter.getTools();
       this.logger.info(`Available tools: ${tools.map((t) => t.name).join(', ') || 'none'}`);
+      this.logger.info(`Available resources: ${this.resources.size}`);
+      this.logger.info(`Available prompts: ${this.prompts.size}`);
     } catch (error) {
       this.logger.error('Failed to start MCP Server', toError(error));
       throw error;
@@ -184,7 +212,6 @@ export class SeNARSMCPServer {
    * Register MCP protocol handlers
    */
   private registerHandlers(): void {
-    // Tool listing
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
       const tools = this.adapter.getTools().map((tool) => ({
         name: tool.name,
@@ -195,7 +222,6 @@ export class SeNARSMCPServer {
       return { tools };
     });
 
-    // Tool execution
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
@@ -234,32 +260,71 @@ export class SeNARSMCPServer {
       }
     });
 
-    // Resource listing (placeholder)
     this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
-      return {
-        resources: [],
-      };
+      const resources = Array.from(this.resources.values()).map((r) => ({
+        uri: r.uri,
+        name: r.name,
+        description: r.description,
+        mimeType: r.mimeType,
+      }));
+
+      return { resources };
     });
 
-    // Resource retrieval (placeholder)
-    this.server.setRequestHandler(ReadResourceRequestSchema, async (_request) => {
+    this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      const uri = request.params.uri;
+
+      if (this.resourceContentResolver) {
+        const text = this.resourceContentResolver(uri);
+        const resource = this.resources.get(uri);
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: resource?.mimeType ?? 'application/json',
+              text,
+            },
+          ],
+        };
+      }
+
       return {
         contents: [],
       };
     });
 
-    // Prompt listing (placeholder)
     this.server.setRequestHandler(ListPromptsRequestSchema, async () => {
-      return {
-        prompts: [],
-      };
+      const prompts = Array.from(this.prompts.values()).map((p) => ({
+        name: p.name,
+        description: p.description,
+        arguments: p.arguments,
+      }));
+
+      return { prompts };
     });
 
-    // Prompt retrieval (placeholder)
-    this.server.setRequestHandler(GetPromptRequestSchema, async (_request) => {
+    this.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+      const name = request.params.name;
+      const prompt = this.prompts.get(name);
+
+      if (!prompt) {
+        return {
+          description: `Prompt '${name}' not found`,
+          messages: [],
+        };
+      }
+
       return {
-        description: 'No prompts configured',
-        messages: [],
+        description: prompt.description ?? `Prompt: ${name}`,
+        messages: [
+          {
+            role: 'user' as const,
+            content: {
+              type: 'text' as const,
+              text: `Execute prompt: ${name}`,
+            },
+          },
+        ],
       };
     });
   }

@@ -32,6 +32,7 @@ export type {
   MemoryEntry,
   MemoryQuery,
   Episode,
+  PersistableSessionManager,
   JsonlSessionManagerConfig,
   AgentToolDeps,
 } from './memory/types.js';

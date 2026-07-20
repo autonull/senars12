@@ -1,12 +1,12 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { $connectionState, BaseComponent } from '../core/index.js';
+import { $reconnectAttempt } from '../core/ws-client.js';
 import './primitives/banner.js';
 
 const MESSAGES: Record<string, string> = {
   connecting: 'Connecting to SeNARS…',
-  reconnecting: 'Connection lost. Reconnecting…',
-  disconnected: 'Offline. Messages will be queued.',
+  disconnected: 'Connection lost. Messages are queued.',
   connected: '',
 };
 
@@ -22,28 +22,14 @@ export class ConnectionBanner extends BaseComponent {
     .retry-btn:hover { opacity: 0.8; }
   `;
   @state() private dismissed = false;
-  @state() private reconnectCountdown = 0;
-  private countdownInterval: number | undefined;
+  @state() private reconnectAttempt = 0;
 
   override connectedCallback() {
     super.connectedCallback();
     this.watch($connectionState);
-    this.watchWith($connectionState, (state) => {
-      if (state === 'reconnecting') {
-        this.reconnectCountdown = 3;
-        this.clearCountdown();
-        this.countdownInterval = window.setInterval(() => {
-          this.reconnectCountdown = Math.max(0, this.reconnectCountdown - 1);
-        }, 1000);
-      } else {
-        this.clearCountdown();
-      }
+    this.watchWith($reconnectAttempt, (n) => {
+      this.reconnectAttempt = n;
     });
-  }
-
-  override disconnectedCallback() {
-    super.disconnectedCallback();
-    this.clearCountdown();
   }
 
   override render() {
@@ -52,7 +38,7 @@ export class ConnectionBanner extends BaseComponent {
 
     const message =
       state === 'reconnecting'
-        ? `Connection lost. Reconnecting in ${this.reconnectCountdown}s…`
+        ? `Connection lost. Reconnecting (attempt ${this.reconnectAttempt})…`
         : MESSAGES[state];
 
     return html`
@@ -62,13 +48,6 @@ export class ConnectionBanner extends BaseComponent {
         ${state === 'disconnected' ? html`<button class="retry-btn" @click=${this.handleRetry}>Retry</button>` : ''}
       </s-banner>
     `;
-  }
-
-  private clearCountdown() {
-    if (this.countdownInterval !== undefined) {
-      clearInterval(this.countdownInterval);
-      this.countdownInterval = undefined;
-    }
   }
 
   private handleDismiss() {

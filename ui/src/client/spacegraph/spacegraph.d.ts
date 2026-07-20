@@ -1,5 +1,42 @@
 // Ambient type declarations for SpaceGraphJS (source-level import via Vite alias)
 declare module 'spacegraphjs' {
+  export interface SpaceGraphNode {
+    id: string;
+    object: { userData?: Record<string, unknown>; visible?: boolean };
+    position: [number, number, number];
+    data: Record<string, unknown>;
+  }
+
+  export interface SpaceGraphEdge {
+    id: string;
+    object: any;
+    source: SpaceGraphNode;
+    target: SpaceGraphNode;
+    data: Record<string, unknown>;
+  }
+
+  export interface SpaceGraphCamera {
+    position: [number, number, number];
+    target: [number, number, number];
+  }
+
+  export interface SpaceGraphEvents {
+    on(event: 'node:added', listener: (data: { node: SpaceGraphNode }) => void): void;
+    on(event: 'node:updated', listener: (data: { node: SpaceGraphNode; changes: Record<string, unknown> }) => void): void;
+    on(event: 'node:removed', listener: (data: { id: string }) => void): void;
+    on(event: 'preRender', listener: () => void): void;
+    on(event: string, listener: (...args: any[]) => void): void;
+  }
+
+  export interface SpaceGraphRenderer {
+    camera: { position: { length(): number } };
+  }
+
+  export interface SpaceGraphCameraControls {
+    addEventListener(type: 'change', listener: () => void): void;
+    removeEventListener(type: 'change', listener: () => void): void;
+  }
+
   export class SpaceGraph {
     static instances: Set<SpaceGraph>;
     static create(
@@ -18,11 +55,11 @@ declare module 'spacegraphjs' {
 
     container: HTMLElement;
     options: any;
-    renderer: any;
+    renderer: SpaceGraphRenderer;
     graph: any;
     pluginManager: any;
-    cameraControls: any;
-    events: any;
+    cameraControls: SpaceGraphCameraControls;
+    events: SpaceGraphEvents;
     vision: any;
     poolManager: any;
     input: any;
@@ -36,8 +73,8 @@ declare module 'spacegraphjs' {
     update(spec: any): this;
     export(): any;
     import(data: any): this;
-    getNode(id: string): any;
-    getEdge(id: string): any;
+    getNode(id: string): SpaceGraphNode | undefined;
+    getEdge(id: string): SpaceGraphEdge | undefined;
     removeNode(id: string): boolean;
     removeEdge(id: string): boolean;
     clear(): void;
@@ -52,15 +89,16 @@ declare module 'spacegraphjs' {
     center(x: number, y: number, z?: number): this;
     resetCamera(): this;
     setCamera(position: [number, number, number], target?: [number, number, number]): this;
-    get camera(): { position: [number, number, number]; target: [number, number, number] };
+    get camera(): SpaceGraphCamera;
     get cameraPosition(): [number, number, number];
     get cameraTarget(): [number, number, number];
-    forNodes(callback: (node: any) => void): void;
-    forEdges(callback: (edge: any) => void): void;
+    forNodes(callback: (node: SpaceGraphNode) => void): void;
+    forEdges(callback: (edge: SpaceGraphEdge) => void): void;
     select(id: string): void;
     deselect(id: string): void;
     selectAll(): void;
     deselectAll(): void;
+    nodes: Array<{ id: string; data?: any; object?: any }>;
   }
 
   export class ForceLayout {

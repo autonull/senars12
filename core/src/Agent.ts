@@ -11,6 +11,7 @@ import type { AgentOptions } from './agent/types.js';
 import type { LLMCortex } from './cortex/LLMCortex.js';
 import type { Engine } from './engine/Engine.js';
 import type { CognitiveStimulus, Derivation } from './engine/Engine.js';
+import type { PersistableSessionManager } from './memory/types.js';
 import type { EventLog } from './eventlog/EventLog.js';
 import { InMemoryEventLog } from './eventlog/InMemoryEventLog.js';
 import { generateId } from './helpers.js';
@@ -42,6 +43,7 @@ export class Agent {
   readonly motor: ToolRegistry;
   readonly cortex?: LLMCortex;
   readonly episodicMemory?: EpisodicMemory;
+  readonly sessionManager?: PersistableSessionManager;
 
   #cognitiveListeners = new Set<(e: CognitiveEvent) => void>();
   #transports = new Map<string, Connection>();
@@ -62,6 +64,7 @@ export class Agent {
     this.motor = new ToolRegistry();
     this.cortex = opts.cortex;
     this.episodicMemory = opts.episodicMemory;
+    this.sessionManager = opts.sessionManager;
     this.#commandParser = opts.commandParser;
 
     this.memory.connectLog(this.log);
@@ -79,6 +82,7 @@ export class Agent {
   }
 
   #cycleHost(): CycleHost {
+    console.log('[Agent.#cycleHost] Engines:', Array.from(this.engines.keys()));
     return {
       log: this.log,
       memory: this.memory,
@@ -97,9 +101,13 @@ export class Agent {
   }
 
   async cycle(stimulus: CognitiveStimulus): Promise<string> {
+    console.log('[Agent.cycle] Stimulus:', stimulus.text);
+    console.log('[Agent.cycle] Engines:', Array.from(this.engines.keys()));
     this.#cycleCount++;
     this.#lastCycleTime = Date.now();
-    return runCycle(this.#cycleHost(), stimulus);
+    const result = await runCycle(this.#cycleHost(), stimulus);
+    console.log('[Agent.cycle] Result:', result);
+    return result;
   }
 
   submit(input: string, correlationId: string): void {
@@ -140,6 +148,11 @@ export class Agent {
 
   off(_event: string | '*', handler: (e: CognitiveEvent) => void): void {
     this.#cognitiveListeners.delete(handler);
+  }
+
+  emitCognitive(event: CognitiveEvent): void {
+    console.log('[Agent.emitCognitive]', event.type, event.engine);
+    this.#emitCognitive(event);
   }
 
   registerSkill(name: string, def: { execute(...args: unknown[]): unknown }): void {
@@ -184,11 +197,13 @@ export class Agent {
       }
     }
     await this.memory.load();
+    await this.sessionManager?.restore();
   }
 
   async stop(): Promise<void> {
     if (!this.#started) return;
     this.#started = false;
+    await this.sessionManager?.snapshot();
     await this.memory.persist();
     for (const transport of this.#transports.values()) {
       await transport.disconnect('agent stopping');
@@ -205,6 +220,7 @@ export class Agent {
   }
 
   async *chat(input: string, _opts?: ChatOptions): AsyncGenerator<ChatStreamEvent, string> {
+    console.log('[Agent.chat] Called with:', input);
     const correlationId = crypto.randomUUID();
     const stimulus: CognitiveStimulus = {
       text: input,
@@ -214,12 +230,14 @@ export class Agent {
     };
 
     const response = await this.cycle(stimulus);
+    console.log('[Agent.chat] Cycle response:', response);
     if (response) {
       yield { kind: 'text-delta', text: response };
       return response;
     }
 
     const fallback = `[agent] ${input}`;
+    console.log('[Agent.chat] Using fallback:', fallback);
     yield { kind: 'text-delta', text: fallback };
     return fallback;
   }

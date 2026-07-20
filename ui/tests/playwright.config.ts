@@ -14,8 +14,18 @@ export default defineConfig({
     ['junit', { outputFile: 'test-results/junit.xml' }],
   ],
 
+  webServer: {
+    command: 'NODE_NO_WARNINGS=1 tsx scripts/agent-server.ts 3456',
+    port: 3456,
+    reuseExistingServer: true,
+    cwd: process.cwd(),
+    stdout: 'pipe',
+    stderr: 'pipe',
+    timeout: 30000,
+  },
+
   use: {
-    baseURL: process.env.TEST_URL || 'http://localhost:3000',
+    baseURL: process.env.TEST_URL || 'http://localhost:3456',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

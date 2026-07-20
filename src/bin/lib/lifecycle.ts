@@ -47,12 +47,12 @@ export async function createAgentFromEnv(
   });
 
   const sessionManager = new JsonlSessionManager({ basePath: '.cache/sessions' });
-  await sessionManager.restore();
 
   const agent = await createAgent({
     nar,
     lmService,
     episodicMemory,
+    sessionManager,
   });
 
   return { agent, nar, sessionManager, episodicMemory, lmService };

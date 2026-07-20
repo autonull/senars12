@@ -34,6 +34,11 @@ export interface SessionManager {
   size(): number;
 }
 
+export interface PersistableSessionManager extends SessionManager {
+  restore(): Promise<void>;
+  snapshot(): Promise<void>;
+}
+
 export interface JsonlSessionManagerConfig {
   basePath: string;
 }

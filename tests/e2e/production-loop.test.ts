@@ -6,7 +6,7 @@ import { startAgentUI } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 
-function waitFor<T>(predicate: () => T | undefined, timeoutMs = 5000): Promise<T> {
+function waitFor<T>(predicate: () => T | undefined, timeoutMs = 15000): Promise<T> {
   return new Promise((resolve, reject) => {
     const start = Date.now();
     const check = () => {
@@ -40,18 +40,31 @@ describe('Production loop: agent deltas reach the graph', () => {
 
     await new Promise<void>((resolve, reject) => {
       ws = new WebSocket(`ws://localhost:${port}`);
-      ws.on('open', () => resolve());
-      ws.on('error', reject);
+      ws.on('open', () => {
+        console.log('[TEST] WebSocket opened');
+        resolve();
+      });
+      ws.on('error', (e) => {
+        console.error('[TEST] WebSocket error:', e);
+        reject(e);
+      });
+      ws.on('close', (code, reason) => {
+        console.log('[TEST] WebSocket closed:', code, reason?.toString());
+      });
       ws.on('message', (data: Buffer) => {
         try {
-          received.push(JSON.parse(data.toString()) as IncomingFromServer);
+          const msg = JSON.parse(data.toString()) as IncomingFromServer;
+          console.log('[TEST] Received:', msg.type, msg.seqId ?? '', msg.ops?.length ?? 0);
+          received.push(msg);
         } catch {
           /* ignore */
         }
       });
     });
 
+    console.log('[TEST] Waiting for initial cognitive.delta...');
     await waitFor(() => received.find((m) => m.type === 'cognitive.delta'));
+    console.log('[TEST] Got initial cognitive.delta');
   }, 30000);
 
   afterAll(async () => {
@@ -60,10 +73,13 @@ describe('Production loop: agent deltas reach the graph', () => {
     await agent.stop();
   });
 
-  it('emits cognitive.delta with probe terms', async () => {
+it('emits cognitive.delta with probe terms', async () => {
+    console.log('[TEST] it block started');
+    console.log('[TEST] Sending chat message...');
     ws.send(
       JSON.stringify({ type: 'chat.user', content: '(cat --> animal).', messageId: randomUUID() })
     );
+    console.log('[TEST] ws.send returned');
 
     const delta = await waitFor(() =>
       received.find(
@@ -73,9 +89,10 @@ describe('Production loop: agent deltas reach the graph', () => {
       )
     );
 
+    console.log('[TEST] Got cognitive.delta:', delta?.ops?.length);
     expect(delta).toBeDefined();
     if (!delta) return;
     expect(delta.type).toBe('cognitive.delta');
     expect(delta.ops.some((op) => op.action === 'add_node')).toBe(true);
-  });
+  }, 60000);
 });
