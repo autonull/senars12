@@ -1,5 +1,5 @@
 import { LLMCortex, type ModelProvider, ModelRunner, type PromptBuilder } from '@senars/core';
-import type { LMService } from '@senars/nar/lm';
+import type { LMService } from '@senars/util';
 
 class LMServiceModelProvider implements ModelProvider {
   readonly #lm: LMService;

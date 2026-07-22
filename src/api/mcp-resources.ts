@@ -15,19 +15,43 @@ export function registerMCPResources(
 ): void {
   const resources = [
     { uri: 'nar://beliefs', name: 'Beliefs', description: 'All stored beliefs with truth values' },
-    { uri: 'nar://concepts', name: 'Concepts', description: 'Active concepts with attention priorities' },
+    {
+      uri: 'nar://concepts',
+      name: 'Concepts',
+      description: 'Active concepts with attention priorities',
+    },
     { uri: 'nar://attention', name: 'Attention', description: 'Current attention snapshot' },
-    { uri: 'nar://state', name: 'State', description: 'NAR state summary (beliefs/goals/questions/attention/drives)' },
+    {
+      uri: 'nar://state',
+      name: 'State',
+      description: 'NAR state summary (beliefs/goals/questions/attention/drives)',
+    },
     { uri: 'nar://episodes', name: 'Episodes', description: 'Recent episodic memory entries' },
     { uri: 'nar://benchmarks', name: 'Benchmarks', description: 'Benchmark history and scores' },
     { uri: 'nar://config', name: 'Config', description: 'Current configuration' },
     { uri: 'nar://tools', name: 'Tools', description: 'Available tools with schemas' },
     { uri: 'sessions://list', name: 'Sessions', description: 'List all available sessions' },
     { uri: 'knowledge://list', name: 'Knowledge', description: 'List all knowledge entries' },
-    { uri: 'lm-rules://stats', name: 'LM Rule Stats', description: 'LM Rule statistics (calls, successes, failures, circuit state)' },
-    { uri: 'lm-rules://execution-log', name: 'LM Rule Log', description: 'Recent LM Rule execution log' },
-    { uri: 'rlfp://state', name: 'RLFP State', description: 'RLFP learner state (policy, exploration rate, rewards)' },
-    { uri: 'self-reasoning://quality', name: 'Self-Reasoning Quality', description: 'Self-reasoning quality metrics' },
+    {
+      uri: 'lm-rules://stats',
+      name: 'LM Rule Stats',
+      description: 'LM Rule statistics (calls, successes, failures, circuit state)',
+    },
+    {
+      uri: 'lm-rules://execution-log',
+      name: 'LM Rule Log',
+      description: 'Recent LM Rule execution log',
+    },
+    {
+      uri: 'rlfp://state',
+      name: 'RLFP State',
+      description: 'RLFP learner state (policy, exploration rate, rewards)',
+    },
+    {
+      uri: 'self-reasoning://quality',
+      name: 'Self-Reasoning Quality',
+      description: 'Self-reasoning quality metrics',
+    },
   ];
 
   for (const r of resources) {

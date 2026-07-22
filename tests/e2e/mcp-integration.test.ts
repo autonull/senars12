@@ -1,7 +1,7 @@
-import { SeNARSMCPServer } from '../../src/api/mcp-server.js';
+import { describe, expect, it } from 'vitest';
 import { registerMCPPrompts } from '../../src/api/mcp-prompts.js';
 import { registerMCPResources } from '../../src/api/mcp-resources.js';
-import { describe, expect, it } from 'vitest';
+import { SeNARSMCPServer } from '../../src/api/mcp-server.js';
 
 /**
  * P9#1: an external MCP client can query the agent.
@@ -30,11 +30,18 @@ interface HandlerResult {
   prompts?: PromptListing[];
   contents?: ResourceContent[];
 }
-type HandlerFn = (request: { method: string; params: Record<string, unknown> }, extra: unknown) => Promise<HandlerResult>;
+type HandlerFn = (
+  request: { method: string; params: Record<string, unknown> },
+  extra: unknown
+) => Promise<HandlerResult>;
 
-function callHandler(server: SeNARSMCPServer, method: string, params: Record<string, unknown>): Promise<HandlerResult> {
-  const handlers = (server as unknown as { server: { _requestHandlers: Map<string, HandlerFn> } }).server
-    ._requestHandlers;
+function callHandler(
+  server: SeNARSMCPServer,
+  method: string,
+  params: Record<string, unknown>
+): Promise<HandlerResult> {
+  const handlers = (server as unknown as { server: { _requestHandlers: Map<string, HandlerFn> } })
+    .server._requestHandlers;
   const handler = handlers.get(method);
   if (!handler) throw new Error(`No MCP handler registered for ${method}`);
   return handler({ method, params }, {});

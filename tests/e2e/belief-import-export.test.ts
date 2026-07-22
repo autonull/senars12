@@ -28,19 +28,20 @@ describe('Belief import/export via test endpoints', () => {
   it('imports Narsese beliefs and exports them back', async () => {
     const statements = ['<cat --> animal>.', '<dog --> animal>.'];
 
-    const importResp = await fetch(
-      `http://localhost:${port}/test/import-beliefs`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ statements }),
-      }
-    );
-    const importBody = await importResp.json() as { success: boolean; count?: number; error?: string };
+    const importResp = await fetch(`http://localhost:${port}/test/import-beliefs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statements }),
+    });
+    const importBody = (await importResp.json()) as {
+      success: boolean;
+      count?: number;
+      error?: string;
+    };
     expect(importBody.success).toBe(true);
 
     const exportResp = await fetch(`http://localhost:${port}/test/export-beliefs`);
-    const exportBody = await exportResp.json() as {
+    const exportBody = (await exportResp.json()) as {
       beliefs: Array<{ term: string; truth: { frequency: number; confidence: number } }>;
       count: number;
     };
@@ -58,15 +59,12 @@ describe('Belief import/export via test endpoints', () => {
     const srv2 = await startAgentUI(noNarAgent, { port: 0 });
     const p2 = srv2.address().port;
 
-    const resp = await fetch(
-      `http://localhost:${p2}/test/import-beliefs`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ statements: ['<bird --> animal>.'] }),
-      }
-    );
-    const body = await resp.json() as { success: boolean; error?: string };
+    const resp = await fetch(`http://localhost:${p2}/test/import-beliefs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statements: ['<bird --> animal>.'] }),
+    });
+    const body = (await resp.json()) as { success: boolean; error?: string };
     expect(body.success).toBe(false);
     expect(body.error).toContain('No NAR engine');
 

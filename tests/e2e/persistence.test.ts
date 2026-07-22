@@ -1,6 +1,6 @@
 import { mkdtemp, rm } from 'node:fs/promises';
-import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Agent, InMemoryEventLog } from '@senars/core';
 import { JsonlSessionManager } from '@senars/core/memory';
 import { NAREngine } from '@senars/nar/engine/NAREngine';
@@ -72,10 +72,12 @@ describe('Persistence: session survive agent restart', () => {
     const port1 = srv1.address().port;
 
     sm1.getOrCreate('http-test');
-    sm1.getOrCreate('http-test').history.push({ role: 'user', content: 'hello', timestamp: Date.now() });
+    sm1
+      .getOrCreate('http-test')
+      .history.push({ role: 'user', content: 'hello', timestamp: Date.now() });
 
     const saveResp = await fetch(`http://localhost:${port1}/test/session-save`, { method: 'POST' });
-    const saveBody = await saveResp.json() as { success: boolean };
+    const saveBody = (await saveResp.json()) as { success: boolean };
     expect(saveBody.success).toBe(true);
 
     await srv1.close();
@@ -97,7 +99,7 @@ describe('Persistence: session survive agent restart', () => {
     const port2 = srv2.address().port;
 
     const loadResp = await fetch(`http://localhost:${port2}/test/session-load`, { method: 'POST' });
-    const loadBody = await loadResp.json() as { success: boolean };
+    const loadBody = (await loadResp.json()) as { success: boolean };
     expect(loadBody.success).toBe(true);
 
     const restored = sm2.getOrCreate('http-test');

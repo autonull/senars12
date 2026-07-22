@@ -37,7 +37,9 @@ describe('NAR Parameter HUD (P6#1)', () => {
         if (msg.type === 'config.schema') resolve();
       });
       ws.on('error', reject);
-      ws.on('open', () => { /* wait for messages */ });
+      ws.on('open', () => {
+        /* wait for messages */
+      });
     });
 
     ws.close();
@@ -73,7 +75,9 @@ describe('NAR Parameter HUD (P6#1)', () => {
         }
       });
       ws.on('error', reject);
-      ws.on('open', () => { /* wait */ });
+      ws.on('open', () => {
+        /* wait */
+      });
     });
 
     ws.close();

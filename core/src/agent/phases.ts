@@ -1,4 +1,4 @@
-import type { EpisodicMemory } from '@senars/nar';
+import type { EpisodicMemory } from '@senars/util';
 import type { CognitiveEvent } from '../CognitiveEvent.js';
 import type { PolicyEngine } from '../PolicyEngine.js';
 import type { LLMCortex } from '../cortex/LLMCortex.js';

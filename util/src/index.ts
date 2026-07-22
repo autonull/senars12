@@ -11,7 +11,7 @@ export type {
 /** @public Runtime guards for cognitive event discrimination. */
 export { isNarEvent, isMettaEvent, isEventType } from './types/cognitive.js';
 /** @public Engine contract and identifiers. */
-export type { Engine, EngineId, ToolResult } from './types/engine.js';
+export type { Engine, EngineId } from './types/engine.js';
 /** @public Transport/connection contracts shared by io and core. */
 export type {
   Connection,
@@ -29,6 +29,10 @@ export type {
   Logger,
   Metrics,
   ComponentContext,
+  BaseComponent,
+  LogLevel,
+  LogEntry,
+  LoggerConfig,
 } from './types/lifecycle.js';
 /** @public Typed event emitter contract. */
 export type { TypedEventEmitter, EventHandler } from './types/events.js';
@@ -45,9 +49,30 @@ export type { Frequency, Confidence } from './types/truth.js';
 /** @public Truth value constructors. */
 export { toFrequency, toConfidence } from './types/truth.js';
 /** @public LM service contract. */
-export type { LMService, LMCompletionOptions, LMResult } from './types/llm.js';
+export type {
+  LMService,
+  LMExecutionStats,
+  LMRuleStats,
+  LMRuleConfig,
+  LMTask,
+  LMPromptGenerator,
+  LMResponseProcessor,
+  LMTaskGenerator,
+  MockLMConfig,
+} from './types/llm.js';
 /** @public Session/memory manager contracts. */
 export type { ConversationSession, SessionManager } from './types/memory.js';
+/** @public Episodic memory contracts. */
+export type {
+  Episode,
+  EpisodeType,
+  EpisodicMemoryConfig,
+  EpisodicMemory,
+} from './types/episodic-memory.js';
+/** @public NAR agent contracts. */
+export type { NAR, NARConfig } from './types/nar.js';
+/** @public Tool contracts. */
+export type { Tool, ToolResult } from './types/tools.js';
 
 // Errors
 /** @public Discriminated error code union. */
@@ -71,6 +96,24 @@ export {
 export { invariant, assertDefined } from './utils/assert.js';
 /** @public ULID id generation. */
 export { generateId } from './utils/id.js';
+/** @public Shared utility functions (deduplicated across packages). */
+export {
+  makeId,
+  isNil,
+  ensureArray,
+  errMsg,
+  toError,
+  sleep,
+  compact,
+  clamp,
+  clamp01,
+  edgeKey,
+  generateId as generatePrefixedId,
+  safeDiv,
+  wordOverlap,
+  extractTerm,
+  isNarsese,
+} from './utils/shared.js';
 /** @public Serialization contracts for stateful components. */
 export type { Serializable, Versioned } from './utils/serialization.js';
 /** @public Uniform-contract adapters bridging legacy serialize/deserialize shapes. */

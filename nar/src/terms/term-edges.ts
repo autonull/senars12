@@ -1,5 +1,15 @@
+import {
+  getAntecedent,
+  getConsequent,
+  getPredicate,
+  getSubject,
+  isEquivalence,
+  isImplication,
+  isInheritance,
+  isSimilarity,
+  visitTerms,
+} from '../terms/accessors.js';
 import type { Term } from '../terms/types.js';
-import { isInheritance, isSimilarity, isImplication, isEquivalence, getSubject, getPredicate, getAntecedent, getConsequent, visitTerms } from '../terms/accessors.js';
 
 export interface TermEdge {
   source: string;

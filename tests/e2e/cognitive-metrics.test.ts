@@ -1,5 +1,5 @@
-import { applyServerMessage } from '@senars/ui/client/core/store-bindings';
 import { $cognitiveMetrics } from '@senars/ui/client/core/store';
+import { applyServerMessage } from '@senars/ui/client/core/store-bindings';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 /**

@@ -73,7 +73,7 @@ describe('Production loop: agent deltas reach the graph', () => {
     await agent.stop();
   });
 
-it('emits cognitive.delta with probe terms', async () => {
+  it('emits cognitive.delta with probe terms', async () => {
     console.log('[TEST] it block started');
     console.log('[TEST] Sending chat message...');
     ws.send(

@@ -1,10 +1,8 @@
 import type {
   LanguageModelV3,
   LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import { type LanguageModel, generateObject, generateText, streamText, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
@@ -396,11 +394,7 @@ export function createMockLanguageModel(
     provider: 'mock',
     modelId: 'mock',
     supportedUrls: {},
-    async doGenerate(options: LanguageModelV3CallOptions): Promise<{
-      content: LanguageModelV3Content[];
-      finishReason: LanguageModelV3FinishReason;
-      usage: LanguageModelV3Usage;
-    }> {
+    async doGenerate(options: LanguageModelV3CallOptions): Promise<LanguageModelV3GenerateResult> {
       const key = extractTextFromPrompt(options.prompt);
       let responseText = generateTextFn
         ? await generateTextFn(key)
@@ -416,12 +410,12 @@ export function createMockLanguageModel(
 
       return {
         content: [{ type: 'text', text: responseText }],
-        finishReason: { unified: 'stop' },
+        finishReason: { unified: 'stop', raw: 'stop' },
         usage: {
-          inputTokens: 0,
-          outputTokens: responseText.length,
-          totalTokens: responseText.length,
+          inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
+          outputTokens: { total: responseText.length, text: responseText.length, reasoning: 0 },
         },
+        warnings: [],
       };
     },
     async doStream(options: LanguageModelV3CallOptions): Promise<{
@@ -439,11 +433,10 @@ export function createMockLanguageModel(
           controller.enqueue({ type: 'text-end', id: '0' });
           controller.enqueue({
             type: 'finish',
-            finishReason: { unified: 'stop' },
+            finishReason: { unified: 'stop', raw: 'stop' },
             usage: {
-              inputTokens: 0,
-              outputTokens: responseText.length,
-              totalTokens: responseText.length,
+              inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
+              outputTokens: { total: responseText.length, text: responseText.length, reasoning: 0 },
             },
           });
           controller.close();

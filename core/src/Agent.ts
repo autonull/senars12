@@ -1,4 +1,4 @@
-import type { EpisodicMemory } from '@senars/nar';
+import type { EpisodicMemory } from '@senars/util';
 import { AgentBridge } from './AgentBridge.js';
 import type { ChatOptions, ChatStreamEvent } from './ChatService.js';
 import type { CognitiveEvent } from './CognitiveEvent.js';
@@ -11,11 +11,11 @@ import type { AgentOptions } from './agent/types.js';
 import type { LLMCortex } from './cortex/LLMCortex.js';
 import type { Engine } from './engine/Engine.js';
 import type { CognitiveStimulus, Derivation } from './engine/Engine.js';
-import type { PersistableSessionManager } from './memory/types.js';
 import type { EventLog } from './eventlog/EventLog.js';
 import { InMemoryEventLog } from './eventlog/InMemoryEventLog.js';
 import { generateId } from './helpers.js';
 import { MemoryService } from './memory/MemoryService.js';
+import type { PersistableSessionManager } from './memory/types.js';
 import { ToolRegistry } from './motor/ToolRegistry.js';
 import { registerBuiltinTools } from './motor/builtin-tools.js';
 import type { AgentCapabilities } from './protocol/index.js';

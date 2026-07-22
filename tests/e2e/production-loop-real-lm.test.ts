@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingFromServer } from '@senars/core';
-import { createAgentFromEnv } from '../../src/bin/lib/lifecycle';
 import { startAgentUI } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
+import { createAgentFromEnv } from '../../src/bin/lib/lifecycle';
 
 function waitFor<T>(predicate: () => T | undefined, timeoutMs = 30000): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -65,8 +65,7 @@ describe('Production loop with real LMService (LM_PROVIDER=mock via AI SDK)', ()
     );
 
     const complete = await waitFor(
-      (): IncomingFromServer | undefined =>
-        received.find((m) => m.type === 'chat.agent.complete'),
+      (): IncomingFromServer | undefined => received.find((m) => m.type === 'chat.agent.complete'),
       20000
     );
 

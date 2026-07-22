@@ -12,7 +12,7 @@ const SLIDER = (
   min: number,
   max: number,
   step: number,
-  description: string,
+  description: string
 ): ConfigFieldType => ({
   type: 'slider',
   label,
@@ -29,28 +29,58 @@ export function buildConfigSchema(overrides?: Partial<typeof DEFAULTS>): ConfigS
   const v = { ...DEFAULTS, ...overrides };
   return {
     'nars.maxConcepts': SLIDER(
-      'nars.maxConcepts', 'Max Concepts', v.maxConcepts,
-      100, 10000, 100, 'Maximum number of concepts in working memory',
+      'nars.maxConcepts',
+      'Max Concepts',
+      v.maxConcepts,
+      100,
+      10000,
+      100,
+      'Maximum number of concepts in working memory'
     ),
     'nars.activationDecayRate': SLIDER(
-      'nars.activationDecayRate', 'Decay Rate', v.activationDecayRate,
-      0.001, 0.5, 0.001, 'Priority decay rate per inference cycle',
+      'nars.activationDecayRate',
+      'Decay Rate',
+      v.activationDecayRate,
+      0.001,
+      0.5,
+      0.001,
+      'Priority decay rate per inference cycle'
     ),
     'nars.consolidationInterval': SLIDER(
-      'nars.consolidationInterval', 'Consolidation Interval', v.consolidationInterval,
-      1, 100, 1, 'Cycles between memory consolidation passes',
+      'nars.consolidationInterval',
+      'Consolidation Interval',
+      v.consolidationInterval,
+      1,
+      100,
+      1,
+      'Cycles between memory consolidation passes'
     ),
     'nars.cpuThrottleMs': SLIDER(
-      'nars.cpuThrottleMs', 'CPU Throttle (ms)', v.cpuThrottleMs,
-      0, 100, 1, 'Minimum ms to pause between cycle bursts',
+      'nars.cpuThrottleMs',
+      'CPU Throttle (ms)',
+      v.cpuThrottleMs,
+      0,
+      100,
+      1,
+      'Minimum ms to pause between cycle bursts'
     ),
     'nars.maxDerivationDepth': SLIDER(
-      'nars.maxDerivationDepth', 'Max Derivation Depth', v.maxDerivationDepth,
-      1, 50, 1, 'Maximum inference chain depth per derivation',
+      'nars.maxDerivationDepth',
+      'Max Derivation Depth',
+      v.maxDerivationDepth,
+      1,
+      50,
+      1,
+      'Maximum inference chain depth per derivation'
     ),
     'nars.maxDerivationsPerStep': SLIDER(
-      'nars.maxDerivationsPerStep', 'Max Derivations/Step', v.maxDerivationsPerStep,
-      10, 5000, 10, 'Maximum derivations allowed per inference step',
+      'nars.maxDerivationsPerStep',
+      'Max Derivations/Step',
+      v.maxDerivationsPerStep,
+      10,
+      5000,
+      10,
+      'Maximum derivations allowed per inference step'
     ),
   };
 }

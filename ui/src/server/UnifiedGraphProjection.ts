@@ -3,13 +3,22 @@ import { builtinLensSpecs } from '@senars/core';
 
 export type GraphDelta = {
   nodes: GraphNodeData[];
-  edges: Array<{ source: string; target: string; type: string; weight?: number; directed?: boolean }>;
+  edges: Array<{
+    source: string;
+    target: string;
+    type: string;
+    weight?: number;
+    directed?: boolean;
+  }>;
 };
 
 export class UnifiedGraphProjection {
   readonly #senders = new Set<(msg: IncomingFromServer) => void>();
   #nodes = new Map<string, GraphNodeData>();
-  #edges = new Map<string, { source: string; target: string; type: string; weight?: number; directed?: boolean }>();
+  #edges = new Map<
+    string,
+    { source: string; target: string; type: string; weight?: number; directed?: boolean }
+  >();
   #currentLens = 'belief';
   #focusTerm = '';
 

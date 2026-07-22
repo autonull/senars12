@@ -22,7 +22,10 @@ declare module 'spacegraphjs' {
 
   export interface SpaceGraphEvents {
     on(event: 'node:added', listener: (data: { node: SpaceGraphNode }) => void): void;
-    on(event: 'node:updated', listener: (data: { node: SpaceGraphNode; changes: Record<string, unknown> }) => void): void;
+    on(
+      event: 'node:updated',
+      listener: (data: { node: SpaceGraphNode; changes: Record<string, unknown> }) => void
+    ): void;
     on(event: 'node:removed', listener: (data: { id: string }) => void): void;
     on(event: 'preRender', listener: () => void): void;
     on(event: string, listener: (...args: any[]) => void): void;

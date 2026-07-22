@@ -27,7 +27,8 @@ describe('chat-synthesis', () => {
 
   beforeAll(async () => {
     const scripted = createMockLMService({
-      generateTextFn: () => 'I am a reasoning agent. I synthesize responses from symbolic derivations.',
+      generateTextFn: () =>
+        'I am a reasoning agent. I synthesize responses from symbolic derivations.',
       available: true,
     });
 
@@ -62,8 +63,7 @@ describe('chat-synthesis', () => {
     );
 
     const complete = await waitFor(
-      (): IncomingFromServer | undefined =>
-        received.find((m) => m.type === 'chat.agent.complete'),
+      (): IncomingFromServer | undefined => received.find((m) => m.type === 'chat.agent.complete'),
       20000
     );
 

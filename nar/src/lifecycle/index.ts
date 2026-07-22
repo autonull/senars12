@@ -1,4 +1,8 @@
-export { BaseComponent, type ComponentState, type ComponentContext } from './BaseComponent.js';
+export {
+  NarBaseComponent as BaseComponent,
+  type ComponentState,
+  type ComponentContext,
+} from './BaseComponent.js';
 export {
   Container,
   type ComponentDefinition,

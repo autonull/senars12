@@ -1,40 +1,54 @@
-import { BaseComponent as CoreBaseComponent } from '@senars/core';
-import type { ComponentState, ComponentContext as CoreComponentContext } from '@senars/util';
-import { type Logger, createLogger } from '../logger';
+import type {
+  ComponentContext,
+  ComponentState,
+  BaseComponent as UtilBaseComponent,
+} from '@senars/util';
+import { type Logger as NarLogger, createLogger } from '../logger';
 import { MetricsCollector } from '../metrics';
 import { EventBus as NarEventBus } from '../types/events.js';
 
-export type { ComponentState };
-export type { CoreComponentContext as ComponentContext };
+export type { ComponentState, ComponentContext };
 
-export abstract class BaseComponent extends CoreBaseComponent {
-  private readonly _logger: Logger;
+export abstract class NarBaseComponent implements UtilBaseComponent {
+  readonly id: string;
+  readonly state: ComponentState;
+
+  private readonly _logger: NarLogger;
   private readonly _metrics: MetricsCollector;
   private readonly _eventBus: NarEventBus;
 
-  override get logger(): Logger {
+  get logger(): NarLogger {
     return this._logger;
   }
 
-  override get metrics(): MetricsCollector {
+  get metrics(): MetricsCollector {
     return this._metrics;
   }
 
-  override get eventBus(): NarEventBus {
+  get eventBus(): NarEventBus {
     return this._eventBus;
   }
 
-  constructor(context?: Partial<CoreComponentContext>) {
-    const logger: Logger = (context?.logger as Logger) ?? createLogger({ scope: 'Component' });
-    const metrics: MetricsCollector =
-      (context?.metrics as unknown as MetricsCollector) ?? new MetricsCollector();
-    const eventBus: NarEventBus =
-      (context?.eventBus as unknown as NarEventBus) ?? new NarEventBus();
+  constructor(
+    id: string,
+    context?: Partial<
+      ComponentContext & { logger?: NarLogger; metrics?: MetricsCollector; eventBus?: NarEventBus }
+    >
+  ) {
+    this.id = id;
+    this.state = context?.state ?? 'initializing';
 
-    super({ logger, metrics, eventBus } as CoreComponentContext);
+    const logger: NarLogger = context?.logger ?? createLogger({ scope: 'Component' });
+    const metrics: MetricsCollector = context?.metrics ?? new MetricsCollector();
+    const eventBus: NarEventBus = context?.eventBus ?? new NarEventBus();
 
     this._logger = logger;
     this._metrics = metrics;
     this._eventBus = eventBus;
   }
+
+  abstract initialize(): Promise<void>;
+  abstract start(): Promise<void>;
+  abstract stop(): Promise<void>;
+  abstract getState(): ComponentState;
 }

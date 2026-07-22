@@ -6,11 +6,11 @@ import { extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Agent, CognitiveEvent } from '@senars/core';
 import type { GraphNodeData, IncomingFromServer } from '@senars/core';
+import { isNarsese } from '@senars/core';
+import { DEFAULT_CONFIG, parseTermToEdges, termParser } from '@senars/nar';
 import { WebSocketServer } from 'ws';
 import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
-import { isNarsese } from '@senars/core';
-import { termParser, parseTermToEdges, DEFAULT_CONFIG } from '@senars/nar';
-import { buildConfigSchema, applyConfigField } from './config-schema.js';
+import { applyConfigField, buildConfigSchema } from './config-schema.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const DIST_DIR = resolve(__dirname, '../../dist/client');
@@ -116,14 +116,16 @@ function handleTestEndpoints(
       testState.derivations.push({ conclusion, frequency, confidence });
       if (projection) {
         projection.applyDelta({
-          nodes: [{
-            id: conclusion,
-            term: conclusion,
-            label: conclusion,
-            nodeType: 'nar:concept',
-            priority: frequency ?? 0.85,
-            confidence: confidence ?? 0.9,
-          }],
+          nodes: [
+            {
+              id: conclusion,
+              term: conclusion,
+              label: conclusion,
+              nodeType: 'nar:concept',
+              priority: frequency ?? 0.85,
+              confidence: confidence ?? 0.9,
+            },
+          ],
           edges: [],
         });
       }
@@ -145,7 +147,8 @@ function handleTestEndpoints(
 
   if (url === '/test/session-save' && req.method === 'POST') {
     if (agent?.sessionManager) {
-      agent.sessionManager.snapshot()
+      agent.sessionManager
+        .snapshot()
         .then(() => res.end(JSON.stringify({ success: true })))
         .catch((e: Error) => res.end(JSON.stringify({ success: false, error: e.message })));
     } else {
@@ -156,7 +159,8 @@ function handleTestEndpoints(
 
   if (url === '/test/session-load' && req.method === 'POST') {
     if (agent?.sessionManager) {
-      agent.sessionManager.restore()
+      agent.sessionManager
+        .restore()
         .then(() => res.end(JSON.stringify({ success: true })))
         .catch((e: Error) => res.end(JSON.stringify({ success: false, error: e.message })));
     } else {
@@ -167,14 +171,25 @@ function handleTestEndpoints(
 
   if (url === '/test/import-beliefs' && req.method === 'POST') {
     let body = '';
-    req.on('data', (chunk: Buffer) => { body += chunk; });
+    req.on('data', (chunk: Buffer) => {
+      body += chunk;
+    });
     req.on('end', async () => {
       try {
         const { statements } = JSON.parse(body) as { statements?: string[]; narsese?: string };
-        const lines = statements ?? (JSON.parse(body) as { narsese: string }).narsese.split('\n').map(s => s.trim()).filter(Boolean);
-        const narEngine = agent?.engines.get('nar') as { nar?: { believe: (s: string) => Promise<void>; run: (n: number) => void } } | undefined;
+        const lines =
+          statements ??
+          (JSON.parse(body) as { narsese: string }).narsese
+            .split('\n')
+            .map((s) => s.trim())
+            .filter(Boolean);
+        const narEngine = agent?.engines.get('nar') as
+          | { nar?: { believe: (s: string) => Promise<void>; run: (n: number) => void } }
+          | undefined;
         if (!narEngine?.nar?.believe) {
-          res.end(JSON.stringify({ success: false, error: 'No NAR engine with believe() available' }));
+          res.end(
+            JSON.stringify({ success: false, error: 'No NAR engine with believe() available' })
+          );
           return;
         }
         for (const stmt of lines) {
@@ -191,7 +206,16 @@ function handleTestEndpoints(
 
   if (url === '/test/export-beliefs' && req.method === 'GET') {
     try {
-      const narEngine = agent?.engines.get('nar') as { nar?: { getBeliefs?: () => Array<{ term: { toString(): string }; truth: { frequency: number; confidence: number } }> } } | undefined;
+      const narEngine = agent?.engines.get('nar') as
+        | {
+            nar?: {
+              getBeliefs?: () => Array<{
+                term: { toString(): string };
+                truth: { frequency: number; confidence: number };
+              }>;
+            };
+          }
+        | undefined;
       const beliefs = narEngine?.nar?.getBeliefs?.() ?? [];
       const result = beliefs.map((b) => ({
         term: b.term.toString(),
@@ -228,11 +252,16 @@ function createServerWithProjection(agent?: Agent): {
 } {
   const projection = agent ? new UnifiedGraphProjection() : undefined;
   const seenTerms = new Set<string>();
-  let currentNarConfig = { ...DEFAULT_CONFIG };
+  const currentNarConfig = { ...DEFAULT_CONFIG };
 
   if (agent) {
     agent.on('*', (event: CognitiveEvent) => {
-      console.log('[Server] Agent event:', event.type, event.engine, event.payload?.conclusion ?? '');
+      console.log(
+        '[Server] Agent event:',
+        event.type,
+        event.engine,
+        event.payload?.conclusion ?? ''
+      );
       if (event.type !== 'derivation.made') return;
       const term = event.payload.conclusion;
       if (seenTerms.has(term)) return;
@@ -252,7 +281,13 @@ function createServerWithProjection(agent?: Agent): {
         truth: payload.truth,
       };
 
-      const edges: Array<{ source: string; target: string; type: string; weight?: number; directed?: boolean }> = [];
+      const edges: Array<{
+        source: string;
+        target: string;
+        type: string;
+        weight?: number;
+        directed?: boolean;
+      }> = [];
 
       if (isNarsese(term)) {
         try {
@@ -350,7 +385,9 @@ function createServerWithProjection(agent?: Agent): {
 
           if (msg.type === 'config.set' && agent) {
             try {
-              const narEngine = agent.engines.get('nar') as { nar?: { setConfig: (u: Record<string, unknown>) => void } } | undefined;
+              const narEngine = agent.engines.get('nar') as
+                | { nar?: { setConfig: (u: Record<string, unknown>) => void } }
+                | undefined;
               if (narEngine?.nar?.setConfig) {
                 const updates = applyConfigField(msg.key, msg.value);
                 if (updates) {

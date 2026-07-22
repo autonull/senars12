@@ -1,3 +1,4 @@
+import type { CognitiveEvent } from '@senars/core/cognitive-event';
 import type {
   CognitiveStimulus,
   Context,
@@ -6,10 +7,9 @@ import type {
   ToolResult,
 } from '@senars/core/engine';
 import { BaseEngine } from '@senars/core/engine/base';
+import { MAPPED_NAR_EVENTS, narEventToCognitive } from '../events/bridge.js';
 import { NAR } from '../nar.js';
 import { DEFAULT_CONFIG } from '../types/index.js';
-import type { CognitiveEvent } from '@senars/core/cognitive-event';
-import { narEventToCognitive, MAPPED_NAR_EVENTS } from '../events/bridge.js';
 
 export type CognitiveEventEmitter = (event: CognitiveEvent) => void;
 
@@ -31,7 +31,7 @@ export class NAREngine extends BaseEngine {
   }
 
   protected async doInitialize(): Promise<void> {
-    if (!this.#nar.isRunning()) {
+    if (this.#nar.getState() !== 'running') {
       await this.#nar.initialize();
       await this.#nar.start();
     }
@@ -59,14 +59,19 @@ export class NAREngine extends BaseEngine {
   }
 
   protected async doShutdown(): Promise<void> {
-    if (this.#nar.isRunning()) {
+    if (this.#nar.getState() === 'running') {
       await this.#nar.stop();
     }
   }
 
   async reason(stimulus: CognitiveStimulus, context: Context): Promise<Derivation[]> {
     const text = stimulus.text;
-    console.error('[NAREngine.reason] Input:', JSON.stringify(text), 'isNarsese:', this.#isNarsese(text));
+    console.error(
+      '[NAREngine.reason] Input:',
+      JSON.stringify(text),
+      'isNarsese:',
+      this.#isNarsese(text)
+    );
     if (!this.#isNarsese(text)) return [];
 
     console.log('[NAREngine.reason] Processing Narsese...');
@@ -100,7 +105,10 @@ export class NAREngine extends BaseEngine {
         truth: b.truth ? { frequency: b.truth.f, confidence: b.truth.c } : undefined,
         timestamp,
       }));
-      console.log('[NAREngine.reason] Returning derivations:', derivations.map(d => d.term));
+      console.log(
+        '[NAREngine.reason] Returning derivations:',
+        derivations.map((d) => d.term)
+      );
       return derivations;
     } catch (e) {
       console.error('[NAREngine.reason] Error:', e);

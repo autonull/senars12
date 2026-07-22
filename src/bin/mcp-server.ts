@@ -6,10 +6,10 @@
 import { SeNARSFactory } from '@senars/nar';
 import { createLogger } from '@senars/nar/logger';
 import { z } from 'zod';
+import { registerMCPPrompts } from '../api/mcp-prompts.js';
+import { getResourceContent, registerMCPResources } from '../api/mcp-resources.js';
 import { SeNARSMCPServer } from '../api/mcp-server.js';
 import { registerAgentAPI, registerNARToolsAsMCP } from '../api/mcp-tools.js';
-import { registerMCPResources, getResourceContent } from '../api/mcp-resources.js';
-import { registerMCPPrompts } from '../api/mcp-prompts.js';
 import { loadConfig } from '../config';
 import { createAgentFromEnv } from './lib/lifecycle.js';
 

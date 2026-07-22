@@ -23,5 +23,8 @@
       "quoteStyle": "single",
       "trailingCommas": "es5"
     }
+  },
+  "files": {
+    "ignore": ["node_modules", "dist", ".turbo", ".cache", "*.log", "pnpm-lock.yaml"]
   }
 }

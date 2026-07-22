@@ -135,11 +135,3 @@ Following @AGENTS.md:
 - 🧱 **Modularized** — Separate concerns
 - 🔧 **Parameterized** — Configurable behavior
 
----
-
-<div align="center">
-
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)](https://www.typescriptlang.org/)
-[![pnpm](https://img.shields.io/badge/pnpm-10.0-cyan)](https://pnpm.io/)
-
-</div>

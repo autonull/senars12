@@ -1,10 +1,7 @@
 import type { EnhancedMCPAdapter } from './mcp';
 import type { SeNARSMCPServer } from './mcp-server';
 
-export function registerMCPPrompts(
-  adapter: EnhancedMCPAdapter,
-  server?: SeNARSMCPServer
-): void {
+export function registerMCPPrompts(adapter: EnhancedMCPAdapter, server?: SeNARSMCPServer): void {
   const prompts = [
     {
       name: 'reasoning_chain',

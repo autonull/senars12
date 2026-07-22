@@ -39,8 +39,12 @@ describe('Config Profiles (P6#2)', () => {
           finalSchema = msg;
           if (schemaCount === 1) {
             // Simulate profile application: send multiple config.set in sequence
-            ws.send(JSON.stringify({ type: 'config.set', key: 'nars.maxDerivationsPerStep', value: 2000 }));
-            ws.send(JSON.stringify({ type: 'config.set', key: 'nars.activationDecayRate', value: 0.005 }));
+            ws.send(
+              JSON.stringify({ type: 'config.set', key: 'nars.maxDerivationsPerStep', value: 2000 })
+            );
+            ws.send(
+              JSON.stringify({ type: 'config.set', key: 'nars.activationDecayRate', value: 0.005 })
+            );
           } else if (schemaCount === 3) {
             // Wait for 3 schemas (initial + 2 changes)
             resolve();
@@ -48,7 +52,9 @@ describe('Config Profiles (P6#2)', () => {
         }
       });
       ws.on('error', reject);
-      ws.on('open', () => { /* wait for messages */ });
+      ws.on('open', () => {
+        /* wait for messages */
+      });
     });
 
     ws.close();

@@ -13,10 +13,13 @@ const consoleLogger: Logger = {
   info: (msg, ctx) => console.info(msg, ctx),
   warn: (msg, ctx) => console.warn(msg, ctx),
   error: (msg, err, ctx) => console.error(msg, err, ctx),
-  child: (scope) => ({ ...consoleLogger, scope }) as unknown as Logger,
+  scope: 'console',
   warnOnce: (key, msg, ctx) => consoleLogger.warn(`${key}: ${msg}`, ctx),
   deprecated: (oldSymbol, replacement, ctx) =>
     consoleLogger.warn(`deprecated ${oldSymbol}; use ${replacement} instead`, ctx),
+  setLevel: () => {},
+  getLevel: () => 'debug' as const,
+  getScope: () => 'console',
 };
 
 export class EventBus<T extends Record<string, unknown> = Record<string, unknown>> {

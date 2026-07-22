@@ -1,6 +1,5 @@
 import type { AuthManager, CommandRegistry } from '@senars/io';
-import type { NAR } from '@senars/nar';
-import type { EpisodicMemory, LMService } from '@senars/nar';
+import type { EpisodicMemory, LMService, NAR } from '@senars/util';
 import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
 /**
  * Agent public type definitions.
@@ -11,7 +10,11 @@ import type { LLMCortex } from '../cortex/LLMCortex.js';
 import type { Engine } from '../engine/Engine.js';
 import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
 import type { EventLog } from '../eventlog/EventLog.js';
-import type { ConversationSession, PersistableSessionManager, SessionManager } from '../memory/types.js';
+import type {
+  ConversationSession,
+  PersistableSessionManager,
+  SessionManager,
+} from '../memory/types.js';
 import type { AgentCapabilities } from '../protocol/index.js';
 
 export type { CognitiveStimulus, Context, Derivation, ToolResult };
