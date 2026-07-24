@@ -1,3 +1,0 @@
-export { Stamp } from './stamp.js';
-export { ConceptBag, Concept } from './concept-bag.js';
-//# sourceMappingURL=index.d.ts.map
