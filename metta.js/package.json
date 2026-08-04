@@ -20,7 +20,7 @@
     "@playwright/test": "^1.61.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.7",
+    "@babel/core": "^8.0.1",
     "@babel/plugin-syntax-import-meta": "^7.10.4",
     "@babel/preset-env": "^7.29.7",
     "@eslint/js": "^10.0.1",
