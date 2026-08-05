@@ -84,9 +84,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/node": "^22.19.19",
-    "zod": "^3.25.0"
+    "zod": "^3.25.76"
   }
 }

@@ -30,15 +30,15 @@
   },
   "dependencies": {
     "@senars/core": "workspace:*",
-    "effect": "^3.0.0",
-    "immutable": "^5.0.0",
-    "valibot": "^1.0.0"
+    "effect": "^3.21.4",
+    "immutable": "^5.1.9",
+    "valibot": "^1.4.2"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.19.19",
     "fast-check": "^4.8.0",
-    "tsx": "^4.0.0",
+    "tsx": "^4.21.0",
     "typescript": "7.0.1-rc",
-    "vitest": "^4.0.0"
+    "vitest": "^4.1.9"
   }
 }
