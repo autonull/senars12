@@ -8,6 +8,25 @@
 
 **SeNARS12** is more than a reasoning engine—it's a **cognitive kernel** for the AI-native future. We're building a system that thinks like humans do: fluidly, adaptively, and resourcefully, while maintaining mathematical rigor.
 
+### 🎯 Why SeNARS12 Exists: Bridging the System 1 / System 2 Gap
+
+We are witnessing the limits of the "Scaling Hypothesis." LLMs achieve miraculous fluency but remain **probabilistic improvisers, not reasoning engines**—they hallucinate, lose state across long contexts, and cannot mathematically guarantee a deduction. Classical symbolic AI (GOFAI) is rigorous but brittle when facing real-world noise and ambiguity.
+
+**SeNARS12 fuses fluid LLM creativity (System 1) with rigorous, resource-bounded logic (System 2):**
+
+| Problem | LLM-Only | Symbolic-Only | **SeNARS12** |
+|---------|----------|---------------|--------------|
+| **Reasoning Depth** | Shallow, probabilistic | Deep, rigid | **Deep, adaptive (NAL + MeTTa)** |
+| **Input Modality** | Natural language | Formal logic | **NL → Formal → NL** |
+| **Memory** | Vector store (RAG) | Static KB | **Dynamic priority concept network** |
+| **Resource Mgmt** | Infinite (cloud API) | Fixed | **AIKR: bounded, anytime, edge-ready** |
+| **Auditability** | Low (black box) | High (proof trees) | **High: derivation traces + NL explanation** |
+
+**Wedge Use Cases where pure LLMs fail:**
+- **Personal Logic Vault** — Local-first KB that detects contradictions in your thinking and suggests resolutions
+- **Autonomous DevOps** — Monitors logs, forms hypotheses via NAL, executes repairs via MeTTa, full audit trail
+- **Explainable Compliance** — Ingests regulations, answers with formal logical proofs, not just text retrieval
+
 ---
 
 ## ✨ What Makes SeNARS12 Special
@@ -84,6 +103,52 @@ This eliminates entire classes of bugs, enables IDE-native development with full
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 🏛️ Architectural Advantages
+
+### 1. The End of "Infinite Context" — AIKR as First Principle
+Most AI architectures assume infinite compute/memory (massive context windows, endless RAG). This is biologically implausible and computationally ruinous for edge deployment.
+
+**SeNARS12 is built on the Assumption of Insufficient Knowledge and Resources (AIKR):**
+- **Bounded priority bags** with LRU eviction — graceful degradation under memory pressure
+- **Truth-value decay** — concepts lose priority over time unless reinforced
+- **Anytime algorithms** — yield partial results when interrupted, resume seamlessly
+- **CPU throttling & backpressure** — cooperative yielding to event loop
+
+> In an era where AI moves from cloud to edge (smartphones, IoT, local servers), we need systems that know how to *forget*, how to prioritize, and how to yield partial results when interrupted.
+
+### 2. The Trust Gap — Auditable Neuro-Symbolic Handoffs
+Enterprises cannot deploy "black box" agents for critical decisions. They require **provenance and proof**.
+
+**SeNARS12 enforces strict division of labor:**
+1. **LLM (System 1)** — Translates Natural Language → formal Narsese/MeTTa
+2. **Symbolic Engine (System 2)** — Performs rigorous deduction with truth algebra
+3. **LLM (System 1)** — Translates results back to Natural Language
+
+**Every logical step recorded as a derivation trace.** If the agent concludes "The server is down," it provides the exact symbolic syllogism and truth-value calculations — auditability pure LLMs cannot offer.
+
+### 3. TypeScript as a Reasoning Layer — Zero-Cost Abstractions
+Most AI frameworks push error detection to runtime. SeNARS12 encodes NAL semantics at **compile-time** via TypeScript's advanced type system:
+
+| Technique | Purpose |
+|-----------|---------|
+| **Phantom Types** | Track derivation depth, prevent infinite regress |
+| **Discriminated Unions** | Exhaustive pattern matching on term structures |
+| **Structural Sharing** | Memoization factory for canonical terms |
+| **Stable Hashes** | Canonical normalization for deduplication |
+
+This shifts AI safety from "runtime monitoring" to "compile-time guarantees" — robust, IDE-native, mathematically sound.
+
+### 4. Pragmatic Execution — Self-Correcting Agent Loop
+Theory is useless without a working loop. SeNARS12 implements a **minimalist, self-correcting execution loop** for production-ready pragmatism:
+
+- **Continuous reasoning cycle** — Tight, interruptible, anytime loop with cooperative yielding
+- **Shared cognitive state** — Working memory slots for prior messages, recent results, active goals
+- **Episodic Error Injection** — Tool failures and contradictions fed back into LLM context for self-correction and learning
+
+**The Synthesis:** A robust self-healing execution loop + SeNARS12's superior cognitive backend (NAR + MeTTa + RLFP) = Reliability of minimalist agent + Intelligence of deep cognitive architecture.
 
 ---
 
@@ -299,10 +364,164 @@ controller.adapt();  // Auto-tune strategies based on performance
 SimpleAttention | SpreadingActivation | GoalRelevanceAttention | CompositeAttention
 
 // Drives (intrinsic motivation)
-CuriosityDrive | CompetenceDrive | EfficiencyDrive
+CuriosityDrive | CompetenceDrive | CoherenceDrive | SocialDrive
 ```
 
-### 7. Reinforcement Learning from Reasoning Feedback (RLFP)
+**Self-Optimizer — Automated Hyperparameter Tuning:**
+```typescript
+import { CognitiveOptimizer, GridSampler, RandomSampler } from '@senars/nar/cognitive';
+
+const optimizer = new CognitiveOptimizer(parameterSpace, evaluator);
+const result = await optimizer.optimize(new GridSampler(), 100);
+// Finds optimal CognitiveParameters via grid/random/Bayesian search
+```
+
+**Cognitive Analyzers (8 specialized monitors):**
+| Analyzer | Purpose |
+|----------|---------|
+| `capabilities` | Tracks reasoning capability metrics |
+| `corrections` | Detects and logs reasoning errors |
+| `performance` | Monitors throughput, latency, resource usage |
+| `policy` | Validates actions against guardrails |
+| `quality` | Assesses coherence, relevance, completeness |
+| `reasoning-patterns` | Identifies recurring derivation structures |
+| `resources` | Tracks memory/CPU pressure, bag utilization |
+| `term-patterns` | Analyzes term usage and concept relationships |
+
+**Schema Induction — Learning Reusable Patterns:**
+```typescript
+import { SchemaInductor, createSchemaInductor } from '@senars/nar/learning';
+
+// LM proposes schemas from successful derivation chains
+// NARS validates and adopts as higher-order concepts
+const inductor = createSchemaInductor(memory, lmService);
+const schemas = await inductor.induceFromDerivations(derivations);
+// e.g. "(?A --> ?B) & (?B --> ?C) ==> (?A --> ?C)" [transitivity]
+```
+
+**Feedback Learning — Continuous Improvement:**
+```typescript
+import { FeedbackLearner, validateLMOutput } from '@senars/nar/learning';
+
+const learner = new FeedbackLearner();
+learner.onCorrection("cats are mammals", "(cat --> animal)", "(cat --> mammal)");
+learner.onDerivationOutcome(derivation, 'accepted');  // Tracks rule performance
+const adjustedPriority = learner.getAdjustedPriority(ruleId, basePriority);
+```
+
+**Reasoning About Reasoning (Metacognitive Self-Analysis):**
+```typescript
+import { ReasoningAboutReasoning } from '@senars/nar/self';
+
+const self = nar.getSelfAnalyzer();
+await self.performMetaCognitiveReasoning();  // Analyzes own reasoning quality
+await self.performSelfCorrection();          // Applies optimizations
+const gaps = await self.analyzeReasoningGaps();  // Missing rules, low-confidence beliefs
+const quality = await self.assessQuality();  // { coherence, relevance, completeness }
+const state = self.querySystemState();       // Full system snapshot
+```
+
+### 7. Grounding Pipeline — Sensory & Source Integration
+
+```typescript
+import { GroundingPipeline, SourceQuality } from '@senars/nar';
+
+const grounding = new GroundingPipeline(nar, memory, tools);
+
+// Ground facts with source quality assessment
+await grounding.groundFact("weather query", "weather.gov", SourceQuality.PRIMARY, "(temp --> 22).");
+
+// Auto-classify source credibility
+const quality = grounding.getSourceConfidence("pubmed.ncbi.nlm.nih.gov"); // PRIMARY
+```
+
+| Source Type | Quality | Truth Confidence |
+|-------------|---------|------------------|
+| Official/SEC/PubMed | PRIMARY | 0.9 |
+| Major news (Reuters, AP) | SECONDARY | 0.7 |
+| Wikipedia/News | GENERAL | 0.55 |
+| Blog/Forum | TERTIARY | 0.4 |
+| LLM Prior | LLM_PRIOR | 0.5 |
+
+### 8. Streaming Pipeline — Async Derivation Streams
+
+```typescript
+import { createPipeline, MemoryPremiseSource, FocusPremiseSource, CompositePremiseSource, derive, backpressureAware } from '@senars/nar/stream';
+
+// Priority-weighted sampling from memory
+const source = new MemoryPremiseSource(memory, 'priority-weighted');
+
+// Focus-only high-priority concepts
+const focus = new FocusPremiseSource(memory);
+
+// Composite with weighted sources
+const composite = new CompositePremiseSource([
+  { source, weight: 0.7 },
+  { focus, weight: 0.3 }
+]);
+
+// Full pipeline with CPU throttling & backpressure
+for await (const task of createPipeline(composite, memory, strategy, {
+  cpuThrottleMs: 10,
+  maxDepth: 10,
+  maxQueueSize: 1000,
+  maxDerivationsPerStep: 100
+})) {
+  // Process each derived task
+}
+```
+
+**Features:**
+- Multiple premise sources: priority-weighted, recency, novelty, fair, focus-based
+- Composite sources with configurable weights
+- CPU throttling & cooperative yielding
+- Backpressure-aware buffering
+- Configurable queue limits and derivation caps
+
+### 9. NAR Command System — CLI & Programmatic Control
+
+```typescript
+import { narCommands, rlfpCommands, selfCommands, configCommands, memoryCommands } from '@senars/nar/commands';
+
+// Built-in command categories
+narCommands      // believe, goal, question, run, stats, export, import
+rlfpCommands     // trajectory logging, preference collection, policy optimization
+selfCommands     // metacognitive analysis, quality assessment, gap detection
+configCommands   // get/set cognitive parameters, strategy switching
+memoryCommands   // concept inspection, belief/goal/question queries, attention report
+lmCommands       // LM rule management, enrichment triggering
+episodesCommands // episodic memory queries
+```
+
+### 10. LLM-Enhanced Rules — Dynamic Neuro-Symbolic Fusion
+
+```typescript
+import { LMRules, LMRule } from '@senars/nar/lm';
+import { createLMService } from '@senars/nar/lm/lm-service';
+
+const lmService = createLMService(config);
+const rules = LMRules.createAll(lmService);
+
+// Rule categories (each with specialized prompt templates):
+// - Belief Rules: semantic similarity, analogy, concept elaboration
+// - Goal Rules: goal decomposition, subgoal generation, planning
+// - Question Rules: question refinement, answer synthesis, clarification
+// - Meta Rules: error detection, strategy evaluation, resource estimation
+
+// Dynamic rule selection strategies
+AllSelector | PrioritySelector | RotationSelector | DiverseSelector
+```
+
+**LM Rule Features:**
+- Structured output via JSON schemas (function calling)
+- Bidirectional feedback: NAR ↔ LM correction loops
+- Proactive enrichment: LM generates background knowledge
+- Tool dispatching: LM rules can call NAR tools
+- Per-rule timeout & circuit breaker
+
+---
+
+### 11. Reinforcement Learning from Reasoning Feedback (RLFP)
 
 ```typescript
 import { RLFPLearner, PreferenceCollector, RewardModel, PolicyOptimizer } from '@senars/nar/rlfp';
@@ -314,7 +533,7 @@ const rlfp = nar.getRLFP();
 // Optimizes policy via RL (PPO/GRPO)
 ```
 
-### 8. Tools & Function Calling
+### 12. Tools & Function Calling
 
 ```typescript
 import { ToolManager, discoverTools, ExplainTool, SleepTool, TimerTool } from '@senars/nar/tools';
@@ -329,7 +548,7 @@ await tools.execute('timer', { action: 'start', name: 'reasoning' });
 async function myTool(args: { input: string }) { ... }
 ```
 
-### 9. Natural Language Interface
+### 13. Natural Language Interface
 
 ```typescript
 import { NLUnderstandingService, NLGenerationService, ContextAssembler } from '@senars/nar/nl';
@@ -350,7 +569,7 @@ const answer = await generation.generate({
 const answer = await nar.askNaturalLanguage("What is Whiskers?");
 ```
 
-### 10. MeTTa — Meta Type Theory Engine
+### 14. MeTTa — Meta Type Theory Engine
 
 A **second reasoning engine** running alongside NAR, providing equality saturation, pattern matching, and dependent type theory:
 
@@ -412,7 +631,7 @@ const agent = await createAgent({ /* config */ });
 // MeTTa input: metta: (= (add $x 0) $x)
 ```
 
-### 11. Cognitive Parameters & Strategy System
+### 15. Cognitive Parameters & Strategy System
 
 **Tunable Hyperparameters** — All behavior is controlled via `CognitiveParameters` with validated ranges:
 
@@ -450,7 +669,7 @@ import { CognitiveParameters, DEFAULT_COGNITIVE_PARAMETERS, FAST_COGNITIVE_CONFI
 - RL-based policy optimization (RLFP)
 - Evolutionary parameter tuning
 
-### 12. Lens System — Declarative UI Projections
+### 16. Lens System — Declarative UI Projections
 
 **Lenses** map cognitive state to visual channels (color, size, opacity, stroke) via a composable AST:
 
@@ -475,7 +694,7 @@ import { LensSpec, ModulationSchema, builtinLensSpecs, isBuiltinLens } from '@se
 
 Operations: `const`, `field`, `channel`, `when`, `union` — enabling arbitrary visual mappings.
 
-### 13. Protocol — Client/Server Cognitive Sync
+### 17. Protocol — Client/Server Cognitive Sync
 
 Real-time WebSocket protocol for UI synchronization:
 
@@ -790,18 +1009,45 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 ```
                     High Reasoning Depth
                            │
-              SeNARS ──────┼──────── Expert Systems
-         (hybrid, adaptive) │        (rigid, complete)
+               SeNARS ──────┼──────── Expert Systems
+          (hybrid, adaptive) │        (rigid, complete)
                            │
       Low Adaptability ────┼───────── High Adaptability
                            │
-            Rule Engines ──┼────────── LLMs
-           (fast, simple)  │         (flexible, shallow)
+             Rule Engines ──┼────────── LLMs
+            (fast, simple)  │         (flexible, shallow)
                            │
-                    Low Reasoning Depth
+                     Low Reasoning Depth
 ```
 
 **Unique Position:** Practical hybrid that works where both pure LLMs and pure logic systems fail.
+
+### Detailed Ecosystem Comparison
+
+| Feature | Pure LLM Agents (LangChain, AutoGen) | Pure Symbolic (Prolog, Expert Systems) | **SeNARS12 (Cognitive Kernel)** |
+|---------|--------------------------------------|----------------------------------------|----------------------------------|
+| **Reasoning** | Shallow, Probabilistic | Deep, Rigid | **Deep, Adaptive (NAL + MeTTa)** |
+| **Input** | Natural Language | Formal Logic | **Natural Language → Formal Logic** |
+| **Memory** | Vector Store (RAG) | Static Database | **Dynamic, Priority-Based Concept Network** |
+| **Resource Mgmt** | Infinite (Cloud API) | Fixed | **AIKR (Bounded, Anytime, Edge-Ready)** |
+| **Auditability** | Low (Black Box) | High (Proof Trees) | **High (Derivation Traces + NL Explanation)** |
+| **Learning** | In-context / Fine-tune | Manual KB update | **RLFP + Schema Induction + Episodic** |
+| **Type Safety** | Runtime / None | Compile-time (limited) | **TypeScript Phantom Types + NAL Semantics** |
+
+---
+
+## 🏁 The Verdict
+
+**SeNARS12 is necessary because the current AI paradigm is incomplete.** We have mastered the "System 1" of AI (fast, intuitive, linguistic), but we have neglected the "System 2" (slow, logical, deliberative).
+
+By building a system that:
+- **Respects the limits of computation** (AIKR)
+- **Leverages modern type systems for safety** (TypeScript as reasoning layer)
+- **Adopts pragmatic, self-correcting loops** (minimalist agent architecture)
+
+SeNARS12 is not just a research project — it is the blueprint for the next generation of **Sovereign, Auditable, and Truly Intelligent Agents.**
+
+The code is the foundation. The next step is building the bridge — the tight, robust agent loop — that allows this cognitive engine to run continuously in the real world.
 
 ---
 
@@ -832,6 +1078,13 @@ See `CONTRIBUTING.md` (to be created) and `AGENTS.md` for code guidelines.
 | **Strategies** | `SamplingStrategy`, `DerivationStrategy`, `AttentionModel` | `@senars/nar/strategies` |
 | **NL** | `NLUnderstandingService`, `NLGenerationService` | `@senars/nar/nl` |
 | **Tools** | `ToolManager`, `discoverTools`, `ExplainTool` | `@senars/nar/tools` |
+| **Learning** | `SchemaInductor`, `FeedbackLearner`, `validateLMOutput` | `@senars/nar/learning` |
+| **Self-Reasoning** | `ReasoningAboutReasoning`, `SelfAnalyzer`, `MetacognitiveMonitor` | `@senars/nar/self` |
+| **Cognitive Analyzers** | `capabilities`, `performance`, `quality`, `reasoning-patterns`, ... | `@senars/nar/cognitive/analyzers` |
+| **Grounding** | `GroundingPipeline`, `SourceQuality` | `@senars/nar` |
+| **Streaming** | `createPipeline`, `MemoryPremiseSource`, `FocusPremiseSource`, `derive` | `@senars/nar/stream` |
+| **Commands** | `narCommands`, `rlfpCommands`, `selfCommands`, `configCommands` | `@senars/nar/commands` |
+| **LM Rules** | `LMRules`, `LMRule`, `LMRuleFactory` | `@senars/nar/lm` |
 | **MeTTa** | `createMeTTa`, `parseMeTTa`, `EGraph`, `MeTTaRuntime` | `@senars/metta` |
 | **MeTTa Engine** | `MettaEngine`, `MettaCommandParser` | `@senars/metta/agent` |
 | **Core Agent** | `Agent`, `createAgent`, `LLMCortex`, `MemoryService` | `@senars/core` |
