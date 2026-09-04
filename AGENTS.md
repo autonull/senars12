@@ -5,7 +5,6 @@
 - Consistent
 - Organized
 - Deeply deduplicated: Don't repeat yourself (DRY)
-
 - Abstract
 - Modularized
 - Parameterized
