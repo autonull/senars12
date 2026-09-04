@@ -1,13 +1,12 @@
+import { generateObject, type LanguageModel, zodSchema } from 'ai';
+import type { ZodSchema } from 'zod';
 import type { Term } from '../terms';
 import { Truth, termParser } from '../terms';
 import type { Truth as TruthType } from '../terms/truth.js';
 import type { Budget, Task, TaskType } from '../types';
-import { type NAREventMap, type EventBus as NarEventBus, createTask } from '../types';
+import { createTask, type NAREventMap, type EventBus as NarEventBus } from '../types';
 import { CircuitBreaker, errMsg } from '../utils';
 import type { LMExecutionStats, LMRuleConfig, LMRuleStats, LMService } from './lm-service.js';
-
-import { type LanguageModel, generateObject, zodSchema } from 'ai';
-import type { ZodSchema } from 'zod';
 
 const defaultStats = (): LMExecutionStats => ({
   totalCalls: 0,

@@ -1,8 +1,8 @@
+// embedding-demo.mjs
+import { T } from '../../core/src/functor/backends/NativeBackend.js';
 import { LossFunctor } from '../../core/src/functor/LossFunctor.js';
 import { Embedding, Linear, Module } from '../../core/src/functor/Module.js';
 import { AdamOptimizer } from '../../core/src/functor/Optimizer.js';
-// embedding-demo.mjs
-import { T } from '../../core/src/functor/backends/NativeBackend.js';
 
 console.log('=== Embedding Layer ===\n');
 

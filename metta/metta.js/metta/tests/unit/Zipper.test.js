@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from '@jest/globals';
-import { Zipper, exp, sym } from '../../src/index.js';
+import { exp, sym, Zipper } from '../../src/index.js';
 
 describe('Zipper', () => {
   describe('Construction', () => {

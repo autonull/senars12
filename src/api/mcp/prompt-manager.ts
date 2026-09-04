@@ -3,7 +3,7 @@
  * Handles prompt primitive for MCP protocol
  */
 
-import { type Logger, createLogger } from '../../../nar/src/logger';
+import { createLogger, type Logger } from '../../../nar/src/logger';
 import type { MCPContent, MCPMessage, PromptArgument, PromptTemplate } from './types.js';
 
 /**

@@ -1,6 +1,7 @@
 import { monotonicFactory } from 'ulid';
 
 const ulid = monotonicFactory();
+
 import Database from 'better-sqlite3';
 import { AbstractEventLog } from './AbstractEventLog.js';
 import type { CognitiveEvent, EventLogConfig } from './EventLog.js';

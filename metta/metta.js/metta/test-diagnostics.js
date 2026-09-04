@@ -5,9 +5,9 @@
  * Usage: NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-vm-modules node metta/test-diagnostics.js
  */
 
-import { createMeTTa } from './src/MeTTa.js';
 import { Term } from './src/kernel/Term.js';
 import { Unify } from './src/kernel/Unify.js';
+import { createMeTTa } from './src/MeTTa.js';
 
 const { sym, exp, isList, isExpression } = Term;
 

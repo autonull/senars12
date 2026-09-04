@@ -1,6 +1,6 @@
+import { Logger } from '@senars/core';
 import fs from 'fs';
 import path from 'path';
-import { Logger } from '@senars/core';
 import { Space } from '../kernel/Space.js';
 import { exp, isExpression, sym } from '../kernel/Term.js';
 

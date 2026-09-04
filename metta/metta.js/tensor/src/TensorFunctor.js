@@ -1,8 +1,8 @@
+import { NativeBackend } from './backends/NativeBackend.js';
 import { LossFunctor } from './LossFunctor.js';
 import { AdamOptimizer, SGDOptimizer } from './Optimizer.js';
 import { Tensor } from './Tensor.js';
 import { TruthTensorBridge } from './TruthTensorBridge.js';
-import { NativeBackend } from './backends/NativeBackend.js';
 
 export class TensorFunctor {
   static _TENSOR_OPS = new Set([

@@ -1,2 +1,2 @@
+export { Concept, ConceptBag } from './concept-bag.js';
 export { Stamp } from './stamp.js';
-export { ConceptBag, Concept } from './concept-bag.js';

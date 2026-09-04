@@ -1,9 +1,15 @@
 import { Effect } from 'effect';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { clearOps } from '../src/core/ops.js';
-import { MeTTaBuilder, MeTTaRuntime, createMeTTa } from '../src/index.js';
-import { expr, num, sym } from '../src/index.js';
-import { bootstrapStdLib } from '../src/index.js';
+import {
+  bootstrapStdLib,
+  createMeTTa,
+  expr,
+  MeTTaBuilder,
+  MeTTaRuntime,
+  num,
+  sym,
+} from '../src/index.js';
 
 beforeEach(() => {
   clearOps();

@@ -1,6 +1,6 @@
 import { configManager } from '../config/config.js';
 import { SMTBridge } from '../extensions/SMTOps.js';
-import { TYPE_SYMBOL, isSymbol as fastIsSymbol, getTypeTag } from './FastPaths.js';
+import { isSymbol as fastIsSymbol, getTypeTag, TYPE_SYMBOL } from './FastPaths.js';
 import { constructList, exp, flattenList, isExpression, isList, isVariable, sym } from './Term.js';
 
 function isVar(t) {

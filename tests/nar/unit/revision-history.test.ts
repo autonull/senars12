@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Memory, TermBuilder, Truth, createBudget, termParser } from '../../../nar/src';
+import { createBudget, Memory, TermBuilder, Truth, termParser } from '../../../nar/src';
 import { SeNARSFactory } from '../../../nar/src/factory.js';
 
 describe('Pillar 1: revision history', () => {

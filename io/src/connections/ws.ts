@@ -4,13 +4,13 @@ import { createLogger } from '../logger';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { startWSServer } from '../utils/http.js';
 import {
-  type WSClient,
   broadcastToSubscribers,
   cleanupWSClient,
   sendHeartbeat,
   sendWSMessage,
   subscribeToEvents,
   unsubscribeFromEvents,
+  type WSClient,
 } from '../utils/websocket.js';
 import { BaseConnection } from './base.js';
 

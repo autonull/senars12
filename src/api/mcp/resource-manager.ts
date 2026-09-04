@@ -3,7 +3,7 @@
  * Handles resource primitive for MCP protocol
  */
 
-import { type Logger, createLogger } from '../../../nar/src/logger';
+import { createLogger, type Logger } from '../../../nar/src/logger';
 import { toError } from '../../../nar/src/utils';
 import type { ResourceDescriptor } from './types.js';
 

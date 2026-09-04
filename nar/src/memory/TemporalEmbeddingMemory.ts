@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 import { makeId } from '../utils';
-import { type EmbeddingGenerator, createEmbeddingGenerator } from './embedding.js';
+import { createEmbeddingGenerator, type EmbeddingGenerator } from './embedding.js';
 import type { EmbeddingLayer } from './links/EmbeddingLayer.js';
 
 export interface EpisodeMetadata {

@@ -12,13 +12,13 @@ const BASE_DIR = join(__dirname, '../..');
 
 export {
   BASE_DIR,
+  findArgValue,
   getBaseDir,
   getScriptDir,
   parseArgs,
+  parseKeyValueArgs,
   showUsageAndExit,
   spawnProcess,
-  parseKeyValueArgs,
-  findArgValue,
 };
 
 const getBaseDir = () => BASE_DIR;

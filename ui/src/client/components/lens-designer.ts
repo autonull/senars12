@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { LensSpecSchema } from '../../shared/lens-schema.js';
 import type { LensSpec, ModulationSpec } from '../../shared/lens-schema.js';
+import { LensSpecSchema } from '../../shared/lens-schema.js';
 import {
   $activeLens,
   $graphNodes,

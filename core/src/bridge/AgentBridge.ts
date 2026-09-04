@@ -2,7 +2,7 @@ import type { Agent } from '../Agent.js';
 import type { CognitiveEvent } from '../CognitiveEvent.js';
 import type { BridgeEvent } from './types.js';
 
-export type { BridgeEvent, BridgeDelta } from './types.js';
+export type { BridgeDelta, BridgeEvent } from './types.js';
 
 export class AgentBridge {
   readonly agent: Agent;

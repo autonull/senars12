@@ -315,8 +315,7 @@ export class MetacognitiveMonitor {
         if (currentMonitor.history.length > 1) {
           const values = currentMonitor.history.map((h) => h.value);
           const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-          const variance =
-            values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+          const variance = values.reduce((sum, val) => sum + (val - mean) ** 2, 0) / values.length;
           currentMonitor.stability = 1 / (1 + Math.sqrt(variance));
         }
 

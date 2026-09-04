@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { App } from '@senars/agent';
 import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { CommandExecutorTool } from '../../core/src/tool/CommandExecutorTool.js';
 import { FileOperationsTool } from '../../core/src/tool/FileOperationsTool.js';
 

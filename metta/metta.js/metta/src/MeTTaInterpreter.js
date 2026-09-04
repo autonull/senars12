@@ -15,9 +15,7 @@ function createTermFactory() {
   };
 }
 
-import { Parser } from './Parser.js';
-import { TypeChecker, TypeSystem } from './TypeSystem.js';
-import { ExtensionRegistry, configManager, registerMeTTaExtensions } from './config/index.js';
+import { configManager, ExtensionRegistry, registerMeTTaExtensions } from './config/index.js';
 import { ChannelExtension, NeuralBridge, ReactiveSpace } from './extensions/index.js';
 import { BaseMeTTaComponent } from './helpers/BaseMeTTaComponent.js';
 import {
@@ -31,6 +29,8 @@ import { Formatter } from './kernel/Formatter.js';
 import { Ground } from './kernel/Ground.js';
 import { MemoizationCache } from './kernel/MemoizationCache.js';
 import { ModuleLoader } from './kernel/ModuleLoader.js';
+import { OperationHelpers } from './kernel/ops/index.js';
+import { registerConfigOps } from './kernel/ops/StateOps.js';
 import {
   match,
   reduce,
@@ -41,10 +41,10 @@ import {
   step,
 } from './kernel/Reduce.js';
 import { ReductionCache } from './kernel/ReductionCache.js';
-import { Term, flattenList, isExpression, isList } from './kernel/Term.js';
-import { registerConfigOps } from './kernel/ops/StateOps.js';
-import { OperationHelpers } from './kernel/ops/index.js';
+import { flattenList, isExpression, isList, Term } from './kernel/Term.js';
+import { Parser } from './Parser.js';
 import { loadStdlib } from './stdlib/StdlibLoader.js';
+import { TypeChecker, TypeSystem } from './TypeSystem.js';
 
 export class MeTTaInterpreter extends BaseMeTTaComponent {
   constructor(reasoner, options = {}) {

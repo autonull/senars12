@@ -1,4 +1,4 @@
-import { Memory, type Term, TermBuilder, Truth, createBudget, isAtomic } from '../../../nar/src';
+import { createBudget, isAtomic, Memory, type Term, TermBuilder, Truth } from '../../../nar/src';
 
 describe('Memory', () => {
   let mem: Memory;

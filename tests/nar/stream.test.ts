@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import type { Memory } from '../../nar/src';
 import { BagStrategy, SeNARSFactory } from '../../nar/src';
 import {
-  FocusPremiseSource,
-  MemoryPremiseSource,
   backpressureAware,
   createPipeline,
+  FocusPremiseSource,
+  MemoryPremiseSource,
   throttled,
 } from '../../nar/src/stream';
 

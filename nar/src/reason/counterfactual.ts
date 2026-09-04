@@ -1,6 +1,6 @@
 import type { NAR } from '../nar.js';
 import type { Term } from '../terms';
-import { TermSet, Truth, containsSubterm, getSubject } from '../terms';
+import { containsSubterm, getSubject, TermSet, Truth } from '../terms';
 
 export interface CounterfactualReport {
   possible: boolean;

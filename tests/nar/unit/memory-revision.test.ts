@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Concept, Memory, TermBuilder, Truth, createBudget } from '../../../nar/src';
+import { Concept, createBudget, Memory, TermBuilder, Truth } from '../../../nar/src';
 
 describe('Phase 5.5: Belief Revision and Deduplication', () => {
   it('should add belief to concept', () => {

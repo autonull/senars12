@@ -1,4 +1,4 @@
-import { Trampoline, bounce } from '../../../../metta/src/kernel/TCO.js';
+import { bounce, Trampoline } from '../../../../metta/src/kernel/TCO.js';
 
 describe('TCO (Tail Call Optimization)', () => {
   // Recursive function that blows stack without TCO

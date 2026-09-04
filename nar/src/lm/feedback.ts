@@ -2,7 +2,7 @@ import { createLogger } from '../logger';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { TermMap, Truth } from '../terms';
-import { type Task, createBudget, createTask } from '../types';
+import { createBudget, createTask, type Task } from '../types';
 import { clamp01, errMsg } from '../utils';
 import { parseEnrichmentResponse } from './enrichment.js';
 import type { LMService } from './lm-service.js';

@@ -1,12 +1,12 @@
-import { LossFunctor } from '../../core/src/functor/LossFunctor.js';
-import { Linear } from '../../core/src/functor/Module.js';
-import { SGDOptimizer } from '../../core/src/functor/Optimizer.js';
-import { MetricsTracker } from '../../core/src/functor/TrainingUtils.js';
 /**
  * Linear Regression — Learn y = mx + b with gradient descent
  * Run: node examples/tensor-logic/linear-regression.mjs
  */
 import { T } from '../../core/src/functor/backends/NativeBackend.js';
+import { LossFunctor } from '../../core/src/functor/LossFunctor.js';
+import { Linear } from '../../core/src/functor/Module.js';
+import { SGDOptimizer } from '../../core/src/functor/Optimizer.js';
+import { MetricsTracker } from '../../core/src/functor/TrainingUtils.js';
 
 console.log('=== Tensor Logic: Linear Regression ===\n');
 

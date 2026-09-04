@@ -4,8 +4,8 @@ import { classMap } from 'lit/directives/class-map.js';
 import {
   $graphNodes,
   $streamingDelta,
-  BaseComponent,
   addUserMessage,
+  BaseComponent,
   send,
 } from '../core/index.js';
 

@@ -1,5 +1,5 @@
 import { runComparison } from '../src/config.js';
-import { Space, Unify, sym, symbolEq } from '../src/index.js';
+import { Space, sym, symbolEq, Unify } from '../src/index.js';
 
 export const BENCHMARKS = [
   {

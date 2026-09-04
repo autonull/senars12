@@ -7,7 +7,7 @@ import type { Reasoner } from './reason';
 import { BagStrategy } from './reason';
 import type { PolicyOptimizer, RLFPLearner } from './rlfp';
 import type { ReasoningAboutReasoning } from './self';
-import { MemoryPremiseSource, createPipeline } from './stream';
+import { createPipeline, MemoryPremiseSource } from './stream';
 import type { TaskManager } from './task';
 import { PhaseTimer } from './trace';
 import type { Task } from './types';

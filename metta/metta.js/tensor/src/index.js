@@ -1,5 +1,5 @@
-import { Tensor } from './Tensor.js';
 import { T } from './backends/NativeBackend.js';
+import { Tensor } from './Tensor.js';
 
 // --- Static Methods ---
 Tensor.zeros = (shape) => T.zeros(shape);
@@ -48,15 +48,15 @@ VALID_OPS.forEach((op) => {
   };
 });
 
-export * from './Tensor.js';
-export * from './Optimizer.js';
+export { backend, NativeBackend } from './backends/NativeBackend.js';
+export { TensorBackend } from './backends/TensorBackend.js';
 export * from './LossFunctor.js';
 export * from './Module.js';
-export * from './TruthTensorBridge.js';
-export * from './TensorFunctor.js';
+export * from './Optimizer.js';
 export * from './SymbolicTensor.js';
+export * from './Tensor.js';
+export * from './TensorFunctor.js';
 export * from './TensorLogicBridge.js';
 export * from './TrainingUtils.js';
+export * from './TruthTensorBridge.js';
 export { T as torch };
-export { TensorBackend } from './backends/TensorBackend.js';
-export { NativeBackend, backend } from './backends/NativeBackend.js';

@@ -6,7 +6,7 @@
  * Target: ≥20× faster than baseline on depth 50 expressions.
  */
 
-import { MeTTaInterpreter, Zipper, exp, sym } from '../src/index.js';
+import { exp, MeTTaInterpreter, sym, Zipper } from '../src/index.js';
 
 /**
  * Create a deeply nested expression

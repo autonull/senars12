@@ -5,8 +5,8 @@
 import { Truth } from '../terms';
 import { NALExtendedRules } from './extended/index.js';
 import { NALRules } from './nal/index.js';
-import { RuleRegistry, createRulePattern } from './types.js';
 import type { RuleDef, RuleFn, TruthFn } from './types.js';
+import { createRulePattern, RuleRegistry } from './types.js';
 
 const _rule = (
   id: string,
@@ -431,4 +431,4 @@ const NAL_EXTENDED_RULES: RuleDef[] = [
 registerRulesFromDSL(NAL_RULES);
 registerRulesFromDSL(NAL_EXTENDED_RULES);
 
-export { registerRulesFromDSL, NAL_RULES, NAL_EXTENDED_RULES };
+export { NAL_EXTENDED_RULES, NAL_RULES, registerRulesFromDSL };

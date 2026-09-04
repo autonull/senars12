@@ -70,7 +70,7 @@ export const deepClone = (obj) => {
   if (typeof obj === 'object') {
     const copy = {};
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
+      if (Object.hasOwn(obj, key)) {
         copy[key] = deepClone(obj[key]);
       }
     }

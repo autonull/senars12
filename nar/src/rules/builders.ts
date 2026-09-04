@@ -2,7 +2,7 @@
  * Rule result builders shared across NAL rule definitions.
  */
 import type { Term } from '../terms';
-import { TermBuilder, getPredicate, getSubject, termsEqual } from '../terms';
+import { getPredicate, getSubject, TermBuilder, termsEqual } from '../terms';
 import { ID, sameSubject } from './extractors.js';
 import { buildBinaryInhRule, buildInhRule } from './rule-builder.js';
 import type { RuleFn } from './types.js';

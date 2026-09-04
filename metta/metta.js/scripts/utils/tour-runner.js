@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
-import path from 'path';
 import fs from 'fs/promises';
+import path from 'path';
 import WebSocket from 'ws';
 import { waitForWebSocket } from './network-utils.js';
 import ProcessUtils from './process-utils.js';

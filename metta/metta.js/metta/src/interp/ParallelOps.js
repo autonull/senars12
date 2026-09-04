@@ -4,8 +4,8 @@
 
 import { Term } from '../kernel/Term.js';
 import { Unify } from '../kernel/Unify.js';
-import { WorkerPool } from '../platform/WorkerPool.js';
 import { ENV } from '../platform/env.js';
+import { WorkerPool } from '../platform/WorkerPool.js';
 
 export function registerParallelOps(interpreter) {
   const { sym, exp } = Term;

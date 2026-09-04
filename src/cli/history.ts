@@ -1,7 +1,7 @@
 /**
  * Command history management
  */
-import { promises as fs, existsSync } from 'fs';
+import { existsSync, promises as fs } from 'fs';
 import { errMsg } from '../../nar/src/utils';
 
 const HISTFILE = process.env.SENARS_HISTFILE || '/tmp/senars_history';

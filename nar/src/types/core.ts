@@ -7,10 +7,10 @@ import type { Term } from '../terms';
 import { Stamp, Truth } from '../terms';
 import type { Truth as TruthType } from '../terms/truth.js';
 
-// Re-export domain types
-export type { Term, AtomicTerm, CompoundTerm } from '../terms/types.js';
+export type { Source, Stamp } from '../terms/stamp.js';
 export type { Truth as TruthType } from '../terms/truth.js';
-export type { Stamp, Source } from '../terms/stamp.js';
+// Re-export domain types
+export type { AtomicTerm, CompoundTerm, Term } from '../terms/types.js';
 
 // Core identity and hashing
 
@@ -145,31 +145,29 @@ export function assertBeliefTask(task: Task): asserts task is Task & { truth: Tr
  * @deprecated Will be removed in next major version.
  * Use `import { SenarsError } from '@senars/util'` instead.
  */
-export { SenarsError as NARError } from '@senars/util';
-
 /**
  * @deprecated Will be removed in next major version.
  * Use `import { ValidationError } from '@senars/util'` instead.
  */
-export { ValidationError } from '@senars/util';
-
 /**
  * @deprecated Will be removed in next major version.
  * Use `import { ConfigurationError } from '@senars/util'` instead.
  */
-export { ConfigurationError } from '@senars/util';
-
 /**
  * @deprecated Will be removed in next major version.
  * Use `import { OperationError } from '@senars/util'` instead.
  */
-export { OperationError } from '@senars/util';
-
 /**
  * @deprecated Will be removed in next major version.
  * Use `import { ToolError } from '@senars/util'` instead.
  */
-export { ToolError } from '@senars/util';
+export {
+  ConfigurationError,
+  OperationError,
+  SenarsError as NARError,
+  ToolError,
+  ValidationError,
+} from '@senars/util';
 
 // Query filter types
 export interface TermFilter {

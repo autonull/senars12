@@ -6,11 +6,11 @@
 
 import type { Budget, Task, TaskType, Term, Truth as TruthType } from '../../../nar/src';
 import {
+  createBudget as createBudgetFn,
+  createTask as createTaskFn,
   Stamp,
   TermBuilder,
   Truth,
-  createBudget as createBudgetFn,
-  createTask as createTaskFn,
 } from '../../../nar/src';
 
 // =============================================================================

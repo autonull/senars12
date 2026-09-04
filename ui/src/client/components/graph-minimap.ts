@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { $graphEdges, $graphNodes, $viewport, BaseComponent, eventBus } from '../core/index.js';
-import { TOKEN_COLORS, cssToken } from '../utils/token-colors.js';
+import { cssToken, TOKEN_COLORS } from '../utils/token-colors.js';
 
 const MINIMAP_SIZE = 160;
 const PADDING = 10;

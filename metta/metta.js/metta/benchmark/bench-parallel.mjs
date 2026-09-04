@@ -6,7 +6,7 @@
  * Target: >4× single-thread speedup on multi-core when superpose width > 200.
  */
 
-import { MeTTaInterpreter, ParallelExecutor, exp, sym } from '../src/index.js';
+import { exp, MeTTaInterpreter, ParallelExecutor, sym } from '../src/index.js';
 
 /**
  * Generate a large superpose expression

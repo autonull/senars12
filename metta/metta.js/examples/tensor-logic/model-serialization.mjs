@@ -1,5 +1,5 @@
-import { Linear, Module, Sequential } from '../../core/src/functor/Module.js';
 import { T } from '../../core/src/functor/backends/NativeBackend.js';
+import { Linear, Module, Sequential } from '../../core/src/functor/Module.js';
 
 console.log('=== Tensor Logic: Model Serialization ===\n');
 

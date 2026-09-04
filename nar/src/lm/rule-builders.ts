@@ -140,10 +140,10 @@ const getRuleDef = (id: string): LMRuleDefinition => {
 };
 
 export {
-  NARSESE_INSTRUCTIONS,
-  parseResponse,
-  createTaskGen,
   createCustomRule,
   createRule,
+  createTaskGen,
   getRuleDef,
+  NARSESE_INSTRUCTIONS,
+  parseResponse,
 };

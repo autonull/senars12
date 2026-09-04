@@ -1,9 +1,9 @@
 import type { Term } from '../../terms';
 import { termsEqual } from '../../terms';
 import {
-  type EmbeddingGenerator,
   cosineSimilarity,
   createEmbeddingGenerator,
+  type EmbeddingGenerator,
 } from '../embedding.js';
 import { Layer } from './Layer.js';
 import type { LinkEntry } from './types.js';

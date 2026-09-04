@@ -1,13 +1,13 @@
 export {
   clamp,
   clamp01,
-  safeDiv,
-  makeId,
-  isNil,
+  compact,
   ensureArray,
   errMsg,
-  toError,
+  isNil,
+  makeId,
+  safeDiv,
   sleep,
-  compact,
+  toError,
   wordOverlap,
 } from '@senars/util';

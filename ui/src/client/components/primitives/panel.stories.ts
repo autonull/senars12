@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/web-components-vite';
 import { html } from 'lit';
-import '../src/client/components/primitives/panel.js';
+import './panel.ts';
 
 const meta: Meta = {
   title: 'Primitives/Panel',

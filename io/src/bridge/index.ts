@@ -1,3 +1,4 @@
+export { createConnectionConfigsFromEnv } from './ConfigFromEnv.js';
 export {
   bindAgentToConnection,
   createAgentDispatch,
@@ -7,8 +8,7 @@ export {
 export {
   createAuthMiddleware,
   createCommandInterceptor,
-  createSessionBinder,
-  createRateLimiter,
   createErrorBoundary,
+  createRateLimiter,
+  createSessionBinder,
 } from './MiddlewarePipeline.js';
-export { createConnectionConfigsFromEnv } from './ConfigFromEnv.js';

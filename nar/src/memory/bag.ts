@@ -60,7 +60,7 @@ const SAMPLE_FN: Record<
   },
   recency: (h, o) => {
     const cutoff = Date.now() - (o.windowMs as number);
-    let best = undefined;
+    let best;
     let bestLastAccess = -1;
     for (let i = 0; i < h.length; i++) {
       const e = h[i];

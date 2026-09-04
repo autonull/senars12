@@ -1,12 +1,11 @@
+export type { PipelineConfig, PremiseSource } from './pipeline.js';
 export {
-  createPipeline,
-  MemoryPremiseSource,
-  FocusPremiseSource,
+  backpressureAware,
   CompositePremiseSource,
+  createPipeline,
+  derive,
+  FocusPremiseSource,
+  MemoryPremiseSource,
   PremiseSourceBase,
   throttled,
-  backpressureAware,
-  derive,
 } from './pipeline.js';
-
-export type { PremiseSource, PipelineConfig } from './pipeline.js';

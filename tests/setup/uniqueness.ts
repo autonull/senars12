@@ -61,7 +61,6 @@ export function validateRegistry(): { valid: boolean; issues: string[] } {
 
   for (const [, block] of registry) {
     if (block.testNames.size === 0) {
-      continue;
     }
   }
 

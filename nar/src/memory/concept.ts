@@ -1,6 +1,6 @@
 import { LINK } from '../constants.js';
 import type { Term, Truth } from '../terms';
-import { type Stamp, TermMap, TermSet, extractSymbols, termsEqual } from '../terms';
+import { extractSymbols, type Stamp, TermMap, TermSet, termsEqual } from '../terms';
 import { Truth as TruthOps } from '../terms/truth.js';
 import type { Budget, TaskType } from '../types';
 import { clamp01, jaccard } from '../utils';

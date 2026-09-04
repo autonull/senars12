@@ -1,88 +1,77 @@
 // Core types
-export type { Term, AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol } from './types.js';
+export type { AtomicTerm, CompoundTerm, OperatorKey, OperatorSymbol, Term } from './types.js';
 export {
-  OPERATORS,
-  isVariableSymbol,
+  getTermArg,
+  getTermArgs,
   isAtomic,
   isCompound,
-  getTermArgs,
-  getTermArg,
+  isVariableSymbol,
+  OPERATORS,
 } from './types.js';
 
 // Utilities
 import { trackTerm } from '../memory';
 
-export { trackTerm };
-
-export { TermBuilder, freeze, TermFactory } from './factory.js';
-// Convenience export for atom function
-export { atom } from './factory.js';
-
-// Serialization
-export { serializeTerm, deserializeTerm, toNarsese, fromNarsese } from './serialize.js';
-
-// Complexity and similarity
-export { getTermComplexity } from './complexity.js';
-export { getTermSimilarity } from './similarity.js';
-
-// Variable substitution
-export { substituteVariables } from './substitute.js';
-
-// Truth and stamp systems
-export { Truth, isTruthEqual } from './truth.js';
-export type { Truth as TruthType } from './truth.js';
-export { Stamp } from './stamp.js';
-export type { Stamp as StampType, Source } from './stamp.js';
-
-// Normalization
-export { normalize } from './normalize.js';
-export type { TermVisitorFn } from './normalize.js';
-
-// Unification
-export { unify } from './unifier.js';
-export type { Substitution } from './unifier.js';
-export { termParser, TermParser, ParseError } from './parser-peggy.js';
-export type { ParserResult, ParseTaskResult, TaskTypeName } from './parser-peggy.js';
-
 // Accessors
 export {
-  isInheritance,
-  isSimilarity,
-  isImplication,
-  isEquivalence,
+  containsSubterm,
+  getAntecedent,
+  getArgs,
+  getConsequent,
+  getPredicate,
+  getSubject,
   isConjunction,
   isDisjunction,
-  isNegation,
+  isEquivalence,
+  isImplication,
+  isInheritance,
   isInstance,
-  isProperty,
-  isSequence,
+  isNegation,
+  isOperation,
   isParallel,
   isPredictive,
+  isProperty,
   isRetrospective,
-  isOperation,
-  getSubject,
-  getPredicate,
-  getAntecedent,
-  getConsequent,
-  getArgs,
-  termsEqual,
-  sameKind,
-  visitTerms,
-  containsSubterm,
-  sharesSymbol,
+  isSequence,
+  isSimilarity,
   mentionsSymbol,
+  sameKind,
+  sharesSymbol,
+  termsEqual,
+  visitTerms,
 } from './accessors.js';
-
+// Complexity and similarity
+export { getTermComplexity } from './complexity.js';
+// Convenience export for atom function
+export { atom, freeze, TermBuilder, TermFactory } from './factory.js';
+export type { TermVisitorFn } from './normalize.js';
+// Normalization
+export { normalize } from './normalize.js';
+export type { ParserResult, ParseTaskResult, TaskTypeName } from './parser-peggy.js';
+export { ParseError, TermParser, termParser } from './parser-peggy.js';
+// Serialization
+export { deserializeTerm, fromNarsese, serializeTerm, toNarsese } from './serialize.js';
+export { getTermSimilarity } from './similarity.js';
+export type { Source, Stamp as StampType } from './stamp.js';
+export { Stamp } from './stamp.js';
+// Variable substitution
+export { substituteVariables } from './substitute.js';
 // Term-based collections
 export { TermCollection } from './term-collection.js';
-export { TermSet } from './term-set.js';
-export { TermMap } from './term-map.js';
-
-// Utilities
-export { extractSymbols, calculateSimilarity } from './utils.js';
-
-// Validation
-export { isTautology, isInvalidTaskTerm, validateTaskTerm } from './validation.js';
-
 // Term edges
 export { parseTermToEdges, type TermEdge } from './term-edges.js';
+export { TermMap } from './term-map.js';
+export { TermSet } from './term-set.js';
+export type { Truth as TruthType } from './truth.js';
+// Truth and stamp systems
+export { isTruthEqual, Truth } from './truth.js';
+export type { Substitution } from './unifier.js';
+// Unification
+export { unify } from './unifier.js';
+
+// Utilities
+export { calculateSimilarity, extractSymbols } from './utils.js';
+
+// Validation
+export { isInvalidTaskTerm, isTautology, validateTaskTerm } from './validation.js';
+export { trackTerm };

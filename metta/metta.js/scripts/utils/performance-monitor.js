@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 import { exec, spawn } from 'child_process';
+import { writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { writeFile } from 'fs/promises';
 
 const execAsync = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);

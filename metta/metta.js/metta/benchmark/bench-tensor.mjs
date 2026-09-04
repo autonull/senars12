@@ -6,10 +6,10 @@
  * Target: <5× PyTorch/WASM latency, XOR training ≥95% accuracy in ≤200 epochs.
  */
 
+import { NativeBackend } from '../tensor/src/backends/NativeBackend.js';
 import { MSELoss } from '../tensor/src/LossFunctor.js';
 import { AdamOptimizer } from '../tensor/src/Optimizer.js';
 import { TensorFunctor } from '../tensor/src/TensorFunctor.js';
-import { NativeBackend } from '../tensor/src/backends/NativeBackend.js';
 
 /**
  * Benchmark: Matrix multiplication

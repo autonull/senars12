@@ -124,7 +124,7 @@ export class RewardModel {
 
       const targetDiff = actualPreference === 'A' ? 1 : actualPreference === 'B' ? -1 : 0;
       const predictedDiff = rewardA - rewardB;
-      const loss = Math.pow(targetDiff - predictedDiff, 2);
+      const loss = (targetDiff - predictedDiff) ** 2;
       totalLoss += loss;
     }
 
@@ -202,7 +202,7 @@ export class RewardModel {
       const target = pref.preference === 'A' ? 1 : -1;
       const predicted = rewardA - rewardB;
 
-      totalLoss += Math.pow(target - predicted, 2);
+      totalLoss += (target - predicted) ** 2;
       validCount++;
     }
 

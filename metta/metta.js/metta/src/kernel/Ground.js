@@ -1,5 +1,4 @@
 import { configManager } from '../config/config.js';
-import { sym } from './Term.js';
 import {
   CoreRegistry,
   OperationHelpers,
@@ -8,9 +7,9 @@ import {
   registerComparisonOps,
   registerExpressionOps,
   registerHOFOps,
+  registerIntrospectionOps,
   registerIOOps,
   registerIOParser,
-  registerIntrospectionOps,
   registerListOps,
   registerLogicalOps,
   registerMathOps,
@@ -23,6 +22,7 @@ import {
   registerTimeOps,
   registerTypeOps,
 } from './ops/index.js';
+import { sym } from './Term.js';
 
 const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
 const isAsyncFunction = (fn) => fn instanceof AsyncFunction;

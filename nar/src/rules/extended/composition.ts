@@ -1,4 +1,4 @@
-import { TermBuilder, getPredicate, getSubject, termsEqual } from '../../terms';
+import { getPredicate, getSubject, TermBuilder, termsEqual } from '../../terms';
 import { buildBinaryInhRule } from '../rule-builder.js';
 import type { RuleFn } from '../types.js';
 

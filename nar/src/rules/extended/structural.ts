@@ -2,7 +2,7 @@
  * Structural extended NAL rules: structural inheritance, structural reduction.
  */
 import type { Term } from '../../terms';
-import { TermBuilder, getPredicate, getSubject, termsEqual } from '../../terms';
+import { getPredicate, getSubject, TermBuilder, termsEqual } from '../../terms';
 import type { RuleFn } from '../types.js';
 
 export const structuralInheritance: RuleFn = ([compound, component]: [Term, Term]):

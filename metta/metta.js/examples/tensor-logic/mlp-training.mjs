@@ -1,11 +1,11 @@
-import { LossFunctor } from '../../core/src/functor/LossFunctor.js';
-import { Linear, Module } from '../../core/src/functor/Module.js';
-import { AdamOptimizer } from '../../core/src/functor/Optimizer.js';
 /**
  * MLP Training on XOR — Classic non-linear classification problem
  * Run: node examples/tensor-logic/mlp-training.mjs
  */
 import { T } from '../../core/src/functor/backends/NativeBackend.js';
+import { LossFunctor } from '../../core/src/functor/LossFunctor.js';
+import { Linear, Module } from '../../core/src/functor/Module.js';
+import { AdamOptimizer } from '../../core/src/functor/Optimizer.js';
 import { printMetrics } from './utils/training_helpers.mjs';
 
 console.log('=== Tensor Logic: MLP Training on XOR ===\n');

@@ -306,7 +306,7 @@ export class CommandExecutorTool extends BaseTool {
 
     // Check for shell injection patterns
     const dangerousPatterns = [
-      /[\|;&\`]/, // Pipes, semicolons, amperands, backticks
+      /[|;&`]/, // Pipes, semicolons, amperands, backticks
       /\$\(/, // Command substitution
       /`.*`/, // Backtick command substitution
       />\s*[>&]/, // Output redirection

@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { JITCompiler, exp, sym } from '../../src/index.js';
+import { exp, JITCompiler, sym } from '../../src/index.js';
 
 describe('JITCompiler', () => {
   let compiler;

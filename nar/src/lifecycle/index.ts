@@ -1,11 +1,11 @@
 export {
-  NarBaseComponent as BaseComponent,
-  type ComponentState,
   type ComponentContext,
+  type ComponentState,
+  NarBaseComponent as BaseComponent,
 } from './BaseComponent.js';
 export {
-  Container,
   type ComponentDefinition,
-  type ValueDefinition,
+  Container,
   type Definition,
+  type ValueDefinition,
 } from './Container.js';

@@ -1,18 +1,18 @@
 export { CircuitBreaker } from './circuit-breaker.js';
-export { fnv1a, fnv1aCombine, computeHash } from './hash.js';
+export { computeHash, fnv1a, fnv1aCombine } from './hash.js';
 export {
   clamp,
   clamp01,
-  safeDiv,
-  makeId,
-  isNil,
+  compact,
   ensureArray,
   errMsg,
-  toError,
+  isNil,
+  makeId,
+  safeDiv,
   sleep,
-  compact,
+  toError,
   wordOverlap,
 } from './helpers.js';
 export { jaccard } from './similarity.js';
-export { Throttle, createThrottle, throttleGenerator } from './throttle.js';
 export type { ThrottleConfig } from './throttle.js';
+export { createThrottle, Throttle, throttleGenerator } from './throttle.js';

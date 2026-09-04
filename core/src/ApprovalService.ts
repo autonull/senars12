@@ -1,4 +1,4 @@
-import { type LoggerInterface, createLogger } from './Logger.js';
+import { createLogger, type LoggerInterface } from './Logger.js';
 
 export interface PendingApproval {
   id: string;

@@ -1,5 +1,5 @@
-import { TextDecoder, TextEncoder } from 'util';
 import { ReadableStream, TransformStream, WritableStream } from 'stream/web';
+import { TextDecoder, TextEncoder } from 'util';
 
 globalThis.TextEncoder = TextEncoder;
 globalThis.TextDecoder = TextDecoder;

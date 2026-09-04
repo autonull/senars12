@@ -2,10 +2,10 @@
 
 import { exec } from 'child_process';
 import { existsSync } from 'fs';
+import { readdir, readFile, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { readFile, readdir, writeFile } from 'fs/promises';
 
 const execAsync = promisify(exec);
 

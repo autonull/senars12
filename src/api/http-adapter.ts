@@ -8,7 +8,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { URL } from 'node:url';
 import { ApiKeyManager, parseHttpBody, setCORSHeaders } from '@senars/io/utils/http';
 import { errMsg } from '../../nar/src/utils';
-import { UnifiedAdapter, errorResponse, successResponse } from './unified-adapter.js';
+import { errorResponse, successResponse, UnifiedAdapter } from './unified-adapter.js';
 
 export interface HTTPAdapterConfig {
   port?: number;

@@ -58,8 +58,8 @@ export const ExhaustiveStrategy: Strategy = {
 };
 
 export {
-  createStrategy,
-  CompositeStrategy,
   AdaptiveStrategy,
+  CompositeStrategy,
+  createStrategy,
   SwitchingStrategy,
 } from './strategies/index.js';

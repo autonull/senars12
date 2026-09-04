@@ -3,12 +3,11 @@
  */
 
 import { JsonlSessionManager } from '@senars/core/memory';
-import { SeNARSFactory } from '@senars/nar';
 import type { NARConfig } from '@senars/nar';
+import { SeNARSFactory } from '@senars/nar';
 import type { Agent } from '@senars/nar/agent';
 import { createAgent } from '@senars/nar/agent';
-import { createSeNARSRegistry } from '@senars/nar/lm';
-import { createLMService } from '@senars/nar/lm';
+import { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
 import { EpisodicMemory } from '@senars/nar/memory/episodic';
 import { readEpisodicConfig } from './env-config.js';

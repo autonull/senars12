@@ -4,10 +4,10 @@
  * Separate from general MeTTa stdlib
  */
 
+import { Logger } from '@senars/core';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Logger } from '@senars/core';
 
 const NAL_MODULES = ['truth', 'nal', 'budget', 'attention', 'control', 'search', 'learn'];
 

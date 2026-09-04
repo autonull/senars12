@@ -20,7 +20,7 @@ export function withRetry(toolFn, options = {}) {
       } catch (error) {
         lastError = error;
         if (attempt < maxRetries) {
-          const delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
+          const delay = Math.min(baseDelay * 2 ** attempt, maxDelay);
           onRetry({ attempt, error, delay });
           await new Promise((resolve) => setTimeout(resolve, delay));
         }

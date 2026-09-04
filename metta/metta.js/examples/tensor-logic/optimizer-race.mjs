@@ -1,6 +1,6 @@
+import { T } from '../../core/src/functor/backends/NativeBackend.js';
 import { AdamOptimizer, RMSpropOptimizer, SGDOptimizer } from '../../core/src/functor/Optimizer.js';
 import { Tensor } from '../../core/src/functor/Tensor.js';
-import { T } from '../../core/src/functor/backends/NativeBackend.js';
 
 console.log('=== Tensor Logic: Optimizer Race ===\n');
 console.log('Goal: Minimize f(x) = (x - 3)² starting from x = 10\n');

@@ -1,5 +1,5 @@
-import { getMemoCache } from './memo.js';
 import type { MemoCache } from './memo.js';
+import { getMemoCache } from './memo.js';
 import { evaluateModulation } from './operators.js';
 import type { Delta, Item, Lens, Modulation, View } from './types.js';
 

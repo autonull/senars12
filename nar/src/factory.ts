@@ -7,10 +7,10 @@ import { CognitiveRegistry } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
 import {
   DEFAULT_COGNITIVE_PARAMETERS,
-  RESEARCH_COGNITIVE_CONFIG,
   mergeParameters,
+  RESEARCH_COGNITIVE_CONFIG,
 } from './config/cognitive-parameters';
-import { type SeNARSRegistry, createLMService, createSeNARSRegistry } from './lm';
+import { createLMService, createSeNARSRegistry, type SeNARSRegistry } from './lm';
 import type { LMService } from './lm/lm-service.js';
 import type { NARConfig } from './nar.js';
 import { NAR } from './nar.js';

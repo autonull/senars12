@@ -7,7 +7,7 @@ import type { Term } from './terms';
 import { Truth, termParser, validateTaskTerm } from './terms';
 import type { Truth as TruthType } from './terms/truth.js';
 import type { TaskType } from './types';
-import { type EventBus, createBudget } from './types';
+import { createBudget, type EventBus } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
 
 interface SerializedNARState {

@@ -70,7 +70,7 @@ export function registerArithmeticOps(registry) {
 
   registry.register(
     'pow-math',
-    mathBinary((a, b) => Math.pow(a, b), false)
+    mathBinary((a, b) => a ** b, false)
   );
   registry.register('sqrt-math', mathUnary(Math.sqrt));
   registry.register('abs-math', mathUnary(Math.abs, false));

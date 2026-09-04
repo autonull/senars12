@@ -3,9 +3,9 @@
  * Testing the changes made during the cleanup and refactoring process
  */
 
+import { Ground, MeTTaInterpreter, Space, Term } from '../../../metta/src/index.js';
 import { Parser } from '../../../metta/src/Parser.js';
 import { TypeSystem } from '../../../metta/src/TypeSystem.js';
-import { Ground, MeTTaInterpreter, Space, Term } from '../../../metta/src/index.js';
 
 describe('MeTTa Refactored Components', () => {
   describe('MeTTaInterpreter', () => {

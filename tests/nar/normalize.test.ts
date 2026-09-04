@@ -1,4 +1,4 @@
-import { TermBuilder, normalize, termsEqual } from '../../nar/src/terms';
+import { normalize, TermBuilder, termsEqual } from '../../nar/src/terms';
 
 test('normalize sorts conjunction args', () => {
   const a = TermBuilder.atom('A');

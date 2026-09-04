@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { Ground, JITCompiler, Space, configManager, exp, sym } from '../src/index.js';
+import { configManager, exp, Ground, JITCompiler, Space, sym } from '../src/index.js';
 import {
   createInterpreterBindings,
   reduce,

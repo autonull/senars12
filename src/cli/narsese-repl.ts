@@ -3,7 +3,7 @@
  */
 
 import { createInterface } from 'readline';
-import { SeNARSFactory, containsSubterm, termParser } from '../../nar/src';
+import { containsSubterm, SeNARSFactory, termParser } from '../../nar/src';
 import { createLogger } from '../../nar/src/logger';
 import { errMsg } from '../../nar/src/utils';
 import { DEFAULT_NAR_CONFIG } from '../config';
@@ -36,12 +36,11 @@ async function main() {
         console.log(`[GOAL ACCEPTED] ${input}`);
       } else if (input.endsWith('?')) {
         const parsed = termParser.parse(clean);
-        const match = nar.getBeliefs().find(
-          (b: {
-            term: { toString: () => string };
-            truth?: { f: number; c: number };
-          }) => (parsed ? containsSubterm(b.term as any, parsed) : false)
-        );
+        const match = nar
+          .getBeliefs()
+          .find((b: { term: { toString: () => string }; truth?: { f: number; c: number } }) =>
+            parsed ? containsSubterm(b.term as any, parsed) : false
+          );
         console.log(
           match
             ? `[ANSWER] ${match.term.toString()} f=${match.truth?.f.toFixed(2)} c=${match.truth?.c.toFixed(2)}`

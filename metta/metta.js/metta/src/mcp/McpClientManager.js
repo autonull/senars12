@@ -1,7 +1,7 @@
-import { EventEmitter } from 'events';
 import { Client as McpClientSDK } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { EventEmitter } from 'events';
 
 /**
  * Enhanced MCP client manager with connection status tracking and events.
@@ -152,7 +152,7 @@ export class McpClientManager extends EventEmitter {
         this.emit('debug', `Tool call attempt ${attempt + 1} failed: ${error.message}`);
 
         if (attempt < retries) {
-          const delay = this.opts.retryDelay * Math.pow(2, attempt);
+          const delay = this.opts.retryDelay * 2 ** attempt;
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }

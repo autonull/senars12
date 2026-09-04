@@ -1,2 +1,2 @@
-export type { LogLevel, LogEntry, LoggerConfig } from '@senars/util';
-export { Logger, createLogger, defaultLogger } from '../logger.js';
+export type { LogEntry, LoggerConfig, LogLevel } from '@senars/util';
+export { createLogger, defaultLogger, Logger } from '../logger.js';

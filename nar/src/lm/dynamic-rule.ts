@@ -3,8 +3,7 @@
  */
 import type { Term } from '../terms';
 import type { Task } from '../types';
-import { LMRule } from './LMRule.js';
-import { LMResponseParser } from './LMRule.js';
+import { LMResponseParser, LMRule } from './LMRule.js';
 import type { LMRuleConfig, LMService } from './lm-service.js';
 
 export interface ValidationRule {

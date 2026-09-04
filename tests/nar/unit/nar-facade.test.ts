@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { Memory, TermBuilder, Truth, createBudget, createTask } from '../../../nar/src';
+import { createBudget, createTask, Memory, TermBuilder, Truth } from '../../../nar/src';
 import type { RuleStats } from '../../../nar/src/metrics';
 import { MetricsCollector } from '../../../nar/src/metrics';
 import { QueryAPI, ReasoningTrace } from '../../../nar/src/query';

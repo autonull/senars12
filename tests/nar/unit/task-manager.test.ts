@@ -1,10 +1,10 @@
 import {
+  createBudget,
+  createTask,
   Memory,
   TaskManager,
   TermBuilder,
   Truth,
-  createBudget,
-  createTask,
 } from '../../../nar/src';
 
 describe('TaskManager', () => {

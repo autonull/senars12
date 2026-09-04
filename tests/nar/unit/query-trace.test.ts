@@ -5,10 +5,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { termParser } from '../../../nar/src';
 import {
-  QueryAPI,
-  ReasoningTrace,
   createQueryAPI,
   createReasoningTrace,
+  QueryAPI,
+  ReasoningTrace,
 } from '../../../nar/src/query';
 import { NAR } from '../../../src';
 

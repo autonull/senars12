@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyParamValues,
   COGNITIVE_PARAMETER_SPACE,
+  deserializeParams,
   GridSampler,
   RandomSampler,
-  applyParamValues,
-  deserializeParams,
   serializeParams,
 } from '../../../nar/src/cognitive';
 import type { SearchSpace } from '../../../nar/src/cognitive/types';

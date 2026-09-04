@@ -1,4 +1,4 @@
-import { Throttle, createThrottle, throttleGenerator } from '@senars/util/utils/throttle';
+import { createThrottle, Throttle, throttleGenerator } from '@senars/util/utils/throttle';
 import { describe, expect, it } from 'vitest';
 
 describe('Throttle', () => {

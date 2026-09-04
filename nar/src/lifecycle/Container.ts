@@ -1,11 +1,11 @@
 import { ConfigurationError } from '../types';
-import { BaseComponent } from './BaseComponent.js';
+import { NarBaseComponent } from './BaseComponent.js';
 
 export interface ComponentDefinition {
   name: string;
   type: 'component';
   dependencies?: string[];
-  factory: (container: Container) => BaseComponent | Promise<BaseComponent>;
+  factory: (container: Container) => NarBaseComponent | Promise<NarBaseComponent>;
 }
 
 export interface ValueDefinition {
@@ -18,7 +18,7 @@ export type Definition = ComponentDefinition | ValueDefinition;
 
 export class Container {
   private definitions: Map<string, Definition> = new Map();
-  private instances: Map<string, BaseComponent | unknown> = new Map();
+  private instances: Map<string, NarBaseComponent | unknown> = new Map();
   private initialized: Set<string> = new Set();
 
   register(_definition: ComponentDefinition | ValueDefinition): void {
@@ -73,7 +73,7 @@ export class Container {
     const instance = await definition.factory(this);
     this.instances.set(name, instance);
 
-    if (instance instanceof BaseComponent) {
+    if (instance instanceof NarBaseComponent) {
       await instance.initialize();
     }
 
@@ -90,21 +90,21 @@ export class Container {
 
     await this.initialize(name);
     const instance = this.get(name);
-    if (instance instanceof BaseComponent) {
+    if (instance instanceof NarBaseComponent) {
       await instance.start();
     }
   }
 
   async stop(name: string): Promise<void> {
     const instance = this.get(name);
-    if (instance instanceof BaseComponent) {
+    if (instance instanceof NarBaseComponent) {
       await instance.stop();
     }
   }
 
   async dispose(name: string): Promise<void> {
     const instance = this.get(name);
-    if (instance instanceof BaseComponent) {
+    if (instance instanceof NarBaseComponent) {
       await instance.dispose();
     }
     this.instances.delete(name);

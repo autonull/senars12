@@ -2,7 +2,7 @@
  * Temporal extended NAL rules: sequence, parallel, predictive implication, temporal deduction.
  */
 import type { Term } from '../../terms';
-import { TermBuilder, getPredicate, getSubject, termsEqual } from '../../terms';
+import { getPredicate, getSubject, TermBuilder, termsEqual } from '../../terms';
 import { buildSequenceRule } from '../builders.js';
 import type { RuleFn } from '../types.js';
 

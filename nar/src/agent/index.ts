@@ -1,13 +1,10 @@
-import { Agent } from '@senars/core';
-import { InMemoryEventLog, SqliteEventLog } from '@senars/core';
 import type { ChatStreamEvent } from '@senars/core';
+import { Agent, InMemoryEventLog, SqliteEventLog } from '@senars/core';
 import { createCortexFromLM } from '@senars/core/cortex';
 import { isNarsese } from '@senars/core/helpers';
 import type { PersistableSessionManager } from '@senars/core/memory';
 import { MettaEngine } from '@senars/metta/agent';
-import type { LMService } from '@senars/nar';
-import type { EpisodicMemory } from '@senars/nar';
-import type { NAR } from '@senars/nar';
+import type { EpisodicMemory, LMService, NAR } from '@senars/nar';
 import { NAREngine } from '../engine/NAREngine.js';
 
 export interface CreateAgentConfig {
@@ -143,13 +140,13 @@ function attachNarApi(agent: ExtendedAgent, config: CreateAgentConfig, narEngine
 
 export type { Agent } from '@senars/core';
 export { createCortexFromLM } from '@senars/core/cortex';
+export type { JsonlSessionManagerConfig } from '@senars/core/memory';
 export {
+  abortSession,
+  createSession,
   InMemorySessionManager,
   JsonlSessionManager,
-  createSession,
-  abortSession,
 } from '@senars/core/memory';
-export type { JsonlSessionManagerConfig } from '@senars/core/memory';
 export { buildAgentTools } from '@senars/core/motor';
 
 export async function dispatchToolCalls(

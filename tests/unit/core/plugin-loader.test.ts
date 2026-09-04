@@ -1,9 +1,9 @@
 import {
   Agent,
-  PluginLoader,
   builtinLensPlugins,
   createLensPlugin,
   createTransportPlugin,
+  PluginLoader,
 } from '@senars/core';
 import type { Connection, ConnectionConfig, ConnectionDeps, TransportRegistry } from '@senars/util';
 import { describe, expect, it, vi } from 'vitest';

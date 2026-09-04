@@ -144,9 +144,7 @@ export abstract class BaseConnection implements Connection {
       return await fn();
     } catch (error) {
       if (attempt >= maxRetries) throw error;
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.min(100 * Math.pow(2, attempt), 1000))
-      );
+      await new Promise((resolve) => setTimeout(resolve, Math.min(100 * 2 ** attempt, 1000)));
       return this._withRetry(fn, maxRetries, attempt + 1);
     }
   }

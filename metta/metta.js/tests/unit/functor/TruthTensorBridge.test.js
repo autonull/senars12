@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
+import { NativeBackend } from '@senars/tensor/src/backends/NativeBackend.js';
 import { Tensor } from '@senars/tensor/src/Tensor.js';
 import { TruthTensorBridge } from '@senars/tensor/src/TruthTensorBridge.js';
-import { NativeBackend } from '@senars/tensor/src/backends/NativeBackend.js';
 
 describe('TruthTensorBridge', () => {
   let bridge, backend;

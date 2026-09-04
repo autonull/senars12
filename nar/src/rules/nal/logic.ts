@@ -2,7 +2,7 @@
  * Logic NAL rules: contrapositive, intersection, union, decomposition.
  */
 import type { Term } from '../../terms';
-import { TermBuilder, getSubject, termsEqual } from '../../terms';
+import { getSubject, TermBuilder, termsEqual } from '../../terms';
 import { foldNary } from '../builders.js';
 import type { RuleFn } from '../types.js';
 

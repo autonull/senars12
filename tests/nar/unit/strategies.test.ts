@@ -8,6 +8,7 @@ import {
   AdaptiveStrategy,
   AnalogicalStrategy,
   CompositeStrategy,
+  createStrategy,
   DecompositionStrategy,
   DefaultFormationStrategy,
   GoalDrivenStrategy,
@@ -16,7 +17,6 @@ import {
   SwitchingStrategy,
   TaskMatchStrategy,
   TermLinkStrategy,
-  createStrategy,
 } from '../../../nar/src/reason';
 import { NAR } from '../../../src';
 import type { Strategy } from '../strategy.js';

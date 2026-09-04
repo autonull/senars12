@@ -18,7 +18,7 @@ class peg$SyntaxError extends SyntaxError {
       return ch.codePointAt(0).toString(16).toUpperCase();
     }
 
-    const nonPrintable = Object.prototype.hasOwnProperty.call(RegExp.prototype, 'unicode')
+    const nonPrintable = Object.hasOwn(RegExp.prototype, 'unicode')
       ? /[\p{C}\p{Mn}\p{Mc}]/gu
       : null;
 
@@ -230,10 +230,10 @@ function peg$parse(input, options) {
 
   const peg$r0 = /^[.!?@;]/;
   const peg$r1 = /^[&|]/;
-  const peg$r2 = /^[^(){}[\]<>.,!%?;:@ \t\n\r=&\/|>\-]/;
+  const peg$r2 = /^[^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]/;
   const peg$r3 = /^[^"]/;
   const peg$r4 = /^[?$#*%]/;
-  const peg$r5 = /^[^(){}[\]<>.,!%?; \t\n\r=&\/|>\-]/;
+  const peg$r5 = /^[^(){}[\]<>.,!%?; \t\n\r=&/|>-]/;
   const peg$r6 = /^[0-9]/;
   const peg$r7 = /^[ \t\n\r]/;
 

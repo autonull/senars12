@@ -6,7 +6,7 @@
  * Target: Results match MORK reference ±0.01, <2× MORK PLN bench latency.
  */
 
-import { MeTTaInterpreter, exp, sym } from '../src/index.js';
+import { exp, MeTTaInterpreter, sym } from '../src/index.js';
 
 /**
  * Create a simple inheritance chain for PLN testing

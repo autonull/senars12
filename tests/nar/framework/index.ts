@@ -2,18 +2,17 @@
  * Test Framework - Declarative DSL for NARS12 reasoning tests
  */
 
+export type {
+  ExpectedDerivation,
+  Premise,
+  TestResult,
+  TestSpec,
+} from './ReasoningTestBuilder.js';
 export {
   assertReasoning,
-  describeReasoning,
   createPremise,
+  describeReasoning,
   expectDerivation,
-  testReasoning,
   ReasoningTestBuilder,
-} from './ReasoningTestBuilder.js';
-
-export type {
-  Premise,
-  ExpectedDerivation,
-  TestSpec,
-  TestResult,
+  testReasoning,
 } from './ReasoningTestBuilder.js';

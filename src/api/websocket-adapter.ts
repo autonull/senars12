@@ -4,16 +4,16 @@
  */
 
 import {
-  type WSClient,
   broadcastToSubscribers,
   cleanupWSClient,
   createWSClient,
   subscribeToEvents,
   unsubscribeFromEvents,
+  type WSClient,
 } from '@senars/io/utils/websocket';
 import { type WebSocket, WebSocketServer } from 'ws';
 import { errMsg, makeId } from '../../nar/src/utils';
-import { UnifiedAdapter, errorResponse, successResponse } from './unified-adapter.js';
+import { errorResponse, successResponse, UnifiedAdapter } from './unified-adapter.js';
 
 interface WSMessage {
   type: string;

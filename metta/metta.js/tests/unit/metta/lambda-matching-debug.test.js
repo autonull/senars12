@@ -3,8 +3,8 @@
  * Add detailed logging to understand why lambda rules don't match
  */
 
-import { Parser } from '../../../metta/src/Parser.js';
 import { Unify } from '../../../metta/src/index.js';
+import { Parser } from '../../../metta/src/Parser.js';
 import { MeTTaTestUtils } from '../../helpers/MeTTaTestUtils.js';
 
 describe('Lambda Rule Matching Debug', () => {

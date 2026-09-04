@@ -4,7 +4,7 @@
  */
 
 import type { z } from 'zod';
-import { type Logger, createLogger } from '../../nar/src/logger';
+import { createLogger, type Logger } from '../../nar/src/logger';
 import { APIRegistry } from './registry.js';
 
 export interface AdapterConfig {

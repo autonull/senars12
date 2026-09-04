@@ -1,6 +1,6 @@
 import type { Agent } from '@senars/core';
-import { QUIT_SENTINEL } from '@senars/io/connections/cli';
 import type { CLICommand } from '@senars/io/connections/cli';
+import { QUIT_SENTINEL } from '@senars/io/connections/cli';
 import type { NAR } from '@senars/nar';
 import type { ConversationSession, SessionManager } from '@senars/util/types/memory';
 

@@ -10,15 +10,15 @@
 import { mkdir } from 'node:fs/promises';
 import {
   AuthManager,
+  bindAgentToConnection,
   CLIConnection,
   CommandRegistry,
   ConnectionManager,
+  createConnectionConfigsFromEnv,
   HTTPConnection,
   IRCConnection,
   MCPConnection,
   WSConnection,
-  bindAgentToConnection,
-  createConnectionConfigsFromEnv,
 } from '@senars/io';
 import { resolveLMConfig } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
@@ -70,14 +70,7 @@ async function main(): Promise<void> {
   const configs = createConnectionConfigsFromEnv();
   logger.info(
     `Configured connections: ${
-      configs
-        .map(
-          (c: {
-            type: string;
-            id: string;
-          }) => `${c.type}:${c.id}`
-        )
-        .join(', ') || '(none)'
+      configs.map((c: { type: string; id: string }) => `${c.type}:${c.id}`).join(', ') || '(none)'
     }`
   );
 

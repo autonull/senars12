@@ -43,7 +43,7 @@ export const ConfigUtils = {
     const config = { ...defaults };
 
     for (const [key, value] of Object.entries(customValues)) {
-      if (config.hasOwnProperty(key)) {
+      if (Object.hasOwn(config, key)) {
         config[key] = value;
       }
     }

@@ -1,5 +1,5 @@
-import { MeTTaInterpreter } from './MeTTaInterpreter.js';
 import { Space } from './kernel/Space.js';
+import { MeTTaInterpreter } from './MeTTaInterpreter.js';
 
 export function createMeTTa(options = {}) {
   return new MeTTaInterpreter(options);

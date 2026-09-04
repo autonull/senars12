@@ -1,6 +1,8 @@
 // @ts-nocheck
 import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+// Dynamic import SpaceGraphJS (source-level via Vite alias)
+import { SpaceGraph } from 'spacegraphjs';
 import { BaseComponent } from '../core/base-component.js';
 import { GraphRenderer } from '../core/graph-renderer.js';
 import {
@@ -20,9 +22,6 @@ import {
 } from '../core/index.js';
 import { TOKEN_COLORS } from '../utils/token-colors.js';
 import { applyDelta, checkUnsupportedChannels, clearNodeStyles } from './adapter-3d.js';
-
-// Dynamic import SpaceGraphJS (source-level via Vite alias)
-import { SpaceGraph } from 'spacegraphjs';
 
 interface NodeSpec3D {
   id: string;

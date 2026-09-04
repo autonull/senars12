@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { TermBuilder, Truth, createBudget } from '../../../nar/src';
-import { Memory, deserialize, repair, serialize, validate } from '../../../nar/src/memory';
+import { createBudget, TermBuilder, Truth } from '../../../nar/src';
+import { deserialize, Memory, repair, serialize, validate } from '../../../nar/src/memory';
 
 describe('Phase 5.4: Memory Serialization', () => {
   it('should serialize empty memory', () => {

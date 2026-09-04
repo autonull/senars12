@@ -1,6 +1,6 @@
-import fs from 'fs';
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
 import { LMConfig } from '@senars/core';
+import fs from 'fs';
 
 async function saveConfig(config, path) {
   fs.writeFileSync(path, JSON.stringify(config.toJSON(), null, 2));

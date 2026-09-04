@@ -3,15 +3,15 @@ import type {
   ComponentState,
   BaseComponent as UtilBaseComponent,
 } from '@senars/util';
-import { type Logger as NarLogger, createLogger } from '../logger';
+import { createLogger, type Logger as NarLogger } from '../logger';
 import { MetricsCollector } from '../metrics';
 import { EventBus as NarEventBus } from '../types/events.js';
 
-export type { ComponentState, ComponentContext };
+export type { ComponentContext, ComponentState };
 
-export abstract class NarBaseComponent implements UtilBaseComponent {
+export class NarBaseComponent implements UtilBaseComponent {
   readonly id: string;
-  readonly state: ComponentState;
+  state: ComponentState;
 
   private readonly _logger: NarLogger;
   private readonly _metrics: MetricsCollector;
@@ -47,8 +47,23 @@ export abstract class NarBaseComponent implements UtilBaseComponent {
     this._eventBus = eventBus;
   }
 
-  abstract initialize(): Promise<void>;
-  abstract start(): Promise<void>;
-  abstract stop(): Promise<void>;
-  abstract getState(): ComponentState;
+  async initialize(): Promise<void> {
+    this.state = 'initializing';
+  }
+
+  async start(): Promise<void> {
+    this.state = 'running';
+  }
+
+  async stop(): Promise<void> {
+    this.state = 'stopped';
+  }
+
+  async dispose(): Promise<void> {
+    this.state = 'stopped';
+  }
+
+  getState(): ComponentState {
+    return this.state;
+  }
 }

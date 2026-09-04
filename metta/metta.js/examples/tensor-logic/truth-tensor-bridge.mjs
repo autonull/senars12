@@ -1,6 +1,6 @@
-import { TruthTensorBridge } from '../../core/src/functor/TruthTensorBridge.js';
 // truth-tensor-bridge.mjs
 import { T } from '../../core/src/functor/backends/NativeBackend.js';
+import { TruthTensorBridge } from '../../core/src/functor/TruthTensorBridge.js';
 
 const bridge = new TruthTensorBridge(T);
 console.log('=== Truth-Tensor Bridge ===\n');

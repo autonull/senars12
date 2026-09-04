@@ -1,56 +1,53 @@
-export { ObserverService as Observer } from './ObserverService.js';
-export type { CognitiveState, CognitiveAction, ObserverReport } from './ObserverService.js';
-export { runCounterfactual } from './counterfactual.js';
-
-export { CognitiveRegistry } from './registry';
-export { CognitiveController } from './controller';
-
 export {
-  PrioritySampling,
-  TopNSampling,
-  NoveltySampling,
-  GoalBiasedSampling,
-  DiverseSampling,
-  DefaultDerivation,
-  AnytimeDerivation,
-  FocusedDerivation,
-  SampledDerivation,
-  toTask,
   AllSelector,
+  AnytimeDerivation,
+  CompositeAttention,
+  DefaultDerivation,
+  DiverseSampling,
+  DiverseSelector,
+  FocusedDerivation,
+  GoalBiasedSampling,
+  GoalRelevanceAttention,
+  NoveltySampling,
+  PrioritySampling,
   PrioritySelector,
   RotationSelector,
-  DiverseSelector,
+  SampledDerivation,
   SimpleAttention,
   SpreadingActivation,
-  GoalRelevanceAttention,
-  CompositeAttention,
+  TopNSampling,
+  toTask,
 } from '../strategies/index.js';
-
 export type {
-  ComponentMetadata,
-  StrategyType,
-  SamplingStrategy,
-  Strategy,
-  DerivationStrategy,
-  DerivationContext,
-  LMRuleSelector,
-  LMRuleSelectionContext,
-  AttentionModel,
   AttentionContext,
+  AttentionModel,
+  ComponentMetadata,
+  DerivationContext,
+  DerivationStrategy,
+  LMRuleSelectionContext,
+  LMRuleSelector,
   MetricsSummary,
-  SearchSpaceParam,
+  SamplingStrategy,
   SearchSpace,
+  SearchSpaceParam,
+  Strategy,
   StrategyRegistry,
+  StrategyType,
 } from '../strategies/types.js';
+export { CognitiveController } from './controller';
+export { runCounterfactual } from './counterfactual.js';
+export type { CognitiveAction, CognitiveState, ObserverReport } from './ObserverService.js';
+export { ObserverService as Observer } from './ObserverService.js';
+export type { OptimizationResult } from './optimizer';
 
 export {
-  CognitiveOptimizer,
-  GridSampler,
-  RandomSampler,
-  ParamSampler,
   applyParamValues,
-  serializeParams,
-  deserializeParams,
   COGNITIVE_PARAMETER_SPACE,
+  CognitiveOptimizer,
+  deserializeParams,
+  GridSampler,
+  ParamSampler,
+  RandomSampler,
+  serializeParams,
 } from './optimizer';
-export type { OptimizationResult } from './optimizer';
+export { CognitiveRegistry } from './registry';

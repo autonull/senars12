@@ -97,9 +97,7 @@ export function getModelForTask(registry: SeNARSRegistry, task: LMTask): any {
   for (const id of chain[task]) {
     try {
       return registry.languageModel(id as any);
-    } catch {
-      continue;
-    }
+    } catch {}
   }
   throw new Error(`No model available for task: ${task}`);
 }

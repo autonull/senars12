@@ -1,9 +1,9 @@
-import { Linear, Module, MultiHeadAttention } from '../../core/src/functor/Module.js';
 /**
  * Multi-Head Attention Demo — Self-attention transformer block
  * Run: node examples/tensor-logic/multi-head-attention.mjs
  */
 import { T } from '../../core/src/functor/backends/NativeBackend.js';
+import { Linear, Module, MultiHeadAttention } from '../../core/src/functor/Module.js';
 
 console.log('=== Tensor Logic: Multi-Head Attention ===\n');
 

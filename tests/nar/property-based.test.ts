@@ -1,11 +1,11 @@
 import fc from 'fast-check';
 import { Bag } from '../../nar/src';
 import {
+  normalize,
   Stamp,
+  serializeTerm,
   TermBuilder,
   Truth,
-  normalize,
-  serializeTerm,
   termsEqual,
 } from '../../nar/src/terms';
 

@@ -1,5 +1,5 @@
 import type { AttentionModel } from '../strategies';
-import { TermMap, containsSubterm } from '../terms';
+import { containsSubterm, TermMap } from '../terms';
 import type { Task } from '../types';
 import { clamp01 } from '../utils';
 import type { Concept } from './concept.js';

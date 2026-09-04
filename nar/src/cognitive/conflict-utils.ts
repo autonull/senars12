@@ -29,13 +29,13 @@ export const termOverlap = (a: string, b: string): number => {
   const aw = new Set(
     a
       .toLowerCase()
-      .split(/[\s_()\[\]<>\-\/=>]+/)
+      .split(/[\s_()[\]<>\-/=>]+/)
       .filter(Boolean)
   );
   const bw = new Set(
     b
       .toLowerCase()
-      .split(/[\s_()\[\]<>\-\/=>]+/)
+      .split(/[\s_()[\]<>\-/=>]+/)
       .filter(Boolean)
   );
   if (!aw.size || !bw.size) return 0;

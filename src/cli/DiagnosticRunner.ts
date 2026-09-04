@@ -5,8 +5,7 @@
 
 import type { NAR, Task } from '../../nar/src';
 import { ReasoningTrace } from '../../nar/src/query';
-import { extractSymbols, termParser, termsEqual } from '../../nar/src/terms';
-import { mentionsSymbol } from '../../nar/src/terms';
+import { extractSymbols, mentionsSymbol, termParser, termsEqual } from '../../nar/src/terms';
 import { errMsg } from '../../nar/src/utils';
 
 export interface ExperimentResult {

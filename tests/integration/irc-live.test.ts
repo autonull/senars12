@@ -1,10 +1,9 @@
 import { mkdtempSync, rmSync } from 'node:fs';
-import { type Server, type Socket, createServer } from 'node:net';
+import { createServer, type Server, type Socket } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { InMemorySessionManager } from '@senars/core/memory';
-import { CommandRegistry, IRCConnection } from '@senars/io';
-import { bindAgentToConnection } from '@senars/io';
+import { bindAgentToConnection, CommandRegistry, IRCConnection } from '@senars/io';
 import { createAgent } from '@senars/nar/agent';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { NAR } from '../../nar/src';

@@ -36,7 +36,7 @@ export class LRScheduler {
 
   step(epoch) {
     const schedules = {
-      step: () => this.baseLR * Math.pow(this.gamma, Math.floor(epoch / this.stepSize)),
+      step: () => this.baseLR * this.gamma ** Math.floor(epoch / this.stepSize),
       exponential: () => this.baseLR * Math.exp(-0.1 * epoch),
       cosine: () => this.baseLR * 0.5 * (1 + Math.cos((Math.PI * epoch) / this.maxEpochs)),
     };

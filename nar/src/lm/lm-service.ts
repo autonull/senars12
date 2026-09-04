@@ -4,7 +4,7 @@ import type {
   LanguageModelV3GenerateResult,
   LanguageModelV3StreamPart,
 } from '@ai-sdk/provider';
-import { type LanguageModel, generateObject, generateText, streamText, zodSchema } from 'ai';
+import { generateObject, generateText, type LanguageModel, streamText, zodSchema } from 'ai';
 import type { ZodSchema } from 'zod';
 import type { SeNARSRegistry } from './providers.js';
 import { createSeNARSRegistry } from './providers.js';
@@ -53,9 +53,7 @@ export class LMService {
     for (const id of chain[task as keyof typeof chain]) {
       try {
         return this.registry.languageModel(id as any);
-      } catch {
-        continue;
-      }
+      } catch {}
     }
     return undefined;
   }

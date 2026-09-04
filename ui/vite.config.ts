@@ -19,12 +19,18 @@ export default defineConfig({
         spacegraph: resolve(__dirname, 'src/client/spacegraph/index.html'),
       },
       output: {
-        manualChunks: {
-          cytoscape: ['cytoscape'],
-          lit: ['lit'],
-          three: ['three'],
-          gsap: ['gsap'],
-          vendor: ['marked', 'marked-highlight', 'highlight.js', 'dompurify'],
+        manualChunks: (id) => {
+          if (id.includes('cytoscape')) return 'cytoscape';
+          if (id.includes('lit')) return 'lit';
+          if (id.includes('three')) return 'three';
+          if (id.includes('gsap')) return 'gsap';
+          if (
+            id.includes('marked') ||
+            id.includes('marked-highlight') ||
+            id.includes('highlight.js') ||
+            id.includes('dompurify')
+          )
+            return 'vendor';
         },
       },
       preserveEntrySignatures: 'strict',

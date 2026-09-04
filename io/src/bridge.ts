@@ -6,12 +6,12 @@
 export {
   bindAgentToConnection,
   createAgentDispatch,
-  originExtractor,
-  resolveSessionKey,
   createAuthMiddleware,
   createCommandInterceptor,
-  createSessionBinder,
-  createRateLimiter,
   createConnectionConfigsFromEnv,
   createErrorBoundary,
+  createRateLimiter,
+  createSessionBinder,
+  originExtractor,
+  resolveSessionKey,
 } from './bridge/index.js';

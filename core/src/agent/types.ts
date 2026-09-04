@@ -5,10 +5,14 @@ import type { ChatOptions, ChatStreamEvent } from '../ChatService.js';
  * Agent public type definitions.
  */
 import type { CognitiveEvent } from '../CognitiveEvent.js';
-import type { Connection } from '../Transport.js';
 import type { LLMCortex } from '../cortex/LLMCortex.js';
-import type { Engine } from '../engine/Engine.js';
-import type { CognitiveStimulus, Context, Derivation, ToolResult } from '../engine/Engine.js';
+import type {
+  CognitiveStimulus,
+  Context,
+  Derivation,
+  Engine,
+  ToolResult,
+} from '../engine/Engine.js';
 import type { EventLog } from '../eventlog/EventLog.js';
 import type {
   ConversationSession,
@@ -16,6 +20,7 @@ import type {
   SessionManager,
 } from '../memory/types.js';
 import type { AgentCapabilities } from '../protocol/index.js';
+import type { Connection } from '../Transport.js';
 
 export type { CognitiveStimulus, Context, Derivation, ToolResult };
 
@@ -90,4 +95,4 @@ export interface SkillDefinition {
   execute(...args: unknown[]): unknown;
 }
 
-export type { CognitiveEvent, ChatOptions, ChatStreamEvent, AgentCapabilities, Engine };
+export type { AgentCapabilities, ChatOptions, ChatStreamEvent, CognitiveEvent, Engine };

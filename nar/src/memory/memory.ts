@@ -1,19 +1,18 @@
 import { LINK } from '../constants.js';
+import type { AttentionModel } from '../strategies';
+import { SimpleAttention } from '../strategies';
 import type { Term } from '../terms';
-import { Stamp, TermMap, TermSet, Truth, calculateSimilarity, mentionsSymbol } from '../terms';
+import { calculateSimilarity, mentionsSymbol, Stamp, TermMap, TermSet, Truth } from '../terms';
 import type { Budget, Task } from '../types';
 import { NEUTRAL_BUDGET } from '../types';
 import { Concept, type ConceptMergeResult, type ConceptTaskType } from './concept.js';
 import { Focus } from './focus.js';
+import type { MemoryHealth } from './health.js';
 import type { ForgettingPolicy } from './lifecycle';
 import { Archive, Forgetting } from './lifecycle';
 import { LinkManager } from './links';
 import { MemoryIndex } from './memory-index.js';
 import { MemoryConsolidation, MemoryScorer } from './pressure';
-
-import type { AttentionModel } from '../strategies';
-import { SimpleAttention } from '../strategies';
-import type { MemoryHealth } from './health.js';
 import { calculateConceptStats } from './state';
 
 export interface MemoryConfig {
@@ -548,9 +547,9 @@ export class Memory {
 }
 
 export {
-  serialize,
   deserialize,
-  validate,
   repair,
   type SerializedMemory,
+  serialize,
+  validate,
 } from './state/serialization.js';

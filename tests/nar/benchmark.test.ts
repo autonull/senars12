@@ -1,4 +1,4 @@
-import { RuleProcessor, Stamp, TermBuilder, Truth, atom, termsEqual } from '../../nar/src';
+import { atom, RuleProcessor, Stamp, TermBuilder, Truth, termsEqual } from '../../nar/src';
 
 describe('Performance benchmarks', () => {
   test('term comparison benchmark <100ns', () => {

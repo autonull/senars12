@@ -86,7 +86,7 @@ export async function retry(operation, options = {}) {
       if (attempt === maxRetries) {
         break;
       }
-      await sleep(exponential ? backoff * Math.pow(2, attempt) : backoff);
+      await sleep(exponential ? backoff * 2 ** attempt : backoff);
     }
   }
   throw lastError;

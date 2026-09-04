@@ -1,5 +1,5 @@
 import type { Term } from '../terms';
-import { TermMap, extractSymbols, termsEqual } from '../terms';
+import { extractSymbols, TermMap, termsEqual } from '../terms';
 import { jaccard } from '../utils';
 import { addToSet } from '../utils/collections.js';
 import type { Concept } from './concept.js';

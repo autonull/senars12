@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { PathTrie, exp, sym } from '../../src/index.js';
+import { exp, PathTrie, sym } from '../../src/index.js';
 
 describe('PathTrie', () => {
   let trie;

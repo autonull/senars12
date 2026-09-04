@@ -1,5 +1,5 @@
 import type { ZodSchema } from 'zod';
-import { LMService, createMockLMService, createSeNARSRegistry } from '../../nar/src/lm';
+import { createMockLMService, createSeNARSRegistry, LMService } from '../../nar/src/lm';
 
 export type LMProvider = 'transformers' | 'ollama' | 'mock';
 

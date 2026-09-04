@@ -1,13 +1,13 @@
 import {
+  atom,
   Bag,
+  createMinimalNAR,
+  createTask,
   Memory,
   RuleProcessor,
   Stamp,
   TermBuilder,
   Truth,
-  atom,
-  createMinimalNAR,
-  createTask,
   termsEqual,
 } from '../../nar/src';
 import { fromNarsese, serializeTerm } from '../../nar/src/terms';

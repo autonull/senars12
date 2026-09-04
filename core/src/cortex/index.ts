@@ -1,7 +1,7 @@
+export { createCortexFromLM } from './createCortexFromLM.js';
 export {
-  LLMCortex,
   type CortexSynthesizeRequest,
   type CortexSynthesizeResponse,
+  LLMCortex,
   type PromptBuilder,
 } from './LLMCortex.js';
-export { createCortexFromLM } from './createCortexFromLM.js';

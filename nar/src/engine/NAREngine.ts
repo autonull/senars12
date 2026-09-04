@@ -76,7 +76,7 @@ export class NAREngine extends BaseEngine {
 
     console.log('[NAREngine.reason] Processing Narsese...');
     // Strip tense/truth markers before parsing: "statement. :|:" or "statement. :!:"
-    const clean = text.replace(/\.\s*:\|:\s*$/, '.').replace(/\.\s*:\!:\s*$/, '.');
+    const clean = text.replace(/\.\s*:\|:\s*$/, '.').replace(/\.\s*:!:\s*$/, '.');
     try {
       const timestamp = Date.now();
 

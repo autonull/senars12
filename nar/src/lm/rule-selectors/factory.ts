@@ -4,8 +4,7 @@
 import type { Term } from '../../terms';
 import { isConjunction, isDisjunction, isInheritance, visitTerms } from '../../terms';
 import type { LMRule } from '../LMRule.js';
-import type { LMService } from '../lm-service.js';
-import type { LMRuleConfig } from '../lm-service.js';
+import type { LMRuleConfig, LMService } from '../lm-service.js';
 import { createRule, getRuleDef } from '../rule-builders.js';
 import { ruleDefs } from '../rule-templates/index.js';
 

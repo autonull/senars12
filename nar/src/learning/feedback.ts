@@ -1,13 +1,13 @@
 import type { TranslationCache } from '../nl';
 import type { RLFPLearner } from '../rlfp';
 import {
-  type Term,
   containsSubterm,
   getPredicate,
   getSubject,
   isNegation,
   isOperation,
   isTautology,
+  type Term,
   termsEqual,
 } from '../terms';
 import type { Task } from '../types';

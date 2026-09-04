@@ -3,14 +3,14 @@
  * Following AGENTS.md guidelines for professional testing
  */
 
-import { MeTTaInterpreter } from '@senars/metta/src/MeTTaInterpreter.js';
-import { Parser } from '@senars/metta/src/Parser.js';
-import { TypeChecker, TypeConstructors, TypeSystem } from '@senars/metta/src/TypeSystem.js';
 import { Ground } from '@senars/metta/src/kernel/Ground.js';
 import { reduce } from '@senars/metta/src/kernel/Reduce.js';
 import { Space } from '@senars/metta/src/kernel/Space.js';
 import { Term } from '@senars/metta/src/kernel/Term.js';
 import { Unify } from '@senars/metta/src/kernel/Unify.js';
+import { MeTTaInterpreter } from '@senars/metta/src/MeTTaInterpreter.js';
+import { Parser } from '@senars/metta/src/Parser.js';
+import { TypeChecker, TypeConstructors, TypeSystem } from '@senars/metta/src/TypeSystem.js';
 
 // Test suite for Term.js
 describe('Term.js - Core Data Structures', () => {

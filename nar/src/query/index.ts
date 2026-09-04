@@ -1,11 +1,8 @@
-export { QueryAPI, createQueryAPI } from './api.js';
-export type { QueryResult, Answer } from './api.js';
+export type { LogEntry, LoggerConfig, LogLevel } from '../logger/index.js';
+export { createLogger, defaultLogger, Logger } from '../logger/index.js';
+export { createMetricsCollector, MetricsCollector } from '../metrics/index.js';
 export type { TermFilter } from '../types/index.js';
-
-export { ReasoningTrace, createReasoningTrace } from './trace.js';
-export type { DerivationTree, DerivationNode, TraceResult, ExplainResult } from './trace.js';
-
-export { MetricsCollector, createMetricsCollector } from '../metrics/index.js';
-
-export { Logger, createLogger, defaultLogger } from '../logger/index.js';
-export type { LogLevel, LogEntry, LoggerConfig } from '../logger/index.js';
+export type { Answer, QueryResult } from './api.js';
+export { createQueryAPI, QueryAPI } from './api.js';
+export type { DerivationNode, DerivationTree, ExplainResult, TraceResult } from './trace.js';
+export { createReasoningTrace, ReasoningTrace } from './trace.js';

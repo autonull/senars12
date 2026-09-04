@@ -1,41 +1,28 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
+import type {
+  Episode,
+  EpisodeType,
+  EpisodicMemory as UtilEpisodicMemory,
+  EpisodicMemoryConfig as UtilEpisodicMemoryConfig,
+} from '@senars/util';
 
-export type EpisodeType =
-  | 'input'
-  | 'response'
-  | 'belief_added'
-  | 'question'
-  | 'tool_call'
-  | 'error';
+export type { EpisodicMemoryConfig } from '@senars/util';
+export type { Episode, EpisodeType };
 
-export interface Episode {
-  timestamp: number;
-  type: EpisodeType;
-  content: string;
-  metadata: Record<string, unknown>;
-}
-
-export interface EpisodicMemoryConfig {
-  enabled: boolean;
-  basePath: string;
-  retentionDays: number;
-  maxEntriesPerFile: number;
-}
-
-const DEFAULT_CONFIG: Required<EpisodicMemoryConfig> = {
+const DEFAULT_CONFIG = {
   enabled: true,
   basePath: '.cache/episodes',
   retentionDays: 30,
   maxEntriesPerFile: 10000,
-};
+} as const;
 
-export class EpisodicMemory {
-  private readonly config: Required<EpisodicMemoryConfig>;
+export class EpisodicMemory implements UtilEpisodicMemory {
+  private readonly config: typeof DEFAULT_CONFIG;
   private currentFile: string | null = null;
   private currentEntries = 0;
 
-  constructor(config: EpisodicMemoryConfig = DEFAULT_CONFIG) {
+  constructor(config: Partial<typeof DEFAULT_CONFIG> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
@@ -56,6 +43,26 @@ export class EpisodicMemory {
     await this.appendToCurrentFile(JSON.stringify(episode));
   }
 
+  async getRecent(limit = 5): Promise<Episode[]> {
+    return this.getEpisodes({ limit });
+  }
+
+  async search(query: string, limit = 10): Promise<Episode[]> {
+    const episodes = await this.getEpisodes({ limit });
+    const lowerQuery = query.toLowerCase();
+    return episodes.filter(
+      (e) =>
+        e.content.toLowerCase().includes(lowerQuery) ||
+        JSON.stringify(e.metadata).toLowerCase().includes(lowerQuery)
+    );
+  }
+
+  async close(): Promise<void> {
+    this.currentFile = null;
+    this.currentEntries = 0;
+  }
+
+  // Internal methods (not part of the public interface)
   async getEpisodes(options?: {
     timeRange?: [number, number];
     type?: EpisodeType;
@@ -78,7 +85,6 @@ export class EpisodicMemory {
         const content = await fs.readFile(filePath, 'utf-8');
         const lines = content.split('\n').filter((line) => line.trim());
 
-        // Read backwards to get newest episodes first
         for (let i = lines.length - 1; i >= 0; i--) {
           const line = lines[i];
           if (!line) continue;

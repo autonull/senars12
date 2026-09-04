@@ -29,7 +29,7 @@ function scanDirectory(dir) {
       }
     } else if (item.isFile() && ALLOWED_EXTENSIONS.includes(path.extname(item.name))) {
       children.push({
-        id: relativePath.replace(/[\/\\]/g, '-'),
+        id: relativePath.replace(/[/\\]/g, '-'),
         name: item.name,
         path: relativePath, // e.g. "examples/metta/demos/adaptive_reasoning.metta"
         type: 'file',
@@ -39,7 +39,7 @@ function scanDirectory(dir) {
   }
 
   return {
-    id: path.relative(path.resolve(__dirname, '../..'), dir).replace(/[\/\\]/g, '-') || 'root',
+    id: path.relative(path.resolve(__dirname, '../..'), dir).replace(/[/\\]/g, '-') || 'root',
     name: name,
     type: 'directory',
     children: children,

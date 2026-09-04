@@ -1,13 +1,13 @@
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
-import { InMemorySessionManager, abortSession, createSession } from '@senars/util/memory';
+import { abortSession, createSession, InMemorySessionManager } from '@senars/util/memory';
 import type { ConversationSession, SessionManager } from '@senars/util/types/memory';
 
 /**
  * @deprecated Will be removed in next major version.
  * Use `import { InMemorySessionManager, createSession, abortSession } from '@senars/util/memory'` instead.
  */
-export { InMemorySessionManager, createSession, abortSession };
+export { abortSession, createSession, InMemorySessionManager };
 
 export interface JsonlSessionManagerConfig {
   basePath: string;

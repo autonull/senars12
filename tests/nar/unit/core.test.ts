@@ -1,18 +1,18 @@
 import {
+  atom,
   type Budget,
   ConfigurationError,
-  DEFAULT_CONFIG,
-  NARError,
-  OperationError,
-  Truth,
-  ValidationError,
-  atom,
   createBudget,
   createTask,
+  DEFAULT_CONFIG,
   failure,
   isFailure,
   isSuccess,
+  NARError,
+  OperationError,
   success,
+  Truth,
+  ValidationError,
 } from '../../../nar/src';
 
 describe('Budget', () => {

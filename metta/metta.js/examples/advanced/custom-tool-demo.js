@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { App } from '@senars/agent';
 import { BaseTool } from '@senars/core/src/tool/BaseTool.js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 const section = (title) => console.log(`\n${'═'.repeat(60)}\n${title}\n${'═'.repeat(60)}`);
@@ -32,7 +32,7 @@ class MathTool extends BaseTool {
       subtract: (x, y) => x - y,
       multiply: (x, y) => x * y,
       divide: (x, y) => (y !== 0 ? x / y : null),
-      power: (x, y) => Math.pow(x, y),
+      power: (x, y) => x ** y,
     };
 
     const result = ops[operation]?.(a, b);

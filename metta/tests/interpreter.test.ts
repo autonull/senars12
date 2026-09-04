@@ -2,8 +2,7 @@ import { Effect } from 'effect';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { InMemorySpace } from '../src/core/space.js';
 import { MeTTaInterpreter } from '../src/engine/interpreter.js';
-import { bootstrapStdLib, clearOps } from '../src/index.js';
-import { expr, num, sym } from '../src/index.js';
+import { bootstrapStdLib, clearOps, expr, num, sym } from '../src/index.js';
 import { parseMeTTa } from '../src/parser/runtime.js';
 
 beforeEach(() => {

@@ -8,7 +8,7 @@ import type {
 import { BaseEngine } from '@senars/core/engine/base';
 import { Effect } from 'effect';
 import { parseMeTTa } from '../parser/runtime.js';
-import { type MeTTaRuntime, createMeTTa } from '../runtime/builder.js';
+import { createMeTTa, type MeTTaRuntime } from '../runtime/builder.js';
 import type { MeTTaAtom } from '../types/ast.js';
 import { AtomKind, type ExpressionAtom } from '../types/ast.js';
 

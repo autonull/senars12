@@ -14,10 +14,9 @@ import { GroundedOpStage } from './stages/GroundedOpStage.js';
 import { JITStage } from './stages/JITStage.js';
 import { OperatorReduceStage } from './stages/OperatorReduceStage.js';
 import { RuleMatchStage } from './stages/RuleMatchStage.js';
+import { SubExprStage } from './stages/SubExprStage.js';
 import { SuperposeStage } from './stages/SuperposeStage.js';
 import { ZipperStage } from './stages/ZipperStage.js';
-
-import { SubExprStage } from './stages/SubExprStage.js';
 
 export class ReductionPipeline {
   constructor(config = null) {
@@ -719,12 +718,12 @@ export class PipelineBuilder {
   }
 }
 
-export { ReductionStage } from './stages/ReductionStage.js';
 export { CacheStage } from './stages/CacheStage.js';
-export { JITStage } from './stages/JITStage.js';
-export { ZipperStage } from './stages/ZipperStage.js';
-export { GroundedOpStage } from './stages/GroundedOpStage.js';
 export { ExplicitCallStage } from './stages/ExplicitCallStage.js';
-export { RuleMatchStage } from './stages/RuleMatchStage.js';
+export { GroundedOpStage } from './stages/GroundedOpStage.js';
+export { JITStage } from './stages/JITStage.js';
 export { OperatorReduceStage } from './stages/OperatorReduceStage.js';
+export { ReductionStage } from './stages/ReductionStage.js';
+export { RuleMatchStage } from './stages/RuleMatchStage.js';
 export { SuperposeStage } from './stages/SuperposeStage.js';
+export { ZipperStage } from './stages/ZipperStage.js';

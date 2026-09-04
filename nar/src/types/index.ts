@@ -1,43 +1,45 @@
-export type { Term, AtomicTerm, CompoundTerm } from '../terms/types.js';
+export type { Source, Stamp } from '../terms/stamp.js';
 export type { Truth as TruthType } from '../terms/truth.js';
-export type { Stamp, Source } from '../terms/stamp.js';
+export type { AtomicTerm, CompoundTerm, Term } from '../terms/types.js';
 export type {
-  Hash,
-  Timestamp,
-  Duration,
-  TermSymbol,
+  BaseStats,
   Budget,
-  TaskType,
-  Task,
   ConceptLike,
   CoreConfig,
+  Duration,
+  Failure,
+  Hash,
   Nullable,
   Optional,
-  Success,
-  Failure,
+  QueryOptions,
   Result,
-  BaseStats,
+  Success,
+  Task,
+  TaskType,
+  TermFilter,
+  TermSymbol,
+  Timestamp,
+  TruthFilter,
 } from './core.js';
 export {
-  DEFAULT_CONFIG,
-  NEUTRAL_BUDGET,
-  success,
-  failure,
+  ConfigurationError,
   createBudget,
-  createTask,
-  createTimestamp,
   createDuration,
   createSecondaryTask,
-  NARError,
-  ValidationError,
-  ConfigurationError,
-  OperationError,
-  ToolError,
-  isSuccess,
+  createTask,
+  createTimestamp,
+  DEFAULT_CONFIG,
+  failure,
   isFailure,
+  isSuccess,
+  NARError,
+  NEUTRAL_BUDGET,
+  OperationError,
+  success,
+  ToolError,
+  ValidationError,
 } from './core.js';
+export type { Bounded, BoundedNat, Decrement, Increment, Nat } from './depth.js';
+export { DEPTH_DEFAULT, DEPTH_MAX } from './depth.js';
+export type { EventMap, EventReceiver, EventUnsubscribe, NAREventMap } from './events.js';
 export { EventBus } from './events.js';
-export type { EventMap, NAREventMap, EventReceiver, EventUnsubscribe } from './events.js';
-export { DEPTH_MAX, DEPTH_DEFAULT } from './depth.js';
-export type { Nat, BoundedNat, Increment, Decrement, Bounded } from './depth.js';
-export type { TermFilter, TruthFilter, QueryOptions } from './core.js';

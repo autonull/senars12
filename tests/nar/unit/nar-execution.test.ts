@@ -1,14 +1,14 @@
 import { describe, expect, test, vi } from 'vitest';
 import {
   BagStrategy,
+  createBudget,
+  createTask,
   DEFAULT_CONFIG,
   Memory,
   Reasoner,
   TaskManager,
   TermBuilder,
   Truth,
-  createBudget,
-  createTask,
 } from '../../../nar/src';
 import { NARExecution } from '../../../nar/src/nar-execution';
 import type { RLFPLearner } from '../../rlfp';

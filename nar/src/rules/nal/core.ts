@@ -1,4 +1,4 @@
-import { TermBuilder, getPredicate, getSubject, termsEqual } from '../../terms';
+import { getPredicate, getSubject, TermBuilder, termsEqual } from '../../terms';
 import { buildAbduction, buildDeduction, buildInduction } from '../builders.js';
 import { _abductionLink, _deductionLink, _inductionLink } from '../extractors.js';
 import { buildBinaryInhRule } from '../rule-builder.js';

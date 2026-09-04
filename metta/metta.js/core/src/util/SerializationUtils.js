@@ -3,8 +3,8 @@
  * Following AGENTS.md guidelines for elegant, consolidated, consistent, organized, and DRY code
  */
 
-import { Logger } from './Logger.js';
 import { DeserializationError } from './error.js';
+import { Logger } from './Logger.js';
 
 /**
  * Safe serialization utility that handles conditional serialization

@@ -148,7 +148,7 @@ export class NLUnderstandingService {
     const questions: Array<{ narsese: string; context?: string }> = [];
     const goals: Array<{ narsese: string; priority?: number }> = [];
 
-    const narsesePattern = /[\(<][^\)>]*[\)>]/g;
+    const narsesePattern = /[(<][^)>]*[)>]/g;
     const matches = text.match(narsesePattern) ?? [];
 
     for (const match of matches) {

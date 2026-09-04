@@ -1,4 +1,5 @@
 export type { CognitiveEvent } from '../CognitiveEvent.js';
+
 import type { CognitiveEvent } from '../CognitiveEvent.js';
 
 export interface EventLog {

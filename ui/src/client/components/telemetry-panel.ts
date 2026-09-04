@@ -2,7 +2,7 @@ import { css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { $cognitiveMetrics, $telemetry, BaseComponent, mountTestApi } from '../core/index.js';
-import { TOKEN_COLORS, cssToken } from '../utils/token-colors.js';
+import { cssToken, TOKEN_COLORS } from '../utils/token-colors.js';
 
 interface TelemetrySeries {
   key: string;

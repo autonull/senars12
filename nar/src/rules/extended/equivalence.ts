@@ -2,7 +2,7 @@
  * Equivalence extended NAL rules: equivalence, variable introduction, decomposition.
  */
 import type { Term } from '../../terms';
-import { TermBuilder, getPredicate, getSubject, termsEqual } from '../../terms';
+import { getPredicate, getSubject, TermBuilder, termsEqual } from '../../terms';
 import { ID } from '../extractors.js';
 import { buildInhRule } from '../rule-builder.js';
 import type { RuleFn } from '../types.js';

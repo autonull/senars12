@@ -91,4 +91,5 @@ export class ConsoleLoggerAdapter {
 }
 
 const logger = new LoggerClass();
+
 export { logger as Logger };

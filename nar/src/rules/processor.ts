@@ -11,7 +11,7 @@ import type { StampType, Term } from '../terms';
 import { Truth, type Truth as TruthType } from '../terms';
 import type { EventBus } from '../types';
 import { toError } from '../utils';
-import { NEUTRAL_FN, buildResult, deriveStamp, validateRuleOutput } from './rule-utils.js';
+import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';
 import { type RegisteredRule, RuleIndex, RuleRegistry } from './types.js';
 
 interface LMRuleExecutionEntry {

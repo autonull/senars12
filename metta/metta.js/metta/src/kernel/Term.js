@@ -1,15 +1,15 @@
 import { configManager } from '../config/config.js';
 import { ExpressionAtom, GroundedAtom, SymbolAtom, VariableAtom } from './AtomTypes.js';
 import {
+  isVariableName,
   TYPE_EXPRESSION,
   TYPE_GROUNDED,
   TYPE_SYMBOL,
   TYPE_VARIABLE,
-  isVariableName,
 } from './FastPaths.js';
 import { intern, symbolEq as internSymbolEq } from './Interning.js';
 
-export { SymbolAtom, VariableAtom, GroundedAtom, ExpressionAtom };
+export { ExpressionAtom, GroundedAtom, SymbolAtom, VariableAtom };
 
 export const symbolEq = internSymbolEq;
 
@@ -19,7 +19,7 @@ const varCache = new Map();
 export const sym = (name) => (configManager.get('interning') ? intern(name) : new SymbolAtom(name));
 
 export const variable = (name) => {
-  const fullName = `$${name.replace(/^[\?$]/, '')}`;
+  const fullName = `$${name.replace(/^[?$]/, '')}`;
   if (varCache.has(fullName)) {
     return varCache.get(fullName);
   }

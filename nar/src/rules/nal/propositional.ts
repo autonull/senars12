@@ -2,7 +2,7 @@
  * Propositional NAL rules: conjunction, disjunction, implication, equivalence, negation.
  */
 import type { Term } from '../../terms';
-import { TermBuilder, getPredicate, getSubject, termsEqual } from '../../terms';
+import { getPredicate, getSubject, TermBuilder, termsEqual } from '../../terms';
 import type { RuleFn } from '../types.js';
 
 export const conjunctionIntro: RuleFn = ([i1, i2]: [Term, Term]): Term | undefined => {

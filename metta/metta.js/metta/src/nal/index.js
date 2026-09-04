@@ -1,1 +1,1 @@
-export { NALStdlibLoader, loadNALStdlib } from './NALStdlibLoader.js';
+export { loadNALStdlib, NALStdlibLoader } from './NALStdlibLoader.js';

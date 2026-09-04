@@ -1,5 +1,5 @@
-import { Tensor } from './Tensor.js';
 import { T } from './backends/NativeBackend.js';
+import { Tensor } from './Tensor.js';
 
 export class Module {
   constructor() {

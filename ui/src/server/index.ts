@@ -1,16 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { createServer } from 'node:http';
 import { extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Agent, CognitiveEvent } from '@senars/core';
-import type { GraphNodeData, IncomingFromServer } from '@senars/core';
+import type { Agent, CognitiveEvent, GraphNodeData, IncomingFromServer } from '@senars/core';
 import { isNarsese } from '@senars/core';
 import { DEFAULT_CONFIG, parseTermToEdges, termParser } from '@senars/nar';
 import { WebSocketServer } from 'ws';
-import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
 import { applyConfigField, buildConfigSchema } from './config-schema.js';
+import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const DIST_DIR = resolve(__dirname, '../../dist/client');

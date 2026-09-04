@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
-import { Tensor } from '@senars/tensor/src/Tensor.js';
 import { NativeBackend } from '@senars/tensor/src/backends/NativeBackend.js';
+import { Tensor } from '@senars/tensor/src/Tensor.js';
 import { checkUnaryGradient } from '../../support/tensorTestUtils.js';
 
 describe('Tensor Gradients (Autograd)', () => {

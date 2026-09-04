@@ -16,5 +16,5 @@ export function classify(input: string): InputType {
 
 function isLikelyNarsese(t: string): boolean {
   const trimmed = t.replace(/\.$/, '').trim();
-  return /^[\(\[<]/.test(trimmed) && /(-->|<->|=>|<=>|&|\|)/.test(trimmed);
+  return /^[([<]/.test(trimmed) && /(-->|<->|=>|<=>|&|\|)/.test(trimmed);
 }

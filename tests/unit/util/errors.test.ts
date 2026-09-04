@@ -63,6 +63,7 @@ describe('error subclasses', () => {
 });
 
 import { TransportError } from '@senars/util/errors';
+
 class TransportErrorProbe extends TransportError {}
 
 describe('PolicyViolation', () => {

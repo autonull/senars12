@@ -1,8 +1,8 @@
-import type { SenarsPlugin, TransportFactory } from '../Plugin.js';
-import type { Connection, ConnectionConfig, ConnectionDeps } from '../Transport.js';
 import type { LensSpec } from '../lens-schema.js';
 import { builtinLensSpecs } from '../lens-schema.js';
 import type { ToolSpec } from '../motor/ToolRegistry.js';
+import type { SenarsPlugin, TransportFactory } from '../Plugin.js';
+import type { Connection, ConnectionConfig, ConnectionDeps } from '../Transport.js';
 
 /** Wraps a connection constructor into a `TransportFactory` plugin organ. */
 export function createTransportPlugin(opts: {

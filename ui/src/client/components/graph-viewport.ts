@@ -26,7 +26,7 @@ import {
 } from '../core/index.js';
 import { applyDelta, clearNodeStyles } from '../utils/adapter-2d.js';
 import { layoutConversationThread } from '../utils/graph-layout.js';
-import { type HtmlLabelData, computeHtmlLabels } from '../utils/html-labels.js';
+import { computeHtmlLabels, type HtmlLabelData } from '../utils/html-labels.js';
 import { layoutRegistry } from '../utils/layout-registry.js';
 import { TOKEN_COLORS } from '../utils/token-colors.js';
 import './graph-minimap.js';

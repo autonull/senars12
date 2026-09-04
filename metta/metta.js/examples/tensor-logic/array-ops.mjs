@@ -1,6 +1,7 @@
 // array-ops.mjs
-import { Tensor } from '../../core/src/functor/Tensor.js';
+
 import { T } from '../../core/src/functor/backends/NativeBackend.js';
+import { Tensor } from '../../core/src/functor/Tensor.js';
 
 console.log('=== Array Operations ===\n');
 

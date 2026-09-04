@@ -2,9 +2,10 @@
  * NarsExtension.js — Neuro-Symbolic Bridge
  * Exposes NARS cognition through MeTTa grounded operations.
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'fs';
-import { resolve } from 'path';
+
 import { Logger } from '@senars/core';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import { resolve } from 'path';
 import { Term } from '../kernel/Term.js';
 
 export class NarsExtension {

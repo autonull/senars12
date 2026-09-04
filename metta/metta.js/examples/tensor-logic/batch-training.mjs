@@ -1,12 +1,12 @@
-import { LossFunctor } from '../../core/src/functor/LossFunctor.js';
-import { Linear } from '../../core/src/functor/Module.js';
-import { AdamOptimizer } from '../../core/src/functor/Optimizer.js';
-import { DataLoader } from '../../core/src/functor/TrainingUtils.js';
 /**
  * Batch Training Demo — Vectorized batch processing for efficiency
  * Run: node examples/tensor-logic/batch-training.mjs
  */
 import { T } from '../../core/src/functor/backends/NativeBackend.js';
+import { LossFunctor } from '../../core/src/functor/LossFunctor.js';
+import { Linear } from '../../core/src/functor/Module.js';
+import { AdamOptimizer } from '../../core/src/functor/Optimizer.js';
+import { DataLoader } from '../../core/src/functor/TrainingUtils.js';
 
 console.log('=== Tensor Logic: Batch Training ===\n');
 

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
+import { NativeBackend } from '@senars/tensor/src/backends/NativeBackend.js';
 import { AdamOptimizer, RMSpropOptimizer, SGDOptimizer } from '@senars/tensor/src/Optimizer.js';
 import { Tensor } from '@senars/tensor/src/Tensor.js';
-import { NativeBackend } from '@senars/tensor/src/backends/NativeBackend.js';
 
 describe('Optimizers', () => {
   let backend;

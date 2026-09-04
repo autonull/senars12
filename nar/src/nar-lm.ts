@@ -1,5 +1,5 @@
 import type { LMService, SeNARSRegistry } from './lm';
-import { BidirectionalFeedbackLoop, ProactiveEnricher, getQualityModel } from './lm';
+import { BidirectionalFeedbackLoop, getQualityModel, ProactiveEnricher } from './lm';
 import type { Memory } from './memory';
 import type { Task } from './types';
 

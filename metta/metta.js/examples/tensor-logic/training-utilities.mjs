@@ -1,3 +1,5 @@
+// training-utilities.mjs
+import { T } from '../../core/src/functor/backends/NativeBackend.js';
 import { LossFunctor } from '../../core/src/functor/LossFunctor.js';
 import { Linear } from '../../core/src/functor/Module.js';
 import { SGDOptimizer } from '../../core/src/functor/Optimizer.js';
@@ -7,8 +9,6 @@ import {
   LRScheduler,
   MetricsTracker,
 } from '../../core/src/functor/TrainingUtils.js';
-// training-utilities.mjs
-import { T } from '../../core/src/functor/backends/NativeBackend.js';
 
 console.log('=== Training Utilities ===\n');
 

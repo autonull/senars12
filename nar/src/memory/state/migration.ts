@@ -7,8 +7,8 @@
  */
 
 import type { Memory } from '../memory.js';
-import { MEMORY_VERSION, V1 } from './serialization.js';
 import type { SerializedMemory } from './serialization.js';
+import { MEMORY_VERSION, V1 } from './serialization.js';
 
 export type MemoryVersion = 1;
 

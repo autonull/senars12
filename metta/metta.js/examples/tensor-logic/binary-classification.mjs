@@ -1,11 +1,11 @@
-import { LossFunctor } from '../../core/src/functor/LossFunctor.js';
-import { Linear, Module } from '../../core/src/functor/Module.js';
-import { AdamOptimizer } from '../../core/src/functor/Optimizer.js';
 /**
  * Binary Classification — Classify 2D points with decision boundary
  * Run: node examples/tensor-logic/binary-classification.mjs
  */
 import { T } from '../../core/src/functor/backends/NativeBackend.js';
+import { LossFunctor } from '../../core/src/functor/LossFunctor.js';
+import { Linear, Module } from '../../core/src/functor/Module.js';
+import { AdamOptimizer } from '../../core/src/functor/Optimizer.js';
 import {
   createDataset,
   printMetrics,

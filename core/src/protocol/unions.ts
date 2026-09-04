@@ -3,11 +3,10 @@
  */
 import { z } from 'zod';
 import { ChatAgentComplete, ChatAgentStream, ChatUserMsg } from './chat.js';
-import { type ConfigField, ConfigSetMsg } from './config.js';
-import { ConfigSchemaMsg } from './config.js';
+import { type ConfigField, ConfigSchemaMsg, ConfigSetMsg } from './config.js';
 import { CognitiveDelta } from './graph-ops.js';
 import { NodeHistoryMsg, NodeHistoryRequestMsg } from './history.js';
-import { LensDefineMsg, LensDefinedMsg, LensFieldsMsg, LensListMsg } from './lens-msgs.js';
+import { LensDefinedMsg, LensDefineMsg, LensFieldsMsg, LensListMsg } from './lens-msgs.js';
 import { NodeSetMsg, ObjectSetMsg } from './object-patch.js';
 import {
   FocusSet,

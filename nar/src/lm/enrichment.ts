@@ -1,8 +1,8 @@
-import { type Logger, createLogger } from '../logger';
+import { createLogger, type Logger } from '../logger';
 import type { Memory } from '../memory';
 import type { Term } from '../terms';
 import { Truth } from '../terms';
-import { type Task, createBudget, createTask } from '../types';
+import { createBudget, createTask, type Task } from '../types';
 import { errMsg } from '../utils';
 import { LMResponseParser } from './LMRule.js';
 import type { LMService } from './lm-service.js';

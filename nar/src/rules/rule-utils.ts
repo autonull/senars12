@@ -1,10 +1,10 @@
 import type { StampType, Term } from '../terms';
 import {
-  Stamp as StampFactory,
   getPredicate,
   getSubject,
   isOperation,
   isTautology,
+  Stamp as StampFactory,
 } from '../terms';
 import { Truth, type Truth as TruthType } from '../terms/truth.js';
 import type { RuleInput, RuleResult } from './processor.js';

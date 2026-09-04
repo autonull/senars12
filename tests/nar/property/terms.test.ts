@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import type { Term } from '../../../nar/src';
-import { TermBuilder, normalize, termsEqual } from '../../../nar/src/terms';
+import { normalize, TermBuilder, termsEqual } from '../../../nar/src/terms';
 
 const atomArb = fc.string({ minLength: 1, maxLength: 10 }).map((s) => TermBuilder.atom(s));
 const termArb: fc.Arbitrary<Term> = fc.oneof(

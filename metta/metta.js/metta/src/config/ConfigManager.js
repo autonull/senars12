@@ -2,7 +2,7 @@
  * @deprecated Import ConfigManager, Validators, createConfigManager from '@senars/core' instead.
  * Re-exports for backward compatibility with MeTTa-specific config helper.
  */
-export { ConfigManager, Validators, createConfigManager } from '@senars/core';
+export { ConfigManager, createConfigManager, Validators } from '@senars/core';
 
 import { configManager } from './config.js';
 

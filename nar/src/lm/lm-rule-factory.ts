@@ -10,9 +10,9 @@ import type { LMRuleFactoryConfig } from './rule-builders.js';
 import { createCustomRule, createRule, getRuleDef } from './rule-builders.js';
 import { ruleDefs } from './rule-templates/index.js';
 
-export { LMRules } from './rule-selectors/factory.js';
-export type { LMRuleDefinition, LMRuleFactoryConfig } from './rule-builders.js';
 export * from './dynamic-rule.js';
+export type { LMRuleDefinition, LMRuleFactoryConfig } from './rule-builders.js';
+export { LMRules } from './rule-selectors/factory.js';
 
 export class LMRuleFactory {
   private readonly config: LMRuleFactoryConfig;

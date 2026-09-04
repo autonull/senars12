@@ -1,4 +1,4 @@
-import { TermBuilder, Truth, isAtomic, isCompound } from '../../../nar/src';
+import { isAtomic, isCompound, TermBuilder, Truth } from '../../../nar/src';
 
 describe('TermBuilder', () => {
   beforeEach(() => TermBuilder.clear());

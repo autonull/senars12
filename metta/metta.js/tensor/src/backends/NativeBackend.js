@@ -327,7 +327,7 @@ export class NativeBackend extends TensorBackend {
       a = new Tensor([a], { backend: this });
     }
     const res = this._createTensor(
-      a.data.map((x) => Math.pow(x, n)),
+      a.data.map((x) => x ** n),
       [...a.shape]
     );
     if (a.requiresGrad) {
@@ -339,7 +339,7 @@ export class NativeBackend extends TensorBackend {
           this.mul(
             res.grad,
             this._createTensor(
-              a.data.map((x) => n * Math.pow(x, n - 1)),
+              a.data.map((x) => n * x ** (n - 1)),
               a.shape
             )
           )

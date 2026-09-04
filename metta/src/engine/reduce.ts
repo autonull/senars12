@@ -1,7 +1,7 @@
 import { getOp } from '../core/ops.js';
 import type { ExpressionAtom, MeTTaAtom, SymbolAtom } from '../types/ast.js';
 import { expr, isExpression, isVariable } from '../types/ast.js';
-import { type Substitution, applySubst } from './unify.js';
+import { applySubst, type Substitution } from './unify.js';
 
 export class ReductionPipeline {
   reduce(atom: MeTTaAtom, subst: Substitution = new Map()): MeTTaAtom {

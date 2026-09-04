@@ -4,7 +4,7 @@
  * Run with: pnpm exec tsx benchmarks/rule-dispatch.ts
  */
 
-import { RuleProcessor, TermBuilder, Truth, atom } from '../src';
+import { atom, RuleProcessor, TermBuilder, Truth } from '../src';
 
 const processor = new RuleProcessor();
 const t1 = { term: TermBuilder.inheritance(atom('A'), atom('B')), truth: Truth.TRUE };

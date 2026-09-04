@@ -1,4 +1,5 @@
 import { describe, expect, test } from '@jest/globals';
+import { NativeBackend, T } from '@senars/tensor/src/backends/NativeBackend.js';
 import {
   Embedding,
   Linear,
@@ -6,7 +7,6 @@ import {
   MultiHeadAttention,
   Sequential,
 } from '@senars/tensor/src/Module.js';
-import { NativeBackend, T } from '@senars/tensor/src/backends/NativeBackend.js';
 
 describe('Module System', () => {
   describe('Module base class', () => {

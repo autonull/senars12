@@ -1,5 +1,5 @@
-import { Tensor } from '../../core/src/functor/Tensor.js';
 import { NativeBackend } from '../../core/src/functor/backends/NativeBackend.js';
+import { Tensor } from '../../core/src/functor/Tensor.js';
 
 const b = new NativeBackend();
 

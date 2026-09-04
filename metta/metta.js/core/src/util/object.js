@@ -94,7 +94,7 @@ export function safeClone(obj) {
 // pick/omit are canonically defined in func.js.
 // For (obj, keys) signature, use pickObj/omitObj from func.js.
 // Re-exported here for backward compatibility with callers importing from object.js:
-export { pickObj, omitObj } from './func.js';
+export { omitObj, pickObj } from './func.js';
 
 /**
  * Deep merge two objects recursively with circular reference handling

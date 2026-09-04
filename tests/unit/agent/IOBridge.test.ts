@@ -1,11 +1,10 @@
-import { mkdtempSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
 import { createLogger } from '@senars/core';
 import { InMemorySessionManager, JsonlSessionManager } from '@senars/core/memory';
-import { AuthManager, CommandRegistry, MessageRouter } from '@senars/io';
+import type { Connection, IOMessage } from '@senars/io';
 import {
+  AuthManager,
   bindAgentToConnection,
+  CommandRegistry,
   createAgentDispatch,
   createAuthMiddleware,
   createCommandInterceptor,
@@ -13,13 +12,16 @@ import {
   createErrorBoundary,
   createRateLimiter,
   createSessionBinder,
+  MessageRouter,
   originExtractor,
   resolveSessionKey,
 } from '@senars/io';
-import type { Connection, IOMessage } from '@senars/io';
 import type { NAR } from '@senars/nar';
 import { createAgent, createSession } from '@senars/nar/agent';
 import type { Logger } from '@senars/util';
+import { mkdtempSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { describe, expect, it, vi } from 'vitest';
 import { SeNARSFactory } from '../../../nar/src';
 import { createMockLMService } from '../../../nar/src/lm';

@@ -16,8 +16,8 @@
 <!-- Expose test API synchronously BEFORE module loads for Playwright tests -->
 <script>
     window.__testApi = {
-        store: { getState: function(path) { return undefined; } },
-        connection: { getState: function() { return undefined; } },
+        store: { getState: (path) => undefined },
+        connection: { getState: () => undefined },
     };
 </script>
 

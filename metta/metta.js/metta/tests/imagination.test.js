@@ -1,6 +1,6 @@
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { MeTTaInterpreter } from '../src/index.js';
 
 describe.skip('ImaginationExtension (Mind Eye)', () => {

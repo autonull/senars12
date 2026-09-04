@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from '@jest/globals';
-import { Tensor } from '@senars/tensor/src/Tensor.js';
 import { NativeBackend } from '@senars/tensor/src/backends/NativeBackend.js';
+import { Tensor } from '@senars/tensor/src/Tensor.js';
 
 describe('NativeBackend Extended Ops', () => {
   let backend;
@@ -150,8 +150,7 @@ describe('NativeBackend Extended Ops', () => {
       const normalized = backend.layerNorm(x);
 
       const mean = normalized.data.reduce((a, b) => a + b, 0) / normalized.size;
-      const variance =
-        normalized.data.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / normalized.size;
+      const variance = normalized.data.reduce((a, b) => a + (b - mean) ** 2, 0) / normalized.size;
 
       expect(mean).toBeCloseTo(0, 5);
       expect(Math.sqrt(variance)).toBeCloseTo(1, 1);
@@ -302,7 +301,7 @@ describe('NativeBackend Extended Ops', () => {
     test('randn produces normal distribution', () => {
       const t = backend.randn([10000]);
       const mean = t.data.reduce((a, b) => a + b) / t.size;
-      const variance = t.data.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / t.size;
+      const variance = t.data.reduce((a, b) => a + (b - mean) ** 2, 0) / t.size;
 
       expect(mean).toBeCloseTo(0, 1);
       expect(Math.sqrt(variance)).toBeCloseTo(1, 1);

@@ -4,7 +4,7 @@ import { readEnvOverrides } from '@senars/util/config';
 import type { AppConfig } from './schema.js';
 import { appConfigSchema } from './schema.js';
 
-export type { AppConfig, BotConfig, BotProfile, NarCoreConfig, LmConfig } from './schema.js';
+export type { AppConfig, BotConfig, BotProfile, LmConfig, NarCoreConfig } from './schema.js';
 
 const deepMerge = <T>(defaults: T, overrides: Partial<T> | undefined): T => {
   if (!overrides) return defaults;

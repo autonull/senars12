@@ -1,7 +1,7 @@
+import { T } from '../../core/src/functor/backends/NativeBackend.js';
 import { LossFunctor } from '../../core/src/functor/LossFunctor.js';
 // loss-functions.mjs
 import { Tensor } from '../../core/src/functor/Tensor.js';
-import { T } from '../../core/src/functor/backends/NativeBackend.js';
 
 const loss_fn = new LossFunctor(T);
 console.log('=== Loss Functions ===\n');

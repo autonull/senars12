@@ -1,4 +1,4 @@
-import { InMemorySessionManager, abortSession, createSession } from '@senars/util/memory';
+import { abortSession, createSession, InMemorySessionManager } from '@senars/util/memory';
 import type { ConversationSession } from '@senars/util/types/memory';
 import { describe, expect, it } from 'vitest';
 

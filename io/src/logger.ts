@@ -1,3 +1,3 @@
-import { Logger, createLogger, defaultLogger } from '@senars/core';
+import { createLogger, defaultLogger, Logger } from '@senars/core';
 
-export { Logger, createLogger, defaultLogger };
+export { createLogger, defaultLogger, Logger };

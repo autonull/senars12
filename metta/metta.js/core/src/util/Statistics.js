@@ -24,7 +24,7 @@ export class Statistics {
       return 0;
     }
     const avg = this.mean(values);
-    const squareDiffs = values.map((val) => Math.pow(val - avg, 2));
+    const squareDiffs = values.map((val) => (val - avg) ** 2);
     const variance = this.mean(squareDiffs);
     return Math.sqrt(variance);
   }
@@ -128,7 +128,7 @@ export class Statistics {
     const mid = Math.floor(sorted.length / 2);
     const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 
-    const squareDiffs = values.map((val) => Math.pow(val - mean, 2));
+    const squareDiffs = values.map((val) => (val - mean) ** 2);
     const variance = squareDiffs.reduce((acc, val) => acc + val, 0) / values.length;
     const stdDev = Math.sqrt(variance);
 

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { Agent } from '@senars/core';
 import type { IncomingFromServer } from '@senars/core';
+import { Agent } from '@senars/core';
 import { NAREngine } from '@senars/nar/engine/NAREngine';
 import { startAgentUI } from '@senars/ui/server';
 import { afterAll, describe, expect, it } from 'vitest';

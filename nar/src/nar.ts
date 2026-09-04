@@ -3,16 +3,18 @@ import path from 'node:path';
 import type { CognitiveRegistry } from './cognitive';
 import { CognitiveController } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
-import { DriveManager, createBootstrapTasks } from './drives';
+import { createBootstrapTasks, DriveManager } from './drives';
 import { BaseComponent } from './lifecycle';
 import type { LMService, SeNARSRegistry } from './lm';
-import { LMRules, getModelForTask } from './lm';
+import { getModelForTask, LMRules } from './lm';
 import { createLogger } from './logger';
 import type { Concept } from './memory';
 import { Memory } from './memory';
 import { WorkingMemory } from './memory/WorkingMemory.js';
 import { MetricsCollector } from './metrics';
+
 export { MetricsCollector } from './metrics';
+
 import { NARExecution } from './nar-execution';
 import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
@@ -26,16 +28,16 @@ import { SimpleAttention } from './strategies';
 import { TaskManager } from './task';
 import type { Term } from './terms';
 import {
+  containsSubterm,
+  getSubject,
   Stamp,
   Truth,
   type TruthType,
-  containsSubterm,
-  getSubject,
   termParser,
   termsEqual,
 } from './terms';
 import type { Tool, ToolResult } from './tools';
-import { ToolManager, discoverTools } from './tools';
+import { discoverTools, ToolManager } from './tools';
 import {
   ConfigurationError,
   type CoreConfig,
@@ -100,7 +102,7 @@ export class NAR extends BaseComponent {
     const logger = createLogger({ scope: 'NAR' });
     const metrics = new MetricsCollector();
 
-    super({ logger, metrics, eventBus });
+    super('nar', { logger, metrics, eventBus });
 
     this.config = { ...this.validateConfig(config) };
     this.memory = new Memory(this.config, { attentionModel: this.createAttentionModel(config) });

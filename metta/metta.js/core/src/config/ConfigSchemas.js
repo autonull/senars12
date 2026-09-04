@@ -200,4 +200,4 @@ const validateConfigWithDefaults = (config) => {
   }
 };
 
-export { validateConfig, validateConfigWithDefaults, configSchema, lmProviderConfigSchema };
+export { configSchema, lmProviderConfigSchema, validateConfig, validateConfigWithDefaults };

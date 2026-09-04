@@ -130,15 +130,15 @@
   },
   "dependencies": {
     "@senars/util": "workspace:*",
-    "ai": "^7.0.31",
-    "better-sqlite3": "^12.11.1",
+    "ai": "^7.0.92",
+    "better-sqlite3": "^13.0.3",
     "ulid": "^3.0.2",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@senars/metta": "workspace:*",
     "@senars/nar": "workspace:*",
-    "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^22.19.19"
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.4.1"
   }
 }

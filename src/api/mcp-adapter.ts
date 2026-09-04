@@ -7,7 +7,7 @@ import type { z } from 'zod';
 import { errMsg } from '../../nar/src/utils';
 import { SchemaTransformer } from './mcp/schema-transformer.js';
 import type { MCPToolCall, MCPToolResult } from './mcp/types.js';
-import { UnifiedAdapter, errorResponse } from './unified-adapter.js';
+import { errorResponse, UnifiedAdapter } from './unified-adapter.js';
 
 export interface MCPTool {
   name: string;

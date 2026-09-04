@@ -11,7 +11,7 @@ import { createTermLinkStrategy } from './term-link.js';
 
 const logger = createLogger({ scope: 'Strategies' });
 
-export { createStrategy, createTermLinkStrategy, createSemanticStrategy };
+export { createSemanticStrategy, createStrategy, createTermLinkStrategy };
 
 const withMeta = <T extends Strategy>(strategy: T, description: string): T => {
   (strategy as unknown as { metadata: ComponentMetadata }).metadata = {

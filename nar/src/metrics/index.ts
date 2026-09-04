@@ -241,6 +241,14 @@ export class MetricsCollector implements CoreMetrics {
     // no-op for now; reserved for future latency distributions
   }
 
+  decrement(name: string, value = 1, tags?: Record<string, unknown>): void {
+    this.increment(name, -value, tags);
+  }
+
+  timing(name: string, value: number, tags?: Record<string, unknown>): void {
+    this.histogram(name, value, tags);
+  }
+
   reset(): void {
     this.ruleStats.clear();
     this.memoryStats = null;

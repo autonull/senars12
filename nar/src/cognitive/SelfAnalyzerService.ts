@@ -6,6 +6,13 @@ import type { MetacognitiveMonitor } from './MetacognitiveMonitor.js';
 
 export type { MetaCognitiveResult, MonitorState } from './types.js';
 
+import { diffCapabilities, getCapabilitySnapshot } from './analyzers/capabilities.js';
+import { applyCorrections, identifyIssues } from './analyzers/corrections.js';
+import { createPolicyManager } from './analyzers/policy.js';
+import { assessQuality } from './analyzers/quality.js';
+import { analyzeReasoningPatterns } from './analyzers/reasoning-patterns.js';
+
+import { getResourceAnalysis } from './analyzers/resources.js';
 import type {
   AgentPolicy,
   CapabilityDiff,
@@ -20,18 +27,6 @@ import type {
   ResourceUsage,
   SelfAnalyzerConfig,
 } from './types.js';
-
-import { analyzeReasoningPatterns } from './analyzers/reasoning-patterns.js';
-
-import { assessQuality } from './analyzers/quality.js';
-
-import { diffCapabilities, getCapabilitySnapshot } from './analyzers/capabilities.js';
-
-import { applyCorrections, identifyIssues } from './analyzers/corrections.js';
-
-import { getResourceAnalysis } from './analyzers/resources.js';
-
-import { createPolicyManager } from './analyzers/policy.js';
 
 const log = createLogger({ scope: 'self-analyzer' });
 

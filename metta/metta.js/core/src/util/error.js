@@ -5,8 +5,8 @@
  * This file provides only Logger-integrated wrappers and re-exports for backward compat.
  */
 
-import { Logger } from './Logger.js';
 import { retry } from './async.js';
+import { Logger } from './Logger.js';
 
 export * from '../errors/index.js';
 

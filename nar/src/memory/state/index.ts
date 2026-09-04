@@ -1,10 +1,10 @@
-export { serialize, deserialize, validate, repair, V1, MEMORY_VERSION } from './serialization.js';
-export type {
-  SerializedMemory,
-  SerializedConcept,
-  SerializedTask,
-  BagItemWithMeta,
-} from './serialization.js';
-export { calculateConceptStats } from './statistics.js';
-export type { ConceptStats } from './statistics.js';
 export { detectVersion, loadMemoryState } from './migration.js';
+export type {
+  BagItemWithMeta,
+  SerializedConcept,
+  SerializedMemory,
+  SerializedTask,
+} from './serialization.js';
+export { deserialize, MEMORY_VERSION, repair, serialize, V1, validate } from './serialization.js';
+export type { ConceptStats } from './statistics.js';
+export { calculateConceptStats } from './statistics.js';

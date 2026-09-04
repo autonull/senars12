@@ -3,7 +3,7 @@
  * Kept for backward compatibility during migration
  */
 
-import { type Logger, createLogger } from '../../nar/src/logger';
+import { createLogger, type Logger } from '../../nar/src/logger';
 import { APIRegistry } from './registry.js';
 
 export interface APIResponse {

@@ -1,10 +1,9 @@
 // Task types and creators
-export type { Task, TaskType, Budget } from '../types/core.js';
-export { createTask, createBudget } from '../types/core.js';
-
-// Task management
-export { TaskManager } from './manager.js';
+export type { Budget, Task, TaskType } from '../types/core.js';
+export { createBudget, createTask } from '../types/core.js';
+export type { InputProcessorConfig } from './input.js';
 
 // Task input handling
 export { InputProcessor, inputProcessor } from './input.js';
-export type { InputProcessorConfig } from './input.js';
+// Task management
+export { TaskManager } from './manager.js';

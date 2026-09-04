@@ -1,9 +1,9 @@
 import type { Agent } from './Agent.js';
 import type { CognitiveEvent } from './CognitiveEvent.js';
-import type { SenarsPlugin, TransportFactory } from './Plugin.js';
 import type { Engine, EngineId } from './engine/Engine.js';
 import type { LensSpec } from './lens-schema.js';
 import type { ToolSpec } from './motor/ToolRegistry.js';
+import type { SenarsPlugin, TransportFactory } from './Plugin.js';
 
 /** Minimal surface of a connection manager that accepts plugin transports. */
 export interface TransportRegistry {

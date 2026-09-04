@@ -9,6 +9,7 @@ packages:
 allowBuilds:
   '@biomejs/biome': true
   '@google/genai': true
+  '@parcel/watcher': set this to true or false
   '@swc/core': set this to true or false
   better-sqlite3: true
   esbuild: true
@@ -18,6 +19,7 @@ allowBuilds:
   onnxruntime-node: false
   protobufjs: false
   sharp: false
+  unrs-resolver: set this to true or false
 
 minimumReleaseAgeExclude:
   - uuid@11.1.1

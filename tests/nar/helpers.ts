@@ -4,7 +4,7 @@
  */
 
 import type { Budget, Task, TaskType, Term, Truth as TruthType } from '../../nar/src';
-import { Stamp, TermBuilder, Truth, createBudget } from '../../nar/src';
+import { createBudget, Stamp, TermBuilder, Truth } from '../../nar/src';
 
 // ============================================================================
 // Task Creation Helpers

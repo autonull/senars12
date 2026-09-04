@@ -1,13 +1,13 @@
 import type { ExpressionAtom, MeTTaAtom } from '../types/ast.js';
 import { AtomKind } from '../types/ast.js';
 import {
+  isTypeVar,
   type Subst,
   type Type,
   type TypeEnv,
   TypeKind,
   type TypeScheme,
   type TypeVar,
-  isTypeVar,
   typecon,
   typefun,
   typevar,

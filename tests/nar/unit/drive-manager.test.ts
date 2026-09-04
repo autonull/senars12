@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { BUILTIN_DRIVES, DriveManager, createBootstrapTasks } from '../../../nar/src/drives';
+import { BUILTIN_DRIVES, createBootstrapTasks, DriveManager } from '../../../nar/src/drives';
 
 describe('DriveManager', () => {
   let mockNar: { input: vi.Mock };

@@ -1,6 +1,6 @@
 import { HuggingFaceProvider } from './HuggingFaceProvider.js';
-import { LangChainProvider } from './LangChainProvider.js';
 import { DummyProvider, TransformersJSProvider } from './index.js';
+import { LangChainProvider } from './LangChainProvider.js';
 
 export class LMConfig {
   static PROVIDERS = Object.freeze({

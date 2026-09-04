@@ -61,8 +61,8 @@ export class AdamOptimizer extends Optimizer {
 
   step(params) {
     this.t++;
-    const bc1 = 1 - Math.pow(this.beta1, this.t);
-    const bc2 = 1 - Math.pow(this.beta2, this.t);
+    const bc1 = 1 - this.beta1 ** this.t;
+    const bc2 = 1 - this.beta2 ** this.t;
 
     this._update(params, (k, p) => {
       const m = this._state(this.m, k, p.size);

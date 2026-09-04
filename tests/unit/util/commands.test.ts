@@ -1,5 +1,5 @@
-import { CommandRegistry } from '@senars/util/commands';
 import type { CommandContext, CommandDefinition } from '@senars/util/commands';
+import { CommandRegistry } from '@senars/util/commands';
 import type { Connection } from '@senars/util/types/transport';
 import { describe, expect, it, vi } from 'vitest';
 

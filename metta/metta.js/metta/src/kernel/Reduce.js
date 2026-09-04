@@ -1,5 +1,4 @@
 import { configManager } from '../config/config.js';
-import { Unify } from './Unify.js';
 import {
   CacheStage,
   ExplicitCallStage,
@@ -11,6 +10,7 @@ import {
   SuperposeStage,
   ZipperStage,
 } from './reduction/index.js';
+import { Unify } from './Unify.js';
 
 const contextPool = [];
 const CONTEXT_POOL_SIZE = 100;
@@ -395,13 +395,16 @@ export function createInterpreterBindings(interpreter, customStages = null) {
 }
 
 export {
-  ReductionPipeline,
   CacheStage,
-  JITStage,
-  ZipperStage,
-  GroundedOpStage,
+  contextPool,
   ExplicitCallStage,
+  GroundedOpStage,
+  getGlobalPipeline,
+  getOrCreatePipeline,
+  JITStage,
+  pipelineRegistry,
+  ReductionPipeline,
   RuleMatchStage,
   SuperposeStage,
+  ZipperStage,
 };
-export { contextPool, pipelineRegistry, getGlobalPipeline, getOrCreatePipeline };
