@@ -231,7 +231,9 @@ export class ToolManager {
   }) {
     this.sandboxMode = options?.sandboxMode ?? false;
     this.eventBus = options?.eventBus;
-    options?.allowedPermissions?.forEach((p) => this.allowedPermissions.add(p));
+    for (const p of options?.allowedPermissions ?? []) {
+      this.allowedPermissions.add(p);
+    }
   }
 
   setEventBus(eventBus: EventBus): void {
