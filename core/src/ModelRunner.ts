@@ -1,4 +1,6 @@
-import { generateText } from 'ai';
+import { generateText, type LanguageModel, type ModelMessage, type ToolSet } from 'ai';
+
+export type { LanguageModel, ModelMessage, ToolSet };
 
 export interface ToolCall {
   toolName: string;
@@ -21,12 +23,8 @@ export interface ReasoningArtifact {
 
 export interface ComposedRequest {
   system: string;
-  messages: Array<{
-    role: 'user' | 'assistant' | 'system' | 'tool';
-    content: string | unknown[];
-    timestamp?: number;
-  }>;
-  tools: Record<string, unknown>;
+  messages: ModelMessage[];
+  tools: ToolSet;
   ctxHash: string;
   snapshot: unknown;
   budget: {
@@ -50,13 +48,13 @@ export interface ModelRunResult {
   toolCalls: ToolCall[];
   artifacts: ReasoningArtifact[];
   errors: ToolError[];
-  messages: Array<{ role: 'user' | 'assistant' | 'system' | 'tool'; content: string | unknown[] }>;
+  messages: ModelMessage[];
   usage: { inputTokens: number; outputTokens: number; totalTokens: number };
 }
 
 export interface ModelProvider {
   readonly available: boolean;
-  getModel(tier?: string): unknown;
+  getModel(tier?: string): LanguageModel | undefined;
 }
 
 export interface ModelRunnerDeps {
@@ -93,7 +91,7 @@ export class ModelRunner {
     composed: ComposedRequest,
     signal?: AbortSignal
   ): AsyncGenerator<ModelEvent, ModelRunResult> {
-    if (!this.modelProvider || !this.modelProvider.available) {
+    if (!this.modelProvider?.available) {
       return {
         text: '',
         toolCalls: [],
@@ -104,7 +102,7 @@ export class ModelRunner {
       };
     }
 
-    const model = this.modelProvider.getModel('fast') as any;
+    const model = this.modelProvider.getModel('fast');
     if (!model) {
       return {
         text: 'No model available',
@@ -137,7 +135,7 @@ export class ModelRunner {
           tools: Object.keys(composed.tools).length > 0 ? composed.tools : undefined,
           maxOutputTokens: this.maxOutputTokens,
           abortSignal: signal,
-        } as any);
+        });
 
         text = result.text;
         if (result.usage) {
@@ -187,8 +185,8 @@ export class ModelRunner {
     return next.value;
   }
 
-  private toMessages(composed: ComposedRequest): any[] {
-    return composed.messages.map((m) => ({ role: m.role, content: m.content }));
+  private toMessages(composed: ComposedRequest): ModelMessage[] {
+    return composed.messages;
   }
 }
 

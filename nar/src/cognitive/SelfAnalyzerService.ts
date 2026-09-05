@@ -129,7 +129,7 @@ export class SelfAnalyzerService {
         performanceImprovements: [],
       })
       .catch((e) => {
-        log.warn('applyOptimizations failed', e as Error);
+        log.warn('applyOptimizations failed', { error: (e as Error).message });
       });
   }
 

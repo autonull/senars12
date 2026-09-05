@@ -1,7 +1,7 @@
-import type { Agent } from '@senars/nar/agent';
-import type { NAR } from '../../nar/src';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Agent } from '@senars/nar/agent';
+import type { NAR } from '../../nar/src';
 
 export interface MCPResourceContext {
   nar: NAR;
@@ -82,7 +82,8 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
     },
     async () => {
       const beliefs = nar.getBeliefs().map((b) => ({ term: b.term.toString(), truth: b.truth }));
-      const goals = nar.getGoals?.().map((g) => ({ term: g.term.toString(), truth: g.truth })) ?? [];
+      const goals =
+        nar.getGoals?.().map((g) => ({ term: g.term.toString(), truth: g.truth })) ?? [];
       const questions =
         nar.getQuestions?.().map((q) => ({ term: q.term.toString(), truth: q.truth })) ?? [];
       const attention = nar.attentionReport();

@@ -47,7 +47,7 @@ export class ToolRegistry {
     const start = Date.now();
     try {
       const result = await tool.execute(args, correlationId);
-      const duration = Date.now() - start;
+      const _duration = Date.now() - start;
       const prev = this.#feedback.get(name);
       const callCount = (prev?.callCount ?? 0) + 1;
       const successRate = prev ? (prev.successRate * (callCount - 1) + 1) / callCount : 1;
@@ -59,7 +59,7 @@ export class ToolRegistry {
       });
       return result;
     } catch (err) {
-      const duration = Date.now() - start;
+      const _duration = Date.now() - start;
       const prev = this.#feedback.get(name);
       const callCount = (prev?.callCount ?? 0) + 1;
       const successRate = prev ? (prev.successRate * (callCount - 1)) / callCount : 0;

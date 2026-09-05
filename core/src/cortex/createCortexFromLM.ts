@@ -1,4 +1,10 @@
-import { LLMCortex, type ModelProvider, ModelRunner, type PromptBuilder } from '@senars/core';
+import {
+  type LanguageModel,
+  LLMCortex,
+  type ModelProvider,
+  ModelRunner,
+  type PromptBuilder,
+} from '@senars/core';
 import type { LMService } from '@senars/util';
 
 class LMServiceModelProvider implements ModelProvider {
@@ -12,8 +18,9 @@ class LMServiceModelProvider implements ModelProvider {
     return this.#lm.hasModel();
   }
 
-  getModel(_tier?: string): unknown {
-    return this.#lm.getModel('fast');
+  getModel(_tier?: string): LanguageModel | undefined {
+    const model = this.#lm.getModel('fast');
+    return model as LanguageModel | undefined;
   }
 }
 

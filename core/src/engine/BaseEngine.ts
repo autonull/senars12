@@ -30,7 +30,7 @@ export abstract class BaseEngine implements Engine {
 
   protected abstract doInitialize(): Promise<void>;
   protected abstract doShutdown(): Promise<void>;
-  protected doAbsorb(result: ToolResult): void {}
+  protected doAbsorb(_result: ToolResult): void {}
 
   abstract reason(stimulus: CognitiveStimulus, context: Context): Promise<Derivation[]>;
   abstract query(pattern: string): Promise<unknown[]>;

@@ -1,5 +1,5 @@
 import type { CognitiveEvent } from './CognitiveEvent.js';
-import type { ModelRunner } from './ModelRunner.js';
+import type { ModelRunner, ToolSet } from './ModelRunner.js';
 
 export interface Tool {
   readonly name: string;
@@ -56,7 +56,7 @@ export function createChatService<TCtx extends ChatContext>(deps: ChatServiceDep
         const composed = {
           system,
           messages: [{ role: 'user' as const, content: input }],
-          tools: deps.tools,
+          tools: deps.tools as ToolSet,
           ctxHash: String(Date.now()),
           snapshot: null,
           budget: { systemTokens: 0, historyTokens: 0, snapshotTokens: 0, total: 0, maxTokens: 0 },

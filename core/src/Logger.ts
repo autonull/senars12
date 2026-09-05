@@ -56,29 +56,29 @@ export class Logger {
     return childLogger;
   }
 
-  debug(message: string, context?: Record<string, any>): void {
+  debug(message: string, context?: Record<string, unknown>): void {
     this.log('debug', message, context);
   }
 
-  info(message: string, context?: Record<string, any>): void {
+  info(message: string, context?: Record<string, unknown>): void {
     this.log('info', message, context);
   }
 
-  warn(message: string, context?: Record<string, any>): void {
+  warn(message: string, context?: Record<string, unknown>): void {
     this.log('warn', message, context);
   }
 
-  error(message: string, error?: Error, context?: Record<string, any>): void {
+  error(message: string, error?: Error, context?: Record<string, unknown>): void {
     this.log('error', message, context, error);
   }
 
-  warnOnce(key: string, message: string, context?: Record<string, any>): void {
+  warnOnce(key: string, message: string, context?: Record<string, unknown>): void {
     if (this.warnedOnce.has(key)) return;
     this.warnedOnce.add(key);
     this.warn(message, context);
   }
 
-  deprecated(oldSymbol: string, replacement: string, context?: Record<string, any>): void {
+  deprecated(oldSymbol: string, replacement: string, context?: Record<string, unknown>): void {
     this.warnOnce(
       `deprecated:${oldSymbol}`,
       `deprecated ${oldSymbol}; use ${replacement} instead`,
@@ -101,7 +101,7 @@ export class Logger {
   private log(
     level: LogLevel,
     message: string,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
     error?: Error
   ): void {
     if (LOG_LEVELS.indexOf(level) < LOG_LEVELS.indexOf(this.config.level)) return;
@@ -118,7 +118,7 @@ export class Logger {
     this.emit(entry);
   }
 
-  private emit(entry: LogEntry): void {
+  protected emit(entry: LogEntry): void {
     const output =
       this.config.format === 'json'
         ? JSON.stringify(this.serialize(entry))
@@ -130,11 +130,11 @@ export class Logger {
 
     if (this.parent) {
       const parentEntry = { ...entry, scope: this.parent.config.scope };
-      (this.parent as any).emit(parentEntry);
+      this.parent.emit(parentEntry);
     }
   }
 
-  private serialize(entry: LogEntry): any {
+  private serialize(entry: LogEntry): Record<string, unknown> {
     return { ...entry, timestamp: new Date(entry.timestamp).toISOString() };
   }
 
@@ -143,8 +143,8 @@ export class Logger {
     const level = entry.level.toUpperCase().padEnd(5);
     const scope = `[${entry.scope}]`;
     let message = `${timestamp} ${level} ${scope} ${entry.message}`;
-    if (entry.context) message += ' ' + JSON.stringify(entry.context);
-    if (entry.error) message += '\n' + entry.error.stack;
+    if (entry.context) message += ` ${JSON.stringify(entry.context)}`;
+    if (entry.error) message += `\n${entry.error.stack}`;
     return message;
   }
 }

@@ -1,8 +1,8 @@
 import { promises as fs } from 'node:fs';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Agent } from '@senars/nar/agent';
 import { z } from 'zod';
 import type { NAR } from '../../nar/src';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 /** Safe math evaluator - parses and evaluates arithmetic expressions without eval() */
 function safeEvaluate(expr: string): number {
@@ -165,7 +165,10 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
       title: 'Run Reasoning',
       description: 'Run NAL inference steps',
       inputSchema: { steps: z.number() },
-      outputSchema: { derived: z.number(), beliefs: z.array(z.object({ term: z.string(), truth: z.any() })) },
+      outputSchema: {
+        derived: z.number(),
+        beliefs: z.array(z.object({ term: z.string(), truth: z.any() })),
+      },
       annotations: {
         readOnlyHint: false,
         idempotentHint: false,
@@ -174,10 +177,13 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
     },
     async ({ steps }) => {
       const derived = await nar.run(steps);
-      const recentBeliefs = nar.getBeliefs().slice(-10).map((b) => ({
-        term: b.term.toString(),
-        truth: b.truth,
-      }));
+      const recentBeliefs = nar
+        .getBeliefs()
+        .slice(-10)
+        .map((b) => ({
+          term: b.term.toString(),
+          truth: b.truth,
+        }));
       return {
         content: [
           {
@@ -342,7 +348,11 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
       title: 'Agent Know',
       description: 'Store or retrieve knowledge',
       inputSchema: { key: z.string(), value: z.string().optional() },
-      outputSchema: { key: z.string(), value: z.string().optional(), stored: z.boolean().optional() },
+      outputSchema: {
+        key: z.string(),
+        value: z.string().optional(),
+        stored: z.boolean().optional(),
+      },
       annotations: {
         readOnlyHint: false,
         destructiveHint: false,
@@ -443,7 +453,10 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
       title: 'Agent Goal Progress',
       description: 'Get goal progress or list active goals',
       inputSchema: { goalId: z.string().optional() },
-      outputSchema: z.union([z.array(z.unknown()), z.object({ goalId: z.string(), progress: z.number() })]),
+      outputSchema: z.union([
+        z.array(z.unknown()),
+        z.object({ goalId: z.string(), progress: z.number() }),
+      ]),
       annotations: {
         readOnlyHint: true,
         idempotentHint: true,

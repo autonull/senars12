@@ -16,10 +16,7 @@ async function runIntegrationTest() {
     cwd: '/home/me/senars12',
   });
 
-  const client = new Client(
-    { name: 'test-client', version: '1.0.0' },
-    { capabilities: {} }
-  );
+  const client = new Client({ name: 'test-client', version: '1.0.0' }, { capabilities: {} });
 
   try {
     await client.connect(transport);

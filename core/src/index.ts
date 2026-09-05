@@ -140,6 +140,7 @@ export {
 /** Model runner types. @public */
 export type {
   ComposedRequest,
+  LanguageModel,
   ModelEvent,
   ModelProvider,
   ModelRunnerDeps,

@@ -5,18 +5,18 @@
  * Supports stdio, SSE, and Streamable HTTP transports
  */
 
+import { createServer } from 'node:http';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { SeNARSFactory } from '@senars/nar';
 import { createLogger } from '@senars/nar/logger';
+import { registerMCPPrompts } from '../api/mcp-prompts.js';
+import { registerMCPResources } from '../api/mcp-resources.js';
+import { registerNARTools } from '../api/mcp-tools.js';
 import { loadConfig } from '../config';
 import { createAgentFromEnv } from './lib/lifecycle.js';
-import { registerNARTools } from '../api/mcp-tools.js';
-import { registerMCPResources } from '../api/mcp-resources.js';
-import { registerMCPPrompts } from '../api/mcp-prompts.js';
-import { createServer } from 'node:http';
 
 const logger = createLogger({ scope: 'mcp' });
 
@@ -93,7 +93,9 @@ async function initialize() {
         });
 
         httpServer.listen(port, () => {
-          logger.info(`SeNARS MCP Server started on Streamable HTTP at http://localhost:${port}/mcp`);
+          logger.info(
+            `SeNARS MCP Server started on Streamable HTTP at http://localhost:${port}/mcp`
+          );
         });
 
         // Handle graceful shutdown

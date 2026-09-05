@@ -4,7 +4,7 @@
 - Consolidated
 - Consistent
 - Organized
-- Deeply deduplicated: Don't repeat yourself (DRY)
+- Deeply deduplicated: Don't repeat yourself (*DRY*)
 - Abstract
 - Modularized
 - Parameterized
@@ -12,11 +12,7 @@
 - Terse syntax
     - Ternary, switch, nullish coalescing (`??`), optional chaining (`?.`), template literals
     - Destructuring for cleaner object/array access
-    - Adhere to reasonable JavaScript code guidelines
-    - Don't arbitrarily change method functions to arrow functions. Keep the original function declaration style unless
-      there's a specific technical reason related to 'this' binding. Use arrow functions for callbacks and utility
-      functions only.
-    - Consider latest language version: syntax, tools, configuration, etc...
+    - Consider **latest** language version: syntax, tools, configuration, etc...
 
 - Few comments: rely on self-documenting code. Do not remove JSDocs containing essential Type details
 

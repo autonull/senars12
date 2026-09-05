@@ -1,8 +1,8 @@
+import type http from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { URL } from 'node:url';
 import { makeId } from '@senars/core/helpers';
 import { createLogger } from '@senars/core/logger';
-import type http from 'http';
-import type { IncomingMessage, ServerResponse } from 'http';
-import { URL } from 'url';
 import type { ConnectionConfig, ConnectionDeps } from '../types.js';
 import { ApiKeyManager, parseHttpBody, setCORSHeaders, startHttpServer } from '../utils/http.js';
 import { BaseConnection } from './base.js';

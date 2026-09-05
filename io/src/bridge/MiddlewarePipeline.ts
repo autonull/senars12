@@ -62,7 +62,7 @@ export function createSessionBinder(mgr: SessionManager): MessageMiddleware {
 
 export function createRateLimiter(maxPerWindow: number): MessageMiddleware {
   const timestamps: number[] = [];
-  return async (msg: IOMessage, ctx: MessageContext, next: () => Promise<void>) => {
+  return async (_msg: IOMessage, ctx: MessageContext, next: () => Promise<void>) => {
     const now = Date.now();
     const window = timestamps.filter((t) => now - t < 1000);
     timestamps.length = 0;
@@ -77,7 +77,7 @@ export function createRateLimiter(maxPerWindow: number): MessageMiddleware {
 }
 
 export function createErrorBoundary(logger: Logger): MessageMiddleware {
-  return async (msg: IOMessage, ctx: MessageContext, next: () => Promise<void>) => {
+  return async (_msg: IOMessage, ctx: MessageContext, next: () => Promise<void>) => {
     try {
       await next();
     } catch (e: unknown) {

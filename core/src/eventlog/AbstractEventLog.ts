@@ -230,7 +230,7 @@ export abstract class AbstractEventLog implements EventLog {
         break;
       }
       case 'config.schema': {
-        if (!p || !p.schema) {
+        if (!p?.schema) {
           throw new Error('Invalid payload for config.schema');
         }
         break;
@@ -242,7 +242,7 @@ export abstract class AbstractEventLog implements EventLog {
         break;
       }
       case 'backend.registered': {
-        if (!p || !p.manifest) {
+        if (!p?.manifest) {
           throw new Error('Invalid payload for backend.registered');
         }
         break;

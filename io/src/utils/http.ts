@@ -1,5 +1,5 @@
+import http, { type IncomingMessage } from 'node:http';
 import type { Logger } from '@senars/core/logger';
-import http, { type IncomingMessage } from 'http';
 import type { WebSocketServer } from 'ws';
 
 export interface ServerStartupOptions {
@@ -48,6 +48,8 @@ export const startHttpServer = (
       if (server.listening) return;
       reject(err);
     });
+
+    server.listen(port);
   });
 };
 

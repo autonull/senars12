@@ -23,13 +23,14 @@
     }
   },
   "files": {
-    "experimentalScannerIgnores": [
-      "node_modules",
-      "dist",
-      ".turbo",
-      ".cache",
-      "*.log",
-      "pnpm-lock.yaml"
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/.turbo",
+      "!**/.cache",
+      "!**/*.log",
+      "!**/pnpm-lock.yaml"
     ]
   }
 }

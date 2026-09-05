@@ -1,6 +1,6 @@
+import { createInterface, type Interface } from 'node:readline';
 import { errMsg } from '@senars/core/helpers';
 import { createLogger } from '@senars/core/logger';
-import { createInterface, type Interface } from 'readline';
 import type { ConnectionConfig, ConnectionDeps, IOMessage } from '../types.js';
 import { BaseConnection } from './base.js';
 

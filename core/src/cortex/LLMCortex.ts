@@ -1,6 +1,6 @@
 import type { ChatStreamEvent } from '../ChatService.js';
 import type { CognitiveStimulus, Context, Derivation } from '../engine/Engine.js';
-import type { ModelEvent, ModelRunner } from '../ModelRunner.js';
+import type { ModelEvent, ModelRunner, ToolSet } from '../ModelRunner.js';
 
 export interface CortexSynthesizeRequest {
   stimulus: CognitiveStimulus;
@@ -36,7 +36,7 @@ export class LLMCortex {
     const composed = {
       system: systemPrompt,
       messages: [{ role: 'user' as const, content: req.stimulus.text }],
-      tools: {} as Record<string, unknown>,
+      tools: {} as ToolSet,
       ctxHash: String(Date.now()),
       snapshot: null,
       budget: { systemTokens: 0, historyTokens: 0, snapshotTokens: 0, total: 0, maxTokens: 0 },

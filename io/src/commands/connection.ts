@@ -28,11 +28,12 @@ export const connectionCommands: CommandDefinition[] = [
       const m = ctx.manager as ConnectionManager | undefined;
       if (!m) return 'Connection manager not configured';
       const [id, type, ...configParts] = args;
+      if (!id || !type) return 'Usage: /connect <id> <type> [config...]';
       const config = Object.fromEntries(
         configParts.map((p) => p.split('=')).filter(([k, v]) => k && v)
       );
       await m.addConnection(
-        { id: id!, type: type!, enabled: true, config },
+        { id, type, enabled: true, config },
         {
           emit: () => {},
           logger: {
@@ -63,8 +64,10 @@ export const connectionCommands: CommandDefinition[] = [
       if (args.length < 1) return 'Usage: /disconnect <id>';
       const m = ctx.manager as ConnectionManager | undefined;
       if (!m) return 'Connection manager not configured';
-      await m.removeConnection(args[0]!);
-      return `Connection ${args[0]} removed`;
+      const id = args[0];
+      if (!id) return 'Usage: /disconnect <id>';
+      await m.removeConnection(id);
+      return `Connection ${id} removed`;
     },
   },
   {
@@ -76,8 +79,10 @@ export const connectionCommands: CommandDefinition[] = [
       if (args.length < 1) return 'Usage: /enable <id>';
       const m = ctx.manager as ConnectionManager | undefined;
       if (!m) return 'Connection manager not configured';
-      await m.enableConnection(args[0]!);
-      return `Connection ${args[0]} enabled`;
+      const id = args[0];
+      if (!id) return 'Usage: /enable <id>';
+      await m.enableConnection(id);
+      return `Connection ${id} enabled`;
     },
   },
   {
@@ -89,8 +94,10 @@ export const connectionCommands: CommandDefinition[] = [
       if (args.length < 1) return 'Usage: /disable <id>';
       const m = ctx.manager as ConnectionManager | undefined;
       if (!m) return 'Connection manager not configured';
-      await m.disableConnection(args[0]!);
-      return `Connection ${args[0]} disabled`;
+      const id = args[0];
+      if (!id) return 'Usage: /disable <id>';
+      await m.disableConnection(id);
+      return `Connection ${id} disabled`;
     },
   },
   {
@@ -102,8 +109,10 @@ export const connectionCommands: CommandDefinition[] = [
       if (args.length < 1) return 'Usage: /reconnect <id>';
       const m = ctx.manager as ConnectionManager | undefined;
       if (!m) return 'Connection manager not configured';
-      await m.reconnectConnection(args[0]!);
-      return `Connection ${args[0]} reconnected`;
+      const id = args[0];
+      if (!id) return 'Usage: /reconnect <id>';
+      await m.reconnectConnection(id);
+      return `Connection ${id} reconnected`;
     },
   },
 ];

@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { emitProviderEvent } from '../util/eventUtils.js';
 
 export class BaseProvider extends EventEmitter {

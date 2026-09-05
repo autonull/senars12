@@ -66,7 +66,7 @@ export class MCPConnection extends BaseConnection {
       },
     };
 
-    this.process.stdin.write(JSON.stringify(message) + '\n');
+    this.process.stdin.write(`${JSON.stringify(message)}\n`);
   }
 
   async callTool(name: string, args: Record<string, unknown>): Promise<MCPToolResult> {
@@ -93,7 +93,7 @@ export class MCPConnection extends BaseConnection {
       }, 30000);
       this.toolCallTimeouts.set(id, timeout);
 
-      this.process?.stdin?.write(JSON.stringify(message) + '\n');
+      this.process?.stdin?.write(`${JSON.stringify(message)}\n`);
     });
   }
 
@@ -114,7 +114,7 @@ export class MCPConnection extends BaseConnection {
     }
 
     return new Promise((resolve, reject) => {
-      const { spawn } = require('child_process') as typeof import('child_process');
+      const { spawn } = require('node:child_process') as typeof import('node:child_process');
       this.process = spawn(command, args, { stdio: 'pipe' });
 
       let buffer = '';
@@ -208,27 +208,28 @@ export class MCPConnection extends BaseConnection {
 
     const id = data.id as string | undefined;
     if (id && data.result && this.pendingToolCalls.has(id)) {
-      const resolve = this.pendingToolCalls.get(id)!;
-      this.pendingToolCalls.delete(id);
-      clearTimeout(this.toolCallTimeouts.get(id));
-      this.toolCallTimeouts.delete(id);
-      const result = data.result as {
-        content: Array<{ type: string; text: string }>;
-        isError?: boolean;
-      };
-      resolve(result);
+      const resolve = this.pendingToolCalls.get(id);
+      if (resolve) {
+        this.pendingToolCalls.delete(id);
+        clearTimeout(this.toolCallTimeouts.get(id));
+        this.toolCallTimeouts.delete(id);
+        const result = data.result as {
+          content: Array<{ type: string; text: string }>;
+          isError?: boolean;
+        };
+        resolve(result);
+      }
       return;
     }
 
     if (id && data.error && this.pendingToolCalls.has(id)) {
-      const resolve = this.pendingToolCalls.get(id)!;
-      this.pendingToolCalls.delete(id);
-      clearTimeout(this.toolCallTimeouts.get(id));
-      this.toolCallTimeouts.delete(id);
-      resolve({
-        content: [{ type: 'text', text: JSON.stringify(data.error) }],
-        isError: true,
-      });
+      const resolve = this.pendingToolCalls.get(id);
+      if (resolve) {
+        resolve({
+          content: [{ type: 'text', text: JSON.stringify(data.error) }],
+          isError: true,
+        });
+      }
       return;
     }
   }
@@ -243,6 +244,6 @@ export class MCPConnection extends BaseConnection {
       params: {},
     };
 
-    this.process.stdin.write(JSON.stringify(message) + '\n');
+    this.process.stdin.write(`${JSON.stringify(message)}\n`);
   }
 }

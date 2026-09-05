@@ -99,7 +99,9 @@ export abstract class BaseConnection implements Connection {
     if (prev !== value) {
       this._state = value;
       this.emit('connection:state', { id: this.id, prev, current: value });
-      this.stateChangeHandlers.forEach((h) => h(value, prev));
+      for (const h of this.stateChangeHandlers) {
+        h(value, prev);
+      }
     }
   }
 
@@ -119,7 +121,9 @@ export abstract class BaseConnection implements Connection {
 
   protected handleError(error: ConnectionError): void {
     this.errorCount++;
-    this.errorHandlers.forEach((h) => h(error));
+    for (const h of this.errorHandlers) {
+      h(error);
+    }
   }
 
   protected createError(

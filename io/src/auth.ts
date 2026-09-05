@@ -5,10 +5,10 @@ export interface AuthManagerConfig {
 export class AuthManager {
   private readonly secrets = new Map<string, string>();
   private readonly authenticated = new Map<string, Set<string>>();
-  private readonly config: Required<AuthManagerConfig>;
 
   constructor(config: AuthManagerConfig = {}) {
-    this.config = { defaultMode: config.defaultMode ?? 'open' };
+    // config stored for future use (defaultMode)
+    void config;
   }
 
   setSecret(connectionId: string, secret: string): void {

@@ -21,6 +21,18 @@ function parseJsonArg(raw: string): string {
   }
 }
 
+function getArgs(args: CmdArgSet): string[] {
+  return (args.args as string[]) ?? [];
+}
+
+function getFirstArg(args: CmdArgSet): string | undefined {
+  return getArgs(args)[0];
+}
+
+function getSecondArg(args: CmdArgSet): string | undefined {
+  return getArgs(args)[1];
+}
+
 export const BUILTIN_TOOLS: ToolSpec[] = [
   {
     name: 'send',
@@ -30,9 +42,9 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
       properties: { args: { type: 'array', items: { type: 'string' } } },
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
-      const a = args.args as string[] | undefined;
-      if (!a || a.length === 0) return fail('send requires text');
-      return ok({ text: parseJsonArg(a[0]!) });
+      const first = getFirstArg(args);
+      if (!first) return fail('send requires text');
+      return ok({ text: parseJsonArg(first) });
     },
   },
   {
@@ -43,9 +55,9 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
       properties: { args: { type: 'array', items: { type: 'string' } } },
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
-      const a = args.args as string[] | undefined;
-      if (!a || a.length === 0) return fail('remember requires content');
-      const content = parseJsonArg(a[0]!);
+      const first = getFirstArg(args);
+      if (!first) return fail('remember requires content');
+      const content = parseJsonArg(first);
       return ok({ stored: true, content });
     },
   },
@@ -57,9 +69,9 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
       properties: { args: { type: 'array', items: { type: 'string' } } },
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
-      const a = args.args as string[] | undefined;
-      if (!a || a.length === 0) return fail('query requires a search term');
-      return ok({ query: parseJsonArg(a[0]!), result: 'query submitted (async)' });
+      const first = getFirstArg(args);
+      if (!first) return fail('query requires a search term');
+      return ok({ query: parseJsonArg(first), result: 'query submitted (async)' });
     },
   },
   {
@@ -70,8 +82,8 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
       properties: { args: { type: 'array', items: { type: 'string' } } },
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
-      const a = args.args as string[] | undefined;
-      const limit = a && a[0] ? Number.parseInt(parseJsonArg(a[0]!), 10) : 10;
+      const first = getFirstArg(args);
+      const limit = first ? Number.parseInt(parseJsonArg(first), 10) : 10;
       return ok({ episodes: [], limit });
     },
   },
@@ -83,9 +95,9 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
       properties: { args: { type: 'array', items: { type: 'string' } } },
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
-      const a = args.args as string[] | undefined;
-      if (!a || a.length === 0) return fail('read-file requires a filename');
-      const filename = parseJsonArg(a[0]!);
+      const first = getFirstArg(args);
+      if (!first) return fail('read-file requires a filename');
+      const filename = parseJsonArg(first);
       try {
         await access(filename);
         const content = await readFile(filename, 'utf-8');
@@ -103,10 +115,9 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
       properties: { args: { type: 'array', items: { type: 'string' } } },
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
-      const a = args.args as string[] | undefined;
-      if (!a || a.length < 2) return fail('write-file requires filename and content');
-      const filename = parseJsonArg(a[0]!);
-      const content = parseJsonArg(a[1]!);
+      const filename = getFirstArg(args);
+      const content = getSecondArg(args);
+      if (!filename || !content) return fail('write-file requires filename and content');
       try {
         await writeFile(filename, content, 'utf-8');
         return ok({ filename, written: content.length });
@@ -123,10 +134,9 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
       properties: { args: { type: 'array', items: { type: 'string' } } },
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
-      const a = args.args as string[] | undefined;
-      if (!a || a.length < 2) return fail('append-file requires filename and content');
-      const filename = parseJsonArg(a[0]!);
-      const content = parseJsonArg(a[1]!);
+      const filename = getFirstArg(args);
+      const content = getSecondArg(args);
+      if (!filename || !content) return fail('append-file requires filename and content');
       try {
         await appendFile(filename, content, 'utf-8');
         return ok({ filename, appended: content.length });
@@ -143,9 +153,9 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
       properties: { args: { type: 'array', items: { type: 'string' } } },
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
-      const a = args.args as string[] | undefined;
-      if (!a || a.length === 0) return fail('search requires a query');
-      return ok({ query: parseJsonArg(a[0]!), results: [], type: 'web-search' });
+      const first = getFirstArg(args);
+      if (!first) return fail('search requires a query');
+      return ok({ query: parseJsonArg(first), results: [], type: 'web-search' });
     },
   },
   {
@@ -156,9 +166,9 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
       properties: { args: { type: 'array', items: { type: 'string' } } },
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
-      const a = args.args as string[] | undefined;
-      if (!a || a.length === 0) return fail('shell requires a command');
-      const cmd = parseJsonArg(a[0]!);
+      const first = getFirstArg(args);
+      if (!first) return fail('shell requires a command');
+      const cmd = parseJsonArg(first);
       try {
         const output = execSync(cmd, { encoding: 'utf-8', timeout: 30000 });
         return ok({ command: cmd, exitCode: 0, stdout: output.trimEnd() });
@@ -181,10 +191,10 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
       properties: { args: { type: 'array', items: { type: 'string' } } },
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
-      const a = args.args as string[] | undefined;
-      if (!a || a.length === 0) return fail('metta requires an expression');
+      const first = getFirstArg(args);
+      if (!first) return fail('metta requires an expression');
       return ok({
-        expression: parseJsonArg(a[0]!),
+        expression: parseJsonArg(first),
         result: 'metta evaluation delegated to engine',
       });
     },
@@ -197,9 +207,9 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
       properties: { args: { type: 'array', items: { type: 'string' } } },
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
-      const a = args.args as string[] | undefined;
-      if (!a || a.length === 0) return fail('pin requires content');
-      return ok({ pinned: parseJsonArg(a[0]!) });
+      const first = getFirstArg(args);
+      if (!first) return fail('pin requires content');
+      return ok({ pinned: parseJsonArg(first) });
     },
   },
   {
@@ -210,12 +220,12 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
       properties: { args: { type: 'array', items: { type: 'string' } } },
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
-      const a = args.args as string[] | undefined;
-      if (!a || a.length === 0) return fail('tavily-search requires a query');
+      const first = getFirstArg(args);
+      if (!first) return fail('tavily-search requires a query');
       const apiKey = process.env.TAVILY_API_KEY;
       if (!apiKey)
-        return ok({ query: parseJsonArg(a[0]!), results: [], note: 'TAVILY_API_KEY not set' });
-      return ok({ query: parseJsonArg(a[0]!), results: [], type: 'tavily' });
+        return ok({ query: parseJsonArg(first), results: [], note: 'TAVILY_API_KEY not set' });
+      return ok({ query: parseJsonArg(first), results: [], type: 'tavily' });
     },
   },
   {
@@ -226,9 +236,9 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
       properties: { args: { type: 'array', items: { type: 'string' } } },
     },
     execute: async (args: CmdArgSet): Promise<ToolResult> => {
-      const a = args.args as string[] | undefined;
-      if (!a || a.length === 0) return fail('technical-analysis requires a target');
-      return ok({ target: parseJsonArg(a[0]!), analysis: 'technical analysis placeholder' });
+      const first = getFirstArg(args);
+      if (!first) return fail('technical-analysis requires a target');
+      return ok({ target: parseJsonArg(first), analysis: 'technical analysis placeholder' });
     },
   },
 ];
