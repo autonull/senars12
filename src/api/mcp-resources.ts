@@ -11,7 +11,6 @@ export interface MCPResourceContext {
 export function registerMCPResources(server: McpServer, context: MCPResourceContext): void {
   const { nar, agent } = context;
 
-  // Static resources
   server.registerResource(
     'beliefs',
     'nar://beliefs',
@@ -358,7 +357,6 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
     }
   );
 
-  // Parameterized resource templates
   server.registerResource(
     'session_by_key',
     new ResourceTemplate('sessions://{key}', {

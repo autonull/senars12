@@ -18,6 +18,7 @@
     "config:check": "tsx --env-file=.env src/utils/config-check.ts",
     "env:check": "NODE_NO_WARNINGS=1 tsx --env-file=.env -e \"import('./src/utils/env-validate.js').then(m => m.assertValidEnv())\"",
     "mcp": "NODE_NO_WARNINGS=1 tsx src/bin/mcp-server.ts",
+    "mcptest": "NODE_NO_WARNINGS=1 tsx tests/mcp/integration-test.ts",
     "pi": "bash scripts/pi-agent.sh",
     "pi:install": "npx pi install npm:pi-mcp-adapter",
     "test": "vitest run",

@@ -249,12 +249,6 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0(@opentelemetry/api@1.9.0)(@types/node@26.4.1)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
 
-  metta/metta.js/tensor:
-    dependencies:
-      '@senars/core':
-        specifier: workspace:*
-        version: link:../../../core
-
   nar:
     dependencies:
       '@js-temporal/polyfill':
@@ -6764,7 +6758,7 @@ snapshots:
     dependencies:
       google-auth-library: 10.7.0(supports-color@10.2.2)
       p-retry: 4.6.2
-      protobufjs: 7.6.5
+      protobufjs: 7.6.6
       ws: 8.21.3
     optionalDependencies:
       '@modelcontextprotocol/sdk': 1.30.0(supports-color@10.2.2)(zod@4.5.4)
