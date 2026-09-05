@@ -12,6 +12,10 @@
       "types": "./src/schemas/index.ts",
       "import": "./src/schemas/index.ts"
     },
+    "./tools/schemas": {
+      "types": "./src/tools/schemas.ts",
+      "import": "./src/tools/schemas.ts"
+    },
     "./logger": {
       "types": "./src/logger/index.ts",
       "import": "./src/logger/index.ts"

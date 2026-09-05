@@ -197,19 +197,50 @@ public calculateReward(m: {
 - `vitest run tests/generated/` ✅ All 18 tests pass
 - `pnpm typecheck` ✅ Passes (no new errors)
 
-### 1.2 Background Test Runner + Episodic Injection
-- Spawn `vitest run --reporter=json` in worker
-- Parse results → inject episodes:
-  ```narsese
-  (testResult --> passed). :|:
-  (testResult --> failed). :|:
-  (testFile --> duration). :|:
-  ```
-- Failed test → inject Goal: `(^fixTest(testFile))!`
+### 1.2 Background Test Runner + Episodic Injection — ✅ COMPLETED
+**Tool**: `run_tests` in `nar/src/tools/adapters/external-tools.ts`
+- ✅ Spawns `vitest run --reporter=json` in worker via `pnpm vitest`
+- ✅ Parses JSON results from `.vitest/json/output.json`
+- ✅ Injects episodes into EpisodicMemory:
+  - `test_suite_result` with pass/fail counts, duration, coverage
+  - `test_result` for each individual test with state, duration, errors
+  - `fix_test_goal` for failed tests: `(^fixTest("testName"))!`
+  - `coverage_report` when coverage enabled
+- ✅ Calculates RLFP reward via `RLFPLearner.calculateReward()`
+- ✅ Returns test metrics: success, passed, failed, total, duration, coverage, reward
 
-### 1.3 Coverage → Concept Priority
-- `c8` JSON → for each file `< 80%`: inject `Concept` with `priority = 1 - coverage`
-- NAR naturally focuses on untested code
+**Files Created/Modified:**
+| File | Status |
+|------|--------|
+| `nar/src/tools/adapters/external-tools.ts` | ✅ Added `createTestRunnerTools()` with `run_tests` tool |
+| `nar/src/tools/adapters/index.ts` | ✅ Exported `createTestRunnerTools` and `TestRunnerDeps` |
+
+**Verification:**
+- `tsx -e "import { createTestRunnerTools } from './nar/src/tools/adapters/external-tools.ts'; ..."` ✅ Runs tests, returns metrics, calculates reward
+- Generated tests still pass: `pnpm vitest run tests/generated/` ✅ 18/18 pass
+- Self-tune demo still works: `pnpm run self-tune-demo` ✅ Completes in ~2s
+
+### 1.3 Coverage → Concept Priority — ✅ COMPLETED
+**Tool**: `coverage_concepts` in `nar/src/tools/adapters/external-tools.ts`
+- ✅ Runs tests with coverage via `pnpm vitest run --coverage`
+- ✅ Parses coverage map from `.vitest/json/output.json`
+- ✅ For each file with coverage < threshold (default 80%):
+  - Creates/updates concept with term `coverage_{filename}`
+  - Sets priority = 1 - (coverage / 100) → 0% coverage = priority 1.0, 79% = priority 0.21
+  - Adds belief with frequency = coverage percentage, confidence = 0.9
+  - Adds goal to improve coverage
+- ✅ Returns metrics: total files, low coverage files, concepts injected, injected concept details
+
+**Files Created/Modified:**
+| File | Status |
+|------|--------|
+| `nar/src/tools/adapters/external-tools.ts` | ✅ Added `createCoverageConceptTools()` with `coverage_concepts` tool |
+| `nar/src/tools/adapters/index.ts` | ✅ Exported `createCoverageConceptTools` and `CoverageConceptDeps` |
+
+**Verification:**
+- `pnpm vitest run tests/generated/ --coverage` ✅ Generates coverage map
+- Generated tests still pass: `pnpm vitest run tests/generated/` ✅ 18/18 pass
+- Self-tune demo still works: `pnpm run self-tune-demo` ✅ Completes in ~2s
 
 ### 1.4 Cognitive Scenario Generation (Imaginary Situations)
 **Tool**: `generate-scenarios` — uses the system's own NL→Narsese→reasoning pipeline to synthesize rich, open-ended test scenarios
@@ -471,8 +502,8 @@ Lint error (biome JSON)
 
 **Priority**: Continue Phase 1 — Self-Testing Loop
 1. ~~**1.1 Test Generation from Zod Schemas** — ✅ COMPLETED~~
-2. **1.2 Background Test Runner + Episodic Injection** — Spawn vitest in worker, parse JSON results, inject Narsese episodes
-3. **1.3 Coverage → Concept Priority** — Parse c8 JSON, inject low-coverage concepts with high priority
+2. ~~**1.2 Background Test Runner + Episodic Injection** — ✅ COMPLETED~~
+3. ~~**1.3 Coverage → Concept Priority** — ✅ COMPLETED~~
 4. **1.4 Cognitive Scenario Generation** — Use NL→Narsese→reasoning pipeline to synthesize rich test scenarios
 
 **Key Integration Points**:
@@ -480,3 +511,5 @@ Lint error (biome JSON)
 - Use `ApprovalService` for HITL gating on generated test files
 - Extend `knobSchema` pattern for scenario configuration
 - `generate_tests` tool now available for automated test creation
+- `run_tests` tool now available for background test execution with episodic injection
+- `coverage_concepts` tool now available for coverage-driven concept injection
