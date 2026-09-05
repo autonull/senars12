@@ -14,6 +14,7 @@ import type { PersistableSessionManager } from './memory/types.js';
 import { registerBuiltinTools } from './motor/builtin-tools.js';
 import { ToolRegistry } from './motor/ToolRegistry.js';
 import { PolicyEngine } from './PolicyEngine.js';
+import { ApprovalService } from './ApprovalService.js';
 import type { AgentCapabilities } from './protocol/index.js';
 import type { Connection } from './Transport.js';
 
@@ -68,8 +69,10 @@ export class Agent {
     this.memory.connectEngines(this.engines);
     this.memory.connectMotor(this.motor);
 
+    const approvalService = new ApprovalService();
+
     if (opts.builtinTools !== false) {
-      registerBuiltinTools(this.motor);
+      registerBuiltinTools(this.motor, approvalService);
     }
   }
 

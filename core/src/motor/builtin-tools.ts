@@ -1,7 +1,9 @@
 import { execSync } from 'node:child_process';
 import { access, appendFile, readFile, writeFile } from 'node:fs/promises';
+import { z } from 'zod';
 import type { ToolResult } from '../engine/Engine.js';
 import type { ToolSpec } from './ToolRegistry.js';
+import { ApprovalService } from '../ApprovalService.js';
 
 export type CmdArgSet = Record<string, unknown>;
 
@@ -31,6 +33,44 @@ function getFirstArg(args: CmdArgSet): string | undefined {
 
 function getSecondArg(args: CmdArgSet): string | undefined {
   return getArgs(args)[1];
+}
+
+function createRequestApprovalTool(approvalService: ApprovalService): ToolSpec {
+  const schema = z.object({
+    actionDescription: z.string().describe('Description of the action requiring approval'),
+    diffOrPayload: z.string().describe('The diff, payload, or details of the action'),
+    riskLevel: z.enum(['low', 'medium', 'high']).describe('Risk level of the action'),
+    timeoutMs: z.number().optional().default(60000).describe('Timeout in milliseconds'),
+  });
+
+  return {
+    name: 'request_approval',
+    description: 'Requests human approval for critical actions (code write, config change, destructive command). Blocks until approved/rejected.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        actionDescription: { type: 'string' },
+        diffOrPayload: { type: 'string' },
+        riskLevel: { type: 'string', enum: ['low', 'medium', 'high'] },
+        timeoutMs: { type: 'number', default: 60000 },
+      },
+      required: ['actionDescription', 'diffOrPayload', 'riskLevel'],
+    },
+    execute: async (args: CmdArgSet): Promise<ToolResult> => {
+      try {
+        const parsed = schema.parse(args);
+        const result = await approvalService.requestApproval({
+          action: parsed.actionDescription,
+          payload: parsed.diffOrPayload,
+          risk: parsed.riskLevel,
+          timeoutMs: parsed.timeoutMs,
+        });
+        return ok({ success: result.approved, approved: result.approved, feedback: result.feedback });
+      } catch (err: any) {
+        return fail(`Approval error: ${err.message}`);
+      }
+    },
+  };
 }
 
 export const BUILTIN_TOOLS: ToolSpec[] = [
@@ -243,8 +283,14 @@ export const BUILTIN_TOOLS: ToolSpec[] = [
   },
 ];
 
-export function registerBuiltinTools(registry: { register: (spec: ToolSpec) => void }): void {
+export function registerBuiltinTools(
+  registry: { register: (spec: ToolSpec) => void },
+  approvalService?: ApprovalService
+): void {
   for (const tool of BUILTIN_TOOLS) {
     registry.register(tool);
+  }
+  if (approvalService) {
+    registry.register(createRequestApprovalTool(approvalService));
   }
 }

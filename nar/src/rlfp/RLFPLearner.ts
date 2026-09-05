@@ -5,6 +5,8 @@ import { PolicyOptimizer } from './PolicyOptimizer.js';
 import { PreferenceCollector, type PreferenceData } from './PreferenceCollector.js';
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import { RewardModel } from './RewardModel.js';
+import type { CognitiveParameters } from '../config/cognitive-parameters.js';
+import { createKnobSet, type TunableKnob } from './knobs.js';
 
 export interface TrainingEntry {
   timestamp: number;
@@ -20,6 +22,7 @@ export interface RLFPLearnerConfig {
   preferenceCollector?: PreferenceCollector;
   policyOptimizer?: PolicyOptimizer;
   trajectoryLogger?: any;
+  currentParams?: CognitiveParameters;
 }
 
 export class RLFPLearner {
@@ -27,11 +30,21 @@ export class RLFPLearner {
   private readonly rewardModel: RewardModel;
   private readonly policyOptimizer: PolicyOptimizer;
   private readonly _preferenceCollector: PreferenceCollector;
+  readonly currentParams: CognitiveParameters;
+  private readonly knobs: Record<string, TunableKnob>;
 
   constructor(config: RLFPLearnerConfig = {}) {
     this.rewardModel = config.rewardModel ?? new RewardModel();
     this.policyOptimizer = new PolicyOptimizer(this.rewardModel);
     this._preferenceCollector = config.preferenceCollector ?? new PreferenceCollector();
+    this.currentParams = config.currentParams ?? {
+      priority: { initialPriority: 0.1, maxPriority: 1.0, directMentionBoost: 0.3, relatedConceptBoost: 0.15, decayRate: 0.05, propagationStrength: 0.1 },
+      lm: { enabled: true, singlePremiseEnabled: true, maxRulesPerCycle: 13, callTimeoutMs: 5000, ruleCategories: { translation: true, explanation: true, metaReasoning: true, uncertainty: true, schemaInduction: true, temporalCausal: true, conceptElaboration: true }, selectionStrategy: 'all' },
+      attention: { autoPrime: true, primeBoost: 0.3, relatedBoost: 0.15, structuralSimilarity: true, semanticRelatedness: false, propagateActivation: true, propagationIterations: 2 },
+      inference: { maxDerivationsPerStep: 1000, maxDerivationDepth: 10, enableCircularDetection: true, enableTraceCollection: false, cpuThrottleMs: 0, maxSampledConcepts: 100 },
+      strategies: { sampling: { type: 'priority' }, premise: { type: 'default-formation' }, derivation: { type: 'default' }, lmRule: { type: 'priority', maxRules: 5 }, attention: { type: 'simple' } },
+    };
+    this.knobs = createKnobSet(this.currentParams);
   }
 
   private _trajectoryCount = 0;
@@ -52,6 +65,54 @@ export class RLFPLearner {
 
   get policyOptimizerPublic(): PolicyOptimizer {
     return this.policyOptimizer;
+  }
+
+  getTunableKnobs() {
+    return {
+      maxDerivationsPerStep: {
+        current: this.currentParams.inference.maxDerivationsPerStep,
+        min: 10, max: 500, step: 10,
+      },
+      maxDerivationDepth: {
+        current: this.currentParams.inference.maxDerivationDepth,
+        min: 5, max: 20, step: 1,
+      },
+      maxRulesPerCycle: {
+        current: this.currentParams.lm.maxRulesPerCycle,
+        min: 1, max: 13, step: 1,
+      },
+      callTimeoutMs: {
+        current: this.currentParams.lm.callTimeoutMs,
+        min: 1000, max: 30000, step: 500,
+      },
+      decayRate: {
+        current: this.currentParams.priority.decayRate,
+        min: 0.001, max: 0.1, step: 0.001,
+      },
+      cpuThrottleMs: {
+        current: this.currentParams.inference.cpuThrottleMs,
+        min: 0, max: 50, step: 1,
+      },
+    };
+  }
+
+  applyTuningUpdate(knob: string, newValue: number): void {
+    const k = this.knobs[knob];
+    if (k) {
+      k.set(newValue);
+    }
+  }
+
+  calculateReward(m: {
+    testPassRate: number;
+    avgTestDuration: number;
+    coverageDelta: number;
+    memoryOverage: number;
+    cpuThrottleTime: number;
+  }): number {
+    const base = 0.5 * m.testPassRate + 0.3 * (1 / Math.max(m.avgTestDuration, 0.1)) + 0.2 * m.coverageDelta;
+    const aikrPenalty = 0.5 * m.memoryOverage + 0.1 * m.cpuThrottleTime;
+    return Math.max(0, base - aikrPenalty);
   }
 
   addPreference(preferred: string, rejected: string): void {

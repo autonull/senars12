@@ -10,7 +10,6 @@ allowBuilds:
   '@biomejs/biome': true
   '@google/genai': true
   '@parcel/watcher': set this to true or false
-  '@swc/core': set this to true or false
   better-sqlite3: true
   esbuild: true
   iconv: true

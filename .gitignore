@@ -48,3 +48,4 @@ verification/
 .env
 .cache
 .turbo
+tests/generated/

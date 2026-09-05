@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.20.0",
+  "packageManager": "pnpm@12.3.4",
   "bin": {
     "senars": "./dist/cli/repl.js",
     "senars-mcp": "./dist/bin/mcp-server.js"
@@ -22,8 +22,8 @@
     "pi": "bash scripts/pi-agent.sh",
     "pi:install": "npx pi install npm:pi-mcp-adapter",
     "test": "vitest run",
+    "test:unit": "vitest run --exclude tests/e2e/** --exclude tests/benchmark/**",
     "test:watch": "vitest",
-    "test:unit": "vitest run --dir tests/unit",
     "test:integration": "vitest run --dir tests/integration",
     "test:e2e:smoke": "vitest run tests/e2e/agent-smoke.test.ts tests/e2e/metta-smoke.test.ts",
     "test:cognitive": "LM_PROVIDER=mock vitest run --dir tests/cognitive",
@@ -34,7 +34,8 @@
     "deps:check": "dpdm --circular --warning false src/ core/src/ nar/src/ io/src/ metta/src/",
     "exports:check": "tsx scripts/verify-exports.ts",
     "bench": "vitest run tests/nar/benchmark.test.ts tests/nar/benchmark-infra.test.ts",
-    "typecheck": "turbo run typecheck",
+    "typecheck": "tsc --noEmit",
+    "self-tune-demo": "tsx scripts/self-tune-demo.ts",
     "web": "pnpm --dir ui dev",
     "build": "turbo run build"
   },
@@ -96,6 +97,8 @@
     "turbo": "^2.10.12",
     "typescript": "7.0.2",
     "valibot": "^1.4.2",
-    "vitest": "^5.0.0"
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^5.0.0",
+    "zod-fast-check": "^0.10.1"
   }
 }

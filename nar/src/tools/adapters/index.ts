@@ -7,6 +7,7 @@ export type {
   CodeExecDeps,
   FileSystemDeps,
   RagQueryDeps,
+  TestGenDeps,
   WebSearchDeps,
 } from './external-tools.js';
 export {
@@ -16,5 +17,6 @@ export {
   createHTTPFetchTools,
   createHumanApprovalTool,
   createRagQueryTools,
+  createTestGenTools,
   createWebSearchTools,
 } from './external-tools.js';
