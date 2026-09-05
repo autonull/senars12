@@ -4,12 +4,13 @@
  */
 
 export { HTTPAdapter } from './http-adapter.js';
-// MCP exports (enhanced)
-export * from './mcp/index.js';
-export type { MCPToolCall, MCPToolResult } from './mcp/types.js';
-export type { MCPTool } from './mcp-adapter.js';
-// MCP exports (legacy compatibility)
-export { MCPAdapter } from './mcp-adapter.js';
-export { SeNARSMCPServer as MCPServer } from './mcp-server.js';
+// MCP exports (using official SDK)
+export {
+  registerNARTools,
+  registerMCPResources,
+  registerMCPPrompts,
+} from './mcp-tools.js';
+export { registerNARTools as registerNARToolsAsMCP } from './mcp-tools.js';
+export { registerAgentAPI } from './mcp-tools.js';
 export { APIRegistry } from './registry.js';
 export { WebSocketAdapter } from './websocket-adapter.js';

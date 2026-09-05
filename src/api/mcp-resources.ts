@@ -1,196 +1,417 @@
 import type { Agent } from '@senars/nar/agent';
 import type { NAR } from '../../nar/src';
-import type { EnhancedMCPAdapter } from './mcp';
-import type { SeNARSMCPServer } from './mcp-server';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 export interface MCPResourceContext {
   nar: NAR;
   agent?: Agent;
 }
 
-export function registerMCPResources(
-  adapter: EnhancedMCPAdapter,
-  _context: MCPResourceContext,
-  server?: SeNARSMCPServer
-): void {
-  const resources = [
-    { uri: 'nar://beliefs', name: 'Beliefs', description: 'All stored beliefs with truth values' },
-    {
-      uri: 'nar://concepts',
-      name: 'Concepts',
-      description: 'Active concepts with attention priorities',
-    },
-    { uri: 'nar://attention', name: 'Attention', description: 'Current attention snapshot' },
-    {
-      uri: 'nar://state',
-      name: 'State',
-      description: 'NAR state summary (beliefs/goals/questions/attention/drives)',
-    },
-    { uri: 'nar://episodes', name: 'Episodes', description: 'Recent episodic memory entries' },
-    { uri: 'nar://benchmarks', name: 'Benchmarks', description: 'Benchmark history and scores' },
-    { uri: 'nar://config', name: 'Config', description: 'Current configuration' },
-    { uri: 'nar://tools', name: 'Tools', description: 'Available tools with schemas' },
-    { uri: 'sessions://list', name: 'Sessions', description: 'List all available sessions' },
-    { uri: 'knowledge://list', name: 'Knowledge', description: 'List all knowledge entries' },
-    {
-      uri: 'lm-rules://stats',
-      name: 'LM Rule Stats',
-      description: 'LM Rule statistics (calls, successes, failures, circuit state)',
-    },
-    {
-      uri: 'lm-rules://execution-log',
-      name: 'LM Rule Log',
-      description: 'Recent LM Rule execution log',
-    },
-    {
-      uri: 'rlfp://state',
-      name: 'RLFP State',
-      description: 'RLFP learner state (policy, exploration rate, rewards)',
-    },
-    {
-      uri: 'self-reasoning://quality',
-      name: 'Self-Reasoning Quality',
-      description: 'Self-reasoning quality metrics',
-    },
-  ];
-
-  for (const r of resources) {
-    adapter.registerCapability({
-      name: r.uri,
-      description: r.description,
-      inputSchema: { type: 'object', properties: {} },
-    });
-    if (server) server.registerResource(r);
-  }
-
-  // Parameterized resource templates
-  if (server) {
-    server.registerResource({
-      uri: 'sessions://{key}',
-      name: 'Session by Key',
-      description: 'Get session history by key',
-    });
-    server.registerResource({
-      uri: 'knowledge://{key}',
-      name: 'Knowledge by Key',
-      description: 'Get knowledge entry by key',
-    });
-  }
-}
-
-export function getResourceContent(
-  adapter: EnhancedMCPAdapter,
-  context: MCPResourceContext,
-  uri: string
-): string {
+export function registerMCPResources(server: McpServer, context: MCPResourceContext): void {
   const { nar, agent } = context;
 
-  if (uri.startsWith('sessions://') && uri !== 'sessions://list') {
-    const key = uri.replace('sessions://', '');
-    return `Session: ${key}`;
-  }
+  // Static resources
+  server.registerResource(
+    'beliefs',
+    'nar://beliefs',
+    {
+      title: 'Beliefs',
+      description: 'All stored beliefs with truth values',
+      mimeType: 'application/json',
+    },
+    async () => ({
+      contents: [
+        {
+          uri: 'nar://beliefs',
+          mimeType: 'application/json',
+          text: JSON.stringify(
+            nar.getBeliefs().map((b) => ({ term: b.term.toString(), truth: b.truth })),
+            null,
+            2
+          ),
+        },
+      ],
+    })
+  );
 
-  if (uri.startsWith('knowledge://') && uri !== 'knowledge://list') {
-    const key = uri.replace('knowledge://', '');
-    if (agent) {
-      const value = agent.knowGet?.(key);
-      if (value !== undefined) return JSON.stringify({ key, value }, null, 2);
-    }
-    return `Unknown knowledge key: ${key}`;
-  }
+  server.registerResource(
+    'concepts',
+    'nar://concepts',
+    {
+      title: 'Concepts',
+      description: 'Active concepts with attention priorities',
+      mimeType: 'application/json',
+    },
+    async () => ({
+      contents: [
+        {
+          uri: 'nar://concepts',
+          mimeType: 'application/json',
+          text: JSON.stringify(nar.attentionReport(), null, 2),
+        },
+      ],
+    })
+  );
 
-  switch (uri) {
-    case 'nar://beliefs': {
-      const beliefs = nar.getBeliefs();
-      return JSON.stringify(
-        beliefs.map((b) => ({ term: b.term.toString(), truth: b.truth })),
-        null,
-        2
-      );
-    }
-    case 'nar://concepts':
-    case 'nar://attention': {
-      const report = nar.attentionReport();
-      return JSON.stringify(report, null, 2);
-    }
-    case 'nar://state': {
+  server.registerResource(
+    'attention',
+    'nar://attention',
+    {
+      title: 'Attention',
+      description: 'Current attention snapshot',
+      mimeType: 'application/json',
+    },
+    async () => ({
+      contents: [
+        {
+          uri: 'nar://attention',
+          mimeType: 'application/json',
+          text: JSON.stringify(nar.attentionReport(), null, 2),
+        },
+      ],
+    })
+  );
+
+  server.registerResource(
+    'state',
+    'nar://state',
+    {
+      title: 'State',
+      description: 'NAR state summary (beliefs/goals/questions/attention/drives)',
+      mimeType: 'application/json',
+    },
+    async () => {
       const beliefs = nar.getBeliefs().map((b) => ({ term: b.term.toString(), truth: b.truth }));
-      const goals =
-        nar.getGoals?.().map((g) => ({ term: g.term.toString(), truth: g.truth })) ?? [];
+      const goals = nar.getGoals?.().map((g) => ({ term: g.term.toString(), truth: g.truth })) ?? [];
       const questions =
         nar.getQuestions?.().map((q) => ({ term: q.term.toString(), truth: q.truth })) ?? [];
       const attention = nar.attentionReport();
       const drives = nar.getDriveManager?.()?.getAllStates?.() ?? [];
-      return JSON.stringify({ beliefs, goals, questions, attention, drives }, null, 2);
+
+      return {
+        contents: [
+          {
+            uri: 'nar://state',
+            mimeType: 'application/json',
+            text: JSON.stringify({ beliefs, goals, questions, attention, drives }, null, 2),
+          },
+        ],
+      };
     }
-    case 'nar://episodes':
-      return JSON.stringify({ episodes: [] }, null, 2);
-    case 'nar://benchmarks':
-      return JSON.stringify({ history: [] }, null, 2);
-    case 'nar://config':
-      return JSON.stringify(nar.getConfig(), null, 2);
-    case 'nar://tools': {
-      const tools = nar.tools.list();
-      return JSON.stringify(
-        tools.map((t) => ({ name: t.name, description: t.description })),
-        null,
-        2
-      );
-    }
-    case 'sessions://list': {
-      return JSON.stringify([], null, 2);
-    }
-    case 'knowledge://list': {
-      if (agent) {
-        const knowledge = agent.knowList?.() ?? [];
-        return JSON.stringify(knowledge, null, 2);
-      }
-      return JSON.stringify([], null, 2);
-    }
-    case 'lm-rules://stats': {
-      const stats = nar.getProcessor()?.getLmRuleStats?.() ?? [];
-      return JSON.stringify(stats, null, 2);
-    }
-    case 'lm-rules://execution-log': {
-      const log = nar.getProcessor()?.getLMRuleExecutionLog?.() ?? [];
-      return JSON.stringify(log, null, 2);
-    }
-    case 'rlfp://state': {
-      const rlfp = nar.getRLFP?.();
-      if (!rlfp) return JSON.stringify({ enabled: false }, null, 2);
-      const policyOptimizer = rlfp.policyOptimizerPublic;
-      return JSON.stringify(
+  );
+
+  server.registerResource(
+    'episodes',
+    'nar://episodes',
+    {
+      title: 'Episodes',
+      description: 'Recent episodic memory entries',
+      mimeType: 'application/json',
+    },
+    async () => ({
+      contents: [
         {
-          enabled: true,
-          policy: Object.fromEntries(
-            policyOptimizer
-              ?.getAllStrategies?.()
-              .map((s: string) => [s, policyOptimizer.getStrategyStats(s)?.priority ?? 1]) ?? []
+          uri: 'nar://episodes',
+          mimeType: 'application/json',
+          text: JSON.stringify({ episodes: [] }, null, 2),
+        },
+      ],
+    })
+  );
+
+  server.registerResource(
+    'benchmarks',
+    'nar://benchmarks',
+    {
+      title: 'Benchmarks',
+      description: 'Benchmark history and scores',
+      mimeType: 'application/json',
+    },
+    async () => ({
+      contents: [
+        {
+          uri: 'nar://benchmarks',
+          mimeType: 'application/json',
+          text: JSON.stringify({ history: [] }, null, 2),
+        },
+      ],
+    })
+  );
+
+  server.registerResource(
+    'config',
+    'nar://config',
+    {
+      title: 'Config',
+      description: 'Current configuration',
+      mimeType: 'application/json',
+    },
+    async () => ({
+      contents: [
+        {
+          uri: 'nar://config',
+          mimeType: 'application/json',
+          text: JSON.stringify(nar.getConfig(), null, 2),
+        },
+      ],
+    })
+  );
+
+  server.registerResource(
+    'tools',
+    'nar://tools',
+    {
+      title: 'Tools',
+      description: 'Available tools with schemas',
+      mimeType: 'application/json',
+    },
+    async () => ({
+      contents: [
+        {
+          uri: 'nar://tools',
+          mimeType: 'application/json',
+          text: JSON.stringify(
+            nar.tools.list().map((t) => ({ name: t.name, description: t.description })),
+            null,
+            2
           ),
-          explorationRate: policyOptimizer?.getConfig?.().explorationRate ?? 0.1,
-          totalRewards: rlfp.trajectoryCount ?? 0,
-          totalSteps: rlfp.trajectoryCount ?? 0,
         },
-        null,
-        2
-      );
-    }
-    case 'self-reasoning://quality': {
-      const self = nar.getSelfAnalyzer?.();
-      if (!self) return JSON.stringify({ available: false }, null, 2);
-      return JSON.stringify(
+      ],
+    })
+  );
+
+  server.registerResource(
+    'sessions_list',
+    'sessions://list',
+    {
+      title: 'Sessions',
+      description: 'List all available sessions',
+      mimeType: 'application/json',
+    },
+    async () => ({
+      contents: [
         {
-          available: true,
-          overall: 0,
-          coherence: 0,
-          relevance: 0,
-          completeness: 0,
+          uri: 'sessions://list',
+          mimeType: 'application/json',
+          text: JSON.stringify([], null, 2),
         },
-        null,
-        2
-      );
+      ],
+    })
+  );
+
+  server.registerResource(
+    'knowledge_list',
+    'knowledge://list',
+    {
+      title: 'Knowledge',
+      description: 'List all knowledge entries',
+      mimeType: 'application/json',
+    },
+    async () => {
+      const knowledge = agent?.knowList?.() ?? [];
+      return {
+        contents: [
+          {
+            uri: 'knowledge://list',
+            mimeType: 'application/json',
+            text: JSON.stringify(knowledge, null, 2),
+          },
+        ],
+      };
     }
-    default:
-      return `Unknown resource: ${uri}`;
-  }
+  );
+
+  server.registerResource(
+    'lm_rule_stats',
+    'lm-rules://stats',
+    {
+      title: 'LM Rule Stats',
+      description: 'LM Rule statistics (calls, successes, failures, circuit state)',
+      mimeType: 'application/json',
+    },
+    async () => {
+      const stats = nar.getProcessor()?.getLmRuleStats?.() ?? [];
+      return {
+        contents: [
+          {
+            uri: 'lm-rules://stats',
+            mimeType: 'application/json',
+            text: JSON.stringify(stats, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
+  server.registerResource(
+    'lm_rule_log',
+    'lm-rules://execution-log',
+    {
+      title: 'LM Rule Log',
+      description: 'Recent LM Rule execution log',
+      mimeType: 'application/json',
+    },
+    async () => {
+      const log = nar.getProcessor()?.getLMRuleExecutionLog?.() ?? [];
+      return {
+        contents: [
+          {
+            uri: 'lm-rules://execution-log',
+            mimeType: 'application/json',
+            text: JSON.stringify(log, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
+  server.registerResource(
+    'rlfp_state',
+    'rlfp://state',
+    {
+      title: 'RLFP State',
+      description: 'RLFP learner state (policy, exploration rate, rewards)',
+      mimeType: 'application/json',
+    },
+    async () => {
+      const rlfp = nar.getRLFP?.();
+      if (!rlfp) {
+        return {
+          contents: [
+            {
+              uri: 'rlfp://state',
+              mimeType: 'application/json',
+              text: JSON.stringify({ enabled: false }, null, 2),
+            },
+          ],
+        };
+      }
+      const policyOptimizer = rlfp.policyOptimizerPublic;
+      return {
+        contents: [
+          {
+            uri: 'rlfp://state',
+            mimeType: 'application/json',
+            text: JSON.stringify(
+              {
+                enabled: true,
+                policy: Object.fromEntries(
+                  policyOptimizer
+                    ?.getAllStrategies?.()
+                    .map((s: string) => [s, policyOptimizer.getStrategyStats(s)?.priority ?? 1]) ??
+                    []
+                ),
+                explorationRate: policyOptimizer?.getConfig?.().explorationRate ?? 0.1,
+                totalRewards: rlfp.trajectoryCount ?? 0,
+                totalSteps: rlfp.trajectoryCount ?? 0,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+  );
+
+  server.registerResource(
+    'self_reasoning_quality',
+    'self-reasoning://quality',
+    {
+      title: 'Self-Reasoning Quality',
+      description: 'Self-reasoning quality metrics',
+      mimeType: 'application/json',
+    },
+    async () => {
+      const self = nar.getSelfAnalyzer?.();
+      if (!self) {
+        return {
+          contents: [
+            {
+              uri: 'self-reasoning://quality',
+              mimeType: 'application/json',
+              text: JSON.stringify({ available: false }, null, 2),
+            },
+          ],
+        };
+      }
+      return {
+        contents: [
+          {
+            uri: 'self-reasoning://quality',
+            mimeType: 'application/json',
+            text: JSON.stringify(
+              {
+                available: true,
+                overall: 0,
+                coherence: 0,
+                relevance: 0,
+                completeness: 0,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+  );
+
+  // Parameterized resource templates
+  server.registerResource(
+    'session_by_key',
+    new ResourceTemplate('sessions://{key}', {
+      list: undefined,
+    }),
+    {
+      title: 'Session by Key',
+      description: 'Get session history by key',
+      mimeType: 'application/json',
+    },
+    async (uri, { key }) => ({
+      contents: [
+        {
+          uri: `sessions://${key}`,
+          mimeType: 'application/json',
+          text: `Session: ${key}`,
+        },
+      ],
+    })
+  );
+
+  server.registerResource(
+    'knowledge_by_key',
+    new ResourceTemplate('knowledge://{key}', {
+      list: undefined,
+    }),
+    {
+      title: 'Knowledge by Key',
+      description: 'Get knowledge entry by key',
+      mimeType: 'application/json',
+    },
+    async (uri, { key }) => {
+      const value = agent?.knowGet?.(key);
+      if (value !== undefined) {
+        return {
+          contents: [
+            {
+              uri: `knowledge://${key}`,
+              mimeType: 'application/json',
+              text: JSON.stringify({ key, value }, null, 2),
+            },
+          ],
+        };
+      }
+      return {
+        contents: [
+          {
+            uri: `knowledge://${key}`,
+            mimeType: 'application/json',
+            text: `Unknown knowledge key: ${key}`,
+          },
+        ],
+      };
+    }
+  );
 }
