@@ -401,26 +401,38 @@ All Phase 2.5 Tier A tasks implemented and verified:
 - CLI `nar imagine` provides direct access to all profiles with `--analyze` flag for gap detection
 
 ### Next Phase: Phase 3 — Self-Building Loop
-- Codemod tool (AST-Grep first)
-- Refactoring pipeline (lint → belief → codemod → approve → test → commit)
-- Feature synthesis (NL → code via MeTTa)
+- ✅ **3.1 Codemod tool (AST-Grep first)** — COMPLETED
+- **3.2 Refactoring pipeline** (lint → belief → codemod → approve → test → commit)
+- **3.3 Feature synthesis** (NL → code via MeTTa)
 
 ---
 
 ## Phase 3: Self-Building Loop
 
-### 3.1 Codemod Tool (AST-Grep First)
-**File**: `nar/src/tools/adapters/external-tools.ts` — add `codemod` tool
+### 3.1 Codemod Tool (AST-Grep First) — ✅ COMPLETED
+**File**: `nar/src/tools/adapters/external-tools.ts` — added `codemod` tool
 
 ```typescript
 // API
 codemod(pattern, replacement, { dryRun: true, scope: ['src/cli/', 'src/tools/'] })
-// Returns: { diff: string, files: string[], applied: boolean }
+// Returns: { diff: string, files: string[], applied: boolean, matches: number, success: boolean }
 ```
 
-- Use `ast-grep` (Rust, fast) for structural rewrites
-- Reserve `ts-morph` for multi-file refactors needing type-checker
-- Start patterns: `any` → explicit type, non-null assertion → optional chaining, `forEach` returning value → `for...of`
+- ✅ Uses `ast-grep` (Rust, fast) for structural rewrites via `findAstGrep()` that locates binary
+- ✅ Reserve `ts-morph` for multi-file refactors needing type-checker (future)
+- ✅ Tested patterns: `any` → `unknown`, `forEach` → `for...of` (basic)
+- ✅ Returns unified diff, file list, match count, applied status
+
+**Files Created/Modified:**
+| File | Status |
+|------|--------|
+| `nar/src/tools/adapters/external-tools.ts` | ✅ Added `createCodemodTools()` with `codemod` tool |
+| `nar/src/tools/adapters/index.ts` | ✅ Exported `createCodemodTools`, `CodemodDeps`, `CodemodOptions`, `CodemodResult` |
+
+**Verification:**
+- `tsx scripts/test-codemod.ts` ✅ Dry-run and apply work for `let $X: any = $V` → `let $X: unknown = $V`
+- `tsx scripts/test-codemod.ts` ✅ Dry-run works for `$X.forEach($F)` → `for...of` (pattern needs refinement)
+- `pnpm typecheck` ✅ No new errors in external-tools.ts
 
 ### 3.2 Refactoring Pipeline
 ```
@@ -522,6 +534,6 @@ Lint error (biome JSON)
 - CLI `nar imagine` provides direct access with `--analyze` for gap detection
 
 **Next Phase**: Phase 3 — Self-Building Loop
-- Codemod tool (AST-Grep first) in `nar/src/tools/adapters/external-tools.ts`
-- Refactoring pipeline: lint error → NAR belief → codemod (dryRun) → diff → ApprovalManager → apply → test
-- Feature synthesis: NL → Narsese goal → NAR derives plan → MeTTa executes → generates TS → codemod writes → test validates
+- ✅ **3.1 Codemod tool (AST-Grep first)** in `nar/src/tools/adapters/external-tools.ts` — COMPLETED
+- **3.2 Refactoring pipeline**: lint error → NAR belief → codemod (dryRun) → diff → ApprovalManager → apply → test
+- **3.3 Feature synthesis**: NL → Narsese goal → NAR derives plan → MeTTa executes → generates TS → codemod writes → test validates

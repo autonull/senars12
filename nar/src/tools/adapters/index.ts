@@ -5,6 +5,9 @@ export type {
   ApprovalRequest,
   ApprovalResult,
   CodeExecDeps,
+  CodemodDeps,
+  CodemodOptions,
+  CodemodResult,
   CoverageConceptDeps,
   FileSystemDeps,
   RagQueryDeps,
@@ -20,6 +23,7 @@ export type {
 export {
   ApprovalManager,
   createCodeExecTools,
+  createCodemodTools,
   createCoverageConceptTools,
   createFileSystemTools,
   createHTTPFetchTools,

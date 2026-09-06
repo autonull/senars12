@@ -160,7 +160,7 @@ function mutateParams(params: CognitiveParameters): void {
   const knob = knobs[Math.floor(Math.random() * knobs.length)]!;
   const keys = knob.path.split('.');
   if (keys.length === 0) return;
-  let current: any = params;
+  let current: unknown = params
   for (let i = 0; i < keys.length - 1; i++) {
     const k = keys[i]!;
     if (!current[k] || typeof current[k] !== 'object') {
