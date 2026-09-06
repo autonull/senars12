@@ -19,6 +19,8 @@ const knobSchema = [
   { name: 'callTimeoutMs', path: 'lm.callTimeoutMs', min: 1000, max: 30000, step: 500 },
   { name: 'decayRate', path: 'priority.decayRate', min: 0.001, max: 0.1, step: 0.001 },
   { name: 'cpuThrottleMs', path: 'inference.cpuThrottleMs', min: 0, max: 50, step: 1 },
+  { name: 'maxLoops', path: 'modelRunner.maxLoops', min: 1, max: 10, step: 1 },
+  { name: 'activationDecayRate', path: 'memory.activationDecayRate', min: 0.001, max: 0.1, step: 0.001 },
 ] as const;
 
 function getNested(obj: ParamObj, path: string): number {

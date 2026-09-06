@@ -42,6 +42,8 @@ export class RLFPLearner {
       lm: { enabled: true, singlePremiseEnabled: true, maxRulesPerCycle: 13, callTimeoutMs: 5000, ruleCategories: { translation: true, explanation: true, metaReasoning: true, uncertainty: true, schemaInduction: true, temporalCausal: true, conceptElaboration: true }, selectionStrategy: 'all' },
       attention: { autoPrime: true, primeBoost: 0.3, relatedBoost: 0.15, structuralSimilarity: true, semanticRelatedness: false, propagateActivation: true, propagationIterations: 2 },
       inference: { maxDerivationsPerStep: 1000, maxDerivationDepth: 10, enableCircularDetection: true, enableTraceCollection: false, cpuThrottleMs: 0, maxSampledConcepts: 100 },
+      modelRunner: { maxLoops: 5 },
+      memory: { activationDecayRate: 0.01 },
       strategies: { sampling: { type: 'priority' }, premise: { type: 'default-formation' }, derivation: { type: 'default' }, lmRule: { type: 'priority', maxRules: 5 }, attention: { type: 'simple' } },
     };
     this.knobs = createKnobSet(this.currentParams);
@@ -93,6 +95,14 @@ export class RLFPLearner {
         current: this.currentParams.inference.cpuThrottleMs,
         min: 0, max: 50, step: 1,
       },
+      maxLoops: {
+        current: this.currentParams.modelRunner.maxLoops,
+        min: 1, max: 10, step: 1,
+      },
+      activationDecayRate: {
+        current: this.currentParams.memory.activationDecayRate,
+        min: 0.001, max: 0.1, step: 0.001,
+      },
     };
   }
 
@@ -109,10 +119,13 @@ export class RLFPLearner {
     coverageDelta: number;
     memoryOverage: number;
     cpuThrottleTime: number;
+    baselineDuration?: number;
   }): number {
-    const base = 0.5 * m.testPassRate + 0.3 * (1 / Math.max(m.avgTestDuration, 0.1)) + 0.2 * m.coverageDelta;
+    const speedScore = (m.baselineDuration ?? m.avgTestDuration) / Math.max(m.avgTestDuration, 0.1);
+    const clampedSpeedScore = clamp(speedScore, 0, 2);
+    const reward = 0.5 * m.testPassRate + 0.3 * (clampedSpeedScore / 2) + 0.2 * m.coverageDelta;
     const aikrPenalty = 0.5 * m.memoryOverage + 0.1 * m.cpuThrottleTime;
-    return Math.max(0, base - aikrPenalty);
+    return Math.max(0, reward - aikrPenalty);
   }
 
   addPreference(preferred: string, rejected: string): void {

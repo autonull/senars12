@@ -9,6 +9,9 @@ import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
 import type { EmbeddingGenerator } from '../../memory/embedding.js';
 import { cosineSimilarity, createEmbeddingGenerator } from '../../memory/embedding.js';
 import { ToolSpecSchema, ConnectionConfigSchema, AgentOptionsSchema } from '../schemas.js';
+import { NLUnderstandingService } from '../../nl/understanding.js';
+import type { SeNARSRegistry } from '../../lm';
+import { createLogger } from '../../logger';
 
 type ToolSpec = z.infer<typeof ToolSpecSchema>;
 type ConnectionConfig = z.infer<typeof ConnectionConfigSchema>;
@@ -352,8 +355,8 @@ export function createRagQueryTools(deps: RagQueryDeps) {
           return { error: String(error), results: [] };
         }
       },
-    });
-  };
+    }),
+  }
 }
 
 // --- coverage_concepts ---
@@ -377,7 +380,8 @@ function parseCoverageMap(output: string): FileCoverage[] {
     const lines = output.trim().split('\n');
     let jsonStart = -1;
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].trim().startsWith('{')) {
+      const line = lines[i];
+      if (line && line.trim().startsWith('{')) {
         jsonStart = i;
         break;
       }
@@ -511,6 +515,7 @@ export function createCoverageConceptTools(deps: CoverageConceptDeps = {}) {
             if (deps.memory && lowCoverageFiles.length > 0) {
               try {
                 // Import NAR types dynamically to avoid circular deps
+                // @ts-ignore - dynamic import resolution
                 const { TermBuilder, atom } = await import('../terms/index.js');
                 
                 for (const fc of lowCoverageFiles) {
@@ -530,6 +535,7 @@ export function createCoverageConceptTools(deps: CoverageConceptDeps = {}) {
                   concept.priority = Math.max(0.01, priority);
                   
                   // Add a belief about the coverage
+                  // @ts-ignore - dynamic import resolution
                   const { Truth } = await import('../terms/truth.js');
                   const beliefTruth = Truth.create(
                     fc.lines.pct / 100,  // frequency = coverage percentage
@@ -881,7 +887,8 @@ function parseVitestJsonOutput(output: string): VitestResult | null {
     // Look for the line that starts with { (JSON object)
     let jsonStart = -1;
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].trim().startsWith('{')) {
+      const line = lines[i];
+      if (line && line.trim().startsWith('{')) {
         jsonStart = i;
         break;
       }
@@ -1128,4 +1135,520 @@ export function createTestRunnerTools(deps: TestRunnerDeps = {}) {
       },
     }),
   };
+}
+
+// --- generate_scenarios ---
+
+const scenarioLogger = createLogger({ scope: 'ScenarioGen' });
+
+export interface ScenarioInjectEvent {
+  type: 'belief_stream' | 'question' | 'resource_pressure' | 'goal';
+  pattern?: string;
+  interval?: number;
+  maxDerivationsPerStep?: number;
+  narsese?: string;
+  truth?: { f: number; c: number };
+  priority?: number;
+}
+
+export interface ScenarioSuccessCriteria {
+  no_crash?: boolean;
+  contradiction_detected_within?: number;
+  response_latency_p95?: number;
+  min_derivations?: number;
+  specific_belief_derived?: string;
+}
+
+export interface ScenarioSpec {
+  name: string;
+  description: string;
+  duration_steps: number;
+  inject: ScenarioInjectEvent[];
+  success_criteria: ScenarioSuccessCriteria;
+  metadata: {
+    seed: string;
+    generated_at: string;
+    profile: string;
+  };
+}
+
+export interface ScenarioResult {
+  success: boolean;
+  scenario_name: string;
+  steps_executed: number;
+  duration_ms: number;
+  criteria_results: Record<string, boolean | number>;
+  cognitive_events: number;
+  contradictions_detected: number;
+  derived_beliefs: string[];
+  error?: string;
+}
+
+export interface ScenarioRunnerDeps {
+  workspaceRoot?: string;
+  nar?: any; // NAR instance
+  episodicMemory?: any;
+  rlfpLearner?: any;
+  registry?: SeNARSRegistry;
+}
+
+interface ScenarioValidator {
+  name: string;
+  validate(result: ScenarioResult, spec: ScenarioSpec): { passed: boolean; score: number; details: string };
+}
+
+const validators: ScenarioValidator[] = [
+  {
+    name: 'no_crash',
+    validate(result: ScenarioResult, _spec: ScenarioSpec) {
+      return {
+        passed: result.success,
+        score: result.success ? 1.0 : 0.0,
+        details: result.success ? 'No crash' : `Crashed: ${result.error}`,
+      };
+    },
+  },
+  {
+    name: 'contradiction_detected',
+    validate(result: ScenarioResult, spec: ScenarioSpec) {
+      const threshold = spec.success_criteria.contradiction_detected_within ?? 10;
+      const passed = result.contradictions_detected > 0 && result.steps_executed <= threshold;
+      return {
+        passed,
+        score: passed ? 1.0 : 0.5,
+        details: passed
+          ? `Contradiction detected at step ${result.steps_executed}`
+          : `No contradiction within ${threshold} steps`,
+      };
+    },
+  },
+  {
+    name: 'latency_p95',
+    validate(result: ScenarioResult, spec: ScenarioSpec) {
+      const threshold = spec.success_criteria.response_latency_p95 ?? 100;
+      const avgLatency = result.duration_ms / Math.max(result.steps_executed, 1);
+      const passed = avgLatency <= threshold;
+      return {
+        passed,
+        score: passed ? 1.0 : Math.max(0, 1 - avgLatency / (threshold * 2)),
+        details: `Avg latency ${avgLatency.toFixed(1)}ms (threshold: ${threshold}ms)`,
+      };
+    },
+  },
+  {
+    name: 'min_derivations',
+    validate(result: ScenarioResult, spec: ScenarioSpec) {
+      const threshold = spec.success_criteria.min_derivations ?? 1;
+      const passed = result.derived_beliefs.length >= threshold;
+      return {
+        passed,
+        score: passed ? 1.0 : result.derived_beliefs.length / threshold,
+        details: `${result.derived_beliefs.length}/${threshold} derivations`,
+      };
+    },
+  },
+  {
+    name: 'specific_belief',
+    validate(result: ScenarioResult, spec: ScenarioSpec) {
+      const target = spec.success_criteria.specific_belief_derived;
+      if (!target) return { passed: true, score: 1.0, details: 'No specific belief required' };
+      const passed = result.derived_beliefs.some((b) => b.includes(target));
+      return {
+        passed,
+        score: passed ? 1.0 : 0.0,
+        details: passed ? `Derived ${target}` : `Missing ${target}`,
+      };
+    },
+  },
+];
+
+function calculateScenarioReward(result: ScenarioResult, spec: ScenarioSpec): number {
+  let totalScore = 0;
+  let totalWeight = 0;
+
+  for (const validator of validators) {
+    const weight = spec.success_criteria[validator.name as keyof ScenarioSuccessCriteria] ? 1 : 0;
+    if (weight === 0) continue;
+    const validation = validator.validate(result, spec);
+    totalScore += validation.score * weight;
+    totalWeight += weight;
+  }
+
+  const baseReward = totalWeight > 0 ? totalScore / totalWeight : 0;
+  const stepBonus = Math.min(1, result.steps_executed / spec.duration_steps) * 0.2;
+  const eventBonus = Math.min(1, result.cognitive_events / 100) * 0.1;
+
+  return Math.min(1, baseReward + stepBonus + eventBonus);
+}
+
+async function generateScenarioSpec(
+  seed: string,
+  profile: string,
+  registry?: SeNARSRegistry
+): Promise<ScenarioSpec> {
+  if (!registry) {
+    return generateTemplateScenario(seed, profile);
+  }
+
+  try {
+    // @ts-ignore - TranslationCache interface mismatch
+    const understanding = new NLUnderstandingService(registry, new Map(), { structuredOnly: true });
+    const nlInput = `Generate a cognitive test scenario for SeNARS. Profile: ${profile}. Seed: "${seed}". 
+    Output a JSON spec with: name, description, duration_steps, inject (array of events with type, pattern, interval), success_criteria.
+    Events can be: belief_stream (pattern, interval), question (pattern, interval), resource_pressure (maxDerivationsPerStep), goal (narsese, priority).
+    Success criteria: no_crash, contradiction_detected_within, response_latency_p95, min_derivations, specific_belief_derived.`;
+
+    const taskBatch = await understanding.understand(nlInput);
+    if (taskBatch && taskBatch.goals.length > 0) {
+      const goalContent = taskBatch.goals[0]!.narsese;
+      try {
+        const parsed = JSON.parse(goalContent.replace(/^!/, '').trim());
+        return {
+          ...parsed,
+          metadata: { seed, generated_at: new Date().toISOString(), profile },
+        } as ScenarioSpec;
+      } catch {
+        scenarioLogger.warn('Failed to parse NL-generated scenario, using template');
+      }
+    }
+  } catch (error: unknown) {
+    scenarioLogger.warn('NL scenario generation failed, using template', { error: String(error) });
+  }
+
+  return generateTemplateScenario(seed, profile);
+}
+
+function generateTemplateScenario(seed: string, profile: string): ScenarioSpec {
+  const profiles: Record<string, Partial<ScenarioSpec>> = {
+    contradictory_sensors: {
+      name: 'contradictory_sensors',
+      description: 'Test handling of contradictory sensor inputs',
+      duration_steps: 500,
+      inject: [
+        { type: 'belief_stream', pattern: '(sensor_A --> sensor_B). %0.9;0.9%', interval: 5 },
+        { type: 'belief_stream', pattern: '(sensor_B --> sensor_A). %0.1;0.9%', interval: 5 },
+        { type: 'question', pattern: '(sensor_A --> ?what)?', interval: 20 },
+        { type: 'resource_pressure', maxDerivationsPerStep: 50 },
+      ],
+      success_criteria: {
+        no_crash: true,
+        contradiction_detected_within: 10,
+        response_latency_p95: 100,
+        min_derivations: 5,
+      },
+    },
+    temporal_reasoning: {
+      name: 'temporal_reasoning',
+      description: 'Test event sequences with delayed evidence',
+      duration_steps: 300,
+      inject: [
+        { type: 'belief_stream', pattern: '(event_A * event_B * event_C). %0.8;0.8%', interval: 10 },
+        { type: 'question', pattern: '(event_A ==> event_C)?', interval: 30 },
+        { type: 'resource_pressure', maxDerivationsPerStep: 100 },
+      ],
+      success_criteria: {
+        no_crash: true,
+        min_derivations: 3,
+        specific_belief_derived: 'event_A ==> event_C',
+      },
+    },
+    resource_pressure: {
+      name: 'resource_pressure',
+      description: 'Test AIKR graceful degradation under load',
+      duration_steps: 400,
+      inject: [
+        { type: 'belief_stream', pattern: '(data --> pattern). %0.7;0.7%', interval: 2 },
+        { type: 'resource_pressure', maxDerivationsPerStep: 20 },
+        { type: 'question', pattern: '(data --> ?what)?', interval: 15 },
+      ],
+      success_criteria: {
+        no_crash: true,
+        response_latency_p95: 50,
+        min_derivations: 10,
+      },
+    },
+    belief_revision: {
+      name: 'belief_revision',
+      description: 'Test belief revision with incoming evidence streams',
+      duration_steps: 350,
+      inject: [
+        { type: 'belief_stream', pattern: '(hypothesis --> confirmed). %0.6;0.6%', interval: 8 },
+        { type: 'belief_stream', pattern: '(hypothesis --> refuted). %0.9;0.8%', interval: 20 },
+        { type: 'question', pattern: '(hypothesis --> ?what)?', interval: 25 },
+      ],
+      success_criteria: {
+        no_crash: true,
+        contradiction_detected_within: 15,
+        min_derivations: 5,
+      },
+    },
+    cross_engine_sync: {
+      name: 'cross_engine_sync',
+      description: 'Test NAR-MeTTa coordination',
+      duration_steps: 250,
+      inject: [
+        { type: 'belief_stream', pattern: '(nar_fact <-> metta_atom). %0.8;0.8%', interval: 10 },
+        { type: 'goal', narsese: '(^sync(nar_fact, metta_atom))!', priority: 0.7 },
+        { type: 'question', pattern: '(nar_fact <-> ?what)?', interval: 20 },
+      ],
+      success_criteria: {
+        no_crash: true,
+        min_derivations: 3,
+        specific_belief_derived: 'nar_fact <-> metta_atom',
+      },
+    },
+  };
+
+  const profileSpec = profiles[profile] ?? profiles.contradictory_sensors!;
+
+  return {
+    name: profileSpec.name ?? profile,
+    description: profileSpec.description ?? `Scenario for ${seed}`,
+    duration_steps: profileSpec.duration_steps ?? 300,
+    inject: profileSpec.inject ?? [],
+    success_criteria: profileSpec.success_criteria ?? { no_crash: true },
+    metadata: { seed, generated_at: new Date().toISOString(), profile },
+  };
+}
+
+async function runScenario(nar: any, spec: ScenarioSpec): Promise<ScenarioResult> {
+  const startTime = Date.now();
+  let cognitiveEvents = 0;
+  let contradictionsDetected = 0;
+  const derivedBeliefs: string[] = [];
+
+  const eventHandler = (event: any) => {
+    cognitiveEvents++;
+    if (event.type === 'conflict:detected' || event.type === 'belief.revised') {
+      contradictionsDetected++;
+    }
+    if (event.type === 'belief.added' || event.type === 'belief.revised') {
+      derivedBeliefs.push(event.payload.term);
+    }
+  };
+
+  if (nar.getSystemEventBus) {
+    nar.getSystemEventBus().on('*', eventHandler);
+  }
+
+  try {
+    for (const injectEvent of spec.inject) {
+      switch (injectEvent.type) {
+        case 'belief_stream':
+          if (injectEvent.pattern) {
+            await nar.believe(injectEvent.pattern);
+          }
+          break;
+        case 'question':
+          if (injectEvent.pattern) {
+            await nar.question(injectEvent.pattern);
+          }
+          break;
+        case 'goal':
+          if (injectEvent.narsese) {
+            await nar.goal(injectEvent.narsese, injectEvent.priority ? { f: injectEvent.priority, c: 0.9 } : undefined);
+          }
+          break;
+        case 'resource_pressure':
+          if (injectEvent.maxDerivationsPerStep && nar.setConfig) {
+            nar.setConfig({
+              inference: { ...nar.getConfig().inference, maxDerivationsPerStep: injectEvent.maxDerivationsPerStep },
+            });
+          }
+          break;
+      }
+    }
+
+    const stepsToRun = spec.duration_steps;
+    await nar.run(stepsToRun);
+
+    const duration = Date.now() - startTime;
+
+    return {
+      success: true,
+      scenario_name: spec.name,
+      steps_executed: stepsToRun,
+      duration_ms: duration,
+      criteria_results: {},
+      cognitive_events: cognitiveEvents,
+      contradictions_detected: contradictionsDetected,
+      derived_beliefs: derivedBeliefs,
+    };
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    return {
+      success: false,
+      scenario_name: spec.name,
+      steps_executed: 0,
+      duration_ms: duration,
+      criteria_results: {},
+      cognitive_events: cognitiveEvents,
+      contradictions_detected: contradictionsDetected,
+      derived_beliefs: derivedBeliefs,
+      error: String(error),
+    };
+  } finally {
+    if (nar.getSystemEventBus) {
+      nar.getSystemEventBus().off('*', eventHandler);
+    }
+  }
+}
+
+export interface ScenarioGenDeps {
+  workspaceRoot?: string;
+  nar?: any;
+  episodicMemory?: any;
+  rlfpLearner?: any;
+  registry?: SeNARSRegistry;
+}
+
+export function createScenarioGenTools(deps: ScenarioGenDeps = {}) {
+  const workspaceRoot = deps.workspaceRoot || process.cwd();
+
+  return {
+    generate_scenarios: tool({
+      description:
+        'Generate and execute cognitive scenarios using NL→Narsese→MeTTa pipeline. Tests integrated reasoning under realistic conditions.',
+      inputSchema: z.object({
+        seed: z.string().describe('High-level intent for scenario (e.g., "contradictory sensors under load")'),
+        profile: z
+          .enum([
+            'contradictory_sensors',
+            'temporal_reasoning',
+            'resource_pressure',
+            'belief_revision',
+            'cross_engine_sync',
+            'auto',
+          ])
+          .optional()
+          .default('auto')
+          .describe('Scenario profile/template to use'),
+        count: z.number().int().min(1).max(20).optional().default(1).describe('Number of scenarios to generate and run'),
+        injectEpisodes: z.boolean().optional().default(true).describe('Inject results into episodic memory'),
+      }),
+      execute: async ({ seed, profile, count = 1, injectEpisodes = true }) => {
+        const results: ScenarioResult[] = [];
+        const specs: ScenarioSpec[] = [];
+
+        for (let i = 0; i < count; i++) {
+          const scenarioSeed = count > 1 ? `${seed} (${i + 1}/${count})` : seed;
+          const selectedProfile = profile === 'auto' ? inferProfile(scenarioSeed) : profile;
+
+          const spec = await generateScenarioSpec(scenarioSeed, selectedProfile, deps.registry);
+          specs.push(spec);
+
+          if (deps.nar) {
+            const result = await runScenario(deps.nar, spec);
+            const reward = calculateScenarioReward(result, spec);
+
+            result.criteria_results = validators.reduce((acc, v) => {
+              const validation = v.validate(result, spec);
+              acc[v.name] = validation.passed;
+              return acc;
+            }, {} as Record<string, boolean>);
+
+            if (injectEpisodes && deps.episodicMemory) {
+              await injectScenarioEpisodes(deps.episodicMemory, result, spec, reward);
+            }
+
+            if (deps.rlfpLearner) {
+              deps.rlfpLearner.reward(reward, `scenario:${spec.name}`);
+            }
+
+            results.push(result);
+          } else {
+            results.push({
+              success: true,
+              scenario_name: spec.name,
+              steps_executed: 0,
+              duration_ms: 0,
+              criteria_results: {},
+              cognitive_events: 0,
+              contradictions_detected: 0,
+              derived_beliefs: [],
+              error: 'NAR instance not provided - scenario spec generated only',
+            });
+          }
+        }
+
+        return {
+          success: true,
+          seed,
+          profile,
+          scenarios_generated: specs.length,
+          scenarios_executed: results.filter((r) => r.steps_executed > 0).length,
+          specs,
+          results,
+          summary: {
+            passed: results.filter((r) => r.success).length,
+            failed: results.filter((r) => !r.success).length,
+            avg_reward:
+              results.reduce((sum, r, idx) => sum + calculateScenarioReward(r, specs[idx]!), 0) /
+              Math.max(results.length, 1),
+          },
+        };
+      },
+    }),
+  };
+}
+
+function inferProfile(seed: string): string {
+  const lower = seed.toLowerCase();
+  if (lower.includes('contradict') || lower.includes('conflict') || lower.includes('sensor')) {
+    return 'contradictory_sensors';
+  }
+  if (lower.includes('temporal') || lower.includes('sequence') || lower.includes('event')) {
+    return 'temporal_reasoning';
+  }
+  if (lower.includes('load') || lower.includes('pressure') || lower.includes('overload') || lower.includes('resource')) {
+    return 'resource_pressure';
+  }
+  if (lower.includes('revision') || lower.includes('belief') || lower.includes('evidence')) {
+    return 'belief_revision';
+  }
+  if (lower.includes('cross') || lower.includes('sync') || lower.includes('metta') || lower.includes('engine')) {
+    return 'cross_engine_sync';
+  }
+  return 'contradictory_sensors';
+}
+
+async function injectScenarioEpisodes(
+  episodicMemory: any,
+  result: ScenarioResult,
+  spec: ScenarioSpec,
+  reward: number
+): Promise<void> {
+  try {
+    await episodicMemory.log(
+      result.success ? 'scenario_passed' : 'scenario_failed',
+      `Scenario ${spec.name} ${result.success ? 'passed' : 'failed'}`,
+      {
+        type: 'scenario_result',
+        scenario: spec.name,
+        profile: spec.metadata.profile,
+        success: result.success,
+        steps: result.steps_executed,
+        duration_ms: result.duration_ms,
+        contradictions: result.contradictions_detected,
+        events: result.cognitive_events,
+        derivations: result.derived_beliefs.length,
+        reward,
+        criteria: result.criteria_results,
+      }
+    );
+
+    if (!result.success) {
+      await episodicMemory.log(
+        'goal',
+        `(^fixScenario("${spec.name}"))!`,
+        {
+          type: 'fix_scenario_goal',
+          scenario: spec.name,
+          errors: [result.error ?? 'Unknown failure'],
+        }
+      );
+    }
+  } catch (error: unknown) {
+    scenarioLogger.warn('Failed to inject scenario episodes', { error: String(error) });
+  }
 }

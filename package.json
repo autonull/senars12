@@ -15,6 +15,7 @@
     "bot": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/bot-ai.ts",
     "multi-agent": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/multi-agent.ts",
     "senars": "NODE_NO_WARNINGS=1 tsx src/bin/senars.ts",
+    "tune": "tsx src/bin/tune.ts",
     "config:check": "tsx --env-file=.env src/utils/config-check.ts",
     "env:check": "NODE_NO_WARNINGS=1 tsx --env-file=.env -e \"import('./src/utils/env-validate.js').then(m => m.assertValidEnv())\"",
     "mcp": "NODE_NO_WARNINGS=1 tsx src/bin/mcp-server.ts",

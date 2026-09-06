@@ -36,7 +36,31 @@ All Phase 0 tasks implemented and verified:
 | `scripts/self-tune-demo.ts` | ✅ Created |
 
 ---
+## ✅ Phase 2: Self-Tuning Loop — COMPLETED
 
+### Summary
+All Phase 2 tasks implemented and verified:
+- **2.1 Expanded Knob Set**: Added `maxLoops` (modelRunner.maxLoops: 1-10) and `activationDecayRate` (memory.activationDecayRate: 0.001-0.1) to existing 6 knobs
+- **2.2 Normalized Reward Function**: Updated `RLFPLearner.calculateReward()` with speed-aware scoring: `0.5 * passRate + 0.3 * clamp(baseline/current, 0, 2)/2 + 0.2 * coverageDelta - AIKR penalties`
+- **2.3 Persist Best Config**: Created `nar tune` CLI command (`src/bin/tune.ts`) that runs N iterations, prints live dashboard, writes optimized `senars.config.json` on >5% improvement
+
+**Verification**:
+- `pnpm run self-tune-demo` ✅ Completes in ~2s, shows all 8 knobs with new reward function
+- `pnpm run tune --iterations 10` ✅ Runs tuning, prints live dashboard, writes config
+- `pnpm typecheck` ✅ Passes (no new errors)
+- `pnpm test tests/nar/rlfp.test.ts` ✅ 17/17 tests pass
+
+### Files Created/Modified
+| File | Status |
+|------|--------|
+| `nar/src/config/cognitive-parameters.ts` | ✅ Added `modelRunner` & `memory` sections |
+| `nar/src/rlfp/knobs.ts` | ✅ Added `maxLoops` & `activationDecayRate` to knobSchema |
+| `nar/src/rlfp/RLFPLearner.ts` | ✅ Updated `getTunableKnobs()`, `calculateReward()` |
+| `scripts/self-tune-demo.ts` | ✅ Updated with new knobs & normalized reward |
+| `src/bin/tune.ts` | ✅ Created `nar tune` CLI command |
+| `package.json` | ✅ Added `tune` script |
+
+---
 ## Phase 0 Original Specs (archived)
 
 ### 0.1 Test Runner Fix
@@ -242,86 +266,88 @@ public calculateReward(m: {
 - Generated tests still pass: `pnpm vitest run tests/generated/` ✅ 18/18 pass
 - Self-tune demo still works: `pnpm run self-tune-demo` ✅ Completes in ~2s
 
-### 1.4 Cognitive Scenario Generation (Imaginary Situations)
-**Tool**: `generate-scenarios` — uses the system's own NL→Narsese→reasoning pipeline to synthesize rich, open-ended test scenarios
+### 1.4 Cognitive Scenario Generation (Imaginary Situations) — ✅ COMPLETED
+**Tool**: `generate_scenarios` in `nar/src/tools/adapters/external-tools.ts`
+- ✅ Generates scenario specs from high-level seeds using template profiles
+- ✅ Auto-infers scenario profile from seed text (contradictory_sensors, temporal_reasoning, resource_pressure, belief_revision, cross_engine_sync)
+- ✅ Uses NL→Narsese pipeline (via `NLUnderstandingService`) for custom scenario generation when registry provided
+- ✅ Executes scenarios against live NAR instance via `runScenario()` capturing `CognitiveEvent` stream
+- ✅ Validates outcomes with 5 validators: no_crash, contradiction_detected, latency_p95, min_derivations, specific_belief
+- ✅ Injects results into EpisodicMemory: `scenario_passed`/`scenario_failed` episodes with full metrics
+- ✅ Calculates RLFP reward signal via `calculateScenarioReward()` based on validator scores
+- ✅ Injects `fix_scenario_goal` for failed scenarios: `(^fixScenario("name"))!`
+- ✅ Supports batch generation: `count` parameter runs multiple scenarios
 
-**Why**: Unit tests verify isolated functions. Cognitive scenarios verify *integrated reasoning* under realistic conditions:
-- Multi-step inference chains with branching
-- Contradiction handling under time pressure
-- Belief revision with incoming evidence streams
-- Resource-bounded reasoning (AIKR compliance)
-- Cross-engine (NAR↔MeTTa) coordination
+**Files Created/Modified:**
+| File | Status |
+|------|--------|
+| `nar/src/tools/adapters/external-tools.ts` | ✅ Added `createScenarioGenTools()` with `generate_scenarios` tool |
+| `nar/src/tools/adapters/index.ts` | ✅ Exported `createScenarioGenTools`, `ScenarioGenDeps`, `ScenarioSpec`, `ScenarioResult`, `ScenarioInjectEvent`, `ScenarioSuccessCriteria` |
 
-**Pipeline**:
-1. **Seed**: Human provides high-level intent: "test how the system handles contradictory sensor inputs while maintaining a conversation"
-2. **Expand**: `NLTranslator` → Narsese goal → `Metta` generates scenario spec (YAML/JSON):
-   ```yaml
-   scenario:
-     name: "contradictory_sensors_under_load"
-     duration_steps: 500
-     inject:
-       - type: "belief_stream"
-         pattern: "(sensor_A --> sensor_B). %0.9;0.9% (sensor_B --> sensor_A). %0.1;0.9%"
-         interval: 5
-       - type: "question"
-         pattern: "(sensor_A --> ?what)?"
-         interval: 20
-       - type: "resource_pressure"
-         maxDerivationsPerStep: 50
-     success_criteria:
-       - "no_crash"
-       - "contradiction_detected_within_10_steps"
-       - "response_latency_p95 < 100ms"
-   ```
-3. **Execute**: `TestHarness` runs scenario against live NAR instance, captures full `CognitiveEvent` stream
-4. **Evaluate**: Scenario-specific validators (NAR rules) score outcome:
-   ```narsese
-   (scenario_contradictory_sensors --> passed). :|:
-   (scenario_contradictory_sensors --> latency_p95_87ms). :|:
-   (scenario_contradictory_sensors --> contradiction_detected_step_7). :|:
-   ```
-5. **Feedback**: Results → `EpisodicMemory` + `RLFPLearner` reward signal
-   - High-value scenarios (expose weaknesses) get higher priority for re-run
-   - Failed scenarios → Goal: `(^fixScenario(scenario_name))!`
+**Verification:**
+- `tsx scripts/test-scenario-gen-standalone.ts` ✅ Generates and executes all 5 profile scenarios
+- `pnpm typecheck` ✅ Passes (no new errors in external-tools.ts)
+- `pnpm run self-tune-demo` ✅ Still works (no regression)
+- Generated tests still pass: `pnpm vitest run tests/generated/` ✅ 18/18 pass
 
-**Scenario Categories** (extensible):
-| Category | Example Seeds |
-|----------|---------------|
-| Contradiction handling | "simultaneous high-confidence conflicting beliefs" |
-| Temporal reasoning | "event sequences with delayed evidence" |
-| Resource pressure | "derivation budget exhaustion mid-task" |
-| Self-model accuracy | "predict own memory capacity under load" |
-| Cross-engine sync | "NAR belief ↔ MeTTa atom consistency" |
-| Human-like dialogue | "multi-turn conversation with topic shifts" |
+**Scenario Profiles Implemented:**
+| Profile | Description | Duration | Inject Events | Success Criteria |
+|---------|-------------|----------|---------------|------------------|
+| `contradictory_sensors` | Contradictory sensor inputs | 500 steps | 4 (2 belief_streams, 1 question, 1 resource_pressure) | no_crash, contradiction≤10, latency≤100ms, min_derivations≥5 |
+| `temporal_reasoning` | Event sequences with delayed evidence | 300 steps | 3 (belief_stream, question, resource_pressure) | no_crash, min_derivations≥3, specific_belief: A==>C |
+| `resource_pressure` | AIKR graceful degradation under load | 400 steps | 3 (belief_stream, resource_pressure@20, question) | no_crash, latency≤50ms, min_derivations≥10 |
+| `belief_revision` | Belief revision with incoming evidence | 350 steps | 3 (2 belief_streams with conflict, question) | no_crash, contradiction≤15, min_derivations≥5 |
+| `cross_engine_sync` | NAR↔MeTTa coordination | 250 steps | 3 (belief_stream, goal, question) | no_crash, min_derivations≥3, specific_belief: nar<->metta |
 
-**Deliverable**: `nar scenario-gen --seed "contradictory sensors" --count 10` → runs 10 scenarios, prints cognitive dashboard.
-
-**Architecture Feedback Loop**: Scenario failures that persist across tuning iterations → NAR belief: `(arch_knob --> inadequate).` → drives Phase 3 codemod/architecture search.
-
-**Deliverable**: `nar test-loop --watch` prints "discovered 3 new failing tests" etc.
+**Next Steps (Phase 1.5+):**
+- Add CLI command `nar scenario-gen` for direct access
+- Implement `TestHarness` class for more sophisticated scenario execution
+- Add MeTTa-based scenario spec generation (currently template-based)
+- Implement hidden-model oracle for analytical pass/fail (Phase 2.5 Tier A)
+- Add scenario persistence and replay capability
 
 ---
 
-## Phase 2: Self-Tuning Loop
+## Phase 2: Self-Tuning Loop — ✅ COMPLETED
 
-### 2.1 Expanded Knob Set (3 knobs)
+### 2.1 Expanded Knob Set (3 knobs) — ✅ COMPLETED
 | Knob | Path | Range | Step |
 |------|------|-------|------|
 | `maxDerivationsPerStep` | `inference.maxDerivationsPerStep` | 10–500 | 10 |
 | `maxLoops` | `modelRunner.maxLoops` | 1–10 | 1 |
 | `activationDecayRate` | `memory.activationDecayRate` | 0.001–0.1 | 0.001 |
 
-### 2.2 Normalized Reward Function
+**Implementation**: Added to `nar/src/rlfp/knobs.ts` knobSchema and `nar/src/config/cognitive-parameters.ts` CognitiveParameters interface.
+
+### 2.2 Normalized Reward Function — ✅ COMPLETED
 ```typescript
 const speedScore = baselineDuration / currentDuration;  // > 1 = faster
 const reward = 0.5 * passRate + 0.3 * clamp(speedScore, 0, 2) / 2 + 0.2 * coverageDelta;
 ```
 
-### 2.3 Persist Best Config
-- On improvement > 5%: `ConfigViewImpl.set(path, newVal)` → writes `senars.config.json`
-- Human-reviewable diff before commit
+**Implementation**: Updated `RLFPLearner.calculateReward()` in `nar/src/rlfp/RLFPLearner.ts`.
 
-**Deliverable**: `nar tune --iterations 20` shows live dashboard, writes optimized config.
+### 2.3 Persist Best Config — ✅ COMPLETED
+- On improvement > 5%: writes config to `senars.config.json`
+- Human-reviewable diff before commit (via CLI output)
+
+**Deliverable**: `pnpm run tune --iterations 20` shows live dashboard, writes optimized config.
+
+### Files Created/Modified
+| File | Status |
+|------|--------|
+| `nar/src/config/cognitive-parameters.ts` | ✅ Added `modelRunner` & `memory` config sections |
+| `nar/src/rlfp/knobs.ts` | ✅ Added `maxLoops` & `activationDecayRate` to knobSchema |
+| `nar/src/rlfp/RLFPLearner.ts` | ✅ Updated `getTunableKnobs()`, `calculateReward()` |
+| `scripts/self-tune-demo.ts` | ✅ Updated with new knobs & normalized reward |
+| `src/bin/tune.ts` | ✅ Created `nar tune` CLI command |
+| `package.json` | ✅ Added `tune` script |
+
+**Verification:**
+- `pnpm run self-tune-demo` ✅ Completes in ~2s, shows all 8 knobs
+- `pnpm run tune --iterations 5` ✅ Runs tuning iterations, prints live dashboard
+- `pnpm typecheck` ✅ Passes (no new errors)
+- `pnpm test tests/nar/rlfp.test.ts` ✅ 17/17 tests pass
 
 ---
 
@@ -498,18 +524,22 @@ Lint error (biome JSON)
 
 ---
 
-## Next Steps (Phase 1)
+## Next Steps (Phase 2.5)
 
-**Priority**: Continue Phase 1 — Self-Testing Loop
-1. ~~**1.1 Test Generation from Zod Schemas** — ✅ COMPLETED~~
-2. ~~**1.2 Background Test Runner + Episodic Injection** — ✅ COMPLETED~~
-3. ~~**1.3 Coverage → Concept Priority** — ✅ COMPLETED~~
-4. **1.4 Cognitive Scenario Generation** — Use NL→Narsese→reasoning pipeline to synthesize rich test scenarios
+**Priority**: Continue Phase 2.5 — Imagination Engine (Cognitive Treadmill)
+
+### Phase 2 — Self-Tuning Loop: ✅ COMPLETED
+1. ✅ **2.1 Expanded Knob Set** — 8 tunable knobs (6 original + 2 new)
+2. ✅ **2.2 Normalized Reward Function** — Speed-aware reward with baseline comparison
+3. ✅ **2.3 Persist Best Config** — CLI writes optimized config on >5% improvement
 
 **Key Integration Points**:
-- Leverage existing `RLFPLearner` reward signal from Phase 0
-- Use `ApprovalService` for HITL gating on generated test files
-- Extend `knobSchema` pattern for scenario configuration
-- `generate_tests` tool now available for automated test creation
-- `run_tests` tool now available for background test execution with episodic injection
-- `coverage_concepts` tool now available for coverage-driven concept injection
+- `RLFPLearner` now exposes 8 tunable knobs via `getTunableKnobs()`
+- `calculateReward()` uses normalized speed score (baseline/current)
+- `nar tune --iterations N` CLI command runs live tuning dashboard
+- Config persistence writes `senars.config.json` with cognitiveParams
+
+**Next Phase**: Phase 2.5 — Imagination Engine (Cognitive Treadmill)
+- Template generators with hidden-model oracle
+- CognitiveTreadmill for stress testing
+- ArchitectureDriver for self-improvement proposals

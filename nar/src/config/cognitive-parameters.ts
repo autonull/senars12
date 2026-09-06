@@ -28,6 +28,12 @@ export interface CognitiveParameters {
   /** Inference Control */
   inference: InferenceConfig;
 
+  /** Model Runner Control */
+  modelRunner: ModelRunnerConfig;
+
+  /** Memory Control */
+  memory: MemoryConfig;
+
   /** Pluggable strategy configuration */
   strategies: {
     sampling: { type: string; config?: Record<string, unknown> };
@@ -141,6 +147,16 @@ export interface InferenceConfig {
   enableLMRules?: boolean;
 }
 
+export interface ModelRunnerConfig {
+  /** Maximum reasoning loops per turn */
+  maxLoops: number;
+}
+
+export interface MemoryConfig {
+  /** Activation decay rate per cycle */
+  activationDecayRate: number;
+}
+
 /**
  * Default cognitive parameters - balanced for general use
  */
@@ -189,6 +205,14 @@ export const DEFAULT_COGNITIVE_PARAMETERS: CognitiveParameters = {
     enableTraceCollection: false,
     cpuThrottleMs: 0,
     maxSampledConcepts: 100,
+  },
+
+  modelRunner: {
+    maxLoops: 5,
+  },
+
+  memory: {
+    activationDecayRate: 0.01,
   },
 
   strategies: {
@@ -260,6 +284,14 @@ export const PARAMETER_SPACE = {
     maxDerivationsPerStep: { min: 100, max: 10000, default: 1000 },
     maxDerivationDepth: { min: 5, max: 20, default: 10 },
   },
+
+  modelRunner: {
+    maxLoops: { min: 1, max: 10, default: 5 },
+  },
+
+  memory: {
+    activationDecayRate: { min: 0.001, max: 0.1, default: 0.01 },
+  },
 } as const;
 
 /**
@@ -298,6 +330,8 @@ export function mergeParameters(partial: Partial<CognitiveParameters>): Cognitiv
     lm: { ...DEFAULT_COGNITIVE_PARAMETERS.lm, ...partial.lm },
     attention: { ...DEFAULT_COGNITIVE_PARAMETERS.attention, ...partial.attention },
     inference: { ...DEFAULT_COGNITIVE_PARAMETERS.inference, ...partial.inference },
+    modelRunner: { ...DEFAULT_COGNITIVE_PARAMETERS.modelRunner, ...partial.modelRunner },
+    memory: { ...DEFAULT_COGNITIVE_PARAMETERS.memory, ...partial.memory },
     strategies: {
       ...DEFAULT_COGNITIVE_PARAMETERS.strategies,
       ...partial.strategies,
