@@ -13,3 +13,14 @@ export type {
   RulePattern,
 } from './types.js';
 export { createRulePattern, RuleIndex, RuleRegistry } from './types.js';
+// Meta-rules with AIKR bounds
+export {
+  META_AIKR_BOUNDS,
+  META_RULES_NARSESE,
+  buildMetaRules,
+  registerMetaRules,
+  META_REASONING_BELIEFS,
+  initializeMetaReasoning,
+  shouldActivateMetaReasoning,
+  getMetaBudgetStatus,
+} from './meta-rules.js';

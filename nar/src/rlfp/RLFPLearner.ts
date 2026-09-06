@@ -8,6 +8,13 @@ import { RewardModel } from './RewardModel.js';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
 import { createKnobSet, type TunableKnob } from './knobs.js';
 
+/** Task outcome for unified reward calculation */
+export interface TaskOutcome {
+  taskType: 'test' | 'scenario' | 'contradiction' | 'schema' | 'capability' | 'knob_tune' | 'meta_reasoning';
+  success: boolean;
+  metrics: Record<string, number>;  // passRate, latency, coverage, derivationDepth, selfModelAccuracy
+}
+
 export interface TrainingEntry {
   timestamp: number;
   prompt: unknown;
@@ -126,6 +133,38 @@ export class RLFPLearner {
     const reward = 0.5 * m.testPassRate + 0.3 * (clampedSpeedScore / 2) + 0.2 * m.coverageDelta;
     const aikrPenalty = 0.5 * m.memoryOverage + 0.1 * m.cpuThrottleTime;
     return Math.max(0, reward - aikrPenalty);
+  }
+
+  /**
+   * Calculate reward from generic task outcome with intrinsic rewards
+   * Extrinsic: 0.5 * passRate + 0.3 * clamp(baseline/current, 0, 2)/2 + 0.2 * coverageDelta - AIKR penalties
+   * Intrinsic: 0.4 * derivationDepthReduction + 0.3 * selfModelAccuracy + 0.3 * contradictionReduction
+   * Total: clamp(extrinsic + 0.3 * intrinsic, -1, 1)
+   */
+  calculateRewardFromTask(outcome: TaskOutcome): number {
+    const m = outcome.metrics;
+    
+    // Extrinsic rewards (existing)
+    const passRate = m.passRate ?? (outcome.success ? 1 : 0);
+    const speedScore = (m.baselineDuration ?? m.avgTestDuration ?? 1) / Math.max(m.avgTestDuration ?? 1, 0.1);
+    const clampedSpeedScore = clamp(speedScore, 0, 2);
+    const rewardExtrinsic = 0.5 * passRate + 0.3 * (clampedSpeedScore / 2) + 0.2 * (m.coverageDelta ?? 0);
+    const aikrPenalty = 0.5 * (m.memoryOverage ?? 0) + 0.1 * (m.cpuThrottleTime ?? 0);
+    const extrinsic = Math.max(0, rewardExtrinsic - aikrPenalty);
+
+    // Intrinsic rewards (new)
+    const derivationDepthReduction = m.derivationDepthReduction ?? 0;  // schema promotion → fewer steps
+    const selfModelAccuracy = m.selfModelAccuracy ?? 0;                // predicted vs actual capability
+    const contradictionReduction = m.contradictionReduction ?? 0;      // coherence improvement
+    
+    const rewardIntrinsic = 
+      0.4 * derivationDepthReduction +
+      0.3 * selfModelAccuracy +
+      0.3 * contradictionReduction;
+
+    // Combined reward
+    const combined = extrinsic + 0.3 * rewardIntrinsic;
+    return clamp(combined, -1, 1);
   }
 
   addPreference(preferred: string, rejected: string): void {

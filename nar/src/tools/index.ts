@@ -4,6 +4,7 @@ import { SleepTool } from './SleepTool.js';
 import { TimerTool } from './TimerTool.js';
 import { Registry, ToolManager } from './tool-registry.js';
 import { createToolEvent, errorResult } from './types.js';
+import { initializeSelfConcept, SELF_CONCEPT_BELIEFS, FIX_PATTERN_MAPPINGS, getFixPatternMapping, getFixPatternConcepts, type FixPatternMapping } from './self-concept.js';
 
 // Type re-exports for TypeScript consumers
 export type {
@@ -30,4 +31,10 @@ export {
   SleepTool,
   TimerTool,
   ToolManager,
+  initializeSelfConcept,
+  SELF_CONCEPT_BELIEFS,
+  FIX_PATTERN_MAPPINGS,
+  getFixPatternMapping,
+  getFixPatternConcepts,
+  type FixPatternMapping,
 };

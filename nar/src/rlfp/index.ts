@@ -4,8 +4,9 @@ import { ReasoningTrajectoryLogger, type TrajectoryStep } from './ReasoningTraje
 import { RewardModel } from './RewardModel.js';
 import { RLFPLearner } from './RLFPLearner.js';
 import { createKnobSet, type TunableKnob } from './knobs.js';
+import type { TaskOutcome } from './RLFPLearner.js';
 
-export type { TrajectoryStep, TunableKnob };
+export type { TrajectoryStep, TunableKnob, TaskOutcome };
 export {
   PolicyOptimizer,
   PreferenceCollector,

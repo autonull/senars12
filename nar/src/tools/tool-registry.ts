@@ -1,6 +1,13 @@
 import { createLogger } from '../logger';
 import { type EventBus, ToolError } from '../types';
 import { errMsg } from '../utils';
+import type { Term } from '../terms';
+import {
+  initializeSelfConcept,
+  getFixPatternMapping,
+  getFixPatternConcepts,
+  type FixPatternMapping,
+} from './self-concept.js';
 import type {
   Schema,
   Tool,
@@ -461,6 +468,176 @@ export class ToolManager {
 
   clearHistory(): void {
     this.executionHistory = [];
+  }
+
+  /** Execute a tool goal from NAR (goals starting with ^) */
+  async executeToolGoal(goalTerm: Term, context?: ToolContext): Promise<ToolResult> {
+    const str = goalTerm.toString();
+    if (!str.startsWith('^')) {
+      return errorResult('Not a tool goal (must start with ^)');
+    }
+
+    // Parse: ^tool_name(arg1, arg2) where args are Narsese terms/concepts
+    const match = str.match(/^\^(\w+)\((.*)\)$/);
+    if (!match || !match[1]) {
+      return errorResult('Invalid tool goal syntax (expected ^tool_name(args))');
+    }
+
+    const toolName = match[1];
+    const argsStr = match[2] ?? '';
+    
+    // Check if tool exists
+    const tool = this.get(toolName);
+    if (!tool) {
+      return errorResult(`Tool '${toolName}' not found`);
+    }
+
+    // Parse Narsese arguments
+    const args = this.parseNarseseArgs(argsStr);
+    
+    // Semantic resolution: fix_pattern_id → actual codemod strings, etc.
+    const resolvedArgs = await this.resolveSemanticArgs(toolName, args);
+
+    logger.debug('Executing tool goal', { toolName, args: resolvedArgs });
+    
+    return this.execute(toolName, resolvedArgs, context);
+  }
+
+  /** Parse Narsese argument string into key-value pairs */
+  private parseNarseseArgs(argsStr: string): Record<string, unknown> {
+    const args: Record<string, unknown> = {};
+    if (!argsStr.trim()) return args;
+
+    // Simple parser for comma-separated key:value pairs or positional args
+    // Supports: key:value, key:"string", key:123, key:concept_name
+    const parts = this.splitTopLevel(argsStr, ',');
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]?.trim();
+      if (!part) continue;
+
+      // Check for key:value format
+      const colonIdx = part.indexOf(':');
+      if (colonIdx > 0) {
+        const key = part.slice(0, colonIdx).trim();
+        let value: unknown = part.slice(colonIdx + 1).trim();
+        
+        // Parse value
+        const strValue = String(value);
+        if (strValue.startsWith('"') && strValue.endsWith('"')) {
+          value = strValue.slice(1, -1);
+        } else if (strValue.startsWith("'") && strValue.endsWith("'")) {
+          value = strValue.slice(1, -1);
+        } else if (/^\d+$/.test(strValue)) {
+          value = parseInt(strValue, 10);
+        } else if (/^\d+\.\d+$/.test(strValue)) {
+          value = parseFloat(strValue);
+        } else if (strValue === 'true') {
+          value = true;
+        } else if (strValue === 'false') {
+          value = false;
+        }
+        // Otherwise keep as string (concept reference)
+        
+        args[key] = value;
+      } else {
+        // Positional argument
+        args[`arg${i}`] = part;
+      }
+    }
+    return args;
+  }
+
+  /** Split string by delimiter at top level (not inside parentheses/quotes) */
+  private splitTopLevel(str: string, delimiter: string): string[] {
+    const parts: string[] = [];
+    let current = '';
+    let depth = 0;
+    let inQuotes = false;
+    let quoteChar = '';
+
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+      
+      if (!inQuotes && (char === '"' || char === "'")) {
+        inQuotes = true;
+        quoteChar = char;
+      } else if (inQuotes && char === quoteChar) {
+        inQuotes = false;
+        quoteChar = '';
+      } else if (!inQuotes && char === '(') {
+        depth++;
+      } else if (!inQuotes && char === ')') {
+        depth--;
+      } else if (!inQuotes && char === delimiter && depth === 0) {
+        parts.push(current);
+        current = '';
+        continue;
+      }
+      
+      current += char;
+    }
+    
+    if (current) parts.push(current);
+    return parts;
+  }
+
+  /** Semantic resolution: fix_pattern_id → actual codemod strings, etc. */
+  private async resolveSemanticArgs(
+    toolName: string,
+    args: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
+    const resolved: Record<string, unknown> = { ...args };
+
+    // Resolve fix_pattern concept to actual codemod pattern
+    if (toolName === 'apply_fix' && args.fixPattern) {
+      const mapping = getFixPatternMapping(String(args.fixPattern));
+      if (mapping) {
+        resolved.pattern = mapping.pattern;
+        resolved.replacement = mapping.replacement;
+        resolved.lang = mapping.lang ?? 'typescript';
+      }
+    }
+
+    // Resolve knob concept to actual knob name
+    if (toolName === 'tune_knob' && args.knob) {
+      const knobMap: Record<string, string> = {
+        'knob:maxDerivationsPerStep': 'maxDerivationsPerStep',
+        'knob:maxDerivationDepth': 'maxDerivationDepth',
+        'knob:maxRulesPerCycle': 'maxRulesPerCycle',
+        'knob:callTimeoutMs': 'callTimeoutMs',
+        'knob:decayRate': 'decayRate',
+        'knob:cpuThrottleMs': 'cpuThrottleMs',
+        'knob:maxLoops': 'maxLoops',
+        'knob:activationDecayRate': 'activationDecayRate',
+      };
+      resolved.knob = knobMap[String(args.knob)] ?? args.knob;
+    }
+
+    // Resolve strategy concept to actual strategy name
+    if (toolName === 'switch_strategy' && args.strategy) {
+      const strategyMap: Record<string, string> = {
+        'strategy:focused': 'focused',
+        'strategy:exhaustive': 'exhaustive',
+        'strategy:anytime': 'anytime',
+        'strategy:sampled': 'sampled',
+        'strategy:priority': 'priority',
+        'strategy:novelty': 'novelty',
+        'strategy:goal-biased': 'goal-biased',
+        'strategy:diverse': 'diverse',
+      };
+      resolved.strategy = strategyMap[String(args.strategy)] ?? args.strategy;
+    }
+
+    // Resolve capability template
+    if (toolName === 'scaffold_capability' && args.templateId) {
+      const templateMap: Record<string, string> = {
+        'tool_template': 'tool_template',
+        'rule_template': 'rule_template',
+      };
+      resolved.templateId = templateMap[String(args.templateId)] ?? args.templateId;
+    }
+
+    return resolved;
   }
 
   async shutdown(): Promise<void> {

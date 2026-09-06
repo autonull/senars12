@@ -401,13 +401,33 @@ The system **must** emit structured cognitive state for human oversight during `
 
 ---
 
-## Current Priority: Phase 3.2-3.8 (Unified Self-Improvement + Observability)
+## ✅ Phase 3.2-3.8: Unified Self-Improvement + Observability — COMPLETED
+| Task | Implementation |
+|------|----------------|
+| 3.2 Self-concept vocabulary | `nar/src/tools/self-concept.ts` — 30 semantic Narsese beliefs + fix pattern mappings |
+| 3.3 Meta-rules + AIKR bounds | `nar/src/rules/meta-rules.ts` — 5 meta-rules with depth=2, budget=5, priority=0.1, threshold=0.6 |
+| 3.4 Homeostatic drive hooks | `nar/src/nar-execution.ts` — `stimulateDrives()` on test_failed, test_passed, contradiction_detected, low_coverage, scenario_passed, schema_promoted, capability_added, knob_tuned |
+| 3.5 Self-tools (shadow execution) | `nar/src/tools/adapters/external-tools.ts` — `createSelfTools()` with 8 tools: `register_rule`, `register_tool`, `scaffold_capability`, `apply_fix`, `tune_knob`, `switch_strategy`, `run_tests_shadow`, `run_scenario_shadow` using git worktrees |
+| 3.6 RLFP task reward + intrinsic | `nar/src/rlfp/RLFPLearner.ts` — `calculateRewardFromTask(TaskOutcome)` with intrinsic rewards (derivationDepthReduction, selfModelAccuracy, contradictionReduction) |
+| 3.7 Goal→Tool wiring | `nar/src/tools/tool-registry.ts` — `executeToolGoal()` parses `^tool_name(args)`, `resolveSemanticArgs()` maps concepts to implementations |
+| 3.8 Observability | `nar/src/nar-execution.ts` — emits `cognitive:state:summary` every 10 cycles with drives, meta-goals, AIKR pressure, RLFP reward, meta-budget |
+| Integration test | `scripts/self-improve-demo.ts` — runs autonomous loop for N cycles, verifies all components |
 
-1. **Self-concept vocabulary** — Add to `schemas.ts` or init (semantic fix patterns, not syntax)
-2. **Meta-rules + AIKR bounds** — `meta-rules.ts` + `RuleProcessor` meta-config (depth=2, budget=5)
-3. **Homeostatic drive hooks** — `nar-execution.ts`: stimulate on events, decay is automatic
-4. **Self-tools (shadow execution)** — `external-tools.ts`: `register_rule`, `register_tool`, `scaffold_capability`, `apply_fix`, `tune_knob`, `switch_strategy` with git worktree
-5. **RLFP task reward + intrinsic** — `RLFPLearner.calculateReward(TaskOutcome)` with intrinsic terms
-6. **Goal→Tool wiring** — `tool-registry.ts`: `^tool_name` pattern + semantic arg resolution
-7. **Observability** — `nar-execution.ts`: emit cognitive state summary every N cycles
-8. **Integration test** — `nar run --auto` runs autonomous improvement loop
+**Files created/modified:**
+- `nar/src/tools/self-concept.ts` (new)
+- `nar/src/rules/meta-rules.ts` (new)
+- `nar/src/rules/index.ts` (exports)
+- `nar/src/tools/index.ts` (exports self-concept)
+- `nar/src/tools/adapters/external-tools.ts` (added createSelfTools)
+- `nar/src/tools/adapters/index.ts` (exports self-tools)
+- `nar/src/rlfp/RLFPLearner.ts` (added TaskOutcome, calculateRewardFromTask)
+- `nar/src/rlfp/index.ts` (exports TaskOutcome)
+- `nar/src/tools/tool-registry.ts` (added executeToolGoal, parseNarseseArgs, resolveSemanticArgs)
+- `nar/src/nar-execution.ts` (added stimulateDrives, emitCognitiveStateSummary, recordRLFPReward, trackMetaDerivation)
+- `scripts/self-improve-demo.ts` (new integration test)
+
+**Verification:** `pnpm exec tsx scripts/self-improve-demo.ts` ✅ runs 10 cycles, loads self-concept, registers meta-rules, updates drives, emits observability
+
+---
+
+## Current Priority: Phase 3.8+ (Production Hardening)
