@@ -428,6 +428,132 @@ The system **must** emit structured cognitive state for human oversight during `
 
 **Verification:** `pnpm exec tsx scripts/self-improve-demo.ts` ✅ runs 10 cycles, loads self-concept, registers meta-rules, updates drives, emits observability
 
+**Known Issues:**
+- Circuit breaker warnings for LM rules (expected when no LM provider configured)
+- Test infrastructure: `SyntaxError: Invalid or unexpected token` in some unit tests (pre-existing, oxc transformer issue)
+- Meta-goals not yet generated autonomously (drives decay but no events trigger them yet)
+
 ---
 
-## Current Priority: Phase 3.8+ (Production Hardening)
+## ✅ Phase 3.8+ Hardening: Test Infra, Circuit Breaker, Meta-Goals, Shadow Cleanup, Approval — COMPLETED
+| Task | Implementation | Files |
+|------|----------------|-------|
+| Fix test infrastructure | Root cause was missing `experimentalDecorators` in `tsconfig.base.json` (codebase uses `@tool` decorators). Added `experimentalDecorators: true` + `emitDecoratorMetadata: true`. Removed the conflicting `vitest.config.mjs` (duplicate root config); consolidated to `vitest.config.ts` with `oxc: false`. Fixed `tests/setup/vitest-setup.ts` typing. Added `isRunning()` to `nar.ts` (needed by engine-lifecycle test). Realigned `tests/nar/unit/lifecycle.test.ts` to the actual `NarBaseComponent` API (test was written against non-existent `created/initialized/disposed` states). | `tsconfig.base.json`, `vitest.config.ts`, `nar/src/nar.ts`, `tests/setup/vitest-setup.ts`, `tests/nar/unit/lifecycle.test.ts`, `tests/unit/nar/engine-lifecycle.test.ts` |
+| LM circuit breaker handling | Added `quiet` option to `CircuitBreaker` (downgrades routine state-change/rejection logs to debug for graceful degradation). `LMRule` constructs its breaker with `quiet: true`. | `nar/src/utils/circuit-breaker.ts`, `nar/src/lm/LMRule.ts` |
+| Meta-goal generation | Drive-triggered goal injection: `NARExecution.injectMetaGoals()` checks drive intensities each cycle; when a drive drops below threshold, injects a tool goal (e.g. competence < 0.3 → `^switch_strategy(strategy:focused, strategyType:derivation)`; curiosity < 0.3 → `^run_scenario_shadow(profile:induction)`). Duplicate-injection guarded via memory goals + pending task. Meta-goal term built with `atom('^tool(args)')` so `toString()` matches `executeToolGoal`'s `^name(args)` parser. | `nar/src/nar-execution.ts`, `tests/nar/unit/nar-execution.test.ts` |
+| Shadow worktree cleanup | All 6 worktree-using self-tools (`register_rule`, `register_tool`, `scaffold_capability`, `apply_fix`, `tune_knob`, `switch_strategy`) now wrap worktree lifecycles in try/`finally` with idempotent `cleanupWorktree` (no-op if already removed by merge). | `nar/src/tools/adapters/external-tools.ts` |
+| ApprovalManager integration | Approval already wired into the two merge-to-main ops (`scaffold_capability`, `apply_fix`). Verified contract matches core `ApprovalManager` and added unit test covering "blocks unapproved changes" + headless auto-reject. | `tests/unit/core/approval-service.test.ts` |
+
+**Verification:** `pnpm test` ✅ **89 files / 1093 tests pass** (was 59 failed before infra fix), `pnpm exec tsx scripts/self-improve-demo.ts` ✅ (no circuit-breaker noise), meta-goal injection unit-tested.
+
+---
+
+## Phase 3.8+ (Production Hardening) — Remaining / Next Steps
+
+### Immediate Improvements
+| Task | Description | Files |
+|------|-------------|-------|
+| ~~Fix test infrastructure~~ ✅ | oxc/vitest SyntaxError + missing decorators resolved | `tsconfig.base.json`, `vitest.config.ts` |
+| ~~LM circuit breaker handling~~ ✅ | `quiet` mode added; LM rule noise suppressed | `nar/src/utils/circuit-breaker.ts`, `nar/src/lm/LMRule.ts` |
+| ~~Meta-goal generation~~ ✅ | Drive-triggered `^tool(...)` goal injection | `nar/src/nar-execution.ts` |
+| ~~Shadow worktree cleanup~~ ✅ | try/finally cleanup on all self-tools | `nar/src/tools/adapters/external-tools.ts` |
+| ~~Type SelfToolsDeps~~ ✅ | Removed `any` from all 6 deps → real interfaces (`NAR`, `RLFPLearner`, `CognitiveController`, `ToolManager`, `RuleProcessor`, `ApprovalManager`) | `nar/src/tools/adapters/external-tools.ts` |
+| ~~Fix `switch_strategy` to real API~~ ✅ | Uses `CognitiveController.getRegistry()` (new accessor) + `setStrategy(type, name)`; fixes strategyType enum mismatch (`lmRule`→`lm-rule`) | `nar/src/tools/adapters/external-tools.ts`, `nar/src/cognitive/controller.ts` |
+| ~~Fix `tune_knob` reward bug~~ ✅ | Was calling `calculateReward` with a `TaskOutcome`-shaped object; now calls `calculateRewardFromTask` (correct extrinsic+intrinsic path) | `nar/src/tools/adapters/external-tools.ts` |
+| ~~Fix 5 pre-existing type errors~~ ✅ | `external-tools.ts` clean: `files: string[]`, `lines[i]` optional-chaining, `template` non-null, `...result` spread order | `nar/src/tools/adapters/external-tools.ts` |
+| ~~Structured meta-reasoning logging~~ ✅ | Per-cycle `logger.debug('meta-reasoning', {...})` logging budget used, depth, drive states | `nar/src/nar-execution.ts` |
+
+### Observability Enhancements
+| Task | Description | Files |
+|------|-------------|-------|
+| CLI `.self-report` command | Pretty-print cognitive state summary on demand | `src/bin/self-report.ts`, `nar/src/nar-execution.ts` |
+| ~~Structured logging for meta-reasoning~~ ✅ | Log meta-derivation budget, rule fires, drive stimuli | `nar/src/nar-execution.ts`, `nar/src/rules/meta-rules.ts` |
+| ~~RLFP reward breakdown logging~~ ✅ | Log extrinsic vs intrinsic components per task — `logger.debug` in `calculateRewardFromTask` | `nar/src/rlfp/RLFPLearner.ts` |
+
+### Reliability & Safety
+| Task | Description | Files |
+|------|-------------|-------|
+| ~~ApprovalManager integration~~ ✅ | Wired + tested (merge ops already had it; contract verified) | `nar/src/tools/adapters/external-tools.ts` |
+| Test validation in shadow | Run full test suite (not just vitest) in shadow worktrees | `nar/src/tools/adapters/external-tools.ts` |
+| Rollback on failure | Auto-revert knob/strategy changes if tests fail (knob revert already present in `tune_knob`) | `nar/src/tools/adapters/external-tools.ts`, `nar/src/rlfp/RLFPLearner.ts` |
+| ~~Wire goal→tool dispatch into main loop~~ ✅ | Goals were injected/recorded but never dispatched. Now `NARExecution` drains pending `^tool(...)` goals (before `processPending`) via an injected `toolGoalExecutor` → `ToolManager.executeToolGoal()`. Self-tools registered into `nar.tools` when `enableSelf` is on. | `nar/src/tools/tool-registry.ts`, `nar/src/nar-execution.ts`, `nar/src/task/manager.ts`, `nar/src/nar.ts` |
+
+### Performance
+| Task | Description | Files |
+|------|-------------|-------|
+| Meta-reasoning budget enforcement | Hard-enforce `maxMetaDerivationsPerStep=5` in RuleProcessor | `nar/src/rules/processor.ts`, `nar/src/rules/meta-rules.ts` |
+| Drive update batching | Batch drive stimuli per cycle to reduce overhead | `nar/src/nar-execution.ts`, `nar/src/drives/manager.ts` |
+| Shadow worktree reuse | Reuse worktrees for sequential operations to avoid git overhead | `nar/src/tools/adapters/external-tools.ts` |
+
+---
+
+## ✅ Phase 3.8+ Goal→Tool Dispatch (Closed the Loop) — COMPLETED
+**The critical gap**: `executeToolGoal()` had **no callers** — meta-goals were injected into the task manager but never reached the self-tools. The autonomous loop was inert.
+
+| Task | Implementation | Files |
+|------|----------------|-------|
+| Wire goal→tool dispatch | `NARExecution.dispatchToolGoals()` drains pending `^tool(...)` goals **before** `processPending` (so they are executed, not re-added as plain memory goals), invokes the injected `toolGoalExecutor` → `ToolManager.executeToolGoal()`, then records RLFP reward + stimulates `competence` on success/failure. `NARExecution.run()` also has a new optional `toolGoalExecutor` constructor param. | `nar/src/nar-execution.ts` |
+| TaskManager drain API | Added `getPending()` (priority-sorted) + `removePending(id)` (clean removal without failed/expired marking) so dispatched tool-goals leave the queue. | `nar/src/task/manager.ts` |
+| Self-tool registration | `nar.ts.initializeTools()` now registers `createSelfTools()` output (8 tools) into `nar.tools` when `enableSelf` is on. `ai`-style tools carry no `.name`, so the registry key is injected: `{ ...tool, name }`. | `nar/src/nar.ts` |
+| Factory feature-flag bug (BLOCKER found) | `SeNARSFactory.createDefault` **ignored** `enableSelf`/`enableTools`/`enableRLFP`/`maxConcepts`/`persistState` — the whole self-improvement feature never activated via the factory. Extended `SeNARSOptions` + forward the flags (only when defined) into `NARConfig`. The `self-improve-demo` now actually enables RLFP + self-analysis. | `nar/src/factory.ts` |
+| RLFP reward breakdown logging | `calculateRewardFromTask` logs extrinsic / intrinsic / weighted / total per task at debug level. | `nar/src/rlfp/RLFPLearner.ts` |
+
+**Verification**: `pnpm exec vitest run tests/nar/` ✅ 852 passed / 1 skipped; new tests `tests/nar/unit/factory.test.ts` (3) + `tests/nar/unit/nar-execution.test.ts` dispatch suite (2). `pnpm exec tsx scripts/self-improve-demo.ts` ✅ (now reports Tunable knobs: 8, Self-assessment quality: 0.62, all 8 self-tools present). `pnpm typecheck` — no **new** errors (pre-existing 361 in `ui/src/server`, `tests/unit/core/eventlog`, `plugin-loader` unchanged).
+
+**Confirmed live**: `nar.tools` exposes all 8 self-tools; dispatching `^switch_strategy(strategy:focused, strategyType:derivation)` reaches the tool layer (fails gracefully with `CognitiveController or NAR not available` when no strategy registry — expected, no regression).
+
+**Still open (unchanged scope):** shadow worktree full-suite validation (`runTestsInWorktree` runs only vitest, not the full CI), worktree reuse, meta-reasoning budget hard-enforcement in `RuleProcessor` (meta-rules are still structural shells returning `undefined` from `apply`), CLI `.self-report`, drive-stimuli batching.
+
+---
+
+## 🚨 Known Technical Debt (Discovered — Pre-existing, NOT caused by this work)
+- **`pnpm typecheck` fails with ~361 errors** at HEAD (pre-existing; my changes reduced 395→361 by enabling decorators). Concentrated in `ui/src/server/index.ts`, `tests/unit/core/eventlog/`, `tests/unit/core/plugin-loader.test.ts`. High-leverage, low-risk to fix but out of TODO scope. *(Note: the `nar` package itself now typechecks 100% clean.)*
+- **Operation-term parser bug**: `termParser.parse('^tool(args)')` produces a malformed term (grammar uses `operator.kind` = 'atom' → `createCompound('atom', ...)` → `toString()` returns `undefined`). Meta-goal injection works around it via `atom('^tool(args)')`. Fix in `nar/src/terms/narsese.peggy` (line ~70) to build a proper `operation` term.
+- **Two divergent `BaseComponent` impls**: `core/src/Lifecycle.ts` (rich state machine `created→initialized→started→stopped→disposed` + `isRunning`/`isInitialized`) vs `nar/src/lifecycle/BaseComponent.ts` (`NarBaseComponent`, simple `initializing/running/stopped`, requires `id`). `NAREngine` requires NAR state `'running'`, so they can't be trivially merged — a consolidation candidate.
+
+## 🆕 Session Log (Latest Work) — Phase 3.8+ Hardening: Type Safety + Self-Tool Correctness
+**Scope**: Remove `SelfToolsDeps` `any` typing; fix latent self-tool bugs; add structured meta-reasoning logging.
+
+| Task | Implementation | Files |
+|------|----------------|-------|
+| Type `SelfToolsDeps` | Replaced `any` on all 6 deps with real interfaces: `NAR`, `RLFPLearner`, `CognitiveController`, `ToolManager`, `RuleProcessor`, `ApprovalManager`. This forced surfacing of two latent API-misuse bugs. | `nar/src/tools/adapters/external-tools.ts` |
+| `switch_strategy` real API | Tool previously used non-existent `getRegistry?.()` + `setStrategy?(type, instance)`. Added `CognitiveController.getRegistry()` accessor; tool now uses `getRegistry().has()` + `setStrategy(type, name)`. Fixed `strategyType` enum mismatch (`lmRule` schema value → `lm-rule` StrategyType). | `nar/src/tools/adapters/external-tools.ts`, `nar/src/cognitive/controller.ts` |
+| `tune_knob` reward bug | Passed a `TaskOutcome`-shaped object (`{taskType, success, metrics}`) to `calculateReward` (which expects flat `{testPassRate,...}`). Now calls `calculateRewardFromTask` → exercises the intrinsic+extrinsic reward path. | `nar/src/tools/adapters/external-tools.ts` |
+| `stimulateDrives` public | Self-tools report outcomes (test_passed/knob_tuned) to drives; made the method public so the tool layer can call it. | `nar/src/nar-execution.ts` |
+| Structured meta-reasoning logging | Per-cycle debug log of `metaDerivationsThisStep`, `metaDerivationDepth`, live drive states (before budget reset). | `nar/src/nar-execution.ts` |
+| Fixed 5 pre-existing external-tools type errors | `files: string[]`, JSON-line-parse optional-chaining (2x), `template` non-null, `...result` spread-order. **`nar` package now typechecks 100% clean.** | `nar/src/tools/adapters/external-tools.ts` |
+
+**Verification**: `pnpm exec tsc --noEmit -p nar/tsconfig.json` ✅ (0 errors, was 5+), `pnpm test` ✅ **1098 passed / 2 skipped** (was 1093), `pnpm exec tsx scripts/self-improve-demo.ts` ✅ (all 8 self-tools, quality 0.62), targeted `nar-execution`/`factory`/`rlfp`/`tools`/`drive-manager` suites ✅.
+
+**Design note — Drive batching considered & rejected**: Attempted to batch `DriveManager.stimulate()` stimuli (accumulate → apply on next `updateCycle`) to reduce event overhead. Reverted: it breaks the existing public contract (tests assert `stimulate` applies immediately). Keep the current immediate-apply semantics; if batching is ever needed it must be opt-in and added to the `DriveManager` API surface with test updates.
+
+### Open items for future sessions (unchanged scope)
+- **Meta-rules are structural shells** — `apply` returns `undefined`; they never produce derivations or fire. Making them real is the highest-value next step (would light up meta-derivation budget enforcement).
+- **Meta-derivation budget hard-enforcement** in `RuleProcessor` — moot until meta-rules produce real derivations.
+- **CLI `.self-report` command** — `src/bin/self-report.ts` not yet created.
+- **Shadow full-suite validation** — `runTestsInWorktree` runs only vitest, not `pnpm test`/`typecheck`.
+- **Drive-stimuli batching** — deferred (see note above).
+- **`self-concept` fix-pattern → codemod end-to-end** needs a shadow-worktree integration test.
+
+---
+
+## Phase 4: Full Observability (Deferred)
+| Endpoint | Data | Consumer |
+|----------|------|----------|
+| `GET /metrics` | Prometheus: derivations/sec, contradiction rate, tool latency | Grafana |
+| `WS /cognitive-stream` | Real-time `CognitiveEvent` | UI dashboard |
+| `CLI .self-report` | Top 5 beliefs, contradictions, stalled goals | Human |
+
+---
+
+## Integration Test Coverage Needed
+- [x] Self-concept beliefs persist across restarts (persistence via `saveState`/`loadState` incl. `drives.json`; not directly tested — **open** for explicit restart test)
+- [ ] Meta-rules fire when drives exceed threshold (meta-rules are structural shells; `apply` returns `undefined` — needs real rule bodies)
+- [ ] Fix pattern → codemod mapping works end-to-end (`getFixPatternMapping` unit-tested indirectly; end-to-end needs shadow worktree)
+- [ ] Shadow worktree test validation catches regressions (`runTestsInWorktree` runs vitest only, not full CI)
+- [ ] RLFP intrinsic reward improves policy over extrinsic-only (reward math unit-testable; policy benefit unproven)
+- [x] Goal→Tool wiring handles all 8 self-tools — `tests/nar/unit/factory.test.ts` asserts registration of all 8; `tests/nar/unit/nar-execution.test.ts` dispatch suite proves the `^tool(...)` → `executeToolGoal` path with a real `ToolManager` + real tool
+- [ ] Observability events emitted at correct intervals (emission every 10 cycles present; interval not unit-tested)
+- [x] Approval flow blocks unapproved changes — `tests/unit/core/approval-service.test.ts` (deny, allow, headless auto-reject)
+- [x] Meta-goal generation fires on drive pressure — `tests/nar/unit/nar-execution.test.ts` (inject on low competence; no-inject when healthy)
+- [x] Feature flags forwarded by `SeNARSFactory.createDefault` — `tests/nar/unit/factory.test.ts` (enableSelf/Tools/RLFP/maxConcepts)

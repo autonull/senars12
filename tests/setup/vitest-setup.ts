@@ -1,10 +1,10 @@
 // Global test utilities setup
 
 // Helper for registering benchmark results in tests
-const functionProfiles: Record<
+const functionProfiles = {} as Record<
   string,
   { samples: number; mean: number; min: number; max: number }
-> = {};
+>;
 
 export function registerBenchmark(
   funcName: string,

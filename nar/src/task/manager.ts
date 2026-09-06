@@ -58,6 +58,26 @@ export class TaskManager {
     return pending[0]?.task;
   }
 
+  /** All pending tasks, highest priority first. */
+  getPending(): Task[] {
+    return [...this.pending.values()]
+      .sort((a, b) => b.priority - a.priority)
+      .map((w) => w.task);
+  }
+
+  /** Remove a pending task without marking it failed/expired (e.g. dispatched to tools). */
+  removePending(taskId: string): boolean {
+    const wrapper = this.pending.get(taskId);
+    if (!wrapper) return false;
+    this.pending.delete(taskId);
+    const timeoutId = this.timeouts.get(taskId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      this.timeouts.delete(taskId);
+    }
+    return true;
+  }
+
   addTask(task: Task, timeout?: number): void {
     const wrapper: TaskWrapper = {
       task,

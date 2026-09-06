@@ -6,6 +6,7 @@ import { PreferenceCollector, type PreferenceData } from './PreferenceCollector.
 import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
 import { RewardModel } from './RewardModel.js';
 import type { CognitiveParameters } from '../config/cognitive-parameters.js';
+import { createLogger } from '../logger';
 import { createKnobSet, type TunableKnob } from './knobs.js';
 
 /** Task outcome for unified reward calculation */
@@ -34,6 +35,7 @@ export interface RLFPLearnerConfig {
 
 export class RLFPLearner {
   private outputFile = 'rlfp_training_data.jsonl';
+  private readonly logger = createLogger({ scope: 'rlfp' });
   private readonly rewardModel: RewardModel;
   private readonly policyOptimizer: PolicyOptimizer;
   private readonly _preferenceCollector: PreferenceCollector;
@@ -164,7 +166,19 @@ export class RLFPLearner {
 
     // Combined reward
     const combined = extrinsic + 0.3 * rewardIntrinsic;
-    return clamp(combined, -1, 1);
+    const total = clamp(combined, -1, 1);
+
+    // Structured reward breakdown logging (extrinsic vs intrinsic per task)
+    this.logger.debug('reward breakdown', {
+      taskType: outcome.taskType,
+      success: outcome.success,
+      extrinsic: Math.round(extrinsic * 100) / 100,
+      intrinsic: Math.round(rewardIntrinsic * 100) / 100,
+      weightedIntrinsic: Math.round(0.3 * rewardIntrinsic * 100) / 100,
+      total: Math.round(total * 100) / 100,
+    });
+
+    return total;
   }
 
   addPreference(preferred: string, rejected: string): void {

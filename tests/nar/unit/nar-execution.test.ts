@@ -10,6 +10,8 @@ import {
   TermBuilder,
   Truth,
 } from '../../../nar/src';
+import { ToolManager } from '../../../nar/src/tools';
+import { DriveManager } from '../../../nar/src/drives';
 import { NARExecution } from '../../../nar/src/nar-execution';
 import type { RLFPLearner } from '../../rlfp';
 
@@ -174,6 +176,137 @@ describe('NARExecution', () => {
       memory.addTask(TermBuilder.atom('test'), 'belief', Truth.TRUE, createBudget(0.9));
       await execution.run(1);
       expect(execution.getCycleCount()).toBe(1);
+    });
+  });
+
+  describe('meta-goal injection', () => {
+    test('injects switch_strategy goal when competence drops below threshold', async () => {
+      const fakeNar = { input: vi.fn() } as any;
+      const driveManager = new DriveManager(fakeNar);
+      driveManager.stimulate('competence', -1);
+
+      const exec = new NARExecution(
+        memory,
+        taskManager,
+        reasoner,
+        DEFAULT_CONFIG,
+        rlfp,
+        undefined,
+        undefined,
+        driveManager
+      );
+
+      await exec.run(2);
+
+      const goals = memory.getGoals?.() ?? [];
+      const metaGoal = goals.find((g) =>
+        g.term.toString().startsWith('^switch_strategy')
+      );
+      expect(metaGoal).toBeDefined();
+    });
+
+    test('does not inject meta-goal when drive is healthy', async () => {
+      const fakeNar = { input: vi.fn() } as any;
+      const driveManager = new DriveManager(fakeNar);
+      // competence starts at target 0.8 — above threshold
+
+      const exec = new NARExecution(
+        memory,
+        taskManager,
+        reasoner,
+        DEFAULT_CONFIG,
+        rlfp,
+        undefined,
+        undefined,
+        driveManager
+      );
+
+      await exec.run(1);
+
+      const goals = memory.getGoals?.() ?? [];
+      const metaGoal = goals.find((g) =>
+        g.term.toString().startsWith('^switch_strategy')
+      );
+      expect(metaGoal).toBeUndefined();
+    });
+  });
+
+  describe('goal→tool dispatch', () => {
+    test('executes pending ^tool goals via the tool executor', async () => {
+      const toolManager = new ToolManager();
+      const calls: Record<string, unknown>[] = [];
+      toolManager.register({
+        name: 'echo_goal',
+        description: 'test tool',
+        parameters: { type: 'object', properties: {} },
+        execute: async (args) => {
+          calls.push(args);
+          return { success: true, content: { called: args } };
+        },
+      });
+
+      const exec = new NARExecution(
+        memory,
+        taskManager,
+        reasoner,
+        DEFAULT_CONFIG,
+        rlfp,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        async (goalTerm) => toolManager.executeToolGoal(goalTerm)
+      );
+
+      taskManager.addTask(
+        createTask(TermBuilder.atom('^echo_goal(profile:test)'), 'goal', Truth.NEUTRAL, createBudget(0.9))
+      );
+
+      await exec.run(1);
+
+      expect(calls.length).toBe(1);
+      expect(calls[0]).toEqual({ profile: 'test' });
+
+      // Tool goal must not leak into memory as a plain goal
+      const goals = memory.getGoals?.() ?? [];
+      expect(goals.some((g) => g.term.toString().startsWith('^echo_goal'))).toBe(false);
+    });
+
+    test('leaves non-tool goals undispatched', async () => {
+      const toolManager = new ToolManager();
+      const executeSpy = vi.fn();
+      toolManager.register({
+        name: 'echo_goal',
+        description: 'test tool',
+        parameters: { type: 'object', properties: {} },
+        execute: async (args) => {
+          executeSpy();
+          return { success: true, content: { called: args } };
+        },
+      });
+
+      const exec = new NARExecution(
+        memory,
+        taskManager,
+        reasoner,
+        DEFAULT_CONFIG,
+        rlfp,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        async (goalTerm) => toolManager.executeToolGoal(goalTerm)
+      );
+
+      taskManager.addTask(
+        createTask(TermBuilder.atom('regular_goal'), 'goal', Truth.NEUTRAL, createBudget(0.9))
+      );
+
+      await exec.run(1);
+
+      expect(executeSpy).not.toHaveBeenCalled();
     });
   });
 });

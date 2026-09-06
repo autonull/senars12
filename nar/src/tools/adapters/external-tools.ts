@@ -12,6 +12,11 @@ import { ToolSpecSchema, ConnectionConfigSchema, AgentOptionsSchema } from '../s
 import { NLUnderstandingService } from '../../nl/understanding.js';
 import type { SeNARSRegistry } from '../../lm';
 import { createLogger } from '../../logger';
+import type { NAR } from '../../nar.js';
+import type { CognitiveController } from '../../cognitive/controller.js';
+import type { RLFPLearner } from '../../rlfp/RLFPLearner.js';
+import type { RuleProcessor } from '../../rules/processor.js';
+import type { ToolManager } from '../tool-registry.js';
 
 type ToolSpec = z.infer<typeof ToolSpecSchema>;
 type ConnectionConfig = z.infer<typeof ConnectionConfigSchema>;
@@ -1740,8 +1745,8 @@ async function runCodemod(
 
     child.on('close', (exitCode: number) => {
       try {
-        const matches = stdout ? JSON.parse(stdout) : [];
-        const files = Array.from(new Set(matches.map((m: any) => m.file))).filter((f) => f !== 'STDIN');
+        const matches: any[] = stdout ? JSON.parse(stdout) : [];
+        const files: string[] = Array.from(new Set(matches.map((m) => m.file))).filter((f) => f !== 'STDIN');
 
         // Generate unified diff
         let diff = '';
@@ -1809,12 +1814,12 @@ export function createCodemodTools(deps: CodemodDeps = {}) {
 
 export interface SelfToolsDeps {
   workspaceRoot?: string;
-  nar?: any; // NAR instance
-  rlfpLearner?: any;
-  cognitiveController?: any;
-  toolManager?: any;
-  ruleProcessor?: any;
-  approvalManager?: any;
+  nar?: NAR;
+  rlfpLearner?: RLFPLearner;
+  cognitiveController?: CognitiveController;
+  toolManager?: ToolManager;
+  ruleProcessor?: RuleProcessor;
+  approvalManager?: ApprovalManager;
 }
 
 /** Shadow worktree manager for safe code modifications */
@@ -1881,7 +1886,8 @@ class ShadowWorktreeManager {
           const lines = stdout.trim().split('\n');
           let jsonStart = -1;
           for (let i = 0; i < lines.length; i++) {
-            if (lines[i] && lines[i].trim().startsWith('{')) {
+            const line = lines[i];
+            if (line && line.trim().startsWith('{')) {
               jsonStart = i;
               break;
             }
@@ -2055,23 +2061,26 @@ export function createSelfTools(deps: SelfToolsDeps = {}) {
           // If ruleCode provided, eval it (in shadow context)
           if (ruleCode) {
             // Safety: only allow in shadow worktree
-            const worktreePath = await shadowManager.createWorktree(`${worktreeId}-rule`);
-            const ruleFile = resolve(worktreePath, `rules/${ruleId}.ts`);
-            const { mkdir, writeFile } = await import('node:fs/promises');
-            await mkdir(dirname(ruleFile), { recursive: true });
-            await writeFile(ruleFile, ruleCode, 'utf-8');
-            
-            // Run tests to validate
-            const testResult = await shadowManager.runTestsInWorktree(worktreePath);
-            if (!testResult.success) {
-              await shadowManager.cleanupWorktree(`${worktreeId}-rule`);
-              return { success: false, error: 'Rule validation failed', testResult };
+            const wtId = `${worktreeId}-rule`;
+            try {
+              const worktreePath = await shadowManager.createWorktree(wtId);
+              const ruleFile = resolve(worktreePath, `rules/${ruleId}.ts`);
+              const { mkdir, writeFile } = await import('node:fs/promises');
+              await mkdir(dirname(ruleFile), { recursive: true });
+              await writeFile(ruleFile, ruleCode, 'utf-8');
+
+              // Run tests to validate
+              const testResult = await shadowManager.runTestsInWorktree(worktreePath);
+              if (!testResult.success) {
+                return { success: false, error: 'Rule validation failed', testResult };
+              }
+
+              const diff = await shadowManager.getDiff(worktreePath);
+
+              return { success: true, ruleId, diff, message: 'Rule registered and validated' };
+            } finally {
+              await shadowManager.cleanupWorktree(wtId);
             }
-            
-            const diff = await shadowManager.getDiff(worktreePath);
-            await shadowManager.cleanupWorktree(`${worktreeId}-rule`);
-            
-            return { success: true, ruleId, diff, message: 'Rule registered and validated' };
           }
 
           return { success: true, ruleId, message: 'Rule schema registered (implementation pending)' };
@@ -2097,23 +2106,26 @@ export function createSelfTools(deps: SelfToolsDeps = {}) {
         }
         try {
           // Validate tool code in shadow worktree
-          const worktreePath = await shadowManager.createWorktree(`${worktreeId}-tool`);
-          const toolFile = resolve(worktreePath, `tools/${toolName}.ts`);
-          const { mkdir, writeFile } = await import('node:fs/promises');
-          await mkdir(dirname(toolFile), { recursive: true });
-          await writeFile(toolFile, toolCode, 'utf-8');
-          
-          const testResult = await shadowManager.runTestsInWorktree(worktreePath);
-          if (!testResult.success) {
-            await shadowManager.cleanupWorktree(`${worktreeId}-tool`);
-            return { success: false, error: 'Tool validation failed', testResult };
+          const wtId = `${worktreeId}-tool`;
+          try {
+            const worktreePath = await shadowManager.createWorktree(wtId);
+            const toolFile = resolve(worktreePath, `tools/${toolName}.ts`);
+            const { mkdir, writeFile } = await import('node:fs/promises');
+            await mkdir(dirname(toolFile), { recursive: true });
+            await writeFile(toolFile, toolCode, 'utf-8');
+
+            const testResult = await shadowManager.runTestsInWorktree(worktreePath);
+            if (!testResult.success) {
+              return { success: false, error: 'Tool validation failed', testResult };
+            }
+
+            const diff = await shadowManager.getDiff(worktreePath);
+
+            // In production, would register with ToolManager
+            return { success: true, toolName, diff, message: 'Tool registered and validated' };
+          } finally {
+            await shadowManager.cleanupWorktree(wtId);
           }
-          
-          const diff = await shadowManager.getDiff(worktreePath);
-          await shadowManager.cleanupWorktree(`${worktreeId}-tool`);
-          
-          // In production, would register with ToolManager
-          return { success: true, toolName, diff, message: 'Tool registered and validated' };
         } catch (error) {
           return { success: false, error: String(error) };
         }
@@ -2133,8 +2145,9 @@ export function createSelfTools(deps: SelfToolsDeps = {}) {
         if (!deps.nar) {
           return { success: false, error: 'NAR not available' };
         }
+        const wtId = `${worktreeId}-scaffold`;
         try {
-          const worktreePath = await shadowManager.createWorktree(`${worktreeId}-scaffold`);
+          const worktreePath = await shadowManager.createWorktree(wtId);
           
           // Template implementations
           const templates: Record<string, string> = {
@@ -2175,11 +2188,10 @@ export const ${capabilityId}_rule: RegisteredRule = {
           const ext = templateId.includes('rule') ? '.ts' : '.ts';
           const capFile = resolve(worktreePath, `capabilities/${capabilityId}${ext}`);
           await mkdir(dirname(capFile), { recursive: true });
-          await writeFile(capFile, template, 'utf-8');
+          await writeFile(capFile, template ?? '', 'utf-8');
           
           const testResult = await shadowManager.runTestsInWorktree(worktreePath);
           if (!testResult.success) {
-            await shadowManager.cleanupWorktree(`${worktreeId}-scaffold`);
             return { success: false, error: 'Capability validation failed', testResult };
           }
           
@@ -2193,15 +2205,16 @@ export const ${capabilityId}_rule: RegisteredRule = {
             );
             const approval = await req.result;
             if (!approval.approved) {
-              await shadowManager.cleanupWorktree(`${worktreeId}-scaffold`);
               return { success: false, error: 'Approval denied', reason: approval.reason };
             }
           }
           
-          await shadowManager.mergeWorktree(`${worktreeId}-scaffold`);
+          await shadowManager.mergeWorktree(wtId);
           return { success: true, capabilityId, diff, message: 'Capability scaffolded and merged' };
         } catch (error) {
           return { success: false, error: String(error) };
+        } finally {
+          await shadowManager.cleanupWorktree(wtId);
         }
       },
     }),
@@ -2219,6 +2232,7 @@ export const ${capabilityId}_rule: RegisteredRule = {
         if (!deps.nar) {
           return { success: false, error: 'NAR not available' };
         }
+        const wtId = `${worktreeId}-fix`;
         try {
           const { getFixPatternMapping } = await import('../self-concept.js');
           const mapping = getFixPatternMapping(fixPattern);
@@ -2226,7 +2240,7 @@ export const ${capabilityId}_rule: RegisteredRule = {
             return { success: false, error: `Unknown fix pattern: ${fixPattern}` };
           }
 
-          const worktreePath = await shadowManager.createWorktree(`${worktreeId}-fix`);
+          const worktreePath = await shadowManager.createWorktree(wtId);
           
           // Apply the codemod
           const codemodResult = await shadowManager.applyCodemodInWorktree(
@@ -2238,14 +2252,12 @@ export const ${capabilityId}_rule: RegisteredRule = {
           );
 
           if (!codemodResult.success || codemodResult.matches === 0) {
-            await shadowManager.cleanupWorktree(`${worktreeId}-fix`);
             return { success: false, error: 'No matches found for fix pattern', codemodResult };
           }
 
           // Run tests to validate fix
           const testResult = await shadowManager.runTestsInWorktree(worktreePath);
           if (!testResult.success) {
-            await shadowManager.cleanupWorktree(`${worktreeId}-fix`);
             return { success: false, error: 'Fix broke tests', testResult, codemodResult };
           }
 
@@ -2259,12 +2271,11 @@ export const ${capabilityId}_rule: RegisteredRule = {
             );
             const approval = await req.result;
             if (!approval.approved) {
-              await shadowManager.cleanupWorktree(`${worktreeId}-fix`);
               return { success: false, error: 'Approval denied', reason: approval.reason };
             }
           }
 
-          await shadowManager.mergeWorktree(`${worktreeId}-fix`);
+          await shadowManager.mergeWorktree(wtId);
           
           // Stimulate competence drive
           deps.nar.getExecution?.()?.stimulateDrives?.('test_passed');
@@ -2272,6 +2283,8 @@ export const ${capabilityId}_rule: RegisteredRule = {
           return { success: true, fixPattern, diff, testResult, message: 'Fix applied and validated' };
         } catch (error) {
           return { success: false, error: String(error) };
+        } finally {
+          await shadowManager.cleanupWorktree(wtId);
         }
       },
     }),
@@ -2289,37 +2302,44 @@ export const ${capabilityId}_rule: RegisteredRule = {
         if (!deps.rlfpLearner || !deps.nar) {
           return { success: false, error: 'RLFP learner or NAR not available' };
         }
+        const wtId = `${worktreeId}-tune`;
         try {
           // Apply tuning update
           deps.rlfpLearner.applyTuningUpdate(knob, value);
           
           // Validate with quick test run in shadow worktree
-          const worktreePath = await shadowManager.createWorktree(`${worktreeId}-tune`);
+          const worktreePath = await shadowManager.createWorktree(wtId);
           const testResult = await shadowManager.runTestsInWorktree(worktreePath);
-          await shadowManager.cleanupWorktree(`${worktreeId}-tune`);
           
           if (!testResult.success) {
             // Revert on failure
-            deps.rlfpLearner.applyTuningUpdate(knob, deps.rlfpLearner.getTunableKnobs()[knob]?.current ?? value);
+            const knobs = deps.rlfpLearner.getTunableKnobs();
+            deps.rlfpLearner.applyTuningUpdate(knob, (knobs as Record<string, { current: number }>)[knob]?.current ?? value);
             return { success: false, error: 'Tuning broke tests', testResult };
           }
 
-          // Record reward
-          const reward = deps.rlfpLearner.calculateReward({
-            testPassRate: testResult.total > 0 ? testResult.passed / testResult.total : 0,
-            avgTestDuration: 0,
-            coverageDelta: 0,
-            memoryOverage: 0,
-            cpuThrottleTime: 0,
+          // Record reward (TaskOutcome shape → intrinsic+extrinsic)
+          const reward = deps.rlfpLearner.calculateRewardFromTask({
+            taskType: 'knob_tune',
+            success: true,
+            metrics: {
+              passRate: testResult.total > 0 ? testResult.passed / testResult.total : 0,
+              avgTestDuration: 0,
+              coverageDelta: 0,
+              memoryOverage: 0,
+              cpuThrottleTime: 0,
+            },
           });
           deps.rlfpLearner.reward(reward, `knob_tune:${knob}`);
-          
+
           // Stimulate competence drive
           deps.nar.getExecution?.()?.stimulateDrives?.('knob_tuned');
-          
+
           return { success: true, knob, value, reward, testResult, message: 'Knob tuned and validated' };
         } catch (error) {
           return { success: false, error: String(error) };
+        } finally {
+          await shadowManager.cleanupWorktree(wtId);
         }
       },
     }),
@@ -2337,35 +2357,34 @@ export const ${capabilityId}_rule: RegisteredRule = {
         if (!deps.cognitiveController || !deps.nar) {
           return { success: false, error: 'CognitiveController or NAR not available' };
         }
+        const wtId = `${worktreeId}-strategy`;
         try {
-          const registry = deps.cognitiveController.getRegistry?.();
-          if (!registry) {
-            return { success: false, error: 'Strategy registry not available' };
-          }
-
-          const strategyInstance = registry.get(strategyType, strategy);
-          if (!strategyInstance) {
+          const strategyTypeKey =
+            strategyType === 'lmRule' ? 'lm-rule' : (strategyType as 'sampling' | 'derivation' | 'attention' | 'premise');
+          const registry = deps.cognitiveController.getRegistry();
+          if (!registry.has(strategyTypeKey, strategy)) {
             return { success: false, error: `Strategy not found: ${strategy} (${strategyType})` };
           }
 
-          // Apply strategy
-          deps.cognitiveController.setStrategy?.(strategyType, strategyInstance);
-          
+          // Apply strategy (CognitiveController.setStrategy takes type + strategy name)
+          deps.cognitiveController.setStrategy(strategyTypeKey, strategy);
+
           // Validate with quick test run
-          const worktreePath = await shadowManager.createWorktree(`${worktreeId}-strategy`);
+          const worktreePath = await shadowManager.createWorktree(wtId);
           const testResult = await shadowManager.runTestsInWorktree(worktreePath);
-          await shadowManager.cleanupWorktree(`${worktreeId}-strategy`);
-          
+
           if (!testResult.success) {
             return { success: false, error: 'Strategy switch broke tests', testResult };
           }
 
           // Stimulate competence drive
           deps.nar.getExecution?.()?.stimulateDrives?.('knob_tuned');
-          
+
           return { success: true, strategy, strategyType, testResult, message: 'Strategy switched and validated' };
         } catch (error) {
           return { success: false, error: String(error) };
+        } finally {
+          await shadowManager.cleanupWorktree(wtId);
         }
       },
     }),
@@ -2412,7 +2431,8 @@ export const ${capabilityId}_rule: RegisteredRule = {
                 const lines = stdout.trim().split('\n');
                 let jsonStart = -1;
                 for (let i = 0; i < lines.length; i++) {
-                  if (lines[i] && lines[i].trim().startsWith('{')) {
+                  const line = lines[i];
+                  if (line && line.trim().startsWith('{')) {
                     jsonStart = i;
                     break;
                   }
@@ -2441,7 +2461,7 @@ export const ${capabilityId}_rule: RegisteredRule = {
             await shadowManager.cleanupWorktree(`${worktreeId}-test`);
           }
 
-          return { success: result.success, ...result };
+          return { ...result, success: result.success };
         } catch (error) {
           return { success: false, error: String(error) };
         }

@@ -7,6 +7,8 @@ export interface CircuitBreakerConfig {
   failureThreshold: number;
   resetTimeoutMs: number;
   halfOpenRequests: number;
+  /** Downgrade routine state-change/rejection logs to debug (graceful degradation). */
+  quiet?: boolean;
 }
 
 export class CircuitBreaker {
@@ -20,17 +22,28 @@ export class CircuitBreaker {
       failureThreshold: config.failureThreshold ?? 5,
       resetTimeoutMs: config.resetTimeoutMs ?? 30000,
       halfOpenRequests: config.halfOpenRequests ?? 3,
+      quiet: config.quiet ?? false,
     };
+  }
+
+  private log(msg: string, level: 'info' | 'warn'): void {
+    if (this.config.quiet) {
+      logger.debug(msg);
+    } else if (level === 'warn') {
+      logger.warn(msg);
+    } else {
+      logger.info(msg);
+    }
   }
 
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     if (this.state === 'open') {
       if (Date.now() - this.lastFailureTime >= this.config.resetTimeoutMs) {
-        logger.info('Circuit breaker state changed: open -> half-open');
+        this.log('Circuit breaker state changed: open -> half-open', 'info');
         this.state = 'half-open';
         this.failures = 0;
       } else {
-        logger.warn('Circuit breaker execution rejected: circuit is open');
+        this.log('Circuit breaker execution rejected: circuit is open', 'warn');
         throw new OperationError('Circuit breaker is open', { state: this.state });
       }
     }
@@ -38,7 +51,7 @@ export class CircuitBreaker {
     try {
       const result = await fn();
       if (this.state === 'half-open') {
-        logger.info('Circuit breaker state changed: half-open -> closed');
+        this.log('Circuit breaker state changed: half-open -> closed', 'info');
         this.state = 'closed';
         this.failures = 0;
       }
@@ -54,7 +67,7 @@ export class CircuitBreaker {
   }
 
   reset(): void {
-    if (this.state !== 'closed') logger.info('Circuit breaker state reset to closed');
+    if (this.state !== 'closed') this.log('Circuit breaker state reset to closed', 'info');
     this.state = 'closed';
     this.failures = 0;
   }
@@ -64,7 +77,7 @@ export class CircuitBreaker {
     this.lastFailureTime = Date.now();
     if (this.failures >= this.config.failureThreshold) {
       if (this.state !== 'open')
-        logger.warn('Circuit breaker state changed: ' + this.state + ' -> open');
+        this.log('Circuit breaker state changed: ' + this.state + ' -> open', 'warn');
       this.state = 'open';
     }
   }

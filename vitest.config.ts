@@ -4,6 +4,11 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  // Force esbuild transformer (disable oxc which has parsing issues)
+  oxc: false,
+  esbuild: {
+    target: 'node20',
+  },
   test: {
     globals: true,
     environment: 'node',
@@ -13,11 +18,5 @@ export default defineConfig({
     testTimeout: 15000,
     teardownTimeout: 5000,
     coverage: { provider: 'v8', reporter: ['text', 'json', 'html'] },
-    transform: {
-      useOxc: false,
-    },
-  },
-  esbuild: {
-    target: 'node20',
   },
 });

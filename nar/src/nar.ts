@@ -38,6 +38,7 @@ import {
 } from './terms';
 import type { Tool, ToolResult } from './tools';
 import { discoverTools, ToolManager } from './tools';
+import { createSelfTools } from './tools/adapters/external-tools.js';
 import {
   ConfigurationError,
   type CoreConfig,
@@ -148,7 +149,8 @@ export class NAR extends BaseComponent {
       this.cognitiveController,
       this.driveManager,
       this.systemEventBus,
-      this.self
+      this.self,
+      async (goalTerm) => this.tools.executeToolGoal(goalTerm)
     );
     this.lm = new NARLM(
       this.memory,
@@ -189,6 +191,11 @@ export class NAR extends BaseComponent {
     this.stopLM();
     await super.dispose();
     this.logger.info('NAR disposed');
+  }
+
+  /** Whether the kernel is in a running state. */
+  isRunning(): boolean {
+    return this.state === 'running' || this.state === 'started' || this.state === 'starting';
   }
 
   async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
@@ -309,7 +316,10 @@ export class NAR extends BaseComponent {
       this.rlfp,
       this.rlfp?.policyOptimizerPublic,
       this.cognitiveController,
-      this.driveManager
+      this.driveManager,
+      this.systemEventBus,
+      this.self,
+      async (goalTerm) => this.tools.executeToolGoal(goalTerm)
     );
   }
 
@@ -685,6 +695,26 @@ export class NAR extends BaseComponent {
     const tools = discoverTools(toolDeps);
     for (const tool of tools) {
       this.tools.register(tool);
+    }
+
+    // Self-improvement tools (goal→tool dispatch target) — registered when self-reasoning is enabled.
+    if (this.config.enableSelf) {
+      const selfTools = createSelfTools({
+        workspaceRoot: process.cwd(),
+        nar: this,
+        rlfpLearner: this.rlfp,
+        cognitiveController: this.cognitiveController,
+        toolManager: this.tools,
+        ruleProcessor: this.processor,
+      });
+      for (const [name, selfTool] of Object.entries(selfTools)) {
+        try {
+          // ai-style tools carry no name — inject the registry key.
+          this.tools.register({ ...(selfTool as object), name } as Tool);
+        } catch (e) {
+          this.logger.warn('Self-tool registration skipped', { name, error: errMsg(e) });
+        }
+      }
     }
     this._toolsInitialized = true;
   }

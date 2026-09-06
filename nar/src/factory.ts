@@ -24,6 +24,15 @@ export interface SeNARSOptions {
   providerRegistry?: SeNARSRegistry;
   enableLMRules?: boolean;
   eventBus?: EventBus;
+  // Feature flags / config forwarded to NARConfig
+  enableTools?: boolean;
+  enableSelf?: boolean;
+  enableRLFP?: boolean;
+  persistState?: boolean;
+  statePath?: string;
+  maxConcepts?: number;
+  cognitiveParams?: CognitiveParameters;
+  strategyRegistry?: CognitiveRegistry;
 }
 
 export interface SeNARSConfig {
@@ -74,6 +83,15 @@ export class SeNARSFactory {
     const config = {
       ...DEFAULT_CONFIG,
       ...options.core,
+      // Forward feature flags only when explicitly provided (so CoreConfig defaults hold).
+      ...(options.enableTools !== undefined ? { enableTools: options.enableTools } : {}),
+      ...(options.enableSelf !== undefined ? { enableSelf: options.enableSelf } : {}),
+      ...(options.enableRLFP !== undefined ? { enableRLFP: options.enableRLFP } : {}),
+      ...(options.persistState !== undefined ? { persistState: options.persistState } : {}),
+      ...(options.statePath !== undefined ? { statePath: options.statePath } : {}),
+      ...(options.maxConcepts !== undefined ? { maxConcepts: options.maxConcepts } : {}),
+      ...(options.cognitiveParams !== undefined ? { cognitiveParams: options.cognitiveParams } : {}),
+      ...(options.strategyRegistry !== undefined ? { strategyRegistry: options.strategyRegistry } : {}),
       enableLMRules: options.enableLMRules ?? true,
       lmService,
       providerRegistry: registry,

@@ -108,6 +108,7 @@ export class LMRule {
       failureThreshold: 5,
       resetTimeoutMs: 60000,
       halfOpenRequests: 3,
+      quiet: true,
     });
     this.eventBus = null;
     this.enableTools = (config as LMRuleConfigV2).enableTools ?? false;

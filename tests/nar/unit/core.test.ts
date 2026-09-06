@@ -13,7 +13,7 @@ import {
   success,
   Truth,
   ValidationError,
-} from '../../../nar/src';
+} from '@senars/nar';
 
 describe('Budget', () => {
   describe.each`

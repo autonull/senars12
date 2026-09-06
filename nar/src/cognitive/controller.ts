@@ -37,6 +37,10 @@ export class CognitiveController {
     return this.inferenceController;
   }
 
+  getRegistry(): CognitiveRegistry {
+    return this.registry;
+  }
+
   adapt(): void {
     this.cycleCount++;
     if (this.cycleCount % this.adaptInterval !== 0 || !this.rlfp) return;

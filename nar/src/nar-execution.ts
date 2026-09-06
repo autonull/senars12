@@ -11,7 +11,10 @@ import { createPipeline, MemoryPremiseSource } from './stream';
 import type { TaskManager } from './task';
 import { PhaseTimer } from './trace';
 import type { Task } from './types';
+import { createTask } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
+import { atom } from './terms';
+import { Truth } from './terms/truth.js';
 import { errMsg } from './utils';
 
 /** Cognitive state summary for observability */
@@ -24,6 +27,12 @@ export interface CognitiveStateSummary {
   rlfp_reward_avg: number;
   meta_derivation_budget_used: string;
 }
+
+/** Drive → meta-goal mapping for homeostatic self-operation injection. */
+const META_GOAL_BY_DRIVE: Record<string, { threshold: number; narsese: string }> = {
+  competence: { threshold: 0.3, narsese: '^switch_strategy(strategy:focused, strategyType:derivation)' },
+  curiosity: { threshold: 0.3, narsese: '^run_scenario_shadow(profile:induction)' },
+};
 
 export class NARExecution {
   private _cycleCount = 0;
@@ -43,11 +52,12 @@ export class NARExecution {
     private readonly cognitiveController?: CognitiveController,
     private readonly driveManager?: DriveManager,
     private readonly systemEventBus?: NarEventBus,
-    private readonly self?: ReasoningAboutReasoning
+    private readonly self?: ReasoningAboutReasoning,
+    private readonly toolGoalExecutor?: (goalTerm: Task['term']) => Promise<unknown>
   ) {}
 
-  /** Stimulate drives based on events — homeostatic regulation */
-  private stimulateDrives(event: string, data?: Record<string, unknown>): void {
+  /** Stimulate drives based on events — homeostatic regulation. Public so tool layer can report outcomes. */
+  stimulateDrives(event: string, data?: Record<string, unknown>): void {
     if (!this.driveManager) return;
 
     switch (event) {
@@ -147,10 +157,78 @@ export class NARExecution {
     this._metaDerivationDepth = Math.max(this._metaDerivationDepth, depth);
   }
 
+  /**
+   * Inject meta-goals driven by homeostatic drive state.
+   * When a drive falls below its threshold, the corresponding self-operation
+   * goal is injected so the tool layer can act (e.g. switch strategy, run scenarios).
+   */
+  private injectMetaGoals(): void {
+    if (!this.driveManager) return;
+
+    const activeTerms = new Set(this.memory.getGoals?.().map((g) => g.term.toString()) ?? []);
+    // Include pending tasks so we don't re-inject the same goal across cycles
+    if (this.taskManager.peekTask()) {
+      activeTerms.add(this.taskManager.peekTask()!.term.toString());
+    }
+
+    for (const state of this.driveManager.getAllStates()) {
+      const intensity = state.currentIntensity;
+      const goal = META_GOAL_BY_DRIVE[state.spec.id];
+      if (!goal) continue;
+
+      const { threshold, narsese } = goal;
+      if (intensity >= threshold || activeTerms.has(narsese)) continue;
+
+      this.taskManager.addTask(createTask(atom(narsese), 'goal', Truth.NEUTRAL));
+      this.logger.debug('Injected meta-goal from drive', {
+        drive: state.spec.id,
+        intensity,
+        goal: narsese,
+      });
+    }
+  }
+
   /** Reset per-step meta budget */
   resetMetaBudget(): void {
     this._metaDerivationsThisStep = 0;
     this._metaDerivationDepth = 0;
+  }
+
+  /**
+   * Dispatch pending `^tool_name(args)` goals to the tool layer.
+   * Injected meta-goals (e.g. `^switch_strategy(...)`) are converted into real
+   * tool executions, closing the goal→tool loop. Non-tool goals are left to the
+   * reasoner via TaskManager.processPending().
+   */
+  private async dispatchToolGoals(): Promise<void> {
+    if (!this.toolGoalExecutor) return;
+
+    for (const task of this.taskManager.getPending()) {
+      const termStr = task.term.toString();
+      if (!termStr.startsWith('^')) continue;
+
+      // Take ownership of the goal so it is not re-added as a plain memory goal.
+      this.taskManager.removePending(task.stamp.id);
+
+      try {
+        const result = (await this.toolGoalExecutor(task.term)) as
+          | { success?: boolean; error?: string }
+          | undefined;
+        const ok = result?.success !== false;
+        this.logger.debug('Dispatched tool goal', { goal: termStr, success: ok, error: result?.error });
+        if (ok) {
+          this.recordRLFPReward(0.7);
+          this.driveManager?.stimulate('competence', 0.1);
+        } else {
+          this.recordRLFPReward(-0.3);
+          this.driveManager?.stimulate('competence', -0.1);
+        }
+      } catch (e) {
+        this.logger.warn('Tool goal dispatch failed', { goal: termStr, error: errMsg(e) });
+        this.recordRLFPReward(-0.5);
+        this.driveManager?.stimulate('competence', -0.15);
+      }
+    }
   }
 
   async run(steps = 1, signal?: AbortSignal): Promise<number> {
@@ -166,6 +244,11 @@ export class NARExecution {
       this._cycleCount++;
       this.phaseTimer.begin('cycle', `cycle-${this._cycleCount}`);
 
+      // Dispatch pending `^tool(...)` goals to the tool layer (goal→tool wiring).
+      // Must run before processPending so tool goals are executed rather than
+      // being added to memory as plain goals.
+      await this.dispatchToolGoals();
+
       this.phaseTimer.begin('task-manager', 'processPending');
       const processed = await this.taskManager.processPending();
       derived += processed.length;
@@ -175,6 +258,9 @@ export class NARExecution {
       this.phaseTimer.begin('drives', 'update');
       this.driveManager?.updateCycle();
       this.phaseTimer.end();
+
+      // Inject meta-goals from drive homeostasis (e.g. competence < threshold)
+      this.injectMetaGoals();
 
       // Adaptation hook — allows CognitiveController to tune strategies at runtime
       this.cognitiveController?.adapt();
@@ -280,6 +366,16 @@ export class NARExecution {
       if (this._cycleCount % 10 === 0) {
         this.emitCognitiveStateSummary();
       }
+
+      // Structured meta-reasoning log: budget usage, drive stimuli, meta-goal fires
+      this.logger.debug('meta-reasoning', {
+        cycle: this._cycleCount,
+        metaDerivationsThisStep: this._metaDerivationsThisStep,
+        metaDerivationDepth: this._metaDerivationDepth,
+        driveStates: this.driveManager
+          ? Object.fromEntries(this.driveManager.getAllStates().map((ds) => [ds.spec.id, ds.currentIntensity]))
+          : undefined,
+      });
 
       // Reset meta-derivation budget for next cycle
       this.resetMetaBudget();
