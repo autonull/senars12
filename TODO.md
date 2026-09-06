@@ -139,100 +139,161 @@ Add to initial beliefs — represents system components as first-class concepts:
 (scenario:induction --> tests induction_capability).
 (schema --> promotes_to rule).
 (capability --> implemented_by tool).
+
+<!-- Fix patterns (semantic, not syntactic) -->
+(fix_pattern:null_check --> applies_to null_pointer_error).
+(fix_pattern:type_annotation --> applies_to type_mismatch_error).
+(fix_pattern:boundary_check --> applies_to out_of_bounds_error).
 ```
 
 **File**: `nar/src/tools/schemas.ts` (add self-schemas) or init script
 
+**Key Design**: Fix patterns are **semantic concepts**, not AST-grep strings. The NAR reasons about `fix_pattern:null_check`; the tool layer maps to actual codemod strings.
+
 ---
 
-### 3.3 Meta-Rules (Declarative, in RuleProcessor)
-Extend `RuleRegistry` with self-reasoning rules:
+### 3.3 Meta-Rules with AIKR Bounds (Strict Limits)
+Extend `RuleRegistry` with self-reasoning rules **with hard bounds**:
+
 ```narsese
-<!-- Strategy selection -->
-<($situation --> requires_strategy) & (strategy --> $s) ==> (^select_strategy($s))!>
+<!-- Strategy selection (only when competence drive low) -->
+<(drive:competence --> low) & (situation --> requires_strategy) & (strategy --> $s) ==> (^select_strategy($s))!>
 
-<!-- Knob tuning -->
-<(knob --> $k) & (tune --> improves $k) & (^tune($k, $v))! ==> (^apply_tuning($k, $v))!>
+<!-- Knob tuning (only when reward < threshold) -->
+<(rlfp:reward --> below_threshold) & (knob --> $k) & (tune --> improves $k) & (^tune($k, $v))! ==> (^apply_tuning($k, $v))!>
 
-<!-- Test repair -->
-<(test_failed --> $t) & (error_pattern --> $e) & (fix_pattern($e) --> $fix) & (^repair($t, $fix))! ==> (^apply_codemod($fix))!>
+<!-- Test repair (semantic fix pattern) -->
+<(test_failed --> $t) & (error_pattern --> $e) & (fix_pattern($e) --> $fix) & (^repair($t, $fix))! ==> (^apply_fix($fix))!>
 
-<!-- Schema promotion -->
+<!-- Schema promotion (high confidence + frequency) -->
 <(schema --> $s) & (confidence($s) > 0.9) & (frequency($s) > 10) ==> (^promote_rule($s))!>
 
 <!-- Capability scaffolding -->
 <(capability --> $c) & (template($c) --> $tmpl) & (^add_capability($c))! ==> (^scaffold($tmpl, $c))!>
 ```
 
-**File**: `nar/src/rules/registration.ts` (add to `RuleRegistry.getAll()`) or `nar/src/rules/meta-rules.ts` (new)
+**AIKR Bounds (enforced in RuleProcessor for meta-rules):**
+| Bound | Value | Rationale |
+|-------|-------|-----------|
+| `maxMetaDerivationDepth` | 2 | Prevent infinite regress |
+| `maxMetaDerivationsPerStep` | 5 | Limit compute on self-reasoning |
+| `metaRulePriority` | 0.1 (base) | Lower than world beliefs |
+| `metaRuleActivationThreshold` | drive_intensity > 0.6 | Only fire when drives demand it |
+
+**File**: `nar/src/rules/meta-rules.ts` (new) + `RuleProcessor` config for meta-bounds
 
 ---
 
-### 3.4 Drive Stimulation → Autonomous Self-Goals
+### 3.4 Homeostatic Drives (Decay + Replenishment)
 **Existing drives** (in `drives/builtin.ts`):
-| Drive | Generates Goal | Property |
-|-------|----------------|----------|
-| `curiosity` | `(self --> curious)!` | `curious` |
-| `competence` | `(self --> competent)!` | `competent` |
-| `coherence` | `(self --> coherent)!` | `coherent` |
-| `social` | `(self --> social)!` | `social` |
+| Drive | Generates Goal | Property | Decay Rate | Replenished By |
+|-------|----------------|----------|------------|----------------|
+| `curiosity` | `(self --> curious)!` | `curious` | 0.02/cycle | `generate_scenarios`, `coverage_concepts` on low-coverage areas |
+| `competence` | `(self --> competent)!` | `competent` | 0.015/cycle | `run_tests` (green), `tune_knob` (reward ↑) |
+| `coherence` | `(self --> coherent)!` | `coherent` | 0.01/cycle | `resolve_contradiction`, schema promotion |
+| `social` | `(self --> social)!` | `social` | 0.05/cycle | Human interaction (CLI/IRC) |
 
-**Connect stimulation to events** (in `nar-execution.ts` or `DriveManager`):
+**Connect stimulation to events** (in `nar-execution.ts`):
 ```typescript
-// On test failure
-driveManager.stimulate('competence', -0.1);
+// On test failure → competence decays, triggers repair
+driveManager.stimulate('competence', -0.15);
 
-// On contradiction detected
+// On contradiction detected → coherence decays
 driveManager.stimulate('coherence', -0.2);
 
-// On low coverage concept
+// On low coverage concept → curiosity stimulated
 driveManager.stimulate('curiosity', 0.15);
+
+// On successful test run → competence replenished
+driveManager.stimulate('competence', 0.1);
+
+// On scenario pass → curiosity replenished
+driveManager.stimulate('curiosity', 0.05);
 ```
+
+**Natural loop**: Drives decay → goals injected → tools execute → drives replenished → repeat.
 
 ---
 
-### 3.5 Self-Tools (Wrappers Around Existing Infrastructure)
-| Tool | Self-Operation | Reuses |
-|------|----------------|--------|
-| `register_rule` | Add promoted schema as inference rule | `RuleProcessor` + `RuleRegistry` |
-| `register_tool` | Add scaffolded capability | `ToolManager.register()` |
-| `scaffold_capability` | Fill template → codemod write | `codemod` + templates |
-| `tune_knob` | Apply RLFP knob update | `RLFPLearner.applyTuningUpdate()` |
-| `switch_strategy` | Change active strategy | `StrategyRegistry.setActive()` / `CognitiveController` |
-| `run_tests` | Validate repair/scaffold | Existing `run_tests` tool |
-| `run_scenario` | Validate capability | Existing `generate_scenarios` tool |
+### 3.5 Self-Tools (Semantic Interface, Syntax in Tool Layer)
+| Tool | Self-Operation (NAR Goal) | Tool-Layer Implementation |
+|------|---------------------------|---------------------------|
+| `register_rule` | `(^promote_rule($schema_id))!` | Add schema to `RuleRegistry`, register in `RuleProcessor` |
+| `register_tool` | `(^add_capability($cap_id))!` | `ToolManager.register()` with descriptor |
+| `scaffold_capability` | `(^scaffold($template_id, $cap_id))!` | Fill template → `codemod` write in **shadow worktree** |
+| `apply_fix` | `(^apply_fix($fix_pattern_id))!` | Lookup fix pattern → `codemod` in **shadow worktree** |
+| `tune_knob` | `(^apply_tuning($knob_id, $value))!` | `RLFPLearner.applyTuningUpdate()` |
+| `switch_strategy` | `(^select_strategy($strategy_id))!` | `CognitiveController` / `StrategyRegistry` |
+| `run_tests` | Validation step | Existing `run_tests` tool (in shadow) |
+| `run_scenario` | Validation step | Existing `generate_scenarios` tool (in shadow) |
+
+**Shadow Execution (Safety)**:
+```typescript
+// In self-tools execution:
+1. Create git worktree: `git worktree add .shadow/fix-42`
+2. Apply codemod in `.shadow/fix-42`
+3. Run `run_tests` in `.shadow/fix-42`
+4. If green: present diff to ApprovalManager
+5. If approved: merge worktree → main
+6. Cleanup: `git worktree remove .shadow/fix-42`
+```
 
 **File**: `nar/src/tools/adapters/external-tools.ts` (add `createSelfTools()`)
 
 ---
 
-### 3.6 RLFP on Task Outcomes (Unified)
+### 3.6 RLFP on Task Outcomes (Unified + Intrinsic Rewards)
 Extend `RLFPLearner.calculateReward()` to accept generic task outcomes:
+
 ```typescript
 interface TaskOutcome {
-  taskType: 'test' | 'scenario' | 'contradiction' | 'schema' | 'capability' | 'knob_tune';
+  taskType: 'test' | 'scenario' | 'contradiction' | 'schema' | 'capability' | 'knob_tune' | 'meta_reasoning';
   success: boolean;
-  metrics: Record<string, number>;  // passRate, latency, coverage, etc.
+  metrics: Record<string, number>;  // passRate, latency, coverage, derivationDepth, selfModelAccuracy
 }
-reward = calculateReward(outcome);
+
+// Extrinsic rewards (existing)
+reward_extrinsic = 0.5 * passRate + 0.3 * speedScore + 0.2 * coverageDelta - aikrPenalty;
+
+// Intrinsic rewards (new)
+reward_intrinsic = 
+  0.4 * derivationDepthReduction +    // schema promotion → fewer steps
+  0.3 * selfModelAccuracy +           // predicted vs actual capability
+  0.3 * contradictionReduction;       // coherence improvement
+
+reward = clamp(reward_extrinsic + 0.3 * reward_intrinsic, -1, 1);
 ```
+
 All improvements flow through same reward → same policy optimization.
 
 **File**: `nar/src/rlfp/RLFPLearner.ts`
 
 ---
 
-### 3.7 Goal→Tool Wiring
-ToolRegistry executes tools for goals matching `^tool_name(args)` pattern:
+### 3.7 Goal→Tool Wiring (Semantic Dispatch)
+ToolRegistry executes tools for goals matching `^tool_name(semantic_args)` pattern:
+
 ```typescript
-// In ToolRegistry.execute() or NARExecution processing loop
-if (goalTerm.toString().startsWith('^')) {
-  const [toolName, args] = parseToolGoal(goalTerm);  // ^tool(arg1, arg2)
-  return toolManager.execute(toolName, args);
+// In ToolRegistry or NARExecution loop
+async executeToolGoal(goalTerm: Term): Promise<ToolResult> {
+  const str = goalTerm.toString();
+  if (!str.startsWith('^')) return errorResult('Not a tool goal');
+  
+  // Parse: ^tool_name(arg1, arg2) where args are Narsese terms/concepts
+  const match = str.match(/^\^(\w+)\((.*)\)$/);
+  if (!match) return errorResult('Invalid tool goal syntax');
+  
+  const [, toolName, argsStr] = match;
+  const args = parseNarseseArgs(argsStr);  // Convert Narsese terms to tool params
+  
+  // Semantic resolution: fix_pattern_id → actual codemod strings
+  const resolvedArgs = await this.resolveSemanticArgs(toolName, args);
+  
+  return this.execute(toolName, resolvedArgs);
 }
 ```
 
-**File**: `nar/src/tools/tool-registry.ts` (add `executeToolGoal()`) or `nar-execution.ts` (in `run()` loop)
+**File**: `nar/src/tools/tool-registry.ts` (add `executeToolGoal()`, `resolveSemanticArgs()`)
 
 ---
 
@@ -240,25 +301,47 @@ if (goalTerm.toString().startsWith('^')) {
 
 | Old (Hardcoded Pipeline) | New (Unified Reasoning) |
 |--------------------------|-------------------------|
-| 3.2: lint→belief→codemod→approval→test | `fix_test_goal` → meta-rule → codemod → test → reward |
-| 3.3: NL→goal→plan→MeTTa→codemod→test | `add_capability_goal` → meta-rule → scaffold → test → reward |
-| 2.x: tune knobs via CLI | `tune_knob_goal` → meta-rule → tune_knob → reward |
-| Schema induction (passive) | `promote_rule_goal` → meta-rule → register_rule → reward |
+| 3.2: lint→belief→codemod→approval→test | `fix_test_goal` → meta-rule → `apply_fix` → shadow test → reward |
+| 3.3: NL→goal→plan→MeTTa→codemod→test | `add_capability_goal` → meta-rule → `scaffold` → shadow test → reward |
+| 2.x: tune knobs via CLI | `tune_knob_goal` → meta-rule → `tune_knob` → reward |
+| Schema induction (passive) | `promote_rule_goal` → meta-rule → `register_rule` → reward |
 
 ---
 
 ## Implementation Priority (Minimal New Code)
 
 1. **Self-concept vocabulary** — Add to `schemas.ts` or init script (few lines)
-2. **Meta-rules** — 5-10 declarative rules in `RuleRegistry` / `meta-rules.ts`
-3. **Drive stimulation hooks** — Call `driveManager.stimulate()` on events
-4. **Self-tools** — `external-tools.ts`: `register_rule`, `register_tool`, `scaffold_capability`, `tune_knob`, `switch_strategy`
-5. **RLFP task reward** — Generic `calculateReward(TaskOutcome)` in `RLFPLearner.ts`
-6. **Goal→Tool wiring** — `tool-registry.ts`: `^tool_name` pattern + `executeToolGoal()`
+2. **Meta-rules + AIKR bounds** — `meta-rules.ts` + `RuleProcessor` meta-config
+3. **Homeostatic drive hooks** — `nar-execution.ts`: stimulate on events, natural decay handles rest
+4. **Self-tools (shadow execution)** — `external-tools.ts`: `register_rule`, `register_tool`, `scaffold_capability`, `apply_fix`, `tune_knob`, `switch_strategy`
+5. **RLFP task reward + intrinsic** — `RLFPLearner.calculateReward(TaskOutcome)`
+6. **Goal→Tool wiring** — `tool-registry.ts`: `^tool_name` pattern + semantic arg resolution
+7. **Integration test** — `nar run --auto` runs autonomous improvement loop
 
 ---
 
-## Phase 4: Observability (Deferred)
+## Phase 3.8: Observability (Moved from Phase 4 — Required for M3)
+The system **must** emit structured cognitive state for human oversight during `nar run --auto`:
+
+```json
+{
+  "timestamp": "2026-09-06T...",
+  "active_drives": { "competence": 0.8, "curiosity": 0.2, "coherence": 0.9, "social": 0.1 },
+  "active_meta_goals": ["^apply_fix(fix_pattern:null_check)", "^promote_rule(schema_42)"],
+  "pending_tool_executions": ["apply_fix (shadow worktree .shadow/fix-42)"],
+  "aikr_pressure": "low",
+  "rlfp_reward_avg": 0.34,
+  "meta_derivation_budget_used": "2/5"
+}
+```
+
+**Emitted**: Every N cycles in `NARExecution.run()` via `systemEventBus.emit('cognitive:state:summary', ...)`
+
+**Files**: `nar-execution.ts` (emit), CLI command `/self-report` to pretty-print
+
+---
+
+## Phase 4: Full Observability (Deferred)
 | Endpoint | Data | Consumer |
 |----------|------|----------|
 | `GET /metrics` | Prometheus: derivations/sec, contradiction rate, tool latency | Grafana |
@@ -278,7 +361,7 @@ if (goalTerm.toString().startsWith('^')) {
 | Tuning | `nar.ts`, `RLFPLearner.ts`, `knobs.ts` |
 | Approval | `ApprovalService.ts`, `builtin-tools.ts` |
 | Codemod | `external-tools.ts`, `builtin-tools.ts` |
-| **Self-improvement** | **`meta-rules.ts`, `drives/builtin.ts` (stimulate), `external-tools.ts` (self-tools), `RLFPLearner.ts`, `tool-registry.ts`, `schemas.ts`** |
+| **Self-improvement** | **`meta-rules.ts`, `drives/builtin.ts` (stimulate), `external-tools.ts` (self-tools + shadow), `RLFPLearner.ts`, `tool-registry.ts`, `schemas.ts`, `nar-execution.ts` (drive hooks + observability)** |
 | Config persist | `config/loader.ts`, `ConfigView.ts` |
 
 ---
@@ -290,11 +373,17 @@ if (goalTerm.toString().startsWith('^')) {
 - ❌ Dashboard before there's data to show
 - ❌ **Hardcoded pipelines** where unified reasoning works
 - ❌ **New mechanisms** where existing NAR machinery suffices
+- ❌ **Unbounded meta-reasoning** (strict AIKR bounds required)
+- ❌ **Syntactic goals** in NAR space (semantic only, syntax in tool layer)
+- ❌ **Live code modification** without shadow validation
+- ❌ **Only extrinsic rewards** (intrinsic needed for structural improvements)
 
 ## Escape Hatches
 - All auto-writes through `ApprovalManager` (human `y/n` in CLI)
 - Git commits every iteration → `git reset --hard` always works
+- Shadow worktrees isolate experiments from main
 - `SENARS_AUTO_BUILD=1` disables entire loop
+- Meta-reasoning budget hard-coded (not configurable at runtime)
 
 ---
 
@@ -312,12 +401,13 @@ if (goalTerm.toString().startsWith('^')) {
 
 ---
 
-## Current Priority: Phase 3.2-3.7 (Unified Self-Improvement)
+## Current Priority: Phase 3.2-3.8 (Unified Self-Improvement + Observability)
 
-1. **Self-concept vocabulary** — Add to `schemas.ts` or init
-2. **Meta-rules** — `nar/src/rules/meta-rules.ts` or extend `registration.ts`
-3. **Drive stimulation hooks** — `nar-execution.ts`: stimulate on test fail, contradiction, low coverage
-4. **Self-tools** — `external-tools.ts`: `register_rule`, `register_tool`, `scaffold_capability`, `tune_knob`, `switch_strategy`
-5. **RLFP task reward** — `RLFPLearner.calculateReward(TaskOutcome)`
-6. **Goal→Tool wiring** — `tool-registry.ts`: `^tool_name` pattern + `executeToolGoal()`
-7. **Integration test** — `nar run --auto` runs autonomous improvement loop
+1. **Self-concept vocabulary** — Add to `schemas.ts` or init (semantic fix patterns, not syntax)
+2. **Meta-rules + AIKR bounds** — `meta-rules.ts` + `RuleProcessor` meta-config (depth=2, budget=5)
+3. **Homeostatic drive hooks** — `nar-execution.ts`: stimulate on events, decay is automatic
+4. **Self-tools (shadow execution)** — `external-tools.ts`: `register_rule`, `register_tool`, `scaffold_capability`, `apply_fix`, `tune_knob`, `switch_strategy` with git worktree
+5. **RLFP task reward + intrinsic** — `RLFPLearner.calculateReward(TaskOutcome)` with intrinsic terms
+6. **Goal→Tool wiring** — `tool-registry.ts`: `^tool_name` pattern + semantic arg resolution
+7. **Observability** — `nar-execution.ts`: emit cognitive state summary every N cycles
+8. **Integration test** — `nar run --auto` runs autonomous improvement loop
