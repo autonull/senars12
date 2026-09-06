@@ -62,6 +62,23 @@ export {
 // Task
 /** Task scheduling/queuing. @public */
 export { TaskManager } from './task/index.js';
+
+// Imagination Engine (Cognitive Treadmill)
+/** Scenario generation, hidden-model oracle, cognitive treadmill. @public */
+export {
+  ScenarioGenerator,
+  HiddenModelOracle,
+  CognitiveTreadmill,
+  type Scenario,
+  type ScenarioProfile,
+  type HiddenRule,
+  type OracleExpectation,
+  type GeneratorConfig,
+  type TreadmillConfig,
+  type StressMetrics,
+  type DegradationCurve,
+  type DegradationPoint,
+} from './imagination/index.js';
 // Terms
 /** Term construction + (de)serialization helpers. @public */
 /** Narsese parser. @public */
@@ -104,6 +121,10 @@ export {
 export { Stamp } from './terms/stamp.js';
 /** Truth-value algebra. @public */
 export { isTruthEqual, Truth } from './terms/truth.js';
+
+// Self-Reasoning (Metacognition)
+/** Reasoning about reasoning, architecture driver. @public */
+export * from './self/index.js';
 export type {
   AtomicTerm,
   Budget,
