@@ -152,7 +152,7 @@ export class InferenceController {
       signal,
       singlePremise: true,
     })) {
-      const derivedTask = createDerivedTask(result);
+      const derivedTask = createDerivedTask(result, result.taskType);
       if (exceedsDepthLimit(derivedTask, maxDepth) || this.isCircular(derivedTask)) continue;
 
       this.derivationCount++;
@@ -172,7 +172,7 @@ export class InferenceController {
     const maxDepth = this.config.maxDerivationDepth ?? 10;
 
     const processResult = (result: RuleResult) => {
-      const derivedTask = createDerivedTask(result);
+      const derivedTask = createDerivedTask(result, result.taskType);
       if (exceedsDepthLimit(derivedTask, maxDepth) || this.isCircular(derivedTask)) return null;
       this.derivationCount++;
       return derivedTask;

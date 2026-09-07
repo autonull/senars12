@@ -41,6 +41,13 @@ export class CognitiveController {
     return this.registry;
   }
 
+  /** Get the current strategy name for a strategy type, or undefined if unset */
+  getStrategy(type: StrategyType): string | undefined {
+    const key: keyof typeof this.currentParams.strategies =
+      type === 'lm-rule' ? 'lmRule' : (type as keyof typeof this.currentParams.strategies);
+    return this.currentParams.strategies[key]?.type;
+  }
+
   adapt(): void {
     this.cycleCount++;
     if (this.cycleCount % this.adaptInterval !== 0 || !this.rlfp) return;

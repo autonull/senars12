@@ -571,11 +571,7 @@ export function createCoverageConceptTools(deps: CoverageConceptDeps = {}) {
 
             // Inject episodes if requested
             if (injectEpisodes && deps.memory) {
-              try {
-                // We'd need episodicMemory for this, skip for now
-              } catch (error) {
-                console.warn('Failed to inject coverage episodes:', error);
-              }
+              // We'd need episodicMemory for this, skip for now
             }
 
             resolve({
@@ -1856,6 +1852,11 @@ class ShadowWorktreeManager {
     });
   }
 
+  /** Get the path of an active worktree by id, or undefined if not found */
+  getWorktreePath(id: string): string | undefined {
+    return this.activeWorktrees.get(id);
+  }
+
   /** Apply codemod in shadow worktree */
   async applyCodemodInWorktree(
     worktreePath: string,
@@ -2077,12 +2078,13 @@ export function createSelfTools(deps: SelfToolsDeps = {}) {
     // --- register_rule ---
     register_rule: tool({
       description:
-        'Register a new inference rule in the NAR rule processor. Takes a schema ID and promotes it to an active rule.',
+        'Register a new inference rule in the NAR rule processor. Takes a schema ID and promotes it to an active rule. Supports worktree reuse.',
       inputSchema: z.object({
         schemaId: z.string().describe('Schema identifier to promote (e.g., "schema_42")'),
         ruleCode: z.string().optional().describe('Optional custom rule implementation as TypeScript code'),
+        worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
       }),
-      execute: async ({ schemaId, ruleCode }) => {
+      execute: async ({ schemaId, ruleCode, worktreeId: existingId }) => {
         if (!deps.nar || !deps.ruleProcessor) {
           return { success: false, error: 'NAR or RuleProcessor not available' };
         }
@@ -2094,9 +2096,21 @@ export function createSelfTools(deps: SelfToolsDeps = {}) {
           // If ruleCode provided, eval it (in shadow context)
           if (ruleCode) {
             // Safety: only allow in shadow worktree
-            const wtId = `${worktreeId}-rule`;
+            let worktreePath: string;
+            let created = false;
+            const wtId = existingId || `${worktreeId}-rule`;
+            
+            if (existingId) {
+              worktreePath = shadowManager.getWorktreePath(existingId) || '';
+              if (!worktreePath) {
+                return { success: false, error: `Worktree not found: ${existingId}` };
+              }
+            } else {
+              worktreePath = await shadowManager.createWorktree(wtId);
+              created = true;
+            }
+            
             try {
-              const worktreePath = await shadowManager.createWorktree(wtId);
               const ruleFile = resolve(worktreePath, `rules/${ruleId}.ts`);
               const { mkdir, writeFile } = await import('node:fs/promises');
               await mkdir(dirname(ruleFile), { recursive: true });
@@ -2110,9 +2124,11 @@ export function createSelfTools(deps: SelfToolsDeps = {}) {
 
               const diff = await shadowManager.getDiff(worktreePath);
 
-              return { success: true, ruleId, diff, message: 'Rule registered and validated' };
+              return { success: true, ruleId, diff, message: 'Rule registered and validated', worktreeId: created ? wtId : existingId };
             } finally {
-              await shadowManager.cleanupWorktree(wtId);
+              if (created) {
+                await shadowManager.cleanupWorktree(wtId);
+              }
             }
           }
 
@@ -2126,22 +2142,35 @@ export function createSelfTools(deps: SelfToolsDeps = {}) {
     // --- register_tool ---
     register_tool: tool({
       description:
-        'Register a new tool in the ToolManager. Tool implementation is validated in shadow worktree.',
+        'Register a new tool in the ToolManager. Tool implementation is validated in shadow worktree. Supports worktree reuse.',
       inputSchema: z.object({
         toolName: z.string().describe('Name of the tool to register'),
         toolCode: z.string().describe('Tool implementation as TypeScript code'),
         schema: z.record(z.string(), z.unknown()).describe('JSON Schema for tool input'),
         description: z.string().describe('Tool description'),
+        worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
       }),
-      execute: async ({ toolName, toolCode, schema, description }) => {
+      execute: async ({ toolName, toolCode, schema, description, worktreeId: existingId }) => {
         if (!deps.nar || !deps.toolManager) {
           return { success: false, error: 'NAR or ToolManager not available' };
         }
         try {
           // Validate tool code in shadow worktree
-          const wtId = `${worktreeId}-tool`;
+          let worktreePath: string;
+          let created = false;
+          const wtId = existingId || `${worktreeId}-tool`;
+          
+          if (existingId) {
+            worktreePath = shadowManager.getWorktreePath(existingId) || '';
+            if (!worktreePath) {
+              return { success: false, error: `Worktree not found: ${existingId}` };
+            }
+          } else {
+            worktreePath = await shadowManager.createWorktree(wtId);
+            created = true;
+          }
+          
           try {
-            const worktreePath = await shadowManager.createWorktree(wtId);
             const toolFile = resolve(worktreePath, `tools/${toolName}.ts`);
             const { mkdir, writeFile } = await import('node:fs/promises');
             await mkdir(dirname(toolFile), { recursive: true });
@@ -2155,9 +2184,11 @@ export function createSelfTools(deps: SelfToolsDeps = {}) {
             const diff = await shadowManager.getDiff(worktreePath);
 
             // In production, would register with ToolManager
-            return { success: true, toolName, diff, message: 'Tool registered and validated' };
+            return { success: true, toolName, diff, message: 'Tool registered and validated', worktreeId: created ? wtId : existingId };
           } finally {
-            await shadowManager.cleanupWorktree(wtId);
+            if (created) {
+              await shadowManager.cleanupWorktree(wtId);
+            }
           }
         } catch (error) {
           return { success: false, error: String(error) };
@@ -2168,20 +2199,33 @@ export function createSelfTools(deps: SelfToolsDeps = {}) {
     // --- scaffold_capability ---
     scaffold_capability: tool({
       description:
-        'Scaffold a new capability from a template. Generates code in shadow worktree, runs tests, requires approval.',
+        'Scaffold a new capability from a template. Generates code in shadow worktree, runs tests, requires approval. Supports worktree reuse.',
       inputSchema: z.object({
         capabilityId: z.string().describe('Capability identifier (e.g., "web_search")'),
         templateId: z.string().describe('Template to use (e.g., "tool_template", "rule_template")'),
         parameters: z.record(z.string(), z.unknown()).optional().describe('Template parameters'),
+        worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
       }),
-      execute: async ({ capabilityId, templateId, parameters = {} }) => {
+      execute: async ({ capabilityId, templateId, parameters = {}, worktreeId: existingId }) => {
         if (!deps.nar) {
           return { success: false, error: 'NAR not available' };
         }
-        const wtId = `${worktreeId}-scaffold`;
+        
+        let worktreePath: string;
+        let created = false;
+        const wtId = existingId || `${worktreeId}-scaffold`;
+        
+        if (existingId) {
+          worktreePath = shadowManager.getWorktreePath(existingId) || '';
+          if (!worktreePath) {
+            return { success: false, error: `Worktree not found: ${existingId}` };
+          }
+        } else {
+          worktreePath = await shadowManager.createWorktree(wtId);
+          created = true;
+        }
+        
         try {
-          const worktreePath = await shadowManager.createWorktree(wtId);
-          
           // Template implementations
           const templates: Record<string, string> = {
             tool_template: `
@@ -2243,11 +2287,13 @@ export const ${capabilityId}_rule: RegisteredRule = {
           }
           
           await shadowManager.mergeWorktree(wtId);
-          return { success: true, capabilityId, diff, message: 'Capability scaffolded and merged' };
+          return { success: true, capabilityId, diff, message: 'Capability scaffolded and merged', worktreeId: created ? wtId : existingId };
         } catch (error) {
           return { success: false, error: String(error) };
         } finally {
-          await shadowManager.cleanupWorktree(wtId);
+          if (created) {
+            await shadowManager.cleanupWorktree(wtId);
+          }
         }
       },
     }),
@@ -2255,25 +2301,38 @@ export const ${capabilityId}_rule: RegisteredRule = {
     // --- apply_fix ---
     apply_fix: tool({
       description:
-        'Apply a semantic fix pattern to fix a test failure. Uses fix_pattern concepts mapped to codemod patterns. Executes in shadow worktree with test validation.',
+        'Apply a semantic fix pattern to fix a test failure. Uses fix_pattern concepts mapped to codemod patterns. Executes in shadow worktree with test validation. Supports worktree reuse.',
       inputSchema: z.object({
         fixPattern: z.string().describe('Fix pattern concept (e.g., "fix_pattern:null_check")'),
         targetFiles: z.array(z.string()).optional().describe('Specific files to apply fix to'),
         testName: z.string().optional().describe('Test that failed (for context)'),
+        worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
       }),
-      execute: async ({ fixPattern, targetFiles, testName }) => {
+      execute: async ({ fixPattern, targetFiles, testName, worktreeId: existingId }) => {
         if (!deps.nar) {
           return { success: false, error: 'NAR not available' };
         }
-        const wtId = `${worktreeId}-fix`;
-        try {
-          const { getFixPatternMapping } = await import('../self-concept.js');
-          const mapping = getFixPatternMapping(fixPattern);
-          if (!mapping) {
-            return { success: false, error: `Unknown fix pattern: ${fixPattern}` };
-          }
+        
+        const { getFixPatternMapping } = await import('../self-concept.js');
+        const mapping = getFixPatternMapping(fixPattern);
+        if (!mapping) {
+          return { success: false, error: `Unknown fix pattern: ${fixPattern}` };
+        }
 
-          const worktreePath = await shadowManager.createWorktree(wtId);
+        let worktreePath: string;
+        let created = false;
+        const wtId = existingId || `${worktreeId}-fix`;
+        
+        try {
+          if (existingId) {
+            worktreePath = shadowManager.getWorktreePath(existingId) || '';
+            if (!worktreePath) {
+              return { success: false, error: `Worktree not found: ${existingId}` };
+            }
+          } else {
+            worktreePath = await shadowManager.createWorktree(wtId);
+            created = true;
+          }
           
           // Apply the codemod
           const codemodResult = await shadowManager.applyCodemodInWorktree(
@@ -2313,11 +2372,13 @@ export const ${capabilityId}_rule: RegisteredRule = {
           // Stimulate competence drive
           deps.nar.getExecution?.()?.stimulateDrives?.('test_passed');
           
-          return { success: true, fixPattern, diff, testResult, message: 'Fix applied and validated' };
+          return { success: true, fixPattern, diff, testResult, message: 'Fix applied and validated', worktreeId: created ? wtId : existingId };
         } catch (error) {
           return { success: false, error: String(error) };
         } finally {
-          await shadowManager.cleanupWorktree(wtId);
+          if (created) {
+            await shadowManager.cleanupWorktree(wtId);
+          }
         }
       },
     }),
@@ -2325,29 +2386,48 @@ export const ${capabilityId}_rule: RegisteredRule = {
     // --- tune_knob ---
     tune_knob: tool({
       description:
-        'Tune a cognitive knob via RLFP. Applies tuning update and validates with tests.',
+        'Tune a cognitive knob via RLFP. Applies tuning update and validates with tests. Supports worktree reuse.',
       inputSchema: z.object({
         knob: z.string().describe('Knob to tune (e.g., "maxDerivationsPerStep")'),
         value: z.number().describe('New value for the knob'),
         reason: z.string().optional().describe('Reason for tuning'),
+        worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
       }),
-      execute: async ({ knob, value, reason }) => {
+      execute: async ({ knob, value, reason, worktreeId: existingId }) => {
         if (!deps.rlfpLearner || !deps.nar) {
           return { success: false, error: 'RLFP learner or NAR not available' };
         }
-        const wtId = `${worktreeId}-tune`;
+        
+        // Get current knob value for potential rollback
+        const knobs = deps.rlfpLearner.getTunableKnobs();
+        const previousValue = (knobs as Record<string, { current: number }>)[knob]?.current;
+        
+        // Apply tuning update
+        deps.rlfpLearner.applyTuningUpdate(knob, value);
+        
+        let worktreePath: string;
+        let created = false;
+        const wtId = existingId || `${worktreeId}-tune`;
+        
         try {
-          // Apply tuning update
-          deps.rlfpLearner.applyTuningUpdate(knob, value);
-          
+          if (existingId) {
+            worktreePath = shadowManager.getWorktreePath(existingId) || '';
+            if (!worktreePath) {
+              return { success: false, error: `Worktree not found: ${existingId}` };
+            }
+          } else {
+            worktreePath = await shadowManager.createWorktree(wtId);
+            created = true;
+          }
+
           // Validate with quick test run in shadow worktree
-          const worktreePath = await shadowManager.createWorktree(wtId);
           const testResult = await shadowManager.runTestsInWorktree(worktreePath);
           
           if (!testResult.success) {
             // Revert on failure
-            const knobs = deps.rlfpLearner.getTunableKnobs();
-            deps.rlfpLearner.applyTuningUpdate(knob, (knobs as Record<string, { current: number }>)[knob]?.current ?? value);
+            if (previousValue !== undefined) {
+              deps.rlfpLearner.applyTuningUpdate(knob, previousValue);
+            }
             return { success: false, error: 'Tuning broke tests', testResult };
           }
 
@@ -2370,11 +2450,17 @@ export const ${capabilityId}_rule: RegisteredRule = {
           // Stimulate competence drive
           deps.nar.getExecution?.()?.stimulateDrives?.('knob_tuned');
 
-          return { success: true, knob, value, reward, testResult, message: 'Knob tuned and validated' };
+          return { success: true, knob, value, reward, testResult, message: 'Knob tuned and validated', worktreeId: created ? wtId : existingId };
         } catch (error) {
+          // Rollback on error
+          if (previousValue !== undefined) {
+            deps.rlfpLearner.applyTuningUpdate(knob, previousValue);
+          }
           return { success: false, error: String(error) };
         } finally {
-          await shadowManager.cleanupWorktree(wtId);
+          if (created) {
+            await shadowManager.cleanupWorktree(wtId);
+          }
         }
       },
     }),
@@ -2382,44 +2468,71 @@ export const ${capabilityId}_rule: RegisteredRule = {
     // --- switch_strategy ---
     switch_strategy: tool({
       description:
-        'Switch cognitive strategy (sampling, derivation, attention, etc.). Validates with test run.',
+        'Switch cognitive strategy (sampling, derivation, attention, etc.). Validates with test run. Supports worktree reuse.',
       inputSchema: z.object({
         strategy: z.string().describe('Strategy to switch to (e.g., "focused", "exhaustive", "anytime")'),
         strategyType: z.enum(['sampling', 'derivation', 'attention', 'lmRule', 'premise']).describe('Type of strategy'),
         reason: z.string().optional().describe('Reason for switch'),
+        worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
       }),
-      execute: async ({ strategy, strategyType, reason }) => {
+      execute: async ({ strategy, strategyType, reason, worktreeId: existingId }) => {
         if (!deps.cognitiveController || !deps.nar) {
           return { success: false, error: 'CognitiveController or NAR not available' };
         }
-        const wtId = `${worktreeId}-strategy`;
+        
+        const strategyTypeKey =
+          strategyType === 'lmRule' ? 'lm-rule' : (strategyType as 'sampling' | 'derivation' | 'attention' | 'premise');
+        const registry = deps.cognitiveController.getRegistry();
+        if (!registry.has(strategyTypeKey, strategy)) {
+          return { success: false, error: `Strategy not found: ${strategy} (${strategyType})` };
+        }
+
+        // Save previous strategy for rollback
+        const previousStrategy = deps.cognitiveController.getStrategy(strategyTypeKey);
+
+        // Apply strategy
+        deps.cognitiveController.setStrategy(strategyTypeKey, strategy);
+
+        let worktreePath: string;
+        let created = false;
+        const wtId = existingId || `${worktreeId}-strategy`;
+        
         try {
-          const strategyTypeKey =
-            strategyType === 'lmRule' ? 'lm-rule' : (strategyType as 'sampling' | 'derivation' | 'attention' | 'premise');
-          const registry = deps.cognitiveController.getRegistry();
-          if (!registry.has(strategyTypeKey, strategy)) {
-            return { success: false, error: `Strategy not found: ${strategy} (${strategyType})` };
+          if (existingId) {
+            worktreePath = shadowManager.getWorktreePath(existingId) || '';
+            if (!worktreePath) {
+              return { success: false, error: `Worktree not found: ${existingId}` };
+            }
+          } else {
+            worktreePath = await shadowManager.createWorktree(wtId);
+            created = true;
           }
 
-          // Apply strategy (CognitiveController.setStrategy takes type + strategy name)
-          deps.cognitiveController.setStrategy(strategyTypeKey, strategy);
-
           // Validate with quick test run
-          const worktreePath = await shadowManager.createWorktree(wtId);
           const testResult = await shadowManager.runTestsInWorktree(worktreePath);
 
           if (!testResult.success) {
+            // Rollback: revert to previous strategy
+            if (previousStrategy) {
+              deps.cognitiveController.setStrategy(strategyTypeKey, previousStrategy);
+            }
             return { success: false, error: 'Strategy switch broke tests', testResult };
           }
 
           // Stimulate competence drive
           deps.nar.getExecution?.()?.stimulateDrives?.('knob_tuned');
 
-          return { success: true, strategy, strategyType, testResult, message: 'Strategy switched and validated' };
+          return { success: true, strategy, strategyType, testResult, message: 'Strategy switched and validated', worktreeId: created ? wtId : existingId };
         } catch (error) {
+          // Rollback on error
+          if (previousStrategy) {
+            deps.cognitiveController.setStrategy(strategyTypeKey, previousStrategy);
+          }
           return { success: false, error: String(error) };
         } finally {
-          await shadowManager.cleanupWorktree(wtId);
+          if (created) {
+            await shadowManager.cleanupWorktree(wtId);
+          }
         }
       },
     }),
@@ -2438,7 +2551,7 @@ export const ${capabilityId}_rule: RegisteredRule = {
           let created = false;
           
           if (existingId) {
-            worktreePath = shadowManager['activeWorktrees'].get(existingId) || '';
+            worktreePath = shadowManager.getWorktreePath(existingId) || '';
             if (!worktreePath) {
               return { success: false, error: `Worktree not found: ${existingId}` };
             }
@@ -2521,7 +2634,7 @@ export const ${capabilityId}_rule: RegisteredRule = {
           let created = false;
           
           if (existingId) {
-            worktreePath = shadowManager['activeWorktrees'].get(existingId) || '';
+            worktreePath = shadowManager.getWorktreePath(existingId) || '';
             if (!worktreePath) {
               return { success: false, error: `Worktree not found: ${existingId}` };
             }

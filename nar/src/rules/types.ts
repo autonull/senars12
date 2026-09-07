@@ -16,6 +16,7 @@ export interface RegisteredRule {
   sync: boolean;
   priority: number;
   truthFn?: TruthFn;
+  taskType?: 'belief' | 'goal' | 'question' | 'command';
 }
 
 export interface RuleDef {

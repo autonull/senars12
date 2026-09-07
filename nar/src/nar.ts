@@ -559,17 +559,19 @@ export class NAR extends BaseComponent {
   private serializeTask(task: Task) {
     return {
       term: task.term.toString(),
+      type: task.type,
       truth: task.truth ? Truth.create(task.truth.f, task.truth.c) : undefined,
       stamp: task.stamp,
     };
   }
 
-  private rehydrateTask(record: { term: string; truth?: TruthType; stamp?: any }, type: TaskType) {
-    const parsed = termParser.parse(record.term);
+  private rehydrateTask(record: { term: string; type?: TaskType; truth?: TruthType; stamp?: any }, type: TaskType) {
+    const punctuation = (record.type ?? type) === 'belief' ? '.' : (record.type ?? type) === 'goal' ? '!' : '?';
+    const parsed = termParser.parse(`${record.term}${punctuation}`);
     return (
       parsed && {
         term: parsed,
-        type,
+        type: record.type ?? type,
         truth: record.truth ?? Truth.NEUTRAL,
         budget: { priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
         stamp: record.stamp ?? Stamp.createInput(),
@@ -618,8 +620,12 @@ export class NAR extends BaseComponent {
         const records = await this.readJsonIfExists<any[]>(name);
         if (!records) continue;
         for (const record of records) {
-          const task = this.rehydrateTask(record, type);
-          if (task) this.taskManager.addTask(task);
+          try {
+            const task = this.rehydrateTask(record, type);
+            if (task) this.memory.addTask(task.term, task.type, task.truth, task.budget);
+          } catch (e) {
+            this.logger!.warn('Skipping unparseable persisted task', { error: errMsg(e) });
+          }
         }
       }
 

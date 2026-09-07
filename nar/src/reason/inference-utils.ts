@@ -25,9 +25,9 @@ export const createCircularDetector = () => {
   };
 };
 
-export const createDerivedTask = (result: RuleResult): Task => ({
+export const createDerivedTask = (result: RuleResult, taskType: Task['type'] = 'belief'): Task => ({
   term: result.term,
-  type: 'belief',
+  type: taskType,
   truth: result.truth,
   budget: createBudget(result.priority),
   stamp: result.stamp,

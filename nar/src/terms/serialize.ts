@@ -22,7 +22,7 @@ const UNARY_OPS = new Set(
 );
 
 const WRAPPERS: Record<string, [string, string]> = {
-  negation: ['--', ')'],
+  negation: ['--', ''],
   instance: ['{', '}'],
   property: ['[', ']'],
 };

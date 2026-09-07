@@ -34,6 +34,7 @@ export interface RuleResult {
   truth: TruthType;
   stamp: StampType;
   priority: number;
+  taskType?: 'belief' | 'goal' | 'question' | 'command';
 }
 
 /** Meta-reasoning budget state */
@@ -201,7 +202,9 @@ export class RuleProcessor {
             if (this.isMetaRule(rule)) {
               this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
             }
-            yield buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
+            const ruleResult = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
+            (ruleResult as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
+            yield ruleResult;
           } else if (result) {
             this.eventBus?.emit('rule:output-rejected', {
               ruleId: rule.id,
@@ -251,6 +254,7 @@ export class RuleProcessor {
           const rs = result.toString();
           if (rs === p1s || rs === p2s) continue;
           const rr = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
+          (rr as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
           const existing = seen.get(rs);
           if (!existing || rule.priority > existing.priority) {
             seen.set(rs, rr);

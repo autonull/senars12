@@ -64,7 +64,7 @@ function getInheritanceParts(term: Term): { subject: Term; predicate: Term } | n
   return { subject, predicate };
 }
 
-/** Extract variable binding from a premise like (strategy --> focused) */
+/** Extract variable binding from a premise like (drive_competence --> low) */
 function extractVariableBinding(term: Term, expectedPredicate: string): string | null {
   const parts = getInheritanceParts(term);
   if (!parts) return null;
@@ -101,7 +101,7 @@ export function buildMetaRules(): RegisteredRule[] {
     // Strategy selection: (drive:competence --> low) & (situation --> requires_strategy) & (strategy --> $s) ==> (^select_strategy($s))!
     {
       id: 'meta-strategy-selection',
-      pattern: { left: { op: 'implication' }, right: { op: 'implication' } },
+      pattern: { left: { op: 'inheritance' }, right: { op: 'inheritance' } },
       apply: (premises) => {
         const [p1, p2] = premises;
         const driveLow = extractVariableBinding(p1, 'low');
@@ -117,11 +117,12 @@ export function buildMetaRules(): RegisteredRule[] {
       sync: true,
       priority: META_AIKR_BOUNDS.metaRulePriority,
       truthFn: () => META_RULE_TRUTH,
+      taskType: 'goal',
     },
     // Knob tuning: (rlfp:reward --> below_threshold) & (knob --> $k) ==> (^apply_tuning($k, $v))!
     {
       id: 'meta-knob-tuning',
-      pattern: { left: { op: 'implication' }, right: { op: 'implication' } },
+      pattern: { left: { op: 'inheritance' }, right: { op: 'inheritance' } },
       apply: (premises) => {
         const [p1, p2] = premises;
         const rewardLow = extractVariableBinding(p1, 'below_threshold');
@@ -137,11 +138,12 @@ export function buildMetaRules(): RegisteredRule[] {
       sync: true,
       priority: META_AIKR_BOUNDS.metaRulePriority,
       truthFn: () => META_RULE_TRUTH,
+      taskType: 'goal',
     },
     // Test repair: (test_failed --> $t) & (error_pattern --> $e) & (fix_pattern($e) --> $fix) ==> (^apply_fix($fix))!
     {
       id: 'meta-test-repair',
-      pattern: { left: { op: 'implication' }, right: { op: 'implication' } },
+      pattern: { left: { op: 'inheritance' }, right: { op: 'inheritance' } },
       apply: (premises) => {
         const [p1, p2] = premises;
         const testFailed = extractVariableBinding(p1, 'test_failed');
@@ -163,11 +165,12 @@ export function buildMetaRules(): RegisteredRule[] {
       sync: true,
       priority: META_AIKR_BOUNDS.metaRulePriority,
       truthFn: () => META_RULE_TRUTH,
+      taskType: 'goal',
     },
     // Schema promotion: (schema --> $s) & (confidence($s) > 0.9) & (frequency($s) > 10) ==> (^promote_rule($s))!
     {
       id: 'meta-schema-promotion',
-      pattern: { left: { op: 'implication' }, right: { op: 'implication' } },
+      pattern: { left: { op: 'inheritance' }, right: { op: 'inheritance' } },
       apply: (premises) => {
         const [p1, p2] = premises;
         const schemaName = extractVariableBinding(p1, 'schema');
@@ -182,11 +185,12 @@ export function buildMetaRules(): RegisteredRule[] {
       sync: true,
       priority: META_AIKR_BOUNDS.metaRulePriority,
       truthFn: () => META_RULE_TRUTH,
+      taskType: 'goal',
     },
     // Capability scaffolding: (capability --> $c) & (template($c) --> $tmpl) ==> (^scaffold($tmpl, $c))!
     {
       id: 'meta-capability-scaffold',
-      pattern: { left: { op: 'implication' }, right: { op: 'implication' } },
+      pattern: { left: { op: 'inheritance' }, right: { op: 'inheritance' } },
       apply: (premises) => {
         const [p1, p2] = premises;
         const capabilityName = extractVariableBinding(p1, 'capability');
@@ -202,6 +206,7 @@ export function buildMetaRules(): RegisteredRule[] {
       sync: true,
       priority: META_AIKR_BOUNDS.metaRulePriority,
       truthFn: () => META_RULE_TRUTH,
+      taskType: 'goal',
     },
   ];
 

@@ -59,7 +59,7 @@ export class NAREngine extends BaseEngine {
   }
 
   protected async doShutdown(): Promise<void> {
-    if (this.#nar.getState() === 'running') {
+    if (this.#nar.isRunning()) {
       await this.#nar.stop();
     }
   }
