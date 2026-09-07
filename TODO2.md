@@ -2,376 +2,451 @@
 
 ## Strategic Direction
 
-SeNARS12 has already built significant self-modification machinery:
+SeNARS12 has already built substantial self-modification machinery:
 
-- Meta-rules (`nar/src/rules/meta-rules.ts`)
-- Drive-based goal injection (`nar/src/drives/manager.ts`, `nar/src/nar-execution.ts:168-206`)
-- RLFP reward tracking (`nar/src/rlfp/`, `nar/src/nar-execution.ts:149-155`)
-- Shadow worktree execution (external tools)
-- Codemod tools (`nar/src/tools/adapters/external-tools.ts`)
-- Goal-to-tool dispatch (`nar/src/tools/tool-registry.ts:475-514`)
-- Approval-gated self-repair (`nar/src/self/`)
+* Meta-rules (`nar/src/rules/meta-rules.ts`)
+* Drive-based goal injection (`nar/src/drives/manager.ts`, `nar/src/nar-execution.ts:168-206`)
+* RLFP reward tracking (`nar/src/rlfp/`, `nar/src/nar-execution.ts:149-155`)
+* Shadow worktree execution
+* Codemod tools (`nar/src/tools/adapters/external-tools.ts`)
+* Goal-to-tool dispatch (`nar/src/tools/tool-registry.ts:475-514`)
+* Approval-gated self-repair (`nar/src/self/`)
 
-However, before expanding self-modification further, we need to establish that the underlying **cognitive framework** is stable enough to support it.
+The next phase should **not** add more self-modification capability.
 
-The next phase is therefore:
+Before allowing an agent to modify its own code, we need evidence that the underlying cognitive substrate can:
 
-> **M3.5: Cognitive Framework Grounding and RL Parity**
+1. perceive an environment through beliefs,
+2. represent uncertainty explicitly,
+3. select actions through goals,
+4. learn from reward,
+5. adapt when the environment changes,
+6. preserve these properties under memory and reasoning pressure,
+7. expose an auditable derivation trace for consequential actions.
 
-This phase temporarily de-prioritizes:
+Therefore the active milestone is:
 
-- M4 production loop
-- End-to-end sabotage/self-repair demos (`tests/nar/integration/self-improvement-litmus.test.ts`)
-- Further self-tool expansion
-- Self-modification feature growth
+> **M3.5 — Cognitive Grounding and RL Parity**
 
-and instead prioritizes:
+The central question is:
 
-- Belief-grounded perception (via `nar.input()`, `nar.believe()`)
-- Goal-grounded action (via `nar.goal()`, `ToolManager.executeToolGoal()`)
-- Value representation via beliefs (truth values: frequency/confidence)
-- Reward representation via goals / belief satisfaction
-- Parity with conventional RL techniques
-- Cognitive trace validation (`nar.traceAPI`, `nar.explain()`)
-- Memory and uncertainty behavior under pressure
+> **Can SeNARS perform closed-loop learning and control using its native belief/goal/truth/memory machinery, without bypassing the cognitive architecture?**
 
 ---
 
-## Core Principle
+# Core Principle
 
-Self-modification should only occur after the system can demonstrate stable cognitive behavior in controlled environments.
+Self-modification should be downstream of cognitive competence.
 
 Therefore:
 
-> **No further autonomous self-modification work until the cognitive framework passes RL parity and grounding tests.**
+> **No further autonomous self-modification work until the cognitive framework passes the M3.5 gates.**
+
+This is a validation gate, not merely a feature milestone.
+
+A result only counts if:
+
+* the environment is not accessed through hidden shortcuts,
+* actions pass through the goal/action interface,
+* observations enter through beliefs,
+* reward enters through the documented cognitive representation,
+* deterministic controls exist,
+* the result survives multiple seeds,
+* known implementation defects have been audited,
+* and the comparison to conventional RL is fair.
 
 ---
 
-## New Active Milestone
+# Scientific Falsification Policy
 
-### M3.5 — Cognitive Framework Grounding and RL Parity
+M3.5 must avoid both premature pessimism and moving goalposts.
 
-**Objective:**
+## Failure Classification
 
-Demonstrate that SeNARS12 can function as a grounded cognitive agent in canonical reinforcement learning environments using:
+Every negative result receives one of three labels:
 
-- **Beliefs** (`TaskType = 'belief'`) for perception
-- **Goals** (`TaskType = 'goal'`, especially operation goals `Inheritance(Product, Atom('^op'))`) for action
-- **Truth values** (`{frequency, confidence}`) for uncertainty / value estimation
-- **Revision / decay / learning** (`Truth.revision`, `Truth.induction`, bag decay) for adaptation
-- **Derivation traces** (`nar.traceAPI`, `nar.explain()`) for explainability
+### Provisional Failure
+
+The result may be caused by:
+
+* an unverified adapter,
+* incorrect Narsese representation,
+* an implementation defect,
+* inappropriate hyperparameters,
+* insufficient derivation budget,
+* memory pressure,
+* a mismatch between reward scaling and `Truth`,
+* an accidentally disabled learning path.
+
+A provisional failure does **not** establish a cognitive limitation.
+
+### Corrected Failure
+
+The suspected defect has been fixed and the experiment rerun under the same protocol.
+
+If performance remains poor, the result becomes evidence against the hypothesis.
+
+### Hard Falsification
+
+A failure is promoted to hard falsification only when:
+
+* the contract is verified,
+* the implementation is independently sanity-tested,
+* known configuration levers have been exercised,
+* the baseline is healthy,
+* multiple seeds reproduce the result,
+* and the result survives a reasonable defect audit.
+
+This prevents both:
+
+> "It failed once, therefore SeNARS cannot do RL."
+
+and:
+
+> "It failed ten times, therefore we keep inventing new explanations."
 
 ---
 
-## Non-Goals for This Phase
+# Mandatory Defect Audit Before Declaring a Boundary
 
-During M3.5, avoid expanding:
+For every important negative result, check:
 
-- Autonomous code modification
-- Meta-rule generation of codemods
-- Shadow worktree self-repair
-- RLFP policy optimization for code changes
-- Web UI dashboards
-- Production deployment tooling
-- Long-running unattended loops
+* [ ] Observation actually reaches memory.
+* [ ] Correct `TaskType` is used.
+* [ ] Truth values are preserved.
+* [ ] Confidence is not accidentally pinned or discarded.
+* [ ] Repeated evidence actually invokes revision.
+* [ ] Contradictory evidence is represented correctly.
+* [ ] Reward reaches the intended value representation.
+* [ ] Value updates actually change beliefs.
+* [ ] Goal generation reads the updated values.
+* [ ] Goal priority is preserved through dispatch.
+* [ ] Operation AST is structurally correct (`Inheritance(Product, Atom('^op'))`).
+* [ ] Tool dispatch actually executes the intended environment action.
+* [ ] No direct environment access exists.
+* [ ] Derivation limits are not silently truncating the relevant reasoning.
+* [ ] Memory limits are not silently deleting required concepts.
+* [ ] Exploration is actually enabled.
+* [ ] RNG is seeded.
+* [ ] No LM/network/self-modification path contaminates the experiment.
+* [ ] Baseline itself passes its sanity tests.
 
-These remain valid future work, but are blocked until M3.5 is complete.
+A failed audit blocks interpretation of the result.
+
+---
+
+# M3.5 Scope
+
+## In Scope
+
+* Belief-grounded perception
+* Goal-grounded action
+* Reward/value representation
+* Truth revision and decay
+* Confidence-aware exploration
+* Memory behavior
+* RL parity
+* Cognitive trace validation
+* Deterministic benchmark environments
+* Non-stationary environments
+* Controlled memory-pressure experiments
+* Stateful/recurrent environments after basic parity
+
+## Explicitly Out of Scope
+
+During M3.5 do not expand:
+
+* Autonomous code modification
+* Meta-rule generation of codemods
+* Shadow-worktree self-repair
+* RLFP policy optimization for code changes
+* Production deployment
+* Long-running unattended loops
+* Web dashboards
+* Autonomous schema promotion
+* New self-modification tools
+
+These remain downstream of M3.5.
 
 ---
 
 # RL Parity Concept
 
-We want to show that SeNARS12 can support standard RL semantics without breaking the cognitive contract.
+The first goal is not to prove that SeNARS beats conventional RL.
 
-## Conventional RL Mapping (Aligned with Codebase)
+The first goal is to establish:
 
-| Conventional RL Concept | SeNARS12 Cognitive Representation |
-|---|---|
-| Observation / state perception | `Task { type: 'belief', term, truth: {f, c} }` via `nar.believe()` |
-| Reward | Goal satisfaction `Task { type: 'goal', truth }` or reward belief `(reward --> achieved)` |
-| Action selection | Goal generation, especially operation goals `^tool_name(args)` |
-| Policy | Derived goal tendencies from beliefs (priority + truth expectation) |
-| Value function | Beliefs about expected future reward `((*, state, ^action) --> predicts_reward)` |
-| Exploration | Curiosity drive (`nar.driveManager`), low-confidence belief sampling |
-| Exploitation | High-confidence, high-expectation goal derivation |
-| Learning | Truth revision (`Truth.revision`), belief decay, schema induction, RLFP |
-| Memory | Concept network (`Memory`), priority bags (`BagStrategy`), episodic traces (`EpisodicMemory`) |
+> **The cognitive representation does not destroy ordinary RL competence.**
+
+Then:
+
+> **Native SeNARS mechanisms can reproduce useful RL behavior.**
+
+Only after those two claims are established should we test:
+
+> **What does the cognitive architecture provide beyond conventional RL?**
+
+---
+
+# Conventional RL → SeNARS Mapping (Codebase-Aligned)
+
+| Conventional RL    | SeNARS12                               |
+| ------------------ | -------------------------------------- |
+| Observation/state  | `Task { type: 'belief', term, truth }` via `nar.believe()` |
+| Sensor reliability | Truth confidence `c`                   |
+| Reward             | Reward belief and/or goal satisfaction |
+| State-action value | Belief about expected reward           |
+| Action             | Goal, preferably native operation goal |
+| Policy             | Derived goal tendencies / priorities   |
+| Exploration        | Curiosity drive + low-confidence beliefs |
+| Exploitation       | High expectation / priority goals      |
+| Value update       | `Truth.revision` and related inference |
+| Forgetting         | Truth decay / memory dynamics          |
+| Experience         | Episodic memory                        |
+| Generalization     | Schema induction / inference           |
+| Explainability     | Derivation trace / `nar.explain()`     |
+| Memory             | Concept network + priority bags        |
+
+The mapping must be implemented rather than merely documented.
 
 ---
 
 # Belief-Based Perception Contract
 
-All environment perception must enter SeNARS as **belief tasks** (`type: 'belief'`).
+All environment observations must enter SeNARS as **belief tasks** (`type: 'belief'`).
 
-Perception must not directly mutate action state, policy tables, or environment variables.
+Perception must not directly mutate:
 
-## Example Observation (Actual Narsese)
+* policy state,
+* action state,
+* environment state,
+* Q-tables,
+* or tool execution state.
 
-If the agent observes grid cell `(3,4)`:
+## Canonical Example (Actual Narsese)
 
 ```narsese
 (state:s_3_4 --> observed). %1.00;0.95%
 (self --> state:s_3_4). %1.00;0.95%
 ```
 
-If the agent observes a wall to the north:
+Wall observation:
 
 ```narsese
 (feature:wall_north --> present). %1.00;0.90%
 ```
 
-If a sensor is noisy, confidence should be reduced:
+Noisy sensor:
 
 ```narsese
 (feature:wall_north --> present). %1.00;0.45%
 ```
 
-If repeated observations agree, confidence should increase through `Truth.revision`.
+Repeated observations should be combined through the cognitive truth machinery (`Truth.revision`) rather than naïvely overwritten.
+
+## Requirements
+
+* [ ] Observation becomes a belief task via `nar.believe(term, truth)` or `nar.input(term, 'belief', truth)`.
+* [ ] `truth.c` represents sensor reliability.
+* [ ] Repeated consistent observations invoke `Truth.revision`.
+* [ ] Contradictory observations are detectable (via conflict analyzers).
+* [ ] Temporal/source stamps are preserved (`Stamp` with `source: 'input'`, `evidence`).
+* [ ] Beliefs are queryable through memory (`nar.getBeliefs()`, `nar.queryTerm()`, `nar.getConcept()`).
+* [ ] Perception alone cannot execute an action (no `^tool` goals from perception).
+* [ ] Observation ingestion has no hidden policy side effect.
 
 ---
 
-## Perception Requirements (Codebase-Aligned)
+# Goal-Based Action Contract
 
-Create tests proving:
+Actions must leave the cognitive system as **goals** (`type: 'goal'`).
 
-- Observations become belief tasks via `nar.believe(term, truth)` or `nar.input(term, 'belief', truth)`.
-- Belief truth values encode sensor confidence (`truth.c`).
-- Repeated consistent observations increase confidence via `Truth.revision`.
-- Contradictory observations reduce confidence or create contradiction (detected via `nar.checkConstitutionViolation` or conflict analyzers).
-- Perception does not directly trigger actions (no `^tool` goals from perception alone).
-- Perception is queryable through memory / concept network (`nar.getConcept()`, `nar.getBeliefs()`, `nar.queryTerm()`).
-- Temporal stamps / evidence prevent naive overwriting (`Stamp` with `source: 'input'`, `evidence`).
-
----
-
-# Goal-Based Action Control Contract
-
-All actions must leave SeNARS as **goals** (`type: 'goal'`), preferably native operation goals.
-
-Actions must not be executed by direct function calls from perception or baseline code.
-
-## Example Action Goal (Actual AST Format)
+Preferred canonical operation (native AST format, mandatory):
 
 ```narsese
 (^move_north)!
 ```
 
-Or, with arguments (Product term):
+or an argument-bearing native operation:
 
-```narsese
-^move_to((*, state:s_3_4, direction:north))!
-```
-
-Internally, operation goals **must** use the native operation AST (as parsed by `termParser` and executed by `ToolManager.executeToolGoal`):
-
-```
+```text
 Inheritance(
-  Product(state:s_3_4, direction:north),  // subject: arguments
-  Atom('^move_to')                         // predicate: operation name
+  Product(state:s_3_4, direction:north),
+  Atom('^move_to')
 )
 ```
 
-This is the **only** supported format. String hacks are rejected by `ToolManager.executeToolGoal` (see `tool-registry.ts:475-514`).
+This native AST representation is mandatory. String-pattern hacks are rejected by `ToolManager.executeToolGoal` (see `tool-registry.ts:475-514`).
+
+## Requirements
+
+* [ ] Goals are generated from cognitive state.
+* [ ] Goals pass through `nar.goal()`.
+* [ ] Goals reach `ToolManager.executeToolGoal()` (called from `NARExecution.dispatchToolGoals()`).
+* [ ] Invalid operations fail safely (returns `ToolResult { success: false }`).
+* [ ] Goal priority (`task.budget.priority`) affects dispatch/selection.
+* [ ] AIKR limits are respected (`config.maxDerivationsPerStep`, `config.maxDerivationDepth`).
+* [ ] No direct `tool.execute()` bypass exists.
+* [ ] No environment step occurs without goal dispatch.
+* [ ] Observation alone never causes an action.
 
 ---
 
-## Action Requirements (Codebase-Aligned)
+# Reward and Value Representation
 
-Create tests proving:
-
-- High-expected-value beliefs can derive action goals (via reasoning or adapter).
-- Action goals are dispatched through `ToolManager.executeToolGoal()` (called from `NARExecution.dispatchToolGoals()`).
-- Invalid goals are rejected safely (returns `ToolResult { success: false }`).
-- Action execution happens only from goal dispatch (no direct `tool.execute()` from test code).
-- Goal priority (`task.budget.priority`) reflects expected utility.
-- Exploration goals can arise from low-confidence beliefs or curiosity drive (`DriveManager.stimulate('curiosity', ...)`).
-- Action goals respect AIKR budgets (`config.maxDerivationsPerStep`, `config.maxDerivationDepth`).
-- The system does not act merely because an observation occurred.
-
----
-
-# Reward Representation (Codebase-Aligned)
-
-Reward should be represented using beliefs and/or goals, using the existing `Truth` type.
-
-## Reward as Belief
+## Reward Belief
 
 ```narsese
 (reward:high --> achieved). %0.90;0.90%
 ```
 
-## Reward as Goal Satisfaction
+## Goal Satisfaction
 
 ```narsese
 (reward:high)!
 ```
 
-## State-Action Value Belief (Q-value analog)
+## State-Action Value (Q-value analog)
 
-Using the native Product operator for state-action pairs:
+Preferred representation using native operators:
 
 ```narsese
 ((*, state:s_3_4, ^move_north) --> predicts_reward). %0.78;0.62%
 ```
 
 Where:
-- `(*, ...)` = `Product` term (commutative, n-ary)
-- `^move_north` = `Atom` with symbol starting with `^` (operation)
-- `-->` = `Inheritance` (implication)
-- `predicts_reward` = `AtomicTerm` concept
 
-For early adapter tests, a simplified test-local form is acceptable:
+* `Product` (`*`) represents the state/action association (commutative, n-ary).
+* `^move_north` is an `Atom` with symbol starting with `^` (operation).
+* `Inheritance` (`-->`) connects the state-action representation to expected reward.
+* `predicts_reward` = `AtomicTerm` concept.
+* `truth.f` represents estimated reward (frequency).
+* `truth.c` represents evidence/confidence.
 
-```narsese
-(q:s_3_4:move_north --> expected_reward). %0.78;0.62%
+A simplified test-local representation may be used during adapter development, but the long-term implementation should use the native Product/Inheritance form.
+
+---
+
+# Three-Level Validation Strategy
+
+## Level 1 — Interface Parity
+
+Wrap a conventional RL algorithm in the SeNARS interface.
+
+### Direct
+
+```text
+observation → Q-learning → action
 ```
 
-The simplified form is fine for adapter tests, but the long-term target should use the cognitive Product/Inheritance form.
+### Cognitive Interface
+
+```text
+observation
+  ↓
+BeliefPerceptionAdapter → nar.believe()
+  ↓
+SeNARS belief
+  ↓
+Q-learning (reads only from beliefs)
+  ↓
+GoalActionAdapter → nar.goal()
+  ↓
+SeNARS goal (native AST)
+  ↓
+ToolManager.executeToolGoal()
+  ↓
+environment
+```
+
+The adapter must not materially alter behavior.
+
+### Targets
+
+| Metric                     | Target |
+| -------------------------- | -----: |
+| Return difference          |   ≤ 2% |
+| Action agreement           |  ≥ 98% |
+| Converged policy agreement |  ≥ 95% |
+| Value correlation          | ≥ 0.98 |
+
+Failure here is primarily an **interface/architecture bug**, not evidence against native cognition.
 
 ---
 
-# RL Parity Test Layers
+## Level 2 — Cognitive Parity
 
-We need three layers of tests.
+Replace conventional Q-table updates and selection logic with SeNARS-native mechanisms.
 
----
+Use:
 
-## Layer 1: Interface Parity
+* `Truth.revision` for value updates
+* `Truth.confidence` for uncertainty
+* `Truth.expectation()` for value
+* Goal priority (`task.budget.priority`) for action preference
+* Curiosity drive (`DriveManager`) for exploration
+* Episodic memory (`EpisodicMemory`) for trajectory context
+* Schema induction (`learning/schema-induction.ts`) where appropriate
 
-Show that wrapping conventional RL algorithms in the SeNARS belief/goal interface does not destroy their behavior.
+### Targets
 
-### Purpose
+| Metric            |                        Target |
+| ----------------- | ----------------------------: |
+| Return            |             ≥ 85% of baseline |
+| Policy agreement  |                         ≥ 85% |
+| Value correlation |                        ≥ 0.85 |
+| Convergence time  |                 ≤ 2× baseline |
+| Bandit regret     | ≤ 1.5× baseline after burn-in |
 
-Prove that:
-
-- Beliefs can carry perception losslessly enough for RL.
-- Goals can carry action intent losslessly enough for control.
-- The adapter layer is stable.
-
-### Design
-
-Use a conventional baseline such as Q-learning.
-
-Run it in two modes:
-
-1. **Direct Mode**
-   - Q-learning receives observations directly.
-   - Q-learning chooses actions directly.
-
-2. **Belief/Goal Mode**
-   - Observations pass through `BeliefPerceptionAdapter` → `nar.believe()`.
-   - Q-learning reads state only from beliefs (`nar.getBeliefs()`, `nar.queryTerm()`).
-   - Chosen actions are emitted as goals via `GoalActionAdapter` → `nar.goal(operationGoal)`.
-   - Goals pass through `ToolManager.executeToolGoal()`.
-   - Environment steps only when goals are dispatched.
-
-### Success Criterion
-
-Direct Mode and Belief/Goal Mode should produce near-identical performance.
-
-Suggested thresholds:
-
-| Metric | Target |
-|---|---|
-| Cumulative return difference | <= 2% |
-| Action agreement | >= 98% |
-| Policy agreement after convergence | >= 95% |
-| Value estimate correlation | >= 0.98 |
-
-This layer proves the interface is not pathological.
+The thresholds are practical validation thresholds, not claims of theoretical equivalence.
 
 ---
 
-## Layer 2: Cognitive Parity
+## Level 3 — Cognitive Advantage
 
-Show that SeNARS-native reasoning can approximate conventional RL behavior.
-
-### Purpose
-
-Prove that:
-
-- Belief revision (`Truth.revision`) can support learning from reward.
-- Goal generation can support action selection.
-- Confidence (`truth.c`) can support exploration/exploitation.
-- NAR mechanisms can produce stable policy improvement.
-
-### Design
-
-Replace the conventional Q-learning update with SeNARS-native mechanisms where possible:
-
-- Truth revision for value updates.
-- Priority (`task.budget.priority`) for action preference.
-- Confidence for uncertainty.
-- Curiosity drive (`DriveManager`) for exploration.
-- Goal derivation for action selection.
-- Episodic memory (`EpisodicMemory`) for trajectory context.
-
-### Success Criterion
-
-SeNARS-native behavior should be comparable to a conventional RL baseline, though not necessarily identical.
-
-Suggested thresholds:
-
-| Metric | Target |
-|---|---|
-| Cumulative return | >= 85% of baseline |
-| Final policy agreement | >= 85% |
-| Value-belief correlation with Q-values | >= 0.85 |
-| Convergence steps | <= 2x baseline |
-| Regret in bandit tasks | <= 1.5x baseline after burn-in |
-
----
-
-## Layer 3: Cognitive Advantage Tests
-
-Once parity is established, show where SeNARS can do something conventional tabular RL does not naturally do.
+After parity, test properties that conventional tabular RL does not naturally provide.
 
 Examples:
 
-- Explicit belief confidence under noisy sensors.
-- Contradiction detection between observations (via conflict analyzers).
-- Natural-language explanation of action choice (`nar.explain()`, `nar.askNaturalLanguage()`).
-- Memory pressure degradation curves (`Memory.getStatistics().memoryPressure`).
-- Belief revision after environment changes (`Truth.revision`, `Truth.deductionWeak`).
-- Schema induction from repeated successful action sequences (`learning/schema-induction.ts`).
+* Explicit confidence under noisy perception
+* Contradiction detection (via conflict analyzers)
+* Belief revision after environment changes
+* Memory-pressure behavior (`Memory.getStatistics().memoryPressure`)
+* Explainable action derivation (`nar.explain()`, `nar.traceTerm()`)
+* Schema induction from repeated successful sequences
+* Adaptation after environment changes
+* Graceful degradation rather than abrupt policy failure
 
-These are not required for the first RL parity milestone, but they are the long-term reason for using SeNARS instead of a plain RL algorithm.
+These experiments determine whether the cognitive architecture provides meaningful advantages rather than merely reproducing an RL algorithm through a different API.
 
 ---
 
-# Required RL Environments
+# Required Environments
 
-Start small, deterministic, and interpretable.
-
-## 1. Multi-Armed Bandit
-
-Purpose:
-
-- Test exploration/exploitation.
-- Test reward belief updates.
-- Test confidence-based action selection.
+## E1 — Multi-Armed Bandit
 
 Variants:
 
-- Stationary bandit.
-- Noisy bandit.
-- Drifting bandit.
+* Stationary Bernoulli
+* Noisy observations
+* Drifting rewards
 
-Baseline algorithms:
+Tests:
 
-- Epsilon-greedy.
-- UCB1.
+* Exploration
+* Exploitation
+* Confidence
+* Reward revision
+* Adaptation
+
+Baselines:
+
+* Epsilon-greedy
+* UCB1
 
 ---
 
-## 2. Deterministic GridWorld
-
-Purpose:
-
-- Test state perception.
-- Test action goals.
-- Test sequential decision making.
-- Test convergence to optimal policy.
+## E2 — Deterministic GridWorld
 
 Example:
 
@@ -382,94 +457,132 @@ S . . .
 . . . G
 ```
 
-Baseline algorithms:
+Tests:
 
-- Q-learning.
-- SARSA.
-- Value iteration as oracle.
+* Perception
+* Action goals
+* Sequential decision making
+* Value learning
+* Goal derivation
 
----
+Baselines:
 
-## 3. Stochastic GridWorld
-
-Purpose:
-
-- Test uncertainty.
-- Test confidence.
-- Test robustness to stochastic transitions/rewards.
-
-Baseline algorithms:
-
-- SARSA.
-- Expected SARSA.
-- Q-learning.
+* Q-learning
+* SARSA
+* Value iteration oracle
 
 ---
 
-## 4. Non-Stationary Reward Environment
+## E3 — Stochastic GridWorld
 
-Purpose:
+Tests:
 
-- Test forgetting.
-- Test belief revision.
-- Test truth decay.
-- Test adaptation after reward changes.
+* Noisy transitions
+* Uncertain outcomes
+* Confidence calibration
+* On-policy learning
 
-Baseline:
+Baselines:
 
-- Discounted Q-learning.
-- Sliding-window Q-learning.
+* SARSA
+* Expected SARSA
+* Q-learning
 
 ---
 
-# Baseline Algorithms to Implement
+## E4 — Non-Stationary Environment
 
-Place these in test utilities, not in the core cognitive engine.
+Change reward dynamics during training.
 
-Suggested files:
+Tests:
+
+* Forgetting
+* Revision
+* Decay
+* Adaptation
+* Recovery from stale beliefs
+
+Compare against:
+
+* Discounted Q-learning
+* Sliding-window Q-learning
+
+---
+
+## E5 — Memory-Pressure Environment (Secondary)
+
+Run the same tasks under controlled memory limits (`maxConcepts`).
+
+Measure:
+
+* Return degradation
+* Belief loss
+* Confidence degradation
+* Concept eviction
+* Recovery after pressure is removed
+
+This is a **secondary test**, not a prerequisite for basic parity.
+
+---
+
+## E6 — Stateful/Recurrent Environment
+
+Only after E1–E4 are working.
+
+Candidate tasks:
+
+* Delayed reward
+* Partial observability
+* Memory-dependent decisions
+* Sequence recall
+
+The purpose is to determine whether the cognitive memory architecture provides useful temporal state without introducing uncontrolled complexity.
+
+---
+
+# Baseline Algorithms
+
+Place baseline implementations under:
 
 ```text
-tests/nar/rl/baselines/epsilonGreedy.ts
-tests/nar/rl/baselines/qLearning.ts
-tests/nar/rl/baselines/sarsa.ts
-tests/nar/rl/baselines/ucb.ts
+tests/nar/rl/baselines/
 ```
 
-Required baseline features:
-
-- Seeded RNG (deterministic).
-- Configurable learning rate (`alpha`).
-- Configurable discount factor (`gamma`).
-- Configurable exploration (`epsilon`, `c` for UCB).
-- Serializable Q-table for comparison.
-- Compatible with `BeliefPerceptionAdapter` / `GoalActionAdapter` interfaces.
-
----
-
-# Required SeNARS RL Adapters
-
-Suggested files:
+Required:
 
 ```text
-tests/nar/rl/adapters/BeliefPerceptionAdapter.ts
-tests/nar/rl/adapters/GoalActionAdapter.ts
-tests/nar/rl/adapters/QBeliefStore.ts
-tests/nar/rl/adapters/RewardBeliefAdapter.ts
-tests/nar/rl/adapters/RLParityHarness.ts
+epsilonGreedy.ts
+qLearning.ts
+sarsa.ts
+ucb.ts
 ```
 
+Each baseline must provide:
+
+* Seeded RNG
+* Configurable `alpha`
+* Configurable `gamma`
+* Configurable exploration
+* Serializable state
+* Deterministic test mode
+* Metrics output
+
+Baselines must first solve their environments independently of SeNARS.
+
 ---
+
+# Required Adapters
+
+```text
+tests/nar/rl/adapters/
+  BeliefPerceptionAdapter.ts
+  GoalActionAdapter.ts
+  QBeliefStore.ts
+  RewardBeliefAdapter.ts
+  RLParityHarness.ts
+```
 
 ## BeliefPerceptionAdapter
-
-Responsibilities:
-
-- Convert environment observations into Narsese belief tasks.
-- Encode sensor reliability as confidence (`truth.c`).
-- Encode temporal information if needed (`Stamp`).
-- Avoid direct state mutation.
-
-Suggested interface:
 
 ```typescript
 interface RLObservation {
@@ -485,42 +598,36 @@ interface BeliefPerceptionAdapter {
 }
 ```
 
-Implementation notes:
-- Use `nar.believe(term, truth)` or `nar.input(term, 'belief', truth)`.
-- Map `stateId` → `(self --> state:xxx)` belief.
-- Map features → `(feature:xxx --> present)` beliefs.
-- Confidence = sensor reliability (configurable per feature).
+Responsibilities:
+
+* Convert observations to beliefs via `nar.believe()`.
+* Preserve sensor confidence in `truth.c`.
+* Preserve temporal information in `Stamp`.
+* Never execute actions.
 
 ---
 
 ## GoalActionAdapter
 
-Responsibilities:
-
-- Convert selected action intentions into operation goals (AST format).
-- Dispatch goals through `nar.goal()` → `ToolManager.executeToolGoal()`.
-- Return execution result only after goal dispatch.
-- Prevent direct environment access.
-
-Suggested interface:
-
 ```typescript
 interface RLAction {
-  name: string;           // e.g., "move_north"
-  args?: Record<string, unknown>; // e.g., { direction: "north" }
+  name: string;
+  args?: Record<string, unknown>;
 }
 
 interface GoalActionAdapter {
-  proposeAction(action: RLAction): Task; // goal task with operation AST
-  dispatchPendingGoals(nar: NAR): Promise<ToolResult[]>; // uses nar.tools.executeToolGoal
+  proposeAction(action: RLAction): Task; // goal task with native AST
+  dispatchPendingGoals(nar: NAR): Promise<ToolResult[]>;
 }
 ```
 
-Implementation notes:
-- Build `Inheritance(Product(args...), Atom('^' + name))` AST.
-- Call `nar.goal(goalTerm)` to inject.
-- Call `nar.getExecution().dispatchToolGoals()` or await next `nar.run()` cycle.
-- Environment step happens in tool execution (tool must be registered).
+Responsibilities:
+
+* Build native operation ASTs: `Inheritance(Product(args...), Atom('^' + name))`.
+* Inject goals via `nar.goal(goalTerm)`.
+* Dispatch through the real execution path (`nar.getExecution().dispatchToolGoals()` or next `nar.run()` cycle).
+* Return actual tool results.
+* Never mutate the environment directly.
 
 ---
 
@@ -528,22 +635,19 @@ Implementation notes:
 
 Responsibilities:
 
-- Store Q-value-like beliefs in SeNARS memory.
-- Read value beliefs for a given state.
-- Update beliefs from reward (using `Truth.revision`).
-- Expose confidence for exploration (low confidence → explore).
-- Optionally map to/from conventional Q-table for comparison.
+* Store value beliefs in SeNARS memory (`nar.memory`).
+* Read state/action values.
+* Update values using truth mechanisms (`Truth.revision`).
+* Expose confidence for exploration (low confidence → explore).
+* Support comparison against conventional Q-values.
 
-Possible representation:
+Required API:
 
-```narsese
-((*, state:s_3_4, ^move_north) --> predicts_reward). %0.78;0.62%
+```text
+getValue(state, action) → { f, c }
+updateValue(state, action, reward) → revises belief
+getAllActions(state) → beliefs for all actions
 ```
-
-Operations:
-- `getValue(state, action)` → `truth.f` (frequency = expected reward), `truth.c` (confidence).
-- `updateValue(state, action, reward)` → revise existing belief with new evidence.
-- `getAllActions(state)` → return beliefs for all actions from that state.
 
 ---
 
@@ -551,245 +655,368 @@ Operations:
 
 Responsibilities:
 
-- Normalize environment reward into `[0, 1]` (frequency).
-- Convert reward into belief and/or goal satisfaction.
-- Update value beliefs after action outcomes (via `QBeliefStore`).
-- Record reward history for parity metrics.
+* Normalize rewards where necessary (document the normalization).
+* Preserve reward sign/meaning.
+* Update state-action value beliefs via `QBeliefStore`.
+* Record reward history.
+* Generate terminal satisfaction signals.
+
+Reward normalization must be documented rather than silently changing semantics.
 
 ---
 
-# Required Contract Tests
-
-Suggested files:
+# Contract Tests
 
 ```text
-tests/nar/rl/contract/belief-perception.test.ts
-tests/nar/rl/contract/goal-action.test.ts
-tests/nar/rl/contract/reward-belief.test.ts
-tests/nar/rl/contract/no-bypass.test.ts
+tests/nar/rl/contract/
+  belief-perception.test.ts
+  goal-action.test.ts
+  reward-belief.test.ts
+  no-bypass.test.ts
+```
+
+## Belief Tests
+
+* [ ] Correct term
+* [ ] Correct truth
+* [ ] Correct confidence
+* [ ] Revision
+* [ ] Contradiction detection
+* [ ] Temporal/source metadata
+* [ ] No action side effect
+
+## Goal Tests
+
+* [ ] Correct native AST (`Inheritance(Product, Atom('^op'))`)
+* [ ] Correct dispatch through `executeToolGoal`
+* [ ] Correct priority (`budget.priority`)
+* [ ] Correct AIKR behavior
+* [ ] Invalid goal fails safely
+* [ ] Exactly one environment action per dispatched goal
+* [ ] No action without a goal
+
+## Reward Tests
+
+* [ ] Positive reward represented correctly
+* [ ] Negative reward represented correctly
+* [ ] Reward updates relevant value belief
+* [ ] Confidence reflects evidence
+* [ ] Terminal reward creates appropriate satisfaction signal
+
+---
+
+# No-Bypass Tests
+
+These are mandatory.
+
+The tests must instrument the environment so that unauthorized direct access fails.
+
+Verify:
+
+* [ ] Baseline receives observations only through the declared interface (`nar.getBeliefs()`, `nar.queryTerm()`).
+* [ ] State cannot be read directly by the policy.
+* [ ] Actions cannot directly mutate the environment.
+* [ ] Environment stepping occurs only through operation execution.
+* [ ] No hidden Q-table exists inside the adapter.
+* [ ] No hidden action-selection state bypasses SeNARS.
+* [ ] No LM call supplies the answer (`enableLMRules: false`).
+* [ ] No self-modification mechanism participates (`enableSelf: false`).
+
+A parity result obtained through a bypass is invalid.
+
+---
+
+# Required Parity Experiments
+
+## Bandit — Epsilon-Greedy
+
+Compare:
+
+1. Direct baseline
+2. Adapter-wrapped baseline
+3. SeNARS-native learner
+
+Metrics:
+
+* Cumulative reward
+* Regret
+* Optimal-arm selection
+* Exploration rate
+* Confidence trajectory
+
+Targets:
+
+* Direct vs adapter: near-identical
+* Native vs baseline: ≥ 85% final performance
+* Optimal-arm selection: within 10% of baseline
+
+---
+
+## Bandit — UCB
+
+Test whether confidence can provide a useful exploration signal.
+
+Measure:
+
+* Regret
+* Low-confidence arm sampling
+* Convergence
+* Confidence calibration
+
+Target:
+
+> Native exploration is systematically uncertainty-sensitive rather than effectively random.
+
+---
+
+## GridWorld — Q-Learning
+
+Compare:
+
+* Direct Q-learning
+* Belief/goal Q-learning
+* Native SeNARS value beliefs
+
+Targets:
+
+| Metric            |        Target |
+| ----------------- | ------------: |
+| Policy agreement  |         ≥ 90% |
+| Return ratio      |        ≥ 0.90 |
+| Value correlation |        ≥ 0.90 |
+| Convergence       | ≤ 2× baseline |
+
+---
+
+## Stochastic SARSA
+
+Measure:
+
+* Average return
+* Policy stability
+* Confidence calibration
+* Recovery after surprising transitions
+
+Target:
+
+* Return within 10% of baseline.
+* No catastrophic oscillation.
+* Confidence responds to unexpected evidence.
+
+---
+
+## Non-Stationary Revision
+
+Change the reward mapping halfway through training.
+
+Measure:
+
+* Adaptation delay
+* Post-change return
+* Old-belief decay
+* New-belief acquisition
+
+Target:
+
+* Adaptation within 1.5× baseline.
+* Old high-value beliefs decrease.
+* New values become dominant.
+* No permanent commitment to obsolete evidence.
+
+---
+
+# Trace Validation
+
+Every consequential action must be explainable via the actual causal path, not a post-hoc explanation.
+
+Record:
+
+* Observation belief
+* Relevant value beliefs
+* Goal
+* Goal priority
+* Derivation identifiers
+* Tool execution
+* Reward
+* Subsequent belief revision
+
+Example expected explanation:
+
+```text
+Observed:
+  (self --> state:s_3_4) %1.00;0.95%
+
+Relevant values:
+  ((*, state:s_3_4, ^move_north) --> predicts_reward)
+    %0.81;0.74%
+
+  ((*, state:s_3_4, ^move_south) --> predicts_reward)
+    %0.32;0.55%
+
+Selected:
+  (^move_north)!
+
+Reason:
+  Highest expected value among available actions.
+
+Execution:
+  ToolManager.executeToolGoal(...)
+
+Outcome:
+  reward = +1
+
+Update:
+  value belief revised with new evidence.
+```
+
+The trace must reflect the actual causal path using:
+* `nar.getDerivationHistory(task)`
+* `nar.traceTerm(term)`
+* `nar.explain(conclusion)`
+
+---
+
+# Observability
+
+For every episode record:
+
+* Seed
+* Environment configuration
+* Observation beliefs
+* Truth values
+* Confidence
+* Value beliefs
+* Selected goals
+* Goal priorities
+* Derivation traces
+* Tool results
+* Rewards
+* Episode return
+* Baseline values
+* Memory statistics (`Memory.getStatistics()`)
+* Derivation counts
+* Execution time
+
+---
+
+# Determinism
+
+RL parity must be reproducible.
+
+Requirements:
+
+* [ ] Environment RNG is seeded.
+* [ ] Baseline RNG is seeded.
+* [ ] Exploration RNG is seeded.
+* [ ] LM rules disabled (`enableLMRules: false`).
+* [ ] Network disabled.
+* [ ] Self-modification disabled (`enableSelf: false`).
+* [ ] RLFP disabled initially (`enableRLFP: false`).
+* [ ] Persistence disabled (`persistState: false`).
+* [ ] Test configuration is version-controlled.
+* [ ] Environment configuration is logged.
+* [ ] Seed is included in every report.
+
+Suggested configuration (matches `NARConfig`):
+
+```typescript
+{
+  enableLMRules: false,
+  enableTools: true, // only RL action tools
+  enableSelf: false,
+  enableRLFP: false,
+  persistState: false,
+  maxConcepts: 10000,
+  maxDerivationsPerStep: 1000,
+  maxDerivationDepth: 20
+}
 ```
 
 ---
 
-## Belief Perception Contract Tests
+# Statistical Requirements
 
-Test cases:
+A single successful run is not sufficient.
 
-- Observation creates belief task with correct term and truth.
-- Noisy observation creates lower confidence (`truth.c`).
-- Repeated observation increases confidence via revision.
-- Contradictory observations reduce confidence or flag contradiction.
-- Terminal observation creates terminal belief.
-- Perception does not create action goals (`type !== 'goal'`).
-- Perception does not directly call environment step.
+Default:
 
----
+* Development: 3 seeds
+* Standard validation: 10 seeds
+* Important claims: 20+ seeds where practical
 
-## Goal Action Contract Tests
+Reports should include:
 
-Test cases:
+* Mean
+* Standard deviation
+* Median
+* Confidence interval where practical
+* Per-seed results
+* Failure count
+* Convergence distribution
 
-- Goal causes exactly one action execution via `executeToolGoal`.
-- Goal with invalid operation fails safely (returns error result).
-- Goal priority (`budget.priority`) influences action selection order.
-- Multiple goals respect budget and priority (AIKR).
-- Goal dispatch uses native operation AST (`Inheritance(Product, Atom('^op'))`).
-- Action execution returns observation/reward back into perception.
-- No action occurs without goal.
+Do not report only the best seed.
+
+For stochastic environments, compare distributions rather than individual trajectories.
 
 ---
 
-## Reward Belief Contract Tests
+# Resource and Budget Controls
 
-Test cases:
+Every comparison must specify:
 
-- Positive reward creates reward belief with high frequency.
-- Negative reward creates negative/low reward belief.
-- Reward updates relevant state-action belief via revision.
-- Reward confidence reflects outcome reliability.
-- Terminal reward creates goal satisfaction signal.
+* Environment steps
+* Episodes
+* Derivation budget (`maxDerivationsPerStep`)
+* Derivation depth (`maxDerivationDepth`)
+* Memory capacity (`maxConcepts`)
+* Wall-clock time
+* CPU/memory limits where relevant
 
----
+Do not declare a cognitive advantage merely because one system received substantially more computation.
 
-## No-Bypass Tests
+Likewise, do not declare cognitive failure because an artificially restrictive derivation budget prevented required reasoning.
 
-Very important.
+Run:
 
-These tests ensure the RL baseline is not secretly cheating by accessing environment state directly.
+1. **Normal budget**
+2. **Stress budget**
+3. **Scaling experiment**
 
-Test cases:
-
-- Baseline receives observations only through belief queries (`nar.getBeliefs()`, `nar.queryTerm()`).
-- Baseline emits actions only through goals (`nar.goal()`).
-- Environment step is only invoked by goal dispatch (tool execution).
-- Direct state access is instrumented and fails the test.
-
----
-
-# Required Parity Tests
-
-Suggested files:
-
-```text
-tests/nar/rl/parity/bandit-epsilon-greedy.test.ts
-tests/nar/rl/parity/bandit-ucb.test.ts
-tests/nar/rl/parity/gridworld-qlearning.test.ts
-tests/nar/rl/parity/stochastic-sarsa.test.ts
-tests/nar/rl/parity/nonstationary-revision.test.ts
-```
-
----
-
-## Bandit Epsilon-Greedy Parity
-
-Environment:
-
-- 5 or 10 arms.
-- Stationary Bernoulli rewards.
-- Fixed episode length.
-
-Compare:
-
-- Direct epsilon-greedy.
-- Belief/goal epsilon-greedy (adapter-wrapped).
-- SeNARS-native belief-driven selection.
-
-Metrics:
-
-- Cumulative reward.
-- Regret.
-- Optimal arm selection rate.
-- Exploration rate.
-
-Pass criteria:
-
-| Comparison | Target |
-|---|---|
-| Direct vs adapter | near equality |
-| SeNARS-native vs baseline | >= 85% final performance |
-| Optimal arm selection | within 10% of baseline |
-
----
-
-## Bandit UCB Parity
-
-Purpose:
-
-Test whether belief confidence can behave similarly to UCB uncertainty bonuses.
-
-Metrics:
-
-- Regret curve.
-- Exploration of uncertain arms.
-- Convergence to optimal arm.
-
-Pass criteria:
-
-- SeNARS-native exploration should not be random.
-- Low-confidence beliefs should be explored more often.
-- Regret should be within 1.5x UCB after burn-in.
-
----
-
-## GridWorld Q-Learning Parity
-
-Environment:
-
-- Deterministic 4x4 or 6x6 grid.
-- One terminal goal.
-- Step penalty optional.
-
-Compare:
-
-- Direct Q-learning.
-- Belief/goal Q-learning adapter.
-- SeNARS-native value-belief learner.
-
-Metrics:
-
-- Episode return.
-- Steps to goal.
-- Policy agreement.
-- Q-value / belief-value correlation.
-
-Pass criteria:
-
-| Metric | Target |
-|---|---|
-| Policy agreement | >= 90% |
-| Return ratio | >= 0.9 |
-| Q-belief correlation | >= 0.9 |
-| Convergence steps | <= 2x baseline |
-
----
-
-## Stochastic SARSA Parity
-
-Purpose:
-
-Test on-policy behavior under stochastic outcomes.
-
-Metrics:
-
-- Average return.
-- Policy stability.
-- Confidence calibration.
-
-Pass criteria:
-
-- Return within 10% of baseline.
-- No catastrophic oscillation.
-- Confidence decreases after surprising outcomes.
-
----
-
-## Non-Stationary Revision Parity
-
-Purpose:
-
-Test belief revision and forgetting.
-
-Environment:
-
-- Reward mapping changes halfway through training.
-
-Compare:
-
-- Discounted Q-learning.
-- SeNARS belief revision / decay.
-
-Metrics:
-
-- Adaptation delay.
-- Post-change return.
-- Pre-change unlearning.
-
-Pass criteria:
-
-- SeNARS adapts within 1.5x baseline adaptation delay.
-- Old high-value beliefs decrease in frequency/confidence.
-- New reward structure is learned.
+This separates algorithmic failure from resource failure.
 
 ---
 
 # RL Parity Harness
 
-Create a runner script:
+Create:
 
 ```text
 scripts/rl-parity.ts
 ```
 
-Example usage:
+Example:
 
 ```bash
-pnpm exec tsx scripts/rl-parity.ts --env bandit --baseline epsilon-greedy --seeds 10
-pnpm exec tsx scripts/rl-parity.ts --env gridworld --baseline qlearning --seeds 10
-pnpm exec tsx scripts/rl-parity.ts --env stochastic-gridworld --baseline sarsa --seeds 10
-pnpm exec tsx scripts/rl-parity.ts --env nonstationary --baseline qlearning --seeds 10
+pnpm exec tsx scripts/rl-parity.ts \
+  --env bandit \
+  --baseline epsilon-greedy \
+  --seeds 10
+
+pnpm exec tsx scripts/rl-parity.ts \
+  --env gridworld \
+  --baseline qlearning \
+  --seeds 10
 ```
 
-The harness should output:
+Outputs:
+
+```text
+.reports/rl-parity/summary.json
+.reports/rl-parity/gridworld-qlearning.csv
+.reports/rl-parity/bandit-ucb.csv
+```
+
+Example summary:
 
 ```json
 {
@@ -807,107 +1034,44 @@ The harness should output:
 }
 ```
 
-Optional output files:
-
-```text
-.reports/rl-parity/summary.json
-.reports/rl-parity/gridworld-qlearning.csv
-.reports/rl-parity/bandit-ucb.csv
-```
-
 ---
 
-# Determinism Requirements
+# Documentation
 
-RL parity tests must be reproducible.
-
-Requirements:
-
-- All environments accept a seed.
-- Baselines accept a seed.
-- Exploration uses seeded RNG.
-- LM providers are disabled or mocked in RL parity tests (`enableLMRules: false`).
-- No network calls.
-- No self-modification tools enabled (`enableSelf: false`).
-- No codemod tools enabled.
-- No shadow worktree usage.
-- No approval prompts.
-
-Suggested test config (matching `NARConfig`):
-
-```typescript
-{
-  enableLMRules: false,
-  enableTools: true, // only RL action tools (move, observe, etc.)
-  enableSelf: false,
-  enableRLFP: false, // initially; later optional
-  persistState: false,
-  maxConcepts: 10000, // large limit for tests
-  maxDerivationsPerStep: 1000,
-  maxDerivationDepth: 20
-}
-```
-
-RLFP may be introduced later, but the first parity tests should avoid it to reduce nondeterminism.
-
----
-
-# Observability Requirements
-
-For each RL episode, record:
-
-- Observation beliefs (from `nar.getBeliefs()`).
-- Selected action goals (from `nar.getGoals()`).
-- Goal priorities (`task.budget.priority`).
-- Truth values of value beliefs (`truth.f`, `truth.c`).
-- Confidence values.
-- Reward beliefs.
-- Derivation trace identifiers (`nar.getDerivationHistory()`, `nar.traceTerm()`).
-- Action execution result (`ToolResult`).
-- Environment return.
-- Baseline Q-values, if applicable.
-
-This allows post-test explanation such as:
-
-```text
-The agent chose ^move_north because belief
-((*, state:s_3_4, ^move_north) --> predicts_reward)
-had truth %0.81;0.74%, higher than alternatives.
-```
-
----
-
-# Documentation Deliverables
-
-Create or update:
+Create:
 
 ```text
 docs/tech/cognitive-grounding.md
 docs/tech/rl-parity.md
 ```
 
-## `cognitive-grounding.md`
+## cognitive-grounding.md
 
-Should describe:
+Document:
 
-- Why cognitive grounding precedes self-modification.
-- Belief/perception contract (using `nar.believe()`, `Task.type = 'belief'`).
-- Goal/action contract (using `nar.goal()`, `Inheritance(Product, Atom('^op'))`).
-- Reward representation (using `Truth` frequency/confidence).
-- Memory pressure behavior (`Memory.getStatistics().memoryPressure`).
-- Trace explainability expectations (`nar.explain()`, `nar.traceTerm()`).
+* Belief/perception contract (using `nar.believe()`, `Task`, `Truth`)
+* Goal/action contract (using `nar.goal()`, `Inheritance(Product, Atom('^op'))`)
+* Reward representation (using `Truth.f`/`Truth.c`)
+* Truth semantics (`Truth.revision`, `Truth.expectation`, etc.)
+* Confidence semantics
+* Memory behavior (`Memory.getStatistics().memoryPressure`)
+* Trace requirements (`nar.explain()`, `nar.traceTerm()`)
+* No-bypass architecture
 
-## `rl-parity.md`
+## rl-parity.md
 
-Should describe:
+Document:
 
-- RL mapping (table above).
-- Environments.
-- Baselines.
-- Metrics.
-- Pass criteria.
-- How to run tests.
-- How to interpret reports.
+* RL mapping
+* Environments
+* Baselines
+* Adapter architecture
+* Metrics
+* Thresholds
+* Seeds
+* Reports
+* Reproduction commands
+* Failure classification
 
 ---
 
@@ -916,8 +1080,9 @@ Should describe:
 ```text
 TODO2.md
 
-docs/tech/cognitive-grounding.md
-docs/tech/rl-parity.md
+docs/tech/
+  cognitive-grounding.md
+  rl-parity.md
 
 tests/nar/rl/
   contract/
@@ -925,28 +1090,34 @@ tests/nar/rl/
     goal-action.test.ts
     reward-belief.test.ts
     no-bypass.test.ts
+
   environments/
     BanditEnv.ts
     GridWorldEnv.ts
     StochasticGridWorldEnv.ts
     NonStationaryBanditEnv.ts
+    MemoryPressureEnv.ts
+
   baselines/
     epsilonGreedy.ts
     qLearning.ts
     sarsa.ts
     ucb.ts
+
   adapters/
     BeliefPerceptionAdapter.ts
     GoalActionAdapter.ts
     QBeliefStore.ts
     RewardBeliefAdapter.ts
     RLParityHarness.ts
+
   parity/
     bandit-epsilon-greedy.test.ts
     bandit-ucb.test.ts
     gridworld-qlearning.test.ts
     stochastic-sarsa.test.ts
     nonstationary-revision.test.ts
+    memory-pressure.test.ts
 
 scripts/
   rl-parity.ts
@@ -956,293 +1127,391 @@ scripts/
 
 # Task Breakdown
 
-## Phase A: Freeze and Reorient
+## Phase A — Freeze and Reorient
 
-- [x] Create `TODO2.md`.
-- [ ] Mark M4 as blocked by M3.5 in project tracking.
-- [ ] Mark sabotage/self-repair demo as deferred.
-- [ ] Add policy: no new self-modification features until M3.5 passes.
-- [ ] Add policy: RL parity tests run with `enableSelf: false`, `enableLMRules: false`, `enableRLFP: false`.
+* [x] Create `TODO2.md`.
+* [ ] Mark M4 blocked by M3.5 in project tracking.
+* [ ] Defer sabotage/self-repair litmus (`tests/nar/integration/self-improvement-litmus.test.ts`).
+* [ ] Freeze new self-modification features.
+* [ ] Disable self-modification in RL tests (`enableSelf: false`).
+* [ ] Disable LM rules in RL tests (`enableLMRules: false`).
+* [ ] Disable RLFP initially (`enableRLFP: false`).
+* [ ] Establish reproducible test configuration.
 
----
-
-## Phase B: Define Cognitive Contracts
-
-- [ ] Document belief/perception contract (using actual `nar.believe()`, `Task`, `Truth`).
-- [ ] Document goal/action contract (using actual `nar.goal()`, `Inheritance(Product, Atom('^op'))`).
-- [ ] Document reward representation (using `Truth.f`/`Truth.c`).
-- [ ] Document value-belief representation (Product/Inheritance form).
-- [ ] Document exploration/confidence semantics (curiosity drive, `truth.c`).
-- [ ] Decide canonical Narsese forms for RL tests.
-
-Deliverable:
-
-```text
-docs/tech/cognitive-grounding.md
-```
+**Definition of done:** project tracking explicitly treats M3.5 as the gate for further autonomous self-modification.
 
 ---
 
-## Phase C: Build RL Contract Tests
+## Phase B — Cognitive Contracts
 
-- [ ] Implement `BeliefPerceptionAdapter` test doubles.
-- [ ] Implement `GoalActionAdapter` test doubles.
-- [ ] Add belief perception contract tests.
-- [ ] Add goal action contract tests.
-- [ ] Add reward belief contract tests.
-- [ ] Add no-bypass tests.
+* [ ] Belief/perception contract.
+* [ ] Goal/action contract.
+* [ ] Reward contract.
+* [ ] Value-belief representation (native Product/Inheritance form).
+* [ ] Confidence semantics.
+* [ ] Exploration semantics (curiosity drive + low confidence).
+* [ ] Canonical Narsese forms.
+* [ ] Trace semantics.
 
-Definition of done:
+**Definition of done:** contracts are documented in `docs/tech/cognitive-grounding.md` and independently testable.
+
+---
+
+## Phase C — Contract Tests
+
+* [ ] Belief perception tests.
+* [ ] Goal action tests.
+* [ ] Reward belief tests.
+* [ ] No-bypass tests.
 
 ```bash
 pnpm test tests/nar/rl/contract
 ```
 
-passes.
+**Definition of done:** all contracts pass.
 
 ---
 
-## Phase D: Implement Baseline RL Algorithms
+## Phase D — Baseline RL
 
-- [ ] Add seeded epsilon-greedy.
-- [ ] Add seeded Q-learning.
-- [ ] Add seeded SARSA.
-- [ ] Add seeded UCB.
-- [ ] Add baseline sanity tests.
+* [ ] Epsilon-greedy (seeded).
+* [ ] UCB (seeded).
+* [ ] Q-learning (seeded).
+* [ ] SARSA (seeded).
+* [ ] Baseline sanity tests.
+* [ ] Baseline solves each environment without SeNARS.
 
-Definition of done:
-
-Baselines solve the environments without SeNARS.
-
----
-
-## Phase E: Implement RL Environments
-
-- [ ] BanditEnv.
-- [ ] GridWorldEnv.
-- [ ] StochasticGridWorldEnv.
-- [ ] NonStationaryBanditEnv.
-- [ ] Environment seed support.
-- [ ] Environment metrics logging.
-
-Definition of done:
-
-Baseline algorithms can train in all environments.
+**Definition of done:** conventional RL works independently of SeNARS cognitive mechanisms.
 
 ---
 
-## Phase F: Interface Parity
+## Phase E — Environments
 
-- [ ] Run Q-learning directly.
-- [ ] Run Q-learning through belief/goal adapters.
-- [ ] Compare results.
-- [ ] Prove no meaningful performance loss.
-
-Definition of done:
-
-Direct baseline and adapter-wrapped baseline are near-identical.
-
----
-
-## Phase G: Cognitive Parity
-
-- [ ] Implement SeNARS-native value beliefs (`QBeliefStore` using `nar.memory`).
-- [ ] Implement goal derivation from value beliefs (highest `Truth.expectation()` → goal).
-- [ ] Implement confidence-based exploration (low `truth.c` → curiosity drive / random goal).
-- [ ] Implement reward revision (`Truth.revision` for value updates).
-- [ ] Run parity tests against baselines.
-
-Definition of done:
-
-SeNARS-native agent meets parity thresholds on at least:
-
-- Bandit.
-- Deterministic GridWorld.
-- Non-stationary environment.
+* [ ] BanditEnv.
+* [ ] Deterministic GridWorldEnv.
+* [ ] Stochastic GridWorldEnv.
+* [ ] Non-stationary environment.
+* [ ] Memory-pressure environment.
+* [ ] Seed support.
+* [ ] Metrics logging.
 
 ---
 
-## Phase H: Parity Reporting
+## Phase F — Interface Parity
 
-- [ ] Create `scripts/rl-parity.ts`.
-- [ ] Emit JSON summary.
-- [ ] Emit CSV episode logs.
-- [ ] Add pass/fail thresholds.
-- [ ] Add CI-compatible short tests (few seeds, few episodes).
+* [ ] Direct Q-learning.
+* [ ] Belief/goal Q-learning (adapter-wrapped).
+* [ ] Compare trajectories.
+* [ ] Compare policies.
+* [ ] Compare values.
+* [ ] Run multiple seeds.
 
-Definition of done:
+**Gate F:**
 
-```bash
-pnpm exec tsx scripts/rl-parity.ts --env bandit --baseline epsilon-greedy --seeds 3
-```
+> Adapter-wrapped conventional RL must be statistically close to direct RL.
 
-works locally.
-
----
-
-## Phase I: Cognitive Trace Validation
-
-- [ ] Record action derivation traces (`nar.traceAPI`).
-- [ ] Explain action choice from belief values (`nar.explain()`).
-- [ ] Validate that action goals are derivable from beliefs.
-- [ ] Ensure no hidden control path bypasses goals.
-
-Definition of done:
-
-For any selected action, the system can produce a trace of the form:
-
-```text
-Observed state belief:
-  (self --> state:s_3_4) %1.00;0.95%
-
-Relevant value beliefs:
-  ((*, state:s_3_4, ^move_north) --> predicts_reward) %0.81;0.74%
-  ((*, state:s_3_4, ^move_south) --> predicts_reward) %0.32;0.55%
-
-Derived goal:
-  (^move_north)!
-  Inheritance(Product(state:s_3_4, direction:north), Atom('^move_to'))
-```
+If this gate fails, fix the interface before evaluating native cognition.
 
 ---
 
-# Recommended Acceptance Criteria for M3.5
+## Phase G — Cognitive Parity
+
+* [ ] Implement `QBeliefStore` using `nar.memory`.
+* [ ] Implement value-belief updates via `Truth.revision`.
+* [ ] Implement expectation-based action selection (`Truth.expectation()`).
+* [ ] Implement confidence-aware exploration (low `truth.c` → curiosity drive / random goal).
+* [ ] Integrate curiosity drive (`DriveManager.stimulate('curiosity', ...)`).
+* [ ] Integrate reward revision.
+* [ ] Run bandit parity.
+* [ ] Run deterministic GridWorld parity.
+* [ ] Run non-stationary parity.
+
+**Gate G:**
+
+Native SeNARS meets the agreed parity thresholds on at least three environments (Bandit, Deterministic GridWorld, Non-stationary).
+
+---
+
+## Phase H — Trace Validation
+
+* [ ] Record derivation traces (`nar.traceAPI`).
+* [ ] Connect beliefs to selected goals.
+* [ ] Connect goals to tool execution.
+* [ ] Connect execution to reward.
+* [ ] Connect reward to subsequent belief revision.
+* [ ] Verify no hidden causal path.
+
+**Gate H:**
+
+Every selected action can be causally reconstructed from the cognitive trace using `nar.explain()` and `nar.getDerivationHistory()`.
+
+---
+
+## Phase I — Stress and Boundary Testing
+
+Only after basic parity:
+
+* [ ] Increase noise.
+* [ ] Increase environment size.
+* [ ] Increase memory pressure (reduce `maxConcepts`).
+* [ ] Increase derivation depth.
+* [ ] Introduce partial observability.
+* [ ] Introduce delayed rewards.
+* [ ] Introduce non-stationarity.
+* [ ] Measure graceful degradation.
+
+The goal is not merely to obtain a pass/fail number.
+
+The goal is to map:
+
+> **Where does the cognitive architecture remain competent, and where does it break?**
+
+---
+
+## Phase J — Cognitive Advantage
+
+After parity and stress testing:
+
+* [ ] Demonstrate confidence-aware behavior.
+* [ ] Demonstrate contradiction handling.
+* [ ] Demonstrate explainable decisions.
+* [ ] Demonstrate adaptation after environmental change.
+* [ ] Demonstrate memory-pressure behavior.
+* [ ] Demonstrate schema induction where appropriate.
+
+Only results that survive the earlier gates should be presented as cognitive advantages.
+
+---
+
+# Acceptance Criteria for M3.5
 
 M3.5 is complete when:
 
-- [ ] Belief perception contract tests pass.
-- [ ] Goal action contract tests pass.
-- [ ] Reward belief contract tests pass.
-- [ ] No-bypass tests pass.
-- [ ] Baseline RL algorithms pass sanity tests.
-- [ ] Interface parity tests pass.
-- [ ] SeNARS-native parity tests pass on at least three environments.
-- [ ] RL parity report can be generated.
-- [ ] Action traces explain behavior.
-- [ ] LM nondeterminism is disabled/mocked (`enableLMRules: false`).
-- [ ] Self-modification is disabled in RL tests (`enableSelf: false`).
-- [ ] Documentation exists (`docs/tech/cognitive-grounding.md`, `docs/tech/rl-parity.md`).
+### Architecture
+
+* [ ] Belief contract passes.
+* [ ] Goal contract passes.
+* [ ] Reward contract passes.
+* [ ] No-bypass contract passes.
+
+### RL
+
+* [ ] All baseline algorithms pass sanity tests.
+* [ ] Interface parity passes (Level 1).
+* [ ] Native cognitive parity passes on ≥3 environments (Level 2).
+* [ ] Non-stationary adaptation passes.
+* [ ] Multiple seeds reproduce the result.
+
+### Explainability
+
+* [ ] Action derivation can be reconstructed.
+* [ ] Goal dispatch is traceable.
+* [ ] Reward updates are traceable.
+* [ ] No hidden action path exists.
+
+### Reproducibility
+
+* [ ] Deterministic mode works.
+* [ ] Reports contain seeds/configuration.
+* [ ] CI test mode exists (short: 3 seeds, few episodes).
+* [ ] No LM/network/self-modification contamination.
+
+### Documentation
+
+* [ ] `docs/tech/cognitive-grounding.md`
+* [ ] `docs/tech/rl-parity.md`
+
+### Scientific Hygiene
+
+* [ ] Negative results receive provisional/corrected/hard classification.
+* [ ] Known defects are audited before claiming a boundary (Mandatory Defect Audit).
+* [ ] Thresholds are fixed before final evaluation.
+* [ ] No successful result relies on a bypass.
 
 ---
 
-# Milestone Table Update
+# Milestone Table
 
-Update the milestone table to:
-
-| Milestone | Description | Status |
-|---|---|---|
-| M0 | Green CI | ✅ |
-| M1 | Self-test | ✅ |
-| M1.5 | Cognitive scenarios | ✅ |
-| M2 | Self-tune | ✅ |
-| M2.5 | Imagination | ✅ |
-| M3 | Self-improve machinery | ✅ |
-| **M3.5** | **Cognitive grounding and RL parity** | **Active** |
-| M4 | Production loop | Blocked by M3.5 |
+| Milestone | Description                           | Status              |
+| --------- | ------------------------------------- | ------------------- |
+| M0        | Green CI                              | ✅                   |
+| M1        | Self-test                             | ✅                   |
+| M1.5      | Cognitive scenarios                   | ✅                   |
+| M2        | Self-tune                             | ✅                   |
+| M2.5      | Imagination                           | ✅                   |
+| M3        | Self-improve machinery                | ✅                   |
+| **M3.5**  | **Cognitive grounding and RL parity** | **ACTIVE**          |
+| M4        | Production loop                       | **BLOCKED BY M3.5** |
 
 ---
 
-# Explicitly Deferred Until After M3.5
+# Explicitly Deferred Until M3.5
 
-- [ ] End-to-end sabotage/auto-fix litmus demo.
-- [ ] M4 long-running production loop.
-- [ ] Expansion of self-tools.
-- [ ] More meta-rules.
-- [ ] RLFP-driven code modification.
-- [ ] Autonomous schema promotion into production rules.
-- [ ] Full observability dashboards.
-- [ ] Prometheus metrics unless directly needed for RL parity.
+* [ ] End-to-end sabotage/auto-fix litmus.
+* [ ] M4 long-running production loop.
+* [ ] New self-modification tools.
+* [ ] More autonomous meta-rules.
+* [ ] RLFP-driven code modification.
+* [ ] Autonomous schema promotion.
+* [ ] Production observability dashboards.
+* [ ] Prometheus integration unless directly required by experiments.
 
 ---
 
 # Risks and Mitigations
 
-| Risk | Mitigation |
-|---|---|
-| NAL truth revision does not match TD update exactly | Use behavioral parity thresholds, not exact numerical equality |
-| Belief/goal overhead slows decision loops | Add simple action latch / decision period for RL tests |
-| Confidence semantics are unclear | Start with explicit visit-count-derived confidence |
-| LLM nondeterminism contaminates tests | Disable LM (`enableLMRules: false`) or use deterministic mock |
-| Baseline cheats by reading environment directly | Add no-bypass instrumentation tests |
-| Operation-goal parsing issues | Use native operation AST (`Inheritance(Product, Atom('^op'))`), not string patterns |
-| Memory pressure causes unstable behavior | Start with large memory limits (`maxConcepts: 10000`), then add pressure tests later |
-| Tests become too slow | Use short CI mode with fewer seeds and episodes |
+| Risk                                                  | Mitigation                                   |
+| ----------------------------------------------------- | -------------------------------------------- |
+| Truth revision differs from TD learning               | Compare behavior, not exact internal numbers |
+| Confidence semantics are ambiguous                    | Start with explicit, documented semantics    |
+| Adapter overhead changes behavior                     | Interface-parity gate (Level 1)              |
+| Baseline secretly bypasses cognition                  | Instrumented no-bypass tests                 |
+| Operation AST is malformed                            | Assert native AST structure (`Inheritance(Product, Atom('^op'))`) |
+| LM nondeterminism contaminates results                | Disable/mocking (`enableLMRules: false`)     |
+| Memory pressure creates accidental failures           | Separate normal and stress regimes (E5)      |
+| Derivation budget masks capability                    | Run budget-scaling experiments               |
+| One seed produces a misleading result                 | Multi-seed validation (≥10 seeds)            |
+| Negative result is caused by implementation defect    | Mandatory defect audit                       |
+| Repeated failures are rationalized indefinitely       | Predefine corrected/hard-falsification rule  |
+| Cognitive system receives unfair compute advantage    | Record and match resource budgets            |
+| Cognitive system receives unfair compute disadvantage | Include scaling/budget sweeps                |
+| Tests become too slow                                 | Short CI mode + full offline validation      |
+| Explanation is post-hoc rather than causal            | Require trace-backed explanations            |
 
 ---
 
 # First Concrete Pull Requests
 
-## PR 1: Create `TODO2.md`
+## PR 1 — Roadmap
 
-Add this roadmap. ✅ Done.
+* [x] Create `TODO2.md`.
 
-## PR 2: Cognitive Contracts Documentation
+## PR 2 — Cognitive Contracts
 
-Add:
+Create:
 
 ```text
 docs/tech/cognitive-grounding.md
 ```
 
-## PR 3: RL Contract Test Skeleton
+## PR 3 — Contract Test Skeleton
 
-Add:
+Create:
 
 ```text
 tests/nar/rl/contract/
 ```
 
-with failing or placeholder tests.
+## PR 4 — Minimal Environments
 
-## PR 4: Minimal Environments
-
-Add:
+Create:
 
 ```text
 tests/nar/rl/environments/BanditEnv.ts
 tests/nar/rl/environments/GridWorldEnv.ts
 ```
 
-## PR 5: Baselines
+## PR 5 — Baselines
 
-Add:
+Create:
 
 ```text
 tests/nar/rl/baselines/
 ```
 
-## PR 6: Belief/Goal Adapters
+## PR 6 — Adapters
 
-Add:
+Create:
 
 ```text
 tests/nar/rl/adapters/
 ```
 
-## PR 7: First Parity Test
+## PR 7 — First Parity Experiment
 
-Add:
+Create:
 
 ```text
 tests/nar/rl/parity/bandit-epsilon-greedy.test.ts
 ```
 
-## PR 8: Parity Runner
+## PR 8 — Parity Runner
 
-Add:
+Create:
 
 ```text
 scripts/rl-parity.ts
 ```
 
+## PR 9 — Trace Validation
+
+Create tests proving the causal chain:
+
+```text
+belief
+  ↓
+value belief
+  ↓
+goal
+  ↓
+tool execution
+  ↓
+reward
+  ↓
+belief revision
+```
+
+## PR 10 — Stress/Boundary Suite
+
+Add:
+
+```text
+tests/nar/rl/parity/nonstationary-revision.test.ts
+tests/nar/rl/parity/memory-pressure.test.ts
+```
+
 ---
 
-# Recommended Decision
+# Recommended Execution Order
 
-Create **`TODO2.md`** as the active roadmap.
+The shortest path to useful evidence is:
 
-Use `TODO.md` for historical implementation logs, completed phases, and session notes.
+1. **Freeze self-modification.**
+2. **Verify cognitive contracts.**
+3. **Build deterministic bandit.**
+4. **Prove direct-vs-adapter parity (Level 1).**
+5. **Implement native value beliefs (`QBeliefStore`).**
+6. **Pass bandit cognitive parity (Level 2).**
+7. **Pass deterministic GridWorld.**
+8. **Pass non-stationary adaptation.**
+9. **Validate causal traces.**
+10. **Run noise/memory/budget stress tests.**
+11. **Only then investigate cognitive advantages (Level 3).**
+12. **Only after M3.5 passes, resume autonomous self-modification.**
 
-`TODO2.md` should focus only on the next cognitive validation phase:
+---
 
-> **Establish the cognitive framework through belief-grounded perception, goal-grounded action, and RL parity tests before attempting further self-modification.**
+# Final Decision Rule
+
+The purpose of M3.5 is not to make SeNARS look good.
+
+It is to establish a trustworthy answer to:
+
+> **Can the SeNARS cognitive substrate perceive, value, decide, act, learn, remember, adapt, and explain itself under controlled closed-loop conditions?**
+
+If **yes**, M4 becomes scientifically justified.
+
+If **no**, the resulting failures should identify exactly which cognitive contract breaks and under what conditions.
+
+If a result appears negative, first determine whether it is:
+
+1. **implementation defect,**
+2. **representation mismatch,**
+3. **resource/budget limitation,**
+4. **adapter/interface failure,**
+5. **hyperparameter/configuration failure,**
+6. or finally a **genuine cognitive limitation**.
+
+That ordering is the required standard before using RL results to justify or reject further self-modification.
+
+> **Establish cognitive competence first. Then trust self-modification.**
