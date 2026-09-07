@@ -1,8 +1,5 @@
-export {
-  type ComponentContext,
-  type ComponentState,
-  NarBaseComponent as BaseComponent,
-} from './BaseComponent.js';
+import { BaseComponent } from '@senars/core';
+export { BaseComponent };
 export {
   type ComponentDefinition,
   Container,

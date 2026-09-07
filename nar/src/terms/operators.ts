@@ -17,6 +17,7 @@ export const OPERATORS = {
   predictive: { symbol: '/>', arity: 2, commutative: false, nary: false },
   retrospective: { symbol: '/<', arity: 2, commutative: false, nary: false },
   operation: { symbol: '^', arity: 2, commutative: false, nary: false },
+  product: { symbol: '*', arity: 0, commutative: true, nary: true },
 } as const;
 
 export type OperatorKey = keyof typeof OPERATORS;

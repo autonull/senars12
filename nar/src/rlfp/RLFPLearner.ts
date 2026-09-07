@@ -142,6 +142,7 @@ export class RLFPLearner {
    * Extrinsic: 0.5 * passRate + 0.3 * clamp(baseline/current, 0, 2)/2 + 0.2 * coverageDelta - AIKR penalties
    * Intrinsic: 0.4 * derivationDepthReduction + 0.3 * selfModelAccuracy + 0.3 * contradictionReduction
    * Total: clamp(extrinsic + 0.3 * intrinsic, -1, 1)
+   * CI penalties: heavy negative reward for typecheck/lint failures
    */
   calculateRewardFromTask(outcome: TaskOutcome): number {
     const m = outcome.metrics;
@@ -164,8 +165,13 @@ export class RLFPLearner {
       0.3 * selfModelAccuracy +
       0.3 * contradictionReduction;
 
+    // CI penalties: heavy negative reward for typecheck/lint failures (metrics are 0/1 numbers)
+    const typecheckFailed = (m.typecheckPassed ?? 1) === 0;
+    const lintFailed = (m.lintPassed ?? 1) === 0;
+    const ciPenalty = (typecheckFailed ? 0.8 : 0) + (lintFailed ? 0.8 : 0);
+
     // Combined reward
-    const combined = extrinsic + 0.3 * rewardIntrinsic;
+    const combined = extrinsic + 0.3 * rewardIntrinsic - ciPenalty;
     const total = clamp(combined, -1, 1);
 
     // Structured reward breakdown logging (extrinsic vs intrinsic per task)
@@ -175,6 +181,7 @@ export class RLFPLearner {
       extrinsic: Math.round(extrinsic * 100) / 100,
       intrinsic: Math.round(rewardIntrinsic * 100) / 100,
       weightedIntrinsic: Math.round(0.3 * rewardIntrinsic * 100) / 100,
+      ciPenalty: Math.round(ciPenalty * 100) / 100,
       total: Math.round(total * 100) / 100,
     });
 

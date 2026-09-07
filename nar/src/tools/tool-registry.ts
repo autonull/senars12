@@ -1,7 +1,8 @@
 import { createLogger } from '../logger';
 import { type EventBus, ToolError } from '../types';
 import { errMsg } from '../utils';
-import type { Term } from '../terms';
+import type { Term, AtomicTerm, CompoundTerm } from '../terms';
+import { isAtomic, isCompound, getTermArgs } from '../terms';
 import {
   initializeSelfConcept,
   getFixPatternMapping,
@@ -470,115 +471,104 @@ export class ToolManager {
     this.executionHistory = [];
   }
 
-  /** Execute a tool goal from NAR (goals starting with ^) */
+  /** Execute a tool goal from NAR (goals as ^tool_name(args) parsed to Inheritance(Product(args...), Atom('^tool'))) */
   async executeToolGoal(goalTerm: Term, context?: ToolContext): Promise<ToolResult> {
-    const str = goalTerm.toString();
-    if (!str.startsWith('^')) {
-      return errorResult('Not a tool goal (must start with ^)');
+    // Parse AST: Inheritance(Product(args...), Atom('^toolName'))
+    if (!isCompound(goalTerm) || goalTerm.kind !== 'inheritance') {
+      return errorResult('Tool goal must be an Inheritance term (AST form: ^tool(args) -> Inheritance(Product, Atom))');
     }
 
-    // Parse: ^tool_name(arg1, arg2) where args are Narsese terms/concepts
-    const match = str.match(/^\^(\w+)\((.*)\)$/);
-    if (!match || !match[1]) {
-      return errorResult('Invalid tool goal syntax (expected ^tool_name(args))');
+    const args = getTermArgs(goalTerm);
+    if (!args || args.length !== 2) {
+      return errorResult('Invalid Inheritance structure for tool goal');
     }
 
-    const toolName = match[1];
-    const argsStr = match[2] ?? '';
-    
+    const subject = args[0];  // Product of arguments
+    const predicate = args[1]; // Atom with ^toolName
+
+    if (!subject || !predicate) {
+      return errorResult('Invalid Inheritance structure: missing subject or predicate');
+    }
+
+    if (!isAtomic(predicate) || !predicate.symbol.startsWith('^')) {
+      return errorResult('Tool goal predicate must be an Atom starting with ^');
+    }
+
+    const toolName = predicate.symbol.slice(1); // Remove ^ prefix
+
     // Check if tool exists
     const tool = this.get(toolName);
     if (!tool) {
       return errorResult(`Tool '${toolName}' not found`);
     }
 
-    // Parse Narsese arguments
-    const args = this.parseNarseseArgs(argsStr);
-    
-    // Semantic resolution: fix_pattern_id → actual codemod strings, etc.
-    const resolvedArgs = await this.resolveSemanticArgs(toolName, args);
+    // Extract arguments from Product
+    const parsedArgs = this.extractArgsFromProduct(subject);
 
-    logger.debug('Executing tool goal', { toolName, args: resolvedArgs });
-    
+    // Semantic resolution: fix_pattern_id → actual codemod strings, etc.
+    const resolvedArgs = await this.resolveSemanticArgs(toolName, parsedArgs);
+
+    logger.debug('Executing tool goal (AST)', { toolName, args: resolvedArgs });
+
     return this.execute(toolName, resolvedArgs, context);
   }
 
-  /** Parse Narsese argument string into key-value pairs */
-  private parseNarseseArgs(argsStr: string): Record<string, unknown> {
+  /** Extract arguments from a Product term (or single term) into key-value pairs */
+  private extractArgsFromProduct(subject: Term): Record<string, unknown> {
     const args: Record<string, unknown> = {};
-    if (!argsStr.trim()) return args;
 
-    // Simple parser for comma-separated key:value pairs or positional args
-    // Supports: key:value, key:"string", key:123, key:concept_name
-    const parts = this.splitTopLevel(argsStr, ',');
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i]?.trim();
-      if (!part) continue;
-
-      // Check for key:value format
-      const colonIdx = part.indexOf(':');
-      if (colonIdx > 0) {
-        const key = part.slice(0, colonIdx).trim();
-        let value: unknown = part.slice(colonIdx + 1).trim();
-        
-        // Parse value
-        const strValue = String(value);
-        if (strValue.startsWith('"') && strValue.endsWith('"')) {
-          value = strValue.slice(1, -1);
-        } else if (strValue.startsWith("'") && strValue.endsWith("'")) {
-          value = strValue.slice(1, -1);
-        } else if (/^\d+$/.test(strValue)) {
-          value = parseInt(strValue, 10);
-        } else if (/^\d+\.\d+$/.test(strValue)) {
-          value = parseFloat(strValue);
-        } else if (strValue === 'true') {
-          value = true;
-        } else if (strValue === 'false') {
-          value = false;
+    // Handle Product term with multiple args
+    if (isCompound(subject) && subject.kind === 'product') {
+      const productArgs = getTermArgs(subject);
+      if (productArgs) {
+        for (let i = 0; i < productArgs.length; i++) {
+          const arg = productArgs[i];
+          if (arg) {
+            const value = this.termToValue(arg);
+            // If the term is an Inheritance (compact form key:value), extract as key:value
+            if (isCompound(arg) && arg.kind === 'inheritance') {
+              const inhArgs = getTermArgs(arg);
+              if (inhArgs && inhArgs.length === 2) {
+                const subj = inhArgs[0];
+                const pred = inhArgs[1];
+                if (subj && pred && isAtomic(subj) && isAtomic(pred)) {
+                  // Compact form: subject:predicate means (predicate --> subject)
+                  // So key = predicate.symbol, value = subject.symbol
+                  args[pred.symbol] = subj.symbol;
+                  continue;
+                }
+              }
+            }
+            args[`arg${i}`] = value;
+          }
         }
-        // Otherwise keep as string (concept reference)
-        
-        args[key] = value;
-      } else {
-        // Positional argument
-        args[`arg${i}`] = part;
       }
+      return args;
     }
+
+    // Single argument (non-Product)
+    const value = this.termToValue(subject);
+    args.arg0 = value;
     return args;
   }
 
-  /** Split string by delimiter at top level (not inside parentheses/quotes) */
-  private splitTopLevel(str: string, delimiter: string): string[] {
-    const parts: string[] = [];
-    let current = '';
-    let depth = 0;
-    let inQuotes = false;
-    let quoteChar = '';
-
-    for (let i = 0; i < str.length; i++) {
-      const char = str[i];
-      
-      if (!inQuotes && (char === '"' || char === "'")) {
-        inQuotes = true;
-        quoteChar = char;
-      } else if (inQuotes && char === quoteChar) {
-        inQuotes = false;
-        quoteChar = '';
-      } else if (!inQuotes && char === '(') {
-        depth++;
-      } else if (!inQuotes && char === ')') {
-        depth--;
-      } else if (!inQuotes && char === delimiter && depth === 0) {
-        parts.push(current);
-        current = '';
-        continue;
-      }
-      
-      current += char;
+  /** Convert a Narsese term to a JavaScript value */
+  private termToValue(term: Term): unknown {
+    if (isAtomic(term)) {
+      const symbol = term.symbol;
+      // Try to parse as primitive
+      if (/^\d+$/.test(symbol)) return parseInt(symbol, 10);
+      if (/^\d+\.\d+$/.test(symbol)) return parseFloat(symbol);
+      if (symbol === 'true') return true;
+      if (symbol === 'false') return false;
+      if (symbol.startsWith('"') && symbol.endsWith('"')) return symbol.slice(1, -1);
+      if (symbol.startsWith("'") && symbol.endsWith("'")) return symbol.slice(1, -1);
+      // Return as concept reference string
+      return symbol;
     }
-    
-    if (current) parts.push(current);
-    return parts;
+
+    // For compound terms, return string representation
+    return term.toString();
   }
 
   /** Semantic resolution: fix_pattern_id → actual codemod strings, etc. */

@@ -11,14 +11,13 @@ export type { SeNARSConfig, SeNARSOptions } from './factory.js';
 export { createMinimalNAR, createNAR, SeNARSFactory } from './factory.js';
 export type {
   ComponentContext,
-  ComponentDefinition,
   ComponentState,
+} from '@senars/util';
+export type {
+  ComponentDefinition,
   Definition,
   ValueDefinition,
 } from './lifecycle/index.js';
-// Lifecycle
-/** Lifecycle base component. @public */
-/** Dependency-injection container. @public */
 export { BaseComponent, Container } from './lifecycle/index.js';
 // LLM Service
 /** LLM service + factory/mock. @public */

@@ -9,6 +9,7 @@ import {
   TaskManager,
   TermBuilder,
   Truth,
+  termParser,
 } from '../../../nar/src';
 import { ToolManager } from '../../../nar/src/tools';
 import { DriveManager } from '../../../nar/src/drives';
@@ -180,15 +181,28 @@ describe('NARExecution', () => {
   });
 
   describe('meta-goal injection', () => {
+  describe('meta-goal injection', () => {
     test('injects switch_strategy goal when competence drops below threshold', async () => {
       const fakeNar = { input: vi.fn() } as any;
       const driveManager = new DriveManager(fakeNar);
       driveManager.stimulate('competence', -1);
 
+      // Use fresh memory and taskManager to avoid pollution
+      const freshMemory = new Memory({
+        maxConcepts: 100,
+        activationDecayRate: 0.01,
+        consolidationInterval: 10,
+      });
+      const freshTaskManager = new TaskManager(freshMemory);
+      const freshReasoner = new Reasoner(freshMemory, createMockProcessor() as any, BagStrategy, {
+        cpuThrottleMs: 0,
+        maxDerivationDepth: 10,
+        maxDerivationsPerStep: 100,
+      });
       const exec = new NARExecution(
-        memory,
-        taskManager,
-        reasoner,
+        freshMemory,
+        freshTaskManager,
+        freshReasoner,
         DEFAULT_CONFIG,
         rlfp,
         undefined,
@@ -196,14 +210,55 @@ describe('NARExecution', () => {
         driveManager
       );
 
-      await exec.run(2);
+      await exec.run(1); // After 1 cycle, meta-goal should be injected
 
-      const goals = memory.getGoals?.() ?? [];
-      const metaGoal = goals.find((g) =>
-        g.term.toString().startsWith('^switch_strategy')
+      // Meta-goals are injected as pending tasks, check there
+      const pending = freshTaskManager.getPending?.() ?? [];
+      const metaGoal = pending.find((t) =>
+        t.term.toString().startsWith('^switch_strategy') ||
+        t.term.toString().includes('^switch_strategy')
       );
       expect(metaGoal).toBeDefined();
     });
+
+    test('does not inject meta-goal when drive is healthy', async () => {
+      const fakeNar = { input: vi.fn() } as any;
+      const driveManager = new DriveManager(fakeNar);
+      // competence starts at target 0.8 — above threshold
+
+      const freshMemory = new Memory({
+        maxConcepts: 100,
+        activationDecayRate: 0.01,
+        consolidationInterval: 10,
+      });
+      const freshTaskManager = new TaskManager(freshMemory);
+      const freshReasoner = new Reasoner(freshMemory, createMockProcessor() as any, BagStrategy, {
+        cpuThrottleMs: 0,
+        maxDerivationDepth: 10,
+        maxDerivationsPerStep: 100,
+      });
+      const exec = new NARExecution(
+        freshMemory,
+        freshTaskManager,
+        freshReasoner,
+        DEFAULT_CONFIG,
+        rlfp,
+        undefined,
+        undefined,
+        driveManager
+      );
+
+      await exec.run(1);
+
+      const pending = freshTaskManager.getPending?.() ?? [];
+      const metaGoal = pending.find((t) =>
+        t.term.toString().startsWith('^switch_strategy') ||
+        t.term.toString().includes('^switch_strategy')
+      );
+      expect(metaGoal).toBeUndefined();
+    });
+  });
+
 
     test('does not inject meta-goal when drive is healthy', async () => {
       const fakeNar = { input: vi.fn() } as any;
@@ -245,10 +300,22 @@ describe('NARExecution', () => {
         },
       });
 
+      // Use fresh memory and taskManager to avoid pollution from other tests
+      const freshMemory = new Memory({
+        maxConcepts: 100,
+        activationDecayRate: 0.01,
+        consolidationInterval: 10,
+      });
+      const freshTaskManager = new TaskManager(freshMemory);
+      const freshReasoner = new Reasoner(freshMemory, createMockProcessor() as any, BagStrategy, {
+        cpuThrottleMs: 0,
+        maxDerivationDepth: 10,
+        maxDerivationsPerStep: 100,
+      });
       const exec = new NARExecution(
-        memory,
-        taskManager,
-        reasoner,
+        freshMemory,
+        freshTaskManager,
+        freshReasoner,
         DEFAULT_CONFIG,
         rlfp,
         undefined,
@@ -256,11 +323,12 @@ describe('NARExecution', () => {
         undefined,
         undefined,
         undefined,
-        async (goalTerm) => toolManager.executeToolGoal(goalTerm)
+        async (goalTerm) => toolManager.executeToolGoal(goalTerm),
+        undefined
       );
 
-      taskManager.addTask(
-        createTask(TermBuilder.atom('^echo_goal(profile:test)'), 'goal', Truth.NEUTRAL, createBudget(0.9))
+      freshTaskManager.addTask(
+        createTask(termParser.parse('^echo_goal(profile:test)'), 'goal', Truth.NEUTRAL, createBudget(0.9))
       );
 
       await exec.run(1);
@@ -269,7 +337,7 @@ describe('NARExecution', () => {
       expect(calls[0]).toEqual({ profile: 'test' });
 
       // Tool goal must not leak into memory as a plain goal
-      const goals = memory.getGoals?.() ?? [];
+      const goals = freshMemory.getGoals?.() ?? [];
       expect(goals.some((g) => g.term.toString().startsWith('^echo_goal'))).toBe(false);
     });
 
@@ -286,10 +354,22 @@ describe('NARExecution', () => {
         },
       });
 
+      // Use fresh memory and taskManager to avoid pollution from other tests
+      const freshMemory = new Memory({
+        maxConcepts: 100,
+        activationDecayRate: 0.01,
+        consolidationInterval: 10,
+      });
+      const freshTaskManager = new TaskManager(freshMemory);
+      const freshReasoner = new Reasoner(freshMemory, createMockProcessor() as any, BagStrategy, {
+        cpuThrottleMs: 0,
+        maxDerivationDepth: 10,
+        maxDerivationsPerStep: 100,
+      });
       const exec = new NARExecution(
-        memory,
-        taskManager,
-        reasoner,
+        freshMemory,
+        freshTaskManager,
+        freshReasoner,
         DEFAULT_CONFIG,
         rlfp,
         undefined,
@@ -297,10 +377,11 @@ describe('NARExecution', () => {
         undefined,
         undefined,
         undefined,
-        async (goalTerm) => toolManager.executeToolGoal(goalTerm)
+        async (goalTerm) => toolManager.executeToolGoal(goalTerm),
+        undefined
       );
 
-      taskManager.addTask(
+      freshTaskManager.addTask(
         createTask(TermBuilder.atom('regular_goal'), 'goal', Truth.NEUTRAL, createBudget(0.9))
       );
 

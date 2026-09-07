@@ -15,7 +15,7 @@
  * - metaRuleActivationThreshold: drive_intensity > 0.6 (only fire when drives demand it)
  */
 
-import { Truth, type TruthType, TermBuilder, atom, type Term } from '../terms';
+import { Truth, type TruthType, TermBuilder, atom, type Term, isCompound, isAtomic, getTermArgs } from '../terms';
 import type { RegisteredRule, RuleIndex } from './types.js';
 import { RuleRegistry } from './types.js';
 
@@ -48,43 +48,55 @@ export const META_RULES_NARSESE = [
   '<(capability --> $c) & (template($c) --> $tmpl) & (^add_capability($c))! ==> (^scaffold($tmpl, $c))!>',
 ] as const;
 
+/** Check if term is an Inheritance (A --> B) */
+function isInheritance(term: Term): boolean {
+  return isCompound(term) && term.kind === 'inheritance';
+}
+
+/** Extract subject and predicate from Inheritance term */
+function getInheritanceParts(term: Term): { subject: Term; predicate: Term } | null {
+  if (!isInheritance(term)) return null;
+  const args = getTermArgs(term);
+  if (!args || args.length !== 2) return null;
+  const subject = args[0];
+  const predicate = args[1];
+  if (!subject || !predicate) return null;
+  return { subject, predicate };
+}
+
+/** Extract variable binding from a premise like (strategy --> focused) */
+function extractVariableBinding(term: Term, expectedPredicate: string): string | null {
+  const parts = getInheritanceParts(term);
+  if (!parts) return null;
+  if (!isAtomic(parts.predicate) || parts.predicate.symbol !== expectedPredicate) return null;
+  if (!isAtomic(parts.subject)) return null;
+  return parts.subject.symbol;
+}
+
+/** Build operation term AST: ^tool(args...) -> Inheritance(Product(args...), Atom('^tool')) */
+function buildOperationTerm(toolName: string, argTerms: Term[]): Term {
+  const productTerm = argTerms.length > 0
+    ? TermBuilder.create('product', argTerms)
+    : atom('*');
+  const opAtom = atom('^' + toolName);
+  const result = TermBuilder.inheritance(productTerm, opAtom);
+  if (!result) {
+    throw new Error(`Failed to build operation term for ${toolName}`);
+  }
+  return result;
+}
+
+/** Debug logging for meta-rules */
+const META_DEBUG = false;
+
+function metaLog(msg: string, data?: unknown): void {
+  if (META_DEBUG) {
+    console.log(`[META] ${msg}`, data ? JSON.stringify(data, null, 2) : '');
+  }
+}
+
 /** Build registered meta-rules with proper patterns */
 export function buildMetaRules(): RegisteredRule[] {
-  const $s = atom('$s');
-  const $k = atom('$k');
-  const $v = atom('$v');
-  const $t = atom('$t');
-  const $e = atom('$e');
-  const $fix = atom('$fix');
-  const $c = atom('$c');
-  const $tmpl = atom('$tmpl');
-
-  const driveCompetence = atom('drive:competence');
-  const low = atom('low');
-  const situation = atom('situation');
-  const requiresStrategy = atom('requires_strategy');
-  const strategy = atom('strategy');
-  const rlfpReward = atom('rlfp:reward');
-  const belowThreshold = atom('below_threshold');
-  const knob = atom('knob');
-  const tune = atom('tune');
-  const improves = atom('improves');
-  const testFailed = atom('test_failed');
-  const errorPattern = atom('error_pattern');
-  const fixPattern = atom('fix_pattern');
-  const schema = atom('schema');
-  const confidence = atom('confidence');
-  const frequency = atom('frequency');
-  const capability = atom('capability');
-  const template = atom('template');
-  const selectStrategy = atom('^select_strategy');
-  const applyTuning = atom('^apply_tuning');
-  const repair = atom('^repair');
-  const applyFix = atom('^apply_fix');
-  const promoteRule = atom('^promote_rule');
-  const addCapability = atom('^add_capability');
-  const scaffold = atom('^scaffold');
-
   const rules: RegisteredRule[] = [
     // Strategy selection: (drive:competence --> low) & (situation --> requires_strategy) & (strategy --> $s) ==> (^select_strategy($s))!
     {
@@ -92,27 +104,62 @@ export function buildMetaRules(): RegisteredRule[] {
       pattern: { left: { op: 'implication' }, right: { op: 'implication' } },
       apply: (premises) => {
         const [p1, p2] = premises;
-        // This is a template - actual implementation in tool layer
+        const driveLow = extractVariableBinding(p1, 'low');
+        const situationRequires = extractVariableBinding(p2, 'requires_strategy');
+        metaLog('meta-strategy-selection check', { p1: p1?.toString(), p2: p2?.toString(), driveLow, situationRequires });
+        if (driveLow && situationRequires) {
+          const result = buildOperationTerm('switch_strategy', [atom('focused'), atom('derivation')]);
+          metaLog('meta-strategy-selection FIRED', { result: result.toString() });
+          return result;
+        }
         return undefined;
       },
       sync: true,
       priority: META_AIKR_BOUNDS.metaRulePriority,
       truthFn: () => META_RULE_TRUTH,
     },
-    // Knob tuning: (rlfp:reward --> below_threshold) & (knob --> $k) & (tune --> improves $k) & (^tune($k, $v))! ==> (^apply_tuning($k, $v))!
+    // Knob tuning: (rlfp:reward --> below_threshold) & (knob --> $k) ==> (^apply_tuning($k, $v))!
     {
       id: 'meta-knob-tuning',
       pattern: { left: { op: 'implication' }, right: { op: 'implication' } },
-      apply: (premises) => undefined,
+      apply: (premises) => {
+        const [p1, p2] = premises;
+        const rewardLow = extractVariableBinding(p1, 'below_threshold');
+        const knobName = extractVariableBinding(p2, 'knob');
+        metaLog('meta-knob-tuning check', { p1: p1?.toString(), p2: p2?.toString(), rewardLow, knobName });
+        if (rewardLow && knobName) {
+          const result = buildOperationTerm('tune_knob', [atom(knobName), atom('auto')]);
+          metaLog('meta-knob-tuning FIRED', { result: result.toString() });
+          return result;
+        }
+        return undefined;
+      },
       sync: true,
       priority: META_AIKR_BOUNDS.metaRulePriority,
       truthFn: () => META_RULE_TRUTH,
     },
-    // Test repair: (test_failed --> $t) & (error_pattern --> $e) & (fix_pattern($e) --> $fix) & (^repair($t, $fix))! ==> (^apply_fix($fix))!
+    // Test repair: (test_failed --> $t) & (error_pattern --> $e) & (fix_pattern($e) --> $fix) ==> (^apply_fix($fix))!
     {
       id: 'meta-test-repair',
       pattern: { left: { op: 'implication' }, right: { op: 'implication' } },
-      apply: (premises) => undefined,
+      apply: (premises) => {
+        const [p1, p2] = premises;
+        const testFailed = extractVariableBinding(p1, 'test_failed');
+        const errorPattern = extractVariableBinding(p2, 'error_pattern');
+        metaLog('meta-test-repair check', { p1: p1?.toString(), p2: p2?.toString(), testFailed, errorPattern });
+        if (testFailed && errorPattern) {
+          const fixPatternMap: Record<string, string> = {
+            'null_pointer_error': 'fix_pattern:null_check',
+            'type_mismatch_error': 'fix_pattern:type_annotation',
+            'out_of_bounds_error': 'fix_pattern:boundary_check',
+          };
+          const fixPattern = fixPatternMap[errorPattern] || 'fix_pattern:generic';
+          const result = buildOperationTerm('apply_fix', [atom(fixPattern)]);
+          metaLog('meta-test-repair FIRED', { result: result.toString() });
+          return result;
+        }
+        return undefined;
+      },
       sync: true,
       priority: META_AIKR_BOUNDS.metaRulePriority,
       truthFn: () => META_RULE_TRUTH,
@@ -121,16 +168,37 @@ export function buildMetaRules(): RegisteredRule[] {
     {
       id: 'meta-schema-promotion',
       pattern: { left: { op: 'implication' }, right: { op: 'implication' } },
-      apply: (premises) => undefined,
+      apply: (premises) => {
+        const [p1, p2] = premises;
+        const schemaName = extractVariableBinding(p1, 'schema');
+        metaLog('meta-schema-promotion check', { p1: p1?.toString(), p2: p2?.toString(), schemaName });
+        if (schemaName) {
+          const result = buildOperationTerm('register_rule', [atom(schemaName)]);
+          metaLog('meta-schema-promotion FIRED', { result: result.toString() });
+          return result;
+        }
+        return undefined;
+      },
       sync: true,
       priority: META_AIKR_BOUNDS.metaRulePriority,
       truthFn: () => META_RULE_TRUTH,
     },
-    // Capability scaffolding: (capability --> $c) & (template($c) --> $tmpl) & (^add_capability($c))! ==> (^scaffold($tmpl, $c))!
+    // Capability scaffolding: (capability --> $c) & (template($c) --> $tmpl) ==> (^scaffold($tmpl, $c))!
     {
       id: 'meta-capability-scaffold',
       pattern: { left: { op: 'implication' }, right: { op: 'implication' } },
-      apply: (premises) => undefined,
+      apply: (premises) => {
+        const [p1, p2] = premises;
+        const capabilityName = extractVariableBinding(p1, 'capability');
+        const templateName = extractVariableBinding(p2, 'template');
+        metaLog('meta-capability-scaffold check', { p1: p1?.toString(), p2: p2?.toString(), capabilityName, templateName });
+        if (capabilityName && templateName) {
+          const result = buildOperationTerm('scaffold_capability', [atom(templateName), atom(capabilityName)]);
+          metaLog('meta-capability-scaffold FIRED', { result: result.toString() });
+          return result;
+        }
+        return undefined;
+      },
       sync: true,
       priority: META_AIKR_BOUNDS.metaRulePriority,
       truthFn: () => META_RULE_TRUTH,

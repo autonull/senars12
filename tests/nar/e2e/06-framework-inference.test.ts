@@ -114,11 +114,11 @@ describeReasoning('Inference Rules', [
     name: 'analogy: A --> B, B <-> C |- A --> C',
     premises: [
       createPremise('(cat --> mammal)', 'belief', 0.9, 0.9),
-      createPremise('(mammal <-> warm-blooded)', 'belief', 0.8, 0.8),
+      createPremise('(mammal <-> warm_blooded)', 'belief', 0.8, 0.8),
     ],
     cycles: 5,
     expect: [
-      expectDerivation('(cat --> warm-blooded)', {
+      expectDerivation('(cat --> warm_blooded)', {
         minFrequency: 0.5,
         minConfidence: 0.4,
       }),

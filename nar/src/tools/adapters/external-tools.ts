@@ -1867,10 +1867,64 @@ class ShadowWorktreeManager {
     return runCodemod(worktreePath, { pattern, replacement, scope, lang }, false);
   }
 
-  /** Run tests in shadow worktree */
-  async runTestsInWorktree(worktreePath: string): Promise<{ success: boolean; passed: number; failed: number; total: number }> {
+  /** Run full CI suite in shadow worktree */
+  async runTestsInWorktree(worktreePath: string): Promise<{
+    success: boolean;
+    testPassed: boolean;
+    typecheckPassed: boolean;
+    lintPassed: boolean;
+    passed: number;
+    failed: number;
+    total: number;
+    testOutput?: string;
+    typecheckOutput?: string;
+    lintOutput?: string;
+  }> {
+    // Run vitest
+    const testResult = await this.runCommandInWorktree(worktreePath, 'pnpm', ['vitest', 'run', '--reporter=json']);
+    // Run typecheck
+    const typecheckResult = await this.runCommandInWorktree(worktreePath, 'pnpm', ['typecheck']);
+    // Run lint
+    const lintResult = await this.runCommandInWorktree(worktreePath, 'pnpm', ['lint']);
+
+    const testSuccess = testResult.code === 0;
+    const typecheckSuccess = typecheckResult.code === 0;
+    const lintSuccess = lintResult.code === 0;
+
+    // Parse vitest JSON output for test counts
+    let passed = 0, failed = 0, total = 0;
+    try {
+      const jsonStart = testResult.stdout.indexOf('{');
+      if (jsonStart >= 0) {
+        const data = JSON.parse(testResult.stdout.slice(jsonStart));
+        passed = data.numPassedTests ?? 0;
+        failed = data.numFailedTests ?? 0;
+        total = data.numTotalTests ?? 0;
+      }
+    } catch {}
+
+    return {
+      success: testSuccess && typecheckSuccess && lintSuccess,
+      testPassed: testSuccess,
+      typecheckPassed: typecheckSuccess,
+      lintPassed: lintSuccess,
+      passed,
+      failed,
+      total,
+      testOutput: testResult.stdout,
+      typecheckOutput: typecheckResult.stdout,
+      lintOutput: lintResult.stdout,
+    };
+  }
+
+  /** Run a command in the worktree and return result */
+  private async runCommandInWorktree(
+    worktreePath: string,
+    command: string,
+    args: string[]
+  ): Promise<{ code: number; stdout: string; stderr: string }> {
     return new Promise((resolve) => {
-      const child = spawn('pnpm', ['vitest', 'run', '--reporter=json'], {
+      const child = spawn(command, args, {
         cwd: worktreePath,
         stdio: ['pipe', 'pipe', 'pipe'],
       });
@@ -1881,34 +1935,13 @@ class ShadowWorktreeManager {
       child.stdout?.on('data', (data: Buffer) => { stdout += data.toString(); });
       child.stderr?.on('data', (data: Buffer) => { stderr += data.toString(); });
 
-      child.on('close', async (code) => {
-        try {
-          const lines = stdout.trim().split('\n');
-          let jsonStart = -1;
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (line && line.trim().startsWith('{')) {
-              jsonStart = i;
-              break;
-            }
-          }
-          if (jsonStart >= 0) {
-            const data = JSON.parse(lines.slice(jsonStart).join('\n'));
-            resolve({
-              success: data.success,
-              passed: data.numPassedTests ?? 0,
-              failed: data.numFailedTests ?? 0,
-              total: data.numTotalTests ?? 0,
-            });
-          } else {
-            resolve({ success: code === 0, passed: 0, failed: 0, total: 0 });
-          }
-        } catch {
-          resolve({ success: code === 0, passed: 0, failed: 0, total: 0 });
-        }
+      child.on('close', (code) => {
+        resolve({ code: code ?? 1, stdout, stderr });
       });
 
-      child.on('error', () => resolve({ success: false, passed: 0, failed: 0, total: 0 }));
+      child.on('error', (err) => {
+        resolve({ code: 1, stdout, stderr: err.message });
+      });
     });
   }
 
@@ -2318,7 +2351,7 @@ export const ${capabilityId}_rule: RegisteredRule = {
             return { success: false, error: 'Tuning broke tests', testResult };
           }
 
-          // Record reward (TaskOutcome shape → intrinsic+extrinsic)
+          // Record reward (TaskOutcome shape → intrinsic+extrinsic) with CI metrics
           const reward = deps.rlfpLearner.calculateRewardFromTask({
             taskType: 'knob_tune',
             success: true,
@@ -2328,6 +2361,8 @@ export const ${capabilityId}_rule: RegisteredRule = {
               coverageDelta: 0,
               memoryOverage: 0,
               cpuThrottleTime: 0,
+              typecheckPassed: testResult.typecheckPassed ? 1 : 0,
+              lintPassed: testResult.lintPassed ? 1 : 0,
             },
           });
           deps.rlfpLearner.reward(reward, `knob_tune:${knob}`);

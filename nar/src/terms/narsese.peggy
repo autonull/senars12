@@ -37,7 +37,8 @@ TruthValue
     }
 
 Term "term"
-  = Statement
+  = OperationTerm
+  / Statement
   / CompactInheritance
   / NegationTerm
   / DeltaTerm
@@ -46,6 +47,52 @@ Term "term"
   / Variable
   / ImagePlaceholder
   / AtomicTerm
+
+OperationTerm "operation term"
+  = "^" _ name:OperationName _ "(" _ args:OperationArgs? _ ")" {
+      // Parse ^tool(args) as Inheritance(Product(args...), Atom('^tool'))
+      const argsList = args || [];
+      const productTerm = argsList.length > 0 
+        ? options.termFactory.create('product', argsList)
+        : options.termFactory.atom('*');
+      const opAtom = options.termFactory.atom('^' + name);
+      return options.termFactory.inheritance(productTerm, opAtom);
+    }
+
+OperationName "operation name"
+  = chars:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+) { return chars; }
+
+OperationArgs "operation arguments"
+  = head:OperationArg tail:(_ "," _ OperationArg)* {
+      const terms = [head];
+      if (tail) {
+        for (const t of tail) {
+          terms.push(t[3]);
+        }
+      }
+      return terms;
+    }
+
+OperationArg "operation argument"
+  = Statement
+  / CompactInheritance
+  / NegationTerm
+  / DeltaTerm
+  / CompoundTerm
+  / Set
+  / Variable
+  / ImagePlaceholder
+  / OperationAtomicTerm
+
+OperationAtomicTerm "operation atomic term (allows colons)"
+  = StringLiteral
+  / ColonedAtom
+  / chars:$([^(){}[\]<>.,!%?;@ \t\n\r=&/|>-]+) { return options.termFactory.atom(chars); }
+
+ColonedAtom "namespaced atomic term with colons"
+  = head:$([^(){}[\]<>.,!%?;@ \t\n\r=&/|>-]+) tail:$(":" [^(){}[\]<>.,!%?;@ \t\n\r=&/|>-]+)+ {
+      return options.termFactory.atom(head + tail.join(''));
+    }
 
 CompactInheritance
   = pred:AtomicTerm ":" subj:Term {
@@ -117,13 +164,7 @@ TermList
 
 AtomicTerm "atomic term"
   = StringLiteral
-  / HyphenatedAtom
   / chars:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+) { return options.termFactory.atom(chars); }
-
-HyphenatedAtom "hyphenated atom"
-   = head:$([^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+) tail:$("-" [^(){}[\]<>.,!%?;:@ \t\n\r=&/|>-]+)+ {
-       return options.termFactory.atom(head + tail.join(''));
-     }
 
 StringLiteral
   = '"' chars:$([^"]*) '"' { return options.termFactory.atom('"' + chars + '"'); }

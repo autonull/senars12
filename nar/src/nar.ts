@@ -4,7 +4,7 @@ import type { CognitiveRegistry } from './cognitive';
 import { CognitiveController } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
 import { createBootstrapTasks, DriveManager } from './drives';
-import { BaseComponent } from './lifecycle';
+import { BaseComponent } from '@senars/core';
 import type { LMService, SeNARSRegistry } from './lm';
 import { getModelForTask, LMRules } from './lm';
 import { createLogger } from './logger';
@@ -73,6 +73,7 @@ export interface NARConfig extends CoreConfig {
 }
 
 export class NAR extends BaseComponent {
+  readonly id = 'nar';
   readonly memory: Memory;
   readonly workingMemory: WorkingMemory;
   readonly taskManager: TaskManager;
@@ -103,7 +104,7 @@ export class NAR extends BaseComponent {
     const logger = createLogger({ scope: 'NAR' });
     const metrics = new MetricsCollector();
 
-    super('nar', { logger, metrics, eventBus });
+    super({ logger, metrics, eventBus });
 
     this.config = { ...this.validateConfig(config) };
     this.memory = new Memory(this.config, { attentionModel: this.createAttentionModel(config) });
@@ -166,16 +167,19 @@ export class NAR extends BaseComponent {
 
   override async initialize(): Promise<void> {
     await super.initialize();
-    this.logger.info('NAR initialized');
+    this.logger!.info('NAR initialized');
   }
 
   override async start(): Promise<void> {
+    if (!this.isInitialized()) {
+      await this.initialize();
+    }
     await super.start();
     await this.loadState();
     this.self?.start();
     this.lm.getEnricher()?.start();
     await this.injectBootstrapGoals();
-    this.logger.info('NAR started');
+    this.logger!.info('NAR started');
   }
 
   override async stop(): Promise<void> {
@@ -183,19 +187,29 @@ export class NAR extends BaseComponent {
     this.stopLM();
     await this.saveState();
     await super.stop();
-    this.logger.info('NAR stopped');
+    this.logger!.info('NAR stopped');
   }
 
   override async dispose(): Promise<void> {
     this.self?.shutdown();
     this.stopLM();
     await super.dispose();
-    this.logger.info('NAR disposed');
+    this.logger!.info('NAR disposed');
   }
 
   /** Whether the kernel is in a running state. */
-  isRunning(): boolean {
-    return this.state === 'running' || this.state === 'started' || this.state === 'starting';
+  override isRunning(): boolean {
+    return super.isRunning();
+  }
+
+  /** Get current lifecycle state */
+  getState(): string {
+    return this.state;
+  }
+
+  /** Get the system event bus */
+  getSystemEventBus(): NarEventBus {
+    return this.systemEventBus;
   }
 
   async input(input: string | Term, type: TaskType = 'belief', truth?: TruthType): Promise<void> {
@@ -284,10 +298,6 @@ export class NAR extends BaseComponent {
   }
 
   getEventBus(): NarEventBus {
-    return this.eventBus;
-  }
-
-  getSystemEventBus(): NarEventBus {
     return this.systemEventBus;
   }
 
@@ -592,7 +602,7 @@ export class NAR extends BaseComponent {
         )
       );
     } catch (e) {
-      this.logger.warn('NAR state save failed', { error: errMsg(e) });
+      this.logger!.warn('NAR state save failed', { error: errMsg(e) });
     }
   }
 
@@ -624,9 +634,9 @@ export class NAR extends BaseComponent {
       const lmRuleState = await this.readJsonIfExists<{ rules: any[] }>('lm-rules.json');
       if (lmRuleState) this.processor.deserializeLMRules(lmRuleState);
 
-      this.logger.info('NAR state loaded');
+      this.logger!.info('NAR state loaded');
     } catch (e) {
-      this.logger.warn('NAR state load failed', { error: errMsg(e) });
+      this.logger!.warn('NAR state load failed', { error: errMsg(e) });
     }
   }
 
@@ -684,7 +694,7 @@ export class NAR extends BaseComponent {
     for (const rule of lmRules) {
       if (structuredModel) rule.setStructuredModel(structuredModel);
       rule.setSystemEventBus(this.systemEventBus);
-      rule.setEventBus(this.eventBus);
+      rule.setEventBus(this.systemEventBus);
       rule.setNAR(this);
       rule.setToolDispatcher(toolDispatcher);
       this.processor.registerLMRule(rule);
@@ -716,7 +726,7 @@ export class NAR extends BaseComponent {
           // ai-style tools carry no name — inject the registry key.
           this.tools.register({ ...(selfTool as object), name } as Tool);
         } catch (e) {
-          this.logger.warn('Self-tool registration skipped', { name, error: errMsg(e) });
+          this.logger!.warn('Self-tool registration skipped', { name, error: errMsg(e) });
         }
       }
     }

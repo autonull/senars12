@@ -51,7 +51,8 @@ const createCompound = (kind: OperatorKey, args: Term[]): Term => {
       )
     : valid;
 
-  const key = `${kind}:${sorted.map((a) => (a.kind === 'atom' ? `atom:${a.symbol}` : a.kind)).join(',')}`;
+  // Use full term serialization for cache key to distinguish nested structures
+  const key = `${kind}:${sorted.map((a) => a.toString()).join(',')}`;
   const cached = termCache.get(key);
   if (cached) return cached;
 

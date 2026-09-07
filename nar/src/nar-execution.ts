@@ -15,6 +15,7 @@ import { createTask } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
 import { atom } from './terms';
 import { Truth } from './terms/truth.js';
+import { isCompound, isAtomic, getTermArgs, type Term, termParser } from './terms';
 import { errMsg } from './utils';
 import { META_AIKR_BOUNDS } from './rules/meta-rules.js';
 
@@ -167,6 +168,16 @@ export class NARExecution {
   private injectMetaGoals(): void {
     if (!this.driveManager) return;
 
+    // Parse meta-goal narsese strings once
+    const parsedMetaGoals: Record<string, Term> = {};
+    for (const [driveId, goal] of Object.entries(META_GOAL_BY_DRIVE)) {
+      try {
+        parsedMetaGoals[driveId] = termParser.parse(goal.narsese);
+      } catch (e) {
+        this.logger.warn('Failed to parse meta-goal narsese', { driveId, narsese: goal.narsese, error: errMsg(e) });
+      }
+    }
+
     const activeTerms = new Set(this.memory.getGoals?.().map((g) => g.term.toString()) ?? []);
     // Include pending tasks so we don't re-inject the same goal across cycles
     if (this.taskManager.peekTask()) {
@@ -178,14 +189,18 @@ export class NARExecution {
       const goal = META_GOAL_BY_DRIVE[state.spec.id];
       if (!goal) continue;
 
-      const { threshold, narsese } = goal;
-      if (intensity >= threshold || activeTerms.has(narsese)) continue;
+      const { threshold } = goal;
+      const parsedTerm = parsedMetaGoals[state.spec.id];
+      if (!parsedTerm) continue;
 
-      this.taskManager.addTask(createTask(atom(narsese), 'goal', Truth.NEUTRAL));
+      const termStr = parsedTerm.toString();
+      if (intensity >= threshold || activeTerms.has(termStr)) continue;
+
+      this.taskManager.addTask(createTask(parsedTerm, 'goal', Truth.NEUTRAL));
       this.logger.debug('Injected meta-goal from drive', {
         drive: state.spec.id,
         intensity,
-        goal: narsese,
+        goal: termStr,
       });
     }
   }
@@ -194,6 +209,16 @@ export class NARExecution {
   resetMetaBudget(): void {
     this._metaDerivationsThisStep = 0;
     this._metaDerivationDepth = 0;
+  }
+
+  /** Check if a term is a tool goal (Inheritance with predicate Atom starting with ^) */
+  private isToolGoal(term: Term): boolean {
+    if (!isCompound(term) || term.kind !== 'inheritance') return false;
+    const args = getTermArgs(term);
+    if (!args || args.length !== 2) return false;
+    const predicate = args[1];
+    if (!predicate) return false;
+    return isAtomic(predicate) && predicate.symbol.startsWith('^');
   }
 
   /**
@@ -206,8 +231,7 @@ export class NARExecution {
     if (!this.toolGoalExecutor) return;
 
     for (const task of this.taskManager.getPending()) {
-      const termStr = task.term.toString();
-      if (!termStr.startsWith('^')) continue;
+      if (!this.isToolGoal(task.term)) continue;
 
       // Take ownership of the goal so it is not re-added as a plain memory goal.
       this.taskManager.removePending(task.stamp.id);
@@ -217,7 +241,7 @@ export class NARExecution {
           | { success?: boolean; error?: string }
           | undefined;
         const ok = result?.success !== false;
-        this.logger.debug('Dispatched tool goal', { goal: termStr, success: ok, error: result?.error });
+        this.logger.debug('Dispatched tool goal', { goal: task.term.toString(), success: ok, error: result?.error });
         if (ok) {
           this.recordRLFPReward(0.7);
           this.driveManager?.stimulate('competence', 0.1);
@@ -226,7 +250,7 @@ export class NARExecution {
           this.driveManager?.stimulate('competence', -0.1);
         }
       } catch (e) {
-        this.logger.warn('Tool goal dispatch failed', { goal: termStr, error: errMsg(e) });
+        this.logger.warn('Tool goal dispatch failed', { goal: task.term.toString(), error: errMsg(e) });
         this.recordRLFPReward(-0.5);
         this.driveManager?.stimulate('competence', -0.15);
       }
