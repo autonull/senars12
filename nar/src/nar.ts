@@ -271,6 +271,10 @@ export class NAR extends BaseComponent {
     return this.execution;
   }
 
+  getCycleCount(): number {
+    return this.execution.getCycleCount();
+  }
+
   getController(): CognitiveController | undefined {
     return this.cognitiveController;
   }

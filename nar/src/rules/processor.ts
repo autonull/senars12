@@ -13,6 +13,7 @@ import type { EventBus } from '../types';
 import { toError } from '../utils';
 import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';
 import { type RegisteredRule, RuleIndex, RuleRegistry } from './types.js';
+import { META_AIKR_BOUNDS, shouldActivateMetaReasoning } from './meta-rules.js';
 
 interface LMRuleExecutionEntry {
   ruleName: string;
@@ -35,6 +36,14 @@ export interface RuleResult {
   priority: number;
 }
 
+/** Meta-reasoning budget state */
+interface MetaBudgetState {
+  derivationsThisStep: number;
+  currentDepth: number;
+  maxDerivationsPerStep: number;
+  maxDerivationDepth: number;
+}
+
 export class RuleProcessor {
   private readonly ruleIndex: RuleIndex;
   private readonly lmRules: LMRule[] = [];
@@ -46,6 +55,14 @@ export class RuleProcessor {
   private maxLMRulesPerStep = 13;
   private lmRotationIndex = 0;
   private executionLog: LMRuleExecutionEntry[] = [];
+
+  /** Meta-reasoning budget tracking */
+  private metaBudget: MetaBudgetState = {
+    derivationsThisStep: 0,
+    currentDepth: 0,
+    maxDerivationsPerStep: META_AIKR_BOUNDS.maxMetaDerivationsPerStep,
+    maxDerivationDepth: META_AIKR_BOUNDS.maxMetaDerivationDepth,
+  };
 
   constructor(rules?: RegisteredRule[]) {
     this.ruleIndex = new RuleIndex();
@@ -109,6 +126,46 @@ export class RuleProcessor {
     }
   }
 
+  /** Check if a rule is a meta-rule (by ID prefix) */
+  private isMetaRule(rule: RegisteredRule): boolean {
+    return rule.id.startsWith('meta-');
+  }
+
+  /** Check if meta-reasoning budget allows another derivation */
+  private checkMetaBudget(depth: number): boolean {
+    return (
+      this.metaBudget.derivationsThisStep < this.metaBudget.maxDerivationsPerStep &&
+      depth < this.metaBudget.maxDerivationDepth
+    );
+  }
+
+  /** Record a meta-derivation */
+  private recordMetaDerivation(depth: number): void {
+    this.metaBudget.derivationsThisStep++;
+    this.metaBudget.currentDepth = Math.max(this.metaBudget.currentDepth, depth);
+  }
+
+  /** Reset meta-budget for new step */
+  resetMetaBudget(): void {
+    this.metaBudget.derivationsThisStep = 0;
+    this.metaBudget.currentDepth = 0;
+  }
+
+  /** Get current meta-budget status */
+  getMetaBudgetStatus(): MetaBudgetState {
+    return { ...this.metaBudget };
+  }
+
+  /** Configure meta-reasoning AIKR bounds */
+  configureMetaAikr(bounds: { maxDerivationsPerStep?: number; maxDerivationDepth?: number }): void {
+    if (bounds.maxDerivationsPerStep !== undefined) {
+      this.metaBudget.maxDerivationsPerStep = bounds.maxDerivationsPerStep;
+    }
+    if (bounds.maxDerivationDepth !== undefined) {
+      this.metaBudget.maxDerivationDepth = bounds.maxDerivationDepth;
+    }
+  }
+
   async *processLMRules(
     p1: RuleInput,
     p2?: RuleInput,
@@ -122,12 +179,28 @@ export class RuleProcessor {
 
   async *process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
     for await (const [p1, p2] of premises) {
+      // Check if meta-reasoning should activate
+      const driveManager = this.nar?.getDriveManager?.();
+      const driveStates = driveManager
+        ? new Map(driveManager.getAllStates().map((ds) => [ds.spec.id, { currentIntensity: ds.currentIntensity }]))
+        : new Map();
+      const metaActive = shouldActivateMetaReasoning(driveStates);
+
       for (const rule of this.ruleIndex.match(p1.term, p2.term)) {
         if (!rule.sync) continue;
+
+        // Enforce meta-reasoning AIKR bounds
+        if (this.isMetaRule(rule)) {
+          if (!metaActive) continue; // Only fire when drives demand it
+          if (!this.checkMetaBudget(this.metaBudget.currentDepth + 1)) continue;
+        }
 
         try {
           const result = rule.apply([p1.term, p2.term]);
           if (result && validateRuleOutput(result, [p1.term, p2.term])) {
+            if (this.isMetaRule(rule)) {
+              this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
+            }
             yield buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
           } else if (result) {
             this.eventBus?.emit('rule:output-rejected', {
@@ -153,11 +226,28 @@ export class RuleProcessor {
     const p1s = p1.term.toString(),
       p2s = p2.term.toString();
 
+    // Check if meta-reasoning should activate
+    const driveManager = this.nar?.getDriveManager?.();
+    const driveStates = driveManager
+      ? new Map(driveManager.getAllStates().map((ds) => [ds.spec.id, { currentIntensity: ds.currentIntensity }]))
+      : new Map();
+    const metaActive = shouldActivateMetaReasoning(driveStates);
+
     for (const rule of matchedRules) {
       if (!rule.sync) continue;
+
+      // Enforce meta-reasoning AIKR bounds
+      if (this.isMetaRule(rule)) {
+        if (!metaActive) continue; // Only fire when drives demand it
+        if (!this.checkMetaBudget(this.metaBudget.currentDepth + 1)) continue;
+      }
+
       try {
         const result = rule.apply([p1.term, p2.term]);
         if (result && validateRuleOutput(result, [p1.term, p2.term])) {
+          if (this.isMetaRule(rule)) {
+            this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
+          }
           const rs = result.toString();
           if (rs === p1s || rs === p2s) continue;
           const rr = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);

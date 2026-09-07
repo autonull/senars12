@@ -16,6 +16,7 @@ import type { EventBus as NarEventBus } from './types/events.js';
 import { atom } from './terms';
 import { Truth } from './terms/truth.js';
 import { errMsg } from './utils';
+import { META_AIKR_BOUNDS } from './rules/meta-rules.js';
 
 /** Cognitive state summary for observability */
 export interface CognitiveStateSummary {
@@ -53,7 +54,8 @@ export class NARExecution {
     private readonly driveManager?: DriveManager,
     private readonly systemEventBus?: NarEventBus,
     private readonly self?: ReasoningAboutReasoning,
-    private readonly toolGoalExecutor?: (goalTerm: Task['term']) => Promise<unknown>
+    private readonly toolGoalExecutor?: (goalTerm: Task['term']) => Promise<unknown>,
+    private readonly ruleProcessor?: { resetMetaBudget(): void; getMetaBudgetStatus(): { derivationsThisStep: number; currentDepth: number }; recordMetaDerivation(depth: number): void }
   ) {}
 
   /** Stimulate drives based on events — homeostatic regulation. Public so tool layer can report outcomes. */
