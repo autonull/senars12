@@ -9,8 +9,8 @@ describe('NAL7 Temporal Rules', () => {
       const bird = atom('bird');
       const animal = atom('animal');
       const living = atom('living');
-      const inh1 = inheritance(bird, animal);
-      const inh2 = inheritance(bird, living);
+      const inh1 = inheritance(bird, animal)!;
+      const inh2 = inheritance(bird, living)!;
 
       const result = NALExtendedRules.sequenceIntroduction([inh1, inh2]);
 
@@ -23,8 +23,8 @@ describe('NAL7 Temporal Rules', () => {
       const cat = atom('cat');
       const animal = atom('animal');
       const living = atom('living');
-      const inh1 = inheritance(bird, animal);
-      const inh2 = inheritance(cat, living);
+      const inh1 = inheritance(bird, animal)!;
+      const inh2 = inheritance(cat, living)!;
 
       const result = NALExtendedRules.sequenceIntroduction([inh1, inh2]);
       expect(result).toBeUndefined();
@@ -36,8 +36,8 @@ describe('NAL7 Temporal Rules', () => {
       const bird = atom('bird');
       const animal = atom('animal');
       const living = atom('living');
-      const inh1 = inheritance(bird, animal);
-      const inh2 = inheritance(bird, living);
+      const inh1 = inheritance(bird, animal)!;
+      const inh2 = inheritance(bird, living)!;
 
       const result = NALExtendedRules.parallelIntroduction([inh1, inh2]);
 
@@ -48,8 +48,8 @@ describe('NAL7 Temporal Rules', () => {
     test('returns undefined for different subjects', () => {
       const bird = atom('bird');
       const cat = atom('cat');
-      const inh1 = inheritance(bird, atom('animal'));
-      const inh2 = inheritance(cat, atom('living'));
+      const inh1 = inheritance(bird, atom('animal'))!;
+      const inh2 = inheritance(cat, atom('living'))!;
 
       const result = NALExtendedRules.parallelIntroduction([inh1, inh2]);
       expect(result).toBeUndefined();
@@ -60,8 +60,8 @@ describe('NAL7 Temporal Rules', () => {
     test('creates predictive implication from sequence and inheritance', () => {
       const bird = atom('bird');
       const animal = atom('animal');
-      const seq = sequence(bird, animal);
-      const inh = inheritance(bird, animal);
+      const seq = sequence(bird, animal)!;
+      const inh = inheritance(bird, animal)!;
 
       const result = NALExtendedRules.predictiveImplication([seq, inh]);
 
@@ -73,8 +73,8 @@ describe('NAL7 Temporal Rules', () => {
       const bird = atom('bird');
       const animal = atom('animal');
       const cat = atom('cat');
-      const seq = sequence(bird, animal);
-      const inh = inheritance(cat, atom('living'));
+      const seq = sequence(bird, animal)!;
+      const inh = inheritance(cat, atom('living'))!;
 
       const result = NALExtendedRules.predictiveImplication([seq, inh]);
       expect(result).toBeUndefined();

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { IncomingFromServer } from '@senars/core';
+import type { IncomingFromServer, CognitiveDelta } from '@senars/core';
 import { Agent } from '@senars/core';
 import { NAREngine } from '@senars/nar/engine/NAREngine';
 import { startAgentUI } from '@senars/ui/server';
@@ -54,7 +54,11 @@ describe('Production loop: agent deltas reach the graph', () => {
       ws.on('message', (data: Buffer) => {
         try {
           const msg = JSON.parse(data.toString()) as IncomingFromServer;
-          console.log('[TEST] Received:', msg.type, msg.seqId ?? '', msg.ops?.length ?? 0);
+          if (msg.type === 'cognitive.delta') {
+            console.log('[TEST] Received:', msg.type, msg.seqId, msg.ops.length);
+          } else {
+            console.log('[TEST] Received:', msg.type);
+          }
           received.push(msg);
         } catch {
           /* ignore */
@@ -83,16 +87,16 @@ describe('Production loop: agent deltas reach the graph', () => {
 
     const delta = await waitFor(() =>
       received.find(
-        (d) =>
+        (d): d is CognitiveDelta =>
           d.type === 'cognitive.delta' &&
-          d.ops.some((op) => op.data?.term?.includes('cat') || op.data?.term?.includes('animal'))
+          d.ops.some((op) => op.action === 'add_node' && (op.data?.term?.includes('cat') ?? false || op.data?.term?.includes('animal') ?? false))
       )
     );
 
-    console.log('[TEST] Got cognitive.delta:', delta?.ops?.length);
+    console.log('[TEST] Got cognitive.delta:', delta?.ops.length);
     expect(delta).toBeDefined();
     if (!delta) return;
     expect(delta.type).toBe('cognitive.delta');
-    expect(delta.ops.some((op) => op.action === 'add_node')).toBe(true);
+    expect(delta.ops.some((op): op is { action: 'add_node' } => op.action === 'add_node')).toBe(true);
   }, 60000);
 });

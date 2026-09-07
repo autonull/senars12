@@ -8,7 +8,7 @@ describe('NAL2 Instance and Property Copula Rules', () => {
     test('converts inheritance to instance form', () => {
       const bird = atom('bird');
       const animal = atom('animal');
-      const inh = inheritance(bird, animal);
+      const inh = inheritance(bird, animal)!;
 
       const result = NALExtendedRules.instanceConversion([inh, inh]);
 
@@ -26,7 +26,7 @@ describe('NAL2 Instance and Property Copula Rules', () => {
     test('converts inheritance to property form', () => {
       const bird = atom('bird');
       const animal = atom('animal');
-      const inh = inheritance(bird, animal);
+      const inh = inheritance(bird, animal)!;
 
       const result = NALExtendedRules.propertyConversion([inh, inh]);
 
@@ -44,8 +44,8 @@ describe('NAL2 Instance and Property Copula Rules', () => {
     test('applies instance deduction when subject matches', () => {
       const bird = atom('bird');
       const animal = atom('animal');
-      const birdInst = instance(bird);
-      const inh = inheritance(bird, animal);
+      const birdInst = instance(bird)!;
+      const inh = inheritance(bird, animal)!;
 
       const result = NALExtendedRules.instanceDeduction([inh, birdInst]);
 
@@ -57,8 +57,8 @@ describe('NAL2 Instance and Property Copula Rules', () => {
       const bird = atom('bird');
       const cat = atom('cat');
       const animal = atom('animal');
-      const catInst = instance(cat);
-      const inh = inheritance(bird, animal);
+      const catInst = instance(cat)!;
+      const inh = inheritance(bird, animal)!;
 
       const result = NALExtendedRules.instanceDeduction([inh, catInst]);
 
@@ -70,8 +70,8 @@ describe('NAL2 Instance and Property Copula Rules', () => {
     test('applies property induction when predicate matches', () => {
       const bird = atom('bird');
       const animal = atom('animal');
-      const animalProp = property(animal);
-      const inh = inheritance(bird, animal);
+      const animalProp = property(animal)!;
+      const inh = inheritance(bird, animal)!;
 
       const result = NALExtendedRules.propertyInduction([inh, animalProp]);
 
@@ -83,8 +83,8 @@ describe('NAL2 Instance and Property Copula Rules', () => {
       const bird = atom('bird');
       const animal = atom('animal');
       const plant = atom('plant');
-      const plantProp = property(plant);
-      const inh = inheritance(bird, animal);
+      const plantProp = property(plant)!;
+      const inh = inheritance(bird, animal)!;
 
       const result = NALExtendedRules.propertyInduction([inh, plantProp]);
 

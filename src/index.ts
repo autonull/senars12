@@ -38,22 +38,10 @@ export {
 } from '@senars/io';
 export type { NARConfig } from '@senars/nar';
 export { NAR } from '@senars/nar';
-export type {
-  Agent,
-  AgentOptions,
-  AgentPresetDeps,
-  AgentPresetName,
-  AgentPresetResult,
-  AgentToolDeps,
-  BridgeContext,
-  BridgeOptions,
-  ValidatedAgentOptions,
-} from '@senars/nar/agent';
+export type { Agent } from '@senars/nar/agent';
 export {
-  agentConfigToOptions,
   buildAgentTools,
   createAgent,
-  createAgentPreset,
 } from '@senars/nar/agent';
 export type {
   Connection,

@@ -22,10 +22,10 @@ describe('Event System', () => {
   it('eventBus supports subscription', async () => {
     let fired = false;
 
-    const unsub = nar.eventBus.on('test.event', () => {
+    const unsub = nar.eventBus!.on('test.event', () => {
       fired = true;
     });
-    nar.eventBus.emit('test.event', {});
+    nar.eventBus!.emit('test.event', {});
     expect(fired).toBe(true);
     unsub();
   });
@@ -33,8 +33,8 @@ describe('Event System', () => {
   it('supports multiple event listeners', async () => {
     const events: string[] = [];
 
-    nar.eventBus.on('memory.consolidate', () => events.push('consolidate'));
-    nar.eventBus.on('task.add', () => events.push('task'));
+    nar.eventBus!.on('memory.consolidate', () => events.push('consolidate'));
+    nar.eventBus!.on('task.add', () => events.push('task'));
 
     await nar.input('test', 'belief');
     await nar.run(1);
@@ -45,11 +45,11 @@ describe('Event System', () => {
   it('allows unsubscribing from events', async () => {
     let count = 0;
 
-    const unsubscribe = nar.eventBus.on('test.unsub', () => count++);
-    nar.eventBus.emit('test.unsub', {});
+    const unsubscribe = nar.eventBus!.on('test.unsub', () => count++);
+    nar.eventBus!.emit('test.unsub', {});
     expect(count).toBe(1);
     unsubscribe();
-    nar.eventBus.emit('test.unsub', {});
+    nar.eventBus!.emit('test.unsub', {});
     expect(count).toBe(1);
   });
 
@@ -72,8 +72,8 @@ describe('Event System', () => {
 
     await nar.believe('bird. %0.9;0.9%');
     expect(activated.length).toBe(1);
-    expect(activated[0].term).toBe('bird');
-    expect(activated[0].priority).toBeCloseTo(0.81, 2); // truth.f * truth.c = 0.9 * 0.9
+    expect(activated[0]!.term).toBe('bird');
+    expect(activated[0]!.priority).toBeCloseTo(0.81, 2); // truth.f * truth.c = 0.9 * 0.9
   });
 
   it('system event bus emits derivation on goal()', async () => {

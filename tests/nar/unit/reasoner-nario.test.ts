@@ -7,6 +7,7 @@ import { Reasoner, RuleProcessor, TaskManager, TermBuilder, Truth } from '../../
 import { NARIO } from '../../../nar/src/nar-io.js';
 import { NARLM } from '../../../nar/src/nar-lm.js';
 import { createStrategy } from '../../../nar/src/reason';
+import { createTask } from '../../../nar/src/types/index.js';
 import { NAR } from '../../../src';
 
 describe('Reasoner', () => {
@@ -37,16 +38,16 @@ describe('Reasoner', () => {
   });
 
   it('should perform reasoning step', async () => {
-    await nar.input('(a --> b)', 'belief', { f: 0.9, c: 0.9 });
-    await nar.input('(b --> c)', 'belief', { f: 0.9, c: 0.9 });
+    await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
+    await nar.input('(b --> c)', 'belief', Truth.create(0.9, 0.9));
 
     const results = await reasoner.step(100, 10);
     expect(Array.isArray(results)).toBe(true);
   });
 
   it('should run reasoning with generator', async () => {
-    await nar.input('(x --> y)', 'belief', { f: 0.9, c: 0.9 });
-    await nar.input('(y --> z)', 'belief', { f: 0.9, c: 0.9 });
+    await nar.input('(x --> y)', 'belief', Truth.create(0.9, 0.9));
+    await nar.input('(y --> z)', 'belief', Truth.create(0.9, 0.9));
 
     const generator = reasoner.run(100, 10);
     const results = [];
@@ -59,7 +60,7 @@ describe('Reasoner', () => {
   });
 
   it('should collect traces when enabled', async () => {
-    await nar.input('(trace --> test)', 'belief', { f: 0.9, c: 0.9 });
+    await nar.input('(trace --> test)', 'belief', Truth.create(0.9, 0.9));
 
     await reasoner.step(100, 10);
 
@@ -68,7 +69,7 @@ describe('Reasoner', () => {
   });
 
   it('should clear traces', async () => {
-    await nar.input('(clear --> test)', 'belief', { f: 0.9, c: 0.9 });
+    await nar.input('(clear --> test)', 'belief', Truth.create(0.9, 0.9));
     await reasoner.step(100, 10);
 
     reasoner.clearTraces();
@@ -77,7 +78,7 @@ describe('Reasoner', () => {
   });
 
   it('should track derivation count', async () => {
-    await nar.input('(count --> test)', 'belief', { f: 0.9, c: 0.9 });
+    await nar.input('(count --> test)', 'belief', Truth.create(0.9, 0.9));
 
     reasoner.resetCircularDetection();
     const count = reasoner.getDerivationCount();
@@ -85,26 +86,26 @@ describe('Reasoner', () => {
   });
 
   it('should respect max derivations limit', async () => {
-    await nar.input('(limit --> test)', 'belief', { f: 0.9, c: 0.9 });
+    await nar.input('(limit --> test)', 'belief', Truth.create(0.9, 0.9));
 
     const results = await reasoner.step(100, 5);
     expect(results.length).toBeLessThanOrEqual(5);
   });
 
   it('should handle abort signal', async () => {
-    await nar.input('(abort --> test)', 'belief', { f: 0.9, c: 0.9 });
+    await nar.input('(abort --> test)', 'belief', Truth.create(0.9, 0.9));
 
     const controller = new AbortController();
     controller.abort();
 
-    const results = await reasoner.step(100, 10, controller);
+    const results = await reasoner.step(100, 10, controller.signal);
     expect(results.length).toBe(0);
   });
 
   it('should detect circular derivations', async () => {
     reasoner.resetCircularDetection();
 
-    await nar.input('(circular --> test)', 'belief', { f: 0.9, c: 0.9 });
+    await nar.input('(circular --> test)', 'belief', Truth.create(0.9, 0.9));
     await reasoner.step(100, 10);
 
     expect(reasoner.getDerivationCount()).toBeGreaterThanOrEqual(0);
@@ -133,21 +134,21 @@ describe('NARIO', () => {
   });
 
   it('should input belief', async () => {
-    await nario.input('(cat --> animal)', 'belief', { f: 0.9, c: 0.9 });
+    await nario.input('(cat --> animal)', 'belief', Truth.create(0.9, 0.9));
 
     const concepts = nar.memory.listConcepts();
     expect(concepts.length).toBeGreaterThan(0);
   });
 
   it('should believe statement', async () => {
-    await nario.believe('(dog --> mammal)', { f: 0.95, c: 0.95 });
+    await nario.believe('(dog --> mammal)', Truth.create(0.95, 0.95));
 
     const concepts = nar.memory.listConcepts();
     expect(concepts.length).toBeGreaterThan(0);
   });
 
   it('should set goal', async () => {
-    await nario.goal('(goal --> target)', { f: 0.5, c: 0.8 });
+    await nario.goal('(goal --> target)', Truth.create(0.5, 0.8));
 
     const concepts = nar.memory.listConcepts();
     expect(concepts.length).toBeGreaterThan(0);
@@ -161,7 +162,7 @@ describe('NARIO', () => {
   });
 
   it('should export state', async () => {
-    await nario.input('(export --> test)', 'belief', { f: 0.9, c: 0.9 });
+    await nario.input('(export --> test)', 'belief', Truth.create(0.9, 0.9));
 
     const state = nario.export();
     expect(state).toBeDefined();
@@ -190,7 +191,7 @@ describe('NARIO', () => {
   });
 
   it('should get memory state', async () => {
-    await nario.input('(state --> test)', 'belief', { f: 0.9, c: 0.9 });
+    await nario.input('(state --> test)', 'belief', Truth.create(0.9, 0.9));
 
     const state = await nario.getMemoryState();
     expect(state).toBeDefined();
@@ -212,7 +213,7 @@ describe('NARIO', () => {
 
   it('should handle Term input', async () => {
     const term = TermBuilder.inheritance(TermBuilder.atom('term'), TermBuilder.atom('input'));
-    await nario.input(term, 'belief', { f: 0.8, c: 0.85 });
+    await nario.input(term!, 'belief', Truth.create(0.8, 0.85));
 
     const concepts = nar.memory.listConcepts();
     expect(concepts.length).toBeGreaterThan(0);
@@ -225,7 +226,7 @@ describe('NARLM', () => {
 
   beforeEach(() => {
     nar = new NAR();
-    narlm = new NARLM(nar.memory, undefined, false, false);
+    narlm = new NARLM(nar.memory, undefined, undefined, false, false);
   });
 
   it('should create NARLM instance', () => {
@@ -245,22 +246,8 @@ describe('NARLM', () => {
   });
 
   it('should handle processHypothesisWithFeedback without feedback loop', async () => {
-    const term = TermBuilder.inheritance(TermBuilder.atom('hypothesis'), TermBuilder.atom('test'));
-    const task = {
-      term,
-      type: 'belief' as const,
-      truth: Truth.create(0.5, 0.8),
-      budget: { priority: 0.5, durability: 0.7, quality: 0.85, cycles: 0, depth: 0 },
-      stamp: {
-        id: 'test',
-        creationTime: Date.now(),
-        source: 'INPUT' as const,
-        derivations: [],
-        depth: 0,
-      },
-      occurrenceTime: Date.now(),
-      derived: false,
-    };
+    const term = TermBuilder.inheritance(TermBuilder.atom('hypothesis'), TermBuilder.atom('test'))!;
+    const task = createTask(term, 'belief', Truth.create(0.5, 0.8));
 
     const result = await narlm.processHypothesisWithFeedback(task);
     expect(result).toBe(false);
@@ -305,15 +292,15 @@ describe('Integration: Reasoner + NARIO', () => {
   });
 
   it('should chain input and reasoning', async () => {
-    await nario.input('(a --> b)', 'belief', { f: 0.9, c: 0.9 });
-    await nario.input('(b --> c)', 'belief', { f: 0.9, c: 0.9 });
+    await nario.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
+    await nario.input('(b --> c)', 'belief', Truth.create(0.9, 0.9));
 
     const results = await reasoner.step(100, 10);
     expect(Array.isArray(results)).toBe(true);
   });
 
   it('should export after reasoning', async () => {
-    await nario.input('(export --> test)', 'belief', { f: 0.9, c: 0.9 });
+    await nario.input('(export --> test)', 'belief', Truth.create(0.9, 0.9));
     await reasoner.step(100, 10);
 
     const state = nario.export();

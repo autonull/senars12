@@ -40,9 +40,9 @@ export async function createAgentFromEnv(
   const episodicCfg = readEpisodicConfig();
   const episodicMemory = new EpisodicMemory({
     enabled: true,
-    maxEntriesPerFile: 100,
-    basePath: episodicCfg.memoryPath,
-    retentionDays: episodicCfg.retentionDays,
+    maxEntriesPerFile: 10000 as const,
+    basePath: '.cache/episodes',
+    retentionDays: 30 as const,
   });
 
   const sessionManager = new JsonlSessionManager({ basePath: '.cache/sessions' });

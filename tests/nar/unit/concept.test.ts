@@ -8,7 +8,7 @@ import { Concept, Stamp, TermBuilder, Truth } from '../../../nar/src';
 describe('Concept', () => {
   let concept: Concept;
   const createTestConcept = () => {
-    const term = TermBuilder.inheritance(TermBuilder.atom('cat'), TermBuilder.atom('animal'));
+    const term = TermBuilder.inheritance(TermBuilder.atom('cat'), TermBuilder.atom('animal'))!;
     return new Concept(term);
   };
 
@@ -45,7 +45,7 @@ describe('Concept', () => {
 
   describe('priority management', () => {
     beforeEach(() => {
-      const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'));
+      const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'))!;
       concept = new Concept(term);
     });
 
@@ -79,8 +79,8 @@ describe('Concept', () => {
   });
 
   describe('task management', () => {
-    const createTask = (type = 'belief' as const) => ({
-      term: TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept')),
+    const createTask = (_type: 'belief' | 'goal' | 'question' = 'belief') => ({
+      term: TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'))!,
       truth: Truth.create(0.9, 0.9),
       budget: { priority: 0.8, durability: 0.7, quality: 0.85, cycles: 0, depth: 0 },
       stamp: Stamp.createInput(),
@@ -89,7 +89,7 @@ describe('Concept', () => {
     });
 
     beforeEach(() => {
-      const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'));
+      const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'))!;
       concept = new Concept(term);
     });
 
@@ -116,7 +116,7 @@ describe('Concept', () => {
 
   describe('belief revision', () => {
     const createTask = () => ({
-      term: TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept')),
+      term: TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'))!,
       truth: Truth.create(0.9, 0.9),
       budget: { priority: 0.8, durability: 0.7, quality: 0.85, cycles: 0, depth: 0 },
       stamp: Stamp.createInput(),
@@ -125,7 +125,7 @@ describe('Concept', () => {
     });
 
     beforeEach(() => {
-      const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'));
+      const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'))!;
       concept = new Concept(term);
     });
 
@@ -148,8 +148,8 @@ describe('Concept', () => {
     let concept2: Concept;
 
     beforeEach(() => {
-      const term1 = TermBuilder.inheritance(TermBuilder.atom('cat'), TermBuilder.atom('animal'));
-      const term2 = TermBuilder.inheritance(TermBuilder.atom('dog'), TermBuilder.atom('animal'));
+      const term1 = TermBuilder.inheritance(TermBuilder.atom('cat'), TermBuilder.atom('animal'))!;
+      const term2 = TermBuilder.inheritance(TermBuilder.atom('dog'), TermBuilder.atom('animal'))!;
       concept1 = new Concept(term1);
       concept2 = new Concept(term2);
     });
@@ -158,8 +158,8 @@ describe('Concept', () => {
       concept1.addLink(concept2, 0.7);
       const links = concept1.getLinks();
       expect(links).toHaveLength(1);
-      expect(links[0].concept).toBe(concept2);
-      expect(links[0].strength).toBe(0.7);
+      expect(links[0]!.concept).toBe(concept2);
+      expect(links[0]!.strength).toBe(0.7);
     });
 
     it('gets linked concepts', () => {
@@ -198,8 +198,8 @@ describe('Concept', () => {
     let concept2: Concept;
 
     beforeEach(() => {
-      const term1 = TermBuilder.inheritance(TermBuilder.atom('cat'), TermBuilder.atom('animal'));
-      const term2 = TermBuilder.inheritance(TermBuilder.atom('cat'), TermBuilder.atom('mammal'));
+      const term1 = TermBuilder.inheritance(TermBuilder.atom('cat'), TermBuilder.atom('animal'))!;
+      const term2 = TermBuilder.inheritance(TermBuilder.atom('cat'), TermBuilder.atom('mammal'))!;
       concept1 = new Concept(term1);
       concept2 = new Concept(term2);
     });
@@ -245,11 +245,11 @@ describe('Concept', () => {
       const parentTerm = TermBuilder.inheritance(
         TermBuilder.atom('animal'),
         TermBuilder.atom('entity')
-      );
+      )!;
       const childTerm = TermBuilder.inheritance(
         TermBuilder.atom('cat'),
         TermBuilder.atom('animal')
-      );
+      )!;
       parent = new Concept(parentTerm);
       child = new Concept(childTerm);
     });
@@ -278,7 +278,7 @@ describe('Concept', () => {
 
   describe('activation', () => {
     beforeEach(() => {
-      const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'));
+      const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'))!;
       concept = new Concept(term);
     });
 
@@ -306,7 +306,7 @@ describe('Concept', () => {
 
   describe('serialization', () => {
     it('serializes and deserializes', () => {
-      const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'));
+      const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'))!;
       const concept = new Concept(term);
       concept.priority = 0.75;
 
@@ -317,7 +317,7 @@ describe('Concept', () => {
 
   describe('edge cases', () => {
     it('handles multiple beliefs', () => {
-      const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'));
+      const term = TermBuilder.inheritance(TermBuilder.atom('test'), TermBuilder.atom('concept'))!;
       const concept = new Concept(term);
 
       for (let i = 0; i < 10; i++) {
@@ -335,7 +335,7 @@ describe('Concept', () => {
     });
 
     it('handles decay on old concepts', () => {
-      const term = TermBuilder.inheritance(TermBuilder.atom('old'), TermBuilder.atom('concept'));
+      const term = TermBuilder.inheritance(TermBuilder.atom('old'), TermBuilder.atom('concept'))!;
       const concept = new Concept(term);
       concept.priority = 0.9;
 

@@ -25,6 +25,7 @@ describe('SqliteEventLog', () => {
 
   it('appends and returns an event with id and timestamp', async () => {
     const event = await log.append({
+      engine: 'nar',
       type: 'input.user',
       payload: { text: 'hello', source: 'test' },
       correlationId: '00000000-0000-0000-0000-000000000001',
@@ -38,8 +39,9 @@ describe('SqliteEventLog', () => {
   it('rejects events with invalid payload', async () => {
     await expect(
       log.append({
+      engine: 'nar',
         type: 'input.user',
-        payload: { wrong: 'data' },
+        payload: { wrong: 'data' } as unknown as CognitiveEvent['payload'],
         correlationId: '00000000-0000-0000-0000-000000000002',
       })
     ).rejects.toThrow();
@@ -49,6 +51,7 @@ describe('SqliteEventLog', () => {
     const small = new SqliteEventLog({ path: tmpDb(), maxEventSize: 10 });
     await expect(
       small.append({
+      engine: 'nar',
         type: 'input.user',
         payload: { text: 'too long', source: 'test' },
         correlationId: '00000000-0000-0000-0000-000000000003',
@@ -61,6 +64,7 @@ describe('SqliteEventLog', () => {
     await log.close();
     await expect(
       log.append({
+      engine: 'nar',
         type: 'input.user',
         payload: { text: 'x', source: 'test' },
         correlationId: '00000000-0000-0000-0000-000000000004',
@@ -71,12 +75,14 @@ describe('SqliteEventLog', () => {
   it('reports size', async () => {
     expect(log.size).toBe(0);
     await log.append({
+      engine: 'nar',
       type: 'input.user',
       payload: { text: 'a', source: 'test' },
       correlationId: '00000000-0000-0000-0000-000000000005',
     });
     expect(log.size).toBe(1);
     await log.append({
+      engine: 'nar',
       type: 'belief.added',
       payload: { term: 'bird', truth: { frequency: 1, confidence: 0.9 } },
       correlationId: '00000000-0000-0000-0000-000000000006',
@@ -86,16 +92,19 @@ describe('SqliteEventLog', () => {
 
   it('getRange returns events by id range', async () => {
     const e1 = await log.append({
+      engine: 'nar',
       type: 'input.user',
       payload: { text: 'first', source: 'test' },
       correlationId: 'a0000000-0000-0000-0000-000000000001',
     });
     const e2 = await log.append({
+      engine: 'nar',
       type: 'input.user',
       payload: { text: 'second', source: 'test' },
       correlationId: 'a0000000-0000-0000-0000-000000000002',
     });
     const e3 = await log.append({
+      engine: 'nar',
       type: 'input.user',
       payload: { text: 'third', source: 'test' },
       correlationId: 'a0000000-0000-0000-0000-000000000003',
@@ -105,32 +114,34 @@ describe('SqliteEventLog', () => {
     expect(all).toHaveLength(3);
 
     // ids increase lexicographically for same-millisecond ULIDs
-    expect(e1.id < e2.id).toBe(true);
-    expect(e2.id < e3.id).toBe(true);
+    expect(e1.id! < e2.id!).toBe(true);
+    expect(e2.id! < e3.id!).toBe(true);
 
-    const range = await log.getRange(e1.id, e3.id);
+    const range = await log.getRange(e1.id!, e3.id!);
     expect(range).toHaveLength(2);
-    expect(range[0]!.id).toBe(e2.id);
-    expect(range[1]!.id).toBe(e3.id);
+    expect(range[0]!.id).toBe(e2.id!);
+    expect(range[1]!.id).toBe(e3.id!);
 
-    const fromE2 = await log.getRange(e1.id);
+    const fromE2 = await log.getRange(e1.id!);
     expect(fromE2).toHaveLength(2);
-    expect(fromE2[0]!.id).toBe(e2.id);
+    expect(fromE2[0]!.id).toBe(e2.id!);
   });
 
   it('getRange without toId returns all events after fromId', async () => {
     const e1 = await log.append({
+      engine: 'nar',
       type: 'input.user',
       payload: { text: 'a', source: 'test' },
       correlationId: 'b0000000-0000-0000-0000-000000000001',
     });
     await log.append({
+      engine: 'nar',
       type: 'input.user',
       payload: { text: 'b', source: 'test' },
       correlationId: 'b0000000-0000-0000-0000-000000000002',
     });
 
-    const range = await log.getRange(e1.id);
+    const range = await log.getRange(e1.id!);
     expect(range).toHaveLength(1);
   });
 
@@ -140,6 +151,7 @@ describe('SqliteEventLog', () => {
     const iter = sub[Symbol.asyncIterator]();
 
     const event = await log.append({
+      engine: 'nar',
       type: 'input.user',
       payload: { text: 'hello', source: 'test' },
       correlationId: 'c0000000-0000-0000-0000-000000000001',
@@ -154,6 +166,7 @@ describe('SqliteEventLog', () => {
 
   it('subscribe with fromId replays past events', async () => {
     const e1 = await log.append({
+      engine: 'nar',
       type: 'input.user',
       payload: { text: 'past', source: 'test' },
       correlationId: 'd0000000-0000-0000-0000-000000000001',
@@ -163,6 +176,7 @@ describe('SqliteEventLog', () => {
     const iter = sub[Symbol.asyncIterator]();
 
     const e2 = await log.append({
+      engine: 'nar',
       type: 'input.user',
       payload: { text: 'future', source: 'test' },
       correlationId: 'd0000000-0000-0000-0000-000000000002',
@@ -179,6 +193,7 @@ describe('SqliteEventLog', () => {
     const iter = sub[Symbol.asyncIterator]();
 
     const e1 = await log.append({
+      engine: 'nar',
       type: 'input.user',
       payload: { text: 'replayed', source: 'test' },
       correlationId: 'd0000000-0000-0000-0000-000000000003',
@@ -192,6 +207,7 @@ describe('SqliteEventLog', () => {
 
   it('subscribe with type filter', async () => {
     await log.append({
+      engine: 'nar',
       type: 'config.set',
       payload: { path: 'key', value: 'val' },
       correlationId: 'e0000000-0000-0000-0000-000000000001',
@@ -201,6 +217,7 @@ describe('SqliteEventLog', () => {
     const iter = sub[Symbol.asyncIterator]();
 
     await log.append({
+      engine: 'nar',
       type: 'input.user',
       payload: { text: 'match', source: 'test' },
       correlationId: 'e0000000-0000-0000-0000-000000000002',
@@ -214,6 +231,7 @@ describe('SqliteEventLog', () => {
 
   it('persists events across instances', async () => {
     const e1 = await log.append({
+      engine: 'nar',
       type: 'input.user',
       payload: { text: 'persist', source: 'test' },
       correlationId: 'f0000000-0000-0000-0000-000000000001',
@@ -223,7 +241,7 @@ describe('SqliteEventLog', () => {
     const log2 = new SqliteEventLog({ path: dbPath });
     expect(log2.size).toBe(1);
 
-    const range = await log2.getRange(e1.id);
+    const range = await log2.getRange(e1.id!);
     expect(range).toHaveLength(0);
 
     const allRange = await log2.getRange('');

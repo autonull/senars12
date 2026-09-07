@@ -3,7 +3,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
-import { termParser } from '../../../nar/src';
+import { termParser, Truth } from '../../../nar/src';
 import {
   createQueryAPI,
   createReasoningTrace,
@@ -47,14 +47,14 @@ describe('QueryAPI', () => {
   });
 
   it('should query beliefs after input', async () => {
-    await nar.input('(cat --> animal)', 'belief', { f: 0.9, c: 0.9 });
+    await nar.input('(cat --> animal)', 'belief', Truth.create(0.9, 0.9));
     const beliefs = queryAPI.getBeliefs();
     expect(beliefs.length).toBeGreaterThan(0);
   });
 
   it('should limit results', async () => {
     for (let i = 0; i < 10; i++) {
-      await nar.input(`(concept${i} --> property)`, 'belief', { f: 0.9, c: 0.9 });
+      await nar.input(`(concept${i} --> property)`, 'belief', Truth.create(0.9, 0.9));
     }
 
     const beliefs = queryAPI.getBeliefs();
@@ -63,8 +63,8 @@ describe('QueryAPI', () => {
 
   describe('Query by Type', () => {
     it('should filter beliefs by type', async () => {
-      await nar.input('(a --> b)', 'belief', { f: 0.9, c: 0.9 });
-      await nar.input('(c --> d)', 'goal', { f: 0.5, c: 0.8 });
+      await nar.input('(a --> b)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(c --> d)', 'goal', Truth.create(0.5, 0.8));
 
       const beliefs = queryAPI.getBeliefs();
       const goals = queryAPI.getGoals();
@@ -81,15 +81,15 @@ describe('QueryAPI', () => {
 
   describe('Query with Filters', () => {
     it('should apply truth range filter', async () => {
-      await nar.input('(high --> truth)', 'belief', { f: 0.9, c: 0.9 });
-      await nar.input('(low --> truth)', 'belief', { f: 0.3, c: 0.5 });
+      await nar.input('(high --> truth)', 'belief', Truth.create(0.9, 0.9));
+      await nar.input('(low --> truth)', 'belief', Truth.create(0.3, 0.5));
 
       const allBeliefs = queryAPI.getBeliefs();
       expect(allBeliefs.length).toBeGreaterThan(0);
     });
 
     it('should apply pattern filter', async () => {
-      await nar.input('(specific --> term)', 'belief', { f: 0.9, c: 0.9 });
+      await nar.input('(specific --> term)', 'belief', Truth.create(0.9, 0.9));
 
       const beliefs = queryAPI.getBeliefs();
       expect(beliefs.length).toBeGreaterThan(0);
@@ -98,7 +98,7 @@ describe('QueryAPI', () => {
 
   describe('Ask Method', () => {
     it('should answer known question', async () => {
-      await nar.input('(known --> fact)', 'belief', { f: 0.9, c: 0.9 });
+      await nar.input('(known --> fact)', 'belief', Truth.create(0.9, 0.9));
 
       const answer = await queryAPI.ask('(known --> fact)');
       expect(answer).toBeDefined();
@@ -117,7 +117,7 @@ describe('QueryAPI', () => {
     });
 
     it('should include evidence when available', async () => {
-      await nar.input('(evidence --> test)', 'belief', { f: 0.95, c: 0.95 });
+      await nar.input('(evidence --> test)', 'belief', Truth.create(0.95, 0.95));
 
       const answer = await queryAPI.ask('(evidence --> test)');
       expect(Array.isArray(answer.evidence)).toBe(true);
@@ -126,7 +126,7 @@ describe('QueryAPI', () => {
 
   describe('Query Method', () => {
     it('should query by term', async () => {
-      await nar.input('(query --> test)', 'belief', { f: 0.9, c: 0.9 });
+      await nar.input('(query --> test)', 'belief', Truth.create(0.9, 0.9));
 
       const term = termParser.parse('(query --> test)');
       const result = queryAPI.query(term);
@@ -156,7 +156,7 @@ describe('ReasoningTrace', () => {
   });
 
   it('should trace term', async () => {
-    await nar.input('(traced --> concept)', 'belief', { f: 0.9, c: 0.9 });
+    await nar.input('(traced --> concept)', 'belief', Truth.create(0.9, 0.9));
 
     const term = termParser.parse('(traced --> concept)');
     const result = trace.trace(term);
@@ -177,7 +177,7 @@ describe('ReasoningTrace', () => {
 
   describe('Explain Method', () => {
     it('should explain conclusion', async () => {
-      await nar.input('(conclusion --> test)', 'belief', { f: 0.9, c: 0.9 });
+      await nar.input('(conclusion --> test)', 'belief', Truth.create(0.9, 0.9));
 
       const concepts = nar.memory.listConcepts();
       const concept = concepts.find((c) => c.term.toString() === '(conclusion --> test)');
@@ -207,7 +207,7 @@ describe('ReasoningTrace', () => {
     });
 
     it('should handle explanation with no premises', async () => {
-      await nar.input('(simple --> fact)', 'belief', { f: 0.8, c: 0.8 });
+      await nar.input('(simple --> fact)', 'belief', Truth.create(0.8, 0.8));
 
       const concepts = nar.memory.listConcepts();
       const concept = concepts.find((c) => c.term.toString() === '(simple --> fact)');
@@ -234,7 +234,7 @@ describe('ReasoningTrace', () => {
 
   describe('Derivation Tree', () => {
     it('should build derivation tree', async () => {
-      await nar.input('(tree --> root)', 'belief', { f: 0.9, c: 0.9 });
+      await nar.input('(tree --> root)', 'belief', Truth.create(0.9, 0.9));
 
       const concepts = nar.memory.listConcepts();
       const concept = concepts.find((c) => c.term.toString() === '(tree --> root)');
@@ -262,7 +262,7 @@ describe('ReasoningTrace', () => {
     });
 
     it('should get derivation path', async () => {
-      await nar.input('(path --> test)', 'belief', { f: 0.9, c: 0.9 });
+      await nar.input('(path --> test)', 'belief', Truth.create(0.9, 0.9));
 
       const concepts = nar.memory.listConcepts();
       const concept = concepts.find((c) => c.term.toString() === '(path --> test)');
@@ -289,7 +289,7 @@ describe('ReasoningTrace', () => {
 
   describe('Record Derivation', () => {
     it('should record derivation', async () => {
-      await nar.input('(recorded --> derivation)', 'belief', { f: 0.9, c: 0.9 });
+      await nar.input('(recorded --> derivation)', 'belief', Truth.create(0.9, 0.9));
 
       const concepts = nar.memory.listConcepts();
       const concept = concepts.find((c) => c.term.toString() === '(recorded --> derivation)');
@@ -327,7 +327,7 @@ describe('QueryAPI and ReasoningTrace Integration', () => {
   });
 
   it('should work together for reasoning analysis', async () => {
-    await nar.input('(integration --> test)', 'belief', { f: 0.9, c: 0.9 });
+    await nar.input('(integration --> test)', 'belief', Truth.create(0.9, 0.9));
 
     const beliefs = queryAPI.getBeliefs();
     expect(beliefs.length).toBeGreaterThan(0);
@@ -338,7 +338,7 @@ describe('QueryAPI and ReasoningTrace Integration', () => {
   });
 
   it('should support question answering workflow', async () => {
-    await nar.input('(workflow --> example)', 'belief', { f: 0.95, c: 0.95 });
+    await nar.input('(workflow --> example)', 'belief', Truth.create(0.95, 0.95));
 
     const answer = await queryAPI.ask('(workflow --> example)');
     expect(answer).toBeDefined();

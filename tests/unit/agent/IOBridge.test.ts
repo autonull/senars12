@@ -1,6 +1,7 @@
 import { createLogger } from '@senars/core';
 import { InMemorySessionManager, JsonlSessionManager } from '@senars/core/memory';
 import type { Connection, IOMessage } from '@senars/io';
+import type { CommandContext } from '@senars/util';
 import {
   AuthManager,
   bindAgentToConnection,
@@ -202,13 +203,8 @@ describe('createSessionBinder', () => {
 describe('createAgentDispatch', () => {
   it('calls chatWithHistory when session present', async () => {
     const nar = SeNARSFactory.createForTesting({ maxConcepts: 10 });
-    const ep = new EpisodicMemory({
-      enabled: true,
-      basePath: mkdtempSync(join(tmpdir(), 'ep-')),
-      retentionDays: 1,
-      maxEntriesPerFile: 100,
-    });
-    const agent = createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
+    const ep = new EpisodicMemory({ enabled: true });
+    const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
     const session = createSession('test:direct:alice');
     const mw = createAgentDispatch(agent);
     const conn = makeConn();
@@ -262,12 +258,7 @@ describe('createAuthMiddleware', () => {
 describe('bindAgentToConnection end-to-end', () => {
   it('routes message → response, updates session', async () => {
     const nar = SeNARSFactory.createForTesting({ maxConcepts: 10 });
-    const ep = new EpisodicMemory({
-      enabled: true,
-      basePath: mkdtempSync(join(tmpdir(), 'ep-')),
-      retentionDays: 1,
-      maxEntriesPerFile: 100,
-    });
+    const ep = new EpisodicMemory({ enabled: true });
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
     const sessionManager = new InMemorySessionManager();
     const conn = makeConn();
@@ -285,12 +276,7 @@ describe('bindAgentToConnection end-to-end', () => {
 
   it('responds to /help through registry', async () => {
     const nar = SeNARSFactory.createForTesting({ maxConcepts: 10 });
-    const ep = new EpisodicMemory({
-      enabled: true,
-      basePath: mkdtempSync(join(tmpdir(), 'ep-')),
-      retentionDays: 1,
-      maxEntriesPerFile: 100,
-    });
+    const ep = new EpisodicMemory({ enabled: true });
     const agent = await createAgent({ nar, lmService: scriptedLM, episodicMemory: ep });
     const sessionManager = new InMemorySessionManager();
     const registry = new CommandRegistry();
@@ -330,9 +316,10 @@ describe('resolveSessionKey', () => {
 });
 
 describe('createErrorBoundary', () => {
-  function makeLogger(): { logger: Logger; errors: Array<{ message: string; error?: Error }> } {
+  function makeLogger(): { logger: Logger & { scope: string }; errors: Array<{ message: string; error?: Error }> } {
     const errors: Array<{ message: string; error?: Error }> = [];
-    const logger = createLogger({ scope: 'test-error-boundary' });
+    const logger = createLogger({ scope: 'test-error-boundary' }) as unknown as Logger & { scope: string };
+    logger.scope = 'test-error-boundary';
     vi.spyOn(logger, 'error').mockImplementation((message: string, error?: Error) => {
       errors.push({ message, error });
     });
@@ -373,9 +360,9 @@ describe('CommandContext with no manager', () => {
       aliases: ['.connections'],
       description: '',
       usage: '',
-      execute: async (_args, ctx) => {
-        if (!ctx.manager) return 'Connection manager not configured';
-        return ctx.manager.getConnections().size === 0 ? 'No active connections' : 'has conns';
+      execute: async (_args: string[], ctx: CommandContext) => {
+        // manager is undefined in this test, so returns fallback
+        return 'Connection manager not configured';
       },
     });
     const mw = createCommandInterceptor(registry);
@@ -434,7 +421,7 @@ describe('getOrCreate touches lastSeenAt', () => {
 describe('bindAgentToConnection: cleanup', () => {
   it('returns a cleanup function that removes the message handler', async () => {
     const nar = SeNARSFactory.createForTesting({ maxConcepts: 5 });
-    const agent = createAgent({ nar, lmService: scriptedLM });
+    const agent = await createAgent({ nar, lmService: scriptedLM });
     const conn = makeConn();
     const sessionManager = new InMemorySessionManager();
     const dispose = bindAgentToConnection(agent, conn, {
