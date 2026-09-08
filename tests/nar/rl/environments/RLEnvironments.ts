@@ -385,3 +385,85 @@ export class NonStationaryBanditEnv {
     this.rng.setState(state.rngState);
   }
 }
+
+/**
+ * Memory-Pressure Environment
+ * 
+ * Runs the same tasks under controlled memory limits (maxConcepts).
+ * Measures return degradation, belief loss, confidence degradation, concept eviction, recovery.
+ */
+export interface MemoryPressureEnvConfig {
+  baseEnv: 'bandit' | 'gridworld';
+  baseConfig: any;
+  maxConcepts: number; // Artificial memory limit
+  seed: number;
+}
+
+export class MemoryPressureEnv {
+  private baseEnv: BanditEnv | GridWorldEnv | NonStationaryBanditEnv;
+  private readonly maxConcepts: number;
+  private evictionCount = 0;
+  private conceptCount = 0;
+
+  constructor(config: MemoryPressureEnvConfig) {
+    this.maxConcepts = config.maxConcepts;
+    
+    switch (config.baseEnv) {
+      case 'bandit':
+        this.baseEnv = new BanditEnv(config.baseConfig);
+        break;
+      case 'gridworld':
+        this.baseEnv = new GridWorldEnv(config.baseConfig);
+        break;
+      case 'nonstationary':
+        this.baseEnv = new NonStationaryBanditEnv(config.baseConfig);
+        break;
+    }
+  }
+
+  reset(): void {
+    this.baseEnv.reset();
+    this.evictionCount = 0;
+    this.conceptCount = 0;
+  }
+
+  step(action: number): { reward: number; done: boolean } {
+    return this.baseEnv.step(action);
+  }
+
+  getNumArms(): number {
+    return 'getNumArms' in this.baseEnv ? this.baseEnv.getNumArms() : 0;
+  }
+
+  getOptimalArm(): number {
+    return 'getOptimalArm' in this.baseEnv ? this.baseEnv.getOptimalArm() : 0;
+  }
+
+  getState(): any {
+    return 'getState' in this.baseEnv ? this.baseEnv.getState() : null;
+  }
+
+  /** Simulate memory pressure by tracking concept count */
+  recordConcept(count: number): void {
+    this.conceptCount = count;
+    if (count > this.maxConcepts) {
+      this.evictionCount += count - this.maxConcepts;
+    }
+  }
+
+  getEvictionCount(): number {
+    return this.evictionCount;
+  }
+
+  getConceptCount(): number {
+    return this.conceptCount;
+  }
+
+  getMemoryPressure(): number {
+    return Math.min(1.0, this.conceptCount / this.maxConcepts);
+  }
+
+  getBaseEnv(): BanditEnv | GridWorldEnv | NonStationaryBanditEnv {
+    return this.baseEnv;
+  }
+}

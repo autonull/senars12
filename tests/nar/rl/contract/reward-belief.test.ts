@@ -101,7 +101,7 @@ describe('Reward and Value Representation Contract', () => {
   });
 
   test('Terminal reward creates appropriate satisfaction signal', async () => {
-    // Goal satisfaction: (reward:high)!
+    // Goal satisfaction: reward:high!
     const satisfactionGoal = TermBuilder.atom('reward:high');
     await nar.goal(satisfactionGoal);
 

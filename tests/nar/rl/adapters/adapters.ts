@@ -1,6 +1,7 @@
 import { SeededRNG } from '../environments/RLEnvironments';
 import { TermBuilder, Truth, type Term, type TruthType } from '../../../../nar/src';
 import { NAR } from '../../../../nar/src/nar';
+import { DriveManager } from '../../../../nar/src/drives';
 
 /**
  * Converts RL environment observations to NAR belief tasks
@@ -130,8 +131,9 @@ export class GoalActionAdapter {
       return TermBuilder.inheritance(product, opAtom);
     }
 
-    // Simple operation without arguments
-    return opAtom;
+    // Simple operation without arguments: use empty Product (Atom('true') as placeholder)
+    const emptyProduct = TermBuilder.atom('true');
+    return TermBuilder.inheritance(emptyProduct, opAtom);
   }
 
   /** Propose an action as a goal to NAR */
@@ -162,9 +164,11 @@ export class GoalActionAdapter {
 export class QBeliefStore {
   private readonly nar: NAR;
   private readonly predictsRewardAtom = TermBuilder.atom('predicts_reward');
+  private readonly driveManager?: DriveManager;
 
   constructor(nar: NAR) {
     this.nar = nar;
+    this.driveManager = nar.getDriveManager?.();
   }
 
   /** Get value belief for state-action pair */
@@ -230,6 +234,37 @@ export class QBeliefStore {
     }
 
     return bestAction;
+  }
+
+  /** Get low-confidence actions for curiosity-driven exploration */
+  getLowConfidenceActions(state: Term, availableActions: Term[], confidenceThreshold: number = 0.5): Term[] {
+    const lowConfidence: Term[] = [];
+    for (const action of availableActions) {
+      const value = this.getValue(state, action);
+      if (!value || value.c < confidenceThreshold) {
+        lowConfidence.push(action);
+      }
+    }
+    return lowConfidence;
+  }
+
+  /** Check if curiosity drive should trigger exploration */
+  shouldExplore(curiosityThreshold: number = 0.3): boolean {
+    if (!this.driveManager) return false;
+    const curiosityState = this.driveManager.getState('curiosity');
+    return curiosityState ? curiosityState.currentIntensity > curiosityThreshold : false;
+  }
+
+  /** Get curiosity drive intensity */
+  getCuriosityIntensity(): number {
+    if (!this.driveManager) return 0;
+    const curiosityState = this.driveManager.getState('curiosity');
+    return curiosityState ? curiosityState.currentIntensity : 0;
+  }
+
+  /** Stimulate curiosity drive (call when encountering novel/uncertain situations) */
+  stimulateCuriosity(amount: number = 0.1): void {
+    this.driveManager?.stimulate('curiosity', amount);
   }
 }
 
