@@ -1,34 +1,123 @@
 # SeNARS12 Architecture Specification: The Focus-Game-Reflex Kernel
 
-**Status:** Active Architectural RFC  
-**Supersedes:** All prior RL-adapter and self-modification pipelines  
-**Core Principle:** *Cognitive competence and attentional isolation must be proven before autonomous self-modification
-is permitted.*
+**Status:** Active Architectural RFC (Target Architecture)  
+**Current Implementation:** Traditional NAR Architecture (see §15)  
+**M3.5 Progress:** 2/3 Environments Passing (Bandit ✅, NonStationary ✅, GridWorld ⚠️)  
+**Core Principle:** *Cognitive competence and attentional isolation must be proven before autonomous self-modification is permitted.*
 
 ---
 
 ## 1. Executive Summary
 
-SeNARS12 is not an RL agent with a symbolic bolt-on, nor is it a symbolic engine with an RL test harness. It is an
-**AIKR-bounded cognitive kernel** built on five symmetrical primitives.
+This document specifies the **target architecture** for SeNARS12: the **Focus-Game-Reflex Kernel**. It is an RFC describing where the architecture is heading, not a description of the current codebase.
 
-By adopting a unified generic `Bag` container and strict one-word NARchy terminology, the architecture achieves profound
-elegance: **The system plays `Game`s inside isolated `Focus`es, schedules them via a system-wide `Bag<Focus>`,
-accelerates behavior with `Reflex`es, arbitrates action through NAL, and governs itself through `MetaGame`s.**
+The current codebase (as of 2026-09-08) implements a **Traditional NAR Architecture** with a single global Memory, TaskManager, Reasoner, and multi-phase NARExecution loop. This architecture has successfully passed M3.5 Cognitive Grounding for Bandit and NonStationary environments (see TODO2.md progress). GridWorld native parity requires TD-learning validation.
 
-This specification defines the exact contracts, boundaries, and execution loops required to complete **Milestone 3.5 (
-Cognitive Grounding)**, which serves as the mandatory gate before any further autonomous self-modification (M4).
+The Focus-Game-Reflex Kernel represents the **next architectural evolution** — decomposing the monolithic NAR into isolated `Focus` vessels, explicit `Game` environments, pluggable `Reflex` accelerators, and a system-wide `Bag<Focus>` attention economy. This enables true multi-task cognitive isolation and MetaGame self-governance.
+
+**Milestone 3.5 (Cognitive Grounding)** serves as the mandatory validation gate for the *current* architecture. The Focus-Game-Reflex refactor is **post-M3.5 work** (M4+).
 
 ---
 
-## 2. The Core Primitives (The NARchy Synthesis)
+## 2. Two Architectures: Current vs. Target
 
-The entire cognitive architecture is constructed from a single generic container and four domain entities.
+### 2.1 Current Architecture (Implemented, M3.5 Validated)
 
-### 2.1 The Generic `Bag<T>` (Universal Container)
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        NAR CORE                               │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │   Memory    │  │ TaskManager │  │      Reasoner       │  │
+│  │             │  │             │  │                     │  │
+│  │ • Concept   │  │ • Priority  │  │ • BagStrategy       │  │
+│  │   Network   │  │   Queue     │  │ • Inference Rules   │  │
+│  │ • Belief/   │  │ • Budget    │  │ • Derivation        │  │
+│  │   Goal/     │  │   Management│  │   Strategies        │  │
+│  │   Q Bags    │  │             │  │                     │  │
+│  │ • Focus     │  │             │  │                     │  │
+│  │   (single)  │  │             │  │                     │  │
+│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
+│         │                │                    │             │
+│         └────────────────┼────────────────────┘             │
+│                          ▼                                  │
+│              ┌─────────────────────┐                        │
+│              │   NARExecution      │                        │
+│              │  (10-phase loop)    │                        │
+│              │                     │                        │
+│              │ • Dispatch Tools    │                        │
+│              │ • Process Tasks     │                        │
+│              │ • Drives            │                        │
+│              │ • Meta-goals        │                        │
+│              │ • RLFP              │                        │
+│              │ • Self-monitoring   │                        │
+│              │ • Consolidation     │                        │
+│              └─────────────────────┘                        │
+└─────────────────────────────────────────────────────────────┘
+```
 
-The `Bag` is a priority-based, capacity-bounded, probabilistic queue that enforces the Assumption of Insufficient
-Knowledge and Resources (AIKR). It is parameterized by `BagItem`.
+**Key Characteristics:**
+- Single global concept network (`Memory.concepts: TermMap<Concept>`)
+- One `Focus` instance (attention spotlight over concepts)
+- Tasks flow through `TaskManager` → `Reasoner` → `Memory.addTask()`
+- All reasoning in one loop; no isolation between "games"
+- Gates implicit in `NARIO` (`believe`, `goal`, `question`) and `ToolManager`
+
+### 2.2 Target Architecture: Focus-Game-Reflex Kernel (RFC)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  SYSTEM BAG<FOCUS>                          │
+│  (Attention Economy — samples Focus by weight)              │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │ Focus A     │  │ Focus B     │  │ Focus C (MetaFocus) │  │
+│  │ (GridWorld) │  │ (Bandit)    │  │ (SelfMetaGame)      │  │
+│  ├─────────────┤  ├─────────────┤  ├─────────────────────┤  │
+│  │ • Bag<Task> │  │ • Bag<Task> │  │ • Bag<Task>         │  │
+│  │ • Bag<Concept>│ │ • Bag<Concept>│ │ • Bag<Concept>    │  │
+│  │ • weight    │  │ • weight    │  │ • weight            │  │
+│  │ • Games[]   │  │ • Games[]   │  │ • Games[]           │  │
+│  │ • Reflexes[]│  │ • Reflexes[]│  │ • Reflexes[]        │  │
+│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
+│         │                │                    │             │
+│         ▼                ▼                    ▼             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │ Game:       │  │ Game:       │  │ MetaGame:           │  │
+│  │ GridWorld   │  │ Bandit      │  │ observes all        │  │
+│  │ Env         │  │ Env         │  │ FocusStepReports    │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+│         │                │                    │             │
+│         └────────────────┼────────────────────┘             │
+│                          ▼                                  │
+│              ┌─────────────────────┐                        │
+│              │     NEGOTIATOR      │                        │
+│              │  (per-Focus)        │                        │
+│              │                     │                        │
+│              │ • Reflex proposes   │                        │
+│              │ • NAL derives       │                        │
+│              │ • Arbitration       │                        │
+│              │ • LearningEvent     │                        │
+│              └─────────────────────┘                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key Characteristics:**
+- Multiple isolated `Focus` vessels, each with local `Bag<Task>` and `Bag<Concept>`
+- System-wide `Bag<Focus>` allocates attention budget
+- `Game` interface decouples environments from cognitive kernel
+- `Reflex` provides fast System-1 proposals; NAL retains veto
+- `Negotiator` arbitrates Reflex vs. NAL per Focus
+- `MetaGame` / `SelfMetaGame` govern kernel parameters
+- Strict Gates: Perception→Belief, Action→Goal, Reward→Value
+
+---
+
+## 3. The Core Primitives (Target Architecture)
+
+### 3.1 The Generic `Bag<T>` (Universal Container)
+
+The `Bag` is a priority-based, capacity-bounded, probabilistic queue that enforces AIKR. It is parameterized by `BagItem`.
 
 ```typescript
 export interface BagItem {
@@ -54,42 +143,56 @@ export interface Bag<T extends BagItem> {
 ```
 
 **The Symmetry of Attention:**
+- `Bag<Concept>`: Semantic Memory (priority = activation level)
+- `Bag<Task>`: Local Reasoning Queue inside a Focus (priority = urgency/budget)
+- `Bag<Focus>`: System-wide Attention Economy (priority = focus weight)
 
-* `Bag<Concept>`: Semantic Memory (priority = activation level).
-* `Bag<Task>`: Local Reasoning Queue inside a Focus (priority = urgency/budget).
-* `Bag<Focus>`: System-wide Attention Economy (priority = focus weight).
+> **Note:** The current `Bag<T>` implementation (`nar/src/memory/bag.ts`) is more feature-rich (supports multiple sampling objectives, serialization, statistics) but has a different API (`add(item, priority)`, `sample(objective)`). The target interface above is a simplified contract for the Focus-Game-Reflex architecture.
 
-### 2.2 `Task` (The Unit of Thought)
+### 3.2 `Task` (The Unit of Thought)
 
-A Narsese term, a truth-value/budget, and a punctuation (`.` belief, `!` goal, `?` question). Tasks are the *only*
-entities that flow through the reasoning engine.
+A Narsese term, a truth-value/budget, and a punctuation (`.` belief, `!` goal, `?` question). Tasks are the *only* entities that flow through the reasoning engine.
 
-### 2.3 `Focus` (The Vessel of Thought)
+```typescript
+export interface Task extends BagItem {
+  // 'id' and 'priority' inherited from BagItem
+  term: Term;
+  type: 'belief' | 'goal' | 'question';
+  truth: Truth;
+  budget: Budget;
+  stamp: Stamp;
+}
+```
 
-A bounded cognitive container that isolates unrelated reasoning. A GridWorld Focus must not be polluted by MetaGame
-tasks.
+### 3.3 `Focus` (The Vessel of Thought)
 
-* Contains a local `Bag<Task>`.
-* Contains a local `Bag<Concept>` (or a strictly scoped view of global memory).
-* Has a `weight` (which serves as its `priority` in the system `Bag<Focus>`).
+A bounded cognitive container that isolates unrelated reasoning. A GridWorld Focus must not be polluted by MetaGame tasks.
 
-### 2.4 `Game` (The Environment)
+```typescript
+export interface Focus extends BagItem {
+  // 'priority' inherited from BagItem acts as the Focus 'weight'
+  readonly tasks: Bag<Task>;
+  readonly memory: Bag<Concept>;
+  
+  step(budget: number): Promise<FocusStepReport>;
+  setWeight(weight: number): void;
+  
+  // Gates bound to this Focus
+  readonly perceptionGate: PerceptionGate;
+  readonly actionGate: ActionGate;
+  readonly rewardGate: RewardGate;
+  
+  // Bound Games and Reflexes
+  readonly games: Game[];
+  readonly reflexes: Reflex[];
+}
+```
+
+> **Current Implementation Gap:** The existing `Focus` class (`nar/src/memory/focus.ts`) is a concept-container with topic boosts and active goals array — it does NOT contain `Bag<Task>` or `Bag<Concept>`. Tasks live in `TaskManager`, concepts in `Memory`. This is a fundamental architectural difference.
+
+### 3.4 `Game` (The Environment)
 
 Any closed-loop interaction. A `Game` does not know about NAR; it only provides perception and accepts actions.
-
-* *External:* GridWorld, Bandits, Chat, DevOps.
-* *Internal:* `MetaGame` (environment = cognitive state), `SelfMetaGame` (environment = `Bag<Focus>` and system knobs).
-
-### 2.5 `Reflex` (The Accelerator)
-
-A pluggable, fast policy/value engine (e.g., Q-learning, UCB, DQN, heuristics). A `Reflex` *proposes* goals; it does not
-execute them. Execution requires negotiation and dispatch.
-
----
-
-## 3. Canonical Entities & Interfaces
-
-### 3.1 `Game`
 
 ```typescript
 export interface Perception {
@@ -114,20 +217,13 @@ export interface Game<S = unknown, A = unknown> {
 }
 ```
 
-### 3.2 `Focus`
+**Categories:**
+- *External:* GridWorld, Bandits, Chat, DevOps
+- *Internal:* `MetaGame` (environment = cognitive state), `SelfMetaGame` (environment = `Bag<Focus>` and system knobs)
 
-```typescript
-export interface Focus extends BagItem {
-  // 'priority' inherited from BagItem acts as the Focus 'weight'
-  readonly tasks: Bag<Task>;
-  readonly memory: Bag<Concept>; 
-  
-  step(budget: number): Promise<FocusStepReport>;
-  setWeight(weight: number): void;
-}
-```
+### 3.5 `Reflex` (The Accelerator)
 
-### 3.3 `Reflex`
+A pluggable, fast policy/value engine (e.g., Q-learning, UCB, DQN, heuristics). A `Reflex` *proposes* goals; it does not execute them. Execution requires negotiation and dispatch.
 
 ```typescript
 export interface ActionProposal {
@@ -196,11 +292,8 @@ The Negotiator is where System 1 (Reflex) and System 2 (NAL) meet.
 
 1. **Proposal:** The `TabularReflex` proposes `^move_north` with `value=0.82, confidence=0.60`.
 2. **Derivation:** NAL derives `(^move_north ==> trap). %1.0; 0.95%` from symbolic memory.
-3. **Arbitration:** The `Negotiator` applies NAL's Choice/Revision rules or a pluggable scoring function. NAL's
-   high-confidence symbolic veto overrides the Reflex.
-4. **Feedback:** The `TabularReflex` receives a `LearningEvent` where `actionExecuted = null` and
-   `overriddenBy = 'nal-veto'`. **Crucially, the Reflex does not update its Q-values for `^move_north` based on the
-   subsequent reward, because it did not actually take the action.**
+3. **Arbitration:** The `Negotiator` applies NAL's Choice/Revision rules or a pluggable scoring function. NAL's high-confidence symbolic veto overrides the Reflex.
+4. **Feedback:** The `TabularReflex` receives a `LearningEvent` where `actionExecuted = null` and `overriddenBy = 'nal-veto'`. **Crucially, the Reflex does not update its Q-values for `^move_north` based on the subsequent reward, because it did not actually take the action.**
 
 ---
 
@@ -208,8 +301,7 @@ The Negotiator is where System 1 (Reflex) and System 2 (NAL) meet.
 
 A `MetaGame` is a `Game` whose environment is the cognitive system itself.
 
-The `SelfMetaGame` runs in an isolated `MetaFocus`. It observes aggregate `FocusStepReport`s and system drives. It
-proposes actions to tune the cognitive kernel:
+The `SelfMetaGame` runs in an isolated `MetaFocus`. It observes aggregate `FocusStepReport`s and system drives. It proposes actions to tune the cognitive kernel:
 
 ```narsese
 ^focus_weight(focus:gridworld, 0.85)!
@@ -217,13 +309,11 @@ proposes actions to tune the cognitive kernel:
 ^reflex_disable(gridworld_tabular_q)!
 ```
 
-**Safety Constraint for M3.5:** The `SelfMetaGame` is permitted to adjust `Bag<Focus>` weights, derivation budgets, and
-Reflex hyperparameters. It is **strictly forbidden** from executing code-modifying tools (shadow worktrees, codemods)
-until M3.5 is fully passed.
+**Safety Constraint for M3.5:** The `SelfMetaGame` is permitted to adjust `Bag<Focus>` weights, derivation budgets, and Reflex hyperparameters. It is **strictly forbidden** from executing code-modifying tools (shadow worktrees, codemods) until M3.5 is fully passed.
 
 ---
 
-## 7. The Unified Execution Loop
+## 7. The Unified Execution Loop (Target)
 
 The entire SeNARS12 cycle collapses into one elegant, attentionally partitioned loop:
 
@@ -265,75 +355,87 @@ while (running) {
 }
 ```
 
----
-
-## 8. Validation Strategy (M3.5 Gates)
-
-M3.5 is no longer just "RL parity." It is the validation of the Focus-Game-Reflex kernel.
-
-| Gate  | Name                    | Objective                                                                                          | Definition of Done                                 |
-|:------|:------------------------|:---------------------------------------------------------------------------------------------------|:---------------------------------------------------|
-| **0** | **Focus Contract**      | Prove isolation. Tasks in Focus A do not affect Focus B.                                           | `tests/nar/focus/contract` passes.                 |
-| **1** | **FocusBag Contract**   | Prove attention allocation. Weights dictate budget shares.                                         | `tests/nar/focus/bag` passes.                      |
-| **2** | **Boundary Contract**   | Prove Gates. Perception=beliefs, Action=goals, no bypasses.                                        | `tests/nar/rl/contract` passes.                    |
-| **3** | **Reflex Parity**       | Prove a `TabularReflex` inside a `GameFocus` matches direct RL.                                    | Return $\ge$ 95% of baseline.                      |
-| **4** | **Negotiated Parity**   | Prove NAL can veto Reflexes without destroying baseline competence.                                | Overrides are traceable; safe behavior maintained. |
-| **5** | **MetaGame Sandbox**    | Prove `SelfMetaGame` can safely adjust `Bag<Focus>` weights.                                       | `^focus_weight` executes and alters allocation.    |
-| **6** | **Cognitive Advantage** | Prove properties impossible for pure tabular RL (e.g., symbolic override, contradiction handling). | Demonstrated in stress tests.                      |
-
-### Mandatory Defect Audit
-
-Before declaring a "cognitive limitation" (Hard Falsification), the system must pass a 19-point audit verifying that
-observations reached memory, truth values were preserved, ASTs were correct, and no hidden bypasses existed.
+> **Current Execution Loop:** The actual `NARExecution.run()` loop (see `nar-execution.ts`) is a 10-phase monolithic cycle: dispatch tools → process tasks → drives → meta-goals → cognitive controller → reasoner → add tasks → RLFP → self-monitoring → consolidate. It operates on a single global state, not per-Focus.
 
 ---
 
-## 9. Implementation Slices
+## 8. Validation Strategy (M3.5 Gates — Current Architecture)
 
-To avoid architectural overwhelm, implementation proceeds in thin, verifiable slices.
+M3.5 validates the **current** Traditional NAR Architecture. The Focus-Game-Reflex gates are for **post-M3.5** (M4+).
+
+| Gate | Name | Objective | Definition of Done |
+|:-----|:-----|:----------|:-------------------|
+| **0** | **Focus Contract** | Prove isolation. Tasks in Focus A do not affect Focus B. | *Post-M3.5* — requires multi-Focus architecture |
+| **1** | **FocusBag Contract** | Prove attention allocation. Weights dictate budget shares. | *Post-M3.5* — requires `Bag<Focus>` |
+| **2** | **Boundary Contract** | Prove Gates. Perception=beliefs, Action=goals, no bypasses. | ✅ `tests/nar/rl/contract` passes (36/36) |
+| **3** | **Reflex Parity** | Prove a `TabularReflex` inside a `GameFocus` matches direct RL. | *Post-M3.5* — requires Reflex interface |
+| **4** | **Negotiated Parity** | Prove NAL can veto Reflexes without destroying baseline competence. | *Post-M3.5* — requires Negotiator |
+| **5** | **MetaGame Sandbox** | Prove `SelfMetaGame` can safely adjust `Bag<Focus>` weights. | *Post-M3.5* — requires MetaGame |
+| **6** | **Cognitive Advantage** | Prove properties impossible for pure tabular RL. | ✅ `tests/nar/rl/parity/cognitive-advantage.test.ts` (13/13 pass) |
+
+### Current M3.5 Gates (Implemented & Passing)
+
+| Gate | Name | Status | Location |
+|:-----|:-----|:-------|:---------|
+| **C1** | Belief/Perception Contract | ✅ PASS | `tests/nar/rl/contract/belief-perception.test.ts` |
+| **C2** | Goal/Action Contract | ✅ PASS | `tests/nar/rl/contract/goal-action.test.ts` |
+| **C3** | Reward/Value Contract | ✅ PASS | `tests/nar/rl/contract/reward-belief.test.ts` |
+| **C4** | No-Bypass Contract | ✅ PASS | `tests/nar/rl/contract/no-bypass.test.ts` |
+| **L1** | Interface Parity (Adapter) | ✅ Bandit, NonStationary | `scripts/rl-parity.ts --mode adapter` |
+| **L2** | Cognitive Parity (Native) | ✅ Bandit, NonStationary | `scripts/rl-parity.ts --mode native` |
+| **L2** | Cognitive Parity (GridWorld) | ⚠️ IN PROGRESS | TD learning implemented, validation needed |
+| **T** | Trace Validation | ✅ PASS | `tests/nar/rl/parity/trace-validation.test.ts` |
+| **S** | Stress/Boundary Testing | ✅ PASS | `tests/nar/rl/parity/stress-boundary.test.ts` |
+| **A** | Cognitive Advantage | ✅ PASS | `tests/nar/rl/parity/cognitive-advantage.test.ts` |
+
+### Mandatory Defect Audit (Per TODO2.md)
+
+Before declaring a "cognitive limitation" (Hard Falsification), the system must pass a 19-point audit verifying that observations reached memory, truth values were preserved, ASTs were correct, and no hidden bypasses existed. **Status: PASSED for Bandit + NonStationary. GridWorld TD audit pending.**
+
+---
+
+## 9. Implementation Slices (Target Architecture Migration)
+
+To avoid architectural overwhelm, the Focus-Game-Reflex migration proceeds in thin, verifiable slices **after M3.5 completes**.
 
 ### Slice 1: The Generic Kernel
-
-* Implement `Bag<T>`.
-* Implement `Focus` (containing `Bag<Task>`).
-* Implement System `Bag<Focus>`.
-* *Test:* Focus isolation and Bag allocation math.
+- Implement `Bag<T>` matching target interface (simplify/adapt existing `Bag`)
+- Implement `Focus` with `Bag<Task>` + `Bag<Concept>`
+- Implement System `Bag<Focus>`
+- *Test:* Focus isolation and Bag allocation math
 
 ### Slice 2: GameFocus & Gates
-
-* Implement `PerceptionGate`, `ActionGate`, `RewardGate`.
-* Wrap existing `BanditEnv` and `GridWorldEnv` as `Game`s.
-* *Test:* Boundary contracts (no-bypass tests).
+- Implement `PerceptionGate`, `ActionGate`, `RewardGate`
+- Wrap existing `BanditEnv` and `GridWorldEnv` as `Game`s
+- Create `GameFocus` binding Game + Focus + Gates
+- *Test:* Boundary contracts (no-bypass tests)
 
 ### Slice 3: Reflex Mounting
-
-* Implement `Reflex` interface.
-* Port existing baselines to `EpsilonGreedyReflex`, `TabularQReflex`, `UCBReflex`.
-* *Test:* Gate 3 (Reflex Parity).
+- Implement `Reflex` interface
+- Port existing baselines to `EpsilonGreedyReflex`, `TabularQReflex`, `UCBReflex`
+- *Test:* Gate 3 (Reflex Parity)
 
 ### Slice 4: The Negotiator
-
-* Implement `NegotiationPolicy`.
-* Wire NAL derivations to veto/override Reflex proposals.
-* Implement `LearningEvent` feedback for overridden actions.
-* *Test:* Gate 4 (Negotiated Parity).
+- Implement `NegotiationPolicy`
+- Wire NAL derivations to veto/override Reflex proposals
+- Implement `LearningEvent` feedback for overridden actions
+- *Test:* Gate 4 (Negotiated Parity)
 
 ### Slice 5: SelfMetaGame Sandbox
-
-* Implement `MetaGame` observing `FocusStepReport`s.
-* Implement `^focus_weight` and `^knob_set` operations.
-* *Test:* Gate 5 (MetaGame Sandbox).
+- Implement `MetaGame` observing `FocusStepReport`s
+- Implement `^focus_weight` and `^knob_set` operations
+- *Test:* Gate 5 (MetaGame Sandbox)
 
 ---
 
-## 10. File Layout
+## 10. File Layout (Target Architecture)
 
 ```text
 nar/src/
   bag/
-    Bag.ts                 # Generic AIKR priority queue
+    Bag.ts                 # Generic AIKR priority queue (target interface)
   focus/
-    Focus.ts               # Vessel implementation
+    Focus.ts               # Vessel implementation (Bag<Task> + Bag<Concept>)
     FocusBag.ts            # System-wide Bag<Focus> allocator
     GameFocus.ts           # Binds Game + Focus + Gates
     MetaFocus.ts           # SelfMetaGame vessel
@@ -347,23 +449,27 @@ nar/src/
   game/
     Game.ts                # Interface
     MetaGame.ts            # Cognitive state environment
-
-tests/nar/
-  focus/
-    contract/              # Gate 0 & 1
-  rl/
-    contract/              # Gate 2
-    reflexes/              # TabularQ, UCB, etc.
-    parity/                # Gate 3 & 4
-  meta/
-    sandbox/               # Gate 5
 ```
+
+> **Current File Layout (Traditional NAR):**
+> ```
+> nar/src/
+>   memory/
+>     bag.ts, BaseBag.ts, concept.ts, focus.ts, memory.ts, ...
+>   task/
+>     manager.ts, input.ts
+>   reason/
+>     reasoner.ts, strategies/, premise/
+>   nar-execution.ts       # 10-phase monolithic loop
+>   nar.ts                 # Main NAR facade
+>   drives/, self/, rlfp/, lm/, tools/, ...
+> ```
 
 ---
 
 ## 11. Observability & Safety
 
-### The FocusBag Report
+### The FocusBag Report (Target)
 
 Every cycle emits a structured JSON report detailing the attention economy:
 
@@ -380,28 +486,149 @@ Every cycle emits a structured JSON report detailing the attention economy:
 }
 ```
 
-### The M3.5 Freeze Rule
+### Current Observability (Implemented)
+
+- `NAR.attentionReport()` — top concepts by priority
+- `NARExecution.getPhaseTimer()` — per-phase timing
+- `systemEventBus` events: `nar:reasoning:cycle`, `nar:derivation`, `nar:meta-reasoning`
+- `Memory.getStatistics()` — memory pressure, utilization, concept distribution
+
+### The M3.5 Freeze Rule (Current)
 
 During M3.5 validation:
-
-1. **No autonomous code modification.** (Shadow worktrees are disabled).
+1. **No autonomous code modification.** (Shadow worktrees disabled)
 2. **No schema promotion to production rules.**
-3. **No LLM-generated control actions.** (`enableLMRules: false` for parity tests).
+3. **No LLM-generated control actions.** (`enableLMRules: false` for parity tests)
 4. **The SelfMetaGame may only adjust bounded numerical knobs and Focus weights.**
 
 ---
 
 ## 12. Definition of Architectural Success
 
-The SeNARS12 Focus-Game-Reflex architecture is successful when:
+### Current Architecture (M3.5) — ✅ LARGELY ACHIEVED
 
-1. A `Game` can be played inside a `Focus`.
-2. Multiple `Focus`es coexist in a `Bag<Focus>` without conceptual contamination.
-3. A `Reflex` accelerates action selection, but NAL retains absolute veto power.
-4. A `MetaGame` can observe the system and safely reallocate the `Bag<Focus>` attention economy.
-5. Every consequential action has a mathematically sound, traceable causal chain from perception to execution.
-6. **The architecture requires zero bespoke pipelines for new capabilities; everything is just a new `Game`, `Reflex`,
-   or `Focus`.**
+1. A `Game` can be played via belief/goal/reward adapters
+2. Cognitive contracts (perception, action, reward) are enforced and tested
+3. Native SeNARS mechanisms achieve ≥85% baseline on Bandit & NonStationary
+4. Every consequential action has a traceable causal chain (belief → value → goal → tool → reward → revision)
+5. No hidden bypasses exist (validated by no-bypass tests)
+6. Stress testing shows graceful degradation under noise/memory/budget pressure
+
+### Target Architecture (Focus-Game-Reflex) — POST-M3.5
+
+1. A `Game` can be played inside a `Focus`
+2. Multiple `Focus`es coexist in a `Bag<Focus>` without conceptual contamination
+3. A `Reflex` accelerates action selection, but NAL retains absolute veto power
+4. A `MetaGame` can observe the system and safely reallocate the `Bag<Focus>` attention economy
+5. Every consequential action has a mathematically sound, traceable causal chain from perception to execution
+6. **The architecture requires zero bespoke pipelines for new capabilities; everything is just a new `Game`, `Reflex`, or `Focus`.**
 
 > **Establish cognitive competence and attentional isolation first. Only then trust the system to modify its own code.**
 
+---
+
+## 13. Alignment with README.md Vision
+
+The README describes a **Cognitive Kernel** with:
+- **System 1 (Intuitive):** LM Enrichment, Semantic Simulation, Pattern Matching → Maps to `Reflex` + `LM Rules`
+- **System 2 (Analytical):** NAL Inference, Rule Engine, Derivation, Truth Algebra → Maps to `Focus.tasks` + NAL `Reasoner`
+- **Executive Controller:** Attention, Drives/Goals, Meta-Reasoning, Self-Analysis → Maps to `Bag<Focus>` + `MetaGame` + `SelfMetaGame`
+- **Reasoning Engines:** NAR + MeTTa → Both can be bound as `Reflex`es or `Game`s
+- **Adaptive Substrate:** Memory, Learning, Persistence → Maps to `Bag<Concept>` + `SchemaInductor` + `EpisodicMemory`
+
+The Focus-Game-Reflex Kernel **operationalizes** this vision:
+- `Bag<Focus>` = Executive Attention
+- `Focus` = Isolated reasoning workspace (can host NAR, MeTTa, or hybrid)
+- `Reflex` = System 1 (LM Rules, RL policies, heuristics)
+- `Game` = Environment interface (external or internal)
+- `Negotiator` = System 1/2 arbitration
+- `MetaGame` = Executive self-governance
+
+---
+
+## 14. Migration Strategy: Current → Target
+
+| Phase | Milestone | Description |
+|:------|:----------|:------------|
+| **M3.5** | Cognitive Grounding | ✅ Validate current architecture on Bandit, NonStationary, GridWorld (TD) |
+| **M4.0** | Focus-Game-Reflex Core | Implement Slices 1-2: `Bag<T>`, `Focus`, `Bag<Focus>`, `GameFocus`, Gates |
+| **M4.1** | Reflex Integration | Implement Slice 3: `Reflex` interface, port baselines |
+| **M4.2** | Negotiation | Implement Slice 4: `Negotiator`, NAL veto, LearningEvent feedback |
+| **M4.3** | MetaGame | Implement Slice 5: `MetaGame`, `SelfMetaGame`, `^focus_weight`, `^knob_set` |
+| **M4.4** | Parity Re-validation | Re-run all M3.5 gates on new architecture |
+| **M5.0** | Autonomous Self-Modification | Enable shadow worktrees, codemods, RLFP-driven code changes |
+
+**Critical Path:** M3.5 must complete (GridWorld TD validation) before any Focus-Game-Reflex work begins. The current architecture is *sufficient* for M3.5; the target architecture *enables* M4+.
+
+---
+
+## 15. Current Implementation Reference (As of 2026-09-08)
+
+### Core Modules
+| Module | Path | Purpose |
+|:-------|:-----|:--------|
+| NAR Facade | `nar/src/nar.ts` | Main entry point, config, lifecycle |
+| Memory | `nar/src/memory/memory.ts` | Concept network, focus, archive, links |
+| Bag | `nar/src/memory/bag.ts` | Priority queue (current API differs from target) |
+| Focus | `nar/src/memory/focus.ts` | Attention spotlight (current: concept container) |
+| TaskManager | `nar/src/task/manager.ts` | Priority queue of reasoning tasks |
+| Reasoner | `nar/src/reason/reasoner.ts` | Derivation engine with strategies |
+| NARExecution | `nar/src/nar-execution.ts` | 10-phase reasoning loop |
+| Drives | `nar/src/drives/manager.ts` | Homeostatic drive system |
+| Self | `nar/src/self/ReasoningAboutReasoning.ts` | Metacognitive self-analysis |
+| RLFP | `nar/src/rlfp/RLFPLearner.ts` | RL from reasoning feedback |
+| Tools | `nar/src/tools/tool-registry.ts` | Tool execution, goal dispatch |
+
+### RL Parity Infrastructure (TODO2.md Implementation)
+| Module | Path | Purpose |
+|:-------|:-----|:--------|
+| Environments | `tests/nar/rl/environments/RLEnvironments.ts` | Bandit, GridWorld, NonStationary, MemoryPressure |
+| Baselines | `tests/nar/rl/baselines/{bandit,gridworld}.ts` | EpsilonGreedy, UCB, QLearning, SARSA |
+| Adapters | `tests/nar/rl/adapters/adapters.ts` | Perception, Action, Reward, QBeliefStore, NativeAgents |
+| Contract Tests | `tests/nar/rl/contract/*.test.ts` | 36 tests validating cognitive contracts |
+| Parity Tests | `tests/nar/rl/parity/*.test.ts` | Interface, Cognitive, Trace, Stress, Advantage |
+| CLI Runner | `scripts/rl-parity.ts` | Multi-seed experiment runner |
+
+### Documentation
+- `docs/tech/cognitive-grounding.md` — Contract specifications
+- `docs/tech/rl-parity.md` — Experimental protocol
+- `docs/tech/functionality.md` — Complete architecture spec
+- `docs/plan/NEXT.md` — Strategic roadmap
+
+---
+
+## 16. Open Issues & Decisions Needed
+
+### 16.1 Bag Interface Unification
+The current `Bag<T>` has `add(item, priority)` and `sample(objective)`. The target spec uses `add(item: BagItem)` and `sample(): T`. **Decision:** Adapt current Bag to target interface, or evolve target to match current capabilities?
+
+### 16.2 Focus Migration Strategy
+Current `Focus` is a concept container; target `Focus` is a reasoning vessel with `Bag<Task>`. **Decision:** Introduce new `GameFocus` alongside existing `Focus`, migrate incrementally.
+
+### 16.3 MeTTa Integration
+MeTTa (`metta/src/`) runs as a parallel engine. In target architecture, should MeTTa be a `Reflex`, a `Game`, or a separate `Focus` type? **Recommendation:** MeTTa as a `Game` (internal environment) with MeTTa-specific `Reflex` for pattern matching.
+
+### 16.4 Multi-Focus Concurrency
+Target architecture implies concurrent Focus execution. Current TypeScript is single-threaded. **Decision:** Start with cooperative scheduling (sample one Focus per cycle), explore worker_threads later.
+
+### 16.5 SelfMetaGame Safety
+The safety constraint forbidding code modification until M3.5 passes is **active**. Post-M3.5, need formal verification of `SelfMetaGame` action space before enabling codemods.
+
+---
+
+## 17. Appendix: Terminology Mapping
+
+| Traditional NAR | Focus-Game-Reflex (Target) | Notes |
+|:----------------|:---------------------------|:------|
+| `Memory.concepts` | `Bag<Concept>` (per Focus + global) | Target: partitioned |
+| `TaskManager.queue` | `Focus.tasks` (`Bag<Task>`) | Target: per-Focus |
+| `Focus` (current) | `Focus.attention` (subset) | Target: full vessel |
+| `NARExecution` loop | `while(running) { sample Focus; step; }` | Target: attention-partitioned |
+| `DriveManager` | `MetaGame` + `SelfMetaGame` | Target: explicit MetaGame |
+| `LM Rules` | `Reflex` (LM-based) | Target: pluggable |
+| `ToolManager` | `ActionGate` + `Game.step()` | Target: explicit gate |
+| `CognitiveController` | `SelfMetaGame` policy | Target: MetaGame action |
+
+---
+
+*This specification is a living document. Update as architecture evolves. The current implementation (Traditional NAR) is the validated baseline; the Focus-Game-Reflex Kernel is the migration target.*
