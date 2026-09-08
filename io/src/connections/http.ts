@@ -1,4 +1,4 @@
-import type http, {IncomingMessage, ServerResponse} from 'node:http';
+import type {IncomingMessage, ServerResponse} from 'node:http';
 import {URL} from 'node:url';
 import {makeId} from '@senars/core/helpers';
 import {createLogger} from '@senars/core/logger';
