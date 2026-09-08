@@ -158,7 +158,7 @@ describe('RL Parity - Stress and Boundary Testing', () => {
           await nar.run(3);
 
           const bestAction = qStore.getBestAction(stateTerm, actions);
-          const lowConfidence = qStore.getLowConfidenceActions(stateTerm, actions, 0.5);
+          const lowConfidence = qStore.getLowConfidenceActions(stateTerm, actions, 0.6);
 
           let selectedAction = 0;
           const pendingGoals = nar.taskManager.getPending();

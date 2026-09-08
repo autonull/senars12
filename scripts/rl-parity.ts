@@ -13,7 +13,17 @@ import { EpsilonGreedy, UCB1 } from '../tests/nar/rl/baselines/bandit.js';
 import { QLearning, SARSA } from '../tests/nar/rl/baselines/gridworld.js';
 import { NAR } from '../nar/src/nar.js';
 import { TermBuilder, Truth, createTask } from '../nar/src/index.js';
-import { BeliefPerceptionAdapter, GoalActionAdapter, RewardBeliefAdapter, RLParityHarness, RLParityHarnessConfig } from '../tests/nar/rl/adapters/adapters.js';
+import { 
+  BeliefPerceptionAdapter, 
+  GoalActionAdapter, 
+  RewardBeliefAdapter, 
+  RLParityHarness, 
+  RLParityHarnessConfig,
+  BanditNativeAgent,
+  GridWorldNativeAgent,
+  NonStationaryNativeAgent,
+  NativeSenarsAgent
+} from '../tests/nar/rl/adapters/adapters.js';
 import { promises as fs } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -83,6 +93,12 @@ const narConfig = {
   maxDerivationDepth: 20,
 };
 
+const narConfigGridWorld = {
+  ...narConfig,
+  maxDerivationsPerStep: 200,  // Lower for gridworld to speed up
+  maxDerivationDepth: 15,
+};
+
 async function createEnvironment(envType: EnvType, seed: number) {
   switch (envType) {
     case 'bandit':
@@ -96,12 +112,12 @@ async function createEnvironment(envType: EnvType, seed: number) {
   }
 }
 
-function createBaseline(baselineType: BaselineType, seed: number) {
+function createBaseline(baselineType: BaselineType, seed: number, numArms: number = 3) {
   switch (baselineType) {
     case 'epsilon-greedy':
-      return new EpsilonGreedy({ numArms: 3, epsilon: 0.1, seed });
+      return new EpsilonGreedy({ numArms, epsilon: 0.1, seed });
     case 'ucb':
-      return new UCB1({ numArms: 3, seed });
+      return new UCB1({ numArms, seed });
     case 'qlearning':
       return new QLearning({ alpha: 0.1, gamma: 0.99, epsilon: 0.1, seed });
     case 'sarsa':
@@ -120,20 +136,38 @@ async function runDirectBaseline(env: any, baseline: any, episodes: number, step
   return rewards;
 }
 
-async function runAdapterWrapped(env: any, baseline: any, episodes: number, steps: number): Promise<number[]> {
+async function runAdapterWrapped(env: any, baseline: any, episodes: number, steps: number, envType: EnvType): Promise<number[]> {
   const nar = new NAR(narConfig);
   const perception = new BeliefPerceptionAdapter(nar, { sensorConfidence: 0.95 });
   const actionAdapter = new GoalActionAdapter(nar);
   const rewardAdapter = new RewardBeliefAdapter(nar);
 
-  // Register tools
-  for (let i = 0; i < 3; i++) {
-    nar.tools.register({
-      name: `pull_arm_${i}`,
-      description: `Pull arm ${i}`,
-      parameters: { type: 'object', properties: {} },
-      execute: async () => ({ success: true, content: { arm: i } }),
-    });
+  // Register tools based on environment
+  if (envType === 'bandit' || envType === 'nonstationary') {
+    const numArms = envType === 'bandit' ? 3 : 2;
+    for (let i = 0; i < numArms; i++) {
+      nar.tools.register({
+        name: `pull_arm_${i}`,
+        description: `Pull arm ${i}`,
+        parameters: { type: 'object', properties: {} },
+        execute: async () => ({ success: true, content: { arm: i } }),
+      });
+    }
+  } else if (envType === 'gridworld') {
+    const toolConfigs = [
+      { name: 'move_up', execute: async () => ({ success: true, content: { dir: 0 } }) },
+      { name: 'move_right', execute: async () => ({ success: true, content: { dir: 1 } }) },
+      { name: 'move_down', execute: async () => ({ success: true, content: { dir: 2 } }) },
+      { name: 'move_left', execute: async () => ({ success: true, content: { dir: 3 } }) },
+    ];
+    for (const tool of toolConfigs) {
+      nar.tools.register({
+        name: tool.name,
+        description: tool.name,
+        parameters: { type: 'object', properties: {} },
+        execute: tool.execute,
+      });
+    }
   }
 
   const rewards: number[] = [];
@@ -142,15 +176,41 @@ async function runAdapterWrapped(env: any, baseline: any, episodes: number, step
     let episodeReward = 0;
 
     for (let step = 0; step < steps; step++) {
-      const actionIdx = baseline.selectAction();
-      perception.perceive({ stateId: `state:${actionIdx}`, reward: 0 });
-      const goalTerm = actionAdapter.buildGoalTerm({ name: `pull_arm_${actionIdx}` });
+      let actionIdx: number;
+      let stateId: string;
+      let actionName: string;
+      
+      if (envType === 'gridworld') {
+        // GridWorld baseline needs state for selectAction
+        const state = env.getState();
+        stateId = `s_${state.row}_${state.col}`;
+        actionIdx = baseline.selectAction(state);
+        const actionNames = ['move_up', 'move_right', 'move_down', 'move_left'];
+        actionName = actionNames[actionIdx];
+      } else {
+        // Bandit baseline doesn't need state
+        actionIdx = baseline.selectAction();
+        stateId = `state:${actionIdx}`;
+        actionName = `pull_arm_${actionIdx}`;
+      }
+      
+      perception.perceive({ stateId, reward: 0 });
+      
+      const goalTerm = actionAdapter.buildGoalTerm({ name: actionName });
       await nar.tools.executeToolGoal(goalTerm);
-      const { reward, done } = env.step(actionIdx);
-      baseline.update(actionIdx, reward);
-      const stateTerm = TermBuilder.atom(`state:${actionIdx}`);
-      const actionTerm = TermBuilder.atom(`^pull_arm_${actionIdx}`);
+      const { reward, done, state: nextState } = env.step(actionIdx);
+      
+      // Update baseline with proper parameters
+      if (envType === 'gridworld') {
+        baseline.update(env.getState(), actionIdx, reward, nextState, done);
+      } else {
+        baseline.update(actionIdx, reward);
+      }
+      
+      const stateTerm = TermBuilder.atom(stateId);
+      const actionTerm = TermBuilder.atom(`^${actionName}`);
       rewardAdapter.processReward(stateTerm, actionTerm, reward);
+      
       episodeReward += reward;
       if (done) break;
     }
@@ -159,71 +219,30 @@ async function runAdapterWrapped(env: any, baseline: any, episodes: number, step
   return rewards;
 }
 
-async function runNativeSenars(env: any, episodes: number, steps: number): Promise<number[]> {
-  const nar = new NAR(narConfig);
-  const perception = new BeliefPerceptionAdapter(nar);
-  const actionAdapter = new GoalActionAdapter(nar);
-  const rewardAdapter = new RewardBeliefAdapter(nar);
-  const qStore = rewardAdapter.getQStore();
-
-  // Register tools
-  for (let i = 0; i < 3; i++) {
-    nar.tools.register({
-      name: `pull_arm_${i}`,
-      description: `Pull arm ${i}`,
-      parameters: { type: 'object', properties: {} },
-      execute: async () => ({ success: true, content: { arm: i } }),
-    });
+async function runNativeSenars(env: any, episodes: number, steps: number, envType: EnvType): Promise<number[]> {
+  const config = envType === 'gridworld' ? narConfigGridWorld : narConfig;
+  const nar = new NAR(config);
+  
+  let agent: NativeSenarsAgent;
+  const maxDerivationsPerStep = envType === 'gridworld' ? 3 : 3;
+  
+  switch (envType) {
+    case 'bandit':
+      agent = new BanditNativeAgent(nar, 3, maxDerivationsPerStep);
+      break;
+    case 'gridworld':
+      agent = new GridWorldNativeAgent(nar, maxDerivationsPerStep);
+      break;
+    case 'nonstationary':
+      agent = new NonStationaryNativeAgent(nar, 2, maxDerivationsPerStep);
+      break;
+    default:
+      throw new Error(`Unknown environment for native agent: ${envType}`);
   }
-
-  const stateTerm = TermBuilder.atom('bandit_state');
-  const actions = [
-    TermBuilder.atom('^pull_arm_0'),
-    TermBuilder.atom('^pull_arm_1'),
-    TermBuilder.atom('^pull_arm_2'),
-  ];
 
   const rewards: number[] = [];
   for (let ep = 0; ep < episodes; ep++) {
-    env.reset();
-    let episodeReward = 0;
-
-    for (let step = 0; step < steps; step++) {
-      perception.perceive({ stateId: 'bandit_state', reward: 0 });
-      await nar.run(3);
-
-      // Select action: exploit best or explore low-confidence
-      const bestAction = qStore.getBestAction(stateTerm, actions);
-      const lowConfidence = qStore.getLowConfidenceActions(stateTerm, actions, 0.4);
-      
-      let selectedAction = 0;
-      const pendingGoals = nar.taskManager.getPending();
-      const toolGoals = pendingGoals.filter(g => g.type === 'goal' && g.term.toString().includes('^pull_arm'));
-
-      if (toolGoals.length > 0) {
-        toolGoals.sort((a, b) => b.budget.priority - a.budget.priority);
-        const match = toolGoals[0].term.toString().match(/pull_arm_(\d+)/);
-        if (match) selectedAction = parseInt(match[1], 10);
-      } else if (bestAction && Math.random() > 0.2) {
-        const match = bestAction.toString().match(/pull_arm_(\d+)/);
-        selectedAction = match ? parseInt(match[1], 10) : 0;
-      } else if (lowConfidence.length > 0 && Math.random() < 0.5) {
-        const exploreAction = lowConfidence[Math.floor(Math.random() * lowConfidence.length)];
-        const match = exploreAction.toString().match(/pull_arm_(\d+)/);
-        selectedAction = match ? parseInt(match[1], 10) : 0;
-        qStore.stimulateCuriosity(0.05);
-      } else {
-        selectedAction = Math.floor(Math.random() * 3);
-      }
-
-      const goalTerm = actionAdapter.buildGoalTerm({ name: `pull_arm_${selectedAction}` });
-      await nar.tools.executeToolGoal(goalTerm);
-      const { reward, done } = env.step(selectedAction);
-      const actionTerm = TermBuilder.atom(`^pull_arm_${selectedAction}`);
-      rewardAdapter.processReward(stateTerm, actionTerm, reward);
-      episodeReward += reward;
-      if (done) break;
-    }
+    const episodeReward = await agent.runEpisode(env, steps);
     rewards.push(episodeReward);
   }
   return rewards;
@@ -237,7 +256,7 @@ async function runExperiment(seed: number): Promise<{ baselineRewards: number[];
   switch (envType) {
     case 'bandit':
       env = await createEnvironment('bandit', seed);
-      baseline = createBaseline(baselineType, seed + 1000);
+      baseline = createBaseline(baselineType, seed + 1000, 3);
       break;
     case 'gridworld':
       env = await createEnvironment('gridworld', seed);
@@ -245,7 +264,7 @@ async function runExperiment(seed: number): Promise<{ baselineRewards: number[];
       break;
     case 'nonstationary':
       env = await createEnvironment('nonstationary', seed);
-      baseline = createBaseline('epsilon-greedy', seed + 1000); // Use epsilon-greedy for nonstationary
+      baseline = createBaseline('epsilon-greedy', seed + 1000, 2); // Non-stationary has 2 arms
       break;
   }
 
@@ -257,13 +276,14 @@ async function runExperiment(seed: number): Promise<{ baselineRewards: number[];
     senarsRewards = []; // Not applicable
   } else if (mode === 'adapter') {
     baselineRewards = await runDirectBaseline(env, baseline, episodesPerSeed, stepsPerEpisode);
-    senarsRewards = await runAdapterWrapped(env, baseline, episodesPerSeed, stepsPerEpisode);
+    senarsRewards = await runAdapterWrapped(env, baseline, episodesPerSeed, stepsPerEpisode, envType);
   } else { // native
     // Run baseline for comparison
     const baselineEnv = await createEnvironment(envType, seed);
-    const baselineAgent = createBaseline(baselineType, seed + 2000);
+    const numArms = envType === 'nonstationary' ? 2 : 3;
+    const baselineAgent = createBaseline(baselineType, seed + 2000, numArms);
     baselineRewards = await runDirectBaseline(baselineEnv, baselineAgent, episodesPerSeed, stepsPerEpisode);
-    senarsRewards = await runNativeSenars(env, episodesPerSeed, stepsPerEpisode);
+    senarsRewards = await runNativeSenars(env, episodesPerSeed, stepsPerEpisode, envType);
   }
 
   return { baselineRewards, senarsRewards };
