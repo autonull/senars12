@@ -97,6 +97,7 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
 
       reflex.learn({
         perception: {stateId: '0,0', features: {}, confidence: 1, terminal: false},
+        previousPerception: {stateId: '0,0', features: {}, confidence: 1, terminal: false},
         actionProposed: '0',
         actionExecuted: '0',
         reward: 1,

@@ -10,16 +10,18 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
   private readonly alpha: number;
   private readonly gamma: number;
   private readonly epsilon: number;
+  private readonly confidenceScale: number;
   private readonly qTable: Map<string, Map<string, QEntry>> = new Map();
 
   constructor(
     id: string,
-    options: { alpha?: number; gamma?: number; epsilon?: number } = {}
+    options: { alpha?: number; gamma?: number; epsilon?: number; confidenceScale?: number } = {}
   ) {
     this.id = id;
     this.alpha = options.alpha ?? 0.1;
     this.gamma = options.gamma ?? 0.95;
     this.epsilon = options.epsilon ?? 0.1;
+    this.confidenceScale = options.confidenceScale ?? 5;
   }
 
   propose(state: S, legalActions: A[]): ActionProposal[] {
@@ -32,12 +34,9 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
       const actionKey = this.actionToKey(action);
       const entry = qState.get(actionKey) ?? { value: 0, visits: 0 };
 
-      let value = entry.value;
-      const confidence = Math.min(1, entry.visits / 10);
-
-      if (Math.random() < this.epsilon && entry.visits < 5) {
-        value = Math.random();
-      }
+      const value = entry.value;
+      // Confidence based on visit count (more visits = more confident)
+      const confidence = 1 - Math.exp(-entry.visits / this.confidenceScale);
 
       proposals.push({
         action: actionKey,
@@ -47,13 +46,26 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
       });
     }
 
-    return proposals.sort((a, b) => b.value * b.confidence - a.value * a.confidence);
+    // Epsilon-greedy: with probability epsilon, randomize the order
+    if (Math.random() < this.epsilon) {
+      // Shuffle to simulate exploration
+      for (let i = proposals.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [proposals[i], proposals[j]] = [proposals[j], proposals[i]];
+      }
+    } else {
+      // Sort by value * confidence for exploitation
+      proposals.sort((a, b) => b.value * b.confidence - a.value * a.confidence);
+    }
+
+    return proposals;
   }
 
   learn(event: LearningEvent): void {
-    if (!event.actionExecuted) return;
+    if (!event.actionExecuted || !event.previousPerception) return;
 
-    const stateKey = this.perceptionToKey(event.perception);
+    const stateKey = this.perceptionToKey(event.previousPerception);
+    const nextStateKey = this.perceptionToKey(event.perception);
     const actionKey = event.actionExecuted;
 
     let qState = this.qTable.get(stateKey);
@@ -65,8 +77,7 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
     const entry = qState.get(actionKey) ?? { value: 0, visits: 0 };
     const oldValue = entry.value;
     const reward = event.reward;
-    const nextStateKey = stateKey; // Simplified: using same state for next state max Q
-    const maxNextQ = this.getMaxQ(nextStateKey);
+    const maxNextQ = event.terminal ? 0 : this.getMaxQ(nextStateKey);
 
     entry.value = oldValue + this.alpha * (reward + this.gamma * maxNextQ - oldValue);
     entry.visits++;
@@ -85,13 +96,23 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
   }
 
   private stateToKey(state: S): string {
-    return typeof state === 'object' && state !== null
-      ? JSON.stringify(state)
-      : String(state);
+    if (typeof state === 'object' && state !== null) {
+      // If state has row/col (GridWorldState), use "row,col" format
+      if ('row' in state && 'col' in state) {
+        return `${(state as any).row},${(state as any).col}`;
+      }
+      // If state has stateId (Perception-like), use it
+      if ('stateId' in state) {
+        const s = state as any;
+        return `${s.stateId}|${JSON.stringify(s.features ?? {})}`;
+      }
+      return JSON.stringify(state);
+    }
+    return String(state);
   }
 
   private perceptionToKey(perception: Perception): string {
-    return `${perception.stateId}|${JSON.stringify(perception.features ?? {})}`;
+    return perception.stateId;
   }
 
   private actionToKey(action: A): string {
@@ -118,5 +139,9 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
 
   reset(): void {
     this.qTable.clear();
+  }
+
+  getQTable(): Map<string, Map<string, QEntry>> {
+    return this.qTable;
   }
 }

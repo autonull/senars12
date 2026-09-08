@@ -1,9 +1,12 @@
 import {PriorityBag} from '../bag/Bag.js';
 import type {Task, Budget, ConceptLike} from '../types/index.js';
 import type {Term} from '../terms/index.js';
+import {isImplication, isInheritance, isOperation, getPredicate, getArgs} from '../terms/index.js';
 import {PerceptionGate} from '../gates/PerceptionGate.js';
 import {ActionGate} from '../gates/ActionGate.js';
 import {RewardGate} from '../gates/RewardGate.js';
+import type {Game, Perception, GameOutcome, ActionProposal, Reflex, LearningEvent} from '../reflex/Reflex.js';
+import type {NALDerivation} from '../reflex/Negotiator.js';
 
 export interface FocusTask extends BagItem {
   id: string;
@@ -106,6 +109,7 @@ export class Focus implements BagItem {
       timestamp: Date.now(),
     };
 
+    // PERCEPTION: Bound Games inject observations into the Focus
     for (const game of this.games) {
       const perception = game.observe();
       const beliefs = this.perceptionGate.toBeliefs(perception);
@@ -115,16 +119,8 @@ export class Focus implements BagItem {
       report.gates.perceptions += beliefs.length;
     }
 
-    for (const reflex of this.reflexes) {
-      for (const game of this.games) {
-        const proposals = reflex.propose(game.state(), game.legalActions(game.state()));
-        const goals = this.actionGate.toGoals(proposals);
-        for (const goal of goals) {
-          this.tasks.add(goal);
-        }
-        report.gates.actions += goals.length;
-      }
-    }
+    // Note: PROPOSAL and EXECUTION are handled by GameFocus/outside loop
+    // Focus.step() only handles perception and task processing
 
     const processed = this.processTasks(budget);
     report.tasksProcessed = processed.count;
@@ -224,60 +220,39 @@ export class Focus implements BagItem {
   bindReflex(reflex: Reflex): void {
     this.reflexes.push(reflex);
   }
-}
 
-export interface Game<S = unknown, A = unknown> {
-  readonly id: string;
-  observe(): Perception;
-  state(): S;
-  legalActions(state: S): A[];
-  step(action: A): GameOutcome;
-}
+  getNALDerivations(action: string): NALDerivation[] {
+    const derivations: NALDerivation[] = [];
 
-export interface Perception {
-  stateId: string;
-  features?: Record<string, number>;
-  confidence?: number;
-  terminal?: boolean;
-}
+    for (const concept of this.memory.all()) {
+      const term = concept.term;
+      if (!term || typeof term !== 'object') continue;
 
-export interface GameOutcome {
-  reward: number;
-  terminal: boolean;
-  info?: Record<string, unknown>;
-}
+      let actionMatches = false;
+      let isRelevantRelation = false;
 
-export interface PerceptionGate {
-  toBeliefs(perception: Perception): FocusTask[];
-}
+      if (isOperation(term)) {
+        const op = getPredicate(term);
+        const args = getArgs(term);
+        if (op === '^' && args.length > 0 && args[0].kind === 'atom' && args[0].value === action) {
+          actionMatches = true;
+        }
+      }
 
-export interface ActionGate {
-  toGoals(proposals: ActionProposal[]): FocusTask[];
-}
+      if (isImplication(term) || isInheritance(term)) {
+        isRelevantRelation = true;
+      }
 
-export interface RewardGate {
-  toBeliefs(outcome: GameOutcome): FocusTask[];
-}
+      if (actionMatches && isRelevantRelation) {
+        const truth = { f: concept.activation, c: Math.min(1, concept.priority) };
+        derivations.push({
+          action,
+          truth,
+          source: 'focus-memory',
+        });
+      }
+    }
 
-export interface ActionProposal {
-  action: string;
-  args?: Record<string, unknown>;
-  value: number;
-  confidence: number;
-  source: string;
-}
-
-export interface Reflex<S = unknown, A = unknown> {
-  readonly id: string;
-  propose(state: S, legalActions: A[]): ActionProposal[];
-  learn(event: LearningEvent): void;
-}
-
-export interface LearningEvent {
-  perception: Perception;
-  actionProposed: string;
-  actionExecuted: string | null;
-  reward: number;
-  terminal: boolean;
-  overriddenBy: string | null;
+    return derivations;
+  }
 }

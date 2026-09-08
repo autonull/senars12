@@ -86,10 +86,11 @@ export class Negotiator {
   createLearningEvent(
     focus: Focus,
     decision: NegotiationDecision,
-    outcome: { reward: number; terminal: boolean; perception: any }
+    outcome: { reward: number; terminal: boolean; perception: any; previousPerception?: Perception | null }
   ): LearningEvent {
     return {
       perception: outcome.perception,
+      previousPerception: outcome.previousPerception ?? null,
       actionProposed: decision.action ?? '',
       actionExecuted: decision.actionExecuted,
       reward: outcome.reward,
