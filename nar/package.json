@@ -59,6 +59,26 @@
     "./engine/*": {
       "types": "./src/engine/*.ts",
       "import": "./src/engine/*.ts"
+    },
+    "./bag": {
+      "types": "./src/bag/index.ts",
+      "import": "./src/bag/index.ts"
+    },
+    "./focus": {
+      "types": "./src/focus/index.ts",
+      "import": "./src/focus/index.ts"
+    },
+    "./gates": {
+      "types": "./src/gates/index.ts",
+      "import": "./src/gates/index.ts"
+    },
+    "./reflex": {
+      "types": "./src/reflex/index.ts",
+      "import": "./src/reflex/index.ts"
+    },
+    "./game": {
+      "types": "./src/game/index.ts",
+      "import": "./src/game/index.ts"
     }
   },
   "scripts": {
