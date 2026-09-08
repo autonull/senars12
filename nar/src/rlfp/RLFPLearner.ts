@@ -1,300 +1,343 @@
-import { appendFileSync } from 'node:fs';
-import { OperationError } from '../types';
-import { clamp } from '../utils';
-import { PolicyOptimizer } from './PolicyOptimizer.js';
-import { PreferenceCollector, type PreferenceData } from './PreferenceCollector.js';
-import type { TrajectoryStep } from './ReasoningTrajectoryLogger.js';
-import { RewardModel } from './RewardModel.js';
-import type { CognitiveParameters } from '../config/cognitive-parameters.js';
-import { createLogger } from '../logger';
-import { createKnobSet, type TunableKnob } from './knobs.js';
+import {appendFileSync} from 'node:fs';
+import {OperationError} from '../types';
+import {clamp} from '../utils';
+import {PolicyOptimizer} from './PolicyOptimizer.js';
+import {PreferenceCollector, type PreferenceData} from './PreferenceCollector.js';
+import type {TrajectoryStep} from './ReasoningTrajectoryLogger.js';
+import {RewardModel} from './RewardModel.js';
+import type {CognitiveParameters} from '../config/cognitive-parameters.js';
+import {createLogger} from '../logger';
+import {createKnobSet, type TunableKnob} from './knobs.js';
 
 /** Task outcome for unified reward calculation */
 export interface TaskOutcome {
-  taskType: 'test' | 'scenario' | 'contradiction' | 'schema' | 'capability' | 'knob_tune' | 'meta_reasoning';
-  success: boolean;
-  metrics: Record<string, number>;  // passRate, latency, coverage, derivationDepth, selfModelAccuracy
+    taskType: 'test' | 'scenario' | 'contradiction' | 'schema' | 'capability' | 'knob_tune' | 'meta_reasoning';
+    success: boolean;
+    metrics: Record<string, number>;  // passRate, latency, coverage, derivationDepth, selfModelAccuracy
 }
 
 export interface TrainingEntry {
-  timestamp: number;
-  prompt: unknown;
-  chosen: string;
-  rejected: string;
-  full_chosen_trajectory: TrajectoryStep[];
-  full_rejected_trajectory: TrajectoryStep[];
+    timestamp: number;
+    prompt: unknown;
+    chosen: string;
+    rejected: string;
+    full_chosen_trajectory: TrajectoryStep[];
+    full_rejected_trajectory: TrajectoryStep[];
 }
 
 export interface RLFPLearnerConfig {
-  rewardModel?: RewardModel;
-  preferenceCollector?: PreferenceCollector;
-  policyOptimizer?: PolicyOptimizer;
-  trajectoryLogger?: any;
-  currentParams?: CognitiveParameters;
+    rewardModel?: RewardModel;
+    preferenceCollector?: PreferenceCollector;
+    policyOptimizer?: PolicyOptimizer;
+    trajectoryLogger?: any;
+    currentParams?: CognitiveParameters;
 }
 
 export class RLFPLearner {
-  private outputFile = 'rlfp_training_data.jsonl';
-  private readonly logger = createLogger({ scope: 'rlfp' });
-  private readonly rewardModel: RewardModel;
-  private readonly policyOptimizer: PolicyOptimizer;
-  private readonly _preferenceCollector: PreferenceCollector;
-  readonly currentParams: CognitiveParameters;
-  private readonly knobs: Record<string, TunableKnob>;
+    readonly currentParams: CognitiveParameters;
+    private outputFile = 'rlfp_training_data.jsonl';
+    private readonly logger = createLogger({scope: 'rlfp'});
+    private readonly rewardModel: RewardModel;
+    private readonly policyOptimizer: PolicyOptimizer;
+    private readonly _preferenceCollector: PreferenceCollector;
+    private readonly knobs: Record<string, TunableKnob>;
 
-  constructor(config: RLFPLearnerConfig = {}) {
-    this.rewardModel = config.rewardModel ?? new RewardModel();
-    this.policyOptimizer = new PolicyOptimizer(this.rewardModel);
-    this._preferenceCollector = config.preferenceCollector ?? new PreferenceCollector();
-    this.currentParams = config.currentParams ?? {
-      priority: { initialPriority: 0.1, maxPriority: 1.0, directMentionBoost: 0.3, relatedConceptBoost: 0.15, decayRate: 0.05, propagationStrength: 0.1 },
-      lm: { enabled: true, singlePremiseEnabled: true, maxRulesPerCycle: 13, callTimeoutMs: 5000, ruleCategories: { translation: true, explanation: true, metaReasoning: true, uncertainty: true, schemaInduction: true, temporalCausal: true, conceptElaboration: true }, selectionStrategy: 'all' },
-      attention: { autoPrime: true, primeBoost: 0.3, relatedBoost: 0.15, structuralSimilarity: true, semanticRelatedness: false, propagateActivation: true, propagationIterations: 2 },
-      inference: { maxDerivationsPerStep: 1000, maxDerivationDepth: 10, enableCircularDetection: true, enableTraceCollection: false, cpuThrottleMs: 0, maxSampledConcepts: 100 },
-      modelRunner: { maxLoops: 5 },
-      memory: { activationDecayRate: 0.01 },
-      strategies: { sampling: { type: 'priority' }, premise: { type: 'default-formation' }, derivation: { type: 'default' }, lmRule: { type: 'priority', maxRules: 5 }, attention: { type: 'simple' } },
-    };
-    this.knobs = createKnobSet(this.currentParams);
-  }
-
-  private _trajectoryCount = 0;
-
-  get trajectoryCount(): number {
-    return this._trajectoryCount;
-  }
-
-  private _lastOptimizeTime: number | undefined;
-
-  get lastOptimizeTime(): number | undefined {
-    return this._lastOptimizeTime;
-  }
-
-  get preferences(): PreferenceData[] {
-    return this._preferenceCollector.getPreferences();
-  }
-
-  get policyOptimizerPublic(): PolicyOptimizer {
-    return this.policyOptimizer;
-  }
-
-  getTunableKnobs() {
-    return {
-      maxDerivationsPerStep: {
-        current: this.currentParams.inference.maxDerivationsPerStep,
-        min: 10, max: 500, step: 10,
-      },
-      maxDerivationDepth: {
-        current: this.currentParams.inference.maxDerivationDepth,
-        min: 5, max: 20, step: 1,
-      },
-      maxRulesPerCycle: {
-        current: this.currentParams.lm.maxRulesPerCycle,
-        min: 1, max: 13, step: 1,
-      },
-      callTimeoutMs: {
-        current: this.currentParams.lm.callTimeoutMs,
-        min: 1000, max: 30000, step: 500,
-      },
-      decayRate: {
-        current: this.currentParams.priority.decayRate,
-        min: 0.001, max: 0.1, step: 0.001,
-      },
-      cpuThrottleMs: {
-        current: this.currentParams.inference.cpuThrottleMs,
-        min: 0, max: 50, step: 1,
-      },
-      maxLoops: {
-        current: this.currentParams.modelRunner.maxLoops,
-        min: 1, max: 10, step: 1,
-      },
-      activationDecayRate: {
-        current: this.currentParams.memory.activationDecayRate,
-        min: 0.001, max: 0.1, step: 0.001,
-      },
-    };
-  }
-
-  applyTuningUpdate(knob: string, newValue: number): void {
-    const k = this.knobs[knob];
-    if (k) {
-      k.set(newValue);
+    constructor(config: RLFPLearnerConfig = {}) {
+        this.rewardModel = config.rewardModel ?? new RewardModel();
+        this.policyOptimizer = new PolicyOptimizer(this.rewardModel);
+        this._preferenceCollector = config.preferenceCollector ?? new PreferenceCollector();
+        this.currentParams = config.currentParams ?? {
+            priority: {
+                initialPriority: 0.1,
+                maxPriority: 1.0,
+                directMentionBoost: 0.3,
+                relatedConceptBoost: 0.15,
+                decayRate: 0.05,
+                propagationStrength: 0.1
+            },
+            lm: {
+                enabled: true,
+                singlePremiseEnabled: true,
+                maxRulesPerCycle: 13,
+                callTimeoutMs: 5000,
+                ruleCategories: {
+                    translation: true,
+                    explanation: true,
+                    metaReasoning: true,
+                    uncertainty: true,
+                    schemaInduction: true,
+                    temporalCausal: true,
+                    conceptElaboration: true
+                },
+                selectionStrategy: 'all'
+            },
+            attention: {
+                autoPrime: true,
+                primeBoost: 0.3,
+                relatedBoost: 0.15,
+                structuralSimilarity: true,
+                semanticRelatedness: false,
+                propagateActivation: true,
+                propagationIterations: 2
+            },
+            inference: {
+                maxDerivationsPerStep: 1000,
+                maxDerivationDepth: 10,
+                enableCircularDetection: true,
+                enableTraceCollection: false,
+                cpuThrottleMs: 0,
+                maxSampledConcepts: 100
+            },
+            modelRunner: {maxLoops: 5},
+            memory: {activationDecayRate: 0.01},
+            strategies: {
+                sampling: {type: 'priority'},
+                premise: {type: 'default-formation'},
+                derivation: {type: 'default'},
+                lmRule: {type: 'priority', maxRules: 5},
+                attention: {type: 'simple'}
+            },
+        };
+        this.knobs = createKnobSet(this.currentParams);
     }
-  }
 
-  calculateReward(m: {
-    testPassRate: number;
-    avgTestDuration: number;
-    coverageDelta: number;
-    memoryOverage: number;
-    cpuThrottleTime: number;
-    baselineDuration?: number;
-  }): number {
-    const speedScore = (m.baselineDuration ?? m.avgTestDuration) / Math.max(m.avgTestDuration, 0.1);
-    const clampedSpeedScore = clamp(speedScore, 0, 2);
-    const reward = 0.5 * m.testPassRate + 0.3 * (clampedSpeedScore / 2) + 0.2 * m.coverageDelta;
-    const aikrPenalty = 0.5 * m.memoryOverage + 0.1 * m.cpuThrottleTime;
-    return Math.max(0, reward - aikrPenalty);
-  }
+    private _trajectoryCount = 0;
 
-  /**
-   * Calculate reward from generic task outcome with intrinsic rewards
-   * Extrinsic: 0.5 * passRate + 0.3 * clamp(baseline/current, 0, 2)/2 + 0.2 * coverageDelta - AIKR penalties
-   * Intrinsic: 0.4 * derivationDepthReduction + 0.3 * selfModelAccuracy + 0.3 * contradictionReduction
-   * Total: clamp(extrinsic + 0.3 * intrinsic, -1, 1)
-   * CI penalties: heavy negative reward for typecheck/lint failures
-   */
-  calculateRewardFromTask(outcome: TaskOutcome): number {
-    const m = outcome.metrics;
-    
-    // Extrinsic rewards (existing)
-    const passRate = m.passRate ?? (outcome.success ? 1 : 0);
-    const speedScore = (m.baselineDuration ?? m.avgTestDuration ?? 1) / Math.max(m.avgTestDuration ?? 1, 0.1);
-    const clampedSpeedScore = clamp(speedScore, 0, 2);
-    const rewardExtrinsic = 0.5 * passRate + 0.3 * (clampedSpeedScore / 2) + 0.2 * (m.coverageDelta ?? 0);
-    const aikrPenalty = 0.5 * (m.memoryOverage ?? 0) + 0.1 * (m.cpuThrottleTime ?? 0);
-    const extrinsic = Math.max(0, rewardExtrinsic - aikrPenalty);
+    get trajectoryCount(): number {
+        return this._trajectoryCount;
+    }
 
-    // Intrinsic rewards (new)
-    const derivationDepthReduction = m.derivationDepthReduction ?? 0;  // schema promotion → fewer steps
-    const selfModelAccuracy = m.selfModelAccuracy ?? 0;                // predicted vs actual capability
-    const contradictionReduction = m.contradictionReduction ?? 0;      // coherence improvement
-    
-    const rewardIntrinsic = 
-      0.4 * derivationDepthReduction +
-      0.3 * selfModelAccuracy +
-      0.3 * contradictionReduction;
+    private _lastOptimizeTime: number | undefined;
 
-    // CI penalties: heavy negative reward for typecheck/lint failures (metrics are 0/1 numbers)
-    const typecheckFailed = (m.typecheckPassed ?? 1) === 0;
-    const lintFailed = (m.lintPassed ?? 1) === 0;
-    const ciPenalty = (typecheckFailed ? 0.8 : 0) + (lintFailed ? 0.8 : 0);
+    get lastOptimizeTime(): number | undefined {
+        return this._lastOptimizeTime;
+    }
 
-    // Combined reward
-    const combined = extrinsic + 0.3 * rewardIntrinsic - ciPenalty;
-    const total = clamp(combined, -1, 1);
+    get preferences(): PreferenceData[] {
+        return this._preferenceCollector.getPreferences();
+    }
 
-    // Structured reward breakdown logging (extrinsic vs intrinsic per task)
-    this.logger.debug('reward breakdown', {
-      taskType: outcome.taskType,
-      success: outcome.success,
-      extrinsic: Math.round(extrinsic * 100) / 100,
-      intrinsic: Math.round(rewardIntrinsic * 100) / 100,
-      weightedIntrinsic: Math.round(0.3 * rewardIntrinsic * 100) / 100,
-      ciPenalty: Math.round(ciPenalty * 100) / 100,
-      total: Math.round(total * 100) / 100,
-    });
+    get policyOptimizerPublic(): PolicyOptimizer {
+        return this.policyOptimizer;
+    }
 
-    return total;
-  }
+    getTunableKnobs() {
+        return {
+            maxDerivationsPerStep: {
+                current: this.currentParams.inference.maxDerivationsPerStep,
+                min: 10, max: 500, step: 10,
+            },
+            maxDerivationDepth: {
+                current: this.currentParams.inference.maxDerivationDepth,
+                min: 5, max: 20, step: 1,
+            },
+            maxRulesPerCycle: {
+                current: this.currentParams.lm.maxRulesPerCycle,
+                min: 1, max: 13, step: 1,
+            },
+            callTimeoutMs: {
+                current: this.currentParams.lm.callTimeoutMs,
+                min: 1000, max: 30000, step: 500,
+            },
+            decayRate: {
+                current: this.currentParams.priority.decayRate,
+                min: 0.001, max: 0.1, step: 0.001,
+            },
+            cpuThrottleMs: {
+                current: this.currentParams.inference.cpuThrottleMs,
+                min: 0, max: 50, step: 1,
+            },
+            maxLoops: {
+                current: this.currentParams.modelRunner.maxLoops,
+                min: 1, max: 10, step: 1,
+            },
+            activationDecayRate: {
+                current: this.currentParams.memory.activationDecayRate,
+                min: 0.001, max: 0.1, step: 0.001,
+            },
+        };
+    }
 
-  addPreference(preferred: string, rejected: string): void {
-    this._preferenceCollector.addPreference({
-      trajectoryA: [],
-      trajectoryB: [],
-      preference: 'A',
-      files: { A: preferred, B: rejected },
-    });
-  }
+    applyTuningUpdate(knob: string, newValue: number): void {
+        const k = this.knobs[knob];
+        if (k) {
+            k.set(newValue);
+        }
+    }
 
-  optimize(): void {
-    this._lastOptimizeTime = Date.now();
-    this._trajectoryCount++;
-    this.policyOptimizer.optimize();
-  }
+    calculateReward(m: {
+        testPassRate: number;
+        avgTestDuration: number;
+        coverageDelta: number;
+        memoryOverage: number;
+        cpuThrottleTime: number;
+        baselineDuration?: number;
+    }): number {
+        const speedScore = (m.baselineDuration ?? m.avgTestDuration) / Math.max(m.avgTestDuration, 0.1);
+        const clampedSpeedScore = clamp(speedScore, 0, 2);
+        const reward = 0.5 * m.testPassRate + 0.3 * (clampedSpeedScore / 2) + 0.2 * m.coverageDelta;
+        const aikrPenalty = 0.5 * m.memoryOverage + 0.1 * m.cpuThrottleTime;
+        return Math.max(0, reward - aikrPenalty);
+    }
 
-  updateModel(preferences: PreferenceData[] | PreferenceData): {
-    success: boolean;
-    count: number;
-    error?: string;
-  } {
-    const prefs = Array.isArray(preferences) ? preferences : [preferences];
-    const validPrefs = prefs.filter((p) => p?.preference && p.preference !== 'SKIP');
-    if (!validPrefs.length) return { success: true, count: 0 };
-    console.info(`RLFPLearner: Processing ${validPrefs.length} preference(s)...`);
-    let count = 0;
-    let lastError: string | undefined;
-    for (const pref of validPrefs) {
-      const entry = this.prepareTrainingEntry(pref);
-      if (entry) {
+    /**
+     * Calculate reward from generic task outcome with intrinsic rewards
+     * Extrinsic: 0.5 * passRate + 0.3 * clamp(baseline/current, 0, 2)/2 + 0.2 * coverageDelta - AIKR penalties
+     * Intrinsic: 0.4 * derivationDepthReduction + 0.3 * selfModelAccuracy + 0.3 * contradictionReduction
+     * Total: clamp(extrinsic + 0.3 * intrinsic, -1, 1)
+     * CI penalties: heavy negative reward for typecheck/lint failures
+     */
+    calculateRewardFromTask(outcome: TaskOutcome): number {
+        const m = outcome.metrics;
+
+        // Extrinsic rewards (existing)
+        const passRate = m.passRate ?? (outcome.success ? 1 : 0);
+        const speedScore = (m.baselineDuration ?? m.avgTestDuration ?? 1) / Math.max(m.avgTestDuration ?? 1, 0.1);
+        const clampedSpeedScore = clamp(speedScore, 0, 2);
+        const rewardExtrinsic = 0.5 * passRate + 0.3 * (clampedSpeedScore / 2) + 0.2 * (m.coverageDelta ?? 0);
+        const aikrPenalty = 0.5 * (m.memoryOverage ?? 0) + 0.1 * (m.cpuThrottleTime ?? 0);
+        const extrinsic = Math.max(0, rewardExtrinsic - aikrPenalty);
+
+        // Intrinsic rewards (new)
+        const derivationDepthReduction = m.derivationDepthReduction ?? 0;  // schema promotion → fewer steps
+        const selfModelAccuracy = m.selfModelAccuracy ?? 0;                // predicted vs actual capability
+        const contradictionReduction = m.contradictionReduction ?? 0;      // coherence improvement
+
+        const rewardIntrinsic =
+            0.4 * derivationDepthReduction +
+            0.3 * selfModelAccuracy +
+            0.3 * contradictionReduction;
+
+        // CI penalties: heavy negative reward for typecheck/lint failures (metrics are 0/1 numbers)
+        const typecheckFailed = (m.typecheckPassed ?? 1) === 0;
+        const lintFailed = (m.lintPassed ?? 1) === 0;
+        const ciPenalty = (typecheckFailed ? 0.8 : 0) + (lintFailed ? 0.8 : 0);
+
+        // Combined reward
+        const combined = extrinsic + 0.3 * rewardIntrinsic - ciPenalty;
+        const total = clamp(combined, -1, 1);
+
+        // Structured reward breakdown logging (extrinsic vs intrinsic per task)
+        this.logger.debug('reward breakdown', {
+            taskType: outcome.taskType,
+            success: outcome.success,
+            extrinsic: Math.round(extrinsic * 100) / 100,
+            intrinsic: Math.round(rewardIntrinsic * 100) / 100,
+            weightedIntrinsic: Math.round(0.3 * rewardIntrinsic * 100) / 100,
+            ciPenalty: Math.round(ciPenalty * 100) / 100,
+            total: Math.round(total * 100) / 100,
+        });
+
+        return total;
+    }
+
+    addPreference(preferred: string, rejected: string): void {
+        this._preferenceCollector.addPreference({
+            trajectoryA: [],
+            trajectoryB: [],
+            preference: 'A',
+            files: {A: preferred, B: rejected},
+        });
+    }
+
+    optimize(): void {
+        this._lastOptimizeTime = Date.now();
+        this._trajectoryCount++;
+        this.policyOptimizer.optimize();
+    }
+
+    updateModel(preferences: PreferenceData[] | PreferenceData): {
+        success: boolean;
+        count: number;
+        error?: string;
+    } {
+        const prefs = Array.isArray(preferences) ? preferences : [preferences];
+        const validPrefs = prefs.filter((p) => p?.preference && p.preference !== 'SKIP');
+        if (!validPrefs.length) return {success: true, count: 0};
+        console.info(`RLFPLearner: Processing ${validPrefs.length} preference(s)...`);
+        let count = 0;
+        let lastError: string | undefined;
+        for (const pref of validPrefs) {
+            const entry = this.prepareTrainingEntry(pref);
+            if (entry) {
+                try {
+                    this.appendToFile(entry);
+                    count++;
+                } catch (e) {
+                    lastError = (e as Error).message;
+                }
+            }
+        }
+        console.info(`RLFPLearner: Appended ${count} examples to ${this.outputFile}`);
+        return lastError ? {success: false, count, error: lastError} : {success: true, count};
+    }
+
+    /**
+     * Provide external reward feedback (e.g., from user) to update policy
+     * @param reward - Reward value between -1 and 1
+     * @param context - Optional context about what the reward is for
+     */
+    reward(reward: number, context?: string): void {
+        const clampedReward = clamp(reward, -1, 1);
+        // Create a minimal trajectory step for the reward
+        const trajectory: TrajectoryStep[] = [
+            {
+                type: 'reward_feedback',
+                timestamp: Date.now(),
+                data: {reward: clampedReward, context},
+            },
+        ];
+        // Record outcome with a special strategy name for feedback
+        this.policyOptimizer.recordOutcome(trajectory, 'user_feedback');
+    }
+
+    /**
+     * Reset the RLFPLearner state
+     */
+    reset(): void {
+        this.policyOptimizer.reset();
+        this._preferenceCollector.clear();
+        this._trajectoryCount = 0;
+        this._lastOptimizeTime = undefined;
+    }
+
+    private prepareTrainingEntry(pref: PreferenceData): TrainingEntry | null {
+        const promptStep = pref.trajectoryA.find((s) => s.type === 'llm_prompt');
+        const prompt = promptStep?.data || 'unknown_prompt';
+        const [chosen, rejected] =
+            pref.preference === 'A'
+                ? [pref.trajectoryA, pref.trajectoryB]
+                : [pref.trajectoryB, pref.trajectoryA];
+        return {
+            timestamp: Date.now(),
+            prompt,
+            chosen: this.extractCompletion(chosen),
+            rejected: this.extractCompletion(rejected),
+            full_chosen_trajectory: chosen,
+            full_rejected_trajectory: rejected,
+        };
+    }
+
+    private extractCompletion(trajectory: TrajectoryStep[]): string {
+        return trajectory
+            .filter((s) => s.type !== 'llm_prompt')
+            .map((s) => {
+                if (s.type === 'tool_call') {
+                    const data = s.data as any;
+                    return `<tool_call>${data?.name}(${JSON.stringify(data?.args)})\nResponse: ${JSON.stringify(data?.content ?? data)}`;
+                }
+                return '';
+            })
+            .join('\n');
+    }
+
+    private appendToFile(entry: TrainingEntry): void {
         try {
-          this.appendToFile(entry);
-          count++;
-        } catch (e) {
-          lastError = (e as Error).message;
+            appendFileSync(this.outputFile, JSON.stringify(entry) + '\n');
+        } catch (error) {
+            throw new OperationError(`RLFPLearner write error: ${(error as Error).message}`, {
+                file: this.outputFile,
+            });
         }
-      }
     }
-    console.info(`RLFPLearner: Appended ${count} examples to ${this.outputFile}`);
-    return lastError ? { success: false, count, error: lastError } : { success: true, count };
-  }
-
-  /**
-   * Provide external reward feedback (e.g., from user) to update policy
-   * @param reward - Reward value between -1 and 1
-   * @param context - Optional context about what the reward is for
-   */
-  reward(reward: number, context?: string): void {
-    const clampedReward = clamp(reward, -1, 1);
-    // Create a minimal trajectory step for the reward
-    const trajectory: TrajectoryStep[] = [
-      {
-        type: 'reward_feedback',
-        timestamp: Date.now(),
-        data: { reward: clampedReward, context },
-      },
-    ];
-    // Record outcome with a special strategy name for feedback
-    this.policyOptimizer.recordOutcome(trajectory, 'user_feedback');
-  }
-
-  /**
-   * Reset the RLFPLearner state
-   */
-  reset(): void {
-    this.policyOptimizer.reset();
-    this._preferenceCollector.clear();
-    this._trajectoryCount = 0;
-    this._lastOptimizeTime = undefined;
-  }
-
-  private prepareTrainingEntry(pref: PreferenceData): TrainingEntry | null {
-    const promptStep = pref.trajectoryA.find((s) => s.type === 'llm_prompt');
-    const prompt = promptStep?.data || 'unknown_prompt';
-    const [chosen, rejected] =
-      pref.preference === 'A'
-        ? [pref.trajectoryA, pref.trajectoryB]
-        : [pref.trajectoryB, pref.trajectoryA];
-    return {
-      timestamp: Date.now(),
-      prompt,
-      chosen: this.extractCompletion(chosen),
-      rejected: this.extractCompletion(rejected),
-      full_chosen_trajectory: chosen,
-      full_rejected_trajectory: rejected,
-    };
-  }
-
-  private extractCompletion(trajectory: TrajectoryStep[]): string {
-    return trajectory
-      .filter((s) => s.type !== 'llm_prompt')
-      .map((s) => {
-        if (s.type === 'tool_call') {
-          const data = s.data as any;
-          return `<tool_call>${data?.name}(${JSON.stringify(data?.args)})\nResponse: ${JSON.stringify(data?.content ?? data)}`;
-        }
-        return '';
-      })
-      .join('\n');
-  }
-
-  private appendToFile(entry: TrainingEntry): void {
-    try {
-      appendFileSync(this.outputFile, JSON.stringify(entry) + '\n');
-    } catch (error) {
-      throw new OperationError(`RLFPLearner write error: ${(error as Error).message}`, {
-        file: this.outputFile,
-      });
-    }
-  }
 }

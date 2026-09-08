@@ -1,68 +1,68 @@
-import { expect, test } from '../../framework/fixtures/senars-app';
+import {expect, test} from '../../framework/fixtures/senars-app';
 
 test.describe('Relational Gate: edit edge', () => {
-  test('tap an edge, change its type via the drawer, verify update', async ({ page, testApi }) => {
-    await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect.poll(() => testApi.getConnectionState()).toBe('connected');
+    test('tap an edge, change its type via the drawer, verify update', async ({page, testApi}) => {
+        await expect(page.locator('graph-viewport')).toBeVisible();
+        await expect.poll(() => testApi.getConnectionState()).toBe('connected');
 
-    // Wait for graph to have nodes and edges
-    await expect.poll(() => testApi.getGraphNodeCount()).toBeGreaterThan(0);
+        // Wait for graph to have nodes and edges
+        await expect.poll(() => testApi.getGraphNodeCount()).toBeGreaterThan(0);
 
-    await expect.poll(() => testApi.getGraphEdgeCount()).toBeGreaterThan(0);
+        await expect.poll(() => testApi.getGraphEdgeCount()).toBeGreaterThan(0);
 
-    // Get the first edge
-    const edgeIds = await testApi.getAllEdgeIds();
-    expect(edgeIds.length).toBeGreaterThan(0);
+        // Get the first edge
+        const edgeIds = await testApi.getAllEdgeIds();
+        expect(edgeIds.length).toBeGreaterThan(0);
 
-    const firstEdgeId = edgeIds[0] as string;
-    const [source, target] = firstEdgeId.split('->');
+        const firstEdgeId = edgeIds[0] as string;
+        const [source, target] = firstEdgeId.split('->');
 
-    // Get the edge data before editing
-    const edgeDataBefore = await testApi.getEdgeData(source, target);
-    expect(edgeDataBefore).not.toBeNull();
+        // Get the edge data before editing
+        const edgeDataBefore = await testApi.getEdgeData(source, target);
+        expect(edgeDataBefore).not.toBeNull();
 
-    // Click the edge to select it
-    await testApi.clickEdge(source, target);
+        // Click the edge to select it
+        await testApi.clickEdge(source, target);
 
-    // Verify drawer opens with edge tab
-    const edgeTab = page.locator('node-detail-drawer .tab-button', { hasText: 'Edge' });
-    await expect(edgeTab).toBeVisible({ timeout: 3000 });
-    await edgeTab.click();
+        // Verify drawer opens with edge tab
+        const edgeTab = page.locator('node-detail-drawer .tab-button', {hasText: 'Edge'});
+        await expect(edgeTab).toBeVisible({timeout: 3000});
+        await edgeTab.click();
 
-    // Verify edge type selector is visible
-    const typeSelect = page.locator('node-detail-drawer select');
-    await expect(typeSelect).toBeVisible({ timeout: 3000 });
+        // Verify edge type selector is visible
+        const typeSelect = page.locator('node-detail-drawer select');
+        await expect(typeSelect).toBeVisible({timeout: 3000});
 
-    // Change the edge type to 'similarity'
-    const currentType = await typeSelect.inputValue();
-    const newType = currentType === 'similarity' ? 'inheritance' : 'similarity';
-    await typeSelect.selectOption(newType);
+        // Change the edge type to 'similarity'
+        const currentType = await typeSelect.inputValue();
+        const newType = currentType === 'similarity' ? 'inheritance' : 'similarity';
+        await typeSelect.selectOption(newType);
 
-    // Verify the drawer shows the updated type
-    await expect(typeSelect).toHaveValue(newType, { timeout: 3000 });
-  });
+        // Verify the drawer shows the updated type
+        await expect(typeSelect).toHaveValue(newType, {timeout: 3000});
+    });
 
-  test('background tap clears edge selection', async ({ page, testApi }) => {
-    await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect.poll(() => testApi.getConnectionState()).toBe('connected');
+    test('background tap clears edge selection', async ({page, testApi}) => {
+        await expect(page.locator('graph-viewport')).toBeVisible();
+        await expect.poll(() => testApi.getConnectionState()).toBe('connected');
 
-    await expect.poll(() => testApi.getGraphEdgeCount()).toBeGreaterThan(0);
+        await expect.poll(() => testApi.getGraphEdgeCount()).toBeGreaterThan(0);
 
-    const edgeIds = await testApi.getAllEdgeIds();
-    const [source, target] = (edgeIds[0] as string).split('->');
+        const edgeIds = await testApi.getAllEdgeIds();
+        const [source, target] = (edgeIds[0] as string).split('->');
 
-    // Click the edge
-    await testApi.clickEdge(source, target);
+        // Click the edge
+        await testApi.clickEdge(source, target);
 
-    // Verify drawer is open
-    const drawer = page.locator('node-detail-drawer');
-    await expect(drawer).toBeVisible({ timeout: 3000 });
+        // Verify drawer is open
+        const drawer = page.locator('node-detail-drawer');
+        await expect(drawer).toBeVisible({timeout: 3000});
 
-    // Click background to clear selection
-    await page.locator('graph-viewport #cy-container').click({ position: { x: 10, y: 10 } });
+        // Click background to clear selection
+        await page.locator('graph-viewport #cy-container').click({position: {x: 10, y: 10}});
 
-    // Verify edge selection is cleared
-    const selectedEdgeId = await testApi.getStoreState('selectedEdgeId');
-    expect(selectedEdgeId).toBeNull();
-  });
+        // Verify edge selection is cleared
+        const selectedEdgeId = await testApi.getStoreState('selectedEdgeId');
+        expect(selectedEdgeId).toBeNull();
+    });
 });

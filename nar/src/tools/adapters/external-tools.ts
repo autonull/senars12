@@ -1,22 +1,22 @@
-import { spawn, spawnSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { normalize, resolve, dirname } from 'node:path';
-import { tool } from 'ai';
-import { z } from 'zod';
+import {spawn, spawnSync} from 'node:child_process';
+import {randomUUID} from 'node:crypto';
+import {mkdir, readFile, writeFile} from 'node:fs/promises';
+import {dirname, normalize, resolve} from 'node:path';
+import {tool} from 'ai';
+import {z} from 'zod';
 import * as fc from 'fast-check';
-import type { EpisodicMemory } from '../../memory/EpisodicMemory.js';
-import type { EmbeddingGenerator } from '../../memory/embedding.js';
-import { cosineSimilarity, createEmbeddingGenerator } from '../../memory/embedding.js';
-import { ToolSpecSchema, ConnectionConfigSchema, AgentOptionsSchema } from '../schemas.js';
-import { NLUnderstandingService } from '../../nl/understanding.js';
-import type { SeNARSRegistry } from '../../lm';
-import { createLogger } from '../../logger';
-import type { NAR } from '../../nar.js';
-import type { CognitiveController } from '../../cognitive/controller.js';
-import type { RLFPLearner } from '../../rlfp/RLFPLearner.js';
-import type { RuleProcessor } from '../../rules/processor.js';
-import type { ToolManager } from '../tool-registry.js';
+import type {EpisodicMemory} from '../../memory/EpisodicMemory.js';
+import type {EmbeddingGenerator} from '../../memory/embedding.js';
+import {cosineSimilarity, createEmbeddingGenerator} from '../../memory/embedding.js';
+import {AgentOptionsSchema, ConnectionConfigSchema, ToolSpecSchema} from '../schemas.js';
+import {NLUnderstandingService} from '../../nl/understanding.js';
+import type {SeNARSRegistry} from '../../lm';
+import {createLogger} from '../../logger';
+import type {NAR} from '../../nar.js';
+import type {CognitiveController} from '../../cognitive/controller.js';
+import type {RLFPLearner} from '../../rlfp/RLFPLearner.js';
+import type {RuleProcessor} from '../../rules/processor.js';
+import type {ToolManager} from '../tool-registry.js';
 
 type ToolSpec = z.infer<typeof ToolSpecSchema>;
 type ConnectionConfig = z.infer<typeof ConnectionConfigSchema>;
@@ -25,1783 +25,1822 @@ type AgentOptions = z.infer<typeof AgentOptionsSchema>;
 // --- web_search ---
 
 export interface WebSearchDeps {
-  apiKey?: string;
+    apiKey?: string;
 }
 
 export function createWebSearchTools(deps: WebSearchDeps = {}) {
-  const apiKey = deps.apiKey || process.env.BRAVE_API_KEY || process.env.WEB_SEARCH_API_KEY || '';
+    const apiKey = deps.apiKey || process.env.BRAVE_API_KEY || process.env.WEB_SEARCH_API_KEY || '';
 
-  return {
-    web_search: tool({
-      description: 'Search the web for current information. Returns snippets and URLs.',
-      inputSchema: z.object({
-        query: z.string().describe('The search query'),
-        count: z.number().min(1).max(20).optional().default(5).describe('Number of results (1-20)'),
-      }),
-      execute: async ({ query, count }) => {
-        if (!apiKey) {
-          return {
-            error: 'Web search is not configured. Set BRAVE_API_KEY or WEB_SEARCH_API_KEY.',
-            results: [],
-          };
-        }
-        try {
-          const url = new URL('https://api.search.brave.com/res/v1/web/search');
-          url.searchParams.set('q', query);
-          url.searchParams.set('count', String(count));
-          const response = await fetch(url.toString(), {
-            headers: {
-              Accept: 'application/json',
-              'X-Subscription-Token': apiKey,
+    return {
+        web_search: tool({
+            description: 'Search the web for current information. Returns snippets and URLs.',
+            inputSchema: z.object({
+                query: z.string().describe('The search query'),
+                count: z.number().min(1).max(20).optional().default(5).describe('Number of results (1-20)'),
+            }),
+            execute: async ({query, count}) => {
+                if (!apiKey) {
+                    return {
+                        error: 'Web search is not configured. Set BRAVE_API_KEY or WEB_SEARCH_API_KEY.',
+                        results: [],
+                    };
+                }
+                try {
+                    const url = new URL('https://api.search.brave.com/res/v1/web/search');
+                    url.searchParams.set('q', query);
+                    url.searchParams.set('count', String(count));
+                    const response = await fetch(url.toString(), {
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Subscription-Token': apiKey,
+                        },
+                        signal: AbortSignal.timeout(10_000),
+                    });
+                    if (!response.ok) throw new Error(`Search API error: ${response.status}`);
+                    const data = (await response.json()) as {
+                        web?: { results?: Array<{ title: string; url: string; description: string }> };
+                    };
+                    const results = (data.web?.results ?? []).map((r) => ({
+                        title: r.title,
+                        url: r.url,
+                        snippet: r.description,
+                    }));
+                    return {results, count: results.length, query};
+                } catch (error) {
+                    return {error: String(error), results: [], query};
+                }
             },
-            signal: AbortSignal.timeout(10_000),
-          });
-          if (!response.ok) throw new Error(`Search API error: ${response.status}`);
-          const data = (await response.json()) as {
-            web?: { results?: Array<{ title: string; url: string; description: string }> };
-          };
-          const results = (data.web?.results ?? []).map((r) => ({
-            title: r.title,
-            url: r.url,
-            snippet: r.description,
-          }));
-          return { results, count: results.length, query };
-        } catch (error) {
-          return { error: String(error), results: [], query };
-        }
-      },
-    }),
-  };
+        }),
+    };
 }
 
 // --- http_fetch ---
 
 export function createHTTPFetchTools() {
-  return {
-    http_fetch: tool({
-      description:
-        'Make HTTP requests. Supports GET, POST, PUT, DELETE. Returns status, headers, and body.',
-      inputSchema: z.object({
-        url: z.string().describe('Full URL to fetch (http/https only)'),
-        method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).optional().default('GET'),
-        headers: z.record(z.string(), z.string()).optional().describe('Optional request headers'),
-        body: z.string().optional().describe('Request body for POST/PUT'),
-        timeout: z
-          .number()
-          .min(1000)
-          .max(60_000)
-          .optional()
-          .default(15_000)
-          .describe('Timeout in ms'),
-      }),
-      execute: async ({ url: urlStr, method = 'GET', headers = {}, body, timeout = 15_000 }) => {
-        try {
-          const parsed = new URL(urlStr);
-          if (!['http:', 'https:'].includes(parsed.protocol)) {
-            return { error: 'Only http/https URLs are allowed' };
-          }
-          const response = await fetch(urlStr, {
-            method,
-            headers: { ...headers, ...(body ? { 'Content-Type': 'application/json' } : {}) },
-            body: body || undefined,
-            signal: AbortSignal.timeout(timeout),
-          });
-          const bodyText = await response.text();
-          const responseHeaders: Record<string, string> = {};
-          response.headers.forEach((value, key) => {
-            responseHeaders[key] = value;
-          });
-          return {
-            status: response.status,
-            statusText: response.statusText,
-            headers: responseHeaders,
-            body: bodyText,
-            bodyLength: bodyText.length,
-          };
-        } catch (error) {
-          return { error: String(error) };
-        }
-      },
-    }),
-  };
+    return {
+        http_fetch: tool({
+            description:
+                'Make HTTP requests. Supports GET, POST, PUT, DELETE. Returns status, headers, and body.',
+            inputSchema: z.object({
+                url: z.string().describe('Full URL to fetch (http/https only)'),
+                method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).optional().default('GET'),
+                headers: z.record(z.string(), z.string()).optional().describe('Optional request headers'),
+                body: z.string().optional().describe('Request body for POST/PUT'),
+                timeout: z
+                    .number()
+                    .min(1000)
+                    .max(60_000)
+                    .optional()
+                    .default(15_000)
+                    .describe('Timeout in ms'),
+            }),
+            execute: async ({url: urlStr, method = 'GET', headers = {}, body, timeout = 15_000}) => {
+                try {
+                    const parsed = new URL(urlStr);
+                    if (!['http:', 'https:'].includes(parsed.protocol)) {
+                        return {error: 'Only http/https URLs are allowed'};
+                    }
+                    const response = await fetch(urlStr, {
+                        method,
+                        headers: {...headers, ...(body ? {'Content-Type': 'application/json'} : {})},
+                        body: body || undefined,
+                        signal: AbortSignal.timeout(timeout),
+                    });
+                    const bodyText = await response.text();
+                    const responseHeaders: Record<string, string> = {};
+                    response.headers.forEach((value, key) => {
+                        responseHeaders[key] = value;
+                    });
+                    return {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: responseHeaders,
+                        body: bodyText,
+                        bodyLength: bodyText.length,
+                    };
+                } catch (error) {
+                    return {error: String(error)};
+                }
+            },
+        }),
+    };
 }
 
 // --- code_exec ---
 
 export interface CodeExecDeps {
-  workspaceRoot?: string;
-  maxTimeout?: number;
-  maxOutputBytes?: number;
+    workspaceRoot?: string;
+    maxTimeout?: number;
+    maxOutputBytes?: number;
 }
 
 export function createCodeExecTools(deps: CodeExecDeps = {}) {
-  const workspaceRoot = deps.workspaceRoot || process.cwd();
-  const maxTimeout = deps.maxTimeout ?? 120_000;
-  const maxOutputBytes = deps.maxOutputBytes ?? 65_536;
+    const workspaceRoot = deps.workspaceRoot || process.cwd();
+    const maxTimeout = deps.maxTimeout ?? 120_000;
+    const maxOutputBytes = deps.maxOutputBytes ?? 65_536;
 
-  return {
-    code_exec: tool({
-      description:
-        'Execute a command in a subprocess. Scoped to the workspace directory. No shell access.',
-      inputSchema: z.object({
-        command: z.string().describe('Command to execute (e.g., "node", "python3", "ls")'),
-        args: z.array(z.string()).optional().default([]).describe('Command arguments'),
-        cwd: z.string().optional().describe('Working directory relative to workspace root'),
-        timeout: z
-          .number()
-          .min(1000)
-          .max(maxTimeout)
-          .optional()
-          .default(30_000)
-          .describe('Timeout in ms'),
-      }),
-      execute: async ({ command, args = [], cwd, timeout = 30_000 }) => {
-        const execCwd = cwd ? resolve(workspaceRoot, cwd) : workspaceRoot;
-        const normCwd = normalize(execCwd);
-        if (!normCwd.startsWith(normalize(workspaceRoot))) {
-          return { error: `Working directory must be within workspace: ${workspaceRoot}` };
-        }
+    return {
+        code_exec: tool({
+            description:
+                'Execute a command in a subprocess. Scoped to the workspace directory. No shell access.',
+            inputSchema: z.object({
+                command: z.string().describe('Command to execute (e.g., "node", "python3", "ls")'),
+                args: z.array(z.string()).optional().default([]).describe('Command arguments'),
+                cwd: z.string().optional().describe('Working directory relative to workspace root'),
+                timeout: z
+                    .number()
+                    .min(1000)
+                    .max(maxTimeout)
+                    .optional()
+                    .default(30_000)
+                    .describe('Timeout in ms'),
+            }),
+            execute: async ({command, args = [], cwd, timeout = 30_000}) => {
+                const execCwd = cwd ? resolve(workspaceRoot, cwd) : workspaceRoot;
+                const normCwd = normalize(execCwd);
+                if (!normCwd.startsWith(normalize(workspaceRoot))) {
+                    return {error: `Working directory must be within workspace: ${workspaceRoot}`};
+                }
 
-        return new Promise((resolve) => {
-          const child = spawn(command, args, {
-            cwd: normCwd,
-            shell: false,
-            stdio: ['pipe', 'pipe', 'pipe'],
-          });
+                return new Promise((resolve) => {
+                    const child = spawn(command, args, {
+                        cwd: normCwd,
+                        shell: false,
+                        stdio: ['pipe', 'pipe', 'pipe'],
+                    });
 
-          const stdout: Buffer[] = [];
-          const stderr: Buffer[] = [];
-          let truncated = false;
+                    const stdout: Buffer[] = [];
+                    const stderr: Buffer[] = [];
+                    let truncated = false;
 
-          const collect = (
-            buffer: Buffer[],
-            target: Buffer[],
-            byteCount: {
-              value: number;
+                    const collect = (
+                        buffer: Buffer[],
+                        target: Buffer[],
+                        byteCount: {
+                            value: number;
+                        },
+                        maxBytes: number
+                    ) => {
+                        return (data: Buffer) => {
+                            const remaining = maxBytes - byteCount.value;
+                            if (remaining <= 0) {
+                                truncated = true;
+                                return;
+                            }
+                            const chunk = data.subarray(0, remaining);
+                            buffer.push(chunk);
+                            byteCount.value += chunk.length;
+                        };
+                    };
+
+                    child.stdout?.on('data', collect(stdout, stdout, {value: 0}, maxOutputBytes));
+                    child.stderr?.on('data', collect(stderr, stderr, {value: 0}, maxOutputBytes));
+
+                    const startTime = Date.now();
+                    const timer = setTimeout(() => {
+                        child.kill('SIGTERM');
+                    }, timeout);
+
+                    child.on('close', (exitCode) => {
+                        clearTimeout(timer);
+                        resolve({
+                            exitCode: exitCode ?? -1,
+                            stdout: Buffer.concat(stdout).toString('utf-8'),
+                            stderr: Buffer.concat(stderr).toString('utf-8'),
+                            duration: Date.now() - startTime,
+                            truncated,
+                        });
+                    });
+
+                    child.on('error', (err) => {
+                        clearTimeout(timer);
+                        resolve({
+                            error: String(err),
+                            exitCode: -1,
+                            stdout: '',
+                            stderr: '',
+                            duration: Date.now() - startTime,
+                            truncated: false,
+                        });
+                    });
+                });
             },
-            maxBytes: number
-          ) => {
-            return (data: Buffer) => {
-              const remaining = maxBytes - byteCount.value;
-              if (remaining <= 0) {
-                truncated = true;
-                return;
-              }
-              const chunk = data.subarray(0, remaining);
-              buffer.push(chunk);
-              byteCount.value += chunk.length;
-            };
-          };
-
-          child.stdout?.on('data', collect(stdout, stdout, { value: 0 }, maxOutputBytes));
-          child.stderr?.on('data', collect(stderr, stderr, { value: 0 }, maxOutputBytes));
-
-          const startTime = Date.now();
-          const timer = setTimeout(() => {
-            child.kill('SIGTERM');
-          }, timeout);
-
-          child.on('close', (exitCode) => {
-            clearTimeout(timer);
-            resolve({
-              exitCode: exitCode ?? -1,
-              stdout: Buffer.concat(stdout).toString('utf-8'),
-              stderr: Buffer.concat(stderr).toString('utf-8'),
-              duration: Date.now() - startTime,
-              truncated,
-            });
-          });
-
-          child.on('error', (err) => {
-            clearTimeout(timer);
-            resolve({
-              error: String(err),
-              exitCode: -1,
-              stdout: '',
-              stderr: '',
-              duration: Date.now() - startTime,
-              truncated: false,
-            });
-          });
-        });
-      },
-    }),
-  };
+        }),
+    };
 }
 
 // --- fs_read / fs_write ---
 
 export interface FileSystemDeps {
-  workspaceRoot: string;
-  maxReadSize?: number;
+    workspaceRoot: string;
+    maxReadSize?: number;
 }
 
 function enforceWorkspaceScope(requestedPath: string, workspaceRoot: string): string {
-  const resolved = resolve(workspaceRoot, requestedPath);
-  const normalized = normalize(resolved);
-  const normalizedRoot = normalize(workspaceRoot);
-  if (!normalized.startsWith(normalizedRoot)) {
-    throw new Error(`Path must be within workspace: ${workspaceRoot}`);
-  }
-  return normalized;
+    const resolved = resolve(workspaceRoot, requestedPath);
+    const normalized = normalize(resolved);
+    const normalizedRoot = normalize(workspaceRoot);
+    if (!normalized.startsWith(normalizedRoot)) {
+        throw new Error(`Path must be within workspace: ${workspaceRoot}`);
+    }
+    return normalized;
 }
 
 export function createFileSystemTools(deps: FileSystemDeps) {
-  const maxReadSize = deps.maxReadSize ?? 1_048_576; // 1MB default
+    const maxReadSize = deps.maxReadSize ?? 1_048_576; // 1MB default
 
-  return {
-    fs_read: tool({
-      description: 'Read a file from the workspace. Returns file contents as text.',
-      inputSchema: z.object({
-        path: z.string().describe('File path relative to workspace root'),
-      }),
-      execute: async ({ path }) => {
-        try {
-          const resolvedPath = enforceWorkspaceScope(path, deps.workspaceRoot);
-          const stat = await import('node:fs/promises').then((m) => m.stat(resolvedPath));
-          if (!stat.isFile()) return { error: 'Not a file', path };
-          if (stat.size > maxReadSize)
-            return {
-              error: `File too large (${stat.size} bytes, max ${maxReadSize})`,
-              path,
-            };
-          const content = await readFile(resolvedPath, 'utf-8');
-          return { content, path, size: content.length };
-        } catch (error) {
-          return { error: String(error), path };
-        }
-      },
-    }),
+    return {
+        fs_read: tool({
+            description: 'Read a file from the workspace. Returns file contents as text.',
+            inputSchema: z.object({
+                path: z.string().describe('File path relative to workspace root'),
+            }),
+            execute: async ({path}) => {
+                try {
+                    const resolvedPath = enforceWorkspaceScope(path, deps.workspaceRoot);
+                    const stat = await import('node:fs/promises').then((m) => m.stat(resolvedPath));
+                    if (!stat.isFile()) return {error: 'Not a file', path};
+                    if (stat.size > maxReadSize)
+                        return {
+                            error: `File too large (${stat.size} bytes, max ${maxReadSize})`,
+                            path,
+                        };
+                    const content = await readFile(resolvedPath, 'utf-8');
+                    return {content, path, size: content.length};
+                } catch (error) {
+                    return {error: String(error), path};
+                }
+            },
+        }),
 
-    fs_write: tool({
-      description:
-        'Write content to a file in the workspace. Creates parent directories if needed.',
-      inputSchema: z.object({
-        path: z.string().describe('File path relative to workspace root'),
-        content: z.string().describe('Content to write'),
-      }),
-      execute: async ({ path, content }) => {
-        try {
-          const resolvedPath = enforceWorkspaceScope(path, deps.workspaceRoot);
-          const { mkdir } = await import('node:fs/promises');
-          const { dirname } = await import('node:path');
-          await mkdir(dirname(resolvedPath), { recursive: true });
-          await writeFile(resolvedPath, content, 'utf-8');
-          return { written: content.length, path };
-        } catch (error) {
-          return { error: String(error), path };
-        }
-      },
-    }),
-  };
+        fs_write: tool({
+            description:
+                'Write content to a file in the workspace. Creates parent directories if needed.',
+            inputSchema: z.object({
+                path: z.string().describe('File path relative to workspace root'),
+                content: z.string().describe('Content to write'),
+            }),
+            execute: async ({path, content}) => {
+                try {
+                    const resolvedPath = enforceWorkspaceScope(path, deps.workspaceRoot);
+                    const {mkdir} = await import('node:fs/promises');
+                    const {dirname} = await import('node:path');
+                    await mkdir(dirname(resolvedPath), {recursive: true});
+                    await writeFile(resolvedPath, content, 'utf-8');
+                    return {written: content.length, path};
+                } catch (error) {
+                    return {error: String(error), path};
+                }
+            },
+        }),
+    };
 }
 
 // --- rag_query ---
 
 export interface RagQueryDeps {
-  episodicMemory?: EpisodicMemory;
-  embeddingGenerator?: EmbeddingGenerator;
-  topK?: number;
+    episodicMemory?: EpisodicMemory;
+    embeddingGenerator?: EmbeddingGenerator;
+    topK?: number;
 }
 
 export function createRagQueryTools(deps: RagQueryDeps) {
-  const embedder = deps.embeddingGenerator ?? createEmbeddingGenerator();
-  const topK = deps.topK ?? 5;
+    const embedder = deps.embeddingGenerator ?? createEmbeddingGenerator();
+    const topK = deps.topK ?? 5;
 
-  return {
-    rag_query: tool({
-      description:
-        'Semantic search over episodic memory. Embeds the query and returns the most relevant past episodes by meaning, not just keywords.',
-      inputSchema: z.object({
-        query: z.string().describe('The search query for semantic matching'),
-        limit: z.number().min(1).max(20).optional().default(topK).describe('Number of results'),
-        typeFilter: z
-          .enum(['input', 'response', 'belief_added', 'question', 'tool_call', 'error'])
-          .optional()
-          .describe('Optional episode type filter'),
-      }),
-      execute: async ({ query, limit = topK, typeFilter }) => {
-        if (!deps.episodicMemory) {
-          return { error: 'Episodic memory not available', results: [] };
-        }
-        try {
-          const episodes = await deps.episodicMemory.getEpisodes({
-            limit: 500,
-            ...(typeFilter ? { type: typeFilter } : {}),
-          });
-          if (episodes.length === 0) {
-            return { results: [], count: 0 };
-          }
-          const queryEmbedding = await embedder.generate(query);
-          const scored: Array<{
-            episode: { timestamp: number; type: string; content: string };
-            score: number;
-          }> = [];
-          for (const ep of episodes) {
-            const text = `${ep.content} ${Object.values(ep.metadata ?? {}).join(' ')}`;
-            const emb = await embedder.generate(text);
-            const score = cosineSimilarity(queryEmbedding, emb);
-            if (score > 0.05) {
-              scored.push({
-                episode: { timestamp: ep.timestamp, type: ep.type, content: ep.content },
-                score,
-              });
-            }
-          }
+    return {
+        rag_query: tool({
+            description:
+                'Semantic search over episodic memory. Embeds the query and returns the most relevant past episodes by meaning, not just keywords.',
+            inputSchema: z.object({
+                query: z.string().describe('The search query for semantic matching'),
+                limit: z.number().min(1).max(20).optional().default(topK).describe('Number of results'),
+                typeFilter: z
+                    .enum(['input', 'response', 'belief_added', 'question', 'tool_call', 'error'])
+                    .optional()
+                    .describe('Optional episode type filter'),
+            }),
+            execute: async ({query, limit = topK, typeFilter}) => {
+                if (!deps.episodicMemory) {
+                    return {error: 'Episodic memory not available', results: []};
+                }
+                try {
+                    const episodes = await deps.episodicMemory.getEpisodes({
+                        limit: 500,
+                        ...(typeFilter ? {type: typeFilter} : {}),
+                    });
+                    if (episodes.length === 0) {
+                        return {results: [], count: 0};
+                    }
+                    const queryEmbedding = await embedder.generate(query);
+                    const scored: Array<{
+                        episode: { timestamp: number; type: string; content: string };
+                        score: number;
+                    }> = [];
+                    for (const ep of episodes) {
+                        const text = `${ep.content} ${Object.values(ep.metadata ?? {}).join(' ')}`;
+                        const emb = await embedder.generate(text);
+                        const score = cosineSimilarity(queryEmbedding, emb);
+                        if (score > 0.05) {
+                            scored.push({
+                                episode: {timestamp: ep.timestamp, type: ep.type, content: ep.content},
+                                score,
+                            });
+                        }
+                    }
 
-          scored.sort((a, b) => b.score - a.score);
-          const top = scored.slice(0, limit);
-          return {
-            results: top.map((r) => ({ ...r.episode, score: r.score })),
-            count: top.length,
-            totalScored: scored.length,
-          };
-        } catch (error) {
-          return { error: String(error), results: [] };
-        }
-      },
-    }),
-  }
+                    scored.sort((a, b) => b.score - a.score);
+                    const top = scored.slice(0, limit);
+                    return {
+                        results: top.map((r) => ({...r.episode, score: r.score})),
+                        count: top.length,
+                        totalScored: scored.length,
+                    };
+                } catch (error) {
+                    return {error: String(error), results: []};
+                }
+            },
+        }),
+    }
 }
 
 // --- coverage_concepts ---
 
 export interface CoverageConceptDeps {
-  workspaceRoot?: string;
-  memory?: any; // NAR Memory instance
-  threshold?: number; // Coverage threshold (default 80%)
+    workspaceRoot?: string;
+    memory?: any; // NAR Memory instance
+    threshold?: number; // Coverage threshold (default 80%)
 }
 
 interface FileCoverage {
-  path: string;
-  lines: { total: number; covered: number; pct: number };
-  statements: { total: number; covered: number; pct: number };
-  functions: { total: number; covered: number; pct: number };
-  branches: { total: number; covered: number; pct: number };
+    path: string;
+    lines: { total: number; covered: number; pct: number };
+    statements: { total: number; covered: number; pct: number };
+    functions: { total: number; covered: number; pct: number };
+    branches: { total: number; covered: number; pct: number };
 }
 
 function parseCoverageMap(output: string): FileCoverage[] {
-  try {
-    const lines = output.trim().split('\n');
-    let jsonStart = -1;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line && line.trim().startsWith('{')) {
-        jsonStart = i;
-        break;
-      }
+    try {
+        const lines = output.trim().split('\n');
+        let jsonStart = -1;
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (line && line.trim().startsWith('{')) {
+                jsonStart = i;
+                break;
+            }
+        }
+        if (jsonStart === -1) return [];
+        const jsonStr = lines.slice(jsonStart).join('\n');
+        const data = JSON.parse(jsonStr);
+
+        const results: FileCoverage[] = [];
+        if (data.coverageMap) {
+            for (const [filePath, fileCoverage] of Object.entries(data.coverageMap)) {
+                const fc = fileCoverage as any;
+
+                let totalLines = 0;
+                let coveredLines = 0;
+                let totalStatements = 0;
+                let coveredStatements = 0;
+                let totalFunctions = 0;
+                let coveredFunctions = 0;
+                let totalBranches = 0;
+                let coveredBranches = 0;
+
+                if (fc.l) {
+                    for (const [, count] of Object.entries(fc.l)) {
+                        totalLines++;
+                        if ((count as number) > 0) coveredLines++;
+                    }
+                }
+                if (fc.s) {
+                    for (const [, count] of Object.entries(fc.s)) {
+                        totalStatements++;
+                        if ((count as number) > 0) coveredStatements++;
+                    }
+                }
+                if (fc.f) {
+                    for (const [, count] of Object.entries(fc.f)) {
+                        totalFunctions++;
+                        if ((count as number) > 0) coveredFunctions++;
+                    }
+                }
+                if (fc.b) {
+                    for (const [, count] of Object.entries(fc.b)) {
+                        totalBranches++;
+                        if ((count as number) > 0) coveredBranches++;
+                    }
+                }
+
+                const linesTotal = totalLines > 0 ? totalLines : totalStatements;
+                const linesCovered = totalLines > 0 ? coveredLines : coveredStatements;
+
+                results.push({
+                    path: filePath,
+                    lines: {
+                        total: linesTotal,
+                        covered: linesCovered,
+                        pct: linesTotal > 0 ? (linesCovered / linesTotal) * 100 : 0
+                    },
+                    statements: {
+                        total: totalStatements,
+                        covered: coveredStatements,
+                        pct: totalStatements > 0 ? (coveredStatements / totalStatements) * 100 : 0
+                    },
+                    functions: {
+                        total: totalFunctions,
+                        covered: coveredFunctions,
+                        pct: totalFunctions > 0 ? (coveredFunctions / totalFunctions) * 100 : 0
+                    },
+                    branches: {
+                        total: totalBranches,
+                        covered: coveredBranches,
+                        pct: totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 0
+                    },
+                });
+            }
+        }
+        return results;
+    } catch {
+        return [];
     }
-    if (jsonStart === -1) return [];
-    const jsonStr = lines.slice(jsonStart).join('\n');
-    const data = JSON.parse(jsonStr);
-    
-    const results: FileCoverage[] = [];
-    if (data.coverageMap) {
-      for (const [filePath, fileCoverage] of Object.entries(data.coverageMap)) {
-        const fc = fileCoverage as any;
-        
-        let totalLines = 0;
-        let coveredLines = 0;
-        let totalStatements = 0;
-        let coveredStatements = 0;
-        let totalFunctions = 0;
-        let coveredFunctions = 0;
-        let totalBranches = 0;
-        let coveredBranches = 0;
-        
-        if (fc.l) {
-          for (const [, count] of Object.entries(fc.l)) {
-            totalLines++;
-            if ((count as number) > 0) coveredLines++;
-          }
-        }
-        if (fc.s) {
-          for (const [, count] of Object.entries(fc.s)) {
-            totalStatements++;
-            if ((count as number) > 0) coveredStatements++;
-          }
-        }
-        if (fc.f) {
-          for (const [, count] of Object.entries(fc.f)) {
-            totalFunctions++;
-            if ((count as number) > 0) coveredFunctions++;
-          }
-        }
-        if (fc.b) {
-          for (const [, count] of Object.entries(fc.b)) {
-            totalBranches++;
-            if ((count as number) > 0) coveredBranches++;
-          }
-        }
-        
-        const linesTotal = totalLines > 0 ? totalLines : totalStatements;
-        const linesCovered = totalLines > 0 ? coveredLines : coveredStatements;
-        
-        results.push({
-          path: filePath,
-          lines: { total: linesTotal, covered: linesCovered, pct: linesTotal > 0 ? (linesCovered / linesTotal) * 100 : 0 },
-          statements: { total: totalStatements, covered: coveredStatements, pct: totalStatements > 0 ? (coveredStatements / totalStatements) * 100 : 0 },
-          functions: { total: totalFunctions, covered: coveredFunctions, pct: totalFunctions > 0 ? (coveredFunctions / totalFunctions) * 100 : 0 },
-          branches: { total: totalBranches, covered: coveredBranches, pct: totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 0 },
-        });
-      }
-    }
-    return results;
-  } catch {
-    return [];
-  }
 }
 
 export function createCoverageConceptTools(deps: CoverageConceptDeps = {}) {
-  const workspaceRoot = deps.workspaceRoot || process.cwd();
-  const outputFile = resolve(workspaceRoot, '.vitest/json/output.json');
-  const threshold = deps.threshold ?? 80;
+    const workspaceRoot = deps.workspaceRoot || process.cwd();
+    const outputFile = resolve(workspaceRoot, '.vitest/json/output.json');
+    const threshold = deps.threshold ?? 80;
 
-  return {
-    coverage_concepts: tool({
-      description:
-        'Run tests with coverage and inject low-coverage files as high-priority concepts into NAR memory. Files with coverage < threshold get priority = 1 - coverage.',
-      inputSchema: z.object({
-        testPath: z.string().optional().describe('Specific test file or directory to run'),
-        threshold: z.number().min(0).max(100).optional().default(threshold).describe('Coverage threshold (files below get concepts)'),
-        injectEpisodes: z.boolean().optional().default(true).describe('Inject coverage episodes'),
-      }),
-      execute: async ({ testPath, threshold: userThreshold, injectEpisodes = true }) => {
-        const effectiveThreshold = userThreshold ?? threshold;
-        
-        // Run tests with coverage
-        const args = ['run', '--reporter=json', '--coverage'];
-        if (testPath) args.push(testPath);
+    return {
+        coverage_concepts: tool({
+            description:
+                'Run tests with coverage and inject low-coverage files as high-priority concepts into NAR memory. Files with coverage < threshold get priority = 1 - coverage.',
+            inputSchema: z.object({
+                testPath: z.string().optional().describe('Specific test file or directory to run'),
+                threshold: z.number().min(0).max(100).optional().default(threshold).describe('Coverage threshold (files below get concepts)'),
+                injectEpisodes: z.boolean().optional().default(true).describe('Inject coverage episodes'),
+            }),
+            execute: async ({testPath, threshold: userThreshold, injectEpisodes = true}) => {
+                const effectiveThreshold = userThreshold ?? threshold;
 
-        return new Promise((resolve) => {
-          const child = spawn('pnpm', ['vitest', ...args], {
-            cwd: workspaceRoot,
-            stdio: ['pipe', 'pipe', 'pipe'],
-          });
+                // Run tests with coverage
+                const args = ['run', '--reporter=json', '--coverage'];
+                if (testPath) args.push(testPath);
 
-          let stderr = '';
+                return new Promise((resolve) => {
+                    const child = spawn('pnpm', ['vitest', ...args], {
+                        cwd: workspaceRoot,
+                        stdio: ['pipe', 'pipe', 'pipe'],
+                    });
 
-          child.stderr?.on('data', (data) => {
-            stderr += data.toString();
-          });
+                    let stderr = '';
 
-          child.on('close', async (exitCode) => {
-            // Read and parse coverage
-            let fileCoverages: FileCoverage[] = [];
-            try {
-              const { readFile } = await import('node:fs/promises');
-              const outputContent = await readFile(outputFile, 'utf-8');
-              fileCoverages = parseCoverageMap(outputContent);
-            } catch {
-              resolve({
-                success: false,
-                error: 'Failed to read coverage output',
-                stderr: stderr.slice(0, 1000),
-              });
-              return;
-            }
+                    child.stderr?.on('data', (data) => {
+                        stderr += data.toString();
+                    });
 
-            if (fileCoverages.length === 0) {
-              resolve({
-                success: true,
-                message: 'No coverage data found',
-                conceptsInjected: 0,
-              });
-              return;
-            }
+                    child.on('close', async (exitCode) => {
+                        // Read and parse coverage
+                        let fileCoverages: FileCoverage[] = [];
+                        try {
+                            const {readFile} = await import('node:fs/promises');
+                            const outputContent = await readFile(outputFile, 'utf-8');
+                            fileCoverages = parseCoverageMap(outputContent);
+                        } catch {
+                            resolve({
+                                success: false,
+                                error: 'Failed to read coverage output',
+                                stderr: stderr.slice(0, 1000),
+                            });
+                            return;
+                        }
 
-            // Filter files below threshold
-            const lowCoverageFiles = fileCoverages.filter(f => f.lines.pct < effectiveThreshold);
-            
-            let conceptsInjected = 0;
-            const injectedConcepts: string[] = [];
+                        if (fileCoverages.length === 0) {
+                            resolve({
+                                success: true,
+                                message: 'No coverage data found',
+                                conceptsInjected: 0,
+                            });
+                            return;
+                        }
 
-            // Inject concepts into NAR memory if available
-            if (deps.memory && lowCoverageFiles.length > 0) {
-              try {
-                // Import NAR types dynamically to avoid circular deps
-                // @ts-ignore - dynamic import resolution
-                const { TermBuilder, atom } = await import('../terms/index.js');
-                
-                for (const fc of lowCoverageFiles) {
-                  // Create a term representing the file
-                  const fileName = fc.path.split('/').pop()?.replace(/\.ts$/, '') || 'unknown';
-                  const term = TermBuilder.atom(`coverage_${fileName}`);
-                  
-                  // Get or create concept
-                  let concept = deps.memory.getConcept(term);
-                  if (!concept) {
-                    concept = deps.memory.addConcept(term);
-                  }
-                  
-                  // Set priority based on coverage gap: priority = 1 - (coverage / 100)
-                  // So 0% coverage = priority 1.0, 50% coverage = priority 0.5, 79% coverage = priority 0.21
-                  const priority = 1 - (fc.lines.pct / 100);
-                  concept.priority = Math.max(0.01, priority);
-                  
-                  // Add a belief about the coverage
-                  // @ts-ignore - dynamic import resolution
-                  const { Truth } = await import('../terms/truth.js');
-                  const beliefTruth = Truth.create(
-                    fc.lines.pct / 100,  // frequency = coverage percentage
-                    0.9  // high confidence
-                  );
-                  
-                  deps.memory.addTask(
-                    term,
-                    'belief',
-                    beliefTruth
-                  );
-                  
-                  // Add a goal to improve coverage
-                  const goalTruth = Truth.create(0.5, 0.8);
-                  deps.memory.addTask(
-                    term,
-                    'goal',
-                    goalTruth
-                  );
-                  
-                  conceptsInjected++;
-                  injectedConcepts.push(`${fileName}: ${fc.lines.pct.toFixed(1)}% -> priority ${priority.toFixed(2)}`);
-                }
-              } catch (error) {
-                console.warn('Failed to inject coverage concepts:', error);
-              }
-            }
+                        // Filter files below threshold
+                        const lowCoverageFiles = fileCoverages.filter(f => f.lines.pct < effectiveThreshold);
 
-            // Inject episodes if requested
-            if (injectEpisodes && deps.memory) {
-              // We'd need episodicMemory for this, skip for now
-            }
+                        let conceptsInjected = 0;
+                        const injectedConcepts: string[] = [];
 
-            resolve({
-              success: true,
-              totalFiles: fileCoverages.length,
-              lowCoverageFiles: lowCoverageFiles.length,
-              conceptsInjected,
-              threshold: effectiveThreshold,
-              injectedConcepts,
-            });
-          });
+                        // Inject concepts into NAR memory if available
+                        if (deps.memory && lowCoverageFiles.length > 0) {
+                            try {
+                                // Import NAR types dynamically to avoid circular deps
+                                // @ts-ignore - dynamic import resolution
+                                const {TermBuilder, atom} = await import('../terms/index.js');
 
-          child.on('error', (error) => {
-            resolve({
-              success: false,
-              error: String(error),
-            });
-          });
-        });
-      },
-    }),
-  };
+                                for (const fc of lowCoverageFiles) {
+                                    // Create a term representing the file
+                                    const fileName = fc.path.split('/').pop()?.replace(/\.ts$/, '') || 'unknown';
+                                    const term = TermBuilder.atom(`coverage_${fileName}`);
+
+                                    // Get or create concept
+                                    let concept = deps.memory.getConcept(term);
+                                    if (!concept) {
+                                        concept = deps.memory.addConcept(term);
+                                    }
+
+                                    // Set priority based on coverage gap: priority = 1 - (coverage / 100)
+                                    // So 0% coverage = priority 1.0, 50% coverage = priority 0.5, 79% coverage = priority 0.21
+                                    const priority = 1 - (fc.lines.pct / 100);
+                                    concept.priority = Math.max(0.01, priority);
+
+                                    // Add a belief about the coverage
+                                    // @ts-ignore - dynamic import resolution
+                                    const {Truth} = await import('../terms/truth.js');
+                                    const beliefTruth = Truth.create(
+                                        fc.lines.pct / 100,  // frequency = coverage percentage
+                                        0.9  // high confidence
+                                    );
+
+                                    deps.memory.addTask(
+                                        term,
+                                        'belief',
+                                        beliefTruth
+                                    );
+
+                                    // Add a goal to improve coverage
+                                    const goalTruth = Truth.create(0.5, 0.8);
+                                    deps.memory.addTask(
+                                        term,
+                                        'goal',
+                                        goalTruth
+                                    );
+
+                                    conceptsInjected++;
+                                    injectedConcepts.push(`${fileName}: ${fc.lines.pct.toFixed(1)}% -> priority ${priority.toFixed(2)}`);
+                                }
+                            } catch (error) {
+                                console.warn('Failed to inject coverage concepts:', error);
+                            }
+                        }
+
+                        // Inject episodes if requested
+                        if (injectEpisodes && deps.memory) {
+                            // We'd need episodicMemory for this, skip for now
+                        }
+
+                        resolve({
+                            success: true,
+                            totalFiles: fileCoverages.length,
+                            lowCoverageFiles: lowCoverageFiles.length,
+                            conceptsInjected,
+                            threshold: effectiveThreshold,
+                            injectedConcepts,
+                        });
+                    });
+
+                    child.on('error', (error) => {
+                        resolve({
+                            success: false,
+                            error: String(error),
+                        });
+                    });
+                });
+            },
+        }),
+    };
 }
 
 // --- human_approval ---
 
 export interface ApprovalRequest {
-  id: string;
-  request: string;
-  metadata: Record<string, unknown>;
-  createdAt: number;
-  result: Promise<ApprovalResult>;
-  resolve: (result: ApprovalResult) => void;
-  reject: (error: Error) => void;
+    id: string;
+    request: string;
+    metadata: Record<string, unknown>;
+    createdAt: number;
+    result: Promise<ApprovalResult>;
+    resolve: (result: ApprovalResult) => void;
+    reject: (error: Error) => void;
 }
 
 export interface ApprovalResult {
-  approved: boolean;
-  reason?: string;
+    approved: boolean;
+    reason?: string;
 }
 
 export interface ApprovalManagerOptions {
-  onRequest?: (request: ApprovalRequest) => void;
+    onRequest?: (request: ApprovalRequest) => void;
 }
 
 export class ApprovalManager {
-  private readonly pending = new Map<string, ApprovalRequest>();
-  private readonly onRequest?: (request: ApprovalRequest) => void;
+    private readonly pending = new Map<string, ApprovalRequest>();
+    private readonly onRequest?: (request: ApprovalRequest) => void;
 
-  constructor(opts: ApprovalManagerOptions = {}) {
-    this.onRequest = opts.onRequest;
-  }
+    constructor(opts: ApprovalManagerOptions = {}) {
+        this.onRequest = opts.onRequest;
+    }
 
-  createRequest(request: string, metadata: Record<string, unknown> = {}): ApprovalRequest {
-    const id = randomUUID();
-    let resolveFn!: (result: ApprovalResult) => void;
-    let rejectFn!: (error: Error) => void;
-    const result = new Promise<ApprovalResult>((resolve, reject) => {
-      resolveFn = resolve;
-      rejectFn = reject;
-    });
-    const req: ApprovalRequest = {
-      id,
-      request,
-      metadata,
-      createdAt: Date.now(),
-      result,
-      resolve: resolveFn,
-      reject: rejectFn,
-    };
-    this.pending.set(id, req);
-    this.onRequest?.(req);
-    return req;
-  }
+    createRequest(request: string, metadata: Record<string, unknown> = {}): ApprovalRequest {
+        const id = randomUUID();
+        let resolveFn!: (result: ApprovalResult) => void;
+        let rejectFn!: (error: Error) => void;
+        const result = new Promise<ApprovalResult>((resolve, reject) => {
+            resolveFn = resolve;
+            rejectFn = reject;
+        });
+        const req: ApprovalRequest = {
+            id,
+            request,
+            metadata,
+            createdAt: Date.now(),
+            result,
+            resolve: resolveFn,
+            reject: rejectFn,
+        };
+        this.pending.set(id, req);
+        this.onRequest?.(req);
+        return req;
+    }
 
-  resolveApproval(id: string, approved: boolean, reason?: string): boolean {
-    const req = this.pending.get(id);
-    if (!req) return false;
-    this.pending.delete(id);
-    req.resolve({ approved, reason });
-    return true;
-  }
+    resolveApproval(id: string, approved: boolean, reason?: string): boolean {
+        const req = this.pending.get(id);
+        if (!req) return false;
+        this.pending.delete(id);
+        req.resolve({approved, reason});
+        return true;
+    }
 
-  rejectApproval(id: string, error: string): boolean {
-    const req = this.pending.get(id);
-    if (!req) return false;
-    this.pending.delete(id);
-    req.reject(new Error(error));
-    return true;
-  }
+    rejectApproval(id: string, error: string): boolean {
+        const req = this.pending.get(id);
+        if (!req) return false;
+        this.pending.delete(id);
+        req.reject(new Error(error));
+        return true;
+    }
 
-  getPending(): ApprovalRequest[] {
-    return Array.from(this.pending.values());
-  }
+    getPending(): ApprovalRequest[] {
+        return Array.from(this.pending.values());
+    }
 
-  getPendingCount(): number {
-    return this.pending.size;
-  }
+    getPendingCount(): number {
+        return this.pending.size;
+    }
 }
 
 export function createHumanApprovalTool(manager: ApprovalManager) {
-  return {
-    human_approval: tool({
-      description:
-        'Request human approval before proceeding with an action. Pauses until a human approves or rejects.',
-      inputSchema: z.object({
-        request: z.string().describe('Clear description of what you want approval for'),
-        context: z.string().optional().describe('Additional context to help the human decide'),
-      }),
-      execute: async ({ request, context }) => {
-        const fullRequest = context ? `${request}\n\nContext: ${context}` : request;
-        const req = manager.createRequest(fullRequest, { timestamp: Date.now() });
-        const result = await req.result;
-        return {
-          id: req.id,
-          request: fullRequest,
-          approved: result.approved,
-          reason: result.reason,
-        };
-      },
-    }),
-  };
+    return {
+        human_approval: tool({
+            description:
+                'Request human approval before proceeding with an action. Pauses until a human approves or rejects.',
+            inputSchema: z.object({
+                request: z.string().describe('Clear description of what you want approval for'),
+                context: z.string().optional().describe('Additional context to help the human decide'),
+            }),
+            execute: async ({request, context}) => {
+                const fullRequest = context ? `${request}\n\nContext: ${context}` : request;
+                const req = manager.createRequest(fullRequest, {timestamp: Date.now()});
+                const result = await req.result;
+                return {
+                    id: req.id,
+                    request: fullRequest,
+                    approved: result.approved,
+                    reason: result.reason,
+                };
+            },
+        }),
+    };
 }
 
 // --- generate_tests ---
 
 export interface TestGenDeps {
-  workspaceRoot?: string;
+    workspaceRoot?: string;
 }
 
 const toolSpecArbitrary = fc.record({
-  name: fc.string({ minLength: 1, maxLength: 50 }),
-  description: fc.string({ minLength: 1, maxLength: 200 }),
-  inputSchema: fc.dictionary(fc.string(), fc.jsonValue()),
+    name: fc.string({minLength: 1, maxLength: 50}),
+    description: fc.string({minLength: 1, maxLength: 200}),
+    inputSchema: fc.dictionary(fc.string(), fc.jsonValue()),
 });
 
 const connectionConfigArbitrary = fc.record({
-  id: fc.string({ minLength: 1, maxLength: 50 }),
-  enabled: fc.boolean(),
-  type: fc.oneof(
-    fc.constant('cli'),
-    fc.constant('irc'),
-    fc.constant('ws'),
-    fc.constant('http'),
-    fc.constant('mcp')
-  ),
-  config: fc.dictionary(fc.string(), fc.jsonValue()),
-  authSecret: fc.option(fc.string({ maxLength: 100 }), { nil: undefined }),
+    id: fc.string({minLength: 1, maxLength: 50}),
+    enabled: fc.boolean(),
+    type: fc.oneof(
+        fc.constant('cli'),
+        fc.constant('irc'),
+        fc.constant('ws'),
+        fc.constant('http'),
+        fc.constant('mcp')
+    ),
+    config: fc.dictionary(fc.string(), fc.jsonValue()),
+    authSecret: fc.option(fc.string({maxLength: 100}), {nil: undefined}),
 });
 
 const agentOptionsArbitrary = fc.record({
-  nar: fc.option(fc.anything(), { nil: undefined }),
-  lmService: fc.option(fc.anything(), { nil: undefined }),
-  episodicMemory: fc.option(fc.anything(), { nil: undefined }),
-  systemInstructions: fc.option(fc.string({ minLength: 1, maxLength: 1000 }), { nil: undefined }),
-  context: fc.option(
-    fc.record({
-      attention: fc.oneof(fc.boolean(), fc.array(fc.string())),
-      beliefs: fc.oneof(fc.boolean(), fc.array(fc.string())),
-      goals: fc.oneof(fc.boolean(), fc.array(fc.string())),
-      questions: fc.oneof(fc.boolean(), fc.array(fc.string())),
-      concepts: fc.oneof(fc.boolean(), fc.array(fc.string())),
-      maxItems: fc.option(fc.nat({ max: 100 }), { nil: undefined }),
-      recency: fc.option(fc.nat({ max: 10000 }), { nil: undefined }),
-    }),
-    { nil: undefined }
-  ),
-  maxLoops: fc.nat({ max: 50 }),
-  logger: fc.option(fc.anything(), { nil: undefined }),
-  persistKnowledge: fc.boolean(),
-  knowledgePath: fc.string({ minLength: 1, maxLength: 200 }),
-  workspaceRoot: fc.option(fc.string({ minLength: 1, maxLength: 200 }), { nil: undefined }),
-  externalTools: fc.option(fc.anything(), { nil: undefined }),
-  approvalManager: fc.option(fc.anything(), { nil: undefined }),
-  autonomyEngine: fc.option(fc.anything(), { nil: undefined }),
-  reasoningIntervalMs: fc.option(fc.nat({ max: 3600000 }), { nil: undefined }),
-  sessionHistoryLimit: fc.option(fc.nat({ max: 1000 }), { nil: undefined }),
-  rateLimitPerMinute: fc.option(fc.nat({ max: 1000 }), { nil: undefined }),
-  enableNlTranslation: fc.boolean(),
-  enableNarseseHumanization: fc.boolean(),
+    nar: fc.option(fc.anything(), {nil: undefined}),
+    lmService: fc.option(fc.anything(), {nil: undefined}),
+    episodicMemory: fc.option(fc.anything(), {nil: undefined}),
+    systemInstructions: fc.option(fc.string({minLength: 1, maxLength: 1000}), {nil: undefined}),
+    context: fc.option(
+        fc.record({
+            attention: fc.oneof(fc.boolean(), fc.array(fc.string())),
+            beliefs: fc.oneof(fc.boolean(), fc.array(fc.string())),
+            goals: fc.oneof(fc.boolean(), fc.array(fc.string())),
+            questions: fc.oneof(fc.boolean(), fc.array(fc.string())),
+            concepts: fc.oneof(fc.boolean(), fc.array(fc.string())),
+            maxItems: fc.option(fc.nat({max: 100}), {nil: undefined}),
+            recency: fc.option(fc.nat({max: 10000}), {nil: undefined}),
+        }),
+        {nil: undefined}
+    ),
+    maxLoops: fc.nat({max: 50}),
+    logger: fc.option(fc.anything(), {nil: undefined}),
+    persistKnowledge: fc.boolean(),
+    knowledgePath: fc.string({minLength: 1, maxLength: 200}),
+    workspaceRoot: fc.option(fc.string({minLength: 1, maxLength: 200}), {nil: undefined}),
+    externalTools: fc.option(fc.anything(), {nil: undefined}),
+    approvalManager: fc.option(fc.anything(), {nil: undefined}),
+    autonomyEngine: fc.option(fc.anything(), {nil: undefined}),
+    reasoningIntervalMs: fc.option(fc.nat({max: 3600000}), {nil: undefined}),
+    sessionHistoryLimit: fc.option(fc.nat({max: 1000}), {nil: undefined}),
+    rateLimitPerMinute: fc.option(fc.nat({max: 1000}), {nil: undefined}),
+    enableNlTranslation: fc.boolean(),
+    enableNarseseHumanization: fc.boolean(),
 });
 
 const arbitraries: Record<string, fc.Arbitrary<unknown>> = {
-  ToolSpec: toolSpecArbitrary,
-  ConnectionConfig: connectionConfigArbitrary,
-  AgentOptions: agentOptionsArbitrary,
+    ToolSpec: toolSpecArbitrary,
+    ConnectionConfig: connectionConfigArbitrary,
+    AgentOptions: agentOptionsArbitrary,
 };
 
 function generateTestContent(schemaName: string, samples: unknown[]): string {
-  const lines = [
-    '// @generated by generate-tests tool',
-    `// Schema: ${schemaName}`,
-    `// Generated at: ${new Date().toISOString()}`,
-    '',
-    `import { describe, it, expect } from 'vitest';`,
-    `import { ${schemaName}Schema } from '@senars/nar/tools/schemas';`,
-    '',
-    `describe('${schemaName} property tests', () => {`,
-  ];
+    const lines = [
+        '// @generated by generate-tests tool',
+        `// Schema: ${schemaName}`,
+        `// Generated at: ${new Date().toISOString()}`,
+        '',
+        `import { describe, it, expect } from 'vitest';`,
+        `import { ${schemaName}Schema } from '@senars/nar/tools/schemas';`,
+        '',
+        `describe('${schemaName} property tests', () => {`,
+    ];
 
-  for (let i = 0; i < samples.length; i++) {
-    const sample = samples[i];
-    const sampleStr = JSON.stringify(sample, null, 2);
-    lines.push(`  it('sample ${i + 1}', () => {`);
-    lines.push(`    const input = ${sampleStr};`);
-    lines.push(`    const result = ${schemaName}Schema.safeParse(input);`);
-    lines.push(`    expect(result.success).toBe(true);`);
-    lines.push(`  });`);
+    for (let i = 0; i < samples.length; i++) {
+        const sample = samples[i];
+        const sampleStr = JSON.stringify(sample, null, 2);
+        lines.push(`  it('sample ${i + 1}', () => {`);
+        lines.push(`    const input = ${sampleStr};`);
+        lines.push(`    const result = ${schemaName}Schema.safeParse(input);`);
+        lines.push(`    expect(result.success).toBe(true);`);
+        lines.push(`  });`);
 
 // Also test with an invalid mutation (wrong type for a known field)
-    if (typeof sample === 'object' && sample !== null) {
-      const mutated = { ...(sample as Record<string, unknown>) };
-      // Add type violations based on schema
-      if (schemaName === 'ToolSpec') {
-        mutated.name = 123; // should be string
-      } else if (schemaName === 'ConnectionConfig') {
-        mutated.id = 123; // should be string
-      } else if (schemaName === 'AgentOptions') {
-        mutated.maxLoops = 'not a number'; // should be number
-      }
-      const mutatedStr = JSON.stringify(mutated, null, 2);
-      lines.push(`  it('mutated sample ${i + 1} should fail (wrong type)', () => {`);
-      lines.push(`    const input = ${mutatedStr};`);
-      lines.push(`    const result = ${schemaName}Schema.safeParse(input);`);
-      lines.push(`    expect(result.success).toBe(false);`);
-      lines.push(`  });`);
+        if (typeof sample === 'object' && sample !== null) {
+            const mutated = {...(sample as Record<string, unknown>)};
+            // Add type violations based on schema
+            if (schemaName === 'ToolSpec') {
+                mutated.name = 123; // should be string
+            } else if (schemaName === 'ConnectionConfig') {
+                mutated.id = 123; // should be string
+            } else if (schemaName === 'AgentOptions') {
+                mutated.maxLoops = 'not a number'; // should be number
+            }
+            const mutatedStr = JSON.stringify(mutated, null, 2);
+            lines.push(`  it('mutated sample ${i + 1} should fail (wrong type)', () => {`);
+            lines.push(`    const input = ${mutatedStr};`);
+            lines.push(`    const result = ${schemaName}Schema.safeParse(input);`);
+            lines.push(`    expect(result.success).toBe(false);`);
+            lines.push(`  });`);
+        }
     }
-  }
 
-  lines.push('});');
-  lines.push('');
-  return lines.join('\n');
+    lines.push('});');
+    lines.push('');
+    return lines.join('\n');
 }
 
 export function createTestGenTools(deps: TestGenDeps = {}) {
-  const workspaceRoot = deps.workspaceRoot || process.cwd();
-  const generatedDir = resolve(workspaceRoot, 'tests/generated');
+    const workspaceRoot = deps.workspaceRoot || process.cwd();
+    const generatedDir = resolve(workspaceRoot, 'tests/generated');
 
-  return {
-    generate_tests: tool({
-      description:
-        'Generate property-based tests from Zod schemas using fast-check. Creates test files in tests/generated/.',
-      inputSchema: z.object({
-        schemaName: z
-          .enum(['ToolSpec', 'ConnectionConfig', 'AgentOptions'])
-          .describe('Name of the schema to generate tests for'),
-        sampleCount: z.number().int().min(1).max(100).optional().default(10).describe('Number of test samples to generate'),
-        outputPath: z.string().optional().describe('Custom output path (relative to tests/generated/)'),
-      }),
-      execute: async ({ schemaName, sampleCount = 10, outputPath }) => {
-        const arbitrary = arbitraries[schemaName];
-        if (!arbitrary) {
-          return { error: `Unknown schema: ${schemaName}`, generated: 0 };
-        }
+    return {
+        generate_tests: tool({
+            description:
+                'Generate property-based tests from Zod schemas using fast-check. Creates test files in tests/generated/.',
+            inputSchema: z.object({
+                schemaName: z
+                    .enum(['ToolSpec', 'ConnectionConfig', 'AgentOptions'])
+                    .describe('Name of the schema to generate tests for'),
+                sampleCount: z.number().int().min(1).max(100).optional().default(10).describe('Number of test samples to generate'),
+                outputPath: z.string().optional().describe('Custom output path (relative to tests/generated/)'),
+            }),
+            execute: async ({schemaName, sampleCount = 10, outputPath}) => {
+                const arbitrary = arbitraries[schemaName];
+                if (!arbitrary) {
+                    return {error: `Unknown schema: ${schemaName}`, generated: 0};
+                }
 
-        try {
-          const samples = fc.sample(arbitrary, sampleCount);
+                try {
+                    const samples = fc.sample(arbitrary, sampleCount);
 
-          const testContent = generateTestContent(schemaName, samples);
+                    const testContent = generateTestContent(schemaName, samples);
 
-          await mkdir(generatedDir, { recursive: true });
+                    await mkdir(generatedDir, {recursive: true});
 
-          const fileName = outputPath || `${schemaName.toLowerCase()}.test.ts`;
-          const filePath = resolve(generatedDir, fileName);
-          await writeFile(filePath, testContent, 'utf-8');
+                    const fileName = outputPath || `${schemaName.toLowerCase()}.test.ts`;
+                    const filePath = resolve(generatedDir, fileName);
+                    await writeFile(filePath, testContent, 'utf-8');
 
-          return {
-            success: true,
-            schema: schemaName,
-            samplesGenerated: samples.length,
-            outputFile: filePath,
-            relativePath: `tests/generated/${fileName}`,
-          };
-        } catch (error) {
-          return { error: String(error), generated: 0 };
-        }
-      },
-    }),
-  };
+                    return {
+                        success: true,
+                        schema: schemaName,
+                        samplesGenerated: samples.length,
+                        outputFile: filePath,
+                        relativePath: `tests/generated/${fileName}`,
+                    };
+                } catch (error) {
+                    return {error: String(error), generated: 0};
+                }
+            },
+        }),
+    };
 }
 
 // --- run_tests ---
 
 export interface TestRunnerDeps {
-  workspaceRoot?: string;
-  episodicMemory?: any;
-  rlfpLearner?: any;
+    workspaceRoot?: string;
+    episodicMemory?: any;
+    rlfpLearner?: any;
 }
 
 interface VitestResult {
-  success: boolean;
-  passed: number;
-  failed: number;
-  total: number;
-  duration: number;
-  tests: Array<{
-    name: string;
-    state: 'pass' | 'fail' | 'skip';
+    success: boolean;
+    passed: number;
+    failed: number;
+    total: number;
     duration: number;
-    errors?: string[];
-  }>;
-  coverage?: {
-    lines: { total: number; covered: number; pct: number };
-    statements: { total: number; covered: number; pct: number };
-    functions: { total: number; covered: number; pct: number };
-    branches: { total: number; covered: number; pct: number };
-  };
+    tests: Array<{
+        name: string;
+        state: 'pass' | 'fail' | 'skip';
+        duration: number;
+        errors?: string[];
+    }>;
+    coverage?: {
+        lines: { total: number; covered: number; pct: number };
+        statements: { total: number; covered: number; pct: number };
+        functions: { total: number; covered: number; pct: number };
+        branches: { total: number; covered: number; pct: number };
+    };
 }
 
 function parseVitestJsonOutput(output: string): VitestResult | null {
-  try {
-    // Find the JSON part (vitest outputs JSON on stdout, but may have other messages)
-    const lines = output.trim().split('\n');
-    // Look for the line that starts with { (JSON object)
-    let jsonStart = -1;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line && line.trim().startsWith('{')) {
-        jsonStart = i;
-        break;
-      }
+    try {
+        // Find the JSON part (vitest outputs JSON on stdout, but may have other messages)
+        const lines = output.trim().split('\n');
+        // Look for the line that starts with { (JSON object)
+        let jsonStart = -1;
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (line && line.trim().startsWith('{')) {
+                jsonStart = i;
+                break;
+            }
+        }
+        if (jsonStart === -1) return null;
+        const jsonStr = lines.slice(jsonStart).join('\n');
+        const data = JSON.parse(jsonStr);
+
+        // Calculate duration from test results
+        let duration = 0;
+        if (data.testResults) {
+            for (const suite of data.testResults) {
+                duration += (suite.endTime ?? 0) - (suite.startTime ?? 0);
+            }
+        }
+
+        // Parse coverage from coverageMap
+        let coverage: VitestResult['coverage'] = undefined;
+        if (data.coverageMap) {
+            let totalLines = 0;
+            let coveredLines = 0;
+            let totalStatements = 0;
+            let coveredStatements = 0;
+            let totalFunctions = 0;
+            let coveredFunctions = 0;
+            let totalBranches = 0;
+            let coveredBranches = 0;
+
+            for (const file of Object.values(data.coverageMap)) {
+                const fileCoverage = file as any;
+                // Lines (l) - may not exist in all formats
+                if (fileCoverage.l) {
+                    for (const [, count] of Object.entries(fileCoverage.l)) {
+                        totalLines++;
+                        if ((count as number) > 0) coveredLines++;
+                    }
+                }
+                // Statements (s)
+                if (fileCoverage.s) {
+                    for (const [, count] of Object.entries(fileCoverage.s)) {
+                        totalStatements++;
+                        if ((count as number) > 0) coveredStatements++;
+                    }
+                }
+                // Functions (f)
+                if (fileCoverage.f) {
+                    for (const [, count] of Object.entries(fileCoverage.f)) {
+                        totalFunctions++;
+                        if ((count as number) > 0) coveredFunctions++;
+                    }
+                }
+                // Branches (b)
+                if (fileCoverage.b) {
+                    for (const [, count] of Object.entries(fileCoverage.b)) {
+                        totalBranches++;
+                        if ((count as number) > 0) coveredBranches++;
+                    }
+                }
+            }
+
+            // Use statements as lines if lines not available
+            const linesTotal = totalLines > 0 ? totalLines : totalStatements;
+            const linesCovered = totalLines > 0 ? coveredLines : coveredStatements;
+
+            coverage = {
+                lines: {
+                    total: linesTotal,
+                    covered: linesCovered,
+                    pct: linesTotal > 0 ? (linesCovered / linesTotal) * 100 : 0
+                },
+                statements: {
+                    total: totalStatements,
+                    covered: coveredStatements,
+                    pct: totalStatements > 0 ? (coveredStatements / totalStatements) * 100 : 0
+                },
+                functions: {
+                    total: totalFunctions,
+                    covered: coveredFunctions,
+                    pct: totalFunctions > 0 ? (coveredFunctions / totalFunctions) * 100 : 0
+                },
+                branches: {
+                    total: totalBranches,
+                    covered: coveredBranches,
+                    pct: totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 0
+                },
+            };
+        }
+
+        return {
+            success: data.success,
+            passed: data.numPassedTests ?? 0,
+            failed: data.numFailedTests ?? 0,
+            total: data.numTotalTests ?? 0,
+            duration,
+            tests: data.testResults?.flatMap((suite: any) =>
+                suite.assertionResults?.map((t: any) => ({
+                    name: t.fullName,
+                    state: t.status === 'passed' ? 'pass' : t.status === 'failed' ? 'fail' : 'skip',
+                    duration: t.duration,
+                    errors: t.failureMessages,
+                })) ?? []
+            ) ?? [],
+            coverage,
+        };
+    } catch {
+        return null;
     }
-    if (jsonStart === -1) return null;
-    const jsonStr = lines.slice(jsonStart).join('\n');
-    const data = JSON.parse(jsonStr);
-    
-    // Calculate duration from test results
-    let duration = 0;
-    if (data.testResults) {
-      for (const suite of data.testResults) {
-        duration += (suite.endTime ?? 0) - (suite.startTime ?? 0);
-      }
-    }
-    
-    // Parse coverage from coverageMap
-    let coverage: VitestResult['coverage'] = undefined;
-    if (data.coverageMap) {
-      let totalLines = 0;
-      let coveredLines = 0;
-      let totalStatements = 0;
-      let coveredStatements = 0;
-      let totalFunctions = 0;
-      let coveredFunctions = 0;
-      let totalBranches = 0;
-      let coveredBranches = 0;
-      
-      for (const file of Object.values(data.coverageMap)) {
-        const fileCoverage = file as any;
-        // Lines (l) - may not exist in all formats
-        if (fileCoverage.l) {
-          for (const [, count] of Object.entries(fileCoverage.l)) {
-            totalLines++;
-            if ((count as number) > 0) coveredLines++;
-          }
-        }
-        // Statements (s)
-        if (fileCoverage.s) {
-          for (const [, count] of Object.entries(fileCoverage.s)) {
-            totalStatements++;
-            if ((count as number) > 0) coveredStatements++;
-          }
-        }
-        // Functions (f)
-        if (fileCoverage.f) {
-          for (const [, count] of Object.entries(fileCoverage.f)) {
-            totalFunctions++;
-            if ((count as number) > 0) coveredFunctions++;
-          }
-        }
-        // Branches (b)
-        if (fileCoverage.b) {
-          for (const [, count] of Object.entries(fileCoverage.b)) {
-            totalBranches++;
-            if ((count as number) > 0) coveredBranches++;
-          }
-        }
-      }
-      
-      // Use statements as lines if lines not available
-      const linesTotal = totalLines > 0 ? totalLines : totalStatements;
-      const linesCovered = totalLines > 0 ? coveredLines : coveredStatements;
-      
-      coverage = {
-        lines: { total: linesTotal, covered: linesCovered, pct: linesTotal > 0 ? (linesCovered / linesTotal) * 100 : 0 },
-        statements: { total: totalStatements, covered: coveredStatements, pct: totalStatements > 0 ? (coveredStatements / totalStatements) * 100 : 0 },
-        functions: { total: totalFunctions, covered: coveredFunctions, pct: totalFunctions > 0 ? (coveredFunctions / totalFunctions) * 100 : 0 },
-        branches: { total: totalBranches, covered: coveredBranches, pct: totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 0 },
-      };
-    }
-    
-    return {
-      success: data.success,
-      passed: data.numPassedTests ?? 0,
-      failed: data.numFailedTests ?? 0,
-      total: data.numTotalTests ?? 0,
-      duration,
-      tests: data.testResults?.flatMap((suite: any) => 
-        suite.assertionResults?.map((t: any) => ({
-          name: t.fullName,
-          state: t.status === 'passed' ? 'pass' : t.status === 'failed' ? 'fail' : 'skip',
-          duration: t.duration,
-          errors: t.failureMessages,
-        })) ?? []
-      ) ?? [],
-      coverage,
-    };
-  } catch {
-    return null;
-  }
 }
 
 export function createTestRunnerTools(deps: TestRunnerDeps = {}) {
-  const workspaceRoot = deps.workspaceRoot || process.cwd();
-  const outputFile = resolve(workspaceRoot, '.vitest/json/output.json');
+    const workspaceRoot = deps.workspaceRoot || process.cwd();
+    const outputFile = resolve(workspaceRoot, '.vitest/json/output.json');
 
-  return {
-    run_tests: tool({
-      description:
-        'Run vitest tests in background and inject results into episodic memory. Returns test metrics for RLFP reward calculation.',
-      inputSchema: z.object({
-        testPath: z.string().optional().describe('Specific test file or directory to run'),
-        includeCoverage: z.boolean().optional().default(false).describe('Include coverage data'),
-        injectEpisodes: z.boolean().optional().default(true).describe('Inject test results as episodes'),
-      }),
-      execute: async ({ testPath, includeCoverage = false, injectEpisodes = true }) => {
-        const args = ['run', '--reporter=json'];
-        if (includeCoverage) args.push('--coverage');
-        if (testPath) args.push(testPath);
+    return {
+        run_tests: tool({
+            description:
+                'Run vitest tests in background and inject results into episodic memory. Returns test metrics for RLFP reward calculation.',
+            inputSchema: z.object({
+                testPath: z.string().optional().describe('Specific test file or directory to run'),
+                includeCoverage: z.boolean().optional().default(false).describe('Include coverage data'),
+                injectEpisodes: z.boolean().optional().default(true).describe('Inject test results as episodes'),
+            }),
+            execute: async ({testPath, includeCoverage = false, injectEpisodes = true}) => {
+                const args = ['run', '--reporter=json'];
+                if (includeCoverage) args.push('--coverage');
+                if (testPath) args.push(testPath);
 
-        return new Promise((resolve) => {
-          const child = spawn('pnpm', ['vitest', ...args], {
-            cwd: workspaceRoot,
-            stdio: ['pipe', 'pipe', 'pipe'],
-          });
+                return new Promise((resolve) => {
+                    const child = spawn('pnpm', ['vitest', ...args], {
+                        cwd: workspaceRoot,
+                        stdio: ['pipe', 'pipe', 'pipe'],
+                    });
 
-          let stderr = '';
+                    let stderr = '';
 
-          child.stderr?.on('data', (data) => {
-            stderr += data.toString();
-          });
+                    child.stderr?.on('data', (data) => {
+                        stderr += data.toString();
+                    });
 
-          child.on('close', async (exitCode) => {
-            // Read the JSON output file
-            let result: VitestResult | null = null;
-            try {
-              const { readFile } = await import('node:fs/promises');
-              const outputContent = await readFile(outputFile, 'utf-8');
-              result = parseVitestJsonOutput(outputContent);
-            } catch {
-              // File doesn't exist or can't be read
-            }
-            
-            if (!result) {
-              resolve({
-                success: false,
-                error: 'Failed to parse vitest output',
-                stderr: stderr.slice(0, 1000),
-              });
-              return;
-            }
+                    child.on('close', async (exitCode) => {
+                        // Read the JSON output file
+                        let result: VitestResult | null = null;
+                        try {
+                            const {readFile} = await import('node:fs/promises');
+                            const outputContent = await readFile(outputFile, 'utf-8');
+                            result = parseVitestJsonOutput(outputContent);
+                        } catch {
+                            // File doesn't exist or can't be read
+                        }
 
-            // Inject episodes if requested
-            if (injectEpisodes && deps.episodicMemory) {
-              try {
-                const timestamp = Date.now();
-                
-                // Inject overall test result
-                await deps.episodicMemory.log(
-                  result.success ? 'test_passed' : 'test_failed',
-                  `Test suite ${result.success ? 'passed' : 'failed'}: ${result.passed}/${result.total} tests`,
-                  {
-                    type: 'test_suite_result',
-                    passed: result.passed,
-                    failed: result.failed,
-                    total: result.total,
-                    duration: result.duration,
-                    coverage: result.coverage,
-                    exitCode,
-                  }
-                );
+                        if (!result) {
+                            resolve({
+                                success: false,
+                                error: 'Failed to parse vitest output',
+                                stderr: stderr.slice(0, 1000),
+                            });
+                            return;
+                        }
 
-                // Inject individual test results
-                for (const test of result.tests) {
-                  await deps.episodicMemory.log(
-                    test.state === 'pass' ? 'test_passed' : 'test_failed',
-                    `Test ${test.name} ${test.state}`,
-                    {
-                      type: 'test_result',
-                      testName: test.name,
-                      state: test.state,
-                      duration: test.duration,
-                      errors: test.errors,
-                    }
-                  );
+                        // Inject episodes if requested
+                        if (injectEpisodes && deps.episodicMemory) {
+                            try {
+                                const timestamp = Date.now();
 
-                  // If test failed, inject a goal to fix it
-                  if (test.state === 'fail' && test.errors) {
-                    await deps.episodicMemory.log(
-                      'goal',
-                      `(^fixTest("${test.name}"))!`,
-                      {
-                        type: 'fix_test_goal',
-                        testName: test.name,
-                        errors: test.errors,
-                      }
-                    );
-                  }
-                }
+                                // Inject overall test result
+                                await deps.episodicMemory.log(
+                                    result.success ? 'test_passed' : 'test_failed',
+                                    `Test suite ${result.success ? 'passed' : 'failed'}: ${result.passed}/${result.total} tests`,
+                                    {
+                                        type: 'test_suite_result',
+                                        passed: result.passed,
+                                        failed: result.failed,
+                                        total: result.total,
+                                        duration: result.duration,
+                                        coverage: result.coverage,
+                                        exitCode,
+                                    }
+                                );
 
-                // Inject coverage info if available
-                if (result.coverage && includeCoverage) {
-                  await deps.episodicMemory.log(
-                    'test_coverage',
-                    `Coverage: lines ${result.coverage.lines.pct.toFixed(1)}%, statements ${result.coverage.statements.pct.toFixed(1)}%`,
-                    {
-                      type: 'coverage_report',
-                      coverage: result.coverage,
-                    }
-                  );
-                }
-              } catch (error) {
-                console.warn('Failed to inject test episodes:', error);
-              }
-            }
+                                // Inject individual test results
+                                for (const test of result.tests) {
+                                    await deps.episodicMemory.log(
+                                        test.state === 'pass' ? 'test_passed' : 'test_failed',
+                                        `Test ${test.name} ${test.state}`,
+                                        {
+                                            type: 'test_result',
+                                            testName: test.name,
+                                            state: test.state,
+                                            duration: test.duration,
+                                            errors: test.errors,
+                                        }
+                                    );
 
-            // Calculate RLFP reward if learner available
-            let reward = 0;
-            if (deps.rlfpLearner && result) {
-              const coverageDelta = result.coverage 
-                ? (result.coverage.lines.pct / 100) - 0.5  // baseline 50%
-                : 0;
-              reward = deps.rlfpLearner.calculateReward({
-                testPassRate: result.total > 0 ? result.passed / result.total : 0,
-                avgTestDuration: result.tests.length > 0 
-                  ? result.tests.reduce((sum, t) => sum + t.duration, 0) / result.tests.length 
-                  : 0,
-                coverageDelta,
-                memoryOverage: 0,
-                cpuThrottleTime: 0,
-              });
-            }
+                                    // If test failed, inject a goal to fix it
+                                    if (test.state === 'fail' && test.errors) {
+                                        await deps.episodicMemory.log(
+                                            'goal',
+                                            `(^fixTest("${test.name}"))!`,
+                                            {
+                                                type: 'fix_test_goal',
+                                                testName: test.name,
+                                                errors: test.errors,
+                                            }
+                                        );
+                                    }
+                                }
 
-            resolve({
-              success: result.success,
-              passed: result.passed,
-              failed: result.failed,
-              total: result.total,
-              duration: result.duration,
-              coverage: result.coverage,
-              reward,
-              episodesInjected: injectEpisodes && !!deps.episodicMemory,
-            });
-          });
+                                // Inject coverage info if available
+                                if (result.coverage && includeCoverage) {
+                                    await deps.episodicMemory.log(
+                                        'test_coverage',
+                                        `Coverage: lines ${result.coverage.lines.pct.toFixed(1)}%, statements ${result.coverage.statements.pct.toFixed(1)}%`,
+                                        {
+                                            type: 'coverage_report',
+                                            coverage: result.coverage,
+                                        }
+                                    );
+                                }
+                            } catch (error) {
+                                console.warn('Failed to inject test episodes:', error);
+                            }
+                        }
 
-          child.on('error', (error) => {
-            resolve({
-              success: false,
-              error: String(error),
-            });
-          });
-        });
-      },
-    }),
-  };
+                        // Calculate RLFP reward if learner available
+                        let reward = 0;
+                        if (deps.rlfpLearner && result) {
+                            const coverageDelta = result.coverage
+                                ? (result.coverage.lines.pct / 100) - 0.5  // baseline 50%
+                                : 0;
+                            reward = deps.rlfpLearner.calculateReward({
+                                testPassRate: result.total > 0 ? result.passed / result.total : 0,
+                                avgTestDuration: result.tests.length > 0
+                                    ? result.tests.reduce((sum, t) => sum + t.duration, 0) / result.tests.length
+                                    : 0,
+                                coverageDelta,
+                                memoryOverage: 0,
+                                cpuThrottleTime: 0,
+                            });
+                        }
+
+                        resolve({
+                            success: result.success,
+                            passed: result.passed,
+                            failed: result.failed,
+                            total: result.total,
+                            duration: result.duration,
+                            coverage: result.coverage,
+                            reward,
+                            episodesInjected: injectEpisodes && !!deps.episodicMemory,
+                        });
+                    });
+
+                    child.on('error', (error) => {
+                        resolve({
+                            success: false,
+                            error: String(error),
+                        });
+                    });
+                });
+            },
+        }),
+    };
 }
 
 // --- generate_scenarios ---
 
-const scenarioLogger = createLogger({ scope: 'ScenarioGen' });
+const scenarioLogger = createLogger({scope: 'ScenarioGen'});
 
 export interface ScenarioInjectEvent {
-  type: 'belief_stream' | 'question' | 'resource_pressure' | 'goal';
-  pattern?: string;
-  interval?: number;
-  maxDerivationsPerStep?: number;
-  narsese?: string;
-  truth?: { f: number; c: number };
-  priority?: number;
+    type: 'belief_stream' | 'question' | 'resource_pressure' | 'goal';
+    pattern?: string;
+    interval?: number;
+    maxDerivationsPerStep?: number;
+    narsese?: string;
+    truth?: { f: number; c: number };
+    priority?: number;
 }
 
 export interface ScenarioSuccessCriteria {
-  no_crash?: boolean;
-  contradiction_detected_within?: number;
-  response_latency_p95?: number;
-  min_derivations?: number;
-  specific_belief_derived?: string;
+    no_crash?: boolean;
+    contradiction_detected_within?: number;
+    response_latency_p95?: number;
+    min_derivations?: number;
+    specific_belief_derived?: string;
 }
 
 export interface ScenarioSpec {
-  name: string;
-  description: string;
-  duration_steps: number;
-  inject: ScenarioInjectEvent[];
-  success_criteria: ScenarioSuccessCriteria;
-  metadata: {
-    seed: string;
-    generated_at: string;
-    profile: string;
-  };
+    name: string;
+    description: string;
+    duration_steps: number;
+    inject: ScenarioInjectEvent[];
+    success_criteria: ScenarioSuccessCriteria;
+    metadata: {
+        seed: string;
+        generated_at: string;
+        profile: string;
+    };
 }
 
 export interface ScenarioResult {
-  success: boolean;
-  scenario_name: string;
-  steps_executed: number;
-  duration_ms: number;
-  criteria_results: Record<string, boolean | number>;
-  cognitive_events: number;
-  contradictions_detected: number;
-  derived_beliefs: string[];
-  error?: string;
+    success: boolean;
+    scenario_name: string;
+    steps_executed: number;
+    duration_ms: number;
+    criteria_results: Record<string, boolean | number>;
+    cognitive_events: number;
+    contradictions_detected: number;
+    derived_beliefs: string[];
+    error?: string;
 }
 
 export interface ScenarioRunnerDeps {
-  workspaceRoot?: string;
-  nar?: any; // NAR instance
-  episodicMemory?: any;
-  rlfpLearner?: any;
-  registry?: SeNARSRegistry;
+    workspaceRoot?: string;
+    nar?: any; // NAR instance
+    episodicMemory?: any;
+    rlfpLearner?: any;
+    registry?: SeNARSRegistry;
 }
 
 interface ScenarioValidator {
-  name: string;
-  validate(result: ScenarioResult, spec: ScenarioSpec): { passed: boolean; score: number; details: string };
+    name: string;
+
+    validate(result: ScenarioResult, spec: ScenarioSpec): { passed: boolean; score: number; details: string };
 }
 
 const validators: ScenarioValidator[] = [
-  {
-    name: 'no_crash',
-    validate(result: ScenarioResult, _spec: ScenarioSpec) {
-      return {
-        passed: result.success,
-        score: result.success ? 1.0 : 0.0,
-        details: result.success ? 'No crash' : `Crashed: ${result.error}`,
-      };
+    {
+        name: 'no_crash',
+        validate(result: ScenarioResult, _spec: ScenarioSpec) {
+            return {
+                passed: result.success,
+                score: result.success ? 1.0 : 0.0,
+                details: result.success ? 'No crash' : `Crashed: ${result.error}`,
+            };
+        },
     },
-  },
-  {
-    name: 'contradiction_detected',
-    validate(result: ScenarioResult, spec: ScenarioSpec) {
-      const threshold = spec.success_criteria.contradiction_detected_within ?? 10;
-      const passed = result.contradictions_detected > 0 && result.steps_executed <= threshold;
-      return {
-        passed,
-        score: passed ? 1.0 : 0.5,
-        details: passed
-          ? `Contradiction detected at step ${result.steps_executed}`
-          : `No contradiction within ${threshold} steps`,
-      };
+    {
+        name: 'contradiction_detected',
+        validate(result: ScenarioResult, spec: ScenarioSpec) {
+            const threshold = spec.success_criteria.contradiction_detected_within ?? 10;
+            const passed = result.contradictions_detected > 0 && result.steps_executed <= threshold;
+            return {
+                passed,
+                score: passed ? 1.0 : 0.5,
+                details: passed
+                    ? `Contradiction detected at step ${result.steps_executed}`
+                    : `No contradiction within ${threshold} steps`,
+            };
+        },
     },
-  },
-  {
-    name: 'latency_p95',
-    validate(result: ScenarioResult, spec: ScenarioSpec) {
-      const threshold = spec.success_criteria.response_latency_p95 ?? 100;
-      const avgLatency = result.duration_ms / Math.max(result.steps_executed, 1);
-      const passed = avgLatency <= threshold;
-      return {
-        passed,
-        score: passed ? 1.0 : Math.max(0, 1 - avgLatency / (threshold * 2)),
-        details: `Avg latency ${avgLatency.toFixed(1)}ms (threshold: ${threshold}ms)`,
-      };
+    {
+        name: 'latency_p95',
+        validate(result: ScenarioResult, spec: ScenarioSpec) {
+            const threshold = spec.success_criteria.response_latency_p95 ?? 100;
+            const avgLatency = result.duration_ms / Math.max(result.steps_executed, 1);
+            const passed = avgLatency <= threshold;
+            return {
+                passed,
+                score: passed ? 1.0 : Math.max(0, 1 - avgLatency / (threshold * 2)),
+                details: `Avg latency ${avgLatency.toFixed(1)}ms (threshold: ${threshold}ms)`,
+            };
+        },
     },
-  },
-  {
-    name: 'min_derivations',
-    validate(result: ScenarioResult, spec: ScenarioSpec) {
-      const threshold = spec.success_criteria.min_derivations ?? 1;
-      const passed = result.derived_beliefs.length >= threshold;
-      return {
-        passed,
-        score: passed ? 1.0 : result.derived_beliefs.length / threshold,
-        details: `${result.derived_beliefs.length}/${threshold} derivations`,
-      };
+    {
+        name: 'min_derivations',
+        validate(result: ScenarioResult, spec: ScenarioSpec) {
+            const threshold = spec.success_criteria.min_derivations ?? 1;
+            const passed = result.derived_beliefs.length >= threshold;
+            return {
+                passed,
+                score: passed ? 1.0 : result.derived_beliefs.length / threshold,
+                details: `${result.derived_beliefs.length}/${threshold} derivations`,
+            };
+        },
     },
-  },
-  {
-    name: 'specific_belief',
-    validate(result: ScenarioResult, spec: ScenarioSpec) {
-      const target = spec.success_criteria.specific_belief_derived;
-      if (!target) return { passed: true, score: 1.0, details: 'No specific belief required' };
-      const passed = result.derived_beliefs.some((b) => b.includes(target));
-      return {
-        passed,
-        score: passed ? 1.0 : 0.0,
-        details: passed ? `Derived ${target}` : `Missing ${target}`,
-      };
+    {
+        name: 'specific_belief',
+        validate(result: ScenarioResult, spec: ScenarioSpec) {
+            const target = spec.success_criteria.specific_belief_derived;
+            if (!target) return {passed: true, score: 1.0, details: 'No specific belief required'};
+            const passed = result.derived_beliefs.some((b) => b.includes(target));
+            return {
+                passed,
+                score: passed ? 1.0 : 0.0,
+                details: passed ? `Derived ${target}` : `Missing ${target}`,
+            };
+        },
     },
-  },
 ];
 
 function calculateScenarioReward(result: ScenarioResult, spec: ScenarioSpec): number {
-  let totalScore = 0;
-  let totalWeight = 0;
+    let totalScore = 0;
+    let totalWeight = 0;
 
-  for (const validator of validators) {
-    const weight = spec.success_criteria[validator.name as keyof ScenarioSuccessCriteria] ? 1 : 0;
-    if (weight === 0) continue;
-    const validation = validator.validate(result, spec);
-    totalScore += validation.score * weight;
-    totalWeight += weight;
-  }
+    for (const validator of validators) {
+        const weight = spec.success_criteria[validator.name as keyof ScenarioSuccessCriteria] ? 1 : 0;
+        if (weight === 0) continue;
+        const validation = validator.validate(result, spec);
+        totalScore += validation.score * weight;
+        totalWeight += weight;
+    }
 
-  const baseReward = totalWeight > 0 ? totalScore / totalWeight : 0;
-  const stepBonus = Math.min(1, result.steps_executed / spec.duration_steps) * 0.2;
-  const eventBonus = Math.min(1, result.cognitive_events / 100) * 0.1;
+    const baseReward = totalWeight > 0 ? totalScore / totalWeight : 0;
+    const stepBonus = Math.min(1, result.steps_executed / spec.duration_steps) * 0.2;
+    const eventBonus = Math.min(1, result.cognitive_events / 100) * 0.1;
 
-  return Math.min(1, baseReward + stepBonus + eventBonus);
+    return Math.min(1, baseReward + stepBonus + eventBonus);
 }
 
 async function generateScenarioSpec(
-  seed: string,
-  profile: string,
-  registry?: SeNARSRegistry
+    seed: string,
+    profile: string,
+    registry?: SeNARSRegistry
 ): Promise<ScenarioSpec> {
-  if (!registry) {
-    return generateTemplateScenario(seed, profile);
-  }
+    if (!registry) {
+        return generateTemplateScenario(seed, profile);
+    }
 
-  try {
-    // @ts-ignore - TranslationCache interface mismatch
-    const understanding = new NLUnderstandingService(registry, new Map(), { structuredOnly: true });
-    const nlInput = `Generate a cognitive test scenario for SeNARS. Profile: ${profile}. Seed: "${seed}". 
+    try {
+        // @ts-ignore - TranslationCache interface mismatch
+        const understanding = new NLUnderstandingService(registry, new Map(), {structuredOnly: true});
+        const nlInput = `Generate a cognitive test scenario for SeNARS. Profile: ${profile}. Seed: "${seed}". 
     Output a JSON spec with: name, description, duration_steps, inject (array of events with type, pattern, interval), success_criteria.
     Events can be: belief_stream (pattern, interval), question (pattern, interval), resource_pressure (maxDerivationsPerStep), goal (narsese, priority).
     Success criteria: no_crash, contradiction_detected_within, response_latency_p95, min_derivations, specific_belief_derived.`;
 
-    const taskBatch = await understanding.understand(nlInput);
-    if (taskBatch && taskBatch.goals.length > 0) {
-      const goalContent = taskBatch.goals[0]!.narsese;
-      try {
-        const parsed = JSON.parse(goalContent.replace(/^!/, '').trim());
-        return {
-          ...parsed,
-          metadata: { seed, generated_at: new Date().toISOString(), profile },
-        } as ScenarioSpec;
-      } catch {
-        scenarioLogger.warn('Failed to parse NL-generated scenario, using template');
-      }
+        const taskBatch = await understanding.understand(nlInput);
+        if (taskBatch && taskBatch.goals.length > 0) {
+            const goalContent = taskBatch.goals[0]!.narsese;
+            try {
+                const parsed = JSON.parse(goalContent.replace(/^!/, '').trim());
+                return {
+                    ...parsed,
+                    metadata: {seed, generated_at: new Date().toISOString(), profile},
+                } as ScenarioSpec;
+            } catch {
+                scenarioLogger.warn('Failed to parse NL-generated scenario, using template');
+            }
+        }
+    } catch (error: unknown) {
+        scenarioLogger.warn('NL scenario generation failed, using template', {error: String(error)});
     }
-  } catch (error: unknown) {
-    scenarioLogger.warn('NL scenario generation failed, using template', { error: String(error) });
-  }
 
-  return generateTemplateScenario(seed, profile);
+    return generateTemplateScenario(seed, profile);
 }
 
 function generateTemplateScenario(seed: string, profile: string): ScenarioSpec {
-  const profiles: Record<string, Partial<ScenarioSpec>> = {
-    contradictory_sensors: {
-      name: 'contradictory_sensors',
-      description: 'Test handling of contradictory sensor inputs',
-      duration_steps: 500,
-      inject: [
-        { type: 'belief_stream', pattern: '(sensor_A --> sensor_B). %0.9;0.9%', interval: 5 },
-        { type: 'belief_stream', pattern: '(sensor_B --> sensor_A). %0.1;0.9%', interval: 5 },
-        { type: 'question', pattern: '(sensor_A --> ?what)?', interval: 20 },
-        { type: 'resource_pressure', maxDerivationsPerStep: 50 },
-      ],
-      success_criteria: {
-        no_crash: true,
-        contradiction_detected_within: 10,
-        response_latency_p95: 100,
-        min_derivations: 5,
-      },
-    },
-    temporal_reasoning: {
-      name: 'temporal_reasoning',
-      description: 'Test event sequences with delayed evidence',
-      duration_steps: 300,
-      inject: [
-        { type: 'belief_stream', pattern: '(event_A * event_B * event_C). %0.8;0.8%', interval: 10 },
-        { type: 'question', pattern: '(event_A ==> event_C)?', interval: 30 },
-        { type: 'resource_pressure', maxDerivationsPerStep: 100 },
-      ],
-      success_criteria: {
-        no_crash: true,
-        min_derivations: 3,
-        specific_belief_derived: 'event_A ==> event_C',
-      },
-    },
-    resource_pressure: {
-      name: 'resource_pressure',
-      description: 'Test AIKR graceful degradation under load',
-      duration_steps: 400,
-      inject: [
-        { type: 'belief_stream', pattern: '(data --> pattern). %0.7;0.7%', interval: 2 },
-        { type: 'resource_pressure', maxDerivationsPerStep: 20 },
-        { type: 'question', pattern: '(data --> ?what)?', interval: 15 },
-      ],
-      success_criteria: {
-        no_crash: true,
-        response_latency_p95: 50,
-        min_derivations: 10,
-      },
-    },
-    belief_revision: {
-      name: 'belief_revision',
-      description: 'Test belief revision with incoming evidence streams',
-      duration_steps: 350,
-      inject: [
-        { type: 'belief_stream', pattern: '(hypothesis --> confirmed). %0.6;0.6%', interval: 8 },
-        { type: 'belief_stream', pattern: '(hypothesis --> refuted). %0.9;0.8%', interval: 20 },
-        { type: 'question', pattern: '(hypothesis --> ?what)?', interval: 25 },
-      ],
-      success_criteria: {
-        no_crash: true,
-        contradiction_detected_within: 15,
-        min_derivations: 5,
-      },
-    },
-    cross_engine_sync: {
-      name: 'cross_engine_sync',
-      description: 'Test NAR-MeTTa coordination',
-      duration_steps: 250,
-      inject: [
-        { type: 'belief_stream', pattern: '(nar_fact <-> metta_atom). %0.8;0.8%', interval: 10 },
-        { type: 'goal', narsese: '(^sync(nar_fact, metta_atom))!', priority: 0.7 },
-        { type: 'question', pattern: '(nar_fact <-> ?what)?', interval: 20 },
-      ],
-      success_criteria: {
-        no_crash: true,
-        min_derivations: 3,
-        specific_belief_derived: 'nar_fact <-> metta_atom',
-      },
-    },
-  };
+    const profiles: Record<string, Partial<ScenarioSpec>> = {
+        contradictory_sensors: {
+            name: 'contradictory_sensors',
+            description: 'Test handling of contradictory sensor inputs',
+            duration_steps: 500,
+            inject: [
+                {type: 'belief_stream', pattern: '(sensor_A --> sensor_B). %0.9;0.9%', interval: 5},
+                {type: 'belief_stream', pattern: '(sensor_B --> sensor_A). %0.1;0.9%', interval: 5},
+                {type: 'question', pattern: '(sensor_A --> ?what)?', interval: 20},
+                {type: 'resource_pressure', maxDerivationsPerStep: 50},
+            ],
+            success_criteria: {
+                no_crash: true,
+                contradiction_detected_within: 10,
+                response_latency_p95: 100,
+                min_derivations: 5,
+            },
+        },
+        temporal_reasoning: {
+            name: 'temporal_reasoning',
+            description: 'Test event sequences with delayed evidence',
+            duration_steps: 300,
+            inject: [
+                {type: 'belief_stream', pattern: '(event_A * event_B * event_C). %0.8;0.8%', interval: 10},
+                {type: 'question', pattern: '(event_A ==> event_C)?', interval: 30},
+                {type: 'resource_pressure', maxDerivationsPerStep: 100},
+            ],
+            success_criteria: {
+                no_crash: true,
+                min_derivations: 3,
+                specific_belief_derived: 'event_A ==> event_C',
+            },
+        },
+        resource_pressure: {
+            name: 'resource_pressure',
+            description: 'Test AIKR graceful degradation under load',
+            duration_steps: 400,
+            inject: [
+                {type: 'belief_stream', pattern: '(data --> pattern). %0.7;0.7%', interval: 2},
+                {type: 'resource_pressure', maxDerivationsPerStep: 20},
+                {type: 'question', pattern: '(data --> ?what)?', interval: 15},
+            ],
+            success_criteria: {
+                no_crash: true,
+                response_latency_p95: 50,
+                min_derivations: 10,
+            },
+        },
+        belief_revision: {
+            name: 'belief_revision',
+            description: 'Test belief revision with incoming evidence streams',
+            duration_steps: 350,
+            inject: [
+                {type: 'belief_stream', pattern: '(hypothesis --> confirmed). %0.6;0.6%', interval: 8},
+                {type: 'belief_stream', pattern: '(hypothesis --> refuted). %0.9;0.8%', interval: 20},
+                {type: 'question', pattern: '(hypothesis --> ?what)?', interval: 25},
+            ],
+            success_criteria: {
+                no_crash: true,
+                contradiction_detected_within: 15,
+                min_derivations: 5,
+            },
+        },
+        cross_engine_sync: {
+            name: 'cross_engine_sync',
+            description: 'Test NAR-MeTTa coordination',
+            duration_steps: 250,
+            inject: [
+                {type: 'belief_stream', pattern: '(nar_fact <-> metta_atom). %0.8;0.8%', interval: 10},
+                {type: 'goal', narsese: '(^sync(nar_fact, metta_atom))!', priority: 0.7},
+                {type: 'question', pattern: '(nar_fact <-> ?what)?', interval: 20},
+            ],
+            success_criteria: {
+                no_crash: true,
+                min_derivations: 3,
+                specific_belief_derived: 'nar_fact <-> metta_atom',
+            },
+        },
+    };
 
-  const profileSpec = profiles[profile] ?? profiles.contradictory_sensors!;
+    const profileSpec = profiles[profile] ?? profiles.contradictory_sensors!;
 
-  return {
-    name: profileSpec.name ?? profile,
-    description: profileSpec.description ?? `Scenario for ${seed}`,
-    duration_steps: profileSpec.duration_steps ?? 300,
-    inject: profileSpec.inject ?? [],
-    success_criteria: profileSpec.success_criteria ?? { no_crash: true },
-    metadata: { seed, generated_at: new Date().toISOString(), profile },
-  };
+    return {
+        name: profileSpec.name ?? profile,
+        description: profileSpec.description ?? `Scenario for ${seed}`,
+        duration_steps: profileSpec.duration_steps ?? 300,
+        inject: profileSpec.inject ?? [],
+        success_criteria: profileSpec.success_criteria ?? {no_crash: true},
+        metadata: {seed, generated_at: new Date().toISOString(), profile},
+    };
 }
 
 async function runScenario(nar: any, spec: ScenarioSpec): Promise<ScenarioResult> {
-  const startTime = Date.now();
-  let cognitiveEvents = 0;
-  let contradictionsDetected = 0;
-  const derivedBeliefs: string[] = [];
+    const startTime = Date.now();
+    let cognitiveEvents = 0;
+    let contradictionsDetected = 0;
+    const derivedBeliefs: string[] = [];
 
-  const eventHandler = (event: any) => {
-    cognitiveEvents++;
-    if (event.type === 'conflict:detected' || event.type === 'belief.revised') {
-      contradictionsDetected++;
-    }
-    if (event.type === 'belief.added' || event.type === 'belief.revised') {
-      derivedBeliefs.push(event.payload.term);
-    }
-  };
-
-  if (nar.getSystemEventBus) {
-    nar.getSystemEventBus().on('*', eventHandler);
-  }
-
-  try {
-    for (const injectEvent of spec.inject) {
-      switch (injectEvent.type) {
-        case 'belief_stream':
-          if (injectEvent.pattern) {
-            await nar.believe(injectEvent.pattern);
-          }
-          break;
-        case 'question':
-          if (injectEvent.pattern) {
-            await nar.question(injectEvent.pattern);
-          }
-          break;
-        case 'goal':
-          if (injectEvent.narsese) {
-            await nar.goal(injectEvent.narsese, injectEvent.priority ? { f: injectEvent.priority, c: 0.9 } : undefined);
-          }
-          break;
-        case 'resource_pressure':
-          if (injectEvent.maxDerivationsPerStep && nar.setConfig) {
-            nar.setConfig({
-              inference: { ...nar.getConfig().inference, maxDerivationsPerStep: injectEvent.maxDerivationsPerStep },
-            });
-          }
-          break;
-      }
-    }
-
-    const stepsToRun = spec.duration_steps;
-    await nar.run(stepsToRun);
-
-    const duration = Date.now() - startTime;
-
-    return {
-      success: true,
-      scenario_name: spec.name,
-      steps_executed: stepsToRun,
-      duration_ms: duration,
-      criteria_results: {},
-      cognitive_events: cognitiveEvents,
-      contradictions_detected: contradictionsDetected,
-      derived_beliefs: derivedBeliefs,
+    const eventHandler = (event: any) => {
+        cognitiveEvents++;
+        if (event.type === 'conflict:detected' || event.type === 'belief.revised') {
+            contradictionsDetected++;
+        }
+        if (event.type === 'belief.added' || event.type === 'belief.revised') {
+            derivedBeliefs.push(event.payload.term);
+        }
     };
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    return {
-      success: false,
-      scenario_name: spec.name,
-      steps_executed: 0,
-      duration_ms: duration,
-      criteria_results: {},
-      cognitive_events: cognitiveEvents,
-      contradictions_detected: contradictionsDetected,
-      derived_beliefs: derivedBeliefs,
-      error: String(error),
-    };
-  } finally {
+
     if (nar.getSystemEventBus) {
-      nar.getSystemEventBus().off('*', eventHandler);
+        nar.getSystemEventBus().on('*', eventHandler);
     }
-  }
+
+    try {
+        for (const injectEvent of spec.inject) {
+            switch (injectEvent.type) {
+                case 'belief_stream':
+                    if (injectEvent.pattern) {
+                        await nar.believe(injectEvent.pattern);
+                    }
+                    break;
+                case 'question':
+                    if (injectEvent.pattern) {
+                        await nar.question(injectEvent.pattern);
+                    }
+                    break;
+                case 'goal':
+                    if (injectEvent.narsese) {
+                        await nar.goal(injectEvent.narsese, injectEvent.priority ? {
+                            f: injectEvent.priority,
+                            c: 0.9
+                        } : undefined);
+                    }
+                    break;
+                case 'resource_pressure':
+                    if (injectEvent.maxDerivationsPerStep && nar.setConfig) {
+                        nar.setConfig({
+                            inference: {
+                                ...nar.getConfig().inference,
+                                maxDerivationsPerStep: injectEvent.maxDerivationsPerStep
+                            },
+                        });
+                    }
+                    break;
+            }
+        }
+
+        const stepsToRun = spec.duration_steps;
+        await nar.run(stepsToRun);
+
+        const duration = Date.now() - startTime;
+
+        return {
+            success: true,
+            scenario_name: spec.name,
+            steps_executed: stepsToRun,
+            duration_ms: duration,
+            criteria_results: {},
+            cognitive_events: cognitiveEvents,
+            contradictions_detected: contradictionsDetected,
+            derived_beliefs: derivedBeliefs,
+        };
+    } catch (error) {
+        const duration = Date.now() - startTime;
+        return {
+            success: false,
+            scenario_name: spec.name,
+            steps_executed: 0,
+            duration_ms: duration,
+            criteria_results: {},
+            cognitive_events: cognitiveEvents,
+            contradictions_detected: contradictionsDetected,
+            derived_beliefs: derivedBeliefs,
+            error: String(error),
+        };
+    } finally {
+        if (nar.getSystemEventBus) {
+            nar.getSystemEventBus().off('*', eventHandler);
+        }
+    }
 }
 
 export interface ScenarioGenDeps {
-  workspaceRoot?: string;
-  nar?: any;
-  episodicMemory?: any;
-  rlfpLearner?: any;
-  registry?: SeNARSRegistry;
+    workspaceRoot?: string;
+    nar?: any;
+    episodicMemory?: any;
+    rlfpLearner?: any;
+    registry?: SeNARSRegistry;
 }
 
 export function createScenarioGenTools(deps: ScenarioGenDeps = {}) {
-  const workspaceRoot = deps.workspaceRoot || process.cwd();
+    const workspaceRoot = deps.workspaceRoot || process.cwd();
 
-  return {
-    generate_scenarios: tool({
-      description:
-        'Generate and execute cognitive scenarios using NL→Narsese→MeTTa pipeline. Tests integrated reasoning under realistic conditions.',
-      inputSchema: z.object({
-        seed: z.string().describe('High-level intent for scenario (e.g., "contradictory sensors under load")'),
-        profile: z
-          .enum([
-            'contradictory_sensors',
-            'temporal_reasoning',
-            'resource_pressure',
-            'belief_revision',
-            'cross_engine_sync',
-            'auto',
-          ])
-          .optional()
-          .default('auto')
-          .describe('Scenario profile/template to use'),
-        count: z.number().int().min(1).max(20).optional().default(1).describe('Number of scenarios to generate and run'),
-        injectEpisodes: z.boolean().optional().default(true).describe('Inject results into episodic memory'),
-      }),
-      execute: async ({ seed, profile, count = 1, injectEpisodes = true }) => {
-        const results: ScenarioResult[] = [];
-        const specs: ScenarioSpec[] = [];
+    return {
+        generate_scenarios: tool({
+            description:
+                'Generate and execute cognitive scenarios using NL→Narsese→MeTTa pipeline. Tests integrated reasoning under realistic conditions.',
+            inputSchema: z.object({
+                seed: z.string().describe('High-level intent for scenario (e.g., "contradictory sensors under load")'),
+                profile: z
+                    .enum([
+                        'contradictory_sensors',
+                        'temporal_reasoning',
+                        'resource_pressure',
+                        'belief_revision',
+                        'cross_engine_sync',
+                        'auto',
+                    ])
+                    .optional()
+                    .default('auto')
+                    .describe('Scenario profile/template to use'),
+                count: z.number().int().min(1).max(20).optional().default(1).describe('Number of scenarios to generate and run'),
+                injectEpisodes: z.boolean().optional().default(true).describe('Inject results into episodic memory'),
+            }),
+            execute: async ({seed, profile, count = 1, injectEpisodes = true}) => {
+                const results: ScenarioResult[] = [];
+                const specs: ScenarioSpec[] = [];
 
-        for (let i = 0; i < count; i++) {
-          const scenarioSeed = count > 1 ? `${seed} (${i + 1}/${count})` : seed;
-          const selectedProfile = profile === 'auto' ? inferProfile(scenarioSeed) : profile;
+                for (let i = 0; i < count; i++) {
+                    const scenarioSeed = count > 1 ? `${seed} (${i + 1}/${count})` : seed;
+                    const selectedProfile = profile === 'auto' ? inferProfile(scenarioSeed) : profile;
 
-          const spec = await generateScenarioSpec(scenarioSeed, selectedProfile, deps.registry);
-          specs.push(spec);
+                    const spec = await generateScenarioSpec(scenarioSeed, selectedProfile, deps.registry);
+                    specs.push(spec);
 
-          if (deps.nar) {
-            const result = await runScenario(deps.nar, spec);
-            const reward = calculateScenarioReward(result, spec);
+                    if (deps.nar) {
+                        const result = await runScenario(deps.nar, spec);
+                        const reward = calculateScenarioReward(result, spec);
 
-            result.criteria_results = validators.reduce((acc, v) => {
-              const validation = v.validate(result, spec);
-              acc[v.name] = validation.passed;
-              return acc;
-            }, {} as Record<string, boolean>);
+                        result.criteria_results = validators.reduce((acc, v) => {
+                            const validation = v.validate(result, spec);
+                            acc[v.name] = validation.passed;
+                            return acc;
+                        }, {} as Record<string, boolean>);
 
-            if (injectEpisodes && deps.episodicMemory) {
-              await injectScenarioEpisodes(deps.episodicMemory, result, spec, reward);
-            }
+                        if (injectEpisodes && deps.episodicMemory) {
+                            await injectScenarioEpisodes(deps.episodicMemory, result, spec, reward);
+                        }
 
-            if (deps.rlfpLearner) {
-              deps.rlfpLearner.reward(reward, `scenario:${spec.name}`);
-            }
+                        if (deps.rlfpLearner) {
+                            deps.rlfpLearner.reward(reward, `scenario:${spec.name}`);
+                        }
 
-            results.push(result);
-          } else {
-            results.push({
-              success: true,
-              scenario_name: spec.name,
-              steps_executed: 0,
-              duration_ms: 0,
-              criteria_results: {},
-              cognitive_events: 0,
-              contradictions_detected: 0,
-              derived_beliefs: [],
-              error: 'NAR instance not provided - scenario spec generated only',
-            });
-          }
-        }
+                        results.push(result);
+                    } else {
+                        results.push({
+                            success: true,
+                            scenario_name: spec.name,
+                            steps_executed: 0,
+                            duration_ms: 0,
+                            criteria_results: {},
+                            cognitive_events: 0,
+                            contradictions_detected: 0,
+                            derived_beliefs: [],
+                            error: 'NAR instance not provided - scenario spec generated only',
+                        });
+                    }
+                }
 
-        return {
-          success: true,
-          seed,
-          profile,
-          scenarios_generated: specs.length,
-          scenarios_executed: results.filter((r) => r.steps_executed > 0).length,
-          specs,
-          results,
-          summary: {
-            passed: results.filter((r) => r.success).length,
-            failed: results.filter((r) => !r.success).length,
-            avg_reward:
-              results.reduce((sum, r, idx) => sum + calculateScenarioReward(r, specs[idx]!), 0) /
-              Math.max(results.length, 1),
-          },
-        };
-      },
-    }),
-  };
+                return {
+                    success: true,
+                    seed,
+                    profile,
+                    scenarios_generated: specs.length,
+                    scenarios_executed: results.filter((r) => r.steps_executed > 0).length,
+                    specs,
+                    results,
+                    summary: {
+                        passed: results.filter((r) => r.success).length,
+                        failed: results.filter((r) => !r.success).length,
+                        avg_reward:
+                            results.reduce((sum, r, idx) => sum + calculateScenarioReward(r, specs[idx]!), 0) /
+                            Math.max(results.length, 1),
+                    },
+                };
+            },
+        }),
+    };
 }
 
 function inferProfile(seed: string): string {
-  const lower = seed.toLowerCase();
-  if (lower.includes('contradict') || lower.includes('conflict') || lower.includes('sensor')) {
+    const lower = seed.toLowerCase();
+    if (lower.includes('contradict') || lower.includes('conflict') || lower.includes('sensor')) {
+        return 'contradictory_sensors';
+    }
+    if (lower.includes('temporal') || lower.includes('sequence') || lower.includes('event')) {
+        return 'temporal_reasoning';
+    }
+    if (lower.includes('load') || lower.includes('pressure') || lower.includes('overload') || lower.includes('resource')) {
+        return 'resource_pressure';
+    }
+    if (lower.includes('revision') || lower.includes('belief') || lower.includes('evidence')) {
+        return 'belief_revision';
+    }
+    if (lower.includes('cross') || lower.includes('sync') || lower.includes('metta') || lower.includes('engine')) {
+        return 'cross_engine_sync';
+    }
     return 'contradictory_sensors';
-  }
-  if (lower.includes('temporal') || lower.includes('sequence') || lower.includes('event')) {
-    return 'temporal_reasoning';
-  }
-  if (lower.includes('load') || lower.includes('pressure') || lower.includes('overload') || lower.includes('resource')) {
-    return 'resource_pressure';
-  }
-  if (lower.includes('revision') || lower.includes('belief') || lower.includes('evidence')) {
-    return 'belief_revision';
-  }
-  if (lower.includes('cross') || lower.includes('sync') || lower.includes('metta') || lower.includes('engine')) {
-    return 'cross_engine_sync';
-  }
-  return 'contradictory_sensors';
 }
 
 async function injectScenarioEpisodes(
-  episodicMemory: any,
-  result: ScenarioResult,
-  spec: ScenarioSpec,
-  reward: number
+    episodicMemory: any,
+    result: ScenarioResult,
+    spec: ScenarioSpec,
+    reward: number
 ): Promise<void> {
-  try {
-    await episodicMemory.log(
-      result.success ? 'scenario_passed' : 'scenario_failed',
-      `Scenario ${spec.name} ${result.success ? 'passed' : 'failed'}`,
-      {
-        type: 'scenario_result',
-        scenario: spec.name,
-        profile: spec.metadata.profile,
-        success: result.success,
-        steps: result.steps_executed,
-        duration_ms: result.duration_ms,
-        contradictions: result.contradictions_detected,
-        events: result.cognitive_events,
-        derivations: result.derived_beliefs.length,
-        reward,
-        criteria: result.criteria_results,
-      }
-    );
+    try {
+        await episodicMemory.log(
+            result.success ? 'scenario_passed' : 'scenario_failed',
+            `Scenario ${spec.name} ${result.success ? 'passed' : 'failed'}`,
+            {
+                type: 'scenario_result',
+                scenario: spec.name,
+                profile: spec.metadata.profile,
+                success: result.success,
+                steps: result.steps_executed,
+                duration_ms: result.duration_ms,
+                contradictions: result.contradictions_detected,
+                events: result.cognitive_events,
+                derivations: result.derived_beliefs.length,
+                reward,
+                criteria: result.criteria_results,
+            }
+        );
 
-    if (!result.success) {
-      await episodicMemory.log(
-        'goal',
-        `(^fixScenario("${spec.name}"))!`,
-        {
-          type: 'fix_scenario_goal',
-          scenario: spec.name,
-          errors: [result.error ?? 'Unknown failure'],
+        if (!result.success) {
+            await episodicMemory.log(
+                'goal',
+                `(^fixScenario("${spec.name}"))!`,
+                {
+                    type: 'fix_scenario_goal',
+                    scenario: spec.name,
+                    errors: [result.error ?? 'Unknown failure'],
+                }
+            );
         }
-      );
+    } catch (error: unknown) {
+        scenarioLogger.warn('Failed to inject scenario episodes', {error: String(error)});
     }
-  } catch (error: unknown) {
-    scenarioLogger.warn('Failed to inject scenario episodes', { error: String(error) });
-  }
 }
 
 // --- codemod ---
 
 export interface CodemodDeps {
-  workspaceRoot?: string;
+    workspaceRoot?: string;
 }
 
 export interface CodemodResult {
-  success: boolean;
-  diff?: string;
-  files: string[];
-  applied: boolean;
-  error?: string;
-  matches?: number;
+    success: boolean;
+    diff?: string;
+    files: string[];
+    applied: boolean;
+    error?: string;
+    matches?: number;
 }
 
 export interface CodemodOptions {
-  pattern: string;
-  replacement: string;
-  scope?: string[];
-  dryRun?: boolean;
-  lang?: string;
+    pattern: string;
+    replacement: string;
+    scope?: string[];
+    dryRun?: boolean;
+    lang?: string;
 }
 
 function findAstGrep(): string {
-  const candidates = [
-    'ast-grep',
-    'sg',
-    `${process.env.HOME}/.cargo/bin/ast-grep`,
-    `${process.env.HOME}/.cargo/bin/sg`,
-  ];
-  for (const cmd of candidates) {
-    try {
-      const result = spawnSync(cmd, ['--version'], { stdio: 'pipe' });
-      if (result.status === 0) return cmd;
-    } catch {
-      // ignore
+    const candidates = [
+        'ast-grep',
+        'sg',
+        `${process.env.HOME}/.cargo/bin/ast-grep`,
+        `${process.env.HOME}/.cargo/bin/sg`,
+    ];
+    for (const cmd of candidates) {
+        try {
+            const result = spawnSync(cmd, ['--version'], {stdio: 'pipe'});
+            if (result.status === 0) return cmd;
+        } catch {
+            // ignore
+        }
     }
-  }
-  return 'ast-grep';
+    return 'ast-grep';
 }
 
 async function runCodemod(
-  workspaceRoot: string,
-  options: CodemodOptions,
-  dryRun: boolean
+    workspaceRoot: string,
+    options: CodemodOptions,
+    dryRun: boolean
 ): Promise<CodemodResult> {
-  const { pattern, replacement, scope = [], lang = 'typescript' } = options;
-  const astGrepCmd = findAstGrep();
+    const {pattern, replacement, scope = [], lang = 'typescript'} = options;
+    const astGrepCmd = findAstGrep();
 
-  const paths = scope.length > 0 ? scope.map((s) => resolve(workspaceRoot, s)) : [workspaceRoot];
+    const paths = scope.length > 0 ? scope.map((s) => resolve(workspaceRoot, s)) : [workspaceRoot];
 
-  const args = [
-    'run',
-    '--pattern',
-    pattern,
-    '--lang',
-    lang,
-    '--rewrite',
-    replacement,
-    ...paths,
-  ];
+    const args = [
+        'run',
+        '--pattern',
+        pattern,
+        '--lang',
+        lang,
+        '--rewrite',
+        replacement,
+        ...paths,
+    ];
 
-  if (dryRun) {
-    args.push('--json');
-  } else {
-    args.push('--update-all', '--json');
-  }
+    if (dryRun) {
+        args.push('--json');
+    } else {
+        args.push('--update-all', '--json');
+    }
 
-  return new Promise((resolve) => {
-    const child = spawn(astGrepCmd, args, {
-      cwd: workspaceRoot,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout?.on('data', (data: Buffer) => {
-      stdout += data.toString();
-    });
-
-    child.stderr?.on('data', (data: Buffer) => {
-      stderr += data.toString();
-    });
-
-    child.on('close', (exitCode: number) => {
-      try {
-        const matches: any[] = stdout ? JSON.parse(stdout) : [];
-        const files: string[] = Array.from(new Set(matches.map((m) => m.file))).filter((f) => f !== 'STDIN');
-
-        // Generate unified diff
-        let diff = '';
-        if (matches.length > 0) {
-          for (const match of matches) {
-            diff += `${match.file}\n`;
-            diff += `@@ -${match.range.start.line + 1},${match.range.end.line - match.range.start.line + 1} +${match.range.start.line + 1},${match.range.end.line - match.range.start.line + 1} @@\n`;
-            diff += `-${match.lines}\n`;
-            diff += `+${match.replacement}\n`;
-          }
-        }
-
-        resolve({
-          success: exitCode === 0,
-          diff: diff || undefined,
-          files,
-          applied: !dryRun && exitCode === 0,
-          matches: matches.length,
+    return new Promise((resolve) => {
+        const child = spawn(astGrepCmd, args, {
+            cwd: workspaceRoot,
+            stdio: ['pipe', 'pipe', 'pipe'],
         });
-      } catch (error) {
-        resolve({
-          success: false,
-          error: `Failed to parse ast-grep output: ${String(error)}`,
-          files: [],
-          applied: false,
-        });
-      }
-    });
 
-    child.on('error', (error: Error) => {
-      resolve({
-        success: false,
-        error: String(error),
-        files: [],
-        applied: false,
-      });
+        let stdout = '';
+        let stderr = '';
+
+        child.stdout?.on('data', (data: Buffer) => {
+            stdout += data.toString();
+        });
+
+        child.stderr?.on('data', (data: Buffer) => {
+            stderr += data.toString();
+        });
+
+        child.on('close', (exitCode: number) => {
+            try {
+                const matches: any[] = stdout ? JSON.parse(stdout) : [];
+                const files: string[] = Array.from(new Set(matches.map((m) => m.file))).filter((f) => f !== 'STDIN');
+
+                // Generate unified diff
+                let diff = '';
+                if (matches.length > 0) {
+                    for (const match of matches) {
+                        diff += `${match.file}\n`;
+                        diff += `@@ -${match.range.start.line + 1},${match.range.end.line - match.range.start.line + 1} +${match.range.start.line + 1},${match.range.end.line - match.range.start.line + 1} @@\n`;
+                        diff += `-${match.lines}\n`;
+                        diff += `+${match.replacement}\n`;
+                    }
+                }
+
+                resolve({
+                    success: exitCode === 0,
+                    diff: diff || undefined,
+                    files,
+                    applied: !dryRun && exitCode === 0,
+                    matches: matches.length,
+                });
+            } catch (error) {
+                resolve({
+                    success: false,
+                    error: `Failed to parse ast-grep output: ${String(error)}`,
+                    files: [],
+                    applied: false,
+                });
+            }
+        });
+
+        child.on('error', (error: Error) => {
+            resolve({
+                success: false,
+                error: String(error),
+                files: [],
+                applied: false,
+            });
+        });
     });
-  });
 }
 
 export function createCodemodTools(deps: CodemodDeps = {}) {
-  const workspaceRoot = deps.workspaceRoot || process.cwd();
+    const workspaceRoot = deps.workspaceRoot || process.cwd();
 
-  return {
-    codemod: tool({
-      description:
-        'Apply structural code modifications using ast-grep. Supports pattern-based search and replace with metavariables (e.g., $X, $V). Returns diff and list of affected files.',
-      inputSchema: z.object({
-        pattern: z.string().describe('AST pattern to match (e.g., "let $X: any = $V")'),
-        replacement: z.string().describe('Replacement pattern using metavariables (e.g., "let $X: unknown = $V")'),
-        scope: z.array(z.string()).optional().default([]).describe('File/directory paths to limit search (relative to workspace root)'),
-        dryRun: z.boolean().optional().default(true).describe('If true, only show diff without applying changes'),
-        lang: z.string().optional().default('typescript').describe('Language for AST parsing (typescript, javascript, python, etc.)'),
-      }),
-      execute: async ({ pattern, replacement, scope = [], dryRun = true, lang = 'typescript' }) => {
-        return runCodemod(workspaceRoot, { pattern, replacement, scope, lang }, dryRun);
-      },
-    }),
-  };
+    return {
+        codemod: tool({
+            description:
+                'Apply structural code modifications using ast-grep. Supports pattern-based search and replace with metavariables (e.g., $X, $V). Returns diff and list of affected files.',
+            inputSchema: z.object({
+                pattern: z.string().describe('AST pattern to match (e.g., "let $X: any = $V")'),
+                replacement: z.string().describe('Replacement pattern using metavariables (e.g., "let $X: unknown = $V")'),
+                scope: z.array(z.string()).optional().default([]).describe('File/directory paths to limit search (relative to workspace root)'),
+                dryRun: z.boolean().optional().default(true).describe('If true, only show diff without applying changes'),
+                lang: z.string().optional().default('typescript').describe('Language for AST parsing (typescript, javascript, python, etc.)'),
+            }),
+            execute: async ({pattern, replacement, scope = [], dryRun = true, lang = 'typescript'}) => {
+                return runCodemod(workspaceRoot, {pattern, replacement, scope, lang}, dryRun);
+            },
+        }),
+    };
 }
 
 // ============================================================================
@@ -1809,426 +1848,445 @@ export function createCodemodTools(deps: CodemodDeps = {}) {
 // ============================================================================
 
 export interface SelfToolsDeps {
-  workspaceRoot?: string;
-  nar?: NAR;
-  rlfpLearner?: RLFPLearner;
-  cognitiveController?: CognitiveController;
-  toolManager?: ToolManager;
-  ruleProcessor?: RuleProcessor;
-  approvalManager?: ApprovalManager;
+    workspaceRoot?: string;
+    nar?: NAR;
+    rlfpLearner?: RLFPLearner;
+    cognitiveController?: CognitiveController;
+    toolManager?: ToolManager;
+    ruleProcessor?: RuleProcessor;
+    approvalManager?: ApprovalManager;
 }
 
 /** Shadow worktree manager for safe code modifications */
 class ShadowWorktreeManager {
-  private workspaceRoot: string;
-  private activeWorktrees: Map<string, string> = new Map(); // id -> path
+    private workspaceRoot: string;
+    private activeWorktrees: Map<string, string> = new Map(); // id -> path
 
-  constructor(workspaceRoot: string) {
-    this.workspaceRoot = workspaceRoot;
-  }
+    constructor(workspaceRoot: string) {
+        this.workspaceRoot = workspaceRoot;
+    }
 
-  /** Create a new shadow worktree */
-  async createWorktree(id: string): Promise<string> {
-    const shadowDir = resolve(this.workspaceRoot, '.shadow', id);
-    const { mkdir } = await import('node:fs/promises');
-    await mkdir(dirname(shadowDir), { recursive: true });
+    /** Create a new shadow worktree */
+    async createWorktree(id: string): Promise<string> {
+        const shadowDir = resolve(this.workspaceRoot, '.shadow', id);
+        const {mkdir} = await import('node:fs/promises');
+        await mkdir(dirname(shadowDir), {recursive: true});
 
-    return new Promise((resolvePromise, reject) => {
-      const child = spawn('git', ['worktree', 'add', shadowDir, 'HEAD'], {
-        cwd: this.workspaceRoot,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
+        return new Promise((resolvePromise, reject) => {
+            const child = spawn('git', ['worktree', 'add', shadowDir, 'HEAD'], {
+                cwd: this.workspaceRoot,
+                stdio: ['pipe', 'pipe', 'pipe'],
+            });
 
-      child.on('close', (code) => {
-        if (code === 0) {
-          this.activeWorktrees.set(id, shadowDir);
-          resolvePromise(shadowDir);
-        } else {
-          reject(new Error(`Failed to create worktree: ${code}`));
-        }
-      });
+            child.on('close', (code) => {
+                if (code === 0) {
+                    this.activeWorktrees.set(id, shadowDir);
+                    resolvePromise(shadowDir);
+                } else {
+                    reject(new Error(`Failed to create worktree: ${code}`));
+                }
+            });
 
-      child.on('error', (err) => reject(err));
-    });
-  }
+            child.on('error', (err) => reject(err));
+        });
+    }
 
-  /** Get the path of an active worktree by id, or undefined if not found */
-  getWorktreePath(id: string): string | undefined {
-    return this.activeWorktrees.get(id);
-  }
+    /** Get the path of an active worktree by id, or undefined if not found */
+    getWorktreePath(id: string): string | undefined {
+        return this.activeWorktrees.get(id);
+    }
 
-  /** Apply codemod in shadow worktree */
-  async applyCodemodInWorktree(
-    worktreePath: string,
-    pattern: string,
-    replacement: string,
-    scope: string[] = [],
-    lang = 'typescript'
-  ): Promise<CodemodResult> {
-    return runCodemod(worktreePath, { pattern, replacement, scope, lang }, false);
-  }
+    /** Apply codemod in shadow worktree */
+    async applyCodemodInWorktree(
+        worktreePath: string,
+        pattern: string,
+        replacement: string,
+        scope: string[] = [],
+        lang = 'typescript'
+    ): Promise<CodemodResult> {
+        return runCodemod(worktreePath, {pattern, replacement, scope, lang}, false);
+    }
 
-  /** Run full CI suite in shadow worktree */
-  async runTestsInWorktree(worktreePath: string): Promise<{
-    success: boolean;
-    testPassed: boolean;
-    typecheckPassed: boolean;
-    lintPassed: boolean;
-    passed: number;
-    failed: number;
-    total: number;
-    testOutput?: string;
-    typecheckOutput?: string;
-    lintOutput?: string;
-  }> {
-    // Run vitest
-    const testResult = await this.runCommandInWorktree(worktreePath, 'pnpm', ['vitest', 'run', '--reporter=json']);
-    // Run typecheck
-    const typecheckResult = await this.runCommandInWorktree(worktreePath, 'pnpm', ['typecheck']);
-    // Run lint
-    const lintResult = await this.runCommandInWorktree(worktreePath, 'pnpm', ['lint']);
+    /** Run full CI suite in shadow worktree */
+    async runTestsInWorktree(worktreePath: string): Promise<{
+        success: boolean;
+        testPassed: boolean;
+        typecheckPassed: boolean;
+        lintPassed: boolean;
+        passed: number;
+        failed: number;
+        total: number;
+        testOutput?: string;
+        typecheckOutput?: string;
+        lintOutput?: string;
+    }> {
+        // Run vitest
+        const testResult = await this.runCommandInWorktree(worktreePath, 'pnpm', ['vitest', 'run', '--reporter=json']);
+        // Run typecheck
+        const typecheckResult = await this.runCommandInWorktree(worktreePath, 'pnpm', ['typecheck']);
+        // Run lint
+        const lintResult = await this.runCommandInWorktree(worktreePath, 'pnpm', ['lint']);
 
-    const testSuccess = testResult.code === 0;
-    const typecheckSuccess = typecheckResult.code === 0;
-    const lintSuccess = lintResult.code === 0;
+        const testSuccess = testResult.code === 0;
+        const typecheckSuccess = typecheckResult.code === 0;
+        const lintSuccess = lintResult.code === 0;
 
-    // Parse vitest JSON output for test counts
-    let passed = 0, failed = 0, total = 0;
-    try {
-      const jsonStart = testResult.stdout.indexOf('{');
-      if (jsonStart >= 0) {
-        const data = JSON.parse(testResult.stdout.slice(jsonStart));
-        passed = data.numPassedTests ?? 0;
-        failed = data.numFailedTests ?? 0;
-        total = data.numTotalTests ?? 0;
-      }
-    } catch {}
-
-    return {
-      success: testSuccess && typecheckSuccess && lintSuccess,
-      testPassed: testSuccess,
-      typecheckPassed: typecheckSuccess,
-      lintPassed: lintSuccess,
-      passed,
-      failed,
-      total,
-      testOutput: testResult.stdout,
-      typecheckOutput: typecheckResult.stdout,
-      lintOutput: lintResult.stdout,
-    };
-  }
-
-  /** Run a command in the worktree and return result */
-  private async runCommandInWorktree(
-    worktreePath: string,
-    command: string,
-    args: string[]
-  ): Promise<{ code: number; stdout: string; stderr: string }> {
-    return new Promise((resolve) => {
-      const child = spawn(command, args, {
-        cwd: worktreePath,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-
-      let stdout = '';
-      let stderr = '';
-
-      child.stdout?.on('data', (data: Buffer) => { stdout += data.toString(); });
-      child.stderr?.on('data', (data: Buffer) => { stderr += data.toString(); });
-
-      child.on('close', (code) => {
-        resolve({ code: code ?? 1, stdout, stderr });
-      });
-
-      child.on('error', (err) => {
-        resolve({ code: 1, stdout, stderr: err.message });
-      });
-    });
-  }
-
-  /** Get diff between shadow worktree and main */
-  async getDiff(worktreePath: string): Promise<string> {
-    return new Promise((resolve) => {
-      const child = spawn('git', ['diff', 'HEAD'], {
-        cwd: worktreePath,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-
-      let stdout = '';
-      child.stdout?.on('data', (data: Buffer) => { stdout += data.toString(); });
-      child.on('close', () => resolve(stdout));
-      child.on('error', () => resolve(''));
-    });
-  }
-
-  /** Merge shadow worktree to main (requires approval) */
-  async mergeWorktree(id: string): Promise<boolean> {
-    const worktreePath = this.activeWorktrees.get(id);
-    if (!worktreePath) return false;
-
-    return new Promise((resolve) => {
-      const child = spawn('git', ['commit', '-am', `Self-improvement: ${id}`], {
-        cwd: worktreePath,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-
-      child.on('close', (code) => {
-        if (code === 0) {
-          // Switch to main and merge
-          const mergeChild = spawn('git', ['merge', id], {
-            cwd: this.workspaceRoot,
-            stdio: ['pipe', 'pipe', 'pipe'],
-          });
-          mergeChild.on('close', (mergeCode) => {
-            if (mergeCode === 0) {
-              this.cleanupWorktree(id);
-              resolve(true);
-            } else {
-              resolve(false);
+        // Parse vitest JSON output for test counts
+        let passed = 0, failed = 0, total = 0;
+        try {
+            const jsonStart = testResult.stdout.indexOf('{');
+            if (jsonStart >= 0) {
+                const data = JSON.parse(testResult.stdout.slice(jsonStart));
+                passed = data.numPassedTests ?? 0;
+                failed = data.numFailedTests ?? 0;
+                total = data.numTotalTests ?? 0;
             }
-          });
-        } else {
-          resolve(false);
+        } catch {
         }
-      });
-    });
-  }
 
-  /** Clean up shadow worktree */
-  async cleanupWorktree(id: string): Promise<void> {
-    const worktreePath = this.activeWorktrees.get(id);
-    if (!worktreePath) return;
+        return {
+            success: testSuccess && typecheckSuccess && lintSuccess,
+            testPassed: testSuccess,
+            typecheckPassed: typecheckSuccess,
+            lintPassed: lintSuccess,
+            passed,
+            failed,
+            total,
+            testOutput: testResult.stdout,
+            typecheckOutput: typecheckResult.stdout,
+            lintOutput: lintResult.stdout,
+        };
+    }
 
-    return new Promise((resolve) => {
-      const child = spawn('git', ['worktree', 'remove', '--force', worktreePath], {
-        cwd: this.workspaceRoot,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-      child.on('close', () => {
-        this.activeWorktrees.delete(id);
-        resolve();
-      });
-      child.on('error', () => {
-        this.activeWorktrees.delete(id);
-        resolve();
-      });
-    });
-  }
+    /** Get diff between shadow worktree and main */
+    async getDiff(worktreePath: string): Promise<string> {
+        return new Promise((resolve) => {
+            const child = spawn('git', ['diff', 'HEAD'], {
+                cwd: worktreePath,
+                stdio: ['pipe', 'pipe', 'pipe'],
+            });
+
+            let stdout = '';
+            child.stdout?.on('data', (data: Buffer) => {
+                stdout += data.toString();
+            });
+            child.on('close', () => resolve(stdout));
+            child.on('error', () => resolve(''));
+        });
+    }
+
+    /** Merge shadow worktree to main (requires approval) */
+    async mergeWorktree(id: string): Promise<boolean> {
+        const worktreePath = this.activeWorktrees.get(id);
+        if (!worktreePath) return false;
+
+        return new Promise((resolve) => {
+            const child = spawn('git', ['commit', '-am', `Self-improvement: ${id}`], {
+                cwd: worktreePath,
+                stdio: ['pipe', 'pipe', 'pipe'],
+            });
+
+            child.on('close', (code) => {
+                if (code === 0) {
+                    // Switch to main and merge
+                    const mergeChild = spawn('git', ['merge', id], {
+                        cwd: this.workspaceRoot,
+                        stdio: ['pipe', 'pipe', 'pipe'],
+                    });
+                    mergeChild.on('close', (mergeCode) => {
+                        if (mergeCode === 0) {
+                            this.cleanupWorktree(id);
+                            resolve(true);
+                        } else {
+                            resolve(false);
+                        }
+                    });
+                } else {
+                    resolve(false);
+                }
+            });
+        });
+    }
+
+    /** Clean up shadow worktree */
+    async cleanupWorktree(id: string): Promise<void> {
+        const worktreePath = this.activeWorktrees.get(id);
+        if (!worktreePath) return;
+
+        return new Promise((resolve) => {
+            const child = spawn('git', ['worktree', 'remove', '--force', worktreePath], {
+                cwd: this.workspaceRoot,
+                stdio: ['pipe', 'pipe', 'pipe'],
+            });
+            child.on('close', () => {
+                this.activeWorktrees.delete(id);
+                resolve();
+            });
+            child.on('error', () => {
+                this.activeWorktrees.delete(id);
+                resolve();
+            });
+        });
+    }
+
+    /** Run a command in the worktree and return result */
+    private async runCommandInWorktree(
+        worktreePath: string,
+        command: string,
+        args: string[]
+    ): Promise<{ code: number; stdout: string; stderr: string }> {
+        return new Promise((resolve) => {
+            const child = spawn(command, args, {
+                cwd: worktreePath,
+                stdio: ['pipe', 'pipe', 'pipe'],
+            });
+
+            let stdout = '';
+            let stderr = '';
+
+            child.stdout?.on('data', (data: Buffer) => {
+                stdout += data.toString();
+            });
+            child.stderr?.on('data', (data: Buffer) => {
+                stderr += data.toString();
+            });
+
+            child.on('close', (code) => {
+                resolve({code: code ?? 1, stdout, stderr});
+            });
+
+            child.on('error', (err) => {
+                resolve({code: 1, stdout, stderr: err.message});
+            });
+        });
+    }
 }
 
 /** Semantic argument resolution for self-tools */
 async function resolveSemanticArgs(
-  toolName: string,
-  args: Record<string, unknown>,
-  nar: any
+    toolName: string,
+    args: Record<string, unknown>,
+    nar: any
 ): Promise<Record<string, unknown>> {
-  const resolved: Record<string, unknown> = { ...args };
+    const resolved: Record<string, unknown> = {...args};
 
-  // Resolve fix_pattern concept to actual codemod pattern
-  if (toolName === 'apply_fix' && args.fixPattern) {
-    const { getFixPatternMapping } = await import('../self-concept.js');
-    const mapping = getFixPatternMapping(String(args.fixPattern));
-    if (mapping) {
-      resolved.pattern = mapping.pattern;
-      resolved.replacement = mapping.replacement;
-      resolved.lang = mapping.lang ?? 'typescript';
+    // Resolve fix_pattern concept to actual codemod pattern
+    if (toolName === 'apply_fix' && args.fixPattern) {
+        const {getFixPatternMapping} = await import('../self-concept.js');
+        const mapping = getFixPatternMapping(String(args.fixPattern));
+        if (mapping) {
+            resolved.pattern = mapping.pattern;
+            resolved.replacement = mapping.replacement;
+            resolved.lang = mapping.lang ?? 'typescript';
+        }
     }
-  }
 
-  // Resolve knob concept to actual knob name
-  if (toolName === 'tune_knob' && args.knob) {
-    const knobMap: Record<string, string> = {
-      'knob:maxDerivationsPerStep': 'maxDerivationsPerStep',
-      'knob:maxDerivationDepth': 'maxDerivationDepth',
-      'knob:maxRulesPerCycle': 'maxRulesPerCycle',
-      'knob:callTimeoutMs': 'callTimeoutMs',
-      'knob:decayRate': 'decayRate',
-      'knob:cpuThrottleMs': 'cpuThrottleMs',
-      'knob:maxLoops': 'maxLoops',
-      'knob:activationDecayRate': 'activationDecayRate',
-    };
-    resolved.knob = knobMap[String(args.knob)] ?? args.knob;
-  }
+    // Resolve knob concept to actual knob name
+    if (toolName === 'tune_knob' && args.knob) {
+        const knobMap: Record<string, string> = {
+            'knob:maxDerivationsPerStep': 'maxDerivationsPerStep',
+            'knob:maxDerivationDepth': 'maxDerivationDepth',
+            'knob:maxRulesPerCycle': 'maxRulesPerCycle',
+            'knob:callTimeoutMs': 'callTimeoutMs',
+            'knob:decayRate': 'decayRate',
+            'knob:cpuThrottleMs': 'cpuThrottleMs',
+            'knob:maxLoops': 'maxLoops',
+            'knob:activationDecayRate': 'activationDecayRate',
+        };
+        resolved.knob = knobMap[String(args.knob)] ?? args.knob;
+    }
 
-  // Resolve strategy concept to actual strategy name
-  if (toolName === 'switch_strategy' && args.strategy) {
-    const strategyMap: Record<string, string> = {
-      'strategy:focused': 'focused',
-      'strategy:exhaustive': 'exhaustive',
-      'strategy:anytime': 'anytime',
-      'strategy:sampled': 'sampled',
-      'strategy:priority': 'priority',
-      'strategy:novelty': 'novelty',
-      'strategy:goal-biased': 'goal-biased',
-      'strategy:diverse': 'diverse',
-    };
-    resolved.strategy = strategyMap[String(args.strategy)] ?? args.strategy;
-  }
+    // Resolve strategy concept to actual strategy name
+    if (toolName === 'switch_strategy' && args.strategy) {
+        const strategyMap: Record<string, string> = {
+            'strategy:focused': 'focused',
+            'strategy:exhaustive': 'exhaustive',
+            'strategy:anytime': 'anytime',
+            'strategy:sampled': 'sampled',
+            'strategy:priority': 'priority',
+            'strategy:novelty': 'novelty',
+            'strategy:goal-biased': 'goal-biased',
+            'strategy:diverse': 'diverse',
+        };
+        resolved.strategy = strategyMap[String(args.strategy)] ?? args.strategy;
+    }
 
-  return resolved;
+    return resolved;
 }
 
 /** Create self-improvement tools with shadow execution safety */
 export function createSelfTools(deps: SelfToolsDeps = {}) {
-  const workspaceRoot = deps.workspaceRoot || process.cwd();
-  const shadowManager = new ShadowWorktreeManager(workspaceRoot);
-  const worktreeId = `fix-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const workspaceRoot = deps.workspaceRoot || process.cwd();
+    const shadowManager = new ShadowWorktreeManager(workspaceRoot);
+    const worktreeId = `fix-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-  return {
-    // --- register_rule ---
-    register_rule: tool({
-      description:
-        'Register a new inference rule in the NAR rule processor. Takes a schema ID and promotes it to an active rule. Supports worktree reuse.',
-      inputSchema: z.object({
-        schemaId: z.string().describe('Schema identifier to promote (e.g., "schema_42")'),
-        ruleCode: z.string().optional().describe('Optional custom rule implementation as TypeScript code'),
-        worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
-      }),
-      execute: async ({ schemaId, ruleCode, worktreeId: existingId }) => {
-        if (!deps.nar || !deps.ruleProcessor) {
-          return { success: false, error: 'NAR or RuleProcessor not available' };
-        }
-        try {
-          // In practice, this would parse the schema and create a RegisteredRule
-          // For now, we simulate the registration
-          const ruleId = `promoted_${schemaId}`;
-          
-          // If ruleCode provided, eval it (in shadow context)
-          if (ruleCode) {
-            // Safety: only allow in shadow worktree
-            let worktreePath: string;
-            let created = false;
-            const wtId = existingId || `${worktreeId}-rule`;
-            
-            if (existingId) {
-              worktreePath = shadowManager.getWorktreePath(existingId) || '';
-              if (!worktreePath) {
-                return { success: false, error: `Worktree not found: ${existingId}` };
-              }
-            } else {
-              worktreePath = await shadowManager.createWorktree(wtId);
-              created = true;
-            }
-            
-            try {
-              const ruleFile = resolve(worktreePath, `rules/${ruleId}.ts`);
-              const { mkdir, writeFile } = await import('node:fs/promises');
-              await mkdir(dirname(ruleFile), { recursive: true });
-              await writeFile(ruleFile, ruleCode, 'utf-8');
+    return {
+        // --- register_rule ---
+        register_rule: tool({
+            description:
+                'Register a new inference rule in the NAR rule processor. Takes a schema ID and promotes it to an active rule. Supports worktree reuse.',
+            inputSchema: z.object({
+                schemaId: z.string().describe('Schema identifier to promote (e.g., "schema_42")'),
+                ruleCode: z.string().optional().describe('Optional custom rule implementation as TypeScript code'),
+                worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
+            }),
+            execute: async ({schemaId, ruleCode, worktreeId: existingId}) => {
+                if (!deps.nar || !deps.ruleProcessor) {
+                    return {success: false, error: 'NAR or RuleProcessor not available'};
+                }
+                try {
+                    // In practice, this would parse the schema and create a RegisteredRule
+                    // For now, we simulate the registration
+                    const ruleId = `promoted_${schemaId}`;
 
-              // Run tests to validate
-              const testResult = await shadowManager.runTestsInWorktree(worktreePath);
-              if (!testResult.success) {
-                return { success: false, error: 'Rule validation failed', testResult };
-              }
+                    // If ruleCode provided, eval it (in shadow context)
+                    if (ruleCode) {
+                        // Safety: only allow in shadow worktree
+                        let worktreePath: string;
+                        let created = false;
+                        const wtId = existingId || `${worktreeId}-rule`;
 
-              const diff = await shadowManager.getDiff(worktreePath);
+                        if (existingId) {
+                            worktreePath = shadowManager.getWorktreePath(existingId) || '';
+                            if (!worktreePath) {
+                                return {success: false, error: `Worktree not found: ${existingId}`};
+                            }
+                        } else {
+                            worktreePath = await shadowManager.createWorktree(wtId);
+                            created = true;
+                        }
 
-              return { success: true, ruleId, diff, message: 'Rule registered and validated', worktreeId: created ? wtId : existingId };
-            } finally {
-              if (created) {
-                await shadowManager.cleanupWorktree(wtId);
-              }
-            }
-          }
+                        try {
+                            const ruleFile = resolve(worktreePath, `rules/${ruleId}.ts`);
+                            const {mkdir, writeFile} = await import('node:fs/promises');
+                            await mkdir(dirname(ruleFile), {recursive: true});
+                            await writeFile(ruleFile, ruleCode, 'utf-8');
 
-          return { success: true, ruleId, message: 'Rule schema registered (implementation pending)' };
-        } catch (error) {
-          return { success: false, error: String(error) };
-        }
-      },
-    }),
+                            // Run tests to validate
+                            const testResult = await shadowManager.runTestsInWorktree(worktreePath);
+                            if (!testResult.success) {
+                                return {success: false, error: 'Rule validation failed', testResult};
+                            }
 
-    // --- register_tool ---
-    register_tool: tool({
-      description:
-        'Register a new tool in the ToolManager. Tool implementation is validated in shadow worktree. Supports worktree reuse.',
-      inputSchema: z.object({
-        toolName: z.string().describe('Name of the tool to register'),
-        toolCode: z.string().describe('Tool implementation as TypeScript code'),
-        schema: z.record(z.string(), z.unknown()).describe('JSON Schema for tool input'),
-        description: z.string().describe('Tool description'),
-        worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
-      }),
-      execute: async ({ toolName, toolCode, schema, description, worktreeId: existingId }) => {
-        if (!deps.nar || !deps.toolManager) {
-          return { success: false, error: 'NAR or ToolManager not available' };
-        }
-        try {
-          // Validate tool code in shadow worktree
-          let worktreePath: string;
-          let created = false;
-          const wtId = existingId || `${worktreeId}-tool`;
-          
-          if (existingId) {
-            worktreePath = shadowManager.getWorktreePath(existingId) || '';
-            if (!worktreePath) {
-              return { success: false, error: `Worktree not found: ${existingId}` };
-            }
-          } else {
-            worktreePath = await shadowManager.createWorktree(wtId);
-            created = true;
-          }
-          
-          try {
-            const toolFile = resolve(worktreePath, `tools/${toolName}.ts`);
-            const { mkdir, writeFile } = await import('node:fs/promises');
-            await mkdir(dirname(toolFile), { recursive: true });
-            await writeFile(toolFile, toolCode, 'utf-8');
+                            const diff = await shadowManager.getDiff(worktreePath);
 
-            const testResult = await shadowManager.runTestsInWorktree(worktreePath);
-            if (!testResult.success) {
-              return { success: false, error: 'Tool validation failed', testResult };
-            }
+                            return {
+                                success: true,
+                                ruleId,
+                                diff,
+                                message: 'Rule registered and validated',
+                                worktreeId: created ? wtId : existingId
+                            };
+                        } finally {
+                            if (created) {
+                                await shadowManager.cleanupWorktree(wtId);
+                            }
+                        }
+                    }
 
-            const diff = await shadowManager.getDiff(worktreePath);
+                    return {success: true, ruleId, message: 'Rule schema registered (implementation pending)'};
+                } catch (error) {
+                    return {success: false, error: String(error)};
+                }
+            },
+        }),
 
-            // In production, would register with ToolManager
-            return { success: true, toolName, diff, message: 'Tool registered and validated', worktreeId: created ? wtId : existingId };
-          } finally {
-            if (created) {
-              await shadowManager.cleanupWorktree(wtId);
-            }
-          }
-        } catch (error) {
-          return { success: false, error: String(error) };
-        }
-      },
-    }),
+        // --- register_tool ---
+        register_tool: tool({
+            description:
+                'Register a new tool in the ToolManager. Tool implementation is validated in shadow worktree. Supports worktree reuse.',
+            inputSchema: z.object({
+                toolName: z.string().describe('Name of the tool to register'),
+                toolCode: z.string().describe('Tool implementation as TypeScript code'),
+                schema: z.record(z.string(), z.unknown()).describe('JSON Schema for tool input'),
+                description: z.string().describe('Tool description'),
+                worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
+            }),
+            execute: async ({toolName, toolCode, schema, description, worktreeId: existingId}) => {
+                if (!deps.nar || !deps.toolManager) {
+                    return {success: false, error: 'NAR or ToolManager not available'};
+                }
+                try {
+                    // Validate tool code in shadow worktree
+                    let worktreePath: string;
+                    let created = false;
+                    const wtId = existingId || `${worktreeId}-tool`;
 
-    // --- scaffold_capability ---
-    scaffold_capability: tool({
-      description:
-        'Scaffold a new capability from a template. Generates code in shadow worktree, runs tests, requires approval. Supports worktree reuse.',
-      inputSchema: z.object({
-        capabilityId: z.string().describe('Capability identifier (e.g., "web_search")'),
-        templateId: z.string().describe('Template to use (e.g., "tool_template", "rule_template")'),
-        parameters: z.record(z.string(), z.unknown()).optional().describe('Template parameters'),
-        worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
-      }),
-      execute: async ({ capabilityId, templateId, parameters = {}, worktreeId: existingId }) => {
-        if (!deps.nar) {
-          return { success: false, error: 'NAR not available' };
-        }
-        
-        let worktreePath: string;
-        let created = false;
-        const wtId = existingId || `${worktreeId}-scaffold`;
-        
-        if (existingId) {
-          worktreePath = shadowManager.getWorktreePath(existingId) || '';
-          if (!worktreePath) {
-            return { success: false, error: `Worktree not found: ${existingId}` };
-          }
-        } else {
-          worktreePath = await shadowManager.createWorktree(wtId);
-          created = true;
-        }
-        
-        try {
-          // Template implementations
-          const templates: Record<string, string> = {
-            tool_template: `
+                    if (existingId) {
+                        worktreePath = shadowManager.getWorktreePath(existingId) || '';
+                        if (!worktreePath) {
+                            return {success: false, error: `Worktree not found: ${existingId}`};
+                        }
+                    } else {
+                        worktreePath = await shadowManager.createWorktree(wtId);
+                        created = true;
+                    }
+
+                    try {
+                        const toolFile = resolve(worktreePath, `tools/${toolName}.ts`);
+                        const {mkdir, writeFile} = await import('node:fs/promises');
+                        await mkdir(dirname(toolFile), {recursive: true});
+                        await writeFile(toolFile, toolCode, 'utf-8');
+
+                        const testResult = await shadowManager.runTestsInWorktree(worktreePath);
+                        if (!testResult.success) {
+                            return {success: false, error: 'Tool validation failed', testResult};
+                        }
+
+                        const diff = await shadowManager.getDiff(worktreePath);
+
+                        // In production, would register with ToolManager
+                        return {
+                            success: true,
+                            toolName,
+                            diff,
+                            message: 'Tool registered and validated',
+                            worktreeId: created ? wtId : existingId
+                        };
+                    } finally {
+                        if (created) {
+                            await shadowManager.cleanupWorktree(wtId);
+                        }
+                    }
+                } catch (error) {
+                    return {success: false, error: String(error)};
+                }
+            },
+        }),
+
+        // --- scaffold_capability ---
+        scaffold_capability: tool({
+            description:
+                'Scaffold a new capability from a template. Generates code in shadow worktree, runs tests, requires approval. Supports worktree reuse.',
+            inputSchema: z.object({
+                capabilityId: z.string().describe('Capability identifier (e.g., "web_search")'),
+                templateId: z.string().describe('Template to use (e.g., "tool_template", "rule_template")'),
+                parameters: z.record(z.string(), z.unknown()).optional().describe('Template parameters'),
+                worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
+            }),
+            execute: async ({capabilityId, templateId, parameters = {}, worktreeId: existingId}) => {
+                if (!deps.nar) {
+                    return {success: false, error: 'NAR not available'};
+                }
+
+                let worktreePath: string;
+                let created = false;
+                const wtId = existingId || `${worktreeId}-scaffold`;
+
+                if (existingId) {
+                    worktreePath = shadowManager.getWorktreePath(existingId) || '';
+                    if (!worktreePath) {
+                        return {success: false, error: `Worktree not found: ${existingId}`};
+                    }
+                } else {
+                    worktreePath = await shadowManager.createWorktree(wtId);
+                    created = true;
+                }
+
+                try {
+                    // Template implementations
+                    const templates: Record<string, string> = {
+                        tool_template: `
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -2242,7 +2300,7 @@ export const ${capabilityId} = tool({
     return { result: 'not implemented', args };
   },
 });`,
-            rule_template: `
+                        rule_template: `
 import { TermBuilder, variable, atom } from '@senars/nar/terms';
 import { Truth } from '@senars/nar/terms';
 import type { RegisteredRule } from '@senars/nar/rules';
@@ -2258,406 +2316,460 @@ export const ${capabilityId}_rule: RegisteredRule = {
   priority: 0.5,
   truthFn: () => Truth.create(0.7, 0.8),
 };`,
-          };
+                    };
 
-          const template = templates[templateId] || templates.tool_template;
-          const { mkdir, writeFile } = await import('node:fs/promises');
-          const ext = templateId.includes('rule') ? '.ts' : '.ts';
-          const capFile = resolve(worktreePath, `capabilities/${capabilityId}${ext}`);
-          await mkdir(dirname(capFile), { recursive: true });
-          await writeFile(capFile, template ?? '', 'utf-8');
-          
-          const testResult = await shadowManager.runTestsInWorktree(worktreePath);
-          if (!testResult.success) {
-            return { success: false, error: 'Capability validation failed', testResult };
-          }
-          
-          const diff = await shadowManager.getDiff(worktreePath);
-          
-          // Request approval if manager available
-          if (deps.approvalManager) {
-            const req = deps.approvalManager.createRequest(
-              `Add capability: ${capabilityId}`,
-              { diff, templateId, parameters }
-            );
-            const approval = await req.result;
-            if (!approval.approved) {
-              return { success: false, error: 'Approval denied', reason: approval.reason };
-            }
-          }
-          
-          await shadowManager.mergeWorktree(wtId);
-          return { success: true, capabilityId, diff, message: 'Capability scaffolded and merged', worktreeId: created ? wtId : existingId };
-        } catch (error) {
-          return { success: false, error: String(error) };
-        } finally {
-          if (created) {
-            await shadowManager.cleanupWorktree(wtId);
-          }
-        }
-      },
-    }),
+                    const template = templates[templateId] || templates.tool_template;
+                    const {mkdir, writeFile} = await import('node:fs/promises');
+                    const ext = templateId.includes('rule') ? '.ts' : '.ts';
+                    const capFile = resolve(worktreePath, `capabilities/${capabilityId}${ext}`);
+                    await mkdir(dirname(capFile), {recursive: true});
+                    await writeFile(capFile, template ?? '', 'utf-8');
 
-    // --- apply_fix ---
-    apply_fix: tool({
-      description:
-        'Apply a semantic fix pattern to fix a test failure. Uses fix_pattern concepts mapped to codemod patterns. Executes in shadow worktree with test validation. Supports worktree reuse.',
-      inputSchema: z.object({
-        fixPattern: z.string().describe('Fix pattern concept (e.g., "fix_pattern:null_check")'),
-        targetFiles: z.array(z.string()).optional().describe('Specific files to apply fix to'),
-        testName: z.string().optional().describe('Test that failed (for context)'),
-        worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
-      }),
-      execute: async ({ fixPattern, targetFiles, testName, worktreeId: existingId }) => {
-        if (!deps.nar) {
-          return { success: false, error: 'NAR not available' };
-        }
-        
-        const { getFixPatternMapping } = await import('../self-concept.js');
-        const mapping = getFixPatternMapping(fixPattern);
-        if (!mapping) {
-          return { success: false, error: `Unknown fix pattern: ${fixPattern}` };
-        }
+                    const testResult = await shadowManager.runTestsInWorktree(worktreePath);
+                    if (!testResult.success) {
+                        return {success: false, error: 'Capability validation failed', testResult};
+                    }
 
-        let worktreePath: string;
-        let created = false;
-        const wtId = existingId || `${worktreeId}-fix`;
-        
-        try {
-          if (existingId) {
-            worktreePath = shadowManager.getWorktreePath(existingId) || '';
-            if (!worktreePath) {
-              return { success: false, error: `Worktree not found: ${existingId}` };
-            }
-          } else {
-            worktreePath = await shadowManager.createWorktree(wtId);
-            created = true;
-          }
-          
-          // Apply the codemod
-          const codemodResult = await shadowManager.applyCodemodInWorktree(
-            worktreePath,
-            mapping.pattern,
-            mapping.replacement,
-            targetFiles || [],
-            mapping.lang
-          );
+                    const diff = await shadowManager.getDiff(worktreePath);
 
-          if (!codemodResult.success || codemodResult.matches === 0) {
-            return { success: false, error: 'No matches found for fix pattern', codemodResult };
-          }
+                    // Request approval if manager available
+                    if (deps.approvalManager) {
+                        const req = deps.approvalManager.createRequest(
+                            `Add capability: ${capabilityId}`,
+                            {diff, templateId, parameters}
+                        );
+                        const approval = await req.result;
+                        if (!approval.approved) {
+                            return {success: false, error: 'Approval denied', reason: approval.reason};
+                        }
+                    }
 
-          // Run tests to validate fix
-          const testResult = await shadowManager.runTestsInWorktree(worktreePath);
-          if (!testResult.success) {
-            return { success: false, error: 'Fix broke tests', testResult, codemodResult };
-          }
-
-          const diff = await shadowManager.getDiff(worktreePath);
-          
-          // Request approval
-          if (deps.approvalManager) {
-            const req = deps.approvalManager.createRequest(
-              `Apply fix: ${fixPattern} for test ${testName ?? 'unknown'}`,
-              { diff, fixPattern, testName, codemodResult }
-            );
-            const approval = await req.result;
-            if (!approval.approved) {
-              return { success: false, error: 'Approval denied', reason: approval.reason };
-            }
-          }
-
-          await shadowManager.mergeWorktree(wtId);
-          
-          // Stimulate competence drive
-          deps.nar.getExecution?.()?.stimulateDrives?.('test_passed');
-          
-          return { success: true, fixPattern, diff, testResult, message: 'Fix applied and validated', worktreeId: created ? wtId : existingId };
-        } catch (error) {
-          return { success: false, error: String(error) };
-        } finally {
-          if (created) {
-            await shadowManager.cleanupWorktree(wtId);
-          }
-        }
-      },
-    }),
-
-    // --- tune_knob ---
-    tune_knob: tool({
-      description:
-        'Tune a cognitive knob via RLFP. Applies tuning update and validates with tests. Supports worktree reuse.',
-      inputSchema: z.object({
-        knob: z.string().describe('Knob to tune (e.g., "maxDerivationsPerStep")'),
-        value: z.number().describe('New value for the knob'),
-        reason: z.string().optional().describe('Reason for tuning'),
-        worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
-      }),
-      execute: async ({ knob, value, reason, worktreeId: existingId }) => {
-        if (!deps.rlfpLearner || !deps.nar) {
-          return { success: false, error: 'RLFP learner or NAR not available' };
-        }
-        
-        // Get current knob value for potential rollback
-        const knobs = deps.rlfpLearner.getTunableKnobs();
-        const previousValue = (knobs as Record<string, { current: number }>)[knob]?.current;
-        
-        // Apply tuning update
-        deps.rlfpLearner.applyTuningUpdate(knob, value);
-        
-        let worktreePath: string;
-        let created = false;
-        const wtId = existingId || `${worktreeId}-tune`;
-        
-        try {
-          if (existingId) {
-            worktreePath = shadowManager.getWorktreePath(existingId) || '';
-            if (!worktreePath) {
-              return { success: false, error: `Worktree not found: ${existingId}` };
-            }
-          } else {
-            worktreePath = await shadowManager.createWorktree(wtId);
-            created = true;
-          }
-
-          // Validate with quick test run in shadow worktree
-          const testResult = await shadowManager.runTestsInWorktree(worktreePath);
-          
-          if (!testResult.success) {
-            // Revert on failure
-            if (previousValue !== undefined) {
-              deps.rlfpLearner.applyTuningUpdate(knob, previousValue);
-            }
-            return { success: false, error: 'Tuning broke tests', testResult };
-          }
-
-          // Record reward (TaskOutcome shape → intrinsic+extrinsic) with CI metrics
-          const reward = deps.rlfpLearner.calculateRewardFromTask({
-            taskType: 'knob_tune',
-            success: true,
-            metrics: {
-              passRate: testResult.total > 0 ? testResult.passed / testResult.total : 0,
-              avgTestDuration: 0,
-              coverageDelta: 0,
-              memoryOverage: 0,
-              cpuThrottleTime: 0,
-              typecheckPassed: testResult.typecheckPassed ? 1 : 0,
-              lintPassed: testResult.lintPassed ? 1 : 0,
+                    await shadowManager.mergeWorktree(wtId);
+                    return {
+                        success: true,
+                        capabilityId,
+                        diff,
+                        message: 'Capability scaffolded and merged',
+                        worktreeId: created ? wtId : existingId
+                    };
+                } catch (error) {
+                    return {success: false, error: String(error)};
+                } finally {
+                    if (created) {
+                        await shadowManager.cleanupWorktree(wtId);
+                    }
+                }
             },
-          });
-          deps.rlfpLearner.reward(reward, `knob_tune:${knob}`);
+        }),
 
-          // Stimulate competence drive
-          deps.nar.getExecution?.()?.stimulateDrives?.('knob_tuned');
-
-          return { success: true, knob, value, reward, testResult, message: 'Knob tuned and validated', worktreeId: created ? wtId : existingId };
-        } catch (error) {
-          // Rollback on error
-          if (previousValue !== undefined) {
-            deps.rlfpLearner.applyTuningUpdate(knob, previousValue);
-          }
-          return { success: false, error: String(error) };
-        } finally {
-          if (created) {
-            await shadowManager.cleanupWorktree(wtId);
-          }
-        }
-      },
-    }),
-
-    // --- switch_strategy ---
-    switch_strategy: tool({
-      description:
-        'Switch cognitive strategy (sampling, derivation, attention, etc.). Validates with test run. Supports worktree reuse.',
-      inputSchema: z.object({
-        strategy: z.string().describe('Strategy to switch to (e.g., "focused", "exhaustive", "anytime")'),
-        strategyType: z.enum(['sampling', 'derivation', 'attention', 'lmRule', 'premise']).describe('Type of strategy'),
-        reason: z.string().optional().describe('Reason for switch'),
-        worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
-      }),
-      execute: async ({ strategy, strategyType, reason, worktreeId: existingId }) => {
-        if (!deps.cognitiveController || !deps.nar) {
-          return { success: false, error: 'CognitiveController or NAR not available' };
-        }
-        
-        const strategyTypeKey =
-          strategyType === 'lmRule' ? 'lm-rule' : (strategyType as 'sampling' | 'derivation' | 'attention' | 'premise');
-        const registry = deps.cognitiveController.getRegistry();
-        if (!registry.has(strategyTypeKey, strategy)) {
-          return { success: false, error: `Strategy not found: ${strategy} (${strategyType})` };
-        }
-
-        // Save previous strategy for rollback
-        const previousStrategy = deps.cognitiveController.getStrategy(strategyTypeKey);
-
-        // Apply strategy
-        deps.cognitiveController.setStrategy(strategyTypeKey, strategy);
-
-        let worktreePath: string;
-        let created = false;
-        const wtId = existingId || `${worktreeId}-strategy`;
-        
-        try {
-          if (existingId) {
-            worktreePath = shadowManager.getWorktreePath(existingId) || '';
-            if (!worktreePath) {
-              return { success: false, error: `Worktree not found: ${existingId}` };
-            }
-          } else {
-            worktreePath = await shadowManager.createWorktree(wtId);
-            created = true;
-          }
-
-          // Validate with quick test run
-          const testResult = await shadowManager.runTestsInWorktree(worktreePath);
-
-          if (!testResult.success) {
-            // Rollback: revert to previous strategy
-            if (previousStrategy) {
-              deps.cognitiveController.setStrategy(strategyTypeKey, previousStrategy);
-            }
-            return { success: false, error: 'Strategy switch broke tests', testResult };
-          }
-
-          // Stimulate competence drive
-          deps.nar.getExecution?.()?.stimulateDrives?.('knob_tuned');
-
-          return { success: true, strategy, strategyType, testResult, message: 'Strategy switched and validated', worktreeId: created ? wtId : existingId };
-        } catch (error) {
-          // Rollback on error
-          if (previousStrategy) {
-            deps.cognitiveController.setStrategy(strategyTypeKey, previousStrategy);
-          }
-          return { success: false, error: String(error) };
-        } finally {
-          if (created) {
-            await shadowManager.cleanupWorktree(wtId);
-          }
-        }
-      },
-    }),
-
-    // --- run_tests (shadow) ---
-    run_tests_shadow: tool({
-      description:
-        'Run tests in a shadow worktree for validation without affecting main branch.',
-      inputSchema: z.object({
-        testPath: z.string().optional().describe('Specific test file or directory'),
-        worktreeId: z.string().optional().describe('Existing worktree ID to use'),
-      }),
-      execute: async ({ testPath, worktreeId: existingId }) => {
-        try {
-          let worktreePath: string;
-          let created = false;
-          
-          if (existingId) {
-            worktreePath = shadowManager.getWorktreePath(existingId) || '';
-            if (!worktreePath) {
-              return { success: false, error: `Worktree not found: ${existingId}` };
-            }
-          } else {
-            worktreePath = await shadowManager.createWorktree(`${worktreeId}-test`);
-            created = true;
-          }
-          
-          const args = ['vitest', 'run', '--reporter=json'];
-          if (testPath) args.push(testPath);
-          
-          const result = await new Promise<{ success: boolean; passed: number; failed: number; total: number; duration: number }>((resolve) => {
-            const child = spawn('pnpm', args, {
-              cwd: worktreePath,
-              stdio: ['pipe', 'pipe', 'pipe'],
-            });
-
-            let stdout = '';
-            const startTime = Date.now();
-
-            child.stdout?.on('data', (data: Buffer) => { stdout += data.toString(); });
-
-            child.on('close', (code) => {
-              try {
-                const lines = stdout.trim().split('\n');
-                let jsonStart = -1;
-                for (let i = 0; i < lines.length; i++) {
-                  const line = lines[i];
-                  if (line && line.trim().startsWith('{')) {
-                    jsonStart = i;
-                    break;
-                  }
+        // --- apply_fix ---
+        apply_fix: tool({
+            description:
+                'Apply a semantic fix pattern to fix a test failure. Uses fix_pattern concepts mapped to codemod patterns. Executes in shadow worktree with test validation. Supports worktree reuse.',
+            inputSchema: z.object({
+                fixPattern: z.string().describe('Fix pattern concept (e.g., "fix_pattern:null_check")'),
+                targetFiles: z.array(z.string()).optional().describe('Specific files to apply fix to'),
+                testName: z.string().optional().describe('Test that failed (for context)'),
+                worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
+            }),
+            execute: async ({fixPattern, targetFiles, testName, worktreeId: existingId}) => {
+                if (!deps.nar) {
+                    return {success: false, error: 'NAR not available'};
                 }
-                if (jsonStart >= 0) {
-                  const data = JSON.parse(lines.slice(jsonStart).join('\n'));
-                  resolve({
-                    success: data.success,
-                    passed: data.numPassedTests ?? 0,
-                    failed: data.numFailedTests ?? 0,
-                    total: data.numTotalTests ?? 0,
-                    duration: Date.now() - startTime,
-                  });
-                } else {
-                  resolve({ success: code === 0, passed: 0, failed: 0, total: 0, duration: Date.now() - startTime });
+
+                const {getFixPatternMapping} = await import('../self-concept.js');
+                const mapping = getFixPatternMapping(fixPattern);
+                if (!mapping) {
+                    return {success: false, error: `Unknown fix pattern: ${fixPattern}`};
                 }
-              } catch {
-                resolve({ success: code === 0, passed: 0, failed: 0, total: 0, duration: Date.now() - startTime });
-              }
-            });
 
-            child.on('error', () => resolve({ success: false, passed: 0, failed: 0, total: 0, duration: Date.now() - startTime }));
-          });
+                let worktreePath: string;
+                let created = false;
+                const wtId = existingId || `${worktreeId}-fix`;
 
-          if (created) {
-            await shadowManager.cleanupWorktree(`${worktreeId}-test`);
-          }
+                try {
+                    if (existingId) {
+                        worktreePath = shadowManager.getWorktreePath(existingId) || '';
+                        if (!worktreePath) {
+                            return {success: false, error: `Worktree not found: ${existingId}`};
+                        }
+                    } else {
+                        worktreePath = await shadowManager.createWorktree(wtId);
+                        created = true;
+                    }
 
-          return { ...result, success: result.success };
-        } catch (error) {
-          return { success: false, error: String(error) };
-        }
-      },
-    }),
+                    // Apply the codemod
+                    const codemodResult = await shadowManager.applyCodemodInWorktree(
+                        worktreePath,
+                        mapping.pattern,
+                        mapping.replacement,
+                        targetFiles || [],
+                        mapping.lang
+                    );
 
-    // --- run_scenario (shadow) ---
-    run_scenario_shadow: tool({
-      description:
-        'Run a cognitive scenario in a shadow worktree for validation.',
-      inputSchema: z.object({
-        seed: z.string().describe('Scenario seed/intent'),
-        profile: z.enum(['contradictory_sensors', 'temporal_reasoning', 'resource_pressure', 'belief_revision', 'cross_engine_sync', 'auto']).optional().default('auto'),
-        worktreeId: z.string().optional().describe('Existing worktree ID to use'),
-      }),
-      execute: async ({ seed, profile, worktreeId: existingId }) => {
-        if (!deps.nar) {
-          return { success: false, error: 'NAR not available' };
-        }
-        try {
-          let worktreePath: string;
-          let created = false;
-          
-          if (existingId) {
-            worktreePath = shadowManager.getWorktreePath(existingId) || '';
-            if (!worktreePath) {
-              return { success: false, error: `Worktree not found: ${existingId}` };
-            }
-          } else {
-            worktreePath = await shadowManager.createWorktree(`${worktreeId}-scenario`);
-            created = true;
-          }
-          
-          // Use the existing scenario generation logic
-          // For now, run a simple scenario in the shadow
-          const startTime = Date.now();
-          await deps.nar.run(100);
-          const duration = Date.now() - startTime;
-          
-          if (created) {
-            await shadowManager.cleanupWorktree(`${worktreeId}-scenario`);
-          }
+                    if (!codemodResult.success || codemodResult.matches === 0) {
+                        return {success: false, error: 'No matches found for fix pattern', codemodResult};
+                    }
 
-          return { success: true, seed, profile, duration, message: 'Scenario executed in shadow' };
-        } catch (error) {
-          return { success: false, error: String(error) };
-        }
-      },
-    }),
-  };
+                    // Run tests to validate fix
+                    const testResult = await shadowManager.runTestsInWorktree(worktreePath);
+                    if (!testResult.success) {
+                        return {success: false, error: 'Fix broke tests', testResult, codemodResult};
+                    }
+
+                    const diff = await shadowManager.getDiff(worktreePath);
+
+                    // Request approval
+                    if (deps.approvalManager) {
+                        const req = deps.approvalManager.createRequest(
+                            `Apply fix: ${fixPattern} for test ${testName ?? 'unknown'}`,
+                            {diff, fixPattern, testName, codemodResult}
+                        );
+                        const approval = await req.result;
+                        if (!approval.approved) {
+                            return {success: false, error: 'Approval denied', reason: approval.reason};
+                        }
+                    }
+
+                    await shadowManager.mergeWorktree(wtId);
+
+                    // Stimulate competence drive
+                    deps.nar.getExecution?.()?.stimulateDrives?.('test_passed');
+
+                    return {
+                        success: true,
+                        fixPattern,
+                        diff,
+                        testResult,
+                        message: 'Fix applied and validated',
+                        worktreeId: created ? wtId : existingId
+                    };
+                } catch (error) {
+                    return {success: false, error: String(error)};
+                } finally {
+                    if (created) {
+                        await shadowManager.cleanupWorktree(wtId);
+                    }
+                }
+            },
+        }),
+
+        // --- tune_knob ---
+        tune_knob: tool({
+            description:
+                'Tune a cognitive knob via RLFP. Applies tuning update and validates with tests. Supports worktree reuse.',
+            inputSchema: z.object({
+                knob: z.string().describe('Knob to tune (e.g., "maxDerivationsPerStep")'),
+                value: z.number().describe('New value for the knob'),
+                reason: z.string().optional().describe('Reason for tuning'),
+                worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
+            }),
+            execute: async ({knob, value, reason, worktreeId: existingId}) => {
+                if (!deps.rlfpLearner || !deps.nar) {
+                    return {success: false, error: 'RLFP learner or NAR not available'};
+                }
+
+                // Get current knob value for potential rollback
+                const knobs = deps.rlfpLearner.getTunableKnobs();
+                const previousValue = (knobs as Record<string, { current: number }>)[knob]?.current;
+
+                // Apply tuning update
+                deps.rlfpLearner.applyTuningUpdate(knob, value);
+
+                let worktreePath: string;
+                let created = false;
+                const wtId = existingId || `${worktreeId}-tune`;
+
+                try {
+                    if (existingId) {
+                        worktreePath = shadowManager.getWorktreePath(existingId) || '';
+                        if (!worktreePath) {
+                            return {success: false, error: `Worktree not found: ${existingId}`};
+                        }
+                    } else {
+                        worktreePath = await shadowManager.createWorktree(wtId);
+                        created = true;
+                    }
+
+                    // Validate with quick test run in shadow worktree
+                    const testResult = await shadowManager.runTestsInWorktree(worktreePath);
+
+                    if (!testResult.success) {
+                        // Revert on failure
+                        if (previousValue !== undefined) {
+                            deps.rlfpLearner.applyTuningUpdate(knob, previousValue);
+                        }
+                        return {success: false, error: 'Tuning broke tests', testResult};
+                    }
+
+                    // Record reward (TaskOutcome shape → intrinsic+extrinsic) with CI metrics
+                    const reward = deps.rlfpLearner.calculateRewardFromTask({
+                        taskType: 'knob_tune',
+                        success: true,
+                        metrics: {
+                            passRate: testResult.total > 0 ? testResult.passed / testResult.total : 0,
+                            avgTestDuration: 0,
+                            coverageDelta: 0,
+                            memoryOverage: 0,
+                            cpuThrottleTime: 0,
+                            typecheckPassed: testResult.typecheckPassed ? 1 : 0,
+                            lintPassed: testResult.lintPassed ? 1 : 0,
+                        },
+                    });
+                    deps.rlfpLearner.reward(reward, `knob_tune:${knob}`);
+
+                    // Stimulate competence drive
+                    deps.nar.getExecution?.()?.stimulateDrives?.('knob_tuned');
+
+                    return {
+                        success: true,
+                        knob,
+                        value,
+                        reward,
+                        testResult,
+                        message: 'Knob tuned and validated',
+                        worktreeId: created ? wtId : existingId
+                    };
+                } catch (error) {
+                    // Rollback on error
+                    if (previousValue !== undefined) {
+                        deps.rlfpLearner.applyTuningUpdate(knob, previousValue);
+                    }
+                    return {success: false, error: String(error)};
+                } finally {
+                    if (created) {
+                        await shadowManager.cleanupWorktree(wtId);
+                    }
+                }
+            },
+        }),
+
+        // --- switch_strategy ---
+        switch_strategy: tool({
+            description:
+                'Switch cognitive strategy (sampling, derivation, attention, etc.). Validates with test run. Supports worktree reuse.',
+            inputSchema: z.object({
+                strategy: z.string().describe('Strategy to switch to (e.g., "focused", "exhaustive", "anytime")'),
+                strategyType: z.enum(['sampling', 'derivation', 'attention', 'lmRule', 'premise']).describe('Type of strategy'),
+                reason: z.string().optional().describe('Reason for switch'),
+                worktreeId: z.string().optional().describe('Existing worktree ID to reuse'),
+            }),
+            execute: async ({strategy, strategyType, reason, worktreeId: existingId}) => {
+                if (!deps.cognitiveController || !deps.nar) {
+                    return {success: false, error: 'CognitiveController or NAR not available'};
+                }
+
+                const strategyTypeKey =
+                    strategyType === 'lmRule' ? 'lm-rule' : (strategyType as 'sampling' | 'derivation' | 'attention' | 'premise');
+                const registry = deps.cognitiveController.getRegistry();
+                if (!registry.has(strategyTypeKey, strategy)) {
+                    return {success: false, error: `Strategy not found: ${strategy} (${strategyType})`};
+                }
+
+                // Save previous strategy for rollback
+                const previousStrategy = deps.cognitiveController.getStrategy(strategyTypeKey);
+
+                // Apply strategy
+                deps.cognitiveController.setStrategy(strategyTypeKey, strategy);
+
+                let worktreePath: string;
+                let created = false;
+                const wtId = existingId || `${worktreeId}-strategy`;
+
+                try {
+                    if (existingId) {
+                        worktreePath = shadowManager.getWorktreePath(existingId) || '';
+                        if (!worktreePath) {
+                            return {success: false, error: `Worktree not found: ${existingId}`};
+                        }
+                    } else {
+                        worktreePath = await shadowManager.createWorktree(wtId);
+                        created = true;
+                    }
+
+                    // Validate with quick test run
+                    const testResult = await shadowManager.runTestsInWorktree(worktreePath);
+
+                    if (!testResult.success) {
+                        // Rollback: revert to previous strategy
+                        if (previousStrategy) {
+                            deps.cognitiveController.setStrategy(strategyTypeKey, previousStrategy);
+                        }
+                        return {success: false, error: 'Strategy switch broke tests', testResult};
+                    }
+
+                    // Stimulate competence drive
+                    deps.nar.getExecution?.()?.stimulateDrives?.('knob_tuned');
+
+                    return {
+                        success: true,
+                        strategy,
+                        strategyType,
+                        testResult,
+                        message: 'Strategy switched and validated',
+                        worktreeId: created ? wtId : existingId
+                    };
+                } catch (error) {
+                    // Rollback on error
+                    if (previousStrategy) {
+                        deps.cognitiveController.setStrategy(strategyTypeKey, previousStrategy);
+                    }
+                    return {success: false, error: String(error)};
+                } finally {
+                    if (created) {
+                        await shadowManager.cleanupWorktree(wtId);
+                    }
+                }
+            },
+        }),
+
+        // --- run_tests (shadow) ---
+        run_tests_shadow: tool({
+            description:
+                'Run tests in a shadow worktree for validation without affecting main branch.',
+            inputSchema: z.object({
+                testPath: z.string().optional().describe('Specific test file or directory'),
+                worktreeId: z.string().optional().describe('Existing worktree ID to use'),
+            }),
+            execute: async ({testPath, worktreeId: existingId}) => {
+                try {
+                    let worktreePath: string;
+                    let created = false;
+
+                    if (existingId) {
+                        worktreePath = shadowManager.getWorktreePath(existingId) || '';
+                        if (!worktreePath) {
+                            return {success: false, error: `Worktree not found: ${existingId}`};
+                        }
+                    } else {
+                        worktreePath = await shadowManager.createWorktree(`${worktreeId}-test`);
+                        created = true;
+                    }
+
+                    const args = ['vitest', 'run', '--reporter=json'];
+                    if (testPath) args.push(testPath);
+
+                    const result = await new Promise<{
+                        success: boolean;
+                        passed: number;
+                        failed: number;
+                        total: number;
+                        duration: number
+                    }>((resolve) => {
+                        const child = spawn('pnpm', args, {
+                            cwd: worktreePath,
+                            stdio: ['pipe', 'pipe', 'pipe'],
+                        });
+
+                        let stdout = '';
+                        const startTime = Date.now();
+
+                        child.stdout?.on('data', (data: Buffer) => {
+                            stdout += data.toString();
+                        });
+
+                        child.on('close', (code) => {
+                            try {
+                                const lines = stdout.trim().split('\n');
+                                let jsonStart = -1;
+                                for (let i = 0; i < lines.length; i++) {
+                                    const line = lines[i];
+                                    if (line && line.trim().startsWith('{')) {
+                                        jsonStart = i;
+                                        break;
+                                    }
+                                }
+                                if (jsonStart >= 0) {
+                                    const data = JSON.parse(lines.slice(jsonStart).join('\n'));
+                                    resolve({
+                                        success: data.success,
+                                        passed: data.numPassedTests ?? 0,
+                                        failed: data.numFailedTests ?? 0,
+                                        total: data.numTotalTests ?? 0,
+                                        duration: Date.now() - startTime,
+                                    });
+                                } else {
+                                    resolve({
+                                        success: code === 0,
+                                        passed: 0,
+                                        failed: 0,
+                                        total: 0,
+                                        duration: Date.now() - startTime
+                                    });
+                                }
+                            } catch {
+                                resolve({
+                                    success: code === 0,
+                                    passed: 0,
+                                    failed: 0,
+                                    total: 0,
+                                    duration: Date.now() - startTime
+                                });
+                            }
+                        });
+
+                        child.on('error', () => resolve({
+                            success: false,
+                            passed: 0,
+                            failed: 0,
+                            total: 0,
+                            duration: Date.now() - startTime
+                        }));
+                    });
+
+                    if (created) {
+                        await shadowManager.cleanupWorktree(`${worktreeId}-test`);
+                    }
+
+                    return {...result, success: result.success};
+                } catch (error) {
+                    return {success: false, error: String(error)};
+                }
+            },
+        }),
+
+        // --- run_scenario (shadow) ---
+        run_scenario_shadow: tool({
+            description:
+                'Run a cognitive scenario in a shadow worktree for validation.',
+            inputSchema: z.object({
+                seed: z.string().describe('Scenario seed/intent'),
+                profile: z.enum(['contradictory_sensors', 'temporal_reasoning', 'resource_pressure', 'belief_revision', 'cross_engine_sync', 'auto']).optional().default('auto'),
+                worktreeId: z.string().optional().describe('Existing worktree ID to use'),
+            }),
+            execute: async ({seed, profile, worktreeId: existingId}) => {
+                if (!deps.nar) {
+                    return {success: false, error: 'NAR not available'};
+                }
+                try {
+                    let worktreePath: string;
+                    let created = false;
+
+                    if (existingId) {
+                        worktreePath = shadowManager.getWorktreePath(existingId) || '';
+                        if (!worktreePath) {
+                            return {success: false, error: `Worktree not found: ${existingId}`};
+                        }
+                    } else {
+                        worktreePath = await shadowManager.createWorktree(`${worktreeId}-scenario`);
+                        created = true;
+                    }
+
+                    // Use the existing scenario generation logic
+                    // For now, run a simple scenario in the shadow
+                    const startTime = Date.now();
+                    await deps.nar.run(100);
+                    const duration = Date.now() - startTime;
+
+                    if (created) {
+                        await shadowManager.cleanupWorktree(`${worktreeId}-scenario`);
+                    }
+
+                    return {success: true, seed, profile, duration, message: 'Scenario executed in shadow'};
+                } catch (error) {
+                    return {success: false, error: String(error)};
+                }
+            },
+        }),
+    };
 }

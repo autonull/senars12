@@ -1,45 +1,45 @@
-import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import type { ViewportMode } from '../core/index.js';
+import {css, html} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
+import type {ViewportMode} from '../core/index.js';
 import {
-  $activeLens,
-  $capabilityFilter,
-  $connectionState,
-  $graphNodes,
-  $lensLayout,
-  $panels,
-  $selectedNodeIds,
-  $urlState,
-  $viewport,
-  $viewportMode,
-  BaseComponent,
-  eventBus,
-  send,
+    $activeLens,
+    $capabilityFilter,
+    $connectionState,
+    $graphNodes,
+    $lensLayout,
+    $panels,
+    $selectedNodeIds,
+    $urlState,
+    $viewport,
+    $viewportMode,
+    BaseComponent,
+    eventBus,
+    send,
 } from '../core/index.js';
 import './contradiction-badge.js';
 import './lens-controller.js';
 
 /** Capability display labels (short names for UI badges). */
 const CAPABILITY_LABELS: Record<string, string> = {
-  'truth-revision': 'belief',
-  'goal-management': 'goal',
-  'skill-execution': 'skill',
-  'pattern-match': 'match',
-  inheritance: 'inherit',
-  'episodic-memory': 'memory',
-  'long-term-memory': 'ltm',
+    'truth-revision': 'belief',
+    'goal-management': 'goal',
+    'skill-execution': 'skill',
+    'pattern-match': 'match',
+    inheritance: 'inherit',
+    'episodic-memory': 'memory',
+    'long-term-memory': 'ltm',
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  connected: 'var(--colors-semantic-status-connected)',
-  connecting: 'var(--colors-semantic-status-connecting)',
-  reconnecting: 'var(--colors-semantic-status-reconnecting)',
-  disconnected: 'var(--colors-semantic-status-disconnected)',
+    connected: 'var(--colors-semantic-status-connected)',
+    connecting: 'var(--colors-semantic-status-connecting)',
+    reconnecting: 'var(--colors-semantic-status-reconnecting)',
+    disconnected: 'var(--colors-semantic-status-disconnected)',
 };
 
 @customElement('graph-toolbar')
 export class GraphToolbar extends BaseComponent {
-  static override styles = css`
+    static override styles = css`
     :host {
       display: flex; align-items: center; height: 44px; padding: 0 var(--spacing-scale-3);
       gap: var(--spacing-scale-2); background: var(--colors-semantic-bg-panel-solid);
@@ -104,73 +104,46 @@ export class GraphToolbar extends BaseComponent {
     .cap-badge:hover { border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
     .cap-badge.active { background: var(--colors-semantic-accent-primary-subtle); border-color: var(--colors-semantic-accent-primary); color: var(--colors-semantic-accent-primary); }
   `;
-  @state() private zoom = 1;
-  @state() private searchQuery = '';
-  @state() private multiSelectCount = 0;
-  @state() private layoutName = 'cose';
-  @state() private viewportMode: ViewportMode = '2d';
-  @state() private activeCapabilities: string[] = [];
+    @state() private zoom = 1;
+    @state() private searchQuery = '';
+    @state() private multiSelectCount = 0;
+    @state() private layoutName = 'cose';
+    @state() private viewportMode: ViewportMode = '2d';
+    @state() private activeCapabilities: string[] = [];
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.watch($activeLens);
-    this.watch($connectionState);
-    this.watch($panels);
-    this.watch($viewportMode);
-    this.watchWith($viewport, (vp) => {
-      this.zoom = vp.zoom;
-    });
-    this.watchWith($selectedNodeIds, (ids) => {
-      this.multiSelectCount = ids.size;
-    });
-    this.watchWith($activeLens, (lens) => {
-      this.layoutName = $lensLayout.get()[lens] ?? 'cose';
-    });
-    this.watchWith($lensLayout, (layouts) => {
-      this.layoutName = layouts[$activeLens.get()] ?? 'cose';
-    });
-    this.watchWith($viewportMode, (mode) => {
-      this.viewportMode = mode;
-    });
-    this.watchWith($graphNodes, () => this.updateCapabilities());
-    this.updateCapabilities();
-  }
-
-  /** Extract unique capabilities from graph nodes for badge display. */
-  private updateCapabilities() {
-    const seen = new Set<string>();
-    const caps: string[] = [];
-    for (const n of $graphNodes.get().values()) {
-      for (const c of n.capabilities ?? []) {
-        if (!seen.has(c)) {
-          seen.add(c);
-          caps.push(c);
-        }
-      }
+    override connectedCallback() {
+        super.connectedCallback();
+        this.watch($activeLens);
+        this.watch($connectionState);
+        this.watch($panels);
+        this.watch($viewportMode);
+        this.watchWith($viewport, (vp) => {
+            this.zoom = vp.zoom;
+        });
+        this.watchWith($selectedNodeIds, (ids) => {
+            this.multiSelectCount = ids.size;
+        });
+        this.watchWith($activeLens, (lens) => {
+            this.layoutName = $lensLayout.get()[lens] ?? 'cose';
+        });
+        this.watchWith($lensLayout, (layouts) => {
+            this.layoutName = layouts[$activeLens.get()] ?? 'cose';
+        });
+        this.watchWith($viewportMode, (mode) => {
+            this.viewportMode = mode;
+        });
+        this.watchWith($graphNodes, () => this.updateCapabilities());
+        this.updateCapabilities();
     }
-    this.activeCapabilities = caps.sort();
-    // Re-trigger render so active state reflects current filter
-    this.requestUpdate();
-  }
 
-  private toggleCapabilityFilter(cap: string) {
-    const current = $capabilityFilter.get();
-    $capabilityFilter.set(current === cap ? 'all' : cap);
-  }
+    override render() {
+        const activeLens = $activeLens.get();
+        const state = $connectionState.get();
+        const configOpen = $panels.get().get('config')?.open;
+        const telemetryOpen = $panels.get().get('telemetry')?.open;
+        const lensDesignerOpen = $panels.get().get('lens-designer')?.open;
 
-  private toggleViewportMode() {
-    const current = $viewportMode.get();
-    $viewportMode.set(current === '2d' ? '3d' : '2d');
-  }
-
-  override render() {
-    const activeLens = $activeLens.get();
-    const state = $connectionState.get();
-    const configOpen = $panels.get().get('config')?.open;
-    const telemetryOpen = $panels.get().get('telemetry')?.open;
-    const lensDesignerOpen = $panels.get().get('lens-designer')?.open;
-
-    return html`
+        return html`
       <div class="zoom-group">
         <button class="toolbar-btn icon" @click=${this.zoomOut} title="Zoom out" aria-label="Zoom out">−</button>
         <span class="zoom-pct">${Math.round(this.zoom * 100)}%</span>
@@ -188,17 +161,17 @@ export class GraphToolbar extends BaseComponent {
       <lens-controller></lens-controller>
 
       ${
-        this.activeCapabilities.length > 0
-          ? html`<div class="capability-badges">${this.activeCapabilities.map((c) => {
-              const active = $capabilityFilter.get() === c;
-              return html`<span class="cap-badge ${active ? 'active' : ''}"
+            this.activeCapabilities.length > 0
+                ? html`<div class="capability-badges">${this.activeCapabilities.map((c) => {
+                    const active = $capabilityFilter.get() === c;
+                    return html`<span class="cap-badge ${active ? 'active' : ''}"
                   title="${c}"
                   @click=${() => this.toggleCapabilityFilter(c)}
                   role="button"
                   tabindex="0">${CAPABILITY_LABELS[c] ?? c}</span>`;
-            })}</div>`
-          : ''
-      }
+                })}</div>`
+                : ''
+        }
 
       <div class="divider"></div>
 
@@ -217,8 +190,8 @@ export class GraphToolbar extends BaseComponent {
         @click=${this.toggleViewportMode} title="Toggle 2D/3D viewport">3D</button>
 
       ${
-        this.multiSelectCount > 0
-          ? html`
+            this.multiSelectCount > 0
+                ? html`
         <div class="divider"></div>
         <div class="multi-select-bar">
           <span class="multi-select-count">${this.multiSelectCount}</span>
@@ -227,8 +200,8 @@ export class GraphToolbar extends BaseComponent {
           <button class="multi-select-btn" @click=${this.clearSelection}>Clear</button>
         </div>
       `
-          : ''
-      }
+                : ''
+        }
 
       <div class="spacer"></div>
 
@@ -249,74 +222,101 @@ export class GraphToolbar extends BaseComponent {
         <span style="color:var(--colors-semantic-text-muted)">${state}</span>
       </div>
     `;
-  }
-
-  private handleSearch(e: Event) {
-    const value = (e.target as HTMLInputElement).value;
-    this.searchQuery = value;
-    const urlState = $urlState.get();
-    $urlState.set({ ...urlState, search: value || undefined });
-    eventBus.emit('graph:search', value);
-  }
-
-  private zoomIn() {
-    eventBus.emit('graph:zoom-in');
-  }
-
-  private zoomOut() {
-    eventBus.emit('graph:zoom-out');
-  }
-
-  private fitGraph() {
-    eventBus.emit('graph:fit');
-  }
-
-  private selectLayout(e: Event) {
-    eventBus.emit('graph:layout', (e.target as HTMLSelectElement).value);
-  }
-
-  private toggleMinimap() {
-    eventBus.emit('graph:minimap-toggle');
-  }
-
-  private togglePanel(id: string) {
-    const panels = new Map($panels.get());
-    const panel = panels.get(id);
-    if (panel) {
-      panels.set(id, { ...panel, open: !panel.open });
-      $panels.set(panels);
     }
-  }
 
-  // Multi-select bulk actions
-  private focusSelected() {
-    const ids = $selectedNodeIds.get();
-    if (ids.size > 0) {
-      // Send first selected as focus
-      const first = ids.values().next().value;
-      if (first) {
-        const node = $graphNodes.get().get(first);
-        if (node?.term) send({ type: 'focus.set', term: node.term });
-      }
+    /** Extract unique capabilities from graph nodes for badge display. */
+    private updateCapabilities() {
+        const seen = new Set<string>();
+        const caps: string[] = [];
+        for (const n of $graphNodes.get().values()) {
+            for (const c of n.capabilities ?? []) {
+                if (!seen.has(c)) {
+                    seen.add(c);
+                    caps.push(c);
+                }
+            }
+        }
+        this.activeCapabilities = caps.sort();
+        // Re-trigger render so active state reflects current filter
+        this.requestUpdate();
     }
-  }
 
-  private hideSelected() {
-    const ids = $selectedNodeIds.get();
-    if (ids.size === 0) return;
-    const nodes = new Map($graphNodes.get());
-    for (const id of ids) nodes.delete(id);
-    $graphNodes.set(nodes);
-    $selectedNodeIds.set(new Set());
-  }
+    private toggleCapabilityFilter(cap: string) {
+        const current = $capabilityFilter.get();
+        $capabilityFilter.set(current === cap ? 'all' : cap);
+    }
 
-  private clearSelection() {
-    $selectedNodeIds.set(new Set());
-  }
+    private toggleViewportMode() {
+        const current = $viewportMode.get();
+        $viewportMode.set(current === '2d' ? '3d' : '2d');
+    }
+
+    private handleSearch(e: Event) {
+        const value = (e.target as HTMLInputElement).value;
+        this.searchQuery = value;
+        const urlState = $urlState.get();
+        $urlState.set({...urlState, search: value || undefined});
+        eventBus.emit('graph:search', value);
+    }
+
+    private zoomIn() {
+        eventBus.emit('graph:zoom-in');
+    }
+
+    private zoomOut() {
+        eventBus.emit('graph:zoom-out');
+    }
+
+    private fitGraph() {
+        eventBus.emit('graph:fit');
+    }
+
+    private selectLayout(e: Event) {
+        eventBus.emit('graph:layout', (e.target as HTMLSelectElement).value);
+    }
+
+    private toggleMinimap() {
+        eventBus.emit('graph:minimap-toggle');
+    }
+
+    private togglePanel(id: string) {
+        const panels = new Map($panels.get());
+        const panel = panels.get(id);
+        if (panel) {
+            panels.set(id, {...panel, open: !panel.open});
+            $panels.set(panels);
+        }
+    }
+
+    // Multi-select bulk actions
+    private focusSelected() {
+        const ids = $selectedNodeIds.get();
+        if (ids.size > 0) {
+            // Send first selected as focus
+            const first = ids.values().next().value;
+            if (first) {
+                const node = $graphNodes.get().get(first);
+                if (node?.term) send({type: 'focus.set', term: node.term});
+            }
+        }
+    }
+
+    private hideSelected() {
+        const ids = $selectedNodeIds.get();
+        if (ids.size === 0) return;
+        const nodes = new Map($graphNodes.get());
+        for (const id of ids) nodes.delete(id);
+        $graphNodes.set(nodes);
+        $selectedNodeIds.set(new Set());
+    }
+
+    private clearSelection() {
+        $selectedNodeIds.set(new Set());
+    }
 }
 
 declare global {
-  interface HTMLElementTagNameMap {
-    'graph-toolbar': GraphToolbar;
-  }
+    interface HTMLElementTagNameMap {
+        'graph-toolbar': GraphToolbar;
+    }
 }

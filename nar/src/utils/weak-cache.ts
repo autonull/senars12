@@ -1,90 +1,90 @@
 interface CacheEntry<T> {
-  value: T;
-  accesses: number;
-  lastAccess: number;
+    value: T;
+    accesses: number;
+    lastAccess: number;
 }
 
 export class WeakCache<K extends object, V> {
-  private weak = new WeakMap<K, CacheEntry<V>>();
-  private lru = new Map<K, CacheEntry<V>>();
-  private readonly maxSize: number;
-  private readonly ttl: number;
+    private weak = new WeakMap<K, CacheEntry<V>>();
+    private lru = new Map<K, CacheEntry<V>>();
+    private readonly maxSize: number;
+    private readonly ttl: number;
 
-  constructor(maxSize = 100, ttl = 60000) {
-    this.maxSize = maxSize;
-    this.ttl = ttl;
-  }
-
-  get size(): number {
-    return this.lru.size;
-  }
-
-  get(key: K): V | undefined {
-    const entryFromWeak = this.weak.get(key);
-    if (entryFromWeak) {
-      if (!this.lru.has(key)) this.lru.set(key, entryFromWeak);
-      entryFromWeak.accesses++;
-      entryFromWeak.lastAccess = Date.now();
-      return entryFromWeak.value;
+    constructor(maxSize = 100, ttl = 60000) {
+        this.maxSize = maxSize;
+        this.ttl = ttl;
     }
 
-    const entry = this.lru.get(key);
-    if (!entry) return undefined;
-
-    if (Date.now() - entry.lastAccess > this.ttl) {
-      this.lru.delete(key);
-      this.weak.delete(key);
-      return undefined;
+    get size(): number {
+        return this.lru.size;
     }
 
-    entry.accesses++;
-    entry.lastAccess = Date.now();
-    this.weak.set(key, entry);
-    return entry.value;
-  }
+    get(key: K): V | undefined {
+        const entryFromWeak = this.weak.get(key);
+        if (entryFromWeak) {
+            if (!this.lru.has(key)) this.lru.set(key, entryFromWeak);
+            entryFromWeak.accesses++;
+            entryFromWeak.lastAccess = Date.now();
+            return entryFromWeak.value;
+        }
 
-  set(key: K, value: V): void {
-    if (this.lru.size >= this.maxSize) this.evictLRU();
-    const entry: CacheEntry<V> = { value, accesses: 1, lastAccess: Date.now() };
-    this.lru.set(key, entry);
-    this.weak.set(key, entry);
-  }
+        const entry = this.lru.get(key);
+        if (!entry) return undefined;
 
-  has(key: K): boolean {
-    const entry = this.weak.get(key) ?? this.lru.get(key);
-    return entry ? Date.now() - entry.lastAccess <= this.ttl : false;
-  }
+        if (Date.now() - entry.lastAccess > this.ttl) {
+            this.lru.delete(key);
+            this.weak.delete(key);
+            return undefined;
+        }
 
-  delete(key: K): boolean {
-    this.weak.delete(key);
-    return this.lru.delete(key);
-  }
-
-  clear(): void {
-    this.weak = new WeakMap();
-    this.lru.clear();
-  }
-
-  private evictLRU(): void {
-    let oldest: K | undefined;
-    let oldestTime = Number.POSITIVE_INFINITY;
-
-    for (const [key, entry] of this.lru) {
-      if (entry.lastAccess < oldestTime) {
-        oldestTime = entry.lastAccess;
-        oldest = key;
-      }
+        entry.accesses++;
+        entry.lastAccess = Date.now();
+        this.weak.set(key, entry);
+        return entry.value;
     }
 
-    if (oldest) {
-      this.delete(oldest);
+    set(key: K, value: V): void {
+        if (this.lru.size >= this.maxSize) this.evictLRU();
+        const entry: CacheEntry<V> = {value, accesses: 1, lastAccess: Date.now()};
+        this.lru.set(key, entry);
+        this.weak.set(key, entry);
     }
-  }
+
+    has(key: K): boolean {
+        const entry = this.weak.get(key) ?? this.lru.get(key);
+        return entry ? Date.now() - entry.lastAccess <= this.ttl : false;
+    }
+
+    delete(key: K): boolean {
+        this.weak.delete(key);
+        return this.lru.delete(key);
+    }
+
+    clear(): void {
+        this.weak = new WeakMap();
+        this.lru.clear();
+    }
+
+    private evictLRU(): void {
+        let oldest: K | undefined;
+        let oldestTime = Number.POSITIVE_INFINITY;
+
+        for (const [key, entry] of this.lru) {
+            if (entry.lastAccess < oldestTime) {
+                oldestTime = entry.lastAccess;
+                oldest = key;
+            }
+        }
+
+        if (oldest) {
+            this.delete(oldest);
+        }
+    }
 }
 
 export function createWeakCache<K extends object, V>(
-  maxSize?: number,
-  ttl?: number
+    maxSize?: number,
+    ttl?: number
 ): WeakCache<K, V> {
-  return new WeakCache(maxSize, ttl);
+    return new WeakCache(maxSize, ttl);
 }

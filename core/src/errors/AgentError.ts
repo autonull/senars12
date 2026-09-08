@@ -23,10 +23,10 @@
  * Use `import { TransportError } from '@senars/util'` instead.
  */
 export {
-  ConfigError,
-  EngineError,
-  PolicyViolation,
-  SenarsError as AgentError,
-  ToolError,
-  TransportError,
+    ConfigError,
+    EngineError,
+    PolicyViolation,
+    SenarsError as AgentError,
+    ToolError,
+    TransportError,
 } from '@senars/util';

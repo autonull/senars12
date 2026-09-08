@@ -5,7 +5,9 @@
       "outputs": []
     },
     "build": {
-      "outputs": ["dist/**"]
+      "outputs": [
+        "dist/**"
+      ]
     },
     "dev": {
       "cache": false,

@@ -6,6 +6,6 @@
  */
 import './registration.js';
 
-export { NALExtendedRules } from './extended/index.js';
-export { NALRules } from './nal/index.js';
-export { NAL_EXTENDED_RULES, NAL_RULES, registerRulesFromDSL } from './registration.js';
+export {NALExtendedRules} from './extended/index.js';
+export {NALRules} from './nal/index.js';
+export {NAL_EXTENDED_RULES, NAL_RULES, registerRulesFromDSL} from './registration.js';

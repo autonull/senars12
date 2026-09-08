@@ -1,38 +1,38 @@
-import type { GraphNodeData } from '@senars/core';
-import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { EDGE_TYPES } from '../../shared/constants.js';
+import type {GraphNodeData} from '@senars/core';
+import {css, html} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
+import {EDGE_TYPES} from '../../shared/constants.js';
 import {
-  $focusTerm,
-  $graphEdges,
-  $graphNodes,
-  $nodeHistory,
-  $selectedEdgeId,
-  $selectedNodeId,
-  $selectedNodeIds,
-  $view,
-  BaseComponent,
-  type RevisionEntry,
-  send,
-  updateEdgeData,
-  updateNodeData,
+    $focusTerm,
+    $graphEdges,
+    $graphNodes,
+    $nodeHistory,
+    $selectedEdgeId,
+    $selectedNodeId,
+    $selectedNodeIds,
+    $view,
+    BaseComponent,
+    type RevisionEntry,
+    send,
+    updateEdgeData,
+    updateNodeData,
 } from '../core/index.js';
 
 type TabId = 'overview' | 'links' | 'actions' | 'edge' | 'history';
 
 /** Convert engine-prefixed nodeType (e.g. "nar:concept", "metta:atom") to a user-friendly label. */
 function formatNodeType(nodeType: string): string {
-  const labels: Record<string, string> = {
-    'nar:concept': 'Concept',
-    'metta:atom': 'Atom',
-    'metta:skill': 'Skill',
-  };
-  return labels[nodeType] ?? nodeType;
+    const labels: Record<string, string> = {
+        'nar:concept': 'Concept',
+        'metta:atom': 'Atom',
+        'metta:skill': 'Skill',
+    };
+    return labels[nodeType] ?? nodeType;
 }
 
 @customElement('node-detail-drawer')
 export class NodeDetailDrawer extends BaseComponent {
-  static override styles = css`
+    static override styles = css`
     :host { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
     .tabs { display: flex; border-bottom: 1px solid var(--colors-semantic-border-subtle); flex-shrink: 0; }
     .tab { flex: 1; padding: var(--spacing-scale-2) var(--spacing-scale-3); border: none; background: transparent; color: var(--colors-semantic-text-muted); font-family: var(--typography-fontFamilies-data); font-size: var(--typography-scale-xs); cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: var(--transitions-fast); }
@@ -52,140 +52,65 @@ export class NodeDetailDrawer extends BaseComponent {
     .link-filter:focus { border-color: var(--colors-semantic-border-focus); }
     .empty { color: var(--colors-semantic-text-muted); text-align: center; padding: var(--spacing-scale-4); font-style: italic; }
   `;
-  @state() private activeTab: TabId = 'overview';
-  @state() private node: GraphNodeData | null = null;
-  @state() private edgeData: Record<string, unknown> | null = null;
-  @state() private history: RevisionEntry[] = [];
-  @state() private linkFilter = '';
-  @state() private truthFrequency = 0.5;
-  @state() private truthConfidence = 0.9;
-  @state() private edgeTruthFrequency = 0.5;
-  @state() private edgeType = 'inheritance';
-  private truthDebounce: ReturnType<typeof setTimeout> | null = null;
-  private edgeTruthDebounce: ReturnType<typeof setTimeout> | null = null;
+    @state() private activeTab: TabId = 'overview';
+    @state() private node: GraphNodeData | null = null;
+    @state() private edgeData: Record<string, unknown> | null = null;
+    @state() private history: RevisionEntry[] = [];
+    @state() private linkFilter = '';
+    @state() private truthFrequency = 0.5;
+    @state() private truthConfidence = 0.9;
+    @state() private edgeTruthFrequency = 0.5;
+    @state() private edgeType = 'inheritance';
+    private truthDebounce: ReturnType<typeof setTimeout> | null = null;
+    private edgeTruthDebounce: ReturnType<typeof setTimeout> | null = null;
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.watchWith($selectedNodeId, (id) => {
-      this.edgeData = null;
-      if (id) {
-        this.node = $graphNodes.get().get(id) ?? null;
-        this.syncTruth();
-        this.activeTab = 'overview';
-        this.fetchHistory();
-      } else {
-        this.node = null;
-      }
-    });
-    this.watchWith($selectedEdgeId, (id) => {
-      this.node = null;
-      if (id) {
-        this.edgeData = $graphEdges.get().get(id) ?? null;
-        this.syncEdgeTruth();
-        this.activeTab = 'edge';
-      } else {
-        this.edgeData = null;
-      }
-    });
-    this.watchWith($graphNodes, () => {
-      const id = $selectedNodeId.get();
-      if (id) {
-        this.node = $graphNodes.get().get(id) ?? null;
-        this.syncTruth();
-      }
-    });
-    this.watchWith($graphEdges, () => {
-      const id = $selectedEdgeId.get();
-      if (id) {
-        this.edgeData = $graphEdges.get().get(id) ?? null;
-        this.syncEdgeTruth();
-      }
-    });
-    this.watchWith($nodeHistory, (history) => {
-      this.history = history;
-    });
-  }
-
-  private syncEdgeTruth() {
-    const ed = this.edgeData;
-    if (ed) {
-      this.edgeTruthFrequency = (ed.weight as number) ?? 0.5;
-      this.edgeType = (ed.type as string) ?? 'inheritance';
-    } else {
-      this.edgeTruthFrequency = 0.5;
-      this.edgeType = 'inheritance';
+    override connectedCallback() {
+        super.connectedCallback();
+        this.watchWith($selectedNodeId, (id) => {
+            this.edgeData = null;
+            if (id) {
+                this.node = $graphNodes.get().get(id) ?? null;
+                this.syncTruth();
+                this.activeTab = 'overview';
+                this.fetchHistory();
+            } else {
+                this.node = null;
+            }
+        });
+        this.watchWith($selectedEdgeId, (id) => {
+            this.node = null;
+            if (id) {
+                this.edgeData = $graphEdges.get().get(id) ?? null;
+                this.syncEdgeTruth();
+                this.activeTab = 'edge';
+            } else {
+                this.edgeData = null;
+            }
+        });
+        this.watchWith($graphNodes, () => {
+            const id = $selectedNodeId.get();
+            if (id) {
+                this.node = $graphNodes.get().get(id) ?? null;
+                this.syncTruth();
+            }
+        });
+        this.watchWith($graphEdges, () => {
+            const id = $selectedEdgeId.get();
+            if (id) {
+                this.edgeData = $graphEdges.get().get(id) ?? null;
+                this.syncEdgeTruth();
+            }
+        });
+        this.watchWith($nodeHistory, (history) => {
+            this.history = history;
+        });
     }
-  }
 
-  private onEdgeTruthInput(e: Event) {
-    const f = Number.parseFloat((e.target as HTMLInputElement).value);
-    this.edgeTruthFrequency = f;
-    const ed = this.edgeData;
-    if (!ed) return;
-    const key = `${ed.source}->${ed.target}`;
-    updateEdgeData(key, { weight: f });
-    if (this.edgeTruthDebounce) clearTimeout(this.edgeTruthDebounce);
-    this.edgeTruthDebounce = setTimeout(() => {
-      send({
-        type: 'object.set',
-        kind: 'edge',
-        id: key,
-        patch: { truth: { frequency: f, confidence: (ed.confidence as number) ?? 0.9 } },
-      });
-    }, 120);
-  }
+    override render() {
+        if (!this.node && !this.edgeData) return html``;
 
-  private onEdgeTypeChange(e: Event) {
-    const t = (e.target as HTMLSelectElement).value;
-    this.edgeType = t;
-    const ed = this.edgeData;
-    if (!ed) return;
-    const key = `${ed.source}->${ed.target}`;
-    updateEdgeData(key, { type: t });
-    send({ type: 'object.set', kind: 'edge', id: key, patch: { type: t } });
-  }
-
-  private syncTruth() {
-    const n = this.node;
-    if (n?.truth) {
-      this.truthFrequency = n.truth.frequency;
-      this.truthConfidence = n.truth.confidence;
-    } else {
-      this.truthFrequency = 0.5;
-      this.truthConfidence = 0.9;
-    }
-  }
-
-  private truthToColor(f: number): string {
-    const hue = Math.round(f * 120);
-    return `hsl(${hue}, 70%, 50%)`;
-  }
-
-  private onTruthInput(e: Event) {
-    const f = Number.parseFloat((e.target as HTMLInputElement).value);
-    this.truthFrequency = f;
-    const node = this.node;
-    if (!node) return;
-    const nodeId = node.id ?? '';
-    updateNodeData(nodeId, {
-      truth: { frequency: f, confidence: this.truthConfidence },
-    });
-    if (this.truthDebounce) clearTimeout(this.truthDebounce);
-    this.truthDebounce = setTimeout(() => {
-      send({
-        type: 'object.set',
-        kind: 'node',
-        id: nodeId,
-        patch: { truth: { frequency: f, confidence: this.truthConfidence } },
-      });
-    }, 120);
-  }
-
-  override render() {
-    if (!this.node && !this.edgeData) return html``;
-
-    if (this.edgeData && !this.node) {
-      return html`
+        if (this.edgeData && !this.node) {
+            return html`
         <div class="tabs">
           <button class="tab active">Edge</button>
         </div>
@@ -193,15 +118,15 @@ export class NodeDetailDrawer extends BaseComponent {
           ${this.renderEdge()}
         </div>
       `;
-    }
+        }
 
-    return html`
+        return html`
       <div class="tabs">
         ${(['overview', 'links', 'actions', 'history'] as const).map(
-          (tab) => html`
+            (tab) => html`
           <button class="tab ${this.activeTab === tab ? 'active' : ''}" @click=${() => {
-            this.activeTab = tab;
-          }}>
+                this.activeTab = tab;
+            }}>
             ${tab === 'overview' ? 'Overview' : tab === 'links' ? 'Links' : tab === 'history' ? 'History' : 'Actions'}
           </button>
         `
@@ -214,86 +139,162 @@ export class NodeDetailDrawer extends BaseComponent {
         ${this.activeTab === 'history' ? this.renderHistory() : ''}
       </div>
     `;
-  }
+    }
 
-  private fetchHistory() {
-    if (!this.node?.term) return;
-    send({ type: 'node.history.request', term: this.node.term });
-  }
-
-  private getLinks() {
-    if (!this.node)
-      return {
-        in: [] as { id: string; label: string; type: string }[],
-        out: [] as { id: string; label: string; type: string }[],
-      };
-    const edges = $graphEdges.get();
-    const inLinks: { id: string; label: string; type: string }[] = [];
-    const outLinks: { id: string; label: string; type: string }[] = [];
-    const nodes = $graphNodes.get();
-
-    for (const [key, ed] of edges) {
-      const filter = this.linkFilter.toLowerCase();
-      if (ed.source === this.node.id) {
-        const target = nodes.get(ed.target);
-        const label = target?.label ?? ed.target;
-        if (
-          !filter ||
-          label.toLowerCase().includes(filter) ||
-          (ed.type ?? '').toLowerCase().includes(filter)
-        ) {
-          outLinks.push({ id: ed.target, label, type: ed.type ?? 'relation' });
+    private syncEdgeTruth() {
+        const ed = this.edgeData;
+        if (ed) {
+            this.edgeTruthFrequency = (ed.weight as number) ?? 0.5;
+            this.edgeType = (ed.type as string) ?? 'inheritance';
+        } else {
+            this.edgeTruthFrequency = 0.5;
+            this.edgeType = 'inheritance';
         }
-      }
-      if (ed.target === this.node.id) {
-        const source = nodes.get(ed.source);
-        const label = source?.label ?? ed.source;
-        if (
-          !filter ||
-          label.toLowerCase().includes(filter) ||
-          (ed.type ?? '').toLowerCase().includes(filter)
-        ) {
-          inLinks.push({ id: ed.source, label, type: ed.type ?? 'relation' });
+    }
+
+    private onEdgeTruthInput(e: Event) {
+        const f = Number.parseFloat((e.target as HTMLInputElement).value);
+        this.edgeTruthFrequency = f;
+        const ed = this.edgeData;
+        if (!ed) return;
+        const key = `${ed.source}->${ed.target}`;
+        updateEdgeData(key, {weight: f});
+        if (this.edgeTruthDebounce) clearTimeout(this.edgeTruthDebounce);
+        this.edgeTruthDebounce = setTimeout(() => {
+            send({
+                type: 'object.set',
+                kind: 'edge',
+                id: key,
+                patch: {truth: {frequency: f, confidence: (ed.confidence as number) ?? 0.9}},
+            });
+        }, 120);
+    }
+
+    private onEdgeTypeChange(e: Event) {
+        const t = (e.target as HTMLSelectElement).value;
+        this.edgeType = t;
+        const ed = this.edgeData;
+        if (!ed) return;
+        const key = `${ed.source}->${ed.target}`;
+        updateEdgeData(key, {type: t});
+        send({type: 'object.set', kind: 'edge', id: key, patch: {type: t}});
+    }
+
+    private syncTruth() {
+        const n = this.node;
+        if (n?.truth) {
+            this.truthFrequency = n.truth.frequency;
+            this.truthConfidence = n.truth.confidence;
+        } else {
+            this.truthFrequency = 0.5;
+            this.truthConfidence = 0.9;
         }
-      }
     }
-    return { in: inLinks, out: outLinks };
-  }
 
-  private focusNode(id: string) {
-    $selectedNodeId.set(id);
-    send({ type: 'focus.set', term: id });
-  }
-
-  private copyTerm() {
-    if (this.node?.term) {
-      navigator.clipboard.writeText(this.node.term).catch(() => {});
+    private truthToColor(f: number): string {
+        const hue = Math.round(f * 120);
+        return `hsl(${hue}, 70%, 50%)`;
     }
-  }
 
-  private pinNode() {
-    if (this.node) {
-      const ids = new Set($selectedNodeIds.get());
-      ids.add(this.node.id ?? '');
-      $selectedNodeIds.set(ids);
+    private onTruthInput(e: Event) {
+        const f = Number.parseFloat((e.target as HTMLInputElement).value);
+        this.truthFrequency = f;
+        const node = this.node;
+        if (!node) return;
+        const nodeId = node.id ?? '';
+        updateNodeData(nodeId, {
+            truth: {frequency: f, confidence: this.truthConfidence},
+        });
+        if (this.truthDebounce) clearTimeout(this.truthDebounce);
+        this.truthDebounce = setTimeout(() => {
+            send({
+                type: 'object.set',
+                kind: 'node',
+                id: nodeId,
+                patch: {truth: {frequency: f, confidence: this.truthConfidence}},
+            });
+        }, 120);
     }
-  }
 
-  private hideNode() {
-    if (this.node) {
-      const nodes = new Map($graphNodes.get());
-      nodes.delete(this.node.id ?? '');
-      $graphNodes.set(nodes);
-      $selectedNodeId.set(null);
+    private fetchHistory() {
+        if (!this.node?.term) return;
+        send({type: 'node.history.request', term: this.node.term});
     }
-  }
 
-  private renderOverview() {
-    const n = this.node;
-    if (!n) return html``;
-    const nodeId = n.id ?? '';
-    const truthColor = this.truthToColor(this.truthFrequency);
-    return html`
+    private getLinks() {
+        if (!this.node)
+            return {
+                in: [] as { id: string; label: string; type: string }[],
+                out: [] as { id: string; label: string; type: string }[],
+            };
+        const edges = $graphEdges.get();
+        const inLinks: { id: string; label: string; type: string }[] = [];
+        const outLinks: { id: string; label: string; type: string }[] = [];
+        const nodes = $graphNodes.get();
+
+        for (const [key, ed] of edges) {
+            const filter = this.linkFilter.toLowerCase();
+            if (ed.source === this.node.id) {
+                const target = nodes.get(ed.target);
+                const label = target?.label ?? ed.target;
+                if (
+                    !filter ||
+                    label.toLowerCase().includes(filter) ||
+                    (ed.type ?? '').toLowerCase().includes(filter)
+                ) {
+                    outLinks.push({id: ed.target, label, type: ed.type ?? 'relation'});
+                }
+            }
+            if (ed.target === this.node.id) {
+                const source = nodes.get(ed.source);
+                const label = source?.label ?? ed.source;
+                if (
+                    !filter ||
+                    label.toLowerCase().includes(filter) ||
+                    (ed.type ?? '').toLowerCase().includes(filter)
+                ) {
+                    inLinks.push({id: ed.source, label, type: ed.type ?? 'relation'});
+                }
+            }
+        }
+        return {in: inLinks, out: outLinks};
+    }
+
+    private focusNode(id: string) {
+        $selectedNodeId.set(id);
+        send({type: 'focus.set', term: id});
+    }
+
+    private copyTerm() {
+        if (this.node?.term) {
+            navigator.clipboard.writeText(this.node.term).catch(() => {
+            });
+        }
+    }
+
+    private pinNode() {
+        if (this.node) {
+            const ids = new Set($selectedNodeIds.get());
+            ids.add(this.node.id ?? '');
+            $selectedNodeIds.set(ids);
+        }
+    }
+
+    private hideNode() {
+        if (this.node) {
+            const nodes = new Map($graphNodes.get());
+            nodes.delete(this.node.id ?? '');
+            $graphNodes.set(nodes);
+            $selectedNodeId.set(null);
+        }
+    }
+
+    private renderOverview() {
+        const n = this.node;
+        if (!n) return html``;
+        const nodeId = n.id ?? '';
+        const truthColor = this.truthToColor(this.truthFrequency);
+        return html`
       <div class="section-title">Node Details</div>
       <div class="field"><span class="field-label">Term</span><span class="field-value">${n.term ?? n.label ?? nodeId}</span></div>
       <div class="field"><span class="field-label">Type</span><span class="field-value">${formatNodeType(n.nodeType)}</span></div>
@@ -312,16 +313,16 @@ export class NodeDetailDrawer extends BaseComponent {
       <div class="field"><span class="field-label">Confidence</span><span class="field-value">${this.truthConfidence.toFixed(3)}</span></div>
       ${n.punctuation ? html`<div class="field"><span class="field-label">Punctuation</span><span class="field-value">${n.punctuation}</span></div>` : ''}
     `;
-  }
+    }
 
-  private renderEdge() {
-    const ed = this.edgeData;
-    if (!ed) return html``;
-    const hasTruth = ed.weight !== undefined;
-    const nodes = $graphNodes.get();
-    const sourceLabel = nodes.get(ed.source as string)?.label ?? (ed.source as string);
-    const targetLabel = nodes.get(ed.target as string)?.label ?? (ed.target as string);
-    return html`
+    private renderEdge() {
+        const ed = this.edgeData;
+        if (!ed) return html``;
+        const hasTruth = ed.weight !== undefined;
+        const nodes = $graphNodes.get();
+        const sourceLabel = nodes.get(ed.source as string)?.label ?? (ed.source as string);
+        const targetLabel = nodes.get(ed.target as string)?.label ?? (ed.target as string);
+        return html`
       <div class="section-title">Edge Details</div>
       <div class="field"><span class="field-label">Source</span><span class="field-value">${sourceLabel}</span></div>
       <div class="field"><span class="field-label">Target</span><span class="field-value">${targetLabel}</span></div>
@@ -330,10 +331,10 @@ export class NodeDetailDrawer extends BaseComponent {
         <span class="field-value">
           <select @change=${this.onEdgeTypeChange} style="background:var(--colors-semantic-bg-base);color:var(--colors-semantic-text-primary);border:1px solid var(--colors-semantic-border-subtle);border-radius:var(--borderRadius-component-input);font-family:var(--typography-fontFamilies-data);font-size:var(--typography-scale-xs);padding:var(--spacing-scale-1)">
             ${Object.entries(EDGE_TYPES).map(
-              ([val, label]) => html`
+            ([val, label]) => html`
             <option value=${val} ?selected=${this.edgeType === val}>${label}</option>
             `
-            )}
+        )}
           </select>
         </span>
       </div>
@@ -346,48 +347,48 @@ export class NodeDetailDrawer extends BaseComponent {
         </span>
       </div>
     `;
-  }
+    }
 
-  private renderLinks() {
-    const { in: inLinks, out: outLinks } = this.getLinks();
-    return html`
+    private renderLinks() {
+        const {in: inLinks, out: outLinks} = this.getLinks();
+        return html`
       <input class="link-filter" type="text" placeholder="Filter links…" .value=${this.linkFilter} @input=${(
-        e: Event
-      ) => {
-        this.linkFilter = (e.target as HTMLInputElement).value;
-        this.requestUpdate();
-      }} />
+            e: Event
+        ) => {
+            this.linkFilter = (e.target as HTMLInputElement).value;
+            this.requestUpdate();
+        }} />
       <div class="section-title">Outgoing (${outLinks.length})</div>
       ${
-        outLinks.length === 0
-          ? html`<div class="empty">No outgoing links</div>`
-          : outLinks.map(
-              (l) => html`
+            outLinks.length === 0
+                ? html`<div class="empty">No outgoing links</div>`
+                : outLinks.map(
+                    (l) => html`
         <div class="link-item" @click=${() => this.focusNode(l.id)}>
           <span class="link-type">${l.type}</span>
           <span>${l.label}</span>
         </div>
       `
-            )
-      }
+                )
+        }
       <div class="section-title">Incoming (${inLinks.length})</div>
       ${
-        inLinks.length === 0
-          ? html`<div class="empty">No incoming links</div>`
-          : inLinks.map(
-              (l) => html`
+            inLinks.length === 0
+                ? html`<div class="empty">No incoming links</div>`
+                : inLinks.map(
+                    (l) => html`
         <div class="link-item" @click=${() => this.focusNode(l.id)}>
           <span class="link-type">${l.type}</span>
           <span>${l.label}</span>
         </div>
       `
-            )
-      }
+                )
+        }
     `;
-  }
+    }
 
-  private renderActions() {
-    return html`
+    private renderActions() {
+        return html`
       <div class="section-title">Node Actions</div>
       <button class="action-btn" @click=${this.focusOnNode}>Focus Term</button>
       <button class="action-btn" @click=${this.pinNode}>Pin to Selection</button>
@@ -395,16 +396,16 @@ export class NodeDetailDrawer extends BaseComponent {
       <button class="action-btn" @click=${this.hideNode}>Hide from Graph</button>
       <button class="action-btn" @click=${this.exportSubgraph}>Export Subgraph</button>
     `;
-  }
-
-  private renderHistory() {
-    if (this.history.length === 0) {
-      return html`<div class="empty">No history available</div>`;
     }
-    return html`
+
+    private renderHistory() {
+        if (this.history.length === 0) {
+            return html`<div class="empty">No history available</div>`;
+        }
+        return html`
       <div class="section-title">Revision History</div>
       ${this.history.map(
-        (entry) => html`
+            (entry) => html`
         <div class="field">
           <span class="field-label">${new Date(entry.timestamp).toLocaleTimeString()}</span>
           <span class="field-value">
@@ -413,41 +414,41 @@ export class NodeDetailDrawer extends BaseComponent {
           </span>
         </div>
       `
-      )}
+        )}
     `;
-  }
-
-  private seekToTime(t: number) {
-    $view.set({ ...$view.get(), timeline: { t } });
-  }
-
-  private focusOnNode() {
-    if (this.node?.term) {
-      $focusTerm.set(this.node.term);
-      send({ type: 'focus.set', term: this.node.term });
     }
-  }
 
-  private exportSubgraph() {
-    const nodes = $graphNodes.get();
-    const edges = $graphEdges.get();
-    const data = {
-      nodes: Array.from(nodes.values()),
-      edges: Array.from(edges.values()),
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const nodeId = this.node?.id ?? 'export';
-    a.download = `subgraph-${nodeId}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+    private seekToTime(t: number) {
+        $view.set({...$view.get(), timeline: {t}});
+    }
+
+    private focusOnNode() {
+        if (this.node?.term) {
+            $focusTerm.set(this.node.term);
+            send({type: 'focus.set', term: this.node.term});
+        }
+    }
+
+    private exportSubgraph() {
+        const nodes = $graphNodes.get();
+        const edges = $graphEdges.get();
+        const data = {
+            nodes: Array.from(nodes.values()),
+            edges: Array.from(edges.values()),
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const nodeId = this.node?.id ?? 'export';
+        a.download = `subgraph-${nodeId}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
 }
 
 declare global {
-  interface HTMLElementTagNameMap {
-    'node-detail-drawer': NodeDetailDrawer;
-  }
+    interface HTMLElementTagNameMap {
+        'node-detail-drawer': NodeDetailDrawer;
+    }
 }

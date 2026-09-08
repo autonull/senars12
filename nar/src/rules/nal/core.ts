@@ -1,26 +1,26 @@
-import { getPredicate, getSubject, TermBuilder, termsEqual } from '../../terms';
-import { buildAbduction, buildDeduction, buildInduction } from '../builders.js';
-import { _abductionLink, _deductionLink, _inductionLink } from '../extractors.js';
-import { buildBinaryInhRule } from '../rule-builder.js';
-import type { RuleFn } from '../types.js';
+import {getPredicate, getSubject, TermBuilder, termsEqual} from '../../terms';
+import {buildAbduction, buildDeduction, buildInduction} from '../builders.js';
+import {_abductionLink, _deductionLink, _inductionLink} from '../extractors.js';
+import {buildBinaryInhRule} from '../rule-builder.js';
+import type {RuleFn} from '../types.js';
 
 export const deduction: RuleFn = buildBinaryInhRule((l, r) => _deductionLink(l, r), buildDeduction);
 export const induction: RuleFn = buildBinaryInhRule((l, r) => _inductionLink(l, r), buildInduction);
 export const abduction: RuleFn = buildBinaryInhRule((l, r) => _abductionLink(l, r), buildAbduction);
 export const similarity: RuleFn = buildBinaryInhRule(
-  (l, r) => {
-    const s1 = getSubject(l),
-      p1 = getPredicate(l),
-      s2 = getSubject(r),
-      p2 = getPredicate(r);
-    if (!s1 || !p1 || !s2 || !p2) return false;
-    return (termsEqual(s1, s2) && termsEqual(p1, p2)) || (termsEqual(s1, p2) && termsEqual(p1, s2));
-  },
-  (l) => {
-    const s = getSubject(l),
-      p = getPredicate(l);
-    return s && p ? TermBuilder.similarity(s, p) : undefined;
-  }
+    (l, r) => {
+        const s1 = getSubject(l),
+            p1 = getPredicate(l),
+            s2 = getSubject(r),
+            p2 = getPredicate(r);
+        if (!s1 || !p1 || !s2 || !p2) return false;
+        return (termsEqual(s1, s2) && termsEqual(p1, p2)) || (termsEqual(s1, p2) && termsEqual(p1, s2));
+    },
+    (l) => {
+        const s = getSubject(l),
+            p = getPredicate(l);
+        return s && p ? TermBuilder.similarity(s, p) : undefined;
+    }
 );
 
 export const compose = undefined as unknown as RuleFn;

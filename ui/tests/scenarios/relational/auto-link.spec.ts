@@ -1,69 +1,69 @@
-import { expect, test } from '../../framework/fixtures/senars-app';
+import {expect, test} from '../../framework/fixtures/senars-app';
 
 test.describe('Relational Gate: auto-link', () => {
-  test('multi-clause Narsese input produces multiple nodes and edges', async ({
-    page,
-    testApi,
-  }) => {
-    await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect.poll(() => testApi.getConnectionState()).toBe('connected', { timeout: 10000 });
+    test('multi-clause Narsese input produces multiple nodes and edges', async ({
+                                                                                    page,
+                                                                                    testApi,
+                                                                                }) => {
+        await expect(page.locator('graph-viewport')).toBeVisible();
+        await expect.poll(() => testApi.getConnectionState()).toBe('connected', {timeout: 10000});
 
-    // Wait for initial graph nodes to load
-    await expect.poll(() => testApi.getGraphNodeCount()).toBeGreaterThan(0, { timeout: 15000 });
+        // Wait for initial graph nodes to load
+        await expect.poll(() => testApi.getGraphNodeCount()).toBeGreaterThan(0, {timeout: 15000});
 
-    const initialNodeCount = await testApi.getGraphNodeCount();
-    const initialEdgeCount = await testApi.getGraphEdgeCount();
+        const initialNodeCount = await testApi.getGraphNodeCount();
+        const initialEdgeCount = await testApi.getGraphEdgeCount();
 
-    // Send multi-clause input that NAR can parse as Narsese
-    // Use concepts NOT in bootstrap to ensure new nodes are created
-    const textarea = page.locator('input-hud textarea');
-    await expect(textarea).toBeVisible({ timeout: 5000 });
-    // <cat --> mammal> ; <siamese --> cat> creates an inheritance chain with new concepts
-    await textarea.type('<cat --> mammal>. ; <siamese --> cat>.');
-    await page.keyboard.press('Enter');
+        // Send multi-clause input that NAR can parse as Narsese
+        // Use concepts NOT in bootstrap to ensure new nodes are created
+        const textarea = page.locator('input-hud textarea');
+        await expect(textarea).toBeVisible({timeout: 5000});
+        // <cat --> mammal> ; <siamese --> cat> creates an inheritance chain with new concepts
+        await textarea.type('<cat --> mammal>. ; <siamese --> cat>.');
+        await page.keyboard.press('Enter');
 
-    // Wait for new nodes to appear (at least 3: cat, mammal, siamese + input node)
-    await expect
-      .poll(() => testApi.getGraphNodeCount())
-      .toBeGreaterThan(initialNodeCount + 2, { timeout: 15000 });
+        // Wait for new nodes to appear (at least 3: cat, mammal, siamese + input node)
+        await expect
+            .poll(() => testApi.getGraphNodeCount())
+            .toBeGreaterThan(initialNodeCount + 2, {timeout: 15000});
 
-    // Wait for edges to appear (at least 2 new edges from inheritance)
-    await expect
-      .poll(() => testApi.getGraphEdgeCount())
-      .toBeGreaterThan(initialEdgeCount + 1, { timeout: 15000 });
+        // Wait for edges to appear (at least 2 new edges from inheritance)
+        await expect
+            .poll(() => testApi.getGraphEdgeCount())
+            .toBeGreaterThan(initialEdgeCount + 1, {timeout: 15000});
 
-    // Verify at least 3 additional nodes were added (cat, mammal, siamese + input node)
-    const finalNodeCount = await testApi.getGraphNodeCount();
-    expect(finalNodeCount).toBeGreaterThanOrEqual(initialNodeCount + 3);
+        // Verify at least 3 additional nodes were added (cat, mammal, siamese + input node)
+        const finalNodeCount = await testApi.getGraphNodeCount();
+        expect(finalNodeCount).toBeGreaterThanOrEqual(initialNodeCount + 3);
 
-    // Verify at least 2 edges auto-created (inheritance links)
-    const finalEdgeCount = await testApi.getGraphEdgeCount();
-    expect(finalEdgeCount).toBeGreaterThanOrEqual(initialEdgeCount + 2);
-  });
+        // Verify at least 2 edges auto-created (inheritance links)
+        const finalEdgeCount = await testApi.getGraphEdgeCount();
+        expect(finalEdgeCount).toBeGreaterThanOrEqual(initialEdgeCount + 2);
+    });
 
-  test('NL multi-clause sentence produces concepts via NL understanding', async ({
-    page,
-    testApi,
-  }) => {
-    await expect(page.locator('graph-viewport')).toBeVisible();
-    await expect.poll(() => testApi.getConnectionState()).toBe('connected', { timeout: 10000 });
+    test('NL multi-clause sentence produces concepts via NL understanding', async ({
+                                                                                       page,
+                                                                                       testApi,
+                                                                                   }) => {
+        await expect(page.locator('graph-viewport')).toBeVisible();
+        await expect.poll(() => testApi.getConnectionState()).toBe('connected', {timeout: 10000});
 
-    await expect.poll(() => testApi.getGraphNodeCount()).toBeGreaterThan(0, { timeout: 15000 });
+        await expect.poll(() => testApi.getGraphNodeCount()).toBeGreaterThan(0, {timeout: 15000});
 
-    const initialCount = await testApi.getGraphNodeCount();
+        const initialCount = await testApi.getGraphNodeCount();
 
-    // Type a relational sentence
-    const textarea = page.locator('input-hud textarea');
-    await expect(textarea).toBeVisible({ timeout: 5000 });
-    await textarea.type('cats are animals and dogs are animals');
-    await page.keyboard.press('Enter');
+        // Type a relational sentence
+        const textarea = page.locator('input-hud textarea');
+        await expect(textarea).toBeVisible({timeout: 5000});
+        await textarea.type('cats are animals and dogs are animals');
+        await page.keyboard.press('Enter');
 
-    // Wait for the graph to grow
-    await expect
-      .poll(() => testApi.getGraphNodeCount())
-      .toBeGreaterThan(initialCount, { timeout: 30000 });
+        // Wait for the graph to grow
+        await expect
+            .poll(() => testApi.getGraphNodeCount())
+            .toBeGreaterThan(initialCount, {timeout: 30000});
 
-    const newCount = await testApi.getGraphNodeCount();
-    expect(newCount).toBeGreaterThan(initialCount);
-  });
+        const newCount = await testApi.getGraphNodeCount();
+        expect(newCount).toBeGreaterThan(initialCount);
+    });
 });

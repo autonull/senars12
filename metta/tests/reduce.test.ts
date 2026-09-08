@@ -1,44 +1,44 @@
-import { describe, expect, it } from 'vitest';
-import { defineOp, registerOp } from '../src/core/ops.js';
-import { ReductionPipeline } from '../src/engine/reduce.js';
-import { expr, num, sym, varr } from '../src/types/ast.js';
+import {describe, expect, it} from 'vitest';
+import {defineOp, registerOp} from '../src/core/ops.js';
+import {ReductionPipeline} from '../src/engine/reduce.js';
+import {expr, num, sym, varr} from '../src/types/ast.js';
 
 describe('ReductionPipeline', () => {
-  it('reduces symbols to themselves', () => {
-    const pipeline = new ReductionPipeline();
-    const result = pipeline.reduce(sym('hello'));
-    expect(result).toEqual(sym('hello'));
-  });
+    it('reduces symbols to themselves', () => {
+        const pipeline = new ReductionPipeline();
+        const result = pipeline.reduce(sym('hello'));
+        expect(result).toEqual(sym('hello'));
+    });
 
-  it('reduces numbers to themselves', () => {
-    const pipeline = new ReductionPipeline();
-    const result = pipeline.reduce(num(42));
-    expect(result).toEqual(num(42));
-  });
+    it('reduces numbers to themselves', () => {
+        const pipeline = new ReductionPipeline();
+        const result = pipeline.reduce(num(42));
+        expect(result).toEqual(num(42));
+    });
 
-  it('applies substitution to variables', () => {
-    const pipeline = new ReductionPipeline();
-    const subst = new Map([['$x', sym('hello')]]);
-    const result = pipeline.reduce(varr('$x'), subst);
-    expect(result).toEqual(sym('hello'));
-  });
+    it('applies substitution to variables', () => {
+        const pipeline = new ReductionPipeline();
+        const subst = new Map([['$x', sym('hello')]]);
+        const result = pipeline.reduce(varr('$x'), subst);
+        expect(result).toEqual(sym('hello'));
+    });
 
-  it('reduces expressions without registered ops', () => {
-    const pipeline = new ReductionPipeline();
-    const result = pipeline.reduce(expr(sym('+'), num(1), num(2)));
-    expect(result.kind).toBe(4);
-    expect((result as { operator: { value: string } }).operator.value).toBe('+');
-  });
+    it('reduces expressions without registered ops', () => {
+        const pipeline = new ReductionPipeline();
+        const result = pipeline.reduce(expr(sym('+'), num(1), num(2)));
+        expect(result.kind).toBe(4);
+        expect((result as { operator: { value: string } }).operator.value).toBe('+');
+    });
 
-  it('executes registered operations', () => {
-    registerOp(
-      'double',
-      defineOp('double', (n: ReturnType<typeof num>) => num(n.value * 2))
-    );
+    it('executes registered operations', () => {
+        registerOp(
+            'double',
+            defineOp('double', (n: ReturnType<typeof num>) => num(n.value * 2))
+        );
 
-    const pipeline = new ReductionPipeline();
-    const result = pipeline.reduce(expr(sym('double'), num(5)));
-    expect(result.kind).toBe(2);
-    expect((result as { value: number }).value).toBe(10);
-  });
+        const pipeline = new ReductionPipeline();
+        const result = pipeline.reduce(expr(sym('double'), num(5)));
+        expect(result.kind).toBe(2);
+        expect((result as { value: number }).value).toBe(10);
+    });
 });

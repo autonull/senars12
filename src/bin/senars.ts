@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
-import { createAgentFromEnv, runAgent } from './lib/lifecycle.js';
+import {createAgentFromEnv, runAgent} from './lib/lifecycle.js';
 
-const { agent } = await createAgentFromEnv({
-  narConfig: { maxConcepts: 100 },
+const {agent} = await createAgentFromEnv({
+    narConfig: {maxConcepts: 100},
 });
 
 await runAgent(agent);

@@ -1,26 +1,26 @@
-import type { Meta, StoryObj } from '@storybook/web-components-vite';
-import { html } from 'lit';
+import type {Meta, StoryObj} from '@storybook/web-components-vite';
+import {html} from 'lit';
 import './empty-state.ts';
 
 const meta: Meta = {
-  title: 'Primitives/EmptyState',
-  component: 's-empty-state',
-  argTypes: {
-    icon: { control: 'text' },
-    heading: { control: 'text' },
-    description: { control: 'text' },
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
+    title: 'Primitives/EmptyState',
+    component: 's-empty-state',
+    argTypes: {
+        icon: {control: 'text'},
+        heading: {control: 'text'},
+        description: {control: 'text'},
+        size: {
+            control: 'select',
+            options: ['sm', 'md', 'lg'],
+        },
     },
-  },
 };
 
 export default meta;
 type Story = StoryObj;
 
 export const Default: Story = {
-  render: (args) => html`
+    render: (args) => html`
     <s-empty-state
       icon=${args.icon}
       heading=${args.heading}
@@ -28,11 +28,11 @@ export const Default: Story = {
       size=${args.size}
     ></s-empty-state>
   `,
-  args: { icon: '📭', heading: 'No Data', description: 'There is nothing to display', size: 'md' },
+    args: {icon: '📭', heading: 'No Data', description: 'There is nothing to display', size: 'md'},
 };
 
 export const Large: Story = {
-  render: () => html`
+    render: () => html`
     <s-empty-state
       icon="🧠"
       heading="SeNARS Cognitive HUD"
@@ -45,7 +45,7 @@ export const Large: Story = {
 };
 
 export const Small: Story = {
-  render: () => html`
+    render: () => html`
     <s-empty-state
       icon="🔍"
       heading="No concepts"
@@ -56,7 +56,7 @@ export const Small: Story = {
 };
 
 export const WithAction: Story = {
-  render: () => html`
+    render: () => html`
     <s-empty-state
       icon="⚠️"
       heading="Connection Lost"

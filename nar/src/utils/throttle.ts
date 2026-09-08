@@ -3,5 +3,5 @@
  * Use `import { Throttle, createThrottle, throttleGenerator } from '@senars/util'` instead.
  */
 
-export type { ThrottleConfig } from '@senars/util';
-export { createThrottle, Throttle, throttleGenerator } from '@senars/util';
+export type {ThrottleConfig} from '@senars/util';
+export {createThrottle, Throttle, throttleGenerator} from '@senars/util';

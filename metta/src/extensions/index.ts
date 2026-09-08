@@ -1,5 +1,5 @@
 export {
-  type PersistedSpaceData,
-  PersistentSpace,
-  type PersistentSpaceOptions,
+    type PersistedSpaceData,
+    PersistentSpace,
+    type PersistentSpaceOptions,
 } from './persistent-space.js';

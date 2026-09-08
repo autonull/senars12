@@ -5,55 +5,55 @@
  * with structural equality fallback for other terms.
  */
 
-import { termsEqual } from './accessors.js';
-import type { Term } from './types.js';
+import {termsEqual} from './accessors.js';
+import type {Term} from './types.js';
 
 export abstract class TermCollection<T> {
-  protected storage: T[] = [];
-  private refIndex = new Map<Term, number>();
+    protected storage: T[] = [];
+    private refIndex = new Map<Term, number>();
 
-  get size(): number {
-    return this.storage.length;
-  }
-
-  clear(): void {
-    this.storage = [];
-    this.refIndex.clear();
-  }
-
-  protected getIndex(term: Term, getItem: (i: T) => Term): number {
-    const refIdx = this.refIndex.get(term);
-    if (refIdx !== undefined) return refIdx;
-    const termStr = term.toString();
-    let idx = this.storage.findIndex((item) => termsEqual(getItem(item), term));
-    if (idx < 0) {
-      idx = this.storage.findIndex((item) => getItem(item).toString() === termStr);
+    get size(): number {
+        return this.storage.length;
     }
-    return idx;
-  }
 
-  protected setRef(term: Term, index: number): void {
-    if (Object.isFrozen(term)) this.refIndex.set(term, index);
-  }
-
-  protected clearRef(term: Term): void {
-    this.refIndex.delete(term);
-  }
-
-  protected reindex(getItem: (i: T) => Term): void {
-    for (let i = 0; i < this.storage.length; i++) {
-      this.setRef(getItem(this.storage[i]!), i);
+    clear(): void {
+        this.storage = [];
+        this.refIndex.clear();
     }
-  }
 
-  protected deleteItem(term: Term, getItem: (i: T) => Term): boolean {
-    const index = this.getIndex(term, getItem);
-    if (index >= 0) {
-      this.clearRef(term);
-      this.storage.splice(index, 1);
-      this.reindex(getItem);
-      return true;
+    protected getIndex(term: Term, getItem: (i: T) => Term): number {
+        const refIdx = this.refIndex.get(term);
+        if (refIdx !== undefined) return refIdx;
+        const termStr = term.toString();
+        let idx = this.storage.findIndex((item) => termsEqual(getItem(item), term));
+        if (idx < 0) {
+            idx = this.storage.findIndex((item) => getItem(item).toString() === termStr);
+        }
+        return idx;
     }
-    return false;
-  }
+
+    protected setRef(term: Term, index: number): void {
+        if (Object.isFrozen(term)) this.refIndex.set(term, index);
+    }
+
+    protected clearRef(term: Term): void {
+        this.refIndex.delete(term);
+    }
+
+    protected reindex(getItem: (i: T) => Term): void {
+        for (let i = 0; i < this.storage.length; i++) {
+            this.setRef(getItem(this.storage[i]!), i);
+        }
+    }
+
+    protected deleteItem(term: Term, getItem: (i: T) => Term): boolean {
+        const index = this.getIndex(term, getItem);
+        if (index >= 0) {
+            this.clearRef(term);
+            this.storage.splice(index, 1);
+            this.reindex(getItem);
+            return true;
+        }
+        return false;
+    }
 }

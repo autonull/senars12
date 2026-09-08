@@ -4,14 +4,14 @@
  * `import { bindAgentToConnection, createAgentDispatch } from '@senars/io'`
  */
 export {
-  bindAgentToConnection,
-  createAgentDispatch,
-  createAuthMiddleware,
-  createCommandInterceptor,
-  createConnectionConfigsFromEnv,
-  createErrorBoundary,
-  createRateLimiter,
-  createSessionBinder,
-  originExtractor,
-  resolveSessionKey,
+    bindAgentToConnection,
+    createAgentDispatch,
+    createAuthMiddleware,
+    createCommandInterceptor,
+    createConnectionConfigsFromEnv,
+    createErrorBoundary,
+    createRateLimiter,
+    createSessionBinder,
+    originExtractor,
+    resolveSessionKey,
 } from './bridge/index.js';

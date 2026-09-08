@@ -1,50 +1,51 @@
-import type { Term } from '../../terms';
-import { LinkBag } from './LinkBag.js';
-import type { LinkEntry } from './types.js';
+import type {Term} from '../../terms';
+import {LinkBag} from './LinkBag.js';
+import type {LinkEntry} from './types.js';
 
 export class Layer {
-  readonly name: string;
-  readonly capacity: number;
-  protected bag: LinkBag;
+    readonly name: string;
+    readonly capacity: number;
+    protected bag: LinkBag;
 
-  constructor(
-    name: string,
-    capacity: number,
-    forgetPolicy: 'priority' | 'lru' | 'fifo' | 'random' = 'priority',
-    onRemoved?: (entry: LinkEntry) => void
-  ) {
-    this.name = name;
-    this.capacity = capacity;
-    this.bag = new LinkBag(capacity, forgetPolicy, onRemoved);
-  }
+    constructor(
+        name: string,
+        capacity: number,
+        forgetPolicy: 'priority' | 'lru' | 'fifo' | 'random' = 'priority',
+        onRemoved?: (entry: LinkEntry) => void
+    ) {
+        this.name = name;
+        this.capacity = capacity;
+        this.bag = new LinkBag(capacity, forgetPolicy, onRemoved);
+    }
 
-  add(_sourceHash: number, _targetHash: number, _data?: Record<string, unknown>): LinkEntry | null {
-    throw new Error('Method not implemented');
-  }
+    add(_sourceHash: number, _targetHash: number, _data?: Record<string, unknown>): LinkEntry | null {
+        throw new Error('Method not implemented');
+    }
 
-  remove(_sourceHash: number, _targetHash: number): boolean {
-    throw new Error('Method not implemented');
-  }
+    remove(_sourceHash: number, _targetHash: number): boolean {
+        throw new Error('Method not implemented');
+    }
 
-  get(_sourceHash: number): LinkEntry[] {
-    throw new Error('Method not implemented');
-  }
+    get(_sourceHash: number): LinkEntry[] {
+        throw new Error('Method not implemented');
+    }
 
-  applyDecay(decayRate: number): void {
-    this.bag.applyDecay(decayRate);
-  }
+    applyDecay(decayRate: number): void {
+        this.bag.applyDecay(decayRate);
+    }
 
-  getStats(): { size: number; capacity: number; utilization: number } {
-    return {
-      size: this.bag.size,
-      capacity: this.capacity,
-      utilization: this.bag.size / this.capacity,
-    };
-  }
+    getStats(): { size: number; capacity: number; utilization: number } {
+        return {
+            size: this.bag.size,
+            capacity: this.capacity,
+            utilization: this.bag.size / this.capacity,
+        };
+    }
 
-  removeAllLinksForTerm(_term: Term): void {}
+    removeAllLinksForTerm(_term: Term): void {
+    }
 
-  getLinksByTerm(_term: Term): LinkEntry[] {
-    return [];
-  }
+    getLinksByTerm(_term: Term): LinkEntry[] {
+        return [];
+    }
 }

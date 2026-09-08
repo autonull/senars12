@@ -3,16 +3,16 @@
  */
 
 export type {
-  ExpectedDerivation,
-  Premise,
-  TestResult,
-  TestSpec,
+    ExpectedDerivation,
+    Premise,
+    TestResult,
+    TestSpec,
 } from './ReasoningTestBuilder.js';
 export {
-  assertReasoning,
-  createPremise,
-  describeReasoning,
-  expectDerivation,
-  ReasoningTestBuilder,
-  testReasoning,
+    assertReasoning,
+    createPremise,
+    describeReasoning,
+    expectDerivation,
+    ReasoningTestBuilder,
+    testReasoning,
 } from './ReasoningTestBuilder.js';

@@ -1,11 +1,11 @@
-import { css, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { BaseComponent } from '../core/base-component.js';
-import { $graphNodes, $nodeHistory, $selectedNodeId, $view, mountTestApi } from '../core/index.js';
+import {css, html} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
+import {BaseComponent} from '../core/base-component.js';
+import {$graphNodes, $nodeHistory, $selectedNodeId, $view, mountTestApi} from '../core/index.js';
 
 @customElement('timeline-scrubber')
 export class TimelineScrubber extends BaseComponent {
-  static override styles = css`
+    static override styles = css`
     :host {
       display: block;
       background: var(--colors-semantic-bg-panel);
@@ -77,106 +77,32 @@ export class TimelineScrubber extends BaseComponent {
     }
   `;
 
-  @state() private minTime = 0;
-  @state() private maxTime = 100;
-  @state() private playing = false;
-  private animationFrame: number | null = null;
+    @state() private minTime = 0;
+    @state() private maxTime = 100;
+    @state() private playing = false;
+    private animationFrame: number | null = null;
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.watchWith($graphNodes, () => this.computeTimeRange());
-    this.watchWith($view, () => this.requestUpdate());
-    this.computeTimeRange();
-    mountTestApi('timeline', {
-      getTime: () => $view.get().timeline.t,
-      setTime: (t: number) => $view.set({ ...$view.get(), timeline: { t } }),
-    });
-  }
-
-  override disconnectedCallback() {
-    super.disconnectedCallback();
-    this.stopPlaying();
-  }
-
-  private computeTimeRange() {
-    const selectedId = $selectedNodeId.get();
-    const history = selectedId ? $nodeHistory.get() : [];
-    if (history.length > 0) {
-      let min = Number.POSITIVE_INFINITY;
-      let max = Number.NEGATIVE_INFINITY;
-      for (const h of history) {
-        min = Math.min(min, h.timestamp);
-        max = Math.max(max, h.timestamp);
-      }
-      this.minTime = min === Number.POSITIVE_INFINITY ? 0 : min;
-      this.maxTime = max === Number.NEGATIVE_INFINITY ? 100 : max;
-      return;
+    override connectedCallback() {
+        super.connectedCallback();
+        this.watchWith($graphNodes, () => this.computeTimeRange());
+        this.watchWith($view, () => this.requestUpdate());
+        this.computeTimeRange();
+        mountTestApi('timeline', {
+            getTime: () => $view.get().timeline.t,
+            setTime: (t: number) => $view.set({...$view.get(), timeline: {t}}),
+        });
     }
 
-    const nodes = $graphNodes.get();
-    let min = Number.POSITIVE_INFINITY;
-    let max = 0;
-    for (const nd of nodes.values()) {
-      if (nd.occurrenceTime !== undefined) {
-        min = Math.min(min, nd.occurrenceTime);
-        max = Math.max(max, nd.occurrenceTime);
-      }
+    override disconnectedCallback() {
+        super.disconnectedCallback();
+        this.stopPlaying();
     }
-    this.minTime = min === Number.POSITIVE_INFINITY ? 0 : min;
-    this.maxTime = max === 0 ? 100 : max;
-  }
 
-  private formatTime(t: number): string {
-    return new Date(t).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  }
-
-  private onInput(e: Event) {
-    const t = Number.parseFloat((e.target as HTMLInputElement).value);
-    $view.set({ ...$view.get(), timeline: { t } });
-    this.requestUpdate();
-  }
-
-  private onPlayPause() {
-    if (this.playing) {
-      this.stopPlaying();
-    } else {
-      this.startPlaying();
-    }
-  }
-
-  private startPlaying() {
-    this.playing = true;
-    const step = () => {
-      if (!this.playing) return;
-      const current = $view.get().timeline.t;
-      const next = Math.min(current + 1000, this.maxTime);
-      $view.set({ ...$view.get(), timeline: { t: next } });
-      if (next < this.maxTime) {
-        this.animationFrame = requestAnimationFrame(step);
-      } else {
-        this.playing = false;
-      }
-    };
-    this.animationFrame = requestAnimationFrame(step);
-  }
-
-  private stopPlaying() {
-    this.playing = false;
-    if (this.animationFrame) {
-      cancelAnimationFrame(this.animationFrame);
-      this.animationFrame = null;
-    }
-  }
-
-  override render() {
-    const t = $view.get().timeline.t;
-    const percentage =
-      this.maxTime > this.minTime ? ((t - this.minTime) / (this.maxTime - this.minTime)) * 100 : 50;
-    return html`
+    override render() {
+        const t = $view.get().timeline.t;
+        const percentage =
+            this.maxTime > this.minTime ? ((t - this.minTime) / (this.maxTime - this.minTime)) * 100 : 50;
+        return html`
       <div class="scrubber-container">
         <span class="time-label">${this.formatTime(this.minTime)}</span>
         <div style="position:relative;flex:1">
@@ -197,11 +123,85 @@ export class TimelineScrubber extends BaseComponent {
         </button>
       </div>
     `;
-  }
+    }
+
+    private computeTimeRange() {
+        const selectedId = $selectedNodeId.get();
+        const history = selectedId ? $nodeHistory.get() : [];
+        if (history.length > 0) {
+            let min = Number.POSITIVE_INFINITY;
+            let max = Number.NEGATIVE_INFINITY;
+            for (const h of history) {
+                min = Math.min(min, h.timestamp);
+                max = Math.max(max, h.timestamp);
+            }
+            this.minTime = min === Number.POSITIVE_INFINITY ? 0 : min;
+            this.maxTime = max === Number.NEGATIVE_INFINITY ? 100 : max;
+            return;
+        }
+
+        const nodes = $graphNodes.get();
+        let min = Number.POSITIVE_INFINITY;
+        let max = 0;
+        for (const nd of nodes.values()) {
+            if (nd.occurrenceTime !== undefined) {
+                min = Math.min(min, nd.occurrenceTime);
+                max = Math.max(max, nd.occurrenceTime);
+            }
+        }
+        this.minTime = min === Number.POSITIVE_INFINITY ? 0 : min;
+        this.maxTime = max === 0 ? 100 : max;
+    }
+
+    private formatTime(t: number): string {
+        return new Date(t).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+        });
+    }
+
+    private onInput(e: Event) {
+        const t = Number.parseFloat((e.target as HTMLInputElement).value);
+        $view.set({...$view.get(), timeline: {t}});
+        this.requestUpdate();
+    }
+
+    private onPlayPause() {
+        if (this.playing) {
+            this.stopPlaying();
+        } else {
+            this.startPlaying();
+        }
+    }
+
+    private startPlaying() {
+        this.playing = true;
+        const step = () => {
+            if (!this.playing) return;
+            const current = $view.get().timeline.t;
+            const next = Math.min(current + 1000, this.maxTime);
+            $view.set({...$view.get(), timeline: {t: next}});
+            if (next < this.maxTime) {
+                this.animationFrame = requestAnimationFrame(step);
+            } else {
+                this.playing = false;
+            }
+        };
+        this.animationFrame = requestAnimationFrame(step);
+    }
+
+    private stopPlaying() {
+        this.playing = false;
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+        }
+    }
 }
 
 declare global {
-  interface HTMLElementTagNameMap {
-    'timeline-scrubber': TimelineScrubber;
-  }
+    interface HTMLElementTagNameMap {
+        'timeline-scrubber': TimelineScrubber;
+    }
 }

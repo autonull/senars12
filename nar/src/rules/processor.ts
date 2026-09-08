@@ -2,396 +2,396 @@
  * Rule processor for applying inference rules
  */
 
-import type { LMRule } from '../lm';
-import type { LMRuleStats } from '../lm/lm-service.js';
-import type { Memory } from '../memory';
-import type { NAR } from '../nar.js';
-import type { LMRuleSelector } from '../strategies';
-import type { StampType, Term } from '../terms';
-import { Truth, type Truth as TruthType } from '../terms';
-import type { EventBus } from '../types';
-import { toError } from '../utils';
-import { buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput } from './rule-utils.js';
-import { type RegisteredRule, RuleIndex, RuleRegistry } from './types.js';
-import { META_AIKR_BOUNDS, shouldActivateMetaReasoning } from './meta-rules.js';
+import type {LMRule} from '../lm';
+import type {LMRuleStats} from '../lm/lm-service.js';
+import type {Memory} from '../memory';
+import type {NAR} from '../nar.js';
+import type {LMRuleSelector} from '../strategies';
+import type {StampType, Term} from '../terms';
+import {Truth, type Truth as TruthType} from '../terms';
+import type {EventBus} from '../types';
+import {toError} from '../utils';
+import {buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput} from './rule-utils.js';
+import {type RegisteredRule, RuleIndex, RuleRegistry} from './types.js';
+import {META_AIKR_BOUNDS, shouldActivateMetaReasoning} from './meta-rules.js';
 
 interface LMRuleExecutionEntry {
-  ruleName: string;
-  status: 'fired' | 'skipped' | 'timeout' | 'aborted';
-  durationMs: number;
-  tasksProduced: number;
-  timestamp: number;
+    ruleName: string;
+    status: 'fired' | 'skipped' | 'timeout' | 'aborted';
+    durationMs: number;
+    tasksProduced: number;
+    timestamp: number;
 }
 
 export interface RuleInput {
-  term: Term;
-  truth: TruthType;
-  stamp: StampType;
+    term: Term;
+    truth: TruthType;
+    stamp: StampType;
 }
 
 export interface RuleResult {
-  term: Term;
-  truth: TruthType;
-  stamp: StampType;
-  priority: number;
-  taskType?: 'belief' | 'goal' | 'question' | 'command';
+    term: Term;
+    truth: TruthType;
+    stamp: StampType;
+    priority: number;
+    taskType?: 'belief' | 'goal' | 'question' | 'command';
 }
 
 /** Meta-reasoning budget state */
 interface MetaBudgetState {
-  derivationsThisStep: number;
-  currentDepth: number;
-  maxDerivationsPerStep: number;
-  maxDerivationDepth: number;
+    derivationsThisStep: number;
+    currentDepth: number;
+    maxDerivationsPerStep: number;
+    maxDerivationDepth: number;
 }
 
 export class RuleProcessor {
-  private readonly ruleIndex: RuleIndex;
-  private readonly lmRules: LMRule[] = [];
-  private eventBus: EventBus | null = null;
-  private resultBuffer: RuleResult[] = [];
-  private memory?: Memory;
-  private nar?: NAR;
-  private lmSelector: LMRuleSelector | null = null;
-  private maxLMRulesPerStep = 13;
-  private lmRotationIndex = 0;
-  private executionLog: LMRuleExecutionEntry[] = [];
+    private readonly ruleIndex: RuleIndex;
+    private readonly lmRules: LMRule[] = [];
+    private eventBus: EventBus | null = null;
+    private resultBuffer: RuleResult[] = [];
+    private memory?: Memory;
+    private nar?: NAR;
+    private lmSelector: LMRuleSelector | null = null;
+    private maxLMRulesPerStep = 13;
+    private lmRotationIndex = 0;
+    private executionLog: LMRuleExecutionEntry[] = [];
 
-  /** Meta-reasoning budget tracking */
-  private metaBudget: MetaBudgetState = {
-    derivationsThisStep: 0,
-    currentDepth: 0,
-    maxDerivationsPerStep: META_AIKR_BOUNDS.maxMetaDerivationsPerStep,
-    maxDerivationDepth: META_AIKR_BOUNDS.maxMetaDerivationDepth,
-  };
-
-  constructor(rules?: RegisteredRule[]) {
-    this.ruleIndex = new RuleIndex();
-    (rules ?? RuleRegistry.getAll()).forEach((rule) => this.ruleIndex.register(rule));
-  }
-
-  setConfig(config: { memory?: Memory; nar?: NAR }): void {
-    if (config.memory) this.memory = config.memory;
-    if (config.nar) this.nar = config.nar;
-  }
-
-  setEventBus(eventBus: EventBus): void {
-    this.eventBus = eventBus;
-    this.lmRules.forEach((lmRule) => lmRule.setEventBus(eventBus));
-  }
-
-  registerLMRule(lmRule: LMRule): void {
-    this.lmRules.push(lmRule);
-    if (this.eventBus) lmRule.setEventBus(this.eventBus);
-  }
-
-  setLMSelector(selector: LMRuleSelector, maxRules: number): void {
-    this.lmSelector = selector;
-    this.maxLMRulesPerStep = maxRules;
-  }
-
-  getLMRuleExecutionLog(): LMRuleExecutionEntry[] {
-    return [...this.executionLog];
-  }
-
-  getLMRule(id: string): LMRule | undefined {
-    return this.lmRules.find((r) => r.id === id);
-  }
-
-  getLmRuleStats(): LMRuleStats[] {
-    return this.lmRules.map((r) => r.getStats());
-  }
-
-  clearLMRuleExecutionLog(): void {
-    this.executionLog = [];
-  }
-
-  serializeLMRules(): { rules: LMRuleStats[] } {
-    return {
-      rules: this.lmRules.map((r) => r.getStats()),
+    /** Meta-reasoning budget tracking */
+    private metaBudget: MetaBudgetState = {
+        derivationsThisStep: 0,
+        currentDepth: 0,
+        maxDerivationsPerStep: META_AIKR_BOUNDS.maxMetaDerivationsPerStep,
+        maxDerivationDepth: META_AIKR_BOUNDS.maxMetaDerivationDepth,
     };
-  }
 
-  deserializeLMRules(data: { rules: LMRuleStats[] }): void {
-    for (const ruleData of data.rules) {
-      const rule = this.lmRules.find((r) => r.id === ruleData.id);
-      if (rule) {
-        if (ruleData.enabled !== undefined) {
-          if (ruleData.enabled) rule.enable();
-          else rule.disable();
-        }
-        if (ruleData.circuitState === 'open') {
-          // Circuit breaker will be open, stats will be restored on next operation
-        }
-      }
+    constructor(rules?: RegisteredRule[]) {
+        this.ruleIndex = new RuleIndex();
+        (rules ?? RuleRegistry.getAll()).forEach((rule) => this.ruleIndex.register(rule));
     }
-  }
 
-  /** Check if a rule is a meta-rule (by ID prefix) */
-  private isMetaRule(rule: RegisteredRule): boolean {
-    return rule.id.startsWith('meta-');
-  }
-
-  /** Check if meta-reasoning budget allows another derivation */
-  private checkMetaBudget(depth: number): boolean {
-    return (
-      this.metaBudget.derivationsThisStep < this.metaBudget.maxDerivationsPerStep &&
-      depth < this.metaBudget.maxDerivationDepth
-    );
-  }
-
-  /** Record a meta-derivation */
-  private recordMetaDerivation(depth: number): void {
-    this.metaBudget.derivationsThisStep++;
-    this.metaBudget.currentDepth = Math.max(this.metaBudget.currentDepth, depth);
-  }
-
-  /** Reset meta-budget for new step */
-  resetMetaBudget(): void {
-    this.metaBudget.derivationsThisStep = 0;
-    this.metaBudget.currentDepth = 0;
-  }
-
-  /** Get current meta-budget status */
-  getMetaBudgetStatus(): MetaBudgetState {
-    return { ...this.metaBudget };
-  }
-
-  /** Configure meta-reasoning AIKR bounds */
-  configureMetaAikr(bounds: { maxDerivationsPerStep?: number; maxDerivationDepth?: number }): void {
-    if (bounds.maxDerivationsPerStep !== undefined) {
-      this.metaBudget.maxDerivationsPerStep = bounds.maxDerivationsPerStep;
+    setConfig(config: { memory?: Memory; nar?: NAR }): void {
+        if (config.memory) this.memory = config.memory;
+        if (config.nar) this.nar = config.nar;
     }
-    if (bounds.maxDerivationDepth !== undefined) {
-      this.metaBudget.maxDerivationDepth = bounds.maxDerivationDepth;
+
+    setEventBus(eventBus: EventBus): void {
+        this.eventBus = eventBus;
+        this.lmRules.forEach((lmRule) => lmRule.setEventBus(eventBus));
     }
-  }
 
-  async *processLMRules(
-    p1: RuleInput,
-    p2?: RuleInput,
-    opts?: {
-      signal?: AbortSignal;
-      singlePremise?: boolean;
+    registerLMRule(lmRule: LMRule): void {
+        this.lmRules.push(lmRule);
+        if (this.eventBus) lmRule.setEventBus(this.eventBus);
     }
-  ): AsyncGenerator<RuleResult> {
-    yield* this.processLMRulesImpl(p1, p2, opts);
-  }
 
-  async *process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
-    for await (const [p1, p2] of premises) {
-      // Check if meta-reasoning should activate
-      const driveManager = this.nar?.getDriveManager?.();
-      const driveStates = driveManager
-        ? new Map(driveManager.getAllStates().map((ds) => [ds.spec.id, { currentIntensity: ds.currentIntensity }]))
-        : new Map();
-      const metaActive = shouldActivateMetaReasoning(driveStates);
+    setLMSelector(selector: LMRuleSelector, maxRules: number): void {
+        this.lmSelector = selector;
+        this.maxLMRulesPerStep = maxRules;
+    }
 
-      for (const rule of this.ruleIndex.match(p1.term, p2.term)) {
-        if (!rule.sync) continue;
+    getLMRuleExecutionLog(): LMRuleExecutionEntry[] {
+        return [...this.executionLog];
+    }
 
-        // Enforce meta-reasoning AIKR bounds
-        if (this.isMetaRule(rule)) {
-          if (!metaActive) continue; // Only fire when drives demand it
-          if (!this.checkMetaBudget(this.metaBudget.currentDepth + 1)) continue;
-        }
+    getLMRule(id: string): LMRule | undefined {
+        return this.lmRules.find((r) => r.id === id);
+    }
 
-        try {
-          const result = rule.apply([p1.term, p2.term]);
-          if (result && validateRuleOutput(result, [p1.term, p2.term])) {
-            if (this.isMetaRule(rule)) {
-              this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
+    getLmRuleStats(): LMRuleStats[] {
+        return this.lmRules.map((r) => r.getStats());
+    }
+
+    clearLMRuleExecutionLog(): void {
+        this.executionLog = [];
+    }
+
+    serializeLMRules(): { rules: LMRuleStats[] } {
+        return {
+            rules: this.lmRules.map((r) => r.getStats()),
+        };
+    }
+
+    deserializeLMRules(data: { rules: LMRuleStats[] }): void {
+        for (const ruleData of data.rules) {
+            const rule = this.lmRules.find((r) => r.id === ruleData.id);
+            if (rule) {
+                if (ruleData.enabled !== undefined) {
+                    if (ruleData.enabled) rule.enable();
+                    else rule.disable();
+                }
+                if (ruleData.circuitState === 'open') {
+                    // Circuit breaker will be open, stats will be restored on next operation
+                }
             }
-            const ruleResult = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
-            (ruleResult as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
-            yield ruleResult;
-          } else if (result) {
-            this.eventBus?.emit('rule:output-rejected', {
-              ruleId: rule.id,
-              term: result.toString(),
-            });
-          }
-        } catch (error) {
-          this.handleRuleError(error, rule.id);
         }
-      }
-
-      for await (const lmResult of this.processLMRulesImpl(p1, p2)) {
-        yield lmResult;
-      }
     }
-  }
 
-  processSync(p1: RuleInput, p2: RuleInput): RuleResult[] {
-    this.resultBuffer = [];
-    const matchedRules = this.ruleIndex.match(p1.term, p2.term);
-    const seen = new Map<string, RuleResult>();
-    const p1s = p1.term.toString(),
-      p2s = p2.term.toString();
+    /** Reset meta-budget for new step */
+    resetMetaBudget(): void {
+        this.metaBudget.derivationsThisStep = 0;
+        this.metaBudget.currentDepth = 0;
+    }
 
-    // Check if meta-reasoning should activate
-    const driveManager = this.nar?.getDriveManager?.();
-    const driveStates = driveManager
-      ? new Map(driveManager.getAllStates().map((ds) => [ds.spec.id, { currentIntensity: ds.currentIntensity }]))
-      : new Map();
-    const metaActive = shouldActivateMetaReasoning(driveStates);
+    /** Get current meta-budget status */
+    getMetaBudgetStatus(): MetaBudgetState {
+        return {...this.metaBudget};
+    }
 
-    for (const rule of matchedRules) {
-      if (!rule.sync) continue;
-
-      // Enforce meta-reasoning AIKR bounds
-      if (this.isMetaRule(rule)) {
-        if (!metaActive) continue; // Only fire when drives demand it
-        if (!this.checkMetaBudget(this.metaBudget.currentDepth + 1)) continue;
-      }
-
-      try {
-        const result = rule.apply([p1.term, p2.term]);
-        if (result && validateRuleOutput(result, [p1.term, p2.term])) {
-          if (this.isMetaRule(rule)) {
-            this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
-          }
-          const rs = result.toString();
-          if (rs === p1s || rs === p2s) continue;
-          const rr = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
-          (rr as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
-          const existing = seen.get(rs);
-          if (!existing || rule.priority > existing.priority) {
-            seen.set(rs, rr);
-          }
-        } else if (result) {
-          this.eventBus?.emit('rule:output-rejected', { ruleId: rule.id, term: result.toString() });
+    /** Configure meta-reasoning AIKR bounds */
+    configureMetaAikr(bounds: { maxDerivationsPerStep?: number; maxDerivationDepth?: number }): void {
+        if (bounds.maxDerivationsPerStep !== undefined) {
+            this.metaBudget.maxDerivationsPerStep = bounds.maxDerivationsPerStep;
         }
-      } catch (error) {
-        this.handleRuleError(error, rule.id);
-      }
-    }
-
-    this.resultBuffer = Array.from(seen.values());
-    return this.resultBuffer;
-  }
-
-  private async *processLMRulesImpl(
-    p1: RuleInput,
-    p2?: RuleInput,
-    opts?: {
-      signal?: AbortSignal;
-      singlePremise?: boolean;
-    }
-  ): AsyncGenerator<RuleResult> {
-    if (this.lmRules.length === 0 || opts?.signal?.aborted) return;
-
-    const isSinglePremise = opts?.singlePremise ?? !p2;
-    const effectiveP2 = p2 ?? p1;
-
-    const maxPriority = Math.max(
-      this.memory?.getConcept(p1.term)?.priority ?? 0,
-      this.memory?.getConcept(effectiveP2.term)?.priority ?? 0
-    );
-
-    const stats = this.memory?.getStatistics();
-
-    // Build drive state from NAR's drive manager
-    const driveState: Record<string, number> = {};
-    const driveManager = this.nar?.getDriveManager?.();
-    if (driveManager) {
-      for (const ds of driveManager.getAllStates()) {
-        driveState[ds.spec.id] = ds.currentIntensity;
-      }
-    }
-
-    // Get conflict count from NAR
-    let conflictCount = 0;
-    if (this.nar) {
-      const beliefs = this.nar.getBeliefs?.();
-      if (beliefs) {
-        const { findConflicts } = await import('../cognitive/conflict-utils.js');
-        conflictCount = findConflicts(beliefs).length;
-      }
-    }
-
-    const ruleContext: Record<string, unknown> = {
-      priority: maxPriority,
-      conceptPriority: maxPriority,
-      taskTerm: p1.term.toString(),
-      secondaryTerm: effectiveP2.term.toString(),
-      totalConcepts: stats?.totalConcepts ?? 0,
-      memoryPressure: stats?.memoryPressure ?? 0,
-      driveState,
-      conflictCount,
-    };
-
-    const relatedConcepts = this.memory?.getRelatedConcepts(p1.term, 5);
-    if (relatedConcepts && relatedConcepts.length > 0) {
-      ruleContext.relatedBeliefs = relatedConcepts.flatMap((c) =>
-        c
-          .getBeliefs()
-          .slice(0, 2)
-          .map((b) => {
-            const truth = b.truth ? ` :${b.truth.f.toFixed(2)}:${b.truth.c.toFixed(2)}` : '';
-            return `${b.term.toString()}${truth}`;
-          })
-      );
-    }
-
-    const goals = this.memory?.getGoals();
-    if (goals && goals.length > 0) {
-      ruleContext.activeGoals = goals.slice(0, 5).map((g) => g.term.toString());
-    }
-
-    const selected = this.lmSelector
-      ? this.lmSelector.select(this.lmRules, {
-          maxRules: this.maxLMRulesPerStep,
-          conceptPriority: maxPriority,
-          rotationIndex: this.lmRotationIndex,
-          premiseCount: isSinglePremise ? 1 : 2,
-        })
-      : this.lmRules;
-
-    const results = await Promise.all(
-      selected.map(async (lmRule) => {
-        if (opts?.signal?.aborted) return [];
-        const startTime = Date.now();
-        try {
-          const tasks = isSinglePremise
-            ? await lmRule.apply(p1.term, p1.term, ruleContext, opts?.signal)
-            : await lmRule.apply(p1.term, effectiveP2.term, ruleContext, opts?.signal);
-          const derivedStamp = isSinglePremise ? p1.stamp : deriveStamp(p1, effectiveP2);
-          const result = tasks.map(
-            (task) =>
-              ({
-                term: task.term,
-                truth: task.truth ?? Truth.NEUTRAL,
-                stamp: derivedStamp,
-                priority: lmRule.priority,
-              }) as RuleResult
-          );
-          this.executionLog.push({
-            ruleName: lmRule.name,
-            status: result.length > 0 ? 'fired' : 'timeout',
-            durationMs: Date.now() - startTime,
-            tasksProduced: result.length,
-            timestamp: Date.now(),
-          });
-          return result;
-        } catch (error) {
-          this.handleRuleError(error, lmRule.id);
-          this.executionLog.push({
-            ruleName: lmRule.name,
-            status: 'timeout',
-            durationMs: Date.now() - startTime,
-            tasksProduced: 0,
-            timestamp: Date.now(),
-          });
-          return [];
+        if (bounds.maxDerivationDepth !== undefined) {
+            this.metaBudget.maxDerivationDepth = bounds.maxDerivationDepth;
         }
-      })
-    );
-    this.lmRotationIndex = (this.lmRotationIndex + 1) % this.lmRules.length;
-    yield* results.flat();
-  }
+    }
 
-  private handleRuleError(error: unknown, ruleId: string): void {
-    this.eventBus?.emit('error', { error: toError(error), context: { ruleId } });
-  }
+    async* processLMRules(
+        p1: RuleInput,
+        p2?: RuleInput,
+        opts?: {
+            signal?: AbortSignal;
+            singlePremise?: boolean;
+        }
+    ): AsyncGenerator<RuleResult> {
+        yield* this.processLMRulesImpl(p1, p2, opts);
+    }
+
+    async* process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
+        for await (const [p1, p2] of premises) {
+            // Check if meta-reasoning should activate
+            const driveManager = this.nar?.getDriveManager?.();
+            const driveStates = driveManager
+                ? new Map(driveManager.getAllStates().map((ds) => [ds.spec.id, {currentIntensity: ds.currentIntensity}]))
+                : new Map();
+            const metaActive = shouldActivateMetaReasoning(driveStates);
+
+            for (const rule of this.ruleIndex.match(p1.term, p2.term)) {
+                if (!rule.sync) continue;
+
+                // Enforce meta-reasoning AIKR bounds
+                if (this.isMetaRule(rule)) {
+                    if (!metaActive) continue; // Only fire when drives demand it
+                    if (!this.checkMetaBudget(this.metaBudget.currentDepth + 1)) continue;
+                }
+
+                try {
+                    const result = rule.apply([p1.term, p2.term]);
+                    if (result && validateRuleOutput(result, [p1.term, p2.term])) {
+                        if (this.isMetaRule(rule)) {
+                            this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
+                        }
+                        const ruleResult = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
+                        (ruleResult as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
+                        yield ruleResult;
+                    } else if (result) {
+                        this.eventBus?.emit('rule:output-rejected', {
+                            ruleId: rule.id,
+                            term: result.toString(),
+                        });
+                    }
+                } catch (error) {
+                    this.handleRuleError(error, rule.id);
+                }
+            }
+
+            for await (const lmResult of this.processLMRulesImpl(p1, p2)) {
+                yield lmResult;
+            }
+        }
+    }
+
+    processSync(p1: RuleInput, p2: RuleInput): RuleResult[] {
+        this.resultBuffer = [];
+        const matchedRules = this.ruleIndex.match(p1.term, p2.term);
+        const seen = new Map<string, RuleResult>();
+        const p1s = p1.term.toString(),
+            p2s = p2.term.toString();
+
+        // Check if meta-reasoning should activate
+        const driveManager = this.nar?.getDriveManager?.();
+        const driveStates = driveManager
+            ? new Map(driveManager.getAllStates().map((ds) => [ds.spec.id, {currentIntensity: ds.currentIntensity}]))
+            : new Map();
+        const metaActive = shouldActivateMetaReasoning(driveStates);
+
+        for (const rule of matchedRules) {
+            if (!rule.sync) continue;
+
+            // Enforce meta-reasoning AIKR bounds
+            if (this.isMetaRule(rule)) {
+                if (!metaActive) continue; // Only fire when drives demand it
+                if (!this.checkMetaBudget(this.metaBudget.currentDepth + 1)) continue;
+            }
+
+            try {
+                const result = rule.apply([p1.term, p2.term]);
+                if (result && validateRuleOutput(result, [p1.term, p2.term])) {
+                    if (this.isMetaRule(rule)) {
+                        this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
+                    }
+                    const rs = result.toString();
+                    if (rs === p1s || rs === p2s) continue;
+                    const rr = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
+                    (rr as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
+                    const existing = seen.get(rs);
+                    if (!existing || rule.priority > existing.priority) {
+                        seen.set(rs, rr);
+                    }
+                } else if (result) {
+                    this.eventBus?.emit('rule:output-rejected', {ruleId: rule.id, term: result.toString()});
+                }
+            } catch (error) {
+                this.handleRuleError(error, rule.id);
+            }
+        }
+
+        this.resultBuffer = Array.from(seen.values());
+        return this.resultBuffer;
+    }
+
+    /** Check if a rule is a meta-rule (by ID prefix) */
+    private isMetaRule(rule: RegisteredRule): boolean {
+        return rule.id.startsWith('meta-');
+    }
+
+    /** Check if meta-reasoning budget allows another derivation */
+    private checkMetaBudget(depth: number): boolean {
+        return (
+            this.metaBudget.derivationsThisStep < this.metaBudget.maxDerivationsPerStep &&
+            depth < this.metaBudget.maxDerivationDepth
+        );
+    }
+
+    /** Record a meta-derivation */
+    private recordMetaDerivation(depth: number): void {
+        this.metaBudget.derivationsThisStep++;
+        this.metaBudget.currentDepth = Math.max(this.metaBudget.currentDepth, depth);
+    }
+
+    private async* processLMRulesImpl(
+        p1: RuleInput,
+        p2?: RuleInput,
+        opts?: {
+            signal?: AbortSignal;
+            singlePremise?: boolean;
+        }
+    ): AsyncGenerator<RuleResult> {
+        if (this.lmRules.length === 0 || opts?.signal?.aborted) return;
+
+        const isSinglePremise = opts?.singlePremise ?? !p2;
+        const effectiveP2 = p2 ?? p1;
+
+        const maxPriority = Math.max(
+            this.memory?.getConcept(p1.term)?.priority ?? 0,
+            this.memory?.getConcept(effectiveP2.term)?.priority ?? 0
+        );
+
+        const stats = this.memory?.getStatistics();
+
+        // Build drive state from NAR's drive manager
+        const driveState: Record<string, number> = {};
+        const driveManager = this.nar?.getDriveManager?.();
+        if (driveManager) {
+            for (const ds of driveManager.getAllStates()) {
+                driveState[ds.spec.id] = ds.currentIntensity;
+            }
+        }
+
+        // Get conflict count from NAR
+        let conflictCount = 0;
+        if (this.nar) {
+            const beliefs = this.nar.getBeliefs?.();
+            if (beliefs) {
+                const {findConflicts} = await import('../cognitive/conflict-utils.js');
+                conflictCount = findConflicts(beliefs).length;
+            }
+        }
+
+        const ruleContext: Record<string, unknown> = {
+            priority: maxPriority,
+            conceptPriority: maxPriority,
+            taskTerm: p1.term.toString(),
+            secondaryTerm: effectiveP2.term.toString(),
+            totalConcepts: stats?.totalConcepts ?? 0,
+            memoryPressure: stats?.memoryPressure ?? 0,
+            driveState,
+            conflictCount,
+        };
+
+        const relatedConcepts = this.memory?.getRelatedConcepts(p1.term, 5);
+        if (relatedConcepts && relatedConcepts.length > 0) {
+            ruleContext.relatedBeliefs = relatedConcepts.flatMap((c) =>
+                c
+                    .getBeliefs()
+                    .slice(0, 2)
+                    .map((b) => {
+                        const truth = b.truth ? ` :${b.truth.f.toFixed(2)}:${b.truth.c.toFixed(2)}` : '';
+                        return `${b.term.toString()}${truth}`;
+                    })
+            );
+        }
+
+        const goals = this.memory?.getGoals();
+        if (goals && goals.length > 0) {
+            ruleContext.activeGoals = goals.slice(0, 5).map((g) => g.term.toString());
+        }
+
+        const selected = this.lmSelector
+            ? this.lmSelector.select(this.lmRules, {
+                maxRules: this.maxLMRulesPerStep,
+                conceptPriority: maxPriority,
+                rotationIndex: this.lmRotationIndex,
+                premiseCount: isSinglePremise ? 1 : 2,
+            })
+            : this.lmRules;
+
+        const results = await Promise.all(
+            selected.map(async (lmRule) => {
+                if (opts?.signal?.aborted) return [];
+                const startTime = Date.now();
+                try {
+                    const tasks = isSinglePremise
+                        ? await lmRule.apply(p1.term, p1.term, ruleContext, opts?.signal)
+                        : await lmRule.apply(p1.term, effectiveP2.term, ruleContext, opts?.signal);
+                    const derivedStamp = isSinglePremise ? p1.stamp : deriveStamp(p1, effectiveP2);
+                    const result = tasks.map(
+                        (task) =>
+                            ({
+                                term: task.term,
+                                truth: task.truth ?? Truth.NEUTRAL,
+                                stamp: derivedStamp,
+                                priority: lmRule.priority,
+                            }) as RuleResult
+                    );
+                    this.executionLog.push({
+                        ruleName: lmRule.name,
+                        status: result.length > 0 ? 'fired' : 'timeout',
+                        durationMs: Date.now() - startTime,
+                        tasksProduced: result.length,
+                        timestamp: Date.now(),
+                    });
+                    return result;
+                } catch (error) {
+                    this.handleRuleError(error, lmRule.id);
+                    this.executionLog.push({
+                        ruleName: lmRule.name,
+                        status: 'timeout',
+                        durationMs: Date.now() - startTime,
+                        tasksProduced: 0,
+                        timestamp: Date.now(),
+                    });
+                    return [];
+                }
+            })
+        );
+        this.lmRotationIndex = (this.lmRotationIndex + 1) % this.lmRules.length;
+        yield* results.flat();
+    }
+
+    private handleRuleError(error: unknown, ruleId: string): void {
+        this.eventBus?.emit('error', {error: toError(error), context: {ruleId}});
+    }
 }

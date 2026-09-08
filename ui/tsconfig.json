@@ -1,11 +1,26 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["ESNext", "esnext.temporal", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ESNext",
+      "esnext.temporal",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src/client/**/*.ts", "src/backend/**/*.ts", "src/shared/**/*.ts"],
-  "exclude": ["node_modules", "dist", "src/server"]
+  "include": [
+    "src/client/**/*.ts",
+    "src/backend/**/*.ts",
+    "src/shared/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/server"
+  ]
 }

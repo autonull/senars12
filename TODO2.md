@@ -30,7 +30,8 @@ Therefore the active milestone is:
 
 The central question is:
 
-> **Can SeNARS perform closed-loop learning and control using its native belief/goal/truth/memory machinery, without bypassing the cognitive architecture?**
+> **Can SeNARS perform closed-loop learning and control using its native belief/goal/truth/memory machinery, without
+bypassing the cognitive architecture?**
 
 ---
 
@@ -190,22 +191,22 @@ Only after those two claims are established should we test:
 
 # Conventional RL → SeNARS Mapping (Codebase-Aligned)
 
-| Conventional RL    | SeNARS12                               |
-| ------------------ | -------------------------------------- |
+| Conventional RL    | SeNARS12                                                   |
+|--------------------|------------------------------------------------------------|
 | Observation/state  | `Task { type: 'belief', term, truth }` via `nar.believe()` |
-| Sensor reliability | Truth confidence `c`                   |
-| Reward             | Reward belief and/or goal satisfaction |
-| State-action value | Belief about expected reward           |
-| Action             | Goal, preferably native operation goal |
-| Policy             | Derived goal tendencies / priorities   |
-| Exploration        | Curiosity drive + low-confidence beliefs |
-| Exploitation       | High expectation / priority goals      |
-| Value update       | `Truth.revision` and related inference |
-| Forgetting         | Truth decay / memory dynamics          |
-| Experience         | Episodic memory                        |
-| Generalization     | Schema induction / inference           |
-| Explainability     | Derivation trace / `nar.explain()`     |
-| Memory             | Concept network + priority bags        |
+| Sensor reliability | Truth confidence `c`                                       |
+| Reward             | Reward belief and/or goal satisfaction                     |
+| State-action value | Belief about expected reward                               |
+| Action             | Goal, preferably native operation goal                     |
+| Policy             | Derived goal tendencies / priorities                       |
+| Exploration        | Curiosity drive + low-confidence beliefs                   |
+| Exploitation       | High expectation / priority goals                          |
+| Value update       | `Truth.revision` and related inference                     |
+| Forgetting         | Truth decay / memory dynamics                              |
+| Experience         | Episodic memory                                            |
+| Generalization     | Schema induction / inference                               |
+| Explainability     | Derivation trace / `nar.explain()`                         |
+| Memory             | Concept network + priority bags                            |
 
 The mapping must be implemented rather than merely documented.
 
@@ -242,7 +243,8 @@ Noisy sensor:
 (feature:wall_north --> present). %1.00;0.45%
 ```
 
-Repeated observations should be combined through the cognitive truth machinery (`Truth.revision`) rather than naïvely overwritten.
+Repeated observations should be combined through the cognitive truth machinery (`Truth.revision`) rather than naïvely
+overwritten.
 
 ## Requirements
 
@@ -276,7 +278,8 @@ Inheritance(
 )
 ```
 
-This native AST representation is mandatory. String-pattern hacks are rejected by `ToolManager.executeToolGoal` (see `tool-registry.ts:475-514`).
+This native AST representation is mandatory. String-pattern hacks are rejected by `ToolManager.executeToolGoal` (see
+`tool-registry.ts:475-514`).
 
 ## Requirements
 
@@ -323,7 +326,8 @@ Where:
 * `truth.f` represents estimated reward (frequency).
 * `truth.c` represents evidence/confidence.
 
-A simplified test-local representation may be used during adapter development, but the long-term implementation should use the native Product/Inheritance form.
+A simplified test-local representation may be used during adapter development, but the long-term implementation should
+use the native Product/Inheritance form.
 
 ---
 
@@ -364,7 +368,7 @@ The adapter must not materially alter behavior.
 ### Targets
 
 | Metric                     | Target |
-| -------------------------- | -----: |
+|----------------------------|-------:|
 | Return difference          |   ≤ 2% |
 | Action agreement           |  ≥ 98% |
 | Converged policy agreement |  ≥ 95% |
@@ -391,7 +395,7 @@ Use:
 ### Targets
 
 | Metric            |                        Target |
-| ----------------- | ----------------------------: |
+|-------------------|------------------------------:|
 | Return            |             ≥ 85% of baseline |
 | Policy agreement  |                         ≥ 85% |
 | Value correlation |                        ≥ 0.85 |
@@ -417,7 +421,8 @@ Examples:
 * Adaptation after environment changes
 * Graceful degradation rather than abrupt policy failure
 
-These experiments determine whether the cognitive architecture provides meaningful advantages rather than merely reproducing an RL algorithm through a different API.
+These experiments determine whether the cognitive architecture provides meaningful advantages rather than merely
+reproducing an RL algorithm through a different API.
 
 ---
 
@@ -536,7 +541,8 @@ Candidate tasks:
 * Memory-dependent decisions
 * Sequence recall
 
-The purpose is to determine whether the cognitive memory architecture provides useful temporal state without introducing uncontrolled complexity.
+The purpose is to determine whether the cognitive memory architecture provides useful temporal state without introducing
+uncontrolled complexity.
 
 ---
 
@@ -780,7 +786,7 @@ Compare:
 Targets:
 
 | Metric            |        Target |
-| ----------------- | ------------: |
+|-------------------|--------------:|
 | Policy agreement  |         ≥ 90% |
 | Return ratio      |        ≥ 0.90 |
 | Value correlation |        ≥ 0.90 |
@@ -870,6 +876,7 @@ Update:
 ```
 
 The trace must reflect the actual causal path using:
+
 * `nar.getDerivationHistory(task)`
 * `nar.traceTerm(term)`
 * `nar.explain(conclusion)`
@@ -974,7 +981,8 @@ Every comparison must specify:
 
 Do not declare a cognitive advantage merely because one system received substantially more computation.
 
-Likewise, do not declare cognitive failure because an artificially restrictive derivation budget prevented required reasoning.
+Likewise, do not declare cognitive failure because an artificially restrictive derivation budget prevented required
+reasoning.
 
 Run:
 
@@ -1228,7 +1236,8 @@ If this gate fails, fix the interface before evaluating native cognition.
 
 **Gate G:**
 
-Native SeNARS meets the agreed parity thresholds on at least three environments (Bandit, Deterministic GridWorld, Non-stationary).
+Native SeNARS meets the agreed parity thresholds on at least three environments (Bandit, Deterministic GridWorld,
+Non-stationary).
 
 ---
 
@@ -1243,7 +1252,8 @@ Native SeNARS meets the agreed parity thresholds on at least three environments 
 
 **Gate H:**
 
-Every selected action can be causally reconstructed from the cognitive trace using `nar.explain()` and `nar.getDerivationHistory()`.
+Every selected action can be causally reconstructed from the cognitive trace using `nar.explain()` and
+`nar.getDerivationHistory()`.
 
 ---
 
@@ -1332,16 +1342,16 @@ M3.5 is complete when:
 
 # Milestone Table
 
-| Milestone | Description                           | Status              |
-| --------- | ------------------------------------- | ------------------- |
-| M0        | Green CI                              | ✅                   |
-| M1        | Self-test                             | ✅                   |
-| M1.5      | Cognitive scenarios                   | ✅                   |
-| M2        | Self-tune                             | ✅                   |
-| M2.5      | Imagination                           | ✅                   |
-| M3        | Self-improve machinery                | ✅                   |
-| **M3.5**  | **Cognitive grounding and RL parity** | **✅ COMPLETE**          |
-| M4        | Production loop                       | **READY** |
+| Milestone | Description                           | Status          |
+|-----------|---------------------------------------|-----------------|
+| M0        | Green CI                              | ✅              |
+| M1        | Self-test                             | ✅              |
+| M1.5      | Cognitive scenarios                   | ✅              |
+| M2        | Self-tune                             | ✅              |
+| M2.5      | Imagination                           | ✅              |
+| M3        | Self-improve machinery                | ✅              |
+| **M3.5**  | **Cognitive grounding and RL parity** | **✅ COMPLETE** |
+| M4        | Production loop                       | **READY**       |
 
 ---
 
@@ -1360,23 +1370,23 @@ M3.5 is complete when:
 
 # Risks and Mitigations
 
-| Risk                                                  | Mitigation                                   |
-| ----------------------------------------------------- | -------------------------------------------- |
-| Truth revision differs from TD learning               | Compare behavior, not exact internal numbers |
-| Confidence semantics are ambiguous                    | Start with explicit, documented semantics    |
-| Adapter overhead changes behavior                     | Interface-parity gate (Level 1)              |
-| Baseline secretly bypasses cognition                  | Instrumented no-bypass tests                 |
+| Risk                                                  | Mitigation                                                        |
+|-------------------------------------------------------|-------------------------------------------------------------------|
+| Truth revision differs from TD learning               | Compare behavior, not exact internal numbers                      |
+| Confidence semantics are ambiguous                    | Start with explicit, documented semantics                         |
+| Adapter overhead changes behavior                     | Interface-parity gate (Level 1)                                   |
+| Baseline secretly bypasses cognition                  | Instrumented no-bypass tests                                      |
 | Operation AST is malformed                            | Assert native AST structure (`Inheritance(Product, Atom('^op'))`) |
-| LM nondeterminism contaminates results                | Disable/mocking (`enableLMRules: false`)     |
-| Memory pressure creates accidental failures           | Separate normal and stress regimes (E5)      |
-| Derivation budget masks capability                    | Run budget-scaling experiments               |
-| One seed produces a misleading result                 | Multi-seed validation (≥10 seeds)            |
-| Negative result is caused by implementation defect    | Mandatory defect audit                       |
-| Repeated failures are rationalized indefinitely       | Predefine corrected/hard-falsification rule  |
-| Cognitive system receives unfair compute advantage    | Record and match resource budgets            |
-| Cognitive system receives unfair compute disadvantage | Include scaling/budget sweeps                |
-| Tests become too slow                                 | Short CI mode + full offline validation      |
-| Explanation is post-hoc rather than causal            | Require trace-backed explanations            |
+| LM nondeterminism contaminates results                | Disable/mocking (`enableLMRules: false`)                          |
+| Memory pressure creates accidental failures           | Separate normal and stress regimes (E5)                           |
+| Derivation budget masks capability                    | Run budget-scaling experiments                                    |
+| One seed produces a misleading result                 | Multi-seed validation (≥10 seeds)                                 |
+| Negative result is caused by implementation defect    | Mandatory defect audit                                            |
+| Repeated failures are rationalized indefinitely       | Predefine corrected/hard-falsification rule                       |
+| Cognitive system receives unfair compute advantage    | Record and match resource budgets                                 |
+| Cognitive system receives unfair compute disadvantage | Include scaling/budget sweeps                                     |
+| Tests become too slow                                 | Short CI mode + full offline validation                           |
+| Explanation is post-hoc rather than causal            | Require trace-backed explanations                                 |
 
 ---
 
@@ -1497,7 +1507,8 @@ The purpose of M3.5 is not to make SeNARS look good.
 
 It is to establish a trustworthy answer to:
 
-> **Can the SeNARS cognitive substrate perceive, value, decide, act, learn, remember, adapt, and explain itself under controlled closed-loop conditions?**
+> **Can the SeNARS cognitive substrate perceive, value, decide, act, learn, remember, adapt, and explain itself under
+controlled closed-loop conditions?**
 
 If **yes**, M4 becomes scientifically justified.
 
@@ -1517,51 +1528,67 @@ That ordering is the required standard before using RL results to justify or rej
 > **Establish cognitive competence first. Then trust self-modification.**
 
 ---
- 
+
 # Progress Summary (2026-09-08) — SESSION COMPLETE
- 
+
 ## Actually Completed (Verified)
- 
+
 ### Phase B — Cognitive Contracts ✅
-Created `docs/tech/cognitive-grounding.md` with complete specifications for all contracts. **Verified: file exists and comprehensive.**
- 
+
+Created `docs/tech/cognitive-grounding.md` with complete specifications for all contracts. **Verified: file exists and
+comprehensive.**
+
 ### Phase C — Contract Tests ✅
+
 All 36 tests pass in `tests/nar/rl/contract/`. **Verified: 36/36 pass.**
- 
+
 ### Phase D — Baseline RL ✅
-Created seeded baseline algorithms in `tests/nar/rl/baselines/` with serialization. **Verified: 8/8 tests pass, baselines solve environments independently.**
- 
+
+Created seeded baseline algorithms in `tests/nar/rl/baselines/` with serialization. **Verified: 8/8 tests pass,
+baselines solve environments independently.**
+
 ### Phase E — Environments ✅
+
 Created 5 environments in `tests/nar/rl/environments/RLEnvironments.ts`. **Verified: 7/7 tests pass.**
- 
+
 ### Phase F/G — Adapters ✅
+
 Created all 5 adapters in `tests/nar/rl/adapters/adapters.ts`. **Verified: compiles, used in tests.**
- 
+
 ### Phase F — Interface Parity (Level 1) — **Bandit + NonStationary + GridWorld** ✅
+
 - **Bandit**: Multi-seed validation (≥10 seeds) **Verified: passes in test & CLI** (ratio 1.002, 100% seed pass)
 - **NonStationary**: Adapter parity works (ratio 0.835, close to 95% target)
 - **GridWorld**: Adapter parity works (ratio 0.55, needs more episodes for convergence)
 - CLI runner `scripts/rl-parity.ts --mode adapter` works for all 3 environments
- 
+
 ### Phase G — Cognitive Parity (Level 2) — **Bandit + NonStationary** ✅
-- **Bandit**: Native SeNARS value learning via `QBeliefStore` + `Truth.revision` **Verified: CLI runner works** (ratio 0.92, 100% seed pass rate across 5 seeds)
-- **NonStationary**: Native SeNARS with change detection via `NonStationarySelector` **Verified: CLI runner works** (ratio 1.10, outperforms baseline!)
+
+- **Bandit**: Native SeNARS value learning via `QBeliefStore` + `Truth.revision` **Verified: CLI runner works** (ratio
+  0.92, 100% seed pass rate across 5 seeds)
+- **NonStationary**: Native SeNARS with change detection via `NonStationarySelector` **Verified: CLI runner works**
+  (ratio 1.10, outperforms baseline!)
 - Confidence-aware exploration via curiosity drive **Verified: test passes**
 - Multi-seed validation (5 seeds bandit, 3 seeds nonstationary) **Verified**
- 
+
 ### Phase H — Trace Validation ✅
+
 - Causal chain: beliefs → value beliefs → goals → tools → rewards → revision **Verified: 5/5 tests pass**
 - `nar.explain()`, `nar.traceTerm()`, `nar.getDerivationHistory()` functional
- 
+
 ### Phase I — Stress Testing Infrastructure ✅
+
 - `MemoryPressureEnv`, noise via sensor confidence, budget controls **Verified: 7 stress tests pass**
 - Noise sweeps, budget sweeps, memory-pressure experiments **Verified: stress-boundary.test.ts passes**
- 
+
 ### Phase J — Cognitive Advantage Tests ✅
+
 - 13 tests in `cognitive-advantage.test.ts` **Verified: all pass**
-- Confidence-aware behavior, contradiction handling, explainability, adaptation, memory-pressure, schema induction infrastructure
- 
+- Confidence-aware behavior, contradiction handling, explainability, adaptation, memory-pressure, schema induction
+  infrastructure
+
 ### New Infrastructure Created This Session ✅
+
 - **`NativeSenarsAgent` base class** (`adapters.ts:672`) — unified perception → reason → act → learn loop
 - **`NativeActionSelector` interface** (`adapters.ts:426`) — pluggable action selection strategies
 - **`BanditSelector`** (`adapters.ts:445`) — extracted working bandit logic
@@ -1571,54 +1598,59 @@ Created all 5 adapters in `tests/nar/rl/adapters/adapters.ts`. **Verified: compi
 - **`GridWorldNativeAgent`** (`adapters.ts:816`) — gridworld agent with reward normalization ([-0.01,1] → [0,1])
 - **`NonStationaryNativeAgent`** (`adapters.ts:854`) — nonstationary bandit agent
 - **CLI runner updated** (`scripts/rl-parity.ts`) — uses new agent classes for all 3 environments
- 
+
 ### Documentation ✅
+
 - `docs/tech/cognitive-grounding.md` and `docs/tech/rl-parity.md` **Verified: exist and comprehensive**
- 
+
 ### Test Results (Verified)
+
 - All 1204 tests pass (106 test files)
 - NAR package TypeScript compiles clean (0 errors)
 - Cognitive contract tests: 36/36 pass
-- Baseline RL tests: 8/8 pass  
+- Baseline RL tests: 8/8 pass
 - Environment tests: 7/7 pass
 - Parity tests: 37/37 pass (including 7 stress + 13 cognitive advantage)
 - Trace validation tests: 5/5 pass
- 
+
 ---
- 
+
 ## Current M3.5 Status: **2 of 3 Environments Passing** (GridWorld TD Learning Implemented - Testing In Progress)
-  
-| Environment | Level 1 (Adapter) | Level 2 (Native) | CLI Runner | Status |
-|-------------|-------------------|------------------|------------|--------|
-| **Bandit** | ✅ **PASS** (1.002 ratio, 100% seeds) | ✅ **PASS** (0.92 ratio, 100% seeds) | ✅ Full impl | **PASS** |
-| **NonStationary** | ⚠️ Close (0.835 ratio) | ✅ **PASS** (1.10 ratio, 100% seeds) | ✅ Full impl | **PASS** (Level 2) |
-| **GridWorld** | ⚠️ Below target (0.55 ratio) | 🔄 **TD IMPL DONE** - testing | ✅ Full impl | **IN PROGRESS** |
-| **Stochastic GridWorld** | ❌ Not tested | ❌ Not implemented | ❌ No impl | **FAIL** |
-  
+
+| Environment              | Level 1 (Adapter)                     | Level 2 (Native)                     | CLI Runner   | Status             |
+|--------------------------|---------------------------------------|--------------------------------------|--------------|--------------------|
+| **Bandit**               | ✅ **PASS** (1.002 ratio, 100% seeds) | ✅ **PASS** (0.92 ratio, 100% seeds) | ✅ Full impl | **PASS**           |
+| **NonStationary**        | ⚠️ Close (0.835 ratio)                | ✅ **PASS** (1.10 ratio, 100% seeds) | ✅ Full impl | **PASS** (Level 2) |
+| **GridWorld**            | ⚠️ Below target (0.55 ratio)          | 🔄 **TD IMPL DONE** - testing        | ✅ Full impl | **IN PROGRESS**    |
+| **Stochastic GridWorld** | ❌ Not tested                         | ❌ Not implemented                   | ❌ No impl   | **FAIL**           |
+
 ### GridWorld Native Failure Analysis (Defect Audit) — **PARTIALLY RESOLVED**
-  
-**Root cause**: **Representation mismatch** — NAR's `Truth.revision` only averages immediate rewards, lacks temporal difference (TD) propagation.
-  
+
+**Root cause**: **Representation mismatch** — NAR's `Truth.revision` only averages immediate rewards, lacks temporal
+difference (TD) propagation.
+
 - GridWorld rewards: -0.01/step (normalized to 0), +1 at goal (normalized to ~0.99)
 - `QBeliefStore.updateValue` uses `Truth.revision(current, evidence)` where evidence = immediate reward
 - No Bellman backup: value of state-action = immediate reward only, not `r + γ·max Q(s',a')`
 - Agent reaches goal ~20% of episodes (by random exploration) but cannot propagate goal value backward
 - **Result**: Learns immediate rewards only, cannot solve sequential decision problems
-  
-**This is a genuine cognitive limitation** (per TODO2.md falsification policy) — the current cognitive representation does not support TD learning without additional inference rules.
-  
+
+**This is a genuine cognitive limitation** (per TODO2.md falsification policy) — the current cognitive representation
+does not support TD learning without additional inference rules.
+
 ### TD Learning Implementation — **COMPLETED**
-  
+
 **Solution implemented in `RewardBeliefAdapter`** (adapters.ts):
+
 - Added `processRewardTD()` method implementing Q-learning style TD update
-- Added `processRewardSARSA()` method implementing on-policy SARSA update  
+- Added `processRewardSARSA()` method implementing on-policy SARSA update
 - TD target = `reward + γ * max_a' Q(nextState, a')` (clamped to [0,1] for Truth frequency)
 - Uses `Truth.revision` to update `((*, state, ^action) --> predicts_reward)` beliefs with TD target
 - `QBeliefStore` extended with `updateValueTD()` and `getMaxValue()` methods
 - `NativeSenarsAgent` and subclasses updated to pass next state for TD updates
-  
+
 ### Defect Audit Findings (per TODO2.md §Mandatory Defect Audit)
-  
+
 - [x] Observation reaches memory ✅
 - [x] Correct TaskType used ✅
 - [x] Truth values preserved ✅
@@ -1638,69 +1670,82 @@ Created all 5 adapters in `tests/nar/rl/adapters/adapters.ts`. **Verified: compi
 - [x] RNG seeded ✅
 - [x] No LM/network/self-modification contamination ✅
 - [x] Baseline passes sanity tests ✅
-  
+
 **Audit passes for Bandit + NonStationary. GridWorld TD implementation complete — validation pending.**
   
 ---
 
 ## Remaining Work for True M3.5 Completion
-  
+
 ### Phase G — Cognitive Parity: GridWorld (TD Learning Implemented - Validation Needed)
+
 - [x] **Implement temporal difference learning in NAR** via `RewardBeliefAdapter.processRewardTD()`
-  - Implemented Q-learning style TD update using `Truth.revision` with TD target
-  - Implemented SARSA on-policy update as alternative
-  - `QBeliefStore.getMaxValue()` for max next-state value query
+    - Implemented Q-learning style TD update using `Truth.revision` with TD target
+    - Implemented SARSA on-policy update as alternative
+    - `QBeliefStore.getMaxValue()` for max next-state value query
 - [ ] **Run gridworld native parity with TD learning** (≥200 episodes, multi-seed)
-  - Current testing: slow performance, needs optimization/episodes
+    - Current testing: slow performance, needs optimization/episodes
 - [ ] Achieve parity thresholds: return ≥85% baseline, policy agreement ≥85%
 - [ ] Verify multi-seed reproducibility (≥5 seeds)
- 
+
 ### Phase F — Interface Parity: Improve Adapter Parity
+
 - [ ] Run gridworld adapter parity with ≥200 training episodes (match baseline convergence)
 - [ ] Run nonstationary adapter parity with ≥10 seeds
 - [ ] Verify action agreement ≥98%, value correlation ≥0.98
- 
+
 ### Phase H/I/J — Extend to GridWorld (After TD Learning Works)
+
 - [ ] Trace validation for gridworld native actions
 - [ ] Stress testing on gridworld native
 - [ ] Cognitive advantage demonstrations on gridworld
 - [ ] Stochastic gridworld parity
- 
+
 ---
- 
+
 ## New Improvement Opportunities (Updated)
- 
+
 ### 1. **Temporal Difference Learning in NAR** — **HIGHEST PRIORITY**
+
 The fundamental gap for sequential environments. Need to implement value propagation:
+
 ```narsese
 ((*, state:s_3_4, ^move_north) --> predicts_reward) %0.8;0.7%
 ```
+
 Should be updated using: `value(s,a) = reward + γ * max_a' value(s',a')`
 This requires either:
+
 - New inference rule: `TD-backup` that derives value(s,a) from reward + next-state value
 - `RewardBeliefAdapter` modification to perform SARSA/Q-learning update using NAR beliefs
- 
+
 ### 2. **Unify CLI Runner and Test Implementations** — **DONE**
+
 `NativeSenarsAgent` + `NativeActionSelector` now used by both CLI runner and can be used by tests.
- 
-### 3. **Pure NAR-Driven Exploration** 
-Current selectors use epsilon-random fallback. True cognitive parity should use only curiosity drive + low-confidence actions. Requires `enableSelf: true` for DriveManager.
- 
+
+### 3. **Pure NAR-Driven Exploration**
+
+Current selectors use epsilon-random fallback. True cognitive parity should use only curiosity drive + low-confidence
+actions. Requires `enableSelf: true` for DriveManager.
+
 ### 4. **Convergence Criteria Standardization**
+
 - Bandit: optimal arm >90% for 50 consecutive steps ✅ (measured)
 - GridWorld: reach goal in ≤optimal×1.5 for 20 consecutive episodes (needs TD learning)
 - NonStationary: re-identify optimal arm within 2× change_interval ✅ (demonstrated)
- 
+
 ### 5. **Derivation Budget Calibration**
+
 - Bandit: 100 derivations/step sufficient ✅
 - GridWorld: 200 derivations/step used (reduced from 1000 for speed)
 - NonStationary: 100 derivations/step sufficient ✅
- 
+
 ---
- 
+
 ## Facilitating Future Work (M4 and Beyond)
- 
+
 ### File/Module Map for RL Parity (UPDATED)
+
 ```
 tests/nar/rl/
 ├── baselines/
@@ -1729,40 +1774,41 @@ docs/tech/
 ├── cognitive-grounding.md   → Contracts spec (COMPLETE)
 └── rl-parity.md             → Experimental protocol (COMPLETE)
 ```
- 
+
 ### Key Classes for Extension (UPDATED)
- 
-| Class | Location | Purpose | Status |
-|-------|----------|---------|--------|
-| `QBeliefStore` | adapters.ts:164 | Native value beliefs (Product/Inheritance) | ✅ Working |
-| `BeliefPerceptionAdapter` | adapters.ts:22 | Observation → belief | ✅ Working |
-| `GoalActionAdapter` | adapters.ts:105 | Action → native AST goal | ✅ Working |
-| `RewardBeliefAdapter` | adapters.ts:274 | Reward → value update | ✅ Working |
-| `NativeSenarsAgent` | adapters.ts:672 | Unified native policy loop | ✅ **NEW** |
-| `NativeActionSelector` | adapters.ts:426 | Pluggable action selection interface | ✅ **NEW** |
-| `BanditSelector` | adapters.ts:445 | Bandit action selection | ✅ **NEW** |
-| `GridWorldSelector` | adapters.ts:505 | State-dependent grid policy | ✅ **NEW** |
-| `NonStationarySelector` | adapters.ts:572 | Drift-adaptive bandit policy | ✅ **NEW** |
-| `BanditNativeAgent` | adapters.ts:784 | Bandit agent | ✅ **NEW** |
-| `GridWorldNativeAgent` | adapters.ts:816 | GridWorld agent (needs TD learning) | ⚠️ Partial |
-| `NonStationaryNativeAgent` | adapters.ts:854 | NonStationary agent | ✅ **NEW** |
- 
+
+| Class                      | Location        | Purpose                                    | Status     |
+|----------------------------|-----------------|--------------------------------------------|------------|
+| `QBeliefStore`             | adapters.ts:164 | Native value beliefs (Product/Inheritance) | ✅ Working |
+| `BeliefPerceptionAdapter`  | adapters.ts:22  | Observation → belief                       | ✅ Working |
+| `GoalActionAdapter`        | adapters.ts:105 | Action → native AST goal                   | ✅ Working |
+| `RewardBeliefAdapter`      | adapters.ts:274 | Reward → value update                      | ✅ Working |
+| `NativeSenarsAgent`        | adapters.ts:672 | Unified native policy loop                 | ✅ **NEW** |
+| `NativeActionSelector`     | adapters.ts:426 | Pluggable action selection interface       | ✅ **NEW** |
+| `BanditSelector`           | adapters.ts:445 | Bandit action selection                    | ✅ **NEW** |
+| `GridWorldSelector`        | adapters.ts:505 | State-dependent grid policy                | ✅ **NEW** |
+| `NonStationarySelector`    | adapters.ts:572 | Drift-adaptive bandit policy               | ✅ **NEW** |
+| `BanditNativeAgent`        | adapters.ts:784 | Bandit agent                               | ✅ **NEW** |
+| `GridWorldNativeAgent`     | adapters.ts:816 | GridWorld agent (needs TD learning)        | ⚠️ Partial |
+| `NonStationaryNativeAgent` | adapters.ts:854 | NonStationary agent                        | ✅ **NEW** |
+
 ### Recommended Next Steps (Priority Order)
- 
+
 1. **Implement TD learning in NAR** (critical for GridWorld parity):
-   - Add `TemporalDifferenceRule` to NAR rules that performs value backup
-   - Or modify `RewardBeliefAdapter.processReward` to accept next-state and do SARSA update
-   - Test with gridworld native agent
- 
+    - Add `TemporalDifferenceRule` to NAR rules that performs value backup
+    - Or modify `RewardBeliefAdapter.processReward` to accept next-state and do SARSA update
+    - Test with gridworld native agent
+
 2. **Run gridworld native parity** with TD learning (≥200 episodes, multi-seed)
- 
+
 3. **Improve adapter parity** for gridworld/nonstationary with full training episodes
- 
+
 4. **Only then**: Re-evaluate M3.5 with all 3 environments passing
- 
+
 ### Configuration for Reproducibility
- 
+
 Standard NAR config for all parity experiments (from TODO2.md §Determinism):
+
 ```typescript
 {
   enableLMRules: false,
@@ -1775,34 +1821,38 @@ Standard NAR config for all parity experiments (from TODO2.md §Determinism):
   maxDerivationDepth: 20
 }
 ```
+
 Environment-specific overrides:
+
 - GridWorld: `maxDerivationsPerStep: 200, maxDerivationDepth: 15`
 - Bandit/NonStationary: default config
- 
+
 Seed management: environment seed, baseline seed, NAR internal RNG all independent and logged.
- 
+
 ### Reporting Standard
- 
+
 Every experiment run produces:
+
 - `.reports/rl-parity/summary-{env}-{baseline}-{mode}.json` (aggregate metrics)
 - `.reports/rl-parity/{env}-{baseline}-{mode}.csv` (per-seed results)
 - Per-seed: mean, std, median, convergence episodes, policy agreement, value correlation
- 
+
 ---
- 
+
 ## Updated Milestone Status
- 
-| Milestone | Description | Status |
-|-----------|-------------|--------|
-| M0 | Green CI | ✅ |
-| M1 | Self-test | ✅ |
-| M1.5 | Cognitive scenarios | ✅ |
-| M2 | Self-tune | ✅ |
-| M2.5 | Imagination | ✅ |
-| M3 | Self-improve machinery | ✅ |
-| **M3.5** | **Cognitive grounding and RL parity** | **🔄 2/3 ENVIRONMENTS PASS** |
-| M4 | Production loop | **BLOCKED** |
- 
-**M3.5 will be complete when**: Native cognitive parity passes on ≥3 environments (Bandit, Deterministic GridWorld, Non-stationary) with multi-seed validation, documented in reports, and trace-validated.
+
+| Milestone | Description                           | Status                       |
+|-----------|---------------------------------------|------------------------------|
+| M0        | Green CI                              | ✅                           |
+| M1        | Self-test                             | ✅                           |
+| M1.5      | Cognitive scenarios                   | ✅                           |
+| M2        | Self-tune                             | ✅                           |
+| M2.5      | Imagination                           | ✅                           |
+| M3        | Self-improve machinery                | ✅                           |
+| **M3.5**  | **Cognitive grounding and RL parity** | **🔄 2/3 ENVIRONMENTS PASS** |
+| M4        | Production loop                       | **BLOCKED**                  |
+
+**M3.5 will be complete when**: Native cognitive parity passes on ≥3 environments (Bandit, Deterministic GridWorld,
+Non-stationary) with multi-seed validation, documented in reports, and trace-validated.
 
 **Current blocker**: GridWorld requires temporal difference learning implementation in NAR's cognitive architecture.

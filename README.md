@@ -1,28 +1,33 @@
 # 🧠 SeNARS12
 
-> **Semantic Non-Axiomatic Reasoning System** — Next-generation cognitive architecture fusing fluid LLM creativity with rigorous symbolic logic 🚀
+> **Semantic Non-Axiomatic Reasoning System** — Next-generation cognitive architecture fusing fluid LLM creativity with
+> rigorous symbolic logic 🚀
 
 ---
 
 ## 🌟 Vision
 
-**SeNARS12** is more than a reasoning engine—it's a **cognitive kernel** for the AI-native future. We're building a system that thinks like humans do: fluidly, adaptively, and resourcefully, while maintaining mathematical rigor.
+**SeNARS12** is more than a reasoning engine—it's a **cognitive kernel** for the AI-native future. We're building a
+system that thinks like humans do: fluidly, adaptively, and resourcefully, while maintaining mathematical rigor.
 
 ### 🎯 Why SeNARS12 Exists: Bridging the System 1 / System 2 Gap
 
-We are witnessing the limits of the "Scaling Hypothesis." LLMs achieve miraculous fluency but remain **probabilistic improvisers, not reasoning engines**—they hallucinate, lose state across long contexts, and cannot mathematically guarantee a deduction. Classical symbolic AI (GOFAI) is rigorous but brittle when facing real-world noise and ambiguity.
+We are witnessing the limits of the "Scaling Hypothesis." LLMs achieve miraculous fluency but remain **probabilistic
+improvisers, not reasoning engines**—they hallucinate, lose state across long contexts, and cannot mathematically
+guarantee a deduction. Classical symbolic AI (GOFAI) is rigorous but brittle when facing real-world noise and ambiguity.
 
 **SeNARS12 fuses fluid LLM creativity (System 1) with rigorous, resource-bounded logic (System 2):**
 
-| Problem | LLM-Only | Symbolic-Only | **SeNARS12** |
-|---------|----------|---------------|--------------|
-| **Reasoning Depth** | Shallow, probabilistic | Deep, rigid | **Deep, adaptive (NAL + MeTTa)** |
-| **Input Modality** | Natural language | Formal logic | **NL → Formal → NL** |
-| **Memory** | Vector store (RAG) | Static KB | **Dynamic priority concept network** |
-| **Resource Mgmt** | Infinite (cloud API) | Fixed | **AIKR: bounded, anytime, edge-ready** |
-| **Auditability** | Low (black box) | High (proof trees) | **High: derivation traces + NL explanation** |
+| Problem             | LLM-Only               | Symbolic-Only      | **SeNARS12**                                 |
+|---------------------|------------------------|--------------------|----------------------------------------------|
+| **Reasoning Depth** | Shallow, probabilistic | Deep, rigid        | **Deep, adaptive (NAL + MeTTa)**             |
+| **Input Modality**  | Natural language       | Formal logic       | **NL → Formal → NL**                         |
+| **Memory**          | Vector store (RAG)     | Static KB          | **Dynamic priority concept network**         |
+| **Resource Mgmt**   | Infinite (cloud API)   | Fixed              | **AIKR: bounded, anytime, edge-ready**       |
+| **Auditability**    | Low (black box)        | High (proof trees) | **High: derivation traces + NL explanation** |
 
 **Wedge Use Cases where pure LLMs fail:**
+
 - **Personal Logic Vault** — Local-first KB that detects contradictions in your thinking and suggests resolutions
 - **Autonomous DevOps** — Monitors logs, forms hypotheses via NAL, executes repairs via MeTTa, full audit trail
 - **Explainable Compliance** — Ingests regulations, answers with formal logical proofs, not just text retrieval
@@ -35,11 +40,11 @@ We are witnessing the limits of the "Scaling Hypothesis." LLMs achieve miraculou
 
 ### 🧩 Core Principles (AIKR)
 
-| Principle | Description |
-|-----------|-------------|
-| **Anytime** ⏱️ | Interruptible execution at any point — yields partial results on demand |
-| **Interruptible** ⏸️ | Cooperative yielding to event loop — never blocks indefinitely |
-| **AIKR** 📚 | Assumption of Insufficient Knowledge Resources: Memory/attention/bag capacity, derivation depth enforced by types, CPU throttling, backpressure |
+| Principle           | Description                                                                                                                                     |
+|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Anytime** ⏱️       | Interruptible execution at any point — yields partial results on demand                                                                         |
+| **Interruptible** ⏸️ | Cooperative yielding to event loop — never blocks indefinitely                                                                                  |
+| **AIKR** 📚         | Assumption of Insufficient Knowledge Resources: Memory/attention/bag capacity, derivation depth enforced by types, CPU throttling, backpressure |
 
 ### 🎨 Zero-Cost Abstractions
 
@@ -55,12 +60,14 @@ TypeScript metaprogramming shifts correctness checks from runtime to compile-tim
 > **TypeScript is not just a safety net—it's a reasoning layer.** 🎓
 
 By encoding NAL semantics at the type level:
+
 - Derivation depth tracked via phantom types
 - Rule patterns enforced at compile-time
 - Term structure guaranteed by discriminated unions
 - Resource bounds baked into types
 
-This eliminates entire classes of bugs, enables IDE-native development with full IntelliSense, and guarantees AIKR compliance **by construction** rather than runtime monitoring.
+This eliminates entire classes of bugs, enables IDE-native development with full IntelliSense, and guarantees AIKR
+compliance **by construction** rather than runtime monitoring.
 
 ---
 
@@ -109,46 +116,59 @@ This eliminates entire classes of bugs, enables IDE-native development with full
 ## 🏛️ Architectural Advantages
 
 ### 1. The End of "Infinite Context" — AIKR as First Principle
-Most AI architectures assume infinite compute/memory (massive context windows, endless RAG). This is biologically implausible and computationally ruinous for edge deployment.
+
+Most AI architectures assume infinite compute/memory (massive context windows, endless RAG). This is biologically
+implausible and computationally ruinous for edge deployment.
 
 **SeNARS12 is built on the Assumption of Insufficient Knowledge and Resources (AIKR):**
+
 - **Bounded priority bags** with LRU eviction — graceful degradation under memory pressure
 - **Truth-value decay** — concepts lose priority over time unless reinforced
 - **Anytime algorithms** — yield partial results when interrupted, resume seamlessly
 - **CPU throttling & backpressure** — cooperative yielding to event loop
 
-> In an era where AI moves from cloud to edge (smartphones, IoT, local servers), we need systems that know how to *forget*, how to prioritize, and how to yield partial results when interrupted.
+> In an era where AI moves from cloud to edge (smartphones, IoT, local servers), we need systems that know how to
+> *forget*, how to prioritize, and how to yield partial results when interrupted.
 
 ### 2. The Trust Gap — Auditable Neuro-Symbolic Handoffs
+
 Enterprises cannot deploy "black box" agents for critical decisions. They require **provenance and proof**.
 
 **SeNARS12 enforces strict division of labor:**
+
 1. **LLM (System 1)** — Translates Natural Language → formal Narsese/MeTTa
 2. **Symbolic Engine (System 2)** — Performs rigorous deduction with truth algebra
 3. **LLM (System 1)** — Translates results back to Natural Language
 
-**Every logical step recorded as a derivation trace.** If the agent concludes "The server is down," it provides the exact symbolic syllogism and truth-value calculations — auditability pure LLMs cannot offer.
+**Every logical step recorded as a derivation trace.** If the agent concludes "The server is down," it provides the
+exact symbolic syllogism and truth-value calculations — auditability pure LLMs cannot offer.
 
 ### 3. TypeScript as a Reasoning Layer — Zero-Cost Abstractions
-Most AI frameworks push error detection to runtime. SeNARS12 encodes NAL semantics at **compile-time** via TypeScript's advanced type system:
 
-| Technique | Purpose |
-|-----------|---------|
-| **Phantom Types** | Track derivation depth, prevent infinite regress |
-| **Discriminated Unions** | Exhaustive pattern matching on term structures |
-| **Structural Sharing** | Memoization factory for canonical terms |
-| **Stable Hashes** | Canonical normalization for deduplication |
+Most AI frameworks push error detection to runtime. SeNARS12 encodes NAL semantics at **compile-time** via TypeScript's
+advanced type system:
+
+| Technique                | Purpose                                          |
+|--------------------------|--------------------------------------------------|
+| **Phantom Types**        | Track derivation depth, prevent infinite regress |
+| **Discriminated Unions** | Exhaustive pattern matching on term structures   |
+| **Structural Sharing**   | Memoization factory for canonical terms          |
+| **Stable Hashes**        | Canonical normalization for deduplication        |
 
 This shifts AI safety from "runtime monitoring" to "compile-time guarantees" — robust, IDE-native, mathematically sound.
 
 ### 4. Pragmatic Execution — Self-Correcting Agent Loop
-Theory is useless without a working loop. SeNARS12 implements a **minimalist, self-correcting execution loop** for production-ready pragmatism:
+
+Theory is useless without a working loop. SeNARS12 implements a **minimalist, self-correcting execution loop** for
+production-ready pragmatism:
 
 - **Continuous reasoning cycle** — Tight, interruptible, anytime loop with cooperative yielding
 - **Shared cognitive state** — Working memory slots for prior messages, recent results, active goals
-- **Episodic Error Injection** — Tool failures and contradictions fed back into LLM context for self-correction and learning
+- **Episodic Error Injection** — Tool failures and contradictions fed back into LLM context for self-correction and
+  learning
 
-**The Synthesis:** A robust self-healing execution loop + SeNARS12's superior cognitive backend (NAR + MeTTa + RLFP) = Reliability of minimalist agent + Intelligence of deep cognitive architecture.
+**The Synthesis:** A robust self-healing execution loop + SeNARS12's superior cognitive backend (NAR + MeTTa + RLFP) =
+Reliability of minimalist agent + Intelligence of deep cognitive architecture.
 
 ---
 
@@ -183,9 +203,11 @@ cp .env.example .env       # fill in your LM provider credentials
 pnpm bot                    # IRC + WS by default
 ```
 
-Default behavior: connects to `irc.libera.chat#senars` as `senars-bot` and starts a WebSocket server on `ws://localhost:8765`. Friends can join the IRC channel and chat, or connect their bots to the WebSocket.
+Default behavior: connects to `irc.libera.chat#senars` as `senars-bot` and starts a WebSocket server on
+`ws://localhost:8765`. Friends can join the IRC channel and chat, or connect their bots to the WebSocket.
 
-To enable HTTP (REST) too: set `ENABLE_HTTP=true` in `.env`. See `docs/bot-api.md` for the bot-to-bot API and `docs/manual-test-irc.md` for a 9-step manual test protocol.
+To enable HTTP (REST) too: set `ENABLE_HTTP=true` in `.env`. See `docs/bot-api.md` for the bot-to-bot API and
+`docs/manual-test-irc.md` for a 9-step manual test protocol.
 
 ---
 
@@ -258,10 +280,12 @@ const projected = Truth.deduction(truth1, truth2); // Inference
 | Structural | `composition`, `decomposition`, `conversion` |
 | Temporal | `temporal-deduction`, `temporal-induction`, `sequence-to-implication` |
 | Procedural | `operation-execution`, `goal-achievement`, `procedure-composition` |
-| Meta-Cognitive | `error-pattern-detection`, `metacognitive-revision`, `resource-allocation`, `strategy-effectiveness`, `self-model-consistency`, `utility-estimation`, `goal-execution` |
+| Meta-Cognitive | `error-pattern-detection`, `metacognitive-revision`, `resource-allocation`, `strategy-effectiveness`,
+`self-model-consistency`, `utility-estimation`, `goal-execution` |
 | Variable | `variable-substitution`, `variable-unification` |
 
 **LLM-Enhanced Rules (Dynamic):**
+
 - Semantic similarity rules using embeddings
 - Belief/goal/question generation from LLM
 - Meta-reasoning about reasoning quality
@@ -288,6 +312,7 @@ const episodes = await episodic.getEpisodes({ limit: 10, query: 'cat' });
 ```
 
 **Memory Features:**
+
 - **Bounded priority bags** with LRU eviction (AIKR-compliant)
 - **Revision history** tracking truth value evolution
 - **Embedding-based similarity** for semantic retrieval
@@ -327,13 +352,16 @@ const answer = nar.ask('(whiskers --> animal)');
 ```
 
 **Execution Modes:**
+
 - `run(steps)` — Synchronous batch execution
 - `runStream(steps)` — Async generator for incremental results
-- Configurable derivation strategies: `BagStrategy`, `ExhaustiveStrategy`, `SampledDerivation`, `FocusedDerivation`, `AnytimeDerivation`
+- Configurable derivation strategies: `BagStrategy`, `ExhaustiveStrategy`, `SampledDerivation`, `FocusedDerivation`,
+  `AnytimeDerivation`
 
 ### 6. Cognitive Architecture (System 1/2 + Executive)
 
 **System 1 — Intuitive/Associative (LM-Enhanced):**
+
 ```typescript
 // LLM-driven memory enrichment
 await nar.enrichMemoryWithLM();
@@ -346,6 +374,7 @@ nar.config.enableProactiveEnrichment = true;
 ```
 
 **System 2 — Analytical (Symbolic):**
+
 ```typescript
 // Structured derivation with full trace
 const trace = nar.traceTerm(term);
@@ -354,6 +383,7 @@ const derivation = nar.getDerivationHistory(task);
 ```
 
 **Executive Controller (Metacognition):**
+
 ```typescript
 import { CognitiveController, CognitiveParameters } from '@senars/nar/cognitive';
 
@@ -368,6 +398,7 @@ CuriosityDrive | CompetenceDrive | CoherenceDrive | SocialDrive
 ```
 
 **Self-Optimizer — Automated Hyperparameter Tuning:**
+
 ```typescript
 import { CognitiveOptimizer, GridSampler, RandomSampler } from '@senars/nar/cognitive';
 
@@ -389,6 +420,7 @@ const result = await optimizer.optimize(new GridSampler(), 100);
 | `term-patterns` | Analyzes term usage and concept relationships |
 
 **Schema Induction — Learning Reusable Patterns:**
+
 ```typescript
 import { SchemaInductor, createSchemaInductor } from '@senars/nar/learning';
 
@@ -400,6 +432,7 @@ const schemas = await inductor.induceFromDerivations(derivations);
 ```
 
 **Feedback Learning — Continuous Improvement:**
+
 ```typescript
 import { FeedbackLearner, validateLMOutput } from '@senars/nar/learning';
 
@@ -410,6 +443,7 @@ const adjustedPriority = learner.getAdjustedPriority(ruleId, basePriority);
 ```
 
 **Reasoning About Reasoning (Metacognitive Self-Analysis):**
+
 ```typescript
 import { ReasoningAboutReasoning } from '@senars/nar/self';
 
@@ -435,13 +469,13 @@ await grounding.groundFact("weather query", "weather.gov", SourceQuality.PRIMARY
 const quality = grounding.getSourceConfidence("pubmed.ncbi.nlm.nih.gov"); // PRIMARY
 ```
 
-| Source Type | Quality | Truth Confidence |
-|-------------|---------|------------------|
-| Official/SEC/PubMed | PRIMARY | 0.9 |
-| Major news (Reuters, AP) | SECONDARY | 0.7 |
-| Wikipedia/News | GENERAL | 0.55 |
-| Blog/Forum | TERTIARY | 0.4 |
-| LLM Prior | LLM_PRIOR | 0.5 |
+| Source Type              | Quality   | Truth Confidence |
+|--------------------------|-----------|------------------|
+| Official/SEC/PubMed      | PRIMARY   | 0.9              |
+| Major news (Reuters, AP) | SECONDARY | 0.7              |
+| Wikipedia/News           | GENERAL   | 0.55             |
+| Blog/Forum               | TERTIARY  | 0.4              |
+| LLM Prior                | LLM_PRIOR | 0.5              |
 
 ### 8. Streaming Pipeline — Async Derivation Streams
 
@@ -472,6 +506,7 @@ for await (const task of createPipeline(composite, memory, strategy, {
 ```
 
 **Features:**
+
 - Multiple premise sources: priority-weighted, recency, novelty, fair, focus-based
 - Composite sources with configurable weights
 - CPU throttling & cooperative yielding
@@ -513,6 +548,7 @@ AllSelector | PrioritySelector | RotationSelector | DiverseSelector
 ```
 
 **LM Rule Features:**
+
 - Structured output via JSON schemas (function calling)
 - Bidirectional feedback: NAR ↔ LM correction loops
 - Proactive enrichment: LM generates background knowledge
@@ -571,7 +607,8 @@ const answer = await nar.askNaturalLanguage("What is Whiskers?");
 
 ### 14. MeTTa — Meta Type Theory Engine
 
-A **second reasoning engine** running alongside NAR, providing equality saturation, pattern matching, and dependent type theory:
+A **second reasoning engine** running alongside NAR, providing equality saturation, pattern matching, and dependent type
+theory:
 
 ```typescript
 import { createMeTTa, parseMeTTa, EGraph, MeTTaRuntime } from '@senars/metta';
@@ -603,18 +640,18 @@ egraph.union(parseMeTTa('a'), parseMeTTa('b'));
 
 **MeTTa Capabilities:**
 
-| Feature | Description |
-|---------|-------------|
-| **E-Graphs** | Equality saturation for algebraic simplification, program optimization |
-| **Pattern Matching** | Structural matching with variables, guards, and multi-match |
-| **Rewrite Rules** | User-defined ` (= lhs rhs )` rules with conditional guards |
-| **Multi-Space** | Independent fact spaces (contexts) with merge/fork/clone |
-| **Skill Execution** | MeTTa programs as callable skills from NAR/agent |
-| **Dependent Types** | Full type theory with Π/Σ types, type inference, unification |
-| **JIT Compiler** | Hot path compilation to native code via Effect JIT |
-| **Parallel Execution** | `parallelReduce`, `parallelMap` for batch operations |
-| **Persistent Spaces** | Serializable spaces with incremental persistence |
-| **IPC/Shared Memory** | Cross-process space sharing via shared memory queues |
+| Feature                | Description                                                            |
+|------------------------|------------------------------------------------------------------------|
+| **E-Graphs**           | Equality saturation for algebraic simplification, program optimization |
+| **Pattern Matching**   | Structural matching with variables, guards, and multi-match            |
+| **Rewrite Rules**      | User-defined ` (= lhs rhs )` rules with conditional guards             |
+| **Multi-Space**        | Independent fact spaces (contexts) with merge/fork/clone               |
+| **Skill Execution**    | MeTTa programs as callable skills from NAR/agent                       |
+| **Dependent Types**    | Full type theory with Π/Σ types, type inference, unification           |
+| **JIT Compiler**       | Hot path compilation to native code via Effect JIT                     |
+| **Parallel Execution** | `parallelReduce`, `parallelMap` for batch operations                   |
+| **Persistent Spaces**  | Serializable spaces with incremental persistence                       |
+| **IPC/Shared Memory**  | Cross-process space sharing via shared memory queues                   |
 
 **Integration with Agent:**
 
@@ -639,32 +676,34 @@ const agent = await createAgent({ /* config */ });
 import { CognitiveParameters, DEFAULT_COGNITIVE_PARAMETERS, FAST_COGNITIVE_CONFIG, LM_HEAVY_CONFIG, RESEARCH_COGNITIVE_CONFIG } from '@senars/nar/config';
 ```
 
-| Preset | Use Case |
-|--------|----------|
-| `DEFAULT_COGNITIVE_PARAMETERS` | Balanced general use |
-| `FAST_COGNITIVE_CONFIG` | Minimal LM, max speed |
-| `LM_HEAVY_CONFIG` | Maximum LM enhancement |
-| `RESEARCH_COGNITIVE_CONFIG` | Full tracing, limited derivations |
+| Preset                         | Use Case                          |
+|--------------------------------|-----------------------------------|
+| `DEFAULT_COGNITIVE_PARAMETERS` | Balanced general use              |
+| `FAST_COGNITIVE_CONFIG`        | Minimal LM, max speed             |
+| `LM_HEAVY_CONFIG`              | Maximum LM enhancement            |
+| `RESEARCH_COGNITIVE_CONFIG`    | Full tracing, limited derivations |
 
 **Parameter Categories:**
 | Category | Controls |
 |----------|----------|
 | **Priority** | Initial/max priority, mention boosts, decay rate, propagation |
-| **LM** | Enabled, rule categories (translation, meta-reasoning, uncertainty, schema induction, ...), timeout, selection strategy |
+| **LM** | Enabled, rule categories (translation, meta-reasoning, uncertainty, schema induction, ...), timeout,
+selection strategy |
 | **Attention** | Auto-prime, structural/semantic similarity, activation propagation |
 | **Inference** | Max derivations/depth, circular detection, trace collection, CPU throttle, sampling limits |
 
 **Pluggable Strategies** (configurable via `strategies` object):
 
-| Strategy Type | Options |
-|---------------|---------|
-| **Sampling** | `priority`, `top-n`, `novelty`, `goal-biased`, `diverse` |
-| **Premise Formation** | `default-formation`, `sample`, `focused` |
-| **Derivation** | `default`, `anytime`, `sampled`, `focused`, `exhaustive` |
-| **LM Rule Selection** | `all`, `priority`, `rotation`, `diverse` |
-| **Attention** | `simple`, `spreading-activation`, `goal-relevance`, `composite` |
+| Strategy Type         | Options                                                         |
+|-----------------------|-----------------------------------------------------------------|
+| **Sampling**          | `priority`, `top-n`, `novelty`, `goal-biased`, `diverse`        |
+| **Premise Formation** | `default-formation`, `sample`, `focused`                        |
+| **Derivation**        | `default`, `anytime`, `sampled`, `focused`, `exhaustive`        |
+| **LM Rule Selection** | `all`, `priority`, `rotation`, `diverse`                        |
+| **Attention**         | `simple`, `spreading-activation`, `goal-relevance`, `composite` |
 
 **Optimization-Ready** — `PARAMETER_SPACE` defines min/max/default for every tunable, enabling:
+
 - Grid/random search via `CognitiveOptimizer`
 - RL-based policy optimization (RLFP)
 - Evolutionary parameter tuning
@@ -685,6 +724,7 @@ import { LensSpec, ModulationSchema, builtinLensSpecs, isBuiltinLens } from '@se
 | `contradiction` | Where beliefs conflict | Color=orange, Dashed stroke |
 
 **Modulation AST** (composable):
+
 ```typescript
 { op: 'union', children: [
   { op: 'channel', channel: 'color', child: { op: 'field', field: 'truth', map: 'truth-to-color' }},
@@ -698,15 +738,15 @@ Operations: `const`, `field`, `channel`, `when`, `union` — enabling arbitrary 
 
 Real-time WebSocket protocol for UI synchronization:
 
-| Message Type | Direction | Purpose |
-|--------------|-----------|---------|
-| `chat.user` / `chat.agent.complete` | ↔ | Chat streaming |
-| `cognitive.delta` | Server→Client | Graph ops (add/update/remove nodes/edges) |
-| `config.schema` / `config.set` | ↔ | Live parameter tuning |
-| `lens.list` / `lens.define` | ↔ | Lens management |
-| `sync.request` / `state.snapshot` | ↔ | Full state sync |
-| `viewport.set` / `focus.set` | Client→Server | Camera/selection |
-| `history.request` | ↔ | Node derivation history |
+| Message Type                        | Direction     | Purpose                                   |
+|-------------------------------------|---------------|-------------------------------------------|
+| `chat.user` / `chat.agent.complete` | ↔             | Chat streaming                            |
+| `cognitive.delta`                   | Server→Client | Graph ops (add/update/remove nodes/edges) |
+| `config.schema` / `config.set`      | ↔             | Live parameter tuning                     |
+| `lens.list` / `lens.define`         | ↔             | Lens management                           |
+| `sync.request` / `state.snapshot`   | ↔             | Full state sync                           |
+| `viewport.set` / `focus.set`        | Client→Server | Camera/selection                          |
+| `history.request`                   | ↔             | Node derivation history                   |
 
 **Graph Node Types:**
 | Type | Source | Fields |
@@ -766,21 +806,21 @@ agent.capabilities(); // { engine: 'metta', supports: { chat: true, skills: true
 
 **Key Subsystems:**
 
-| Subsystem | Exports | Purpose |
-|-----------|---------|---------|
-| **Agent** | `Agent`, `createAgent`, `AgentOptions` | Main runtime |
-| **Engines** | `BaseEngine`, `NAREngine`, `MettaEngine` | Reasoning backends |
-| **Cortex** | `LLMCortex`, `createCortexFromLM` | LLM narrative synthesis |
-| **Memory** | `MemoryService`, `InMemorySessionManager`, `JsonlSessionManager` | Working + episodic + sessions |
-| **Event Log** | `InMemoryEventLog`, `SqliteEventLog` | Persistent cognitive audit trail |
-| **Tools** | `ToolRegistry`, `BUILTIN_TOOLS`, `buildAgentTools` | Function calling + skills |
-| **Policy** | `PolicyEngine`, `PolicyRule` | Guardrails / HITL approval |
-| **Approval** | `ApprovalService`, `PendingApproval` | Human-in-the-loop |
-| **Model Runner** | `ModelRunner`, `ToolCall`, `ModelEvent` | LLM orchestration |
-| **Knowledge** | `KnowledgeManager` | Structured knowledge CRUD |
-| **Stats** | `StatsManager`, `AgentStats` | Telemetry |
-| **Lens/Protocol** | `Lens`, `GraphNodeData`, `GraphOp` | UI projection types |
-| **Utils** | `makeId`, `generateId`, `clamp`, `sleep`, ... | Shared utilities |
+| Subsystem         | Exports                                                          | Purpose                          |
+|-------------------|------------------------------------------------------------------|----------------------------------|
+| **Agent**         | `Agent`, `createAgent`, `AgentOptions`                           | Main runtime                     |
+| **Engines**       | `BaseEngine`, `NAREngine`, `MettaEngine`                         | Reasoning backends               |
+| **Cortex**        | `LLMCortex`, `createCortexFromLM`                                | LLM narrative synthesis          |
+| **Memory**        | `MemoryService`, `InMemorySessionManager`, `JsonlSessionManager` | Working + episodic + sessions    |
+| **Event Log**     | `InMemoryEventLog`, `SqliteEventLog`                             | Persistent cognitive audit trail |
+| **Tools**         | `ToolRegistry`, `BUILTIN_TOOLS`, `buildAgentTools`               | Function calling + skills        |
+| **Policy**        | `PolicyEngine`, `PolicyRule`                                     | Guardrails / HITL approval       |
+| **Approval**      | `ApprovalService`, `PendingApproval`                             | Human-in-the-loop                |
+| **Model Runner**  | `ModelRunner`, `ToolCall`, `ModelEvent`                          | LLM orchestration                |
+| **Knowledge**     | `KnowledgeManager`                                               | Structured knowledge CRUD        |
+| **Stats**         | `StatsManager`, `AgentStats`                                     | Telemetry                        |
+| **Lens/Protocol** | `Lens`, `GraphNodeData`, `GraphOp`                               | UI projection types              |
+| **Utils**         | `makeId`, `generateId`, `clamp`, `sleep`, ...                    | Shared utilities                 |
 
 ---
 
@@ -788,13 +828,13 @@ agent.capabilities(); // { engine: 'metta', supports: { chat: true, skills: true
 
 A single SeNARS agent accessible via multiple transports simultaneously:
 
-| Transport | Protocol | Use Case |
-|-----------|----------|----------|
-| **CLI** | stdin/stdout | Local REPL, scripting |
-| **IRC** | IRC | Chat rooms, multi-user |
-| **WebSocket** | WS | Real-time web clients |
-| **HTTP** | REST | API integration |
-| **MCP** | Model Context Protocol | AI assistant integration |
+| Transport     | Protocol               | Use Case                 |
+|---------------|------------------------|--------------------------|
+| **CLI**       | stdin/stdout           | Local REPL, scripting    |
+| **IRC**       | IRC                    | Chat rooms, multi-user   |
+| **WebSocket** | WS                     | Real-time web clients    |
+| **HTTP**      | REST                   | API integration          |
+| **MCP**       | Model Context Protocol | AI assistant integration |
 
 ```typescript
 import { ConnectionManager, CLIConnection, IRCConnection, WSConnection, HTTPConnection, MCPConnection } from '@senars/io';
@@ -816,6 +856,7 @@ for (const cfg of configs) {
 ### API Layer
 
 **REST API (HTTP Adapter):**
+
 ```bash
 POST /api/v1/nar/believe     # Input belief
 POST /api/v1/nar/goal        # Input goal
@@ -827,6 +868,7 @@ GET  /api/v1/nar/stats       # Statistics
 ```
 
 **WebSocket API:**
+
 ```json
 { "type": "nar.input", "data": { "input": "(cat --> animal).", "type": "belief" } }
 { "type": "nar.run", "data": { "steps": 5 } }
@@ -834,6 +876,7 @@ GET  /api/v1/nar/stats       # Statistics
 ```
 
 **MCP (Model Context Protocol):**
+
 ```typescript
 import { SeNARSMCPServer } from '@senars/api';
 
@@ -894,6 +937,7 @@ interface NARConfig extends CoreConfig {
 ```
 
 **Environment Variables (`.env`):**
+
 ```bash
 # LM Provider
 LM_PROVIDER=openai|anthropic|ollama|local
@@ -936,6 +980,7 @@ pnpm exec tsx scripts/cli-smoke.ts               # Full cognitive pipeline
 ```
 
 **Test Structure:**
+
 ```
 tests/nar/
 ├── unit/              # 30+ unit test files
@@ -950,28 +995,30 @@ tests/nar/
 
 ## 📚 Key Documentation
 
-| Document | Description |
-|----------|-------------|
-| `docs/tech/functionality.md` | Complete cognitive architecture specification |
-| `docs/tech/neuro-symbolic.md` | Neuro-symbolic integration deep dive |
-| `docs/tech/reasoning.md` | Reasoning engine internals |
-| `docs/tech/deep-dive.md` | Implementation details |
-| `docs/bot-api.md` | Bot-to-bot API reference |
-| `docs/manual-test-irc.md` | 9-step IRC manual test protocol |
-| `docs/plan/NEXT.md` | Strategic roadmap |
-| `docs/plan/HYBRID_REASONING.md` | Hybrid reasoning architecture |
+| Document                        | Description                                   |
+|---------------------------------|-----------------------------------------------|
+| `docs/tech/functionality.md`    | Complete cognitive architecture specification |
+| `docs/tech/neuro-symbolic.md`   | Neuro-symbolic integration deep dive          |
+| `docs/tech/reasoning.md`        | Reasoning engine internals                    |
+| `docs/tech/deep-dive.md`        | Implementation details                        |
+| `docs/bot-api.md`               | Bot-to-bot API reference                      |
+| `docs/manual-test-irc.md`       | 9-step IRC manual test protocol               |
+| `docs/plan/NEXT.md`             | Strategic roadmap                             |
+| `docs/plan/HYBRID_REASONING.md` | Hybrid reasoning architecture                 |
 
 ---
 
 ## 🔮 Future Functionality (Roadmap)
 
 ### Priority 1: One-Command Demo (Immediate)
+
 ```bash
 npx senars-demo
 # Knowledge Discovery → Consistency → Memory demos in 60 seconds
 ```
 
 ### Priority 2: Embed Pattern (Weeks 2-4)
+
 ```javascript
 // Dead-simple embedding
 import { SeNARS } from 'senars';
@@ -980,23 +1027,28 @@ brain.learn('(cats --> mammals).');
 const answer = await brain.ask('(whiskers --> ?what)?');
 // { answer: 'mammals', truth: {f: 0.81, c: 0.73}, proof: [...] }
 ```
+
 - Framework adapters: Express, React (`useSeNARS`), LangChain, MCP ✓
 
 ### Priority 3: Proof Points (Weeks 3-5)
+
 - Consistency benchmark (LLM vs SeNARS)
 - Memory persistence benchmark
 - Explainability demo (derivation chains)
 
 ### Priority 4: Research Tooling (Weeks 4-7)
+
 - Reasoning trace export (JSON-LD, GraphML, Mermaid)
 - Strategy A/B testing framework
 - RLFP annotation web UI
 
 ### Priority 5: Knowledge Portability (Weeks 5-8)
+
 - Knowledge Book format (`.sbook` YAML)
 - Import/export: Narsese, RDF/OWL, JSON-LD, Natural Language
 
 ### Priority 6: Flagship Demo — "Personal Logic Vault" (Weeks 6-10)
+
 - Local-first personal knowledge base
 - Obsidian/Markdown import
 - Contradiction detection, gap finding
@@ -1024,30 +1076,34 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 
 ### Detailed Ecosystem Comparison
 
-| Feature | Pure LLM Agents (LangChain, AutoGen) | Pure Symbolic (Prolog, Expert Systems) | **SeNARS12 (Cognitive Kernel)** |
-|---------|--------------------------------------|----------------------------------------|----------------------------------|
-| **Reasoning** | Shallow, Probabilistic | Deep, Rigid | **Deep, Adaptive (NAL + MeTTa)** |
-| **Input** | Natural Language | Formal Logic | **Natural Language → Formal Logic** |
-| **Memory** | Vector Store (RAG) | Static Database | **Dynamic, Priority-Based Concept Network** |
-| **Resource Mgmt** | Infinite (Cloud API) | Fixed | **AIKR (Bounded, Anytime, Edge-Ready)** |
-| **Auditability** | Low (Black Box) | High (Proof Trees) | **High (Derivation Traces + NL Explanation)** |
-| **Learning** | In-context / Fine-tune | Manual KB update | **RLFP + Schema Induction + Episodic** |
-| **Type Safety** | Runtime / None | Compile-time (limited) | **TypeScript Phantom Types + NAL Semantics** |
+| Feature           | Pure LLM Agents (LangChain, AutoGen) | Pure Symbolic (Prolog, Expert Systems) | **SeNARS12 (Cognitive Kernel)**               |
+|-------------------|--------------------------------------|----------------------------------------|-----------------------------------------------|
+| **Reasoning**     | Shallow, Probabilistic               | Deep, Rigid                            | **Deep, Adaptive (NAL + MeTTa)**              |
+| **Input**         | Natural Language                     | Formal Logic                           | **Natural Language → Formal Logic**           |
+| **Memory**        | Vector Store (RAG)                   | Static Database                        | **Dynamic, Priority-Based Concept Network**   |
+| **Resource Mgmt** | Infinite (Cloud API)                 | Fixed                                  | **AIKR (Bounded, Anytime, Edge-Ready)**       |
+| **Auditability**  | Low (Black Box)                      | High (Proof Trees)                     | **High (Derivation Traces + NL Explanation)** |
+| **Learning**      | In-context / Fine-tune               | Manual KB update                       | **RLFP + Schema Induction + Episodic**        |
+| **Type Safety**   | Runtime / None                       | Compile-time (limited)                 | **TypeScript Phantom Types + NAL Semantics**  |
 
 ---
 
 ## 🏁 The Verdict
 
-**SeNARS12 is necessary because the current AI paradigm is incomplete.** We have mastered the "System 1" of AI (fast, intuitive, linguistic), but we have neglected the "System 2" (slow, logical, deliberative).
+**SeNARS12 is necessary because the current AI paradigm is incomplete.** We have mastered the "System 1" of AI (fast,
+intuitive, linguistic), but we have neglected the "System 2" (slow, logical, deliberative).
 
 By building a system that:
+
 - **Respects the limits of computation** (AIKR)
 - **Leverages modern type systems for safety** (TypeScript as reasoning layer)
 - **Adopts pragmatic, self-correcting loops** (minimalist agent architecture)
 
-SeNARS12 is not just a research project — it is the blueprint for the next generation of **Sovereign, Auditable, and Truly Intelligent Agents.**
+SeNARS12 is not just a research project — it is the blueprint for the next generation of **Sovereign, Auditable, and
+Truly Intelligent Agents.**
 
-The code is the foundation. The next step is building the bridge — the tight, robust agent loop — that allows this cognitive engine to run continuously in the real world.
+The code is the foundation. The next step is building the bridge — the tight, robust agent loop — that allows this
+cognitive engine to run continuously in the real world.
 
 ---
 
@@ -1067,39 +1123,39 @@ See `CONTRIBUTING.md` (to be created) and `AGENTS.md` for code guidelines.
 
 ## 📊 Quick Reference
 
-| Category | Key Exports | Entry Points |
-|----------|-------------|--------------|
-| **Core NAR** | `NAR`, `createNAR`, `Reasoner`, `Memory`, `TaskManager` | `@senars/nar` |
-| **Terms** | `TermBuilder`, `termParser`, `Truth`, `Stamp` | `@senars/nar/terms` |
-| **Rules** | `NALRules`, `NALExtendedRules`, `RuleProcessor` | `@senars/nar/rules` |
-| **Agent (NAR)** | `createAgent`, `Agent`, `NAREngine`, `MettaEngine` | `@senars/nar/agent` |
-| **Cognitive** | `CognitiveController`, `Observer`, `RLFPLearner` | `@senars/nar/cognitive` |
-| **Cognitive Params** | `CognitiveParameters`, `DEFAULT_COGNITIVE_PARAMETERS` | `@senars/nar/config` |
-| **Strategies** | `SamplingStrategy`, `DerivationStrategy`, `AttentionModel` | `@senars/nar/strategies` |
-| **NL** | `NLUnderstandingService`, `NLGenerationService` | `@senars/nar/nl` |
-| **Tools** | `ToolManager`, `discoverTools`, `ExplainTool` | `@senars/nar/tools` |
-| **Learning** | `SchemaInductor`, `FeedbackLearner`, `validateLMOutput` | `@senars/nar/learning` |
-| **Self-Reasoning** | `ReasoningAboutReasoning`, `SelfAnalyzer`, `MetacognitiveMonitor` | `@senars/nar/self` |
-| **Cognitive Analyzers** | `capabilities`, `performance`, `quality`, `reasoning-patterns`, ... | `@senars/nar/cognitive/analyzers` |
-| **Grounding** | `GroundingPipeline`, `SourceQuality` | `@senars/nar` |
-| **Streaming** | `createPipeline`, `MemoryPremiseSource`, `FocusPremiseSource`, `derive` | `@senars/nar/stream` |
-| **Commands** | `narCommands`, `rlfpCommands`, `selfCommands`, `configCommands` | `@senars/nar/commands` |
-| **LM Rules** | `LMRules`, `LMRule`, `LMRuleFactory` | `@senars/nar/lm` |
-| **MeTTa** | `createMeTTa`, `parseMeTTa`, `EGraph`, `MeTTaRuntime` | `@senars/metta` |
-| **MeTTa Engine** | `MettaEngine`, `MettaCommandParser` | `@senars/metta/agent` |
-| **Core Agent** | `Agent`, `createAgent`, `LLMCortex`, `MemoryService` | `@senars/core` |
-| **Agent Subsystems** | `ToolRegistry`, `PolicyEngine`, `ApprovalService`, `KnowledgeManager` | `@senars/core` |
-| **Event Logs** | `InMemoryEventLog`, `SqliteEventLog` | `@senars/core` |
-| **Session Mgmt** | `InMemorySessionManager`, `JsonlSessionManager` | `@senars/core` |
-| **Model Runner** | `ModelRunner`, `ToolCall`, `ModelEvent` | `@senars/core` |
-| **Lens/Protocol** | `Lens`, `GraphNodeData`, `GraphOp`, `CognitiveDelta` | `@senars/core/protocol` |
-| **IO** | `ConnectionManager`, `bindAgentToConnection` | `@senars/io` |
-| **API** | `HTTPAdapter`, `WebSocketAdapter`, `SeNARSMCPServer` | `@senars/api` |
-| **UI** | `startAgentUI`, `UnifiedGraphProjection` | `@senars/ui` |
-| **Config** | `loadConfig`, `loadConfigFromEnv` | `@senars/config` |
-| **Shared Utils** | `EventBus`, `CommandRegistry`, `generateId`, `clamp`, `sleep` | `@senars/util` |
-| **Shared Types** | `CognitiveEvent`, `Connection`, `LMService`, `Episode` | `@senars/util` |
-| **Errors** | `SenarsError`, `ConfigError`, `TransportError`, `PolicyViolation` | `@senars/util` |
+| Category                | Key Exports                                                             | Entry Points                      |
+|-------------------------|-------------------------------------------------------------------------|-----------------------------------|
+| **Core NAR**            | `NAR`, `createNAR`, `Reasoner`, `Memory`, `TaskManager`                 | `@senars/nar`                     |
+| **Terms**               | `TermBuilder`, `termParser`, `Truth`, `Stamp`                           | `@senars/nar/terms`               |
+| **Rules**               | `NALRules`, `NALExtendedRules`, `RuleProcessor`                         | `@senars/nar/rules`               |
+| **Agent (NAR)**         | `createAgent`, `Agent`, `NAREngine`, `MettaEngine`                      | `@senars/nar/agent`               |
+| **Cognitive**           | `CognitiveController`, `Observer`, `RLFPLearner`                        | `@senars/nar/cognitive`           |
+| **Cognitive Params**    | `CognitiveParameters`, `DEFAULT_COGNITIVE_PARAMETERS`                   | `@senars/nar/config`              |
+| **Strategies**          | `SamplingStrategy`, `DerivationStrategy`, `AttentionModel`              | `@senars/nar/strategies`          |
+| **NL**                  | `NLUnderstandingService`, `NLGenerationService`                         | `@senars/nar/nl`                  |
+| **Tools**               | `ToolManager`, `discoverTools`, `ExplainTool`                           | `@senars/nar/tools`               |
+| **Learning**            | `SchemaInductor`, `FeedbackLearner`, `validateLMOutput`                 | `@senars/nar/learning`            |
+| **Self-Reasoning**      | `ReasoningAboutReasoning`, `SelfAnalyzer`, `MetacognitiveMonitor`       | `@senars/nar/self`                |
+| **Cognitive Analyzers** | `capabilities`, `performance`, `quality`, `reasoning-patterns`, ...     | `@senars/nar/cognitive/analyzers` |
+| **Grounding**           | `GroundingPipeline`, `SourceQuality`                                    | `@senars/nar`                     |
+| **Streaming**           | `createPipeline`, `MemoryPremiseSource`, `FocusPremiseSource`, `derive` | `@senars/nar/stream`              |
+| **Commands**            | `narCommands`, `rlfpCommands`, `selfCommands`, `configCommands`         | `@senars/nar/commands`            |
+| **LM Rules**            | `LMRules`, `LMRule`, `LMRuleFactory`                                    | `@senars/nar/lm`                  |
+| **MeTTa**               | `createMeTTa`, `parseMeTTa`, `EGraph`, `MeTTaRuntime`                   | `@senars/metta`                   |
+| **MeTTa Engine**        | `MettaEngine`, `MettaCommandParser`                                     | `@senars/metta/agent`             |
+| **Core Agent**          | `Agent`, `createAgent`, `LLMCortex`, `MemoryService`                    | `@senars/core`                    |
+| **Agent Subsystems**    | `ToolRegistry`, `PolicyEngine`, `ApprovalService`, `KnowledgeManager`   | `@senars/core`                    |
+| **Event Logs**          | `InMemoryEventLog`, `SqliteEventLog`                                    | `@senars/core`                    |
+| **Session Mgmt**        | `InMemorySessionManager`, `JsonlSessionManager`                         | `@senars/core`                    |
+| **Model Runner**        | `ModelRunner`, `ToolCall`, `ModelEvent`                                 | `@senars/core`                    |
+| **Lens/Protocol**       | `Lens`, `GraphNodeData`, `GraphOp`, `CognitiveDelta`                    | `@senars/core/protocol`           |
+| **IO**                  | `ConnectionManager`, `bindAgentToConnection`                            | `@senars/io`                      |
+| **API**                 | `HTTPAdapter`, `WebSocketAdapter`, `SeNARSMCPServer`                    | `@senars/api`                     |
+| **UI**                  | `startAgentUI`, `UnifiedGraphProjection`                                | `@senars/ui`                      |
+| **Config**              | `loadConfig`, `loadConfigFromEnv`                                       | `@senars/config`                  |
+| **Shared Utils**        | `EventBus`, `CommandRegistry`, `generateId`, `clamp`, `sleep`           | `@senars/util`                    |
+| **Shared Types**        | `CognitiveEvent`, `Connection`, `LMService`, `Episode`                  | `@senars/util`                    |
+| **Errors**              | `SenarsError`, `ConfigError`, `TransportError`, `PolicyViolation`       | `@senars/util`                    |
 
 ---
 

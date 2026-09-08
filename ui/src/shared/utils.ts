@@ -10,7 +10,7 @@ let msgCounter = 0;
  * Format: {prefix}-{timestamp}-{counter}-{random}
  */
 export function generateId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${++msgCounter}-${Math.random().toString(36).slice(2, 6)}`;
+    return `${prefix}-${Date.now()}-${++msgCounter}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 /**
@@ -18,8 +18,8 @@ export function generateId(prefix: string): string {
  * Strips non-alphanumeric characters and limits to 40 chars.
  */
 export function extractTerm(content: string): string | undefined {
-  const trimmed = content.trim();
-  if (!trimmed) return undefined;
-  const words = trimmed.split(/\s+/);
-  return words[0]?.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) ?? undefined;
+    const trimmed = content.trim();
+    if (!trimmed) return undefined;
+    const words = trimmed.split(/\s+/);
+    return words[0]?.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) ?? undefined;
 }
