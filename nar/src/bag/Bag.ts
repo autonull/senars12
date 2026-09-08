@@ -27,10 +27,18 @@ interface InternalEntry<T extends BagItem> {
 
 export class PriorityBag<T extends BagItem> implements Bag<T> {
   readonly capacity: number;
-  private readonly decayRate: number;
+  private decayRate: number;
   private readonly forgetRate: number;
   private heap: InternalEntry<T>[] = [];
   private totalPriority = 0;
+
+  get decayRateValue(): number {
+    return this.decayRate;
+  }
+
+  set decayRateValue(value: number) {
+    this.decayRate = Math.max(0, Math.min(1, value));
+  }
 
   constructor(options: BagOptions) {
     this.capacity = options.capacity;

@@ -442,10 +442,11 @@ To avoid architectural overwhelm, the Focus-Game-Reflex migration proceeds in th
 - Implement `LearningEvent` feedback for overridden actions (`Negotiator.createLearningEvent()`)
 - *Test:* Gate 4 (Negotiated Parity) ✅ `tests/nar/focus-game-reflex/m35-gridworld-validation.test.ts` (NAL veto test)
 
-### Slice 5: SelfMetaGame Sandbox
-- Implement `MetaGame` observing `FocusStepReport`s
-- Implement `^focus_weight` and `^knob_set` operations
-- *Test:* Gate 5 (MetaGame Sandbox)
+### Slice 5: SelfMetaGame Sandbox ✅ COMPLETE
+- Implement `MetaGame` observing `FocusStepReport`s → `nar/src/game/MetaGame.ts`
+- Implement `SelfMetaGame` with `^focus_weight` and `^knob_set` operations → `nar/src/game/SelfMetaGame.ts`
+- Implement `MetaFocus` vessel for SelfMetaGame → `nar/src/focus/MetaFocus.ts`
+- *Test:* Gate 5 (MetaGame Sandbox) ✅ `tests/nar/focus-game-reflex/meta-game-sandbox.test.ts` (16 tests passing)
 
 ---
 
@@ -470,6 +471,9 @@ nar/src/
   game/
     Game.ts                # Interface
     MetaGame.ts            # Cognitive state environment
+    SelfMetaGame.ts        # SelfMetaGame implementation
+    GridWorldGame.ts
+    GridWorldEnv.ts
 ```
 
 > **Current File Layout (Traditional NAR):**
@@ -575,7 +579,7 @@ The Focus-Game-Reflex Kernel **operationalizes** this vision:
 | **M4.0** | Focus-Game-Reflex Core | **IMPLEMENT NOW** — Slices 1-2: `Bag<T>`, `Focus`, `Bag<Focus>`, `GameFocus`, Gates | ✅ DONE |
 | **M4.1** | Reflex Integration | Slice 3: `Reflex` interface, port baselines (`TabularQReflex`, `EpsilonGreedyReflex`, `UCBReflex`) | ✅ DONE |
 | **M4.2** | Negotiation | Slice 4: `Negotiator`, NAL veto, `LearningEvent` feedback | ✅ DONE |
-| **M4.3** | MetaGame | Slice 5: `MetaGame`, `SelfMetaGame`, `^focus_weight`, `^knob_set` | ⏳ NEXT |
+| **M4.3** | MetaGame | Slice 5: `MetaGame`, `SelfMetaGame`, `^focus_weight`, `^knob_set` | ✅ DONE |
 | **M5.0** | Autonomous Self-Modification | Enable shadow worktrees, codemods, RLFP-driven code changes | ⏳ |
 
 **NEW Critical Path:** 
@@ -686,7 +690,36 @@ nar/src/
 
 ---
 
-### 2026-09-08: Slice 3 & 4 Complete — Reflex Mounting & Negotiation + M3.5 GridWorld Validation
+### 2026-09-08: Slice 5 Complete — SelfMetaGame Sandbox + M4.3
+
+**Implemented (Slice 5: SelfMetaGame Sandbox):**
+- `nar/src/game/MetaGame.ts` — `MetaGame` observing `FocusStepReport`s, exposes perception with aggregated focus metrics
+- `nar/src/game/SelfMetaGame.ts` — `SelfMetaGameImpl` implementing `SelfMetaGame` interface with:
+  - `setFocusWeight(focusId, weight)` — rebalances `Bag<Focus>` weights
+  - `setKnob(knob, value)` — adjusts system knobs (maxDerivationsPerStep, taskDecayRate, conceptDecayRate, focusDecayRate) with clamping
+  - `disableReflex(focusId, reflexId)` — disables reflexes in a GameFocus
+  - Configurable knob ranges with validation
+- `nar/src/focus/MetaFocus.ts` — `MetaFocus` vessel running SelfMetaGame, incorporates focus reports into its task bag
+- Updated `nar/src/bag/Bag.ts` — Added mutable `decayRate` property for dynamic knob adjustment
+- Exports updated in `nar/src/game/index.ts` and `nar/src/focus/index.ts`
+
+**Tests (Gate 5 — MetaGame Sandbox):**
+- `tests/nar/focus-game-reflex/meta-game-sandbox.test.ts` — 16 tests passing:
+  - MetaGame: record/retrieve FocusStepReports, observe with aggregated features, legal actions generation
+  - SelfMetaGame: focus weight setting/clamping, knob setting/clamping/validation, reflex disabling
+  - MetaFocus: creation, stepping with focus report integration
+  - Integration: SelfMetaGame controlling FocusBag weights and applying knob changes to decay rates
+
+**All 33 focus-game-reflex tests passing. All 1245 tests in suite passing.**
+
+**File Layout Extended:**
+```
+nar/src/
+  game/
+    MetaGame.ts, SelfMetaGame.ts
+  focus/
+    MetaFocus.ts
+```
 
 **Implemented (Slice 3: Reflex Mounting):**
 - `nar/src/reflex/Reflex.ts` — `Reflex` interface with `ActionProposal`, `LearningEvent`, `Perception`, `GameOutcome`, `Game`
