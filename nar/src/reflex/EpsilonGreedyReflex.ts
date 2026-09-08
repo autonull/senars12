@@ -1,4 +1,4 @@
-import {Reflex, ActionProposal, LearningEvent, Perception} from './Reflex.js';
+import {Reflex, ActionProposal, LearningEvent} from './Reflex.js';
 
 interface QEntry {
   value: number;
@@ -26,6 +26,10 @@ export class EpsilonGreedyReflex implements Reflex<string, number> {
     const proposals: ActionProposal[] = [];
 
     for (const action of legalActions) {
+      // Ensure entry exists (legalActions may exceed initialized arms)
+      if (!qState[action]) {
+        qState[action] = { value: 0, count: 0 };
+      }
       const entry = qState[action];
       let value = entry.value;
       const confidence = Math.min(1, entry.count / 10);
@@ -57,7 +61,11 @@ export class EpsilonGreedyReflex implements Reflex<string, number> {
       this.qTable.set(stateKey, qState);
     }
 
-    const entry = qState[action];
+    let entry = qState[action];
+    if (!entry) {
+      entry = { value: 0, count: 0 };
+      qState[action] = entry;
+    }
     const reward = event.reward;
     entry.value += (reward - entry.value) / (entry.count + 1);
     entry.count++;

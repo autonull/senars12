@@ -1,5 +1,6 @@
-import {ActionProposal, LearningEvent} from '../focus/Focus.js';
+import {ActionProposal, LearningEvent} from './Reflex.js';
 import {Focus} from '../focus/Focus.js';
+import type {Perception} from '../game/Game.js';
 
 export interface NALDerivation {
   action: string;

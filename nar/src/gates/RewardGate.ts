@@ -1,4 +1,5 @@
-import {Focus, FocusTask, GameOutcome} from '../focus/Focus.js';
+import {Focus, FocusTask} from '../focus/Focus.js';
+import type {GameOutcome} from '../game/Game.js';
 
 export class RewardGate {
   constructor(private readonly focus: Focus) {}

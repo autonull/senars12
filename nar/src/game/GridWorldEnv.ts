@@ -33,8 +33,8 @@ export class GridWorldEnv {
   private readonly grid: string[][];
   readonly rows: number;
   readonly cols: number;
-  readonly startPos: GridWorldState;
-  readonly goalPos: GridWorldState;
+  readonly startPos!: GridWorldState;
+  readonly goalPos!: GridWorldState;
   currentPos: GridWorldState;
   private stepCount = 0;
   readonly maxSteps: number;
@@ -44,7 +44,7 @@ export class GridWorldEnv {
     this.rng = new SeededRNG(config.seed);
     this.grid = config.grid.map((row) => row.split(''));
     this.rows = this.grid.length;
-    this.cols = this.grid[0].length;
+    this.cols = this.grid[0]!.length;
     this.maxSteps = config.maxSteps ?? 100;
 
     this.walls = new Set();
@@ -52,7 +52,7 @@ export class GridWorldEnv {
     let goalFound = false;
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
-        const cell = this.grid[r][c];
+        const cell = this.grid[r]?.[c] ?? ' ';
         if (cell === '#') this.walls.add(`${r},${c}`);
         else if (cell === 'S') {
           this.startPos = { row: r, col: c };

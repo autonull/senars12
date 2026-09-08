@@ -1,4 +1,4 @@
-import type { Perception, GameOutcome } from '../focus/Focus.js';
+import type { Perception, GameOutcome } from '../game/Game.js';
 
 export interface ActionProposal {
   action: string;

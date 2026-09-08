@@ -1,11 +1,13 @@
 import {PriorityBag} from '../bag/Bag.js';
+import type {BagItem} from '../bag/Bag.js';
 import type {Task, Budget, ConceptLike} from '../types/index.js';
 import type {Term} from '../terms/index.js';
-import {isImplication, isInheritance, isOperation, getPredicate, getArgs} from '../terms/index.js';
+import {isImplication, isInheritance, isOperation, getPredicate, getArgs, isAtomic} from '../terms/index.js';
 import {PerceptionGate} from '../gates/PerceptionGate.js';
 import {ActionGate} from '../gates/ActionGate.js';
 import {RewardGate} from '../gates/RewardGate.js';
-import type {Game, Perception, GameOutcome, ActionProposal, Reflex, LearningEvent} from '../reflex/Reflex.js';
+import type {Game, Perception, GameOutcome} from '../game/Game.js';
+import type {ActionProposal, Reflex, LearningEvent} from '../reflex/Reflex.js';
 import type {NALDerivation} from '../reflex/Negotiator.js';
 
 export interface FocusTask extends BagItem {
@@ -65,7 +67,7 @@ export class Focus implements BagItem {
   private readonly rewardGate: RewardGate;
 
   readonly games: Game[] = [];
-  readonly reflexes: Reflex[] = [];
+  reflexes: Reflex[] = [];
 
   constructor(options: FocusOptions) {
     this.id = options.id;
@@ -221,6 +223,10 @@ export class Focus implements BagItem {
     this.reflexes.push(reflex);
   }
 
+  disableReflex(reflexId: string): void {
+    this.reflexes = this.reflexes.filter((r) => r.id !== reflexId);
+  }
+
   getNALDerivations(action: string): NALDerivation[] {
     const derivations: NALDerivation[] = [];
 
@@ -234,7 +240,17 @@ export class Focus implements BagItem {
       if (isOperation(term)) {
         const op = getPredicate(term);
         const args = getArgs(term);
-        if (op === '^' && args.length > 0 && args[0].kind === 'atom' && args[0].value === action) {
+        const firstArg = args[0];
+        if (
+          op &&
+          isAtomic(op) &&
+          op.symbol.startsWith('^') &&
+          op.symbol.slice(1) === action &&
+          firstArg &&
+          firstArg.kind === 'atom' &&
+          'value' in firstArg &&
+          firstArg.value === action
+        ) {
           actionMatches = true;
         }
       }

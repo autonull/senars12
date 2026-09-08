@@ -1,4 +1,4 @@
-import {Reflex, ActionProposal, LearningEvent, Perception} from './Reflex.js';
+import {Reflex, ActionProposal, LearningEvent} from './Reflex.js';
 
 interface QEntry {
   value: number;
@@ -31,7 +31,7 @@ export class UCBReflex implements Reflex<string, number> {
     const proposals: ActionProposal[] = [];
 
     for (const action of legalActions) {
-      const entry = qState[action];
+const entry = qState[action] ?? { value: 0, count: 0 };
       let value: number;
       let confidence: number;
 
@@ -67,6 +67,10 @@ export class UCBReflex implements Reflex<string, number> {
       this.qTable.set(stateKey, qState);
     }
 
+    // Ensure entry exists
+    if (!qState[action]) {
+      qState[action] = { value: 0, count: 0 };
+    }
     const entry = qState[action];
     const reward = event.reward;
     entry.value += (reward - entry.value) / (entry.count + 1);

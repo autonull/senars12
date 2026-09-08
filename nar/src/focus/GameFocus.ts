@@ -1,5 +1,6 @@
 import {Focus, FocusOptions} from './Focus.js';
-import {Game, Perception, GameOutcome, Reflex, ActionProposal, LearningEvent} from '../reflex/Reflex.js';
+import type {Game, Perception, GameOutcome} from '../game/Game.js';
+import {Reflex, ActionProposal, LearningEvent} from '../reflex/Reflex.js';
 import {Negotiator, NALDerivation, NegotiationDecision} from '../reflex/Negotiator.js';
 import {PriorityBag} from '../bag/Bag.js';
 

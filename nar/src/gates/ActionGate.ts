@@ -1,4 +1,5 @@
-import {Focus, FocusTask, ActionProposal} from '../focus/Focus.js';
+import {Focus, FocusTask} from '../focus/Focus.js';
+import {ActionProposal} from '../reflex/Reflex.js';
 
 export class ActionGate {
   constructor(private readonly focus: Focus) {}

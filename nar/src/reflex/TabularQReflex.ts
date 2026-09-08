@@ -1,4 +1,5 @@
-import {Reflex, ActionProposal, LearningEvent, Perception} from '../focus/Focus.js';
+import {Reflex, ActionProposal, LearningEvent} from './Reflex.js';
+import type {Perception} from '../game/Game.js';
 
 interface QEntry {
   value: number;
@@ -51,7 +52,7 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
       // Shuffle to simulate exploration
       for (let i = proposals.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [proposals[i], proposals[j]] = [proposals[j], proposals[i]];
+        [proposals[i]!, proposals[j]!] = [proposals[j]!, proposals[i]!];
       }
     } else {
       // Sort by value * confidence for exploitation

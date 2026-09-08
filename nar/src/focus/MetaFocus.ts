@@ -22,7 +22,7 @@ export class MetaFocus extends Focus {
     this.selfMetaGame = options.selfMetaGame;
   }
 
-  async step(budget: number): Promise<FocusStepReport> {
+  override async step(budget: number): Promise<FocusStepReport> {
     this.metaCycle++;
     const report = await super.step(budget);
 
@@ -34,7 +34,7 @@ export class MetaFocus extends Focus {
           term: {toString: () => `(focus-report ${focusId} ${focusReport.derivations})`} as any,
           type: 'belief',
           truth: {f: 0.8, c: 0.7},
-          budget: {priority: 0.5, durability: 0.5},
+          budget: {priority: 0.5, durability: 0.5, quality: 0.5, cycles: 0, depth: 0},
           stamp: `meta-${this.metaCycle}`,
           derived: false,
         });

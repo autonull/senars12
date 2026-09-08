@@ -203,6 +203,21 @@ cp .env.example .env       # fill in your LM provider credentials
 pnpm bot                    # IRC + WS by default
 ```
 
+### 🧪 Run Self-Improvement Demo
+
+```bash
+# Autonomous self-improvement loop (10 cycles)
+pnpm exec tsx scripts/self-improve-demo.ts
+
+# Cognitive state report
+pnpm exec tsx src/bin/self-report.ts
+
+# RL Parity experiments (Focus-Game-Reflex kernel)
+pnpm exec tsx scripts/rl-parity.ts --env bandit --mode native --seeds 5
+pnpm exec tsx scripts/rl-parity.ts --env gridworld --mode native --seeds 5
+pnpm exec tsx scripts/rl-parity.ts --env nonstationary --mode native --seeds 5
+```
+
 Default behavior: connects to `irc.libera.chat#senars` as `senars-bot` and starts a WebSocket server on
 `ws://localhost:8765`. Friends can join the IRC channel and chat, or connect their bots to the WebSocket.
 
@@ -757,6 +772,253 @@ Real-time WebSocket protocol for UI synchronization:
 
 ---
 
+## 🏗️  Reinforcement Learning
+
+Isolated reasoning vessels, explicit environment interfaces, pluggable reflex accelerators, and a system-wide attention economy.
+
+### Core Primitives
+
+| Primitive | Purpose | Key Types |
+|-----------|---------|-----------|
+| **`Bag<T>`** | Universal AIKR priority queue (capacity-bounded, probabilistic sampling, decay) | `Bag<Item>`, `add()`, `sample()`, `decay()`, `capacity` |
+| **`Focus`** | Isolated reasoning vessel with local `Bag<Task>` + `Bag<Concept>` | `step(budget)`, `weight`, bound `Gates`, bound `Games`/`Reflexes` |
+| **`FocusBag`** | System-wide attention economy — samples `Focus` by weight | `allocateBudget()`, `rebalanceWeights()`, `sample()` |
+| **`Game`** | Environment interface (external or internal) | `observe()`, `step(action)`, `legalActions(state)` |
+| **`Reflex`** | Fast System-1 policy/value engine (Q-learning, UCB, heuristics) | `propose(state)`, `learn(event)` |
+| **`Negotiator`** | Arbitrates Reflex proposals vs NAL derivations (NAL retains veto) | `resolve(proposals, nalDerivations)`, `createLearningEvent()` |
+
+### Gates (Boundary Contracts)
+
+All Game↔Focus interactions pass through strict gates preventing architectural bypasses:
+
+| Gate | Function | Enforcement |
+|------|----------|-------------|
+| **`PerceptionGate`** | Observations → Belief tasks (sensor confidence → `truth.c`) | No direct policy mutation |
+| **`ActionGate`** | Reflex proposals → Native AST operation goals (`Inheritance(Product, Atom('^op'))`) | No action without goal dispatch |
+| **`RewardGate`** | Game outcomes → Value belief revisions / goal satisfaction | No hidden value updates |
+
+### Unified Execution Loop
+
+```typescript
+while (running) {
+  // 1. ATTENTION: System Bag samples Focus by weight
+  const focus = systemFocusBag.sample();
+  const budget = allocateBudget(focus);
+
+  // 2. PERCEPTION: Bound Games inject observations
+  for (const game of gamesBoundTo(focus)) {
+    const perception = game.observe();
+    focus.tasks.addAll(perceptionGate.toBeliefs(perception));
+  }
+
+  // 3. PROPOSAL: Reflexes inject goals
+  for (const reflex of reflexesBoundTo(focus)) {
+    const proposals = reflex.propose(game.state(), game.legalActions());
+    focus.tasks.addAll(actionGate.toGoals(proposals));
+  }
+
+  // 4. REASONING & NEGOTIATION: Process tasks, resolve conflicts
+  const decision = negotiator.resolve(focus.tasks, nalDerivations);
+
+  // 5. EXECUTION: Dispatch winning goal
+  if (decision.action) {
+    const outcome = game.step(decision.action);
+    focus.tasks.addAll(rewardGate.toBeliefs(outcome));
+
+    // 6. LEARNING: Reflexes update on actual execution (or veto)
+    for (const reflex of reflexesBoundTo(focus)) {
+      reflex.learn({ ...outcome, overriddenBy: decision.vetoedBy });
+    }
+  }
+
+  // 7. AIKR: Decay priorities, enforce capacity
+  focus.tasks.decay();
+  systemFocusBag.decay();
+}
+```
+
+### Implemented Components (Slices 1–5 Complete)
+
+| Slice | Components | Tests |
+|-------|------------|-------|
+| **1** | `Bag<T>`, `Focus`, `FocusBag` | `kernel-slice1.test.ts` (19 tests) |
+| **2** | `GameFocus`, `PerceptionGate`, `ActionGate`, `RewardGate`, `GridWorldGame` | `kernel-slice1.test.ts` |
+| **3** | `Reflex` interface, `TabularQReflex`, `EpsilonGreedyReflex`, `UCBReflex` | `m35-gridworld-validation.test.ts` |
+| **4** | `Negotiator` (NAL veto + `LearningEvent` feedback) | `m35-gridworld-validation.test.ts` |
+| **5** | `MetaGame`, `SelfMetaGame`, `MetaFocus` (`^focus_weight`, `^knob_set`) | `meta-game-sandbox.test.ts` (16 tests) |
+
+### M3.5 Validation in New Architecture ✅
+
+| Environment | Level 1 (Adapter) | Level 2 (Native Reflex) | Status |
+|-------------|-------------------|-------------------------|--------|
+| **Bandit** | ✅ Pass | ✅ Pass (via `EpsilonGreedyReflex`/`UCBReflex`) | ✅ |
+| **NonStationary** | ✅ Pass | ✅ Pass (drift detection) | ✅ |
+| **GridWorld** | ✅ Pass | ✅ **Pass** (100% success after 200 episodes, `TabularQReflex`) | ✅ |
+
+---
+
+## 🤖 Autonomous Self-Improvement Loop (M3 Complete)
+
+SeNARS12 now runs a **fully autonomous self-improvement loop** where the cognitive architecture reasons about its own codebase using the same NAL machinery it uses for external reasoning.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        NAR REASONER                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │  BELIEFS    │  │   GOALS     │  │  QUESTIONS  │              │
+│  │  (incl.     │  │  (incl.     │  │  (incl.     │              │
+│  │   self-     │  │   self-     │  │   self-     │              │
+│  │   beliefs)  │  │   goals)    │  │   questions)│              │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘              │
+│         │                │                │                     │
+│         └────────────────┼────────────────┘                     │
+│                          ▼                                      │
+│              ┌─────────────────────┐                            │
+│              │   RULE PROCESSOR    │  ← 5 meta-rules + AIKR bounds│
+│              │                     │  ← sync rules + LMRules      │
+│              └──────────┬──────────┘                            │
+│                         │                                        │
+│    ┌────────────────────┼────────────────────┐                  │
+│    ▼                    ▼                    ▼                  │
+│ ┌─────────┐       ┌─────────┐        ┌─────────┐              │
+│ │ TOOLS   │       │ MEMORY  │        │ RLFP    │              │
+│ │(self-ops)│       │(self-epi)│        │(task rwd)│             │
+│ └─────────┘       └─────────┘        └─────────┘              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Single Loop** (runs in `NARExecution.run()`):
+```
+Perceive → Recall → Reason (meta-rules + drives) → Act (tools) → Validate → Consolidate
+```
+
+### Self-Concept Vocabulary (30 Semantic Narsese Beliefs)
+
+```narsese
+<!-- Components -->
+(system_component --> knob).
+(system_component --> strategy).
+(system_component --> tool).
+(system_component --> rule).
+(system_component --> test).
+(system_component --> scenario).
+(system_component --> concept).
+
+<!-- Causal/functional relations -->
+(knob:maxLoops --> affects modelRunner.maxLoops).
+(strategy:focused --> reduces derivations).
+(tool:codemod --> modifies source_code).
+(rule:transitivity --> derives (A==>C) from (A==>B) (B==>C)).
+(test:fix_test --> requires codemod).
+(scenario:induction --> tests induction_capability).
+(schema --> promotes_to rule).
+(capability --> implemented_by tool).
+
+<!-- Fix patterns (semantic concepts) -->
+(fix_pattern:null_check --> applies_to null_pointer_error).
+(fix_pattern:type_annotation --> applies_to type_mismatch_error).
+(fix_pattern:boundary_check --> applies_to out_of_bounds_error).
+... (8 total patterns)
+```
+
+### Meta-Rules with AIKR Bounds (5 Rules)
+
+| Rule | Trigger | Action | AIKR Bounds |
+|------|---------|--------|-------------|
+| **Strategy Select** | `drive:competence --> low` | `^switch_strategy($s)!` | depth=2, budget=5/step, priority=0.1, threshold=0.6 |
+| **Knob Tune** | `rlfp:reward --> below_threshold` | `^tune_knob($k, $v)!` | depth=2, budget=5/step |
+| **Test Repair** | `test_failed & error_pattern & fix_pattern` | `^apply_fix($fix)!` | depth=2, budget=5/step |
+| **Schema Promote** | `confidence > 0.9 & frequency > 10` | `^promote_rule($s)!` | depth=2, budget=5/step |
+| **Capability Scaffold** | `capability & template` | `^scaffold($tmpl, $c)!` | depth=2, budget=5/step |
+
+### Homeostatic Drives (4 Drives)
+
+| Drive | Goal | Decay | Replenished By |
+|-------|------|-------|----------------|
+| `curiosity` | `(self --> curious)!` | 0.02/cycle | `generate_scenarios`, `coverage_concepts` on low-coverage |
+| `competence` | `(self --> competent)!` | 0.015/cycle | `run_tests` (green), `tune_knob` (reward ↑) |
+| `coherence` | `(self --> coherent)!` | 0.01/cycle | `resolve_contradiction`, schema promotion |
+| `social` | `(self --> social)!` | 0.05/cycle | Human interaction (CLI/IRC) |
+
+### Self-Tools (8 Tools, Shadow Execution)
+
+| Tool | Self-Operation | Implementation |
+|------|----------------|----------------|
+| `register_rule` | `(^promote_rule($schema))!` | Add schema to RuleRegistry |
+| `register_tool` | `(^add_capability($cap))!` | ToolManager.register() |
+| `scaffold_capability` | `(^scaffold($tmpl, $cap))!` | Fill template → `codemod` in shadow worktree |
+| `apply_fix` | `(^apply_fix($fix))!` | Lookup fix pattern → `codemod` in shadow worktree |
+| `tune_knob` | `(^apply_tuning($knob, $val))!` | RLFPLearner.applyTuningUpdate() |
+| `switch_strategy` | `(^select_strategy($strat))!` | CognitiveController / StrategyRegistry |
+| `run_tests_shadow` | Validation | Full CI (`pnpm test && pnpm typecheck && pnpm lint`) in shadow |
+| `run_scenario_shadow` | Validation | Cognitive scenarios in shadow |
+
+**Shadow Execution Safety:**
+1. Create git worktree: `git worktree add .shadow/fix-42`
+2. Apply codemod in `.shadow/fix-42`
+3. Run **full CI** (test + typecheck + lint) in shadow
+4. If green: present diff to ApprovalManager
+5. If approved: merge worktree → main
+6. Cleanup: `git worktree remove .shadow/fix-42`
+
+### RLFP on Task Outcomes (Unified + Intrinsic Rewards)
+
+```typescript
+interface TaskOutcome {
+  taskType: 'test' | 'scenario' | 'contradiction' | 'schema' | 'capability' | 'knob_tune' | 'meta_reasoning';
+  success: boolean;
+  metrics: Record<string, number>;
+}
+
+// Extrinsic (existing)
+reward_extrinsic = 0.5 * passRate + 0.3 * clamp(baseline/current, 0, 2)/2 + 0.2 * coverageDelta - AIKR penalties;
+
+// Intrinsic (new)
+reward_intrinsic = 
+  0.4 * derivationDepthReduction +    // schema promotion → fewer steps
+  0.3 * selfModelAccuracy +           // predicted vs actual capability
+  0.3 * contradictionReduction;       // coherence improvement
+
+reward = clamp(reward_extrinsic + 0.3 * reward_intrinsic, -1, 1);
+```
+
+### Goal→Tool Dispatch (Semantic, Native AST)
+
+```typescript
+// Narsese operation goal: ^apply_fix(fix_pattern:null_check)
+// Parses to: Inheritance(Product(Atom('fix_pattern:null_check')), Atom('^apply_fix'))
+async executeToolGoal(goalTerm: Term): Promise<ToolResult> {
+  // AST traversal extracts operator from predicate, args from Product subject
+  const op = goalTerm.predicate;        // Atom('^apply_fix')
+  const args = goalTerm.subject;        // Product([Atom('fix_pattern:null_check')])
+  return this.execute(op.symbol.slice(1), resolveSemanticArgs(args));
+}
+```
+
+### Observability
+
+Structured cognitive state emitted every 10 cycles:
+
+```json
+{
+  "timestamp": "2026-09-08T...",
+  "cycle": 128,
+  "active_drives": { "competence": 0.8, "curiosity": 0.2, "coherence": 0.9, "social": 0.1 },
+  "active_meta_goals": ["^apply_fix(fix_pattern:null_check)", "^promote_rule(schema_42)"],
+  "pending_tool_executions": ["apply_fix (shadow worktree .shadow/fix-42)"],
+  "aikr_pressure": "low",
+  "rlfp_reward_avg": 0.34,
+  "meta_derivation_budget_used": "2/5",
+  "self_quality": 0.85
+}
+```
+
+CLI: `pnpm exec tsx src/bin/self-report.ts`
+
+---
+
 ## 🔌 Integration Layer
 
 ### Core Agent Runtime (`@senars/core`)
@@ -1010,12 +1272,37 @@ tests/nar/
 
 ## 🔮 Future Functionality (Roadmap)
 
-### Priority 1: One-Command Demo (Immediate)
+### ✅ Completed Milestones
+
+| Milestone | Description | Status |
+|-----------|-------------|--------|
+| **M0** | Green CI | ✅ |
+| **M1** | Self-test loop | ✅ |
+| **M1.5** | Cognitive scenarios | ✅ |
+| **M2** | Self-tune (knob optimization) | ✅ |
+| **M2.5** | Imagination engine (cognitive treadmill) | ✅ |
+| **M3** | **Autonomous self-improvement loop** | ✅ **COMPLETE** |
+| **M3.5** | **Cognitive grounding & RL parity** (Focus-Game-Reflex kernel) | ✅ **COMPLETE** |
+
+### 🎯 Active: M4 — Production Loop (Next)
 
 ```bash
-npx senars-demo
-# Knowledge Discovery → Consistency → Memory demos in 60 seconds
+# Target: 1-hour unattended autonomous operation
+nar run --auto --duration 3600
 ```
+
+- Stability hardening for long-running loops
+- Workload definition for unattended runs
+- Auto-approval mode for ApprovalManager
+- Health monitoring + auto-restart
+- Persistent state verification across restarts
+
+### 📅 Planned: M5 — Autonomous Self-Modification (Post-M4)
+
+- Shadow worktree codemod execution enabled
+- RLFP-driven code modification
+- Autonomous schema promotion to production rules
+- Full sabotage→auto-fix litmus test
 
 ### Priority 2: Embed Pattern (Weeks 2-4)
 
@@ -1123,39 +1410,40 @@ See `CONTRIBUTING.md` (to be created) and `AGENTS.md` for code guidelines.
 
 ## 📊 Quick Reference
 
-| Category                | Key Exports                                                             | Entry Points                      |
-|-------------------------|-------------------------------------------------------------------------|-----------------------------------|
-| **Core NAR**            | `NAR`, `createNAR`, `Reasoner`, `Memory`, `TaskManager`                 | `@senars/nar`                     |
-| **Terms**               | `TermBuilder`, `termParser`, `Truth`, `Stamp`                           | `@senars/nar/terms`               |
-| **Rules**               | `NALRules`, `NALExtendedRules`, `RuleProcessor`                         | `@senars/nar/rules`               |
-| **Agent (NAR)**         | `createAgent`, `Agent`, `NAREngine`, `MettaEngine`                      | `@senars/nar/agent`               |
-| **Cognitive**           | `CognitiveController`, `Observer`, `RLFPLearner`                        | `@senars/nar/cognitive`           |
-| **Cognitive Params**    | `CognitiveParameters`, `DEFAULT_COGNITIVE_PARAMETERS`                   | `@senars/nar/config`              |
-| **Strategies**          | `SamplingStrategy`, `DerivationStrategy`, `AttentionModel`              | `@senars/nar/strategies`          |
-| **NL**                  | `NLUnderstandingService`, `NLGenerationService`                         | `@senars/nar/nl`                  |
-| **Tools**               | `ToolManager`, `discoverTools`, `ExplainTool`                           | `@senars/nar/tools`               |
-| **Learning**            | `SchemaInductor`, `FeedbackLearner`, `validateLMOutput`                 | `@senars/nar/learning`            |
-| **Self-Reasoning**      | `ReasoningAboutReasoning`, `SelfAnalyzer`, `MetacognitiveMonitor`       | `@senars/nar/self`                |
-| **Cognitive Analyzers** | `capabilities`, `performance`, `quality`, `reasoning-patterns`, ...     | `@senars/nar/cognitive/analyzers` |
-| **Grounding**           | `GroundingPipeline`, `SourceQuality`                                    | `@senars/nar`                     |
-| **Streaming**           | `createPipeline`, `MemoryPremiseSource`, `FocusPremiseSource`, `derive` | `@senars/nar/stream`              |
-| **Commands**            | `narCommands`, `rlfpCommands`, `selfCommands`, `configCommands`         | `@senars/nar/commands`            |
-| **LM Rules**            | `LMRules`, `LMRule`, `LMRuleFactory`                                    | `@senars/nar/lm`                  |
-| **MeTTa**               | `createMeTTa`, `parseMeTTa`, `EGraph`, `MeTTaRuntime`                   | `@senars/metta`                   |
-| **MeTTa Engine**        | `MettaEngine`, `MettaCommandParser`                                     | `@senars/metta/agent`             |
-| **Core Agent**          | `Agent`, `createAgent`, `LLMCortex`, `MemoryService`                    | `@senars/core`                    |
-| **Agent Subsystems**    | `ToolRegistry`, `PolicyEngine`, `ApprovalService`, `KnowledgeManager`   | `@senars/core`                    |
-| **Event Logs**          | `InMemoryEventLog`, `SqliteEventLog`                                    | `@senars/core`                    |
-| **Session Mgmt**        | `InMemorySessionManager`, `JsonlSessionManager`                         | `@senars/core`                    |
-| **Model Runner**        | `ModelRunner`, `ToolCall`, `ModelEvent`                                 | `@senars/core`                    |
-| **Lens/Protocol**       | `Lens`, `GraphNodeData`, `GraphOp`, `CognitiveDelta`                    | `@senars/core/protocol`           |
-| **IO**                  | `ConnectionManager`, `bindAgentToConnection`                            | `@senars/io`                      |
-| **API**                 | `HTTPAdapter`, `WebSocketAdapter`, `SeNARSMCPServer`                    | `@senars/api`                     |
-| **UI**                  | `startAgentUI`, `UnifiedGraphProjection`                                | `@senars/ui`                      |
-| **Config**              | `loadConfig`, `loadConfigFromEnv`                                       | `@senars/config`                  |
-| **Shared Utils**        | `EventBus`, `CommandRegistry`, `generateId`, `clamp`, `sleep`           | `@senars/util`                    |
-| **Shared Types**        | `CognitiveEvent`, `Connection`, `LMService`, `Episode`                  | `@senars/util`                    |
-| **Errors**              | `SenarsError`, `ConfigError`, `TransportError`, `PolicyViolation`       | `@senars/util`                    |
+| Category                      | Key Exports                                                                                                                                  | Entry Points                            |
+|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| **Core NAR**                  | `NAR`, `createNAR`, `Reasoner`, `Memory`, `TaskManager`                                                                                      | `@senars/nar`                           |
+| **Terms**                     | `TermBuilder`, `termParser`, `Truth`, `Stamp`                                                                                                | `@senars/nar/terms`                     |
+| **Rules**                     | `NALRules`, `NALExtendedRules`, `RuleProcessor`, `MetaRules`                                                                                 | `@senars/nar/rules`                     |
+| **Agent (NAR)**               | `createAgent`, `Agent`, `NAREngine`, `MettaEngine`                                                                                           | `@senars/nar/agent`                     |
+| **Cognitive**                 | `CognitiveController`, `Observer`, `RLFPLearner`                                                                                             | `@senars/nar/cognitive`                 |
+| **Cognitive Params**          | `CognitiveParameters`, `DEFAULT_COGNITIVE_PARAMETERS`, `FAST_COGNITIVE_CONFIG`, `LM_HEAVY_CONFIG`                                           | `@senars/nar/config`                    |
+| **Strategies**                | `SamplingStrategy`, `DerivationStrategy`, `AttentionModel`                                                                                   | `@senars/nar/strategies`                |
+| **NL**                        | `NLUnderstandingService`, `NLGenerationService`                                                                                              | `@senars/nar/nl`                        |
+| **Tools**                     | `ToolManager`, `discoverTools`, `ExplainTool`, `SelfTools`                                                                                   | `@senars/nar/tools`                     |
+| **Learning**                  | `SchemaInductor`, `FeedbackLearner`, `validateLMOutput`                                                                                      | `@senars/nar/learning`                  |
+| **Self-Reasoning**            | `ReasoningAboutReasoning`, `SelfAnalyzer`, `MetacognitiveMonitor`                                                                            | `@senars/nar/self`                      |
+| **Cognitive Analyzers**       | `capabilities`, `performance`, `quality`, `reasoning-patterns`, ...                                                                          | `@senars/nar/cognitive/analyzers`       |
+| **Grounding**                 | `GroundingPipeline`, `SourceQuality`                                                                                                         | `@senars/nar`                           |
+| **Streaming**                 | `createPipeline`, `MemoryPremiseSource`, `FocusPremiseSource`, `derive`                                                                      | `@senars/nar/stream`                    |
+| **Commands**                  | `narCommands`, `rlfpCommands`, `selfCommands`, `configCommands`, `memoryCommands`, `lmCommands`, `episodesCommands`                          | `@senars/nar/commands`                  |
+| **LM Rules**                  | `LMRules`, `LMRule`, `LMRuleFactory`                                                                                                         | `@senars/nar/lm`                        |
+| **MeTTa**                     | `createMeTTa`, `parseMeTTa`, `EGraph`, `MeTTaRuntime`                                                                                        | `@senars/metta`                         |
+| **MeTTa Engine**              | `MettaEngine`, `MettaCommandParser`                                                                                                          | `@senars/metta/agent`                   |
+| **Focus-Game-Reflex Kernel**  | `Bag`, `Focus`, `FocusBag`, `GameFocus`, `MetaFocus`, `PerceptionGate`, `ActionGate`, `RewardGate`, `Reflex`, `TabularQReflex`, `Negotiator`, `Game`, `MetaGame`, `SelfMetaGame` | `@senars/nar` (new architecture)        |
+| **Core Agent**                | `Agent`, `createAgent`, `LLMCortex`, `MemoryService`                                                                                         | `@senars/core`                          |
+| **Agent Subsystems**          | `ToolRegistry`, `PolicyEngine`, `ApprovalService`, `KnowledgeManager`                                                                        | `@senars/core`                          |
+| **Event Logs**                | `InMemoryEventLog`, `SqliteEventLog`                                                                                                         | `@senars/core`                          |
+| **Session Mgmt**              | `InMemorySessionManager`, `JsonlSessionManager`                                                                                              | `@senars/core`                          |
+| **Model Runner**              | `ModelRunner`, `ToolCall`, `ModelEvent`                                                                                                      | `@senars/core`                          |
+| **Lens/Protocol**             | `Lens`, `GraphNodeData`, `GraphOp`, `CognitiveDelta`                                                                                         | `@senars/core/protocol`                 |
+| **IO**                        | `ConnectionManager`, `bindAgentToConnection`                                                                                                 | `@senars/io`                            |
+| **API**                       | `HTTPAdapter`, `WebSocketAdapter`, `SeNARSMCPServer`                                                                                         | `@senars/api`                           |
+| **UI**                        | `startAgentUI`, `UnifiedGraphProjection`                                                                                                     | `@senars/ui`                            |
+| **Config**                    | `loadConfig`, `loadConfigFromEnv`                                                                                                            | `@senars/config`                        |
+| **Shared Utils**              | `EventBus`, `CommandRegistry`, `generateId`, `clamp`, `sleep`                                                                                | `@senars/util`                          |
+| **Shared Types**              | `CognitiveEvent`, `Connection`, `LMService`, `Episode`                                                                                       | `@senars/util`                          |
+| **Errors**                    | `SenarsError`, `ConfigError`, `TransportError`, `PolicyViolation`                                                                            | `@senars/util`                          |
 
 ---
 

@@ -1,9 +1,10 @@
-import {Focus, FocusTask} from './Focus.js';
+import {Focus, FocusTask} from '../focus/Focus.js';
+import type {Perception} from '../game/Game.js';
 
 export class PerceptionGate {
   constructor(private readonly focus: Focus) {}
 
-  toBeliefs(perception: Focus['games'][0]['observe']): FocusTask[] {
+  toBeliefs(perception: Perception): FocusTask[] {
     const beliefs: FocusTask[] = [];
     const now = Date.now();
 
@@ -26,8 +27,8 @@ export class PerceptionGate {
           priority: Math.abs(value) * (perception.confidence ?? 0.5),
           term: this.featureToTerm(feature, value),
           type: 'belief',
-          truth: { f: Math.min(1, Math.abs(value)), c: perception.confidence ?? 0.5 },
-          budget: { priority: Math.abs(value), durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+          truth: { f: Math.min(1, Math.abs(Number(value))), c: perception.confidence ?? 0.5 },
+          budget: { priority: Math.abs(Number(value)), durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
           stamp: `perception-${now}`,
           derived: false,
         };
@@ -38,7 +39,7 @@ export class PerceptionGate {
     return beliefs;
   }
 
-  private stateIdToTerm(stateId: string): Focus['games'][0]['observe'] extends { stateId: string } ? any : never {
+  private stateIdToTerm(stateId: string): any {
     return { kind: 'atom', value: stateId } as any;
   }
 

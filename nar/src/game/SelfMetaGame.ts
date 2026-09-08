@@ -70,7 +70,7 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
       throw new Error(`GameFocus not found: ${focusId}`);
     }
     const focus = gameFocus.getFocus();
-    focus.reflexes = focus.reflexes.filter((r) => r.id !== reflexId);
+    focus.disableReflex(reflexId);
   }
 
   getKnobValue(knob: string): number | undefined {
@@ -88,16 +88,16 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
         break;
       case 'taskDecayRate':
         for (const focus of this.focusBag.all()) {
-          focus.tasks.decayRate = value;
+          focus.tasks.decayRateValue = value;
         }
         break;
       case 'conceptDecayRate':
         for (const focus of this.focusBag.all()) {
-          focus.memory.decayRate = value;
+          focus.memory.decayRateValue = value;
         }
         break;
       case 'focusDecayRate':
-        this.focusBag.decayRate = value;
+        this.focusBag.decayRateValue = value;
         break;
     }
   }
