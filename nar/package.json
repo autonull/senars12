@@ -91,6 +91,14 @@
     "./capability": {
       "types": "./src/capability/index.ts",
       "import": "./src/capability/index.ts"
+    },
+    "./stream": {
+      "types": "./src/stream/index.ts",
+      "import": "./src/stream/index.ts"
+    },
+    "./stream/*": {
+      "types": "./src/stream/*.ts",
+      "import": "./src/stream/*.ts"
     }
   },
   "scripts": {

@@ -484,15 +484,29 @@ The `GroundingPipeline` class and `SourceQuality` enum are available in `@senars
 | Blog/Forum               | TERTIARY  | 0.4              |
 | LLM Prior                | LLM_PRIOR | 0.5              |
 
-### 8. Streaming Pipeline — Async Derivation Streams (Internal)
+### 8. Streaming Pipeline — Async Derivation Streams
 
-The streaming pipeline (`@senars/nar/src/stream`) is used internally by `NARExecution` but not yet publicly exported. It provides:
+The streaming pipeline (`@senars/nar/stream`) provides async derivation streams with backpressure and CPU throttling:
 
+```typescript
+import { createPipeline, StreamReasoner, MemoryPremiseSource, FocusPremiseSource } from '@senars/nar/stream';
+
+const reasoner = new StreamReasoner({ maxBatch: 10, highPressure: 0.8 });
+const pipeline = createPipeline({ premiseSources: [new MemoryPremiseSource(memory)] });
+for await (const result of pipeline.derive(reasoner)) {
+  // incremental derivations
+}
+```
+
+**Features:**
 - Multiple premise sources: priority-weighted, recency, novelty, fair, focus-based
 - Composite sources with configurable weights
 - CPU throttling & cooperative yielding
 - Backpressure-aware buffering
 - Configurable queue limits and derivation caps
+- **`StreamReasoner`** — bounded LLM-backed reasoning with pressure-driven flush
+
+**Exports:** `createPipeline`, `StreamReasoner`, `MemoryPremiseSource`, `FocusPremiseSource`, `CompositePremiseSource`, `derive`, `throttled`, `backpressureAware`, types `PipelineConfig`, `PremiseSource`, `LMBackend`, `ProvisionalBelief` from `@senars/nar/stream`.
 
 ### 9. NAR Command System — CLI & Programmatic Control
 
@@ -746,13 +760,6 @@ const space = new CapabilitySpace({
 ```typescript
 import { CognitiveParameters, DEFAULT_COGNITIVE_PARAMETERS, FAST_COGNITIVE_CONFIG, LM_HEAVY_CONFIG, RESEARCH_COGNITIVE_CONFIG } from '@senars/nar/config/cognitive-parameters';
 ```
-
-| Preset                         | Use Case                          |
-|--------------------------------|-----------------------------------|
-| `DEFAULT_COGNITIVE_PARAMETERS` | Balanced general use              |
-| `FAST_COGNITIVE_CONFIG`        | Minimal LM, max speed             |
-| `LM_HEAVY_CONFIG`              | Maximum LM enhancement            |
-| `RESEARCH_COGNITIVE_CONFIG`    | Full tracing, limited derivations |
 
 | Preset                         | Use Case                          |
 |--------------------------------|-----------------------------------|
@@ -1515,12 +1522,13 @@ See `CONTRIBUTING.md` (to be created) and `AGENTS.md` for code guidelines.
 | **Self-Reasoning**            | `ReasoningAboutReasoning`, `SelfAnalyzer`, `MetacognitiveMonitor`                                                                            | `@senars/nar/self`                      |
 | **Cognitive Analyzers**       | `capabilities`, `performance`, `quality`, `reasoning-patterns`, ...                                                                          | `@senars/nar/cognitive/analyzers`       |
 | **Grounding**                 | `GroundingPipeline`, `SourceQuality`                                                                                                         | `@senars/nar` (internal, not exported)  |
-| **Streaming**                 | `createPipeline`, `MemoryPremiseSource`, `FocusPremiseSource`, `derive`                                                                      | `@senars/nar` (internal, not exported)  |
+| **Streaming**                 | `createPipeline`, `StreamReasoner`, `MemoryPremiseSource`, `FocusPremiseSource`, `CompositePremiseSource`, `derive`, `throttled`, `backpressureAware`                                                                   | `@senars/nar/stream`                      |
 | **Commands**                  | `narCommands`, `rlfpCommands`, `selfCommands`, `configCommands`, `memoryCommands`, `lmCommands`, `episodesCommands`                          | `@senars/nar/commands`                  |
 | **LM Rules**                  | `LMRules`, `LMRule`, `LMRuleFactory`                                                                                                         | `@senars/nar/lm`                        |
 | **MeTTa**                     | `createMeTTa`, `parseMeTTa`, `EGraph`, `MeTTaRuntime`                                                                                        | `@senars/metta`                         |
 | **MeTTa Engine**              | `MettaEngine`, `MettaCommandParser`                                                                                                          | `@senars/metta/agent`                   |
 | **Focus-Game-Reflex Kernel**  | `Bag`, `Focus`, `FocusBag`, `GameFocus`, `MetaFocus`, `PerceptionGate`, `ActionGate`, `RewardGate`, `Reflex`, `TabularQReflex`, `Negotiator`, `Game`, `MetaGame`, `SelfMetaGame` | `@senars/nar` (new architecture)        |
+| **Tick Pipeline**             | `createTickContext`, `runTick`, `createPipeline`, `DEFAULT_PIPELINE`, `createDefaultHooks`, `operationActionOf`, `fuseStreamReasoner`, `initOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent` | `@senars/nar/tick`                      |
 | **Observability (OTel)**      | `initOtel`, `shutdownOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent`, `getTracer`, `OtelConfig`, `CognitiveStage` | `@senars/nar/tick`                      |
 | **WASI Sandbox**              | `CapabilitySpace`, `createWasiSandbox`, `createWasmModuleSandbox`, `createNodeVMSandbox`, `WasiSandboxOptions`, `WasmModuleOptions` | `@senars/nar/capability`                |
 | **Core Agent**                | `Agent`, `createAgent`, `LLMCortex`, `MemoryService`                                                                                         | `@senars/core`                          |
