@@ -400,7 +400,8 @@ const derivation = nar.getDerivationHistory(task);
 **Executive Controller (Metacognition):**
 
 ```typescript
-import { CognitiveController, CognitiveParameters } from '@senars/nar/cognitive';
+import { CognitiveController } from '@senars/nar/cognitive';
+import { CognitiveParameters } from '@senars/nar/config/cognitive-parameters';
 
 const controller = new CognitiveController(registry, memory, processor, metrics, rlfp, params);
 controller.adapt();  // Auto-tune strategies based on performance
@@ -472,17 +473,7 @@ const state = self.querySystemState();       // Full system snapshot
 
 ### 7. Grounding Pipeline — Sensory & Source Integration
 
-```typescript
-import { GroundingPipeline, SourceQuality } from '@senars/nar';
-
-const grounding = new GroundingPipeline(nar, memory, tools);
-
-// Ground facts with source quality assessment
-await grounding.groundFact("weather query", "weather.gov", SourceQuality.PRIMARY, "(temp --> 22).");
-
-// Auto-classify source credibility
-const quality = grounding.getSourceConfidence("pubmed.ncbi.nlm.nih.gov"); // PRIMARY
-```
+The `GroundingPipeline` class and `SourceQuality` enum are available in `@senars/nar/src/grounding.ts` but not yet publicly exported. They provide source quality assessment for beliefs:
 
 | Source Type              | Quality   | Truth Confidence |
 |--------------------------|-----------|------------------|
@@ -492,35 +483,9 @@ const quality = grounding.getSourceConfidence("pubmed.ncbi.nlm.nih.gov"); // PRI
 | Blog/Forum               | TERTIARY  | 0.4              |
 | LLM Prior                | LLM_PRIOR | 0.5              |
 
-### 8. Streaming Pipeline — Async Derivation Streams
+### 8. Streaming Pipeline — Async Derivation Streams (Internal)
 
-```typescript
-import { createPipeline, MemoryPremiseSource, FocusPremiseSource, CompositePremiseSource, derive, backpressureAware } from '@senars/nar/stream';
-
-// Priority-weighted sampling from memory
-const source = new MemoryPremiseSource(memory, 'priority-weighted');
-
-// Focus-only high-priority concepts
-const focus = new FocusPremiseSource(memory);
-
-// Composite with weighted sources
-const composite = new CompositePremiseSource([
-  { source, weight: 0.7 },
-  { focus, weight: 0.3 }
-]);
-
-// Full pipeline with CPU throttling & backpressure
-for await (const task of createPipeline(composite, memory, strategy, {
-  cpuThrottleMs: 10,
-  maxDepth: 10,
-  maxQueueSize: 1000,
-  maxDerivationsPerStep: 100
-})) {
-  // Process each derived task
-}
-```
-
-**Features:**
+The streaming pipeline (`@senars/nar/src/stream`) is used internally by `NARExecution` but not yet publicly exported. It provides:
 
 - Multiple premise sources: priority-weighted, recency, novelty, fair, focus-based
 - Composite sources with configurable weights
@@ -673,6 +638,7 @@ egraph.union(parseMeTTa('a'), parseMeTTa('b'));
 The agent registers both engines and routes stimuli by prefix:
 
 ```typescript
+import { createMeTTa, parseMeTTa, EGraph, MeTTaRuntime } from '@senars/metta';
 import { createAgent } from '@senars/nar/agent';
 import { MettaEngine } from '@senars/metta/agent';
 
@@ -688,8 +654,15 @@ const agent = await createAgent({ /* config */ });
 **Tunable Hyperparameters** — All behavior is controlled via `CognitiveParameters` with validated ranges:
 
 ```typescript
-import { CognitiveParameters, DEFAULT_COGNITIVE_PARAMETERS, FAST_COGNITIVE_CONFIG, LM_HEAVY_CONFIG, RESEARCH_COGNITIVE_CONFIG } from '@senars/nar/config';
+import { CognitiveParameters, DEFAULT_COGNITIVE_PARAMETERS, FAST_COGNITIVE_CONFIG, LM_HEAVY_CONFIG, RESEARCH_COGNITIVE_CONFIG } from '@senars/nar/config/cognitive-parameters';
 ```
+
+| Preset                         | Use Case                          |
+|--------------------------------|-----------------------------------|
+| `DEFAULT_COGNITIVE_PARAMETERS` | Balanced general use              |
+| `FAST_COGNITIVE_CONFIG`        | Minimal LM, max speed             |
+| `LM_HEAVY_CONFIG`              | Maximum LM enhancement            |
+| `RESEARCH_COGNITIVE_CONFIG`    | Full tracing, limited derivations |
 
 | Preset                         | Use Case                          |
 |--------------------------------|-----------------------------------|
@@ -841,11 +814,10 @@ while (running) {
 
 | Slice | Components | Tests |
 |-------|------------|-------|
-| **1** | `Bag<T>`, `Focus`, `FocusBag` | `kernel-slice1.test.ts` (19 tests) |
-| **2** | `GameFocus`, `PerceptionGate`, `ActionGate`, `RewardGate`, `GridWorldGame` | `kernel-slice1.test.ts` |
-| **3** | `Reflex` interface, `TabularQReflex`, `EpsilonGreedyReflex`, `UCBReflex` | `m35-gridworld-validation.test.ts` |
-| **4** | `Negotiator` (NAL veto + `LearningEvent` feedback) | `m35-gridworld-validation.test.ts` |
-| **5** | `MetaGame`, `SelfMetaGame`, `MetaFocus` (`^focus_weight`, `^knob_set`) | `meta-game-sandbox.test.ts` (16 tests) |
+| **1** | `Bag<T>`, `Focus`, `FocusBag`, `TabularQReflex`, `Negotiator`, `GridWorldGame`, `GameFocus` | `kernel-slice1.test.ts` (14 tests) |
+| **2** | `EpsilonGreedyReflex`, `UCBReflex` (Reflex implementations) | `m35-gridworld-validation.test.ts` |
+| **3** | `Negotiator` (NAL veto + `LearningEvent` feedback) | `m35-gridworld-validation.test.ts` |
+| **4** | `MetaGame`, `SelfMetaGame`, `MetaFocus` (`^focus_weight`, `^knob_set`) | `meta-game-sandbox.test.ts` (16 tests) |
 
 ### M3.5 Validation in New Architecture ✅
 
@@ -894,7 +866,7 @@ SeNARS12 now runs a **fully autonomous self-improvement loop** where the cogniti
 Perceive → Recall → Reason (meta-rules + drives) → Act (tools) → Validate → Consolidate
 ```
 
-### Self-Concept Vocabulary (30 Semantic Narsese Beliefs)
+### Self-Concept Vocabulary
 
 ```narsese
 <!-- Components -->
@@ -905,22 +877,35 @@ Perceive → Recall → Reason (meta-rules + drives) → Act (tools) → Validat
 (system_component --> test).
 (system_component --> scenario).
 (system_component --> concept).
+(system_component --> schema).
+(system_component --> capability).
 
 <!-- Causal/functional relations -->
-(knob:maxLoops --> affects modelRunner.maxLoops).
-(strategy:focused --> reduces derivations).
-(tool:codemod --> modifies source_code).
-(rule:transitivity --> derives (A==>C) from (A==>B) (B==>C)).
-(test:fix_test --> requires codemod).
-(scenario:induction --> tests induction_capability).
-(schema --> promotes_to rule).
-(capability --> implemented_by tool).
+(knob_maxLoops --> affects_modelRunner_maxLoops).
+(strategy_focused --> reduces_derivations).
+(tool_codemod --> modifies_source_code).
+(rule_transitivity --> derives_implication).
+(test_fix_test --> requires_codemod).
+(scenario_induction --> tests_induction_capability).
+(schema --> promotes_to_rule).
+(capability --> implemented_by_tool).
 
 <!-- Fix patterns (semantic concepts) -->
-(fix_pattern:null_check --> applies_to null_pointer_error).
-(fix_pattern:type_annotation --> applies_to type_mismatch_error).
-(fix_pattern:boundary_check --> applies_to out_of_bounds_error).
-... (8 total patterns)
+(fix_pattern_null_check --> applies_to_null_pointer_error).
+(fix_pattern_type_annotation --> applies_to_type_mismatch_error).
+(fix_pattern_boundary_check --> applies_to_out_of_bounds_error).
+(fix_pattern_assertion --> applies_to_assertion_failure).
+(fix_pattern_undefined_check --> applies_to_undefined_variable).
+(fix_pattern_empty_check --> applies_to_empty_collection_error).
+(fix_pattern_division_by_zero --> applies_to_division_by_zero_error).
+(fix_pattern_async_handling --> applies_to_unhandled_promise_rejection).
+
+<!-- Self-model: the system knows it can self-modify -->
+(self --> can_modify_own_code).
+(self --> can_tune_own_knobs).
+(self --> can_add_own_rules).
+(self --> can_generate_own_tests).
+(self --> can_run_own_scenarios).
 ```
 
 ### Meta-Rules with AIKR Bounds (5 Rules)
@@ -1026,8 +1011,10 @@ CLI: `pnpm exec tsx src/bin/self-report.ts`
 The **Agent** class is the central orchestrator — a multi-engine cognitive runtime with a 6-phase reasoning cycle:
 
 ```typescript
-import { Agent, createAgent, LLMCortex, createCortexFromLM } from '@senars/core';
-import { createMeTTa } from '@senars/metta';
+import { Agent, LLMCortex, createCortexFromLM, SqliteEventLog, JsonlSessionManager } from '@senars/core';
+import { createAgent } from '@senars/nar/agent';
+import { NAREngine } from '@senars/nar/engine';
+import { createMeTTa, MettaEngine, MettaCommandParser } from '@senars/metta';
 import { NAR } from '@senars/nar';
 
 const agent = await createAgent({
@@ -1140,10 +1127,15 @@ GET  /api/v1/nar/stats       # Statistics
 **MCP (Model Context Protocol):**
 
 ```typescript
-import { SeNARSMCPServer } from '@senars/api';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerNARTools, registerAgentAPI } from 'senars12/api'; // or import from 'senars12'
 
-const server = new SeNARSMCPServer(nar);
-// Exposes tools: nar_believe, nar_goal, nar_question, nar_run, nar_query, nar_explain
+const server = new McpServer({ name: 'senars', version: '1.0.0' });
+registerNARTools(server, nar, agent);
+registerAgentAPI(server, agent);
+// Exposes tools: calculate, read_file, write_file, search_memory, run_reasoning, 
+// learn_belief, explain_belief, agent_chat, agent_believe, agent_recall, 
+// agent_know, get_beliefs, get_attention, and more
 ```
 
 ---
@@ -1263,8 +1255,10 @@ tests/nar/
 | `docs/tech/neuro-symbolic.md`   | Neuro-symbolic integration deep dive          |
 | `docs/tech/reasoning.md`        | Reasoning engine internals                    |
 | `docs/tech/deep-dive.md`        | Implementation details                        |
-| `docs/bot-api.md`               | Bot-to-bot API reference                      |
-| `docs/manual-test-irc.md`       | 9-step IRC manual test protocol               |
+| `docs/tech/api-reference.md`    | API reference                                 |
+| `docs/intro/getting-started.md` | Getting started guide                         |
+| `docs/plan/mcp.md`              | Model Context Protocol integration            |
+| `docs/plan/repl.md`             | REPL usage                                    |
 | `docs/plan/NEXT.md`             | Strategic roadmap                             |
 | `docs/plan/HYBRID_REASONING.md` | Hybrid reasoning architecture                 |
 
@@ -1413,19 +1407,19 @@ See `CONTRIBUTING.md` (to be created) and `AGENTS.md` for code guidelines.
 | Category                      | Key Exports                                                                                                                                  | Entry Points                            |
 |-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
 | **Core NAR**                  | `NAR`, `createNAR`, `Reasoner`, `Memory`, `TaskManager`                                                                                      | `@senars/nar`                           |
-| **Terms**                     | `TermBuilder`, `termParser`, `Truth`, `Stamp`                                                                                                | `@senars/nar/terms`                     |
-| **Rules**                     | `NALRules`, `NALExtendedRules`, `RuleProcessor`, `MetaRules`                                                                                 | `@senars/nar/rules`                     |
+| **Terms**                     | `TermBuilder`, `termParser`, `Truth`, `Stamp`                                                                                                | `@senars/nar`                           |
+| **Rules**                     | `NALRules`, `NALExtendedRules`, `RuleProcessor`, `MetaRules`                                                                                 | `@senars/nar`                           |
 | **Agent (NAR)**               | `createAgent`, `Agent`, `NAREngine`, `MettaEngine`                                                                                           | `@senars/nar/agent`                     |
 | **Cognitive**                 | `CognitiveController`, `Observer`, `RLFPLearner`                                                                                             | `@senars/nar/cognitive`                 |
-| **Cognitive Params**          | `CognitiveParameters`, `DEFAULT_COGNITIVE_PARAMETERS`, `FAST_COGNITIVE_CONFIG`, `LM_HEAVY_CONFIG`                                           | `@senars/nar/config`                    |
-| **Strategies**                | `SamplingStrategy`, `DerivationStrategy`, `AttentionModel`                                                                                   | `@senars/nar/strategies`                |
+| **Cognitive Params**          | `CognitiveParameters`, `DEFAULT_COGNITIVE_PARAMETERS`, `FAST_COGNITIVE_CONFIG`, `LM_HEAVY_CONFIG`                                           | `@senars/nar` (internal, not exported)  |
+| **Strategies**                | `SamplingStrategy`, `DerivationStrategy`, `AttentionModel`                                                                                   | `@senars/nar` (internal, not exported)  |
 | **NL**                        | `NLUnderstandingService`, `NLGenerationService`                                                                                              | `@senars/nar/nl`                        |
 | **Tools**                     | `ToolManager`, `discoverTools`, `ExplainTool`, `SelfTools`                                                                                   | `@senars/nar/tools`                     |
 | **Learning**                  | `SchemaInductor`, `FeedbackLearner`, `validateLMOutput`                                                                                      | `@senars/nar/learning`                  |
 | **Self-Reasoning**            | `ReasoningAboutReasoning`, `SelfAnalyzer`, `MetacognitiveMonitor`                                                                            | `@senars/nar/self`                      |
 | **Cognitive Analyzers**       | `capabilities`, `performance`, `quality`, `reasoning-patterns`, ...                                                                          | `@senars/nar/cognitive/analyzers`       |
-| **Grounding**                 | `GroundingPipeline`, `SourceQuality`                                                                                                         | `@senars/nar`                           |
-| **Streaming**                 | `createPipeline`, `MemoryPremiseSource`, `FocusPremiseSource`, `derive`                                                                      | `@senars/nar/stream`                    |
+| **Grounding**                 | `GroundingPipeline`, `SourceQuality`                                                                                                         | `@senars/nar` (internal, not exported)  |
+| **Streaming**                 | `createPipeline`, `MemoryPremiseSource`, `FocusPremiseSource`, `derive`                                                                      | `@senars/nar` (internal, not exported)  |
 | **Commands**                  | `narCommands`, `rlfpCommands`, `selfCommands`, `configCommands`, `memoryCommands`, `lmCommands`, `episodesCommands`                          | `@senars/nar/commands`                  |
 | **LM Rules**                  | `LMRules`, `LMRule`, `LMRuleFactory`                                                                                                         | `@senars/nar/lm`                        |
 | **MeTTa**                     | `createMeTTa`, `parseMeTTa`, `EGraph`, `MeTTaRuntime`                                                                                        | `@senars/metta`                         |
@@ -1438,9 +1432,9 @@ See `CONTRIBUTING.md` (to be created) and `AGENTS.md` for code guidelines.
 | **Model Runner**              | `ModelRunner`, `ToolCall`, `ModelEvent`                                                                                                      | `@senars/core`                          |
 | **Lens/Protocol**             | `Lens`, `GraphNodeData`, `GraphOp`, `CognitiveDelta`                                                                                         | `@senars/core/protocol`                 |
 | **IO**                        | `ConnectionManager`, `bindAgentToConnection`                                                                                                 | `@senars/io`                            |
-| **API**                       | `HTTPAdapter`, `WebSocketAdapter`, `SeNARSMCPServer`                                                                                         | `@senars/api`                           |
-| **UI**                        | `startAgentUI`, `UnifiedGraphProjection`                                                                                                     | `@senars/ui`                            |
-| **Config**                    | `loadConfig`, `loadConfigFromEnv`                                                                                                            | `@senars/config`                        |
+| **API**                       | `HTTPAdapter`, `WebSocketAdapter`, `registerNARTools`, `registerAgentAPI`                                                                    | `senars12` (root package)               |
+| **UI**                        | `startAgentUI`                                                                                                                               | `@senars/ui`                            |
+| **Config**                    | `loadConfig`, `loadConfigFromEnv`                                                                                                            | `senars12` (root package)               |
 | **Shared Utils**              | `EventBus`, `CommandRegistry`, `generateId`, `clamp`, `sleep`                                                                                | `@senars/util`                          |
 | **Shared Types**              | `CognitiveEvent`, `Connection`, `LMService`, `Episode`                                                                                       | `@senars/util`                          |
 | **Errors**                    | `SenarsError`, `ConfigError`, `TransportError`, `PolicyViolation`                                                                            | `@senars/util`                          |
