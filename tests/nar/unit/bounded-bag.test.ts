@@ -13,7 +13,7 @@ describe('BoundedBag', () => {
             expect(bag.capacity).toBe(5);
         });
 
-        test('onOverflow callback NOT called - currently not invoked by add method', () => {
+        test('onOverflow callback called when higher priority item replaces lowest', () => {
             const callback = vi.fn();
             const bag = new BoundedBag<{ id: string }>(2, {
                 overflowBehavior: 'reject',
@@ -22,7 +22,12 @@ describe('BoundedBag', () => {
             bag.add({id: 'a'}, 0.5);
             bag.add({id: 'b'}, 0.6);
             bag.add({id: 'c'}, 0.9);
-            expect(callback).not.toHaveBeenCalled();
+            expect(callback).toHaveBeenCalledTimes(1);
+            expect(callback).toHaveBeenCalledWith(
+                expect.objectContaining({item: {id: 'c'}, priority: 0.9}),
+                0.9,
+                expect.any(Object)
+            );
         });
 
         test('onOverflow not called when bag not full', () => {

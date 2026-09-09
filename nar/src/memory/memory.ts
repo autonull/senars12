@@ -3,6 +3,7 @@ import type {AttentionModel} from '../strategies';
 import {SimpleAttention} from '../strategies';
 import type {Term} from '../terms';
 import {calculateSimilarity, mentionsSymbol, Stamp, TermMap, TermSet, Truth} from '../terms';
+import {atom} from '../terms/factory.js';
 import type {Budget, Task} from '../types';
 import {NEUTRAL_BUDGET} from '../types';
 import {Concept, type ConceptMergeResult, type ConceptTaskType} from './concept.js';
@@ -325,7 +326,6 @@ export class Memory {
     }
 
     createAbstractConcept(name: string, sourceConcepts: Concept[]): Concept {
-        const {atom} = require('../terms/factory.js');
         const abstractTerm = atom(name);
         const concept = this.addConcept(abstractTerm);
 

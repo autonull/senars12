@@ -52,43 +52,79 @@ export const Stamp = {
                 depth: 0 as Increment<D>,
             });
         }
-        const maxDepth = parentStamps.reduce((max, s) => Math.max(max, s.depth), 0);
+        let maxDepth = 0;
+        for (const stamp of parentStamps) {
+            if (stamp.depth > maxDepth) maxDepth = stamp.depth;
+        }
         if (maxDepth >= DEPTH_MAX) return undefined;
 
-        const seenEvidence = new Set<string>();
-        let totalCount = 0;
+        // Fast path: single parent stamp (most common case)
+        if (parentStamps.length === 1) {
+            const parent = parentStamps[0]!;
+            const derivations = parent.derivations.length > 0
+                ? [...parent.derivations, parent.id]
+                : [parent.id];
+            return Object.freeze({
+                id: makeId(),
+                creationTime: toMicroseconds(Temporal.Now.instant()),
+                source,
+                derivations,
+                depth: (maxDepth + 1) as Increment<D>,
+            });
+        }
 
+        // Multiple parents: use array + sort + dedupe instead of Set for small N
+        const derivations: string[] = [];
         for (const stamp of parentStamps) {
             if (!stamp) continue;
-            seenEvidence.add(stamp.id);
-            totalCount++;
-            if (stamp.derivations) {
-                for (const derivationId of stamp.derivations) {
-                    seenEvidence.add(derivationId);
-                    totalCount++;
+            // Add parent id if not already present
+            let found = false;
+            for (const d of derivations) {
+                if (d === stamp.id) { found = true; break; }
+            }
+            if (!found) derivations.push(stamp.id);
+            // Add parent's derivations
+            for (const derivationId of stamp.derivations) {
+                found = false;
+                for (const d of derivations) {
+                    if (d === derivationId) { found = true; break; }
                 }
+                if (!found) derivations.push(derivationId);
             }
         }
 
-        if (seenEvidence.size < totalCount) {
-            const uniqueParents = new Set(parentStamps.map((s) => s.id));
-            if (uniqueParents.size === 1 && parentStamps.length > 1) {
-                return Object.freeze({
-                    id: makeId(),
-                    creationTime: toMicroseconds(Temporal.Now.instant()),
-                    source,
-                    derivations: Array.from(seenEvidence),
-                    depth: (maxDepth + 1) as Increment<D>,
-                });
+        // Check for duplicate parent stamps (same id appearing multiple times)
+        let hasDuplicateParents = false;
+        for (let i = 0; i < parentStamps.length; i++) {
+            for (let j = i + 1; j < parentStamps.length; j++) {
+                if (parentStamps[i]!.id === parentStamps[j]!.id) {
+                    hasDuplicateParents = true;
+                    break;
+                }
             }
-            return undefined;
+            if (hasDuplicateParents) break;
+        }
+
+        if (hasDuplicateParents && parentStamps.length > 1) {
+            // All parent stamps have the same id - treat as single parent
+            const parent = parentStamps[0]!;
+            const derivs = parent.derivations.length > 0
+                ? [...parent.derivations, parent.id]
+                : [parent.id];
+            return Object.freeze({
+                id: makeId(),
+                creationTime: toMicroseconds(Temporal.Now.instant()),
+                source,
+                derivations: derivs,
+                depth: (maxDepth + 1) as Increment<D>,
+            });
         }
 
         return Object.freeze({
             id: makeId(),
             creationTime: toMicroseconds(Temporal.Now.instant()),
             source,
-            derivations: Array.from(seenEvidence),
+            derivations,
             depth: (maxDepth + 1) as Increment<D>,
         });
     },

@@ -24,12 +24,12 @@ export abstract class TermCollection<T> {
     protected getIndex(term: Term, getItem: (i: T) => Term): number {
         const refIdx = this.refIndex.get(term);
         if (refIdx !== undefined) return refIdx;
-        const termStr = term.toString();
-        let idx = this.storage.findIndex((item) => termsEqual(getItem(item), term));
-        if (idx < 0) {
-            idx = this.storage.findIndex((item) => getItem(item).toString() === termStr);
+
+        for (let i = 0; i < this.storage.length; i++) {
+            const stored = getItem(this.storage[i]!);
+            if (stored === term || termsEqual(stored, term)) return i;
         }
-        return idx;
+        return -1;
     }
 
     protected setRef(term: Term, index: number): void {

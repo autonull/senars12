@@ -60,7 +60,7 @@ const SAMPLE_FN: Record<
     },
     recency: (h, o) => {
         const cutoff = Date.now() - (o.windowMs as number);
-        let best;
+        let best: unknown;
         let bestLastAccess = -1;
         for (let i = 0; i < h.length; i++) {
             const e = h[i];
@@ -74,11 +74,17 @@ const SAMPLE_FN: Record<
     novelty: (h) => h[0]?.item,
     composite: (h, o) => {
         const w = o.weights as { priority: number; recency: number };
-        const scored = h.map((e) => ({
-            item: e.item,
-            score: e.priority * w.priority - ((Date.now() - e.lastAccess) / 1000) * w.recency,
-        }));
-        return scored.length > 0 ? [...scored].sort((a, b) => b.score - a.score)[0]?.item : undefined;
+        const now = Date.now();
+        let bestItem: unknown = undefined;
+        let bestScore = -Infinity;
+        for (const e of h) {
+            const score = e.priority * w.priority - ((now - e.lastAccess) / 1000) * w.recency;
+            if (score > bestScore) {
+                bestScore = score;
+                bestItem = e.item;
+            }
+        }
+        return bestItem;
     },
 };
 
@@ -100,6 +106,7 @@ export class Bag<T> extends BaseBag<{
         super({
             capacity,
             overflowBehavior: options?.overflowBehavior,
+            onOverflow: options?.onOverflow ? ((item, priority, bag) => options.onOverflow!(item as T, priority, bag as Bag<T>)) : undefined,
         });
     }
 
@@ -113,24 +120,32 @@ export class Bag<T> extends BaseBag<{
     }
 
     add(item: T, priority: number): boolean {
-        if (this.capacity === 0) {
-            this.trackMiss();
-            return false;
-        }
-
-        const entry = {item, priority, lastAccess: Date.now(), createdAt: Date.now()};
-
-        if (this.heap.length >= this.capacity) {
-            this.trackMiss();
-            if (!this.shouldOverflow(priority)) return false;
-        } else {
-            this.trackAdd();
-        }
-
-        const idx = this.heap.findIndex((h) => h.priority < priority);
-        idx === -1 ? this.heap.push(entry) : this.heap.splice(idx, 0, entry);
-        this._totalPriority += priority;
-        return true;
+        const entry: BagItem<T> = {item, priority, lastAccess: Date.now(), createdAt: Date.now()};
+        let overflowed = false;
+        const result = this.addEntry(
+            entry,
+            priority,
+            (e) => {
+                // Binary search for insertion point (heap is sorted descending by priority)
+                let lo = 0;
+                let hi = this.heap.length;
+                while (lo < hi) {
+                    const mid = (lo + hi) >>> 1;
+                    if (this.heap[mid]!.priority < priority) hi = mid;
+                    else lo = mid + 1;
+                }
+                this.heap.splice(lo, 0, e);
+                this._totalPriority += priority;
+            },
+            () => this.heap.length > 0 ? this.heap[this.heap.length - 1]!.priority : undefined,
+            () => {
+                overflowed = true;
+                const minEntry = this.heap.pop();
+                if (minEntry) this._totalPriority -= minEntry.priority;
+                return minEntry;
+            }
+        );
+        return result;
     }
 
     addMany(items: Array<[T, number]>): number {
@@ -196,6 +211,13 @@ export class Bag<T> extends BaseBag<{
         return this.heap.map((h) => h.item);
     }
 
+    find(predicate: (item: T) => boolean): T | undefined {
+        for (const {item} of this.heap) {
+            if (predicate(item)) return item;
+        }
+        return undefined;
+    }
+
     pruneTo(maxSize: number): void {
         this.heap = this.heap.slice(0, maxSize);
     }
@@ -241,11 +263,11 @@ export class Bag<T> extends BaseBag<{
     }
 
     protected override selectVictim(): string | undefined {
-        return this.getMinEntryId();
+        return this.heap.length > 0 ? String(this.heap[this.heap.length - 1]?.item) : undefined;
     }
 
     protected override removeById(id: string): boolean {
-        const idx = this.heap.findIndex((h) => this.getItemId(h) === id);
+        const idx = this.heap.findIndex((h) => String(h.item) === id);
         if (idx >= 0) {
             const e = this.heap[idx];
             if (e) this._totalPriority -= e.priority;
@@ -256,7 +278,7 @@ export class Bag<T> extends BaseBag<{
     }
 
     protected override updateAccess(id: string): void {
-        const idx = this.heap.findIndex((h) => this.getItemId(h) === id);
+        const idx = this.heap.findIndex((h) => String(h.item) === id);
         if (idx >= 0) {
             this.heap[idx]!.lastAccess = Date.now();
         }
@@ -264,32 +286,5 @@ export class Bag<T> extends BaseBag<{
 
     protected override getIds(): string[] {
         return this.heap.map((h) => String(h.item));
-    }
-
-    private shouldOverflow(priority: number): boolean {
-        const minEntry = this.getMinEntry();
-        if (!minEntry) return false;
-
-        const minP = minEntry.priority;
-        if (priority <= minP) {
-            this.trackMiss();
-            return false;
-        }
-
-        this.removeById(String(minEntry.item));
-        this.onOverflow?.(priority, this);
-        return true;
-    }
-
-    private getItemId(entry: BagItem<T>): string {
-        return String(entry.item);
-    }
-
-    private getMinEntryId(): string | undefined {
-        return this.heap.length > 0 ? String(this.heap[this.heap.length - 1]?.item) : undefined;
-    }
-
-    private getMinEntry(): BagItem<T> | undefined {
-        return this.heap[this.heap.length - 1];
     }
 }

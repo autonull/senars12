@@ -56,6 +56,8 @@ export class RuleProcessor {
     private maxLMRulesPerStep = 13;
     private lmRotationIndex = 0;
     private executionLog: LMRuleExecutionEntry[] = [];
+    // Reusable buffers to avoid allocations in hot paths
+    private readonly seenBuffer = new Map<string, RuleResult>();
 
     /** Meta-reasoning budget tracking */
     private metaBudget: MetaBudgetState = {
@@ -206,16 +208,17 @@ export class RuleProcessor {
     processSync(p1: RuleInput, p2: RuleInput): RuleResult[] {
         this.resultBuffer = [];
         const matchedRules = this.ruleIndex.match(p1.term, p2.term);
-        const seen = new Map<string, RuleResult>();
-        const p1s = p1.term.toString(),
-            p2s = p2.term.toString();
+        this.seenBuffer.clear();
+        const p1s = p1.term.toString();
+        const p2s = p2.term.toString();
 
         // Check if meta-reasoning should activate
         const driveManager = this.nar?.getDriveManager?.();
-        const driveStates = driveManager
-            ? new Map(driveManager.getAllStates().map((ds) => [ds.spec.id, {currentIntensity: ds.currentIntensity}]))
-            : new Map();
-        const metaActive = shouldActivateMetaReasoning(driveStates);
+        let metaActive = false;
+        if (driveManager) {
+            const driveStates = new Map(driveManager.getAllStates().map((ds) => [ds.spec.id, {currentIntensity: ds.currentIntensity}]));
+            metaActive = shouldActivateMetaReasoning(driveStates);
+        }
 
         for (const rule of matchedRules) {
             if (!rule.sync) continue;
@@ -236,9 +239,9 @@ export class RuleProcessor {
                     if (rs === p1s || rs === p2s) continue;
                     const rr = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
                     (rr as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
-                    const existing = seen.get(rs);
+                    const existing = this.seenBuffer.get(rs);
                     if (!existing || rule.priority > existing.priority) {
-                        seen.set(rs, rr);
+                        this.seenBuffer.set(rs, rr);
                     }
                 } else if (result) {
                     this.eventBus?.emit('rule:output-rejected', {ruleId: rule.id, term: result.toString()});
@@ -248,7 +251,7 @@ export class RuleProcessor {
             }
         }
 
-        this.resultBuffer = Array.from(seen.values());
+        this.resultBuffer = Array.from(this.seenBuffer.values());
         return this.resultBuffer;
     }
 

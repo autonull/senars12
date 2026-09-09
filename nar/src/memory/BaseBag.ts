@@ -16,7 +16,7 @@ export interface BagStats {
 export interface BagOptions {
     capacity: number;
     overflowBehavior?: 'reject' | 'replace-lowest' | 'merge';
-    onOverflow?: (priority: number, bag: BaseBag<any>) => void;
+    onOverflow?: (item: unknown, priority: number, bag: BaseBag<any>) => void;
 }
 
 const statsFromValues = (values: number[]) => {
@@ -41,7 +41,7 @@ export abstract class BaseBag<T extends BagMetadata> {
     protected readonly capacity: number;
     protected overflowBehavior: 'reject' | 'replace-lowest' | 'merge';
     protected stats: BagStats = {additions: 0, removals: 0, hits: 0, misses: 0};
-    protected onOverflow?: (priority: number, bag: BaseBag<T>) => void;
+    protected onOverflow?: (item: unknown, priority: number, bag: BaseBag<T>) => void;
 
     protected constructor(options: BagOptions) {
         this.capacity = options.capacity;
@@ -59,6 +59,37 @@ export abstract class BaseBag<T extends BagMetadata> {
 
     get statistics(): BagStatistics {
         return this.getStatistics();
+    }
+
+    /**
+     * Add an item with priority. Handles capacity and overflow using the configured behavior.
+     * Subclasses must implement `insertEntry` to define how the entry is stored.
+     * Returns true if item was added, false if rejected.
+     */
+    protected addEntry<U>(entry: U, priority: number, insertEntry: (entry: U) => void, getMinPriority: () => number | undefined, removeMinEntry: () => U | undefined): boolean {
+        if (this.capacity === 0) {
+            this.trackMiss();
+            return false;
+        }
+
+        if (this.isOverflow()) {
+            this.trackMiss();
+            const minPriority = getMinPriority();
+            if (minPriority !== undefined && priority <= minPriority) {
+                return false;
+            }
+            // For 'reject' behavior, reject if not higher priority (already checked above)
+            // For 'replace-lowest' and 'merge', proceed with replacement
+            // Remove the minimum priority entry to make room
+            removeMinEntry();
+            this.onOverflow?.(entry, priority, this);
+            this.trackAdd(); // Count as addition since we're replacing
+        } else {
+            this.trackAdd();
+        }
+
+        insertEntry(entry);
+        return true;
     }
 
     consolidate(currentTime: number, ttl: number): void {
@@ -120,7 +151,7 @@ export abstract class BaseBag<T extends BagMetadata> {
         return this.itemsCount() >= this.capacity;
     }
 
-    protected handleOverflow(priority: number): boolean {
+    protected handleOverflow(item: unknown, priority: number): boolean {
         const victimId = this.selectVictim();
         if (!victimId) {
             this.trackMiss();
@@ -128,7 +159,7 @@ export abstract class BaseBag<T extends BagMetadata> {
         }
 
         this.removeById(victimId);
-        this.onOverflow?.(priority, this);
+        this.onOverflow?.(item, priority, this);
         return true;
     }
 
