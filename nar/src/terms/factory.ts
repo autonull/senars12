@@ -56,14 +56,23 @@ const createCompound = (kind: OperatorKey, args: Term[]): Term => {
     const cached = termCache.get(key);
     if (cached) return cached;
 
+    // Compute serialized form once during creation (cache key is NOT the full serialized form)
+    const serialized = serializeTerm(
+        Object.freeze({
+            kind,
+            args: sorted as readonly Term[],
+        } as CompoundTerm)
+    );
+
     return cache(
         Object.freeze({
             kind,
             args: sorted as readonly Term[],
+            _serialized: serialized,
             toString() {
-                return serializeTerm(this as CompoundTerm);
+                return (this as any)._serialized ?? serializeTerm(this as CompoundTerm);
             },
-        } as CompoundTerm),
+        } as CompoundTerm & { _serialized?: string }),
         key
     );
 };

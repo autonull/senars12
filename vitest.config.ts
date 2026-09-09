@@ -4,10 +4,9 @@ export default defineConfig({
     resolve: {
         tsconfigPaths: true,
     },
-    // Force esbuild transformer (disable oxc which has parsing issues)
-    oxc: false,
-    esbuild: {
-        target: 'node20',
+    // Prefer oxc transformer (much faster than esbuild); target matches Node runtime
+    oxc: {
+        target: 'node26',
     },
     test: {
         globals: true,
@@ -18,5 +17,9 @@ export default defineConfig({
         testTimeout: 15000,
         teardownTimeout: 5000,
         coverage: {provider: 'v8', reporter: ['text', 'json', 'html']},
+        pool: 'threads',
+        maxConcurrency: 16,
+        // Share modules across test files in same worker (~4s faster per vitest)
+        isolate: false,
     },
 });
