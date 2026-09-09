@@ -1,5 +1,5 @@
 import fc from 'fast-check';
-import {Bag} from '../../nar/src';
+import {PriorityBag} from '../../nar/src/bag';
 import {normalize, serializeTerm, Stamp, TermBuilder, termsEqual, Truth,} from '../../nar/src/terms';
 
 describe('Property-Based Tests', () => {
@@ -202,24 +202,24 @@ describe('Property-Based Tests', () => {
         it('bag never exceeds capacity after N insertions', () => {
             fc.assert(
                 fc.property(fc.integer({min: 1, max: 50}), (capacity) => {
-                    const items = new Bag(capacity);
+                    const items = new PriorityBag<{id: string; priority: number}>({capacity});
                     for (let v = 0; v < 100; v++) {
-                        items.add(v, v);
+                        items.add({id: `item${v}`, priority: v});
                     }
-                    expect(items.toArray().length).toBeLessThanOrEqual(capacity);
+                    expect(items.size()).toBeLessThanOrEqual(capacity);
                 })
             );
         });
 
         it('higher priority items survive when bag is at capacity', () => {
-            const items = new Bag(3);
-            items.add('low', 0.1);
-            items.add('mid', 0.5);
-            items.add('high', 0.9);
-            items.add('incoming', 0.3);
+            const items = new PriorityBag<{id: string; priority: number}>({capacity: 3});
+            items.add({id: 'low', priority: 0.1});
+            items.add({id: 'mid', priority: 0.5});
+            items.add({id: 'high', priority: 0.9});
+            items.add({id: 'incoming', priority: 0.3});
             const kept = items.toArray();
-            expect(kept).not.toContain('low');
-            expect(kept).toContain('high');
+            expect(kept).not.toContainEqual({id: 'low', priority: 0.1});
+            expect(kept).toContainEqual({id: 'high', priority: 0.9});
         });
     });
 

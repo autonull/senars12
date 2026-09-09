@@ -1,7 +1,6 @@
 // Core memory structures
 
-export type {BagItem} from './bag.js';
-export {Bag, Bag as BoundedBag} from './bag.js';
+// Bag/BoundedBag removed - use PriorityBag from @senars/nar/bag instead (unified AIKR substrate)
 export type {ConceptTaskType} from './concept.js';
 export {Concept} from './concept.js';
 export {Focus} from './focus.js';

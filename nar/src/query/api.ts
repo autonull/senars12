@@ -52,11 +52,11 @@ export class QueryAPI {
         const questions: Task[] = [];
 
         for (const concept of concepts) {
-            if (concept.beliefBag.size > 0) {
+            if (concept.beliefBag.size() > 0) {
                 const beliefTasks = this.extractTasks(concept, 'belief');
                 beliefs.push(...this.applyFilters(beliefTasks, filter));
             }
-            if (concept.questionBag && concept.questionBag.size > 0) {
+            if (concept.questionBag && concept.questionBag.size() > 0) {
                 questions.push(...this.extractTasks(concept, 'question'));
             }
         }

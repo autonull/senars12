@@ -1,6 +1,6 @@
 import {
     atom,
-    Bag,
+    PriorityBag,
     createMinimalNAR,
     createTask,
     Memory,
@@ -62,11 +62,11 @@ describe('Performance benchmarks (infrastructure)', () => {
     });
 
     test('memory bag operations', () => {
-        const bag = new Bag<number>(1000);
-        const addNs = time('Bag.add', 10000, (i) => bag.add(i, Math.random()));
+        const bag = new PriorityBag<{id: string; priority: number}>({capacity: 1000});
+        const addNs = time('PriorityBag.add', 10000, (i) => bag.add({id: `item${i}`, priority: Math.random()}));
         expect(addNs).toBeLessThan(100000);
         const peek = bag.peek();
-        expect(typeof peek === 'number').toBe(true);
+        expect(peek).toBeDefined();
     });
 
     test('serialization round-trip (terms)', () => {

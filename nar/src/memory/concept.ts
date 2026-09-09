@@ -4,7 +4,7 @@ import {extractSymbols, type Stamp, TermMap, termsEqual, TermSet} from '../terms
 import {Truth as TruthOps} from '../terms/truth.js';
 import type {Budget, TaskType} from '../types';
 import {clamp01, jaccard} from '../utils';
-import {Bag} from './bag.js';
+import {PriorityBag} from '../bag/Bag.js';
 
 const DECAY_TIME_CONSTANT = 60000;
 const {DECAY_RATE, MIN_PRIORITY: MIN_LINK_STRENGTH} = LINK;
@@ -25,6 +25,8 @@ export interface ConceptConfig {
 }
 
 export interface TaskData {
+    id: string;
+    priority: number;
     readonly term: Term;
     readonly truth?: Truth;
     readonly budget: Budget;
@@ -49,9 +51,9 @@ export interface ConceptMergeResult {
 
 export class Concept {
     readonly term: Term;
-    readonly beliefBag: Bag<TaskData>;
-    readonly goalBag: Bag<TaskData>;
-    readonly questionBag: Bag<TaskData>;
+    readonly beliefBag: PriorityBag<TaskData>;
+    readonly goalBag: PriorityBag<TaskData>;
+    readonly questionBag: PriorityBag<TaskData>;
     readonly createdAt: number;
     lastAccessedAt: number;
     private activation = 0;
@@ -64,9 +66,9 @@ export class Concept {
 
     constructor(term: Term, config: ConceptConfig = {}) {
         this.term = term;
-        this.beliefBag = new Bag(config.maxBeliefs ?? 100);
-        this.goalBag = new Bag(config.maxGoals ?? 50);
-        this.questionBag = new Bag(config.maxQuestions ?? 20);
+        this.beliefBag = new PriorityBag<TaskData>({capacity: config.maxBeliefs ?? 100});
+        this.goalBag = new PriorityBag<TaskData>({capacity: config.maxGoals ?? 50});
+        this.questionBag = new PriorityBag<TaskData>({capacity: config.maxQuestions ?? 20});
         this.createdAt = Date.now();
         this.lastAccessedAt = Date.now();
         this.lastDecayTime = Date.now();
@@ -92,14 +94,15 @@ export class Concept {
     }
 
     get totalTasks(): number {
-        return this.beliefBag.size + this.goalBag.size + this.questionBag.size;
+        return this.beliefBag.size() + this.goalBag.size() + this.questionBag.size();
     }
 
-    addTask(type: ConceptTaskType, data: TaskData): boolean {
-        if (type === 'belief') return this.addBeliefWithRevision(data);
+    addTask(type: ConceptTaskType, data: Omit<TaskData, 'id' | 'priority'>): boolean {
+        if (type === 'belief') return this.addBeliefWithRevision(data as TaskData);
 
         const bag = type === 'goal' ? this.goalBag : this.questionBag;
-        const added = bag.add(data, data.budget.priority);
+        const item = {...data, id: crypto.randomUUID(), priority: data.budget.priority} as TaskData;
+        const added = bag.add(item);
         added && this.recordAccess();
         return added;
     }
@@ -200,11 +203,9 @@ export class Concept {
 
     mergeWith(others: Concept[]): ConceptMergeResult {
         for (const other of [this, ...others]) {
-            other.beliefBag.forEach((belief) => this.beliefBag.add(belief, belief.budget.priority));
-            other.goalBag.forEach((goal) => this.goalBag.add(goal, goal.budget.priority));
-            other.questionBag.forEach((question) =>
-                this.questionBag.add(question, question.budget.priority)
-            );
+            other.beliefBag.forEach((belief) => this.beliefBag.add(belief));
+            other.goalBag.forEach((goal) => this.goalBag.add(goal));
+            other.questionBag.forEach((question) => this.questionBag.add(question));
         }
 
         for (const other of others) {
@@ -246,21 +247,15 @@ export class Concept {
         this._priority = Math.min(1, this._priority + 0.1);
     }
 
-    private addBeliefWithRevision(data: TaskData): boolean {
+    private addBeliefWithRevision(data: TaskData | Omit<TaskData, 'id' | 'priority'>): boolean {
         const existing = this.findMatchingBelief(data.term);
 
         if (existing) {
             if (!data.truth || !existing.truth) return false;
             const revisedTruth = TruthOps.revision(data.truth, existing.truth);
             this.beliefBag.remove(existing);
-            const added = this.beliefBag.add(
-                {
-                    ...data,
-                    truth: revisedTruth,
-                    timestamp: Date.now(),
-                },
-                data.budget.priority
-            );
+            const item = {...data, id: existing.id, priority: data.budget?.priority ?? existing.priority, truth: revisedTruth, timestamp: Date.now()} as TaskData;
+            const added = this.beliefBag.add(item);
             if (added && this.onRevision && existing.stamp) {
                 this.onRevision({
                     term: this.term.toString(),
@@ -274,7 +269,8 @@ export class Concept {
             return added;
         }
 
-        const added = this.beliefBag.add(data, data.budget.priority);
+        const item = {...data, id: crypto.randomUUID(), priority: data.budget?.priority ?? 0.5} as TaskData;
+        const added = this.beliefBag.add(item);
         if (added && this.onRevision && data.truth && data.stamp) {
             this.onRevision({
                 term: this.term.toString(),

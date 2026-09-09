@@ -29,9 +29,10 @@ export {EpisodicMemory} from './memory/EpisodicMemory.js';
 export type {ConceptTaskType, MemoryConfig} from './memory/index.js';
 // Memory
 /** Concept container. @public */
-/** Priority bags. @public */
 /** Main memory store. @public */
-export {Bag, BoundedBag, Concept, Memory} from './memory/index.js';
+/** Unified AIKR priority bag substrate. @public */
+export {PriorityBag} from './bag/index.js';
+export {Concept, Memory} from './memory/index.js';
 export type {NARConfig, RLFPConfig} from './nar.js';
 // Main NAR class
 /** The NAR reasoning engine. @public */

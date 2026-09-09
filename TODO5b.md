@@ -1,5 +1,40 @@
 # SeNARS12 Architectural Master Plan: The Cognitive Kernel
 
+## Implementation Status (2026-09-09, Phase 1 complete)
+
+| Pillar | Status | Location |
+|---|---|---|
+| Universal `Bag<T>` substrate | ✅ Unified (`PriorityBag` is the single substrate; `sampleMany`/`pressure`/`evict`/`decay(rate)` + `size()` + `remove(id|item)` + `find`/`forEach`/`entries`; `memory/bag.ts` `Bag<T>` **removed**; `Concept` migrated; `BaseBag.pressure()` shared; serialization `entries()` added) | `nar/src/bag/Bag.ts`, `nar/src/bag/index.ts`, `nar/src/memory/BaseBag.ts`, `nar/src/memory/concept.ts`, `nar/src/query/api.ts`, `nar/src/lm/enrichment.ts`, `nar/src/lm/feedback.ts` |
+| `CognitiveTick` pipeline | ✅ Complete (11 stages bound: firewall stimuli, `Memory.sample`, `FocusBag`/`Focus.step`, `Negotiator` veto, policy gate, tool act with `outcomes`, shadow `validator` quarantine, RLFP-blended `learn` (`calculateRewardFromTask` + `intrinsicOf`), bag-decay consolidate, `toCognitiveEvents` core bridge) | `nar/src/tick/tick.ts`, `nar/src/tick/bindings.ts`, `nar/src/tick/bridge.ts` |
+| Stream Reasoner | ✅ Core done (async dispatch, provisional beliefs + `Truth.revision` on resolve, pressure backpressure, adaptive batch) | `nar/src/stream/reasoner.ts` |
+| Symbolic Firewall | ✅ Hardened (truth-sanity `c>0.95` block, `checkTruth`, predicate whitelist, **AST depth** validated) | `nar/src/nl/firewall.ts` |
+| CapabilitySpace / WASI sandbox | ✅ Routing done (`CapabilitySpace`: policy gate → risk-based approval → sandboxed execute + history; AST-diff grammar `validateDiff`; **M5 mutations extended**) | `nar/src/capability/space.ts` |
+| OpenTelemetry spans | ❌ Not started (no `@opentelemetry/*` dep; stage timing available via `ctx.events` `at` timestamps) | — |
+
+Tests: `tests/nar/todo5b-phase1.test.ts` (8 passing) + `tests/nar/todo5b-capability.test.ts` (2 passing).
+Regression: `firewall.test.ts` + `stream.test.ts` + `kernel-slice1.test.ts` green (27 tests).
+Full suite: 1206 passed | 3 skipped.
+Note: `pnpm typecheck` fails on pre-existing `ui/src/server/index.ts` errors (verified identical on clean tree); no new type errors from Phase 1 files.
+
+### New improvement opportunities
+1. **Bag dedup (done)**: `PriorityBag` is now the single substrate; `Concept`, `QueryAPI`, `LMEnrichment`, `LMFeedback` all migrated. **Orphaned `memory/bag.ts` `Bag<T>` class removed.**
+2. **CapabilitySpace hardening (done)**: `execute` is directly `TickDeps.tools`-compatible. **Extended `allowedMutations` for M5 self-ops** (`modify-code`, `add-test`, `remove-test`, `modify-config`, `promote-schema`, `scaffold-capability`). `importFrom` compatible with `ToolManager`/`ToolRegistry` `list()`.
+3. **Reasoner↔pipeline fusion (done)**: `StreamReasoner.flush` called inside `reason` hook with live `Bag.pressure()` via `deps.pressureOf`; `reasoner`/`lmBackend`/`pressureOf` added to `TickDeps`.
+4. **Firewall depth (done)**: Replaced paren-count fallback with true AST depth from parsed term (`astDepth` function).
+5. **Next pillars**: OTel spans per middleware (no dep yet; `ctx.events` timestamps suffice), MeTTa/HDC background workers (per Appendix), M4 hardening, WASI sandbox implementation for `CapabilitySpace.sandbox` hook.
+
+### Future-work details
+- `PriorityBag.evict('LRU')` sorts by `lastAccessedAt` (O(n log n)); swap to indexed heap if hot-path profiling flags it.
+- `StreamReasoner` mutates provisionals in place on `flush`; callers holding refs see updates — capture values beforehand if snapshot semantics needed.
+- Firewall `predicatesAllowed` treats `^ops`/`?vars` as always allowed; whitelist entries are bare atom symbols (e.g. `cat`, not `(cat --> animal)`).
+- `runTick` throws on double-`next()`; pipeline order is fixed in `DEFAULT_PIPELINE` — custom pipelines pass an array to `runTick(ctx, pipeline)`.
+- `learn` without `deps.rlfp` falls back to raw action success-rate; with `rlfp` the default outcome is `meta_reasoning` with tick passRate (override via `taskOutcomeOf`/`rewardOf`); intrinsic metrics default to zero unless `intrinsicOf` provided.
+- `validate` quarantines `outcomes` post-act (plan order is act→validate); it does not pre-gate execution — wire `validator.check` into `authorize`/`act` via custom hooks if pre-act gating is needed.
+- `PriorityBag` uses `size()` method (not getter) due to JS shadowing; all call sites updated.
+- `memory/bag.ts` `Bag<T>` class **removed**; `BoundedBag` tests migrated to `PriorityBag` equivalents.
+- `TickDeps` extended with `reasoner`, `lmBackend`, `pressureOf` for StreamReasoner integration.
+- `CapabilitySpace` `DEFAULT_MUTATIONS` extended for M5 cognitive grammar.
+
 This document defines the definitive architecture for **SeNARS12**, a next-generation cognitive operating system that bridges fluid Large Language Model (LM) creativity with rigorous, resource-bounded symbolic logic (Non-Axiomatic Logic - NAL). 
 
 By converging overlapping execution loops into a single deterministic state machine, unifying memory under a universal AIKR substrate, and implementing an adaptive **Stream Reasoner** for LM/NAL integration, SeNARS12 achieves production-grade reliability, deep auditability, and safe autonomous self-improvement.

@@ -166,7 +166,7 @@ Respond with JSON:
                 const concept = this.memory.getConcept(derivation.term);
                 if (!concept) continue;
                 const connectionCount =
-                    concept.beliefBag.size + concept.questionBag.size + concept.goalBag.size;
+                    concept.beliefBag.size() + concept.questionBag.size() + concept.goalBag.size();
                 if (connectionCount >= 3) continue;
 
                 const enrichmentPrompt = this.buildEnrichmentPrompt(derivation.term, derivations);

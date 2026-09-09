@@ -61,6 +61,10 @@ export abstract class BaseBag<T extends BagMetadata> {
         return this.getStatistics();
     }
 
+    pressure(): number {
+        return this.capacity === 0 ? 1 : Math.min(1, this.itemsCount() / this.capacity);
+    }
+
     /**
      * Add an item with priority. Handles capacity and overflow using the configured behavior.
      * Subclasses must implement `insertEntry` to define how the entry is stored.

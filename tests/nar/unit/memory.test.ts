@@ -48,14 +48,14 @@ describe('Memory', () => {
             const term = TermBuilder.atom('bird');
             const result = mem.addTask(term, 'belief', Truth.TRUE, createBudget(0.8));
             expect(result).toBe(true);
-            expect(mem.getConcept(term)?.beliefBag.size).toBe(1);
+            expect(mem.getConcept(term)?.beliefBag.size()).toBe(1);
         });
 
         test('adds goal task', () => {
             const term = TermBuilder.atom('fly');
             const result = mem.addTask(term, 'goal', undefined, createBudget(0.9));
             expect(result).toBe(true);
-            expect(mem.getConcept(term)?.goalBag.size).toBe(1);
+            expect(mem.getConcept(term)?.goalBag.size()).toBe(1);
         });
     });
 

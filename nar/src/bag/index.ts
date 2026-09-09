@@ -1,2 +1,2 @@
-export {PriorityBag} from './Bag.js';
-export type {BagItem, BagOptions, Bag} from './Bag.js';
+export { PriorityBag } from './Bag.js';
+export type { AIKRBudget, Bag, BagItem, BagOptions, EvictStrategy } from './Bag.js';
