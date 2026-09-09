@@ -4,6 +4,8 @@ import type {ZodSchema} from 'zod';
 import type {SeNARSRegistry} from '../lm';
 import {getModelForTask} from '../lm';
 import {errMsg} from '../utils';
+import {termParser} from '../terms/index.js';
+import {SymbolicFirewall, type FirewallOptions} from './firewall.js';
 import type {TranslationCache, TranslationCacheEntry} from './cache.js';
 import {buildUnderstandingPrompt} from './prompts/understanding-v1.js';
 import {TaskBatchSchema} from './schemas.js';
@@ -51,8 +53,7 @@ function validateNarsese(text: string): boolean {
     const cleaned = text.replace(/^`+|`+$/g, '').trim();
     if (!cleaned) return false;
     try {
-        const {termParser} = require('../terms');
-        termParser.parse(cleaned);
+        termParser.parse(cleaned.replace(/[.?!]$/, ''));
         return true;
     } catch {
         return false;
@@ -62,14 +63,16 @@ function validateNarsese(text: string): boolean {
 export class NLUnderstandingService {
     private readonly model: LanguageModel;
     private structuredOnly: boolean;
+    private readonly firewall: SymbolicFirewall;
 
     constructor(
         registry: SeNARSRegistry,
         _cache: TranslationCache,
-        opts?: { structuredOnly?: boolean }
+        opts?: { structuredOnly?: boolean; firewall?: FirewallOptions | SymbolicFirewall }
     ) {
         this.model = getModelForTask(registry, 'structured') as LanguageModel;
         this.structuredOnly = opts?.structuredOnly ?? true;
+        this.firewall = opts?.firewall instanceof SymbolicFirewall ? opts.firewall : new SymbolicFirewall(opts?.firewall ?? {});
     }
 
     async understand(input: string, ctx?: NLContext, maxRetries = 2): Promise<TaskBatch | null> {
@@ -79,7 +82,7 @@ export class NLUnderstandingService {
             try {
                 const result = await this.translateWithLM(input, ctx, lastError);
                 if (result) {
-                    return result;
+                    return this.sanitize(result);
                 }
                 lastError = 'No valid output produced';
             } catch (e) {
@@ -88,6 +91,19 @@ export class NLUnderstandingService {
         }
 
         return null;
+    }
+
+    sanitize(batch: TaskBatch): TaskBatch {
+        return {
+            ...batch,
+            beliefs: batch.beliefs
+                .filter((b) => this.firewall.check(b.narsese, 'belief').allowed)
+                .map((b) => b.truth && b.source === 'inferred'
+                    ? {...b, truth: {...b.truth, c: this.firewall.clampConfidence(b.truth.c)}}
+                    : b),
+            questions: batch.questions.filter((q) => this.firewall.check(q.narsese, 'question').allowed),
+            goals: batch.goals.filter((g) => this.firewall.check(g.narsese, 'goal').allowed),
+        };
     }
 
     private async translateWithLM(
