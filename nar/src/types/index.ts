@@ -39,7 +39,6 @@ export {
     ToolError,
     ValidationError,
 } from './core.js';
-export type {Bounded, BoundedNat, Decrement, Increment, Nat} from './depth.js';
-export {DEPTH_DEFAULT, DEPTH_MAX} from './depth.js';
+export {DEPTH_MAX} from './depth.js';
 export type {EventMap, EventReceiver, EventUnsubscribe, NAREventMap} from './events.js';
 export {EventBus} from './events.js';

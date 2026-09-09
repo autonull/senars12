@@ -44,13 +44,13 @@ guarantee a deduction. Classical symbolic AI (GOFAI) is rigorous but brittle whe
 |---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Anytime** ⏱️       | Interruptible execution at any point — yields partial results on demand                                                                         |
 | **Interruptible** ⏸️ | Cooperative yielding to event loop — never blocks indefinitely                                                                                  |
-| **AIKR** 📚         | Assumption of Insufficient Knowledge Resources: Memory/attention/bag capacity, derivation depth enforced by types, CPU throttling, backpressure |
+| **AIKR** 📚         | Assumption of Insufficient Knowledge Resources: Memory/attention/bag capacity, derivation-lineage caps, CPU throttling, backpressure |
 
 ### 🎨 Zero-Cost Abstractions
 
 TypeScript metaprogramming shifts correctness checks from runtime to compile-time:
 
-- **Phantom types** track derivation depth
+- **Branded types** keep timestamps and durations distinct from plain numbers
 - **Discriminated unions** ensure exhaustive pattern matching
 - **Structural sharing** via memoization factory
 - **Canonical normalization** with stable hashes
@@ -61,13 +61,13 @@ TypeScript metaprogramming shifts correctness checks from runtime to compile-tim
 
 By encoding NAL semantics at the type level:
 
-- Derivation depth tracked via phantom types
+- Derivation lineage capped at runtime (ancestor-set bound)
 - Rule patterns enforced at compile-time
 - Term structure guaranteed by discriminated unions
-- Resource bounds baked into types
+- Resource limits carried in typed configs
 
-This eliminates entire classes of bugs, enables IDE-native development with full IntelliSense, and guarantees AIKR
-compliance **by construction** rather than runtime monitoring.
+This eliminates entire classes of bugs, enables IDE-native development with full IntelliSense, and guarantees structural
+correctness **by construction**, with AIKR resource bounds enforced at runtime.
 
 ---
 
@@ -150,12 +150,13 @@ advanced type system:
 
 | Technique                | Purpose                                          |
 |--------------------------|--------------------------------------------------|
-| **Phantom Types**        | Track derivation depth, prevent infinite regress |
+| **Branded Types**         | Separate timestamps/units, prevent unit mixups           |
 | **Discriminated Unions** | Exhaustive pattern matching on term structures   |
 | **Structural Sharing**   | Memoization factory for canonical terms          |
 | **Stable Hashes**        | Canonical normalization for deduplication        |
 
-This shifts AI safety from "runtime monitoring" to "compile-time guarantees" — robust, IDE-native, mathematically sound.
+This pushes safety left into compile-time guarantees wherever the type system reaches, with resource bounds enforced
+at runtime — robust, IDE-native, mathematically sound.
 
 ### 4. Pragmatic Execution — Self-Correcting Agent Loop
 
@@ -1365,7 +1366,7 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 | **Resource Mgmt** | Infinite (Cloud API)                 | Fixed                                  | **AIKR (Bounded, Anytime, Edge-Ready)**       |
 | **Auditability**  | Low (Black Box)                      | High (Proof Trees)                     | **High (Derivation Traces + NL Explanation)** |
 | **Learning**      | In-context / Fine-tune               | Manual KB update                       | **RLFP + Schema Induction + Episodic**        |
-| **Type Safety**   | Runtime / None                       | Compile-time (limited)                 | **TypeScript Phantom Types + NAL Semantics**  |
+| **Type Safety**   | Runtime / None                       | Compile-time (limited)                 | **Discriminated Unions + NAL Semantics**          |
 
 ---
 

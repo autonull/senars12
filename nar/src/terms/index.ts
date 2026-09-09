@@ -52,8 +52,8 @@ export {ParseError, TermParser, termParser} from './parser-peggy.js';
 // Serialization
 export {deserializeTerm, fromNarsese, serializeTerm, toNarsese} from './serialize.js';
 export {getTermSimilarity} from './similarity.js';
-export type {Source, Stamp as StampType} from './stamp.js';
-export {Stamp} from './stamp.js';
+export type {SerializedStamp, Source, Stamp as StampType} from './stamp.js';
+export {deserializeStamp, observeStampId, serializeStamp, Stamp} from './stamp.js';
 // Variable substitution
 export {substituteVariables} from './substitute.js';
 // Term-based collections

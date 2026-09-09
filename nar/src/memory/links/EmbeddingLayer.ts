@@ -74,9 +74,13 @@ export class EmbeddingLayer extends Layer {
     }
 
     override getLinksByTerm(term: Term): LinkEntry[] {
-        return this.bag
-            .getLinks()
-            .filter((link) => termsEqual(link.sourceTerm, term) || termsEqual(link.targetTerm, term));
+        const results: LinkEntry[] = [];
+        this.bag.forEachLink((link) => {
+            if (termsEqual(link.sourceTerm, term) || termsEqual(link.targetTerm, term)) {
+                results.push(link);
+            }
+        });
+        return results;
     }
 
     override removeAllLinksForTerm(term: Term): void {

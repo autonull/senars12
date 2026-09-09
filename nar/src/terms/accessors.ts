@@ -39,19 +39,17 @@ export const isPredictive = createTypeGuard('predictive');
 export const isRetrospective = createTypeGuard('retrospective');
 export const isOperation = createTypeGuard('operation');
 
-const isSubjectPredicate = (t: Term): boolean =>
-    t.kind === 'inheritance' || t.kind === 'similarity';
-const isAntecedentConsequent = (t: Term): boolean =>
-    t.kind === 'implication' || t.kind === 'equivalence';
+const getRoleArg = (term: Term, index: 0 | 1, k1: Term['kind'], k2: Term['kind']): Term | undefined =>
+    term.kind === k1 || term.kind === k2 ? term.args?.[index] : undefined;
 
 export const getSubject = (term: Term): Term | undefined =>
-    isSubjectPredicate(term) ? term.args?.[0] : undefined;
+    getRoleArg(term, 0, 'inheritance', 'similarity');
 export const getPredicate = (term: Term): Term | undefined =>
-    isSubjectPredicate(term) ? term.args?.[1] : undefined;
+    getRoleArg(term, 1, 'inheritance', 'similarity');
 export const getAntecedent = (term: Term): Term | undefined =>
-    isAntecedentConsequent(term) ? term.args?.[0] : undefined;
+    getRoleArg(term, 0, 'implication', 'equivalence');
 export const getConsequent = (term: Term): Term | undefined =>
-    isAntecedentConsequent(term) ? term.args?.[1] : undefined;
+    getRoleArg(term, 1, 'implication', 'equivalence');
 
 export const getArgs = (term: Term): readonly Term[] =>
     term.kind === 'atom' ? [] : (term.args ?? []);

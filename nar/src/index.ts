@@ -117,7 +117,8 @@ export {
     visitTerms,
 } from './terms/index.js';
 /** Term temporal stamp. @public */
-export {Stamp} from './terms/stamp.js';
+export {deserializeStamp, observeStampId, serializeStamp, Stamp} from './terms/stamp.js';
+export type {SerializedStamp} from './terms/stamp.js';
 /** Truth-value algebra. @public */
 export {isTruthEqual, Truth} from './terms/truth.js';
 

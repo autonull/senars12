@@ -1,62 +1,112 @@
-import {Temporal} from '@js-temporal/polyfill';
-import type {Increment, Nat, Timestamp} from '../types';
+import {threadId} from 'node:worker_threads';
+import type {Timestamp} from '../types';
 import {DEPTH_MAX} from '../types';
-import {makeId} from '../utils';
 
-const toMicroseconds = (instant: Temporal.Instant): Timestamp => {
-    const nanos = BigInt(instant.epochNanoseconds);
-    return Number(nanos / 1000n) as Timestamp;
+const nowMicroseconds = (): Timestamp => (Date.now() * 1000) as Timestamp;
+
+// Monotonic stamp-ID counter. Atomics-backed so IDs stay unique when the
+// underlying buffer is shared across worker threads (see shareStampCounterBuffer);
+// the `threadId` prefix keeps per-isolate counters distinct without sharing.
+let counterView = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
+
+const nextStampId = (): string => `${threadId}:${Atomics.add(counterView, 0, 1)}`;
+
+/** Share one counter buffer across threads (post the result to workers) for process-wide unique IDs. */
+export const getStampCounterBuffer = (): SharedArrayBuffer => counterView.buffer as SharedArrayBuffer;
+
+/** Adopt a shared counter buffer created elsewhere (e.g. received from the main thread). */
+export const shareStampCounterBuffer = (sab: SharedArrayBuffer): void => {
+    counterView = new Int32Array(sab);
+};
+
+/**
+ * Advance the ID counter past a persisted ID so reloaded stamps never collide
+ * with newly minted ones. No-op for foreign ID formats. CAS loop keeps it
+ * correct even if another thread mints concurrently.
+ */
+export const observeStampId = (id: string): void => {
+    const sep = id.lastIndexOf(':');
+    if (sep < 0) return;
+    const n = Number(id.slice(sep + 1));
+    if (!Number.isInteger(n) || n < 0) return;
+    let cur = Atomics.load(counterView, 0);
+    while (n >= cur) {
+        if (Atomics.compareExchange(counterView, 0, cur, n + 1) === cur) return;
+        cur = Atomics.load(counterView, 0);
+    }
+};
+
+export interface SerializedStamp {
+    id: string;
+    creationTime: number;
+    source: Source;
+    derivations: readonly string[];
+}
+
+export const serializeStamp = (stamp: Stamp): SerializedStamp => ({
+    id: stamp.id,
+    creationTime: stamp.creationTime,
+    source: stamp.source,
+    derivations: [...stamp.derivations],
+});
+
+export const deserializeStamp = (data: SerializedStamp): Stamp => {
+    observeStampId(data.id);
+    for (const d of data.derivations) observeStampId(d);
+    return Object.freeze({
+        id: data.id,
+        creationTime: data.creationTime as Timestamp,
+        source: data.source,
+        derivations: [...data.derivations],
+    });
 };
 
 export type Source = 'INPUT' | 'DERIVED' | 'CONSTITUTION' | 'LM' | 'EXTERNAL_MCP';
 
-export interface Stamp<D extends Nat = 0> {
+export interface Stamp {
     readonly id: string;
     readonly creationTime: Timestamp;
     readonly source: Source;
     readonly derivations: readonly string[];
-    readonly depth: D;
 }
 
 export const Stamp = {
     createInput(): Stamp {
         return Object.freeze({
-            id: makeId(),
-            creationTime: toMicroseconds(Temporal.Now.instant()),
+            id: nextStampId(),
+            creationTime: nowMicroseconds(),
             source: 'INPUT' as const,
             derivations: [],
-            depth: 0,
         });
     },
 
     createInputWithId(id: string): Stamp {
         return Object.freeze({
             id,
-            creationTime: toMicroseconds(Temporal.Now.instant()),
+            creationTime: nowMicroseconds(),
             source: 'INPUT' as const,
             derivations: [],
-            depth: 0,
         });
     },
 
-    derive<D extends Nat>(
-        parentStamps: readonly Stamp<D>[],
-        source: Source = 'DERIVED'
-    ): Stamp<Increment<D>> | undefined {
+    derive(parentStamps: readonly Stamp[], source: Source = 'DERIVED'): Stamp | undefined {
         if (parentStamps.length === 0) {
             return Object.freeze({
-                id: makeId(),
-                creationTime: toMicroseconds(Temporal.Now.instant()),
+                id: nextStampId(),
+                creationTime: nowMicroseconds(),
                 source,
                 derivations: [],
-                depth: 0 as Increment<D>,
             });
         }
-        let maxDepth = 0;
+        // Lineage gate on ancestor-set size. Exact for linear chains (length ==
+        // chain depth); bushy proofs cut sooner, which is resource-principled
+        // since set size tracks inference work. Strictly increasing along any
+        // path, so termination is preserved.
+        let maxLineage = 0;
         for (const stamp of parentStamps) {
-            if (stamp.depth > maxDepth) maxDepth = stamp.depth;
+            if (stamp.derivations.length > maxLineage) maxLineage = stamp.derivations.length;
         }
-        if (maxDepth >= DEPTH_MAX) return undefined;
+        if (maxLineage >= DEPTH_MAX) return undefined;
 
         // Fast path: single parent stamp (most common case)
         if (parentStamps.length === 1) {
@@ -65,11 +115,10 @@ export const Stamp = {
                 ? [...parent.derivations, parent.id]
                 : [parent.id];
             return Object.freeze({
-                id: makeId(),
-                creationTime: toMicroseconds(Temporal.Now.instant()),
+                id: nextStampId(),
+                creationTime: nowMicroseconds(),
                 source,
                 derivations,
-                depth: (maxDepth + 1) as Increment<D>,
             });
         }
 
@@ -112,38 +161,35 @@ export const Stamp = {
                 ? [...parent.derivations, parent.id]
                 : [parent.id];
             return Object.freeze({
-                id: makeId(),
-                creationTime: toMicroseconds(Temporal.Now.instant()),
+                id: nextStampId(),
+                creationTime: nowMicroseconds(),
                 source,
                 derivations: derivs,
-                depth: (maxDepth + 1) as Increment<D>,
             });
         }
 
         return Object.freeze({
-            id: makeId(),
-            creationTime: toMicroseconds(Temporal.Now.instant()),
+            id: nextStampId(),
+            creationTime: nowMicroseconds(),
             source,
             derivations,
-            depth: (maxDepth + 1) as Increment<D>,
         });
     },
 
-    getDepth: (stamp: Stamp): number => stamp.depth,
+    getDepth: (stamp: Stamp): number => stamp.derivations.length,
 
     getMaxDepth: (stamps: readonly Stamp[]): number =>
-        stamps.reduce((max, s) => Math.max(max, s.depth), 0),
+        stamps.reduce((max, s) => Math.max(max, s.derivations.length), 0),
 
     canDerive: (stamps: readonly Stamp[]): boolean => Stamp.getMaxDepth(stamps) < DEPTH_MAX,
 
-    overlaps: <D1 extends Nat, D2 extends Nat>(a: Stamp<D1>, b: Stamp<D2>): boolean => {
+    overlaps: (a: Stamp, b: Stamp): boolean => {
         if (a.id === b.id) return true;
         const bIds = new Set<string>(b.derivations);
         bIds.add(b.id);
         for (const id of a.derivations) {
             if (bIds.has(id)) return true;
         }
-        bIds.add(a.id);
         return false;
     },
 };

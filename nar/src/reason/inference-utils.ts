@@ -6,7 +6,7 @@ import {createBudget} from '../types';
 const MAX_RECENT_STAMPS = 1000;
 
 export const exceedsDepthLimit = (task: Task, maxDepth: number): boolean =>
-    task.stamp.depth >= maxDepth;
+    task.stamp.derivations.length >= maxDepth;
 
 export const createCircularDetector = () => {
     const recentStamps = new Set<string>();

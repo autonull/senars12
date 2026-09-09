@@ -36,6 +36,26 @@ export abstract class TermCollection<T> {
         if (Object.isFrozen(term)) this.refIndex.set(term, index);
     }
 
+    /**
+     * Index-based iterator over storage with a projection. Same protocol as a
+     * generator method but without the suspend/resume machinery (~5x faster
+     * in microbenchmarks for hot iteration paths like values()/keys()).
+     */
+    protected iterProject<U>(project: (item: T) => U): IterableIterator<U> {
+        const storage = this.storage;
+        let i = 0;
+        const it: IterableIterator<U> = {
+            next: (): IteratorResult<U> => {
+                if (i >= storage.length) return {value: undefined, done: true};
+                return {value: project(storage[i++]!), done: false};
+            },
+            [Symbol.iterator](): IterableIterator<U> {
+                return it;
+            },
+        };
+        return it;
+    }
+
     protected clearRef(term: Term): void {
         this.refIndex.delete(term);
     }

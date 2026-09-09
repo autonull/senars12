@@ -190,14 +190,22 @@ export class ObserverService {
 
     private exploreMemory(nar: NAR): void {
         const concepts = nar.listConcepts();
-        const underconnected = concepts.filter((c) => c.getLinks().length < 2).slice(0, 5);
+        const underconnected = concepts.filter((c) => {
+            let linkCount = 0;
+            c.forEachLink(() => linkCount++);
+            return linkCount < 2;
+        }).slice(0, 5);
         for (const concept of underconnected) {
             const termStr = concept.term.toString();
             const related = concepts
                 .filter((c) => c !== concept && termOverlap(termStr, c.term.toString()))
                 .slice(0, 3);
             for (const r of related) {
-                if (!concept.getLinks().some((l) => termsEqual(l.concept.term, r.term))) {
+                let hasLink = false;
+                concept.forEachLink((l) => {
+                    if (termsEqual(l.concept.term, r.term)) hasLink = true;
+                });
+                if (!hasLink) {
                     nar.memory
                         .getLinkManager()
                         .addLink(concept.term, r.term, {type: 'term-link', priority: 0.5});

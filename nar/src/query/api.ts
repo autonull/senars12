@@ -138,7 +138,6 @@ export class QueryAPI {
                     creationTime: 0,
                     source: 'INPUT' as const,
                     derivations: [],
-                    depth: 0,
                 } as any),
             occurrenceTime: createTimestamp(0),
             derived: false,

@@ -1,5 +1,5 @@
 import type {AttentionModel} from '../strategies';
-import {containsSubterm, TermMap} from '../terms';
+import {containsSubterm, TermMap, type Term} from '../terms';
 import type {Task} from '../types';
 import {clamp01} from '../utils';
 import type {Concept} from './concept.js';
@@ -35,9 +35,16 @@ export class Focus {
 
     addToFocus(concept: Concept): void {
         if (this.concepts.size >= this.config.maxConcepts && !this.concepts.has(concept.term)) {
-            const lowest = [...this.concepts].reduce((a, b) => (a[1].priority < b[1].priority ? a : b));
-            if (lowest[1].priority < concept.priority) {
-                this.concepts.delete(lowest[0]);
+            let lowestKey: Term | undefined;
+            let lowestPriority = Infinity;
+            for (const [key, entry] of this.concepts) {
+                if (entry.priority < lowestPriority) {
+                    lowestPriority = entry.priority;
+                    lowestKey = key;
+                }
+            }
+            if (lowestKey !== undefined && lowestPriority < concept.priority) {
+                this.concepts.delete(lowestKey);
             } else {
                 return;
             }
@@ -49,8 +56,22 @@ export class Focus {
         return this.concepts.delete(concept.term);
     }
 
+    forEachFocus(fn: (concept: Concept) => void): void {
+        for (const entry of this.concepts.values()) {
+            fn(entry.concept);
+        }
+    }
+
+    * focusConcepts(): IterableIterator<Concept> {
+        for (const entry of this.concepts.values()) {
+            yield entry.concept;
+        }
+    }
+
     getFocusSet(): Concept[] {
-        return [...this.concepts.values()].map((entry) => entry.concept);
+        const out: Concept[] = [];
+        this.forEachFocus((c) => out.push(c));
+        return out;
     }
 
     clearFocus(): void {

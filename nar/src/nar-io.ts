@@ -16,6 +16,10 @@ interface SerializedNARState {
     timestamp: string;
 }
 
+// Bare inheritance atoms, e.g. `(bird --> animal)` — substring match, mirroring
+// the historical areTermsRelated semantics (nested compounds match their inner pair).
+const INHERITANCE_ATOMS_RE = /\((\w+)\s+-->\s+(\w+)\)/;
+
 export class NARIO {
     private _eventBus: EventBus | null = null;
     private _systemEventBus: NarEventBus | null = null;
@@ -145,30 +149,26 @@ export class NARIO {
             concept.priority = Math.min(maxPriority, concept.priority + primeBoost);
         }
 
-        // Also boost concepts that share terms (simple relevance propagation)
+        // Also boost concepts that share terms (simple relevance propagation).
+        // The input term's atoms are loop-invariant: extract once, and skip the
+        // O(N) scan entirely when the input isn't a bare inheritance term
+        // (no concept could match, same as areTermsRelated returning false).
         if (params?.attention.structuralSimilarity ?? true) {
             const termStr = term.toString();
-            for (const c of this.memory.listConcepts()) {
+            const match1 = termStr.match(INHERITANCE_ATOMS_RE);
+            if (!match1) return;
+            const [, s1, p1] = match1;
+            this.memory.forEachConcept((c) => {
                 const cStr = c.term.toString();
-                // Boost if concepts share atoms or are structurally related
-                if (cStr !== termStr && this.areTermsRelated(termStr, cStr)) {
+                if (cStr === termStr) return;
+                const match2 = cStr.match(INHERITANCE_ATOMS_RE);
+                if (
+                    match2 &&
+                    (s1 === match2[1] || s1 === match2[2] || p1 === match2[1] || p1 === match2[2])
+                ) {
                     c.priority = Math.min(maxPriority, c.priority + relatedBoost);
                 }
-            }
+            });
         }
-    }
-
-    private areTermsRelated(term1: string, term2: string): boolean {
-        // Extract atoms from inheritance terms like (bird --> animal)
-        const match1 = term1.match(/\((\w+)\s+-->\s+(\w+)\)/);
-        const match2 = term2.match(/\((\w+)\s+-->\s+(\w+)\)/);
-
-        if (match1 && match2) {
-            const [, s1, p1] = match1;
-            const [, s2, p2] = match2;
-            // Related if they share subject or predicate
-            return s1 === s2 || s1 === p2 || p1 === s2 || p1 === p2;
-        }
-        return false;
     }
 }

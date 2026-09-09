@@ -139,12 +139,16 @@ export class Forgetting {
     }
 
     private getConnectivity(concept: Concept): number {
-        const links = concept.getLinks();
+        let linkCount = 0;
+        let linkStrength = 0;
+        concept.forEachLink((link) => {
+            linkCount++;
+            linkStrength += link.strength;
+        });
         const parents = concept.getParentConcepts();
         const children = concept.getChildConcepts();
-        const totalConnections = links.length + parents.length + children.length;
+        const totalConnections = linkCount + parents.length + children.length;
         if (totalConnections === 0) return 0;
-        const linkStrength = links.reduce((sum, link) => sum + link.strength, 0);
         return Math.min(1, (totalConnections + linkStrength) / 10);
     }
 

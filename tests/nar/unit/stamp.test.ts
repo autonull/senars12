@@ -6,7 +6,6 @@ describe('Stamp', () => {
         test('creates stamp with INPUT source', () => {
             const stamp = Stamp.createInput();
             expect(stamp.source).toBe('INPUT');
-            expect(stamp.depth).toBe(0);
             expect(stamp.derivations).toHaveLength(0);
             expect(stamp.id).toBeDefined();
             expect(stamp.creationTime).toBeDefined();
@@ -24,12 +23,15 @@ describe('Stamp', () => {
             const derived = Stamp.derive([parent], 'DERIVED');
             expect(derived).toBeDefined();
             expect(derived!.source).toBe('DERIVED');
-            expect(derived!.depth).toBe(1);
+            expect(derived!.derivations).toHaveLength(1);
             expect(derived!.derivations).toContain(parent.id);
         });
 
-        test('returns undefined when parent at max depth', () => {
-            const deepParent = {...Stamp.createInput(), depth: DEPTH_MAX};
+        test('returns undefined when parent at max lineage', () => {
+            const deepParent = {
+                ...Stamp.createInput(),
+                derivations: Array.from({length: DEPTH_MAX}, (_, i) => `anc${i}`),
+            };
             const derived = Stamp.derive([deepParent]);
             expect(derived).toBeUndefined();
         });
@@ -46,38 +48,55 @@ describe('Stamp', () => {
             const derived = Stamp.derive([p1, p2]);
             expect(derived!.derivations).toContain(p1.id);
             expect(derived!.derivations).toContain(p2.id);
-            expect(derived!.depth).toBe(1);
+            expect(derived!.derivations).toHaveLength(2);
         });
 
-        test('depth increases from max parent', () => {
-            const deepParent = {...Stamp.createInput(), depth: 5 as const};
+        test('diamond merge dedups shared history (lineage exceeds chain depth)', () => {
+            const root = Stamp.createInput();
+            const a = Stamp.derive([root])!;
+            const b = Stamp.derive([root])!;
+            const m = Stamp.derive([a, b])!;
+            // Chain depth is 2, but the ancestor set has 3 members.
+            expect(m.derivations).toHaveLength(3);
+            expect(m.derivations).toContain(root.id);
+        });
+
+        test('lineage accumulates parent derivations', () => {            const deepParent = {
+                ...Stamp.createInput(),
+                derivations: ['a', 'b', 'c', 'd', 'e'],
+            };
             const derived = Stamp.derive([deepParent]);
-            expect(derived!.depth).toBe(6);
+            expect(derived!.derivations).toHaveLength(6);
         });
 
         test('handles empty parent array', () => {
             const derived = Stamp.derive([], 'DERIVED');
-            expect(derived!.depth).toBe(0);
             expect(derived!.derivations).toHaveLength(0);
         });
     });
 
     describe('helpers', () => {
-        test('getDepth returns stamp depth', () => {
+        test('getDepth returns lineage size', () => {
             const stamp = Stamp.createInput();
             expect(Stamp.getDepth(stamp)).toBe(0);
         });
 
-        test('getMaxDepth finds max depth', () => {
-            const stamps = [Stamp.createInput(), {...Stamp.createInput(), depth: 3 as const} as any];
+        test('getMaxDepth finds max lineage', () => {
+            const stamps = [
+                Stamp.createInput(),
+                {...Stamp.createInput(), derivations: ['a', 'b', 'c']},
+            ];
             expect(Stamp.getMaxDepth(stamps)).toBe(3);
         });
 
-        test('canDerive checks depth', () => {
+        test('canDerive checks lineage', () => {
             const shallow = [Stamp.createInput()];
             expect(Stamp.canDerive(shallow)).toBe(true);
 
-            const deepParent = {...Stamp.createInput(), depth: DEPTH_MAX} as any;
+            const deepParent = {
+                ...Stamp.createInput(),
+                derivations: Array.from({length: DEPTH_MAX}, (_, i) => `anc${i}`),
+            };
             expect(Stamp.canDerive([deepParent])).toBe(false);
         });
 

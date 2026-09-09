@@ -610,8 +610,8 @@ export class BanditSelector implements NativeActionSelector {
         if (lowConfidence.length > 0 && Math.random() < 0.5) {
             const exploreAction = lowConfidence[Math.floor(Math.random() * lowConfidence.length)];
             const match = exploreAction.toString().match(/pull_arm_(\d+)/);
-            if (match) return parseInt(match[1], 10);
             qStore.stimulateCuriosity(0.05);
+            if (match) return parseInt(match[1], 10);
         }
 
         return Math.floor(Math.random() * this.numArms);
@@ -769,8 +769,8 @@ export class NonStationarySelector implements NativeActionSelector {
         if (lowConfidence.length > 0 && Math.random() < 0.5) {
             const exploreAction = lowConfidence[Math.floor(Math.random() * lowConfidence.length)];
             const match = exploreAction.toString().match(/pull_arm_(\d+)/);
-            if (match) return parseInt(match[1], 10);
             qStore.stimulateCuriosity(0.05);
+            if (match) return parseInt(match[1], 10);
         }
 
         return Math.floor(Math.random() * this.numArms);

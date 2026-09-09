@@ -143,6 +143,18 @@ export class Memory {
         return Array.from(this.concepts.values());
     }
 
+    * conceptValues(): IterableIterator<Concept> {
+        for (const concept of this.concepts.values()) {
+            yield concept;
+        }
+    }
+
+    forEachConcept(fn: (concept: Concept) => void): void {
+        for (const concept of this.concepts.values()) {
+            fn(concept);
+        }
+    }
+
     getFocusConcepts(): Concept[] {
         return this.focus.getFocusSet();
     }
@@ -305,10 +317,9 @@ export class Memory {
     ): Array<{ concepts: Concept[]; hasAbstract: boolean }> {
         const clusters: Array<{ concepts: Concept[]; hasAbstract: boolean }> = [];
         const visited = new TermSet();
-        const allConcepts = this.listConcepts();
 
-        for (const concept of allConcepts) {
-            if (visited.has(concept.term)) continue;
+        this.forEachConcept((concept) => {
+            if (visited.has(concept.term)) return;
 
             const cluster = this.bfsCluster(concept, minLinkStrength, visited);
             if (cluster.length >= minSize) {
@@ -319,7 +330,7 @@ export class Memory {
                     ),
                 });
             }
-        }
+        });
 
         return clusters;
     }
@@ -533,9 +544,13 @@ export class Memory {
 
     private findOrphanedLinks(): Concept[] {
         const knownKeys = new Set(this.concepts.keys());
-        return [...this.concepts.values()].filter((concept) =>
-            concept.getLinks().some((link) => !knownKeys.has(link.concept.key))
-        );
+        return [...this.concepts.values()].filter((concept) => {
+            let hasOrphan = false;
+            concept.forEachLink((link) => {
+                if (!knownKeys.has(link.concept.key)) hasOrphan = true;
+            });
+            return hasOrphan;
+        });
     }
 }
 

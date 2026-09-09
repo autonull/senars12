@@ -170,6 +170,12 @@ export class Concept {
         return Array.from(this.linkedConcepts.values());
     }
 
+    forEachLink(fn: (link: ConceptLink) => void): void {
+        for (const link of this.linkedConcepts.values()) {
+            fn(link);
+        }
+    }
+
     getLinkedConcepts(): Concept[] {
         return Array.from(this.linkedConcepts.values()).map((link) => link.concept);
     }
@@ -202,9 +208,9 @@ export class Concept {
         }
 
         for (const other of others) {
-            for (const link of other.getLinks()) {
+            other.forEachLink((link) => {
                 if (link.concept !== this) this.addLink(link.concept, link.strength);
-            }
+            });
         }
 
         this.priority = Math.max(this.priority, ...others.map((c) => c.priority));

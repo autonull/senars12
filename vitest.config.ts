@@ -21,5 +21,7 @@ export default defineConfig({
         maxConcurrency: 16,
         // Share modules across test files in same worker (~4s faster per vitest)
         isolate: false,
+        // Cache transformed modules on disk; reuse across reruns/cold starts (slower transform phase)
+        fsModuleCache: true,
     },
 });

@@ -10,13 +10,12 @@ export class SpreadingActivation extends SimpleAttention {
 
     override prime(concept: Concept, ctx: AttentionContext): number {
         const boost = super.prime(concept, ctx);
-        const links = concept.getLinks();
-        for (const link of links) {
+        concept.forEachLink((link) => {
             const target = ctx.memory.getConcept(link.concept.term);
             if (target && target !== concept) {
                 target.priority = Math.min(1, target.priority + boost * (link.strength ?? 0.3));
             }
-        }
+        });
         return boost;
     }
 }

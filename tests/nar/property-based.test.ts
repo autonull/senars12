@@ -236,30 +236,30 @@ describe('Property-Based Tests', () => {
     });
 
     describe('Stamp Invariants', () => {
-        it('stamps have bounded depth', () => {
+        it('stamps have bounded lineage', () => {
             fc.assert(
                 fc.property(fc.integer({min: 1, max: 9}), (_depth) => {
                     const stamp = Stamp.createInput();
-                    expect(stamp.depth).toBe(0);
+                    expect(stamp.derivations).toHaveLength(0);
                 })
             );
         });
 
-        it('input stamps have depth 0', () => {
+        it('input stamps have empty lineage', () => {
             fc.assert(
                 fc.property(fc.integer({min: 0, max: 10}), () => {
                     const stamp = Stamp.createInput();
-                    expect(stamp.depth).toBe(0);
+                    expect(stamp.derivations).toHaveLength(0);
                 })
             );
         });
 
-        it('derived stamps track parent depth', () => {
+        it('derived stamps track parent lineage', () => {
             const parent = Stamp.createInput();
             const derived = Stamp.derive([parent]);
 
             if (derived) {
-                expect(derived.depth).toBe(1);
+                expect(derived.derivations).toHaveLength(1);
             }
         });
     });

@@ -34,7 +34,6 @@ export {PressureDetector} from './pressure/pressure.js';
 export type {ScorerConfig} from './pressure/scorer.js';
 export {MemoryScorer} from './pressure/scorer.js';
 export type {
-    BagItemWithMeta,
     SerializedConcept,
     SerializedMemory,
     SerializedTask,

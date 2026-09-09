@@ -1,10 +1,26 @@
 /**
- * Memory serialization with versioning
+ * Memory serialization.
+ *
+ * Full round-trip: Narsese terms, truth, budget priority, concept priorities,
+ * and stamps. Restored stamp IDs re-seed the atomic counter (see
+ * observeStampId), so newly minted stamps never collide with reloaded ones.
+ *
+ * No version migration is kept: there are no persisted dumps in the wild yet,
+ * so the format is versioned (version 1) but has a single reader/writer.
  */
 
-import type {Term} from '../../terms';
-import {TermBuilder} from '../../terms';
+import type {Stamp, Term} from '../../terms';
+import {
+    deserializeStamp,
+    serializeStamp,
+    Stamp as StampFactory,
+    termParser,
+    Truth,
+} from '../../terms';
+import type {SerializedStamp} from '../../terms';
+import {createBudget} from '../../types';
 import type {Bag} from '../bag.js';
+import type {Concept, ConceptTaskType} from '../concept.js';
 import type {TaskData} from '../concept.js';
 import type {Memory} from '../memory.js';
 
@@ -30,24 +46,19 @@ export interface SerializedTask {
     term: string;
     truth?: { f: number; c: number };
     budget: number;
+    stamp?: SerializedStamp;
 }
 
 export const MEMORY_VERSION = 1;
 
-export const V1 = {
-    version: MEMORY_VERSION,
-    serialize,
-    deserialize,
-    validate,
-    repair,
-} as const;
+type TaskTypeName = 'belief' | 'goal' | 'question';
 
 export function serialize(memory: Memory): SerializedMemory {
     const concepts: SerializedConcept[] = [];
 
     for (const concept of memory.listConcepts()) {
         concepts.push({
-            term: termToString(concept.term),
+            term: concept.term.toString(),
             priority: concept.priority,
             beliefs: serializeBag(concept.beliefBag),
             goals: serializeBag(concept.goalBag),
@@ -68,31 +79,15 @@ export function serialize(memory: Memory): SerializedMemory {
     };
 }
 
-function termToString(term: Term): string {
-    if (!term) return 'unknown';
-    try {
-        // system boundary — term structure varies across memory versions
-        return term.kind === 'atom' ? term.symbol : term.kind;
-    } catch {
-        return term.kind;
-    }
-}
-
-export type BagItemWithMeta = {
-    term: Term;
-    truth?: { f: number; c: number };
-    budget: number;
-    meta: { priority: number; lastAccess: number; createdAt: number };
-};
-
 function serializeBag(bag: Bag<TaskData>): SerializedTask[] {
     const tasks: SerializedTask[] = [];
 
     for (const [item, priority] of bag.entries()) {
         tasks.push({
-            term: termToString(item.term),
+            term: item.term.toString(),
             truth: item.truth ? {f: item.truth.f, c: item.truth.c} : undefined,
             budget: item.budget.priority ?? priority,
+            stamp: item.stamp ? serializeStamp(item.stamp) : undefined,
         });
     }
     return tasks;
@@ -107,11 +102,32 @@ export async function deserialize(data: SerializedMemory, memory: Memory): Promi
 
     for (const serialized of data.concepts) {
         try {
-            const term = TermBuilder.atom(serialized.term);
-            memory.addConcept(term);
+            const term = termParser.parse(serialized.term);
+            const concept = memory.addConcept(term);
+            restoreBag(concept, 'belief', serialized.beliefs);
+            restoreBag(concept, 'goal', serialized.goals);
+            restoreBag(concept, 'question', serialized.questions);
+            // Last: task restore bumps priority via recordAccess; the dump wins.
+            if (typeof serialized.priority === 'number') concept.priority = serialized.priority;
         } catch {
             // expected: individual concept deserialization failure shouldn't abort memory load
             console.warn(`Failed to deserialize concept: ${serialized.term}`);
+        }
+    }
+}
+
+function restoreBag(concept: Concept, type: TaskTypeName, tasks?: SerializedTask[]): void {
+    if (!tasks) return;
+    for (const task of tasks) {
+        try {
+            const term = termParser.parse(task.term);
+            const truth = task.truth ? Truth.create(task.truth.f, task.truth.c) : undefined;
+            const budget = createBudget(typeof task.budget === 'number' ? task.budget : 0.5);
+            const stamp: Stamp = task.stamp ? deserializeStamp(task.stamp) : StampFactory.createInput();
+            concept.addTask(type as ConceptTaskType, {term, truth, budget, stamp});
+        } catch {
+            // expected: individual task deserialization failure shouldn't abort concept load
+            console.warn(`Failed to deserialize task: ${task.term}`);
         }
     }
 }
@@ -123,6 +139,19 @@ export function validate(data: Partial<SerializedMemory>): boolean {
 
     for (const concept of data.concepts) {
         if (!concept.term || typeof concept.priority !== 'number') return false;
+        for (const bag of [concept.beliefs, concept.goals, concept.questions]) {
+            if (!bag) continue;
+            if (!Array.isArray(bag)) return false;
+            for (const task of bag) {
+                if (!task.term) return false;
+                if (
+                    task.stamp &&
+                    (typeof task.stamp.id !== 'string' || !Array.isArray(task.stamp.derivations))
+                ) {
+                    return false;
+                }
+            }
+        }
     }
 
     return true;

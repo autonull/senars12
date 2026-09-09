@@ -147,7 +147,9 @@ describe('AIKR Compliance', () => {
                 if (beliefs && beliefs.peek) {
                     const belief = beliefs.peek();
                     if (belief && belief.stamp) {
-                        expect(belief.stamp.depth).toBeLessThanOrEqual(10);
+                        // Lineage bound: a stamp's ancestors are two capped parents'
+                        // unions, so size stays within 2x the chain-depth cap.
+                        expect(belief.stamp.derivations.length).toBeLessThanOrEqual(2 * 10);
                     }
                 }
             }

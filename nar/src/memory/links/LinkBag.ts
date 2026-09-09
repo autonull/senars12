@@ -109,6 +109,12 @@ export class LinkBag extends BaseBag<LinkEntry> {
         }
     }
 
+    forEachLink(fn: (entry: LinkEntry) => void): void {
+        for (const entry of this.items.values()) {
+            fn(entry);
+        }
+    }
+
     getLinks(): LinkEntry[] {
         return Array.from(this.items.values());
     }
