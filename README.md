@@ -650,7 +650,96 @@ const agent = await createAgent({ /* config */ });
 // MeTTa input: metta: (= (add $x 0) $x)
 ```
 
-### 15. Cognitive Parameters & Strategy System
+### 15. Observability — OpenTelemetry Integration
+
+SeNARS12 includes **first-class OpenTelemetry support** for distributed tracing of the cognitive tick pipeline:
+
+```typescript
+import { initOtel, instrumentPipeline, runTick, createTickContext, DEFAULT_PIPELINE } from '@senars/nar/tick';
+
+// Initialize OTel (once at startup)
+initOtel({
+  serviceName: 'senars12-cognitive-kernel',
+  otlpEndpoint: 'http://localhost:4318/v1/traces',  // optional
+  batch: true,  // use BatchSpanProcessor (recommended for production)
+  enabled: true,
+});
+
+// Wrap pipeline for automatic per-stage spans
+const instrumented = instrumentPipeline(DEFAULT_PIPELINE);
+
+// Run ticks — spans auto-created for each of 11 stages
+const ctx = createTickContext('tick-1', { cycles: 10 });
+await runTick(ctx, instrumented);
+```
+
+**Span Attributes (per middleware stage):**
+| Attribute | Description |
+|-----------|-------------|
+| `tick.id` | Unique tick identifier |
+| `cognitive.stage` | Stage name: `perceive` \| `recall` \| `attend` \| `reason` \| `propose` \| `negotiate` \| `authorize` \| `act` \| `validate` \| `learn` \| `consolidate` |
+| `cognitive.budget.cycles` | Budget cycles allocated |
+| `cognitive.budget.depth` | Max derivation depth (if set) |
+| `cognitive.duration_ms` | Stage execution time |
+
+**Events as Span Events:**
+`ctx.events` (stage timestamps) are emitted as span events with `event.stage`, `event.detail`, `event.at`.
+
+**Exports:** `initOtel`, `shutdownOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent`, `getTracer`, types `OtelConfig`, `CognitiveStage` from `@senars/nar/tick`.
+
+---
+
+### 16. WASI Sandbox — Secure Capability Execution
+
+The `CapabilitySpace` now supports **WebAssembly sandboxing via WASI** for safe execution of self-modification tools and untrusted code:
+
+```typescript
+import { CapabilitySpace, createWasiSandbox, createWasmModuleSandbox, createNodeVMSandbox } from '@senars/nar/capability';
+
+// 1. WASI sandbox with preopened directories
+const wasiSandbox = await createWasiSandbox({
+  allowedPaths: ['/workspace', '/tmp'],
+  env: { MY_VAR: 'value' },
+  args: ['--flag'],
+});
+
+// 2. WASM module sandbox (loads .wasm file with WASI imports)
+const wasmSandbox = await createWasmModuleSandbox({
+  wasmPath: '/path/to/module.wasm',
+  imports: { custom: { func: () => {} } },
+});
+
+// 3. Node.js VM sandbox (JS isolation fallback)
+const vmSandbox = createNodeVMSandbox();
+
+// Use with CapabilitySpace
+const space = new CapabilitySpace({ sandbox: wasiSandbox });
+space.register({ name: 'run_wasm', execute: () => 'result' });
+await space.execute('run_wasm');
+```
+
+**Sandbox Options:**
+| Option | Type | Description |
+|--------|------|-------------|
+| `allowedPaths` | `string[]` | Directories preopened for WASI file access |
+| `env` | `Record<string,string>` | Environment variables for WASI process |
+| `args` | `string[]` | Command-line arguments for WASI process |
+
+**CapabilitySpace Integration:**
+```typescript
+const space = new CapabilitySpace({
+  sandbox: async <T>(fn: () => Promise<T>) => {
+    // Custom isolation logic
+    return fn();
+  }
+});
+```
+
+**Exports:** `createWasiSandbox`, `createWasmModuleSandbox`, `createNodeVMSandbox`, types `WasiSandboxOptions`, `WasmModuleOptions` from `@senars/nar/capability`.
+
+---
+
+### 17. Cognitive Parameters & Strategy System
 
 **Tunable Hyperparameters** — All behavior is controlled via `CognitiveParameters` with validated ranges:
 
@@ -1278,6 +1367,8 @@ tests/nar/
 | **M2.5** | Imagination engine (cognitive treadmill) | ✅ |
 | **M3** | **Autonomous self-improvement loop** | ✅ **COMPLETE** |
 | **M3.5** | **Cognitive grounding & RL parity** (Focus-Game-Reflex kernel) | ✅ **COMPLETE** |
+| **M4 Partial** | **OpenTelemetry tracing** (per-stage spans, OTLP export) | ✅ **COMPLETE** |
+| **M4 Partial** | **WASI sandbox** (CapabilitySpace secure execution) | ✅ **COMPLETE** |
 
 ### 🎯 Active: M4 — Production Loop (Next)
 
@@ -1291,6 +1382,10 @@ nar run --auto --duration 3600
 - Auto-approval mode for ApprovalManager
 - Health monitoring + auto-restart
 - Persistent state verification across restarts
+
+**M4 Partial (Done):**
+- ✅ OpenTelemetry distributed tracing (per-middleware spans, OTLP HTTP exporter)
+- ✅ WASI sandbox for secure capability execution (`CapabilitySpace` + `createWasiSandbox`/`createWasmModuleSandbox`/`createNodeVMSandbox`)
 
 ### 📅 Planned: M5 — Autonomous Self-Modification (Post-M4)
 
@@ -1426,6 +1521,8 @@ See `CONTRIBUTING.md` (to be created) and `AGENTS.md` for code guidelines.
 | **MeTTa**                     | `createMeTTa`, `parseMeTTa`, `EGraph`, `MeTTaRuntime`                                                                                        | `@senars/metta`                         |
 | **MeTTa Engine**              | `MettaEngine`, `MettaCommandParser`                                                                                                          | `@senars/metta/agent`                   |
 | **Focus-Game-Reflex Kernel**  | `Bag`, `Focus`, `FocusBag`, `GameFocus`, `MetaFocus`, `PerceptionGate`, `ActionGate`, `RewardGate`, `Reflex`, `TabularQReflex`, `Negotiator`, `Game`, `MetaGame`, `SelfMetaGame` | `@senars/nar` (new architecture)        |
+| **Observability (OTel)**      | `initOtel`, `shutdownOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent`, `getTracer`, `OtelConfig`, `CognitiveStage` | `@senars/nar/tick`                      |
+| **WASI Sandbox**              | `CapabilitySpace`, `createWasiSandbox`, `createWasmModuleSandbox`, `createNodeVMSandbox`, `WasiSandboxOptions`, `WasmModuleOptions` | `@senars/nar/capability`                |
 | **Core Agent**                | `Agent`, `createAgent`, `LLMCortex`, `MemoryService`                                                                                         | `@senars/core`                          |
 | **Agent Subsystems**          | `ToolRegistry`, `PolicyEngine`, `ApprovalService`, `KnowledgeManager`                                                                        | `@senars/core`                          |
 | **Event Logs**                | `InMemoryEventLog`, `SqliteEventLog`                                                                                                         | `@senars/core`                          |
