@@ -8,12 +8,12 @@
 | `CognitiveTick` pipeline | ✅ Complete (11 stages bound: firewall stimuli, `Memory.sample`, `FocusBag`/`Focus.step`, `Negotiator` veto, policy gate, tool act with `outcomes`, shadow `validator` quarantine, RLFP-blended `learn` (`calculateRewardFromTask` + `intrinsicOf`), bag-decay consolidate, `toCognitiveEvents` core bridge) | `nar/src/tick/tick.ts`, `nar/src/tick/bindings.ts`, `nar/src/tick/bridge.ts` |
 | Stream Reasoner | ✅ Core done (async dispatch, provisional beliefs + `Truth.revision` on resolve, pressure backpressure, adaptive batch) | `nar/src/stream/reasoner.ts` |
 | Symbolic Firewall | ✅ Hardened (truth-sanity `c>0.95` block, `checkTruth`, predicate whitelist, **AST depth** validated) | `nar/src/nl/firewall.ts` |
-| CapabilitySpace / WASI sandbox | ✅ Routing done (`CapabilitySpace`: policy gate → risk-based approval → sandboxed execute + history; AST-diff grammar `validateDiff`; **M5 mutations extended**) | `nar/src/capability/space.ts` |
-| OpenTelemetry spans | ❌ Not started (no `@opentelemetry/*` dep; stage timing available via `ctx.events` `at` timestamps) | — |
+| CapabilitySpace / WASI sandbox | ✅ Routing + WASI stubs (`CapabilitySpace`: policy gate → risk-based approval → sandboxed execute + history; AST-diff grammar `validateDiff`; **M5 mutations extended**; WASI sandbox module with `createWasiSandbox`, `createWasmModuleSandbox`, `createNodeVMSandbox` using `@wasmer/wasi` + `@wasmer/wasmfs`; `createNodeVMSandbox` for JS isolation fallback) | `nar/src/capability/space.ts`, `nar/src/capability/wasi-sandbox.ts`, `nar/src/capability/index.ts` |
+| OpenTelemetry spans | ✅ Done (`initOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent`; per-stage spans with attributes: tick.id, cognitive.stage, cognitive.budget.cycles, cognitive.duration_ms; events as span events; OTLP HTTP exporter) | `nar/src/otel/index.ts`, `nar/src/tick/index.ts`, `tests/nar/todo5b-otel.test.ts` |
 
-Tests: `tests/nar/todo5b-phase1.test.ts` (8 passing) + `tests/nar/todo5b-capability.test.ts` (2 passing).
+Tests: `tests/nar/todo5b-phase1.test.ts` (8 passing) + `tests/nar/todo5b-capability.test.ts` (2 passing) + `tests/nar/todo5b-otel.test.ts` (5 passing) + `tests/nar/todo5b-wasi.test.ts` (5 passing).
 Regression: `firewall.test.ts` + `stream.test.ts` + `kernel-slice1.test.ts` green (27 tests).
-Full suite: 1206 passed | 3 skipped.
+Full suite: 1216 passed | 3 skipped.
 Note: `pnpm typecheck` fails on pre-existing `ui/src/server/index.ts` errors (verified identical on clean tree); no new type errors from Phase 1 files.
 
 ### New improvement opportunities
@@ -21,7 +21,9 @@ Note: `pnpm typecheck` fails on pre-existing `ui/src/server/index.ts` errors (ve
 2. **CapabilitySpace hardening (done)**: `execute` is directly `TickDeps.tools`-compatible. **Extended `allowedMutations` for M5 self-ops** (`modify-code`, `add-test`, `remove-test`, `modify-config`, `promote-schema`, `scaffold-capability`). `importFrom` compatible with `ToolManager`/`ToolRegistry` `list()`.
 3. **Reasoner↔pipeline fusion (done)**: `StreamReasoner.flush` called inside `reason` hook with live `Bag.pressure()` via `deps.pressureOf`; `reasoner`/`lmBackend`/`pressureOf` added to `TickDeps`.
 4. **Firewall depth (done)**: Replaced paren-count fallback with true AST depth from parsed term (`astDepth` function).
-5. **Next pillars**: OTel spans per middleware (no dep yet; `ctx.events` timestamps suffice), MeTTa/HDC background workers (per Appendix), M4 hardening, WASI sandbox implementation for `CapabilitySpace.sandbox` hook.
+5. **OTel spans (done)**: `@opentelemetry/*` deps added; per-middleware spans with attributes/events; `instrumentPipeline()` wraps `DEFAULT_PIPELINE`; `recordCognitiveEvents()` emits `ctx.events` as span events; OTLP HTTP exporter configurable.
+6. **WASI sandbox (done)**: `@wasmer/wasi` + `@wasmer/wasmfs` integrated; `createWasiSandbox` for WASI context, `createWasmModuleSandbox` for WASM modules, `createNodeVMSandbox` for JS isolation fallback; exported via `@senars/nar/capability`.
+7. **Next pillars**: MeTTa/HDC background workers (per Appendix), M4 hardening (1-hr unattended + auto-restart + drift monitoring).
 
 ### Future-work details
 - `PriorityBag.evict('LRU')` sorts by `lastAccessedAt` (O(n log n)); swap to indexed heap if hot-path profiling flags it.
@@ -34,6 +36,8 @@ Note: `pnpm typecheck` fails on pre-existing `ui/src/server/index.ts` errors (ve
 - `memory/bag.ts` `Bag<T>` class **removed**; `BoundedBag` tests migrated to `PriorityBag` equivalents.
 - `TickDeps` extended with `reasoner`, `lmBackend`, `pressureOf` for StreamReasoner integration.
 - `CapabilitySpace` `DEFAULT_MUTATIONS` extended for M5 cognitive grammar.
+- **OTel integration**: `initOtel({serviceName, otlpEndpoint, batch, enabled})` initializes NodeTracerProvider; `instrumentPipeline(pipeline)` wraps all 11 stages; `wrapMiddlewareWithSpan(stage, mw)` adds span with attributes; `recordCognitiveEvents(ctx)` emits `ctx.events` as span events; `emitSpanEvent(ctx, name, attrs)` for custom events; `shutdownOtel()` for clean shutdown; `enabled: false` mode for testing.
+- **WASI sandbox**: `createWasiSandbox({allowedPaths, env, args})` initializes WASI context with preopened dirs; `createWasmModuleSandbox({wasmPath, imports})` loads and instantiates WASM module with WASI imports; `createNodeVMSandbox()` provides JS isolation via `vm` module for non-WASM capabilities; all exported from `@senars/nar/capability`; `CapabilitySpace.sandbox` option accepts any `(fn) => Promise<T>` wrapper.
 
 This document defines the definitive architecture for **SeNARS12**, a next-generation cognitive operating system that bridges fluid Large Language Model (LM) creativity with rigorous, resource-bounded symbolic logic (Non-Axiomatic Logic - NAL). 
 

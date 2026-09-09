@@ -3,3 +3,5 @@ export type { AIKRBudget, CognitiveEvent, TickContext, TickHook, TickHooks, Tick
 export { createDefaultHooks, operationActionOf } from './bindings.js';
 export type { FocusBagLike, FocusLike, MemoryLike, NegotiatorLike, PolicyLike, RLFPLike, TaskOutcomeLike, TickDeps, ToolsLike, ValidatorLike } from './bindings.js';
 export { toCognitiveEvents } from './bridge.js';
+export { initOtel, shutdownOtel, instrumentPipeline, wrapMiddlewareWithSpan, emitSpanEvent, recordCognitiveEvents, getTracer } from '../otel/index.js';
+export type { OtelConfig, CognitiveStage } from '../otel/index.js';

@@ -79,14 +79,34 @@
     "./game": {
       "types": "./src/game/index.ts",
       "import": "./src/game/index.ts"
+    },
+    "./tick": {
+      "types": "./src/tick/index.ts",
+      "import": "./src/tick/index.ts"
+    },
+    "./otel": {
+      "types": "./src/otel/index.ts",
+      "import": "./src/otel/index.ts"
+    },
+    "./capability": {
+      "types": "./src/capability/index.ts",
+      "import": "./src/capability/index.ts"
     }
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "tsx watch src/index.ts"
   },
-  "dependencies": {
+"dependencies": {
     "@js-temporal/polyfill": "^0.5.1",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/sdk-trace": "^2.11.0",
+    "@opentelemetry/sdk-trace-node": "^2.11.0",
+    "@opentelemetry/resources": "^2.11.0",
+    "@opentelemetry/semantic-conventions": "^1.43.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.222.0",
+    "@wasmer/wasi": "^1.2.2",
+    "@wasmer/wasmfs": "^0.12.0",
     "@senars/core": "workspace:*",
     "@senars/io": "workspace:*",
     "@senars/util": "workspace:*",
