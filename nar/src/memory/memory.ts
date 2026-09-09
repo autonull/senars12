@@ -6,6 +6,7 @@ import {calculateSimilarity, mentionsSymbol, Stamp, TermMap, TermSet, Truth} fro
 import {atom} from '../terms/factory.js';
 import type {Budget, Task} from '../types';
 import {NEUTRAL_BUDGET} from '../types';
+import {selectTopN} from '../utils/collections.js';
 import {Concept, type ConceptMergeResult, type ConceptTaskType} from './concept.js';
 import {Focus} from './focus.js';
 import type {MemoryHealth} from './health.js';
@@ -249,9 +250,7 @@ export class Memory {
 
     sample(limit: number): Concept[] {
         this.decayAll();
-        return [...this.concepts.values()]
-            .sort((a, b) => this.scorer.scoreForRetrieval(b) - this.scorer.scoreForRetrieval(a))
-            .slice(0, limit);
+        return selectTopN(this.concepts.values(), limit, (c) => this.scorer.scoreForRetrieval(c));
     }
 
     consolidate(opts?: {
@@ -438,13 +437,7 @@ export class Memory {
     }
 
     findSimilarConcepts(term: Term, limit = 10): Concept[] {
-        const allConcepts = Array.from(this.concepts.values());
-        const scored = allConcepts.map((concept) => ({
-            concept,
-            similarity: calculateSimilarity(concept.term, term),
-        }));
-        scored.sort((a, b) => b.similarity - a.similarity);
-        return scored.slice(0, limit).map((s) => s.concept);
+        return selectTopN(this.concepts.values(), limit, (c) => calculateSimilarity(c.term, term));
     }
 
     private recordRevision(entry: RevisionEntry): void {

@@ -1,4 +1,46 @@
 // Small collection helpers to reduce common Map boilerplate
+
+/**
+ * Returns the top `n` items from an iterable ranked by `score`, descending.
+ * Single-pass with a bounded buffer — avoids materializing/sorting the full input.
+ */
+export function selectTopN<T>(
+    items: Iterable<T>,
+    n: number,
+    score: (item: T) => number
+): T[] {
+    if (n <= 0) return [];
+    const result: T[] = [];
+    const scores: number[] = [];
+    for (const item of items) {
+        const s = score(item);
+        if (result.length < n) {
+            result.push(item);
+            scores.push(s);
+            let i = result.length - 1;
+            while (i > 0 && scores[i - 1]! < s) {
+                result[i] = result[i - 1]!;
+                scores[i] = scores[i - 1]!;
+                i--;
+            }
+            result[i] = item;
+            scores[i] = s;
+        } else if (s > scores[n - 1]!) {
+            result[n - 1] = item;
+            scores[n - 1] = s;
+            let i = n - 1;
+            while (i > 0 && scores[i - 1]! < s) {
+                result[i] = result[i - 1]!;
+                scores[i] = scores[i - 1]!;
+                i--;
+            }
+            result[i] = item;
+            scores[i] = s;
+        }
+    }
+    return result;
+}
+
 export function getOrInsert<K, V>(map: Map<K, V>, key: K, factory: () => V): V {
     const existing = map.get(key);
     if (existing !== undefined) return existing;

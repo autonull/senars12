@@ -13,6 +13,7 @@ export {
     toError,
     wordOverlap,
 } from './helpers.js';
+export {getOrInsert, incrementCount, addToSet, selectTopN} from './collections.js';
 export {jaccard} from './similarity.js';
 export type {ThrottleConfig} from './throttle.js';
 export {createThrottle, Throttle, throttleGenerator} from './throttle.js';

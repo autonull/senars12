@@ -40,18 +40,15 @@ export abstract class TermCollection<T> {
         this.refIndex.delete(term);
     }
 
-    protected reindex(getItem: (i: T) => Term): void {
-        for (let i = 0; i < this.storage.length; i++) {
-            this.setRef(getItem(this.storage[i]!), i);
-        }
-    }
-
     protected deleteItem(term: Term, getItem: (i: T) => Term): boolean {
         const index = this.getIndex(term, getItem);
         if (index >= 0) {
             this.clearRef(term);
             this.storage.splice(index, 1);
-            this.reindex(getItem);
+            // shift cached ref indices above the removed slot without a full rebuild
+            for (const [key, refIdx] of this.refIndex) {
+                if (refIdx > index) this.refIndex.set(key, refIdx - 1);
+            }
             return true;
         }
         return false;

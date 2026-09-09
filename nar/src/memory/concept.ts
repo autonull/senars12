@@ -194,11 +194,11 @@ export class Concept {
 
     mergeWith(others: Concept[]): ConceptMergeResult {
         for (const other of [this, ...others]) {
-            other.getBeliefs().forEach((belief) => this.beliefBag.add(belief, belief.budget.priority));
-            other.getGoals().forEach((goal) => this.goalBag.add(goal, goal.budget.priority));
-            other
-                .getQuestions()
-                .forEach((question) => this.questionBag.add(question, question.budget.priority));
+            other.beliefBag.forEach((belief) => this.beliefBag.add(belief, belief.budget.priority));
+            other.goalBag.forEach((goal) => this.goalBag.add(goal, goal.budget.priority));
+            other.questionBag.forEach((question) =>
+                this.questionBag.add(question, question.budget.priority)
+            );
         }
 
         for (const other of others) {
@@ -299,8 +299,8 @@ export class Concept {
         const thisSet = new TermSet();
         const otherSet = new TermSet();
 
-        this.getBeliefs().forEach((b) => thisSet.add(b.term));
-        other.getBeliefs().forEach((b) => otherSet.add(b.term));
+        this.beliefBag.forEach((b) => thisSet.add(b.term));
+        other.beliefBag.forEach((b) => otherSet.add(b.term));
 
         if (thisSet.size === 0 && otherSet.size === 0) return 0;
 

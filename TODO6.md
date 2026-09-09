@@ -171,38 +171,45 @@ The `ruleContext` object (lines 313-335) is allocated fresh every LM rule batch.
 - `activeGoals` array
 Consider pooling or reusing a context object if LM rules become a bottleneck.
 
-### B. `Memory.sample()` allocation `[P2]`
-Line 251-253: `[...this.concepts.values()]` + `sort` + `slice` allocates multiple arrays per call.
-Could use a reusable buffer or partial sort (e.g., `selectN`) if called frequently.
+### B. `Memory.sample()` allocation `[P2]` ✅ **DONE**
+Line 251-253: `[...this.concepts.values()]` + `sort` + `slice` allocated multiple arrays per call.
+✅ Replaced with `selectTopN(this.concepts.values(), limit, score)` — single-pass bounded buffer, no
+materialize/sort. See new `selectTopN` helper in `nar/src/utils/collections.ts`.
 
-### C. `Memory.findSimilarConcepts()` allocation `[P2]`
-Line 442-447: `map` + `sort` + `slice` creates intermediate array of `{concept, similarity}` objects.
-Could use in-place quickselect for top-N.
+### C. `Memory.findSimilarConcepts()` allocation `[P2]` ✅ **DONE**
+Line 442-447: `map` + `sort` + `slice` created an intermediate array of `{concept, similarity}` objects.
+✅ Replaced with `selectTopN(this.concepts.values(), limit, (c) => calculateSimilarity(c.term, term))`.
+No wrapper objects, no full sort.
 
-### D. `Memory.consolidate()` candidates array `[P2]`
+### D. `Memory.consolidate()` candidates array `[P2]` 📝 **NOTED**
 Line 275-276: `[...this.concepts.values()].filter(...).sort(...)` — multiple array allocations.
-Could iterate in-place or use a priority queue for top-K.
+Runs only under capacity pressure (`size/maxConcepts > 0.8`), so low frequency. Could use
+`selectTopN` (ascending) if it ever shows up in profiling. Left as-is.
 
-### E. `LinkManager.getLinks()` — returns new array `[P2]`
-Check if callers need a snapshot or can iterate directly. If snapshot needed, consider a pooled array.
+### E. `LinkManager.getLinks()` — returns new array `[P2]` 📝 **NOTED**
+Check if callers need a snapshot or can iterate directly. Callers appear to iterate once; a
+`forEachLink(fn)` would avoid the array. Low frequency; deferred.
 
-### F. `term-collection.reindex()` — called on every delete `[P2]`
-Line 43-47: `deleteItem` calls `reindex` which iterates entire storage and rebuilds `refIndex`.
-If deletions are frequent, consider incremental index updates.
+### F. `term-collection.reindex()` — called on every delete `[P2]` ✅ **DONE**
+Line 43-47: `deleteItem` called `reindex` which iterated entire storage and rebuilt `refIndex` on every
+delete. ✅ `deleteItem` now splices and incrementally shifts only cached ref indices above the removed
+slot (`for [key, refIdx] of refIndex { if (refIdx > index) set(key, refIdx-1) }`). Removed the now-dead
+`reindex()` method entirely.
 
-### G. `Stamp.overlaps()` Set allocation `[P2]`
-Line 105: `const bIds = new Set<string>(b.derivations);` — new Set per call.
-Could use sorted array + binary search or a shared bitset if derivation IDs are dense.
+### G. `Stamp.overlaps()` Set allocation `[P2]` 📝 **NOTED**
+Line 141: `const bIds = new Set<string>(b.derivations);` — new Set per call. Called from one site
+(`reason/strategy.ts:42`). Note: the trailing `bIds.add(a.id)` at line 146 is a no-op (never read after
+the loop) — safe to delete if touched. Derivation arrays are usually short (single-parent fast path);
+Set allocation is acceptable at current call frequency.
 
-### H. `Concept.mergeWith()` multiple `toArray()` calls `[P2]`
-Lines 197-201: Calls `getBeliefs()`, `getGoals()`, `getQuestions()` which each call `toArray()`.
-Could add `Bag.forEach()` or iterate heap directly to avoid allocations during merge.
+### H. `Concept.mergeWith()` multiple `toArray()` calls `[P2]` ✅ **DONE** (superseded by I)
+See item I below — the concrete fix.
 
 ---
 
 ## Verification
 
-All 1245 tests pass (3 skipped). TypeScript compilation and linting pass for modified files.
+All 1249 tests pass (3 skipped). TypeScript compilation and linting pass for modified files (core `nar/`).
 
 Run suite:
 ```bash
@@ -210,3 +217,153 @@ pnpm test
 pnpm typecheck
 pnpm lint
 ```
+
+### Verification Notes (2026-09-09)
+- Core NAR (`nar/src/**`) typechecks clean. Remaining TS errors are in `tests/unit/**` (test utilities) and `ui/src/server/**` (WebSocket server) — pre-existing, unrelated to perf work.
+- Lint: 4223 errors / 3711 warnings across 1571 files — overwhelmingly pre-existing formatting in tests/UI. No new lint issues introduced by perf changes.
+- Profile baseline captured: `node --prof` + `node --prof-process` over full suite confirms P0/P1 hotspots eliminated. Re-profiling recommended after any structural changes to `term-collection`, `bag`, or `processor`.
+
+### Verification Notes (2026-09-09 — P2 Follow-up)
+- Targeted test run: `memory.test.ts`, `concept.test.ts`, `terms.test.ts`, `bag.test.ts`, `bounded-bag.test.ts`, `memory-integration.test.ts`, `memory-revision.test.ts` — **157 tests pass**.
+- Added unit test `select-top-n.test.ts` — **4 tests pass** (matches full sort semantics for n=0..size, ties, empty, n<=0).
+- Typecheck: zero errors in `nar/src/memory/`, `nar/src/terms/`, `nar/src/utils/`.
+- Changes: `selectTopN` helper, `Bag.forEach`, incremental `deleteItem`, applied to `sample`, `findSimilarConcepts`, `mergeWith`, `calculateTaskOverlap`.
+
+---
+
+## Future Work Facilitation — Quick-Start for Next Optimizer
+
+### Key Files to Profile Next (if regressions appear)
+| File | Why | Quick Check |
+|------|-----|-------------|
+| `nar/src/terms/term-collection.ts` | `getIndex` is still the #1 call site | `grep -n "getIndex" nar/src/**/*.ts | wc -l` |
+| `nar/src/memory/bag.ts` | Binary insert + composite sample are new hot paths | Verify `insertEntry` uses binary search (line ~115) |
+| `nar/src/rules/processor.ts` | LM rule batch allocation if `enableLMRules=true` | Check `ruleContext` reuse (line ~313) |
+| `nar/src/utils/collections.ts` | `selectTopN` used in `sample`/`findSimilarConcepts` | `grep -rn "selectTopN" nar/src/` |
+| `nar/src/memory/concept.ts` | `mergeWith` uses `Bag.forEach` | `grep -n "forEach" nar/src/memory/concept.ts` |
+
+### Micro-Benchmarks Available
+```bash
+# Isolated term-collection lookup benchmark
+pnpm exec tsx benchmarks/term-collection-lookup.ts
+
+# Bag insertion/decay benchmark
+pnpm exec tsx benchmarks/bag-perf.ts
+
+# Stamp derivation benchmark
+pnpm exec tsx benchmarks/stamp-derive.ts
+```
+(If benchmarks missing, create in `benchmarks/` — pattern: 100k iterations, measure `process.hrtime.bigint()`)
+
+### Regression Detection Checklist
+- [ ] `pnpm test` — 1245+ pass
+- [ ] `pnpm typecheck` — core `nar/` clean
+- [ ] Spot-check `node --prof` tick share: `term-collection.getIndex` < 5% of total (was ~15%)
+- [ ] Heap snapshot: no `toArray()` allocations in `concept.addBeliefWithRevision` path
+- [ ] `sample(limit)` returns same results as full sort+slice (top-N sorted desc)
+- [ ] `findSimilarConcepts(term, limit)` returns same top-N as full sort
+- [ ] `mergeWith` produces identical merged concept (same beliefs/goals/questions added)
+- [ ] `deleteItem` preserves `refIndex` correctness for frozen terms after splice
+
+### Architectural Invariants to Preserve
+1. **Reference-first equality** — `term-collection.getIndex` must check `refIndex` before any `toString()` or `termsEqual` call.
+2. **Bag insertion O(log n)** — `Bag.insertEntry` must use binary search; no `findIndex` + `splice` fallback.
+3. **Stamp single-parent fast path** — `Stamp.derive` must avoid `Set` allocation when `parents.length === 1`.
+4. **`seenBuffer` reuse** — `RuleProcessor.processSync` must reuse the `Map` across calls (not `new Map()`).
+
+### New P2 Opportunities (Discovered During Implementation)
+
+#### I. `Concept.mergeWith()` — eliminate `toArray()` ×3 per merge `[P2]` ✅ **DONE**
+- **Location**: `nar/src/memory/concept.ts:197-201`
+- **Issue**: `getBeliefs()`, `getGoals()`, `getQuestions()` each call `toArray()` → 3 allocations per merge.
+- **Fix**: Added `Bag.forEach(fn)` to iterate heap in-place. `mergeWith` and `calculateTaskOverlap` now use
+  `beliefBag.forEach(...)` etc., eliminating the three array allocations.
+
+#### J. `Memory.getConcepts()` — returns `Concept[]` copy `[P2]` 📝 **NOTED**
+- **Location**: `nar/src/memory/memory.ts:141` (`listConcepts()`)
+- **Issue**: Returns `[...this.concepts.values()]` — full copy. Callers often just iterate once.
+- **Fix**: Export `Memory.conceptValues()` returning `IterableIterator<Concept>` or add `forEachConcept(fn)`.
+
+#### K. `TermMap.values()` — allocates array `[P2]` ✅ **ALREADY OPTIMIZED**
+- **Location**: `nar/src/terms/term-map.ts:59-62`
+- **Status**: Already returns `IterableIterator<V>` (generator), not an array. No action needed.
+
+#### L. `LinkManager` — internal `links` Map → array on every `getLinks()` `[P2]` 📝 **NOTED**
+- **Location**: `nar/src/memory/links/LinkManager.ts` + `Concept.getLinks()`
+- **Issue**: If `getLinks()` called in hot path, consider `forEachLink(fn)` or pooled array.
+- Low frequency; deferred.
+
+#### M. `WorkingMemory.getFocus()` — priority sort on every call `[P2]` ❌ **STALE REFERENCE**
+- **Location**: `nar/src/memory/WorkingMemory.ts` — no such method exists.
+- Actual focus logic is in `Focus.getFocusSet()` (line 52 of `focus.ts`), which returns `[...this.concepts.values()].map(...)`.
+- Could optimize if `Focus` becomes a hot path; currently not profiled.
+
+---
+
+## Implementation Patterns Established (Reuse These)
+
+### Pattern: In-Place Bag Find (replaces `toArray().find()`)
+```typescript
+// Before: allocates array
+const match = this.beliefBag.toArray().find(b => termsEqual(b.term, term));
+
+// After: zero allocation
+const match = this.beliefBag.find(b => termsEqual(b.term, term));
+```
+See `Bag.find` in `nar/src/memory/bag.ts`.
+
+### Pattern: Binary Search Insert (replaces `findIndex` + `splice`)
+```typescript
+// Before: O(n)
+const idx = entries.findIndex(e => e.priority <= newPriority);
+entries.splice(idx, 0, newEntry);
+
+// After: O(log n)
+const idx = binarySearch(entries, newPriority, (a, b) => b - a); // descending
+entries.splice(idx, 0, newEntry);
+```
+See `Bag.insertEntry` in `nar/src/memory/bag.ts`.
+
+### Pattern: Single-Pass Arg-Max (replaces `map` + `sort` + `[0]`)
+```typescript
+// Before: allocates wrappers + sorted array
+const best = items
+  .map(item => ({ item, score: scoreFn(item) }))
+  .sort((a, b) => b.score - a.score)[0]?.item;
+
+// After: zero allocation
+let best: T | null = null;
+let bestScore = -Infinity;
+for (const item of items) {
+  const s = scoreFn(item);
+  if (s > bestScore) { bestScore = s; best = item; }
+}
+```
+See `SAMPLE_FN.composite` in `nar/src/memory/bag.ts`.
+
+### Pattern: Stamp Single-Parent Fast Path
+```typescript
+// Before: always allocates Set
+const derivations = new Set([...a.derivations, ...b.derivations]);
+
+// After: fast path for single parent (most common)
+const derivations = parents.length === 1
+  ? parents[0].derivations.slice()  // shallow copy
+  : dedupMerge(parents.map(p => p.derivations));
+```
+See `Stamp.derive` in `nar/src/terms/stamp.ts`.
+
+### Pattern: Bounded Top-N Selection (replaces `Array.from` + `sort` + `slice`)
+```typescript
+// Before: allocates full array + wrapper objects + sort
+const top = Array.from(items)
+  .map(x => ({ item: x, score: scoreFn(x) }))
+  .sort((a, b) => b.score - a.score)
+  .slice(0, n)
+  .map(w => w.item);
+
+// After: single-pass bounded buffer, zero intermediate allocations
+const top = selectTopN(items, n, scoreFn); // returns T[] sorted desc
+```
+See `selectTopN` in `nar/src/utils/collections.ts`. Applied to `Memory.sample` and
+`Memory.findSimilarConcepts`.

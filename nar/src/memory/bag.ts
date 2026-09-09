@@ -218,6 +218,10 @@ export class Bag<T> extends BaseBag<{
         return undefined;
     }
 
+    forEach(fn: (item: T) => void): void {
+        for (const {item} of this.heap) fn(item);
+    }
+
     pruneTo(maxSize: number): void {
         this.heap = this.heap.slice(0, maxSize);
     }
