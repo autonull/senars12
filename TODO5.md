@@ -15,7 +15,7 @@ The current design features several overlapping concepts that can be abstracted 
     *   **Recommendation:** Consolidate into a single **`ActionSpace`** or **`CapabilityRegistry`**. Whether an action is a Python function, a MeTTa rewrite rule, or a self-modifying codemod, it should share a unified interface for permissions, schema validation, and execution sandboxing.
 *   **Neural Cortex Facade:**
     *   **Current State:** LLM interactions are fragmented across "LM-Enhanced Rules," "NL Understanding/Generation," "Grounding Pipeline," and "LLMCortex."
-    *   **Recommendation:** Abstract all LLM interactions behind a single **`NeuralCortex`** interface. This facade handles routing (e.g., "Is this a translation task, a semantic similarity check, or a schema induction?"), prompt caching, and fallback strategies, shielding the symbolic engines from LLM provider specifics.
+    *   **Recommendation:** Abstract all LLM interactions behind a single **`LanguageModel`** interface. This facade handles routing (e.g., "Is this a translation task, a semantic similarity check, or a schema induction?"), prompt caching, and fallback strategies, shielding the symbolic engines from LLM provider specifics.
 
 ### 2. Functional Gaps to Complete
 
@@ -23,13 +23,14 @@ These are critical missing pieces required to make the system robust and product
 
 *   **Cross-Engine Truth Maintenance (The NAR ↔ MeTTa Bridge):**
     *   **Gap:** The system runs NAR and MeTTa side-by-side, but lacks a mechanism for cross-pollination. If MeTTa mathematically proves `(= (add a b) (add b a))` via E-graphs, how does NAR ingest this as a high-confidence equivalence `(add a b) <-> (add b a)`?
-    *   **Solution:** Implement a **`SymbolicBridge`** or **`TruthMaintenanceSystem`** that translates MeTTa proofs into Narsese derivations (and vice versa) to maintain a unified global truth state.
+    *   Implement a **`SymbolicBridge`** or **`TruthMaintenanceSystem`** that translates MeTTa proofs into Narsese derivations (and vice versa) to maintain a unified global truth state.  
+    *   Integrate Hyperdimensional Computing (HDC). In HDC, symbols are represented as high-dimensional vectors (e.g., 10,000 dimensions) where operations like binding (XOR/convolution) and superposition (addition) mimic symbolic logic but exist in continuous space.  Impact: This allows NAR to perform "fuzzy" symbolic reasoning natively and interfaces mathematically perfectly with LLM embeddings. It solves the "Cross-Engine Truth Maintenance" problem by making the symbolic and continuous spaces isomorphic.
 *   **Contradiction Resolution Engine:**
     *   **Gap:** The vision mentions "detects contradictions... and suggests resolutions," and the M3 section mentions a `coherence` drive that triggers `resolve_contradiction`. However, the actual *mechanism* for resolution is missing.
     *   **Solution:** Define a **`ContradictionResolver`** strategy pattern. Does it drop the lower-confidence belief? Does it spawn a sub-goal to gather more evidence? Does it use the LLM to mediate a debate between the two conflicting premises?
 *   **Runtime Sandboxing for Self-Modification:**
     *   **Gap:** M3 uses "Shadow worktrees" and runs CI (test/lint/typecheck) before merging self-modifications. CI passing does not prevent logical infinite loops, memory leaks, or malicious AST manipulations that bypass type checks.
-    *   **Solution:** Implement strict **Runtime Sandboxing**. Execute self-modified code in a WASM isolate, a restricted Deno worker, or via strict AST-evaluation rather than arbitrary JS execution before promoting it to the main cognitive loop.
+    *   **Solution:** Implement strict **Runtime Sandboxing**. Execute self-modified code in a WASM isolate, a restricted Deno worker, or via strict AST-evaluation rather than arbitrary JS execution before promoting it to the main cognitive loop.  However, running pnpm test only tests syntactic and unit correctness. A self-modifying agent could write code that passes all unit tests but introduces a semantic logic bomb (e.g., subtly altering the Truth Value decay rate to slowly drive the system insane). The reviewer should suggest Property-Based Testing (e.g., Fast-Check) or formal verification for all self-generated codemods to ensure cognitive invariants are maintained.  Consider using WASI (WebAssembly System Interface) for the self-modification sandbox. WASI defaults to deny-all for filesystem and network access. A self-generated codemod can be executed to verify its logical output, but it is physically incapable of exfiltrating memory or mutating host files unless explicitly granted a capability token by the PolicyEngine.
 *   **Multi-Agent / Swarm Topology:**
     *   **Gap:** SeNARS12 is designed as a monolithic "cognitive kernel." There is no protocol for multiple SeNARS instances to share beliefs, debate, or delegate tasks.
     *   **Solution:** Add a **`BlackboardSystem`** or a **`SwarmProtocol`** (perhaps built on top of the existing MCP/WebSocket layer) to enable distributed cognitive computing and agent-to-agent debate.
@@ -40,10 +41,7 @@ Clarifying these terms and boundaries will significantly improve developer exper
 
 *   **"System 1" Terminology Collision:**
     *   **Confusion:** The main architecture defines "System 1" as the **LLM** (Intuitive/Associative). However, the RL section defines "Reflexes" (TabularQ, UCB) as the **"Fast System-1 policy/value engine."**
-    *   **Resolution:** In Kahneman's terms, System 1 is fast/automatic (which aligns with *Reflexes*), while System 2 is slow/deliberative (which aligns with *NAR/MeTTa*). The LLM is actually a computationally expensive associative engine. Rename the LLM layer to **`AssociativeCortex`** or **`HeuristicEngine`** to avoid conflicting with the RL `Reflex` layer.
-*   **"Focus" Overload:**
-    *   **Confusion:** `Focus` is used as a noun for an "isolated reasoning vessel" in the RL kernel, as a verb/state in `WorkingMemory.addFocus()`, and as a `FocusPremiseSource` in the streaming pipeline.
-    *   **Resolution:** Rename the RL vessel to **`CognitiveVessel`** or **`ReasoningContext`**, reserving `Focus` strictly for the attention mechanism (e.g., `AttentionFocus`).
+    *   **Resolution:** In Kahneman's terms, System 1 is fast/automatic (which aligns with *Reflexes*), while System 2 is slow/deliberative (which aligns with *NAR/MeTTa*). The LLM is actually a computationally expensive associative engine. Rename the LLM layer to **`LanguageModel`** to avoid conflicting with the RL `Reflex` layer.
 *   **RLFP vs. Environmental RL:**
     *   **Confusion:** The document details **RLFP** (Reinforcement Learning from Reasoning Feedback using PPO/GRPO for meta-cognitive tuning) and separately details **TabularQ/UCB Reflexes** for environment interaction.
     *   **Resolution:** Explicitly separate these into two distinct learning loops in the documentation: **Micro-RL** (environmental reflexes, fast, tabular) and **Macro-RL** (RLFP, slow, policy-gradient, tuning cognitive parameters and rule weights).
@@ -67,6 +65,7 @@ Since SeNARS12 leans heavily into cognitive architectures, mimicking biological 
 *   **Temporal-Causal Episodic Graph:**
     *   **Current State:** Episodic memory relies on embeddings and time-aware recall.
     *   **Recommendation:** Vector databases are poor at answering "What happened *after* X caused Y?". Episodic memory should be stored as a **Directed Acyclic Graph (DAG)** where edges represent causal and temporal Narsese sequences `(A * B * C)`. This allows the system to perform counterfactual reasoning ("If X hadn't happened, would Y have occurred?") by traversing the graph backward.
+*   Mandate a binary serialization format (like FlatBuffers, Cap'n Proto, or a custom binary format) or an embedded native database (like RocksDB/LMDB) for the cognitive state to ensure instant snapshotting and resumption.
 
 ### 2. Security, Trust, and the "Personal Logic Vault"
 The "Personal Logic Vault" is a flagship use case, but integrating LLMs into the ingestion pipeline introduces severe security risks.
@@ -111,9 +110,15 @@ Testing a self-modifying, probabilistic cognitive architecture is fundamentally 
         *   *The Context Poisoning Test:* Inject slowly degrading, contradictory beliefs over 1000 turns to ensure the Truth Maintenance and Decay systems successfully purge the poison without crashing the agent.
 *   **Shadow vs. Production "Drift" Monitoring:**
     *   **Recommendation:** For the M3 Self-Improvement loop, implement a **Cognitive Drift Monitor**. When the system promotes a new schema to production, run the new logic in a shadow fork alongside the old logic for $N$ cycles. If the new logic deviates from expected safety bounds or drastically alters the `coherence` drive without justification, automatically rollback the schema.
+*   Integrating standard benchmarks:
+    *   ProofNet / miniF2F for the MeTTa engine (mathematical reasoning).
+    *   bAbI / RuleTaker for the NAL deductive reasoning (commonsense/logical deduction).
+    *   Needle in a Haystack (NIAH) with logical contradictions to test the AIKR priority bags.
+
 
 ### 6. The "Lens" System Expansion
 The Lens system for UI is brilliant, but it can be pushed further into the realm of explainability.
 
 *   **Lenses as Explainability Primitives (XAI):**
     *   **Recommendation:** Don't just use Lenses for the Web UI. Use the Lens AST to generate **Natural Language Explanations**. If a user asks, *"Why do you believe the server is down?"*, the system can traverse the derivation graph using a specific `ExplanationLens` that filters out low-level temporal sequences and highlights only the high-level semantic implications, feeding that exact subgraph to the LLM Cortex to generate a concise, human-readable proof.
+    * The Solution: Implement a Symbolic Graph-Reduction Algorithm or a lightweight, locally-hosted "Critic Model." Before a trace hits the main LLM Cortex, this layer extracts only the critical path (the logical spine) of the proof, stripping away dead-end explorations and low-confidence branches. The LLM then only narrates the summarized logical flow.
