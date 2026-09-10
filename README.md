@@ -336,7 +336,19 @@ AllSelector | PrioritySelector | RotationSelector | DiverseSelector
 
 ### Memory
 
-**Multi-Layer Memory System:**
+- **Bounded priority bags** with LRU eviction (AIKR-compliant)
+- **Revision history** tracking truth value evolution
+- **Embedding-based similarity** for semantic retrieval
+- **Temporal embedding memory** for time-aware recall
+- **Consolidation** (forgetting + archival)
+- **State persistence** (JSON serialization/deserialization)
+
+**Ubiquitous `Bag<T>` Data Structure**
+
+- **Universal AIKR Queues** — Working, Episodic, and Semantic memory are all implemented as bounded `Bag<T>` priority queues
+- **Probabilistic Sampling** — Memory recall is driven by AIKR budget and priority-weighted sampling
+- **Uniform Decay** — All memory types share the same truth-value and priority decay mechanics
+- **Pressure-Driven Consolidation** — High `Bag` pressure triggers cognitive sleep and schema induction
 
 ```typescript
 import { Memory, WorkingMemory, EpisodicMemory, Concept } from '@senars/nar';
@@ -354,15 +366,6 @@ const episodic = new EpisodicMemory(config);
 await episodic.record({ type: 'interaction', content: '...', context: {...} });
 const episodes = await episodic.getEpisodes({ limit: 10, query: 'cat' });
 ```
-
-**Memory Features:**
-
-- **Bounded priority bags** with LRU eviction (AIKR-compliant)
-- **Revision history** tracking truth value evolution
-- **Embedding-based similarity** for semantic retrieval
-- **Temporal embedding memory** for time-aware recall
-- **Pressure-driven consolidation** (forgetting + archival)
-- **State persistence** (JSON serialization/deserialization)
 
 ### Reasoning
 
@@ -512,9 +515,20 @@ The `GroundingPipeline` class and `SourceQuality` enum provide source quality as
 | Blog/Forum | TERTIARY | 0.4 |
 | LLM Prior | LLM_PRIOR | 0.5 |
 
-### Streaming — Async Derivation Streams
+### Stream Reasoner
 
-Async derivation streams with backpressure and CPU throttling:
+Async derivation streams with backpressure and CPU throttling
+
+- **Premise sources**: priority-weighted, recency, novelty, fair, and focus-based sampling
+  - Composite sources with configurable weights
+
+- **Interleaved Execution** — Synchronous NAL inference continues while asynchronous LM requests are processed in background workers
+  - CPU throttling & cooperative yielding
+  - Configurable queue limits and derivation caps
+
+- **Adaptive Backpressure** — Monitors `Bag<T>` pressure; drops or queues LM requests if CPU budget is exhausted
+  - Backpressure-aware buffering
+  - Bounded LLM-backed reasoning with pressure-driven flush
 
 ```typescript
 import { createPipeline, StreamReasoner, MemoryPremiseSource, FocusPremiseSource } from '@senars/nar/stream';
@@ -525,15 +539,6 @@ for await (const result of pipeline.derive(reasoner)) {
   // incremental derivations
 }
 ```
-
-**Features:**
-
-- Multiple premise sources: priority-weighted, recency, novelty, fair, focus-based
-- Composite sources with configurable weights
-- CPU throttling & cooperative yielding
-- Backpressure-aware buffering
-- Configurable queue limits and derivation caps
-- **`StreamReasoner`** — bounded LLM-backed reasoning with pressure-driven flush
 
 **Exports:** `createPipeline`, `StreamReasoner`, `MemoryPremiseSource`, `FocusPremiseSource`, `CompositePremiseSource`, `derive`, `throttled`, `backpressureAware`, types `PipelineConfig`, `PremiseSource`, `LMBackend`, `ProvisionalBelief` from `@senars/nar/stream`.
 
@@ -853,46 +858,6 @@ All Game↔Focus interactions pass through strict gates preventing architectural
 | **`PerceptionGate`** | Observations → Belief tasks (sensor confidence → `truth.c`) | No direct policy mutation |
 | **`ActionGate`** | Reflex proposals → Native AST operation goals | No action without goal dispatch |
 | **`RewardGate`** | Game outcomes → Value belief revisions / goal satisfaction | No hidden value updates |
-
-### Unified Execution Loop
-
-```typescript
-while (running) {
-  // 1. ATTENTION: System Bag samples Focus by weight
-  const focus = systemFocusBag.sample();
-  const budget = allocateBudget(focus);
-
-  // 2. PERCEPTION: Bound Games inject observations
-  for (const game of gamesBoundTo(focus)) {
-    const perception = game.observe();
-    focus.tasks.addAll(perceptionGate.toBeliefs(perception));
-  }
-
-  // 3. PROPOSAL: Reflexes inject goals
-  for (const reflex of reflexesBoundTo(focus)) {
-    const proposals = reflex.propose(game.state(), game.legalActions());
-    focus.tasks.addAll(actionGate.toGoals(proposals));
-  }
-
-  // 4. REASONING & NEGOTIATION: Process tasks, resolve conflicts
-  const decision = negotiator.resolve(focus.tasks, nalDerivations);
-
-  // 5. EXECUTION: Dispatch winning goal
-  if (decision.action) {
-    const outcome = game.step(decision.action);
-    focus.tasks.addAll(rewardGate.toBeliefs(outcome));
-
-    // 6. LEARNING: Reflexes update on actual execution (or veto)
-    for (const reflex of reflexesBoundTo(focus)) {
-      reflex.learn({ ...outcome, overriddenBy: decision.vetoedBy });
-    }
-  }
-
-  // 7. AIKR: Decay priorities, enforce capacity
-  focus.tasks.decay();
-  systemFocusBag.decay();
-}
-```
 
 ### Implemented Components
 
