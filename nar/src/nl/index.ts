@@ -18,4 +18,4 @@ export type {
 export { NLGenerationService } from './generation.js';
 export * from './schemas.js';
 export type { Ambiguity, Coreference, NLContext, TaskBatch } from './understanding.js';
-export { NLUnderstandingService } from './understanding.js';
+export { NLUnderstandingService, detectAmbiguityFlags, toFormalizationBatch } from './understanding.js';

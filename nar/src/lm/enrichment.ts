@@ -6,6 +6,7 @@ import {createBudget, createTask, type Task} from '../types';
 import {errMsg} from '../utils';
 import {LMResponseParser} from './LMRule.js';
 import type {LMService} from './lm-service.js';
+import {gateRegistry} from '../kernel/index.js';
 
 export interface EnricherConfig {
     enableProactiveEnrichment: boolean;
@@ -255,10 +256,12 @@ Answer the question based on the available knowledge. If the answer cannot be de
         }
 
         for (const hyp of hypotheses) {
+            if (!gateRegistry.getPerceptionGate().admitTask(hyp.term, hyp.type, hyp.truth, 'llm').admitted) continue;
             this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget, hyp.stamp);
         }
 
         for (const bridge of bridges) {
+            if (!gateRegistry.getPerceptionGate().admitTask(bridge.term, bridge.type, bridge.truth, 'bridge-llm').admitted) continue;
             this.memory.addTask(bridge.term, bridge.type, bridge.truth, bridge.budget, bridge.stamp);
         }
 

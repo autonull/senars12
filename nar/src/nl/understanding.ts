@@ -9,6 +9,9 @@ import {SymbolicFirewall, type FirewallOptions} from './firewall.js';
 import type {TranslationCache, TranslationCacheEntry} from './cache.js';
 import {buildUnderstandingPrompt} from './prompts/understanding-v1.js';
 import {TaskBatchSchema} from './schemas.js';
+import {v4 as uuidv4} from 'uuid';
+import type {AmbiguityFlag, FormalizationBatch, FormalizationCandidate} from '@senars/kernel/schemas';
+import {validateFormalizationBatch} from '@senars/kernel/schemas';
 
 export interface Ambiguity {
     type: 'parse' | 'intent' | 'term' | 'reference';
@@ -91,6 +94,12 @@ export class NLUnderstandingService {
         }
 
         return null;
+    }
+
+    async understandCandidates(input: string, ctx?: NLContext): Promise<FormalizationBatch | null> {
+        const batch = await this.understand(input, ctx);
+        if (!batch) return null;
+        return toFormalizationBatch(input, batch);
     }
 
     sanitize(batch: TaskBatch): TaskBatch {
@@ -191,4 +200,62 @@ export class NLUnderstandingService {
             },
         };
     }
+}
+
+const MODAL_RE = /\b(may|might|must|should|can|could|would|likely|probably)\b/i;
+const NEGATION_RE = /\b(unless|not|no\b|never|n't\b|without|except)\b/i;
+const QUANTIFIER_RE = /\b(all|every|each|some|most|few|any|none)\b/i;
+const TEMPORAL_RE = /\b(when|while|after|before|until|during|always|sometimes)\b/i;
+
+export function detectAmbiguityFlags(input: string): AmbiguityFlag[] {
+    const flags: AmbiguityFlag[] = [];
+    if (NEGATION_RE.test(input)) flags.push({type: 'negation', description: 'Negation or exception ("unless", "not", "never") — scope is uncertain', options: ['narrow-scope', 'wide-scope'], confidence: 0.6, severity: 'high'});
+    if (MODAL_RE.test(input)) flags.push({type: 'modal', description: 'Modal qualifier ("may", "must", "should") — strength is uncertain', options: ['strong', 'weak'], confidence: 0.6, severity: 'medium'});
+    if (QUANTIFIER_RE.test(input)) flags.push({type: 'quantifier', description: 'Quantifier ("all", "some", "most") — universality is uncertain', options: ['universal', 'existential'], confidence: 0.55, severity: 'medium'});
+    if (TEMPORAL_RE.test(input)) flags.push({type: 'temporal', description: 'Temporal marker ("when", "after", "until") — ordering is uncertain', options: ['sequence', 'implication'], confidence: 0.5, severity: 'low'});
+    return flags;
+}
+
+export function toFormalizationBatch(input: string, batch: TaskBatch): FormalizationBatch {
+    const span = {start: 0, end: input.length, text: input};
+    const candidates: FormalizationCandidate[] = [
+        ...batch.beliefs.map((b): FormalizationCandidate => ({
+            candidateId: uuidv4(),
+            narsese: b.narsese,
+            taskType: 'belief',
+            ...(b.truth ? {truth: {frequency: b.truth.f, confidence: b.truth.c}} : {}),
+            confidence: b.truth?.c ?? (b.source === 'user' ? 0.7 : 0.5),
+            sourceSpans: [span],
+            ambiguityFlags: detectAmbiguityFlags(input),
+        })),
+        ...batch.questions.map((q): FormalizationCandidate => ({
+            candidateId: uuidv4(),
+            narsese: q.narsese,
+            taskType: 'question',
+            confidence: 0.6,
+            sourceSpans: [span],
+            ambiguityFlags: detectAmbiguityFlags(input),
+        })),
+        ...batch.goals.map((g): FormalizationCandidate => ({
+            candidateId: uuidv4(),
+            narsese: g.narsese,
+            taskType: 'goal',
+            confidence: g.priority ?? 0.5,
+            sourceSpans: [span],
+            ambiguityFlags: detectAmbiguityFlags(input),
+        })),
+    ];
+    return validateFormalizationBatch({
+        batchId: uuidv4(),
+        sourceText: input,
+        candidates,
+        detectedIntent: batch.meta.detectedIntent,
+        globalAmbiguities: batch.meta.ambiguities.map((a) => ({
+            type: a.type,
+            description: a.description,
+            options: a.options,
+            confidence: a.confidence,
+            severity: 'medium' as const,
+        })),
+    });
 }

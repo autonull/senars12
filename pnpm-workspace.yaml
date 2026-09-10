@@ -1,6 +1,7 @@
 packages:
   - 'core'
   - 'io'
+  - 'kernel'
   - 'nar'
   - 'ui'
   - 'metta'

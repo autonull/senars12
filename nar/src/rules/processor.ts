@@ -12,6 +12,7 @@ import {Truth, type Truth as TruthType} from '../terms';
 import type {EventBus} from '../types';
 import {toError} from '../utils';
 import {buildResult, deriveStamp, NEUTRAL_FN, validateRuleOutput} from './rule-utils.js';
+import {DerivationRecorder} from './recorder.js';
 import {type RegisteredRule, RuleIndex, RuleRegistry} from './types.js';
 import {META_AIKR_BOUNDS, shouldActivateMetaReasoning} from './meta-rules.js';
 
@@ -52,6 +53,7 @@ export class RuleProcessor {
     private resultBuffer: RuleResult[] = [];
     private memory?: Memory;
     private nar?: NAR;
+    private readonly recorder: DerivationRecorder = new DerivationRecorder();
     private lmSelector: LMRuleSelector | null = null;
     private maxLMRulesPerStep = 13;
     private lmRotationIndex = 0;
@@ -72,9 +74,14 @@ export class RuleProcessor {
         (rules ?? RuleRegistry.getAll()).forEach((rule) => this.ruleIndex.register(rule));
     }
 
-    setConfig(config: { memory?: Memory; nar?: NAR }): void {
+    setConfig(config: { memory?: Memory; nar?: NAR; recorderEnabled?: boolean }): void {
         if (config.memory) this.memory = config.memory;
         if (config.nar) this.nar = config.nar;
+        if (config.recorderEnabled !== undefined) this.recorder.setEnabled(config.recorderEnabled);
+    }
+
+    getRecorder(): DerivationRecorder {
+        return this.recorder;
     }
 
     setEventBus(eventBus: EventBus): void {
@@ -163,6 +170,7 @@ export class RuleProcessor {
 
     async* process(premises: AsyncIterable<[RuleInput, RuleInput]>): AsyncGenerator<RuleResult> {
         for await (const [p1, p2] of premises) {
+            this.recorder.begin(`${p1.term.toString()}|${p2.term.toString()}`, p1.term.toString());
             // Check if meta-reasoning should activate
             const driveManager = this.nar?.getDriveManager?.();
             const driveStates = driveManager
@@ -187,6 +195,7 @@ export class RuleProcessor {
                         }
                         const ruleResult = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
                         (ruleResult as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
+                        this.recorder.record(rule.id, p1, p2, ruleResult);
                         yield ruleResult;
                     } else if (result) {
                         this.eventBus?.emit('rule:output-rejected', {
@@ -202,10 +211,12 @@ export class RuleProcessor {
             for await (const lmResult of this.processLMRulesImpl(p1, p2)) {
                 yield lmResult;
             }
+            this.recorder.finish();
         }
     }
 
     processSync(p1: RuleInput, p2: RuleInput): RuleResult[] {
+        this.recorder.begin(`${p1.term.toString()}|${p2.term.toString()}`, p1.term.toString());
         this.resultBuffer = [];
         const matchedRules = this.ruleIndex.match(p1.term, p2.term);
         this.seenBuffer.clear();
@@ -229,17 +240,18 @@ export class RuleProcessor {
                 if (!this.checkMetaBudget(this.metaBudget.currentDepth + 1)) continue;
             }
 
-            try {
-                const result = rule.apply([p1.term, p2.term]);
-                if (result && validateRuleOutput(result, [p1.term, p2.term])) {
-                    if (this.isMetaRule(rule)) {
-                        this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
-                    }
-                    const rs = result.toString();
-                    if (rs === p1s || rs === p2s) continue;
-                    const rr = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
-                    (rr as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
-                    const existing = this.seenBuffer.get(rs);
+                try {
+                    const result = rule.apply([p1.term, p2.term]);
+                    if (result && validateRuleOutput(result, [p1.term, p2.term])) {
+                        if (this.isMetaRule(rule)) {
+                            this.recordMetaDerivation(this.metaBudget.currentDepth + 1);
+                        }
+                        const rs = result.toString();
+                        if (rs === p1s || rs === p2s) continue;
+                        const rr = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
+                        (rr as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
+                        this.recorder.record(rule.id, p1, p2, rr);
+                        const existing = this.seenBuffer.get(rs);
                     if (!existing || rule.priority > existing.priority) {
                         this.seenBuffer.set(rs, rr);
                     }
@@ -252,6 +264,7 @@ export class RuleProcessor {
         }
 
         this.resultBuffer = Array.from(this.seenBuffer.values());
+        this.recorder.finish();
         return this.resultBuffer;
     }
 

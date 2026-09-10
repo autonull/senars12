@@ -16,6 +16,7 @@ import type {EventBus as NarEventBus} from './types/events.js';
 import {getTermArgs, isAtomic, isCompound, type Term, termParser} from './terms';
 import {Truth} from './terms/truth.js';
 import {errMsg} from './utils';
+import { gateRegistry } from './kernel/GateRegistry.js';
 
 /** Cognitive state summary for observability */
 export interface CognitiveStateSummary {
@@ -196,7 +197,15 @@ export class NARExecution {
             let testPassed = false;
             let testFailed = false;
             let contradictionDetected = false;
+            const gate = gateRegistry.getPerceptionGate();
             for (const task of results) {
+                const result = gate.admitTask(task.term, task.type, task.truth, 'derivation', task.stamp.id);
+
+                if (!result.admitted) {
+                    this.logger?.warn('Perception gate rejected derived task', {reason: result.rejectionReason, term: task.term.toString()});
+                    continue;
+                }
+
                 this.memory.addTask(task.term, task.type, task.truth, task.budget, task.stamp);
                 // Emit derivation event for beliefs
                 if (task.type === 'belief' && this.systemEventBus) {

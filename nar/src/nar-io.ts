@@ -9,6 +9,8 @@ import type {Truth as TruthType} from './terms/truth.js';
 import type {TaskType} from './types';
 import {createBudget, type EventBus} from './types';
 import type {EventBus as NarEventBus} from './types/events.js';
+import { KernelPerceptionGate } from './kernel';
+import { gateRegistry } from './kernel/GateRegistry.js';
 
 interface SerializedNARState {
     concepts: Array<{ term: string; priority: number }>;
@@ -24,12 +26,14 @@ export class NARIO {
     private _eventBus: EventBus | null = null;
     private _systemEventBus: NarEventBus | null = null;
     private cognitiveParams?: CognitiveParameters;
+    private perceptionGate: KernelPerceptionGate;
 
     constructor(
         private readonly memory: Memory,
         private readonly taskManager: TaskManager,
         private readonly config: NARConfig
     ) {
+        this.perceptionGate = gateRegistry.getPerceptionGate();
     }
 
     setcognitiveParams(params: CognitiveParameters): void {
@@ -89,7 +93,23 @@ export class NARIO {
 
         for (const concept of data.concepts) {
             if (concept.term) {
-                this.memory.addConcept(termParser.parse(concept.term));
+                const term = termParser.parse(concept.term);
+                if (!term) continue;
+
+                const result = this.perceptionGate.admit({
+                    sourceId: 'import',
+                    rawObservation: concept.term,
+                    sensorConfidence: 0.9,
+                    sourceQuality: 'PRIMARY',
+                    correlationId: crypto.randomUUID(),
+                });
+
+                if (!result.admitted) {
+                    this._eventBus?.emit('warning', {message: result.rejectionReason ?? 'Perception gate rejected import', term: concept.term});
+                    continue;
+                }
+
+                this.memory.addConcept(term);
             }
         }
     }
@@ -118,6 +138,20 @@ export class NARIO {
     private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void {
         const budget = createBudget(truth.f * truth.c);
         const wasNew = !this.memory.getConcept(term);
+
+        const result = this.perceptionGate.admit({
+            sourceId: 'nar-io',
+            rawObservation: term.toString(),
+            sensorConfidence: truth.c,
+            sourceQuality: 'GENERAL',
+            correlationId: crypto.randomUUID(),
+        });
+
+        if (!result.admitted || !result.task) {
+            this._eventBus?.emit('warning', {message: result.rejectionReason ?? 'Perception gate rejected task', term: term.toString()});
+            return;
+        }
+
         this.memory.addTask(term, type, truth, budget);
 
         if (wasNew && this._eventBus) {

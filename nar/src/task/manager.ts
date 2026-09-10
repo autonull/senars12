@@ -1,5 +1,6 @@
 import type {Memory} from '../memory';
 import type {Budget, Task} from '../types';
+import { gateRegistry } from '../kernel/GateRegistry.js';
 
 export type TaskLifecycle = 'pending' | 'running' | 'completed' | 'failed' | 'expired';
 
@@ -106,6 +107,8 @@ export class TaskManager {
         for (const wrapper of items) {
             if (wrapper.lifecycle !== 'pending') continue;
 
+            if (!gateRegistry.getBudgetGate().check({ operation: 'memory-op', estimatedCost: 1 }).granted) break;
+
             const taskId = wrapper.task.stamp.id;
             const timeoutId = this.timeouts.get(taskId);
             if (timeoutId) {
@@ -115,6 +118,17 @@ export class TaskManager {
 
             wrapper.lifecycle = 'running';
             wrapper.startedAt = Date.now();
+
+            const gate = gateRegistry.getPerceptionGate();
+            const result = gate.admitTask(wrapper.task.term, wrapper.task.type, wrapper.task.truth, 'task-manager', taskId);
+
+            if (!result.admitted) {
+                wrapper.lifecycle = 'failed';
+                wrapper.completedAt = Date.now();
+                this.failed.set(taskId, wrapper);
+                this.pending.delete(taskId);
+                continue;
+            }
 
             const added = this.memory.addTask(
                 wrapper.task.term,

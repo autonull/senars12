@@ -37,6 +37,12 @@
       ],
       "@senars/metta/*": [
         "./metta/src/*"
+      ],
+      "@senars/kernel": [
+        "./kernel/src/index.ts"
+      ],
+      "@senars/kernel/*": [
+        "./kernel/src/*"
       ]
     }
   },

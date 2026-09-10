@@ -563,19 +563,24 @@ export function createCoverageConceptTools(deps: CoverageConceptDeps = {}) {
                                         0.9  // high confidence
                                     );
 
-                                    deps.memory.addTask(
-                                        term,
-                                        'belief',
-                                        beliefTruth
-                                    );
+                                    const {gateRegistry} = await import('../../kernel/index.js');
+                                    if (gateRegistry.getPerceptionGate().admitTask(term, 'belief', beliefTruth, 'coverage-sensor').admitted) {
+                                        deps.memory.addTask(
+                                            term,
+                                            'belief',
+                                            beliefTruth
+                                        );
+                                    }
 
                                     // Add a goal to improve coverage
                                     const goalTruth = Truth.create(0.5, 0.8);
-                                    deps.memory.addTask(
-                                        term,
-                                        'goal',
-                                        goalTruth
-                                    );
+                                    if (gateRegistry.getPerceptionGate().admitTask(term, 'goal', goalTruth, 'coverage-sensor').admitted) {
+                                        deps.memory.addTask(
+                                            term,
+                                            'goal',
+                                            goalTruth
+                                        );
+                                    }
 
                                     conceptsInjected++;
                                     injectedConcepts.push(`${fileName}: ${fc.lines.pct.toFixed(1)}% -> priority ${priority.toFixed(2)}`);

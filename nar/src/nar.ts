@@ -37,6 +37,8 @@ import {
     type TaskType,
 } from './types';
 import {errMsg} from './utils';
+import { gateRegistry } from './kernel/GateRegistry.js';
+import type { ReasoningBudget, AutonomyMode } from '@senars/kernel/schemas';
 
 export {MetricsCollector} from './metrics';
 
@@ -124,6 +126,17 @@ export class NAR extends BaseComponent {
                 config.adaptationInterval
             );
         }
+
+        gateRegistry.initialize({
+            initialBudget: {
+                maxCycles: 1000,
+                maxDepth: 100,
+                maxMemoryOps: 10000,
+                maxLMCalls: 50,
+                consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+            },
+            initialAutonomyMode: 'observe-only',
+        });
 
         this.io = new NARIO(this.memory, this.taskManager, this.config);
         this.io.setEventBus(eventBus);
@@ -333,6 +346,14 @@ export class NAR extends BaseComponent {
     }
 
     inputTask(task: Task): void {
+        const gate = gateRegistry.getPerceptionGate();
+        const result = gate.admitTask(task.term, task.type, task.truth, 'nar-api', task.stamp.id);
+
+        if (!result.admitted) {
+            this.logger?.warn('Perception gate rejected task', {reason: result.rejectionReason, term: task.term.toString()});
+            return;
+        }
+
         this.taskManager.addTask(task);
     }
 

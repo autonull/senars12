@@ -4,6 +4,8 @@ import './rules-dsl.js';
 export type {RuleInput, RuleResult} from './processor.js';
 // Rule processor
 export {RuleProcessor} from './processor.js';
+export type {RecorderOptions} from './recorder.js';
+export {DerivationRecorder, inferRuleCategory} from './recorder.js';
 // Rule sets
 export {NALExtendedRules, NALRules} from './rules-dsl.js';
 // Rule types and registry

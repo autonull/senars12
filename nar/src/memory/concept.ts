@@ -17,6 +17,8 @@ export type RevisionCallback = (entry: {
     source: 'input' | 'revision';
 }) => void;
 
+export type IndependenceStatus = 'independent' | 'dependent' | 'unknown';
+
 export interface ConceptConfig {
     maxBeliefs?: number;
     maxGoals?: number;
@@ -132,7 +134,7 @@ export class Concept {
         this._priority *= 1 - rate;
     }
 
-    applyTimeDecay(baseRate = 0.01): void {
+    decayAttention(baseRate = 0.01): void {
         const elapsed = Date.now() - this.lastDecayTime;
         const decayFactor = Math.exp((-baseRate * elapsed) / DECAY_TIME_CONSTANT);
         this.activation *= decayFactor;
@@ -141,6 +143,24 @@ export class Concept {
             this._priority = Math.max(0, this._priority * (1 - baseRate));
         }
         this.lastDecayTime = Date.now();
+    }
+
+    applyTimeDecay(baseRate = 0.01): void {
+        this.decayAttention(baseRate);
+    }
+
+    invalidateTruth(reason: 'temporal' | 'contradiction'): boolean {
+        const beliefs = this.beliefBag.toArray().filter((b) => b.truth);
+        if (beliefs.length === 0) return false;
+        if (reason === 'temporal') {
+            for (const b of beliefs) {
+                if (!b.truth) continue;
+                const aged = { ...b, truth: { ...b.truth, confidence: Math.max(0, b.truth.c * 0.95) } };
+                this.beliefBag.remove(b);
+                this.beliefBag.add(aged);
+            }
+        }
+        return beliefs.length > 0;
     }
 
     addLink(concept: Concept, strength = 0.5): void {
@@ -247,11 +267,20 @@ export class Concept {
         this._priority = Math.min(1, this._priority + 0.1);
     }
 
-    private addBeliefWithRevision(data: TaskData | Omit<TaskData, 'id' | 'priority'>): boolean {
+    private addBeliefWithRevision(
+        data: TaskData | Omit<TaskData, 'id' | 'priority'>,
+        independence: IndependenceStatus = 'unknown'
+    ): boolean {
         const existing = this.findMatchingBelief(data.term);
 
         if (existing) {
             if (!data.truth || !existing.truth) return false;
+
+            if (independence === 'unknown') {
+                this.recordAccess();
+                return false;
+            }
+
             const revisedTruth = TruthOps.revision(data.truth, existing.truth);
             this.beliefBag.remove(existing);
             const item = {...data, id: existing.id, priority: data.budget?.priority ?? existing.priority, truth: revisedTruth, timestamp: Date.now()} as TaskData;
@@ -285,10 +314,7 @@ export class Concept {
     }
 
     private findMatchingBelief(term: Term): TaskData | undefined {
-        const norm = (t: Term): Term =>
-            t.kind !== 'atom' && 'args' in t && t.args?.length === 1 ? (t.args[0] as Term) : t;
-        const nTerm = norm(term);
-        return this.beliefBag.find((item) => termsEqual(norm(item.term), nTerm));
+        return this.beliefBag.find((item) => termsEqual(item.term, term));
     }
 
     private calculateTermSimilarity(other: Term): number {

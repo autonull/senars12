@@ -2,6 +2,7 @@ import type {Memory} from '../memory';
 import {termParser, Truth} from '../terms';
 import {createBudget} from '../types';
 import type {ToolManager} from './tool-registry';
+import {gateRegistry} from '../kernel/index.js';
 
 export class ToolGuidedReasoning {
     constructor(
@@ -26,10 +27,12 @@ export class ToolGuidedReasoning {
             const belief = `(TOOL_RESULT_${event.name} --> ${JSON.stringify(event.result.content)})`;
             try {
                 const term = termParser.parse(belief);
-                this.memory.addTask(term, 'belief', Truth.NEUTRAL, createBudget(0.5)); // system boundary — tool result has no truth
+                if (!gateRegistry.getPerceptionGate().admitTask(term, 'belief', Truth.NEUTRAL, 'tool').admitted) return;
+                this.memory.addTask(term, 'belief', Truth.NEUTRAL, createBudget(0.5));
             } catch {
                 const atomTerm = termParser.parse(`tool_result_${event.name}`);
-                this.memory.addTask(atomTerm, 'belief', Truth.NEUTRAL, createBudget(0.5)); // system boundary — tool result has no truth
+                if (!gateRegistry.getPerceptionGate().admitTask(atomTerm, 'belief', Truth.NEUTRAL, 'tool').admitted) return;
+                this.memory.addTask(atomTerm, 'belief', Truth.NEUTRAL, createBudget(0.5));
             }
         }
     }

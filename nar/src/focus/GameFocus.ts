@@ -3,6 +3,8 @@ import type {Game, Perception, GameOutcome} from '../game/Game.js';
 import {Reflex, ActionProposal, LearningEvent} from '../reflex/Reflex.js';
 import {Negotiator, NALDerivation, NegotiationDecision} from '../reflex/Negotiator.js';
 import {PriorityBag} from '../bag/Bag.js';
+import {gateRegistry} from '../kernel/index.js';
+import {v4 as uuidv4} from 'uuid';
 
 export interface GameFocusOptions {
   focusId: string;
@@ -42,6 +44,9 @@ export class GameFocus {
   }> {
     this.cycle++;
 
+    const budgetCheck = gateRegistry.getBudgetGate().check({ operation: 'nal-step', estimatedCost: 1 });
+    if (!budgetCheck.granted) return { focusReport: { terminated: budgetCheck.terminationReason }, gameOutcome: null };
+
     // PERCEPTION: Focus step handles perception
     const focusReport = await this.focus.step(budget);
 
@@ -67,13 +72,23 @@ export class GameFocus {
 
         const decision = this.negotiator.resolve(proposals, nalDerivations);
 
-        // EXECUTION: Execute the decided action
+        // EXECUTION: Kernel ActionGate authorizes before world mutation
         if (decision.actionExecuted) {
+          const auth = gateRegistry.getActionGate().authorize({ proposalId: uuidv4(), operation: decision.actionExecuted, args: {} });
+          if (!auth.authorized) {
+            const learningEvent = this.negotiator.createLearningEvent(this.focus, { ...decision, actionExecuted: null, vetoedBy: auth.vetoReason ?? 'kernel-gate' }, { reward: 0, terminal: false, perception: this.game.observe(), previousPerception: this.previousPerception });
+            reflex.learn(learningEvent);
+            this.previousPerception = this.game.observe();
+            break;
+          }
           const previousPerception = this.game.observe();
           const action = this.parseAction(decision.actionExecuted);
           gameOutcome = this.game.step(action);
           const nextPerception = this.game.observe();
 
+          // REWARD: epistemic firewall — reward may only tune policy, never truth
+          const firewall = gateRegistry.getRewardGate().process({ eventId: uuidv4(), rewardSignal: Math.max(-1, Math.min(1, gameOutcome.reward)), rewardType: 'extrinsic', targetType: 'policy-weights', targetId: this.focus.id });
+          if (!firewall.accepted) break;
           // REWARD: Convert outcome to beliefs
           const rewardBeliefs = this.focus.getRewardGate().toBeliefs(gameOutcome);
           for (const belief of rewardBeliefs) {

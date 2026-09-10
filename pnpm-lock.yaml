@@ -130,6 +130,9 @@ importers:
       '@senars/io':
         specifier: workspace:*
         version: link:io
+      '@senars/kernel':
+        specifier: workspace:*
+        version: link:kernel
       '@senars/metta':
         specifier: workspace:*
         version: link:metta
@@ -349,6 +352,12 @@ importers:
         specifier: workspace:*
         version: link:../util
 
+  kernel:
+    dependencies:
+      zod:
+        specifier: ^4.5.4
+        version: 4.5.4
+
   metta:
     dependencies:
       '@senars/core':
@@ -409,6 +418,9 @@ importers:
       '@senars/io':
         specifier: workspace:*
         version: link:../io
+      '@senars/kernel':
+        specifier: workspace:*
+        version: link:../kernel
       '@senars/util':
         specifier: workspace:*
         version: link:../util

@@ -2,6 +2,8 @@ import { Truth } from '../terms/truth.js';
 import type { Task, TruthType } from '../types/core.js';
 import type { TickContext } from '../tick/tick.js';
 
+export type IndependenceStatus = 'independent' | 'dependent' | 'unknown';
+
 export interface LMRequest {
   id: string;
   prompt: string;
@@ -13,6 +15,7 @@ export interface ProvisionalBelief {
   truth: TruthType;
   requestId: string;
   settled: boolean;
+  independence?: IndependenceStatus;
 }
 
 export interface StreamReasonerOptions {
@@ -42,7 +45,7 @@ export class StreamReasoner {
     this.queue.push({ id, prompt, enqueuedAt: Date.now() });
     const provisional: ProvisionalBelief = {
       id: `prov-${id}`,
-      truth: { f: prior?.f ?? 0.5, c: this.provisionalConfidence },
+      truth: { f: prior?.f ?? 0.5, c: this.provisionalConfidence } as TruthType,
       requestId: id,
       settled: false,
     };
@@ -58,11 +61,17 @@ export class StreamReasoner {
     if (pressure >= this.highPressure) return [];
     const batch = this.queue.splice(0, this.maxBatch);
     if (batch.length === 0) return [];
+    const { gateRegistry } = await import('../kernel/index.js');
+    if (!gateRegistry.getBudgetGate().check({ operation: 'lm-call', estimatedCost: batch.length }).granted) {
+      this.queue.unshift(...batch);
+      return [];
+    }
     const resolved = await backend(batch);
     return batch.flatMap((req) => {
       const truth = resolved.get(req.id);
       const prov = [...this.provisionals.values()].find((p) => p.requestId === req.id);
       if (!truth || !prov) return [];
+      if (prov.independence === 'unknown') return [];
       prov.truth = Truth.revision(prov.truth, truth);
       prov.settled = true;
       return [prov];

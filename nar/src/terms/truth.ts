@@ -32,6 +32,8 @@ const createTruth = (f: number, c: number): Truth => {
 const c2w = (c: number): number => (c === 1 ? 1e10 : c / (1 - c));
 const w2c = (w: number): number => w / (w + 1);
 
+export type IndependenceStatus = 'independent' | 'dependent' | 'unknown';
+
 const truthOps = {
     binary:
         <F extends (f1: number, f2: number, c1: number, c2: number) => [number, number]>(fn: F) =>
@@ -54,9 +56,11 @@ const truthOps = {
         op: (t1: Truth, t2: Truth) => Truth,
         t1: Truth,
         t2: Truth,
-        steps: number
+        steps: number,
+        independence: IndependenceStatus = 'unknown'
     ): Truth => {
         let result = op(t1, t2);
+        if (independence === 'unknown') return result;
         for (let i = 1; i < steps; i++) result = Truth.revision(result, op(t1, t2));
         return result;
     },
@@ -153,10 +157,10 @@ export const Truth = {
 
     deductionChain: (t1: Truth, t2: Truth, steps: number): Truth =>
         truthOps.chain(Truth.deduction, t1, t2, steps),
-    inductionChain: (t1: Truth, t2: Truth, steps: number): Truth =>
-        truthOps.chainWithRevision(Truth.induction, t1, t2, steps),
-    abductionChain: (t1: Truth, t2: Truth, steps: number): Truth =>
-        truthOps.chainWithRevision(Truth.abduction, t1, t2, steps),
+    inductionChain: (t1: Truth, t2: Truth, steps: number, independence: IndependenceStatus = 'unknown'): Truth =>
+        truthOps.chainWithRevision(Truth.induction, t1, t2, steps, independence),
+    abductionChain: (t1: Truth, t2: Truth, steps: number, independence: IndependenceStatus = 'unknown'): Truth =>
+        truthOps.chainWithRevision(Truth.abduction, t1, t2, steps, independence),
     conversionChain: (t: Truth, steps: number): Truth => {
         let result = t;
         for (let i = 0; i < steps; i++) result = Truth.conversion(result);
@@ -166,3 +170,5 @@ export const Truth = {
 
 export const isTruthEqual = (a: Truth, b: Truth, epsilon = 1e-3): boolean =>
     Math.abs(a.f - b.f) < epsilon && Math.abs(a.c - b.c) < epsilon;
+
+

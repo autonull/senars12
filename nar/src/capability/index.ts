@@ -11,3 +11,4 @@ export type {
   CapabilitySpaceOptions,
 } from './space.js';
 export type { WasiSandboxOptions, WasmModuleOptions } from './wasi-sandbox.js';
+export { DEFAULT_SANDBOX_TIMEOUT_MS, SandboxTimeoutError, assertWasmPathContained, containsPath, sanitizePreopens, withTimeout } from './wasi-sandbox.js';

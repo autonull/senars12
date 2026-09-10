@@ -6,6 +6,7 @@ import {createBudget, createTask, type Task} from '../types';
 import {clamp01, errMsg} from '../utils';
 import {parseEnrichmentResponse} from './enrichment.js';
 import type {LMService} from './lm-service.js';
+import {gateRegistry} from '../kernel/index.js';
 
 export interface FeedbackConfig {
     enableBidirectionalFeedback: boolean;
@@ -176,6 +177,7 @@ Respond with JSON:
                 const bridgingHypotheses = parseEnrichmentResponse(response).hypotheses;
 
                 for (const hyp of bridgingHypotheses) {
+                    if (!gateRegistry.getPerceptionGate().admitTask(hyp.term, hyp.type, hyp.truth, 'llm').admitted) continue;
                     this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget, hyp.stamp);
                 }
             } catch (error) {
@@ -387,6 +389,7 @@ Respond with JSON:
                 validation.revisedTruth,
                 createBudget(0.7, 0.8)
             );
+            if (!gateRegistry.getPerceptionGate().admitTask(revisedTask.term, revisedTask.type, revisedTask.truth, 'llm').admitted) return;
             this.memory.addTask(
                 revisedTask.term,
                 revisedTask.type,

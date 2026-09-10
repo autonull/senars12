@@ -9,6 +9,7 @@ import {RewardGate} from '../gates/RewardGate.js';
 import type {Game, Perception, GameOutcome} from '../game/Game.js';
 import type {ActionProposal, Reflex, LearningEvent} from '../reflex/Reflex.js';
 import type {NALDerivation} from '../reflex/Negotiator.js';
+import {gateRegistry} from '../kernel/index.js';
 
 export interface FocusTask extends BagItem {
   id: string;
@@ -110,6 +111,8 @@ export class Focus implements BagItem {
       gates: { perceptions: 0, actions: 0, rewards: 0 },
       timestamp: Date.now(),
     };
+
+    if (!gateRegistry.getBudgetGate().check({ operation: 'nal-step', estimatedCost: 1 }).granted) return report;
 
     // PERCEPTION: Bound Games inject observations into the Focus
     for (const game of this.games) {
