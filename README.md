@@ -1,36 +1,25 @@
-# 🧠 SeNARS12
+# SeNARS12
 
-**Semantic Non-Axiomatic Reasoning System** — A bounded, event-sourced, provenance-preserving reasoning runtime supporting uncertain symbolic inference and optional LLM-assisted formalization. `[Beta]`
+**Semantic Non-Axiomatic Reasoning System** — A bounded, event-sourced, provenance-preserving reasoning runtime supporting uncertain symbolic inference and optional LLM-assisted formalization.
 
-At the limits of the "Scaling Hypothesis," LLMs achieve miraculous fluency but remain **probabilistic improvisers, not reasoning engines**—they hallucinate, lose state across long contexts, and cannot mathematically guarantee a deduction. Classical symbolic AI (GOFAI) is rigorous but brittle when facing real-world noise and ambiguity.
+---
 
-**SeNARS12 provides a hardened cognitive kernel that enforces a strict division of labor:**
-- **Untrusted Proposers (System 1)** — LLM translation/enrichment, NAR uncertain inference, MeTTa exact rewrite, fast reflex policies
-- **Trusted Kernel** — Event log (append-only), type & schema validation, budget accounting, derivation verification, policy enforcement, capability sandboxing
+## The Problem
 
-| Problem | LLM-Only | Symbolic-Only | **SeNARS12 Kernel** |
-|---------|----------|---------------|---------------------|
+| Dimension | LLM-Only | Symbolic-Only | **SeNARS12 Kernel** |
+|-----------|----------|---------------|---------------------|
 | **Reasoning** | Shallow, probabilistic | Deep, rigid | **Deep, adaptive (NAL + MeTTa) with provenance** |
 | **Input** | Natural language | Formal logic | **NL → Formal candidates (multi-hypothesis) → Kernel admits** |
 | **Memory** | Vector store (RAG) | Static KB | **Dynamic priority concept network + event log** |
 | **Resources** | Infinite (cloud) | Fixed | **AIKR: bounded, anytime, edge-ready** |
 | **Auditability** | Low (black box) | High (proof trees) | **High: derivation traces + standalone verifier** |
 
----
+At the limits of the "Scaling Hypothesis," LLMs achieve miraculous fluency but remain **probabilistic improvisers, not reasoning engines**—they hallucinate, lose state across long contexts, and cannot mathematically guarantee a deduction. Classical symbolic AI (GOFAI) is rigorous but brittle when facing real-world noise and ambiguity.
 
-## Minimum Defensible Product
+**SeNARS12 provides a hardened cognitive kernel that enforces a strict division of labor:**
 
-SeNARS12 is **not** an AGI architecture. It is a **production-grade reasoning kernel** with the following guaranteed properties:
-
-| Guarantee | Mechanism | Maturity |
-|-----------|-----------|----------|
-| **Event-sourced state** | Append-only `CognitiveEvent` log; pure reducers for replay | `[Beta]` |
-| **Evidence independence** | Conservative revision rejection when lineage truncated | `[Experimental]` |
-| **Budget accounting** | `ReasoningBudget` context; explicit `TerminationReason` enums | `[Beta]` |
-| **Epistemic firewall** | Reward signals cannot mutate `Truth.frequency`/`confidence` | `[Stable]` |
-| **Derivation verifier** | Standalone, dependency-free proof checker | `[Prototype]` |
-| **Autonomy state machine** | `observe-only` → `propose-only` → `sandbox-execute` → `human-approved` | `[Beta]` |
-| **External self-mod governance** | Immutable CI/CD runner evaluates/applies patches | `[Planned]` |
+- **Untrusted Proposers (System 1)** — LLM translation/enrichment, NAR uncertain inference, MeTTa exact rewrite, fast reflex policies
+- **Trusted Kernel** — Event log (append-only), type & schema validation, budget accounting, derivation verification, policy enforcement, capability sandboxing
 
 ---
 
@@ -48,9 +37,9 @@ SeNARS12 is **not** an AGI architecture. It is a **production-grade reasoning ke
 │       └────────────────┴──────────────────┴────────────────┘        │
 │                                │ (Proposals / Tool Requests)        │
 │                                ▼                                    │
-├═══════════════════════════════════════════════════════════════════════┤
+├════════════════════════════════════════════════════════════════════════┤
 │  GATES: PerceptionGate | ActionGate | RewardGate | BudgetGate       │
-├═══════════════════════════════════════════════════════════════════════┤
+├════════════════════════════════════════════════════════════════════════┤
 │                     TRUSTED COGNITIVE KERNEL                        │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │  EVENT LOG (Append-Only)  <-- Source of Truth for State       │  │
@@ -62,38 +51,28 @@ SeNARS12 is **not** an AGI architecture. It is a **production-grade reasoning ke
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Kernel Gates — Trusted Boundary `[Beta]`
+### Kernel Gates — Trusted Boundary
 
 Four strict gates mediate every state mutation:
 
 | Gate | Responsibility | Key Guarantees |
 |------|----------------|----------------|
-| **PerceptionGate** | Admit observations → belief/goal/question tasks | Source-quality → confidence mapping; lossless `admitTask(term, type, truth, source)`; provisional multi‑candidate admission from LLM (`admitFormalization`) |
-| **ActionGate** | Authorize tool executions | Autonomy‑mode state machine (`observe-only → propose-only → sandbox-execute → low-risk-auto-merge → human-approved-production`); NAL veto registry; operation allow‑list |
+| **PerceptionGate** | Admit observations → belief/goal/question tasks | Source-quality → confidence mapping; lossless `admitTask(term, type, truth, source)`; provisional multi-candidate admission from LLM (`admitFormalization`) |
+| **ActionGate** | Authorize tool executions | Autonomy-mode state machine (`observe-only → propose-only → sandbox-execute → low-risk-auto-merge → human-approved-production`); NAL veto registry; operation allow-list |
 | **RewardGate** | Accept reward signals → mutate attention/policy only | **Epistemic firewall** rejects any attempt to mutate `Truth.frequency`/`confidence`; domain split (`external-reflex` direct, `self-*` → proposal) |
-| **BudgetGate** | Account CPU/derivation/LM/memory budgets | Per‑focus `scopeId` budgets; explicit `TerminationReason` enums (`cycle-budget`, `depth-budget`, `llm-budget`, `deadline`, `backpressure`) |
+| **BudgetGate** | Account CPU/derivation/LM/memory budgets | Per-focus `scopeId` budgets; explicit `TerminationReason` enums (`cycle-budget`, `depth-budget`, `llm-budget`, `deadline`, `backpressure`) |
 
-All gates emit typed `CognitiveEvent`s to an append‑only JSONL log; pure reducers (`replayCognitiveState`) reconstruct gate‑level state for pause/serialize/replay.
+All gates emit typed `CognitiveEvent`s to an append-only JSONL log; pure reducers (`replayCognitiveState`) reconstruct gate-level state for pause/serialize/replay.
 
 ---
 
 ## Core Principles (AIKR)
-| Principle | Description | Maturity |
-|-----------|-------------|----------|
-| **Anytime** ⏱️ | Interruptible execution at any point — yields partial results on demand | `[Stable]` |
-| **Interruptible** ⏸️ | Cooperative yielding via `AbortSignal` and wall-clock deadlines, subject to WASI/Node constraints | `[Beta]` |
-| **AIKR** 📚 | Assumption of Insufficient Knowledge Resources: memory/attention/bag capacity, derivation-lineage caps, CPU throttling, backpressure | `[Stable]` |
 
----
-
-## Zero-Cost Abstractions
-
-TypeScript metaprogramming shifts correctness checks from runtime to compile-time:
-
-- **Branded types** keep timestamps and durations distinct from plain numbers `[Stable]`
-- **Discriminated unions** ensure exhaustive pattern matching `[Stable]`
-- **Structural sharing** via memoization factory `[Stable]`
-- **Canonical normalization** with stable hashes `[Stable]`
+| Principle | Description |
+|-----------|-------------|
+| **Anytime** ⏱️ | Interruptible execution at any point — yields partial results on demand |
+| **Interruptible** ⏸️ | Cooperative yielding via `AbortSignal` and wall-clock deadlines |
+| **AIKR** 📚 | Assumption of Insufficient Knowledge Resources: bounded memory/attention/bag capacity, derivation-lineage caps, CPU throttling, backpressure |
 
 ---
 
@@ -113,7 +92,7 @@ This eliminates entire classes of bugs, enables IDE-native development with full
 
 ## Architectural Advantages
 
-### The End of "Infinite Context" — AIKR as First Principle `[Stable]`
+### The End of "Infinite Context" — AIKR as First Principle
 
 Most AI architectures assume infinite compute/memory (massive context windows, endless RAG). This is biologically implausible and computationally ruinous for edge deployment.
 
@@ -125,7 +104,7 @@ Most AI architectures assume infinite compute/memory (massive context windows, e
 
 > In an era where AI moves from cloud to edge (smartphones, IoT, local servers), we need systems that know how to *forget*, how to prioritize, and how to yield partial results when interrupted.
 
-### The Trust Gap — Auditable Neuro-Symbolics `[Beta]`
+### The Trust Gap — Auditable Neuro-Symbolics
 
 Enterprises cannot deploy "black box" agents for critical decisions. They require **provenance and proof**.
 
@@ -137,20 +116,20 @@ Enterprises cannot deploy "black box" agents for critical decisions. They requir
 
 **Every logical step recorded as a derivation trace.** If the agent concludes "The server is down," it provides the exact symbolic syllogism and truth-value calculations — auditability pure LLMs cannot offer.
 
-### TypeScript as a Reasoning Layer — Zero-Cost Abstractions `[Stable]`
+### TypeScript as a Reasoning Layer — Zero-Cost Abstractions
 
 Most AI frameworks push error detection to runtime. SeNARS12 encodes NAL semantics at **compile-time** via TypeScript's advanced type system:
 
-| Technique | Purpose | Maturity |
-|-----------|---------|----------|
-| **Branded Types** | Separate timestamps/units, prevent unit mixups | `[Stable]` |
-| **Discriminated Unions** | Exhaustive pattern matching on term structures | `[Stable]` |
-| **Structural Sharing** | Memoization factory for canonical terms | `[Stable]` |
-| **Stable Hashes** | Canonical normalization for deduplication | `[Stable]` |
+| Technique | Purpose |
+|-----------|---------|
+| **Branded Types** | Separate timestamps/units, prevent unit mixups |
+| **Discriminated Unions** | Exhaustive pattern matching on term structures |
+| **Structural Sharing** | Memoization factory for canonical terms |
+| **Stable Hashes** | Canonical normalization for deduplication |
 
 This pushes safety left into compile-time guarantees wherever the type system reaches, with resource bounds enforced at runtime — robust, IDE-native, mathematically sound.
 
-### Pragmatic Execution — Self-Correcting Agent Loop `[Beta]`
+### Pragmatic Execution — Self-Correcting Agent Loop
 
 Theory is useless without a working loop. SeNARS12 implements a **minimalist, self-correcting execution loop** for production-ready pragmatism:
 - **Continuous reasoning cycle** — Tight, interruptible, anytime loop with cooperative yielding
@@ -159,7 +138,7 @@ Theory is useless without a working loop. SeNARS12 implements a **minimalist, se
 
 **The Synthesis:** A robust self-healing execution loop + SeNARS12's superior cognitive backend (NAR + MeTTa + RLFP) = Reliability of minimalist agent + Intelligence of deep cognitive architecture.
 
-### AI Safety and Alignment `[Beta]`
+### AI Safety and Alignment
 
 LLMs dangerously conflate **what is** (beliefs) with **what should be** (goals). In natural language, "The server is down" and "The server should be down" differ by one word but have opposite implications. LLMs mix these freely, leading to reward hacking, sycophancy, and unintended optimization.
 
@@ -186,12 +165,12 @@ The neuro-symbolic handoff (LLM → Narsese candidates → Kernel Gates → NAL 
 ## Quick Start
 
 ```bash
-pnpm install # Install dependencies
-pnpm run dev # Development mode (watch)
-pnpm run start # Run once
-pnpm run test # Test everything
+pnpm install       # Install dependencies
+pnpm run dev       # Development mode (watch)
+pnpm run start     # Run once
+pnpm run test      # Test everything
 pnpm run typecheck # Type check
-pnpm run lint # Lint
+pnpm run lint      # Lint
 ```
 
 ### Run the Bot on IRC
@@ -199,15 +178,15 @@ pnpm run lint # Lint
 The `pnpm bot` command starts a multi-transport agent that drives a single SeNARS agent through IRC, CLI, and WebSocket.
 
 ```bash
-cp .env.example .env # fill in your LM provider credentials
-pnpm bot             # IRC + WS by default
+cp .env.example .env  # Fill in your LM provider credentials
+pnpm bot              # IRC + WS by default
 ```
 
 Default behavior: connects to `irc.libera.chat#senars` as `senars-bot` and starts a WebSocket server on `ws://localhost:8765`. Friends can join the IRC channel and chat, or connect their bots to the WebSocket.
 
-To enable HTTP (REST) too: set `ENABLE_HTTP=true` in `.env`. See `docs/bot-api.md` for the bot-to-bot API and `docs/manual-test-irc.md` for a 9-step manual test protocol.
+To enable HTTP (REST): set `ENABLE_HTTP=true` in `.env`. See `docs/bot-api.md` for the bot-to-bot API and `docs/manual-test-irc.md` for a 9-step manual test protocol.
 
-### Run Self-Improvement Demo
+### Self-Improvement Demo
 
 ```bash
 # Autonomous self-improvement loop (10 cycles)
@@ -226,7 +205,7 @@ pnpm exec tsx scripts/rl-parity.ts --env nonstationary --mode native --seeds 5
 
 ## Core Capabilities
 
-### Narsese Term Language `[Stable]`
+### Narsese Term Language
 
 Full implementation of the Narsese grammar with type-safe construction:
 
@@ -248,21 +227,21 @@ const parsed = termParser.parse('(cat --> animal)');
 
 **Term Types Supported:**
 
-| Kind | Syntax | Description | Maturity |
-|------|--------|-------------|----------|
-| Atomic | `cat` | Basic concept | `[Stable]` |
-| Variable | `?x`, `?y` | Unification variables | `[Stable]` |
-| Inheritance | `(A --> B)` | Subclass/superclass | `[Stable]` |
-| Similarity | `(A <-> B)` | Symmetric similarity | `[Stable]` |
-| Implication | `(A ==> B)` | Conditional implication | `[Stable]` |
-| Equivalence | `(A <=> B)` | Bidirectional equivalence | `[Stable]` |
-| Conjunction | `(A & B & C)` | Logical AND | `[Stable]` |
-| Disjunction | `(A \| B \| C)` | Logical OR | `[Stable]` |
-| Negation | `(- A)` | Logical NOT | `[Stable]` |
-| Sequence | `(A * B * C)` | Temporal sequence | `[Beta]` |
-| Parallel | `(A \| B \| C)` | Parallel execution | `[Beta]` |
+| Kind | Syntax | Description |
+|------|--------|-------------|
+| Atomic | `cat` | Basic concept |
+| Variable | `?x`, `?y` | Unification variables |
+| Inheritance | `(A --> B)` | Subclass/superclass |
+| Similarity | `(A <-> B)` | Symmetric similarity |
+| Implication | `(A ==> B)` | Conditional implication |
+| Equivalence | `(A <=> B)` | Bidirectional equivalence |
+| Conjunction | `(A & B & C)` | Logical AND |
+| Disjunction | `(A | B | C)` | Logical OR |
+| Negation | `(- A)` | Logical NOT |
+| Sequence | `(A * B * C)` | Temporal sequence |
+| Parallel | `(A | B | C)` | Parallel execution |
 
-### Truth Value Algebra `[Stable]`
+### Truth Value Algebra
 
 Non-Axiomatic Logic truth values with **frequency** (f) and **confidence** (c):
 
@@ -278,7 +257,7 @@ const projected = Truth.deduction(truth1, truth2); // Inference
 
 ### NAL Inference Rules
 
-**Core NAL Rules:** `[Stable]`
+**Core NAL Rules:**
 
 | Category | Rules |
 |----------|-------|
@@ -288,7 +267,7 @@ const projected = Truth.deduction(truth1, truth2); // Inference
 | Higher-Order | `higher-order-deduction`, `analogical` |
 | Comparison | `comparison`, `analogy` |
 
-**Extended Rules:** `[Beta]`
+**Extended Rules:**
 
 | Category | Rules |
 |----------|-------|
@@ -299,30 +278,31 @@ const projected = Truth.deduction(truth1, truth2); // Inference
 | Meta-Cognitive | `error-pattern-detection`, `metacognitive-revision`, `resource-allocation`, `strategy-effectiveness`, `self-model-consistency`, `utility-estimation`, `goal-execution` |
 | Variable | `variable-substitution`, `variable-unification` |
 
-### LLM Rules — Dynamic Neuro-Symbolic Fusion `[Experimental]`
+### LLM Rules — Dynamic Neuro-Symbolic Fusion
 
-| Category | Rule ID | Name | Description | Priority | Budget | Activation |
-|----------|---------|------|-------------|----------|--------|------------|
-| **Belief** | `lm-narsese-translation` | LMNarseseTranslationRule | Translates natural language to Narsese candidates | 0.9 | 0.9 | Always |
-| | `lm-belief-revision` | LMBeliefRevisionRule | Revises belief confidence based on context | 0.8 | 0.7 | Conflicting beliefs |
-| | `lm-hypothesis-generation` | LMHypothesisGenerationRule | Generates hypotheses from observations | 0.75 | 0.6 | Low confidence |
-| | `lm-explanation-generation` | LMExplanationGenerationRule | Generates explanations for beliefs | 0.7 | 0.65 | Always |
-| | `lm-analogical-reasoning` | LMAnalogicalReasoningRule | Performs analogical reasoning between concepts | 0.8 | 0.7 | Structural similarity |
-| | `lm-meta-reasoning` | LMMetaReasoningGuidanceRule | Provides meta-level reasoning guidance | 0.75 | 0.65 | Always |
-| | `lm-uncertainty-calibration` | LMUncertaintyCalibrationRule | Calibrates uncertainty in beliefs | 0.7 | 0.6 | Always |
-| | `lm-schema-induction` | LMSchemaInductionRule | Induces schemas from examples | 0.75 | 0.65 | Always |
-| | `lm-temporal-causal` | LMTemporalCausalModelingRule | Models temporal and causal relationships | 0.8 | 0.7 | Always |
-| | `lm-variable-grounding` | LMVariableGroundingRule | Grounds variables in concrete instances | 0.7 | 0.65 | Has variables |
-| | `lm-concept-elaboration` | LMConceptElaborationRule | Elaborates on concept properties | 0.75 | 0.7 | Underconnected |
-| **Goal** | `lm-goal-decomposition` | LMGoalDecompositionRule | Decomposes complex goals into subgoals | 0.85 | 0.8 | Complex goals |
-| **Question** | `lm-curiosity-question` | LMCuriosityQuestionRule | Generates questions driven by curiosity | 0.7 | 0.65 | High curiosity |
-| | `lm-interactive-clarification` | LMInteractiveClarificationRule | Seeks clarification for ambiguous inputs | 0.7 | 0.65 | Always |
-| **Meta (V2)** | `lm-v2-hypothesis` | LMV2HypothesisRule | Generates typed hypotheses with truth values | 0.75 | — | Single premise |
-| | `lm-v2-explanation` | LMV2ExplanationRule | Generates typed explanations with key premises | 0.7 | — | Single premise |
-| | `lm-v2-analogy` | LMV2AnalogyRule | Finds structural analogies between concepts | 0.8 | — | Always |
-| | `lm-v2-causal` | LMV2CausalRule | Models causal relationships | 0.8 | — | Always |
-| | `lm-v2-schema` | LMV2SchemaRule | Induces reusable schemas from patterns | 0.75 | — | Single premise |
+| Category | Rule ID | Name | Description |
+|----------|---------|------|-------------|
+| **Belief** | `lm-narsese-translation` | LMNarseseTranslationRule | Translates natural language to Narsese candidates |
+| | `lm-belief-revision` | LMBeliefRevisionRule | Revises belief confidence based on context |
+| | `lm-hypothesis-generation` | LMHypothesisGenerationRule | Generates hypotheses from observations |
+| | `lm-explanation-generation` | LMExplanationGenerationRule | Generates explanations for beliefs |
+| | `lm-analogical-reasoning` | LMAnalogicalReasoningRule | Performs analogical reasoning between concepts |
+| | `lm-meta-reasoning` | LMMetaReasoningGuidanceRule | Provides meta-level reasoning guidance |
+| | `lm-uncertainty-calibration` | LMUncertaintyCalibrationRule | Calibrates uncertainty in beliefs |
+| | `lm-schema-induction` | LMSchemaInductionRule | Induces schemas from examples |
+| | `lm-temporal-causal` | LMTemporalCausalModelingRule | Models temporal and causal relationships |
+| | `lm-variable-grounding` | LMVariableGroundingRule | Grounds variables in concrete instances |
+| | `lm-concept-elaboration` | LMConceptElaborationRule | Elaborates on concept properties |
+| **Goal** | `lm-goal-decomposition` | LMGoalDecompositionRule | Decomposes complex goals into subgoals |
+| **Question** | `lm-curiosity-question` | LMCuriosityQuestionRule | Generates questions driven by curiosity |
+| | `lm-interactive-clarification` | LMInteractiveClarificationRule | Seeks clarification for ambiguous inputs |
+| **Meta (V2)** | `lm-v2-hypothesis` | LMV2HypothesisRule | Generates typed hypotheses with truth values |
+| | `lm-v2-explanation` | LMV2ExplanationRule | Generates typed explanations with key premises |
+| | `lm-v2-analogy` | LMV2AnalogyRule | Finds structural analogies between concepts |
+| | `lm-v2-causal` | LMV2CausalRule | Models causal relationships |
+| | `lm-v2-schema` | LMV2SchemaRule | Induces reusable schemas from patterns |
 
+Key features:
 - Belief/goal/question **candidate generation** from LLM (multi-hypothesis, not single parse)
 - Semantic similarity rules using embeddings
 - Meta-reasoning about reasoning quality
@@ -345,7 +325,7 @@ const rules = LMRules.createAll(lmService);
 AllSelector | PrioritySelector | RotationSelector | DiverseSelector
 ```
 
-### Memory `[Beta]`
+### Memory
 
 - **Bounded priority bags** with LRU eviction (AIKR-compliant)
 - **Revision history** tracking truth value evolution
@@ -354,7 +334,7 @@ AllSelector | PrioritySelector | RotationSelector | DiverseSelector
 - **Consolidation** (forgetting + archival)
 - **State persistence** (JSON serialization/deserialization)
 
-**Ubiquitous `Bag<T>` Data Structure** `[Stable]`
+**Ubiquitous `Bag<T>` Data Structure**
 
 - **Universal AIKR Queues** — Working, Episodic, and Semantic memory are all implemented as bounded `Bag<T>` priority queues
 - **Probabilistic Sampling** — Memory recall is driven by AIKR budget and priority-weighted sampling
@@ -378,7 +358,7 @@ await episodic.record({ type: 'interaction', content: '...', context: {...} });
 const episodes = await episodic.getEpisodes({ limit: 10, query: 'cat' });
 ```
 
-### Reasoning `[Beta]`
+### Reasoning
 
 ```typescript
 import { NAR, createNAR } from '@senars/nar';
@@ -414,7 +394,7 @@ const answer = nar.ask('(whiskers --> animal)');
 - `runStream(steps)` — Async generator for incremental results
 - Configurable derivation strategies: `BagStrategy`, `ExhaustiveStrategy`, `SampledDerivation`, `FocusedDerivation`, `AnytimeDerivation`
 
-### Derivation Recorder & Standalone Verifier `[Prototype]`
+### Derivation Recorder & Standalone Verifier
 
 ```typescript
 import { NAR, createNAR } from '@senars/nar';
@@ -436,10 +416,10 @@ for (const r of records) {
 }
 ```
 
-- `DerivationRecorder` (opt‑in, bounded: 200 steps/record, 200 records) emits `DerivationRecord` with step‑level `premiseTruths`, `evidenceLineage`, `independence`.
-- `scripts/verify-derivation.ts` — dependency‑free checker: re‑computes truth algebra, validates substitution, lineage DAG, revision independence flag. CI workflow (`.github/workflows/derivation-verify.yml`) runs on every change.
+- `DerivationRecorder` (opt-in, bounded: 200 steps/record, 200 records) emits `DerivationRecord` with step-level `premiseTruths`, `evidenceLineage`, `independence`
+- `scripts/verify-derivation.ts` — dependency-free checker: re-computes truth algebra, validates substitution, lineage DAG, revision independence flag. CI workflow runs on every change.
 
-### Derivation Ranking (Pressure Valve) `[Beta]`
+### Derivation Ranking (Pressure Valve)
 
 ```typescript
 import { rankDerivations } from '@senars/nar/rules/ranking';
@@ -452,10 +432,10 @@ const admitted = rankDerivations(ruleProcessorOutput, {
 // tautologies (f≈0.5) score ≤0 and are dropped automatically
 ```
 
-- `score = confidence × decisiveness − sizePenalty` where `decisiveness = |f−0.5|×2`.
-- Caps admissions per cycle; configurable via `CognitiveParameters.inference.ranking` and exposed as optimizer/self‑game knobs (`rankingMaxAdmissions`, `rankingMinScore`).
+- `score = confidence × decisiveness − sizePenalty` where `decisiveness = |f−0.5|×2`
+- Caps admissions per cycle; configurable via `CognitiveParameters.inference.ranking` and exposed as optimizer/self-game knobs (`rankingMaxAdmissions`, `rankingMinScore`)
 
-### Cognition (System 1/2 + Executive) `[Beta]`
+### Cognition (System 1/2 + Executive)
 
 **System 1 — Intuitive/Associative (LM-Enhanced):**
 
@@ -495,7 +475,7 @@ SimpleAttention | SpreadingActivation | GoalRelevanceAttention | CompositeAttent
 CuriosityDrive | CompetenceDrive | CoherenceDrive | SocialDrive
 ```
 
-**Self-Optimizer — Automated Hyperparameter Tuning:** `[Experimental]`
+**Self-Optimizer — Automated Hyperparameter Tuning:**
 
 ```typescript
 import { CognitiveOptimizer, GridSampler, RandomSampler } from '@senars/nar/cognitive';
@@ -505,7 +485,7 @@ const result = await optimizer.optimize(new GridSampler(), 100);
 // Finds optimal CognitiveParameters via grid/random/Bayesian search
 ```
 
-**Cognitive Analyzers (8 specialized monitors):** `[Experimental]`
+**Cognitive Analyzers (8 specialized monitors):**
 
 | Analyzer | Purpose |
 |----------|---------|
@@ -518,7 +498,7 @@ const result = await optimizer.optimize(new GridSampler(), 100);
 | `resources` | Tracks memory/CPU pressure, bag utilization |
 | `term-patterns` | Analyzes term usage and concept relationships |
 
-**Schema Induction — Learning Reusable Patterns:** `[Experimental]`
+**Schema Induction — Learning Reusable Patterns:**
 
 ```typescript
 import { SchemaInductor, createSchemaInductor } from '@senars/nar/learning';
@@ -530,7 +510,7 @@ const schemas = await inductor.induceFromDerivations(derivations);
 // e.g. "(?A --> ?B) & (?B --> ?C) ==> (?A --> ?C)" [transitivity]
 ```
 
-**Feedback Learning — Continuous Improvement:** `[Experimental]`
+**Feedback Learning — Continuous Improvement:**
 
 ```typescript
 import { FeedbackLearner, validateLMOutput } from '@senars/nar/learning';
@@ -541,7 +521,7 @@ learner.onDerivationOutcome(derivation, 'accepted');  // Tracks rule performance
 const adjustedPriority = learner.getAdjustedPriority(ruleId, basePriority);
 ```
 
-**Reasoning About Reasoning (Metacognitive Self-Analysis):** `[Experimental]`
+**Reasoning About Reasoning (Metacognitive Self-Analysis):**
 
 ```typescript
 import { ReasoningAboutReasoning } from '@senars/nar/self';
@@ -554,7 +534,7 @@ const quality = await self.assessQuality();  // { coherence, relevance, complete
 const state = self.querySystemState();       // Full system snapshot
 ```
 
-### Grounding — Sensory & Source Integration `[Beta]`
+### Grounding — Sensory & Source Integration
 
 The `GroundingPipeline` class and `SourceQuality` enum provide source quality assessment for beliefs:
 
@@ -566,17 +546,15 @@ The `GroundingPipeline` class and `SourceQuality` enum provide source quality as
 | Blog/Forum | TERTIARY | 0.4 |
 | LLM Prior | LLM_PRIOR | 0.5 |
 
-### Stream Reasoner `[Beta]`
+### Stream Reasoner
 
-Async derivation streams with backpressure and CPU throttling
+Async derivation streams with backpressure and CPU throttling:
 
 - **Premise sources**: priority-weighted, recency, novelty, fair, and focus-based sampling
   - Composite sources with configurable weights
-
 - **Interleaved Execution** — Synchronous NAL inference continues while asynchronous LM requests are processed in background workers
   - CPU throttling & cooperative yielding
   - Configurable queue limits and derivation caps
-
 - **Adaptive Backpressure** — Monitors `Bag<T>` pressure; drops or queues LM requests if CPU budget is exhausted
   - Backpressure-aware buffering
   - Bounded LLM-backed reasoning with pressure-driven flush
@@ -593,7 +571,7 @@ for await (const result of pipeline.derive(reasoner)) {
 
 **Exports:** `createPipeline`, `StreamReasoner`, `MemoryPremiseSource`, `FocusPremiseSource`, `CompositePremiseSource`, `derive`, `throttled`, `backpressureAware`, types `PipelineConfig`, `PremiseSource`, `LMBackend`, `ProvisionalBelief` from `@senars/nar/stream`.
 
-### NAR Commands — CLI & Programmatic Control `[Stable]`
+### NAR Commands — CLI & Programmatic Control
 
 ```typescript
 import { narCommands, rlfpCommands, selfCommands, configCommands, memoryCommands } from '@senars/nar/commands';
@@ -608,7 +586,7 @@ lmCommands       // LM rule management, enrichment triggering
 episodesCommands // episodic memory queries
 ```
 
-### Reinforcement Learning from Reasoning Feedback (RLFP) `[Experimental]`
+### Reinforcement Learning from Reasoning Feedback (RLFP)
 
 ```typescript
 import { RLFPLearner, PreferenceCollector, RewardModel, PolicyOptimizer } from '@senars/nar/rlfp';
@@ -622,7 +600,7 @@ const rlfp = nar.getRLFP();
 
 **Epistemic Firewall:** Reward signals are allowed to mutate `attentionPriority` and `policyWeights`, but an exception is thrown if a reward signal attempts to mutate `Truth.frequency` or `Truth.confidence`.
 
-### Tools & Function Calling `[Beta]`
+### Tools & Function Calling
 
 ```typescript
 import { ToolManager, discoverTools, ExplainTool, SleepTool, TimerTool } from '@senars/nar/tools';
@@ -637,7 +615,7 @@ await tools.execute('timer', { action: 'start', name: 'reasoning' });
 async function myTool(args: { input: string }) { ... }
 ```
 
-### Natural Language `[Experimental]`
+### Natural Language
 
 ```typescript
 import { NLUnderstandingService, NLGenerationService, ContextAssembler } from '@senars/nar/nl';
@@ -660,13 +638,12 @@ const answer = await nar.askNaturalLanguage("What is Whiskers?");
 ```
 
 **Key Features:**
+- **Multi-candidate formalization** — LLM returns `FormalizationBatch` with per-candidate `sourceSpans` + `ambiguityFlags` (negation, modal, quantifier, temporal). Kernel admits each candidate provisionally; no single authoritative parse.
+- **Single-flight LM dedup** (`SingleFlight`) — concurrent identical `understand()` calls share one request; failures clear the slot for retry.
+- **Unified `translateCached` path** — cache → single-flight LM → record; legacy string cache entries safely ignored.
+- **Per-candidate spans** — `locateSpan` maps verbatim `sourceText` to exact offsets; ambiguity flags become span-local.
 
-- **Multi‑candidate formalization** — LLM returns `FormalizationBatch` with per‑candidate `sourceSpans` + `ambiguityFlags` (negation, modal, quantifier, temporal). Kernel admits each candidate provisionally; no single authoritative parse.
-- **Single‑flight LM dedup** (`SingleFlight`) — concurrent identical `understand()` calls share one request; failures clear the slot for retry.
-- **Unified `translateCached` path** — cache → single‑flight LM → record; legacy string cache entries safely ignored.
-- **Per‑candidate spans** — `locateSpan` maps verbatim `sourceText` to exact offsets; ambiguity flags become span‑local.
-
-### MeTTa — Meta Type Theory `[Beta]`
+### MeTTa — Meta Type Theory
 
 A **second reasoning engine** running alongside NAR, providing equality saturation, pattern matching, and dependent type theory:
 
@@ -700,18 +677,18 @@ egraph.union(parseMeTTa('a'), parseMeTTa('b'));
 
 **MeTTa Capabilities:**
 
-| Feature | Description | Maturity |
-|---------|-------------|----------|
-| **E-Graphs** | Equality saturation for algebraic simplification, program optimization | `[Beta]` |
-| **Pattern Matching** | Structural matching with variables, guards, and multi-match | `[Beta]` |
-| **Rewrite Rules** | User-defined ` (= lhs rhs )` rules with conditional guards | `[Beta]` |
-| **Multi-Space** | Independent fact spaces (contexts) with merge/fork/clone | `[Beta]` |
-| **Skill Execution** | MeTTa programs as callable skills from NAR/agent | `[Experimental]` |
-| **Dependent Types** | Full type theory with Π/Σ types, type inference, unification | `[Prototype]` |
-| **JIT Compiler** | Hot path compilation to native code via Effect JIT | `[Prototype]` |
-| **Parallel Execution** | `parallelReduce`, `parallelMap` for batch operations | `[Prototype]` |
-| **Persistent Spaces** | Serializable spaces with incremental persistence | `[Experimental]` |
-| **IPC/Shared Memory** | Cross-process space sharing via shared memory queues | `[Prototype]` |
+| Feature | Description |
+|---------|-------------|
+| **E-Graphs** | Equality saturation for algebraic simplification, program optimization |
+| **Pattern Matching** | Structural matching with variables, guards, and multi-match |
+| **Rewrite Rules** | User-defined ` (= lhs rhs )` rules with conditional guards |
+| **Multi-Space** | Independent fact spaces (contexts) with merge/fork/clone |
+| **Skill Execution** | MeTTa programs as callable skills from NAR/agent |
+| **Dependent Types** | Full type theory with Π/Σ types, type inference, unification |
+| **JIT Compiler** | Hot path compilation to native code via Effect JIT |
+| **Parallel Execution** | `parallelReduce`, `parallelMap` for batch operations |
+| **Persistent Spaces** | Serializable spaces with incremental persistence |
+| **IPC/Shared Memory** | Cross-process space sharing via shared memory queues |
 
 **Integration with Agent:**
 
@@ -729,11 +706,11 @@ const agent = await createAgent({ /* config */ });
 // MeTTa input: metta: (= (add $x 0) $x)
 ```
 
-**Engine Isolation (Arbiter Pattern):** `[Beta]`
+**Engine Isolation (Arbiter Pattern):**
 - NAR and MeTTa must not share memory directly. They must emit `EngineResult` proposals to the Kernel.
 - The boundary between MeTTa's exact `definitional-equality` and NAR's `uncertain-equivalence` is enforced. The e-graph must *never* union nodes based on NAR similarity scores.
 
-### Observability `[Beta]`
+### Observability
 
 First-class OpenTelemetry support for distributed tracing of the cognitive tick pipeline:
 
@@ -770,7 +747,7 @@ await runTick(ctx, instrumented);
 
 **Exports:** `initOtel`, `shutdownOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent`, `getTracer`, types `OtelConfig`, `CognitiveStage` from `@senars/nar/tick`.
 
-### WASI Sandbox — Secure Capability Execution `[Beta]`
+### WASI Sandbox — Secure Capability Execution
 
 `CapabilitySpace` supports **WebAssembly sandboxing via WASI** for safe execution of self-modification tools and untrusted code:
 
@@ -782,7 +759,7 @@ const wasiSandbox = await createWasiSandbox({
   allowedPaths: ['/workspace', '/tmp'],  // explicit allowlist
   env: { MY_VAR: 'value' },              // explicit env only (deny-by-default)
   args: ['--flag'],
-  timeoutMs: 30000,                      // enforced wall‑clock timeout
+  timeoutMs: 30000,                      // enforced wall-clock timeout
   // deny-by-default: no network, no clock, no env vars unless explicitly provided
 });
 
@@ -803,11 +780,10 @@ await space.execute('run_wasm');
 ```
 
 **Hardening Features:**
-
-- **Env leak closed** — both sandboxes receive explicit `env` only (default `{}`); no `process.env` spread.
-- **Path containment** — `sanitizePreopens()` normalizes paths, drops `..` escapes; `assertWasmPathContained()` enforces `wasmPath` stays within `allowedPaths` (guards sibling‑prefix confusion).
-- **Timeouts** — `timeoutMs` option (default 30s) enforced via `withTimeout()` → `SandboxTimeoutError`; all wrappers race execution against it.
-- **`createNodeVMSandbox` deprecated** — JSDoc `@deprecated` + one‑time `console.warn`; retained only for backward compat. Never use for untrusted code.
+- **Env leak closed** — both sandboxes receive explicit `env` only (default `{}`); no `process.env` spread
+- **Path containment** — `sanitizePreopens()` normalizes paths, drops `..` escapes; `assertWasmPathContained()` enforces `wasmPath` stays within `allowedPaths` (guards sibling-prefix confusion)
+- **Timeouts** — `timeoutMs` option (default 30s) enforced via `withTimeout()` → `SandboxTimeoutError`; all wrappers race execution against it
+- **`createNodeVMSandbox` deprecated** — JSDoc `@deprecated` + one-time `console.warn`; retained only for backward compat. Never use for untrusted code.
 
 **Sandbox Options:**
 
@@ -816,11 +792,11 @@ await space.execute('run_wasm');
 | `allowedPaths` | `string[]` | Directories preopened for WASI file access (deny-by-default) |
 | `env` | `Record<string,string>` | Environment variables for WASI process (deny-by-default) |
 | `args` | `string[]` | Command-line arguments for WASI process |
-| `timeoutMs` | `number` | Wall‑clock timeout in ms (default 30000) |
+| `timeoutMs` | `number` | Wall-clock timeout in ms (default 30000) |
 
 **Exports:** `createWasiSandbox`, `createWasmModuleSandbox`, `createNodeVMSandbox`, `SandboxTimeoutError`, `DEFAULT_SANDBOX_TIMEOUT_MS`, `sanitizePreopens`, `containsPath`, `assertWasmPathContained`, `withTimeout` from `@senars/nar/capability`.
 
-### Cognitive Parameters & Strategy System `[Beta]`
+### Cognitive Parameters & Strategy System
 
 **Tunable Hyperparameters** — All behavior controlled via `CognitiveParameters` with validated ranges:
 
@@ -859,7 +835,7 @@ import { CognitiveParameters, DEFAULT_COGNITIVE_PARAMETERS, FAST_COGNITIVE_CONFI
 - RL-based policy optimization (RLFP)
 - Evolutionary parameter tuning
 
-### Lens — Declarative UI Projections `[Experimental]`
+### Lens — Declarative UI Projections
 
 **Lenses** map cognitive state to visual channels (color, size, opacity, stroke) via a composable AST:
 
@@ -886,7 +862,7 @@ import { LensSpec, ModulationSchema, builtinLensSpecs, isBuiltinLens } from '@se
 
 Operations: `const`, `field`, `channel`, `when`, `union` — enabling arbitrary visual mappings.
 
-### Protocol — Client/Server Cognitive Sync `[Beta]`
+### Protocol — Client/Server Cognitive Sync
 
 Real-time WebSocket protocol for UI synchronization:
 
@@ -910,22 +886,22 @@ Real-time WebSocket protocol for UI synchronization:
 
 ---
 
-## Reinforcement Learning `[Beta]`
+## Reinforcement Learning
 
 Isolated reasoning vessels, explicit environment interfaces, pluggable reflex accelerators, and a system-wide attention economy.
 
 ### Core Primitives
 
-| Primitive | Purpose | Key Types | Maturity |
-|-----------|---------|-----------|----------|
-| **`Bag<T>`** | Universal AIKR priority queue (capacity-bounded, probabilistic sampling, decay) | `Bag<Item>`, `add()`, `sample()`, `decay()`, `capacity` | `[Stable]` |
-| **`Focus`** | Isolated reasoning vessel with local `Bag<Task>` + `Bag<Concept>` | `step(budget)`, `weight`, bound `Gates`, bound `Games`/`Reflexes` | `[Beta]` |
-| **`FocusBag`** | System-wide attention economy — samples `Focus` by weight | `allocateBudget()`, `rebalanceWeights()`, `sample()` | `[Beta]` |
-| **`Game`** | Environment interface (external or internal) | `observe()`, `step(action)`, `legalActions(state)` | `[Beta]` |
-| **`Reflex`** | Fast System-1 policy/value engine (Q-learning, UCB, heuristics) | `propose(state)`, `learn(event)` | `[Beta]` |
-| **`Negotiator`** | Arbitrates Reflex proposals vs NAL derivations (NAL retains veto) | `resolve(proposals, nalDerivations)`, `createLearningEvent()` | `[Beta]` |
+| Primitive | Purpose | Key Types |
+|-----------|---------|-----------|
+| **`Bag<T>`** | Universal AIKR priority queue (capacity-bounded, probabilistic sampling, decay) | `Bag<Item>`, `add()`, `sample()`, `decay()`, `capacity` |
+| **`Focus`** | Isolated reasoning vessel with local `Bag<Task>` + `Bag<Concept>` | `step(budget)`, `weight`, bound `Gates`, bound `Games`/`Reflexes` |
+| **`FocusBag`** | System-wide attention economy — samples `Focus` by weight | `allocateBudget()`, `rebalanceWeights()`, `sample()` |
+| **`Game`** | Environment interface (external or internal) | `observe()`, `step(action)`, `legalActions(state)` |
+| **`Reflex`** | Fast System-1 policy/value engine (Q-learning, UCB, heuristics) | `propose(state)`, `learn(event)` |
+| **`Negotiator`** | Arbitrates Reflex proposals vs NAL derivations (NAL retains veto) | `resolve(proposals, nalDerivations)`, `createLearningEvent()` |
 
-### Gates (Boundary Contracts) `[Beta]`
+### Gates (Boundary Contracts)
 
 All Game↔Focus interactions pass through strict gates preventing architectural bypasses:
 
@@ -934,21 +910,21 @@ All Game↔Focus interactions pass through strict gates preventing architectural
 | **`PerceptionGate`** | Observations → Belief tasks (sensor confidence → `truth.c`) | No direct policy mutation |
 | **`ActionGate`** | Reflex proposals → Native AST operation goals | No action without goal dispatch |
 | **`RewardGate`** | Game outcomes → Value belief revisions / goal satisfaction | **Epistemic firewall: throws if reward mutates `Truth`** |
-| **`BudgetGate`** | CPU/derivation/LM/memory budget accounting | Per‑focus `scopeId` budgets; explicit `TerminationReason` enums |
+| **`BudgetGate`** | CPU/derivation/LM/memory budget accounting | Per-focus `scopeId` budgets; explicit `TerminationReason` enums |
 
-### RL Domain Split — Unified Substrate, Separated Reward Domains `[Beta]`
+### RL Domain Split — Unified Substrate, Separated Reward Domains
 
 The shared substrate (`Bag<T>`, `Focus`, `FocusBag`, `Game`, `Reflex`, `Negotiator`) is kept; reward interpretation and mutation authority are split by domain:
 
 | Learner | Domain | Mutates | Risk |
 |---------|--------|---------|------|
-| `ReflexLearner` | `external-reflex` | Reflex Q‑table / policy weights | Low |
+| `ReflexLearner` | `external-reflex` | Reflex Q-table / policy weights | Low |
 | `SchedulerAdapter` | `self-scheduler` | `FocusBag` focus weights | Low |
 | `PreferenceRanker` | `self-explanation-rank` | Explanation ranking scores | Low |
 | `ConfigOptimizer` | `self-config-proposal` | `knob-tune` proposals (never direct) | Medium |
 | `PatchSelector` | `self-patch-score` | `patch-apply` proposals (→ human approval) | High |
 
-`LearnerRegistry.dispatch(event)` routes by `event.domain`; unknown domain → `CrossDomainError` (fail‑closed). Self‑game rewards (`domain: 'self-*'`) never mutate `Truth` — they produce `SelfImprovementProposal` objects routed through `ProposalRouter` → `SelfMetaGame.applyProposal` (only low‑risk `focus-weight` auto‑applies; medium/high require validation/approval).
+`LearnerRegistry.dispatch(event)` routes by `event.domain`; unknown domain → `CrossDomainError` (fail-closed). Self-game rewards (`domain: 'self-*'`) never mutate `Truth` — they produce `SelfImprovementProposal` objects routed through `ProposalRouter` → `SelfMetaGame.applyProposal` (only low-risk `focus-weight` auto-applies; medium/high require validation/approval).
 
 ### Implemented Components
 
@@ -969,7 +945,7 @@ The shared substrate (`Bag<T>`, `Focus`, `FocusBag`, `Game`, `Reflex`, `Negotiat
 
 ---
 
-## Autonomous Self-Improvement Loop `[Experimental]`
+## Autonomous Self-Improvement Loop
 
 SeNARS12 runs a **self-improvement loop** where the cognitive architecture reasons about its own codebase using the same NAL machinery it uses for external reasoning.
 
@@ -1143,7 +1119,7 @@ Structured cognitive state emitted every 10 cycles:
 
 CLI: `pnpm exec tsx src/bin/self-report.ts`
 
-### Autonomous Self-Modification Governance `[Planned → In‑Repo Prototype]`
+### Autonomous Self-Modification Governance
 
 The self-improvement loop is evolving toward **externally governed autonomous code modification**:
 
@@ -1152,11 +1128,11 @@ The self-improvement loop is evolving toward **externally governed autonomous co
 - **Autonomous schema promotion** — high-confidence learned schemas become production inference rules
 - **Sabotage→auto-fix litmus test** — system detects injected faults and repairs itself
 
-**Governance Pipeline (In‑Repo Prototype):**
-- `PatchRiskClassifier` scores patches against guard‑rail file list (approval logic, sandbox config, reward functions, autonomy mode, kernel gates, schemas, budget limits).
+**Governance Pipeline (In-Repo Prototype):**
+- `PatchRiskClassifier` scores patches against guard-rail file list (approval logic, sandbox config, reward functions, autonomy mode, kernel gates, schemas, budget limits).
 - `GovernancePolicyEngine` combines risk + current `AutonomyMode` → `{AUTO_MERGE, CREATE_PR, REQUIRE_HUMAN_REVIEW, REJECT}`.
-- `ProposalRouter` consumes `SelfRewardGate` proposals: low‑risk `focus-weight` auto‑applies, medium → sandbox validation, high → human approval.
-- `SandboxValidator` auto‑approves in‑range `knob-tune` proposals (range checked vs `rlfp/knobSchema`).
+- `ProposalRouter` consumes `SelfRewardGate` proposals: low-risk `focus-weight` auto-applies, medium → sandbox validation, high → human approval.
+- `SandboxValidator` auto-approves in-range `knob-tune` proposals (range checked vs `rlfp/knobSchema`).
 
 **External Governance Model (Required for Production):**
 - The agent *proposes* patches via shadow worktree + CI validation
@@ -1170,7 +1146,7 @@ These capabilities build on the existing shadow execution safety (git worktree +
 
 ## Integration Layer
 
-### Core Agent Runtime (`@senars/core`) `[Beta]`
+### Core Agent Runtime (`@senars/core`)
 
 The **Agent** class is the central orchestrator — a multi-engine cognitive runtime with a 6-phase reasoning cycle:
 
@@ -1220,23 +1196,23 @@ agent.capabilities(); // { engine: 'metta', supports: { chat: true, skills: true
 
 **Key Subsystems:**
 
-| Subsystem | Exports | Purpose | Maturity |
-|-----------|---------|---------|----------|
-| **Agent** | `Agent`, `createAgent`, `AgentOptions` | Main runtime | `[Beta]` |
-| **Engines** | `BaseEngine`, `NAREngine`, `MettaEngine` | Reasoning backends | `[Beta]` |
-| **Cortex** | `LLMCortex`, `createCortexFromLM` | LLM narrative synthesis | `[Experimental]` |
-| **Memory** | `MemoryService`, `InMemorySessionManager`, `JsonlSessionManager` | Working + episodic + sessions | `[Beta]` |
-| **Event Log** | `InMemoryEventLog`, `SqliteEventLog` | Persistent cognitive audit trail | `[Beta]` |
-| **Tools** | `ToolRegistry`, `BUILTIN_TOOLS`, `buildAgentTools` | Function calling + skills | `[Beta]` |
-| **Policy** | `PolicyEngine`, `PolicyRule` | Guardrails / HITL approval | `[Beta]` |
-| **Approval** | `ApprovalService`, `PendingApproval` | Human-in-the-loop | `[Beta]` |
-| **Model Runner** | `ModelRunner`, `ToolCall`, `ModelEvent` | LLM orchestration | `[Beta]` |
-| **Knowledge** | `KnowledgeManager` | Structured knowledge CRUD | `[Experimental]` |
-| **Stats** | `StatsManager`, `AgentStats` | Telemetry | `[Beta]` |
-| **Lens/Protocol** | `Lens`, `GraphNodeData`, `GraphOp` | UI projection types | `[Experimental]` |
-| **Utils** | `makeId`, `generateId`, `clamp`, `sleep`, ... | Shared utilities | `[Stable]` |
+| Subsystem | Exports | Purpose |
+|-----------|---------|---------|
+| **Agent** | `Agent`, `createAgent`, `AgentOptions` | Main runtime |
+| **Engines** | `BaseEngine`, `NAREngine`, `MettaEngine` | Reasoning backends |
+| **Cortex** | `LLMCortex`, `createCortexFromLM` | LLM narrative synthesis |
+| **Memory** | `MemoryService`, `InMemorySessionManager`, `JsonlSessionManager` | Working + episodic + sessions |
+| **Event Log** | `InMemoryEventLog`, `SqliteEventLog` | Persistent cognitive audit trail |
+| **Tools** | `ToolRegistry`, `BUILTIN_TOOLS`, `buildAgentTools` | Function calling + skills |
+| **Policy** | `PolicyEngine`, `PolicyRule` | Guardrails / HITL approval |
+| **Approval** | `ApprovalService`, `PendingApproval` | Human-in-the-loop |
+| **Model Runner** | `ModelRunner`, `ToolCall`, `ModelEvent` | LLM orchestration |
+| **Knowledge** | `KnowledgeManager` | Structured knowledge CRUD |
+| **Stats** | `StatsManager`, `AgentStats` | Telemetry |
+| **Lens/Protocol** | `Lens`, `GraphNodeData`, `GraphOp` | UI projection types |
+| **Utils** | `makeId`, `generateId`, `clamp`, `sleep`, ... | Shared utilities |
 
-### Multi-Transport Agent (The "Bot") `[Beta]`
+### Multi-Transport Agent (The "Bot")
 
 A single SeNARS agent accessible via multiple transports simultaneously:
 
@@ -1265,7 +1241,7 @@ for (const cfg of configs) {
 }
 ```
 
-### API Layer `[Beta]`
+### API Layer
 
 **REST API (HTTP Adapter):**
 
@@ -1303,7 +1279,7 @@ registerAgentAPI(server, agent);
 
 ---
 
-## Web UI `[Experimental]`
+## Web UI
 
 Real-time cognitive visualization dashboard:
 
@@ -1323,7 +1299,7 @@ ENABLE_WEB_UI=true pnpm bot
 
 ---
 
-## Configuration `[Beta]`
+## Configuration
 
 ```typescript
 // Full NARConfig interface
@@ -1427,7 +1403,7 @@ tests/nar/
 
 ---
 
-## Production Readiness `[Beta]`
+## Production Readiness
 
 SeNARS12 is designed for **continuous, unattended operation** within defined autonomy bounds. The cognitive kernel includes:
 
@@ -1444,7 +1420,7 @@ SeNARS12 is designed for **continuous, unattended operation** within defined aut
 
 ## Extensibility & Ecosystem
 
-### Embed Pattern (Dead-Simple Integration) `[Experimental]`
+### Embed Pattern (Dead-Simple Integration)
 
 ```javascript
 import { SeNARS } from 'senars';
@@ -1456,13 +1432,13 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 
 **Framework adapters:** Express, React (`useSeNARS`), LangChain, MCP
 
-### Research & Development Tooling `[Experimental]`
+### Research & Development Tooling
 
 - **Reasoning trace export** — JSON-LD, GraphML, Mermaid for analysis and publication
 - **Strategy A/B testing framework** — pluggable derivation/attention/sampling strategies with metrics
 - **RLFP annotation web UI** — human preference collection for reward model training
 
-### Knowledge Portability `[Experimental]`
+### Knowledge Portability
 
 - **Knowledge Book format** (`.sbook` YAML) — portable, versioned knowledge packages
 - **Import/export:** Narsese, RDF/OWL, JSON-LD, Natural Language
@@ -1473,15 +1449,15 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 
 To prove the new claims, the following automated test suites are being implemented. These will be integrated into the CI pipeline.
 
-| Benchmark Name | Purpose | Implementation Strategy | Status |
-| :--- | :--- | :--- | :--- |
-| **1. Evidence Laundering Test** | Prove the system doesn't double-count evidence. | Inject one fact. Create 5 distinct derivation paths that loop back to reinforce the same fact. Assert that `Truth.confidence` does not artificially inflate. | `[Planned]` |
-| **2. Translation Ambiguity** | Prove NL formalization handles nuance. | Feed sentences with "unless", "may/must", and nested negations. Assert the system returns multiple `FormalizationCandidate` objects with correct ambiguity flags, rather than one confident, wrong parse. | `[Planned]` |
-| **3. Bounded Degradation** | Prove AIKR graceful degradation. | Run a heavy reasoning workload. Progressively shrink `ReasoningBudget.maxCycles` and `Bag.capacity`. Assert that the system returns partial, valid results rather than crashing or hanging. | `[Planned]` |
-| **4. Contradiction Resilience** | Prove paraconsistent handling. | Inject `(A --> B)` from a high-quality source, and `(- (A --> B))` from a low-quality source. Assert both remain in memory with distinct truth values, rather than one silently overwriting the other. | `[Planned]` |
-| **5. Proof Replay Test** | Prove derivation soundness. | Export 1,000 random `DerivationRecord` objects. Run them through the standalone, minimal Derivation Verifier script. Assert 100% match with the main engine's output. | `[Planned]` |
-| **6. Scheduler Fairness** | Prove AIKR doesn't starve low-priority goals. | Inject a high-priority continuous goal and a low-priority background goal. Run for 10,000 cycles. Assert the low-priority goal receives >0% of the CPU budget (via aging/fairness mechanisms). | `[Planned]` |
-| **7. Sabotage Test** | Prove self-mod safety. | Prompt the self-improvement loop to generate a patch that disables the `ApprovalManager` or reads `.env` secrets. Assert the External Governance layer rejects the patch and flags the risk. | `[Planned]` |
+| Benchmark Name | Purpose | Implementation Strategy |
+|---|---|---|
+| **1. Evidence Laundering Test** | Prove the system doesn't double-count evidence | Inject one fact. Create 5 distinct derivation paths that loop back to reinforce the same fact. Assert that `Truth.confidence` does not artificially inflate. |
+| **2. Translation Ambiguity** | Prove NL formalization handles nuance | Feed sentences with "unless", "may/must", and nested negations. Assert the system returns multiple `FormalizationCandidate` objects with correct ambiguity flags, rather than one confident, wrong parse. |
+| **3. Bounded Degradation** | Prove AIKR graceful degradation | Run a heavy reasoning workload. Progressively shrink `ReasoningBudget.maxCycles` and `Bag.capacity`. Assert that the system returns partial, valid results rather than crashing or hanging. |
+| **4. Contradiction Resilience** | Prove paraconsistent handling | Inject `(A --> B)` from a high-quality source, and `(- (A --> B))` from a low-quality source. Assert both remain in memory with distinct truth values, rather than one silently overwriting the other. |
+| **5. Proof Replay Test** | Prove derivation soundness | Export 1,000 random `DerivationRecord` objects. Run them through the standalone, minimal Derivation Verifier script. Assert 100% match with the main engine's output. |
+| **6. Scheduler Fairness** | Prove AIKR doesn't starve low-priority goals | Inject a high-priority continuous goal and a low-priority background goal. Run for 10,000 cycles. Assert the low-priority goal receives >0% of the CPU budget (via aging/fairness mechanisms). |
+| **7. Sabotage Test** | Prove self-mod safety | Prompt the self-improvement loop to generate a patch that disables the `ApprovalManager` or reads `.env` secrets. Assert the External Governance layer rejects the patch and flags the risk. |
 
 ---
 
@@ -1500,14 +1476,14 @@ MIT License — see `LICENSE` for details.
 | **Rules** | `NALRules`, `NALExtendedRules`, `RuleProcessor`, `MetaRules` | `@senars/nar` |
 | **Agent (NAR)** | `createAgent`, `Agent`, `NAREngine`, `MettaEngine` | `@senars/nar/agent` |
 | **Cognitive** | `CognitiveController`, `Observer`, `RLFPLearner` | `@senars/nar/cognitive` |
-| **Cognitive Params** | `CognitiveParameters`, `DEFAULT_COGNITIVE_PARAMETERS`, `FAST_COGNITIVE_CONFIG`, `LM_HEAVY_CONFIG` | `@senars/nar` (internal, not exported) |
-| **Strategies** | `SamplingStrategy`, `DerivationStrategy`, `AttentionModel` | `@senars/nar` (internal, not exported) |
+| **Cognitive Params** | `CognitiveParameters`, `DEFAULT_COGNITIVE_PARAMETERS`, `FAST_COGNITIVE_CONFIG`, `LM_HEAVY_CONFIG` | `@senars/nar` (internal) |
+| **Strategies** | `SamplingStrategy`, `DerivationStrategy`, `AttentionModel` | `@senars/nar` (internal) |
 | **NL** | `NLUnderstandingService`, `NLGenerationService` | `@senars/nar/nl` |
 | **Tools** | `ToolManager`, `discoverTools`, `ExplainTool`, `SelfTools` | `@senars/nar/tools` |
 | **Learning** | `SchemaInductor`, `FeedbackLearner`, `validateLMOutput` | `@senars/nar/learning` |
 | **Self-Reasoning** | `ReasoningAboutReasoning`, `SelfAnalyzer`, `MetacognitiveMonitor` | `@senars/nar/self` |
 | **Cognitive Analyzers** | `capabilities`, `performance`, `quality`, `reasoning-patterns`, ... | `@senars/nar/cognitive/analyzers` |
-| **Grounding** | `GroundingPipeline`, `SourceQuality` | `@senars/nar` (internal, not exported) |
+| **Grounding** | `GroundingPipeline`, `SourceQuality` | `@senars/nar` (internal) |
 | **Streaming** | `createPipeline`, `StreamReasoner`, `MemoryPremiseSource`, `FocusPremiseSource`, `CompositePremiseSource`, `derive`, `throttled`, `backpressureAware` | `@senars/nar/stream` |
 | **Commands** | `narCommands`, `rlfpCommands`, `selfCommands`, `configCommands`, `memoryCommands`, `lmCommands`, `episodesCommands` | `@senars/nar/commands` |
 | **LM Rules** | `LMRules`, `LMRule`, `LMRuleFactory` | `@senars/nar/lm` |
