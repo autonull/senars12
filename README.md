@@ -156,6 +156,29 @@ Theory is useless without a working loop. SeNARS12 implements a **minimalist, se
 
 **The Synthesis:** A robust self-healing execution loop + SeNARS12's superior cognitive backend (NAR + MeTTa + RLFP) = Reliability of minimalist agent + Intelligence of deep cognitive architecture.
 
+### AI Safety and Alignment
+
+LLMs dangerously conflate **what is** (beliefs) with **what should be** (goals). In natural language, "The server is down" and "The server should be down" differ by one word but have opposite implications. LLMs mix these freely, leading to reward hacking, sycophancy, and unintended optimization.
+
+**SeNARS12 enforces a hard structural distinction at the type level:**
+
+| Aspect | Beliefs (`Statement`) | Goals (`Goal`) |
+|--------|----------------------|----------------|
+| **Truth Value** | Frequency + Confidence (f, c) | Desire + Confidence (d, c) |
+| **Inference** | Deduction, induction, abduction | Decomposition, achievement, planning |
+| **Revision** | Evidence-based belief revision | Progress-based goal revision |
+| **Action** | Inform reasoning | Drive behavior |
+
+**Safety consequences:**
+
+- **No reward hacking** — Goals cannot masquerade as beliefs to manipulate the truth algebra
+- **No sycophancy** — The system cannot "believe" something just because it's desired
+- **Corrigibility** — Goals are revisable via evidence about feasibility, not via persuasion
+- **Interpretability** — Every derivation step is tagged: is this *reasoning about reality* or *planning for action*?
+- **Constitutional enforcement** — Invariants (e.g., "never believe falsehoods") apply only to beliefs; goals are optimized, not verified
+
+The neuro-symbolic handoff (LLM → Narsese → NAL → NL) makes this separation *enforceable*: the LLM translates, but the symbolic engine *decides* which slot each proposition occupies. This is a **structural guarantee**, not a prompt-level wish.
+
 ---
 
 ## Quick Start
@@ -518,15 +541,33 @@ import { createLMService } from '@senars/nar/lm/lm-service';
 const lmService = createLMService(config);
 const rules = LMRules.createAll(lmService);
 
-// Rule categories (each with specialized prompt templates):
-// - Belief Rules: semantic similarity, analogy, concept elaboration
-// - Goal Rules: goal decomposition, subgoal generation, planning
-// - Question Rules: question refinement, answer synthesis, clarification
-// - Meta Rules: error detection, strategy evaluation, resource estimation
-
 // Dynamic rule selection strategies
 AllSelector | PrioritySelector | RotationSelector | DiverseSelector
 ```
+
+**Implemented LM Rules (19 total):**
+
+| Category | Rule ID | Name | Description | Priority | Budget | Activation |
+|----------|---------|------|-------------|----------|--------|------------|
+| **Belief** | `lm-narsese-translation` | LMNarseseTranslationRule | Translates natural language to Narsese | 0.9 | 0.9 | Always |
+| | `lm-belief-revision` | LMBeliefRevisionRule | Revises belief confidence based on context | 0.8 | 0.7 | Conflicting beliefs |
+| | `lm-hypothesis-generation` | LMHypothesisGenerationRule | Generates hypotheses from observations | 0.75 | 0.6 | Low confidence |
+| | `lm-explanation-generation` | LMExplanationGenerationRule | Generates explanations for beliefs | 0.7 | 0.65 | Always |
+| | `lm-analogical-reasoning` | LMAnalogicalReasoningRule | Performs analogical reasoning between concepts | 0.8 | 0.7 | Structural similarity |
+| | `lm-meta-reasoning` | LMMetaReasoningGuidanceRule | Provides meta-level reasoning guidance | 0.75 | 0.65 | Always |
+| | `lm-uncertainty-calibration` | LMUncertaintyCalibrationRule | Calibrates uncertainty in beliefs | 0.7 | 0.6 | Always |
+| | `lm-schema-induction` | LMSchemaInductionRule | Induces schemas from examples | 0.75 | 0.65 | Always |
+| | `lm-temporal-causal` | LMTemporalCausalModelingRule | Models temporal and causal relationships | 0.8 | 0.7 | Always |
+| | `lm-variable-grounding` | LMVariableGroundingRule | Grounds variables in concrete instances | 0.7 | 0.65 | Has variables |
+| | `lm-concept-elaboration` | LMConceptElaborationRule | Elaborates on concept properties | 0.75 | 0.7 | Underconnected |
+| **Goal** | `lm-goal-decomposition` | LMGoalDecompositionRule | Decomposes complex goals into subgoals | 0.85 | 0.8 | Complex goals |
+| **Question** | `lm-curiosity-question` | LMCuriosityQuestionRule | Generates questions driven by curiosity | 0.7 | 0.65 | High curiosity |
+| | `lm-interactive-clarification` | LMInteractiveClarificationRule | Seeks clarification for ambiguous inputs | 0.7 | 0.65 | Always |
+| **Meta (V2)** | `lm-v2-hypothesis` | LMV2HypothesisRule | Generates typed hypotheses with truth values | 0.75 | — | Single premise |
+| | `lm-v2-explanation` | LMV2ExplanationRule | Generates typed explanations with key premises | 0.7 | — | Single premise |
+| | `lm-v2-analogy` | LMV2AnalogyRule | Finds structural analogies between concepts | 0.8 | — | Always |
+| | `lm-v2-causal` | LMV2CausalRule | Models causal relationships | 0.8 | — | Always |
+| | `lm-v2-schema` | LMV2SchemaRule | Induces reusable schemas from patterns | 0.75 | — | Single premise |
 
 **LM Rule Features:**
 
@@ -535,6 +576,8 @@ AllSelector | PrioritySelector | RotationSelector | DiverseSelector
 - Proactive enrichment: LM generates background knowledge
 - Tool dispatching: LM rules can call NAR tools
 - Per-rule timeout & circuit breaker
+- Activation conditions (confidence, connectivity, curiosity, complexity)
+- Constitution-aware rules respect system invariants
 
 ### Reinforcement Learning from Reasoning Feedback (RLFP)
 
