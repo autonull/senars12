@@ -56,6 +56,7 @@ export function buildUnderstandingPrompt(
     parts.push('  - Typical statements → frequency 0.9, confidence 0.9');
     parts.push('  - Cap confidence < 1.0 unless explicitly universal');
     parts.push('  - Multiple sentences → multiple entries');
+    parts.push('  - Each entry: include sourceText with the exact input substring it came from (verbatim quote)');
     parts.push('  - Ambiguous input → flag in meta.ambiguities');
     parts.push('  - Coreferences ("he", "it", "that") → resolve using context');
     parts.push('  - Detect intent: chat, command, reasoning, or learning');

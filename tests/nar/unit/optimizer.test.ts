@@ -7,7 +7,7 @@ import {
     RandomSampler,
     serializeParams,
 } from '../../../nar/src/cognitive';
-import type {SearchSpace} from '../../../nar/src/cognitive/types';
+import type {SearchSpace} from '../../../nar/src/strategies/types';
 import {DEFAULT_COGNITIVE_PARAMETERS} from '../../../nar/src/config/cognitive-parameters';
 
 describe('applyParamValues', () => {
@@ -36,6 +36,17 @@ describe('applyParamValues', () => {
         expect(result.strategies.lmRule.maxRules).toBe(7);
     });
 
+    it('applies ranking dims preserving the sibling field', () => {
+        const result = applyParamValues(DEFAULT_COGNITIVE_PARAMETERS, {
+            'inference.rankingMaxAdmissions': 250,
+        });
+        expect(result.inference.ranking).toEqual({maxAdmissions: 250, minScore: 0});
+        const result2 = applyParamValues(result, {'inference.rankingMinScore': 0.2});
+        expect(result2.inference.ranking).toEqual({maxAdmissions: 250, minScore: 0.2});
+        expect(COGNITIVE_PARAMETER_SPACE.parameters['inference.rankingMaxAdmissions']).toMatchObject({type: 'int', min: 10, max: 1000});
+        expect(COGNITIVE_PARAMETER_SPACE.parameters['inference.rankingMinScore']).toMatchObject({type: 'float', min: 0, max: 0.5});
+    });
+
     it('ignores unknown keys', () => {
         const result = applyParamValues(DEFAULT_COGNITIVE_PARAMETERS, {
             'nonexistent.key': 42,
@@ -43,8 +54,7 @@ describe('applyParamValues', () => {
         expect(result).toEqual(DEFAULT_COGNITIVE_PARAMETERS);
     });
 
-    it('does not mutate the original', () => {
-        const original = structuredClone(DEFAULT_COGNITIVE_PARAMETERS);
+    it('does not mutate the original', () => {        const original = structuredClone(DEFAULT_COGNITIVE_PARAMETERS);
         applyParamValues(DEFAULT_COGNITIVE_PARAMETERS, {'priority.initial': 0.99});
         expect(DEFAULT_COGNITIVE_PARAMETERS.priority.initialPriority).toBe(
             original.priority.initialPriority

@@ -2,6 +2,10 @@ import {MetaGame, MetaGameConfig} from './MetaGame.js';
 import {FocusBag} from '../focus/FocusBag.js';
 import {GameFocus} from '../focus/GameFocus.js';
 import {SelfMetaGame} from './Game.js';
+import type {FocusStepReport} from '../focus/Focus.js';
+import type {LearnerRegistry} from '../learning/domain-learners.js';
+import type {SelfRewardGate} from '../kernel/KernelRewardGate.js';
+import {v4 as uuidv4} from 'uuid';
 
 export interface KnobConfig {
   name: string;
@@ -21,6 +25,7 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   private gameFocuses: Map<string, GameFocus>;
   private knobs: Map<string, number>;
   private knobConfigs: Map<string, KnobConfig>;
+  private scheduler: {registry: LearnerRegistry; rewardGate: SelfRewardGate} | null = null;
 
   constructor(config: SelfMetaGameConfig) {
     super(config);
@@ -34,6 +39,8 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
       {name: 'taskDecayRate', min: 0.001, max: 0.1, defaultValue: 0.01},
       {name: 'conceptDecayRate', min: 0.0001, max: 0.05, defaultValue: 0.005},
       {name: 'focusDecayRate', min: 0.0001, max: 0.05, defaultValue: 0.005},
+      {name: 'rankingMaxAdmissions', min: 10, max: 1000, defaultValue: 100},
+      {name: 'rankingMinScore', min: 0, max: 0.5, defaultValue: 0},
     ];
 
     for (const knob of defaultKnobs) {
@@ -52,6 +59,36 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
   setFocusWeight(focusId: string, weight: number): void {
     const clampedWeight = Math.max(0, Math.min(1, weight));
     this.focusBag.rebalanceWeights(new Map([[focusId, clampedWeight]]));
+  }
+
+  attachScheduler(registry: LearnerRegistry, rewardGate: SelfRewardGate): void {
+    this.scheduler = {registry, rewardGate};
+  }
+
+  override recordFocusStepReport(report: FocusStepReport): void {
+    super.recordFocusStepReport(report);
+    if (!this.scheduler) return;
+    const reward = SelfMetaGameImpl.schedulerReward(report);
+    const check = this.scheduler.rewardGate.process({
+      eventId: uuidv4(), rewardSignal: reward, rewardType: 'intrinsic',
+      targetType: 'policy-weights', targetId: report.focusId, domain: 'self-scheduler',
+    });
+    if (!check.accepted) return;
+    this.scheduler.registry.dispatch({domain: 'self-scheduler', reward, focusId: report.focusId});
+  }
+
+  static schedulerReward(report: FocusStepReport): number {
+    if (report.tasksProcessed <= 0) return 0;
+    return Math.max(-1, Math.min(1, (report.derivations / report.tasksProcessed - 0.5) * 2));
+  }
+
+  applyProposal(proposal: { kind: string; riskTier: string; payload: Record<string, unknown> }): { applied: boolean; reason: string } {
+    if (proposal.riskTier !== 'low') return { applied: false, reason: `${proposal.riskTier}-risk ${proposal.kind} cannot apply directly` };
+    if (proposal.kind === 'focus-weight' && typeof proposal.payload['focusId'] === 'string' && typeof proposal.payload['weight'] === 'number') {
+      this.setFocusWeight(proposal.payload['focusId'] as string, proposal.payload['weight'] as number);
+      return { applied: true, reason: 'focus-weight applied (clamped 0..1)' };
+    }
+    return { applied: false, reason: `No direct applier for ${proposal.kind}` };
   }
 
   setKnob(knob: string, value: number): void {
@@ -98,6 +135,10 @@ export class SelfMetaGameImpl extends MetaGame implements SelfMetaGame {
         break;
       case 'focusDecayRate':
         this.focusBag.decayRateValue = value;
+        break;
+      case 'rankingMaxAdmissions':
+      case 'rankingMinScore':
+        // These are applied via CognitiveParameters in the engine; SelfMetaGame exposes them for tuning
         break;
     }
   }

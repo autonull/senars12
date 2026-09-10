@@ -6,7 +6,8 @@ import {getModelForTask} from '../lm';
 import {errMsg} from '../utils';
 import {termParser} from '../terms/index.js';
 import {SymbolicFirewall, type FirewallOptions} from './firewall.js';
-import type {TranslationCache, TranslationCacheEntry} from './cache.js';
+import {SingleFlight} from './singleflight.js';
+import type {TranslationCache, TranslationCacheEntry, TranslationResult} from './cache.js';
 import {buildUnderstandingPrompt} from './prompts/understanding-v1.js';
 import {TaskBatchSchema} from './schemas.js';
 import {v4 as uuidv4} from 'uuid';
@@ -31,9 +32,10 @@ export interface TaskBatch {
         narsese: string;
         truth?: { f: number; c: number };
         source: 'user' | 'inferred';
+        sourceText?: string;
     }>;
-    questions: Array<{ narsese: string; context?: string }>;
-    goals: Array<{ narsese: string; priority?: number }>;
+    questions: Array<{ narsese: string; context?: string; sourceText?: string }>;
+    goals: Array<{ narsese: string; priority?: number; sourceText?: string }>;
     meta: {
         detectedIntent: 'chat' | 'command' | 'reasoning' | 'learning';
         ambiguities: Ambiguity[];
@@ -67,18 +69,52 @@ export class NLUnderstandingService {
     private readonly model: LanguageModel;
     private structuredOnly: boolean;
     private readonly firewall: SymbolicFirewall;
+    private readonly flight = new SingleFlight();
+    private readonly cache: TranslationCache;
 
     constructor(
         registry: SeNARSRegistry,
-        _cache: TranslationCache,
+        cache: TranslationCache,
         opts?: { structuredOnly?: boolean; firewall?: FirewallOptions | SymbolicFirewall }
     ) {
         this.model = getModelForTask(registry, 'structured') as LanguageModel;
+        this.cache = cache;
         this.structuredOnly = opts?.structuredOnly ?? true;
         this.firewall = opts?.firewall instanceof SymbolicFirewall ? opts.firewall : new SymbolicFirewall(opts?.firewall ?? {});
     }
 
     async understand(input: string, ctx?: NLContext, maxRetries = 2): Promise<TaskBatch | null> {
+        const cached = this.cache.get(input);
+        if (cached && typeof cached !== 'string') return this.sanitize(this.fromCached(cached));
+        let ctxKey = '';
+        try {
+            ctxKey = JSON.stringify(ctx ?? null);
+        } catch {
+            ctxKey = '';
+        }
+        const result = await this.flight.run(`${maxRetries}::${input}::${ctxKey}`, () => this.understandInner(input, ctx, maxRetries));
+        if (result) this.cache.record(input, this.toCached(result));
+        return result;
+    }
+
+    private fromCached(cached: TranslationResult): TaskBatch {        return {
+            beliefs: cached.beliefs.map((b) => ({narsese: b.narsese, ...(b.truth ? {truth: {...b.truth}} : {}), source: 'user' as const})),
+            questions: cached.questions.map((narsese) => ({narsese})),
+            goals: cached.goals.map((narsese) => ({narsese})),
+            meta: {detectedIntent: 'chat' as const, ambiguities: [], coreferences: [], implicitContext: []},
+        };
+    }
+
+    private toCached(result: TaskBatch): TranslationResult {
+        return {
+            beliefs: result.beliefs.map((b) => ({narsese: b.narsese, ...(b.truth ? {truth: {...b.truth}} : {})})),
+            questions: result.questions.map((q) => q.narsese),
+            goals: result.goals.map((g) => g.narsese),
+            summary: '',
+        };
+    }
+
+    private async understandInner(input: string, ctx?: NLContext, maxRetries = 2): Promise<TaskBatch | null> {
         let lastError: string | null = null;
 
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -216,34 +252,50 @@ export function detectAmbiguityFlags(input: string): AmbiguityFlag[] {
     return flags;
 }
 
+export function locateSpan(input: string, sourceText?: string): { start: number; end: number; text: string } {
+    if (sourceText) {
+        const start = input.indexOf(sourceText);
+        if (start >= 0) return { start, end: start + sourceText.length, text: sourceText };
+    }
+    return { start: 0, end: input.length, text: input };
+}
+
 export function toFormalizationBatch(input: string, batch: TaskBatch): FormalizationBatch {
-    const span = {start: 0, end: input.length, text: input};
     const candidates: FormalizationCandidate[] = [
-        ...batch.beliefs.map((b): FormalizationCandidate => ({
-            candidateId: uuidv4(),
-            narsese: b.narsese,
-            taskType: 'belief',
-            ...(b.truth ? {truth: {frequency: b.truth.f, confidence: b.truth.c}} : {}),
-            confidence: b.truth?.c ?? (b.source === 'user' ? 0.7 : 0.5),
-            sourceSpans: [span],
-            ambiguityFlags: detectAmbiguityFlags(input),
-        })),
-        ...batch.questions.map((q): FormalizationCandidate => ({
-            candidateId: uuidv4(),
-            narsese: q.narsese,
-            taskType: 'question',
-            confidence: 0.6,
-            sourceSpans: [span],
-            ambiguityFlags: detectAmbiguityFlags(input),
-        })),
-        ...batch.goals.map((g): FormalizationCandidate => ({
-            candidateId: uuidv4(),
-            narsese: g.narsese,
-            taskType: 'goal',
-            confidence: g.priority ?? 0.5,
-            sourceSpans: [span],
-            ambiguityFlags: detectAmbiguityFlags(input),
-        })),
+        ...batch.beliefs.map((b): FormalizationCandidate => {
+            const span = locateSpan(input, b.sourceText);
+            return {
+                candidateId: uuidv4(),
+                narsese: b.narsese,
+                taskType: 'belief',
+                ...(b.truth ? {truth: {frequency: b.truth.f, confidence: b.truth.c}} : {}),
+                confidence: b.truth?.c ?? (b.source === 'user' ? 0.7 : 0.5),
+                sourceSpans: [span],
+                ambiguityFlags: detectAmbiguityFlags(span.text),
+            };
+        }),
+        ...batch.questions.map((q): FormalizationCandidate => {
+            const span = locateSpan(input, q.sourceText);
+            return {
+                candidateId: uuidv4(),
+                narsese: q.narsese,
+                taskType: 'question',
+                confidence: 0.6,
+                sourceSpans: [span],
+                ambiguityFlags: detectAmbiguityFlags(span.text),
+            };
+        }),
+        ...batch.goals.map((g): FormalizationCandidate => {
+            const span = locateSpan(input, g.sourceText);
+            return {
+                candidateId: uuidv4(),
+                narsese: g.narsese,
+                taskType: 'goal',
+                confidence: g.priority ?? 0.5,
+                sourceSpans: [span],
+                ambiguityFlags: detectAmbiguityFlags(span.text),
+            };
+        }),
     ];
     return validateFormalizationBatch({
         batchId: uuidv4(),

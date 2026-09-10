@@ -3,10 +3,22 @@ import type {
     ActionGateInput,
     ActionGateOutput,
     PolicyViolationEvent,
-    CognitiveEvent,
+    AutonomyModeChangedEvent,
     AutonomyMode,
 } from '@senars/kernel/schemas';
-import { validateCognitiveEvent } from '@senars/kernel/schemas';
+import { validateCognitiveEvent, AutonomyModeChangedEventSchema } from '@senars/kernel/schemas';
+
+const MODE_ORDER: AutonomyMode[] = ['observe-only', 'propose-only', 'sandbox-execute', 'low-risk-auto-merge', 'human-approved-production'];
+
+const LEGAL_TRANSITIONS: Record<AutonomyMode, AutonomyMode[]> = {
+    'observe-only': ['propose-only'],
+    'propose-only': ['observe-only', 'sandbox-execute'],
+    'sandbox-execute': ['propose-only', 'low-risk-auto-merge'],
+    'low-risk-auto-merge': ['sandbox-execute', 'human-approved-production'],
+    'human-approved-production': ['low-risk-auto-merge'],
+};
+
+export type AutonomyAuthority = 'system' | 'human' | 'external-governance';
 
 export class NALVetoError extends Error {
     public readonly vetoReason: string;
@@ -30,6 +42,7 @@ const DEFAULT_ALLOWED_OPS = new Set<string>();
 
 export class KernelActionGate {
     private eventLog: PolicyViolationEvent[] = [];
+    private autonomyLog: AutonomyModeChangedEvent[] = [];
     private autonomyMode: AutonomyMode;
     private allowedOperations: ReadonlySet<string>;
     private nalDerivations: Map<string, { conclusion: string; veto: boolean }> = new Map();
@@ -45,6 +58,23 @@ export class KernelActionGate {
 
     getAutonomyMode(): AutonomyMode {
         return this.autonomyMode;
+    }
+
+    requestModeChange(newMode: AutonomyMode, authorizedBy: AutonomyAuthority, correlationId = uuidv4()): { changed: boolean; reason?: string } {
+        const prev = this.autonomyMode;
+        if (prev === newMode) return { changed: true };
+        if (!LEGAL_TRANSITIONS[prev].includes(newMode)) return { changed: false, reason: `Illegal transition ${prev} -> ${newMode}` };
+        const upgrading = MODE_ORDER.indexOf(newMode) > MODE_ORDER.indexOf(prev);
+        const beyondSandbox = MODE_ORDER.indexOf(newMode) > MODE_ORDER.indexOf('sandbox-execute');
+        if (upgrading && beyondSandbox && authorizedBy === 'system') return { changed: false, reason: 'Escalation beyond sandbox-execute requires human or external-governance approval' };
+        this.autonomyMode = newMode;
+        const event: AutonomyModeChangedEvent = AutonomyModeChangedEventSchema.parse({ type: 'autonomy.mode.changed', engine: 'kernel', timestamp: Date.now(), correlationId, payload: { previousMode: prev, newMode, authorizedBy } });
+        this.autonomyLog.push(event);
+        return { changed: true };
+    }
+
+    getAutonomyLog(): ReadonlyArray<AutonomyModeChangedEvent> {
+        return this.autonomyLog;
     }
 
     registerNALDerivation(derivationId: string, conclusion: string, veto: boolean = false): void {
@@ -150,5 +180,6 @@ export class KernelActionGate {
 
     clearEventLog(): void {
         this.eventLog = [];
+        this.autonomyLog = [];
     }
 }

@@ -45,6 +45,12 @@ const PARAMETER_MAP: Record<string, (p: CognitiveParameters, v: unknown) => void
     'inference.maxDepth': (p, v) => {
         p.inference.maxDerivationDepth = v as number;
     },
+    'inference.rankingMaxAdmissions': (p, v) => {
+        p.inference.ranking = {maxAdmissions: v as number, minScore: p.inference.ranking?.minScore ?? 0};
+    },
+    'inference.rankingMinScore': (p, v) => {
+        p.inference.ranking = {maxAdmissions: p.inference.ranking?.maxAdmissions ?? 100, minScore: v as number};
+    },
 };
 
 export function applyParamValues(
@@ -95,6 +101,8 @@ export const COGNITIVE_PARAMETER_SPACE: SearchSpace = {
         'lm.timeout': {type: 'int', min: 1000, max: 30000, log: true},
         'inference.maxDerivations': {type: 'int', min: 100, max: 10000, log: true},
         'inference.maxDepth': {type: 'int', min: 5, max: 20},
+        'inference.rankingMaxAdmissions': {type: 'int', min: 10, max: 1000, log: true},
+        'inference.rankingMinScore': {type: 'float', min: 0, max: 0.5},
     },
 };
 

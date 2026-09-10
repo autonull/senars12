@@ -598,6 +598,8 @@ export class ToolManager {
                 'knob:cpuThrottleMs': 'cpuThrottleMs',
                 'knob:maxLoops': 'maxLoops',
                 'knob:activationDecayRate': 'activationDecayRate',
+                'knob:rankingMaxAdmissions': 'rankingMaxAdmissions',
+                'knob:rankingMinScore': 'rankingMinScore',
             };
             resolved.knob = knobMap[String(args.knob)] ?? args.knob;
         }

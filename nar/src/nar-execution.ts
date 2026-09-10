@@ -15,6 +15,7 @@ import {createTask} from './types';
 import type {EventBus as NarEventBus} from './types/events.js';
 import {getTermArgs, isAtomic, isCompound, type Term, termParser} from './terms';
 import {Truth} from './terms/truth.js';
+import {rankDerivations} from './rules/ranking.js';
 import {errMsg} from './utils';
 import { gateRegistry } from './kernel/GateRegistry.js';
 
@@ -198,7 +199,7 @@ export class NARExecution {
             let testFailed = false;
             let contradictionDetected = false;
             const gate = gateRegistry.getPerceptionGate();
-            for (const task of results) {
+            for (const task of rankDerivations(results, this.config.cognitiveParams?.inference.ranking)) {
                 const result = gate.admitTask(task.term, task.type, task.truth, 'derivation', task.stamp.id);
 
                 if (!result.admitted) {

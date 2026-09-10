@@ -48,9 +48,9 @@ SeNARS12 is **not** an AGI architecture. It is a **production-grade reasoning ke
 │       └────────────────┴──────────────────┴────────────────┘        │
 │                                │ (Proposals / Tool Requests)        │
 │                                ▼                                    │
-├══════════════════════════════════════════════════════════════════════┤
+├═══════════════════════════════════════════════════════════════════════┤
 │  GATES: PerceptionGate | ActionGate | RewardGate | BudgetGate       │
-├══════════════════════════════════════════════════════════════════════┤
+├═══════════════════════════════════════════════════════════════════════┤
 │                     TRUSTED COGNITIVE KERNEL                        │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │  EVENT LOG (Append-Only)  <-- Source of Truth for State       │  │
@@ -62,10 +62,22 @@ SeNARS12 is **not** an AGI architecture. It is a **production-grade reasoning ke
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
+### Kernel Gates — Trusted Boundary `[Beta]`
+
+Four strict gates mediate every state mutation:
+
+| Gate | Responsibility | Key Guarantees |
+|------|----------------|----------------|
+| **PerceptionGate** | Admit observations → belief/goal/question tasks | Source-quality → confidence mapping; lossless `admitTask(term, type, truth, source)`; provisional multi‑candidate admission from LLM (`admitFormalization`) |
+| **ActionGate** | Authorize tool executions | Autonomy‑mode state machine (`observe-only → propose-only → sandbox-execute → low-risk-auto-merge → human-approved-production`); NAL veto registry; operation allow‑list |
+| **RewardGate** | Accept reward signals → mutate attention/policy only | **Epistemic firewall** rejects any attempt to mutate `Truth.frequency`/`confidence`; domain split (`external-reflex` direct, `self-*` → proposal) |
+| **BudgetGate** | Account CPU/derivation/LM/memory budgets | Per‑focus `scopeId` budgets; explicit `TerminationReason` enums (`cycle-budget`, `depth-budget`, `llm-budget`, `deadline`, `backpressure`) |
+
+All gates emit typed `CognitiveEvent`s to an append‑only JSONL log; pure reducers (`replayCognitiveState`) reconstruct gate‑level state for pause/serialize/replay.
+
 ---
 
 ## Core Principles (AIKR)
-
 | Principle | Description | Maturity |
 |-----------|-------------|----------|
 | **Anytime** ⏱️ | Interruptible execution at any point — yields partial results on demand | `[Stable]` |
@@ -402,6 +414,47 @@ const answer = nar.ask('(whiskers --> animal)');
 - `runStream(steps)` — Async generator for incremental results
 - Configurable derivation strategies: `BagStrategy`, `ExhaustiveStrategy`, `SampledDerivation`, `FocusedDerivation`, `AnytimeDerivation`
 
+### Derivation Recorder & Standalone Verifier `[Prototype]`
+
+```typescript
+import { NAR, createNAR } from '@senars/nar';
+
+const nar = createNAR({ /* ... */ });
+nar.getRuleProcessor().setConfig({ recorderEnabled: true });
+
+// Run reasoning — recorder captures derivation records
+await nar.run(100);
+
+const records = nar.getRuleProcessor().getRecorder().drain();
+// Each record: { derivationId, steps[{ruleId, premises, conclusion, truth, premiseTruths, independence, ...}], finalTruth, ... }
+
+// Standalone verification (zero NAR engine deps)
+import { verifyRecord } from '@senars/kernel/scripts/verify-derivation';
+for (const r of records) {
+  const result = verifyRecord(r, { strict: true, epsilon: 1e-6 });
+  console.log(result.ok ? 'VALID' : 'INVALID', result.errors);
+}
+```
+
+- `DerivationRecorder` (opt‑in, bounded: 200 steps/record, 200 records) emits `DerivationRecord` with step‑level `premiseTruths`, `evidenceLineage`, `independence`.
+- `scripts/verify-derivation.ts` — dependency‑free checker: re‑computes truth algebra, validates substitution, lineage DAG, revision independence flag. CI workflow (`.github/workflows/derivation-verify.yml`) runs on every change.
+
+### Derivation Ranking (Pressure Valve) `[Beta]`
+
+```typescript
+import { rankDerivations } from '@senars/nar/rules/ranking';
+
+const admitted = rankDerivations(ruleProcessorOutput, {
+  maxAdmissions: 100,  // default
+  minScore: 0          // default
+});
+// score = confidence × |f−0.5|×2 − min(0.3, termLength/2000)
+// tautologies (f≈0.5) score ≤0 and are dropped automatically
+```
+
+- `score = confidence × decisiveness − sizePenalty` where `decisiveness = |f−0.5|×2`.
+- Caps admissions per cycle; configurable via `CognitiveParameters.inference.ranking` and exposed as optimizer/self‑game knobs (`rankingMaxAdmissions`, `rankingMinScore`).
+
 ### Cognition (System 1/2 + Executive) `[Beta]`
 
 **System 1 — Intuitive/Associative (LM-Enhanced):**
@@ -606,6 +659,13 @@ const answer = await generation.generate({
 const answer = await nar.askNaturalLanguage("What is Whiskers?");
 ```
 
+**Key Features:**
+
+- **Multi‑candidate formalization** — LLM returns `FormalizationBatch` with per‑candidate `sourceSpans` + `ambiguityFlags` (negation, modal, quantifier, temporal). Kernel admits each candidate provisionally; no single authoritative parse.
+- **Single‑flight LM dedup** (`SingleFlight`) — concurrent identical `understand()` calls share one request; failures clear the slot for retry.
+- **Unified `translateCached` path** — cache → single‑flight LM → record; legacy string cache entries safely ignored.
+- **Per‑candidate spans** — `locateSpan` maps verbatim `sourceText` to exact offsets; ambiguity flags become span‑local.
+
 ### MeTTa — Meta Type Theory `[Beta]`
 
 A **second reasoning engine** running alongside NAR, providing equality saturation, pattern matching, and dependent type theory:
@@ -720,25 +780,34 @@ import { CapabilitySpace, createWasiSandbox, createWasmModuleSandbox, createNode
 // 1. WASI sandbox with preopened directories (deny-by-default)
 const wasiSandbox = await createWasiSandbox({
   allowedPaths: ['/workspace', '/tmp'],  // explicit allowlist
-  env: { MY_VAR: 'value' },
+  env: { MY_VAR: 'value' },              // explicit env only (deny-by-default)
   args: ['--flag'],
-  // deny-by-default: no network, no clock, no env vars unless explicitly toggled
+  timeoutMs: 30000,                      // enforced wall‑clock timeout
+  // deny-by-default: no network, no clock, no env vars unless explicitly provided
 });
 
 // 2. WASM module sandbox (loads .wasm file with WASI imports)
 const wasmSandbox = await createWasmModuleSandbox({
   wasmPath: '/path/to/module.wasm',
   imports: { custom: { func: () => {} } },
+  timeoutMs: 30000,
 });
 
 // 3. Node.js VM sandbox (JS isolation fallback — NOT for untrusted code)
-const vmSandbox = createNodeVMSandbox(); // relegated to "trusted-but-faulty code isolation"
+const vmSandbox = createNodeVMSandbox(); // relegated to "trusted-but-faulty code isolation"; deprecated for secure use
 
 // Use with CapabilitySpace
 const space = new CapabilitySpace({ sandbox: wasiSandbox });
 space.register({ name: 'run_wasm', execute: () => 'result' });
 await space.execute('run_wasm');
 ```
+
+**Hardening Features:**
+
+- **Env leak closed** — both sandboxes receive explicit `env` only (default `{}`); no `process.env` spread.
+- **Path containment** — `sanitizePreopens()` normalizes paths, drops `..` escapes; `assertWasmPathContained()` enforces `wasmPath` stays within `allowedPaths` (guards sibling‑prefix confusion).
+- **Timeouts** — `timeoutMs` option (default 30s) enforced via `withTimeout()` → `SandboxTimeoutError`; all wrappers race execution against it.
+- **`createNodeVMSandbox` deprecated** — JSDoc `@deprecated` + one‑time `console.warn`; retained only for backward compat. Never use for untrusted code.
 
 **Sandbox Options:**
 
@@ -747,8 +816,9 @@ await space.execute('run_wasm');
 | `allowedPaths` | `string[]` | Directories preopened for WASI file access (deny-by-default) |
 | `env` | `Record<string,string>` | Environment variables for WASI process (deny-by-default) |
 | `args` | `string[]` | Command-line arguments for WASI process |
+| `timeoutMs` | `number` | Wall‑clock timeout in ms (default 30000) |
 
-**Exports:** `createWasiSandbox`, `createWasmModuleSandbox`, `createNodeVMSandbox`, types `WasiSandboxOptions`, `WasmModuleOptions` from `@senars/nar/capability`.
+**Exports:** `createWasiSandbox`, `createWasmModuleSandbox`, `createNodeVMSandbox`, `SandboxTimeoutError`, `DEFAULT_SANDBOX_TIMEOUT_MS`, `sanitizePreopens`, `containsPath`, `assertWasmPathContained`, `withTimeout` from `@senars/nar/capability`.
 
 ### Cognitive Parameters & Strategy System `[Beta]`
 
@@ -864,6 +934,21 @@ All Game↔Focus interactions pass through strict gates preventing architectural
 | **`PerceptionGate`** | Observations → Belief tasks (sensor confidence → `truth.c`) | No direct policy mutation |
 | **`ActionGate`** | Reflex proposals → Native AST operation goals | No action without goal dispatch |
 | **`RewardGate`** | Game outcomes → Value belief revisions / goal satisfaction | **Epistemic firewall: throws if reward mutates `Truth`** |
+| **`BudgetGate`** | CPU/derivation/LM/memory budget accounting | Per‑focus `scopeId` budgets; explicit `TerminationReason` enums |
+
+### RL Domain Split — Unified Substrate, Separated Reward Domains `[Beta]`
+
+The shared substrate (`Bag<T>`, `Focus`, `FocusBag`, `Game`, `Reflex`, `Negotiator`) is kept; reward interpretation and mutation authority are split by domain:
+
+| Learner | Domain | Mutates | Risk |
+|---------|--------|---------|------|
+| `ReflexLearner` | `external-reflex` | Reflex Q‑table / policy weights | Low |
+| `SchedulerAdapter` | `self-scheduler` | `FocusBag` focus weights | Low |
+| `PreferenceRanker` | `self-explanation-rank` | Explanation ranking scores | Low |
+| `ConfigOptimizer` | `self-config-proposal` | `knob-tune` proposals (never direct) | Medium |
+| `PatchSelector` | `self-patch-score` | `patch-apply` proposals (→ human approval) | High |
+
+`LearnerRegistry.dispatch(event)` routes by `event.domain`; unknown domain → `CrossDomainError` (fail‑closed). Self‑game rewards (`domain: 'self-*'`) never mutate `Truth` — they produce `SelfImprovementProposal` objects routed through `ProposalRouter` → `SelfMetaGame.applyProposal` (only low‑risk `focus-weight` auto‑applies; medium/high require validation/approval).
 
 ### Implemented Components
 
@@ -1058,7 +1143,7 @@ Structured cognitive state emitted every 10 cycles:
 
 CLI: `pnpm exec tsx src/bin/self-report.ts`
 
-### Autonomous Self-Modification Governance `[Planned]`
+### Autonomous Self-Modification Governance `[Planned → In‑Repo Prototype]`
 
 The self-improvement loop is evolving toward **externally governed autonomous code modification**:
 
@@ -1066,6 +1151,12 @@ The self-improvement loop is evolving toward **externally governed autonomous co
 - **RLFP-driven code modification** — reward model guides which changes to attempt
 - **Autonomous schema promotion** — high-confidence learned schemas become production inference rules
 - **Sabotage→auto-fix litmus test** — system detects injected faults and repairs itself
+
+**Governance Pipeline (In‑Repo Prototype):**
+- `PatchRiskClassifier` scores patches against guard‑rail file list (approval logic, sandbox config, reward functions, autonomy mode, kernel gates, schemas, budget limits).
+- `GovernancePolicyEngine` combines risk + current `AutonomyMode` → `{AUTO_MERGE, CREATE_PR, REQUIRE_HUMAN_REVIEW, REJECT}`.
+- `ProposalRouter` consumes `SelfRewardGate` proposals: low‑risk `focus-weight` auto‑applies, medium → sandbox validation, high → human approval.
+- `SandboxValidator` auto‑approves in‑range `knob-tune` proposals (range checked vs `rlfp/knobSchema`).
 
 **External Governance Model (Required for Production):**
 - The agent *proposes* patches via shadow worktree + CI validation

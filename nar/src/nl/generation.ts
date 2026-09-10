@@ -4,6 +4,7 @@ import type {SeNARSRegistry} from '../lm';
 import {getModelForTask} from '../lm';
 import {buildGenerationPrompt} from './prompts/generation-v1.js';
 import {GenerationOutputSchema} from './schemas.js';
+import {SingleFlight} from './singleflight.js';
 
 export interface BeliefInfo {
     term: string;
@@ -60,12 +61,23 @@ function findKnowledgeGaps(beliefs: BeliefInfo[]): string[] {
 
 export class NLGenerationService {
     private readonly model: LanguageModel;
+    private readonly flight = new SingleFlight();
 
     constructor(registry: SeNARSRegistry) {
         this.model = getModelForTask(registry, 'structured') as LanguageModel;
     }
 
     async generate(input: GenerationInput): Promise<GenerationOutput> {
+        let key = '';
+        try {
+            key = JSON.stringify(input);
+        } catch {
+            key = `${Date.now()}:${Math.random()}`;
+        }
+        return this.flight.run(key, () => this.generateInner(input));
+    }
+
+    private async generateInner(input: GenerationInput): Promise<GenerationOutput> {
         if (!this.model) {
             return this.fallbackGenerate(input);
         }

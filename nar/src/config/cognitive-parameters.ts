@@ -145,6 +145,12 @@ export interface InferenceConfig {
 
     /** Master switch for LM rules */
     enableLMRules?: boolean;
+
+    /** Derivation ranking at admission (score = c × decisiveness − sizePenalty) */
+    ranking?: {
+        maxAdmissions: number;
+        minScore: number;
+    };
 }
 
 export interface ModelRunnerConfig {
@@ -205,6 +211,7 @@ export const DEFAULT_COGNITIVE_PARAMETERS: CognitiveParameters = {
         enableTraceCollection: false,
         cpuThrottleMs: 0,
         maxSampledConcepts: 100,
+        ranking: {maxAdmissions: 100, minScore: 0},
     },
 
     modelRunner: {
@@ -283,6 +290,8 @@ export const PARAMETER_SPACE = {
     inference: {
         maxDerivationsPerStep: {min: 100, max: 10000, default: 1000},
         maxDerivationDepth: {min: 5, max: 20, default: 10},
+        rankingMaxAdmissions: {min: 10, max: 1000, default: 100},
+        rankingMinScore: {min: 0, max: 0.5, default: 0},
     },
 
     modelRunner: {

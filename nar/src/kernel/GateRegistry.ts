@@ -81,12 +81,14 @@ export class GateRegistry {
     getAllEventLogs(): {
         perception: ReturnType<KernelPerceptionGate['getEventLog']>;
         action: ReturnType<KernelActionGate['getEventLog']>;
+        autonomy: ReturnType<KernelActionGate['getAutonomyLog']>;
         reward: ReturnType<KernelRewardGate['getEventLog']>;
         budget: ReturnType<KernelBudgetGate['getEventLog']>;
     } {
         return {
             perception: this.perceptionGate.getEventLog(),
             action: this.actionGate.getEventLog(),
+            autonomy: this.actionGate.getAutonomyLog(),
             reward: this.rewardGate.getEventLog(),
             budget: this.budgetGate.getEventLog(),
         };

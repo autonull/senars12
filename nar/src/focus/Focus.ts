@@ -112,7 +112,7 @@ export class Focus implements BagItem {
       timestamp: Date.now(),
     };
 
-    if (!gateRegistry.getBudgetGate().check({ operation: 'nal-step', estimatedCost: 1 }).granted) return report;
+    if (!gateRegistry.getBudgetGate().check({ operation: 'nal-step', estimatedCost: 1, scopeId: this.id }).granted) return report;
 
     // PERCEPTION: Bound Games inject observations into the Focus
     for (const game of this.games) {

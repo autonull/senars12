@@ -2,9 +2,11 @@ import { v4 as uuidv4 } from 'uuid';
 import type {
     RewardGateInput,
     RewardGateOutput,
+    RewardDomain,
     PolicyViolationEvent,
+    SelfImprovementProposal,
 } from '@senars/kernel/schemas';
-import { validateCognitiveEvent } from '@senars/kernel/schemas';
+import { validateCognitiveEvent, SelfImprovementProposalSchema } from '@senars/kernel/schemas';
 
 export class EpistemicFirewallViolation extends Error {
     public readonly targetType: string;
@@ -36,6 +38,7 @@ export class KernelRewardGate {
 
     process(input: RewardGateInput): RewardGateOutput {
         const correlationId = input.correlationId ?? uuidv4();
+        const domain: RewardDomain = input.domain ?? 'external-reflex';
 
         if (!this.allowedTargets.has(input.targetType)) {
             const violation = new EpistemicFirewallViolation(input.targetType, input.targetId, correlationId);
@@ -62,16 +65,11 @@ export class KernelRewardGate {
             };
         }
 
-        const accepted = true;
-        let mutationApplied = false;
-
-        if (input.targetType === 'attention-priority') {
-            mutationApplied = true;
-        } else if (input.targetType === 'policy-weights') {
-            mutationApplied = true;
+        if (domain !== 'external-reflex') {
+            return { accepted: true, mutationApplied: false, requiresProposal: true };
         }
 
-        return { accepted, mutationApplied };
+        return { accepted: true, mutationApplied: true };
     }
 
     getEventLog(): ReadonlyArray<PolicyViolationEvent> {
@@ -80,5 +78,40 @@ export class KernelRewardGate {
 
     clearEventLog(): void {
         this.eventLog = [];
+    }
+}
+
+export class ExternalRewardGate extends KernelRewardGate {
+    ingest(outcome: { rewardSignal: number; rewardType: RewardGateInput['rewardType']; targetId: string; eventId?: string }): RewardGateOutput {
+        return this.process({ eventId: outcome.eventId ?? uuidv4(), rewardSignal: outcome.rewardSignal, rewardType: outcome.rewardType, targetType: 'policy-weights', targetId: outcome.targetId, domain: 'external-reflex' });
+    }
+}
+
+const PROPOSAL_RISK: Record<SelfImprovementProposal['kind'], SelfImprovementProposal['riskTier']> = {
+    'focus-weight': 'low', 'strategy-switch': 'low', 'knob-tune': 'medium',
+    'schema-promotion': 'medium', 'test-generate': 'medium', 'patch-apply': 'high',
+};
+
+export class SelfRewardGate extends KernelRewardGate {
+    private queue: SelfImprovementProposal[] = [];
+
+    propose(kind: SelfImprovementProposal['kind'], payload: Record<string, unknown>, rewardDomain: RewardDomain, correlationId = uuidv4()): SelfImprovementProposal {
+        return SelfImprovementProposalSchema.parse({ proposalId: uuidv4(), kind, riskTier: PROPOSAL_RISK[kind], payload, rewardDomain, correlationId });
+    }
+
+    submit(kind: SelfImprovementProposal['kind'], payload: Record<string, unknown>, rewardDomain: RewardDomain, correlationId = uuidv4()): SelfImprovementProposal {
+        const proposal = this.propose(kind, payload, rewardDomain, correlationId);
+        this.queue.push(proposal);
+        return proposal;
+    }
+
+    pending(): ReadonlyArray<SelfImprovementProposal> {
+        return this.queue;
+    }
+
+    drain(): SelfImprovementProposal[] {
+        const out = [...this.queue];
+        this.queue = [];
+        return out;
     }
 }

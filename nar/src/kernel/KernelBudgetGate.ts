@@ -23,6 +23,7 @@ const DEFAULT_COST_TABLE: Record<string, number> = {
 
 export class KernelBudgetGate {
     private budget: ReasoningBudget;
+    private scopes = new Map<string, ReasoningBudget>();
     private eventLog: BudgetExhaustedEvent[] = [];
     private costTable: Record<string, number>;
 
@@ -49,12 +50,27 @@ export class KernelBudgetGate {
         };
     }
 
+    private freshCounters(): ReasoningBudget {
+        return { ...this.budget, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 }, terminationReason: undefined };
+    }
+
+    private resolveBudget(input: BudgetGateInput): ReasoningBudget {
+        if (input.budget) return input.budget;
+        if (!input.scopeId) return this.budget;
+        let scoped = this.scopes.get(input.scopeId);
+        if (!scoped) {
+            scoped = this.freshCounters();
+            this.scopes.set(input.scopeId, scoped);
+        }
+        return scoped;
+    }
+
     check(input: BudgetGateInput): BudgetGateOutput {
         const correlationId = input.correlationId ?? uuidv4();
         const operation = input.operation;
         const estimatedCost = input.estimatedCost ?? this.costTable[operation] ?? 1;
 
-        const budget = input.budget ?? this.budget;
+        const budget = this.resolveBudget(input);
         validateReasoningBudget(budget);
 
         const remaining = this.getRemaining(budget, operation, estimatedCost);
@@ -155,6 +171,19 @@ export class KernelBudgetGate {
 
     resetBudget(): void {
         this.budget = this.createDefaultBudget();
+        this.scopes.clear();
+    }
+
+    createScope(scopeId: string, budget?: ReasoningBudget): void {
+        this.scopes.set(scopeId, budget ?? this.freshCounters());
+    }
+
+    releaseScope(scopeId: string): void {
+        this.scopes.delete(scopeId);
+    }
+
+    getScopeBudget(scopeId: string): ReasoningBudget | undefined {
+        return this.scopes.get(scopeId);
     }
 
     getEventLog(): ReadonlyArray<BudgetExhaustedEvent> {

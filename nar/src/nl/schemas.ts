@@ -129,18 +129,21 @@ export const TaskBatchSchema = z.object({
                 })
                 .optional(),
             source: z.enum(['user', 'inferred']).describe('Source of the belief'),
+            sourceText: z.string().optional().describe('Verbatim input substring this item came from'),
         })
     ),
     questions: z.array(
         z.object({
             narsese: z.string().describe('Narsese question string ending in ?'),
             context: z.string().optional(),
+            sourceText: z.string().optional().describe('Verbatim input substring this item came from'),
         })
     ),
     goals: z.array(
         z.object({
             narsese: z.string().describe('Narsese goal string ending in !'),
             priority: z.number().min(0).max(1).optional(),
+            sourceText: z.string().optional().describe('Verbatim input substring this item came from'),
         })
     ),
     meta: z.object({

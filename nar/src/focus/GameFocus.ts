@@ -44,7 +44,7 @@ export class GameFocus {
   }> {
     this.cycle++;
 
-    const budgetCheck = gateRegistry.getBudgetGate().check({ operation: 'nal-step', estimatedCost: 1 });
+    const budgetCheck = gateRegistry.getBudgetGate().check({ operation: 'nal-step', estimatedCost: 1, scopeId: this.focus.id });
     if (!budgetCheck.granted) return { focusReport: { terminated: budgetCheck.terminationReason }, gameOutcome: null };
 
     // PERCEPTION: Focus step handles perception
@@ -87,7 +87,7 @@ export class GameFocus {
           const nextPerception = this.game.observe();
 
           // REWARD: epistemic firewall — reward may only tune policy, never truth
-          const firewall = gateRegistry.getRewardGate().process({ eventId: uuidv4(), rewardSignal: Math.max(-1, Math.min(1, gameOutcome.reward)), rewardType: 'extrinsic', targetType: 'policy-weights', targetId: this.focus.id });
+          const firewall = gateRegistry.getRewardGate().process({ eventId: uuidv4(), rewardSignal: Math.max(-1, Math.min(1, gameOutcome.reward)), rewardType: 'extrinsic', targetType: 'policy-weights', targetId: this.focus.id, domain: 'external-reflex' });
           if (!firewall.accepted) break;
           // REWARD: Convert outcome to beliefs
           const rewardBeliefs = this.focus.getRewardGate().toBeliefs(gameOutcome);

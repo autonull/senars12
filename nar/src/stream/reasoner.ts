@@ -1,6 +1,7 @@
 import { Truth } from '../terms/truth.js';
 import type { Task, TruthType } from '../types/core.js';
 import type { TickContext } from '../tick/tick.js';
+import { gateRegistry } from '../kernel/index.js';
 
 export type IndependenceStatus = 'independent' | 'dependent' | 'unknown';
 
@@ -61,7 +62,6 @@ export class StreamReasoner {
     if (pressure >= this.highPressure) return [];
     const batch = this.queue.splice(0, this.maxBatch);
     if (batch.length === 0) return [];
-    const { gateRegistry } = await import('../kernel/index.js');
     if (!gateRegistry.getBudgetGate().check({ operation: 'lm-call', estimatedCost: batch.length }).granted) {
       this.queue.unshift(...batch);
       return [];

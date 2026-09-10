@@ -116,6 +116,45 @@ export const AutonomyModeChangedEventSchema = CognitiveEventBaseSchema.extend({
     }),
 });
 
+export const PatchProposalSchema = z.object({
+    proposalId: z.string().uuid(),
+    patchRef: z.string(),
+    baseCommit: z.string(),
+    patchDiff: z.string(),
+    ciResults: z.object({
+        test: z.boolean(),
+        typecheck: z.boolean(),
+        lint: z.boolean(),
+        durationMs: z.number().int().positive(),
+    }),
+    riskSelfAssessment: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+    affectedComponents: z.array(z.enum([
+        'approval-logic',
+        'sandbox-config',
+        'reward-functions',
+        'autonomy-mode',
+        'kernel-gates',
+        'cognitive-params',
+        'tools',
+        'rules',
+        'memory',
+        'other',
+    ])),
+    affectedFiles: z.array(z.string()),
+    linesAdded: z.number().int().nonnegative(),
+    linesRemoved: z.number().int().nonnegative(),
+    coverageDelta: z.number().optional(),
+    rationale: z.string(),
+    timestamp: z.number().int().positive(),
+    agentSignature: z.string(),
+    correlationId: z.string().optional(),
+});
+
+export const SelfModProposalEventSchema = CognitiveEventBaseSchema.extend({
+    type: z.literal('self-mod.proposal'),
+    payload: PatchProposalSchema,
+});
+
 export const CognitiveEventSchema = z.discriminatedUnion('type', [
     TaskAdmittedEventSchema,
     DerivationAcceptedEventSchema,
@@ -124,6 +163,7 @@ export const CognitiveEventSchema = z.discriminatedUnion('type', [
     BudgetExhaustedEventSchema,
     PolicyViolationEventSchema,
     AutonomyModeChangedEventSchema,
+    SelfModProposalEventSchema,
 ]);
 
 export type CognitiveEvent = z.infer<typeof CognitiveEventSchema>;
@@ -134,6 +174,7 @@ export type ConceptActivatedEvent = z.infer<typeof ConceptActivatedEventSchema>;
 export type BudgetExhaustedEvent = z.infer<typeof BudgetExhaustedEventSchema>;
 export type PolicyViolationEvent = z.infer<typeof PolicyViolationEventSchema>;
 export type AutonomyModeChangedEvent = z.infer<typeof AutonomyModeChangedEventSchema>;
+export type SelfModProposalEvent = z.infer<typeof SelfModProposalEventSchema>;
 
 /**
  * ============================================================================
@@ -291,6 +332,36 @@ export const SelfImprovementProposalSchema = z.object({
 });
 export type SelfImprovementProposal = z.infer<typeof SelfImprovementProposalSchema>;
 
+export type PatchProposal = z.infer<typeof PatchProposalSchema>;
+
+export const RiskLevelSchema = z.enum(['LOW', 'MEDIUM', 'HIGH']);
+export type RiskLevel = z.infer<typeof RiskLevelSchema>;
+
+export const RiskAssessmentSchema = z.object({
+    risk: RiskLevelSchema,
+    score: z.number().int().nonnegative(),
+    factors: z.array(z.object({ factor: z.string(), file: z.string().optional(), component: z.string().optional(), severity: z.enum(['LOW', 'MEDIUM', 'HIGH']) })),
+});
+export type RiskAssessment = z.infer<typeof RiskAssessmentSchema>;
+
+export const GovernanceDecisionSchema = z.object({
+    action: z.enum(['AUTO_MERGE', 'CREATE_PR', 'REQUIRE_HUMAN_REVIEW', 'REJECT']),
+    reason: z.string(),
+    reviewers: z.number().int().nonnegative().optional(),
+});
+export type GovernanceDecision = z.infer<typeof GovernanceDecisionSchema>;
+
+export const GovernanceEventSchema = z.object({
+    eventId: z.string().uuid(),
+    proposalId: z.string().uuid(),
+    decision: z.enum(['AUTO_MERGED', 'PR_CREATED', 'HUMAN_REVIEW_REQUIRED', 'REJECTED']),
+    riskLevel: RiskLevelSchema,
+    autonomyMode: AutonomyModeSchema,
+    decidedAt: z.number().int().positive(),
+    decidedBy: z.enum(['governance-runner', 'human-reviewer', 'security-team']),
+});
+export type GovernanceEvent = z.infer<typeof GovernanceEventSchema>;
+
 export const PerceptionGateInputSchema = z.object({
     sourceId: z.string(),
     rawObservation: z.unknown(),
@@ -336,12 +407,14 @@ export const RewardGateOutputSchema = z.object({
     mutationApplied: z.boolean().optional(),
     epistemicFirewallViolation: z.boolean().optional(),
     rejectionReason: z.string().optional(),
+    requiresProposal: z.boolean().optional(),
 });
 
 export const BudgetGateInputSchema = z.object({
     budget: ReasoningBudgetSchema.optional(),
     operation: z.enum(['nal-step', 'lm-call', 'memory-op', 'derivation-depth']),
     estimatedCost: z.number().int().positive().optional(),
+    scopeId: z.string().optional(),
     correlationId: z.string().optional(),
 });
 

@@ -23,6 +23,8 @@ const knobSchema = [
     {name: 'cpuThrottleMs', path: 'inference.cpuThrottleMs', min: 0, max: 50, step: 1},
     {name: 'maxLoops', path: 'modelRunner.maxLoops', min: 1, max: 10, step: 1},
     {name: 'activationDecayRate', path: 'memory.activationDecayRate', min: 0.001, max: 0.1, step: 0.001},
+    {name: 'rankingMaxAdmissions', path: 'inference.ranking.maxAdmissions', min: 10, max: 1000, step: 10},
+    {name: 'rankingMinScore', path: 'inference.ranking.minScore', min: 0, max: 0.5, step: 0.05},
 ] as const;
 
 function getNested(obj: ParamObj, path: string): number {
