@@ -1,16 +1,8 @@
 # 🧠 SeNARS12
 
-> **Semantic Non-Axiomatic Reasoning System** — Next-generation cognitive architecture fusing fluid LLM creativity with rigorous symbolic logic 🚀
+**Semantic Non-Axiomatic Reasoning System** — Next-generation cognitive architecture fusing fluid LLM creativity with rigorous symbolic logic reasoning for adaptive, and resourceful thinking.
 
----
-
-## Vision
-
-**SeNARS12** is more than a reasoning engine—it's a **cognitive kernel** for the AI-native future. We're building a system that thinks like humans do: fluidly, adaptively, and resourcefully, while maintaining mathematical rigor.
-
-### Why SeNARS12 Exists: Bridging the System 1 / System 2 Gap
-
-We are witnessing the limits of the "Scaling Hypothesis." LLMs achieve miraculous fluency but remain **probabilistic improvisers, not reasoning engines**—they hallucinate, lose state across long contexts, and cannot mathematically guarantee a deduction. Classical symbolic AI (GOFAI) is rigorous but brittle when facing real-world noise and ambiguity.
+At the limits of the "Scaling Hypothesis," LLMs achieve miraculous fluency but remain **probabilistic improvisers, not reasoning engines**—they hallucinate, lose state across long contexts, and cannot mathematically guarantee a deduction. Classical symbolic AI (GOFAI) is rigorous but brittle when facing real-world noise and ambiguity.
 
 **SeNARS12 fuses fluid LLM creativity (System 1) with rigorous, resource-bounded logic (System 2):**
 
@@ -22,15 +14,13 @@ We are witnessing the limits of the "Scaling Hypothesis." LLMs achieve miraculou
 | **Resource Mgmt** | Infinite (cloud API) | Fixed | **AIKR: bounded, anytime, edge-ready** |
 | **Auditability** | Low (black box) | High (proof trees) | **High: derivation traces + NL explanation** |
 
-**Wedge Use Cases where pure LLMs fail:**
+**Pure LLMs fail:**
 
 - **Personal Logic Vault** — Local-first KB that detects contradictions in your thinking and suggests resolutions
 - **Autonomous DevOps** — Monitors logs, forms hypotheses via NAL, executes repairs via MeTTa, full audit trail
 - **Explainable Compliance** — Ingests regulations, answers with formal logical proofs, not just text retrieval
 
 ---
-
-## What Makes SeNARS12 Special
 
 ### Core Principles (AIKR)
 
@@ -121,7 +111,7 @@ Most AI architectures assume infinite compute/memory (massive context windows, e
 
 > In an era where AI moves from cloud to edge (smartphones, IoT, local servers), we need systems that know how to *forget*, how to prioritize, and how to yield partial results when interrupted.
 
-### The Trust Gap — Auditable Neuro-Symbolic Handoffs
+### The Trust Gap — Auditable Neuro-Symbolics
 
 Enterprises cannot deploy "black box" agents for critical decisions. They require **provenance and proof**.
 
@@ -184,23 +174,12 @@ The neuro-symbolic handoff (LLM → Narsese → NAL → NL) makes this separatio
 ## Quick Start
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Development mode (watch)
-pnpm run dev
-
-# Run once
-pnpm run start
-
-# Test everything
-pnpm run test
-
-# Type check
-pnpm run typecheck
-
-# Lint
-pnpm run lint
+pnpm install # Install dependencies
+pnpm run dev # Development mode (watch)
+pnpm run start # Run once
+pnpm run test # Test everything
+pnpm run typecheck # Type check
+pnpm run lint # Lint
 ```
 
 ### Run the Bot on IRC
@@ -208,8 +187,8 @@ pnpm run lint
 The `pnpm bot` command starts a multi-transport agent that drives a single SeNARS agent through IRC, CLI, and WebSocket.
 
 ```bash
-cp .env.example .env       # fill in your LM provider credentials
-pnpm bot                    # IRC + WS by default
+cp .env.example .env # fill in your LM provider credentials
+pnpm bot             # IRC + WS by default
 ```
 
 Default behavior: connects to `irc.libera.chat#senars` as `senars-bot` and starts a WebSocket server on `ws://localhost:8765`. Friends can join the IRC channel and chat, or connect their bots to the WebSocket.
@@ -285,9 +264,9 @@ const projected = Truth.deduction(truth1, truth2); // Inference
 
 **Operations:** `revision`, `deduction`, `induction`, `abduction`, `comparison`, `negation`, `expectation`
 
-### Inference Rules (NAL + Extended)
+### NAL Inference Rules
 
-**Core NAL Rules (15+):**
+**Core NAL Rules:**
 
 | Category | Rules |
 |----------|-------|
@@ -297,7 +276,7 @@ const projected = Truth.deduction(truth1, truth2); // Inference
 | Higher-Order | `higher-order-deduction`, `analogical` |
 | Comparison | `comparison`, `analogy` |
 
-**Extended Rules (30+):**
+**Extended Rules:**
 
 | Category | Rules |
 |----------|-------|
@@ -308,13 +287,54 @@ const projected = Truth.deduction(truth1, truth2); // Inference
 | Meta-Cognitive | `error-pattern-detection`, `metacognitive-revision`, `resource-allocation`, `strategy-effectiveness`, `self-model-consistency`, `utility-estimation`, `goal-execution` |
 | Variable | `variable-substitution`, `variable-unification` |
 
-**LLM-Enhanced Rules (Dynamic):**
+### LLM Rules — Dynamic Neuro-Symbolic Fusion
 
-- Semantic similarity rules using embeddings
+| Category | Rule ID | Name | Description | Priority | Budget | Activation |
+|----------|---------|------|-------------|----------|--------|------------|
+| **Belief** | `lm-narsese-translation` | LMNarseseTranslationRule | Translates natural language to Narsese | 0.9 | 0.9 | Always |
+| | `lm-belief-revision` | LMBeliefRevisionRule | Revises belief confidence based on context | 0.8 | 0.7 | Conflicting beliefs |
+| | `lm-hypothesis-generation` | LMHypothesisGenerationRule | Generates hypotheses from observations | 0.75 | 0.6 | Low confidence |
+| | `lm-explanation-generation` | LMExplanationGenerationRule | Generates explanations for beliefs | 0.7 | 0.65 | Always |
+| | `lm-analogical-reasoning` | LMAnalogicalReasoningRule | Performs analogical reasoning between concepts | 0.8 | 0.7 | Structural similarity |
+| | `lm-meta-reasoning` | LMMetaReasoningGuidanceRule | Provides meta-level reasoning guidance | 0.75 | 0.65 | Always |
+| | `lm-uncertainty-calibration` | LMUncertaintyCalibrationRule | Calibrates uncertainty in beliefs | 0.7 | 0.6 | Always |
+| | `lm-schema-induction` | LMSchemaInductionRule | Induces schemas from examples | 0.75 | 0.65 | Always |
+| | `lm-temporal-causal` | LMTemporalCausalModelingRule | Models temporal and causal relationships | 0.8 | 0.7 | Always |
+| | `lm-variable-grounding` | LMVariableGroundingRule | Grounds variables in concrete instances | 0.7 | 0.65 | Has variables |
+| | `lm-concept-elaboration` | LMConceptElaborationRule | Elaborates on concept properties | 0.75 | 0.7 | Underconnected |
+| **Goal** | `lm-goal-decomposition` | LMGoalDecompositionRule | Decomposes complex goals into subgoals | 0.85 | 0.8 | Complex goals |
+| **Question** | `lm-curiosity-question` | LMCuriosityQuestionRule | Generates questions driven by curiosity | 0.7 | 0.65 | High curiosity |
+| | `lm-interactive-clarification` | LMInteractiveClarificationRule | Seeks clarification for ambiguous inputs | 0.7 | 0.65 | Always |
+| **Meta (V2)** | `lm-v2-hypothesis` | LMV2HypothesisRule | Generates typed hypotheses with truth values | 0.75 | — | Single premise |
+| | `lm-v2-explanation` | LMV2ExplanationRule | Generates typed explanations with key premises | 0.7 | — | Single premise |
+| | `lm-v2-analogy` | LMV2AnalogyRule | Finds structural analogies between concepts | 0.8 | — | Always |
+| | `lm-v2-causal` | LMV2CausalRule | Models causal relationships | 0.8 | — | Always |
+| | `lm-v2-schema` | LMV2SchemaRule | Induces reusable schemas from patterns | 0.75 | — | Single premise |
+
+
 - Belief/goal/question generation from LLM
+- Semantic similarity rules using embeddings
 - Meta-reasoning about reasoning quality
+- Structured output via JSON schemas (function calling)
+- Bidirectional feedback: NAR ↔ LM correction loops
+- Proactive enrichment: LM generates background knowledge
+- Tool dispatching: LM rules can call NAR tools
+- Per-rule timeout & circuit breaker
+- Activation conditions (confidence, connectivity, curiosity, complexity)
+- Constitution-aware rules respect system invariants
 
-### Memory Architecture
+```typescript
+import { LMRules, LMRule } from '@senars/nar/lm';
+import { createLMService } from '@senars/nar/lm/lm-service';
+
+const lmService = createLMService(config);
+const rules = LMRules.createAll(lmService);
+
+// Dynamic rule selection strategies
+AllSelector | PrioritySelector | RotationSelector | DiverseSelector
+```
+
+### Memory
 
 **Multi-Layer Memory System:**
 
@@ -344,7 +364,7 @@ const episodes = await episodic.getEpisodes({ limit: 10, query: 'cat' });
 - **Pressure-driven consolidation** (forgetting + archival)
 - **State persistence** (JSON serialization/deserialization)
 
-### Reasoning Engine
+### Reasoning
 
 ```typescript
 import { NAR, createNAR } from '@senars/nar';
@@ -381,7 +401,7 @@ const answer = nar.ask('(whiskers --> animal)');
 - `runStream(steps)` — Async generator for incremental results
 - Configurable derivation strategies: `BagStrategy`, `ExhaustiveStrategy`, `SampledDerivation`, `FocusedDerivation`, `AnytimeDerivation`
 
-### Cognitive Architecture (System 1/2 + Executive)
+### Cognition (System 1/2 + Executive)
 
 **System 1 — Intuitive/Associative (LM-Enhanced):**
 
@@ -480,7 +500,7 @@ const quality = await self.assessQuality();  // { coherence, relevance, complete
 const state = self.querySystemState();       // Full system snapshot
 ```
 
-### Grounding Pipeline — Sensory & Source Integration
+### Grounding — Sensory & Source Integration
 
 The `GroundingPipeline` class and `SourceQuality` enum provide source quality assessment for beliefs:
 
@@ -492,7 +512,7 @@ The `GroundingPipeline` class and `SourceQuality` enum provide source quality as
 | Blog/Forum | TERTIARY | 0.4 |
 | LLM Prior | LLM_PRIOR | 0.5 |
 
-### Streaming Pipeline — Async Derivation Streams
+### Streaming — Async Derivation Streams
 
 Async derivation streams with backpressure and CPU throttling:
 
@@ -517,7 +537,7 @@ for await (const result of pipeline.derive(reasoner)) {
 
 **Exports:** `createPipeline`, `StreamReasoner`, `MemoryPremiseSource`, `FocusPremiseSource`, `CompositePremiseSource`, `derive`, `throttled`, `backpressureAware`, types `PipelineConfig`, `PremiseSource`, `LMBackend`, `ProvisionalBelief` from `@senars/nar/stream`.
 
-### NAR Command System — CLI & Programmatic Control
+### NAR Commands — CLI & Programmatic Control
 
 ```typescript
 import { narCommands, rlfpCommands, selfCommands, configCommands, memoryCommands } from '@senars/nar/commands';
@@ -531,53 +551,6 @@ memoryCommands   // concept inspection, belief/goal/question queries, attention 
 lmCommands       // LM rule management, enrichment triggering
 episodesCommands // episodic memory queries
 ```
-
-### LLM-Enhanced Rules — Dynamic Neuro-Symbolic Fusion
-
-```typescript
-import { LMRules, LMRule } from '@senars/nar/lm';
-import { createLMService } from '@senars/nar/lm/lm-service';
-
-const lmService = createLMService(config);
-const rules = LMRules.createAll(lmService);
-
-// Dynamic rule selection strategies
-AllSelector | PrioritySelector | RotationSelector | DiverseSelector
-```
-
-**Implemented LM Rules (19 total):**
-
-| Category | Rule ID | Name | Description | Priority | Budget | Activation |
-|----------|---------|------|-------------|----------|--------|------------|
-| **Belief** | `lm-narsese-translation` | LMNarseseTranslationRule | Translates natural language to Narsese | 0.9 | 0.9 | Always |
-| | `lm-belief-revision` | LMBeliefRevisionRule | Revises belief confidence based on context | 0.8 | 0.7 | Conflicting beliefs |
-| | `lm-hypothesis-generation` | LMHypothesisGenerationRule | Generates hypotheses from observations | 0.75 | 0.6 | Low confidence |
-| | `lm-explanation-generation` | LMExplanationGenerationRule | Generates explanations for beliefs | 0.7 | 0.65 | Always |
-| | `lm-analogical-reasoning` | LMAnalogicalReasoningRule | Performs analogical reasoning between concepts | 0.8 | 0.7 | Structural similarity |
-| | `lm-meta-reasoning` | LMMetaReasoningGuidanceRule | Provides meta-level reasoning guidance | 0.75 | 0.65 | Always |
-| | `lm-uncertainty-calibration` | LMUncertaintyCalibrationRule | Calibrates uncertainty in beliefs | 0.7 | 0.6 | Always |
-| | `lm-schema-induction` | LMSchemaInductionRule | Induces schemas from examples | 0.75 | 0.65 | Always |
-| | `lm-temporal-causal` | LMTemporalCausalModelingRule | Models temporal and causal relationships | 0.8 | 0.7 | Always |
-| | `lm-variable-grounding` | LMVariableGroundingRule | Grounds variables in concrete instances | 0.7 | 0.65 | Has variables |
-| | `lm-concept-elaboration` | LMConceptElaborationRule | Elaborates on concept properties | 0.75 | 0.7 | Underconnected |
-| **Goal** | `lm-goal-decomposition` | LMGoalDecompositionRule | Decomposes complex goals into subgoals | 0.85 | 0.8 | Complex goals |
-| **Question** | `lm-curiosity-question` | LMCuriosityQuestionRule | Generates questions driven by curiosity | 0.7 | 0.65 | High curiosity |
-| | `lm-interactive-clarification` | LMInteractiveClarificationRule | Seeks clarification for ambiguous inputs | 0.7 | 0.65 | Always |
-| **Meta (V2)** | `lm-v2-hypothesis` | LMV2HypothesisRule | Generates typed hypotheses with truth values | 0.75 | — | Single premise |
-| | `lm-v2-explanation` | LMV2ExplanationRule | Generates typed explanations with key premises | 0.7 | — | Single premise |
-| | `lm-v2-analogy` | LMV2AnalogyRule | Finds structural analogies between concepts | 0.8 | — | Always |
-| | `lm-v2-causal` | LMV2CausalRule | Models causal relationships | 0.8 | — | Always |
-| | `lm-v2-schema` | LMV2SchemaRule | Induces reusable schemas from patterns | 0.75 | — | Single premise |
-
-**LM Rule Features:**
-
-- Structured output via JSON schemas (function calling)
-- Bidirectional feedback: NAR ↔ LM correction loops
-- Proactive enrichment: LM generates background knowledge
-- Tool dispatching: LM rules can call NAR tools
-- Per-rule timeout & circuit breaker
-- Activation conditions (confidence, connectivity, curiosity, complexity)
-- Constitution-aware rules respect system invariants
 
 ### Reinforcement Learning from Reasoning Feedback (RLFP)
 
@@ -606,7 +579,7 @@ await tools.execute('timer', { action: 'start', name: 'reasoning' });
 async function myTool(args: { input: string }) { ... }
 ```
 
-### Natural Language Interface
+### Natural Language
 
 ```typescript
 import { NLUnderstandingService, NLGenerationService, ContextAssembler } from '@senars/nar/nl';
@@ -627,7 +600,7 @@ const answer = await generation.generate({
 const answer = await nar.askNaturalLanguage("What is Whiskers?");
 ```
 
-### MeTTa — Meta Type Theory Engine
+### MeTTa — Meta Type Theory
 
 A **second reasoning engine** running alongside NAR, providing equality saturation, pattern matching, and dependent type theory:
 
@@ -690,7 +663,7 @@ const agent = await createAgent({ /* config */ });
 // MeTTa input: metta: (= (add $x 0) $x)
 ```
 
-### Observability — OpenTelemetry Integration
+### Observability
 
 First-class OpenTelemetry support for distributed tracing of the cognitive tick pipeline:
 
@@ -805,7 +778,7 @@ import { CognitiveParameters, DEFAULT_COGNITIVE_PARAMETERS, FAST_COGNITIVE_CONFI
 - RL-based policy optimization (RLFP)
 - Evolutionary parameter tuning
 
-### Lens System — Declarative UI Projections
+### Lens — Declarative UI Projections
 
 **Lenses** map cognitive state to visual channels (color, size, opacity, stroke) via a composable AST:
 
@@ -1166,7 +1139,7 @@ agent.health();     // { status: 'healthy', cycleCount: 42, ... }
 agent.capabilities(); // { engine: 'metta', supports: { chat: true, skills: true, ... } }
 ```
 
-**6-Phase Reasoning Cycle:**
+**Reasoning Cycle:**
 
 | Phase | Function |
 |-------|----------|
@@ -1425,15 +1398,6 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 - **Knowledge Book format** (`.sbook` YAML) — portable, versioned knowledge packages
 - **Import/export:** Narsese, RDF/OWL, JSON-LD, Natural Language
 
-### Flagship Demo: Personal Logic Vault
-
-A local-first personal knowledge base showcasing SeNARS12's unique value:
-
-- Obsidian/Markdown import
-- Contradiction detection and gap finding in your own notes
-- Full derivation explanations for every conclusion
-- Runs entirely offline — your reasoning, your data
-
 ## Positioning in AI Landscape
 
 ```
@@ -1466,8 +1430,6 @@ A local-first personal knowledge base showcasing SeNARS12's unique value:
 
 ---
 
-## The Verdict
-
 **SeNARS12 is necessary because the current AI paradigm is incomplete.** We have mastered the "System 1" of AI (fast, intuitive, linguistic), but we have neglected the "System 2" (slow, logical, deliberative).
 
 By building a system that:
@@ -1485,14 +1447,6 @@ The code is the foundation. The next step is building the bridge — the tight, 
 ## License
 
 MIT License — see `LICENSE` for details.
-
----
-
-## Contributing
-
-See `CONTRIBUTING.md` (to be created) and `AGENTS.md` for code guidelines.
-
-**Code Principles:** Elegant • Consolidated • Consistent • Organized • DRY • Abstract • Modularized • Parameterized
 
 ---
 
