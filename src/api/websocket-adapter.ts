@@ -13,7 +13,7 @@ import {
 } from '@senars/io/utils/websocket';
 import {type WebSocket, WebSocketServer} from 'ws';
 import {errMsg, makeId} from '../../nar/src/utils';
-import {errorResponse, successResponse, UnifiedAdapter} from './unified-adapter.js';
+import {UnifiedAdapter, type APIResponse, errorResponse, successResponse} from './unified-adapter.js';
 
 interface WSMessage {
     type: string;
@@ -177,10 +177,10 @@ export class WebSocketAdapter extends UnifiedAdapter {
     }
 
     private sendSuccess(ws: WebSocket, data: Record<string, unknown>, id?: string): void {
-        this.sendJSON(ws, successResponse(data, id));
+        ws.send(JSON.stringify(successResponse(data, id)));
     }
 
     private sendError(ws: WebSocket, error: string, id?: string): void {
-        this.sendJSON(ws, errorResponse('HANDLER_ERROR', error, id));
+        ws.send(JSON.stringify(errorResponse('HANDLER_ERROR', error, id)));
     }
 }

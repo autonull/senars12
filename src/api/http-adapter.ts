@@ -6,9 +6,9 @@
 import {randomBytes} from 'node:crypto';
 import type {IncomingMessage, ServerResponse} from 'node:http';
 import {URL} from 'node:url';
-import {ApiKeyManager, parseHttpBody, setCORSHeaders} from '@senars/io/utils/http';
+import {ApiKeyManager, parseHttpBody} from '@senars/io/utils/http';
 import {errMsg} from '../../nar/src/utils';
-import {errorResponse, successResponse, UnifiedAdapter} from './unified-adapter.js';
+import {UnifiedAdapter, type APIResponse, errorResponse, successResponse} from './unified-adapter.js';
 
 export interface HTTPAdapterConfig {
     port?: number;
@@ -101,7 +101,11 @@ export class HTTPAdapter extends UnifiedAdapter {
         const url = new URL(req.url || '/', 'http://localhost');
         const method = req.method || 'GET';
 
-        if (this.httpConfig.enableCors) setCORSHeaders(res);
+        if (this.httpConfig.enableCors) {
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
+        }
         res.setHeader('Content-Type', 'application/json');
 
         if (method === 'OPTIONS') {
@@ -113,7 +117,7 @@ export class HTTPAdapter extends UnifiedAdapter {
         if (url.pathname === '/health') {
             const result = await this.registry.invoke('getHealth', {});
             res.statusCode = 200;
-            res.end(JSON.stringify(result));
+            res.end(JSON.stringify(successResponse(result as Record<string, unknown>)));
             return;
         }
 

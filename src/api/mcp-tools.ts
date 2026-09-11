@@ -3,6 +3,7 @@ import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import type {Agent} from '@senars/nar/agent';
 import {z} from 'zod';
 import type {NAR} from '../../nar/src';
+import {createMCPResponse, formatBeliefsForMCP, stringifyMCP} from './mcp-response.js';
 
 /** Safe math evaluator - parses and evaluates arithmetic expressions without eval() */
 function safeEvaluate(expr: string): number {
@@ -76,10 +77,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
         async ({expression}) => {
             const sanitized = expression.replace(/[^0-9+\-*/.()eE\s]/g, '');
             const result = safeEvaluate(sanitized);
-            return {
-                content: [{type: 'text', text: String(result)}],
-                structuredContent: {result},
-            };
+            return createMCPResponse(String(result), {result});
         }
     );
 
@@ -98,10 +96,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
         },
         async ({path}) => {
             const content = await fs.readFile(path, 'utf-8');
-            return {
-                content: [{type: 'text', text: content}],
-                structuredContent: {content},
-            };
+            return createMCPResponse(content, {content});
         }
     );
 
@@ -121,10 +116,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
         },
         async ({path, content}) => {
             await fs.writeFile(path, content, 'utf-8');
-            return {
-                content: [{type: 'text', text: 'File written successfully'}],
-                structuredContent: {success: true},
-            };
+            return createMCPResponse('File written successfully', {success: true});
         }
     );
 
@@ -146,16 +138,8 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
             const results = beliefs.filter((b) =>
                 b.term.toString().toLowerCase().includes(query.toLowerCase())
             );
-            const structuredResults = results.map((b) => ({term: b.term.toString(), truth: b.truth}));
-            return {
-                content: [
-                    {
-                        type: 'text',
-                        text: JSON.stringify(structuredResults, null, 2),
-                    },
-                ],
-                structuredContent: {results: structuredResults},
-            };
+            const structuredResults = formatBeliefsForMCP(results);
+            return createMCPResponse(stringifyMCP(structuredResults), {results: structuredResults});
         }
     );
 
@@ -177,29 +161,8 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
         },
         async ({steps}) => {
             const derived = await nar.run(steps);
-            const recentBeliefs = nar
-                .getBeliefs()
-                .slice(-10)
-                .map((b) => ({
-                    term: b.term.toString(),
-                    truth: b.truth,
-                }));
-            return {
-                content: [
-                    {
-                        type: 'text',
-                        text: JSON.stringify(
-                            {
-                                derived,
-                                beliefs: recentBeliefs,
-                            },
-                            null,
-                            2
-                        ),
-                    },
-                ],
-                structuredContent: {derived, beliefs: recentBeliefs},
-            };
+            const recentBeliefs = formatBeliefsForMCP(nar.getBeliefs().slice(-10));
+            return createMCPResponse(stringifyMCP({derived, beliefs: recentBeliefs}), {derived, beliefs: recentBeliefs});
         }
     );
 
@@ -219,10 +182,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
         },
         async ({belief}) => {
             await nar.believe(belief);
-            return {
-                content: [{type: 'text', text: `Added belief: ${belief}`}],
-                structuredContent: {added: belief},
-            };
+            return createMCPResponse(`Added belief: ${belief}`, {added: belief});
         }
     );
 
@@ -241,10 +201,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
         },
         async ({term}) => {
             const result = {term, derivation: 'Not yet implemented'};
-            return {
-                content: [{type: 'text', text: `Derivation for ${term}: Not yet implemented`}],
-                structuredContent: result,
-            };
+            return createMCPResponse(`Derivation for ${term}: Not yet implemented`, result);
         }
     );
 
@@ -263,10 +220,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
         },
         async ({input}) => {
             const result = await agent.chat(input);
-            return {
-                content: [{type: 'text', text: result}],
-                structuredContent: {response: result},
-            };
+            return createMCPResponse(result, {response: result});
         }
     );
 
@@ -290,10 +244,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
                     result = event.text ?? '';
                 }
             }
-            return {
-                content: [{type: 'text', text: result}],
-                structuredContent: {response: result},
-            };
+            return createMCPResponse(result, {response: result});
         }
     );
 
@@ -313,10 +264,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
         },
         async ({narsese}) => {
             await agent.believe(narsese);
-            return {
-                content: [{type: 'text', text: 'Belief added successfully'}],
-                structuredContent: {success: true},
-            };
+            return createMCPResponse('Belief added successfully', {success: true});
         }
     );
 
@@ -335,10 +283,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
         },
         async ({query, limit}) => {
             const result = await agent.recall(query, limit);
-            return {
-                content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
-                structuredContent: result,
-            };
+            return createMCPResponse(stringifyMCP(result), result);
         }
     );
 
@@ -363,16 +308,10 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
         async ({key, value}) => {
             if (value !== undefined) {
                 agent.know(key, value);
-                return {
-                    content: [{type: 'text', text: `Stored: ${key} = ${value}`}],
-                    structuredContent: {key, value, stored: true},
-                };
+                return createMCPResponse(`Stored: ${key} = ${value}`, {key, value, stored: true});
             }
             const result = agent.knowGet?.(key);
-            return {
-                content: [{type: 'text', text: JSON.stringify({key, value: result}, null, 2)}],
-                structuredContent: {key, value: result, stored: false},
-            };
+            return createMCPResponse(stringifyMCP({key, value: result}), {key, value: result, stored: false});
         }
     );
 
@@ -391,10 +330,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
             },
         },
         async ({id}) => {
-            return {
-                content: [{type: 'text', text: `Enabled LM rule: ${id}`}],
-                structuredContent: {enabled: true, id},
-            };
+            return createMCPResponse(`Enabled LM rule: ${id}`, {enabled: true, id});
         }
     );
 
@@ -413,10 +349,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
             },
         },
         async ({id}) => {
-            return {
-                content: [{type: 'text', text: `Disabled LM rule: ${id}`}],
-                structuredContent: {disabled: true, id},
-            };
+            return createMCPResponse(`Disabled LM rule: ${id}`, {disabled: true, id});
         }
     );
 
@@ -435,15 +368,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
         },
         async ({term, type}) => {
             const result = {term, type: type ?? 'belief', explanation: 'Not yet implemented'};
-            return {
-                content: [
-                    {
-                        type: 'text',
-                        text: `Explanation for ${term} (${type ?? 'belief'}): Not yet implemented`,
-                    },
-                ],
-                structuredContent: result,
-            };
+            return createMCPResponse(`Explanation for ${term} (${type ?? 'belief'}): Not yet implemented`, result);
         }
     );
 
@@ -465,10 +390,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
         },
         async ({goalId}) => {
             const result = goalId ? {goalId, progress: 0} : [];
-            return {
-                content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
-                structuredContent: result,
-            };
+            return createMCPResponse(stringifyMCP(result), result);
         }
     );
 
@@ -486,17 +408,8 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
             },
         },
         async () => {
-            const beliefs = nar.getBeliefs();
-            const structuredBeliefs = beliefs.map((b) => ({term: b.term.toString(), truth: b.truth}));
-            return {
-                content: [
-                    {
-                        type: 'text',
-                        text: JSON.stringify(structuredBeliefs, null, 2),
-                    },
-                ],
-                structuredContent: {beliefs: structuredBeliefs},
-            };
+            const beliefs = formatBeliefsForMCP(nar.getBeliefs());
+            return createMCPResponse(stringifyMCP(beliefs), {beliefs});
         }
     );
 
@@ -515,10 +428,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
         },
         async () => {
             const report = nar.attentionReport();
-            return {
-                content: [{type: 'text', text: JSON.stringify(report, null, 2)}],
-                structuredContent: report,
-            };
+            return createMCPResponse(stringifyMCP(report), report);
         }
     );
 }

@@ -2,6 +2,7 @@ import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import {ResourceTemplate} from '@modelcontextprotocol/sdk/server/mcp.js';
 import type {Agent} from '@senars/nar/agent';
 import type {NAR} from '../../nar/src';
+import {formatBeliefsForMCP, stringifyMCP} from './mcp-response.js';
 
 export interface MCPResourceContext {
     nar: NAR;
@@ -24,11 +25,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                 {
                     uri: 'nar://beliefs',
                     mimeType: 'application/json',
-                    text: JSON.stringify(
-                        nar.getBeliefs().map((b) => ({term: b.term.toString(), truth: b.truth})),
-                        null,
-                        2
-                    ),
+                    text: stringifyMCP(formatBeliefsForMCP(nar.getBeliefs())),
                 },
             ],
         })
@@ -47,7 +44,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                 {
                     uri: 'nar://concepts',
                     mimeType: 'application/json',
-                    text: JSON.stringify(nar.attentionReport(), null, 2),
+                    text: stringifyMCP(nar.attentionReport()),
                 },
             ],
         })
@@ -66,7 +63,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                 {
                     uri: 'nar://attention',
                     mimeType: 'application/json',
-                    text: JSON.stringify(nar.attentionReport(), null, 2),
+                    text: stringifyMCP(nar.attentionReport()),
                 },
             ],
         })
@@ -81,7 +78,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
             mimeType: 'application/json',
         },
         async () => {
-            const beliefs = nar.getBeliefs().map((b) => ({term: b.term.toString(), truth: b.truth}));
+            const beliefs = formatBeliefsForMCP(nar.getBeliefs());
             const goals =
                 nar.getGoals?.().map((g) => ({term: g.term.toString(), truth: g.truth})) ?? [];
             const questions =
@@ -94,7 +91,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                     {
                         uri: 'nar://state',
                         mimeType: 'application/json',
-                        text: JSON.stringify({beliefs, goals, questions, attention, drives}, null, 2),
+                        text: stringifyMCP({beliefs, goals, questions, attention, drives}),
                     },
                 ],
             };
@@ -114,7 +111,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                 {
                     uri: 'nar://episodes',
                     mimeType: 'application/json',
-                    text: JSON.stringify({episodes: []}, null, 2),
+                    text: stringifyMCP({episodes: []}),
                 },
             ],
         })
@@ -133,7 +130,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                 {
                     uri: 'nar://benchmarks',
                     mimeType: 'application/json',
-                    text: JSON.stringify({history: []}, null, 2),
+                    text: stringifyMCP({history: []}),
                 },
             ],
         })
@@ -152,7 +149,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                 {
                     uri: 'nar://config',
                     mimeType: 'application/json',
-                    text: JSON.stringify(nar.getConfig(), null, 2),
+                    text: stringifyMCP(nar.getConfig()),
                 },
             ],
         })
@@ -171,10 +168,8 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                 {
                     uri: 'nar://tools',
                     mimeType: 'application/json',
-                    text: JSON.stringify(
-                        nar.tools.list().map((t) => ({name: t.name, description: t.description})),
-                        null,
-                        2
+                    text: stringifyMCP(
+                        nar.tools.list().map((t) => ({name: t.name, description: t.description}))
                     ),
                 },
             ],
@@ -194,7 +189,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                 {
                     uri: 'sessions://list',
                     mimeType: 'application/json',
-                    text: JSON.stringify([], null, 2),
+                    text: stringifyMCP([]),
                 },
             ],
         })
@@ -215,7 +210,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                     {
                         uri: 'knowledge://list',
                         mimeType: 'application/json',
-                        text: JSON.stringify(knowledge, null, 2),
+                        text: stringifyMCP(knowledge),
                     },
                 ],
             };
@@ -237,7 +232,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                     {
                         uri: 'lm-rules://stats',
                         mimeType: 'application/json',
-                        text: JSON.stringify(stats, null, 2),
+                        text: stringifyMCP(stats),
                     },
                 ],
             };
@@ -259,7 +254,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                     {
                         uri: 'lm-rules://execution-log',
                         mimeType: 'application/json',
-                        text: JSON.stringify(log, null, 2),
+                        text: stringifyMCP(log),
                     },
                 ],
             };
@@ -282,7 +277,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                         {
                             uri: 'rlfp://state',
                             mimeType: 'application/json',
-                            text: JSON.stringify({enabled: false}, null, 2),
+                            text: stringifyMCP({enabled: false}),
                         },
                     ],
                 };
@@ -293,22 +288,18 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                     {
                         uri: 'rlfp://state',
                         mimeType: 'application/json',
-                        text: JSON.stringify(
-                            {
-                                enabled: true,
-                                policy: Object.fromEntries(
-                                    policyOptimizer
-                                        ?.getAllStrategies?.()
-                                        .map((s: string) => [s, policyOptimizer.getStrategyStats(s)?.priority ?? 1]) ??
-                                    []
-                                ),
-                                explorationRate: policyOptimizer?.getConfig?.().explorationRate ?? 0.1,
-                                totalRewards: rlfp.trajectoryCount ?? 0,
-                                totalSteps: rlfp.trajectoryCount ?? 0,
-                            },
-                            null,
-                            2
-                        ),
+                        text: stringifyMCP({
+                            enabled: true,
+                            policy: Object.fromEntries(
+                                policyOptimizer
+                                    ?.getAllStrategies?.()
+                                    .map((s: string) => [s, policyOptimizer.getStrategyStats(s)?.priority ?? 1]) ??
+                                []
+                            ),
+                            explorationRate: policyOptimizer?.getConfig?.().explorationRate ?? 0.1,
+                            totalRewards: rlfp.trajectoryCount ?? 0,
+                            totalSteps: rlfp.trajectoryCount ?? 0,
+                        }),
                     },
                 ],
             };
@@ -331,7 +322,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                         {
                             uri: 'self-reasoning://quality',
                             mimeType: 'application/json',
-                            text: JSON.stringify({available: false}, null, 2),
+                            text: stringifyMCP({available: false}),
                         },
                     ],
                 };
@@ -341,17 +332,13 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                     {
                         uri: 'self-reasoning://quality',
                         mimeType: 'application/json',
-                        text: JSON.stringify(
-                            {
-                                available: true,
-                                overall: 0,
-                                coherence: 0,
-                                relevance: 0,
-                                completeness: 0,
-                            },
-                            null,
-                            2
-                        ),
+                        text: stringifyMCP({
+                            available: true,
+                            overall: 0,
+                            coherence: 0,
+                            relevance: 0,
+                            completeness: 0,
+                        }),
                     },
                 ],
             };
@@ -368,7 +355,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
             description: 'Get session history by key',
             mimeType: 'application/json',
         },
-        async (uri, {key}) => ({
+        async (_uri, {key}) => ({
             contents: [
                 {
                     uri: `sessions://${key}`,
@@ -389,7 +376,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
             description: 'Get knowledge entry by key',
             mimeType: 'application/json',
         },
-        async (uri, {key}) => {
+        async (_uri, {key}) => {
             const value = agent?.knowGet?.(key);
             if (value !== undefined) {
                 return {
@@ -397,7 +384,7 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
                         {
                             uri: `knowledge://${key}`,
                             mimeType: 'application/json',
-                            text: JSON.stringify({key, value}, null, 2),
+                            text: stringifyMCP({key, value}),
                         },
                     ],
                 };

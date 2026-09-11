@@ -15,3 +15,14 @@ export {
 } from './mcp-tools.js';
 export {APIRegistry} from './registry.js';
 export {WebSocketAdapter} from './websocket-adapter.js';
+export type {APIResponse} from './response.js';
+export {errorResponse, formatError, sendJSON, successResponse} from './response.js';
+export {
+    createMCPResponse,
+    createMCPTextResponse,
+    formatBeliefsForMCP,
+    formatConceptsForMCP,
+    formatEpisodesForMCP,
+    safeJSONParse,
+    stringifyMCP,
+} from './mcp-response.js';

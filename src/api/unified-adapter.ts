@@ -6,6 +6,7 @@
 import type {z} from 'zod';
 import {createLogger, type Logger} from '../../nar/src/logger';
 import {APIRegistry} from './registry.js';
+import {type APIResponse, errorResponse, formatError, sendJSON, successResponse} from './response.js';
 
 export interface AdapterConfig {
     transport: string;
@@ -20,28 +21,6 @@ export interface HandlerMeta<T = unknown> {
     returns: z.ZodSchema;
     handler: (args: T) => Promise<unknown>;
 }
-
-export interface APIResponse {
-    type: 'success' | 'error';
-    id?: string;
-    data?: Record<string, unknown>;
-    error?: { code: string; message: string };
-    timestamp: number;
-}
-
-export const successResponse = (data: Record<string, unknown>, id?: string): APIResponse => ({
-    type: 'success',
-    id,
-    data,
-    timestamp: Date.now(),
-});
-
-export const errorResponse = (code: string, message: string, id?: string): APIResponse => ({
-    type: 'error',
-    id,
-    error: {code, message},
-    timestamp: Date.now(),
-});
 
 export abstract class UnifiedAdapter {
     protected readonly registry: APIRegistry;
@@ -77,8 +56,18 @@ export abstract class UnifiedAdapter {
     }
 
     protected sendJSON(ws: { send: (data: string) => void }, response: APIResponse): void {
-        ws.send(JSON.stringify(response));
+        sendJSON(ws, response);
     }
+
+    protected successResponse = <T extends Record<string, unknown> = Record<string, unknown>>(
+        data: T,
+        id?: string
+    ): APIResponse<T> => successResponse(data, id);
+
+    protected errorResponse = (code: string, message: string, id?: string): APIResponse =>
+        errorResponse(code, message, id);
+
+    protected formatError = formatError;
 }
 
-export {APIRegistry};
+export {APIRegistry, type APIResponse, errorResponse, formatError, sendJSON, successResponse};

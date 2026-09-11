@@ -3,6 +3,13 @@ import type {CLICommand} from '@senars/io/connections/cli';
 import {QUIT_SENTINEL} from '@senars/io/connections/cli';
 import type {NAR} from '@senars/nar';
 import type {ConversationSession, SessionManager} from '@senars/util/types/memory';
+import {
+    formatAgentStatus,
+    formatAttention,
+    formatBeliefs,
+    formatCombinedStats,
+    formatConcepts,
+} from './stats-format.js';
 
 export interface LMStats {
     totalCalls: number;
@@ -20,7 +27,7 @@ export interface LMHandle {
 
 export const REPL_HELP = `
 SeNARS REPL - Neuro-Symbolic Reasoning CLI
-============================================
+==========================================
 
 Commands:
   .help        - Show this help
@@ -53,66 +60,22 @@ export function buildCommands(
         {
             name: 'stats',
             description: 'Show NAR and LM statistics',
-            execute: () => {
-                const stats = nar.getStatistics();
-                const lmStats = lmService.getStats();
-                return [
-                    '\n--- NAR Statistics ---',
-                    `Concepts: ${stats.totalConcepts}`,
-                    `Tasks: ${stats.totalTasks}`,
-                    '\n--- LM Statistics ---',
-                    `Provider: ${lmService.provider ?? 'unknown'}`,
-                    `Model:    ${lmService.model ?? 'unknown'}`,
-                    ...(lmStats
-                        ? [
-                            `Total calls: ${lmStats.totalCalls}`,
-                            `Successful:  ${lmStats.successfulCalls}`,
-                            `Failed:      ${lmStats.failedCalls}`,
-                            `Avg duration: ${lmStats.averageDuration.toFixed(2)}ms`,
-                        ]
-                        : ['(no stats available)']),
-                ].join('\n');
-            },
+            execute: () => formatCombinedStats(nar, lmService),
         },
         {
             name: 'beliefs',
             description: 'Show current beliefs',
-            execute: () => {
-                const beliefs = nar.getBeliefs();
-                const lines = [`\n--- ${beliefs.length} Belief(s) ---`];
-                for (const b of beliefs.slice(0, 20)) {
-                    const termStr = b.term?.toString?.() ?? String(b.term);
-                    const truth = b.truth ? ` f=${b.truth.f.toFixed(2)} c=${b.truth.c.toFixed(2)}` : '';
-                    lines.push(`  ${termStr}${truth}`);
-                }
-                if (beliefs.length > 20) lines.push(`  ... and ${beliefs.length - 20} more`);
-                return lines.join('\n');
-            },
+            execute: () => formatBeliefs(nar),
         },
         {
             name: 'concepts',
             description: 'Show active concepts',
-            execute: () => {
-                const concepts = nar.listConcepts();
-                const lines = [`\n--- ${concepts.length} Concept(s) ---`];
-                for (const c of concepts.slice(0, 20)) {
-                    lines.push(`  ${c.term}: priority=${c.priority.toFixed(2)}`);
-                }
-                if (concepts.length > 20) lines.push(`  ... and ${concepts.length - 20} more`);
-                return lines.join('\n');
-            },
+            execute: () => formatConcepts(nar),
         },
         {
             name: 'attention',
             description: 'Attention focus report',
-            execute: () => {
-                const attn = nar.attentionReport();
-                const lines = [`\n--- Attention (${attn.total} total) ---`];
-                for (const c of attn.concepts.slice(0, 20)) {
-                    lines.push(`  ${c.term} (p=${c.priority.toFixed(2)})`);
-                }
-                return lines.join('\n');
-            },
+            execute: () => formatAttention(nar),
         },
         {
             name: 'episodes',
@@ -197,29 +160,7 @@ export function buildCommands(
         {
             name: 'status',
             description: 'Agent and NAR status',
-            execute: () => {
-                const stats = nar.getStatistics();
-                const lmStats = lmService.getStats();
-                const lines = [
-                    '\n--- Agent Status ---',
-                    `Throttle: ${agent.getThrottle()}%`,
-                    '\n--- NAR ---',
-                    `Concepts: ${stats.totalConcepts}`,
-                    `Tasks: ${stats.totalTasks}`,
-                    '\n--- LM ---',
-                    `Provider: ${lmService.provider ?? 'unknown'}`,
-                    `Model: ${lmService.model ?? 'unknown'}`,
-                ];
-                if (lmStats) {
-                    lines.push(
-                        `Calls: ${lmStats.totalCalls} (${lmStats.successfulCalls} ok, ${lmStats.failedCalls} fail)`
-                    );
-                    lines.push(`Avg: ${lmStats.averageDuration.toFixed(0)}ms`);
-                }
-                const knowledge = agent.knowList();
-                lines.push('\n--- Knowledge ---', `${knowledge.length} entries`);
-                return lines.join('\n');
-            },
+            execute: () => formatAgentStatus(agent, nar, lmService),
         },
         {
             name: 'clear',
