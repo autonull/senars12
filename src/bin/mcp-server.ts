@@ -1,147 +1,140 @@
 /**
  * MCP Server CLI Entry Point
  * Runs the SeNARS MCP Server with NAR tools registered
- * Uses official @modelcontextprotocol/sdk McpServer
  * Supports stdio, SSE, and Streamable HTTP transports
  */
 
-import {createServer} from 'node:http';
-import {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
-import {SSEServerTransport} from '@modelcontextprotocol/sdk/server/sse.js';
-import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
-import {StreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import {SeNARSFactory} from '@senars/nar';
-import {createLogger} from '@senars/nar/logger';
-import {registerMCPPrompts} from '../api/mcp-prompts.js';
-import {registerMCPResources} from '../api/mcp-resources.js';
-import {registerNARTools} from '../api/mcp-tools.js';
-import {loadConfig} from '../config';
-import {createAgentFromEnv} from './lib/lifecycle.js';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { createLogger } from '@senars/nar/logger';
+import { registerMCPPrompts } from '../api/mcp-prompts.js';
+import { registerMCPResources } from '../api/mcp-resources.js';
+import { registerNARTools } from '../api/mcp-tools.js';
+import { createAgentFromEnv } from './lib/lifecycle.js';
 
-const logger = createLogger({scope: 'mcp'});
+const logger = createLogger({ scope: 'mcp' });
 
 const serverInfo = {
-    name: 'senars-mcp',
-    version: '1.0.0',
-    description: 'SeNARS Non-Axiomatic Reasoning System MCP Server',
+  name: 'senars-mcp',
+  version: '1.0.0',
+  description: 'SeNARS Non-Axiomatic Reasoning System MCP Server',
 };
 
 const server = new McpServer(serverInfo);
 
 type TransportType = 'stdio' | 'sse' | 'http';
 
-function getTransportType(): TransportType {
-    const arg = process.argv.find((a) => a.startsWith('--transport='));
-    if (arg) return arg.split('=')[1] as TransportType;
-    return (process.env.MCP_TRANSPORT as TransportType) ?? 'stdio';
-}
+const getTransportType = (): TransportType => {
+  const arg = process.argv.find((a) => a.startsWith('--transport='));
+  if (arg) return arg.split('=')[1] as TransportType;
+  return (process.env.MCP_TRANSPORT as TransportType) ?? 'stdio';
+};
 
-function getHttpPort(): number {
-    const arg = process.argv.find((a) => a.startsWith('--port='));
-    if (arg) return parseInt(arg.split('=')[1], 10);
-    return parseInt(process.env.MCP_PORT ?? '8766', 10);
-}
+const getHttpPort = (): number => {
+  const arg = process.argv.find((a) => a.startsWith('--port='));
+  if (arg) return parseInt(arg.split('=')[1], 10);
+  return parseInt(process.env.MCP_PORT ?? '8766', 10);
+};
+
+const installSignalShutdown = (onShutdown: () => Promise<void>): void => {
+  const handler = async (signal: string) => {
+    logger.info(`Received ${signal}, shutting down...`);
+    await onShutdown();
+    process.exit(0);
+  };
+  process.on('SIGINT', () => handler('SIGINT'));
+  process.on('SIGTERM', () => handler('SIGTERM'));
+};
+
+const startSse = (port: number): void => {
+  const sessions = new Map<string, SSEServerTransport>();
+
+  const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+    const url = new URL(req.url ?? '/', `http://localhost:${port}`);
+    if (req.method === 'GET' && url.pathname === '/mcp/sse') {
+      const transport = new SSEServerTransport('/mcp/messages', res);
+      sessions.set(transport.sessionId, transport);
+      res.on('close', () => sessions.delete(transport.sessionId));
+      await server.connect(transport);
+      return;
+    }
+    if (req.method === 'POST' && url.pathname === '/mcp/messages') {
+      const sessionId = url.searchParams.get('sessionId');
+      const transport = sessionId ? sessions.get(sessionId) : undefined;
+      if (!transport) {
+        res.writeHead(404).end('Unknown session');
+        return;
+      }
+      await transport.handlePostMessage(req, res);
+      return;
+    }
+    res.writeHead(404).end('Not found');
+  });
+
+  httpServer.listen(port, () => {
+    logger.info(`SeNARS MCP Server started with SSE at http://localhost:${port}/mcp/sse`);
+  });
+  installSignalShutdown(async () => httpServer.close());
+};
+
+const startHttp = (port: number): void => {
+  const httpTransport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: () => `session-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  });
+  void server.connect(httpTransport);
+
+  const httpServer = createServer(async (req, res) => {
+    if (req.url?.startsWith('/mcp')) {
+      await httpTransport.handleRequest(req, res);
+    } else {
+      res.writeHead(404).end('Not found');
+    }
+  });
+
+  httpServer.listen(port, () => {
+    logger.info(`SeNARS MCP Server started on Streamable HTTP at http://localhost:${port}/mcp`);
+  });
+  installSignalShutdown(async () => {
+    await httpTransport.close();
+    httpServer.close();
+  });
+};
 
 async function initialize() {
-    const appConfig = await loadConfig();
-    const nar = SeNARSFactory.createDefault(appConfig);
-    const {agent} = await createAgentFromEnv();
+  // Single shared NAR/agent instance — MCP tools, resources and the agent
+  // all operate on the same cognitive core.
+  const { nar, agent } = await createAgentFromEnv();
 
-    const context = {nar, agent};
+  registerNARTools(server, nar, agent);
+  registerMCPResources(server, { nar, agent });
+  registerMCPPrompts(server);
 
-    // Register tools, resources, and prompts using SDK's high-level API
-    registerNARTools(server, nar, agent);
-    registerMCPResources(server, context);
-    registerMCPPrompts(server);
+  const transportType = getTransportType();
+  const port = getHttpPort();
 
-    const transportType = getTransportType();
-    const port = getHttpPort();
-
-    try {
-        let transport;
-
-        switch (transportType) {
-            case 'stdio': {
-                transport = new StdioServerTransport();
-                await server.connect(transport);
-                logger.info('SeNARS MCP Server started on stdio');
-                break;
-            }
-
-            case 'sse': {
-                // SSE transport requires HTTP server
-                const sseTransport = new SSEServerTransport('/mcp/sse', createServer());
-                await server.connect(sseTransport);
-                logger.info('SeNARS MCP Server started with SSE transport');
-                // Note: SSE requires external HTTP server to handle connections
-                break;
-            }
-
-            case 'http': {
-                const httpTransport = new StreamableHTTPServerTransport({
-                    sessionIdGenerator: () => `session-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-                });
-                await server.connect(httpTransport);
-
-                const httpServer = createServer(async (req: any, res: any) => {
-                    if (req.url?.startsWith('/mcp')) {
-                        await httpTransport.handleRequest(req, res);
-                    } else {
-                        res.writeHead(404);
-                        res.end('Not found');
-                    }
-                });
-
-                httpServer.listen(port, () => {
-                    logger.info(
-                        `SeNARS MCP Server started on Streamable HTTP at http://localhost:${port}/mcp`
-                    );
-                });
-
-                // Handle graceful shutdown
-                process.on('SIGINT', async () => {
-                    logger.info('Shutting down HTTP server...');
-                    await httpTransport.close();
-                    httpServer.close();
-                    process.exit(0);
-                });
-                process.on('SIGTERM', async () => {
-                    logger.info('Shutting down HTTP server...');
-                    await httpTransport.close();
-                    httpServer.close();
-                    process.exit(0);
-                });
-
-                return; // Don't exit - server runs until killed
-            }
-
-            default:
-                throw new Error(`Unknown transport: ${transportType}`);
-        }
-
-        logger.info('SeNARS MCP Server started successfully');
-    } catch (error) {
-        logger.error('Failed to start MCP server', error as Error);
-        process.exit(1);
+  switch (transportType) {
+    case 'stdio': {
+      const transport = new StdioServerTransport();
+      await server.connect(transport);
+      logger.info('SeNARS MCP Server started on stdio');
+      installSignalShutdown(async () => server.close());
+      break;
     }
+    case 'sse':
+      startSse(port);
+      break;
+    case 'http':
+      startHttp(port);
+      break;
+    default:
+      throw new Error(`Unknown transport: ${transportType}`);
+  }
 }
 
 initialize().catch((err) => {
-    logger.error('Failed to initialize MCP server', err as Error);
-    process.exit(1);
+  logger.error('Failed to initialize MCP server', err as Error);
+  process.exit(1);
 });
-
-// For stdio transport, handle signals
-if (getTransportType() === 'stdio') {
-    process.on('SIGINT', async () => {
-        logger.info('Shutting down...');
-        await server.close();
-        process.exit(0);
-    });
-
-    process.on('SIGTERM', async () => {
-        logger.info('Shutting down...');
-        await server.close();
-        process.exit(0);
-    });
-}

@@ -44,7 +44,6 @@
     "@ai-sdk/openai-compatible": "^3.0.43",
     "@ai-sdk/provider": "^4.0.10",
     "@browser-ai/transformers-js": "3.0.2",
-    "@huggingface/transformers": "^4.2.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@senars/core": "workspace:*",
     "@senars/io": "workspace:*",

@@ -2,16 +2,19 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { transformersJS } from '@browser-ai/transformers-js';
 import type { LMTask } from '@senars/util';
 import { createProviderRegistry, customProvider, type LanguageModel } from 'ai';
+import {
+  builtinModels,
+  defaultModelFor,
+  type LMSettings,
+  type LMSettingsInput,
+  resolveLMSettings,
+} from './env-config.js';
 import { createMockLanguageModel } from './lm-service.js';
 
 export type { LMTask } from '@senars/util';
+export type { LMSettings } from './env-config.js';
 
-export const BUILTIN_CHAT_MODEL = process.env.LM_MODEL ?? 'onnx-community/Qwen2.5-1.5B-Instruct';
-export const BUILTIN_COMPACT_MODEL =
-  process.env.LM_COMPACT_MODEL ?? 'HuggingFaceTB/SmolLM2-360M-Instruct';
-
-const OLLAMA_DEFAULT_HOST = 'http://localhost:11434/v1';
-const OLLAMA_QUALITY_DEFAULT = process.env.LM_MODEL ?? 'llama3.1:8b';
+const OLLAMA_HOST_DEFAULT = 'http://localhost:11434';
 const OLLAMA_FAST_DEFAULT = 'llama3.2:3b';
 const OLLAMA_COMPACT_DEFAULT = 'phi3:3.8b';
 
@@ -23,32 +26,49 @@ export type LMProviderName =
   | 'openai-compatible'
   | 'mock';
 
-export function getLmProvider(): LMProviderName {
-  const env = (
-    process.env.LM_PROVIDER ??
-    process.env.SENARS_LM_PROVIDER ??
-    'transformers'
-  ).toLowerCase();
-  if (
-    env === 'ollama' ||
-    env === 'transformers' ||
-    env === 'mock' ||
-    env === 'anthropic' ||
-    env === 'openai' ||
-    env === 'openai-compatible'
-  )
-    return env as LMProviderName;
-  return 'transformers';
-}
+let activeFileSettings: LMSettingsInput | undefined;
 
-const localModel = (model: string): LanguageModel => transformersJS(model, { device: 'cpu' });
+/** Install file/config-derived settings (env still wins at read time). */
+export const configureLM = (settings: LMSettingsInput): void => {
+  activeFileSettings = settings;
+};
+
+/** Active settings, lazily resolved from env (+ anything installed via configureLM). */
+export const getLMSettings = (): LMSettings => resolveLMSettings(activeFileSettings);
+
+export const getLmProvider = (): LMProviderName => getLMSettings().provider;
+
+const localModel = (model: string, settings: LMSettings): LanguageModel =>
+  transformersJS(model, {
+    device: 'cpu',
+    dtype: settings.quantized ? 'q4' : 'fp32',
+    ...(settings.cacheDir ? { cacheDir: settings.cacheDir } : {}),
+  } as Parameters<typeof transformersJS>[1]);
 const mockModel = (): LanguageModel => createMockLanguageModel() as unknown as LanguageModel;
 
-export function createSeNARSRegistry() {
-  const provider = getLmProvider();
-  const hasCloudKey = Boolean(
-    process.env.LM_API_KEY ?? process.env.ANTHROPIC_API_KEY ?? process.env.OPENAI_API_KEY
+const cloudApiKey = (settings: LMSettings): string | undefined => {
+  const viaEnvName = settings.apiKeyEnv ? process.env[settings.apiKeyEnv] : undefined;
+  return (
+    viaEnvName ??
+    process.env.LM_API_KEY ??
+    process.env.ANTHROPIC_API_KEY ??
+    process.env.OPENAI_API_KEY
   );
+};
+
+export function createSeNARSRegistry(settings?: LMSettings) {
+  const s = settings ?? getLMSettings();
+  const {
+    provider,
+    model: modelOverride,
+    fastModel,
+    structuredModel,
+    compactModel,
+    baseUrl,
+    ollamaHost,
+  } = s;
+
+  const hasCloudKey = Boolean(cloudApiKey(s));
   const useCloud =
     (provider === 'anthropic' || provider === 'openai' || provider === 'openai-compatible') &&
     hasCloudKey;
@@ -61,44 +81,41 @@ export function createSeNARSRegistry() {
   const ollama = createOpenAICompatible({
     name: 'ollama',
     apiKey: 'ollama',
-    baseURL: process.env.OLLAMA_HOST ? `${process.env.OLLAMA_HOST}/v1` : OLLAMA_DEFAULT_HOST,
+    baseURL: `${(ollamaHost ?? OLLAMA_HOST_DEFAULT).replace(/\/v1\/?$/, '')}/v1`,
   });
   const cloud = createOpenAICompatible({
     name: 'cloud',
-    apiKey:
-      process.env.LM_API_KEY ?? process.env.ANTHROPIC_API_KEY ?? process.env.OPENAI_API_KEY ?? '',
+    apiKey: cloudApiKey(s) ?? '',
     baseURL:
-      process.env.LM_BASE_URL ??
+      baseUrl ??
       (provider === 'anthropic' ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1'),
   });
-  const cloudModel = process.env.LM_MODEL ?? 'claude-3-5-sonnet-latest';
-  const openaiModel = process.env.LM_MODEL ?? 'gpt-4o-mini';
-  const frontierDefault = provider === 'openai' ? openaiModel : cloudModel;
-  const frontierId = process.env.LM_MODEL ?? frontierDefault;
+  const frontierId = modelOverride ?? defaultModelFor(provider);
+  const builtinCompact = compactModel ?? builtinModels.compact;
 
   return createProviderRegistry({
     cloud: customProvider({
       languageModels: {
         quality: useCloud ? cloud(frontierId) : mockModel(),
-        fast: useCloud ? cloud(process.env.LM_FAST_MODEL ?? frontierId) : mockModel(),
-        structured: useCloud ? cloud(process.env.LM_STRUCTURED_MODEL ?? frontierId) : mockModel(),
+        fast: useCloud ? cloud(fastModel ?? frontierId) : mockModel(),
+        structured: useCloud ? cloud(structuredModel ?? frontierId) : mockModel(),
       },
       fallbackProvider: useCloud ? cloud : undefined,
     }),
     local: customProvider({
       languageModels: {
-        quality: useLocal ? ollama(process.env.LM_MODEL ?? OLLAMA_QUALITY_DEFAULT) : mockModel(),
-        fast: useLocal ? ollama(OLLAMA_FAST_DEFAULT) : mockModel(),
-        compact: useLocal ? ollama(OLLAMA_COMPACT_DEFAULT) : mockModel(),
+        quality: useLocal ? ollama(modelOverride ?? defaultModelFor('ollama')) : mockModel(),
+        fast: useLocal ? ollama(fastModel ?? OLLAMA_FAST_DEFAULT) : mockModel(),
+        compact: useLocal ? ollama(compactModel ?? OLLAMA_COMPACT_DEFAULT) : mockModel(),
       },
       fallbackProvider: useLocal ? ollama : undefined,
     }),
     builtin: customProvider({
       languageModels: {
-        quality: localModel(BUILTIN_CHAT_MODEL),
-        fast: localModel(BUILTIN_COMPACT_MODEL),
-        structured: localModel(BUILTIN_COMPACT_MODEL),
-        compact: localModel(BUILTIN_COMPACT_MODEL),
+        quality: localModel(modelOverride ?? builtinModels.quality, s),
+        fast: localModel(builtinCompact, s),
+        structured: localModel(builtinCompact, s),
+        compact: localModel(builtinCompact, s),
         mock: mockModel(),
       },
     }),
@@ -145,9 +162,12 @@ export function getModelChain(provider: LMProviderName, task: LMTask): SeNARSMod
   return CHAINS[provider][task];
 }
 
-export function getModelForTask(registry: SeNARSRegistry, task: LMTask): LanguageModel {
-  const chain = getModelChain(getLmProvider(), task);
-  for (const id of chain) {
+export function getModelForTask(
+  registry: SeNARSRegistry,
+  task: LMTask,
+  settings?: LMSettings
+): LanguageModel {
+  for (const id of getModelChain(settings?.provider ?? getLmProvider(), task)) {
     try {
       return registry.languageModel(id);
     } catch {}
@@ -159,11 +179,11 @@ export function getQualityModel(registry: SeNARSRegistry): LanguageModel {
   return getModelForTask(registry, 'quality');
 }
 
-export const hasCloudCredentials = (): boolean =>
-  Boolean(process.env.LM_API_KEY ?? process.env.ANTHROPIC_API_KEY ?? process.env.OPENAI_API_KEY);
+export const hasCloudCredentials = (settings?: LMSettings): boolean =>
+  Boolean(cloudApiKey(settings ?? getLMSettings()));
 
 export async function probeOllama(host?: string): Promise<boolean> {
-  const base = (host ?? process.env.OLLAMA_HOST ?? 'http://localhost:11434').replace(
+  const base = (host ?? getLMSettings().ollamaHost ?? 'http://localhost:11434').replace(
     /\/v1\/?$/,
     ''
   );

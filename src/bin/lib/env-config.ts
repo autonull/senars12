@@ -3,6 +3,8 @@
  * Single source of truth for all `process.env` reads in bin entry points.
  */
 
+import { resolveLMSettings } from '@senars/nar/lm';
+
 export interface EpisodicConfig {
   memoryPath: string;
   retentionDays: number;
@@ -42,7 +44,6 @@ export interface LMEnvConfig {
   ollamaHost: string;
   ollamaModel: string | undefined;
 }
-
 export interface AppEnvConfig {
   enableWebUI: boolean;
   histfile: string;
@@ -109,11 +110,11 @@ export function readMCPConfig(): MCPConfig {
 }
 
 export function readLMEnvConfig(): LMEnvConfig {
-  const provider = process.env.LM_PROVIDER ?? process.env.SENARS_LM_PROVIDER ?? 'transformers';
+  const { provider, model, ollamaHost } = resolveLMSettings();
   return {
     provider,
-    model: process.env.LM_MODEL ?? process.env.SENARS_LM_MODEL,
-    ollamaHost: process.env.OLLAMA_HOST ?? 'http://localhost:11434',
+    model,
+    ollamaHost: ollamaHost ?? 'http://localhost:11434',
     ollamaModel: process.env.OLLAMA_MODEL,
   };
 }

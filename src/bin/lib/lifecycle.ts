@@ -7,9 +7,10 @@ import type { NARConfig } from '@senars/nar';
 import { SeNARSFactory } from '@senars/nar';
 import type { Agent } from '@senars/nar/agent';
 import { createAgent } from '@senars/nar/agent';
-import { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
+import { configureLM, createLMService, createSeNARSRegistry } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
 import { EpisodicMemory } from '@senars/nar/memory/episodic';
+import { loadConfig } from '../../config/index.js';
 import { readEpisodicConfig } from './env-config.js';
 
 export { setupGracefulShutdown } from '../../utils/shutdown.js';
@@ -29,6 +30,8 @@ export interface AgentFromEnvResult {
 export async function createAgentFromEnv(
   options?: AgentFromEnvOptions
 ): Promise<AgentFromEnvResult> {
+  const appConfig = await loadConfig();
+  if (appConfig.lm) configureLM(appConfig.lm);
   const registry = createSeNARSRegistry();
   const lmService = createLMService();
   const nar = SeNARSFactory.createDefault({

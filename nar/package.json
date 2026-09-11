@@ -12,6 +12,14 @@
       "types": "./src/schemas/index.ts",
       "import": "./src/schemas/index.ts"
     },
+    "./rules": {
+      "types": "./src/rules/index.ts",
+      "import": "./src/rules/index.ts"
+    },
+    "./tools": {
+      "types": "./src/tools/index.ts",
+      "import": "./src/tools/index.ts"
+    },
     "./tools/schemas": {
       "types": "./src/tools/schemas.ts",
       "import": "./src/tools/schemas.ts"
