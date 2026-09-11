@@ -12,7 +12,13 @@ export default defineConfig({
         globals: true,
         environment: 'node',
         include: ['tests/**/*.test.ts'],
-        exclude: ['**/node_modules/**', '**/dist/**', '**/benchmark/**', '**/tests/e2e/**'],
+        exclude: [
+            '**/node_modules/**',
+            '**/dist/**',
+            '**/benchmark/**',
+            // E2E needs live transports; run via `pnpm test:e2e:*` (sets VITEST_E2E=1)
+            ...(process.env.VITEST_E2E ? [] : ['**/tests/e2e/**']),
+        ],
         setupFiles: ['./tests/setup/vitest-setup.ts'],
         testTimeout: 15000,
         teardownTimeout: 5000,

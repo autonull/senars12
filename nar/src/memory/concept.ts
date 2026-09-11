@@ -1,343 +1,348 @@
-import {LINK} from '../constants.js';
-import type {Term, Truth} from '../terms';
-import {extractSymbols, type Stamp, TermMap, termsEqual, TermSet} from '../terms';
-import {Truth as TruthOps} from '../terms/truth.js';
-import type {Budget, TaskType} from '../types';
-import {clamp01, jaccard} from '../utils';
-import {PriorityBag} from '../bag/Bag.js';
+import { PriorityBag } from '../bag/Bag.js';
+import { LINK } from '../constants.js';
+import type { Term, Truth } from '../terms';
+import { extractSymbols, type Stamp, TermMap, TermSet, termsEqual } from '../terms';
+import { Truth as TruthOps } from '../terms/truth.js';
+import type { Budget, TaskType } from '../types';
+import { clamp01, jaccard } from '../utils';
 
 const DECAY_TIME_CONSTANT = 60000;
-const {DECAY_RATE, MIN_PRIORITY: MIN_LINK_STRENGTH} = LINK;
+const { DECAY_RATE, MIN_PRIORITY: MIN_LINK_STRENGTH } = LINK;
 
 export type RevisionCallback = (entry: {
-    term: string;
-    truth: { frequency: number; confidence: number };
-    stampId: string;
-    timestamp: number;
-    source: 'input' | 'revision';
+  term: string;
+  truth: { frequency: number; confidence: number };
+  stampId: string;
+  timestamp: number;
+  source: 'input' | 'revision';
 }) => void;
 
 export type IndependenceStatus = 'independent' | 'dependent' | 'unknown';
 
 export interface ConceptConfig {
-    maxBeliefs?: number;
-    maxGoals?: number;
-    maxQuestions?: number;
-    onRevision?: RevisionCallback;
+  maxBeliefs?: number;
+  maxGoals?: number;
+  maxQuestions?: number;
+  onRevision?: RevisionCallback;
 }
 
 export interface TaskData {
-    id: string;
-    priority: number;
-    readonly term: Term;
-    readonly truth?: Truth;
-    readonly budget: Budget;
-    readonly timestamp?: number;
-    readonly stamp?: Stamp;
-    readonly occurrenceTime?: number;
-    readonly derived?: boolean;
+  id: string;
+  priority: number;
+  readonly term: Term;
+  readonly truth?: Truth;
+  readonly budget: Budget;
+  readonly timestamp?: number;
+  readonly stamp?: Stamp;
+  readonly occurrenceTime?: number;
+  readonly derived?: boolean;
 }
 
 export type ConceptTaskType = TaskType;
 
 export interface ConceptLink {
-    concept: Concept;
-    strength: number;
-    lastUpdated: number;
+  concept: Concept;
+  strength: number;
+  lastUpdated: number;
 }
 
 export interface ConceptMergeResult {
-    merged: Concept;
-    discarded: Concept[];
+  merged: Concept;
+  discarded: Concept[];
 }
 
 export class Concept {
-    readonly term: Term;
-    readonly beliefBag: PriorityBag<TaskData>;
-    readonly goalBag: PriorityBag<TaskData>;
-    readonly questionBag: PriorityBag<TaskData>;
-    readonly createdAt: number;
-    lastAccessedAt: number;
-    private activation = 0;
-    private useCount = 0;
-    private lastDecayTime: number;
-    private linkedConcepts = new TermMap<ConceptLink>();
-    private subConcepts = new Set<Concept>();
-    private parentConcepts = new Set<Concept>();
-    private readonly onRevision?: RevisionCallback;
+  readonly term: Term;
+  readonly beliefBag: PriorityBag<TaskData>;
+  readonly goalBag: PriorityBag<TaskData>;
+  readonly questionBag: PriorityBag<TaskData>;
+  readonly createdAt: number;
+  lastAccessedAt: number;
+  private activation = 0;
+  private useCount = 0;
+  private lastDecayTime: number;
+  private linkedConcepts = new TermMap<ConceptLink>();
+  private subConcepts = new Set<Concept>();
+  private parentConcepts = new Set<Concept>();
+  private readonly onRevision?: RevisionCallback;
 
-    constructor(term: Term, config: ConceptConfig = {}) {
-        this.term = term;
-        this.beliefBag = new PriorityBag<TaskData>({capacity: config.maxBeliefs ?? 100});
-        this.goalBag = new PriorityBag<TaskData>({capacity: config.maxGoals ?? 50});
-        this.questionBag = new PriorityBag<TaskData>({capacity: config.maxQuestions ?? 20});
-        this.createdAt = Date.now();
-        this.lastAccessedAt = Date.now();
-        this.lastDecayTime = Date.now();
-        this.onRevision = config.onRevision;
+  constructor(term: Term, config: ConceptConfig = {}) {
+    this.term = term;
+    this.beliefBag = new PriorityBag<TaskData>({ capacity: config.maxBeliefs ?? 100 });
+    this.goalBag = new PriorityBag<TaskData>({ capacity: config.maxGoals ?? 50 });
+    this.questionBag = new PriorityBag<TaskData>({ capacity: config.maxQuestions ?? 20 });
+    this.createdAt = Date.now();
+    this.lastAccessedAt = Date.now();
+    this.lastDecayTime = Date.now();
+    this.onRevision = config.onRevision;
+  }
+
+  private _priority = 0;
+
+  get priority(): number {
+    return this._priority;
+  }
+
+  set priority(value: number) {
+    this._priority = clamp01(value);
+  }
+
+  get key(): Term {
+    return this.term;
+  }
+
+  get activationValue(): number {
+    return this.activation;
+  }
+
+  get totalTasks(): number {
+    return this.beliefBag.size() + this.goalBag.size() + this.questionBag.size();
+  }
+
+  addTask(type: ConceptTaskType, data: Omit<TaskData, 'id' | 'priority'>): boolean {
+    if (type === 'belief') return this.addBeliefWithRevision(data as TaskData);
+
+    const bag = type === 'goal' ? this.goalBag : this.questionBag;
+    const item = { ...data, id: crypto.randomUUID(), priority: data.budget.priority } as TaskData;
+    const added = bag.add(item);
+    added && this.recordAccess();
+    return added;
+  }
+
+  hasMatchingBelief(term: Term): boolean {
+    return this.findMatchingBelief(term) !== undefined;
+  }
+
+  getBeliefs(): TaskData[] {
+    return this.beliefBag.toArray();
+  }
+
+  getGoals(): TaskData[] {
+    return this.goalBag.toArray();
+  }
+
+  getQuestions(): TaskData[] {
+    return this.questionBag.toArray();
+  }
+
+  boost(amount: number): void {
+    this.activation = Math.min(1, this.activation + amount);
+    this._priority = Math.min(1, this._priority + amount);
+  }
+
+  decay(rate: number): void {
+    this._priority *= 1 - rate;
+  }
+
+  decayAttention(baseRate = 0.01): void {
+    const elapsed = Date.now() - this.lastDecayTime;
+    const decayFactor = Math.exp((-baseRate * elapsed) / DECAY_TIME_CONSTANT);
+    this.activation *= decayFactor;
+    this._priority = Math.max(0, this._priority * decayFactor);
+    if (this._priority > 0 && elapsed < 1) {
+      this._priority = Math.max(0, this._priority * (1 - baseRate));
     }
+    this.lastDecayTime = Date.now();
+  }
 
-    private _priority = 0;
+  applyTimeDecay(baseRate = 0.01): void {
+    this.decayAttention(baseRate);
+  }
 
-    get priority(): number {
-        return this._priority;
+  invalidateTruth(reason: 'temporal' | 'contradiction'): boolean {
+    const beliefs = this.beliefBag.toArray().filter((b) => b.truth);
+    if (beliefs.length === 0) return false;
+    if (reason === 'temporal') {
+      for (const b of beliefs) {
+        if (!b.truth) continue;
+        const aged = { ...b, truth: { ...b.truth, confidence: Math.max(0, b.truth.c * 0.95) } };
+        this.beliefBag.remove(b);
+        this.beliefBag.add(aged);
+      }
     }
+    return beliefs.length > 0;
+  }
 
-    set priority(value: number) {
-        this._priority = clamp01(value);
-    }
+  addLink(concept: Concept, strength = 0.5): void {
+    if (concept === this) return;
 
-    get key(): Term {
-        return this.term;
-    }
-
-    get activationValue(): number {
-        return this.activation;
-    }
-
-    get totalTasks(): number {
-        return this.beliefBag.size() + this.goalBag.size() + this.questionBag.size();
-    }
-
-    addTask(type: ConceptTaskType, data: Omit<TaskData, 'id' | 'priority'>): boolean {
-        if (type === 'belief') return this.addBeliefWithRevision(data as TaskData);
-
-        const bag = type === 'goal' ? this.goalBag : this.questionBag;
-        const item = {...data, id: crypto.randomUUID(), priority: data.budget.priority} as TaskData;
-        const added = bag.add(item);
-        added && this.recordAccess();
-        return added;
-    }
-
-    hasMatchingBelief(term: Term): boolean {
-        return this.findMatchingBelief(term) !== undefined;
-    }
-
-    getBeliefs(): TaskData[] {
-        return this.beliefBag.toArray();
-    }
-
-    getGoals(): TaskData[] {
-        return this.goalBag.toArray();
-    }
-
-    getQuestions(): TaskData[] {
-        return this.questionBag.toArray();
-    }
-
-    boost(amount: number): void {
-        this.activation = Math.min(1, this.activation + amount);
-        this._priority = Math.min(1, this._priority + amount);
-    }
-
-    decay(rate: number): void {
-        this._priority *= 1 - rate;
-    }
-
-    decayAttention(baseRate = 0.01): void {
-        const elapsed = Date.now() - this.lastDecayTime;
-        const decayFactor = Math.exp((-baseRate * elapsed) / DECAY_TIME_CONSTANT);
-        this.activation *= decayFactor;
-        this._priority = Math.max(0, this._priority * decayFactor);
-        if (this._priority > 0 && elapsed < 1) {
-            this._priority = Math.max(0, this._priority * (1 - baseRate));
-        }
-        this.lastDecayTime = Date.now();
-    }
-
-    applyTimeDecay(baseRate = 0.01): void {
-        this.decayAttention(baseRate);
-    }
-
-    invalidateTruth(reason: 'temporal' | 'contradiction'): boolean {
-        const beliefs = this.beliefBag.toArray().filter((b) => b.truth);
-        if (beliefs.length === 0) return false;
-        if (reason === 'temporal') {
-            for (const b of beliefs) {
-                if (!b.truth) continue;
-                const aged = { ...b, truth: { ...b.truth, confidence: Math.max(0, b.truth.c * 0.95) } };
-                this.beliefBag.remove(b);
-                this.beliefBag.add(aged);
-            }
-        }
-        return beliefs.length > 0;
-    }
-
-    addLink(concept: Concept, strength = 0.5): void {
-        if (concept === this) return;
-
-        const update = (target: Concept, source: Concept) => {
-            const existing = target.linkedConcepts.get(source.term);
-            if (existing) {
-                existing.strength = clamp01(existing.strength + strength * 0.1);
-                existing.lastUpdated = Date.now();
-            } else {
-                target.linkedConcepts.set(source.term, {
-                    concept: source,
-                    strength,
-                    lastUpdated: Date.now(),
-                });
-            }
-        };
-
-        update(this, concept);
-        update(concept, this);
-    }
-
-    removeLink(concept: Concept): void {
-        this.linkedConcepts.delete(concept.term);
-        concept.linkedConcepts.delete(this.term);
-    }
-
-    getLinks(): ConceptLink[] {
-        return Array.from(this.linkedConcepts.values());
-    }
-
-    forEachLink(fn: (link: ConceptLink) => void): void {
-        for (const link of this.linkedConcepts.values()) {
-            fn(link);
-        }
-    }
-
-    getLinkedConcepts(): Concept[] {
-        return Array.from(this.linkedConcepts.values()).map((link) => link.concept);
-    }
-
-    updateLinks(): void {
-        const now = Date.now();
-
-        for (const [key, link] of this.linkedConcepts.items()) {
-            const elapsed = now - link.lastUpdated;
-            link.strength *= Math.exp((-DECAY_RATE * elapsed) / DECAY_TIME_CONSTANT);
-            if (link.strength < MIN_LINK_STRENGTH) this.linkedConcepts.delete(key);
-        }
-    }
-
-    canMergeWith(other: Concept, threshold = 0.85): boolean {
-        return (
-            this !== other &&
-            (this.calculateTermSimilarity(other.term) >= threshold ||
-                this.calculateTaskOverlap(other) >= threshold)
-        );
-    }
-
-    mergeWith(others: Concept[]): ConceptMergeResult {
-        for (const other of [this, ...others]) {
-            other.beliefBag.forEach((belief) => this.beliefBag.add(belief));
-            other.goalBag.forEach((goal) => this.goalBag.add(goal));
-            other.questionBag.forEach((question) => this.questionBag.add(question));
-        }
-
-        for (const other of others) {
-            other.forEachLink((link) => {
-                if (link.concept !== this) this.addLink(link.concept, link.strength);
-            });
-        }
-
-        this.priority = Math.max(this.priority, ...others.map((c) => c.priority));
-        return {merged: this, discarded: others};
-    }
-
-    split(): Concept[] {
-        if (this.subConcepts.size === 0) return [this];
-        return [...this.subConcepts];
-    }
-
-    addChildConcept(concept: Concept): void {
-        this.subConcepts.add(concept);
-        concept.parentConcepts.add(this);
-    }
-
-    removeChildConcept(concept: Concept): void {
-        this.subConcepts.delete(concept);
-        concept.parentConcepts.delete(this);
-    }
-
-    getChildConcepts(): Concept[] {
-        return Array.from(this.subConcepts);
-    }
-
-    getParentConcepts(): Concept[] {
-        return Array.from(this.parentConcepts);
-    }
-
-    private recordAccess(): void {
-        this.useCount++;
-        this.lastAccessedAt = Date.now();
-        this._priority = Math.min(1, this._priority + 0.1);
-    }
-
-    private addBeliefWithRevision(
-        data: TaskData | Omit<TaskData, 'id' | 'priority'>,
-        independence: IndependenceStatus = 'unknown'
-    ): boolean {
-        const existing = this.findMatchingBelief(data.term);
-
-        if (existing) {
-            if (!data.truth || !existing.truth) return false;
-
-            if (independence === 'unknown') {
-                this.recordAccess();
-                return false;
-            }
-
-            const revisedTruth = TruthOps.revision(data.truth, existing.truth);
-            this.beliefBag.remove(existing);
-            const item = {...data, id: existing.id, priority: data.budget?.priority ?? existing.priority, truth: revisedTruth, timestamp: Date.now()} as TaskData;
-            const added = this.beliefBag.add(item);
-            if (added && this.onRevision && existing.stamp) {
-                this.onRevision({
-                    term: this.term.toString(),
-                    truth: {frequency: revisedTruth.f, confidence: revisedTruth.c},
-                    stampId: existing.stamp.id,
-                    timestamp: Date.now(),
-                    source: 'revision',
-                });
-            }
-            added && this.recordAccess();
-            return added;
-        }
-
-        const item = {...data, id: crypto.randomUUID(), priority: data.budget?.priority ?? 0.5} as TaskData;
-        const added = this.beliefBag.add(item);
-        if (added && this.onRevision && data.truth && data.stamp) {
-            this.onRevision({
-                term: this.term.toString(),
-                truth: {frequency: data.truth.f, confidence: data.truth.c},
-                stampId: data.stamp.id,
-                timestamp: Date.now(),
-                source: 'input',
-            });
-        }
-        added && this.recordAccess();
-        return added;
-    }
-
-    private findMatchingBelief(term: Term): TaskData | undefined {
-        return this.beliefBag.find((item) => termsEqual(item.term, term));
-    }
-
-    private calculateTermSimilarity(other: Term): number {
-        return termsEqual(this.term, other)
-            ? 1
-            : jaccard(extractSymbols(this.term), extractSymbols(other));
-    }
-
-    private calculateTaskOverlap(other: Concept): number {
-        const thisSet = new TermSet();
-        const otherSet = new TermSet();
-
-        this.beliefBag.forEach((b) => thisSet.add(b.term));
-        other.beliefBag.forEach((b) => otherSet.add(b.term));
-
-        if (thisSet.size === 0 && otherSet.size === 0) return 0;
-
-        let intersection = 0;
-        thisSet.forEach((term) => {
-            if (otherSet.has(term)) intersection++;
+    const update = (target: Concept, source: Concept) => {
+      const existing = target.linkedConcepts.get(source.term);
+      if (existing) {
+        existing.strength = clamp01(existing.strength + strength * 0.1);
+        existing.lastUpdated = Date.now();
+      } else {
+        target.linkedConcepts.set(source.term, {
+          concept: source,
+          strength,
+          lastUpdated: Date.now(),
         });
+      }
+    };
 
-        const union = thisSet.size + otherSet.size - intersection;
-        return union > 0 ? intersection / union : 0;
+    update(this, concept);
+    update(concept, this);
+  }
+
+  removeLink(concept: Concept): void {
+    this.linkedConcepts.delete(concept.term);
+    concept.linkedConcepts.delete(this.term);
+  }
+
+  getLinks(): ConceptLink[] {
+    return Array.from(this.linkedConcepts.values());
+  }
+
+  forEachLink(fn: (link: ConceptLink) => void): void {
+    for (const link of this.linkedConcepts.values()) {
+      fn(link);
     }
+  }
+
+  getLinkedConcepts(): Concept[] {
+    return Array.from(this.linkedConcepts.values()).map((link) => link.concept);
+  }
+
+  updateLinks(): void {
+    const now = Date.now();
+
+    for (const [key, link] of this.linkedConcepts.items()) {
+      const elapsed = now - link.lastUpdated;
+      link.strength *= Math.exp((-DECAY_RATE * elapsed) / DECAY_TIME_CONSTANT);
+      if (link.strength < MIN_LINK_STRENGTH) this.linkedConcepts.delete(key);
+    }
+  }
+
+  canMergeWith(other: Concept, threshold = 0.85): boolean {
+    return (
+      this !== other &&
+      (this.calculateTermSimilarity(other.term) >= threshold ||
+        this.calculateTaskOverlap(other) >= threshold)
+    );
+  }
+
+  mergeWith(others: Concept[]): ConceptMergeResult {
+    for (const other of [this, ...others]) {
+      other.beliefBag.forEach((belief) => this.beliefBag.add(belief));
+      other.goalBag.forEach((goal) => this.goalBag.add(goal));
+      other.questionBag.forEach((question) => this.questionBag.add(question));
+    }
+
+    for (const other of others) {
+      other.forEachLink((link) => {
+        if (link.concept !== this) this.addLink(link.concept, link.strength);
+      });
+    }
+
+    this.priority = Math.max(this.priority, ...others.map((c) => c.priority));
+    return { merged: this, discarded: others };
+  }
+
+  split(): Concept[] {
+    if (this.subConcepts.size === 0) return [this];
+    return [...this.subConcepts];
+  }
+
+  addChildConcept(concept: Concept): void {
+    this.subConcepts.add(concept);
+    concept.parentConcepts.add(this);
+  }
+
+  removeChildConcept(concept: Concept): void {
+    this.subConcepts.delete(concept);
+    concept.parentConcepts.delete(this);
+  }
+
+  getChildConcepts(): Concept[] {
+    return Array.from(this.subConcepts);
+  }
+
+  getParentConcepts(): Concept[] {
+    return Array.from(this.parentConcepts);
+  }
+
+  private recordAccess(): void {
+    this.useCount++;
+    this.lastAccessedAt = Date.now();
+    this._priority = Math.min(1, this._priority + 0.1);
+  }
+
+  private addBeliefWithRevision(
+    data: TaskData | Omit<TaskData, 'id' | 'priority'>,
+    independence: IndependenceStatus = 'unknown'
+  ): boolean {
+    const existing = this.findMatchingBelief(data.term);
+
+    if (existing) {
+      if (!data.truth || !existing.truth) return false;
+
+      const revisedTruth = TruthOps.revision(data.truth, existing.truth);
+      this.beliefBag.remove(existing);
+      const item = {
+        ...data,
+        id: existing.id,
+        priority: data.budget?.priority ?? existing.priority,
+        truth: revisedTruth,
+        timestamp: Date.now(),
+      } as TaskData;
+      const added = this.beliefBag.add(item);
+      if (added && this.onRevision && existing.stamp) {
+        this.onRevision({
+          term: this.term.toString(),
+          truth: { frequency: revisedTruth.f, confidence: revisedTruth.c },
+          stampId: existing.stamp.id,
+          timestamp: Date.now(),
+          source: 'revision',
+        });
+      }
+      added && this.recordAccess();
+      return added;
+    }
+
+    const item = {
+      ...data,
+      id: crypto.randomUUID(),
+      priority: data.budget?.priority ?? 0.5,
+    } as TaskData;
+    const added = this.beliefBag.add(item);
+    if (added && this.onRevision && data.truth && data.stamp) {
+      this.onRevision({
+        term: this.term.toString(),
+        truth: { frequency: data.truth.f, confidence: data.truth.c },
+        stampId: data.stamp.id,
+        timestamp: Date.now(),
+        source: 'input',
+      });
+    }
+    added && this.recordAccess();
+    return added;
+  }
+
+  private findMatchingBelief(term: Term): TaskData | undefined {
+    return this.beliefBag.find((item) => termsEqual(item.term, term));
+  }
+
+  private calculateTermSimilarity(other: Term): number {
+    return termsEqual(this.term, other)
+      ? 1
+      : jaccard(extractSymbols(this.term), extractSymbols(other));
+  }
+
+  private calculateTaskOverlap(other: Concept): number {
+    const thisSet = new TermSet();
+    const otherSet = new TermSet();
+
+    this.beliefBag.forEach((b) => thisSet.add(b.term));
+    other.beliefBag.forEach((b) => otherSet.add(b.term));
+
+    if (thisSet.size === 0 && otherSet.size === 0) return 0;
+
+    let intersection = 0;
+    thisSet.forEach((term) => {
+      if (otherSet.has(term)) intersection++;
+    });
+
+    const union = thisSet.size + otherSet.size - intersection;
+    return union > 0 ? intersection / union : 0;
+  }
 }

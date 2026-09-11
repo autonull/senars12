@@ -1,249 +1,133 @@
-import {makeId} from '@senars/core/helpers';
-import {createLogger} from '@senars/core/logger';
-import type {ConnectionConfig, ConnectionDeps} from '../types.js';
-import {BaseConnection} from './base.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { createLogger } from '@senars/core/logger';
+import type { ConnectionConfig, ConnectionDeps } from '../types.js';
+import { BaseConnection } from './base.js';
 
 export interface MCPToolResult {
-    content: Array<{ type: string; text: string }>;
-    isError?: boolean;
+  content: Array<{ type: string; text: string }>;
+  isError?: boolean;
+}
+
+export interface MCPToolInfo {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
 }
 
 export class MCPConnection extends BaseConnection {
-    override readonly type = 'mcp';
-    override readonly logger = createLogger({scope: 'io:mcp'});
-    private readonly transport: 'stdio' | 'sse' = 'stdio';
-    private process: ReturnType<typeof import('child_process').spawn> | null = null;
-    private tools: Map<string, { description: string; inputSchema: Record<string, unknown> }> =
-        new Map();
-    private pendingToolCalls = new Map<string, (result: MCPToolResult) => void>();
-    private toolCallTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+  override readonly type = 'mcp';
+  override readonly logger = createLogger({ scope: 'io:mcp' });
+  private readonly transport: 'stdio' | 'sse' | 'http' = 'stdio';
+  private client: Client | null = null;
 
-    constructor(config: ConnectionConfig, deps: ConnectionDeps) {
-        super(config, deps);
-        this.name = (config.config.name as string) ?? 'MCP';
-        this.transport = (config.config.transport as 'stdio' | 'sse') ?? 'stdio';
+  constructor(config: ConnectionConfig, deps: ConnectionDeps) {
+    super(config, deps);
+    this.name = (config.config.name as string) ?? 'MCP';
+    this.transport = (config.config.transport as 'stdio' | 'sse' | 'http') ?? 'stdio';
+  }
+
+  override async connect(): Promise<void> {
+    if (this.state === 'connected') return;
+    this.setState('connecting');
+
+    this.client = new Client({ name: 'senars-mcp-client', version: '1.0.0' });
+
+    if (this.transport === 'stdio') {
+      const command = this.config.config.command as string;
+      const args = (this.config.config.args as string[]) ?? [];
+      if (!command) throw new Error('MCP stdio transport requires command in config');
+      await this.client.connect(new StdioClientTransport({ command, args }));
+    } else {
+      const url = this.config.config.url as string;
+      if (!url) throw new Error('MCP sse/http transport requires url in config');
+      await this.client.connect(
+        this.transport === 'http'
+          ? new StreamableHTTPClientTransport(new URL(url))
+          : new SSEClientTransport(new URL(url))
+      );
     }
 
-    override async connect(): Promise<void> {
-        if (this.state === 'connected') return;
-        this.setState('connecting');
+    this.setState('connected');
+    this.logger.info(`MCP connection ${this.id} connected via ${this.transport}`);
+  }
 
-        if (this.transport === 'stdio') {
-            await this.connectStdio();
-        } else {
-            this.setState('connected');
+  override async disconnect(reason?: string): Promise<void> {
+    if (this.isDisconnected()) return;
+    this.setState('disconnecting');
+    await this.client?.close().catch(() => undefined);
+    this.client = null;
+    this.setState('disconnected');
+    this.logger.info(`MCP connection ${this.id} disconnected: ${reason ?? 'normal'}`);
+  }
+
+  async send(target: string, text: string): Promise<void> {
+    const args = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+    await this.callTool(target, args);
+  }
+
+  async callTool(name: string, args: Record<string, unknown>): Promise<MCPToolResult> {
+    if (!this.client) {
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ error: 'MCP client not connected' }) }],
+        isError: true,
+      };
+    }
+    try {
+      const result = await this.client.callTool({ name, arguments: args });
+      const content = Array.isArray(result.content)
+        ? result.content.map((c: unknown) => {
+            const part = c as { type?: string; text?: string };
+            return { type: part.type ?? 'text', text: part.text ?? JSON.stringify(c) };
+          })
+        : [{ type: 'text', text: JSON.stringify(result) }];
+      return { content, isError: result.isError === true };
+    } catch (e) {
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ error: (e as Error).message }) }],
+        isError: true,
+      };
+    }
+  }
+
+  async getTools(): Promise<MCPToolInfo[]> {
+    if (!this.client) return [];
+    const { tools } = await this.client.listTools();
+    return tools.map((t) => ({
+      name: t.name,
+      description: t.description ?? t.name,
+      inputSchema: (t.inputSchema ?? {}) as Record<string, unknown>,
+    }));
+  }
+
+  async importIntoRegistry(
+    registry: {
+      register: (
+        name: string,
+        def: {
+          description: string;
+          inputSchema: unknown;
+          execute: (args: Record<string, unknown>) => Promise<unknown>;
         }
+      ) => void;
+    },
+    prefix = 'mcp_'
+  ): Promise<string[]> {
+    const tools = await this.getTools();
+    for (const t of tools) {
+      registry.register(`${prefix}${t.name}`, {
+        description: t.description,
+        inputSchema: t.inputSchema,
+        execute: async (args) => {
+          const res = await this.callTool(t.name, args);
+          return res.isError
+            ? { error: res.content.map((c) => c.text).join('\n') }
+            : res.content.map((c) => c.text).join('\n');
+        },
+      });
     }
-
-    override async disconnect(reason?: string): Promise<void> {
-        if (this.isDisconnected()) return;
-
-        this.setState('disconnecting');
-
-        if (this.process) {
-            this.process.kill();
-            this.process = null;
-        }
-
-        this.setState('disconnected');
-        this.logger.info(`MCP connection ${this.id} disconnected: ${reason ?? 'normal'}`);
-    }
-
-    async send(target: string, text: string): Promise<void> {
-        if (!this.process?.stdin) return;
-
-        const parts = target.split(':');
-        const toolName = parts[0];
-        const operation = parts[1] ?? 'call';
-
-        const message = {
-            jsonrpc: '2.0',
-            id: makeId(),
-            method: operation,
-            params: {
-                name: toolName,
-                arguments: text ? JSON.parse(text) : {},
-            },
-        };
-
-        this.process.stdin.write(`${JSON.stringify(message)}\n`);
-    }
-
-    async callTool(name: string, args: Record<string, unknown>): Promise<MCPToolResult> {
-        return new Promise((resolve) => {
-            const id = makeId();
-            const message = {
-                jsonrpc: '2.0',
-                id,
-                method: 'tools/call',
-                params: {name, arguments: args},
-            };
-
-            this.pendingToolCalls.set(id, resolve);
-
-            const timeout = setTimeout(() => {
-                if (this.pendingToolCalls.has(id)) {
-                    this.pendingToolCalls.delete(id);
-                    this.toolCallTimeouts.delete(id);
-                    resolve({
-                        content: [{type: 'text', text: JSON.stringify({error: 'Tool call timeout'})}],
-                        isError: true,
-                    });
-                }
-            }, 30000);
-            this.toolCallTimeouts.set(id, timeout);
-
-            this.process?.stdin?.write(`${JSON.stringify(message)}\n`);
-        });
-    }
-
-    getTools(): Array<{ name: string; description: string; inputSchema: Record<string, unknown> }> {
-        return Array.from(this.tools.values()).map((t) => ({
-            name: t.description,
-            description: t.description,
-            inputSchema: t.inputSchema,
-        }));
-    }
-
-    private async connectStdio(): Promise<void> {
-        const command = this.config.config.command as string;
-        const args = (this.config.config.args as string[]) ?? [];
-
-        if (!command) {
-            throw new Error('MCP stdio transport requires command in config');
-        }
-
-        return new Promise((resolve, reject) => {
-            const {spawn} = require('node:child_process') as typeof import('node:child_process');
-            this.process = spawn(command, args, {stdio: 'pipe'});
-
-            let buffer = '';
-
-            this.process.stdout?.on('data', (data: Buffer) => {
-                buffer += data.toString();
-                const lines = buffer.split('\n');
-                buffer = lines.pop() ?? '';
-
-                for (const line of lines) {
-                    if (line.trim()) {
-                        this.handleMCPMessage(JSON.parse(line));
-                    }
-                }
-            });
-
-            this.process.stderr?.on('data', (data: Buffer) => {
-                this.logger.error(`MCP stderr: ${data.toString()}`);
-            });
-
-            this.process.on('error', (err) => {
-                this.handleError(this.createError(err.message, 'MCP_SPAWN_ERROR', true, err));
-                reject(err);
-            });
-
-            this.process.on('close', (code) => {
-                this.setState('disconnected');
-                if (code !== 0) {
-                    this.handleError(
-                        this.createError(`MCP process exited with code ${code}`, 'MCP_EXIT', false)
-                    );
-                }
-            });
-
-            setTimeout(() => {
-                this.setState('connected');
-                this.logger.info(`MCP connection ${this.id} connected via stdio`);
-                resolve();
-            }, 1000);
-        });
-    }
-
-    private handleMCPMessage(data: Record<string, unknown>): void {
-        const method = data.method as string | undefined;
-
-        if (method === 'notifications/tools/list_changed') {
-            this.discoverTools();
-            return;
-        }
-
-        if (method === 'tools/list') {
-            const tools =
-                (
-                    data.params as {
-                        result: {
-                            tools: Array<{
-                                name: string;
-                                description: string;
-                                inputSchema: Record<string, unknown>;
-                            }>;
-                        };
-                    }
-                )?.result?.tools ?? [];
-            this.tools.clear();
-            for (const tool of tools) {
-                this.tools.set(tool.name, {
-                    description: tool.description,
-                    inputSchema: tool.inputSchema,
-                });
-            }
-            return;
-        }
-
-        if (method === 'tools/call') {
-            const params = data.params as { name: string; arguments: Record<string, unknown> };
-            this.handleMessage(
-                this.createMessage(
-                    'mcp-client',
-                    JSON.stringify({
-                        tool: params.name,
-                        args: params.arguments,
-                    }),
-                    {
-                        toolCall: true,
-                        origin: 'mcp:tool:mcp-client',
-                    }
-                )
-            );
-            return;
-        }
-
-        const id = data.id as string | undefined;
-        if (id && data.result && this.pendingToolCalls.has(id)) {
-            const resolve = this.pendingToolCalls.get(id);
-            if (resolve) {
-                this.pendingToolCalls.delete(id);
-                clearTimeout(this.toolCallTimeouts.get(id));
-                this.toolCallTimeouts.delete(id);
-                const result = data.result as {
-                    content: Array<{ type: string; text: string }>;
-                    isError?: boolean;
-                };
-                resolve(result);
-            }
-            return;
-        }
-
-        if (id && data.error && this.pendingToolCalls.has(id)) {
-            const resolve = this.pendingToolCalls.get(id);
-            if (resolve) {
-                resolve({
-                    content: [{type: 'text', text: JSON.stringify(data.error)}],
-                    isError: true,
-                });
-            }
-            return;
-        }
-    }
-
-    private discoverTools(): void {
-        if (!this.process?.stdin) return;
-
-        const message = {
-            jsonrpc: '2.0',
-            id: makeId(),
-            method: 'tools/list',
-            params: {},
-        };
-
-        this.process.stdin.write(`${JSON.stringify(message)}\n`);
-    }
+    return tools.map((t) => `${prefix}${t.name}`);
+  }
 }

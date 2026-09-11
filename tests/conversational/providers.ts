@@ -1,4 +1,3 @@
-import type {ZodSchema} from 'zod';
 import {createMockLMService, createSeNARSRegistry, LMService} from '../../nar/src/lm';
 
 export type LMProvider = 'transformers' | 'ollama' | 'mock';
@@ -73,7 +72,7 @@ export function resolveTestLMService(): LMService {
     if (provider === 'mock') {
         return createMockLMService({
             generateTextFn: smartMockResponse,
-            generateObjectFn: <T>(_p: string, schema: ZodSchema<T>) => ({}) as T,
+            generateObjectFn: <T>(_p: string, _schema: unknown) => ({}) as T,
         });
     }
     const registry = createSeNARSRegistry();

@@ -1,5 +1,11 @@
 # MeTTa JavaScript Implementation Specification
 
+> **Note (2026-09):** the legacy `metta/metta.js` tree was removed — it duplicated
+> the LLM provider registry, MCP tooling, and REPL now unified in TypeScript
+> (`nar/src/lm`, `io/src/connections/mcp`, `src/bin/repl.ts`). The canonical
+> implementation is `metta/src` (`@senars/metta`). This spec is retained as
+> design history for the TS port.
+
 > A pure JavaScript MeTTa implementation: unified, integrated, and free from legacy complexity.
 
 ---

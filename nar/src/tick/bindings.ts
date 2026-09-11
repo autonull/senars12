@@ -1,13 +1,16 @@
-import { createBudget, createTask } from '../types/core.js';
-import type { Task } from '../types/core.js';
-import { getPredicate, getSubject, isAtomic, isInheritance } from '../terms/index.js';
-import type { TickContext, TickHook } from './tick.js';
 import type { LMBackend, ProvisionalBelief } from '../stream/reasoner.js';
+import { getPredicate, getSubject, isAtomic, isInheritance } from '../terms/index.js';
+import type { Task } from '../types/core.js';
+import { createBudget, createTask } from '../types/core.js';
+import type { TickContext, TickHook } from './tick.js';
 
 export type Maybe<T> = T | Promise<T>;
 
 export interface FirewallLike {
-  check(narsese: string, kind?: 'belief' | 'goal' | 'question'): { allowed: boolean; reason?: string };
+  check(
+    narsese: string,
+    kind?: 'belief' | 'goal' | 'question'
+  ): { allowed: boolean; reason?: string };
 }
 
 export interface ConceptLike {
@@ -22,7 +25,9 @@ export interface MemoryLike {
 
 export interface FocusLike {
   id: string;
-  step(budget: number): Promise<{ tasksProcessed: number; derivations: number } & Record<string, unknown>>;
+  step(
+    budget: number
+  ): Promise<{ tasksProcessed: number; derivations: number } & Record<string, unknown>>;
 }
 
 export interface FocusBagLike {
@@ -50,7 +55,10 @@ export interface NegotiationDecisionLike {
 }
 
 export interface NegotiatorLike {
-  resolve(proposals: ActionProposalLike[], derivations: NALDerivationLike[]): NegotiationDecisionLike;
+  resolve(
+    proposals: ActionProposalLike[],
+    derivations: NALDerivationLike[]
+  ): NegotiationDecisionLike;
 }
 
 export interface PolicyLike {
@@ -58,7 +66,10 @@ export interface PolicyLike {
 }
 
 export interface ToolsLike {
-  execute(name: string, args: Record<string, unknown>): Promise<{ success: boolean; error?: unknown }>;
+  execute(
+    name: string,
+    args: Record<string, unknown>
+  ): Promise<{ success: boolean; error?: unknown }>;
 }
 
 export interface ValidatorLike {
@@ -66,7 +77,14 @@ export interface ValidatorLike {
 }
 
 export interface TaskOutcomeLike {
-  taskType: 'test' | 'scenario' | 'contradiction' | 'schema' | 'capability' | 'knob_tune' | 'meta_reasoning';
+  taskType:
+    | 'test'
+    | 'scenario'
+    | 'contradiction'
+    | 'schema'
+    | 'capability'
+    | 'knob_tune'
+    | 'meta_reasoning';
   success: boolean;
   metrics: Record<string, number>;
 }
@@ -99,12 +117,19 @@ export interface TickDeps {
   lmBackend?: LMBackend;
 }
 
-export const operationActionOf = (task: Task): { name: string; args: Record<string, unknown> } | undefined => {
+export const operationActionOf = (
+  task: Task
+): { name: string; args: Record<string, unknown> } | undefined => {
   if (!isInheritance(task.term)) return undefined;
   const predicate = getPredicate(task.term);
   if (!predicate || !isAtomic(predicate) || !predicate.symbol.startsWith('^')) return undefined;
   const subject = getSubject(task.term);
-  const args = subject?.kind === 'product' ? (subject.args?.map(String) ?? []) : subject ? [String(subject)] : [];
+  const args =
+    subject?.kind === 'product'
+      ? (subject.args?.map(String) ?? [])
+      : subject
+        ? [String(subject)]
+        : [];
   return { name: predicate.symbol.slice(1), args: { args } };
 };
 
@@ -117,9 +142,15 @@ export function createDefaultHooks(deps: TickDeps): Record<string, TickHook> {
     perceive: async (ctx) => {
       const incoming = (await deps.stimuli?.()) ?? [];
       for (const task of incoming) {
-        const verdict = deps.firewall?.check(String(task.term), task.type);
+        const kind = task.type === 'command' ? 'goal' : task.type;
+        const verdict = deps.firewall?.check(String(task.term), kind);
         if (verdict && !verdict.allowed) {
-          ctx.events.push({ tickId: ctx.tickId, stage: 'perceive', detail: `blocked: ${verdict.reason}`, at: Date.now() });
+          ctx.events.push({
+            tickId: ctx.tickId,
+            stage: 'perceive',
+            detail: `blocked: ${verdict.reason}`,
+            at: Date.now(),
+          });
           continue;
         }
         ctx.state.perceptions.push(task);
@@ -129,14 +160,21 @@ export function createDefaultHooks(deps: TickDeps): Record<string, TickHook> {
       const concepts = deps.memory?.sample(ctx.budget.cycles) ?? [];
       for (const c of concepts) {
         const truth = c.beliefBag.peek()?.truth;
-        if (truth) ctx.state.memories.push(createTask(c.term, 'belief', truth, createBudget(c.priority)));
+        if (truth)
+          ctx.state.memories.push(createTask(c.term, 'belief', truth, createBudget(c.priority)));
       }
     },
     attend: async (ctx) => {
-      if (deps.focusBag && deps.focus) ctx.budget.cycles = deps.focusBag.allocateBudget(deps.focus, ctx.budget.cycles);
+      if (deps.focusBag && deps.focus)
+        ctx.budget.cycles = deps.focusBag.allocateBudget(deps.focus, ctx.budget.cycles);
       if (deps.focus) {
         const report = await deps.focus.step(ctx.budget.cycles);
-        ctx.events.push({ tickId: ctx.tickId, stage: 'attend', detail: `focus:${deps.focus.id} tasks=${report.tasksProcessed}`, at: Date.now() });
+        ctx.events.push({
+          tickId: ctx.tickId,
+          stage: 'attend',
+          detail: `focus:${deps.focus.id} tasks=${report.tasksProcessed}`,
+          at: Date.now(),
+        });
       }
     },
     propose: async (ctx) => {
@@ -152,7 +190,12 @@ export function createDefaultHooks(deps: TickDeps): Record<string, TickHook> {
       if (!deps.negotiator) return;
       const proposals: ActionProposalLike[] = ctx.state.proposals
         .filter((t) => t.type === 'goal')
-        .map((t) => ({ action: actionKey(t, actionOf), value: t.budget.priority, confidence: t.truth.c, source: 'tick' }));
+        .map((t) => ({
+          action: actionKey(t, actionOf),
+          value: t.budget.priority,
+          confidence: t.truth.c,
+          source: 'tick',
+        }));
       const derivations: NALDerivationLike[] = ctx.state.derivations.map((t) => ({
         action: String((t as Task).term ?? t),
         truth: (t as Task).truth ?? { f: 0.5, c: 0 },
@@ -161,10 +204,17 @@ export function createDefaultHooks(deps: TickDeps): Record<string, TickHook> {
       const decision = deps.negotiator.resolve(proposals, derivations);
       const executed = decision.actionExecuted ?? (decision.vetoedBy ? null : decision.action);
       if (decision.vetoedBy) {
-        ctx.events.push({ tickId: ctx.tickId, stage: 'negotiate', detail: `veto:${decision.vetoedBy}`, at: Date.now() });
+        ctx.events.push({
+          tickId: ctx.tickId,
+          stage: 'negotiate',
+          detail: `veto:${decision.vetoedBy}`,
+          at: Date.now(),
+        });
         return;
       }
-      const winner = ctx.state.proposals.find((t) => t.type === 'goal' && actionKey(t, actionOf) === executed);
+      const winner = ctx.state.proposals.find(
+        (t) => t.type === 'goal' && actionKey(t, actionOf) === executed
+      );
       if (winner) ctx.state.actions.push(winner);
     },
     authorize: async (ctx) => {
@@ -172,7 +222,12 @@ export function createDefaultHooks(deps: TickDeps): Record<string, TickHook> {
       ctx.state.actions = ctx.state.actions.filter((task) => {
         const verdict = deps.policy!.checkCommand(actionKey(task, actionOf));
         if (!verdict.allowed)
-          ctx.events.push({ tickId: ctx.tickId, stage: 'authorize', detail: `denied: ${verdict.reason}`, at: Date.now() });
+          ctx.events.push({
+            tickId: ctx.tickId,
+            stage: 'authorize',
+            detail: `denied: ${verdict.reason}`,
+            at: Date.now(),
+          });
         return verdict.allowed;
       });
     },
@@ -184,7 +239,8 @@ export function createDefaultHooks(deps: TickDeps): Record<string, TickHook> {
         const result = await deps.tools.execute(op.name, op.args);
         ctx.state.outcomes.push({ tool: op.name, success: result.success });
         ctx.events.push({
-          tickId: ctx.tickId, stage: 'act',
+          tickId: ctx.tickId,
+          stage: 'act',
           detail: `${op.name}:${result.success ? 'ok' : `fail:${String(result.error ?? 'unknown')}`}`,
           at: Date.now(),
         });
@@ -195,21 +251,36 @@ export function createDefaultHooks(deps: TickDeps): Record<string, TickHook> {
       const verdict = await deps.validator.check(ctx);
       if (!verdict.ok) {
         ctx.state.outcomes.length = 0;
-        ctx.events.push({ tickId: ctx.tickId, stage: 'validate', detail: `quarantined: ${verdict.reason ?? 'shadow check failed'}`, at: Date.now() });
+        ctx.events.push({
+          tickId: ctx.tickId,
+          stage: 'validate',
+          detail: `quarantined: ${verdict.reason ?? 'shadow check failed'}`,
+          at: Date.now(),
+        });
       }
     },
     learn: async (ctx) => {
       const outcomes = ctx.state.outcomes;
-      const passRate = outcomes.length === 0 ? 0 : outcomes.filter((o) => o.success).length / outcomes.length;
-      const reward = deps.rewardOf?.(ctx) ?? (deps.rlfp
-        ? deps.rlfp.calculateRewardFromTask(deps.taskOutcomeOf?.(ctx) ?? {
-          taskType: 'meta_reasoning',
-          success: passRate === 1 && outcomes.length > 0,
-          metrics: { passRate, ...deps.intrinsicOf?.(ctx) },
-        })
-        : passRate);
+      const passRate =
+        outcomes.length === 0 ? 0 : outcomes.filter((o) => o.success).length / outcomes.length;
+      const reward =
+        deps.rewardOf?.(ctx) ??
+        (deps.rlfp
+          ? deps.rlfp.calculateRewardFromTask(
+              deps.taskOutcomeOf?.(ctx) ?? {
+                taskType: 'meta_reasoning',
+                success: passRate === 1 && outcomes.length > 0,
+                metrics: { passRate, ...deps.intrinsicOf?.(ctx) },
+              }
+            )
+          : passRate);
       deps.onReward?.(reward, ctx);
-      ctx.events.push({ tickId: ctx.tickId, stage: 'learn', detail: `reward:${reward.toFixed(3)}`, at: Date.now() });
+      ctx.events.push({
+        tickId: ctx.tickId,
+        stage: 'learn',
+        detail: `reward:${reward.toFixed(3)}`,
+        at: Date.now(),
+      });
     },
     consolidate: async (ctx) => {
       for (const bag of deps.decayers ?? []) bag.decay(deps.decayRate);

@@ -1,3 +1,6 @@
+import {existsSync, readFileSync, writeFileSync} from 'node:fs';
+import {join} from 'node:path';
+
 export interface TranslationCacheEntry {
     nl: string;
     result: TranslationResult | string;
@@ -99,11 +102,9 @@ export class TranslationCache {
 
     saveToFile(basePath: string): void {
         try {
-            const fs = require('fs');
-            const path = require('path');
-            const fullPath = path.join(basePath, 'translation-cache.json');
+            const fullPath = join(basePath, 'translation-cache.json');
             const serialized = this.serialize();
-            fs.writeFileSync(fullPath, JSON.stringify(serialized), 'utf-8');
+            writeFileSync(fullPath, JSON.stringify(serialized), 'utf-8');
         } catch {
             // Ignore save errors
         }
@@ -111,11 +112,9 @@ export class TranslationCache {
 
     loadFromFile(basePath: string): void {
         try {
-            const fs = require('fs');
-            const path = require('path');
-            const fullPath = path.join(basePath, 'translation-cache.json');
-            if (fs.existsSync(fullPath)) {
-                const content = fs.readFileSync(fullPath, 'utf-8');
+            const fullPath = join(basePath, 'translation-cache.json');
+            if (existsSync(fullPath)) {
+                const content = readFileSync(fullPath, 'utf-8');
                 const data = JSON.parse(content) as SerializedCache;
                 this.deserialize(data);
             }

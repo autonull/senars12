@@ -7,18 +7,7 @@ import type {Budget, Task, TaskType} from '../types';
 import {createTask, type EventBus as NarEventBus, type NAREventMap} from '../types';
 import {CircuitBreaker, errMsg} from '../utils';
 import type {LMExecutionStats, LMRuleConfig, LMRuleStats, LMService} from './lm-service.js';
-
-const defaultStats = (): LMExecutionStats => ({
-    totalCalls: 0,
-    successfulCalls: 0,
-    failedCalls: 0,
-    totalDuration: 0,
-    totalTokens: 0,
-    averageDuration: 0,
-    successRate: 0,
-    totalCost: 0,
-    averageCost: 0,
-});
+import {createLMStats, recordLMCall} from './stats.js';
 
 export interface LMContext {
     memorySnapshot?: string;
@@ -48,6 +37,7 @@ export interface LMRuleConfigV2<In = unknown, Out = unknown>
     outputSchema?: ZodSchema<Out>;
     validate?: (output: Out) => ValidationResult;
     promptTemplate?: string | ((input: In, context: LMContext) => string);
+    promptVersion?: 1 | 2;
     taskType?: TaskType;
     schema?: ZodSchema;
     enableTools?: boolean;
@@ -70,7 +60,7 @@ export class LMRule {
     private readonly circuitBreaker: CircuitBreaker;
     private eventBus: NarEventBus | null;
     private systemEventBus: NarEventBus | null = null;
-    private stats: LMExecutionStats = defaultStats();
+    private stats: LMExecutionStats = createLMStats();
     private structuredModel: LanguageModel | null = null;
     private toolDispatcher?: (tool: string, args: Record<string, unknown>) => Promise<unknown>;
     private readonly enableTools: boolean;
@@ -82,27 +72,27 @@ export class LMRule {
     private readonly v2PromptFn?: (input: unknown, context: LMContext) => string;
 
     constructor(id: string, lm: LMService | null, config: LMRuleConfig | LMRuleConfigV2 = {}) {
+        const v2 = config as LMRuleConfigV2;
         this.id = id;
         this.name = config.name ?? id;
         this.description = config.description ?? 'LM-based inference rule';
         this.category = config.category ?? 'general';
         this.priority = config.priority ?? 1.0;
-        this.taskType = (config as LMRuleConfigV2).taskType ?? 'belief';
+        this.taskType = v2.taskType ?? 'belief';
         this.enabled = config.enabled ?? true;
         this.lm = lm;
-        this.v2Config = config as LMRuleConfigV2;
+        this.v2Config = v2;
         this.baseConfig = config as LMRuleConfig;
-        this.outputSchema = (config as LMRuleConfigV2).outputSchema;
-        this.inputSchema = (config as LMRuleConfigV2).inputSchema;
-        this.validateFn = (config as LMRuleConfigV2).validate;
-        this.constitutionAware = (config as LMRuleConfigV2).constitutionAware ?? false;
+        this.outputSchema = v2.outputSchema;
+        this.inputSchema = v2.inputSchema;
+        this.validateFn = v2.validate as ((output: unknown) => ValidationResult) | undefined;
+        this.constitutionAware = v2.constitutionAware ?? false;
         const tpl = config.promptTemplate;
-        if (typeof tpl === 'function' && !(tpl as unknown as { primary?: unknown }).primary) {
-            // v2-style function prompt — check arity
-            const fnStr = tpl.toString();
-            if (fnStr.includes('context') && !fnStr.includes('secondary')) {
-                this.v2PromptFn = tpl as (input: unknown, context: LMContext) => string;
-            }
+        if (
+            typeof tpl === 'function' &&
+            (v2.promptVersion === 2 || (v2.promptVersion !== 1 && (v2.inputSchema || v2.outputSchema)))
+        ) {
+            this.v2PromptFn = tpl as (input: unknown, context: LMContext) => string;
         }
         this.circuitBreaker = new CircuitBreaker({
             failureThreshold: 5,
@@ -111,7 +101,7 @@ export class LMRule {
             quiet: true,
         });
         this.eventBus = null;
-        this.enableTools = (config as LMRuleConfigV2).enableTools ?? false;
+        this.enableTools = v2.enableTools ?? false;
     }
 
     setEventBus(eventBus: NarEventBus): void {
@@ -189,29 +179,21 @@ export class LMRule {
 
             // Tool delegation for structured output
             if (usedStructured && this.enableTools && this.toolDispatcher) {
-                try {
-                    const parsed = JSON.parse(response);
-                    if (parsed && typeof parsed === 'object' && 'tool' in parsed && 'args' in parsed) {
-                        const {tool, args} = parsed as { tool: string; args: Record<string, unknown> };
-                        const toolResult = await this.toolDispatcher(tool, args);
-                        // Re-run with tool result as context
-                        const toolContext = {...context, toolResult};
-                        const toolPrompt = this.generatePrompt(
-                            primary,
-                            secondary,
-                            this.buildLMContext(primary, secondary, toolContext),
-                            toolContext
-                        );
-                        response = await this.executeStructured(toolPrompt, signal);
-                        this.emitSystemEvent('system:lm.rule:structured', {
-                            ruleId: this.id,
-                            schema: this.outputSchema!.description ?? 'unknown',
-                            output: response,
-                            timestamp: Date.now(),
-                        });
-                    }
-                } catch {
-                    // Not valid JSON or no tool call, continue with original response
+                const delegated = await this.tryToolDelegation(
+                    response,
+                    primary,
+                    secondary,
+                    context,
+                    signal
+                );
+                if (delegated) {
+                    response = delegated;
+                    this.emitSystemEvent('system:lm.rule:structured', {
+                        ruleId: this.id,
+                        schema: this.outputSchema!.description ?? 'unknown',
+                        output: response,
+                        timestamp: Date.now(),
+                    });
                 }
             }
 
@@ -231,7 +213,7 @@ export class LMRule {
 
             const tasks = this.processAndGenerate(response, primary, secondary, lmContext, context);
             this.recordSuccess(duration, prompt.length + response.length);
-            this.emitSystemEvent('system:lm.rule:applied' as keyof NAREventMap, {
+            this.emitSystemEvent('system:lm.rule:applied', {
                 ruleId: this.id,
                 ruleName: this.name,
                 primaryTerm: primary.toString(),
@@ -276,7 +258,7 @@ export class LMRule {
 
     reset(): void {
         this.circuitBreaker.reset();
-        this.stats = defaultStats();
+        this.stats = createLMStats();
     }
 
     private getSkipReason(
@@ -338,14 +320,65 @@ export class LMRule {
         if (!this.structuredModel || !this.outputSchema) {
             return this.executeLM(prompt, signal);
         }
-        return await this.circuitBreaker.execute(async () => {
-            const result = await generateObject({
-                model: this.structuredModel!,
-                prompt,
-                schema: zodSchema(this.outputSchema!),
+        const start = Date.now();
+        try {
+            const result = await this.circuitBreaker.execute(async () => {
+                const res = await generateObject({
+                    model: this.structuredModel!,
+                    prompt,
+                    schema: zodSchema(this.outputSchema!),
+                    abortSignal: signal,
+                });
+                return JSON.stringify(res.object);
             });
-            return JSON.stringify(result.object);
-        });
+            recordLMCall(this.stats, true, Date.now() - start, prompt.length + result.length);
+            return result;
+        } catch (e) {
+            recordLMCall(this.stats, false, Date.now() - start, prompt.length);
+            throw e;
+        }
+    }
+
+    private async tryToolDelegation(
+        response: string,
+        primary: Term,
+        secondary: Term | undefined,
+        context: Record<string, unknown> | undefined,
+        signal?: AbortSignal
+    ): Promise<string | null> {
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(response);
+        } catch {
+            return null;
+        }
+        if (!parsed || typeof parsed !== 'object' || !('tool' in parsed) || !('args' in parsed))
+            return null;
+        const {tool, args} = parsed as { tool: unknown; args: unknown };
+        if (typeof tool !== 'string' || !tool || typeof args !== 'object' || args === null)
+            return null;
+        if (signal?.aborted) return null;
+        try {
+            const toolResult = await this.toolDispatcher!(tool, args as Record<string, unknown>);
+            const toolContext = {...context, toolResult};
+            return await this.executeStructured(
+                this.generatePrompt(
+                    primary,
+                    secondary,
+                    this.buildLMContext(primary, secondary, toolContext),
+                    toolContext
+                ),
+                signal
+            );
+        } catch (e) {
+            this.emitEvent('lm.tool-error', {
+                ruleId: this.id,
+                tool,
+                error: errMsg(e),
+                timestamp: Date.now(),
+            });
+            return null;
+        }
     }
 
     private generatePrompt(
@@ -360,7 +393,7 @@ export class LMRule {
                     primary: primary.toString(),
                     secondary: secondary?.toString(),
                     context,
-                } as never,
+                },
                 lmContext
             );
         }
@@ -459,34 +492,40 @@ export class LMRule {
         return [this.taskFromProcessed(processed, primary)];
     }
 
+    private checkConstitution(task: Task, fallbackTerm: Term): Task {
+        if (this.constitutionAware && this.nar && this.nar.checkConstitutionViolation(task)) {
+            this.emitSystemEvent('system:lm.rule:constitution-violation', {
+                ruleId: this.id,
+                term: task.term.toString(),
+                clause: 'constitution conflict',
+                timestamp: Date.now(),
+            });
+            return createTask(fallbackTerm, this.taskType, Truth.NEUTRAL);
+        }
+        return task;
+    }
+
     private taskFromProcessed(processed: unknown, primary: Term): Task {
         if (typeof processed === 'string') {
             const parsed = LMResponseParser.parse(processed);
             if (parsed.valid && parsed.term) {
-                const task = createTask(
-                    parsed.term,
-                    this.taskType,
-                    parsed.truth,
-                    parsed.confidence != null
-                        ? {
-                            priority: parsed.confidence,
-                            durability: 0.8,
-                            quality: 0.9,
-                            cycles: 0,
-                            depth: 0,
-                        }
-                        : undefined
+                return this.checkConstitution(
+                    createTask(
+                        parsed.term,
+                        this.taskType,
+                        parsed.truth,
+                        parsed.confidence != null
+                            ? {
+                                priority: parsed.confidence,
+                                durability: 0.8,
+                                quality: 0.9,
+                                cycles: 0,
+                                depth: 0,
+                            }
+                            : undefined
+                    ),
+                    primary
                 );
-                if (this.constitutionAware && this.nar && this.nar.checkConstitutionViolation(task)) {
-                    this.emitSystemEvent('system:lm.rule:constitution-violation', {
-                        ruleId: this.id,
-                        term: parsed.term.toString(),
-                        clause: 'constitution conflict',
-                        timestamp: Date.now(),
-                    });
-                    return createTask(primary, this.taskType, Truth.NEUTRAL);
-                }
-                return task;
             }
         }
 
@@ -495,34 +534,15 @@ export class LMRule {
         const truth = (processed as Partial<Task> & { truth?: TruthType }).truth ?? Truth.NEUTRAL;
         const budget = (processed as Partial<Task> & { budget?: Budget }).budget;
 
-        const task = createTask(term, type, truth, budget ?? undefined);
-        if (this.constitutionAware && this.nar && this.nar.checkConstitutionViolation(task)) {
-            this.emitSystemEvent('system:lm.rule:constitution-violation', {
-                ruleId: this.id,
-                term: term.toString(),
-                clause: 'constitution conflict',
-                timestamp: Date.now(),
-            });
-            return createTask(primary, this.taskType, Truth.NEUTRAL);
-        }
-        return task;
+        return this.checkConstitution(createTask(term, type, truth, budget ?? undefined), primary);
     }
 
     private recordSuccess(duration: number, tokens: number): void {
-        this.stats.totalCalls++;
-        this.stats.successfulCalls++;
-        this.stats.totalDuration += duration;
-        this.stats.totalTokens += tokens;
-        this.stats.averageDuration = this.stats.totalDuration / this.stats.totalCalls;
-        this.stats.successRate = this.stats.successfulCalls / this.stats.totalCalls;
+        recordLMCall(this.stats, true, duration, tokens);
     }
 
     private recordFailure(duration: number): void {
-        this.stats.totalCalls++;
-        this.stats.failedCalls++;
-        this.stats.totalDuration += duration;
-        this.stats.averageDuration = this.stats.totalDuration / this.stats.totalCalls;
-        this.stats.successRate = this.stats.successfulCalls / this.stats.totalCalls;
+        recordLMCall(this.stats, false, duration, 0);
     }
 }
 
@@ -541,20 +561,35 @@ export interface StructuredLMOutput {
     confidence?: number;
 }
 
+const invalid = (
+    raw: string,
+    error: string
+): ParsedLMResponse => ({
+    term: termParser.parse('TRUE'),
+    truth: Truth.NEUTRAL,
+    valid: false,
+    raw,
+    error,
+});
+
+const parseNarseseWithTruth = (
+    text: string,
+    raw: string
+): ParsedLMResponse => {
+    try {
+        const {term, truth} = termParser.parseWithTruth(text);
+        return {term, truth: truth ?? Truth.NEUTRAL, raw, valid: true};
+    } catch {
+        return invalid(raw, 'Invalid Narsese syntax');
+    }
+};
+
 export const LMResponseParser = {
     parse(response: string): ParsedLMResponse {
-        if (!response || response.trim() === '') {
-            return {
-                term: termParser.parse('TRUE'),
-                truth: Truth.NEUTRAL,
-                valid: false,
-                raw: response,
-                error: 'Empty response',
-            };
-        }
-        try {
-            const structured = extractStructuredOutput(response);
-            if (structured) {
+        if (!response || response.trim() === '') return invalid(response, 'Empty response');
+        const structured = extractStructuredOutput(response);
+        if (structured) {
+            try {
                 const {term, truth} = termParser.parseWithTruth(structured.narsese);
                 const finalTruth = structured.truth
                     ? Truth.create(structured.truth.f, structured.truth.c)
@@ -566,71 +601,36 @@ export const LMResponseParser = {
                     raw: response,
                     valid: true,
                 };
+            } catch (error) {
+                return invalid(response, errMsg(error));
             }
-            const plainText = response.trim();
-            const {term, truth} = termParser.parseWithTruth(plainText);
-            return {term, truth: truth ?? Truth.NEUTRAL, raw: response, valid: true};
-        } catch (error) {
-            return {
-                term: termParser.parse('TRUE'),
-                truth: Truth.NEUTRAL,
-                valid: false,
-                raw: response,
-                error: errMsg(error),
-            };
         }
+        return parseNarseseWithTruth(response.trim(), response);
     },
 
     validate(response: string): ParsedLMResponse {
-        if (!response || response.trim() === '') {
-            return {
-                term: termParser.parse('TRUE'),
-                truth: Truth.NEUTRAL,
-                valid: false,
-                raw: response,
-                error: 'Empty response',
-            };
-        }
+        if (!response || response.trim() === '') return invalid(response, 'Empty response');
         const trimmed = response.trim();
         if (trimmed.startsWith('{')) {
+            let parsed: { narsese?: unknown; truth?: { f: number; c: number } };
             try {
-                const parsed = JSON.parse(trimmed);
-                if (parsed.narsese) {
-                    const {term, truth} = termParser.parseWithTruth(parsed.narsese);
-                    const finalTruth = parsed.truth
-                        ? Truth.create(parsed.truth.f, parsed.truth.c)
-                        : (truth ?? Truth.NEUTRAL);
-                    return {term, truth: finalTruth, raw: response, valid: true};
-                }
-                return {
-                    term: termParser.parse('TRUE'),
-                    truth: Truth.NEUTRAL,
-                    valid: false,
-                    raw: response,
-                    error: 'Missing narsese field in JSON',
-                };
+                parsed = JSON.parse(trimmed);
             } catch {
-                return {
-                    term: termParser.parse('TRUE'),
-                    truth: Truth.NEUTRAL,
-                    valid: false,
-                    raw: response,
-                    error: 'Invalid JSON in response',
-                };
+                return invalid(response, 'Invalid JSON in response');
+            }
+            if (typeof parsed.narsese !== 'string')
+                return invalid(response, 'Missing narsese field in JSON');
+            try {
+                const {term, truth} = termParser.parseWithTruth(parsed.narsese);
+                const finalTruth = parsed.truth
+                    ? Truth.create(parsed.truth.f, parsed.truth.c)
+                    : (truth ?? Truth.NEUTRAL);
+                return {term, truth: finalTruth, raw: response, valid: true};
+            } catch (error) {
+                return invalid(response, errMsg(error));
             }
         }
-        try {
-            const {term, truth} = termParser.parseWithTruth(trimmed);
-            return {term, truth: truth ?? Truth.NEUTRAL, raw: response, valid: true};
-        } catch {
-            return {
-                term: termParser.parse('TRUE'),
-                truth: Truth.NEUTRAL,
-                valid: false,
-                raw: response,
-                error: 'Invalid Narsese syntax',
-            };
-        }
+        return parseNarseseWithTruth(trimmed, response);
     },
 };
 

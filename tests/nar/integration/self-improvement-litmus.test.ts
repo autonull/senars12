@@ -26,6 +26,11 @@ import {createLogger} from '../../../nar/src/logger.js';
 
 const logger = createLogger({scope: 'self-improvement-litmus'});
 
+// Wiring assertions below are LM-independent; default to the mock provider so
+// this file stays hermetic (avoids downloading real weights). Explicit
+// LM_PROVIDER in the environment still wins.
+if (!process.env.LM_PROVIDER) process.env.LM_PROVIDER = 'mock';
+
 // Test workspace for shadow operations
 const TEST_WORKSPACE = join(process.cwd(), '.cache', 'litmus-test');
 

@@ -1,16 +1,16 @@
 import type {LanguageModel} from 'ai';
 import {generateObject, generateText, zodSchema} from 'ai';
 import type {ZodSchema} from 'zod';
+import {v4 as uuidv4} from 'uuid';
 import type {SeNARSRegistry} from '../lm';
 import {getModelForTask} from '../lm';
+import type {LMService} from '../lm/lm-service.js';
 import {errMsg} from '../utils';
-import {termParser} from '../terms/index.js';
 import {SymbolicFirewall, type FirewallOptions} from './firewall.js';
 import {SingleFlight} from './singleflight.js';
 import type {TranslationCache, TranslationCacheEntry, TranslationResult} from './cache.js';
 import {buildUnderstandingPrompt} from './prompts/understanding-v1.js';
 import {TaskBatchSchema} from './schemas.js';
-import {v4 as uuidv4} from 'uuid';
 import type {AmbiguityFlag, FormalizationBatch, FormalizationCandidate} from '@senars/kernel/schemas';
 import {validateFormalizationBatch} from '@senars/kernel/schemas';
 
@@ -53,31 +53,26 @@ export interface NLContext {
     recentExamples?: TranslationCacheEntry[];
 }
 
-function validateNarsese(text: string): boolean {
-    if (!text) return false;
-    const cleaned = text.replace(/^`+|`+$/g, '').trim();
-    if (!cleaned) return false;
-    try {
-        termParser.parse(cleaned.replace(/[.?!]$/, ''));
-        return true;
-    } catch {
-        return false;
-    }
-}
-
 export class NLUnderstandingService {
-    private readonly model: LanguageModel;
+    private readonly lm: LMService | null;
+    private readonly model: LanguageModel | null;
     private structuredOnly: boolean;
     private readonly firewall: SymbolicFirewall;
     private readonly flight = new SingleFlight();
     private readonly cache: TranslationCache;
 
     constructor(
-        registry: SeNARSRegistry,
+        registry: SeNARSRegistry | LMService,
         cache: TranslationCache,
         opts?: { structuredOnly?: boolean; firewall?: FirewallOptions | SymbolicFirewall }
     ) {
-        this.model = getModelForTask(registry, 'structured') as LanguageModel;
+        if (registry && typeof (registry as LMService).generateObject === 'function') {
+            this.lm = registry as LMService;
+            this.model = null;
+        } else {
+            this.lm = null;
+            this.model = getModelForTask(registry as SeNARSRegistry, 'structured');
+        }
         this.cache = cache;
         this.structuredOnly = opts?.structuredOnly ?? true;
         this.firewall = opts?.firewall instanceof SymbolicFirewall ? opts.firewall : new SymbolicFirewall(opts?.firewall ?? {});
@@ -151,12 +146,68 @@ export class NLUnderstandingService {
         };
     }
 
+    private async structuredTranslate(prompt: string): Promise<TaskBatch | null> {
+        try {
+            if (this.lm) {
+                return await this.lm.generateObject(
+                    prompt,
+                    TaskBatchSchema as ZodSchema<TaskBatch>,
+                    {task: 'structured'}
+                );
+            }
+            if (!this.model) return null;
+            const result = await generateObject({
+                model: this.model,
+                prompt,
+                schema: zodSchema(TaskBatchSchema as ZodSchema<TaskBatch>),
+            });
+            return result.object as TaskBatch;
+        } catch {
+            return null;
+        }
+    }
+
+    private async jsonFallbackTranslate(prompt: string): Promise<TaskBatch | null> {
+        try {
+            const text = this.lm
+                ? await this.lm.generateText(prompt + '\n\nRespond with valid JSON only.', {
+                    task: 'structured',
+                })
+                : await generateText({
+                    model: this.model!,
+                    prompt: prompt + '\n\nRespond with valid JSON only.',
+                }).then((r) => r.text);
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) return null;
+            const parsed = TaskBatchSchema.safeParse(JSON.parse(jsonMatch[0]));
+            return parsed.success ? (parsed.data as TaskBatch) : null;
+        } catch {
+            return null;
+        }
+    }
+
+    private async narseseFallbackTranslate(prompt: string, input: string): Promise<TaskBatch | null> {
+        try {
+            const text = this.lm
+                ? await this.lm.generateText(prompt + '\n\nRespond with Narsese statements only.', {
+                    task: 'structured',
+                })
+                : await generateText({
+                    model: this.model!,
+                    prompt: prompt + '\n\nRespond with Narsese statements only.',
+                }).then((r) => r.text);
+            return this.extractNarseseFromText(text, input);
+        } catch {
+            return null;
+        }
+    }
+
     private async translateWithLM(
         input: string,
         ctx?: NLContext,
         lastError?: string | null
     ): Promise<TaskBatch | null> {
-        if (!this.model) return null;
+        if (!this.lm && !this.model) return null;
 
         const prompt = buildUnderstandingPrompt(input, {
             beliefs: ctx?.beliefs,
@@ -167,37 +218,20 @@ export class NLUnderstandingService {
                 : undefined,
         });
 
-        try {
-            const result = await generateObject({
-                model: this.model,
-                prompt,
-                schema: zodSchema(TaskBatchSchema as ZodSchema<TaskBatch>),
-            });
-            return result.object as TaskBatch;
-        } catch {
-            try {
-                const textResult = await generateText({
-                    model: this.model,
-                    prompt: prompt + '\n\nRespond with valid JSON only.',
-                });
-                const jsonMatch = textResult.text.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    return JSON.parse(jsonMatch[0]) as TaskBatch;
-                }
-            } catch {
-                try {
-                    const textResult = await generateText({
-                        model: this.model,
-                        prompt: prompt + '\n\nRespond with Narsese statements only.',
-                    });
-                    return this.extractNarseseFromText(textResult.text, input);
-                } catch {
-                    return null;
-                }
-            }
-        }
+        return (
+            (await this.structuredTranslate(prompt)) ??
+            (await this.jsonFallbackTranslate(prompt)) ??
+            (await this.narseseFallbackTranslate(prompt, input))
+        );
+    }
 
-        return null;
+    private isValidNarsese(text: string): boolean {
+        if (!text) return false;
+        return (
+            this.firewall.check(text, 'belief').allowed ||
+            this.firewall.check(text, 'question').allowed ||
+            this.firewall.check(text, 'goal').allowed
+        );
     }
 
     private extractNarseseFromText(text: string, input: string): TaskBatch {
@@ -213,7 +247,7 @@ export class NLUnderstandingService {
         const matches = text.match(narsesePattern) ?? [];
 
         for (const match of matches) {
-            if (validateNarsese(match)) {
+            if (this.isValidNarsese(match)) {
                 if (match.startsWith('?')) {
                     questions.push({narsese: match, context: input});
                 } else if (match.startsWith('!')) {

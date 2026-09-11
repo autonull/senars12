@@ -1,5 +1,5 @@
-import { termParser } from '../terms/index.js';
 import type { Term } from '../terms/index.js';
+import { termParser } from '../terms/index.js';
 
 export interface FirewallVerdict {
   allowed: boolean;
@@ -41,9 +41,7 @@ function astDepth(term: Term): number {
   const visit = (t: Term, depth: number): void => {
     if (!t || typeof t !== 'object') return;
     max = Math.max(max, depth);
-    for (const child of [t.subject, t.predicate, ...(t.components ?? []), ...(t.args ?? [])]) {
-      if (child !== undefined) visit(child, depth + 1);
-    }
+    if (t.kind !== 'atom') for (const child of t.args ?? []) visit(child, depth + 1);
   };
   visit(term, 0);
   return max;
@@ -84,7 +82,10 @@ export class SymbolicFirewall {
     const truthMatch = /%([\d.]+)\s*;\s*([\d.]+)%/.exec(cleaned);
     const confidence = truthMatch ? Number.parseFloat(truthMatch[2]!) : undefined;
     if (confidence !== undefined && !(confidence <= this.absoluteConfidence))
-      return { allowed: false, reason: `confidence ${confidence} exceeds absolute bound ${this.absoluteConfidence}` };
+      return {
+        allowed: false,
+        reason: `confidence ${confidence} exceeds absolute bound ${this.absoluteConfidence}`,
+      };
     let term: Term;
     try {
       term = termParser.parse(cleaned.replace(/[.?!]$/, ''));
@@ -118,9 +119,7 @@ export class SymbolicFirewall {
     const visit = (t: Term): void => {
       if (!t || typeof t !== 'object') return;
       if (t.kind === 'atom' && typeof t.symbol === 'string') names.add(t.symbol);
-      for (const child of [t.subject, t.predicate, ...(t.components ?? []), ...(t.args ?? [])]) {
-        if (child !== undefined) visit(child);
-      }
+      else for (const child of t.args ?? []) visit(child);
     };
     visit(term);
     return [...names].every((n) => n.startsWith('^') || n.startsWith('?') || allowed.has(n));

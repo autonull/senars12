@@ -1,3 +1,6 @@
+import {z} from 'zod';
+import {admitTasks} from './admit.js';
+import {topBeliefTasks} from './context.js';
 import {createLogger} from '../logger';
 import type {Memory} from '../memory';
 import type {Term} from '../terms';
@@ -6,7 +9,32 @@ import {createBudget, createTask, type Task} from '../types';
 import {clamp01, errMsg} from '../utils';
 import {parseEnrichmentResponse} from './enrichment.js';
 import type {LMService} from './lm-service.js';
-import {gateRegistry} from '../kernel/index.js';
+
+const ValidationSchema = z.object({
+    verdict: z.enum(['valid', 'invalid', 'uncertain']),
+    novelty: z.number().optional(),
+    utility: z.number().optional(),
+    explanation: z.string().optional(),
+    revisedTruth: z.object({f: z.number(), c: z.number()}).optional(),
+});
+
+const ContradictionSchema = z.object({
+    explanation: z.string().optional(),
+    resolution: z.enum(['merge', 'reject-one', 'keep-both', 'revise']),
+    revisedNarsese: z.string().optional(),
+    revisedTruth: z.object({f: z.number(), c: z.number()}).optional(),
+});
+
+const PatternsSchema = z.object({
+    patterns: z.array(
+        z.object({
+            pattern: z.string(),
+            type: z.string(),
+            confidence: z.number().optional(),
+            examples: z.array(z.string()).optional(),
+        })
+    ),
+});
 
 export interface FeedbackConfig {
     enableBidirectionalFeedback: boolean;
@@ -79,8 +107,10 @@ export class BidirectionalFeedbackLoop {
         const validationPrompt = this.buildStructuredValidationPrompt(hypothesis, context);
 
         try {
-            const response = await this.lmService.generateText(validationPrompt);
-            const validation = this.parseStructuredValidation(response, hypothesis, context);
+            const obj = await this.lmService.generateObject(validationPrompt, ValidationSchema, {
+                task: 'structured',
+            });
+            const validation = this.applyValidation(obj, hypothesis, context);
 
             if (validation) {
                 await this.injectValidationResult(validation);
@@ -88,10 +118,57 @@ export class BidirectionalFeedbackLoop {
             }
 
             return validation;
-        } catch (error) {
-            this.logger.warn(`Failed to validate hypothesis: ${errMsg(error)}`);
-            return null;
+        } catch {
+            try {
+                const response = await this.lmService.generateText(validationPrompt);
+                const validation = this.parseStructuredValidation(response, hypothesis, context);
+
+                if (validation) {
+                    await this.injectValidationResult(validation);
+                    this.pendingValidations.set(hypothesis.term, validation);
+                }
+
+                return validation;
+            } catch (error) {
+                this.logger.warn(`Failed to validate hypothesis: ${errMsg(error)}`);
+                return null;
+            }
         }
+    }
+
+    private applyValidation(
+        obj: z.infer<typeof ValidationSchema>,
+        hypothesis: Task,
+        context: Task[]
+    ): ValidationFeedback | null {
+        let result: 'confirmed' | 'contradicted' | 'inconclusive' = 'inconclusive';
+        if (obj.verdict === 'valid') result = 'confirmed';
+        else if (obj.verdict === 'invalid') result = 'contradicted';
+
+        return {
+            originalHypothesis: hypothesis,
+            validationResult: result,
+            evidence: context,
+            revisedTruth: this.reviseTruth(obj.revisedTruth, hypothesis.truth, result),
+            derivationChain: [hypothesis.term.toString()],
+            explanation: obj.explanation,
+            novelty: obj.novelty,
+            utility: obj.utility,
+        };
+    }
+
+    private reviseTruth(
+        revised: { f: number; c: number } | undefined,
+        current: Truth | undefined,
+        result: 'confirmed' | 'contradicted' | 'inconclusive'
+    ): Truth | undefined {
+        if (revised) return Truth.create(clamp01(revised.f), clamp01(revised.c));
+        if (!current) return undefined;
+        if (result === 'confirmed')
+            return Truth.create(Math.min(current.f * 1.1, 1.0), Math.min(current.c + 0.1, 1.0));
+        if (result === 'contradicted')
+            return Truth.create(Math.max(current.f * 0.9, 0.0), Math.min(current.c + 0.1, 1.0));
+        return undefined;
     }
 
     async explainContradiction(
@@ -114,12 +191,43 @@ Provide a JSON response:
 }`;
 
         try {
-            const response = await this.lmService.generateText(prompt);
-            return this.parseContradictionExplanation(response, beliefA, beliefB);
-        } catch (error) {
-            this.logger.warn(`Failed to explain contradiction: ${errMsg(error)}`);
-            return null;
+            const obj = await this.lmService.generateObject(prompt, ContradictionSchema, {
+                task: 'structured',
+            });
+            return this.applyContradiction(obj, beliefA, beliefB);
+        } catch {
+            try {
+                const response = await this.lmService.generateText(prompt);
+                return this.parseContradictionExplanation(response, beliefA, beliefB);
+            } catch (error) {
+                this.logger.warn(`Failed to explain contradiction: ${errMsg(error)}`);
+                return null;
+            }
         }
+    }
+
+    private applyContradiction(
+        obj: z.infer<typeof ContradictionSchema>,
+        beliefA: Task,
+        beliefB: Task
+    ): ContradictionExplanation | null {
+        let revisedBelief: Task | undefined;
+        if (obj.revisedNarsese && obj.revisedTruth) {
+            revisedBelief = createTask(
+                {kind: 'atom' as const, symbol: obj.revisedNarsese} as Term,
+                'belief',
+                Truth.create(obj.revisedTruth.f, obj.revisedTruth.c),
+                createBudget(0.7, 0.8)
+            );
+        }
+
+        return {
+            beliefA,
+            beliefB,
+            explanation: obj.explanation ?? 'Contradiction analyzed',
+            revisedBelief,
+            resolutionStrategy: obj.resolution,
+        };
     }
 
     async extractPatterns(derivations: Task[]): Promise<ExtractedPattern[]> {
@@ -144,17 +252,42 @@ Respond with JSON:
 }`;
 
         try {
-            const response = await this.lmService.generateText(prompt);
-            const patterns = this.parsePatterns(response);
+            const obj = await this.lmService.generateObject(prompt, PatternsSchema, {
+                task: 'structured',
+            });
+            const patterns = this.applyPatterns(obj.patterns);
             this.recentPatterns.push(...patterns);
             if (this.recentPatterns.length > 20) {
                 this.recentPatterns = this.recentPatterns.slice(-20);
             }
             return patterns;
-        } catch (error) {
-            this.logger.warn(`Failed to extract patterns: ${errMsg(error)}`);
-            return [];
+        } catch {
+            try {
+                const response = await this.lmService.generateText(prompt);
+                const patterns = this.parsePatterns(response);
+                this.recentPatterns.push(...patterns);
+                if (this.recentPatterns.length > 20) {
+                    this.recentPatterns = this.recentPatterns.slice(-20);
+                }
+                return patterns;
+            } catch (error) {
+                this.logger.warn(`Failed to extract patterns: ${errMsg(error)}`);
+                return [];
+            }
         }
+    }
+
+    private applyPatterns(
+        patterns: Array<{ pattern: string; type: string; confidence?: number; examples?: string[] }>
+    ): ExtractedPattern[] {
+        return patterns
+            .filter((p) => typeof p.pattern === 'string' && typeof p.type === 'string')
+            .map((p) => ({
+                pattern: p.pattern,
+                type: p.type,
+                confidence: clamp01(p.confidence ?? 0.5),
+                examples: p.examples ?? [],
+            }));
     }
 
     async enrichContextWithDerivations(derivations: Task[]): Promise<void> {
@@ -176,10 +309,7 @@ Respond with JSON:
                 });
                 const bridgingHypotheses = parseEnrichmentResponse(response).hypotheses;
 
-                for (const hyp of bridgingHypotheses) {
-                    if (!gateRegistry.getPerceptionGate().admitTask(hyp.term, hyp.type, hyp.truth, 'llm').admitted) continue;
-                    this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget, hyp.stamp);
-                }
+                admitTasks(this.memory, bridgingHypotheses, 'llm');
             } catch (error) {
                 this.logger.warn(`Failed to enrich context for concept: ${errMsg(error)}`);
             }
@@ -199,25 +329,10 @@ Respond with JSON:
     }
 
     private getContextBeliefs(): Task[] {
-        return this.memory
-            .listConcepts()
-            .slice(0, this.config.maxContextConcepts)
-            .map((c) => {
-                const belief = c.beliefBag.peek();
-                if (!belief?.truth || !belief.stamp) return null;
-                const confidence = belief.truth.f * belief.truth.c;
-                if (confidence < this.config.minConfidenceForFeedback) return null;
-                return {
-                    term: c.term,
-                    type: 'belief' as const,
-                    truth: belief.truth,
-                    budget: createBudget(0.5, 0.8),
-                    stamp: belief.stamp,
-                    occurrenceTime: Date.now(),
-                    derived: false,
-                };
-            })
-            .filter((t) => t !== null) as Task[];
+        return topBeliefTasks(this.memory, {
+            limit: this.config.maxContextConcepts,
+            minConfidence: this.config.minConfidenceForFeedback,
+        });
     }
 
     private buildStructuredValidationPrompt(hypothesis: Task, context: Task[]): string {
@@ -256,42 +371,13 @@ Respond with JSON:
             const jsonMatch = response.match(/\{[\s\S]*\}/);
             if (!jsonMatch) return this.parseLegacyValidation(response, hypothesis, context);
 
-            const obj = JSON.parse(jsonMatch[0]);
-            let result: 'confirmed' | 'contradicted' | 'inconclusive' = 'inconclusive';
-            let revisedTruth: Truth | undefined;
-
-            if (obj.verdict === 'valid') {
-                result = 'confirmed';
-            } else if (obj.verdict === 'invalid') {
-                result = 'contradicted';
-            }
-
-            if (obj.revisedTruth) {
-                revisedTruth = Truth.create(clamp01(obj.revisedTruth.f), clamp01(obj.revisedTruth.c));
-            } else if (hypothesis.truth) {
-                const t = hypothesis.truth;
-                if (result === 'confirmed') {
-                    revisedTruth = Truth.create(Math.min(t.f * 1.1, 1.0), Math.min(t.c + 0.1, 1.0));
-                } else if (result === 'contradicted') {
-                    revisedTruth = Truth.create(Math.max(t.f * 0.9, 0.0), Math.min(t.c + 0.1, 1.0));
-                }
-            }
-
-            return {
-                originalHypothesis: hypothesis,
-                validationResult: result,
-                evidence: context,
-                revisedTruth,
-                derivationChain: [hypothesis.term.toString()],
-                explanation: obj.explanation,
-                novelty: obj.novelty,
-                utility: obj.utility,
-            };
+            const parsed = ValidationSchema.safeParse(JSON.parse(jsonMatch[0]));
+            if (!parsed.success) return this.parseLegacyValidation(response, hypothesis, context);
+            return this.applyValidation(parsed.data, hypothesis, context);
         } catch {
             return this.parseLegacyValidation(response, hypothesis, context);
         }
     }
-
     private parseLegacyValidation(
         response: string,
         hypothesis: Task,
@@ -329,27 +415,9 @@ Respond with JSON:
             const jsonMatch = response.match(/\{[\s\S]*\}/);
             if (!jsonMatch) return null;
 
-            const obj = JSON.parse(jsonMatch[0]);
-            const strategy = obj.resolution as ContradictionExplanation['resolutionStrategy'];
-            if (!['merge', 'reject-one', 'keep-both', 'revise'].includes(strategy)) return null;
-
-            let revisedBelief: Task | undefined;
-            if (obj.revisedNarsese && obj.revisedTruth) {
-                revisedBelief = createTask(
-                    {kind: 'atom' as const, symbol: obj.revisedNarsese} as Term,
-                    'belief',
-                    Truth.create(obj.revisedTruth.f, obj.revisedTruth.c),
-                    createBudget(0.7, 0.8)
-                );
-            }
-
-            return {
-                beliefA,
-                beliefB,
-                explanation: obj.explanation ?? 'Contradiction analyzed',
-                revisedBelief,
-                resolutionStrategy: strategy,
-            };
+            const parsed = ContradictionSchema.safeParse(JSON.parse(jsonMatch[0]));
+            if (!parsed.success) return null;
+            return this.applyContradiction(parsed.data, beliefA, beliefB);
         } catch {
             return null;
         }
@@ -360,22 +428,9 @@ Respond with JSON:
             const jsonMatch = response.match(/\{[\s\S]*\}/);
             if (!jsonMatch) return [];
 
-            const obj = JSON.parse(jsonMatch[0]);
-            if (!Array.isArray(obj.patterns)) return [];
-
-            return obj.patterns
-                .filter(
-                    (
-                        p: unknown
-                    ): p is { pattern: string; type: string; confidence: number; examples: string[] } =>
-                        typeof p === 'object' && p !== null && 'pattern' in p && 'type' in p
-                )
-                .map((p: { pattern: string; type: string; confidence?: number; examples?: string[] }) => ({
-                    pattern: p.pattern,
-                    type: p.type,
-                    confidence: clamp01(p.confidence ?? 0.5),
-                    examples: p.examples ?? [],
-                }));
+            const parsed = PatternsSchema.safeParse(JSON.parse(jsonMatch[0]));
+            if (!parsed.success || !Array.isArray(parsed.data.patterns)) return [];
+            return this.applyPatterns(parsed.data.patterns);
         } catch {
             return [];
         }
@@ -389,14 +444,7 @@ Respond with JSON:
                 validation.revisedTruth,
                 createBudget(0.7, 0.8)
             );
-            if (!gateRegistry.getPerceptionGate().admitTask(revisedTask.term, revisedTask.type, revisedTask.truth, 'llm').admitted) return;
-            this.memory.addTask(
-                revisedTask.term,
-                revisedTask.type,
-                revisedTask.truth,
-                revisedTask.budget,
-                revisedTask.stamp
-            );
+            admitTasks(this.memory, [revisedTask], 'llm');
         }
     }
 

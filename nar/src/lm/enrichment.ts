@@ -1,3 +1,5 @@
+import {admitTasks} from './admit.js';
+import {topBeliefTasks} from './context.js';
 import {createLogger, type Logger} from '../logger';
 import type {Memory} from '../memory';
 import type {Term} from '../terms';
@@ -6,7 +8,6 @@ import {createBudget, createTask, type Task} from '../types';
 import {errMsg} from '../utils';
 import {LMResponseParser} from './LMRule.js';
 import type {LMService} from './lm-service.js';
-import {gateRegistry} from '../kernel/index.js';
 
 export interface EnricherConfig {
     enableProactiveEnrichment: boolean;
@@ -29,15 +30,8 @@ interface ConceptConnections {
     connections: number;
 }
 
-interface HasBags {
-    term: Term;
-    beliefBag: { size: number };
-    questionBag: { size: number };
-    goalBag: { size: number };
-}
-
 function findUnderconnectedConcepts(
-    concepts: Iterable<HasBags>,
+    concepts: Iterable<{ term: Term; beliefBag: { size(): number }; questionBag: { size(): number }; goalBag: { size(): number } }>,
     minConnections: number
 ): ConceptConnections[] {
     const result: ConceptConnections[] = [];
@@ -113,6 +107,7 @@ export class ProactiveEnricher {
                 () => this.runEnrichmentCycle(),
                 this.config.enrichmentIntervalMs
             );
+            this.enrichmentTimer.unref?.();
         }
     }
 
@@ -176,24 +171,7 @@ Provide a clear, concise explanation of what was derived and why.`;
             return '';
         }
 
-        const memoryContext = this.memory
-            .listConcepts()
-            .slice(0, 20)
-            .map((c) => {
-                const belief = c.beliefBag.peek();
-                if (!belief || !belief.truth || !belief.stamp) return null;
-                return {
-                    term: c.term,
-                    type: 'belief' as const,
-                    truth: belief.truth,
-                    budget: createBudget(0.5),
-                    stamp: belief.stamp,
-                    occurrenceTime: Date.now(),
-                    derived: false,
-                };
-            })
-            .filter((t) => t !== null) as Task[];
-
+        const memoryContext = topBeliefTasks(this.memory, {limit: 20});
         const contextStr = memoryContext.map((t) => `${t.term.toString()}: ${t.truth.f}`).join('\n');
 
         const prompt = `Given the following knowledge from memory:
@@ -255,15 +233,8 @@ Answer the question based on the available knowledge. If the answer cannot be de
             );
         }
 
-        for (const hyp of hypotheses) {
-            if (!gateRegistry.getPerceptionGate().admitTask(hyp.term, hyp.type, hyp.truth, 'llm').admitted) continue;
-            this.memory.addTask(hyp.term, hyp.type, hyp.truth, hyp.budget, hyp.stamp);
-        }
-
-        for (const bridge of bridges) {
-            if (!gateRegistry.getPerceptionGate().admitTask(bridge.term, bridge.type, bridge.truth, 'bridge-llm').admitted) continue;
-            this.memory.addTask(bridge.term, bridge.type, bridge.truth, bridge.budget, bridge.stamp);
-        }
+        admitTasks(this.memory, hypotheses, 'llm');
+        admitTasks(this.memory, bridges, 'bridge-llm');
 
         return {concept: term, hypotheses, bridges, explanations: []};
     }

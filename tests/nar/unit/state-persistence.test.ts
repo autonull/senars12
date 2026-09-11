@@ -18,6 +18,11 @@ import {EventBus} from '@senars/util/events';
 import {join} from 'node:path';
 import {mkdir, readdir, readFile, rm} from 'node:fs/promises';
 
+// Persistence assertions are LM-independent; default to the mock provider so
+// this file stays hermetic (avoids downloading real weights). Explicit
+// LM_PROVIDER in the environment still wins.
+if (!process.env.LM_PROVIDER) process.env.LM_PROVIDER = 'mock';
+
 const createMockProcessor = () => ({
     processSync: () => [],
     processLMRules: async function* () {

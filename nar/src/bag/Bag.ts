@@ -27,6 +27,7 @@ export interface Bag<T extends BagItem> {
   pressure(): number;
   size(): number;
   find(predicate: (item: T) => boolean): T | undefined;
+  removeMany(predicate: (item: T) => boolean): number;
   forEach(fn: (item: T) => void): void;
   all(): IterableIterator<T>;
   entries(): IterableIterator<[T, number]>;
@@ -145,6 +146,18 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       if (predicate(entry.item)) return entry.item;
     }
     return undefined;
+  }
+
+  removeMany(predicate: (item: T) => boolean): number {
+    let removed = 0;
+    for (let i = this.heap.length - 1; i >= 0; i--) {
+      if (predicate(this.heap[i]!.item)) {
+        this.totalPriority -= this.heap[i]!.item.priority;
+        this.heap.splice(i, 1);
+        removed++;
+      }
+    }
+    return removed;
   }
 
   forEach(fn: (item: T) => void): void {

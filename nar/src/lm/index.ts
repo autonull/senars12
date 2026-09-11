@@ -1,5 +1,9 @@
 export type {EnricherConfig, EnrichmentResult} from './enrichment.js';
 export {createProactiveEnricher, ProactiveEnricher} from './enrichment.js';
+export {admitTasks} from './admit.js';
+export type {ContextBeliefOptions} from './context.js';
+export {topBeliefTasks} from './context.js';
+export {createLMStats, recordLMCall} from './stats.js';
 export type {ResolvedLMConfig, ResolvedProvider} from './env-config.js';
 export {formatLMConfig, resolveLMConfig} from './env-config.js';
 export type {

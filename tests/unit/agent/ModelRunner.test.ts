@@ -1,13 +1,9 @@
 import type {ComposedRequest, ModelProvider} from '@senars/core';
 import {ModelRunner} from '@senars/core';
+import type {ModelMessage} from 'ai';
 import {describe, expect, it} from 'vitest';
 
-function makeComposed(
-    messages: Array<{
-        role: 'user' | 'assistant' | 'system' | 'tool';
-        content: string | unknown[];
-    }>
-): ComposedRequest {
+function makeComposed(messages: ModelMessage[]): ComposedRequest {
     return {
         system: 'You are helpful.',
         messages,

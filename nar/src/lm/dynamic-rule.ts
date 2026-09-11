@@ -1,6 +1,8 @@
 /**
  * Dynamic LM rule generation and composite rules.
  */
+import {ulid} from 'ulid';
+import {z} from 'zod';
 import type {Term} from '../terms';
 import type {Task} from '../types';
 import {LMResponseParser, LMRule} from './LMRule.js';
@@ -20,6 +22,14 @@ export interface DynamicRuleConfig extends Partial<LMRuleConfig> {
     promptTemplate?: string;
     validationRules?: ValidationRule[];
 }
+
+const RuleConfigSchema = z.object({
+    id: z.string().optional(),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    priority: z.number().optional(),
+    promptTemplate: z.string().optional(),
+});
 
 export class DynamicLMRuleGenerator {
     private readonly lm: LMService;
@@ -50,9 +60,17 @@ Respond with JSON only:
 `.trim();
 
         try {
-            const response = await this.lm.generateText(prompt);
-            const config = this.parseRuleConfig(response, description);
-            return config ? new LMRule(config.id!, this.lm, config) : null;
+            const config = await this.lm.generateObject(prompt, RuleConfigSchema, {
+                task: 'structured',
+            });
+            return new LMRule(config.id ?? ulid(), this.lm, {
+                id: config.id,
+                name: config.name,
+                description: config.description,
+                priority: config.priority,
+                promptTemplate: config.promptTemplate,
+                singlePremise: true,
+            });
         } catch {
             return null;
         }
@@ -85,14 +103,10 @@ Respond with JSON only:
         for (const rule of rules) {
             switch (rule.type) {
                 case 'narsese':
-                    if (!this.validateNarsese(response, rule.message, errors)) {
-                        errors.push(rule.message);
-                    }
+                    if (!this.isValidNarsese(response)) errors.push(rule.message);
                     break;
                 case 'json':
-                    if (!this.validateJSON(response, rule.message, errors)) {
-                        errors.push(rule.message);
-                    }
+                    if (!this.isValidJSON(response)) errors.push(rule.message);
                     break;
                 case 'custom':
                     if (rule.validator && !rule.validator(response)) {
@@ -105,26 +119,19 @@ Respond with JSON only:
         return {valid: errors.length === 0, errors};
     }
 
-    private validateNarsese(response: string, message: string, errors: string[]): boolean {
+    private isValidNarsese(response: string): boolean {
         try {
-            const parsed = LMResponseParser.parse(response);
-            if (!parsed.valid) {
-                errors.push(message || 'Invalid Narsese format');
-                return false;
-            }
-            return true;
+            return LMResponseParser.parse(response).valid;
         } catch {
-            errors.push(message || 'Failed to parse Narsese');
             return false;
         }
     }
 
-    private validateJSON(response: string, message: string, errors: string[]): boolean {
+    private isValidJSON(response: string): boolean {
         try {
             JSON.parse(response);
             return true;
         } catch {
-            errors.push(message || 'Invalid JSON format');
             return false;
         }
     }
@@ -136,7 +143,7 @@ Respond with JSON only:
 
             const obj = JSON.parse(jsonMatch[0]);
             return {
-                id: obj.id || `dynamic-rule-${Date.now()}`,
+                id: obj.id || ulid(),
                 name: obj.name || 'Dynamic Rule',
                 description: obj.description || description,
                 priority: obj.priority ?? 0.8,
@@ -145,7 +152,7 @@ Respond with JSON only:
             };
         } catch {
             return {
-                id: `dynamic-rule-${Date.now()}`,
+                id: ulid(),
                 name: 'Dynamic Rule',
                 description,
                 priority: 0.8,
@@ -170,13 +177,14 @@ export class CompositeLMRule extends LMRule {
     override async apply(
         primary: Term,
         secondary?: Term,
-        context?: Record<string, unknown>
+        context?: Record<string, unknown>,
+        signal?: AbortSignal
     ): Promise<Task[]> {
         const allTasks: Task[] = [];
 
         for (const rule of this.componentRules) {
             try {
-                const tasks = await rule.apply(primary, secondary, context);
+                const tasks = await rule.apply(primary, secondary, context, signal);
                 allTasks.push(...tasks);
             } catch {
                 // expected: individual rule failure shouldn't abort other rules
