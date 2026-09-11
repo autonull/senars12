@@ -19,7 +19,9 @@ export {
     invariant,
     isNarsese,
     isNil,
+    limitList,
     makeId,
     sleep,
     toError,
+    truncate,
 } from '@senars/util';

@@ -3,6 +3,7 @@ import type {CLICommand} from '@senars/io/connections/cli';
 import {QUIT_SENTINEL} from '@senars/io/connections/cli';
 import type {NAR} from '@senars/nar';
 import type {ConversationSession, SessionManager} from '@senars/util/types/memory';
+import {truncate} from '@senars/util';
 import {
     formatAgentStatus,
     formatAttention,
@@ -10,6 +11,12 @@ import {
     formatCombinedStats,
     formatConcepts,
 } from './stats-format.js';
+
+const cmd = (
+    name: string,
+    description: string,
+    execute: (args?: string) => string | Promise<string>
+): CLICommand => ({name, description, execute});
 
 export interface LMStats {
     totalCalls: number;
@@ -55,120 +62,63 @@ export function buildCommands(
     setSession: (session: ConversationSession) => void
 ): CLICommand[] {
     return [
-        {name: 'help', description: 'Show help', execute: () => REPL_HELP},
-        {name: 'quit', description: 'Exit the REPL', execute: () => QUIT_SENTINEL},
-        {
-            name: 'stats',
-            description: 'Show NAR and LM statistics',
-            execute: () => formatCombinedStats(nar, lmService),
-        },
-        {
-            name: 'beliefs',
-            description: 'Show current beliefs',
-            execute: () => formatBeliefs(nar),
-        },
-        {
-            name: 'concepts',
-            description: 'Show active concepts',
-            execute: () => formatConcepts(nar),
-        },
-        {
-            name: 'attention',
-            description: 'Attention focus report',
-            execute: () => formatAttention(nar),
-        },
-        {
-            name: 'episodes',
-            description: 'List recent episodes',
-            execute: async (args) => {
-                const limit = Number.parseInt(args) || 10;
-                const episodes = await agent.recall(undefined, limit);
-                const lines = [`\n--- ${episodes.length} Recent Episode(s) ---`];
-                for (const e of episodes) {
-                    const preview = e.content.length > 60 ? `${e.content.slice(0, 59)}...` : e.content;
-                    lines.push(`  [${e.type}] ${preview}`);
-                }
+        cmd('help', 'Show help', () => REPL_HELP),
+        cmd('quit', 'Exit the REPL', () => QUIT_SENTINEL),
+        cmd('stats', 'Show NAR and LM statistics', () => formatCombinedStats(nar, lmService)),
+        cmd('beliefs', 'Show current beliefs', () => formatBeliefs(nar)),
+        cmd('concepts', 'Show active concepts', () => formatConcepts(nar)),
+        cmd('attention', 'Attention focus report', () => formatAttention(nar)),
+        cmd('episodes', 'List recent episodes', async (args) => {
+            const limit = Number.parseInt(args) || 10;
+            const episodes = await agent.recall(undefined, limit);
+            const lines = [`\n--- ${episodes.length} Recent Episode(s) ---`];
+            for (const e of episodes) lines.push(`  [${e.type}] ${truncate(e.content)}`);
+            return lines.join('\n');
+        }),
+        cmd('know', 'Get/set/list knowledge', (args) => {
+            const parts = args.trim().split(/\s+/);
+            if (!parts[0]) {
+                const entries = agent.knowList();
+                if (!entries.length) return '\n  (empty)';
+                const lines = [`\n--- ${entries.length} Knowledge Entry/Entries ---`];
+                for (const {key, value} of entries) lines.push(`  ${key}: ${truncate(value)}`);
                 return lines.join('\n');
-            },
-        },
-        {
-            name: 'know',
-            description: 'Get/set/list knowledge',
-            execute: (args) => {
-                const parts = args.trim().split(/\s+/);
-                if (!parts[0]) {
-                    const entries = agent.knowList();
-                    if (!entries.length) return '\n  (empty)';
-                    const lines = [`\n--- ${entries.length} Knowledge Entry/Entries ---`];
-                    for (const {key, value} of entries) {
-                        const preview = value.length > 60 ? `${value.slice(0, 59)}...` : value;
-                        lines.push(`  ${key}: ${preview}`);
-                    }
-                    return lines.join('\n');
-                }
-                if (parts.length === 1) {
-                    const value = agent.knowGet(parts[0]);
-                    return value !== undefined ? `${parts[0]}: ${value}` : `Key not found: ${parts[0]}`;
-                }
-                const key = parts[0];
-                const value = parts.slice(1).join(' ');
-                agent.know(key, value);
-                return `Stored: ${key}`;
-            },
-        },
-        {
-            name: 'recall',
-            description: 'Search episodic memory',
-            execute: async (args) => {
-                const episodes = await agent.recall(args.trim() || undefined);
-                const lines = [`\n--- ${episodes.length} Episode(s) ---`];
-                for (const e of episodes) {
-                    const preview = e.content.length > 60 ? `${e.content.slice(0, 59)}...` : e.content;
-                    lines.push(`  [${e.type}] ${preview}`);
-                }
-                return lines.join('\n');
-            },
-        },
-        {
-            name: 'sessions',
-            description: 'List saved sessions',
-            execute: async () => {
-                const sessions = sessionManager.size();
-                return `\n--- ${sessions} Session(s) ---`;
-            },
-        },
-        {
-            name: 'session',
-            description: 'Switch or create session',
-            execute: async (args) => {
-                const key = args.trim() || 'default';
-                const session = sessionManager.getOrCreate(key);
-                setSession(session);
-                return `Switched to session: ${key} (${session.history.length} messages)`;
-            },
-        },
-        {
-            name: 'throttle',
-            description: 'Get/set reasoning throttle',
-            execute: (args) => {
-                const n = Number.parseInt(args);
-                if (Number.isNaN(n)) return `Throttle: ${agent.getThrottle()}%`;
-                agent.setThrottle(n);
-                return `Throttle set to ${agent.getThrottle()}%`;
-            },
-        },
-        {
-            name: 'status',
-            description: 'Agent and NAR status',
-            execute: () => formatAgentStatus(agent, nar, lmService),
-        },
-        {
-            name: 'clear',
-            description: 'Clear screen',
-            execute: () => {
-                console.clear();
-                return '';
-            },
-        },
+            }
+            if (parts.length === 1) {
+                const value = agent.knowGet(parts[0]);
+                return value !== undefined ? `${parts[0]}: ${value}` : `Key not found: ${parts[0]}`;
+            }
+            const key = parts[0];
+            const value = parts.slice(1).join(' ');
+            agent.know(key, value);
+            return `Stored: ${key}`;
+        }),
+        cmd('recall', 'Search episodic memory', async (args) => {
+            const episodes = await agent.recall(args.trim() || undefined);
+            const lines = [`\n--- ${episodes.length} Episode(s) ---`];
+            for (const e of episodes) lines.push(`  [${e.type}] ${truncate(e.content)}`);
+            return lines.join('\n');
+        }),
+        cmd('sessions', 'List saved sessions', async () => {
+            const sessions = sessionManager.size();
+            return `\n--- ${sessions} Session(s) ---`;
+        }),
+        cmd('session', 'Switch or create session', async (args) => {
+            const key = args.trim() || 'default';
+            const session = sessionManager.getOrCreate(key);
+            setSession(session);
+            return `Switched to session: ${key} (${session.history.length} messages)`;
+        }),
+        cmd('throttle', 'Get/set reasoning throttle', (args) => {
+            const n = Number.parseInt(args);
+            if (Number.isNaN(n)) return `Throttle: ${agent.getThrottle()}%`;
+            agent.setThrottle(n);
+            return `Throttle set to ${agent.getThrottle()}%`;
+        }),
+        cmd('status', 'Agent and NAR status', () => formatAgentStatus(agent, nar, lmService)),
+        cmd('clear', 'Clear screen', () => {
+            console.clear();
+            return '';
+        }),
     ];
 }

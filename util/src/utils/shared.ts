@@ -70,3 +70,19 @@ export function isNarsese(text: string): boolean {
     }
     return false;
 }
+
+export const truncate = (text: string, maxLength = 60): string =>
+    text.length > maxLength ? `${text.slice(0, maxLength - 1)}...` : text;
+
+export const limitList = <T>(
+    items: T[],
+    limit: number,
+    format: (item: T) => string,
+    moreText = 'more'
+): string[] => {
+    const lines = items.slice(0, limit).map(format);
+    if (items.length > limit) {
+        lines.push(`  ... and ${items.length - limit} ${moreText}`);
+    }
+    return lines;
+};

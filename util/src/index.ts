@@ -142,10 +142,12 @@ export {
     generateId as generatePrefixedId,
     isNarsese,
     isNil,
+    limitList,
     makeId,
     safeDiv,
     sleep,
     toError,
+    truncate,
     wordOverlap,
 } from './utils/shared.js';
 /** @public Throttle configuration type. */

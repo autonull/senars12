@@ -6,6 +6,7 @@
 import type {LMStats, LMHandle} from './commands.js';
 import type {NAR} from '@senars/nar';
 import type {Agent} from '@senars/nar/agent';
+import {limitList} from '@senars/util';
 
 export interface FormattedStats {
     nar: string;
@@ -47,32 +48,32 @@ export function formatCombinedStats(nar: NAR, lmService: LMHandle): string {
 
 export function formatBeliefs(nar: NAR, limit = 20): string {
     const beliefs = nar.getBeliefs();
-    const lines = [`\n--- ${beliefs.length} Belief(s) ---`];
-    for (const b of beliefs.slice(0, limit)) {
-        const termStr = b.term?.toString?.() ?? String(b.term);
-        const truth = b.truth ? ` f=${b.truth.f.toFixed(2)} c=${b.truth.c.toFixed(2)}` : '';
-        lines.push(`  ${termStr}${truth}`);
-    }
-    if (beliefs.length > limit) lines.push(`  ... and ${beliefs.length - limit} more`);
+    const lines = [
+        `\n--- ${beliefs.length} Belief(s) ---`,
+        ...limitList(beliefs, limit, (b) => {
+            const termStr = b.term?.toString?.() ?? String(b.term);
+            const truth = b.truth ? ` f=${b.truth.f.toFixed(2)} c=${b.truth.c.toFixed(2)}` : '';
+            return `  ${termStr}${truth}`;
+        }, 'more'),
+    ];
     return lines.join('\n');
 }
 
 export function formatConcepts(nar: NAR, limit = 20): string {
     const concepts = nar.listConcepts();
-    const lines = [`\n--- ${concepts.length} Concept(s) ---`];
-    for (const c of concepts.slice(0, limit)) {
-        lines.push(`  ${c.term}: priority=${c.priority.toFixed(2)}`);
-    }
-    if (concepts.length > limit) lines.push(`  ... and ${concepts.length - limit} more`);
+    const lines = [
+        `\n--- ${concepts.length} Concept(s) ---`,
+        ...limitList(concepts, limit, (c) => `  ${c.term}: priority=${c.priority.toFixed(2)}`, 'more'),
+    ];
     return lines.join('\n');
 }
 
 export function formatAttention(nar: NAR, limit = 20): string {
     const attn = nar.attentionReport();
-    const lines = [`\n--- Attention (${attn.total} total) ---`];
-    for (const c of attn.concepts.slice(0, limit)) {
-        lines.push(`  ${c.term} (p=${c.priority.toFixed(2)})`);
-    }
+    const lines = [
+        `\n--- Attention (${attn.total} total) ---`,
+        ...limitList(attn.concepts, limit, (c) => `  ${c.term} (p=${c.priority.toFixed(2)})`, 'more'),
+    ];
     return lines.join('\n');
 }
 
