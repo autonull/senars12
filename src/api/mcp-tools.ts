@@ -1,10 +1,24 @@
-import { promises as fs } from 'node:fs';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { withinWorkspace } from '@senars/core';
 import type { NAR } from '@senars/nar';
-import type { Agent } from '@senars/nar/agent';
+import type { ExtendedAgent as Agent } from '@senars/nar/agent';
+import {
+  getModelChain,
+  getRoutingStatus,
+  type LMTask,
+  resetDemotions,
+  resolveOfflineTier,
+} from '@senars/nar/lm';
 import { z } from 'zod';
+import type { JobManager } from './job-manager.js';
 import { registerNARRegistryTools } from './mcp-bridge.js';
 import { createMCPResponse, formatBeliefsForMCP, stringifyMCP } from './mcp-response.js';
+
+export interface NARToolsOptions {
+  jobs?: JobManager;
+  /** Require approval for mutating tools (write_file). */
+  approval?: boolean;
+}
 
 /** Safe math evaluator - parses and evaluates arithmetic expressions without eval() */
 function safeEvaluate(expr: string): number {
@@ -61,7 +75,23 @@ function safeEvaluate(expr: string): number {
   return result;
 }
 
-export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): void {
+/** Drives the agent chat generator to completion, returning the final text. */
+const chatToCompletion = async (agent: Agent, input: string): Promise<string> => {
+  let result = '';
+  for await (const event of agent.chat(input)) {
+    if (event.kind === 'finish' || event.kind === 'aborted' || event.kind === 'error') {
+      result = event.text ?? '';
+    }
+  }
+  return result;
+};
+
+export function registerNARTools(
+  server: McpServer,
+  nar: NAR,
+  agent: Agent,
+  options?: NARToolsOptions
+): void {
   server.registerTool(
     'calculate',
     {
@@ -82,44 +112,8 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
     }
   );
 
-  server.registerTool(
-    'read_file',
-    {
-      title: 'Read File',
-      description: 'Read file contents',
-      inputSchema: { path: z.string() },
-      outputSchema: { content: z.string() },
-      annotations: {
-        readOnlyHint: true,
-        idempotentHint: true,
-        openWorldHint: true,
-      },
-    },
-    async ({ path }) => {
-      const content = await fs.readFile(path, 'utf-8');
-      return createMCPResponse(content, { content });
-    }
-  );
-
-  server.registerTool(
-    'write_file',
-    {
-      title: 'Write File',
-      description: 'Write content to file',
-      inputSchema: { path: z.string(), content: z.string() },
-      outputSchema: { success: z.boolean() },
-      annotations: {
-        readOnlyHint: false,
-        destructiveHint: true,
-        idempotentHint: true,
-        openWorldHint: true,
-      },
-    },
-    async ({ path, content }) => {
-      await fs.writeFile(path, content, 'utf-8');
-      return createMCPResponse('File written successfully', { success: true });
-    }
-  );
+  // read_file and write_file are registered via registerNARRegistryTools from nar's tool registry
+  // This avoids duplicate registration conflicts
 
   server.registerTool(
     'search_memory',
@@ -204,8 +198,11 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
       },
     },
     async ({ term }) => {
-      const result = { term, derivation: 'Not yet implemented' };
-      return createMCPResponse(`Derivation for ${term}: Not yet implemented`, result);
+      const result = await nar.tools.execute('explain', { term });
+      const derivation = result.success
+        ? stringifyMCP(result.content)
+        : (result.error ?? 'Explain failed');
+      return createMCPResponse(`Derivation for ${term}: ${derivation}`, { term, derivation });
     }
   );
 
@@ -223,7 +220,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
       },
     },
     async ({ input }) => {
-      const result = await agent.chat(input);
+      const result = await chatToCompletion(agent, input);
       return createMCPResponse(result, { response: result });
     }
   );
@@ -242,12 +239,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
       },
     },
     async ({ input }) => {
-      let result = '';
-      for await (const event of agent.chatStream(input)) {
-        if (event.kind === 'finish' || event.kind === 'aborted' || event.kind === 'error') {
-          result = event.text ?? '';
-        }
-      }
+      const result = await chatToCompletion(agent, input);
       return createMCPResponse(result, { response: result });
     }
   );
@@ -287,7 +279,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
     },
     async ({ query, limit }) => {
       const result = await agent.recall(query, limit);
-      return createMCPResponse(stringifyMCP(result), result);
+      return createMCPResponse(stringifyMCP(result), result as unknown as Record<string, unknown>);
     }
   );
 
@@ -404,11 +396,18 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
       },
     },
     async ({ term, type }) => {
-      const result = { term, type: type ?? 'belief', explanation: 'Not yet implemented' };
-      return createMCPResponse(
-        `Explanation for ${term} (${type ?? 'belief'}): Not yet implemented`,
-        result
-      );
+      const result = await nar.tools.execute('explain', {
+        term,
+        includeDerivations: type !== 'goal',
+      });
+      const explanation = result.success
+        ? stringifyMCP(result.content)
+        : (result.error ?? 'Explain failed');
+      return createMCPResponse(`Explanation for ${term} (${type ?? 'belief'}): ${explanation}`, {
+        term,
+        type: type ?? 'belief',
+        explanation,
+      } as Record<string, unknown>);
     }
   );
 
@@ -418,10 +417,7 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
       title: 'Agent Goal Progress',
       description: 'Get goal progress or list active goals',
       inputSchema: { goalId: z.string().optional() },
-      outputSchema: z.union([
-        z.array(z.unknown()),
-        z.object({ goalId: z.string(), progress: z.number() }),
-      ]),
+      outputSchema: { goals: z.array(z.object({ goalId: z.string(), progress: z.number() })) },
       annotations: {
         readOnlyHint: true,
         idempotentHint: true,
@@ -429,8 +425,51 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
       },
     },
     async ({ goalId }) => {
-      const result = goalId ? { goalId, progress: 0 } : [];
-      return createMCPResponse(stringifyMCP(result), result);
+      const goalsList = nar.getGoals();
+      // progress = best matching belief truth (f·c): a goal is "achieved" when
+      // symbolic inference has admitted a belief with the same term.
+      const estimate = (term: string): number => {
+        let best = 0;
+        for (const b of nar.getBeliefs()) {
+          if (String(b.term) === term) {
+            const f = b.truth?.f ?? 0;
+            const c = b.truth?.c ?? 0;
+            best = Math.max(best, f * c);
+          }
+        }
+        return best;
+      };
+      if (goalId) {
+        const goal = goalsList.find((g) => String(g.term) === goalId);
+        if (!goal) return createMCPResponse(`Unknown goal: ${goalId}`, { goalId, progress: 0 });
+        const goals = [{ goalId, progress: estimate(goalId) }];
+        return createMCPResponse(stringifyMCP({ goals }), { goals });
+      }
+      const goals = goalsList.map((g) => ({
+        goalId: String(g.term),
+        progress: estimate(String(g.term)),
+      }));
+      return createMCPResponse(stringifyMCP({ goals }), { goals });
+    }
+  );
+
+  server.registerTool(
+    'routing_reset',
+    {
+      title: 'Reset Routing Demotions',
+      description: 'Clear session-level routing demotions so all candidates rank normally again',
+      inputSchema: {},
+      outputSchema: { reset: z.boolean() },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async () => {
+      resetDemotions();
+      return createMCPResponse('Routing demotions cleared', { reset: true });
     }
   );
 
@@ -469,6 +508,73 @@ export function registerNARTools(server: McpServer, nar: NAR, agent: Agent): voi
     async () => {
       const report = nar.attentionReport();
       return createMCPResponse(stringifyMCP(report), report);
+    }
+  );
+
+  server.registerTool(
+    'run_job',
+    {
+      title: 'Run Job',
+      description:
+        'Start a fire-and-forget background job. Kinds: nar-cycles (run NAR inference steps), belief (add a belief), question (queue a question)',
+      inputSchema: {
+        kind: z.enum(['nar-cycles', 'belief', 'question']),
+        steps: z.number().int().positive().max(10_000).optional(),
+        content: z.string().optional(),
+      },
+      outputSchema: { jobId: z.string() },
+      annotations: {
+        readOnlyHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async ({ kind, steps, content }) => {
+      const jobs = options?.jobs;
+      if (!jobs)
+        return createMCPResponse('Job manager unavailable', { error: 'jobs not available' });
+      const runFn = (): Promise<unknown> | unknown => {
+        switch (kind) {
+          case 'nar-cycles':
+            return nar.run(steps ?? 10);
+          case 'question':
+            if (!content) throw new Error('run_job kind=question requires content');
+            return nar.question(content);
+          default:
+            if (!content) throw new Error('run_job kind=belief requires content');
+            return nar.believe(content);
+        }
+      };
+      const id = jobs.submit(kind, runFn);
+      return createMCPResponse(`Job ${id} started (${kind})`, { jobId: id });
+    }
+  );
+
+  server.registerTool(
+    'job_status',
+    {
+      title: 'Job Status',
+      description: 'Get the status/result of a background job (or all jobs)',
+      inputSchema: { jobId: z.string().optional() },
+      outputSchema: z.any(),
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async ({ jobId }) => {
+      const jobs = options?.jobs;
+      if (!jobs)
+        return createMCPResponse('Job tracking not available', { error: 'jobs not available' });
+      if (jobId) {
+        const job = jobs.get(jobId);
+        if (!job) return createMCPResponse(`Unknown job: ${jobId}`, { error: 'unknown job id' });
+        return createMCPResponse(stringifyMCP(job), job as unknown as Record<string, unknown>);
+      }
+      return createMCPResponse(stringifyMCP({ jobs: jobs.list() }), {
+        jobs: jobs.list() as unknown as Record<string, unknown>,
+      });
     }
   );
 

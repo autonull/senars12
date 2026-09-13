@@ -127,6 +127,8 @@ export class ModelRunner {
     let totalOutput = 0;
 
     const hasTools = Object.keys(composed.tools).length > 0;
+    // Resumable state: input messages + completed assistant turn(s).
+    let resumableMessages: ModelMessage[] = composed.messages;
 
     try {
       const stream = streamText({
@@ -178,6 +180,18 @@ export class ModelRunner {
       }
       void generateText;
 
+      // Resumable state: append completed assistant turn(s) (incl. tool
+      // calls/results) to the input messages so callers can continue the
+      // conversation. Multi-step runs expose per-step messages on `steps`.
+      try {
+        const steps = await stream.steps;
+        const stepMessages = (steps ?? []).flatMap((s) => s.response?.messages ?? []);
+        resumableMessages =
+          stepMessages.length > 0 ? [...composed.messages, ...stepMessages] : composed.messages;
+      } catch {
+        /* steps unavailable (e.g. aborted) */
+      }
+
       for (const c of allCalls.slice(0, this.maxToolResultEntries)) {
         yield { kind: 'tool-call', call: c };
       }
@@ -200,7 +214,7 @@ export class ModelRunner {
           toolCalls: allCalls,
           artifacts: allArtifacts,
           errors: allErrors,
-          messages: composed.messages,
+          messages: resumableMessages,
           usage: {
             inputTokens: totalInput,
             outputTokens: totalOutput,
@@ -213,7 +227,7 @@ export class ModelRunner {
         toolCalls: allCalls,
         artifacts: allArtifacts,
         errors: allErrors,
-        messages: composed.messages,
+        messages: resumableMessages,
         usage: {
           inputTokens: totalInput,
           outputTokens: totalOutput,
@@ -228,7 +242,7 @@ export class ModelRunner {
       toolCalls: allCalls,
       artifacts: allArtifacts,
       errors: allErrors,
-      messages: composed.messages,
+      messages: resumableMessages,
       usage: {
         inputTokens: totalInput,
         outputTokens: totalOutput,

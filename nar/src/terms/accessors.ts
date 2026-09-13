@@ -1,29 +1,30 @@
-import type {CompoundTerm, OperatorKey, Term} from './types.js';
-import {isAtomic} from './types.js';
+import type { CompoundTerm, OperatorKey, Term } from './types.js';
+import { isAtomic } from './types.js';
 
 export const isType = <K extends OperatorKey>(k: K, t: Term): t is CompoundTerm<K> => t.kind === k;
 
 const createTypeGuard =
-    <
-        K extends | 'inheritance'
-            | 'similarity'
-            | 'implication'
-            | 'equivalence'
-            | 'conjunction'
-            | 'disjunction'
-            | 'negation'
-            | 'instance'
-            | 'property'
-            | 'sequence'
-            | 'parallel'
-            | 'predictive'
-            | 'retrospective'
-            | 'operation',
-    >(
-        kind: K
-    ) =>
-        (t: Term): t is CompoundTerm<K> =>
-            isType(kind, t);
+  <
+    K extends
+      | 'inheritance'
+      | 'similarity'
+      | 'implication'
+      | 'equivalence'
+      | 'conjunction'
+      | 'disjunction'
+      | 'negation'
+      | 'instance'
+      | 'property'
+      | 'sequence'
+      | 'parallel'
+      | 'predictive'
+      | 'retrospective'
+      | 'operation',
+  >(
+    kind: K
+  ) =>
+  (t: Term): t is CompoundTerm<K> =>
+    isType(kind, t);
 export const isInheritance = createTypeGuard('inheritance');
 export const isSimilarity = createTypeGuard('similarity');
 export const isImplication = createTypeGuard('implication');
@@ -39,69 +40,73 @@ export const isPredictive = createTypeGuard('predictive');
 export const isRetrospective = createTypeGuard('retrospective');
 export const isOperation = createTypeGuard('operation');
 
-const getRoleArg = (term: Term, index: 0 | 1, k1: Term['kind'], k2: Term['kind']): Term | undefined =>
-    term.kind === k1 || term.kind === k2 ? term.args?.[index] : undefined;
+const getRoleArg = (
+  term: Term,
+  index: 0 | 1,
+  k1: Term['kind'],
+  k2: Term['kind']
+): Term | undefined => (term.kind === k1 || term.kind === k2 ? term.args?.[index] : undefined);
 
 export const getSubject = (term: Term): Term | undefined =>
-    getRoleArg(term, 0, 'inheritance', 'similarity');
+  getRoleArg(term, 0, 'inheritance', 'similarity');
 export const getPredicate = (term: Term): Term | undefined =>
-    getRoleArg(term, 1, 'inheritance', 'similarity');
+  getRoleArg(term, 1, 'inheritance', 'similarity');
 export const getAntecedent = (term: Term): Term | undefined =>
-    getRoleArg(term, 0, 'implication', 'equivalence');
+  getRoleArg(term, 0, 'implication', 'equivalence');
 export const getConsequent = (term: Term): Term | undefined =>
-    getRoleArg(term, 1, 'implication', 'equivalence');
+  getRoleArg(term, 1, 'implication', 'equivalence');
 
 export const getArgs = (term: Term): readonly Term[] =>
-    term.kind === 'atom' ? [] : (term.args ?? []);
+  term.kind === 'atom' ? [] : (term.args ?? []);
 export const sameKind = (a: Term, b: Term): boolean => a.kind === b.kind;
 
 export const termsEqual = (a: Term, b: Term): boolean => {
-    if (a === b) return true;
-    if (a.kind !== b.kind) return false;
-    if (a.kind === 'atom') return a.symbol === b.symbol;
-    const aArgs = a.args ?? [];
-    const bArgs = b.args ?? [];
-    if (aArgs.length !== bArgs.length) return false;
-    for (let i = 0; i < aArgs.length; i++) {
-        if (!termsEqual(aArgs[i]!, bArgs[i]!)) return false;
-    }
-    return true;
+  if (a === b) return true;
+  if (a.kind !== b.kind) return false;
+  if (a.kind === 'atom') return a.symbol === b.symbol;
+  const aArgs = a.args ?? [];
+  const bArgs = b.args ?? [];
+  if (aArgs.length !== bArgs.length) return false;
+  for (let i = 0; i < aArgs.length; i++) {
+    if (!termsEqual(aArgs[i]!, bArgs[i]!)) return false;
+  }
+  return true;
 };
 
 export const visitTerms = (term: Term, fn: (t: Term) => void): void => {
-    fn(term);
-    if ('args' in term && Array.isArray(term.args)) {
-        for (const arg of term.args) {
-            visitTerms(arg as Term, fn);
-        }
+  fn(term);
+  if ('args' in term && Array.isArray(term.args)) {
+    for (const arg of term.args) {
+      visitTerms(arg as Term, fn);
     }
+  }
 };
 
 export const containsSubterm = (term: Term, target: Term): boolean => {
-    if (termsEqual(term, target)) return true;
-    const args = 'args' in term && Array.isArray(term.args) ? term.args : [];
-    return args.some((a) => containsSubterm(a as Term, target));
+  if (termsEqual(term, target)) return true;
+  const args = 'args' in term && Array.isArray(term.args) ? term.args : [];
+  return args.some((a) => containsSubterm(a as Term, target));
 };
 
 export const sharesSymbol = (a: Term, b: Term): boolean => {
-    const aSyms = collectAtomicSymbols(a);
-    const bSyms = collectAtomicSymbols(b);
-    for (const s of aSyms) if (bSyms.has(s)) return true;
-    return false;
+  const aSyms = collectAtomicSymbols(a);
+  const bSyms = collectAtomicSymbols(b);
+  for (const s of aSyms) if (bSyms.has(s)) return true;
+  return false;
 };
 
 export const mentionsSymbol = (term: Term, symbol: string): boolean => {
-    if ('symbol' in term && term.symbol === symbol) return true;
-    const args = 'args' in term && Array.isArray(term.args) ? term.args : [];
-    return args.some((a) => mentionsSymbol(a as Term, symbol));
+  if ('symbol' in term && term.symbol === symbol) return true;
+  const args = 'args' in term && Array.isArray(term.args) ? term.args : [];
+  return args.some((a) => mentionsSymbol(a as Term, symbol));
 };
 
 const collectAtomicSymbols = (term: Term, set = new Set<string>()): Set<string> => {
-    if (isAtomic(term)) {
-        set.add(term.symbol);
-        return set;
-    }
-    const args = 'args' in term && Array.isArray(term.args) ? term.args : [];
-    for (const arg of args) collectAtomicSymbols(arg as Term, set);
+  if (isAtomic(term)) {
+    set.add(term.symbol);
     return set;
+  }
+  const args = 'args' in term && Array.isArray(term.args) ? term.args : [];
+  for (const arg of args) collectAtomicSymbols(arg as Term, set);
+  return set;
 };

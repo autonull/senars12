@@ -1,18 +1,28 @@
-import { describe, expect, it } from 'vitest';
-import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
-import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
-import { KernelRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
-import { KernelActionGate } from '../../nar/src/kernel/KernelActionGate.js';
-import { atom, TermBuilder } from '../../nar/src/terms/index.js';
 import { v4 as uuidv4 } from 'uuid';
+import { describe, expect, it } from 'vitest';
+import { KernelActionGate } from '../../nar/src/kernel/KernelActionGate.js';
+import { KernelBudgetGate } from '../../nar/src/kernel/KernelBudgetGate.js';
+import { KernelPerceptionGate } from '../../nar/src/kernel/KernelPerceptionGate.js';
+import { KernelRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
+import { atom, TermBuilder } from '../../nar/src/terms/index.js';
 
 describe('kernel gates', () => {
   it('perception admits valid observation and admitTask preserves truth', () => {
     const gate = new KernelPerceptionGate();
-    const out = gate.admit({ sourceId: 'user-cli', rawObservation: '(cat --> animal).', sensorConfidence: 1, sourceQuality: 'PRIMARY' });
+    const out = gate.admit({
+      sourceId: 'user-cli',
+      rawObservation: '(cat --> animal).',
+      sensorConfidence: 1,
+      sourceQuality: 'PRIMARY',
+    });
     expect(out.admitted).toBe(true);
     expect(out.task?.taskType).toBe('belief');
-    const direct = gate.admitTask(atom('cat'), 'belief', { frequency: 0.8, confidence: 0.9 }, 'derivation');
+    const direct = gate.admitTask(
+      atom('cat'),
+      'belief',
+      { frequency: 0.8, confidence: 0.9 },
+      'derivation'
+    );
     expect(direct.admitted).toBe(true);
     expect(direct.task?.truth).toEqual({ frequency: 0.8, confidence: 0.9 });
     expect(direct.task?.term).toBe(atom('cat').toString());
@@ -21,12 +31,25 @@ describe('kernel gates', () => {
 
   it('perception rejects unparseable observation', () => {
     const gate = new KernelPerceptionGate();
-    const out = gate.admit({ sourceId: 'sensor', rawObservation: 42, sensorConfidence: 1, sourceQuality: 'GENERAL' });
+    const out = gate.admit({
+      sourceId: 'sensor',
+      rawObservation: 42,
+      sensorConfidence: 1,
+      sourceQuality: 'GENERAL',
+    });
     expect(out.admitted).toBe(false);
   });
 
   it('budget exhausts with TerminationReason enum', () => {
-    const gate = new KernelBudgetGate({ defaultBudget: { maxCycles: 1, maxDepth: 10, maxMemoryOps: 10, maxLMCalls: 1, consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 } } });
+    const gate = new KernelBudgetGate({
+      defaultBudget: {
+        maxCycles: 1,
+        maxDepth: 10,
+        maxMemoryOps: 10,
+        maxLMCalls: 1,
+        consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+      },
+    });
     expect(gate.check({ operation: 'nal-step' }).granted).toBe(true);
     const denied = gate.check({ operation: 'nal-step' });
     expect(denied.granted).toBe(false);
@@ -37,10 +60,22 @@ describe('kernel gates', () => {
 
   it('reward firewall accepts policy targets, blocks truth targets', () => {
     const gate = new KernelRewardGate();
-    const ok = gate.process({ eventId: uuidv4(), rewardSignal: 0.5, rewardType: 'extrinsic', targetType: 'policy-weights', targetId: 'focus-1' });
+    const ok = gate.process({
+      eventId: uuidv4(),
+      rewardSignal: 0.5,
+      rewardType: 'extrinsic',
+      targetType: 'policy-weights',
+      targetId: 'focus-1',
+    });
     expect(ok.accepted).toBe(true);
     expect(gate.getEventLog()).toHaveLength(0);
-    const blocked = gate.process({ eventId: uuidv4(), rewardSignal: 0.5, rewardType: 'extrinsic', targetType: 'truth-confidence', targetId: 'belief-1' });
+    const blocked = gate.process({
+      eventId: uuidv4(),
+      rewardSignal: 0.5,
+      rewardType: 'extrinsic',
+      targetType: 'truth-confidence',
+      targetId: 'belief-1',
+    });
     expect(blocked.accepted).toBe(false);
     expect(blocked.epistemicFirewallViolation).toBe(true);
     expect(gate.getEventLog()).toHaveLength(1);
@@ -48,7 +83,9 @@ describe('kernel gates', () => {
 
   it('action gate blocks in observe-only, allows explicit ops in sandbox-execute', () => {
     const gate = new KernelActionGate();
-    expect(gate.authorize({ proposalId: uuidv4(), operation: 'move', args: {} }).authorized).toBe(false);
+    expect(gate.authorize({ proposalId: uuidv4(), operation: 'move', args: {} }).authorized).toBe(
+      false
+    );
     gate.setAutonomyMode('sandbox-execute');
     gate.addAllowedOperation('move');
     const auth = gate.authorize({ proposalId: uuidv4(), operation: 'move', args: {} });
@@ -57,7 +94,9 @@ describe('kernel gates', () => {
   });
 
   it('NL batch converts to FormalizationCandidates with ambiguity flags', async () => {
-    const { toFormalizationBatch, detectAmbiguityFlags } = await import('../../nar/src/nl/understanding.js');
+    const { toFormalizationBatch, detectAmbiguityFlags } = await import(
+      '../../nar/src/nl/understanding.js'
+    );
     expect(detectAmbiguityFlags('Cats may eat unless served fish').map((f) => f.type)).toEqual(
       expect.arrayContaining(['negation', 'modal'])
     );
@@ -88,15 +127,26 @@ describe('kernel gates', () => {
     expect(admitted).toHaveLength(1);
     expect(admitted[0]?.source).toBe('llm');
     expect(admitted[0]?.truth?.confidence).toBeCloseTo(0.7 * 0.7, 5);
-    const bad = gate.admitFormalization({ ...batch, candidates: [{ ...batch.candidates[0]!, narsese: '(((' }] });
+    const bad = gate.admitFormalization({
+      ...batch,
+      candidates: [{ ...batch.candidates[0]!, narsese: '(((' }],
+    });
     expect(bad.rejected).toHaveLength(1);
     expect(bad.admitted).toHaveLength(0);
   });
 
   it('action gate honors NAL veto registry', () => {
-    const gate = new KernelActionGate({ autonomyMode: 'sandbox-execute', allowedOperations: new Set(['fire']) });
+    const gate = new KernelActionGate({
+      autonomyMode: 'sandbox-execute',
+      allowedOperations: new Set(['fire']),
+    });
     gate.registerNALDerivation('d1', 'fire leads to trap', true);
-    const out = gate.authorize({ proposalId: uuidv4(), operation: 'fire', args: {}, nalDerivationId: 'd1' });
+    const out = gate.authorize({
+      proposalId: uuidv4(),
+      operation: 'fire',
+      args: {},
+      nalDerivationId: 'd1',
+    });
     expect(out.authorized).toBe(false);
     expect(out.vetoReason).toMatch(/NAL veto/);
   });

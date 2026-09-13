@@ -1,6 +1,6 @@
-import {ActionProposal, LearningEvent} from './Reflex.js';
-import {Focus} from '../focus/Focus.js';
-import type {Perception} from '../game/Game.js';
+import type { Focus } from '../focus/Focus.js';
+import type { Perception } from '../game/Game.js';
+import type { ActionProposal, LearningEvent } from './Reflex.js';
 
 export interface NALDerivation {
   action: string;
@@ -30,10 +30,7 @@ export class Negotiator {
     this.reflexThreshold = options.reflexThreshold ?? 0.3;
   }
 
-  resolve(
-    reflexProposals: ActionProposal[],
-    nalDerivations: NALDerivation[]
-  ): NegotiationDecision {
+  resolve(reflexProposals: ActionProposal[], nalDerivations: NALDerivation[]): NegotiationDecision {
     if (reflexProposals.length === 0) {
       return { action: null, actionExecuted: null, vetoedBy: null, confidence: 0, source: 'none' };
     }
@@ -43,7 +40,13 @@ export class Negotiator {
     );
 
     if (bestReflex.value * bestReflex.confidence < this.reflexThreshold) {
-      return { action: null, actionExecuted: null, vetoedBy: 'below-threshold', confidence: 0, source: 'none' };
+      return {
+        action: null,
+        actionExecuted: null,
+        vetoedBy: 'below-threshold',
+        confidence: 0,
+        source: 'none',
+      };
     }
 
     for (const derivation of nalDerivations) {
@@ -87,7 +90,12 @@ export class Negotiator {
   createLearningEvent(
     focus: Focus,
     decision: NegotiationDecision,
-    outcome: { reward: number; terminal: boolean; perception: any; previousPerception?: Perception | null }
+    outcome: {
+      reward: number;
+      terminal: boolean;
+      perception: any;
+      previousPerception?: Perception | null;
+    }
   ): LearningEvent {
     return {
       perception: outcome.perception,

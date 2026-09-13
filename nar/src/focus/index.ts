@@ -1,8 +1,8 @@
-export {Focus} from './Focus.js';
-export type {FocusOptions, FocusTask, FocusConcept, FocusStepReport} from './Focus.js';
-export type {Game, Perception, GameOutcome, MetaGame, SelfMetaGame} from '../game/Game.js';
-export type {ActionProposal, Reflex, LearningEvent} from '../reflex/Reflex.js';
-export {FocusBag, createFocus} from './FocusBag.js';
-export {GameFocus, createGameFocus} from './GameFocus.js';
-export {MetaFocus, createMetaFocus} from './MetaFocus.js';
-export type {MetaFocusOptions} from './MetaFocus.js';
+export type { Game, GameOutcome, MetaGame, Perception, SelfMetaGame } from '../game/Game.js';
+export type { ActionProposal, LearningEvent, Reflex } from '../reflex/Reflex.js';
+export type { FocusConcept, FocusOptions, FocusStepReport, FocusTask } from './Focus.js';
+export { Focus } from './Focus.js';
+export { createFocus, FocusBag } from './FocusBag.js';
+export { createGameFocus, GameFocus } from './GameFocus.js';
+export type { MetaFocusOptions } from './MetaFocus.js';
+export { createMetaFocus, MetaFocus } from './MetaFocus.js';

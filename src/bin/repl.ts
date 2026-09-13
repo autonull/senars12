@@ -1,7 +1,6 @@
 #!/usr/bin/env tsx
-import { createInterface } from 'node:readline';
 import type { ConversationSession } from '@senars/core/memory';
-import { type CLICommand, QUIT_SENTINEL } from '@senars/io/connections/cli';
+import { type CLICommand, CLIConnection } from '@senars/io/connections/cli';
 import type { Agent } from '@senars/nar/agent';
 import { formatLMConfig, resolveLMConfig } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
@@ -13,66 +12,17 @@ assertValidEnv();
 
 const logger = createLogger({ scope: 'repl' });
 
-async function readlineLoop(args: {
-  prompt: string;
-  commands: CLICommand[];
-  onInput: (text: string) => Promise<string>;
-}): Promise<void> {
-  const rl = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    terminal: process.stdin.isTTY,
-  });
-  const cmdMap = new Map(args.commands.map((c) => [c.name, c]));
-
-  const handle = async (line: string): Promise<boolean> => {
-    const trimmed = line.trim();
-    if (!trimmed) return true;
-    if (trimmed.startsWith('.')) {
-      const [name, ...rest] = trimmed.slice(1).split(/\s+/);
-      const cmd = name && cmdMap.get(name);
-      if (!cmd) {
-        console.log(`Unknown command: .${name}. Try .help.`);
-        return true;
-      }
-      const out = await cmd.execute(rest.join(' '));
-      if (out === QUIT_SENTINEL) return false;
-      if (out) console.log(out);
-      return true;
-    }
-    const out = await args.onInput(trimmed);
-    if (out) console.log();
-    return true;
-  };
-
-  return new Promise<void>((resolve) => {
-    rl.setPrompt(args.prompt);
-    rl.prompt();
-    rl.on('line', async (line) => {
-      const keep = await handle(line);
-      if (!keep) {
-        rl.close();
-        return;
-      }
-      rl.prompt();
-    });
-    rl.on('close', () => resolve());
-  });
-}
-
 async function collectChat(
   agent: Agent,
   input: string,
   tier: 'quality' | 'fast' | 'structured'
-): Promise<string> {
+): Promise<void> {
   const ctl = new AbortController();
   const onSigint = () => ctl.abort();
   process.once('SIGINT', onSigint);
-  let result = '';
   try {
     for await (const evt of agent.chat(input, { signal: ctl.signal, tier } as never)) {
       if (evt.kind === 'text-delta' && evt.text) {
-        result += evt.text;
         process.stdout.write(evt.text);
       } else if (evt.kind === 'tool-call') {
         process.stdout.write(`\n[tool:${evt.toolName}]\n`);
@@ -84,7 +34,6 @@ async function collectChat(
     process.removeListener('SIGINT', onSigint);
     process.stdout.write('\n');
   }
-  return result;
 }
 
 async function main() {
@@ -93,12 +42,13 @@ async function main() {
   console.log(formatLMConfig(lmConfig));
   console.log('=================================\n');
 
-  const { nar, agent, sessionManager, lmService } = await createAgentFromEnv();
+  const { nar, agent, sessionManager, lmService, profile } = await createAgentFromEnv();
   let currentSession = sessionManager.getOrCreate('default');
 
   console.log('\n╔══════════════════════════════════════════════════╗');
-  console.log('║ SeNARS REPL - Neuro-Symbolic Reasoning CLI    ║');
+  console.log(`║ ${profile.name} REPL - Neuro-Symbolic Reasoning CLI`);
   console.log('╚══════════════════════════════════════════════════╝\n');
+  if (profile.joinMessage) console.log(`${profile.joinMessage}\n`);
   console.log('Type .help for commands, or just chat!\n');
 
   const getSession = () => currentSession;
@@ -113,17 +63,29 @@ async function main() {
     },
   });
 
-  await readlineLoop({
-    prompt: 'senars> ',
-    commands,
-    onInput: async (text: string) => collectChat(agent, text, tier),
+  const cli = new CLIConnection(
+    { id: 'repl', type: 'cli', config: { name: 'REPL', commands } } as never,
+    { emit: () => undefined } as never
+  );
+  await cli.connect();
+  cli.onMessage(async (message) => {
+    await collectChat(agent, message.text, tier);
   });
+  agent.mount(cli as never);
 
-  await agent.stop();
-  await sessionManager.snapshot();
-  await sessionManager.close();
-
-  logger.info('Shutting down...');
+  const shutdown = async () => {
+    await agent.stop();
+    await sessionManager.snapshot();
+    await sessionManager.close();
+    logger.info('Shutting down...');
+    process.exit(0);
+  };
+  // Quit command (.exit/.quit) and SIGINT both end in a disconnect.
+  cli.onStateChange(async (state) => {
+    if (state === 'disconnected') await shutdown();
+  });
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
 }
 
 main().catch((err) => {

@@ -3,26 +3,25 @@
  * Export all API components
  */
 
-export {HTTPAdapter} from './http-adapter.js';
-export {registerMCPPrompts} from './mcp-prompts.js';
-export type {MCPResourceContext} from './mcp-resources.js';
-export {getResourceContent, registerMCPResources} from './mcp-resources.js';
+export { HTTPAdapter } from './http-adapter.js';
+export { registerMCPPrompts } from './mcp-prompts.js';
+export type { MCPResourceContext } from './mcp-resources.js';
+export { registerMCPResources } from './mcp-resources.js';
+export {
+  createMCPResponse,
+  createMCPTextResponse,
+  formatBeliefsForMCP,
+  formatConceptsForMCP,
+  formatEpisodesForMCP,
+  safeJSONParse,
+  stringifyMCP,
+} from './mcp-response.js';
 // MCP exports (using official SDK)
 export {
-    registerAgentAPI,
-    registerNARTools,
-    registerNARTools as registerNARToolsAsMCP,
+  registerNARTools,
+  registerNARTools as registerNARToolsAsMCP,
 } from './mcp-tools.js';
-export {APIRegistry} from './registry.js';
-export {WebSocketAdapter} from './websocket-adapter.js';
-export type {APIResponse} from './response.js';
-export {errorResponse, formatError, sendJSON, successResponse} from './response.js';
-export {
-    createMCPResponse,
-    createMCPTextResponse,
-    formatBeliefsForMCP,
-    formatConceptsForMCP,
-    formatEpisodesForMCP,
-    safeJSONParse,
-    stringifyMCP,
-} from './mcp-response.js';
+export { APIRegistry } from './registry.js';
+export type { APIResponse } from './response.js';
+export { errorResponse, formatError, sendJSON, successResponse } from './response.js';
+export { WebSocketAdapter } from './websocket-adapter.js';

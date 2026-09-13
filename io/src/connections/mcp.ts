@@ -20,7 +20,7 @@ export interface MCPToolInfo {
 export class MCPConnection extends BaseConnection {
   override readonly type = 'mcp';
   override readonly logger = createLogger({ scope: 'io:mcp' });
-  private readonly transport: 'stdio' | 'sse' | 'http' = 'stdio';
+  private readonly transport: 'stdio' | 'sse' | 'http' | 'in-memory' = 'stdio';
   private client: Client | null = null;
 
   constructor(config: ConnectionConfig, deps: ConnectionDeps) {
@@ -40,6 +40,10 @@ export class MCPConnection extends BaseConnection {
       const args = (this.config.config.args as string[]) ?? [];
       if (!command) throw new Error('MCP stdio transport requires command in config');
       await this.client.connect(new StdioClientTransport({ command, args }));
+    } else if (this.transport === 'in-memory') {
+      const pair = this.config.config.inMemoryPair as [unknown, unknown] | undefined;
+      if (!pair) throw new Error('MCP in-memory transport requires inMemoryPair in config');
+      await this.client.connect(pair[0] as never);
     } else {
       const url = this.config.config.url as string;
       if (!url) throw new Error('MCP sse/http transport requires url in config');

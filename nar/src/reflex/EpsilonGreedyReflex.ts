@@ -1,4 +1,4 @@
-import {Reflex, ActionProposal, LearningEvent} from './Reflex.js';
+import type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
 
 interface QEntry {
   value: number;

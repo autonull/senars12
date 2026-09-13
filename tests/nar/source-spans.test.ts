@@ -1,11 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { locateSpan, toFormalizationBatch } from '../../nar/src/nl/understanding.js';
 
-const meta = { detectedIntent: 'learning' as const, ambiguities: [], coreferences: [], implicitContext: [] };
+const meta = {
+  detectedIntent: 'learning' as const,
+  ambiguities: [],
+  coreferences: [],
+  implicitContext: [],
+};
 
 describe('todo7: per-candidate source spans', () => {
   it('locateSpan finds verbatim substrings; falls back to whole input', () => {
-    expect(locateSpan('Cats are mammals. Dogs bark.', 'Dogs bark.')).toEqual({ start: 18, end: 28, text: 'Dogs bark.' });
+    expect(locateSpan('Cats are mammals. Dogs bark.', 'Dogs bark.')).toEqual({
+      start: 18,
+      end: 28,
+      text: 'Dogs bark.',
+    });
     expect(locateSpan('abc', 'missing')).toEqual({ start: 0, end: 3, text: 'abc' });
     expect(locateSpan('abc')).toEqual({ start: 0, end: 3, text: 'abc' });
     expect(locateSpan('abc', '')).toEqual({ start: 0, end: 3, text: 'abc' });
@@ -17,7 +26,9 @@ describe('todo7: per-candidate source spans', () => {
         { narsese: '(cat --> mammal)', source: 'user', sourceText: 'Cats may be mammals.' },
         { narsese: '(dog --> barker)', source: 'user', sourceText: 'Dogs bark.' },
       ],
-      questions: [], goals: [], meta,
+      questions: [],
+      goals: [],
+      meta,
     });
     const [modal, plain] = batch.candidates;
     expect(modal?.sourceSpans).toEqual([{ start: 0, end: 20, text: 'Cats may be mammals.' }]);
@@ -28,7 +39,9 @@ describe('todo7: per-candidate source spans', () => {
   it('items without sourceText keep whole-input span (backward compatible)', () => {
     const batch = toFormalizationBatch('Cats sleep.', {
       beliefs: [{ narsese: '(cat --> sleeper)', source: 'user' }],
-      questions: [], goals: [], meta,
+      questions: [],
+      goals: [],
+      meta,
     });
     expect(batch.candidates[0]?.sourceSpans).toEqual([{ start: 0, end: 11, text: 'Cats sleep.' }]);
   });

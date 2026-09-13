@@ -10,6 +10,7 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createLogger } from '@senars/nar/logger';
+import { JobManager } from '../api/job-manager.js';
 import { registerMCPPrompts } from '../api/mcp-prompts.js';
 import { registerMCPResources } from '../api/mcp-resources.js';
 import { registerNARTools } from '../api/mcp-tools.js';
@@ -106,10 +107,11 @@ const startHttp = (port: number): void => {
 async function initialize() {
   // Single shared NAR/agent instance — MCP tools, resources and the agent
   // all operate on the same cognitive core.
-  const { nar, agent } = await createAgentFromEnv();
+  const { nar, agent, appConfig } = await createAgentFromEnv();
+  const jobs = new JobManager();
 
-  registerNARTools(server, nar, agent);
-  registerMCPResources(server, { nar, agent });
+  registerNARTools(server, nar, agent, { jobs, approval: appConfig.connections?.mcp?.approval });
+  registerMCPResources(server, { nar, agent, jobs });
   registerMCPPrompts(server);
 
   const transportType = getTransportType();

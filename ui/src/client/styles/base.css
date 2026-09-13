@@ -1,106 +1,106 @@
 @layer base {
-    body {
-        font-family: var(--typography-fontFamilies-ui);
-        font-size: var(--typography-scale-base);
-        line-height: var(--typography-lineHeights-normal);
-        background: var(--colors-semantic-bg-base);
-        color: var(--colors-semantic-text-primary);
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        overflow: hidden;
+  body {
+    font-family: var(--typography-fontFamilies-ui);
+    font-size: var(--typography-scale-base);
+    line-height: var(--typography-lineHeights-normal);
+    background: var(--colors-semantic-bg-base);
+    color: var(--colors-semantic-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--colors-semantic-border-default);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--colors-semantic-border-focus);
+  }
+
+  /* Focus visible ring */
+  :focus-visible {
+    outline: 2px solid var(--colors-semantic-focus-ring);
+    outline-offset: 2px;
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Selection */
+  ::selection {
+    background: var(--colors-semantic-accent-primary-subtle);
+    color: var(--colors-semantic-text-primary);
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
     }
 
-    /* Custom scrollbar */
-    ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
+    /* Disable Cytoscape animations */
+    .cytoscape-container * {
+      animation: none !important;
+      transition: none !important;
     }
 
-    ::-webkit-scrollbar-track {
-        background: transparent;
+    /* Disable panel slide transitions */
+    .panel-left,
+    .panel-right,
+    .panel-bottom {
+      transition: none !important;
     }
 
-    ::-webkit-scrollbar-thumb {
-        background: var(--colors-semantic-border-default);
-        border-radius: 3px;
+    /* Disable typewriter effect in chat */
+    .msg-streaming {
+      animation: none !important;
     }
 
-    ::-webkit-scrollbar-thumb:hover {
-        background: var(--colors-semantic-border-focus);
+    /* Disable telemetry canvas RAF-based animations */
+    telemetry-panel canvas {
+      animation: none !important;
+    }
+  }
+
+  /* High contrast */
+  @media (prefers-contrast: high) {
+    :root {
+      --colors-semantic-border-subtle: var(--colors-semantic-border-default);
+      --colors-semantic-text-muted: var(--colors-semantic-text-secondary);
     }
 
-    /* Focus visible ring */
+    /* Increase border contrast for all panels */
+    .panel-left,
+    .panel-right,
+    .panel-bottom,
+    s-panel,
+    .toolbar,
+    .card,
+    .context-menu {
+      border-width: 2px !important;
+    }
+
+    /* Ensure focus ring is highly visible */
     :focus-visible {
-        outline: 2px solid var(--colors-semantic-focus-ring);
-        outline-offset: 2px;
+      outline-width: 3px;
+      outline-offset: 2px;
     }
-
-    :focus:not(:focus-visible) {
-        outline: none;
-    }
-
-    /* Selection */
-    ::selection {
-        background: var(--colors-semantic-accent-primary-subtle);
-        color: var(--colors-semantic-text-primary);
-    }
-
-    /* Reduced motion */
-    @media (prefers-reduced-motion: reduce) {
-        *,
-        *::before,
-        *::after {
-            animation-duration: 0.01ms !important;
-            animation-iteration-count: 1 !important;
-            transition-duration: 0.01ms !important;
-        }
-
-        /* Disable Cytoscape animations */
-        .cytoscape-container * {
-            animation: none !important;
-            transition: none !important;
-        }
-
-        /* Disable panel slide transitions */
-        .panel-left,
-        .panel-right,
-        .panel-bottom {
-            transition: none !important;
-        }
-
-        /* Disable typewriter effect in chat */
-        .msg-streaming {
-            animation: none !important;
-        }
-
-        /* Disable telemetry canvas RAF-based animations */
-        telemetry-panel canvas {
-            animation: none !important;
-        }
-    }
-
-    /* High contrast */
-    @media (prefers-contrast: high) {
-        :root {
-            --colors-semantic-border-subtle: var(--colors-semantic-border-default);
-            --colors-semantic-text-muted: var(--colors-semantic-text-secondary);
-        }
-
-        /* Increase border contrast for all panels */
-        .panel-left,
-        .panel-right,
-        .panel-bottom,
-        s-panel,
-        .toolbar,
-        .card,
-        .context-menu {
-            border-width: 2px !important;
-        }
-
-        /* Ensure focus ring is highly visible */
-        :focus-visible {
-            outline-width: 3px;
-            outline-offset: 2px;
-        }
-    }
+  }
 }

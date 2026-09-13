@@ -1,5 +1,14 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { createTickContext, runTick, createPipeline, DEFAULT_PIPELINE, initOtel, shutdownOtel, instrumentPipeline, wrapMiddlewareWithSpan } from '@senars/nar/tick';
+import {
+  createPipeline,
+  createTickContext,
+  DEFAULT_PIPELINE,
+  initOtel,
+  instrumentPipeline,
+  runTick,
+  shutdownOtel,
+  wrapMiddlewareWithSpan,
+} from '@senars/nar/tick';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TODO5b OTel integration', () => {
   beforeEach(() => {
@@ -35,8 +44,17 @@ describe('TODO5b OTel integration', () => {
     const ctx = createTickContext('test-tick-2', { cycles: 5 });
     await runTick(ctx, instrumented);
     expect(ctx.events.map((e) => e.stage)).toEqual([
-      'perceive', 'recall', 'attend', 'reason', 'propose',
-      'negotiate', 'authorize', 'act', 'validate', 'learn', 'consolidate',
+      'perceive',
+      'recall',
+      'attend',
+      'reason',
+      'propose',
+      'negotiate',
+      'authorize',
+      'act',
+      'validate',
+      'learn',
+      'consolidate',
     ]);
   });
 

@@ -1,5 +1,5 @@
-export type {Game, Perception, GameOutcome, MetaGame, SelfMetaGame} from './Game.js';
-export {GridWorldGame, createGridWorldGame} from './GridWorldGame.js';
-export {MetaGame as MetaGameClass, createMetaGame} from './MetaGame.js';
-export {SelfMetaGameImpl, createSelfMetaGame} from './SelfMetaGame.js';
-export type {KnobConfig, SelfMetaGameConfig} from './SelfMetaGame.js';
+export type { Game, GameOutcome, MetaGame, Perception, SelfMetaGame } from './Game.js';
+export { createGridWorldGame, GridWorldGame } from './GridWorldGame.js';
+export { createMetaGame, MetaGame as MetaGameClass } from './MetaGame.js';
+export type { KnobConfig, SelfMetaGameConfig } from './SelfMetaGame.js';
+export { createSelfMetaGame, SelfMetaGameImpl } from './SelfMetaGame.js';

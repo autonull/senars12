@@ -379,6 +379,30 @@ function createServerWithProjection(agent?: Agent): {
               });
           }
 
+          if (msg.type === 'lm.status.request' && agent) {
+            try {
+              const narEngine = agent.engines.get('nar') as
+                | { nar?: { getLMClient?: () => Record<string, unknown> | undefined } }
+                | undefined;
+              const lm = narEngine?.nar?.getLMClient?.() ?? {};
+              if (ws.readyState === ws.OPEN) {
+                ws.send(
+                  JSON.stringify({
+                    type: 'lm.status',
+                    data: {
+                      provider: lm.provider ?? 'none',
+                      model: lm.model,
+                      available: lm.available ?? false,
+                      stats: typeof lm.getStats === 'function' ? lm.getStats() : {},
+                    },
+                  })
+                );
+              }
+            } catch (e) {
+              console.error('[WS] lm.status failed:', e);
+            }
+          }
+
           if (msg.type === 'config.set' && agent) {
             try {
               const narEngine = agent.engines.get('nar') as

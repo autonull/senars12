@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import {
+  DEFAULT_COGNITIVE_PARAMETERS,
+  mergeParameters,
+} from '../../nar/src/config/cognitive-parameters.js';
 import { createKnobSet, knobSchema } from '../../nar/src/rlfp/knobs.js';
-import { DEFAULT_COGNITIVE_PARAMETERS, mergeParameters } from '../../nar/src/config/cognitive-parameters.js';
 import { rankDerivations } from '../../nar/src/rules/ranking.js';
 
 const t = (s: string) => ({ term: { toString: () => s }, truth: { f: 0.9, c: 0.9 } });

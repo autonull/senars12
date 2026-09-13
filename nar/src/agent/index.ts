@@ -1,4 +1,4 @@
-import type { ChatStreamEvent } from '@senars/core';
+import type { ChatStreamEvent, CortexSynthesizeRequest, PromptBuilder } from '@senars/core';
 import { Agent, InMemoryEventLog, SqliteEventLog } from '@senars/core';
 import { createCortexFromLM } from '@senars/core/cortex';
 import { isNarsese } from '@senars/core/helpers';
@@ -7,6 +7,10 @@ import { registerAgentTools } from '@senars/core/motor';
 import { MettaEngine } from '@senars/metta/agent';
 import type { EpisodicMemory, LMService, NAR } from '@senars/nar';
 import { NAREngine } from '../engine/NAREngine.js';
+import { createCompactionPromptBuilder } from './compaction.js';
+import type { ToolFeedbackObserver } from '@senars/util/feedback';
+import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
+import { CoreToolRegistryAdapter } from '../tools';
 
 export interface CreateAgentConfig {
   nar?: NAR;
@@ -15,8 +19,16 @@ export interface CreateAgentConfig {
   persistence?: { path: string };
   sessionId?: string;
   externalTools?: Record<string, unknown>;
+  /** Engine enable flags (config-file `backends` block). */
+  engines?: { nar?: boolean; metta?: boolean };
   throttle?: number;
   promptBuilder?: import('@senars/core').PromptBuilder;
+  /** Bot identity — persona injected into the chat system prompt. */
+  profile?: { name?: string; personality?: string };
+  /** Composable skill package: instructions injected into the system prompt. */
+  skills?: Array<{ id: string; description?: string; instructions: string; enabled?: boolean }>;
+  /** Conversation compaction thresholds (`bot.conversation` config block). */
+  conversation?: { maxHistory?: number; summaryThreshold?: number };
   sessionManager?: PersistableSessionManager;
 }
 
@@ -46,38 +58,171 @@ interface NarAgentApi {
 
 type ExtendedAgent = Agent & NarAgentApi;
 
+type PromptReq = CortexSynthesizeRequest & { workingMemory: unknown[] };
+
+/**
+ * Chains prompt-builder fragments (user builder, persona, compaction) into one.
+ */
+const chainPromptBuilders = (builders: PromptBuilder[]): PromptBuilder | undefined =>
+  builders.length === 0
+    ? undefined
+    : builders.length === 1
+      ? builders[0]
+      : {
+          build: (req: PromptReq) =>
+            builders
+              .map((b) => b.build(req))
+              .filter(Boolean)
+              .join('\n'),
+        };
+
+/**
+ * PromptBuilder fragment injecting the bot persona into the system prompt.
+ */
+const createPersonaPromptBuilder = (
+  profile: NonNullable<CreateAgentConfig['profile']>
+): PromptBuilder => ({
+  build: (req: PromptReq) => {
+    void req;
+    return [
+      'You are a cognitive agent with access to symbolic reasoning engines.',
+      `Your name is ${profile.name ?? 'SeNARS'}.`,
+      profile.personality ? `Personality: ${profile.personality}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  },
+});
+
+/**
+ * PromptBuilder fragment for composable skill packages — injects each enabled
+ * skill's instructions into the system prompt.
+ */
+const createSkillsPromptBuilder = (
+  skills: NonNullable<CreateAgentConfig['skills']>
+): PromptBuilder => ({
+  build: (req: PromptReq) => {
+    void req;
+    const blocks = skills
+      .filter((s) => s.enabled !== false)
+      .map(
+        (s) => `## Skill: ${s.id}${s.description ? ` — ${s.description}` : ''}\n${s.instructions}`
+      );
+    return blocksToPrompt('Available skills (apply when relevant):', blocks);
+  },
+});
+
+const blocksToPrompt = (header: string, blocks: string[]): string =>
+  blocks.length > 0 ? [header, ...blocks].join('\n\n') : '';
+
 export async function createAgent(config: CreateAgentConfig = {}): Promise<ExtendedAgent> {
   const log = config.persistence
     ? new SqliteEventLog({ path: config.persistence.path })
     : new InMemoryEventLog();
 
-  const cortex = config.lmService
-    ? createCortexFromLM(config.lmService, config.promptBuilder)
-    : undefined;
+  // Shared feedback observer for unified tool statistics across motor and nar registries
+  const feedbackObserver = new DefaultToolFeedbackObserver();
 
+  const personaBuilder = config.profile ? createPersonaPromptBuilder(config.profile) : undefined;
+  const compactionBuilder = config.lmService
+    ? createCompactionPromptBuilder(config.lmService, config.conversation)
+    : undefined;
+  const skillsBuilder = config.skills?.length
+    ? createSkillsPromptBuilder(config.skills)
+    : undefined;
+  const promptBuilder = chainPromptBuilders(
+    [config.promptBuilder, personaBuilder, skillsBuilder, compactionBuilder].filter(
+      (b): b is NonNullable<typeof b> => Boolean(b)
+    )
+  );
+
+  const cortex = config.lmService ? createCortexFromLM(config.lmService, promptBuilder) : undefined;
+
+  const pinStore = new Map<string, string>();
   const { MettaCommandParser } = await import('@senars/metta/agent');
+  const mettaEnabled = config.engines?.metta !== false;
+  const mettaEngine = new MettaEngine();
+
+  // Create NAR with shared feedback observer if not provided
+  let narInstance = config.nar;
+  if (!narInstance) {
+    const { NAR } = await import('../nar.js');
+    const { DEFAULT_CONFIG } = await import('../types/index.js');
+    narInstance = new NAR({ ...DEFAULT_CONFIG, feedbackObserver });
+  }
+
   const agent = new Agent({
     log,
     cortex,
     commandParser: (text: string) => new MettaCommandParser().parse(text),
     builtinTools: true,
     episodicMemory: config.episodicMemory,
+    mettaExecutor: mettaEnabled ? (expr) => mettaEngine.query(expr) : undefined,
+    pinStore: {
+      pin: (key: string, value: string) => void pinStore.set(key, value),
+      unpin: (key?: string) => {
+        if (key) pinStore.delete(key);
+        else pinStore.clear();
+      },
+      recallAll: () => new Map(pinStore),
+    },
     sessionManager: config.sessionManager,
+    feedbackObserver,
   });
 
-  const narEngine = new NAREngine(config.nar, agent.emitCognitive.bind(agent));
-  const mettaEngine = new MettaEngine();
-  agent.registerEngine('nar', narEngine);
-  agent.registerEngine('metta', mettaEngine);
+  const narEngine = new NAREngine(narInstance, agent.emitCognitive.bind(agent));
+  if (config.engines?.nar !== false) agent.registerEngine('nar', narEngine);
+  if (mettaEnabled) agent.registerEngine('metta', mettaEngine);
 
   await agent.start();
-  attachNarApi(agent as ExtendedAgent, config, narEngine);
+  attachNarApi(agent as ExtendedAgent, config, narEngine, pinStore);
 
   return agent as ExtendedAgent;
 }
 
-function attachNarApi(agent: ExtendedAgent, config: CreateAgentConfig, narEngine: NAREngine): void {
-  const knowStore = new Map<string, string>();
+const MAX_DELEGATION_DEPTH = 2;
+let delegationDepth = 0;
+
+/**
+ * Runs a prompt in a short-lived sub-agent (fresh in-memory session, no
+ * MeTTa engine) and returns its final text. Depth-limited to prevent
+ * runaway recursive delegation.
+ */
+const createDelegateRunner =
+  (
+    base: Pick<CreateAgentConfig, 'nar' | 'lmService' | 'episodicMemory' | 'profile'>
+  ): ((prompt: string) => Promise<string>) =>
+  async (prompt: string) => {
+    if (delegationDepth >= MAX_DELEGATION_DEPTH) {
+      throw new Error(`delegation depth limit reached (${MAX_DELEGATION_DEPTH})`);
+    }
+    const worker = await createAgent({
+      nar: base.nar,
+      lmService: base.lmService,
+      episodicMemory: base.episodicMemory,
+      profile: base.profile,
+      engines: { metta: false },
+    });
+    delegationDepth++;
+    try {
+      let text = '';
+      for await (const evt of worker.chat(prompt)) {
+        if (evt.kind === 'text-delta' && evt.text) text += evt.text;
+      }
+      return text;
+    } finally {
+      delegationDepth--;
+      await worker.stop();
+    }
+  };
+
+function attachNarApi(
+  agent: ExtendedAgent,
+  config: CreateAgentConfig,
+  narEngine: NAREngine,
+  pinStore: Map<string, string>
+): void {
+  const knowStore = pinStore;
   let throttle = Math.min(100, Math.max(0, config.throttle ?? 100));
 
   const originalChat = agent.chat.bind(agent);
@@ -150,7 +295,16 @@ function attachNarApi(agent: ExtendedAgent, config: CreateAgentConfig, narEngine
             !query || e.content.toLowerCase().includes(query.toLowerCase())
         );
       },
+      delegate: createDelegateRunner(config),
     });
+
+  // Single tool registry: make nar's ToolManager the authoritative registry
+  // by setting it as the delegate of the core motor ToolRegistry.
+  const nar = narEngine?.nar;
+  if (nar) {
+    const adapter = new CoreToolRegistryAdapter(nar.tools);
+    agent.motor.setDelegate(adapter);
+  }
 
   agent.setThrottle = (n: number) => {
     throttle = Math.min(100, Math.max(0, n));
@@ -170,4 +324,5 @@ export {
   InMemorySessionManager,
   JsonlSessionManager,
 } from '@senars/core/memory';
-export { buildAgentTools, dispatchToolCalls, registerAgentTools } from '@senars/core/motor';
+export { dispatchToolCalls, registerAgentTools } from '@senars/core/motor';
+export type { ExtendedAgent };

@@ -1,5 +1,5 @@
-import {Game, Perception, GameOutcome} from './Game.js';
-import {FocusStepReport} from '../focus/Focus.js';
+import type { FocusStepReport } from '../focus/Focus.js';
+import type { Game, GameOutcome, Perception } from './Game.js';
 
 export interface MetaGameState {
   focusReports: Map<string, FocusStepReport>;

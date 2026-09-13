@@ -1,10 +1,7 @@
-import {describe, it, expect} from 'vitest';
-import {Focus, createFocus} from '@senars/nar/focus';
-import {FocusBag} from '@senars/nar/focus';
-import {TabularQReflex} from '@senars/nar/reflex';
-import {Negotiator} from '@senars/nar/reflex';
-import {GridWorldGame, createGridWorldGame} from '@senars/nar/game';
-import {GameFocus, createGameFocus} from '@senars/nar/focus';
+import { createFocus, createGameFocus, Focus, FocusBag, GameFocus } from '@senars/nar/focus';
+import { createGridWorldGame, GridWorldGame } from '@senars/nar/game';
+import { Negotiator, TabularQReflex } from '@senars/nar/reflex';
+import { describe, expect, it } from 'vitest';
 
 describe('Focus-Game-Reflex Kernel - Slice 1', () => {
   describe('Focus', () => {
@@ -23,7 +20,7 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
     });
 
     it('should step and process tasks', async () => {
-      const focus = createFocus({id: 'step-focus'});
+      const focus = createFocus({ id: 'step-focus' });
 
       const report = await focus.step(10);
       expect(report.focusId).toBe('step-focus');
@@ -32,7 +29,7 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
     });
 
     it('should set weight', () => {
-      const focus = createFocus({id: 'weight-focus', weight: 0.5});
+      const focus = createFocus({ id: 'weight-focus', weight: 0.5 });
       focus.setWeight(0.8);
       expect(focus.weight).toBe(0.8);
     });
@@ -40,10 +37,10 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
 
   describe('FocusBag', () => {
     it('should allocate budget by weight', () => {
-      const focusBag = new FocusBag({capacity: 10});
+      const focusBag = new FocusBag({ capacity: 10 });
 
-      const focus1 = createFocus({id: 'f1', weight: 0.7});
-      const focus2 = createFocus({id: 'f2', weight: 0.3});
+      const focus1 = createFocus({ id: 'f1', weight: 0.7 });
+      const focus2 = createFocus({ id: 'f2', weight: 0.3 });
 
       focusBag.add(focus1);
       focusBag.add(focus2);
@@ -56,9 +53,9 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
     });
 
     it('should track total weight', () => {
-      const focusBag = new FocusBag({capacity: 10});
-      const focus1 = createFocus({id: 'f1', weight: 0.5});
-      const focus2 = createFocus({id: 'f2', weight: 0.5});
+      const focusBag = new FocusBag({ capacity: 10 });
+      const focus1 = createFocus({ id: 'f1', weight: 0.5 });
+      const focus2 = createFocus({ id: 'f2', weight: 0.5 });
 
       focusBag.add(focus1);
       focusBag.add(focus2);
@@ -67,14 +64,19 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
     });
 
     it('should rebalance weights', () => {
-      const focusBag = new FocusBag({capacity: 10});
-      const focus1 = createFocus({id: 'f1', weight: 0.5});
-      const focus2 = createFocus({id: 'f2', weight: 0.5});
+      const focusBag = new FocusBag({ capacity: 10 });
+      const focus1 = createFocus({ id: 'f1', weight: 0.5 });
+      const focus2 = createFocus({ id: 'f2', weight: 0.5 });
 
       focusBag.add(focus1);
       focusBag.add(focus2);
 
-      focusBag.rebalanceWeights(new Map([['f1', 0.8], ['f2', 0.2]]));
+      focusBag.rebalanceWeights(
+        new Map([
+          ['f1', 0.8],
+          ['f2', 0.2],
+        ])
+      );
 
       expect(focus1.weight).toBe(0.8);
       expect(focus2.weight).toBe(0.2);
@@ -83,21 +85,21 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
 
   describe('TabularQReflex', () => {
     it('should propose actions with values', () => {
-      const reflex = new TabularQReflex('test-q', {alpha: 0.1, gamma: 0.95, epsilon: 0.1});
+      const reflex = new TabularQReflex('test-q', { alpha: 0.1, gamma: 0.95, epsilon: 0.1 });
 
-      const proposals = reflex.propose({row: 0, col: 0}, [0, 1, 2, 3] as const);
+      const proposals = reflex.propose({ row: 0, col: 0 }, [0, 1, 2, 3] as const);
       expect(proposals.length).toBe(4);
-      expect(proposals[0].source).toBe('test-q');
-      expect(proposals[0].value).toBeGreaterThanOrEqual(0);
-      expect(proposals[0].confidence).toBeGreaterThanOrEqual(0);
+      expect(proposals[0]!.source).toBe('test-q');
+      expect(proposals[0]!.value).toBeGreaterThanOrEqual(0);
+      expect(proposals[0]!.confidence).toBeGreaterThanOrEqual(0);
     });
 
     it('should learn from events', () => {
-      const reflex = new TabularQReflex('learn-q', {alpha: 0.5, gamma: 0.9, epsilon: 0});
+      const reflex = new TabularQReflex('learn-q', { alpha: 0.5, gamma: 0.9, epsilon: 0 });
 
       reflex.learn({
-        perception: {stateId: '0,0', features: {}, confidence: 1, terminal: false},
-        previousPerception: {stateId: '0,0', features: {}, confidence: 1, terminal: false},
+        perception: { stateId: '0,0', features: {}, confidence: 1, terminal: false },
+        previousPerception: { stateId: '0,0', features: {}, confidence: 1, terminal: false },
         actionProposed: '0',
         actionExecuted: '0',
         reward: 1,
@@ -106,7 +108,7 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
       });
 
       // Use perception-based key to check Q-value
-      const qValue = reflex.getQValue({stateId: '0,0', features: {}} as any, '0');
+      const qValue = reflex.getQValue({ stateId: '0,0', features: {} } as any, '0');
       expect(qValue).toBeGreaterThan(0);
     });
   });
@@ -116,9 +118,9 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
       const negotiator = new Negotiator();
 
       const proposals = [
-        {action: 'up', value: 0.5, confidence: 0.8, source: 'reflex'},
-        {action: 'right', value: 0.9, confidence: 0.7, source: 'reflex'},
-        {action: 'down', value: 0.3, confidence: 0.9, source: 'reflex'},
+        { action: 'up', value: 0.5, confidence: 0.8, source: 'reflex' },
+        { action: 'right', value: 0.9, confidence: 0.7, source: 'reflex' },
+        { action: 'down', value: 0.3, confidence: 0.9, source: 'reflex' },
       ];
 
       const decision = negotiator.resolve(proposals, []);
@@ -127,14 +129,12 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
     });
 
     it('should veto when NAL derivation contradicts', () => {
-      const negotiator = new Negotiator({nalVetoThreshold: 0.8});
+      const negotiator = new Negotiator({ nalVetoThreshold: 0.8 });
 
-      const proposals = [
-        {action: 'left', value: 0.9, confidence: 0.9, source: 'reflex'},
-      ];
+      const proposals = [{ action: 'left', value: 0.9, confidence: 0.9, source: 'reflex' }];
 
       const nalDerivations = [
-        {action: 'left', truth: {f: 0.0, c: 0.9}, source: 'trap-detection'},
+        { action: 'left', truth: { f: 0.0, c: 0.9 }, source: 'trap-detection' },
       ];
 
       const decision = negotiator.resolve(proposals, nalDerivations);
@@ -193,10 +193,10 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
         game,
       });
 
-      const reflex = new TabularQReflex('gf-q', {epsilon: 0});
+      const reflex = new TabularQReflex('gf-q', { epsilon: 0 });
       gameFocus.bindReflex(reflex);
 
-      const {focusReport, gameOutcome} = await gameFocus.step(10);
+      const { focusReport, gameOutcome } = await gameFocus.step(10);
       expect(focusReport.focusId).toBe('gf-focus');
       expect(focusReport.cycle).toBe(1);
       expect(gameOutcome).toBeDefined();
@@ -215,10 +215,10 @@ describe('Focus-Game-Reflex Kernel - Slice 1', () => {
         game,
       });
 
-      const reflex = new TabularQReflex('gf-q', {epsilon: 0});
+      const reflex = new TabularQReflex('gf-q', { epsilon: 0 });
       gameFocus.bindReflex(reflex);
 
-      const {focusReport, gameOutcome} = await gameFocus.step(10);
+      const { focusReport, gameOutcome } = await gameFocus.step(10);
       expect(focusReport.gates.actions).toBeGreaterThanOrEqual(0);
       expect(gameOutcome).toBeDefined();
     });

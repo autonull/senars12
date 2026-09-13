@@ -39,6 +39,7 @@ export class Agent {
   readonly policy: PolicyEngine;
   readonly bridge: AgentBridge;
   readonly motor: ToolRegistry;
+  readonly approval: ApprovalService;
   readonly cortex?: LLMCortex;
   readonly episodicMemory?: EpisodicMemory;
   readonly sessionManager?: PersistableSessionManager;
@@ -59,7 +60,7 @@ export class Agent {
     this.memory = new MemoryService();
     this.policy = new PolicyEngine();
     this.bridge = new AgentBridge(this);
-    this.motor = new ToolRegistry();
+    this.motor = new ToolRegistry(opts.feedbackObserver);
     this.cortex = opts.cortex;
     this.episodicMemory = opts.episodicMemory;
     this.sessionManager = opts.sessionManager;
@@ -70,9 +71,14 @@ export class Agent {
     this.memory.connectMotor(this.motor);
 
     const approvalService = new ApprovalService();
+    this.approval = approvalService;
 
     if (opts.builtinTools !== false) {
-      registerBuiltinTools(this.motor, approvalService);
+      registerBuiltinTools(this.motor, approvalService, {
+        episodic: this.episodicMemory,
+        metta: opts.mettaExecutor,
+        pins: opts.pinStore,
+      });
     }
   }
 

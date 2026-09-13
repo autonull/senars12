@@ -48,6 +48,14 @@
       "types": "./src/memory/index.ts",
       "import": "./src/memory/index.ts"
     },
+    "./memory/embedding": {
+      "types": "./src/memory/embedding.ts",
+      "import": "./src/memory/embedding.ts"
+    },
+    "./memory/retrieval-verified": {
+      "types": "./src/memory/retrieval-verified.ts",
+      "import": "./src/memory/retrieval-verified.ts"
+    },
     "./memory/episodic": {
       "types": "./src/memory/EpisodicMemory.ts",
       "import": "./src/memory/EpisodicMemory.ts"
@@ -113,7 +121,7 @@
     "typecheck": "tsc --noEmit",
     "dev": "tsx watch src/index.ts"
   },
-"dependencies": {
+  "dependencies": {
     "@js-temporal/polyfill": "^0.5.1",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/sdk-trace": "^2.11.0",

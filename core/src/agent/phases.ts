@@ -201,19 +201,20 @@ export async function* runCycleStream(
 
   const derivations = await reason(host, stimulus, context);
   let narrativeText = '';
-  if (host.cortex) {
+  const cortex = host.cortex;
+  if (cortex) {
     const stream =
-      typeof host.cortex.synthesizeStream === 'function'
-        ? host.cortex.synthesizeStream(
+      typeof cortex.synthesizeStream === 'function'
+        ? cortex.synthesizeStream(
             { stimulus, context, derivations, tools: motorToToolSet(host.motor), tier: opts?.tier },
             opts?.signal
           )
         : (async function* () {
-            const res = await host.cortex!.synthesize({
+            const res = await cortex.synthesize({
               stimulus,
               context,
               derivations,
-              tools: motorToToolSet(host.motor!),
+              tools: motorToToolSet(host.motor),
               tier: opts?.tier,
             });
             yield { kind: 'text-delta', text: res.text } as ChatStreamEvent;

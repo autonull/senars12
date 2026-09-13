@@ -1,18 +1,18 @@
-import type {MeTTaAtom} from './ast.js';
+import type { MeTTaAtom } from './ast.js';
 
 export interface MeTTaSpace {
-    readonly id: string;
-    readonly size: number;
+  readonly id: string;
+  readonly size: number;
 
-    add(atom: MeTTaAtom): void;
+  add(atom: MeTTaAtom): void;
 
-    remove(atom: MeTTaAtom): boolean;
+  remove(atom: MeTTaAtom): boolean;
 
-    query(pattern: MeTTaAtom): Generator<MeTTaAtom>;
+  query(pattern: MeTTaAtom): Generator<MeTTaAtom>;
 }
 
 export interface ImmutableSpace extends MeTTaSpace {
-    readonly atoms: ReadonlyArray<MeTTaAtom>;
+  readonly atoms: ReadonlyArray<MeTTaAtom>;
 
-    withAtom(atom: MeTTaAtom): ImmutableSpace;
+  withAtom(atom: MeTTaAtom): ImmutableSpace;
 }

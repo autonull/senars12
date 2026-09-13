@@ -169,9 +169,16 @@ export type {
   PersistableSessionManager,
 } from './memory/types.js';
 /** Agent tool factory. @public */
-export { buildAgentTools, registerAgentTools } from './motor/buildAgentTools.js';
+export { registerAgentTools } from './motor/buildAgentTools.js';
 /** Builtin tools. @public */
-export { BUILTIN_TOOLS, type CmdArgSet, registerBuiltinTools } from './motor/builtin-tools.js';
+export {
+  BUILTIN_TOOLS,
+  type BuiltinDeps,
+  type CmdArgSet,
+  createBuiltinTools,
+  type PinStore,
+  registerBuiltinTools,
+} from './motor/builtin-tools.js';
 /** Standalone tool-call dispatcher (canonical; `@senars/nar/agent` re-exports). @public */
 export {
   type DispatchArtifact,
@@ -187,6 +194,8 @@ export {
   ToolRegistry,
   type ToolSpec,
 } from './motor/ToolRegistry.js';
+/** Workspace sandbox for motor fs tools. @public */
+export { WORKSPACE_ROOT, withinWorkspace } from './motor/workspace.js';
 /** Validated agent options. @public */
 export type { ValidatedAgentOptions } from './Options.js';
 /**

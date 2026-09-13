@@ -1,67 +1,67 @@
-import {ulid} from 'ulid';
-import {AbstractEventLog} from './AbstractEventLog.js';
-import type {CognitiveEvent, EventLogConfig} from './EventLog.js';
-import {EventLogError} from './EventLog.js';
+import { ulid } from 'ulid';
+import { AbstractEventLog } from './AbstractEventLog.js';
+import type { CognitiveEvent, EventLogConfig } from './EventLog.js';
+import { EventLogError } from './EventLog.js';
 
 export class InMemoryEventLog extends AbstractEventLog {
-    #events: CognitiveEvent[] = [];
-    #config: Required<EventLogConfig>;
-    #closed = false;
+  #events: CognitiveEvent[] = [];
+  #config: Required<EventLogConfig>;
+  #closed = false;
 
-    constructor(config: EventLogConfig = {}) {
-        super();
-        this.#config = {
-            maxEvents: config.maxEvents ?? 100000,
-            maxEventSize: config.maxEventSize ?? 1024 * 1024,
-        };
+  constructor(config: EventLogConfig = {}) {
+    super();
+    this.#config = {
+      maxEvents: config.maxEvents ?? 100000,
+      maxEventSize: config.maxEventSize ?? 1024 * 1024,
+    };
+  }
+
+  get size(): number {
+    return this.#events.length;
+  }
+
+  get events(): ReadonlyArray<CognitiveEvent> {
+    return this.#events;
+  }
+
+  generateId(): string {
+    return ulid();
+  }
+
+  async getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]> {
+    const startIdx = this.#events.findIndex((e) => (e.id ?? '') > fromId);
+    if (startIdx < 0) return [];
+
+    let endIdx = this.#events.length;
+    if (toId) {
+      const foundIdx = this.#events.findIndex((e) => (e.id ?? '') > toId);
+      if (foundIdx >= 0) endIdx = foundIdx;
     }
 
-    get size(): number {
-        return this.#events.length;
+    return this.#events.slice(startIdx, endIdx);
+  }
+
+  async close(): Promise<void> {
+    this.#closed = true;
+  }
+
+  protected async doAppend(fullEvent: CognitiveEvent): Promise<void> {
+    if (this.#closed) {
+      throw new EventLogError('UNAVAILABLE', 'Event log is closed');
     }
 
-    get events(): ReadonlyArray<CognitiveEvent> {
-        return this.#events;
+    const eventSize = JSON.stringify(fullEvent).length;
+    if (eventSize > this.#config.maxEventSize) {
+      throw new EventLogError(
+        'INVALID_EVENT',
+        `Event size ${eventSize} exceeds max ${this.#config.maxEventSize}`
+      );
     }
 
-    generateId(): string {
-        return ulid();
+    if (this.#events.length >= this.#config.maxEvents) {
+      throw new EventLogError('FULL', `Event log full (${this.#config.maxEvents} events)`);
     }
 
-    async getRange(fromId: string, toId?: string): Promise<CognitiveEvent[]> {
-        const startIdx = this.#events.findIndex((e) => (e.id ?? '') > fromId);
-        if (startIdx < 0) return [];
-
-        let endIdx = this.#events.length;
-        if (toId) {
-            const foundIdx = this.#events.findIndex((e) => (e.id ?? '') > toId);
-            if (foundIdx >= 0) endIdx = foundIdx;
-        }
-
-        return this.#events.slice(startIdx, endIdx);
-    }
-
-    async close(): Promise<void> {
-        this.#closed = true;
-    }
-
-    protected async doAppend(fullEvent: CognitiveEvent): Promise<void> {
-        if (this.#closed) {
-            throw new EventLogError('UNAVAILABLE', 'Event log is closed');
-        }
-
-        const eventSize = JSON.stringify(fullEvent).length;
-        if (eventSize > this.#config.maxEventSize) {
-            throw new EventLogError(
-                'INVALID_EVENT',
-                `Event size ${eventSize} exceeds max ${this.#config.maxEventSize}`
-            );
-        }
-
-        if (this.#events.length >= this.#config.maxEvents) {
-            throw new EventLogError('FULL', `Event log full (${this.#config.maxEvents} events)`);
-        }
-
-        this.#events.push(fullEvent);
-    }
+    this.#events.push(fullEvent);
+  }
 }

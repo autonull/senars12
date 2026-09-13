@@ -1,8 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { atom, createBudget, createTask, Truth } from '@senars/nar';
 import { CapabilitySpace, createNodeVMSandbox } from '@senars/nar/capability';
-import { atom, createBudget, createTask } from '@senars/nar';
 import { createDefaultHooks } from '@senars/nar/tick/bindings.js';
 import { createPipeline, createTickContext, runTick } from '@senars/nar/tick/tick.js';
+import { describe, expect, it, vi } from 'vitest';
+
+const t = (f: number, c: number): Truth => Truth.create(f, c);
 
 describe('TODO5b WASI sandbox', () => {
   it('createNodeVMSandbox isolates execution', async () => {
@@ -24,7 +26,9 @@ describe('TODO5b WASI sandbox', () => {
       return fn();
     });
 
-    const space = new CapabilitySpace({ sandbox: customSandbox });
+    const space = new CapabilitySpace({
+      sandbox: customSandbox as unknown as <T>(fn: () => Promise<T>) => Promise<T>,
+    });
     space.register({ name: 'test', execute: () => 'result' });
 
     const result = await space.execute('test');
@@ -55,16 +59,25 @@ describe('TODO5b WASI sandbox', () => {
       return fn();
     });
 
-    const space = new CapabilitySpace({ sandbox: customSandbox });
+    const space = new CapabilitySpace({
+      sandbox: customSandbox as unknown as <T>(fn: () => Promise<T>) => Promise<T>,
+    });
     space.register({ name: 'do_x', execute: () => 'done' });
 
     const ctx = createTickContext('wasi1', { cycles: 10 });
-    await runTick(ctx, createPipeline(createDefaultHooks({
-      tools: space,
-      proposers: [() => [createTask(atom('x'), 'goal', { f: 1, c: 0.9 }, createBudget(0.9))]],
-      actionOf: () => ({ name: 'do_x', args: {} }),
-      negotiator: { resolve: () => ({ action: 'do_x', actionExecuted: 'do_x', vetoedBy: null }) },
-    })));
+    await runTick(
+      ctx,
+      createPipeline(
+        createDefaultHooks({
+          tools: space,
+          proposers: [() => [createTask(atom('x'), 'goal', t(1, 0.9), createBudget(0.9))]],
+          actionOf: () => ({ name: 'do_x', args: {} }),
+          negotiator: {
+            resolve: () => ({ action: 'do_x', actionExecuted: 'do_x', vetoedBy: null }),
+          },
+        })
+      )
+    );
 
     expect(ctx.state.outcomes).toEqual([{ tool: 'do_x', success: true }]);
     expect(executed).toBe(true);

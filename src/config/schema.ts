@@ -1,3 +1,5 @@
+import { lmSettingsSchema } from '@senars/util/config';
+import { narCoreBounds } from '@senars/util/config';
 import { z } from 'zod';
 
 const envBool = (key: string) =>
@@ -15,41 +17,29 @@ const envNumber = (key: string) =>
 const envString = (key: string) => z.string().optional();
 
 const narCoreDefaults = {
-  maxConcepts: 100,
-  activationDecayRate: 0.01,
-  consolidationInterval: 10,
-  cpuThrottleMs: 0,
-  maxDerivationDepth: 10,
-  maxDerivationsPerStep: 100,
+  maxConcepts: narCoreBounds.maxConcepts.default,
+  activationDecayRate: narCoreBounds.activationDecayRate.default,
+  consolidationInterval: narCoreBounds.consolidationInterval.default,
+  cpuThrottleMs: narCoreBounds.cpuThrottleMs.default,
+  maxDerivationDepth: narCoreBounds.maxDerivationDepth.default,
+  maxDerivationsPerStep: narCoreBounds.maxDerivationsPerStep.default,
 } as const;
 
 export const narCoreSchema = z.object({
-  maxConcepts: z.number().positive().max(10000).default(narCoreDefaults.maxConcepts),
-  activationDecayRate: z.number().min(0).max(1).default(narCoreDefaults.activationDecayRate),
-  consolidationInterval: z.number().positive().default(narCoreDefaults.consolidationInterval),
-  cpuThrottleMs: z.number().min(0).default(narCoreDefaults.cpuThrottleMs),
-  maxDerivationDepth: z.number().positive().max(100).default(narCoreDefaults.maxDerivationDepth),
-  maxDerivationsPerStep: z
-    .number()
-    .positive()
-    .max(10000)
-    .default(narCoreDefaults.maxDerivationsPerStep),
+  maxConcepts: z.number().min(narCoreBounds.maxConcepts.min).max(narCoreBounds.maxConcepts.max).default(narCoreDefaults.maxConcepts),
+  activationDecayRate: z.number().min(narCoreBounds.activationDecayRate.min).max(narCoreBounds.activationDecayRate.max).default(narCoreDefaults.activationDecayRate),
+  consolidationInterval: z.number().min(narCoreBounds.consolidationInterval.min).max(narCoreBounds.consolidationInterval.max).default(narCoreDefaults.consolidationInterval),
+  cpuThrottleMs: z.number().min(narCoreBounds.cpuThrottleMs.min).max(narCoreBounds.cpuThrottleMs.max).default(narCoreDefaults.cpuThrottleMs),
+  maxDerivationDepth: z.number().min(narCoreBounds.maxDerivationDepth.min).max(narCoreBounds.maxDerivationDepth.max).default(narCoreDefaults.maxDerivationDepth),
+  maxDerivationsPerStep: z.number().min(narCoreBounds.maxDerivationsPerStep.min).max(narCoreBounds.maxDerivationsPerStep.max).default(narCoreDefaults.maxDerivationsPerStep),
 });
 
 const lmDefaults = { enabled: true, provider: 'transformers' } as const;
 
-export const lmSchema = z.object({
+/** Extends the shared LM-settings schema with the capability-level `enabled` flag. */
+export const lmSchema = lmSettingsSchema.extend({
   enabled: z.boolean().default(lmDefaults.enabled),
   provider: z.string().default(lmDefaults.provider),
-  model: z.string().optional(),
-  fastModel: z.string().optional(),
-  structuredModel: z.string().optional(),
-  compactModel: z.string().optional(),
-  baseUrl: z.string().optional(),
-  ollamaHost: z.string().optional(),
-  quantized: z.boolean().optional(),
-  cacheDir: z.string().optional(),
-  apiKeyEnv: z.string().optional(),
 });
 
 const profileDefaults = {
@@ -117,8 +107,112 @@ const tuiDefaults = {
 
 const lmRulesDefaults = {
   enabled: true,
-  rules: [] as unknown[],
+  rules: [] as LmRuleConfigEntry[],
 };
+
+export const lmRuleSchema = z.object({
+  /** Preset id (e.g. 'lm-narsese-translation') or custom rule id. */
+  id: z.string(),
+  name: z.string().optional(),
+  description: z.string().optional(),
+  priority: z.number().optional(),
+  /** Custom prompt template (omit for presets). */
+  prompt: z.string().optional(),
+  taskType: z.string().optional(),
+  budget: z.number().optional(),
+  multiline: z.boolean().optional(),
+  singlePremise: z.boolean().optional(),
+  enabled: z.boolean().default(true),
+});
+
+const memoryDefaults = {} as const;
+
+export const memorySchema = z.object({
+  maxConcepts: z.number().positive().max(10000).optional(),
+  /** Deprecated alias for inference.maxDerivationDepth. */
+  derivationDepth: z.number().positive().optional(),
+  bagSize: z.number().positive().optional(),
+});
+
+const inferenceDefaults = {} as const;
+
+export const inferenceSchema = z.object({
+  maxDerivationDepth: z.number().positive().max(100).optional(),
+  maxDerivationsPerStep: z.number().positive().max(10000).optional(),
+  cpuThrottleMs: z.number().min(0).optional(),
+});
+
+const backendsDefaults = { nar: { enabled: true }, metta: { enabled: true } } as const;
+
+/** Objective-driven routing policy (shared shape lives in @senars/nar/lm). */
+export const routingSchema = z.object({
+  objectives: z
+    .record(
+      z.enum(['quality', 'fast', 'structured']),
+      z.object({
+        quality: z.enum(['balanced', 'high', 'max']).optional(),
+        maxLatencyMs: z.number().optional(),
+        offlineOnly: z.boolean().optional(),
+      })
+    )
+    .default({ quality: {}, fast: {}, structured: {} }),
+  candidates: z.array(z.string()).optional(),
+  offlineOnly: z.boolean().optional(),
+  maxLatencyMs: z.number().optional(),
+  /** Offline failsafe ladder: local model ids, smallest → most capable. */
+  offlineLadder: z.array(z.string()).optional(),
+});
+
+export type RoutingConfig = z.infer<typeof routingSchema>;
+
+export const backendsSchema = z
+  .object({
+    nar: z
+      .object({
+        enabled: z.boolean().default(true),
+        /** NAR inference cycles per engine step (`NARConfig.cyclesPerStep`). */
+        cyclesPerStep: z.number().int().positive().optional(),
+      })
+      .default({ enabled: true }),
+    metta: z.object({ enabled: z.boolean().default(true) }).default({ enabled: true }),
+  })
+  .default({ nar: { enabled: true }, metta: { enabled: true } });
+
+/** Alternate LM settings selectable via LM_PROFILE=production. */
+export const productionSchema = z
+  .object({
+    provider: z.string().optional(),
+    model: z.string().optional(),
+    baseUrl: z.string().optional(),
+    apiKeyEnv: z.string().optional(),
+  })
+  .optional();
+
+const ircDefaults = {
+  server: 'irc.libera.chat',
+  port: 6697,
+  useTLS: true,
+  nick: 'senars-bot',
+  channels: [] as string[],
+};
+
+export const ircSchema = z.object({
+  server: z.string().default(ircDefaults.server),
+  port: z.number().int().positive().default(ircDefaults.port),
+  useTLS: z.boolean().default(ircDefaults.useTLS),
+  nick: z.string().default(ircDefaults.nick),
+  channels: z.array(z.string()).default([]),
+});
+
+/** Per-transport connection settings (e.g. MCP approval gating). */
+export const connectionsSchema = z.object({
+  mcp: z
+    .object({
+      /** Require approval for mutating tools (write_file); `SENARS_MCP_APPROVE=1` also enables. */
+      approval: z.boolean().default(false),
+    })
+    .optional(),
+});
 
 const builtInDefaults = { builtIn: true };
 
@@ -135,6 +229,8 @@ const agentDefaults = {
 
 export const agentSectionSchema = z
   .object({
+    name: z.string().optional(),
+    persona: z.string().optional(),
     maxLoops: z.number().int().min(0).max(50).default(agentDefaults.maxLoops),
     reasoningIntervalMs: z.number().int().positive().default(agentDefaults.reasoningIntervalMs),
     sessionHistoryLimit: z.number().int().positive().default(agentDefaults.sessionHistoryLimit),
@@ -151,6 +247,7 @@ const capabilitiesDefaults = {
 };
 
 const botConfigDefaults = {
+  skills: [],
   reasoning: reasoningDefaults,
   streaming: streamingDefaults,
   conversation: conversationDefaults,
@@ -165,6 +262,16 @@ const botConfigDefaults = {
 };
 
 export const botConfigSchema = z.object({
+  skills: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        description: z.string().optional(),
+        instructions: z.string().min(1),
+        enabled: z.boolean().default(true),
+      })
+    )
+    .default([]),
   reasoning: z
     .object({
       autoTrigger: z.boolean().default(reasoningDefaults.autoTrigger),
@@ -225,7 +332,7 @@ export const botConfigSchema = z.object({
   lmRules: z
     .object({
       enabled: z.boolean().default(lmRulesDefaults.enabled),
-      rules: z.array(z.unknown()).default([]),
+      rules: z.array(lmRuleSchema).default([]),
     })
     .default({ ...lmRulesDefaults, rules: [...lmRulesDefaults.rules] }),
   prompts: z.object({}).default({}),
@@ -262,8 +369,12 @@ export const botConfigSchema = z.object({
     .default(policyDefaults),
 });
 
-export const appConfigSchema = z.object({
+const appConfigBase = z.object({
+  /** Semantic version of the config file — validated by the loader for migration. */
+  configVersion: z.string().optional(),
   lm: lmSchema.optional(),
+  /** Alternate LM settings, activated with LM_PROFILE=production. */
+  production: productionSchema,
   profile: botProfileSchema.default({ ...profileDefaults }),
   capabilities: z
     .object({
@@ -282,12 +393,26 @@ export const appConfigSchema = z.object({
       senars: { ...capabilitiesDefaults.senars },
     }),
   core: narCoreSchema.default({ ...narCoreDefaults }),
+  memory: memorySchema.default({}),
+  inference: inferenceSchema.default({}),
+  backends: backendsSchema,
+  irc: ircSchema.optional(),
+  routing: routingSchema.default(() => ({ objectives: { quality: {}, fast: {}, structured: {} } })),
   agent: agentSectionSchema,
   bot: botConfigSchema.default({
     ...botConfigDefaults,
     lmRules: { ...botConfigDefaults.lmRules, rules: [...botConfigDefaults.lmRules.rules] },
   }),
-  connections: z.record(z.string(), z.unknown()).default(() => ({})),
+  connections: connectionsSchema.default(() => ({})),
+});
+
+/** Map top-level `agent.name`/`agent.persona` onto the bot profile when set. */
+export type AppConfigBase = z.infer<typeof appConfigBase>;
+
+export const appConfigSchema = appConfigBase.transform((config) => {
+  config.profile.name = config.agent.name ?? config.profile.name;
+  config.profile.personality = config.agent.persona ?? config.profile.personality;
+  return config;
 });
 
 export type AppConfig = z.infer<typeof appConfigSchema>;
@@ -296,3 +421,9 @@ export type BotProfile = z.infer<typeof botProfileSchema>;
 export type NarCoreConfig = z.infer<typeof narCoreSchema>;
 export type LmConfig = z.infer<typeof lmSchema>;
 export type AgentSectionConfig = z.infer<typeof agentSectionSchema>;
+export type LmRuleConfigEntry = z.infer<typeof lmRuleSchema>;
+export type MemoryConfig = z.infer<typeof memorySchema>;
+export type InferenceConfig = z.infer<typeof inferenceSchema>;
+export type BackendsConfig = z.infer<typeof backendsSchema>;
+export type IRCConfigSchema = z.infer<typeof ircSchema>;
+export type ProductionConfig = NonNullable<z.infer<typeof productionSchema>>;

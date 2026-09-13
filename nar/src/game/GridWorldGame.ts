@@ -1,5 +1,10 @@
-import {Game, Perception, GameOutcome} from '../game/Game.js';
-import {GridWorldEnv, GridWorldState, GridAction, GridWorldConfig} from './GridWorldEnv.js';
+import type { Game, GameOutcome, Perception } from '../game/Game.js';
+import {
+  type GridAction,
+  type GridWorldConfig,
+  GridWorldEnv,
+  type GridWorldState,
+} from './GridWorldEnv.js';
 
 export class GridWorldGame implements Game<GridWorldState, GridAction> {
   readonly id: string;
@@ -34,17 +39,26 @@ export class GridWorldGame implements Game<GridWorldState, GridAction> {
 
   legalActions(state: GridWorldState): GridAction[] {
     const actions: GridAction[] = [0, 1, 2, 3];
-    const {row, col} = state;
-    const {rows, cols, walls} = this.getEnvInfo();
+    const { row, col } = state;
+    const { rows, cols, walls } = this.getEnvInfo();
 
     const legal: GridAction[] = [];
     for (const action of actions) {
-      let newRow = row, newCol = col;
+      let newRow = row,
+        newCol = col;
       switch (action) {
-        case 0: newRow = Math.max(0, row - 1); break;
-        case 1: newCol = Math.min(cols - 1, col + 1); break;
-        case 2: newRow = Math.min(rows - 1, row + 1); break;
-        case 3: newCol = Math.max(0, col - 1); break;
+        case 0:
+          newRow = Math.max(0, row - 1);
+          break;
+        case 1:
+          newCol = Math.min(cols - 1, col + 1);
+          break;
+        case 2:
+          newRow = Math.min(rows - 1, row + 1);
+          break;
+        case 3:
+          newCol = Math.max(0, col - 1);
+          break;
       }
       if (!walls.has(`${newRow},${newCol}`)) {
         legal.push(action);

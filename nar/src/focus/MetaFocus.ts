@@ -1,6 +1,6 @@
-import {Focus, FocusOptions, FocusStepReport} from './Focus.js';
-import {PriorityBag} from '../bag/Bag.js';
-import {SelfMetaGameImpl} from '../game/SelfMetaGame.js';
+import { PriorityBag } from '../bag/Bag.js';
+import type { SelfMetaGameImpl } from '../game/SelfMetaGame.js';
+import { Focus, type FocusOptions, type FocusStepReport } from './Focus.js';
 
 export interface MetaFocusOptions extends FocusOptions {
   selfMetaGame: SelfMetaGameImpl;
@@ -31,10 +31,10 @@ export class MetaFocus extends Focus {
         this.tasks.add({
           id: `meta-report-${focusId}-${this.metaCycle}`,
           priority: 0.5,
-          term: {toString: () => `(focus-report ${focusId} ${focusReport.derivations})`} as any,
+          term: { toString: () => `(focus-report ${focusId} ${focusReport.derivations})` } as any,
           type: 'belief',
-          truth: {f: 0.8, c: 0.7},
-          budget: {priority: 0.5, durability: 0.5, quality: 0.5, cycles: 0, depth: 0},
+          truth: { f: 0.8, c: 0.7 },
+          budget: { priority: 0.5, durability: 0.5, quality: 0.5, cycles: 0, depth: 0 },
           stamp: `meta-${this.metaCycle}`,
           derived: false,
         });

@@ -1,5 +1,5 @@
-import {Focus, FocusTask} from '../focus/Focus.js';
-import type {GameOutcome} from '../game/Game.js';
+import type { Focus, FocusTask } from '../focus/Focus.js';
+import type { GameOutcome } from '../game/Game.js';
 
 export class RewardGate {
   constructor(private readonly focus: Focus) {}
@@ -14,7 +14,13 @@ export class RewardGate {
       term: this.rewardToTerm(outcome.reward),
       type: 'belief',
       truth: { f: outcome.reward >= 0 ? 1.0 : 0.0, c: Math.min(1, Math.abs(outcome.reward) + 0.1) },
-      budget: { priority: Math.abs(outcome.reward), durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+      budget: {
+        priority: Math.abs(outcome.reward),
+        durability: 0.8,
+        quality: 0.9,
+        cycles: 0,
+        depth: 0,
+      },
       stamp: `reward-${now}`,
       derived: false,
     };

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { NLUnderstandingService } from '../../nar/src/nl/understanding.js';
 import { TranslationCache } from '../../nar/src/nl/cache.js';
+import { NLUnderstandingService } from '../../nar/src/nl/understanding.js';
 
 const service = (cache: TranslationCache) =>
-    new NLUnderstandingService({ languageModel: () => null } as never, cache);
+  new NLUnderstandingService({ languageModel: () => null } as never, cache);
 
 describe('todo7: unified translateCached path', () => {
   it('cache hit returns TaskBatch without LM; miss returns null without populating', async () => {
@@ -18,7 +18,9 @@ describe('todo7: unified translateCached path', () => {
       summary: 'cats',
     });
     const hit = await svc.understand('Cats are mammals.');
-    expect(hit?.beliefs).toEqual([{ narsese: '(cat --> mammal)', truth: { f: 0.9, c: 0.9 }, source: 'user' }]);
+    expect(hit?.beliefs).toEqual([
+      { narsese: '(cat --> mammal)', truth: { f: 0.9, c: 0.9 }, source: 'user' },
+    ]);
     expect(hit?.questions).toEqual([{ narsese: '(whiskers --> ?what)?' }]);
     expect(hit?.goals).toEqual([{ narsese: '(cat --> happy)!' }]);
     expect(hit?.meta.detectedIntent).toBe('chat');

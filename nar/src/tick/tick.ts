@@ -56,21 +56,33 @@ export interface TickHooks {
   consolidate?: TickHook;
 }
 
-const passthrough = (stage: string): TickMiddleware => async (ctx, next) => {
-  emit(ctx, stage);
-  await next();
-};
-
-export const createPipeline = (hooks: TickHooks = {}): TickMiddleware[] => {
-  const stage = (name: keyof TickHooks): TickMiddleware => async (ctx, next) => {
-    emit(ctx, name);
-    await hooks[name]?.(ctx);
+const passthrough =
+  (stage: string): TickMiddleware =>
+  async (ctx, next) => {
+    emit(ctx, stage);
     await next();
   };
+
+export const createPipeline = (hooks: TickHooks = {}): TickMiddleware[] => {
+  const stage =
+    (name: keyof TickHooks): TickMiddleware =>
+    async (ctx, next) => {
+      emit(ctx, name);
+      await hooks[name]?.(ctx);
+      await next();
+    };
   return [
-    stage('perceive'), stage('recall'), stage('attend'), stage('reason'),
-    stage('propose'), stage('negotiate'), stage('authorize'), stage('act'),
-    stage('validate'), stage('learn'), stage('consolidate'),
+    stage('perceive'),
+    stage('recall'),
+    stage('attend'),
+    stage('reason'),
+    stage('propose'),
+    stage('negotiate'),
+    stage('authorize'),
+    stage('act'),
+    stage('validate'),
+    stage('learn'),
+    stage('consolidate'),
   ];
 };
 
@@ -100,15 +112,29 @@ export const DEFAULT_PIPELINE: TickMiddleware[] = [
   consolidateMiddleware,
 ];
 
-export const createTickContext = (tickId: string, budget: AIKRBudget, focusId?: string): TickContext => ({
+export const createTickContext = (
+  tickId: string,
+  budget: AIKRBudget,
+  focusId?: string
+): TickContext => ({
   tickId,
   budget,
   focusId,
   events: [],
-  state: { perceptions: [], memories: [], proposals: [], derivations: [], actions: [], outcomes: [] },
+  state: {
+    perceptions: [],
+    memories: [],
+    proposals: [],
+    derivations: [],
+    actions: [],
+    outcomes: [],
+  },
 });
 
-export async function runTick(ctx: TickContext, pipeline: TickMiddleware[] = DEFAULT_PIPELINE): Promise<TickContext> {
+export async function runTick(
+  ctx: TickContext,
+  pipeline: TickMiddleware[] = DEFAULT_PIPELINE
+): Promise<TickContext> {
   let index = -1;
   const dispatch = async (i: number): Promise<void> => {
     if (i <= index) throw new Error('next() called multiple times');

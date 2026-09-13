@@ -16,8 +16,72 @@ import { generateObject, generateText, type LanguageModel, streamText, zodSchema
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import type { ZodSchema } from 'zod';
 import type { SeNARSRegistry } from './providers.js';
-import { createSeNARSRegistry, getModelForTask } from './providers.js';
+import { SenarsError } from '@senars/util/errors';
+import {
+  createSeNARSRegistry,
+  demoteModel,
+  getLastRoutingDecision,
+  getLMSettings,
+  getModelForTask,
+  resolveActiveProvider,
+  setBuiltinProgressCallback,
+  type ModelDownloadProgressCallback,
+  canUseProvider,
+  recordProviderCall,
+  getCircuitBreaker,
+  getAllCircuitBreakers,
+  type CircuitBreakerConfig,
+  type LMProviderName,
+} from './providers.js';
 import { createLMStats, recordLMCall } from './stats.js';
+
+/** Typed error for provider/transport failures (offline fallbacks, re-probing). */
+export class LMUnavailableError extends SenarsError {
+  readonly provider: string | undefined;
+  readonly task: LMTask | undefined;
+  readonly detail: unknown;
+
+  constructor(message: string, provider?: string, task?: LMTask, detail?: unknown) {
+    super(message, 'LM_UNAVAILABLE', { provider, task, detail });
+    this.provider = provider;
+    this.task = task;
+    this.detail = detail;
+  }
+}
+
+const isTransportError = (e: unknown): boolean => {
+  const msg = e instanceof Error ? e.message.toLowerCase() : String(e).toLowerCase();
+  return (
+    /\b(fetch|network|econn|timeout|aborted|socket|rate.?limit|5\d\d)\b/.test(msg) ||
+    /failed to (fetch|connect)/.test(msg)
+  );
+};
+
+const backoff = (attempt: number): number => 250 * 2 ** (attempt - 1);
+
+const withRetry = async <T>(
+  fn: () => Promise<T>,
+  provider: string | undefined,
+  task: LMTask,
+  retries = 2
+): Promise<T> => {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= retries + 1; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastError = e;
+      if (attempt > retries || !isTransportError(e)) break;
+      await new Promise((r) => setTimeout(r, backoff(attempt)));
+    }
+  }
+  throw new LMUnavailableError(
+    `LM provider unavailable (${provider ?? 'unknown'}): ${(lastError as Error)?.message ?? String(lastError)}`,
+    provider,
+    task,
+    lastError
+  );
+};
 
 export type {
   LMExecutionStats,
@@ -32,8 +96,29 @@ export type {
 
 export class LMService {
   private stats: LMExecutionStats = createLMStats();
+  private reprobeDone = false;
+  /** Consecutive transport failures per resolved model id → demotion (R5). */
+  private failures = new Map<string, number>();
+  /** Per-model-id execution stats feeding stats-aware chain reordering (R4/R5). */
+  private perModel = new Map<string, LMExecutionStats>();
+  /** Optional progress callback for transformers.js model downloads. */
+  private progressCallback: ModelDownloadProgressCallback | undefined;
 
-  constructor(private registry: SeNARSRegistry) {}
+  constructor(
+    private registry: SeNARSRegistry,
+    progressCallback?: ModelDownloadProgressCallback
+  ) {
+    this.progressCallback = progressCallback;
+    if (progressCallback) {
+      setBuiltinProgressCallback(progressCallback);
+    }
+  }
+
+  /** Set or update the model download progress callback. */
+  setProgressCallback(cb: ModelDownloadProgressCallback | undefined): void {
+    this.progressCallback = cb;
+    setBuiltinProgressCallback(cb);
+  }
 
   get provider(): string | undefined {
     const model = this.getModel('quality');
@@ -51,7 +136,7 @@ export class LMService {
 
   getModel(task: LMTask): LanguageModel | undefined {
     try {
-      return getModelForTask(this.registry, task) as LanguageModel;
+      return getModelForTask(this.registry, task, undefined, this.getModelStats()) as LanguageModel;
     } catch {
       return undefined;
     }
@@ -77,19 +162,40 @@ export class LMService {
     const model = this.getModel(opts?.task ?? 'fast');
     if (!model) throw new Error('No model available');
 
+    const provider = this.provider as LMProviderName | undefined;
+    const settings = getLMSettings();
+    if (provider && !canUseProvider(provider, settings)) {
+      throw new LMUnavailableError(`Circuit breaker open for provider: ${provider}`, provider, opts?.task);
+    }
+
     const start = Date.now();
+    const task = opts?.task ?? 'fast';
     try {
-      const { text } = await generateText({
-        model,
-        prompt,
-        abortSignal: opts?.signal,
-        temperature: opts?.temperature,
-        maxOutputTokens: opts?.maxOutputTokens,
-      });
+      const text = await withRetry(
+        async () => {
+          const { text: out } = await generateText({
+            model,
+            prompt,
+            abortSignal: opts?.signal,
+            temperature: opts?.temperature,
+            maxOutputTokens: opts?.maxOutputTokens,
+          });
+          return out;
+        },
+        provider,
+        task
+      );
       this.recordCall(true, start, prompt.length + text.length);
+      if (provider) recordProviderCall(provider, true, settings);
+      this.noteSuccess();
       return text;
     } catch (e) {
       this.recordCall(false, start, prompt.length);
+      if (provider) recordProviderCall(provider, false, settings);
+      if (isTransportError(e)) {
+        this.noteFailure();
+        await this.reprobe();
+      }
       throw e;
     }
   }
@@ -105,18 +211,35 @@ export class LMService {
     const model = this.getModel(opts?.task ?? 'structured');
     if (!model) throw new Error('No model available');
 
+    const provider = this.provider as LMProviderName | undefined;
+    const settings = getLMSettings();
+    if (provider && !canUseProvider(provider, settings)) {
+      throw new LMUnavailableError(`Circuit breaker open for provider: ${provider}`, provider, opts?.task);
+    }
+
     const start = Date.now();
+    const task = opts?.task ?? 'structured';
     try {
-      const { object } = await generateObject({
-        model,
-        prompt,
-        schema: zodSchema(schema),
-        abortSignal: opts?.signal,
-      });
+      const object = await withRetry(
+        async () => {
+          const { object: out } = await generateObject({
+            model,
+            prompt,
+            schema: zodSchema(schema),
+            abortSignal: opts?.signal,
+          });
+          return out;
+        },
+        provider,
+        task
+      );
       this.recordCall(true, start, prompt.length + JSON.stringify(object).length);
+      if (provider) recordProviderCall(provider, true, settings);
       return object;
     } catch (e) {
       this.recordCall(false, start, prompt.length);
+      if (provider) recordProviderCall(provider, false, settings);
+      if (isTransportError(e)) await this.reprobe();
       throw e;
     }
   }
@@ -141,8 +264,52 @@ export class LMService {
     }
   }
 
+  /** One-shot re-probe of the active provider after transport failures. */
+  private async reprobe(): Promise<void> {
+    if (this.reprobeDone) return;
+    this.reprobeDone = true;
+    try {
+      const active = await resolveActiveProvider();
+      if (active !== this.provider) {
+        this.registry = createSeNARSRegistry({ ...getLMSettings(), provider: active });
+      }
+    } catch {
+      /* keep current registry */
+    }
+  }
+
   private recordCall(success: boolean, start: number, tokens: number): void {
     recordLMCall(this.stats, success, Date.now() - start, tokens);
+    const id = getLastRoutingDecision()?.modelId;
+    if (!id) return;
+    let m = this.perModel.get(id);
+    if (!m) {
+      m = createLMStats();
+      this.perModel.set(id, m);
+    }
+    recordLMCall(m, success, Date.now() - start, tokens);
+  }
+
+  getModelStats(): Record<string, LMExecutionStats> {
+    return Object.fromEntries(this.perModel);
+  }
+
+  private noteSuccess(): void {
+    const id = getLastRoutingDecision()?.modelId;
+    if (id) this.failures.delete(id);
+  }
+
+  private noteFailure(): void {
+    const id = getLastRoutingDecision()?.modelId;
+    if (!id) return;
+    const n = (this.failures.get(id) ?? 0) + 1;
+    this.failures.set(id, n);
+    if (n >= 2) demoteModel(id, `repeated transport failures (${n})`);
+  }
+
+  /** Get circuit breaker status for all providers. */
+  getCircuitBreakerStatus(): Map<string, ReturnType<typeof getCircuitBreaker>> {
+    return getAllCircuitBreakers();
   }
 }
 

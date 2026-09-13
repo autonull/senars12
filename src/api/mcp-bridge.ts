@@ -46,17 +46,17 @@ const toMcpContent = (result: ToolResult): unknown =>
 
 /**
  * Bridge NAR's internal tool registry onto an MCP server.
- * Every registered internal tool becomes an MCP tool (prefixed `nar_`),
+ * Every registered internal tool becomes an MCP tool with the same ID,
  * so MCP clients and the internal agent share one tool implementation.
  */
 export function registerNARRegistryTools(server: McpServer, nar: NAR): void {
   const registered = new Set<string>();
   for (const tool of nar.tools.list()) {
-    const name = `nar_${tool.name}`;
+    const name = tool.name;
     if (registered.has(name)) continue;
     registered.add(name);
     server.registerTool(
-      `nar_${tool.name}`,
+      name,
       {
         title: tool.name,
         description: tool.description,
@@ -65,7 +65,8 @@ export function registerNARRegistryTools(server: McpServer, nar: NAR): void {
       },
       async (args) => {
         const result = await nar.tools.execute(tool.name, args);
-        return createMCPResponse(stringifyMCP(toMcpContent(result)), toMcpContent(result));
+        const content = toMcpContent(result) as Record<string, unknown>;
+        return createMCPResponse(stringifyMCP(content), content);
       }
     );
   }

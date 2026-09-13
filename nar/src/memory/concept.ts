@@ -223,9 +223,15 @@ export class Concept {
 
   mergeWith(others: Concept[]): ConceptMergeResult {
     for (const other of [this, ...others]) {
-      other.beliefBag.forEach((belief) => this.beliefBag.add(belief));
-      other.goalBag.forEach((goal) => this.goalBag.add(goal));
-      other.questionBag.forEach((question) => this.questionBag.add(question));
+      other.beliefBag.forEach((belief) => {
+        this.beliefBag.add(belief);
+      });
+      other.goalBag.forEach((goal) => {
+        this.goalBag.add(goal);
+      });
+      other.questionBag.forEach((question) => {
+        this.questionBag.add(question);
+      });
     }
 
     for (const other of others) {
@@ -275,6 +281,16 @@ export class Concept {
 
     if (existing) {
       if (!data.truth || !existing.truth) return false;
+
+      // Evidence laundering guard: identical re-input cannot inflate confidence —
+      // only independent evidence (differing truth) earns a revision.
+      if (
+        Math.abs(data.truth.f - existing.truth.f) < 1e-9 &&
+        Math.abs(data.truth.c - existing.truth.c) < 1e-9
+      ) {
+        this.recordAccess();
+        return true;
+      }
 
       const revisedTruth = TruthOps.revision(data.truth, existing.truth);
       this.beliefBag.remove(existing);
@@ -332,8 +348,12 @@ export class Concept {
     const thisSet = new TermSet();
     const otherSet = new TermSet();
 
-    this.beliefBag.forEach((b) => thisSet.add(b.term));
-    other.beliefBag.forEach((b) => otherSet.add(b.term));
+    this.beliefBag.forEach((b) => {
+      thisSet.add(b.term);
+    });
+    other.beliefBag.forEach((b) => {
+      otherSet.add(b.term);
+    });
 
     if (thisSet.size === 0 && otherSet.size === 0) return 0;
 

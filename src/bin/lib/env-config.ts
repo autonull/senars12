@@ -3,8 +3,6 @@
  * Single source of truth for all `process.env` reads in bin entry points.
  */
 
-import { resolveLMSettings } from '@senars/nar/lm';
-
 export interface EpisodicConfig {
   memoryPath: string;
   retentionDays: number;
@@ -38,12 +36,6 @@ export interface MCPConfig {
   transport: string;
 }
 
-export interface LMEnvConfig {
-  provider: string;
-  model: string | undefined;
-  ollamaHost: string;
-  ollamaModel: string | undefined;
-}
 export interface AppEnvConfig {
   enableWebUI: boolean;
   histfile: string;
@@ -56,7 +48,6 @@ export interface BinEnvConfig {
   ws: WSConfig;
   http: HTTPConfig;
   mcp: MCPConfig;
-  lm: LMEnvConfig;
   app: AppEnvConfig;
 }
 
@@ -76,14 +67,28 @@ export function readAuthConfig(): AuthConfig {
   };
 }
 
-export function readIRCConfig(): IRCConfig {
+/** Config-file `irc` block shape (subset) used as env fallback. */
+export interface IRCFileConfig {
+  server?: string;
+  port?: number;
+  nick?: string;
+  channels?: string[];
+}
+
+export function readIRCConfig(file?: IRCFileConfig): IRCConfig {
   return {
-    server: process.env.IRC_SERVER ?? process.env.SENARS_IRC_SERVER ?? 'irc.libera.chat',
-    channels: (process.env.IRC_CHANNELS ?? process.env.SENARS_IRC_CHANNELS ?? '#senars')
+    server:
+      process.env.IRC_SERVER ?? process.env.SENARS_IRC_SERVER ?? file?.server ?? 'irc.libera.chat',
+    channels: (
+      process.env.IRC_CHANNELS ??
+      process.env.SENARS_IRC_CHANNELS ??
+      file?.channels?.join(',') ??
+      '#senars'
+    )
       .split(',')
       .map((s) => s.trim()),
-    nick: process.env.SENARS_IRC_NICK ?? 'senars-bot',
-    port: Number.parseInt(process.env.SENARS_IRC_PORT || '6697', 10),
+    nick: process.env.SENARS_IRC_NICK ?? file?.nick ?? 'senars-bot',
+    port: Number.parseInt(process.env.SENARS_IRC_PORT || String(file?.port ?? 6697), 10),
     authSecret: process.env.SENARS_IRC_AUTH_SECRET,
   };
 }
@@ -109,16 +114,6 @@ export function readMCPConfig(): MCPConfig {
   };
 }
 
-export function readLMEnvConfig(): LMEnvConfig {
-  const { provider, model, ollamaHost } = resolveLMSettings();
-  return {
-    provider,
-    model,
-    ollamaHost: ollamaHost ?? 'http://localhost:11434',
-    ollamaModel: process.env.OLLAMA_MODEL,
-  };
-}
-
 export function readAppEnvConfig(): AppEnvConfig {
   return {
     enableWebUI: process.env.ENABLE_WEB_UI === 'true',
@@ -134,7 +129,6 @@ export function readAllEnvConfig(): BinEnvConfig {
     ws: readWSConfig(),
     http: readHTTPConfig(),
     mcp: readMCPConfig(),
-    lm: readLMEnvConfig(),
     app: readAppEnvConfig(),
   };
 }

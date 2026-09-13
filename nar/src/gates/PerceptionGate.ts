@@ -1,5 +1,5 @@
-import {Focus, FocusTask} from '../focus/Focus.js';
-import type {Perception} from '../game/Game.js';
+import type { Focus, FocusTask } from '../focus/Focus.js';
+import type { Perception } from '../game/Game.js';
 
 export class PerceptionGate {
   constructor(private readonly focus: Focus) {}
@@ -14,7 +14,13 @@ export class PerceptionGate {
       term: this.stateIdToTerm(perception.stateId),
       type: 'belief',
       truth: { f: 1.0, c: perception.confidence ?? 0.9 },
-      budget: { priority: perception.confidence ?? 0.9, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+      budget: {
+        priority: perception.confidence ?? 0.9,
+        durability: 0.8,
+        quality: 0.9,
+        cycles: 0,
+        depth: 0,
+      },
       stamp: `perception-${now}`,
       derived: false,
     };
@@ -28,7 +34,13 @@ export class PerceptionGate {
           term: this.featureToTerm(feature, value),
           type: 'belief',
           truth: { f: Math.min(1, Math.abs(Number(value))), c: perception.confidence ?? 0.5 },
-          budget: { priority: Math.abs(Number(value)), durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+          budget: {
+            priority: Math.abs(Number(value)),
+            durability: 0.8,
+            quality: 0.9,
+            cycles: 0,
+            depth: 0,
+          },
           stamp: `perception-${now}`,
           derived: false,
         };
@@ -47,7 +59,10 @@ export class PerceptionGate {
     return {
       kind: 'compound',
       operator: 'feature',
-      args: [{ kind: 'atom', value: feature }, { kind: 'atom', value: String(value) }],
+      args: [
+        { kind: 'atom', value: feature },
+        { kind: 'atom', value: String(value) },
+      ],
     };
   }
 }

@@ -12,7 +12,11 @@ export interface CapabilityPolicy {
 }
 
 export interface CapabilityApproval {
-  requestApproval(request: { action: string; payload: string; risk: CapabilityRisk }): Promise<{ approved: boolean; feedback?: string }>;
+  requestApproval(request: {
+    action: string;
+    payload: string;
+    risk: CapabilityRisk;
+  }): Promise<{ approved: boolean; feedback?: string }>;
 }
 
 export interface CapabilityResult {
@@ -71,8 +75,11 @@ export class CapabilitySpace {
     this.capabilities.set(def.name, def);
   }
 
-  importFrom(registry: { list(): Array<{ name: string; description?: string; execute: CapabilityDef['execute'] }> }): void {
-    for (const tool of registry.list()) this.register({ name: tool.name, description: tool.description, execute: tool.execute });
+  importFrom(registry: {
+    list(): Array<{ name: string; description?: string; execute: CapabilityDef['execute'] }>;
+  }): void {
+    for (const tool of registry.list())
+      this.register({ name: tool.name, description: tool.description, execute: tool.execute });
   }
 
   names(): string[] {
@@ -91,18 +98,31 @@ export class CapabilitySpace {
 
   async execute(name: string, args: Record<string, unknown> = {}): Promise<CapabilityResult> {
     const capability = this.capabilities.get(name);
-    if (!capability) return this.record(name, { success: false, error: `capability '${name}' not found` });
+    if (!capability)
+      return this.record(name, { success: false, error: `capability '${name}' not found` });
     const verdict = this.policy?.checkCommand(name);
-    if (verdict && !verdict.allowed) return this.record(name, { success: false, error: verdict.reason ?? 'denied by policy' });
+    if (verdict && !verdict.allowed)
+      return this.record(name, { success: false, error: verdict.reason ?? 'denied by policy' });
     if (capability.risk && capability.risk !== 'low' && this.approval) {
-      const decision = await this.approval.requestApproval({ action: name, payload: JSON.stringify(args), risk: capability.risk });
-      if (!decision.approved) return this.record(name, { success: false, error: decision.feedback ?? 'rejected by approval' });
+      const decision = await this.approval.requestApproval({
+        action: name,
+        payload: JSON.stringify(args),
+        risk: capability.risk,
+      });
+      if (!decision.approved)
+        return this.record(name, {
+          success: false,
+          error: decision.feedback ?? 'rejected by approval',
+        });
     }
     try {
       const result = await this.sandbox(() => Promise.resolve(capability.execute(args)));
       return this.record(name, { success: true, result });
     } catch (error) {
-      return this.record(name, { success: false, error: error instanceof Error ? error.message : String(error) });
+      return this.record(name, {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

@@ -4,6 +4,7 @@ export { topBeliefTasks } from './context.js';
 export type { EnricherConfig, EnrichmentResult } from './enrichment.js';
 export { createProactiveEnricher, ProactiveEnricher } from './enrichment.js';
 export type {
+  LMProfileName,
   LMSettings,
   LMSettingsInput,
   ResolvedLMConfig,
@@ -12,7 +13,9 @@ export type {
 export {
   builtinModels,
   defaultModelFor,
+  detectCloudProvider,
   formatLMConfig,
+  LM_PROFILES,
   resolveLMConfig,
   resolveLMSettings,
 } from './env-config.js';
@@ -31,7 +34,11 @@ export type {
   ValidationResult,
 } from './LMRule.js';
 export { LMResponseParser, LMRule } from './LMRule.js';
-export { LMRules } from './lm-rule-factory.js';
+export {
+  type ConfiguredRuleSpec,
+  createConfiguredLMRules,
+  LMRules,
+} from './lm-rule-factory.js';
 export type {
   LMExecutionStats,
   LMPromptGenerator,
@@ -46,17 +53,42 @@ export {
   createMockLMService,
   LMService,
 } from './lm-service.js';
-export type { LMTask, SeNARSModelId, SeNARSRegistry } from './providers.js';
+export type {
+  CandidateScore,
+  CircuitBreakerConfig,
+  LMTask,
+  ModelCapability,
+  QualityObjective,
+  RoutingDecision,
+  RoutingObjective,
+  RoutingPolicy,
+  SeNARSModelId,
+  SeNARSRegistry,
+} from './providers.js';
 export {
   configureLM,
   createSeNARSRegistry,
+  demoteModel,
+  getCircuitBreaker,
+  getEffectiveCircuitConfig,
   getLMSettings,
   getLmProvider,
+  getModelCapability,
   getModelChain,
   getModelForTask,
   getQualityModel,
+  getRouting,
+  getRoutingStatus,
   hasCloudCredentials,
+  MODEL_CAPABILITIES,
+  pickBestModel,
+  pickModel,
   probeOllama,
+  recordProviderCall,
+  resetDemotions,
   resolveActiveProvider,
+  resolveOfflineModel,
+  resolveOfflineTier,
+  setRouting,
 } from './providers.js';
 export { createLMStats, recordLMCall } from './stats.js';

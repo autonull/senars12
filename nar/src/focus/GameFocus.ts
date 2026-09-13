@@ -1,10 +1,10 @@
-import {Focus, FocusOptions} from './Focus.js';
-import type {Game, Perception, GameOutcome} from '../game/Game.js';
-import {Reflex, ActionProposal, LearningEvent} from '../reflex/Reflex.js';
-import {Negotiator, NALDerivation, NegotiationDecision} from '../reflex/Negotiator.js';
-import {PriorityBag} from '../bag/Bag.js';
-import {gateRegistry} from '../kernel/index.js';
-import {v4 as uuidv4} from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
+import { PriorityBag } from '../bag/Bag.js';
+import type { Game, GameOutcome, Perception } from '../game/Game.js';
+import { gateRegistry } from '../kernel/index.js';
+import { type NALDerivation, NegotiationDecision, Negotiator } from '../reflex/Negotiator.js';
+import { ActionProposal, LearningEvent, type Reflex } from '../reflex/Reflex.js';
+import { Focus, type FocusOptions } from './Focus.js';
 
 export interface GameFocusOptions {
   focusId: string;
@@ -32,6 +32,13 @@ export class GameFocus {
     this.negotiator = new Negotiator({ nalVetoThreshold: 0.8, reflexThreshold: -1 });
 
     this.focus.bindGame(this.game);
+
+    // Sandboxed game worlds: escalate autonomy to sandbox-execute and allow the
+    // game's own legal actions through the kernel ActionGate.
+    const actionGate = gateRegistry.getActionGate();
+    actionGate.setAutonomyMode('sandbox-execute');
+    for (const a of this.game.legalActions(this.game.state()))
+      actionGate.addAllowedOperation(String(a));
   }
 
   bindReflex(reflex: Reflex): void {
@@ -44,8 +51,14 @@ export class GameFocus {
   }> {
     this.cycle++;
 
-    const budgetCheck = gateRegistry.getBudgetGate().check({ operation: 'nal-step', estimatedCost: 1, scopeId: this.focus.id });
-    if (!budgetCheck.granted) return { focusReport: { terminated: budgetCheck.terminationReason }, gameOutcome: null };
+    // Game loops budget per step (the `step(budget)` contract), not per focus
+    // lifetime — renew the scope so long-running training isn't starved.
+    gateRegistry.getBudgetGate().createScope(this.focus.id);
+    const budgetCheck = gateRegistry
+      .getBudgetGate()
+      .check({ operation: 'nal-step', estimatedCost: 1, scopeId: this.focus.id });
+    if (!budgetCheck.granted)
+      return { focusReport: { terminated: budgetCheck.terminationReason }, gameOutcome: null };
 
     // PERCEPTION: Focus step handles perception
     const focusReport = await this.focus.step(budget);
@@ -54,7 +67,10 @@ export class GameFocus {
 
     // PROPOSAL: Reflexes propose actions
     for (const reflex of this.focus.reflexes) {
-      const proposals = reflex.propose(this.game.state(), this.game.legalActions(this.game.state()));
+      const proposals = reflex.propose(
+        this.game.state(),
+        this.game.legalActions(this.game.state())
+      );
       if (proposals.length > 0) {
         // Convert proposals to goals and add to focus tasks
         const goals = this.focus.getActionGate().toGoals(proposals);
@@ -74,9 +90,20 @@ export class GameFocus {
 
         // EXECUTION: Kernel ActionGate authorizes before world mutation
         if (decision.actionExecuted) {
-          const auth = gateRegistry.getActionGate().authorize({ proposalId: uuidv4(), operation: decision.actionExecuted, args: {} });
+          const auth = gateRegistry
+            .getActionGate()
+            .authorize({ proposalId: uuidv4(), operation: decision.actionExecuted, args: {} });
           if (!auth.authorized) {
-            const learningEvent = this.negotiator.createLearningEvent(this.focus, { ...decision, actionExecuted: null, vetoedBy: auth.vetoReason ?? 'kernel-gate' }, { reward: 0, terminal: false, perception: this.game.observe(), previousPerception: this.previousPerception });
+            const learningEvent = this.negotiator.createLearningEvent(
+              this.focus,
+              { ...decision, actionExecuted: null, vetoedBy: auth.vetoReason ?? 'kernel-gate' },
+              {
+                reward: 0,
+                terminal: false,
+                perception: this.game.observe(),
+                previousPerception: this.previousPerception,
+              }
+            );
             reflex.learn(learningEvent);
             this.previousPerception = this.game.observe();
             break;
@@ -87,7 +114,14 @@ export class GameFocus {
           const nextPerception = this.game.observe();
 
           // REWARD: epistemic firewall — reward may only tune policy, never truth
-          const firewall = gateRegistry.getRewardGate().process({ eventId: uuidv4(), rewardSignal: Math.max(-1, Math.min(1, gameOutcome.reward)), rewardType: 'extrinsic', targetType: 'policy-weights', targetId: this.focus.id, domain: 'external-reflex' });
+          const firewall = gateRegistry.getRewardGate().process({
+            eventId: uuidv4(),
+            rewardSignal: Math.max(-1, Math.min(1, gameOutcome.reward)),
+            rewardType: 'extrinsic',
+            targetType: 'policy-weights',
+            targetId: this.focus.id,
+            domain: 'external-reflex',
+          });
           if (!firewall.accepted) break;
           // REWARD: Convert outcome to beliefs
           const rewardBeliefs = this.focus.getRewardGate().toBeliefs(gameOutcome);
@@ -97,28 +131,30 @@ export class GameFocus {
           focusReport.gates.rewards += rewardBeliefs.length;
 
           // LEARNING: Reflex learns from outcome
-          const learningEvent = this.negotiator.createLearningEvent(
-            this.focus,
-            decision,
-            { reward: gameOutcome.reward, terminal: gameOutcome.terminal, perception: nextPerception, previousPerception }
-          );
+          const learningEvent = this.negotiator.createLearningEvent(this.focus, decision, {
+            reward: gameOutcome.reward,
+            terminal: gameOutcome.terminal,
+            perception: nextPerception,
+            previousPerception,
+          });
           reflex.learn(learningEvent);
         } else if (decision.action) {
           // Action was vetoed - reflex learns it was overridden
-          const learningEvent = this.negotiator.createLearningEvent(
-            this.focus,
-            decision,
-            { reward: 0, terminal: false, perception: this.game.observe(), previousPerception: this.previousPerception }
-          );
+          const learningEvent = this.negotiator.createLearningEvent(this.focus, decision, {
+            reward: 0,
+            terminal: false,
+            perception: this.game.observe(),
+            previousPerception: this.previousPerception,
+          });
           reflex.learn(learningEvent);
         }
-        
+
         this.previousPerception = this.game.observe();
         break;
       }
     }
 
-    return { focusReport, gameOutcome };
+    return { focusReport: { ...focusReport, cycle: this.cycle }, gameOutcome };
   }
 
   getFocus(): Focus {

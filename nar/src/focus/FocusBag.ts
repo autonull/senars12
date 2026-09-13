@@ -1,5 +1,5 @@
-import {PriorityBag} from '../bag/Bag.js';
-import {Focus, FocusOptions} from './Focus.js';
+import { PriorityBag } from '../bag/Bag.js';
+import { Focus, type FocusOptions } from './Focus.js';
 
 export interface FocusBagOptions {
   capacity: number;

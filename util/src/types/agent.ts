@@ -1,43 +1,50 @@
 export interface ParsedCommand {
-    command: string;
-    args: string[];
-    raw: string;
+  command: string;
+  args: string[];
+  raw: string;
 }
 
 export interface HealthStatus {
-    readonly status: 'healthy' | 'degraded' | 'stuck' | 'crashed';
-    readonly lastCycle: number;
-    readonly cycleCount: number;
-    readonly errorRate: number;
+  readonly status: 'healthy' | 'degraded' | 'stuck' | 'crashed';
+  readonly lastCycle: number;
+  readonly cycleCount: number;
+  readonly errorRate: number;
 }
 
 export interface SkillDefinition {
-    readonly name: string;
-    readonly description?: string;
+  readonly name: string;
+  readonly description?: string;
 
-    execute(...args: unknown[]): unknown;
+  execute(...args: unknown[]): unknown;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: BridgeOptions fields carry external types; any avoids dependency edges
+/** Structural auth contract satisfied by io's AuthManager (io→util edge forbids direct import). */
+export interface BridgeAuthHandler {
+  checkAuth(
+    connectionId: string,
+    senderId: string,
+    message: string
+  ): 'allow' | 'ignore' | 'auth_bound';
+  bindUser(connectionId: string, senderId: string): void;
+}
+
 export interface BridgeOptions {
-    auth?: any;
-    // biome-ignore lint/suspicious/noExplicitAny: options bag
-    commandRegistry?: any;
-    // biome-ignore lint/suspicious/noExplicitAny: options bag
-    sessionManager?: any;
-    episodicMemory?: unknown;
-    generationService?: unknown;
-    understandingService?: unknown;
-    manager?: unknown;
-    enableNarseseHumanization?: boolean;
-    enableNarsTrace?: boolean;
+  auth?: BridgeAuthHandler;
+  commandRegistry?: import('../commands/registry.js').CommandRegistry;
+  sessionManager?: import('./memory.js').SessionManager;
+  episodicMemory?: unknown;
+  generationService?: unknown;
+  understandingService?: unknown;
+  manager?: unknown;
+  enableNarseseHumanization?: boolean;
+  enableNarsTrace?: boolean;
 }
 
 export interface AgentOptions {
-    log?: unknown;
-    id?: string;
-    cortex?: unknown;
-    commandParser?: (text: string) => ParsedCommand[];
-    builtinTools?: boolean;
-    episodicMemory?: unknown;
+  log?: unknown;
+  id?: string;
+  cortex?: unknown;
+  commandParser?: (text: string) => ParsedCommand[];
+  builtinTools?: boolean;
+  episodicMemory?: unknown;
 }

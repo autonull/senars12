@@ -1,12 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
 import {
   assertWasmPathContained,
   containsPath,
   createNodeVMSandbox,
-  sanitizePreopens,
   SandboxTimeoutError,
+  sanitizePreopens,
   withTimeout,
 } from '@senars/nar/capability';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('sandbox hardening', () => {
   it('preopens drop traversal escapes', () => {
@@ -29,7 +29,9 @@ describe('sandbox hardening', () => {
 
   it('withTimeout rejects slow executions', async () => {
     await expect(withTimeout(Promise.resolve('fast'), 1000)).resolves.toBe('fast');
-    await expect(withTimeout(new Promise(() => {}), 20)).rejects.toBeInstanceOf(SandboxTimeoutError);
+    await expect(withTimeout(new Promise(() => {}), 20)).rejects.toBeInstanceOf(
+      SandboxTimeoutError
+    );
   });
 
   it('node:vm sandbox warns deprecation but still runs', async () => {

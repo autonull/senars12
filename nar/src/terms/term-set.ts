@@ -5,46 +5,46 @@
  * with structural equality fallback for other terms.
  */
 
-import {TermCollection} from './term-collection.js';
-import type {Term} from './types.js';
+import { TermCollection } from './term-collection.js';
+import type { Term } from './types.js';
 
 export class TermSet extends TermCollection<Term> {
-    add(term: Term): this {
-        const idx = this.getIndex(term, (t) => t);
-        if (idx < 0) {
-            this.storage.push(term);
-            this.setRef(term, this.storage.length - 1);
-        }
-        return this;
+  add(term: Term): this {
+    const idx = this.getIndex(term, (t) => t);
+    if (idx < 0) {
+      this.storage.push(term);
+      this.setRef(term, this.storage.length - 1);
     }
+    return this;
+  }
 
-    has(term: Term): boolean {
-        return this.getIndex(term, (t) => t) >= 0;
-    }
+  has(term: Term): boolean {
+    return this.getIndex(term, (t) => t) >= 0;
+  }
 
-    delete(term: Term): boolean {
-        return this.deleteItem(term, (t) => t);
-    }
+  delete(term: Term): boolean {
+    return this.deleteItem(term, (t) => t);
+  }
 
-    values(): IterableIterator<Term> {
-        return this.iterProject((t) => t);
-    }
+  values(): IterableIterator<Term> {
+    return this.iterProject((t) => t);
+  }
 
-    keys(): IterableIterator<Term> {
-        return this.values();
-    }
+  keys(): IterableIterator<Term> {
+    return this.values();
+  }
 
-    entries(): IterableIterator<[Term, Term]> {
-        return this.iterProject((t) => [t, t] as [Term, Term]);
-    }
+  entries(): IterableIterator<[Term, Term]> {
+    return this.iterProject((t) => [t, t] as [Term, Term]);
+  }
 
-    forEach(callbackfn: (value: Term, key: Term, set: TermSet) => void): void {
-        for (const term of this.storage) {
-            callbackfn(term, term, this);
-        }
+  forEach(callbackfn: (value: Term, key: Term, set: TermSet) => void): void {
+    for (const term of this.storage) {
+      callbackfn(term, term, this);
     }
+  }
 
-    toArray(): Term[] {
-        return [...this.storage];
-    }
+  toArray(): Term[] {
+    return [...this.storage];
+  }
 }

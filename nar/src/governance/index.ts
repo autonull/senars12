@@ -1,2 +1,7 @@
-export { PatchRiskClassifier, GovernancePolicyEngine, ProposalRouter, SandboxValidator } from './pipeline.js';
-export type { ProposalRoute, ProposalActuators, ValidationVerdict } from './pipeline.js';
+export type { ProposalActuators, ProposalRoute, ValidationVerdict } from './pipeline.js';
+export {
+  GovernancePolicyEngine,
+  PatchRiskClassifier,
+  ProposalRouter,
+  SandboxValidator,
+} from './pipeline.js';

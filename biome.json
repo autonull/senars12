@@ -13,6 +13,9 @@
       "preset": "recommended",
       "correctness": {
         "noUnusedImports": "warn"
+      },
+      "style": {
+        "noNonNullAssertion": "warn"
       }
     }
   },
@@ -36,7 +39,26 @@
       "!**/.turbo",
       "!**/.cache",
       "!**/*.log",
-      "!**/pnpm-lock.yaml"
+      "!coverage",
+      "!docs/presentations",
+      "!**/pnpm-lock.yaml",
+      "!**/peggy-generated.cjs",
+      "!ui/spacegraphjs7",
+      "!ui/src/stories/assets",
+      "!ui/playwright-report",
+      "!ui/src/client/graph-test.html"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["vitest.config.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noUndeclaredEnvVars": "off"
+          }
+        }
+      }
+    }
+  ]
 }

@@ -79,6 +79,10 @@
     "./config": {
       "types": "./src/config/index.ts",
       "import": "./src/config/index.ts"
+    },
+    "./feedback": {
+      "types": "./src/feedback/ToolFeedbackObserver.ts",
+      "import": "./src/feedback/ToolFeedbackObserver.ts"
     }
   },
   "scripts": {
@@ -86,6 +90,6 @@
   },
   "devDependencies": {
     "@types/node": "^22.19.19",
-    "zod": "^3.25.76"
+    "zod": "^4.5.4"
   }
 }

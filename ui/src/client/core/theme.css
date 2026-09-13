@@ -1,17 +1,17 @@
 /* Migration aliases: old variable names → new design tokens */
 :root {
-    --bg-void: var(--colors-semantic-bg-base);
-    --bg-panel: var(--colors-semantic-bg-panel);
-    --bg-panel-solid: var(--colors-semantic-bg-panel-solid);
-    --bg-panel-hover: var(--colors-semantic-bg-panel-hover);
-    --border-dim: var(--colors-semantic-border-subtle);
-    --border-active: var(--colors-semantic-border-focus);
-    --accent-cyan: var(--colors-semantic-accent-primary);
-    --accent-amber: var(--colors-primitive-warning);
-    --accent-magenta: var(--colors-cognitiveLens-goal-primary);
-    --text-primary: var(--colors-semantic-text-primary);
-    --text-dim: var(--colors-semantic-text-muted);
-    --font-ui: var(--typography-fontFamilies-ui);
-    --font-data: var(--typography-fontFamilies-data);
-    --transition-fast: var(--transitions-fast);
+  --bg-void: var(--colors-semantic-bg-base);
+  --bg-panel: var(--colors-semantic-bg-panel);
+  --bg-panel-solid: var(--colors-semantic-bg-panel-solid);
+  --bg-panel-hover: var(--colors-semantic-bg-panel-hover);
+  --border-dim: var(--colors-semantic-border-subtle);
+  --border-active: var(--colors-semantic-border-focus);
+  --accent-cyan: var(--colors-semantic-accent-primary);
+  --accent-amber: var(--colors-primitive-warning);
+  --accent-magenta: var(--colors-cognitiveLens-goal-primary);
+  --text-primary: var(--colors-semantic-text-primary);
+  --text-dim: var(--colors-semantic-text-muted);
+  --font-ui: var(--typography-fontFamilies-ui);
+  --font-data: var(--typography-fontFamilies-data);
+  --transition-fast: var(--transitions-fast);
 }

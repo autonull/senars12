@@ -6,10 +6,21 @@ export type ResolvedProvider = LMProviderName;
  * Canonical LM settings — the single source of truth for all LM configuration.
  * Precedence: environment variables > file config (senars.config.json) > defaults.
  */
+export interface CircuitBreakerConfig {
+  /** Failures before opening the circuit. */
+  failureThreshold: number;
+  /** Time in ms before attempting half-open. */
+  resetTimeoutMs: number;
+  /** Successful calls in half-open before closing. */
+  successThreshold: number;
+}
+
 export interface LMSettings {
   provider: LMProviderName;
   /** Quality/frontier model id (per-provider default when omitted). */
   model?: string;
+  /** Named preset: auto | cloud-quality | local-private | ollama. */
+  profile?: string;
   fastModel?: string;
   structuredModel?: string;
   compactModel?: string;
@@ -20,6 +31,8 @@ export interface LMSettings {
   apiKeyEnv?: string;
   quantized?: boolean;
   cacheDir?: string;
+  /** Per-provider circuit breaker settings. */
+  circuitBreaker?: Partial<Record<LMProviderName, Partial<CircuitBreakerConfig>>>;
 }
 
 export interface ResolvedLMConfig {
@@ -50,10 +63,50 @@ const env = (...keys: string[]): string | undefined =>
 export type LMSettingsInput = Omit<Partial<LMSettings>, 'provider'> & { provider?: string };
 
 /**
+ * Cloud provider presets with their credential env vars, in preference order.
+ */
+const CLOUD_CREDENTIALS: readonly (readonly [LMProviderName, string])[] = [
+  ['anthropic', 'ANTHROPIC_API_KEY'],
+  ['openai', 'OPENAI_API_KEY'],
+];
+
+/** First cloud provider with a credential present in the environment. */
+export const detectCloudProvider = (): LMProviderName | undefined =>
+  CLOUD_CREDENTIALS.find(([, key]) => Boolean(process.env[key]))?.[0];
+
+const credentialEnvFor = (provider: LMProviderName): string | undefined =>
+  CLOUD_CREDENTIALS.find(([p]) => p === provider)?.[1];
+
+/**
+ * LM_PROFILE presets. `production` is reserved (handled by lifecycle config merge).
+ */
+export const LM_PROFILES = ['auto', 'cloud-quality', 'local-private', 'ollama'] as const;
+export type LMProfileName = (typeof LM_PROFILES)[number];
+
+const resolveProfileProvider = (profile: string): LMProviderName | undefined => {
+  switch (profile) {
+    case 'cloud-quality':
+      return detectCloudProvider() ?? 'transformers';
+    case 'local-private':
+      return 'transformers';
+    case 'ollama':
+      return 'ollama';
+    default:
+      return undefined;
+  }
+};
+
+/**
  * Resolve LM settings from env + optional file config. Throws on invalid provider.
+ * Precedence: LM_PROVIDER > file provider > LM_PROFILE preset > auto-detect
+ * (cloud when credentials exist, else local transformers).
  */
 export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
-  const rawProvider = (env('LM_PROVIDER', 'SENARS_LM_PROVIDER') ?? file?.provider ?? 'transformers')
+  const explicit = env('LM_PROVIDER', 'SENARS_LM_PROVIDER') ?? file?.provider;
+  const profile = env('LM_PROFILE') ?? file?.profile;
+  const profileProvider =
+    profile && profile !== 'production' ? resolveProfileProvider(profile) : undefined;
+  const rawProvider = (explicit ?? profileProvider ?? detectCloudProvider() ?? 'transformers')
     .toString()
     .toLowerCase();
   if (!isResolvedProvider(rawProvider)) {
@@ -62,17 +115,20 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
     );
   }
   const provider = rawProvider;
+  const cloudCredentialEnv = CLOUD_CREDENTIALS.find(([p]) => p === provider)?.[1] ?? undefined;
   return {
     provider,
+    profile: profile && profile !== 'production' ? profile : undefined,
     model: env('LM_MODEL', 'SENARS_LM_MODEL') ?? file?.model,
     fastModel: env('LM_FAST_MODEL') ?? file?.fastModel,
     structuredModel: env('LM_STRUCTURED_MODEL') ?? file?.structuredModel,
     compactModel: env('LM_COMPACT_MODEL') ?? file?.compactModel,
     baseUrl: env('LM_BASE_URL') ?? file?.baseUrl,
     ollamaHost: env('OLLAMA_HOST') ?? file?.ollamaHost,
-    apiKeyEnv: file?.apiKeyEnv,
+    apiKeyEnv: file?.apiKeyEnv ?? cloudCredentialEnv,
     quantized: file?.quantized,
     cacheDir: file?.cacheDir,
+    circuitBreaker: file?.circuitBreaker,
   };
 };
 

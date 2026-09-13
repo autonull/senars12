@@ -168,10 +168,20 @@ The neuro-symbolic handoff (LLM → Narsese candidates → Kernel Gates → NAL 
 pnpm install       # Install dependencies
 pnpm run dev       # Development mode (watch)
 pnpm run start     # Run once
+pnpm chat          # Interactive REPL chat (turn-key conversational entry)
+pnpm doctor        # Onboarding: credentials, ollama probe, effective LM/routing matrix
 pnpm run test      # Test everything
 pnpm run typecheck # Type check
 pnpm run lint      # Lint
 ```
+
+### LM Profiles & Routing
+
+`LM_PROFILE` selects a preset: `auto` (default — cloud when credentials exist, else local),
+`cloud-quality`, `local-private` (transformers.js), `ollama`. Per-tier env overrides
+(`LM_FAST_MODEL` etc.) and an optional `routing` config block enable objective-driven
+multi-provider model selection with a self-upgrading offline failsafe ladder. See
+`docs/tech/lm-config.md` for the full provider × tier × credential matrix.
 
 ### Run the Bot on IRC
 
@@ -614,6 +624,12 @@ await tools.execute('timer', { action: 'start', name: 'reasoning' });
 @Tool({ name: 'my_tool', description: '...', schema: {...} })
 async function myTool(args: { input: string }) { ... }
 ```
+
+**Built-in tool surface (all backed by real implementations):** fs (`read-file`, `write-file`,
+`append-file`, workspace-sandboxed), `shell` (30s timeout, async), web (`search` with
+Tavily→DuckDuckGo fallback, `tavily-search`, `web-fetch`), memory (`remember`, `query`,
+`episodes` — episodic memory; fail honestly when no backend), `metta` (delegates to the MeTTa
+engine), plus approval/timer/sleep utilities.
 
 ### Natural Language
 
@@ -1397,6 +1413,7 @@ tests/nar/
 | `docs/tech/api-reference.md` | API reference |
 | `docs/intro/getting-started.md` | Getting started guide |
 | `docs/plan/mcp.md` | Model Context Protocol integration |
+| `docs/tech/lm-config.md` | Unified LM configuration (env matrix × config file × precedence, objective-driven routing) |
 | `docs/plan/repl.md` | REPL usage |
 | `docs/plan/NEXT.md` | Strategic roadmap |
 | `docs/plan/HYBRID_REASONING.md` | Hybrid reasoning architecture |

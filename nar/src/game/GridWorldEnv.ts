@@ -99,8 +99,7 @@ export class GridWorldEnv {
     }
 
     const done =
-      this.currentPos.row === this.goalPos.row &&
-      this.currentPos.col === this.goalPos.col;
+      this.currentPos.row === this.goalPos.row && this.currentPos.col === this.goalPos.col;
     const reward = done ? 1 : -0.01;
 
     return { state: { ...this.currentPos }, reward, done: done || this.stepCount >= this.maxSteps };

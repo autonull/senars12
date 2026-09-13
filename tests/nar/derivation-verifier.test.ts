@@ -1,25 +1,29 @@
+import type { DerivationRecord } from '@senars/kernel/schemas';
 import { describe, expect, it } from 'vitest';
 import { verifyRecord } from '../../scripts/verify-derivation.js';
-import type { DerivationRecord } from '@senars/kernel/schemas';
 
 const taskId = '11111111-1111-4111-8111-111111111111';
-const step = (overrides: Record<string, unknown>): DerivationRecord['steps'][number] => ({
-  stepId: '22222222-2222-4222-8222-222222222222',
-  ruleId: 'deduction',
-  ruleCategory: 'logic',
-  premises: ['(a --> b)', '(b --> c)'],
-  conclusion: '(a --> c)',
-  truth: { frequency: 0.72, confidence: 0.72 },
-  premiseTruths: [
-    { frequency: 0.8, confidence: 0.9 },
-    { frequency: 0.9, confidence: 0.8 },
-  ],
-  evidenceLineage: [taskId],
-  independence: 'independent',
-  ...overrides,
-} as DerivationRecord['steps'][number]);
+const step = (overrides: Record<string, unknown>): DerivationRecord['steps'][number] =>
+  ({
+    stepId: '22222222-2222-4222-8222-222222222222',
+    ruleId: 'deduction',
+    ruleCategory: 'logic',
+    premises: ['(a --> b)', '(b --> c)'],
+    conclusion: '(a --> c)',
+    truth: { frequency: 0.72, confidence: 0.72 },
+    premiseTruths: [
+      { frequency: 0.8, confidence: 0.9 },
+      { frequency: 0.9, confidence: 0.8 },
+    ],
+    evidenceLineage: [taskId],
+    independence: 'independent',
+    ...overrides,
+  }) as DerivationRecord['steps'][number];
 
-const record = (steps: DerivationRecord['steps'], finalTruth = { frequency: 0.72, confidence: 0.72 }): DerivationRecord => ({
+const record = (
+  steps: DerivationRecord['steps'],
+  finalTruth = { frequency: 0.72, confidence: 0.72 }
+): DerivationRecord => ({
   derivationId: '33333333-3333-4333-8333-333333333333',
   taskId,
   goalTerm: '(a --> c)',
@@ -96,7 +100,9 @@ describe('standalone derivation verifier', () => {
     const lax = verifyRecord(record([badSub, unknownRule]));
     expect(lax.findings.some((f) => f.check === 'substitution-premise')).toBe(true);
     expect(lax.findings.some((f) => f.check === 'unknown-rule')).toBe(false);
-    const strict = verifyRecord(record([unknownRule], { frequency: 0.72, confidence: 0.72 }), { strict: true });
+    const strict = verifyRecord(record([unknownRule], { frequency: 0.72, confidence: 0.72 }), {
+      strict: true,
+    });
     expect(strict.findings.some((f) => f.check === 'unknown-rule')).toBe(true);
   });
 });

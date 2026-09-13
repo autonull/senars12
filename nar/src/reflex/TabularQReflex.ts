@@ -1,5 +1,5 @@
-import {Reflex, ActionProposal, LearningEvent} from './Reflex.js';
-import type {Perception} from '../game/Game.js';
+import type { Perception } from '../game/Game.js';
+import type { ActionProposal, LearningEvent, Reflex } from './Reflex.js';
 
 interface QEntry {
   value: number;
@@ -117,23 +117,23 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
   }
 
   private actionToKey(action: A): string {
-    return typeof action === 'object' && action !== null
-      ? JSON.stringify(action)
-      : String(action);
+    return typeof action === 'object' && action !== null ? JSON.stringify(action) : String(action);
   }
 
   getQValue(state: S, action: A): number {
-    const stateKey = typeof state === 'object' && state !== null && 'stateId' in state
-      ? this.perceptionToKey(state as any)
-      : this.stateToKey(state);
+    const stateKey =
+      typeof state === 'object' && state !== null && 'stateId' in state
+        ? this.perceptionToKey(state as any)
+        : this.stateToKey(state);
     const actionKey = this.actionToKey(action);
     return this.qTable.get(stateKey)?.get(actionKey)?.value ?? 0;
   }
 
   getVisitCount(state: S, action: A): number {
-    const stateKey = typeof state === 'object' && state !== null && 'stateId' in state
-      ? this.perceptionToKey(state as any)
-      : this.stateToKey(state);
+    const stateKey =
+      typeof state === 'object' && state !== null && 'stateId' in state
+        ? this.perceptionToKey(state as any)
+        : this.stateToKey(state);
     const actionKey = this.actionToKey(action);
     return this.qTable.get(stateKey)?.get(actionKey)?.visits ?? 0;
   }

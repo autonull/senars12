@@ -17,10 +17,7 @@
     "metta": {
       "enabled": true,
       "maxRecursionDepth": 100,
-      "spaces": [
-        "default",
-        "episodic"
-      ],
+      "spaces": ["default", "episodic"],
       "autonomousLoop": false
     }
   },
@@ -51,8 +48,6 @@
     "port": 6697,
     "useTLS": true,
     "nick": "senars12",
-    "channels": [
-      "#nars"
-    ]
+    "channels": ["#nars"]
   }
 }

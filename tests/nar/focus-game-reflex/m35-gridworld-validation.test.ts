@@ -1,16 +1,12 @@
-import {describe, it, expect} from 'vitest';
-import {createGridWorldGame} from '@senars/nar/game';
-import {createGameFocus} from '@senars/nar/focus';
-import {TabularQReflex} from '@senars/nar/reflex';
+import { createGameFocus } from '@senars/nar/focus';
+import { createGridWorldGame } from '@senars/nar/game';
+import { TabularQReflex } from '@senars/nar/reflex';
+import { describe, expect, it } from 'vitest';
 
 describe('M3.5 GridWorld Validation - New Architecture', () => {
   const gridConfig = {
     id: 'm35-gridworld',
-    grid: [
-      'S..',
-      '...',
-      '..G',
-    ],
+    grid: ['S..', '...', '..G'],
     seed: 42,
   };
 
@@ -42,17 +38,17 @@ describe('M3.5 GridWorld Validation - New Architecture', () => {
     for (let ep = 0; ep < numEpisodes; ep++) {
       // Reset game for new episode
       game.reset();
-      
+
       let episodeReward = 0;
       let steps = 0;
 
       for (let step = 0; step < maxSteps; step++) {
-        const {focusReport, gameOutcome} = await gameFocus.step(10);
-        
+        const { focusReport, gameOutcome } = await gameFocus.step(10);
+
         if (gameOutcome) {
           episodeReward += gameOutcome.reward;
           steps++;
-          
+
           if (gameOutcome.terminal) {
             if (gameOutcome.reward > 0) {
               solvedEpisodes++;
@@ -61,7 +57,7 @@ describe('M3.5 GridWorld Validation - New Architecture', () => {
           }
         }
       }
-      
+
       totalReward += episodeReward;
     }
 
@@ -69,7 +65,7 @@ describe('M3.5 GridWorld Validation - New Architecture', () => {
     // Q-learning baseline typically achieves >50% success rate after 200 episodes
     const successRate = solvedEpisodes / numEpisodes;
     expect(successRate).toBeGreaterThan(0.3); // At least 30% success rate
-    
+
     // Average reward should be positive
     const avgReward = totalReward / numEpisodes;
     expect(avgReward).toBeGreaterThan(0);
@@ -95,27 +91,27 @@ describe('M3.5 GridWorld Validation - New Architecture', () => {
 
     for (let ep = 0; ep < numEpisodes; ep++) {
       game.reset();
-      
+
       for (let step = 0; step < maxSteps; step++) {
-        const {gameOutcome} = await gameFocus.step(10);
+        const { gameOutcome } = await gameFocus.step(10);
         if (gameOutcome?.terminal) break;
       }
     }
 
     // Test greedy policy (epsilon = 0)
-    reflex.epsilon = 0;
+    (reflex as unknown as { epsilon: number }).epsilon = 0;
     game.reset();
-    
+
     let greedySteps = 0;
     let greedyReward = 0;
 
     for (let step = 0; step < maxSteps; step++) {
-      const {gameOutcome} = await gameFocus.step(10);
-      
+      const { gameOutcome } = await gameFocus.step(10);
+
       if (gameOutcome) {
         greedyReward += gameOutcome.reward;
         greedySteps++;
-        
+
         if (gameOutcome.terminal) {
           break;
         }
@@ -145,7 +141,7 @@ describe('M3.5 GridWorld Validation - New Architecture', () => {
     for (let ep = 0; ep < 50; ep++) {
       game.reset();
       for (let step = 0; step < 20; step++) {
-        const {gameOutcome} = await gameFocus.step(10);
+        const { gameOutcome } = await gameFocus.step(10);
         if (gameOutcome?.terminal) break;
       }
     }
@@ -154,11 +150,11 @@ describe('M3.5 GridWorld Validation - New Architecture', () => {
     const focus = gameFocus.getFocus();
     // Add a belief that moving up from start leads to trap
     // This would be added through normal NAL reasoning in full implementation
-    
+
     // Verify Negotiator is working by checking it can veto
     const proposals = reflex.propose(game.state(), game.legalActions(game.state()));
     const nalDerivations = focus.getNALDerivations(proposals[0]?.action ?? '');
-    
+
     // With empty memory, no veto should occur initially
     expect(nalDerivations.length).toBe(0);
   });

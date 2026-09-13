@@ -1,24 +1,40 @@
 import { describe, expect, it } from 'vitest';
-import { ConfigOptimizer, CrossDomainError, LearnerRegistry, PatchSelector, PreferenceRanker, ReflexLearner, SchedulerAdapter } from '../../nar/src/learning/domain-learners.js';
-import { SelfRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
-import { FocusBag } from '../../nar/src/focus/FocusBag.js';
 import { Focus } from '../../nar/src/focus/Focus.js';
+import { FocusBag } from '../../nar/src/focus/FocusBag.js';
+import { SelfRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
+import {
+  ConfigOptimizer,
+  CrossDomainError,
+  LearnerRegistry,
+  PatchSelector,
+  PreferenceRanker,
+  ReflexLearner,
+  SchedulerAdapter,
+} from '../../nar/src/learning/domain-learners.js';
 
 const focusBagWith = (id: string, weight: number): FocusBag => {
-    const bag = new FocusBag({ capacity: 10 });
-    bag.add(new Focus({ id, weight }));
-    return bag;
+  const bag = new FocusBag({ capacity: 10 });
+  bag.add(new Focus({ id, weight }));
+  return bag;
 };
 
 describe('todo7: domain-scoped learners', () => {
   it('cross-domain events rejected', () => {
     const adapter = new SchedulerAdapter(new FocusBag({ capacity: 10 }));
     expect(() => adapter.learn({ domain: 'external-reflex', reward: 1 })).toThrow(CrossDomainError);
-    expect(() => new LearnerRegistry().dispatch({ domain: 'self-scheduler', reward: 1 })).toThrow(CrossDomainError);
+    expect(() => new LearnerRegistry().dispatch({ domain: 'self-scheduler', reward: 1 })).toThrow(
+      CrossDomainError
+    );
   });
   it('ReflexLearner delegates to reflex; registry dispatches by domain', () => {
     const seen: number[] = [];
-    const learner = new ReflexLearner({ id: 'r', propose: () => [], learn: (e) => { seen.push(e.reward); } });
+    const learner = new ReflexLearner({
+      id: 'r',
+      propose: () => [],
+      learn: (e) => {
+        seen.push(e.reward);
+      },
+    });
     const registry = new LearnerRegistry();
     registry.register(learner);
     registry.register(new SchedulerAdapter(new FocusBag({ capacity: 10 })));

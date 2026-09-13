@@ -1,183 +1,183 @@
-import {z} from 'zod';
-import {admitTasks} from './admit.js';
-import {topBeliefTasks} from './context.js';
-import {createLogger} from '../logger';
-import type {Memory} from '../memory';
-import type {Term} from '../terms';
-import {TermMap, Truth} from '../terms';
-import {createBudget, createTask, type Task} from '../types';
-import {clamp01, errMsg} from '../utils';
-import {parseEnrichmentResponse} from './enrichment.js';
-import type {LMService} from './lm-service.js';
+import { z } from 'zod';
+import { createLogger } from '../logger';
+import type { Memory } from '../memory';
+import type { Term } from '../terms';
+import { TermMap, Truth } from '../terms';
+import { createBudget, createTask, type Task } from '../types';
+import { clamp01, errMsg } from '../utils';
+import { admitTasks } from './admit.js';
+import { topBeliefTasks } from './context.js';
+import { parseEnrichmentResponse } from './enrichment.js';
+import type { LMService } from './lm-service.js';
 
 const ValidationSchema = z.object({
-    verdict: z.enum(['valid', 'invalid', 'uncertain']),
-    novelty: z.number().optional(),
-    utility: z.number().optional(),
-    explanation: z.string().optional(),
-    revisedTruth: z.object({f: z.number(), c: z.number()}).optional(),
+  verdict: z.enum(['valid', 'invalid', 'uncertain']),
+  novelty: z.number().optional(),
+  utility: z.number().optional(),
+  explanation: z.string().optional(),
+  revisedTruth: z.object({ f: z.number(), c: z.number() }).optional(),
 });
 
 const ContradictionSchema = z.object({
-    explanation: z.string().optional(),
-    resolution: z.enum(['merge', 'reject-one', 'keep-both', 'revise']),
-    revisedNarsese: z.string().optional(),
-    revisedTruth: z.object({f: z.number(), c: z.number()}).optional(),
+  explanation: z.string().optional(),
+  resolution: z.enum(['merge', 'reject-one', 'keep-both', 'revise']),
+  revisedNarsese: z.string().optional(),
+  revisedTruth: z.object({ f: z.number(), c: z.number() }).optional(),
 });
 
 const PatternsSchema = z.object({
-    patterns: z.array(
-        z.object({
-            pattern: z.string(),
-            type: z.string(),
-            confidence: z.number().optional(),
-            examples: z.array(z.string()).optional(),
-        })
-    ),
+  patterns: z.array(
+    z.object({
+      pattern: z.string(),
+      type: z.string(),
+      confidence: z.number().optional(),
+      examples: z.array(z.string()).optional(),
+    })
+  ),
 });
 
 export interface FeedbackConfig {
-    enableBidirectionalFeedback: boolean;
-    enableValidation: boolean;
-    enableContextEnrichment: boolean;
-    enableContradictionExplanation: boolean;
-    enablePatternExtraction: boolean;
-    maxContextConcepts: number;
-    minConfidenceForFeedback: number;
-    maxContradictionAttempts: number;
+  enableBidirectionalFeedback: boolean;
+  enableValidation: boolean;
+  enableContextEnrichment: boolean;
+  enableContradictionExplanation: boolean;
+  enablePatternExtraction: boolean;
+  maxContextConcepts: number;
+  minConfidenceForFeedback: number;
+  maxContradictionAttempts: number;
 }
 
 export interface ValidationFeedback {
-    originalHypothesis: Task;
-    validationResult: 'confirmed' | 'contradicted' | 'inconclusive';
-    evidence: Task[];
-    revisedTruth?: Truth;
-    derivationChain: string[];
-    explanation?: string;
-    novelty?: number;
-    utility?: number;
+  originalHypothesis: Task;
+  validationResult: 'confirmed' | 'contradicted' | 'inconclusive';
+  evidence: Task[];
+  revisedTruth?: Truth;
+  derivationChain: string[];
+  explanation?: string;
+  novelty?: number;
+  utility?: number;
 }
 
 export interface ContradictionExplanation {
-    beliefA: Task;
-    beliefB: Task;
-    explanation: string;
-    revisedBelief?: Task;
-    resolutionStrategy: 'merge' | 'reject-one' | 'keep-both' | 'revise';
+  beliefA: Task;
+  beliefB: Task;
+  explanation: string;
+  revisedBelief?: Task;
+  resolutionStrategy: 'merge' | 'reject-one' | 'keep-both' | 'revise';
 }
 
 export interface ExtractedPattern {
-    pattern: string;
-    confidence: number;
-    examples: string[];
-    type: string;
+  pattern: string;
+  confidence: number;
+  examples: string[];
+  type: string;
 }
 
 export class BidirectionalFeedbackLoop {
-    private readonly memory: Memory;
-    private readonly lmService: LMService;
-    private readonly config: FeedbackConfig;
-    private readonly logger: ReturnType<typeof createLogger>;
-    private pendingValidations: TermMap<ValidationFeedback> = new TermMap();
-    private recentPatterns: ExtractedPattern[] = [];
+  private readonly memory: Memory;
+  private readonly lmService: LMService;
+  private readonly config: FeedbackConfig;
+  private readonly logger: ReturnType<typeof createLogger>;
+  private pendingValidations: TermMap<ValidationFeedback> = new TermMap();
+  private recentPatterns: ExtractedPattern[] = [];
 
-    constructor(memory: Memory, lmService: LMService, config: Partial<FeedbackConfig> = {}) {
-        this.memory = memory;
-        this.lmService = lmService;
-        this.logger = createLogger({scope: 'lm:feedback'});
-        this.config = {
-            enableBidirectionalFeedback: true,
-            enableValidation: true,
-            enableContextEnrichment: true,
-            enableContradictionExplanation: true,
-            enablePatternExtraction: true,
-            maxContextConcepts: 5,
-            minConfidenceForFeedback: 0.6,
-            maxContradictionAttempts: 3,
-            ...config,
-        };
+  constructor(memory: Memory, lmService: LMService, config: Partial<FeedbackConfig> = {}) {
+    this.memory = memory;
+    this.lmService = lmService;
+    this.logger = createLogger({ scope: 'lm:feedback' });
+    this.config = {
+      enableBidirectionalFeedback: true,
+      enableValidation: true,
+      enableContextEnrichment: true,
+      enableContradictionExplanation: true,
+      enablePatternExtraction: true,
+      maxContextConcepts: 5,
+      minConfidenceForFeedback: 0.6,
+      maxContradictionAttempts: 3,
+      ...config,
+    };
+  }
+
+  async processHypothesis(hypothesis: Task): Promise<ValidationFeedback | null> {
+    if (!this.config.enableBidirectionalFeedback || !this.config.enableValidation) {
+      return null;
     }
 
-    async processHypothesis(hypothesis: Task): Promise<ValidationFeedback | null> {
-        if (!this.config.enableBidirectionalFeedback || !this.config.enableValidation) {
-            return null;
+    const context = this.getContextBeliefs();
+    const validationPrompt = this.buildStructuredValidationPrompt(hypothesis, context);
+
+    try {
+      const obj = await this.lmService.generateObject(validationPrompt, ValidationSchema, {
+        task: 'structured',
+      });
+      const validation = this.applyValidation(obj, hypothesis, context);
+
+      if (validation) {
+        await this.injectValidationResult(validation);
+        this.pendingValidations.set(hypothesis.term, validation);
+      }
+
+      return validation;
+    } catch {
+      try {
+        const response = await this.lmService.generateText(validationPrompt);
+        const validation = this.parseStructuredValidation(response, hypothesis, context);
+
+        if (validation) {
+          await this.injectValidationResult(validation);
+          this.pendingValidations.set(hypothesis.term, validation);
         }
 
-        const context = this.getContextBeliefs();
-        const validationPrompt = this.buildStructuredValidationPrompt(hypothesis, context);
-
-        try {
-            const obj = await this.lmService.generateObject(validationPrompt, ValidationSchema, {
-                task: 'structured',
-            });
-            const validation = this.applyValidation(obj, hypothesis, context);
-
-            if (validation) {
-                await this.injectValidationResult(validation);
-                this.pendingValidations.set(hypothesis.term, validation);
-            }
-
-            return validation;
-        } catch {
-            try {
-                const response = await this.lmService.generateText(validationPrompt);
-                const validation = this.parseStructuredValidation(response, hypothesis, context);
-
-                if (validation) {
-                    await this.injectValidationResult(validation);
-                    this.pendingValidations.set(hypothesis.term, validation);
-                }
-
-                return validation;
-            } catch (error) {
-                this.logger.warn(`Failed to validate hypothesis: ${errMsg(error)}`);
-                return null;
-            }
-        }
+        return validation;
+      } catch (error) {
+        this.logger.warn(`Failed to validate hypothesis: ${errMsg(error)}`);
+        return null;
+      }
     }
+  }
 
-    private applyValidation(
-        obj: z.infer<typeof ValidationSchema>,
-        hypothesis: Task,
-        context: Task[]
-    ): ValidationFeedback | null {
-        let result: 'confirmed' | 'contradicted' | 'inconclusive' = 'inconclusive';
-        if (obj.verdict === 'valid') result = 'confirmed';
-        else if (obj.verdict === 'invalid') result = 'contradicted';
+  private applyValidation(
+    obj: z.infer<typeof ValidationSchema>,
+    hypothesis: Task,
+    context: Task[]
+  ): ValidationFeedback | null {
+    let result: 'confirmed' | 'contradicted' | 'inconclusive' = 'inconclusive';
+    if (obj.verdict === 'valid') result = 'confirmed';
+    else if (obj.verdict === 'invalid') result = 'contradicted';
 
-        return {
-            originalHypothesis: hypothesis,
-            validationResult: result,
-            evidence: context,
-            revisedTruth: this.reviseTruth(obj.revisedTruth, hypothesis.truth, result),
-            derivationChain: [hypothesis.term.toString()],
-            explanation: obj.explanation,
-            novelty: obj.novelty,
-            utility: obj.utility,
-        };
-    }
+    return {
+      originalHypothesis: hypothesis,
+      validationResult: result,
+      evidence: context,
+      revisedTruth: this.reviseTruth(obj.revisedTruth, hypothesis.truth, result),
+      derivationChain: [hypothesis.term.toString()],
+      explanation: obj.explanation,
+      novelty: obj.novelty,
+      utility: obj.utility,
+    };
+  }
 
-    private reviseTruth(
-        revised: { f: number; c: number } | undefined,
-        current: Truth | undefined,
-        result: 'confirmed' | 'contradicted' | 'inconclusive'
-    ): Truth | undefined {
-        if (revised) return Truth.create(clamp01(revised.f), clamp01(revised.c));
-        if (!current) return undefined;
-        if (result === 'confirmed')
-            return Truth.create(Math.min(current.f * 1.1, 1.0), Math.min(current.c + 0.1, 1.0));
-        if (result === 'contradicted')
-            return Truth.create(Math.max(current.f * 0.9, 0.0), Math.min(current.c + 0.1, 1.0));
-        return undefined;
-    }
+  private reviseTruth(
+    revised: { f: number; c: number } | undefined,
+    current: Truth | undefined,
+    result: 'confirmed' | 'contradicted' | 'inconclusive'
+  ): Truth | undefined {
+    if (revised) return Truth.create(clamp01(revised.f), clamp01(revised.c));
+    if (!current) return undefined;
+    if (result === 'confirmed')
+      return Truth.create(Math.min(current.f * 1.1, 1.0), Math.min(current.c + 0.1, 1.0));
+    if (result === 'contradicted')
+      return Truth.create(Math.max(current.f * 0.9, 0.0), Math.min(current.c + 0.1, 1.0));
+    return undefined;
+  }
 
-    async explainContradiction(
-        beliefA: Task,
-        beliefB: Task
-    ): Promise<ContradictionExplanation | null> {
-        if (!this.config.enableContradictionExplanation) return null;
+  async explainContradiction(
+    beliefA: Task,
+    beliefB: Task
+  ): Promise<ContradictionExplanation | null> {
+    if (!this.config.enableContradictionExplanation) return null;
 
-        const prompt = `Two beliefs in memory appear contradictory. Analyze and explain.
+    const prompt = `Two beliefs in memory appear contradictory. Analyze and explain.
 
 Belief A: ${beliefA.term.toString()} (f=${beliefA.truth?.f.toFixed(2)}, c=${beliefA.truth?.c.toFixed(2)})
 Belief B: ${beliefB.term.toString()} (f=${beliefB.truth?.f.toFixed(2)}, c=${beliefB.truth?.c.toFixed(2)})
@@ -190,51 +190,51 @@ Provide a JSON response:
   "revisedTruth": {"f": 0.8, "c": 0.7}
 }`;
 
-        try {
-            const obj = await this.lmService.generateObject(prompt, ContradictionSchema, {
-                task: 'structured',
-            });
-            return this.applyContradiction(obj, beliefA, beliefB);
-        } catch {
-            try {
-                const response = await this.lmService.generateText(prompt);
-                return this.parseContradictionExplanation(response, beliefA, beliefB);
-            } catch (error) {
-                this.logger.warn(`Failed to explain contradiction: ${errMsg(error)}`);
-                return null;
-            }
-        }
+    try {
+      const obj = await this.lmService.generateObject(prompt, ContradictionSchema, {
+        task: 'structured',
+      });
+      return this.applyContradiction(obj, beliefA, beliefB);
+    } catch {
+      try {
+        const response = await this.lmService.generateText(prompt);
+        return this.parseContradictionExplanation(response, beliefA, beliefB);
+      } catch (error) {
+        this.logger.warn(`Failed to explain contradiction: ${errMsg(error)}`);
+        return null;
+      }
+    }
+  }
+
+  private applyContradiction(
+    obj: z.infer<typeof ContradictionSchema>,
+    beliefA: Task,
+    beliefB: Task
+  ): ContradictionExplanation | null {
+    let revisedBelief: Task | undefined;
+    if (obj.revisedNarsese && obj.revisedTruth) {
+      revisedBelief = createTask(
+        { kind: 'atom' as const, symbol: obj.revisedNarsese } as Term,
+        'belief',
+        Truth.create(obj.revisedTruth.f, obj.revisedTruth.c),
+        createBudget(0.7, 0.8)
+      );
     }
 
-    private applyContradiction(
-        obj: z.infer<typeof ContradictionSchema>,
-        beliefA: Task,
-        beliefB: Task
-    ): ContradictionExplanation | null {
-        let revisedBelief: Task | undefined;
-        if (obj.revisedNarsese && obj.revisedTruth) {
-            revisedBelief = createTask(
-                {kind: 'atom' as const, symbol: obj.revisedNarsese} as Term,
-                'belief',
-                Truth.create(obj.revisedTruth.f, obj.revisedTruth.c),
-                createBudget(0.7, 0.8)
-            );
-        }
+    return {
+      beliefA,
+      beliefB,
+      explanation: obj.explanation ?? 'Contradiction analyzed',
+      revisedBelief,
+      resolutionStrategy: obj.resolution,
+    };
+  }
 
-        return {
-            beliefA,
-            beliefB,
-            explanation: obj.explanation ?? 'Contradiction analyzed',
-            revisedBelief,
-            resolutionStrategy: obj.resolution,
-        };
-    }
+  async extractPatterns(derivations: Task[]): Promise<ExtractedPattern[]> {
+    if (!this.config.enablePatternExtraction || derivations.length < 3) return [];
 
-    async extractPatterns(derivations: Task[]): Promise<ExtractedPattern[]> {
-        if (!this.config.enablePatternExtraction || derivations.length < 3) return [];
-
-        const chainStr = derivations.map((d) => d.term.toString()).join(' → ');
-        const prompt = `Analyze this derivation chain and extract reusable reasoning patterns.
+    const chainStr = derivations.map((d) => d.term.toString()).join(' → ');
+    const prompt = `Analyze this derivation chain and extract reusable reasoning patterns.
 
 Chain: ${chainStr}
 
@@ -251,96 +251,96 @@ Respond with JSON:
   ]
 }`;
 
-        try {
-            const obj = await this.lmService.generateObject(prompt, PatternsSchema, {
-                task: 'structured',
-            });
-            const patterns = this.applyPatterns(obj.patterns);
-            this.recentPatterns.push(...patterns);
-            if (this.recentPatterns.length > 20) {
-                this.recentPatterns = this.recentPatterns.slice(-20);
-            }
-            return patterns;
-        } catch {
-            try {
-                const response = await this.lmService.generateText(prompt);
-                const patterns = this.parsePatterns(response);
-                this.recentPatterns.push(...patterns);
-                if (this.recentPatterns.length > 20) {
-                    this.recentPatterns = this.recentPatterns.slice(-20);
-                }
-                return patterns;
-            } catch (error) {
-                this.logger.warn(`Failed to extract patterns: ${errMsg(error)}`);
-                return [];
-            }
+    try {
+      const obj = await this.lmService.generateObject(prompt, PatternsSchema, {
+        task: 'structured',
+      });
+      const patterns = this.applyPatterns(obj.patterns);
+      this.recentPatterns.push(...patterns);
+      if (this.recentPatterns.length > 20) {
+        this.recentPatterns = this.recentPatterns.slice(-20);
+      }
+      return patterns;
+    } catch {
+      try {
+        const response = await this.lmService.generateText(prompt);
+        const patterns = this.parsePatterns(response);
+        this.recentPatterns.push(...patterns);
+        if (this.recentPatterns.length > 20) {
+          this.recentPatterns = this.recentPatterns.slice(-20);
         }
+        return patterns;
+      } catch (error) {
+        this.logger.warn(`Failed to extract patterns: ${errMsg(error)}`);
+        return [];
+      }
+    }
+  }
+
+  private applyPatterns(
+    patterns: Array<{ pattern: string; type: string; confidence?: number; examples?: string[] }>
+  ): ExtractedPattern[] {
+    return patterns
+      .filter((p) => typeof p.pattern === 'string' && typeof p.type === 'string')
+      .map((p) => ({
+        pattern: p.pattern,
+        type: p.type,
+        confidence: clamp01(p.confidence ?? 0.5),
+        examples: p.examples ?? [],
+      }));
+  }
+
+  async enrichContextWithDerivations(derivations: Task[]): Promise<void> {
+    if (!this.config.enableContextEnrichment || derivations.length === 0) {
+      return;
     }
 
-    private applyPatterns(
-        patterns: Array<{ pattern: string; type: string; confidence?: number; examples?: string[] }>
-    ): ExtractedPattern[] {
-        return patterns
-            .filter((p) => typeof p.pattern === 'string' && typeof p.type === 'string')
-            .map((p) => ({
-                pattern: p.pattern,
-                type: p.type,
-                confidence: clamp01(p.confidence ?? 0.5),
-                examples: p.examples ?? [],
-            }));
-    }
+    for (const derivation of derivations.slice(0, this.config.maxContextConcepts)) {
+      try {
+        const concept = this.memory.getConcept(derivation.term);
+        if (!concept) continue;
+        const connectionCount =
+          concept.beliefBag.size() + concept.questionBag.size() + concept.goalBag.size();
+        if (connectionCount >= 3) continue;
 
-    async enrichContextWithDerivations(derivations: Task[]): Promise<void> {
-        if (!this.config.enableContextEnrichment || derivations.length === 0) {
-            return;
-        }
-
-        for (const derivation of derivations.slice(0, this.config.maxContextConcepts)) {
-            try {
-                const concept = this.memory.getConcept(derivation.term);
-                if (!concept) continue;
-                const connectionCount =
-                    concept.beliefBag.size() + concept.questionBag.size() + concept.goalBag.size();
-                if (connectionCount >= 3) continue;
-
-                const enrichmentPrompt = this.buildEnrichmentPrompt(derivation.term, derivations);
-                const response = await this.lmService.generateText(enrichmentPrompt, {
-                    task: 'structured',
-                });
-                const bridgingHypotheses = parseEnrichmentResponse(response).hypotheses;
-
-                admitTasks(this.memory, bridgingHypotheses, 'llm');
-            } catch (error) {
-                this.logger.warn(`Failed to enrich context for concept: ${errMsg(error)}`);
-            }
-        }
-    }
-
-    getPendingValidations(): ValidationFeedback[] {
-        return Array.from(this.pendingValidations.values());
-    }
-
-    getRecentPatterns(): ExtractedPattern[] {
-        return [...this.recentPatterns];
-    }
-
-    clearPendingValidations(): void {
-        this.pendingValidations.clear();
-    }
-
-    private getContextBeliefs(): Task[] {
-        return topBeliefTasks(this.memory, {
-            limit: this.config.maxContextConcepts,
-            minConfidence: this.config.minConfidenceForFeedback,
+        const enrichmentPrompt = this.buildEnrichmentPrompt(derivation.term, derivations);
+        const response = await this.lmService.generateText(enrichmentPrompt, {
+          task: 'structured',
         });
+        const bridgingHypotheses = parseEnrichmentResponse(response).hypotheses;
+
+        admitTasks(this.memory, bridgingHypotheses, 'llm');
+      } catch (error) {
+        this.logger.warn(`Failed to enrich context for concept: ${errMsg(error)}`);
+      }
     }
+  }
 
-    private buildStructuredValidationPrompt(hypothesis: Task, context: Task[]): string {
-        const contextStr = context
-            .map((t) => `${t.term.toString()}: f=${t.truth.f.toFixed(2)} c=${t.truth.c.toFixed(2)}`)
-            .join('\n');
+  getPendingValidations(): ValidationFeedback[] {
+    return Array.from(this.pendingValidations.values());
+  }
 
-        return `You are validating a hypothesis against known context.
+  getRecentPatterns(): ExtractedPattern[] {
+    return [...this.recentPatterns];
+  }
+
+  clearPendingValidations(): void {
+    this.pendingValidations.clear();
+  }
+
+  private getContextBeliefs(): Task[] {
+    return topBeliefTasks(this.memory, {
+      limit: this.config.maxContextConcepts,
+      minConfidence: this.config.minConfidenceForFeedback,
+    });
+  }
+
+  private buildStructuredValidationPrompt(hypothesis: Task, context: Task[]): string {
+    const contextStr = context
+      .map((t) => `${t.term.toString()}: f=${t.truth.f.toFixed(2)} c=${t.truth.c.toFixed(2)}`)
+      .join('\n');
+
+    return `You are validating a hypothesis against known context.
 
 Context beliefs:
 ${contextStr}
@@ -360,108 +360,108 @@ Respond with JSON:
   "explanation": "Brief explanation",
   "revisedTruth": {"f": 0.85, "c": 0.75}
 }`;
+  }
+
+  private parseStructuredValidation(
+    response: string,
+    hypothesis: Task,
+    context: Task[]
+  ): ValidationFeedback | null {
+    try {
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return this.parseLegacyValidation(response, hypothesis, context);
+
+      const parsed = ValidationSchema.safeParse(JSON.parse(jsonMatch[0]));
+      if (!parsed.success) return this.parseLegacyValidation(response, hypothesis, context);
+      return this.applyValidation(parsed.data, hypothesis, context);
+    } catch {
+      return this.parseLegacyValidation(response, hypothesis, context);
+    }
+  }
+  private parseLegacyValidation(
+    response: string,
+    hypothesis: Task,
+    context: Task[]
+  ): ValidationFeedback | null {
+    const normalized = response.trim().toUpperCase();
+    let result: 'confirmed' | 'contradicted' | 'inconclusive' = 'inconclusive';
+    let revisedTruth: Truth | undefined;
+
+    if (normalized.startsWith('VALID')) {
+      result = 'confirmed';
+      const t = hypothesis.truth!;
+      revisedTruth = Truth.create(Math.min(t.f * 1.1, 1.0), Math.min(t.c + 0.1, 1.0));
+    } else if (normalized.startsWith('INVALID')) {
+      result = 'contradicted';
+      const t = hypothesis.truth!;
+      revisedTruth = Truth.create(Math.max(t.f * 0.9, 0.0), Math.min(t.c + 0.1, 1.0));
     }
 
-    private parseStructuredValidation(
-        response: string,
-        hypothesis: Task,
-        context: Task[]
-    ): ValidationFeedback | null {
-        try {
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) return this.parseLegacyValidation(response, hypothesis, context);
+    return {
+      originalHypothesis: hypothesis,
+      validationResult: result,
+      evidence: context,
+      revisedTruth,
+      derivationChain: [hypothesis.term.toString()],
+    };
+  }
 
-            const parsed = ValidationSchema.safeParse(JSON.parse(jsonMatch[0]));
-            if (!parsed.success) return this.parseLegacyValidation(response, hypothesis, context);
-            return this.applyValidation(parsed.data, hypothesis, context);
-        } catch {
-            return this.parseLegacyValidation(response, hypothesis, context);
-        }
+  private parseContradictionExplanation(
+    response: string,
+    beliefA: Task,
+    beliefB: Task
+  ): ContradictionExplanation | null {
+    try {
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return null;
+
+      const parsed = ContradictionSchema.safeParse(JSON.parse(jsonMatch[0]));
+      if (!parsed.success) return null;
+      return this.applyContradiction(parsed.data, beliefA, beliefB);
+    } catch {
+      return null;
     }
-    private parseLegacyValidation(
-        response: string,
-        hypothesis: Task,
-        context: Task[]
-    ): ValidationFeedback | null {
-        const normalized = response.trim().toUpperCase();
-        let result: 'confirmed' | 'contradicted' | 'inconclusive' = 'inconclusive';
-        let revisedTruth: Truth | undefined;
+  }
 
-        if (normalized.startsWith('VALID')) {
-            result = 'confirmed';
-            const t = hypothesis.truth!;
-            revisedTruth = Truth.create(Math.min(t.f * 1.1, 1.0), Math.min(t.c + 0.1, 1.0));
-        } else if (normalized.startsWith('INVALID')) {
-            result = 'contradicted';
-            const t = hypothesis.truth!;
-            revisedTruth = Truth.create(Math.max(t.f * 0.9, 0.0), Math.min(t.c + 0.1, 1.0));
-        }
+  private parsePatterns(response: string): ExtractedPattern[] {
+    try {
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return [];
 
-        return {
-            originalHypothesis: hypothesis,
-            validationResult: result,
-            evidence: context,
-            revisedTruth,
-            derivationChain: [hypothesis.term.toString()],
-        };
+      const parsed = PatternsSchema.safeParse(JSON.parse(jsonMatch[0]));
+      if (!parsed.success || !Array.isArray(parsed.data.patterns)) return [];
+      return this.applyPatterns(parsed.data.patterns);
+    } catch {
+      return [];
     }
+  }
 
-    private parseContradictionExplanation(
-        response: string,
-        beliefA: Task,
-        beliefB: Task
-    ): ContradictionExplanation | null {
-        try {
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) return null;
-
-            const parsed = ContradictionSchema.safeParse(JSON.parse(jsonMatch[0]));
-            if (!parsed.success) return null;
-            return this.applyContradiction(parsed.data, beliefA, beliefB);
-        } catch {
-            return null;
-        }
+  private async injectValidationResult(validation: ValidationFeedback): Promise<void> {
+    if (validation.revisedTruth && validation.originalHypothesis.truth) {
+      const revisedTask = createTask(
+        validation.originalHypothesis.term,
+        'belief',
+        validation.revisedTruth,
+        createBudget(0.7, 0.8)
+      );
+      admitTasks(this.memory, [revisedTask], 'llm');
     }
+  }
 
-    private parsePatterns(response: string): ExtractedPattern[] {
-        try {
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) return [];
+  private buildEnrichmentPrompt(term: Term, derivations: Task[]): string {
+    const derivationStr = derivations.map((d) => d.term.toString()).join(', ');
 
-            const parsed = PatternsSchema.safeParse(JSON.parse(jsonMatch[0]));
-            if (!parsed.success || !Array.isArray(parsed.data.patterns)) return [];
-            return this.applyPatterns(parsed.data.patterns);
-        } catch {
-            return [];
-        }
-    }
-
-    private async injectValidationResult(validation: ValidationFeedback): Promise<void> {
-        if (validation.revisedTruth && validation.originalHypothesis.truth) {
-            const revisedTask = createTask(
-                validation.originalHypothesis.term,
-                'belief',
-                validation.revisedTruth,
-                createBudget(0.7, 0.8)
-            );
-            admitTasks(this.memory, [revisedTask], 'llm');
-        }
-    }
-
-    private buildEnrichmentPrompt(term: Term, derivations: Task[]): string {
-        const derivationStr = derivations.map((d) => d.term.toString()).join(', ');
-
-        return `Given the concept "${term.toString()}" and related derivations: ${derivationStr}
+    return `Given the concept "${term.toString()}" and related derivations: ${derivationStr}
 
 Suggest 1-3 bridging hypotheses that could connect this concept to other concepts in the system.
 Respond in Narsese format, one per line.`;
-    }
+  }
 }
 
 export const createBidirectionalFeedbackLoop = (
-    memory: Memory,
-    lmService: LMService,
-    config?: Partial<FeedbackConfig>
+  memory: Memory,
+  lmService: LMService,
+  config?: Partial<FeedbackConfig>
 ): BidirectionalFeedbackLoop => {
-    return new BidirectionalFeedbackLoop(memory, lmService, config);
+  return new BidirectionalFeedbackLoop(memory, lmService, config);
 };

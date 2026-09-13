@@ -1,15 +1,22 @@
-import {PriorityBag} from '../bag/Bag.js';
-import type {BagItem} from '../bag/Bag.js';
-import type {Task, Budget, ConceptLike} from '../types/index.js';
-import type {Term} from '../terms/index.js';
-import {isImplication, isInheritance, isOperation, getPredicate, getArgs, isAtomic} from '../terms/index.js';
-import {PerceptionGate} from '../gates/PerceptionGate.js';
-import {ActionGate} from '../gates/ActionGate.js';
-import {RewardGate} from '../gates/RewardGate.js';
-import type {Game, Perception, GameOutcome} from '../game/Game.js';
-import type {ActionProposal, Reflex, LearningEvent} from '../reflex/Reflex.js';
-import type {NALDerivation} from '../reflex/Negotiator.js';
-import {gateRegistry} from '../kernel/index.js';
+import type { BagItem } from '../bag/Bag.js';
+import { PriorityBag } from '../bag/Bag.js';
+import type { Game, GameOutcome, Perception } from '../game/Game.js';
+import { ActionGate } from '../gates/ActionGate.js';
+import { PerceptionGate } from '../gates/PerceptionGate.js';
+import { RewardGate } from '../gates/RewardGate.js';
+import { gateRegistry } from '../kernel/index.js';
+import type { NALDerivation } from '../reflex/Negotiator.js';
+import type { ActionProposal, LearningEvent, Reflex } from '../reflex/Reflex.js';
+import type { Term } from '../terms/index.js';
+import {
+  getArgs,
+  getPredicate,
+  isAtomic,
+  isImplication,
+  isInheritance,
+  isOperation,
+} from '../terms/index.js';
+import type { Budget, ConceptLike, Task } from '../types/index.js';
 
 export interface FocusTask extends BagItem {
   id: string;
@@ -112,7 +119,12 @@ export class Focus implements BagItem {
       timestamp: Date.now(),
     };
 
-    if (!gateRegistry.getBudgetGate().check({ operation: 'nal-step', estimatedCost: 1, scopeId: this.id }).granted) return report;
+    if (
+      !gateRegistry
+        .getBudgetGate()
+        .check({ operation: 'nal-step', estimatedCost: 1, scopeId: this.id }).granted
+    )
+      return report;
 
     // PERCEPTION: Bound Games inject observations into the Focus
     for (const game of this.games) {

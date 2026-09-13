@@ -1,131 +1,132 @@
-import {Stamp} from '../../../nar/src';
-import {DEPTH_MAX} from '../../../nar/src/types';
+import { Stamp } from '../../../nar/src';
+import { DEPTH_MAX } from '../../../nar/src/types';
 
 describe('Stamp', () => {
-    describe('createInput', () => {
-        test('creates stamp with INPUT source', () => {
-            const stamp = Stamp.createInput();
-            expect(stamp.source).toBe('INPUT');
-            expect(stamp.derivations).toHaveLength(0);
-            expect(stamp.id).toBeDefined();
-            expect(stamp.creationTime).toBeDefined();
-        });
-
-        test('creates frozen stamp', () => {
-            const stamp = Stamp.createInput();
-            expect(Object.isFrozen(stamp)).toBe(true);
-        });
+  describe('createInput', () => {
+    test('creates stamp with INPUT source', () => {
+      const stamp = Stamp.createInput();
+      expect(stamp.source).toBe('INPUT');
+      expect(stamp.derivations).toHaveLength(0);
+      expect(stamp.id).toBeDefined();
+      expect(stamp.creationTime).toBeDefined();
     });
 
-    describe('derive', () => {
-        test('creates derived stamp within depth limit', () => {
-            const parent = Stamp.createInput();
-            const derived = Stamp.derive([parent], 'DERIVED');
-            expect(derived).toBeDefined();
-            expect(derived!.source).toBe('DERIVED');
-            expect(derived!.derivations).toHaveLength(1);
-            expect(derived!.derivations).toContain(parent.id);
-        });
+    test('creates frozen stamp', () => {
+      const stamp = Stamp.createInput();
+      expect(Object.isFrozen(stamp)).toBe(true);
+    });
+  });
 
-        test('returns undefined when parent at max lineage', () => {
-            const deepParent = {
-                ...Stamp.createInput(),
-                derivations: Array.from({length: DEPTH_MAX}, (_, i) => `anc${i}`),
-            };
-            const derived = Stamp.derive([deepParent]);
-            expect(derived).toBeUndefined();
-        });
-
-        test('deduplicates derivations', () => {
-            const parent1 = Stamp.createInput();
-            const derived = Stamp.derive([parent1, parent1], 'DERIVED');
-            expect(derived!.derivations).toHaveLength(1);
-        });
-
-        test('derives from multiple parents', () => {
-            const p1 = Stamp.createInput();
-            const p2 = Stamp.createInput();
-            const derived = Stamp.derive([p1, p2]);
-            expect(derived!.derivations).toContain(p1.id);
-            expect(derived!.derivations).toContain(p2.id);
-            expect(derived!.derivations).toHaveLength(2);
-        });
-
-        test('diamond merge dedups shared history (lineage exceeds chain depth)', () => {
-            const root = Stamp.createInput();
-            const a = Stamp.derive([root])!;
-            const b = Stamp.derive([root])!;
-            const m = Stamp.derive([a, b])!;
-            // Chain depth is 2, but the ancestor set has 3 members.
-            expect(m.derivations).toHaveLength(3);
-            expect(m.derivations).toContain(root.id);
-        });
-
-        test('lineage accumulates parent derivations', () => {            const deepParent = {
-                ...Stamp.createInput(),
-                derivations: ['a', 'b', 'c', 'd', 'e'],
-            };
-            const derived = Stamp.derive([deepParent]);
-            expect(derived!.derivations).toHaveLength(6);
-        });
-
-        test('handles empty parent array', () => {
-            const derived = Stamp.derive([], 'DERIVED');
-            expect(derived!.derivations).toHaveLength(0);
-        });
+  describe('derive', () => {
+    test('creates derived stamp within depth limit', () => {
+      const parent = Stamp.createInput();
+      const derived = Stamp.derive([parent], 'DERIVED');
+      expect(derived).toBeDefined();
+      expect(derived!.source).toBe('DERIVED');
+      expect(derived!.derivations).toHaveLength(1);
+      expect(derived!.derivations).toContain(parent.id);
     });
 
-    describe('helpers', () => {
-        test('getDepth returns lineage size', () => {
-            const stamp = Stamp.createInput();
-            expect(Stamp.getDepth(stamp)).toBe(0);
-        });
-
-        test('getMaxDepth finds max lineage', () => {
-            const stamps = [
-                Stamp.createInput(),
-                {...Stamp.createInput(), derivations: ['a', 'b', 'c']},
-            ];
-            expect(Stamp.getMaxDepth(stamps)).toBe(3);
-        });
-
-        test('canDerive checks lineage', () => {
-            const shallow = [Stamp.createInput()];
-            expect(Stamp.canDerive(shallow)).toBe(true);
-
-            const deepParent = {
-                ...Stamp.createInput(),
-                derivations: Array.from({length: DEPTH_MAX}, (_, i) => `anc${i}`),
-            };
-            expect(Stamp.canDerive([deepParent])).toBe(false);
-        });
-
-        test('getMaxDepth handles empty array', () => {
-            expect(Stamp.getMaxDepth([])).toBe(0);
-        });
+    test('returns undefined when parent at max lineage', () => {
+      const deepParent = {
+        ...Stamp.createInput(),
+        derivations: Array.from({ length: DEPTH_MAX }, (_, i) => `anc${i}`),
+      };
+      const derived = Stamp.derive([deepParent]);
+      expect(derived).toBeUndefined();
     });
 
-    describe('overlaps', () => {
-        test('returns true for identical stamp ids', () => {
-            const s = Stamp.createInput();
-            expect(Stamp.overlaps(s, s)).toBe(true);
-        });
-
-        test('returns true when derivations share an ancestor id', () => {
-            const root = Stamp.createInput();
-            const a = Stamp.derive([root])!;
-            const b = Stamp.derive([root])!;
-            expect(Stamp.overlaps(a, b)).toBe(true);
-        });
-
-        test('returns false for independent derivation lineages', () => {
-            const a = Stamp.derive([Stamp.createInput()])!;
-            const b = Stamp.derive([Stamp.createInput()])!;
-            expect(Stamp.overlaps(a, b)).toBe(false);
-        });
-
-        test('returns false for two independent input stamps', () => {
-            expect(Stamp.overlaps(Stamp.createInput(), Stamp.createInput())).toBe(false);
-        });
+    test('deduplicates derivations', () => {
+      const parent1 = Stamp.createInput();
+      const derived = Stamp.derive([parent1, parent1], 'DERIVED');
+      expect(derived!.derivations).toHaveLength(1);
     });
+
+    test('derives from multiple parents', () => {
+      const p1 = Stamp.createInput();
+      const p2 = Stamp.createInput();
+      const derived = Stamp.derive([p1, p2]);
+      expect(derived!.derivations).toContain(p1.id);
+      expect(derived!.derivations).toContain(p2.id);
+      expect(derived!.derivations).toHaveLength(2);
+    });
+
+    test('diamond merge dedups shared history (lineage exceeds chain depth)', () => {
+      const root = Stamp.createInput();
+      const a = Stamp.derive([root])!;
+      const b = Stamp.derive([root])!;
+      const m = Stamp.derive([a, b])!;
+      // Chain depth is 2, but the ancestor set has 3 members.
+      expect(m.derivations).toHaveLength(3);
+      expect(m.derivations).toContain(root.id);
+    });
+
+    test('lineage accumulates parent derivations', () => {
+      const deepParent = {
+        ...Stamp.createInput(),
+        derivations: ['a', 'b', 'c', 'd', 'e'],
+      };
+      const derived = Stamp.derive([deepParent]);
+      expect(derived!.derivations).toHaveLength(6);
+    });
+
+    test('handles empty parent array', () => {
+      const derived = Stamp.derive([], 'DERIVED');
+      expect(derived!.derivations).toHaveLength(0);
+    });
+  });
+
+  describe('helpers', () => {
+    test('getDepth returns lineage size', () => {
+      const stamp = Stamp.createInput();
+      expect(Stamp.getDepth(stamp)).toBe(0);
+    });
+
+    test('getMaxDepth finds max lineage', () => {
+      const stamps = [
+        Stamp.createInput(),
+        { ...Stamp.createInput(), derivations: ['a', 'b', 'c'] },
+      ];
+      expect(Stamp.getMaxDepth(stamps)).toBe(3);
+    });
+
+    test('canDerive checks lineage', () => {
+      const shallow = [Stamp.createInput()];
+      expect(Stamp.canDerive(shallow)).toBe(true);
+
+      const deepParent = {
+        ...Stamp.createInput(),
+        derivations: Array.from({ length: DEPTH_MAX }, (_, i) => `anc${i}`),
+      };
+      expect(Stamp.canDerive([deepParent])).toBe(false);
+    });
+
+    test('getMaxDepth handles empty array', () => {
+      expect(Stamp.getMaxDepth([])).toBe(0);
+    });
+  });
+
+  describe('overlaps', () => {
+    test('returns true for identical stamp ids', () => {
+      const s = Stamp.createInput();
+      expect(Stamp.overlaps(s, s)).toBe(true);
+    });
+
+    test('returns true when derivations share an ancestor id', () => {
+      const root = Stamp.createInput();
+      const a = Stamp.derive([root])!;
+      const b = Stamp.derive([root])!;
+      expect(Stamp.overlaps(a, b)).toBe(true);
+    });
+
+    test('returns false for independent derivation lineages', () => {
+      const a = Stamp.derive([Stamp.createInput()])!;
+      const b = Stamp.derive([Stamp.createInput()])!;
+      expect(Stamp.overlaps(a, b)).toBe(false);
+    });
+
+    test('returns false for two independent input stamps', () => {
+      expect(Stamp.overlaps(Stamp.createInput(), Stamp.createInput())).toBe(false);
+    });
+  });
 });

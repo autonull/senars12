@@ -1,11 +1,10 @@
-import type { WASI, WasiConfig } from '@wasmer/wasi';
-import type WasmFs from '@wasmer/wasmfs';
+import type { WasiConfig } from '@wasmer/wasi';
+import { SenarsError } from '@senars/util/errors';
 
-export class SandboxTimeoutError extends Error {
+export class SandboxTimeoutError extends SenarsError {
   readonly timeoutMs: number;
   constructor(timeoutMs: number) {
-    super(`Sandbox execution exceeded timeout of ${timeoutMs}ms`);
-    this.name = 'SandboxTimeoutError';
+    super(`Sandbox execution exceeded timeout of ${timeoutMs}ms`, 'SANDBOX_TIMEOUT', { timeoutMs });
     this.timeoutMs = timeoutMs;
   }
 }
@@ -22,8 +21,13 @@ export const DEFAULT_SANDBOX_TIMEOUT_MS = 30_000;
 export function sanitizePreopens(paths: string[] = []): Record<string, string> {
   const preopens: Record<string, string> = {};
   for (const raw of paths) {
-    const normalized = raw.replace(/\\/g, '/').replace(/\/{2,}/g, '/').replace(/\/+$/, '') || '/';
-    if (normalized === '..' || normalized.startsWith('../') || normalized.includes('/../')) continue;
+    const normalized =
+      raw
+        .replace(/\\/g, '/')
+        .replace(/\/{2,}/g, '/')
+        .replace(/\/+$/, '') || '/';
+    if (normalized === '..' || normalized.startsWith('../') || normalized.includes('/../'))
+      continue;
     preopens[normalized] = normalized;
   }
   return preopens;
@@ -60,14 +64,22 @@ async function ensureWasiInit(): Promise<void> {
   }
 }
 
-export async function createWasiSandbox(options: WasiSandboxOptions = {}): Promise<(fn: () => Promise<unknown>) => Promise<unknown>> {
+export async function createWasiSandbox(
+  options: WasiSandboxOptions = {}
+): Promise<(fn: () => Promise<unknown>) => Promise<unknown>> {
   await ensureWasiInit();
-  const { allowedPaths = [], env = {}, args = [], timeoutMs = DEFAULT_SANDBOX_TIMEOUT_MS } = options;
+  const {
+    allowedPaths = [],
+    env = {},
+    args = [],
+    timeoutMs = DEFAULT_SANDBOX_TIMEOUT_MS,
+  } = options;
 
   const WasmFs = (await import('@wasmer/wasmfs')).default;
   const { WASI, MemFS } = await import('@wasmer/wasi');
 
   const wasmFs = new WasmFs();
+  // biome-ignore lint/suspicious/noExplicitAny: @wasmer MemFS expects its own internal fs type
   const memfs = MemFS.from_js(wasmFs.fs as any);
   const wasiConfig: WasiConfig = {
     args: ['wasi-sandbox', ...args],
@@ -76,7 +88,7 @@ export async function createWasiSandbox(options: WasiSandboxOptions = {}): Promi
     fs: memfs,
   };
 
-  const wasi = new WASI(wasiConfig);
+  const _wasi = new WASI(wasiConfig);
 
   return async <T>(fn: () => Promise<T>): Promise<T> => {
     return withTimeout(fn(), timeoutMs);
@@ -92,15 +104,23 @@ export interface WasmModuleOptions {
   imports?: Record<string, unknown>;
 }
 
-export async function createWasmModuleSandbox(options: WasmModuleOptions): Promise<(fn: () => Promise<unknown>) => Promise<unknown>> {
+export async function createWasmModuleSandbox(
+  options: WasmModuleOptions
+): Promise<(fn: () => Promise<unknown>) => Promise<unknown>> {
   await ensureWasiInit();
-  const { allowedPaths = [], env = {}, args = ['wasm-sandbox'], timeoutMs = DEFAULT_SANDBOX_TIMEOUT_MS } = options;
+  const {
+    allowedPaths = [],
+    env = {},
+    args = ['wasm-sandbox'],
+    timeoutMs = DEFAULT_SANDBOX_TIMEOUT_MS,
+  } = options;
   assertWasmPathContained(options.wasmPath, allowedPaths);
 
   const WasmFs = (await import('@wasmer/wasmfs')).default;
   const { WASI, MemFS } = await import('@wasmer/wasi');
 
   const wasmFs = new WasmFs();
+  // biome-ignore lint/suspicious/noExplicitAny: @wasmer MemFS expects its own internal fs type
   const memfs = MemFS.from_js(wasmFs.fs as any);
   const wasiConfig: WasiConfig = {
     args,
@@ -111,7 +131,9 @@ export async function createWasmModuleSandbox(options: WasmModuleOptions): Promi
 
   const wasi = new WASI(wasiConfig);
 
-  const wasmBytes = (await wasmFs.fs.promises.readFile(options.wasmPath)) as unknown as BufferSource;
+  const wasmBytes = (await wasmFs.fs.promises.readFile(
+    options.wasmPath
+  )) as unknown as BufferSource;
   const module = await globalThis.WebAssembly.compile(wasmBytes);
   const instance = await globalThis.WebAssembly.instantiate(module, {
     ...wasi.getImports(module),
@@ -135,8 +157,11 @@ let vmDeprecationWarned = false;
 export function createNodeVMSandbox(): <T>(fn: () => Promise<T>) => Promise<T> {
   if (!vmDeprecationWarned) {
     vmDeprecationWarned = true;
-    console.warn('[senars] createNodeVMSandbox is deprecated: not a security boundary, use createWasiSandbox for untrusted code.');
+    console.warn(
+      '[senars] createNodeVMSandbox is deprecated: not a security boundary, use createWasiSandbox for untrusted code.'
+    );
   }
+  // biome-ignore lint/style/useNodejsImportProtocol: deprecated CJS helper, kept synchronous
   const vm = require('vm');
   const context = vm.createContext({
     console,
