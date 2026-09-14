@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { transformersJS } from '@browser-ai/transformers-js';
@@ -666,3 +666,80 @@ export const resolveOfflineTier = (settings?: LMSettings): string | undefined =>
   if (!ladder?.length) return undefined;
   return resolveOfflineModel(ladder, settings?.cacheDir ?? OFFLINE_CACHE_DIR_DEFAULT);
 };
+
+// ---- Routing telemetry (1B) ----
+
+export interface RoutingTelemetryEntry {
+  ts: number;
+  task: LMTask;
+  modelId: string;
+  latencyMs: number;
+  success: boolean;
+  demoted: boolean;
+  provider: string;
+  objective?: RoutingObjective;
+  chain?: string[];
+}
+
+let routingLogEnabled = false;
+let routingLogDir = 'logs';
+let routingLogInterval: ReturnType<typeof setInterval> | null = null;
+const routingLogBuffer: RoutingTelemetryEntry[] = [];
+const ROUTING_LOG_FLUSH_INTERVAL_MS = 5000;
+
+function getRoutingLogPath(): string {
+  const date = new Date().toISOString().split('T')[0];
+  return join(routingLogDir, `routing-${date}.jsonl`);
+}
+
+function flushRoutingLog(): void {
+  if (routingLogBuffer.length === 0) return;
+  try {
+    mkdirSync(routingLogDir, { recursive: true });
+    const path = getRoutingLogPath();
+    const lines = routingLogBuffer.splice(0).map((e) => JSON.stringify(e)).join('\n') + '\n';
+    appendFileSync(path, lines, 'utf-8');
+  } catch (e) {
+    // Silently fail to avoid disrupting main flow
+    console.error('[routing-telemetry] Flush failed:', e);
+  }
+}
+
+export function enableRoutingTelemetry(options?: { logDir?: string; flushIntervalMs?: number }): void {
+  if (routingLogEnabled) return;
+  routingLogEnabled = true;
+  if (options?.logDir) routingLogDir = options.logDir;
+  if (options?.flushIntervalMs) {
+    // Re-create interval with new flush interval
+    if (routingLogInterval) clearInterval(routingLogInterval);
+  }
+  routingLogInterval = setInterval(flushRoutingLog, options?.flushIntervalMs ?? ROUTING_LOG_FLUSH_INTERVAL_MS);
+  routingLogInterval.unref?.();
+}
+
+export function disableRoutingTelemetry(): void {
+  if (!routingLogEnabled) return;
+  routingLogEnabled = false;
+  flushRoutingLog();
+  if (routingLogInterval) {
+    clearInterval(routingLogInterval);
+    routingLogInterval = null;
+  }
+}
+
+export function logRoutingDecision(entry: RoutingTelemetryEntry): void {
+  if (!routingLogEnabled) return;
+  routingLogBuffer.push(entry);
+  // Flush immediately on circuit breaker events
+  if (entry.demoted || !entry.success) {
+    flushRoutingLog();
+  }
+}
+
+export function getRoutingLogStatus(): { enabled: boolean; bufferSize: number; logPath: string } {
+  return {
+    enabled: routingLogEnabled,
+    bufferSize: routingLogBuffer.length,
+    logPath: getRoutingLogPath(),
+  };
+}

@@ -1,6 +1,8 @@
 import { termsEqual } from '../../terms';
 import type { Concept } from '../concept.js';
 import type { Memory } from '../memory.js';
+import { mkdirSync, appendFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 export interface ConsolidationConfig {
   healthCheckInterval: number;
@@ -177,4 +179,127 @@ export class MemoryConsolidation {
 
     return { archived, forgotten };
   }
+}
+
+export interface ConsolidationWatchdogConfig {
+  enabled: boolean;
+  intervalCycles: number;
+  dedupRatioThreshold: number;
+  promotedCountThreshold: number;
+  alertWindowHours: number;
+  logDir: string;
+}
+
+const DEFAULT_WATCHDOG_CONFIG: ConsolidationWatchdogConfig = {
+  enabled: false,
+  intervalCycles: 100,
+  dedupRatioThreshold: 0.1,
+  promotedCountThreshold: 0,
+  alertWindowHours: 1,
+  logDir: 'logs',
+};
+
+export interface WatchdogSnapshot {
+  ts: number;
+  cycle: number;
+  conceptCount: number;
+  totalTasks: number;
+  dedupRatio: number;
+  promotedCount: number;
+  archivedCount: number;
+  forgottenCount: number;
+  memoryPressure: number;
+  alerts: string[];
+}
+
+let watchdogEnabled = false;
+let watchdogInterval: ReturnType<typeof setInterval> | null = null;
+let lastPromotedTime: number | null = null;
+let promotedCount = 0;
+let cycleCount = 0;
+
+function getWatchdogLogPath(): string {
+  const date = new Date().toISOString().split('T')[0];
+  return join(DEFAULT_WATCHDOG_CONFIG.logDir, `memory-watchdog-${date}.jsonl`);
+}
+
+function flushWatchdogLog(entry: WatchdogSnapshot): void {
+  try {
+    mkdirSync(DEFAULT_WATCHDOG_CONFIG.logDir, { recursive: true });
+    const path = getWatchdogLogPath();
+    appendFileSync(path, JSON.stringify(entry) + '\n', 'utf-8');
+  } catch (e) {
+    // Silently fail
+    console.error('[memory-watchdog] Flush failed:', e);
+  }
+}
+
+export function enableConsolidationWatchdog(config?: Partial<ConsolidationWatchdogConfig>): void {
+  if (watchdogEnabled) return;
+  watchdogEnabled = true;
+  if (config) Object.assign(DEFAULT_WATCHDOG_CONFIG, config);
+}
+
+export function disableConsolidationWatchdog(): void {
+  watchdogEnabled = false;
+  if (watchdogInterval) {
+    clearInterval(watchdogInterval);
+    watchdogInterval = null;
+  }
+}
+
+export function getConsolidationWatchdogStatus(): { enabled: boolean; config: ConsolidationWatchdogConfig } {
+  return { enabled: watchdogEnabled, config: { ...DEFAULT_WATCHDOG_CONFIG } };
+}
+
+export function recordConsolidationWatchdogCycle(memory: Memory, consolidation: MemoryConsolidation): void {
+  if (!watchdogEnabled) return;
+
+  cycleCount++;
+  if (cycleCount % DEFAULT_WATCHDOG_CONFIG.intervalCycles !== 0) return;
+
+  const stats = consolidation.stats;
+  const concepts = memory.listConcepts();
+  const totalTasks = concepts.reduce((sum, c) => sum + (c.totalTasks ?? 0), 0);
+  const dedupRatio = stats.totalConceptsProcessed > 0
+    ? stats.totalConceptsArchived / stats.totalConceptsProcessed
+    : 0;
+
+  const alerts: string[] = [];
+  if (dedupRatio < DEFAULT_WATCHDOG_CONFIG.dedupRatioThreshold) {
+    alerts.push(`dedupRatio ${dedupRatio.toFixed(3)} below threshold ${DEFAULT_WATCHDOG_CONFIG.dedupRatioThreshold}`);
+  }
+
+  if (promotedCount === 0) {
+    if (lastPromotedTime && Date.now() - lastPromotedTime > DEFAULT_WATCHDOG_CONFIG.alertWindowHours * 3600_000) {
+      alerts.push(`promotedCount == 0 for > ${DEFAULT_WATCHDOG_CONFIG.alertWindowHours}h`);
+    }
+  } else {
+    lastPromotedTime = Date.now();
+    promotedCount = 0; // Reset counter after logging
+  }
+
+  const snapshot: WatchdogSnapshot = {
+    ts: Date.now(),
+    cycle: cycleCount,
+    conceptCount: concepts.length,
+    totalTasks,
+    dedupRatio,
+    promotedCount: stats.totalConceptsArchived,
+    archivedCount: stats.totalConceptsArchived,
+    forgottenCount: stats.totalConceptsForgotten,
+    memoryPressure: concepts.length / (memory['config']?.maxConcepts ?? 10000),
+    alerts,
+  };
+
+  flushWatchdogLog(snapshot);
+
+  if (alerts.length > 0) {
+    console.warn('[memory-watchdog] Alerts:', alerts.join('; '));
+  }
+}
+
+export function recordPromotion(): void {
+  promotedCount++;
+  lastPromotedTime = Date.now();
 }

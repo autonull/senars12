@@ -22,7 +22,9 @@ import {
   demoteModel,
   getLastRoutingDecision,
   getLMSettings,
+  getLmProvider,
   getModelForTask,
+  getModelChain,
   resolveActiveProvider,
   setBuiltinProgressCallback,
   type ModelDownloadProgressCallback,
@@ -32,6 +34,8 @@ import {
   getAllCircuitBreakers,
   type CircuitBreakerConfig,
   type LMProviderName,
+  logRoutingDecision,
+  type RoutingTelemetryEntry,
 } from './providers.js';
 import { createLMStats, recordLMCall } from './stats.js';
 
@@ -188,6 +192,20 @@ export class LMService {
       this.recordCall(true, start, prompt.length + text.length);
       if (provider) recordProviderCall(provider, true, settings);
       this.noteSuccess();
+      // Log routing decision
+      const decision = getLastRoutingDecision();
+      if (decision) {
+        logRoutingDecision({
+          ts: Date.now(),
+          task,
+          modelId: decision.modelId,
+          latencyMs: Date.now() - start,
+          success: true,
+          demoted: decision.reason === 'failover',
+          provider: provider ?? 'unknown',
+          chain: getModelChain(provider ?? getLmProvider(), task),
+        });
+      }
       return text;
     } catch (e) {
       this.recordCall(false, start, prompt.length);
@@ -195,6 +213,20 @@ export class LMService {
       if (isTransportError(e)) {
         this.noteFailure();
         await this.reprobe();
+      }
+      // Log routing decision on failure
+      const decision = getLastRoutingDecision();
+      if (decision) {
+        logRoutingDecision({
+          ts: Date.now(),
+          task,
+          modelId: decision.modelId,
+          latencyMs: Date.now() - start,
+          success: false,
+          demoted: false,
+          provider: provider ?? 'unknown',
+          chain: getModelChain(provider ?? getLmProvider(), task),
+        });
       }
       throw e;
     }
@@ -235,11 +267,39 @@ export class LMService {
       );
       this.recordCall(true, start, prompt.length + JSON.stringify(object).length);
       if (provider) recordProviderCall(provider, true, settings);
+      // Log routing decision
+      const decision = getLastRoutingDecision();
+      if (decision) {
+        logRoutingDecision({
+          ts: Date.now(),
+          task,
+          modelId: decision.modelId,
+          latencyMs: Date.now() - start,
+          success: true,
+          demoted: decision.reason === 'failover',
+          provider: provider ?? 'unknown',
+          chain: getModelChain(provider ?? getLmProvider(), task),
+        });
+      }
       return object;
     } catch (e) {
       this.recordCall(false, start, prompt.length);
       if (provider) recordProviderCall(provider, false, settings);
       if (isTransportError(e)) await this.reprobe();
+      // Log routing decision on failure
+      const decision = getLastRoutingDecision();
+      if (decision) {
+        logRoutingDecision({
+          ts: Date.now(),
+          task,
+          modelId: decision.modelId,
+          latencyMs: Date.now() - start,
+          success: false,
+          demoted: false,
+          provider: provider ?? 'unknown',
+          chain: getModelChain(provider ?? getLmProvider(), task),
+        });
+      }
       throw e;
     }
   }

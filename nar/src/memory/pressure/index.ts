@@ -1,5 +1,13 @@
 export type { ConsolidationConfig } from './consolidation.js';
 export { MemoryConsolidation } from './consolidation.js';
+export type { ConsolidationWatchdogConfig } from './consolidation.js';
+export {
+  enableConsolidationWatchdog,
+  disableConsolidationWatchdog,
+  getConsolidationWatchdogStatus,
+  recordPromotion,
+  recordConsolidationWatchdogCycle,
+} from './consolidation.js';
 export type { PressureConfig } from './pressure.js';
 export { PressureDetector } from './pressure.js';
 export type { ScorerConfig } from './scorer.js';

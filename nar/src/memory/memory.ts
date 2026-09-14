@@ -14,7 +14,7 @@ import type { ForgettingPolicy } from './lifecycle';
 import { Archive, Forgetting } from './lifecycle';
 import { LinkManager } from './links';
 import { MemoryIndex } from './memory-index.js';
-import { MemoryConsolidation, MemoryScorer } from './pressure';
+import { MemoryConsolidation, MemoryScorer, recordConsolidationWatchdogCycle } from './pressure';
 import { calculateConceptStats } from './state';
 
 export interface MemoryConfig {
@@ -309,6 +309,9 @@ export class Memory {
     if (opts?.lm) {
       this.lmAssistedConsolidate(opts.lm);
     }
+
+    // Memory consolidation watchdog (1D)
+    recordConsolidationWatchdogCycle(this, this.consolidation);
   }
 
   findDenseClusters(

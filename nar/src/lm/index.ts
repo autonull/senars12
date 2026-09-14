@@ -62,6 +62,7 @@ export type {
   RoutingDecision,
   RoutingObjective,
   RoutingPolicy,
+  RoutingTelemetryEntry,
   SeNARSModelId,
   SeNARSRegistry,
 } from './providers.js';
@@ -78,6 +79,7 @@ export {
   getModelForTask,
   getQualityModel,
   getRouting,
+  getRoutingLogStatus,
   getRoutingStatus,
   hasCloudCredentials,
   MODEL_CAPABILITIES,
@@ -90,5 +92,8 @@ export {
   resolveOfflineModel,
   resolveOfflineTier,
   setRouting,
+  enableRoutingTelemetry,
+  disableRoutingTelemetry,
+  logRoutingDecision,
 } from './providers.js';
 export { createLMStats, recordLMCall } from './stats.js';
