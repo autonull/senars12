@@ -6,23 +6,37 @@ interface QEntry {
   visits: number;
 }
 
+interface TabularQReflexOptions {
+  alpha?: number;
+  gamma?: number;
+  epsilon?: number;
+  confidenceScale?: number;
+  epsilonDecay?: number;
+  epsilonMin?: number;
+}
+
 export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
   readonly id: string;
   private readonly alpha: number;
   private readonly gamma: number;
-  private readonly epsilon: number;
+  private epsilon: number;
   private readonly confidenceScale: number;
+  private readonly epsilonDecay: number;
+  private readonly epsilonMin: number;
+  private episodeCount: number = 0;
   private readonly qTable: Map<string, Map<string, QEntry>> = new Map();
 
   constructor(
     id: string,
-    options: { alpha?: number; gamma?: number; epsilon?: number; confidenceScale?: number } = {}
+    options: TabularQReflexOptions = {}
   ) {
     this.id = id;
     this.alpha = options.alpha ?? 0.1;
     this.gamma = options.gamma ?? 0.95;
     this.epsilon = options.epsilon ?? 0.1;
     this.confidenceScale = options.confidenceScale ?? 5;
+    this.epsilonDecay = options.epsilonDecay ?? 0.99;
+    this.epsilonMin = options.epsilonMin ?? 0.01;
   }
 
   propose(state: S, legalActions: A[]): ActionProposal[] {
@@ -144,5 +158,27 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
 
   getQTable(): Map<string, Map<string, QEntry>> {
     return this.qTable;
+  }
+
+  /** Call at the end of each episode to decay epsilon */
+  onEpisodeEnd(): void {
+    this.episodeCount++;
+    this.epsilon = Math.max(this.epsilonMin, this.epsilon * this.epsilonDecay);
+  }
+
+  /** Get current epsilon value */
+  getEpsilon(): number {
+    return this.epsilon;
+  }
+
+  /** Get number of episodes completed */
+  getEpisodeCount(): number {
+    return this.episodeCount;
+  }
+
+  /** Reset epsilon to initial value (useful for testing) */
+  resetEpsilon(initialEpsilon?: number): void {
+    this.epsilon = initialEpsilon ?? this.epsilon;
+    this.episodeCount = 0;
   }
 }

@@ -40,7 +40,7 @@ program
   .requiredOption('-e, --env <type>', 'Environment: bandit, gridworld, nonstationary')
   .requiredOption('-b, --baseline <type>', 'Baseline: epsilon-greedy, ucb, qlearning, sarsa')
   .option('-s, --seeds <number>', 'Number of seeds', '10')
-  .option('-m, --mode <type>', 'Mode: direct, adapter, native', 'native')
+  .option('-m, --mode <type>', 'Mode: direct, adapter, native, both', 'native')
   .option('-o, --output <dir>', 'Output directory', '.reports/rl-parity')
   .option('--episodes <number>', 'Episodes per seed', '50')
   .option('--steps <number>', 'Steps per episode', '20')
@@ -50,7 +50,7 @@ const options = program.opts();
 
 type EnvType = 'bandit' | 'gridworld' | 'nonstationary';
 type BaselineType = 'epsilon-greedy' | 'ucb' | 'qlearning' | 'sarsa';
-type ModeType = 'direct' | 'adapter' | 'native';
+type ModeType = 'direct' | 'adapter' | 'native' | 'both';
 
 const envType = options.env as EnvType;
 const baselineType = options.baseline as BaselineType;
@@ -70,7 +70,8 @@ const baseBanditConfig = {
 };
 
 const baseGridConfig = {
-  grid: ['S...', '.#..', '..#.', '...G'],
+  // Simple 3x3 grid without walls (matches m35-gridworld-validation.test.ts)
+  grid: ['S..', '...', '..G'],
 };
 
 const baseNonStationaryConfig = {
@@ -232,7 +233,8 @@ async function runNativeSenars(
   env: any,
   episodes: number,
   steps: number,
-  envType: EnvType
+  envType: EnvType,
+  seed: number
 ): Promise<number[]> {
   const config = envType === 'gridworld' ? narConfigGridWorld : narConfig;
   const nar = new NAR(config);
@@ -245,7 +247,7 @@ async function runNativeSenars(
       agent = new BanditNativeAgent(nar, 3, maxDerivationsPerStep);
       break;
     case 'gridworld':
-      agent = new GridWorldNativeAgent(nar, maxDerivationsPerStep);
+      agent = new GridWorldNativeAgent(nar, maxDerivationsPerStep, seed);
       break;
     case 'nonstationary':
       agent = new NonStationaryNativeAgent(nar, 2, maxDerivationsPerStep);
@@ -300,7 +302,7 @@ async function runExperiment(
       envType
     );
   } else {
-    // native
+    // native or both - both run baseline + native for parity comparison
     // Run baseline for comparison
     const baselineEnv = await createEnvironment(envType, seed);
     const numArms = envType === 'nonstationary' ? 2 : 3;
@@ -311,7 +313,7 @@ async function runExperiment(
       episodesPerSeed,
       stepsPerEpisode
     );
-    senarsRewards = await runNativeSenars(env, episodesPerSeed, stepsPerEpisode, envType);
+    senarsRewards = await runNativeSenars(env, episodesPerSeed, stepsPerEpisode, envType, seed);
   }
 
   return { baselineRewards, senarsRewards };
