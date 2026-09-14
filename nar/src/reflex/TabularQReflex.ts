@@ -15,6 +15,17 @@ interface TabularQReflexOptions {
   epsilonMin?: number;
 }
 
+export interface SerializedQTable {
+  id: string;
+  alpha: number;
+  gamma: number;
+  epsilon: number;
+  epsilonDecay: number;
+  epsilonMin: number;
+  episodeCount: number;
+  qTable: Record<string, Record<string, QEntry>>;
+}
+
 export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
   readonly id: string;
   private readonly alpha: number;
@@ -180,5 +191,41 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
   resetEpsilon(initialEpsilon?: number): void {
     this.epsilon = initialEpsilon ?? this.epsilon;
     this.episodeCount = 0;
+  }
+
+  /** Serialize Q-table for persistence */
+  serialize(): SerializedQTable {
+    const qTableObj: Record<string, Record<string, QEntry>> = {};
+    for (const [stateKey, actionMap] of this.qTable) {
+      const actionsObj: Record<string, QEntry> = {};
+      for (const [actionKey, entry] of actionMap) {
+        actionsObj[actionKey] = { value: entry.value, visits: entry.visits };
+      }
+      qTableObj[stateKey] = actionsObj;
+    }
+    return {
+      id: this.id,
+      alpha: this.alpha,
+      gamma: this.gamma,
+      epsilon: this.epsilon,
+      epsilonDecay: this.epsilonDecay,
+      epsilonMin: this.epsilonMin,
+      episodeCount: this.episodeCount,
+      qTable: qTableObj,
+    };
+  }
+
+  /** Deserialize Q-table from persistence */
+  deserialize(data: SerializedQTable): void {
+    this.qTable.clear();
+    for (const [stateKey, actionsObj] of Object.entries(data.qTable)) {
+      const actionMap = new Map<string, QEntry>();
+      for (const [actionKey, entry] of Object.entries(actionsObj)) {
+        actionMap.set(actionKey, { value: entry.value, visits: entry.visits });
+      }
+      this.qTable.set(stateKey, actionMap);
+    }
+    this.epsilon = data.epsilon;
+    this.episodeCount = data.episodeCount;
   }
 }

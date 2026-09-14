@@ -1,31 +1,40 @@
 /**
  * Soak Test Harness — Long-running REPL/bot sessions with periodic state snapshots.
- * Run with: SENARS_SOAK_TEST=1 pnpm vitest run tests/soak/long-run.test.ts
- *
- * Tests for:
- * - No memory leaks (heap growth bounded)
- * - No unbounded bag growth
- * - No LM routing thrash (circuit breaker stability)
- * - Periodic state snapshots
+ * 
+ * Modes:
+ *   - Fast (micro-soak): SOAK_SCALE=fast pnpm vitest run tests/soak/long-run.test.ts
+ *       60s duration, 5s snapshot interval, growth-rate assertions
+ *   - Full: SOAK_SCALE=full pnpm vitest run tests/soak/long-run.test.ts (or default)
+ *       2h duration, 5min snapshot interval, absolute thresholds
+ * 
+ * Run micro-soak via: pnpm test:micro-soak (excluded from default test:unit)
  */
 
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createAgentFromEnv } from '../../src/bin/lib/lifecycle.js';
-import { createLMService } from '@senars/nar/lm';
-import { createSeNARSRegistry } from '@senars/nar/lm/providers';
-import { SeNARSFactory } from '@senars/nar/factory';
 import { createLogger } from '@senars/nar/logger';
-import { DEFAULT_CONFIG } from '@senars/nar/types';
 
 const logger = createLogger({ scope: 'soak-test' });
 
-// Configuration
-const SOAK_DURATION_MS = parseInt(process.env.SOAK_DURATION_MS ?? '7200000', 10); // 2 hours default
-const SNAPSHOT_INTERVAL_MS = parseInt(process.env.SOAK_SNAPSHOT_INTERVAL_MS ?? '300000', 10); // 5 min default
-const MEMORY_SAMPLE_INTERVAL_MS = parseInt(process.env.SOAK_MEMORY_SAMPLE_MS ?? '60000', 10); // 1 min default
+// SOAK_SCALE: 'fast' | 'full' (default: 'full')
+const SOAK_SCALE = (process.env.SOAK_SCALE ?? 'full').toLowerCase();
+const IS_FAST = SOAK_SCALE === 'fast';
+
+// Fast mode: 60s, 5s snapshots, 1s memory samples
+// Full mode: 2h, 5min snapshots, 1min memory samples
+const SOAK_DURATION_MS = IS_FAST ? 60_000 : parseInt(process.env.SOAK_DURATION_MS ?? '7200000', 10);
+const SNAPSHOT_INTERVAL_MS = IS_FAST ? 5_000 : parseInt(process.env.SOAK_SNAPSHOT_INTERVAL_MS ?? '300000', 10);
+const MEMORY_SAMPLE_INTERVAL_MS = IS_FAST ? 1_000 : parseInt(process.env.SOAK_MEMORY_SAMPLE_MS ?? '60000', 10);
+
+// Thresholds
 const MAX_HEAP_GROWTH_MB = parseInt(process.env.SOAK_MAX_HEAP_GROWTH_MB ?? '200', 10);
 const MAX_BAG_SIZE = parseInt(process.env.SOAK_MAX_BAG_SIZE ?? '10000', 10);
 const MAX_ROUTING_CHANGES_PER_MIN = parseInt(process.env.SOAK_MAX_ROUTING_CHANGES ?? '10', 10);
+
+// Fast-mode growth-rate thresholds (bytes/cycle slope)
+// These make short runs statistically meaningful by checking slope vs baseline
+const FAST_MAX_HEAP_GROWTH_RATE_MB_PER_MIN = parseInt(process.env.FAST_SOAK_MAX_HEAP_GROWTH_RATE ?? '50', 10); // MB/min
+const FAST_MAX_BAG_GROWTH_RATE_PER_MIN = parseInt(process.env.FAST_SOAK_MAX_BAG_GROWTH_RATE ?? '1000', 10); // items/min
 
 interface SoakMetrics {
   heapUsedMB: number[];
@@ -66,7 +75,6 @@ function sampleMemory(): void {
 }
 
 function sampleBag(nar: any): void {
-  // Access internal bag size via memory statistics
   const stats = nar.getStatistics?.() ?? nar.memory?.getStatistics?.();
   if (stats) {
     metrics.bagSizes.push(stats.totalTasks ?? stats.bagSize ?? 0);
@@ -145,6 +153,21 @@ async function takeSnapshot(nar: any, lmService: any): Promise<void> {
   }
 }
 
+// Linear regression slope (y = mx + b) for growth-rate detection
+function computeSlope(samples: number[]): number {
+  if (samples.length < 2) return 0;
+  const n = samples.length;
+  const xSum = (n * (n - 1)) / 2; // 0 + 1 + 2 + ... + (n-1)
+  const ySum = samples.reduce((a, b) => a + b, 0);
+  const xySum = samples.reduce((sum, y, i) => sum + i * y, 0);
+  const x2Sum = samples.reduce((sum, _, i) => sum + i * i, 0);
+  
+  const denominator = n * x2Sum - xSum * xSum;
+  if (denominator === 0) return 0;
+  
+  return (n * xySum - xSum * ySum) / denominator;
+}
+
 describe('Soak Test — Long-running stability', { timeout: SOAK_DURATION_MS + 60000 }, () => {
   let agent: any;
   let nar: any;
@@ -157,11 +180,12 @@ describe('Soak Test — Long-running stability', { timeout: SOAK_DURATION_MS + 6
 
   beforeAll(async () => {
     if (!process.env.SENARS_SOAK_TEST) {
-      console.log('Skipping soak test: set SENARS_SOAK_TEST=1 to run');
+      console.log(`Skipping soak test: set SENARS_SOAK_TEST=1 to run (mode: ${SOAK_SCALE})`);
       return;
     }
 
     logger.info('Starting soak test', {
+      scale: SOAK_SCALE,
       durationMs: SOAK_DURATION_MS,
       snapshotIntervalMs: SNAPSHOT_INTERVAL_MS,
       memorySampleIntervalMs: MEMORY_SAMPLE_INTERVAL_MS,
@@ -211,8 +235,8 @@ describe('Soak Test — Long-running stability', { timeout: SOAK_DURATION_MS + 6
       await takeSnapshot(nar, lmService);
     }
 
-    // Log summary
     logger.info('Soak test complete', {
+      scale: SOAK_SCALE,
       durationMs: Date.now() - startTime,
       samples: metrics.heapUsedMB.length,
       snapshots: metrics.snapshots.length,
@@ -221,7 +245,7 @@ describe('Soak Test — Long-running stability', { timeout: SOAK_DURATION_MS + 6
 
   it('should run soak test and verify stability', async () => {
     if (!process.env.SENARS_SOAK_TEST) {
-      console.log('Skipping soak test: set SENARS_SOAK_TEST=1 to run');
+      console.log(`Skipping soak test: set SENARS_SOAK_TEST=1 to run (mode: ${SOAK_SCALE})`);
       return;
     }
 
@@ -242,34 +266,71 @@ describe('Soak Test — Long-running stability', { timeout: SOAK_DURATION_MS + 6
     const heapSamples = metrics.heapUsedMB;
     expect(heapSamples.length).toBeGreaterThan(2);
 
-    // Check max heap growth from start
-    const initialHeap = heapSamples.at(0) ?? 0;
-    const maxHeap = Math.max(...heapSamples);
-    const growth = maxHeap - initialHeap;
-
-    logger.info('Heap analysis', { initialHeap, maxHeap, growth, limit: MAX_HEAP_GROWTH_MB });
-    expect(growth).toBeLessThanOrEqual(MAX_HEAP_GROWTH_MB);
-
     const bagSamples = metrics.bagSizes;
     expect(bagSamples.length).toBeGreaterThan(2);
 
-    const maxBag = Math.max(...bagSamples);
-    logger.info('Bag analysis', { maxBag, limit: MAX_BAG_SIZE });
-    expect(maxBag).toBeLessThanOrEqual(MAX_BAG_SIZE);
+    if (IS_FAST) {
+      // Fast mode: growth-rate assertions (slope-based, statistically meaningful for short runs)
+      const durationMin = SOAK_DURATION_MS / 60000;
+      
+      const heapSlope = computeSlope(heapSamples); // MB per sample
+      const heapGrowthRate = heapSlope * (60000 / MEMORY_SAMPLE_INTERVAL_MS); // MB/min
+      
+      const bagSlope = computeSlope(bagSamples); // items per sample
+      const bagGrowthRate = bagSlope * (60000 / MEMORY_SAMPLE_INTERVAL_MS); // items/min
+
+      logger.info('Fast-mode growth-rate analysis', {
+        durationMin,
+        heapSlope,
+        heapGrowthRate,
+        heapGrowthRateLimit: FAST_MAX_HEAP_GROWTH_RATE_MB_PER_MIN,
+        bagSlope,
+        bagGrowthRate,
+        bagGrowthRateLimit: FAST_MAX_BAG_GROWTH_RATE_PER_MIN,
+        sampleCount: heapSamples.length,
+      });
+
+      // Growth rate should be within limits
+      expect(heapGrowthRate).toBeLessThanOrEqual(FAST_MAX_HEAP_GROWTH_RATE_MB_PER_MIN);
+      expect(bagGrowthRate).toBeLessThanOrEqual(FAST_MAX_BAG_GROWTH_RATE_PER_MIN);
+
+      // Also check absolute bounds as safety net
+      const initialHeap = heapSamples.at(0) ?? 0;
+      const maxHeap = Math.max(...heapSamples);
+      const growth = maxHeap - initialHeap;
+      expect(growth).toBeLessThanOrEqual(MAX_HEAP_GROWTH_MB);
+
+      const maxBag = Math.max(...bagSamples);
+      expect(maxBag).toBeLessThanOrEqual(MAX_BAG_SIZE);
+    } else {
+      // Full mode: absolute threshold assertions (original behavior)
+      const initialHeap = heapSamples.at(0) ?? 0;
+      const maxHeap = Math.max(...heapSamples);
+      const growth = maxHeap - initialHeap;
+
+      logger.info('Heap analysis', { initialHeap, maxHeap, growth, limit: MAX_HEAP_GROWTH_MB });
+      expect(growth).toBeLessThanOrEqual(MAX_HEAP_GROWTH_MB);
+
+      const maxBag = Math.max(...bagSamples);
+      logger.info('Bag analysis', { maxBag, limit: MAX_BAG_SIZE });
+      expect(maxBag).toBeLessThanOrEqual(MAX_BAG_SIZE);
+    }
 
     // Routing changes should be minimal after warmup
-    const warmupChanges = Math.min(routingChangeCount, 5); // Allow initial settling
+    const warmupChanges = Math.min(routingChangeCount, 5);
     const steadyStateChanges = routingChangeCount - warmupChanges;
+
+    const maxAllowedRoutingChanges = IS_FAST 
+      ? MAX_ROUTING_CHANGES_PER_MIN * (SOAK_DURATION_MS / 60000)
+      : MAX_ROUTING_CHANGES_PER_MIN * (SOAK_DURATION_MS / 60000);
 
     logger.info('Routing analysis', {
       totalChanges: routingChangeCount,
       steadyStateChanges,
-      limit: MAX_ROUTING_CHANGES_PER_MIN * (SOAK_DURATION_MS / 60000),
+      limit: maxAllowedRoutingChanges,
     });
 
-    expect(steadyStateChanges).toBeLessThanOrEqual(
-      MAX_ROUTING_CHANGES_PER_MIN * (SOAK_DURATION_MS / 60000)
-    );
+    expect(steadyStateChanges).toBeLessThanOrEqual(maxAllowedRoutingChanges);
 
     if (metrics.lmCalls > 0) {
       const successRate = 1 - metrics.lmFailures / metrics.lmCalls;
@@ -278,7 +339,7 @@ describe('Soak Test — Long-running stability', { timeout: SOAK_DURATION_MS + 6
         failures: metrics.lmFailures,
         successRate,
       });
-      expect(successRate).toBeGreaterThanOrEqual(0.95); // 95% success rate
+      expect(successRate).toBeGreaterThanOrEqual(0.95);
     }
 
     const derivations = metrics.derivationsPerStep.filter((d) => d > 0);
@@ -286,7 +347,7 @@ describe('Soak Test — Long-running stability', { timeout: SOAK_DURATION_MS + 6
       const avg = derivations.reduce((a, b) => a + b, 0) / derivations.length;
       const max = Math.max(...derivations);
       logger.info('Derivations per step', { avg, max, samples: derivations.length });
-      expect(max).toBeLessThanOrEqual(1000); // Configurable limit
+      expect(max).toBeLessThanOrEqual(1000);
     }
 
     const pressure = metrics.memoryPressure.filter((p) => p > 0);
@@ -297,7 +358,7 @@ describe('Soak Test — Long-running stability', { timeout: SOAK_DURATION_MS + 6
         samples: pressure.length,
         highPressureRatio,
       });
-      expect(highPressureRatio).toBeLessThan(0.1); // Less than 10% time in high pressure
+      expect(highPressureRatio).toBeLessThan(0.1);
     }
 
     expect(metrics.snapshots.length).toBeGreaterThan(0);
@@ -315,13 +376,12 @@ describe('Soak Test — Long-running stability', { timeout: SOAK_DURATION_MS + 6
     const lastSnapshot = metrics.snapshots.at(-1);
     const lastHeapSample = metrics.heapUsedMB.at(-1);
     if (lastSnapshot && lastHeapSample !== undefined) {
-      expect(Math.abs(lastSnapshot.heapUsedMB - lastHeapSample)).toBeLessThanOrEqual(50); // Within 50MB
+      expect(Math.abs(lastSnapshot.heapUsedMB - lastHeapSample)).toBeLessThanOrEqual(50);
     }
   });
 });
 
 // Manual run helper
 if (typeof import.meta !== 'undefined' && (import.meta as any).vitest === undefined && process.env.SENARS_SOAK_TEST) {
-  // Allow running as standalone script
   console.log('Soak test module loaded. Run with vitest.');
 }

@@ -6,6 +6,12 @@ export interface FocusBagOptions {
   decayRate?: number;
 }
 
+export interface SerializedFocusBag {
+  weights: Record<string, number>;
+  decayRate: number;
+  capacity: number;
+}
+
 export class FocusBag extends PriorityBag<Focus> {
   constructor(options: FocusBagOptions) {
     super({
@@ -43,6 +49,30 @@ export class FocusBag extends PriorityBag<Focus> {
         focus.setWeight(target);
       }
     }
+  }
+
+  /** Serialize FocusBag weights for persistence */
+  serialize(): SerializedFocusBag {
+    const weights: Record<string, number> = {};
+    for (const [id, weight] of this.getFocusWeights()) {
+      weights[id] = weight;
+    }
+    return {
+      weights,
+      decayRate: this.decayRateValue,
+      capacity: this.capacity,
+    };
+  }
+
+  /** Deserialize FocusBag weights from persistence */
+  deserialize(data: SerializedFocusBag): void {
+    for (const [id, weight] of Object.entries(data.weights)) {
+      const focus = this.find((f) => f.id === id);
+      if (focus) {
+        focus.setWeight(weight);
+      }
+    }
+    this.decayRateValue = data.decayRate;
   }
 }
 
