@@ -1,12 +1,8 @@
-# SeNARS
-
-**Semantic Non-Axiomatic Reasoning System**
+# **Semantic Non-Axiomatic Reasoning System** (SeNARS)
 
 SeNARS is a bounded, event-sourced cognitive runtime designed for auditable, continuous operation. It provides a hardened execution kernel that synthesizes uncertain symbolic inference (Non-Axiomatic Logic), exact algebraic rewriting (MeTTa), and optional neural-assisted formalization into a unified, provenance-preserving state machine.
 
 Rather than treating language models as standalone reasoning engines, SeNARS integrates them as untrusted "System 1" proposers within a broader cognitive architecture. The SeNARS kernel acts as the "System 2" source of truth, enforcing strict epistemic boundaries, resource limits, and structural invariants.
-
-### Core Architectural Pillars
 
 * **Event-Sourced Provenance:** Every cognitive mutation is an append-only event, enabling deterministic replay, standalone verification, and complete derivation tracing.
 * **Bounded Cognition (AIKR):** Built on the Assumption of Insufficient Knowledge and Resources. The system utilizes bounded priority bags, cooperative yielding, and anytime algorithms to ensure graceful degradation under memory or CPU pressure.
@@ -15,7 +11,7 @@ Rather than treating language models as standalone reasoning engines, SeNARS int
 
 ---
 
-## Quick Start & Operations
+## Run
 
 ```bash
 pnpm install       # Install dependencies
@@ -28,7 +24,7 @@ pnpm run typecheck # Type check
 pnpm run lint      # Lint
 ```
 
-### Run the Bot on IRC
+### Bot
 
 The `pnpm bot` command starts a multi-transport agent that drives a single SeNARS agent through IRC, CLI, and WebSocket.
 
@@ -86,7 +82,7 @@ pnpm exec tsx scripts/rl-parity.ts --env nonstationary --mode native --seeds 5
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### The 4 Kernel Gates — Trusted Boundary
+### Kernel Gates — Trusted Boundary
 
 Four gates mediate every state mutation. Every subsystem — inference, RL, self-improvement, tools — operates through them; none can bypass them.
 
@@ -244,7 +240,7 @@ const episodes = await episodic.getEpisodes({ limit: 10, query: 'cat' });
 
 ---
 
-## Inference Subsystems
+## Inference
 
 ### Narsese Term Language
 
@@ -509,17 +505,6 @@ const rules = LMRules.createAll(lmService);
 AllSelector | PrioritySelector | RotationSelector | DiverseSelector
 ```
 
-### Local Inference (llama.cpp)
-
-`LM_PROVIDER=llamacpp` targets a native llama.cpp `llama-server` via plain `fetch`:
-GBNF `grammar` passthrough for constrained decoding, `chat_template_kwargs`
-injection for Qwen-family thinking modes, and automatic model-alias resolution
-from `/v1/models`. Auto-detect ladder: cloud key → Ollama → llama.cpp → transformers.
-
-```bash
-LM_PROVIDER=llamacpp LM_LLAMACPP_HOST=http://localhost:8080 pnpm start
-```
-
 ### Multi-Agent Cognitive Cooperation
 
 SeNARS instances cooperate by delegating cognitive tasks via Narsese over
@@ -557,6 +542,17 @@ const answer = await nar.askNaturalLanguage("What is Whiskers?");
 - **Single-flight LM dedup** (`SingleFlight`) — concurrent identical `understand()` calls share one request; failures clear the slot for retry.
 - **Unified `translateCached` path** — cache → single-flight LM → record; legacy string cache entries safely ignored.
 - **Per-candidate spans** — `locateSpan` maps verbatim `sourceText` to exact offsets; ambiguity flags become span-local.
+
+### Local Inference (llama.cpp)
+
+`LM_PROVIDER=llamacpp` targets a native llama.cpp `llama-server` via plain `fetch`:
+GBNF `grammar` passthrough for constrained decoding, `chat_template_kwargs`
+injection for Qwen-family thinking modes, and automatic model-alias resolution
+from `/v1/models`. Auto-detect ladder: cloud key → Ollama → llama.cpp → transformers.
+
+```bash
+LM_PROVIDER=llamacpp LM_LLAMACPP_HOST=http://localhost:8080 pnpm start
+```
 
 ---
 
