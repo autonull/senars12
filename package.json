@@ -61,7 +61,6 @@
     "@senars/metta": "workspace:*",
     "@senars/nar": "workspace:*",
     "@senars/ui": "workspace:*",
-    "@senars/ui-webllm": "workspace:*",
     "@senars/util": "workspace:*",
     "@types/blessed": "^0.1.27",
     "@types/react": "^19.2.18",

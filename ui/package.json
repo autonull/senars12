@@ -48,6 +48,8 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@ai-sdk/provider": "^4.0.10",
+    "@mlc-ai/web-llm": "^0.2.85",
     "@monaco-editor/loader": "^1.7.0",
     "@senars/core": "workspace:*",
     "@senars/nar": "workspace:*",

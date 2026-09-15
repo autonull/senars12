@@ -17,7 +17,6 @@ import {
   LLAMACPP_HOST_DEFAULT,
   probeLlamaCpp,
 } from './providers/llamacpp.js';
-import { createWebLLMModel, webllmModels } from '@senars/ui-webllm';
 import { trace, SpanStatusCode, SpanKind } from '@opentelemetry/api';
 import { getTracer } from '../otel/index.js';
 import { recordCircuitBreakerState, recordLmProbe } from '../metrics/index.js';
@@ -39,7 +38,19 @@ export type LMProviderName =
   | 'webllm'
   | 'mock';
 
-export { webllmModels };
+/** Browser-side WebLLM runtime, injected by the UI layer (nar never imports browser code). */
+export interface WebLLMRuntime {
+  createModel: (modelKey: string, onProgress?: (progress: number) => void) => LanguageModel;
+  models: Record<string, { id: string; label?: string }>;
+}
+
+let webllmRuntime: WebLLMRuntime | undefined;
+
+/** UI layer installs the WebLLM runtime at startup (browser only). */
+export const configureWebLLM = (runtime: WebLLMRuntime | undefined): void => {
+  webllmRuntime = runtime;
+};
+export const getWebLLMRuntime = (): WebLLMRuntime | undefined => webllmRuntime;
 
 let activeFileSettings: LMSettingsInput | undefined;
 
@@ -111,7 +122,11 @@ export function createSeNARSRegistry(settings?: LMSettings) {
     provider === 'anthropic' ||
     provider === 'openai' ||
     provider === 'openai-compatible';
-  const useWebLLM = provider === 'webllm' && typeof navigator !== 'undefined' && 'gpu' in navigator;
+  const useWebLLM =
+    provider === 'webllm' &&
+    typeof webllmRuntime !== 'undefined' &&
+    typeof navigator !== 'undefined' &&
+    'gpu' in navigator;
   const useLlamaCpp = provider === 'llamacpp';
 
   const ollama = createOpenAICompatible({
@@ -153,8 +168,8 @@ export function createSeNARSRegistry(settings?: LMSettings) {
   const builtinCompact = compactModel ?? builtinModels.compact;
   const offlineTier = resolveOfflineTier(s);
 
-  const webllmQuality = useWebLLM ? createWebLLMModel('llama-3.2-3b-instruct') : undefined;
-  const webllmFast = useWebLLM ? createWebLLMModel('phi-3.5-mini-instruct') : undefined;
+  const webllmQuality = useWebLLM ? webllmRuntime!.createModel('llama-3.2-3b-instruct') : undefined;
+  const webllmFast = useWebLLM ? webllmRuntime!.createModel('phi-3.5-mini-instruct') : undefined;
 
   // Unavailable slots are omitted (not mocked) so registry.languageModel() throws
   // and routing failover skips them instead of silently admitting a placeholder.
