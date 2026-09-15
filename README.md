@@ -28,16 +28,6 @@ pnpm run typecheck # Type check
 pnpm run lint      # Lint
 ```
 
-### LM Profiles & Routing
-
-`LM_PROFILE` selects a preset: `auto` (default — cloud when credentials exist, else local),
-`cloud-quality`, `local-private` (transformers.js), `ollama`. Per-tier env overrides
-(`LM_FAST_MODEL` etc.) and an optional `routing` config block enable objective-driven
-multi-provider model selection with a self-upgrading offline failsafe ladder. See
-`docs/tech/lm-config.md` for the full provider × tier × credential matrix.
-
-LM profiles are the system's interface to external **System 1 proposers**: each profile selects which untrusted models translate, enrich, and formalize on the kernel's behalf.
-
 ### Run the Bot on IRC
 
 The `pnpm bot` command starts a multi-transport agent that drives a single SeNARS agent through IRC, CLI, and WebSocket.
@@ -64,60 +54,6 @@ pnpm exec tsx src/bin/self-report.ts
 pnpm exec tsx scripts/rl-parity.ts --env bandit --mode native --seeds 5
 pnpm exec tsx scripts/rl-parity.ts --env gridworld --mode native --seeds 5
 pnpm exec tsx scripts/rl-parity.ts --env nonstationary --mode native --seeds 5
-```
-
-### Configuration Matrix
-
-```typescript
-// Full NARConfig interface
-interface NARConfig extends CoreConfig {
-  // LLM Integration
-  lmService?: LMService;
-  providerRegistry?: SeNARSRegistry;
-  enableLMRules?: boolean;
-  enableBidirectionalFeedback?: boolean;
-  enableProactiveEnrichment?: boolean;
-  enableLMStreaming?: boolean;
-
-  // Optional Subsystems
-  enableTools?: boolean;
-  enableSelf?: boolean;
-  enableRLFP?: boolean;
-  rlfp?: { optimizeInterval?: number };
-
-  // Cognitive Architecture
-  cognitiveParams?: CognitiveParameters;
-  strategyRegistry?: CognitiveRegistry;
-  adaptationInterval?: number;
-
-  // Persistence
-  persistState?: boolean;
-  statePath?: string;
-}
-```
-
-**Environment Variables (`.env`):**
-
-```bash
-# LM Provider
-LM_PROVIDER=openai|anthropic|ollama|local
-LM_MODEL=gpt-4o|claude-3|...
-LM_API_KEY=...
-
-# Transports
-ENABLE_IRC=true
-ENABLE_WS=true
-ENABLE_HTTP=true
-ENABLE_MCP=true
-ENABLE_WEB_UI=true
-
-# IRC
-IRC_SERVER=irc.libera.chat
-IRC_CHANNEL=#senars
-IRC_NICK=senars-bot
-
-# Persistence
-STATE_PATH=.cache/nar-state
 ```
 
 ---
@@ -396,7 +332,59 @@ const projected = Truth.deduction(truth1, truth2); // Inference
 
 </details>
 
-### MeTTa — Exact Computation Substrate
+### Reasoning
+
+```typescript
+import { NAR, createNAR } from '@senars/nar';
+
+const nar = createNAR({
+  maxConcepts: 10000,
+  maxTasksPerConcept: 100,
+  enableLMRules: true,
+  enableTools: true,
+  enableSelf: true,
+  enableRLFP: true,
+  persistState: true,
+  statePath: '.cache/nar-state',
+});
+
+await nar.start();
+
+// Input beliefs, goals, questions
+await nar.believe('(cat --> animal). %1.0;0.9%');
+await nar.goal('(whiskers --> cat)!');
+await nar.question('(whiskers --> ?what)?');
+
+// Run inference cycles
+const derivations = await nar.run(10);
+
+// Query results
+const beliefs = nar.getBeliefs();
+const answer = nar.ask('(whiskers --> animal)');
+```
+
+**Execution Modes:**
+- `run(steps)` — Synchronous batch execution
+- `runStream(steps)` — Async generator for incremental results
+- Configurable derivation strategies: `BagStrategy`, `ExhaustiveStrategy`, `SampledDerivation`, `FocusedDerivation`, `AnytimeDerivation`
+
+### Derivation Ranking (Pressure Valve)
+
+```typescript
+import { rankDerivations } from '@senars/nar/rules/ranking';
+
+const admitted = rankDerivations(ruleProcessorOutput, {
+  maxAdmissions: 100,  // default
+  minScore: 0          // default
+});
+// score = confidence × |f−0.5|×2 − min(0.3, termLength/2000)
+// tautologies (f≈0.5) score ≤0 and are dropped automatically
+```
+
+- `score = confidence × decisiveness − sizePenalty` where `decisiveness = |f−0.5|×2`
+- Caps admissions per cycle; configurable via `CognitiveParameters.inference.ranking` and exposed as optimizer/self-game knobs (`rankingMaxAdmissions`, `rankingMinScore`)
+
+## 🧮 MeTTa — Exact Computation Substrate
 
 MeTTa operates as a deterministic, exact-computation tool invoked through the ActionGate, complementing NAL's uncertain reasoning. It does **not** run as a parallel cognitive engine, but rather provides equality saturation, pattern matching, and dependent type theory on demand.
 
@@ -459,73 +447,6 @@ const agent = await createAgent({ /* config */ });
 **Engine Isolation (Arbiter Pattern):**
 - NAR and MeTTa must not share memory directly. They must emit `EngineResult` proposals to the Kernel.
 - The boundary between MeTTa's exact `definitional-equality` and NAR's `uncertain-equivalence` is enforced. The e-graph must *never* union nodes based on NAR similarity scores.
-
-### Reasoning
-
-```typescript
-import { NAR, createNAR } from '@senars/nar';
-
-const nar = createNAR({
-  maxConcepts: 10000,
-  maxTasksPerConcept: 100,
-  enableLMRules: true,
-  enableTools: true,
-  enableSelf: true,
-  enableRLFP: true,
-  persistState: true,
-  statePath: '.cache/nar-state',
-});
-
-await nar.start();
-
-// Input beliefs, goals, questions
-await nar.believe('(cat --> animal). %1.0;0.9%');
-await nar.goal('(whiskers --> cat)!');
-await nar.question('(whiskers --> ?what)?');
-
-// Run inference cycles
-const derivations = await nar.run(10);
-
-// Query results
-const beliefs = nar.getBeliefs();
-const answer = nar.ask('(whiskers --> animal)');
-```
-
-**Execution Modes:**
-- `run(steps)` — Synchronous batch execution
-- `runStream(steps)` — Async generator for incremental results
-- Configurable derivation strategies: `BagStrategy`, `ExhaustiveStrategy`, `SampledDerivation`, `FocusedDerivation`, `AnytimeDerivation`
-
-### Derivation Ranking (Pressure Valve)
-
-```typescript
-import { rankDerivations } from '@senars/nar/rules/ranking';
-
-const admitted = rankDerivations(ruleProcessorOutput, {
-  maxAdmissions: 100,  // default
-  minScore: 0          // default
-});
-// score = confidence × |f−0.5|×2 − min(0.3, termLength/2000)
-// tautologies (f≈0.5) score ≤0 and are dropped automatically
-```
-
-- `score = confidence × decisiveness − sizePenalty` where `decisiveness = |f−0.5|×2`
-- Caps admissions per cycle; configurable via `CognitiveParameters.inference.ranking` and exposed as optimizer/self-game knobs (`rankingMaxAdmissions`, `rankingMinScore`)
-
-### NAR Commands — CLI & Programmatic Control
-
-```typescript
-import { narCommands, rlfpCommands, selfCommands, configCommands, memoryCommands } from '@senars/nar/commands';
-
-// Built-in command categories
-narCommands      // believe, goal, question, run, stats, export, import
-rlfpCommands     // trajectory logging, preference collection, policy optimization
-selfCommands     // metacognitive analysis, quality assessment, gap detection
-configCommands   // get/set cognitive parameters, strategy switching
-memoryCommands   // concept inspection, belief/goal/question queries, attention report
-lmCommands       // LM rule management, enrichment triggering
-episodesCommands // episodic memory queries
-```
 
 ---
 
@@ -643,7 +564,7 @@ const answer = await nar.askNaturalLanguage("What is Whiskers?");
 
 ---
 
-## 🔄 Execution, RL & Self-Improvement
+## 🔄 Execution & Control
 
 ### Stream Reasoner
 
@@ -669,6 +590,89 @@ for await (const result of pipeline.derive(reasoner)) {
 ```
 
 **Exports:** `createPipeline`, `StreamReasoner`, `MemoryPremiseSource`, `FocusPremiseSource`, `CompositePremiseSource`, `derive`, `throttled`, `backpressureAware`, types `PipelineConfig`, `PremiseSource`, `LMBackend`, `ProvisionalBelief` from `@senars/nar/stream`.
+
+### Tools & Function Calling
+
+```typescript
+import { ToolManager, discoverTools, ExplainTool, SleepTool, TimerTool } from '@senars/nar/tools';
+
+const tools = nar.tools;
+await tools.execute('explain', { term: '(cat --> animal)' });
+await tools.execute('sleep', { ms: 1000 });
+await tools.execute('timer', { action: 'start', name: 'reasoning' });
+
+// Custom tools via decorator
+@Tool({ name: 'my_tool', description: '...', schema: {...} })
+async function myTool(args: { input: string }) { ... }
+```
+
+**Built-in tool surface (all backed by real implementations):** fs (`read-file`, `write-file`,
+`append-file`, workspace-sandboxed), `shell` (30s timeout, async), web (`search` with
+Tavily→DuckDuckGo fallback, `tavily-search`, `web-fetch`), memory (`remember`, `query`,
+`episodes` — episodic memory; fail honestly when no backend), `metta` (delegates to the MeTTa
+engine), plus approval/timer/sleep utilities.
+
+### NAR Commands — CLI & Programmatic Control
+
+```typescript
+import { narCommands, rlfpCommands, selfCommands, configCommands, memoryCommands } from '@senars/nar/commands';
+
+// Built-in command categories
+narCommands      // believe, goal, question, run, stats, export, import
+rlfpCommands     // trajectory logging, preference collection, policy optimization
+selfCommands     // metacognitive analysis, quality assessment, gap detection
+configCommands   // get/set cognitive parameters, strategy switching
+memoryCommands   // concept inspection, belief/goal/question queries, attention report
+lmCommands       // LM rule management, enrichment triggering
+episodesCommands // episodic memory queries
+```
+
+---
+
+### Cognitive Parameters & Strategy System
+
+**Tunable Hyperparameters** — All behavior controlled via `CognitiveParameters` with validated ranges:
+
+```typescript
+import { CognitiveParameters, DEFAULT_COGNITIVE_PARAMETERS, FAST_COGNITIVE_CONFIG, LM_HEAVY_CONFIG, RESEARCH_COGNITIVE_CONFIG } from '@senars/nar/config/cognitive-parameters';
+```
+
+| Preset | Use Case |
+|--------|----------|
+| `DEFAULT_COGNITIVE_PARAMETERS` | Balanced general use |
+| `FAST_COGNITIVE_CONFIG` | Minimal LM, max speed |
+| `LM_HEAVY_CONFIG` | Maximum LM enhancement |
+| `RESEARCH_COGNITIVE_CONFIG` | Full tracing, limited derivations |
+
+**Parameter Categories:**
+
+| Category | Controls |
+|----------|----------|
+| **Priority** | Initial/max priority, mention boosts, decay rate, propagation |
+| **LM** | Enabled, rule categories, timeout, selection strategy |
+| **Attention** | Auto-prime, structural/semantic similarity, activation propagation |
+| **Inference** | Max derivations/depth, circular detection, trace collection, CPU throttle, sampling limits |
+
+**Pluggable Strategies** (configurable via `strategies` object):
+
+| Strategy Type | Options |
+|---------------|---------|
+| **Sampling** | `priority`, `top-n`, `novelty`, `goal-biased`, `diverse` |
+| **Premise Formation** | `default-formation`, `sample`, `focused` |
+| **Derivation** | `default`, `anytime`, `sampled`, `focused`, `exhaustive` |
+| **LM Rule Selection** | `all`, `priority`, `rotation`, `diverse` |
+| **Attention** | `simple`, `spreading-activation`, `goal-relevance`, `composite` |
+
+**Optimization-Ready** — `PARAMETER_SPACE` defines min/max/default for every tunable, enabling:
+- Grid/random search via `CognitiveOptimizer`
+- RL-based policy optimization (RLFP)
+- Evolutionary parameter tuning
+
+---
+
+## 🧠 Cognitive Control & Metacognition
+
+This section covers the metacognitive layer: the System 1/2 distinction, the executive controller, automated hyperparameter tuning, cognitive analyzers, schema induction, feedback learning, and reasoning about reasoning — all operating within the kernel's AIKR bounds.
 
 ### Cognition (System 1/2 + Executive)
 
@@ -769,21 +773,19 @@ const quality = await self.assessQuality();  // { coherence, relevance, complete
 const state = self.querySystemState();       // Full system snapshot
 ```
 
-### Reinforcement Learning from Reasoning Feedback (RLFP)
+---
 
-```typescript
-import { RLFPLearner, PreferenceCollector, RewardModel, PolicyOptimizer } from '@senars/nar/rlfp';
+## 🤖 SeNARS as a General-Purpose RL Agent
 
-const rlfp = nar.getRLFP();
-// Logs reasoning trajectories
-// Collects human preferences on derivations
-// Trains reward model on preference pairs
-// Optimizes policy via RL (PPO/GRPO)
-```
+SeNARS is not only a reasoning kernel — the same Focus-Game-Reflex substrate makes it a **general-purpose reinforcement learning agent** in its own right. Any environment exposing `observe()` / `step(action)` attaches as a `Game`, and the agent learns to act through its native attention economy, bounded by AIKR like every other cognitive process.
 
-**Epistemic Firewall:** RL rewards pass through the `RewardGate` (defined in *The Trusted Cognitive Kernel*), which enforces the epistemic firewall by throwing an exception if a reward signal attempts to mutate `Truth.frequency` or `Truth.confidence`. Rewards may only mutate `attentionPriority` and `policyWeights`.
+**Non-symbolic RL as optional acceleration, not foundation.** The `Reflex` slot is a pluggable System-1 policy engine: tabular Q-learning, ε-greedy, and UCB are built in today; DQN, policy-gradient, or actor-critic backends drop in behind the same `propose(state)` / `learn(event)` interface. Symbolic and sub-symbolic learning are *complementary*: fast neural/heuristic proposals are arbitrated by the `Negotiator`, where NAL retains a veto over every action — so learned reflexes accelerate the agent without ever bypassing epistemic control.
 
-#### Core Primitives
+All Game↔Focus interactions pass through the four kernel gates — `PerceptionGate`, `ActionGate`, `RewardGate`, `BudgetGate` — preventing architectural bypasses. See **The 4 Kernel Gates** for their definitive contracts.
+
+**Epistemic Firewall:** all rewards pass through the `RewardGate`, which throws if a reward signal attempts to mutate `Truth.frequency` or `Truth.confidence`. Rewards may only mutate attention and policy weights — never factual belief.
+
+### Core Primitives
 
 | Primitive | Purpose | Key Types |
 |-----------|---------|-----------|
@@ -794,9 +796,7 @@ const rlfp = nar.getRLFP();
 | **`Reflex`** | Fast System-1 policy/value engine (Q-learning, UCB, heuristics) | `propose(state)`, `learn(event)` |
 | **`Negotiator`** | Arbitrates Reflex proposals vs NAL derivations (NAL retains veto) | `resolve(proposals, nalDerivations)`, `createLearningEvent()` |
 
-All Game↔Focus interactions pass through the four kernel gates — `PerceptionGate`, `ActionGate`, `RewardGate`, `BudgetGate` — preventing architectural bypasses. See **The 4 Kernel Gates** for their definitive contracts.
-
-#### RL Domain Split — Unified Substrate, Separated Reward Domains
+### RL Domain Split — Unified Substrate, Separated Reward Domains
 
 The shared substrate (`Bag<T>`, `Focus`, `FocusBag`, `Game`, `Reflex`, `Negotiator`) is kept; reward interpretation and mutation authority are split by domain:
 
@@ -810,7 +810,12 @@ The shared substrate (`Bag<T>`, `Focus`, `FocusBag`, `Game`, `Reflex`, `Negotiat
 
 `LearnerRegistry.dispatch(event)` routes by `event.domain`; unknown domain → `CrossDomainError` (fail-closed). Self-game rewards (`domain: 'self-*'`) never mutate `Truth` — they produce `SelfImprovementProposal` objects routed through `ProposalRouter` → `SelfMetaGame.applyProposal` (only low-risk `focus-weight` auto-applies; medium/high require validation/approval).
 
-#### Implemented Components
+A CI-verified implementation record — component slices with their test suites, and current environment parity results — is in the appendix below.
+
+<details>
+<summary><b>Click to expand: Implementation & Validation Record (test slices, environment parity)</b></summary>
+
+**Implemented Components (CI-verified snapshot):**
 
 | Slice | Components | Tests |
 |-------|------------|-------|
@@ -819,7 +824,7 @@ The shared substrate (`Bag<T>`, `Focus`, `FocusBag`, `Game`, `Reflex`, `Negotiat
 | **3** | `Negotiator` (NAL veto + `LearningEvent` feedback) | `m35-gridworld-validation.test.ts` |
 | **4** | `MetaGame`, `SelfMetaGame`, `MetaFocus` (`^focus_weight`, `^knob_set`) | `meta-game-sandbox.test.ts` (16 tests) |
 
-#### Validation Status ✅
+**Environment Parity Results:**
 
 | Environment | Level 1 (Adapter) | Level 2 (Native Reflex) | Status |
 |-------------|-------------------|-------------------------|--------|
@@ -827,11 +832,41 @@ The shared substrate (`Bag<T>`, `Focus`, `FocusBag`, `Game`, `Reflex`, `Negotiat
 | **NonStationary** | ✅ Pass | ✅ Pass (drift detection) | ✅ |
 | **GridWorld** | ✅ Pass | ✅ **Pass** (100% success after 200 episodes, `TabularQReflex`) | ✅ |
 
-### Autonomous Self-Improvement Loop
+</details>
+
+---
+
+## 🔁 RLFP — Reinforcement Learning from Reasoning Feedback
+
+Where the agent above learns from *external environments*, RLFP turns SeNARS's reward machinery inward, learning from the *reasoning process itself*: trajectories, human preference pairs, and derivation outcomes.
+
+```typescript
+import { RLFPLearner, PreferenceCollector, RewardModel, PolicyOptimizer } from '@senars/nar/rlfp';
+
+const rlfp = nar.getRLFP();
+// Logs reasoning trajectories
+// Collects human preferences on derivations
+// Trains reward model on preference pairs
+// Optimizes policy via RL (PPO/GRPO)
+```
+
+### The Three Applications of the Reward Economy
+
+One substrate — `Bag<T>`, `Focus`, `Game`, `Reflex`, `RewardGate` — powers three distinct, deliberately separated applications:
+
+| Application | Reward Source | Acts On | Failure Containment |
+|-------------|---------------|---------|---------------------|
+| **General-Purpose RL Agent** | External environments (`Game.step`) | Reflex policies, focus weights | NAL Negotiator veto; kernel gates |
+| **RLFP** | Human preferences & derivation outcomes | Attention priorities, policy weights | `RewardGate` epistemic firewall |
+| **Autonomous Self-Improvement** | Task outcomes (extrinsic + intrinsic) | `SelfImprovementProposal`s only | Governance pipeline; human approval for high risk |
+
+---
+
+## 🌱 Self-Improvement Loop
 
 SeNARS12 runs a **self-improvement loop** where the cognitive architecture reasons about its own codebase using the same NAL machinery it uses for external reasoning.
 
-#### Architecture
+### Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -866,7 +901,7 @@ SeNARS12 runs a **self-improvement loop** where the cognitive architecture reaso
 
 The self-improvement loop operates at the kernel level: `Perceive → Recall → Reason (meta-rules + drives) → Act (tools) → Validate → Consolidate`.
 
-#### Self-Concept Vocabulary
+### Self-Concept Vocabulary
 
 <details>
 <summary><b>Click to expand: Narsese Self-Concept Vocabulary</b></summary>
@@ -913,7 +948,7 @@ The self-improvement loop operates at the kernel level: `Perceive → Recall →
 
 </details>
 
-#### Meta-Rules with AIKR Bounds (5 Rules)
+### Meta-Rules with AIKR Bounds (5 Rules)
 
 | Rule | Trigger | Action | AIKR Bounds |
 |------|---------|--------|-------------|
@@ -923,7 +958,7 @@ The self-improvement loop operates at the kernel level: `Perceive → Recall →
 | **Schema Promote** | `confidence > 0.9 & frequency > 10` | `^promote_rule($s)!` | depth=2, budget=5/step |
 | **Capability Scaffold** | `capability & template` | `^scaffold($tmpl, $c)!` | depth=2, budget=5/step |
 
-#### Homeostatic Drives (4 Drives)
+### Homeostatic Drives (4 Drives)
 
 | Drive | Goal | Decay | Replenished By |
 |-------|------|-------|----------------|
@@ -932,7 +967,13 @@ The self-improvement loop operates at the kernel level: `Perceive → Recall →
 | `coherence` | `(self --> coherent)!` | 0.01/cycle | `resolve_contradiction`, schema promotion |
 | `social` | `(self --> social)!` | 0.05/cycle | Human interaction (CLI/IRC) |
 
-#### Self-Tools (8 Tools, Shadow Execution)
+---
+
+## 🔐 Self-Modification Governance
+
+The self-improvement loop is evolving toward **externally governed autonomous code modification**. This section covers the tooling, reward shaping, and approval pipeline that make self-modification auditable and safe.
+
+### Self-Tools (8 Tools, Shadow Execution)
 
 | Tool | Self-Operation | Implementation |
 |------|----------------|----------------|
@@ -953,7 +994,7 @@ The self-improvement loop operates at the kernel level: `Perceive → Recall →
 5. If approved: merge worktree → main
 6. Cleanup: `git worktree remove .shadow/fix-42`
 
-#### RLFP on Task Outcomes (Unified + Intrinsic Rewards)
+### RLFP on Task Outcomes (Unified + Intrinsic Rewards)
 
 ```typescript
 interface TaskOutcome {
@@ -974,7 +1015,7 @@ reward_intrinsic =
 reward = clamp(reward_extrinsic + 0.3 * reward_intrinsic, -1, 1);
 ```
 
-#### Goal→Tool Dispatch (Semantic, Native AST)
+### Goal→Tool Dispatch (Semantic, Native AST)
 
 ```typescript
 // Narsese operation goal: ^apply_fix(fix_pattern:null_check)
@@ -987,7 +1028,7 @@ async executeToolGoal(goalTerm: Term): Promise<ToolResult> {
 }
 ```
 
-#### Cognitive State Observability
+### Cognitive State Observability
 
 Structured cognitive state emitted every 10 cycles:
 
@@ -1007,14 +1048,7 @@ Structured cognitive state emitted every 10 cycles:
 
 CLI: `pnpm exec tsx src/bin/self-report.ts`
 
-#### Autonomous Self-Modification Governance
-
-The self-improvement loop is evolving toward **externally governed autonomous code modification**:
-
-- **Shadow worktree codemod execution** — git worktree isolation for safe code changes with full CI validation
-- **RLFP-driven code modification** — reward model guides which changes to attempt
-- **Autonomous schema promotion** — high-confidence learned schemas become production inference rules
-- **Sabotage→auto-fix litmus test** — system detects injected faults and repairs itself
+### Autonomous Self-Modification Governance
 
 **Governance Pipeline (In-Repo Prototype):**
 - `PatchRiskClassifier` scores patches against guard-rail file list (approval logic, sandbox config, reward functions, autonomy mode, kernel gates, schemas, budget limits).
@@ -1029,27 +1063,6 @@ The self-improvement loop is evolving toward **externally governed autonomous co
 - `AutonomyMode` enum: `observe-only` → `propose-only` → `sandbox-execute` → `low-risk-auto-merge` → `human-approved-production`
 
 These capabilities build on the existing shadow execution safety (git worktree + full CI + ApprovalManager) and the unified RLFP reward signal (extrinsic + intrinsic).
-
-### Tools & Function Calling
-
-```typescript
-import { ToolManager, discoverTools, ExplainTool, SleepTool, TimerTool } from '@senars/nar/tools';
-
-const tools = nar.tools;
-await tools.execute('explain', { term: '(cat --> animal)' });
-await tools.execute('sleep', { ms: 1000 });
-await tools.execute('timer', { action: 'start', name: 'reasoning' });
-
-// Custom tools via decorator
-@Tool({ name: 'my_tool', description: '...', schema: {...} })
-async function myTool(args: { input: string }) { ... }
-```
-
-**Built-in tool surface (all backed by real implementations):** fs (`read-file`, `write-file`,
-`append-file`, workspace-sandboxed), `shell` (30s timeout, async), web (`search` with
-Tavily→DuckDuckGo fallback, `tavily-search`, `web-fetch`), memory (`remember`, `query`,
-`episodes` — episodic memory; fail honestly when no backend), `metta` (delegates to the MeTTa
-engine), plus approval/timer/sleep utilities.
 
 ---
 
@@ -1183,6 +1196,10 @@ registerAgentAPI(server, agent);
 // learn_belief, explain_belief, agent_chat, agent_believe, agent_recall, 
 // agent_know, get_beliefs, get_attention, and more
 ```
+
+---
+
+## 🖥️ Web UI & Visualization
 
 ### Web UI
 
@@ -1341,45 +1358,6 @@ await space.execute('run_wasm');
 
 **Exports:** `createWasiSandbox`, `createWasmModuleSandbox`, `createNodeVMSandbox`, `SandboxTimeoutError`, `DEFAULT_SANDBOX_TIMEOUT_MS`, `sanitizePreopens`, `containsPath`, `assertWasmPathContained`, `withTimeout` from `@senars/nar/capability`.
 
-### Cognitive Parameters & Strategy System
-
-**Tunable Hyperparameters** — All behavior controlled via `CognitiveParameters` with validated ranges:
-
-```typescript
-import { CognitiveParameters, DEFAULT_COGNITIVE_PARAMETERS, FAST_COGNITIVE_CONFIG, LM_HEAVY_CONFIG, RESEARCH_COGNITIVE_CONFIG } from '@senars/nar/config/cognitive-parameters';
-```
-
-| Preset | Use Case |
-|--------|----------|
-| `DEFAULT_COGNITIVE_PARAMETERS` | Balanced general use |
-| `FAST_COGNITIVE_CONFIG` | Minimal LM, max speed |
-| `LM_HEAVY_CONFIG` | Maximum LM enhancement |
-| `RESEARCH_COGNITIVE_CONFIG` | Full tracing, limited derivations |
-
-**Parameter Categories:**
-
-| Category | Controls |
-|----------|----------|
-| **Priority** | Initial/max priority, mention boosts, decay rate, propagation |
-| **LM** | Enabled, rule categories, timeout, selection strategy |
-| **Attention** | Auto-prime, structural/semantic similarity, activation propagation |
-| **Inference** | Max derivations/depth, circular detection, trace collection, CPU throttle, sampling limits |
-
-**Pluggable Strategies** (configurable via `strategies` object):
-
-| Strategy Type | Options |
-|---------------|---------|
-| **Sampling** | `priority`, `top-n`, `novelty`, `goal-biased`, `diverse` |
-| **Premise Formation** | `default-formation`, `sample`, `focused` |
-| **Derivation** | `default`, `anytime`, `sampled`, `focused`, `exhaustive` |
-| **LM Rule Selection** | `all`, `priority`, `rotation`, `diverse` |
-| **Attention** | `simple`, `spreading-activation`, `goal-relevance`, `composite` |
-
-**Optimization-Ready** — `PARAMETER_SPACE` defines min/max/default for every tunable, enabling:
-- Grid/random search via `CognitiveOptimizer`
-- RL-based policy optimization (RLFP)
-- Evolutionary parameter tuning
-
 ### Production Readiness
 
 SeNARS12 is designed for **continuous, unattended operation** within defined autonomy bounds. The cognitive kernel includes:
@@ -1395,9 +1373,79 @@ SeNARS12 is designed for **continuous, unattended operation** within defined aut
 
 ---
 
-## 🧪 Validation & Benchmarking Plan
+## 🔧 Configuration Reference
 
-To prove the new claims, the following automated test suites are being implemented. These will be integrated into the CI pipeline.
+This section is the lookup reference for tuning and deployment; the system description above does not depend on it. For the full LM configuration semantics, see `docs/tech/lm-config.md`.
+
+### LM Profiles & Routing
+
+`LM_PROFILE` selects a preset: `auto` (default — cloud when credentials exist, else local),
+`cloud-quality`, `local-private` (transformers.js), `ollama`. Per-tier env overrides
+(`LM_FAST_MODEL` etc.) and an optional `routing` config block enable objective-driven
+multi-provider model selection with a self-upgrading offline failsafe ladder. See
+`docs/tech/lm-config.md` for the full provider × tier × credential matrix.
+
+LM profiles are the system's interface to external **System 1 proposers**: each profile selects which untrusted models translate, enrich, and formalize on the kernel's behalf.
+
+### NARConfig
+
+```typescript
+// Full NARConfig interface
+interface NARConfig extends CoreConfig {
+  // LLM Integration
+  lmService?: LMService;
+  providerRegistry?: SeNARSRegistry;
+  enableLMRules?: boolean;
+  enableBidirectionalFeedback?: boolean;
+  enableProactiveEnrichment?: boolean;
+  enableLMStreaming?: boolean;
+
+  // Optional Subsystems
+  enableTools?: boolean;
+  enableSelf?: boolean;
+  enableRLFP?: boolean;
+  rlfp?: { optimizeInterval?: number };
+
+  // Cognitive Architecture
+  cognitiveParams?: CognitiveParameters;
+  strategyRegistry?: CognitiveRegistry;
+  adaptationInterval?: number;
+
+  // Persistence
+  persistState?: boolean;
+  statePath?: string;
+}
+```
+
+### Environment Variables (`.env`)
+
+```bash
+# LM Provider
+LM_PROVIDER=openai|anthropic|ollama|local
+LM_MODEL=gpt-4o|claude-3|...
+LM_API_KEY=...
+
+# Transports
+ENABLE_IRC=true
+ENABLE_WS=true
+ENABLE_HTTP=true
+ENABLE_MCP=true
+ENABLE_WEB_UI=true
+
+# IRC
+IRC_SERVER=irc.libera.chat
+IRC_CHANNEL=#senars
+IRC_NICK=senars-bot
+
+# Persistence
+STATE_PATH=.cache/nar-state
+```
+
+---
+
+## 🧪 Proof Obligations & Benchmark Plan
+
+The architecture makes strong claims (paraconsistency, bounded degradation, self-modification safety). Each claim below is bound to a concrete, automated falsification test — the kernel's contract with its auditors, enforced in CI.
 
 | Benchmark Name | Purpose | Implementation Strategy |
 |---|---|---|
