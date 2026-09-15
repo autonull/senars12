@@ -210,6 +210,12 @@ const NAL_EXTENDED_RULES: RuleDef[] = [
     truth: 'contraposition',
     priority: 0.9,
   }),
+  _rule('nal.disjunctiveSyllogism', 'Disjunctive syllogism', {
+    pattern: ['disjunction', 'negation'],
+    build: NALExtendedRules['disjunctiveSyllogism'],
+    truth: 'deduction',
+    priority: 0.9,
+  }),
   _rule('nal.conversion', 'Term conversion', {
     pattern: ['inheritance', 'inheritance'],
     build: NALExtendedRules['conversion'],

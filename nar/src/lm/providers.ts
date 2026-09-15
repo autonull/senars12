@@ -112,44 +112,62 @@ export function createSeNARSRegistry(settings?: LMSettings) {
     apiKey: 'ollama',
     baseURL: `${(ollamaHost ?? OLLAMA_HOST_DEFAULT).replace(/\/v1\/?$/, '')}/v1`,
   });
+  const thinkingAwareFetch: typeof fetch | undefined = s.disableThinking
+    ? (input, init) => {
+        if (typeof init?.body === 'string') {
+          try {
+            const body = JSON.parse(init.body);
+            if (body.messages && !body.chat_template_kwargs) {
+              body.chat_template_kwargs = { enable_thinking: false };
+              init = { ...init, body: JSON.stringify(body) };
+            }
+          } catch {}
+        }
+        return fetch(input, init);
+      }
+    : undefined;
   const cloud = createOpenAICompatible({
     name: 'cloud',
     apiKey: cloudApiKey(s) ?? '',
     baseURL:
       baseUrl ??
       (provider === 'anthropic' ? 'https://api.anthropic.com/v1' : 'https://api.openai.com/v1'),
+    ...(thinkingAwareFetch && { fetch: thinkingAwareFetch }),
   });
   const frontierId = modelOverride ?? defaultModelFor(provider);
   const builtinCompact = compactModel ?? builtinModels.compact;
   const offlineTier = resolveOfflineTier(s);
 
-  const webllmQuality = useWebLLM ? createWebLLMModel('llama-3.2-3b-instruct') : mockModel();
-  const webllmFast = useWebLLM ? createWebLLMModel('phi-3.5-mini-instruct') : mockModel();
+  const webllmQuality = useWebLLM ? createWebLLMModel('llama-3.2-3b-instruct') : undefined;
+  const webllmFast = useWebLLM ? createWebLLMModel('phi-3.5-mini-instruct') : undefined;
 
+  // Unavailable slots are omitted (not mocked) so registry.languageModel() throws
+  // and routing failover skips them instead of silently admitting a placeholder.
   return createProviderRegistry({
     cloud: customProvider({
       languageModels: {
-        quality: useCloud ? cloud(frontierId) : mockModel(),
-        fast: useCloud ? cloud(fastModel ?? frontierId) : mockModel(),
-        structured: useCloud ? cloud(structuredModel ?? frontierId) : mockModel(),
-        compact: useCloud ? cloud(compactModel ?? frontierId) : mockModel(),
+        ...(useCloud && {
+          quality: cloud(frontierId),
+          fast: cloud(fastModel ?? frontierId),
+          structured: cloud(structuredModel ?? frontierId),
+          compact: cloud(compactModel ?? frontierId),
+        }),
       },
       fallbackProvider: useCloud ? cloud : undefined,
     }),
     local: customProvider({
       languageModels: {
-        quality: useLocal ? ollama(modelOverride ?? defaultModelFor('ollama')) : mockModel(),
-        fast: useLocal ? ollama(fastModel ?? OLLAMA_FAST_DEFAULT) : mockModel(),
-        compact: useLocal ? ollama(compactModel ?? OLLAMA_COMPACT_DEFAULT) : mockModel(),
+        ...(useLocal && {
+          quality: ollama(modelOverride ?? defaultModelFor('ollama')),
+          fast: ollama(fastModel ?? OLLAMA_FAST_DEFAULT),
+          compact: ollama(compactModel ?? OLLAMA_COMPACT_DEFAULT),
+        }),
       },
       fallbackProvider: useLocal ? ollama : undefined,
     }),
     webllm: customProvider({
       languageModels: {
-        quality: webllmQuality,
-        fast: webllmFast,
-        structured: webllmQuality,
-        compact: webllmFast,
+        ...(useWebLLM && { quality: webllmQuality, fast: webllmFast, structured: webllmQuality, compact: webllmFast }),
       },
       fallbackProvider: useWebLLM ? undefined : undefined,
     }),
@@ -157,7 +175,7 @@ export function createSeNARSRegistry(settings?: LMSettings) {
       languageModels: {
         quality: localModel(offlineTier ?? modelOverride ?? builtinModels.quality, s, builtinProgressCallback),
         fast: localModel(builtinCompact, s, builtinProgressCallback),
-        structured: localModel(builtinCompact, s, builtinProgressCallback),
+        structured: localModel(offlineTier ?? modelOverride ?? builtinModels.quality, s, builtinProgressCallback),
         compact: localModel(builtinCompact, s, builtinProgressCallback),
         mock: mockModel(),
       },

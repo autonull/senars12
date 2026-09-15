@@ -376,6 +376,14 @@ export class RuleProcessor {
       memoryPressure: stats?.memoryPressure ?? 0,
       driveState,
       conflictCount,
+      truth: {
+        f: p1.truth?.f ?? 0.5,
+        c: p1.truth?.c ?? 0.5,
+      },
+      secondaryTruth: {
+        f: effectiveP2.truth?.f ?? 0.5,
+        c: effectiveP2.truth?.c ?? 0.5,
+      },
     };
 
     const relatedConcepts = this.memory?.getRelatedConcepts(p1.term, 5);
@@ -423,6 +431,10 @@ export class RuleProcessor {
                 priority: lmRule.priority,
               }) as RuleResult
           );
+          // Record LM rule derivations
+          for (const r of result) {
+            this.recorder.record(lmRule.id, p1, effectiveP2, r);
+          }
           this.executionLog.push({
             ruleName: lmRule.name,
             status: result.length > 0 ? 'fired' : 'timeout',

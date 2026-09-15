@@ -124,9 +124,20 @@ export class LMService {
     setBuiltinProgressCallback(cb);
   }
 
+  /** Active SeNARS provider name (CHAINS key). Raw model providers don't always
+   *  match (e.g. transformers-js → transformers, cloud → configured cloud provider). */
   get provider(): string | undefined {
-    const model = this.getModel('quality');
-    return (model as { provider?: string })?.provider;
+    const raw = (this.getModel('quality') as { provider?: string } | undefined)?.provider;
+    if (!raw) return getLmProvider();
+    const configured = getLmProvider();
+    const map: Partial<Record<string, LMProviderName>> = {
+      'transformers-js': 'transformers',
+      ollama: 'ollama',
+      mock: 'mock',
+      webllm: 'webllm',
+      cloud: configured,
+    };
+    return map[raw] ?? (raw as LMProviderName) ?? configured;
   }
 
   get model(): string | undefined {

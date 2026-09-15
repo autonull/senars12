@@ -1,8 +1,8 @@
 /**
- * Classical extended NAL rules: modus ponens, modus tollens, conversion.
+ * Classical extended NAL rules: modus ponens, modus tollens, disjunctive syllogism, conversion.
  */
 import type { Term } from '../../terms';
-import { getPredicate, getSubject, TermBuilder, termsEqual } from '../../terms';
+import { getPredicate, getSubject, TermBuilder, termsEqual, isDisjunction, isNegation } from '../../terms';
 import type { RuleFn } from '../types.js';
 
 export const modusPonens: RuleFn = ([imp, antecedent]: [Term, Term]): Term | undefined => {
@@ -18,6 +18,16 @@ export const modusTollens: RuleFn = ([imp, negConsequent]: [Term, Term]): Term |
   if (!impCons || !negArg || !termsEqual(impCons, negArg)) return undefined;
   const impAnte = imp.args[0];
   return impAnte ? TermBuilder.negation(impAnte) : undefined;
+};
+
+export const disjunctiveSyllogism: RuleFn = ([disj, negTerm]: [Term, Term]): Term | undefined => {
+  if (!isDisjunction(disj) || !isNegation(negTerm)) return undefined;
+  const [left, right] = disj.args;
+  const negArg = negTerm.args[0];
+  if (!left || !right || !negArg) return undefined;
+  if (termsEqual(left, negArg)) return right;
+  if (termsEqual(right, negArg)) return left;
+  return undefined;
 };
 
 export const conversion: RuleFn = ([inh]: [Term, Term]): Term | undefined => {

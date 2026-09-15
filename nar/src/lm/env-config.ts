@@ -31,6 +31,8 @@ export interface LMSettings {
   apiKeyEnv?: string;
   quantized?: boolean;
   cacheDir?: string;
+  /** Inject chat_template_kwargs {enable_thinking:false} per request (Qwen3 reasoning models via llama.cpp). */
+  disableThinking?: boolean;
   /** Per-provider circuit breaker settings. */
   circuitBreaker?: Partial<Record<LMProviderName, Partial<CircuitBreakerConfig>>>;
 }
@@ -128,6 +130,7 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
     apiKeyEnv: file?.apiKeyEnv ?? cloudCredentialEnv,
     quantized: file?.quantized,
     cacheDir: file?.cacheDir,
+    disableThinking: ['1', 'true'].includes(env('LM_DISABLE_THINKING') ?? '') || file?.disableThinking === true,
     circuitBreaker: file?.circuitBreaker,
   };
 };

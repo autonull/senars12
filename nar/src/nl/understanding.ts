@@ -198,10 +198,13 @@ export class NLUnderstandingService {
       const text = this.lm
         ? await this.lm.generateText(prompt + '\n\nRespond with valid JSON only.', {
             task: 'structured',
+            maxOutputTokens: 120,
+            signal: AbortSignal.timeout(30000),
           })
         : await generateText({
             model: this.model!,
             prompt: prompt + '\n\nRespond with valid JSON only.',
+            maxOutputTokens: 120,
           }).then((r) => r.text);
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) return null;
@@ -217,10 +220,13 @@ export class NLUnderstandingService {
       const text = this.lm
         ? await this.lm.generateText(prompt + '\n\nRespond with Narsese statements only.', {
             task: 'structured',
+            maxOutputTokens: 120,
+            signal: AbortSignal.timeout(30000),
           })
         : await generateText({
             model: this.model!,
             prompt: prompt + '\n\nRespond with Narsese statements only.',
+            maxOutputTokens: 120,
           }).then((r) => r.text);
       return this.extractNarseseFromText(text, input);
     } catch {

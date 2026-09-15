@@ -17,7 +17,8 @@ allowBuilds:
   iconv: true
   koffi: true
   node-icu-charset-detector: true
-  onnxruntime-node: false
+  node-llama-cpp: true
+  onnxruntime-node: true
   protobufjs: false
   sharp: false
   unrs-resolver: true
