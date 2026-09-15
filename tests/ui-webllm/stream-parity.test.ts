@@ -1,7 +1,7 @@
 /**
  * WebLLM Stream Parity Test (3A)
  * 
- * Unit test driving @senars/ui-webllm doStream() with a mock engine
+ * Unit test driving ../../ui/src/webllm.ts doStream() with a mock engine
  * (same ChatStreamEvent shapes: text-start/text-delta/text-end/finish).
  * Asserts WS-fallback path and tool-loop event parity.
  * 
@@ -16,8 +16,8 @@ const emptyAsyncIterable: AsyncIterable<any> = {
   [Symbol.asyncIterator]: async function* () { }
 };
 
-// Mock the @senars/ui-webllm module
-vi.mock('@senars/ui-webllm', () => {
+// Mock the ../../ui/src/webllm.ts module
+vi.mock('../../ui/src/webllm.ts', () => {
   // Mock engine
   let mockStreamImpl: AsyncIterable<any> = emptyAsyncIterable;
 
@@ -105,7 +105,7 @@ vi.mock('@senars/ui-webllm', () => {
 });
 
 // Import the mocked module
-const mockedModule = await import('@senars/ui-webllm');
+const mockedModule = await import('../../ui/src/webllm.ts');
 const createWebLLMModel = mockedModule.createWebLLMModel;
 const __testUtils = (mockedModule as any).__testUtils;
 

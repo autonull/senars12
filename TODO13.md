@@ -249,12 +249,13 @@ Agent A delegates via WebSocket; Agent B runs the *same universal LM rule* local
 - [ ] Multi-Agent Cooperation section
 - [ ] Quick Reference table
 
-## Improvement Opportunities (noted during audit, not in scope)
-- Move `MettaCommandParser` (a general command parser) out of `metta/` into `core/` or `io/`.
-- Unify `SourceQuality` fully: delete the legacy numeric enum once the kernel schema is the only consumer.
-- Replace the ad-hoc `probeOllama`/auto-detect ladder with a shared provider-probe abstraction when llamacpp lands.
-- `nar/src/lm/context.ts` is minimal; `TraceAbstractor` is a good seed for a proper `context/` module.
-- Bench scenario 2 currently can't verify LM firing under mock; scenario 7's degradation path doubles as the fix.
+## Improvement Opportunities (next development cycle)
+1. **Resolve the pre-existing core↔metta workspace cycle**: `MettaCommandParser` (a general command parser, now metta-free) should move to `core/` or `io/`; metta should depend on core, not vice versa.
+2. **Unify `SourceQuality` fully**: delete the legacy numeric enum in `nar/src/grounding.ts` once the kernel schema is the only consumer.
+3. **Shared provider-probe abstraction**: `probeOllama`/`probeLlamaCpp`/cloud checks repeat the same shape — extract one probe interface used by `resolveActiveProvider`.
+4. **UI-side WebLLM wiring**: call `configureWebLLM({ createModel, models })` from `ui/src/webllm.ts` in the browser client when WebGPU is present, enabling the in-browser provider.
+5. **Bench wall-clock budget**: per-scenario LM call budget for real-provider runs (scenarios 1–3 with a real model take minutes: NAR cycles × rule calls).
+6. `nar/src/lm/context.ts` is minimal; `TraceAbstractor` is a good seed for a proper `context/` module.
 
 ## Progress (2026-09-15)
 
@@ -310,6 +311,27 @@ Architecture diagram (MeTTa removed from proposers), universal prompts/fallbacks
 5. **Narsese normalization** (`nar/src/nl/normalize.ts`): LLM output like `(Alice --> senior developer)`, `(Backup Generator Kicks In) --> (Server Crashes)`, `--(...)`, bare `A && B` is canonicalized (snake_case atoms, outer-paren wrapping) and used by `SymbolicFirewall.check` + `KernelPerceptionGate.admitFormalization`. All probed real-model outputs now parse.
 
 **Wrap-up state:** Phases 0–6 complete; mock bench 7/7; unit/integration suites green; real llama.cpp end-to-end path proven (provider → GBNF grammar → structured output → Narsese normalization → gate admission).
+
+## Architecture State (verified 2026-09-15)
+
+Package dependency graph (acyclic at the nar level; note the pre-existing core↔metta cycle under "Improvements"):
+
+```
+util ← kernel
+util ← core ← io
+core ← metta            (pre-existing core↔metta cycle — see Improvements)
+core, io, kernel, util ← nar   (no ui, no browser deps)
+core, nar ← ui          (ui/src/webllm.ts: browser WebLLM runtime)
+```
+
+Key seams for further development:
+- **LM providers** (`nar/src/lm/providers.ts`): auto-detect ladder cloud → Ollama → llama.cpp → transformers; explicit provider = authoritative (no silent CPU fallback). `configureWebLLM()` injects the browser runtime from `ui/src/webllm.ts` when a UI host wants in-browser inference.
+- **LM rules** (`nar/src/lm/`): `LMRuleDefinition {grammar, maxOutputTokens, fallback}` → `LMRule` escalation → `symbolicFallbacks` → shadow validation in `admitTasks`. Adding a rule = one entry in `rule-templates` + one fallback.
+- **Narsese robustness** (`nar/src/nl/normalize.ts`): all model output passes `normalizeNarsese`/`parseNarseseLenient` at the firewall and perception gate. Extend here (not per-model) when new deviations appear.
+- **Cooperation** (`nar/src/cooperation/delegation.ts`): transport-agnostic handlers; wire into an `io` WS connection to enable multi-agent.
+- **Grammars** (`nar/src/lm/grammars/`): add `.gbnf` files + names to `GrammarName` for new constrained formats.
+
+Verification checklist (all passing): `npx vitest run tests/unit tests/integration tests/ui-webllm` → 259 passed; `pnpm bench:fundamentals` (mock) → 7/7; `npx tsc -p nar --noEmit` clean.
 
 **Runtime guidance for real-model runs:**
 - Serve a small model non-router (warm, no cold loads): `llama-server -m <Qwen3.5-4B-Q4_K_M>.gguf --alias qwen4b -ngl 99 -c 8192 -fa on --threads 4`.

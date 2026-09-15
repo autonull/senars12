@@ -231,3 +231,9 @@ export function clearEngineCache(): void {
   engineCache.clear();
   initPromises.clear();
 }
+/** Adapter matching nar's WebLLMRuntime injection contract (@senars/nar/lm). */
+export const webllmRuntime = {
+  createModel: (modelKey: string, onProgress?: (progress: number) => void) =>
+    createWebLLMModel(modelKey, onProgress),
+  models: webllmModels as Record<string, { id: string; label?: string }>,
+};
