@@ -13,6 +13,9 @@ export interface NAREventMap extends EventMap {
     conclusion: Term;
     truth: Truth;
     duration: number;
+    cpuMs?: number;
+    lmCalls?: number;
+    lmTokens?: number;
   };
   'concept:created': { term: Term; priority: number };
   'concept:removed': { term: Term; reason: 'forgotten' | 'archived' | 'evicted' };

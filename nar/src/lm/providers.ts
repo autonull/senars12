@@ -12,6 +12,10 @@ import {
   resolveLMSettings,
 } from './env-config.js';
 import { createMockLanguageModel } from './lm-service.js';
+import { createWebLLMModel, webllmModels } from '@senars/ui-webllm';
+import { trace, SpanStatusCode, SpanKind } from '@opentelemetry/api';
+import { getTracer } from '../otel/index.js';
+import { recordCircuitBreakerState, recordLmProbe } from '../metrics/index.js';
 
 export type { LMTask } from '@senars/util';
 export type { LMSettings } from './env-config.js';
@@ -26,7 +30,10 @@ export type LMProviderName =
   | 'anthropic'
   | 'openai'
   | 'openai-compatible'
+  | 'webllm'
   | 'mock';
+
+export { webllmModels };
 
 let activeFileSettings: LMSettingsInput | undefined;
 
@@ -98,6 +105,7 @@ export function createSeNARSRegistry(settings?: LMSettings) {
     provider === 'anthropic' ||
     provider === 'openai' ||
     provider === 'openai-compatible';
+  const useWebLLM = provider === 'webllm' && typeof navigator !== 'undefined' && 'gpu' in navigator;
 
   const ollama = createOpenAICompatible({
     name: 'ollama',
@@ -114,6 +122,9 @@ export function createSeNARSRegistry(settings?: LMSettings) {
   const frontierId = modelOverride ?? defaultModelFor(provider);
   const builtinCompact = compactModel ?? builtinModels.compact;
   const offlineTier = resolveOfflineTier(s);
+
+  const webllmQuality = useWebLLM ? createWebLLMModel('llama-3.2-3b-instruct') : mockModel();
+  const webllmFast = useWebLLM ? createWebLLMModel('phi-3.5-mini-instruct') : mockModel();
 
   return createProviderRegistry({
     cloud: customProvider({
@@ -132,6 +143,15 @@ export function createSeNARSRegistry(settings?: LMSettings) {
         compact: useLocal ? ollama(compactModel ?? OLLAMA_COMPACT_DEFAULT) : mockModel(),
       },
       fallbackProvider: useLocal ? ollama : undefined,
+    }),
+    webllm: customProvider({
+      languageModels: {
+        quality: webllmQuality,
+        fast: webllmFast,
+        structured: webllmQuality,
+        compact: webllmFast,
+      },
+      fallbackProvider: useWebLLM ? undefined : undefined,
     }),
     builtin: customProvider({
       languageModels: {
@@ -175,6 +195,15 @@ const localCap = {
   local: true,
 } as const;
 
+const webllmCap = {
+  contextTokens: 8192,
+  supportsTools: false,
+  supportsJson: true,
+  costPerMTok: 0,
+  latencyClass: 'fast' as const,
+  local: true,
+} as const;
+
 export const MODEL_CAPABILITIES: Record<string, ModelCapability> = {
   'cloud:quality': { ...cloudFrontierCap, latencyClass: 'medium' },
   'cloud:fast': { ...cloudFrontierCap, costPerMTok: 0.15, latencyClass: 'fast' },
@@ -187,6 +216,8 @@ export const MODEL_CAPABILITIES: Record<string, ModelCapability> = {
   'builtin:fast': { ...localCap, latencyClass: 'fast' },
   'builtin:compact': { ...localCap, latencyClass: 'fast', contextTokens: 8_192 },
   'builtin:mock': { ...localCap, latencyClass: 'fast', contextTokens: 1_024 },
+  'webllm:quality': { ...webllmCap, latencyClass: 'medium' },
+  'webllm:fast': { ...webllmCap, latencyClass: 'fast' },
 };
 
 export const getModelCapability = (id: string): ModelCapability | undefined =>
@@ -288,6 +319,11 @@ const CHAINS: Record<LMProviderName, Record<LMTask, SeNARSModelId[]>> = {
     fast: ['cloud:fast', 'local:fast', 'builtin:compact', 'builtin:mock'],
     structured: ['cloud:structured', 'local:quality', 'builtin:compact', 'builtin:mock'],
   },
+  webllm: {
+    quality: ['webllm:quality', 'builtin:quality', 'builtin:compact', 'builtin:mock'],
+    fast: ['webllm:fast', 'builtin:compact', 'builtin:mock'],
+    structured: ['webllm:quality', 'builtin:compact', 'builtin:mock'],
+  },
 };
 
 export function getModelChain(provider: LMProviderName, task: LMTask): SeNARSModelId[] {
@@ -358,6 +394,9 @@ export async function probeOllama(host?: string): Promise<boolean> {
 export async function resolveActiveProvider(): Promise<LMProviderName> {
   const configured = getLmProvider();
   if (configured === 'mock') return 'mock';
+  if (configured === 'webllm') {
+    return (typeof navigator !== 'undefined' && 'gpu' in navigator) ? 'webllm' : 'transformers';
+  }
   if (configured === 'transformers') {
     if (hasCloudCredentials()) return 'openai-compatible';
     return (await probeOllama()) ? 'ollama' : 'transformers';
@@ -392,6 +431,7 @@ const PROVIDER_CIRCUIT_DEFAULTS: Partial<Record<LMProviderName, Partial<CircuitB
   'openai-compatible': { failureThreshold: 5, resetTimeoutMs: 30_000, successThreshold: 2 },
   ollama: { failureThreshold: 10, resetTimeoutMs: 15_000, successThreshold: 3 },
   transformers: { failureThreshold: 20, resetTimeoutMs: 5_000, successThreshold: 5 },
+  webllm: { failureThreshold: 20, resetTimeoutMs: 5_000, successThreshold: 5 },
   mock: { failureThreshold: 100, resetTimeoutMs: 1_000, successThreshold: 10 },
 };
 
@@ -449,16 +489,49 @@ export function getEffectiveCircuitConfig(
   };
 }
 
+const lmTracer = getTracer('senars12.lm');
+
+function emitCircuitBreakerEvent(provider: LMProviderName, state: CircuitState, details: Record<string, unknown> = {}): void {
+  const span = trace.getActiveSpan();
+  if (span) {
+    span.addEvent('circuit.breaker.state_change', {
+      'lm.provider': provider,
+      'circuit.state': state,
+      ...details,
+    });
+  }
+  // Also create a dedicated span for the state change
+  lmTracer.startActiveSpan(
+    `lm.circuit_breaker.${state}`,
+    { kind: SpanKind.INTERNAL },
+    (span) => {
+      span.setAttribute('lm.provider', provider);
+      span.setAttribute('circuit.state', state);
+      Object.entries(details).forEach(([key, value]) => {
+        if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') {
+          span.setAttribute(key, value);
+        }
+      });
+      span.setStatus({ code: SpanStatusCode.OK });
+      span.end();
+    }
+  );
+  // Record Prometheus metric
+  recordCircuitBreakerState(provider, state);
+}
+
 function tripBreaker(provider: LMProviderName): void {
   const b = getBreaker(provider);
   b.state = 'open';
   b.lastFailure = Date.now();
+  emitCircuitBreakerEvent(provider, 'open', { reason: 'failure_threshold_exceeded' });
 }
 
 function halfOpenBreaker(provider: LMProviderName): void {
   const b = getBreaker(provider);
   b.state = 'half-open';
   b.consecutiveSuccesses = 0;
+  emitCircuitBreakerEvent(provider, 'half-open', { reason: 'reset_timeout_elapsed' });
 }
 
 function closeBreaker(provider: LMProviderName): void {
@@ -466,6 +539,7 @@ function closeBreaker(provider: LMProviderName): void {
   b.state = 'closed';
   b.consecutiveFailures = 0;
   b.consecutiveSuccesses = 0;
+  emitCircuitBreakerEvent(provider, 'closed', { reason: 'success_threshold_met' });
 }
 
 export function recordProviderCall(
@@ -538,7 +612,7 @@ let healthProbeInterval: ReturnType<typeof setInterval> | null = null;
 export function startHealthProbes(intervalMs = 60_000, settings?: LMSettings): void {
   if (healthProbeInterval) return;
   healthProbeInterval = setInterval(async () => {
-    const providers: LMProviderName[] = ['anthropic', 'openai', 'openai-compatible', 'ollama'];
+    const providers: LMProviderName[] = ['anthropic', 'openai', 'openai-compatible', 'ollama', 'webllm'];
     for (const p of providers) {
       if (!canUseProvider(p, settings)) continue;
       let ok = false;
@@ -546,10 +620,14 @@ export function startHealthProbes(intervalMs = 60_000, settings?: LMSettings): v
         ok = await probeOllama(settings?.ollamaHost);
       } else if (['anthropic', 'openai', 'openai-compatible'].includes(p)) {
         ok = await probeCloudProvider(settings);
+      } else if (p === 'webllm') {
+        ok = typeof navigator !== 'undefined' && 'gpu' in navigator;
       }
       const b = getBreaker(p);
       b.lastProbe = Date.now();
       b.probeResult = ok;
+      // Record Prometheus metric
+      recordLmProbe(p, ok);
       if (ok && b.state === 'open') {
         halfOpenBreaker(p);
       } else if (!ok && b.state !== 'open') {

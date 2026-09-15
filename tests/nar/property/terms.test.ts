@@ -5,7 +5,7 @@ import { normalize, TermBuilder, termsEqual } from '../../../nar/src/terms';
 const atomArb = fc.string({ minLength: 1, maxLength: 10 }).map((s) => TermBuilder.atom(s));
 const termArb: fc.Arbitrary<Term> = fc.oneof(
   atomArb,
-  fc.tuple(atomArb, atomArb).map(([a, b]) => TermBuilder.inheritance(a, b)),
+  fc.tuple(atomArb, atomArb).map(([a, b]) => TermBuilder.inheritance(a, b)).filter((t): t is Term => t !== undefined),
   fc.tuple(atomArb, atomArb).map(([a, b]) => TermBuilder.conjunction(a, b))
 ) as fc.Arbitrary<Term>;
 

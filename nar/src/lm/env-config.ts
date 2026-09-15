@@ -145,6 +145,8 @@ export const defaultModelFor = (provider: ResolvedProvider): string => {
       return 'gpt-4o-mini';
     case 'openai-compatible':
       return 'default';
+    case 'webllm':
+      return 'llama-3.2-3b-instruct';
     case 'mock':
       return 'mock';
   }

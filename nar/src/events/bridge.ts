@@ -40,6 +40,9 @@ const handlers = new Map<keyof NAREventMap, Handler>([
           rule: d.ruleId,
           premises: d.premises.map(String),
           conclusion: String(d.conclusion),
+          cpuMs: d.cpuMs,
+          lmCalls: d.lmCalls,
+          lmTokens: d.lmTokens,
         },
       };
     },

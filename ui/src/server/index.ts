@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import type { Agent, CognitiveEvent, GraphNodeData, IncomingFromServer } from '@senars/core';
 import { isNarsese } from '@senars/core';
 import { DEFAULT_CONFIG, parseTermToEdges, termParser } from '@senars/nar';
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, type WebSocket } from 'ws';
 import { applyConfigField, buildConfigSchema } from './config-schema.js';
 import { UnifiedGraphProjection } from './UnifiedGraphProjection.js';
 
@@ -232,14 +232,19 @@ function handleTestEndpoints(
   return false;
 }
 
-async function aggregateChatResponse(agent: Agent, text: string): Promise<string> {
+async function aggregateChatResponse(agent: Agent, text: string, ws?: WebSocket): Promise<string> {
   console.log('[aggregateChatResponse] Called with:', text);
   let response = '';
   if (typeof agent.chat === 'function') {
     console.log('[aggregateChatResponse] Calling agent.chat...');
     for await (const evt of agent.chat(text)) {
       console.log('[aggregateChatResponse] Got event:', evt.kind);
-      if (evt.kind === 'text-delta' && evt.text) response += evt.text;
+      if (evt.kind === 'text-delta' && evt.text) {
+        response += evt.text;
+        if (ws && ws.readyState === 1) { // WebSocket.OPEN = 1
+          ws.send(JSON.stringify({ type: 'chat.agent.stream', delta: evt.text }));
+        }
+      }
     }
     console.log('[aggregateChatResponse] Done, response:', response);
   }
@@ -336,7 +341,7 @@ function createServerWithProjection(agent?: Agent): {
 
   const wss = new WebSocketServer({ noServer: true });
 
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws: WebSocket) => {
     for (const msg of [
       { type: 'config.schema', data: buildConfigSchema(currentNarConfig) },
       { type: 'lens.fields', fields: [] },
@@ -361,10 +366,10 @@ function createServerWithProjection(agent?: Agent): {
           console.log('[WS] Received message:', msg.type);
           if (msg.type === 'chat.user' && msg.content && agent) {
             console.log('[WS] Calling aggregateChatResponse...');
-            aggregateChatResponse(agent, msg.content)
+            aggregateChatResponse(agent, msg.content, ws)
               .then((response) => {
                 console.log('[WS] Got response:', response);
-                if (ws.readyState === ws.OPEN) {
+                if (ws.readyState === 1) { // WebSocket.OPEN
                   ws.send(
                     JSON.stringify({
                       type: 'chat.agent.complete',
@@ -400,6 +405,21 @@ function createServerWithProjection(agent?: Agent): {
               }
             } catch (e) {
               console.error('[WS] lm.status failed:', e);
+            }
+          }
+
+          if (msg.type === 'lm.switch' && agent) {
+            try {
+              const provider = String(msg.provider ?? '');
+              const narEngine = agent.engines.get('nar') as
+                | { nar?: { setConfig: (u: Record<string, unknown>) => void } }
+                | undefined;
+              if (narEngine?.nar?.setConfig && ['webllm', 'transformers', 'ollama', 'anthropic', 'openai', 'openai-compatible', 'mock'].includes(provider)) {
+                narEngine.nar.setConfig({ lm: { provider } });
+                console.log(`[WS] Switched LM provider to: ${provider}`);
+              }
+            } catch (e) {
+              console.error('[WS] lm.switch failed:', e);
             }
           }
 

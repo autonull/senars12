@@ -4,6 +4,7 @@ packages:
   - 'kernel'
   - 'nar'
   - 'ui'
+  - 'ui-webllm'
   - 'metta'
   - 'util'
 

@@ -27,16 +27,46 @@ const deepMerge = <T>(defaults: T, overrides: Partial<T> | undefined): T => {
   return out as T;
 };
 
-const KNOWN_CONFIG_MAJOR = 1;
+const CURRENT_CONFIG_VERSION = '2.0';
+const KNOWN_CONFIG_MAJOR = 2;
 
-const validateConfigVersion = (version: unknown): void => {
-  if (typeof version !== 'string') return;
+interface MigrationWarning {
+  fromVersion: string;
+  toVersion: string;
+  message: string;
+}
+
+const validateConfigVersion = (version: unknown): MigrationWarning | null => {
+  if (typeof version !== 'string') {
+    return {
+      fromVersion: 'unknown (missing configVersion)',
+      toVersion: CURRENT_CONFIG_VERSION,
+      message:
+        `Config file is missing "configVersion" field. Current version is ${CURRENT_CONFIG_VERSION}. ` +
+        `Add "configVersion": "${CURRENT_CONFIG_VERSION}" to your config.`,
+    };
+  }
   const major = Number.parseInt(version.split('.')[0] ?? '', 10);
   if (major !== KNOWN_CONFIG_MAJOR) {
-    console.warn(
-      `Config version "${version}" is not validated (expected major ${KNOWN_CONFIG_MAJOR}); keys may be ignored`
-    );
+    if (major < KNOWN_CONFIG_MAJOR) {
+      return {
+        fromVersion: version,
+        toVersion: CURRENT_CONFIG_VERSION,
+        message:
+          `Config version "${version}" is outdated (current is ${CURRENT_CONFIG_VERSION}). ` +
+          `Run with --migrate to attempt automatic migration (stub). ` +
+          `See docs for migration guide.`,
+      };
+    }
+    return {
+      fromVersion: version,
+      toVersion: CURRENT_CONFIG_VERSION,
+      message:
+        `Config version "${version}" is newer than supported (${CURRENT_CONFIG_VERSION}). ` +
+        `Some features may not work correctly.`,
+    };
   }
+  return null;
 };
 
 export const loadConfig = async (path?: string): Promise<AppConfig> => {
@@ -54,8 +84,18 @@ export const loadConfig = async (path?: string): Promise<AppConfig> => {
       );
     }
   }
+  const warning = validateConfigVersion(raw.configVersion);
+  if (warning) {
+    console.warn(`[config] ${warning.message}`);
+    if (warning.fromVersion !== 'unknown (missing configVersion)' && warning.fromVersion < CURRENT_CONFIG_VERSION) {
+      console.warn('[config] Migration stub: run with SENARS_CONFIG_MIGRATE=1 to attempt migration (not implemented)');
+    }
+  }
   const merged = { ...raw, ...readEnvOverrides() };
-  validateConfigVersion(raw.configVersion);
+  // Ensure configVersion is set in the parsed result
+  if (!merged.configVersion) {
+    merged.configVersion = CURRENT_CONFIG_VERSION;
+  }
   return appConfigSchema.parse(merged);
 };
 
@@ -64,3 +104,5 @@ export const loadConfigFromEnv = async (): Promise<AppConfig> => {
 };
 
 export const deepMergeConfig = deepMerge;
+
+export { CURRENT_CONFIG_VERSION };

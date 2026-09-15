@@ -165,18 +165,67 @@ export function registerMCPResources(server: McpServer, context: MCPResourceCont
     'nar://benchmarks',
     {
       title: 'Benchmarks',
-      description: 'Benchmark history and scores',
+      description: 'Benchmark history and scores with derivation cost attribution',
       mimeType: 'application/json',
     },
-    async () => ({
-      contents: [
-        {
-          uri: 'nar://benchmarks',
-          mimeType: 'application/json',
-          text: stringifyMCP({ history: [] }),
+    async () => {
+      const ruleProcessor = nar.getRuleProcessor?.();
+      const lmRules = nar.getLMRules?.();
+
+      const ruleStats = ruleProcessor?.getRuleStats?.() ?? [];
+      const lmRuleStats = lmRules?.map((r: { getStats: () => unknown }) => r.getStats()) ?? [];
+
+      // Aggregate top costly derivations
+      const costlyDerivations: Array<{
+        rule: string;
+        cpuMs: number;
+        lmCalls: number;
+        lmTokens: number;
+        count: number;
+        avgCpuMs: number;
+      }> = [];
+
+      // Add LMRule stats with cost data
+      for (const lmStat of lmRuleStats) {
+        if (lmStat && typeof lmStat === 'object' && 'stats' in lmStat) {
+          const stats = (lmStat as { stats: { totalCalls: number; successfulCalls: number; totalTokens: number; totalDurationMs: number; avgDurationMs: number } }).stats;
+          if (stats && stats.totalCalls > 0) {
+            costlyDerivations.push({
+              rule: (lmStat as { id: string; name: string }).id,
+              cpuMs: stats.totalDurationMs,
+              lmCalls: stats.totalCalls,
+              lmTokens: stats.totalTokens,
+              count: stats.successfulCalls,
+              avgCpuMs: stats.avgDurationMs,
+            });
+          }
+        }
+      }
+
+      // Sort by total CPU time descending
+      costlyDerivations.sort((a, b) => b.cpuMs - a.cpuMs);
+
+      const benchmarks = {
+        history: [],
+        costlyDerivations: costlyDerivations.slice(0, 10),
+        totals: {
+          totalDerivations: ruleStats.reduce((sum: number, r: { executions: number }) => sum + (r.executions ?? 0), 0),
+          totalCpuMs: costlyDerivations.reduce((sum, d) => sum + d.cpuMs, 0),
+          totalLmCalls: costlyDerivations.reduce((sum, d) => sum + d.lmCalls, 0),
+          totalLmTokens: costlyDerivations.reduce((sum, d) => sum + d.lmTokens, 0),
         },
-      ],
-    })
+      };
+
+      return {
+        contents: [
+          {
+            uri: 'nar://benchmarks',
+            mimeType: 'application/json',
+            text: stringifyMCP(benchmarks),
+          },
+        ],
+      };
+    }
   );
 
   server.registerResource(

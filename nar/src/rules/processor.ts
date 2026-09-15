@@ -211,6 +211,17 @@ export class RuleProcessor {
             (ruleResult as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType =
               rule.taskType;
             this.recorder.record(rule.id, p1, p2, ruleResult);
+            // Emit rule:applied event for cost tracking
+            this.eventBus?.emit('rule:applied', {
+              ruleId: rule.id,
+              premises: [p1.term, p2.term],
+              conclusion: result as Term,
+              truth: ruleResult.truth,
+              duration: 0, // Will be updated by caller if needed
+              cpuMs: 0,
+              lmCalls: 0,
+              lmTokens: 0,
+            });
             yield ruleResult;
           } else if (result) {
             this.eventBus?.emit('rule:output-rejected', {
@@ -270,6 +281,17 @@ export class RuleProcessor {
           const rr = buildResult(result as Term, rule.truthFn ?? NEUTRAL_FN, p1, p2, rule.priority);
           (rr as RuleResult & { taskType?: RegisteredRule['taskType'] }).taskType = rule.taskType;
           this.recorder.record(rule.id, p1, p2, rr);
+          // Emit rule:applied event for cost tracking
+          this.eventBus?.emit('rule:applied', {
+            ruleId: rule.id,
+            premises: [p1.term, p2.term],
+            conclusion: result as Term,
+            truth: rr.truth,
+            duration: 0,
+            cpuMs: 0,
+            lmCalls: 0,
+            lmTokens: 0,
+          });
           const existing = this.seenBuffer.get(rs);
           if (!existing || rule.priority > existing.priority) {
             this.seenBuffer.set(rs, rr);

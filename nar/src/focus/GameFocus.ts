@@ -280,6 +280,12 @@ export class GameFocus {
   markEpisodeEnd(): void {
     this.episodeVetoCounts.push(this.currentEpisodeVetos);
     this.currentEpisodeVetos = 0;
+    // Decay epsilon on reflexes
+    for (const reflex of this.focus.reflexes) {
+      if (typeof (reflex as any).onEpisodeEnd === 'function') {
+        (reflex as any).onEpisodeEnd();
+      }
+    }
   }
 
   /** Get veto statistics (2C). */

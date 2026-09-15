@@ -85,6 +85,11 @@ export const $connectionState = atom<'connecting' | 'connected' | 'reconnecting'
 );
 export const $lastSeqId = atom<number | null>(null);
 
+// --- WebLLM ---
+export const $webllmAvailable = atom<boolean>(false);
+export const $webllmActive = atom<boolean>(false);
+export const $webllmModel = atom<string>('');
+
 export const $activeLens = atom<Lens>('belief');
 export const $focusTerm = atom<string | null>(null);
 export const $selectedNodeId = atom<string | null>(null);

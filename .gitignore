@@ -49,3 +49,4 @@ verification/
 .cache
 .turbo
 tests/generated/
+.reports

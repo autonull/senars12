@@ -267,3 +267,28 @@ export class MetricsCollector implements CoreMetrics {
 export const createMetricsCollector = (): MetricsCollector => {
   return new MetricsCollector();
 };
+
+// Prometheus metrics
+export {
+  prometheusRegistry,
+  lmProbeTotal,
+  lmCircuitState,
+  lmCallsTotal,
+  lmCallDurationMs,
+  lmTokensTotal,
+  memoryEpisodesTotal,
+  memoryRetrievalHitRate,
+  derivationsTotal,
+  derivationDurationMs,
+  systemUptimeSeconds,
+  systemErrorsTotal,
+  systemWarningsTotal,
+  recordLmProbe,
+  recordCircuitBreakerState,
+  recordLmCall,
+  recordDerivation,
+  updateMemoryMetrics,
+  updateSystemMetrics,
+  getMetricsAsText,
+  getMetricsAsJson,
+} from './prometheus.js';

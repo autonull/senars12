@@ -28,6 +28,8 @@ import {
 import { createLogger } from '@senars/nar/logger';
 import { loadConfig } from '../config/index.js';
 import { getConsolidationWatchdogStatus } from '@senars/nar/memory/pressure';
+import { getMemoryPressure } from '@senars/nar/memory/pressure';
+import { getRLFPState } from '@senars/nar/rlfp';
 
 const logger = createLogger({ scope: 'doctor' });
 
@@ -90,6 +92,19 @@ interface DoctorOutput {
     state: string;
     failures: number;
   }>;
+  memoryPressure: {
+    pressure: number;
+    level: 'low' | 'medium' | 'high' | 'critical';
+    bagSize: number;
+    workingMemorySize: number;
+    consolidationRate: number;
+  };
+  rlFocus: {
+    active: boolean;
+    weights?: Record<string, number>;
+    explorationRate?: number;
+    totalRewards?: number;
+  };
   degradation?: {
     activeProvider: string;
     effectiveChains: Record<string, string[]>;
@@ -131,6 +146,16 @@ const main = async (): Promise<void> => {
     offlineTier: null,
     demoted: [],
     circuitBreakers: {},
+    memoryPressure: {
+      pressure: 0,
+      level: 'low',
+      bagSize: 0,
+      workingMemorySize: 0,
+      consolidationRate: 0,
+    },
+    rlFocus: {
+      active: false,
+    },
   };
 
   // Load config
@@ -180,6 +205,35 @@ const main = async (): Promise<void> => {
     }
   } catch {
     /* circuit breaker info is best-effort */
+  }
+
+  // Memory pressure
+  try {
+    const memPressure = getMemoryPressure();
+    output.memoryPressure = {
+      pressure: memPressure.pressure,
+      level: memPressure.level,
+      bagSize: memPressure.bagSize,
+      workingMemorySize: memPressure.workingMemorySize,
+      consolidationRate: memPressure.consolidationRate,
+    };
+  } catch {
+    /* memory pressure info is best-effort */
+  }
+
+  // RL focus weights
+  try {
+    const rlfpState = getRLFPState();
+    output.rlFocus = {
+      active: rlfpState.enabled,
+      weights: rlfpState.policy ? Object.fromEntries(
+        Object.entries(rlfpState.policy).map(([k, v]) => [k, typeof v === 'object' && v !== null && 'priority' in v ? (v as { priority: number }).priority : 1])
+      ) : undefined,
+      explorationRate: rlfpState.explorationRate,
+      totalRewards: rlfpState.totalRewards,
+    };
+  } catch {
+    /* RL focus info is best-effort */
   }
 
   // Degradation posture

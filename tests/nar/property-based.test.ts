@@ -133,13 +133,11 @@ describe('Property-Based Tests', () => {
           (f1, c1, f2, c2) => {
             const t1 = Truth.create(f1, c1);
             const t2 = Truth.create(f2, c2);
-            const revised = Truth.deduction(t1, t2);
-            if (revised) {
-              expect(revised.f).toBeGreaterThanOrEqual(0);
-              expect(revised.f).toBeLessThanOrEqual(1);
-              expect(revised.c).toBeGreaterThanOrEqual(0);
-              expect(revised.c).toBeLessThanOrEqual(1);
-            }
+            const revised = Truth.revision(t1, t2);
+            expect(revised.f).toBeGreaterThanOrEqual(0);
+            expect(revised.f).toBeLessThanOrEqual(1);
+            expect(revised.c).toBeGreaterThanOrEqual(0);
+            expect(revised.c).toBeLessThanOrEqual(1);
           }
         )
       );
@@ -268,6 +266,334 @@ describe('Property-Based Tests', () => {
       if (derived) {
         expect(derived.derivations).toHaveLength(1);
       }
+    });
+  });
+
+  describe('NAL Operation Laws', () => {
+    const truthArb = fc.record({
+      f: fc.float({ min: 0, max: 1 }),
+      c: fc
+        .float({
+          min: 0,
+          max: Math.fround(Truth.MAX_CONFIDENCE),
+          noNaN: true,
+        })
+        .map((c) => Math.min(c, Truth.MAX_CONFIDENCE)),
+    }).map(({ f, c }) => Truth.create(f, c));
+
+    it('revision is commutative', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const r1 = Truth.revision(t1, t2);
+          const r2 = Truth.revision(t2, t1);
+          expect(Truth.equals(r1, r2)).toBe(true);
+        })
+      );
+    });
+
+    it('revision preserves bounds', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const r = Truth.revision(t1, t2);
+          expect(r.f).toBeGreaterThanOrEqual(0);
+          expect(r.f).toBeLessThanOrEqual(1);
+          expect(r.c).toBeGreaterThanOrEqual(0);
+          expect(r.c).toBeLessThanOrEqual(1);
+        })
+      );
+    });
+
+    it('revision confidence >= max(c1, c2)', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const r = Truth.revision(t1, t2);
+          expect(r.c).toBeGreaterThanOrEqual(Math.max(t1.c, t2.c) - 1e-10);
+        })
+      );
+    });
+
+    it('deduction preserves bounds', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const d = Truth.deduction(t1, t2);
+          expect(d.f).toBeGreaterThanOrEqual(0);
+          expect(d.f).toBeLessThanOrEqual(1);
+          expect(d.c).toBeGreaterThanOrEqual(0);
+          expect(d.c).toBeLessThanOrEqual(1);
+        })
+      );
+    });
+
+    it('deduction with TRUE preserves frequency, weakens confidence', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const d = Truth.deduction(t, Truth.TRUE);
+          expect(d.f).toBe(t.f);
+          expect(d.c).toBeCloseTo(t.c * Truth.TRUE.c, 10);
+        })
+      );
+    });
+
+    it('deduction with FALSE gives FALSE frequency', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const d = Truth.deduction(t, Truth.FALSE);
+          expect(d.f).toBe(0);
+          expect(d.c).toBeCloseTo(t.c * Truth.FALSE.c, 10);
+        })
+      );
+    });
+
+    it('induction preserves bounds', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const i = Truth.induction(t1, t2);
+          expect(i.f).toBeGreaterThanOrEqual(0);
+          expect(i.f).toBeLessThanOrEqual(1);
+          expect(i.c).toBeGreaterThanOrEqual(0);
+          expect(i.c).toBeLessThanOrEqual(1);
+        })
+      );
+    });
+
+    it('induction with TRUE gives TRUE frequency', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const i = Truth.induction(t, Truth.TRUE);
+          expect(i.f).toBe(1);
+        })
+      );
+    });
+
+    it('abduction preserves bounds', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const a = Truth.abduction(t1, t2);
+          expect(a.f).toBeGreaterThanOrEqual(0);
+          expect(a.f).toBeLessThanOrEqual(1);
+          expect(a.c).toBeGreaterThanOrEqual(0);
+          expect(a.c).toBeLessThanOrEqual(1);
+        })
+      );
+    });
+
+    it('abduction with TRUE preserves original frequency', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const a = Truth.abduction(t, Truth.TRUE);
+          expect(a.f).toBe(t.f);
+        })
+      );
+    });
+
+    it('negation is involutive', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const n1 = Truth.negation(t);
+          const n2 = Truth.negation(n1);
+          expect(Truth.equals(n2, t)).toBe(true);
+        })
+      );
+    });
+
+    it('negation preserves bounds', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const n = Truth.negation(t);
+          expect(n.f).toBeGreaterThanOrEqual(0);
+          expect(n.f).toBeLessThanOrEqual(1);
+          expect(n.c).toBeGreaterThanOrEqual(0);
+          expect(n.c).toBeLessThanOrEqual(1);
+        })
+      );
+    });
+
+    it('negation swaps frequency around 0.5', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const n = Truth.negation(t);
+          expect(n.f).toBe(1 - t.f);
+          expect(n.c).toBe(t.c);
+        })
+      );
+    });
+
+    it('conversion preserves bounds', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const c = Truth.conversion(t);
+          expect(c.f).toBeGreaterThanOrEqual(0);
+          expect(c.f).toBeLessThanOrEqual(1);
+          expect(c.c).toBeGreaterThanOrEqual(0);
+          expect(c.c).toBeLessThanOrEqual(1);
+        })
+      );
+    });
+
+    it('conversion f = f, c = f * c', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const c = Truth.conversion(t);
+          expect(c.f).toBe(t.f);
+          expect(c.c).toBeCloseTo(t.f * t.c, 5);
+        })
+      );
+    });
+
+    it('expectation in [0, 1]', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const e = Truth.expectation(t);
+          expect(e).toBeGreaterThanOrEqual(0);
+          expect(e).toBeLessThanOrEqual(1);
+        })
+      );
+    });
+
+    it('expectation formula: c * (f - 0.5) + 0.5', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const e = Truth.expectation(t);
+          const expected = t.c * (t.f - 0.5) + 0.5;
+          expect(e).toBeCloseTo(expected, 10);
+        })
+      );
+    });
+
+    it('comparison is commutative', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const c1 = Truth.comparison(t1, t2);
+          const c2 = Truth.comparison(t2, t1);
+          expect(Truth.equals(c1, c2)).toBe(true);
+        })
+      );
+    });
+
+    it('analogy preserves bounds', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const a = Truth.analogy(t1, t2);
+          expect(a.f).toBeGreaterThanOrEqual(0);
+          expect(a.f).toBeLessThanOrEqual(1);
+          expect(a.c).toBeGreaterThanOrEqual(0);
+          expect(a.c).toBeLessThanOrEqual(1);
+        })
+      );
+    });
+
+    it('analogy f = f1 * f2, c = c1 * c2 * f2', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const a = Truth.analogy(t1, t2);
+          expect(a.f).toBeCloseTo(t1.f * t2.f, 10);
+          expect(a.c).toBeCloseTo(t1.c * t2.c * t2.f, 10);
+        })
+      );
+    });
+
+    it('resemblance preserves bounds', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const r = Truth.resemblance(t1, t2);
+          expect(r.f).toBeGreaterThanOrEqual(0);
+          expect(r.f).toBeLessThanOrEqual(1);
+          expect(r.c).toBeGreaterThanOrEqual(0);
+          expect(r.c).toBeLessThanOrEqual(1);
+        })
+      );
+    });
+
+    it('resemblance is commutative', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const r1 = Truth.resemblance(t1, t2);
+          const r2 = Truth.resemblance(t2, t1);
+          expect(Truth.equals(r1, r2)).toBe(true);
+        })
+      );
+    });
+
+    it('intersection f = f1 * f2, c = c1 * c2', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const i = Truth.intersection(t1, t2);
+          expect(i.f).toBeCloseTo(t1.f * t2.f, 10);
+          expect(i.c).toBeCloseTo(t1.c * t2.c, 10);
+        })
+      );
+    });
+
+    it('union f = 1 - (1-f1)(1-f2), c = c1 * c2', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const u = Truth.union(t1, t2);
+          const expectedF = 1 - (1 - t1.f) * (1 - t2.f);
+          expect(u.f).toBeCloseTo(expectedF, 10);
+          expect(u.c).toBeCloseTo(t1.c * t2.c, 10);
+        })
+      );
+    });
+
+    it('sameness f = 1 - |f1-f2|, c = c1 * c2', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const s = Truth.sameness(t1, t2);
+          expect(s.f).toBeCloseTo(1 - Math.abs(t1.f - t2.f), 10);
+          expect(s.c).toBeCloseTo(t1.c * t2.c, 10);
+        })
+      );
+    });
+
+    it('detachment f = f2, c = f1 * c1 * c2', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const d = Truth.detachment(t1, t2);
+          expect(d.f).toBe(t2.f);
+          expect(d.c).toBeCloseTo(t1.f * t1.c * t2.c, 10);
+        })
+      );
+    });
+
+    it('choice returns higher expectation', () => {
+      fc.assert(
+        fc.property(truthArb, truthArb, (t1, t2) => {
+          const c = Truth.choice(t1, t2);
+          const e1 = Truth.expectation(t1);
+          const e2 = Truth.expectation(t2);
+          expect(c).toBe(e1 > e2 ? t1 : t2);
+        })
+      );
+    });
+
+    it('weak weakening: c <= original', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const w = Truth.weak(t.c);
+          expect(w).toBeLessThanOrEqual(t.c);
+        })
+      );
+    });
+
+    it('structuralDeduction f = f^2, c = (c/(c+1))*c', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const sd = Truth.structuralDeduction(t);
+          expect(sd.f).toBeCloseTo(t.f * t.f, 10);
+          const expectedC = (t.c / (t.c + 1)) * t.c;
+          expect(sd.c).toBeCloseTo(expectedC, 10);
+        })
+      );
+    });
+
+    it('structuralReduction f = f, c = c/(c+10)', () => {
+      fc.assert(
+        fc.property(truthArb, (t) => {
+          const sr = Truth.structuralReduction(t);
+          expect(sr.f).toBe(t.f);
+          expect(sr.c).toBeCloseTo(t.c / (t.c + 10), 10);
+        })
+      );
     });
   });
 });
