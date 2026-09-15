@@ -20,7 +20,7 @@ export interface CreateAgentConfig {
   sessionId?: string;
   externalTools?: Record<string, unknown>;
   /** Engine enable flags (config-file `backends` block). */
-  engines?: { nar?: boolean; metta?: boolean };
+  engines?: { nar?: boolean };
   throttle?: number;
   promptBuilder?: import('@senars/core').PromptBuilder;
   /** Bot identity — persona injected into the chat system prompt. */
@@ -139,8 +139,9 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
   const cortex = config.lmService ? createCortexFromLM(config.lmService, promptBuilder) : undefined;
 
   const pinStore = new Map<string, string>();
-  const { MettaCommandParser } = await import('@senars/metta/agent');
-  const mettaEnabled = config.engines?.metta !== false;
+  const { MettaCommandParser, MettaEngine } = await import('@senars/metta/agent');
+  // MeTTa is a tool, not a reasoning engine: instantiated only to back
+  // the `metta` builtin tool via mettaExecutor. Never registered as an engine.
   const mettaEngine = new MettaEngine();
 
   // Create NAR with shared feedback observer if not provided
@@ -157,7 +158,7 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     commandParser: (text: string) => new MettaCommandParser().parse(text),
     builtinTools: true,
     episodicMemory: config.episodicMemory,
-    mettaExecutor: mettaEnabled ? (expr) => mettaEngine.query(expr) : undefined,
+    mettaExecutor: (expr) => mettaEngine.query(expr),
     pinStore: {
       pin: (key: string, value: string) => void pinStore.set(key, value),
       unpin: (key?: string) => {
@@ -172,7 +173,6 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
 
   const narEngine = new NAREngine(narInstance, agent.emitCognitive.bind(agent));
   if (config.engines?.nar !== false) agent.registerEngine('nar', narEngine);
-  if (mettaEnabled) agent.registerEngine('metta', mettaEngine);
 
   await agent.start();
   attachNarApi(agent as ExtendedAgent, config, narEngine, pinStore);
@@ -184,9 +184,8 @@ const MAX_DELEGATION_DEPTH = 2;
 let delegationDepth = 0;
 
 /**
- * Runs a prompt in a short-lived sub-agent (fresh in-memory session, no
- * MeTTa engine) and returns its final text. Depth-limited to prevent
- * runaway recursive delegation.
+ * Runs a prompt in a short-lived sub-agent (fresh in-memory session) and
+ * returns its final text. Depth-limited to prevent runaway recursive delegation.
  */
 const createDelegateRunner =
   (
@@ -201,7 +200,6 @@ const createDelegateRunner =
       lmService: base.lmService,
       episodicMemory: base.episodicMemory,
       profile: base.profile,
-      engines: { metta: false },
     });
     delegationDepth++;
     try {

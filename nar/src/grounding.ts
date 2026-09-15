@@ -7,6 +7,7 @@ export enum SourceQuality {
   GENERAL = 0.55,
   TERTIARY = 0.4,
   LLM_PRIOR = 0.5,
+  PEER_AGENT = 0.6,
 }
 
 export class GroundingPipeline {

@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { TaskTypeName, Term } from '../terms';
 import { TermBuilder, termParser } from '../terms';
 import { Truth } from '../terms/truth.js';
+import { normalizeNarsese } from '../nl/normalize.js';
 
 export interface KernelPerceptionGateConfig {
   defaultBudget: {
@@ -101,6 +102,9 @@ export class KernelPerceptionGate {
         return 0.4;
       case 'LLM_PRIOR':
         return 0.5;
+      case 'PEER_AGENT':
+        // Peer-reported truth value governs confidence; 0.6 is the neutral prior.
+        return 0.6;
       default:
         return 0.5;
     }
@@ -205,12 +209,13 @@ export class KernelPerceptionGate {
     const admitted: TaskAdmittedEvent['payload'][] = [];
     const rejected: { candidateId: string; reason: string }[] = [];
     for (const candidate of batch.candidates) {
+      const narsese = normalizeNarsese(candidate.narsese);
       const parsed = termParser.parseTask(
         candidate.taskType === 'belief'
-          ? `${candidate.narsese}.`
+          ? `${narsese}.`
           : candidate.taskType === 'goal'
-            ? `${candidate.narsese}!`
-            : `${candidate.narsese}?`
+            ? `${narsese}!`
+            : `${narsese}?`
       );
       if (!parsed) {
         rejected.push({ candidateId: candidate.candidateId, reason: 'Unparseable Narsese' });

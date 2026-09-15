@@ -1,6 +1,5 @@
 import type { IncomingFromServer } from '@senars/core';
 import { Agent } from '@senars/core';
-import { MettaEngine } from '@senars/metta/engine/MettaEngine';
 import { startAgentUI, type TestServer } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
@@ -42,11 +41,8 @@ describe('Agent-as-Kernel: Metta smoke test (real WS + Agent + MettaEngine)', ()
   const send = (msg: ClientMessage): void => ws.send(JSON.stringify(msg));
 
   beforeAll(async () => {
-    const mettaEngine = new MettaEngine();
-    await mettaEngine.initialize();
 
     agent = new Agent({ id: 'metta-smoke-test' });
-    agent.registerEngine('metta', mettaEngine);
     agent.start();
 
     server = await startAgentUI(agent, { port: 0, bootstrap: false });

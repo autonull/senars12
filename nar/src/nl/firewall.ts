@@ -1,5 +1,5 @@
 import type { Term } from '../terms/index.js';
-import { termParser } from '../terms/index.js';
+import { normalizeNarsese, parseNarseseLenient } from './normalize.js';
 
 export interface FirewallVerdict {
   allowed: boolean;
@@ -68,7 +68,7 @@ export class SymbolicFirewall {
   }
 
   check(narsese: string, kind: 'belief' | 'goal' | 'question' = 'belief'): FirewallVerdict {
-    const cleaned = narsese.replace(/^`+|`+$/g, '').trim();
+    const cleaned = normalizeNarsese(narsese.replace(/^`+|`+$/g, ''));
     if (!cleaned) return { allowed: false, reason: 'empty statement' };
     if (cleaned.length > this.maxLength)
       return { allowed: false, reason: `exceeds max length ${this.maxLength}` };
@@ -87,11 +87,9 @@ export class SymbolicFirewall {
         reason: `confidence ${confidence} exceeds absolute bound ${this.absoluteConfidence}`,
       };
     let term: Term;
-    try {
-      term = termParser.parse(cleaned.replace(/[.?!]$/, ''));
-    } catch {
-      return { allowed: false, reason: 'unparseable Narsese' };
-    }
+    const parsed = parseNarseseLenient(cleaned);
+    if (!parsed) return { allowed: false, reason: 'unparseable Narsese' };
+    term = parsed;
     if (astDepth(term) > this.maxDepth)
       return { allowed: false, reason: `exceeds max AST depth ${this.maxDepth}` };
     if (this.allowedPredicates && !this.predicatesAllowed(term)) {

@@ -1,11 +1,39 @@
 /**
  * Issue identification and corrections - extracted from SelfAnalyzerService
  */
+import { loadGrammar } from '../../lm/grammars/index.js';
+import type { LMService } from '../../lm/lm-service.js';
+import { fromNarsese, type Term } from '../../terms/index.js';
 import type { MetricsCollector, NAR } from '../../nar.js';
 import type { MetacognitiveMonitor } from '../MetacognitiveMonitor.js';
 import type { CorrectionResult, IdentifiedIssues } from '../types.js';
 import { analyzeTaskPatterns } from './performance.js';
 import { detectInefficientChains } from './reasoning-patterns.js';
+
+/**
+ * Bidirectional correction: when a contradiction is traceable to an LLM
+ * translation, reparse the source under the Narsese grammar. Returns null on
+ * LM failure (escalation exhausted) — caller keeps the symbolic side.
+ */
+export const attemptLMCorrection = async (
+  lm: Pick<LMService, 'tryGenerateText'> | null,
+  sourceText: string,
+  wrongNarsese: string,
+  contradictingNarsese: string
+): Promise<Term | null> => {
+  if (!lm) return null;
+  const prompt =
+    `You parsed "${sourceText}" as: ${wrongNarsese}.\n` +
+    `This contradicts: ${contradictingNarsese}.\n` +
+    `Reparse "${sourceText}" to resolve the contradiction. Output only Narsese.`;
+  const response = await lm.tryGenerateText(prompt, {
+    task: 'structured',
+    grammar: loadGrammar('narsese-term'),
+    maxOutputTokens: 128,
+  });
+  if (!response) return null;
+  return fromNarsese(response.trim());
+};
 
 export const identifyIssues = async (
   nar: NAR | null,

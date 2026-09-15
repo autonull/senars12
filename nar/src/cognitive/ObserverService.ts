@@ -6,8 +6,9 @@
 
 import type { LMService } from '../lm/lm-service.js';
 import type { NAR } from '../nar.js';
-import { termsEqual } from '../terms';
+import { termsEqual, Truth } from '../terms';
 import type { EventBus } from '../types';
+import { attemptLMCorrection } from './analyzers/corrections.js';
 import {
   countContradictions as countContradictionsImpl,
   findConflicts,
@@ -46,6 +47,25 @@ export class ObserverService {
 
   setLMClient(lm: LMService | null): void {
     this.lmClient = lm;
+  }
+
+  /**
+   * Bidirectional correction: for each contradictory belief pair, attempt an
+   * LM-guided reparse. Admits the corrected term at low confidence; LM failure
+   * (null) leaves the symbolic side untouched.
+   */
+  async attemptLMCorrections(nar: NAR, maxCorrections = 3): Promise<number> {
+    const beliefs = nar.getBeliefs();
+    const conflicts = findConflicts(beliefs).slice(0, maxCorrections);
+    let corrected = 0;
+    for (const { a, b } of conflicts) {
+      const reparsed = await attemptLMCorrection(this.lmClient, a.toString(), a.toString(), b.toString());
+      if (reparsed && !termsEqual(reparsed, a) && !termsEqual(reparsed, b)) {
+        await nar.believe(reparsed, Truth.create(0.5, 0.45));
+        corrected++;
+      }
+    }
+    return corrected;
   }
 
   check(nar: NAR): ObserverReport {

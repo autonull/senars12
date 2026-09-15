@@ -1,0 +1,2 @@
+# Forces exactly one token
+root ::= [a-zA-Z0-9_\-]+

@@ -15,7 +15,7 @@ export interface Tool {
 }
 
 export interface ChatContext {
-  readonly engine: 'nar' | 'metta';
+  readonly engine: 'nar';
   readonly timestamp: number;
 }
 

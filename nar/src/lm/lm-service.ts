@@ -15,7 +15,9 @@ import type {
 import { generateObject, generateText, type LanguageModel, streamText, zodSchema } from 'ai';
 import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import type { ZodSchema } from 'zod';
+import { z } from 'zod';
 import type { SeNARSRegistry } from './providers.js';
+import { runWithGrammar } from './providers/llamacpp.js';
 import { SenarsError } from '@senars/util/errors';
 import {
   createSeNARSRegistry,
@@ -62,6 +64,10 @@ const isTransportError = (e: unknown): boolean => {
 };
 
 const backoff = (attempt: number): number => 250 * 2 ** (attempt - 1);
+
+/** Run fn under a GBNF grammar scope when one is provided (no-op otherwise). */
+const runInGrammarScope = <T>(grammar: string | undefined, fn: () => Promise<T>): Promise<T> =>
+  grammar ? runWithGrammar(grammar, fn) : fn();
 
 const withRetry = async <T>(
   fn: () => Promise<T>,
@@ -129,15 +135,18 @@ export class LMService {
   get provider(): string | undefined {
     const raw = (this.getModel('quality') as { provider?: string } | undefined)?.provider;
     if (!raw) return getLmProvider();
+    // AI SDK may suffix provider names (e.g. 'llamacpp.chat') — normalize.
+    const normalized = raw.split('.')[0] ?? raw;
     const configured = getLmProvider();
     const map: Partial<Record<string, LMProviderName>> = {
       'transformers-js': 'transformers',
       ollama: 'ollama',
+      llamacpp: 'llamacpp',
       mock: 'mock',
       webllm: 'webllm',
       cloud: configured,
     };
-    return map[raw] ?? (raw as LMProviderName) ?? configured;
+    return map[normalized] ?? (normalized as LMProviderName) ?? configured;
   }
 
   get model(): string | undefined {
@@ -172,6 +181,8 @@ export class LMService {
       signal?: AbortSignal;
       temperature?: number;
       maxOutputTokens?: number;
+      /** GBNF grammar for constrained decoding (llamacpp provider). */
+      grammar?: string;
     }
   ): Promise<string> {
     const model = this.getModel(opts?.task ?? 'fast');
@@ -186,19 +197,23 @@ export class LMService {
     const start = Date.now();
     const task = opts?.task ?? 'fast';
     try {
-      const text = await withRetry(
-        async () => {
-          const { text: out } = await generateText({
-            model,
-            prompt,
-            abortSignal: opts?.signal,
-            temperature: opts?.temperature,
-            maxOutputTokens: opts?.maxOutputTokens,
-          });
-          return out;
-        },
-        provider,
-        task
+      const text = await runInGrammarScope(
+        opts?.grammar,
+        async () =>
+          await withRetry(
+            async () => {
+              const { text: out } = await generateText({
+                model,
+                prompt,
+                abortSignal: opts?.signal,
+                temperature: opts?.temperature,
+                maxOutputTokens: opts?.maxOutputTokens,
+              });
+              return out;
+            },
+            provider,
+            task
+          )
       );
       this.recordCall(true, start, prompt.length + text.length);
       if (provider) recordProviderCall(provider, true, settings);
@@ -243,6 +258,28 @@ export class LMService {
     }
   }
 
+  /** Universal LLM failure escalation: attempt → retry once at temp+0.2 → null.
+   *  Callers activate their pure-NAL symbolic fallback on null. */
+  async tryGenerateText(
+    prompt: string,
+    opts?: Parameters<LMService['generateText']>[1]
+  ): Promise<string | null> {
+    if (opts?.signal?.aborted) return null;
+    try {
+      return await this.generateText(prompt, opts);
+    } catch {
+      if (opts?.signal?.aborted) return null;
+      try {
+        return await this.generateText(prompt, {
+          ...opts,
+          temperature: (opts?.temperature ?? 0) + 0.2,
+        });
+      } catch {
+        return null;
+      }
+    }
+  }
+
   async generateObject<T>(
     prompt: string,
     schema: ZodSchema<T>,
@@ -250,6 +287,20 @@ export class LMService {
       task?: LMTask;
       signal?: AbortSignal;
     }
+  ): Promise<T> {
+    try {
+      return await this.generateObjectNative(prompt, schema, opts);
+    } catch (nativeError) {
+      // Structured-output adapters break across providers/zod versions — fall
+      // back to a real-LM JSON-mode round trip (no mock, no placeholder).
+      return await this.generateObjectViaText(prompt, schema, opts, nativeError);
+    }
+  }
+
+  private async generateObjectNative<T>(
+    prompt: string,
+    schema: ZodSchema<T>,
+    opts?: { task?: LMTask; signal?: AbortSignal }
   ): Promise<T> {
     const model = this.getModel(opts?.task ?? 'structured');
     if (!model) throw new Error('No model available');
@@ -313,6 +364,38 @@ export class LMService {
       }
       throw e;
     }
+  }
+
+  /** JSON-mode structured generation over plain text: schema in the prompt,
+   *  first JSON object extracted, validated against the zod schema. */
+  private async generateObjectViaText<T>(
+    prompt: string,
+    schema: ZodSchema<T>,
+    opts: { task?: LMTask; signal?: AbortSignal } | undefined,
+    nativeError: unknown
+  ): Promise<T> {
+    const jsonSchema = z.toJSONSchema(schema as never);
+    const enriched =
+      `${prompt}\n\nRespond with ONLY a single JSON object matching this JSON Schema` +
+      ` (no markdown fences, no commentary):\n${JSON.stringify(jsonSchema)}`;
+    const temperatures = [0, 0.2];
+    let lastError: unknown = nativeError;
+    for (const temperature of temperatures) {
+      if (opts?.signal?.aborted) break;
+      try {
+        const text = await this.generateText(enriched, {
+          task: opts?.task ?? 'structured',
+          signal: opts?.signal,
+          temperature,
+        });
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('No JSON object in LM response');
+        return schema.parse(JSON.parse(match[0]));
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
   }
 
   async *stream(

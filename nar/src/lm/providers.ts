@@ -12,6 +12,11 @@ import {
   resolveLMSettings,
 } from './env-config.js';
 import { createMockLanguageModel } from './lm-service.js';
+import {
+  createLlamaCppFetch,
+  LLAMACPP_HOST_DEFAULT,
+  probeLlamaCpp,
+} from './providers/llamacpp.js';
 import { createWebLLMModel, webllmModels } from '@senars/ui-webllm';
 import { trace, SpanStatusCode, SpanKind } from '@opentelemetry/api';
 import { getTracer } from '../otel/index.js';
@@ -27,6 +32,7 @@ const OLLAMA_COMPACT_DEFAULT = 'phi3:3.8b';
 export type LMProviderName =
   | 'transformers'
   | 'ollama'
+  | 'llamacpp'
   | 'anthropic'
   | 'openai'
   | 'openai-compatible'
@@ -106,11 +112,20 @@ export function createSeNARSRegistry(settings?: LMSettings) {
     provider === 'openai' ||
     provider === 'openai-compatible';
   const useWebLLM = provider === 'webllm' && typeof navigator !== 'undefined' && 'gpu' in navigator;
+  const useLlamaCpp = provider === 'llamacpp';
 
   const ollama = createOpenAICompatible({
     name: 'ollama',
     apiKey: 'ollama',
     baseURL: `${(ollamaHost ?? OLLAMA_HOST_DEFAULT).replace(/\/v1\/?$/, '')}/v1`,
+  });
+  const llamacpp = createOpenAICompatible({
+    name: 'llamacpp',
+    apiKey: 'none',
+    baseURL: `${(s.llamacppHost ?? LLAMACPP_HOST_DEFAULT).replace(/\/v1\/?$/, '')}/v1`,
+    // Edge models (Qwen/Gemma reasoners) burn all tokens on reasoning_content
+    // by default — thinking stays off unless explicitly re-enabled.
+    fetch: createLlamaCppFetch({ disableThinking: s.disableThinking !== false }),
   });
   const thinkingAwareFetch: typeof fetch | undefined = s.disableThinking
     ? (input, init) => {
@@ -164,6 +179,17 @@ export function createSeNARSRegistry(settings?: LMSettings) {
         }),
       },
       fallbackProvider: useLocal ? ollama : undefined,
+    }),
+    llamacpp: customProvider({
+      languageModels: {
+        ...(useLlamaCpp && {
+          quality: llamacpp(modelOverride ?? defaultModelFor('llamacpp')),
+          fast: llamacpp(fastModel ?? defaultModelFor('llamacpp')),
+          structured: llamacpp(structuredModel ?? defaultModelFor('llamacpp')),
+          compact: llamacpp(compactModel ?? defaultModelFor('llamacpp')),
+        }),
+      },
+      fallbackProvider: useLlamaCpp ? llamacpp : undefined,
     }),
     webllm: customProvider({
       languageModels: {
@@ -228,6 +254,10 @@ export const MODEL_CAPABILITIES: Record<string, ModelCapability> = {
   'cloud:structured': { ...cloudFrontierCap, latencyClass: 'medium' },
   'cloud:compact': { ...cloudFrontierCap, costPerMTok: 0.15, latencyClass: 'fast' },
   'local:quality': { ...localCap, latencyClass: 'medium' },
+  'llamacpp:quality': { ...localCap, latencyClass: 'medium' },
+  'llamacpp:fast': localCap,
+  'llamacpp:structured': { ...localCap, latencyClass: 'medium' },
+  'llamacpp:compact': localCap,
   'local:fast': { ...localCap, latencyClass: 'fast' },
   'local:compact': { ...localCap, latencyClass: 'fast' },
   'builtin:quality': { ...localCap, latencyClass: 'slow' },
@@ -322,6 +352,12 @@ const CHAINS: Record<LMProviderName, Record<LMTask, SeNARSModelId[]>> = {
     fast: ['local:fast', 'builtin:compact', 'builtin:mock'],
     structured: ['local:quality', 'builtin:compact', 'builtin:mock'],
   },
+  llamacpp: {
+    // Explicit provider: authoritative, no silent CPU fallback rungs.
+    quality: ['llamacpp:quality'],
+    fast: ['llamacpp:fast'],
+    structured: ['llamacpp:structured'],
+  },
   anthropic: {
     quality: ['cloud:quality', 'local:quality', 'builtin:quality', 'builtin:mock'],
     fast: ['cloud:fast', 'local:fast', 'builtin:compact', 'builtin:mock'],
@@ -363,7 +399,9 @@ export function getModelChain(provider: LMProviderName, task: LMTask): SeNARSMod
     }
     return chain as SeNARSModelId[];
   }
-  return CHAINS[provider][task];
+  // AI SDK may suffix provider names (e.g. 'llamacpp.chat') — normalize to the base key.
+  const base = (provider.split('.')[0] ?? provider) as LMProviderName;
+  return CHAINS[base]?.[task] ?? CHAINS[getLmProvider()]?.[task] ?? CHAINS.mock[task];
 }
 
 export function getModelForTask(
@@ -417,9 +455,11 @@ export async function resolveActiveProvider(): Promise<LMProviderName> {
   }
   if (configured === 'transformers') {
     if (hasCloudCredentials()) return 'openai-compatible';
-    return (await probeOllama()) ? 'ollama' : 'transformers';
+    if (await probeOllama()) return 'ollama';
+    return (await probeLlamaCpp()) ? 'llamacpp' : 'transformers';
   }
   if (configured === 'ollama') return (await probeOllama()) ? 'ollama' : 'transformers';
+  if (configured === 'llamacpp') return (await probeLlamaCpp()) ? 'llamacpp' : 'transformers';
   return hasCloudCredentials() ? configured : (await probeOllama()) ? 'ollama' : 'transformers';
 }
 
@@ -448,6 +488,7 @@ const PROVIDER_CIRCUIT_DEFAULTS: Partial<Record<LMProviderName, Partial<CircuitB
   openai: { failureThreshold: 3, resetTimeoutMs: 60_000, successThreshold: 2 },
   'openai-compatible': { failureThreshold: 5, resetTimeoutMs: 30_000, successThreshold: 2 },
   ollama: { failureThreshold: 10, resetTimeoutMs: 15_000, successThreshold: 3 },
+  llamacpp: { failureThreshold: 10, resetTimeoutMs: 15_000, successThreshold: 3 },
   transformers: { failureThreshold: 20, resetTimeoutMs: 5_000, successThreshold: 5 },
   webllm: { failureThreshold: 20, resetTimeoutMs: 5_000, successThreshold: 5 },
   mock: { failureThreshold: 100, resetTimeoutMs: 1_000, successThreshold: 10 },

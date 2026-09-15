@@ -20,8 +20,10 @@ export const prompts: Record<string, string> = {
   'lm-belief-revision': 'Given "{{primaryTerm}}", should its confidence be revised?',
   'lm-goal-decomposition': 'Decompose the goal "{{primaryTerm}}" into simpler subgoals.',
   'lm-hypothesis-generation': 'Given "{{primaryTerm}}", what are possible explanations?',
-  'lm-explanation-generation': 'Explain why "{{primaryTerm}}" might be true.',
-  'lm-analogical-reasoning': 'What is analogous to "{{primaryTerm}}"?',
+  'lm-explanation-generation':
+    'Complete this sentence naturally, under 20 words: "I believe {{primaryTerm}} because {{premise1}} and {{premise2}}."',
+  'lm-analogical-reasoning':
+    'Concept A is "{{primaryTerm}}". Concept B is "{{premise1}}". Concept X is "{{secondaryTerm}}". Concept Y is "[MASK]". Fill the mask with exactly one word.',
   'lm-meta-reasoning': 'Analyze the reasoning for "{{primaryTerm}}".',
   'lm-uncertainty-calibration': 'For "{{primaryTerm}}", what confidence level is appropriate?',
   'lm-schema-induction': 'From "{{primaryTerm}}", what schema can be induced?',

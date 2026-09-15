@@ -14,7 +14,7 @@ import { z } from 'zod';
  * ============================================================================
  */
 
-export const EngineOriginSchema = z.enum(['nar', 'metta', 'kernel', 'proposer']);
+export const EngineOriginSchema = z.enum(['nar', 'kernel', 'proposer']);
 
 export const CognitiveEventBaseSchema = z.object({
   engine: EngineOriginSchema,
@@ -292,7 +292,7 @@ export const DerivationRecordSchema = z.object({
   totalCycles: z.number().int().nonnegative(),
   maxDepthReached: z.number().int().nonnegative(),
   timestamp: z.number().int().positive(),
-  engine: z.enum(['nar', 'metta']),
+  engine: z.literal('nar'),
 });
 
 export type DerivationRecord = z.infer<typeof DerivationRecordSchema>;
@@ -382,6 +382,7 @@ export const SourceQualitySchema = z.enum([
   'GENERAL',
   'TERTIARY',
   'LLM_PRIOR',
+  'PEER_AGENT',
 ]);
 export type SourceQuality = z.infer<typeof SourceQualitySchema>;
 export const GameDomainSchema = z.enum(['external', 'self']);

@@ -97,3 +97,10 @@ export {
   logRoutingDecision,
 } from './providers.js';
 export { createLMStats, recordLMCall } from './stats.js';
+export { loadGrammar, type GrammarName } from './grammars/index.js';
+export {
+  createLlamaCppFetch,
+  LLAMACPP_HOST_DEFAULT,
+  probeLlamaCpp,
+  runWithGrammar,
+} from './providers/llamacpp.js';

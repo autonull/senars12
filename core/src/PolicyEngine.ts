@@ -9,7 +9,7 @@ export interface PolicyRule {
 }
 
 const DEFAULT_POLICY: PolicyRule = {
-  allowCommands: ['send', 'remember', 'query', 'episodes', 'metta'],
+  allowCommands: ['send', 'remember', 'query', 'episodes'],
   denyCommands: ['shell'],
   allowFiles: [],
   denyFiles: [],

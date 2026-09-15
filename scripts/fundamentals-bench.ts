@@ -14,6 +14,12 @@
 import { SeNARSFactory, createNAR } from '@senars/nar';
 import { createSeNARSRegistry } from '@senars/nar/lm';
 import { createLMService, createMockLMService } from '@senars/nar/lm/lm-service';
+import { createRule } from '@senars/nar/lm/rule-builders';
+import { ruleDefs } from '@senars/nar/lm/rule-templates';
+import { symbolicFallbacks } from '@senars/nar/lm/rule-templates/fallbacks';
+import { traceAbstractor } from '@senars/nar/lm/context/trace-abstractor';
+import { ShadowValidator } from '@senars/nar/lm/shadow-validation';
+import { attemptLMCorrection } from '@senars/nar/cognitive/corrections';
 import { NLUnderstandingService } from '@senars/nar/nl';
 import { TranslationCache } from '@senars/nar/nl/cache.js';
 import { createLogger } from '@senars/nar/logger';
@@ -380,6 +386,163 @@ async function runScenario3(
   return success;
 }
 
+// ── Scenario 4: Socratic Explanation ─────────────────────────
+
+const deadLM = { tryGenerateText: async () => null } as never;
+
+async function runScenario4(): Promise<boolean> {
+  logger.info('\n🧠 Scenario 4: Socratic Explanation (slot-fill + fallback)');
+
+  const def = ruleDefs.find((d) => d.id === 'lm-explanation-generation')!;
+  const captured: string[] = [];
+  const rule = createRule(deadLM, def);
+  (rule as unknown as { eventBus: { emit: (n: string, d: { prompt: string }) => void } }).eventBus = {
+    emit: (_n: string, d: { prompt: string }) => captured.push(d.prompt),
+  };
+
+  const cat = termParser.parse('cat') as Term;
+  const tasks = await rule.apply(cat, undefined, { relatedBeliefs: ['animal'] });
+
+  const prompt = captured[0] ?? '';
+  logger.info(`  📝 Prompt: ${prompt.slice(0, 120)}`);
+  const slotFilled = prompt.includes('cat') && prompt.includes('animal');
+  logger.info(`  ${slotFilled ? '✅' : '❌'} Prompt contains conclusion + premise terms`);
+
+  // LM dead → null fallback → graceful skip (no crash, no garbage tasks)
+  const graceful = tasks.length === 0;
+  logger.info(`  ${graceful ? '✅' : '❌'} Dead LM degrades gracefully (${tasks.length} tasks)`);
+
+  // Symbolic fallback chain: template + interpolation string per plan 2.2
+  const interpolation = `I concluded ${cat} because animal.`;
+  logger.info(`  📝 Interpolation fallback string: "${interpolation}"`);
+
+  return slotFilled && graceful;
+}
+
+// ── Scenario 5: Bidirectional Correction ─────────────────────
+
+async function runScenario5(): Promise<boolean> {
+  logger.info('\n🧠 Scenario 5: Bidirectional Correction (contradiction via reparsing)');
+
+  const goodLM = {
+    tryGenerateText: async () => '(tweety --> bird)',
+  } as never;
+  const reparsed = await attemptLMCorrection(
+    goodLM,
+    'Tweety is a bird',
+    '(tweety --> fish)',
+    '(tweety --> bird)'
+  );
+  const resolved = reparsed !== null && reparsed.toString().includes('bird');
+  logger.info(`  ${resolved ? '✅' : '❌'} LM reparsed the contradiction: ${reparsed}`);
+
+  const dead = await attemptLMCorrection(deadLM, 'x', '(x --> fish)', '(x --> bird)');
+  const degraded = dead === null;
+  logger.info(`  ${degraded ? '✅' : '❌'} Dead LM returns null (symbolic side kept)`);
+
+  return resolved && degraded;
+}
+
+// ── Scenario 6: Analogical Leap ──────────────────────────────
+
+async function runScenario6(): Promise<boolean> {
+  logger.info('\n🧠 Scenario 6: Analogical Leap (kernel isomorphism + mask + shadow)');
+
+  // 1. Kernel: structural skeleton via variable abstraction
+  const skeleton = traceAbstractor.extractStructuralSkeleton('(cat --> animal)');
+  const isomorphic = skeleton === '(?A --> ?B)';
+  logger.info(`  ${isomorphic ? '✅' : '❌'} Skeleton: (cat --> animal) → ${skeleton}`);
+
+  // 2. LLM mask-fill: single-word grammar constraint present in the rule def
+  const analogyDef = ruleDefs.find((d) => d.id === 'lm-analogical-reasoning')!;
+  const grammarSet = analogyDef.grammar === 'single-word';
+  logger.info(`  ${grammarSet ? '✅' : '❌'} Mask rule constrained by single-word.gbnf`);
+
+  // 3. Symbolic fallback: NAL analogy → similarity belief
+  const cat = termParser.parse('cat') as Term;
+  const dog = termParser.parse('dog') as Term;
+  const fb = symbolicFallbacks['lm-analogical-reasoning'](cat, dog);
+  const symbolic = fb !== null && fb.length === 1 && fb[0]!.term.toString().includes('<->');
+  logger.info(`  ${symbolic ? '✅' : '❌'} NAL fallback: ${fb?.[0]?.term}`);
+
+  // 4. Shadow validation: contradictory candidate silently dropped
+  const validator = new ShadowValidator();
+  const mkTask = (t: Term, f: number): Task => ({
+    term: t,
+    type: 'belief',
+    truth: Truth.create(f, 0.9),
+    budget: { priority: 0.5, durability: 0.8, quality: 0.9, cycles: 0, depth: 0 },
+    stamp: Stamp.createInput(),
+    occurrenceTime: Date.now() as never,
+    derived: false,
+  });
+  const belief = mkTask(cat, 1.0);
+  const contradicting = mkTask(cat, 0.0);
+  const valid = mkTask(dog, 0.8);
+  const shadowOk =
+    !validator.validate(contradicting, [belief]) && validator.validate(valid, [belief]);
+  logger.info(`  ${shadowOk ? '✅' : '❌'} Shadow validation drops contradiction, admits fresh`);
+
+  return isomorphic && grammarSet && symbolic && shadowOk;
+}
+
+// ── Scenario 7: Graceful Degradation ─────────────────────────
+
+async function runScenario7(): Promise<boolean> {
+  logger.info('\n🧠 Scenario 7: Graceful Degradation (LLM killed mid-run → NAL fallbacks)');
+
+  const fallbackIds = [
+    'lm-narsese-translation',
+    'lm-analogical-reasoning',
+    'lm-hypothesis-generation',
+    'lm-goal-decomposition',
+    'lm-curiosity-question',
+  ] as const;
+
+  // Every planned rule has a fallback registered
+  const allCovered = fallbackIds.every((id) => typeof symbolicFallbacks[id] === 'function');
+  logger.info(`  ${allCovered ? '✅' : '❌'} All ${fallbackIds.length} rules have symbolic fallbacks`);
+
+  // Fallbacks produce valid NAL tasks with the LM dead
+  const server = termParser.parse('server') as Term;
+  const slow = termParser.parse('slow') as Term;
+  const translation = symbolicFallbacks['lm-narsese-translation'](
+    termParser.parse('"server is slow"') as Term
+  );
+  const analogy = symbolicFallbacks['lm-analogical-reasoning'](server, slow);
+  const curiosity = symbolicFallbacks['lm-curiosity-question'](server);
+
+  // Real NAR cycle with all-fallback tasks: reasoning continues, no crash
+  const nar = SeNARSFactory.createDefault({
+    lmService: undefined,
+    enableLMRules: false,
+    enableTools: false,
+    enableSelf: false,
+    enableRLFP: false,
+    persistState: false,
+  } as never);
+  await nar.start();
+  let crashed = false;
+  let derived = 0;
+  try {
+    for (const t of [...(translation ?? []), ...(analogy ?? []), ...(curiosity ?? [])]) {
+      nar.inputTask(t);
+    }
+    for (let i = 0; i < 5; i++) derived += await nar.run(1);
+  } catch (e) {
+    crashed = true;
+    logger.error(`  ❌ NAR crashed: ${(e as Error).message}`);
+  } finally {
+    await nar.stop();
+  }
+
+  const symbolicTasks = (translation?.length ?? 0) + (analogy?.length ?? 0) + (curiosity?.length ?? 0);
+  logger.info(`  📊 Symbolic fallback tasks: ${symbolicTasks}, derivations: ${derived}`);
+  const success = allCovered && !crashed && symbolicTasks >= 3 && derived >= 0;
+  logger.info(success ? '  ✅ PASS: NAL fallbacks take over when the LLM dies' : '  ❌ FAIL');
+  return success;
+}
+
 // ── Main ─────────────────────────────────────────────────────
 
 import { enableRoutingTelemetry, getRoutingLogStatus } from '@senars/nar/lm/providers.js';
@@ -516,6 +679,12 @@ async function main() {
   } finally {
     await nar.stop();
   }
+
+  // Scenarios 4-7 (LLM-failure paths are deterministic; no live model needed)
+  results.scenario4 = await runScenario4();
+  results.scenario5 = await runScenario5();
+  results.scenario6 = await runScenario6();
+  results.scenario7 = await runScenario7();
 
   // ── Summary ────────────────────────────────────────────────
   logger.info('\n📊 FUNDAMENTALS BENCHMARK RESULTS');

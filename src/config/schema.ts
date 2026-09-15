@@ -142,7 +142,7 @@ export const inferenceSchema = z.object({
   cpuThrottleMs: z.number().min(0).optional(),
 });
 
-const backendsDefaults = { nar: { enabled: true }, metta: { enabled: true } } as const;
+const backendsDefaults = { nar: { enabled: true } } as const;
 
 /** Objective-driven routing policy (shared shape lives in @senars/nar/lm). */
 export const routingSchema = z.object({
@@ -174,9 +174,8 @@ export const backendsSchema = z
         cyclesPerStep: z.number().int().positive().optional(),
       })
       .default({ enabled: true }),
-    metta: z.object({ enabled: z.boolean().default(true) }).default({ enabled: true }),
   })
-  .default({ nar: { enabled: true }, metta: { enabled: true } });
+  .default({ nar: { enabled: true } });
 
 /** Alternate LM settings selectable via LM_PROFILE=production. */
 export const productionSchema = z

@@ -1,5 +1,4 @@
 import { Agent } from '@senars/core';
-import { MettaEngine } from '@senars/metta/engine/MettaEngine';
 import { NAREngine } from '@senars/nar/engine/NAREngine';
 import { startAgentUI, type TestServer } from '@senars/ui/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -11,12 +10,9 @@ describe('Multi-Engine Agent Integration', () => {
   beforeAll(async () => {
     const narEngine = new NAREngine();
     await narEngine.initialize();
-    const mettaEngine = new MettaEngine();
-    await mettaEngine.initialize();
 
     agent = new Agent({ id: 'test-multi' });
     agent.registerEngine('nar', narEngine);
-    agent.registerEngine('metta', mettaEngine);
     agent.start();
 
     server = await startAgentUI(agent, { port: 0 });

@@ -163,18 +163,26 @@ export class LMRule {
         timestamp: Date.now(),
       });
 
-      let response: string;
+      let response: string | null;
       const usedStructured = !!(this.structuredModel && this.outputSchema);
       if (usedStructured) {
         response = await this.executeStructured(prompt, signal);
+      } else {
+        response = await this.executeLM(prompt, signal);
+      }
+
+      if (!response) {
+        this.recordFailure(Date.now() - startTime);
+        return this.applyFallback(primary, secondary, context);
+      }
+
+      if (usedStructured) {
         this.emitSystemEvent('system:lm.rule:structured', {
           ruleId: this.id,
           schema: this.outputSchema!.description ?? 'unknown',
           output: response,
           timestamp: Date.now(),
         });
-      } else {
-        response = await this.executeLM(prompt, signal);
       }
 
       // Tool delegation for structured output
@@ -206,11 +214,6 @@ export class LMRule {
         timestamp: Date.now(),
       });
 
-      if (!response) {
-        this.recordFailure(duration);
-        return [];
-      }
-
       const tasks = this.processAndGenerate(response, primary, secondary, lmContext, context);
       this.recordSuccess(duration, prompt.length + response.length);
       this.emitSystemEvent('system:lm.rule:applied', {
@@ -234,7 +237,7 @@ export class LMRule {
       });
       if ((error as Error).name === 'AbortError') throw error;
       this.recordFailure(duration);
-      return [];
+      return this.applyFallback(primary, secondary, context);
     }
   }
 
@@ -308,15 +311,21 @@ export class LMRule {
     if (this.systemEventBus) this.systemEventBus.emit(event as string, data);
   }
 
-  private async executeLM(prompt: string, signal?: AbortSignal): Promise<string> {
+  private async executeLM(prompt: string, signal?: AbortSignal): Promise<string | null> {
     if (!this.lm) throw new Error(`LM unavailable for rule ${this.id}`);
-    const options = { ...this.baseConfig.lmOptions, signal };
+    const options = {
+      ...this.baseConfig.lmOptions,
+      signal,
+      grammar: this.baseConfig.grammar,
+      maxOutputTokens: this.baseConfig.maxOutputTokens ?? this.baseConfig.lmOptions?.maxTokens,
+    };
+    // Universal failure escalation: attempt → temp+0.2 retry → null (symbolic fallback).
     return await this.circuitBreaker.execute(
-      async () => await this.lm!.generateText(prompt, options)
+      async () => await this.lm!.tryGenerateText(prompt, options)
     );
   }
 
-  private async executeStructured(prompt: string, signal?: AbortSignal): Promise<string> {
+  private async executeStructured(prompt: string, signal?: AbortSignal): Promise<string | null> {
     if (!this.structuredModel || !this.outputSchema) {
       return this.executeLM(prompt, signal);
     }
@@ -400,14 +409,42 @@ export class LMRule {
     if (typeof template === 'function') {
       return template(primary, secondary, context);
     }
-    if (typeof template === 'string') return this.fillTemplate(template, primary, secondary);
+    if (typeof template === 'string') {
+      return this.fillTemplate(template, primary, secondary, lmContext);
+    }
     return `Reason about: ${primary.toString()}`;
   }
 
-  private fillTemplate(template: string, primary: Term, secondary?: Term): string {
+  private fillTemplate(
+    template: string,
+    primary: Term,
+    secondary?: Term,
+    lmContext?: LMContext
+  ): string {
+    const beliefs = lmContext?.relatedBeliefs ?? [];
     return template
       .replaceAll('{{primaryTerm}}', primary.toString())
-      .replaceAll('{{secondaryTerm}}', secondary?.toString() ?? '');
+      .replaceAll('{{secondaryTerm}}', secondary?.toString() ?? '')
+      .replaceAll('{{premise1}}', beliefs[0] ?? '')
+      .replaceAll('{{premise2}}', beliefs[1] ?? '');
+  }
+
+  /** Pure-NAL symbolic fallback on LM failure; null → skip, [] → silent degrade. */
+  private applyFallback(
+    primary: Term,
+    secondary: Term | undefined,
+    context?: Record<string, unknown>
+  ): Task[] {
+    const fallback = this.baseConfig.fallback;
+    if (!fallback) return [];
+    const tasks = fallback(primary, secondary, context) as Task[] | null;
+    this.emitEvent('lm.fallback', {
+      ruleId: this.id,
+      primaryTerm: primary.toString(),
+      tasksProduced: tasks?.length ?? 0,
+      timestamp: Date.now(),
+    });
+    return tasks ?? [];
   }
 
   private processAndGenerate(

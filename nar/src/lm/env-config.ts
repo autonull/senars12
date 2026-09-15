@@ -27,6 +27,8 @@ export interface LMSettings {
   /** Cloud base URL (openai-compatible endpoints). */
   baseUrl?: string;
   ollamaHost?: string;
+  /** llama.cpp server host (llama-server native API). */
+  llamacppHost?: string;
   /** Env var name holding the cloud API key. */
   apiKeyEnv?: string;
   quantized?: boolean;
@@ -49,6 +51,7 @@ const TRANSFORMERS_DEFAULT_COMPACT = 'HuggingFaceTB/SmolLM2-360M-Instruct';
 const PROVIDERS: readonly ResolvedProvider[] = [
   'transformers',
   'ollama',
+  'llamacpp',
   'mock',
   'anthropic',
   'openai',
@@ -127,6 +130,7 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
     compactModel: env('LM_COMPACT_MODEL') ?? file?.compactModel,
     baseUrl: env('LM_BASE_URL') ?? file?.baseUrl,
     ollamaHost: env('OLLAMA_HOST') ?? file?.ollamaHost,
+    llamacppHost: env('LM_LLAMACPP_HOST') ?? file?.llamacppHost,
     apiKeyEnv: file?.apiKeyEnv ?? cloudCredentialEnv,
     quantized: file?.quantized,
     cacheDir: file?.cacheDir,
@@ -140,6 +144,8 @@ export const defaultModelFor = (provider: ResolvedProvider): string => {
   switch (provider) {
     case 'ollama':
       return env('OLLAMA_MODEL') ?? 'llama3.2';
+    case 'llamacpp':
+      return env('LM_MODEL') ?? 'local-model';
     case 'transformers':
       return TRANSFORMERS_DEFAULT_MODEL;
     case 'anthropic':

@@ -130,7 +130,6 @@ export async function createAgentFromEnv(
     skills: appConfig.bot.skills,
     engines: {
       nar: appConfig.backends.nar.enabled,
-      metta: appConfig.backends.metta.enabled,
     },
   });
 

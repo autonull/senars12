@@ -28,13 +28,13 @@ At the limits of the "Scaling Hypothesis," LLMs achieve miraculous fluency but r
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      UNTRUSTED PROPOSERS                            │
-│  ┌──────────┐   ┌──────────────┐   ┌──────────────┐   ┌─────────┐  │
-│  │ LLM (S1) │   │ NAR Engine   │   │ MeTTa Engine │   │ Reflexes│  │
-│  │(Translate│   │(Uncertain    │   │(Exact Rewrite│   │(Fast S1 │  │
-│  │ & Enrich)│   │  Inference)  │   │  & Equality) │   │ Policies│  │
-│  └────┬─────┘   └──────┬───────┘   └──────┬───────┘   └────┬────┘  │
-│       │                │                  │                │        │
-│       └────────────────┴──────────────────┴────────────────┘        │
+│  ┌──────────┐   ┌──────────────┐   ┌────────────────────────────┐   │
+│  │ LLM (S1) │   │ NAR Engine   │   │ Reflexes                   │   │
+│  │(Translate│   │(Uncertain    │   │(Fast S1                    │   │
+│  │ & Enrich)│   │  Inference)  │   │ Policies)                  │   │
+│  └────┬─────┘   └──────┬───────┘   └────────────┬───────────────┘   │
+│       │                │                        │                  │
+│       └────────────────┴────────────────────────┘                  │
 │                                │ (Proposals / Tool Requests)        │
 │                                ▼                                    │
 ├════════════════════════════════════════════════════════════════════════┤
@@ -323,6 +323,42 @@ Key features:
 - Per-rule timeout & circuit breaker
 - Activation conditions (confidence, connectivity, curiosity, complexity)
 - Constitution-aware rules respect system invariants
+- **GBNF constrained decoding** (`LMRuleDefinition.grammar` — `narsese-term` / `single-word`)
+- **Universal failure escalation**: attempt → retry at temp+0.2 → `null` → symbolic fallback
+- **Shadow validation**: LLM-generated Narsese conflicting with current beliefs is silently dropped
+
+> **Universal prompts, symbolic fallbacks.** SeNARS12 uses constrained micro-prompts
+> that work on 1.5B edge models. A larger model executes the same prompts with higher
+> fidelity. If the LLM fails (timeout, garbage, refusal), the Kernel falls back to pure
+> NAL symbolic logic (`symbolicFallbacks` in `nar/src/lm/rule-templates/fallbacks.ts`).
+> No cognitive function is ever lost.
+
+### Local Inference (llama.cpp)
+
+`LM_PROVIDER=llamacpp` targets a native llama.cpp `llama-server` via plain `fetch`:
+GBNF `grammar` passthrough for constrained decoding, `chat_template_kwargs`
+injection for Qwen-family thinking modes, and automatic model-alias resolution
+from `/v1/models`. Auto-detect ladder: cloud key → Ollama → llama.cpp → transformers.
+
+```bash
+LM_PROVIDER=llamacpp LM_LLAMACPP_HOST=http://localhost:8080 pnpm start
+```
+
+### Multi-Agent Cognitive Cooperation
+
+SeNARS12 instances cooperate by delegating cognitive tasks via Narsese over
+WebSocket (`nar/src/cooperation/delegation.ts`). Agent A sends a
+`CognitiveTaskDelegation` (taskId, LM rule id, serialized NAL context, callback
+endpoint); Agent B runs the *same universal LM rule* with its local model and
+returns a `CognitiveTaskResult` of Narsese terms with truth values. Results are
+admitted through the PerceptionGate with `PEER_AGENT` source quality and
+shadow-validated before entering memory.
+
+### MeTTa as a Tool
+
+MeTTa is **not** a reasoning engine and does not participate in the cognitive
+loop. It remains available as the builtin `metta` tool (exact computation on
+demand), invoked through the ActionGate.
 
 ```typescript
 import { LMRules, LMRule } from '@senars/nar/lm';
@@ -708,18 +744,15 @@ egraph.union(parseMeTTa('a'), parseMeTTa('b'));
 
 **Integration with Agent:**
 
-The agent registers both engines and routes stimuli by prefix:
+MeTTa is a tool, not an engine: `createAgent` wires the `metta` builtin tool
+automatically; no engine registration or `metta:` command routing exists.
 
 ```typescript
-import { createMeTTa, parseMeTTa, EGraph, MeTTaRuntime } from '@senars/metta';
 import { createAgent } from '@senars/nar/agent';
-import { MettaEngine } from '@senars/metta/agent';
 
 const agent = await createAgent({ /* config */ });
-// Both engines auto-registered: 'nar' and 'metta'
-
 // NAR input: (cat --> animal).
-// MeTTa input: metta: (= (add $x 0) $x)
+// MeTTa (via the ActionGate tool): tools.execute('metta', { program: '(add 1 2)' })
 ```
 
 **Engine Isolation (Arbiter Pattern):**
@@ -1170,7 +1203,6 @@ The **Agent** class is the central orchestrator — a multi-engine cognitive run
 import { Agent, LLMCortex, createCortexFromLM, SqliteEventLog, JsonlSessionManager } from '@senars/core';
 import { createAgent } from '@senars/nar/agent';
 import { NAREngine } from '@senars/nar/engine';
-import { createMeTTa, MettaEngine, MettaCommandParser } from '@senars/metta';
 import { NAR } from '@senars/nar';
 
 const agent = await createAgent({
@@ -1182,9 +1214,8 @@ const agent = await createAgent({
   commandParser: new MettaCommandParser().parse,
 });
 
-// Both engines auto-registered
+// NAR is the only reasoning engine; MeTTa is available as the `metta` tool
 agent.registerEngine('nar', new NAREngine(nar));
-agent.registerEngine('metta', new MettaEngine(createMeTTa()));
 
 // Start the agent
 await agent.start();
@@ -1215,7 +1246,7 @@ agent.capabilities(); // { engine: 'metta', supports: { chat: true, skills: true
 | Subsystem | Exports | Purpose |
 |-----------|---------|---------|
 | **Agent** | `Agent`, `createAgent`, `AgentOptions` | Main runtime |
-| **Engines** | `BaseEngine`, `NAREngine`, `MettaEngine` | Reasoning backends |
+| **Engines** | `BaseEngine`, `NAREngine` | Reasoning backends (MeTTa demoted to tool) |
 | **Cortex** | `LLMCortex`, `createCortexFromLM` | LLM narrative synthesis |
 | **Memory** | `MemoryService`, `InMemorySessionManager`, `JsonlSessionManager` | Working + episodic + sessions |
 | **Event Log** | `InMemoryEventLog`, `SqliteEventLog` | Persistent cognitive audit trail |
@@ -1491,7 +1522,7 @@ MIT License — see `LICENSE` for details.
 | **Core NAR** | `NAR`, `createNAR`, `Reasoner`, `Memory`, `TaskManager` | `@senars/nar` |
 | **Terms** | `TermBuilder`, `termParser`, `Truth`, `Stamp` | `@senars/nar` |
 | **Rules** | `NALRules`, `NALExtendedRules`, `RuleProcessor`, `MetaRules` | `@senars/nar` |
-| **Agent (NAR)** | `createAgent`, `Agent`, `NAREngine`, `MettaEngine` | `@senars/nar/agent` |
+| **Agent (NAR)** | `createAgent`, `Agent`, `NAREngine` | `@senars/nar/agent` |
 | **Cognitive** | `CognitiveController`, `Observer`, `RLFPLearner` | `@senars/nar/cognitive` |
 | **Cognitive Params** | `CognitiveParameters`, `DEFAULT_COGNITIVE_PARAMETERS`, `FAST_COGNITIVE_CONFIG`, `LM_HEAVY_CONFIG` | `@senars/nar` (internal) |
 | **Strategies** | `SamplingStrategy`, `DerivationStrategy`, `AttentionModel` | `@senars/nar` (internal) |
@@ -1503,9 +1534,10 @@ MIT License — see `LICENSE` for details.
 | **Grounding** | `GroundingPipeline`, `SourceQuality` | `@senars/nar` (internal) |
 | **Streaming** | `createPipeline`, `StreamReasoner`, `MemoryPremiseSource`, `FocusPremiseSource`, `CompositePremiseSource`, `derive`, `throttled`, `backpressureAware` | `@senars/nar/stream` |
 | **Commands** | `narCommands`, `rlfpCommands`, `selfCommands`, `configCommands`, `memoryCommands`, `lmCommands`, `episodesCommands` | `@senars/nar/commands` |
-| **LM Rules** | `LMRules`, `LMRule`, `LMRuleFactory` | `@senars/nar/lm` |
+| **LM Rules** | `LMRules`, `LMRule`, `LMRuleFactory`, `symbolicFallbacks`, `TraceAbstractor`, `ShadowValidator`, `attemptLMCorrection` | `@senars/nar/lm` |
+| **Cooperation** | `CognitiveTaskDelegation`, `CognitiveTaskResult`, `createDelegation`, `handleDelegationMessage` | `@senars/nar/cooperation` |
 | **MeTTa** | `createMeTTa`, `parseMeTTa`, `EGraph`, `MeTTaRuntime` | `@senars/metta` |
-| **MeTTa Engine** | `MettaEngine`, `MettaCommandParser` | `@senars/metta/agent` |
+| **MeTTa (tool)** | `MettaEngine` (tool executor only), `MettaCommandParser` (chat command parsing) | `@senars/metta/agent` |
 | **Focus-Game-Reflex Kernel** | `Bag`, `Focus`, `FocusBag`, `GameFocus`, `MetaFocus`, `PerceptionGate`, `ActionGate`, `RewardGate`, `Reflex`, `TabularQReflex`, `Negotiator`, `Game`, `MetaGame`, `SelfMetaGame` | `@senars/nar` (new architecture) |
 | **Tick Pipeline** | `createTickContext`, `runTick`, `createPipeline`, `DEFAULT_PIPELINE`, `createDefaultHooks`, `operationActionOf`, `fuseStreamReasoner`, `initOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent` | `@senars/nar/tick` |
 | **Observability (OTel)** | `initOtel`, `shutdownOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent`, `getTracer`, `OtelConfig`, `CognitiveStage` | `@senars/nar/tick` |

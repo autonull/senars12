@@ -3,6 +3,7 @@ import { QuestionGenerationSchema } from '../../nl';
  * Question-oriented LM rule definitions (curiosity-driven).
  */
 import type { LMRuleDefinition } from '../rule-builders.js';
+import { symbolicFallbacks } from './fallbacks.js';
 import { hasHighCuriosity } from '../rule-selectors/confidence.js';
 
 export const questionRules: LMRuleDefinition[] = [
@@ -16,6 +17,7 @@ export const questionRules: LMRuleDefinition[] = [
     singlePremise: true,
     activationCondition: hasHighCuriosity,
     schema: QuestionGenerationSchema,
+    fallback: symbolicFallbacks['lm-curiosity-question'],
   },
   {
     id: 'lm-interactive-clarification',

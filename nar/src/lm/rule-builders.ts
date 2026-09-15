@@ -27,6 +27,15 @@ export interface LMRuleDefinition {
   schema?: import('zod').ZodSchema;
   enableTools?: boolean;
   constitutionAware?: boolean;
+  /** GBNF grammar name (constrained decoding) or inline grammar text. */
+  grammar?: string;
+  maxOutputTokens?: number;
+  /** Pure-NAL symbolic fallback, invoked on LM failure (escalation → null). */
+  fallback?: (
+    primary: Term,
+    secondary?: Term,
+    context?: Record<string, unknown>
+  ) => Task[] | null;
 }
 
 export interface LMRuleFactoryConfig {
@@ -148,6 +157,9 @@ const createRule = (
     outputSchema: def.schema,
     enableTools: def.enableTools,
     constitutionAware: def.constitutionAware,
+    grammar: def.grammar,
+    maxOutputTokens: def.maxOutputTokens,
+    fallback: def.fallback as LMRuleConfig['fallback'],
     taskGenerator: def.multiline
       ? (r: unknown) => parseResponse(String(r), taskType, budget)
       : createTaskGen(taskType, budget),

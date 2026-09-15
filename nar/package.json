@@ -40,6 +40,42 @@
       "types": "./src/lm/index.ts",
       "import": "./src/lm/index.ts"
     },
+    "./lm/grammars": {
+      "types": "./src/lm/grammars/index.ts",
+      "import": "./src/lm/grammars/index.ts"
+    },
+    "./lm/rule-builders": {
+      "types": "./src/lm/rule-builders.ts",
+      "import": "./src/lm/rule-builders.ts"
+    },
+    "./lm/rule-templates": {
+      "types": "./src/lm/rule-templates/index.ts",
+      "import": "./src/lm/rule-templates/index.ts"
+    },
+    "./lm/rule-templates/fallbacks": {
+      "types": "./src/lm/rule-templates/fallbacks.ts",
+      "import": "./src/lm/rule-templates/fallbacks.ts"
+    },
+    "./cooperation": {
+      "types": "./src/cooperation/delegation.ts",
+      "import": "./src/cooperation/delegation.ts"
+    },
+    "./lm/context/trace-abstractor": {
+      "types": "./src/lm/context/trace-abstractor.ts",
+      "import": "./src/lm/context/trace-abstractor.ts"
+    },
+    "./lm/shadow-validation": {
+      "types": "./src/lm/shadow-validation.ts",
+      "import": "./src/lm/shadow-validation.ts"
+    },
+    "./cognitive/corrections": {
+      "types": "./src/cognitive/analyzers/corrections.ts",
+      "import": "./src/cognitive/analyzers/corrections.ts"
+    },
+    "./lm/providers/llamacpp": {
+      "types": "./src/lm/providers/llamacpp.ts",
+      "import": "./src/lm/providers/llamacpp.ts"
+    },
     "./nl": {
       "types": "./src/nl/index.ts",
       "import": "./src/nl/index.ts"

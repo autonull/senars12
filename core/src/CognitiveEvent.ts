@@ -1,4 +1,4 @@
-export type EngineOrigin = 'nar' | 'metta';
+export type EngineOrigin = 'nar';
 
 export interface CognitiveEventBase {
   readonly engine: EngineOrigin;
@@ -121,9 +121,6 @@ export type CognitiveEvent =
 
 export const isNarEvent = (e: CognitiveEvent): e is Extract<CognitiveEvent, { engine: 'nar' }> =>
   e.engine === 'nar';
-export const isMettaEvent = (
-  e: CognitiveEvent
-): e is Extract<CognitiveEvent, { engine: 'metta' }> => e.engine === 'metta';
 export const isEventType =
   <T extends CognitiveEvent['type']>(type: T) =>
   (e: CognitiveEvent): e is Extract<CognitiveEvent, { type: T }> =>

@@ -81,7 +81,7 @@ interface DoctorOutput {
   config: {
     valid: boolean;
     profile?: { name: string; personality: string };
-    backends?: { nar: boolean; metta: boolean };
+    backends?: { nar: boolean };
     error?: string;
   };
   routingMatrix: Record<string, string[]>;
@@ -164,7 +164,7 @@ const main = async (): Promise<void> => {
     output.config = {
       valid: true,
       profile: { name: config.profile.name, personality: config.profile.personality },
-      backends: { nar: config.backends.nar.enabled, metta: config.backends.metta.enabled },
+      backends: { nar: config.backends.nar.enabled },
     };
     if (config.routing) setRouting(config.routing as never);
   } catch (e) {

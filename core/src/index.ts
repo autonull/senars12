@@ -14,7 +14,7 @@
  * @deprecated Use `import type { ComponentState, ComponentContext, Metrics, EventBus } from '@senars/util'`
  */
 /**
- * @deprecated Use `import type { CognitiveEvent, CognitiveEventBase, EngineOrigin } from '@senars/util'` and runtime `isNarEvent, isMettaEvent, isEventType` from `@senars/util`
+ * @deprecated Use `import type { CognitiveEvent, CognitiveEventBase, EngineOrigin } from '@senars/util'` and runtime `isNarEvent, isEventType` from `@senars/util`
  */
 /**
  * @deprecated Use `import type { Connection, ConnectionState, ConnectionFactory, ConnectionConfig, ConnectionDeps, TransportDeps, IOMessage, MessageClassification } from '@senars/util'`
@@ -49,7 +49,7 @@ export type {
   ToolResult,
   TransportDeps,
 } from '@senars/util';
-export { isEventType, isMettaEvent, isNarEvent } from '@senars/util';
+export { isEventType, isNarEvent } from '@senars/util';
 export { Agent } from './Agent.js';
 /** Cognitive-event → UI-delta projection bridge. @public */
 export { AgentBridge, type BridgeDelta, type BridgeEvent } from './AgentBridge.js';

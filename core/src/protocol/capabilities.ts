@@ -4,7 +4,7 @@
 import { z } from 'zod';
 
 export const AgentCapabilities = z.object({
-  engine: z.enum(['nar', 'metta']),
+  engine: z.enum(['nar']),
   supports: z.object({
     chat: z.boolean(),
     beliefs: z.boolean(),

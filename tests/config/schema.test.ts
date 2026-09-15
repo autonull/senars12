@@ -13,7 +13,7 @@ describe('appConfigSchema: previously stripped blocks', () => {
     const config = appConfigSchema.parse({
       configVersion: '1.0',
       agent: { name: 'senars', persona: 'curious assistant' },
-      backends: { nar: { enabled: true }, metta: { enabled: false } },
+      backends: { nar: { enabled: true } },
       memory: { maxConcepts: 200, derivationDepth: 5 },
       inference: { maxDerivationDepth: 10, maxDerivationsPerStep: 100, cpuThrottleMs: 10 },
       production: { provider: 'openai-compatible', model: 'gpt-x', apiKeyEnv: 'MY_KEY' },
@@ -22,7 +22,6 @@ describe('appConfigSchema: previously stripped blocks', () => {
     });
     expect(config.memory.maxConcepts).toBe(200);
     expect(config.inference.cpuThrottleMs).toBe(10);
-    expect(config.backends.metta.enabled).toBe(false);
     expect(config.backends.nar.enabled).toBe(true);
     expect(config.irc?.nick).toBe('bot');
     expect(config.production?.model).toBe('gpt-x');

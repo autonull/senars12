@@ -65,7 +65,7 @@ export type {
   EngineOrigin,
 } from './types/cognitive.js';
 /** @public Runtime guards for cognitive event discrimination. */
-export { isEventType, isMettaEvent, isNarEvent } from './types/cognitive.js';
+export { isEventType, isNarEvent } from './types/cognitive.js';
 /** @public Engine contract and identifiers. */
 export type { Engine, EngineId } from './types/engine.js';
 /** @public Episodic memory contracts. */

@@ -15,6 +15,7 @@ import {
  * Belief-oriented LM rule definitions.
  */
 import type { LMRuleDefinition } from '../rule-builders.js';
+import { symbolicFallbacks } from './fallbacks.js';
 import { hasConflictingBeliefs, hasLowConfidence } from '../rule-selectors/confidence.js';
 import {
   hasStructuralSimilarityNoOverlap,
@@ -31,6 +32,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.9,
     schema: TranslationSchema,
+    fallback: symbolicFallbacks['lm-narsese-translation'],
   },
   {
     id: 'lm-belief-revision',
@@ -42,6 +44,7 @@ export const beliefRules: LMRuleDefinition[] = [
     activationCondition: hasConflictingBeliefs,
     schema: BeliefRevisionSchema,
     constitutionAware: true,
+    fallback: symbolicFallbacks['lm-belief-revision'],
   },
   {
     id: 'lm-hypothesis-generation',
@@ -54,6 +57,8 @@ export const beliefRules: LMRuleDefinition[] = [
     schema: HypothesisSchema,
     enableTools: true,
     constitutionAware: true,
+    grammar: 'narsese-term',
+    fallback: symbolicFallbacks['lm-hypothesis-generation'],
   },
   {
     id: 'lm-explanation-generation',
@@ -63,6 +68,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.65,
     schema: ExplanationSchema,
+    fallback: symbolicFallbacks['lm-explanation-generation'],
   },
   {
     id: 'lm-analogical-reasoning',
@@ -74,6 +80,9 @@ export const beliefRules: LMRuleDefinition[] = [
     activationCondition: hasStructuralSimilarityNoOverlap,
     schema: AnalogySchema,
     enableTools: true,
+    grammar: 'single-word',
+    maxOutputTokens: 8,
+    fallback: symbolicFallbacks['lm-analogical-reasoning'],
   },
   {
     id: 'lm-meta-reasoning',
@@ -83,6 +92,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.65,
     schema: MetaReasoningSchema,
+    fallback: symbolicFallbacks['lm-meta-reasoning'],
   },
   {
     id: 'lm-uncertainty-calibration',
@@ -101,6 +111,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.65,
     schema: SchemaInductionSchema,
+    fallback: symbolicFallbacks['lm-schema-induction'],
   },
   {
     id: 'lm-temporal-causal',

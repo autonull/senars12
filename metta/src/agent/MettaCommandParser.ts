@@ -8,7 +8,6 @@ export const LLM_COMMANDS = [
   'append_file',
   'search',
   'shell',
-  'metta',
   'pin',
   'tavily_search',
 ] as const;

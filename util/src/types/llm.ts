@@ -94,6 +94,15 @@ export type LMRuleConfig = {
     maxTokens?: number;
     signal?: AbortSignal;
   };
+  /** GBNF grammar for constrained decoding (llamacpp provider). */
+  grammar?: string;
+  maxOutputTokens?: number;
+  /** Pure-NAL symbolic fallback: null skips the rule, [] degrades silently. */
+  fallback?: (
+    primary: unknown,
+    secondary?: unknown,
+    context?: Record<string, unknown>
+  ) => unknown[] | null;
 };
 
 export type LMPromptGenerator = (

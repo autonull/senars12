@@ -76,8 +76,7 @@ async function main(): Promise<void> {
       console.log(`  LM Provider: ${lmConfig.provider}`);
       console.log(`  LM Model: ${lmConfig.model}`);
       console.log(`  NAR Enabled: ${config.backends.nar.enabled}`);
-      console.log(`  MeTTa Enabled: ${config.backends.metta.enabled}`);
-      console.log(`  Config Version: ${config.configVersion ?? 'not set'}`);
+          console.log(`  Config Version: ${config.configVersion ?? 'not set'}`);
     }
   } catch (error) {
     if (error instanceof Error) {

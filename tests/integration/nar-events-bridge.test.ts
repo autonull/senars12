@@ -100,8 +100,8 @@ describe('narEventToCognitive', () => {
   });
 
   it('honors a custom engine origin', () => {
-    const evt = narEventToCognitive('cycle:start', { cycle: 1, conceptCount: 1 }, 'metta');
-    expect(evt?.engine).toBe('metta');
+    const evt = narEventToCognitive('cycle:start', { cycle: 1, conceptCount: 1 });
+    expect(evt?.engine).toBe('nar');
   });
 
   it('every mapped event key produces a non-null cognitive event', () => {

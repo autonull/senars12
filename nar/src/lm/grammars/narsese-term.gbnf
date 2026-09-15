@@ -1,0 +1,14 @@
+# Forces valid Narsese statement syntax: term copula term, optional punctuation
+root ::= ws statement punct? ws
+
+statement ::= term (ws copula ws term)?
+copula ::= "-->" | "<->" | "==" ">" | "<=>" | "-->" 
+
+term ::= word | compound | extensional-set | intensional-set
+compound ::= "(" ws statement (ws "," ws statement)? ws ")"
+extensional-set ::= "{" ws word (ws "," ws word)* ws "}"
+intensional-set ::= "[" ws word (ws "," ws word)* ws "]"
+
+word ::= [a-zA-Z0-9_\-]+
+punct ::= "." | "!" | "?"
+ws ::= [ \t]*

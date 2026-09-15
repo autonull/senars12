@@ -37,7 +37,7 @@ export interface CycleHost {
 
 const perceive = (host: CycleHost, stimulus: CognitiveStimulus): void => {
   host.emit({
-    engine: 'metta',
+    engine: 'nar',
     type: 'input.user',
     timestamp: Date.now(),
     correlationId: stimulus.correlationId,
@@ -50,7 +50,7 @@ const recall = async (
   stimulus: CognitiveStimulus
 ): Promise<{ cid: CognitiveEvent; context: Context }> => {
   const cid = await host.log.append({
-    engine: 'metta',
+    engine: 'nar',
     type: 'input.user',
     payload: { text: stimulus.text, source: stimulus.source },
     correlationId: stimulus.correlationId,

@@ -95,7 +95,7 @@ export class Agent {
 
   submit(input: string, correlationId: string): void {
     this.#emitCognitive({
-      engine: 'metta',
+      engine: 'nar',
       type: 'input.user',
       timestamp: Date.now(),
       correlationId,
@@ -143,7 +143,7 @@ export class Agent {
 
   capabilities(): AgentCapabilities {
     return {
-      engine: 'metta',
+      engine: 'nar',
       supports: {
         chat: true,
         beliefs: true,
