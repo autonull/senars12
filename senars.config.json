@@ -1,5 +1,5 @@
 {
-  "name": "senars12",
+  "name": "senars",
   "version": "1.0.0",
   "configVersion": "1.0",
   "agent": {
@@ -71,7 +71,7 @@
     "server": "irc.libera.chat",
     "port": 6697,
     "useTLS": true,
-    "nick": "senars12",
+    "nick": "senars",
     "channels": [
       "#nars"
     ]

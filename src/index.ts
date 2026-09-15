@@ -59,6 +59,6 @@ export {
 } from './config/index.js';
 
 export const VERSION = '1.0.0';
-export const NAME = 'senars12';
+export const NAME = 'senars';
 
 export default { VERSION, NAME };

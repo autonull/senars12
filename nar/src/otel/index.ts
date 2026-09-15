@@ -23,7 +23,7 @@ export interface OtelConfig {
 export function initOtel(config: OtelConfig = {}): void {
   if (initialized) return;
   const {
-    serviceName = 'senars12-cognitive-kernel',
+    serviceName = 'senars-cognitive-kernel',
     otlpEndpoint,
     batch = true,
     enabled = true,
@@ -78,7 +78,7 @@ export function wrapMiddlewareWithSpan(
   stage: CognitiveStage,
   middleware: (ctx: TickContext, next: () => Promise<void>) => Promise<void>
 ) {
-  const tracer = getTracer('senars12.cognitive-tick');
+  const tracer = getTracer('senars.cognitive-tick');
   return async (ctx: TickContext, next: () => Promise<void>) => {
     return tracer.startActiveSpan(
       `cognitive.${stage}`,

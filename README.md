@@ -1,10 +1,10 @@
-# SeNARS12
+# SeNARS
 
 **Semantic Non-Axiomatic Reasoning System**
 
-SeNARS12 is a bounded, event-sourced cognitive runtime designed for auditable, continuous operation. It provides a hardened execution kernel that synthesizes uncertain symbolic inference (Non-Axiomatic Logic), exact algebraic rewriting (MeTTa), and optional neural-assisted formalization into a unified, provenance-preserving state machine.
+SeNARS is a bounded, event-sourced cognitive runtime designed for auditable, continuous operation. It provides a hardened execution kernel that synthesizes uncertain symbolic inference (Non-Axiomatic Logic), exact algebraic rewriting (MeTTa), and optional neural-assisted formalization into a unified, provenance-preserving state machine.
 
-Rather than treating language models as standalone reasoning engines, SeNARS12 integrates them as untrusted "System 1" proposers within a broader cognitive architecture. The SeNARS kernel acts as the "System 2" source of truth, enforcing strict epistemic boundaries, resource limits, and structural invariants.
+Rather than treating language models as standalone reasoning engines, SeNARS integrates them as untrusted "System 1" proposers within a broader cognitive architecture. The SeNARS kernel acts as the "System 2" source of truth, enforcing strict epistemic boundaries, resource limits, and structural invariants.
 
 ### Core Architectural Pillars
 
@@ -167,7 +167,7 @@ This eliminates entire classes of bugs at compile time and guarantees structural
 
 ### Resource Model: AIKR & Bounded Cognition
 
-Most architectures assume effectively infinite compute and memory — unbounded context windows, unbounded retrieval. SeNARS12 assumes the opposite, and treats the constraint as a design resource:
+Most architectures assume effectively infinite compute and memory — unbounded context windows, unbounded retrieval. SeNARS assumes the opposite, and treats the constraint as a design resource:
 
 **Assumption of Insufficient Knowledge and Resources (AIKR):**
 
@@ -196,7 +196,7 @@ The kernel enforces a strict division of labor between **System 1** and **System
 
 LLMs dangerously conflate **what is** (beliefs) with **what should be** (goals). In natural language, "The server is down" and "The server should be down" differ by one word but have opposite implications. LLMs mix these freely, leading to reward hacking, sycophancy, and unintended optimization.
 
-**SeNARS12 enforces a hard structural distinction at the type level:**
+**SeNARS enforces a hard structural distinction at the type level:**
 
 | Aspect | Beliefs (`Statement`) | Goals (`Goal`) |
 |--------|----------------------|----------------|
@@ -522,7 +522,7 @@ LM_PROVIDER=llamacpp LM_LLAMACPP_HOST=http://localhost:8080 pnpm start
 
 ### Multi-Agent Cognitive Cooperation
 
-SeNARS12 instances cooperate by delegating cognitive tasks via Narsese over
+SeNARS instances cooperate by delegating cognitive tasks via Narsese over
 WebSocket (`nar/src/cooperation/delegation.ts`). Agent A sends a
 `CognitiveTaskDelegation` (taskId, LM rule id, serialized NAL context, callback
 endpoint); Agent B runs the *same universal LM rule* with its local model and
@@ -860,7 +860,7 @@ One substrate — `Bag<T>`, `Focus`, `Game`, `Reflex`, `RewardGate` — powers t
 
 ## Self-Improvement Loop
 
-SeNARS12 runs a **self-improvement loop** where the cognitive architecture reasons about its own codebase using the same NAL machinery it uses for external reasoning.
+SeNARS runs a **self-improvement loop** where the cognitive architecture reasons about its own codebase using the same NAL machinery it uses for external reasoning.
 
 ### Architecture
 
@@ -1130,7 +1130,7 @@ agent.capabilities(); // { engine: 'metta', supports: { chat: true, skills: true
 
 ### Multi-Transport Agent (The "Bot")
 
-A single SeNARS agent accessible via multiple transports simultaneously:
+A single SeNARS agent, accessible via multiple transports simultaneously:
 
 | Transport | Protocol | Use Case |
 |-----------|----------|----------|
@@ -1183,7 +1183,7 @@ GET  /api/v1/nar/stats       # Statistics
 
 ```typescript
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerNARTools, registerAgentAPI } from 'senars12/api';
+import { registerNARTools, registerAgentAPI } from 'senars/api';
 
 const server = new McpServer({ name: 'senars', version: '1.0.0' });
 registerNARTools(server, nar, agent);
@@ -1277,7 +1277,7 @@ import { initOtel, instrumentPipeline, runTick, createTickContext, DEFAULT_PIPEL
 
 // Initialize OTel (once at startup)
 initOtel({
-  serviceName: 'senars12-cognitive-kernel',
+  serviceName: 'senars-cognitive-kernel',
   otlpEndpoint: 'http://localhost:4318/v1/traces',  // optional
   batch: true,  // use BatchSpanProcessor (recommended for production)
   enabled: true,
@@ -1356,7 +1356,7 @@ await space.execute('run_wasm');
 
 ### Production Readiness
 
-SeNARS12 is designed for **continuous, unattended operation** within defined autonomy bounds. The cognitive kernel includes:
+SeNARS is designed for **continuous, unattended operation** within defined autonomy bounds. The cognitive kernel includes:
 
 - **OpenTelemetry distributed tracing** — per-middleware spans with OTLP HTTP export for observability
 - **WASI sandbox** — secure capability execution via `CapabilitySpace` with `createWasiSandbox`/`createWasmModuleSandbox` (deny-by-default)
@@ -1562,9 +1562,9 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 | **Model Runner** | `ModelRunner`, `ToolCall`, `ModelEvent` | `@senars/core` |
 | **Lens/Protocol** | `Lens`, `GraphNodeData`, `GraphOp`, `CognitiveDelta` | `@senars/core/protocol` |
 | **IO** | `ConnectionManager`, `bindAgentToConnection` | `@senars/io` |
-| **API** | `HTTPAdapter`, `WebSocketAdapter`, `registerNARTools`, `registerAgentAPI` | `senars12` (root package) |
+| **API** | `HTTPAdapter`, `WebSocketAdapter`, `registerNARTools`, `registerAgentAPI` | `senars` (root package) |
 | **UI** | `startAgentUI` | `@senars/ui` |
-| **Config** | `loadConfig`, `loadConfigFromEnv` | `senars12` (root package) |
+| **Config** | `loadConfig`, `loadConfigFromEnv` | `senars` (root package) |
 | **Shared Utils** | `EventBus`, `CommandRegistry`, `generateId`, `clamp`, `sleep` | `@senars/util` |
 | **Shared Types** | `CognitiveEvent`, `Connection`, `LMService`, `Episode` | `@senars/util` |
 | **Errors** | `SenarsError`, `ConfigError`, `TransportError`, `PolicyViolation` | `@senars/util` |
@@ -1577,4 +1577,4 @@ MIT License — see `LICENSE` for details.
 
 ---
 
-*SeNARS12 — a bounded, event-sourced, provenance-preserving reasoning kernel.*
+*SeNARS — a bounded, event-sourced, provenance-preserving reasoning kernel.*

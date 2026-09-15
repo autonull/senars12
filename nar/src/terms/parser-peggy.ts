@@ -1,4 +1,4 @@
-// senars12 Peggy parser wrapper - based on senars11 design
+// senars Peggy parser wrapper
 // This replaces the hand-written recursive descent parser
 
 import { createRequire } from 'node:module';

@@ -72,7 +72,7 @@ export const duckDuckGoSearch = async (
   maxResults = 5
 ): Promise<WebSearchResult[]> => {
   const res = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
-    headers: { 'user-agent': 'Mozilla/5.0 (SeNARS web-fetch; +https://github.com/senars12)' },
+    headers: { 'user-agent': 'Mozilla/5.0 (SeNARS web-fetch; +https://github.com/senars)' },
     ...withTimeout(),
   });
   if (!res.ok) throw new Error(`duckduckgo ${res.status}`);

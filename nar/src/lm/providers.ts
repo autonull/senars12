@@ -563,7 +563,7 @@ export function getEffectiveCircuitConfig(
   };
 }
 
-const lmTracer = getTracer('senars12.lm');
+const lmTracer = getTracer('senars.lm');
 
 function emitCircuitBreakerEvent(provider: LMProviderName, state: CircuitState, details: Record<string, unknown> = {}): void {
   const span = trace.getActiveSpan();
