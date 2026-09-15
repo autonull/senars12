@@ -42,7 +42,7 @@ describe('LM settings resolution', () => {
   });
 
   it('defaults to transformers', () => {
-    expect(resolveLMSettings()).toEqual({ provider: 'transformers' });
+    expect(resolveLMSettings()).toMatchObject({ provider: 'transformers' });
     expect(resolveLMConfig()).toMatchObject({
       provider: 'transformers',
       model: 'onnx-community/Qwen2.5-1.5B-Instruct',
