@@ -61,7 +61,7 @@ Also done this session: repeat penalty `{lastTokens:64, penalty: structured?1.2:
 
 **End-to-end integration verified live** (`.cache/e2e-demo.ts`): English → NLUnderstandingService (embedded LM) → Narsese candidates → KernelPerceptionGate → `nar.inputTask` → NAR cycles → derived beliefs; question formalization through the same LM. Two NL facts admitted; derivation depends on model formalization quality of the middle "similarity" sentence (junk on small models).
 
-**Known perf note (user-raised):** wall-clock per input is dominated by retry amplification on junk output (up to 3 attempts + 2 fallbacks per input, each a few hundred tokens at small-model speed), not load or transport. Phase 3/4 budgets + broker timeouts bound this; a ≥4B model cuts failed-attempt rates sharply. **Verify GPU is actually engaged (`gpuLayers: 'max'` + backend detection) before tuning anything else — user reports 70–100 tok/s on 4GB+ models with their GPU, so if we see far less, the CUDA/Vulkan path may not be active.**
+**Known perf note (RESOLVED — GPU confirmed):** Vulkan backend active (no CUDA build available), `gpuLayers: 'max'` offloads fully — measured **188.9 tok/s** on Qwen3.5-0.8B with 1.86 GB VRAM resident (`.cache/gpu-proof.ts`). Wall-clock slowness in the bench is retry amplification in the understanding loop (up to 3 attempts + 2 fallbacks per junk output), not transport or GPU. Phase 3/4 budgets + broker deadlines bound this; a ≥4B model cuts failed-attempt rates sharply.
 
 **Phase 1 remaining:** breaker/demotion check on bad model path (last unverified acceptance item); `LM_LLAMACPP_MODEL` unset → typed error (already handled in `ensureRuntimeLoaded`). `test:unit` green (1419 passed), `typecheck` clean, `lint` clean.
 
