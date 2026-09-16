@@ -138,10 +138,13 @@ export class NLUnderstandingService {
   ): Promise<TaskBatch | null> {
     let lastError: string | null = null;
     let lastBatch: TaskBatch | null = null;
+    // Escalate temperature so deterministic low-temp collapse (e.g. empty
+    // batches under grammar) diversifies across attempts.
+    const attemptTemps = [undefined, 0.7, 1.0];
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const result = await this.translateWithLM(input, ctx, lastError);
+        const result = await this.translateWithLM(input, ctx, lastError, attemptTemps[attempt]);
         if (result) {
           const empty =
             result.beliefs.length + result.questions.length + result.goals.length === 0;
@@ -180,11 +183,15 @@ export class NLUnderstandingService {
     };
   }
 
-  private async structuredTranslate(prompt: string): Promise<TaskBatch | null> {
+  private async structuredTranslate(
+    prompt: string,
+    temperature?: number
+  ): Promise<TaskBatch | null> {
     try {
       if (this.lm) {
         return await this.lm.generateObject(prompt, TaskBatchSchema as ZodSchema<TaskBatch>, {
           task: 'structured',
+          temperature,
         });
       }
       if (!this.model) return null;
@@ -192,6 +199,7 @@ export class NLUnderstandingService {
         model: this.model,
         prompt,
         schema: zodSchema(TaskBatchSchema as ZodSchema<TaskBatch>),
+        temperature,
       });
       return result.object as TaskBatch;
     } catch {
@@ -243,7 +251,8 @@ export class NLUnderstandingService {
   private async translateWithLM(
     input: string,
     ctx?: NLContext,
-    lastError?: string | null
+    lastError?: string | null,
+    temperature?: number
   ): Promise<TaskBatch | null> {
     if (!this.lm && !this.model) return null;
 
@@ -257,7 +266,7 @@ export class NLUnderstandingService {
     });
 
     return (
-      (await this.structuredTranslate(prompt)) ??
+      (await this.structuredTranslate(prompt, temperature)) ??
       (await this.jsonFallbackTranslate(prompt)) ??
       (await this.narseseFallbackTranslate(prompt, input))
     );

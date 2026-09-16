@@ -95,6 +95,9 @@ export function buildUnderstandingPrompt(
   parts.push('    driveModulations: {driveId: amount} e.g. {"curiosity": 0.3, "coherence": -0.2}');
   parts.push('');
   parts.push('Rules:');
+  parts.push('  - truth values (f, c) must be numbers between 0 and 1');
+  parts.push('  - NEVER return all arrays empty: extract at least one belief, question, or goal');
+  parts.push('  - Narsese must be fully parenthesized: (A --> B), never a bare term');
   parts.push('  - Universal ("all") → frequency 1.0, confidence 0.9');
   parts.push('  - Existential ("some") → frequency 0.5, confidence 0.5');
   parts.push('  - Typical statements → frequency 0.9, confidence 0.9');

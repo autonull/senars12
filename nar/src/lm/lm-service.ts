@@ -348,6 +348,7 @@ export class LMService {
     opts?: {
       task?: LMTask;
       signal?: AbortSignal;
+      temperature?: number;
     }
   ): Promise<T> {
     try {
@@ -362,7 +363,7 @@ export class LMService {
   private async generateObjectNative<T>(
     prompt: string,
     schema: ZodSchema<T>,
-    opts?: { task?: LMTask; signal?: AbortSignal }
+    opts?: { task?: LMTask; signal?: AbortSignal; temperature?: number }
   ): Promise<T> {
     const model = this.getModel(opts?.task ?? 'structured');
     if (!model) throw new Error('No model available');
@@ -375,7 +376,7 @@ export class LMService {
 
     const cacheKey = buildCacheKey(prompt, {
       task: opts?.task ?? 'structured',
-      temperature: 0,
+      temperature: opts?.temperature ?? 0,
       maxOutputTokens: 0,
       grammar: JSON.stringify(schema),
     });
@@ -391,10 +392,11 @@ export class LMService {
     try {
       const object = await withRetry(
         async () => {
-          const { object: out } = await generateObject({
+          const { object: out } =           await generateObject({
             model,
             prompt,
             schema: zodSchema(schema),
+            temperature: opts?.temperature,
             abortSignal: opts?.signal,
           });
           return out;
@@ -449,14 +451,15 @@ export class LMService {
   private async generateObjectViaText<T>(
     prompt: string,
     schema: ZodSchema<T>,
-    opts: { task?: LMTask; signal?: AbortSignal } | undefined,
+    opts: { task?: LMTask; signal?: AbortSignal; temperature?: number } | undefined,
     nativeError: unknown
   ): Promise<T> {
     const jsonSchema = z.toJSONSchema(schema as never);
     const enriched =
       `${prompt}\n\nRespond with ONLY a single JSON object matching this JSON Schema` +
       ` (no markdown fences, no commentary):\n${JSON.stringify(jsonSchema)}`;
-    const temperatures = [0, 0.2];
+    const base = opts?.temperature ?? 0;
+    const temperatures = base === 0 ? [0, 0.2] : [base, base + 0.3];
     let lastError: unknown = nativeError;
     for (const temperature of temperatures) {
       if (opts?.signal?.aborted) break;

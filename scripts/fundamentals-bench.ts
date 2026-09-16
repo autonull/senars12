@@ -534,7 +534,7 @@ async function runScenario7(): Promise<boolean> {
 
 // ── Main ─────────────────────────────────────────────────────
 
-import { enableRoutingTelemetry, getRoutingLogStatus } from '@senars/nar/lm/providers.js';
+import { enableRoutingTelemetry, getRoutingLogStatus, resetCircuitBreakers } from '@senars/nar/lm/providers.js';
 
 async function main() {
   const config = loadConfig();
@@ -553,11 +553,15 @@ async function main() {
     registry = createSeNARSRegistry();
     lmService = createMockLMService({
       generateObjectFn: async (prompt: string, _schema: any) => {
-        const hasUnless = prompt.includes('The server will crash unless the backup generator kicks in');
-        const hasSeniorDev = prompt.includes('Alice is a senior developer') || prompt.includes('senior developer');
-        const hasAccessPriv = prompt.includes('same access privileges');
-        const hasLeadEng = prompt.includes('Lead engineers can access');
-        const hasDatabase = prompt.includes('want the database') || prompt.includes('database to be offline');
+        // Match only the actual input (the prompt embeds few-shot examples
+        // that contain the scenario sentences verbatim).
+        const input =
+          prompt.split('Translate this to Narsese tasks:').pop()?.trim() ?? prompt;
+        const hasUnless = input.includes('The server will crash unless the backup generator kicks in');
+        const hasSeniorDev = input.includes('Alice is a senior developer') || input.includes('senior developer');
+        const hasAccessPriv = input.includes('same access privileges');
+        const hasLeadEng = input.includes('Lead engineers can access');
+        const hasDatabase = input.includes('want the database') || input.includes('database to be offline');
         
         if (hasUnless) {
           return {
@@ -646,6 +650,7 @@ async function main() {
   const results: Record<string, boolean> = {};
 
   // Scenario 1
+  resetCircuitBreakers();
   let nar = await createFreshNAR();
   try {
     results.scenario1 = await runScenario1(nar, lmService);
@@ -654,6 +659,7 @@ async function main() {
   }
 
   // Scenario 2
+  resetCircuitBreakers();
   nar = await createFreshNAR();
   try {
     results.scenario2 = await runScenario2(nar, lmService, config);
@@ -662,6 +668,7 @@ async function main() {
   }
 
   // Scenario 3
+  resetCircuitBreakers();
   nar = await createFreshNAR();
   try {
     results.scenario3 = await runScenario3(nar, lmService);

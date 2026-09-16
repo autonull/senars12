@@ -41,7 +41,7 @@ export async function loadModel(config: EmbeddedLlamaConfig): Promise<{
   const context = await model.createContext({
     contextSize: config.contextSize ?? 4096,
     batchSize: config.batchSize ?? 512,
-    sequences: config.sequences ?? 1,
+    sequences: config.sequences ?? 4,
     flashAttention: config.flashAttention ?? true,
   });
 

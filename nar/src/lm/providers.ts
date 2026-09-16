@@ -579,6 +579,11 @@ export function getAllCircuitBreakers(): Map<LMProviderName, ProviderHealth> {
   return new Map(circuitBreakers);
 }
 
+/** Close all breakers and clear failure counts (test/bench isolation between independent scenarios). */
+export function resetCircuitBreakers(): void {
+  circuitBreakers.clear();
+}
+
 /** Get effective circuit breaker config for a provider (settings > provider defaults > global defaults). */
 export function getEffectiveCircuitConfig(
   provider: LMProviderName,

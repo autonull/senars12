@@ -8,6 +8,7 @@ import type {
 import { simulateReadableStream, MockLanguageModelV3 } from 'ai/test';
 import type { LanguageModel } from 'ai';
 import {
+  GeneralChatWrapper,
   LlamaChatSession,
   type ChatModelResponse,
   type LlamaChatResponseChunk,
@@ -90,6 +91,21 @@ function visibleText(response: ChatModelResponse['response']): string {
     .trim();
 }
 
+/**
+ * Force every top-level array to be non-empty. Small models collapse to
+ * trivially-valid empty arrays under grammar constraints; the understanding
+ * layer treats empty batches as failure, so make them unrepresentable.
+ * Junk entries from non-extractive inputs are filtered downstream (firewall).
+ */
+function withNonEmptyArrays(schema: unknown): unknown {
+  const props = (schema as { properties?: Record<string, { type?: string }> })?.properties;
+  if (!props) return schema;
+  const patched = Object.fromEntries(
+    Object.entries(props).map(([k, v]) => [k, v?.type === 'array' ? { ...v, minItems: 1 } : v])
+  );
+  return { ...(schema as object), properties: patched };
+}
+
 /** Build a JSON-schema or GBNF grammar for the call, if requested. */
 async function buildGrammar(
   options: LanguageModelV3CallOptions
@@ -99,7 +115,9 @@ async function buildGrammar(
   if (gbnf) return llama.createGrammar({ grammar: gbnf });
   if (options.responseFormat?.type === 'json' && options.responseFormat.schema) {
     try {
-      return await llama.createGrammarForJsonSchema(options.responseFormat.schema as never);
+      return await llama.createGrammarForJsonSchema(
+        withNonEmptyArrays(options.responseFormat.schema) as never
+      );
     } catch {
       return undefined; // schema not grammar-compatible; rely on SDK JSON parsing
     }
@@ -149,41 +167,53 @@ export function createEmbeddedLlamaCppLanguageModel(
     const context = await getContext();
     const sequence = await createSequence();
     const systemPrompt = extractSystemPrompt(options.prompt);
-    const session = new LlamaChatSession({
-      contextSequence: sequence,
-      chatWrapper: getChatWrapper() ?? 'auto',
-      ...(systemPrompt ? { systemPrompt } : {}),
-    });
 
+    // Grammar-constrained output must bypass thinking-model wrappers: their
+    // auto-opened thinking segments swallow the entire constrained JSON, so
+    // both visibleText and responseText come back empty. A non-segmenting
+    // wrapper emits the raw constrained text as-is.
     const grammar = await buildGrammar(options);
     const temperature = options.temperature ?? defaultTemperature(task);
     const maxTokens = options.maxOutputTokens ?? defaultMaxTokens(task);
 
-    const result = await session.promptWithMeta(extractTextFromPrompt(options.prompt), {
-      grammar,
-      temperature,
-      topK: options.topK ?? 40,
-      topP: options.topP ?? 0.95,
-      maxTokens,
-      signal: options.abortSignal,
-      stopOnAbortSignal: true,
-      repeatPenalty: { lastTokens: 64, penalty: task === 'structured' ? 1.2 : 1.1 },
-      // Cap reasoning so hybrid-thinking models (e.g. Qwen3.5) answer within budget
-      // instead of spending every token inside a thinking block.
-      budgets: { thoughtTokens: task === 'quality' ? 512 : 128 },
-      ...(onDelta
-        ? {
-            onResponseChunk(chunk: LlamaChatResponseChunk) {
-              if (chunk.type === 'segment' && (chunk.segmentType === 'thought' || chunk.segmentType === 'comment')) return;
-              onDelta(chunk.text);
-            },
-          }
-        : {}),
+    let rawChunks = '';
+    const session = new LlamaChatSession({
+      contextSequence: sequence,
+      chatWrapper: grammar ? new GeneralChatWrapper() : (getChatWrapper() ?? 'auto'),
+      ...(systemPrompt ? { systemPrompt } : {}),
     });
 
-    const inputTokens = sequence.tokenMeter.usedInputTokens;
-    const outputTokens = sequence.tokenMeter.usedOutputTokens;
-    session.dispose({ disposeSequence: true });
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let result: Awaited<ReturnType<typeof session.promptWithMeta>>;
+    try {
+      result = await session.promptWithMeta(extractTextFromPrompt(options.prompt), {
+        grammar,
+        temperature,
+        topK: options.topK ?? 40,
+        topP: options.topP ?? 0.95,
+        maxTokens,
+        signal: options.abortSignal,
+        stopOnAbortSignal: true,
+        repeatPenalty: { lastTokens: 64, penalty: task === 'structured' ? 1.2 : 1.1 },
+        // Cap reasoning so hybrid-thinking models (e.g. Qwen3.5) answer within budget
+        // instead of spending every token inside a thinking block.
+        ...(grammar ? {} : { budgets: { thoughtTokens: task === 'quality' ? 512 : 128 } }),
+        ...(onDelta || grammar
+          ? {
+              onResponseChunk(chunk: LlamaChatResponseChunk) {
+                if (!grammar && chunk.type === 'segment' && (chunk.segmentType === 'thought' || chunk.segmentType === 'comment')) return;
+                rawChunks += chunk.text;
+                onDelta?.(chunk.text);
+              },
+            }
+          : {}),
+      });
+    } finally {
+      inputTokens = sequence.tokenMeter.usedInputTokens;
+      outputTokens = sequence.tokenMeter.usedOutputTokens;
+      session.dispose({ disposeSequence: true });
+    }
     if (process.env.LM_LLAMACPP_DEBUG) {
       const seg = (i: ChatModelResponse['response'][number]) =>
         typeof i === 'string' ? `str(${i.length})` : `${i.type}:${'segmentType' in i ? i.segmentType : ''}(${('text' in i ? i.text : '').length})`;
@@ -191,9 +221,9 @@ export function createEmbeddedLlamaCppLanguageModel(
         '| stopReason:', result.stopReason,
         '| segments:', result.response.map(seg).join(' | '));
     }
-    // Grammar output is JSON by construction; segment misclassification
-    // (thinking-model wrappers tag constrained output as thought) must not strip it.
-    const text = grammar ? result.responseText.trim() : visibleText(result.response);
+    const text = (
+      grammar ? result.responseText || rawChunks : visibleText(result.response) || rawChunks
+    ).trim();
     return { text, stopReason: result.stopReason, inputTokens, outputTokens };
   };
 

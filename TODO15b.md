@@ -45,6 +45,34 @@ Also done this session: repeat penalty `{lastTokens:64, penalty: structured?1.2:
 
 **Phase 1 remaining:** fix the grammar/thought bug above → re-run `LM_PROVIDER=llamacpp-embedded LM_LLAMACPP_MODEL=.models/<model> pnpm bench:fundamentals` (target ≥5/7 honestly reported, model-capability failures documented) → breaker/demotion check on bad model path → `test:unit` green → commit.
 
+## Progress (2026-09-16, Phase 1 session 2 — grammar/empty-batch fixes LANDED, uncommitted)
+
+**The OPEN BUG from session 1 is CLOSED.** Grammar-constrained generation now returns clean, schema-valid JSON on both models, verified end-to-end:
+
+- Fix 1 (wrapper): when a grammar is active the session uses `GeneralChatWrapper` (non-segmenting) instead of the model's thinking wrapper, and thought budgets are dropped — constrained output can no longer be swallowed by auto-opened thinking segments.
+- Fix 2 (fallback): raw chunk accumulation (`rawChunks`) backs up `responseText`/`visibleText` when classification is still wrong.
+- Fix 3 (empty-collapse): the 0.8B/2B models returned trivially-valid empty arrays; `buildGrammar` now patches the JSON schema so every top-level array gets `minItems: 1` (oneOf-union was tried first — it makes GBNF pathological: 2900-char runaways at maxTokens; the flat minItems patch is what landed).
+- Fix 4 (retry diversity): `LMService.generateObject` accepts `temperature`; `understandInner` escalates undefined → 0.7 → 1.0 across attempts.
+- Fix 5 (sequence leak): `session.dispose` moved to `finally` (error paths no longer leak the single sequence); runtime default `sequences` 1 → 4.
+- Fix 6 (bench isolation): `resetCircuitBreakers()` exported from providers.ts and called before each bench scenario — scenario 2's fallback failures no longer open the breaker and instantly-null scenario 3.
+- Fix 7 (mock gate): mock `generateObjectFn` now matches only the final translated input (few-shot SEED_EXAMPLES embed scenario sentences verbatim in every prompt and were hijacking keyword matching).
+
+**Real-model bench: 5/7** (Qwen3.5-0.8B and gemma-4-E2B both): 2,4,5,6,7 PASS. Scenario 2 (multi-input formalization pipeline) newly passes on real models. Failures 1 & 3 are model-capability-bound: no ambiguity split into multiple candidates (1), and bare-term goals like `offline!` that termParser rejects (3). Prompt hardening added (`truth values in [0,1]`, `never return all arrays empty`, `fully parenthesized Narsese`) — helps but doesn't fully fix a <3B model.
+
+**End-to-end integration verified live** (`.cache/e2e-demo.ts`): English → NLUnderstandingService (embedded LM) → Narsese candidates → KernelPerceptionGate → `nar.inputTask` → NAR cycles → derived beliefs; question formalization through the same LM. Two NL facts admitted; derivation depends on model formalization quality of the middle "similarity" sentence (junk on small models).
+
+**Known perf note (user-raised):** wall-clock per input is dominated by retry amplification on junk output (up to 3 attempts + 2 fallbacks per input, each a few hundred tokens at small-model speed), not load or transport. Phase 3/4 budgets + broker timeouts bound this; a ≥4B model cuts failed-attempt rates sharply. **Verify GPU is actually engaged (`gpuLayers: 'max'` + backend detection) before tuning anything else — user reports 70–100 tok/s on 4GB+ models with their GPU, so if we see far less, the CUDA/Vulkan path may not be active.**
+
+**Phase 1 remaining:** breaker/demotion check on bad model path (last unverified acceptance item); `LM_LLAMACPP_MODEL` unset → typed error (already handled in `ensureRuntimeLoaded`). `test:unit` green (1419 passed), `typecheck` clean, `lint` clean.
+
+**Smoke scripts (regenerate or keep in `.cache/`):** `lm-ab.ts` (text), `lm-real3.ts` (object), `lm-s1.ts` (schema × temp), `prov-debug.ts` (provider path), `sess-debug.ts`, `render-qwen.ts` (wrapper render), `template-dump.ts`/`meta-dump2.ts` (GGUF metadata: NEITHER GGUF embeds a chat template — wrapper is a built-in guess), `grammar-debug.ts`, `proof.ts` (text+JSON sanity demo), `und-debug.ts` (understanding path), `e2e-demo.ts` (full NL→NAR integration).
+
+**New improvement opportunities surfaced:**
+- `withNonEmptyArrays` is a generic patch on all JSON-schema grammars for this provider. Correct for extraction-style schemas (the only kind in the codebase); if a future caller legitimately needs empty arrays through the embedded provider, gate it per-call (e.g. grammar-scope hint) rather than globally.
+- Retry loop cost: understandInner makes up to 5 generation calls per input on junk output. Phase 4 broker deadlines will bound this, but an early cheaper win: cap total attempts when latency budget is exceeded (Phase 0.3 context-budget module could host it).
+- GBNF cannot express numeric ranges (documented): `f: -1.0, c: -2.5` can still appear; zod validation + retry catches it. A post-parse clamp/renormalize in `sanitize` (firewall already clamps confidence for inferred beliefs) could extend to user-source beliefs.
+- Bare-term goals (`offline!`) pass the firewall but fail termParser at admission. Either teach the prompt harder, or add a normalize step (wrap bare terms in parens) before admission — decide in Phase 5/6 when the firewall/admission boundary is revisited.
+
 **New improvement opportunities surfaced:**
 - `buildLlamaPrompt` uses a hard-coded ChatML template (`<|im_start|>`). Prefer the model's own chat wrapper via `LlamaChatSession` (Phase 2's `createSession`) so templates match the GGUF's trained format — the V3 shim stays text-only, but session-based templating would raise fidelity.
 - `LlamaJsonSchemaGrammar` needs a `GbnfJsonSchema` shape; the AI-SDK `responseFormat.schema` may need normalization (`zod` → `zod-to-json-schema` already in deps) — validate on the first real structured call.
@@ -500,7 +528,8 @@ LM_PROVIDER=llamacpp-embedded pnpm flywheel   # full-resident flywheel
 - [x] `nar/src/lm/runtime/llama-runtime.ts` (minimal resident runtime)
 - [x] `providers/embedded-llamacpp.ts` (`doGenerate`/`doStream`, grammar + JSON-schema grammar)
 - [x] `LMProviderName` + settings + env vars + registry branch + `CHAINS` + probe ladder
-- [ ] `bench:fundamentals` passes with embedded provider (all 7 scenarios) — pending GGUF artifact in `.models/`
+- [x] Grammar/thought bug closed; empty-batch collapse fixed (minItems grammar patch)
+- [ ] `bench:fundamentals` with embedded provider: **5/7 best honest run** (scenarios 1 & 3 model-capability-bound on <3B GGUFs; 4,5,6,7 + newly 2 pass)
 - [ ] Breaker/demotion behavior verified on load failure
 
 ### Phase 2: Runtime Manager
