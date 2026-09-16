@@ -263,32 +263,21 @@ async function runScenario3(
 
   const input = 'I want the database to be offline for maintenance. The database is currently online and processing 500 requests a second.';
 
-  // Debug: Check what the LM returns
-  logger.info('  🔍 Debug: Testing LM for database scenario...');
-  const dbTestPrompt = 'I want the database to be offline for maintenance. The database is currently online and processing 500 requests a second.';
-  let dbTestResult: any;
-  try {
-    dbTestResult = await lmService.generateObject(dbTestPrompt, {} as any);
-    logger.info(`  🔍 DB LM direct test result: ${JSON.stringify(dbTestResult).slice(0, 500)}`);
-  } catch (e) {
-    logger.info(`  🔍 DB LM direct test error: ${(e as Error).message}`);
-  }
-
   const input3 = 'I want the database to be offline for maintenance. The database is currently online and processing 500 requests a second.';
   const cache3 = new TranslationCache({ maxSize: 100 });
   const understanding3 = new NLUnderstandingService(lmService, cache3, { structuredOnly: true });
-  
+
+  const taskBatch3 = await understanding3.understand(input3);
+  logger.info(`  🔍 DB TaskBatch: beliefs=${taskBatch3?.beliefs.length ?? 0}, goals=${taskBatch3?.goals.length ?? 0}, questions=${taskBatch3?.questions.length ?? 0}`);
+
   // Debug: Check firewall for goal from direct LM result
   const firewall3 = (understanding3 as any).firewall;
-  if (dbTestResult && dbTestResult.goals) {
-    for (const g of dbTestResult.goals) {
+  if (taskBatch3) {
+    for (const g of taskBatch3.goals) {
       const verdict = firewall3.check(g.narsese, 'goal');
       logger.info(`    firewall check goal "${g.narsese}": allowed=${verdict.allowed} ${verdict.reason ? `(${verdict.reason})` : ''}`);
     }
   }
-  
-  const taskBatch3 = await understanding3.understand(input3);
-  logger.info(`  🔍 DB TaskBatch: beliefs=${taskBatch3?.beliefs.length ?? 0}, goals=${taskBatch3?.goals.length ?? 0}, questions=${taskBatch3?.questions.length ?? 0}`);
   if (taskBatch3) {
     for (const b of taskBatch3.beliefs) {
       logger.info(`    belief: ${b.narsese} source=${b.source}`);

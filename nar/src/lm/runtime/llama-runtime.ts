@@ -1,8 +1,16 @@
-import { getLlama, type Llama, type LlamaModel, type LlamaContext } from 'node-llama-cpp';
+import {
+  getLlama,
+  resolveChatWrapper,
+  type ChatWrapper,
+  type Llama,
+  type LlamaModel,
+  type LlamaContext,
+} from 'node-llama-cpp';
 
 let llamaP: Promise<Llama> | undefined;
 let modelP: Promise<LlamaModel> | undefined;
 let contextP: Promise<LlamaContext> | undefined;
+let wrapper: ChatWrapper | undefined;
 let currentConfig: EmbeddedLlamaConfig | undefined;
 
 export interface EmbeddedLlamaConfig {
@@ -40,8 +48,14 @@ export async function loadModel(config: EmbeddedLlamaConfig): Promise<{
   llamaP = Promise.resolve(llama);
   modelP = Promise.resolve(model);
   contextP = Promise.resolve(context);
+  wrapper = resolveChatWrapper(model) ?? wrapper;
 
   return { llama, model, context };
+}
+
+/** Chat wrapper resolved from the GGUF's trained template (undefined until loaded). */
+export function getChatWrapper(): ChatWrapper | undefined {
+  return wrapper;
 }
 
 export function getModel(): Promise<LlamaModel> {
@@ -88,5 +102,6 @@ export async function dispose(): Promise<void> {
     await llamaP.catch(() => undefined);
     llamaP = undefined;
   }
+  wrapper = undefined;
   currentConfig = undefined;
 }

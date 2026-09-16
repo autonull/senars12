@@ -1,21 +1,14 @@
 #!/usr/bin/env tsx
 /**
- * Fetches the default GGUF model for embedded llama.cpp runtime.
- * Idempotent: resolves .models/<model>.gguf, downloads if missing.
- *
- * Uses node-llama-cpp's resolveModelFile which handles:
- * - Model resolution from Hugging Face Hub
- * - Quantization selection (prefers Q4_K_M for balance)
- * - Caching under .cache/llama.cpp
- * - Progress reporting
+ * Fetches GGUF models for the embedded llama.cpp runtime into .models/.
+ * Idempotent: resolves each spec to a local file, downloading if missing.
  *
  * Usage:
- *   pnpm exec tsx scripts/fetch-model.ts
- *   LM_LLAMACPP_MODEL=custom-model.gguf pnpm exec tsx scripts/fetch-model.ts
+ *   pnpm exec tsx scripts/fetch-model.ts [--model=qwen|gemma|<hf-uri>] [--validate] [--dry-run] [--force]
  */
 
-import { resolveModelFile, getLlama, type LlamaModel } from 'node-llama-cpp';
-import { existsSync, mkdirSync, cpSync, rmSync } from 'node:fs';
+import { resolveModelFile, getLlama } from 'node-llama-cpp';
+import { existsSync, mkdirSync, cpSync } from 'node:fs';
 import { dirname, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -24,86 +17,58 @@ const PROJECT_ROOT = join(__dirname, '..');
 const MODELS_DIR = join(PROJECT_ROOT, '.models');
 const CACHE_DIR = join(PROJECT_ROOT, '.cache', 'llama.cpp');
 
-/** Default compact model: small, fast, good quality for CPU/GPU. */
-const DEFAULT_MODEL_SPEC = {
-  // Qwen2.5-1.5B is a strong compact model; node-llama-cpp will pick Q4_K_M
-  model: 'onnx-community/Qwen2.5-1.5B-Instruct-GGUF',
-  // Explicitly request Q4_K_M quantization for speed/quality balance
-  quantization: 'Q4_K_M',
+/** Compact instruction models: small, fast, common-denominator for edge CPU/GPU. */
+const MODEL_SPECS = {
+  qwen: {
+    uri: 'hf:ggml-org/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_0.gguf',
+    envModel: 'Qwen3.5-0.8B-Q4_0.gguf',
+  },
+  gemma: {
+    uri: 'hf:google/gemma-4-E2B-it-qat-q4_0-gguf/gemma-4-E2B_q4_0-it.gguf',
+    envModel: 'gemma-4-E2B_q4_0-it.gguf',
+  },
 } as const;
 
-interface FetchOptions {
-  modelSpec?: { model: string; quantization?: string };
-  modelsDir?: string;
-  cacheDir?: string;
-  force?: boolean;
-  dryRun?: boolean;
-}
+type SpecKey = keyof typeof MODEL_SPECS;
 
-async function fetchModel(options: FetchOptions = {}): Promise<string> {
-  const {
-    modelSpec = DEFAULT_MODEL_SPEC,
-    modelsDir = MODELS_DIR,
-    cacheDir = CACHE_DIR,
-    force = false,
-    dryRun = false,
-  } = options;
+const resolveSpec = (arg?: string): string => {
+  if (!arg || arg === 'all') return Object.values(MODEL_SPECS)[0].uri;
+  const spec = MODEL_SPECS[arg as SpecKey];
+  if (spec) return spec.uri;
+  return arg.startsWith('hf:') || arg.startsWith('https://') ? arg : `hf:${arg}`;
+};
 
-  console.log(`📦 Fetching model: ${modelSpec.model} (${modelSpec.quantization ?? 'auto'})`);
-  console.log(`   Models dir: ${modelsDir}`);
-  console.log(`   Cache dir:  ${cacheDir}`);
-
-  if (!existsSync(modelsDir)) {
-    mkdirSync(modelsDir, { recursive: true });
-    console.log(`   Created models directory`);
+const fetchModel = async (uri: string, force: boolean, dryRun: boolean): Promise<string> => {
+  for (const dir of [MODELS_DIR, CACHE_DIR]) {
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   }
 
-  if (!existsSync(cacheDir)) {
-    mkdirSync(cacheDir, { recursive: true });
-    console.log(`   Created cache directory`);
-  }
+  const modelPath = await resolveModelFile(uri, {
+    directory: CACHE_DIR,
+    onProgress: ({ totalSize, downloadedSize }: { totalSize: number; downloadedSize: number }) => {
+      if (totalSize > 0) {
+        const pct = ((downloadedSize / totalSize) * 100).toFixed(1);
+        process.stdout.write(`\r   Downloading: ${pct}%  (${(downloadedSize / 1e9).toFixed(2)}/${(totalSize / 1e9).toFixed(2)} GB)`);
+      }
+    },
+  });
+  console.log(`\n   Resolved: ${modelPath}`);
 
-  try {
-    // Use node-llama-cpp's resolveModelFile to download/resolve the model
-    // This handles HF Hub resolution, quantization selection, and caching
-    const modelPath = await resolveModelFile(modelSpec.model, {
-      directory: cacheDir,
-      download: "auto",
-      progressCallback: (progress: number) => {
-        const pct = (progress * 100).toFixed(1);
-        process.stdout.write(`\r   Downloading: ${pct}%`);
-      },
-    });
-
-    console.log(`\n   Resolved to: ${modelPath}`);
-
-    // Copy/link to .models/ for easy access
-    const targetName = basename(modelPath);
-    const targetPath = join(modelsDir, targetName);
-
-    if (existsSync(targetPath) && !force) {
-      console.log(`   ✅ Already exists at ${targetPath}`);
-      return targetPath;
-    }
-
-    if (dryRun) {
-      console.log(`   [dry-run] Would copy to ${targetPath}`);
-      return targetPath;
-    }
-
-    // Copy the model file to .models/
-    cpSync(modelPath, targetPath, { force: true });
-    console.log(`   ✅ Copied to ${targetPath}`);
-
+  const targetPath = join(MODELS_DIR, uri.split('/').pop() ?? basename(modelPath));
+  if (existsSync(targetPath) && !force) {
+    console.log(`   ✅ Already at ${targetPath}`);
     return targetPath;
-  } catch (error) {
-    console.error(`   ❌ Failed to fetch model: ${error}`);
-    throw error;
   }
-}
+  if (dryRun) {
+    console.log(`   [dry-run] Would copy to ${targetPath}`);
+    return modelPath;
+  }
+  cpSync(modelPath, targetPath, { force: true });
+  console.log(`   ✅ Copied to ${targetPath}`);
+  return targetPath;
+};
 
-/** Validates that a model file exists and is loadable by llama.cpp */
-async function validateModel(modelPath: string): Promise<boolean> {
+const validateModel = async (modelPath: string): Promise<boolean> => {
   try {
     const llama = await getLlama();
     const model = await llama.loadModel({ modelPath });
@@ -112,55 +77,32 @@ async function validateModel(modelPath: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
+};
 
-// CLI entry point
-async function main() {
+const main = async () => {
   const args = process.argv.slice(2);
   const force = args.includes('--force') || args.includes('-f');
   const dryRun = args.includes('--dry-run');
   const validate = args.includes('--validate');
   const modelArg = args.find((a) => a.startsWith('--model='))?.split('=')[1];
-  const quantArg = args.find((a) => a.startsWith('--quant='))?.split('=')[1];
+  const uris = !modelArg || modelArg === 'all'
+    ? Object.values(MODEL_SPECS).map((s) => s.uri)
+    : [resolveSpec(modelArg)];
 
-  const modelSpec = modelArg
-    ? { model: modelArg, quantization: quantArg }
-    : DEFAULT_MODEL_SPEC;
-
-  const envModel = process.env.LM_LLAMACPP_MODEL;
-  if (envModel && !modelArg) {
-    console.log(`📋 Using model from LM_LLAMACPP_MODEL: ${envModel}`);
-    // If it's a local path, just validate it
-    if (existsSync(envModel)) {
-      if (validate) {
-        const ok = await validateModel(envModel);
-        console.log(ok ? '✅ Model validation passed' : '❌ Model validation failed');
-        process.exit(ok ? 0 : 1);
-      }
-      console.log(`✅ Using local model: ${envModel}`);
-      process.exit(0);
-    }
-  }
-
-  try {
-    const modelPath = await fetchModel({ modelSpec, force, dryRun });
-
+  for (const uri of uris) {
+    console.log(`📦 Fetching: ${uri}`);
+    const modelPath = await fetchModel(uri, force, dryRun);
     if (validate) {
-      console.log(`\n🔍 Validating model...`);
       const ok = await validateModel(modelPath);
       console.log(ok ? '✅ Model validation passed' : '❌ Model validation failed');
-      process.exit(ok ? 0 : 1);
+      if (!ok) process.exitCode = 1;
+    } else {
+      console.log(`   Set LM_LLAMACPP_MODEL=${modelPath}`);
     }
-
-    console.log(`\n✅ Model ready: ${modelPath}`);
-    console.log(`   Set LM_LLAMACPP_MODEL=${modelPath} to use it`);
-  } catch (error) {
-    console.error(`\n❌ Fetch failed: ${error}`);
-    process.exit(1);
   }
-}
+};
 
 main().catch((err) => {
-  console.error(err);
+  console.error(`❌ Fetch failed: ${err}`);
   process.exit(1);
 });

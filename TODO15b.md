@@ -20,25 +20,30 @@ All Phase 0 objectives achieved and verified:
 
 **Next: Phase 1 — Embedded llama.cpp LanguageModel Provider** (transport swap to native bindings)
 
-## Progress (2026-09-16, Phase 1)
+## Progress (2026-09-16, Phase 1 — provider rewrite on LlamaChatSession, UNCOMMITTED)
 
-**Phase 1 — Embedded llama.cpp LanguageModel Provider: IN PROGRESS ✅ (implementation + wiring complete)**
+**Models downloaded & working end-to-end via embedded runtime.** User-directed model set (replaces Qwen2.5-1.5B default):
+- `.models/Qwen3.5-0.8B-Q4_0.gguf` (0.5 GB) ← `hf:ggml-org/Qwen3.5-0.8B-GGUF/Qwen3.5-0.8B-Q4_0.gguf`
+- `.models/gemma-4-E2B_q4_0-it.gguf` (3.2 GB) ← `hf:google/gemma-4-E2B-it-qat-q4_0-gguf/gemma-4-E2B_q4_0-it.gguf`
+- `scripts/fetch-model.ts` FIXED (was broken: `resolveModelFile` needs `hf:<user>/<repo>/<file>` URIs + `onProgress` callback, not repo names). Usage: `pnpm exec tsx scripts/fetch-model.ts --all [--model=qwen|gemma|<uri>] [--validate]`
 
-The transport swap is implemented and type-checked. The AI-SDK abstraction (`LMService` → `getModelForTask` → `createProviderRegistry`) is preserved; one new `LanguageModel` implementation + one provider key added.
+**`bench:fundamentals` with real models: 4/7 PASS** (Gemma: 2,4,5,6,7 pass at best run; Qwen: 4,5,6,7). Failures 1–3 are model-capability-bound Narsese formalization, no longer provider crashes.
 
-- **1.1 Embedded runtime seed** — `nar/src/lm/runtime/llama-runtime.ts` (resident singleton: `getLlama` → `loadModel` → `createContext`; `getModel`/`getContext`/`getLlamaInstance`/`createSequence`/`isLoaded`/`dispose`). Model/context stay resident for process lifetime; no per-request startup. `sequencesLeft`-guarded `createSequence`. `loadModel` disposes prior model/context before swap (idempotent). Barrels `runtime/index.ts`.
-- **1.2 Provider** — `nar/src/lm/providers/embedded-llamacpp.ts`: `createEmbeddedLlamaCppLanguageModel(task)` implements V3 `doGenerate`/`doStream` over node-llama-cpp (zero-copy, token-based, no HTTP/process boundary).
-  - **Grammar path:** reads active GBNF via `grammarScope` (now exported from `providers/llamacpp.ts`) → `llama.createGrammar({ grammar })`.
-  - **JSON-schema path:** `responseFormat.type === 'json'` → `llama.createGrammarForJsonSchema(schema)`.
-  - **Generation:** `model.tokenize(prompt, true)` → `sequence.evaluate(tokens, { temperature, topK, topP, grammarEvaluationState })` → collect until EOG/max-tokens/abort → `model.detokenize`. `finishReason` maps `length`/`stop`; usage reports input/output token counts.
-  - **Streaming:** per-token `text-delta` via `simulateReadableStream`; abort honored via `options.abortSignal`.
-  - **Probe:** `probeEmbeddedLlama()` (model path exists + GPU backend check).
-- **1.3 Registration & routing** — `LMProviderName` + `PROVIDERS` + `LMSettings` + `defaultModelFor` gain `'llamacpp-embedded'`; settings `llamacppModelPath/Gpu/GpuLayers/ContextSize/BatchSize/Sequences/FlashAttention` ← env `LM_LLAMACPP_MODEL/GPU/GPU_LAYERS/CTX/BATCH/SEQS/FLASH_ATTN`. Registry branch registers `quality/fast/structured/compact`. `CHAINS` authoritative (no silent CPU fallback). `MODEL_CAPABILITIES` + circuit-breaker defaults + health-probe ladder + `resolveActiveProvider` auto-detect extended. `.env.example` provider list updated.
-- **1.4 Bench** — not yet run against a real GGUF (no model artifact in `.models/`); `bench:fundamentals:mock` verified green (all 7 scenarios PASS).
+**Provider REWRITTEN on `LlamaChatSession`** (`nar/src/lm/providers/embedded-llamacpp.ts`, typechecks clean, uncommitted). The hand-rolled `sequence.evaluate` loop was the root of all garbage output (per-token detokenize corrupted multi-byte/special tokens → Armenian/CJK glyphs). Session-based version handles: wrapper resolution from GGUF metadata, thinking segments (`visibleText` filters `segmentType: thought/comment`), stop triggers, usage via `sequence.tokenMeter`. Key additions:
+- `runtime.getChatWrapper()` — wrapper resolved once at `loadModel` (`resolveChatWrapper(model)`); Qwen3.5→Qwen wrapper, Gemma4→Gemma-4 wrapper.
+- `budgets: { thoughtTokens: quality?512:128 }` — REQUIRED for Qwen3.5 (heavy thinking model): without the cap it spends the whole token budget inside `无双`-style thinking and the visible answer is empty. With it: `"Hello!"` clean answer. **Test gotcha:** `maxOutputTokens` must exceed the thought budget or output is 100% thinking.
+- `buildGrammar`: GBNF via `grammarScope`, JSON schema via `llama.createGrammarForJsonSchema` (first-class per docs).
 
-**Verification:** `pnpm typecheck` clean for all changed files (pre-existing errors in `tests/ui-webllm`, `tests/unit/lm/grammars`, `ui/src/webllm` untouched). `pnpm lint` clean. `tests/unit/lm` 5 passed, `tests/nar/lm` 19 passed. Registry/chain/provider-validation smoke test passes (models lazy-load on first call).
+**OPEN BUG (next session, first thing): grammar path returns empty text.** Debug facts (`LM_LLAMACPP_DEBUG=1` hook is in the provider): with grammar active, the session classifies the ENTIRE constrained output as `segment:thought(239-294)` and BOTH `visibleText()` and `result.responseText` come back empty → AI-SDK gets `"."` → `AI_JSONParseError`. Thinking-model wrappers (Qwen) auto-open a thinking block; grammar-constrained JSON never closes it, so everything is tagged thought — and `responseText` also excludes thought content, so switching to `responseText` does NOT fix it. Fixes to try, in order:
+1. Disable the wrapper's thinking auto-open for grammar calls — check `QwenChatWrapper` constructor options / `TemplateChatWrapperOptions` for a thinking toggle, or pass a `responsePrefix` that closes thinking (`'` or `'\n\n'` — verified earlier: Qwen renders `assistant\n\n\n`, Gemma renders `<|turn>model\n\n\n`, both absorbed cleanly).
+2. Or pass `chatWrapper` that doesn't segment thoughts (e.g. `GeneralChatWrapper`) when `grammar` is set — constrained output needs no thought handling.
+3. Or take raw text via `promptWithMeta`'s `onResponseChunk` accumulation (chunks classified thought can still be re-concatenated manually when grammar is active — they ARE the JSON).
 
-**Phase 1 remaining:** fetch a GGUF into `.models/` and run `LM_PROVIDER=llamacpp-embedded pnpm bench:fundamentals` against the resident model; verify breaker/demotion on a bad model path.
+Also done this session: repeat penalty `{lastTokens:64, penalty: structured?1.2:1.1}` (kills degenerate loops that truncated JSON); structured temp 0.1→0.3 (0.1 collapses small models to empty arrays); few-shot `SEED_EXAMPLES` in `buildUnderstandingPrompt` (teaches formalization, unless→2-beliefs, want→goal; canonical Narsese, punctuation OUTSIDE the term — user correction); empty-batch retry in `understandInner` (returns lastBatch, no longer null); bench scenario-3 debug bug fixed (`{} as any` passed as zod schema → `reading 'def'` crash).
+
+**Smoke scripts (regenerate or keep in `.cache/`):** `lm-ab.ts` (text), `lm-real3.ts` (object), `lm-s1.ts` (schema × temp), `prov-debug.ts` (provider path), `sess-debug.ts`, `render-qwen.ts` (wrapper render), `template-dump.ts`/`meta-dump2.ts` (GGUF metadata: NEITHER GGUF embeds a chat template — wrapper is a built-in guess), `grammar-debug.ts`.
+
+**Phase 1 remaining:** fix the grammar/thought bug above → re-run `LM_PROVIDER=llamacpp-embedded LM_LLAMACPP_MODEL=.models/<model> pnpm bench:fundamentals` (target ≥5/7 honestly reported, model-capability failures documented) → breaker/demotion check on bad model path → `test:unit` green → commit.
 
 **New improvement opportunities surfaced:**
 - `buildLlamaPrompt` uses a hard-coded ChatML template (`<|im_start|>`). Prefer the model's own chat wrapper via `LlamaChatSession` (Phase 2's `createSession`) so templates match the GGUF's trained format — the V3 shim stays text-only, but session-based templating would raise fidelity.

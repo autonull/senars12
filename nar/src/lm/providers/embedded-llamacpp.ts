@@ -8,18 +8,18 @@ import type {
 import { simulateReadableStream, MockLanguageModelV3 } from 'ai/test';
 import type { LanguageModel } from 'ai';
 import {
-  LlamaGrammarEvaluationState,
+  LlamaChatSession,
+  type ChatModelResponse,
+  type LlamaChatResponseChunk,
   type LlamaGrammar,
-  type LlamaContextSequence,
-  type LlamaModel,
   type Llama,
-  type Token,
 } from 'node-llama-cpp';
 import {
   getModel,
   getContext,
   getLlamaInstance,
   createSequence,
+  getChatWrapper,
   isLoaded,
 } from '../runtime/llama-runtime.js';
 import { getLMSettings } from '../providers.js';
@@ -53,16 +53,6 @@ function extractSystemPrompt(prompt: LanguageModelV3CallOptions['prompt']): stri
   return undefined;
 }
 
-function buildLlamaPrompt(prompt: LanguageModelV3CallOptions['prompt']): string {
-  const systemPrompt = extractSystemPrompt(prompt);
-  const userPrompt = extractTextFromPrompt(prompt);
-  const user = `<|im_start|>user\n${userPrompt}<|im_end|>\n<|im_start|>assistant\n`;
-  return systemPrompt
-    ? `<|im_start|>system\n${systemPrompt}<|im_end|>\n${user}`
-    : `<|im_start|>user\n${userPrompt}<|im_end|>\n<|im_start|>assistant\n`;
-}
-
-/** Determine max generation tokens for the given task tier. */
 function defaultMaxTokens(task: 'quality' | 'fast' | 'structured' | 'compact'): number {
   switch (task) {
     case 'quality':
@@ -77,7 +67,7 @@ function defaultMaxTokens(task: 'quality' | 'fast' | 'structured' | 'compact'): 
 function defaultTemperature(task: 'quality' | 'fast' | 'structured' | 'compact'): number {
   switch (task) {
     case 'structured':
-      return 0.1;
+      return 0.3;
     case 'quality':
       return 0.7;
     default:
@@ -85,20 +75,34 @@ function defaultTemperature(task: 'quality' | 'fast' | 'structured' | 'compact')
   }
 }
 
-/**
- * Build a grammar for constrained decoding. Prefers the async-context GBNF
- * grammar (from `runWithGrammar`/`grammarScope`); falls back to a JSON-schema
- * grammar when the call carries a `responseFormat`. Returns `undefined` for
- * unconstrained generation.
- */
+/** Filter thought/comment reasoning segments from a chat response. */
+function visibleText(response: ChatModelResponse['response']): string {
+  return response
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      if (item.type === 'segment') {
+        if (item.segmentType === 'thought' || item.segmentType === 'comment') return '';
+        return item.text;
+      }
+      return '';
+    })
+    .join('')
+    .trim();
+}
+
+/** Build a JSON-schema or GBNF grammar for the call, if requested. */
 async function buildGrammar(
-  grammar: string | undefined,
-  responseFormat: LanguageModelV3CallOptions['responseFormat'] | undefined
+  options: LanguageModelV3CallOptions
 ): Promise<LlamaGrammar | undefined> {
   const llama = await getLlamaInstance();
-  if (grammar) return llama.createGrammar({ grammar });
-  if (responseFormat?.type === 'json' && responseFormat.schema) {
-    return llama.createGrammarForJsonSchema(responseFormat.schema as never);
+  const gbnf = grammarScope.getStore();
+  if (gbnf) return llama.createGrammar({ grammar: gbnf });
+  if (options.responseFormat?.type === 'json' && options.responseFormat.schema) {
+    try {
+      return await llama.createGrammarForJsonSchema(options.responseFormat.schema as never);
+    } catch {
+      return undefined; // schema not grammar-compatible; rely on SDK JSON parsing
+    }
   }
   return undefined;
 }
@@ -122,94 +126,87 @@ async function ensureRuntimeLoaded(): Promise<void> {
   });
 }
 
-interface EvaluateParams {
-  temperature: number;
-  topK: number;
-  topP: number;
-  maxTokens: number;
-}
-
-function samplingParams(
-  options: LanguageModelV3CallOptions,
-  task: 'quality' | 'fast' | 'structured' | 'compact'
-): EvaluateParams {
-  return {
-    temperature: options.temperature ?? defaultTemperature(task),
-    topK: options.topK ?? 40,
-    topP: options.topP ?? 0.95,
-    maxTokens: options.maxOutputTokens ?? defaultMaxTokens(task),
-  };
-}
-
-/** Collect generated tokens from a sequence until EOG/max-tokens/abort. */
-async function generate(
-  sequence: LlamaContextSequence,
-  model: LlamaModel,
-  promptTokens: Token[],
-  grammar: LlamaGrammar | undefined,
-  params: EvaluateParams,
-  abortSignal: AbortSignal | undefined
-): Promise<{ tokens: Token[]; truncated: boolean }> {
-  const grammarState = grammar
-    ? new LlamaGrammarEvaluationState({ model, grammar })
-    : undefined;
-  const generated: Token[] = [];
-  let truncated = false;
-  for await (const token of sequence.evaluate(promptTokens, {
-    temperature: params.temperature,
-    topK: params.topK,
-    topP: params.topP,
-    grammarEvaluationState: grammarState,
-  })) {
-    if (abortSignal?.aborted) {
-      truncated = true;
-      break;
-    }
-    if (model.isEogToken(token)) break;
-    generated.push(token);
-    if (generated.length >= params.maxTokens) {
-      truncated = true;
-      break;
-    }
-  }
-  return { tokens: generated, truncated };
-}
-
-const finishReason = (truncated: boolean): LanguageModelV3GenerateResult['finishReason'] =>
-  truncated ? { unified: 'length', raw: 'max-tokens' } : { unified: 'stop', raw: 'stop' };
+const finishReasonFor = (
+  stop: 'customStopTrigger' | 'abort' | 'maxTokens' | 'eogToken' | 'stopGenerationTrigger' | 'functionCalls' | undefined
+): LanguageModelV3GenerateResult['finishReason'] =>
+  stop === 'maxTokens'
+    ? { unified: 'length', raw: 'max-tokens' }
+    : { unified: 'stop', raw: stop ?? 'stop' };
 
 export function createEmbeddedLlamaCppLanguageModel(
   task: 'quality' | 'fast' | 'structured' | 'compact'
 ): LanguageModel {
+  const run = async (
+    options: LanguageModelV3CallOptions,
+    onDelta?: (text: string) => void
+  ): Promise<{
+    text: string;
+    stopReason: Parameters<typeof finishReasonFor>[0];
+    inputTokens: number;
+    outputTokens: number;
+  }> => {
+    await ensureRuntimeLoaded();
+    const context = await getContext();
+    const sequence = await createSequence();
+    const systemPrompt = extractSystemPrompt(options.prompt);
+    const session = new LlamaChatSession({
+      contextSequence: sequence,
+      chatWrapper: getChatWrapper() ?? 'auto',
+      ...(systemPrompt ? { systemPrompt } : {}),
+    });
+
+    const grammar = await buildGrammar(options);
+    const temperature = options.temperature ?? defaultTemperature(task);
+    const maxTokens = options.maxOutputTokens ?? defaultMaxTokens(task);
+
+    const result = await session.promptWithMeta(extractTextFromPrompt(options.prompt), {
+      grammar,
+      temperature,
+      topK: options.topK ?? 40,
+      topP: options.topP ?? 0.95,
+      maxTokens,
+      signal: options.abortSignal,
+      stopOnAbortSignal: true,
+      repeatPenalty: { lastTokens: 64, penalty: task === 'structured' ? 1.2 : 1.1 },
+      // Cap reasoning so hybrid-thinking models (e.g. Qwen3.5) answer within budget
+      // instead of spending every token inside a thinking block.
+      budgets: { thoughtTokens: task === 'quality' ? 512 : 128 },
+      ...(onDelta
+        ? {
+            onResponseChunk(chunk: LlamaChatResponseChunk) {
+              if (chunk.type === 'segment' && (chunk.segmentType === 'thought' || chunk.segmentType === 'comment')) return;
+              onDelta(chunk.text);
+            },
+          }
+        : {}),
+    });
+
+    const inputTokens = sequence.tokenMeter.usedInputTokens;
+    const outputTokens = sequence.tokenMeter.usedOutputTokens;
+    session.dispose({ disposeSequence: true });
+    if (process.env.LM_LLAMACPP_DEBUG) {
+      const seg = (i: ChatModelResponse['response'][number]) =>
+        typeof i === 'string' ? `str(${i.length})` : `${i.type}:${'segmentType' in i ? i.segmentType : ''}(${('text' in i ? i.text : '').length})`;
+      console.error('[embedded-llamacpp] grammar:', grammar ? 'active' : 'none',
+        '| stopReason:', result.stopReason,
+        '| segments:', result.response.map(seg).join(' | '));
+    }
+    // Grammar output is JSON by construction; segment misclassification
+    // (thinking-model wrappers tag constrained output as thought) must not strip it.
+    const text = grammar ? result.responseText.trim() : visibleText(result.response);
+    return { text, stopReason: result.stopReason, inputTokens, outputTokens };
+  };
+
   const doGenerate: LanguageModelV3['doGenerate'] = async (
     options: LanguageModelV3CallOptions
   ): Promise<LanguageModelV3GenerateResult> => {
-    await ensureRuntimeLoaded();
-    const model = await getModel();
-    const context = await getContext();
-    const sequence = await createSequence();
-    const promptText = buildLlamaPrompt(options.prompt);
-    const promptTokens = model.tokenize(promptText, true);
-    const grammar = await buildGrammar(grammarScope.getStore(), options.responseFormat);
-    const params = samplingParams(options, task);
-
-    const { tokens, truncated } = await generate(
-      sequence,
-      model,
-      promptTokens,
-      grammar,
-      params,
-      options.abortSignal
-    );
-    await sequence.dispose();
-    const text = model.detokenize(tokens);
-
+    const { text, stopReason, inputTokens, outputTokens } = await run(options);
     return {
       content: [{ type: 'text', text }],
-      finishReason: finishReason(truncated),
+      finishReason: finishReasonFor(stopReason),
       usage: {
-        inputTokens: { total: promptTokens.length, noCache: promptTokens.length, cacheRead: 0, cacheWrite: 0 },
-        outputTokens: { total: tokens.length, text: tokens.length, reasoning: 0 },
+        inputTokens: { total: inputTokens, noCache: inputTokens, cacheRead: 0, cacheWrite: 0 },
+        outputTokens: { total: outputTokens, text: outputTokens, reasoning: 0 },
       },
       warnings: [],
     };
@@ -218,58 +215,29 @@ export function createEmbeddedLlamaCppLanguageModel(
   const doStream: LanguageModelV3['doStream'] = async (
     options: LanguageModelV3CallOptions
   ): Promise<LanguageModelV3StreamResult> => {
-    await ensureRuntimeLoaded();
-    const model = await getModel();
-    const sequence = await createSequence();
-    const promptText = buildLlamaPrompt(options.prompt);
-    const promptTokens = model.tokenize(promptText, true);
-    const grammar = await buildGrammar(grammarScope.getStore(), options.responseFormat);
-    const params = samplingParams(options, task);
-    const grammarState = grammar
-      ? new LlamaGrammarEvaluationState({ model, grammar })
-      : undefined;
-
     const chunks: LanguageModelV3StreamPart[] = [{ type: 'text-start', id: '0' }];
-    let outputTokens = 0;
-    let truncated = false;
-    for await (const token of sequence.evaluate(promptTokens, {
-      temperature: params.temperature,
-      topK: params.topK,
-      topP: params.topP,
-      grammarEvaluationState: grammarState,
-    })) {
-      if (options.abortSignal?.aborted) {
-        truncated = true;
-        break;
-      }
-      if (model.isEogToken(token)) break;
-      chunks.push({ type: 'text-delta', id: '0', delta: model.detokenize([token], false, []) });
-      outputTokens++;
-      if (outputTokens >= params.maxTokens) {
-        truncated = true;
-        break;
-      }
-    }
-    await sequence.dispose();
+    const { stopReason, inputTokens, outputTokens } = await run(options, (text) => {
+      chunks.push({ type: 'text-delta', id: '0', delta: text });
+    });
     chunks.push({ type: 'text-end', id: '0' });
     chunks.push({
       type: 'finish',
-      finishReason: finishReason(truncated),
+      finishReason: finishReasonFor(stopReason),
       usage: {
-        inputTokens: { total: promptTokens.length, noCache: promptTokens.length, cacheRead: 0, cacheWrite: 0 },
+        inputTokens: { total: inputTokens, noCache: inputTokens, cacheRead: 0, cacheWrite: 0 },
         outputTokens: { total: outputTokens, text: outputTokens, reasoning: 0 },
       },
     });
-
     return { stream: simulateReadableStream({ chunks }) };
   };
 
-  return new MockLanguageModelV3({
+  const model = new MockLanguageModelV3({
     provider: 'llamacpp-embedded',
     modelId: `llamacpp-embedded:${task}`,
     doGenerate,
     doStream,
   }) as unknown as LanguageModel;
+  return model;
 }
 
 export async function probeEmbeddedLlama(): Promise<{ available: boolean; detail: string }> {

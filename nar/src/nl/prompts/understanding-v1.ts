@@ -16,14 +16,58 @@ const NARSESE_GRAMMAR = `Narsese syntax:
   Existential: frequency 0.5, confidence 0.5
   Typical: frequency 0.9, confidence 0.9`;
 
+/** Few-shot anchors: teach formalization, "unless" ambiguity, and goal extraction. */
+const SEED_EXAMPLES: TranslationCacheEntry[] = [
+  {
+    nl: 'Cats are mammals.',
+    result: {
+      beliefs: [{ narsese: '(cat --> mammal)', truth: { f: 1.0, c: 0.9 } }],
+      questions: [],
+      goals: [],
+      summary: '',
+    },
+    timestamp: 0,
+  },
+  {
+    nl: 'The server will crash unless the backup generator kicks in.',
+    result: {
+      beliefs: [
+        { narsese: '(no_backup_generator --> server_crash)', truth: { f: 0.9, c: 0.8 } },
+        { narsese: '(server_crash --> no_backup_generator)', truth: { f: 0.8, c: 0.7 } },
+      ],
+      questions: [],
+      goals: [],
+      summary: '',
+    },
+    timestamp: 0,
+  },
+  {
+    nl: 'I want the database to be offline for maintenance.',
+    result: {
+      beliefs: [],
+      questions: [],
+      goals: ['(database_state --> offline)!'],
+      summary: '',
+    },
+    timestamp: 0,
+  },
+];
+const formatTruth = (t?: { f: number; c: number }): string =>
+  t ? ` %${t.f};${t.c}%` : '';
+
 function formatExamples(entries: TranslationCacheEntry[]): string {
   if (entries.length === 0) return '';
   const lines = entries.map((e) => {
-    const narsese =
-      typeof e.result === 'string' ? e.result : e.result.beliefs.map((b) => b.narsese).join('; ');
-    return `  "${e.nl}" → ${narsese}`;
+    if (typeof e.result === 'string') return `  "${e.nl}" → ${e.result}`;
+    const r = e.result;
+    const items = [
+      ...r.beliefs.map((b) => `(belief) ${b.narsese}${formatTruth(b.truth)}`),
+      ...r.questions.map((q) => `(question) ${q}`),
+      ...r.goals.map((g) => `(goal) ${g}`),
+    ];
+    return `  "${e.nl}" → ${items.length ? items.join('; ') : '(no tasks)'}`;
   });
-  return `\nPrevious translations (follow these patterns):\n${lines.join('\n')}`;
+  return `\nExamples (match this format):\n${lines.join('\n')}`;
 }
 
 export function buildUnderstandingPrompt(
@@ -77,7 +121,7 @@ export function buildUnderstandingPrompt(
     parts.push(`\nMemory snapshot:\n${opts.memorySnapshot}`);
   }
 
-  parts.push(formatExamples(opts.recentExamples ?? []));
+  parts.push(formatExamples(opts.recentExamples?.length ? opts.recentExamples : SEED_EXAMPLES));
 
   if (opts.lastError) {
     parts.push(`\nPrevious attempt failed: ${opts.lastError}. Try a different approach.`);

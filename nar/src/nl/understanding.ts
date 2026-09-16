@@ -137,20 +137,26 @@ export class NLUnderstandingService {
     maxRetries = 2
   ): Promise<TaskBatch | null> {
     let lastError: string | null = null;
+    let lastBatch: TaskBatch | null = null;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         const result = await this.translateWithLM(input, ctx, lastError);
         if (result) {
-          return this.sanitize(result);
+          const empty =
+            result.beliefs.length + result.questions.length + result.goals.length === 0;
+          if (!empty) return this.sanitize(result);
+          lastBatch = result;
+          lastError = 'Empty task batch (no beliefs, questions, or goals)';
+        } else {
+          lastError = 'No valid output produced';
         }
-        lastError = 'No valid output produced';
       } catch (e) {
         lastError = errMsg(e);
       }
     }
 
-    return null;
+    return lastBatch;
   }
 
   async understandCandidates(input: string, ctx?: NLContext): Promise<FormalizationBatch | null> {
