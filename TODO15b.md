@@ -2,7 +2,7 @@
 
 **Predecessor:** TODO15 (vision spec — continuous cognitive/development substrate).
 **Predecessor:** TODO14 (LM efficiency + omnidirectional validation; partially landed).
-**Philosophy:** Keep the AI-SDK abstraction, swap the transport. Queue, never block. Sandbox, never mutate. Evidence, never vibes. The LLM is a bounded computational substrate inside the cognitive economy — never the developer, never the authority.
+**Philosophy:** Swap the HTTP transport for native bindings — low latency, zero serialization, complete llama.cpp control (`node-llama-cpp`). Keep the AI-SDK abstraction on top of it. Queue, never block. Sandbox, never mutate. Evidence, never vibes. The LLM is a bounded computational substrate inside the cognitive economy — never the developer, never the authority.
 
 ---
 
@@ -103,6 +103,7 @@ const getLlamaSingleton = (): Promise<Llama> => (llamaP ??= getLlama());
 
 export interface EmbeddedLlamaConfig {
   modelPath: string;          // resolved from LM_LLAMACPP_MODEL
+  gpu?: 'auto' | 'cuda' | 'metal' | 'vulkan' | false;  // backend select (default: auto-detect)
   gpuLayers?: number | 'max'; // default: auto-fit (Phase 2 uses GgufInsights)
   contextSize?: number;       // LM_LLAMACPP_CTX
   batchSize?: number;
@@ -175,6 +176,9 @@ export interface LlamaRuntimeManager {
   createSession(opts?: SessionOptions): Promise<LlamaChatSession>;
   complete(prompt: string, opts: CompletionOptions): Promise<string>;
   stream(prompt: string, opts: CompletionOptions): AsyncIterable<string>;
+  getSequence(pool?: SequencePoolRef): LlamaContextSequence;      // direct native access
+  createEmbeddingContext(): Promise<LlamaEmbeddingContext>;       // memory retrieval
+  createRankingContext(): Promise<LlamaRankingContext>;           // reranking
   reconfigure(patch: RuntimeConfigPatch): Promise<void>;
   stats(): LlamaRuntimeStats;
   dispose(): Promise<void>;                        // SIGINT/SIGTERM hook + process exit
@@ -182,7 +186,27 @@ export interface LlamaRuntimeManager {
 export const getLlamaRuntime = (): LlamaRuntimeManager; // singleton
 ```
 
-### 2.2 Reconfiguration transaction (TODO15 §5)
+**`CompletionOptions` extends the native `SequenceEvaluateOptions`** — the manager never truncates the native option surface; it only adds deadline/priority/budget bookkeeping on top.
+
+### 2.2 Full native control surface
+
+The reason for `node-llama-cpp` is **complete runtime configuration and control of llama.cpp** — the plan must expose all of it, not just the AI-SDK subset. Verified API surface (installed v3.21.1), each tier reachable through the manager:
+
+| Tier | Native controls (verified exports) |
+|---|---|
+| **Runtime/backend** | `getLlama({ gpu })` — `'auto' \| 'cuda' \| 'metal' \| 'vulkan' \| false` backend select; threads; log level; `getLlamaGpuTypes` |
+| **Model** | `gpuLayers`, `vocabOnly`, GGUF metadata via `readGgufFileInfo`; LoRA adapters (native `loadLora`/`setLoras` bindings) attachable per model alias |
+| **Context** | `contextSize`, `batchSize`, `sequences`, `flashAttention`, `kvCache`, `swaFullCache`, `threads` (`LlamaContextOptions`) |
+| **Sequence/sampling** | `temperature`, `topK`, `topP`, `minP`, `repeatPenalty`, `dryRepeatPenalty`, `tokenBias`, `grammar` (GBNF + JSON-schema), `evaluationPriority`, `contextShift`, `maxTokens`, `stopOnAbortSignal` |
+| **Batching** | Built-in `firstInFirstOut` / `maximumParallelism` prioritization strategies **plus custom `BatchItemsPrioritizationStrategy`** — the Phase 4 broker's priority heap plugs in here so deadline-aware scheduling reaches the native batch scheduler, not just the JS queue |
+| **Speculative decoding** | `DraftSequenceTokenPredictor` (draft-model pairing) + `InputLookupTokenPredictor` — low-latency generation on larger models via fast/quality alias pairs |
+| **Context shifting** | `ContextShiftOptions` supports persistent task sessions (TODO15 §10) without unbounded KV growth |
+| **Embeddings/ranking** | `LlamaEmbeddingContext` / `LlamaRankingContext` host embed/rerank model aliases — native similarity for the memory subsystem's embedding-based retrieval |
+| **Token accounting** | `TokenMeter` for per-request usage |
+
+**Key:** the AI-SDK V3 interface (Phase 1.2) exposes only text/stream/object. Every advanced control is reachable through the manager directly — the broker, memory, and dev tools call the manager for native features without touching the provider shim.
+
+### 2.3 Reconfiguration transaction (TODO15 §5)
 
 Three tiers, one rule: **never mutate a live context underneath an active generation.**
 
@@ -190,13 +214,13 @@ Three tiers, one rule: **never mutate a live context underneath an active genera
 - **Context-level:** `contextSize`, `batchSize`, `sequences`, flash attention, KV config → `reconfigure()` drains in-flight sequences, disposes, recreates context from the same model.
 - **Model-level:** GGUF file, quantization, `gpuLayers`, LoRA → full `load()` transaction with quiesced queue; in-flight jobs fail fast with typed errors (retryable upstream).
 
-### 2.3 VRAM telemetry & budgeting
+### 2.4 VRAM telemetry & budgeting
 
 - `llama.getVramState()` → total/used stats; `readGgufFileInfo` + `GgufInsights.getResourceRequirements` → pre-load estimation and automatic `gpuLayers` fit against a configured VRAM budget.
 - `LlamaRuntimeStats`: `{ vramTotal, vramUsed, modelVram, kvCacheEstimate, activeSequences, queuedJobs, tokensPerSec, ttftP50/P95 }` — feeds Phase 3 budgets and Phase 7 metrics.
 - Multi-model: `ModelSpec` registry keyed by alias (`fast` / `reasoning` / `embed`), enabling Phase 7's model switching (TODO15 §36) without new plumbing — routing already picks per-`LMTask` chains; aliases map onto `CHAINS` entries.
 
-### 2.4 Tests
+### 2.5 Tests
 
 **File:** `tests/nar/llama-runtime.test.ts` — env-gated (`SENARS_EMBEDDED_TEST=1` + model present), covering: residency, reconfigure tiers, reload, stats shape, dispose cleanliness.
 
@@ -205,6 +229,10 @@ Three tiers, one rule: **never mutate a live context underneath an active genera
 - [ ] Hot/context/model reconfiguration tiers each verified; no in-flight mutation.
 - [ ] `reload()` swaps models without process restart; in-flight jobs fail typed.
 - [ ] `gpuLayers` auto-fit uses `GgufInsights` resource requirements; explicit override honored.
+- [ ] Full sampling stack (`minP`, `repeatPenalty`/`dryRepeatPenalty`, `tokenBias`, `evaluationPriority`, `contextShift`) reachable via `CompletionOptions` without bypassing the manager.
+- [ ] Custom batch prioritization strategy injectable; broker deadline priority maps to native batching (a deadline-aware strategy test passes).
+- [ ] Draft-model pairing (`DraftSequenceTokenPredictor`) configurable per alias; speculative decoding demonstrably reduces latency for fast tasks.
+- [ ] Embedding/ranking contexts available for memory retrieval (similarity query answered natively).
 
 ---
 
@@ -272,6 +300,7 @@ Mechanics:
 - **Dedup:** hash(prompt+grammar+budget) — concurrent identical jobs share one execution (extends the `SingleFlight` pattern to queue level).
 - **Concurrency:** bounded by `LMResourceBudget.maxConcurrentRequests`; sequences per the runtime context pool.
 - **Backpressure:** pressure-aware drop/defer of low-priority jobs — integrate with `StreamReasoner` pressure (`highWater`) exactly as the HTTP path does.
+- **Native priority:** broker priority maps onto llama.cpp's native batch scheduling — per-sequence `evaluationPriority` plus a custom `BatchItemsPrioritizationStrategy` (deadline-aware; overrides the built-in FIFO / maximum-parallelism strategies) so priority reaches the GPU scheduler, not just the JS queue. Eligible fast tasks may use speculative decoding (`DraftSequenceTokenPredictor` with a draft-model alias).
 - **Bridge:** `createBrokerBackend(broker): LMBackend` so `StreamReasoner.reasonHook` consumes the broker without changes to the reasoner contract.
 - **Admission unchanged:** results flow through existing paths (`nar-lm.ts`, `lm/admit.ts`, shadow validation, gates). The broker schedules *model time*; the kernel decides *admission* — TODO15 §8's separation, kept structural.
 - **Opt-in rollout:** `LM_BROKER=1` env flag; default path (direct `LMService` calls) untouched until parity proven, then flipped in `LM_HEAVY_CONFIG` first.
@@ -432,6 +461,7 @@ LM_PROVIDER=llamacpp-embedded pnpm flywheel   # full-resident flywheel
 ### Phase 2: Runtime Manager
 - [ ] Hot / context-level / model-level reconfiguration transaction tiers
 - [ ] VRAM stats (`getVramState`, `GgufInsights` estimation, auto `gpuLayers`)
+- [ ] Full native control surface: sampling stack, custom batching strategy, speculative decoding, LoRA, embeddings/ranking, context shifting
 - [ ] Reload + graceful dispose; env-gated tests
 
 ### Phase 3: Budgets
