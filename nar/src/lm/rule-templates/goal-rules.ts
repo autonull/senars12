@@ -20,5 +20,6 @@ export const goalRules: LMRuleDefinition[] = [
     enableTools: true,
     constitutionAware: true,
     fallback: symbolicFallbacks['lm-goal-decomposition'],
+    maxOutputTokens: 128,
   },
 ];

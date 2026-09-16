@@ -19,6 +19,7 @@ export const metaRules: LMRuleDefinition[] = [
     taskType: 'belief',
     singlePremise: true,
     schema: HypothesisSchema,
+    maxOutputTokens: 256,
   },
   {
     id: 'lm-v2-explanation',
@@ -28,6 +29,7 @@ export const metaRules: LMRuleDefinition[] = [
     taskType: 'belief',
     singlePremise: true,
     schema: ExplanationSchema,
+    maxOutputTokens: 256,
   },
   {
     id: 'lm-v2-analogy',
@@ -36,6 +38,7 @@ export const metaRules: LMRuleDefinition[] = [
     priority: 0.8,
     taskType: 'belief',
     schema: AnalogySchema,
+    maxOutputTokens: 256,
   },
   {
     id: 'lm-v2-causal',
@@ -44,6 +47,7 @@ export const metaRules: LMRuleDefinition[] = [
     priority: 0.8,
     taskType: 'belief',
     schema: TemporalCausalSchema,
+    maxOutputTokens: 256,
   },
   {
     id: 'lm-v2-schema',
@@ -53,5 +57,6 @@ export const metaRules: LMRuleDefinition[] = [
     taskType: 'belief',
     singlePremise: true,
     schema: SchemaInductionSchema,
+    maxOutputTokens: 256,
   },
 ];

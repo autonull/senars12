@@ -11,6 +11,7 @@
  */
 
 import { cpus } from 'node:os';
+import { existsSync } from 'node:fs';
 import {
   formatLMConfig,
   getModelChain,
@@ -19,17 +20,18 @@ import {
   getCircuitBreaker,
   type LMProviderName,
   type LMTask,
-  resolveLMConfig,
-  resolveLMSettings,
   resolveOfflineTier,
   setRouting,
   getRoutingLogStatus,
-} from '@senars/nar/lm';
+  probeLlamaCpp,
+} from '@senars/nar/lm/providers.js';
+import {
+  resolveLMConfig,
+  resolveLMSettings,
+} from '@senars/nar/lm/env-config.js';
 import { createLogger } from '@senars/nar/logger';
 import { loadConfig } from '../config/index.js';
-import { getConsolidationWatchdogStatus } from '@senars/nar/memory/pressure';
-import { getMemoryPressure } from '@senars/nar/memory/pressure';
-import { getRLFPState } from '@senars/nar/rlfp';
+import { getConsolidationWatchdogStatus } from '@senars/nar/memory/pressure/index.js';
 
 const logger = createLogger({ scope: 'doctor' });
 
@@ -58,6 +60,25 @@ const probeOllama = async (host: string): Promise<string> => {
   }
 };
 
+const probeEmbeddedLlama = async (): Promise<{ available: boolean; detail: string }> => {
+  const modelPath = process.env.LM_LLAMACPP_MODEL;
+  if (!modelPath) return { available: false, detail: 'LM_LLAMACPP_MODEL not set' };
+  if (!existsSync(modelPath)) return { available: false, detail: `Model not found: ${modelPath}` };
+  try {
+    // Quick probe: try to load llama.cpp backend info
+    const { getLlama, getLlamaGpuTypes } = await import('node-llama-cpp');
+    const gpuTypes = await getLlamaGpuTypes('supported');
+    const llama = await getLlama({ gpu: 'auto' });
+    await llama.dispose();
+    return {
+      available: true,
+      detail: `Model found, GPU backends: ${gpuTypes.filter((t) => t.available).map((t) => t.name).join(', ') || 'CPU only'}`,
+    };
+  } catch (e) {
+    return { available: false, detail: `Load failed: ${(e as Error).message}` };
+  }
+};
+
 const args = process.argv.slice(2);
 const jsonOutput = args.includes('--json');
 const showDegradation = args.includes('--degradation');
@@ -77,6 +98,7 @@ interface DoctorOutput {
   };
   credentials: Array<{ key: string; present: boolean }>;
   ollama: string;
+  embeddedLlama: { available: boolean; detail: string };
   cpus: number;
   config: {
     valid: boolean;
@@ -92,19 +114,7 @@ interface DoctorOutput {
     state: string;
     failures: number;
   }>;
-  memoryPressure: {
-    pressure: number;
-    level: 'low' | 'medium' | 'high' | 'critical';
-    bagSize: number;
-    workingMemorySize: number;
-    consolidationRate: number;
-  };
-  rlFocus: {
-    active: boolean;
-    weights?: Record<string, number>;
-    explorationRate?: number;
-    totalRewards?: number;
-  };
+  watchdog?: { enabled: boolean; config: Record<string, unknown> };
   degradation?: {
     activeProvider: string;
     effectiveChains: Record<string, string[]>;
@@ -113,7 +123,6 @@ interface DoctorOutput {
     credentials: Record<string, boolean>;
   };
   routingLog?: { enabled: boolean; bufferSize: number; logPath: string };
-  watchdog?: { enabled: boolean; config: Record<string, unknown> };
   benchmarks?: unknown[];
 }
 
@@ -140,22 +149,13 @@ const main = async (): Promise<void> => {
     },
     credentials: checkCredentials(),
     ollama: await probeOllama(settings.ollamaHost ?? 'http://localhost:11434'),
+    embeddedLlama: await probeEmbeddedLlama(),
     cpus: cpus().length,
     config: { valid: false },
     routingMatrix: {},
     offlineTier: null,
     demoted: [],
     circuitBreakers: {},
-    memoryPressure: {
-      pressure: 0,
-      level: 'low',
-      bagSize: 0,
-      workingMemorySize: 0,
-      consolidationRate: 0,
-    },
-    rlFocus: {
-      active: false,
-    },
   };
 
   // Load config
@@ -207,35 +207,6 @@ const main = async (): Promise<void> => {
     /* circuit breaker info is best-effort */
   }
 
-  // Memory pressure
-  try {
-    const memPressure = getMemoryPressure();
-    output.memoryPressure = {
-      pressure: memPressure.pressure,
-      level: memPressure.level,
-      bagSize: memPressure.bagSize,
-      workingMemorySize: memPressure.workingMemorySize,
-      consolidationRate: memPressure.consolidationRate,
-    };
-  } catch {
-    /* memory pressure info is best-effort */
-  }
-
-  // RL focus weights
-  try {
-    const rlfpState = getRLFPState();
-    output.rlFocus = {
-      active: rlfpState.enabled,
-      weights: rlfpState.policy ? Object.fromEntries(
-        Object.entries(rlfpState.policy).map(([k, v]) => [k, typeof v === 'object' && v !== null && 'priority' in v ? (v as { priority: number }).priority : 1])
-      ) : undefined,
-      explorationRate: rlfpState.explorationRate,
-      totalRewards: rlfpState.totalRewards,
-    };
-  } catch {
-    /* RL focus info is best-effort */
-  }
-
   // Degradation posture
   if (showDegradation) {
     const creds = checkCredentials();
@@ -264,9 +235,16 @@ const main = async (): Promise<void> => {
     output.benchmarks = [];
   }
 
-  if (jsonOutput) {
+if (jsonOutput) {
     console.log(JSON.stringify(output, null, 2));
   } else {
+    console.log(`\nLM Provider: ${output.lm.provider}`);
+    console.log(`LM Model: ${output.lm.model}`);
+    console.log(`Embedded llama.cpp: ${output.embeddedLlama.available ? '✓ ' + output.embeddedLlama.detail : '✗ ' + output.embeddedLlama.detail}`);
+    console.log(`Ollama: ${output.ollama}`);
+    console.log(`CPUs: ${output.cpus}`);
+    console.log(`Config: ${output.config.valid ? 'valid' : 'invalid'}${output.config.error ? ` (${output.config.error})` : ''}`);
+
     if (!showDegradation) {
       console.log('\nSee docs/tech/lm-config.md for the provider × tier × credential matrix.');
     }

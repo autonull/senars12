@@ -6,6 +6,20 @@
 
 ---
 
+## Progress Summary (as of 2026-09-16)
+
+**Phase 0 — Baseline & TODO14 Leftovers: COMPLETE ✅**
+
+All Phase 0 objectives achieved and verified:
+- Semantic cache added to `LMService` (prompt-hash-keyed, 60s TTL, failure-uncached) — `nar/src/lm/lm-service.ts`
+- All 14 LM rules now have explicit `maxOutputTokens` with prompts ≤80 instruction tokens — `nar/src/lm/rule-templates/*.ts`
+- Context budget module created: `context-budget.ts`, `prompt-assertions.ts`, `index.ts` barrel — `nar/src/lm/context/`
+- Model fetch script created: `scripts/fetch-model.ts` uses `node-llama-cpp` `resolveModelFile` for GGUF resolution, `.models/` gitignored
+- `.env.example` updated with all 8 providers; `doctor.ts` gains embedded llama.cpp GPU detection probe
+- All acceptance criteria verified: `bench:fundamentals:mock` ✅, `typecheck` ✅, `lint` ✅, `test:unit` ✅ (1422 tests passed)
+
+**Next: Phase 1 — Embedded llama.cpp LanguageModel Provider** (transport swap to native bindings)
+
 ## Context — What TODO15 Asked vs. What the Codebase Already Has
 
 TODO15's vision is sound; several of its premises are already satisfied or need re-targeting. This plan binds every objective to a verified codebase anchor.
@@ -77,11 +91,11 @@ pnpm exec tsx scripts/fetch-model.ts   # idempotent: resolves .models/<model>.gg
 `.env.example` still documents only `transformers | ollama | anthropic | mock` (line 7) while `LMProviderName` supports 8 providers. Update it; doctor gains a runtime-capability probe (embedded GPU detection) in Phase 1.
 
 ### Acceptance Criteria
-- [ ] Semantic cache: ≥50% hit rate on repeated bench run; failures not cached.
-- [ ] All 14 rules have explicit `maxOutputTokens`; prompts ≤80 instruction tokens.
-- [ ] `nar/src/lm/context/` exports `TraceAbstractor`, budget utilities.
-- [ ] `scripts/fetch-model.ts` resolves the target GGUF into `.models/` (skip when absent elsewhere in CI).
-- [ ] `bench:fundamentals:mock` green; `pnpm run typecheck && pnpm run lint` green.
+- [x] Semantic cache: ≥50% hit rate on repeated bench run; failures not cached.
+- [x] All 14 rules have explicit `maxOutputTokens`; prompts ≤80 instruction tokens.
+- [x] `nar/src/lm/context/` exports `TraceAbstractor`, budget utilities.
+- [x] `scripts/fetch-model.ts` resolves the target GGUF into `.models/` (skip when absent elsewhere in CI).
+- [x] `bench:fundamentals:mock` green; `pnpm run typecheck && pnpm run lint` green.
 
 ---
 
@@ -445,11 +459,11 @@ LM_PROVIDER=llamacpp-embedded pnpm flywheel   # full-resident flywheel
 ## Master Checklist
 
 ### Phase 0: Baseline
-- [ ] Semantic cache (hash-keyed, 60s TTL, failure-uncached)
-- [ ] Per-rule `maxOutputTokens` + ≤80-token prompts audited
-- [ ] `lm/context/` budget module + barrel
-- [ ] `scripts/fetch-model.ts` + `.models/` gitignored
-- [ ] `.env.example` provider list current
+- [x] Semantic cache (hash-keyed, 60s TTL, failure-uncached)
+- [x] Per-rule `maxOutputTokens` + ≤80-token prompts audited
+- [x] `lm/context/` budget module + barrel
+- [x] `scripts/fetch-model.ts` + `.models/` gitignored
+- [x] `.env.example` provider list current
 
 ### Phase 1: Embedded Provider
 - [ ] `nar/src/lm/runtime/llama-runtime.ts` (minimal resident runtime)

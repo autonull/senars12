@@ -41,6 +41,11 @@ import {
 } from './providers.js';
 import { createLMStats, recordLMCall } from './stats.js';
 
+interface CacheEntry {
+  value: string;
+  expiresAt: number;
+}
+
 /** Typed error for provider/transport failures (offline fallbacks, re-probing). */
 export class LMUnavailableError extends SenarsError {
   readonly provider: string | undefined;
@@ -64,6 +69,28 @@ const isTransportError = (e: unknown): boolean => {
 };
 
 const backoff = (attempt: number): number => 250 * 2 ** (attempt - 1);
+
+const CACHE_TTL_MS = 60_000;
+
+function hashKey(input: string): string {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) - hash) + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash.toString(36);
+}
+
+function buildCacheKey(prompt: string, options?: { task?: LMTask; temperature?: number; maxOutputTokens?: number; grammar?: string }): string {
+  const parts = [
+    prompt,
+    options?.task ?? 'fast',
+    options?.temperature ?? 0,
+    options?.maxOutputTokens ?? 0,
+    options?.grammar ?? '',
+  ];
+  return hashKey(parts.join('|'));
+}
 
 /** Run fn under a GBNF grammar scope when one is provided (no-op otherwise). */
 const runInGrammarScope = <T>(grammar: string | undefined, fn: () => Promise<T>): Promise<T> =>
@@ -113,6 +140,8 @@ export class LMService {
   private perModel = new Map<string, LMExecutionStats>();
   /** Optional progress callback for transformers.js model downloads. */
   private progressCallback: ModelDownloadProgressCallback | undefined;
+  /** Prompt-hash-keyed semantic cache with 60s TTL. Cleared on failure so retries re-populate. */
+  private cache = new Map<string, CacheEntry>();
 
   constructor(
     private registry: SeNARSRegistry,
@@ -128,6 +157,24 @@ export class LMService {
   setProgressCallback(cb: ModelDownloadProgressCallback | undefined): void {
     this.progressCallback = cb;
     setBuiltinProgressCallback(cb);
+  }
+
+  private getCached(key: string): string | undefined {
+    const entry = this.cache.get(key);
+    if (!entry) return undefined;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return undefined;
+    }
+    return entry.value;
+  }
+
+  private setCache(key: string, value: string): void {
+    this.cache.set(key, { value, expiresAt: Date.now() + CACHE_TTL_MS });
+  }
+
+  private clearCache(key: string): void {
+    this.cache.delete(key);
   }
 
   /** Active SeNARS provider name (CHAINS key). Raw model providers don't always
@@ -194,6 +241,19 @@ export class LMService {
       throw new LMUnavailableError(`Circuit breaker open for provider: ${provider}`, provider, opts?.task);
     }
 
+    const cacheKey = buildCacheKey(prompt, {
+      task: opts?.task,
+      temperature: opts?.temperature,
+      maxOutputTokens: opts?.maxOutputTokens,
+      grammar: opts?.grammar,
+    });
+    const cached = this.getCached(cacheKey);
+    if (cached) {
+      this.recordCall(true, Date.now(), prompt.length + cached.length);
+      if (provider) recordProviderCall(provider, true, settings);
+      return cached;
+    }
+
     const start = Date.now();
     const task = opts?.task ?? 'fast';
     try {
@@ -215,6 +275,7 @@ export class LMService {
             task
           )
       );
+      this.setCache(cacheKey, text);
       this.recordCall(true, start, prompt.length + text.length);
       if (provider) recordProviderCall(provider, true, settings);
       this.noteSuccess();
@@ -234,6 +295,7 @@ export class LMService {
       }
       return text;
     } catch (e) {
+      this.clearCache(cacheKey);
       this.recordCall(false, start, prompt.length);
       if (provider) recordProviderCall(provider, false, settings);
       if (isTransportError(e)) {
@@ -311,6 +373,19 @@ export class LMService {
       throw new LMUnavailableError(`Circuit breaker open for provider: ${provider}`, provider, opts?.task);
     }
 
+    const cacheKey = buildCacheKey(prompt, {
+      task: opts?.task ?? 'structured',
+      temperature: 0,
+      maxOutputTokens: 0,
+      grammar: JSON.stringify(schema),
+    });
+    const cached = this.getCached(cacheKey);
+    if (cached) {
+      this.recordCall(true, Date.now(), prompt.length + cached.length);
+      if (provider) recordProviderCall(provider, true, settings);
+      return JSON.parse(cached) as T;
+    }
+
     const start = Date.now();
     const task = opts?.task ?? 'structured';
     try {
@@ -327,7 +402,9 @@ export class LMService {
         provider,
         task
       );
-      this.recordCall(true, start, prompt.length + JSON.stringify(object).length);
+      const jsonStr = JSON.stringify(object);
+      this.setCache(cacheKey, jsonStr);
+      this.recordCall(true, start, prompt.length + jsonStr.length);
       if (provider) recordProviderCall(provider, true, settings);
       // Log routing decision
       const decision = getLastRoutingDecision();
@@ -345,6 +422,7 @@ export class LMService {
       }
       return object;
     } catch (e) {
+      this.clearCache(cacheKey);
       this.recordCall(false, start, prompt.length);
       if (provider) recordProviderCall(provider, false, settings);
       if (isTransportError(e)) await this.reprobe();

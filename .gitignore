@@ -47,6 +47,7 @@ verification/
 .agents
 .env
 .cache
+.models
 .turbo
 tests/generated/
 .reports

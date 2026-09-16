@@ -33,6 +33,7 @@ export const beliefRules: LMRuleDefinition[] = [
     budget: 0.9,
     schema: TranslationSchema,
     fallback: symbolicFallbacks['lm-narsese-translation'],
+    maxOutputTokens: 64,
   },
   {
     id: 'lm-belief-revision',
@@ -45,6 +46,7 @@ export const beliefRules: LMRuleDefinition[] = [
     schema: BeliefRevisionSchema,
     constitutionAware: true,
     fallback: symbolicFallbacks['lm-belief-revision'],
+    maxOutputTokens: 64,
   },
   {
     id: 'lm-hypothesis-generation',
@@ -59,6 +61,7 @@ export const beliefRules: LMRuleDefinition[] = [
     constitutionAware: true,
     grammar: 'narsese-term',
     fallback: symbolicFallbacks['lm-hypothesis-generation'],
+    maxOutputTokens: 128,
   },
   {
     id: 'lm-explanation-generation',
@@ -69,6 +72,7 @@ export const beliefRules: LMRuleDefinition[] = [
     budget: 0.65,
     schema: ExplanationSchema,
     fallback: symbolicFallbacks['lm-explanation-generation'],
+    maxOutputTokens: 128,
   },
   {
     id: 'lm-analogical-reasoning',
@@ -93,6 +97,7 @@ export const beliefRules: LMRuleDefinition[] = [
     budget: 0.65,
     schema: MetaReasoningSchema,
     fallback: symbolicFallbacks['lm-meta-reasoning'],
+    maxOutputTokens: 64,
   },
   {
     id: 'lm-uncertainty-calibration',
@@ -102,6 +107,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.6,
     schema: UncertaintySchema,
+    maxOutputTokens: 64,
   },
   {
     id: 'lm-schema-induction',
@@ -112,6 +118,7 @@ export const beliefRules: LMRuleDefinition[] = [
     budget: 0.65,
     schema: SchemaInductionSchema,
     fallback: symbolicFallbacks['lm-schema-induction'],
+    maxOutputTokens: 256,
   },
   {
     id: 'lm-temporal-causal',
@@ -121,6 +128,7 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.7,
     schema: TemporalCausalSchema,
+    maxOutputTokens: 128,
   },
   {
     id: 'lm-variable-grounding',
@@ -131,6 +139,7 @@ export const beliefRules: LMRuleDefinition[] = [
     budget: 0.65,
     activationCondition: (p) => hasVariable(p),
     schema: VariableGroundingSchema,
+    maxOutputTokens: 128,
   },
   {
     id: 'lm-concept-elaboration',
@@ -141,5 +150,6 @@ export const beliefRules: LMRuleDefinition[] = [
     budget: 0.7,
     activationCondition: isUnderconnected,
     schema: ConceptElaborationSchema,
+    maxOutputTokens: 256,
   },
 ];

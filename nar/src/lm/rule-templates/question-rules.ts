@@ -18,6 +18,7 @@ export const questionRules: LMRuleDefinition[] = [
     activationCondition: hasHighCuriosity,
     schema: QuestionGenerationSchema,
     fallback: symbolicFallbacks['lm-curiosity-question'],
+    maxOutputTokens: 256,
   },
   {
     id: 'lm-interactive-clarification',
@@ -26,5 +27,6 @@ export const questionRules: LMRuleDefinition[] = [
     priority: 0.7,
     taskType: 'question',
     budget: 0.65,
+    maxOutputTokens: 64,
   },
 ];
