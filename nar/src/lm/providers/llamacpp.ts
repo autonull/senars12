@@ -8,7 +8,7 @@ export const LLAMACPP_HOST_DEFAULT = 'http://localhost:8080';
  * wrapper injects whatever grammar is active in the current async context into
  * the completion payload; other providers ignore it (prompt-level fallback).
  */
-const grammarScope = new AsyncLocalStorage<string>();
+export const grammarScope = new AsyncLocalStorage<string>();
 
 export const runWithGrammar = <T>(grammar: string, fn: () => Promise<T>): Promise<T> =>
   grammarScope.run(grammar, fn);

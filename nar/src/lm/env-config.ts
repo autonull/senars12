@@ -29,6 +29,20 @@ export interface LMSettings {
   ollamaHost?: string;
   /** llama.cpp server host (llama-server native API). */
   llamacppHost?: string;
+  /** Embedded llama.cpp: path to GGUF model file. */
+  llamacppModelPath?: string;
+  /** Embedded llama.cpp: GPU backend (auto | cuda | metal | vulkan | false). */
+  llamacppGpu?: 'auto' | 'cuda' | 'metal' | 'vulkan' | false;
+  /** Embedded llama.cpp: GPU layers to offload (number | 'max'). */
+  llamacppGpuLayers?: number | 'max';
+  /** Embedded llama.cpp: context window size. */
+  llamacppContextSize?: number;
+  /** Embedded llama.cpp: batch size. */
+  llamacppBatchSize?: number;
+  /** Embedded llama.cpp: parallel sequences. */
+  llamacppSequences?: number;
+  /** Embedded llama.cpp: enable flash attention. */
+  llamacppFlashAttention?: boolean;
   /** Env var name holding the cloud API key. */
   apiKeyEnv?: string;
   quantized?: boolean;
@@ -52,6 +66,7 @@ const PROVIDERS: readonly ResolvedProvider[] = [
   'transformers',
   'ollama',
   'llamacpp',
+  'llamacpp-embedded',
   'mock',
   'anthropic',
   'openai',
@@ -131,6 +146,13 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
     baseUrl: env('LM_BASE_URL') ?? file?.baseUrl,
     ollamaHost: env('OLLAMA_HOST') ?? file?.ollamaHost,
     llamacppHost: env('LM_LLAMACPP_HOST') ?? file?.llamacppHost,
+    llamacppModelPath: env('LM_LLAMACPP_MODEL') ?? file?.llamacppModelPath,
+    llamacppGpu: (env('LM_LLAMACPP_GPU') as 'auto' | 'cuda' | 'metal' | 'vulkan' | false) ?? file?.llamacppGpu,
+    llamacppGpuLayers: (env('LM_LLAMACPP_GPU_LAYERS') ? Number(env('LM_LLAMACPP_GPU_LAYERS')) : undefined) ?? file?.llamacppGpuLayers,
+    llamacppContextSize: env('LM_LLAMACPP_CTX') ? Number(env('LM_LLAMACPP_CTX')) : file?.llamacppContextSize,
+    llamacppBatchSize: env('LM_LLAMACPP_BATCH') ? Number(env('LM_LLAMACPP_BATCH')) : file?.llamacppBatchSize,
+    llamacppSequences: env('LM_LLAMACPP_SEQS') ? Number(env('LM_LLAMACPP_SEQS')) : file?.llamacppSequences,
+    llamacppFlashAttention: ['1', 'true'].includes(env('LM_LLAMACPP_FLASH_ATTN') ?? '') ?? file?.llamacppFlashAttention ?? true,
     apiKeyEnv: file?.apiKeyEnv ?? cloudCredentialEnv,
     quantized: file?.quantized,
     cacheDir: file?.cacheDir,
@@ -146,6 +168,8 @@ export const defaultModelFor = (provider: ResolvedProvider): string => {
       return env('OLLAMA_MODEL') ?? 'llama3.2';
     case 'llamacpp':
       return env('LM_MODEL') ?? 'local-model';
+    case 'llamacpp-embedded':
+      return env('LM_LLAMACPP_MODEL') ?? 'local-model';
     case 'transformers':
       return TRANSFORMERS_DEFAULT_MODEL;
     case 'anthropic':

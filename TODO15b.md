@@ -20,6 +20,32 @@ All Phase 0 objectives achieved and verified:
 
 **Next: Phase 1 — Embedded llama.cpp LanguageModel Provider** (transport swap to native bindings)
 
+## Progress (2026-09-16, Phase 1)
+
+**Phase 1 — Embedded llama.cpp LanguageModel Provider: IN PROGRESS ✅ (implementation + wiring complete)**
+
+The transport swap is implemented and type-checked. The AI-SDK abstraction (`LMService` → `getModelForTask` → `createProviderRegistry`) is preserved; one new `LanguageModel` implementation + one provider key added.
+
+- **1.1 Embedded runtime seed** — `nar/src/lm/runtime/llama-runtime.ts` (resident singleton: `getLlama` → `loadModel` → `createContext`; `getModel`/`getContext`/`getLlamaInstance`/`createSequence`/`isLoaded`/`dispose`). Model/context stay resident for process lifetime; no per-request startup. `sequencesLeft`-guarded `createSequence`. `loadModel` disposes prior model/context before swap (idempotent). Barrels `runtime/index.ts`.
+- **1.2 Provider** — `nar/src/lm/providers/embedded-llamacpp.ts`: `createEmbeddedLlamaCppLanguageModel(task)` implements V3 `doGenerate`/`doStream` over node-llama-cpp (zero-copy, token-based, no HTTP/process boundary).
+  - **Grammar path:** reads active GBNF via `grammarScope` (now exported from `providers/llamacpp.ts`) → `llama.createGrammar({ grammar })`.
+  - **JSON-schema path:** `responseFormat.type === 'json'` → `llama.createGrammarForJsonSchema(schema)`.
+  - **Generation:** `model.tokenize(prompt, true)` → `sequence.evaluate(tokens, { temperature, topK, topP, grammarEvaluationState })` → collect until EOG/max-tokens/abort → `model.detokenize`. `finishReason` maps `length`/`stop`; usage reports input/output token counts.
+  - **Streaming:** per-token `text-delta` via `simulateReadableStream`; abort honored via `options.abortSignal`.
+  - **Probe:** `probeEmbeddedLlama()` (model path exists + GPU backend check).
+- **1.3 Registration & routing** — `LMProviderName` + `PROVIDERS` + `LMSettings` + `defaultModelFor` gain `'llamacpp-embedded'`; settings `llamacppModelPath/Gpu/GpuLayers/ContextSize/BatchSize/Sequences/FlashAttention` ← env `LM_LLAMACPP_MODEL/GPU/GPU_LAYERS/CTX/BATCH/SEQS/FLASH_ATTN`. Registry branch registers `quality/fast/structured/compact`. `CHAINS` authoritative (no silent CPU fallback). `MODEL_CAPABILITIES` + circuit-breaker defaults + health-probe ladder + `resolveActiveProvider` auto-detect extended. `.env.example` provider list updated.
+- **1.4 Bench** — not yet run against a real GGUF (no model artifact in `.models/`); `bench:fundamentals:mock` verified green (all 7 scenarios PASS).
+
+**Verification:** `pnpm typecheck` clean for all changed files (pre-existing errors in `tests/ui-webllm`, `tests/unit/lm/grammars`, `ui/src/webllm` untouched). `pnpm lint` clean. `tests/unit/lm` 5 passed, `tests/nar/lm` 19 passed. Registry/chain/provider-validation smoke test passes (models lazy-load on first call).
+
+**Phase 1 remaining:** fetch a GGUF into `.models/` and run `LM_PROVIDER=llamacpp-embedded pnpm bench:fundamentals` against the resident model; verify breaker/demotion on a bad model path.
+
+**New improvement opportunities surfaced:**
+- `buildLlamaPrompt` uses a hard-coded ChatML template (`<|im_start|>`). Prefer the model's own chat wrapper via `LlamaChatSession` (Phase 2's `createSession`) so templates match the GGUF's trained format — the V3 shim stays text-only, but session-based templating would raise fidelity.
+- `LlamaJsonSchemaGrammar` needs a `GbnfJsonSchema` shape; the AI-SDK `responseFormat.schema` may need normalization (`zod` → `zod-to-json-schema` already in deps) — validate on the first real structured call.
+- The runtime `loadModel` currently disposes prior state before load (good for swaps) but `dispose()` awaits possibly-already-disposed handles — Phase 2 should make disposal idempotent/guarded.
+- `probeEmbeddedLlama` reports GPU backends but does not load the model; a full load-check option (`--validate` via `fetch-model.ts`) exists but is not wired to the auto-detect ladder — leave as-is to keep auto-detect fast.
+
 ## Context — What TODO15 Asked vs. What the Codebase Already Has
 
 TODO15's vision is sound; several of its premises are already satisfied or need re-targeting. This plan binds every objective to a verified codebase anchor.
@@ -466,10 +492,10 @@ LM_PROVIDER=llamacpp-embedded pnpm flywheel   # full-resident flywheel
 - [x] `.env.example` provider list current
 
 ### Phase 1: Embedded Provider
-- [ ] `nar/src/lm/runtime/llama-runtime.ts` (minimal resident runtime)
-- [ ] `providers/embedded-llamacpp.ts` (`doGenerate`/`doStream`, grammar + JSON-schema grammar)
-- [ ] `LMProviderName` + settings + env vars + registry branch + `CHAINS` + probe ladder
-- [ ] `bench:fundamentals` passes with embedded provider (all 7 scenarios)
+- [x] `nar/src/lm/runtime/llama-runtime.ts` (minimal resident runtime)
+- [x] `providers/embedded-llamacpp.ts` (`doGenerate`/`doStream`, grammar + JSON-schema grammar)
+- [x] `LMProviderName` + settings + env vars + registry branch + `CHAINS` + probe ladder
+- [ ] `bench:fundamentals` passes with embedded provider (all 7 scenarios) — pending GGUF artifact in `.models/`
 - [ ] Breaker/demotion behavior verified on load failure
 
 ### Phase 2: Runtime Manager

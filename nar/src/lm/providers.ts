@@ -17,6 +17,7 @@ import {
   LLAMACPP_HOST_DEFAULT,
   probeLlamaCpp,
 } from './providers/llamacpp.js';
+import { createEmbeddedLlamaCppLanguageModel, probeEmbeddedLlama } from './providers/embedded-llamacpp.js';
 import { trace, SpanStatusCode, SpanKind } from '@opentelemetry/api';
 import { getTracer } from '../otel/index.js';
 import { recordCircuitBreakerState, recordLmProbe } from '../metrics/index.js';
@@ -32,6 +33,7 @@ export type LMProviderName =
   | 'transformers'
   | 'ollama'
   | 'llamacpp'
+  | 'llamacpp-embedded'
   | 'anthropic'
   | 'openai'
   | 'openai-compatible'
@@ -128,6 +130,7 @@ export function createSeNARSRegistry(settings?: LMSettings) {
     typeof navigator !== 'undefined' &&
     'gpu' in navigator;
   const useLlamaCpp = provider === 'llamacpp';
+  const useEmbeddedLlamaCpp = provider === 'llamacpp-embedded';
 
   const ollama = createOpenAICompatible({
     name: 'ollama',
@@ -206,6 +209,16 @@ export function createSeNARSRegistry(settings?: LMSettings) {
       },
       fallbackProvider: useLlamaCpp ? llamacpp : undefined,
     }),
+    'llamacpp-embedded': customProvider({
+      languageModels: {
+        ...(useEmbeddedLlamaCpp && {
+          quality: createEmbeddedLlamaCppLanguageModel('quality'),
+          fast: createEmbeddedLlamaCppLanguageModel('fast'),
+          structured: createEmbeddedLlamaCppLanguageModel('structured'),
+          compact: createEmbeddedLlamaCppLanguageModel('compact'),
+        }),
+      },
+    }),
     webllm: customProvider({
       languageModels: {
         ...(useWebLLM && { quality: webllmQuality, fast: webllmFast, structured: webllmQuality, compact: webllmFast }),
@@ -254,6 +267,11 @@ const localCap = {
   local: true,
 } as const;
 
+const embeddedCap = {
+  ...localCap,
+  latencyClass: 'medium' as const,
+};
+
 const webllmCap = {
   contextTokens: 8192,
   supportsTools: false,
@@ -273,6 +291,10 @@ export const MODEL_CAPABILITIES: Record<string, ModelCapability> = {
   'llamacpp:fast': localCap,
   'llamacpp:structured': { ...localCap, latencyClass: 'medium' },
   'llamacpp:compact': localCap,
+  'llamacpp-embedded:quality': { ...embeddedCap, latencyClass: 'medium' },
+  'llamacpp-embedded:fast': embeddedCap,
+  'llamacpp-embedded:structured': { ...embeddedCap, latencyClass: 'medium' },
+  'llamacpp-embedded:compact': embeddedCap,
   'local:fast': { ...localCap, latencyClass: 'fast' },
   'local:compact': { ...localCap, latencyClass: 'fast' },
   'builtin:quality': { ...localCap, latencyClass: 'slow' },
@@ -373,6 +395,12 @@ const CHAINS: Record<LMProviderName, Record<LMTask, SeNARSModelId[]>> = {
     fast: ['llamacpp:fast'],
     structured: ['llamacpp:structured'],
   },
+  'llamacpp-embedded': {
+    // Embedded provider: authoritative, no silent CPU fallback rungs.
+    quality: ['llamacpp-embedded:quality'],
+    fast: ['llamacpp-embedded:fast'],
+    structured: ['llamacpp-embedded:structured'],
+  },
   anthropic: {
     quality: ['cloud:quality', 'local:quality', 'builtin:quality', 'builtin:mock'],
     fast: ['cloud:fast', 'local:fast', 'builtin:compact', 'builtin:mock'],
@@ -471,10 +499,12 @@ export async function resolveActiveProvider(): Promise<LMProviderName> {
   if (configured === 'transformers') {
     if (hasCloudCredentials()) return 'openai-compatible';
     if (await probeOllama()) return 'ollama';
+    if (await probeEmbeddedLlama()) return 'llamacpp-embedded';
     return (await probeLlamaCpp()) ? 'llamacpp' : 'transformers';
   }
   if (configured === 'ollama') return (await probeOllama()) ? 'ollama' : 'transformers';
   if (configured === 'llamacpp') return (await probeLlamaCpp()) ? 'llamacpp' : 'transformers';
+  if (configured === 'llamacpp-embedded') return (await probeEmbeddedLlama()) ? 'llamacpp-embedded' : 'transformers';
   return hasCloudCredentials() ? configured : (await probeOllama()) ? 'ollama' : 'transformers';
 }
 
@@ -504,6 +534,7 @@ const PROVIDER_CIRCUIT_DEFAULTS: Partial<Record<LMProviderName, Partial<CircuitB
   'openai-compatible': { failureThreshold: 5, resetTimeoutMs: 30_000, successThreshold: 2 },
   ollama: { failureThreshold: 10, resetTimeoutMs: 15_000, successThreshold: 3 },
   llamacpp: { failureThreshold: 10, resetTimeoutMs: 15_000, successThreshold: 3 },
+  'llamacpp-embedded': { failureThreshold: 10, resetTimeoutMs: 15_000, successThreshold: 3 },
   transformers: { failureThreshold: 20, resetTimeoutMs: 5_000, successThreshold: 5 },
   webllm: { failureThreshold: 20, resetTimeoutMs: 5_000, successThreshold: 5 },
   mock: { failureThreshold: 100, resetTimeoutMs: 1_000, successThreshold: 10 },
@@ -686,7 +717,7 @@ let healthProbeInterval: ReturnType<typeof setInterval> | null = null;
 export function startHealthProbes(intervalMs = 60_000, settings?: LMSettings): void {
   if (healthProbeInterval) return;
   healthProbeInterval = setInterval(async () => {
-    const providers: LMProviderName[] = ['anthropic', 'openai', 'openai-compatible', 'ollama', 'webllm'];
+    const providers: LMProviderName[] = ['anthropic', 'openai', 'openai-compatible', 'ollama', 'webllm', 'llamacpp-embedded'];
     for (const p of providers) {
       if (!canUseProvider(p, settings)) continue;
       let ok = false;
@@ -696,6 +727,8 @@ export function startHealthProbes(intervalMs = 60_000, settings?: LMSettings): v
         ok = await probeCloudProvider(settings);
       } else if (p === 'webllm') {
         ok = typeof navigator !== 'undefined' && 'gpu' in navigator;
+      } else if (p === 'llamacpp-embedded') {
+        ok = (await probeEmbeddedLlama()).available;
       }
       const b = getBreaker(p);
       b.lastProbe = Date.now();
