@@ -994,3 +994,322 @@ So the answer is:
 
 > **JSON is sufficient, but only if JSON encodes a two-layer architecture: a bounded semantic frame graph for System 1 extraction, and a canonical NAL term DAG for System 2 truth.**
 
+----
+
+The direction is strong, but I would treat this document as an **architectural proposal**, not yet a verified design. The two-layer split is the right central idea:
+
+```text
+LLM → bounded semantic frames → deterministic compiler → NAL terms/tasks
+```
+
+That fits SeNARS better than asking an LLM to generate arbitrary Narsese. It also aligns with the existing `KernelPerceptionGate`, which already treats external and LLM-derived content as untrusted input.
+
+However, several claims need tightening before implementation.
+
+## What is right
+
+### 1. Separate extraction from formalization
+
+This is the most valuable decision. Small models are better at producing bounded roles and events than correctly emitting:
+
+- variable scopes;
+- images;
+- temporal copulas;
+- nested compounds;
+- task punctuation;
+- truth values and stamps.
+
+The compiler should own those decisions.
+
+### 2. Keep canonical exchange separate from LLM exchange
+
+A lossless internal representation and a model-friendly extraction format have different requirements. Trying to make one schema serve both will either make the model output too difficult or make the internal representation lossy.
+
+### 3. Candidate-based ambiguity is appropriate
+
+Multiple candidates should remain separate until validation, contextual ranking, or downstream reasoning selects among them. This is much safer than forcing a single interpretation.
+
+### 4. Admission and provenance belong outside the semantic graph
+
+The document correctly emphasizes PerceptionGate admission, source quality, confidence ceilings, and provenance. The existing repository already has relevant infrastructure:
+
+- `KernelPerceptionGate`;
+- `PerceptionGateInputSchema`;
+- `SourceQuality`;
+- LLM hypothesis admission;
+- shadow validation;
+- bounded LM output and fallback paths.
+
+That means this proposal can extend the current architecture instead of replacing it.
+
+## Main technical problems
+
+### 1. The “complete” canonical DAG is not actually complete yet
+
+The proposed `CanonicalTermGraph` is missing or underspecifies important semantics.
+
+#### Variable binding and scope
+
+A `variable` node with `kind` and `name` does not encode binding scope. For example, variables in implications and conjunctions need explicit scope or at least a canonical binder representation.
+
+Consider adding something like:
+
+```typescript
+type TermNode =
+  | {
+      t: 'variable';
+      kind: VariableKind;
+      name: string;
+      scope?: TermRef;
+    }
+  | {
+      t: 'binder';
+      kind: 'implication' | 'equivalence';
+      variables: TermRef[];
+      body: TermRef;
+    };
+```
+
+The exact shape should follow the actual SeNARS term model rather than inventing a parallel one.
+
+#### Temporal semantics
+
+`tense` on `CanonicalTaskJson` is insufficient for temporal relations inside compound terms. Temporal implication needs at least:
+
+- copula/order;
+- event sequence;
+- interval or occurrence linkage where supported;
+- distinction between eternal and event-specific statements.
+
+Temporal data should be represented by the term node or statement node when it is part of the term’s meaning, not only by the task envelope.
+
+#### Operations
+
+This is probably too weak:
+
+```typescript
+{
+  t: 'operation',
+  operator: string,
+  args: TermRef[]
+}
+```
+
+An operation should likely reference an operator term and preserve operation identity, argument order, and any execution metadata separately. More importantly, operation terms and action proposals should not be conflated. A NAL operation is a symbolic term; authorization belongs to the ActionGate.
+
+#### Truth, desire, and stamps
+
+These are task/evidence metadata, not term constructors. That is fine, but the document should explicitly distinguish:
+
+```text
+term identity
+task metadata
+evidence metadata
+runtime budget
+provenance
+```
+
+Otherwise canonical hashing can accidentally include mutable or non-semantic fields.
+
+### 2. The frame-to-NAL compiler is the hardest part and is underspecified
+
+The document says the compiler chooses between products and images based on focus, query target, and canonicalization policy. That is plausible, but it is not merely formatting. It is a semantic and query-planning decision.
+
+For example, this frame:
+
+```text
+John — father — Mary
+```
+
+does not uniquely determine whether the preferred NAL form is:
+
+```narsese
+(*, John, Mary) --> father
+```
+
+or a relation/image form. The choice affects future inference and query matching.
+
+I would define a deterministic policy first:
+
+1. preserve ordinary binary and n-ary relations as products;
+2. generate images only for query projections or explicit image requests;
+3. never rewrite products to images merely for canonicalization;
+4. make projection direction explicit in the query representation.
+
+That avoids making the compiler silently alter the knowledge representation.
+
+### 3. Some examples are semantically questionable
+
+The example:
+
+```narsese
+((?c --> cat) && (?m --> mouse) && ((* , ?c, ?m) --> chase)) =/> (?m --> running)
+```
+
+is not necessarily the correct NAL formalization of the English sentence. The quantifier interpretation, event representation, and temporal relation need to be specified. It is acceptable as an illustrative candidate, but it should not be presented as the deterministic result without a defined mapping policy.
+
+Likewise:
+
+```narsese
+(system --> offline)!
+```
+
+may be a valid goal representation in the project’s grammar, but the document should distinguish:
+
+- desired state;
+- executable operation;
+- action plan;
+- goal task.
+
+The compiler cannot infer `^take_offline` unless there is an operation registry or grounded action schema.
+
+### 4. The frame schema is still fairly large for tiny models
+
+The proposed frame graph is conceptually good, but the “tiny model” path should probably use a different schema instead of making every field optional.
+
+For example:
+
+```typescript
+interface MinimalFrameCandidate {
+  entities: Array<{ id: string; name: string }>;
+  relations: Array<{
+    predicate: string;
+    args: string[];
+    polarity?: 'positive' | 'negative';
+  }>;
+  task: 'belief' | 'goal' | 'question';
+}
+```
+
+Then promote it deterministically into the richer frame graph. This gives small models a genuinely small target and keeps the compiler interface stable.
+
+### 5. The translation registry is premature
+
+A registry is reasonable eventually, but the current proposal introduces a lot of abstraction before the basic path is proven:
+
+```text
+nl
+semantic-frame-json
+canonical-term-json
+nal-ast
+narsese-text
+goal-text
+question-text
+```
+
+I would initially implement only:
+
+```text
+NL → semantic-frame-json → Term/Task → PerceptionGate
+Term/Task ↔ Narsese
+Term/Task ↔ canonical JSON
+```
+
+Add a general translation planner only after there are at least two real translation strategies with different budgets or fidelity guarantees. Otherwise it risks becoming an abstraction layer without operational value.
+
+## Important repository-specific concern
+
+The repository already has a real term/parser stack and gate path. The proposal should not define a second independent AST casually.
+
+Before implementing `CanonicalTermGraph`, establish an explicit mapping to:
+
+- `Term`;
+- `termParser`;
+- `TaskType`;
+- `Truth`;
+- existing task/event schemas;
+- `KernelPerceptionGate`.
+
+The canonical JSON should either be:
+
+1. a serialization of the existing `Term` model, or
+2. a deliberately separate interchange format with tested bidirectional conversion.
+
+It should not become a competing internal term system.
+
+The existing code also shows some architectural inconsistency: there are multiple perception/task paths, and the audit documents several direct `memory.addTask` or `taskManager.addTask` calls. That means the first implementation priority should be **central admission**, not the full DAG.
+
+## Recommended implementation order
+
+### Phase 1: canonical serialization
+
+Implement:
+
+```text
+Term → CanonicalTermJson → Term
+```
+
+for the constructors already supported by SeNARS.
+
+Test canonical hashes and parser round trips. Do not start with the full semantic frame compiler.
+
+### Phase 2: minimal frame extraction
+
+Support only:
+
+- entities;
+- binary/n-ary relations;
+- polarity;
+- belief/goal/question;
+- provenance;
+- candidate lists.
+
+Compile those into existing `Term` objects.
+
+### Phase 3: gate integration
+
+Route every generated candidate through `KernelPerceptionGate`. In particular, ensure LLM output cannot directly call:
+
+```text
+memory.addTask
+taskManager.addTask
+memory.addConcept
+```
+
+without admission.
+
+### Phase 4: temporal and compound frames
+
+Add:
+
+- conjunction;
+- negation;
+- implication;
+- temporal order;
+- quantifier handling.
+
+Each feature should have a direct compiler test and an end-to-end admission test.
+
+### Phase 5: images, operations, and richer planning
+
+Add these only when concrete query or action use cases require them. They are not necessary for proving the basic architecture.
+
+## Specific changes I would make to the document
+
+1. Change “minimal but complete JSON shape” to “initial canonical JSON shape.”
+2. State that completeness is relative to the **currently supported SeNARS term algebra**.
+3. Add explicit variable binding/scope.
+4. Separate semantic identity from task/evidence/runtime metadata.
+5. Define a conservative product-first canonicalization policy.
+6. Replace fixed model-size claims such as “0.5B–1.5B” with benchmark targets. Model size alone is not a reliable capability boundary.
+7. Clarify that malformed or ambiguous output should normally produce a rejected/provisional candidate, not a “partial term” that could accidentally enter belief memory.
+8. Add property-based round-trip tests for every supported term constructor.
+9. Add a schema version and canonicalization version to the JSON format.
+10. Make the compiler return structured diagnostics, not just a partial result:
+
+```typescript
+interface CompileResult {
+  status: 'success' | 'partial' | 'rejected';
+  task?: CanonicalTaskJson;
+  diagnostics: CompileDiagnostic[];
+}
+```
+
+## Verdict
+
+I agree with the central conclusion:
+
+> JSON is sufficient as a boundary format, but a single LLM-facing semantic graph is not sufficient as the complete NAL representation.
+
+The proposal is architecturally sound, especially the extraction/compiler boundary. But I would not yet claim that the proposed DAG is complete or that the compiler can deterministically cover the listed NAL features. The next step should be a narrow vertical slice built on the repository’s existing `Term` and `KernelPerceptionGate` implementations, with round-trip and admission tests proving that the new representation does not create a second, inconsistent symbolic system.
+
