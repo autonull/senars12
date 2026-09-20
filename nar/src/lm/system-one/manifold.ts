@@ -33,6 +33,8 @@ import { createAllIngressHeads } from './heads/ingress.js';
 import { createAllActionHeads } from './heads/action.js';
 import { createAllSynthesisHeads } from './heads/synthesis.js';
 import { createAllMemoryHeads } from './heads/memory.js';
+import { recordJudgmentMetric } from '../../metrics/prometheus.js';
+import type { JudgmentResolvedEvent, CognitiveEvent } from '@senars/kernel/schemas';
 
 export interface ManifoldConfig {
   backendId: BackendId;
@@ -45,6 +47,9 @@ export interface ManifoldConfig {
   maxBatchSize: number;
   maxLatencyMs: number;
   abstainThreshold: number;
+  /** Optional callback invoked for each resolved judgment proposition.
+   *  Allows consumers to emit kernel events and metrics without coupling the manifold to the event system. */
+  onProposition?: (proposition: JudgmentProposition, query: JudgmentQuery) => void;
 }
 
 export interface JudgmentHead {
@@ -268,6 +273,11 @@ export class SystemOneManifold implements JudgmentManifold {
 
       const proposition = makeProposition(query, headResult, base);
       results.push(proposition);
+
+      // Emit telemetry via callback (kernel events + metrics)
+      if (this.#config.onProposition) {
+        this.#config.onProposition(proposition, query);
+      }
     }
 
     const totalLatency = Date.now() - startTime;
@@ -401,6 +411,11 @@ export class SystemOneManifold implements JudgmentManifold {
       this.#health.breakerOpen = health.isDemoted;
     }
   }
+
+  /** Register or update the telemetry callback for resolved propositions. */
+  setPropositionCallback(callback: ManifoldConfig['onProposition']): void {
+    this.#config.onProposition = callback;
+  }
 }
 
 export function createManifold(
@@ -437,6 +452,7 @@ export function createManifold(
     abstainThreshold,
     rollingECEConfig: config.rollingECEConfig,
     driftDemotionConfig: config.driftDemotionConfig,
+    onProposition: config.onProposition,
   };
 
   return new SystemOneManifold(manifoldConfig);

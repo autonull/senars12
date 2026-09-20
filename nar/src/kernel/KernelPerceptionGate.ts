@@ -1,6 +1,7 @@
 import type {
   CognitiveEvent,
   FormalizationBatch,
+  JudgmentResolvedEvent,
   PerceptionGateInput,
   PerceptionGateOutput,
   ReasoningBudget,
@@ -17,6 +18,7 @@ import type { EmbeddingCache, JudgmentManifold, JudgmentQuery, EmbeddingPointer 
 import { createProvisionalStamp } from '../lm/system-one/provisional-stamp.js';
 import type { Stamp } from '../terms/stamp.js';
 import { Stamp as StampClass } from '../terms/stamp.js';
+import { recordJudgmentMetric } from '../metrics/prometheus.js';
 
 export interface KernelPerceptionGateConfig {
   defaultBudget: {
@@ -71,6 +73,13 @@ export class KernelPerceptionGate {
         maxLMCalls: 5,
         consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
       };
+
+      // Register telemetry callback on the manifold if available
+      if (this.systemOneManifold && 'setPropositionCallback' in this.systemOneManifold) {
+        (this.systemOneManifold as { setPropositionCallback: (cb: (prop: any, query: any) => void) => void }).setPropositionCallback(
+          (proposition, query) => this.emitJudgmentResolved(proposition, query)
+        );
+      }
     }
 
     this.systemOneProvisionalConfig = {
@@ -78,6 +87,40 @@ export class KernelPerceptionGate {
       decayRate: this.config.systemOne?.provisionalDecayRate ?? 0.3,
       maxTtlMs: this.config.systemOne?.provisionalMaxTtlMs ?? 30000,
     };
+  }
+
+  /** Emit a judgment.resolved kernel event and record Prometheus metric for a resolved proposition. */
+  private emitJudgmentResolved(proposition: any, query: any): void {
+    const event: JudgmentResolvedEvent = {
+      type: 'judgment.resolved',
+      engine: 'proposer',
+      timestamp: Date.now(),
+      correlationId: uuidv4(),
+      payload: {
+        queryId: proposition.queryId,
+        shape: proposition.kind,
+        axis: proposition.axis,
+        backendId: proposition.backendId,
+        tier: proposition.tier,
+        latencyMs: proposition.latencyMs,
+        entropy: proposition.kind === 'classify' ? proposition.entropy : undefined,
+        abstained: proposition.abstained,
+        stampType: proposition.abstained ? 'provisional' : 'standard',
+        calibrationVersion: proposition.calibration.version,
+        cost: proposition.cost,
+      },
+    };
+
+    validateCognitiveEvent(event);
+    this.eventLog.push(event as any);
+
+    recordJudgmentMetric(
+      proposition.axis,
+      proposition.kind,
+      proposition.tier,
+      proposition.abstained,
+      proposition.latencyMs
+    );
   }
 
   async admit(input: PerceptionGateInput): Promise<PerceptionGateOutput> {

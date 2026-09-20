@@ -92,8 +92,10 @@ describe('System One — Deterministic Scoring (R1)', () => {
     const results1 = await manifold.judgeBatch(pointer1 as never, [query], budget);
     const results2 = await manifold.judgeBatch(pointer2 as never, [query], budget);
     
-    const score1 = results1[0]!.top.p;
-    const score2 = results2[0]!.top.p;
+    const prop1 = results1[0]!;
+    const prop2 = results2[0]!;
+    const score1 = prop1.kind === 'classify' ? prop1.top.p : prop1.score;
+    const score2 = prop2.kind === 'classify' ? prop2.top.p : prop2.score;
     
     // Different inputs should produce different scores
     expect(score1).not.toBe(score2);

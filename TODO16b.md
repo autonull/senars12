@@ -985,7 +985,7 @@ All five original phases are complete; every §13 benchmark has a passing test s
 | Teleological transduction + reflex (§7.2, §7.3) | ✅ Shipped — Benches 3, 11 |
 | Distillation + governed promotion (§9) | ✅ Shipped — Benches 10, 14; FeedbackLearner → dataset wired |
 | Edge, swarm, resource accounting (§10, §11) | ✅ Shipped — Bench 12 |
-| Telemetry (§11.2) | ⚠ Schemas + metric objects exist; production emission wiring absent |
+| Telemetry (§11.2) | ✅ Shipped — `judgment.resolved` events + Prometheus metrics wired (R2 complete) |
 | Live integration | ⚠ `systemOne` config consumed only by `KernelPerceptionGate`; no NAR/agent assembly wiring; `groundednessGate` hook never constructed |
 
 ### Phase 6 — Refinements of Completed Work (R)
@@ -997,8 +997,19 @@ All five original phases are complete; every §13 benchmark has a passing test s
 - Added `tests/nar/todo16-deterministic.test.ts` (2 tests) verifying deterministic behavior
 - Acceptance met: no `Math.random()` in any head; Bench 5/11/3/2/8/9/13/10/14/12 suites pass deterministically; running same input twice yields identical propositions; all heads share same scoring implementation.
 
-**R2. Telemetry emission wiring.**
-`judgment.resolved` (schema validated in `todo16-fallback.test.ts`) and `recordJudgmentMetric` are never invoked by production code. Wire into `SystemOneManifold.judgeBatch` (one event + one metric per proposition) via an injected emit/callback so the manifold stays framework-agnostic. Acceptance: a test asserting proposition count == event count == metric delta for a batch; no event when `systemOne.enabled=false`.
+**R2. Telemetry emission wiring ✅ COMPLETE (2026-09-19).**
+`judgment.resolved` and `recordJudgmentMetric` now wired into `SystemOneManifold.judgeBatch` via injected callback. The manifold stays framework-agnostic; consumers (e.g., `KernelPerceptionGate`) register callbacks to emit kernel events and Prometheus metrics.
+- Added `onProposition` callback to `ManifoldConfig` in `manifold.ts`
+- `SystemOneManifold` invokes callback for each resolved proposition
+- Added `setPropositionCallback` method for post-creation registration
+- `KernelPerceptionGate` registers callback in constructor to emit `judgment.resolved` events (`engine: 'proposer'`) and record Prometheus metrics
+- Added `tests/nar/todo16-telemetry.test.ts` (5 tests) verifying:
+  - Events emitted per proposition (6 ingress queries → 6 events)
+  - Events have correct schema with `engine: 'proposer'`
+  - Prometheus metrics recorded (`senars_systemone_judgments_total`)
+  - No events when `systemOne.enabled=false`
+  - Proposition count == event count == metric delta
+- Acceptance met: proposition count == event count == metric delta for a batch; no event when `systemOne.enabled=false`
 
 **R3. Per-head config consumption.**
 `appConfigSchema.systemOne.manifold.heads` (`Record<HeadId, {modelDigest, calibrationVersion, abstainThreshold, enabled}>`) exists in the schema but `createManifold` accepts only a global `abstainThreshold`/`calibrationVersion`. Thread per-head config into head factories (merging with `heads/` defaults). Acceptance: disabling `heads.injection.enabled=false` in config yields the sabotage-flagged path, not silent removal (ties into `validateHeadCandidate` semantics).
