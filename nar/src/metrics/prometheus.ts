@@ -117,6 +117,46 @@ export function recordDerivation(rule: string, success: boolean, durationMs: num
   derivationDurationMs.set({ rule }, durationMs);
 }
 
+// ─── System One (TODO16 §11.2) ──────────────────────────────────────────────
+
+export const systemoneJudgmentsTotal = new Counter({
+  name: 'senars_systemone_judgments_total',
+  help: 'Total System One judgments resolved',
+  labelNames: ['axis', 'shape', 'tier', 'abstained'] as const,
+  registers: [prometheusRegistry],
+});
+
+export const systemoneJudgmentLatencyMs = new Gauge({
+  name: 'senars_systemone_judgment_latency_ms',
+  help: 'System One judgment latency (ms) by tier',
+  labelNames: ['tier'] as const,
+  registers: [prometheusRegistry],
+});
+
+export const systemoneProvisionalActive = new Gauge({
+  name: 'senars_systemone_provisional_active',
+  help: 'Currently active provisional stamps',
+  registers: [prometheusRegistry],
+});
+
+export const systemoneHeadEce = new Gauge({
+  name: 'senars_systemone_head_ece',
+  help: 'Rolling ECE per head',
+  labelNames: ['head'] as const,
+  registers: [prometheusRegistry],
+});
+
+export function recordJudgmentMetric(
+  axis: string,
+  shape: string,
+  tier: number,
+  abstained: boolean,
+  latencyMs: number
+): void {
+  systemoneJudgmentsTotal.inc({ axis, shape, tier: String(tier), abstained: String(abstained) });
+  systemoneJudgmentLatencyMs.set({ tier: String(tier) }, latencyMs);
+}
+
 export function updateMemoryMetrics(episodeCount: number, hitRate: number | null): void {
   memoryEpisodesTotal.set(episodeCount);
   if (hitRate !== null) {

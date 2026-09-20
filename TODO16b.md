@@ -951,10 +951,21 @@ Each phase builds on verified anchors only. `pnpm`, `vitest run`, `pnpm typechec
 - `HEAD_MODEL_DIGEST` env must match `/^sha256:[0-9a-f]{64}$/` or `validateHeadCandidate` rejects — the bake-off script passes the raw spec through; CI must set it.
 - Promotion flow for real swaps: `runBakeOff` → `buildHeadSwapProposal` → `ProposalRouter.route(proposal, mode)` → `awaitingValidation`; rollback = incumbent digest retained by caller (config remains source of truth).
 
-### Phase 5: Edge & Swarm
-- [ ] WASI/WebGPU/HTTP runtimes + hash pinning
-- [ ] `judgment` delegation + resource accounting + metrics
-- [ ] Bench 12 + no-cloud firewall profile
+### Phase 5: Edge & Swarm ✅ COMPLETE (2026-09-19)
+- [x] `wasi-runtime.ts` — `SandboxedHeadRuntime` wraps any JudgmentManifold with `createWasiSandbox` (deny-by-default, timeout) + `verifyModelDigest` hash pinning; mismatch fails closed (`DigestMismatchError`), no demotion ladder. WebGPU worker path deferred until a WebGPU head bundle exists (config already carries the `'webgpu'` provider literal)
+- [x] `http-endpoint.ts` — Zod-validated `/v1/systemone` handler (batch ≤64); untrusted results re-enter seeded at `LLM_PRIOR` (0.5) ceiling; `EmbeddingCache.writeRaw` added for zero-copy remote contexts
+- [x] `judgment` delegation kind — `createJudgmentDelegation` + `JudgmentDelegationPeer` in `cooperation/delegation.ts`; results re-enter at `PEER_AGENT` (0.6) ceiling
+- [x] Resource accounting — `resource-gate.ts` (`chargeJudgment`, `assertCostReported`); `systemone-judgment` wired into `KernelBudgetGate` cost table/remaining/limit/termination accounting (budget type `llm`)
+- [x] Metrics — `systemone_judgments_total{axis,shape,tier,abstained}`, `systemone_judgment_latency_ms{tier}`, `systemone_provisional_active`, `systemone_head_ece{head}` + `recordJudgmentMetric`
+- [x] Bench 12 (`todo16-resources.test.ts`, 9 tests) passing
+- [ ] OTel span attributes on the 11 stages — deferred: requires instrumenting existing stage spans, no new stage names (mechanical follow-up)
+- [ ] Live no-cloud firewall profile test — structure verified (untrusted ceiling + sandbox + fail-closed digest); a dedicated device-profile e2e remains
+
+**Implementation notes / improvement opportunities**
+- `EmbeddingCache.writeRaw(vec: number[])` stores pre-computed remote/peer embeddings zero-copy — prefer it over text re-encoding for all remote contexts.
+- `resourceCostToLmCalls` maps cost → LM-call equivalents (`tokens/100` rounded up + long-compute surcharge); tune when real encoder latency data lands.
+- Label-source adapters (FeedbackLearner/ShadowValidator → `JudgmentDataset.record`) are now the only unwired System One piece — wire them when the first real distillation training run is scheduled.
+- `parity:smoke` GridWorld failure (SeNARS 0.018 vs baseline 0.708) is pre-existing and unrelated; investigate before relying on reflex parity.
 
 ## 15. Definition of Done
 

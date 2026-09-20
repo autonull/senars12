@@ -75,6 +75,22 @@ export class EmbeddingCache {
     return pointer;
   }
 
+  /** Zero-copy write of a pre-computed embedding (remote/peer contexts). */
+  async writeRaw(embedding: readonly number[]): Promise<EmbeddingPointer> {
+    const buffer = allocateBuffer();
+    buffer.set(embedding.slice(0, buffer.length));
+    const pointer = (++this.#pointerCounter) as EmbeddingPointer;
+    this.#cache.set(`\0raw:${pointer}`, {
+      pointer,
+      buffer,
+      timestamp: Date.now(),
+      accessCount: 1,
+    });
+    this.#evictIfNeeded();
+    this.#expireStale(Date.now());
+    return pointer;
+  }
+
   read(pointer: EmbeddingPointer): Float32Array | undefined {
     for (const [text, entry] of this.#cache) {
       if (entry.pointer === pointer) {

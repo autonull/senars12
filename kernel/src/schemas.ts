@@ -548,7 +548,7 @@ export const RewardGateOutputSchema = z.object({
 
 export const BudgetGateInputSchema = z.object({
   budget: ReasoningBudgetSchema.optional(),
-  operation: z.enum(['nal-step', 'lm-call', 'memory-op', 'derivation-depth']),
+  operation: z.enum(['nal-step', 'lm-call', 'memory-op', 'derivation-depth', 'systemone-judgment']),
   estimatedCost: z.number().int().positive().optional(),
   scopeId: z.string().optional(),
   correlationId: z.string().optional(),

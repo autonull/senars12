@@ -19,6 +19,7 @@ const DEFAULT_COST_TABLE: Record<string, number> = {
   'lm-call': 10,
   'memory-op': 1,
   'derivation-depth': 1,
+  'systemone-judgment': 5,
 };
 
 export class KernelBudgetGate {
@@ -109,7 +110,7 @@ export class KernelBudgetGate {
     budget.consumed[
       operation === 'nal-step'
         ? 'cycles'
-        : operation === 'lm-call'
+        : operation === 'lm-call' || operation === 'systemone-judgment'
           ? 'llmCalls'
           : operation === 'memory-op'
             ? 'memoryOps'
@@ -131,6 +132,8 @@ export class KernelBudgetGate {
         return budget.maxMemoryOps - budget.consumed.memoryOps;
       case 'derivation-depth':
         return budget.maxDepth - budget.consumed.depth;
+      case 'systemone-judgment':
+        return budget.maxLMCalls - budget.consumed.llmCalls;
       default:
         return Infinity;
     }
@@ -146,6 +149,8 @@ export class KernelBudgetGate {
         return budget.maxMemoryOps;
       case 'derivation-depth':
         return budget.maxDepth;
+      case 'systemone-judgment':
+        return budget.maxLMCalls;
       default:
         return 0;
     }
@@ -161,6 +166,8 @@ export class KernelBudgetGate {
         return 'memory';
       case 'derivation-depth':
         return 'depth';
+      case 'systemone-judgment':
+        return 'llm';
       default:
         return 'cycles';
     }
@@ -176,6 +183,8 @@ export class KernelBudgetGate {
         return budget.consumed.memoryOps >= budget.maxMemoryOps ? 'memory-budget' : 'backpressure';
       case 'derivation-depth':
         return budget.consumed.depth >= budget.maxDepth ? 'depth-budget' : 'backpressure';
+      case 'systemone-judgment':
+        return budget.consumed.llmCalls >= budget.maxLMCalls ? 'llm-budget' : 'backpressure';
       default:
         return 'backpressure';
     }
