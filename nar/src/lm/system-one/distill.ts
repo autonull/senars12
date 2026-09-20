@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { v4 as uuidv4 } from 'uuid';
+import type { SelfImprovementProposal } from '@senars/kernel/schemas';
 import { Truth, type Truth as TruthType } from '../../terms/truth.js';
 import { seedTruth } from './seed.js';
 import type { JudgmentProposition } from './types.js';
@@ -42,4 +44,153 @@ export class JudgmentDataset {
   get size(): number {
     return this.#labels.length;
   }
+
+  toJSONL(): string {
+    return this.#labels.map((l) => JSON.stringify(l)).join('\n');
+  }
+}
+
+// ─── Bake-off & governed promotion (§9.2) ───────────────────────────────────
+
+export interface HeadCandidateSpec {
+  headId: string;
+  modelDigest: string;
+  calibrationVersion: string;
+  abstainThreshold: number;
+  enabled: boolean;
+}
+
+export interface BakeOffCase {
+  /** Ground truth, 0..1 */
+  truth: number;
+  /** Incumbent head predicted score, 0..1 */
+  incumbent: number;
+  /** Candidate head predicted score, 0..1 */
+  candidate: number;
+}
+
+export interface BakeOffResult {
+  incumbentAccuracy: number;
+  candidateAccuracy: number;
+  parityGap: number;
+  withinParity: boolean;
+  accepted: boolean;
+  reason: string;
+}
+
+const HASH_PINNED = /^sha256:[0-9a-f]{64}$/;
+
+/** Bench 10: promoted head matches incumbent accuracy on shadow bake-off within 2%. */
+export function runBakeOff(
+  incumbent: HeadCandidateSpec | undefined,
+  candidate: HeadCandidateSpec,
+  cases: readonly BakeOffCase[],
+  parityTolerance = 0.02,
+  eceBound = 0.1
+): BakeOffResult {
+  const brier = (key: 'incumbent' | 'candidate') =>
+    cases.length === 0
+      ? 0
+      : cases.reduce((sum, c) => sum + (c[key] - c.truth) ** 2, 0) / cases.length;
+  const incumbentAccuracy = 1 - brier('incumbent');
+  const candidateAccuracy = 1 - brier('candidate');
+  const parityGap = Math.abs(candidateAccuracy - incumbentAccuracy);
+  const withinParity = parityGap <= parityTolerance;
+
+  if (!withinParity) {
+    return {
+      incumbentAccuracy,
+      candidateAccuracy,
+      parityGap,
+      withinParity,
+      accepted: false,
+      reason: `Parity gap ${parityGap.toFixed(4)} exceeds tolerance ${parityTolerance}`,
+    };
+  }
+  return {
+    incumbentAccuracy,
+    candidateAccuracy,
+    parityGap,
+    withinParity,
+    accepted: true,
+    reason: `Parity gap ${parityGap.toFixed(4)} within tolerance; candidate accuracy ${candidateAccuracy.toFixed(4)}`,
+  };
+}
+
+export interface SabotageVerdict {
+  accepted: boolean;
+  violations: string[];
+}
+
+/**
+ * Bench 14: sabotage gate. Rejects and flags:
+ * - un-pinned model digest (supply-chain compromise)
+ * - relaxed abstain threshold τ (safety-floor erosion)
+ * - disabled injection head (fail-closed removal)
+ */
+export function validateHeadCandidate(
+  candidate: HeadCandidateSpec,
+  incumbent?: HeadCandidateSpec
+): SabotageVerdict {
+  const violations: string[] = [];
+  if (!HASH_PINNED.test(candidate.modelDigest)) {
+    violations.push(`Un-pinned modelDigest '${candidate.modelDigest}' — head must be hash-pinned (SHA256(weights))`);
+  }
+  if (incumbent && candidate.abstainThreshold < incumbent.abstainThreshold) {
+    violations.push(
+      `Relaxed abstainThreshold ${candidate.abstainThreshold} < incumbent ${incumbent.abstainThreshold} — monotonic safety forbids`
+    );
+  }
+  if (candidate.headId === 'injection' && !candidate.enabled) {
+    violations.push('Disabled injection head — fail-closed safety floor cannot be removed');
+  }
+  return { accepted: violations.length === 0, violations };
+}
+
+// ─── Governed promotion (§9.2 — reuse the governance pipeline verbatim) ──────
+
+/** Head swap = MEDIUM risk; SandboxValidator has no automated checks → held for review. */
+export function buildHeadSwapProposal(
+  candidate: HeadCandidateSpec,
+  bakeOff: BakeOffResult
+): SelfImprovementProposal {
+  return {
+    proposalId: uuidv4(),
+    kind: 'patch-apply',
+    riskTier: 'medium',
+    payload: {
+      operation: 'head-swap',
+      headId: candidate.headId,
+      modelDigest: candidate.modelDigest,
+      calibrationVersion: candidate.calibrationVersion,
+      abstainThreshold: candidate.abstainThreshold,
+      bakeOff: {
+        candidateAccuracy: bakeOff.candidateAccuracy,
+        incumbentAccuracy: bakeOff.incumbentAccuracy,
+        parityGap: bakeOff.parityGap,
+      },
+    },
+    rewardDomain: 'self-config-proposal',
+    correlationId: `head-swap:${candidate.headId}`,
+  };
+}
+
+/** Sabotage attempt → HIGH risk proposal so the router can never auto-apply it. */
+export function buildSabotageFlag(
+  candidate: HeadCandidateSpec,
+  violations: readonly string[]
+): SelfImprovementProposal {
+  return {
+    proposalId: uuidv4(),
+    kind: 'patch-apply',
+    riskTier: 'high',
+    payload: {
+      operation: 'sabotage-flagged',
+      headId: candidate.headId,
+      modelDigest: candidate.modelDigest,
+      violations: [...violations],
+    },
+    rewardDomain: 'self-config-proposal',
+    correlationId: `sabotage:${candidate.headId}`,
+  };
 }

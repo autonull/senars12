@@ -938,10 +938,18 @@ Each phase builds on verified anchors only. `pnpm`, `vitest run`, `pnpm typechec
 - Real NAR dispatch path verified: `nar.taskManager.addTask(createTask(termParser.parse('^op_x(...)'), 'goal', truth, budget))` + `nar.run(1)` reaches the registered tool executor (`tests/nar/rl/contract/goal-action.test.ts` pattern).
 - Heads' `Math.random()` placeholders make prefetch-path tests nondeterministic — tests must tolerate abstain→fallback; distillation (Phase 4) removes this.
 
-### Phase 4: Distillation
-- [ ] Label harvest + append-only dataset + bake-off harness
-- [ ] Governed promotion with rollback
-- [ ] Bench 10, 14
+### Phase 4: Distillation ✅ COMPLETE (2026-09-19)
+- [x] Label harvest targets (`distill.ts` `JudgmentDataset` + `DistillationLabel`): §9.1 sources wire in via `record()` — FeedbackLearner/ShadowValidator/ApprovalService/PreferenceCollector adapters remain a Phase 5 wiring step; dataset itself (append-only, redaction-per-retention, `toJSONL`) complete
+- [x] `runBakeOff` (Brier-based accuracy, 2% parity tolerance) + `validateHeadCandidate` sabotage gate
+- [x] Governed promotion: `buildHeadSwapProposal` (patch-apply, MEDIUM) + `buildSabotageFlag` (HIGH) → routed through existing `ProposalRouter`; head swap held for sandbox validation in every autonomy mode, sabotage never auto-applied in any mode
+- [x] `scripts/system-one-bakeoff.ts` — external-runner analog (reads dataset JSONL, evaluates candidate, exits nonzero on parity fail)
+- [x] Bench 10 (`todo16-parity.test.ts`, 5 tests) + Bench 14 (`todo16-sabotage.test.ts`, 7 tests) passing
+- [ ] Fine-tune/LoRA weight mutation — stays in external CI/CD by design; the runtime only proposes
+- [ ] Live label-source adapters (FeedbackLearner → dataset.record) — deferred to Phase 5 with resource accounting; no consumer exists yet so wiring is inert
+
+**Implementation notes for Phase 5**
+- `HEAD_MODEL_DIGEST` env must match `/^sha256:[0-9a-f]{64}$/` or `validateHeadCandidate` rejects — the bake-off script passes the raw spec through; CI must set it.
+- Promotion flow for real swaps: `runBakeOff` → `buildHeadSwapProposal` → `ProposalRouter.route(proposal, mode)` → `awaitingValidation`; rollback = incumbent digest retained by caller (config remains source of truth).
 
 ### Phase 5: Edge & Swarm
 - [ ] WASI/WebGPU/HTTP runtimes + hash pinning
