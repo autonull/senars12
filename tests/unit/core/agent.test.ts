@@ -73,4 +73,28 @@ describe('Agent', () => {
 
     expect(listener).toHaveBeenCalled();
   });
+
+  it('E4: grades the completed trace via traceGrader (narration + tool calls)', async () => {
+    const traceGrader = vi.fn().mockResolvedValue({ groundedness: { score: 0.9, abstained: false }, risks: [] });
+    const agent = new Agent({
+      traceGrader,
+      cortex: { synthesize: vi.fn().mockResolvedValue({ text: 'I handled it.' }) } as never,
+    });
+    agent.registerEngine('nar', mockEngine('nar'));
+
+    await agent.cycle({
+      text: 'test input for grading',
+      source: 'test',
+      timestamp: Date.now(),
+      correlationId: 'grade-1',
+    });
+
+    expect(traceGrader).toHaveBeenCalledTimes(1);
+    const call = traceGrader.mock.calls[0]?.[0] as
+      | { narration: string; toolCalls: unknown[]; correlationId: string }
+      | undefined;
+    if (!call) throw new Error('traceGrader not called');
+    expect(typeof call.narration).toBe('string');
+    expect(call.correlationId).toBe('grade-1');
+  });
 });

@@ -56,6 +56,9 @@ import { createEmbeddingGenerator } from './memory/embedding.js';
 import { createManifold } from './lm/system-one/manifold.js';
 import { createDispatcher } from './lm/system-one/dispatcher.js';
 import { createGroundednessGate } from './lm/system-one/groundedness-gate.js';
+import { createTraceGrader } from './lm/system-one/trace-grader.js';
+import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-grader.js';
+import { JudgmentDataset } from './lm/system-one/distill.js';
 import { createLMServiceCortex, LMServiceCortex } from './lm/system-one/cortex-adapter.js';
 import { StubCortex } from './lm/system-one/dispatcher.js';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
@@ -142,6 +145,8 @@ export class NAR extends BaseComponent {
   private _systemOneManifold?: JudgmentManifold;
   private _systemOneDispatcher?: CognitiveDispatcher;
   private _systemOneGroundednessGate?: (narration: string) => Promise<boolean>;
+  private _systemOneTraceGrader?: (trace: TraceGradeInput) => Promise<TraceGradeResult>;
+  private _systemOneDataset?: JudgmentDataset;
 
   constructor(config: NARConfig & { eventBus?: NarEventBus } = DEFAULT_CONFIG) {
     const eventBus = config.eventBus ?? new NarEventBus();
@@ -407,6 +412,11 @@ export class NAR extends BaseComponent {
   /** Get System One groundedness gate (for egress filtering). */
   getSystemOneGroundednessGate(): ((narration: string) => Promise<boolean>) | undefined {
     return this._systemOneGroundednessGate;
+  }
+
+  /** Get System One trace grader (E4 agent-trace grading; undefined when disabled). */
+  getSystemOneTraceGrader(): ((trace: TraceGradeInput) => Promise<TraceGradeResult>) | undefined {
+    return this._systemOneTraceGrader;
   }
 
   /** Check if System One is enabled and initialized. */
@@ -959,6 +969,19 @@ export class NAR extends BaseComponent {
       manifold: this._systemOneManifold!,
       embeddingCache: this._systemOneEmbeddingCache!,
       threshold: 0.7,
+    });
+
+    // E4: trace grader over the live manifold; dataset auto-flush (D3) when enabled
+    const datasetPath = systemOneConfig.distillation?.datasetPath;
+    if (datasetPath) {
+      this._systemOneDataset = new JudgmentDataset();
+      this._systemOneDataset.setVectorSidecarPath('.cache/systemone/vectors');
+      this._systemOneDataset.startAutoFlush(datasetPath);
+    }
+    this._systemOneTraceGrader = createTraceGrader({
+      manifold: this._systemOneManifold!,
+      embeddingCache: this._systemOneEmbeddingCache!,
+      dataset: this._systemOneDataset,
     });
 
     this.logger?.info('System One initialized', {

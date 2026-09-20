@@ -50,6 +50,11 @@ export class Agent {
   #skills = new Map<string, SkillDefinition>();
   #commandParser?: (text: string) => ParsedCommand[];
   #groundednessGate?: (narration: string) => Promise<boolean>;
+  #traceGrader?: (trace: {
+    narration: string;
+    toolCalls: readonly { command: string; success: boolean }[];
+    correlationId: string;
+  }) => Promise<unknown>;
   #started = false;
   #cycleCount = 0;
   #lastCycleTime = 0;
@@ -67,6 +72,7 @@ export class Agent {
     this.sessionManager = opts.sessionManager;
     this.#commandParser = opts.commandParser;
     this.#groundednessGate = opts.groundednessGate;
+    this.#traceGrader = opts.traceGrader;
 
     this.memory.connectLog(this.log);
     this.memory.connectEngines(this.engines);
@@ -251,6 +257,7 @@ export class Agent {
       episodicMemory: this.episodicMemory,
       commandParser: this.#commandParser,
       groundednessGate: this.#groundednessGate,
+      traceGrader: this.#traceGrader,
       emit: (e) => this.#emitCognitive(e),
       getLastResponse: () => this.#lastResponse,
       setLastResponse: (v) => {

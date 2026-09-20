@@ -29,6 +29,12 @@ export interface CycleHost {
   readonly commandParser?: (text: string) => { command: string; args: string[]; raw: string }[];
   /** System One egress gate (§7.4): returns true (or `{grounded, score}`) when the narration is grounded enough to emit. */
   readonly groundednessGate?: (narration: string) => Promise<boolean | { grounded: boolean; score?: number }>;
+  /** E4: grades the completed cycle (narration + executed tools) into the distillation dataset. */
+  readonly traceGrader?: (trace: {
+    narration: string;
+    toolCalls: readonly { command: string; success: boolean }[];
+    correlationId: string;
+  }) => Promise<unknown>;
 
   emit(event: CognitiveEvent): void;
 
@@ -285,6 +291,18 @@ export async function* runCycleStream(
       payload: tr,
       correlationId: stimulus.correlationId,
     });
+  }
+
+  if (host.traceGrader && narrativeText) {
+    try {
+      await host.traceGrader({
+        narration: narrativeText,
+        toolCalls: toolResults.map((tr) => ({ command: tr.command, success: tr.result.success })),
+        correlationId: stimulus.correlationId,
+      });
+    } catch {
+      /* grading is best-effort; never blocks the cycle */
+    }
   }
 
   for (const d of derivations) {

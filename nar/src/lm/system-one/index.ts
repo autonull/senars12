@@ -20,3 +20,4 @@ export * from './calibration-fit.js';
 export * from './reflex-label-source.js';
 export * from './heads/index.js';
 export * from './groundedness-gate.js';
+export * from './trace-grader.js';

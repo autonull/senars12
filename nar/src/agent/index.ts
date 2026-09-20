@@ -152,8 +152,9 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     narInstance = new NAR({ ...DEFAULT_CONFIG, feedbackObserver });
   }
 
-  // Wire System One groundedness gate if available
+  // Wire System One groundedness gate + trace grader if available
   const groundednessGate = narInstance.getSystemOneGroundednessGate();
+  const traceGrader = narInstance.getSystemOneTraceGrader();
 
   const agent = new Agent({
     log,
@@ -173,6 +174,7 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     sessionManager: config.sessionManager,
     feedbackObserver,
     groundednessGate,
+    traceGrader,
   });
 
   const narEngine = new NAREngine(narInstance, agent.emitCognitive.bind(agent));

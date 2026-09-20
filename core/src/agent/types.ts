@@ -42,6 +42,12 @@ export interface AgentOptions {
   feedbackObserver?: ToolFeedbackObserver;
   /** System One egress gate: returns true when a narration draft is grounded enough to emit. */
   groundednessGate?: (narration: string) => Promise<boolean>;
+  /** E4 agent-trace grading: grades the completed cycle's narration + executed tools into the distillation dataset. */
+  traceGrader?: (trace: {
+    narration: string;
+    toolCalls: readonly { command: string; success: boolean }[];
+    correlationId: string;
+  }) => Promise<unknown>;
 }
 
 export interface ParsedCommand {
