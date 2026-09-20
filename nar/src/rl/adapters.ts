@@ -1114,12 +1114,13 @@ export class GridWorldNativeAgent extends NativeSenarsAgent {
       );
     }
 
-    if (result.terminal && this.lastState !== null && this.lastAction !== null) {
-      const terminalNormalizedReward = (result.reward + 0.01) / 1.01;
+    // Terminal transition: the delayed-TD scheme above only ever credits the
+    // previous pair; attribute the terminal reward to the pair that earned it.
+    if (result.terminal) {
       await this.rewardAdapter.processRewardTD(
-        this.lastState,
-        this.lastAction,
-        terminalNormalizedReward,
+        stateTerm,
+        actionTerm,
+        normalizedReward,
         stateTerm,
         this.actionTerms,
         true
