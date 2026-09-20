@@ -293,7 +293,7 @@ export class QBeliefStore {
   /** Get all recorded action values for a state (X24: real implementation). */
   getAllActions(state: Term): Map<string, { f: number; c: number }> {
     const results = new Map<string, { f: number; c: number }>();
-    for (const [actionKey, actionTerm] of this.stateActions.get(state.toString()) ?? []) {
+    for (const [actionKey, actionTerm] of this.stateActions.get(state.toString()) ?? new Map()) {
       const value = this.getValue(state, actionTerm);
       if (value) results.set(actionKey, value);
     }
@@ -302,21 +302,28 @@ export class QBeliefStore {
 
   /** Get best action for a state based on expected value (f * c) */
   getBestAction(state: Term, availableActions: Term[]): Term | null {
+    // Random tie-break among maximal-expectation actions — deterministic
+    // first-action ties bias the policy toward the earliest-recorded action
+    // (all small rewards clamp to f=0 under Q-convex encoding), latching
+    // exploration shut (F4 GridWorld parity root cause).
     let bestAction: Term | null = null;
     let bestExpectation = -Infinity;
+    let ties: Term[] = [];
 
     for (const action of availableActions) {
       const value = this.getValue(state, action);
       if (value) {
         const expectation = value.f * value.c;
-        if (expectation > bestExpectation) {
+        if (expectation > bestExpectation + 1e-9) {
           bestExpectation = expectation;
-          bestAction = action;
+          ties = [action];
+        } else if (Math.abs(expectation - bestExpectation) <= 1e-9) {
+          ties.push(action);
         }
       }
     }
 
-    return bestAction;
+    return ties.length > 0 ? (ties[Math.floor(Math.random() * ties.length)] ?? null) : null;
   }
 
   /** Get low-confidence actions for curiosity-driven exploration */

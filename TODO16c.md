@@ -396,7 +396,7 @@ New Prometheus counters (extend existing `systemone_*` family): `systemone_ingre
 - [x] F1 remaining H4 failures fixed (full suite green)
 - [x] F2 mock-provider bypass (no probing hang) — satisfied by H4 (`LM_PROVIDER=mock` returns immediately; `LM_OFFLINE=1` skips all probes). Residual: no dedicated `enableLMRules: true` + `nar.run()` integration test yet (N2-class, needs F3's harness).
 - [ ] F3 token-reduction + fan-out latency report
-- [ ] F4 `parity:smoke` root cause
+- [x] F4 `parity:smoke` root cause diagnosed + primary fix shipped (2026-09-20; threshold not yet crossed — see note)
 - [x] F5 remaining §8 dispositions + doc reconciliation
 - [x] F6 `LMService.stream` parity (X22)
 - [x] F7 `RLFPConfig` applied to `RLFPLearner` (X28)
@@ -407,7 +407,7 @@ New Prometheus counters (extend existing `systemone_*` family): `systemone_ingre
 - F6: `stream` now performs the breaker check (`canUseProvider` → `LMUnavailableError` with H6 hint), records per-call stats + `recordProviderCall`, notes success/transport-failure with reprobe. Semantic cache intentionally off for streams. `lm.test.ts` + `stream.test.ts` green unmodified.
 - F7: `RLFPLearnerConfig.optimizeInterval` added; NAR passes `config.rlfp?.optimizeInterval` through construction; `nar-execution` reads `this.rlfp.optimizeInterval ?? config.rlfp?.optimizeInterval ?? 100` (mock learners without the field still fall back — `nar-execution.test.ts` green).
 - F8: `.github/workflows/ci.yml` gains `systemone-benches` job: `pnpm vitest run tests/nar/todo16c-*.test.ts` + the three I1 examples smoke. RL parity files land in this dedicated job, sidestepping the documented parallel-load flakes.
-- Remaining F3/F4/F5 unchanged (F3 needs model-cached machine; F4 is the GridWorld parity gap investigation; F5 is `lm-meta-reasoning`/`lm-uncertainty-calibration` REPLACE + shadow `conflict` + proactive `novelty`).
+- F3/F4-residual remain (F3 needs model-cached machine; F4 residual levers documented below).
 
 **F5 completion (2026-09-20):**
 - `SystemOneLMRuleAdapter` generalized beyond translation: `metaReason(primary, {recentDerivations})` — per-trace `conflict`/`novelty` evaluate pairs via `judgeBatch`, ranked by `novelty − conflict`, top-2 traces re-admitted as guidance beliefs; `calibrateUncertainty(primary, {truth})` — best-ECE **fitted** isotonic calibrator recalibrates `c` (identity when none fitted — B5 honesty), `×0.8` demotion when `manifold.health().ready === false` (drift); `conflictScore(term)` / `noveltyScore(term)` helpers for the new consumers.
@@ -780,3 +780,9 @@ Self-audit of the plan's own implementability. Two critical holes found and fixe
 **Environment prerequisites:** 150 TODO16 tests + typecheck + lint already green (verified this session). For F3/N2 measurement only: a model-cached machine or `LM_PROVIDER=mock` (F2 removes the hang). No GPU required for any planned benchmark (D1 trains linear heads on CPU; D5 WASI bundle is CPU). No cloud credentials required — every benchmark runs offline-deterministically except the explicitly-skipped GBNF segment of Bench 16.
 
 **Verdict: ready to execute.** Phases B and G are fully unblocked with zero pending decisions; each subsequent phase needs at most one DQ answered before it starts, and the DQ list is small enough to answer in one sitting. Remaining known-unknowns are bounded: the 11 RL-adapter failures' root cause (C2 diagnoses before fixing) and `parity:smoke` (F4) — both are investigation-gated items with fallback paths, not plan blockers.
+
+**F4 investigation (2026-09-20):** Reproduced `parity:smoke` (GridWorld 0.018 vs 0.708, ratio 0.025). Root cause chain, verified by instrumented episodes:
+1. **Argmax tie-bias (fixed):** `QBeliefStore.getBestAction` resolved ties to the *first* recorded action. Under `updateValueQLearning`'s convex encoding every small tdTarget clamps to `f=0` (frequency = `(0.0099−0.5)/0.9+0.5 < 0`), so all visited non-goal cells hold identical `f=0, c=0.9` beliefs — the greedy branch therefore latched onto `move_up` (first action) whenever `rng.next() > ε`, systematically walking away from the goal. Fix: random tie-break among maximal-expectation actions. Ratio 0.025 → **0.353** (SeNARS 0.018 → 0.250) with no other change. All 118 RL tests green.
+2. **Latent crash (fixed):** `getAllActions` fell back to `[]` instead of `new Map()` — destructuring `undefined` action terms crashed on unvisited states (X24 regression risk).
+3. **Dead heuristic:** `GridWorldSelector`'s `wallPenalty −0.1` never fires — `GridWorldEnv.step` has no wall penalty (`reward = done ? 1 : −0.01`, out-of-bounds moves are no-ops). The selector's reward-shaping assumption doesn't match the Game.
+**Residual gap (0.353 vs 0.5 native threshold at the 5-episode smoke):** (a) the Q-convex encoding puts a 0.05 expectation *floor* on clamped cells, damping long-chain propagation (goal value spreads only ~1–2 cells per visit through the chain within 100 decisions); (b) exploration/η mismatch — SeNARS ε=0.3 static-ish vs baseline 0.1, but *lowering* ε made things worse (0.353→0.25-level behavior regressed to −0.2 episodes) because the goal chain needs visits before exploitation pays; a TD(λ)/eligibility-trace backward sweep on terminal hit would propagate the whole walked path at once and is the highest-leverage next lever; (c) terminal-hit episodes are rare (~1/5) at this smoke length — longer `--episodes` runs converge (parity suite uses 50 episodes and passes).
