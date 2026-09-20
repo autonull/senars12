@@ -6,7 +6,7 @@ import type {
   SourceQuality,
   TaskAdmittedEvent,
 } from '@senars/kernel/schemas';
-import { validateCognitiveEvent } from '@senars/kernel/schemas';
+import { validateCognitiveEvent, SOURCE_QUALITY_CONFIDENCE } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import type { TaskTypeName, Term } from '../terms';
 import { TermBuilder, termParser } from '../terms';
@@ -91,23 +91,7 @@ export class KernelPerceptionGate {
   }
 
   private sourceQualityToConfidence(quality: SourceQuality): number {
-    switch (quality) {
-      case 'PRIMARY':
-        return 0.9;
-      case 'SECONDARY':
-        return 0.7;
-      case 'GENERAL':
-        return 0.55;
-      case 'TERTIARY':
-        return 0.4;
-      case 'LLM_PRIOR':
-        return 0.5;
-      case 'PEER_AGENT':
-        // Peer-reported truth value governs confidence; 0.6 is the neutral prior.
-        return 0.6;
-      default:
-        return 0.5;
-    }
+    return SOURCE_QUALITY_CONFIDENCE[quality] ?? 0.5;
   }
 
   private mapSource(sourceId: string): TaskAdmittedEvent['payload']['source'] {

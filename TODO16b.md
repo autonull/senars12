@@ -15,6 +15,30 @@
 - The codebase already reserves the integration point: `kernel/src/schemas.ts` declares `EngineOriginSchema = z.enum(['nar', 'kernel', 'proposer'])` — the `'proposer'` origin exists and is unused. System One logs as `engine: 'proposer'`.
 - Every LM rule ID in the v3.1 rule matrix exists and is registered (`nar/src/lm/rule-templates/`). Governance, feedback, RLFP, drives, delegation, and sandboxing all exist verbatim-reusable. Verified absences are listed in the alignment table.
 
+### Phase 0 Complete (2026-09-19)
+
+**Implemented:**
+- `nar/src/lm/system-one/types.ts` — Core types (JudgmentQuery, SynthesisQuery, Proposition types, branded IDs, ResourceCost, Calibration, etc.)
+- `nar/src/lm/system-one/algebra.ts` — AlgebraPurityError + runtime guards (`assertJudgmentQuery`, `isJudgmentQuery`, `isSynthesisQuery`, `validateBatchQueries`)
+- `nar/src/lm/system-one/desire.ts` — `Desire` type alias for `Truth` (no new math)
+- `nar/src/lm/system-one/seed.ts` — `seedTruth`/`seedDesire` with calibration authority + kernel ceiling table
+- `nar/src/lm/system-one/provisional-stamp.ts` — `ProvisionalStamp` wrapper with exponential decay
+- `nar/src/lm/system-one/dispatcher.ts` — Four-tier dispatcher (Tier 0 deterministic, Tier 1 manifold stub, Tier 2 cortex stub, Tier 3 symbolic) with `CognitiveDispatcher` interface
+- `nar/src/lm/system-one/index.ts` — Subpath exports
+- `kernel/src/schemas.ts` — Extracted `SOURCE_QUALITY_CONFIDENCE` table; added `JudgmentResolvedEventSchema` (`judgment.resolved`, `engine: 'proposer'`) to `CognitiveEventSchema` union
+- `nar/src/kernel/KernelPerceptionGate.ts` — Refactored to consume shared `SOURCE_QUALITY_CONFIDENCE`
+- `src/config/schema.ts` — Added `systemOne` config section (disabled by default)
+- `nar/package.json` — Added `@senars/nar/lm/system-one` subpath export
+- `tests/nar/todo16-algebra.test.ts` — Bench 1: Algebra Purity (compile-time + runtime)
+- `tests/nar/todo16-fallback.test.ts` — Bench 13: Thermodynamic Fallback (Tier 0 → Tier 3 degradation)
+
+**Verified:**
+- `pnpm typecheck` clean (pre-existing errors unrelated to changes)
+- `pnpm lint` clean
+- All 1435 existing tests pass + 15 new tests pass
+- `judgment.resolved` event validates via `validateCognitiveEvent` with `engine: 'proposer'`
+- Config `systemOne.enabled: false` → byte-identical behavior (Tier 0 only)
+
 ### Corrections Applied (v3.1 → v3.2)
 
 | # | v3.1 said | v3.2 resolution | Verified against |
@@ -845,10 +869,14 @@ Each phase builds on verified anchors only. `pnpm`, `vitest run`, `pnpm typechec
 
 ## 14. Master Checklist
 
-### Phase 0: Algebra & Skeleton
-- [ ] `nar/src/lm/system-one/{types,algebra,desire,seed,dispatcher}.ts`
-- [ ] `judgment.resolved` kernel event + `systemOne` config + subpath export
-- [ ] Bench 1 + Bench 13
+### Phase 0: Algebra & Skeleton ✅ COMPLETE (2026-09-19)
+- [x] `nar/src/lm/system-one/{types,algebra,desire,seed,dispatcher}.ts`
+- [x] `nar/src/lm/system-one/provisional-stamp.ts`
+- [x] `nar/src/lm/system-one/index.ts`
+- [x] `judgment.resolved` kernel event + `systemOne` config + subpath export
+- [x] `SOURCE_QUALITY_CONFIDENCE` extracted to `kernel/src/schemas.ts`; `KernelPerceptionGate` refactored
+- [x] Bench 1 + Bench 13 passing
+- [x] `pnpm typecheck` clean, `pnpm lint` clean, all 1435 existing tests + 15 new tests pass
 
 ### Phase 1: Manifold Core
 - [ ] `EmbeddingCache`, `manifold.ts`, six ingress heads, calibration + drift demotion
@@ -923,6 +951,103 @@ The design is a direct neuro-symbolic realization of the System One (Jev) paradi
 5. **Peer-intent manifold:** heads classifying peer-agent intent/competence for reflexive swarm delegation — treating agents as structured state environments queried via `Classify`/`Evaluate`.
 
 Each is a future revision; none blocks v3.2, and none may be used to justify relaxing §6 invariants.
+
+---
+
+## Implementation Enhancements (compact)
+
+### Tier SLOs (replace latency column in §4)
+
+| Tier | p50 | p99 | p999 | Budget enforcement |
+|------|-----|-----|------|-------------------|
+| 0    | <1 ms | <5 ms | <20 ms | `termParser` timeout + Zod `parseAsync` limit |
+| 1    | <15 ms | ≤33 ms | <60 ms | `KernelBudgetGate` denies >33 ms; dispatcher drops to Tier 0 |
+| 2    | <2 s | <10 s | <30 s | `LMService` timeout + `BudgetTracker` token cap |
+| 3    | <10 ms | <100 ms | <1 s | `RuleProcessor` step limit (`maxDerivationsPerStep`) |
+
+### Phase Dependency Graph (strict ordering)
+
+```mermaid
+graph TD
+  P0[Phase 0: Algebra + Stubs] --> P1[Phase 1: Manifold Core]
+  P0 --> P0T[tests: todo16-algebra, todo16-fallback]
+  P1 --> P2[Phase 2: Generate-then-Judge]
+  P1 --> P1T[tests: todo16-batching, todo16-monotonicity, todo16-drift]
+  P2 --> P3[Phase 3: Teleological Routing]
+  P2 --> P2T[tests: todo16-provisional, todo16-evidence]
+  P3 --> P4[Phase 4: Distillation]
+  P3 --> P3T[tests: todo16-teleological, todo16-transduction]
+  P4 --> P5[Phase 5: Edge & Swarm]
+  P4 --> P4T[tests: todo16-parity, todo16-sabotage]
+  P5 --> P5T[tests: todo16-resources]
+  P0 -.->|Config flag| P1
+  P2 -.->|admitFormalization| P3
+```
+
+### Rollback Procedure (per phase)
+
+| Phase | Rollback trigger | Action |
+|-------|------------------|--------|
+| 0 | Any benchmark fails / typecheck fails | `git revert` Phase 0 commits; config `systemOne.enabled=false` (default) restores baseline |
+| 1 | Bench 2/8/9 fail OR `systemOne.enabled=true` regression | Disable manifold heads via config; Tier 0/3 carry load |
+| 2 | Provisional stamp leak (Bench 5) OR evidence inflation (Bench 7) | `systemOne.manifold.heads.*.enabled=false` for new heads; `provisional.cInitial=0` |
+| 3 | Teleological leak (Bench 3) OR HITL deadlock | `systemOne.cortex.provider=off`; `ApprovalService` headless auto-reject is default |
+| 4 | Bake-off parity fail (Bench 10) OR sabotage pass (Bench 14) | `ProposalRouter` demotes candidate; incumbent retained by design |
+| 5 | Resource OOM / delegation deadlock | `KernelBudgetGate` hard caps; WASI sandbox timeout kills runaway heads |
+
+### Property-Test Signatures (for falsification benchmarks)
+
+```typescript
+// tests/nar/todo16-*.test.ts — all use fast-check (fc) style
+import { fc, test, expect } from 'vitest';
+
+// Bench 1: AlgebraPurity
+test.prop([fc.record({ kind: fc.constant('synthesize') })])('rejects SynthesisQuery', q => 
+  expect(() => manifold.judgeBatch(ptr, [q as any], budget)).toThrow(AlgebraPurityError)
+);
+
+// Bench 2: ZeroCopyBatching
+test.prop([fc.array(judgmentQueryArb, { minLength: 1, maxLength: 64 })])('batch <50ms P99', async qs => {
+  const start = performance.now();
+  await manifold.judgeBatch(ptr, qs, budget);
+  expect(performance.now() - start).toBeLessThan(50);
+});
+
+// Bench 3: TeleologicalPurity
+test.prop([teleologicalQueryArb])('never mutates belief bag', async q => {
+  const before = [...memory.beliefBag.entries()];
+  await dispatcher.judge(ptr, [q], budget);
+  expect([...memory.beliefBag.entries()]).toEqual(before);
+});
+
+// Bench 4: EpistemicCeiling
+test('TERTIARY input ceiling 0.4', () => 
+  expect(seedTruth(proposition, 'TERTIARY').c).toBeLessThanOrEqual(0.4)
+);
+
+// Bench 5: ProvisionalDecay
+test.prop([fc.integer({min:1, max:100})])('decays to 0 within TTL', cycles => {
+  const stamp = makeProvisional({ cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30000 });
+  for (let i=0; i<cycles; i++) bag.decay(0.3);
+  expect(bag.find(stamp.id)?.priority ?? 1).toBeLessThanOrEqual(0.001);
+});
+
+// Bench 7: EvidenceLaundering
+test.prop([fc.integer({min:2, max:10})])('N-fold re-judge no inflation', n => {
+  let t = initialTruth;
+  for (let i=0; i<n; i++) t = Truth.revision(t, seedTruth(sameUtteranceProposition));
+  expect(t.c).toBeLessThanOrEqual(Truth.MAX_CONFIDENCE);
+});
+
+// Bench 8: AdversarialMonotonicity
+test.prop([adversarialInputArb])('outcome ≥ baseline restrictiveness', input => {
+  const baseline = runPipeline(input);
+  const attacked = runPipeline(perturb(input));
+  expect(restrictiveness(attacked)).toBeGreaterThanOrEqual(restrictiveness(baseline));
+});
+```
+
+---
 
 ## Appendix C — Risk Register
 

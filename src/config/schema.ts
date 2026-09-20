@@ -368,6 +368,81 @@ export const botConfigSchema = z.object({
     .default(policyDefaults),
 });
 
+const systemOneDefaults = {
+  enabled: false,
+  manifold: {
+    provider: 'off' as const,
+    embeddingCacheSizeMB: 64,
+    heads: {} as Record<string, { modelDigest: string; calibrationVersion: string; abstainThreshold: number; enabled: boolean }>,
+    consensus: { criticalityFloor: 'high' as const, fanout: 3, minAgreement: 0.66 },
+  },
+  cortex: { provider: 'off' as const },
+  budgets: {
+    maxJudgmentCallsPerCycle: 8,
+    maxConsensusPerCycle: 2,
+    maxLatencyMsPerJudgment: 33,
+    maxTokensPerCycle: 4096,
+    maxMemoryMbPerCycle: 256,
+  },
+  provisional: { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30000 },
+  distillation: { datasetPath: './data/systemone-distillation.jsonl', bakeOffSamplingRate: 0.1, driftEceBound: 0.15 },
+} as const;
+
+export const systemOneSchema = z.object({
+  enabled: z.boolean().default(systemOneDefaults.enabled),
+  manifold: z
+    .object({
+      provider: z.enum(['off', 'wasi', 'webgpu', 'http', 'peer']).default(systemOneDefaults.manifold.provider),
+      endpoint: z.string().optional(),
+      embeddingCacheSizeMB: z.number().int().positive().default(systemOneDefaults.manifold.embeddingCacheSizeMB),
+      heads: z.record(
+        z.string(),
+        z.object({
+          modelDigest: z.string(),
+          calibrationVersion: z.string(),
+          abstainThreshold: z.number().min(0).max(1),
+          enabled: z.boolean(),
+        })
+      ).default({}),
+      consensus: z
+        .object({
+          criticalityFloor: z.enum(['low', 'standard', 'high', 'critical']).default(systemOneDefaults.manifold.consensus.criticalityFloor),
+          fanout: z.number().int().positive().default(systemOneDefaults.manifold.consensus.fanout),
+          minAgreement: z.number().min(0).max(1).default(systemOneDefaults.manifold.consensus.minAgreement),
+        })
+        .default(systemOneDefaults.manifold.consensus),
+    })
+    .default(systemOneDefaults.manifold),
+  cortex: z
+    .object({
+      provider: z.enum(['off', 'anthropic', 'openai', 'openai-compatible', 'ollama', 'llamacpp', 'transformers', 'webllm', 'mock']).default(systemOneDefaults.cortex.provider),
+    })
+    .default(systemOneDefaults.cortex),
+  budgets: z
+    .object({
+      maxJudgmentCallsPerCycle: z.number().int().positive().default(systemOneDefaults.budgets.maxJudgmentCallsPerCycle),
+      maxConsensusPerCycle: z.number().int().positive().default(systemOneDefaults.budgets.maxConsensusPerCycle),
+      maxLatencyMsPerJudgment: z.number().int().positive().default(systemOneDefaults.budgets.maxLatencyMsPerJudgment),
+      maxTokensPerCycle: z.number().int().positive().default(systemOneDefaults.budgets.maxTokensPerCycle),
+      maxMemoryMbPerCycle: z.number().int().positive().default(systemOneDefaults.budgets.maxMemoryMbPerCycle),
+    })
+    .default(systemOneDefaults.budgets),
+  provisional: z
+    .object({
+      cInitial: z.number().min(0).max(1).default(systemOneDefaults.provisional.cInitial),
+      decayRate: z.number().positive().default(systemOneDefaults.provisional.decayRate),
+      maxTtlMs: z.number().int().positive().default(systemOneDefaults.provisional.maxTtlMs),
+    })
+    .default(systemOneDefaults.provisional),
+  distillation: z
+    .object({
+      datasetPath: z.string().default(systemOneDefaults.distillation.datasetPath),
+      bakeOffSamplingRate: z.number().min(0).max(1).default(systemOneDefaults.distillation.bakeOffSamplingRate),
+      driftEceBound: z.number().min(0).max(1).default(systemOneDefaults.distillation.driftEceBound),
+    })
+    .default(systemOneDefaults.distillation),
+});
+
 const appConfigBase = z.object({
   /** Semantic version of the config file — validated by the loader for migration. */
   configVersion: z.string().optional(),
@@ -403,6 +478,7 @@ const appConfigBase = z.object({
     lmRules: { ...botConfigDefaults.lmRules, rules: [...botConfigDefaults.lmRules.rules] },
   }),
   connections: connectionsSchema.default(() => ({})),
+  systemOne: systemOneSchema.optional(),
 });
 
 /** Map top-level `agent.name`/`agent.persona` onto the bot profile when set. */
@@ -426,3 +502,4 @@ export type InferenceConfig = z.infer<typeof inferenceSchema>;
 export type BackendsConfig = z.infer<typeof backendsSchema>;
 export type IRCConfigSchema = z.infer<typeof ircSchema>;
 export type ProductionConfig = NonNullable<z.infer<typeof productionSchema>>;
+export type SystemOneConfig = z.infer<typeof systemOneSchema>;

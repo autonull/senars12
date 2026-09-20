@@ -56,6 +56,10 @@
       "types": "./src/lm/rule-templates/fallbacks.ts",
       "import": "./src/lm/rule-templates/fallbacks.ts"
     },
+    "./lm/system-one": {
+      "types": "./src/lm/system-one/index.ts",
+      "import": "./src/lm/system-one/index.ts"
+    },
     "./cooperation": {
       "types": "./src/cooperation/delegation.ts",
       "import": "./src/cooperation/delegation.ts"

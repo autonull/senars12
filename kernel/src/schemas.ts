@@ -184,6 +184,29 @@ export const SelfModProposalEventSchema = CognitiveEventBaseSchema.extend({
   payload: PatchProposalSchema,
 });
 
+export const JudgmentResolvedEventSchema = CognitiveEventBaseSchema.extend({
+  type: z.literal('judgment.resolved'),
+  payload: z.object({
+    queryId: z.string(),
+    shape: z.enum(['classify', 'evaluate']),
+    axis: z.enum(['epistemic', 'teleological']),
+    backendId: z.string(),
+    tier: z.number().int().min(0).max(3),
+    latencyMs: z.number().int().nonnegative(),
+    entropy: z.number().optional(),
+    abstained: z.boolean(),
+    stampType: z.enum(['standard', 'provisional']),
+    calibrationVersion: z.string(),
+    cost: z.object({
+      tokensIn: z.number().int().nonnegative(),
+      tokensOut: z.number().int().nonnegative(),
+      computeMs: z.number().int().nonnegative(),
+      memoryMb: z.number().nonnegative(),
+    }),
+  }),
+});
+export type JudgmentResolvedEvent = z.infer<typeof JudgmentResolvedEventSchema>;
+
 export const CognitiveEventSchema = z.discriminatedUnion('type', [
   TaskAdmittedEventSchema,
   DerivationAcceptedEventSchema,
@@ -193,6 +216,7 @@ export const CognitiveEventSchema = z.discriminatedUnion('type', [
   PolicyViolationEventSchema,
   AutonomyModeChangedEventSchema,
   SelfModProposalEventSchema,
+  JudgmentResolvedEventSchema,
 ]);
 
 export type CognitiveEvent = z.infer<typeof CognitiveEventSchema>;
@@ -385,6 +409,20 @@ export const SourceQualitySchema = z.enum([
   'PEER_AGENT',
 ]);
 export type SourceQuality = z.infer<typeof SourceQualitySchema>;
+
+/**
+ * Confidence ceiling by source quality — single source of truth.
+ * Kernel gates and System One seeding both consume this.
+ */
+export const SOURCE_QUALITY_CONFIDENCE: Readonly<Record<SourceQuality, number>> = {
+  PRIMARY: 0.9,
+  SECONDARY: 0.7,
+  GENERAL: 0.55,
+  TERTIARY: 0.4,
+  LLM_PRIOR: 0.5,
+  PEER_AGENT: 0.6,
+} as const;
+
 export const GameDomainSchema = z.enum(['external', 'self']);
 export type GameDomain = z.infer<typeof GameDomainSchema>;
 export const RewardDomainSchema = z.enum([
