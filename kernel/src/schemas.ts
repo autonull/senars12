@@ -197,6 +197,8 @@ export const JudgmentResolvedEventSchema = CognitiveEventBaseSchema.extend({
     abstained: z.boolean(),
     stampType: z.enum(['standard', 'provisional']),
     calibrationVersion: z.string(),
+    /** H5/X18: encoder identity digest bound to the head that produced this proposition. */
+    encoderDigest: z.string().optional(),
     cost: z.object({
       tokensIn: z.number().int().nonnegative(),
       tokensOut: z.number().int().nonnegative(),

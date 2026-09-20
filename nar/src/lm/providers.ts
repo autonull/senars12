@@ -77,13 +77,19 @@ const localModel = (
   model: string,
   settings: LMSettings,
   onProgress?: ModelDownloadProgressCallback
-): LanguageModel =>
-  transformersJS(model, {
+): LanguageModel => {
+  // H7: per-slot dtype (LM_QUALITY_DTYPE/LM_FAST_DTYPE) over global LM_DTYPE over quantized flag.
+  const isQuality = model === settings.model || model === defaultModelFor(settings.provider);
+  const dtype =
+    (isQuality ? (settings.qualityDtype ?? settings.dtype) : (settings.fastDtype ?? settings.dtype)) ??
+    (settings.quantized ? 'q4' : 'fp32');
+  return transformersJS(model, {
     device: detectDevice(),
-    dtype: settings.quantized ? 'q4' : 'fp32',
+    dtype,
     ...(settings.cacheDir ? { cacheDir: settings.cacheDir } : {}),
     ...(onProgress ? { initProgressCallback: onProgress } : {}),
   } as Parameters<typeof transformersJS>[1]);
+};
 
 const mockModel = (): LanguageModel => createMockLanguageModel() as unknown as LanguageModel;
 
@@ -451,8 +457,16 @@ export function getModelForTask(
   registry: SeNARSRegistry,
   task: LMTask,
   settings?: LMSettings,
-  stats?: Record<string, LMExecutionStats>
+  stats?: Record<string, LMExecutionStats>,
+  /** H2/X16: explicit per-call model id (e.g. 'cloud:quality') — bypasses the chain. */
+  modelOverride?: string
 ): LanguageModel {
+  if (modelOverride) {
+    // Unknown ids throw here — no silent failover (routing honesty rules).
+    const model = registry.languageModel(modelOverride as Parameters<SeNARSRegistry['languageModel']>[0]);
+    lastDecision = { task, modelId: modelOverride, reason: 'primary' };
+    return model;
+  }
   const chain = getModelChain(settings?.provider ?? getLmProvider(), task);
   // R4/R5: success-rate-aware reordering within the resolved chain (failsafe rungs stay
   // guaranteed by pickModel's deterministic tie-breaking and the appended ladder).
@@ -490,8 +504,21 @@ export async function probeOllama(host?: string): Promise<boolean> {
   }
 }
 
+const OFFLINE_SAFE_PROVIDERS: readonly LMProviderName[] = [
+  'mock',
+  'transformers',
+  'webllm',
+  'ollama',
+  'llamacpp',
+  'llamacpp-embedded',
+];
+
 export async function resolveActiveProvider(): Promise<LMProviderName> {
   const configured = getLmProvider();
+  // H4/X17: hard offline switch — never probe; local/mock resolve immediately.
+  if (getLMSettings().offline) {
+    return OFFLINE_SAFE_PROVIDERS.includes(configured) ? configured : 'transformers';
+  }
   if (configured === 'mock') return 'mock';
   if (configured === 'webllm') {
     return (typeof navigator !== 'undefined' && 'gpu' in navigator) ? 'webllm' : 'transformers';

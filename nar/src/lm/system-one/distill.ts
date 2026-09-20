@@ -27,6 +27,8 @@ export interface DistillationLabel {
   label: string;
   score?: number;
   source: string;
+  /** H5/X18: which Cortex model produced the candidates this label judged. */
+  cortexModelId?: string;
 }
 
 /** Append-only, redaction-per-retention: hashes + labels, never raw text. */
@@ -132,6 +134,8 @@ export interface BakeOffCase {
 }
 
 export interface BakeOffResult {
+  /** H5/X18: model id recorded on bake-off artifacts for label provenance. */
+  cortexModelId?: string;
   incumbentAccuracy: number;
   candidateAccuracy: number;
   parityGap: number;

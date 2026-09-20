@@ -7,17 +7,32 @@ export interface EmbeddingGenerator {
   generate(text: string): Promise<number[]>;
 }
 
+export interface EmbeddingGeneratorConfig {
+  modelId: string;
+  dimension: number;
+}
+
+export const DEFAULT_EMBEDDING_MODEL_ID = 'Xenova/all-MiniLM-L6-v2';
+export const DEFAULT_EMBEDDING_DIMENSION = 384;
+
 export class TransformersEmbeddingGenerator implements EmbeddingGenerator {
-  readonly dimension = 384;
+  readonly dimension: number;
   private model: TransformersJSEmbeddingModel | null = null;
+
+  constructor(modelId: string = DEFAULT_EMBEDDING_MODEL_ID, dimension: number = DEFAULT_EMBEDDING_DIMENSION) {
+    this.#modelId = modelId;
+    this.dimension = dimension;
+  }
+
+  readonly #modelId: string;
 
   async generate(text: string): Promise<number[]> {
     if (!this.model) {
       // Embeddings ride the same LM settings rails (device/dtype/cacheDir) as chat models.
       const settings = getLMSettings();
-      this.model = new TransformersJSEmbeddingModel('Xenova/all-MiniLM-L6-v2', {
+      this.model = new TransformersJSEmbeddingModel(this.#modelId, {
         device: detectDevice(),
-        dtype: settings.quantized ? 'q4' : 'fp32',
+        dtype: settings.dtype ?? (settings.quantized ? 'q4' : 'fp32'),
         ...(settings.cacheDir ? { cacheDir: settings.cacheDir } : {}),
         normalize: true,
         pooling: 'mean',
@@ -30,7 +45,7 @@ export class TransformersEmbeddingGenerator implements EmbeddingGenerator {
 }
 
 export class MockEmbeddingGenerator implements EmbeddingGenerator {
-  dimension = 384;
+  constructor(readonly dimension: number = DEFAULT_EMBEDDING_DIMENSION) {}
 
   async generate(text: string): Promise<number[]> {
     const embedding = new Array(this.dimension).fill(0);
@@ -42,8 +57,9 @@ export class MockEmbeddingGenerator implements EmbeddingGenerator {
   }
 }
 
-export function createEmbeddingGenerator(useMock = false): EmbeddingGenerator {
-  return useMock ? new MockEmbeddingGenerator() : new TransformersEmbeddingGenerator();
+export function createEmbeddingGenerator(useMock = false, config?: Partial<EmbeddingGeneratorConfig>): EmbeddingGenerator {
+  if (useMock) return new MockEmbeddingGenerator(config?.dimension ?? DEFAULT_EMBEDDING_DIMENSION);
+  return new TransformersEmbeddingGenerator(config?.modelId, config?.dimension);
 }
 
 export function cosineSimilarity(a: number[], b: number[]): number {

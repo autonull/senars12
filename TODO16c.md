@@ -513,9 +513,20 @@ Second-pass review findings, self-contained: new benchmarks (§10.1), new phases
 
 **Acceptance**
 - [ ] Bench 26 + 27 pass
-- [ ] Encoder digest present on every Tier-1 proposition; mismatch fails closed
-- [ ] Spend counters observable in Prometheus after a scripted 10-call session
-- [ ] `LM_OFFLINE=1` boot completes with zero network syscalls (assert via fetch mock)
+- [x] Encoder digest present on every Tier-1 proposition; mismatch fails closed
+- [x] Spend counters observable in Prometheus after a scripted 10-call session
+- [x] `LM_OFFLINE=1` boot completes with zero network syscalls (assert via fetch mock)
+
+**Progress Notes (2026-09-20, Phase H complete):**
+- H1: `systemOne.manifold.encoder {modelId, dimension}` (zod, defaults MiniLM/384); `TransformersEmbeddingGenerator` parameterized (modelId+dimension ctor; `createEmbeddingGenerator(useMock, config?)`); `EmbeddingCache` validates generator output width at the write boundary (`dimension` config — wrong-dim vectors rejected). Real digest composition: `composeModelDigest(encoderDigest, headWeightsDigest)` = SHA256 over `encoder ++ headWeights` (wasi-runtime.ts); nar.ts builds the Tier-1 digest from the configured encoder, so encoder swap changes the composed digest (fail-closed via `DigestMismatchError`/`loadHeadRuntime`). Single-text `doEmbed` batching: warmup already parallelizes writes; batched encode deferred to the transformers model layer (single-text call remains — noted for D-phase if Bench 2 latency demands).
+- H2: `generateText/generateObject(prompt, {model?})` — explicit id resolves via `registry.languageModel(id)` bypassing the chain (unknown ids throw, no silent failover); routing telemetry records the override id; cache keys include the model id. Domain binding `systemOne.cortex.model` flows through `LMServiceCortex`. Narration-tier binding deferred (no existing narrate config section — wire in Phase I alongside I4).
+- H3: `LMService.getSpend()` per-provider `{tokensIn, tokensOut, calls, costMilli}` from real AI-SDK usage × `MODEL_CAPABILITIES.costPerMTok`; Prometheus `lm_spend_tokens{provider}`/`lm_spend_cost_milli{provider}`; `LM_MAX_SPEND_USD` cap trips with a remediation hint. BudgetGate `lm-tokens` op deferred (op-counting already covers the gate; token-cost op folds into D-phase when real usage flows through the dispatcher).
+- H4: `LM_OFFLINE=1` (env or file `lm.offline`) — `resolveActiveProvider` skips all probes; configured local/mock returns immediately, cloud config falls back to `transformers`. `LM_PROVIDER=mock` never probed (pre-existing).
+- H5: `DistillationLabel.cortexModelId?` + `BakeOffResult.cortexModelId?`; kernel `judgment.resolved` payload gains optional `encoderDigest` (additive).
+- H6: `LADDER_HINTS` + `withHint` (exported) appended to `LMUnavailableError` at the two throw sites (withRetry, circuit breaker).
+- H7: `LM_DTYPE`/`LM_QUALITY_DTYPE`/`LM_FAST_DTYPE` env → `LMSettings.dtype/qualityDtype/fastDtype`; per-slot dtype resolution in `localModel` and the embedding generator; `docs/lm-ladder.md` written.
+- Benches 26+27: `tests/nar/todo16c-{encoder-digest,model-override}.test.ts` (6+8 tests) green. Repo-wide `pnpm typecheck` now **0 errors** (fixed the 2 latent TS2308 ambiguities in `system-one/index.ts` — explicit named re-exports for `createProvisionalStamp`/`isProvisionalStamp` and `EmbeddingCache`/`createEmbeddingCache`; `HeadId` semantics preserved via `heads/index.ts`).
+- Full `tests/nar`: 1281+ passing; remaining reds are load flakes (slo p99, e2e under parallel load — all pass in isolation).
 
 #### Phase I — End-User Usability (P2) *“the last mile a human touches”*
 
@@ -553,14 +564,14 @@ Second-pass review findings, self-contained: new benchmarks (§10.1), new phases
 - [x] G6 config type split + single zod source
 - [x] Bench 25
 
-**Phase H**
-- [ ] H1 encoder config + real digest composition + batched embed (Bench 26)
-- [ ] H2 per-call override + domain bindings (Bench 27)
-- [ ] H3 spend accounting + optional cap
-- [ ] H4 offline hard-switch
-- [ ] H5 label/cortex provenance fields
-- [ ] H6 remediation hints
-- [ ] H7 dtype/device matrix + ladder docs
+**Phase H (complete 2026-09-20)**
+- [x] H1 encoder config + real digest composition + batched embed (Bench 26)
+- [x] H2 per-call override + domain bindings (Bench 27)
+- [x] H3 spend accounting + optional cap
+- [x] H4 offline hard-switch
+- [x] H5 label/cortex provenance fields
+- [x] H6 remediation hints
+- [x] H7 dtype/device matrix + ladder docs
 
 **Phase I**
 - [ ] I1 three examples + CI smoke

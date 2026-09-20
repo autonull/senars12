@@ -35,6 +35,7 @@ describe('Bench 16 — Cortex Ladder', () => {
         manifold: {
           provider: 'off',
           embeddingCacheSizeMB: 64,
+          encoder: { modelId: 'Xenova/all-MiniLM-L6-v2', dimension: 384 },
           heads: {},
           consensus: { criticalityFloor: 'high', fanout: 3, minAgreement: 0.66 },
         },
@@ -205,6 +206,7 @@ describe('Bench 16 — Cortex Ladder', () => {
         manifold: {
           provider: 'off',
           embeddingCacheSizeMB: 64,
+          encoder: { modelId: 'Xenova/all-MiniLM-L6-v2', dimension: 384 },
           heads: {},
           consensus: { criticalityFloor: 'high', fanout: 3, minAgreement: 0.66 },
         },

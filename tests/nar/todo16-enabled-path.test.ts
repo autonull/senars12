@@ -70,6 +70,7 @@ describe('System One Full Enabled Path Integration', () => {
         manifold: {
           provider: 'wasi',
           embeddingCacheSizeMB: 64,
+          encoder: { modelId: 'Xenova/all-MiniLM-L6-v2', dimension: 384 },
           heads: {},
           consensus: { criticalityFloor: 'high', fanout: 3, minAgreement: 0.66 },
         },

@@ -13,17 +13,21 @@ export interface LMServiceCortexConfig {
   lmService: LMService;
   grammar?: string;
   temperature?: number;
+  /** H2/X16: explicit model id binding (e.g. 'cloud:quality') for all Cortex calls. */
+  model?: string;
 }
 
 export class LMServiceCortex implements GenerativeCortex {
   readonly #lmService: LMService;
   readonly #defaultGrammar: string;
   readonly #temperature: number;
+  readonly #model?: string;
 
   constructor(config: LMServiceCortexConfig) {
     this.#lmService = config.lmService;
     this.#defaultGrammar = config.grammar ?? 'narsese-term';
     this.#temperature = config.temperature ?? 0;
+    this.#model = config.model;
   }
 
   async *synthesize(
@@ -40,6 +44,7 @@ export class LMServiceCortex implements GenerativeCortex {
       const text = await this.#lmService.generateText(prompt, {
         temperature: this.#temperature,
         grammar,
+        model: this.#model,
       });
 
       const candidates = this.parseCandidates(text, maxCandidates);

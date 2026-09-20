@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { createWasiSandbox } from '../../capability/wasi-sandbox.js';
 import type {
   EmbeddingPointer,
@@ -26,6 +27,20 @@ export function verifyModelDigest(loaded: string, pinned: string): void {
   if (loaded !== pinned) {
     throw new DigestMismatchError(pinned, loaded);
   }
+}
+
+/**
+ * H1/X19 (Bench 26): a head ModelDigest binds the encoder to the head weights.
+ * Composition = SHA256(encoderDigest ++ headWeightsDigest); swapping the encoder
+ * without re-pinning heads produces a different digest and fails closed.
+ */
+export function composeModelDigest(encoderId: string, headWeightsDigest: string): string {
+  return `sha256:${createHash('sha256').update(`${encoderId}++${headWeightsDigest}`).digest('hex')}`;
+}
+
+/** Derive the encoder component digest from the configured encoder identity. */
+export function encoderDigest(modelId: string, dimension: number): string {
+  return `sha256:${createHash('sha256').update(`${modelId}@${dimension}`).digest('hex')}`;
 }
 
 export type HeadRuntimeProvider = 'wasi' | 'webgpu' | 'http' | 'peer' | 'off';

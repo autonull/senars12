@@ -37,6 +37,20 @@ export const lmCallDurationMs = new Gauge({
   registers: [prometheusRegistry],
 });
 
+export const lmSpendTokens = new Counter({
+  name: 'lm_spend_tokens',
+  help: 'H3: cumulative spend-accounted tokens per provider',
+  labelNames: ['provider'],
+  registers: [prometheusRegistry],
+});
+
+export const lmSpendCostMilli = new Counter({
+  name: 'lm_spend_cost_milli',
+  help: 'H3: cumulative cost in milli-dollars per provider',
+  labelNames: ['provider'],
+  registers: [prometheusRegistry],
+});
+
 export const lmTokensTotal = new Counter({
   name: 'senars_lm_tokens_total',
   help: 'Total number of tokens used',
@@ -102,6 +116,11 @@ export function recordCircuitBreakerState(provider: string, state: 'closed' | 'h
   ['closed', 'half-open', 'open'].forEach((s) => {
     lmCircuitState.set({ provider, state: s }, s === state ? 1 : 0);
   });
+}
+
+export function recordLmSpend(provider: string, tokens: number, costMilli: number): void {
+  lmSpendTokens.inc({ provider }, tokens);
+  lmSpendCostMilli.inc({ provider }, costMilli);
 }
 
 export function recordLmCall(provider: string, model: string, success: boolean, durationMs: number, inputTokens: number, outputTokens: number): void {

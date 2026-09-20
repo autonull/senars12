@@ -286,6 +286,7 @@ export {
   recordLmProbe,
   recordCircuitBreakerState,
   recordLmCall,
+  recordLmSpend,
   recordDerivation,
   updateMemoryMetrics,
   updateSystemMetrics,

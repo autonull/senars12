@@ -31,6 +31,8 @@ function releaseBuffer(buffer: Float32Array): void {
 export interface EmbeddingCacheConfig {
   maxSize: number;
   ttlMs: number;
+  /** H1/Bench 26: expected embedding width — wrong-dimension vectors are rejected here. */
+  dimension?: number;
   generator?: { generate(text: string): Promise<number[]> };
 }
 
@@ -54,6 +56,7 @@ export class EmbeddingCache {
     this.#config = {
       maxSize: config.maxSize ?? 10000,
       ttlMs: config.ttlMs ?? 300_000,
+      dimension: config.dimension,
     };
     this.#generator = config.generator ?? new TransformersEmbeddingGenerator();
   }
@@ -66,6 +69,11 @@ export class EmbeddingCache {
     }
 
     const embedding = await this.#generator.generate(text);
+    if (this.#config.dimension !== undefined && embedding.length !== this.#config.dimension) {
+      throw new Error(
+        `Embedding dimension mismatch: expected ${this.#config.dimension}, got ${embedding.length}`
+      );
+    }
     const buffer = allocateBuffer();
     buffer.set(embedding);
 

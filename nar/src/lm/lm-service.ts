@@ -27,6 +27,7 @@ import {
   getLmProvider,
   getModelForTask,
   getModelChain,
+  getModelCapability,
   resolveActiveProvider,
   setBuiltinProgressCallback,
   type ModelDownloadProgressCallback,
@@ -40,11 +41,30 @@ import {
   type RoutingTelemetryEntry,
 } from './providers.js';
 import { createLMStats, recordLMCall } from './stats.js';
+import { recordLmSpend } from '../metrics/index.js';
 
 interface CacheEntry {
   value: string;
   expiresAt: number;
 }
+
+/** H6/X14: provider-specific remediation hints appended to LM failures. */
+const LADDER_HINTS: Partial<Record<string, string>> = {
+  ollama: "start the server ('ollama serve') or set LM_PROVIDER=mock",
+  'llamacpp-embedded': "fetch a GGUF model first ('pnpm exec tsx scripts/fetch-model.ts')",
+  llamacpp: 'start llama-server or set LM_PROVIDER=mock',
+  transformers: 'check the model cache dir / network for the model download',
+  webllm: 'requires WebGPU (browser context only)',
+  anthropic: 'set ANTHROPIC_API_KEY or fall back to a local provider',
+  openai: 'set OPENAI_API_KEY or fall back to a local provider',
+  'openai-compatible': 'set LM_BASE_URL + credentials or fall back to a local provider',
+  mock: 'LM_PROVIDER=mock is always available — check MockLMConfig',
+};
+
+export const withHint = (message: string, provider?: string): string => {
+  const hint = provider ? LADDER_HINTS[provider.split('.')[0] ?? ''] : undefined;
+  return hint ? `${message} — hint: ${hint}` : message;
+};
 
 /** Typed error for provider/transport failures (offline fallbacks, re-probing). */
 export class LMUnavailableError extends SenarsError {
@@ -72,6 +92,22 @@ const backoff = (attempt: number): number => 250 * 2 ** (attempt - 1);
 
 const CACHE_TTL_MS = 60_000;
 
+/** H3/X15: per-provider cumulative spend. */
+export interface ProviderSpend {
+  tokensIn: number;
+  tokensOut: number;
+  calls: number;
+  /** Cumulative cost in milli-dollars (MODEL_CAPABILITIES.costPerMTok × tokens). */
+  costMilli: number;
+}
+
+const spendCapUsd = (): number | undefined => {
+  const raw = process.env.LM_MAX_SPEND_USD;
+  if (!raw) return undefined;
+  const v = Number(raw);
+  return Number.isFinite(v) && v > 0 ? v : undefined;
+};
+
 function hashKey(input: string): string {
   let hash = 0;
   for (let i = 0; i < input.length; i++) {
@@ -81,13 +117,14 @@ function hashKey(input: string): string {
   return hash.toString(36);
 }
 
-function buildCacheKey(prompt: string, options?: { task?: LMTask; temperature?: number; maxOutputTokens?: number; grammar?: string }): string {
+function buildCacheKey(prompt: string, options?: { task?: LMTask; temperature?: number; maxOutputTokens?: number; grammar?: string; model?: string }): string {
   const parts = [
     prompt,
     options?.task ?? 'fast',
     options?.temperature ?? 0,
     options?.maxOutputTokens ?? 0,
     options?.grammar ?? '',
+    options?.model ?? '',
   ];
   return hashKey(parts.join('|'));
 }
@@ -113,7 +150,10 @@ const withRetry = async <T>(
     }
   }
   throw new LMUnavailableError(
-    `LM provider unavailable (${provider ?? 'unknown'}): ${(lastError as Error)?.message ?? String(lastError)}`,
+    withHint(
+      `LM provider unavailable (${provider ?? 'unknown'}): ${(lastError as Error)?.message ?? String(lastError)}`,
+      provider
+    ),
     provider,
     task,
     lastError
@@ -142,6 +182,8 @@ export class LMService {
   private progressCallback: ModelDownloadProgressCallback | undefined;
   /** Prompt-hash-keyed semantic cache with 60s TTL. Cleared on failure so retries re-populate. */
   private cache = new Map<string, CacheEntry>();
+  /** H3: per-provider spend ledger (token totals from AI-SDK usage + capability table). */
+  private spend = new Map<string, ProviderSpend>();
 
   constructor(
     private registry: SeNARSRegistry,
@@ -205,9 +247,9 @@ export class LMService {
     return this.hasModel();
   }
 
-  getModel(task: LMTask): LanguageModel | undefined {
+  getModel(task: LMTask, modelOverride?: string): LanguageModel | undefined {
     try {
-      return getModelForTask(this.registry, task, undefined, this.getModelStats()) as LanguageModel;
+      return getModelForTask(this.registry, task, undefined, this.getModelStats(), modelOverride) as LanguageModel;
     } catch {
       return undefined;
     }
@@ -221,6 +263,40 @@ export class LMService {
     return { ...this.stats };
   }
 
+  /** H3: cumulative per-provider spend ledger. */
+  getSpend(): Record<string, ProviderSpend> {
+    return Object.fromEntries(this.spend);
+  }
+
+  /** H3: record usage tokens + capability-table cost against the provider; throws
+   *  LMUnavailableError (with remediation) once LM_MAX_SPEND_USD is exceeded. */
+  private recordSpend(
+    provider: string,
+    task: LMTask,
+    tokensIn: number,
+    tokensOut: number
+  ): void {
+    const entry = this.spend.get(provider) ?? { tokensIn: 0, tokensOut: 0, calls: 0, costMilli: 0 };
+    entry.tokensIn += tokensIn;
+    entry.tokensOut += tokensOut;
+    entry.calls += 1;
+    const cap = getModelCapability(getLastRoutingDecision()?.modelId ?? '')?.costPerMTok ?? 0;
+    const costMilli = ((tokensIn + tokensOut) / 1_000_000) * cap * 1000;
+    entry.costMilli += costMilli;
+    this.spend.set(provider, entry);
+    recordLmSpend(provider, tokensIn + tokensOut, costMilli);
+
+    const capUsd = spendCapUsd();
+    if (capUsd !== undefined && entry.costMilli / 1000 > capUsd) {
+      throw new LMUnavailableError(
+        `Spend cap reached for provider '${provider}': $${(entry.costMilli / 1000).toFixed(4)} >= LM_MAX_SPEND_USD=$${capUsd}. ` +
+          `Raise LM_MAX_SPEND_USD, switch to a local provider (LM_PROVIDER=mock|transformers), or set LM_OFFLINE=1.`,
+        provider,
+        task
+      );
+    }
+  }
+
   async generateText(
     prompt: string,
     opts?: {
@@ -228,17 +304,23 @@ export class LMService {
       signal?: AbortSignal;
       temperature?: number;
       maxOutputTokens?: number;
+      /** H2: explicit per-call model id (e.g. 'cloud:quality') — bypasses the routing chain. */
+      model?: string;
       /** GBNF grammar for constrained decoding (llamacpp provider). */
       grammar?: string;
     }
   ): Promise<string> {
-    const model = this.getModel(opts?.task ?? 'fast');
+    const model = this.getModel(opts?.task ?? 'fast', opts?.model);
     if (!model) throw new Error('No model available');
 
     const provider = this.provider as LMProviderName | undefined;
     const settings = getLMSettings();
     if (provider && !canUseProvider(provider, settings)) {
-      throw new LMUnavailableError(`Circuit breaker open for provider: ${provider}`, provider, opts?.task);
+      throw new LMUnavailableError(
+        withHint(`Circuit breaker open for provider: ${provider}`, provider),
+        provider,
+        opts?.task
+      );
     }
 
     const cacheKey = buildCacheKey(prompt, {
@@ -246,6 +328,7 @@ export class LMService {
       temperature: opts?.temperature,
       maxOutputTokens: opts?.maxOutputTokens,
       grammar: opts?.grammar,
+      model: opts?.model,
     });
     const cached = this.getCached(cacheKey);
     if (cached) {
@@ -262,13 +345,19 @@ export class LMService {
         async () =>
           await withRetry(
             async () => {
-              const { text: out } = await generateText({
+              const { text: out, usage } = await generateText({
                 model,
                 prompt,
                 abortSignal: opts?.signal,
                 temperature: opts?.temperature,
                 maxOutputTokens: opts?.maxOutputTokens,
               });
+              this.recordSpend(
+                provider ?? 'unknown',
+                task,
+                usage?.inputTokens ?? 0,
+                usage?.outputTokens ?? 0
+              );
               return out;
             },
             provider,
@@ -349,6 +438,8 @@ export class LMService {
       task?: LMTask;
       signal?: AbortSignal;
       temperature?: number;
+      /** H2: explicit per-call model id (e.g. 'cloud:quality') — bypasses the routing chain. */
+      model?: string;
     }
   ): Promise<T> {
     try {
@@ -363,9 +454,9 @@ export class LMService {
   private async generateObjectNative<T>(
     prompt: string,
     schema: ZodSchema<T>,
-    opts?: { task?: LMTask; signal?: AbortSignal; temperature?: number }
+    opts?: { task?: LMTask; signal?: AbortSignal; temperature?: number; model?: string }
   ): Promise<T> {
-    const model = this.getModel(opts?.task ?? 'structured');
+    const model = this.getModel(opts?.task ?? 'structured', opts?.model);
     if (!model) throw new Error('No model available');
 
     const provider = this.provider as LMProviderName | undefined;
@@ -379,6 +470,7 @@ export class LMService {
       temperature: opts?.temperature ?? 0,
       maxOutputTokens: 0,
       grammar: JSON.stringify(schema),
+      model: opts?.model,
     });
     const cached = this.getCached(cacheKey);
     if (cached) {
@@ -392,13 +484,19 @@ export class LMService {
     try {
       const object = await withRetry(
         async () => {
-          const { object: out } =           await generateObject({
+          const { object: out, usage } = await generateObject({
             model,
             prompt,
             schema: zodSchema(schema),
             temperature: opts?.temperature,
             abortSignal: opts?.signal,
           });
+          this.recordSpend(
+            provider ?? 'unknown',
+            task,
+            usage?.inputTokens ?? 0,
+            usage?.outputTokens ?? 0
+          );
           return out;
         },
         provider,
@@ -451,7 +549,7 @@ export class LMService {
   private async generateObjectViaText<T>(
     prompt: string,
     schema: ZodSchema<T>,
-    opts: { task?: LMTask; signal?: AbortSignal; temperature?: number } | undefined,
+    opts: { task?: LMTask; signal?: AbortSignal; temperature?: number; model?: string } | undefined,
     nativeError: unknown
   ): Promise<T> {
     const jsonSchema = z.toJSONSchema(schema as never);
@@ -468,6 +566,7 @@ export class LMService {
           task: opts?.task ?? 'structured',
           signal: opts?.signal,
           temperature,
+          model: opts?.model,
         });
         const match = text.match(/\{[\s\S]*\}/);
         if (!match) throw new Error('No JSON object in LM response');
@@ -681,6 +780,10 @@ class MockLMServiceImpl {
 
   private recordCall(success: boolean, start: number, tokens: number): void {
     recordLMCall(this.stats, success, Date.now() - start, tokens);
+  }
+
+  getSpend(): Record<string, ProviderSpend> {
+    return {};
   }
 }
 

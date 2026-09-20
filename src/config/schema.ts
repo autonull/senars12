@@ -373,10 +373,11 @@ const systemOneDefaults = {
   manifold: {
     provider: 'off' as const,
     embeddingCacheSizeMB: 64,
+    encoder: { modelId: 'Xenova/all-MiniLM-L6-v2', dimension: 384 },
     heads: {} as Record<string, { modelDigest: string; calibrationVersion: string; abstainThreshold: number; enabled: boolean }>,
     consensus: { criticalityFloor: 'high' as const, fanout: 3, minAgreement: 0.66 },
   },
-  cortex: { provider: 'off' as const },
+  cortex: { provider: 'off' as const, model: undefined as string | undefined },
   budgets: {
     maxJudgmentCallsPerCycle: 8,
     maxConsensusPerCycle: 2,
@@ -395,6 +396,12 @@ export const systemOneSchema = z.object({
       provider: z.enum(['off', 'wasi', 'webgpu', 'http', 'peer']).default(systemOneDefaults.manifold.provider),
       endpoint: z.string().optional(),
       embeddingCacheSizeMB: z.number().int().positive().default(systemOneDefaults.manifold.embeddingCacheSizeMB),
+      encoder: z
+        .object({
+          modelId: z.string().default(systemOneDefaults.manifold.encoder.modelId),
+          dimension: z.number().int().positive().default(systemOneDefaults.manifold.encoder.dimension),
+        })
+        .default(systemOneDefaults.manifold.encoder),
       heads: z.record(
         z.string(),
         z.object({
@@ -416,6 +423,8 @@ export const systemOneSchema = z.object({
   cortex: z
     .object({
       provider: z.enum(['off', 'anthropic', 'openai', 'openai-compatible', 'ollama', 'llamacpp', 'transformers', 'webllm', 'mock']).default(systemOneDefaults.cortex.provider),
+      /** H2/X16: per-domain model binding — Cortex candidates route through this id. */
+      model: z.string().optional(),
     })
     .default(systemOneDefaults.cortex),
   budgets: z

@@ -13,6 +13,7 @@ import * as systemOneNs from '../../nar/src/lm/system-one/index.js';
 import { findKnobSpec, KNOB_SPECS, createKnobSet } from '../../nar/src/rlfp/knobs.js';
 import type { HeadFactoryOptions } from '../../nar/src/lm/system-one/heads/factory.js';
 import type { JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
+import type { HeadSpec } from '../../nar/src/lm/system-one/head-specs.js';
 
 const makeOptions = (): HeadFactoryOptions => ({
   calibrationVersion: 'v1.0.0' as never,
@@ -35,7 +36,7 @@ const sampleQueries: JudgmentQuery[] = [
 describe('Bench 25 — Declarative Registry Equivalence', () => {
   it('HEAD_SPECS covers all 17 heads with valid geometry', () => {
     expect(Object.keys(HEAD_SPECS)).toHaveLength(17);
-    for (const spec of Object.values(HEAD_SPECS)) {
+    for (const spec of Object.values(HEAD_SPECS) as readonly HeadSpec[]) {
       if (spec.kind === 'classify') {
         expect(spec.space?.length).toBeGreaterThan(0);
         expect(spec.levels).toBeUndefined();
@@ -49,9 +50,10 @@ describe('Bench 25 — Declarative Registry Equivalence', () => {
   it('generated heads are property-equivalent to the pre-refactor makeHead implementation', async () => {
     const options = makeOptions();
     const emb = embedding();
-    for (const spec of Object.values(HEAD_SPECS)) {
+    for (const spec of Object.values(HEAD_SPECS) as readonly HeadSpec[]) {
       const head = createHead(spec, options);
-      const result = await head.evaluate(emb, sampleQueries[0]);
+      const query = sampleQueries[0]!;
+      const result = await head.evaluate(emb, query);
       // Structural contract: rubric/axis/kind geometry preserved.
       expect(head.rubric).toBe(spec.rubric);
       expect(head.axis).toBe(spec.axis);
@@ -63,7 +65,7 @@ describe('Bench 25 — Declarative Registry Equivalence', () => {
         expect(result.distribution).toBeUndefined();
       }
       // Deterministic: same inputs → same outputs.
-      const again = await head.evaluate(emb, sampleQueries[0]);
+      const again = await head.evaluate(emb, query);
       expect(again).toEqual(result);
       expect(result.abstained).toBe(false);
     }
@@ -75,7 +77,7 @@ describe('Bench 25 — Declarative Registry Equivalence', () => {
       perHeadConfig: { risk: { modelDigest: 'd', calibrationVersion: 'vX' as never, abstainThreshold: 0.99, enabled: false } },
     };
     const head = createHeadById('risk', options);
-    const result = await head.evaluate(embedding(), sampleQueries[0]);
+    const result = await head.evaluate(embedding(), sampleQueries[0]!);
     expect(result.abstained).toBe(true);
     expect(result.abstainReason).toBe('out-of-domain');
   });
@@ -92,7 +94,7 @@ describe('Bench 25 — Declarative Registry Equivalence', () => {
   it('ingress queries match the 6-head ingress order (used by KernelPerceptionGate)', () => {
     const queries = ingressQueries();
     expect(queries).toHaveLength(6);
-    expect((queries[0] as { space: string[] }).space).toEqual(HEAD_SPECS.task_type.space);
+    expect((queries[0] as unknown as { space: string[] }).space).toEqual(HEAD_SPECS.task_type.space);
     expect((queries[2] as { rubric: string }).rubric).toBe('injection');
     expect((queries[2] as { criticality: string }).criticality).toBe('critical');
     expect(actionQueries()).toHaveLength(5);
@@ -132,6 +134,6 @@ describe('Bench 25 — Declarative Registry Equivalence', () => {
     expect(spec).toMatchObject({ min: 0.01, max: 0.5, step: 0.01, root: 'systemOne' });
     expect(findKnobSpec('systemOne.nonexistent')).toBeUndefined();
     const knobs = createKnobSet({ inference: { maxDerivationsPerStep: 20 } } as never);
-    expect(knobs.maxDerivationsPerStep.get()).toBe(20);
+    expect(knobs.maxDerivationsPerStep?.get()).toBe(20);
   });
 });

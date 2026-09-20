@@ -47,6 +47,12 @@ export interface LMSettings {
   apiKeyEnv?: string;
   quantized?: boolean;
   cacheDir?: string;
+  /** H4: hard offline switch — never probe or reach the network (cloud/remote disabled). */
+  offline?: boolean;
+  /** H7: dtype/device matrix — global override, then per-slot (quality/fast). */
+  dtype?: 'q4' | 'q8' | 'fp16' | 'fp32';
+  qualityDtype?: 'q4' | 'q8' | 'fp16' | 'fp32';
+  fastDtype?: 'q4' | 'q8' | 'fp16' | 'fp32';
   /** Inject chat_template_kwargs {enable_thinking:false} per request (Qwen3 reasoning models via llama.cpp). */
   disableThinking?: boolean;
   /** Per-provider circuit breaker settings. */
@@ -156,6 +162,10 @@ export const resolveLMSettings = (file?: LMSettingsInput): LMSettings => {
     apiKeyEnv: file?.apiKeyEnv ?? cloudCredentialEnv,
     quantized: file?.quantized,
     cacheDir: file?.cacheDir,
+    offline: ['1', 'true'].includes(env('LM_OFFLINE') ?? '') || file?.offline === true,
+    dtype: (env('LM_DTYPE') as LMSettings['dtype'] | undefined) ?? file?.dtype,
+    qualityDtype: (env('LM_QUALITY_DTYPE') as LMSettings['qualityDtype'] | undefined) ?? file?.qualityDtype,
+    fastDtype: (env('LM_FAST_DTYPE') as LMSettings['fastDtype'] | undefined) ?? file?.fastDtype,
     disableThinking: ['1', 'true'].includes(env('LM_DISABLE_THINKING') ?? '') || file?.disableThinking === true,
     circuitBreaker: file?.circuitBreaker,
   };

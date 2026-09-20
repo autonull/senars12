@@ -51,6 +51,8 @@ import {
 import { errMsg } from './utils';
 import type { JudgmentResolvedEvent } from '@senars/kernel/schemas';
 import { createEmbeddingCache } from './lm/system-one/embedding-cache.js';
+import { composeModelDigest, encoderDigest } from './lm/system-one/wasi-runtime.js';
+import { createEmbeddingGenerator } from './memory/embedding.js';
 import { createManifold } from './lm/system-one/manifold.js';
 import { createDispatcher } from './lm/system-one/dispatcher.js';
 import { createGroundednessGate } from './lm/system-one/groundedness-gate.js';
@@ -863,9 +865,15 @@ export class NAR extends BaseComponent {
     };
 
     // Create embedding cache (zero-copy, pooled Float32Array)
+    const encoderConfig = systemOneConfig.manifold && !('judgeBatch' in systemOneConfig.manifold)
+      ? (systemOneConfig.manifold as SystemOneConfigSchema['manifold']).encoder
+      : undefined;
+    const encoder = createEmbeddingGenerator(false, encoderConfig);
     this._systemOneEmbeddingCache = systemOneConfig.embeddingCache ?? createEmbeddingCache({
       maxSize: 10000,
       ttlMs: 300_000,
+      dimension: encoderConfig?.dimension ?? encoder.dimension,
+      generator: encoder,
     });
 
     // Create manifold with per-head config from systemOne config
@@ -889,7 +897,10 @@ export class NAR extends BaseComponent {
 
       manifold = createManifold(this._systemOneEmbeddingCache!, {
         backendId: 'encoder-wasm-s1' as any,
-        modelDigest: 'sha256:all-MiniLM-L6-v2-heads-v1' as any,
+        modelDigest: composeModelDigest(
+          encoderDigest(encoderConfig?.modelId ?? 'Xenova/all-MiniLM-L6-v2', encoderConfig?.dimension ?? 384),
+          'all-MiniLM-L6-v2-heads-v1'
+        ) as any,
         calibrationVersion: 'v2.4.1' as any,
         perHeadConfig,
         maxBatchSize: 64,
@@ -920,6 +931,7 @@ export class NAR extends BaseComponent {
         lmService: this._lmService,
         grammar: 'narsese-term',
         temperature: 0,
+        model: systemOneConfig.cortex?.model,
       });
     } else {
       cortex = new StubCortex('off');
