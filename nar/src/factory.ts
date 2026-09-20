@@ -12,7 +12,7 @@ import {
 } from './config/cognitive-parameters';
 import { createLMService, createSeNARSRegistry, type SeNARSRegistry } from './lm';
 import type { LMService } from './lm/lm-service.js';
-import type { NARConfig } from './nar.js';
+import type { NARConfig, SystemOneConfig } from './nar.js';
 import { NAR } from './nar.js';
 import type { RLFPLearner } from './rlfp';
 import type { CoreConfig } from './types';
@@ -33,6 +33,8 @@ export interface SeNARSOptions {
   maxConcepts?: number;
   cognitiveParams?: CognitiveParameters;
   strategyRegistry?: CognitiveRegistry;
+  // System One configuration
+  systemOne?: Partial<SystemOneConfig>;
 }
 
 export interface SeNARSConfig {
@@ -96,6 +98,7 @@ export class SeNARSFactory {
       ...(options.strategyRegistry !== undefined
         ? { strategyRegistry: options.strategyRegistry }
         : {}),
+      ...(options.systemOne !== undefined ? { systemOne: options.systemOne } : {}),
       enableLMRules: options.enableLMRules ?? true,
       lmService,
       providerRegistry: registry,

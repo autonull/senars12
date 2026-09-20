@@ -65,7 +65,18 @@ export class LMRule {
   private toolDispatcher?: (tool: string, args: Record<string, unknown>) => Promise<unknown>;
   private readonly enableTools: boolean;
   private readonly constitutionAware: boolean;
-  private nar?: { checkConstitutionViolation(task: Task): boolean; getConstitution(): Task[] };
+  private nar?: { 
+    checkConstitutionViolation(task: Task): boolean; 
+    getConstitution(): Task[];
+    getSystemOneDispatcher?(): { 
+      proposeAndJudge(
+        context: any,
+        synthesisQuery: any,
+        judgmentQueries: readonly any[],
+        budget: any
+      ): Promise<any>;
+    } | undefined;
+  };
   private readonly outputSchema?: ZodSchema;
   private readonly inputSchema?: ZodSchema;
   private readonly validateFn?: (output: unknown) => ValidationResult;

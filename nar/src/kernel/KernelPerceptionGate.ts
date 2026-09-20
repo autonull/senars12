@@ -40,7 +40,7 @@ export interface KernelPerceptionGateConfig {
 }
 
 export class KernelPerceptionGate {
-  private eventLog: TaskAdmittedEvent[] = [];
+  private eventLog: CognitiveEvent[] = [];
   private config: KernelPerceptionGateConfig;
   private systemOneManifold: JudgmentManifold | null = null;
   private systemOneEmbeddingCache: EmbeddingCache | null = null;
@@ -74,11 +74,18 @@ export class KernelPerceptionGate {
         consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
       };
 
-      // Register telemetry callback on the manifold if available
+      // Register telemetry callback on the manifold if available.
+      // Chains after any existing callback (e.g., NAR's bus emitter) instead of overwriting it.
       if (this.systemOneManifold && 'setPropositionCallback' in this.systemOneManifold) {
-        (this.systemOneManifold as { setPropositionCallback: (cb: (prop: any, query: any) => void) => void }).setPropositionCallback(
-          (proposition, query) => this.emitJudgmentResolved(proposition, query)
-        );
+        const m = this.systemOneManifold as {
+          setPropositionCallback: (cb: (prop: any, query: any) => void) => void;
+          getPropositionCallback?: () => ((prop: any, query: any) => void) | undefined;
+        };
+        const previous = m.getPropositionCallback?.();
+        m.setPropositionCallback((proposition, query) => {
+          previous?.(proposition, query);
+          this.emitJudgmentResolved(proposition, query);
+        });
       }
     }
 
@@ -415,7 +422,7 @@ export class KernelPerceptionGate {
     return { admitted, rejected };
   }
 
-  getEventLog(): ReadonlyArray<TaskAdmittedEvent> {
+  getEventLog(): ReadonlyArray<CognitiveEvent> {
     return this.eventLog;
   }
 

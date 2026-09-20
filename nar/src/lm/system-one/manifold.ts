@@ -418,6 +418,11 @@ export class SystemOneManifold implements JudgmentManifold {
   setPropositionCallback(callback: ManifoldConfig['onProposition']): void {
     this.#config.onProposition = callback;
   }
+
+  /** Current telemetry callback (enables multi-consumer chaining). */
+  getPropositionCallback(): ManifoldConfig['onProposition'] {
+    return this.#config.onProposition;
+  }
 }
 
 export function createManifold(

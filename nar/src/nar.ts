@@ -26,6 +26,7 @@ import type { AttentionModel } from './strategies';
 import { SimpleAttention } from './strategies';
 import { TaskManager } from './task';
 import type { Term } from './terms';
+import type { Reflex, ActionProposal, LearningEvent } from './reflex/Reflex.js';
 import {
   containsSubterm,
   getSubject,
@@ -45,8 +46,20 @@ import {
   EventBus as NarEventBus,
   type Task,
   type TaskType,
+  createTask,
 } from './types';
 import { errMsg } from './utils';
+import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
+import type { JudgmentManifold, CognitiveDispatcher, JudgmentQuery, SynthesisQuery } from './lm/system-one/types.js';
+import type { JudgmentResolvedEvent } from '@senars/kernel/schemas';
+import { recordJudgmentMetric } from './metrics/prometheus.js';
+import { v4 as uuid } from 'uuid';
+import { createEmbeddingCache } from './lm/system-one/embedding-cache.js';
+import { createManifold } from './lm/system-one/manifold.js';
+import { createDispatcher } from './lm/system-one/dispatcher.js';
+import { createGroundednessGate } from './lm/system-one/groundedness-gate.js';
+import { ManifoldReflex } from './lm/system-one/manifold-reflex.js';
+import { EpsilonGreedyReflex } from './reflex/EpsilonGreedyReflex.js';
 
 export { MetricsCollector } from './metrics';
 
@@ -55,6 +68,48 @@ export interface RLFPConfig {
 }
 
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
+
+export interface SystemOneManifoldConfig {
+  provider?: 'off' | 'wasi' | 'webgpu' | 'http' | 'peer';
+  embeddingCacheSizeMB?: number;
+  heads?: Record<string, { modelDigest: string; calibrationVersion: string; abstainThreshold: number; enabled: boolean }>;
+  consensus?: { criticalityFloor: 'low' | 'standard' | 'high' | 'critical'; fanout: number; minAgreement: number };
+}
+
+export interface SystemOneCortexConfig {
+  provider?: 'off' | 'anthropic' | 'openai' | 'openai-compatible' | 'ollama' | 'llamacpp' | 'transformers' | 'webllm' | 'mock';
+}
+
+export interface SystemOneBudgetsConfig {
+  maxJudgmentCallsPerCycle?: number;
+  maxConsensusPerCycle?: number;
+  maxLatencyMsPerJudgment?: number;
+  maxTokensPerCycle?: number;
+  maxMemoryMbPerCycle?: number;
+}
+
+export interface SystemOneProvisionalConfig {
+  cInitial?: number;
+  decayRate?: number;
+  maxTtlMs?: number;
+}
+
+export interface SystemOneDistillationConfig {
+  datasetPath?: string;
+  bakeOffSamplingRate?: number;
+  driftEceBound?: number;
+}
+
+export interface SystemOneConfig {
+  enabled: boolean;
+  manifold?: SystemOneManifoldConfig | JudgmentManifold;
+  cortex?: SystemOneCortexConfig;
+  budgets?: SystemOneBudgetsConfig;
+  provisional?: SystemOneProvisionalConfig;
+  distillation?: SystemOneDistillationConfig;
+  embeddingCache?: EmbeddingCache;
+  reasoningBudget?: ReasoningBudget;
+}
 
 export interface NARConfig extends CoreConfig {
   lmService?: LMService;
@@ -74,6 +129,8 @@ export interface NARConfig extends CoreConfig {
   strategyRegistry?: CognitiveRegistry;
   adaptationInterval?: number;
   feedbackObserver?: ToolFeedbackObserver;
+
+  systemOne?: Partial<SystemOneConfig>;
 }
 
 export class NAR extends BaseComponent {
@@ -102,6 +159,12 @@ export class NAR extends BaseComponent {
   private _lmInitialized = false;
   private _toolsInitialized = false;
   private _constitution: Task[] = [];
+
+  // System One components
+  private _systemOneEmbeddingCache?: EmbeddingCache;
+  private _systemOneManifold?: JudgmentManifold;
+  private _systemOneDispatcher?: CognitiveDispatcher;
+  private _systemOneGroundednessGate?: (narration: string) => Promise<boolean>;
 
   constructor(config: NARConfig & { eventBus?: NarEventBus } = DEFAULT_CONFIG) {
     const eventBus = config.eventBus ?? new NarEventBus();
@@ -176,6 +239,9 @@ export class NAR extends BaseComponent {
       this.config.enableProactiveEnrichment
     );
     this._metricsCollector = metrics;
+
+    // System One initialization (behind config flag; disabled by default)
+    this.initializeSystemOne();
 
     this.initializeOptionalFeatures();
   }
@@ -314,6 +380,93 @@ export class NAR extends BaseComponent {
 
   getEventBus(): NarEventBus {
     return this.systemEventBus;
+  }
+
+  /** Get System One dispatcher (for proposeAndJudge, judge, synthesize). */
+  getSystemOneDispatcher(): CognitiveDispatcher | undefined {
+    return this._systemOneDispatcher;
+  }
+
+  /** Get System One manifold (for direct judgment access). */
+  getSystemOneManifold(): JudgmentManifold | undefined {
+    return this._systemOneManifold;
+  }
+
+  /** Get System One embedding cache (for zero-copy embeddings). */
+  getSystemOneEmbeddingCache(): EmbeddingCache | undefined {
+    return this._systemOneEmbeddingCache;
+  }
+
+  /** Get System One groundedness gate (for egress filtering). */
+  getSystemOneGroundednessGate(): ((narration: string) => Promise<boolean>) | undefined {
+    return this._systemOneGroundednessGate;
+  }
+
+  /** Check if System One is enabled and initialized. */
+  isSystemOneEnabled(): boolean {
+    return this._systemOneDispatcher !== undefined;
+  }
+
+  /** Emit a judgment.resolved kernel event + Prometheus metric for a resolved proposition. */
+  private emitJudgmentResolved(proposition: any): void {
+    try {
+      const event: JudgmentResolvedEvent = {
+        type: 'judgment.resolved',
+        engine: 'proposer',
+        timestamp: Date.now(),
+        correlationId: uuid(),
+        payload: {
+          queryId: proposition.queryId,
+          shape: proposition.kind,
+          axis: proposition.axis,
+          backendId: proposition.backendId,
+          tier: proposition.tier,
+          latencyMs: proposition.latencyMs,
+          entropy: proposition.kind === 'classify' ? proposition.entropy : undefined,
+          abstained: proposition.abstained,
+          stampType: proposition.abstained ? 'provisional' : 'standard',
+          calibrationVersion: proposition.calibration.version,
+          cost: proposition.cost,
+        },
+      };
+      this.systemEventBus.emit('judgment.resolved', event);
+      recordJudgmentMetric(
+        proposition.axis,
+        proposition.kind,
+        proposition.tier,
+        proposition.abstained,
+        proposition.latencyMs
+      );
+    } catch (e) {
+      this.logger?.warn('judgment.resolved emission failed', { error: errMsg(e) });
+    }
+  }
+
+  /**
+   * Create and bind a ManifoldReflex to a GameFocus.
+   * This enables semantic reflex proposals from the Judgment Manifold
+   * instead of (or in addition to) the incumbent bandit/Q-learning reflexes.
+   * Returns the created reflex for external management, or undefined if System One is disabled.
+   */
+  attachManifoldReflex(gameFocus: { bindReflex: (reflex: Reflex) => void }): Reflex | undefined {
+    if (!this.isSystemOneEnabled() || !this._systemOneManifold || !this._systemOneEmbeddingCache) {
+      return undefined;
+    }
+
+    // Create incumbent reflex as fallback
+    const incumbentReflex = new EpsilonGreedyReflex('incumbent', { numArms: 10, epsilon: 0.1 });
+
+    // Create ManifoldReflex with incumbent fallback
+    const manifoldReflex = new ManifoldReflex(incumbentReflex);
+
+    // Bind to the GameFocus
+    gameFocus.bindReflex(manifoldReflex);
+
+    // Store reference for later prefetch calls (e.g., from the tick cycle)
+    // The GameFocus step method would need to call manifoldReflex.prefetch() at the attend stage
+
+    this.logger?.info('ManifoldReflex attached to GameFocus');
+    return manifoldReflex;
   }
 
   getMetricsCollector(): MetricsCollector {
@@ -701,6 +854,92 @@ export class NAR extends BaseComponent {
     }
   }
 
+  /** Initialize System One components behind config flag. Disabled by default for byte-identical baseline behavior. */
+  private initializeSystemOne(): void {
+    const systemOneConfig = this.config.systemOne;
+    if (!systemOneConfig?.enabled) {
+      return;
+    }
+
+    const reasoningBudget: ReasoningBudget = systemOneConfig.reasoningBudget ?? {
+      maxCycles: 100,
+      maxDepth: 10,
+      maxMemoryOps: 1000,
+      maxLMCalls: 5,
+      consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+    };
+
+    // Create embedding cache (zero-copy, pooled Float32Array)
+    this._systemOneEmbeddingCache = systemOneConfig.embeddingCache ?? createEmbeddingCache({
+      maxSize: 10000,
+      ttlMs: 300_000,
+    });
+
+    // Create manifold with per-head config from systemOne config
+    let manifold: JudgmentManifold;
+    if (systemOneConfig.manifold && 'judgeBatch' in systemOneConfig.manifold) {
+      // Pre-built manifold provided
+      manifold = systemOneConfig.manifold as JudgmentManifold;
+    } else {
+      const manifoldConfig = (systemOneConfig.manifold as SystemOneManifoldConfig) ?? {};
+      const perHeadConfig: Record<string, any> = {};
+      if (manifoldConfig.heads) {
+        for (const [key, headConfig] of Object.entries(manifoldConfig.heads)) {
+          perHeadConfig[key] = {
+            modelDigest: headConfig.modelDigest,
+            calibrationVersion: headConfig.calibrationVersion,
+            abstainThreshold: headConfig.abstainThreshold,
+            enabled: headConfig.enabled,
+          };
+        }
+      }
+
+      manifold = createManifold(this._systemOneEmbeddingCache!, {
+        backendId: 'encoder-wasm-s1' as any,
+        modelDigest: 'sha256:all-MiniLM-L6-v2-heads-v1' as any,
+        calibrationVersion: 'v2.4.1' as any,
+        perHeadConfig,
+        maxBatchSize: 64,
+        maxLatencyMs: 33,
+        abstainThreshold: 0.3,
+      });
+    }
+
+    this._systemOneManifold = manifold;
+
+    // Emit judgment.resolved telemetry from the real Tier 1 manifold
+    if ('setPropositionCallback' in manifold) {
+      (manifold as { setPropositionCallback: (cb: (proposition: any) => void) => void }).setPropositionCallback(
+        (proposition) => {
+          this.emitJudgmentResolved(proposition);
+        }
+      );
+    }
+
+    // Create dispatcher with all four tiers (real manifold as Tier 1)
+    this._systemOneDispatcher = createDispatcher(true, {
+      embeddingCache: this._systemOneEmbeddingCache!,
+      tier1Manifold: manifold,
+      provisional: {
+        cInitial: systemOneConfig.provisional?.cInitial ?? 0.1,
+        decayRate: systemOneConfig.provisional?.decayRate ?? 0.3,
+        maxTtlMs: systemOneConfig.provisional?.maxTtlMs ?? 30_000,
+      },
+    });
+
+    // Create groundedness gate for egress filtering
+    this._systemOneGroundednessGate = createGroundednessGate({
+      manifold: this._systemOneManifold!,
+      embeddingCache: this._systemOneEmbeddingCache!,
+      threshold: 0.7,
+    });
+
+    this.logger?.info('System One initialized', {
+      manifold: this._systemOneManifold ? 'enabled' : 'disabled',
+      dispatcher: this._systemOneDispatcher ? 'enabled' : 'disabled',
+    });
+  }
+
   private async injectBootstrapGoals(): Promise<void> {
     const tasks = createBootstrapTasks();
     for (const task of tasks) {
@@ -727,12 +966,84 @@ export class NAR extends BaseComponent {
       return this.executeTool(tool, args);
     };
 
+    // Get System One dispatcher if available
+    const systemOneDispatcher = this.getSystemOneDispatcher();
+
     for (const rule of lmRules) {
       if (structuredModel) rule.setStructuredModel(structuredModel);
       rule.setSystemEventBus(this.systemEventBus);
       rule.setEventBus(this.systemEventBus);
       rule.setNAR(this);
       rule.setToolDispatcher(toolDispatcher);
+
+      // For the translation rule, use System One proposeAndJudge when available
+      if (rule.id === 'lm-narsese-translation' && systemOneDispatcher) {
+        const originalApply = rule.apply.bind(rule);
+        // Wrap the apply method to use dispatcher for generate-then-judge
+        (rule as any).apply = async (
+          primary: Term,
+          secondary?: Term,
+          context?: Record<string, unknown>,
+          signal?: AbortSignal
+        ): Promise<Task[]> => {
+          // Use System One generate-then-judge for translation
+          const dispatcher = this.getSystemOneDispatcher();
+          if (!dispatcher) {
+            return originalApply(primary, secondary, context, signal);
+          }
+
+          try {
+            const contextStr = primary.toString();
+            const cognitiveContext = {
+              tickId: `cycle-${this.getCycleCount()}`,
+              topBeliefs: [contextStr],
+              topGoals: context?.activeGoals as string[] ?? [],
+              workingMemory: context?.recentDerivations as string[] ?? [],
+            };
+            const synthesisQuery = {
+              kind: 'synthesize' as const,
+              instruction: `Translate to Narsese: ${contextStr}`,
+              grammar: 'narsese-term',
+              maxCandidates: 3,
+            };
+            const judgmentQueries = [
+              { kind: 'classify' as const, instruction: 'Select best Narsese candidate', space: [], axis: 'teleological' as const, criticality: 'standard' as const },
+              { kind: 'evaluate' as const, instruction: 'Evaluate conflict with current beliefs', rubric: 'conflict' as const, axis: 'epistemic' as const, criticality: 'standard' as const },
+            ];
+            const budget: ReasoningBudget = {
+              maxCycles: 100,
+              maxDepth: 10,
+              maxMemoryOps: 1000,
+              maxLMCalls: 5,
+              consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+            };
+
+            const peaResult = await dispatcher.proposeAndJudge(cognitiveContext, synthesisQuery, judgmentQueries, budget);
+
+            // Convert admitted candidates to tasks
+            const tasks: Task[] = [];
+            for (const admitted of peaResult.admitted) {
+              const parsed = termParser.parse(admitted.candidate);
+              if (parsed) {
+                tasks.push(createTask(parsed, 'belief', admitted.truth, { priority: admitted.truth.c, durability: 0.8, quality: 0.9, cycles: 10, depth: 5 }));
+              }
+            }
+            for (const provisional of peaResult.provisional) {
+              const parsed = termParser.parse(provisional.candidate);
+              if (parsed) {
+                tasks.push(createTask(parsed, 'belief', provisional.provisional.confidence(Date.now()) > 0 ? Truth.create(0.5, provisional.provisional.confidence(Date.now())) : Truth.NEUTRAL, { priority: 0.1, durability: 0.5, quality: 0.5, cycles: 5, depth: 3 }));
+              }
+            }
+
+            this.logger?.debug('System One translation', { candidates: peaResult.candidates.length, admitted: tasks.length });
+            return tasks;
+          } catch (e) {
+            this.logger?.warn('System One translation failed, falling back to LM', { error: errMsg(e) });
+            return originalApply(primary, secondary, context, signal);
+          }
+        };
+      }
+
       this.processor.registerLMRule(rule);
     }
     this._lmInitialized = true;

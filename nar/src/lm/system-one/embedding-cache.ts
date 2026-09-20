@@ -20,6 +20,8 @@ function allocateBuffer(): Float32Array {
 export interface EmbeddingCacheConfig {
   maxSize: number;
   ttlMs: number;
+  /** Optional generator override (deterministic fake for tests, remote encoder, etc.). */
+  generator?: { generate(text: string): Promise<number[]> };
 }
 
 interface CacheEntry {
@@ -30,7 +32,7 @@ interface CacheEntry {
 }
 
 export class EmbeddingCache {
-  #generator: TransformersEmbeddingGenerator;
+  #generator: TransformersEmbeddingGenerator | NonNullable<EmbeddingCacheConfig['generator']>;
   #config: EmbeddingCacheConfig;
   #cache = new Map<string, CacheEntry>();
   #lru = new Map<string, number>();
@@ -42,7 +44,7 @@ export class EmbeddingCache {
       maxSize: config.maxSize ?? 10000,
       ttlMs: config.ttlMs ?? 300_000,
     };
-    this.#generator = new TransformersEmbeddingGenerator(this.#config.maxSize);
+    this.#generator = config.generator ?? new TransformersEmbeddingGenerator(this.#config.maxSize);
   }
 
   async write(text: string): Promise<EmbeddingPointer> {
@@ -149,7 +151,7 @@ export class EmbeddingCache {
     }
   }
 
-  get generator(): TransformersEmbeddingGenerator {
+  get generator(): TransformersEmbeddingGenerator | NonNullable<EmbeddingCacheConfig['generator']> {
     return this.#generator;
   }
 

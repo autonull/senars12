@@ -213,6 +213,8 @@ export class Tier3SymbolicManifold implements JudgmentManifold {
  */
 export interface DispatcherOptions {
   embeddingCache?: EmbeddingCache;
+  /** Real Tier 1 manifold; defaults to a deterministic stub when omitted. */
+  tier1Manifold?: JudgmentManifold;
   provisional?: { cInitial: number; decayRate: number; maxTtlMs: number };
 }
 
@@ -447,7 +449,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
 
 export function createDispatcher(enabled = false, options: DispatcherOptions = {}): CognitiveDispatcher {
   const tier0 = new DeterministicManifold();
-  const tier1 = enabled ? new DeterministicManifold() : null; // Phase 0: Tier 1 not yet implemented
+  const tier1 = enabled ? options.tier1Manifold ?? new DeterministicManifold() : null;
   const tier3 = new Tier3SymbolicManifold();
   const cortex = new StubCortex('off');
   return new SystemOneDispatcher(tier0, tier1, tier3, cortex, enabled, options);
