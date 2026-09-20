@@ -991,10 +991,10 @@ All five original phases are complete; every §13 benchmark has a passing test s
 ### Phase 6 — Refinements of Completed Work (R)
 
 **R1. Untrained-head policy (replaces `Math.random()` placeholders).**
-`heads/{action,memory,synthesis}.ts` (7 heads: `tool_dispatch`, `risk`, `feasibility`, `strategy`, `reflex_value`, `candidate_select`, `conflict`) score via `Math.random()`, so — with `systemOne.enabled` — abstention, ranking, and transduction decisions are driven by random numbers in production. Ingress heads are already deterministic (`computeTaskTypeScore`-style embedding/instruction hashes). Required behavior:
-- Replace each placeholder with the deterministic embedding+instruction hash scorer (`DefaultJudgmentHead.computeRawScore` pattern) so untrained heads are reproducible and testable, OR
-- Gate them to **always-abstain** (source of a downstream `ProvisionalStamp`, never a calibrated admission) until a distilled `ModelDigest` is configured for that head in `systemOne.manifold.heads`.
-Acceptance: no `Math.random()` in any head; Bench 5/11 suites pass deterministically (remove the "tolerate abstain→fallback" caveats); running the same input twice yields identical propositions.
+`heads/{action,memory,synthesis}.ts` (7 heads: `tool_dispatch`, `risk`, `feasibility`, `strategy`, `reflex_value`, `candidate_select`, `conflict`) score via `Math.random()`, so — with `systemOne.enabled` — abstention, ranking, and transduction decisions are driven by random numbers in production. Ingress heads are already deterministic (`computeTaskTypeScore`-style embedding+instruction hashes via `DefaultJudgmentHead.computeRawScore`). Required behavior:
+- **Mandatory**: replace each placeholder with the **canonical deterministic hash scorer** (`DefaultJudgmentHead.computeRawScore` pattern) so untrained heads are reproducible, testable, and consistent with ingress heads. The "always-abstain" gate is a fallback only when a head has no configured `ModelDigest` at all (not when weights are untrained).
+- Remove the "tolerate abstain→fallback" test caveats introduced by the random placeholders.
+Acceptance: no `Math.random()` in any head; Bench 5/11 suites pass deterministically; running the same input twice yields identical propositions; all heads share the same `computeRawScore` implementation (DRY).
 
 **R2. Telemetry emission wiring.**
 `judgment.resolved` (schema validated in `todo16-fallback.test.ts`) and `recordJudgmentMetric` are never invoked by production code. Wire into `SystemOneManifold.judgeBatch` (one event + one metric per proposition) via an injected emit/callback so the manifold stays framework-agnostic. Acceptance: a test asserting proposition count == event count == metric delta for a batch; no event when `systemOne.enabled=false`.
@@ -1017,6 +1017,9 @@ The injection fail-closed path currently works *accidentally*: a Tier 1 abstain 
 **R8. `JudgmentDataset` file persistence.**
 The dataset is memory-only; §9.2 specifies append-only JSONL. Add `flush(path)` (append mode) + `load(path)` to `JudgmentDataset`, and have the bake-off script read from disk end-to-end (already does). Acceptance: record → flush → load round-trips labels identically; file contains no raw text (existing redaction tests still pass).
 
+**R9. Per-tier SLO contract tests (§4 table).**
+The plan documents latency SLOs per tier (Tier 0 p99<5ms, Tier 1 p99≤33ms, Tier 2 p99<10s, Tier 3 p99<100ms) but no test asserts these. Add a test file `todo16-slo.test.ts` that constructs each tier manifold and verifies the p99 budget under load (using existing deterministic/symbolic manifolds for T0/T3, a timed mock for T1). Acceptance: `pnpm vitest run tests/nar/todo16-slo.test.ts` passes; any future manifold implementation must satisfy the SLO contract.
+
 ### Phase 7 — Live Integration & Measurement (N)
 
 **N1. NAR/agent assembly wiring.**
@@ -1034,6 +1037,9 @@ Pre-existing failure (SeNARS 0.018 vs baseline 0.708, verified identical on clea
 **N5. External distillation runner spec.**
 Freeze the `DistillationLabel` JSONL schema (already serialized), document the LoRA/head fine-tune contract (input: `dataset.jsonl`; output: head bundle + `ModelDigest`; publish via `loadHeadRuntime`), and add a `.github` workflow stub or `scripts/README` describing the CI contract. The runtime stays propose-only; this work is documentation + schema pinning, not model training.
 
+**N6. Full enabled-path integration test.**
+`systemOne.enabled` defaults to `false` and no integration test exercises the complete enabled flow (because Tier 2 is stubbed). Add a test `todo16-enabled-path.test.ts` that: (a) enables systemOne with a real `LMService` (mock provider), (b) wires `groundednessGate` factory, (c) feeds an utterance through the agent cycle, (d) asserts `judgment.resolved` events, `systemone_*` metrics, groundedness gating, and transduction → tool dispatch. This test will fail until R1–R8 land; it serves as the "honesty gate" for the enabled path. Acceptance: test passes with a mock provider once all R items are complete.
+
 ### Phase 8 — Hardening & Observability (H)
 
 **H1. Flaky property-based test.**
@@ -1047,6 +1053,9 @@ A test that assembles the NAR with `systemOne.manifold.provider='wasi'`, no clou
 
 **H4. Pre-existing failure backlog.**
 13 long-standing failures outside System One (revision-history ×2, bandit-epsilon-greedy ×3, cognitive-advantage ×5, trace-validation ×3) fail identically on clean HEAD across all sessions. Track separately from TODO16 — they predate this work and pollute every full-suite gate signal.
+
+**H5. 4-tier SLO regression guard in CI.**
+Once R9 lands, add the SLO test to the default CI pipeline (`pnpm vitest run tests/nar/todo16-slo.test.ts`). Any manifold regression that breaches the SLO fails the gate immediately. Acceptance: CI job fails when a Tier 1 mock exceeds 33ms p99.
 
 ### Acceptance gates (unchanged per §13)
 
