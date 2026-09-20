@@ -1,9 +1,6 @@
-import {
-  type GridAction,
-  type GridWorldEnv,
-  type GridWorldState,
-  SeededRNG,
-} from '../environments/RLEnvironments';
+import type { EpisodeGame } from '../../../../nar/src/rl/types.js';
+import type { GridAction, GridWorldState } from '../../../../nar/src/game/GridWorldEnv.js';
+import { SeededRNG } from '../../../../nar/src/game/SeededRNG.js';
 
 /**
  * Q-Learning for GridWorld
@@ -96,16 +93,18 @@ export class QLearning {
     this.totalReward = state.totalReward;
   }
 
-  runEpisode(env: GridWorldEnv, maxSteps: number = 100): number {
+  runEpisode(env: EpisodeGame<GridWorldState, GridAction>, maxSteps: number = 100): number {
     let episodeReward = 0;
-    let state = env.reset();
+    env.reset();
+    let state = env.state();
     for (let i = 0; i < maxSteps; i++) {
       const action = this.selectAction(state);
-      const { state: nextState, reward, done } = env.step(action);
-      this.update(state, action, reward, nextState, done);
+      const { reward, terminal } = env.step(action);
+      const nextState = env.state();
+      this.update(state, action, reward, nextState, terminal);
       episodeReward += reward;
       state = nextState;
-      if (done) break;
+      if (terminal) break;
     }
     return episodeReward;
   }
@@ -214,18 +213,20 @@ export class SARSA {
     this.totalReward = state.totalReward;
   }
 
-  runEpisode(env: GridWorldEnv, maxSteps: number = 100): number {
+  runEpisode(env: EpisodeGame<GridWorldState, GridAction>, maxSteps: number = 100): number {
     let episodeReward = 0;
-    let state = env.reset();
+    env.reset();
+    let state = env.state();
     let action = this.selectAction(state);
     for (let i = 0; i < maxSteps; i++) {
-      const { state: nextState, reward, done } = env.step(action);
+      const { reward, terminal } = env.step(action);
+      const nextState = env.state();
       const nextAction = this.selectAction(nextState);
-      this.update(state, action, reward, nextState, nextAction, done);
+      this.update(state, action, reward, nextState, nextAction, terminal);
       episodeReward += reward;
       state = nextState;
       action = nextAction;
-      if (done) break;
+      if (terminal) break;
     }
     return episodeReward;
   }

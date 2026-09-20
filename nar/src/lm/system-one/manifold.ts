@@ -10,6 +10,8 @@ import type {
   EmbeddingCache,
   EmbeddingPointer,
   EvaluateProposition,
+  HeadResult,
+  JudgmentHead,
   JudgmentManifold,
   JudgmentProposition,
   JudgmentQuery,
@@ -51,21 +53,6 @@ export interface ManifoldConfig {
   /** Optional callback invoked for each resolved judgment proposition.
    *  Allows consumers to emit kernel events and metrics without coupling the manifold to the event system. */
   onProposition?: (proposition: JudgmentProposition, query: JudgmentQuery) => void;
-}
-
-export interface JudgmentHead {
-  readonly rubric: RubricId | 'classify';
-  readonly axis: CognitiveAxis;
-  readonly space?: readonly string[];
-  readonly levels?: readonly string[];
-  evaluate(embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult>;
-}
-
-export interface HeadResult {
-  score: number;
-  distribution?: readonly { option: string; p: number }[];
-  abstained: boolean;
-  abstainReason?: 'low-confidence' | 'out-of-domain' | 'timeout' | 'breaker-open';
 }
 
 function entropy(distribution: readonly { option: string; p: number }[]): number {
@@ -193,7 +180,9 @@ export class SystemOneManifold implements JudgmentManifold {
         calibration: { 
           version: this.#config.calibrationVersion, 
           ece: this.#rollingECEMonitor.getRollingECE(),
-          fitted: this.#calibrators.get(query.kind === 'classify' ? 'classify' : query.rubric)?.fitted ?? false,
+          fitted:
+            head.fitted === true ||
+            (this.#calibrators.get(query.kind === 'classify' ? 'classify' : query.rubric)?.fitted ?? false),
         },
         latencyMs,
         cost: this.estimateCost(query, latencyMs),

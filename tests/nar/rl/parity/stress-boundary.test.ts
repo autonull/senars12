@@ -7,15 +7,15 @@ import {
   GoalActionAdapter,
   type QBeliefStore,
   RewardBeliefAdapter,
-} from '../adapters/adapters';
-import { BanditEnv } from '../environments/RLEnvironments';
+} from '../../../../nar/src/rl/adapters';
+import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
 
 const NUM_ARMS = 3;
 const STATE_ID = 'bandit_state';
 
 interface StressHarness {
   nar: NAR;
-  env: BanditEnv;
+  env: BanditGame;
   perception: BeliefPerceptionAdapter;
   actionAdapter: GoalActionAdapter;
   rewardAdapter: RewardBeliefAdapter;
@@ -32,7 +32,7 @@ function createStressHarness(opts: {
   maxDerivationsPerStep?: number;
   maxDerivationDepth?: number;
 }): StressHarness {
-  const env = new BanditEnv({ numArms: NUM_ARMS, armMeans: [0.2, 0.5, 0.8], seed: opts.seed });
+  const env = new BanditGame({ numArms: NUM_ARMS, armMeans: [0.2, 0.5, 0.8], seed: opts.seed });
   const nar = new NAR({
     activationDecayRate: 0.01,
     consolidationInterval: 5,
@@ -121,15 +121,15 @@ async function runBanditEpisode(
   let episodeReward = 0;
 
   for (let step = 0; step < steps; step++) {
-    h.perception.perceive({ stateId: STATE_ID, reward: 0 });
+    await h.perception.perceive({ stateId: STATE_ID, reward: 0 });
     await h.nar.run(3);
 
     const selectedAction = selectStressAction(h, lowConfidenceThreshold);
     await h.nar.tools.executeToolGoal(h.goalTerms[selectedAction]!);
-    const { reward, done } = h.env.step(selectedAction);
-    h.rewardAdapter.processReward(h.stateTerm, h.actions[selectedAction]!, reward);
+    const { reward, terminal } = h.env.step(selectedAction);
+    await h.rewardAdapter.processReward(h.stateTerm, h.actions[selectedAction]!, reward);
     episodeReward += reward;
-    if (done) break;
+    if (terminal) break;
   }
 
   return episodeReward;
@@ -250,7 +250,7 @@ describe('RL Parity - Stress and Boundary Testing', () => {
 
         // Get initial concept count after warmup
         for (let i = 0; i < 2; i++) {
-          h.perception.perceive({ stateId: STATE_ID, reward: 0 });
+          await h.perception.perceive({ stateId: STATE_ID, reward: 0 });
           await h.nar.run(1);
         }
         const beliefCountStart = h.nar.memory.getStatistics().totalConcepts;

@@ -8,10 +8,9 @@
 
 import { describe, it, expect } from 'vitest';
 import { NAR } from '@senars/nar';
-import { GridWorldEnv } from '../../../nar/src/game/GridWorldEnv.js';
-import { GridWorldNativeAgent } from './adapters/adapters.js';
+import { GridWorldGame } from '../../../nar/src/game/GridWorldGame.js';
+import { GridWorldNativeAgent } from '../../../nar/src/rl/adapters';
 import { QLearning } from './baselines/gridworld.js';
-import { GridWorldEnv as TestGridWorldEnv } from './environments/RLEnvironments';
 
 const baseGridConfig = {
   grid: ['S...', '.#..', '..#.', '...G'],
@@ -23,7 +22,7 @@ async function runWithCyclesPerStep(
   stepsPerEpisode: number = 20,
   seed: number = 0
 ): Promise<number> {
-  const env = new GridWorldEnv({ ...baseGridConfig, seed });
+  const env = new GridWorldGame({ ...baseGridConfig, seed });
   const nar = new NAR({
     enableLMRules: false,
     enableTools: true,
@@ -54,7 +53,7 @@ async function runBaseline(
   stepsPerEpisode: number = 20,
   seed: number = 0
 ): Promise<number> {
-  const env = new TestGridWorldEnv({ ...baseGridConfig, seed });
+  const env = new GridWorldGame({ ...baseGridConfig, seed });
   const baseline = new QLearning({ alpha: 0.1, gamma: 0.99, epsilon: 0.1, seed });
 
   const rewards: number[] = [];

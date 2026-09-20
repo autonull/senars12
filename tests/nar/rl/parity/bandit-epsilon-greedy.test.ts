@@ -6,9 +6,9 @@ import {
   GoalActionAdapter,
   QBeliefStore,
   RewardBeliefAdapter,
-} from '../adapters/adapters';
+} from '../../../../nar/src/rl/adapters';
 import { EpsilonGreedy } from '../baselines/bandit';
-import { BanditEnv } from '../environments/RLEnvironments';
+import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
 
 describe('RL Parity - Bandit Epsilon-Greedy', () => {
   const banditConfig = {
@@ -19,7 +19,7 @@ describe('RL Parity - Bandit Epsilon-Greedy', () => {
 
   test('Level 1: Adapter-wrapped epsilon-greedy matches direct', async () => {
     // Direct baseline
-    const env1 = new BanditEnv(banditConfig);
+    const env1 = new BanditGame(banditConfig);
     const agent1 = new EpsilonGreedy({ numArms: 3, epsilon: 0.1, seed: 123 });
 
     const directRewards: number[] = [];
@@ -30,7 +30,7 @@ describe('RL Parity - Bandit Epsilon-Greedy', () => {
     }
 
     // Adapter-wrapped baseline (simulating same behavior through NAR interface)
-    const env2 = new BanditEnv(banditConfig);
+    const env2 = new BanditGame(banditConfig);
     const nar = new NAR({
       activationDecayRate: 0.01,
       consolidationInterval: 5,
@@ -62,23 +62,23 @@ describe('RL Parity - Bandit Epsilon-Greedy', () => {
         const actionIdx = adapterAgent.selectAction();
 
         // Perceive state through NAR
-        perception.perceive({ stateId: `state:${actionIdx}`, reward: 0 });
+        await perception.perceive({ stateId: `state:${actionIdx}`, reward: 0 });
 
         // Execute action through NAR
         const goalTerm = action.buildGoalTerm({ name: `pull_arm_${actionIdx}` });
         const result = await nar.tools.executeToolGoal(goalTerm);
 
         // Step environment
-        const { reward, done } = env2.step(actionIdx);
+        const { reward, terminal } = env2.step(actionIdx);
         adapterAgent.update(actionIdx, reward);
 
         // Process reward through NAR
         const stateTerm = TermBuilder.atom(`state:${actionIdx}`);
         const actionTerm = TermBuilder.atom(`^pull_arm_${actionIdx}`);
-        rewardAdapter.processReward(stateTerm, actionTerm, reward);
+        await rewardAdapter.processReward(stateTerm, actionTerm, reward);
 
         episodeReward += reward;
-        if (done) break;
+        if (terminal) break;
       }
 
       adapterRewards.push(episodeReward);
@@ -93,7 +93,7 @@ describe('RL Parity - Bandit Epsilon-Greedy', () => {
   });
 
   test('Level 2: Native SeNARS value learning approximates epsilon-greedy', async () => {
-    const env = new BanditEnv(banditConfig);
+    const env = new BanditGame(banditConfig);
     const nar = new NAR({
       activationDecayRate: 0.01,
       consolidationInterval: 5,
@@ -133,7 +133,7 @@ describe('RL Parity - Bandit Epsilon-Greedy', () => {
 
       for (let step = 0; step < stepsPerEpisode; step++) {
         // Perceive current state (bandit has no state, just arm choices)
-        perception.perceive({ stateId: 'bandit_state', reward: 0 });
+        await perception.perceive({ stateId: 'bandit_state', reward: 0 });
 
         // Run NAR cycle to derive goals
         await nar.run(3);
@@ -160,22 +160,22 @@ describe('RL Parity - Bandit Epsilon-Greedy', () => {
         await nar.tools.executeToolGoal(goalTerm);
 
         // Environment step
-        const { reward, done } = env.step(selectedAction);
+        const { reward, terminal } = env.step(selectedAction);
 
         // Update beliefs
         const stateTerm = TermBuilder.atom('bandit_state');
         const actionTerm = TermBuilder.atom(`^pull_arm_${selectedAction}`);
-        rewardAdapter.processReward(stateTerm, actionTerm, reward);
+        await rewardAdapter.processReward(stateTerm, actionTerm, reward);
 
         episodeReward += reward;
-        if (done) break;
+        if (terminal) break;
       }
 
       nativeRewards.push(episodeReward);
     }
 
     // Compare with baseline
-    const baselineEnv = new BanditEnv(banditConfig);
+    const baselineEnv = new BanditGame(banditConfig);
     const baselineAgent = new EpsilonGreedy({ numArms: 3, epsilon: 0.1, seed: 999 });
     const baselineRewards: number[] = [];
     for (let ep = 0; ep < numEpisodes; ep++) {
@@ -208,7 +208,7 @@ describe('RL Parity - Multi-Seed Validation', () => {
 
     for (let seed = 0; seed < numSeeds; seed++) {
       // Direct baseline with this seed
-      const env1 = new BanditEnv({ ...banditConfig, seed });
+      const env1 = new BanditGame({ ...banditConfig, seed });
       const agent1 = new EpsilonGreedy({ numArms: 3, epsilon: 0.1, seed: seed + 1000 });
 
       const directRewards: number[] = [];
@@ -219,7 +219,7 @@ describe('RL Parity - Multi-Seed Validation', () => {
       const avgDirect = directRewards.reduce((a, b) => a + b, 0) / directRewards.length;
 
       // Adapter-wrapped with same seed
-      const env2 = new BanditEnv({ ...banditConfig, seed });
+      const env2 = new BanditGame({ ...banditConfig, seed });
       const nar = new NAR({
         activationDecayRate: 0.01,
         consolidationInterval: 5,
@@ -246,16 +246,16 @@ describe('RL Parity - Multi-Seed Validation', () => {
 
         for (let step = 0; step < stepsPerEpisode; step++) {
           const actionIdx = adapterAgent.selectAction();
-          perception.perceive({ stateId: `state:${actionIdx}`, reward: 0 });
+          await perception.perceive({ stateId: `state:${actionIdx}`, reward: 0 });
           const goalTerm = action.buildGoalTerm({ name: `pull_arm_${actionIdx}` });
           await nar.tools.executeToolGoal(goalTerm);
-          const { reward, done } = env2.step(actionIdx);
+          const { reward, terminal } = env2.step(actionIdx);
           adapterAgent.update(actionIdx, reward);
           const stateTerm = TermBuilder.atom(`state:${actionIdx}`);
           const actionTerm = TermBuilder.atom(`^pull_arm_${actionIdx}`);
-          rewardAdapter.processReward(stateTerm, actionTerm, reward);
+          await rewardAdapter.processReward(stateTerm, actionTerm, reward);
           episodeReward += reward;
-          if (done) break;
+          if (terminal) break;
         }
         adapterRewards.push(episodeReward);
       }
@@ -281,7 +281,7 @@ describe('RL Parity - Multi-Seed Validation', () => {
     let seedPassCount = 0;
 
     for (let seed = 0; seed < numSeeds; seed++) {
-      const env = new BanditEnv({ ...banditConfig, seed });
+      const env = new BanditGame({ ...banditConfig, seed });
       const nar = new NAR({
         activationDecayRate: 0.01,
         consolidationInterval: 5,
@@ -323,7 +323,7 @@ describe('RL Parity - Multi-Seed Validation', () => {
         let episodeReward = 0;
 
         for (let step = 0; step < stepsPerEpisode; step++) {
-          perception.perceive({ stateId: 'bandit_state', reward: 0 });
+          await perception.perceive({ stateId: 'bandit_state', reward: 0 });
           await nar.run(3);
 
           // Select action: exploit best value or explore low-confidence
@@ -358,17 +358,17 @@ describe('RL Parity - Multi-Seed Validation', () => {
 
           const goalTerm = actionAdapter.buildGoalTerm({ name: `pull_arm_${selectedAction}` });
           await nar.tools.executeToolGoal(goalTerm);
-          const { reward, done } = env.step(selectedAction);
+          const { reward, terminal } = env.step(selectedAction);
           const actionTerm = TermBuilder.atom(`^pull_arm_${selectedAction}`);
-          rewardAdapter.processReward(stateTerm, actionTerm, reward);
+          await rewardAdapter.processReward(stateTerm, actionTerm, reward);
           episodeReward += reward;
-          if (done) break;
+          if (terminal) break;
         }
         nativeRewards.push(episodeReward);
       }
 
       // Compare with baseline on same seed
-      const baselineEnv = new BanditEnv({ ...banditConfig, seed });
+      const baselineEnv = new BanditGame({ ...banditConfig, seed });
       const baselineAgent = new EpsilonGreedy({ numArms: 3, epsilon: 0.1, seed: seed + 2000 });
       const baselineRewards: number[] = [];
       for (let ep = 0; ep < episodesPerSeed; ep++) {
@@ -415,7 +415,7 @@ describe('QBeliefStore', () => {
     expect(qStore.getValue(state, action)).toBeNull();
 
     // Update value
-    qStore.updateValue(state, action, 0.8, 0.7);
+    await qStore.updateValue(state, action, 0.8, 0.7);
 
     // Retrieve
     const value = qStore.getValue(state, action);
@@ -424,7 +424,7 @@ describe('QBeliefStore', () => {
     expect(value!.c).toBeCloseTo(0.7, 1);
 
     // Second update revises
-    qStore.updateValue(state, action, 1.0, 0.9);
+    await qStore.updateValue(state, action, 1.0, 0.9);
     const revised = qStore.getValue(state, action);
     expect(revised).not.toBeNull();
     // Truth.revision should combine evidence
@@ -455,9 +455,9 @@ describe('QBeliefStore', () => {
     ];
 
     // Set different values
-    qStore.updateValue(state, actions[0]!, 0.3, 0.5); // Low value
-    qStore.updateValue(state, actions[1]!, 0.8, 0.8); // High value
-    qStore.updateValue(state, actions[2]!, 0.5, 0.6); // Medium value
+    await qStore.updateValue(state, actions[0]!, 0.3, 0.5); // Low value
+    await qStore.updateValue(state, actions[1]!, 0.8, 0.8); // High value
+    await qStore.updateValue(state, actions[2]!, 0.5, 0.6); // Medium value
 
     const best = qStore.getBestAction(state, actions);
     expect(best).toBe(actions[1]!); // Should pick move_south (highest expectation)
@@ -487,9 +487,9 @@ describe('QBeliefStore', () => {
     ];
 
     // Set high confidence for action_a
-    qStore.updateValue(state, actions[0]!, 0.8, 0.9);
+    await qStore.updateValue(state, actions[0]!, 0.8, 0.9);
     // Set low confidence for action_b
-    qStore.updateValue(state, actions[1]!, 0.5, 0.3);
+    await qStore.updateValue(state, actions[1]!, 0.5, 0.3);
     // action_c has no belief
 
     const lowConfidence = qStore.getLowConfidenceActions(state, actions, 0.5);

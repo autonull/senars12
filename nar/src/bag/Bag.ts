@@ -40,6 +40,8 @@ interface InternalEntry<T extends BagItem> {
 }
 
 export class PriorityBag<T extends BagItem> implements Bag<T> {
+  /** Increments on every structural mutation — consumers use it to invalidate derived indexes. */
+  version = 0;
   readonly capacity: number;
   private decayRate: number;
   private readonly forgetRate: number;
@@ -81,6 +83,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       this.heap.splice(idx, 0, entry);
     }
     this.totalPriority += item.priority;
+    this.version++;
     return true;
   }
 
@@ -116,6 +119,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
     if (idx >= 0) {
       this.totalPriority -= this.heap[idx]!.item.priority;
       this.heap.splice(idx, 1);
+      this.version++;
       return true;
     }
     return false;
@@ -135,6 +139,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
 
     this.heap = this.heap.filter((e) => e.item.priority > 0);
     this.totalPriority = newTotal;
+    this.version++;
   }
 
   size(): number {
@@ -187,16 +192,19 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
       case 'LowestPriority':
         this.totalPriority -= this.heap[this.heap.length - 1]!.item.priority;
         this.heap.pop();
+        this.version++;
         break;
       case 'LRU':
         this.heap.sort((a, b) => b.lastAccessedAt - a.lastAccessedAt);
         this.totalPriority -= this.heap[this.heap.length - 1]!.item.priority;
         this.heap.pop();
+        this.version++;
         break;
       case 'Random': {
         const idx = Math.floor(Math.random() * this.heap.length);
         this.totalPriority -= this.heap[idx]!.item.priority;
         this.heap.splice(idx, 1);
+        this.version++;
         break;
       }
     }
@@ -234,6 +242,7 @@ export class PriorityBag<T extends BagItem> implements Bag<T> {
   clear(): void {
     this.heap = [];
     this.totalPriority = 0;
+    this.version++;
   }
 
   peek(): T | undefined {

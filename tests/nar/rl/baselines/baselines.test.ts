@@ -1,12 +1,13 @@
 import { describe, expect, test } from 'vitest';
-import { BanditEnv, GridWorldEnv } from '../environments/RLEnvironments';
+import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
+import { GridWorldGame } from '../../../../nar/src/game/GridWorldGame.js';
 import { EpsilonGreedy, UCB1 } from './bandit';
 import { QLearning, SARSA } from './gridworld';
 
 describe('Baseline RL Algorithms - Independent of SeNARS', () => {
   describe('Bandit Baselines', () => {
     test('Epsilon-Greedy solves 2-armed bandit', () => {
-      const env = new BanditEnv({
+      const env = new BanditGame({
         numArms: 2,
         armMeans: [0.3, 0.8], // Arm 1 is optimal
         seed: 42,
@@ -29,7 +30,7 @@ describe('Baseline RL Algorithms - Independent of SeNARS', () => {
     });
 
     test('UCB1 solves 2-armed bandit', () => {
-      const env = new BanditEnv({
+      const env = new BanditGame({
         numArms: 2,
         armMeans: [0.2, 0.7],
         seed: 42,
@@ -50,10 +51,10 @@ describe('Baseline RL Algorithms - Independent of SeNARS', () => {
     });
 
     test('Epsilon-Greedy is deterministic with same seed', () => {
-      const env1 = new BanditEnv({ numArms: 3, armMeans: [0.1, 0.5, 0.9], seed: 1 });
+      const env1 = new BanditGame({ numArms: 3, armMeans: [0.1, 0.5, 0.9], seed: 1 });
       const agent1 = new EpsilonGreedy({ numArms: 3, epsilon: 0.1, seed: 1 });
 
-      const env2 = new BanditEnv({ numArms: 3, armMeans: [0.1, 0.5, 0.9], seed: 1 });
+      const env2 = new BanditGame({ numArms: 3, armMeans: [0.1, 0.5, 0.9], seed: 1 });
       const agent2 = new EpsilonGreedy({ numArms: 3, epsilon: 0.1, seed: 1 });
 
       for (let i = 0; i < 50; i++) {
@@ -66,7 +67,7 @@ describe('Baseline RL Algorithms - Independent of SeNARS', () => {
     });
 
     test('Epsilon-Greedy state serialization works', () => {
-      const env = new BanditEnv({ numArms: 2, armMeans: [0.3, 0.8], seed: 42 });
+      const env = new BanditGame({ numArms: 2, armMeans: [0.3, 0.8], seed: 42 });
       const agent = new EpsilonGreedy({ numArms: 2, epsilon: 0.1, seed: 123 });
 
       agent.runEpisode(env, 50);
@@ -87,7 +88,7 @@ describe('Baseline RL Algorithms - Independent of SeNARS', () => {
     };
 
     test('Q-Learning solves deterministic GridWorld', () => {
-      const env = new GridWorldEnv(gridConfig);
+      const env = new GridWorldGame(gridConfig);
       const agent = new QLearning({
         alpha: 0.1,
         gamma: 0.99,
@@ -102,7 +103,7 @@ describe('Baseline RL Algorithms - Independent of SeNARS', () => {
 
       // Test greedy policy
       env.reset();
-      let state = env.getState();
+      let state = env.state();
       let steps = 0;
       let totalReward = 0;
       while (steps < 50) {
@@ -110,9 +111,9 @@ describe('Baseline RL Algorithms - Independent of SeNARS', () => {
         const action = qVals.indexOf(Math.max(...qVals)) as 0 | 1 | 2 | 3;
         const result = env.step(action);
         totalReward += result.reward;
-        state = result.state;
+        state = env.state();
         steps++;
-        if (result.done) break;
+        if (result.terminal) break;
       }
 
       // Should reach goal (reward ~1)
@@ -120,7 +121,7 @@ describe('Baseline RL Algorithms - Independent of SeNARS', () => {
     });
 
     test('SARSA solves deterministic GridWorld', () => {
-      const env = new GridWorldEnv(gridConfig);
+      const env = new GridWorldGame(gridConfig);
       const agent = new SARSA({
         alpha: 0.1,
         gamma: 0.99,
@@ -133,7 +134,7 @@ describe('Baseline RL Algorithms - Independent of SeNARS', () => {
       }
 
       env.reset();
-      let state = env.getState();
+      let state = env.state();
       let steps = 0;
       let totalReward = 0;
       while (steps < 50) {
@@ -141,19 +142,19 @@ describe('Baseline RL Algorithms - Independent of SeNARS', () => {
         const action = qVals.indexOf(Math.max(...qVals)) as 0 | 1 | 2 | 3;
         const result = env.step(action);
         totalReward += result.reward;
-        state = result.state;
+        state = env.state();
         steps++;
-        if (result.done) break;
+        if (result.terminal) break;
       }
 
       expect(totalReward).toBeGreaterThan(0.5);
     });
 
     test('Q-Learning is deterministic with same seed', () => {
-      const env1 = new GridWorldEnv(gridConfig);
+      const env1 = new GridWorldGame(gridConfig);
       const agent1 = new QLearning({ alpha: 0.1, gamma: 0.99, epsilon: 0.1, seed: 42 });
 
-      const env2 = new GridWorldEnv(gridConfig);
+      const env2 = new GridWorldGame(gridConfig);
       const agent2 = new QLearning({ alpha: 0.1, gamma: 0.99, epsilon: 0.1, seed: 42 });
 
       for (let ep = 0; ep < 20; ep++) {
@@ -166,7 +167,7 @@ describe('Baseline RL Algorithms - Independent of SeNARS', () => {
     });
 
     test('Q-Learning state serialization works', () => {
-      const env = new GridWorldEnv(gridConfig);
+      const env = new GridWorldGame(gridConfig);
       const agent = new QLearning({ alpha: 0.1, gamma: 0.99, epsilon: 0.1, seed: 123 });
 
       agent.runEpisode(env, 30);

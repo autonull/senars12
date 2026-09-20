@@ -5,9 +5,9 @@ import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
-} from '../adapters/adapters';
+} from '../../../../nar/src/rl/adapters';
 import { QLearning } from '../baselines/gridworld';
-import { GridWorldEnv } from '../environments/RLEnvironments';
+import { GridWorldGame } from '../../../../nar/src/game/GridWorldGame.js';
 
 describe('RL Parity - GridWorld Q-Learning', () => {
   const gridConfig = {
@@ -15,8 +15,8 @@ describe('RL Parity - GridWorld Q-Learning', () => {
     seed: 42,
   };
 
-  test('Level 1: Q-Learning baseline solves GridWorld', () => {
-    const env = new GridWorldEnv(gridConfig);
+  test('Level 1: Q-Learning baseline solves GridWorld', async () => {
+    const env = new GridWorldGame(gridConfig);
     const agent = new QLearning({
       alpha: 0.1,
       gamma: 0.99,
@@ -31,7 +31,7 @@ describe('RL Parity - GridWorld Q-Learning', () => {
 
     // Test greedy policy
     env.reset();
-    let state = env.getState();
+    let state = env.state();
     let steps = 0;
     let totalReward = 0;
     while (steps < 50) {
@@ -39,9 +39,9 @@ describe('RL Parity - GridWorld Q-Learning', () => {
       const action = qVals.indexOf(Math.max(...qVals)) as 0 | 1 | 2 | 3;
       const result = env.step(action);
       totalReward += result.reward;
-      state = result.state;
+      state = env.state();
       steps++;
-      if (result.done) break;
+      if (result.terminal) break;
     }
 
     // Should reach goal
@@ -49,7 +49,7 @@ describe('RL Parity - GridWorld Q-Learning', () => {
   });
 
   test('Level 2: Native SeNARS can learn GridWorld values (smoke test)', async () => {
-    const env = new GridWorldEnv(gridConfig);
+    const env = new GridWorldGame(gridConfig);
     const nar = new NAR({
       activationDecayRate: 0.01,
       consolidationInterval: 5,
@@ -91,17 +91,17 @@ describe('RL Parity - GridWorld Q-Learning', () => {
       env.reset();
 
       for (let step = 0; step < maxSteps; step++) {
-        const state = env.getState();
+        const state = env.state();
         const stateId = `s_${state.row}_${state.col}`;
 
         // Perceive state
-        perception.perceive({ stateId });
+        await perception.perceive({ stateId });
 
         // Run NAR (minimal)
         await nar.run(1);
 
         // Execute a simple move
-        const action = step % 4;
+        const action = step % 4 as 0 | 1 | 2 | 3;
         const goalTerm = actionAdapter.buildGoalTerm({
           name: `move_${['up', 'right', 'down', 'left'][action]}`,
         });
@@ -113,9 +113,9 @@ describe('RL Parity - GridWorld Q-Learning', () => {
         // Reward belief
         const stateTerm = TermBuilder.atom(stateId);
         const actionTerm = TermBuilder.atom(`^move_${['up', 'right', 'down', 'left'][action]}`);
-        rewardAdapter.processReward(stateTerm, actionTerm, result.reward);
+        await rewardAdapter.processReward(stateTerm, actionTerm, result.reward);
 
-        if (result.done) break;
+        if (result.terminal) break;
       }
     }
 

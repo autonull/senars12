@@ -18,6 +18,8 @@ export interface JudgmentHead {
   readonly axis: CognitiveAxis;
   readonly space?: readonly string[];
   readonly levels?: readonly string[];
+  /** Heads with trained weights declare fitted=true so consumers may trust scores (B5/Z2). */
+  readonly fitted?: boolean;
   evaluate(embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult>;
 }
 

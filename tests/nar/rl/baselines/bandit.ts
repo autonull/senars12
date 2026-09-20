@@ -1,4 +1,5 @@
-import { SeededRNG } from '../environments/RLEnvironments';
+import type { Game } from '../../../../nar/src/game/Game.js';
+import { SeededRNG } from '../../../../nar/src/game/SeededRNG.js';
 
 /**
  * Epsilon-Greedy Bandit Algorithm
@@ -93,14 +94,14 @@ export class EpsilonGreedy {
   }
 
   /** Run one episode on a bandit environment */
-  runEpisode(env: any, maxSteps: number = 1000): number {
+  runEpisode(env: Game<number, number>, maxSteps: number = 1000): number {
     let episodeReward = 0;
     for (let i = 0; i < maxSteps; i++) {
       const action = this.selectAction();
-      const { reward, done } = env.step(action);
+      const { reward, terminal } = env.step(action);
       this.update(action, reward);
       episodeReward += reward;
-      if (done) break;
+      if (terminal) break;
     }
     return episodeReward;
   }
@@ -206,14 +207,14 @@ export class UCB1 {
     this.rng.setState(state.rngState);
   }
 
-  runEpisode(env: any, maxSteps: number = 1000): number {
+  runEpisode(env: Game<number, number>, maxSteps: number = 1000): number {
     let episodeReward = 0;
     for (let i = 0; i < maxSteps; i++) {
       const action = this.selectAction();
-      const { reward, done } = env.step(action);
+      const { reward, terminal } = env.step(action);
       this.update(action, reward);
       episodeReward += reward;
-      if (done) break;
+      if (terminal) break;
     }
     return episodeReward;
   }

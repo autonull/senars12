@@ -127,10 +127,9 @@ export class TabularQReflex<S = unknown, A = unknown> implements Reflex<S, A> {
       if ('row' in state && 'col' in state) {
         return `${(state as any).row},${(state as any).col}`;
       }
-      // If state has stateId (Perception-like), use it
+      // If state has stateId (Perception-like), align with perceptionToKey (learn)
       if ('stateId' in state) {
-        const s = state as any;
-        return `${s.stateId}|${JSON.stringify(s.features ?? {})}`;
+        return (state as { stateId: string }).stateId;
       }
       return JSON.stringify(state);
     }

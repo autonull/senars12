@@ -85,6 +85,10 @@ export class GridWorldGame implements Game<GridWorldState, GridAction> {
     return this.env;
   }
 
+  getSlipProbability(): number {
+    return this.env.getSlipProbability();
+  }
+
   private getDistanceToGoal(state: GridWorldState): number {
     const goal = (this.env as any).goalPos;
     return Math.abs(state.row - goal.row) + Math.abs(state.col - goal.col);

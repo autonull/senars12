@@ -37,7 +37,7 @@ describe('Bench 17 — Cache Correctness at Scale', () => {
     });
   });
 
-  it('write 20k unique texts: no two live pointers share a buffer', async () => {
+  it('write 20k unique texts: no two live pointers share a buffer', { timeout: 60_000 }, async () => {
     const pointers: EmbeddingPointer[] = [];
     const texts: string[] = [];
 

@@ -1,7 +1,14 @@
 import type { ActionProposal, LearningEvent, Reflex } from '../../reflex/Reflex.js';
 import type { Perception } from '../../game/Game.js';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
+import { recordReflexOutcome } from './reflex-label-source.js';
+import type { JudgmentDataset } from './distill.js';
 import type { EmbeddingPointer, JudgmentManifold } from './types.js';
+
+/** Optional distillation wiring (C4): record reflex decisions as training labels. */
+export interface ManifoldReflexOptions {
+  dataset?: JudgmentDataset;
+}
 
 /**
  * Semantic reflex (§7.3): bridges the synchronous `Reflex.propose` contract to
@@ -14,9 +21,11 @@ export class ManifoldReflex implements Reflex<Perception, string> {
 
   #fallback: Reflex<unknown, unknown>;
   #prefetch = new Map<string, Map<string, number>>();
+  #dataset?: JudgmentDataset;
 
-  constructor(fallback: Reflex<unknown, unknown>) {
+  constructor(fallback: Reflex<unknown, unknown>, options?: ManifoldReflexOptions) {
     this.#fallback = fallback;
+    this.#dataset = options?.dataset;
   }
 
   /** Called at the attend stage of the same cycle, before propose. */
@@ -46,21 +55,23 @@ export class ManifoldReflex implements Reflex<Perception, string> {
     }
   }
 
-  /** Synchronous contract honored: reads the prefetch table. */
+  /** Synchronous contract honored: reads the prefetch table (consume-once for bounded memory). */
   propose(state: Perception, legalActions: string[]): ActionProposal[] {
     const rows = this.#prefetch.get(state.stateId);
     if (!rows) return this.#fallback.propose(state, legalActions) as ActionProposal[];
+
+    this.#prefetch.delete(state.stateId);
 
     const proposals: ActionProposal[] = [];
     const fallbackProposals =
       rows.size < legalActions.length
         ? (this.#fallback.propose(state, legalActions) as ActionProposal[])
         : [];
-    const byAction = new Map(fallbackProposals.map((p) => [p.action, p]));
+    const byAction = new Map(fallbackProposals.map((p) => [String(p.action), p]));
 
     for (const action of legalActions) {
-      const score = rows.get(action);
-      const incumbent = byAction.get(action);
+      const score = rows.get(String(action));
+      const incumbent = byAction.get(String(action));
       if (score !== undefined) {
         proposals.push({ action, value: score, confidence: score, source: this.id });
       } else if (incumbent) {
@@ -71,7 +82,16 @@ export class ManifoldReflex implements Reflex<Perception, string> {
   }
 
   learn(event: LearningEvent): void {
-    // Distillation label: (perception, action, outcome) pairs for reflex_value heads
+    // Distillation label first (C4/R5): the reflex's own decision becomes a
+    // reflex_value training row before the fallback learns.
+    if (this.#dataset) {
+      recordReflexOutcome(this.#dataset, {
+        stateDigest: event.perception?.stateId ?? 'unknown-state',
+        action: event.actionExecuted ?? event.actionProposed,
+        reward: event.reward,
+        source: this.id,
+      });
+    }
     this.#fallback.learn(event);
   }
 }

@@ -1,7 +1,11 @@
+import { SeededRNG } from './SeededRNG.js';
+
 export interface GridWorldConfig {
   grid: string[];
   seed: number;
   maxSteps?: number;
+  /** Probability of executing a random action instead of the requested one. */
+  slipProbability?: number;
 }
 
 export type GridAction = 0 | 1 | 2 | 3;
@@ -9,23 +13,6 @@ export type GridAction = 0 | 1 | 2 | 3;
 export interface GridWorldState {
   row: number;
   col: number;
-}
-
-export class SeededRNG {
-  private state: number;
-
-  constructor(seed: number = 1) {
-    this.state = seed >>> 0;
-  }
-
-  next(): number {
-    this.state = (this.state * 1664525 + 1013904223) >>> 0;
-    return this.state / 4294967296;
-  }
-
-  nextInt(max: number): number {
-    return Math.floor(this.next() * max);
-  }
 }
 
 export class GridWorldEnv {
@@ -38,10 +25,12 @@ export class GridWorldEnv {
   currentPos: GridWorldState;
   private stepCount = 0;
   readonly maxSteps: number;
+  readonly slipProbability: number;
   readonly walls: Set<string>;
 
   constructor(config: GridWorldConfig) {
     this.rng = new SeededRNG(config.seed);
+    this.slipProbability = config.slipProbability ?? 0;
     this.grid = config.grid.map((row) => row.split(''));
     this.rows = this.grid.length;
     this.cols = this.grid[0]!.length;
@@ -75,11 +64,16 @@ export class GridWorldEnv {
 
   step(action: GridAction): { state: GridWorldState; reward: number; done: boolean } {
     this.stepCount++;
+    // Guard the RNG stream when slipProbability is 0 so determinism is preserved
+    let effectiveAction = action;
+    if (this.slipProbability > 0 && this.rng.next() < this.slipProbability) {
+      effectiveAction = this.rng.nextInt(4) as GridAction;
+    }
     const { row, col } = this.currentPos;
     let newRow = row;
     let newCol = col;
 
-    switch (action) {
+    switch (effectiveAction) {
       case 0:
         newRow = Math.max(0, row - 1);
         break;
@@ -107,6 +101,10 @@ export class GridWorldEnv {
 
   getState(): GridWorldState {
     return { ...this.currentPos };
+  }
+
+  getSlipProbability(): number {
+    return this.slipProbability;
   }
 
   getNumActions(): number {

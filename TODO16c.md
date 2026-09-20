@@ -101,7 +101,7 @@ Test naming per repo convention (`tests/nar/todo16c-*.test.ts`). No mocks for ke
 | 17 | **Cache Correctness at Scale** | `todo16c-cache.test.ts` | Write 20k unique texts (> pool size): no two live pointers share a buffer (read-verify distinct embeddings); `read()` O(1) (no scan — assert via pointer→entry index); 10k reads < 50 ms; evicted buffers recycled without aliasing. |
 | 18 | **Semantic Reflex Activation** | `todo16c-reflex-activation.test.ts` | `GameFocus` episode: warm prefetch table ⇒ ManifoldReflex proposals carry `source: 'manifold-reflex'` and differ from incumbent's; cold table ⇒ proposals identical to incumbent (exact fallback); zero `prefetch` calls after propose (sync contract honored). |
 | 19 | **RL Parity Restoration** | `todo16c-rl-parity.test.ts` | Promoted `nar/src/rl/` passes the 11 currently-failing adapter tests (bandit-epsilon-greedy ×3, cognitive-advantage ×5, trace-validation ×3 equivalents) against current memory APIs; `QBeliefStore.updateValueQLearning` round-trips through `Truth.revision` bounds. |
-| 20 | **System One RL Harness (no NAR)** | `todo16c-rl-manifold.test.ts` | `ManifoldRLAgent` on `GridWorldEnv` using ONLY `EmbeddingCache` + `JudgmentManifold` + `ManifoldReflex` + `JudgmentDataset` (no NAR, no RuleProcessor): the **plumbing** is proven by a registered oracle head (tabular values distilled from the baseline Q-learner via `registerHead`) beating random over 50 episodes; untrained hash heads must NOT regress below random (mask/floor pass-through while `calibration.fitted === false`); reward labels recorded hash-only + vector sidecar. "Learned heads beat random" is Bench 21's obligation (post-D1). |
+| 20 | **System One RL Harness (no NAR)** | `todo16c-rl-manifold.test.ts` | `ManifoldRLAgent` on `GridWorldGame` using ONLY `EmbeddingCache` + `JudgmentManifold` + `ManifoldReflex` + `JudgmentDataset` (no NAR, no RuleProcessor): the **plumbing** is proven by a registered oracle head (tabular values distilled from the baseline Q-learner via `registerHead`) beating random over 50 episodes; untrained hash heads must NOT regress below random (mask/floor pass-through while `calibration.fitted === false`); reward labels recorded hash-only + vector sidecar. "Learned heads beat random" is Bench 21's obligation (post-D1). |
 | 21 | **Reflex-Value Distillation Loop** | `todo16c-rl-distill.test.ts` | Play N episodes → dataset → fit `reflex_value` head (D1 trainer) → digest-pinned head swap → bake-off parity within 2% of tabular-Q value correlation on the same grid; the trained agent also beats its own untrained-regime baseline and random (the learned-heads obligation deferred from Bench 20). |
 | 22 | **Calibration from Labels** | `todo16c-calibration.test.ts` | Fit isotonic calibrators from `JudgmentDataset` with real observed outcomes: ECE on held-out cases < self-supervised baseline; per-head abstain thresholds fitted (jevcal pattern) produce `calibration-lock.json` with digest; `validateHeadCandidate` accepts the lock-pinned head. |
 | 23 | **Jev Patterns** | `todo16c-jev.test.ts` | `ConfidenceRouter`: band mapping deterministic (≥τ_act→act, τ_review..τ_act→review, <τ_review→block) under §6.3 monotonicity (can only restrict); `compositeScore` respects declared weights and normalizes; `judgeCascade` stage-2 space derived from stage-1 top; `noul()` round-trips anchors `["false","true"]`. |
@@ -148,17 +148,18 @@ Each phase gates on `pnpm typecheck`, `pnpm lint`, `pnpm vitest run` (modulo tra
 
 ### Phase C — Reflex & Reinforcement Learning (P1) *“prove the API drives RL without NAL”*
 
-**Files:** `nar/src/rl/{index,q-belief-store,reward-belief-adapters,perception-action-adapters,parity-harness,selectors}.ts` (promoted from `tests/nar/rl/`), `nar/src/rl/manifold-rl-agent.ts` (new), `nar/src/rl/reflex-label-source.ts` (new), `nar/src/focus/GameFocus.ts`, `nar/src/nar.ts`, `tests/nar/rl/**` (re-pointed imports), `tests/nar/todo16c-reflex-activation.test.ts`, `tests/nar/todo16c-rl-manifold.test.ts`
+**Files:** `nar/src/rl/{q-belief-store,reward-belief-adapter,perception-action-adapters,parity-harness,manifold-rl-agent,reflex-label-source,types,index}.ts` (promoted/new; selectors live in `perception-action-adapters.ts`; split the provisional single `adapters.ts` when re-pointing imports), `nar/src/game/{SeededRNG,BanditGame}.ts` + `GridWorldEnv.ts`/`GridWorldGame.ts` (slipProbability — C2a Game unification), baselines stay as test fixtures under `tests/nar/rl/baselines/` (consume `Game`), `nar/src/focus/GameFocus.ts`, `nar/src/nar.ts`, `tests/nar/rl/**` (re-pointed imports), `scripts/rl-parity.ts`, `tests/nar/todo16c-reflex-activation.test.ts`, `tests/nar/todo16c-rl-manifold.test.ts`
 
 - **C1 (R1+R2).** `GameFocus.step`: before the propose loop, if a bound reflex exposes `prefetch`, call it at the attend stage with `(state.stateId, cache.write(stateDigest), legalActions, manifold, budget)` — the async gap is absorbed *before* the synchronous `propose` contract; cold-table ⇒ exact incumbent behavior (Bench 18 guarantees). Live consumers: `scripts/rl-parity.ts` (the `parity:smoke` entry — today imports adapters **from tests**, see C2) and the new `scripts/rl-manifold.ts` demo bind ManifoldReflex via `NAR.attachManifoldReflex` with manifold+budget from the existing NAR accessors.
-- **C2 (R3).** Promote the RL adapter layer to `nar/src/rl/` with JSDoc — required by `scripts/rl-parity.ts:24-33`, which currently imports `BanditNativeAgent`/`GridWorldNativeAgent`/`RewardBeliefAdapter` **from `../tests/nar/rl/adapters/adapters.js`** (a production script importing test code); fix the 11 broken adapter tests against current memory APIs (root-cause first: `getValue` null ⇒ concept lookup path changed — repair `QBeliefStore` against the live `Memory.getConcept` contract); environments + baselines move to `nar/src/rl/{environments,baselines}/` or remain test fixtures if that is cleaner (decision point DQ2).
-- **C3 (the requested demonstration).** `ManifoldRLAgent` + `scripts/rl-manifold.ts`: state → `cache.write(stateDigest)` → one joint `judgeBatch` of `reflex_value` (teleological, per-action) + `feasibility` (mask) + `risk` (safety floor); policy = ε-greedy over manifold scores with feasibility mask and risk floor; **no NAR, no RuleProcessor, no kernel gates** — only `EmbeddingCache`, `JudgmentManifold`, `ManifoldReflex`, `JudgmentDataset`. Runs on `GridWorldEnv` with the existing `SeededRNG` (Bench 20).
+- **C2 (R3).** Promote the RL adapter layer to `nar/src/rl/` with JSDoc — required by `scripts/rl-parity.ts:24-33`, which currently imports `BanditNativeAgent`/`GridWorldNativeAgent`/`RewardBeliefAdapter` **from `../tests/nar/rl/adapters/adapters.js`** (a production script importing test code); fix the 11 broken adapter tests (root cause, verified 2026-09-20: `nar.believe`/`nar.goal` are async and every adapter mutator (`QBeliefStore.updateValue*`, `RewardBeliefAdapter.processReward*`, `BeliefPerceptionAdapter.perceive`) fire-and-forgets them — reads race the writes; make mutators async and await). **Environments are abolished** (user decision 2026-09-20, supersedes DQ2 default): `Game` is the only environment interface. `BanditEnv`/`NonStationaryBanditEnv`/`StochasticGridWorldEnv` fold into `nar/src/game/` as `BanditGame` (drift = optional `drift` config, not a subclass) and `GridWorldGame` (`slipProbability` config); `SeededRNG` moves to its own `nar/src/game/SeededRNG.ts` module; `MemoryPressureEnv` is dead code (zero consumers) and is deleted; `tests/nar/rl/environments/` deleted — baselines, parity tests, and `scripts/rl-parity.ts` consume `Game` (+ an `EpisodeGame = Game & {reset}` type for episode harnesses).
+- **C3 (the requested demonstration).** `ManifoldRLAgent` + `scripts/rl-manifold.ts`: state → `cache.write(stateDigest)` → one joint `judgeBatch` of `reflex_value` (teleological, per-action) + `feasibility` (mask) + `risk` (safety floor); policy = ε-greedy over manifold scores with feasibility mask and risk floor; **no NAR, no RuleProcessor, no kernel gates** — only `EmbeddingCache`, `JudgmentManifold`, `ManifoldReflex`, `JudgmentDataset`. Runs on `GridWorldGame` with the shared `SeededRNG` (Bench 20).
 - **C4 (R4+R5).** `reflex-label-source.ts`: `recordReflexOutcome(dataset, { stateDigest, action, reward, source })` wired into (a) `GameFocus` reward processing when the winning proposal came from `source: 'manifold-reflex'`, and (b) `ManifoldRLAgent` post-step. `ManifoldReflex.learn` records the label before delegating to the fallback.
 - **C5.** `ManifoldUCBReflex`: UCB bonus over `reflex_value` scores using per-action visit counts (comparison policy for Bench 20/21; optional selection by config `systemOne.rl.policy: 'eps-greedy' | 'ucb'`).
 
 **Acceptance**
 - [ ] Bench 18 + 19 + 20 pass
-- [ ] RL adapter tests import from `@senars/nar/rl`; `tests/nar/rl/adapters/adapters.ts` deleted
+- [ ] RL adapter tests import from `nar/src/rl` (relative paths, matching existing test import convention); `tests/nar/rl/adapters/` deleted
+- [ ] Zero `Environment` classes: `tests/nar/rl/environments/` deleted; fixtures live as `Game`s in `nar/src/game/`; baselines, parity tests, and `scripts/rl-parity.ts` consume `Game`
 - [ ] Zero `prefetch`-less GameFocus steps when System One enabled (assert via spy in test)
 - [ ] `systemOne.enabled: false` game loops byte-identical
 
@@ -214,7 +215,7 @@ Each phase gates on `pnpm typecheck`, `pnpm lint`, `pnpm vitest run` (modulo tra
 | # | Question | Default proposal |
 |---|----------|------------------|
 | DQ1 | Wire System One ingress into `NARIO.input` for **raw natural language** (A3) — this changes admitted-truth provenance when enabled. Ship behind `systemOne.enabled` (already the case), or add a finer `systemOne.ingress.mode: 'gate' \| 'legacy'`? | Single existing flag; `enabled` is the gate |
-| DQ2 | RL environments/baselines: promote into `nar/src/rl/` (library) or keep under `tests/` as fixtures while adapters promote? | Promote adapters + harness; keep environments as test fixtures (they are only needed by tests/demo) |
+| DQ2 | ~~RL environments/baselines: promote into `nar/src/rl/` (library) or keep under `tests/` as fixtures while adapters promote?~~ **RESOLVED (2026-09-20, user):** `Game` is the only environment interface — no `Environment` layer exists anywhere. Bandit/stochastic/non-stationary fixtures become `Game`s in `nar/src/game/` (`BanditGame` with optional drift config; `GridWorldGame.slipProbability`); baselines stay test fixtures but consume `Game`. |
 | DQ3 | Head training: TS linear/logistic heads on frozen embeddings (in-repo, CPU, digest-pinned) vs Python external runner only (per N5 spec)? | TS for heads (Bench 21/24 runnable in CI); LoRA/backbone stays external |
 | DQ4 | Should `LMServiceCortex` route through `systemOne.cortex.provider` or reuse the global `LM_PROVIDER` chain (with `systemOne.cortex` as an override)? | Override-only: `systemOne.cortex.provider !== 'off'` ⇒ dedicated `LMService` instance from that provider |
 
@@ -312,12 +313,36 @@ New Prometheus counters (extend existing `systemone_*` family): `systemone_ingre
 - All 25 todo16 test files (169 tests) pass; typecheck and lint clean
 
 ### Phase C: Reflex & RL
-- [ ] C1 `GameFocus` prefetch-at-attend + `createAgent` binds ManifoldReflex
-- [ ] C2 promote `nar/src/rl/`; fix 11 adapter failures
-- [ ] C3 `ManifoldRLAgent` (no-NAL RL demo)
-- [ ] C4 `reflex-label-source.ts` wired into GameFocus + agent
-- [ ] C5 `ManifoldUCBReflex`
-- [ ] Bench 18 + 19 + 20
+- [x] C1 `GameFocus` prefetch-at-attend + `attachManifoldReflex` binds prefetch context
+- [x] C2 promote `nar/src/rl/`; fix 11 adapter failures (root cause: un-awaited async `nar.believe`/`nar.goal` in adapter mutators)
+- [x] C2a Environments → Games: `BanditGame` (+drift config), `GridWorldGame.slipProbability`, `SeededRNG` module in `nar/src/game/`; delete `tests/nar/rl/environments/`; baselines/tests/scripts consume `Game`
+- [x] C3 `ManifoldRLAgent` (no-NAL RL demo) + `scripts/rl-manifold.ts`
+- [x] C4 `reflex-label-source.ts` wired into ManifoldReflex.learn + agent post-step (vector sidecar `record(label, embedding?)`)
+- [x] C5 `ManifoldUCBReflex`
+- [x] C6 `Focus.getNALDerivations` index (PriorityBag.version-driven invalidation)
+- [x] C1a `ManifoldReflex` prefetch table consume-once (bounded memory)
+- [x] C2a `QBeliefStore.getAllActions` real implementation (per-state action index)
+- [x] Bench 18 + 19 + 20
+
+**Progress Notes (2026-09-20, Phase C complete):**
+- All 118 RL tests green; the 11 previously-failing adapter tests (bandit-epsilon-greedy ×3, cognitive-advantage ×5, trace-validation ×3) now pass. Full suite: 1591+ passing; only pre-existing `revision-history` ×2 remain (F1 scope); isolated full-suite runs show a small set of *load-dependent* flakes (todo16c-cache 20k-write, one cognitive-advantage/slo/e2e test) that all pass in isolation — fixed the cache test with an explicit 60 s timeout.
+- C2: `nar/src/rl/` promoted (adapters.ts + types.ts `EpisodeGame` + index.ts); `@senars/nar/rl` subpath export added to `nar/package.json` (Z3). **Note:** the planned module split (`q-belief-store.ts`, `reward-belief-adapter.ts`, …) was deferred — `adapters.ts` remains a single 1180-line module re-exported via `nar/src/rl/index.ts`. Split is mechanical if desired (G-phase or later).
+- C2a Games: `nar/src/game/SeededRNG.ts` (full API: next/nextInt/choice/getState/setState); `GridWorldConfig.slipProbability` (RNG stream guarded when 0 — zero-slip determinism preserved byte-for-byte) + `getSlipProbability()` on env & game; `BanditGame implements Game<number,number>` with optional `drift: {changeInterval, changeMagnitude}` (drift-draw-before-reward-draw matches the old `NonStationaryBanditEnv` RNG order; `driftMeans` formula identical, clamped [0,1]); `EpisodeGame = Game & {reset}` in `nar/src/rl/types.ts`. `tests/nar/rl/environments/` and `tests/nar/rl/adapters/` deleted; `environments.test.ts` replaced by `tests/nar/rl/games.test.ts` (drift + slip + determinism, serialize tests dropped as unconsumed dead code).
+- C2 adapter fixes beyond awaits: `result.done` → `result.terminal` (Game shape), `env.getState()` → `env.state()` (Game shape), parity tests now `async` with awaited mutator calls; `cognitive-advantage` direct `nar.believe` calls awaited.
+- C1: `GameFocus.setReflexPrefetchContext({manifold, embeddingCache, budget})`; at attend stage (after `focus.step`, before the propose loop) any reflex exposing `prefetch` is called with `(observation.stateId, cache.write(JSON.stringify(features)), legalActions.map(String), manifold, budget)`. `NAR.attachManifoldReflex` wires the context automatically when System One is enabled. Disabled path (no context) makes zero prefetch calls.
+- **Critical fix found by Bench 18/m35 regression:** `TabularQReflex.stateToKey` for Perception-like states returned `stateId|JSON(features)` while `learn` keyed by bare `stateId` — propose/learn key mismatch meant the Q-table never received values when GameFocus passes `game.observe()`. GameFocus now passes `game.observe()` (Perception) to `reflex.propose` and `legalActions.map(String)`; `stateToKey` aligns with `perceptionToKey` (`stateId` only). All focus-game-reflex suites green.
+- C4: `JudgmentDataset.record(label, embedding?)` + `recordVector`/`getVector`/`flushVectors()` (Z1 sidecar: `<evidenceId>.f32`, 384 floats); `recordReflexOutcome(dataset, {stateDigest, action, reward, source, embedding?})`; `ManifoldReflex(fallback, {dataset?})` records its own decisions before delegating; `ManifoldRLAgent` records with the state embedding.
+- C3/Z2: `ManifoldRLAgent` issues one joint judgeBatch per decision (reflex_value + feasibility + risk, per action); **mask/floor engage only when the head's proposition reports `calibration.fitted === true`**, and unfitted `reflex_value` heads are not load-bearing (uniform exploration) — the untrained agent is random-equivalent by construction. `JudgmentHead` gained `fitted?: boolean` (both types.ts and the now-deduplicated manifold.ts copy — **JudgmentHead/HeadResult duplicated definitions collapsed into types.ts**, re-imported by manifold.ts); registered heads declare `fitted: true` to be trusted. The oracle head (Bench 20) is a nearest-centroid over per-cell state-digest embeddings returning distilled Q values.
+- Bench 18 (todo16c-reflex-activation.test.ts, 5 tests) and Bench 20 (todo16c-rl-manifold.test.ts, 2 tests) pass. Bench 19's obligation is carried by the restored parity suites themselves (bandit-epsilon-greedy, cognitive-advantage, trace-validation, stress-boundary, nonstationary-revision, gridworld-qlearning + games.test.ts) — a separate `todo16c-rl-parity.test.ts` alias file was **not** created; add one only if CI needs a stable file name (F8).
+- Full-suite load flake (not a regression): one cognitive-advantage test times out at 15 s under parallel load but passes in isolation; if F8 adds a CI benches job, run RL parity files in a separate worker pool or raise their timeouts.
+
+**Remaining Phase C polish (optional, non-blocking):**
+- Split `nar/src/rl/adapters.ts` into the planned module layout (mechanical re-export shuffling).
+- Wire `ActionGateTransducer` risk gating into GameFocus action execution (R6; folded into E1's ConfidenceRouter work).
+- `systemOne.rl` config section (policy/epsilon/ucbC/feasibilityMask/riskFloor/labelOutcomes) is consumed via agent options but not yet a zod schema section — wire when config consolidation touches `systemOne` (Phase D/G).
+
+*(Superseded 2026-09-20: Phase C complete — see Progress Notes above. The only surviving note: bandit-epsilon-greedy Level-1/native tests use unseeded `Math.random()` — flaky by design, tolerances already loose; don't tighten.)*
+
 
 ### Phase D: Real Weights
 - [ ] D1 `train.ts` + script (RLCD loss = Brier; digest-pinned artifacts)
@@ -325,6 +350,12 @@ New Prometheus counters (extend existing `systemone_*` family): `systemone_ingre
 - [ ] D3 auto-flush + Approval/Shadow/clarification/RL label sources
 - [ ] D4 remote manifold client/server over `/v1/systemone` shape
 - [ ] Bench 21 + 22 + 24
+
+**Resume notes for Phase D (2026-09-20):**
+- C4 landed the Z1 vector-sidecar primitives: `JudgmentDataset.record(label, embedding?)`, `recordVector`, `flushVectors()` (writes `<evidenceId>.f32` 384-float files under `setVectorSidecarPath`). D1's trainer should join JSONL rows with sidecar vectors via `evidenceId` (state rows use `computeEvidenceId(stateDigest, 'state')`; reflex outcome rows hash the digest+action span — join on the state vector, not the action row).
+- D1 trainer consumes `sidecar + JSONL`; RLCD loss = Brier over held-out split (DQ3 default: TS logistic heads, frozen 384-d backbone).
+- D2's `calibration-lock.json` + `fitted: true` plumbing already exists end-to-end: `JudgmentHead.fitted` gates mask/floor in `ManifoldRLAgent` and trust in `#select`; fitting a calibrator (`IsotonicCalibrator` tracks `fitted`) or registering a fitted head flips behavior. D2 only needs the fitting job + digest-pinned lock load at manifold construction.
+- Bench 21 will reuse the Bench 20 oracle-centroid trick inverted: fit `reflex_value` from dataset labels (Bench 21's "learned heads beat random" obligation).
 
 ### Phase E: Jev Patterns
 - [ ] E1 `noul()` + `ConfidenceRouter` (transducer + ingress consumers)

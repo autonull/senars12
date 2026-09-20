@@ -22,14 +22,11 @@ import {
   type NativeSenarsAgent,
   NonStationaryNativeAgent,
   RewardBeliefAdapter,
-} from '../tests/nar/rl/adapters/adapters.js';
+} from '../nar/src/rl/adapters.js';
 import { EpsilonGreedy, UCB1 } from '../tests/nar/rl/baselines/bandit.js';
 import { QLearning, SARSA } from '../tests/nar/rl/baselines/gridworld.js';
-import {
-  BanditEnv,
-  GridWorldEnv,
-  NonStationaryBanditEnv,
-} from '../tests/nar/rl/environments/RLEnvironments.js';
+import { BanditGame } from '../nar/src/game/BanditGame.js';
+import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -98,14 +95,14 @@ const narConfigGridWorld = {
   maxDerivationDepth: 15,
 };
 
-async function createEnvironment(envType: EnvType, seed: number) {
+function createGame(envType: EnvType, seed: number) {
   switch (envType) {
     case 'bandit':
-      return new BanditEnv({ ...baseBanditConfig, seed });
+      return new BanditGame({ ...baseBanditConfig, seed });
     case 'gridworld':
-      return new GridWorldEnv({ ...baseGridConfig, seed });
+      return new GridWorldGame({ ...baseGridConfig, seed });
     case 'nonstationary':
-      return new NonStationaryBanditEnv({ ...baseNonStationaryConfig, seed });
+      return new BanditGame({ ...baseNonStationaryConfig, armMeans: baseNonStationaryConfig.initialMeans, drift: { changeInterval: baseNonStationaryConfig.changeInterval, changeMagnitude: baseNonStationaryConfig.changeMagnitude }, seed });
     default:
       throw new Error(`Unknown environment: ${envType}`);
   }
@@ -192,7 +189,7 @@ async function runAdapterWrapped(
 
       if (envType === 'gridworld') {
         // GridWorld baseline needs state for selectAction
-        const state = env.getState();
+        const state = env.state();
         stateId = `s_${state.row}_${state.col}`;
         actionIdx = baseline.selectAction(state);
         const actionNames = ['move_up', 'move_right', 'move_down', 'move_left'];
@@ -208,11 +205,12 @@ async function runAdapterWrapped(
 
       const goalTerm = actionAdapter.buildGoalTerm({ name: actionName });
       await nar.tools.executeToolGoal(goalTerm);
-      const { reward, done, state: nextState } = env.step(actionIdx);
+      const { reward, terminal } = env.step(actionIdx);
+      const nextState = env.state();
 
       // Update baseline with proper parameters
       if (envType === 'gridworld') {
-        baseline.update(env.getState(), actionIdx, reward, nextState, done);
+        baseline.update(env.state(), actionIdx, reward, nextState, terminal);
       } else {
         baseline.update(actionIdx, reward);
       }
@@ -222,7 +220,7 @@ async function runAdapterWrapped(
       rewardAdapter.processReward(stateTerm, actionTerm, reward);
 
       episodeReward += reward;
-      if (done) break;
+      if (terminal) break;
     }
     rewards.push(episodeReward);
   }
@@ -273,15 +271,15 @@ async function runExperiment(
   // Create environment and baseline based on type
   switch (envType) {
     case 'bandit':
-      env = await createEnvironment('bandit', seed);
+      env = createGame('bandit', seed);
       baseline = createBaseline(baselineType, seed + 1000, 3);
       break;
     case 'gridworld':
-      env = await createEnvironment('gridworld', seed);
+      env = createGame('gridworld', seed);
       baseline = createBaseline(baselineType, seed + 1000);
       break;
     case 'nonstationary':
-      env = await createEnvironment('nonstationary', seed);
+      env = createGame('nonstationary', seed);
       baseline = createBaseline('epsilon-greedy', seed + 1000, 2); // Non-stationary has 2 arms
       break;
   }
@@ -304,7 +302,7 @@ async function runExperiment(
   } else {
     // native or both - both run baseline + native for parity comparison
     // Run baseline for comparison
-    const baselineEnv = await createEnvironment(envType, seed);
+    const baselineEnv = await createGame(envType, seed);
     const numArms = envType === 'nonstationary' ? 2 : 3;
     const baselineAgent = createBaseline(baselineType, seed + 2000, numArms);
     baselineRewards = await runDirectBaseline(

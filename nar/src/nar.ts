@@ -413,7 +413,14 @@ export class NAR extends BaseComponent {
    * instead of (or in addition to) the incumbent bandit/Q-learning reflexes.
    * Returns the created reflex for external management, or undefined if System One is disabled.
    */
-  attachManifoldReflex(gameFocus: { bindReflex: (reflex: Reflex) => void }): Reflex | undefined {
+  attachManifoldReflex(gameFocus: {
+    bindReflex: (reflex: Reflex) => void;
+    setReflexPrefetchContext?: (context: {
+      manifold: JudgmentManifold;
+      embeddingCache: EmbeddingCache;
+      budget: ReasoningBudget;
+    }) => void;
+  }): Reflex | undefined {
     if (!this.isSystemOneEnabled() || !this._systemOneManifold || !this._systemOneEmbeddingCache) {
       return undefined;
     }
@@ -427,8 +434,23 @@ export class NAR extends BaseComponent {
     // Bind to the GameFocus
     gameFocus.bindReflex(manifoldReflex);
 
-    // Store reference for later prefetch calls (e.g., from the tick cycle)
-    // The GameFocus step method would need to call manifoldReflex.prefetch() at the attend stage
+    // Prefetch at the attend stage of each GameFocus step (C1) — the async gap is
+    // absorbed before the synchronous propose contract.
+    const manifold = this._systemOneManifold;
+    const embeddingCache = this._systemOneEmbeddingCache;
+    if (manifold && embeddingCache) {
+      gameFocus.setReflexPrefetchContext?.({
+        manifold,
+        embeddingCache,
+        budget: this.config.systemOne?.reasoningBudget ?? {
+          maxCycles: 100,
+          maxDepth: 10,
+          maxMemoryOps: 1000,
+          maxLMCalls: 5,
+          consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+        },
+      });
+    }
 
     this.logger?.info('ManifoldReflex attached to GameFocus');
     return manifoldReflex;

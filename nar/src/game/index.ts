@@ -1,5 +1,10 @@
+export { BanditGame, createBanditGame } from './BanditGame.js';
+export type { BanditDriftConfig, BanditGameConfig } from './BanditGame.js';
 export type { Game, GameOutcome, MetaGame, Perception, SelfMetaGame } from './Game.js';
+export type { GridAction, GridWorldConfig, GridWorldState } from './GridWorldEnv.js';
+export { GridWorldEnv } from './GridWorldEnv.js';
 export { createGridWorldGame, GridWorldGame } from './GridWorldGame.js';
+export { SeededRNG } from './SeededRNG.js';
 export { createMetaGame, MetaGame as MetaGameClass } from './MetaGame.js';
 export type { KnobConfig, SelfMetaGameConfig } from './SelfMetaGame.js';
 export { createSelfMetaGame, SelfMetaGameImpl } from './SelfMetaGame.js';

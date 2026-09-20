@@ -5,16 +5,15 @@ import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
-} from '../adapters/adapters';
-import { NonStationaryBanditEnv } from '../environments/RLEnvironments';
+} from '../../../../nar/src/rl/adapters';
+import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
 
 describe('RL Parity - Non-Stationary Environment', () => {
   test('SeNARS can track drifting reward means', async () => {
-    const env = new NonStationaryBanditEnv({
+    const env = new BanditGame({
       numArms: 2,
-      initialMeans: [0.8, 0.2], // Arm 0 initially optimal
-      changeInterval: 10,
-      changeMagnitude: 0.3,
+      armMeans: [0.8, 0.2], // Arm 0 initially optimal
+      drift: { changeInterval: 10, changeMagnitude: 0.3 },
       seed: 42,
     });
 
@@ -59,7 +58,7 @@ describe('RL Parity - Non-Stationary Environment', () => {
       optimalArms.push(env.getOptimalArm());
 
       // Perceive
-      perception.perceive({ stateId: 'bandit_state', reward: 0 });
+      await perception.perceive({ stateId: 'bandit_state', reward: 0 });
 
       // Simple alternating strategy for test
       const action = step % 2;
@@ -74,7 +73,7 @@ describe('RL Parity - Non-Stationary Environment', () => {
       // Update beliefs
       const stateTerm = TermBuilder.atom('bandit_state');
       const actionTerm = TermBuilder.atom(`^pull_arm_${action}`);
-      rewardAdapter.processReward(stateTerm, actionTerm, reward);
+      await rewardAdapter.processReward(stateTerm, actionTerm, reward);
     }
 
     // Verify optimal arm could have changed
@@ -90,12 +89,11 @@ describe('RL Parity - Non-Stationary Environment', () => {
     }
   });
 
-  test('Non-stationary environment means drift', () => {
-    const env = new NonStationaryBanditEnv({
+  test('Non-stationary environment means drift', async () => {
+    const env = new BanditGame({
       numArms: 3,
-      initialMeans: [0.3, 0.5, 0.7],
-      changeInterval: 5,
-      changeMagnitude: 0.2,
+      armMeans: [0.3, 0.5, 0.7],
+      drift: { changeInterval: 5, changeMagnitude: 0.2 },
       seed: 123,
     });
 

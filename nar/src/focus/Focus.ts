@@ -242,16 +242,28 @@ export class Focus implements BagItem {
     this.reflexes = this.reflexes.filter((r) => r.id !== reflexId);
   }
 
-  getNALDerivations(action: string): NALDerivation[] {
-    const derivations: NALDerivation[] = [];
+  private derivationIndexVersion = -1;
+  private derivationIndex = new Map<string, NALDerivation[]>();
 
+  /**
+   * Derivations relevant to an action, served from an index rebuilt only when
+   * the focus memory mutates (X23 hot-path fix) instead of scanning per call.
+   */
+  getNALDerivations(action: string): NALDerivation[] {
+    if (this.derivationIndexVersion !== this.memory.version) {
+      this.derivationIndexVersion = this.memory.version;
+      this.derivationIndex = this.buildDerivationIndex();
+    }
+    return this.derivationIndex.get(action) ?? [];
+  }
+
+  private buildDerivationIndex(): Map<string, NALDerivation[]> {
+    const index = new Map<string, NALDerivation[]>();
     for (const concept of this.memory.all()) {
       const term = concept.term;
       if (!term || typeof term !== 'object') continue;
 
-      let actionMatches = false;
-      let isRelevantRelation = false;
-
+      let matchedAction: string | null = null;
       if (isOperation(term)) {
         const op = getPredicate(term);
         const args = getArgs(term);
@@ -260,30 +272,27 @@ export class Focus implements BagItem {
           op &&
           isAtomic(op) &&
           op.symbol.startsWith('^') &&
-          op.symbol.slice(1) === action &&
+          op.symbol.length > 1 &&
           firstArg &&
           firstArg.kind === 'atom' &&
           'value' in firstArg &&
-          firstArg.value === action
+          firstArg.value === op.symbol.slice(1)
         ) {
-          actionMatches = true;
+          matchedAction = op.symbol.slice(1);
         }
       }
 
-      if (isImplication(term) || isInheritance(term)) {
-        isRelevantRelation = true;
-      }
-
-      if (actionMatches && isRelevantRelation) {
-        const truth = { f: concept.activation, c: Math.min(1, concept.priority) };
+      const isRelevantRelation = isImplication(term) || isInheritance(term);
+      if (matchedAction !== null && isRelevantRelation) {
+        const derivations = index.get(matchedAction) ?? [];
         derivations.push({
-          action,
-          truth,
+          action: matchedAction,
+          truth: { f: concept.activation, c: Math.min(1, concept.priority) },
           source: 'focus-memory',
         });
+        index.set(matchedAction, derivations);
       }
     }
-
-    return derivations;
+    return index;
   }
 }

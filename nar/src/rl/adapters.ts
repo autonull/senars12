@@ -1,7 +1,7 @@
-import { type AtomicTerm, type Term, TermBuilder, Truth } from '../../../../nar/src';
-import type { DriveManager } from '../../../../nar/src/drives';
-import type { NAR } from '../../../../nar/src/nar';
-import { SeededRNG } from '../environments/RLEnvironments';
+import { type AtomicTerm, type Term, TermBuilder, Truth } from '../index.js';
+import type { DriveManager } from '../drives/manager.js';
+import type { NAR } from '../nar.js';
+import { SeededRNG } from '../game/SeededRNG.js';
 
 /** Safe term builder that asserts non-null for valid RL term constructions */
 function inh(subj: Term, pred: Term): Term {
@@ -35,8 +35,8 @@ export interface RLObservation {
 }
 
 export interface BeliefPerceptionAdapterConfig {
-  sensorConfidence?: number; // Default confidence for observations
-  featureConfidence?: number; // Confidence for feature observations
+  sensorConfidence?: number;
+  featureConfidence?: number;
 }
 
 interface ResolvedBeliefPerceptionAdapterConfig {
@@ -59,12 +59,12 @@ export class BeliefPerceptionAdapter {
   }
 
   /** Convert an RL observation to belief tasks and input them to NAR */
-  perceive(observation: RLObservation): void {
+  async perceive(observation: RLObservation): Promise<void> {
     // State observation: (self --> state:s_X_Y)
     const stateTerm = atm(observation.stateId);
     const selfTerm = atm('self');
     const stateInheritance = inh(selfTerm, stateTerm);
-    this.nar.believe(stateInheritance, Truth.create(1.0, this.config.sensorConfidence));
+    await this.nar.believe(stateInheritance, Truth.create(1.0, this.config.sensorConfidence));
 
     // Feature observations
     if (observation.features) {
@@ -72,7 +72,7 @@ export class BeliefPerceptionAdapter {
         const featureTerm = atm(`feature:${feature}`);
         const valueTerm = atm(value > 0 ? 'present' : 'absent');
         const featureInheritance = inh(featureTerm, valueTerm);
-        this.nar.believe(featureInheritance, Truth.create(1.0, this.config.featureConfidence));
+        await this.nar.believe(featureInheritance, Truth.create(1.0, this.config.featureConfidence));
       }
     }
 
@@ -81,28 +81,26 @@ export class BeliefPerceptionAdapter {
       const rewardLevel =
         observation.reward > 0 ? 'high' : observation.reward < 0 ? 'low' : 'neutral';
       const rewardTerm = inh(atm(`reward:${rewardLevel}`), atm('achieved'));
-      // Confidence proportional to reward magnitude
       const confidence = Math.min(0.95, 0.5 + Math.abs(observation.reward) * 0.4);
-      this.nar.believe(rewardTerm, Truth.create(Math.abs(observation.reward), confidence));
+      await this.nar.believe(rewardTerm, Truth.create(Math.abs(observation.reward), confidence));
     }
 
     // Terminal state observation
     if (observation.terminal) {
       const terminalTerm = inh(atm('state:terminal'), atm('reached'));
-      this.nar.believe(terminalTerm, Truth.create(1.0, this.config.sensorConfidence));
+      await this.nar.believe(terminalTerm, Truth.create(1.0, this.config.sensorConfidence));
     }
   }
 
   /** Add noisy observation (for testing sensor reliability) */
-  perceiveNoisy(observation: RLObservation, noiseLevel: number): void {
-    // Add noise to confidence
+  async perceiveNoisy(observation: RLObservation, noiseLevel: number): Promise<void> {
     const baseConfidence = this.config.sensorConfidence;
     const noisyConfidence = Math.max(0.1, baseConfidence - noiseLevel * this.rng.next());
 
     const stateTerm = atm(observation.stateId);
     const selfTerm = atm('self');
     const stateInheritance = inh(selfTerm, stateTerm);
-    this.nar.believe(stateInheritance, Truth.create(1.0, noisyConfidence));
+    await this.nar.believe(stateInheritance, Truth.create(1.0, noisyConfidence));
   }
 
   getNAR(): NAR {
@@ -142,10 +140,8 @@ export class GoalActionAdapter {
     const opAtom = atm(`^${action.name}`);
 
     if (action.args && Object.keys(action.args).length > 0) {
-      // Build Product of arguments
       const argTerms: Term[] = [];
       for (const [key, value] of Object.entries(action.args)) {
-        // Use compact form: key:value -> Inheritance(value, key)
         const keyTerm = atm(key);
         const valueTerm = atm(String(value));
         const compactInh = inh(valueTerm, keyTerm);
@@ -155,22 +151,19 @@ export class GoalActionAdapter {
       return inh(product, opAtom);
     }
 
-    // Simple operation without arguments: use empty Product (Atom('true') as placeholder)
     const emptyProduct = atm('true');
     return inh(emptyProduct, opAtom);
   }
 
   /** Propose an action as a goal to NAR */
-  proposeAction(action: RLAction, priority?: number): void {
+  async proposeAction(action: RLAction, priority?: number): Promise<void> {
     const goalTerm = this.buildGoalTerm(action);
     const truth = Truth.create(1.0, priority ?? this.config.defaultPriority);
-    this.nar.goal(goalTerm, truth);
+    await this.nar.goal(goalTerm, truth);
   }
 
   /** Dispatch all pending tool goals through NAR's execution cycle */
   async dispatchPendingGoals(): Promise<any[]> {
-    // This will be called after nar.run() which internally calls dispatchToolGoals
-    // The actual execution happens in NARExecution.run()
     return [];
   }
 
@@ -189,10 +182,19 @@ export class QBeliefStore {
   private readonly nar: NAR;
   private readonly predictsRewardAtom = atm('predicts_reward');
   private readonly driveManager?: DriveManager;
+  /** Per-state index of action terms with recorded values (X24). */
+  private readonly stateActions = new Map<string, Map<string, Term>>();
 
   constructor(nar: NAR) {
     this.nar = nar;
     this.driveManager = nar.getDriveManager?.();
+  }
+
+  private indexValueBelief(state: Term, action: Term): void {
+    const stateKey = state.toString();
+    const actions = this.stateActions.get(stateKey) ?? new Map<string, Term>();
+    actions.set(action.toString(), action);
+    this.stateActions.set(stateKey, actions);
   }
 
   /** Get value belief for state-action pair */
@@ -210,82 +212,69 @@ export class QBeliefStore {
   }
 
   /** Update value belief using Truth.revision with immediate reward */
-  updateValue(state: Term, action: Term, reward: number, confidence: number = 0.5): void {
+  async updateValue(state: Term, action: Term, reward: number, confidence: number = 0.5): Promise<void> {
     const product = prod(state, action);
     const valueTerm = inh(product, this.predictsRewardAtom);
 
-    // Create evidence truth from reward
     const evidenceTruth = Truth.create(reward, confidence);
+    this.indexValueBelief(state, action);
 
-    // Get current belief
     const current = this.getValue(state, action);
     if (current) {
-      // Revise with new evidence
       const currentTruth = Truth.create(current.f, current.c);
       const revised = Truth.revision(currentTruth, evidenceTruth);
-      this.nar.believe(valueTerm, revised);
+      await this.nar.believe(valueTerm, revised);
     } else {
-      // First observation
-      this.nar.believe(valueTerm, evidenceTruth);
+      await this.nar.believe(valueTerm, evidenceTruth);
     }
   }
 
   /** Update value belief using TD target (for temporal difference learning) */
-  updateValueTD(state: Term, action: Term, tdTarget: number, confidence: number = 0.5): void {
+  async updateValueTD(state: Term, action: Term, tdTarget: number, confidence: number = 0.5): Promise<void> {
     const product = prod(state, action);
     const valueTerm = inh(product, this.predictsRewardAtom);
 
-    // Create evidence truth from TD target
     const evidenceTruth = Truth.create(tdTarget, confidence);
+    this.indexValueBelief(state, action);
 
-    // Get current belief
     const current = this.getValue(state, action);
     if (current) {
-      // Revise with TD target
       const currentTruth = Truth.create(current.f, current.c);
       const revised = Truth.revision(currentTruth, evidenceTruth);
-      this.nar.believe(valueTerm, revised);
+      await this.nar.believe(valueTerm, revised);
     } else {
-      // First observation
-      this.nar.believe(valueTerm, evidenceTruth);
+      await this.nar.believe(valueTerm, evidenceTruth);
     }
   }
 
   /** Update value belief using Q-learning style convex combination (proper TD learning) */
-  updateValueQLearning(
+  async updateValueQLearning(
     state: Term,
     action: Term,
     tdTarget: number,
     alpha: number = 0.1,
     confidence: number = 0.9
-  ): void {
+  ): Promise<void> {
     const product = prod(state, action);
     const valueTerm = inh(product, this.predictsRewardAtom);
+    this.indexValueBelief(state, action);
 
-    // Get current belief
     const current = this.getValue(state, action);
     let newExpectation: number;
 
     if (current) {
-      // Current expectation: E = c * (f - 0.5) + 0.5
       const currentExpectation = current.c * (current.f - 0.5) + 0.5;
-      // Q-learning update: E_new = (1 - alpha) * E_old + alpha * TD_target
       newExpectation = (1 - alpha) * currentExpectation + alpha * tdTarget;
     } else {
-      // First observation: initialize with TD target
       newExpectation = tdTarget;
     }
 
-    // Clamp to valid range
     newExpectation = Math.max(0, Math.min(1, newExpectation));
-
-    // Convert expectation back to frequency: E = c * (f - 0.5) + 0.5 => f = (E - 0.5) / c + 0.5
-    // Use provided confidence (high confidence for learned values)
     const newFrequency = (newExpectation - 0.5) / confidence + 0.5;
     const clampedFrequency = Math.max(0, Math.min(1, newFrequency));
 
     const newTruth = Truth.create(clampedFrequency, confidence);
-    this.nar.believe(valueTerm, newTruth);
+    await this.nar.believe(valueTerm, newTruth);
   }
 
   /** Get max Q-value for a state across available actions */
@@ -294,25 +283,20 @@ export class QBeliefStore {
     for (const action of availableActions) {
       const value = this.getValue(state, action);
       if (value) {
-        // True expectation: E = c * (f - 0.5) + 0.5
         const expectation = value.c * (value.f - 0.5) + 0.5;
-        if (expectation > maxValue) {
-          maxValue = expectation;
-        }
+        if (expectation > maxValue) maxValue = expectation;
       }
     }
     return maxValue;
   }
 
-  /** Get all action values for a state */
+  /** Get all recorded action values for a state (X24: real implementation). */
   getAllActions(state: Term): Map<string, { f: number; c: number }> {
     const results = new Map<string, { f: number; c: number }>();
-    const concept = this.nar.getConcept(state);
-    if (!concept) return results;
-
-    // This is a simplified version - in practice would need to query all concepts
-    // matching the pattern ((*, state, ^action) --> predicts_reward)
-    // For now, we'd need to iterate all concepts or maintain an index
+    for (const [actionKey, actionTerm] of this.stateActions.get(state.toString()) ?? []) {
+      const value = this.getValue(state, actionTerm);
+      if (value) results.set(actionKey, value);
+    }
     return results;
   }
 
@@ -324,7 +308,7 @@ export class QBeliefStore {
     for (const action of availableActions) {
       const value = this.getValue(state, action);
       if (value) {
-        const expectation = value.f * value.c; // Truth.expectation approximation
+        const expectation = value.f * value.c;
         if (expectation > bestExpectation) {
           bestExpectation = expectation;
           bestAction = action;
@@ -375,10 +359,10 @@ export class QBeliefStore {
  * Handles reward representation and value updates with TD learning support
  */
 export interface RewardBeliefAdapterConfig {
-  gamma?: number; // Discount factor
-  tdConfidence?: number; // Confidence for TD target (legacy)
-  tdAlpha?: number; // Learning rate for Q-learning style update
-  tdQLearningConfidence?: number; // Confidence for Q-learning update
+  gamma?: number;
+  tdConfidence?: number;
+  tdAlpha?: number;
+  tdQLearningConfidence?: number;
 }
 
 export class RewardBeliefAdapter {
@@ -404,26 +388,17 @@ export class RewardBeliefAdapter {
   }
 
   /** Process reward and update value beliefs (immediate reward only) */
-  processReward(state: Term, action: Term, reward: number, confidence: number = 0.5): void {
-    // Record in history
-    this.rewardHistory.push({
-      state,
-      action,
-      reward,
-      timestamp: Date.now(),
-    });
+  async processReward(state: Term, action: Term, reward: number, confidence: number = 0.5): Promise<void> {
+    this.rewardHistory.push({ state, action, reward, timestamp: Date.now() });
+    await this.qStore.updateValue(state, action, reward, confidence);
 
-    // Update value belief with immediate reward
-    this.qStore.updateValue(state, action, reward, confidence);
-
-    // Also store reward belief directly
     const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
     const rewardTerm = inh(atm(`reward:${rewardLevel}`), atm('achieved'));
-    this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
+    await this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
   }
 
   /** Process reward with TD learning (Q-learning style: uses max next-state value) */
-  processRewardTD(
+  async processRewardTD(
     state: Term,
     action: Term,
     reward: number,
@@ -431,31 +406,21 @@ export class RewardBeliefAdapter {
     nextAvailableActions: Term[],
     done: boolean,
     confidence: number = 0.5
-  ): void {
-    // Record in history
-    this.rewardHistory.push({
-      state,
-      action,
-      reward,
-      timestamp: Date.now(),
-    });
+  ): Promise<void> {
+    this.rewardHistory.push({ state, action, reward, timestamp: Date.now() });
 
     let tdTarget: number;
 
     if (done) {
-      // Terminal state: TD target is just the reward
       tdTarget = reward;
     } else {
-      // Non-terminal: TD target = reward + gamma * max_a' Q(nextState, a')
       const nextMaxValue = this.qStore.getMaxValue(nextState, nextAvailableActions);
       tdTarget = reward + this.config.gamma * nextMaxValue;
     }
 
-    // Clamp TD target to [0, 1] for Truth frequency
     tdTarget = Math.max(0, Math.min(1, tdTarget));
 
-    // Update value belief using Q-learning style convex combination (proper TD learning)
-    this.qStore.updateValueQLearning(
+    await this.qStore.updateValueQLearning(
       state,
       action,
       tdTarget,
@@ -463,14 +428,13 @@ export class RewardBeliefAdapter {
       this.config.tdQLearningConfidence
     );
 
-    // Also store reward belief directly
     const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
     const rewardTerm = inh(atm(`reward:${rewardLevel}`), atm('achieved'));
-    this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
+    await this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
   }
 
   /** Process reward with SARSA (on-policy: uses next action's value) */
-  processRewardSARSA(
+  async processRewardSARSA(
     state: Term,
     action: Term,
     reward: number,
@@ -478,31 +442,25 @@ export class RewardBeliefAdapter {
     nextAction: Term,
     done: boolean,
     confidence: number = 0.5
-  ): void {
-    this.rewardHistory.push({
-      state,
-      action,
-      reward,
-      timestamp: Date.now(),
-    });
+  ): Promise<void> {
+    this.rewardHistory.push({ state, action, reward, timestamp: Date.now() });
 
     let tdTarget: number;
 
     if (done) {
       tdTarget = reward;
     } else {
-      // SARSA: TD target = reward + gamma * Q(nextState, nextAction)
       const nextValue = this.qStore.getValue(nextState, nextAction);
       const nextQ = nextValue ? nextValue.f : 0;
       tdTarget = reward + this.config.gamma * nextQ;
     }
 
     tdTarget = Math.max(0, Math.min(1, tdTarget));
-    this.qStore.updateValueTD(state, action, tdTarget, this.config.tdConfidence);
+    await this.qStore.updateValueTD(state, action, tdTarget, this.config.tdConfidence);
 
     const rewardLevel = reward > 0 ? 'high' : reward < 0 ? 'low' : 'neutral';
     const rewardTerm = inh(atm(`reward:${rewardLevel}`), atm('achieved'));
-    this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
+    await this.nar.believe(rewardTerm, Truth.create(Math.abs(reward), confidence));
   }
 
   /** Create terminal satisfaction signal (goal term for nar.goal()) */
@@ -604,7 +562,6 @@ export class RLParityHarness {
 
     if (baselineVals.length < 2) return 0;
 
-    // Pearson correlation
     const n = baselineVals.length;
     const sumX = baselineVals.reduce((a, b) => a + b, 0);
     const sumY = senarsVals.reduce((a, b) => a + b, 0);
@@ -663,7 +620,6 @@ export class BanditSelector implements NativeActionSelector {
     qStore: QBeliefStore,
     actionAdapter: GoalActionAdapter
   ): number {
-    // Check for NAR-derived tool goals first
     const pendingGoals = nar.taskManager.getPending();
     const toolGoals = pendingGoals.filter(
       (g) => g.type === 'goal' && g.term.toString().includes('^pull_arm')
@@ -675,7 +631,6 @@ export class BanditSelector implements NativeActionSelector {
       if (match) return parseInt(match[1]!, 10);
     }
 
-    // Use value-based selection with curiosity-driven exploration
     const bestAction = qStore.getBestAction(this.stateTerm, this.actions);
     const lowConfidence = qStore.getLowConfidenceActions(this.stateTerm, this.actions, 0.4);
 
@@ -695,9 +650,7 @@ export class BanditSelector implements NativeActionSelector {
     return Math.floor(Math.random() * this.numArms);
   }
 
-  onReward(stateId: string, action: number, reward: number): void {
-    // QBeliefStore handles value updates via RewardBeliefAdapter
-  }
+  onReward(stateId: string, action: number, reward: number): void {}
 
   onEpisodeStart(): void {}
 
@@ -734,7 +687,6 @@ export class GridWorldSelector implements NativeActionSelector {
     this.rng = new SeededRNG(seed);
   }
 
-  /** Call at the end of each episode to decay exploration rate */
   onEpisodeEnd(): void {
     this.episodeCount++;
     this.explorationRate = Math.max(this.explorationMin, this.explorationRate * this.explorationDecay);
@@ -750,7 +702,6 @@ export class GridWorldSelector implements NativeActionSelector {
     qStore: QBeliefStore,
     actionAdapter: GoalActionAdapter
   ): number {
-    // Check for NAR-derived tool goals first
     const pendingGoals = nar.taskManager.getPending();
     const toolGoals = pendingGoals.filter(
       (g) => g.type === 'goal' && this.actionNames.some((n) => g.term.toString().includes(`^${n}`))
@@ -767,20 +718,17 @@ export class GridWorldSelector implements NativeActionSelector {
 
     const stateTerm = TermBuilder.atom(stateId);
 
-    // Get best action based on learned values
     const bestAction = qStore.getBestAction(stateTerm, this.actions);
     const lowConfidence = qStore.getLowConfidenceActions(stateTerm, this.actions, 0.4);
 
     let selectedAction = 0;
 
     if (bestAction && this.rng.next() > this.explorationRate) {
-      // Exploit: use highest expected value action
       const match = bestAction.toString().match(/move_(up|right|down|left)/);
       if (match) {
         selectedAction = this.actionNames.indexOf(`move_${match[1]}`);
       }
     } else if (lowConfidence.length > 0 && this.rng.next() < 0.4) {
-      // Curiosity-driven exploration of low-confidence actions
       const exploreAction = lowConfidence[Math.floor(this.rng.next() * lowConfidence.length)];
       if (!exploreAction) return Math.floor(this.rng.next() * 4);
       const match = exploreAction.toString().match(/move_(up|right|down|left)/);
@@ -789,7 +737,6 @@ export class GridWorldSelector implements NativeActionSelector {
       }
       qStore.stimulateCuriosity(0.03);
     } else {
-      // Random exploration
       selectedAction = Math.floor(this.rng.next() * 4);
     }
 
@@ -799,8 +746,6 @@ export class GridWorldSelector implements NativeActionSelector {
   }
 
   onReward(stateId: string, action: number, reward: number): void {
-    // Apply wall penalty if the agent tried to move into a wall (reward = wallPenalty)
-    // The RewardBeliefAdapter will handle the actual value update
     if (reward === this.wallPenalty && this.lastStateId && this.lastAction !== null) {
       // Could add additional logic here for wall learning
     }
@@ -846,7 +791,6 @@ export class NonStationarySelector implements NativeActionSelector {
     qStore: QBeliefStore,
     actionAdapter: GoalActionAdapter
   ): number {
-    // Check for NAR-derived tool goals first
     const pendingGoals = nar.taskManager.getPending();
     const toolGoals = pendingGoals.filter(
       (g) => g.type === 'goal' && g.term.toString().includes('^pull_arm')
@@ -858,11 +802,9 @@ export class NonStationarySelector implements NativeActionSelector {
       if (match) return parseInt(match[1]!, 10);
     }
 
-    // Check for change detection: high prediction error on best arm suggests drift
     const bestAction = qStore.getBestAction(this.stateTerm, this.actions);
     const lowConfidence = qStore.getLowConfidenceActions(this.stateTerm, this.actions, 0.4);
 
-    // If we have a best action but its confidence is dropping, increase exploration
     let effectiveExplorationRate = this.explorationRate;
     if (bestAction) {
       const bestIdx = this.actions.indexOf(bestAction);
@@ -871,8 +813,8 @@ export class NonStationarySelector implements NativeActionSelector {
         const recentErrors = bestErrors.slice(-5);
         const avgError = recentErrors.reduce((a, b) => a + b, 0) / recentErrors.length;
         if (avgError > this.changeDetectionThreshold) {
-          effectiveExplorationRate = Math.min(0.5, this.explorationRate * 2); // Increase exploration
-          qStore.stimulateCuriosity(0.1); // Boost curiosity drive
+          effectiveExplorationRate = Math.min(0.5, this.explorationRate * 2);
+          qStore.stimulateCuriosity(0.1);
         }
       }
     }
@@ -897,20 +839,14 @@ export class NonStationarySelector implements NativeActionSelector {
     this.armPullCounts[action] = (this.armPullCounts[action] ?? 0) + 1;
     this.lastRewards[action] = reward;
 
-    // Track prediction error for change detection
-    // We'd need access to the predicted value - for now track reward variance
     if ((this.armPullCounts[action] ?? 0) > 1) {
       const errors = this.predictionErrors[action] ?? [];
-      // Simple heuristic: if reward differs significantly from recent average
       const recentRewards = errors.slice(-10);
       if (recentRewards.length > 0) {
         const avgRecent = recentRewards.reduce((a, b) => a + b, 0) / recentRewards.length;
         const error = Math.abs(reward - avgRecent);
         errors.push(error);
-        // Keep only recent errors
-        if (errors.length > 20) {
-          errors.shift();
-        }
+        if (errors.length > 20) errors.shift();
         this.predictionErrors[action] = errors;
       }
     }
@@ -929,8 +865,8 @@ export interface NativeSenarsAgentConfig {
   selector: NativeActionSelector;
   maxDerivationsPerStep: number;
   perceptionConfig?: any;
-  useTDLearning?: boolean; // Enable temporal difference learning
-  gamma?: number; // Discount factor for TD learning
+  useTDLearning?: boolean;
+  gamma?: number;
 }
 
 export class NativeSenarsAgent {
@@ -970,7 +906,7 @@ export class NativeSenarsAgent {
     const stateTerm = TermBuilder.atom(stateId);
 
     // 1. Perceive: convert environment observation to NAR beliefs
-    this.perception.perceive({ stateId, reward: 0 });
+    await this.perception.perceive({ stateId, reward: 0 });
 
     // 2. Reason: run NAR inference cycles
     await this.nar.run(this.maxDerivationsPerStep);
@@ -988,20 +924,17 @@ export class NativeSenarsAgent {
     const actionTerm = TermBuilder.atom(`^${actionName}`);
 
     if (this.useTDLearning && this.lastState !== null && this.lastAction !== null) {
-      // TD learning: update previous state-action with TD target
-      // TD target = reward + gamma * max_a' Q(nextState, a')
       const nextAvailableActions = this.getAvailableActions(env);
-      this.rewardAdapter.processRewardTD(
+      await this.rewardAdapter.processRewardTD(
         this.lastState,
         this.lastAction,
         this.lastReward,
         stateTerm,
         nextAvailableActions,
-        result.done
+        result.terminal
       );
     } else {
-      // Fallback: immediate reward only (for first step or if TD disabled)
-      this.rewardAdapter.processReward(stateTerm, actionTerm, result.reward);
+      await this.rewardAdapter.processReward(stateTerm, actionTerm, result.reward);
     }
 
     // Store current for next TD update
@@ -1014,7 +947,7 @@ export class NativeSenarsAgent {
     // Notify selector of reward for change detection/adaptation
     this.selector.onReward(stateId, action, result.reward);
 
-    return { action, reward: result.reward, done: result.done };
+    return { action, reward: result.reward, done: result.terminal };
   }
 
   /** Get available actions for the environment (override in subclasses) */
@@ -1035,7 +968,6 @@ export class NativeSenarsAgent {
 
       if (done) break;
 
-      // Get next state ID
       stateId = this.getStateId(env);
     }
 
@@ -1057,8 +989,8 @@ export class NativeSenarsAgent {
 
   /** Get initial state ID from environment */
   protected getInitialStateId(env: any): string {
-    if (env.getState) {
-      const state = env.getState();
+    if (env.state) {
+      const state = env.state();
       if (typeof state === 'object' && state !== null && 'row' in state && 'col' in state) {
         return `s_${state.row}_${state.col}`;
       }
@@ -1068,8 +1000,8 @@ export class NativeSenarsAgent {
 
   /** Get current state ID from environment */
   protected getStateId(env: any): string {
-    if (env.getState) {
-      const state = env.getState();
+    if (env.state) {
+      const state = env.state();
       if (typeof state === 'object' && state !== null && 'row' in state && 'col' in state) {
         return `s_${state.row}_${state.col}`;
       }
@@ -1079,7 +1011,6 @@ export class NativeSenarsAgent {
 
   /** Map action index to action name */
   protected getActionName(action: number): string {
-    // Override in subclasses or use selector-specific logic
     return `action_${action}`;
   }
 }
@@ -1099,7 +1030,6 @@ export class BanditNativeAgent extends NativeSenarsAgent {
       TermBuilder.atom(`^pull_arm_${i}`)
     );
 
-    // Register arm-pulling tools
     const toolConfigs = Array.from({ length: numArms }, (_, i) => ({
       name: `pull_arm_${i}`,
       execute: async () => ({ success: true, content: { arm: i } }),
@@ -1135,7 +1065,6 @@ export class GridWorldNativeAgent extends NativeSenarsAgent {
     const selector = new GridWorldSelector(0.3, -0.1, 0.99, 0.01, seed);
     super(nar, { selector, maxDerivationsPerStep, useTDLearning: true, gamma: 0.99 });
 
-    // Register movement tools
     const toolConfigs = [
       { name: 'move_up', execute: async () => ({ success: true, content: { dir: 0 } }) },
       { name: 'move_right', execute: async () => ({ success: true, content: { dir: 1 } }) },
@@ -1152,71 +1081,55 @@ export class GridWorldNativeAgent extends NativeSenarsAgent {
   ): Promise<{ action: number; reward: number; done: boolean }> {
     const stateTerm = TermBuilder.atom(stateId);
 
-    // 1. Perceive: convert environment observation to NAR beliefs
-    this.perception.perceive({ stateId, reward: 0 });
-
-    // 2. Reason: run NAR inference cycles
+    await this.perception.perceive({ stateId, reward: 0 });
     await this.nar.run(this.maxDerivationsPerStep);
 
-    // 3. Act: select and execute action through NAR goal dispatch
     const action = this.selector.selectAction(stateId, this.nar, this.qStore, this.actionAdapter);
     const actionName = this.getActionName(action);
     const goalTerm = this.actionAdapter.buildGoalTerm({ name: actionName });
     await this.nar.tools.executeToolGoal(goalTerm);
 
-    // 4. Environment step
     const result = env.step(action);
 
-    // 5. Learn: update value beliefs with NORMALIZED reward
     // GridWorld reward range: [-0.01, 1] -> normalize to [0, 1]
     const normalizedReward = (result.reward + 0.01) / 1.01;
     const actionTerm = TermBuilder.atom(`^${actionName}`);
 
     if (this.useTDLearning && this.lastState !== null && this.lastAction !== null) {
-      // TD learning: update previous state-action with TD target
-      // TD target = reward + gamma * max_a' Q(nextState, a')
       const nextAvailableActions = this.getAvailableActions(env);
-      this.rewardAdapter.processRewardTD(
+      await this.rewardAdapter.processRewardTD(
         this.lastState,
         this.lastAction,
-        this.lastReward, // Use normalized reward from PREVIOUS step
+        this.lastReward,
         stateTerm,
         nextAvailableActions,
-        result.done
+        result.terminal
       );
     }
 
-    // If episode terminated, apply terminal reward to the action that led to goal
-    if (result.done && this.lastState !== null && this.lastAction !== null) {
-      // Terminal reward should update the LAST state-action (the one that reached goal)
-      // TD target for terminal state is just the reward (no next state value)
+    if (result.terminal && this.lastState !== null && this.lastAction !== null) {
       const terminalNormalizedReward = (result.reward + 0.01) / 1.01;
-      this.rewardAdapter.processRewardTD(
+      await this.rewardAdapter.processRewardTD(
         this.lastState,
         this.lastAction,
-        terminalNormalizedReward, // This is the reward from the action that led to terminal
-        stateTerm, // terminal state (unused when done=true)
+        terminalNormalizedReward,
+        stateTerm,
         this.actionTerms,
-        true // done = true
+        true
       );
     }
-    // Skip immediate reward update on first step - wait for TD target
-    // This avoids corrupting Q-values with Truth.revision on negative step rewards
 
-    // Store current for next TD update (use normalized reward for TD target)
     this.lastState = stateTerm;
     this.lastAction = actionTerm;
     this.lastStateId = stateId;
     this.lastActionIdx = action;
     this.lastReward = normalizedReward;
 
-    // Notify selector of reward for change detection/adaptation (use original reward)
     this.selector.onReward(stateId, action, result.reward);
 
-    return { action, reward: result.reward, done: result.done };
+    return { action, reward: result.reward, done: result.terminal };
   }
 
-  /** Get available actions for TD learning */
   override getAvailableActions(env: any): Term[] {
     return this.actionTerms;
   }
@@ -1226,12 +1139,12 @@ export class GridWorldNativeAgent extends NativeSenarsAgent {
   }
 
   protected override getInitialStateId(env: any): string {
-    const state = env.getState();
+    const state = env.state();
     return `s_${state.row}_${state.col}`;
   }
 
   protected override getStateId(env: any): string {
-    const state = env.getState();
+    const state = env.state();
     return `s_${state.row}_${state.col}`;
   }
 }

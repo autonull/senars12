@@ -3,6 +3,8 @@ import { mkdirSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PriorityBag } from '../bag/Bag.js';
 import type { Game, GameOutcome, Perception } from '../game/Game.js';
+import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type { EmbeddingCache, JudgmentManifold } from '../lm/system-one/types.js';
 import { gateRegistry } from '../kernel/index.js';
 import { type NALDerivation, NegotiationDecision, Negotiator } from '../reflex/Negotiator.js';
 import { ActionProposal, LearningEvent, type Reflex } from '../reflex/Reflex.js';
@@ -12,6 +14,13 @@ export interface GameFocusOptions {
   focusId: string;
   game: Game;
   focusOptions?: Partial<FocusOptions>;
+}
+
+/** Components needed to prefetch semantic reflex judgments at the attend stage (C1). */
+export interface ReflexPrefetchContext {
+  manifold: JudgmentManifold;
+  embeddingCache: EmbeddingCache;
+  budget: ReasoningBudget;
 }
 
 export class GameFocus {
@@ -58,6 +67,46 @@ export class GameFocus {
 
   bindReflex(reflex: Reflex): void {
     this.focus.bindReflex(reflex);
+  }
+
+  private reflexPrefetchContext: ReflexPrefetchContext | null = null;
+  private prefetchCalls = 0;
+
+  /** Wire manifold components so semantic reflexes prefetch at the attend stage (C1). */
+  setReflexPrefetchContext(context: ReflexPrefetchContext | null): void {
+    this.reflexPrefetchContext = context;
+  }
+
+  getPrefetchCallCount(): number {
+    return this.prefetchCalls;
+  }
+
+  private async prefetchForReflexes(): Promise<void> {
+    if (!this.reflexPrefetchContext) return;
+    const { manifold, embeddingCache, budget } = this.reflexPrefetchContext;
+    const observation = this.game.observe();
+    const legalActions = this.game.legalActions(this.game.state()).map(String);
+    for (const reflex of this.focus.reflexes) {
+      const p = reflex as { prefetch?: unknown };
+      if (typeof p.prefetch === 'function') {
+        await (
+          p.prefetch as (
+            stateId: string,
+            context: unknown,
+            legalActions: string[],
+            manifold: JudgmentManifold,
+            budget: ReasoningBudget
+          ) => Promise<void>
+        )(
+          observation.stateId,
+          embeddingCache.write(JSON.stringify(observation.features ?? observation.stateId)),
+          legalActions,
+          manifold,
+          budget
+        );
+        this.prefetchCalls++;
+      }
+    }
   }
 
   private gameTraceEnabled = process.env.SENARS_GAME_TRACE === '1';
@@ -124,12 +173,15 @@ export class GameFocus {
     // PERCEPTION: Focus step handles perception
     const focusReport = await this.focus.step(budget);
 
+    // ATTEND: prefetch semantic reflex judgments before the synchronous propose contract (C1)
+    await this.prefetchForReflexes();
+
     let gameOutcome: GameOutcome | null = null;
 
     // PROPOSAL: Reflexes propose actions
     for (const reflex of this.focus.reflexes) {
       const proposals = reflex.propose(
-        this.game.state(),
+        this.game.observe(),
         this.game.legalActions(this.game.state())
       );
       if (proposals.length > 0) {

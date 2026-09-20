@@ -5,8 +5,8 @@ import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
-} from '../adapters/adapters';
-import { BanditEnv, NonStationaryBanditEnv } from '../environments/RLEnvironments';
+} from '../../../../nar/src/rl/adapters';
+import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
 
 describe('RL Parity - Cognitive Advantage Experiments', () => {
   const banditConfig = {
@@ -27,7 +27,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
    */
   describe('Confidence-Aware Behavior Advantage', () => {
     test('SeNARS reduces exploration as confidence increases', async () => {
-      const env = new BanditEnv({ ...banditConfig, seed: 100 });
+      const env = new BanditGame({ ...banditConfig, seed: 100 });
       const nar = new NAR({
         activationDecayRate: 0.01,
         consolidationInterval: 5,
@@ -71,7 +71,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       for (let ep = 0; ep < 20; ep++) {
         env.reset();
         for (let step = 0; step < 15; step++) {
-          perception.perceive({ stateId: 'bandit_state', reward: 0 });
+          await perception.perceive({ stateId: 'bandit_state', reward: 0 });
           await nar.run(3);
 
           const bestAction = qStore.getBestAction(stateTerm, actions);
@@ -108,10 +108,10 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
           const goalTerm = actionAdapter.buildGoalTerm({ name: `pull_arm_${selectedAction}` });
           await nar.tools.executeToolGoal(goalTerm);
-          const { reward, done } = env.step(selectedAction);
+          const { reward, terminal } = env.step(selectedAction);
           const actionTerm = TermBuilder.atom(`^pull_arm_${selectedAction}`);
-          rewardAdapter.processReward(stateTerm, actionTerm, reward);
-          if (done) break;
+          await rewardAdapter.processReward(stateTerm, actionTerm, reward);
+          if (terminal) break;
         }
         // Track exploration rate every 5 episodes
         if (ep % 5 === 4) {
@@ -127,7 +127,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
     });
 
     test('confidence calibration: low confidence predictions are less trusted', async () => {
-      const env = new BanditEnv({ ...banditConfig, seed: 200 });
+      const env = new BanditGame({ ...banditConfig, seed: 200 });
       const nar = new NAR({
         activationDecayRate: 0.01,
         consolidationInterval: 5,
@@ -164,21 +164,21 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       const stateTerm = TermBuilder.atom('bandit_state');
 
       // Pull arm 0 once (low confidence)
-      perception.perceive({ stateId: 'bandit_state', reward: 0 });
+      await perception.perceive({ stateId: 'bandit_state', reward: 0 });
       await nar.run(1);
       const goal0 = actionAdapter.buildGoalTerm({ name: 'pull_arm_0' });
       await nar.tools.executeToolGoal(goal0);
       const { reward: r0 } = env.step(0);
-      rewardAdapter.processReward(stateTerm, actions[0]!, r0);
+      await rewardAdapter.processReward(stateTerm, actions[0]!, r0);
 
       // Pull arm 1 many times (high confidence)
       for (let i = 0; i < 10; i++) {
-        perception.perceive({ stateId: 'bandit_state', reward: 0 });
+        await perception.perceive({ stateId: 'bandit_state', reward: 0 });
         await nar.run(1);
         const goal1 = actionAdapter.buildGoalTerm({ name: 'pull_arm_1' });
         await nar.tools.executeToolGoal(goal1);
         const { reward: r1 } = env.step(1);
-        rewardAdapter.processReward(stateTerm, actions[1]!, r1);
+        await rewardAdapter.processReward(stateTerm, actions[1]!, r1);
       }
 
       const val0 = qStore.getValue(stateTerm, actions[0]!);
@@ -216,11 +216,11 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       const stateInheritance = TermBuilder.inheritance(selfTerm, stateTerm)!;
 
       // Input observations with different sensor confidences
-      perception1.perceive({ stateId: 'bandit_state', reward: 0 });
+      await perception1.perceive({ stateId: 'bandit_state', reward: 0 });
       const query1 = nar1.queryTerm(stateInheritance);
       const obsConf1 = query1.beliefs[0]?.truth.c ?? 0;
 
-      perception2.perceive({ stateId: 'bandit_state', reward: 0 });
+      await perception2.perceive({ stateId: 'bandit_state', reward: 0 });
       const query2 = nar1.queryTerm(stateInheritance);
       const obsConf2 = query2.beliefs[0]?.truth.c ?? 0;
 
@@ -258,10 +258,10 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       const actionTerm = TermBuilder.atom('^test_action');
 
       // First observation: high reward
-      rewardAdapter.processReward(stateTerm, actionTerm, 1.0, 0.8);
+      await rewardAdapter.processReward(stateTerm, actionTerm, 1.0, 0.8);
 
       // Second observation (contradictory): low reward
-      rewardAdapter.processReward(stateTerm, actionTerm, 0.0, 0.8);
+      await rewardAdapter.processReward(stateTerm, actionTerm, 0.0, 0.8);
 
       // Value belief should be revised (truth.revision combines evidence)
       const qStore = rewardAdapter.getQStore();
@@ -297,11 +297,11 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       )!;
 
       // High reward belief
-      nar.believe(term, Truth.create(1.0, 0.9));
+      await nar.believe(term, Truth.create(1.0, 0.9));
       const belief1 = nar.getConcept(term)?.getBeliefs()[0];
 
       // Low reward belief (contradictory)
-      nar.believe(term, Truth.create(0.0, 0.9));
+      await nar.believe(term, Truth.create(0.0, 0.9));
       const belief2 = nar.getConcept(term)?.getBeliefs()[0];
 
       // Revision should have combined the evidence
@@ -324,7 +324,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
    */
   describe('Explainable Decisions Advantage', () => {
     test('full causal chain from observation to action is traceable', async () => {
-      const env = new BanditEnv({ ...banditConfig, seed: 400 });
+      const env = new BanditGame({ ...banditConfig, seed: 400 });
       const nar = new NAR({
         activationDecayRate: 0.01,
         consolidationInterval: 5,
@@ -357,12 +357,12 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
       // Build up value belief for arm 1
       for (let i = 0; i < 5; i++) {
-        perception.perceive({ stateId: 'bandit_state', reward: 0 });
+        await perception.perceive({ stateId: 'bandit_state', reward: 0 });
         await nar.run(1);
         const goalTerm = actionAdapter.buildGoalTerm({ name: 'pull_arm_1' });
         await nar.tools.executeToolGoal(goalTerm);
         const { reward } = env.step(1);
-        rewardAdapter.processReward(stateTerm, action1, reward);
+        await rewardAdapter.processReward(stateTerm, action1, reward);
       }
 
       // Trace the value belief
@@ -429,7 +429,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       const action = TermBuilder.atom('^test_action');
 
       // Create value belief
-      rewardAdapter.processReward(state, action, 1.0, 0.8);
+      await rewardAdapter.processReward(state, action, 1.0, 0.8);
 
       // Input goal via inputTask
       const goalTerm = actionAdapter.buildGoalTerm({ name: 'test_action' });
@@ -466,11 +466,10 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
    */
   describe('Adaptation After Environmental Change Advantage', () => {
     test('SeNARS adapts when optimal arm changes (non-stationary)', async () => {
-      const env = new NonStationaryBanditEnv({
+      const env = new BanditGame({
         numArms: 2,
-        initialMeans: [0.8, 0.2], // Arm 0 initially optimal
-        changeInterval: 5, // Change every 5 steps
-        changeMagnitude: 0.6, // Large change
+        armMeans: [0.8, 0.2], // Arm 0 initially optimal
+        drift: { changeInterval: 5, changeMagnitude: 0.6 }, // Change every 5 steps, large change
         seed: 500,
       });
 
@@ -511,7 +510,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       for (let step = 0; step < 30; step++) {
         optimalArmHistory.push(env.getOptimalArm());
 
-        perception.perceive({ stateId: 'bandit_state', reward: 0 });
+        await perception.perceive({ stateId: 'bandit_state', reward: 0 });
         await nar.run(3);
 
         const bestAction = qStore.getBestAction(stateTerm, actions);
@@ -546,7 +545,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
         await nar.tools.executeToolGoal(goalTerm);
         const { reward } = env.step(selectedAction);
         const actionTerm = TermBuilder.atom(`^pull_arm_${selectedAction}`);
-        rewardAdapter.processReward(stateTerm, actionTerm, reward);
+        await rewardAdapter.processReward(stateTerm, actionTerm, reward);
       }
 
       // Check that optimal arm changed at least once (with changeInterval=5, it should change multiple times in 30 steps)
@@ -560,11 +559,10 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
     });
 
     test('old beliefs decay while new evidence accumulates', async () => {
-      const env = new NonStationaryBanditEnv({
+      const env = new BanditGame({
         numArms: 2,
-        initialMeans: [0.9, 0.1], // Arm 0 strongly optimal initially
-        changeInterval: 5,
-        changeMagnitude: 0.8, // Large change - arms will swap
+        armMeans: [0.9, 0.1], // Arm 0 strongly optimal initially
+        drift: { changeInterval: 5, changeMagnitude: 0.8 }, // Large change - arms will swap
         seed: 600,
       });
 
@@ -607,7 +605,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       }[] = [];
 
       for (let step = 0; step < 30; step++) {
-        perception.perceive({ stateId: 'bandit_state', reward: 0 });
+        await perception.perceive({ stateId: 'bandit_state', reward: 0 });
         await nar.run(3);
 
         const bestAction = qStore.getBestAction(stateTerm, actions);
@@ -640,7 +638,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
         await nar.tools.executeToolGoal(goalTerm);
         const { reward } = env.step(selectedAction);
         const actionTerm = TermBuilder.atom(`^pull_arm_${selectedAction}`);
-        rewardAdapter.processReward(stateTerm, actionTerm, reward);
+        await rewardAdapter.processReward(stateTerm, actionTerm, reward);
 
         // Record value beliefs
         const v0 = qStore.getValue(stateTerm, actions[0]!);
@@ -692,14 +690,14 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
       // Create high-value concept (high priority through frequent updates)
       for (let i = 0; i < 20; i++) {
-        qStore.updateValue(state, action, 1.0, 0.8);
+        await qStore.updateValue(state, action, 1.0, 0.8);
       }
 
       // Create many low-priority concepts to fill memory
       for (let i = 0; i < 40; i++) {
         const s = TermBuilder.atom(`state:fill_${i}`);
         const a = TermBuilder.atom(`^action_${i}`);
-        qStore.updateValue(s, a, 0.1, 0.2);
+        await qStore.updateValue(s, a, 0.1, 0.2);
       }
 
       // High-value concept should still be accessible
@@ -737,7 +735,7 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
       for (let i = 0; i < 150; i++) {
         const s = TermBuilder.atom(`state:${i}`);
         const a = TermBuilder.atom(`^action_${i}`);
-        qStore.updateValue(s, a, Math.random(), 0.5);
+        await qStore.updateValue(s, a, Math.random(), 0.5);
       }
 
       const stats = nar.memory.getStatistics();
@@ -827,19 +825,19 @@ describe('RL Parity - Cognitive Advantage Experiments', () => {
 
       // Run several episodes to build derivation history
       for (let ep = 0; ep < 5; ep++) {
-        perception.perceive({ stateId: 'state:grid_0_0', reward: 0 });
+        await perception.perceive({ stateId: 'state:grid_0_0', reward: 0 });
         await nar.run(3);
 
         const goalTerm = actionAdapter.buildGoalTerm({ name: 'move_north' });
         await nar.tools.executeToolGoal(goalTerm);
-        rewardAdapter.processReward(stateTerm, actions[0]!, 1.0);
+        await rewardAdapter.processReward(stateTerm, actions[0]!, 1.0);
 
-        perception.perceive({ stateId: 'state:grid_0_1', reward: 0 });
+        await perception.perceive({ stateId: 'state:grid_0_1', reward: 0 });
         await nar.run(3);
 
         const goalTerm2 = actionAdapter.buildGoalTerm({ name: 'move_east' });
         await nar.tools.executeToolGoal(goalTerm2);
-        rewardAdapter.processReward(TermBuilder.atom('state:grid_0_1'), actions[1]!, 1.0);
+        await rewardAdapter.processReward(TermBuilder.atom('state:grid_0_1'), actions[1]!, 1.0);
       }
 
       // Derivation history should exist

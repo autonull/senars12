@@ -32,9 +32,39 @@ export interface DistillationLabel {
 /** Append-only, redaction-per-retention: hashes + labels, never raw text. */
 export class JudgmentDataset {
   #labels: DistillationLabel[] = [];
+  #vectors = new Map<string, Float32Array>();
+  #vectorSidecarPath?: string;
 
-  record(label: DistillationLabel): void {
+  /** Configure the binary vector sidecar directory (Z1). */
+  setVectorSidecarPath(path: string): void {
+    this.#vectorSidecarPath = path;
+  }
+
+  record(label: DistillationLabel, embedding?: Float32Array): void {
     this.#labels.push(label);
+    if (embedding) this.#vectors.set(label.evidenceId, embedding);
+  }
+
+  /** Record a raw state embedding keyed by evidenceId (Z1 vector sidecar). */
+  recordVector(evidenceId: string, embedding: Float32Array): void {
+    this.#vectors.set(evidenceId, embedding);
+  }
+
+  getVector(evidenceId: string): Float32Array | undefined {
+    return this.#vectors.get(evidenceId);
+  }
+
+  /** Flush recorded vectors to the sidecar directory as `<evidenceId>.f32`. */
+  async flushVectors(): Promise<number> {
+    if (this.#vectors.size === 0 || !this.#vectorSidecarPath) return 0;
+    const { promises: fs } = await import('node:fs');
+    const { join } = await import('node:path');
+    await fs.mkdir(this.#vectorSidecarPath, { recursive: true });
+    for (const [evidenceId, vec] of this.#vectors) {
+      const bytes = Buffer.from(vec.buffer, vec.byteOffset, vec.byteLength);
+      await fs.writeFile(join(this.#vectorSidecarPath, `${evidenceId}.f32`), bytes);
+    }
+    return this.#vectors.size;
   }
 
   all(): readonly DistillationLabel[] {

@@ -5,8 +5,8 @@ import {
   BeliefPerceptionAdapter,
   GoalActionAdapter,
   RewardBeliefAdapter,
-} from '../adapters/adapters';
-import { BanditEnv } from '../environments/RLEnvironments';
+} from '../../../../nar/src/rl/adapters';
+import { BanditGame } from '../../../../nar/src/game/BanditGame.js';
 
 describe('RL Parity - Trace Validation', () => {
   const banditConfig = {
@@ -16,7 +16,7 @@ describe('RL Parity - Trace Validation', () => {
   };
 
   test('causal chain: belief → value belief → goal → tool → reward → revision', async () => {
-    const env = new BanditEnv(banditConfig);
+    const env = new BanditGame(banditConfig);
     const nar = new NAR({
       activationDecayRate: 0.01,
       consolidationInterval: 5,
@@ -56,7 +56,7 @@ describe('RL Parity - Trace Validation', () => {
     const actions = [action0, action1];
 
     // Step 1: Perceive initial state (creates belief)
-    perception.perceive({ stateId: 'bandit_state', reward: 0 });
+    await perception.perceive({ stateId: 'bandit_state', reward: 0 });
     await nar.run(1);
 
     // Verify observation belief exists via queryTerm
@@ -80,7 +80,7 @@ describe('RL Parity - Trace Validation', () => {
     const { reward: reward1 } = env.step(1);
 
     // Step 4: Process reward - should create value belief
-    rewardAdapter.processReward(stateTerm, action1, reward1);
+    await rewardAdapter.processReward(stateTerm, action1, reward1);
 
     // Verify value belief was created
     const value1 = qStore.getValue(stateTerm, action1);
@@ -94,7 +94,7 @@ describe('RL Parity - Trace Validation', () => {
     expect(toolResult0.success).toBe(true);
 
     const { reward: reward0 } = env.step(0);
-    rewardAdapter.processReward(stateTerm, action0, reward0);
+    await rewardAdapter.processReward(stateTerm, action0, reward0);
 
     // Step 6: Both value beliefs should exist now
     const value0 = qStore.getValue(stateTerm, action0);
@@ -104,7 +104,7 @@ describe('RL Parity - Trace Validation', () => {
     // Run several more steps for arm 1 to build up its value
     for (let i = 0; i < 10; i++) {
       env.step(1);
-      rewardAdapter.processReward(stateTerm, action1, 1); // Force reward = 1
+      await rewardAdapter.processReward(stateTerm, action1, 1); // Force reward = 1
     }
 
     const bestAction = qStore.getBestAction(stateTerm, actions);
@@ -150,7 +150,7 @@ describe('RL Parity - Trace Validation', () => {
   });
 
   test('trace shows observation belief feeding into value learning', async () => {
-    const env = new BanditEnv(banditConfig);
+    const env = new BanditGame(banditConfig);
     const nar = new NAR({
       activationDecayRate: 0.01,
       consolidationInterval: 5,
@@ -181,7 +181,7 @@ describe('RL Parity - Trace Validation', () => {
     const action0 = TermBuilder.atom('^pull_arm_0');
 
     // Perceive state
-    perception.perceive({ stateId: 'bandit_state', reward: 0 });
+    await perception.perceive({ stateId: 'bandit_state', reward: 0 });
     await nar.run(1);
 
     // Get observation belief via queryTerm
@@ -198,7 +198,7 @@ describe('RL Parity - Trace Validation', () => {
     const { reward } = env.step(0);
 
     // Process reward
-    rewardAdapter.processReward(stateTerm, action0, reward);
+    await rewardAdapter.processReward(stateTerm, action0, reward);
 
     // Trace the value belief term (which we know has beliefs)
     const valueTerm = TermBuilder.inheritance(
@@ -281,7 +281,7 @@ describe('RL Parity - Trace Validation', () => {
     const action = TermBuilder.atom('^move_north');
 
     // Process reward
-    rewardAdapter.processReward(state, action, 1.0, 0.8);
+    await rewardAdapter.processReward(state, action, 1.0, 0.8);
 
     // Trace the value belief
     const valueTerm = TermBuilder.inheritance(
@@ -309,7 +309,7 @@ describe('RL Parity - Trace Validation', () => {
   });
 
   test('no hidden causal path: all actions go through goal dispatch', async () => {
-    const env = new BanditEnv(banditConfig);
+    const env = new BanditGame(banditConfig);
     const nar = new NAR({
       activationDecayRate: 0.01,
       consolidationInterval: 5,
@@ -351,7 +351,7 @@ describe('RL Parity - Trace Validation', () => {
 
     // Run a few steps using inputTask to add goals to pending queue
     for (let step = 0; step < 5; step++) {
-      perception.perceive({ stateId: 'bandit_state', reward: 0 });
+      await perception.perceive({ stateId: 'bandit_state', reward: 0 });
 
       // Input a goal for arm 1 (better arm) via inputTask
       const goalTerm = actionAdapter.buildGoalTerm({ name: 'pull_arm_1' });
@@ -364,7 +364,7 @@ describe('RL Parity - Trace Validation', () => {
       const { reward } = env.step(1);
       const stateTerm = TermBuilder.atom('bandit_state');
       const actionTerm = TermBuilder.atom('^pull_arm_1');
-      rewardAdapter.processReward(stateTerm, actionTerm, reward);
+      await rewardAdapter.processReward(stateTerm, actionTerm, reward);
     }
 
     // Every environment action should have gone through tool execution
