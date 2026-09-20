@@ -1,5 +1,6 @@
 import type { CognitiveAxis, EmbeddingCache, HeadResult, JudgmentHead, JudgmentQuery, RubricId, CalibrationVersion } from '../types.js';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from '../calibration.js';
+import { getScorer } from '../scoring.js';
 
 export interface HeadFactoryOptions {
   calibrationVersion: CalibrationVersion;
@@ -7,58 +8,42 @@ export interface HeadFactoryOptions {
   abstainThreshold: number;
 }
 
-export function createRelevanceHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'relevance');
-  const levels = ['irrelevant', 'tangential', 'relevant', 'highly-relevant'] as const;
+function makeEvaluateHead(
+  rubric: RubricId,
+  axis: CognitiveAxis,
+  levels: readonly string[],
+  options: HeadFactoryOptions
+): JudgmentHead {
+  const { calibrationVersion, abstainThreshold } = options;
+  const calibrator = createIsotonicCalibrator(calibrationVersion, rubric);
+  const scorer = getScorer(rubric);
 
   return {
-    rubric: 'relevance',
-    axis: 'epistemic',
+    rubric,
+    axis,
     levels,
     evaluate: async (embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult> => {
-      const rawScore = Math.random();
+      const rawScore = scorer(embedding, query);
       const calibratedScore = calibrator.calibrate(rawScore);
       const abstained = calibratedScore < abstainThreshold;
       return { score: calibratedScore, abstained, abstainReason: abstained ? 'low-confidence' : undefined };
     },
   };
+}
+
+export function createRelevanceHead(options: HeadFactoryOptions): JudgmentHead {
+  const levels = ['irrelevant', 'tangential', 'relevant', 'highly-relevant'] as const;
+  return makeEvaluateHead('relevance', 'epistemic', levels, options);
 }
 
 export function createEpisodicMatchHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'episodic_match');
   const levels = ['no-match', 'weak-match', 'match', 'strong-match'] as const;
-
-  return {
-    rubric: 'episodic_match',
-    axis: 'epistemic',
-    levels,
-    evaluate: async (embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult> => {
-      const rawScore = Math.random();
-      const calibratedScore = calibrator.calibrate(rawScore);
-      const abstained = calibratedScore < abstainThreshold;
-      return { score: calibratedScore, abstained, abstainReason: abstained ? 'low-confidence' : undefined };
-    },
-  };
+  return makeEvaluateHead('episodic_match', 'epistemic', levels, options);
 }
 
 export function createNoveltyHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'novelty');
   const levels = ['known', 'slightly-novel', 'novel', 'highly-novel'] as const;
-
-  return {
-    rubric: 'novelty',
-    axis: 'epistemic',
-    levels,
-    evaluate: async (embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult> => {
-      const rawScore = Math.random();
-      const calibratedScore = calibrator.calibrate(rawScore);
-      const abstained = calibratedScore < abstainThreshold;
-      return { score: calibratedScore, abstained, abstainReason: abstained ? 'low-confidence' : undefined };
-    },
-  };
+  return makeEvaluateHead('novelty', 'epistemic', levels, options);
 }
 
 export function createAllMemoryHeads(options: HeadFactoryOptions): Map<RubricId, JudgmentHead> {

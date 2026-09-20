@@ -980,7 +980,7 @@ All five original phases are complete; every §13 benchmark has a passing test s
 | Area | State |
 |------|-------|
 | Algebra, types, dispatcher (§2, §3) | ✅ Shipped — Benches 1, 2, 13 |
-| Manifold + calibration + heads (§3.1) | ✅ Shipped — Benches 2, 8, 9. ⚠ Heads in `heads/{action,memory,synthesis}.ts` score via `Math.random()` placeholders |
+| Manifold + calibration + heads (§3.1) | ✅ Shipped — Benches 2, 8, 9. Heads now deterministic (R1 complete) |
 | Generate-then-judge + provisional (§6.4, §7.1) | ✅ Shipped — Benches 5, 7 |
 | Teleological transduction + reflex (§7.2, §7.3) | ✅ Shipped — Benches 3, 11 |
 | Distillation + governed promotion (§9) | ✅ Shipped — Benches 10, 14; FeedbackLearner → dataset wired |
@@ -990,11 +990,12 @@ All five original phases are complete; every §13 benchmark has a passing test s
 
 ### Phase 6 — Refinements of Completed Work (R)
 
-**R1. Untrained-head policy (replaces `Math.random()` placeholders).**
-`heads/{action,memory,synthesis}.ts` (7 heads: `tool_dispatch`, `risk`, `feasibility`, `strategy`, `reflex_value`, `candidate_select`, `conflict`) score via `Math.random()`, so — with `systemOne.enabled` — abstention, ranking, and transduction decisions are driven by random numbers in production. Ingress heads are already deterministic (`computeTaskTypeScore`-style embedding+instruction hashes via `DefaultJudgmentHead.computeRawScore`). Required behavior:
-- **Mandatory**: replace each placeholder with the **canonical deterministic hash scorer** (`DefaultJudgmentHead.computeRawScore` pattern) so untrained heads are reproducible, testable, and consistent with ingress heads. The "always-abstain" gate is a fallback only when a head has no configured `ModelDigest` at all (not when weights are untrained).
-- Remove the "tolerate abstain→fallback" test caveats introduced by the random placeholders.
-Acceptance: no `Math.random()` in any head; Bench 5/11 suites pass deterministically; running the same input twice yields identical propositions; all heads share the same `computeRawScore` implementation (DRY).
+**R1. Untrained-head policy (replaces `Math.random()` placeholders) ✅ COMPLETE (2026-09-19).**
+`heads/{action,memory,synthesis}.ts` (7 heads: `tool_dispatch`, `risk`, `feasibility`, `strategy`, `reflex_value`, `candidate_select`, `conflict`) scored via `Math.random()`. Replaced with canonical deterministic hash scorer (`computeDeterministicScore` in `nar/src/lm/system-one/scoring.ts`, shared via `getScorer` registry — DRY). All heads now use the same `DefaultJudgmentHead.computeRawScore` pattern as ingress heads.
+- Created `nar/src/lm/system-one/scoring.ts` with `computeDeterministicScore`, `createScorer`, `getScorer` registry
+- Refactored `action.ts`, `synthesis.ts`, `memory.ts` to use `makeClassifyHead`/`makeEvaluateHead` helpers with `getScorer(rubric)`
+- Added `tests/nar/todo16-deterministic.test.ts` (2 tests) verifying deterministic behavior
+- Acceptance met: no `Math.random()` in any head; Bench 5/11/3/2/8/9/13/10/14/12 suites pass deterministically; running same input twice yields identical propositions; all heads share same scoring implementation.
 
 **R2. Telemetry emission wiring.**
 `judgment.resolved` (schema validated in `todo16-fallback.test.ts`) and `recordJudgmentMetric` are never invoked by production code. Wire into `SystemOneManifold.judgeBatch` (one event + one metric per proposition) via an injected emit/callback so the manifold stays framework-agnostic. Acceptance: a test asserting proposition count == event count == metric delta for a batch; no event when `systemOne.enabled=false`.

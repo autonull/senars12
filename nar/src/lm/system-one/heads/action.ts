@@ -1,5 +1,6 @@
 import type { CognitiveAxis, EmbeddingCache, HeadResult, JudgmentHead, JudgmentQuery, RubricId, CalibrationVersion } from '../types.js';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from '../calibration.js';
+import { getScorer } from '../scoring.js';
 
 export interface HeadFactoryOptions {
   calibrationVersion: CalibrationVersion;
@@ -7,94 +8,88 @@ export interface HeadFactoryOptions {
   abstainThreshold: number;
 }
 
-export function createToolDispatchHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'tool_dispatch');
-  const space = ['none', 'low', 'medium', 'high', 'critical'] as const;
+function makeClassifyHead(
+  rubric: RubricId,
+  space: readonly string[],
+  options: HeadFactoryOptions
+): JudgmentHead {
+  const { calibrationVersion, abstainThreshold } = options;
+  const calibrator = createIsotonicCalibrator(calibrationVersion, rubric);
+  const scorer = getScorer(rubric);
 
   return {
-    rubric: 'tool_dispatch',
+    rubric,
     axis: 'teleological',
     space,
     evaluate: async (embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult> => {
-      const rawScore = Math.random();
+      const rawScore = scorer(embedding, query);
       const calibratedScore = calibrator.calibrate(rawScore);
       const abstained = calibratedScore < abstainThreshold;
-      return { score: calibratedScore, distribution: space.map((opt, i) => ({ option: opt, p: i === 0 ? 1 : 0 })), abstained, abstainReason: abstained ? 'low-confidence' : undefined };
+
+      if (abstained) {
+        return {
+          score: calibratedScore,
+          distribution: space.map((opt) => ({ option: opt, p: 1 / space.length })),
+          abstained: true,
+          abstainReason: 'low-confidence',
+        };
+      }
+
+      const dominantIdx = Math.floor(calibratedScore * space.length) % space.length;
+      const dist = space.map((opt, i) => ({
+        option: opt,
+        p: i === dominantIdx ? calibratedScore : (1 - calibratedScore) / Math.max(1, space.length - 1),
+      }));
+      return { score: calibratedScore, distribution: dist, abstained: false };
     },
   };
+}
+
+function makeEvaluateHead(
+  rubric: RubricId,
+  levels: readonly string[],
+  options: HeadFactoryOptions
+): JudgmentHead {
+  const { calibrationVersion, abstainThreshold } = options;
+  const calibrator = createIsotonicCalibrator(calibrationVersion, rubric);
+  const scorer = getScorer(rubric);
+
+  return {
+    rubric,
+    axis: 'teleological',
+    levels,
+    evaluate: async (embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult> => {
+      const rawScore = scorer(embedding, query);
+      const calibratedScore = calibrator.calibrate(rawScore);
+      const abstained = calibratedScore < abstainThreshold;
+      return { score: calibratedScore, abstained, abstainReason: abstained ? 'low-confidence' : undefined };
+    },
+  };
+}
+
+export function createToolDispatchHead(options: HeadFactoryOptions): JudgmentHead {
+  const space = ['none', 'low', 'medium', 'high', 'critical'] as const;
+  return makeClassifyHead('tool_dispatch', space, options);
 }
 
 export function createRiskHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'risk');
   const space = ['none', 'low', 'medium', 'high', 'critical'] as const;
-
-  return {
-    rubric: 'risk',
-    axis: 'teleological',
-    space,
-    evaluate: async (embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult> => {
-      const rawScore = Math.random();
-      const calibratedScore = calibrator.calibrate(rawScore);
-      const abstained = calibratedScore < abstainThreshold;
-      return { score: calibratedScore, distribution: space.map((opt, i) => ({ option: opt, p: i === 0 ? 1 : 0 })), abstained, abstainReason: abstained ? 'low-confidence' : undefined };
-    },
-  };
+  return makeClassifyHead('risk', space, options);
 }
 
 export function createFeasibilityHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'feasibility');
   const levels = ['impossible', 'unlikely', 'possible', 'likely', 'certain'] as const;
-
-  return {
-    rubric: 'feasibility',
-    axis: 'teleological',
-    levels,
-    evaluate: async (embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult> => {
-      const rawScore = Math.random();
-      const calibratedScore = calibrator.calibrate(rawScore);
-      const abstained = calibratedScore < abstainThreshold;
-      return { score: calibratedScore, abstained, abstainReason: abstained ? 'low-confidence' : undefined };
-    },
-  };
+  return makeEvaluateHead('feasibility', levels, options);
 }
 
 export function createStrategyHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'strategy');
   const space = ['explore', 'exploit', 'deliberate', 'delegate'] as const;
-
-  return {
-    rubric: 'strategy',
-    axis: 'teleological',
-    space,
-    evaluate: async (embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult> => {
-      const rawScore = Math.random();
-      const calibratedScore = calibrator.calibrate(rawScore);
-      const abstained = calibratedScore < abstainThreshold;
-      return { score: calibratedScore, distribution: space.map((opt, i) => ({ option: opt, p: 1 / space.length })), abstained, abstainReason: abstained ? 'low-confidence' : undefined };
-    },
-  };
+  return makeClassifyHead('strategy', space, options);
 }
 
 export function createReflexValueHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'reflex_value');
   const levels = ['very-low', 'low', 'medium', 'high', 'very-high'] as const;
-
-  return {
-    rubric: 'reflex_value',
-    axis: 'teleological',
-    levels,
-    evaluate: async (embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult> => {
-      const rawScore = Math.random();
-      const calibratedScore = calibrator.calibrate(rawScore);
-      const abstained = calibratedScore < abstainThreshold;
-      return { score: calibratedScore, abstained, abstainReason: abstained ? 'low-confidence' : undefined };
-    },
-  };
+  return makeEvaluateHead('reflex_value', levels, options);
 }
 
 export function createAllActionHeads(options: HeadFactoryOptions): Map<RubricId, JudgmentHead> {
