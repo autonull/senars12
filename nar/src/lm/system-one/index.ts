@@ -14,5 +14,8 @@ export * from './wasi-runtime.js';
 export * from './http-endpoint.js';
 export * from './resource-gate.js';
 export * from './label-sources.js';
+export * from './train.js';
+export * from './calibration-fit.js';
+export * from './reflex-label-source.js';
 export * from './heads/index.js';
 export * from './groundedness-gate.js';

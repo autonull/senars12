@@ -31,6 +31,7 @@ import {
   type DriftDemotionConfig,
 } from './calibration.js';
 import { createAllIngressHeads, createAllActionHeads, createAllSynthesisHeads, createAllMemoryHeads, type HeadFactoryOptions, type PerHeadConfig } from './heads/index.js';
+import { applyCalibrationLock, assertLockMatches, type CalibrationLock } from './calibration-fit.js';
 import { recordJudgmentMetric } from '../../metrics/prometheus.js';
 import type { JudgmentResolvedEvent, CognitiveEvent } from '@senars/kernel/schemas';
 
@@ -50,6 +51,8 @@ export interface ManifoldConfig {
   /** Optional callback invoked for each resolved judgment proposition.
    *  Allows consumers to emit kernel events and metrics without coupling the manifold to the event system. */
   onProposition?: (proposition: JudgmentProposition, query: JudgmentQuery) => void;
+  /** Digest-pinned calibration lock (D2): fitted calibrators + per-head abstain thresholds. */
+  calibrationLock?: CalibrationLock;
 }
 
 function entropy(distribution: readonly { option: string; p: number }[]): number {
@@ -110,6 +113,10 @@ export class SystemOneManifold implements JudgmentManifold {
   constructor(config: ManifoldConfig) {
     this.#config = config;
     this.#calibrators = createDefaultCalibrationSuite(config.calibrationVersion);
+    if (config.calibrationLock) {
+      assertLockMatches(config.calibrationLock, config.modelDigest);
+      applyCalibrationLock(this.#calibrators, config.calibrationLock);
+    }
 
     this.#rollingECEMonitor = new RollingECEMonitor(config.rollingECEConfig);
     this.#driftDemotion = new DriftDemotionManager(config.driftDemotionConfig);
@@ -274,6 +281,17 @@ export class SystemOneManifold implements JudgmentManifold {
     this.#config.heads.set(head.rubric, head);
   }
 
+  /** Per-head abstain thresholds from the loaded calibration lock (empty when unfitted). */
+  getAbstainThresholds(): ReadonlyMap<string, number> {
+    return new Map(
+      (this.#config.calibrationLock?.heads ?? []).map((e) => [e.headId, e.abstainThreshold])
+    );
+  }
+
+  getCalibrationLock(): CalibrationLock | undefined {
+    return this.#config.calibrationLock;
+  }
+
   #estimateCost(query: JudgmentQuery, latencyMs: number): ResourceCost {
     const baseTokens = query.instruction.length / 4;
     return {
@@ -365,6 +383,7 @@ export function createManifold(
     rollingECEConfig: config.rollingECEConfig,
     driftDemotionConfig: config.driftDemotionConfig,
     onProposition: config.onProposition,
+    calibrationLock: config.calibrationLock,
   };
 
   return new SystemOneManifold(manifoldConfig);

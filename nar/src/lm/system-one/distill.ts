@@ -26,6 +26,10 @@ export interface DistillationLabel {
   axis: string;
   label: string;
   score?: number;
+  /** Ground-truth outcome recorded at label time (D2 calibration input). */
+  observed?: number;
+  /** Vector-sidecar key this row joins to (Z1: usually the state vector, not the action row). */
+  vecRef?: string;
   source: string;
   /** H5/X18: which Cortex model produced the candidates this label judged. */
   cortexModelId?: string;
@@ -111,6 +115,17 @@ export class JudgmentDataset {
       if (e.code !== 'ENOENT') throw e;
     }
     return dataset;
+  }
+
+  /** Periodic append of recorded labels to `path` (D3 auto-flush). Returns a stop function. */
+  startAutoFlush(path: string, intervalMs = 30_000): () => void {
+    const timer = setInterval(() => {
+      void this.flush(path).catch(() => {
+        // Auto-flush is best-effort; the next tick retries.
+      });
+    }, intervalMs);
+    timer.unref?.();
+    return () => clearInterval(timer);
   }
 }
 
