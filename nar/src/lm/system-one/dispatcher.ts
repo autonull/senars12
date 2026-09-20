@@ -263,14 +263,54 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
       // Use Tier 1 results when available and confident
       return tier1Results.map((r, i) => {
         const tier0Result = tier0Results[i];
+        const query = queries[i];
+
+        // R6: Explicit safety floor — queries with criticality ∈ {high, critical}
+        // and rubric ∈ {injection, assertion} that abstain MUST fail closed.
+        // They never fall back to Tier 0 defaults.
+        const isSafetyFloorQuery =
+          query &&
+          (query.criticality === 'high' || query.criticality === 'critical') &&
+          query.kind === 'evaluate' &&
+          (query.rubric === 'injection' || query.rubric === 'assertion');
+
+        if (isSafetyFloorQuery && r.abstained) {
+          // Return a hard-veto proposition: score > threshold triggers veto
+          const vetoScore = 0.99;
+          return {
+            ...r,
+            score: vetoScore,
+            abstained: false,
+            tier: 1,
+          } as any;
+        }
+
         return r.abstained || (r.kind === 'classify' && r.top.p < 0.5) ? tier0Result! : r;
       });
     } catch {
       // Tier 1 failed, fall through to Tier 3
-    }
+      // But safety-floor queries still fail closed
+      const tier3Results = await this.#tier3.judgeBatch(sharedContext, queries, budget);
+      return tier3Results.map((r, i) => {
+        const query = queries[i];
+        const isSafetyFloorQuery =
+          query &&
+          (query.criticality === 'high' || query.criticality === 'critical') &&
+          query.kind === 'evaluate' &&
+          (query.rubric === 'injection' || query.rubric === 'assertion');
 
-    // Tier 3: Symbolic fallback
-    return this.#tier3.judgeBatch(sharedContext, queries, budget);
+        if (isSafetyFloorQuery) {
+          // Return a hard-veto proposition: score > threshold triggers veto
+          return {
+            ...r,
+            score: 0.99,
+            abstained: false,
+            tier: 1,
+          } as any;
+        }
+        return r;
+      });
+    }
   }
 
   async *synthesize(
@@ -347,12 +387,37 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     // so their output is admitted provisionally (§6.4).
     const selectUsable =
       select && !select.abstained && select.kind === 'classify' && (select as ClassifyProposition).tier === 1;
-    const ranking = selectUsable ? (select as ClassifyProposition).distribution : undefined;
+
+    // R5: Per-candidate embeddings — write each candidate to cache and evaluate individually
+    // so ranking discriminates content, not just context.
+    let ranking: readonly { option: string; p: number }[] | undefined;
+    if (selectUsable && selectQuery && this.#embeddingCache) {
+      const candidateEmbeddings: EmbeddingPointer[] = [];
+      for (const candidate of candidates) {
+        const pointer = await this.#embeddingCache.write(candidate);
+        candidateEmbeddings.push(pointer);
+      }
+      // Re-judge candidate_select with per-candidate embeddings
+      const perCandidateQueries: ClassifyQuery[] = candidates.map((c) => ({
+        kind: 'classify' as const,
+        instruction: `Evaluate candidate: ${c}`,
+        space: selectQuery.space,
+        axis: 'teleological' as const,
+        criticality: 'standard' as const,
+      }));
+      const candidateJudgments = await this.judge(sharedContext, perCandidateQueries, budget);
+      ranking = candidates.map((c, i) => ({
+        option: c,
+        p: (candidateJudgments[i] as ClassifyProposition).top.p,
+      }));
+    } else {
+      ranking = selectUsable ? (select as ClassifyProposition).distribution : undefined;
+    }
 
     const ranked = candidates.map((candidate) => {
-      if (selectUsable) {
-        const p = ranking!.find((d) => d.option === candidate)?.p ?? 0;
-        const authority = seedTruth(select as ClassifyProposition).c;
+      if (ranking) {
+        const p = ranking.find((d) => d.option === candidate)?.p ?? 0;
+        const authority = selectUsable ? seedTruth(select as ClassifyProposition).c : 0;
         return { candidate, truth: Truth.create(p, authority) };
       }
       return { candidate, truth: Truth.NEUTRAL };

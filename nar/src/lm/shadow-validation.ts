@@ -6,6 +6,8 @@
  */
 import type { Term, Truth } from '../terms';
 import type { Task } from '../types';
+import type { JudgmentDataset } from '../lm/system-one/distill.js';
+import { recordShadowVerdictLabel } from '../lm/system-one/label-sources.js';
 
 export interface BeliefLike {
   term: Term;
@@ -17,34 +19,53 @@ export interface ShadowCheckOptions {
   maxFrequencyDelta?: number;
   /** Validation horizon in reasoning cycles (informational for deterministic checks). */
   cycles?: number;
+  /** Optional distillation dataset for recording shadow verdict labels. */
+  distillationDataset?: JudgmentDataset;
 }
 
-const DEFAULTS: Required<ShadowCheckOptions> = { maxFrequencyDelta: 0.3, cycles: 3 };
+const DEFAULTS = { maxFrequencyDelta: 0.3, cycles: 3, distillationDataset: undefined as JudgmentDataset | undefined };
 
 export class ShadowValidator {
   private readonly maxFrequencyDelta: number;
   readonly cycles: number;
+  #dataset?: JudgmentDataset;
 
   constructor(options: ShadowCheckOptions = {}) {
-    const { maxFrequencyDelta, cycles } = { ...DEFAULTS, ...options };
+    const { maxFrequencyDelta, cycles, distillationDataset } = { ...DEFAULTS, ...options };
     this.maxFrequencyDelta = maxFrequencyDelta;
     this.cycles = cycles;
+    this.#dataset = distillationDataset;
   }
 
   /** True when the candidate introduces no contradiction with existing beliefs. */
   validate(candidate: BeliefLike, beliefs: readonly BeliefLike[]): boolean {
     if (!candidate.truth) return true;
-    return !beliefs.some(
+    const hasConflict = beliefs.some(
       (b) =>
         b.truth &&
         b.term.toString() === candidate.term.toString() &&
         Math.abs(b.truth.f - candidate.truth!.f) > this.maxFrequencyDelta
     );
+
+    // R7: Record shadow verdict label for distillation
+    if (this.#dataset) {
+      recordShadowVerdictLabel(this.#dataset, {
+        derivationId: candidate.term.toString(),
+        verdict: hasConflict ? 'conflict' : 'support',
+      });
+    }
+
+    return !hasConflict;
   }
 
   /** Filter a task list, keeping only shadow-valid candidates. */
   validateAll(candidates: readonly BeliefLike[], beliefs: readonly BeliefLike[]): BeliefLike[] {
     return candidates.filter((t) => this.validate(t, beliefs));
+  }
+
+  /** Set the distillation dataset for label recording (for singleton instance). */
+  setDistillationDataset(dataset: JudgmentDataset): void {
+    this.#dataset = dataset;
   }
 }
 

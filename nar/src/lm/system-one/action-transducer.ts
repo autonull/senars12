@@ -2,12 +2,16 @@ import type { ActionProposal } from '../../reflex/Reflex.js';
 import type { CapabilityApproval } from '../../capability/space.js';
 import { seedDesire } from './seed.js';
 import type { JudgmentProposition } from './types.js';
+import type { JudgmentDataset } from './distill.js';
+import { recordApprovalLabel } from './label-sources.js';
 
 export interface ActionGateTransducerOptions {
   /** HITL hook; headless environments auto-reject by default. */
   approvals?: CapabilityApproval;
   /** Proposal-vs-desire threshold τ. Below τ ⇒ propose-only for the Negotiator. */
   threshold?: number;
+  /** Optional distillation dataset for recording approval labels. */
+  distillationDataset?: JudgmentDataset;
 }
 
 /**
@@ -18,10 +22,12 @@ export interface ActionGateTransducerOptions {
 export class ActionGateTransducer {
   #approvals?: CapabilityApproval;
   #threshold: number;
+  #dataset?: JudgmentDataset;
 
   constructor(options: ActionGateTransducerOptions = {}) {
     this.#approvals = options.approvals;
     this.#threshold = options.threshold ?? 0.5;
+    this.#dataset = options.distillationDataset;
   }
 
   transduce(p: JudgmentProposition): ActionProposal | undefined {
@@ -35,6 +41,12 @@ export class ActionGateTransducer {
         payload: JSON.stringify({ queryId: p.queryId, top }),
         risk: 'high',
       });
+
+      // R7: Record approval label for distillation
+      if (this.#dataset) {
+        recordApprovalLabel(this.#dataset, { action: top.option, approved: false });
+      }
+
       return undefined;
     }
 

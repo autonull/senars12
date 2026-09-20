@@ -48,6 +48,38 @@ export class JudgmentDataset {
   toJSONL(): string {
     return this.#labels.map((l) => JSON.stringify(l)).join('\n');
   }
+
+  /** Append the dataset to a JSONL file (creates directory if needed). */
+  async flush(path: string): Promise<void> {
+    const { promises: fs } = await import('node:fs');
+    const { dirname } = await import('node:path');
+    await fs.mkdir(dirname(path), { recursive: true });
+    const jsonl = this.toJSONL();
+    if (jsonl) {
+      await fs.appendFile(path, jsonl + '\n', 'utf-8');
+    }
+  }
+
+  /** Load a JSONL file and replace the current dataset. */
+  static async load(path: string): Promise<JudgmentDataset> {
+    const { promises: fs } = await import('node:fs');
+    const dataset = new JudgmentDataset();
+    try {
+      const content = await fs.readFile(path, 'utf-8');
+      const lines = content.trim().split('\n').filter(Boolean);
+      for (const line of lines) {
+        try {
+          const label = JSON.parse(line) as DistillationLabel;
+          dataset.record(label);
+        } catch {
+          // Skip malformed lines
+        }
+      }
+    } catch (e: any) {
+      if (e.code !== 'ENOENT') throw e;
+    }
+    return dataset;
+  }
 }
 
 // ─── Bake-off & governed promotion (§9.2) ───────────────────────────────────
