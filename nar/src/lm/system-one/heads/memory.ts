@@ -1,6 +1,7 @@
 import type { CognitiveAxis, EmbeddingCache, HeadResult, JudgmentHead, JudgmentQuery, RubricId, CalibrationVersion } from '../types.js';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from '../calibration.js';
 import { getScorer } from '../scoring.js';
+import { makeClassifyHead, makeEvaluateHead, type HeadFactoryOptions as FactoryHeadFactoryOptions } from './factory.js';
 
 export interface PerHeadConfig {
   modelDigest: string;
@@ -9,58 +10,18 @@ export interface PerHeadConfig {
   enabled: boolean;
 }
 
-export interface HeadFactoryOptions {
-  calibrationVersion: CalibrationVersion;
-  embeddingCache: EmbeddingCache;
-  abstainThreshold: number;
-  perHeadConfig?: Record<string, PerHeadConfig>;
-}
-
-function makeEvaluateHead(
-  rubric: RubricId,
-  axis: CognitiveAxis,
-  levels: readonly string[],
-  options: HeadFactoryOptions
-): JudgmentHead {
-  const { calibrationVersion, abstainThreshold, perHeadConfig } = options;
-  const headConfig = perHeadConfig?.[rubric];
-  const effectiveCalibrationVersion = headConfig?.calibrationVersion ?? calibrationVersion;
-  const effectiveAbstainThreshold = headConfig?.abstainThreshold ?? abstainThreshold;
-  const enabled = headConfig?.enabled ?? true;
-
-  const calibrator = createIsotonicCalibrator(effectiveCalibrationVersion, rubric);
-  const scorer = getScorer(rubric);
-
-  return {
-    rubric,
-    axis,
-    levels,
-    evaluate: async (embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult> => {
-      if (!enabled) {
-        return { score: 0, abstained: true, abstainReason: 'out-of-domain' };
-      }
-
-      const rawScore = scorer(embedding, query);
-      const calibratedScore = calibrator.calibrate(rawScore);
-      const abstained = calibratedScore < effectiveAbstainThreshold;
-      return { score: calibratedScore, abstained, abstainReason: abstained ? 'low-confidence' : undefined };
-    },
-  };
-}
+export type HeadFactoryOptions = FactoryHeadFactoryOptions;
 
 export function createRelevanceHead(options: HeadFactoryOptions): JudgmentHead {
-  const levels = ['irrelevant', 'tangential', 'relevant', 'highly-relevant'] as const;
-  return makeEvaluateHead('relevance', 'epistemic', levels, options);
+  return makeEvaluateHead('relevance', 'epistemic', ['irrelevant', 'tangential', 'relevant', 'highly-relevant'] as const, options);
 }
 
 export function createEpisodicMatchHead(options: HeadFactoryOptions): JudgmentHead {
-  const levels = ['no-match', 'weak-match', 'match', 'strong-match'] as const;
-  return makeEvaluateHead('episodic_match', 'epistemic', levels, options);
+  return makeEvaluateHead('episodic_match', 'epistemic', ['no-match', 'weak-match', 'match', 'strong-match'] as const, options);
 }
 
 export function createNoveltyHead(options: HeadFactoryOptions): JudgmentHead {
-  const levels = ['known', 'slightly-novel', 'novel', 'highly-novel'] as const;
-  return makeEvaluateHead('novelty', 'epistemic', levels, options);
+  return makeEvaluateHead('novelty', 'epistemic', ['known', 'slightly-novel', 'novel', 'highly-novel'] as const, options);
 }
 
 export function createAllMemoryHeads(options: HeadFactoryOptions): Map<RubricId, JudgmentHead> {

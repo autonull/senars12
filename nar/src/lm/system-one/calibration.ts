@@ -9,6 +9,7 @@ export interface CalibrationPoint {
 export interface IsotonicCalibrator {
   readonly version: CalibrationVersion;
   readonly rubric: RubricId | 'classify';
+  readonly fitted: boolean;
   calibrate(score: number): number;
   update(points: CalibrationPoint[]): void;
   getECE(): number;
@@ -83,6 +84,7 @@ export function createIsotonicCalibrator(
   const points: CalibrationPoint[] = [...initialPoints];
   let isotonicMap: number[] | null = null;
   let sortedPredicted: number[] | null = null;
+  let fitted = initialPoints.length > 0 && initialPoints.some(p => p.observed !== p.predicted);
 
   function rebuild(): void {
     if (points.length < 2) {
@@ -103,6 +105,9 @@ export function createIsotonicCalibrator(
   return {
     version,
     rubric,
+    get fitted(): boolean {
+      return fitted;
+    },
     calibrate(score: number): number {
       if (!isotonicMap || !sortedPredicted || points.length < 2) {
         return score;
@@ -124,6 +129,10 @@ export function createIsotonicCalibrator(
     },
 
     update(newPoints: CalibrationPoint[]): void {
+      const hasRealLabels = newPoints.some(p => p.observed !== p.predicted);
+      if (hasRealLabels) {
+        fitted = true;
+      }
       points.push(...newPoints);
       if (points.length > 10000) {
         points.splice(0, points.length - 10000);
@@ -151,6 +160,7 @@ export function createIsotonicCalibrator(
       points.length = 0;
       isotonicMap = null;
       sortedPredicted = null;
+      fitted = false;
     },
   };
 }

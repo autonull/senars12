@@ -22,6 +22,7 @@ import { recordJudgmentMetric } from '../metrics/prometheus.js';
 import { trace } from '@opentelemetry/api';
 import { seedTruth } from '../lm/system-one/seed.js';
 import type { DriveManager } from '../drives';
+import { createTelemetryEmitter, createGateTelemetrySinks } from '../lm/system-one/telemetry.js';
 
 export interface KernelPerceptionGateConfig {
   defaultBudget: {
@@ -99,55 +100,7 @@ export class KernelPerceptionGate {
     };
   }
 
-  /** Emit a judgment.resolved kernel event and record Prometheus metric for a resolved proposition. */
-  private emitJudgmentResolved(proposition: any, query: any): void {
-    const event: JudgmentResolvedEvent = {
-      type: 'judgment.resolved',
-      engine: 'proposer',
-      timestamp: Date.now(),
-      correlationId: uuidv4(),
-      payload: {
-        queryId: proposition.queryId,
-        shape: proposition.kind,
-        axis: proposition.axis,
-        backendId: proposition.backendId,
-        tier: proposition.tier,
-        latencyMs: proposition.latencyMs,
-        entropy: proposition.kind === 'classify' ? proposition.entropy : undefined,
-        abstained: proposition.abstained,
-        stampType: proposition.abstained ? 'provisional' : 'standard',
-        calibrationVersion: proposition.calibration.version,
-        cost: proposition.cost,
-      },
-    };
-
-    validateCognitiveEvent(event);
-    this.eventLog.push(event as any);
-
-    recordJudgmentMetric(
-      proposition.axis,
-      proposition.kind,
-      proposition.tier,
-      proposition.abstained,
-      proposition.latencyMs
-    );
-
-    // Attach OTel span attributes for dispatch observability (§11.2 / H2)
-    const activeSpan = trace.getActiveSpan();
-    if (activeSpan) {
-      activeSpan.setAttribute('dispatch.tier_taken', proposition.tier);
-      activeSpan.setAttribute('dispatch.backend_id', proposition.backendId);
-      activeSpan.setAttribute('dispatch.latency_ms', proposition.latencyMs);
-      activeSpan.setAttribute('dispatch.axis', proposition.axis);
-      if (proposition.kind === 'classify' && proposition.entropy !== undefined) {
-        activeSpan.setAttribute('dispatch.entropy', proposition.entropy);
-      }
-      activeSpan.setAttribute('dispatch.abstained', proposition.abstained);
-      activeSpan.setAttribute('dispatch.stamp_type', proposition.abstained ? 'provisional' : 'standard');
-      activeSpan.setAttribute('dispatch.cost_tokens', proposition.cost.tokensIn + proposition.cost.tokensOut);
-      activeSpan.setAttribute('dispatch.cost_memory', proposition.cost.memoryMb);
-    }
-  }
+  private emitJudgmentResolved = createTelemetryEmitter(createGateTelemetrySinks(this.eventLog));
 
   async admit(input: PerceptionGateInput): Promise<PerceptionGateOutput> {
     const correlationId = input.correlationId ?? uuidv4();

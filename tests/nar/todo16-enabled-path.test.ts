@@ -67,10 +67,16 @@ describe('System One Full Enabled Path Integration', () => {
       systemOne: {
         enabled: true,
         embeddingCache: makeCache(),
-        manifold: { provider: 'wasi', embeddingCacheSizeMB: 64 },
+        manifold: {
+          provider: 'wasi',
+          embeddingCacheSizeMB: 64,
+          heads: {},
+          consensus: { criticalityFloor: 'high', fanout: 3, minAgreement: 0.66 },
+        },
         cortex: { provider: 'mock' },
-        budgets: { maxJudgmentCallsPerCycle: 8, maxConsensusPerCycle: 2, maxLatencyMsPerJudgment: 33 },
+        budgets: { maxJudgmentCallsPerCycle: 8, maxConsensusPerCycle: 2, maxLatencyMsPerJudgment: 33, maxTokensPerCycle: 4096, maxMemoryMbPerCycle: 256 },
         provisional: { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30000 },
+        distillation: { datasetPath: './data/systemone-distillation.jsonl', bakeOffSamplingRate: 0.1, driftEceBound: 0.15 },
       },
     });
     await instance.initialize();

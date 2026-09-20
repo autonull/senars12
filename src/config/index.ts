@@ -14,6 +14,7 @@ export type {
   BotProfile,
   LmConfig,
   NarCoreConfig,
+  SystemOneConfig,
 } from './schema.js';
 export {
   appConfigSchema,

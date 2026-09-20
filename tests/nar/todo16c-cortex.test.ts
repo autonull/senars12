@@ -35,6 +35,8 @@ describe('Bench 16 — Cortex Ladder', () => {
         manifold: {
           provider: 'off',
           embeddingCacheSizeMB: 64,
+          heads: {},
+          consensus: { criticalityFloor: 'high', fanout: 3, minAgreement: 0.66 },
         },
         budgets: {
           maxJudgmentCallsPerCycle: 8,
@@ -203,6 +205,8 @@ describe('Bench 16 — Cortex Ladder', () => {
         manifold: {
           provider: 'off',
           embeddingCacheSizeMB: 64,
+          heads: {},
+          consensus: { criticalityFloor: 'high', fanout: 3, minAgreement: 0.66 },
         },
         budgets: {
           maxJudgmentCallsPerCycle: 8,

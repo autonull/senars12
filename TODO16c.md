@@ -294,12 +294,22 @@ New Prometheus counters (extend existing `systemone_*` family): `systemone_ingre
 - Pre-existing H4 failures (13 tests in RL adapter layer) remain; no new regressions introduced
 
 ### Phase B: Correctness & Dedup
-- [ ] B1 `EmbeddingCache`: O(1) index, LRU, buffer free-list, no aliasing
-- [ ] B2 single scorer + `heads/factory.ts`; delete `DefaultJudgmentHead` + 6 bespoke scorers
-- [ ] B3 shared `telemetry.ts`
-- [ ] B4 single `SystemOneConfig` (zod-inferred)
-- [ ] B5 honest calibration (`fitted` marker; no `observed: predicted` no-op)
-- [ ] Bench 17; all 22 todo16 suites green unmodified
+- [x] B1 `EmbeddingCache`: O(1) index, LRU, buffer free-list, no aliasing
+- [x] B2 single scorer + `heads/factory.ts`; delete `DefaultJudgmentHead` + 6 bespoke scorers
+- [x] B3 shared `telemetry.ts`
+- [x] B4 single `SystemOneConfig` (zod-inferred)
+- [x] B5 honest calibration (`fitted` marker; no `observed: predicted` no-op)
+- [x] Bench 17; all 22 todo16 suites green unmodified
+
+**Progress Notes (2026-09-20):**
+- All Phase B tasks completed and verified
+- Bench 17 (todo16c-cache.test.ts) passing with 6 tests covering: no buffer aliasing at 20k writes, O(1) read performance, 10k reads < 200ms, evicted buffer recycling without aliasing, writeRaw LRU management, clear() free-list reuse
+- B1: EmbeddingCache rewritten with pointer→entry Map index, insertion-ordered LRU Map, buffer free-list; corruption bug fixed (random buffer reuse eliminated)
+- B2: Created heads/factory.ts with unified makeHead/makeClassifyHead/makeEvaluateHead; deleted DefaultJudgmentHead and 6 computeXScore functions from ingress.ts; all head factories now use scoring.ts via getScorer()
+- B3: Created telemetry.ts with createTelemetryEmitter, createNarTelemetrySinks, createGateTelemetrySinks; NAR and KernelPerceptionGate both use shared emitter
+- B4: SystemOneConfig now uses zod-inferred type from src/config/schema.ts; nar.ts extends with runtime objects (manifold, embeddingCache, reasoningBudget)
+- B5: Calibration type adds optional `fitted` field; IsotonicCalibrator tracks fitted state; #updateCalibration no longer feeds self-supervised predictions; calibrators only update from real labels (Phase D)
+- All 25 todo16 test files (169 tests) pass; typecheck and lint clean
 
 ### Phase C: Reflex & RL
 - [ ] C1 `GameFocus` prefetch-at-attend + `createAgent` binds ManifoldReflex

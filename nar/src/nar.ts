@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { BaseComponent } from '@senars/core';
-import type { AutonomyMode, ReasoningBudget } from '@senars/kernel/schemas';
+import type { AutonomyMode } from '@senars/kernel/schemas';
 import type { CognitiveRegistry } from './cognitive';
 import { CognitiveController } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
@@ -49,11 +49,7 @@ import {
   createTask,
 } from './types';
 import { errMsg } from './utils';
-import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
-import type { JudgmentManifold, CognitiveDispatcher, JudgmentQuery, SynthesisQuery } from './lm/system-one/types.js';
 import type { JudgmentResolvedEvent } from '@senars/kernel/schemas';
-import { recordJudgmentMetric } from './metrics/prometheus.js';
-import { v4 as uuid } from 'uuid';
 import { createEmbeddingCache } from './lm/system-one/embedding-cache.js';
 import { createManifold } from './lm/system-one/manifold.js';
 import { createDispatcher } from './lm/system-one/dispatcher.js';
@@ -63,6 +59,7 @@ import { StubCortex } from './lm/system-one/dispatcher.js';
 import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
 import { ManifoldReflex } from './lm/system-one/manifold-reflex.js';
 import { EpsilonGreedyReflex } from './reflex/EpsilonGreedyReflex.js';
+import { createTelemetryEmitter, createNarTelemetrySinks } from './lm/system-one/telemetry.js';
 
 export { MetricsCollector } from './metrics';
 
@@ -71,48 +68,17 @@ export interface RLFPConfig {
 }
 
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
+import type { SystemOneConfig as SystemOneConfigSchema } from '../../src/config/schema.js';
+import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
+import type { JudgmentManifold, CognitiveDispatcher, JudgmentQuery, SynthesisQuery } from './lm/system-one/types.js';
+import type { ReasoningBudget } from '@senars/kernel/schemas';
 
-export interface SystemOneManifoldConfig {
-  provider?: 'off' | 'wasi' | 'webgpu' | 'http' | 'peer';
-  embeddingCacheSizeMB?: number;
-  heads?: Record<string, { modelDigest: string; calibrationVersion: string; abstainThreshold: number; enabled: boolean }>;
-  consensus?: { criticalityFloor: 'low' | 'standard' | 'high' | 'critical'; fanout: number; minAgreement: number };
-}
-
-export interface SystemOneCortexConfig {
-  provider?: 'off' | 'anthropic' | 'openai' | 'openai-compatible' | 'ollama' | 'llamacpp' | 'transformers' | 'webllm' | 'mock';
-}
-
-export interface SystemOneBudgetsConfig {
-  maxJudgmentCallsPerCycle?: number;
-  maxConsensusPerCycle?: number;
-  maxLatencyMsPerJudgment?: number;
-  maxTokensPerCycle?: number;
-  maxMemoryMbPerCycle?: number;
-}
-
-export interface SystemOneProvisionalConfig {
-  cInitial?: number;
-  decayRate?: number;
-  maxTtlMs?: number;
-}
-
-export interface SystemOneDistillationConfig {
-  datasetPath?: string;
-  bakeOffSamplingRate?: number;
-  driftEceBound?: number;
-}
-
-export interface SystemOneConfig {
-  enabled: boolean;
-  manifold?: SystemOneManifoldConfig | JudgmentManifold;
-  cortex?: SystemOneCortexConfig;
-  budgets?: SystemOneBudgetsConfig;
-  provisional?: SystemOneProvisionalConfig;
-  distillation?: SystemOneDistillationConfig;
+/** Runtime System One config extending the validated schema with runtime objects. */
+export type SystemOneConfig = SystemOneConfigSchema & {
+  manifold?: SystemOneConfigSchema['manifold'] | JudgmentManifold;
   embeddingCache?: EmbeddingCache;
   reasoningBudget?: ReasoningBudget;
-}
+};
 
 export interface NARConfig extends CoreConfig {
   lmService?: LMService;
@@ -245,6 +211,7 @@ export class NAR extends BaseComponent {
     this.io.setEventBus(eventBus);
     this.systemEventBus = new NarEventBus();
     this.io.setSystemEventBus(this.systemEventBus);
+    this._emitJudgmentResolved = createTelemetryEmitter(createNarTelemetrySinks(this.systemEventBus));
     this.driveManager = new DriveManager(this as any);
     this.driveManager.setSystemEventBus(this.systemEventBus);
     this.execution = new NARExecution(
@@ -433,39 +400,11 @@ export class NAR extends BaseComponent {
     return this._systemOneDispatcher !== undefined;
   }
 
+  private _emitJudgmentResolved?: ReturnType<typeof createTelemetryEmitter>;
+
   /** Emit a judgment.resolved kernel event + Prometheus metric for a resolved proposition. */
-  private emitJudgmentResolved(proposition: any): void {
-    try {
-      const event: JudgmentResolvedEvent = {
-        type: 'judgment.resolved',
-        engine: 'proposer',
-        timestamp: Date.now(),
-        correlationId: uuid(),
-        payload: {
-          queryId: proposition.queryId,
-          shape: proposition.kind,
-          axis: proposition.axis,
-          backendId: proposition.backendId,
-          tier: proposition.tier,
-          latencyMs: proposition.latencyMs,
-          entropy: proposition.kind === 'classify' ? proposition.entropy : undefined,
-          abstained: proposition.abstained,
-          stampType: proposition.abstained ? 'provisional' : 'standard',
-          calibrationVersion: proposition.calibration.version,
-          cost: proposition.cost,
-        },
-      };
-      this.systemEventBus.emit('judgment.resolved', event);
-      recordJudgmentMetric(
-        proposition.axis,
-        proposition.kind,
-        proposition.tier,
-        proposition.abstained,
-        proposition.latencyMs
-      );
-    } catch (e) {
-      this.logger?.warn('judgment.resolved emission failed', { error: errMsg(e) });
-    }
+  private emitJudgmentResolved(proposition: any, query?: any): void {
+    this._emitJudgmentResolved?.(proposition, query);
   }
 
   /**
@@ -907,7 +846,7 @@ export class NAR extends BaseComponent {
       // Pre-built manifold provided
       manifold = systemOneConfig.manifold as JudgmentManifold;
     } else {
-      const manifoldConfig = (systemOneConfig.manifold as SystemOneManifoldConfig) ?? {};
+      const manifoldConfig = (systemOneConfig.manifold as SystemOneConfigSchema['manifold']) ?? {};
       const perHeadConfig: Record<string, any> = {};
       if (manifoldConfig.heads) {
         for (const [key, headConfig] of Object.entries(manifoldConfig.heads)) {
@@ -935,11 +874,15 @@ export class NAR extends BaseComponent {
 
     // Emit judgment.resolved telemetry from the real Tier 1 manifold
     if ('setPropositionCallback' in manifold) {
-      (manifold as { setPropositionCallback: (cb: (proposition: any) => void) => void }).setPropositionCallback(
-        (proposition) => {
-          this.emitJudgmentResolved(proposition);
-        }
-      );
+      const m = manifold as {
+        setPropositionCallback: (cb: (proposition: any, query: any) => void) => void;
+        getPropositionCallback?: () => ((proposition: any, query: any) => void) | undefined;
+      };
+      const previous = m.getPropositionCallback?.();
+      m.setPropositionCallback((proposition, query) => {
+        previous?.(proposition, query);
+        this.emitJudgmentResolved(proposition, query);
+      });
     }
 
     // Create cortex adapter if provider is not 'off'

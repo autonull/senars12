@@ -19,7 +19,6 @@ import type {
   RubricId,
 } from './types.js';
 import { AlgebraPurityError, validateBatchQueries } from './algebra.js';
-import { EmbeddingCache as EmbeddingCacheClass } from './embedding-cache.js';
 import {
   createIsotonicCalibrator,
   RollingECEMonitor,
@@ -116,80 +115,6 @@ function makeProposition(
   }
 }
 
-export class DefaultJudgmentHead implements JudgmentHead {
-  readonly rubric: RubricId | 'classify';
-  readonly axis: CognitiveAxis;
-  readonly space?: readonly string[];
-  readonly levels?: readonly string[];
-  #calibrator: IsotonicCalibrator;
-  #embeddingCache: EmbeddingCache;
-  #abstainThreshold: number;
-
-  constructor(
-    rubric: RubricId | 'classify',
-    axis: CognitiveAxis,
-    calibrator: IsotonicCalibrator,
-    embeddingCache: EmbeddingCache,
-    abstainThreshold: number,
-    space?: readonly string[],
-    levels?: readonly string[]
-  ) {
-    this.rubric = rubric;
-    this.axis = axis;
-    this.space = space;
-    this.levels = levels;
-    this.#calibrator = calibrator;
-    this.#embeddingCache = embeddingCache;
-    this.#abstainThreshold = abstainThreshold;
-  }
-
-  async evaluate(embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult> {
-    const rawScore = this.computeRawScore(embedding, query);
-    const calibratedScore = this.#calibrator.calibrate(rawScore);
-
-    if (calibratedScore < this.#abstainThreshold) {
-      return {
-        score: calibratedScore,
-        abstained: true,
-        abstainReason: 'low-confidence',
-      };
-    }
-
-    if (query.kind === 'classify') {
-      const space = query.space;
-      const dist = space.map((opt, i) => ({
-        option: opt,
-        p: i === 0 ? calibratedScore : (1 - calibratedScore) / Math.max(1, space.length - 1),
-      }));
-      return {
-        score: calibratedScore,
-        distribution: dist,
-        abstained: false,
-      };
-    }
-
-    return {
-      score: calibratedScore,
-      abstained: false,
-    };
-  }
-
-  private computeRawScore(embedding: Float32Array, query: JudgmentQuery): number {
-    let hash = 0;
-    for (let i = 0; i < Math.min(embedding.length, 64); i++) {
-      const val = embedding[i] ?? 0;
-      hash = ((hash << 5) - hash + Math.floor(val * 1000)) | 0;
-    }
-    const instructionHash = query.instruction.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
-    const combined = Math.abs(hash + instructionHash) % 10000 / 10000;
-    return 0.3 + combined * 0.6;
-  }
-
-  getCalibrator(): IsotonicCalibrator {
-    return this.#calibrator;
-  }
-}
-
 export class SystemOneManifold implements JudgmentManifold {
   #config: ManifoldConfig;
   #health: ManifoldHealth;
@@ -265,7 +190,11 @@ export class SystemOneManifold implements JudgmentManifold {
         queryId: uuidv4() as any,
         backendId: this.#config.backendId,
         modelDigest: this.#config.modelDigest,
-        calibration: { version: this.#config.calibrationVersion, ece: this.#rollingECEMonitor.getRollingECE() },
+        calibration: { 
+          version: this.#config.calibrationVersion, 
+          ece: this.#rollingECEMonitor.getRollingECE(),
+          fitted: this.#calibrators.get(query.kind === 'classify' ? 'classify' : query.rubric)?.fitted ?? false,
+        },
         latencyMs,
         cost: this.estimateCost(query, latencyMs),
         tier: 1,
@@ -372,20 +301,9 @@ export class SystemOneManifold implements JudgmentManifold {
   estimateCost = this.#estimateCost.bind(this);
 
   #updateCalibration(results: JudgmentProposition[]): void {
-    for (const prop of results) {
-      const calibratorKey = prop.kind === 'classify' ? 'classify' : prop.kind;
-      const calibrator = this.#calibrators.get(calibratorKey);
-      if (calibrator) {
-        const predicted = prop.kind === 'classify' ? (prop as ClassifyProposition).top.p : (prop as EvaluateProposition).score;
-        calibrator.update([
-          {
-            predicted,
-            observed: predicted,
-            weight: 1,
-          },
-        ]);
-      }
-    }
+    // Do NOT update calibrators with self-supervised predictions (observed: predicted).
+    // Calibrators are only updated from real labels sourced from JudgmentDataset (Phase D).
+    // Until then, they remain in unfitted state (fitted: false) and report ECE honestly.
 
     const totalSamples = results.length;
     const avgECE = Array.from(this.#calibrators.values()).reduce((sum, c) => sum + c.getECE(), 0) / this.#calibrators.size;

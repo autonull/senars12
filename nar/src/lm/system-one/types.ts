@@ -89,6 +89,7 @@ export interface ResourceCost {
 export interface Calibration {
   version: CalibrationVersion;
   ece: number;
+  fitted?: boolean;
 }
 
 export interface PropositionBase {

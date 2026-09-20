@@ -37,6 +37,8 @@ describe('Bench 15 — Live Ingress Calibration', () => {
         manifold: {
           provider: 'off',
           embeddingCacheSizeMB: 64,
+          heads: {},
+          consensus: { criticalityFloor: 'high', fanout: 3, minAgreement: 0.66 },
         },
         budgets: {
           maxJudgmentCallsPerCycle: 8,
