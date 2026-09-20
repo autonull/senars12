@@ -50,6 +50,28 @@ describe('System One — Distillation Parity (Bench 10)', () => {
     expect(result.candidateAccuracy).toBeGreaterThanOrEqual(result.incumbentAccuracy);
   });
 
+  it('acceptImprovements admits strictly-better candidates beyond tolerance; regressions still rejected', () => {
+    const imperfectCases = (incumbentWeight: number, candidateWeight: number): BakeOffCase[] =>
+      Array.from({ length: 50 }, (_, i) => {
+        const truth = i % 2;
+        return {
+          truth,
+          incumbent: incumbentWeight * truth + (1 - incumbentWeight) / 2,
+          candidate: candidateWeight * truth + (1 - candidateWeight) / 2,
+        };
+      });
+
+    const better: HeadCandidateSpec = { ...incumbent, modelDigest: `sha256:${'c'.repeat(64)}` };
+    const improved = runBakeOff(incumbent, better, imperfectCases(0.7, 0.9), 0.02, 0.1, true);
+    expect(improved.withinParity).toBe(false);
+    expect(improved.candidateAccuracy).toBeGreaterThan(improved.incumbentAccuracy);
+    expect(improved.accepted).toBe(true);
+
+    const worse: HeadCandidateSpec = { ...incumbent, modelDigest: `sha256:${'b'.repeat(64)}` };
+    const regressed = runBakeOff(incumbent, worse, makeCases(0.2), 0.02, 0.1, true);
+    expect(regressed.accepted).toBe(false);
+  });
+
   it('head swap proposal routes through governance — never auto-applied, incumbent retained', () => {
     const bakeOff = runBakeOff(incumbent, incumbent, makeCases(0));
     const proposal = buildHeadSwapProposal(incumbent, bakeOff);

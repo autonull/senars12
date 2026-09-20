@@ -51,3 +51,4 @@ verification/
 .turbo
 tests/generated/
 .reports
+.vitest/

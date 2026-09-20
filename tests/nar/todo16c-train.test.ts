@@ -108,6 +108,56 @@ describe('Training Round-Trip (Bench 24)', () => {
     expect(bakeOff.candidateAccuracy).toBeGreaterThan(bakeOff.incumbentAccuracy);
   }, 120_000);
 
+  it('D5: trained head compiles to a WASI bundle — sandbox-loaded eval matches the trained model, digest mismatch fails closed', async () => {
+    const tmp = mkdtempSync(join(tmpdir(), 's1-wasi-'));
+    const datasetPath = join(tmp, 'dataset.jsonl');
+    const sidecarPath = join(tmp, 'vectors');
+    const dataset = buildLabeledDataset(300, sidecarPath);
+    await dataset.flush(datasetPath);
+    await dataset.flushVectors();
+    const rows = await loadTrainingData({ datasetPath, sidecarPath, headId: 'risk' });
+    const model = trainHead(
+      rows.map((r) => ({ ...r, action: r.action.split(':')[0]! })),
+      { headId: 'risk', rubric: 'risk', axis: 'teleological' },
+      { kind: 'linear', actionFeatureDim: 0 }
+    );
+
+    const { writeHeadBundle, loadHeadBundle } = await import(
+      '../../nar/src/lm/system-one/wasi-head-bundle.js'
+    );
+    const { wasmPath, modelDigest } = await writeHeadBundle(tmp, {
+      weights: model.weights,
+      bias: model.bias,
+      mean: model.mean,
+      std: model.std,
+    });
+    expect(modelDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
+
+    const bundle = await loadHeadBundle({
+      wasmPath,
+      modelDigest,
+      dimension: model.embeddingDim,
+      allowedPaths: [tmp],
+    });
+
+    let maxDelta = 0;
+    for (const row of rows.slice(0, 50)) {
+      const wasmScore = await bundle.evaluate(row.embedding);
+      // Reference: the same standardize → linear → clamp01 arithmetic in TS
+      let z = model.bias;
+      for (let i = 0; i < model.embeddingDim; i++) {
+        z += model.weights[i]! * ((row.embedding[i]! - model.mean[i]!) / model.std[i]!);
+      }
+      const reference = Math.min(1, Math.max(0, z));
+      maxDelta = Math.max(maxDelta, Math.abs(wasmScore - reference));
+    }
+    expect(maxDelta).toBeLessThan(1e-5);
+
+    await expect(
+      loadHeadBundle({ wasmPath, modelDigest: 'sha256:' + 'e'.repeat(64), dimension: model.embeddingDim })
+    ).rejects.toThrow(DigestMismatchError);
+  }, 120_000);
+
   it('D3 label sources (approval, clarification) record embeddings and observed outcomes', async () => {
     const dataset = new JudgmentDataset();
     recordApprovalLabel(dataset, { action: 'delete', approved: false, predicted: 0.2 });

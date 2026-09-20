@@ -45,3 +45,5 @@ jobs:
       - run: pnpm tsx examples/systemone-ingress.ts
       - run: pnpm tsx examples/rl-gridworld.ts
       - run: pnpm tsx examples/custom-head.ts
+      # F3 mock leg: System One on/off latency + LM-call deltas → .reports/
+      - run: pnpm bench:system-one

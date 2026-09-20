@@ -8,6 +8,7 @@ import { EmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
 import { createManifold } from '../nar/src/lm/system-one/manifold.js';
 import { ManifoldRLAgent } from '../nar/src/lm/system-one/manifold-rl-agent.js';
 import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
+import { loadConfig } from '../src/config/index.js';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 
 const episodes = Number(process.argv[2] ?? 20);
@@ -24,7 +25,9 @@ const cache = new EmbeddingCache({ maxSize: 1000, ttlMs: 600_000 });
 await cache.warmup(['gridworld']);
 const manifold = createManifold(cache, { abstainThreshold: 0.05 });
 
-const agent = new ManifoldRLAgent({ cache, manifold, budget, epsilon: 0.1 });
+const appConfig = await loadConfig().catch(() => null);
+const rlConfig = appConfig?.systemOne?.rl;
+const agent = new ManifoldRLAgent({ cache, manifold, budget, epsilon: rlConfig?.epsilon ?? 0.1 });
 
 const rewards: number[] = [];
 for (let ep = 0; ep < episodes; ep++) {
@@ -35,4 +38,4 @@ for (let ep = 0; ep < episodes; ep++) {
 const avg = rewards.reduce((a, b) => a + b, 0) / rewards.length;
 console.log(`ManifoldRLAgent over ${episodes} GridWorld episodes:`);
 console.log(`  avg reward: ${avg.toFixed(4)}  min: ${Math.min(...rewards).toFixed(2)}  max: ${Math.max(...rewards).toFixed(2)}`);
-console.log(`  policy: eps-greedy (untrained hash heads — see Bench 20/21 for fitted regimes)`);
+console.log(`  policy: ${rlConfig?.policy ?? 'eps-greedy'} ε=${rlConfig?.epsilon ?? 0.1} (untrained hash heads — see Bench 20/21 for fitted regimes)`);

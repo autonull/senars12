@@ -22,3 +22,5 @@ export * from './reflex-label-source.js';
 export * from './heads/index.js';
 export * from './groundedness-gate.js';
 export * from './trace-grader.js';
+export * from './wake-gate.js';
+export * from './wasi-head-bundle.js';

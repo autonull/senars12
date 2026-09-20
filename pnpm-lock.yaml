@@ -311,6 +311,9 @@ importers:
       vitest:
         specifier: ^5.0.0
         version: 5.0.0(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/coverage-v8@5.0.0)(jsdom@30.0.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+      wabt:
+        specifier: ^1.0.39
+        version: 1.0.39
       zod-fast-check:
         specifier: ^0.10.1
         version: 0.10.1(fast-check@4.9.0)(zod@4.5.4)
@@ -6561,6 +6564,10 @@ packages:
   w3c-xmlserializer@5.0.0:
     resolution: {integrity: sha512-o8qghlI8NZHU1lLPrpi2+Uq7abh4GGPpYANlalzWxyWteJOCsr/P+oPBA49TOLu5FTZO4d3F9MnWJfiMo4BkmA==}
     engines: {node: '>=18'}
+
+  wabt@1.0.39:
+    resolution: {integrity: sha512-ba+dRL/75VQQY7RkU/CgriGbkoWAfS8TDyUlJfJhJ8KhtXgMl5dhNvoPNUcQ9IWRhW8u41glMSuZeTvsYq2rRg==}
+    hasBin: true
 
   wasmtime-darwin-x64@0.0.2:
     resolution: {integrity: sha512-cZNu1KeGd3D7tkjKU1ppcCA9sTyxn6vn/q41GGdgXG1yzhJGu94cytiEW6kgzaESzKN0Y7cXHIvXq3cJ88+BnQ==}
@@ -12827,6 +12834,8 @@ snapshots:
   w3c-xmlserializer@5.0.0:
     dependencies:
       xml-name-validator: 5.0.0
+
+  wabt@1.0.39: {}
 
   wasmtime-darwin-x64@0.0.2:
     optional: true

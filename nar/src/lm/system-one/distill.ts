@@ -167,7 +167,9 @@ export function runBakeOff(
   candidate: HeadCandidateSpec,
   cases: readonly BakeOffCase[],
   parityTolerance = 0.02,
-  eceBound = 0.1
+  eceBound = 0.1,
+  /** Governance option: accept strictly-better candidates beyond the tolerance window (reject only regressions). */
+  acceptImprovements = false
 ): BakeOffResult {
   const brier = (key: 'incumbent' | 'candidate') =>
     cases.length === 0
@@ -178,7 +180,7 @@ export function runBakeOff(
   const parityGap = Math.abs(candidateAccuracy - incumbentAccuracy);
   const withinParity = parityGap <= parityTolerance;
 
-  if (!withinParity) {
+  if (!withinParity && !(acceptImprovements && candidateAccuracy > incumbentAccuracy)) {
     return {
       incumbentAccuracy,
       candidateAccuracy,

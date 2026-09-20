@@ -387,6 +387,14 @@ export const systemOneDefaults = {
   },
   provisional: { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30000 },
   distillation: { datasetPath: './data/systemone-distillation.jsonl', bakeOffSamplingRate: 0.1, driftEceBound: 0.15 },
+  rl: {
+    policy: 'eps-greedy' as const,
+    epsilon: 0.1,
+    ucbC: 0.5,
+    feasibilityMask: true,
+    riskFloor: 0.8,
+    labelOutcomes: true,
+  },
 } as const;
 
 export const systemOneSchema = z.object({
@@ -451,6 +459,16 @@ export const systemOneSchema = z.object({
       driftEceBound: z.number().min(0).max(1).default(systemOneDefaults.distillation.driftEceBound),
     })
     .default(systemOneDefaults.distillation),
+  rl: z
+    .object({
+      policy: z.enum(['eps-greedy', 'ucb']).default(systemOneDefaults.rl.policy),
+      epsilon: z.number().min(0).max(1).default(systemOneDefaults.rl.epsilon),
+      ucbC: z.number().min(0).default(systemOneDefaults.rl.ucbC),
+      feasibilityMask: z.boolean().default(systemOneDefaults.rl.feasibilityMask),
+      riskFloor: z.number().min(0).max(1).default(systemOneDefaults.rl.riskFloor),
+      labelOutcomes: z.boolean().default(systemOneDefaults.rl.labelOutcomes),
+    })
+    .default(systemOneDefaults.rl),
 });
 
 const appConfigBase = z.object({
