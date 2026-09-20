@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import type { EmbeddingPointer, JudgmentManifold, JudgmentQuery, JudgmentProposition } from './types.js';
 import { seedTruth } from './seed.js';
-import { Truth } from '../../terms/truth.js';
 
 /**
  * TypeSafe-compatible `/v1/systemone` endpoint (§10). Requests are
@@ -73,9 +72,10 @@ export async function handleSystemOneRequest(
 export function admitRemotePropositions(
   propositions: readonly JudgmentProposition[],
   sourceQuality: 'LLM_PRIOR' | 'GENERAL' | 'PEER_AGENT'
-): { proposition: JudgmentProposition; truth: { f: number; c: number } }[] {
+): { proposition: JudgmentProposition; truth?: { f: number; c: number } }[] {
   return propositions.map((p) => ({
     proposition: p,
-    truth: p.abstained ? Truth.NEUTRAL : seedTruth(p, sourceQuality),
+    // Abstained propositions carry no seeded truth (§6.4)
+    truth: p.abstained ? undefined : seedTruth(p, sourceQuality),
   }));
 }

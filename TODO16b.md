@@ -945,7 +945,7 @@ Each phase builds on verified anchors only. `pnpm`, `vitest run`, `pnpm typechec
 - [x] `scripts/system-one-bakeoff.ts` — external-runner analog (reads dataset JSONL, evaluates candidate, exits nonzero on parity fail)
 - [x] Bench 10 (`todo16-parity.test.ts`, 5 tests) + Bench 14 (`todo16-sabotage.test.ts`, 7 tests) passing
 - [ ] Fine-tune/LoRA weight mutation — stays in external CI/CD by design; the runtime only proposes
-- [ ] Live label-source adapters (FeedbackLearner → dataset.record) — deferred to Phase 5 with resource accounting; no consumer exists yet so wiring is inert
+- [ ] Label-source adapters (FeedbackLearner/ShadowValidator → `JudgmentDataset.record`) — wired via `label-sources.ts` + `FeedbackLearner.setDistillationDataset` (2026-09-19); ApprovalService/ShadowValidator adapter functions exist and await call-site emission points
 
 **Implementation notes for Phase 5**
 - `HEAD_MODEL_DIGEST` env must match `/^sha256:[0-9a-f]{64}$/` or `validateHeadCandidate` rejects — the bake-off script passes the raw spec through; CI must set it.
@@ -957,6 +957,7 @@ Each phase builds on verified anchors only. `pnpm`, `vitest run`, `pnpm typechec
 - [x] `judgment` delegation kind — `createJudgmentDelegation` + `JudgmentDelegationPeer` in `cooperation/delegation.ts`; results re-enter at `PEER_AGENT` (0.6) ceiling
 - [x] Resource accounting — `resource-gate.ts` (`chargeJudgment`, `assertCostReported`); `systemone-judgment` wired into `KernelBudgetGate` cost table/remaining/limit/termination accounting (budget type `llm`)
 - [x] Metrics — `systemone_judgments_total{axis,shape,tier,abstained}`, `systemone_judgment_latency_ms{tier}`, `systemone_provisional_active`, `systemone_head_ece{head}` + `recordJudgmentMetric`
+- [ ] Label-source adapters — ✅ WIRED (2026-09-19): `label-sources.ts` adapters + `FeedbackLearner.setDistillationDataset`; ApprovalService/ShadowValidator adapters are standalone functions ready for call-site wiring when those flows emit verdicts
 - [x] Bench 12 (`todo16-resources.test.ts`, 9 tests) passing
 - [ ] OTel span attributes on the 11 stages — deferred: requires instrumenting existing stage spans, no new stage names (mechanical follow-up)
 - [ ] Live no-cloud firewall profile test — structure verified (untrusted ceiling + sandbox + fail-closed digest); a dedicated device-profile e2e remains

@@ -12,6 +12,8 @@ import {
 } from '../terms';
 import type { Task } from '../types';
 import { clamp } from '../utils';
+import type { JudgmentDataset } from '../lm/system-one/distill.js';
+import { recordCorrectionLabel, recordDerivationOutcomeLabel } from '../lm/system-one/label-sources.js';
 
 interface DerivationResult {
   steps?: number;
@@ -40,6 +42,7 @@ export class FeedbackLearner {
   private ruleStats = new Map<string, RuleStats>();
   private translationCache?: TranslationCache;
   private rlfp?: RLFPLearner;
+  private distillation?: JudgmentDataset;
 
   setTranslationCache(cache: TranslationCache): void {
     this.translationCache = cache;
@@ -47,6 +50,11 @@ export class FeedbackLearner {
 
   setRLFP(rlfp: RLFPLearner): void {
     this.rlfp = rlfp;
+  }
+
+  /** Attach the System One distillation dataset (§9 flywheel). */
+  setDistillationDataset(dataset: JudgmentDataset): void {
+    this.distillation = dataset;
   }
 
   onCorrection(originalNL: string, originalNarsese: string, correctedNarsese: string): void {
@@ -67,6 +75,9 @@ export class FeedbackLearner {
     });
 
     this.rlfp?.addPreference(correctedNarsese, originalNarsese);
+    if (this.distillation) {
+      recordCorrectionLabel(this.distillation, { originalNL, correctedNarsese });
+    }
   }
 
   onDerivationOutcome(derivation: DerivationResult, outcome: 'accepted' | 'rejected'): void {
@@ -75,6 +86,11 @@ export class FeedbackLearner {
       const stats = this.ruleStats.get(ruleId) ?? { accepted: 0, rejected: 0 };
       stats[outcome]++;
       this.ruleStats.set(ruleId, stats);
+    }
+    if (this.distillation) {
+      for (const ruleId of ruleIds) {
+        recordDerivationOutcomeLabel(this.distillation, { ruleId, outcome });
+      }
     }
   }
 

@@ -91,10 +91,14 @@ describe('System One — AIKR Resource Accounting (Bench 12)', () => {
     expect(result.sourceQuality).toBe('PEER_AGENT');
     expect(result.propositions).toHaveLength(1);
 
-    // PEER_AGENT ceiling is 0.6 — admitted truth never exceeds it
+    // PEER_AGENT ceiling is 0.6; abstained propositions carry no seeded truth
     const admitted = admitRemotePropositions(result.propositions, 'PEER_AGENT');
-    for (const { truth } of admitted) {
-      expect(truth.c).toBeLessThanOrEqual(0.6);
+    for (const { proposition, truth } of admitted) {
+      if (proposition.abstained) {
+        expect(truth).toBeUndefined();
+      } else {
+        expect(truth!.c).toBeLessThanOrEqual(0.6);
+      }
     }
   });
 
@@ -119,7 +123,10 @@ describe('System One — AIKR Resource Accounting (Bench 12)', () => {
     const body = response.body as { propositions: JudgmentProposition[]; sourceQuality: string };
     expect(body.sourceQuality).toBe('LLM_PRIOR');
     const admitted = admitRemotePropositions(body.propositions, 'LLM_PRIOR');
-    for (const { truth } of admitted) expect(truth.c).toBeLessThanOrEqual(0.5);
+    for (const { proposition, truth } of admitted) {
+      if (proposition.abstained) expect(truth).toBeUndefined();
+      else expect(truth!.c).toBeLessThanOrEqual(0.5);
+    }
 
     // Malformed requests rejected
     const bad = await handleSystemOneRequest({ json: async () => ({ garbage: true }) }, manifold, budget, async (ctx) => cache.writeRaw(ctx));

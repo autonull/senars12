@@ -13,4 +13,5 @@ export * from './manifold-reflex.js';
 export * from './wasi-runtime.js';
 export * from './http-endpoint.js';
 export * from './resource-gate.js';
+export * from './label-sources.js';
 export * from './heads/index.js';
