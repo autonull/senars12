@@ -1,7 +1,8 @@
 # TODO16c.md — SeNARS System One: Live Wiring, Real Weights & RL Applications
 
-**Version:** 1.1 · continues TODO16b v3.2 (all Phases 0–5, R1–R9, N1–N6, H1–H5 shipped)
-**§10 addendum (v1.1):** deep-dedup/metaprogramming (Phase G), LM-ladder versatility (Phase H), end-user usability (Phase I); benchmarks 25–28; decision points DQ5–DQ6.
+**Version:** 1.2 · continues TODO16b v3.2 (all Phases 0–5, R1–R9, N1–N6, H1–H5 shipped)
+**§10 addendum (v1.1):** deep-dedup/metaprogramming (Phase G), LM-ladder versatility (Phase H), end-user usability (Phase I); benchmarks 25–28; decision points DQ5–DQ7.
+**§10.5 (v1.2):** final-discovery items X20–X29 wired into phases (B7–B10, C1a/C2a/C6, D5, A4a, F6–F7); execution-order dependency graph with effort estimates; complete gap→phase→benchmark traceability matrix.
 **Predecessor:** TODO16b.md (System One Integration — architecture complete, 150 tests green)
 **Lineage:** TODO16 v3.1 (vision) · SYSTEM_ONE.md (Jev proposer-layer draft) · Appendix A of TODO16b (Jev lineage)
 **Philosophy:** *Architecture without a live path is a museum. This revision makes System One reachable from every production entry point, replaces hash scorers with trained heads, and proves the Judgment Manifold is a general decision API by driving Reinforcement Learning with it — no NAL logic in the loop.*
@@ -381,6 +382,16 @@ Second-pass review findings, self-contained: new benchmarks (§10.1), new phases
 | X17 | No offline hard-switch: `resolveActiveProvider` probes (ollama/cloud/llama) even when a user just wants local/mock — the N2/F2 hang class; `LM_OFFLINE=1` short-circuit absent | `providers.ts:493-509` | LM-ladder gap |
 | X18 | Cortex model identity unpinned: heads carry `ModelDigest`, but dataset labels and `judgment.resolved` never record which **Cortex** model produced candidates — label provenance gap for the distillation flywheel | `distill.ts` `DistillationLabel`; `kernel` `JudgmentResolvedEventSchema` | LM-ladder gap |
 | X19 | `ModelDigest` values are **hardcoded descriptive strings** (`'sha256:all-MiniLM-L6-v2-heads-v1'`, `'sha256:deterministic'`), not digests of anything; head digest does not bind to encoder digest — swapping the encoder would silently reuse incompatible heads | `nar.ts:899`, `dispatcher.ts:41,138` | Supply-chain gap |
+| X20 | `KernelPerceptionGate.eventLog` grows unbounded (`push` in admit/admitTask/emitJudgmentResolved; `clearEventLog()` exists but nothing calls it automatically) — memory leak in long-running processes | `KernelPerceptionGate.ts:44,123,207,288,395` | Memory leak |
+| X21 | `ManifoldReflex.#prefetch` Map **never evicts** — one row-set per distinct stateId accumulates for the process lifetime (long games/RL runs leak) | `manifold-reflex.ts:16,43` | Memory leak |
+| X22 | `LMService.stream` bypasses the circuit breaker (`canUseProvider`), provider-call recording (`recordProviderCall`), and the semantic cache — streaming and generate paths have different failure semantics | `lm-service.ts:482-500` vs `224-321` | Consistency gap |
+| X23 | `Focus.getNALDerivations` is an O(n) scan over **all** focus-memory concepts with substring heuristics, executed per action per propose cycle — game-loop hot path | `Focus.ts:245-288` | Hot-path perf |
+| X24 | `QBeliefStore.getAllActions` always returns an empty Map (comment: "simplified") — any agent needing per-state action enumeration is broken | `tests/nar/rl/adapters/adapters.ts:308-317` | Stubs-as-API |
+| X25 | `SystemOneManifold` health flags (`ready`/`breakerOpen`) are written from three paths (latency check, drift check, `setDemoted`) with no state machine — set-then-clear across successive calls makes health signals unreliable | `manifold.ts:286-288,395-407,351-356` | Health semantics |
+| X26 | `SystemOneDispatcher.synthesize` catch block re-invokes the identical cortex call — a retry that cannot succeed differently | `dispatcher.ts:327-332` | Dead logic |
+| X27 | No WASI/WebGPU-compiled encoder-head artifact exists — `SandboxedHeadRuntime` (TODO16b Phase 5) wraps an abstract manifold; device deployment blocked at the artifact level (WebGPU already deferred in TODO16b) | `wasi-runtime.ts` | Deployment gap |
+| X28 | `RLFPConfig` declared in `NARConfig` but `RLFPLearner` is constructed with `{}` — the config object is never applied | `nar.ts:66-68,190` | Dead config |
+| X29 | `KernelPerceptionGate.mapSource` classifies source by substring heuristics (`'user'/'llm'/'sensor'` in sourceId); `NARIO.import` hardcodes `sourceQuality: 'PRIMARY'` regardless of provenance | `KernelPerceptionGate.ts:310-318`, `nar-io.ts:104` | Misclassification risk |
 
 ### 10.1 Benchmarks 25–28 (amend §2)
 
@@ -496,3 +507,89 @@ Second-pass review findings, self-contained: new benchmarks (§10.1), new phases
 - [ ] X8 `chargeJudgment` wired into `SystemOneDispatcher.judge` (Bench 28) — flow-level accounting, closing the same "shipped-but-unreachable" class as W2/R1
 
 **Rollback notes (amend §7):** G is behavior-preserving by construction (Bench 25 property-equivalence is the gate); H rollbacks are env-var-degradable (`LM_OFFLINE=1`, remove `encoder` override ⇒ MiniLM default); I is additive-only.
+
+### 10.5 Implementation Integrity (v1.2) — amendments, ordering, traceability
+
+#### Phase amendments (wire X20–X29 into §3 phases)
+
+| Item | Phase | Amendment |
+|------|-------|-----------|
+| **B7** | B | Wire `chargeJudgment` into `SystemOneDispatcher.judge` — charge per batch (max proposition cost), deny ⇒ no propositions computed; `assertCostReported` on every emitted proposition. Bench 28. (X8) |
+| **B8** | B | Bound `KernelPerceptionGate.eventLog` — fixed-capacity ring (default 1000, config `systemOne.telemetry.logSize`), drop-oldest; `clearEventLog` semantics preserved. (X20) |
+| **B9** | B | Coherent manifold health state machine: single `#setHealth(next)` reducer over `{ready, breakerOpen}` with explicit transitions (latency trip, drift demote, manual demote, recovery); latency breaker recovers on next healthy batch — document the transitions. (X25) |
+| **B10** | B | Delete the pointless `synthesize` catch-retry in `SystemOneDispatcher` (rethrow or Tier-3 degrade, not an identical retry). (X26) |
+| **C1a** | C | `ManifoldReflex.#prefetch` eviction: clear the table at each cycle end (per-cycle freshness) or cap at N stateIds LRU — no unbounded growth; Bench 18 asserts no stale-row serving. (X21) |
+| **C2a** | C | Implement `QBeliefStore.getAllActions` for real: index value-beliefs by state term (`((state,*) --> predicts_reward)` scan over a maintained per-state set or `Memory` concept-index query); Bench 19 covers it. (X24) |
+| **C6** | C | `Focus.getNALDerivations` hot-path fix: maintain an action→derivations index updated on concept add/decay (event-driven, not per-cycle scan); correctness parity asserted vs the scan (Bench 18/19 run both, assert equal). (X23) |
+| **D5** | D | WASI encoder-head bundle artifact: compile trained linear/logistic heads (D1 output) to WASI; `SandboxedHeadRuntime` loads them (digest-pinned) — the no-cloud device profile runs real heads end-to-end; WebGPU stays deferred (TODO16b). Bench 24 extended: bundle loaded through sandbox path. (X27) |
+| **A4a** | A | Source threading: `mapSource` replaced by explicit `source` passed from call sites (input/import/tool/peer); `NARIO.import` stops hardcoding `PRIMARY` (thread provenance through the import record). (X29) |
+| **F6** | F | `LMService.stream` parity: breaker check, `recordProviderCall`, and stats recording applied to the stream path (cache optional, off by default for streams). (X22) |
+| **F7** | F | Apply `RLFPConfig` to `RLFPLearner` construction (or remove the dead field). (X28) |
+
+#### Execution order & dependencies
+
+```mermaid
+graph TD
+  B[Phase B: bugs & unification foundations] --> G[Phase G: HEAD_SPECS registry]
+  B --> A[Phase A: live wiring]
+  G --> A2[A4/A6 consume query builders]
+  A --> C[Phase C: reflex & RL]
+  B --> C
+  G --> C
+  A --> H[Phase H: LM ladder]
+  H --> D[Phase D: training & calibration]
+  G --> D
+  H1[H1 encoder digest] --> D2[D2 calibration lock]
+  C --> D3[D3 RL label supply]
+  A --> I[Phase I: usability surfaces]
+  G --> I
+  C --> I
+  F[Phase F: hardening sweep] -.continuous.-> ALL
+```
+
+**Recommended build sequence** (focused-day estimates; B→G→A→C→H→D→I, F interleaved):
+
+| Order | Phase | Effort | Gate |
+|-------|-------|--------|------|
+| 1 | B (B1–B10) | 2d | Bench 17 + 28 + all todo16 suites green unmodified |
+| 2 | G (G1–G6) | 2d | Bench 25 property-equivalence |
+| 3 | A (A1–A6) | 2d | Bench 15 + 16 |
+| 4 | C (C1–C6) | 3d | Bench 18 + 19 + 20 |
+| 5 | H (H1–H7) | 2.5d | Bench 26 + 27 |
+| 6 | D (D1–D5) | 3d | Bench 21 + 22 + 24 (+sandbox bundle) |
+| 7 | I (I1–I6) | 2d | examples smoke + `pnpm status` |
+| — | F (F1–F7) | 1.5d spread | full suite green; measurement reports |
+
+**Parallelizable:** F2 (mock bypass) anytime — it unblocks Bench 16's mock-LM agent-cycle coverage and N2 measurement; H4 offline switch independent; I2/I3 after A.
+
+#### Traceability matrix (every discovered gap has a home)
+
+| Gap IDs | Phase items | Benchmark(s) | Test artifact |
+|---------|-------------|--------------|---------------|
+| W1–W4 | A1–A3 | 15 | `todo16c-live-ingress.test.ts` |
+| W5, X29 | A4, A4a | 15 | `todo16c-live-ingress.test.ts` |
+| W6, W7 | A5, A6 | 16 | `todo16c-cortex.test.ts` |
+| B1 | B1 | 2 (re-run) + 17 | `todo16c-cache.test.ts` |
+| B2–B4, X1–X4 | G1, G5 (+B2 subsumed) | 25 | `todo16c-head-specs.test.ts` |
+| B5, X25 | B5, B9 | 22 | `todo16c-calibration.test.ts` |
+| B6, B7 (config dup) | G6 | — | config round-trip in Bench 25 |
+| B8 (§8 dispositions) | F5 | — | existing rule suites |
+| X5 | G3 | 25 | `todo16c-head-specs.test.ts` |
+| X6 | G4 | 17 | `todo16c-cache.test.ts` |
+| X8 | B7 | 28 | `todo16c-charge-flow.test.ts` |
+| X9 | G2 | — | knobs suite (existing 21 tests re-pointed) |
+| X10 | G1 (query builders) | 15 | `todo16c-live-ingress.test.ts` |
+| X11–X14 | I1–I5 | — | examples smoke + REPL tests |
+| X15–X18 | H2–H6 | 26, 27 | `todo16c-{model-override,encoder-digest}.test.ts` |
+| X19, X7 | H1 | 26 | `todo16c-encoder-digest.test.ts` |
+| X20–X26 | B8–B10, C1a, C6, F6 | 17, 18, 28 | respective phase benches |
+| R1–R2 | C1 | 18 | `todo16c-reflex-activation.test.ts` |
+| R3, X24 | C2, C2a | 19 | `todo16c-rl-parity.test.ts` |
+| R4–R5 | C4 | 21 | `todo16c-rl-distill.test.ts` |
+| R6 | C5/E1 | 20, 23 | `todo16c-{rl-manifold,jev}.test.ts` |
+| X21, X23 | C1a, C6 | 18 | `todo16c-reflex-activation.test.ts` |
+| X27 | D5 | 24 (extended) | `todo16c-train.test.ts` |
+| X28 | F7 | — | rlfp suite |
+| Jev patterns (§0.4) | E1–E5 | 23 | `todo16c-jev.test.ts` |
+
+**Completeness rule:** no plan item without a gap ID or explicit rationale; no gap ID without a phase item; no phase item without an acceptance checkbox and (where behavioral) a benchmark. This matrix is the audit — any future discovery appends a row here first.
