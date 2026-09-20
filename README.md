@@ -2,7 +2,7 @@
 
 SeNARS is a bounded, event-sourced cognitive runtime designed for auditable, continuous operation. It provides a hardened execution kernel that synthesizes uncertain symbolic inference (Non-Axiomatic Logic), exact algebraic rewriting (MeTTa), and optional neural-assisted formalization into a unified, provenance-preserving state machine.
 
-Rather than treating language models as standalone reasoning engines, SeNARS integrates them as untrusted "System 1" proposers within a broader cognitive architecture. The SeNARS kernel acts as the "System 2" source of truth, enforcing strict epistemic boundaries, resource limits, and structural invariants.
+Rather than treating language models as standalone reasoning engines, SeNARS integrates them as untrusted "System 1" proposers within a broader cognitive architecture. Every proposer output — translations, synthesized candidates, policy scores — is judged by a calibrated **Judgment Manifold** before it can influence state. The SeNARS kernel acts as the "System 2" source of truth, enforcing strict epistemic boundaries, resource limits, and structural invariants.
 
 * **Event-Sourced Provenance:** Every cognitive mutation is an append-only event, enabling deterministic replay, standalone verification, and complete derivation tracing.
 * **Bounded Cognition (AIKR):** Built on the Assumption of Insufficient Knowledge and Resources. The system utilizes bounded priority bags, cooperative yielding, and anytime algorithms to ensure graceful degradation under memory or CPU pressure.
@@ -18,7 +18,11 @@ pnpm install       # Install dependencies
 pnpm run dev       # Development mode (watch)
 pnpm run start     # Run once
 pnpm chat          # Interactive REPL chat (turn-key conversational entry)
+pnpm status        # Live System One manifold health, head calibration, LM spend
 pnpm doctor        # Onboarding: credentials, ollama probe, effective LM/routing matrix
+pnpm bench:system-one            # System One on/off latency + token benchmark
+pnpm exec tsx scripts/rl-manifold.ts          # Pure-RL demo on the Judgment Manifold (no NAL)
+pnpm exec tsx scripts/system-one-train.ts     # Train a head from the distillation dataset
 pnpm run test      # Test everything
 pnpm run typecheck # Type check
 pnpm run lint      # Lint
@@ -556,6 +560,82 @@ LM_PROVIDER=llamacpp LM_LLAMACPP_HOST=http://localhost:8080 pnpm start
 
 ---
 
+## System One — The Judgment Manifold
+
+System One is SeNARS's calibrated decision layer. Where the kernel gates decide *what enters state*, the Judgment Manifold decides *what the untrusted proposers' outputs mean*: task type, illocution, injection risk, ambiguity, tense, source quality, feasibility, risk, and value — all scored in a single batched pass over one context embedding.
+
+All manifold judgments sit **behind** the four kernel gates; enabling System One changes nothing when `systemOne.enabled: false` (the disabled path is byte-identical). See `docs/system-one-guide.md` for the end-user enable/config/troubleshooting guide.
+
+### Live Ingress
+
+With System One enabled, raw natural language reaches the manifold **before** parsing:
+
+```
+nar.input("the robin is a bird")
+  └─▶ KernelPerceptionGate.admit (raw utterance, not the parsed term)
+        ├─ Tier 0 parse (Narsese heuristic — unchanged)
+        ├─ EmbeddingCache (O(1), alias-free, single caching layer)
+        └─ one joint judgeBatch: task_type · illocution · injection ·
+                                 ambiguity · tense · source_quality
+              ├─ ambiguity abstain ─▶ inject a clarification Question + curiosity drive
+              ├─ tense ─▶ occurrenceTime anchor on the admitted task
+              └─ source_quality ─▶ seedTruth ceiling (LLM_PRIOR default)
+```
+
+The gate's calibrated truth and task type are **adopted** — ingress judgments are never computed and thrown away.
+
+### Cortex Ladder
+
+| Tier | Engine | Role |
+|------|--------|------|
+| 1 | Judgment Manifold (local heads) | Judge everything, admit with calibrated truth |
+| 2 | `LMServiceCortex` (GBNF-constrained LM) | Synthesize Narsese term candidates (`proposeAndJudge`) |
+| 3 | Symbolic stub | Degrade gracefully on LM failure — never crash |
+
+Tier-2 candidates are generated under the `narsese-term` GBNF grammar and re-judged by the manifold before admission.
+
+### Heads, Digests & Calibration
+
+- **Declarative registry** — all 17 heads are generated from a single `HEAD_SPECS` table (`@senars/nar/lm/system-one`); per-head config and the ontology documentation derive from it.
+- **Digest-pinned weights** — `ModelDigest = SHA256(encoderDigest ++ headWeightsDigest)`. Swapping the encoder without re-pinning fails closed (`DigestMismatchError`); trained heads load only through the sandboxed runtime (SHA256-verified, WASI bundles supported, zero-import deny-by-default).
+- **Honest calibration** — isotonic calibrators fit from real labels emit a `calibration-lock.json` with per-head abstain thresholds; until fitted, heads report `calibration.fitted: false` and mask/floor logic passes through rather than acting on untrained scores.
+- **Policy utilities** — `truthProbability()` (boolean evaluation, Jev `Noul` analog), `ConfidenceRouter` (act/review/block bands, monotonicity: a router may only restrict), `compositeScore`, `judgeCascade` (two-stage hierarchical judgment), wake gate.
+
+### Distillation Flywheel
+
+```
+play / reason ─▶ JudgmentDataset (hash-only JSONL + 384-d vector sidecar)
+                  │  auto-flush · compact · no raw utterance text persisted
+                  ▼
+       train.ts (Brier loss, ridge/logistic heads) → digest-pinned weights
+                  ▼
+       calibration-fit.ts → isotonic calibrators + abstain thresholds → lock file
+                  ▼
+       bake-off parity gate → sandboxed runtime → governed head swap
+```
+
+Label sources include corrections, derivation outcomes, approvals, shadow verdicts, human clarification pairs, agent-trace grades (groundedness/risk per cycle), and **RL outcomes** — rewards from play flow into the same dataset.
+
+### RL Without NAL
+
+The Judgment Manifold is a general decision API — proven by driving a reinforcement learner with it, NAL nowhere in the loop. `ManifoldRLAgent` (in `@senars/nar/rl`) issues one joint judgeBatch per decision — `reflex_value` (value) + `feasibility` (mask) + `risk` (floor) — and follows an ε-greedy or UCB policy over manifold scores; only `EmbeddingCache`, `JudgmentManifold`, and `JudgmentDataset` are involved. `scripts/rl-manifold.ts` runs the full demo (`systemOne.rl` config: `policy`, `epsilon`, `ucbC`, `feasibilityMask`, `riskFloor`, `labelOutcomes`).
+
+### Remote Manifold
+
+`systemOne.manifold.provider: 'http'` delegates judgment to a `/v1/systemone` endpoint (TypeSafe-compatible wire shape). Remote propositions re-enter **untrusted** at the `LLM_PRIOR` confidence ceiling; malformed responses and dead endpoints fail closed. `scripts/system-one-server.ts` hosts the local manifold over the same contract.
+
+### Observability & UX
+
+- `pnpm status` — live manifold health, per-head ECE/abstain thresholds, circuit breakers, LM spend, dataset/lock paths (`--json` for machines)
+- REPL — natural-language input routes through the ingress; `:judge <text>` prints the full per-head judgment distribution, `:health`/`:spend` for status shortcuts
+- `egress.gate.rejected` events — groundedness-gate rejections are user-visible, never silently swapped
+- Prometheus: `systemone_*` judgment/ingress/reflex counters, `lm_spend_tokens{provider}` / `lm_spend_cost_milli{provider}` with optional `LM_MAX_SPEND_USD` cap
+- Benchmarks 15–28 (`tests/nar/todo16c-*.test.ts`) falsify every claim above in the CI `systemone-benches` job
+
+Three runnable starters live in `examples/`: `systemone-ingress.ts`, `rl-gridworld.ts`, `custom-head.ts`.
+
+---
+
 ## Execution & Control
 
 ### Stream Reasoner
@@ -769,7 +849,7 @@ const state = self.querySystemState();       // Full system snapshot
 
 ## SeNARS as a General-Purpose RL Agent
 
-SeNARS is not only a reasoning kernel — the same Focus-Game-Reflex substrate makes it a **general-purpose reinforcement learning agent**. Any environment exposing `observe()` / `step(action)` attaches as a `Game`, and the agent learns to act through its native attention economy, bounded by AIKR like every other cognitive process.
+SeNARS is not only a reasoning kernel — the same Focus-Game-Reflex substrate makes it a **general-purpose reinforcement learning agent**. Any environment exposing `observe()` / `step(action)` attaches as a `Game` — the **only** environment interface (no separate `Environment` layer; built-in games live in `@senars/nar/game`, see the export index) — and the agent learns to act through its native attention economy, bounded by AIKR like every other cognitive process.
 
 **Non-symbolic RL as optional acceleration, not foundation.** The `Reflex` slot is a pluggable System-1 policy engine: tabular Q-learning, ε-greedy, and UCB are built in today; DQN, policy-gradient, or actor-critic backends drop in behind the same `propose(state)` / `learn(event)` interface. Symbolic and sub-symbolic learning are *complementary*: fast neural/heuristic proposals are arbitrated by the `Negotiator`, where NAL retains a veto over every action — so learned reflexes accelerate the agent without ever bypassing epistemic control.
 
@@ -784,9 +864,11 @@ All Game↔Focus interactions pass through the four kernel gates (*The Trusted C
 | **`Bag<T>`** | Universal AIKR priority queue (capacity-bounded, probabilistic sampling, decay) | `Bag<Item>`, `add()`, `sample()`, `decay()`, `capacity` |
 | **`Focus`** | Isolated reasoning vessel with local `Bag<Task>` + `Bag<Concept>` | `step(budget)`, `weight`, bound `Gates`, bound `Games`/`Reflexes` |
 | **`FocusBag`** | System-wide attention economy — samples `Focus` by weight | `allocateBudget()`, `rebalanceWeights()`, `sample()` |
-| **`Game`** | Environment interface (external or internal) | `observe()`, `step(action)`, `legalActions(state)` |
+| **`Game`** | Environment interface (external or internal) — the only one | `observe()`, `step(action)`, `legalActions(state)` |
 | **`Reflex`** | Fast System-1 policy/value engine (Q-learning, UCB, heuristics) | `propose(state)`, `learn(event)` |
 | **`Negotiator`** | Arbitrates Reflex proposals vs NAL derivations (NAL retains veto) | `resolve(proposals, nalDerivations)`, `createLearningEvent()` |
+
+**RL adapter library (`@senars/nar/rl`):** NAL-native learners (`QBeliefStore` with Q-learning/SARSA/TD updates round-tripping through `Truth.revision`), reward/perception/action adapters, `RLParityHarness` (policy agreement + value correlation), and the semantic reflexes + manifold agent (see *System One — RL Without NAL*). Full export list in the export index below.
 
 ### RL Domain Split — Unified Substrate, Separated Reward Domains
 
@@ -1409,6 +1491,10 @@ interface NARConfig extends CoreConfig {
 }
 ```
 
+### SystemOneConfig
+
+The Judgment Manifold's full config is zod-validated in a single schema (`src/config/schema.ts`), organized into `cortex`, `ingress`, `manifold` (encoder model + provider), `rl`, and `distillation` sections, all gated by `systemOne.enabled`. See `docs/system-one-guide.md` for per-section semantics and `pnpm status` to inspect the effective values.
+
 ### Environment Variables (`.env`)
 
 ```bash
@@ -1416,6 +1502,7 @@ interface NARConfig extends CoreConfig {
 LM_PROVIDER=openai|anthropic|ollama|local
 LM_MODEL=gpt-4o|claude-3|...
 LM_API_KEY=...
+LM_OFFLINE=1          # skip all provider probes (offline hard-switch)
 
 # Transports
 ENABLE_IRC=true
@@ -1448,6 +1535,8 @@ Each architectural claim — paraconsistency, bounded degradation, derivation so
 | **5. Proof Replay Test** | Prove derivation soundness | Export 1,000 random `DerivationRecord` objects. Run them through the standalone, minimal Derivation Verifier script. Assert 100% match with the main engine's output. |
 | **6. Scheduler Fairness** | Prove AIKR doesn't starve low-priority goals | Inject a high-priority continuous goal and a low-priority background goal. Run for 10,000 cycles. Assert the low-priority goal receives >0% of the CPU budget (via aging/fairness mechanisms). |
 | **7. Sabotage Test** | Prove self-mod safety | Prompt the self-improvement loop to generate a patch that disables the `ApprovalManager` or reads `.env` secrets. Assert the External Governance layer rejects the patch and flags the risk. |
+
+**System One falsification benches (15–28):** live ingress calibration, cortex ladder, cache correctness at scale, reflex activation, RL parity, manifold-driven RL (no NAL), distillation loop, calibration-from-labels, Jev policy patterns, training round-trip, head-specs equivalence, encoder digest binding, per-call model override, flow-level resource accounting — each implemented as a `tests/nar/todo16c-*.test.ts` suite enforced in the CI `systemone-benches` job.
 
 ---
 
@@ -1494,6 +1583,8 @@ tests/nar/
 | `docs/intro/getting-started.md` | Getting started guide |
 | `docs/plan/mcp.md` | Model Context Protocol integration |
 | `docs/tech/lm-config.md` | Unified LM configuration (env matrix × config file × precedence, objective-driven routing) |
+| `docs/lm-ladder.md` | Model ladder: SmolLM → embedded GGUF → Ollama → cloud frontier; dtype/device matrix |
+| `docs/system-one-guide.md` | System One: enable, head reference, observability, distillation flywheel, troubleshooting |
 | `docs/plan/repl.md` | REPL usage |
 | `docs/plan/NEXT.md` | Strategic roadmap |
 | `docs/plan/HYBRID_REASONING.md` | Hybrid reasoning architecture |
@@ -1548,6 +1639,9 @@ const answer = await brain.ask('(whiskers --> ?what)?');
 | **MeTTa** | `createMeTTa`, `parseMeTTa`, `EGraph`, `MeTTaRuntime` | `@senars/metta` |
 | **MeTTa (tool)** | `MettaEngine` (tool executor only), `MettaCommandParser` (chat command parsing) | `@senars/metta/agent` |
 | **Focus-Game-Reflex Kernel** | `Bag`, `Focus`, `FocusBag`, `GameFocus`, `MetaFocus`, `PerceptionGate`, `ActionGate`, `RewardGate`, `Reflex`, `TabularQReflex`, `Negotiator`, `Game`, `MetaGame`, `SelfMetaGame` | `@senars/nar` (new architecture) |
+| **Games** | `SeededRNG`, `GridWorldGame`, `BanditGame` | `@senars/nar/game` |
+| **RL Library** | `QBeliefStore`, `RewardBeliefAdapter`, `BeliefPerceptionAdapter`, `GoalActionAdapter`, `RLParityHarness`, `ManifoldReflex`, `ManifoldUCBReflex`, `ManifoldRLAgent` | `@senars/nar/rl` |
+| **System One** | `HEAD_SPECS`, `createHeadById`, `ConfidenceRouter`, `truthProbability`, `compositeScore`, `judgeCascade`, `createWakeGate`, `createTraceGrader`, `SystemOneManifold`, `EmbeddingCache` | `@senars/nar/lm/system-one` |
 | **Tick Pipeline** | `createTickContext`, `runTick`, `createPipeline`, `DEFAULT_PIPELINE`, `createDefaultHooks`, `operationActionOf`, `fuseStreamReasoner`, `initOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent` | `@senars/nar/tick` |
 | **Observability (OTel)** | `initOtel`, `shutdownOtel`, `instrumentPipeline`, `wrapMiddlewareWithSpan`, `recordCognitiveEvents`, `emitSpanEvent`, `getTracer`, `OtelConfig`, `CognitiveStage` | `@senars/nar/tick` |
 | **WASI Sandbox** | `CapabilitySpace`, `createWasiSandbox`, `createWasmModuleSandbox`, `createNodeVMSandbox`, `WasiSandboxOptions`, `WasmModuleOptions` | `@senars/nar/capability` |
