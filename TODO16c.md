@@ -1,6 +1,7 @@
 # TODO16c.md — SeNARS System One: Live Wiring, Real Weights & RL Applications
 
-**Version:** 1.0 · continues TODO16b v3.2 (all Phases 0–5, R1–R9, N1–N6, H1–H5 shipped)
+**Version:** 1.1 · continues TODO16b v3.2 (all Phases 0–5, R1–R9, N1–N6, H1–H5 shipped)
+**§10 addendum (v1.1):** deep-dedup/metaprogramming (Phase G), LM-ladder versatility (Phase H), end-user usability (Phase I); benchmarks 25–28; decision points DQ5–DQ6.
 **Predecessor:** TODO16b.md (System One Integration — architecture complete, 150 tests green)
 **Lineage:** TODO16 v3.1 (vision) · SYSTEM_ONE.md (Jev proposer-layer draft) · Appendix A of TODO16b (Jev lineage)
 **Philosophy:** *Architecture without a live path is a museum. This revision makes System One reachable from every production entry point, replaces hash scorers with trained heads, and proves the Judgment Manifold is a general decision API by driving Reinforcement Learning with it — no NAL logic in the loop.*
@@ -350,3 +351,148 @@ raw NL ─▶ KernelPerceptionGate.admit ─▶ Tier0 parse ─▶ EmbeddingCach
 ```
 
 > TODO16b gave System One a body. TODO16c connects its nerves (live wiring), gives it real tissue (trained, calibrated heads), and demonstrates the skeleton is species-agnostic by running a second creature — a reinforcement learner — on the same Judgment Manifold, with NAL nowhere in the loop.
+
+---
+
+## 10. Addendum (v1.1) — Deep Dedup, LM Ladder & Usability
+
+Second-pass review findings, self-contained: new benchmarks (§10.1), new phases G/H/I (§10.2), new decision points (§10.3), checklist (§10.4). Amends §2/§3/§4/§8 without altering Phases A–F.
+
+### 10.0 Additional verified findings
+
+| # | Finding | Anchor | Class |
+|---|---------|--------|-------|
+| X1 | `heads/index.ts` uses `export *` over 4 files that **each** export `PerHeadConfig`/`HeadFactoryOptions` — ambiguous re-exports silently resolved to the first file (ingress.ts) | `heads/index.ts:1-4` | Latent hazard |
+| X2 | `heads/action.ts` and `heads/synthesis.ts` carry **identical `makeClassifyHead`/`makeEvaluateHead` implementations with different signatures** (axis hardcoded vs parameter); memory.ts duplicates `makeEvaluateHead` again | `heads/{action,synthesis,memory}.ts:19+` | Duplication ×3 |
+| X3 | 4 near-identical `PerHeadConfig` + 4 `HeadFactoryOptions` interface declarations | 4 heads files | Duplication ×4 |
+| X4 | `ingress.ts` heads take an unused `embeddingCache` and never use `getScorer` — 6 bespoke `computeXScore` hash functions with only salt/multiplier variations | `heads/ingress.ts:228-292` | Duplication (3rd scorer copy w/ `manifold.ts` dead `DefaultJudgmentHead`) |
+| X5 | `SystemOneDispatcher`'s `DeterministicManifold` and `Tier3SymbolicManifold` differ **only in constants** (tier 0/3, top-p 1.0/0.8, ece 0/0.05, digest strings) — ~140 lines for two constant tables | `dispatcher.ts:39-205` | Duplication |
+| X6 | **Double embedding cache**: `TransformersEmbeddingGenerator` holds its own text-keyed Map cache (FIFO-evicted) while `EmbeddingCache` (LRU) wraps it — two caches doing one job | `memory/embedding.ts:13,40-44` + `embedding-cache.ts` | Duplication |
+| X7 | **Encoder model hardcoded**: `Xenova/all-MiniLM-L6-v2`, `dimension = 384` consts; comment claims LM-settings rails but only device/dtype/cacheDir flow — model id is fixed; `TransformersJSEmbeddingModel.doEmbed({values:[text]})` is **one text per call** (no batch encode) | `memory/embedding.ts:11,28` | LM-ladder gap |
+| X8 | **`chargeJudgment`/`assertCostReported` have zero live call sites** — `KernelBudgetGate` knows `systemone-judgment` (cost table, accounting branches) but no production `judgeBatch`/dispatcher path charges it; Bench 12 tests the gate directly, not the flow | `resource-gate.ts:25-36`; `KernelBudgetGate.ts:22,113,135-186`; only caller = `todo16-resources.test.ts` | Unwired (same class as W2/R1) |
+| X9 | **Two parallel knob systems**: `knobSchema` (10 specs + get/set binding over `CognitiveParameters`, clamping in `makeKnob`) vs `systemOneKnobSchema` (8 specs, validate-only, routed in `SandboxValidator` by `startsWith('systemOne.')` prefix); governance pipeline imports both | `rlfp/knobs.ts`, `rlfp/system-one-knobs.ts`, `governance/pipeline.ts:10-11` | Duplication |
+| X10 | Query construction duplicated inline: 6 ingress queries hardcoded in `KernelPerceptionGate.admitWithSystemOne`; candidate_select+conflict hardcoded separately in `nar.ts` translation wrapper and in `dispatcher.proposeAndJudge` | `KernelPerceptionGate.ts:227-234`, `nar.ts:1009-1012`, `dispatcher.ts:357-373` | Duplication |
+| X11 | No `examples/` directory — user-facing starter code absent (dev-only `scripts/`); Narsese REPL has no NL mode and no System One introspection commands | repo root; `src/cli/narsese-repl.ts` | Usability |
+| X12 | No CLI observability surface: `manifold.health()`, `getCircuitBreakerStatus()`, `getRoutingStatus()`, `systemone_*` metrics have no user-facing consumer (no `status`/`doctor` command) | `nar.ts` accessors exist, unused by CLI | Usability |
+| X13 | Groundedness egress gate silently swaps narration for template verbalization — no stream/log marker tells the user why their answer changed | `core/src/agent/phases.ts:101-103,238-240` | Usability |
+| X14 | Provider errors give raw `LMUnavailableError` text; actionable remediation hints exist only for embedded-llamacpp ("Run `pnpm exec tsx scripts/fetch-model.ts` first.") — pattern not generalized | `providers/embedded-llamacpp.ts:133` vs `lm-service.ts:115-121` | Usability |
+| X15 | `costPerMTok` exists in `MODEL_CAPABILITIES` but **nothing sums spend** — no per-session/per-provider token/cost counters, no spend cap (BudgetGate counts ops, not tokens/$) | `providers.ts:253-306` | LM-ladder gap |
+| X16 | No per-call model override: `generateText(prompt, {task})` routes through the global chain; no `{model: 'cloud:quality'}` escape hatch; no per-domain binding beyond the 4 `LMTask`s | `lm-service.ts:208-235` | LM-ladder gap |
+| X17 | No offline hard-switch: `resolveActiveProvider` probes (ollama/cloud/llama) even when a user just wants local/mock — the N2/F2 hang class; `LM_OFFLINE=1` short-circuit absent | `providers.ts:493-509` | LM-ladder gap |
+| X18 | Cortex model identity unpinned: heads carry `ModelDigest`, but dataset labels and `judgment.resolved` never record which **Cortex** model produced candidates — label provenance gap for the distillation flywheel | `distill.ts` `DistillationLabel`; `kernel` `JudgmentResolvedEventSchema` | LM-ladder gap |
+| X19 | `ModelDigest` values are **hardcoded descriptive strings** (`'sha256:all-MiniLM-L6-v2-heads-v1'`, `'sha256:deterministic'`), not digests of anything; head digest does not bind to encoder digest — swapping the encoder would silently reuse incompatible heads | `nar.ts:899`, `dispatcher.ts:41,138` | Supply-chain gap |
+
+### 10.1 Benchmarks 25–28 (amend §2)
+
+| # | Benchmark | Test file | Obligation |
+|---|-----------|-----------|------------|
+| 25 | **Declarative Registry Equivalence** | `todo16c-head-specs.test.ts` | All 17 heads generated from the single `HEAD_SPECS` table produce propositions identical (property-based, same inputs) to the pre-refactor implementations; unknown head id in per-head config rejected at schema parse; §5 ontology table regenerated from specs matches source of truth. |
+| 26 | **Encoder Digest Binding** | `todo16c-encoder-digest.test.ts` | Encoder model id/weights digest is part of the composed head `ModelDigest`; swapping the encoder without re-pinning heads fails closed (`DigestMismatchError`); embedding model configurable (`systemOne.manifold.encoder.modelId/dimension`) with wrong-dimension vectors rejected at cache boundary. |
+| 27 | **Per-Call Model Override** | `todo16c-model-override.test.ts` | `generateText(prompt, {task, model?})` honors an explicit model id (telemetry `modelId` matches); unknown id throws without silent failover; per-domain bindings (`systemOne.cortex.model`, narration tier) route as configured. |
+| 28 | **Flow-Level Resource Accounting** | `todo16c-charge-flow.test.ts` | `SystemOneDispatcher.judge` charges `systemone-judgment` against `KernelBudgetGate` per batch; an exhausted scope denies the batch (no propositions computed); cost reported per proposition matches charge (no drift between `ResourceCost` and gate accounting). |
+
+### 10.2 New phases (amend §3; ordering: G before D, H after A, I anytime after B)
+
+#### Phase G — Declarative Unification & Metaprogramming (P0, precedes D) *“one table owns the ontology”*
+
+**Files:** `nar/src/lm/system-one/{head-specs,heads/factory}.ts` (new), heads/* (slimmed to spec re-exports), `nar/src/rlfp/{knobs,system-one-knobs}.ts` → unified `knobs.ts`, `nar/src/lm/system-one/dispatcher.ts`, `nar/src/kernel/KernelPerceptionGate.ts`, `nar/src/lm/system-one/{types,index}.ts`, `tests/nar/todo16c-head-specs.test.ts`
+
+- **G1 (X2–X4, Bench 25).** Single declarative registry:
+  ```ts
+  // head-specs.ts — the ONLY place head ontology is written down
+  export const HEAD_SPECS = {
+    task_type:      { kind: 'classify', axis: 'epistemic',   space: ['belief','goal','question','command'] },
+    illocution:     { kind: 'classify', axis: 'epistemic',   space: ['assert','query','command','promise','express'] },
+    injection:      { kind: 'evaluate', axis: 'epistemic',   levels: [...], salt: 31 },
+    /* …17 entries, one line each… */
+    reflex_value:   { kind: 'evaluate', axis: 'teleological', levels: [...] },
+  } as const satisfies Record<HeadId, HeadSpec>;
+  ```
+  One `createHead(spec, options)` replaces all `makeClassifyHead`/`makeEvaluateHead` copies; each heads file shrinks to named re-exports (`export const createRiskHead = (o) => createHead(HEAD_SPECS.risk, o)`); `perHeadConfig`/`HeadFactoryOptions` declared once in `factory.ts`; delete `DefaultJudgmentHead` and the 6 bespoke scorers (B2 subsumed). Derived consumers: per-head zod record from `Object.keys(HEAD_SPECS)`; §5-ontology doc generation; ingress query builder `ingressQueries()` (X10) and `selectQuery(space)`/`conflictQuery()` builders shared by gate, nar.ts wrapper, and dispatcher.
+- **G2 (X9).** Unified knob table: `KnobSpec {name, path, min, max, step, root: 'cognitive'|'systemOne'}` merging both schemas; one `createKnobSet({cognitive, systemOne})` binds get/set per root (fixes the N3-era `getNested` undefined blocker properly); `SandboxValidator` validates from the table — prefix routing deleted; optional: derive min/max defaults from zod refinements via schema introspection (light reflection over `systemOneSchema.shape`), keeping the table the fallback.
+- **G3 (X5).** `ConstantManifold({tier, topP, score, ece, digest})` replaces both deterministic/symbolic manifolds (~140 → ~40 lines).
+- **G4 (X6).** Remove the generator-internal cache — `EmbeddingCache` is the single caching layer (LRU, pooled); generator becomes stateless `generate(text)`.
+- **G5 (X1).** `heads/index.ts` rebuilt over the unified factory (no ambiguous `export *`); add a vitest guard asserting no duplicate export names across the subpath (metaprogramming audit via `import * as ns` key scan).
+- **G6 (B4 extends).** `SystemOneFileConfig` (zod-inferred, single source) vs `SystemOneRuntimeConfig` (DI superset: `manifold?: JudgmentManifold`, `embeddingCache?`, `reasoningBudget?`) with `RuntimeConfig extends FileConfig`; `nar.ts` re-exports; factory parses file config once.
+
+**Acceptance**
+- [ ] Bench 25 passes (property-equivalence old ↔ generated heads)
+- [ ] Head ontology appears in exactly one source file (grep: `space:`/`levels:` literals only in `head-specs.ts`)
+- [ ] One knob table; `validateSystemOneKnob` deleted; SandboxValidator routing is table-driven
+- [ ] All 22 todo16 suites + A/B suites green unmodified
+
+#### Phase H — LM Ladder: Versatile Model Choice (P1, after A) *“from SmolLM to frontier, one dial”*
+
+**Files:** `nar/src/memory/embedding.ts`, `nar/src/lm/{providers,lm-service,env-config}.ts`, `nar/src/lm/system-one/{manifold,types}.ts`, `kernel/src/schemas.ts`, `src/config/schema.ts`, `tests/nar/todo16c-{encoder-digest,model-override}.test.ts`
+
+- **H1 (X7, X19, Bench 26).** Configurable encoder: `systemOne.manifold.encoder: { modelId, dimension }` (default MiniLM/384); `EmbeddingGenerator` parameterized; `ModelDigest` becomes a **real composition**: `SHA256(encoderDigest ++ headWeightsDigest)` computed by `wasi-runtime.loadHeadRuntime` and stamped on propositions; encoder swap without re-pin fails closed. Fix single-text `doEmbed` → batched `values: texts[]` in `EmbeddingCache.warmup` paths.
+- **H2 (X16, Bench 27).** Per-call model override: `generateText/generateObject(prompt, {task, model?: SeNARSModelId})` — explicit id bypasses the chain (telemetry records it); per-domain bindings: `systemOne.cortex.model`, `bot.narrate.tier`; unknown id throws (no silent failover — monotonic with routing honesty rules).
+- **H3 (X15).** Spend accounting: `LMService` accumulates per-provider/per-session token+`costPerMTok` totals (from AI-SDK usage + capability table); expose `getSpend()`, Prometheus `lm_spend_tokens{provider}`, `lm_spend_cost_milli{provider}`; optional `LM_MAX_SPEND_USD` circuit-breaker style cap (trip ⇒ `LMUnavailableError` with hint). KernelBudgetGate gains a token-cost operation (`lm-tokens`) charged from real usage — complements, not replaces, op counting.
+- **H4 (X17).** Offline hard-switch: `LM_OFFLINE=1` skips all probes (`resolveActiveProvider` returns configured local/mock immediately); extends F2's mock bypass; `LM_PROVIDER=mock` never probes either.
+- **H5 (X18).** Label provenance: `DistillationLabel` + bake-off `METRICS.json` record `cortexModelId`; `judgment.resolved` payload gains optional `encoderDigest` (additive kernel schema field).
+- **H6 (X14 generalization).** `LadderHints`: every `LMUnavailableError` carries provider-specific remediation (`ollama not reachable at http://… — start with 'ollama serve' or set LM_PROVIDER=mock`; embedded llama: fetch-model hint (existing pattern); transformers: cache-dir/download hint with progress callback wiring).
+- **H7 (device/quant matrix).** `LM_DTYPE` env (`q4|q8|fp16|fp32`) + per-slot `LM_FAST_DTYPE`/`LM_QUALITY_DTYPE`; document the compact→frontier ladder in `docs/` (transformers.js SmolLM2-360M → embedded GGUF 3B → ollama 8B → cloud frontier) with the verified `llamacpp-embedded` GPU anchor (188.9 tok/s).
+
+**Acceptance**
+- [ ] Bench 26 + 27 pass
+- [ ] Encoder digest present on every Tier-1 proposition; mismatch fails closed
+- [ ] Spend counters observable in Prometheus after a scripted 10-call session
+- [ ] `LM_OFFLINE=1` boot completes with zero network syscalls (assert via fetch mock)
+
+#### Phase I — End-User Usability (P2) *“the last mile a human touches”*
+
+**Files:** `examples/{systemone-ingress,rl-gridworld,custom-head}.ts` (new), `src/bin/{status,doctor}.ts` (new), `src/cli/narsese-repl.ts`, `core/src/agent/phases.ts`, `docs/system-one-guide.md` (new), tests
+
+- **I1 (X11).** `examples/` — three runnable starters mirroring the three value propositions: enable System One ingress (config + 20 lines), pure-RL GridWorld via `ManifoldRLAgent` (C3 artifact), custom head via `HEAD_SPECS` extension + `registerHead` (G1 artifact). Each ≤ 60 lines, no test deps.
+- **I2 (X12).** `pnpm status` / `senars doctor`: renders `manifold.health()`, per-head ECE/abstain (from G1 registry), circuit breakers, routing status, spend counters (H3), dataset/lock-file paths + sizes, `systemOne.enabled` provenance (config file vs default). Non-TTY JSON mode.
+- **I3 (X11).** REPL upgrades: NL input routes through the System One ingress (A3) with a `:judge <text>` command printing the full head-judgment distribution for arbitrary text (the single best debugging affordance for head calibration work); `:health`/`:spend` shortcuts to I2 data.
+- **I4 (X13).** Egress traceability: when the groundedness gate rejects a narration, emit a `ChatStreamEvent`/log marker (`egress.gate.rejected`, score attached) — user-visible reason, never silent swapping.
+- **I5 (X14).** Error UX: all bin entry points catch `LMUnavailableError`/`ConfigurationError` and print remediation (H6 hints) + `pnpm status` pointer.
+- **I6 (X11).** `docs/system-one-guide.md`: end-user enable/config/troubleshoot guide generated in part from `HEAD_SPECS` (G1) and the config schema — single-source docs.
+
+**Acceptance**
+- [ ] `examples/*` run green (CI smoke job)
+- [ ] `pnpm status` shows live manifold health when enabled
+- [ ] REPL `:judge` prints 6-head distribution for raw text
+- [ ] Egress rejection is observable in chat stream/log
+
+### 10.3 Additional decision points (amend §4)
+
+| # | Question | Default proposal |
+|---|----------|------------------|
+| DQ5 | Encoder configurability (H1): expose `systemOne.manifold.encoder.modelId/dimension` now, or keep MiniLM frozen until trained heads exist? | Expose now — digest binding (X19) must exist *before* real weights land, or first real head swap bakes in a hidden encoder dependency |
+| DQ6 | Per-call model override (H2): add the `model?` parameter to `LMService` signatures (public API widening), or a separate `LMService.withModel(id)` scoped client? | Parameter (matches AI-SDK idiom; one code path) |
+| DQ7 | Real `ModelDigest` computation (X19/H1): compute SHA256 over actual head weights at load time, or keep declared digests until Phase D ships weights? | Compute now for *composition* (encoder++head), declared strings allowed only for tier-0/3 stubs |
+
+### 10.4 Checklist additions (amend §8)
+
+**Phase G**
+- [ ] G1 `HEAD_SPECS` + `createHead` (delete 3 makeX copies + 6 scorers + dead head class)
+- [ ] G2 unified knob table (prefix routing deleted)
+- [ ] G3 `ConstantManifold` merge
+- [ ] G4 single embedding cache
+- [ ] G5 export-audit guard
+- [ ] G6 config type split + single zod source
+- [ ] Bench 25
+
+**Phase H**
+- [ ] H1 encoder config + real digest composition + batched embed (Bench 26)
+- [ ] H2 per-call override + domain bindings (Bench 27)
+- [ ] H3 spend accounting + optional cap
+- [ ] H4 offline hard-switch
+- [ ] H5 label/cortex provenance fields
+- [ ] H6 remediation hints
+- [ ] H7 dtype/device matrix + ladder docs
+
+**Phase I**
+- [ ] I1 three examples + CI smoke
+- [ ] I2 `pnpm status` / doctor
+- [ ] I3 REPL NL mode + `:judge`
+- [ ] I4 egress-rejection traceability
+- [ ] I5 error remediation UX
+- [ ] I6 user guide (generated from specs)
+
+**Phase B amendment**
+- [ ] X8 `chargeJudgment` wired into `SystemOneDispatcher.judge` (Bench 28) — flow-level accounting, closing the same "shipped-but-unreachable" class as W2/R1
+
+**Rollback notes (amend §7):** G is behavior-preserving by construction (Bench 25 property-equivalence is the gate); H rollbacks are env-var-degradable (`LM_OFFLINE=1`, remove `encoder` override ⇒ MiniLM default); I is additive-only.
