@@ -36,6 +36,8 @@ export interface CycleHost {
     narration: string;
     toolCalls: readonly { command: string; success: boolean }[];
     correlationId: string;
+    /** E4 follow-up (b): egress-gate verdict — groundedness ground truth (reject ⇒ observed 0). */
+    egress?: { grounded: boolean; score?: number };
   }) => Promise<unknown>;
   /** H2: default narration tier when the caller passes none. */
   readonly narrateTier?: 'quality' | 'fast' | 'structured';
@@ -113,8 +115,9 @@ const narrate = async (
   stimulus: CognitiveStimulus,
   context: Context,
   derivations: Derivation[]
-): Promise<string> => {
+): Promise<{ text: string; egress?: { grounded: boolean; score?: number } }> => {
   let narrativeText = '';
+  let egress: { grounded: boolean; score?: number } | undefined;
   if (host.cortex) {
     const narrative = await host.cortex.synthesize({
       stimulus,
@@ -126,6 +129,7 @@ const narrate = async (
     narrativeText = narrative.text;
     if (host.groundednessGate) {
       const verdict = gateVerdict(await host.groundednessGate(narrativeText));
+      egress = verdict;
       if (!verdict.grounded) {
         reportEgressRejection(host, stimulus.correlationId, verdict.score);
         narrativeText = verbalizeDerivations(derivations);
@@ -145,7 +149,7 @@ const narrate = async (
       });
     }
   }
-  return narrativeText;
+  return { text: narrativeText, egress };
 };
 
 /** Fail-safe template verbalization when the egress gate rejects or abstains. */
@@ -242,6 +246,7 @@ export async function* runCycleStream(
 
   const derivations = await reason(host, stimulus, context);
   let narrativeText = '';
+  let egressVerdict: { grounded: boolean; score?: number } | undefined;
   const tier = opts?.tier ?? host.narrateTier;
   const cortex = host.cortex;
   if (cortex) {
@@ -268,6 +273,7 @@ export async function* runCycleStream(
     if (!narrativeText) narrativeText = host.getLastResponse();
     else if (host.groundednessGate) {
       const verdict = gateVerdict(await host.groundednessGate(narrativeText));
+      egressVerdict = verdict;
       if (!verdict.grounded) {
         reportEgressRejection(host, stimulus.correlationId, verdict.score);
         yield {
@@ -284,7 +290,9 @@ export async function* runCycleStream(
       });
     }
   } else {
-    narrativeText = await narrate(host, stimulus, context, derivations);
+    const narrated = await narrate(host, stimulus, context, derivations);
+    narrativeText = narrated.text;
+    egressVerdict = narrated.egress;
   }
 
   await consolidateMemory(host, stimulus, narrativeText);
@@ -306,6 +314,7 @@ export async function* runCycleStream(
         narration: narrativeText,
         toolCalls: toolResults.map((tr) => ({ command: tr.command, success: tr.result.success })),
         correlationId: stimulus.correlationId,
+        egress: egressVerdict,
       });
     } catch {
       /* grading is best-effort; never blocks the cycle */

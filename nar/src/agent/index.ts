@@ -9,6 +9,7 @@ import type { EpisodicMemory, LMService, NAR } from '@senars/nar';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
 import { NAREngine } from '../engine/NAREngine.js';
+import { TrajectoryStore } from '../rlfp/trajectory-store.js';
 import { CoreToolRegistryAdapter } from '../tools';
 import { createCompactionPromptBuilder } from './compaction.js';
 
@@ -33,6 +34,8 @@ export interface CreateAgentConfig {
   skills?: Array<{ id: string; description?: string; instructions: string; enabled?: boolean }>;
   /** Conversation compaction thresholds (`bot.conversation` config block). */
   conversation?: { maxHistory?: number; summaryThreshold?: number };
+  /** E4 follow-up (a): JSONL path persisting per-cycle trajectories for implicit preference pairing. */
+  trajectoryStorePath?: string;
   sessionManager?: PersistableSessionManager;
 }
 
@@ -158,7 +161,48 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
 
   // Wire System One groundedness gate + trace grader if available
   const groundednessGate = narInstance.getSystemOneGroundednessGate();
-  const traceGrader = narInstance.getSystemOneTraceGrader();
+  const rawTraceGrader = narInstance.getSystemOneTraceGrader();
+
+  // E4 follow-up (a): each graded cycle becomes a trajectory step; the two most
+  // recent cycles pair into an implicit RLFP preference (grade-ordered).
+  let traceGrader = rawTraceGrader;
+  if (rawTraceGrader) {
+    const trajectoryStore = new TrajectoryStore(config.trajectoryStorePath);
+    await trajectoryStore.load();
+    traceGrader = async (trace) => {
+      const result = (await rawTraceGrader(trace)) as {
+        groundedness?: { score: number; abstained: boolean };
+        risks: { command: string; score: number; abstained: boolean }[];
+      };
+      await trajectoryStore.recordCycle({
+        correlationId: trace.correlationId ?? '',
+        timestamp: Date.now(),
+        steps: [
+          { timestamp: Date.now(), type: 'narrative', data: trace.narration },
+          ...trace.toolCalls.map((c) => ({
+            timestamp: Date.now(),
+            type: 'tool_call',
+            data: { name: c.command, success: c.success },
+          })),
+        ],
+        grades: { groundedness: result.groundedness, risks: result.risks, egress: trace.egress },
+      });
+      const pair = trajectoryStore.pairForPreference();
+      const rlfp = narInstance.getRLFP();
+      if (pair && pair.preference !== 'SKIP' && rlfp) {
+        const preferred = pair.preference === 'A' ? pair.trajectoryA : pair.trajectoryB;
+        const rejected = pair.preference === 'A' ? pair.trajectoryB : pair.trajectoryA;
+        const narrationOf = (c: { steps: { type: string; data?: unknown }[] }) =>
+          (c.steps.find((s) => s.type === 'narrative')?.data as string | undefined) ?? '';
+        const preferredNarration = narrationOf(preferred);
+        const rejectedNarration = narrationOf(rejected);
+        if (preferredNarration && rejectedNarration) {
+          rlfp.addPreference(preferredNarration, rejectedNarration);
+        }
+      }
+      return result;
+    };
+  }
 
   const agent = new Agent({
     log,

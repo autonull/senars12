@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { v4 as uuidv4 } from 'uuid';
 import type { SelfImprovementProposal } from '@senars/kernel/schemas';
+import { v4 as uuidv4 } from 'uuid';
 import { Truth, type Truth as TruthType } from '../../terms/truth.js';
 import { seedTruth } from './seed.js';
 import type { JudgmentProposition } from './types.js';
@@ -15,7 +15,10 @@ export function computeEvidenceId(utteranceId: string, sourceSpan: string): stri
  * Evidence-weighted revision caps at MAX_CONFIDENCE — re-judging the same
  * evidence never inflates confidence beyond the NAL revision bound.
  */
-export function promoteProvisional(current: TruthType | undefined, incoming: JudgmentProposition): TruthType {
+export function promoteProvisional(
+  current: TruthType | undefined,
+  incoming: JudgmentProposition
+): TruthType {
   const incomingTruth = seedTruth(incoming);
   return current ? Truth.revision(current, incomingTruth) : incomingTruth;
 }
@@ -115,6 +118,57 @@ export class JudgmentDataset {
       if (e.code !== 'ENOENT') throw e;
     }
     return dataset;
+  }
+
+  /**
+   * D3 follow-up: compaction for the append-only auto-flush dataset — dedupe
+   * rows by evidenceId (last wins) and prune sidecar `<evidenceId>.f32` files
+   * whose row rotated out. Returns `{kept, dropped, vectorsKept, vectorsDropped}`.
+   */
+  static async compact(
+    datasetPath: string,
+    sidecarPath?: string
+  ): Promise<{ kept: number; dropped: number; vectorsKept: number; vectorsDropped: number }> {
+    const { promises: fs } = await import('node:fs');
+    const { join, dirname } = await import('node:path');
+    const content = await fs.readFile(datasetPath, 'utf-8');
+    const byId = new Map<string, DistillationLabel>();
+    let dropped = 0;
+    for (const line of content.split('\n')) {
+      if (!line.trim()) continue;
+      try {
+        const label = JSON.parse(line) as DistillationLabel;
+        if (byId.has(label.evidenceId)) dropped++;
+        byId.set(label.evidenceId, label);
+      } catch {
+        dropped++;
+      }
+    }
+    await fs.mkdir(dirname(datasetPath), { recursive: true });
+    await fs.writeFile(
+      datasetPath,
+      [...byId.values()].map((l) => JSON.stringify(l)).join('\n') + '\n',
+      'utf-8'
+    );
+
+    let vectorsKept = 0;
+    let vectorsDropped = 0;
+    if (sidecarPath) {
+      const live = new Set<string>();
+      for (const label of byId.values()) if (label.vecRef) live.add(label.vecRef);
+      const entries = await fs.readdir(sidecarPath).catch(() => [] as string[]);
+      for (const entry of entries) {
+        if (!entry.endsWith('.f32')) continue;
+        const id = entry.slice(0, -'.f32'.length);
+        if (live.has(id) || byId.has(id)) {
+          vectorsKept++;
+        } else {
+          await fs.rm(join(sidecarPath, entry));
+          vectorsDropped++;
+        }
+      }
+    }
+    return { kept: byId.size, dropped, vectorsKept, vectorsDropped };
   }
 
   /** Periodic append of recorded labels to `path` (D3 auto-flush). Returns a stop function. */
@@ -217,7 +271,9 @@ export function validateHeadCandidate(
 ): SabotageVerdict {
   const violations: string[] = [];
   if (!HASH_PINNED.test(candidate.modelDigest)) {
-    violations.push(`Un-pinned modelDigest '${candidate.modelDigest}' — head must be hash-pinned (SHA256(weights))`);
+    violations.push(
+      `Un-pinned modelDigest '${candidate.modelDigest}' — head must be hash-pinned (SHA256(weights))`
+    );
   }
   if (incumbent && candidate.abstainThreshold < incumbent.abstainThreshold) {
     violations.push(

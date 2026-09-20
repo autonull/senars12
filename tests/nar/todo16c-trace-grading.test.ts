@@ -116,3 +116,31 @@ describe('E4 trace grading (agent-trace observability)', () => {
     expect(result.risks).toHaveLength(0);
   });
 });
+
+describe('E4 follow-up (b): egress verdict is the groundedness ground truth', () => {
+  it('records observed 0 on egress rejection and 1 on pass; absent verdict stays undefined', async () => {
+    const { cache, manifold } = mkFixture();
+    manifold.registerHead({
+      rubric: 'groundedness',
+      axis: 'epistemic',
+      fitted: true,
+      evaluate: async () => ({ score: 0.5, abstained: false }),
+    });
+    const dataset = new JudgmentDataset();
+    const grader = createTraceGrader({ manifold, embeddingCache: cache, dataset, source: 'test' });
+
+    await grader({ narration: 'rejected narration', toolCalls: [], egress: { grounded: false, score: 0.3 } });
+    await grader({ narration: 'accepted narration', toolCalls: [], egress: { grounded: true } });
+    await grader({ narration: 'unverdicted narration', toolCalls: [] });
+
+    const rows = (dataset as unknown as { toJSONL(): string }).toJSONL()
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l) as { rubric: string; observed?: number; label: string });
+    const grounded = rows.filter((r) => r.rubric === 'groundedness');
+    expect(grounded).toHaveLength(3);
+    expect(grounded[0]!.observed).toBe(0);
+    expect(grounded[1]!.observed).toBe(1);
+    expect(grounded[2]!.observed).toBeUndefined();
+  });
+});

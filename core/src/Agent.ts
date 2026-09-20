@@ -54,6 +54,7 @@ export class Agent {
     narration: string;
     toolCalls: readonly { command: string; success: boolean }[];
     correlationId: string;
+    egress?: { grounded: boolean; score?: number };
   }) => Promise<unknown>;
   #narrateTier?: 'quality' | 'fast' | 'structured';
   #started = false;

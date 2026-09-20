@@ -129,6 +129,7 @@ export async function createAgentFromEnv(
       maxHistory: appConfig.bot.conversation.maxHistory,
       summaryThreshold: appConfig.bot.conversation.summaryThreshold,
     },
+    trajectoryStorePath: appConfig.systemOne?.distillation?.trajectoryPath,
     skills: appConfig.bot.skills,
     engines: {
       nar: appConfig.backends.nar.enabled,

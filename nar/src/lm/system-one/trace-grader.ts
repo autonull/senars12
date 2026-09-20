@@ -21,6 +21,8 @@ export interface TraceGradeInput {
   narration: string;
   toolCalls: readonly TracedToolCall[];
   correlationId?: string;
+  /** Egress-gate verdict — ground truth for the groundedness rubric (reject ⇒ observed 0). */
+  egress?: { grounded: boolean; score?: number };
 }
 
 export interface TraceGroundednessGrade {
@@ -108,12 +110,14 @@ export function createTraceGrader(options: TraceGraderOptions) {
     if (groundedness && groundedness.kind === 'evaluate') {
       const g = groundedness as EvaluateProposition;
       if (!g.abstained) result.groundedness = { score: g.score, abstained: false };
+      // E4 follow-up (b): the egress-gate verdict is the groundedness ground truth
       record(
         HEAD_SPECS.groundedness.rubric,
         evidenceId('groundedness', trace.narration),
         labelBand(g.score, HEAD_SPECS.groundedness.levels ?? []),
         'epistemic',
-        g
+        g,
+        trace.egress ? (trace.egress.grounded ? 1 : 0) : undefined
       );
     }
 

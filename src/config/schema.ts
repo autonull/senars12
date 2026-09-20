@@ -552,6 +552,8 @@ export const systemOneSchema = z.object({
       driftEceBound: z.number().min(0).max(1).default(systemOneDefaults.distillation.driftEceBound),
       /** E4c: opt-in periodic append of dataset rows — default config no longer writes dataset files silently. */
       autoFlush: z.boolean().optional(),
+      /** E4a: JSONL path persisting per-cycle trajectories for implicit preference pairing. */
+      trajectoryPath: z.string().optional(),
     })
     .default(systemOneDefaults.distillation),
   rl: z
