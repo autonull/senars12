@@ -395,6 +395,7 @@ export const systemOneSchema = z.object({
     .object({
       provider: z.enum(['off', 'wasi', 'webgpu', 'http', 'peer']).default(systemOneDefaults.manifold.provider),
       endpoint: z.string().optional(),
+      timeoutMs: z.number().int().positive().optional(),
       embeddingCacheSizeMB: z.number().int().positive().default(systemOneDefaults.manifold.embeddingCacheSizeMB),
       encoder: z
         .object({

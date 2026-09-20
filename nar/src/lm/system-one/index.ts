@@ -13,6 +13,7 @@ export * from './policy.js';
 export * from './manifold-reflex.js';
 export * from './wasi-runtime.js';
 export * from './http-endpoint.js';
+export * from './http-manifold.js';
 export * from './resource-gate.js';
 export * from './label-sources.js';
 export * from './train.js';

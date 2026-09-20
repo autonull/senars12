@@ -54,6 +54,7 @@ import { createEmbeddingCache } from './lm/system-one/embedding-cache.js';
 import { composeModelDigest, encoderDigest } from './lm/system-one/wasi-runtime.js';
 import { createEmbeddingGenerator } from './memory/embedding.js';
 import { createManifold } from './lm/system-one/manifold.js';
+import { createHttpManifold } from './lm/system-one/http-manifold.js';
 import { createDispatcher } from './lm/system-one/dispatcher.js';
 import { createGroundednessGate } from './lm/system-one/groundedness-gate.js';
 import { createTraceGrader } from './lm/system-one/trace-grader.js';
@@ -894,7 +895,16 @@ export class NAR extends BaseComponent {
 
     // Create manifold with per-head config from systemOne config
     let manifold: JudgmentManifold;
-    if (systemOneConfig.manifold && 'judgeBatch' in systemOneConfig.manifold) {
+    const manifoldFileConfig = systemOneConfig.manifold as SystemOneConfigSchema['manifold'] | undefined;
+    if (manifoldFileConfig?.provider === 'http' && manifoldFileConfig.endpoint) {
+      // D4: remote judge over the /v1/systemone wire shape; local cache still
+      // produces the context embedding; remote results are untrusted (LLM_PRIOR ceiling).
+      manifold = createHttpManifold({
+        endpoint: manifoldFileConfig.endpoint,
+        embeddingCache: this._systemOneEmbeddingCache!,
+        timeoutMs: manifoldFileConfig.timeoutMs,
+      });
+    } else if (systemOneConfig.manifold && 'judgeBatch' in systemOneConfig.manifold) {
       // Pre-built manifold provided
       manifold = systemOneConfig.manifold as JudgmentManifold;
     } else {
