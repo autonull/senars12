@@ -12,9 +12,21 @@ export interface TunableKnob {
   set(value: number): void;
 }
 
+export type KnobRoot = 'cognitive' | 'systemOne';
+
+/** Unified knob table (G2/X9) — one spec list covering both roots. */
+export interface KnobSpec {
+  readonly name: string;
+  readonly path: string;
+  readonly min: number;
+  readonly max: number;
+  readonly step: number;
+  readonly root: KnobRoot;
+}
+
 type ParamObj = Record<string, any>;
 
-const knobSchema = [
+const cognitiveKnobs: readonly Omit<KnobSpec, 'root'>[] = [
   {
     name: 'maxDerivationsPerStep',
     path: 'inference.maxDerivationsPerStep',
@@ -43,7 +55,29 @@ const knobSchema = [
     step: 10,
   },
   { name: 'rankingMinScore', path: 'inference.ranking.minScore', min: 0, max: 0.5, step: 0.05 },
-] as const;
+];
+type SystemOneKnobSpec = Pick<KnobSpec, 'name' | 'min' | 'max' | 'step'>;
+
+const systemOneKnobs: readonly SystemOneKnobSpec[] = [
+  { name: 'systemOne.budgets.maxJudgmentCallsPerCycle', min: 1, max: 32, step: 1 },
+  { name: 'systemOne.budgets.maxConsensusPerCycle', min: 1, max: 8, step: 1 },
+  { name: 'systemOne.budgets.maxLatencyMsPerJudgment', min: 10, max: 200, step: 1 },
+  { name: 'systemOne.budgets.maxTokensPerCycle', min: 256, max: 32768, step: 256 },
+  { name: 'systemOne.budgets.maxMemoryMbPerCycle', min: 32, max: 2048, step: 32 },
+  { name: 'systemOne.provisional.cInitial', min: 0.01, max: 0.5, step: 0.01 },
+  { name: 'systemOne.provisional.decayRate', min: 0.05, max: 1.0, step: 0.05 },
+  { name: 'systemOne.provisional.maxTtlMs', min: 5000, max: 300000, step: 5000 },
+];
+export const KNOB_SPECS: readonly KnobSpec[] = [
+  ...cognitiveKnobs.map((k) => ({ ...k, root: 'cognitive' as const })),
+  ...systemOneKnobs.map((k) => ({ ...k, root: 'systemOne' as const, path: k.name })),
+];
+
+const specByName = new Map(KNOB_SPECS.map((s) => [s.name, s]));
+
+export function findKnobSpec(name: string): KnobSpec | undefined {
+  return specByName.get(name);
+}
 
 function getNested(obj: ParamObj, path: string): number {
   return path.split('.').reduce((o: any, k: string) => o?.[k], obj) as number;
@@ -56,7 +90,7 @@ function setNested(obj: ParamObj, path: string, value: number): void {
   target[last] = value;
 }
 
-function makeKnob(spec: (typeof knobSchema)[number], params: ParamObj): TunableKnob {
+function makeKnob(spec: KnobSpec, params: ParamObj): TunableKnob {
   return {
     ...spec,
     get() {
@@ -72,12 +106,17 @@ function makeKnob(spec: (typeof knobSchema)[number], params: ParamObj): TunableK
   };
 }
 
-export function createKnobSet(params: CognitiveParameters): Record<string, TunableKnob> {
-  const p = params as ParamObj;
-  return Object.fromEntries(knobSchema.map((s) => [s.name, makeKnob(s, p)])) as Record<
-    string,
-    TunableKnob
-  >;
+export function createKnobSet(
+  params: CognitiveParameters,
+  systemOne?: ParamObj
+): Record<string, TunableKnob> {
+  const roots: Record<KnobRoot, ParamObj | undefined> = {
+    cognitive: params as ParamObj,
+    systemOne,
+  };
+  return Object.fromEntries(
+    KNOB_SPECS.filter((s) => roots[s.root]).map((s) => [s.name, makeKnob(s, roots[s.root]!)])
+  );
 }
 
-export { knobSchema };
+export { cognitiveKnobs as knobSchema, systemOneKnobs as systemOneKnobSchema };

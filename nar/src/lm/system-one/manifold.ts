@@ -30,14 +30,11 @@ import {
   type RollingECEConfig,
   type DriftDemotionConfig,
 } from './calibration.js';
-import { createAllIngressHeads, type HeadFactoryOptions as IngressHeadFactoryOptions, type PerHeadConfig as IngressPerHeadConfig } from './heads/ingress.js';
-import { createAllActionHeads, type HeadFactoryOptions as ActionHeadFactoryOptions, type PerHeadConfig as ActionPerHeadConfig } from './heads/action.js';
-import { createAllSynthesisHeads, type HeadFactoryOptions as SynthesisHeadFactoryOptions, type PerHeadConfig as SynthesisPerHeadConfig } from './heads/synthesis.js';
-import { createAllMemoryHeads, type HeadFactoryOptions as MemoryHeadFactoryOptions, type PerHeadConfig as MemoryPerHeadConfig } from './heads/memory.js';
+import { createAllIngressHeads, createAllActionHeads, createAllSynthesisHeads, createAllMemoryHeads, type HeadFactoryOptions, type PerHeadConfig } from './heads/index.js';
 import { recordJudgmentMetric } from '../../metrics/prometheus.js';
 import type { JudgmentResolvedEvent, CognitiveEvent } from '@senars/kernel/schemas';
 
-export type PerHeadConfig = IngressPerHeadConfig | ActionPerHeadConfig | SynthesisPerHeadConfig | MemoryPerHeadConfig;
+
 
 export interface ManifoldConfig {
   backendId: BackendId;

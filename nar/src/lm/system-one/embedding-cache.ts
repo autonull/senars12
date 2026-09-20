@@ -55,7 +55,7 @@ export class EmbeddingCache {
       maxSize: config.maxSize ?? 10000,
       ttlMs: config.ttlMs ?? 300_000,
     };
-    this.#generator = config.generator ?? new TransformersEmbeddingGenerator(this.#config.maxSize);
+    this.#generator = config.generator ?? new TransformersEmbeddingGenerator();
   }
 
   async write(text: string): Promise<EmbeddingPointer> {

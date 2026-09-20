@@ -30,82 +30,17 @@ import type {
   SynthesisProposition,
   SynthesisQuery,
 } from './types.js';
+import { selectQuery as buildSelectQuery } from './head-specs.js';
 import { Truth } from '../../terms/truth.js';
 import { Stamp } from '../../terms/stamp.js';
 import { AlgebraPurityError, validateBatchQueries } from './algebra.js';
 import { seedTruth, seedDesire } from './seed.js';
 import { createProvisionalStamp } from './provisional-stamp.js';
 
-export class DeterministicManifold implements JudgmentManifold {
-  readonly #backendId: BackendId = 'deterministic-tier0' as BackendId;
-  readonly #modelDigest: ModelDigest = 'sha256:deterministic' as ModelDigest;
-  readonly #calibrationVersion: CalibrationVersion = 'v1.0.0' as CalibrationVersion;
 
-  async judgeBatch(
-    _sharedContext: EmbeddingPointer,
-    queries: readonly JudgmentQuery[],
-    _budget: ReasoningBudget
-  ): Promise<JudgmentProposition[]> {
-    validateBatchQueries(queries);
-    return queries.map((q) => this.deterministicJudge(q));
-  }
+import { DeterministicManifold, Tier3SymbolicManifold } from './constant-manifold.js';
 
-  async consensus(
-    _sharedContext: EmbeddingPointer,
-    query: JudgmentQuery,
-    _k: number,
-    _budget: ReasoningBudget
-  ): Promise<ConsensusResult> {
-    validateBatchQueries([query]);
-    const prop = this.deterministicJudge(query);
-    return { proposition: prop, agreement: 1.0, independent: true };
-  }
-
-  health(): ManifoldHealth {
-    return {
-      backendId: this.#backendId,
-      ready: true,
-      breakerOpen: false,
-      rollingEce: 0.0,
-      queueDepth: 0,
-    };
-  }
-
-  private deterministicJudge(query: JudgmentQuery): JudgmentProposition {
-    const queryId = uuidv4() as QueryId;
-    const base: Omit<JudgmentProposition, 'kind' | 'axis' | 'distribution' | 'top' | 'entropy' | 'score'> = {
-      queryId,
-      backendId: this.#backendId,
-      modelDigest: this.#modelDigest,
-      calibration: { version: this.#calibrationVersion, ece: 0.0 },
-      latencyMs: 0,
-      cost: { tokensIn: 0, tokensOut: 0, computeMs: 0, memoryMb: 0 },
-      tier: 0,
-      abstained: false,
-    };
-
-    if (query.kind === 'classify') {
-      const space = query.space;
-      const topOption = space[0] ?? 'unknown';
-      const dist = space.map((opt, i) => ({ option: opt, p: i === 0 ? 1.0 : 0.0 }));
-      return {
-        ...base,
-        kind: 'classify',
-        axis: query.axis,
-        distribution: dist,
-        top: { option: topOption, p: 1.0 },
-        entropy: 0.0,
-      };
-    } else {
-      return {
-        ...base,
-        kind: 'evaluate',
-        axis: query.axis,
-        score: 0.5,
-      };
-    }
-  }
-}
+export { DeterministicManifold, Tier3SymbolicManifold };
 
 export class StubCortex implements GenerativeCortex {
   readonly #provider: string;
@@ -133,76 +68,6 @@ export class StubCortex implements GenerativeCortex {
   }
 }
 
-export class Tier3SymbolicManifold implements JudgmentManifold {
-  readonly #backendId: BackendId = 'symbolic-tier3' as BackendId;
-  readonly #modelDigest: ModelDigest = 'sha256:symbolic' as ModelDigest;
-  readonly #calibrationVersion: CalibrationVersion = 'v1.0.0' as CalibrationVersion;
-
-  async judgeBatch(
-    _sharedContext: EmbeddingPointer,
-    queries: readonly JudgmentQuery[],
-    _budget: ReasoningBudget
-  ): Promise<JudgmentProposition[]> {
-    validateBatchQueries(queries);
-    return queries.map((q) => this.symbolicJudge(q));
-  }
-
-  async consensus(
-    _sharedContext: EmbeddingPointer,
-    query: JudgmentQuery,
-    _k: number,
-    _budget: ReasoningBudget
-  ): Promise<ConsensusResult> {
-    validateBatchQueries([query]);
-    const prop = this.symbolicJudge(query);
-    return { proposition: prop, agreement: 1.0, independent: true };
-  }
-
-  health(): ManifoldHealth {
-    return {
-      backendId: this.#backendId,
-      ready: true,
-      breakerOpen: false,
-      rollingEce: 0.05,
-      queueDepth: 0,
-    };
-  }
-
-  private symbolicJudge(query: JudgmentQuery): JudgmentProposition {
-    const queryId = uuidv4() as QueryId;
-    const base: Omit<JudgmentProposition, 'kind' | 'axis' | 'distribution' | 'top' | 'entropy' | 'score'> = {
-      queryId,
-      backendId: this.#backendId,
-      modelDigest: this.#modelDigest,
-      calibration: { version: this.#calibrationVersion, ece: 0.05 },
-      latencyMs: 1,
-      cost: { tokensIn: 0, tokensOut: 0, computeMs: 1, memoryMb: 0 },
-      tier: 3,
-      abstained: false,
-    };
-
-    if (query.kind === 'classify') {
-      const space = query.space;
-      const topOption = space[0] ?? 'unknown';
-      const dist = space.map((opt, i) => ({ option: opt, p: i === 0 ? 0.8 : 0.2 / Math.max(1, space.length - 1) }));
-      return {
-        ...base,
-        kind: 'classify',
-        axis: query.axis,
-        distribution: dist,
-        top: { option: topOption, p: 0.8 },
-        entropy: 0.5,
-      };
-    } else {
-      return {
-        ...base,
-        kind: 'evaluate',
-        axis: query.axis,
-        score: 0.5,
-      };
-    }
-  }
-}
 
 /**
  * Four-tier judgment ladder:
@@ -354,23 +219,8 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
       }
     }
 
-    const selectQuery: ClassifyQuery | undefined = candidates.length
-      ? {
-          kind: 'classify',
-          instruction: synthesisQuery.instruction,
-          space: candidates,
-          axis: 'teleological',
-          criticality: 'standard',
-        }
-      : undefined;
-    const conflictQuery: EvaluateQuery = {
-      kind: 'evaluate',
-      instruction: 'Evaluate conflict between candidates and current beliefs',
-      rubric: 'conflict',
-      axis: 'epistemic',
-      criticality: 'standard',
-    };
-    const queries: readonly JudgmentQuery[] = selectQuery ? [selectQuery, ...judgmentQueries] : judgmentQueries;
+    const selectQ = candidates.length ? buildSelectQuery(candidates, synthesisQuery.instruction) : undefined;
+    const queries: readonly JudgmentQuery[] = selectQ ? [selectQ, ...judgmentQueries] : judgmentQueries;
 
     const sharedContext = await this.#resolveContextPointer(context);
     let judgments: JudgmentProposition[];
@@ -382,7 +232,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
       manifoldFailed = true;
     }
 
-    const select = selectQuery
+    const select = selectQ
       ? judgments.find((j) => j.kind === 'classify' && j.axis === 'teleological')
       : undefined;
     // Manifold-validated only (tier 1): Tier 0/3 fallbacks carry no calibrated authority,
@@ -393,7 +243,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     // R5: Per-candidate embeddings — write each candidate to cache and evaluate individually
     // so ranking discriminates content, not just context.
     let ranking: readonly { option: string; p: number }[] | undefined;
-    if (selectUsable && selectQuery && this.#embeddingCache) {
+    if (selectUsable && selectQ && this.#embeddingCache) {
       const candidateEmbeddings: EmbeddingPointer[] = [];
       for (const candidate of candidates) {
         const pointer = await this.#embeddingCache.write(candidate);
@@ -403,7 +253,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
       const perCandidateQueries: ClassifyQuery[] = candidates.map((c) => ({
         kind: 'classify' as const,
         instruction: `Evaluate candidate: ${c}`,
-        space: selectQuery.space,
+        space: selectQ!.space,
         axis: 'teleological' as const,
         criticality: 'standard' as const,
       }));

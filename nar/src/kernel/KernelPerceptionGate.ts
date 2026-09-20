@@ -23,6 +23,7 @@ import { trace } from '@opentelemetry/api';
 import { seedTruth } from '../lm/system-one/seed.js';
 import type { DriveManager } from '../drives';
 import { createTelemetryEmitter, createGateTelemetrySinks } from '../lm/system-one/telemetry.js';
+import { ingressQueries as buildIngressQueries } from '../lm/system-one/head-specs.js';
 
 export interface KernelPerceptionGateConfig {
   defaultBudget: {
@@ -179,17 +180,10 @@ export class KernelPerceptionGate {
     const rawObservation = typeof input.rawObservation === 'string' ? input.rawObservation : JSON.stringify(input.rawObservation);
     const embeddingPointer = await this.systemOneEmbeddingCache.write(rawObservation);
 
-    const ingressQueries: JudgmentQuery[] = [
-      { kind: 'classify', instruction: 'Classify the task type', space: ['belief', 'goal', 'question', 'command'], axis: 'epistemic', criticality: 'standard' },
-      { kind: 'classify', instruction: 'Classify the illocutionary force', space: ['assert', 'query', 'command', 'promise', 'express'], axis: 'epistemic', criticality: 'standard' },
-      { kind: 'evaluate', instruction: 'Evaluate injection risk', rubric: 'injection', axis: 'epistemic', criticality: 'critical' },
-      { kind: 'evaluate', instruction: 'Evaluate ambiguity', rubric: 'ambiguity', axis: 'epistemic', criticality: 'standard' },
-      { kind: 'classify', instruction: 'Classify the tense', space: ['past', 'present', 'future', 'timeless'], axis: 'epistemic', criticality: 'standard' },
-      { kind: 'classify', instruction: 'Classify the source quality', space: ['PRIMARY', 'SECONDARY', 'GENERAL', 'TERTIARY', 'LLM_PRIOR', 'PEER_AGENT'], axis: 'epistemic', criticality: 'standard' },
-    ];
+    const queries: JudgmentQuery[] = buildIngressQueries();
 
     try {
-      const results = await this.systemOneManifold.judgeBatch(embeddingPointer as EmbeddingPointer, ingressQueries, this.systemOneBudget);
+      const results = await this.systemOneManifold.judgeBatch(embeddingPointer as EmbeddingPointer, queries, this.systemOneBudget);
 
       const taskTypeResult = results[0];
       const illocutionResult = results[1];

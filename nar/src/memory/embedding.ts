@@ -10,18 +10,8 @@ export interface EmbeddingGenerator {
 export class TransformersEmbeddingGenerator implements EmbeddingGenerator {
   readonly dimension = 384;
   private model: TransformersJSEmbeddingModel | null = null;
-  private readonly cache = new Map<string, number[]>();
-  private readonly cacheSize: number;
-
-  constructor(cacheSize = 1000) {
-    this.cacheSize = cacheSize;
-  }
 
   async generate(text: string): Promise<number[]> {
-    if (this.cache.has(text)) {
-      return this.cache.get(text)!;
-    }
-
     if (!this.model) {
       // Embeddings ride the same LM settings rails (device/dtype/cacheDir) as chat models.
       const settings = getLMSettings();
@@ -35,15 +25,7 @@ export class TransformersEmbeddingGenerator implements EmbeddingGenerator {
     }
 
     const result = await this.model.doEmbed({ values: [text] });
-    const embedding = result.embeddings[0] ?? [];
-
-    if (this.cache.size >= this.cacheSize) {
-      const firstKey = this.cache.keys().next().value;
-      if (firstKey) this.cache.delete(firstKey);
-    }
-    this.cache.set(text, embedding);
-
-    return embedding;
+    return result.embeddings[0] ?? [];
   }
 }
 

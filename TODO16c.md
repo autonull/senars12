@@ -357,6 +357,12 @@ New Prometheus counters (extend existing `systemone_*` family): `systemone_ingre
 - D2's `calibration-lock.json` + `fitted: true` plumbing already exists end-to-end: `JudgmentHead.fitted` gates mask/floor in `ManifoldRLAgent` and trust in `#select`; fitting a calibrator (`IsotonicCalibrator` tracks `fitted`) or registering a fitted head flips behavior. D2 only needs the fitting job + digest-pinned lock load at manifold construction.
 - Bench 21 will reuse the Bench 20 oracle-centroid trick inverted: fit `reflex_value` from dataset labels (Bench 21's "learned heads beat random" obligation).
 
+**Post-G notes (2026-09-20, facilitating remaining work):**
+- Next phase per the build sequence: **H (LM ladder)** — H2/H3/H4/H6/H7 are decision-free; H1 (encoder config + real digest composition, Bench 26) is DQ5/DQ7-gated. `heads/index.ts` and `head-specs.ts` are the anchors head-metadata surfaces (I2/I6) should read from.
+- Head creators now live in `head-specs.ts`/`heads/index.ts` — the `createAll*Heads` compat aliases exist for manifold.ts; new code should call `createHeadById`/`createHeadsForGroup` directly.
+- Known flakes to watch in CI (all pass in isolation, pre-existing or tolerance-tight): `todo16c-rl-manifold` untrained-vs-random assertion (~25% failure rate under parallel load — margin is ~0.025 reward over 50 episodes; consider raising episodes to 100 or seeding episode RNG in a follow-up), `todo16c-cache` 20k-write under load, one `todo16-slo` Tier-0 p99 timing. `revision-history` ×2 is F1 scope, the only true red.
+- Lint clean; `pnpm typecheck` at HEAD has 7 pre-existing errors unrelated to G (src/agent/__pb2.ts ×1, src/capability/wasi-sandbox.ts ×4, plus LM-related) — gate changes on diff-vs-baseline until F-phase fixes them.
+
 ### Phase E: Jev Patterns
 - [ ] E1 `noul()` + `ConfidenceRouter` (transducer + ingress consumers)
 - [ ] E2 `compositeScore` in `proposeAndJudge` ranking
@@ -479,10 +485,19 @@ Second-pass review findings, self-contained: new benchmarks (§10.1), new phases
 - **G6 (B4 extends).** `SystemOneFileConfig` (zod-inferred, single source) vs `SystemOneRuntimeConfig` (DI superset: `manifold?: JudgmentManifold`, `embeddingCache?`, `reasoningBudget?`) with `RuntimeConfig extends FileConfig`; `nar.ts` re-exports; factory parses file config once.
 
 **Acceptance**
-- [ ] Bench 25 passes (property-equivalence old ↔ generated heads)
-- [ ] Head ontology appears in exactly one source file (grep: `space:`/`levels:` literals only in `head-specs.ts`)
-- [ ] One knob table; `validateSystemOneKnob` deleted; SandboxValidator routing is table-driven
-- [ ] All 22 todo16 suites + A/B suites green unmodified
+- [x] Bench 25 passes (property-equivalence old ↔ generated heads)
+- [x] Head ontology appears in exactly one source file (grep: `space:`/`levels:` literals only in `head-specs.ts`)
+- [x] One knob table; `validateSystemOneKnob` deleted; SandboxValidator routing is table-driven
+- [x] All 22 todo16 suites + A/B suites green unmodified
+
+**Progress Notes (2026-09-20, Phase G complete):**
+- G1: `head-specs.ts` carries the single `HEAD_SPECS` registry (17 heads) + `createHead` + `specToQuery`/`ingressQueries`/`actionQueries`/`selectQuery` builders. `heads/{ingress,action,synthesis,memory}.ts` deleted; `heads/index.ts` re-exports `head-specs.js` + `factory.js` and defines one-line named per-head creators + `createAll{Ingress,Action,Synthesis,Memory}Heads` compat aliases. `heads/factory.ts` now only declares `PerHeadConfig`/`HeadFactoryOptions` (single copy — X1–X4 gone; the 7 baseline TS2308 ambiguity errors disappeared). KernelPerceptionGate builds its 6 ingress queries via `ingressQueries()`; dispatcher builds `candidate_select` via `selectQuery()`.
+- G2: unified `KNOB_SPECS` in `rlfp/knobs.ts` (10 cognitive + 8 systemOne, `root` field); `findKnobSpec` drives `SandboxValidator` (prefix routing deleted; `system-one-knobs.ts` deleted, `validateSystemOneKnob` gone). `knobSchema`/`systemOneKnobSchema` re-exported for compat. Preserve the `"Unknown systemOne knob"` message verbatim — `tests/nar/todo16-systemone-knobs.test.ts` asserts it.
+- G3: `constant-manifold.ts` `ConstantManifold` (~40 lines, one config table) replaces both stub manifolds; `DeterministicManifold`/`Tier3SymbolicManifold` are 3-line subclasses re-exported from `dispatcher.ts` (tests import them from there — keep the re-export).
+- G4: `TransformersEmbeddingGenerator` internal cache removed — `EmbeddingCache` is the single caching layer.
+- G6: `SystemOneFileConfig` (zod-inferred) vs `SystemOneRuntimeConfig` (`Omit<FileConfig,'manifold'>` — schema `manifold` is required, so plain `extends` fails TS2430) in `nar.ts`; `SystemOneConfig` kept as back-compat alias.
+- Bench 25 (`tests/nar/todo16c-head-specs.test.ts`, 8 tests) green. Full `tests/nar`: 1277 passed, only pre-existing `revision-history` ×2 (F1) fail.
+- Pre-existing typecheck errors exist unrelated to G (src/agent/__pb2.ts, src/capability/wasi-sandbox.ts ×4) — 7 errors total at HEAD; verify with `diff` against baseline, not zero-exit.
 
 #### Phase H — LM Ladder: Versatile Model Choice (P1, after A) *“from SmolLM to frontier, one dial”*
 
@@ -529,14 +544,14 @@ Second-pass review findings, self-contained: new benchmarks (§10.1), new phases
 
 ### 10.4 Checklist additions (amend §8)
 
-**Phase G**
-- [ ] G1 `HEAD_SPECS` + `createHead` (delete 3 makeX copies + 6 scorers + dead head class)
-- [ ] G2 unified knob table (prefix routing deleted)
-- [ ] G3 `ConstantManifold` merge
-- [ ] G4 single embedding cache
-- [ ] G5 export-audit guard
-- [ ] G6 config type split + single zod source
-- [ ] Bench 25
+**Phase G (complete 2026-09-20)**
+- [x] G1 `HEAD_SPECS` + `createHead` (heads/{ingress,action,synthesis,memory}.ts deleted; 6 scorers already gone in B2)
+- [x] G2 unified knob table (prefix routing deleted; `system-one-knobs.ts` deleted)
+- [x] G3 `ConstantManifold` merge
+- [x] G4 single embedding cache
+- [x] G5 export-audit guard (inside Bench 25 suite)
+- [x] G6 config type split + single zod source
+- [x] Bench 25
 
 **Phase H**
 - [ ] H1 encoder config + real digest composition + batched embed (Bench 26)

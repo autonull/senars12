@@ -73,12 +73,18 @@ import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
 import type { JudgmentManifold, CognitiveDispatcher, JudgmentQuery, SynthesisQuery } from './lm/system-one/types.js';
 import type { ReasoningBudget } from '@senars/kernel/schemas';
 
-/** Runtime System One config extending the validated schema with runtime objects. */
-export type SystemOneConfig = SystemOneConfigSchema & {
-  manifold?: SystemOneConfigSchema['manifold'] | JudgmentManifold;
+/** File-validated System One config (zod-inferred, single source of truth — G6). */
+export type SystemOneFileConfig = SystemOneConfigSchema;
+
+/** Runtime config extending the file config with injected runtime objects. */
+export interface SystemOneRuntimeConfig extends Omit<SystemOneFileConfig, 'manifold'> {
+  manifold?: SystemOneFileConfig['manifold'] | JudgmentManifold;
   embeddingCache?: EmbeddingCache;
   reasoningBudget?: ReasoningBudget;
-};
+}
+
+/** Back-compat alias for the runtime config. */
+export type SystemOneConfig = SystemOneRuntimeConfig;
 
 export interface NARConfig extends CoreConfig {
   lmService?: LMService;
