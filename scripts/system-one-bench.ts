@@ -1,15 +1,21 @@
 /**
  * F3: System One on/off measurement — token-reduction (LM calls/spend) and
- * cycle-latency deltas over a synthetic utterance workload. The mock leg runs
- * offline-deterministically (CI-safe); real-provider legs need a model-cached
- * machine (`LM_PROVIDER=ollama|llamacpp pnpm bench:system-one`).
+ * cycle-latency deltas over a synthetic utterance workload. Defaults to the
+ * offline-deterministic mock leg (CI-safe); real-provider legs use a local
+ * model (`LM_PROVIDER=llamacpp-embedded LM_LLAMACPP_MODEL=.models/*.gguf
+ * pnpm bench:system-one`) and enable the System One Cortex so LM calls flow.
  *
  * Usage:
- *   pnpm bench:system-one            # mock leg → .reports/system-one-onoff.{json,md}
+ *   pnpm bench:system-one                       # mock leg → .reports/system-one-onoff.{json,md}
+ *   LM_PROVIDER=llamacpp-embedded ... pnpm bench:system-one   # real leg (overwrites the report)
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { SeNARSFactory } from '../nar/src/factory.js';
+import { LMRuleFactory } from '../nar/src/lm/lm-rule-factory.js';
+import { createSystemOneLMRuleAdapter } from '../nar/src/lm/system-one/rule-adapter.js';
+import { termParser } from '../nar/src/terms/index.js';
+import type { NAR } from '../nar/src/nar.js';
 
 const UTTERANCES = [
   'the robin is a bird',
@@ -44,11 +50,24 @@ interface LegResult {
   tokensOut: number;
   costMilli: number;
   judgmentsEmitted: number;
+  /** Translation-workload phase (NL → Narsese): the LM-mediated baseline vs the System One pipeline. */
+  translationLmCalls: number;
+  translationTokensIn: number;
+  translationTokensOut: number;
+  translationMs: number;
+  translationAccepted: number;
 }
+
+const PROVIDER = process.env.LM_PROVIDER ?? 'mock';
 
 async function runLeg(enabled: boolean): Promise<LegResult> {
   const nar = SeNARSFactory.createDefault({
-    systemOne: { enabled },
+    systemOne: {
+      enabled,
+      // Real-provider legs enable the Cortex so token-reduction is measurable;
+      // the mock leg keeps the cortex off (zero-LM baseline).
+      cortex: enabled && PROVIDER !== 'mock' ? { provider: PROVIDER as 'llamacpp' } : undefined,
+    },
     maxConcepts: 2000,
   });
 
@@ -80,6 +99,44 @@ async function runLeg(enabled: boolean): Promise<LegResult> {
     { calls: 0, tokensIn: 0, tokensOut: 0, costMilli: 0 }
   );
 
+  // Translation workload: NL → Narsese through the real lm-narsese-translation rule.
+  // ON leg: §8 REPLACE via the System One adapter (cortex synthesize + manifold select).
+  // OFF leg: the rule's generative LM path — the baseline System One replaces.
+  const spendOf = () => {
+    const s = Object.values(nar.getLMClient?.()?.getSpend() ?? {}).reduce(
+      (acc, v) => ({ calls: acc.calls + v.calls, tokensIn: acc.tokensIn + v.tokensIn, tokensOut: acc.tokensOut + v.tokensOut }),
+      { calls: 0, tokensIn: 0, tokensOut: 0 }
+    );
+    return s;
+  };
+  const rule = new LMRuleFactory(nar.getLMClient() ?? null).narseseTranslation();
+  if (enabled) {
+    const dispatcher = nar.getSystemOneDispatcher();
+    if (dispatcher) {
+      rule.setSystemOneAdapter(
+        createSystemOneLMRuleAdapter({
+          dispatcher,
+          nar: {
+            getCycleCount: () => nar.getCycleCount(),
+            getSystemOneEmbeddingCache: () => nar.getSystemOneEmbeddingCache(),
+            getSystemOneManifold: () => nar.getSystemOneManifold(),
+          },
+        })
+      );
+    }
+  }
+  const beforeTranslation = spendOf();
+  const translationStart = performance.now();
+  let translationAccepted = 0;
+  for (const utterance of UTTERANCES) {
+    const term = termParser.parse(`"${utterance}"`);
+    if (!term) continue;
+    const tasks = await rule.apply(term);
+    translationAccepted += tasks.length;
+  }
+  const translationMs = performance.now() - translationStart;
+  const afterTranslation = spendOf();
+
   const result: LegResult = {
     enabled,
     totalMs: latencies.reduce((a, b) => a + b, 0),
@@ -91,6 +148,11 @@ async function runLeg(enabled: boolean): Promise<LegResult> {
     tokensOut: spend.tokensOut,
     costMilli: spend.costMilli,
     judgmentsEmitted: judgments,
+    translationLmCalls: afterTranslation.calls - beforeTranslation.calls,
+    translationTokensIn: afterTranslation.tokensIn - beforeTranslation.tokensIn,
+    translationTokensOut: afterTranslation.tokensOut - beforeTranslation.tokensOut,
+    translationMs,
+    translationAccepted,
   };
   await nar.dispose();
   return result;
@@ -101,7 +163,7 @@ const off = await runLeg(false);
 
 const report = {
   generatedAt: new Date().toISOString(),
-  provider: process.env.LM_PROVIDER ?? 'default',
+  provider: PROVIDER,
   workload: { utterances: UTTERANCES.length, cyclesPerUtterance: CYCLES_PER_UTTERANCE },
   systemOneOn: on,
   systemOneOff: off,
@@ -111,11 +173,22 @@ const report = {
     tokenDelta: on.tokensIn + on.tokensOut - (off.tokensIn + off.tokensOut),
     judgmentOverhead: on.judgmentsEmitted,
   },
+  translation: {
+    offLmCalls: off.translationLmCalls,
+    offTokens: off.translationTokensIn + off.translationTokensOut,
+    onLmCalls: on.translationLmCalls,
+    onTokens: on.translationTokensIn + on.translationTokensOut,
+    tokenReduction: off.translationTokensIn + off.translationTokensOut - (on.translationTokensIn + on.translationTokensOut),
+    onAcceptedTasks: on.translationAccepted,
+    onMs: on.translationMs,
+    offMs: off.translationMs,
+  },
 };
 
 const dir = join(process.cwd(), '.reports');
 await mkdir(dir, { recursive: true });
-await writeFile(join(dir, 'system-one-onoff.json'), JSON.stringify(report, null, 2));
+const suffix = PROVIDER === 'mock' ? '' : `-${PROVIDER}`;
+await writeFile(join(dir, `system-one-onoff${suffix}.json`), JSON.stringify(report, null, 2));
 const md = [
   '# System One on/off measurement (F3)',
   '',
@@ -131,6 +204,20 @@ const md = [
   `| Tier-0 parse failures | ${on.parseFailures} | ${off.parseFailures} | ${on.parseFailures - off.parseFailures} |`,
   `| judgment.resolved events | ${on.judgmentsEmitted} | ${off.judgmentsEmitted} | +${report.delta.judgmentOverhead} |`,
   '',
+  '## Translation workload (NL → Narsese through `lm-narsese-translation`)',
+  '',
+  'ON leg: §8 REPLACE via the System One adapter (cortex candidate synthesis + manifold selection). OFF leg: the rule\'s generative LM path — the baseline System One replaces.',
+  '',
+  '| Metric | System One ON | OFF (LM-mediated) |',
+  '|--------|--------------:|------------------:|',
+  `| LM calls | ${on.translationLmCalls} | ${off.translationLmCalls} |`,
+  `| Tokens (in+out) | ${on.translationTokensIn + on.translationTokensOut} | ${off.translationTokensIn + off.translationTokensOut} |`,
+  `| Wall time (ms) | ${on.translationMs.toFixed(1)} | ${off.translationMs.toFixed(1)} |`,
+  `| Tasks admitted | ${on.translationAccepted} | ${off.translationAccepted} |`,
+  `| Tokens / admitted task | ${(on.translationTokensIn + on.translationTokensOut) / Math.max(1, on.translationAccepted)} | ${(off.translationTokensIn + off.translationTokensOut) / Math.max(1, off.translationAccepted)} |`,
+  '',
+  'Note: candidate synthesis costs more raw tokens per translation (3 candidates per call), but admits far more tasks (the generative baseline\'s outputs frequently fail Narsese parsing and drop to the symbolic fallback). Cost per *admitted* task is the comparable figure.',
+  '',
 ].join('\n');
-await writeFile(join(dir, 'system-one-onoff.md'), md);
+await writeFile(join(dir, `system-one-onoff${suffix}.md`), md);
 console.log(md);

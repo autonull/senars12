@@ -496,6 +496,7 @@ export const systemOneSchema = z.object({
           'openai-compatible',
           'ollama',
           'llamacpp',
+          'llamacpp-embedded',
           'transformers',
           'webllm',
           'mock',

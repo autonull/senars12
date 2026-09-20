@@ -50,7 +50,7 @@
     "fuzz:ci": "tsx scripts/fuzz-narsese.ts 10000",
     "web": "pnpm --dir ui dev",
     "build": "turbo run build",
-    "bench:system-one": "LM_PROVIDER=mock tsx scripts/system-one-bench.ts"
+    "bench:system-one": "tsx scripts/system-one-bench.ts"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.43",

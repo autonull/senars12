@@ -17,7 +17,10 @@ import { MockLanguageModelV3, simulateReadableStream } from 'ai/test';
 import type { ZodSchema } from 'zod';
 import { z } from 'zod';
 import type { SeNARSRegistry } from './providers.js';
+import { loadGrammar, type GrammarName } from './grammars/index.js';
 import { runWithGrammar } from './providers/llamacpp.js';
+
+const NAMED_GRAMMARS: ReadonlySet<string> = new Set<string>(['narsese-term', 'single-word']);
 import { SenarsError } from '@senars/util/errors';
 import {
   createSeNARSRegistry,
@@ -129,9 +132,14 @@ function buildCacheKey(prompt: string, options?: { task?: LMTask; temperature?: 
   return hashKey(parts.join('|'));
 }
 
-/** Run fn under a GBNF grammar scope when one is provided (no-op otherwise). */
-const runInGrammarScope = <T>(grammar: string | undefined, fn: () => Promise<T>): Promise<T> =>
-  grammar ? runWithGrammar(grammar, fn) : fn();
+/** Run fn under a GBNF grammar scope when one is provided (no-op otherwise).
+ * Grammar names ('narsese-term', 'single-word') resolve to their shipped GBNF text;
+ * raw GBNF passes through untouched. */
+const runInGrammarScope = <T>(grammar: string | undefined, fn: () => Promise<T>): Promise<T> => {
+  if (!grammar) return fn();
+  const gbnf = NAMED_GRAMMARS.has(grammar as GrammarName) ? loadGrammar(grammar as GrammarName) : grammar;
+  return runWithGrammar(gbnf, fn);
+};
 
 const withRetry = async <T>(
   fn: () => Promise<T>,
