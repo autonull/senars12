@@ -3,6 +3,7 @@
 **Version:** 1.2 · continues TODO16b v3.2 (all Phases 0–5, R1–R9, N1–N6, H1–H5 shipped)
 **§10 addendum (v1.1):** deep-dedup/metaprogramming (Phase G), LM-ladder versatility (Phase H), end-user usability (Phase I); benchmarks 25–28; decision points DQ5–DQ7.
 **§10.5 (v1.2):** final-discovery items X20–X29 wired into phases (B7–B10, C1a/C2a/C6, D5, A4a, F6–F7); execution-order dependency graph with effort estimates; complete gap→phase→benchmark traceability matrix.
+**§10.6 (v1.3):** readiness audit — Z1 dataset-trainability fix (vector sidecar; D1/D3/C4 amended), Z2 Bench 20 restructure (oracle-head harness validation; fitted-gated mask/floor), Z3–Z5 minor wiring (rl exports, cache single-flight, CI benches); DQ-dependency map; verdict: Phases B+G unblocked now.
 **Predecessor:** TODO16b.md (System One Integration — architecture complete, 150 tests green)
 **Lineage:** TODO16 v3.1 (vision) · SYSTEM_ONE.md (Jev proposer-layer draft) · Appendix A of TODO16b (Jev lineage)
 **Philosophy:** *Architecture without a live path is a museum. This revision makes System One reachable from every production entry point, replaces hash scorers with trained heads, and proves the Judgment Manifold is a general decision API by driving Reinforcement Learning with it — no NAL logic in the loop.*
@@ -100,8 +101,8 @@ Test naming per repo convention (`tests/nar/todo16c-*.test.ts`). No mocks for ke
 | 17 | **Cache Correctness at Scale** | `todo16c-cache.test.ts` | Write 20k unique texts (> pool size): no two live pointers share a buffer (read-verify distinct embeddings); `read()` O(1) (no scan — assert via pointer→entry index); 10k reads < 50 ms; evicted buffers recycled without aliasing. |
 | 18 | **Semantic Reflex Activation** | `todo16c-reflex-activation.test.ts` | `GameFocus` episode: warm prefetch table ⇒ ManifoldReflex proposals carry `source: 'manifold-reflex'` and differ from incumbent's; cold table ⇒ proposals identical to incumbent (exact fallback); zero `prefetch` calls after propose (sync contract honored). |
 | 19 | **RL Parity Restoration** | `todo16c-rl-parity.test.ts` | Promoted `nar/src/rl/` passes the 11 currently-failing adapter tests (bandit-epsilon-greedy ×3, cognitive-advantage ×5, trace-validation ×3 equivalents) against current memory APIs; `QBeliefStore.updateValueQLearning` round-trips through `Truth.revision` bounds. |
-| 20 | **System One RL (no NAR)** | `todo16c-rl-manifold.test.ts` | `ManifoldRLAgent` on `GridWorldEnv` using ONLY `EmbeddingCache` + `JudgmentManifold` + `ManifoldReflex` + `JudgmentDataset` (no NAR, no RuleProcessor): beats random baseline over 50 episodes; reward labels recorded hash-only. |
-| 21 | **Reflex-Value Distillation Loop** | `todo16c-rl-distill.test.ts` | Play N episodes → dataset → fit `reflex_value` head (D1 trainer) → digest-pinned head swap → bake-off parity within 2% of tabular-Q value correlation on the same grid. |
+| 20 | **System One RL Harness (no NAR)** | `todo16c-rl-manifold.test.ts` | `ManifoldRLAgent` on `GridWorldEnv` using ONLY `EmbeddingCache` + `JudgmentManifold` + `ManifoldReflex` + `JudgmentDataset` (no NAR, no RuleProcessor): the **plumbing** is proven by a registered oracle head (tabular values distilled from the baseline Q-learner via `registerHead`) beating random over 50 episodes; untrained hash heads must NOT regress below random (mask/floor pass-through while `calibration.fitted === false`); reward labels recorded hash-only + vector sidecar. "Learned heads beat random" is Bench 21's obligation (post-D1). |
+| 21 | **Reflex-Value Distillation Loop** | `todo16c-rl-distill.test.ts` | Play N episodes → dataset → fit `reflex_value` head (D1 trainer) → digest-pinned head swap → bake-off parity within 2% of tabular-Q value correlation on the same grid; the trained agent also beats its own untrained-regime baseline and random (the learned-heads obligation deferred from Bench 20). |
 | 22 | **Calibration from Labels** | `todo16c-calibration.test.ts` | Fit isotonic calibrators from `JudgmentDataset` with real observed outcomes: ECE on held-out cases < self-supervised baseline; per-head abstain thresholds fitted (jevcal pattern) produce `calibration-lock.json` with digest; `validateHeadCandidate` accepts the lock-pinned head. |
 | 23 | **Jev Patterns** | `todo16c-jev.test.ts` | `ConfidenceRouter`: band mapping deterministic (≥τ_act→act, τ_review..τ_act→review, <τ_review→block) under §6.3 monotonicity (can only restrict); `compositeScore` respects declared weights and normalizes; `judgeCascade` stage-2 space derived from stage-1 top; `noul()` round-trips anchors `["false","true"]`. |
 | 24 | **Training Round-Trip** | `todo16c-train.test.ts` | Trainer consumes dataset JSONL → produces `config.json` + weights artifact + `MODEL_DIGEST` (`sha256:[0-9a-f]{64}`); digest mismatch rejected by `SandboxedHeadRuntime`; trained head beats incumbent Brier on synthetic labeled fixtures. |
@@ -593,3 +594,32 @@ graph TD
 | Jev patterns (§0.4) | E1–E5 | 23 | `todo16c-jev.test.ts` |
 
 **Completeness rule:** no plan item without a gap ID or explicit rationale; no gap ID without a phase item; no phase item without an acceptance checkbox and (where behavioral) a benchmark. This matrix is the audit — any future discovery appends a row here first.
+
+### 10.6 Readiness audit (v1.3) — pre-execution review
+
+Self-audit of the plan's own implementability. Two critical holes found and fixed; four minor items wired in.
+
+| # | Audit finding | Severity | Resolution |
+|---|---------------|----------|------------|
+| Z1 | **The dataset cannot train heads.** Redaction-per-retention (inherited from TODO16b §9) stores hash-only rows (`evidenceId` + labels) — `train.ts` has no inputs to fit; Phase D as specified is unimplementable. | **Critical** | **Vector sidecar**: at record time, store the 384-d embedding (not raw text) in a binary sidecar keyed by `evidenceId` (`.cache/systemone/vectors/<evidenceId>.f32`); JSONL rows gain `vecRef: true`. Embeddings are not raw text — the redaction invariant (Bench 21/22/24 asserts "no raw utterance text") holds; training becomes `logistic(embedding → label)` over sidecar+JSONL join. Applied to **D1** (trainer consumes sidecar), **D3** (all label sources record the embedding alongside the label — the record-time API becomes `record(label, embedding?)`), and **C4** (RL outcomes record state-digest embedding at record time). Sidecar GC: entries pruned when their evidenceId rotates out of the JSONL retention window. |
+| Z2 | **Bench 20 was unfalsifiable with untrained heads.** Hash scorers give arbitrary per-action values; feasibility mask + risk floor from untrained heads can zero out the legal-action set or latch consistently bad actions ⇒ the "beats random" obligation could fail for reasons unrelated to the harness. | **Critical** | Restructured: Bench 20 proves the **harness** with a registered oracle head (tabular Q distilled from the baseline — `registerHead`, no training); Bench 21 carries the **learned-heads** obligation (post-D1). New default in `systemOne.rl`: `feasibilityMask`/`riskFloor` engage **only when the head reports `calibration.fitted === true`** (B5's honesty marker) — untrained regime is pure ε-greedy pass-through. |
+| Z3 | `@senars/nar/rl` subpath has no `package.json` `exports` entry — C2 promotion would not be importable. | Minor | Added to **C2b**: `nar/package.json` exports map gains `"./rl"` (and `"./rl/*"`); `verify-exports.ts` extended to assert it. |
+| Z4 | `EmbeddingCache.write` has no in-flight dedup — concurrent writes of the same text double-encode (wasted compute, torn pointer races). | Minor | **B1a**: single-flight map (`Map<string, Promise<EmbeddingPointer>>`) cleared on settle; folded into the B1 rewrite. |
+| Z5 | Benchmarks 15–28 have no CI wiring; TODO16b established the per-bench CI-job pattern (`systemone-slo`). | Minor | **F8**: `.github/workflows/ci.yml` gains a `systemone-benches` job running `todo16c-*.test.ts` (or per-phase jobs matching the H5 pattern); examples smoke job from I1 shares it. |
+| Z6 | No UI surface for judgment events — the bot chat is the only consumer. | Backlog (out of scope) | Optional post-v1.0: UI graph/lens panel subscribing to `judgment.resolved` from the system bus. Recorded here so it isn't lost; not a plan item. |
+
+**DQ-dependency map (what blocks what):**
+
+| Phase | Requires decisions? | Notes |
+|-------|--------------------|-------|
+| B (B1–B10) | **None** | Pure bugs/dedup — executable immediately |
+| G (G1–G6) | **None** | Behavior-preserving unification — executable immediately |
+| A (A1–A6) | **DQ1** (ingress mode), **DQ4** (cortex routing) | A1/A2 (config flow, gate config) are decision-free; A3/A5 wait on answers |
+| C (C1–C6) | **DQ2** (RL file placement) | Default (adapters promoted, envs stay fixtures) is fine to proceed with |
+| H (H1–H7) | **DQ5, DQ6, DQ7** | H2–H7 decision-free; H1 (encoder config + real digests) is the DQ-gated item |
+| D (D1–D5) | **DQ3** (TS vs Python trainer) | Default (TS linear heads) assumed |
+| I (I1–I6) | **None** | Consumes A/G/C artifacts |
+
+**Environment prerequisites:** 150 TODO16 tests + typecheck + lint already green (verified this session). For F3/N2 measurement only: a model-cached machine or `LM_PROVIDER=mock` (F2 removes the hang). No GPU required for any planned benchmark (D1 trains linear heads on CPU; D5 WASI bundle is CPU). No cloud credentials required — every benchmark runs offline-deterministically except the explicitly-skipped GBNF segment of Bench 16.
+
+**Verdict: ready to execute.** Phases B and G are fully unblocked with zero pending decisions; each subsequent phase needs at most one DQ answered before it starts, and the DQ list is small enough to answer in one sitting. Remaining known-unknowns are bounded: the 11 RL-adapter failures' root cause (C2 diagnoses before fixing) and `parity:smoke` (F4) — both are investigation-gated items with fallback paths, not plan blockers.
