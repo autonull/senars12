@@ -27,6 +27,8 @@ export interface CycleHost {
   readonly cortex?: LLMCortex;
   readonly episodicMemory?: EpisodicMemory;
   readonly commandParser?: (text: string) => { command: string; args: string[]; raw: string }[];
+  /** System One egress gate (§7.4): returns true when the narration is grounded enough to emit. */
+  readonly groundednessGate?: (narration: string) => Promise<boolean>;
 
   emit(event: CognitiveEvent): void;
 
@@ -96,6 +98,9 @@ const narrate = async (
       tools: motorToToolSet(host.motor),
     });
     narrativeText = narrative.text;
+    if (host.groundednessGate && !(await host.groundednessGate(narrativeText))) {
+      narrativeText = verbalizeDerivations(derivations);
+    }
     host.memory.append({
       type: 'narrative',
       payload: narrativeText,
@@ -112,6 +117,12 @@ const narrate = async (
   }
   return narrativeText;
 };
+
+/** Fail-safe template verbalization when the egress gate rejects or abstains. */
+const verbalizeDerivations = (derivations: Derivation[]): string =>
+  derivations.length > 0
+    ? `Derivations: ${derivations.map((d) => d.term).join('; ')}`
+    : 'No grounded derivations available.';
 
 const consolidateMemory = async (
   host: CycleHost,
@@ -224,7 +235,9 @@ export async function* runCycleStream(
       if (evt.kind === 'text-delta' && evt.text) narrativeText += evt.text;
     }
     if (!narrativeText) narrativeText = host.getLastResponse();
-    else {
+    else if (host.groundednessGate && !(await host.groundednessGate(narrativeText))) {
+      narrativeText = verbalizeDerivations(derivations);
+    } else {
       host.memory.append({
         type: 'narrative',
         payload: narrativeText,

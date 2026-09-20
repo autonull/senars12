@@ -907,10 +907,22 @@ Each phase builds on verified anchors only. `pnpm`, `vitest run`, `pnpm typechec
 - [x] All 1435 existing tests + 32 new tests pass
 - [x] `pnpm typecheck` clean, `pnpm lint` clean
 
-### Phase 2: Generate-then-Judge
-- [ ] `proposeAndJudge`, `candidate_select`/`conflict`/`groundedness` heads
-- [ ] `ProvisionalStamp` + evidence anchoring
-- [ ] Bench 5, 7 + token-reduction measurement
+### Phase 2: Generate-then-Judge ✅ COMPLETE (2026-09-19)
+- [x] `proposeAndJudge` real implementation: synthesis → `candidate_select` (teleological) + `conflict` (epistemic) joint pass → ranked/seeded admission
+- [x] `candidate_select`/`conflict`/`groundedness` heads (already landed with Phase 1 head scaffolding)
+- [x] `ProvisionalStamp` admission when Manifold abstains/unavailable; evidence anchoring via `distill.ts` (`computeEvidenceId` = SHA256(utteranceId::span))
+- [x] `Stamp.createWithSource('LM')` added to `nar/src/terms/stamp.ts`
+- [x] Egress `groundedness` gate at narrate phase: `CycleHost.groundednessGate` + template-verbalization fail-safe (`core/src/agent/phases.ts`, wired through `AgentOptions.groundednessGate`)
+- [x] `JudgmentDataset` (redaction-per-retention) + `promoteProvisional` (Truth.revision-capped)
+- [x] Bench 5 (`todo16-provisional.test.ts`, 7 tests) + Bench 7 (`todo16-evidence.test.ts`, 6 tests) passing
+- [x] Bench 13 updated to Phase 2 semantics (fallback ⇒ provisional, not calibrated admission)
+- [ ] Token-reduction measurement on `bench:fundamentals:mock` — DEFERRED: benchmark requires model download and hangs in this environment; dispatcher path is not yet wired into `LMService`, so measure after Phase 3 integration
+
+**Implementation notes for remaining phases**
+- `SystemOneDispatcher.proposeAndJudge` admits with calibrated Truth ONLY when the select judgment is Tier 1, non-abstained; Tier 0/3 fallback output ⇒ `ProvisionalStamp` (cInitial/decayRate/maxTtlMs via `DispatcherOptions.provisional`).
+- `createDispatcher(enabled, options?)` now accepts `{ embeddingCache, provisional }` — Phase 3 should pass the real `SystemOneManifold` + shared `EmbeddingCache` here.
+- `Dispatcher.judge` fallback merge rule: tier1 result used unless `abstained || (classify && top.p < 0.5)`.
+- Core egress gate is a pluggable hook, not a hard dependency — Phase 3/5 should wire `groundednessGate` to a real Manifold-backed evaluate call when `systemOne.enabled`.
 
 ### Phase 3: Teleological Routing
 - [ ] ActionGate transducer + `ManifoldReflex` + action heads

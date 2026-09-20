@@ -5,12 +5,17 @@ import { v4 as uuidv4 } from 'uuid';
 import type {
   BackendId,
   CalibrationVersion,
+  ClassifyProposition,
+  ClassifyQuery,
   CognitiveAxis,
   CognitiveContext,
   CognitiveDispatcher,
   ConsensusResult,
   CortexHealth,
+  EmbeddingCache,
   EmbeddingPointer,
+  EvaluateProposition,
+  EvaluateQuery,
   GenerativeCortex,
   JudgmentManifold,
   JudgmentProposition,
@@ -29,7 +34,7 @@ import { Truth } from '../../terms/truth.js';
 import { Stamp } from '../../terms/stamp.js';
 import { AlgebraPurityError, validateBatchQueries } from './algebra.js';
 import { seedTruth, seedDesire } from './seed.js';
-import { calibrateAuthority } from './seed.js';
+import { createProvisionalStamp } from './provisional-stamp.js';
 
 export class DeterministicManifold implements JudgmentManifold {
   readonly #backendId: BackendId = 'deterministic-tier0' as BackendId;
@@ -206,25 +211,35 @@ export class Tier3SymbolicManifold implements JudgmentManifold {
  * Tier 2: Cortex (LMService decoders) - for synthesis only
  * Tier 3: Symbolic (NAL RuleProcessor) - final fallback
  */
+export interface DispatcherOptions {
+  embeddingCache?: EmbeddingCache;
+  provisional?: { cInitial: number; decayRate: number; maxTtlMs: number };
+}
+
 export class SystemOneDispatcher implements CognitiveDispatcher {
   #tier0: JudgmentManifold;
   tier1: JudgmentManifold | null; // public for test injection
   #tier3: JudgmentManifold;
   #cortex: GenerativeCortex;
   #enabled: boolean;
+  #embeddingCache: EmbeddingCache | null;
+  #provisional: { cInitial: number; decayRate: number; maxTtlMs: number };
 
   constructor(
     tier0: JudgmentManifold,
     tier1: JudgmentManifold | null,
     tier3: JudgmentManifold,
     cortex: GenerativeCortex,
-    enabled: boolean
+    enabled: boolean,
+    options: DispatcherOptions = {}
   ) {
     this.#tier0 = tier0;
     this.tier1 = tier1;
     this.#tier3 = tier3;
     this.#cortex = cortex;
     this.#enabled = enabled;
+    this.#embeddingCache = options.embeddingCache ?? null;
+    this.#provisional = options.provisional ?? { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30_000 };
   }
 
   async judge(
@@ -248,7 +263,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
       // Use Tier 1 results when available and confident
       return tier1Results.map((r, i) => {
         const tier0Result = tier0Results[i];
-        return r.abstained || (r as any).confidence < 0.5 ? tier0Result! : r;
+        return r.abstained || (r.kind === 'classify' && r.top.p < 0.5) ? tier0Result! : r;
       });
     } catch {
       // Tier 1 failed, fall through to Tier 3
@@ -274,6 +289,12 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     }
   }
 
+  async #resolveContextPointer(context: CognitiveContext): Promise<EmbeddingPointer> {
+    if (!this.#embeddingCache) return 0 as EmbeddingPointer;
+    const text = context.topBeliefs.length > 0 ? context.topBeliefs.join(' ') : context.tickId;
+    return this.#embeddingCache.write(text);
+  }
+
   async proposeAndJudge(
     context: CognitiveContext,
     synthesisQuery: SynthesisQuery,
@@ -281,38 +302,88 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     budget: ReasoningBudget
   ): Promise<PEAResult> {
     const candidates: string[] = [];
+    const seen = new Set<string>();
     for await (const synth of this.synthesize(context, synthesisQuery, budget)) {
-      candidates.push(...synth.candidates);
+      for (const c of synth.candidates) {
+        if (!seen.has(c)) {
+          seen.add(c);
+          candidates.push(c);
+        }
+      }
     }
 
-    const sharedContext = 0 as EmbeddingPointer;
-    const judgments = await this.judge(sharedContext, judgmentQueries, budget);
+    const selectQuery: ClassifyQuery | undefined = candidates.length
+      ? {
+          kind: 'classify',
+          instruction: synthesisQuery.instruction,
+          space: candidates,
+          axis: 'teleological',
+          criticality: 'standard',
+        }
+      : undefined;
+    const conflictQuery: EvaluateQuery = {
+      kind: 'evaluate',
+      instruction: 'Evaluate conflict between candidates and current beliefs',
+      rubric: 'conflict',
+      axis: 'epistemic',
+      criticality: 'standard',
+    };
+    const queries: readonly JudgmentQuery[] = selectQuery ? [selectQuery, ...judgmentQueries] : judgmentQueries;
 
-    const ranked = candidates.map((cand) => {
-      const j = judgmentQueries[0];
-      if (!j) return { candidate: cand, truth: Truth.NEUTRAL };
-      if (j.kind === 'classify') {
-        const p = judgmentQueries.find((jq) => jq.kind === 'classify' && jq.target === cand);
-        const f = p ? 0.5 : 0.5;
-        return { candidate: cand, truth: seedTruth({ ...judgments[0]!, top: { option: cand, p: f } } as JudgmentProposition) };
+    const sharedContext = await this.#resolveContextPointer(context);
+    let judgments: JudgmentProposition[];
+    let manifoldFailed = false;
+    try {
+      judgments = await this.judge(sharedContext, queries, budget);
+    } catch {
+      judgments = await this.#tier0.judgeBatch(sharedContext, queries, budget);
+      manifoldFailed = true;
+    }
+
+    const select = selectQuery
+      ? judgments.find((j) => j.kind === 'classify' && j.axis === 'teleological')
+      : undefined;
+    // Manifold-validated only (tier 1): Tier 0/3 fallbacks carry no calibrated authority,
+    // so their output is admitted provisionally (§6.4).
+    const selectUsable =
+      select && !select.abstained && select.kind === 'classify' && (select as ClassifyProposition).tier === 1;
+    const ranking = selectUsable ? (select as ClassifyProposition).distribution : undefined;
+
+    const ranked = candidates.map((candidate) => {
+      if (selectUsable) {
+        const p = ranking!.find((d) => d.option === candidate)?.p ?? 0;
+        const authority = seedTruth(select as ClassifyProposition).c;
+        return { candidate, truth: Truth.create(p, authority) };
       }
-      return { candidate: cand, truth: Truth.NEUTRAL };
+      return { candidate, truth: Truth.NEUTRAL };
     });
+    ranked.sort((a, b) => b.truth.f - a.truth.f);
 
-    const admitted = ranked.map(({ candidate, truth }) => ({
-      candidate,
-      truth,
-      stamp: Stamp.createInput(),
-    }));
+    const provisional = [];
+    const admitted = [];
+    const needsProvisional = manifoldFailed || !selectUsable;
+    for (const { candidate, truth } of ranked) {
+      if (needsProvisional) {
+        const stamp = createProvisionalStamp(
+          Stamp.createWithSource('LM'),
+          this.#provisional.cInitial,
+          this.#provisional.decayRate,
+          this.#provisional.maxTtlMs
+        );
+        provisional.push({ candidate, provisional: stamp });
+      } else {
+        admitted.push({ candidate, truth, stamp: Stamp.createWithSource('LM') });
+      }
+    }
 
-    return { candidates, judgments, ranked, admitted, provisional: [] };
+    return { candidates, judgments, ranked, admitted, provisional };
   }
 }
 
-export function createDispatcher(enabled = false): CognitiveDispatcher {
+export function createDispatcher(enabled = false, options: DispatcherOptions = {}): CognitiveDispatcher {
   const tier0 = new DeterministicManifold();
   const tier1 = enabled ? new DeterministicManifold() : null; // Phase 0: Tier 1 not yet implemented
   const tier3 = new Tier3SymbolicManifold();
   const cortex = new StubCortex('off');
-  return new SystemOneDispatcher(tier0, tier1, tier3, cortex, enabled);
+  return new SystemOneDispatcher(tier0, tier1, tier3, cortex, enabled, options);
 }

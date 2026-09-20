@@ -3,6 +3,7 @@ export * from './algebra.js';
 export * from './desire.js';
 export * from './seed.js';
 export * from './provisional-stamp.js';
+export * from './distill.js';
 export * from './dispatcher.js';
 export * from './embedding-cache.js';
 export * from './calibration.js';

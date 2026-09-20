@@ -49,6 +49,7 @@ export class Agent {
   #transportHandlers = new Map<string, (msg: { text: string }) => Promise<void>>();
   #skills = new Map<string, SkillDefinition>();
   #commandParser?: (text: string) => ParsedCommand[];
+  #groundednessGate?: (narration: string) => Promise<boolean>;
   #started = false;
   #cycleCount = 0;
   #lastCycleTime = 0;
@@ -65,6 +66,7 @@ export class Agent {
     this.episodicMemory = opts.episodicMemory;
     this.sessionManager = opts.sessionManager;
     this.#commandParser = opts.commandParser;
+    this.#groundednessGate = opts.groundednessGate;
 
     this.memory.connectLog(this.log);
     this.memory.connectEngines(this.engines);
@@ -248,6 +250,7 @@ export class Agent {
       cortex: this.cortex,
       episodicMemory: this.episodicMemory,
       commandParser: this.#commandParser,
+      groundednessGate: this.#groundednessGate,
       emit: (e) => this.#emitCognitive(e),
       getLastResponse: () => this.#lastResponse,
       setLastResponse: (v) => {

@@ -40,6 +40,8 @@ export interface AgentOptions {
   sessionManager?: PersistableSessionManager;
   /** Shared feedback observer for unified tool statistics. */
   feedbackObserver?: ToolFeedbackObserver;
+  /** System One egress gate: returns true when a narration draft is grounded enough to emit. */
+  groundednessGate?: (narration: string) => Promise<boolean>;
 }
 
 export interface ParsedCommand {

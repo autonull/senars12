@@ -90,6 +90,15 @@ export const Stamp = {
     });
   },
 
+  createWithSource(source: Source): Stamp {
+    return Object.freeze({
+      id: nextStampId(),
+      creationTime: nowMicroseconds(),
+      source,
+      derivations: [],
+    });
+  },
+
   derive(parentStamps: readonly Stamp[], source: Source = 'DERIVED'): Stamp | undefined {
     if (parentStamps.length === 0) {
       return Object.freeze({

@@ -79,10 +79,16 @@ describe('System One — Thermodynamic Fallback (Bench 13)', () => {
       mockBudget
     );
     expect(result.candidates).toHaveLength(2);
-    expect(result.judgments).toHaveLength(1);
+    expect(result.judgments).toHaveLength(2);
     expect(result.ranked).toHaveLength(2);
-    expect(result.admitted).toHaveLength(2);
-    expect(result.provisional).toHaveLength(0);
+    // Phase 2 (§6.4): without manifold validation, hypotheses are admitted
+    // provisionally instead of with calibrated Truth.
+    expect(result.admitted).toHaveLength(0);
+    expect(result.provisional).toHaveLength(2);
+    for (const { provisional } of result.provisional) {
+      expect(provisional.stamp.source).toBe('LM');
+      expect(provisional.cInitial).toBeGreaterThan(0);
+    }
   });
 
   it('KernelPerceptionGate still admits tasks when System One disabled', async () => {
