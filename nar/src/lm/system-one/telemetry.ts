@@ -87,7 +87,7 @@ export function createNarTelemetrySinks(systemEventBus: { emit: (type: string, e
   };
 }
 
-export function createGateTelemetrySinks(eventLog: any[]): TelemetrySinks {
+export function createGateTelemetrySinks(eventLog: { push(event: unknown): unknown }): TelemetrySinks {
   return {
     emitEvent: (event) => eventLog.push(event),
     recordMetric: recordJudgmentMetric,

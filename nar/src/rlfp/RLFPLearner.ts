@@ -33,6 +33,8 @@ export interface TrainingEntry {
 }
 
 export interface RLFPLearnerConfig {
+  /** Cycles between optimize() invocations (F7/X28: RLFPConfig flows through construction). */
+  optimizeInterval?: number;
   rewardModel?: RewardModel;
   preferenceCollector?: PreferenceCollector;
   policyOptimizer?: PolicyOptimizer;
@@ -41,6 +43,7 @@ export interface RLFPLearnerConfig {
 }
 
 export class RLFPLearner {
+  readonly optimizeInterval: number;
   readonly currentParams: CognitiveParameters;
   private outputFile = 'rlfp_training_data.jsonl';
   private readonly logger = createLogger({ scope: 'rlfp' });
@@ -50,6 +53,7 @@ export class RLFPLearner {
   private readonly knobs: Record<string, TunableKnob>;
 
   constructor(config: RLFPLearnerConfig = {}) {
+    this.optimizeInterval = config.optimizeInterval ?? 100;
     this.rewardModel = config.rewardModel ?? new RewardModel();
     this.policyOptimizer = new PolicyOptimizer(this.rewardModel);
     this._preferenceCollector = config.preferenceCollector ?? new PreferenceCollector();

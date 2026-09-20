@@ -117,6 +117,10 @@ export type CognitiveEvent =
   | (CognitiveEventBase & {
       readonly type: 'conflict:detected';
       readonly payload: { term: string; conflictWith: string };
+    })
+  | (CognitiveEventBase & {
+      readonly type: 'egress.gate.rejected';
+      readonly payload: { gate: 'groundedness' | 'risk'; score?: number; detail?: string };
     });
 
 export interface CognitiveStimulus {

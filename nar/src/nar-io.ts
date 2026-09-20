@@ -22,7 +22,7 @@ function toTruth(t: TruthType | { frequency: number; confidence: number } | unde
 }
 
 interface SerializedNARState {
-  concepts: Array<{ term: string; priority: number }>;
+  concepts: Array<{ term: string; priority: number; sourceQuality?: SourceQuality }>;
   config: NARConfig;
   timestamp: string;
 }
@@ -65,6 +65,7 @@ export class NARIO {
     if (systemOneEnabled && typeof input === 'string') {
       const result: PerceptionGateOutput = await gate.admit({
         sourceId: 'nar-io',
+        source: 'user',
         rawObservation: input,
         sensorConfidence: 1.0,
         sourceQuality: 'GENERAL',
@@ -165,7 +166,7 @@ export class NARIO {
           sourceId: 'import',
           rawObservation: concept.term,
           sensorConfidence: 0.9,
-          sourceQuality: 'PRIMARY',
+          sourceQuality: concept.sourceQuality ?? 'GENERAL',
           correlationId: crypto.randomUUID(),
         });
 
@@ -211,6 +212,7 @@ export class NARIO {
     if (systemOneEnabled) {
       const result: PerceptionGateOutput = await gate.admit({
         sourceId: 'nar-io',
+        source: 'derivation',
         rawObservation: term.toString(),
         sensorConfidence: truth.c ?? 0.5,
         sourceQuality: 'GENERAL',
@@ -258,6 +260,7 @@ export class NARIO {
 
     const result: PerceptionGateOutput = await this.perceptionGate.admit({
       sourceId: 'nar-io',
+      source: 'derivation',
       rawObservation: term.toString(),
       sensorConfidence: truth.c,
       sourceQuality: 'GENERAL',

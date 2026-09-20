@@ -205,9 +205,7 @@ export class SystemOneManifold implements JudgmentManifold {
     }
 
     const totalLatency = Date.now() - startTime;
-    if (totalLatency > this.#config.maxLatencyMs) {
-      this.#health.breakerOpen = true;
-    }
+    this.#setHealth('latency', totalLatency > this.#config.maxLatencyMs);
 
     this.#updateCalibration(results);
     this.#cycleCounter++;
@@ -271,10 +269,7 @@ export class SystemOneManifold implements JudgmentManifold {
   }
 
   setDemoted(demoted: boolean): void {
-    this.#health.ready = !demoted;
-    if (demoted) {
-      this.#health.breakerOpen = true;
-    }
+    this.#setHealth('manual', demoted);
   }
 
   registerHead(head: JudgmentHead): void {
@@ -290,6 +285,24 @@ export class SystemOneManifold implements JudgmentManifold {
 
   getCalibrationLock(): CalibrationLock | undefined {
     return this.#config.calibrationLock;
+  }
+
+  /**
+   * Single health reducer (B9/X25): `ready`/`breakerOpen` derive exclusively from the
+   * active cause set. Causes: 'latency' (trips on slow batch, recovers on next healthy
+   * batch), 'drift' (demotion manager), 'manual' (setDemoted).
+   */
+  #healthCauses: { latency: boolean; drift: boolean; manual: boolean } = {
+    latency: false,
+    drift: false,
+    manual: false,
+  };
+
+  #setHealth(cause: 'latency' | 'drift' | 'manual', active: boolean): void {
+    this.#healthCauses[cause] = active;
+    const { latency, drift, manual } = this.#healthCauses;
+    this.#health.ready = !(drift || manual);
+    this.#health.breakerOpen = latency || drift || manual;
   }
 
   #estimateCost(query: JudgmentQuery, latencyMs: number): ResourceCost {
@@ -316,24 +329,15 @@ export class SystemOneManifold implements JudgmentManifold {
 
   #checkDrift(): void {
     const driftResult = this.#driftDemotion.updateCycle(this.#config.backendId, this.#cycleCounter);
-    if (driftResult?.demoted) {
-      this.#health.breakerOpen = true;
-      this.#health.ready = false;
-    }
+    if (driftResult) this.#setHealth('drift', driftResult.demoted);
 
     const health = this.#driftDemotion.getHealth(this.#config.backendId);
-    if (health && !health.isDemoted && !this.#health.ready) {
-      this.#health.ready = true;
-      this.#health.breakerOpen = false;
-    }
+    if (health) this.#setHealth('drift', health.isDemoted);
   }
 
   syncHealth(): void {
     const health = this.#driftDemotion.getHealth(this.#config.backendId);
-    if (health) {
-      this.#health.ready = !health.isDemoted;
-      this.#health.breakerOpen = health.isDemoted;
-    }
+    if (health) this.#setHealth('drift', health.isDemoted);
   }
 
   /** Register or update the telemetry callback for resolved propositions. */

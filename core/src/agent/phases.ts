@@ -27,8 +27,8 @@ export interface CycleHost {
   readonly cortex?: LLMCortex;
   readonly episodicMemory?: EpisodicMemory;
   readonly commandParser?: (text: string) => { command: string; args: string[]; raw: string }[];
-  /** System One egress gate (§7.4): returns true when the narration is grounded enough to emit. */
-  readonly groundednessGate?: (narration: string) => Promise<boolean>;
+  /** System One egress gate (§7.4): returns true (or `{grounded, score}`) when the narration is grounded enough to emit. */
+  readonly groundednessGate?: (narration: string) => Promise<boolean | { grounded: boolean; score?: number }>;
 
   emit(event: CognitiveEvent): void;
 
@@ -36,6 +36,20 @@ export interface CycleHost {
 
   setLastResponse(value: string): void;
 }
+
+/** I4/X13: egress-gate rejections are observable — never a silent narration swap. */
+const gateVerdict = (v: boolean | { grounded: boolean; score?: number }): { grounded: boolean; score?: number } =>
+  typeof v === 'boolean' ? { grounded: v } : v;
+
+const reportEgressRejection = (host: CycleHost, correlationId: string, score?: number): void => {
+  host.emit({
+    engine: 'nar',
+    type: 'egress.gate.rejected',
+    timestamp: Date.now(),
+    correlationId,
+    payload: { gate: 'groundedness', score },
+  });
+};
 
 const perceive = (host: CycleHost, stimulus: CognitiveStimulus): void => {
   host.emit({
@@ -98,8 +112,12 @@ const narrate = async (
       tools: motorToToolSet(host.motor),
     });
     narrativeText = narrative.text;
-    if (host.groundednessGate && !(await host.groundednessGate(narrativeText))) {
-      narrativeText = verbalizeDerivations(derivations);
+    if (host.groundednessGate) {
+      const verdict = gateVerdict(await host.groundednessGate(narrativeText));
+      if (!verdict.grounded) {
+        reportEgressRejection(host, stimulus.correlationId, verdict.score);
+        narrativeText = verbalizeDerivations(derivations);
+      }
     }
     host.memory.append({
       type: 'narrative',
@@ -235,8 +253,16 @@ export async function* runCycleStream(
       if (evt.kind === 'text-delta' && evt.text) narrativeText += evt.text;
     }
     if (!narrativeText) narrativeText = host.getLastResponse();
-    else if (host.groundednessGate && !(await host.groundednessGate(narrativeText))) {
-      narrativeText = verbalizeDerivations(derivations);
+    else if (host.groundednessGate) {
+      const verdict = gateVerdict(await host.groundednessGate(narrativeText));
+      if (!verdict.grounded) {
+        reportEgressRejection(host, stimulus.correlationId, verdict.score);
+        yield {
+          kind: 'text-delta',
+          text: `[egress gate rejected narration${verdict.score !== undefined ? ` (score ${verdict.score.toFixed(2)})` : ''} — falling back to grounded verbalization]`,
+        } as ChatStreamEvent;
+        narrativeText = verbalizeDerivations(derivations);
+      }
     } else {
       host.memory.append({
         type: 'narrative',

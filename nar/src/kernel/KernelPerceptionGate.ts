@@ -50,6 +50,7 @@ export interface KernelPerceptionGateConfig {
 
 export class KernelPerceptionGate {
   private eventLog: CognitiveEvent[] = [];
+  private static readonly EVENT_LOG_CAPACITY = 1000;
   private config: KernelPerceptionGateConfig;
   private systemOneManifold: JudgmentManifold | null = null;
   private systemOneEmbeddingCache: EmbeddingCache | null = null;
@@ -105,7 +106,19 @@ export class KernelPerceptionGate {
     };
   }
 
-  private emitJudgmentResolved = createTelemetryEmitter(createGateTelemetrySinks(this.eventLog));
+  #pushEvent(event: CognitiveEvent): void {
+    this.eventLog.push(event);
+    if (this.eventLog.length > KernelPerceptionGate.EVENT_LOG_CAPACITY)
+      this.eventLog.splice(0, this.eventLog.length - KernelPerceptionGate.EVENT_LOG_CAPACITY);
+  }
+
+  private emitJudgmentResolved = createTelemetryEmitter(
+    createGateTelemetrySinks({
+      push: (event: unknown) => {
+        this.#pushEvent(event as CognitiveEvent);
+      },
+    })
+  );
 
   async admit(input: PerceptionGateInput): Promise<PerceptionGateOutput> {
     const correlationId = input.correlationId ?? uuidv4();
@@ -151,7 +164,7 @@ export class KernelPerceptionGate {
       term: term.toString(),
       taskType,
       truth,
-      source: this.mapSource(input.sourceId),
+      source: input.source ?? this.mapSource(input.sourceId),
       budget,
     };
 
@@ -164,7 +177,7 @@ export class KernelPerceptionGate {
     };
 
     validateCognitiveEvent(event);
-    this.eventLog.push(event);
+    this.#pushEvent(event);
 
     return { admitted: true, task };
   }
@@ -271,7 +284,7 @@ export class KernelPerceptionGate {
         term: term.toString(),
         taskType,
         truth: { frequency: admissionTruth.f, confidence: admissionTruth.c },
-        source: this.mapSource(input.sourceId),
+        source: input.source ?? this.mapSource(input.sourceId),
         budget,
       };
 
@@ -284,7 +297,7 @@ export class KernelPerceptionGate {
       };
 
       validateCognitiveEvent(event);
-      this.eventLog.push(event);
+      this.#pushEvent(event);
 
       return { output: { admitted: true, task }, taskType };
     } catch {
@@ -403,7 +416,7 @@ export class KernelPerceptionGate {
       payload: task,
     };
     validateCognitiveEvent(event);
-    this.eventLog.push(event);
+    this.#pushEvent(event);
     return { admitted: true, task };
   }
 

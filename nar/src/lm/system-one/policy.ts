@@ -1,6 +1,6 @@
 /**
  * Jev-inspired decision-API utilities (§0.4, Phase E):
- * `noul` (probability-of-truth), `ConfidenceRouter` (act/review/block bands),
+ * `truthProbability` (probability-of-truth — Jev `Noul`), `ConfidenceRouter` (act/review/block bands),
  * `compositeScore` (normalized weighted aggregation), `judgeCascade`
  * (two-stage dependency). Code owns composition — weights are declared, never learned.
  */
@@ -14,7 +14,7 @@ import type {
 } from './types.js';
 
 /** Jev `Noul`: an Evaluate over the boolean anchor pair ["false", "true"]. */
-export function noul(statement: string): EvaluateQuery {
+export function truthProbability(statement: string): EvaluateQuery {
   return {
     kind: 'evaluate',
     rubric: 'plausibility',
@@ -24,8 +24,8 @@ export function noul(statement: string): EvaluateQuery {
   };
 }
 
-/** Extracts P(true) from a `noul` proposition; undefined when it abstained. */
-export function noulValue(p: EvaluateProposition): number | undefined {
+/** Extracts P(true) from a `truthProbability` proposition; undefined when it abstained. */
+export function truthProbabilityOf(p: EvaluateProposition): number | undefined {
   return p.abstained ? undefined : p.score;
 }
 

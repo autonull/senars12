@@ -59,8 +59,7 @@ export class KernelBudgetGate {
     };
   }
 
-  private resolveBudget(input: BudgetGateInput): ReasoningBudget {
-    if (input.budget) return input.budget;
+  private resolveBudget(input: BudgetGateInput): ReasoningBudget {    if (input.budget) return input.budget;
     if (!input.scopeId) return this.budget;
     let scoped = this.scopes.get(input.scopeId);
     if (!scoped) {
@@ -68,6 +67,11 @@ export class KernelBudgetGate {
       this.scopes.set(input.scopeId, scoped);
     }
     return scoped;
+  }
+
+  /** Consumed LM-call units for a named scope (B7 flow-level accounting observability). */
+  getScopeConsumed(scopeId: string): number {
+    return this.scopes.get(scopeId)?.consumed.llmCalls ?? 0;
   }
 
   check(input: BudgetGateInput): BudgetGateOutput {

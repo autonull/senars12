@@ -25,6 +25,7 @@ import { createLogger } from '@senars/nar/logger';
 import { assertValidEnv } from '../utils/env-validate.js';
 import { readAuthConfig, readIRCConfig } from './lib/env-config.js';
 import { createAgentFromEnv, setupGracefulShutdown } from './lib/lifecycle.js';
+import { runEntrypoint } from './lib/fatal-error.js';
 
 assertValidEnv();
 
@@ -131,7 +132,4 @@ async function main(): Promise<void> {
   logger.info('Try: IRC senars.libera.chat #senars, or ws://localhost:8765');
 }
 
-main().catch((err) => {
-  logger.error('Bot failed to start', err as Error);
-  process.exit(1);
-});
+runEntrypoint(main);

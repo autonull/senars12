@@ -1,7 +1,7 @@
 {
   "name": "senars",
   "version": "1.0.0",
-  "configVersion": "1.0",
+  "configVersion": "2.0",
   "agent": {
     "name": "senars",
     "persona": "curious assistant"
@@ -25,11 +25,11 @@
   },
   "routing": {
     "objectives": {
-      "chat": {
+      "quality": {
         "quality": "balanced",
         "maxLatencyMs": 2000
       },
-      "rules": {
+      "fast": {
         "quality": "high",
         "offlineOnly": true
       },

@@ -31,6 +31,8 @@ import type {
   SynthesisQuery,
 } from './types.js';
 import { selectQuery as buildSelectQuery } from './head-specs.js';
+import { chargeJudgment, assertCostReported, resourceCostToLmCalls } from './resource-gate.js';
+import type { KernelBudgetGate } from '../../kernel/KernelBudgetGate.js';
 import { Truth } from '../../terms/truth.js';
 import { Stamp } from '../../terms/stamp.js';
 import { AlgebraPurityError, validateBatchQueries } from './algebra.js';
@@ -85,6 +87,10 @@ export interface DispatcherOptions {
   /** E2: declared (never learned) weights for composite ranking. Any key beyond
    *  `candidate_select` adds a per-candidate judgment query (currently `feasibility`). */
   rankingWeights?: Record<string, number>;
+  /** B7/X8: flow-level accounting — `judge` charges `systemone-judgment` per batch
+   *  (max proposition cost); a denied scope yields no Tier-1 propositions. */
+  budgetGate?: KernelBudgetGate;
+  budgetScopeId?: string;
 }
 
 export class SystemOneDispatcher implements CognitiveDispatcher {
@@ -96,6 +102,8 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
   #embeddingCache: EmbeddingCache | null;
   #provisional: { cInitial: number; decayRate: number; maxTtlMs: number };
   #rankingWeights: Record<string, number>;
+  #budgetGate: KernelBudgetGate | null;
+  #budgetScopeId: string;
 
   constructor(
     tier0: JudgmentManifold,
@@ -113,6 +121,8 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     this.#embeddingCache = options.embeddingCache ?? null;
     this.#provisional = options.provisional ?? { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30_000 };
     this.#rankingWeights = options.rankingWeights ?? { candidate_select: 1 };
+    this.#budgetGate = options.budgetGate ?? null;
+    this.#budgetScopeId = options.budgetScopeId ?? 'default';
   }
 
   async judge(
@@ -134,7 +144,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     try {
       const tier1Results = await this.tier1.judgeBatch(sharedContext, queries, budget);
       // Use Tier 1 results when available and confident
-      return tier1Results.map((r, i) => {
+      const mapped = tier1Results.map((r, i) => {
         const tier0Result = tier0Results[i];
         const query = queries[i];
 
@@ -160,6 +170,13 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
 
         return r.abstained || (r.kind === 'classify' && r.top.p < 0.5) ? tier0Result! : r;
       });
+
+      // B7/X8: charge the batch (max proposition cost) against the kernel BudgetGate.
+      // A denied scope yields no Tier-1 propositions (Tier 0 results only).
+      if (!this.#chargeBatch(this.#budgetGate, mapped)) return tier0Results;
+
+      for (const r of mapped) assertCostReported(r);
+      return mapped;
     } catch {
       // Tier 1 failed, fall through to Tier 3
       // But safety-floor queries still fail closed
@@ -186,6 +203,15 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     }
   }
 
+  #chargeBatch(gate: KernelBudgetGate | null, results: readonly JudgmentProposition[]): boolean {
+    if (!gate) return true;
+    const maxCost = results.reduce(
+      (best, r) => (r.cost && resourceCostToLmCalls(r.cost) > resourceCostToLmCalls(best) ? r.cost : best),
+      results[0]?.cost ?? { tokensIn: 0, tokensOut: 0, computeMs: 0, memoryMb: 0 }
+    );
+    return chargeJudgment(gate, this.#budgetScopeId, maxCost).granted;
+  }
+
   async *synthesize(
     context: CognitiveContext,
     query: SynthesisQuery,
@@ -198,9 +224,11 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     try {
       yield* this.#cortex.synthesize(context, query, budget);
     } catch {
-      yield* this.#cortex.synthesize(context, query, budget);
+      yield* this.#stubCortex.synthesize(context, query, budget);
     }
   }
+
+  #stubCortex = new StubCortex('tier3-fallback');
 
   async #resolveContextPointer(context: CognitiveContext): Promise<EmbeddingPointer> {
     if (!this.#embeddingCache) return 0 as EmbeddingPointer;

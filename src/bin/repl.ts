@@ -7,6 +7,7 @@ import { createLogger } from '@senars/nar/logger';
 import { buildCommands } from '../cli/commands.js';
 import { assertValidEnv } from '../utils/env-validate.js';
 import { createAgentFromEnv } from './lib/lifecycle.js';
+import { runEntrypoint } from './lib/fatal-error.js';
 
 assertValidEnv();
 
@@ -88,7 +89,4 @@ async function main() {
   process.once('SIGTERM', shutdown);
 }
 
-main().catch((err) => {
-  logger.error('REPL failed to start', err as Error);
-  process.exit(1);
-});
+runEntrypoint(main);

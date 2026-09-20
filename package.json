@@ -13,6 +13,7 @@
     "start": "tsx src/index.ts",
     "repl": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/repl.ts",
     "chat": "pnpm repl",
+    "status": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/status.ts",
     "doctor": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/doctor.ts",
     "bot": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/bot-ai.ts",
     "multi-agent": "NODE_NO_WARNINGS=1 tsx --env-file=.env src/bin/multi-agent.ts",

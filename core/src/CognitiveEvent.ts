@@ -77,6 +77,10 @@ export type CognitiveEvent =
       };
     })
   | (CognitiveEventBase & {
+      readonly type: 'egress.gate.rejected';
+      readonly payload: { gate: 'groundedness' | 'risk'; score?: number; detail?: string };
+    })
+  | (CognitiveEventBase & {
       readonly type: 'config.set';
       readonly payload: { path: string; value: unknown };
     })

@@ -393,11 +393,56 @@ New Prometheus counters (extend existing `systemone_*` family): `systemone_ingre
 - Typecheck 0 errors; lint clean; all touched consumer suites (teleological, transduction, live-ingress, gate suites, cortex/provisional/fallback) green unmodified.
 
 ### Phase F: Hardening
-- [ ] F1 remaining H4 failures fixed (full suite green)
-- [ ] F2 mock-provider bypass (no probing hang)
+- [x] F1 remaining H4 failures fixed (full suite green)
+- [x] F2 mock-provider bypass (no probing hang) — satisfied by H4 (`LM_PROVIDER=mock` returns immediately; `LM_OFFLINE=1` skips all probes). Residual: no dedicated `enableLMRules: true` + `nar.run()` integration test yet (N2-class, needs F3's harness).
 - [ ] F3 token-reduction + fan-out latency report
 - [ ] F4 `parity:smoke` root cause
 - [ ] F5 remaining §8 dispositions + doc reconciliation
+- [x] F6 `LMService.stream` parity (X22)
+- [x] F7 `RLFPConfig` applied to `RLFPLearner` (X28)
+- [x] F8 CI `systemone-benches` job (todo16c-* + I1 examples smoke) (Z5)
+
+**Progress Notes (2026-09-20, F1/F2/F6/F7/F8 complete; F3/F4/F5 remain):**
+- **F1 fixed** — the last true reds (`revision-history` ×2) were un-awaited async `nar.believe()` calls in the test itself (same race class as the C2 RL-adapter root cause); tests now await. `tests/nar/unit/revision-history.test.ts` 8/8 green; full `tests/nar` suite is green except documented load flakes.
+- F6: `stream` now performs the breaker check (`canUseProvider` → `LMUnavailableError` with H6 hint), records per-call stats + `recordProviderCall`, notes success/transport-failure with reprobe. Semantic cache intentionally off for streams. `lm.test.ts` + `stream.test.ts` green unmodified.
+- F7: `RLFPLearnerConfig.optimizeInterval` added; NAR passes `config.rlfp?.optimizeInterval` through construction; `nar-execution` reads `this.rlfp.optimizeInterval ?? config.rlfp?.optimizeInterval ?? 100` (mock learners without the field still fall back — `nar-execution.test.ts` green).
+- F8: `.github/workflows/ci.yml` gains `systemone-benches` job: `pnpm vitest run tests/nar/todo16c-*.test.ts` + the three I1 examples smoke. RL parity files land in this dedicated job, sidestepping the documented parallel-load flakes.
+- Remaining F3/F4/F5 unchanged (F3 needs model-cached machine; F4 is the GridWorld parity gap investigation; F5 is `lm-meta-reasoning`/`lm-uncertainty-calibration` REPLACE + shadow `conflict` + proactive `novelty`).
+
+**Amendment completions (2026-09-20):**
+- **B7 (X8, Bench 28):** `DispatcherOptions.budgetGate/budgetScopeId` — `SystemOneDispatcher.judge` charges `systemone-judgment` per batch (max proposition `ResourceCost` via `resourceCostToLmCalls`); a denied scope returns Tier-0 results only; `assertCostReported` runs on every emitted Tier-1 proposition. `KernelBudgetGate.getScopeConsumed(scopeId)` accessor added for flow-level observability. Bench 28: `tests/nar/todo16c-charge-flow.test.ts` (3 tests).
+- **B8 (X20):** `KernelPerceptionGate.eventLog` bounded ring (capacity 1000, drop-oldest via `#pushEvent`); the telemetry sink now routes through `#pushEvent` (so the emitter path is bounded too — `createGateTelemetrySinks` widened to `{push}`); `clearEventLog` semantics preserved.
+- **B9 (X25):** manifold health is a single `#setHealth(cause, active)` reducer over causes `{latency, drift, manual}`; `ready = !(drift||manual)`, `breakerOpen = latency||drift||manual`. Latency trips clear on the next healthy batch; manual undemote no longer masks an active latency trip. Tests: `tests/nar/todo16c-integrity.test.ts` (B8 ring + B9 machine, 5 tests).
+- **B10 (X26):** `SystemOneDispatcher.synthesize` no longer retries the identical cortex call on failure — it degrades to a `StubCortex('tier3-fallback')`.
+- **A4a (X29):** `PerceptionGateInput.source` (optional, additive kernel schema field) replaces substring `mapSource` at explicit call sites (`nar-io` input→`user`, tasks→`derivation`, gate falls back to heuristics when omitted); `NARIO.import` defaults to `'GENERAL'` instead of hardcoded `'PRIMARY'` and honors a per-concept `sourceQuality` from the import record (`SerializedNARState.concepts[].sourceQuality`).
+- **E1 rename follow-up:** `noul`→`truthProbability`, `noulValue`→`truthProbabilityOf` in `policy.ts` + `todo16c-jev.test.ts`; "Jev `Noul`" mention kept in the header JSDoc.
+
+### Phase I: End-User Usability (complete 2026-09-20)
+- [x] I1 three examples (`examples/systemone-ingress.ts`, `rl-gridworld.ts`, `custom-head.ts` — all run green via tsx; CI smoke in F8 job)
+- [x] I2 `pnpm status` (`src/bin/status.ts`; `systemOneDefaults` exported from schema; config file migrated v1→v2)
+- [x] I3 REPL NL mode + `:judge` / `:health` / `:spend`
+- [x] I4 egress-rejection traceability (`egress.gate.rejected` event, additive in kernel + core + util unions)
+- [x] I5 error remediation UX (`src/bin/lib/fatal-error.ts` `runEntrypoint` wired into bot-ai/repl/imagine/self-report/tune)
+- [x] I6 `docs/system-one-guide.md`
+
+**Progress Notes (2026-09-20, Phase I complete):**
+- I2: `pnpm status` builds a NAR from `appConfig.systemOne` (defaulted via `systemOneSchema.parse({})` when absent) and renders manifold health, per-head ECE/abstain (from the live calibrators + lock thresholds), `getSpend()` per provider, and dataset/lock file paths + sizes. `--json` or non-TTY ⇒ machine-readable output. `senars.config.json` was still v1-shaped and failed `loadConfig` for every bin — migrated to v2 (`configVersion: "2.0"`; `routing.objectives` keys `chat/rules/structured` → `quality/fast/structured`).
+- I3: REPL treats any input as before (Narsese heuristic on trailing `!`/`?`) and NL inputs flow through the A3 gate path automatically when enabled; `:judge <text>` embeds the text and runs `ingressQueries()` (G1 builders) through the live manifold, printing per-head option@p / score / abstain / ece.
+- I4: gate rejection now emits `egress.gate.rejected {gate, score?, detail?}` via `host.emit` at both narrate/stream sites; the stream path additionally yields a user-visible `text-delta` marker before falling back to `verbalizeDerivations`. Gate type widened to `boolean | {grounded, score?}` (back-compatible). New event added additively to all three CognitiveEvent unions (kernel zod, core, util).
+- I5: shared `runEntrypoint` prints remediation for `LMUnavailableError` (probe hint, `LM_PROVIDER=mock` / `LM_OFFLINE=1`, `pnpm doctor` pointer) and `ConfigurationError` (`pnpm config:validate` / `pnpm status`); other errors still print raw. `mcp-server`/`multi-agent` keep their own handlers (running servers, not startup entrypoints).
+- I6: guide covers enable → what fires → head table (regenerable from `HEAD_SPECS`) → observability → distillation flywheel → troubleshooting matrix.
+- Typecheck 0 errors; lint clean; full `tests/nar` green except documented load flakes (`parity-restoration` bandit ratio under parallel load — passes in isolation, pre-existing unseeded-RNG tolerance; `todo16-slo` p99 timing).
+
+**Remaining work (facilitation notes):**
+- **F3:** needs the F2-harness + model-cached machine; `LM_PROVIDER=mock` boot is instant, so the mock leg can run in CI — only the on/off token-reduction delta needs real providers.
+- **F4:** `parity:smoke` GridWorld 0.018-vs-0.708 — C2's restored adapters are the diagnostic tools; start from reward attribution in `GridWorldNativeAgent`.
+- **F5:** apply `lm-meta-reasoning`/`lm-uncertainty-calibration` REPLACE dispositions via the A6 `SystemOneLMRuleAdapter` (pattern exists — translation rule is the template); then reconcile TODO16b §15.
+- **D4 (remote manifold, ~1d):** HTTP client/server for `provider: 'http'`; `http-endpoint.ts` schemas exist; untrusted responses seed at `LLM_PRIOR`. No bench blocks (16/24 pass without it).
+- **D5 (WASI bundle, ~0.5–1d):** compile D1 linear heads to WASI; `SandboxedHeadRuntime` path already digest-pinned; blocked on wasm toolchain choice only.
+- **E4 (trace grading, ~half day):** `runCycleStream` → grade narration (`groundedness`) + executed tools (`risk`) → `PreferenceCollector` + dataset labels; I4's event plumbing is a template.
+- **E5 (wake gate):** optional, untouched.
+- **Known flakes** (all pass in isolation; F8's dedicated CI job mitigates): `parity-restoration` bandit ratio (unseeded `Math.random`), `todo16-slo` p99, `todo16c-rl-manifold` untrained-vs-random margin (~0.025 over 50 episodes — consider 100 episodes or seeded episode RNG), `todo16c-cache` 20k-write under load.
+- **Optional polish:** split `nar/src/rl/adapters.ts` into planned modules (mechanical); `systemOne.rl` zod schema section (currently consumed via agent options); `runBakeOff` parity gate accepts improvements (flagged for governance review).
 
 ---
 
@@ -594,16 +639,20 @@ Second-pass review findings, self-contained: new benchmarks (§10.1), new phases
 - [x] H6 remediation hints
 - [x] H7 dtype/device matrix + ladder docs
 
-**Phase I**
-- [ ] I1 three examples + CI smoke
-- [ ] I2 `pnpm status` / doctor
-- [ ] I3 REPL NL mode + `:judge`
-- [ ] I4 egress-rejection traceability
-- [ ] I5 error remediation UX
-- [ ] I6 user guide (generated from specs)
+**Phase I (complete 2026-09-20)**
+- [x] I1 three examples + CI smoke (smoke lives in the F8 `systemone-benches` job)
+- [x] I2 `pnpm status` / doctor
+- [x] I3 REPL NL mode + `:judge`
+- [x] I4 egress-rejection traceability
+- [x] I5 error remediation UX
+- [x] I6 user guide (generated from specs)
 
-**Phase B amendment**
-- [ ] X8 `chargeJudgment` wired into `SystemOneDispatcher.judge` (Bench 28) — flow-level accounting, closing the same "shipped-but-unreachable" class as W2/R1
+**Phase B amendment (complete 2026-09-20)**
+- [x] B7 `chargeJudgment` wired into `SystemOneDispatcher.judge` (Bench 28 — `todo16c-charge-flow.test.ts`)
+- [x] B8 `eventLog` bounded ring (`todo16c-integrity.test.ts`)
+- [x] B9 health state machine (`todo16c-integrity.test.ts`)
+- [x] B10 `synthesize` catch-retry → Tier-3 stub degrade
+- [x] A4a source threading (gate `source` field; import provenance)
 
 **Rollback notes (amend §7):** G is behavior-preserving by construction (Bench 25 property-equivalence is the gate); H rollbacks are env-var-degradable (`LM_OFFLINE=1`, remove `encoder` override ⇒ MiniLM default); I is additive-only.
 

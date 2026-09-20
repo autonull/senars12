@@ -588,13 +588,41 @@ export class LMService {
     const model = this.getModel(opts?.task ?? 'fast');
     if (!model) return;
 
-    const result = streamText({
-      model,
-      prompt,
-      abortSignal: opts?.signal,
-    });
-    for await (const chunk of result.textStream) {
-      yield chunk;
+    // F6/X22: stream path shares the generate path's failure semantics.
+    const provider = this.provider as LMProviderName | undefined;
+    const settings = getLMSettings();
+    if (provider && !canUseProvider(provider, settings)) {
+      throw new LMUnavailableError(
+        withHint(`Circuit breaker open for provider: ${provider}`, provider),
+        provider,
+        opts?.task
+      );
+    }
+
+    const start = Date.now();
+    const task = opts?.task ?? 'fast';
+    let out = 0;
+    try {
+      const result = streamText({
+        model,
+        prompt,
+        abortSignal: opts?.signal,
+      });
+      for await (const chunk of result.textStream) {
+        out += chunk.length;
+        yield chunk;
+      }
+      this.recordCall(true, start, prompt.length + out);
+      if (provider) recordProviderCall(provider, true, settings);
+      this.noteSuccess();
+    } catch (e) {
+      this.recordCall(false, start, prompt.length + out);
+      if (provider) recordProviderCall(provider, false, settings);
+      if (isTransportError(e)) {
+        this.noteFailure();
+        await this.reprobe();
+      }
+      throw e;
     }
   }
 

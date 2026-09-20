@@ -28,3 +28,20 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm vitest run tests/nar/todo16-slo.test.ts
+  systemone-benches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # F8: TODO16c benchmarks 15–28 in their own job (RL parity files are
+      # load-sensitive — a dedicated job avoids the parallel-load flakes).
+      - run: pnpm vitest run tests/nar/todo16c-*.test.ts
+      # I1 examples smoke
+      - run: pnpm tsx examples/systemone-ingress.ts
+      - run: pnpm tsx examples/rl-gridworld.ts
+      - run: pnpm tsx examples/custom-head.ts

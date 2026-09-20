@@ -11,6 +11,7 @@ import { createLMService, createSeNARSRegistry } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
 import { initializeMetaReasoning, registerMetaRules } from '@senars/nar/rules';
 import { initializeSelfConcept } from '@senars/nar/tools';
+import { runEntrypoint } from './lib/fatal-error.js';
 
 const logger = createLogger({ scope: 'self-report' });
 
@@ -212,7 +213,4 @@ async function main() {
   console.log('✅ Self-report complete');
 }
 
-main().catch((err) => {
-  logger.error('Self-report failed', { error: err.message, stack: err.stack });
-  process.exit(1);
-});
+runEntrypoint(main);

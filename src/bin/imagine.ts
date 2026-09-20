@@ -10,6 +10,7 @@ import { ScenarioGenerator } from '@senars/nar/imagination/generator';
 import { CognitiveTreadmill } from '@senars/nar/imagination/treadmill';
 import type { ScenarioProfile } from '@senars/nar/imagination/types';
 import { ArchitectureDriver } from '@senars/nar/self/architecture-driver';
+import { runEntrypoint } from './lib/fatal-error.js';
 
 interface ImagineOptions {
   profile: ScenarioProfile;
@@ -237,7 +238,4 @@ async function main(): Promise<void> {
   console.log('\n✅ NAR Imagine completed successfully!');
 }
 
-main().catch((err) => {
-  console.error('❌ Imagine failed:', err);
-  process.exit(1);
-});
+runEntrypoint(main);

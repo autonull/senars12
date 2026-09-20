@@ -368,7 +368,7 @@ export const botConfigSchema = z.object({
     .default(policyDefaults),
 });
 
-const systemOneDefaults = {
+export const systemOneDefaults = {
   enabled: false,
   manifold: {
     provider: 'off' as const,

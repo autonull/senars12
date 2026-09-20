@@ -164,7 +164,8 @@ export class NAR extends BaseComponent {
     this._lmService = this.config.lmService;
     this._registry = this.config.providerRegistry;
 
-    if (this.config.enableRLFP) this.rlfp = new RLFPLearner({});
+    if (this.config.enableRLFP)
+      this.rlfp = new RLFPLearner({ optimizeInterval: this.config.rlfp?.optimizeInterval });
 
     if (config.cognitiveParams && config.strategyRegistry) {
       this.cognitiveController = new CognitiveController(

@@ -209,6 +209,15 @@ export const JudgmentResolvedEventSchema = CognitiveEventBaseSchema.extend({
 });
 export type JudgmentResolvedEvent = z.infer<typeof JudgmentResolvedEventSchema>;
 
+export const EgressGateRejectedEventSchema = CognitiveEventBaseSchema.extend({
+  type: z.literal('egress.gate.rejected'),
+  payload: z.object({
+    gate: z.enum(['groundedness', 'risk']),
+    score: z.number().min(0).max(1).optional(),
+    detail: z.string().optional(),
+  }),
+});
+
 export const CognitiveEventSchema = z.discriminatedUnion('type', [
   TaskAdmittedEventSchema,
   DerivationAcceptedEventSchema,
@@ -219,9 +228,11 @@ export const CognitiveEventSchema = z.discriminatedUnion('type', [
   AutonomyModeChangedEventSchema,
   SelfModProposalEventSchema,
   JudgmentResolvedEventSchema,
+  EgressGateRejectedEventSchema,
 ]);
 
 export type CognitiveEvent = z.infer<typeof CognitiveEventSchema>;
+export type EgressGateRejectedEvent = z.infer<typeof EgressGateRejectedEventSchema>;
 export type TaskAdmittedEvent = z.infer<typeof TaskAdmittedEventSchema>;
 export type DerivationAcceptedEvent = z.infer<typeof DerivationAcceptedEventSchema>;
 export type BeliefRevisedEvent = z.infer<typeof BeliefRevisedEventSchema>;
@@ -491,6 +502,8 @@ export type GovernanceEvent = z.infer<typeof GovernanceEventSchema>;
 
 export const PerceptionGateInputSchema = z.object({
   sourceId: z.string(),
+  /** A4a/X29: explicit provenance; falls back to sourceId heuristics when omitted. */
+  source: z.enum(['user', 'llm', 'derivation', 'reflex', 'sensor']).optional(),
   rawObservation: z.unknown(),
   sensorConfidence: z.number().min(0).max(1),
   sourceQuality: SourceQualitySchema,

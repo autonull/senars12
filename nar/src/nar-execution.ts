@@ -251,7 +251,7 @@ export class NARExecution {
       if (
         !this.cognitiveController &&
         this.rlfp &&
-        this._cycleCount % (this.config.rlfp?.optimizeInterval ?? 100) === 0
+        this._cycleCount % (this.rlfp.optimizeInterval ?? this.config.rlfp?.optimizeInterval ?? 100) === 0
       ) {
         this.phaseTimer.begin('rlfp', 'optimize');
         this.rlfp.optimize();

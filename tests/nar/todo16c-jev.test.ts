@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  noul,
-  noulValue,
+  truthProbability,
+  truthProbabilityOf,
   ConfidenceRouter,
   routeConfidence,
   isRestrictive,
@@ -65,8 +65,8 @@ function mkClassify(p: number, option = 'exploit'): ClassifyProposition {
 }
 
 describe('Jev Patterns (Bench 23)', () => {
-  it('noul() round-trips anchors ["false","true"] and extracts P(true) from a manifold judgment', async () => {
-    const q = noul('the robin is a bird');
+  it('truthProbability() round-trips anchors ["false","true"] and extracts P(true) from a manifold judgment', async () => {
+    const q = truthProbability('the robin is a bird');
     expect(q.kind).toBe('evaluate');
     expect(q.levels).toEqual(['false', 'true']);
     expect(q.rubric).toBe('plausibility');
@@ -75,7 +75,7 @@ describe('Jev Patterns (Bench 23)', () => {
 
     const cache = createEmbeddingCache({ maxSize: 100, ttlMs: 60_000, generator: fakeGenerator() });
     const manifold = createManifold(cache, { abstainThreshold: 0.05 });
-    // Register a plausibility head for the noul anchors (hand-registered, Bench-20 oracle pattern)
+    // Register a plausibility head for the truthProbability anchors (hand-registered, Bench-20 oracle pattern)
     manifold.registerHead({
       rubric: 'plausibility',
       axis: 'epistemic',
@@ -86,12 +86,12 @@ describe('Jev Patterns (Bench 23)', () => {
     const [prop] = await manifold.judgeBatch(pointer, [q], budget);
     if (!prop) throw new Error('no plausibility proposition returned');
     expect(prop.kind).toBe('evaluate');
-    const pTrue = noulValue(prop as EvaluateProposition);
+    const pTrue = truthProbabilityOf(prop as EvaluateProposition);
     expect(pTrue).toBeDefined();
     expect(pTrue!).toBeGreaterThanOrEqual(0);
     expect(pTrue!).toBeLessThanOrEqual(1);
 
-    expect(noulValue({ ...mkClassify(0) as unknown as EvaluateProposition, abstained: true })).toBeUndefined();
+    expect(truthProbabilityOf({ ...mkClassify(0) as unknown as EvaluateProposition, abstained: true })).toBeUndefined();
   });
 
   it('ConfidenceRouter band mapping is deterministic (≥τ_act→act, τ_review..τ_act→review, <τ_review→block)', () => {
