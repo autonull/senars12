@@ -36,6 +36,7 @@ import { Stamp } from '../../terms/stamp.js';
 import { AlgebraPurityError, validateBatchQueries } from './algebra.js';
 import { seedTruth, seedDesire } from './seed.js';
 import { createProvisionalStamp } from './provisional-stamp.js';
+import { compositeScore } from './policy.js';
 
 
 import { DeterministicManifold, Tier3SymbolicManifold } from './constant-manifold.js';
@@ -81,6 +82,9 @@ export interface DispatcherOptions {
   /** Real Tier 1 manifold; defaults to a deterministic stub when omitted. */
   tier1Manifold?: JudgmentManifold;
   provisional?: { cInitial: number; decayRate: number; maxTtlMs: number };
+  /** E2: declared (never learned) weights for composite ranking. Any key beyond
+   *  `candidate_select` adds a per-candidate judgment query (currently `feasibility`). */
+  rankingWeights?: Record<string, number>;
 }
 
 export class SystemOneDispatcher implements CognitiveDispatcher {
@@ -91,6 +95,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
   #enabled: boolean;
   #embeddingCache: EmbeddingCache | null;
   #provisional: { cInitial: number; decayRate: number; maxTtlMs: number };
+  #rankingWeights: Record<string, number>;
 
   constructor(
     tier0: JudgmentManifold,
@@ -107,6 +112,7 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
     this.#enabled = enabled;
     this.#embeddingCache = options.embeddingCache ?? null;
     this.#provisional = options.provisional ?? { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30_000 };
+    this.#rankingWeights = options.rankingWeights ?? { candidate_select: 1 };
   }
 
   async judge(
@@ -249,19 +255,36 @@ export class SystemOneDispatcher implements CognitiveDispatcher {
         const pointer = await this.#embeddingCache.write(candidate);
         candidateEmbeddings.push(pointer);
       }
-      // Re-judge candidate_select with per-candidate embeddings
-      const perCandidateQueries: ClassifyQuery[] = candidates.map((c) => ({
-        kind: 'classify' as const,
-        instruction: `Evaluate candidate: ${c}`,
-        space: selectQ!.space,
-        axis: 'teleological' as const,
-        criticality: 'standard' as const,
-      }));
+      // Re-judge candidate_select with per-candidate embeddings; declared extra
+      // ranking weights (E2) add per-candidate evaluate queries.
+      const extraRubrics = Object.keys(this.#rankingWeights).filter((k) => k !== 'candidate_select');
+      const perCandidateQueries: JudgmentQuery[] = candidates.flatMap((c) => [
+        {
+          kind: 'classify' as const,
+          instruction: `Evaluate candidate: ${c}`,
+          space: selectQ!.space,
+          axis: 'teleological' as const,
+          criticality: 'standard' as const,
+        },
+        ...extraRubrics.map((rubric) => ({
+          kind: 'evaluate' as const,
+          rubric: rubric as RubricId,
+          instruction: `Evaluate candidate: ${c}`,
+          axis: 'teleological' as const,
+        })),
+      ]);
       const candidateJudgments = await this.judge(sharedContext, perCandidateQueries, budget);
-      ranking = candidates.map((c, i) => ({
-        option: c,
-        p: (candidateJudgments[i] as ClassifyProposition).top.p,
-      }));
+      const stride = 1 + extraRubrics.length;
+      ranking = candidates.map((c, i) => {
+        const base = candidateJudgments[i * stride] as ClassifyProposition;
+        const entries = [{ key: 'candidate_select', p: base.top.p, abstained: base.abstained }];
+        extraRubrics.forEach((rubric, j) => {
+          const prop = candidateJudgments[i * stride + 1 + j] as EvaluateProposition | undefined;
+          entries.push({ key: rubric, p: prop?.score ?? 0, abstained: prop?.abstained ?? true });
+        });
+        const composite = compositeScore(entries, this.#rankingWeights);
+        return { option: c, p: composite?.score ?? base.top.p };
+      });
     } else {
       ranking = selectUsable ? (select as ClassifyProposition).distribution : undefined;
     }

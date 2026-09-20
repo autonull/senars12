@@ -374,12 +374,22 @@ New Prometheus counters (extend existing `systemone_*` family): `systemone_ingre
 - Lint clean; `pnpm typecheck` at HEAD has 7 pre-existing errors unrelated to G (src/agent/__pb2.ts ×1, src/capability/wasi-sandbox.ts ×4, plus LM-related) — gate changes on diff-vs-baseline until F-phase fixes them.
 
 ### Phase E: Jev Patterns
-- [ ] E1 `noul()` + `ConfidenceRouter` (transducer + ingress consumers)
-- [ ] E2 `compositeScore` in `proposeAndJudge` ranking
-- [ ] E3 `judgeCascade`
-- [ ] E4 agent-trace grading → RLFP/dataset
+- [x] E1 `noul()` + `ConfidenceRouter` (transducer + ingress consumers)
+- [x] E2 `compositeScore` in `proposeAndJudge` ranking
+- [x] E3 `judgeCascade`
+- [ ] E4 agent-trace grading → RLFP/dataset (deferred — see notes)
 - [ ] E5 (optional) wake gate
-- [ ] Bench 23
+- [x] Bench 23
+
+**Progress Notes (2026-09-20, Phase E core complete — E4/E5 deferred):**
+- `nar/src/lm/system-one/policy.ts` (new, exported from the subpath index): `noul(statement)` (Evaluate over anchors `["false","true"]`, rubric `plausibility`), `noulValue(prop)` (P(true), undefined on abstain), `ConfidenceRouter` + `routeConfidence` + `isRestrictive` + `ConfidenceRouter.monotoneOver` (§6.3 monotonicity: bands are `{act, review, block}`, decision is p≥act→act / p≥review→review / else→block; a stricter router's ordinal is never higher at any p), `compositeScore(entries, weights)` (weights re-normalized over non-abstained entries; all abstained ⇒ undefined), `judgeCascade(judge, ctx, stage1, stage2Factory, budget)` (CascadeJudge = `{judgeBatch}` — works with `SystemOneManifold` directly; stage-2 space derived from stage-1 top).
+- **Band semantics that made the transducer wiring behavior-preserving:** legacy split was `p < τ ⇒ propose-only, else desire-seeded`. Default `ConfidenceRouter.fromThreshold(τ)` = `{act: τ, review: 0, block: 0}` mapped as act⇒desire-seeded / review⇒propose-only / block⇒no-proposal ⇒ byte-identical at every p (block can never fire since p≥0≥… review=0 always matches first). Existing todo16-teleological/transduction suites pass unmodified.
+- E1 consumers: `ActionGateTransducer` gained an optional `router` option (explicit router overrides `threshold`; risk-gate/HITL path unchanged, runs before routing); `KernelPerceptionGate` ambiguity flag now routes through module-level `AMBIGUITY_ROUTER` (`{act: 0.6, review: 0.6, block: 0}`; abstain or act ⇒ flag) — single threshold definition site.
+- E2: `DispatcherOptions.rankingWeights?: Record<string, number>` (default `{candidate_select: 1}` ⇒ byte-identical). Any key beyond `candidate_select` adds a per-candidate `evaluate` query to the R5 re-judge loop and blends via `compositeScore` (only `feasibility` is guaranteed registered on default manifolds; `conflict` blending needs a per-candidate conflict head — left as follow-up). Bench 23 asserts weight normalization; dispatcher blend itself is exercised indirectly (todo16c-cortex/provisional/fallback green).
+- E3: `judgeCascade` exported; no live consumer yet (candidate stage-2: ingress ambiguity → clarification-judgment). Hook-up is additive when a consumer appears.
+- Bench 23 (`tests/nar/todo16c-jev.test.ts`, 7 tests) green: noul anchor round-trip through a real manifold (hand-registered `plausibility` head — note: `plausibility` is in `RubricId` but **not** in `HEAD_SPECS`; add a spec entry if noul should be a default head), deterministic band mapping, monotonicity property, composite normalization + abstain exclusion, cascade stage-2 space derivation (asserted via a judge spy — propositions don't carry the query space), transducer band routing + legacy-τ parity.
+- **E4 (deferred):** trace grading needs core-agent wiring (`runCycleStream` → grade narration via `groundedness` head + executed tools via `risk` head → `PreferenceCollector` + dataset labels). Touches `core/src/agent/phases.ts` + RLFP; ~half a focused day. E5 (wake gate) optional, untouched.
+- Typecheck 0 errors; lint clean; all touched consumer suites (teleological, transduction, live-ingress, gate suites, cortex/provisional/fallback) green unmodified.
 
 ### Phase F: Hardening
 - [ ] F1 remaining H4 failures fixed (full suite green)

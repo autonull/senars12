@@ -21,9 +21,13 @@ import { Stamp as StampClass } from '../terms/stamp.js';
 import { recordJudgmentMetric } from '../metrics/prometheus.js';
 import { trace } from '@opentelemetry/api';
 import { seedTruth } from '../lm/system-one/seed.js';
+import { ConfidenceRouter } from '../lm/system-one/policy.js';
 import type { DriveManager } from '../drives';
 import { createTelemetryEmitter, createGateTelemetrySinks } from '../lm/system-one/telemetry.js';
 import { ingressQueries as buildIngressQueries } from '../lm/system-one/head-specs.js';
+
+/** E1: ambiguity flag threshold defined once, via the shared ConfidenceRouter. */
+const AMBIGUITY_ROUTER = new ConfidenceRouter({ act: 0.6, review: 0.6, block: 0 });
 
 export interface KernelPerceptionGateConfig {
   defaultBudget: {
@@ -216,9 +220,11 @@ export class KernelPerceptionGate {
         : 'assert';
 
       // Ambiguity: if abstained or high ambiguity, inject question task and stimulate curiosity
+      // (E1: single threshold definition site via ConfidenceRouter — act band = flag threshold)
       let ambiguityFlag = false;
       if (ambiguityResult && ambiguityResult.kind === 'evaluate') {
-        if (ambiguityResult.abstained || ambiguityResult.score > 0.6) {
+        const decision = AMBIGUITY_ROUTER.route(ambiguityResult);
+        if (decision === 'abstain' || decision === 'act') {
           ambiguityFlag = true;
           // TODO: Inject question task via DriveManager.stimulate('curiosity') when DriveManager is accessible
         }

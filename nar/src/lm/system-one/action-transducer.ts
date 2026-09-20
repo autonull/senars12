@@ -1,6 +1,7 @@
 import type { ActionProposal } from '../../reflex/Reflex.js';
 import type { CapabilityApproval } from '../../capability/space.js';
 import { seedDesire } from './seed.js';
+import { ConfidenceRouter, type BandDecision } from './policy.js';
 import type { JudgmentProposition } from './types.js';
 import type { JudgmentDataset } from './distill.js';
 import { recordApprovalLabel } from './label-sources.js';
@@ -8,8 +9,10 @@ import { recordApprovalLabel } from './label-sources.js';
 export interface ActionGateTransducerOptions {
   /** HITL hook; headless environments auto-reject by default. */
   approvals?: CapabilityApproval;
-  /** Proposal-vs-desire threshold τ. Below τ ⇒ propose-only for the Negotiator. */
+  /** Proposal-vs-desire threshold τ; builds the default router's act band. */
   threshold?: number;
+  /** Explicit router (single threshold definition site); overrides `threshold`. */
+  router?: ConfidenceRouter;
   /** Optional distillation dataset for recording approval labels. */
   distillationDataset?: JudgmentDataset;
 }
@@ -21,12 +24,12 @@ export interface ActionGateTransducerOptions {
  */
 export class ActionGateTransducer {
   #approvals?: CapabilityApproval;
-  #threshold: number;
+  #router: ConfidenceRouter;
   #dataset?: JudgmentDataset;
 
   constructor(options: ActionGateTransducerOptions = {}) {
     this.#approvals = options.approvals;
-    this.#threshold = options.threshold ?? 0.5;
+    this.#router = options.router ?? ConfidenceRouter.fromThreshold(options.threshold ?? 0.5);
     this.#dataset = options.distillationDataset;
   }
 
@@ -50,19 +53,23 @@ export class ActionGateTransducer {
       return undefined;
     }
 
-    // Below τ ⇒ propose-only; Negotiator arbitrates vs NAL derivations
-    if (top.p < this.#threshold) {
-      return { action: top.option, value: top.p, confidence: top.p, source: 'system-one' };
+    // Band routing: act ⇒ desire-seeded; review ⇒ propose-only (Negotiator arbitrates);
+    // block ⇒ no proposal. Authorization stays with KernelActionGate.
+    switch (this.#router.route(p) as Exclude<BandDecision, 'abstain'>) {
+      case 'review':
+        return { action: top.option, value: top.p, confidence: top.p, source: 'system-one' };
+      case 'block':
+        return undefined;
+      default: {
+        const desire = seedDesire(p);
+        return {
+          action: top.option,
+          args: {},
+          value: desire.f,
+          confidence: desire.c,
+          source: 'system-one',
+        };
+      }
     }
-
-    // Desire is seeded goal-side only; authorization stays with KernelActionGate
-    const desire = seedDesire(p);
-    return {
-      action: top.option,
-      args: {},
-      value: desire.f,
-      confidence: desire.c,
-      source: 'system-one',
-    };
   }
 }
