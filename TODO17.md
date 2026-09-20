@@ -701,3 +701,30 @@ The unifying principle is **Cognitive Homeostasis**: the system should maintain 
 This is not a feature. It is the **phase transition** from a neuro-symbolic system that *has* parameters to a cognitive system that *reasons about* its parameters. The NAL kernel already supports this — `Truth.revision`, `PriorityBag` decay, `CuriosityDrive`, `ProvisionalStamp` — the machinery is there. What's missing is turning the system's own operational state into NAL tasks.
 
 The `judgment.resolved` kernel event was added as the single new event type. The next step is a second: `self_observation.recorded`. And the `EngineOriginSchema` already reserves `'proposer'` as an origin. The third origin should be `'self'` — beliefs the agent forms about itself.
+
+
+### Inference-Time Mechanistic Interpretability (Sparse Autoencoders)
+**The Breakthrough:** Currently, System One models (like Jev or the SeNARS Manifold) are black boxes. If the `injection` head scores `0.95` and vetoes an action, the NAL kernel knows *that* it was vetoed, but not *why*. The next breakthrough is **inference-time Sparse Autoencoders (SAEs)** and causal tracing that run fast enough to extract human/symbolic-readable features from intermediate neural layers in microseconds.
+
+**SeNARS Integration: Mechanistic Probes & Saliency-to-Narsese**
+*   **Current State:** Explaining a Manifold veto requires spinning up the slow Cortex (Tier 2), defeating the purpose of the 33ms reflex.
+*   **The Integration:** Train lightweight, linear **Mechanistic Probe Heads** on the intermediate layers of the Manifold. When a high-criticality head triggers, the SAE instantly extracts the salient features (e.g., "Attention spiked on latent concepts mapping to 'ignore previous instructions'").
+*   **Architectural Impact:** The Manifold emits not just a `Truth(f=1, c=0.95)`, but an attached NAL `Term` representing the *reason*. The symbolic engine (System Three) can immediately learn from the neural reflex, revise its beliefs, and generalize the rule without a Cortex round-trip.
+
+
+### Test-Time Compute Scaling & "Thinking" Latent Spaces
+**The Breakthrough:** Models like OpenAI's o1/o3 and QwQ proved that dynamically allocating FLOPs at inference time (test-time compute) yields massive reasoning gains. The next breakthrough is **Latent-Space MCTS (Monte Carlo Tree Search)** and **Continuous Verification**, where the model searches over abstract conceptual embeddings rather than autoregressive text tokens.
+
+**SeNARS Integration: Compute-Optimized AIKR Routing**
+*   **Current State:** The 4-Tier Thermodynamic Ladder routes based on confidence thresholds. If the Manifold is unsure, it falls back to the Cortex or NAL.
+*   **The Integration:** The Manifold’s `ambiguity` and `novelty` heads become **compute-routing dials**. High ambiguity triggers a **Tier 2.5: Latent Search**. The Cortex allocates a bounded AIKR budget to perform MCTS over its latent space, verifying hypothetical Narsese derivations internally before emitting a single token.
+*   **Architectural Impact:** This bridges the gap between fast neural intuition and slow symbolic deduction. The agent "thinks" in latent space, and only materializes the winning path into GBNF-constrained Narsese for the NAL kernel to verify.
+
+
+### Differentiable Symbolic Execution (Neural E-Graphs)
+**The Breakthrough:** SeNARS currently uses MeTTa (EGraphs) for exact computation and NAL for uncertain reasoning, keeping them strictly isolated. The next breakthrough in neuro-symbolic AI is **Differentiable Rewriting** and **Neural E-Graphs**—equality saturation engines that can operate natively on continuous vector spaces and neural embeddings.
+
+**SeNARS Integration: Unified Substrate Algebra**
+*   **Current State:** The Cortex must use GBNF-constrained decoding to output valid MeTTa/Narsese text, which is then parsed back into symbolic structures. This is a thermodynamic and latency tax.
+*   **The Integration:** A **Differentiable MeTTa** substrate where the Cortex directly manipulates an E-Graph of continuous embeddings. The Manifold can score the "validity" of an E-graph node without it ever being decoded to text.
+*   **Architectural Impact:** This blurs the line between the Judgment Manifold and Exact Computation. The agent can perform gradient-based optimization over symbolic proofs, allowing the Cortex to "hallucinate" algebraic simplifications that the E-Graph instantly verifies and collapses, bypassing the text-generation bottleneck entirely.
