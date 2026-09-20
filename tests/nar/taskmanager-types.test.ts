@@ -4,6 +4,7 @@ import { Memory } from '../../nar/src/memory/memory.js';
 import { TaskManager } from '../../nar/src/task/manager.js';
 import { Truth, termParser } from '../../nar/src/terms/index.js';
 import { createTask, NEUTRAL_BUDGET } from '../../nar/src/types/core.js';
+import type { TaskAdmittedEvent } from '../../kernel/src/schemas.js';
 
 describe('todo7: taskmanager preserves task types', () => {
   it('goals/questions admitted as such, not beliefs', async () => {
@@ -24,6 +25,7 @@ describe('todo7: taskmanager preserves task types', () => {
     const admitted = gateRegistry
       .getPerceptionGate()
       .getEventLog()
+      .filter((e): e is TaskAdmittedEvent => e.type === 'task.admitted')
       .map((e) => e.payload.taskType)
       .sort();
     expect(admitted).toEqual(['belief', 'goal', 'question']);

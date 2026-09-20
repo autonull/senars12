@@ -231,9 +231,14 @@ export function clearEngineCache(): void {
   engineCache.clear();
   initPromises.clear();
 }
+/** Map internal model config to runtime contract { id, label? }. */
+const runtimeModels: Record<string, { id: string; label?: string }> = Object.fromEntries(
+  Object.entries(webllmModels).map(([key, cfg]) => [key, { id: cfg.modelId, label: key }])
+);
+
 /** Adapter matching nar's WebLLMRuntime injection contract (@senars/nar/lm). */
 export const webllmRuntime = {
   createModel: (modelKey: string, onProgress?: (progress: number) => void) =>
     createWebLLMModel(modelKey, onProgress),
-  models: webllmModels as Record<string, { id: string; label?: string }>,
+  models: runtimeModels,
 };

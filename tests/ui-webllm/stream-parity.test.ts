@@ -105,7 +105,7 @@ vi.mock('../../ui/src/webllm.ts', () => {
 });
 
 // Import the mocked module
-const mockedModule = await import('../../ui/src/webllm.ts');
+const mockedModule = await import('@senars/ui/webllm');
 const createWebLLMModel = mockedModule.createWebLLMModel;
 const __testUtils = (mockedModule as any).__testUtils;
 

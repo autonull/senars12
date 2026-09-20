@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { loadGrammar } from '@senars/nar/lm/grammars';
 import { createLlamaCppFetch, runWithGrammar } from '@senars/nar/lm/providers/llamacpp';
 
-const withCapturingFetch = async (body: unknown, run: (wrapped: typeof fetch) => Promise<void>) => {
+const withCapturingFetch = async (body: unknown, run: (wrapped: typeof fetch) => Promise<Response>) => {
   let captured: Record<string, unknown> | undefined;
   const stub: typeof fetch = async (_input, init) => {
     captured = JSON.parse((init?.body as string) ?? '{}');

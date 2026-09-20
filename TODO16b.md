@@ -11,12 +11,13 @@
 
 ## Progress Summary (as of 2026-09-20)
 
-- **ALL PHASES COMPLETE** — Phases 0–5, Refinements (R1–R9), Live Integration (N1, N3, N6), Hardening (H1, H2) shipped.
-- 141 dedicated TODO16 tests pass; `pnpm lint` clean; `pnpm typecheck` clean (pre-existing errors unrelated to changes).
+- **ALL PHASES COMPLETE** — Phases 0–5, Refinements (R1–R9), Live Integration (N1, N3, N6), Hardening (H1, H2, H3, H5) shipped.
+- **150 dedicated TODO16 tests pass**; `pnpm lint` clean; `pnpm typecheck` clean.
 - `systemOne.enabled: false` (default) → byte-identical baseline behavior verified.
 - `judgment.resolved` kernel event validates with `engine: 'proposer'`.
 - All 14 master falsification benchmarks (Bench 1–14) have passing test implementations.
 - Full enabled-path integration test (`todo16-enabled-path.test.ts`, 10 tests) exercises ingress joint pass, veto, telemetry, proposeAndJudge, groundedness, safety floor, reflex, disabled baseline.
+- 13 pre-existing test failures (H4 backlog: revision-history ×2, bandit-epsilon-greedy ×3, cognitive-advantage ×5, trace-validation ×3) persist identically on clean HEAD — tracked separately, outside TODO16 scope.
 
 ### Phase 0 Complete (2026-09-19)
 
