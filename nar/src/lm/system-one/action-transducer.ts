@@ -1,0 +1,56 @@
+import type { ActionProposal } from '../../reflex/Reflex.js';
+import type { CapabilityApproval } from '../../capability/space.js';
+import { seedDesire } from './seed.js';
+import type { JudgmentProposition } from './types.js';
+
+export interface ActionGateTransducerOptions {
+  /** HITL hook; headless environments auto-reject by default. */
+  approvals?: CapabilityApproval;
+  /** Proposal-vs-desire threshold τ. Below τ ⇒ propose-only for the Negotiator. */
+  threshold?: number;
+}
+
+/**
+ * Teleological transducer (§7.2): converts Teleological judgments into
+ * ActionProposals for the existing proposal → negotiate → authorize →
+ * dispatch chain. Never produces Truth; authorization stays with KernelActionGate.
+ */
+export class ActionGateTransducer {
+  #approvals?: CapabilityApproval;
+  #threshold: number;
+
+  constructor(options: ActionGateTransducerOptions = {}) {
+    this.#approvals = options.approvals;
+    this.#threshold = options.threshold ?? 0.5;
+  }
+
+  transduce(p: JudgmentProposition): ActionProposal | undefined {
+    if (p.axis !== 'teleological' || p.kind !== 'classify' || p.abstained) return undefined;
+    const { top } = p;
+
+    // Risk gate → HITL via existing approvals (headless auto-rejects)
+    if (top.option === 'high' || top.option === 'critical') {
+      void this.#approvals?.requestApproval({
+        action: top.option,
+        payload: JSON.stringify({ queryId: p.queryId, top }),
+        risk: 'high',
+      });
+      return undefined;
+    }
+
+    // Below τ ⇒ propose-only; Negotiator arbitrates vs NAL derivations
+    if (top.p < this.#threshold) {
+      return { action: top.option, value: top.p, confidence: top.p, source: 'system-one' };
+    }
+
+    // Desire is seeded goal-side only; authorization stays with KernelActionGate
+    const desire = seedDesire(p);
+    return {
+      action: top.option,
+      args: {},
+      value: desire.f,
+      confidence: desire.c,
+      source: 'system-one',
+    };
+  }
+}

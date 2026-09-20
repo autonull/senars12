@@ -8,4 +8,6 @@ export * from './dispatcher.js';
 export * from './embedding-cache.js';
 export * from './calibration.js';
 export * from './manifold.js';
+export * from './action-transducer.js';
+export * from './manifold-reflex.js';
 export * from './heads/index.js';

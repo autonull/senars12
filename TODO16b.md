@@ -924,10 +924,19 @@ Each phase builds on verified anchors only. `pnpm`, `vitest run`, `pnpm typechec
 - `Dispatcher.judge` fallback merge rule: tier1 result used unless `abstained || (classify && top.p < 0.5)`.
 - Core egress gate is a pluggable hook, not a hard dependency — Phase 3/5 should wire `groundednessGate` to a real Manifold-backed evaluate call when `systemOne.enabled`.
 
-### Phase 3: Teleological Routing
-- [ ] ActionGate transducer + `ManifoldReflex` + action heads
-- [ ] HITL wiring via `ApprovalService`
-- [ ] Bench 3, 11 + `parity:smoke`
+### Phase 3: Teleological Routing ✅ COMPLETE (2026-09-19)
+- [x] ActionGate transducer (`nar/src/lm/system-one/action-transducer.ts`) — HITL via `CapabilityApproval` requestApproval (headless auto-reject), τ threshold propose-only split
+- [x] `ManifoldReflex` (`nar/src/lm/system-one/manifold-reflex.ts`) — async prefetch-at-attend table, sync propose contract, per-action incumbent fallback, cold-table = incumbent exactly
+- [x] Action heads (`tool_dispatch`, `risk`, `feasibility`, `strategy`, `reflex_value`) — already landed with Phase 1 scaffolding; heads use Math.random() placeholders until distilled weights (Phase 4)
+- [x] Bench 3 (`todo16-teleological.test.ts`, 4 tests) + Bench 11 (`todo16-transduction.test.ts`, 9 tests) passing
+- [ ] `pnpm parity:smoke` — PRE-EXISTING FAILURE verified identical on clean HEAD (SeNARS return 0.018 vs baseline 0.708); unrelated to System One; tracked as separate investigation
+- [ ] `systemOne` knobs in `knobSchema` — DEFERRED to Phase 5: `knobSchema.get/set` operate on `CognitiveParameters` paths; adding `systemOne.*` paths would return undefined from `getNested` and break `ConfigOptimizer`; requires a config-object plumbing change, not just schema entries
+
+**Implementation notes for Phase 4**
+- Transducer proposal shape: `{ action: top.option, args: {}, value: desire.f, confidence: desire.c, source: 'system-one' }`; `^op(...)` goal terms must be built downstream (ActionGate.toGoals or `termParser.parse('^op(...)')`).
+- `ManifoldReflex.prefetch(stateId, pointer, legalActions, manifold, budget)` fills rows only when ≥1 non-abstained proposition; cold table delegates fully to incumbent (proposals identical when incumbent deterministic).
+- Real NAR dispatch path verified: `nar.taskManager.addTask(createTask(termParser.parse('^op_x(...)'), 'goal', truth, budget))` + `nar.run(1)` reaches the registered tool executor (`tests/nar/rl/contract/goal-action.test.ts` pattern).
+- Heads' `Math.random()` placeholders make prefetch-path tests nondeterministic — tests must tolerate abstain→fallback; distillation (Phase 4) removes this.
 
 ### Phase 4: Distillation
 - [ ] Label harvest + append-only dataset + bake-off harness
