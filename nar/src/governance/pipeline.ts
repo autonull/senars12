@@ -8,6 +8,7 @@ import type {
 } from '@senars/kernel/schemas';
 import { v4 as uuidv4 } from 'uuid';
 import { knobSchema } from '../rlfp/knobs.js';
+import { validateSystemOneKnob } from '../rlfp/system-one-knobs.js';
 
 const GUARDRAIL_FRAGMENTS = [
   'ApprovalManager',
@@ -81,8 +82,14 @@ export class SandboxValidator {
         reason: `No automated checks for ${proposal.kind}; requires human review`,
       };
     const { knob, value } = proposal.payload;
-    const spec = knobSchema.find((k) => k.name === knob);
-    if (!spec) return { approved: false, reason: `Unknown knob '${String(knob)}'` };
+    const knobName = String(knob);
+
+    if (knobName.startsWith('systemOne.')) {
+      return validateSystemOneKnob(knobName, value as number);
+    }
+
+    const spec = knobSchema.find((k) => k.name === knobName);
+    if (!spec) return { approved: false, reason: `Unknown knob '${knobName}'` };
     if (typeof value !== 'number' || Number.isNaN(value))
       return { approved: false, reason: `Non-numeric value for '${spec.name}'` };
     if (value < spec.min || value > spec.max)

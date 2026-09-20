@@ -19,6 +19,7 @@ import { createProvisionalStamp } from '../lm/system-one/provisional-stamp.js';
 import type { Stamp } from '../terms/stamp.js';
 import { Stamp as StampClass } from '../terms/stamp.js';
 import { recordJudgmentMetric } from '../metrics/prometheus.js';
+import { trace } from '@opentelemetry/api';
 
 export interface KernelPerceptionGateConfig {
   defaultBudget: {
@@ -128,6 +129,22 @@ export class KernelPerceptionGate {
       proposition.abstained,
       proposition.latencyMs
     );
+
+    // Attach OTel span attributes for dispatch observability (§11.2 / H2)
+    const activeSpan = trace.getActiveSpan();
+    if (activeSpan) {
+      activeSpan.setAttribute('dispatch.tier_taken', proposition.tier);
+      activeSpan.setAttribute('dispatch.backend_id', proposition.backendId);
+      activeSpan.setAttribute('dispatch.latency_ms', proposition.latencyMs);
+      activeSpan.setAttribute('dispatch.axis', proposition.axis);
+      if (proposition.kind === 'classify' && proposition.entropy !== undefined) {
+        activeSpan.setAttribute('dispatch.entropy', proposition.entropy);
+      }
+      activeSpan.setAttribute('dispatch.abstained', proposition.abstained);
+      activeSpan.setAttribute('dispatch.stamp_type', proposition.abstained ? 'provisional' : 'standard');
+      activeSpan.setAttribute('dispatch.cost_tokens', proposition.cost.tokensIn + proposition.cost.tokensOut);
+      activeSpan.setAttribute('dispatch.cost_memory', proposition.cost.memoryMb);
+    }
   }
 
   async admit(input: PerceptionGateInput): Promise<PerceptionGateOutput> {
