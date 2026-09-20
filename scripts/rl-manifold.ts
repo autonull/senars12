@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import type { ReasoningBudget } from '@senars/kernel/schemas';
+import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
 /**
  * C3 demo: pure-System-One RL on GridWorldGame — no NAR, no RuleProcessor,
  * no kernel gates. Only EmbeddingCache + JudgmentManifold (+ optional
@@ -7,9 +9,7 @@
 import { EmbeddingCache } from '../nar/src/lm/system-one/embedding-cache.js';
 import { createManifold } from '../nar/src/lm/system-one/manifold.js';
 import { ManifoldRLAgent } from '../nar/src/lm/system-one/manifold-rl-agent.js';
-import { GridWorldGame } from '../nar/src/game/GridWorldGame.js';
 import { loadConfig } from '../src/config/index.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
 
 const episodes = Number(process.argv[2] ?? 20);
 const budget: ReasoningBudget = {
@@ -27,7 +27,17 @@ const manifold = createManifold(cache, { abstainThreshold: 0.05 });
 
 const appConfig = await loadConfig().catch(() => null);
 const rlConfig = appConfig?.systemOne?.rl;
-const agent = new ManifoldRLAgent({ cache, manifold, budget, epsilon: rlConfig?.epsilon ?? 0.1 });
+const agent = new ManifoldRLAgent({
+  cache,
+  manifold,
+  budget,
+  policy: rlConfig?.policy ?? 'eps-greedy',
+  epsilon: rlConfig?.epsilon ?? 0.1,
+  ucbC: rlConfig?.ucbC ?? 0.5,
+  feasibilityMask: rlConfig?.feasibilityMask ?? true,
+  riskFloor: rlConfig?.riskFloor ?? 0.8,
+  labelOutcomes: rlConfig?.labelOutcomes ?? true,
+});
 
 const rewards: number[] = [];
 for (let ep = 0; ep < episodes; ep++) {
@@ -37,5 +47,9 @@ for (let ep = 0; ep < episodes; ep++) {
 
 const avg = rewards.reduce((a, b) => a + b, 0) / rewards.length;
 console.log(`ManifoldRLAgent over ${episodes} GridWorld episodes:`);
-console.log(`  avg reward: ${avg.toFixed(4)}  min: ${Math.min(...rewards).toFixed(2)}  max: ${Math.max(...rewards).toFixed(2)}`);
-console.log(`  policy: ${rlConfig?.policy ?? 'eps-greedy'} ε=${rlConfig?.epsilon ?? 0.1} (untrained hash heads — see Bench 20/21 for fitted regimes)`);
+console.log(
+  `  avg reward: ${avg.toFixed(4)}  min: ${Math.min(...rewards).toFixed(2)}  max: ${Math.max(...rewards).toFixed(2)}`
+);
+console.log(
+  `  policy: ${rlConfig?.policy ?? 'eps-greedy'} ε=${rlConfig?.epsilon ?? 0.1} (untrained hash heads — see Bench 20/21 for fitted regimes)`
+);

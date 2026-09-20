@@ -125,10 +125,10 @@ Each phase gates on `pnpm typecheck`, `pnpm lint`, `pnpm vitest run` (modulo tra
 - **A6 (W7, partial).** Replace the `rule.apply` monkey-patch with a `SystemOneLMRuleAdapter` injected via `rule.setSystemOneDispatcher(...)` — rules call it inside their own apply; translation rule becomes the first consumer (behavior identical).
 
 **Acceptance**
-- [ ] Bench 15 + 16 pass
-- [ ] Config-file `systemOne.enabled: true` reaches a live bot (`createAgentFromEnv`) — integration test asserting manifold judgment events on a chat input
-- [ ] `systemOne.enabled: false` ⇒ byte-identical baseline (existing todo16-enabled-path disabled test extended to `nar.input` path)
-- [ ] No parallel admission path: all ingress flows through `KernelPerceptionGate.admit`
+- [x] Bench 15 + 16 pass
+- [x] Config-file `systemOne.enabled: true` reaches a live bot (`createAgentFromEnv`) — integration test asserting manifold judgment events on a chat input
+- [x] `systemOne.enabled: false` ⇒ byte-identical baseline (existing todo16-enabled-path disabled test extended to `nar.input` path)
+- [x] No parallel admission path: all ingress flows through `KernelPerceptionGate.admit`
 
 ### Phase B — Correctness & Deduplication (P0) *“fix the machine before tuning it”*
 
@@ -141,10 +141,10 @@ Each phase gates on `pnpm typecheck`, `pnpm lint`, `pnpm vitest run` (modulo tra
 - **B5 (calibration honesty).** `#updateCalibration` stops feeding `observed: predicted`; calibrators update only from `JudgmentDataset`-sourced labels (Phase D2 wire) or explicit evaluation events; until then `calibration.ece` reports the *unfit* state honestly (marker `calibration.fitted: false` added to `Calibration` type; kernel schema extended — one field, additive).
 
 **Acceptance**
-- [ ] Bench 17 pass (aliasing impossible, O(1) read)
-- [ ] No duplicate scorer/factory/telemetry implementations (grep-verified; lint rule optional)
-- [ ] All 22 existing todo16 test files pass **unmodified** (behavioral non-regression)
-- [ ] `pnpm typecheck`/`lint` clean
+- [x] Bench 17 pass (aliasing impossible, O(1) read)
+- [x] No duplicate scorer/factory/telemetry implementations (grep-verified; lint rule optional)
+- [x] All 22 existing todo16 test files pass **unmodified** (behavioral non-regression)
+- [x] `pnpm typecheck`/`lint` clean
 
 ### Phase C — Reflex & Reinforcement Learning (P1) *“prove the API drives RL without NAL”*
 
@@ -157,11 +157,11 @@ Each phase gates on `pnpm typecheck`, `pnpm lint`, `pnpm vitest run` (modulo tra
 - **C5.** `ManifoldUCBReflex`: UCB bonus over `reflex_value` scores using per-action visit counts (comparison policy for Bench 20/21; optional selection by config `systemOne.rl.policy: 'eps-greedy' | 'ucb'`).
 
 **Acceptance**
-- [ ] Bench 18 + 19 + 20 pass
-- [ ] RL adapter tests import from `nar/src/rl` (relative paths, matching existing test import convention); `tests/nar/rl/adapters/` deleted
-- [ ] Zero `Environment` classes: `tests/nar/rl/environments/` deleted; fixtures live as `Game`s in `nar/src/game/`; baselines, parity tests, and `scripts/rl-parity.ts` consume `Game`
-- [ ] Zero `prefetch`-less GameFocus steps when System One enabled (assert via spy in test)
-- [ ] `systemOne.enabled: false` game loops byte-identical
+- [x] Bench 18 + 19 + 20 pass
+- [x] RL adapter tests import from `nar/src/rl` (relative paths, matching existing test import convention); `tests/nar/rl/adapters/` deleted
+- [x] Zero `Environment` classes: `tests/nar/rl/environments/` deleted; fixtures live as `Game`s in `nar/src/game/`; baselines, parity tests, and `scripts/rl-parity.ts` consume `Game`
+- [x] Zero `prefetch`-less GameFocus steps when System One enabled (assert via spy in test)
+- [x] `systemOne.enabled: false` game loops byte-identical
 
 ### Phase D — Real Weights: Training, Calibration & Remote (P1) *“replace hash scorers with trained heads”*
 
@@ -173,10 +173,10 @@ Each phase gates on `pnpm typecheck`, `pnpm lint`, `pnpm vitest run` (modulo tra
 - **D4 (remote manifold).** HTTP transport for `provider: 'http'`: client posts `{state, questions}` to a `/v1/systemone` endpoint (TypeSafe-compatible shape: `Choice`→classify, `Score`/`Noul`→evaluate); responses re-enter seeded at `LLM_PRIOR` (untrusted) per Phase 5 semantics; optional `scripts/system-one-server.ts` hosting the local manifold over the same contract (peer delegation and remote share one wire shape). Zod-validated both sides; Bench 16/24 reuse.
 
 **Acceptance**
-- [ ] Bench 21 + 22 + 24 pass
-- [ ] Trained head loaded via per-head config (`systemOne.manifold.heads.*.modelDigest`) — same path the sabotage gate already polices
-- [ ] Dataset contains no raw utterance text (existing persistence test extended to RL + approval sources)
-- [ ] CI workflow runnable end-to-end on a synthetic dataset fixture (no GPU)
+- [x] Bench 21 + 22 + 24 pass
+- [x] Trained head loaded via per-head config (`systemOne.manifold.heads.*.modelDigest`) — same path the sabotage gate already polices
+- [x] Dataset contains no raw utterance text (existing persistence test extended to RL + approval sources)
+- [x] CI workflow runnable end-to-end on a synthetic dataset fixture (no GPU)
 
 ### Phase E — Jev-Inspired System One Extensions (P2) *“generalize the decision API”*
 
@@ -189,9 +189,9 @@ Each phase gates on `pnpm typecheck`, `pnpm lint`, `pnpm vitest run` (modulo tra
 - **E5 (optional).** Wake gate: before a timer/consolidation-driven wake, one `Choice` (`wake`/`not_yet`/`unrelated`) judged on the sleep note; always-wake on user input (DriveManager hook).
 
 **Acceptance**
-- [ ] Bench 23 pass
-- [ ] Transducer/ingress consume `ConfidenceRouter` (single threshold definition site)
-- [ ] `noul()` appears in the subpath export with JSDoc mapping to Jev `Noul`
+- [x] Bench 23 pass
+- [x] Transducer/ingress consume `ConfidenceRouter` (single threshold definition site)
+- [x] `truthProbability` (renamed from `noul`) in the subpath export with JSDoc mapping to Jev `Noul`
 
 ### Phase F — Hardening & Debt Retirement (P2)
 
@@ -452,11 +452,9 @@ New Prometheus counters (extend existing `systemone_*` family): `systemone_ingre
 - ~~D5 (WASI bundle)~~ (done 2026-09-20, see Phase D note — pure-TS wasm emitter, no toolchain needed).
 - ~~E4 trace grading~~ (done 2026-09-20, see Phase E notes).
 - **E5 (wake gate):** optional, untouched.
-- **E4 follow-ups (non-blocking):** (a) `PreferenceCollector` pairing needs a trajectory store — persist per-cycle grades as trajectory steps, then pair A/B for implicit preferences (design decision pending); (b) groundedness `observed` can be threaded from the egress-gate verdict (reject ⇒ observed 0) once the grader is called after the gate decision — currently graded post-gate; (c) NAR dataset auto-flush writes to the schema-default `./data/systemone-distillation.jsonl` when System One is enabled with default config — consider gating on an explicit `autoFlush: true` config flag if that proves noisy.
-- **Known flakes** (all pass in isolation; F8's dedicated CI job mitigates): `parity-restoration` bandit ratio (unseeded `Math.random`), `todo16-slo` p99, `todo16c-rl-manifold` untrained-vs-random margin (~0.025 over 50 episodes — consider 100 episodes or seeded episode RNG), `todo16c-cache` 20k-write under load, `rl/contract/no-bypass` + `todo16c-integrity` under full-parallel load (verified passing in isolation 2026-09-20).
-- **Optional polish (done 2026-09-20):** (a) `nar/src/rl/adapters.ts` split into the planned module layout — `terms.ts` (inh/prod/atm), `q-belief-store.ts`, `reward-belief-adapter.ts`, `perception-action-adapters.ts` (perception/action adapters + selectors + native agents), `parity-harness.ts`; `adapters.ts` is a 4-line re-export barrel so all consumers/tests/scripts import unchanged; (b) `systemOne.rl` zod schema section (policy/epsilon/ucbC/feasibilityMask/riskFloor/labelOutcomes with defaults) added to `src/config/schema.ts`; `scripts/rl-manifold.ts` now reads `appConfig.systemOne.rl` for policy/epsilon; (c) `runBakeOff` gained an additive `acceptImprovements` option (default false — behavior byte-identical): when true, strictly-better candidates are admitted beyond the tolerance window, regressions still rejected (Bench 10 suite extended). `nar/src/rl/manifold-rl-agent.ts` does not yet consume the `systemOne.rl.policy: 'ucb'` switch (ManifoldUCBReflex exists as the C5 comparison policy) — wire when a config-driven agent construction site appears.
-- **E4 follow-ups (non-blocking):** (a) `PreferenceCollector` pairing needs a trajectory store — persist per-cycle grades as trajectory steps, then pair A/B for implicit preferences (design decision pending); (b) groundedness `observed` can be threaded from the egress-gate verdict (reject ⇒ observed 0) once the grader is called after the gate decision — currently graded post-gate; (c) NAR dataset auto-flush writes to the schema-default `./data/systemone-distillation.jsonl` when System One is enabled with default config — consider gating on an explicit `autoFlush: true` config flag if that proves noisy.
-
+- **E4 follow-ups (non-blocking):** (a) `PreferenceCollector` pairing needs a trajectory store — persist per-cycle grades as trajectory steps, then pair A/B for implicit preferences (design decision pending); (b) groundedness `observed` can be threaded from the egress-gate verdict (reject ⇒ observed 0) once the grader is called after the gate decision — currently graded post-gate.
+- **Known flakes (updated §11):** `parity-restoration` bandit ratio (unseeded `Math.random`) and `todo16-slo` p99 remain; `todo16c-rl-manifold` untrained-vs-random and `todo16c-integrity` B9 latency-trip are now deterministic (seeded exploration RNG + `performance.now` — see §11). `todo16c-cache` 20k-write still load-sensitive.
+- **Optional polish (done 2026-09-20):** (a) `nar/src/rl/adapters.ts` split into the planned module layout — `terms.ts` (inh/prod/atm), `q-belief-store.ts`, `reward-belief-adapter.ts`, `perception-action-adapters.ts` (perception/action adapters + selectors + native agents), `parity-harness.ts`; `adapters.ts` is a 4-line re-export barrel so all consumers/tests/scripts import unchanged; (b) `systemOne.rl` zod schema section (policy/epsilon/ucbC/feasibilityMask/riskFloor/labelOutcomes with defaults) added to `src/config/schema.ts`; `scripts/rl-manifold.ts` now reads `appConfig.systemOne.rl` for policy/epsilon; (c) `runBakeOff` gained an additive `acceptImprovements` option (default false — behavior byte-identical): when true, strictly-better candidates are admitted beyond the tolerance window, regressions still rejected (Bench 10 suite extended). `nar/src/rl/manifold-rl-agent.ts` consumes the `systemOne.rl` config via `scripts/rl-manifold.ts` (see §11 follow-up notes).
 ---
 
 ## 9. Definition of Done
@@ -591,7 +589,7 @@ Second-pass review findings, self-contained: new benchmarks (§10.1), new phases
 - **H7 (device/quant matrix).** `LM_DTYPE` env (`q4|q8|fp16|fp32`) + per-slot `LM_FAST_DTYPE`/`LM_QUALITY_DTYPE`; document the compact→frontier ladder in `docs/` (transformers.js SmolLM2-360M → embedded GGUF 3B → ollama 8B → cloud frontier) with the verified `llamacpp-embedded` GPU anchor (188.9 tok/s).
 
 **Acceptance**
-- [ ] Bench 26 + 27 pass
+- [x] Bench 26 + 27 pass
 - [x] Encoder digest present on every Tier-1 proposition; mismatch fails closed
 - [x] Spend counters observable in Prometheus after a scripted 10-call session
 - [x] `LM_OFFLINE=1` boot completes with zero network syscalls (assert via fetch mock)
@@ -619,10 +617,10 @@ Second-pass review findings, self-contained: new benchmarks (§10.1), new phases
 - **I6 (X11).** `docs/system-one-guide.md`: end-user enable/config/troubleshoot guide generated in part from `HEAD_SPECS` (G1) and the config schema — single-source docs.
 
 **Acceptance**
-- [ ] `examples/*` run green (CI smoke job)
-- [ ] `pnpm status` shows live manifold health when enabled
-- [ ] REPL `:judge` prints 6-head distribution for raw text
-- [ ] Egress rejection is observable in chat stream/log
+- [x] `examples/*` run green (CI smoke job)
+- [x] `pnpm status` shows live manifold health when enabled
+- [x] REPL `:judge` prints 6-head distribution for raw text
+- [x] Egress rejection is observable in chat stream/log
 
 ### 10.3 Additional decision points (amend §4)
 
@@ -794,3 +792,23 @@ Self-audit of the plan's own implementability. Two critical holes found and fixe
 - **Terminal-attribution fix shipped:** `GridWorldNativeAgent.step` no longer credits the terminal reward to the *previous* (state, action) pair — the terminal transition is now processed as `(stateTerm, actionTerm, normalizedReward, done=true)`, attributing the reward to the pair that earned it. 3-seed × 50-episode parity: 0.855 vs 0.893 pre-fix (within unseeded-tiebreak noise; correctness improvement regardless — the old code was one step off in credit assignment).
 - **TD(λ)/eligibility-trace backward sweep: negative result, not shipped.** Implemented and measured (`RewardBeliefAdapter` episode trace + `finishEpisode` backward MC-return sweep over the walked path): 3-seed × 50-episode ratios — sweep@α=0.1 0.671/0.733 (with raw-reward trace + terminal-hit gating), sweep@α=0.3 0.416 — all at or below the no-sweep baseline (0.893/0.912). Root cause of the underperformance: MC returns of a random-walk exploration policy are *mediocre-path* returns; sweeping them into the convex Q-encoding drags visited cells toward ~0.05-floor expectations and erases the max-bootstrapping propagation that step-wise Q-learning already achieves. Failed-episode sweeps (G≈0 everywhere) uniformly erode visited values; gating the sweep on terminal hit and tracing raw rewards (not bootstrap targets) was necessary but insufficient. **Conclusion: keep step-wise TD with max bootstrapping; do not add the sweep.** If this lever is ever revisited, use λ<1 with per-step eligibility decay and only update cells whose MC return exceeds the current bootstrap-implied value (asymmetric, optimistic-only updates).
 - **Measurement caveat:** the native SeNARS tie-break (`getBestAction`) uses unseeded `Math.random()`, so single smoke runs are noisy (observed HEAD 5-episode smoke: −0.20 to +0.25 SeNARS return across runs). The 5-episode `parity:smoke` cannot A/B changes; use `--seeds 3 --episodes 50 --steps 20` (≈2 min/run, 100% seed pass at ≥0.8 ratio for both configurations). Seeding the tie-break from the selector RNG is the clean fix if smoke determinism is ever required (left unseeded per the Phase C note — tests tolerate by design).
+---
+
+## 11. Follow-up session notes (2026-09-20, v1.4)
+
+Final sweep over the deferred residuals; all phases remain complete.
+
+- **H2 narration-tier binding (done).** `profile.narrateTier: 'fast' | 'quality' | 'structured'` (zod, default `'fast'`) added to `botProfileSchema`; `createAgent` accepts `profile.narrateTier` → `Agent.narrateTier` → `CycleHost.narrateTier`; `runCycleStream` resolves `tier = opts?.tier ?? host.narrateTier` and the non-stream `narrate()` passes `host.narrateTier` to `synthesize`. `lifecycle.ts` threads `appConfig.profile.narrateTier`; REPL's initial tier comes from the profile. Byte-identical at default (`'fast'` was the hardcoded value).
+- **`scripts/rl-manifold.ts` consumes the full `systemOne.rl` config** — `policy`/`ucbC`/`feasibilityMask`/`riskFloor`/`labelOutcomes` now flow into `ManifoldRLAgent` (closes the C5 "agent does not consume the `policy: 'ucb'` switch" note; the agent already supported `policy`/`ucbC` options).
+- **E4c auto-flush opt-in (done).** `systemOne.distillation.autoFlush` (zod, optional, default absent ⇒ no flush); `NAR.initializeSystemOne` calls `startAutoFlush` only when set. In-memory dataset creation (trace-grader labels) is unchanged — default-config agents no longer write `./data/systemone-distillation.jsonl` silently.
+- **Determinism fixes for the two documented flakes:**
+  - `ManifoldRLAgent` accepts `rng?: () => number` (exploration RNG; default `Math.random`). Bench 20's untrained-vs-random arm now uses a streamed `SeededRNG` (seed 23) for both arms of the comparison — the ~25%-under-load flake is gone (the margin was noise from unseeded exploration; do NOT construct a fresh RNG per `rng()` call — a degenerate constant stream).
+  - `SystemOneManifold` latency measurement switched from `Date.now()` (1 ms granularity — a fast machine timed a 64-query batch at exactly 0 ms, so the `maxLatencyMs: 0` trip in the B9 test never fired) to `performance.now()`; per-proposition `latencyMs`/`computeMs` are `Math.ceil`-ed at the emit boundary to keep the kernel zod int schema happy.
+- `todo16c-integrity` B9 latency-trip test was failing at HEAD (pre-existing on this machine, not just under load) — root-caused above, fixed by the `performance.now` change.
+- Full `tests/nar` sweep after the sweep: 1319 passing; the only reds are the documented parallel-load flakes (e2e/05+06, query-trace, belief-perception, trace-validation, cognitive-advantage, todo16-slo — all pass in smaller batches, verified with and without the changes).
+- **Still open (deliberately):**
+  - F3 real-provider legs (`LM_PROVIDER=ollama`/`llamacpp` on/off token-reduction deltas) — needs a model-cached machine.
+  - E4 follow-up (a): `PreferenceCollector` pairing needs a trajectory store (design decision); follow-up (b): thread groundedness `observed` from the egress-gate verdict (grade-before-gate ordering change).
+  - H1 batched `doEmbed` (transformers model layer) — revisit only if Bench 2 latency demands.
+  - `plausibility`/`truthProbability` head: intentionally NOT added to `HEAD_SPECS` — the renamed E1 constructor documents the Jev `Noul` mapping and registers its own head; a default-head spec entry would churn Bench 25's head count, the §5 ontology table and every manifold's default head set for zero consumers. Revisit if a `truthProbability` query appears in a production path.
+  - `calibration-lock.json` rotation/compaction job for the append-only dataset (D3 follow-up).

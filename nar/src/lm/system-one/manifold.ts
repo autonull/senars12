@@ -136,7 +136,7 @@ export class SystemOneManifold implements JudgmentManifold {
     queries: readonly JudgmentQuery[],
     budget: ReasoningBudget
   ): Promise<JudgmentProposition[]> {
-    const startTime = Date.now();
+    const startTime = performance.now();
 
     if (queries.length > this.#config.maxBatchSize) {
       throw new Error(`Batch size ${queries.length} exceeds max ${this.#config.maxBatchSize}`);
@@ -159,7 +159,7 @@ export class SystemOneManifold implements JudgmentManifold {
         throw new Error(`No head registered for query: ${query.kind} ${rubric}`);
       }
 
-      const queryStart = Date.now();
+      const queryStart = performance.now();
       let headResult: HeadResult;
 
       try {
@@ -172,7 +172,7 @@ export class SystemOneManifold implements JudgmentManifold {
         };
       }
 
-      const latencyMs = Date.now() - queryStart;
+      const latencyMs = Math.ceil(performance.now() - queryStart);
 
       const base: Omit<
         JudgmentProposition,
@@ -204,7 +204,7 @@ export class SystemOneManifold implements JudgmentManifold {
       }
     }
 
-    const totalLatency = Date.now() - startTime;
+    const totalLatency = performance.now() - startTime;
     this.#setHealth('latency', totalLatency > this.#config.maxLatencyMs);
 
     this.#updateCalibration(results);

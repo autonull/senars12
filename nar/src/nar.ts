@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { BaseComponent } from '@senars/core';
-import type { AutonomyMode } from '@senars/kernel/schemas';
+import type { AutonomyMode, JudgmentResolvedEvent } from '@senars/kernel/schemas';
 import type { CognitiveRegistry } from './cognitive';
 import { CognitiveController } from './cognitive';
 import type { CognitiveParameters } from './config/cognitive-parameters';
@@ -9,9 +9,23 @@ import { createBootstrapTasks, DriveManager } from './drives';
 import { gateRegistry } from './kernel/GateRegistry.js';
 import type { LMService, SeNARSRegistry } from './lm';
 import { getModelForTask, LMRules } from './lm';
+import { createLMServiceCortex, LMServiceCortex } from './lm/system-one/cortex-adapter.js';
+import { createDispatcher, StubCortex } from './lm/system-one/dispatcher.js';
+import { JudgmentDataset } from './lm/system-one/distill.js';
+import { createEmbeddingCache } from './lm/system-one/embedding-cache.js';
+import { createGroundednessGate } from './lm/system-one/groundedness-gate.js';
+import { createHttpManifold } from './lm/system-one/http-manifold.js';
+import { createManifold } from './lm/system-one/manifold.js';
+import { ManifoldReflex } from './lm/system-one/manifold-reflex.js';
+import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
+import { createNarTelemetrySinks, createTelemetryEmitter } from './lm/system-one/telemetry.js';
+import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-grader.js';
+import { createTraceGrader } from './lm/system-one/trace-grader.js';
+import { composeModelDigest, encoderDigest } from './lm/system-one/wasi-runtime.js';
 import { createLogger } from './logger';
 import type { Concept } from './memory';
 import { Memory } from './memory';
+import { createEmbeddingGenerator } from './memory/embedding.js';
 import { WorkingMemory } from './memory/WorkingMemory.js';
 import { MetricsCollector } from './metrics';
 import { NARExecution } from './nar-execution';
@@ -19,6 +33,8 @@ import { NARIO } from './nar-io';
 import { NARLM } from './nar-lm';
 import { QueryAPI, ReasoningTrace } from './query';
 import { BagStrategy, Reasoner } from './reason';
+import { EpsilonGreedyReflex } from './reflex/EpsilonGreedyReflex.js';
+import type { ActionProposal, LearningEvent, Reflex } from './reflex/Reflex.js';
 import { RLFPLearner } from './rlfp';
 import { RuleProcessor } from './rules';
 import { ReasoningAboutReasoning } from './self';
@@ -26,7 +42,6 @@ import type { AttentionModel } from './strategies';
 import { SimpleAttention } from './strategies';
 import { TaskManager } from './task';
 import type { Term } from './terms';
-import type { Reflex, ActionProposal, LearningEvent } from './reflex/Reflex.js';
 import {
   containsSubterm,
   getSubject,
@@ -42,30 +57,13 @@ import { createSelfTools } from './tools/adapters/external-tools.js';
 import {
   ConfigurationError,
   type CoreConfig,
+  createTask,
   DEFAULT_CONFIG,
   EventBus as NarEventBus,
   type Task,
   type TaskType,
-  createTask,
 } from './types';
 import { errMsg } from './utils';
-import type { JudgmentResolvedEvent } from '@senars/kernel/schemas';
-import { createEmbeddingCache } from './lm/system-one/embedding-cache.js';
-import { composeModelDigest, encoderDigest } from './lm/system-one/wasi-runtime.js';
-import { createEmbeddingGenerator } from './memory/embedding.js';
-import { createManifold } from './lm/system-one/manifold.js';
-import { createHttpManifold } from './lm/system-one/http-manifold.js';
-import { createDispatcher } from './lm/system-one/dispatcher.js';
-import { createGroundednessGate } from './lm/system-one/groundedness-gate.js';
-import { createTraceGrader } from './lm/system-one/trace-grader.js';
-import type { TraceGradeInput, TraceGradeResult } from './lm/system-one/trace-grader.js';
-import { JudgmentDataset } from './lm/system-one/distill.js';
-import { createLMServiceCortex, LMServiceCortex } from './lm/system-one/cortex-adapter.js';
-import { StubCortex } from './lm/system-one/dispatcher.js';
-import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
-import { ManifoldReflex } from './lm/system-one/manifold-reflex.js';
-import { EpsilonGreedyReflex } from './reflex/EpsilonGreedyReflex.js';
-import { createTelemetryEmitter, createNarTelemetrySinks } from './lm/system-one/telemetry.js';
 
 export { MetricsCollector } from './metrics';
 
@@ -73,11 +71,16 @@ export interface RLFPConfig {
   optimizeInterval?: number;
 }
 
+import type { ReasoningBudget } from '@senars/kernel/schemas';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import type { SystemOneConfig as SystemOneConfigSchema } from '../../src/config/schema.js';
 import type { EmbeddingCache } from './lm/system-one/embedding-cache.js';
-import type { JudgmentManifold, CognitiveDispatcher, JudgmentQuery, SynthesisQuery } from './lm/system-one/types.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
+import type {
+  CognitiveDispatcher,
+  JudgmentManifold,
+  JudgmentQuery,
+  SynthesisQuery,
+} from './lm/system-one/types.js';
 
 /** File-validated System One config (zod-inferred, single source of truth — G6). */
 export type SystemOneFileConfig = SystemOneConfigSchema;
@@ -226,7 +229,9 @@ export class NAR extends BaseComponent {
     this.io.setEventBus(eventBus);
     this.systemEventBus = new NarEventBus();
     this.io.setSystemEventBus(this.systemEventBus);
-    this._emitJudgmentResolved = createTelemetryEmitter(createNarTelemetrySinks(this.systemEventBus));
+    this._emitJudgmentResolved = createTelemetryEmitter(
+      createNarTelemetrySinks(this.systemEventBus)
+    );
     this.driveManager = new DriveManager(this as any);
     this.driveManager.setSystemEventBus(this.systemEventBus);
     this.execution = new NARExecution(
@@ -882,20 +887,25 @@ export class NAR extends BaseComponent {
     };
 
     // Create embedding cache (zero-copy, pooled Float32Array)
-    const encoderConfig = systemOneConfig.manifold && !('judgeBatch' in systemOneConfig.manifold)
-      ? (systemOneConfig.manifold as SystemOneConfigSchema['manifold']).encoder
-      : undefined;
+    const encoderConfig =
+      systemOneConfig.manifold && !('judgeBatch' in systemOneConfig.manifold)
+        ? (systemOneConfig.manifold as SystemOneConfigSchema['manifold']).encoder
+        : undefined;
     const encoder = createEmbeddingGenerator(false, encoderConfig);
-    this._systemOneEmbeddingCache = systemOneConfig.embeddingCache ?? createEmbeddingCache({
-      maxSize: 10000,
-      ttlMs: 300_000,
-      dimension: encoderConfig?.dimension ?? encoder.dimension,
-      generator: encoder,
-    });
+    this._systemOneEmbeddingCache =
+      systemOneConfig.embeddingCache ??
+      createEmbeddingCache({
+        maxSize: 10000,
+        ttlMs: 300_000,
+        dimension: encoderConfig?.dimension ?? encoder.dimension,
+        generator: encoder,
+      });
 
     // Create manifold with per-head config from systemOne config
     let manifold: JudgmentManifold;
-    const manifoldFileConfig = systemOneConfig.manifold as SystemOneConfigSchema['manifold'] | undefined;
+    const manifoldFileConfig = systemOneConfig.manifold as
+      | SystemOneConfigSchema['manifold']
+      | undefined;
     if (manifoldFileConfig?.provider === 'http' && manifoldFileConfig.endpoint) {
       // D4: remote judge over the /v1/systemone wire shape; local cache still
       // produces the context embedding; remote results are untrusted (LLM_PRIOR ceiling).
@@ -924,7 +934,10 @@ export class NAR extends BaseComponent {
       manifold = createManifold(this._systemOneEmbeddingCache!, {
         backendId: 'encoder-wasm-s1' as any,
         modelDigest: composeModelDigest(
-          encoderDigest(encoderConfig?.modelId ?? 'Xenova/all-MiniLM-L6-v2', encoderConfig?.dimension ?? 384),
+          encoderDigest(
+            encoderConfig?.modelId ?? 'Xenova/all-MiniLM-L6-v2',
+            encoderConfig?.dimension ?? 384
+          ),
           'all-MiniLM-L6-v2-heads-v1'
         ) as any,
         calibrationVersion: 'v2.4.1' as any,
@@ -952,7 +965,11 @@ export class NAR extends BaseComponent {
 
     // Create cortex adapter if provider is not 'off'
     let cortex: import('./lm/system-one/types.js').GenerativeCortex;
-    if (systemOneConfig.cortex?.provider && systemOneConfig.cortex.provider !== 'off' && this._lmService) {
+    if (
+      systemOneConfig.cortex?.provider &&
+      systemOneConfig.cortex.provider !== 'off' &&
+      this._lmService
+    ) {
       cortex = createLMServiceCortex({
         lmService: this._lmService,
         grammar: 'narsese-term',
@@ -964,15 +981,19 @@ export class NAR extends BaseComponent {
     }
 
     // Create dispatcher with all four tiers (real manifold as Tier 1)
-    this._systemOneDispatcher = createDispatcher(true, {
-      embeddingCache: this._systemOneEmbeddingCache!,
-      tier1Manifold: manifold,
-      provisional: {
-        cInitial: systemOneConfig.provisional?.cInitial ?? 0.1,
-        decayRate: systemOneConfig.provisional?.decayRate ?? 0.3,
-        maxTtlMs: systemOneConfig.provisional?.maxTtlMs ?? 30_000,
+    this._systemOneDispatcher = createDispatcher(
+      true,
+      {
+        embeddingCache: this._systemOneEmbeddingCache!,
+        tier1Manifold: manifold,
+        provisional: {
+          cInitial: systemOneConfig.provisional?.cInitial ?? 0.1,
+          decayRate: systemOneConfig.provisional?.decayRate ?? 0.3,
+          maxTtlMs: systemOneConfig.provisional?.maxTtlMs ?? 30_000,
+        },
       },
-    }, cortex);
+      cortex
+    );
 
     // Create groundedness gate for egress filtering
     this._systemOneGroundednessGate = createGroundednessGate({
@@ -986,7 +1007,9 @@ export class NAR extends BaseComponent {
     if (datasetPath) {
       this._systemOneDataset = new JudgmentDataset();
       this._systemOneDataset.setVectorSidecarPath('.cache/systemone/vectors');
-      this._systemOneDataset.startAutoFlush(datasetPath);
+      if (systemOneConfig.distillation?.autoFlush) {
+        this._systemOneDataset.startAutoFlush(datasetPath);
+      }
     }
     this._systemOneTraceGrader = createTraceGrader({
       manifold: this._systemOneManifold!,

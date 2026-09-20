@@ -1,16 +1,17 @@
-import { describe, it, expect } from 'vitest';
-import { ManifoldRLAgent } from '../../nar/src/lm/system-one/manifold-rl-agent.js';
-import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
-import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
-import { recordReflexOutcome } from '../../nar/src/lm/system-one/reflex-label-source.js';
-import { GridWorldGame } from '../../nar/src/game/GridWorldGame.js';
-import type { GridWorldState } from '../../nar/src/game/GridWorldEnv.js';
-import type { JudgmentHead, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
-import type { ReasoningBudget } from '@senars/kernel/schemas';
-import { QLearning } from './rl/baselines/gridworld.js';
-import { mkdtempSync, readFileSync, readdirSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { ReasoningBudget } from '@senars/kernel/schemas';
+import { describe, expect, it } from 'vitest';
+import type { GridWorldState } from '../../nar/src/game/GridWorldEnv.js';
+import { GridWorldGame } from '../../nar/src/game/GridWorldGame.js';
+import { SeededRNG } from '../../nar/src/game/SeededRNG.js';
+import { EmbeddingCache } from '../../nar/src/lm/system-one/embedding-cache.js';
+import { createManifold } from '../../nar/src/lm/system-one/manifold.js';
+import { ManifoldRLAgent } from '../../nar/src/lm/system-one/manifold-rl-agent.js';
+import { recordReflexOutcome } from '../../nar/src/lm/system-one/reflex-label-source.js';
+import type { JudgmentHead, JudgmentQuery } from '../../nar/src/lm/system-one/types.js';
+import { QLearning } from './rl/baselines/gridworld.js';
 
 const budget: ReasoningBudget = {
   maxCycles: 100,
@@ -72,12 +73,12 @@ async function makeOracleHead(cache: EmbeddingCache, qTable: Map<string, number[
   return head;
 }
 
-function randomEpisode(game: GridWorldGame, maxSteps = 30): number {
+function randomEpisode(game: GridWorldGame, rng: SeededRNG, maxSteps = 30): number {
   game.reset();
   let total = 0;
   for (let i = 0; i < maxSteps; i++) {
     const legal = game.legalActions(game.state());
-    const action = legal[Math.floor(Math.random() * legal.length)]!;
+    const action = legal[Math.floor(rng.next() * legal.length)]!;
     const outcome = game.step(action);
     total += outcome.reward;
     if (outcome.terminal) break;
@@ -105,8 +106,9 @@ describe('System One RL Harness — no NAR in the loop (Bench 20)', () => {
     }
 
     const randomRewards: number[] = [];
+    const randomRng = new SeededRNG(11);
     for (let ep = 0; ep < 50; ep++) {
-      randomRewards.push(randomEpisode(new GridWorldGame({ grid, seed: ep })));
+      randomRewards.push(randomEpisode(new GridWorldGame({ grid, seed: ep }), randomRng));
     }
 
     const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
@@ -115,10 +117,18 @@ describe('System One RL Harness — no NAR in the loop (Bench 20)', () => {
     // Untrained regime (Z2): default heads are unfitted ⇒ mask/floor pass-through;
     // the untrained agent must not regress below random.
     const plainManifold = createManifold(cache, { abstainThreshold: 0.05 });
-    const untrainedAgent = new ManifoldRLAgent({ cache, manifold: plainManifold, budget, epsilon: 0.05 });
+    const untrainedAgent = new ManifoldRLAgent({
+      cache,
+      manifold: plainManifold,
+      budget,
+      epsilon: 0.05,
+      rng: new SeededRNG(23).next.bind(new SeededRNG(23)),
+    });
     const untrainedRewards: number[] = [];
     for (let ep = 0; ep < 50; ep++) {
-      untrainedRewards.push(await untrainedAgent.runEpisode(new GridWorldGame({ grid, seed: ep }), 30));
+      untrainedRewards.push(
+        await untrainedAgent.runEpisode(new GridWorldGame({ grid, seed: ep }), 30)
+      );
     }
     expect(avg(untrainedRewards)).toBeGreaterThanOrEqual(avg(randomRewards) - 0.1);
   }, 120_000);

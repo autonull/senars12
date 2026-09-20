@@ -55,6 +55,7 @@ export class Agent {
     toolCalls: readonly { command: string; success: boolean }[];
     correlationId: string;
   }) => Promise<unknown>;
+  #narrateTier?: 'quality' | 'fast' | 'structured';
   #started = false;
   #cycleCount = 0;
   #lastCycleTime = 0;
@@ -73,6 +74,7 @@ export class Agent {
     this.#commandParser = opts.commandParser;
     this.#groundednessGate = opts.groundednessGate;
     this.#traceGrader = opts.traceGrader;
+    this.#narrateTier = opts.narrateTier;
 
     this.memory.connectLog(this.log);
     this.memory.connectEngines(this.engines);
@@ -258,6 +260,7 @@ export class Agent {
       commandParser: this.#commandParser,
       groundednessGate: this.#groundednessGate,
       traceGrader: this.#traceGrader,
+      narrateTier: this.#narrateTier,
       emit: (e) => this.#emitCognitive(e),
       getLastResponse: () => this.#lastResponse,
       setLastResponse: (v) => {

@@ -1,5 +1,4 @@
-import { lmSettingsSchema } from '@senars/util/config';
-import { narCoreBounds } from '@senars/util/config';
+import { lmSettingsSchema, narCoreBounds } from '@senars/util/config';
 import { z } from 'zod';
 
 const envBool = (key: string) =>
@@ -26,12 +25,36 @@ const narCoreDefaults = {
 } as const;
 
 export const narCoreSchema = z.object({
-  maxConcepts: z.number().min(narCoreBounds.maxConcepts.min).max(narCoreBounds.maxConcepts.max).default(narCoreDefaults.maxConcepts),
-  activationDecayRate: z.number().min(narCoreBounds.activationDecayRate.min).max(narCoreBounds.activationDecayRate.max).default(narCoreDefaults.activationDecayRate),
-  consolidationInterval: z.number().min(narCoreBounds.consolidationInterval.min).max(narCoreBounds.consolidationInterval.max).default(narCoreDefaults.consolidationInterval),
-  cpuThrottleMs: z.number().min(narCoreBounds.cpuThrottleMs.min).max(narCoreBounds.cpuThrottleMs.max).default(narCoreDefaults.cpuThrottleMs),
-  maxDerivationDepth: z.number().min(narCoreBounds.maxDerivationDepth.min).max(narCoreBounds.maxDerivationDepth.max).default(narCoreDefaults.maxDerivationDepth),
-  maxDerivationsPerStep: z.number().min(narCoreBounds.maxDerivationsPerStep.min).max(narCoreBounds.maxDerivationsPerStep.max).default(narCoreDefaults.maxDerivationsPerStep),
+  maxConcepts: z
+    .number()
+    .min(narCoreBounds.maxConcepts.min)
+    .max(narCoreBounds.maxConcepts.max)
+    .default(narCoreDefaults.maxConcepts),
+  activationDecayRate: z
+    .number()
+    .min(narCoreBounds.activationDecayRate.min)
+    .max(narCoreBounds.activationDecayRate.max)
+    .default(narCoreDefaults.activationDecayRate),
+  consolidationInterval: z
+    .number()
+    .min(narCoreBounds.consolidationInterval.min)
+    .max(narCoreBounds.consolidationInterval.max)
+    .default(narCoreDefaults.consolidationInterval),
+  cpuThrottleMs: z
+    .number()
+    .min(narCoreBounds.cpuThrottleMs.min)
+    .max(narCoreBounds.cpuThrottleMs.max)
+    .default(narCoreDefaults.cpuThrottleMs),
+  maxDerivationDepth: z
+    .number()
+    .min(narCoreBounds.maxDerivationDepth.min)
+    .max(narCoreBounds.maxDerivationDepth.max)
+    .default(narCoreDefaults.maxDerivationDepth),
+  maxDerivationsPerStep: z
+    .number()
+    .min(narCoreBounds.maxDerivationsPerStep.min)
+    .max(narCoreBounds.maxDerivationsPerStep.max)
+    .default(narCoreDefaults.maxDerivationsPerStep),
 });
 
 const lmDefaults = { enabled: true, provider: 'transformers' } as const;
@@ -49,6 +72,7 @@ const profileDefaults = {
   capabilities: [] as string[],
   interactionGuide: '',
   reasoningTransparency: 'summary' as const,
+  narrateTier: 'fast' as const,
 };
 
 export const botProfileSchema = z.object({
@@ -60,6 +84,8 @@ export const botProfileSchema = z.object({
   reasoningTransparency: z
     .enum(['none', 'summary', 'full'])
     .default(profileDefaults.reasoningTransparency),
+  /** H2: default narration tier for chat cycles — chat() callers without an explicit tier use this. */
+  narrateTier: z.enum(['fast', 'quality', 'structured']).default(profileDefaults.narrateTier),
 });
 
 const reasoningDefaults = {
@@ -374,7 +400,15 @@ export const systemOneDefaults = {
     provider: 'off' as const,
     embeddingCacheSizeMB: 64,
     encoder: { modelId: 'Xenova/all-MiniLM-L6-v2', dimension: 384 },
-    heads: {} as Record<string, { modelDigest: string; calibrationVersion: string; abstainThreshold: number; enabled: boolean }>,
+    heads: {} as Record<
+      string,
+      {
+        modelDigest: string;
+        calibrationVersion: string;
+        abstainThreshold: number;
+        enabled: boolean;
+      }
+    >,
     consensus: { criticalityFloor: 'high' as const, fanout: 3, minAgreement: 0.66 },
   },
   cortex: { provider: 'off' as const, model: undefined as string | undefined },
@@ -386,7 +420,12 @@ export const systemOneDefaults = {
     maxMemoryMbPerCycle: 256,
   },
   provisional: { cInitial: 0.1, decayRate: 0.3, maxTtlMs: 30000 },
-  distillation: { datasetPath: './data/systemone-distillation.jsonl', bakeOffSamplingRate: 0.1, driftEceBound: 0.15 },
+  distillation: {
+    datasetPath: './data/systemone-distillation.jsonl',
+    bakeOffSamplingRate: 0.1,
+    driftEceBound: 0.15,
+    autoFlush: false,
+  },
   rl: {
     policy: 'eps-greedy' as const,
     epsilon: 0.1,
@@ -401,48 +440,98 @@ export const systemOneSchema = z.object({
   enabled: z.boolean().default(systemOneDefaults.enabled),
   manifold: z
     .object({
-      provider: z.enum(['off', 'wasi', 'webgpu', 'http', 'peer']).default(systemOneDefaults.manifold.provider),
+      provider: z
+        .enum(['off', 'wasi', 'webgpu', 'http', 'peer'])
+        .default(systemOneDefaults.manifold.provider),
       endpoint: z.string().optional(),
       timeoutMs: z.number().int().positive().optional(),
-      embeddingCacheSizeMB: z.number().int().positive().default(systemOneDefaults.manifold.embeddingCacheSizeMB),
+      embeddingCacheSizeMB: z
+        .number()
+        .int()
+        .positive()
+        .default(systemOneDefaults.manifold.embeddingCacheSizeMB),
       encoder: z
         .object({
           modelId: z.string().default(systemOneDefaults.manifold.encoder.modelId),
-          dimension: z.number().int().positive().default(systemOneDefaults.manifold.encoder.dimension),
+          dimension: z
+            .number()
+            .int()
+            .positive()
+            .default(systemOneDefaults.manifold.encoder.dimension),
         })
         .default(systemOneDefaults.manifold.encoder),
-      heads: z.record(
-        z.string(),
-        z.object({
-          modelDigest: z.string(),
-          calibrationVersion: z.string(),
-          abstainThreshold: z.number().min(0).max(1),
-          enabled: z.boolean(),
-        })
-      ).default({}),
+      heads: z
+        .record(
+          z.string(),
+          z.object({
+            modelDigest: z.string(),
+            calibrationVersion: z.string(),
+            abstainThreshold: z.number().min(0).max(1),
+            enabled: z.boolean(),
+          })
+        )
+        .default({}),
       consensus: z
         .object({
-          criticalityFloor: z.enum(['low', 'standard', 'high', 'critical']).default(systemOneDefaults.manifold.consensus.criticalityFloor),
+          criticalityFloor: z
+            .enum(['low', 'standard', 'high', 'critical'])
+            .default(systemOneDefaults.manifold.consensus.criticalityFloor),
           fanout: z.number().int().positive().default(systemOneDefaults.manifold.consensus.fanout),
-          minAgreement: z.number().min(0).max(1).default(systemOneDefaults.manifold.consensus.minAgreement),
+          minAgreement: z
+            .number()
+            .min(0)
+            .max(1)
+            .default(systemOneDefaults.manifold.consensus.minAgreement),
         })
         .default(systemOneDefaults.manifold.consensus),
     })
     .default(systemOneDefaults.manifold),
   cortex: z
     .object({
-      provider: z.enum(['off', 'anthropic', 'openai', 'openai-compatible', 'ollama', 'llamacpp', 'transformers', 'webllm', 'mock']).default(systemOneDefaults.cortex.provider),
+      provider: z
+        .enum([
+          'off',
+          'anthropic',
+          'openai',
+          'openai-compatible',
+          'ollama',
+          'llamacpp',
+          'transformers',
+          'webllm',
+          'mock',
+        ])
+        .default(systemOneDefaults.cortex.provider),
       /** H2/X16: per-domain model binding — Cortex candidates route through this id. */
       model: z.string().optional(),
     })
     .default(systemOneDefaults.cortex),
   budgets: z
     .object({
-      maxJudgmentCallsPerCycle: z.number().int().positive().default(systemOneDefaults.budgets.maxJudgmentCallsPerCycle),
-      maxConsensusPerCycle: z.number().int().positive().default(systemOneDefaults.budgets.maxConsensusPerCycle),
-      maxLatencyMsPerJudgment: z.number().int().positive().default(systemOneDefaults.budgets.maxLatencyMsPerJudgment),
-      maxTokensPerCycle: z.number().int().positive().default(systemOneDefaults.budgets.maxTokensPerCycle),
-      maxMemoryMbPerCycle: z.number().int().positive().default(systemOneDefaults.budgets.maxMemoryMbPerCycle),
+      maxJudgmentCallsPerCycle: z
+        .number()
+        .int()
+        .positive()
+        .default(systemOneDefaults.budgets.maxJudgmentCallsPerCycle),
+      maxConsensusPerCycle: z
+        .number()
+        .int()
+        .positive()
+        .default(systemOneDefaults.budgets.maxConsensusPerCycle),
+      maxLatencyMsPerJudgment: z
+        .number()
+        .int()
+        .positive()
+        .default(systemOneDefaults.budgets.maxLatencyMsPerJudgment),
+      maxTokensPerCycle: z
+        .number()
+        .int()
+        .positive()
+        .default(systemOneDefaults.budgets.maxTokensPerCycle),
+      maxMemoryMbPerCycle: z
+        .number()
+        .int()
+        .positive()
+        .default(systemOneDefaults.budgets.maxMemoryMbPerCycle),
     })
     .default(systemOneDefaults.budgets),
   provisional: z
@@ -455,8 +544,14 @@ export const systemOneSchema = z.object({
   distillation: z
     .object({
       datasetPath: z.string().default(systemOneDefaults.distillation.datasetPath),
-      bakeOffSamplingRate: z.number().min(0).max(1).default(systemOneDefaults.distillation.bakeOffSamplingRate),
+      bakeOffSamplingRate: z
+        .number()
+        .min(0)
+        .max(1)
+        .default(systemOneDefaults.distillation.bakeOffSamplingRate),
       driftEceBound: z.number().min(0).max(1).default(systemOneDefaults.distillation.driftEceBound),
+      /** E4c: opt-in periodic append of dataset rows — default config no longer writes dataset files silently. */
+      autoFlush: z.boolean().optional(),
     })
     .default(systemOneDefaults.distillation),
   rl: z

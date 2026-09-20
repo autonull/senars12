@@ -6,11 +6,11 @@ import type { PersistableSessionManager } from '@senars/core/memory';
 import { registerAgentTools } from '@senars/core/motor';
 import { MettaEngine } from '@senars/metta/agent';
 import type { EpisodicMemory, LMService, NAR } from '@senars/nar';
-import { NAREngine } from '../engine/NAREngine.js';
-import { createCompactionPromptBuilder } from './compaction.js';
 import type { ToolFeedbackObserver } from '@senars/util/feedback';
 import { DefaultToolFeedbackObserver } from '@senars/util/feedback';
+import { NAREngine } from '../engine/NAREngine.js';
 import { CoreToolRegistryAdapter } from '../tools';
+import { createCompactionPromptBuilder } from './compaction.js';
 
 export interface CreateAgentConfig {
   nar?: NAR;
@@ -24,7 +24,11 @@ export interface CreateAgentConfig {
   throttle?: number;
   promptBuilder?: import('@senars/core').PromptBuilder;
   /** Bot identity — persona injected into the chat system prompt. */
-  profile?: { name?: string; personality?: string };
+  profile?: {
+    name?: string;
+    personality?: string;
+    narrateTier?: 'quality' | 'fast' | 'structured';
+  };
   /** Composable skill package: instructions injected into the system prompt. */
   skills?: Array<{ id: string; description?: string; instructions: string; enabled?: boolean }>;
   /** Conversation compaction thresholds (`bot.conversation` config block). */
@@ -175,6 +179,7 @@ export async function createAgent(config: CreateAgentConfig = {}): Promise<Exten
     feedbackObserver,
     groundednessGate,
     traceGrader,
+    narrateTier: config.profile?.narrateTier,
   });
 
   const narEngine = new NAREngine(narInstance, agent.emitCognitive.bind(agent));

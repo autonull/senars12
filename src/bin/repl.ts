@@ -6,8 +6,8 @@ import { formatLMConfig, resolveLMConfig } from '@senars/nar/lm';
 import { createLogger } from '@senars/nar/logger';
 import { buildCommands } from '../cli/commands.js';
 import { assertValidEnv } from '../utils/env-validate.js';
-import { createAgentFromEnv } from './lib/lifecycle.js';
 import { runEntrypoint } from './lib/fatal-error.js';
+import { createAgentFromEnv } from './lib/lifecycle.js';
 
 assertValidEnv();
 
@@ -56,7 +56,7 @@ async function main() {
   const setSession = (s: ConversationSession) => {
     currentSession = s;
   };
-  let tier: 'quality' | 'fast' | 'structured' = 'fast';
+  let tier: 'quality' | 'fast' | 'structured' = profile.narrateTier;
   const commands = buildCommands(nar, agent, lmService, sessionManager, getSession, setSession, {
     get: () => tier,
     set: (t) => {

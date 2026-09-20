@@ -123,6 +123,7 @@ export async function createAgentFromEnv(
     profile: {
       name: appConfig.profile.name,
       personality: appConfig.profile.personality,
+      narrateTier: appConfig.profile.narrateTier,
     },
     conversation: {
       maxHistory: appConfig.bot.conversation.maxHistory,

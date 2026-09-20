@@ -22,6 +22,8 @@ export interface ManifoldRLAgentOptions {
   /** Deny actions whose risk exceeds this floor — engages only when fitted (Z2). */
   riskFloor?: number;
   labelOutcomes?: boolean;
+  /** Exploration RNG — injectable for deterministic tests (defaults to Math.random). */
+  rng?: () => number;
 }
 
 export interface ManifoldRLDecision<A = number> {
@@ -49,6 +51,7 @@ export class ManifoldRLAgent {
   readonly #feasibilityMask: boolean;
   readonly #riskFloor: number;
   readonly #labelOutcomes: boolean;
+  readonly #rng: () => number;
   readonly #visits = new Map<string, Map<string, number>>();
   #totalVisits = 0;
 
@@ -63,6 +66,7 @@ export class ManifoldRLAgent {
     this.#feasibilityMask = options.feasibilityMask ?? true;
     this.#riskFloor = options.riskFloor ?? 0.8;
     this.#labelOutcomes = options.labelOutcomes ?? true;
+    this.#rng = options.rng ?? Math.random;
   }
 
   /** One joint judgeBatch: reflex_value (per action) + feasibility (mask) + risk (floor). */
@@ -153,7 +157,7 @@ export class ManifoldRLAgent {
   ): A {
     // Z2: unfitted value heads are not load-bearing — uniform exploration
     if (!valuesFitted) {
-      return legalActions[Math.floor(Math.random() * legalActions.length)]!;
+      return legalActions[Math.floor(this.#rng() * legalActions.length)]!;
     }
     const eligible = legalActions.filter((a) => {
       const key = String(a);
@@ -163,8 +167,8 @@ export class ManifoldRLAgent {
     });
     const candidates = eligible.length > 0 ? eligible : [...legalActions];
 
-    if (Math.random() < this.#epsilon) {
-      return candidates[Math.floor(Math.random() * candidates.length)]!;
+    if (this.#rng() < this.#epsilon) {
+      return candidates[Math.floor(this.#rng() * candidates.length)]!;
     }
 
     const scoreOf = (a: A): number => {

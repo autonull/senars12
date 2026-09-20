@@ -48,6 +48,8 @@ export interface AgentOptions {
     toolCalls: readonly { command: string; success: boolean }[];
     correlationId: string;
   }) => Promise<unknown>;
+  /** H2: default narration tier for chat cycles when the caller passes none. */
+  narrateTier?: 'quality' | 'fast' | 'structured';
 }
 
 export interface ParsedCommand {

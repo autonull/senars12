@@ -28,13 +28,17 @@ export interface CycleHost {
   readonly episodicMemory?: EpisodicMemory;
   readonly commandParser?: (text: string) => { command: string; args: string[]; raw: string }[];
   /** System One egress gate (§7.4): returns true (or `{grounded, score}`) when the narration is grounded enough to emit. */
-  readonly groundednessGate?: (narration: string) => Promise<boolean | { grounded: boolean; score?: number }>;
+  readonly groundednessGate?: (
+    narration: string
+  ) => Promise<boolean | { grounded: boolean; score?: number }>;
   /** E4: grades the completed cycle (narration + executed tools) into the distillation dataset. */
   readonly traceGrader?: (trace: {
     narration: string;
     toolCalls: readonly { command: string; success: boolean }[];
     correlationId: string;
   }) => Promise<unknown>;
+  /** H2: default narration tier when the caller passes none. */
+  readonly narrateTier?: 'quality' | 'fast' | 'structured';
 
   emit(event: CognitiveEvent): void;
 
@@ -44,8 +48,9 @@ export interface CycleHost {
 }
 
 /** I4/X13: egress-gate rejections are observable — never a silent narration swap. */
-const gateVerdict = (v: boolean | { grounded: boolean; score?: number }): { grounded: boolean; score?: number } =>
-  typeof v === 'boolean' ? { grounded: v } : v;
+const gateVerdict = (
+  v: boolean | { grounded: boolean; score?: number }
+): { grounded: boolean; score?: number } => (typeof v === 'boolean' ? { grounded: v } : v);
 
 const reportEgressRejection = (host: CycleHost, correlationId: string, score?: number): void => {
   host.emit({
@@ -116,6 +121,7 @@ const narrate = async (
       context,
       derivations,
       tools: motorToToolSet(host.motor),
+      tier: host.narrateTier,
     });
     narrativeText = narrative.text;
     if (host.groundednessGate) {
@@ -236,12 +242,13 @@ export async function* runCycleStream(
 
   const derivations = await reason(host, stimulus, context);
   let narrativeText = '';
+  const tier = opts?.tier ?? host.narrateTier;
   const cortex = host.cortex;
   if (cortex) {
     const stream =
       typeof cortex.synthesizeStream === 'function'
         ? cortex.synthesizeStream(
-            { stimulus, context, derivations, tools: motorToToolSet(host.motor), tier: opts?.tier },
+            { stimulus, context, derivations, tools: motorToToolSet(host.motor), tier },
             opts?.signal
           )
         : (async function* () {
@@ -250,7 +257,7 @@ export async function* runCycleStream(
               context,
               derivations,
               tools: motorToToolSet(host.motor),
-              tier: opts?.tier,
+              tier,
             });
             yield { kind: 'text-delta', text: res.text } as ChatStreamEvent;
           })();
