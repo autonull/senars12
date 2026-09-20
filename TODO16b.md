@@ -891,6 +891,8 @@ Each phase builds on verified anchors only. `pnpm`, `vitest run`, `pnpm typechec
 
 ## 14. Master Checklist
 
+> All phases complete (2026-09-19). Remaining work — refinements, live integration, hardening — is re-planned in **§15 Revised Remaining-Work Plan** (supersedes the open items below).
+
 ### Phase 0: Algebra & Skeleton ✅ COMPLETE (2026-09-19)
 - [x] `nar/src/lm/system-one/{types,algebra,desire,seed,dispatcher}.ts`
 - [x] `nar/src/lm/system-one/provisional-stamp.ts`
@@ -939,13 +941,13 @@ Each phase builds on verified anchors only. `pnpm`, `vitest run`, `pnpm typechec
 - Heads' `Math.random()` placeholders make prefetch-path tests nondeterministic — tests must tolerate abstain→fallback; distillation (Phase 4) removes this.
 
 ### Phase 4: Distillation ✅ COMPLETE (2026-09-19)
-- [x] Label harvest targets (`distill.ts` `JudgmentDataset` + `DistillationLabel`): §9.1 sources wire in via `record()` — FeedbackLearner/ShadowValidator/ApprovalService/PreferenceCollector adapters remain a Phase 5 wiring step; dataset itself (append-only, redaction-per-retention, `toJSONL`) complete
+- [x] Label harvest targets (`distill.ts` `JudgmentDataset` + `DistillationLabel`): §9.1 sources wire in via `record()`; dataset (append-only, redaction-per-retention, `toJSONL`) complete. Adapters wired 2026-09-19 via `label-sources.ts` + `FeedbackLearner.setDistillationDataset`
 - [x] `runBakeOff` (Brier-based accuracy, 2% parity tolerance) + `validateHeadCandidate` sabotage gate
 - [x] Governed promotion: `buildHeadSwapProposal` (patch-apply, MEDIUM) + `buildSabotageFlag` (HIGH) → routed through existing `ProposalRouter`; head swap held for sandbox validation in every autonomy mode, sabotage never auto-applied in any mode
 - [x] `scripts/system-one-bakeoff.ts` — external-runner analog (reads dataset JSONL, evaluates candidate, exits nonzero on parity fail)
 - [x] Bench 10 (`todo16-parity.test.ts`, 5 tests) + Bench 14 (`todo16-sabotage.test.ts`, 7 tests) passing
-- [ ] Fine-tune/LoRA weight mutation — stays in external CI/CD by design; the runtime only proposes
-- [ ] Label-source adapters (FeedbackLearner/ShadowValidator → `JudgmentDataset.record`) — wired via `label-sources.ts` + `FeedbackLearner.setDistillationDataset` (2026-09-19); ApprovalService/ShadowValidator adapter functions exist and await call-site emission points
+- [ ] Fine-tune/LoRA weight mutation — stays in external CI/CD by design; the runtime only proposes. Needs a concrete training-runner spec (dataset schema freeze, LoRA target layers, eval harness) before a live distillation run — see Phase 7.R2
+- [x] Label-source adapters (FeedbackLearner → dataset.record) — wired via `label-sources.ts` + `FeedbackLearner.setDistillationDataset` (2026-09-19); ApprovalService/ShadowValidator adapter functions exist and await call-site emission points — see Phase 6.R7
 
 **Implementation notes for Phase 5**
 - `HEAD_MODEL_DIGEST` env must match `/^sha256:[0-9a-f]{64}$/` or `validateHeadCandidate` rejects — the bake-off script passes the raw spec through; CI must set it.
@@ -957,18 +959,102 @@ Each phase builds on verified anchors only. `pnpm`, `vitest run`, `pnpm typechec
 - [x] `judgment` delegation kind — `createJudgmentDelegation` + `JudgmentDelegationPeer` in `cooperation/delegation.ts`; results re-enter at `PEER_AGENT` (0.6) ceiling
 - [x] Resource accounting — `resource-gate.ts` (`chargeJudgment`, `assertCostReported`); `systemone-judgment` wired into `KernelBudgetGate` cost table/remaining/limit/termination accounting (budget type `llm`)
 - [x] Metrics — `systemone_judgments_total{axis,shape,tier,abstained}`, `systemone_judgment_latency_ms{tier}`, `systemone_provisional_active`, `systemone_head_ece{head}` + `recordJudgmentMetric`
-- [ ] Label-source adapters — ✅ WIRED (2026-09-19): `label-sources.ts` adapters + `FeedbackLearner.setDistillationDataset`; ApprovalService/ShadowValidator adapters are standalone functions ready for call-site wiring when those flows emit verdicts
+- [x] Label-source adapters — ✅ WIRED (2026-09-19): `label-sources.ts` adapters + `FeedbackLearner.setDistillationDataset`; ApprovalService/ShadowValidator adapters are standalone functions ready for call-site wiring when those flows emit verdicts (Phase 6.R7)
 - [x] Bench 12 (`todo16-resources.test.ts`, 9 tests) passing
-- [ ] OTel span attributes on the 11 stages — deferred: requires instrumenting existing stage spans, no new stage names (mechanical follow-up)
-- [ ] Live no-cloud firewall profile test — structure verified (untrusted ceiling + sandbox + fail-closed digest); a dedicated device-profile e2e remains
+- [ ] `judgment.resolved` emission + `recordJudgmentMetric` call sites — event schema + metrics exist and are validated in tests, but the production judgment flow never emits/records them — see Phase 6.R2
+- [ ] OTel span attributes on the 11 stages — deferred: requires instrumenting existing stage spans, no new stage names (mechanical follow-up) — see Phase 8.H2
+- [ ] Live no-cloud firewall profile test — structure verified (untrusted ceiling + sandbox + fail-closed digest); a dedicated device-profile e2e remains — see Phase 8.H3
 
 **Implementation notes / improvement opportunities**
 - `EmbeddingCache.writeRaw(vec: number[])` stores pre-computed remote/peer embeddings zero-copy — prefer it over text re-encoding for all remote contexts.
 - `resourceCostToLmCalls` maps cost → LM-call equivalents (`tokens/100` rounded up + long-compute surcharge); tune when real encoder latency data lands.
-- Label-source adapters (FeedbackLearner/ShadowValidator → `JudgmentDataset.record`) are now the only unwired System One piece — wire them when the first real distillation training run is scheduled.
-- `parity:smoke` GridWorld failure (SeNARS 0.018 vs baseline 0.708) is pre-existing and unrelated; investigate before relying on reflex parity.
+- `parity:smoke` GridWorld failure (SeNARS 0.018 vs baseline 0.708) is pre-existing and unrelated; investigate before relying on reflex parity — see Phase 8.H1.
 
-## 15. Definition of Done
+
+## 15. Revised Remaining-Work Plan (2026-09-19, post-Phase-5)
+
+All five original phases are complete; every §13 benchmark has a passing test suite and the implementation notes above record verified anchors. This section supersedes the stale open items in §14 and organizes what remains into three phases: **R** (refinements of completed work), **H** (hardening of pre-existing/deferred items), and **N** (new work unlocked by the completed build). Priority ordering: P6 → P7 → P8; within each phase R items precede H/N items because they close honesty gaps in what is already shipped.
+
+### Status Summary
+
+| Area | State |
+|------|-------|
+| Algebra, types, dispatcher (§2, §3) | ✅ Shipped — Benches 1, 2, 13 |
+| Manifold + calibration + heads (§3.1) | ✅ Shipped — Benches 2, 8, 9. ⚠ Heads in `heads/{action,memory,synthesis}.ts` score via `Math.random()` placeholders |
+| Generate-then-judge + provisional (§6.4, §7.1) | ✅ Shipped — Benches 5, 7 |
+| Teleological transduction + reflex (§7.2, §7.3) | ✅ Shipped — Benches 3, 11 |
+| Distillation + governed promotion (§9) | ✅ Shipped — Benches 10, 14; FeedbackLearner → dataset wired |
+| Edge, swarm, resource accounting (§10, §11) | ✅ Shipped — Bench 12 |
+| Telemetry (§11.2) | ⚠ Schemas + metric objects exist; production emission wiring absent |
+| Live integration | ⚠ `systemOne` config consumed only by `KernelPerceptionGate`; no NAR/agent assembly wiring; `groundednessGate` hook never constructed |
+
+### Phase 6 — Refinements of Completed Work (R)
+
+**R1. Untrained-head policy (replaces `Math.random()` placeholders).**
+`heads/{action,memory,synthesis}.ts` (7 heads: `tool_dispatch`, `risk`, `feasibility`, `strategy`, `reflex_value`, `candidate_select`, `conflict`) score via `Math.random()`, so — with `systemOne.enabled` — abstention, ranking, and transduction decisions are driven by random numbers in production. Ingress heads are already deterministic (`computeTaskTypeScore`-style embedding/instruction hashes). Required behavior:
+- Replace each placeholder with the deterministic embedding+instruction hash scorer (`DefaultJudgmentHead.computeRawScore` pattern) so untrained heads are reproducible and testable, OR
+- Gate them to **always-abstain** (source of a downstream `ProvisionalStamp`, never a calibrated admission) until a distilled `ModelDigest` is configured for that head in `systemOne.manifold.heads`.
+Acceptance: no `Math.random()` in any head; Bench 5/11 suites pass deterministically (remove the "tolerate abstain→fallback" caveats); running the same input twice yields identical propositions.
+
+**R2. Telemetry emission wiring.**
+`judgment.resolved` (schema validated in `todo16-fallback.test.ts`) and `recordJudgmentMetric` are never invoked by production code. Wire into `SystemOneManifold.judgeBatch` (one event + one metric per proposition) via an injected emit/callback so the manifold stays framework-agnostic. Acceptance: a test asserting proposition count == event count == metric delta for a batch; no event when `systemOne.enabled=false`.
+
+**R3. Per-head config consumption.**
+`appConfigSchema.systemOne.manifold.heads` (`Record<HeadId, {modelDigest, calibrationVersion, abstainThreshold, enabled}>`) exists in the schema but `createManifold` accepts only a global `abstainThreshold`/`calibrationVersion`. Thread per-head config into head factories (merging with `heads/` defaults). Acceptance: disabling `heads.injection.enabled=false` in config yields the sabotage-flagged path, not silent removal (ties into `validateHeadCandidate` semantics).
+
+**R4. Groundedness-gate factory.**
+`CycleHost.groundednessGate` / `AgentOptions.groundednessGate` is a pluggable hook with no constructor. Add `createGroundednessGate(manifold, cache, threshold=0.7)` in `nar/src/lm/system-one/` and document the wiring snippet for agents running with `systemOne.enabled`. Acceptance: gate returns false for ungrounded drafts (score < 0.7) and on abstention (fail-safe → template verbalization).
+
+**R5. Per-candidate embeddings in `proposeAndJudge`.**
+`candidate_select` scores every option against the *context* embedding only; candidate texts are never written to the cache. Refinement: `cache.write(candidate)` per candidate and a per-candidate head evaluation so ranking discriminates content, not just context. Acceptance: two candidates with near-identical context but different content can rank differently.
+
+**R6. Explicit safety floor in the dispatcher (§4).**
+The injection fail-closed path currently works *accidentally*: a Tier 1 abstain on `injection` merges down to the Tier 0 deterministic default (score 0.5 > 0.1 veto threshold). Make it explicit: queries with `criticality ∈ {high, critical}` and `rubric ∈ {injection, assertion}` that end up abstained/non-manifold-validated return a hard-veto proposition (or a `blocked` abstain with `abstainReason: 'breaker-open'`), independent of Tier 0 defaults. Acceptance: Bench 8-style test asserting crafted injection inputs are vetoed even when the deterministic default score is lowered.
+
+**R7. ApprovalService/ShadowValidator emission points.**
+`recordApprovalLabel` / `recordShadowVerdictLabel` exist but nothing calls them. Locate the `ApprovalService` decision site and `ShadowValidator` verdict site and call the adapters (dataset optional/injected). Acceptance: an integration test where an approval rejection + a shadow conflict land in a `JudgmentDataset` as hash-only labels.
+
+**R8. `JudgmentDataset` file persistence.**
+The dataset is memory-only; §9.2 specifies append-only JSONL. Add `flush(path)` (append mode) + `load(path)` to `JudgmentDataset`, and have the bake-off script read from disk end-to-end (already does). Acceptance: record → flush → load round-trips labels identically; file contains no raw text (existing redaction tests still pass).
+
+### Phase 7 — Live Integration & Measurement (N)
+
+**N1. NAR/agent assembly wiring.**
+`systemOne` config is consumed only by `KernelPerceptionGate`. Add assembly in the NAR factory: build `EmbeddingCache` + `SystemOneManifold` + `SystemOneDispatcher` once from config, expose via a `nar.systemOne` accessor, and (a) pass the dispatcher's `proposeAndJudge` into the LM-rule path, (b) construct the groundedness gate for the core agent (R4), (c) attach `ManifoldReflex` to `GameFocus` when a game env is present. All behind `systemOne.enabled` (default false ⇒ byte-identical behavior).
+
+**N2. Cortex path + token-reduction measurement.**
+With N1 in place, run `bench:fundamentals:mock` (and `:ollama` where a model is available) with `systemOne.enabled` on/off and record token spend + P99 latency deltas into `.reports/`. Note: the benchmark hung in this environment (model download); run on a machine with the model cached or extend the mock provider to serve deterministic canned embeddings/completions.
+
+**N3. `systemOne` knobs via `knobSchema`.**
+Blocked on plumbing, not schema: `getNested`/`setNested` in `rlfp/knobs.ts` assume `CognitiveParameters` paths. Options: (a) pass the full app config object into `createKnobSet`, or (b) register `systemOne.budgets.*` / `provisional.*` as a second knob set consumed by `ConfigOptimizer` separately. Choose (b) — smaller blast radius. Acceptance: `SandboxValidator` validates `systemone_*` knob tunes through the existing `knob-tune` lane; `get()` never returns `undefined`.
+
+**N4. `parity:smoke` GridWorld investigation.**
+Pre-existing failure (SeNARS 0.018 vs baseline 0.708, verified identical on clean HEAD before and after all System One work). Investigate root cause (episode length? reward attribution? task admission path?) before Phase 3's "ManifoldReflex ≥ incumbent" claim can be evaluated in a live grid. This blocks a meaningful semantic-reflex parity run, not the implementation.
+
+**N5. External distillation runner spec.**
+Freeze the `DistillationLabel` JSONL schema (already serialized), document the LoRA/head fine-tune contract (input: `dataset.jsonl`; output: head bundle + `ModelDigest`; publish via `loadHeadRuntime`), and add a `.github` workflow stub or `scripts/README` describing the CI contract. The runtime stays propose-only; this work is documentation + schema pinning, not model training.
+
+### Phase 8 — Hardening & Observability (H)
+
+**H1. Flaky property-based test.**
+`tests/nar/property-based.test.ts` ("inheritance is NOT commutative") failed once under full-suite parallel load and passed standalone and on clean HEAD. Root-cause (likely cross-test seed/counter state) and make deterministic; do not ship randomized-seed flakes in the default suite.
+
+**H2. OTel span attributes.**
+Attach the §11.2 attribute set (`dispatch.tier_taken`, `dispatch.backend_id`, `dispatch.latency_ms`, `dispatch.axis`, `dispatch.entropy`, `dispatch.abstained`, `dispatch.stamp_type`, `dispatch.cost_tokens`, `dispatch.cost_memory`) to the existing stage spans via `getTracer`; no new stage names. Natural insertion point: same emit path as R2.
+
+**H3. No-cloud device-profile e2e.**
+A test that assembles the NAR with `systemOne.manifold.provider='wasi'`, no cloud providers, forces a head digest mismatch, and asserts: fail-closed veto, `policy.violation` event, no provider fallback, and provisional-only admission. Extends Bench 12/13 to a profile-level test.
+
+**H4. Pre-existing failure backlog.**
+13 long-standing failures outside System One (revision-history ×2, bandit-epsilon-greedy ×3, cognitive-advantage ×5, trace-validation ×3) fail identically on clean HEAD across all sessions. Track separately from TODO16 — they predate this work and pollute every full-suite gate signal.
+
+### Acceptance gates (unchanged per §13)
+
+`pnpm typecheck` clean, `pnpm lint` clean, `pnpm vitest run` green (modulo H4 backlog, tracked separately), and no regression when `systemOne.enabled=false`. Each R/N/H item lands with its own focused test; no test mocks — real `Truth`, `PriorityBag`, gates, and manifold objects only.
+
+---
+
+## 16. Definition of Done
 
 ```text
 utterance ─▶ Tier 0 (parser/Zod/MeTTa) ─▶ EmbeddingCache ─▶ Manifold.judgeBatch
