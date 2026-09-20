@@ -4,5 +4,6 @@ export type { FocusConcept, FocusOptions, FocusStepReport, FocusTask } from './F
 export { Focus } from './Focus.js';
 export { createFocus, FocusBag } from './FocusBag.js';
 export { createGameFocus, GameFocus } from './GameFocus.js';
+export { createFocusScheduler, FocusScheduler, type FocusSchedulerOptions, type SchedulerTickResult } from './focus-scheduler.js';
 export type { MetaFocusOptions } from './MetaFocus.js';
 export { createMetaFocus, MetaFocus } from './MetaFocus.js';

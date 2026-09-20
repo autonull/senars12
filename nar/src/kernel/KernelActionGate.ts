@@ -52,6 +52,9 @@ export class KernelActionGate {
   private autonomyMode: AutonomyMode;
   private allowedOperations: ReadonlySet<string>;
   private nalDerivations: Map<string, { conclusion: string; veto: boolean }> = new Map();
+  /** Per-scope autonomy modes + allowlists (game:<scopeId>:<action> operations). Additive. */
+  private scopeModes: Map<string, AutonomyMode> = new Map();
+  private scopeOperations: Map<string, Set<string>> = new Map();
 
   constructor(config?: Partial<KernelActionGateConfig>) {
     this.autonomyMode = config?.autonomyMode ?? DEFAULT_AUTONOMY_MODE;
@@ -98,12 +101,72 @@ export class KernelActionGate {
     return this.autonomyLog;
   }
 
+  /** Set autonomy mode for a named scope without touching the global mode (A3). */
+  setScopeAutonomy(scopeId: string, mode: AutonomyMode): void {
+    this.scopeModes.set(scopeId, mode);
+  }
+
+  addScopedOperation(scopeId: string, operation: string): void {
+    let ops = this.scopeOperations.get(scopeId);
+    if (!ops) {
+      ops = new Set();
+      this.scopeOperations.set(scopeId, ops);
+    }
+    ops.add(operation);
+  }
+
+  removeScope(scopeId: string): void {
+    this.scopeModes.delete(scopeId);
+    this.scopeOperations.delete(scopeId);
+  }
+
+  /** Parse 'game:<scopeId>:<action>' → {scopeId, action}; undefined when not namespaced. */
+  static parseScopedOperation(operation: string): { scopeId: string; action: string } | undefined {
+    if (!operation.startsWith('game:')) return undefined;
+    const rest = operation.slice('game:'.length);
+    const sep = rest.indexOf(':');
+    if (sep <= 0) return undefined;
+    return { scopeId: rest.slice(0, sep), action: rest.slice(sep + 1) };
+  }
+
+  private authorizeScoped(
+    scopeId: string,
+    action: string,
+    _correlationId: string
+  ): ActionGateOutput {
+    const mode = this.scopeModes.get(scopeId);
+    if (mode === undefined)
+      return {
+        authorized: false,
+        vetoReason: `Unknown scope ${scopeId}`,
+        requiredApprovals: ['human-approval'],
+      };
+    if (mode === 'observe-only' || mode === 'propose-only')
+      return {
+        authorized: false,
+        vetoReason: `Scope ${scopeId} autonomy mode ${mode} does not permit execution`,
+        requiredApprovals: ['human-approval'],
+      };
+    if (!this.scopeOperations.get(scopeId)?.has(action))
+      return {
+        authorized: false,
+        vetoReason: `Operation '${action}' not permitted in scope ${scopeId}`,
+        requiredApprovals: ['human-approval'],
+      };
+    return { authorized: true, toolCallId: uuidv4() };
+  }
+
   registerNALDerivation(derivationId: string, conclusion: string, veto: boolean = false): void {
     this.nalDerivations.set(derivationId, { conclusion, veto });
   }
 
   authorize(input: ActionGateInput): ActionGateOutput {
     const correlationId = input.correlationId ?? uuidv4();
+
+    // Scoped (game) operations authorize against their own scope — the global
+    // autonomy mode and allowlist are never consulted nor mutated (A3).
+    const scoped = KernelActionGate.parseScopedOperation(input.operation);
+    if (scoped) return this.authorizeScoped(scoped.scopeId, scoped.action, correlationId);
 
     if (this.autonomyMode === 'observe-only' || this.autonomyMode === 'propose-only') {
       const event: PolicyViolationEvent = {

@@ -55,14 +55,27 @@ export class GameFocus {
 
     this.focus.bindGame(this.game);
 
-    // Sandboxed game worlds: escalate autonomy to sandbox-execute and allow the
-    // game's own legal actions through the kernel ActionGate.
-    const actionGate = gateRegistry.getActionGate();
-    actionGate.setAutonomyMode('sandbox-execute');
-    for (const a of this.game.legalActions(this.game.state()))
-      actionGate.addAllowedOperation(String(a));
+    // Sandboxed game worlds: grant the focus's own scope sandbox-execute autonomy
+    // and allow its legal actions through the kernel ActionGate. The global
+    // autonomy mode and shared allowlist are untouched (A3 scoped gates).
+    this.syncScope();
 
     this.initGameTrace();
+  }
+
+  /** Refresh this focus's scoped autonomy + allowlist from the current legal actions. */
+  private syncScope(): void {
+    const actionGate = gateRegistry.getActionGate();
+    actionGate.removeScope(this.focus.id);
+    actionGate.setScopeAutonomy(this.focus.id, 'sandbox-execute');
+    for (const a of this.game.legalActions(this.game.state()))
+      actionGate.addScopedOperation(this.focus.id, String(a));
+  }
+
+  /** Drop this focus's scoped gate entries (lifecycle hygiene, A4). */
+  releaseScope(): void {
+    gateRegistry.getActionGate().removeScope(this.focus.id);
+    gateRegistry.getBudgetGate().releaseScope(this.focus.id);
   }
 
   bindReflex(reflex: Reflex): void {
@@ -178,139 +191,167 @@ export class GameFocus {
 
     let gameOutcome: GameOutcome | null = null;
 
-    // PROPOSAL: Reflexes propose actions
-    for (const reflex of this.focus.reflexes) {
-      const proposals = reflex.propose(
-        this.game.observe(),
-        this.game.legalActions(this.game.state())
-      );
-      if (proposals.length > 0) {
-        // Convert proposals to goals and add to focus tasks
-        const goals = this.focus.getActionGate().toGoals(proposals);
-        for (const goal of goals) {
-          this.focus.tasks.add(goal);
+    // PROPOSAL: collect from every bound reflex (A2 best-of-reflexes arbitration)
+    const reflexProposals = this.focus.reflexes
+      .map((reflex) => ({
+        reflex,
+        proposals: reflex.propose(
+          this.game.observe(),
+          this.game.legalActions(this.game.state())
+        ),
+      }))
+      .filter((entry) => entry.proposals.length > 0);
+
+    if (reflexProposals.length > 0) {
+      // Merge per action as max(value × confidence) with per-reflex provenance;
+      // over a single reflex the merge is the identity (behavior unchanged).
+      const proposersByAction = new Map<string, Set<Reflex>>();
+      const merged = new Map<string, ActionProposal>();
+      for (const { reflex, proposals } of reflexProposals) {
+        for (const p of proposals) {
+          const proposers = proposersByAction.get(p.action) ?? new Set<Reflex>();
+          proposers.add(reflex);
+          proposersByAction.set(p.action, proposers);
+          const incumbent = merged.get(p.action);
+          if (!incumbent || p.value * p.confidence > incumbent.value * incumbent.confidence)
+            merged.set(p.action, p);
         }
-        focusReport.gates.actions += goals.length;
-
-        // NEGOTIATION: Get NAL derivations and resolve
-        const nalDerivations: NALDerivation[] = [];
-        for (const proposal of proposals) {
-          const derivations = this.focus.getNALDerivations(proposal.action);
-          nalDerivations.push(...derivations);
-        }
-
-        const bestReflexProposal = proposals.reduce((best, p) =>
-          p.value * p.confidence > best.value * best.confidence ? p : best
-        );
-
-        const decision = this.negotiator.resolve(proposals, nalDerivations);
-
-        // Get legal actions for logging
-        const legalActions = this.game.legalActions(this.game.state());
-        const prevWeight = this.focus.weight;
-
-        // EXECUTION: Kernel ActionGate authorizes before world mutation
-        if (decision.actionExecuted) {
-          const auth = gateRegistry
-            .getActionGate()
-            .authorize({ proposalId: uuidv4(), operation: decision.actionExecuted, args: {} });
-          if (!auth.authorized) {
-            const learningEvent = this.negotiator.createLearningEvent(
-              this.focus,
-              { ...decision, actionExecuted: null, vetoedBy: auth.vetoReason ?? 'kernel-gate' },
-              {
-                reward: 0,
-                terminal: false,
-                perception: this.game.observe(),
-                previousPerception: this.previousPerception,
-              }
-            );
-            reflex.learn(learningEvent);
-            this.previousPerception = this.game.observe();
-            break;
-          }
-          const previousPerception = this.game.observe();
-          const action = this.parseAction(decision.actionExecuted);
-          gameOutcome = this.game.step(action);
-          const nextPerception = this.game.observe();
-
-          // REWARD: epistemic firewall — reward may only tune policy, never truth
-          const firewall = gateRegistry.getRewardGate().process({
-            eventId: uuidv4(),
-            rewardSignal: Math.max(-1, Math.min(1, gameOutcome.reward)),
-            rewardType: 'extrinsic',
-            targetType: 'policy-weights',
-            targetId: this.focus.id,
-            domain: 'external-reflex',
-          });
-          if (!firewall.accepted) break;
-          // REWARD: Convert outcome to beliefs
-          const rewardBeliefs = this.focus.getRewardGate().toBeliefs(gameOutcome);
-          for (const belief of rewardBeliefs) {
-            this.focus.tasks.add(belief);
-          }
-          focusReport.gates.rewards += rewardBeliefs.length;
-
-          // LEARNING: Reflex learns from outcome
-          const learningEvent = this.negotiator.createLearningEvent(this.focus, decision, {
-            reward: gameOutcome.reward,
-            terminal: gameOutcome.terminal,
-            perception: nextPerception,
-            previousPerception,
-          });
-          reflex.learn(learningEvent);
-
-          // Game trace logging (2A)
-          this.logGameTrace({
-            cycle: this.cycle,
-            legalActions: legalActions as number[],
-            reflexProposal: bestReflexProposal,
-            nalDerivations,
-            negotiatedAction: decision,
-            reward: gameOutcome.reward,
-            terminal: gameOutcome.terminal,
-            focusWeightDelta: this.focus.weight - prevWeight,
-          });
-        } else if (decision.action) {
-          // Action was vetoed - reflex learns it was overridden
-          this.vetoCount++;
-          this.currentEpisodeVetos++;
-          const vetoDerivation = nalDerivations.find(
-            (d) => d.action === decision.action && d.truth.f < 0.3 && d.truth.c >= 0.8
-          ) ?? nalDerivations[0];
-          this.vetoDetails.push({
-            cycle: this.cycle,
-            action: decision.action,
-            vetoReason: decision.vetoedBy ?? 'unknown',
-            derivation: vetoDerivation
-              ? { action: vetoDerivation.action, truth: vetoDerivation.truth, source: vetoDerivation.source }
-              : { action: '', truth: { f: 0, c: 0 }, source: 'none' },
-          });
-
-          const learningEvent = this.negotiator.createLearningEvent(this.focus, decision, {
-            reward: 0,
-            terminal: false,
-            perception: this.game.observe(),
-            previousPerception: this.previousPerception,
-          });
-          reflex.learn(learningEvent);
-
-          // Game trace logging for vetoed action (2A)
-          this.logGameTrace({
-            cycle: this.cycle,
-            legalActions: legalActions as number[],
-            reflexProposal: bestReflexProposal,
-            nalDerivations,
-            negotiatedAction: decision,
-            reward: 0,
-            terminal: false,
-            focusWeightDelta: this.focus.weight - prevWeight,
-          });
-        }
-
-        this.previousPerception = this.game.observe();
-        break;
       }
+      const proposals = [...merged.values()];
+
+      // Convert proposals to goals and add to focus tasks
+      const goals = this.focus.getActionGate().toGoals(proposals);
+      for (const goal of goals) {
+        this.focus.tasks.add(goal);
+      }
+      focusReport.gates.actions += goals.length;
+
+      // NEGOTIATION: Get NAL derivations and resolve
+      const nalDerivations: NALDerivation[] = [];
+      for (const proposal of proposals) {
+        const derivations = this.focus.getNALDerivations(proposal.action);
+        nalDerivations.push(...derivations);
+      }
+
+      const bestReflexProposal = proposals.reduce((best, p) =>
+        p.value * p.confidence > best.value * best.confidence ? p : best
+      );
+
+      const decision = this.negotiator.resolve(proposals, nalDerivations);
+
+      // Get legal actions for logging
+      const legalActions = this.game.legalActions(this.game.state());
+      const prevWeight = this.focus.weight;
+      const deliveringReflexes =
+        decision.action != null ? new Set(reflexProposals.map((entry) => entry.reflex)) : new Set<Reflex>();
+
+      // EXECUTION: Kernel ActionGate authorizes before world mutation (scoped op)
+      if (decision.actionExecuted) {
+        const auth = gateRegistry
+          .getActionGate()
+          .authorize({
+            proposalId: uuidv4(),
+            operation: `game:${this.focus.id}:${decision.actionExecuted}`,
+            args: {},
+          });
+        if (!auth.authorized) {
+          const learningEvent = this.negotiator.createLearningEvent(
+            this.focus,
+            { ...decision, actionExecuted: null, vetoedBy: auth.vetoReason ?? 'kernel-gate' },
+            {
+              reward: 0,
+              terminal: false,
+              perception: this.game.observe(),
+              previousPerception: this.previousPerception,
+            }
+          );
+          for (const reflex of deliveringReflexes) reflex.learn(learningEvent);
+          this.previousPerception = this.game.observe();
+          return { focusReport: { ...focusReport, cycle: this.cycle }, gameOutcome };
+        }
+        const previousPerception = this.game.observe();
+        const action = this.parseAction(decision.actionExecuted);
+        gameOutcome = this.game.step(action);
+        const nextPerception = this.game.observe();
+        this.syncScope();
+
+        // REWARD: epistemic firewall — reward may only tune policy, never truth
+        const firewall = gateRegistry.getRewardGate().process({
+          eventId: uuidv4(),
+          rewardSignal: Math.max(-1, Math.min(1, gameOutcome.reward)),
+          rewardType: 'extrinsic',
+          targetType: 'policy-weights',
+          targetId: this.focus.id,
+          domain: 'external-reflex',
+        });
+        if (!firewall.accepted) {
+          return { focusReport: { ...focusReport, cycle: this.cycle }, gameOutcome };
+        }
+        // REWARD: Convert outcome to beliefs
+        const rewardBeliefs = this.focus.getRewardGate().toBeliefs(gameOutcome);
+        for (const belief of rewardBeliefs) {
+          this.focus.tasks.add(belief);
+        }
+        focusReport.gates.rewards += rewardBeliefs.length;
+
+        // LEARNING: every reflex that proposed the executed action learns (A2 fan-out)
+        const learningEvent = this.negotiator.createLearningEvent(this.focus, decision, {
+          reward: gameOutcome.reward,
+          terminal: gameOutcome.terminal,
+          perception: nextPerception,
+          previousPerception,
+        });
+        for (const reflex of deliveringReflexes) reflex.learn(learningEvent);
+
+        // Game trace logging (2A)
+        this.logGameTrace({
+          cycle: this.cycle,
+          legalActions: legalActions as number[],
+          reflexProposal: bestReflexProposal,
+          nalDerivations,
+          negotiatedAction: decision,
+          reward: gameOutcome.reward,
+          terminal: gameOutcome.terminal,
+          focusWeightDelta: this.focus.weight - prevWeight,
+        });
+      } else if (decision.action) {
+        // Action was vetoed - proposing reflexes learn it was overridden
+        this.vetoCount++;
+        this.currentEpisodeVetos++;
+        const vetoDerivation = nalDerivations.find(
+          (d) => d.action === decision.action && d.truth.f < 0.3 && d.truth.c >= 0.8
+        ) ?? nalDerivations[0];
+        this.vetoDetails.push({
+          cycle: this.cycle,
+          action: decision.action,
+          vetoReason: decision.vetoedBy ?? 'unknown',
+          derivation: vetoDerivation
+            ? { action: vetoDerivation.action, truth: vetoDerivation.truth, source: vetoDerivation.source }
+            : { action: '', truth: { f: 0, c: 0 }, source: 'none' },
+        });
+
+        const learningEvent = this.negotiator.createLearningEvent(this.focus, decision, {
+          reward: 0,
+          terminal: false,
+          perception: this.game.observe(),
+          previousPerception: this.previousPerception,
+        });
+        for (const reflex of deliveringReflexes) reflex.learn(learningEvent);
+
+        // Game trace logging for vetoed action (2A)
+        this.logGameTrace({
+          cycle: this.cycle,
+          legalActions: legalActions as number[],
+          reflexProposal: bestReflexProposal,
+          nalDerivations,
+          negotiatedAction: decision,
+          reward: 0,
+          terminal: false,
+          focusWeightDelta: this.focus.weight - prevWeight,
+        });
+      }
+
+      this.previousPerception = this.game.observe();
     }
 
     return { focusReport: { ...focusReport, cycle: this.cycle }, gameOutcome };
