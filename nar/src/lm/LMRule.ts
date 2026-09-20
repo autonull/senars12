@@ -77,7 +77,11 @@ export class LMRule {
       ): Promise<any>;
     } | undefined;
   };
-  private systemOneAdapter?: { translateToNarsese(input: string, context?: Record<string, unknown>): Promise<Task[]> };
+  private systemOneAdapter?: {
+    translateToNarsese(input: string, context?: Record<string, unknown>): Promise<Task[]>;
+    metaReason?(primary: Term, context?: Record<string, unknown>): Promise<Task[]>;
+    calibrateUncertainty?(primary: Term, context?: Record<string, unknown>): Promise<Task[]>;
+  };
   private readonly outputSchema?: ZodSchema;
   private readonly inputSchema?: ZodSchema;
   private readonly validateFn?: (output: unknown) => ValidationResult;
@@ -141,7 +145,11 @@ export class LMRule {
     this.toolDispatcher = dispatcher;
   }
 
-  setSystemOneAdapter(adapter: { translateToNarsese(input: string, context?: Record<string, unknown>): Promise<Task[]> }): void {
+  setSystemOneAdapter(adapter: {
+    translateToNarsese(input: string, context?: Record<string, unknown>): Promise<Task[]>;
+    metaReason?(primary: Term, context?: Record<string, unknown>): Promise<Task[]>;
+    calibrateUncertainty?(primary: Term, context?: Record<string, unknown>): Promise<Task[]>;
+  }): void {
     this.systemOneAdapter = adapter;
   }
 
@@ -167,11 +175,22 @@ export class LMRule {
       return [];
     }
 
-    // Use System One adapter for translation rule when available
-    if (this.id === 'lm-narsese-translation' && this.systemOneAdapter) {
+    // System One adapter fast path (§8 dispositions). Translation falls through
+    // to the generative LM on empty; REPLACE rules (meta-reasoning,
+    // uncertainty-calibration) never reach the generative path.
+    const adapter = this.systemOneAdapter;
+    const systemOneMethod: ((primary: Term, context?: Record<string, unknown>) => Promise<Task[]>) | null =
+      this.id === 'lm-narsese-translation' && adapter
+        ? (primary, ctx) => adapter.translateToNarsese(primary.toString(), ctx)
+        : this.id === 'lm-meta-reasoning' && adapter?.metaReason
+          ? adapter.metaReason.bind(adapter)
+          : this.id === 'lm-uncertainty-calibration' && adapter?.calibrateUncertainty
+            ? adapter.calibrateUncertainty.bind(adapter)
+            : null;
+    if (systemOneMethod) {
       try {
-        const tasks = await this.systemOneAdapter.translateToNarsese(primary.toString(), context);
-        if (tasks.length > 0) {
+        const tasks = await systemOneMethod(primary, context);
+        if (tasks.length > 0 || this.id !== 'lm-narsese-translation') {
           this.emitSystemEvent('system:lm.rule:applied', {
             ruleId: this.id,
             ruleName: this.name,
@@ -185,13 +204,17 @@ export class LMRule {
           return tasks;
         }
       } catch (e) {
-        // Fall through to LM-based translation on adapter failure
         this.emitEvent('lm.failure', {
           ruleId: this.id,
           error: `System One adapter failed: ${e}`,
           duration: 0,
           timestamp: Date.now(),
         });
+        // REPLACE rules never reach the generative path — degrade to the
+        // symbolic fallback ([] when none). Translation falls through to LM.
+        if (this.id !== 'lm-narsese-translation') {
+          return this.applyFallback(primary, secondary, context);
+        }
       }
     }
 

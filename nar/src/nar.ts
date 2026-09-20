@@ -241,7 +241,12 @@ export class NAR extends BaseComponent {
       this._registry,
       this.config.lmService,
       this.config.enableBidirectionalFeedback,
-      this.config.enableProactiveEnrichment
+      this.config.enableProactiveEnrichment,
+      {
+        getDispatcher: () => this.getSystemOneDispatcher(),
+        getManifold: () => this.getSystemOneManifold(),
+        getEmbeddingCache: () => this.getSystemOneEmbeddingCache(),
+      }
     );
     this._metricsCollector = metrics;
 
@@ -993,6 +998,13 @@ export class NAR extends BaseComponent {
     const systemOneDispatcher = this.getSystemOneDispatcher();
 
     // Create System One rule adapter for translation rule
+    /** §8 dispositions served by the System One rule adapter (F5). */
+    const SYSTEM_ONE_DISPOSITION_RULES = new Set([
+      'lm-narsese-translation',
+      'lm-meta-reasoning',
+      'lm-uncertainty-calibration',
+    ]);
+
     const systemOneAdapter = systemOneDispatcher
       ? createSystemOneLMRuleAdapter({
           dispatcher: systemOneDispatcher,
@@ -1012,8 +1024,10 @@ export class NAR extends BaseComponent {
       rule.setNAR(this);
       rule.setToolDispatcher(toolDispatcher);
 
-      // For the translation rule, inject System One adapter when available
-      if (rule.id === 'lm-narsese-translation' && systemOneAdapter) {
+      // §8 dispositions with a System One adapter (F5): translation REPLACE
+      // via proposeAndJudge, meta-reasoning + uncertainty-calibration REPLACE
+      // via manifold scoring/calibrators.
+      if (systemOneAdapter && SYSTEM_ONE_DISPOSITION_RULES.has(rule.id)) {
         rule.setSystemOneAdapter(systemOneAdapter);
       }
 

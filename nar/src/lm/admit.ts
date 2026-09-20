@@ -3,7 +3,7 @@ import type { Memory } from '../memory';
 import type { Task } from '../types';
 import { shadowValidator } from './shadow-validation.js';
 
-export function admitTasks(memory: Memory, tasks: Task[], source: string): number {
+export async function admitTasks(memory: Memory, tasks: Task[], source: string): Promise<number> {
   // Shadow validation (3.3): LLM-originated tasks must not contradict current beliefs.
   const shadow = source.includes('llm');
   const beliefs = shadow
@@ -15,7 +15,7 @@ export function admitTasks(memory: Memory, tasks: Task[], source: string): numbe
       !gateRegistry.getPerceptionGate().admitTask(task.term, task.type, task.truth, source).admitted
     )
       continue;
-    if (shadow && !shadowValidator.validate(task, beliefs)) continue;
+    if (shadow && !(await shadowValidator.validateWithHead(task, beliefs))) continue;
     memory.addTask(task.term, task.type, task.truth, task.budget, task.stamp);
     admitted++;
   }

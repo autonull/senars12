@@ -397,7 +397,7 @@ New Prometheus counters (extend existing `systemone_*` family): `systemone_ingre
 - [x] F2 mock-provider bypass (no probing hang) — satisfied by H4 (`LM_PROVIDER=mock` returns immediately; `LM_OFFLINE=1` skips all probes). Residual: no dedicated `enableLMRules: true` + `nar.run()` integration test yet (N2-class, needs F3's harness).
 - [ ] F3 token-reduction + fan-out latency report
 - [ ] F4 `parity:smoke` root cause
-- [ ] F5 remaining §8 dispositions + doc reconciliation
+- [x] F5 remaining §8 dispositions + doc reconciliation
 - [x] F6 `LMService.stream` parity (X22)
 - [x] F7 `RLFPConfig` applied to `RLFPLearner` (X28)
 - [x] F8 CI `systemone-benches` job (todo16c-* + I1 examples smoke) (Z5)
@@ -408,6 +408,15 @@ New Prometheus counters (extend existing `systemone_*` family): `systemone_ingre
 - F7: `RLFPLearnerConfig.optimizeInterval` added; NAR passes `config.rlfp?.optimizeInterval` through construction; `nar-execution` reads `this.rlfp.optimizeInterval ?? config.rlfp?.optimizeInterval ?? 100` (mock learners without the field still fall back — `nar-execution.test.ts` green).
 - F8: `.github/workflows/ci.yml` gains `systemone-benches` job: `pnpm vitest run tests/nar/todo16c-*.test.ts` + the three I1 examples smoke. RL parity files land in this dedicated job, sidestepping the documented parallel-load flakes.
 - Remaining F3/F4/F5 unchanged (F3 needs model-cached machine; F4 is the GridWorld parity gap investigation; F5 is `lm-meta-reasoning`/`lm-uncertainty-calibration` REPLACE + shadow `conflict` + proactive `novelty`).
+
+**F5 completion (2026-09-20):**
+- `SystemOneLMRuleAdapter` generalized beyond translation: `metaReason(primary, {recentDerivations})` — per-trace `conflict`/`novelty` evaluate pairs via `judgeBatch`, ranked by `novelty − conflict`, top-2 traces re-admitted as guidance beliefs; `calibrateUncertainty(primary, {truth})` — best-ECE **fitted** isotonic calibrator recalibrates `c` (identity when none fitted — B5 honesty), `×0.8` demotion when `manifold.health().ready === false` (drift); `conflictScore(term)` / `noveltyScore(term)` helpers for the new consumers.
+- `LMRule.apply` fast path generalized: id→method map (`translation→translateToNarsese`, `meta-reasoning→metaReason`, `uncertainty-calibration→calibrateUncertainty`). Translation keeps its empty→generative fall-through; the two REPLACE rules **never** reach the generative path (empty adapter result ⇒ silent degrade; adapter error ⇒ `applyFallback` — which is now none for meta-reasoning). `nar.ts` injection gate widened to a `SYSTEM_ONE_DISPOSITION_RULES` set.
+- Fallback removal: `symbolicFallbacks['lm-meta-reasoning']` deleted (entry + `fallback:` in belief-rules.ts) — REPLACE = no symbolic equivalent, no generative call.
+- Shadow `conflict` head consumer: `ShadowValidator.setSystemOne({adapter, conflictThreshold=0.6})` + `validateWithHead` — semantic verdict engages **only when the head reports `calibration.fitted === true`** (Z2 convention; unfitted/abstain ⇒ frequency check, byte-identical); `admit.ts` `admitTasks` is now async (await at both call sites in feedback.ts + enrichment.ts). Singleton wired via `NARLM` (new optional `systemOneDeps` ctor param from NAR accessors).
+- Proactive `novelty` gate: `ProactiveEnricher` optional 4th ctor arg `EnricherSystemOneDeps {adapter, minNovelty=0.5}` — fitted novelty head below threshold skips the concept (no LM budget committed); unfitted ⇒ heuristic unchanged.
+- Test artifact: `tests/nar/todo16c-f5-dispositions.test.ts` (6 tests): REPLACE paths with zero LM calls, identity/drift calibration, frequency-check preservation, unfitted-gate pass-through. Typecheck 0 errors; lint clean; affected suites (lm, lm-rule-priority, nar-execution, teleological, transduction, e2e 01–05, factory, state-persistence, reasoner-nario, self-improvement, rl contract, dataset-persistence, cortex, live-ingress, head-specs) all green.
+- TODO16b §15 Status Summary amended with the F5 row.
 
 **Amendment completions (2026-09-20):**
 - **B7 (X8, Bench 28):** `DispatcherOptions.budgetGate/budgetScopeId` — `SystemOneDispatcher.judge` charges `systemone-judgment` per batch (max proposition `ResourceCost` via `resourceCostToLmCalls`); a denied scope returns Tier-0 results only; `assertCostReported` runs on every emitted Tier-1 proposition. `KernelBudgetGate.getScopeConsumed(scopeId)` accessor added for flow-level observability. Bench 28: `tests/nar/todo16c-charge-flow.test.ts` (3 tests).
@@ -436,7 +445,7 @@ New Prometheus counters (extend existing `systemone_*` family): `systemone_ingre
 **Remaining work (facilitation notes):**
 - **F3:** needs the F2-harness + model-cached machine; `LM_PROVIDER=mock` boot is instant, so the mock leg can run in CI — only the on/off token-reduction delta needs real providers.
 - **F4:** `parity:smoke` GridWorld 0.018-vs-0.708 — C2's restored adapters are the diagnostic tools; start from reward attribution in `GridWorldNativeAgent`.
-- **F5:** apply `lm-meta-reasoning`/`lm-uncertainty-calibration` REPLACE dispositions via the A6 `SystemOneLMRuleAdapter` (pattern exists — translation rule is the template); then reconcile TODO16b §15.
+- **F5 (done 2026-09-20, see Phase F progress notes):** §8 REPLACE dispositions applied + shadow `conflict` head + enrichment `novelty` gate; TODO16b §15 reconciled.
 - **D4 (remote manifold, ~1d):** HTTP client/server for `provider: 'http'`; `http-endpoint.ts` schemas exist; untrusted responses seed at `LLM_PRIOR`. No bench blocks (16/24 pass without it).
 - **D5 (WASI bundle, ~0.5–1d):** compile D1 linear heads to WASI; `SandboxedHeadRuntime` path already digest-pinned; blocked on wasm toolchain choice only.
 - **E4 (trace grading, ~half day):** `runCycleStream` → grade narration (`groundedness`) + executed tools (`risk`) → `PreferenceCollector` + dataset labels; I4's event plumbing is a template.
@@ -721,7 +730,7 @@ graph TD
 | B2–B4, X1–X4 | G1, G5 (+B2 subsumed) | 25 | `todo16c-head-specs.test.ts` |
 | B5, X25 | B5, B9 | 22 | `todo16c-calibration.test.ts` |
 | B6, B7 (config dup) | G6 | — | config round-trip in Bench 25 |
-| B8 (§8 dispositions) | F5 | — | existing rule suites |
+| B8 (§8 dispositions) | F5 | — | `todo16c-f5-dispositions.test.ts` |
 | X5 | G3 | 25 | `todo16c-head-specs.test.ts` |
 | X6 | G4 | 17 | `todo16c-cache.test.ts` |
 | X8 | B7 | 28 | `todo16c-charge-flow.test.ts` |

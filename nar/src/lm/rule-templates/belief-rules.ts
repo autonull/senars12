@@ -96,7 +96,6 @@ export const beliefRules: LMRuleDefinition[] = [
     taskType: 'belief',
     budget: 0.65,
     schema: MetaReasoningSchema,
-    fallback: symbolicFallbacks['lm-meta-reasoning'],
     maxOutputTokens: 64,
   },
   {

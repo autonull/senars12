@@ -1005,6 +1005,7 @@ All five original phases are complete; every §13 benchmark has a passing test s
 | No-cloud device-profile e2e (H3) | ✅ Shipped — `todo16-device-profile.test.ts` (9 tests): digest mismatch fail-closed, no provider fallback, provisional-only admission |
 | External distillation runner spec (N5) | ✅ Shipped — `docs/system-one-distillation-runner.md`: frozen schema, bundle contract, CI workflow stub |
 | SLO regression guard in CI (H5) | ✅ Shipped — `.github/workflows/ci.yml` adds `systemone-slo` job running `todo16-slo.test.ts` |
+| §8 REPLACE dispositions — meta-reasoning + uncertainty-calibration (amended 2026-09-20, TODO16c F5) | ✅ Shipped — `SystemOneLMRuleAdapter.metaReason` (manifold scoring over derivation traces) + `.calibrateUncertainty` (fitted isotonic calibrators + drift demotion); symbolic fallback removed; no generative call on the adapter path. Shadow validation consumes the `conflict` head (fitted-only, Z2 convention); ProactiveEnricher gated by the `novelty` head. `tests/nar/todo16c-f5-dispositions.test.ts` |
 
 ### Phase 6 — Refinements of Completed Work (R)
 

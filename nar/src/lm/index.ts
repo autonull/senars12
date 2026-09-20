@@ -1,8 +1,10 @@
 export { admitTasks } from './admit.js';
 export type { ContextBeliefOptions } from './context.js';
 export { topBeliefTasks } from './context.js';
-export type { EnricherConfig, EnrichmentResult } from './enrichment.js';
+export type { EnricherConfig, EnrichmentResult, EnricherSystemOneDeps } from './enrichment.js';
 export { createProactiveEnricher, ProactiveEnricher } from './enrichment.js';
+export type { ShadowCheckOptions, ShadowSystemOneDeps } from './shadow-validation.js';
+export { shadowValidator, ShadowValidator } from './shadow-validation.js';
 export type {
   LMProfileName,
   LMSettings,

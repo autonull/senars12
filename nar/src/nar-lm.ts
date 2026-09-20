@@ -1,7 +1,8 @@
 import type { LMService, SeNARSRegistry } from './lm';
-import { BidirectionalFeedbackLoop, getQualityModel, ProactiveEnricher } from './lm';
+import { BidirectionalFeedbackLoop, getQualityModel, ProactiveEnricher, shadowValidator } from './lm';
 import type { Memory } from './memory';
 import type { Task } from './types';
+import { createSystemOneLMRuleAdapter } from './lm/system-one/rule-adapter.js';
 
 export interface LMEnrichmentStats {
   cycles: number;
@@ -13,6 +14,13 @@ export interface FeedbackStats {
   pendingValidations: number;
 }
 
+/** F5: System One accessors wiring the adapter-driven consumers (shadow conflict head, novelty gate). */
+export interface NARLMSystemOneDeps {
+  getDispatcher: () => unknown;
+  getManifold: () => unknown;
+  getEmbeddingCache: () => unknown;
+}
+
 export class NARLM {
   private readonly feedbackLoop?: BidirectionalFeedbackLoop;
   private readonly enricher?: ProactiveEnricher;
@@ -22,14 +30,29 @@ export class NARLM {
     private readonly registry?: SeNARSRegistry,
     lmService?: LMService,
     enableBidirectionalFeedback?: boolean,
-    enableProactiveEnrichment?: boolean
+    enableProactiveEnrichment?: boolean,
+    systemOneDeps?: NARLMSystemOneDeps
   ) {
     if (lmService) {
+      const systemOne =
+        systemOneDeps && systemOneDeps.getManifold()
+          ? {
+              adapter: createSystemOneLMRuleAdapter({
+                dispatcher: systemOneDeps.getDispatcher() as Parameters<typeof createSystemOneLMRuleAdapter>[0]['dispatcher'],
+                nar: {
+                  getCycleCount: () => 0,
+                  getSystemOneEmbeddingCache: systemOneDeps.getEmbeddingCache,
+                  getSystemOneManifold: systemOneDeps.getManifold,
+                },
+              }),
+            }
+          : undefined;
+      if (systemOne) shadowValidator.setSystemOne(systemOne);
       if (enableBidirectionalFeedback) {
         this.feedbackLoop = new BidirectionalFeedbackLoop(memory, lmService);
       }
       if (enableProactiveEnrichment) {
-        this.enricher = new ProactiveEnricher(memory, lmService);
+        this.enricher = new ProactiveEnricher(memory, lmService, {}, systemOne);
       }
     }
   }

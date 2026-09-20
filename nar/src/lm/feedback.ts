@@ -309,7 +309,7 @@ Respond with JSON:
         });
         const bridgingHypotheses = parseEnrichmentResponse(response).hypotheses;
 
-        admitTasks(this.memory, bridgingHypotheses, 'llm');
+        await admitTasks(this.memory, bridgingHypotheses, 'llm');
       } catch (error) {
         this.logger.warn(`Failed to enrich context for concept: ${errMsg(error)}`);
       }
@@ -444,7 +444,7 @@ Respond with JSON:
         validation.revisedTruth,
         createBudget(0.7, 0.8)
       );
-      admitTasks(this.memory, [revisedTask], 'llm');
+      await admitTasks(this.memory, [revisedTask], 'llm');
     }
   }
 

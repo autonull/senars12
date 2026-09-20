@@ -8,6 +8,14 @@ import { admitTasks } from './admit.js';
 import { topBeliefTasks } from './context.js';
 import { LMResponseParser } from './LMRule.js';
 import type { LMService } from './lm-service.js';
+import type { SystemOneLMRuleAdapter } from './system-one/rule-adapter.js';
+
+/** F5: novelty-head budget gate (TODO16b: "novelty + budget pressure jointly trigger ProactiveEnricher"). */
+export interface EnricherSystemOneDeps {
+  adapter: SystemOneLMRuleAdapter;
+  /** Enrich only concepts scoring at or above this on a *fitted* novelty head (unfitted ⇒ gate inactive). */
+  minNovelty?: number;
+}
 
 export interface EnricherConfig {
   enableProactiveEnrichment: boolean;
@@ -87,14 +95,21 @@ export class ProactiveEnricher {
   private readonly lmService: LMService;
   private readonly config: EnricherConfig;
   private readonly logger: Logger;
+  private readonly systemOne?: EnricherSystemOneDeps;
   private enrichmentTimer?: NodeJS.Timeout;
   private enrichmentCycle = 0;
   private results: EnrichmentResult[] = [];
 
-  constructor(memory: Memory, lmService: LMService, config: Partial<EnricherConfig> = {}) {
+  constructor(
+    memory: Memory,
+    lmService: LMService,
+    config: Partial<EnricherConfig> = {},
+    systemOne?: EnricherSystemOneDeps
+  ) {
     this.memory = memory;
     this.lmService = lmService;
     this.logger = createLogger({ scope: 'lm:enrichment' });
+    this.systemOne = systemOne;
     this.config = {
       enableProactiveEnrichment: true,
       enrichmentIntervalMs: 60000,
@@ -222,6 +237,17 @@ Answer the question based on the available knowledge. If the answer cannot be de
   }
 
   private async enrichConcept(term: Term): Promise<EnrichmentResult> {
+    // F5 novelty gate: fitted novelty head must confirm the concept is worth
+    // spending LM budget on; unfitted/abstained heads leave the heuristic intact.
+    if (this.systemOne) {
+      const novelty = await this.systemOne.adapter.noveltyScore(term.toString());
+      if (novelty?.fitted && !novelty.abstained && novelty.score < (this.systemOne.minNovelty ?? 0.5)) {
+        this.logger.debug(`Skipping enrichment (novelty ${novelty.score.toFixed(2)} below threshold)`, {
+          term: term.toString(),
+        });
+        return { concept: term, hypotheses: [], bridges: [], explanations: [] };
+      }
+    }
     const hypothesisPrompt = this.buildHypothesisPrompt(term);
     let hypotheses: Task[] = [];
     let bridges: Task[] = [];
@@ -238,8 +264,8 @@ Answer the question based on the available knowledge. If the answer cannot be de
       );
     }
 
-    admitTasks(this.memory, hypotheses, 'llm');
-    admitTasks(this.memory, bridges, 'bridge-llm');
+    await admitTasks(this.memory, hypotheses, 'llm');
+    await admitTasks(this.memory, bridges, 'bridge-llm');
 
     return { concept: term, hypotheses, bridges, explanations: [] };
   }
@@ -256,7 +282,8 @@ Respond in Narsese format, one statement per line.`;
 export const createProactiveEnricher = (
   memory: Memory,
   lmService: LMService,
-  config?: Partial<EnricherConfig>
+  config?: Partial<EnricherConfig>,
+  systemOne?: EnricherSystemOneDeps
 ): ProactiveEnricher => {
-  return new ProactiveEnricher(memory, lmService, config);
+  return new ProactiveEnricher(memory, lmService, config, systemOne);
 };

@@ -56,6 +56,7 @@ export const symbolicFallbacks: Record<string, SymbolicFallback> = {
   'lm-curiosity-question': curiosityQuestionFallback,
   'lm-explanation-generation': () => null,
   'lm-belief-revision': () => null,
-  'lm-meta-reasoning': () => null,
+  // lm-meta-reasoning / lm-uncertainty-calibration: REPLACE dispositions (F5) —
+  // served by the System One rule adapter; no symbolic equivalent, no generative call.
   'lm-schema-induction': () => null,
 };

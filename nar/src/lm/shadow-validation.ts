@@ -5,8 +5,8 @@
  * rule's symbolic fallback stands.
  */
 import type { Term, Truth } from '../terms';
-import type { Task } from '../types';
 import type { JudgmentDataset } from '../lm/system-one/distill.js';
+import type { SystemOneLMRuleAdapter } from '../lm/system-one/rule-adapter.js';
 import { recordShadowVerdictLabel } from '../lm/system-one/label-sources.js';
 
 export interface BeliefLike {
@@ -23,12 +23,25 @@ export interface ShadowCheckOptions {
   distillationDataset?: JudgmentDataset;
 }
 
-const DEFAULTS = { maxFrequencyDelta: 0.3, cycles: 3, distillationDataset: undefined as JudgmentDataset | undefined };
+/** F5: conflict-head consumer — semantic conflict verdict alongside the frequency check. */
+export interface ShadowSystemOneDeps {
+  adapter: SystemOneLMRuleAdapter;
+  /** Reject when a fitted conflict head scores at or above this (unfitted/abstain ⇒ frequency check only). */
+  conflictThreshold?: number;
+}
+
+const DEFAULTS = {
+  maxFrequencyDelta: 0.3,
+  cycles: 3,
+  distillationDataset: undefined as JudgmentDataset | undefined,
+  conflictThreshold: 0.6,
+};
 
 export class ShadowValidator {
   private readonly maxFrequencyDelta: number;
   readonly cycles: number;
   #dataset?: JudgmentDataset;
+  #systemOne?: ShadowSystemOneDeps;
 
   constructor(options: ShadowCheckOptions = {}) {
     const { maxFrequencyDelta, cycles, distillationDataset } = { ...DEFAULTS, ...options };
@@ -58,6 +71,28 @@ export class ShadowValidator {
     return !hasConflict;
   }
 
+  /**
+   * F5: async validation adding the `conflict` head verdict. The semantic
+   * verdict engages only when the head reports `calibration.fitted === true`
+   * (Z2 convention — hash scorers are not load-bearing); abstain or unfitted
+   * heads fall back to the frequency check. Records the combined verdict.
+   */
+  async validateWithHead(candidate: BeliefLike, beliefs: readonly BeliefLike[]): Promise<boolean> {
+    const frequencyVerdict = this.validate(candidate, beliefs);
+    if (!this.#systemOne || !frequencyVerdict) return frequencyVerdict;
+
+    const verdict = await this.#systemOne.adapter.conflictScore(candidate.term.toString());
+    if (!verdict || verdict.abstained || !verdict.fitted) return frequencyVerdict;
+    const semanticConflict = verdict.score >= (this.#systemOne.conflictThreshold ?? DEFAULTS.conflictThreshold);
+    if (this.#dataset) {
+      recordShadowVerdictLabel(this.#dataset, {
+        derivationId: candidate.term.toString(),
+        verdict: semanticConflict ? 'conflict' : 'support',
+      });
+    }
+    return !semanticConflict;
+  }
+
   /** Filter a task list, keeping only shadow-valid candidates. */
   validateAll(candidates: readonly BeliefLike[], beliefs: readonly BeliefLike[]): BeliefLike[] {
     return candidates.filter((t) => this.validate(t, beliefs));
@@ -66,6 +101,11 @@ export class ShadowValidator {
   /** Set the distillation dataset for label recording (for singleton instance). */
   setDistillationDataset(dataset: JudgmentDataset): void {
     this.#dataset = dataset;
+  }
+
+  /** F5: wire the System One adapter powering the conflict-head verdict. */
+  setSystemOne(deps: ShadowSystemOneDeps): void {
+    this.#systemOne = deps;
   }
 }
 
