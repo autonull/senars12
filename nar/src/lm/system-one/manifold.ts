@@ -29,12 +29,14 @@ import {
   type RollingECEConfig,
   type DriftDemotionConfig,
 } from './calibration.js';
-import { createAllIngressHeads } from './heads/ingress.js';
-import { createAllActionHeads } from './heads/action.js';
-import { createAllSynthesisHeads } from './heads/synthesis.js';
-import { createAllMemoryHeads } from './heads/memory.js';
+import { createAllIngressHeads, type HeadFactoryOptions as IngressHeadFactoryOptions, type PerHeadConfig as IngressPerHeadConfig } from './heads/ingress.js';
+import { createAllActionHeads, type HeadFactoryOptions as ActionHeadFactoryOptions, type PerHeadConfig as ActionPerHeadConfig } from './heads/action.js';
+import { createAllSynthesisHeads, type HeadFactoryOptions as SynthesisHeadFactoryOptions, type PerHeadConfig as SynthesisPerHeadConfig } from './heads/synthesis.js';
+import { createAllMemoryHeads, type HeadFactoryOptions as MemoryHeadFactoryOptions, type PerHeadConfig as MemoryPerHeadConfig } from './heads/memory.js';
 import { recordJudgmentMetric } from '../../metrics/prometheus.js';
 import type { JudgmentResolvedEvent, CognitiveEvent } from '@senars/kernel/schemas';
+
+export type PerHeadConfig = IngressPerHeadConfig | ActionPerHeadConfig | SynthesisPerHeadConfig | MemoryPerHeadConfig;
 
 export interface ManifoldConfig {
   backendId: BackendId;
@@ -420,7 +422,7 @@ export class SystemOneManifold implements JudgmentManifold {
 
 export function createManifold(
   embeddingCache: EmbeddingCache,
-  config: Partial<ManifoldConfig> = {}
+  config: Partial<ManifoldConfig> & { perHeadConfig?: Record<string, PerHeadConfig> } = {}
 ): SystemOneManifold {
   const backendId = (config.backendId ?? 'encoder-wasm-s1') as BackendId;
   const modelDigest = (config.modelDigest ?? 'sha256:all-MiniLM-L6-v2-heads-v1') as ModelDigest;
@@ -428,8 +430,9 @@ export function createManifold(
 
   const heads = new Map<RubricId, JudgmentHead>();
   const abstainThreshold = config.abstainThreshold ?? 0.3;
+  const perHeadConfig = config.perHeadConfig ?? {};
 
-  const factoryOptions = { calibrationVersion, embeddingCache, abstainThreshold };
+  const factoryOptions = { calibrationVersion, embeddingCache, abstainThreshold, perHeadConfig };
 
   const ingressHeads = createAllIngressHeads(factoryOptions);
   const actionHeads = createAllActionHeads(factoryOptions);

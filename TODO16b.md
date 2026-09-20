@@ -986,6 +986,7 @@ All five original phases are complete; every §13 benchmark has a passing test s
 | Distillation + governed promotion (§9) | ✅ Shipped — Benches 10, 14; FeedbackLearner → dataset wired |
 | Edge, swarm, resource accounting (§10, §11) | ✅ Shipped — Bench 12 |
 | Telemetry (§11.2) | ✅ Shipped — `judgment.resolved` events + Prometheus metrics wired (R2 complete) |
+| Per-head config (§11.1) | ✅ Shipped — `createManifold` consumes per-head config; disabled heads abstain (R3 complete) |
 | Live integration | ⚠ `systemOne` config consumed only by `KernelPerceptionGate`; no NAR/agent assembly wiring; `groundednessGate` hook never constructed |
 
 ### Phase 6 — Refinements of Completed Work (R)
@@ -1011,8 +1012,14 @@ All five original phases are complete; every §13 benchmark has a passing test s
   - Proposition count == event count == metric delta
 - Acceptance met: proposition count == event count == metric delta for a batch; no event when `systemOne.enabled=false`
 
-**R3. Per-head config consumption.**
-`appConfigSchema.systemOne.manifold.heads` (`Record<HeadId, {modelDigest, calibrationVersion, abstainThreshold, enabled}>`) exists in the schema but `createManifold` accepts only a global `abstainThreshold`/`calibrationVersion`. Thread per-head config into head factories (merging with `heads/` defaults). Acceptance: disabling `heads.injection.enabled=false` in config yields the sabotage-flagged path, not silent removal (ties into `validateHeadCandidate` semantics).
+**R3. Per-head config consumption ✅ COMPLETE (2026-09-19).**
+`appConfigSchema.systemOne.manifold.heads` (`Record<HeadId, {modelDigest, calibrationVersion, abstainThreshold, enabled}>`) existed in the schema but `createManifold` accepted only a global `abstainThreshold`/`calibrationVersion`. Now threaded per-head config into head factories (merging with `heads/` defaults).
+- Added `PerHeadConfig` interface to `heads/ingress.ts`, `heads/action.ts`, `heads/synthesis.ts`, `heads/memory.ts`
+- Extended `HeadFactoryOptions` with optional `perHeadConfig?: Record<string, PerHeadConfig>`
+- Updated all head factory functions (`createTaskTypeHead`, `createIllocutionHead`, `createInjectionHead`, `createAmbiguityHead`, `createTenseHead`, `createSourceQualityHead`, `makeClassifyHead`, `makeEvaluateHead` in action/synthesis/memory) to consume per-head `calibrationVersion`, `abstainThreshold`, and `enabled`
+- Updated `createManifold` to accept `perHeadConfig` and pass it to all head factories
+- Disabled heads (`enabled: false`) return `abstained: true` with `abstainReason: 'out-of-domain'` — matches sabotage-flagged path semantics
+- All 91 TODO16 tests pass; `pnpm lint` clean; typecheck clean (pre-existing errors unrelated)
 
 **R4. Groundedness-gate factory.**
 `CycleHost.groundednessGate` / `AgentOptions.groundednessGate` is a pluggable hook with no constructor. Add `createGroundednessGate(manifold, cache, threshold=0.7)` in `nar/src/lm/system-one/` and document the wiring snippet for agents running with `systemOne.enabled`. Acceptance: gate returns false for ungrounded drafts (score < 0.7) and on abstention (fail-safe → template verbalization).

@@ -1,15 +1,28 @@
 import type { CognitiveAxis, EmbeddingCache, HeadResult, JudgmentHead, JudgmentQuery, RubricId, CalibrationVersion } from '../types.js';
 import { createIsotonicCalibrator, type IsotonicCalibrator } from '../calibration.js';
 
+export interface PerHeadConfig {
+  modelDigest: string;
+  calibrationVersion: CalibrationVersion;
+  abstainThreshold: number;
+  enabled: boolean;
+}
+
 export interface HeadFactoryOptions {
   calibrationVersion: CalibrationVersion;
   embeddingCache: EmbeddingCache;
   abstainThreshold: number;
+  perHeadConfig?: Record<string, PerHeadConfig>;
 }
 
 export function createTaskTypeHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'task_type');
+  const { calibrationVersion, embeddingCache, abstainThreshold, perHeadConfig } = options;
+  const headConfig = perHeadConfig?.task_type;
+  const effectiveCalibrationVersion = headConfig?.calibrationVersion ?? calibrationVersion;
+  const effectiveAbstainThreshold = headConfig?.abstainThreshold ?? abstainThreshold;
+  const enabled = headConfig?.enabled ?? true;
+
+  const calibrator = createIsotonicCalibrator(effectiveCalibrationVersion, 'task_type');
   const space = ['belief', 'goal', 'question', 'command'] as const;
 
   return {
@@ -17,10 +30,19 @@ export function createTaskTypeHead(options: HeadFactoryOptions): JudgmentHead {
     axis: 'epistemic',
     space,
     evaluate: async (embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult> => {
+      if (!enabled) {
+        return {
+          score: 0,
+          distribution: space.map((opt) => ({ option: opt, p: 1 / space.length })),
+          abstained: true,
+          abstainReason: 'out-of-domain',
+        };
+      }
+
       const rawScore = computeTaskTypeScore(embedding, query);
       const calibratedScore = calibrator.calibrate(rawScore);
 
-      if (calibratedScore < abstainThreshold) {
+      if (calibratedScore < effectiveAbstainThreshold) {
         return {
           score: calibratedScore,
           distribution: space.map((opt, i) => ({ option: opt, p: i === 0 ? 0.25 : 0.25 })),
@@ -41,8 +63,13 @@ export function createTaskTypeHead(options: HeadFactoryOptions): JudgmentHead {
 }
 
 export function createIllocutionHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'illocution');
+  const { calibrationVersion, embeddingCache, abstainThreshold, perHeadConfig } = options;
+  const headConfig = perHeadConfig?.illocution;
+  const effectiveCalibrationVersion = headConfig?.calibrationVersion ?? calibrationVersion;
+  const effectiveAbstainThreshold = headConfig?.abstainThreshold ?? abstainThreshold;
+  const enabled = headConfig?.enabled ?? true;
+
+  const calibrator = createIsotonicCalibrator(effectiveCalibrationVersion, 'illocution');
   const space = ['assert', 'query', 'command', 'promise', 'express'] as const;
 
   return {
@@ -50,10 +77,14 @@ export function createIllocutionHead(options: HeadFactoryOptions): JudgmentHead 
     axis: 'epistemic',
     space,
     evaluate: async (embedding: Float32Array, query: JudgmentQuery) => {
+      if (!enabled) {
+        return { score: 0, distribution: space.map((opt) => ({ option: opt, p: 1 / space.length })), abstained: true, abstainReason: 'out-of-domain' };
+      }
+
       const rawScore = computeIllocutionScore(embedding, query);
       const calibratedScore = calibrator.calibrate(rawScore);
 
-      if (calibratedScore < abstainThreshold) {
+      if (calibratedScore < effectiveAbstainThreshold) {
         return { score: calibratedScore, distribution: space.map((opt, i) => ({ option: opt, p: 1 / space.length })), abstained: true, abstainReason: 'low-confidence' };
       }
 
@@ -65,8 +96,13 @@ export function createIllocutionHead(options: HeadFactoryOptions): JudgmentHead 
 }
 
 export function createInjectionHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'injection');
+  const { calibrationVersion, embeddingCache, abstainThreshold, perHeadConfig } = options;
+  const headConfig = perHeadConfig?.injection;
+  const effectiveCalibrationVersion = headConfig?.calibrationVersion ?? calibrationVersion;
+  const effectiveAbstainThreshold = headConfig?.abstainThreshold ?? abstainThreshold;
+  const enabled = headConfig?.enabled ?? true;
+
+  const calibrator = createIsotonicCalibrator(effectiveCalibrationVersion, 'injection');
   const levels = ['none', 'low', 'medium', 'high', 'critical'] as const;
 
   return {
@@ -74,10 +110,14 @@ export function createInjectionHead(options: HeadFactoryOptions): JudgmentHead {
     axis: 'epistemic',
     levels,
     evaluate: async (embedding: Float32Array, query: JudgmentQuery) => {
+      if (!enabled) {
+        return { score: 0, abstained: true, abstainReason: 'out-of-domain' };
+      }
+
       const rawScore = computeInjectionScore(embedding, query);
       const calibratedScore = calibrator.calibrate(rawScore);
 
-      const abstained = calibratedScore < abstainThreshold;
+      const abstained = calibratedScore < effectiveAbstainThreshold;
       return {
         score: calibratedScore,
         abstained,
@@ -88,8 +128,13 @@ export function createInjectionHead(options: HeadFactoryOptions): JudgmentHead {
 }
 
 export function createAmbiguityHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'ambiguity');
+  const { calibrationVersion, embeddingCache, abstainThreshold, perHeadConfig } = options;
+  const headConfig = perHeadConfig?.ambiguity;
+  const effectiveCalibrationVersion = headConfig?.calibrationVersion ?? calibrationVersion;
+  const effectiveAbstainThreshold = headConfig?.abstainThreshold ?? abstainThreshold;
+  const enabled = headConfig?.enabled ?? true;
+
+  const calibrator = createIsotonicCalibrator(effectiveCalibrationVersion, 'ambiguity');
   const levels = ['clear', 'slight', 'moderate', 'high', 'severe'] as const;
 
   return {
@@ -97,10 +142,14 @@ export function createAmbiguityHead(options: HeadFactoryOptions): JudgmentHead {
     axis: 'epistemic',
     levels,
     evaluate: async (embedding: Float32Array, query: JudgmentQuery) => {
+      if (!enabled) {
+        return { score: 0, abstained: true, abstainReason: 'out-of-domain' };
+      }
+
       const rawScore = computeAmbiguityScore(embedding, query);
       const calibratedScore = calibrator.calibrate(rawScore);
 
-      const abstained = calibratedScore < abstainThreshold;
+      const abstained = calibratedScore < effectiveAbstainThreshold;
       return {
         score: calibratedScore,
         abstained,
@@ -111,8 +160,13 @@ export function createAmbiguityHead(options: HeadFactoryOptions): JudgmentHead {
 }
 
 export function createTenseHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'tense');
+  const { calibrationVersion, embeddingCache, abstainThreshold, perHeadConfig } = options;
+  const headConfig = perHeadConfig?.tense;
+  const effectiveCalibrationVersion = headConfig?.calibrationVersion ?? calibrationVersion;
+  const effectiveAbstainThreshold = headConfig?.abstainThreshold ?? abstainThreshold;
+  const enabled = headConfig?.enabled ?? true;
+
+  const calibrator = createIsotonicCalibrator(effectiveCalibrationVersion, 'tense');
   const space = ['past', 'present', 'future', 'timeless'] as const;
 
   return {
@@ -120,10 +174,14 @@ export function createTenseHead(options: HeadFactoryOptions): JudgmentHead {
     axis: 'epistemic',
     space,
     evaluate: async (embedding: Float32Array, query: JudgmentQuery) => {
+      if (!enabled) {
+        return { score: 0, distribution: space.map((opt) => ({ option: opt, p: 1 / space.length })), abstained: true, abstainReason: 'out-of-domain' };
+      }
+
       const rawScore = computeTenseScore(embedding, query);
       const calibratedScore = calibrator.calibrate(rawScore);
 
-      if (calibratedScore < abstainThreshold) {
+      if (calibratedScore < effectiveAbstainThreshold) {
         return { score: calibratedScore, distribution: space.map((opt, i) => ({ option: opt, p: 1 / space.length })), abstained: true, abstainReason: 'low-confidence' };
       }
 
@@ -135,8 +193,13 @@ export function createTenseHead(options: HeadFactoryOptions): JudgmentHead {
 }
 
 export function createSourceQualityHead(options: HeadFactoryOptions): JudgmentHead {
-  const { calibrationVersion, embeddingCache, abstainThreshold } = options;
-  const calibrator = createIsotonicCalibrator(calibrationVersion, 'source_quality');
+  const { calibrationVersion, embeddingCache, abstainThreshold, perHeadConfig } = options;
+  const headConfig = perHeadConfig?.source_quality;
+  const effectiveCalibrationVersion = headConfig?.calibrationVersion ?? calibrationVersion;
+  const effectiveAbstainThreshold = headConfig?.abstainThreshold ?? abstainThreshold;
+  const enabled = headConfig?.enabled ?? true;
+
+  const calibrator = createIsotonicCalibrator(effectiveCalibrationVersion, 'source_quality');
   const space = ['PRIMARY', 'SECONDARY', 'GENERAL', 'TERTIARY', 'LLM_PRIOR', 'PEER_AGENT'] as const;
 
   return {
@@ -144,10 +207,14 @@ export function createSourceQualityHead(options: HeadFactoryOptions): JudgmentHe
     axis: 'epistemic',
     space,
     evaluate: async (embedding: Float32Array, query: JudgmentQuery) => {
+      if (!enabled) {
+        return { score: 0, distribution: space.map((opt) => ({ option: opt, p: 1 / space.length })), abstained: true, abstainReason: 'out-of-domain' };
+      }
+
       const rawScore = computeSourceQualityScore(embedding, query);
       const calibratedScore = calibrator.calibrate(rawScore);
 
-      if (calibratedScore < abstainThreshold) {
+      if (calibratedScore < effectiveAbstainThreshold) {
         return { score: calibratedScore, distribution: space.map((opt, i) => ({ option: opt, p: 1 / space.length })), abstained: true, abstainReason: 'low-confidence' };
       }
 
