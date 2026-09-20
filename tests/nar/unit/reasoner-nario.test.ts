@@ -178,16 +178,14 @@ describe('NARIO', () => {
       timestamp: new Date().toISOString(),
     };
 
-    nario.import(state);
+    await nario.import(state);
 
     const concepts = nar.memory.listConcepts();
     expect(concepts.length).toBeGreaterThan(0);
   });
 
-  it('should handle invalid import data', () => {
-    expect(() => {
-      nario.import({} as any);
-    }).toThrow('Invalid import data');
+  it('should handle invalid import data', async () => {
+    await expect(nario.import({} as any)).rejects.toThrow('Invalid import data');
   });
 
   it('should get memory state', async () => {

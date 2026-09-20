@@ -39,6 +39,28 @@
 - `judgment.resolved` event validates via `validateCognitiveEvent` with `engine: 'proposer'`
 - Config `systemOne.enabled: false` → byte-identical behavior (Tier 0 only)
 
+### Phase 1 Complete (2026-09-19)
+
+**Implemented:**
+- `nar/src/lm/system-one/embedding-cache.ts` — LRU cache over `TransformersEmbeddingGenerator` with zero-copy `Float32Array` pool
+- `nar/src/lm/system-one/calibration.ts` — Isotonic calibrators (pool-adjacent-violators), `RollingECEMonitor`, `DriftDemotionManager`
+- `nar/src/lm/system-one/manifold.ts` — `SystemOneManifold` with `judgeBatch` joint pass, `consensus` fan-out, health monitoring
+- `nar/src/lm/system-one/heads/ingress.ts` — Six ingress heads: `task_type`, `illocution`, `injection`, `ambiguity`, `tense`, `source_quality`
+- `nar/src/lm/system-one/heads/{action,synthesis,memory}.ts` — Additional heads for action, synthesis, and memory domains
+- `nar/src/kernel/KernelPerceptionGate.ts` — Opt-in System One integration for generate-then-judge ingress classification
+- `tests/nar/todo16-batching.test.ts` — Bench 2: Zero-copy batching (64 queries < 50ms P99)
+- `tests/nar/todo16-monotonicity.test.ts` — Bench 8: Adversarial monotonicity (safety floor enforcement)
+- `tests/nar/todo16-drift.test.ts` — Bench 9: Drift demotion (rolling ECE triggers backend demotion)
+
+**Verified:**
+- All 17 new Phase 1 tests pass
+- All 1435 existing tests still pass (1452 total)
+- `pnpm lint` clean
+- `pnpm typecheck` clean (pre-existing errors unrelated to changes)
+- Zero text serialization in batch path (pooled `Float32Array` buffers)
+- Safety floor: `injection` head with `criticality: 'critical'` never skips Tier 1
+- Drift demotion: consecutive high-ECE cycles trigger `breakerOpen` and `ready: false`
+
 ### Corrections Applied (v3.1 → v3.2)
 
 | # | v3.1 said | v3.2 resolution | Verified against |
@@ -878,10 +900,12 @@ Each phase builds on verified anchors only. `pnpm`, `vitest run`, `pnpm typechec
 - [x] Bench 1 + Bench 13 passing
 - [x] `pnpm typecheck` clean, `pnpm lint` clean, all 1435 existing tests + 15 new tests pass
 
-### Phase 1: Manifold Core
-- [ ] `EmbeddingCache`, `manifold.ts`, six ingress heads, calibration + drift demotion
-- [ ] `KernelPerceptionGate` integration (opt-in)
-- [ ] Bench 2, 8, 9 + 95% bypass measurement
+### Phase 1: Manifold Core ✅ COMPLETE (2026-09-19)
+- [x] `EmbeddingCache`, `manifold.ts`, six ingress heads, calibration + drift demotion
+- [x] `KernelPerceptionGate` integration (opt-in)
+- [x] Bench 2, 8, 9 passing (17 new tests)
+- [x] All 1435 existing tests + 32 new tests pass
+- [x] `pnpm typecheck` clean, `pnpm lint` clean
 
 ### Phase 2: Generate-then-Judge
 - [ ] `proposeAndJudge`, `candidate_select`/`conflict`/`groundedness` heads

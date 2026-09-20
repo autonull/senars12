@@ -7,9 +7,9 @@ import { KernelRewardGate } from '../../nar/src/kernel/KernelRewardGate.js';
 import { atom, TermBuilder } from '../../nar/src/terms/index.js';
 
 describe('kernel gates', () => {
-  it('perception admits valid observation and admitTask preserves truth', () => {
+  it('perception admits valid observation and admitTask preserves truth', async () => {
     const gate = new KernelPerceptionGate();
-    const out = gate.admit({
+    const out = await gate.admit({
       sourceId: 'user-cli',
       rawObservation: '(cat --> animal).',
       sensorConfidence: 1,
@@ -29,9 +29,9 @@ describe('kernel gates', () => {
     void TermBuilder;
   });
 
-  it('perception rejects unparseable observation', () => {
+  it('perception rejects unparseable observation', async () => {
     const gate = new KernelPerceptionGate();
-    const out = gate.admit({
+    const out = await gate.admit({
       sourceId: 'sensor',
       rawObservation: 42,
       sensorConfidence: 1,

@@ -85,7 +85,7 @@ describe('System One — Thermodynamic Fallback (Bench 13)', () => {
     expect(result.provisional).toHaveLength(0);
   });
 
-  it('KernelPerceptionGate still admits tasks when System One disabled', () => {
+  it('KernelPerceptionGate still admits tasks when System One disabled', async () => {
     const gate = new KernelPerceptionGate();
     const input = {
       sourceId: 'test',
@@ -93,7 +93,7 @@ describe('System One — Thermodynamic Fallback (Bench 13)', () => {
       sensorConfidence: 0.9,
       sourceQuality: 'PRIMARY' as const,
     };
-    const output = gate.admit(input);
+    const output = await gate.admit(input);
     expect(output.admitted).toBe(true);
     expect(output.task).toBeDefined();
     expect(output.task?.source).toBe('user');

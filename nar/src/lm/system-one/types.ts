@@ -1,12 +1,32 @@
 import type { SourceQuality, ReasoningBudget } from '@senars/kernel/schemas';
 
-export type { ReasoningBudget };
+export type { ReasoningBudget, SourceQuality };
 
 export type BackendId = string & { readonly __brand: 'BackendId' };
 export type ModelDigest = string & { readonly __brand: 'ModelDigest' };
 export type CalibrationVersion = string & { readonly __brand: 'CalibrationVersion' };
 export type QueryId = string & { readonly __brand: 'QueryId' };
 export type EmbeddingPointer = number & { readonly __brand: 'EmbeddingPointer' };
+
+export interface EmbeddingCache {
+  write(text: string): Promise<EmbeddingPointer>;
+  read(pointer: EmbeddingPointer): Float32Array | undefined;
+}
+
+export interface JudgmentHead {
+  readonly rubric: RubricId | 'classify';
+  readonly axis: CognitiveAxis;
+  readonly space?: readonly string[];
+  readonly levels?: readonly string[];
+  evaluate(embedding: Float32Array, query: JudgmentQuery): Promise<HeadResult>;
+}
+
+export interface HeadResult {
+  score: number;
+  distribution?: readonly { option: string; p: number }[];
+  abstained: boolean;
+  abstainReason?: 'low-confidence' | 'out-of-domain' | 'timeout' | 'breaker-open';
+}
 
 export type RubricId =
   | 'ambiguity'
@@ -26,7 +46,8 @@ export type RubricId =
   | 'risk'
   | 'candidate_select'
   | 'reflex_value'
-  | 'strategy';
+  | 'strategy'
+  | 'episodic_match';
 
 export type CognitiveAxis = 'epistemic' | 'teleological';
 export type CriticalityLevel = 'low' | 'standard' | 'high' | 'critical';

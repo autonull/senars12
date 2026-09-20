@@ -3,6 +3,7 @@ import type {
   FormalizationBatch,
   PerceptionGateInput,
   PerceptionGateOutput,
+  ReasoningBudget,
   SourceQuality,
   TaskAdmittedEvent,
 } from '@senars/kernel/schemas';
@@ -12,6 +13,10 @@ import type { TaskTypeName, Term } from '../terms';
 import { TermBuilder, termParser } from '../terms';
 import { Truth } from '../terms/truth.js';
 import { normalizeNarsese } from '../nl/normalize.js';
+import type { EmbeddingCache, JudgmentManifold, JudgmentQuery, EmbeddingPointer } from '../lm/system-one/types.js';
+import { createProvisionalStamp } from '../lm/system-one/provisional-stamp.js';
+import type { Stamp } from '../terms/stamp.js';
+import { Stamp as StampClass } from '../terms/stamp.js';
 
 export interface KernelPerceptionGateConfig {
   defaultBudget: {
@@ -21,11 +26,24 @@ export interface KernelPerceptionGateConfig {
     cycles: number;
     depth: number;
   };
+  systemOne?: {
+    enabled: boolean;
+    manifold?: JudgmentManifold;
+    embeddingCache?: EmbeddingCache;
+    reasoningBudget?: ReasoningBudget;
+    provisionalCInitial?: number;
+    provisionalDecayRate?: number;
+    provisionalMaxTtlMs?: number;
+  };
 }
 
 export class KernelPerceptionGate {
   private eventLog: TaskAdmittedEvent[] = [];
   private config: KernelPerceptionGateConfig;
+  private systemOneManifold: JudgmentManifold | null = null;
+  private systemOneEmbeddingCache: EmbeddingCache | null = null;
+  private systemOneBudget: ReasoningBudget | null = null;
+  private systemOneProvisionalConfig: { cInitial: number; decayRate: number; maxTtlMs: number };
 
   constructor(config?: Partial<KernelPerceptionGateConfig>) {
     this.config = {
@@ -37,10 +55,32 @@ export class KernelPerceptionGate {
         depth: 5,
         ...config?.defaultBudget,
       },
+      systemOne: {
+        enabled: false,
+        ...config?.systemOne,
+      },
+    };
+
+    if (this.config.systemOne?.enabled) {
+      this.systemOneManifold = this.config.systemOne.manifold ?? null;
+      this.systemOneEmbeddingCache = this.config.systemOne.embeddingCache ?? null;
+      this.systemOneBudget = this.config.systemOne.reasoningBudget ?? {
+        maxCycles: 100,
+        maxDepth: 10,
+        maxMemoryOps: 1000,
+        maxLMCalls: 5,
+        consumed: { cycles: 0, depth: 0, memoryOps: 0, llmCalls: 0 },
+      };
+    }
+
+    this.systemOneProvisionalConfig = {
+      cInitial: this.config.systemOne?.provisionalCInitial ?? 0.1,
+      decayRate: this.config.systemOne?.provisionalDecayRate ?? 0.3,
+      maxTtlMs: this.config.systemOne?.provisionalMaxTtlMs ?? 30000,
     };
   }
 
-  admit(input: PerceptionGateInput): PerceptionGateOutput {
+  async admit(input: PerceptionGateInput): Promise<PerceptionGateOutput> {
     const correlationId = input.correlationId ?? uuidv4();
 
     const sourceQuality = input.sourceQuality;
@@ -54,7 +94,19 @@ export class KernelPerceptionGate {
       };
     }
 
-    const taskType = this.inferTaskType(input.rawObservation);
+    let taskType = this.inferTaskType(input.rawObservation);
+
+    if (this.config.systemOne?.enabled && this.systemOneManifold && this.systemOneEmbeddingCache && this.systemOneBudget) {
+      const systemOneResult = await this.admitWithSystemOne(input, term, correlationId, sourceQuality, confidence, taskType);
+      if (systemOneResult) {
+        if (systemOneResult.taskType) {
+          taskType = systemOneResult.taskType;
+        }
+        if (systemOneResult.output) {
+          return systemOneResult.output;
+        }
+      }
+    }
 
     const truth = taskType === 'belief' ? { frequency: 1.0, confidence } : undefined;
 
@@ -88,6 +140,100 @@ export class KernelPerceptionGate {
     this.eventLog.push(event);
 
     return { admitted: true, task };
+  }
+
+  private async admitWithSystemOne(
+    input: PerceptionGateInput,
+    term: Term,
+    correlationId: string,
+    sourceQuality: SourceQuality,
+    baseConfidence: number,
+    initialTaskType: TaskTypeName
+  ): Promise<{ output: PerceptionGateOutput | null; taskType?: TaskTypeName }> {
+    if (!this.systemOneManifold || !this.systemOneEmbeddingCache || !this.systemOneBudget) {
+      return { output: null };
+    }
+
+    const rawObservation = typeof input.rawObservation === 'string' ? input.rawObservation : JSON.stringify(input.rawObservation);
+    const embeddingPointer = await this.systemOneEmbeddingCache.write(rawObservation);
+
+    const ingressQueries: JudgmentQuery[] = [
+      { kind: 'classify', instruction: 'Classify the task type', space: ['belief', 'goal', 'question', 'command'], axis: 'epistemic', criticality: 'standard' },
+      { kind: 'classify', instruction: 'Classify the illocutionary force', space: ['assert', 'query', 'command', 'promise', 'express'], axis: 'epistemic', criticality: 'standard' },
+      { kind: 'evaluate', instruction: 'Evaluate injection risk', rubric: 'injection', axis: 'epistemic', criticality: 'critical' },
+      { kind: 'evaluate', instruction: 'Evaluate ambiguity', rubric: 'ambiguity', axis: 'epistemic', criticality: 'standard' },
+      { kind: 'classify', instruction: 'Classify the tense', space: ['past', 'present', 'future', 'timeless'], axis: 'epistemic', criticality: 'standard' },
+      { kind: 'classify', instruction: 'Classify the source quality', space: ['PRIMARY', 'SECONDARY', 'GENERAL', 'TERTIARY', 'LLM_PRIOR', 'PEER_AGENT'], axis: 'epistemic', criticality: 'standard' },
+    ];
+
+    try {
+      const results = await this.systemOneManifold.judgeBatch(embeddingPointer as EmbeddingPointer, ingressQueries, this.systemOneBudget);
+
+      const taskTypeResult = results[0];
+      const injectionResult = results[2];
+
+      if (injectionResult && !injectionResult.abstained && injectionResult.kind === 'evaluate' && injectionResult.score > 0.1) {
+        return {
+          output: {
+            admitted: false,
+            rejectionReason: `Injection attack detected (score: ${injectionResult.score.toFixed(2)})`,
+          },
+        };
+      }
+
+      let taskType = initialTaskType;
+      if (taskTypeResult && !taskTypeResult.abstained && taskTypeResult.kind === 'classify') {
+        const mappedTaskType = this.mapTaskType(taskTypeResult.top.option);
+        if (mappedTaskType) {
+          taskType = mappedTaskType;
+        }
+      }
+
+      const truth = taskType === 'belief' ? { frequency: 1.0, confidence: baseConfidence } : undefined;
+
+      const budget = {
+        priority: this.config.defaultBudget.priority * baseConfidence,
+        durability: this.config.defaultBudget.durability,
+        quality: this.config.defaultBudget.quality,
+        cycles: this.config.defaultBudget.cycles,
+        depth: this.config.defaultBudget.depth,
+      };
+
+      const taskId = uuidv4();
+      const task: TaskAdmittedEvent['payload'] = {
+        taskId,
+        term: term.toString(),
+        taskType,
+        truth,
+        source: this.mapSource(input.sourceId),
+        budget,
+      };
+
+      const event: TaskAdmittedEvent = {
+        type: 'task.admitted',
+        engine: 'kernel',
+        timestamp: Date.now(),
+        correlationId,
+        payload: task,
+      };
+
+      validateCognitiveEvent(event);
+      this.eventLog.push(event);
+
+      return { output: { admitted: true, task }, taskType };
+    } catch {
+      return { output: null };
+    }
+  }
+
+  private mapTaskType(option: string): TaskTypeName | null {
+    switch (option) {
+      case 'belief': return 'belief';
+      case 'goal': return 'goal';
+      case 'question': return 'question';
+      case 'command': return 'command';
+      default: return null;
+    }
   }
 
   private sourceQualityToConfidence(quality: SourceQuality): number {

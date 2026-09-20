@@ -11,6 +11,7 @@ import type { Truth as TruthType } from './terms/truth.js';
 import type { TaskType } from './types';
 import { createBudget, type EventBus } from './types';
 import type { EventBus as NarEventBus } from './types/events.js';
+import type { PerceptionGateOutput } from '@senars/kernel/schemas';
 
 interface SerializedNARState {
   concepts: Array<{ term: string; priority: number }>;
@@ -60,7 +61,7 @@ export class NARIO {
       return;
     }
 
-    this.addTask(parsedTerm, type, truth ?? parsedTruth ?? Truth.TRUE);
+    await this.addTask(parsedTerm, type, truth ?? parsedTruth ?? Truth.TRUE);
   }
 
   async believe(input: string | Term, truth?: TruthType): Promise<void> {
@@ -86,7 +87,7 @@ export class NARIO {
     };
   }
 
-  import(data: SerializedNARState): void {
+  async import(data: SerializedNARState): Promise<void> {
     if (!data.concepts || !Array.isArray(data.concepts)) {
       throw new Error('Invalid import data');
     }
@@ -96,7 +97,7 @@ export class NARIO {
         const term = termParser.parse(concept.term);
         if (!term) continue;
 
-        const result = this.perceptionGate.admit({
+        const result: PerceptionGateOutput = await this.perceptionGate.admit({
           sourceId: 'import',
           rawObservation: concept.term,
           sensorConfidence: 0.9,
@@ -138,11 +139,11 @@ export class NARIO {
     }
   }
 
-  private addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): void {
+  private async addTask(term: Term, type: TaskType, truth: TruthType = Truth.NEUTRAL): Promise<void> {
     const budget = createBudget(truth.f * truth.c);
     const wasNew = !this.memory.getConcept(term);
 
-    const result = this.perceptionGate.admit({
+    const result: PerceptionGateOutput = await this.perceptionGate.admit({
       sourceId: 'nar-io',
       rawObservation: term.toString(),
       sensorConfidence: truth.c,

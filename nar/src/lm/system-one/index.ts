@@ -4,3 +4,7 @@ export * from './desire.js';
 export * from './seed.js';
 export * from './provisional-stamp.js';
 export * from './dispatcher.js';
+export * from './embedding-cache.js';
+export * from './calibration.js';
+export * from './manifold.js';
+export * from './heads/index.js';
